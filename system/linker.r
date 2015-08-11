@@ -137,9 +137,9 @@ linker: context [
 			append buffer form-struct record
 		]
 		
-		data-buf: job/sections/data/2		
-		spec: find job/symbols '__debug-lines
-		spec/<data>/2: length? data-buf				;-- patch __debug-lines symbol to point to 1st record
+		data-buf: job/sections/data/2
+		set-ptr job '__debug-lines length? data-buf	;-- patch __debug-lines symbol to point to 1st record
+		set-integer job '__debug-lines-nb (length? records) / 3
 		
 		repend data-buf [buffer strings]
 	]
@@ -185,7 +185,7 @@ linker: context [
 			append buffer form-struct record
 		]
 		data-buf: job/sections/data/2
-		set-ptr job '__debug-funcs	length? data-buf
+		set-ptr job '__debug-funcs length? data-buf		;-- patch __debug-funcs symbol to point to 1st record
 		set-integer job '__debug-funcs-nb nb
 		
 		repend data-buf [buffer specs]

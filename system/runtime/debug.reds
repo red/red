@@ -27,21 +27,27 @@ __func-record!: alias struct! [				;-- debug lines records associating code addr
 __debug-lines: declare __line-record!		;-- pointer to first debug-lines record (set at link-time)
 __debug-funcs: declare __func-record!		;-- pointer to first debug-funcs record (set at link-time)
 
-__debug-lines-nb: 0
-__debug-funcs-nb: 0
+__debug-lines-nb: 0							;-- number of line records to consult (set at link-time)
+__debug-funcs-nb: 0							;-- number of function records to consult (set at link-time)
 
 ;-------------------------------------------
 ;-- Calculate line number for a runtime error and print it (internal function).
 ;-------------------------------------------
 __print-debug-line: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local base records
+	/local base records nb
 ][
 	records: __debug-lines
 	base: as byte-ptr! records
 
+	nb: __debug-lines-nb
 	while [records/address < address][		;-- search for the closest record
 		records: records + 1
+		nb: nb - 1
+		if zero? nb [
+			print [lf "*** Cannot determine source file/line info." lf]
+			exit
+		]
 	]
 	if records/address > address [			;-- if not an exact match, use the closest lower record
 		records: records - 1
