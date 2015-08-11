@@ -10,7 +10,9 @@ Red/System [
 	}
 ]
 
-
+;-------------------------------------------
+;-- Print a given number of characters at max from a c-string
+;-------------------------------------------
 prin-only: func [s [c-string!] len [integer!] return: [c-string!] /local p][
 	p: s
 	while [p/1 <> null-byte][
@@ -22,6 +24,9 @@ prin-only: func [s [c-string!] len [integer!] return: [c-string!] /local p][
 	s
 ]
 
+;-------------------------------------------
+;-- Print a byte value in source format (MOLD-ed format)
+;-------------------------------------------
 prin-molded-byte: func [b [byte!] /local i][
 	prin {#"}
 	i: as-integer b
