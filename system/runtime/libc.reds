@@ -131,6 +131,7 @@ Red/System [
 	#define prin			[red/platform/prin*]
 	#define prin-int		[red/platform/prin-int*]
 	#define prin-hex		[red/platform/prin-hex*]
+	#define prin-2hex		[red/platform/prin-2hex*]
 	#define prin-float		[red/platform/prin-float*]
 	#define prin-float32	[red/platform/prin-float32*]
 	
@@ -146,6 +147,11 @@ Red/System [
 
 	prin-int: func [i [integer!] return: [integer!]][
 		printf ["%i" i]
+		i
+	]
+	
+	prin-2hex: func [i [integer!] return: [integer!]][
+		printf ["%02X" i]
 		i
 	]
 

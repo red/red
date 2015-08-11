@@ -65,6 +65,8 @@ __print-debug-stack: func [
 	ret:	as int-ptr! address
 	top:	frame + 2
 	
+	print-line "***"
+	
 	until [
 		nb: __debug-funcs-nb
 		records: __debug-funcs
@@ -98,21 +100,22 @@ __print-debug-stack: func [
 					print #" "
 					value: top/value
 					switch as-integer s/1 [
-						type-logic!	   [print either as-logic value ["true"]["false"]]
-						type-integer!  [prin-int value]
-						type-byte!	   [printf [{#"^(%02X)"} value]]
-						type-float32!  [prin-float32 as float32! value]
+						type-logic!	   [print as-logic value]
+						type-integer!  [print value]
+						type-byte!	   [prin-molded-byte as byte! value]
+						type-float32!  [print as float32! value]
 						type-float!	   [
 							pf: as pointer! [float!] top
 							prin-float pf/value
 							top: top + 1
 						]
-						type-c-string! [printf [{"%20s"} as-c-string value]]
-						type-byte-ptr!
-						type-int-ptr!
-						type-function!
-						100		  	   [prin-hex value print #"h"] ;-- 100 => struct!
-						default 	   [0]			;-- catch all, just in case...
+						type-c-string! [
+							prin-byte #"^""
+							prin-only as-c-string value 12
+							if 12 < length? as-c-string value [prin-byte #">"]
+							prin-byte #"^""
+						]
+						default		   [print [as byte-ptr! value #"h"]]
 					]
 					top: top + 1
 					s: s + 1

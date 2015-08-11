@@ -10,6 +10,33 @@ Red/System [
 	}
 ]
 
+
+prin-only: func [s [c-string!] len [integer!] return: [c-string!] /local p][
+	p: s
+	while [p/1 <> null-byte][
+		if zero? len [break]
+		prin-byte p/1
+		p: p + 1
+		len: len - 1
+	]
+	s
+]
+
+prin-molded-byte: func [b [byte!] /local i][
+	prin {#"}
+	i: as-integer b
+	case [
+		i =  00h [prin "^^@"]
+		i =  09h [prin "^^-"]
+		i =  0Ah [prin "^^/"]
+		i =  1Bh [prin "^^]"]
+		i <= 1Fh [prin-byte #"^^" prin-byte #"A" + i - 1]
+		i <= 7Fh [prin-byte b]
+		i <= FFh [prin "^^(" prin-2hex i prin-byte #")"]
+	]
+	prin-byte #"^""
+]
+
 ;-------------------------------------------
 ;-- Print in console a single byte as an ASCII character
 ;-------------------------------------------

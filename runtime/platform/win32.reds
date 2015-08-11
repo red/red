@@ -415,6 +415,12 @@ platform: context [
 		i
 	]
 
+	prin-2hex*: func [i [integer!] return: [integer!]][
+		wprintf ["%^(00)0^(00)2^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
+		fflush null
+		i
+	]
+	
 	prin-hex*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
 		fflush null

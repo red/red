@@ -190,7 +190,12 @@ prin*: func [
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
-	printf ["%i" i]									;-- UTF-8 literal string
+	printf ["%i" i]										;-- UTF-8 literal string
+	i
+]
+
+prin-2hex*: func [i [integer!] return: [integer!]][
+	printf ["%02X" i]									;-- UTF-8 literal string
 	i
 ]
 
