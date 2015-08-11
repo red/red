@@ -68,6 +68,7 @@ image: context [
 		/local
 			img   [red-image!]
 			str   [red-string!]
+			len   [integer!]
 			file? [logic!]
 	][
 		img: as red-image! slot
@@ -82,7 +83,12 @@ image: context [
 			src: str
 		]
 		img/node: as node! load-image
-			#either OS = 'Windows [unicode/to-utf16][unicode/to-utf8] src
+			#either OS = 'Windows [
+				unicode/to-utf16 src
+			][
+				len: -1
+				unicode/to-utf8 src :len
+			]
 		;if file? [stack/pop 1]							;@@ FIX it, seems it is a bug
 		img
 	]

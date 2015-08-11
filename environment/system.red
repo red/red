@@ -138,7 +138,8 @@ system: context [
 			access: object [
 				code:				500
 				type:				"Access error"
-				;cannot-open:		["cannot open:" :arg1 "reason:" :arg2]
+				cannot-open:		["cannot open:" :arg1]
+				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
 				;not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
 				;no-connect:		["cannot connect:" :arg1 "reason:" :arg2]

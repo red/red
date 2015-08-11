@@ -80,11 +80,20 @@ unicode: context [
 			]
 		]
 	]
-	
+
 	to-utf8: func [
-		str		[red-string!]
-		len		[int-ptr!]			;-- len/value = -1 convert all chars
-		return: [c-string!]
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		return:  [c-string!]
+	][
+		io-to-utf8 str len no
+	]
+
+	io-to-utf8: func [
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		convert? [logic!]			;-- convert line terminators to OS specific
+		return:  [c-string!]
 		/local
 			s	 [series!]
 			node [node!]
@@ -115,6 +124,10 @@ unicode: context [
 				Latin1 [as-integer p/value]
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if all [convert? cp = as-integer lf][
+				buf/1: cr
+				buf: buf + 1
 			]
 			buf: buf + cp-to-utf8 cp buf
 			p: p + unit
@@ -293,9 +306,12 @@ unicode: context [
 							]
 						]
 					]
-;					true [
-;						error case						;@@ throw an error! value
-;					]
+					true [
+						fire [
+							TO_ERROR(access invalid-utf8)
+							binary/load as byte-ptr! src 4
+						]
+					]
 				]
 			]
 		]	
@@ -363,70 +379,76 @@ unicode: context [
 				return node
 			]
 
-			unless all [convert? cp = 13] [					;-- convert CRLF to LF
-				switch unit [
-					Latin1 [
-						case [
-							cp <= FFh [
-								buf1/value: as-byte cp
-								buf1: buf1 + 1
-								assert buf1 <= end			;-- should not happen if we're good
-							]
-							cp <= FFFFh [
-								s/tail: as cell! buf1
-								unit: UCS-2
-								s:    Latin1-to-UCS2 s		;-- upgrade to UCS-2
-								buf1: as byte-ptr! s/tail
-								end:  (as byte-ptr! s/offset) + s/size
-
-								buf1/1: as-byte cp and FFh
-								buf1/2: as-byte cp >> 8
-								buf1: buf1 + 2
-							]
-							true [
-								s/tail: as cell! buf1
-								unit: UCS-4
-								s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
-								buf4: as int-ptr! s/tail
-								end:  (as byte-ptr! s/offset) + s/size
-
-								buf4/value: cp
-								buf4: buf4 + 1
-							]
+			if all [convert? cp = as-integer cr] [					;-- convert CRLF/CR to LF
+				if all [count - used > 0 src/2 = lf] [
+					count: count - used
+					src: src + used
+					continue
+				]
+				cp: as-integer lf
+			]
+			switch unit [
+				Latin1 [
+					case [
+						cp <= FFh [
+							buf1/value: as-byte cp
+							buf1: buf1 + 1
+							assert buf1 <= end			;-- should not happen if we're good
 						]
-					]
-					UCS-2 [
-						either cp > FFFFh [
+						cp <= FFFFh [
 							s/tail: as cell! buf1
-							unit: UCS-4
-							s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
-							buf4: as int-ptr! s/tail
+							unit: UCS-2
+							s:    Latin1-to-UCS2 s		;-- upgrade to UCS-2
+							buf1: as byte-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
-							
-							buf4/value: cp
-							buf4: buf4 + 1
-						][
-							if buf1 >= end [
-								s/tail: as cell! buf1
-								s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
-								buf1: as byte-ptr! s/tail
-								end: (as byte-ptr! s/offset) + s/size
-							]
+
 							buf1/1: as-byte cp and FFh
 							buf1/2: as-byte cp >> 8
 							buf1: buf1 + 2
 						]
-					]
-					UCS-4 [
-						if buf4 >= (as int-ptr! end) [
-							s/tail: as cell! buf4
-							s: expand-series s s/size + size ;-- increase size by 100% 
+						true [
+							s/tail: as cell! buf1
+							unit: UCS-4
+							s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
 							buf4: as int-ptr! s/tail
-							end: (as byte-ptr! s/offset) + s/size
+							end:  (as byte-ptr! s/offset) + s/size
+
+							buf4/value: cp
+							buf4: buf4 + 1
 						]
+					]
+				]
+				UCS-2 [
+					either cp > FFFFh [
+						s/tail: as cell! buf1
+						unit: UCS-4
+						s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
+						buf4: as int-ptr! s/tail
+						end:  (as byte-ptr! s/offset) + s/size
+						
 						buf4/value: cp
 						buf4: buf4 + 1
+					][
+						if buf1 >= end [
+							s/tail: as cell! buf1
+							s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
+							buf1: as byte-ptr! s/tail
+							end: (as byte-ptr! s/offset) + s/size
+						]
+						buf1/1: as-byte cp and FFh
+						buf1/2: as-byte cp >> 8
+						buf1: buf1 + 2
 					]
+				]
+				UCS-4 [
+					if buf4 >= (as int-ptr! end) [
+						s/tail: as cell! buf4
+						s: expand-series s s/size + size ;-- increase size by 100% 
+						buf4: as int-ptr! s/tail
+						end: (as byte-ptr! s/offset) + s/size
+					]
+					buf4/value: cp
+					buf4: buf4 + 1
 				]
 			]
 			count: count - used

@@ -1519,7 +1519,61 @@ actions: context [
 
 	rename*: func [][]
 	update*: func [][]
-	write*: func [][]
+
+	write*: func [
+		binary? [integer!]
+		lines?	[integer!]
+		append? [integer!]
+		part	[integer!]
+		seek	[integer!]
+		allow	[integer!]
+		as-arg	[integer!]
+		return:	[red-value!]
+	][
+		write
+			stack/arguments
+			stack/arguments + 1
+			binary? <> -1
+			lines? <> -1
+			append? <> -1
+			stack/arguments + part
+			stack/arguments + seek
+			stack/arguments + allow
+			stack/arguments + as-arg
+		stack/set-last unset-value
+	]
+
+	write: func [
+		src		[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return: [integer!]
+		/local
+			action-write
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/write"]]
+
+		action-write: as function! [
+			src		[red-value!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			append? [logic!]
+			part	[red-value!]
+			seek	[red-value!]
+			allow	[red-value!]
+			as-arg	[red-value!]
+			return:	[integer!]						;-- picked value from series
+		] get-action-ptr src ACT_WRITE
+
+		action-write src data binary? lines? append? part seek allow as-arg
+	]
 	
 	
 	init: does [
@@ -1591,7 +1645,7 @@ actions: context [
 			:read*
 			null			;rename
 			null			;update
-			null			;write
+			:write*
 		]
 	]
 ]
