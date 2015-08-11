@@ -80,7 +80,7 @@ red: context [
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
 	#include %datatypes/binary.reds
-	#include %datatypes/image.reds
+	#if OS = 'Windows [#include %datatypes/image.reds]
 	
 	;-- Debugging helpers --
 	
@@ -152,7 +152,7 @@ red: context [
 		pair/init
 		percent/init
 		tuple/init
-		image/init
+		#if OS = 'Windows [image/init]
 		
 		actions/init
 		
@@ -216,7 +216,7 @@ red: context [
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity
-			image/verbose:		verbosity
+			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
