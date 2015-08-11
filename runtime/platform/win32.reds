@@ -410,31 +410,31 @@ platform: context [
 	]
 
 	prin-int*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
-		fflush null													;-- flush all streams
+		wprintf [#u16 "%i" i]
+		fflush null										;-- flush all streams
 		i
 	]
 
 	prin-2hex*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)0^(00)2^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
+		wprintf [#u16 "%02X" i]
 		fflush null
 		i
 	]
 	
 	prin-hex*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
+		wprintf [#u16 "%08X" i]
 		fflush null
 		i
 	]
 
 	prin-float*: func [f [float!] return: [float!]][
-		wprintf ["%^(00).^(00)1^(00)6^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
+		wprintf [#u16 "%.16g" f]
 		fflush null
 		f
 	]
 
 	prin-float32*: func [f [float32!] return: [float32!]][
-		wprintf ["%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
+		wprintf [#u16 "%.7g" as-float f]
 		fflush null
 		f
 	]
