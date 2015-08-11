@@ -78,8 +78,7 @@ __print-debug-stack: func [
 		nb: __debug-funcs-nb
 		records: __debug-funcs
 		until [
-			nb: nb - 1
-			either zero? nb [
+			either nb = 1 [
 				end: records/entry + 00010000h	;-- set arbitrary limit of 100KB for last func size
 			][
 				next: records + 1
@@ -92,6 +91,7 @@ __print-debug-stack: func [
 				break
 			]
 			records: records + 1
+			nb: nb - 1
 			zero? nb
 		]
 		unless zero? nb [
@@ -132,7 +132,7 @@ __print-debug-stack: func [
 		frame: as int-ptr! top/value
 		top: top + 1
 		ret: as int-ptr! top/value
-		top: top + 1
+		top: frame + 2
 		
 		any [zero? nb zero? lines]
 	]
