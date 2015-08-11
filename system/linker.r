@@ -143,6 +143,19 @@ linker: context [
 		repend data-buf [buffer strings]
 	]
 	
+	get-debug-funcs-size: func [job [object!] /local size sc][
+		sc: system-dialect/compiler
+		size: 0
+		foreach [name spec] job/symbols [
+			if spec/1 = 'native [
+				size: size + 1 + (length? form name) 
+					+ 16							;-- size of a record
+					+ sc/get-arity sc/functions/:name/4
+			]
+		]
+		size
+	]
+	
 	build-debug-func-names: func [
 		job 	 [object!]
 		code-ptr [integer!]							;-- code memory address
