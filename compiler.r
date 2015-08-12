@@ -3364,7 +3364,7 @@ red: context [
 	
 	process-call-directive: func [
 		body [block!] global?
-		/local name spec cmd types type arg trash ctx
+		/local name spec cmd types type arg trash ctx offset
 	][
 		name: body/1
 		switch/default type?/word name [
@@ -3399,19 +3399,22 @@ red: context [
 				type: types/1/1
 			][
 				arg: body/1
-				if word? arg [arg: get arg]
+				if word? arg [arg: attempt [get arg]]
 				type: none
 				foreach value types/1 [
 					if value = type?/word arg [type: value break]
 				]
-				unless type [
-					throw-error ["cannot determine #call argument type:" arg]
-				]
 			]
-			cmd: to path! reduce [to word! form get type 'push]
-			if global? [insert cmd pick [exec red] type = 'event!] ;@@ ad-hoc treatment of event!...
+			offset: either type [
+				cmd: to path! reduce [to word! form get type 'push]
+				if global? [insert cmd pick [exec red] type = 'event!] ;@@ ad-hoc treatment of event!...
+				-1
+			][
+				cmd: [red/stack/push as red-value!]
+				-3
+			]
 			emit cmd
-			insert-lf -1
+			insert-lf offset
 			case [
 				none? body/1 [
 					throw-error ["missing argument(s) in #call body"]
