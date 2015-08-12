@@ -1623,6 +1623,7 @@ system-dialect: make-profilable context [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					]
 					pc: skip pc 2
+					none
 				]
 			][
 				throw-error ["unknown directive" pc/1]

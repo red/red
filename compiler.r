@@ -3489,7 +3489,9 @@ red: context [
 						script-file: clean-path join script-path file
 					]
 					append script-stk script-file
-					emit reduce [#script script-file]
+					emit reduce [						;-- force a newline at head
+						#script script-file
+					]
 					saved: script-name
 					insert skip pc 2 #pop-path
 					change/part pc next load-source file 2	;@@ Header skipped, should be processed
@@ -3511,9 +3513,15 @@ red: context [
 				process-include-paths pc/2
 				process-calls pc/2
 				preprocess-strings pc/2					;-- encode strings for Red/System
+				emit reduce [							;-- force a newline at head
+					#script script-name
+				]
 				mark: tail output
 				emit pc/2
 				new-line mark on
+				emit reduce [							;-- force a newline at head
+					#script script-name
+				]
 				pc: skip pc 2
 				true
 			]
@@ -3527,6 +3535,9 @@ red: context [
 					append sys-global copy/deep [Red/System []]
 				]
 				append sys-global pc/2
+				repend sys-global [						;-- force a newline at head
+					#script script-name
+				]
 				pc: skip pc 2
 				true
 			]
