@@ -220,6 +220,7 @@ Red/System [
 	NAT_EXTEND
 	NAT_DEBASE
 	NAT_TO_LOCAL_FILE
+	NAT_REQUEST_FILE
 ]
 
 #enum math-op! [

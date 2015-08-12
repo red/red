@@ -36,6 +36,11 @@ simple-io: context [
 		#define SET_FILE_CURRENT		1
 		#define SET_FILE_END			2
 
+		#define MAX_FILE_REQ_BUF		4000h			;-- 16 KB
+		#define OFN_HIDEREADONLY		0004h
+		#define OFN_EXPLORER			00080000h
+		#define OFN_ALLOWMULTISELECT	00000200h
+
 		#define WIN32_FIND_DATA_SIZE	592
 
 		WIN32_FIND_DATA: alias struct! [
@@ -51,6 +56,33 @@ simple-io: context [
 			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
 		]
 
+		tagOFNW: alias struct! [
+			lStructSize			[integer!]
+			hwndOwner			[integer!]
+			hInstance			[integer!]
+			lpstrFilter			[c-string!]
+			lpstrCustomFilter	[c-string!]
+			nMaxCustFilter		[integer!]
+			nFilterIndex		[integer!]
+			lpstrFile			[byte-ptr!]
+			nMaxFile			[integer!]
+			lpstrFileTitle		[c-string!]
+			nMaxFileTitle		[integer!]
+			lpstrInitialDir		[c-string!]
+			lpstrTitle			[c-string!]
+			Flags				[integer!]
+			nFileOffset			[integer!]
+			;nFileExtension		[integer!]
+			lpstrDefExt			[c-string!]
+			lCustData			[integer!]
+			lpfnHook			[integer!]
+			lpTemplateName		[integer!]
+			;-- if (_WIN32_WINNT >= 0x0500)
+			pvReserved			[integer!]
+			dwReserved			[integer!]
+			FlagsEx				[integer!]
+		]
+	
 		#import [
 			"kernel32.dll" stdcall [
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
@@ -128,6 +160,16 @@ simple-io: context [
 					return:		[integer!]
 				]
 			]
+			"comdlg32.dll" stdcall [
+				GetOpenFileName: "GetOpenFileNameW" [
+					lpofn		[tagOFNW]
+					return:		[integer!]
+				]
+				GetSaveFileName: "GetSaveFileNameW" [
+					lpofn		[tagOFNW]
+					return:		[integer!]
+				]
+			]
 		]
 	][
 		#define O_RDONLY	0
@@ -139,9 +181,9 @@ simple-io: context [
 
 		#define S_IREAD		256
 		#define S_IWRITE    128
-		#define S_IRGRP		[S_IREAD >> 3]
-		#define S_IWGRP		[S_IWRITE >> 3]
-		#define S_IROTH		[S_IREAD >> 6]
+		#define S_IRGRP		32
+		#define S_IWGRP		16
+		#define S_IROTH		4
 
 		#import [
 			LIBC-file cdecl [
@@ -674,5 +716,90 @@ simple-io: context [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
 		type
+	]
+
+	file-filter-to-str: func [
+		filter	[red-block!]
+		return: [c-string!]
+		/local
+			s	[series!]
+			val [red-value!]
+			end [red-value!]
+			str [red-string!]
+	][
+		s: GET_BUFFER(filter)
+		val: s/offset + filter/head
+		end:  s/tail
+		if val = end [return null]
+
+		str: string/make-at stack/push* 16 UCS-2
+		while [val < end][
+			string/concatenate str as red-string! val -1 0 yes no
+			string/append-char GET_BUFFER(str) 0
+			val: val + 1
+		]
+		unicode/to-utf16 str
+	]
+
+	file-list-to-block: func [
+		buffer	[byte-ptr!]
+		return: [red-block!]
+		/local
+			blk [red-block!]
+	][
+		blk: block/push-only* 1
+		blk
+	]
+
+	request-file: func [
+		title	[red-string!]
+		file	[red-value!]
+		filter	[red-block!]
+		save?	[logic!]
+		multi?	[logic!]
+		return: [red-value!]
+		/local
+			filters [c-string!]
+			buffer	[byte-ptr!]
+			ret		[integer!]
+			files	[red-value!]
+			str		[red-string!]
+			ofn
+	][
+		#either OS = 'Windows [
+			filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
+			buffer: allocate MAX_FILE_REQ_BUF
+			buffer/1: #"^@"
+			buffer/2: #"^@"
+
+			ofn: declare tagOFNW
+			ofn/lStructSize: size? tagOFNW
+			;ofn/hwndOwner: how to set it?
+			ofn/lpstrTitle: either OPTION?(title) [unicode/to-utf16 title][null]
+			;ofn/lpstrInitialDir
+			ofn/lpstrFile: buffer
+			ofn/lpstrFilter: either OPTION?(filter) [file-filter-to-str filter][filters]
+			ofn/nMaxFile: MAX_FILE_REQ_BUF
+			ofn/lpstrFileTitle: null
+			ofn/nMaxFileTitle: 0
+
+			ofn/Flags: OFN_HIDEREADONLY or OFN_EXPLORER
+			if multi? [ofn/Flags: ofn/Flags or OFN_ALLOWMULTISELECT]
+
+			ret: either save? [GetSaveFileName ofn][GetOpenFileName ofn]
+			files: as red-value! either zero? ret [none-value][
+				as red-value! either multi? [
+					file-list-to-block buffer
+				][
+					str: string/load as-c-string buffer lstrlen buffer UTF-16LE
+					#call [to-red-file str]
+					stack/arguments
+				]
+			]
+			free buffer
+			files
+		][
+			as red-value! none-value
+		]
 	]
 ]
