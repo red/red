@@ -24,6 +24,8 @@ REBOL [
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;	debug?:			 yes | no					;-- yes => emit debug information into binary
+;;	debug-safe?:	 yes | no					;-- yes => try to avoid over-crashing on runtime debug reports
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
 ;;  red-tracing?:	 yes						;-- no => do not compile tracing code

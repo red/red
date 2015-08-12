@@ -113,10 +113,14 @@ __print-debug-stack: func [
 							top: top + 1
 						]
 						type-c-string! [
-							prin-byte #"^""
-							prin-only as-c-string value 12
-							if 12 < length? as-c-string value [prin-byte #">"]
-							prin-byte #"^""
+							#either debug-safe? = yes [
+								print [as byte-ptr! value #"h"]
+							][
+								prin-byte #"^""
+								prin-only as-c-string value 12
+								if 12 < length? as-c-string value [prin-byte #">"]
+								prin-byte #"^""
+							]
 						]
 						default		   [print [as byte-ptr! value #"h"]]
 					]

@@ -20,6 +20,7 @@ Red/System [
 #include %menu.reds
 #include %panel.reds
 #include %tab-panel.reds
+;#include %draw.reds
 
 hScreen:		as handle! 0
 hInstance:		as handle! 0
