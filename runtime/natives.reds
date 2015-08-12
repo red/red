@@ -1673,6 +1673,21 @@ natives: context [
 		stack/set-last as red-value! out
 	]
 
+	request-file*: func [
+		title	[integer!]
+		file	[integer!]
+		filter	[integer!]
+		save?	[integer!]
+		multi?	[integer!]
+	][
+		stack/set-last simple-io/request-file 
+			as red-string! stack/arguments + title
+			stack/arguments + file
+			as red-block! stack/arguments + filter
+			save? <> -1
+			multi? <> -1
+	]
+
 	;--- Natives helper functions ---
 
 	#enum trigonometric-type! [
@@ -2075,6 +2090,7 @@ natives: context [
 			:extend*
 			:debase*
 			:to-local-file*
+			:request-file*
 		]
 	]
 
