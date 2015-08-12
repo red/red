@@ -328,7 +328,7 @@ modulo: func [
 eval-set-path: func [value1][]
 
 to-red-file: func [
-	path	[string!]
+	path	[file! string!]
 	return: [file!]
 	/local colon? slash? len i c dst
 ][
