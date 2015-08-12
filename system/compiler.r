@@ -1596,7 +1596,7 @@ system-dialect: make-profilable context [
 			unless string? str: code/2 [
 				throw-error "#u16 can only be applied to literal strings"
 			]
-			parse str [any [skip pos: (insert pos null) skip]]
+			parse/all str [any [skip pos: (insert pos null) skip]]
 			append str null								;-- extra NUL for UTF-16 version
 			pc: next pc
 			fetch-expression
