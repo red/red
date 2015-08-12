@@ -326,6 +326,47 @@ modulo: func [
 
 eval-set-path: func [value1][]
 
+to-red-file: func [
+	path	[string!]
+	return: [file!]
+	/local colon? slash? len i c dst
+][
+	colon?: slash?: no
+	len: length? path
+	dst: make file! len
+	if zero? len [return dst]
+	i: 1
+	either system/platform = 'Windows [
+		until [
+			c: path/(i)
+			i: i + 1
+			case [
+				c = #":" [
+					if any [colon? slash?] [return dst]
+					colon?: yes
+					if i <= len [
+						c: path/(i)
+						if any [c = #"\" c = #"/"][i: i + 1]	;-- skip / in foo:/file
+					]
+					c: #"/"
+				]
+				any [c = #"\" c = #"/"][
+					if slash? [continue]
+					c: #"/"
+					slash?: yes
+				]
+				true [slash?: no]
+			]
+			append dst c
+			i > len
+		]
+		if colon? [insert dst #"/"]
+	][
+		insert dst path
+	]
+	dst
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
