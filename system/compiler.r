@@ -586,9 +586,6 @@ system-dialect: make-profilable context [
 		
 		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
-?? path
-?? short
-?? prev
 				pc: skip pc -2
 				throw-error "invalid path value"
 			]
