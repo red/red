@@ -763,22 +763,30 @@ simple-io: context [
 			buffer	[byte-ptr!]
 			ret		[integer!]
 			files	[red-value!]
+			base	[red-value!]
 			str		[red-string!]
+			pbuf	[byte-ptr!]
 			ofn
 	][
 		#either OS = 'Windows [
+			base: stack/arguments
 			filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
 			buffer: allocate MAX_FILE_REQ_BUF
-			buffer/1: #"^@"
-			buffer/2: #"^@"
+			either file >= base [
+				pbuf: as byte-ptr! unicode/to-utf16 as red-string! file
+				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
+			][
+				buffer/1: #"^@"
+				buffer/2: #"^@"
+			]
 
 			ofn: declare tagOFNW
 			ofn/lStructSize: size? tagOFNW
 			;ofn/hwndOwner: how to set it?
-			ofn/lpstrTitle: either OPTION?(title) [unicode/to-utf16 title][null]
+			ofn/lpstrTitle: either title >= base [unicode/to-utf16 title][null]
 			;ofn/lpstrInitialDir
 			ofn/lpstrFile: buffer
-			ofn/lpstrFilter: either OPTION?(filter) [file-filter-to-str filter][filters]
+			ofn/lpstrFilter: either filter >= base [file-filter-to-str filter][filters]
 			ofn/nMaxFile: MAX_FILE_REQ_BUF
 			ofn/lpstrFileTitle: null
 			ofn/nMaxFileTitle: 0
