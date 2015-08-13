@@ -185,32 +185,7 @@ simple-io: context [
 		#define S_IWGRP		16
 		#define S_IROTH		4
 
-		#import [
-			LIBC-file cdecl [
-				_open:	"open" [
-					filename	[c-string!]
-					flags		[integer!]
-					mode		[integer!]
-					return:		[integer!]
-				]
-				_read:	"read" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					return:		[integer!]
-				]
-				_write:	"write" [
-					file		[integer!]
-					buffer		[byte-ptr!]
-					bytes		[integer!]
-					return:		[integer!]
-				]
-				_close:	"close" [
-					file		[integer!]
-					return:		[integer!]
-				]
-			]
-		]
+		#define	DT_DIR		#"^(04)"
 		
 		#case [
 			OS = 'FreeBSD [
@@ -241,6 +216,15 @@ simple-io: context [
 					pad0		[integer!]
 					pad1		[integer!]
 				]
+				#define DIRENT_NAME_OFFSET 8
+				dirent!: alias struct! [					;@@ the same as MacOSX
+					d_ino		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					d_namlen	[byte!]
+					;d_name		[byte! [256]]
+				]
 			]
 			OS = 'MacOSX [
 				stat!: alias struct! [
@@ -262,6 +246,29 @@ simple-io: context [
 					st_flags	[integer!]
 					st_gen		[integer!]
 				]
+				;;-- #if __DARWIN_64_BIT_INO_T
+				;#define DIRENT_NAME_OFFSET	21
+				;dirent!: alias struct! [
+				;	d_ino		[integer!]
+				;	_d_ino_		[integer!]
+				;	d_seekoff	[integer!]
+				;	_d_seekoff_	[integer!]
+				;	d_reclen	[integer!]					;-- d_reclen & d_namlen
+				;	;d_namlen	[integer!]
+				;	d_type		[byte!]
+				;	;d_name		[byte! [1024]]
+				;]
+				;;-- #endif
+
+				#define DIRENT_NAME_OFFSET 8
+				dirent!: alias struct! [
+					d_ino		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					d_namlen	[byte!]
+					;d_name		[byte! [256]]
+				]
 			]
 			OS = 'Syllable [
 				;-- http://glibc.sourcearchive.com/documentation/2.7-18lenny7/glibc-2_87_2bits_2stat_8h_source.html
@@ -276,6 +283,15 @@ simple-io: context [
 					filler2		[integer!]				;-- not in spec above...
 					st_size		[integer!]
 					;...incomplete...
+				]
+				#define DIRENT_NAME_OFFSET 8
+				dirent!: alias struct! [
+					d_ino		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					d_namlen	[byte!]
+					;d_name		[byte! [256]]
 				]
 			]
 			all [legacy find legacy 'stat32] [
@@ -293,6 +309,15 @@ simple-io: context [
 					st_atime	[integer!]
 					st_mtime	[integer!]
 					st_ctime	[integer!]
+				]
+				#define DIRENT_NAME_OFFSET 8
+				dirent!: alias struct! [
+					d_ino		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					d_namlen	[byte!]
+					;d_name		[byte! [256]]
 				]
 			]
 			OS = 'Android [ ; else
@@ -324,6 +349,17 @@ simple-io: context [
 					st_ino_l	  [integer!]
 					;...optional padding skipped
 				]
+				#define DIRENT_NAME_OFFSET	19
+				dirent!: alias struct! [
+					d_ino		[integer!]
+					_d_ino_		[integer!]
+					d_off		[integer!]
+					_d_off_		[integer!]
+					d_reclen	[byte!]
+					_d_reclen_	[byte!]
+					d_type		[byte!]
+					;d_name		[byte! [256]]
+				]
 			]
 			true [ ; else
 				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
@@ -351,6 +387,16 @@ simple-io: context [
 					st_ino_h	  [integer!]
 					st_ino_l	  [integer!]
 					;...optional padding skipped
+				]
+
+				#define DIRENT_NAME_OFFSET 11
+				dirent!: alias struct! [
+					d_ino			[integer!]
+					d_off			[integer!]
+					d_reclen		[byte!]
+					d_reclen_pad	[byte!]
+					d_type			[byte!]
+					;d_name			[byte! [256]]
 				]
 			]
 		]
@@ -382,6 +428,45 @@ simple-io: context [
 				]
 			]
 
+		]
+
+		#import [
+			LIBC-file cdecl [
+				_open:	"open" [
+					filename	[c-string!]
+					flags		[integer!]
+					mode		[integer!]
+					return:		[integer!]
+				]
+				_read:	"read" [
+					file		[integer!]
+					buffer		[byte-ptr!]
+					bytes		[integer!]
+					return:		[integer!]
+				]
+				_write:	"write" [
+					file		[integer!]
+					buffer		[byte-ptr!]
+					bytes		[integer!]
+					return:		[integer!]
+				]
+				_close:	"close" [
+					file		[integer!]
+					return:		[integer!]
+				]
+				opendir: "opendir" [
+					filename	[c-string!]
+					return:		[integer!]
+				]
+				readdir: "readdir" [
+					file		[integer!]
+					return:		[dirent!]
+				]
+				closedir: "closedir" [
+					file		[integer!]
+					return:		[integer!]
+				]
+			]
 		]
 	]
 	
@@ -616,6 +701,7 @@ simple-io: context [
 			handle	[integer!]
 			blk		[red-block!]
 			str		[red-string!]
+			len		[integer!]
 	][
 		#either OS = 'Windows [
 			string/append-char GET_BUFFER(filename) as-integer #"*"
@@ -634,7 +720,7 @@ simple-io: context [
 						any [
 							zero? string/get-char name + 2 UCS-2
 							all [
-								(string/get-char name UCS-2) = as-integer #"."
+								(string/get-char name + 2 UCS-2) = as-integer #"."
 								zero? string/get-char name + 4 UCS-2
 							]
 						]
@@ -651,7 +737,40 @@ simple-io: context [
 			FindClose handle
 			free as byte-ptr! info
 			blk
-		][as red-block! none-value]
+		][
+			handle: opendir to-OS-path filename
+			if zero? handle [fire [TO_ERROR(access cannot-open) filename]]
+			blk: block/push-only* 1
+			while [
+				info: readdir handle
+				info <> null
+			][
+				name: (as byte-ptr! info) + DIRENT_NAME_OFFSET
+				unless any [		;-- skip over the . and .. dir case
+					name = null
+					all [
+						name/1 = #"."
+						any [
+							name/2 = #"^@"
+							all [name/2 = #"." name/3 = #"^@"]
+						]
+					]
+				][
+					#either OS = 'MacOSX [
+						len: as-integer info/d_namlen
+					][
+						len: length? as-c-string name
+					]
+					str: string/load-in as-c-string name len blk UTF-8
+					if info/d_type = DT_DIR [
+						string/append-char GET_BUFFER(str) as-integer #"/"
+					]
+					set-type as red-value! str TYPE_FILE
+				]
+			]
+			closedir handle
+			blk
+		]
 	]
 
 	read: func [
