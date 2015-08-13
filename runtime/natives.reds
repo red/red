@@ -424,7 +424,6 @@ natives: context [
 			cframe [byte-ptr!]
 			arg	   [red-value!]
 			str	   [red-string!]
-			s	   [series!]
 	][
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
@@ -440,6 +439,11 @@ natives: context [
 				]
 				TYPE_STRING [
 					str: as red-string! arg
+					#call [system/lexer/transcode str none]
+					interpreter/eval as red-block! arg yes
+				]
+				TYPE_FILE [
+					str: as red-string! simple-io/read as red-file! arg no
 					#call [system/lexer/transcode str none]
 					interpreter/eval as red-block! arg yes
 				]

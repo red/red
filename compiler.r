@@ -3410,7 +3410,7 @@ red: context [
 				if global? [insert cmd pick [exec red] type = 'event!] ;@@ ad-hoc treatment of event!...
 				-1
 			][
-				cmd: [red/stack/push as red-value!]
+				cmd: [red/stack/push as cell!]
 				-3
 			]
 			emit cmd

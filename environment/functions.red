@@ -268,11 +268,12 @@ load: function [
 	]
 	
 	unless out [out: make block! 4]
-	;switch type?/word [
-	;	file!	[]
-	;	url!	[]
-	;	binary! []
-	;]
+	switch/default type?/word source [
+		file!	[source: read source]
+		url!	[source]
+		binary! [source]
+	][source]
+
 	either part [
 		system/lexer/transcode/part source out length
 	][
@@ -327,7 +328,7 @@ modulo: func [
 eval-set-path: func [value1][]
 
 to-red-file: func [
-	path	[string!]
+	path	[file! string!]
 	return: [file!]
 	/local colon? slash? len i c dst
 ][
