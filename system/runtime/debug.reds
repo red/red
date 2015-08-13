@@ -70,8 +70,7 @@ __print-debug-stack: func [
 	frame:	system/debug/frame
 	ret:	as int-ptr! address
 	top:	frame + 2
-	lines:	40											;-- max number of lines displayed
-	
+	lines:	40								;-- max number of lines displayed
 	print-line "***"
 	
 	until [
@@ -96,6 +95,10 @@ __print-debug-stack: func [
 		]
 		unless zero? nb [
 			print ["***   stack: " as-c-string base + records/name]
+			if records/args = as int-ptr! -1 [
+				print [lf lf]
+				exit						;-- exit if a "barrier" function is encountered (set by linker)
+			]
 			s: as-c-string base + records/args
 
 			unless zero? records/arity [

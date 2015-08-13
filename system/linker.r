@@ -150,11 +150,15 @@ linker: context [
 		name
 	]
 	
+	is-native?: func [name [word! tag!] spec [block!]][
+		all [spec/1 = 'native name <> '_div_]
+	]
+	
 	get-debug-funcs-size: func [job [object!] /local size sc][
 		sc: system-dialect/compiler
 		size: 0
 		foreach [name spec] job/symbols [
-			if spec/1 = 'native [
+			if is-native? name spec [
 				size: size + 1 + (length? undecorate name) 
 					+ 16							;-- size of a record
 					+ sc/get-arity sc/functions/:name/4
@@ -172,7 +176,7 @@ linker: context [
 		list: make block! 4000
 		
 		foreach [name spec] job/symbols [
-			if spec/1 = 'native [
+			if is-native? name spec [
 				append list name
 				append list spec/2
 			]
@@ -194,6 +198,7 @@ linker: context [
 			][
 				args-ptr: 0
 			]
+			if name = '***_start [args-ptr: -1]	;-- set a barrier for call stack reporting
 
 			record: make-struct func-record! none
 			record/address: code-ptr + entry-ptr - 1

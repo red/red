@@ -390,7 +390,7 @@ make-profilable make target-class [
 			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 			#{092d0001}			; PUSHEQ {r0}
-			#{0a000000}			; BEQ ***-on-quit		; call runtime error handler
+			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
 			#{e1500001}			; CMP r0, r1			; if dividend = divisor
 			#{0a00000b}			; BEQ .equal
 			#{e1a03000}			; MOV r3, r0			; r3: dividend
@@ -479,7 +479,7 @@ make-profilable make target-class [
  			emit-i32 opcode
  		]
  		;-- link it with runtime error handler
- 		append emitter/symbols/***-on-quit/3 base + (4 * insn-size)
+ 		append emitter/symbols/***-on-div-error/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol

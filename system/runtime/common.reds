@@ -145,6 +145,25 @@ re-throw: func [/local id [integer!]][
 
 	#define RED_ERR_VMEM_RELEASE_FAILED		96
 	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+	
+	#if target = 'ARM [
+		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
+			code [integer!]
+			/local address frame top
+		][
+			top: system/stack/frame			;-- skip the ***-on-div-error stack frame 
+			frame: as int-ptr! top/value
+			top: top + 1
+			address: as int-ptr! top/value
+			top: frame + 2
+		
+			system/debug: declare __stack!	;-- allocate a __stack! struct
+			system/debug/frame: frame
+			system/debug/top: top
+
+			***-on-quit code as-integer address
+		]
+	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
