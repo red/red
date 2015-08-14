@@ -443,7 +443,7 @@ lexer: context [
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
-		pos: thru "Red" opt ["/System" (rs?: yes stack/push 'Red/System)]
+		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
 		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
