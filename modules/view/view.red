@@ -33,6 +33,7 @@ face!: object [				;-- keep in sync with facet! enum
 	edge:		none
 	actors:		none
 	extra:		none		;-- for storing optional user data
+	draw:		none
 	
 	on-change*: func [w o n][
 		if all [state w <> 'state][
@@ -121,6 +122,7 @@ system/view: context [
 ]
 
 #include %backends/platform.red
+#include %draw.red
 #include %VID.red
 
 do-events: func [/no-wait][

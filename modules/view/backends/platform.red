@@ -33,6 +33,7 @@ system/view/platform: context [
 				FACE_OBJ_EDGE
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
+				FACE_OBJ_DRAW
 			]
 			
 			#enum event-type! [

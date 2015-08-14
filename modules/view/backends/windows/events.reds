@@ -231,6 +231,32 @@ init-current-msg: func [
 	current-msg/y: WIN32_HIWORD(pos)
 ]
 
+
+BaseWndProc: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+	/local
+		draw [red-block!]
+][
+	switch msg [
+		WM_ERASEBKGND [
+			if paint-background hWnd as handle! wParam [return 1]
+		]
+		WM_PAINT [
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			if TYPE_OF(draw) = TYPE_BLOCK [
+				do-draw hWnd draw
+				return 0
+			]
+		]
+		default [0]
+	]
+	DefWindowProc hWnd msg wParam lParam
+]
+
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]

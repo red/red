@@ -274,6 +274,13 @@ Red/System [
 
 #define DC_BRUSH			18
 
+#define PS_SOLID			0
+#define PS_DASH				1							; -------
+#define PS_DOT				2							; .......
+#define PS_DASHDOT			3							; _._._._
+#define PS_DASHDOTDOT		4							; _.._.._
+
+
 #define SRCCOPY             00CC0020h
 
 #define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
@@ -882,6 +889,25 @@ DwmIsCompositionEnabled!: alias function! [
 			nYOrg		[integer!]
 			lppt		[tagPOINT]
 			return:		[integer!]
+		]
+		MoveToEx: "MoveToEx" [
+			hdc			[handle!]
+			X			[integer!]
+			Y			[integer!]
+			lpPoint		[tagPOINT]
+			return:		[logic!]
+		]
+		LineTo: "LineTo" [
+			hdc			[handle!]
+			nXEnd		[integer!]
+			nYEnd		[integer!]
+			return:		[logic!]
+		]
+		CreatePen: "CreatePen" [
+			fnPenStyle	[integer!]
+			nWidth		[integer!]
+			crColor		[integer!]
+			return:		[handle!]
 		]
 	]
 	"gdiplus.dll" stdcall [

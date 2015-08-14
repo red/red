@@ -20,7 +20,7 @@ Red/System [
 #include %menu.reds
 #include %panel.reds
 #include %tab-panel.reds
-;#include %draw.reds
+#include %draw.reds
 
 hScreen:		as handle! 0
 hInstance:		as handle! 0
@@ -722,7 +722,7 @@ OS-make-view: func [
 		]
 		true [0]
 	]
-
+	
 	;-- store the face value in the extra space of the window struct
 	SetWindowLong handle wc-offset		  		   face/header
 	SetWindowLong handle wc-offset + 4  as-integer face/ctx

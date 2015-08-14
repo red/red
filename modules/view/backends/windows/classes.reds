@@ -147,7 +147,7 @@ register-classes: func [
 	RegisterClassEx wcex
 
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
-	;wcex/lpfnWndProc:	:WndProc
+	wcex/lpfnWndProc:	:BaseWndProc
 	wcex/cbClsExtra:	0
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance

@@ -34,7 +34,7 @@ sub-win: make face! [
 ]
 
 win: make face! [
-	type: 'window text: "Red View" offset: 500x500 size: 800x600
+	type: 'window text: "Red View" offset: 500x500 size: 800x800
 	menu: [
 		;popup						;-- forces context menu for window
 		"File" [
@@ -405,6 +405,12 @@ win/pane: reduce [
 				print "calling unview"
 				unview/all
 			]
+		]
+	]
+	make face! [
+		type: 'base text: "canvas" offset: 20x460 size: 200x200 color: silver
+		draw: [
+			line 10x10 130x190 80x40 150x100
 		]
 	]
 ]
