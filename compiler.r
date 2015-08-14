@@ -337,7 +337,7 @@ red: context [
 	get-word-index: func [name [word!] /with c [word!] /local ctx pos list][
 		if with [
 			ctx: select contexts c
-			return (index? find ctx name) - 1
+			return either pos: find ctx name [(index? pos) - 1][none]
 		]
 		list: tail ctx-stack
 		until [											;-- search backward in parent contexts
@@ -3336,20 +3336,21 @@ red: context [
 	]
 	
 	process-get-directive: func [
-		path code [block!] /local obj fpath ctx blk
+		path code [block!] /local obj fpath ctx blk idx
 	][
 		unless path? path [
 			throw-error ["invalid #get argument:" spec]
 		]
 		set [obj fpath] object-access? path
 		ctx: second obj: find objects obj
+		unless idx: get-word-index/with last path ctx [return none]
 		remove/part code 2
-		blk: [red/word/get-in (decorate-exec-ctx ctx) (get-word-index/with last path ctx)]
+		blk: [red/word/get-in (decorate-exec-ctx ctx) (idx)]
 		insert code compose blk
 	]
 	
 	process-in-directive: func [
-		path word code [block!] /local obj fpath ctx blk
+		path word code [block!] /local obj fpath ctx blk idx
 	][
 		if any [not path? path not any-word? :word][
 			throw-error ["invalid #in argument:" mold path mold :word]
@@ -3357,8 +3358,9 @@ red: context [
 		append path word
 		set [obj fpath] object-access? path
 		ctx: second obj: find objects obj
+		unless idx: get-word-index/with word ctx [return none]
 		remove/part code 3
-		blk: [red/object/get-word (decorate-exec-ctx ctx) (get-word-index/with word ctx)]
+		blk: [red/object/get-word (decorate-exec-ctx ctx) (idx)]
 		insert code compose blk
 	]
 	

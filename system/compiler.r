@@ -1566,7 +1566,9 @@ system-dialect: make-profilable context [
 				pc: skip pc 2							;-- just ignore #get directive
 				return none
 			]
-			red/process-get-directive code/2 pc
+			unless red/process-get-directive code/2 pc [
+				throw-error ["cannot resolve path:" code/2]
+			]
 			fetch-expression
 		]
 		
@@ -1575,7 +1577,9 @@ system-dialect: make-profilable context [
 				pc: skip pc 2							;-- just ignore #in directive
 				return none
 			]
-			red/process-in-directive code/2 code/3 pc
+			unless red/process-in-directive code/2 code/3 pc [
+				throw-error ["cannot resolve path:" code/2]
+			]
 			fetch-expression
 		]
 		
