@@ -415,6 +415,8 @@ win/pane: reduce [
 			pen blue
 			line-width 4
 			line 15x190 50x50 190x180
+			pen green
+			box 10x120 70x160
 		]
 	]
 ]

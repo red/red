@@ -103,6 +103,27 @@ Red/System [
 			OS-draw-pen DC color/array1
 			pos
 		]
+		
+		draw-box: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-box DC as red-pair! cmd + 1 as red-pair! pos
+			pos
+		]
 
 		do-draw: func [
 			handle [handle!]
@@ -124,11 +145,12 @@ Red/System [
 				w: as red-word! cmd
 				if TYPE_OF(w) <> TYPE_WORD [throw-draw-error cmds cmd]
 				sym: symbol/resolve w/symbol
+				
 				case [
-					sym = pen		 [cmd: draw-pen  DC cmds cmd tail]
-					sym = line		 [cmd: draw-line DC cmds cmd tail]
-					sym = line-width [cmd: draw-line-width DC cmds cmd tail]
-					sym = box		 [0]
+					sym = pen		 [cmd: draw-pen			DC cmds cmd tail]
+					sym = line		 [cmd: draw-line		DC cmds cmd tail]
+					sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
+					sym = box		 [cmd: draw-box			DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

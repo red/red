@@ -32,6 +32,10 @@ update-pen: func [
 	unless null? modes/pen [DeleteObject modes/pen]
 	modes/pen: CreatePen modes/pen-style modes/pen-width modes/color
 	SelectObject dc modes/pen
+	
+	unless null? modes/brush [DeleteObject modes/brush]
+	modes/brush: GetStockObject NULL_BRUSH
+	SelectObject dc modes/brush
 ]
 
 draw-begin: func [
@@ -82,3 +86,10 @@ OS-draw-line-width: func [
 	update-pen dc
 ]
 
+OS-draw-box: func [
+	dc	   [handle!]
+	upper  [red-pair!]
+	lower  [red-pair!]
+][
+	Rectangle dc upper/x upper/y lower/x lower/y
+]

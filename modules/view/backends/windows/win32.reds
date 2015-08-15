@@ -272,6 +272,7 @@ Red/System [
 #define BK_TRANSPARENT		1
 #define BK_OPAQUE			2
 
+#define NULL_BRUSH          5
 #define DC_BRUSH			18
 
 #define PS_SOLID			0
@@ -908,6 +909,19 @@ DwmIsCompositionEnabled!: alias function! [
 			nWidth		[integer!]
 			crColor		[integer!]
 			return:		[handle!]
+		]
+		SetDCPenColor: "SetDCPenColor" [
+			hdc			[handle!]
+			crColor		[integer!]					;-- 0x00bbggrr
+			return:		[integer!]					;-- 0x00bbggrr
+		]
+		Rectangle: "Rectangle" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			return:		[logic!]
 		]
 	]
 	"gdiplus.dll" stdcall [
