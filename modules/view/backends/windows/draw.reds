@@ -17,6 +17,8 @@ modes: declare struct! [
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
+	saved-pen	[handle!]
+	saved-brush [handle!]
 ]
 
 modes/pen:			null
@@ -26,6 +28,9 @@ modes/pen-color:	00112233h							;-- default: black
 modes/brush-color:	-1
 
 paint: declare tagPAINTSTRUCT
+
+max-edges: 1000											;-- max number of edges for a polygone
+edges: as tagPOINT allocate max-edges					;-- polygone edges buffer
 
 update-modes: func [
 	dc [handle!]
@@ -46,13 +51,21 @@ update-modes: func [
 draw-begin: func [
 	hWnd	[handle!]
 	return: [handle!]
+	/local
+		dc	[handle!]
 ][
-	BeginPaint hWnd paint
+	dc: BeginPaint hWnd paint
+	saved-pen:   SelectObject dc GetStockObject DC_PEN
+	saved-brush: SelectObject dc GetStockObject DC_BRUSH
+	dc
 ]
 
 draw-end: func [dc [handle!] hWnd [handle!]][
 	unless null? modes/pen	 [DeleteObject modes/pen]
 	unless null? modes/brush [DeleteObject modes/brush]
+	
+	SelectObject dc saved-pen
+	SelectObject dc saved-brush
 	EndPaint hWnd paint
 ]
 
@@ -101,9 +114,75 @@ OS-draw-line-width: func [
 ]
 
 OS-draw-box: func [
-	dc	   [handle!]
-	upper  [red-pair!]
-	lower  [red-pair!]
+	dc	  [handle!]
+	upper [red-pair!]
+	lower [red-pair!]
 ][
 	Rectangle dc upper/x upper/y lower/x lower/y
+]
+
+OS-draw-triangle: func [
+	dc	  [handle!]
+	start [red-pair!]
+	end	  [red-pair!]
+	/local
+		pair  [red-pair!]
+		point [tagPOINT]
+][
+	point: edges
+	
+	point/x: start/x									;-- 1st point
+	point/y: start/y
+	point: point + 1
+	
+	pair: start + 1
+	point/x: pair/x										;-- 2nd point
+	point/y: pair/y
+	point: point + 1
+	
+	pair: pair + 1
+	point/x: pair/x										;-- 3rd point
+	point/y: pair/y
+	point: point + 1
+	
+	point/x: start/x									;-- close the triangle
+	point/y: start/y
+	
+	either modes/brush-color = -1 [
+		Polyline dc edges 4
+	][
+		Polygon dc edges 4
+	]
+]
+
+OS-draw-polygon: func [
+	dc	  [handle!]
+	start [red-pair!]
+	end	  [red-pair!]
+	/local
+		pair  [red-pair!]
+		point [tagPOINT]
+		nb	  [integer!]
+][
+	point: edges
+	pair:  start
+	nb:	   0
+	
+	while [all [pair <= end nb < max-edges]][
+		point/x: pair/x
+		point/y: pair/y
+		nb: nb + 1
+		point: point + 1
+		pair: pair + 1	
+	]
+	;if nb = max-edges [fire error]
+	
+	point/x: start/x									;-- close the polygon
+	point/y: start/y
+	
+	either modes/brush-color = -1 [
+		Polyline dc edges nb + 1
+	][
+		Polygon dc edges nb + 1
+	]
 ]

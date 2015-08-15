@@ -15,8 +15,10 @@ Red/System [
 		line:		symbol/make "line"
 		line-width:	symbol/make "line-width"
 		box:		symbol/make "box"
+		triangle:	symbol/make "triangle"
 		pen:		symbol/make "pen"
 		fill-pen:	symbol/make "fill-pen"
+		_polygon:	symbol/make "polygon"
 		
 		_off:		symbol/make "off"
 
@@ -41,7 +43,7 @@ Red/System [
 			/local
 				pos	[red-value!]
 		][
-			pos: cmd + 1					;-- skip the keyword
+			pos: cmd + 1								;-- skip the keyword
 			
 			while [all [TYPE_OF(pos) = TYPE_PAIR pos < tail]][
 				pos: pos + 1
@@ -63,7 +65,7 @@ Red/System [
 				pos	[red-value!]
 				int [red-integer!]
 		][
-			pos: cmd + 1
+			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
 
 			switch TYPE_OF(pos) [
@@ -90,7 +92,7 @@ Red/System [
 				pos	  [red-value!]
 				color [red-tuple!]
 		][
-			pos: cmd + 1
+			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
 			
 			switch TYPE_OF(pos) [
@@ -120,7 +122,7 @@ Red/System [
 				value [integer!]
 				off?  [logic!]
 		][
-			pos: cmd + 1
+			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
 			off?: no
 
@@ -155,7 +157,7 @@ Red/System [
 			/local
 				pos	[red-value!]
 		][
-			pos: cmd + 1
+			pos: cmd + 1								;-- skip the keyword
 			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
 				throw-draw-error cmds cmd
 			]
@@ -164,6 +166,50 @@ Red/System [
 				throw-draw-error cmds cmd
 			]
 			OS-draw-box DC as red-pair! cmd + 1 as red-pair! pos
+			pos
+		]
+		
+		draw-triangle: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-triangle DC as red-pair! cmd + 1 as red-pair! pos
+			pos
+		]
+		
+		draw-polygon: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			while [all [TYPE_OF(pos) = TYPE_PAIR pos < tail]][
+				pos: pos + 1
+			]
+			pos: pos - 1
+			
+			OS-draw-polygon DC as red-pair! cmd + 1 as red-pair! pos
 			pos
 		]
 
@@ -194,6 +240,8 @@ Red/System [
 					sym = line		 [cmd: draw-line		DC cmds cmd tail]
 					sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
 					sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
+					sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
+					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

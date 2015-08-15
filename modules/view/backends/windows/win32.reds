@@ -274,6 +274,7 @@ Red/System [
 
 #define NULL_BRUSH          5
 #define DC_BRUSH			18
+#define DC_PEN              19
 
 #define PS_SOLID			0
 #define PS_DASH				1							; -------
@@ -836,7 +837,7 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		SelectObject: "SelectObject" [
 			hDC			[handle!]
-			hbitmap		[handle!]
+			hgdiobj		[handle!]
 			return:		[handle!]
 		]
 		GetDeviceCaps: "GetDeviceCaps" [
@@ -921,6 +922,18 @@ DwmIsCompositionEnabled!: alias function! [
 			nTopRect	[integer!]
 			nRightRect	[integer!]
 			nBottomRect	[integer!]
+			return:		[logic!]
+		]
+		Polyline: "Polyline" [
+			hdc			[handle!]
+			lppt		[tagPOINT]
+			cPoints		[integer!]
+			return:		[logic!]
+		]
+		Polygon: "Polygon" [
+			hdc			[handle!]
+			lppt		[tagPOINT]
+			cPoints		[integer!]
 			return:		[logic!]
 		]
 	]

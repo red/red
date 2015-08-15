@@ -412,15 +412,26 @@ win/pane: reduce [
 		draw: [
 			pen red
 			line 10x10 130x190 80x40 150x100
+			
 			pen blue
 			line-width 4
 			line 15x190 50x50 190x180
+			
 			pen green
 			box 10x120 70x160
+			
 			line-width 1
 			pen maroon
 			fill-pen orange
 			box 150x80 180x120
+			
+			fill-pen off
+			pen red
+			triangle 170x10 170x50 195x50
+			
+			pen yellow fill-pen orange
+			line-width 5
+			polygon 120x130 120x190 180x130 180x190
 		]
 	]
 ]
