@@ -10,39 +10,75 @@ Red/System [
 	}
 ]
 
-current-pen: as handle! 0
+modes: declare struct! [
+	pen		  [handle!]
+	brush	  [handle!]
+	pen-width [integer!]
+	pen-style [integer!]
+	color	  [integer!]								;-- 00bbggrr format
+	bg-color  [integer!]								;-- 00bbggrr format
+]
+
+modes/pen:		 null
+modes/pen-width: 1
+modes/pen-style: PS_SOLID
+modes/color:	 00112233h								;-- default: black
+
 paint: declare tagPAINTSTRUCT
+
+update-pen: func [
+	dc [handle!]
+][
+	unless null? modes/pen [DeleteObject modes/pen]
+	modes/pen: CreatePen modes/pen-style modes/pen-width modes/color
+	SelectObject dc modes/pen
+]
 
 draw-begin: func [
 	hWnd	[handle!]
 	return: [handle!]
-	/local
-		dc	[handle!]
 ][
-	dc: BeginPaint hWnd paint
-	current-pen: CreatePen PS_SOLID 2 00112233h
-	SelectObject dc current-pen
-	dc
+	BeginPaint hWnd paint
 ]
 
-draw-end: func [DC [handle!] hWnd [handle!]][
+draw-end: func [dc [handle!] hWnd [handle!]][
+	unless null? modes/pen	 [DeleteObject modes/pen]
+	unless null? modes/brush [DeleteObject modes/brush]
 	EndPaint hWnd paint
 ]
 
-draw-line: func [
-	DC	   [handle!]
-	handle [handle!]
+OS-draw-line: func [
+	dc	   [handle!]
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
 		pt [tagPOINT]
 ][
+	if null? modes/pen [OS-draw-pen dc modes/color]
+	
 	pt: declare tagPOINT
-
-	MoveToEx DC point/x point/y pt
+	MoveToEx dc point/x point/y pt
+	
 	until [
 		point: point + 1
-		LineTo DC point/x point/y
+		LineTo dc point/x point/y
 		point = end
 	]
 ]
+
+OS-draw-pen: func [
+	dc	  [handle!]
+	color [integer!]									;-- 00bbggrr format
+][
+	modes/color: color
+	update-pen dc
+]
+
+OS-draw-line-width: func [
+	dc	  [handle!]
+	width [integer!]
+][
+	modes/pen-width: width
+	update-pen dc
+]
+
