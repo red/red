@@ -16,6 +16,9 @@ Red/System [
 		line-width:	symbol/make "line-width"
 		box:		symbol/make "box"
 		pen:		symbol/make "pen"
+		fill-pen:	symbol/make "fill-pen"
+		
+		_off:		symbol/make "off"
 
 		throw-draw-error: func [
 			cmds [red-block!]
@@ -104,6 +107,45 @@ Red/System [
 			pos
 		]
 		
+		draw-fill-pen: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	  [red-value!]
+				color [red-tuple!]
+				w	  [red-word!]
+				value [integer!]
+				off?  [logic!]
+		][
+			pos: cmd + 1
+			if pos >= tail [throw-draw-error cmds cmd]
+			off?: no
+
+			switch TYPE_OF(pos) [
+				TYPE_TUPLE [color: as red-tuple! pos]
+				;TYPE_IMAGE [img: as red-image! pos]
+				TYPE_WORD  [
+					w: as red-word! pos
+					either _off = symbol/resolve w/symbol [
+						value: -1
+						off?: yes
+					][
+						color: as red-tuple! _context/get as red-word! pos
+						if TYPE_OF(color) <> TYPE_TUPLE [
+							throw-draw-error cmds cmd
+						]
+						value: color/array1
+					]
+				]
+				default [throw-draw-error cmds cmd]
+			]
+			OS-draw-fill-pen DC value off?
+			pos
+		]
+		
 		draw-box: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -148,9 +190,10 @@ Red/System [
 				
 				case [
 					sym = pen		 [cmd: draw-pen			DC cmds cmd tail]
+					sym = box		 [cmd: draw-box			DC cmds cmd tail]
 					sym = line		 [cmd: draw-line		DC cmds cmd tail]
 					sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
-					sym = box		 [cmd: draw-box			DC cmds cmd tail]
+					sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1
