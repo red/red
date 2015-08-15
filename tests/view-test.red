@@ -437,6 +437,20 @@ win/pane: reduce [
 			pen purple
 			fill-pen purple
 			box 220x10 280x70 20
+
+			fill-pen red
+			circle 250x150 50
+			pen gray
+			fill-pen white
+			circle 250x150 40
+			fill-pen red
+			circle 250x150 30
+			fill-pen blue
+			circle 250x150 20
+			pen blue
+			fill-pen white
+			polygon 232x144 245x144 250x130 255x144 268x144
+				257x153 260x166 250x158 239x166 243x153
 		]
 	]
 ]

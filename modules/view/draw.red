@@ -19,6 +19,7 @@ Red/System [
 		pen:		symbol/make "pen"
 		fill-pen:	symbol/make "fill-pen"
 		_polygon:	symbol/make "polygon"
+		circle:		symbol/make "circle"
 		
 		_off:		symbol/make "off"
 
@@ -216,6 +217,31 @@ Red/System [
 			OS-draw-polygon DC as red-pair! cmd + 1 as red-pair! pos
 			pos
 		]
+		
+		draw-circle: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- optional radius-y argument
+				pos: pos - 1
+			]
+			OS-draw-circle DC as red-pair! cmd + 1 as red-integer! pos
+			pos
+		]
 
 		do-draw: func [
 			handle [handle!]
@@ -246,6 +272,7 @@ Red/System [
 					sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
 					sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
 					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
+					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

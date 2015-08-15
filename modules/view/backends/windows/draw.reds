@@ -196,3 +196,31 @@ OS-draw-polygon: func [
 		Polygon dc edges nb + 1
 	]
 ]
+
+OS-draw-circle: func [
+	dc	   [handle!]
+	center [red-pair!]
+	radius [red-integer!]
+	/local
+		rad-x [integer!]
+		rad-y [integer!]
+		x	  [integer!]
+		y	  [integer!]
+][
+	either center + 1 = radius [
+		rad-x: radius/value
+		rad-y: rad-x
+	][
+		rad-y: radius/value
+		radius: radius - 1
+		rad-x: radius/value
+	]
+	x: center/x
+	y: center/y
+	
+	Ellipse dc 
+		x - rad-x
+		y - rad-y
+		x + rad-x
+		y + rad-y
+]

@@ -946,6 +946,14 @@ DwmIsCompositionEnabled!: alias function! [
 			cPoints		[integer!]
 			return:		[logic!]
 		]
+		Ellipse: "Ellipse" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			return:		[logic!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
