@@ -924,6 +924,16 @@ DwmIsCompositionEnabled!: alias function! [
 			nBottomRect	[integer!]
 			return:		[logic!]
 		]
+		RoundRect: "RoundRect" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			nWidth		[integer!]
+			nHeight		[integer!]
+			return:		[logic!]
+		]
 		Polyline: "Polyline" [
 			hdc			[handle!]
 			lppt		[tagPOINT]

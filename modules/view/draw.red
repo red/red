@@ -165,6 +165,10 @@ Red/System [
 			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
 				throw-draw-error cmds cmd
 			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- optional radius argument
+				pos: pos - 1
+			]
 			OS-draw-box DC as red-pair! cmd + 1 as red-pair! pos
 			pos
 		]

@@ -408,7 +408,7 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'base text: "canvas" offset: 20x460 size: 200x200 color: silver
+		type: 'base text: "canvas" offset: 20x460 size: 300x200 color: silver
 		draw: [
 			pen red
 			line 10x10 130x190 80x40 150x100
@@ -432,6 +432,11 @@ win/pane: reduce [
 			pen yellow fill-pen orange
 			line-width 5
 			polygon 120x130 120x190 180x130 180x190
+
+			line-width 1
+			pen purple
+			fill-pen purple
+			box 220x10 280x70 20
 		]
 	]
 ]

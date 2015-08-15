@@ -117,8 +117,18 @@ OS-draw-box: func [
 	dc	  [handle!]
 	upper [red-pair!]
 	lower [red-pair!]
+	/local
+		radius [red-integer!]
+		rad	   [integer!]
 ][
-	Rectangle dc upper/x upper/y lower/x lower/y
+	either TYPE_OF(lower) = TYPE_INTEGER [
+		radius: as red-integer! lower
+		lower:  lower - 1
+		rad: radius/value
+		RoundRect dc upper/x upper/y lower/x lower/y rad rad
+	][
+		Rectangle dc upper/x upper/y lower/x lower/y
+	]
 ]
 
 OS-draw-triangle: func [
