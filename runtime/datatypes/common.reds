@@ -376,6 +376,11 @@ words: context [
 	flag:			-1
 	code:			-1
 	picked:			-1
+
+	http-get:		-1
+	http-put:		-1
+	http-post:		-1
+	http-head:		-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -506,6 +511,11 @@ words: context [
 		flag:			symbol/make "flag"
 		code:			symbol/make "code"
 		picked:			symbol/make "picked"
+
+		http-get:		symbol/make "get"
+		http-put:		symbol/make "put"
+		http-post:		symbol/make "post"
+		http-head:		symbol/make "head"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

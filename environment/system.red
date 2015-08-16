@@ -143,7 +143,7 @@ system: context [
 				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
 				;not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
-				;no-connect:		["cannot connect:" :arg1 "reason:" :arg2]
+				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]

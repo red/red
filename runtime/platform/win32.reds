@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %COM.reds
+
 #define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
 #define VA_PAGE_RWX			40h							;-- PAGE_EXECUTE_READWRITE
@@ -461,5 +463,6 @@ platform: context [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
 		]
+		CoInitializeEx 0 COINIT_APARTMENTTHREADED
 	]
 ]

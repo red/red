@@ -10,6 +10,14 @@ Red/System [
 	}
 ]
 
+#enum http-verb! [
+	HTTP_GET
+	HTTP_PUT
+	HTTP_POST
+	HTTP_DEL
+	HTTP_HEAD
+]
+
 simple-io: context [
 
 	#enum red-io-mode! [
@@ -170,6 +178,191 @@ simple-io: context [
 					return:		[integer!]
 				]
 			]
+			"wininet.dll" stdcall [
+				InternetOpen: "InternetOpenW" [
+					lpszAgent		[c-string!]
+					dwAccessType	[integer!]
+					lpszProxyName	[c-string!]
+					lpszProxyBypass [c-string!]
+					dwFlags			[integer!]
+					return:			[integer!]
+				]
+				InternetConnect: "InternetConnectW" [
+					hInternet		[integer!]
+					lpszServerName	[c-string!]
+					nServerPort		[integer!]
+					lpszUsername	[c-string!]
+					lpszPassword	[c-string!]
+					dwService		[integer!]
+					dwFlags			[integer!]
+					dwContext		[int-ptr!]
+					return:			[integer!]
+				]
+				HttpOpenRequest: "HttpOpenRequestW" [
+					hConnect			[integer!]
+					lpszVerb			[c-string!]
+					lpszObjectName		[c-string!]
+					lpszVersion			[c-string!]
+					lpszReferer			[c-string!]
+					lplpszAcceptTypes	[c-string!]
+					dwFlags				[integer!]
+					dwContext			[int-ptr!]
+					return:				[integer!]
+				]
+				HttpSendRequest: "HttpSendRequestW" [
+					hRequest			[integer!]
+					lpszHeaders			[c-string!]
+					dwHeadersLength		[integer!]
+					lpOptional			[byte-ptr!]
+					dwOptionalLength	[integer!]
+					return:				[integer!]
+				]
+				InternetCloseHandle: "InternetCloseHandle" [
+					hInternet			[integer!]
+					return:				[integer!]
+				]
+				InternetReadFile: "InternetReadFile" [
+					hFile					[integer!]
+					lpBuffer				[byte-ptr!]
+					dwNumberOfBytesToRead	[integer!]
+					lpdwNumberOfBytesRead	[int-ptr!]
+					return:					[integer!]
+				]
+			]
+		]
+
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			return: [red-value!]
+			/local
+				action	[c-string!]
+				hr 		[integer!]
+				clsid	[tagGUID]
+				async 	[tagVARIANT]
+				body 	[tagVARIANT]
+				IH		[interface!]
+				http	[IWinHttpRequest]
+				bstr-d	[byte-ptr!]
+				bstr-m	[byte-ptr!]
+				bstr-u	[byte-ptr!]
+				buf-ptr [integer!]
+				s		[series!]
+				value	[red-value!]
+				tail	[red-value!]
+				l-bound [integer!]
+				u-bound [integer!]
+				array	[integer!]
+				res		[red-value!]
+				len		[integer!]
+		][
+			res: as red-value! none-value
+			clsid: declare tagGUID
+			async: declare tagVARIANT
+			body:  declare tagVARIANT
+			VariantInit async
+			VariantInit body
+			async/data1: VT_BOOL
+			async/data3: 0					;-- VARIANT_FALSE
+
+			switch method [
+				HTTP_GET [
+					action: #u16 "GET"
+					body/data1: VT_ERROR
+				]
+				HTTP_PUT [
+					action: #u16 "PUT"
+					--NOT_IMPLEMENTED--
+				]
+				HTTP_POST [
+					action: #u16 "POST"
+					body/data1: VT_BSTR
+					bstr-d: SysAllocString unicode/to-utf16 as red-string! data
+					body/data3: as-integer bstr-d
+				]
+				default [--NOT_IMPLEMENTED--]
+			]
+
+			IH: declare interface!
+			http: null
+
+			hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" clsid
+
+			if hr >= 0 [
+				hr: CoCreateInstance as int-ptr! clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
+			]
+
+			if hr >= 0 [
+				http: as IWinHttpRequest IH/ptr/vtbl
+				bstr-m: SysAllocString action
+				bstr-u: SysAllocString unicode/to-utf16 as red-string! url
+				hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
+				SysFreeString bstr-m
+				SysFreeString bstr-u
+			]
+
+			either hr >= 0 [
+				if method = HTTP_POST [
+					bstr-u: SysAllocString #u16 "Content-Type"
+					bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
+					http/SetRequestHeader IH/ptr bstr-u bstr-m
+					SysFreeString bstr-m
+					SysFreeString bstr-u
+				]
+				if all [method = HTTP_POST header <> null][
+					s: GET_BUFFER(header)
+					value: s/offset + header/head
+					tail:  s/tail
+
+					while [value < tail][
+						bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+						value: value + 1
+						bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+						value: value + 1
+						http/SetRequestHeader IH/ptr bstr-u bstr-m
+						SysFreeString bstr-m
+						SysFreeString bstr-u
+					]
+				]
+				hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
+
+			][
+				fire [TO_ERROR(access no-connect) url]
+			]
+
+			if hr >= 0 [
+				SysFreeString bstr-d
+				hr: http/ResponseBody IH/ptr body
+			]
+
+			if hr >= 0 [				
+				array: body/data3
+				if all [
+					VT_ARRAY or VT_UI1 = body/data1
+					1 = SafeArrayGetDim array
+				][
+					l-bound: 0
+					u-bound: 0
+					SafeArrayGetLBound array 1 :l-bound
+					SafeArrayGetUBound array 1 :u-bound
+					buf-ptr: 0
+					SafeArrayAccessData array :buf-ptr
+					len: u-bound - l-bound + 1
+					res: as red-value! either binary? [
+						binary/load as byte-ptr! buf-ptr len
+					][
+						string/load as c-string! buf-ptr len UTF-8
+					]
+					SafeArrayUnaccessData array
+				]
+				if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
+			]
+
+			if http <> null [http/Release IH/ptr]
+			res
 		]
 	][
 		#define O_RDONLY	0
@@ -186,7 +379,18 @@ simple-io: context [
 		#define S_IROTH		4
 
 		#define	DT_DIR		#"^(04)"
-		
+
+		request-http: func [
+			method	[integer!]
+			url		[red-url!]
+			header	[red-block!]
+			data	[red-value!]
+			binary? [logic!]
+			return: [red-value!]
+		][
+			as red-value! none-value
+		]
+
 		#case [
 			OS = 'FreeBSD [
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
