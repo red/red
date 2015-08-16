@@ -112,7 +112,15 @@ button: make face! [
 ]
 
 win/pane: reduce [
-	make face! [type: 'button text: "Hi" offset: 10x10 size: 60x40]
+	make face! [
+		type: 'button text: "Hi" offset: 10x10 size: 60x40
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				print "Testing error handling in awake event: 1 / 0"
+				probe 1 / 0
+			]
+		]
+	]
 	button
 	make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24

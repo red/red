@@ -106,7 +106,7 @@ system/view: context [
 			act: in face/actors select evt-names type
 			act: get act
 		][
-			if error? set 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO
+			if error? set/any 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO			
 				print :result
 				result: none
 			]

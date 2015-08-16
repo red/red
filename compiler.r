@@ -1824,6 +1824,17 @@ red: context [
 			append body [
 				stack/unwind
 			]
+			if all? [
+				emit [
+					if system/thrown = RED_THROWN_ERROR [
+						natives/handle-thrown-error
+					]
+				]
+			]
+			emit [
+				stack/adjust-post-try
+				system/thrown: 0
+			]
 		][
 			emit-open-frame 'try						;-- fallback option
 			comp-expression
