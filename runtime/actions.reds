@@ -1530,7 +1530,7 @@ actions: context [
 		as-arg	[integer!]
 		return:	[red-value!]
 	][
-		write
+		stack/set-last write
 			stack/arguments
 			stack/arguments + 1
 			binary? <> -1
@@ -1540,7 +1540,6 @@ actions: context [
 			stack/arguments + seek
 			stack/arguments + allow
 			stack/arguments + as-arg
-		stack/set-last unset-value
 	]
 
 	write: func [
@@ -1553,7 +1552,7 @@ actions: context [
 		seek	[red-value!]
 		allow	[red-value!]
 		as-arg	[red-value!]
-		return: [integer!]
+		return: [red-value!]
 		/local
 			action-write
 	][
@@ -1569,7 +1568,7 @@ actions: context [
 			seek	[red-value!]
 			allow	[red-value!]
 			as-arg	[red-value!]
-			return:	[integer!]						;-- picked value from series
+			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr src ACT_WRITE
 
 		action-write src data binary? lines? append? part seek allow as-arg

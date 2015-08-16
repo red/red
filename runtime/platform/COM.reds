@@ -18,6 +18,9 @@ Red/System [
 	]
 ]
 
+#define COM_SUCCEEDED(hr)		[hr >= 0]
+#define COM_FAILED(hr)			[hr < 0]
+
 #define COINIT_APARTMENTTHREADED	2
 
 #define CLSCTX_INPROC_SERVER 	1
@@ -38,12 +41,28 @@ IID_ICaptureGraphBuilder2:		[93E5A4E0h 11D22D50h A000FAABh 8DE3C6C9h]
 IID_IGraphBuilder:				[56A868A9h 11CE0AD4h 20003AB0h 70A70BAFh]
 IID_IVideoWindow:				[56A868B4h 11CE0AD4h 20003AB0h 70A70BAFh]
 IID_IMediaControl:				[56A868B1h 11CE0AD4h 20003AB0h 70A70BAFh]
+IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
 
 PIN_CATEGORY_PREVIEW:			[FB6C4282h 11D10353h 00005F90h BA16CCC0h]
 MEDIATYPE_Video:				[73646976h 00100000h AA000080h 719B3800h]
 MEDIATYPE_Interleaved:			[73766169h 00100000h AA000080h 719B3800h]
 
+#define VT_EMPTY		0
+#define VT_NULL			1
+#define VT_BSTR			8
+#define VT_ERROR		10
+#define VT_BOOL			11
+#define VT_UI1			17
+#define VT_ARRAY		2000h
+
 tagVARIANT: alias struct! [
+	data1		[integer!]
+	data2		[integer!]
+	data3		[integer!]
+	data4		[integer!]
+]
+
+tagGUID: alias struct! [
 	data1		[integer!]
 	data2		[integer!]
 	data3		[integer!]
@@ -229,7 +248,7 @@ IVideoWindow: alias struct! [
 	get_Top					[integer!]
 	put_Height				[integer!]
 	get_Height				[integer!]
-	put_Owner				[function! [this [this!] hWnd [handle!] return: [integer!]]]
+	put_Owner				[function! [this [this!] hWnd [int-ptr!] return: [integer!]]]
 	get_Owner				[integer!]
 	put_MessageDrain		[integer!]
 	get_MessageDrain		[integer!]
@@ -248,6 +267,35 @@ IVideoWindow: alias struct! [
 	IsCursorHidden			[integer!]
 ]
 
+IWinHttpRequest: alias struct! [
+	QueryInterface			[QueryInterface!]
+	AddRef					[AddRef!]
+	Release					[Release!]
+	GetTypeInfoCount		[integer!]
+	GetTypeInfo				[integer!]
+	GetIDsOfNames			[integer!]
+	Invoke					[integer!]
+	SetProxy				[integer!]
+	SetCredentials			[integer!]
+	Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
+	SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
+	GetResponseHeader		[integer!]
+	GetAllResponseHeaders	[integer!]
+	Send					[function! [this [this!] body1 [integer!] body2 [integer!] body3 [integer!] body4 [integer!] return: [integer!]]]
+	Status					[integer!]
+	StatusText				[integer!]
+	ResponseText			[function! [this [this!] body [int-ptr!] return: [integer!]]]
+	ResponseBody			[function! [this [this!] body [tagVARIANT] return: [integer!]]]
+	ResponseStream			[integer!]
+	GetOption				[integer!]
+	PutOption				[integer!]
+	WaitForResponse			[integer!]
+	Abort					[integer!]
+	SetTimeouts				[integer!]
+	SetClientCertificate	[integer!]
+	SetAutoLogonPolicy		[integer!]
+]
+
 #import [
 	"ole32.dll" stdcall [
 		CoInitializeEx: "CoInitializeEx" [
@@ -263,6 +311,52 @@ IVideoWindow: alias struct! [
 			riid		 [int-ptr!]
 			ppv			 [interface!]
 			return:		 [integer!]
+		]
+		CLSIDFromProgID: "CLSIDFromProgID" [
+			lpszProgID	[c-string!]
+			lpclsid		[tagGUID]
+			return:		[integer!]
+		]
+	]
+	"oleaut32.dll" stdcall [
+		SysAllocString: "SysAllocString" [
+			psz		[c-string!]
+			return:	[byte-ptr!]
+		]
+		SysFreeString: "SysFreeString" [
+			bstr	[byte-ptr!]
+		]
+		VariantInit: "VariantInit" [
+			pvarg	[tagVARIANT]
+		]
+		SafeArrayGetDim: "SafeArrayGetDim" [
+			psa		[integer!]
+			return: [integer!]
+		]
+		SafeArrayGetLBound: "SafeArrayGetLBound" [
+			psa		[integer!]
+			nDim	[integer!]
+			bound	[int-ptr!]
+			return: [integer!]
+		]
+		SafeArrayGetUBound: "SafeArrayGetUBound" [
+			psa		[integer!]
+			nDim	[integer!]
+			bound	[int-ptr!]
+			return: [integer!]
+		]
+		SafeArrayAccessData: "SafeArrayAccessData" [
+			psa		[integer!]
+			ppvData [int-ptr!]
+			return: [integer!]
+		]
+		SafeArrayUnaccessData: "SafeArrayUnaccessData" [
+			psa		[integer!]
+			return: [integer!]
+		]
+		SafeArrayDestroy: "SafeArrayDestroy" [
+			psa		[integer!]
+			return:	[integer!]
 		]
 	]
 ]

@@ -226,7 +226,20 @@ word: context [
 		CHECK_UNSET(value word)
 		value
 	]
-	
+
+	to-string: func [
+		w		[red-word!]
+		return: [red-string!]
+		/local
+			s	[series!]
+			str [red-string!]
+	][
+		s: GET_BUFFER(symbols)
+		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/head: 0
+		str
+	]
+
 	;-- Actions --
 	
 	form: func [

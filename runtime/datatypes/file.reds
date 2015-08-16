@@ -231,7 +231,7 @@ file: context [
 		seek	[red-value!]
 		allow	[red-value!]
 		as-arg	[red-value!]
-		return:	[integer!]
+		return:	[red-value!]
 	][
 		if any [
 			OPTION?(seek)
@@ -241,6 +241,7 @@ file: context [
 			--NOT_IMPLEMENTED--
 		]
 		simple-io/write as red-file! dest data part binary? append?
+		as red-value! unset-value
 	]
 
 	init: does [

@@ -122,6 +122,90 @@ url: context [
 		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
+			
+		switch type/value [
+			TYPE_STRING [
+				set-type copy-cell as cell! spec as cell! type TYPE_STRING
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		as red-value! type
+	]
+
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/request-http HTTP_GET as red-url! src null null binary?
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+		/local
+			blk		[red-block!]
+			method	[red-word!]
+			header	[red-block!]
+			action	[integer!]
+			sym		[integer!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+
+		either TYPE_OF(data) = TYPE_BLOCK [
+			blk: as red-block! data
+			method: as red-word! block/rs-head blk
+			sym: symbol/resolve method/symbol
+			action: case [
+				sym = words/get  [HTTP_GET]
+				sym = words/put  [HTTP_PUT]
+				sym = words/post [HTTP_POST]
+				true [--NOT_IMPLEMENTED-- 0]
+			]
+			header: as red-block! method + 1
+			data: as red-value! method + 2
+		][
+			header: null
+			action: HTTP_POST
+		]
+		
+		simple-io/request-http action as red-url! dest header data binary?
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_URL
@@ -131,7 +215,7 @@ url: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -189,10 +273,10 @@ url: context [
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]
