@@ -274,15 +274,7 @@ WndProc: func [
 	switch msg [
 		WM_COMMAND [
 			if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
-				unless null? menu-handle [
-					res: get-menu-id menu-handle menu-selected
-					if null? menu-origin [menu-origin: hWnd]
-					current-msg/hWnd: menu-origin
-					make-event current-msg res EVT_MENU
-					unless null? menu-ctx [DestroyMenu menu-ctx]
-					menu-origin: null
-					return DefWindowProc hWnd msg wParam lParam
-				]
+				unless null? menu-handle [do-menu hWnd]
 			]
 			switch WIN32_HIWORD(wParam) [
 				BN_CLICKED [

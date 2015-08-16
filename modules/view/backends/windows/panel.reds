@@ -56,6 +56,11 @@ PanelWndProc: func [
 		nmhdr [tagNMHDR]
 ][
 	switch msg [
+		WM_COMMAND [
+			if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'		
+				unless null? menu-handle [do-menu hWnd]
+			]
+		]
 		WM_VSCROLL
 		WM_HSCROLL [
 			unless zero? lParam [						;-- message from trackbar

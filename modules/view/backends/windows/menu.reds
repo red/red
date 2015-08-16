@@ -155,3 +155,16 @@ get-menu-id: func [
 	GetMenuItemInfo hMenu pos true item
 	return item/dwItemData
 ]
+
+do-menu: func [
+	hWnd [handle!]
+	/local
+		res	[integer!]
+][
+	res: get-menu-id menu-handle menu-selected
+	if null? menu-origin [menu-origin: hWnd]
+	current-msg/hWnd: menu-origin
+	make-event current-msg res EVT_MENU
+	unless null? menu-ctx [DestroyMenu menu-ctx]
+	menu-origin: null
+]
