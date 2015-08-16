@@ -21,12 +21,6 @@ modes: declare struct! [
 	saved-brush [handle!]
 ]
 
-modes/pen:			null
-modes/pen-width:	1
-modes/pen-style:	PS_SOLID
-modes/pen-color:	00112233h							;-- default: black
-modes/brush-color:	-1
-
 paint: declare tagPAINTSTRUCT
 
 max-edges: 1000											;-- max number of edges for a polygone
@@ -57,6 +51,14 @@ draw-begin: func [
 	dc: BeginPaint hWnd paint
 	saved-pen:   SelectObject dc GetStockObject DC_PEN
 	saved-brush: SelectObject dc GetStockObject DC_BRUSH
+	
+	modes/pen:			null
+	modes/pen-width:	1
+	modes/pen-style:	PS_SOLID
+	modes/pen-color:	00112233h						;-- default: black
+	modes/brush-color:	-1
+	
+	update-modes dc
 	dc
 ]
 
