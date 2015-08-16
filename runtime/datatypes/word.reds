@@ -232,9 +232,12 @@ word: context [
 		return: [red-string!]
 		/local
 			s	[series!]
+			str [red-string!]
 	][
 		s: GET_BUFFER(symbols)
-		as red-string! s/offset + w/symbol - 1
+		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/head: 0
+		str
 	]
 
 	;-- Actions --

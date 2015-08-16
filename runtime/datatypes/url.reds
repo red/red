@@ -191,9 +191,9 @@ url: context [
 			method: as red-word! block/rs-head blk
 			sym: symbol/resolve method/symbol
 			action: case [
-				sym = words/http-get  [HTTP_GET]
-				sym = words/http-put  [HTTP_PUT]
-				sym = words/http-post [HTTP_POST]
+				sym = words/get  [HTTP_GET]
+				sym = words/put  [HTTP_PUT]
+				sym = words/post [HTTP_POST]
 				true [--NOT_IMPLEMENTED-- 0]
 			]
 			header: as red-block! method + 1
