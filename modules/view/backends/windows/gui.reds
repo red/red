@@ -13,7 +13,6 @@ Red/System [
 #include %win32.reds
 #include %classes.reds
 #include %events.reds
-#include %com.reds
 
 #include %camera.reds
 #include %image.reds
