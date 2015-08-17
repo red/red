@@ -1159,7 +1159,6 @@ simple-io: context [
 				/local
 					len		[integer!]
 					action	[c-string!]
-					host	[integer!]
 					cf-url	[integer!]
 					req		[integer!]
 					body	[integer!]
@@ -1180,6 +1179,7 @@ simple-io: context [
 					default [--NOT_IMPLEMENTED--]
 				]
 
+				body: 0
 				len: -1
 				url-ptr: CFString((unicode/to-utf8 as red-string! url :len))
 				cf-url: CFURLCreateWithString 0 url-ptr 0
@@ -1200,14 +1200,7 @@ simple-io: context [
 					body: CFDataCreate 0 buf datalen
 					CFHTTPMessageSetBody req body
 
-					host: CFURLCopyHostName cf-url
-					datalen: CFString((integer/form-signed datalen))
-					CFHTTPMessageSetHeaderFieldValue req CFSTR("HOST") host
-					CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Length") datalen
-					CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("charset=utf-8")
-					;CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded")
-					CFRelease host
-					CFRelease datalen
+					CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
 
 					if header <> null [
 						s: GET_BUFFER(header)
@@ -1242,7 +1235,7 @@ simple-io: context [
 
 				free buf
 				CFReadStreamClose stream
-				CFRelease body
+				unless zero? body [CFRelease body]
 				CFRelease cf-url
 				CFRelease req
 				CFRelease stream
