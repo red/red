@@ -179,140 +179,6 @@ simple-io: context [
 				]
 			]
 		]
-
-		request-http: func [
-			method	[integer!]
-			url		[red-url!]
-			header	[red-block!]
-			data	[red-value!]
-			binary? [logic!]
-			return: [red-value!]
-			/local
-				action	[c-string!]
-				hr 		[integer!]
-				clsid	[tagGUID]
-				async 	[tagVARIANT]
-				body 	[tagVARIANT]
-				IH		[interface!]
-				http	[IWinHttpRequest]
-				bstr-d	[byte-ptr!]
-				bstr-m	[byte-ptr!]
-				bstr-u	[byte-ptr!]
-				buf-ptr [integer!]
-				s		[series!]
-				value	[red-value!]
-				tail	[red-value!]
-				l-bound [integer!]
-				u-bound [integer!]
-				array	[integer!]
-				res		[red-value!]
-				len		[integer!]
-		][
-			res: as red-value! none-value
-			clsid: declare tagGUID
-			async: declare tagVARIANT
-			body:  declare tagVARIANT
-			VariantInit async
-			VariantInit body
-			async/data1: VT_BOOL
-			async/data3: 0					;-- VARIANT_FALSE
-
-			switch method [
-				HTTP_GET [
-					action: #u16 "GET"
-					body/data1: VT_ERROR
-				]
-				HTTP_PUT [
-					action: #u16 "PUT"
-					--NOT_IMPLEMENTED--
-				]
-				HTTP_POST [
-					action: #u16 "POST"
-					body/data1: VT_BSTR
-					bstr-d: SysAllocString unicode/to-utf16 as red-string! data
-					body/data3: as-integer bstr-d
-				]
-				default [--NOT_IMPLEMENTED--]
-			]
-
-			IH: declare interface!
-			http: null
-
-			hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" clsid
-
-			if hr >= 0 [
-				hr: CoCreateInstance as int-ptr! clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
-			]
-
-			if hr >= 0 [
-				http: as IWinHttpRequest IH/ptr/vtbl
-				bstr-m: SysAllocString action
-				bstr-u: SysAllocString unicode/to-utf16 as red-string! url
-				hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
-				SysFreeString bstr-m
-				SysFreeString bstr-u
-			]
-
-			either hr >= 0 [
-				if method = HTTP_POST [
-					bstr-u: SysAllocString #u16 "Content-Type"
-					bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
-					http/SetRequestHeader IH/ptr bstr-u bstr-m
-					SysFreeString bstr-m
-					SysFreeString bstr-u
-				]
-				if all [method = HTTP_POST header <> null][
-					s: GET_BUFFER(header)
-					value: s/offset + header/head
-					tail:  s/tail
-
-					while [value < tail][
-						bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
-						value: value + 1
-						bstr-m: SysAllocString unicode/to-utf16 as red-string! value
-						value: value + 1
-						http/SetRequestHeader IH/ptr bstr-u bstr-m
-						SysFreeString bstr-m
-						SysFreeString bstr-u
-					]
-				]
-				hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
-
-			][
-				fire [TO_ERROR(access no-connect) url]
-			]
-
-			if hr >= 0 [
-				SysFreeString bstr-d
-				hr: http/ResponseBody IH/ptr body
-			]
-
-			if hr >= 0 [				
-				array: body/data3
-				if all [
-					VT_ARRAY or VT_UI1 = body/data1
-					1 = SafeArrayGetDim array
-				][
-					l-bound: 0
-					u-bound: 0
-					SafeArrayGetLBound array 1 :l-bound
-					SafeArrayGetUBound array 1 :u-bound
-					buf-ptr: 0
-					SafeArrayAccessData array :buf-ptr
-					len: u-bound - l-bound + 1
-					res: as red-value! either binary? [
-						binary/load as byte-ptr! buf-ptr len
-					][
-						string/load as c-string! buf-ptr len UTF-8
-					]
-					SafeArrayUnaccessData array
-				]
-				if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
-			]
-
-			if http <> null [http/Release IH/ptr]
-			res
-		]
 	][
 		#define O_RDONLY	0
 		#define O_WRONLY	1
@@ -328,17 +194,6 @@ simple-io: context [
 		#define S_IROTH		4
 
 		#define	DT_DIR		#"^(04)"
-
-		request-http: func [
-			method	[integer!]
-			url		[red-url!]
-			header	[red-block!]
-			data	[red-value!]
-			binary? [logic!]
-			return: [red-value!]
-		][
-			as red-value! none-value
-		]
 
 		#case [
 			OS = 'FreeBSD [
@@ -1080,6 +935,331 @@ simple-io: context [
 			files
 		][
 			as red-value! none-value
+		]
+	]
+
+	#switch OS [
+		Windows [
+			request-http: func [
+				method	[integer!]
+				url		[red-url!]
+				header	[red-block!]
+				data	[red-value!]
+				binary? [logic!]
+				return: [red-value!]
+				/local
+					action	[c-string!]
+					hr 		[integer!]
+					clsid	[tagGUID]
+					async 	[tagVARIANT]
+					body 	[tagVARIANT]
+					IH		[interface!]
+					http	[IWinHttpRequest]
+					bstr-d	[byte-ptr!]
+					bstr-m	[byte-ptr!]
+					bstr-u	[byte-ptr!]
+					buf-ptr [integer!]
+					s		[series!]
+					value	[red-value!]
+					tail	[red-value!]
+					l-bound [integer!]
+					u-bound [integer!]
+					array	[integer!]
+					res		[red-value!]
+					len		[integer!]
+			][
+				res: as red-value! none-value
+				clsid: declare tagGUID
+				async: declare tagVARIANT
+				body:  declare tagVARIANT
+				VariantInit async
+				VariantInit body
+				async/data1: VT_BOOL
+				async/data3: 0					;-- VARIANT_FALSE
+
+				switch method [
+					HTTP_GET [
+						action: #u16 "GET"
+						body/data1: VT_ERROR
+					]
+					HTTP_PUT [
+						action: #u16 "PUT"
+						--NOT_IMPLEMENTED--
+					]
+					HTTP_POST [
+						action: #u16 "POST"
+						body/data1: VT_BSTR
+						bstr-d: SysAllocString unicode/to-utf16 as red-string! data
+						body/data3: as-integer bstr-d
+					]
+					default [--NOT_IMPLEMENTED--]
+				]
+
+				IH: declare interface!
+				http: null
+
+				hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" clsid
+
+				if hr >= 0 [
+					hr: CoCreateInstance as int-ptr! clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
+				]
+
+				if hr >= 0 [
+					http: as IWinHttpRequest IH/ptr/vtbl
+					bstr-m: SysAllocString action
+					bstr-u: SysAllocString unicode/to-utf16 as red-string! url
+					hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
+					SysFreeString bstr-m
+					SysFreeString bstr-u
+				]
+
+				either hr >= 0 [
+					if method = HTTP_POST [
+						bstr-u: SysAllocString #u16 "Content-Type"
+						bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
+						http/SetRequestHeader IH/ptr bstr-u bstr-m
+						SysFreeString bstr-m
+						SysFreeString bstr-u
+					]
+					if all [method = HTTP_POST header <> null][
+						s: GET_BUFFER(header)
+						value: s/offset + header/head
+						tail:  s/tail
+
+						while [value < tail][
+							bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+							value: value + 1
+							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+							value: value + 1
+							http/SetRequestHeader IH/ptr bstr-u bstr-m
+							SysFreeString bstr-m
+							SysFreeString bstr-u
+						]
+					]
+					hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
+				][
+					fire [TO_ERROR(access no-connect) url]
+				]
+
+				if hr >= 0 [
+					SysFreeString bstr-d
+					hr: http/ResponseBody IH/ptr body
+				]
+
+				if hr >= 0 [				
+					array: body/data3
+					if all [
+						VT_ARRAY or VT_UI1 = body/data1
+						1 = SafeArrayGetDim array
+					][
+						l-bound: 0
+						u-bound: 0
+						SafeArrayGetLBound array 1 :l-bound
+						SafeArrayGetUBound array 1 :u-bound
+						buf-ptr: 0
+						SafeArrayAccessData array :buf-ptr
+						len: u-bound - l-bound + 1
+						res: as red-value! either binary? [
+							binary/load as byte-ptr! buf-ptr len
+						][
+							string/load as c-string! buf-ptr len UTF-8
+						]
+						SafeArrayUnaccessData array
+					]
+					if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
+				]
+
+				if http <> null [http/Release IH/ptr]
+				res
+			]
+		]
+		MacOSX [
+			#import [
+				"/System/Library/Frameworks/CFNetwork.framework/CFNetwork" cdecl [
+					__CFStringMakeConstantString: "__CFStringMakeConstantString" [
+						cStr		[c-string!]
+						return:		[integer!]
+					]
+					CFURLCreateWithString: "CFURLCreateWithString" [
+						allocator	[integer!]
+						url			[integer!]
+						baseUrl		[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageCreateRequest: "CFHTTPMessageCreateRequest" [
+						allocator	[integer!]
+						method		[integer!]
+						url			[integer!]
+						version		[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageSetBody: "CFHTTPMessageSetBody" [
+						msg			[integer!]
+						data		[integer!]
+					]
+					CFHTTPMessageSetHeaderFieldValue: "CFHTTPMessageSetHeaderFieldValue" [
+						msg			[integer!]
+						header		[integer!]
+						value		[integer!]
+					]
+					CFReadStreamCreateForHTTPRequest: "CFReadStreamCreateForHTTPRequest" [
+						allocator	[integer!]
+						request		[integer!]
+						return:		[integer!]
+					]
+					CFURLCopyHostName: "CFURLCopyHostName" [
+						url			[integer!]
+						return:		[integer!]
+					]
+				]
+				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+					CFReadStreamOpen: "CFReadStreamOpen" [
+						stream		[integer!]
+						return:		[integer!]
+					]
+					CFReadStreamRead: "CFReadStreamRead" [
+						stream		[integer!]
+						buffer		[byte-ptr!]
+						size		[integer!]
+						return:		[integer!]
+					]
+					CFReadStreamClose: "CFReadStreamClose" [
+						stream		[integer!]
+					]
+					CFDataCreate: "CFDataCreate" [
+						allocator	[integer!]
+						data		[byte-ptr!]
+						length		[integer!]
+						return:		[integer!]
+					]
+					CFStringCreateWithCString: "CFStringCreateWithCString" [
+						allocator	[integer!]
+						cStr		[c-string!]
+						encoding	[integer!]
+						return:		[integer!]
+					]
+					CFRelease: "CFRelease" [
+						cf			[integer!]
+					]
+				]
+			]
+
+			#define kCFStringEncodingUTF8	08000100h
+			
+			#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
+			#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+
+			request-http: func [
+				method	[integer!]
+				url		[red-url!]
+				header	[red-block!]
+				data	[red-value!]
+				binary? [logic!]
+				return: [red-value!]
+				/local
+					len		[integer!]
+					action	[c-string!]
+					cf-url	[integer!]
+					req		[integer!]
+					body	[integer!]
+					buf		[byte-ptr!]
+					datalen [integer!]
+					cf-key	[integer!]
+					cf-val	[integer!]
+					value	[red-value!]
+					tail	[red-value!]
+					s		[series!]
+					bin		[red-binary!]
+					stream	[integer!]
+			][
+				switch method [
+					HTTP_GET  [action: "GET"]
+					HTTP_PUT  [action: "PUT"]
+					HTTP_POST [action: "POST"]
+					default [--NOT_IMPLEMENTED--]
+				]
+
+				body: 0
+				len: -1
+				url-ptr: CFString((unicode/to-utf8 as red-string! url :len))
+				cf-url: CFURLCreateWithString 0 url-ptr 0
+
+				req: CFHTTPMessageCreateRequest 0 CFSTR(action) cf-url CFSTR("HTTP/1.1")
+				CFRelease url-ptr
+
+				if zero? req [fire [TO_ERROR(access no-connect) url]]
+
+				if any [method = HTTP_POST method = HTTP_PUT][
+					datalen: -1
+					either TYPE_OF(data) = TYPE_STRING [
+						buf: as byte-ptr! unicode/to-utf8 as red-string! data :datalen
+					][
+						buf: binary/rs-head as red-binary! data
+						datalen: binary/rs-length? as red-binary! data
+					]
+					body: CFDataCreate 0 buf datalen
+					CFHTTPMessageSetBody req body
+
+					CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
+
+					if header <> null [
+						s: GET_BUFFER(header)
+						value: s/offset + header/head
+						tail:  s/tail
+
+						while [value < tail][
+							len: -1
+							cf-key: CFSTR((unicode/to-utf8 word/to-string as red-word! value :len))
+							value: value + 1
+							len: -1
+							cf-val: CFString((unicode/to-utf8 as red-string! value :len))
+							value: value + 1
+							CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
+							CFRelease cf-val
+						]
+					]
+				]
+
+				stream: CFReadStreamCreateForHTTPRequest 0 req
+				if zero? stream [fire [TO_ERROR(access no-connect) url]]
+				CFReadStreamOpen stream
+				buf: allocate 4096
+				bin: binary/make-at stack/push* 4096
+				until [
+					len: CFReadStreamRead stream buf 4096
+					if len > 0 [
+						binary/rs-append bin buf len
+					]
+					len <= 0
+				]
+
+				free buf
+				CFReadStreamClose stream
+				unless zero? body [CFRelease body]
+				CFRelease cf-url
+				CFRelease req
+				CFRelease stream
+
+				unless binary? [
+					buf: binary/rs-head bin
+					len: binary/rs-length? bin
+					bin/header: TYPE_STRING
+					bin/node: unicode/load-utf8 as c-string! buf len
+				]
+				as red-value! bin
+			]
+		]
+		#default [	
+			request-http: func [
+				method	[integer!]
+				url		[red-url!]
+				header	[red-block!]
+				data	[red-value!]
+				binary? [logic!]
+				return: [red-value!]
+			][
+				as red-value! none-value
+			]
 		]
 	]
 ]
