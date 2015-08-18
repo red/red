@@ -2404,7 +2404,8 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-get-word: has [spec name ns symbol][
-			name: resolve-ns to word! pc/1
+			name: to word! pc/1
+			unless local-variable? name [name: resolve-ns name]
 			comp-word/with/check name
 			
 			if all [
