@@ -92,5 +92,7 @@ PanelWndProc: func [
 		]
 		default [0]
 	]
+	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
+
 	CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
 ]
