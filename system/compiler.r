@@ -719,7 +719,7 @@ system-dialect: make-profilable context [
 				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
 				repend enumerations [identifier name/1 value]
 			]
-			value: value + 1
+			if value < 2147483647 [value: value + 1] ;-- avoid math overflow error
 		]
 
 		resolve-expr-type: func [expr /quiet /local type func? spec][
