@@ -710,12 +710,15 @@ simple-io: context [
 			blk		[red-block!]
 			str		[red-string!]
 			len		[integer!]
+			s		[series!]
 	][
 		#either OS = 'Windows [
-			string/append-char GET_BUFFER(filename) as-integer #"*"
+			s: string/append-char GET_BUFFER(filename) as-integer #"*"
 
 			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
 			handle: FindFirstFile to-OS-path filename info
+			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
+
 			if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
 			blk: block/push-only* 1
