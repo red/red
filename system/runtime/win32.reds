@@ -21,6 +21,7 @@ Red/System [
 #define DLL_THREAD_DETACH  		 3
 #define DLL_PROCESS_DETACH 		 0
 
+#define OS_DIR_SEP				 92		;-- #"\"
 
 #if use-natives? = yes [
 	#import [

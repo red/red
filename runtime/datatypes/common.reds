@@ -233,6 +233,81 @@ eval-int-path: func [
 	result
 ]
 
+cycles: context [
+	size: 1000											;-- max depth allowed (arbitrary)
+	stack: as node! allocate size * size? node!			;-- cycles detection stack
+	top: stack
+	end: stack + size
+
+	push: func [node [node!]][
+		top/value: as-integer node
+		top: top + 1
+		if top = end [fire [TO_ERROR(internal too-deep)]]
+	]
+	
+	pop: does [
+		if top > stack [top: top - 1]
+	]
+	
+	find?: func [
+		node	[node!]
+		return: [logic!]
+		/local
+			p [node!]
+	][
+		if top = stack [return no]
+		p: stack
+		until [
+			if node = as node! p/value [return yes]
+			p: p + 1
+			p = top
+		]
+		no
+	]
+	
+	detect?: func [
+		value	[red-value!]
+		buffer	[red-string!]
+		part	[int-ptr!]
+		mold?	[logic!]
+		return: [logic!]
+		/local
+			obj	 [red-object!]
+			blk	 [red-block!]
+			node [node!]
+			s	 [c-string!]
+			size [integer!]
+	][
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
+		either find? node [
+			either mold? [
+				switch TYPE_OF(value) [
+					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
+					TYPE_PAREN	[s: "(...)"				 size: 5 ]
+					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
+					TYPE_MAP	[s: "#(...)"			 size: 6 ]
+					TYPE_OBJECT [s: "make object! [...]" size: 18]
+					default		[assert false]
+				]
+			][
+				s: "..."
+				size: 3
+			]
+			string/concatenate-literal buffer s
+			part/value: part/value - size
+			yes
+		][
+			no
+		]
+	]
+]
+
 words: context [
 	spec:			-1
 	body:			-1

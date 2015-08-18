@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define OS_DIR_SEP 47						;-- #"/"
+
 #import [									;-- mandatory C bindings
 	LIBC-file cdecl [
 		sigaction: "sigaction" [

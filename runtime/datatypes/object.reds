@@ -323,7 +323,8 @@ object: context [
 			]
 			blank: lf
 		]
-		
+		cycles/push obj/ctx
+
 		while [sym < s-tail][
 			if indent? [part: do-indent buffer tabs part]
 			
@@ -336,7 +337,9 @@ object: context [
 				string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
 				part: part - 1
 			]
-			part: actions/mold value buffer only? all? flat? arg part tabs
+			unless cycles/detect? value buffer :part mold? [
+				part: actions/mold value buffer only? all? flat? arg part tabs
+			]
 			
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 				string/append-char GET_BUFFER(buffer) as-integer blank
@@ -345,6 +348,7 @@ object: context [
 			sym: sym + 1
 			value: value + 1
 		]
+		cycles/pop
 		part
 	]
 	

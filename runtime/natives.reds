@@ -425,6 +425,8 @@ natives: context [
 			arg	   [red-value!]
 			str	   [red-string!]
 			s	   [series!]
+			out    [red-string!]
+			len	   [integer!]
 	][
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
@@ -440,6 +442,15 @@ natives: context [
 				]
 				TYPE_STRING [
 					str: as red-string! arg
+					#call [system/lexer/transcode str none]
+					interpreter/eval as red-block! arg yes
+				]
+				TYPE_FILE [
+					len: -1
+					str: as red-string! arg
+					out: string/rs-make-at stack/push* string/rs-length? str
+					file/to-local-path as red-file! str out false
+					str: simple-io/read-txt unicode/to-utf8 out :len
 					#call [system/lexer/transcode str none]
 					interpreter/eval as red-block! arg yes
 				]

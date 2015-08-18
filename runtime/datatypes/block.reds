@@ -397,29 +397,37 @@ block: context [
 		return:   [integer!]
 		/local
 			s	  [series!]
+			head  [red-value!]
+			tail  [red-value!]
 			value [red-value!]
-			i     [integer!]
 	][
 		s: GET_BUFFER(blk)
-		i: blk/head
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
-			if all [OPTION?(arg) part <= 0][return part]
-			
+		head:  s/offset + blk/head
+		value: head
+		tail:  s/tail
+		
+		cycles/push blk/node
+		
+		while [value < tail][
+			if all [OPTION?(arg) part <= 0][
+				cycles/pop
+				return part
+			]
 			depth: depth + 1
-			part: actions/mold value buffer only? all? flat? arg part indent
-			
+			unless cycles/detect? value buffer :part yes [
+				part: actions/mold value buffer only? all? flat? arg part indent
+			]
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
 			]
 			depth: depth - 1
-			i: i + 1
+			value: value + 1
 		]
+		cycles/pop
+		
 		s: GET_BUFFER(buffer)
-		if i <> blk/head [								;-- test if not empty block
+		if value <> head [								;-- test if not empty block
 			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
 			part: part + 1
 		]
@@ -520,27 +528,30 @@ block: context [
 			s	  [series!]
 			buf	  [series!]
 			value [red-value!]
+			tail  [red-value!]
 			unit  [integer!]
-			prev  [integer!]
-			i     [integer!]
 			c	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
 
 		s: GET_BUFFER(blk)
-		i: blk/head
-		value: s/offset + i
+		value: s/offset + blk/head
+		tail: s/tail
 		c: 0
 		
-		while [value < s/tail][
-			if all [OPTION?(arg) part <= 0][return part]
+		cycles/push blk/node
+		
+		while [value < tail][
+			if all [OPTION?(arg) part <= 0][
+				cycles/pop
+				return part
+			]
+			unless cycles/detect? value buffer :part no [
+				part: actions/form value buffer arg part
+			]
+			value: value + 1
 			
-			prev: part
-			part: actions/form value buffer arg part
-			i: i + 1
-			value: s/offset + i
-			
-			if value < s/tail [
+			if value < tail [
 				buf:  GET_BUFFER(buffer)
 				unit: GET_UNIT(buf)
 				c: string/get-char (as byte-ptr! buf/tail) - unit unit
@@ -555,13 +566,7 @@ block: context [
 				]
 			]
 		]
-		
-		s: GET_BUFFER(buffer)
-		
-		if s/offset < s/tail [
-			unit: GET_UNIT(s)
-			i: string/get-char (as byte-ptr! s/tail) - unit unit
-		]
+		cycles/pop
 		part
 	]
 	
