@@ -1249,7 +1249,76 @@ simple-io: context [
 				as red-value! bin
 			]
 		]
-		#default [	
+		#default [
+	
+			#define CURLOPT_URL				10002
+			#define CURLOPT_HTTPGET			80
+			#define CURLOPT_POSTFIELDSIZE	60
+			#define CURLOPT_NOPROGRESS		43
+			#define CURLOPT_POSTFIELDS		10015
+			#define CURLOPT_WRITEDATA		10001
+			#define CURLOPT_HTTPHEADER		10023
+			#define CURLOPT_WRITEFUNCTION	20011
+
+			#define CURLE_OK				0
+			#define CURL_GLOBAL_ALL 		3
+
+			;-- use libcurl, may need to install it on some distros
+			#import [
+				"libcurl.so.4" cdecl [
+					curl_global_init: "curl_global_init" [
+						flags	[integer!]
+						return: [integer!]
+					]
+					curl_easy_init: "curl_easy_init" [
+						return: [integer!]
+					]
+					curl_easy_setopt: "curl_easy_setopt" [
+						curl	[integer!]
+						option	[integer!]
+						param	[integer!]
+						return: [integer!]
+					]
+					curl_slist_append: "curl_slist_append" [
+						slist	[integer!]
+						pragma	[c-string!]
+						return:	[integer!]
+					]
+					curl_slist_free_all: "curl_slist_free_all" [
+						slist	[integer!]
+					]
+					curl_easy_perform: "curl_easy_perform" [
+						handle	[integer!]
+						return: [integer!]
+					]
+					curl_easy_strerror: "curl_easy_strerror" [
+						error	[integer!]
+						return: [c-string!]
+					]
+					curl_easy_cleanup: "curl_easy_cleanup" [
+						handle	[integer!]
+					]
+					curl_global_cleanup: "curl_global_cleanup" []
+				]
+			]
+
+			get-http-response: func [
+				[cdecl]
+				data	 [byte-ptr!]
+				size	 [integer!]
+				nmemb	 [integer!]
+				userdata [byte-ptr!]
+				return:	 [integer!]
+				/local
+					bin  [red-binary!]
+					len  [integer!]
+			][
+				bin: as red-binary! userdata
+				len: size * nmemb
+				binary/rs-append bin data len
+				len
+			]
+
 			request-http: func [
 				method	[integer!]
 				url		[red-url!]
@@ -1257,8 +1326,96 @@ simple-io: context [
 				data	[red-value!]
 				binary? [logic!]
 				return: [red-value!]
+				/local
+					len		[integer!]
+					curl	[integer!]
+					res		[integer!]
+					buf		[byte-ptr!]
+					action	[c-string!]
+					bin		[red-binary!]
+					value	[red-value!]
+					tail	[red-value!]
+					s		[series!]
+					str		[red-string!]
+					slist	[integer!]
 			][
-				as red-value! none-value
+				switch method [
+					HTTP_GET  [action: "GET"]
+					;HTTP_PUT  [action: "PUT"]
+					HTTP_POST [action: "POST"]
+					default [--NOT_IMPLEMENTED--]
+				]
+
+				curl_global_init CURL_GLOBAL_ALL
+				curl: curl_easy_init
+
+				if zero? curl [
+					probe "ERROR: libcurl init failed."
+					curl_global_cleanup
+					return none-value
+				]
+
+				slist: 0
+				len: -1
+				bin: binary/make-at stack/push* 4096
+				
+				curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
+				curl_easy_setopt curl CURLOPT_NOPROGRESS 1
+				
+				curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
+				curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
+
+				case [
+					method = HTTP_GET [
+						curl_easy_setopt curl CURLOPT_HTTPGET 1
+					]
+					method = HTTP_POST [
+						if header <> null [
+							s: GET_BUFFER(header)
+							value: s/offset + header/head
+							tail:  s/tail
+
+							while [value < tail][
+								str: word/to-string as red-word! value
+								string/append-char GET_BUFFER(str) as-integer #":"
+								string/append-char GET_BUFFER(str) as-integer #" "
+								value: value + 1
+								string/concatenate str as red-string! value -1 0 yes no
+								len: -1
+								slist: curl_slist_append slist unicode/to-utf8 str :len
+								value: value + 1
+							]
+							curl_easy_setopt curl CURLOPT_HTTPHEADER slist
+						]
+						len: -1
+						either TYPE_OF(data) = TYPE_STRING [
+							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
+						][
+							buf: binary/rs-head as red-binary! data
+							len: binary/rs-length? as red-binary! data
+						]
+						curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
+						curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
+					]
+				]
+				res: curl_easy_perform curl
+
+				unless zero? slist [curl_slist_free_all slist]
+				curl_easy_cleanup curl
+				curl_global_cleanup
+
+				if res <> CURLE_OK [
+					print-line ["ERROR: " curl_easy_strerror res]
+					return none-value
+				]
+
+				unless binary? [
+					buf: binary/rs-head bin
+					len: binary/rs-length? bin
+					bin/header: TYPE_STRING
+					bin/node: unicode/load-utf8 as c-string! buf len
+				]
+				as red-value! bin
 			]
 		]
 	]
