@@ -57,9 +57,7 @@ PanelWndProc: func [
 ][
 	switch msg [
 		WM_COMMAND [
-			if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'		
-				unless null? menu-handle [do-menu hWnd]
-			]
+			process-command-event hWnd msg wParam lParam
 		]
 		WM_VSCROLL
 		WM_HSCROLL [

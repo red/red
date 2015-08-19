@@ -231,6 +231,61 @@ init-current-msg: func [
 	current-msg/y: WIN32_HIWORD(pos)
 ]
 
+process-command-event: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	/local
+		type   [red-word!]
+		idx	   [integer!]
+		res	   [integer!]
+][
+	if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
+		unless null? menu-handle [do-menu hWnd]
+	]
+	switch WIN32_HIWORD(wParam) [
+		BN_CLICKED [
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			make-event current-msg 0 EVT_CLICK	;-- should be *after* get-facet call (Windows closing on click case)
+			if any [
+				type/symbol = check
+				type/symbol = radio
+			][
+				current-msg/hWnd: as handle! lParam	;-- force child handle
+				if get-logic-state current-msg [
+					make-event current-msg 0 EVT_CHANGE
+				]
+			]
+		]
+		EN_CHANGE [								;-- sent also by CreateWindow
+			unless null? current-msg [
+				current-msg/hWnd: as handle! lParam	;-- force Edit handle
+				make-event current-msg -1 EVT_CHANGE
+			]
+			0
+		]
+		CBN_SELCHANGE [
+			current-msg/hWnd: as handle! lParam	;-- force ListBox or Combobox handle
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
+			idx: as-integer SendMessage as handle! lParam res 0 0
+			res: make-event current-msg idx EVT_SELECT
+			get-selected current-msg idx + 1
+			if res = EVT_DISPATCH_AND_PROCESS [
+				make-event current-msg 0 EVT_CHANGE
+			]
+		]
+		CBN_EDITCHANGE [
+			current-msg/hWnd: as handle! lParam	;-- force Combobox handle
+			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			unless type/symbol = text-list [
+				make-event current-msg -1 EVT_CHANGE
+			]
+		]
+		default [0]
+	]
+]
 
 BaseWndProc: func [
 	hWnd	[handle!]
@@ -264,8 +319,6 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		type   [red-word!]
-		idx	   [integer!]
 		res	   [integer!]
 		color  [integer!]
 		handle [handle!]
@@ -273,50 +326,7 @@ WndProc: func [
 ][
 	switch msg [
 		WM_COMMAND [
-			if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
-				unless null? menu-handle [do-menu hWnd]
-			]
-			switch WIN32_HIWORD(wParam) [
-				BN_CLICKED [
-					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-					make-event current-msg 0 EVT_CLICK	;-- should be *after* get-facet call (Windows closing on click case)
-					if any [
-						type/symbol = check
-						type/symbol = radio
-					][
-						current-msg/hWnd: as handle! lParam	;-- force child handle
-						if get-logic-state current-msg [
-							make-event current-msg 0 EVT_CHANGE
-						]
-					]
-				]
-				EN_CHANGE [								;-- sent also by CreateWindow
-					unless null? current-msg [
-						current-msg/hWnd: as handle! lParam	;-- force Edit handle
-						make-event current-msg -1 EVT_CHANGE
-					]
-					0
-				]
-				CBN_SELCHANGE [
-					current-msg/hWnd: as handle! lParam	;-- force ListBox or Combobox handle
-					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-					res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
-					idx: as-integer SendMessage as handle! lParam res 0 0
-					res: make-event current-msg idx EVT_SELECT
-					get-selected current-msg idx + 1
-					if res = EVT_DISPATCH_AND_PROCESS [
-						make-event current-msg 0 EVT_CHANGE
-					]
-				]
-				CBN_EDITCHANGE [
-					current-msg/hWnd: as handle! lParam	;-- force Combobox handle
-					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-					unless type/symbol = text-list [
-						make-event current-msg -1 EVT_CHANGE
-					]
-				]
-				default [0]
-			]
+			process-command-event hWnd msg wParam lParam
 		]
 		WM_NOTIFY [
 			nmhdr: as tagNMHDR lParam
