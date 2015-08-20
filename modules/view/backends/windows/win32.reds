@@ -282,6 +282,10 @@ Red/System [
 #define PS_DASHDOT			3							; _._._._
 #define PS_DASHDOTDOT		4							; _.._.._
 
+#define	GDIPLUS_ANTIALIAS			4
+#define GDIPLUS_UNIT_WORLD			0
+#define GDIPLUS_FILLMODE_ALTERNATE	0
+#define GDIPLUS_FILLMODE_WINDING	1
 
 #define SRCCOPY             00CC0020h
 
@@ -973,6 +977,136 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipCreateFromHDC: "GdipCreateFromHDC" [
 			hDC			[handle!]
 			graphics	[GpGraphics!]
+			return:		[integer!]
+		]
+		GdipDeleteGraphics: "GdipDeleteGraphics" [
+			graphics	[integer!]
+			return:		[integer!]
+		]
+		GdipSetSmoothingMode: "GdipSetSmoothingMode" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		GdipCreatePen1: "GdipCreatePen1" [
+			color		[integer!]
+			width		[float32!]
+			unit		[integer!]
+			pen-ptr		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeletePen: "GdipDeletePen" [
+			pen			[integer!]
+			return:		[integer!]
+		]
+		GdipDrawLinesI: "GdipDrawLinesI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[int-ptr!]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawRectangleI: "GdipDrawRectangleI" [
+			graphics	[integer!]
+			pen			[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipFillRectangleI: "GdipFillRectangleI" [
+			graphics	[integer!]
+			pen			[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateSolidFill: "GdipCreateSolidFill" [
+			color		[integer!]
+			brush-ptr	[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeleteBrush: "GdipDeleteBrush" [
+			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawPolygonI: "GdipDrawPolygonI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipFillPolygonI: "GdipFillPolygonI" [
+			graphics	[integer!]
+			brush		[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			fillMode	[integer!]
+			return:		[integer!]
+		]
+		GdipDrawEllipseI: "GdipDrawEllipseI" [
+			graphics	[integer!]
+			pen			[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipFillEllipseI: "GdipFillEllipseI" [
+			graphics	[integer!]
+			brush		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawPath: "GdipDrawPath" [
+			graphics	[integer!]
+			pen			[integer!]
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipFillPath: "GdipFillPath" [
+			graphics	[integer!]
+			brush		[integer!]
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipCreatePath: "GdipCreatePath" [
+			fillMode	[integer!]
+			path-ptr	[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeletePath: "GdipDeletePath" [
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipResetPath: "GdipResetPath" [
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipStartPathFigure: "GdipStartPathFigure" [
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipClosePathFigure: "GdipClosePathFigure" [
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipAddPathArcI: "GdipAddPathArcI" [
+			path		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
 			return:		[integer!]
 		]
 	]

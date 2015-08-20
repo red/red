@@ -415,8 +415,8 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
-		type: 'base text: "canvas" offset: 20x460 size: 300x200 color: silver
+	canvas: make face! [
+		type: 'base text: "canvas" offset: 10x460 size: 300x200 color: silver
 		draw: [
 			pen red
 			line 10x10 130x190 80x40 150x100
@@ -459,6 +459,20 @@ win/pane: reduce [
 			fill-pen white
 			polygon 232x144 245x144 250x130 255x144 268x144
 				257x153 260x166 250x158 239x166 243x153
+		]
+	]
+	make face! [
+		type: 'check text: "anti alias" offset: 265x430 size: 90x24
+		data: off
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				either face/data = on [
+					insert canvas/draw [anti-alias on]
+				][
+					remove/part canvas/draw 2
+				]
+				show canvas
+			]
 		]
 	]
 ]
