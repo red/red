@@ -315,6 +315,9 @@ Red/System [
 
 #define IS_EXTENDED_KEY		01000000h
 
+#define ANSI_FIXED_FONT		11
+#define SYSTEM_FONT			13
+#define ETO_CLIPPED			4
 
 tagPOINT: alias struct! [
 	x		[integer!]
@@ -500,6 +503,13 @@ RECT_STRUCT: alias struct! [
 	bottom		[integer!]
 ]
 
+RECT_STRUCT_FLOAT32: alias struct! [
+	x			[float32!]
+	y			[float32!]
+	width		[float32!]
+	height		[float32!]
+]
+
 InitCommonControlsEx!: alias function! [
 	lpInitCtrls [INITCOMMONCONTROLSEX]
 	return:		[integer!]
@@ -642,6 +652,12 @@ DwmIsCompositionEnabled!: alias function! [
 		UpdateWindow: "UpdateWindow" [
 			hWnd		[handle!]
 			return:		[logic!]
+		]
+		InvalidateRect: "InvalidateRect" [
+			hWnd		[handle!]
+			lpRect		[RECT_STRUCT]
+			bErase		[integer!]
+			return:		[integer!]
 		]
 		GetParent: "GetParent" [
 			hWnd 		[handle!]
@@ -803,9 +819,19 @@ DwmIsCompositionEnabled!: alias function! [
 		DestroyWindow: "DestroyWindow" [
 			hWnd		[handle!]
 			return:		[logic!]
-		]		
+		]
 	]
 	"gdi32.dll" stdcall [
+		ExtTextOut: "ExtTextOutW" [
+			hdc			[handle!]
+			X			[integer!]
+			Y			[integer!]
+			fuOptions	[integer!]
+			lprc		[RECT_STRUCT]
+			lpString	[c-string!]
+			cbCount		[integer!]						;-- count of characters
+			lpDx		[int-ptr!]
+		]	
 		GetTextExtentPoint32: "GetTextExtentPoint32W" [
 			hdc			[handle!]
 			lpString	[c-string!]
@@ -1107,6 +1133,16 @@ DwmIsCompositionEnabled!: alias function! [
 			height		[integer!]
 			startAngle	[float32!]
 			sweepAngle	[float32!]
+			return:		[integer!]
+		]
+		GdipDrawString: "GdipDrawString" [
+			graphics	[integer!]
+			text		[c-string!]
+			lenght		[integer!]
+			font		[integer!]
+			layoutRect	[RECT_STRUCT_FLOAT32]
+			format		[integer!]
+			brush		[integer!]
 			return:		[integer!]
 		]
 	]

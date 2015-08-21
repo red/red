@@ -21,6 +21,7 @@ Red/System [
 		_polygon:	symbol/make "polygon"
 		circle:		symbol/make "circle"
 		anti-alias: symbol/make "anti-alias"
+		text:		symbol/make "text"
 		
 		_off:		symbol/make "off"
 
@@ -266,6 +267,30 @@ Red/System [
 			pos
 		]
 
+		draw-text: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	  [red-value!]
+				w	  [red-word!]
+				value [integer!]
+				off?  [logic!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_STRING][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-text DC as red-pair! cmd + 1 as red-string! pos
+			pos
+		]
+
 		do-draw: func [
 			handle [handle!]
 			cmds   [red-block!]
@@ -297,6 +322,7 @@ Red/System [
 					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
 					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
 					sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
+					sym = text		 [cmd: draw-text		DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

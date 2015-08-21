@@ -13,12 +13,14 @@ Red/System [
 modes: declare struct! [
 	pen		  	[handle!]
 	brush	 	[handle!]
+	font		[handle!]
 	pen-width	[integer!]
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
 	saved-pen	[handle!]
 	saved-brush [handle!]
+	saved-font	[handle!]
 	graphics	[integer!]								;-- gdiplus graphics
 ]
 
@@ -75,11 +77,16 @@ draw-begin: func [
 		dc	[handle!]
 ][
 	dc: BeginPaint hWnd paint
-	saved-pen:   SelectObject dc GetStockObject DC_PEN
-	saved-brush: SelectObject dc GetStockObject DC_BRUSH
-	
+
+	SetBkMode dc BK_TRANSPARENT
+
+	modes/saved-pen:	SelectObject dc GetStockObject DC_PEN
+	modes/saved-brush:	SelectObject dc GetStockObject DC_BRUSH	
+	;modes/saved-font:	SelectObject dc GetStockObject ANSI_FIXED_FONT
+
 	modes/pen:			null
 	modes/brush:		null
+	modes/font:			null
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
@@ -101,8 +108,9 @@ draw-end: func [dc [handle!] hWnd [handle!]][
 		unless null? modes/brush	[DeleteObject modes/brush]
 	]
 	
-	SelectObject dc saved-pen
-	SelectObject dc saved-brush
+	SelectObject dc modes/saved-pen
+	SelectObject dc modes/saved-brush
+	;SelectObject dc modes/saved-font
 	EndPaint hWnd paint
 ]
 
@@ -287,16 +295,16 @@ OS-draw-box: func [
 					as-integer modes/brush
 					upper/x
 					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					lower/x - upper/x - 1
+					lower/y - upper/y - 1
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				as-integer modes/pen
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x - 1
+				lower/y - upper/y - 1
 		][
 			Rectangle dc upper/x upper/y lower/x lower/y
 		]
@@ -437,4 +445,17 @@ OS-draw-circle: func [
 			x + rad-x
 			y + rad-y
 	]
+]
+
+OS-draw-text: func [
+	dc		[handle!]
+	pos		[red-pair!]
+	text	[red-string!]
+	/local
+		str		[c-string!]
+		len		[integer!]
+][
+	str: unicode/to-utf16 text
+	len: string/rs-length? text
+	ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
 ]
