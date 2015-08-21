@@ -1337,7 +1337,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		f: degree-to-radians radians SINE
+		f: degree-to-radians* radians TYPE_SINE
 		f/value: sin f/value
 		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
 		f
@@ -1348,7 +1348,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		f: degree-to-radians radians COSINE
+		f: degree-to-radians* radians TYPE_COSINE
 		f/value: cos f/value
 		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
 		f
@@ -1359,7 +1359,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		f: degree-to-radians radians TANGENT
+		f: degree-to-radians* radians TYPE_TANGENT
 		either (float/abs f/value) = (PI / 2.0) [
 			fire [TO_ERROR(math overflow)]
 		][
@@ -1373,7 +1373,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		arc-trans radians SINE
+		arc-trans radians TYPE_SINE
 	]
 
 	arccosine*: func [
@@ -1381,7 +1381,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		arc-trans radians COSINE
+		arc-trans radians TYPE_COSINE
 	]
 
 	arctangent*: func [
@@ -1389,7 +1389,7 @@ natives: context [
 		/local
 			f	[red-float!]
 	][
-		arc-trans radians TANGENT
+		arc-trans radians TYPE_TANGENT
 	]
 
 	arctangent2*: func [
@@ -1702,12 +1702,6 @@ natives: context [
 
 	;--- Natives helper functions ---
 
-	#enum trigonometric-type! [
-		TANGENT
-		COSINE
-		SINE
-	]
-
 	argument-as-float: func [
 		return: [red-float!]
 		/local
@@ -1723,7 +1717,7 @@ natives: context [
 		f
 	]
 
-	degree-to-radians: func [
+	degree-to-radians*: func [
 		radians [integer!]
 		type	[integer!]
 		return: [red-float!]
@@ -1733,22 +1727,7 @@ natives: context [
 	][
 		f: argument-as-float
 		val: f/value
-
-		if radians < 0 [
-			val: val % 360.0
-			if any [val > 180.0 val < -180.0] [
-				val: val + either val < 0.0 [360.0][-360.0]
-			]
-			if any [val > 90.0 val < -90.0] [
-				if type = TANGENT [
-					val: val + either val < 0.0 [180.0][-180.0]
-				]
-				if type = SINE [
-					val: (either val < 0.0 [-180.0][180.0]) - val
-				]
-			]
-			val: val * PI / 180.0			;-- to radians
-		]
+		if radians < 0 [degree-to-radians val type]
 		f/value: val
 		f
 	]
@@ -1764,13 +1743,13 @@ natives: context [
 		f: argument-as-float
 		d: f/value
 
-		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
+		either all [type <> TYPE_TANGENT any [d < -1.0 d > 1.0]] [
 			fire [TO_ERROR(math overflow)]
 		][
 			f/value: switch type [
-				SINE	[asin d]
-				COSINE	[acos d]
-				TANGENT [atan d]
+				TYPE_SINE	 [asin d]
+				TYPE_COSINE  [acos d]
+				TYPE_TANGENT [atan d]
 			]
 		]
 

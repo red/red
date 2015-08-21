@@ -315,6 +315,7 @@ Red/System [
 
 #define IS_EXTENDED_KEY		01000000h
 
+#define AD_CLOCKWISE		2
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
 #define ETO_CLIPPED			4
@@ -984,6 +985,47 @@ DwmIsCompositionEnabled!: alias function! [
 			nBottomRect	[integer!]
 			return:		[logic!]
 		]
+		Arc: "Arc" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			nXStartArc	[integer!]
+			nYStartArc	[integer!]
+			nXEndArc	[integer!]
+			nYEndArc	[integer!]
+			return:		[logic!]
+		]
+		Chord: "Chord" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			nXStartArc	[integer!]
+			nYStartArc	[integer!]
+			nXEndArc	[integer!]
+			nYEndArc	[integer!]
+			return:		[logic!]
+		]
+		Pie: "Pie" [
+			hdc			[handle!]
+			nLeftRect	[integer!]
+			nTopRect	[integer!]
+			nRightRect	[integer!]
+			nBottomRect	[integer!]
+			nXStartArc	[integer!]
+			nYStartArc	[integer!]
+			nXEndArc	[integer!]
+			nYEndArc	[integer!]
+			return:		[logic!]
+		]
+		SetArcDirection: "SetArcDirection" [
+			hdc			[handle!]
+			direction	[integer!]
+			return:		[integer!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
@@ -1127,6 +1169,39 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		GdipAddPathArcI: "GdipAddPathArcI" [
 			path		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
+		GdipDrawArcI: "GdipDrawArcI" [
+			graphics	[integer!]
+			pen			[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
+		GdipDrawPieI: "GdipDrawPieI" [
+			graphics	[integer!]
+			pen			[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
+		GdipFillPieI: "GdipFillPieI" [
+			graphics	[integer!]
+			brush		[integer!]
 			x			[integer!]
 			y			[integer!]
 			width		[integer!]

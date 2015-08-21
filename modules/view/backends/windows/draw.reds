@@ -78,6 +78,7 @@ draw-begin: func [
 ][
 	dc: BeginPaint hWnd paint
 
+	SetArcDirection dc AD_CLOCKWISE
 	SetBkMode dc BK_TRANSPARENT
 
 	modes/saved-pen:	SelectObject dc GetStockObject DC_PEN
@@ -468,4 +469,101 @@ OS-draw-text: func [
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
 	ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
+]
+
+OS-draw-arc: func [
+	dc	   [handle!]
+	center [red-pair!]
+	end	   [red-value!]
+	/local
+		radius		[red-pair!]
+		angle		[red-integer!]
+		rad-x		[integer!]
+		rad-y		[integer!]
+		start-x		[integer!]
+		start-y 	[integer!]
+		end-x		[integer!]
+		end-y		[integer!]
+		angle-begin [float!]
+		angle-len	[float!]
+		rad-x-float	[float!]
+		rad-y-float	[float!]
+		closed?		[logic!]
+][
+	radius: center + 1
+	rad-x: radius/x
+	rad-y: radius/y
+	angle: as red-integer! radius + 1
+	angle-begin: integer/to-float angle/value
+	angle: angle + 1
+	angle-len: integer/to-float angle/value
+
+	closed?: angle < end
+
+	either anti-alias? [
+		either closed? [
+			if modes/brush-color <> -1 [
+				GdipFillPieI
+					modes/graphics
+					as-integer modes/brush
+					center/x - rad-x
+					center/y - rad-y
+					rad-x << 1
+					rad-y << 1
+					as float32! angle-begin
+					as float32! angle-len
+			]
+			GdipDrawPieI
+				modes/graphics
+				as-integer modes/pen
+				center/x - rad-x
+				center/y - rad-y
+				rad-x << 1
+				rad-y << 1
+				as float32! angle-begin
+				as float32! angle-len
+		][
+			GdipDrawArcI
+				modes/graphics
+				as-integer modes/pen
+				center/x - rad-x
+				center/y - rad-y
+				rad-x << 1
+				rad-y << 1
+				as float32! angle-begin
+				as float32! angle-len
+		]
+	][
+		rad-x-float: integer/to-float rad-x
+		rad-y-float: integer/to-float rad-y
+
+		start-x: center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin TYPE_COSINE)
+		start-y: center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin TYPE_SINE)
+		end-x:	 center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin + angle-len TYPE_COSINE)
+		end-y:	 center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin + angle-len TYPE_SINE)
+
+		either closed? [
+			Pie
+				dc
+				center/x - rad-x
+				center/y - rad-y
+				center/x + rad-x
+				center/y + rad-y
+				start-x
+				start-y
+				end-x
+				end-y
+		][
+			Arc
+				dc
+				center/x - rad-x
+				center/y - rad-y
+				center/x + rad-x
+				center/y + rad-y
+				start-x
+				start-y
+				end-x
+				end-y
+		]
+	]
 ]

@@ -464,6 +464,10 @@ win/pane: reduce [
 				257x153 260x166 250x158 239x166 243x153
 
 			text 40x10 "Hello Red :-)"
+			
+			arc 100x25 80x80 0 90 closed
+			pen red
+			arc 100x25 50x80 30 90
 		]
 	]
 	make face! [
