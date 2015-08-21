@@ -22,6 +22,7 @@ Red/System [
 		circle:		symbol/make "circle"
 		anti-alias: symbol/make "anti-alias"
 		text:		symbol/make "text"
+		_ellipse:	symbol/make "ellipse"
 		
 		_off:		symbol/make "off"
 
@@ -245,6 +246,27 @@ Red/System [
 			pos
 		]
 
+		draw-ellipse: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-ellipse DC as red-pair! cmd + 1 as red-pair! pos
+			pos
+		]
+
 		draw-anti-alias: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -321,6 +343,7 @@ Red/System [
 					sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
 					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
 					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
+					sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
 					sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
 					sym = text		 [cmd: draw-text		DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]

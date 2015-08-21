@@ -401,6 +401,35 @@ OS-draw-polygon: func [
 	]
 ]
 
+do-draw-ellipse: func [
+	dc		[handle!]
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+][
+	either anti-alias? [
+		if modes/brush-color <> -1 [
+			GdipFillEllipseI
+				modes/graphics
+				as-integer modes/brush
+				x
+				y
+				width - 1
+				height - 1
+		]
+		GdipDrawEllipseI
+			modes/graphics
+			as-integer modes/pen
+			x
+			y
+			width - 1
+			height - 1
+	][	
+		Ellipse dc x y x + width y + height
+	]
+]
+
 OS-draw-circle: func [
 	dc	   [handle!]
 	center [red-pair!]
@@ -408,8 +437,6 @@ OS-draw-circle: func [
 	/local
 		rad-x [integer!]
 		rad-y [integer!]
-		x	  [integer!]
-		y	  [integer!]
 ][
 	either center + 1 = radius [
 		rad-x: radius/value
@@ -419,32 +446,15 @@ OS-draw-circle: func [
 		radius: radius - 1
 		rad-x: radius/value
 	]
-	x: center/x
-	y: center/y
-	either anti-alias? [
-		if modes/brush-color <> -1 [
-			GdipFillEllipseI
-				modes/graphics
-				as-integer modes/brush
-				x - rad-x
-				y - rad-y
-				rad-x << 1 - 1
-				rad-y << 1 - 1
-		]
-		GdipDrawEllipseI
-			modes/graphics
-			as-integer modes/pen
-			x - rad-x
-			y - rad-y
-			rad-x << 1 - 1
-			rad-y << 1 - 1
-	][	
-		Ellipse dc 
-			x - rad-x
-			y - rad-y
-			x + rad-x
-			y + rad-y
-	]
+	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x << 1 rad-y << 1
+]
+
+OS-draw-ellipse: func [
+	dc	  	 [handle!]
+	upper	 [red-pair!]
+	diameter [red-pair!]
+][
+	do-draw-ellipse dc upper/x upper/y diameter/x diameter/y
 ]
 
 OS-draw-text: func [

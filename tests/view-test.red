@@ -445,7 +445,10 @@ win/pane: reduce [
 			pen purple
 			fill-pen purple
 			box 220x10 280x70 20
-
+			pen gray
+			fill-pen white
+			ellipse 240x20 20x40
+			
 			fill-pen red
 			circle 250x150 50
 			pen gray
