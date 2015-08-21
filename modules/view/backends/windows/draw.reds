@@ -13,12 +13,14 @@ Red/System [
 modes: declare struct! [
 	pen		  	[handle!]
 	brush	 	[handle!]
+	font		[handle!]
 	pen-width	[integer!]
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
 	saved-pen	[handle!]
 	saved-brush [handle!]
+	saved-font	[handle!]
 	graphics	[integer!]								;-- gdiplus graphics
 ]
 
@@ -75,11 +77,16 @@ draw-begin: func [
 		dc	[handle!]
 ][
 	dc: BeginPaint hWnd paint
-	saved-pen:   SelectObject dc GetStockObject DC_PEN
-	saved-brush: SelectObject dc GetStockObject DC_BRUSH
-	
+
+	SetBkMode dc BK_TRANSPARENT
+
+	modes/saved-pen:	SelectObject dc GetStockObject DC_PEN
+	modes/saved-brush:	SelectObject dc GetStockObject DC_BRUSH	
+	;modes/saved-font:	SelectObject dc GetStockObject ANSI_FIXED_FONT
+
 	modes/pen:			null
 	modes/brush:		null
+	modes/font:			null
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
@@ -101,8 +108,9 @@ draw-end: func [dc [handle!] hWnd [handle!]][
 		unless null? modes/brush	[DeleteObject modes/brush]
 	]
 	
-	SelectObject dc saved-pen
-	SelectObject dc saved-brush
+	SelectObject dc modes/saved-pen
+	SelectObject dc modes/saved-brush
+	;SelectObject dc modes/saved-font
 	EndPaint hWnd paint
 ]
 
@@ -287,16 +295,16 @@ OS-draw-box: func [
 					as-integer modes/brush
 					upper/x
 					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					lower/x - upper/x - 1
+					lower/y - upper/y - 1
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				as-integer modes/pen
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x - 1
+				lower/y - upper/y - 1
 		][
 			Rectangle dc upper/x upper/y lower/x lower/y
 		]
@@ -393,6 +401,35 @@ OS-draw-polygon: func [
 	]
 ]
 
+do-draw-ellipse: func [
+	dc		[handle!]
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+][
+	either anti-alias? [
+		if modes/brush-color <> -1 [
+			GdipFillEllipseI
+				modes/graphics
+				as-integer modes/brush
+				x
+				y
+				width - 1
+				height - 1
+		]
+		GdipDrawEllipseI
+			modes/graphics
+			as-integer modes/pen
+			x
+			y
+			width - 1
+			height - 1
+	][	
+		Ellipse dc x y x + width y + height
+	]
+]
+
 OS-draw-circle: func [
 	dc	   [handle!]
 	center [red-pair!]
@@ -400,8 +437,6 @@ OS-draw-circle: func [
 	/local
 		rad-x [integer!]
 		rad-y [integer!]
-		x	  [integer!]
-		y	  [integer!]
 ][
 	either center + 1 = radius [
 		rad-x: radius/value
@@ -411,30 +446,26 @@ OS-draw-circle: func [
 		radius: radius - 1
 		rad-x: radius/value
 	]
-	x: center/x
-	y: center/y
-	either anti-alias? [
-		if modes/brush-color <> -1 [
-			GdipFillEllipseI
-				modes/graphics
-				as-integer modes/brush
-				x - rad-x
-				y - rad-y
-				rad-x << 1 - 1
-				rad-y << 1 - 1
-		]
-		GdipDrawEllipseI
-			modes/graphics
-			as-integer modes/pen
-			x - rad-x
-			y - rad-y
-			rad-x << 1 - 1
-			rad-y << 1 - 1
-	][	
-		Ellipse dc 
-			x - rad-x
-			y - rad-y
-			x + rad-x
-			y + rad-y
-	]
+	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x << 1 rad-y << 1
+]
+
+OS-draw-ellipse: func [
+	dc	  	 [handle!]
+	upper	 [red-pair!]
+	diameter [red-pair!]
+][
+	do-draw-ellipse dc upper/x upper/y diameter/x diameter/y
+]
+
+OS-draw-text: func [
+	dc		[handle!]
+	pos		[red-pair!]
+	text	[red-string!]
+	/local
+		str		[c-string!]
+		len		[integer!]
+][
+	str: unicode/to-utf16 text
+	len: string/rs-length? text
+	ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
 ]

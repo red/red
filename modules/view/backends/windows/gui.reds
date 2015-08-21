@@ -820,6 +820,9 @@ change-data: func [
 		type/symbol = radio [
 			set-logic-state as handle! hWnd as red-logic! data no
 		]
+		type/symbol = base [		;@@ temporary used to update draw window, remove later.
+			InvalidateRect as handle! hWnd null 1
+		]
 		true [0]										;-- default, do nothing
 	]
 ]

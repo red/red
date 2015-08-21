@@ -445,7 +445,10 @@ win/pane: reduce [
 			pen purple
 			fill-pen purple
 			box 220x10 280x70 20
-
+			pen gray
+			fill-pen white
+			ellipse 240x20 20x40
+			
 			fill-pen red
 			circle 250x150 50
 			pen gray
@@ -459,6 +462,8 @@ win/pane: reduce [
 			fill-pen white
 			polygon 232x144 245x144 250x130 255x144 268x144
 				257x153 260x166 250x158 239x166 243x153
+
+			text 40x10 "Hello Red :-)"
 		]
 	]
 	make face! [
@@ -471,6 +476,7 @@ win/pane: reduce [
 				][
 					remove/part canvas/draw 2
 				]
+				canvas/data: data			;@@ temporary use it
 				show canvas
 			]
 		]
