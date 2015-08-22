@@ -2859,7 +2859,10 @@ system-dialect: make-profilable context [
 				any-float? get-return-type/check expr/1
 				any [
 					not find functions/(expr/1)/4 return-def	 ;-- clean if no return value
-					all [not locals 1 = length? expr-call-stack] ;-- or if return value not used
+					all [
+						1 = length? expr-call-stack ;-- or if return value not used
+						not all [locals find locals return-def] ;@@ works for non-terminal expressions only
+					]
 				]
 				not find expr-call-stack set-word!
 				not find expr-call-stack set-path!
