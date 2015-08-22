@@ -21,8 +21,12 @@ Red/System [
 		_polygon:	symbol/make "polygon"
 		circle:		symbol/make "circle"
 		anti-alias: symbol/make "anti-alias"
+		text:		symbol/make "text"
+		_ellipse:	symbol/make "ellipse"
+		_arc:		symbol/make "arc"
 		
 		_off:		symbol/make "off"
+		closed:		symbol/make "closed"
 
 		throw-draw-error: func [
 			cmds [red-block!]
@@ -244,6 +248,65 @@ Red/System [
 			pos
 		]
 
+		draw-ellipse: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-ellipse DC as red-pair! cmd + 1 as red-pair! pos
+			pos
+		]
+
+		draw-arc: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	[red-value!]
+				w	[red-word!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- angle-begin argument
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- angle-length argument
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_WORD][		;-- optional closed argument
+				pos: pos - 1
+			]
+			w: as red-word! pos
+			if all [TYPE_OF(w) = TYPE_WORD closed <> symbol/resolve w/symbol][
+				pos: pos - 1
+			]
+			OS-draw-arc DC as red-pair! cmd + 1 as red-value! pos
+			pos
+		]
+
 		draw-anti-alias: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -263,6 +326,30 @@ Red/System [
 				w: as red-word! pos
 				OS-draw-anti-alias DC either _off = symbol/resolve w/symbol [no][yes]
 			][throw-draw-error cmds cmd]
+			pos
+		]
+
+		draw-text: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	  [red-value!]
+				w	  [red-word!]
+				value [integer!]
+				off?  [logic!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
+				throw-draw-error cmds cmd
+			]
+			pos: pos + 1
+			if any [pos >= tail TYPE_OF(pos) <> TYPE_STRING][
+				throw-draw-error cmds cmd
+			]
+			OS-draw-text DC as red-pair! cmd + 1 as red-string! pos
 			pos
 		]
 
@@ -296,7 +383,10 @@ Red/System [
 					sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
 					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
 					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
+					sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
 					sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
+					sym = text		 [cmd: draw-text		DC cmds cmd tail]
+					sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

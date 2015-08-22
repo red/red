@@ -13,12 +13,14 @@ Red/System [
 modes: declare struct! [
 	pen		  	[handle!]
 	brush	 	[handle!]
+	font		[handle!]
 	pen-width	[integer!]
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
 	saved-pen	[handle!]
 	saved-brush [handle!]
+	saved-font	[handle!]
 	graphics	[integer!]								;-- gdiplus graphics
 ]
 
@@ -75,11 +77,17 @@ draw-begin: func [
 		dc	[handle!]
 ][
 	dc: BeginPaint hWnd paint
-	saved-pen:   SelectObject dc GetStockObject DC_PEN
-	saved-brush: SelectObject dc GetStockObject DC_BRUSH
-	
+
+	SetArcDirection dc AD_CLOCKWISE
+	SetBkMode dc BK_TRANSPARENT
+
+	modes/saved-pen:	SelectObject dc GetStockObject DC_PEN
+	modes/saved-brush:	SelectObject dc GetStockObject DC_BRUSH	
+	;modes/saved-font:	SelectObject dc GetStockObject ANSI_FIXED_FONT
+
 	modes/pen:			null
 	modes/brush:		null
+	modes/font:			null
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
@@ -101,8 +109,9 @@ draw-end: func [dc [handle!] hWnd [handle!]][
 		unless null? modes/brush	[DeleteObject modes/brush]
 	]
 	
-	SelectObject dc saved-pen
-	SelectObject dc saved-brush
+	SelectObject dc modes/saved-pen
+	SelectObject dc modes/saved-brush
+	;SelectObject dc modes/saved-font
 	EndPaint hWnd paint
 ]
 
@@ -287,16 +296,16 @@ OS-draw-box: func [
 					as-integer modes/brush
 					upper/x
 					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					lower/x - upper/x - 1
+					lower/y - upper/y - 1
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				as-integer modes/pen
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x - 1
+				lower/y - upper/y - 1
 		][
 			Rectangle dc upper/x upper/y lower/x lower/y
 		]
@@ -393,6 +402,35 @@ OS-draw-polygon: func [
 	]
 ]
 
+do-draw-ellipse: func [
+	dc		[handle!]
+	x		[integer!]
+	y		[integer!]
+	width	[integer!]
+	height	[integer!]
+][
+	either anti-alias? [
+		if modes/brush-color <> -1 [
+			GdipFillEllipseI
+				modes/graphics
+				as-integer modes/brush
+				x
+				y
+				width - 1
+				height - 1
+		]
+		GdipDrawEllipseI
+			modes/graphics
+			as-integer modes/pen
+			x
+			y
+			width - 1
+			height - 1
+	][	
+		Ellipse dc x y x + width y + height
+	]
+]
+
 OS-draw-circle: func [
 	dc	   [handle!]
 	center [red-pair!]
@@ -400,8 +438,6 @@ OS-draw-circle: func [
 	/local
 		rad-x [integer!]
 		rad-y [integer!]
-		x	  [integer!]
-		y	  [integer!]
 ][
 	either center + 1 = radius [
 		rad-x: radius/value
@@ -411,30 +447,150 @@ OS-draw-circle: func [
 		radius: radius - 1
 		rad-x: radius/value
 	]
-	x: center/x
-	y: center/y
+	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x << 1 rad-y << 1
+]
+
+OS-draw-ellipse: func [
+	dc	  	 [handle!]
+	upper	 [red-pair!]
+	diameter [red-pair!]
+][
+	do-draw-ellipse dc upper/x upper/y diameter/x diameter/y
+]
+
+OS-draw-text: func [
+	dc		[handle!]
+	pos		[red-pair!]
+	text	[red-string!]
+	/local
+		str		[c-string!]
+		len		[integer!]
+][
+	str: unicode/to-utf16 text
+	len: string/rs-length? text
+	ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
+]
+
+OS-draw-arc: func [
+	dc	   [handle!]
+	center [red-pair!]
+	end	   [red-value!]
+	/local
+		radius		[red-pair!]
+		angle		[red-integer!]
+		rad-x		[integer!]
+		rad-y		[integer!]
+		start-x		[integer!]
+		start-y 	[integer!]
+		end-x		[integer!]
+		end-y		[integer!]
+		angle-begin [float!]
+		angle-len	[float!]
+		rad-x-float	[float!]
+		rad-y-float	[float!]
+		rad-x-2		[float!]
+		rad-y-2		[float!]
+		rad-x-y		[float!]
+		tan-2		[float!]
+		closed?		[logic!]
+][
+	radius: center + 1
+	rad-x: radius/x
+	rad-y: radius/y
+	angle: as red-integer! radius + 1
+	angle-begin: integer/to-float angle/value
+	angle: angle + 1
+	angle-len: integer/to-float angle/value
+
+	closed?: angle < end
+
 	either anti-alias? [
-		if modes/brush-color <> -1 [
-			GdipFillEllipseI
+		either closed? [
+			if modes/brush-color <> -1 [
+				GdipFillPieI
+					modes/graphics
+					as-integer modes/brush
+					center/x - rad-x
+					center/y - rad-y
+					rad-x << 1
+					rad-y << 1
+					as float32! angle-begin
+					as float32! angle-len
+			]
+			GdipDrawPieI
 				modes/graphics
-				as-integer modes/brush
-				x - rad-x
-				y - rad-y
-				rad-x << 1 - 1
-				rad-y << 1 - 1
+				as-integer modes/pen
+				center/x - rad-x
+				center/y - rad-y
+				rad-x << 1
+				rad-y << 1
+				as float32! angle-begin
+				as float32! angle-len
+		][
+			GdipDrawArcI
+				modes/graphics
+				as-integer modes/pen
+				center/x - rad-x
+				center/y - rad-y
+				rad-x << 1
+				rad-y << 1
+				as float32! angle-begin
+				as float32! angle-len
 		]
-		GdipDrawEllipseI
-			modes/graphics
-			as-integer modes/pen
-			x - rad-x
-			y - rad-y
-			rad-x << 1 - 1
-			rad-y << 1 - 1
-	][	
-		Ellipse dc 
-			x - rad-x
-			y - rad-y
-			x + rad-x
-			y + rad-y
+	][
+		rad-x-float: integer/to-float rad-x
+		rad-y-float: integer/to-float rad-y
+
+		either rad-x = rad-y [				;-- circle
+			start-x: center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin TYPE_COSINE)
+			start-y: center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin TYPE_SINE)
+			end-x:	 center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin + angle-len TYPE_COSINE)
+			end-y:	 center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin + angle-len TYPE_SINE)
+		][
+			rad-x-y: rad-x-float * rad-y-float
+			rad-x-2: rad-x-float * rad-x-float
+			rad-y-2: rad-y-float * rad-y-float
+			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: tan-2 * tan-2
+			start-x: float/to-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
+			start-y: float/to-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
+			if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+			start-x: center/x + start-x
+			start-y: center/y + start-y
+			angle-begin: angle-begin + angle-len
+			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: tan-2 * tan-2
+			end-x: float/to-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
+			end-y: float/to-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
+			if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+			end-x: center/x + end-x
+			end-y: center/y + end-y
+		]
+
+		either closed? [
+			Pie
+				dc
+				center/x - rad-x
+				center/y - rad-y
+				center/x + rad-x
+				center/y + rad-y
+				start-x
+				start-y
+				end-x
+				end-y
+		][
+			Arc
+				dc
+				center/x - rad-x
+				center/y - rad-y
+				center/x + rad-x
+				center/y + rad-y
+				start-x
+				start-y
+				end-x
+				end-y
+		]
 	]
 ]

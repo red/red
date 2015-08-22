@@ -138,3 +138,30 @@ print-line: func [
 	_print count list no
 	prin-byte lf
 ]
+
+#enum trigonometric-type! [
+	TYPE_TANGENT
+	TYPE_COSINE
+	TYPE_SINE
+]
+
+degree-to-radians: func [
+	val		[float!]
+	type	[integer!]
+	return: [float!]
+][
+	val: val % 360.0
+	if any [val > 180.0 val < -180.0] [
+		val: val + either val < 0.0 [360.0][-360.0]
+	]
+	if any [val > 90.0 val < -90.0] [
+		if type = TYPE_TANGENT [
+			val: val + either val < 0.0 [180.0][-180.0]
+		]
+		if type = TYPE_SINE [
+			val: (either val < 0.0 [-180.0][180.0]) - val
+		]
+	]
+	val: val * PI / 180.0			;-- to radians
+	val
+]
