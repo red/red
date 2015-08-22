@@ -468,6 +468,9 @@ win/pane: reduce [
 			arc 100x25 80x80 0 90 closed
 			pen red
 			arc 100x25 50x80 30 90
+
+			curve 20x150 60x250 200x50
+			curve 224x14 220x40 280x40 276x66
 		]
 	]
 	make face! [

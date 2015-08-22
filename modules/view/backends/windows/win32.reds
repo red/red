@@ -1026,6 +1026,12 @@ DwmIsCompositionEnabled!: alias function! [
 			direction	[integer!]
 			return:		[integer!]
 		]
+		PolyBezier: "PolyBezier" [
+			hdc			[handle!]
+			lppt		[tagPOINT]
+			cPoints		[integer!]
+			return:		[integer!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
@@ -1218,6 +1224,13 @@ DwmIsCompositionEnabled!: alias function! [
 			layoutRect	[RECT_STRUCT_FLOAT32]
 			format		[integer!]
 			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawBeziersI: "GdipDrawBeziersI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
 			return:		[integer!]
 		]
 	]

@@ -593,4 +593,53 @@ OS-draw-arc: func [
 				end-y
 		]
 	]
+
+	OS-draw-curve: func [
+		dc	  [handle!]
+		start [red-pair!]
+		end	  [red-pair!]
+		/local
+			pair  [red-pair!]
+			point [tagPOINT]
+			p2	  [red-pair!]
+			p3	  [red-pair!]
+			nb	  [integer!]
+			count [integer!]
+	][
+		point: edges
+		pair:  start
+		nb:	   0
+		count: (as-integer end - pair) >> 4 + 1
+
+		either count = 3 [			;-- p0, p1, p2 -> p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+			point/x: pair/x
+			point/y: pair/y
+			point: point + 1
+			p2: pair + 1
+			p3: pair + 2
+			point/x: p2/x << 1 + pair/x / 3
+			point/y: p2/y << 1 + pair/y / 3
+			point: point + 1
+			point/x: p2/x << 1 + p3/x / 3
+			point/y: p2/y << 1 + p3/y / 3
+			point: point + 1
+			point/x: end/x
+			point/y: end/y
+		][
+			until [
+				point/x: pair/x
+				point/y: pair/y
+				nb: nb + 1
+				point: point + 1
+				pair: pair + 1
+				nb = 4
+			]
+		]
+
+		either anti-alias? [
+			GdipDrawBeziersI modes/graphics as-integer modes/pen edges 4
+		][
+			PolyBezier dc edges 4
+		]
+	]
 ]
