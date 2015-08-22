@@ -488,6 +488,10 @@ OS-draw-arc: func [
 		angle-len	[float!]
 		rad-x-float	[float!]
 		rad-y-float	[float!]
+		rad-x-2		[float!]
+		rad-y-2		[float!]
+		rad-x-y		[float!]
+		tan-2		[float!]
 		closed?		[logic!]
 ][
 	radius: center + 1
@@ -537,10 +541,33 @@ OS-draw-arc: func [
 		rad-x-float: integer/to-float rad-x
 		rad-y-float: integer/to-float rad-y
 
-		start-x: center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin TYPE_COSINE)
-		start-y: center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin TYPE_SINE)
-		end-x:	 center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin + angle-len TYPE_COSINE)
-		end-y:	 center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin + angle-len TYPE_SINE)
+		either rad-x = rad-y [				;-- circle
+			start-x: center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin TYPE_COSINE)
+			start-y: center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin TYPE_SINE)
+			end-x:	 center/x + float/to-integer rad-x-float * (system/words/cos degree-to-radians angle-begin + angle-len TYPE_COSINE)
+			end-y:	 center/y + float/to-integer rad-y-float * (system/words/sin degree-to-radians angle-begin + angle-len TYPE_SINE)
+		][
+			rad-x-y: rad-x-float * rad-y-float
+			rad-x-2: rad-x-float * rad-x-float
+			rad-y-2: rad-y-float * rad-y-float
+			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: tan-2 * tan-2
+			start-x: float/to-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
+			start-y: float/to-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
+			if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+			start-x: center/x + start-x
+			start-y: center/y + start-y
+			angle-begin: angle-begin + angle-len
+			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: tan-2 * tan-2
+			end-x: float/to-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
+			end-y: float/to-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
+			if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+			end-x: center/x + end-x
+			end-y: center/y + end-y
+		]
 
 		either closed? [
 			Pie
