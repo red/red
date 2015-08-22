@@ -64,7 +64,7 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local ret base records nb next end top frame s value lines pf [pointer! [float!]]
+	/local ret base records nb next end top frame s value lines pf [pointer! [float!]] unused
 ][
 	base:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
@@ -112,7 +112,7 @@ __print-debug-stack: func [
 						type-float32!  [print as float32! value]
 						type-float!	   [
 							pf: as pointer! [float!] top
-							prin-float pf/value
+							unused: prin-float pf/value
 							top: top + 1
 						]
 						type-c-string! [
