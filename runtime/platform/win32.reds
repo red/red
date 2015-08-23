@@ -429,14 +429,16 @@ platform: context [
 		i
 	]
 
-	prin-float*: func [f [float!]][
+	prin-float*: func [f [float!] return: [float!]][
 		wprintf [#u16 "%.16g" f]
 		fflush null
+		f
 	]
 
-	prin-float32*: func [f [float32!]][
+	prin-float32*: func [f [float32!] return: [float32!]][
 		wprintf [#u16 "%.7g" as-float f]
 		fflush null
+		f
 	]
 
 	init-gdiplus: func [/local startup-input res][
