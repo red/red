@@ -510,8 +510,8 @@ OS-draw-arc: func [
 				GdipFillPieI
 					modes/graphics
 					as-integer modes/brush
-					center/x - rad-x
-					center/y - rad-y
+					center/x - rad-x - 1
+					center/y - rad-y - 1
 					rad-x << 1
 					rad-y << 1
 					as float32! angle-begin
@@ -520,8 +520,8 @@ OS-draw-arc: func [
 			GdipDrawPieI
 				modes/graphics
 				as-integer modes/pen
-				center/x - rad-x
-				center/y - rad-y
+				center/x - rad-x - 1
+				center/y - rad-y - 1
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
@@ -530,8 +530,8 @@ OS-draw-arc: func [
 			GdipDrawArcI
 				modes/graphics
 				as-integer modes/pen
-				center/x - rad-x
-				center/y - rad-y
+				center/x - rad-x - 1
+				center/y - rad-y - 1
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
