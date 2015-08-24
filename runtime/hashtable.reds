@@ -16,6 +16,7 @@ Red/System [
 #define HASH_TABLE_HASH		0
 #define HASH_TABLE_MAP		1
 #define HASH_TABLE_SYMBOL	2
+#define HASH_TABLE_INTEGER	3
 
 #define _HT_HASH_UPPER		0.77
 
@@ -137,11 +138,6 @@ murmur3-x86-32: func [
 ]
 
 _hashtable: context [
-	#enum hashtable-type! [
-		HASH_TABLE_HASH
-		HASH_TABLE_MAP
-		HASH_TABLE_SYMBOL
-	]
 	hashtable!: alias struct! [
 		size		[integer!]
 		indexes		[node!]
@@ -288,13 +284,14 @@ _hashtable: context [
 		size	[integer!]
 		blk		[red-block!]
 		type	[integer!]
+		vsize	[integer!]
 		return: [node!]
 		/local node s ss h f-buckets fsize i value skip end
 	][
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
-		h/type: type
+		h/type: either type = HASH_TABLE_INTEGER [vsize][type]
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
@@ -330,11 +327,9 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			type
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-		type: h/type
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -398,6 +393,135 @@ _hashtable: context [
 			h/n-buckets: new-buckets
 			h/n-occupied: h/size
 			h/upper-bound: new-size
+		]
+	]
+
+	put-key: func [
+		node	[node!]
+		key		[integer!]
+		return: [red-value!]
+		/local
+			s h x i site last mask step keys hash n-buckets flags
+			ii sh blk idx del? k vsize blk-node
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+
+		if h/n-occupied >= h/upper-bound [			;-- update the hash table
+			n-buckets: h/n-buckets + either h/n-buckets > (h/size << 1) [-1][1]
+			resize node n-buckets
+		]
+
+		vsize: h/type
+		blk-node: as series! h/blk/value
+		blk: as byte-ptr! blk-node/offset
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		n-buckets: h/n-buckets + 1
+		x:	  n-buckets
+		site: n-buckets
+		mask: n-buckets - 2
+		hash: key
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1									;-- 1-based index
+		either _BUCKET_IS_EMPTY(flags ii sh) [x: i][
+			step: 0
+			last: i
+			while [
+				del?: _BUCKET_IS_DEL(flags ii sh)
+				k: as int-ptr! blk + keys/i
+				all [
+					_BUCKET_IS_NOT_EMPTY(flags ii sh)
+					any [
+						del?
+						k/value <> key
+					]
+				]
+			][
+				if del? [site: i]
+				i: i + step and mask
+				_HT_CAL_FLAG_INDEX(i ii sh)
+				i: i + 1
+				step: step + 1
+				if i = last [x: site break]
+			]
+			if x = n-buckets [
+				x: either all [
+					_BUCKET_IS_EMPTY(flags ii sh)
+					site <> n-buckets
+				][site][i]
+			]
+		]
+		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
+		case [
+			_BUCKET_IS_EMPTY(flags ii sh) [
+				k: as int-ptr! alloc-tail-unit blk-node vsize << 4 + 4
+				k/value: key
+				keys/x: as-integer k - as int-ptr! blk
+				_BUCKET_SET_BOTH_FALSE(flags ii sh)
+				h/size: h/size + 1
+				h/n-occupied: h/n-occupied + 1
+			]
+			_BUCKET_IS_DEL(flags ii sh) [
+				k: as int-ptr! blk + keys/x
+				k/value: key
+				_BUCKET_SET_BOTH_FALSE(flags ii sh)
+				h/size: h/size + 1
+			]
+			true [k: as int-ptr! blk + keys/x]
+		]
+		as cell! k + 1
+	]
+
+	get-value: func [
+		node	[node!]
+		key		[integer!]
+		return: [red-value!]
+		/local
+			s h i flags last mask step keys hash n-buckets ii sh blk k
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		assert h/n-buckets > 0
+
+		s: as series! h/blk/value
+		blk: as byte-ptr! s/offset
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		n-buckets: h/n-buckets + 1
+		mask: n-buckets - 2
+		hash: key
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1
+		last: i
+		step: 0
+		while [
+			k: as int-ptr! blk + keys/i
+			all [
+				_BUCKET_IS_NOT_EMPTY(flags ii sh)
+				any [
+					_BUCKET_IS_DEL(flags ii sh)
+					k/value <> key
+				]
+			]
+		][
+			i: i + step and mask
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			i: i + 1
+			step: step + 1
+			if i = last [return null]
+		]
+
+		either _BUCKET_IS_EITHER(flags ii sh) [null][
+			as cell! blk + keys/i + 4
 		]
 	]
 

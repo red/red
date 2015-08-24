@@ -48,7 +48,7 @@ hash: context [
 		if blk? [
 			block/copy as red-block! spec blk null no null
 		]
-		table: _hashtable/init size blk HASH_TABLE_HASH
+		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
 		hash/header: TYPE_HASH							;-- implicit reset of all header flags
 		hash/table: table
@@ -102,7 +102,7 @@ hash: context [
 
 		block/copy as red-block! hash new part-arg deep? types
 		size: block/rs-length? new
-		table: _hashtable/init size new HASH_TABLE_HASH
+		table: _hashtable/init size new HASH_TABLE_HASH 1
 		hash: as red-hash! new
 		hash/header: TYPE_HASH							;-- implicit reset of all header flags
 		hash/table: table
