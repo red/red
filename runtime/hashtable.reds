@@ -408,7 +408,8 @@ _hashtable: context [
 		h: as hashtable! s/offset
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
-			n-buckets: h/n-buckets + either h/n-buckets > (h/size << 1) [-1][1]
+			vsize: either h/n-buckets > (h/size << 1) [-1][1]
+			n-buckets: h/n-buckets + vsize
 			resize node n-buckets
 		]
 
@@ -542,7 +543,8 @@ _hashtable: context [
 		][return null]
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
-			n-buckets: h/n-buckets + either h/n-buckets > (h/size << 1) [-1][1]
+			idx: either h/n-buckets > (h/size << 1) [-1][1]
+			n-buckets: h/n-buckets + idx
 			resize node n-buckets
 		]
 
