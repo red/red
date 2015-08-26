@@ -14,6 +14,8 @@ modes: declare struct! [
 	pen		  	[handle!]
 	brush	 	[handle!]
 	font		[handle!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
 	pen-width	[integer!]
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
@@ -22,6 +24,8 @@ modes: declare struct! [
 	saved-brush [handle!]
 	saved-font	[handle!]
 	graphics	[integer!]								;-- gdiplus graphics
+	g-pen		[integer!]								;-- gdiplus pen
+	g-brush		[integer!]								;-- gdiplus brush
 ]
 
 paint: declare tagPAINTSTRUCT
@@ -31,35 +35,99 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 
 anti-alias?: no
 
+update-gdiplus-modes: func [
+	dc [handle!]
+	/local
+		handle [integer!]
+][
+	unless zero? modes/g-pen [GdipDeletePen modes/g-pen]
+	handle: 0
+	GdipCreatePen1
+		to-gdiplus-color modes/pen-color
+		as float32! integer/to-float modes/pen-width
+		GDIPLUS_UNIT_WORLD
+		:handle
+	modes/g-pen: handle
+
+	if modes/pen-join <> -1 [
+		OS-draw-line-join dc modes/pen-join
+	]
+
+	if modes/pen-cap <> -1 [
+		OS-draw-line-cap dc modes/pen-cap
+	]
+
+	handle: 0
+	unless zero? modes/g-brush [
+		GdipDeleteBrush modes/g-brush
+		modes/g-brush: 0
+	]
+	if modes/brush-color <> -1 [
+		GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
+		modes/g-brush: handle
+	]
+]
+
+update-pen: func [
+	dc		[handle!]
+	type	[integer!]
+	/local
+		style [integer!]
+		mode  [integer!]
+		brush [tagLOGBRUSH]
+][
+	mode: 0
+	unless null? modes/pen [DeleteObject modes/pen]
+	either type < PEN_LINE_CAP [
+		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+	][
+		if modes/pen-join <> -1 [
+			style: modes/pen-join
+			mode: case [
+				style = miter		[PS_JOIN_MITER]
+				style = miter-bevel [PS_JOIN_MITER]
+				style = _round		[PS_JOIN_ROUND]
+				style = bevel		[PS_JOIN_BEVEL]
+				true				[PS_JOIN_MITER]
+			]
+		]
+		if modes/pen-cap <> -1 [
+			style: modes/pen-cap
+			mode: mode or case [
+				style = flat		[PS_ENDCAP_FLAT]
+				style = square		[PS_ENDCAP_SQUARE]
+				style = _round		[PS_ENDCAP_ROUND]
+				true				[PS_ENDCAP_FLAT]
+			]
+		]
+		brush: declare tagLOGBRUSH
+		brush/lbStyle: BS_SOLID
+		brush/lbColor: modes/pen-color
+		modes/pen: ExtCreatePen
+			PS_GEOMETRIC or modes/pen-style or mode
+			modes/pen-width
+			brush
+			0
+			null
+	]
+	SelectObject dc modes/pen
+]
+
 update-modes: func [
 	dc [handle!]
 	/local
 		handle	[integer!]
-		res		[integer!]
+		type	[integer!]
 ][
 	either anti-alias? [
-		unless null? modes/pen [GdipDeletePen as-integer modes/pen]
-		handle: 0
-		GdipCreatePen1
-			to-gdiplus-color modes/pen-color
-			as float32! integer/to-float modes/pen-width
-			GDIPLUS_UNIT_WORLD
-			:handle
-		modes/pen: as handle! handle
-
-		unless null? modes/brush [
-			GdipDeleteBrush as-integer modes/brush
-			modes/brush: null
-		]
-		if modes/brush-color <> -1 [
-			GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
-			modes/brush: as handle! handle
-		]
+		update-gdiplus-modes dc
 	][
-		unless null? modes/pen [DeleteObject modes/pen]
-		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
-		SelectObject dc modes/pen
-		
+		type: either all [
+			modes/pen-join = -1
+			modes/pen-cap = -1
+		][PEN_COLOR][PEN_LINE_CAP]
+		update-pen dc type
+
 		unless null? modes/brush [DeleteObject modes/brush]
 		modes/brush: either modes/brush-color = -1 [
 			GetStockObject NULL_BRUSH
@@ -74,7 +142,8 @@ draw-begin: func [
 	hWnd	[handle!]
 	return: [handle!]
 	/local
-		dc	[handle!]
+		dc		 [handle!]
+		graphics [integer!]
 ][
 	dc: BeginPaint hWnd paint
 
@@ -91,8 +160,15 @@ draw-begin: func [
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
+	modes/pen-join:		-1
+	modes/pen-cap:		-1
 	modes/brush-color:	-1
-	modes/graphics:		0
+	modes/g-brush:		0
+	modes/g-pen:		0
+
+	graphics: 0
+	GdipCreateFromHDC dc :graphics
+	modes/graphics:	graphics
 
 	anti-alias?: no
 	update-modes dc
@@ -100,14 +176,11 @@ draw-begin: func [
 ]
 
 draw-end: func [dc [handle!] hWnd [handle!]][
-	either anti-alias? [
-		unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
-		unless null? modes/pen		[GdipDeletePen as-integer modes/pen]
-		unless null? modes/brush	[GdipDeleteBrush as-integer modes/brush]
-	][
-		unless null? modes/pen		[DeleteObject modes/pen]
-		unless null? modes/brush	[DeleteObject modes/brush]
-	]
+	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
+	unless zero? modes/g-pen	[GdipDeletePen modes/g-pen]
+	unless zero? modes/g-brush	[GdipDeleteBrush modes/g-brush]
+	unless null? modes/pen		[DeleteObject modes/pen]
+	unless null? modes/brush	[DeleteObject modes/brush]
 	
 	SelectObject dc modes/saved-pen
 	SelectObject dc modes/saved-brush
@@ -132,26 +205,15 @@ to-gdiplus-color: func [
 OS-draw-anti-alias: func [
 	dc	 [handle!]
 	off? [logic!]
-	/local
-		graphics [integer!]
-		res		 [integer!]
 ][
 	if anti-alias? <> off? [
 		anti-alias?: off?
 		either anti-alias? [
-			graphics: 0
-			unless null? modes/pen	 [DeleteObject modes/pen]
-			unless null? modes/brush [DeleteObject modes/brush]
-			GdipCreateFromHDC dc :graphics
-			GdipSetSmoothingMode graphics GDIPLUS_ANTIALIAS
-			modes/graphics: graphics
+			update-gdiplus-modes dc
+			GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
 		][
-			GdipDeletePen as-integer modes/pen
-			unless null? modes/brush [GdipDeleteBrush as-integer modes/brush]
+			GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
 		]
-		modes/pen: null
-		modes/brush: null
-		update-modes dc
 	]
 ]
 
@@ -161,37 +223,26 @@ OS-draw-line: func [
 	end	   [red-pair!]
 	/local
 		pt		[tagPOINT]
-		pts		[int-ptr!]
-		p		[int-ptr!]
-		count	[integer!]
+		nb		[integer!]
 		res		[integer!]
+		pair	[red-pair!]
 ][
+	pt: edges
+	pair:  point
+	nb:	   0
+	
+	while [all [pair <= end nb < max-edges]][
+		pt/x: pair/x
+		pt/y: pair/y
+		nb: nb + 1
+		pt: pt + 1
+		pair: pair + 1	
+	]
 	either anti-alias? [
-		end: end + 1
-		count: as-integer end - point
-		count: count >> 4
-		pts: as int-ptr! allocate count << 3
-		p: pts
-		until [
-			p/1: point/x
-			p/2: point/y
-			p: p + 2
-			point: point + 1
-			point = end
-		]
-		res: GdipDrawLinesI modes/graphics as-integer modes/pen pts count
-		free as byte-ptr! pts
+		res: GdipDrawLinesI modes/graphics modes/g-pen edges nb
 	][
 		if null? modes/pen [OS-draw-pen dc modes/pen-color]
-
-		pt: declare tagPOINT
-		MoveToEx dc point/x point/y pt
-		
-		until [
-			point: point + 1
-			LineTo dc point/x point/y
-			point = end
-		]
+		Polyline dc edges nb
 	]
 ]
 
@@ -257,9 +308,9 @@ gdiplus-draw-roundbox: func [
 	res: GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
 	if fill? [
-		GdipFillPath modes/graphics as-integer modes/brush path
+		GdipFillPath modes/graphics modes/g-brush path
 	]
-	GdipDrawPath modes/graphics as-integer modes/pen path
+	GdipDrawPath modes/graphics modes/g-pen path
 	GdipDeletePath path
 ]
 
@@ -293,7 +344,7 @@ OS-draw-box: func [
 				width: modes/pen-width
 				GdipFillRectangleI
 					modes/graphics
-					as-integer modes/brush
+					modes/g-brush
 					upper/x
 					upper/y
 					lower/x - upper/x - 1
@@ -301,7 +352,7 @@ OS-draw-box: func [
 			]
 			GdipDrawRectangleI
 				modes/graphics
-				as-integer modes/pen
+				modes/g-pen
 				upper/x
 				upper/y
 				lower/x - upper/x - 1
@@ -343,12 +394,12 @@ OS-draw-triangle: func [
 		if modes/brush-color <> -1 [
 			GdipFillPolygonI
 				modes/graphics
-				as-integer modes/brush
+				modes/g-brush
 				edges
 				4
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics as-integer modes/pen edges 4
+		GdipDrawPolygonI modes/graphics modes/g-pen edges 4
 	][
 		either modes/brush-color = -1 [
 			Polyline dc edges 4
@@ -387,12 +438,12 @@ OS-draw-polygon: func [
 		if modes/brush-color <> -1 [
 			GdipFillPolygonI
 				modes/graphics
-				as-integer modes/brush
+				modes/g-brush
 				edges
 				nb + 1
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics as-integer modes/pen edges nb + 1
+		GdipDrawPolygonI modes/graphics modes/g-pen edges nb + 1
 	][
 		either modes/brush-color = -1 [
 			Polyline dc edges nb + 1
@@ -413,7 +464,7 @@ do-draw-ellipse: func [
 		if modes/brush-color <> -1 [
 			GdipFillEllipseI
 				modes/graphics
-				as-integer modes/brush
+				modes/g-brush
 				x
 				y
 				width - 1
@@ -421,7 +472,7 @@ do-draw-ellipse: func [
 		]
 		GdipDrawEllipseI
 			modes/graphics
-			as-integer modes/pen
+			modes/g-pen
 			x
 			y
 			width - 1
@@ -509,9 +560,9 @@ OS-draw-arc: func [
 			if modes/brush-color <> -1 [
 				GdipFillPieI
 					modes/graphics
-					as-integer modes/brush
-					center/x - rad-x
-					center/y - rad-y
+					modes/g-brush
+					center/x - rad-x - 1
+					center/y - rad-y - 1
 					rad-x << 1
 					rad-y << 1
 					as float32! angle-begin
@@ -519,9 +570,9 @@ OS-draw-arc: func [
 			]
 			GdipDrawPieI
 				modes/graphics
-				as-integer modes/pen
-				center/x - rad-x
-				center/y - rad-y
+				modes/g-pen
+				center/x - rad-x - 1
+				center/y - rad-y - 1
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
@@ -529,9 +580,9 @@ OS-draw-arc: func [
 		][
 			GdipDrawArcI
 				modes/graphics
-				as-integer modes/pen
-				center/x - rad-x
-				center/y - rad-y
+				modes/g-pen
+				center/x - rad-x - 1
+				center/y - rad-y - 1
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
@@ -593,53 +644,97 @@ OS-draw-arc: func [
 				end-y
 		]
 	]
+]
 
-	OS-draw-curve: func [
-		dc	  [handle!]
-		start [red-pair!]
-		end	  [red-pair!]
-		/local
-			pair  [red-pair!]
-			point [tagPOINT]
-			p2	  [red-pair!]
-			p3	  [red-pair!]
-			nb	  [integer!]
-			count [integer!]
+OS-draw-curve: func [
+	dc	  [handle!]
+	start [red-pair!]
+	end	  [red-pair!]
+	/local
+		pair  [red-pair!]
+		point [tagPOINT]
+		p2	  [red-pair!]
+		p3	  [red-pair!]
+		nb	  [integer!]
+		count [integer!]
+][
+	point: edges
+	pair:  start
+	nb:	   0
+	count: (as-integer end - pair) >> 4 + 1
+
+	either count = 3 [			;-- p0, p1, p2 -> p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+		point/x: pair/x
+		point/y: pair/y
+		point: point + 1
+		p2: pair + 1
+		p3: pair + 2
+		point/x: p2/x << 1 + pair/x / 3
+		point/y: p2/y << 1 + pair/y / 3
+		point: point + 1
+		point/x: p2/x << 1 + p3/x / 3
+		point/y: p2/y << 1 + p3/y / 3
+		point: point + 1
+		point/x: end/x
+		point/y: end/y
 	][
-		point: edges
-		pair:  start
-		nb:	   0
-		count: (as-integer end - pair) >> 4 + 1
-
-		either count = 3 [			;-- p0, p1, p2 -> p0, (p0 + 2p1) / 3, (2p1 + p2) / 3, p2
+		until [
 			point/x: pair/x
 			point/y: pair/y
+			nb: nb + 1
 			point: point + 1
-			p2: pair + 1
-			p3: pair + 2
-			point/x: p2/x << 1 + pair/x / 3
-			point/y: p2/y << 1 + pair/y / 3
-			point: point + 1
-			point/x: p2/x << 1 + p3/x / 3
-			point/y: p2/y << 1 + p3/y / 3
-			point: point + 1
-			point/x: end/x
-			point/y: end/y
-		][
-			until [
-				point/x: pair/x
-				point/y: pair/y
-				nb: nb + 1
-				point: point + 1
-				pair: pair + 1
-				nb = 4
-			]
+			pair: pair + 1
+			nb = 4
 		]
+	]
 
-		either anti-alias? [
-			GdipDrawBeziersI modes/graphics as-integer modes/pen edges 4
-		][
-			PolyBezier dc edges 4
+	either anti-alias? [
+		GdipDrawBeziersI modes/graphics modes/g-pen edges 4
+	][
+		PolyBezier dc edges 4
+	]
+]
+
+OS-draw-line-join: func [
+	dc	  [handle!]
+	style [integer!]
+	/local
+		mode  [integer!]
+][
+	mode: 0
+	modes/pen-join: style
+	either anti-alias? [
+		case [
+			style = miter		[mode: GDIPLUS_MITER]
+			style = miter-bevel [mode: GDIPLUS_MITERCLIPPED]
+			style = _round		[mode: GDIPLUS_ROUND]
+			style = bevel		[mode: GDIPLUS_BEVEL]
+			true				[mode: GDIPLUS_MITER]
 		]
+		GdipSetPenLineJoin modes/g-pen mode
+	][
+		update-pen dc PEN_LINE_JOIN
+	]
+]
+	
+OS-draw-line-cap: func [
+	dc	  [handle!]
+	style [integer!]
+	/local
+		mode  [integer!]
+][
+	mode: 0
+	modes/pen-cap: style
+	either anti-alias? [
+		case [
+			style = flat		[mode: GDIPLUS_LINECAPFLAT]
+			style = square		[mode: GDIPLUS_LINECAPSQUARE]
+			style = _round		[mode: GDIPLUS_LINECAPROUND]
+			true				[mode: GDIPLUS_LINECAPFLAT]
+		]
+		GdipSetPenStartCap modes/g-pen mode
+		GdipSetPenEndCap modes/g-pen mode
+	][
+		update-pen dc PEN_LINE_CAP
 	]
 ]
