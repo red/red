@@ -423,9 +423,11 @@ win/pane: reduce [
 			
 			pen blue
 			line-width 4
+			line-join round
 			line 15x190 50x50 190x180
 			
 			pen green
+			line-join miter
 			box 10x120 70x160
 			
 			line-width 1
@@ -439,6 +441,7 @@ win/pane: reduce [
 			
 			pen yellow fill-pen orange
 			line-width 5
+			line-join bevel
 			polygon 120x130 120x190 180x130 180x190
 
 			line-width 1

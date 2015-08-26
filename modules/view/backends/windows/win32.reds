@@ -276,12 +276,37 @@ Red/System [
 #define DC_BRUSH			18
 #define DC_PEN              19
 
+#define BS_SOLID			0
+
 #define PS_SOLID			0
 #define PS_DASH				1							; -------
 #define PS_DOT				2							; .......
 #define PS_DASHDOT			3							; _._._._
 #define PS_DASHDOTDOT		4							; _.._.._
 
+#define PS_ALTERNATE		8
+#define PS_STYLE_MASK		0000000Fh
+
+#define PS_ENDCAP_ROUND		00000000h
+#define PS_ENDCAP_SQUARE	00000100h
+#define PS_ENDCAP_FLAT		00000200h
+#define PS_ENDCAP_MASK		00000F00h
+
+#define PS_JOIN_ROUND		00000000h
+#define PS_JOIN_BEVEL		00001000h
+#define PS_JOIN_MITER		00002000h
+#define PS_JOIN_MASK		0000F000h
+
+#define PS_COSMETIC			00000000h
+#define PS_GEOMETRIC		00010000h
+#define PS_TYPE_MASK		000F0000h
+
+#define GDIPLUS_MITER				0
+#define GDIPLUS_BEVEL				1
+#define GDIPLUS_ROUND				2
+#define GDIPLUS_MITERCLIPPED		3
+
+#define	GDIPLUS_HIGHSPPED			1
 #define	GDIPLUS_ANTIALIAS			4
 #define GDIPLUS_UNIT_WORLD			0
 #define GDIPLUS_FILLMODE_ALTERNATE	0
@@ -338,6 +363,12 @@ tagMSG: alias struct! [
 	time	[integer!]
 	x		[integer!]									;@@ POINT struct
 	y		[integer!]	
+]
+
+tagLOGBRUSH: alias struct! [
+	lbStyle [integer!]
+	lbColor [integer!]
+	lbHatch [integer!]
 ]
 
 tagPAINTSTRUCT: alias struct! [
@@ -936,6 +967,14 @@ DwmIsCompositionEnabled!: alias function! [
 			nYEnd		[integer!]
 			return:		[logic!]
 		]
+		ExtCreatePen: "ExtCreatePen" [
+			dwPenStyle		[integer!]
+			dwWidth			[integer!]
+			lplb			[tagLOGBRUSH]
+			dwStyleCount	[integer!]
+			lpStyle			[int-ptr!]
+			return:			[handle!]
+		]
 		CreatePen: "CreatePen" [
 			fnPenStyle	[integer!]
 			nWidth		[integer!]
@@ -1076,7 +1115,7 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipDrawLinesI: "GdipDrawLinesI" [
 			graphics	[integer!]
 			pen			[integer!]
-			points		[int-ptr!]
+			points		[tagPOINT]
 			count		[integer!]
 			return:		[integer!]
 		]
@@ -1231,6 +1270,11 @@ DwmIsCompositionEnabled!: alias function! [
 			pen			[integer!]
 			points		[tagPOINT]
 			count		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPenLineJoin: "GdipSetPenLineJoin" [
+			pen			[integer!]
+			linejoin	[integer!]
 			return:		[integer!]
 		]
 	]
