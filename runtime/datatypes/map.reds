@@ -171,7 +171,7 @@ map: context [
 			table [node!]
 			map	  [red-hash!]
 	][
-		table: _hashtable/init size blk HASH_TABLE_MAP
+		table: _hashtable/init size blk HASH_TABLE_MAP 1
 		map: as red-hash! slot
 		map/header: TYPE_MAP							;-- implicit reset of all header flags
 		map/table: table

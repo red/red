@@ -622,7 +622,7 @@ _series: context [
 				hash: as red-hash! ser
 				_hashtable/refresh hash/table 0 - part size
 				hash: as red-hash! ser2
-				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH
+				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
 			]
 		][return as red-value! ser2]
 

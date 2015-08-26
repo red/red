@@ -1471,7 +1471,7 @@ block: context [
 		len: rs-length? blk1
 		len: len + either op = OP_UNION [rs-length? blk2][0]
 		new: make-at as red-block! stack/push* len
-		table: _hashtable/init len new HASH_TABLE_HASH
+		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2
 		hash: null
 		blk?: yes
@@ -1493,7 +1493,7 @@ block: context [
 				][
 					if all [blk? hash <> null] [_hashtable/destroy hash]
 					blk?: yes
-					_hashtable/init rs-length? blk2 blk2 HASH_TABLE_HASH
+					_hashtable/init rs-length? blk2 blk2 HASH_TABLE_HASH 1
 				]
 			]
 
