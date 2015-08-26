@@ -66,6 +66,13 @@ system/view/platform: context [
 				EVT_FLAG_KEY_DOWN:		80000000h
 			]
 
+			#enum pen-type! [
+				PEN_COLOR
+				PEN_WIDTH
+				PEN_LINE_CAP
+				PEN_LINE_JOIN
+			]
+
 			window:			symbol/make "window"
 			button:			symbol/make "button"
 			check:			symbol/make "check"

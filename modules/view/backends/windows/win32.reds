@@ -301,6 +301,10 @@ Red/System [
 #define PS_GEOMETRIC		00010000h
 #define PS_TYPE_MASK		000F0000h
 
+#define GDIPLUS_LINECAPFLAT			0
+#define GDIPLUS_LINECAPSQUARE		1
+#define GDIPLUS_LINECAPROUND		2
+
 #define GDIPLUS_MITER				0
 #define GDIPLUS_BEVEL				1
 #define GDIPLUS_ROUND				2
@@ -1275,6 +1279,16 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipSetPenLineJoin: "GdipSetPenLineJoin" [
 			pen			[integer!]
 			linejoin	[integer!]
+			return:		[integer!]
+		]
+		GdipSetPenStartCap: "GdipSetPenStartCap" [
+			pen			[integer!]
+			style		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPenEndCap: "GdipSetPenEndCap" [
+			pen			[integer!]
+			style		[integer!]
 			return:		[integer!]
 		]
 	]

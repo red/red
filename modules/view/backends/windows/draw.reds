@@ -15,6 +15,7 @@ modes: declare struct! [
 	brush	 	[handle!]
 	font		[handle!]
 	pen-join	[integer!]
+	pen-cap		[integer!]
 	pen-width	[integer!]
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
@@ -52,6 +53,10 @@ update-gdiplus-modes: func [
 		OS-draw-line-join dc modes/pen-join
 	]
 
+	if modes/pen-cap <> -1 [
+		OS-draw-line-cap dc modes/pen-cap
+	]
+
 	handle: 0
 	unless zero? modes/g-brush [
 		GdipDeleteBrush modes/g-brush
@@ -63,23 +68,65 @@ update-gdiplus-modes: func [
 	]
 ]
 
+update-pen: func [
+	dc		[handle!]
+	type	[integer!]
+	/local
+		style [integer!]
+		mode  [integer!]
+		brush [tagLOGBRUSH]
+][
+	mode: 0
+	unless null? modes/pen [DeleteObject modes/pen]
+	either type < PEN_LINE_CAP [
+		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+	][
+		if modes/pen-join <> -1 [
+			style: modes/pen-join
+			mode: case [
+				style = miter		[PS_JOIN_MITER]
+				style = miter-bevel [PS_JOIN_MITER]
+				style = _round		[PS_JOIN_ROUND]
+				style = bevel		[PS_JOIN_BEVEL]
+				true				[PS_JOIN_MITER]
+			]
+		]
+		if modes/pen-cap <> -1 [
+			style: modes/pen-cap
+			mode: mode or case [
+				style = flat		[PS_ENDCAP_FLAT]
+				style = square		[PS_ENDCAP_SQUARE]
+				style = _round		[PS_ENDCAP_ROUND]
+				true				[PS_ENDCAP_FLAT]
+			]
+		]
+		brush: declare tagLOGBRUSH
+		brush/lbStyle: BS_SOLID
+		brush/lbColor: modes/pen-color
+		modes/pen: ExtCreatePen
+			PS_GEOMETRIC or modes/pen-style or mode
+			modes/pen-width
+			brush
+			0
+			null
+	]
+	SelectObject dc modes/pen
+]
+
 update-modes: func [
 	dc [handle!]
 	/local
 		handle	[integer!]
-		res		[integer!]
+		type	[integer!]
 ][
 	either anti-alias? [
 		update-gdiplus-modes dc
 	][
-		unless null? modes/pen [DeleteObject modes/pen]
-		either modes/pen-join = -1 [
-			modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
-			SelectObject dc modes/pen
-		][
-			modes/pen: null
-			OS-draw-line-join dc modes/pen-join
-		]
+		type: either all [
+			modes/pen-join = -1
+			modes/pen-cap = -1
+		][PEN_COLOR][PEN_LINE_CAP]
+		update-pen dc type
 
 		unless null? modes/brush [DeleteObject modes/brush]
 		modes/brush: either modes/brush-color = -1 [
@@ -114,6 +161,7 @@ draw-begin: func [
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
 	modes/pen-join:		-1
+	modes/pen-cap:		-1
 	modes/brush-color:	-1
 	modes/g-brush:		0
 	modes/g-pen:		0
@@ -652,7 +700,6 @@ OS-draw-line-join: func [
 	style [integer!]
 	/local
 		mode  [integer!]
-		brush [tagLOGBRUSH]
 ][
 	mode: 0
 	modes/pen-join: style
@@ -666,23 +713,28 @@ OS-draw-line-join: func [
 		]
 		GdipSetPenLineJoin modes/g-pen mode
 	][
+		update-pen dc PEN_LINE_JOIN
+	]
+]
+	
+OS-draw-line-cap: func [
+	dc	  [handle!]
+	style [integer!]
+	/local
+		mode  [integer!]
+][
+	mode: 0
+	modes/pen-cap: style
+	either anti-alias? [
 		case [
-			style = miter		[mode: PS_JOIN_MITER]
-			style = miter-bevel [mode: PS_JOIN_MITER]
-			style = _round		[mode: PS_JOIN_ROUND]
-			style = bevel		[mode: PS_JOIN_BEVEL]
-			true				[mode: PS_JOIN_MITER]
+			style = flat		[mode: GDIPLUS_LINECAPFLAT]
+			style = square		[mode: GDIPLUS_LINECAPSQUARE]
+			style = _round		[mode: GDIPLUS_LINECAPROUND]
+			true				[mode: GDIPLUS_LINECAPFLAT]
 		]
-		brush: declare tagLOGBRUSH
-		brush/lbStyle: BS_SOLID
-		brush/lbColor: modes/pen-color
-		unless null? modes/pen [DeleteObject modes/pen]
-		modes/pen: ExtCreatePen
-			PS_GEOMETRIC or modes/pen-style or mode
-			modes/pen-width
-			brush
-			0
-			null
-		SelectObject dc modes/pen
+		GdipSetPenStartCap modes/g-pen mode
+		GdipSetPenEndCap modes/g-pen mode
+	][
+		update-pen dc PEN_LINE_CAP
 	]
 ]

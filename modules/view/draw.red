@@ -26,6 +26,7 @@ Red/System [
 		_arc:		 symbol/make "arc"
 		curve:		 symbol/make "curve"
 		line-join:	 symbol/make "line-join"
+		line-cap:	 symbol/make "line-cap"
 		
 		_off:		 symbol/make "off"
 		closed:		 symbol/make "closed"
@@ -33,6 +34,8 @@ Red/System [
 		miter-bevel: symbol/make "miter-bevel"
 		_round:		 symbol/make "round"
 		bevel:		 symbol/make "bevel"
+		square:		 symbol/make "square"
+		flat:		 symbol/make "flat"
 
 		throw-draw-error: func [
 			cmds [red-block!]
@@ -410,6 +413,27 @@ Red/System [
 			pos
 		]
 
+		draw-line-cap: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos	  [red-value!]
+				mode  [red-word!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if pos >= tail [throw-draw-error cmds cmd]
+			
+			either TYPE_OF(pos) = TYPE_WORD  [
+				mode: as red-word! pos
+			][throw-draw-error cmds cmd]
+
+			OS-draw-line-cap DC symbol/resolve mode/symbol
+			pos
+		]
+
 		do-draw: func [
 			handle [handle!]
 			cmds   [red-block!]
@@ -446,6 +470,7 @@ Red/System [
 					sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
 					sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
 					sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
+					sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

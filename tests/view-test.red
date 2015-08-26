@@ -418,6 +418,7 @@ win/pane: reduce [
 	canvas: make face! [
 		type: 'base text: "canvas" offset: 10x460 size: 300x200 color: silver
 		draw: [
+			line-cap round
 			pen red
 			line 10x10 130x190 80x40 150x100
 			
