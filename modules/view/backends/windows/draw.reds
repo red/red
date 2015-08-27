@@ -20,6 +20,8 @@ modes: declare struct! [
 	pen-style	[integer!]
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
+	bitmap		[handle!]
+	saved-dc	[handle!]
 	saved-pen	[handle!]
 	saved-brush [handle!]
 	saved-font	[handle!]
@@ -143,9 +145,29 @@ draw-begin: func [
 	return: [handle!]
 	/local
 		dc		 [handle!]
+		rect	 [RECT_STRUCT]
+		width	 [integer!]
+		height	 [integer!]
+		hBitmap  [handle!]
+		hBackDC  [handle!]
 		graphics [integer!]
 ][
 	dc: BeginPaint hWnd paint
+
+	rect: declare RECT_STRUCT
+	GetClientRect hWnd rect
+	width: rect/right - rect/left
+	height: rect/bottom - rect/top
+
+	hBackDC: CreateCompatibleDC dc
+	hBitmap: CreateCompatibleBitmap dc width height
+	SelectObject hBackDC hBitmap
+	modes/saved-dc: dc
+	modes/bitmap: hBitmap
+
+	dc: hBackDC
+
+	paint-background hWnd dc
 
 	SetArcDirection dc AD_CLOCKWISE
 	SetBkMode dc BK_TRANSPARENT
@@ -175,15 +197,30 @@ draw-begin: func [
 	dc
 ]
 
-draw-end: func [dc [handle!] hWnd [handle!]][
+draw-end: func [
+	dc	 [handle!]
+	hWnd [handle!]
+	/local
+		rect	[RECT_STRUCT]
+		width	[integer!]
+		height	[integer!]
+][
+	rect: declare RECT_STRUCT
+	GetClientRect hWnd rect
+	width: rect/right - rect/left
+	height: rect/bottom - rect/top
+	BitBlt modes/saved-dc 0 0 width height dc 0 0 SRCCOPY
+
 	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
 	unless zero? modes/g-pen	[GdipDeletePen modes/g-pen]
 	unless zero? modes/g-brush	[GdipDeleteBrush modes/g-brush]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
-	
-	SelectObject dc modes/saved-pen
-	SelectObject dc modes/saved-brush
+
+	DeleteDC dc
+	DeleteObject modes/bitmap
+	;SelectObject dc modes/saved-pen
+	;SelectObject dc modes/saved-brush
 	;SelectObject dc modes/saved-font
 	EndPaint hWnd paint
 ]
