@@ -368,7 +368,11 @@ to-red-file: func [
 	dst
 ]
 
-what-dir: does [to-red-file get-current-dir]
+what-dir: func [/local path][
+	path: to-red-file get-current-dir
+	if #"/" <> last path [append path #"/"]
+	path
+]
 
 ;------------------------------------------
 ;-				Aliases					  -
