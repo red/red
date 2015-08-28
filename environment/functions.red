@@ -368,6 +368,8 @@ to-red-file: func [
 	dst
 ]
 
+what-dir: does [to-red-file get-current-dir]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------

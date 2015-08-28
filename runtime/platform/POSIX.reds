@@ -25,6 +25,11 @@ Red/System [
 			locale		[c-string!]
 			return:		[c-string!]
 		]
+		getcwd: "getcwd" [
+			buf		[byte-ptr!]
+			size	[integer!]
+			return: [byte-ptr!]
+		]
 	]
 ]
 
@@ -212,4 +217,16 @@ prin-float*: func [f [float!] return: [float!]][
 prin-float32*: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
+]
+
+get-current-dir: func [
+	len		[int-ptr!]
+	return: [c-string!]
+	/local
+		path [byte-ptr!]
+][
+	path: allocate 4096
+	if null? getcwd path 4095 [path/1: #"^@"]
+	len/value: length? as c-string! path
+	as c-string! path
 ]
