@@ -236,7 +236,7 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			none
+		path: 			what-dir
 		script: 		none
 		args: 			none
 		do-arg: 		none
