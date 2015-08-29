@@ -183,9 +183,7 @@ simple-io: context [
 		#define O_RDONLY	0
 		#define O_WRONLY	1
 		#define O_RDWR		2
-		#define O_BINARY	4
-
-		#define O_CREAT		64
+		#define O_BINARY	0
 
 		#define S_IREAD		256
 		#define S_IWRITE    128
@@ -194,6 +192,17 @@ simple-io: context [
 		#define S_IROTH		4
 
 		#define	DT_DIR		#"^(04)"
+
+		#case [
+			any [OS = 'FreeBSD OS = 'MacOSX] [
+				#define O_CREAT		0200h
+				#define O_APPEND	8
+			]
+			true [
+				#define O_CREAT		64
+				#define O_APPEND	1024
+			]
+		]
 
 		#case [
 			OS = 'FreeBSD [
@@ -525,6 +534,7 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
+				if mode and RIO_APPEND <> 0 [modes: modes or O_APPEND]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
 			file: _open filename modes access
@@ -1258,6 +1268,7 @@ simple-io: context [
 			#define CURLOPT_HTTPGET			80
 			#define CURLOPT_POSTFIELDSIZE	60
 			#define CURLOPT_NOPROGRESS		43
+			#define CURLOPT_FOLLOWLOCATION	52
 			#define CURLOPT_POSTFIELDS		10015
 			#define CURLOPT_WRITEDATA		10001
 			#define CURLOPT_HTTPHEADER		10023
@@ -1364,6 +1375,7 @@ simple-io: context [
 				
 				curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 				curl_easy_setopt curl CURLOPT_NOPROGRESS 1
+				curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
 				
 				curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 				curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
