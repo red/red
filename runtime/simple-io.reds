@@ -183,9 +183,7 @@ simple-io: context [
 		#define O_RDONLY	0
 		#define O_WRONLY	1
 		#define O_RDWR		2
-		#define O_BINARY	4
-
-		#define O_CREAT		64
+		#define O_BINARY	0
 
 		#define S_IREAD		256
 		#define S_IWRITE    128
@@ -194,6 +192,17 @@ simple-io: context [
 		#define S_IROTH		4
 
 		#define	DT_DIR		#"^(04)"
+
+		#case [
+			any [OS = 'FreeBSD OS = 'MacOSX] [
+				#define O_CREAT		0200h
+				#define O_APPEND	8
+			]
+			true [
+				#define O_CREAT		64
+				#define O_APPEND	1024
+			]
+		]
 
 		#case [
 			OS = 'FreeBSD [
@@ -525,6 +534,7 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
+				if mode and RIO_APPEND <> 0 [modes: modes or O_APPEND]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
 			file: _open filename modes access
