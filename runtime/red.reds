@@ -37,6 +37,7 @@ red: context [
 	#include %case-folding.reds
 	#include %sort.reds
 	#include %hashtable.reds
+	#include %ownership.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds

@@ -337,6 +337,17 @@ Red/System [
 	]
 ]
 
+#define ANY_BLOCK?(type)	[
+	any [									;@@ replace with ANY_BLOCK?
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
+	]
+]
+
 #define BS_SET_BIT(array bit)  [
 	pos: array + (bit >> 3)
 	pos/value: pos/value or (as-byte 128 >> (bit and 7))

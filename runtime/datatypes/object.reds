@@ -1069,6 +1069,23 @@ object: context [
 		rs-select obj value
 	]
 	
+	modify: func [
+		obj		 [red-object!]
+		field	[red-word!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+	][
+		sym: symbol/resolve field/symbol
+		case [
+			sym = words/owner [
+				ownership/set as red-value! obj obj
+			]
+			true [0]
+		]
+		value
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -1132,7 +1149,7 @@ object: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			:modify
 			null			;open
 			null			;open?
 			null			;query

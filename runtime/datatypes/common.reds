@@ -329,6 +329,7 @@ words: context [
 	return*:		-1
 	self:			-1
 	values:			-1
+	owner:			-1
 	
 	any*:			-1
 	break*:			-1
@@ -419,6 +420,25 @@ words: context [
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
 	
+	;-- modifying actions
+	_change:		as red-word! 0
+	_clear:			as red-word! 0
+	_set-path:		as red-word! 0
+	_insert:		as red-word! 0
+	_poke:			as red-word! 0
+	_put:			as red-word! 0
+	;_remove:		as red-word! 0
+	_random:		as red-word! 0
+	_reverse:		as red-word! 0
+	_sort:			as red-word! 0
+	_swap:			as red-word! 0
+	_take:			as red-word! 0
+	_trim:			as red-word! 0
+
+	;-- modifying natives
+	_uppercase:		as red-word! 0
+	_lowercase:		as red-word! 0
+	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
 	
@@ -495,6 +515,7 @@ words: context [
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"
+		owner:			symbol/make "owner"
 		
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"
@@ -512,10 +533,10 @@ words: context [
 		code:			symbol/make "code"
 		picked:			symbol/make "picked"
 
-		get:		symbol/make "get"
-		put:		symbol/make "put"
-		post:		symbol/make "post"
-		head:		symbol/make "head"
+		get:			symbol/make "get"
+		put:			symbol/make "put"
+		post:			symbol/make "post"
+		head:			symbol/make "head"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -542,6 +563,25 @@ words: context [
 		_quote: 		_context/add-global quote
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
+		
+		;-- modifying actions
+		_change:		word/load "change"
+		_clear:			word/load "clear"
+		_set-path:		word/load "set-path"
+		_insert:		word/load "insert"
+		_poke:			word/load "poke"
+		_put:			word/load "put"
+		;_remove:		word/load "remove"
+		_random:		word/load "random"
+		_reverse:		word/load "reverse"
+		_sort:			word/load "sort"
+		_swap:			word/load "swap"
+		_take:			word/load "take"
+		_trim:			word/load "trim"
+
+		;-- modifying natives
+		_uppercase:		word/load "uppercase"
+		_lowercase:		word/load "lowercase"
 		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
@@ -570,6 +610,7 @@ words: context [
 		errors/access:	 word/load "access"
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
+		
 	]
 ]
 

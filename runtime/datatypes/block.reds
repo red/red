@@ -740,14 +740,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: any [									;@@ replace with ANY_BLOCK?
-			type = TYPE_BLOCK
-			type = TYPE_PAREN
-			type = TYPE_PATH
-			type = TYPE_GET_PATH
-			type = TYPE_SET_PATH
-			type = TYPE_LIT_PATH
-		]
+		any-blk?: ANY_BLOCK?(type)
 
 		either any [
 			match?

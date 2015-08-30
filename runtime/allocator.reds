@@ -28,6 +28,7 @@ Red/System [
 #define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
 #define flag-bitset-not		00080000h		;-- complement flag for bitsets
 #define flag-UTF16-cache	00040000h		;-- UTF-16 encoding for string cache buffer
+#define flag-series-owned	00020000h		;-- series is owned by an object
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
 #define flag-self-mask		01000000h		;-- mask for self? flag
@@ -79,7 +80,8 @@ cell!: alias struct! [
 ;   20:     fixed							;-- series cannot be relocated (system-critical series)
 ;	19:		complement						;-- complement flag for bitsets
 ;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
-;	17-3: 	<reserved>
+;	17:		owned							;-- series is owned by an object
+;	16-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
