@@ -14,6 +14,8 @@ Red/System [
 #define __LC_CTYPE 0
 #define __LC_ALL   6
 
+#define RTLD_LAZY	1
+
 #import [
 	LIBC-file cdecl [
 		wprintf: "wprintf" [
@@ -24,6 +26,11 @@ Red/System [
 			category	[integer!]
 			locale		[c-string!]
 			return:		[c-string!]
+		]
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
 		]
 	]
 ]

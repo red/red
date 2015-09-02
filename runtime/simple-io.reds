@@ -1120,10 +1120,6 @@ simple-io: context [
 						request		[integer!]
 						return:		[integer!]
 					]
-					CFURLCopyHostName: "CFURLCopyHostName" [
-						url			[integer!]
-						return:		[integer!]
-					]
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 					CFReadStreamOpen: "CFReadStreamOpen" [
@@ -1151,6 +1147,20 @@ simple-io: context [
 						encoding	[integer!]
 						return:		[integer!]
 					]
+					CFURLCreateStringByAddingPercentEscapes: "CFURLCreateStringByAddingPercentEscapes" [
+						allocator	[integer!]
+						cf-str		[integer!]
+						unescaped	[integer!]
+						escaped		[integer!]
+						encoding	[integer!]
+						return:		[integer!]
+					]
+					CFReadStreamSetProperty: "CFReadStreamSetProperty" [
+						stream		[integer!]
+						name		[integer!]
+						value		[integer!]
+						return:		[integer!]
+					]
 					CFRelease: "CFRelease" [
 						cf			[integer!]
 					]
@@ -1170,20 +1180,22 @@ simple-io: context [
 				binary? [logic!]
 				return: [red-value!]
 				/local
-					len		[integer!]
-					action	[c-string!]
-					cf-url	[integer!]
-					req		[integer!]
-					body	[integer!]
-					buf		[byte-ptr!]
-					datalen [integer!]
-					cf-key	[integer!]
-					cf-val	[integer!]
-					value	[red-value!]
-					tail	[red-value!]
-					s		[series!]
-					bin		[red-binary!]
-					stream	[integer!]
+					len			[integer!]
+					action		[c-string!]
+					raw-url		[integer!]
+					escaped-url [integer!]
+					cf-url		[integer!]
+					req			[integer!]
+					body		[integer!]
+					buf			[byte-ptr!]
+					datalen		[integer!]
+					cf-key		[integer!]
+					cf-val		[integer!]
+					value		[red-value!]
+					tail		[red-value!]
+					s			[series!]
+					bin			[red-binary!]
+					stream		[integer!]
 			][
 				switch method [
 					HTTP_GET  [action: "GET"]
@@ -1194,11 +1206,13 @@ simple-io: context [
 
 				body: 0
 				len: -1
-				url-ptr: CFString((unicode/to-utf8 as red-string! url :len))
-				cf-url: CFURLCreateWithString 0 url-ptr 0
+				raw-url: CFString((unicode/to-utf8 as red-string! url :len))
+				escaped-url: CFURLCreateStringByAddingPercentEscapes 0 raw-url 0 0 kCFStringEncodingUTF8
+				cf-url: CFURLCreateWithString 0 escaped-url 0
 
 				req: CFHTTPMessageCreateRequest 0 CFSTR(action) cf-url CFSTR("HTTP/1.1")
-				CFRelease url-ptr
+				CFRelease raw-url
+				CFRelease escaped-url
 
 				if zero? req [fire [TO_ERROR(access no-connect) url]]
 
@@ -1235,6 +1249,8 @@ simple-io: context [
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [fire [TO_ERROR(access no-connect) url]]
+
+				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
