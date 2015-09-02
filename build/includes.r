@@ -159,6 +159,7 @@ write %build/bin/sources.r set-cache [
 			%secure-clean-path.r
 			%virtual-struct.r
 			%profiler.r
+			%unicode.r
 		]
 	]
 ]
