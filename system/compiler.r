@@ -3379,7 +3379,7 @@ system-dialect: make-profilable context [
 
 		version-info-key: [
 			Title: Version: Company: Comments: Notes:
-			Rights: Trademarks: Builder: ProductName:
+			Rights: Trademarks: Author: ProductName:
 		]
 		foreach name version-info-key [
 			if value: select header name [

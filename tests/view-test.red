@@ -1,5 +1,6 @@
 Red [
 	Needs: 'View
+	Icon: %red.ico
 ]
 
 system/view/debug?: yes

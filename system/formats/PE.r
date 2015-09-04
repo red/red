@@ -190,7 +190,7 @@ context [
 			version				"FileVersion"
 			rights				"LegalCopyright"
 			trademarks			"LegalTrademarks"
-			builder				"PrivateBuild"
+			Author				"PrivateBuild"
 			ProductName			"ProductName"
 		]
 	]
