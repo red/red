@@ -368,6 +368,14 @@ to-red-file: func [
 	dst
 ]
 
+dir?: func [file [file!]][#"/" = last file]
+
+what-dir: func [/local path][
+	path: to-red-file get-current-dir
+	unless dir? path [append path #"/"]
+	path
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
