@@ -15,6 +15,7 @@ do-cache %system/utils/int-to-bin.r
 do-cache %system/utils/IEEE-754.r
 do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
+do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
 
@@ -3353,6 +3354,40 @@ system-dialect: make-profilable context [
 		do code
 		now/time/precise - t0
 	]
+
+	collect-resources: func [
+		header	[block!]
+		res		[block!]
+		file	[file!]
+		/local icon name value info main-path version-info-key
+	][
+		info: make block! 8
+		main-path: first split-path file
+		if icon: select header first [Icon:][
+			append res 'icon
+			icon: either file? icon [reduce [icon]][icon]
+			foreach file icon [
+				append info either loader/relative-path? file [
+					join main-path file
+				][file]
+			]
+			append/only res copy info
+		]
+
+		clear info
+		append res 'version
+
+		version-info-key: [
+			Title: Version: Company: Comments: Notes:
+			Rights: Trademarks: Author: ProductName:
+		]
+		foreach name version-info-key [
+			if value: select header name [
+				append info reduce [to word! name value]
+			]
+		]
+		append/only res info
+	]
 	
 	compile: func [
 		files [file! block!]							;-- source file or block of source files
@@ -3361,7 +3396,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			job-data [block!]
 		/local
-			comp-time link-time err output src
+			comp-time link-time err output src resources icon
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3395,11 +3430,13 @@ system-dialect: make-profilable context [
 			]
 			
 			set-verbose-level opts/verbosity
+			resources: either loaded [job-data/4][make block! 8]
 			foreach file files [
-				src: either loaded [
-					loader/process/with job-data/1 file
+				either loaded [
+					src: loader/process/with job-data/1 file
 				][
-					loader/process file
+					src: loader/process file
+					collect-resources src/2 resources file
 				]
 				compiler/run job src file
 			]
@@ -3424,6 +3461,16 @@ system-dialect: make-profilable context [
 					code   [- 	(emitter/code-buf)]
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
+				]
+				unless empty? resources [
+					if job/OS = 'Windows [
+						if icon: find resources 'icon [
+							insert skip icon 2 reduce ['group-icon icon/2]
+						]
+					]
+					append job/sections compose/deep/only [
+						rsrc   [- - (resources)]
+					]
 				]
 				unless empty? compiler/exports [
 					append job/sections compose/deep/only [

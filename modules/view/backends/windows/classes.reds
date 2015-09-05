@@ -137,7 +137,7 @@ register-classes: func [
 	wcex/cbClsExtra:	0
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
-	wcex/hIcon:			null
+	wcex/hIcon:			LoadIcon hInstance as c-string! 1
 	wcex/hCursor:		LoadCursor null IDC_ARROW
 	wcex/hbrBackground:	COLOR_3DFACE + 1
 	wcex/lpszMenuName:	null

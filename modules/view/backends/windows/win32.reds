@@ -856,6 +856,11 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
+		LoadIcon: "LoadIconW" [
+			hInstance	[handle!]
+			lpIconName	[c-string!]
+			return:		[handle!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		ExtTextOut: "ExtTextOutW" [
