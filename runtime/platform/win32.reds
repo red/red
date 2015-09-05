@@ -454,6 +454,20 @@ platform: context [
 		GdiplusShutdown gdiplus-token 
 	]
 
+	get-current-dir: func [
+		len		[int-ptr!]
+		return: [c-string!]
+		/local
+			size [integer!]
+			path [byte-ptr!]
+	][
+		size: GetCurrentDirectory 0 null				;-- include NUL terminator
+		path: allocate size << 1
+		GetCurrentDirectory size path
+		len/value: size - 1
+		as c-string! path
+	] 
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
