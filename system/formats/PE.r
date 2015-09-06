@@ -1046,12 +1046,12 @@ context [
 		]
 		
 		build-import job								;-- populate import section buffer
-		
+
+		if find job/sections 'rsrc	[build-resource job]
+
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
 		
 		if find [dll drv] job/type [build-reloc job]
-
-		if find job/sections 'rsrc	[build-resource job]
 
 		out: job/buffer
 		append out defs/image/MSDOS-header
