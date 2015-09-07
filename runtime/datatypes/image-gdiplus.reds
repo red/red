@@ -124,6 +124,19 @@ BitmapData!: alias struct! [
 			height		[int-ptr!]
 			return:		[integer!]
 		]
+		GdipCreateBitmapFromScan0: "GdipCreateBitmapFromScan0" [
+			width		[integer!]
+			height		[integer!]
+			stride		[integer!]
+			format		[integer!]
+			scan0		[byte-ptr!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDisposeImage: "GdipDisposeImage" [
+			image		[integer!]
+			return:		[integer!]
+		]
 	]
 ]
 
@@ -162,7 +175,7 @@ get-data: func [
 	rect/top: 0
 	rect/right: width? handle
 	rect/bottom: height? handle
-	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppPARGB data
+	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppARGB data
 	as int-ptr! data
 ]
 
@@ -185,7 +198,7 @@ get-pixel: func [
 		pos		[integer!]
 ][
 	bitmap: as BitmapData! data
-	pos: y * bitmap/stride + x
+	pos: bitmap/stride >> 2 * y + x + 1
 	buf: as int-ptr! bitmap/scan0
 	buf/pos
 ]
@@ -201,4 +214,50 @@ load-image: func [
 	res: GdipCreateBitmapFromFile filename :handle
 	unless zero? res [platform/error-msg res]
 	handle
+]
+
+make-image: func [
+	width	[integer!]
+	height	[integer!]
+	rgb		[byte-ptr!]
+	alpha	[byte-ptr!]
+	return: [integer!]
+	/local
+		a		[integer!]
+		r		[integer!]
+		b		[integer!]
+		g		[integer!]
+		x		[integer!]
+		y		[integer!]
+		data	[BitmapData!]
+		scan0	[int-ptr!]
+		bitmap	[integer!]
+		pos		[integer!]
+][
+	bitmap: 0
+	GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
+	data: as BitmapData! get-data bitmap
+	scan0: as int-ptr! data/scan0
+
+	unless null? rgb [
+		y: 0
+		while [y < height][
+			x: 0
+			while [x < width][
+				pos: data/stride >> 2 * y + x + 1
+				a: either null? alpha [0][as-integer alpha/1]
+				r: as-integer rgb/1
+				b: as-integer rgb/2
+				g: as-integer rgb/3
+				scan0/pos: r << 16 or (b << 8) or g or (a << 24)
+				rgb: rgb + 3
+				alpha: alpha + 1
+				x: x + 1
+			]
+			y: y + 1
+		]
+	]
+
+	update-data bitmap as int-ptr! data
+	bitmap
 ]
