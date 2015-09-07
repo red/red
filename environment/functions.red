@@ -245,6 +245,16 @@ parse-trace: func [
 	]
 ]
 
+suffix?: function [
+	{Return the file suffix of a filename or url. Else, NONE.}
+	path [file! url! string!]
+][
+	if all [
+		path: find/last path #"."
+		not find path #"/"
+	][to file! path]
+]
+
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
 	source [file! url! string!]
@@ -269,7 +279,13 @@ load: function [
 	
 	unless out [out: make block! 4]
 	switch/default type?/word source [
-		file!	[source: read source]
+		file!	[
+			either find [%.bmp %.gif %.png %.jpg %.jpeg] suffix? source [
+				return read-decode source
+			][
+				source: read source
+			]
+		]
 		url!	[source]
 		binary! [source]
 	][source]

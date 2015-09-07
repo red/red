@@ -69,11 +69,10 @@ image: context [
 			img   [red-image!]
 			str   [red-string!]
 			len   [integer!]
+			hr    [integer!]
+			h     [integer!]
 			file? [logic!]
 	][
-		img: as red-image! slot
-		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
-		img/head: 0
 		file?: TYPE_OF(src) = TYPE_FILE
 		if file? [
 			;str: as red-string! stack/push*			;@@ FIX it, seems it is a bug
@@ -82,13 +81,20 @@ image: context [
 			file/to-local-path src str no
 			src: str
 		]
-		img/node: as node! load-image
-			#either OS = 'Windows [
-				unicode/to-utf16 src
-			][
-				len: -1
-				unicode/to-utf8 src :len
-			]
+		#either OS = 'Windows [
+			hr: load-image unicode/to-utf16 src
+		][
+			len: -1
+			hr: load-image unicode/to-utf8 src :len
+		]
+
+		img: as red-image! slot
+		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
+		img/head: 0
+
+		h: height? hr
+		img/size: h << 16 or width? hr
+		img/node: as node! hr
 		;if file? [stack/pop 1]							;@@ FIX it, seems it is a bug
 		img
 	]
@@ -98,15 +104,43 @@ image: context [
 	make: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
-		type	 [integer!]
 		return:	 [red-image!]
 		/local
-			img [red-image!]
+			img		[red-image!]
+			pair	[red-pair!]
+			blk		[red-block!]
+			bin		[red-binary!]
+			rgb		[byte-ptr!]
+			alpha	[byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "img/make"]]
 
-		img: as red-image! string/make proto spec type
-		set-type as red-value! img TYPE_IMAGE
+		img: as red-image! stack/push*
+		img/header: TYPE_IMAGE
+
+		rgb: null
+		alpha: null
+		switch TYPE_OF(spec) [
+			TYPE_PAIR [
+				pair: as red-pair! spec
+			]
+			TYPE_BLOCK [
+				blk: as red-block! spec
+				pair: as red-pair! block/rs-head blk
+				unless block/rs-next blk [
+					bin: as red-binary! block/rs-head blk
+					rgb: binary/rs-head bin
+				]
+				unless block/rs-next blk [
+					bin: as red-binary! block/rs-head blk
+					alpha: binary/rs-head bin
+				]
+			]
+			default [fire [TO_ERROR(syntax malconstruct) spec]]
+		]
+
+		img/size: pair/y << 16 or pair/x
+		img/node: as node! make-image pair/x pair/y rgb alpha
 		img
 	]
 
@@ -121,52 +155,81 @@ image: context [
 		mold?	[logic!]
 		return: [integer!]
 		/local
-			height [integer!]
-			width  [integer!]
-			blk [red-block!]
-			rgb [red-binary!]
-			p-rgb [byte-ptr!]
-			p-alpha [byte-ptr!]
-			s	[series!]
-			alpha [red-binary!]
-			pixel [integer!]
+			height	[integer!]
+			width	[integer!]
+			alpha?	[logic!]
+			formed	[c-string!]
+			pixel	[integer!]
 			x		[integer!]
 			y		[integer!]
+			count	[integer!]
+			data	[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "img/serialize"]]
 
-		string/concatenate-literal buffer "make image! "
-
+		alpha?: no
 		width: IMAGE_WIDTH(img/size)
 		height: IMAGE_HEIGHT(img/size)
-		blk: block/make-at as red-block! stack/push* 3
-		pair/make-in blk width height
-		rgb: binary/make-in blk width * height * 3
-		s: GET_BUFFER(rgb)
-		s/tail: as cell! (as byte-ptr! s/tail ) + (width * height * 3)
-		alpha: binary/make-in blk width * height
-		s: GET_BUFFER(alpha)
-		s/tail: as cell! (as byte-ptr! s/tail) + (width * height)
-		p-rgb: binary/rs-head rgb
-		p-alpha: binary/rs-head alpha
-		x: 0
+
+		string/concatenate-literal buffer "make image! ["
+		part: part - 13
+		formed: integer/form-signed width
+		string/concatenate-literal buffer formed
+		part: part - length? formed
+
+		string/append-char GET_BUFFER(buffer) as-integer #"x"
+		formed: integer/form-signed height
+		string/concatenate-literal buffer formed
+		part: part - length? formed
+
+		string/append-char GET_BUFFER(buffer) as-integer space
+		string/concatenate-literal buffer "#{^/"
+		part: part - 5
+
+		data: get-data as-integer img/node
 		y: 0
+		count: 0
 		while [y < height][
+			x: 0
 			while [x < width][
-				pixel: get-pixel img/node x y
-                p-rgb/1: as-byte pixel and 00FF0000h >> 16
-                p-rgb/2: as-byte pixel and FF00h >> 8
-				p-rgb/3: as-byte pixel and FFh
-                p-alpha/1: as-byte pixel and FF000000h >> 24
-                p-rgb: p-rgb + 3
-                p-alpha: p-alpha + 1
-                x: x + 1
+				pixel: get-pixel data x y
+				string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
+				string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
+				string/concatenate-literal buffer string/byte-to-hex pixel and FFh
+				count: count + 1
+				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				part: part - 6
+				if all [OPTION?(arg) part <= 0][return part]
+				if pixel and FF000000h >> 24 <> 0 [alpha?: yes]
+				x: x + 1
 			]
 			y: y + 1
 		]
-		part: block/mold blk buffer only? all? flat? arg part -1
-		stack/pop 1
-		part
+		string/append-char GET_BUFFER(buffer) as-integer #"}"
+
+		if alpha? [
+			string/append-char GET_BUFFER(buffer) as-integer space
+			string/concatenate-literal buffer "#{^/"
+			part: part - 5
+			y: 0
+			count: 0
+			while [y < height][
+				x: 0
+				while [x < width][
+					pixel: get-pixel data x y
+					string/concatenate-literal buffer string/byte-to-hex pixel and FF000000h >> 24
+					count: count + 1
+					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+					part: part - 2
+					x: x + 1
+				]
+				y: y + 1
+			]
+			string/append-char GET_BUFFER(buffer) as-integer #"}"
+		]
+		update-data as-integer img/node data
+		string/append-char GET_BUFFER(buffer) as-integer #"]"
+		part - 2												;-- #"}" and #"]"
 	]
 
 	form: func [
@@ -200,18 +263,18 @@ image: context [
 	init: does [
 		datatype/register [
 			TYPE_IMAGE
-			TYPE_SERIES
+			TYPE_VALUE
 			"image!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
 			null			;to
 			:form
 			:mold
-			INHERIT_ACTION	;eval-path
+			null		;eval-path
 			null			;set-path
-			INHERIT_ACTION	;compare
+			null			;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
@@ -231,30 +294,30 @@ image: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			INHERIT_ACTION	;at
-			INHERIT_ACTION	;back
+			null			;at
+			null			;back
 			null			;change
-			INHERIT_ACTION	;clear
-			INHERIT_ACTION	;copy
-			INHERIT_ACTION	;find
-			INHERIT_ACTION	;head
-			INHERIT_ACTION	;head?
-			INHERIT_ACTION	;index?
-			INHERIT_ACTION	;insert
-			INHERIT_ACTION	;length?
-			INHERIT_ACTION	;next
-			INHERIT_ACTION	;pick
-			INHERIT_ACTION	;poke
+			null			;clear
+			null			;copy
+			null			;find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			null			;length?
+			null			;next
+			null			;pick
+			null			;poke
 			null			;put
-			INHERIT_ACTION	;remove
-			INHERIT_ACTION	;reverse
-			INHERIT_ACTION	;select
+			null			;remove
+			null			;reverse
+			null			;select
 			null			;sort
-			INHERIT_ACTION	;skip
-			INHERIT_ACTION	;swap
-			INHERIT_ACTION	;tail
-			INHERIT_ACTION	;tail?
-			INHERIT_ACTION	;take
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			null			;take
 			null			;trim
 			;-- I/O actions --
 			null			;create

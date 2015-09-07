@@ -82,3 +82,7 @@ get-current-dir: routine [/local len [integer!] path [c-string!]][
 	]
 	free as byte-ptr! path
 ]
+
+read-decode: routine [filename [file!]][
+	image/make-at stack/arguments as red-string! filename
+]
