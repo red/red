@@ -114,6 +114,20 @@ BitmapData!: alias struct! [
 			data		[BitmapData!]
 			return:		[integer!]
 		]
+		GdipBitmapGetPixel: "GdipBitmapGetPixel" [
+			bitmap		[integer!]
+			x			[integer!]
+			y			[integer!]
+			argb		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipBitmapSetPixel: "GdipBitmapSetPixel" [
+			bitmap		[integer!]
+			x			[integer!]
+			y			[integer!]
+			argb		[integer!]
+			return:		[integer!]
+		]
 		GdipGetImageWidth: "GdipGetImageWidth" [
 			image		[integer!]
 			width		[int-ptr!]
@@ -135,6 +149,11 @@ BitmapData!: alias struct! [
 		]
 		GdipDisposeImage: "GdipDisposeImage" [
 			image		[integer!]
+			return:		[integer!]
+		]
+		GdipGetImagePixelFormat: "GdipGetImagePixelFormat" [
+			image		[integer!]
+			format		[int-ptr!]
 			return:		[integer!]
 		]
 	]
@@ -162,9 +181,9 @@ height?: func [
 	height
 ]
 
-get-data: func [
+lock-bitmap: func [
 	handle		[integer!]
-	return:		[int-ptr!]
+	return:		[integer!]
 	/local
 		rect	[RECT!]
 		data	[BitmapData!]
@@ -176,31 +195,55 @@ get-data: func [
 	rect/right: width? handle
 	rect/bottom: height? handle
 	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppARGB data
-	as int-ptr! data
+	as-integer data
 ]
 
-update-data: func [
+unlock-bitmap: func [
 	handle		[integer!]
-	data		[int-ptr!]
+	data		[integer!]
 ][
 	GdipBitmapUnlockBits handle as BitmapData! data
 	free as byte-ptr! data
 ]
 
-get-pixel: func [
-	data		[int-ptr!]
-	x			[integer!]
-	y			[integer!]
-	return:		[integer!]
+get-data: func [
+	handle		[integer!]
+	stride		[int-ptr!]
+	return:		[int-ptr!]
 	/local
 		bitmap	[BitmapData!]
 		buf		[int-ptr!]
-		pos		[integer!]
 ][
-	bitmap: as BitmapData! data
-	pos: bitmap/stride >> 2 * y + x + 1
-	buf: as int-ptr! bitmap/scan0
-	buf/pos
+	bitmap: as BitmapData! handle
+	stride/value: bitmap/stride
+	as int-ptr! bitmap/scan0
+]
+
+get-pixel: func [
+	bitmap		[integer!]
+	index		[integer!]				;-- zero-based
+	return:		[integer!]
+	/local
+		width	[integer!]
+		arbg	[integer!]
+][
+	width: width? bitmap
+	arbg: 0
+	GdipBitmapGetPixel bitmap index % width index / width :arbg
+	arbg
+]
+
+set-pixel: func [
+	bitmap		[integer!]
+	index		[integer!]				;-- zero-based
+	color		[integer!]
+	return:		[integer!]
+	/local
+		width	[integer!]
+		arbg	[integer!]
+][
+	width: width? bitmap
+	GdipBitmapSetPixel bitmap index % width index / width color
 ]
 
 load-image: func [
@@ -236,7 +279,7 @@ make-image: func [
 ][
 	bitmap: 0
 	GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
-	data: as BitmapData! get-data bitmap
+	data: as BitmapData! lock-bitmap bitmap
 	scan0: as int-ptr! data/scan0
 
 	unless null? rgb [
@@ -258,6 +301,6 @@ make-image: func [
 		]
 	]
 
-	update-data bitmap as int-ptr! data
+	unlock-bitmap bitmap as-integer data
 	bitmap
 ]

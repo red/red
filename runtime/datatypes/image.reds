@@ -99,6 +99,59 @@ image: context [
 		img
 	]
 
+	extract-data: func [
+		img		[red-image!]
+		alpha?	[logic!]
+		return: [red-binary!]
+		/local
+			x		[integer!]
+			y		[integer!]
+			w		[integer!]
+			h		[integer!]
+			sz		[integer!]
+			bin		[red-binary!]
+			s		[series!]
+			p		[byte-ptr!]
+			stride	[integer!]
+			bitmap	[integer!]
+			pos		[integer!]
+			pixel	[integer!]
+			data	[int-ptr!]
+	][
+		w: IMAGE_WIDTH(img/size)
+		h: IMAGE_HEIGHT(img/size)
+		sz: either alpha? [w * h][w * h * 3]
+		bin: binary/make-at stack/push* sz
+		s: GET_BUFFER(bin)
+		s/tail: as cell! (as byte-ptr! s/tail) + sz
+		p: as byte-ptr! s/offset
+
+		stride: 0
+		bitmap: lock-bitmap as-integer img/node
+		data: get-data bitmap :stride
+		y: 0
+		while [y < h][
+			x: 0
+			while [x < w][
+				pos: stride >> 2 * y + x + 1
+				pixel: data/pos
+				either alpha? [
+					p/1: as-byte pixel >>> 24
+					p: p + 1
+				][
+					p/1: as-byte pixel and 00FF0000h >> 16
+					p/2: as-byte pixel and FF00h >> 8
+					p/3: as-byte pixel and FFh
+					p: p + 3
+				]
+				x: x + 1
+			]
+			y: y + 1
+		]
+		unlock-bitmap as-integer img/node bitmap
+		bin
+	]
+
 	;-- Actions --
 
 	make: func [
@@ -117,6 +170,7 @@ image: context [
 
 		img: as red-image! stack/push*
 		img/header: TYPE_IMAGE
+		img/head: 0
 
 		rgb: null
 		alpha: null
@@ -163,7 +217,10 @@ image: context [
 			x		[integer!]
 			y		[integer!]
 			count	[integer!]
+			bitmap	[integer!]
 			data	[int-ptr!]
+			stride	[integer!]
+			pos		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "img/serialize"]]
 
@@ -186,20 +243,26 @@ image: context [
 		string/concatenate-literal buffer "#{^/"
 		part: part - 5
 
-		data: get-data as-integer img/node
+		stride: 0
+		bitmap: lock-bitmap as-integer img/node
+		data: get-data bitmap :stride
 		y: 0
 		count: 0
 		while [y < height][
 			x: 0
 			while [x < width][
-				pixel: get-pixel data x y
+				pos: stride >> 2 * y + x + 1
+				pixel: data/pos
 				string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
 				string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
 				string/concatenate-literal buffer string/byte-to-hex pixel and FFh
 				count: count + 1
 				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 				part: part - 6
-				if all [OPTION?(arg) part <= 0][return part]
+				if all [OPTION?(arg) part <= 0][
+					unlock-bitmap as-integer img/node bitmap
+					return part
+				]
 				if pixel and FF000000h >> 24 <> 0 [alpha?: yes]
 				x: x + 1
 			]
@@ -216,18 +279,23 @@ image: context [
 			while [y < height][
 				x: 0
 				while [x < width][
-					pixel: get-pixel data x y
+					pos: stride >> 2 * y + x + 1
+					pixel: data/pos
 					string/concatenate-literal buffer string/byte-to-hex pixel and FF000000h >> 24
 					count: count + 1
 					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 					part: part - 2
+					if all [OPTION?(arg) part <= 0][
+						unlock-bitmap as-integer img/node bitmap
+						return part
+					]
 					x: x + 1
 				]
 				y: y + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
-		update-data as-integer img/node data
+		unlock-bitmap as-integer img/node bitmap
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 2												;-- #"}" and #"]"
 	]
@@ -260,6 +328,133 @@ image: context [
 		serialize img buffer only? all? flat? arg part yes
 	]
 
+	;--- Reading actions ---
+
+	pick: func [
+		img		[red-image!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			width	[integer!]
+			height	[integer!]
+			offset	[integer!]
+			pixel	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/pick"]]
+
+		width: IMAGE_WIDTH(img/size)
+		height: IMAGE_HEIGHT(img/size)
+		offset: img/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
+
+		either any [
+			zero? index
+			offset < 0
+			offset >= (width * height)
+		][
+			none-value
+		][
+			pixel: get-pixel as-integer img/node offset
+			as red-value! tuple/rs-make [
+					pixel and 00FF0000h >> 16
+					pixel and FF00h >> 8
+					pixel and FFh
+					pixel and FF000000h >> 24
+				]
+		]
+	]
+
+	poke: func [
+		img		[red-image!]
+		index	[integer!]
+		data	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			color	[red-tuple!]
+			offset	[integer!]
+			p		[byte-ptr!]
+			r		[integer!]
+			g		[integer!]
+			b		[integer!]
+			a		[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/poke"]]
+
+		offset: img/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
+
+		either any [
+			zero? index
+			offset < 0
+			offset >= (IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size))
+		][
+			fire [TO_ERROR(script out-of-range) boxed]
+		][
+			color: as red-tuple! data
+			p: (as byte-ptr! color) + 4
+			r: as-integer p/1
+			g: as-integer p/2
+			b: as-integer p/3
+			a: either TUPLE_SIZE(color) > 3 [as-integer p/4][0]
+			set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
+		]
+		as red-value! data
+	]
+
+	eval-path: func [
+		parent	[red-image!]								;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			int	 [red-integer!]
+			set? [logic!]
+			w	 [red-word!]
+			sym  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/eval-path"]]
+
+		set?: value <> null
+		switch TYPE_OF(element) [
+			TYPE_INTEGER [
+				int: as red-integer! element
+				either set? [
+					poke parent int/value value element
+				][
+					pick parent int/value element
+				]
+			]
+			TYPE_WORD [
+				if set? [--NOT_IMPLEMENTED--]					;@@ TBD handle set word
+				w: as red-word! element
+				sym: symbol/resolve w/symbol
+				case [
+					sym = words/size [
+						pair/push IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
+					]
+					sym = words/rgb [
+						extract-data parent no
+					]
+					sym = words/alpha [
+						extract-data parent yes
+					]
+					true [
+						fire [TO_ERROR(script invalid-path) stack/arguments element]
+						null
+					]
+				]
+			]
+			default [
+				fire [TO_ERROR(script invalid-path) stack/arguments element]
+				null
+			]
+		]
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_IMAGE
@@ -272,7 +467,7 @@ image: context [
 			null			;to
 			:form
 			:mold
-			null		;eval-path
+			:eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --
@@ -306,8 +501,8 @@ image: context [
 			null			;insert
 			null			;length?
 			null			;next
-			null			;pick
-			null			;poke
+			:pick
+			:poke
 			null			;put
 			null			;remove
 			null			;reverse

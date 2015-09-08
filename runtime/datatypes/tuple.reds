@@ -13,6 +13,29 @@ Red/System [
 tuple: context [
 	verbose: 0
 
+	rs-make: func [
+		[variadic]
+		count [integer!] list [int-ptr!]
+		return: [red-tuple!]
+		/local
+			tuple	[red-tuple!]
+			tp		[byte-ptr!]
+			i		[integer!]
+	][
+		tuple: as red-tuple! stack/push*
+		tuple/header: TYPE_TUPLE or either count > 2 [count << 19][3 << 19]
+
+		tp: (as byte-ptr! tuple) + 4
+		i: 0
+		while [i < count][
+			i: i + 1
+			tp/i: as-byte list/value
+			list: list + 1
+		]
+		while [i < 3][i: i + 1 tp/i: null-byte]
+		tuple
+	]
+
 	push: func [
 		size	[integer!]
 		arr1	[integer!]
