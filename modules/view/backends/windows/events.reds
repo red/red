@@ -287,6 +287,39 @@ process-command-event: func [
 	]
 ]
 
+DialogProc: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+	/local
+		res [integer!]
+		p	[int-ptr!]
+][
+	switch msg [
+		WM_INITDIALOG [
+			p: as int-ptr! lParam
+			EnableWindow as handle! p/1 as logic! p/2
+			return 1
+		]
+		WM_COMMAND [
+			switch WIN32_LOWORD(wParam) [
+				1 2 [
+					res: make-event current-msg 0 EVT_CLOSE
+					if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
+					if res <= EVT_DISPATCH   [free-handles hWnd WIN32_LOWORD(wParam)]	;-- done
+					if res  = EVT_NO_PROCESS [PostQuitMessage 0]	;-- stop
+					return 1
+				]
+				default [process-command-event hWnd msg wParam lParam]
+			]
+		]
+		default [0]
+	]
+	return 0
+]
+
 BaseWndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -381,7 +414,7 @@ WndProc: func [
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE
 			if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
-			if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
+			if res <= EVT_DISPATCH   [free-handles hWnd 0]	;-- done
 			if res  = EVT_NO_PROCESS [PostQuitMessage 0]	;-- stop
 			return 0
 		]

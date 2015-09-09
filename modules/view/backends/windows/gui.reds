@@ -182,6 +182,7 @@ to-bgr: func [
 
 free-handles: func [
 	hWnd [handle!]
+	ret  [integer!]
 	/local
 		values [red-value!]
 		type   [red-word!]
@@ -191,19 +192,22 @@ free-handles: func [
 		state  [red-value!]
 		sym	   [integer!]
 		cam	   [camera!]
+		dlg?   [logic!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+	dlg?: no
 	
 	case [
 		sym = window [
+			dlg?: as logic! GetWindowLong hWnd wc-offset - 4
 			pane: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(pane) = TYPE_BLOCK [
 				face: as red-object! block/rs-head pane
 				tail: as red-object! block/rs-tail pane
 				while [face < tail][
-					free-handles get-face-handle face
+					free-handles get-face-handle face 0
 					face: face + 1
 				]
 			]
@@ -227,7 +231,7 @@ free-handles: func [
 			;; handle user-provided classes too
 		]
 	]
-	DestroyWindow hWnd
+	either dlg? [EndDialog hWnd ret][DestroyWindow hWnd]
 	
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -471,6 +475,75 @@ OS-show-window: func [
 	UpdateWindow as handle! hWnd
 ]
 
+create-dialog: func [
+	face	[red-object!]
+	offset	[red-pair!]
+	size	[red-pair!]
+	modal?	[logic!]
+	return: [handle!]
+	/local
+		values	[red-value!]
+		ctx		[red-context!]
+		s		[series!]
+		str		[red-string!]
+		mem		[integer!]
+		dlg		[DLGTEMPLATE]
+		obj		[red-object!]
+		state	[red-block!]
+		int		[red-integer!]
+		parent	[integer!]
+		len		[integer!]
+		p		[byte-ptr!]
+		p-int	[int-ptr!]
+		caption [byte-ptr!]
+		hWnd	[handle!]
+][
+	ctx: GET_CTX(face)
+	s: as series! ctx/values/value
+	values: s/offset
+
+	str:	as red-string!	values + FACE_OBJ_TEXT
+	obj:	as red-object!	values + FACE_OBJ_PARENT
+	parent: either TYPE_OF(obj) = TYPE_OBJECT [
+		state:	as red-block! get-node-facet obj/ctx FACE_OBJ_STATE
+		int:	as red-integer! block/rs-head state
+		int/value
+	][0]
+
+	len: 0
+	caption: either TYPE_OF(str) = TYPE_STRING [
+		len: string/rs-length? str
+		as byte-ptr! unicode/to-utf16 str
+	][
+		null
+	]
+
+	mem: GlobalAlloc GMEM_ZEROINIT 1024
+	p-int: as int-ptr! GlobalLock mem
+	p-int/1: parent
+	p-int/2: as-integer not modal?
+
+	dlg: as DLGTEMPLATE p-int + 2
+	dlg/style: WS_POPUPWINDOW or DS_MODALFRAME or WS_DLGFRAME
+	p: (as byte-ptr! dlg) + 10
+	p-int: as int-ptr! p
+	
+	;@@ TBD center the dialog automatically if no offset
+	
+	p-int/1: offset/y << 16 or offset/x					;-- x and y
+	p-int/2: size/y << 16 or size/x						;-- cx and cy
+	
+	p: (as byte-ptr! dlg) + 20				;-- class name
+	copy-memory p as byte-ptr! #u16 "RedDialog" 20
+	p: p + 20											;-- caption
+	if caption <> null [copy-memory p caption len << 1]
+	GlobalUnlock mem
+
+	hWnd: CreateDialogIndirectParam hInstance dlg parent :DialogProc mem
+	GlobalFree mem
+	hWnd
+]
+
 OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
@@ -478,6 +551,7 @@ OS-make-view: func [
 	/local
 		ctx		  [red-context!]
 		values	  [red-value!]
+		s		  [series!]
 		type	  [red-word!]
 		str		  [red-string!]
 		tail	  [red-string!]
@@ -504,6 +578,9 @@ OS-make-view: func [
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
+		w		  [red-word!]
+		modal?	  [logic!]
+		dialog?   [logic!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
@@ -527,6 +604,8 @@ OS-make-view: func [
 	offx:	  offset/x
 	offy:	  offset/y
 	panel?:	  no
+	modal?:	  no
+	dialog?:  no
 
 	if show?/value [flags: flags or WS_VISIBLE]
 
@@ -602,10 +681,31 @@ OS-make-view: func [
 			class: #u16 "Base"
 		]
 		sym = window [
-			class: #u16 "RedWindow"
-			flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
-			offx:  CW_USEDEFAULT
-			offy:  CW_USEDEFAULT
+			if TYPE_OF(data) = TYPE_BLOCK [			;-- window attribute: modal, tool-window...
+				str:  as red-string! block/rs-head data
+				tail: as red-string! block/rs-tail data
+				while [str < tail][
+					if TYPE_OF(str) = TYPE_WORD [
+						w: as red-word! str
+						sym: symbol/resolve w/symbol
+						case [
+							sym = modal		[modal?: yes dialog?: yes]
+							sym = modeless	[modal?: no dialog?: yes]
+							true			[0]
+						]
+					]
+					str: str + 1
+				]
+			]
+			sym: window
+
+			unless dialog? [
+				class: #u16 "RedWindow"
+				flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
+				offx:  CW_USEDEFAULT
+				offy:  CW_USEDEFAULT
+			]
+
 			if menu-bar? menu window [
 				id: as-integer build-menu menu CreateMenu
 			]
@@ -629,25 +729,28 @@ OS-make-view: func [
 		ws-flags: ws-flags or WS_EX_COMPOSITED			;-- this flag conflicts with DWM
 	]
 
-	handle: CreateWindowEx
-		ws-flags
-		class
-		caption
-		flags
-		offx
-		offy
-		size/x
-		size/y
-		as int-ptr! parent
-		as handle! id
-		hInstance
-		null
+	handle: either dialog? [create-dialog face offset size modal?][
+		CreateWindowEx
+			ws-flags
+			class
+			caption
+			flags
+			offx
+			offy
+			size/x
+			size/y
+			as int-ptr! parent
+			as handle! id
+			hInstance
+			null
+	]
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 	SendMessage handle WM_SETFONT as-integer default-font 1
 
 	;-- extra initialization
 	case [
+		sym = window	[SetWindowLong handle wc-offset - 4 as-integer dialog?]
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]
 		sym = _image	[init-image handle data img]
@@ -887,7 +990,7 @@ OS-close-view: func [
 		screen [red-object!]
 		pane   [red-block!]
 ][
-	free-handles get-face-handle face
+	free-handles get-face-handle face 0					;@@ TBD set return value for dialog
 	
 	screen: as red-object! block/rs-head as red-block! #get system/view/screens
 	pane: as red-block! get-node-facet screen/ctx FACE_OBJ_PANE

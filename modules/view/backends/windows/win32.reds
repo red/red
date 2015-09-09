@@ -124,6 +124,15 @@ Red/System [
 #define WS_GROUP			00020000h
 #define WS_BORDER			00400000h
 
+#define WS_EX_DLGMODALFRAME 1
+#define WS_EX_WINDOWEDGE	00000100h
+#define WS_EX_CONTROLPARENT	00010000h
+#define WS_POPUPWINDOW		80880000h
+#define WS_CLIPSIBLINGS		04000000h
+#define WS_DLGFRAME			00400000h
+#define DS_SETFONT			00000040h
+#define DS_MODALFRAME		00000080h
+
 #define SIF_RANGE			0001h
 #define SIF_PAGE			0002h
 #define SIF_POS				0004h
@@ -149,6 +158,7 @@ Red/System [
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 
+#define WM_CREATE			0001h
 #define WM_DESTROY			0002h
 #define WM_CLOSE			0010h
 #define WM_SETTEXT			000Ch
@@ -198,6 +208,8 @@ Red/System [
 #define WM_CAP_SET_PREVIEW			0432h
 #define WM_CAP_DLG_VIDEOSOURCE		042Ah
 #define WM_CAP_STOP					0444h
+
+#define WM_INITDIALOG				0110h
 
 #define BM_GETCHECK			00F0h
 #define BM_SETCHECK			00F1h
@@ -352,6 +364,8 @@ Red/System [
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
 #define ETO_CLIPPED			4
+
+#define GMEM_ZEROINIT		0040h
 
 tagPOINT: alias struct! [
 	x		[integer!]
@@ -550,6 +564,15 @@ RECT_STRUCT_FLOAT32: alias struct! [
 	height		[float32!]
 ]
 
+DLGTEMPLATE: alias struct! [
+	style			[integer!]
+	ex-style		[integer!]
+	int-pad1		[integer!]
+	int-pad2		[integer!]
+	byte-pad1		[byte!]
+	byte-pad2		[byte!]
+]
+
 InitCommonControlsEx!: alias function! [
 	lpInitCtrls [INITCOMMONCONTROLSEX]
 	return:		[integer!]
@@ -562,6 +585,23 @@ DwmIsCompositionEnabled!: alias function! [
 
 #import [
 	"kernel32.dll" stdcall [
+		GlobalAlloc: "GlobalAlloc" [
+			flags		[integer!]
+			size		[integer!]
+			return:		[integer!]
+		]
+		GlobalFree: "GlobalFree" [
+			hMem		[integer!]
+			return:		[integer!]
+		]
+		GlobalLock: "GlobalLock" [
+			hMem		[integer!]
+			return:		[integer!]
+		]
+		GlobalUnlock: "GlobalUnlock" [
+			hMem		[integer!]
+			return:		[integer!]
+		]
 		GetModuleHandle: "GetModuleHandleW" [
 			lpModuleName [integer!]
 			return:		 [handle!]
@@ -860,10 +900,28 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
+		CreateDialogIndirectParam: "CreateDialogIndirectParamW" [
+			hInstance	[handle!]
+			lpTemplate	[DLGTEMPLATE]
+			hWndParent	[integer!]
+			lpDlgFunc	[wndproc-cb!]
+			lParamInit	[integer!]
+			return:		[handle!]
+		]
+		EndDialog: "EndDialog" [
+			hDlg		[handle!]
+			nResult		[integer!]
+			return:		[integer!]
+		]
 		LoadIcon: "LoadIconW" [
 			hInstance	[handle!]
 			lpIconName	[c-string!]
 			return:		[handle!]
+		]
+		EnableWindow: "EnableWindow" [
+			hWnd		[handle!]
+			bEnable		[logic!]
+			return:		[logic!]
 		]
 	]
 	"gdi32.dll" stdcall [

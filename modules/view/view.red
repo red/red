@@ -200,7 +200,7 @@ unview: function [
 			exit
 		]
 		'else [
-			face: last pane
+			face: last pane		;@@ FIX: will cause problem here if open more than 1 sub window
 			remove back tail pane
 		]
 	]

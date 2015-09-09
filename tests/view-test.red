@@ -168,6 +168,43 @@ win: make face! [
 	]
 ]
 
+modal-win: make face! [
+	type: 'window
+	text: "Modal Window"
+	offset: 140x140			;-- relative to its owner window
+	size: 100x50
+	parent: win				;-- owner window
+	data: [modal]			;-- window attributes: modal, modeless, tool-window, etc
+	pane: reduce [
+		make face! [type: 'text text: "Modal Window" offset: 10x10 size: 80x20]
+		make face! [
+			type: 'button text: "Close" offset: 120x10 size: 60x20
+			actors: object [
+				on-click: func [face [object!] event [event!]][unview]
+			]
+		]
+	]
+]
+
+modeless-win: make face! [
+	type: 'window
+	text: "Modeless Window"
+	offset: 20x20			;-- relative to its owner window
+	size: 100x50
+	parent: win				;-- owner window
+	data: [modeless]
+	pane: reduce [
+		make face! [type: 'text text: "Modeless Window" offset: 10x10 size: 100x20]
+		make face! [
+			type: 'button text: "Close" offset: 120x10 size: 60x20
+			actors: object [
+				on-click: func [face [object!] event [event!]][unview]
+			]
+		]
+	]
+]
+
+
 button: make face! [
 	type: 'button
 	text: "Hello"
@@ -476,6 +513,22 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				show sub-win
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Modal-window" offset: 400x480 size: 100x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				show modal-win
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Modeless-window" offset: 400x520 size: 100x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				show modeless-win
 			]
 		]
 	]

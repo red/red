@@ -178,6 +178,7 @@ register-classes: func [
 	RegisterClassEx wcex
 
 	;-- superclass existing classes to add 16 extra bytes
+	make-super-class #u16 "RedDialog"	#u16 "#32770"			 0 yes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
 	make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
 	make-super-class #u16 "RedFace"		#u16 "STATIC"			 0 yes

@@ -98,7 +98,9 @@ system/view/platform: context [
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
 			popup:			symbol/make "popup"
-				
+			modal:			symbol/make "modal"
+			modeless:		symbol/make "modeless"
+
 			_down:			word/load "down"
 			_up:			word/load "up"
 			_middle-down:	word/load "middle-down"
