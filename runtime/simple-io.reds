@@ -1055,7 +1055,7 @@ simple-io: context [
 				]
 
 				if hr >= 0 [
-					SysFreeString bstr-d
+					if method = HTTP_POST [SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr body
 				]
 
