@@ -75,9 +75,7 @@ image: context [
 	][
 		file?: TYPE_OF(src) = TYPE_FILE
 		if file? [
-			;str: as red-string! stack/push*			;@@ FIX it, seems it is a bug
-			str: declare red-string!
-			str: string/rs-make-at as cell! str string/rs-length? as red-string! src
+			str: string/rs-make-at stack/push* string/rs-length? src
 			file/to-local-path src str no
 			src: str
 		]
@@ -95,7 +93,7 @@ image: context [
 		h: height? hr
 		img/size: h << 16 or width? hr
 		img/node: as node! hr
-		;if file? [stack/pop 1]							;@@ FIX it, seems it is a bug
+		if file? [stack/pop 1]
 		img
 	]
 

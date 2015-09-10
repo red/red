@@ -1343,8 +1343,6 @@ red: context [
 	]
 	
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
-		emit [stack/reset]
-
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
