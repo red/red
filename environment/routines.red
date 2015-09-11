@@ -84,5 +84,9 @@ get-current-dir: routine [/local len [integer!] path [c-string!]][
 ]
 
 read-decode: routine [filename [file!]][
-	image/make-at stack/arguments as red-string! filename
+	#either OS = 'Windows [
+		image/make-at stack/arguments as red-string! filename
+	][
+		--NOT_IMPLEMENTED--
+	]
 ]

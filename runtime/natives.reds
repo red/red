@@ -443,7 +443,7 @@ natives: context [
 					interpreter/eval as red-block! arg yes
 				]
 				TYPE_FILE [
-					str: as red-string! simple-io/read as red-file! arg no
+					str: as red-string! simple-io/read as red-file! arg no no
 					#call [system/lexer/transcode str none]
 					interpreter/eval as red-block! arg yes
 				]
