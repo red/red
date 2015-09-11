@@ -29,6 +29,14 @@ current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		64										;-- offset to our 16 bytes
 
+clean-up: does [
+	hScreen:		as handle! 0
+	hInstance:		as handle! 0
+	default-font:	as handle! 0
+	version-info: 	declare OSVERSIONINFO
+	current-msg: 	as tagMSG 0
+]
+
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
@@ -892,5 +900,5 @@ OS-close-view: func [
 	screen: as red-object! block/rs-head as red-block! #get system/view/screens
 	pane: as red-block! get-node-facet screen/ctx FACE_OBJ_PANE
 	assert TYPE_OF(pane) = TYPE_BLOCK
-	if zero? block/rs-length? pane [PostQuitMessage 0]
+	if zero? block/rs-length? pane [clean-up PostQuitMessage 0]
 ]

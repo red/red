@@ -82,16 +82,17 @@ _context: context [
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
 		
 		s: as series! ctx/symbols/value
-		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
-			find-word ctx sym yes
-		][
-			(as-integer s/tail - s/offset) >> 4			;-- index is zero-base
-		]
 		word: as red-word! alloc-tail s
-
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: sym
+
+		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
+			find-word ctx sym yes
+		][
+			(as-integer s/tail - s/offset) >> 4 - 1		;-- index is zero-base
+		]
+
 		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
