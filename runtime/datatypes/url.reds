@@ -157,7 +157,7 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/request-http HTTP_GET as red-url! src null null binary?
+		simple-io/request-http HTTP_GET as red-url! src null null binary? lines?
 	]
 
 	write: func [
@@ -203,7 +203,7 @@ url: context [
 			action: HTTP_POST
 		]
 		
-		simple-io/request-http action as red-url! dest header data binary?
+		simple-io/request-http action as red-url! dest header data binary? lines?
 	]
 
 	init: does [

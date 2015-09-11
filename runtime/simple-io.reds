@@ -612,9 +612,38 @@ simple-io: context [
 		]
 	]
 
+	lines-to-block: func [
+		src		[byte-ptr!]					;-- UTF-8 input buffer
+		size	[integer!]					;-- size of src in bytes (excluding terminal NUL)
+		return: [red-block!]
+		/local
+			blk		[red-block!]
+			start	[byte-ptr!]
+			end		[byte-ptr!]
+	][
+		blk: block/push-only* 1
+		if zero? size [return blk]
+
+		start: src
+		until [
+			if src/1 = lf [
+				end: src - 1
+				if end/1 <> cr [end: src]
+				string/load-in as-c-string start as-integer end - start blk UTF-8
+				start: src + 1
+			]
+			size: size - 1
+			src: src + 1
+			zero? size
+		]
+		if start <> src [string/load-in as-c-string start as-integer src - start blk UTF-8]
+		blk
+	]
+
 	read-file: func [
 		filename [c-string!]
 		binary?	 [logic!]
+		lines?	 [logic!]
 		unicode? [logic!]
 		return:	 [red-value!]
 		/local
@@ -648,12 +677,14 @@ simple-io: context [
 		val: as red-value! either binary? [
 			binary/load buffer size
 		][
-			str: as red-string! stack/push*
-			str/header: TYPE_STRING							;-- implicit reset of all header flags
-			str/head: 0
-			str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-			str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
-			str
+			either lines? [lines-to-block buffer size][
+				str: as red-string! stack/push*
+				str/header: TYPE_STRING							;-- implicit reset of all header flags
+				str/head: 0
+				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
+				str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
+				str
+			]
 		]
 		free buffer
 		val
@@ -797,6 +828,7 @@ simple-io: context [
 	read: func [
 		filename [red-file!]
 		binary?	 [logic!]
+		lines?	 [logic!]
 		return:	 [red-value!]
 		/local
 			data [red-value!]
@@ -805,7 +837,7 @@ simple-io: context [
 			return as red-value! read-dir filename
 		]
 
-		data: read-file to-OS-path filename binary? yes
+		data: read-file to-OS-path filename binary? lines? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
@@ -959,6 +991,7 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
 					action	[c-string!]
@@ -1075,7 +1108,11 @@ simple-io: context [
 						res: as red-value! either binary? [
 							binary/load as byte-ptr! buf-ptr len
 						][
-							string/load as c-string! buf-ptr len UTF-8
+							either lines? [
+								lines-to-block as byte-ptr! buf-ptr len
+							][
+								string/load as c-string! buf-ptr len UTF-8
+							]
 						]
 						SafeArrayUnaccessData array
 					]
@@ -1178,6 +1215,7 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
 					len			[integer!]
@@ -1272,8 +1310,12 @@ simple-io: context [
 				unless binary? [
 					buf: binary/rs-head bin
 					len: binary/rs-length? bin
-					bin/header: TYPE_STRING
-					bin/node: unicode/load-utf8 as c-string! buf len
+					either lines? [
+						bin: as red-binary! lines-to-block buf len
+					][
+						bin/header: TYPE_STRING
+						bin/node: unicode/load-utf8 as c-string! buf len
+					]
 				]
 				as red-value! bin
 			]
@@ -1355,6 +1397,7 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
 					len		[integer!]
@@ -1443,8 +1486,12 @@ simple-io: context [
 				unless binary? [
 					buf: binary/rs-head bin
 					len: binary/rs-length? bin
-					bin/header: TYPE_STRING
-					bin/node: unicode/load-utf8 as c-string! buf len
+					either lines? [
+						bin: as red-binary! lines-to-block buf len
+					][
+						bin/header: TYPE_STRING
+						bin/node: unicode/load-utf8 as c-string! buf len
+					]
 				]
 				as red-value! bin
 			]
