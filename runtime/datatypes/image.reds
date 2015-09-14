@@ -453,6 +453,35 @@ image: context [
 		]
 	]
 
+	compare: func [
+		arg1	[red-image!]								;-- first operand
+		arg2	[red-image!]								;-- second operand
+		op		[integer!]									;-- type of comparison
+		return:	[integer!]
+		/local
+			type [integer!]
+			res  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image!/compare"]]
+
+		type: TYPE_OF(arg2)
+		if type <> TYPE_IMAGE [RETURN_COMPARE_OTHER]
+
+		switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL
+			COMP_SORT
+			COMP_CASE_SORT [
+				res: SIGN_COMPARE_RESULT((as-integer arg1/node) (as-integer arg2/node))
+			]
+			default [
+				res: -2
+			]
+		]
+		res
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_IMAGE
@@ -467,7 +496,7 @@ image: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
