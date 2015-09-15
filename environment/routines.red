@@ -71,3 +71,22 @@ last-lf?: routine [/local bool [red-logic!]][
 	bool/header: TYPE_LOGIC
 	bool/value:	 natives/last-lf?
 ]
+
+get-current-dir: routine [/local len [integer!] path [c-string!]][
+	len: 0
+	path: platform/get-current-dir :len
+	#either OS = 'Windows [
+		stack/set-last as cell! string/load path len UTF-16LE
+	][
+		stack/set-last as cell! string/load path len UTF-8
+	]
+	free as byte-ptr! path
+]
+
+read-decode: routine [filename [file!]][
+	#either OS = 'Windows [
+		image/make-at stack/arguments as red-string! filename
+	][
+		--NOT_IMPLEMENTED--
+	]
+]

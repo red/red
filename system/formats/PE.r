@@ -165,6 +165,34 @@ context [
 			wdm-driver			#{2000}		;-- a wdm driver
 			TS-aware			#{8000}		;-- Terminal Server aware
 		]
+		resource-type [
+			cursor				1
+			bitmap				2
+			icon				3
+			menu				4
+			dialog				5
+			string				6
+			font-dir			7
+			font				8
+			accelerator			9
+			rc-data				10
+			message-table		11
+			group-cursor		12
+			group-icon			14
+			version				16
+			manifest			24
+		]
+		resource-version-info [
+			comments			"Comments"
+			notes				"Comments"
+			company				"CompanyName"
+			title				"FileDescription"
+			version				"FileVersion"
+			rights				"LegalCopyright"
+			trademarks			"LegalTrademarks"
+			Author				"PrivateBuild"
+			ProductName			"ProductName"
+		]
 	]
 
 	file-header: make-struct [
@@ -281,7 +309,56 @@ context [
 		name-ptr-rva		[integer!]
 		ordinals-rva		[integer!]
 	] none
-	
+
+	resource-directory: make-struct [
+		character			[integer!]
+		timestamp			[integer!]
+		major-version		[short]
+		minor-verion		[short]
+		name-entry-nb		[short]
+		id-entry-nb			[short]
+	] none
+
+	resource-directory-entry: make-struct [
+		name				[integer!]
+		offset				[integer!]
+	] none
+
+	resource-data-entry: make-struct [
+		offset				[integer!]
+		size				[integer!]
+		code-page			[integer!]
+		reserved			[integer!]
+	] none
+
+	group-icon-directory: make-struct [
+		reserved			[short]
+		type				[short]
+		count				[short]
+	] none
+
+	vs-version-info: make-struct [
+		length				[short]
+		value-length		[short]
+		type				[short]
+	] none
+
+	vs-fixed-fileinfo: make-struct [
+		signature			[integer!]
+		struct-version		[integer!]
+		file-version-ms		[integer!]
+		file-version-ls		[integer!]
+		product-version-ms	[integer!]
+		product-version-ls	[integer!]
+		flags-mask			[integer!]
+		flags				[integer!]
+		OS					[integer!]
+		type				[integer!]
+		subtype				[integer!]
+		date-ms				[integer!]
+		date-ls				[integer!]
+	] none
+
 	pointer: make-struct [
 		value [integer!]					;-- 32/64-bit, watch out for endianess!!
 	] none
@@ -657,7 +734,11 @@ context [
 		if find [dll drv] job/type [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
-		]	
+		]
+		if find job/sections 'rsrc [
+			oh/rsrc-addr: 		named-sect-addr? job 'rsrc
+			oh/rsrc-size:		length? job/sections/rsrc/2
+		]
 		append job/buffer form-struct oh
 	]
 
@@ -676,6 +757,268 @@ context [
 
 		change s: form-struct sh append uppercase form name null	
 		change spec s	
+	]
+
+	icon-number?: func [icons [block!] /local data num][
+		num: 0
+		foreach icon icons [
+			data: read/binary icon
+			num: num + to-integer reverse copy/part skip data 4 2
+		]
+		num
+	]
+
+	build-res-directory: func [
+		resource [block!]
+		/local out dir entry nb sz dir-mask dir-sz entry-sz
+	][
+		dir-mask: to-integer #{80000000}
+		dir-sz: 16
+		entry-sz: 8
+		out: make binary! 4096
+		dir: make-struct resource-directory none
+		entry: make-struct resource-directory-entry none
+
+		nb: (length? resource) / 2
+		sz: dir-sz + (nb * entry-sz)
+
+		dir/id-entry-nb: nb
+		append out form-struct dir
+
+		foreach [name info] resource [					;-- root level - type
+			entry/name: select defs/resource-type name
+			entry/offset: sz or dir-mask
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			sz: dir-sz + (nb * entry-sz) + sz
+			append out form-struct entry
+		]
+
+		foreach [name info] resource [					;-- second level - name
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			dir/id-entry-nb: nb
+			append out form-struct dir
+			for n 1 nb 1 [
+				entry/name: n
+				entry/offset: sz or dir-mask
+				append out form-struct entry
+				sz: dir-sz + entry-sz + sz
+			]
+		]
+
+		foreach [name info] resource [					;-- third level - language
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			dir/id-entry-nb: 1
+			for n 1 nb 1 [
+				append out form-struct dir
+				entry/name: 1033						;-- english default
+				entry/offset: sz
+				append out form-struct entry
+				sz: sz + 16								;-- res-data-entry size: 16
+			]
+		]
+		reduce [out sz]
+	]
+
+	build-res-icon: func [
+		out		[binary!]
+		buf		[binary!]
+		icons	[block!]
+		base	[integer!]
+		/local data p entry nb img-off img-sz
+	][
+		entry: make-struct resource-data-entry none
+		foreach icon icons [
+			data: read/binary icon
+			nb: to-integer reverse copy/part skip data 4 2
+			p: skip data 6
+			for i 1 nb 1 [
+				entry/offset: base + length? buf
+				img-sz: to-integer reverse copy/part skip p 8 4
+				img-off: to-integer reverse copy/part skip p 12 4
+				p: skip p 16
+				insert/part tail buf skip data img-off img-sz
+				entry/size: img-sz
+				append out form-struct entry
+			]
+		]
+	]
+
+	build-res-group-icon: func [
+		out		[binary!]
+		buf		[binary!]
+		icons	[block!]
+		base	[integer!]
+		/local data p entry nb icon-dir n data-buf
+	][
+		entry: make-struct resource-data-entry none
+		icon-dir: make-struct group-icon-directory none
+		n: 1
+		foreach icon icons [
+			entry/offset: base + length? buf
+			data-buf: tail buf
+
+			data: read/binary icon
+			nb: to-integer reverse copy/part skip data 4 2
+
+			icon-dir/type: 1
+			icon-dir/count: nb
+			append buf form-struct icon-dir
+
+			p: skip data 6
+			for i 1 nb 1 [
+				insert/part tail buf p 14
+				change skip tail buf -2 to-bin16 n
+				n: n + 1
+				p: skip p 16
+			]
+
+			entry/size: length? data-buf
+			append out form-struct entry
+		]
+	]
+
+	build-res-string: func [buf [binary!] key [string!] value [string!] /local str][
+		str: make-struct vs-version-info none
+		str/value-length: 1 + length? value					;-- added NUL byte
+		str/type: 1
+		append buf form-struct str
+		append buf reduce [utf8-to-utf16 key #{0000}]
+		pad4 buf
+		append buf reduce [utf8-to-utf16 value #{0000}]
+		change buf to-bin16 length? buf
+		pad4 buf
+	]
+
+	build-res-str-table: func [buf [binary!] info [block!] /local table value][
+		table: make-struct vs-version-info none
+		table/type: 1
+		append buf form-struct table
+		append buf #{300034003000390030003400620030000000}	;-- hard-coded language/codepage
+		pad4 buf
+
+		foreach [key key-str] defs/resource-version-info [
+			if value: select info key [
+				build-res-string tail buf key-str to string! value
+			]
+		]
+		change buf to-bin16 length? buf
+	]
+
+	build-res-str-info: func [buf [binary!] info [block!] /local str-info][
+		str-info: make-struct vs-version-info none
+		str-info/type: 1
+		append buf form-struct str-info
+		append buf utf8-to-utf16 "StringFileInfo^@"
+		pad4 buf
+
+		build-res-str-table tail buf info
+		change buf to-bin16 length? buf
+	]
+
+	build-res-var: func [buf [binary!] info [block!] /local var][
+		var: make-struct vs-version-info none
+		var/value-length: 4
+		var/type: 0
+		append buf form-struct var
+		append buf utf8-to-utf16 "Translation^@"
+		pad4 buf
+
+		append buf #{0904B004}
+		change buf to-bin16 length? buf
+	]
+
+	build-res-var-info: func [buf [binary!] info [block!] /local var-info][
+		var-info: make-struct vs-version-info none
+		var-info/type: 1
+		append buf form-struct var-info
+		append buf utf8-to-utf16 "VarFileInfo^@"
+		pad4 buf
+
+		build-res-var tail buf info
+		change buf to-bin16 length? buf
+	]
+
+	build-res-file-info: func [info [block!] type [word!] /local f ver][
+		either ver: select info 'version [
+			ver: 0.0.0.0 or to tuple! to string! ver
+		][
+			ver: 0.0.0.0
+		]
+		
+		f: make-struct vs-fixed-fileinfo none
+		f/signature:			to-integer #{FEEF04BD}
+		f/struct-version:		to-integer #{00010000}
+		f/file-version-ms: 		ver/2 or shift/left ver/1 16
+		f/file-version-ls: 		ver/4 or shift/left ver/3 16
+		f/product-version-ms:	ver/2 or shift/left ver/1 16
+		f/product-version-ls:	ver/4 or shift/left ver/3 16
+		f/OS: 					to-integer #{00040004}	;-- VOS_NT_WINDOWS32
+		f/type:					switch/default type [
+									dll	[2]
+									drv [3]
+								][1]					;-- exe
+		form-struct f
+	]
+
+	build-res-version: func [
+		out		[binary!]
+		buf		[binary!]
+		info	[block!]
+		base	[integer!]
+		type	[word!]
+		/local entry ver-info file-info data-buf
+	][
+		entry: make-struct resource-data-entry none
+		entry/offset: base + length? buf
+		data-buf: tail buf
+
+		ver-info: make-struct vs-version-info none
+		file-info: make-struct vs-fixed-fileinfo none
+		
+		ver-info/value-length: length? form-struct file-info
+		ver-info/type: 0
+		append buf form-struct ver-info
+		append buf utf8-to-utf16 "VS_VERSION_INFO^@"
+		pad4 buf
+
+		append buf build-res-file-info info type
+		pad4 buf
+
+		build-res-str-info tail buf info
+		build-res-var-info tail buf info
+
+		entry/size: length? data-buf
+		change data-buf to-bin16 length? data-buf
+		append out form-struct entry
+	]
+
+	build-resource: func [job [object!] /local resource out buf dir offset][
+		resource: job/sections/rsrc
+		set [out offset] build-res-directory resource/3
+		offset: offset + section-addr?/memory job 'rsrc	;-- virtual address offset
+		buf: make binary! 4096
+
+		foreach [name info] resource/3 [
+			switch name [
+				icon		[build-res-icon out buf info offset]
+				group-icon	[build-res-group-icon out buf info offset]
+				version		[build-res-version out buf info offset job/type]
+			]
+			pad4 buf
+		]
+		change next resource append out buf
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
@@ -703,7 +1046,9 @@ context [
 		]
 		
 		build-import job								;-- populate import section buffer
-		
+
+		if find job/sections 'rsrc	[build-resource job]
+
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
 		
 		if find [dll drv] job/type [build-reloc job]

@@ -12,30 +12,34 @@ Red/System [
 
 #system [
 	with gui [
-		line:		 symbol/make "line"
-		line-width:	 symbol/make "line-width"
-		box:		 symbol/make "box"
-		triangle:	 symbol/make "triangle"
-		pen:		 symbol/make "pen"
-		fill-pen:	 symbol/make "fill-pen"
-		_polygon:	 symbol/make "polygon"
-		circle:		 symbol/make "circle"
-		anti-alias:  symbol/make "anti-alias"
-		text:		 symbol/make "text"
-		_ellipse:	 symbol/make "ellipse"
-		_arc:		 symbol/make "arc"
-		curve:		 symbol/make "curve"
-		line-join:	 symbol/make "line-join"
-		line-cap:	 symbol/make "line-cap"
+		line:			symbol/make "line"
+		line-width:		symbol/make "line-width"
+		box:			symbol/make "box"
+		triangle:		symbol/make "triangle"
+		pen:			symbol/make "pen"
+		fill-pen:		symbol/make "fill-pen"
+		_polygon:		symbol/make "polygon"
+		circle:			symbol/make "circle"
+		anti-alias: 	symbol/make "anti-alias"
+		text:			symbol/make "text"
+		_ellipse:		symbol/make "ellipse"
+		_arc:			symbol/make "arc"
+		curve:			symbol/make "curve"
+		line-join:		symbol/make "line-join"
+		line-cap:		symbol/make "line-cap"
 		
-		_off:		 symbol/make "off"
-		closed:		 symbol/make "closed"
-		miter:		 symbol/make "miter"
-		miter-bevel: symbol/make "miter-bevel"
-		_round:		 symbol/make "round"
-		bevel:		 symbol/make "bevel"
-		square:		 symbol/make "square"
-		flat:		 symbol/make "flat"
+		_off:			symbol/make "off"
+		closed:			symbol/make "closed"
+		miter:			symbol/make "miter"
+		miter-bevel:	symbol/make "miter-bevel"
+		_round:			symbol/make "round"
+		bevel:			symbol/make "bevel"
+		square:			symbol/make "square"
+		flat:			symbol/make "flat"
+		key-color:		symbol/make "key-color"
+		border:			symbol/make "border"
+		repeat:			symbol/make "repeat"
+		reflect:		symbol/make "reflect"
 
 		throw-draw-error: func [
 			cmds [red-block!]
@@ -434,6 +438,69 @@ Red/System [
 			pos
 		]
 
+		draw-image: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos			[red-value!]
+				w			[red-word!]
+				sym			[integer!]
+				image		[red-image!]
+				upper-left	[red-pair!]
+				key-color	[red-tuple!]
+				border?		[logic!]
+				pattern		[red-word!]
+		][
+			pos:		cmd
+			image:		null
+			upper-left: null
+			border?:	no
+			key-color:	null
+			pattern:	null
+			while [pos: pos + 1 pos < tail][
+				switch TYPE_OF(pos) [
+					TYPE_IMAGE [
+						image: as red-image! pos
+					]
+					TYPE_PAIR [
+						upper-left: as red-pair! pos
+						until [
+							pos: pos + 1
+							TYPE_OF(pos) <> TYPE_PAIR
+						]
+						pos: pos - 1
+					]
+					TYPE_TUPLE [key-color: as red-tuple! pos]
+					TYPE_WORD [
+						w: as red-word! pos
+						either cmd + 1 = pos [
+							image: as red-image! _context/get w
+						][
+							sym: symbol/resolve w/symbol
+							case [
+								sym = border [border?: yes]
+								any [sym = repeat sym = reflect][
+									pattern: as red-word! pos
+									;@@ TBD check if followed by four integers
+								]
+								true [
+									break
+								]
+							]
+						]
+					]
+					default [break]
+				]
+			]
+
+			if null? image [throw-draw-error cmds cmd]
+			OS-draw-image DC image upper-left key-color border? pattern
+			pos - 1
+		]
+
 		do-draw: func [
 			handle [handle!]
 			cmds   [red-block!]
@@ -471,6 +538,7 @@ Red/System [
 					sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
 					sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
 					sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
+					sym = _image	 [cmd: draw-image		DC cmds cmd tail]
 					true 			 [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1

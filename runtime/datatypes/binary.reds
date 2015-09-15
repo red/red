@@ -350,15 +350,9 @@ binary: context [
 		return: [integer!]
 		/local
 			s      [series!]
-			formed [c-string!]
-			len    [integer!]
 			bytes  [integer!]
-			p      [byte-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
-			p-int  [int-ptr!]
-			byte   [integer!]
-			byte-int [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
 
@@ -366,12 +360,23 @@ binary: context [
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
 		string/concatenate-literal buffer "#{"
-		part: part - 2
+		bytes: 0
+		string/append-char GET_BUFFER(buffer) as-integer lf
+		part: part - 3
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
+			bytes: bytes + 1
+			if bytes % 32 = 0 [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: part - 1
+			]
 			part: part - 2
 			if all [OPTION?(arg) part <= 0][return part]
 			head: head + 1
+		]
+		if bytes % 32 <> 0 [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		part - 1
