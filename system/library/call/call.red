@@ -68,12 +68,12 @@ get-out: routine [ "Returns redirected stdout"
 			is-text-unicode outputs/out/buffer outputs/out/count :result
 			either result = 0 [
 				to-ascii outputs/out
-				sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
+				sout: string/load as-c-string outputs/out/buffer (outputs/out/count) UTF-8
 			][
-				sout: string/load as-c-string outputs/out/buffer (1 + (outputs/out/count / 2)) UTF-16LE
+				sout: string/load as-c-string outputs/out/buffer (outputs/out/count / 2) UTF-16LE
 			]
 		][
-			sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
+			sout: string/load as-c-string outputs/out/buffer (outputs/out/count) UTF-8
 		]
 		free outputs/out/buffer
 		SET_RETURN(sout)
@@ -91,12 +91,12 @@ get-err: routine [ "Returns redirected stderr"
 			is-text-unicode outputs/err/buffer outputs/err/count :result
 			either result = 0 [
 				to-ascii outputs/err
-				serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8
+				serr: string/load as-c-string outputs/err/buffer (outputs/err/count) UTF-8
 			][
-				serr: string/load as-c-string outputs/err/buffer (1 + (outputs/err/count / 2)) UTF-16LE
+				serr: string/load as-c-string outputs/err/buffer (outputs/err/count / 2) UTF-16LE
 			]
 		][
-			serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8
+			serr: string/load as-c-string outputs/err/buffer (outputs/err/count) UTF-8
 		]
 		free outputs/err/buffer
 		SET_RETURN(serr)
