@@ -150,6 +150,7 @@ system/lexer: context [
 			str  [series!]
 			cp	 [integer!]
 			unit [integer!]
+			len  [integer!]
 			p	 [byte-ptr!]
 			tail [byte-ptr!]
 			cur	 [byte-ptr!]
@@ -157,11 +158,15 @@ system/lexer: context [
 			byte [byte!]
 			f	 [float!]
 	][
+		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
+
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
-		tail: p + ((end/head - start/head) << (log-b unit))
-		cur:  p
+		len:  end/head - start/head
+		tail: p + (len << (unit >> 1))
+
+		if len > 31 [cur: allocate len]
 		s0:   cur
 
 		until [											;-- convert to ascii string
@@ -177,8 +182,8 @@ system/lexer: context [
 		byte: cur/1										;-- store last byte
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
 		f: string/to-float s0
+		if len > 31 [free s0]
 		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
-		cur/1: byte										;-- revert the byte back
 	]
 
 	make-hexa: routine [
