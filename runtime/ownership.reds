@@ -53,15 +53,14 @@ probe series/node
 			type = TYPE_OBJECT [
 				obj: as red-object! container
 				ctx: GET_CTX(obj)
-probe as byte-ptr! ctx/header				
+				
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
 					ctx/header: ctx/header or flag-owner
 					s: as series! ctx/values/value
-?? s					
+					
 					value: s/offset
 					tail:  s/tail
-?? value
-?? tail
+					
 					while [value < tail][
 						set value owner
 						value: value + 1
