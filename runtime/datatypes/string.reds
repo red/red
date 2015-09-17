@@ -932,6 +932,15 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 
 		t: type/value
+		switch t [
+			TYPE_FILE
+			TYPE_URL [
+				set-type copy-cell as cell! spec as cell! type type/value
+				return as red-value! type
+			]
+			default  [0]
+		]
+
 		blk: as red-block! type
 		#call [system/lexer/transcode spec none]
 

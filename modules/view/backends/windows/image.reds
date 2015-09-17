@@ -93,6 +93,12 @@ init-image: func [
 		tail: as red-string! block/rs-tail data
 		while [str < tail][
 			switch TYPE_OF(str) [
+				TYPE_URL   [
+					copy-cell
+						as cell! image/load-binary as red-binary!
+							simple-io/request-http HTTP_GET as red-url! str null null yes no
+						as cell! img
+				]
 				TYPE_FILE  [image/make-at as red-value! img str]
 				TYPE_IMAGE [copy-cell as cell! str as cell! img]
 				default [0]

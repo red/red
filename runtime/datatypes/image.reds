@@ -32,6 +32,54 @@ image: context [
 		#default []										;-- Linux
 	]
 
+	known-image?: func [
+		data	[red-binary!]
+		return: [logic!]
+		/local
+			p	[byte-ptr!]
+	][
+		p: binary/rs-head data
+		either any [
+			all [										;-- PNG
+				p/1 = #"^(89)"
+				p/2 = #"P" p/3 = #"N" p/4 = #"G"
+			]
+			all [p/1 = #"^(FF)" p/2 = #"^(D8)" p/3 = #"^(FF)"]	;-- jpg/jpeg
+			all [p/1 = #"B" p/2 = #"M"]					;-- BMP
+			all [										;-- GIF
+				p/1 = #"G" p/2 = #"I" p/3 = #"F"
+				p/4 = #"8" p/5 = #"9" p/6 = #"a"
+			]
+		][true][false]
+	]
+
+	init-image: func [
+		img		[red-image!]
+		handle  [integer!]
+		return: [red-image!]
+	][
+		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
+		img/head: 0
+
+		h: height? handle
+		img/size: h << 16 or width? handle
+		img/node: as node! handle
+		img
+	]
+
+	load-binary: func [
+		data	[red-binary!]
+		return: [red-image!]
+		/local
+			img [red-image!]
+	][
+		either known-image? data [
+			init-image
+				as red-image! stack/push*
+				OS-load-binary binary/rs-head data binary/rs-length? data
+		][as red-image! none-value]
+	]
+
 	load-in: func [
 		filename [c-string!]							;-- UTF-8 file pathname
 		blk		 [red-block!]
@@ -40,10 +88,7 @@ image: context [
 			img  [red-image!]
 	][
 		img: as red-image! either null = blk [stack/push*][ALLOC_TAIL(blk)]
-		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
-		img/head: 0
-		img/node: as node! load-image filename
-		img
+		init-image img load-image filename
 	]
 
 	load: func [
@@ -87,12 +132,7 @@ image: context [
 		]
 
 		img: as red-image! slot
-		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
-		img/head: 0
-
-		h: height? hr
-		img/size: h << 16 or width? hr
-		img/node: as node! hr
+		init-image img hr
 		if file? [stack/pop 1]
 		img
 	]
