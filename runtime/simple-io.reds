@@ -196,10 +196,14 @@ simple-io: context [
 		#case [
 			any [OS = 'FreeBSD OS = 'MacOSX] [
 				#define O_CREAT		0200h
+				#define O_TRUNC		0400h
+				#define O_EXCL		0800h
 				#define O_APPEND	8
 			]
 			true [
 				#define O_CREAT		64
+				#define O_EXCL		128
+				#define O_TRUNC		512
 				#define O_APPEND	1024
 			]
 		]
@@ -534,7 +538,11 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
-				if mode and RIO_APPEND <> 0 [modes: modes or O_APPEND]
+				modes: either mode and RIO_APPEND <> 0 [
+					modes or O_APPEND
+				][
+					modes or O_TRUNC
+				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
 			file: _open filename modes access
