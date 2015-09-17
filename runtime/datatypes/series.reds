@@ -468,6 +468,7 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
+probe ser/node
 		ownership/check ser/node words/_remove ser/head items
 		ser
 	]

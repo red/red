@@ -107,6 +107,7 @@ button: make face! [
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
 			show win
+			remove back tail drop-list/data
 		]
 	]
 ]
@@ -493,6 +494,8 @@ win/pane: reduce [
 		]
 	]
 ]
+
+modify drop-list 'owner yes
 show win
 
 do-events

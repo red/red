@@ -174,6 +174,7 @@ red: context [
 		natives/init									;-- native specific init code
 		parser/init
 		_random/init
+		ownership/init
 		
 		stack/init
 		redbin/boot-load

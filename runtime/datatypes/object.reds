@@ -1070,7 +1070,7 @@ object: context [
 	]
 	
 	modify: func [
-		obj		 [red-object!]
+		obj		[red-object!]
 		field	[red-word!]
 		value	[red-value!]
 		case?	[logic!]
