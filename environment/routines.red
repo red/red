@@ -85,7 +85,12 @@ get-current-dir: routine [/local len [integer!] path [c-string!]][
 
 read-decode: routine [filename [file!]][
 	#either OS = 'Windows [
-		image/make-at stack/arguments as red-string! filename
+		either TYPE_OF(filename) = TYPE_URL [
+			stack/set-last as cell! image/load-binary as red-binary!
+				simple-io/request-http HTTP_GET as red-url! filename null null yes no
+		][
+			image/make-at stack/arguments as red-string! filename
+		]
 	][
 		--NOT_IMPLEMENTED--
 	]

@@ -286,7 +286,11 @@ load: function [
 				source: read source
 			]
 		]
-		url!	[source]
+		url!	[
+			img: read-decode source
+			if image! = type? img [return img]
+			source: read source
+		]
 		binary! [source]
 	][source]
 

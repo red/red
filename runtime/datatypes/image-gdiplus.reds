@@ -51,6 +51,8 @@ Red/System [
 #define GL_LUMINANCE                      1909h
 #define GL_LUMINANCE_ALPHA                190Ah
 
+#define GMEM_MOVEABLE	2
+
 #define GpBitmap!	int-ptr!
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
@@ -76,13 +78,17 @@ BitmapData!: alias struct! [
 		GlobalAlloc: "GlobalAlloc" [
 			flags		[integer!]
 			size		[integer!]
-			return:		[int-ptr!]
+			return:		[integer!]
 		]
 		GlobalFree: "GlobalFree" [
 			hMem		[integer!]
 			return:		[integer!]
 		]
 		GlobalLock: "GlobalLock" [
+			hMem		[integer!]
+			return:		[byte-ptr!]
+		]
+		GlobalUnlock: "GlobalUnlock" [
 			hMem		[integer!]
 			return:		[integer!]
 		]
@@ -144,6 +150,11 @@ BitmapData!: alias struct! [
 			stride		[integer!]
 			format		[integer!]
 			scan0		[byte-ptr!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCreateBitmapFromStream: "GdipCreateBitmapFromStream" [
+			stream		[integer!]
 			bitmap		[int-ptr!]
 			return:		[integer!]
 		]
@@ -303,4 +314,27 @@ make-image: func [
 
 	unlock-bitmap bitmap as-integer data
 	bitmap
+]
+
+OS-load-binary: func [
+	data	[byte-ptr!]
+	len		[integer!]
+	return: [integer!]
+	/local
+		hMem [integer!]
+		p	 [byte-ptr!]
+		hr	 [integer!]
+		s	 [integer!]
+		bmp  [integer!]
+][
+	hMem: GlobalAlloc GMEM_MOVEABLE len
+	p: GlobalLock hMem
+	copy-memory p data len
+	GlobalUnlock hMem
+
+	s: 0
+	bmp: 0
+	hr: CreateStreamOnHGlobal hMem true :s
+	GdipCreateBitmapFromStream s :bmp
+	bmp
 ]
