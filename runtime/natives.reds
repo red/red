@@ -1885,6 +1885,7 @@ natives: context [
 				type = TYPE_FILE
 				type = TYPE_URL
 				type = TYPE_VECTOR
+				type = TYPE_BINARY
 			][
 				set-many-string blk as red-string! series size
 			][
