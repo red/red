@@ -287,8 +287,10 @@ load: function [
 			]
 		]
 		url!	[
-			img: read-decode source
-			if image! = type? img [return img]
+			#if OS = 'Windows [
+				img: read-decode source
+				if image! = type? img [return img]
+			]
 			source: read source
 		]
 		binary! [source]
