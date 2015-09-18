@@ -29,7 +29,7 @@ ownership: context [
 			s	   [series!]
 	][
 		type: TYPE_OF(container)
-probe "ownership/set"		
+print-line ["ownership/set, type: " type]
 		case [
 			ANY_SERIES?(type) [
 				series: as red-series! container
@@ -82,7 +82,7 @@ probe series/node
 			owner  [red-object!]
 	][
 		slot: _hashtable/get-value table as-integer node
-?? slot		
+		
 		unless null? slot [
 			parent: slot
 			owner:  as red-object! slot + 1

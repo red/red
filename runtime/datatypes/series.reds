@@ -433,6 +433,7 @@ _series: context [
 		if head = tail [return ser]						;-- early exit if nothing to remove
 
 		part: unit
+		items: 1
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -468,7 +469,6 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
-probe ser/node
 		ownership/check ser/node words/_remove ser/head items
 		ser
 	]
