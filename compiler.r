@@ -1584,6 +1584,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
+			event pos2 loc-s loc-d
 	][
 		either set-path? original: pc/-1 [
 			path: original
@@ -1703,7 +1704,7 @@ red: context [
 			ctx											;-- object's context name
 			id: get-counter								;-- unique object ID
 			proto										;-- optional prototype object
-			none										;-- [index locals] for on-change*
+			none										;-- [idx loc idx2 loc2...] (for events)
 		]
 		on-set-info: back tail objects
 		
@@ -1766,18 +1767,32 @@ red: context [
 		defer: reduce ['object/init-push ctx id]		;-- deferred emission
 		new-line defer yes
 		
-		if any [path pos: find spec 'on-change*][
-			if pos [
-				pos: (index? pos) - 1					;-- 0-based contexts arrays
-				entry: find functions decorate-obj-member 'on-change* ctx
-				unless zero? locals: second check-spec entry/2/3 [
-					locals: locals + 1					;-- account for /local
-				]
-				change/only on-set-info reduce [pos locals]	;-- cache values
-				repend defer ['object/init-on-set ctx pos locals]
-				new-line skip defer 3 yes
+		;-- events definitions processing
+		loc-s: loc-d: 0
+		event: 'on-change*
+		if pos: find spec event [
+			pos: (index? pos) - 1					;-- 0-based contexts arrays
+			entry: find functions decorate-obj-member event ctx
+			unless zero? loc-s: second check-spec entry/2/3 [
+				loc-s: loc-s + 1					;-- account for /local
 			]
 		]
+		event: 'on-deep-change*
+		if pos2: find spec event [
+			pos2: (index? pos2) - 1					;-- 0-based contexts arrays
+			entry: find functions decorate-obj-member event ctx
+			unless zero? loc-d: second check-spec entry/2/3 [
+				loc-d: loc-d + 1					;-- account for /local
+			]
+		]
+		if any [pos pos2][
+			unless pos  [pos:  -1]
+			unless pos2 [pos2: -1]
+			change/only on-set-info reduce [pos loc-s pos2 loc-d]	;-- cache values
+			repend defer ['object/init-events ctx pos loc-s pos2 loc-d]
+			new-line skip defer 3 yes
+		]
+		
 		emit 'stack/revert
 		insert-lf -1
 		
@@ -2461,8 +2476,8 @@ red: context [
 		][
 			obj: find objects obj
 			either obj/5 [
-				emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2] ;-- on-set present case
-				insert-lf -5
+				emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
+				insert-lf -7
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
 				insert-lf -3

@@ -86,13 +86,7 @@ probe series/node
 		unless null? slot [
 			parent: slot
 			owner:  as red-object! slot + 1
-	probe "ownership check"
-			object/fire-on-set
-				owner 
-				action
-				as red-value! integer/push index
-				as red-value! integer/push nb 
-			;trigger on-change-deep* event
+			object/fire-on-deep owner action index nb 
 		]
 	]
 	

@@ -441,6 +441,7 @@ words: context [
 	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
+	_on-deep-change*: as red-word! 0
 	
 	_type:			as red-word! 0
 	_id:			as red-word! 0
@@ -595,6 +596,7 @@ words: context [
 		
 		_on-parse-event: word/load "on-parse-event"
 		_on-change*:	 word/load "on-change*"
+		_on-deep-change*: word/load "on-deep-change*"
 		
 		_type:			word/load "type"
 		_id:			word/load "id"

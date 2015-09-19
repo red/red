@@ -123,9 +123,11 @@ object: context [
 	]
 	
 	make-callback-node: func [
-		ctx		[red-context!]
-		index   [integer!]
-		locals  [integer!]
+		ctx	  [red-context!]
+		idx-s [integer!]								;-- for on-change* event
+		loc-s [integer!]
+		idx-d [integer!]								;-- for on-deep-change* event
+		loc-d [integer!]
 		return: [node!]
 		/local
 			node [node!]
@@ -136,12 +138,12 @@ object: context [
 		s: as series! node/value
 		int: as red-integer! s/offset
 		int/header: TYPE_INTEGER
-		int/value: index
+		int/value: (idx-s << 16) or loc-s				;-- store info for on-change*
 
 		int: as red-integer! s/offset + 1
 		int/header: TYPE_INTEGER
 		s: as series! ctx/values/value
-		int/value: locals
+		int/value: (idx-d << 16) or loc-d				;-- store info for on-deep-change*
 		node
 	]
 	
@@ -149,39 +151,51 @@ object: context [
 		ctx		[red-context!]
 		return: [node!]
 		/local
-			head   [red-word!]
-			tail   [red-word!]
-			word   [red-word!]
-			fun	   [red-function!]
-			s	   [series!]
-			on-set [integer!]
-			index  [integer!]
+			head	[red-word!]
+			tail	[red-word!]
+			word	[red-word!]
+			fun		[red-function!]
+			s		[series!]
+			on-set	[integer!]
+			on-deep	[integer!]
+			idx-s	[integer!]
+			idx-d	[integer!]
+			loc-s	[integer!]
+			loc-d	[integer!]
+			sym		[integer!]
 	][
-		s:		as series! ctx/symbols/value
-		head:	as red-word! s/offset
-		tail:	as red-word! s/tail
-		word:	head
-		on-set:	words/_on-change*/symbol
-		index:	-1
+		s:		 as series! ctx/symbols/value
+		head:	 as red-word! s/offset
+		tail:	 as red-word! s/tail
+		word:	 head
+		on-set:	 words/_on-change*/symbol
+		on-deep: words/_on-deep-change*/symbol
+		idx-s:	 -1
+		idx-d:	 -1
+		loc-s:	 0
+		loc-d:	 0
 		
-		while [all [index < 0 word < tail]][
-			if on-set = symbol/resolve word/symbol [
-				index: (as-integer word - head) >> 4
-			]
+		while [word < tail][
+			sym: symbol/resolve word/symbol
+			if on-set  = sym [idx-s: (as-integer word - head) >> 4]
+			if on-deep = sym [idx-d: (as-integer word - head) >> 4]
 			word: word + 1
 		]
-		if index = -1 [return null]						;-- callback is not found
+		if all [idx-s < 0 idx-d < 0][return null]		;-- callback is not found
 		
 		s: as series! ctx/values/value
-		fun: as red-function! s/offset + index
-		
-		make-callback-node
-			ctx
-			index
-			_function/calc-arity null fun 0				;-- passing a null path triggers short code branch
+		if idx-s >= 0 [
+			fun: as red-function! s/offset + idx-s
+			loc-s: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+		]
+		if idx-d >= 0 [
+			fun: as red-function! s/offset + idx-d
+			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
+		]
+		make-callback-node ctx idx-s loc-s idx-d loc-d
 	]
 	
-	loc-fire-on-set*: func [								;-- compiled code entry point
+	loc-fire-on-set*: func [							;-- compiled code entry point
 		parent [red-value!]
 		field  [red-word!]
 	][
@@ -223,11 +237,12 @@ object: context [
 		
 		int: as red-integer! s/offset
 		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value
+		index: int/value >>> 16
+		count: int/value and FFFFh
 		
-		int: as red-integer! s/offset + 1
-		assert TYPE_OF(int) = TYPE_INTEGER
-		count: int/value
+		;int: as red-integer! s/offset + 1
+		;assert TYPE_OF(int) = TYPE_INTEGER
+		;count: int/value and FFFFh
 		
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
@@ -240,6 +255,44 @@ object: context [
 		stack/push new
 		if positive? count [_function/init-locals count]
 		_function/call fun obj/ctx
+		stack/unwind
+	]
+	
+	fire-on-deep: func [
+		owner  [red-object!]
+		action [red-word!]
+		idx	   [integer!]
+		nb	   [integer!]
+		/local
+			fun	  [red-function!]
+			int	  [red-integer!]
+			index [integer!]
+			count [integer!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-deep"]]
+
+		assert TYPE_OF(owner) = TYPE_OBJECT
+		assert owner/on-set <> null
+		s: as series! owner/on-set/value
+
+		int: as red-integer! s/offset + 1
+		assert TYPE_OF(int) = TYPE_INTEGER
+		index: int/value >>> 16
+		count: int/value and FFFFh
+
+		ctx: GET_CTX(owner) 
+		s: as series! ctx/values/value
+		fun: as red-function! s/offset + index
+		assert TYPE_OF(fun) = TYPE_FUNCTION
+
+		stack/mark-func words/_on-deep-change*
+		stack/push as red-value! owner
+		stack/push as red-value! action
+		integer/push index
+		integer/push nb
+		if positive? count [_function/init-locals count]
+		_function/call fun owner/ctx
 		stack/unwind
 	]
 	
@@ -558,23 +611,27 @@ object: context [
 		obj
 	]
 	
-	init-on-set: func [
-		ctx	   [node!]
-		index  [integer!]
-		locals [integer!]
+	init-events: func [
+		ctx	  [node!]
+		idx-s [integer!]								;-- for on-change* event
+		loc-s [integer!]
+		idx-d [integer!]								;-- for on-deep-change* event
+		loc-d [integer!]
 		/local
 			obj [red-object!]
 	][
 		obj: as red-object! stack/top - 1
 		assert TYPE_OF(obj) = TYPE_OBJECT
-		obj/on-set: make-callback-node TO_CTX(ctx) index locals
+		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
 	]
 	
 	push: func [
 		ctx		[node!]
 		class	[integer!]
-		index	[integer!]
-		locals	[integer!]
+		idx-s [integer!]								;-- for on-change* event
+		loc-s [integer!]
+		idx-d [integer!]								;-- for on-deep-change* event
+		loc-d [integer!]
 		return: [red-object!]
 		/local
 			obj	[red-object!]
@@ -583,7 +640,7 @@ object: context [
 		obj/header: TYPE_OBJECT
 		obj/ctx:	ctx
 		obj/class:	class
-		obj/on-set: make-callback-node TO_CTX(ctx) index locals
+		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
 		obj
 	]
 	

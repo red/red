@@ -36,12 +36,15 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: func [w o n][
-;?? w
-;?? o
-;?? n
 		if all [state w <> 'state][
 			state/2: state/2 or system/view/platform/get-facet-id w
 		]
+	]
+	
+	on-deep-change*: func [owner action index nb][
+		?? action
+		?? index
+		?? nb
 	]
 ]
 
