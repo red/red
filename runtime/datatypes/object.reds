@@ -260,8 +260,9 @@ object: context [
 	
 	fire-on-deep: func [
 		owner  [red-object!]
+		target [red-value!]
 		action [red-word!]
-		idx	   [integer!]
+		pos	   [integer!]
 		nb	   [integer!]
 		/local
 			fun	  [red-function!]
@@ -288,8 +289,9 @@ object: context [
 
 		stack/mark-func words/_on-deep-change*
 		stack/push as red-value! owner
+		stack/push target
 		stack/push as red-value! action
-		integer/push index
+		integer/push pos
 		integer/push nb
 		if positive? count [_function/init-locals count]
 		_function/call fun owner/ctx

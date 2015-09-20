@@ -72,21 +72,36 @@ probe series/node
 	]
 	
 	check: func [
-		node   [node!]									;-- series or context node
+		value  [red-value!]								;-- series or object where a change occurs
 		action [red-word!]								;-- type of change
 		index  [integer!]								;-- start position of the change
-		nb	   [integer!]								;-- nb of values affected
+		part   [integer!]								;-- nb of values affected
 		/local
+			node   [node!]
 			slot   [red-value!]
 			parent [red-value!]
 			owner  [red-object!]
+			series [red-series!]
+			type   [integer!]
 	][
+		type: TYPE_OF(value)
+		case [
+			type = TYPE_OBJECT [
+				owner: as red-object! value
+				node: owner/ctx
+			]
+			ANY_SERIES?(type) [
+				series: as red-series! value
+				node: series/node
+			]
+			true [assert false]
+		]
 		slot: _hashtable/get-value table as-integer node
 		
 		unless null? slot [
 			parent: slot
 			owner:  as red-object! slot + 1
-			object/fire-on-deep owner action index nb 
+			object/fire-on-deep owner value action index part 
 		]
 	]
 	

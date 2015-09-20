@@ -343,7 +343,7 @@ _series: context [
 
 		s: GET_BUFFER(ser)
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
-		ownership/check ser/node words/_clear 0 0
+		ownership/check as red-value! ser words/_clear 0 0
 		as red-value! ser
 	]
 
@@ -406,7 +406,7 @@ _series: context [
 			]
 			stack/set-last data
 		]
-		ownership/check ser/node words/_poke offset 0
+		ownership/check as red-value! ser words/_poke offset 0
 		data
 	]
 
@@ -469,7 +469,7 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
-		ownership/check ser/node words/_remove ser/head items
+		ownership/check as red-value! ser words/_remove ser/head items
 		ser
 	]
 
@@ -541,7 +541,7 @@ _series: context [
 			tail: tail - unit
 		]
 		stack/pop 1
-		ownership/check ser/node words/_remove ser/head items
+		ownership/check as red-value! ser words/_remove ser/head items
 		ser
 	]
 
@@ -635,7 +635,7 @@ _series: context [
 			]
 		][return as red-value! ser2]
 		
-		;ownership/check ser/node words/_remove offset part
+		;ownership/check as red-value! ser words/_remove offset part
 		as red-value! ser2
 	]
 
@@ -667,8 +667,8 @@ _series: context [
 		char2: string/get-char head2 unit2
 		string/poke-char s1 head1 char2
 		string/poke-char s2 head2 char1
-		;ownership/check ser1/node words/_remove offset part
-		;ownership/check ser2/node words/_remove offset part
+		;ownership/check as red-value! ser1 words/_remove offset part
+		;ownership/check as red-value! ser2 words/_remove offset part
 		ser1
 	]
 
