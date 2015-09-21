@@ -1727,7 +1727,7 @@ natives: context [
 	][
 		f: argument-as-float
 		val: f/value
-		if radians < 0 [degree-to-radians val type]
+		if radians < 0 [val: degree-to-radians val type]
 		f/value: val
 		f
 	]

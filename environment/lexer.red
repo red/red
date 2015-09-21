@@ -166,7 +166,7 @@ system/lexer: context [
 		len:  end/head - start/head
 		tail: p + (len << (unit >> 1))
 
-		if len > 31 [cur: allocate len]
+		if len > 31 [cur: allocate len + 1]
 		s0:   cur
 
 		until [											;-- convert to ascii string
