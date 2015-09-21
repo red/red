@@ -1784,11 +1784,14 @@ system-dialect: make-profilable context [
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
-			unless any [
-				parse blockify ctype [func-pointer | type-syntax]
-				find-aliased ctype
+			if any [
+				not find [word! block!] type?/word ctype
+				not any [	
+					parse blockify ctype [func-pointer | type-syntax]
+					find-aliased ctype
+				]
 			][
-				throw-error ["invalid target type casting:" ctype]
+				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
