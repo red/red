@@ -41,8 +41,9 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 	]
 	
-	on-deep-change*: func [owner target action index part][
+	on-deep-change*: func [owner word target action index part][
 		?? action
+		?? word
 		probe head target
 		?? index
 		?? part

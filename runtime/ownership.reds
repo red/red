@@ -18,6 +18,7 @@ ownership: context [
 	set: func [
 		container [red-value!]
 		owner	  [red-object!]
+		word	  [red-word!]
 		/local
 			value  [red-value!]
 			tail   [red-value!]
@@ -35,17 +36,23 @@ print-line ["ownership/set, type: " type]
 				series: as red-series! container
 				s: GET_BUFFER(series)
 				s/flags: s/flags or flag-series-owned
-probe series/node				
+				
 				slot: as red-value! _hashtable/put-key table as-integer series/node
 				copy-cell container slot
 				copy-cell as red-value! owner slot + 1
+				either null? word [
+					slot: slot + 2
+					slot/header: TYPE_NONE
+				][
+					copy-cell as red-value! word slot + 2
+				]
 				
 				if ANY_BLOCK?(type) [
 					value: s/offset + series/head
 					tail:  s/tail
 					
 					while [value < tail][
-						set value owner
+						set value owner null
 						value: value + 1
 					]
 				]
@@ -61,9 +68,13 @@ probe series/node
 					value: s/offset
 					tail:  s/tail
 					
+					s: as series! ctx/symbols/value
+					word: as red-word! s/offset
+					
 					while [value < tail][
-						set value owner
+						set value owner word
 						value: value + 1
+						word: word + 1
 					]
 				]
 			]
@@ -82,6 +93,7 @@ probe series/node
 			parent [red-value!]
 			owner  [red-object!]
 			series [red-series!]
+			word   [red-word!]
 			type   [integer!]
 	][
 		type: TYPE_OF(value)
@@ -101,11 +113,12 @@ probe series/node
 		unless null? slot [
 			parent: slot
 			owner:  as red-object! slot + 1
-			object/fire-on-deep owner value action index part 
+			word:	as red-word! slot + 2
+			object/fire-on-deep owner word value action index part 
 		]
 	]
 	
 	init: does [
-		table: _hashtable/init size null HASH_TABLE_INTEGER 2
+		table: _hashtable/init size null HASH_TABLE_INTEGER 3
 	]
 ]

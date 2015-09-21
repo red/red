@@ -260,6 +260,7 @@ object: context [
 	
 	fire-on-deep: func [
 		owner  [red-object!]
+		word   [red-word!]
 		target [red-value!]
 		action [red-word!]
 		pos	   [integer!]
@@ -289,6 +290,7 @@ object: context [
 
 		stack/mark-func words/_on-deep-change*
 		stack/push as red-value! owner
+		stack/push as red-value! word
 		stack/push target
 		stack/push as red-value! action
 		integer/push pos
@@ -1138,7 +1140,7 @@ object: context [
 		sym: symbol/resolve field/symbol
 		case [
 			sym = words/owner [
-				ownership/set as red-value! obj obj
+				ownership/set as red-value! obj obj null
 			]
 			true [0]
 		]
