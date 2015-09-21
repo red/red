@@ -311,6 +311,7 @@ _series: context [
 			switch TYPE_OF(ser) [
 				TYPE_BLOCK								;@@ any-block?
 				TYPE_HASH
+				TYPE_MAP
 				TYPE_PAREN
 				TYPE_PATH
 				TYPE_GET_PATH

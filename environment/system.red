@@ -208,7 +208,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  context []
+	codecs:  make map! 8
 	schemes: context []
 	ports:	 context []
 	

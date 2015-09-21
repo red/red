@@ -271,8 +271,6 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
-
-	CoInitializeEx 0 COINIT_APARTMENTTHREADED
 ]
 
 set-logic-state: func [

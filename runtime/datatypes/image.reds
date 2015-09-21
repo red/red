@@ -61,8 +61,7 @@ image: context [
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img/head: 0
 
-		h: height? handle
-		img/size: h << 16 or width? handle
+		img/size: (height? handle) << 16 or width? handle
 		img/node: as node! handle
 		img
 	]
@@ -115,7 +114,6 @@ image: context [
 			str   [red-string!]
 			len   [integer!]
 			hr    [integer!]
-			h     [integer!]
 			file? [logic!]
 	][
 		file?: TYPE_OF(src) = TYPE_FILE
