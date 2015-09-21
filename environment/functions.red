@@ -257,15 +257,26 @@ suffix?: function [
 
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
-	source [file! url! string!]
+	source [file! url! string! binary!]
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
-	/type	"TBD:"
 	/part
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
+	/as   "Specify the type of data; use NONE to load as code"
+		type [word! none!] "E.g. json, html, jpeg, png, etc"
 ][
+	if as [
+		if word? type [
+			either codec: select system/codecs type [
+				return do [codec/decode source]
+			][
+				return none
+			]
+		]
+	]
+
 	if part [
 		case [
 			zero? length [return make block! 1]
@@ -280,15 +291,16 @@ load: function [
 	unless out [out: make block! 4]
 	switch/default type?/word source [
 		file!	[
-			either find [%.bmp %.gif %.png %.jpg %.jpeg] suffix? source [
-				return read-decode source
-			][
-				source: read source
+			suffix: suffix? source
+			foreach [name codec] system/codecs [
+				if find codec/suffixes suffix [
+					return do [codec/decode source]
+				]
 			]
+			source: read source
 		]
 		url!	[
-			img: read-decode source
-			if image? img [return img]
+			;-- TBD search codec in `system/codec`, need to parse http header
 			source: read source
 		]
 		binary! [source]
