@@ -47,6 +47,14 @@ face!: object [				;-- keep in sync with facet! enum
 		probe head target
 		?? index
 		?? part
+		
+		either system/view/auto-update? [
+			system/view/platform/on-deep-change owner word target action index part
+		][
+			if all [state w <> 'state][
+				state/2: state/2 or system/view/platform/get-facet-id w
+			]
+		]
 	]
 ]
 
@@ -126,6 +134,8 @@ system/view: context [
 		]	
 		:result
 	]
+	
+	auto-update?: yes
 	debug?: yes
 ]
 

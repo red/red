@@ -894,3 +894,14 @@ OS-close-view: func [
 	assert TYPE_OF(pane) = TYPE_BLOCK
 	if zero? block/rs-length? pane [PostQuitMessage 0]
 ]
+
+OS-change-view: routine [
+	owner  [red-object!]
+	word   [red-word!]
+	value  [red-value!]
+	action [red-word!]
+	index  [red-integer!]
+	part   [red-integer!]
+][
+	
+]

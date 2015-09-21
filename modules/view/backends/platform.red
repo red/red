@@ -189,6 +189,17 @@ system/view/platform: context [
 		SET_RETURN(pair)
 	]
 	
+	on-change-view: routine [
+		owner  [object!]
+		word   [word!]
+		value  [any-type!]
+		action [word!]
+		index  [integer!]
+		part   [integer!]
+	][
+		OS-change-view owner word value action index part
+	]
+	
 	close-view:  routine [face [object!]][
 		gui/OS-close-view face
 		SET_RETURN(none-value)
