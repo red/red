@@ -813,7 +813,7 @@ alloc-big: func [
 		memory/b-head: frame				;-- first item in the list
 	][
 		frm: memory/b-head					;-- search for tail of list (@@ might want to save it?)
-		until [frm: frm/next null? frm/next]
+		while [frm/next <> null][frm: frm/next]
 		assert not null? frm		
 		
 		frm/next: frame						;-- append new item at tail of the list
