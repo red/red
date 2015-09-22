@@ -897,7 +897,7 @@ OS-close-view: func [
 
 OS-update-facet: func [
 	face   [red-object!]
-	word   [red-word!]
+	facet  [red-word!]
 	value  [red-value!]
 	action [red-word!]
 	index  [integer!]
@@ -905,7 +905,7 @@ OS-update-facet: func [
 	/local
 		sym		[integer!]
 ][
-	sym: symbol/resolve word/symbol
+	sym: symbol/resolve facet/symbol
 	
 	case [
 		any [
@@ -916,6 +916,12 @@ OS-update-facet: func [
 			sym = facets/visible?
 		][
 			OS-update-view face
+		]
+		sym = facets/data [
+			
+		]
+		sym = facets/selected [
+			
 		]
 		true [0]
 	]
