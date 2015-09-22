@@ -543,23 +543,22 @@ alloc-series-buffer: func [
 
 	series: frame/heap
 	
-	if ((as byte-ptr! series) + sz) >= frame/tail [
-		; TBD: trigger a GC pass from here and update memory/s-active
-		if sz >= memory/s-size [				;@@ temporary checks
-			memory/s-size: memory/s-max
-		]
-		assert sz < _16MB					;-- max series size allowed in a series frame @@
-		frame: alloc-series-frame
-		memory/s-active: frame				;@@ to be removed once GC implemented
-		series: frame/heap
-	]
 	either sz >= memory/s-max [
 		;print-line "Memory error: series too big!"
 		;throw RED_THROWN_ERROR
 		series: as series-buffer! alloc-big sz
 		flag-big: flag-series-big
-		
 	][
+		if ((as byte-ptr! series) + sz) >= frame/tail [
+			; TBD: trigger a GC pass from here and update memory/s-active
+			if sz >= memory/s-size [		;@@ temporary checks
+				memory/s-size: memory/s-max
+			]
+			frame: alloc-series-frame
+			memory/s-active: frame			;@@ to be removed once GC implemented
+			series: frame/heap
+		]
+		assert sz < _16MB					;-- max series size allowed in a series frame @@
 		frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 	]
 		
