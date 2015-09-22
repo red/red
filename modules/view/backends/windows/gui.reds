@@ -895,13 +895,28 @@ OS-close-view: func [
 	if zero? block/rs-length? pane [PostQuitMessage 0]
 ]
 
-OS-change-view: routine [
-	owner  [red-object!]
+OS-update-facet: func [
+	face   [red-object!]
 	word   [red-word!]
 	value  [red-value!]
 	action [red-word!]
-	index  [red-integer!]
-	part   [red-integer!]
+	index  [integer!]
+	part   [integer!]
+	/local
+		sym		[integer!]
 ][
+	sym: symbol/resolve word/symbol
 	
+	case [
+		any [
+			sym = facets/offset
+			sym = facets/size
+			sym = facets/text
+			sym = facets/enable?
+			sym = facets/visible?
+		][
+			OS-update-view face
+		]
+		true [0]
+	]
 ]

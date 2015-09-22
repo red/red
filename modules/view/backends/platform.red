@@ -72,6 +72,28 @@ system/view/platform: context [
 				PEN_LINE_CAP
 				PEN_LINE_JOIN
 			]
+			
+			facets: context [
+				type:		symbol/make "type"
+				offset:		symbol/make "offset"
+				size:		symbol/make "size"
+				text:		symbol/make "text"
+				image:		symbol/make "image"
+				color:		symbol/make "color"
+				menu:		symbol/make "menu"
+				data:		symbol/make "data"
+				enable?:	symbol/make "enable?"
+				visible?:	symbol/make "visible?"
+				selected:	symbol/make "selected"
+				parent:		symbol/make "parent"
+				pane:		symbol/make "pane"
+				state:		symbol/make "state"
+				;rate:		symbol/make "rate"
+				edge:		symbol/make "edge"
+				actors:		symbol/make "actors"
+				extra:		symbol/make "extra"
+				draw:		symbol/make "draw"
+			]
 
 			window:			symbol/make "window"
 			button:			symbol/make "button"
@@ -189,7 +211,7 @@ system/view/platform: context [
 		SET_RETURN(pair)
 	]
 	
-	on-change-view: routine [
+	on-change-facet: routine [
 		owner  [object!]
 		word   [word!]
 		value  [any-type!]
@@ -197,7 +219,7 @@ system/view/platform: context [
 		index  [integer!]
 		part   [integer!]
 	][
-		OS-change-view owner word value action index part
+		gui/OS-update-facet owner word value action index part
 	]
 	
 	close-view:  routine [face [object!]][

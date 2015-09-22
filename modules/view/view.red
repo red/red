@@ -36,6 +36,8 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: func [w o n][
+		;if w = 'type [cause-error 'script 'locked-word [type]]
+		
 		if all [state w <> 'state][
 			state/2: state/2 or system/view/platform/get-facet-id w
 		]
@@ -48,12 +50,11 @@ face!: object [				;-- keep in sync with facet! enum
 		?? index
 		?? part
 		
-		either system/view/auto-update? [
-			system/view/platform/on-deep-change owner word target action index part
-		][
-			if all [state w <> 'state][
-				state/2: state/2 or system/view/platform/get-facet-id w
-			]
+		if all [state word <> 'state][
+			state/2: state/2 or system/view/platform/get-facet-id word
+		]
+		if system/view/auto-update? [
+			system/view/platform/on-change-facet owner word target action index part
 		]
 	]
 ]

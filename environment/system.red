@@ -107,7 +107,7 @@ system: context [
 				size-limit:			["maximum limit reached:" :arg1]
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
-				;locked-word:		["protected variable - cannot modify:" :arg1]
+				locked-word:		["protected word - cannot modify:" :arg1]
 				;protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
