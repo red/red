@@ -84,7 +84,7 @@ print-line ["ownership/set, type: " type]
 	
 	check: func [
 		value  [red-value!]								;-- series or object where a change occurs
-		action [red-word!]								;-- type of change
+		action [red-word!]								;-- series: type of change, object: field
 		index  [integer!]								;-- start position of the change
 		part   [integer!]								;-- nb of values affected
 		/local
@@ -92,6 +92,7 @@ print-line ["ownership/set, type: " type]
 			slot   [red-value!]
 			parent [red-value!]
 			owner  [red-object!]
+			ctx	   [red-context!]
 			series [red-series!]
 			word   [red-word!]
 			type   [integer!]
@@ -109,6 +110,14 @@ print-line ["ownership/set, type: " type]
 			true [assert false]
 		]
 		slot: _hashtable/get-value table as-integer node
+		
+		if all [null? slot type = TYPE_OBJECT][
+			ctx: GET_CTX(owner)
+			if ctx/header and flag-owner <> 0 [			;-- test if object is an owner
+				value: as red-value! owner
+				word: action
+			]
+		]
 		
 		unless null? slot [
 			parent: slot

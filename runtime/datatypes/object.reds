@@ -15,9 +15,18 @@ object: context [
 	
 	class-id: 1'000'000									;-- base ID for dynamically created objects
 	
+	path-parent:  declare red-object!					;-- temporary save parent object for eval-path action
+	field-parent: declare red-word!						;-- temporary save obj's field for eval-path action
+	
 	get-new-id: func [return: [integer!]][				;@@ protect from concurrent accesses
 		class-id: class-id + 1
 		class-id
+	]
+	
+	check-owner: does [
+		if TYPE_OF(path-parent) = TYPE_OBJECT [
+			ownership/check as red-value! path-parent field-parent -1 -1
+		]
 	]
 	
 	rs-find: func [
@@ -901,7 +910,7 @@ object: context [
 		word: as red-word! element
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
-		ctx:  GET_CTX(parent)
+		ctx: GET_CTX(parent)
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			word/index: _context/find-word ctx word/symbol yes
@@ -910,13 +919,18 @@ object: context [
 			]
 			word/ctx: parent/ctx
 		]
+		on-set?: parent/on-set <> null
+		
 		either value <> null [
-			on-set?: parent/on-set <> null
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx
 			if on-set? [fire-on-set parent as red-word! element old value]
 			value
 		][
+			if on-set? [
+				copy-cell as red-value! parent as red-value! path-parent
+				copy-cell as red-value! word   as red-value! field-parent
+			]
 			_context/get-in word ctx
 		]
 	]

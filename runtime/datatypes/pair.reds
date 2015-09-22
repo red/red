@@ -226,6 +226,7 @@ pair: context [
 			int: as red-integer! stack/arguments
 			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
+			object/check-owner
 			as red-value! int
 		][
 			int: integer/push either axis = 1 [parent/x][parent/y]

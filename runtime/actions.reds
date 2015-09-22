@@ -375,7 +375,9 @@ actions: context [
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		action-path parent element value as red-value! path case?
+		value: action-path parent element value as red-value! path case?
+		object/path-parent/header: TYPE_NONE			;-- disables owner checking
+		value
 	]
 	
 	set-path*: func [][]
