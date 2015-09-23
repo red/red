@@ -64,6 +64,7 @@ platform: context [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr prot
 	][
+		size: round-to-next size 16
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
