@@ -265,7 +265,8 @@ system/view/platform: context [
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
-		]		
+		]
+		;modify svs/1 'owner yes
 	]
 	
 	version: none

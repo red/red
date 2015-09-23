@@ -824,6 +824,24 @@ change-data: func [
 	]
 ]
 
+change-parent: func [
+	face   [red-object!]
+	parent [red-object!]
+	/local
+		hWnd [handle!]
+		bool [red-logic!]
+][
+	hWnd: get-face-handle face
+	either null? parent [
+		change-visible as-integer hWnd no
+		bool: as red-logic! get-node-facet face/ctx FACE_OBJ_VISIBLE?
+		bool/value: false
+		SetParent hWnd null
+	][
+		SetParent hWnd get-face-handle parent
+	]
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -903,7 +921,7 @@ OS-update-facet: func [
 	index  [integer!]
 	part   [integer!]
 	/local
-		sym		[integer!]
+		sym	[integer!]
 ][
 	sym: symbol/resolve facet/symbol
 	
@@ -917,6 +935,30 @@ OS-update-facet: func [
 			sym = facets/draw
 		][
 			OS-update-view face
+		]
+		sym = facets/pane [
+			sym = action/symbol 
+			case [
+				any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
+						change-parent as red-object! value null
+						0
+					]
+				]
+				any [
+					sym = words/_poke/symbol
+					sym = words/_put/symbol
+				][
+					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
+						change-parent as red-object! value face
+						0
+					]
+				]
+			]
 		]
 		sym = facets/data [
 			
