@@ -167,6 +167,17 @@ simple-io: context [
 					str			[byte-ptr!]
 					return:		[integer!]
 				]
+				WideCharToMultiByte: "WideCharToMultiByte" [
+					CodePage			[integer!]
+					dwFlags				[integer!]
+					lpWideCharStr		[c-string!]
+					cchWideChar			[integer!]
+					lpMultiByteStr		[byte-ptr!]
+					cbMultiByte			[integer!]
+					lpDefaultChar		[c-string!]
+					lpUsedDefaultChar	[integer!]
+					return:				[integer!]
+				]
 			]
 			"comdlg32.dll" stdcall [
 				GetOpenFileName: "GetOpenFileNameW" [
@@ -993,6 +1004,72 @@ simple-io: context [
 
 	#switch OS [
 		Windows [
+			BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
+				len: as int-ptr! s - 4
+				len/value >> 1
+			]
+
+			process-headers: func [
+				headers	[c-string!]
+				return: [red-hash!]
+				/local
+					len  [integer!]
+					s	 [byte-ptr!]
+					ss	 [byte-ptr!]
+					p	 [byte-ptr!]
+					mp	 [red-hash!]
+					w	 [red-value!]
+					res  [red-value!]
+					val  [red-block!]
+					new? [logic!]
+			][
+				len: WideCharToMultiByte 65001 0 headers -1 null 0 null 0
+				s: allocate len
+				ss: s
+				WideCharToMultiByte 65001 0 headers -1 s len null 0
+
+				mp: map/make-at stack/push* null 20
+				p: s
+				while [s/1 <> null-byte][
+					if s/1 = #":" [					;-- key, maybe have duplicated key
+						new?: no
+						s/1: null-byte
+						w: as red-value! word/push* symbol/make as-c-string p
+						res: map/eval-path mp w null null no
+						either TYPE_OF(res) = TYPE_NONE [
+							new?: yes
+						][
+							if TYPE_OF(res) <> TYPE_BLOCK [
+								val: block/push-only* 4
+								block/rs-append val res
+								copy-cell as cell! val res
+								stack/pop 1
+							]
+							val: as red-block! res
+						]
+
+						p: s + 2
+						until [
+							s: s + 1
+							if s/1 = #"^M" [		;-- value
+								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
+								either new? [
+									map/put mp w res no
+								][
+									block/rs-append val res
+								]
+								p: s + 2
+							]
+							s/1 = #"^M"
+						]
+						stack/pop 2
+					]
+					s: s + 1
+				]
+				free ss
+				mp
+			]
+
 			request-http: func [
 				method	[integer!]
 				url		[red-url!]
@@ -1000,6 +1077,7 @@ simple-io: context [
 				data	[red-value!]
 				binary? [logic!]
 				lines?	[logic!]
+				info?	[logic!]
 				return: [red-value!]
 				/local
 					action	[c-string!]
@@ -1020,9 +1098,12 @@ simple-io: context [
 					u-bound [integer!]
 					array	[integer!]
 					res		[red-value!]
+					blk		[red-block!]
 					len		[integer!]
 			][
 				res: as red-value! none-value
+				len: 0
+				buf-ptr: 0
 				clsid: declare tagGUID
 				async: declare tagVARIANT
 				body:  declare tagVARIANT
@@ -1096,6 +1177,17 @@ simple-io: context [
 				]
 
 				if hr >= 0 [
+					if info? [
+						blk: block/push-only* 3
+						hr: http/Status IH/ptr :len
+						if hr >= 0 [
+							integer/make-in blk len
+							hr: http/GetAllResponseHeaders IH/ptr :buf-ptr
+						]
+						if hr >= 0 [
+							block/rs-append blk as red-value! process-headers as c-string! buf-ptr
+						]
+					]
 					if method = HTTP_POST [SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr body
 				]
@@ -1110,7 +1202,6 @@ simple-io: context [
 						u-bound: 0
 						SafeArrayGetLBound array 1 :l-bound
 						SafeArrayGetUBound array 1 :u-bound
-						buf-ptr: 0
 						SafeArrayAccessData array :buf-ptr
 						len: u-bound - l-bound + 1
 						res: as red-value! either binary? [
@@ -1128,6 +1219,10 @@ simple-io: context [
 				]
 
 				if http <> null [http/Release IH/ptr]
+				if info? [
+					block/rs-append blk res
+					res: as red-value! blk
+				]
 				res
 			]
 		]
@@ -1149,6 +1244,14 @@ simple-io: context [
 						method		[integer!]
 						url			[integer!]
 						version		[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageGetResponseStatusCode: "CFHTTPMessageGetResponseStatusCode" [
+						response	[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageCopyAllHeaderFields: "CFHTTPMessageCopyAllHeaderFields" [
+						response	[integer!]
 						return:		[integer!]
 					]
 					CFHTTPMessageSetBody: "CFHTTPMessageSetBody" [

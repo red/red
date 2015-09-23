@@ -19,10 +19,8 @@ put system/codecs 'gif context [
 	encode: routine [image [image!]][]
 
 	decode: routine [data [any-type!]][
-		either TYPE_OF(data) = TYPE_BINARY [
-			stack/set-last as cell! image/load-binary as red-binary! data
-		][
-			image/make-at stack/arguments as red-string! data
+		#if OS = 'Windows [
+			stack/set-last as cell! image/decode data
 		]
 	]
 ]

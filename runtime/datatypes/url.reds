@@ -148,6 +148,7 @@ url: context [
 		seek	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		as-arg	[red-value!]
 		return:	[red-value!]
 	][
@@ -158,7 +159,7 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/request-http HTTP_GET as red-url! src null null binary? lines?
+		simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
 	]
 
 	write: func [
@@ -166,6 +167,7 @@ url: context [
 		data	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		append? [logic!]
 		part	[red-value!]
 		seek	[red-value!]
@@ -204,7 +206,7 @@ url: context [
 			action: HTTP_POST
 		]
 		
-		simple-io/request-http action as red-url! dest header data binary? lines?
+		simple-io/request-http action as red-url! dest header data binary? lines? info?
 	]
 
 	init: does [
