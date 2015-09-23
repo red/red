@@ -820,9 +820,6 @@ change-data: func [
 		type/symbol = radio [
 			set-logic-state as handle! hWnd as red-logic! data no
 		]
-		type/symbol = base [		;@@ temporary used to update draw window, remove later.
-			InvalidateRect as handle! hWnd null 1
-		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -878,6 +875,9 @@ OS-update-view: func [
 		int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 		change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 	]
+	if flags and 00020000h <> 0 [						;-- update Draw block
+		InvalidateRect as handle! hWnd null 1
+	]
 	int/value: 0										;-- reset flags
 ]
 
@@ -914,6 +914,7 @@ OS-update-facet: func [
 			sym = facets/text
 			sym = facets/enable?
 			sym = facets/visible?
+			sym = facets/draw
 		][
 			OS-update-view face
 		]

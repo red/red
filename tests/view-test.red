@@ -488,14 +488,14 @@ win/pane: reduce [
 				][
 					remove/part canvas/draw 2
 				]
-				canvas/data: data			;@@ temporary use it
-				show canvas
+				;show canvas
 			]
 		]
 	]
 ]
 
 modify drop-list 'owner yes
+modify canvas 'owner yes
 show win
 
 do-events

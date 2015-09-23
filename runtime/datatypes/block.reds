@@ -1241,6 +1241,8 @@ block: context [
 			]
 			cnt: cnt - 1
 		]
+		ownership/check as red-value! blk words/_insert blk/head part
+		
 		unless append? [
 			blk/head: blk/head + slots
 			s: GET_BUFFER(blk)
