@@ -239,7 +239,11 @@ system/view/platform: context [
 		face	[object!]
 		parent	[integer!]
 		return: [integer!]
+		/local
+			bool [red-logic!]
 	][
+		bool: as red-logic! #get system/view/auto-update?
+		if bool/value [ownership/set as red-value! face face null]
 		gui/OS-make-view face parent
 	]
 

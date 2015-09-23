@@ -494,8 +494,6 @@ win/pane: reduce [
 	]
 ]
 
-modify drop-list 'owner yes
-modify canvas 'owner yes
 show win
 
 do-events
