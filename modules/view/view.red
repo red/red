@@ -136,7 +136,7 @@ system/view: context [
 		:result
 	]
 	
-	auto-update?: yes
+	auto-update?: no
 	debug?: yes
 ]
 

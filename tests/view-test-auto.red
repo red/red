@@ -1,8 +1,10 @@
 Red [
+	Purpose: "Test the GUI auto-update mode"
 	Needs: 'View
 ]
 
 system/view/debug?: yes
+system/view/auto-update?: yes
 
 workstation?: system/view/platform/product = 1
 
@@ -106,7 +108,6 @@ button: make face! [
 			face/size: face/size + (5x5 - random 10x10)
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
-			show win
 			remove back tail drop-list/data
 		]
 	]
@@ -488,7 +489,6 @@ win/pane: reduce [
 				][
 					remove/part canvas/draw 2
 				]
-				show canvas
 			]
 		]
 	]
