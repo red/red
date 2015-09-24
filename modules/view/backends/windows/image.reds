@@ -84,20 +84,26 @@ init-image: func [
 		str  [red-string!]
 		tail [red-string!]
 ][
-	if TYPE_OF(img) <> TYPE_IMAGE [
-		if any [
-			TYPE_OF(data) = TYPE_BLOCK
-			TYPE_OF(data) = TYPE_HASH
-			TYPE_OF(data) = TYPE_MAP
-		][
-			str:  as red-string! block/rs-head data
-			tail: as red-string! block/rs-tail data
-			while [str < tail][
-				if TYPE_OF(str) = TYPE_FILE [
-					image/make-at as red-value! img str
+	if any [
+		TYPE_OF(data) = TYPE_BLOCK
+		TYPE_OF(data) = TYPE_HASH
+		TYPE_OF(data) = TYPE_MAP
+	][
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+		while [str < tail][
+			switch TYPE_OF(str) [
+				TYPE_URL   [
+					copy-cell
+						as cell! image/load-binary as red-binary!
+							simple-io/request-http HTTP_GET as red-url! str null null yes no
+						as cell! img
 				]
-				str: str + 1
+				TYPE_FILE  [image/make-at as red-value! img str]
+				TYPE_IMAGE [copy-cell as cell! str as cell! img]
+				default [0]
 			]
+			str: str + 1
 		]
 	]
 	SetWindowLong hWnd wc-offset - 4 make-image-dc hWnd img

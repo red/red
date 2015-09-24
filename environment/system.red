@@ -208,7 +208,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  context []
+	codecs:  make map! 8
 	schemes: context []
 	ports:	 context []
 	
@@ -236,7 +236,7 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			none
+		path: 			what-dir
 		script: 		none
 		args: 			none
 		do-arg: 		none

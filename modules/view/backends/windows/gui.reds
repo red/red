@@ -29,6 +29,10 @@ current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		64										;-- offset to our 16 bytes
 
+clean-up: does [
+	current-msg: null
+]
+
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
@@ -267,8 +271,6 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
-
-	CoInitializeEx 0 COINIT_APARTMENTTHREADED
 ]
 
 set-logic-state: func [
@@ -758,6 +760,7 @@ change-offset: func [
 change-text: func [
 	hWnd [integer!]
 	str  [red-string!]
+	type [red-word!]
 	/local
 		text [c-string!]
 ][
@@ -767,7 +770,12 @@ change-text: func [
 		TYPE_NONE	[text: #u16 "^@"]
 		default		[0]									;@@ Auto-convert?
 	]
-	unless null? text [SetWindowText as handle! hWnd text]
+	unless null? text [
+		if type/symbol = group-box [
+			hWnd: GetWindowLong as handle! hWnd wc-offset - 4
+		]
+		SetWindowText as handle! hWnd text
+	]
 ]
 
 change-visible: func [
@@ -804,21 +812,32 @@ change-data: func [
 	data [red-value!]
 	type [red-word!]
 	/local
-		f [red-float!]
+		h		[handle!]
+		f		[red-float!]
+		values	[red-value!]
 ][
+	h: as handle! hWnd
 	case [
 		all [
 			type/symbol = progress
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
-			SendMessage as handle! hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
+			SendMessage h PBM_SETPOS float/to-integer f/value * 100.0 0
 		]
 		type/symbol = check [
-			set-logic-state as handle! hWnd as red-logic! data yes
+			set-logic-state h as red-logic! data yes
 		]
 		type/symbol = radio [
-			set-logic-state as handle! hWnd as red-logic! data no
+			set-logic-state h as red-logic! data no
+		]
+		type/symbol = base [		;@@ temporary used to update draw window, remove later.
+			InvalidateRect h null 1
+		]
+		type/symbol = _image [
+			values: get-face-values h
+			init-image h as red-block! data as red-image! values + FACE_OBJ_IMAGE
+			InvalidateRect h null 1
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -873,7 +892,10 @@ OS-update-view: func [
 		change-size hWnd as red-pair! values + gui/FACE_OBJ_SIZE
 	]
 	if flags and 00000008h <> 0 [
-		change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
+		change-text
+			hWnd
+			as red-string! values + gui/FACE_OBJ_TEXT
+			as red-word! values + gui/FACE_OBJ_TYPE
 	]
 	if flags and 00000080h <> 0 [
 		change-data
@@ -910,7 +932,7 @@ OS-close-view: func [
 	screen: as red-object! block/rs-head as red-block! #get system/view/screens
 	pane: as red-block! get-node-facet screen/ctx FACE_OBJ_PANE
 	assert TYPE_OF(pane) = TYPE_BLOCK
-	if zero? block/rs-length? pane [PostQuitMessage 0]
+	if zero? block/rs-length? pane [clean-up PostQuitMessage 0]
 ]
 
 OS-update-facet: func [

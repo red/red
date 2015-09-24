@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series!]
+		series [series! map!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH

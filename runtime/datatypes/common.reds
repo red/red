@@ -63,9 +63,11 @@ alloc-tail-unit: func [
 	return:  [byte-ptr!]
 	/local 
 		p	 [byte-ptr!]
+		size [integer!]
 ][
 	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
-		s: expand-series s 0
+		size: either unit > s/size [unit << 1][0]
+		s: expand-series s size
 	]
 	
 	p: as byte-ptr! s/tail
@@ -382,7 +384,11 @@ words: context [
 	put:			-1
 	post:			-1
 	head:			-1
-	
+
+	size:			-1
+	rgb:			-1
+	alpha:			-1
+
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -538,6 +544,10 @@ words: context [
 		put:			symbol/make "put"
 		post:			symbol/make "post"
 		head:			symbol/make "head"
+
+		size:			symbol/make "size"
+		rgb:			symbol/make "rgb"
+		alpha:			symbol/make "alpha"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

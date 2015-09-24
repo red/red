@@ -183,9 +183,7 @@ simple-io: context [
 		#define O_RDONLY	0
 		#define O_WRONLY	1
 		#define O_RDWR		2
-		#define O_BINARY	4
-
-		#define O_CREAT		64
+		#define O_BINARY	0
 
 		#define S_IREAD		256
 		#define S_IWRITE    128
@@ -194,6 +192,21 @@ simple-io: context [
 		#define S_IROTH		4
 
 		#define	DT_DIR		#"^(04)"
+
+		#case [
+			any [OS = 'FreeBSD OS = 'MacOSX] [
+				#define O_CREAT		0200h
+				#define O_TRUNC		0400h
+				#define O_EXCL		0800h
+				#define O_APPEND	8
+			]
+			true [
+				#define O_CREAT		64
+				#define O_EXCL		128
+				#define O_TRUNC		512
+				#define O_APPEND	1024
+			]
+		]
 
 		#case [
 			OS = 'FreeBSD [
@@ -525,6 +538,11 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
+				modes: either mode and RIO_APPEND <> 0 [
+					modes or O_APPEND
+				][
+					modes or O_TRUNC
+				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
 			file: _open filename modes access
@@ -602,9 +620,38 @@ simple-io: context [
 		]
 	]
 
+	lines-to-block: func [
+		src		[byte-ptr!]					;-- UTF-8 input buffer
+		size	[integer!]					;-- size of src in bytes (excluding terminal NUL)
+		return: [red-block!]
+		/local
+			blk		[red-block!]
+			start	[byte-ptr!]
+			end		[byte-ptr!]
+	][
+		blk: block/push-only* 1
+		if zero? size [return blk]
+
+		start: src
+		until [
+			if src/1 = lf [
+				end: src - 1
+				if end/1 <> cr [end: src]
+				string/load-in as-c-string start as-integer end - start blk UTF-8
+				start: src + 1
+			]
+			size: size - 1
+			src: src + 1
+			zero? size
+		]
+		if start <> src [string/load-in as-c-string start as-integer src - start blk UTF-8]
+		blk
+	]
+
 	read-file: func [
 		filename [c-string!]
 		binary?	 [logic!]
+		lines?	 [logic!]
 		unicode? [logic!]
 		return:	 [red-value!]
 		/local
@@ -638,12 +685,14 @@ simple-io: context [
 		val: as red-value! either binary? [
 			binary/load buffer size
 		][
-			str: as red-string! stack/push*
-			str/header: TYPE_STRING							;-- implicit reset of all header flags
-			str/head: 0
-			str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-			str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
-			str
+			either lines? [lines-to-block buffer size][
+				str: as red-string! stack/push*
+				str/header: TYPE_STRING							;-- implicit reset of all header flags
+				str/head: 0
+				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
+				str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
+				str
+			]
 		]
 		free buffer
 		val
@@ -787,6 +836,7 @@ simple-io: context [
 	read: func [
 		filename [red-file!]
 		binary?	 [logic!]
+		lines?	 [logic!]
 		return:	 [red-value!]
 		/local
 			data [red-value!]
@@ -795,7 +845,7 @@ simple-io: context [
 			return as red-value! read-dir filename
 		]
 
-		data: read-file to-OS-path filename binary? yes
+		data: read-file to-OS-path filename binary? lines? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
@@ -949,6 +999,7 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
 					action	[c-string!]
@@ -1045,7 +1096,7 @@ simple-io: context [
 				]
 
 				if hr >= 0 [
-					SysFreeString bstr-d
+					if method = HTTP_POST [SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr body
 				]
 
@@ -1065,7 +1116,11 @@ simple-io: context [
 						res: as red-value! either binary? [
 							binary/load as byte-ptr! buf-ptr len
 						][
-							string/load as c-string! buf-ptr len UTF-8
+							either lines? [
+								lines-to-block as byte-ptr! buf-ptr len
+							][
+								string/load as c-string! buf-ptr len UTF-8
+							]
 						]
 						SafeArrayUnaccessData array
 					]
@@ -1110,10 +1165,6 @@ simple-io: context [
 						request		[integer!]
 						return:		[integer!]
 					]
-					CFURLCopyHostName: "CFURLCopyHostName" [
-						url			[integer!]
-						return:		[integer!]
-					]
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 					CFReadStreamOpen: "CFReadStreamOpen" [
@@ -1141,6 +1192,20 @@ simple-io: context [
 						encoding	[integer!]
 						return:		[integer!]
 					]
+					CFURLCreateStringByAddingPercentEscapes: "CFURLCreateStringByAddingPercentEscapes" [
+						allocator	[integer!]
+						cf-str		[integer!]
+						unescaped	[integer!]
+						escaped		[integer!]
+						encoding	[integer!]
+						return:		[integer!]
+					]
+					CFReadStreamSetProperty: "CFReadStreamSetProperty" [
+						stream		[integer!]
+						name		[integer!]
+						value		[integer!]
+						return:		[integer!]
+					]
 					CFRelease: "CFRelease" [
 						cf			[integer!]
 					]
@@ -1158,22 +1223,25 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
-					len		[integer!]
-					action	[c-string!]
-					cf-url	[integer!]
-					req		[integer!]
-					body	[integer!]
-					buf		[byte-ptr!]
-					datalen [integer!]
-					cf-key	[integer!]
-					cf-val	[integer!]
-					value	[red-value!]
-					tail	[red-value!]
-					s		[series!]
-					bin		[red-binary!]
-					stream	[integer!]
+					len			[integer!]
+					action		[c-string!]
+					raw-url		[integer!]
+					escaped-url [integer!]
+					cf-url		[integer!]
+					req			[integer!]
+					body		[integer!]
+					buf			[byte-ptr!]
+					datalen		[integer!]
+					cf-key		[integer!]
+					cf-val		[integer!]
+					value		[red-value!]
+					tail		[red-value!]
+					s			[series!]
+					bin			[red-binary!]
+					stream		[integer!]
 			][
 				switch method [
 					HTTP_GET  [action: "GET"]
@@ -1184,11 +1252,13 @@ simple-io: context [
 
 				body: 0
 				len: -1
-				url-ptr: CFString((unicode/to-utf8 as red-string! url :len))
-				cf-url: CFURLCreateWithString 0 url-ptr 0
+				raw-url: CFString((unicode/to-utf8 as red-string! url :len))
+				escaped-url: CFURLCreateStringByAddingPercentEscapes 0 raw-url 0 0 kCFStringEncodingUTF8
+				cf-url: CFURLCreateWithString 0 escaped-url 0
 
 				req: CFHTTPMessageCreateRequest 0 CFSTR(action) cf-url CFSTR("HTTP/1.1")
-				CFRelease url-ptr
+				CFRelease raw-url
+				CFRelease escaped-url
 
 				if zero? req [fire [TO_ERROR(access no-connect) url]]
 
@@ -1225,6 +1295,8 @@ simple-io: context [
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [fire [TO_ERROR(access no-connect) url]]
+
+				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
@@ -1246,8 +1318,12 @@ simple-io: context [
 				unless binary? [
 					buf: binary/rs-head bin
 					len: binary/rs-length? bin
-					bin/header: TYPE_STRING
-					bin/node: unicode/load-utf8 as c-string! buf len
+					either lines? [
+						bin: as red-binary! lines-to-block buf len
+					][
+						bin/header: TYPE_STRING
+						bin/node: unicode/load-utf8 as c-string! buf len
+					]
 				]
 				as red-value! bin
 			]
@@ -1258,6 +1334,7 @@ simple-io: context [
 			#define CURLOPT_HTTPGET			80
 			#define CURLOPT_POSTFIELDSIZE	60
 			#define CURLOPT_NOPROGRESS		43
+			#define CURLOPT_FOLLOWLOCATION	52
 			#define CURLOPT_POSTFIELDS		10015
 			#define CURLOPT_WRITEDATA		10001
 			#define CURLOPT_HTTPHEADER		10023
@@ -1328,6 +1405,7 @@ simple-io: context [
 				header	[red-block!]
 				data	[red-value!]
 				binary? [logic!]
+				lines?	[logic!]
 				return: [red-value!]
 				/local
 					len		[integer!]
@@ -1364,6 +1442,7 @@ simple-io: context [
 				
 				curl_easy_setopt curl CURLOPT_URL as-integer unicode/to-utf8 as red-string! url :len
 				curl_easy_setopt curl CURLOPT_NOPROGRESS 1
+				curl_easy_setopt curl CURLOPT_FOLLOWLOCATION 1
 				
 				curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 				curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
@@ -1415,8 +1494,12 @@ simple-io: context [
 				unless binary? [
 					buf: binary/rs-head bin
 					len: binary/rs-length? bin
-					bin/header: TYPE_STRING
-					bin/node: unicode/load-utf8 as c-string! buf len
+					either lines? [
+						bin: as red-binary! lines-to-block buf len
+					][
+						bin/header: TYPE_STRING
+						bin/node: unicode/load-utf8 as c-string! buf len
+					]
 				]
 				as red-value! bin
 			]

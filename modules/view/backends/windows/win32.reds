@@ -313,6 +313,10 @@ Red/System [
 #define	GDIPLUS_HIGHSPPED			1
 #define	GDIPLUS_ANTIALIAS			4
 #define GDIPLUS_UNIT_WORLD			0
+#define GDIPLUS_UNIT_DISPLAY		1
+#define GDIPLUS_UNIT_PIXEL			2
+#define GDIPLUS_UNIT_POINT			3
+#define GDIPLUS_UNIT_INCH			4
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
 
@@ -856,6 +860,11 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
+		LoadIcon: "LoadIconW" [
+			hInstance	[handle!]
+			lpIconName	[c-string!]
+			return:		[handle!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		ExtTextOut: "ExtTextOutW" [
@@ -1289,6 +1298,23 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipSetPenEndCap: "GdipSetPenEndCap" [
 			pen			[integer!]
 			style		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawImageRectRectI: "GdipDrawImageRectRectI" [
+			graphics	[integer!]
+			image		[integer!]
+			dstx		[integer!]
+			dsty		[integer!]
+			dstwidth	[integer!]
+			dstheight	[integer!]
+			srcx		[integer!]
+			srcy		[integer!]
+			srcwidth	[integer!]
+			srcheight	[integer!]
+			srcUnit		[integer!]
+			attribute	[integer!]
+			callback	[integer!]
+			data		[integer!]
 			return:		[integer!]
 		]
 	]

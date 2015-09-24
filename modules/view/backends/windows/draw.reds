@@ -775,3 +775,35 @@ OS-draw-line-cap: func [
 		update-pen dc PEN_LINE_CAP
 	]
 ]
+
+OS-draw-image: func [
+	dc			[handle!]
+	image		[red-image!]
+	rect		[red-pair!]
+	key-color	[red-tuple!]
+	border?		[logic!]
+	pattern		[red-word!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		width	[integer!]
+		height	[integer!]
+][
+	x: rect/x
+	y: rect/y
+	rect: rect + 1
+	either TYPE_OF(rect) <> TYPE_PAIR [
+		width:  IMAGE_WIDTH(image/size)
+		height: IMAGE_HEIGHT(image/size)
+	][
+		width: rect/x - x
+		height: rect/y - y
+	]
+	GdipDrawImageRectRectI
+		modes/graphics
+		as-integer image/node
+		x y width height
+		0 0 IMAGE_WIDTH(image/size) IMAGE_HEIGHT(image/size)
+		GDIPLUS_UNIT_PIXEL
+		0 0 0
+]

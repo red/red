@@ -245,17 +245,38 @@ parse-trace: func [
 	]
 ]
 
+suffix?: function [
+	{Return the file suffix of a filename or url. Else, NONE.}
+	path [file! url! string!]
+][
+	if all [
+		path: find/last path #"."
+		not find path #"/"
+	][to file! path]
+]
+
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
-	source [file! url! string!]
+	source [file! url! string! binary!]
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
-	/type	"TBD:"
 	/part
 		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
+	/as   "Specify the type of data; use NONE to load as code"
+		type [word! none!] "E.g. json, html, jpeg, png, etc"
 ][
+	if as [
+		if word? type [
+			either codec: select system/codecs type [
+				return do [codec/decode source]
+			][
+				return none
+			]
+		]
+	]
+
 	if part [
 		case [
 			zero? length [return make block! 1]
@@ -269,8 +290,19 @@ load: function [
 	
 	unless out [out: make block! 4]
 	switch/default type?/word source [
-		file!	[source: read source]
-		url!	[source]
+		file!	[
+			suffix: suffix? source
+			foreach [name codec] system/codecs [
+				if find codec/suffixes suffix [
+					return do [codec/decode source]
+				]
+			]
+			source: read source
+		]
+		url!	[
+			;-- TBD search codec in `system/codec`, need to parse http header
+			source: read source
+		]
 		binary! [source]
 	][source]
 
@@ -366,6 +398,14 @@ to-red-file: func [
 		insert dst path
 	]
 	dst
+]
+
+dir?: func [file [file!]][#"/" = last file]
+
+what-dir: func [/local path][
+	path: to-red-file get-current-dir
+	unless dir? path [append path #"/"]
+	path
 ]
 
 ;------------------------------------------

@@ -530,37 +530,44 @@ alloc-series-buffer: func [
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer (in bytes)
 	return: [series-buffer!]				;-- return the new series buffer
-	/local series size frame sz
+	/local 
+		series	 [series-buffer!]
+		frame	 [series-frame!]
+		size	 [integer!]
+		sz		 [integer!]
+		flag-big [integer!]
 ][
 	assert positive? usize
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
+	flag-big: 0
 
 	series: frame/heap
+	
 	if ((as byte-ptr! series) + sz) >= frame/tail [
 		; TBD: trigger a GC pass from here and update memory/s-active
 		if sz >= memory/s-size [				;@@ temporary checks
 			memory/s-size: memory/s-max
 		]
-		if sz >= memory/s-max [				;@@ temporary checks
-			print-line "Memory error: series too big!"
-			throw RED_THROWN_ERROR
-		]
+		assert sz < _16MB					;-- max series size allowed in a series frame @@
 		frame: alloc-series-frame
 		memory/s-active: frame				;@@ to be removed once GC implemented
 		series: frame/heap
 	]
-	
-	assert sz < _16MB						;-- max series size allowed in a series frame @@
-	
-	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
-
+	either sz >= memory/s-max [
+		;print-line "Memory error: series too big!"
+		;throw RED_THROWN_ERROR
+		series: as series-buffer! alloc-big sz
+		flag-big: flag-series-big
+		
+	][
+		frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
+	]
+		
 	series/size: size
-	series/flags: unit
-		or series-in-use 					;-- mark series as in-use
-		and not flag-series-big				;-- set type bit to 0 (= series)
+	series/flags: unit or series-in-use or flag-big
 
 	either offset = default-offset [
 		offset: size >> 1					;-- target middle of buffer
@@ -695,7 +702,11 @@ expand-series: func [
 	series  [series-buffer!]				;-- series to expand
 	new-sz	[integer!]						;-- new size in bytes
 	return: [series-buffer!]				;-- return new series with new size
-	/local new units delta
+	/local
+		new	  [series-buffer!]
+		units [integer!]
+		delta [integer!]
+		big?  [logic!]
 ][
 	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
 	
@@ -706,16 +717,10 @@ expand-series: func [
 	]
 	units: GET_UNIT(series)
 	
-	if zero? new-sz [
-		new-sz: series/size * 2				;-- by default, alloc twice the old size
-		if new-sz >= _2MB [
-			print-line "Memory error: allocate memory > 2MB (--NOT_IMPLEMENTED--)"
-			throw RED_THROWN_ERROR
-			;TBD: alloc big
-		]
-	]
+	if zero? new-sz [new-sz: series/size * 2]	;-- by default, alloc twice the old size
 
 	new: alloc-series-buffer new-sz / units units 0
+	big?: new/flags and flag-series-big <> 0
 	
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
@@ -723,6 +728,8 @@ expand-series: func [
 	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
+	
+	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
 	copy-memory 							;-- copy old series in new buffer
@@ -790,9 +797,12 @@ copy-series: func [
 ;-- Allocate a big series
 ;-------------------------------------------
 alloc-big: func [
-	size [integer!]							;-- buffer size to allocate (in bytes)
+	size	[integer!]						;-- buffer size to allocate (in bytes)
 	return: [byte-ptr!]						;-- return allocated buffer pointer
-	/local sz frame frm
+	/local 
+		sz	  [integer!]
+		frame [big-frame!]
+		frm	  [big-frame!]
 ][
 	assert positive? size
 	assert size >= _2MB						;-- should be bigger than a series frame

@@ -14,6 +14,8 @@ Red/System [
 #define __LC_CTYPE 0
 #define __LC_ALL   6
 
+#define RTLD_LAZY	1
+
 #import [
 	LIBC-file cdecl [
 		wprintf: "wprintf" [
@@ -24,6 +26,16 @@ Red/System [
 			category	[integer!]
 			locale		[c-string!]
 			return:		[c-string!]
+		]
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
+		]
+		getcwd: "getcwd" [
+			buf		[byte-ptr!]
+			size	[integer!]
+			return: [byte-ptr!]
 		]
 	]
 ]
@@ -212,4 +224,16 @@ prin-float*: func [f [float!] return: [float!]][
 prin-float32*: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
+]
+
+get-current-dir: func [
+	len		[int-ptr!]
+	return: [c-string!]
+	/local
+		path [byte-ptr!]
+][
+	path: allocate 4096
+	if null? getcwd path 4095 [path/1: #"^@"]
+	len/value: length? as c-string! path
+	as c-string! path
 ]

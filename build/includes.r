@@ -28,6 +28,12 @@ write %build/bin/sources.r set-cache [
 		%routines.red
 		%scalars.red
 		%system.red
+		%codecs/ [
+			%bmp.red
+			%gif.red
+			%jpeg.red
+			%png.red
+		]
 		%console/ [
 			%console.red
 			%help.red
@@ -159,6 +165,7 @@ write %build/bin/sources.r set-cache [
 			%secure-clean-path.r
 			%virtual-struct.r
 			%profiler.r
+			%unicode.r
 		]
 	]
 ]

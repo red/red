@@ -443,7 +443,7 @@ natives: context [
 					interpreter/eval as red-block! arg yes
 				]
 				TYPE_FILE [
-					str: as red-string! simple-io/read as red-file! arg no
+					str: as red-string! simple-io/read as red-file! arg no no
 					#call [system/lexer/transcode str none]
 					interpreter/eval as red-block! arg yes
 				]
@@ -1728,7 +1728,7 @@ natives: context [
 	][
 		f: argument-as-float
 		val: f/value
-		if radians < 0 [degree-to-radians val type]
+		if radians < 0 [val: degree-to-radians val type]
 		f/value: val
 		f
 	]
@@ -1824,10 +1824,12 @@ natives: context [
 			v		[red-value!]
 			blk		[red-block!]
 			i		[integer!]
+			type	[integer!]
 			block?	[logic!]
 	][
 		i: 1
-		block?: TYPE_OF(value) = TYPE_BLOCK
+		type: TYPE_OF(value)
+		block?: any [type = TYPE_BLOCK type = TYPE_HASH type = TYPE_MAP]
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
@@ -1867,6 +1869,7 @@ natives: context [
 		type: TYPE_OF(series)
 		assert any [									;@@ replace with any-block?/any-string? check
 			type = TYPE_BLOCK
+			type = TYPE_HASH
 			type = TYPE_PAREN
 			type = TYPE_PATH
 			type = TYPE_GET_PATH
@@ -1876,6 +1879,7 @@ natives: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 			type = TYPE_VECTOR
+			type = TYPE_BINARY
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1886,6 +1890,7 @@ natives: context [
 				type = TYPE_FILE
 				type = TYPE_URL
 				type = TYPE_VECTOR
+				type = TYPE_BINARY
 			][
 				set-many-string blk as red-string! series size
 			][
@@ -1908,6 +1913,7 @@ natives: context [
 
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_HASH
 			TYPE_OF(series) = TYPE_PAREN
 			TYPE_OF(series) = TYPE_PATH
 			TYPE_OF(series) = TYPE_GET_PATH
@@ -1917,6 +1923,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
 			TYPE_OF(series) = TYPE_VECTOR
+			TYPE_OF(series) = TYPE_BINARY
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -1957,6 +1964,7 @@ natives: context [
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_HASH
 			TYPE_OF(series) = TYPE_PAREN
 			TYPE_OF(series) = TYPE_PATH
 			TYPE_OF(series) = TYPE_GET_PATH
@@ -1965,6 +1973,8 @@ natives: context [
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
+			TYPE_OF(series) = TYPE_VECTOR
+			TYPE_OF(series) = TYPE_BINARY
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 

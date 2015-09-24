@@ -1343,8 +1343,6 @@ red: context [
 	]
 	
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
-		emit [stack/reset]
-
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
@@ -4089,21 +4087,23 @@ red: context [
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
-		/local time src
+		/local time src resources
 	][
 		verbose: opts/verbosity
 		job: opts
 		clean-up
 		main-path: first split-path file
 		no-global?: job/type = 'dll
-		
+		resources: make block! 8
+
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
 			process-needs src/1 next src
+			system-dialect/collect-resources src/1 resources file
 			src: next src
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
-		reduce [output time redbin/buffer]
+		reduce [output time redbin/buffer resources]
 	]
 ]

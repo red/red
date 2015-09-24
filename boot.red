@@ -16,7 +16,12 @@ Red [
 #include %environment/routines.red
 #include %environment/scalars.red
 #include %environment/colors.red
+#include %environment/functions.red
 #include %environment/system.red
 #include %environment/lexer.red
-#include %environment/functions.red
 #include %environment/operators.red
+
+#include %environment/codecs/png.red
+#include %environment/codecs/jpeg.red
+#include %environment/codecs/bmp.red
+#include %environment/codecs/gif.red

@@ -218,7 +218,7 @@ file: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/read as red-file! src binary?
+		simple-io/read as red-file! src binary? lines?
 	]
 
 	write: func [

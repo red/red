@@ -130,8 +130,9 @@ url: context [
 		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
 			
 		switch type/value [
+			TYPE_FILE
 			TYPE_STRING [
-				set-type copy-cell as cell! spec as cell! type TYPE_STRING
+				set-type copy-cell as cell! spec as cell! type type/value
 			]
 			default [
 				fire [TO_ERROR(script bad-to-arg) type spec]
@@ -157,7 +158,7 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/request-http HTTP_GET as red-url! src null null binary?
+		simple-io/request-http HTTP_GET as red-url! src null null binary? lines?
 	]
 
 	write: func [
@@ -203,7 +204,7 @@ url: context [
 			action: HTTP_POST
 		]
 		
-		simple-io/request-http action as red-url! dest header data binary?
+		simple-io/request-http action as red-url! dest header data binary? lines?
 	]
 
 	init: does [

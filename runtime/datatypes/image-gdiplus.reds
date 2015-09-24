@@ -51,6 +51,8 @@ Red/System [
 #define GL_LUMINANCE                      1909h
 #define GL_LUMINANCE_ALPHA                190Ah
 
+#define GMEM_MOVEABLE	2
+
 #define GpBitmap!	int-ptr!
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
@@ -76,13 +78,17 @@ BitmapData!: alias struct! [
 		GlobalAlloc: "GlobalAlloc" [
 			flags		[integer!]
 			size		[integer!]
-			return:		[int-ptr!]
+			return:		[integer!]
 		]
 		GlobalFree: "GlobalFree" [
 			hMem		[integer!]
 			return:		[integer!]
 		]
 		GlobalLock: "GlobalLock" [
+			hMem		[integer!]
+			return:		[byte-ptr!]
+		]
+		GlobalUnlock: "GlobalUnlock" [
 			hMem		[integer!]
 			return:		[integer!]
 		]
@@ -114,6 +120,20 @@ BitmapData!: alias struct! [
 			data		[BitmapData!]
 			return:		[integer!]
 		]
+		GdipBitmapGetPixel: "GdipBitmapGetPixel" [
+			bitmap		[integer!]
+			x			[integer!]
+			y			[integer!]
+			argb		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipBitmapSetPixel: "GdipBitmapSetPixel" [
+			bitmap		[integer!]
+			x			[integer!]
+			y			[integer!]
+			argb		[integer!]
+			return:		[integer!]
+		]
 		GdipGetImageWidth: "GdipGetImageWidth" [
 			image		[integer!]
 			width		[int-ptr!]
@@ -122,6 +142,29 @@ BitmapData!: alias struct! [
 		GdipGetImageHeight: "GdipGetImageHeight" [
 			image		[integer!]
 			height		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCreateBitmapFromScan0: "GdipCreateBitmapFromScan0" [
+			width		[integer!]
+			height		[integer!]
+			stride		[integer!]
+			format		[integer!]
+			scan0		[byte-ptr!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCreateBitmapFromStream: "GdipCreateBitmapFromStream" [
+			stream		[integer!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDisposeImage: "GdipDisposeImage" [
+			image		[integer!]
+			return:		[integer!]
+		]
+		GdipGetImagePixelFormat: "GdipGetImagePixelFormat" [
+			image		[integer!]
+			format		[int-ptr!]
 			return:		[integer!]
 		]
 	]
@@ -149,9 +192,9 @@ height?: func [
 	height
 ]
 
-get-data: func [
+lock-bitmap: func [
 	handle		[integer!]
-	return:		[int-ptr!]
+	return:		[integer!]
 	/local
 		rect	[RECT!]
 		data	[BitmapData!]
@@ -162,32 +205,56 @@ get-data: func [
 	rect/top: 0
 	rect/right: width? handle
 	rect/bottom: height? handle
-	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppPARGB data
-	as int-ptr! data
+	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppARGB data
+	as-integer data
 ]
 
-update-data: func [
+unlock-bitmap: func [
 	handle		[integer!]
-	data		[int-ptr!]
+	data		[integer!]
 ][
 	GdipBitmapUnlockBits handle as BitmapData! data
 	free as byte-ptr! data
 ]
 
-get-pixel: func [
-	data		[int-ptr!]
-	x			[integer!]
-	y			[integer!]
-	return:		[integer!]
+get-data: func [
+	handle		[integer!]
+	stride		[int-ptr!]
+	return:		[int-ptr!]
 	/local
 		bitmap	[BitmapData!]
 		buf		[int-ptr!]
-		pos		[integer!]
 ][
-	bitmap: as BitmapData! data
-	pos: y * bitmap/stride + x
-	buf: as int-ptr! bitmap/scan0
-	buf/pos
+	bitmap: as BitmapData! handle
+	stride/value: bitmap/stride
+	as int-ptr! bitmap/scan0
+]
+
+get-pixel: func [
+	bitmap		[integer!]
+	index		[integer!]				;-- zero-based
+	return:		[integer!]
+	/local
+		width	[integer!]
+		arbg	[integer!]
+][
+	width: width? bitmap
+	arbg: 0
+	GdipBitmapGetPixel bitmap index % width index / width :arbg
+	arbg
+]
+
+set-pixel: func [
+	bitmap		[integer!]
+	index		[integer!]				;-- zero-based
+	color		[integer!]
+	return:		[integer!]
+	/local
+		width	[integer!]
+		arbg	[integer!]
+][
+	width: width? bitmap
+	GdipBitmapSetPixel bitmap index % width index / width color
 ]
 
 load-image: func [
@@ -201,4 +268,73 @@ load-image: func [
 	res: GdipCreateBitmapFromFile filename :handle
 	unless zero? res [platform/error-msg res]
 	handle
+]
+
+make-image: func [
+	width	[integer!]
+	height	[integer!]
+	rgb		[byte-ptr!]
+	alpha	[byte-ptr!]
+	return: [integer!]
+	/local
+		a		[integer!]
+		r		[integer!]
+		b		[integer!]
+		g		[integer!]
+		x		[integer!]
+		y		[integer!]
+		data	[BitmapData!]
+		scan0	[int-ptr!]
+		bitmap	[integer!]
+		pos		[integer!]
+][
+	bitmap: 0
+	GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
+	data: as BitmapData! lock-bitmap bitmap
+	scan0: as int-ptr! data/scan0
+
+	unless null? rgb [
+		y: 0
+		while [y < height][
+			x: 0
+			while [x < width][
+				pos: data/stride >> 2 * y + x + 1
+				a: either null? alpha [0][as-integer alpha/1]
+				r: as-integer rgb/1
+				b: as-integer rgb/2
+				g: as-integer rgb/3
+				scan0/pos: r << 16 or (b << 8) or g or (a << 24)
+				rgb: rgb + 3
+				alpha: alpha + 1
+				x: x + 1
+			]
+			y: y + 1
+		]
+	]
+
+	unlock-bitmap bitmap as-integer data
+	bitmap
+]
+
+OS-load-binary: func [
+	data	[byte-ptr!]
+	len		[integer!]
+	return: [integer!]
+	/local
+		hMem [integer!]
+		p	 [byte-ptr!]
+		hr	 [integer!]
+		s	 [integer!]
+		bmp  [integer!]
+][
+	hMem: GlobalAlloc GMEM_MOVEABLE len
+	p: GlobalLock hMem
+	copy-memory p data len
+	GlobalUnlock hMem
+
+	s: 0
+	bmp: 0
+	hr: CreateStreamOnHGlobal hMem true :s
+	GdipCreateBitmapFromStream s :bmp
+	bmp
 ]
