@@ -1518,8 +1518,18 @@ simple-io: context [
 				bin: binary/make-at stack/push* 4096
 				until [
 					len: CFReadStreamRead stream buf 4096
-					if len > 0 [
+					either len > 0 [
 						binary/rs-append bin buf len
+					][
+						if negative? len [
+							free buf
+							CFReadStreamClose stream
+							unless zero? body [CFRelease body]
+							CFRelease cf-url
+							CFRelease req
+							CFRelease stream
+							return none-value
+						]
 					]
 					len <= 0
 				]
