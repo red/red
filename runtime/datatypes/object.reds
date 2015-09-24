@@ -519,6 +519,7 @@ object: context [
 	extend: func [
 		ctx		[red-context!]
 		spec	[red-context!]
+		obj		[red-object!]
 		return: [logic!]
 		/local
 			syms  [red-value!]
@@ -527,6 +528,7 @@ object: context [
 			value [red-value!]
 			base  [red-value!]
 			word  [red-word!]
+			node  [node!]
 			type  [integer!]
 			s	  [series!]
 	][
@@ -541,6 +543,7 @@ object: context [
 		base: s/tail - s/offset
 		
 		s: as series! ctx/values/value
+		node: save-self-object obj
 
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
@@ -561,7 +564,7 @@ object: context [
 						null
 				]
 				type = TYPE_FUNCTION [
-					rebind as red-function! value ctx
+					rebind as red-function! value ctx node
 				]
 				true [0]
 			]
@@ -573,8 +576,9 @@ object: context [
 	]
 	
 	rebind: func [
-		fun		[red-function!]
-		ctx 	[red-context!]
+		fun	 [red-function!]
+		ctx  [red-context!]
+		node [node!]
 		/local
 			s	 [series!]
 			more [red-value!]
@@ -592,7 +596,7 @@ object: context [
 		spec/node: fun/spec
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx null yes					;-- rebind new body to object
+		_context/bind blk ctx node yes					;-- rebind new body to object
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -746,11 +750,12 @@ object: context [
 	][
 		obj: as red-object! stack/push*
 		make-at obj 4								;-- arbitrary value
-		ctx: GET_CTX(obj)
-		unless null? proto [extend ctx GET_CTX(proto)]
-		collect-couples ctx spec only?
 		obj/class: get-new-id
 		obj/on-set: null
+		ctx: GET_CTX(obj)
+		
+		unless null? proto [extend ctx GET_CTX(proto) obj]
+		collect-couples ctx spec only?
 		obj
 	]
 	
@@ -780,7 +785,7 @@ object: context [
 		switch TYPE_OF(spec) [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
-				obj/class: either extend ctx GET_CTX(obj2) [get-new-id][proto/class]
+				obj/class: either extend ctx GET_CTX(obj2) obj [get-new-id][proto/class] ;@@ class-id is not transmitted for 'self!
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
@@ -1034,6 +1039,7 @@ object: context [
 			tail  [red-value!]
 			src	  [series!]
 			dst	  [series!]
+			node  [node!]
 			size  [integer!]
 			slots [integer!]
 			type  [integer!]
@@ -1072,6 +1078,7 @@ object: context [
 		
 		value: dst/offset
 		tail:  dst/tail
+		node:  save-self-object new
 		
 		either deep? [
 			while [value < tail][
@@ -1086,7 +1093,7 @@ object: context [
 							null
 					]
 					type = TYPE_FUNCTION [
-						rebind as red-function! value nctx
+						rebind as red-function! value nctx node
 					]
 					true [0]
 				]
@@ -1095,7 +1102,7 @@ object: context [
 		][
 			while [value < tail][
 				if TYPE_OF(value) = TYPE_FUNCTION [
-					rebind as red-function! value nctx
+					rebind as red-function! value nctx node
 				]
 				value: value + 1
 			]
