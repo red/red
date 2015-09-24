@@ -30,7 +30,7 @@ ownership: context [
 			s	   [series!]
 	][
 		type: TYPE_OF(container)
-print-line ["ownership/set, type: " type]
+;print-line ["ownership/set, type: " type]
 		case [
 			ANY_SERIES?(type) [
 				series: as red-series! container

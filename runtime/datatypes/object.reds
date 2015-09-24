@@ -641,10 +641,10 @@ object: context [
 	push: func [
 		ctx		[node!]
 		class	[integer!]
-		idx-s [integer!]								;-- for on-change* event
-		loc-s [integer!]
-		idx-d [integer!]								;-- for on-deep-change* event
-		loc-d [integer!]
+		idx-s	[integer!]								;-- for on-change* event
+		loc-s	[integer!]
+		idx-d	[integer!]								;-- for on-deep-change* event
+		loc-d	[integer!]
 		return: [red-object!]
 		/local
 			obj	[red-object!]

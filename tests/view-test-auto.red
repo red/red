@@ -109,6 +109,12 @@ button: make face! [
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
 			remove back tail drop-list/data
+
+			;either 'button = probe get in last win/pane 'type [
+			;	append win/pane button
+			;][
+			;	remove back tail win/pane
+			;]
 		]
 	]
 ]

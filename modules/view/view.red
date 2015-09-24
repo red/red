@@ -36,10 +36,14 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: func [w o n][
-		;if w = 'type [cause-error 'script 'locked-word [type]]
-		
 		if all [state w <> 'state][
+?? w 
+?? o
+?? n
+?? type
+			;if w = 'type [cause-error 'script 'locked-word [type]]
 			state/2: state/2 or system/view/platform/get-facet-id w
+			;if all [state/1 system/view/auto-update?][show self]
 		]
 	]
 	

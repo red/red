@@ -946,7 +946,6 @@ OS-update-facet: func [
 				][
 					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 						change-parent as red-object! value null
-						0
 					]
 				]
 				any [
@@ -955,10 +954,12 @@ OS-update-facet: func [
 				][
 					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 						change-parent as red-object! value face
-						0
 					]
 				]
 			]
+		]
+		sym = facets/menu [
+			
 		]
 		sym = facets/data [
 			
