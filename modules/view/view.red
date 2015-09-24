@@ -28,7 +28,7 @@ face!: object [				;-- keep in sync with facet! enum
 	selected:	none
 	parent:		none
 	pane:		none
-	state:		none		;-- [handle [integer! none!] visible [logic!]]
+	state:		none		;-- [handle [integer! none!] change-array [integer!]]
 	;rate:		none		;@@ to be considered
 	edge:		none
 	actors:		none
@@ -43,7 +43,7 @@ face!: object [				;-- keep in sync with facet! enum
 ?? type
 			;if w = 'type [cause-error 'script 'locked-word [type]]
 			state/2: state/2 or system/view/platform/get-facet-id w
-			;if all [state/1 system/view/auto-update?][show self]
+			if all [state/1 system/view/auto-update?][show self]
 		]
 	]
 	
