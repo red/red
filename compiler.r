@@ -2469,14 +2469,15 @@ red: context [
 		emit-exit-function
 	]
 	
-	comp-self: func [original [any-word!] /local obj][
+	comp-self: func [original [any-word!] /local obj ctx][
 		either rebol-gctx = obj: bind? original [
 			pc: back pc									;-- backtrack and process word again
 			comp-word/thru
 		][
 			obj: find objects obj
 			either obj/5 [
-				emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
+				ctx: either empty? locals-stack [obj/2]['octx]
+				emit reduce ['object/push ctx obj/3 obj/5/1 obj/5/2 obj/5/3 obj/5/4] ;-- event(s) case
 				insert-lf -7
 			][
 				emit reduce ['object/init-push obj/2 obj/3]
@@ -2837,6 +2838,9 @@ red: context [
 			] set?
 			
 			either self? [
+				if all [not empty? locals-stack	container-obj?][
+					true-blk/1/2: 'octx
+				]
 				emit first true-blk
 			][
 				emit compose [
@@ -2875,7 +2879,7 @@ red: context [
 		;	append/only paths-stack path				;-- defer path generation
 		;]
 		
-		if obj? [change/only/part mark copy mark tail output]
+		if all [obj? not self?][change/only/part mark copy mark tail output]
 		unless set? [pc: next pc]
 	]
 	
