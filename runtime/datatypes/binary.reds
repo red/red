@@ -454,7 +454,32 @@ binary: context [
 		set-type as red-value! bin TYPE_BINARY
 		bin
 	]
-	
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-binary!]
+		return: [red-value!]
+		/local
+			str [red-string!]
+			ret [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
+
+		switch type/value [
+			TYPE_STRING [
+				spec/node: unicode/load-utf8
+							as c-string! binary/rs-head spec
+							binary/rs-length? spec
+				spec/header: TYPE_STRING
+				ret: as red-value! spec
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		stack/set-last ret
+	]
+
 	form: func [
 		bin		[red-binary!]
 		buffer	[red-string!]
@@ -694,7 +719,7 @@ binary: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
