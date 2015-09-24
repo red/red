@@ -1340,26 +1340,10 @@ simple-io: context [
 						keys		[int-ptr!]
 						values		[int-ptr!]
 					]
-					CFStringGetLength: "CFStringGetLength" [
-						str			[integer!]
-						return:		[integer!]
-					]
-					CFStringGetCString: "CFStringGetCString" [
-						str			[integer!]
-						buffer		[byte-ptr!]
-						buf-sz		[integer!]
-						encoding	[integer!]
-						return:		[logic!]
-					]
 					CFStringGetCStringPtr: "CFStringGetCStringPtr" [
 						str			[integer!]
 						encoding	[integer!]
 						return:		[c-string!]
-					]
-					CFStringGetMaximumSizeForEncoding: "CFStringGetMaximumSizeForEncoding" [
-						length		[integer!]
-						encoding	[integer!]
-						return:		[integer!]
 					]
 					CFRelease: "CFRelease" [
 						cf			[integer!]
@@ -1372,22 +1356,6 @@ simple-io: context [
 
 			#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
 			#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
-
-			cfstr-to-cstr: func [
-				str			[integer!]
-				return:		[c-string!]
-				/local
-					len		[integer!]
-					max-sz	[integer!]
-					buf		[byte-ptr!]
-			][
-				len: CFStringGetLength str
-				max-sz: 1 + CFStringGetMaximumSizeForEncoding len kCFStringEncodingUTF8
-				buf: allocate max-sz
-				either CFStringGetCString str buf max-sz kCFStringEncodingUTF8 [
-					as-c-string buf
-				][null]
-			]
 
 			split-set-cookie: func [
 				s		[c-string!]
