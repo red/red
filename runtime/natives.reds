@@ -962,23 +962,24 @@ natives: context [
 			obj  [red-object!]
 			ctx  [red-context!]
 			word [red-word!]
+			res	 [red-value!]
 	][
 		obj:  as red-object! stack/arguments
 		word: as red-word! stack/arguments + 1
 		ctx: GET_CTX(obj)
-
+		
 		switch TYPE_OF(word) [
 			TYPE_WORD
 			TYPE_GET_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT [
-				stack/set-last as red-value!
 				either negative? _context/bind-word ctx word [
-					none-value
+					res: as red-value! none-value
 				][
-					word
+					res: as red-value! word
 				]
+				stack/set-last res
 			]
 			TYPE_BLOCK
 			TYPE_PAREN [
