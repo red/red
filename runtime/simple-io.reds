@@ -167,6 +167,17 @@ simple-io: context [
 					str			[byte-ptr!]
 					return:		[integer!]
 				]
+				WideCharToMultiByte: "WideCharToMultiByte" [
+					CodePage			[integer!]
+					dwFlags				[integer!]
+					lpWideCharStr		[c-string!]
+					cchWideChar			[integer!]
+					lpMultiByteStr		[byte-ptr!]
+					cbMultiByte			[integer!]
+					lpDefaultChar		[c-string!]
+					lpUsedDefaultChar	[integer!]
+					return:				[integer!]
+				]
 			]
 			"comdlg32.dll" stdcall [
 				GetOpenFileName: "GetOpenFileNameW" [
@@ -486,6 +497,22 @@ simple-io: context [
 				closedir: "closedir" [
 					file		[integer!]
 					return:		[integer!]
+				]
+				strncmp: "strncmp" [
+					str1		[c-string!]
+					str2		[c-string!]
+					num			[integer!]
+					return:		[integer!]
+				]
+				strstr: "strstr" [
+					str			[c-string!]
+					substr		[c-string!]
+					return:		[c-string!]
+				]
+				strchr: "strchr" [
+					str			[c-string!]
+					c			[byte!]
+					return:		[c-string!]
 				]
 			]
 		]
@@ -993,6 +1020,72 @@ simple-io: context [
 
 	#switch OS [
 		Windows [
+			BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
+				len: as int-ptr! s - 4
+				len/value >> 1
+			]
+
+			process-headers: func [
+				headers	[c-string!]
+				return: [red-hash!]
+				/local
+					len  [integer!]
+					s	 [byte-ptr!]
+					ss	 [byte-ptr!]
+					p	 [byte-ptr!]
+					mp	 [red-hash!]
+					w	 [red-value!]
+					res  [red-value!]
+					val  [red-block!]
+					new? [logic!]
+			][
+				len: WideCharToMultiByte 65001 0 headers -1 null 0 null 0
+				s: allocate len
+				ss: s
+				WideCharToMultiByte 65001 0 headers -1 s len null 0
+
+				mp: map/make-at stack/push* null 20
+				p: s
+				while [s/1 <> null-byte][
+					if s/1 = #":" [					;-- key, maybe have duplicated key
+						new?: no
+						s/1: null-byte
+						w: as red-value! word/push* symbol/make as-c-string p
+						res: map/eval-path mp w null null no
+						either TYPE_OF(res) = TYPE_NONE [
+							new?: yes
+						][
+							if TYPE_OF(res) <> TYPE_BLOCK [
+								val: block/push-only* 4
+								block/rs-append val res
+								copy-cell as cell! val res
+								stack/pop 1
+							]
+							val: as red-block! res
+						]
+
+						p: s + 2
+						until [
+							s: s + 1
+							if s/1 = #"^M" [		;-- value
+								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
+								either new? [
+									map/put mp w res no
+								][
+									block/rs-append val res
+								]
+								p: s + 2
+							]
+							s/1 = #"^M"
+						]
+						stack/pop 2
+					]
+					s: s + 1
+				]
+				free ss
+				mp
+			]
+
 			request-http: func [
 				method	[integer!]
 				url		[red-url!]
@@ -1000,6 +1093,7 @@ simple-io: context [
 				data	[red-value!]
 				binary? [logic!]
 				lines?	[logic!]
+				info?	[logic!]
 				return: [red-value!]
 				/local
 					action	[c-string!]
@@ -1020,9 +1114,12 @@ simple-io: context [
 					u-bound [integer!]
 					array	[integer!]
 					res		[red-value!]
+					blk		[red-block!]
 					len		[integer!]
 			][
 				res: as red-value! none-value
+				len: 0
+				buf-ptr: 0
 				clsid: declare tagGUID
 				async: declare tagVARIANT
 				body:  declare tagVARIANT
@@ -1096,6 +1193,18 @@ simple-io: context [
 				]
 
 				if hr >= 0 [
+					if info? [
+						blk: block/push-only* 3
+						hr: http/Status IH/ptr :len
+						if hr >= 0 [
+							integer/make-in blk len
+							hr: http/GetAllResponseHeaders IH/ptr :buf-ptr
+						]
+						if hr >= 0 [
+							block/rs-append blk as red-value! process-headers as c-string! buf-ptr
+							SysFreeString as byte-ptr! buf-ptr
+						]
+					]
 					if method = HTTP_POST [SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr body
 				]
@@ -1110,7 +1219,6 @@ simple-io: context [
 						u-bound: 0
 						SafeArrayGetLBound array 1 :l-bound
 						SafeArrayGetUBound array 1 :u-bound
-						buf-ptr: 0
 						SafeArrayAccessData array :buf-ptr
 						len: u-bound - l-bound + 1
 						res: as red-value! either binary? [
@@ -1128,6 +1236,10 @@ simple-io: context [
 				]
 
 				if http <> null [http/Release IH/ptr]
+				if info? [
+					block/rs-append blk res
+					res: as red-value! blk
+				]
 				res
 			]
 		]
@@ -1149,6 +1261,14 @@ simple-io: context [
 						method		[integer!]
 						url			[integer!]
 						version		[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageGetResponseStatusCode: "CFHTTPMessageGetResponseStatusCode" [
+						response	[integer!]
+						return:		[integer!]
+					]
+					CFHTTPMessageCopyAllHeaderFields: "CFHTTPMessageCopyAllHeaderFields" [
+						response	[integer!]
 						return:		[integer!]
 					]
 					CFHTTPMessageSetBody: "CFHTTPMessageSetBody" [
@@ -1206,16 +1326,107 @@ simple-io: context [
 						value		[integer!]
 						return:		[integer!]
 					]
+					CFReadStreamCopyProperty: "CFReadStreamCopyProperty" [
+						stream		[integer!]
+						property	[integer!]
+						return:		[integer!]
+					]
+					CFDictionaryGetCount: "CFDictionaryGetCount" [
+						dict		[integer!]
+						return:		[integer!]
+					]
+					CFDictionaryGetKeysAndValues: "CFDictionaryGetKeysAndValues" [
+						dict		[integer!]
+						keys		[int-ptr!]
+						values		[int-ptr!]
+					]
+					CFStringGetCStringPtr: "CFStringGetCStringPtr" [
+						str			[integer!]
+						encoding	[integer!]
+						return:		[c-string!]
+					]
 					CFRelease: "CFRelease" [
 						cf			[integer!]
 					]
 				]
 			]
 
-			#define kCFStringEncodingUTF8	08000100h
-			
+			#define kCFStringEncodingUTF8		08000100h
+			#define kCFStringEncodingMacRoman	0
+
 			#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
 			#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+
+			split-set-cookie: func [
+				s		[c-string!]
+				return: [red-value!]
+				/local
+					blk		[red-block!]
+					p		[c-string!]
+					p1		[c-string!]
+					p2		[c-string!]
+			][
+				blk: block/push-only* 2
+				until [
+					p: s
+					until [s: s + 1 s/1 = #";"]			;-- skip name and value 
+					s: s + 2
+					p1: strstr s "expires="				;-- only `expires` contains #"," among all the cookie attributes
+					p2: strchr s #","
+					either p2 = null [
+						p2: strchr s null-byte
+						s: p2
+					][
+						s: p1 + 20
+						if s > p2 [p2: strchr s #","]
+						s: p2 + 2
+					]
+					string/load-in p as-integer p2 - p blk UTF-8
+					s/1 = null-byte
+				]
+				either 1 = block/rs-length? blk [block/rs-head blk][as red-value! blk]
+			]
+
+			dict-to-map: func [
+				dict	[integer!]
+				return: [red-hash!]
+				/local
+					i		[integer!]
+					keys	[int-ptr!]
+					vals	[int-ptr!]
+					sz		[integer!]
+					mp		[red-hash!]
+					k		[c-string!]
+					v		[c-string!]
+					w		[red-value!]
+					res		[red-value!]
+			][
+				sz: CFDictionaryGetCount dict
+				mp: map/make-at stack/push* null sz << 1
+				keys: as int-ptr! allocate sz << 2
+				vals: as int-ptr! allocate sz << 2
+				CFDictionaryGetKeysAndValues dict keys vals
+
+				i: 0
+				while [i < sz][
+					i: i + 1
+					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
+					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
+
+					w: as red-value! word/push* symbol/make k
+					res: either zero? strncmp k "Set-Cookie" 10 [
+						split-set-cookie v
+					][
+						as red-value! string/load v length? v UTF-8
+					]
+
+					map/put mp w res no
+					stack/pop 2
+				]
+				free as byte-ptr! keys
+				free as byte-ptr! vals
+				mp
+			]
 
 			request-http: func [
 				method	[integer!]
@@ -1224,6 +1435,7 @@ simple-io: context [
 				data	[red-value!]
 				binary? [logic!]
 				lines?	[logic!]
+				info?	[logic!]
 				return: [red-value!]
 				/local
 					len			[integer!]
@@ -1242,6 +1454,10 @@ simple-io: context [
 					s			[series!]
 					bin			[red-binary!]
 					stream		[integer!]
+					response	[integer!]
+					keys		[int-ptr!]
+					vals		[int-ptr!]
+					blk			[red-block!]
 			][
 				switch method [
 					HTTP_GET  [action: "GET"]
@@ -1309,6 +1525,18 @@ simple-io: context [
 				]
 
 				free buf
+
+				if info? [
+					blk: block/push-only* 3
+					response: CFReadStreamCopyProperty stream CFSTR("kCFStreamPropertyHTTPResponseHeader")
+					len: CFHTTPMessageGetResponseStatusCode response
+					integer/make-in blk len
+					len: CFHTTPMessageCopyAllHeaderFields response
+					block/rs-append blk as red-value! dict-to-map len
+					CFRelease response
+					CFRelease len
+				]
+				
 				CFReadStreamClose stream
 				unless zero? body [CFRelease body]
 				CFRelease cf-url
@@ -1325,6 +1553,10 @@ simple-io: context [
 						bin/node: unicode/load-utf8 as c-string! buf len
 					]
 				]
+				if info? [
+					block/rs-append blk as red-value! bin
+					bin: as red-binary! blk
+				]
 				as red-value! bin
 			]
 		]
@@ -1337,11 +1569,15 @@ simple-io: context [
 			#define CURLOPT_FOLLOWLOCATION	52
 			#define CURLOPT_POSTFIELDS		10015
 			#define CURLOPT_WRITEDATA		10001
+			#define CURLOPT_HEADERDATA		10029
 			#define CURLOPT_HTTPHEADER		10023
 			#define CURLOPT_WRITEFUNCTION	20011
+			#define CURLOPT_HEADERFUNCTION	20079
 
 			#define CURLE_OK				0
 			#define CURL_GLOBAL_ALL 		3
+
+			#define CURLINFO_RESPONSE_CODE	00200002h
 
 			;-- use libcurl, may need to install it on some distros
 			#import [
@@ -1357,6 +1593,12 @@ simple-io: context [
 						curl	[integer!]
 						option	[integer!]
 						param	[integer!]
+						return: [integer!]
+					]
+					curl_easy_getinfo: "curl_easy_getinfo" [
+						curl	[integer!]
+						option	[integer!]
+						param	[int-ptr!]
 						return: [integer!]
 					]
 					curl_slist_append: "curl_slist_append" [
@@ -1399,6 +1641,66 @@ simple-io: context [
 				len
 			]
 
+			get-http-header: func [
+				[cdecl]
+				s		 [byte-ptr!]
+				size	 [integer!]
+				nmemb	 [integer!]
+				userdata [byte-ptr!]
+				return:	 [integer!]
+				/local
+					p	 [byte-ptr!]
+					mp	 [red-hash!]
+					len  [integer!]
+					w	 [red-value!]
+					res  [red-value!]
+					val  [red-block!]
+					new? [logic!]
+			][
+				mp: as red-hash! userdata
+				len: size * nmemb
+				if zero? strncmp as c-string! s "HTTP/1.1" 8 [return len]
+
+				p: s
+				while [s/1 <> null-byte][
+					if s/1 = #":" [					;-- key, maybe have duplicated key
+						new?: no
+						s/1: null-byte
+						w: as red-value! word/push* symbol/make as-c-string p
+						res: map/eval-path mp w null null no
+						either TYPE_OF(res) = TYPE_NONE [
+							new?: yes
+						][
+							if TYPE_OF(res) <> TYPE_BLOCK [
+								val: block/push-only* 4
+								block/rs-append val res
+								copy-cell as cell! val res
+								stack/pop 1
+							]
+							val: as red-block! res
+						]
+
+						p: s + 2
+						until [
+							s: s + 1
+							if s/1 = #"^M" [		;-- value
+								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
+								either new? [
+									map/put mp w res no
+								][
+									block/rs-append val res
+								]
+								p: s + 2
+							]
+							s/1 = #"^M"
+						]
+						stack/pop 2
+					]
+					s: s + 1
+				]
+				len				
+			]
+
 			request-http: func [
 				method	[integer!]
 				url		[red-url!]
@@ -1406,6 +1708,7 @@ simple-io: context [
 				data	[red-value!]
 				binary? [logic!]
 				lines?	[logic!]
+				info?	[logic!]
 				return: [red-value!]
 				/local
 					len		[integer!]
@@ -1419,6 +1722,8 @@ simple-io: context [
 					s		[series!]
 					str		[red-string!]
 					slist	[integer!]
+					mp		[red-hash!]
+					blk		[red-block!]
 			][
 				switch method [
 					HTTP_GET  [action: "GET"]
@@ -1446,6 +1751,13 @@ simple-io: context [
 				
 				curl_easy_setopt curl CURLOPT_WRITEFUNCTION as-integer :get-http-response
 				curl_easy_setopt curl CURLOPT_WRITEDATA as-integer bin
+
+				if info? [
+					blk: block/push-only* 3
+					mp: map/make-at stack/push* null 20
+					curl_easy_setopt curl CURLOPT_HEADERDATA as-integer mp
+					curl_easy_setopt curl CURLOPT_HEADERFUNCTION as-integer :get-http-header
+				]
 
 				case [
 					method = HTTP_GET [
@@ -1482,6 +1794,11 @@ simple-io: context [
 				]
 				res: curl_easy_perform curl
 
+				if info? [
+					curl_easy_getinfo curl CURLINFO_RESPONSE_CODE :len
+					integer/make-in blk len
+				]
+
 				unless zero? slist [curl_slist_free_all slist]
 				curl_easy_cleanup curl
 				curl_global_cleanup
@@ -1500,6 +1817,12 @@ simple-io: context [
 						bin/header: TYPE_STRING
 						bin/node: unicode/load-utf8 as c-string! buf len
 					]
+				]
+
+				if info? [
+					block/rs-append blk as red-value! mp
+					block/rs-append blk as red-value! bin
+					bin: as red-binary! blk
 				]
 				as red-value! bin
 			]

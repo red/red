@@ -518,6 +518,7 @@ read: make action! [[
 			index [number!]
 		/binary	"Preserves contents exactly"
 		/lines	"Convert to block of strings"
+		/info
 		/as		"Read with the specified encoding, default is 'UTF-8"
 			encoding [word!]
 	]
@@ -531,6 +532,7 @@ write: make action! [[
 		data		[any-type!]
 		/binary	"Preserves contents exactly"
 		/lines	"Write each value in a block as a separate line"
+		/info
 		/append "Write data at end of file"
 		/part	"Partial write a given number of units"
 			length	[number!]
