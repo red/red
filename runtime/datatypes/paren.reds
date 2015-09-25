@@ -94,7 +94,7 @@ paren: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
@@ -149,7 +149,7 @@ paren: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

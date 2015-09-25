@@ -74,6 +74,7 @@ _series: context [
 	]
 
 	;-- Actions --
+	
 	random: func [
 		ser		[red-series!]
 		seed?	[logic!]
@@ -136,6 +137,26 @@ _series: context [
 			]
 		]
 		as red-value! ser
+	]
+	
+	reflect: func [
+		ser		[red-series!]
+		field	[integer!]
+		return:	[red-value!]
+		/local
+			obj [red-object!]
+			res [red-value!]
+	][
+		case [
+			field = words/owned [
+				obj: ownership/owned? ser/node
+				res: as red-value! either null? obj [none-value][obj]
+			]
+			true [
+				--NOT_IMPLEMENTED--						;@@ raise error
+			]
+		]
+		stack/set-last res
 	]
 
 	;--- Property reading actions ---
@@ -745,6 +766,35 @@ _series: context [
 
 		as red-series! new
 	]
+	
+	modify: func [
+		ser	    [red-series!]
+		field	[red-word!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			args [red-value!]
+	][
+		sym: symbol/resolve field/symbol
+		case [
+			sym = words/owned [
+				if TYPE_OF(value) = TYPE_NONE [
+					ownership/unbind as red-value! ser
+				]
+				if TYPE_OF(value) = TYPE_BLOCK [
+					args: block/rs-head as red-block! value
+					assert TYPE_OF(args) = TYPE_OBJECT	;@@ raise error on invalid block
+					ownership/bind 
+						as red-value! ser
+						as red-object! args
+						as red-word! args + 1
+				]
+			]
+			true [0]
+		]
+		value
+	]
 
 	init: does [
 		datatype/register [
@@ -754,7 +804,7 @@ _series: context [
 			;-- General actions --
 			null			;make
 			:random
-			null			;reflect
+			:reflect
 			null			;to
 			null			;form
 			null			;mold
@@ -809,7 +859,7 @@ _series: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			:modify
 			null			;open
 			null			;open?
 			null			;query

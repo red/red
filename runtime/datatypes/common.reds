@@ -332,6 +332,7 @@ words: context [
 	self:			-1
 	values:			-1
 	owner:			-1
+	owned:			-1
 	
 	any*:			-1
 	break*:			-1
@@ -523,7 +524,8 @@ words: context [
 		self:			symbol/make "self"
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
-		
+		owned:			symbol/make "owned"
+
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"
 		_yes:			symbol/make "yes"

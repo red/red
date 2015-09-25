@@ -107,7 +107,7 @@ set-path: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
@@ -162,7 +162,7 @@ set-path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
