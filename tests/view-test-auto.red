@@ -97,6 +97,10 @@ win: make face! [
 	]
 ]
 
+but-extra: make face! [
+	type: 'button text: "Extra" offset: 500x500 size: 40x25
+]
+
 button: make face! [
 	type: 'button
 	text: "Hello"
@@ -109,12 +113,13 @@ button: make face! [
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
 			remove back tail drop-list/data
+			probe type? reflect win/pane 'owned
 
-			;either 'button = probe get in last win/pane 'type [
-			;	append win/pane button
-			;][
-			;	remove back tail win/pane
-			;]
+			either 'button <> probe get in last win/pane 'type [
+				append win/pane but-extra
+			][
+				remove back tail win/pane
+			]
 		]
 	]
 ]

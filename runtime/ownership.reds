@@ -15,7 +15,14 @@ ownership: context [
 	size:	1000
 	table:	declare node!
 
-	set: func [
+	unbind: func [
+		value [red-value!]
+	][
+		;_hashtable/delete-key...
+		;remove owned flag
+	]
+
+	bind: func [
 		container [red-value!]
 		owner	  [red-object!]
 		word	  [red-word!]
@@ -32,37 +39,37 @@ ownership: context [
 		type: TYPE_OF(container)
 		case [
 			ANY_SERIES?(type) [
-;print-line ["ownership/set, type: " type]
 				series: as red-series! container
 				s: GET_BUFFER(series)
-				s/flags: s/flags or flag-series-owned
 				
-				slot: as red-value! _hashtable/put-key table as-integer series/node
-				copy-cell container slot
-				copy-cell as red-value! owner slot + 1
-				either null? word [
-					slot: slot + 2
-					slot/header: TYPE_NONE
-				][
-					copy-cell as red-value! word slot + 2
+				if s/flags and flag-series-owned = 0 [	;-- process series if not already owned
+					s/flags: s/flags or flag-series-owned
+
+					slot: as red-value! _hashtable/put-key table as-integer series/node
+					copy-cell container slot
+					copy-cell as red-value! owner slot + 1
+					either null? word [
+						slot: slot + 2
+						slot/header: TYPE_NONE
+					][
+						copy-cell as red-value! word slot + 2
+					]
 				]
-				
 				if ANY_BLOCK?(type) [
 					value: s/offset + series/head
 					tail:  s/tail
 					
 					while [value < tail][
-						set value owner null
+						bind value owner null
 						value: value + 1
 					]
 				]
 			]
 			type = TYPE_OBJECT [
-;print-line ["ownership/set, type: " type]
 				obj: as red-object! container
 				ctx: GET_CTX(obj)
 				
-				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
+				if ctx/header and flag-owner = 0 [	;-- stop if another owner is met
 					ctx/header: ctx/header or flag-owner
 					s: as series! ctx/values/value
 					
@@ -73,7 +80,7 @@ ownership: context [
 					word: as red-word! s/offset
 					
 					while [value < tail][
-						set value owner word
+						bind value owner word
 						value: value + 1
 						word: word + 1
 					]
@@ -81,6 +88,17 @@ ownership: context [
 			]
 			true [0]
 		]
+	]
+	
+	owned?: func [
+		node	[node!]
+		return: [red-object!]							;-- returns null if not found
+		/local
+			slot   [red-value!]
+	][
+		slot: _hashtable/get-value table as-integer node
+		if null? slot [return null]
+		as red-object! slot + 1
 	]
 	
 	check: func [

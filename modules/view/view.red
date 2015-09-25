@@ -36,14 +36,20 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: func [w o n][
-		if all [state w <> 'state][
-?? w 
-?? o
-?? n
-?? type
-			;if w = 'type [cause-error 'script 'locked-word [type]]
-			state/2: state/2 or system/view/platform/get-facet-id w
-			if all [state/1 system/view/auto-update?][show self]
+		if w <> 'state [
+			if system/view/auto-update? [
+				if any [series? o object? o][modify o 'owned none]
+				if any [series? n object? n][modify n 'owned reduce [self w]]
+			]
+
+			if state [
+	?? o
+	?? n
+	?? type
+				;if w = 'type [cause-error 'script 'locked-word [type]]
+				state/2: state/2 or system/view/platform/get-facet-id w
+				if all [state/1 system/view/auto-update?][show self]
+			]
 		]
 	]
 	
@@ -54,10 +60,14 @@ face!: object [				;-- keep in sync with facet! enum
 		?? index
 		?? part
 		
-		if all [state word <> 'state][
+		if all [state word <> 'state owner/type <> 'screen][	;@@ temporary exclude screen faces
 			state/2: state/2 or system/view/platform/get-facet-id word
 			if system/view/auto-update? [
-				system/view/platform/on-change-facet owner word target action index part
+				either word = 'pane [
+					show owner
+				][
+					system/view/platform/on-change-facet owner word target action index part
+				]
 			]
 		]
 	]

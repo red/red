@@ -851,10 +851,11 @@ change-parent: func [
 		bool [red-logic!]
 ][
 	hWnd: get-face-handle face
+	bool: as red-logic! get-node-facet face/ctx FACE_OBJ_VISIBLE?
+	bool/value: parent <> null
+
 	either null? parent [
 		change-visible as-integer hWnd no
-		bool: as red-logic! get-node-facet face/ctx FACE_OBJ_VISIBLE?
-		bool/value: false
 		SetParent hWnd null
 	][
 		SetParent hWnd get-face-handle parent
@@ -959,7 +960,7 @@ OS-update-facet: func [
 			OS-update-view face
 		]
 		sym = facets/pane [
-			sym = action/symbol 
+			sym: action/symbol 
 			case [
 				any [
 					sym = words/_remove/symbol
@@ -968,6 +969,7 @@ OS-update-facet: func [
 				][
 					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 						change-parent as red-object! value null
+						OS-show-window as-integer get-face-handle face
 					]
 				]
 				any [
@@ -976,6 +978,7 @@ OS-update-facet: func [
 				][
 					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 						change-parent as red-object! value face
+						OS-show-window as-integer get-face-handle face
 					]
 				]
 				true [0]
