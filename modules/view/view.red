@@ -50,15 +50,15 @@ face!: object [				;-- keep in sync with facet! enum
 	on-deep-change*: func [owner word target action index part][
 		?? action
 		?? word
-		probe head target
+		;probe head target
 		?? index
 		?? part
 		
 		if all [state word <> 'state][
 			state/2: state/2 or system/view/platform/get-facet-id word
-		]
-		if system/view/auto-update? [
-			system/view/platform/on-change-facet owner word target action index part
+			if system/view/auto-update? [
+				system/view/platform/on-change-facet owner word target action index part
+			]
 		]
 	]
 ]

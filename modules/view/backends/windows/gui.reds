@@ -978,6 +978,7 @@ OS-update-facet: func [
 						change-parent as red-object! value face
 					]
 				]
+				true [0]
 			]
 		]
 		sym = facets/menu [

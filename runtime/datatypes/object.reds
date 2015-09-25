@@ -132,11 +132,11 @@ object: context [
 	]
 	
 	make-callback-node: func [
-		ctx	  [red-context!]
-		idx-s [integer!]								;-- for on-change* event
-		loc-s [integer!]
-		idx-d [integer!]								;-- for on-deep-change* event
-		loc-d [integer!]
+		ctx		[red-context!]
+		idx-s	[integer!]								;-- for on-change* event
+		loc-s	[integer!]
+		idx-d	[integer!]								;-- for on-deep-change* event
+		loc-d	[integer!]
 		return: [node!]
 		/local
 			node [node!]
@@ -151,9 +151,23 @@ object: context [
 
 		int: as red-integer! s/offset + 1
 		int/header: TYPE_INTEGER
-		s: as series! ctx/values/value
 		int/value: (idx-d << 16) or loc-d				;-- store info for on-deep-change*
 		node
+	]
+	
+	on-deep?: func [
+		obj		[red-object!]
+		return: [logic!]
+		/local
+			int	[red-integer!]
+			s	[series!]
+	][
+		if obj/on-set <> null [
+			s: as series! obj/on-set/value
+			int: as red-integer! s/offset + 1
+			if int/value >>> 16 <> -1 [return true]
+		]
+		false
 	]
 	
 	on-set-defined?: func [
@@ -640,6 +654,7 @@ object: context [
 		obj: as red-object! stack/top - 1
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		if idx-d <> -1 [ownership/set as red-value! obj obj null]
 	]
 	
 	push: func [
@@ -794,6 +809,7 @@ object: context [
 				interpreter/eval blk no
 				obj/class: get-new-id
 				obj/on-set: on-set-defined? ctx
+				if on-deep? obj [ownership/set as red-value! obj obj null]
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]

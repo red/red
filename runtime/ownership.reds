@@ -30,9 +30,9 @@ ownership: context [
 			s	   [series!]
 	][
 		type: TYPE_OF(container)
-;print-line ["ownership/set, type: " type]
 		case [
 			ANY_SERIES?(type) [
+;print-line ["ownership/set, type: " type]
 				series: as red-series! container
 				s: GET_BUFFER(series)
 				s/flags: s/flags or flag-series-owned
@@ -58,6 +58,7 @@ ownership: context [
 				]
 			]
 			type = TYPE_OBJECT [
+;print-line ["ownership/set, type: " type]
 				obj: as red-object! container
 				ctx: GET_CTX(obj)
 				

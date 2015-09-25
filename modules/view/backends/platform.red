@@ -222,7 +222,7 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action index part
 	]
 	
-	close-view:  routine [face [object!]][
+	close-view: routine [face [object!]][
 		gui/OS-close-view face
 		SET_RETURN(none-value)
 	]
@@ -239,11 +239,7 @@ system/view/platform: context [
 		face	[object!]
 		parent	[integer!]
 		return: [integer!]
-		/local
-			bool [red-logic!]
 	][
-		bool: as red-logic! #get system/view/auto-update?
-		if bool/value [ownership/set as red-value! face face null]
 		gui/OS-make-view face parent
 	]
 
