@@ -478,6 +478,56 @@ _hashtable: context [
 		as cell! k + 1
 	]
 
+	delete-key: func [
+		node	[node!]
+		key		[integer!]
+		return: [red-value!]
+		/local
+			s h i flags last mask step keys hash n-buckets ii sh blk k
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		assert h/n-buckets > 0
+
+		s: as series! h/blk/value
+		blk: as byte-ptr! s/offset
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		n-buckets: h/n-buckets + 1
+		mask: n-buckets - 2
+		hash: key
+		i: hash and mask
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1
+		last: i
+		step: 0
+		while [
+			k: as int-ptr! blk + keys/i
+			all [
+				_BUCKET_IS_NOT_EMPTY(flags ii sh)
+				any [
+					_BUCKET_IS_DEL(flags ii sh)
+					k/value <> key
+				]
+			]
+		][
+			i: i + step and mask
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			i: i + 1
+			step: step + 1
+			if i = last [return null]
+		]
+
+		either _BUCKET_IS_EITHER(flags ii sh) [null][
+			_BUCKET_SET_DEL_TRUE(flags ii sh)
+			h/size: h/size - 1
+			as cell! blk + keys/i + 4
+		]
+	]
+
 	get-value: func [
 		node	[node!]
 		key		[integer!]
