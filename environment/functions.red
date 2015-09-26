@@ -294,7 +294,7 @@ load: function [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
-				if find codec/suffixes suffix [
+				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
 					return do [codec/decode source]
 				]
 			]
