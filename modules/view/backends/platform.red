@@ -222,6 +222,14 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action index part
 	]
 	
+	unset-parent: routine [
+		target [block!]
+		index  [integer!]
+		part   [integer!]
+	][
+		gui/OS-unset-parent target index part
+	]
+	
 	close-view: routine [face [object!]][
 		gui/OS-close-view face
 		SET_RETURN(none-value)

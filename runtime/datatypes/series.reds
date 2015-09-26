@@ -475,7 +475,8 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
-
+		ownership/check as red-value! ser words/_remove ser/head items
+		
 		either head + part < tail [
 			move-memory
 				head
@@ -491,7 +492,6 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
-		ownership/check as red-value! ser words/_remove ser/head items
 		ser
 	]
 

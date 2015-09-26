@@ -862,6 +862,30 @@ change-parent: func [
 	]
 ]
 
+OS-unset-parent: func [
+	pane  [red-block!]
+	index [integer!]
+	part  [integer!]
+	/local
+		face [red-object!]
+		tail [red-object!]
+		hWnd [handle!]
+		s	 [series!]
+][
+	assert TYPE_OF(pane) = TYPE_BLOCK
+	s: GET_BUFFER(pane)
+	face: as red-object! s/offset + index
+	tail: as red-object! s/tail
+
+	until [
+		hWnd: get-face-handle face
+		change-visible as-integer hWnd no
+		SetParent hWnd null
+		part: part - 1
+		zero? part
+	]
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -973,6 +997,7 @@ OS-update-facet: func [
 					]
 				]
 				any [
+					sym = words/_insert/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][

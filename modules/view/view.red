@@ -57,6 +57,7 @@ face!: object [				;-- keep in sync with facet! enum
 		?? action
 		?? word
 		;probe head target
+		probe type? owner
 		?? index
 		?? part
 		
@@ -64,6 +65,16 @@ face!: object [				;-- keep in sync with facet! enum
 			state/2: state/2 or system/view/platform/get-facet-id word
 			if system/view/auto-update? [
 				either word = 'pane [
+					if find [remove clear take] action [
+						system/view/platform/unset-parent target index part
+						
+						index: index + 1						;-- 0-based low-level index
+						until [
+							target/:index/parent: none
+							index: index + 1
+							zero? part: part - 1
+						]
+					]
 					show owner
 				][
 					system/view/platform/on-change-facet owner word target action index part
