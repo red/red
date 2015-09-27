@@ -35,46 +35,78 @@ face!: object [				;-- keep in sync with facet! enum
 	extra:		none		;-- for storing optional user data
 	draw:		none
 	
-	on-change*: func [w o n][
-		if w <> 'state [
+	on-change*: function [word old new][
+		if word <> 'state [
+			if system/view/debug? [
+				print [
+					"-- on-change event --" lf
+					tab "word :" word		lf
+					tab "old  :" type? old	lf
+					tab "new  :" type? new
+				]
+			]
 			if system/view/auto-update? [
-				if any [series? o object? o][modify o 'owned none]
-				if any [series? n object? n][modify n 'owned reduce [self w]]
+				if any [series? old object? old][modify old 'owned none]
+				if any [series? new object? new][modify new 'owned reduce [self word]]
 			]
 
 			if state [
-	?? o
-	?? n
-	?? type
-				;if w = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or system/view/platform/get-facet-id w
+				;if word = 'type [cause-error 'script 'locked-word [type]]
+				state/2: state/2 or system/view/platform/get-facet-id word
 				if all [state/1 system/view/auto-update?][show self]
 			]
 		]
 	]
 	
-	on-deep-change*: func [owner word target action index part][
-		?? action
-		?? word
-		;probe head target
-		probe type? owner
-		?? index
-		?? part
+	on-deep-change*: function [owner word target action index part][
+		if system/view/debug? [
+			print [
+				"-- on-deep-change event --" 		 lf
+				tab "owner      :" owner/type		 lf
+				tab "action     :" action			 lf
+				tab "word       :" word				 lf
+				tab "target type:" mold type? target lf
+				tab "index      :" index			 lf
+				tab "part       :" part
+			]
+		]
 		
-		if all [state word <> 'state owner/type <> 'screen][	;@@ temporary exclude screen faces
+		if all [state word <> 'state][
 			state/2: state/2 or system/view/platform/get-facet-id word
+			
 			if system/view/auto-update? [
 				either word = 'pane [
 					if find [remove clear take] action [
-						system/view/platform/unset-parent target part
-						until [
-							target/1/parent: none
-							zero? part: part - 1
+						either owner/type = 'screen [
+							until [
+								face: target/1
+								if face/type = 'window [
+									if all [object? face/actors in face/actors 'on-close][
+										do [face/actors/on-close face]
+									]
+									system/view/platform/close-view face
+								]
+								target: next target
+								zero? part: part - 1
+							]
+						][
+							until [
+								face: target/1
+								system/view/platform/unset-parent target 1
+								face/parent: none
+								target: next target
+								zero? part: part - 1
+							]
 						]
 					]
-					show owner
+					if owner/type <> 'screen [
+						print "showing owner..."
+						show owner
+					]
 				][
-					system/view/platform/on-change-facet owner word target action index part
+					if owner/type <> 'screen [
+						system/view/platform/on-change-facet owner word target action index part
+					]
 				]
 			]
 		]
@@ -178,14 +210,6 @@ show: function [
 ][
 	either all [face/state face/state/1][
 		if face/state/2 <> 0 [system/view/platform/update-view face]
-		
-		unless face/state/3 [
-			if all [object? face/actors in face/actors 'on-close][
-				do [face/actors/on-close face]
-			]
-			system/view/platform/close-view face
-			exit
-		]
 	][
 		new?: yes
 		if face/type <> 'screen [
@@ -231,22 +255,9 @@ unview: function [
 	
 	case [
 		only  [remove find pane face]
-		_all  [
-			while [not tail? pane][
-				face: pane/1
-				remove pane
-				face/state/3: none
-				show face
-			]
-			exit
-		]
-		'else [
-			face: last pane
-			remove back tail pane
-		]
+		_all  [while [not tail? pane][remove pane]]
+		'else [remove back tail pane]
 	]
-	face/state/3: none
-	show face
 ]
 
 #system [event/init]

@@ -268,8 +268,8 @@ system/view/platform: context [
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
+			state:	reduce [0 0 0]
 		]
-		;modify svs/1 'owner yes
 	]
 	
 	version: none
