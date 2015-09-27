@@ -98,10 +98,7 @@ face!: object [				;-- keep in sync with facet! enum
 							]
 						]
 					]
-					if owner/type <> 'screen [
-						print "showing owner..."
-						show owner
-					]
+					if owner/type <> 'screen [show owner]
 				][
 					if owner/type <> 'screen [
 						system/view/platform/on-change-facet owner word target action index part
@@ -207,7 +204,7 @@ show: function [
 	/with				 "Link the face to a parent face"
 		parent [object!] "Parent face to link to"
 ][
-	if system/view/debug? [print ["show:" face/type " with?:" with]]
+	;if system/view/debug? [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
 		if face/state/2 <> 0 [system/view/platform/update-view face]
