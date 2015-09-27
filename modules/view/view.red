@@ -36,15 +36,15 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: function [word old new][
-		if word <> 'state [
-			if system/view/debug? [
-				print [
-					"-- on-change event --" lf
-					tab "word :" word		lf
-					tab "old  :" type? old	lf
-					tab "new  :" type? new
-				]
+		if system/view/debug? [
+			print [
+				"-- on-change event --" lf
+				tab "word :" word		lf
+				tab "old  :" type? old	lf
+				tab "new  :" type? new
 			]
+		]
+		if word <> 'state [
 			if system/view/auto-update? [
 				if any [series? old object? old][modify old 'owned none]
 				if any [series? new object? new][modify new 'owned reduce [self word]]
@@ -70,7 +70,6 @@ face!: object [				;-- keep in sync with facet! enum
 				tab "part       :" part
 			]
 		]
-		
 		if all [state word <> 'state][
 			state/2: state/2 or system/view/platform/get-facet-id word
 			
@@ -208,6 +207,8 @@ show: function [
 	/with				 "Link the face to a parent face"
 		parent [object!] "Parent face to link to"
 ][
+	if system/view/debug? [print ["show:" face/type " with?:" with]]
+	
 	either all [face/state face/state/1][
 		if face/state/2 <> 0 [system/view/platform/update-view face]
 	][
@@ -250,6 +251,8 @@ unview: function [
 	/only "Close a given view"
 		face [object!] "Window view to close"
 ][
+	if system/view/debug? [print ["unview: all:" :all "only:" only]]
+	
 	_all: :all											;-- compiler does not support redefining ALL
 	if empty? pane: system/view/screens/1/pane [exit]
 	
