@@ -381,7 +381,7 @@ WndProc: func [
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE
 			if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
-			if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
+			;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
 			if res  = EVT_NO_PROCESS [clean-up PostQuitMessage 0]	;-- stop
 			return 0
 		]

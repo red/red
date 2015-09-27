@@ -229,8 +229,8 @@ system/view/platform: context [
 		gui/OS-unset-parent target part
 	]
 	
-	close-view: routine [face [object!]][
-		gui/OS-close-view face
+	close-view: routine [face [object!] empty? [logic!]][
+		gui/OS-close-view face empty?
 		SET_RETURN(none-value)
 	]
 	update-view: routine [face [object!]][

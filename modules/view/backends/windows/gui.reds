@@ -947,19 +947,15 @@ OS-update-view: func [
 ]
 
 OS-close-view: func [
-	face [red-object!]
+	face   [red-object!]
+	empty? [logic!]
 	/local
 		screen [red-object!]
 		pane   [red-block!]
 ][
 probe "OS-close-view"
 	free-handles get-face-handle face
-	
-	screen: as red-object! block/rs-head as red-block! #get system/view/screens
-	pane: as red-block! get-node-facet screen/ctx FACE_OBJ_PANE
-probe block/rs-length? pane
-	assert TYPE_OF(pane) = TYPE_BLOCK
-	if zero? block/rs-length? pane [clean-up probe "sending quit msg..." PostQuitMessage 0]
+	if empty? [clean-up probe "sending quit msg..." PostQuitMessage 0]
 ]
 
 OS-update-facet: func [
