@@ -66,12 +66,9 @@ face!: object [				;-- keep in sync with facet! enum
 			if system/view/auto-update? [
 				either word = 'pane [
 					if find [remove clear take] action [
-						system/view/platform/unset-parent target index part
-						
-						index: index + 1						;-- 0-based low-level index
+						system/view/platform/unset-parent target part
 						until [
-							target/:index/parent: none
-							index: index + 1
+							target/1/parent: none
 							zero? part: part - 1
 						]
 					]

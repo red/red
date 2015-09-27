@@ -224,10 +224,9 @@ system/view/platform: context [
 	
 	unset-parent: routine [
 		target [block!]
-		index  [integer!]
 		part   [integer!]
 	][
-		gui/OS-unset-parent target index part
+		gui/OS-unset-parent target part
 	]
 	
 	close-view: routine [face [object!]][

@@ -864,7 +864,6 @@ change-parent: func [
 
 OS-unset-parent: func [
 	pane  [red-block!]
-	index [integer!]
 	part  [integer!]
 	/local
 		face [red-object!]
@@ -874,15 +873,16 @@ OS-unset-parent: func [
 ][
 	assert TYPE_OF(pane) = TYPE_BLOCK
 	s: GET_BUFFER(pane)
-	face: as red-object! s/offset + index
+	face: as red-object! s/offset + pane/head
 	tail: as red-object! s/tail
 
 	until [
 		hWnd: get-face-handle face
 		change-visible as-integer hWnd no
 		SetParent hWnd null
+		face: face + 1
 		part: part - 1
-		zero? part
+		any [zero? part face = tail]
 	]
 ]
 
