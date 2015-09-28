@@ -359,13 +359,16 @@ _series: context [
 		ser		[red-series!]
 		return:	[red-value!]
 		/local
-			s	[series!]
+			s	 [series!]
+			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/clear"]]
 
 		s: GET_BUFFER(ser)
+		size: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - ser/head
+		ownership/check as red-value! ser words/_clear ser/head size
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
-		ownership/check as red-value! ser words/_clear 0 0
+		ownership/check as red-value! ser words/_cleared ser/head 0
 		as red-value! ser
 	]
 
@@ -492,6 +495,7 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
+		ownership/check as red-value! ser words/_removed ser/head 0
 		ser
 	]
 
@@ -627,6 +631,8 @@ _series: context [
 		ser2/_pad:  either TYPE_OF(ser) = TYPE_VECTOR [ser/_pad][0] ;@@ to be improved
 		ser2/node:  node
 		ser2/head:  0
+		
+		ownership/check as red-value! ser words/_take ser/head part
 
 		either positive? part [
 			tail: as byte-ptr! s/tail
@@ -657,7 +663,7 @@ _series: context [
 			]
 		][return as red-value! ser2]
 		
-		;ownership/check as red-value! ser words/_remove offset part
+		ownership/check as red-value! ser words/_taken ser/head 0
 		as red-value! ser2
 	]
 

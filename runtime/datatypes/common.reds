@@ -430,16 +430,19 @@ words: context [
 	;-- modifying actions
 	_change:		as red-word! 0
 	_clear:			as red-word! 0
+	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
 	_insert:		as red-word! 0
 	_poke:			as red-word! 0
 	_put:			as red-word! 0
 	;_remove:		as red-word! 0
+	_removed:		as red-word! 0
 	_random:		as red-word! 0
 	_reverse:		as red-word! 0
 	_sort:			as red-word! 0
 	_swap:			as red-word! 0
 	_take:			as red-word! 0
+	_taken:			as red-word! 0
 	_trim:			as red-word! 0
 
 	;-- modifying natives
@@ -580,16 +583,19 @@ words: context [
 		;-- modifying actions
 		_change:		word/load "change"
 		_clear:			word/load "clear"
+		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
 		_insert:		word/load "insert"
 		_poke:			word/load "poke"
 		_put:			word/load "put"
 		;_remove:		word/load "remove"
+		_removed:		word/load "removed"
 		_random:		word/load "random"
 		_reverse:		word/load "reverse"
 		_sort:			word/load "sort"
 		_swap:			word/load "swap"
 		_take:			word/load "take"
+		_taken:			word/load "taken"
 		_trim:			word/load "trim"
 
 		;-- modifying natives

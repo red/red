@@ -946,16 +946,15 @@ OS-update-view: func [
 	int/value: 0										;-- reset flags
 ]
 
-OS-close-view: func [
+OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 	/local
 		screen [red-object!]
 		pane   [red-block!]
 ][
-probe "OS-close-view"
 	free-handles get-face-handle face
-	if empty? [clean-up probe "sending quit msg..." PostQuitMessage 0]
+	if empty? [clean-up PostQuitMessage 0]
 ]
 
 OS-update-facet: func [

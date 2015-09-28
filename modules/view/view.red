@@ -75,7 +75,7 @@ face!: object [				;-- keep in sync with facet! enum
 			
 			if system/view/auto-update? [
 				either word = 'pane [
-					if find [remove clear take] action [
+					either find [remove clear take] action [
 						either owner/type = 'screen [
 							until [
 								face: target/1
@@ -83,7 +83,7 @@ face!: object [				;-- keep in sync with facet! enum
 									if all [object? face/actors in face/actors 'on-close][
 										do [face/actors/on-close face]
 									]
-									system/view/platform/close-view face tail? next target
+									system/view/platform/destroy-view face tail? next target
 								]
 								target: next target
 								zero? part: part - 1
@@ -91,14 +91,15 @@ face!: object [				;-- keep in sync with facet! enum
 						][
 							until [
 								face: target/1
-								system/view/platform/unset-parent target 1
 								face/parent: none
+								system/view/platform/destroy-view face no
 								target: next target
 								zero? part: part - 1
 							]
 						]
+					][
+						if owner/type <> 'screen [show owner]
 					]
-					if owner/type <> 'screen [show owner]
 				][
 					if owner/type <> 'screen [
 						system/view/platform/on-change-facet owner word target action index part
