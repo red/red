@@ -17,9 +17,39 @@ ownership: context [
 
 	unbind: func [
 		value [red-value!]
+		/local
+			owner  [red-object!]
+			series [red-series!]
+			tail   [red-value!]
+			node   [node!]
+			type   [integer!]
+			s	   [series!]
 	][
-		;_hashtable/delete-key...
-		;remove owned flag
+		type: TYPE_OF(value)
+		case [
+			type = TYPE_OBJECT [
+				owner: as red-object! value
+				_hashtable/delete-key table as-integer owner/ctx
+				;@@ free object's fields and unflag it
+			]
+			ANY_SERIES?(type) [
+				series: as red-series! value
+				s: GET_BUFFER(series)
+				_hashtable/delete-key table as-integer series/node
+				s/flags: s/flags and not flag-series-owned
+				
+				if ANY_BLOCK?(type) [
+					value: s/offset + series/head
+					tail:  s/tail
+
+					while [value < tail][
+						unbind value
+						value: value + 1
+					]
+				]
+			]
+			true [assert false]
+		]
 	]
 
 	bind: func [
@@ -69,7 +99,7 @@ ownership: context [
 				obj: as red-object! container
 				ctx: GET_CTX(obj)
 				
-				if ctx/header and flag-owner = 0 [	;-- stop if another owner is met
+				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
 					ctx/header: ctx/header or flag-owner
 					s: as series! ctx/values/value
 					
