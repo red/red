@@ -505,6 +505,36 @@ win/pane: reduce [
 	]
 ]
 
+append win/pane panel: make face! [
+	type:	'panel
+	offset: 400x550
+	size:	80x80
+	pane:	make block! 3
+]
+repeat i 3 [
+	append panel/pane make face! [
+		type:	'base
+		size:	40x40
+		offset: 10x10 * i
+		text:	form i
+		color:	red + (i * 50)
+	]
+]
+
+append win/pane make face! [
+	type: 'button
+	text: "Re-order"
+	offset: 400x640
+	size: 60x24
+	actors: object [
+		on-click: func [face [object!] event [event!]][
+			reverse panel/pane
+			probe panel/pane
+			show panel
+		]
+	]
+]
+
 show win
 
 do-events

@@ -521,12 +521,11 @@ _series: context [
 		unit: GET_UNIT(s)
 		head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 		tail: as byte-ptr! s/tail
-
-		if head = tail [return ser]						;-- early exit if nothing to reverse
-
 		part: 0
-
-		if OPTION?(part-arg) [
+		
+		if head = tail [return ser]						;-- early exit if nothing to reverse
+		
+		either OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
@@ -543,8 +542,10 @@ _series: context [
 			if part <= 0 [return ser]					;-- early exit if negative /part index
 			items: part
 			part: part << (log-b unit)
+		][
+			items: get-length ser no
 		]
-
+		
 		hash?: TYPE_OF(ser) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! ser
@@ -567,7 +568,7 @@ _series: context [
 			tail: tail - unit
 		]
 		stack/pop 1
-		ownership/check as red-value! ser words/_remove ser/head items
+		ownership/check as red-value! ser words/_reverse ser/head items
 		ser
 	]
 

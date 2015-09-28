@@ -862,6 +862,45 @@ change-parent: func [
 	]
 ]
 
+update-z-order: func [
+	pane [red-block!]
+	/local
+		face [red-object!]
+		tail [red-object!]
+		s	 [series!]
+		nb	 [integer!]
+		hdwp [handle!]
+][
+probe "update-z-order"
+	s: GET_BUFFER(pane)
+	
+	face: as red-object! s/offset + pane/head
+	tail: as red-object! s/tail
+	nb: (as-integer tail - face) >> 4
+	
+	hdwp: BeginDeferWindowPos nb
+	while [face < tail][
+		if TYPE_OF(face) = TYPE_OBJECT [
+			probe BringWindowToTop get-face-handle face
+			;probe SetWindowPos
+			;	get-face-handle face
+			;	as handle! 0							;-- HWND_TOP
+			;	0 0
+			;	0 0
+			;	SWP_NOSIZE or SWP_NOMOVE
+			;hdwp: DeferWindowPos
+			;	hdwp
+			;	get-face-handle face
+			;	as handle! 0							;-- HWND_TOP
+			;	0 0
+			;	0 0
+			;	SWP_NOSIZE or SWP_NOMOVE
+		]
+		face: face + 1
+	]
+	EndDeferWindowPos hdwp
+]
+
 OS-unset-parent: func [
 	pane  [red-block!]
 	part  [integer!]
@@ -910,38 +949,41 @@ OS-update-view: func [
 	int: int + 1
 	flags: int/value
 
-	if flags and 00000002h <> 0 [
+	if flags and FACET_FLAG_OFFSET <> 0 [
 		change-offset hWnd as red-pair! values + gui/FACE_OBJ_OFFSET
 	]
-	if flags and 00000004h <> 0 [
+	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size hWnd as red-pair! values + gui/FACE_OBJ_SIZE
 	]
-	if flags and 00000008h <> 0 [
+	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text
 			hWnd
 			as red-string! values + gui/FACE_OBJ_TEXT
 			as red-word! values + gui/FACE_OBJ_TYPE
 	]
-	if flags and 00000080h <> 0 [
+	if flags and FACET_FLAG_DATA <> 0 [
 		change-data
 			hWnd 
 			values + gui/FACE_OBJ_DATA
 			as red-word! values + gui/FACE_OBJ_TYPE
 	]
-	if flags and 00000100h <> 0 [
+	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + gui/FACE_OBJ_ENABLE?
 		change-enable hWnd bool/value
 	]
-	if flags and 00000200h <> 0 [
+	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
 		change-visible hWnd bool/value
 	]
-	if flags and 00000400h <> 0 [
+	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 		change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 	]
-	if flags and 00020000h <> 0 [						;-- update Draw block
+	if flags and FACET_FLAG_DRAW <> 0 [
 		InvalidateRect as handle! hWnd null 1
+	]
+	if flags and FACET_FLAG_PANE <> 0 [
+		update-z-order as red-block! values + gui/FACE_OBJ_PANE
 	]
 	int/value: 0										;-- reset flags
 ]

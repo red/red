@@ -266,6 +266,7 @@ Red/System [
 #define SWP_NOSIZE			0001h
 #define SWP_NOMOVE			0002h
 #define SWP_NOZORDER		0004h
+#define SWP_NOACTIVATE		0010h
 #define SWP_SHOWWINDOW		0040h
 #define SWP_HIDEWINDOW		0080h
 
@@ -789,11 +790,34 @@ DwmIsCompositionEnabled!: alias function! [
 			hbr			[handle!]
 			return:		[integer!]
 		]
+		BringWindowToTop: "BringWindowToTop" [
+			hWnd		[handle!]
+			return:		[logic!]
+		]
+		BeginDeferWindowPos: "BeginDeferWindowPos" [
+			nNumWindows [integer!]
+			return:		[handle!]
+		]
+		EndDeferWindowPos: "EndDeferWindowPos" [
+			hWinPosInfo [handle!]
+			return:		[logic!]
+		]
+		DeferWindowPos: "DeferWindowPos" [
+			hWinPosInfo [handle!]
+			hWnd		[handle!]
+			hWndAfter	[handle!]
+			x			[integer!]
+			y			[integer!]
+			cx			[integer!]
+			cy			[integer!]
+			uFlags		[integer!]
+			return:		[handle!]
+		]
 		SetWindowPos: "SetWindowPos" [
 			hWnd		[handle!]
 			hWndAfter	[handle!]
-			X			[integer!]
-			Y			[integer!]
+			x			[integer!]
+			y			[integer!]
 			cx			[integer!]
 			cy			[integer!]
 			uFlags		[integer!]
