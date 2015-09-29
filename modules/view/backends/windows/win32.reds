@@ -123,6 +123,7 @@ Red/System [
 #define WS_EX_CLIENTEDGE	00000200h
 #define WS_GROUP			00020000h
 #define WS_BORDER			00400000h
+#define WS_CLIPSIBLINGS 	04000000h
 
 #define SIF_RANGE			0001h
 #define SIF_PAGE			0002h

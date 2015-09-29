@@ -523,14 +523,12 @@ repeat i 3 [
 
 append win/pane make face! [
 	type: 'button
-	text: "Re-order"
+	text: "Reverse"
 	offset: 400x640
 	size: 60x24
 	actors: object [
 		on-click: func [face [object!] event [event!]][
 			reverse panel/pane
-			probe panel/pane
-			show panel
 		]
 	]
 ]

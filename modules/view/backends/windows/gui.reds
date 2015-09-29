@@ -522,7 +522,7 @@ OS-make-view: func [
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 
-	flags: 	  WS_CHILD
+	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
 	id:		  0
 	sym: 	  symbol/resolve type/symbol
@@ -646,6 +646,8 @@ OS-make-view: func [
 		null
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
+
+	BringWindowToTop handle
 	SendMessage handle WM_SETFONT as-integer default-font 1
 
 	;-- extra initialization
@@ -871,7 +873,6 @@ update-z-order: func [
 		nb	 [integer!]
 		hdwp [handle!]
 ][
-probe "update-z-order"
 	s: GET_BUFFER(pane)
 	
 	face: as red-object! s/offset + pane/head
@@ -881,20 +882,13 @@ probe "update-z-order"
 	hdwp: BeginDeferWindowPos nb
 	while [face < tail][
 		if TYPE_OF(face) = TYPE_OBJECT [
-			probe BringWindowToTop get-face-handle face
-			;probe SetWindowPos
-			;	get-face-handle face
-			;	as handle! 0							;-- HWND_TOP
-			;	0 0
-			;	0 0
-			;	SWP_NOSIZE or SWP_NOMOVE
-			;hdwp: DeferWindowPos
-			;	hdwp
-			;	get-face-handle face
-			;	as handle! 0							;-- HWND_TOP
-			;	0 0
-			;	0 0
-			;	SWP_NOSIZE or SWP_NOMOVE
+			hdwp: DeferWindowPos
+				hdwp
+				get-face-handle face
+				as handle! 0							;-- HWND_TOP
+				0 0
+				0 0
+				SWP_NOSIZE or SWP_NOMOVE
 		]
 		face: face + 1
 	]
