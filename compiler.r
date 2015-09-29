@@ -2831,8 +2831,8 @@ red: context [
 			ctx: second obj: find objects obj
 
 			true-blk: compose/deep pick [
-				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
-				[[word/get-local (ctx) (get-word-index/with last path ctx)]]
+				[[word/set-in-ctx (ctx) (get-word-index/with last path ctx)]]
+				[[word/get-local  (ctx) (get-word-index/with last path ctx)]]
 			] set?
 			
 			either self? [
@@ -2846,9 +2846,9 @@ red: context [
 				]
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
-				insert last output reduce [				;-- save old value
-					to set-path! 'stack/top 'stack/top '+ 1
-					'word/get-local ctx get-word-index/with last path ctx
+				insert last output compose [			;-- save old value
+					if stack/top = stack/arguments [stack/top: stack/top + 1]
+					word/get-local (ctx) (get-word-index/with last path ctx)
 				]
 				parent: first back back tail path
 				fire: pick [
@@ -2860,10 +2860,8 @@ red: context [
 					fire
 						decorate-symbol parent
 						decorate-symbol last path
-						'stack/top '- 1
-						'stack/top '- 2
 				]
-				foreach pos [-9 -6 -3][new-line skip tail last output pos yes]
+				foreach pos [-11 -6 -3][new-line skip tail last output pos yes]
 			]
 		]
 		mark: tail output
