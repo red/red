@@ -114,11 +114,12 @@ button: make face! [
 			win/text: "Hello World"
 			remove back tail drop-list/data
 			probe type? reflect win/pane 'owned
-
-			either 'button <> probe get in last win/pane 'type [
+			either "Extra" <> get in last win/pane 'text [
 				append win/pane but-extra
+				append win/menu/4 ["Inserted" inserted]
 			][
 				remove back tail win/pane
+				remove skip tail win/menu/4 -2
 			]
 		]
 	]

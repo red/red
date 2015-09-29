@@ -165,6 +165,6 @@ do-menu: func [
 	if null? menu-origin [menu-origin: hWnd]
 	current-msg/hWnd: menu-origin
 	make-event current-msg res EVT_MENU
-	unless null? menu-ctx [DestroyMenu menu-ctx]
+	unless null? menu-ctx [DestroyMenu menu-ctx]		;-- recursive destruction
 	menu-origin: null
 ]

@@ -881,6 +881,15 @@ DwmIsCompositionEnabled!: alias function! [
 			hMenu		[handle!]
 			return:		[logic!]
 		]
+		SetMenu: "SetMenu" [
+			hWnd		[handle!]
+			hMenu		[handle!]
+			return:		[logic!]
+		]
+		GetMenu: "GetMenu" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
 		DestroyWindow: "DestroyWindow" [
 			hWnd		[handle!]
 			return:		[logic!]

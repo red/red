@@ -925,6 +925,7 @@ OS-update-view: func [
 		ctx		[red-context!]
 		values	[red-value!]
 		state	[red-block!]
+		menu	[red-block!]
 		int		[red-integer!]
 		int2	[red-integer!]
 		bool	[red-logic!]
@@ -979,6 +980,14 @@ OS-update-view: func [
 	if flags and FACET_FLAG_PANE <> 0 [
 		update-z-order as red-block! values + gui/FACE_OBJ_PANE
 	]
+	if flags and FACET_FLAG_MENU <> 0 [
+		menu: as red-block! values + gui/FACE_OBJ_MENU
+		if menu-bar? menu window [
+			DestroyMenu GetMenu as handle! hWnd
+			SetMenu as handle! hWnd build-menu menu CreateMenu
+		]
+	]
+	
 	int/value: 0										;-- reset flags
 ]
 
@@ -1043,7 +1052,7 @@ OS-update-facet: func [
 			]
 		]
 		sym = facets/menu [
-			
+			OS-update-view face
 		]
 		sym = facets/data [
 			
