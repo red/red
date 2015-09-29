@@ -83,7 +83,7 @@ face!: object [				;-- keep in sync with facet! enum
 									if all [object? face/actors in face/actors 'on-close][
 										do [face/actors/on-close face]
 									]
-									system/view/platform/destroy-view face tail? next target
+									system/view/platform/destroy-view face tail? skip head target part
 								]
 								target: next target
 								zero? part: part - 1
