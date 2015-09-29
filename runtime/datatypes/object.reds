@@ -388,6 +388,10 @@ object: context [
 			sym		[red-value!]
 			s-tail	[red-value!]
 			value	[red-value!]
+			w		[red-word!]
+			evt1	[integer!]
+			evt2	[integer!]
+			id		[integer!]
 			blank	[byte!]
 	][
 		ctx: 	GET_CTX(obj)
@@ -397,6 +401,8 @@ object: context [
 		sym:	syms/offset
 		s-tail: syms/tail
 		value: 	values/offset
+		evt1:	words/_on-change*/symbol
+		evt2:	words/_on-deep-change*/symbol
 		
 		if sym = s-tail [return part]					;-- exit if empty
 
@@ -415,22 +421,27 @@ object: context [
 		while [sym < s-tail][
 			if indent? [part: do-indent buffer tabs part]
 			
-			part: word/mold as red-word! sym buffer no no flat? arg part tabs
-			string/concatenate-literal buffer ": "
-			part: part - 2
+			w: as red-word! sym
+			id: symbol/resolve w/symbol
 			
-			if TYPE_OF(value) = TYPE_VALUE [value/header: TYPE_UNSET] ;-- force uninitialized slot to UNSET
-			if TYPE_OF(value) = TYPE_WORD [
-				string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
-				part: part - 1
-			]
-			unless cycles/detect? value buffer :part mold? [
-				part: actions/mold value buffer only? all? flat? arg part tabs
-			]
-			
-			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
-				string/append-char GET_BUFFER(buffer) as-integer blank
-				part: part - 1
+			if any [all [id <> evt1 id <> evt2] all?][
+				part: word/mold as red-word! sym buffer no no flat? arg part tabs
+				string/concatenate-literal buffer ": "
+				part: part - 2
+
+				if TYPE_OF(value) = TYPE_VALUE [value/header: TYPE_UNSET] ;-- force uninitialized slot to UNSET
+				if TYPE_OF(value) = TYPE_WORD [
+					string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
+					part: part - 1
+				]
+				unless cycles/detect? value buffer :part mold? [
+					part: actions/mold value buffer only? all? flat? arg part tabs
+				]
+
+				if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
+					string/append-char GET_BUFFER(buffer) as-integer blank
+					part: part - 1
+				]
 			]
 			sym: sym + 1
 			value: value + 1
