@@ -1055,7 +1055,7 @@ OS-update-facet: func [
 			OS-update-view face
 		]
 		sym = facets/data [
-			
+			probe "updating-data"
 		]
 		sym = facets/selected [
 			

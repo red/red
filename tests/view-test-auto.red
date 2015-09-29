@@ -121,6 +121,7 @@ button: make face! [
 				remove back tail win/pane
 				remove skip tail win/menu/4 -2
 			]
+			check-face/data: probe not check-face/data
 		]
 	]
 ]
@@ -275,7 +276,7 @@ win/pane: reduce [
 		]
 	]
 	
-	make face! [
+	check-face: make face! [
 		type: 'check text: "check box" offset: 300x170 size: 90x24
 		data: on
 		actors: object [
