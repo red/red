@@ -251,12 +251,12 @@ unview: function [
 ][
 	if system/view/debug? [print ["unview: all:" :all "only:" only]]
 	
-	_all: :all											;-- compiler does not support redefining ALL
+	all?: :all											;-- compiler does not support redefining ALL
 	if empty? pane: system/view/screens/1/pane [exit]
 	
 	case [
 		only  [remove find pane face]
-		_all  [while [not tail? pane][remove pane]]
+		all?  [while [not tail? pane][remove pane]]
 		'else [remove back tail pane]
 	]
 ]
