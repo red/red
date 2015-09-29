@@ -78,19 +78,14 @@ ownership: context [
 					slot: as red-value! _hashtable/put-key table as-integer series/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
-					either null? word [
-						slot: slot + 2
-						slot/header: TYPE_NONE
-					][
-						copy-cell as red-value! word slot + 2
-					]
+					copy-cell as red-value! word  slot + 2
 				]
 				if ANY_BLOCK?(type) [
 					value: s/offset + series/head
 					tail:  s/tail
 					
 					while [value < tail][
-						bind value owner null
+						bind value owner word
 						value: value + 1
 					]
 				]
