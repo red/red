@@ -2847,7 +2847,7 @@ red: context [
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
 				insert last output compose [			;-- save old value
-					if stack/top = stack/arguments [stack/top: stack/top + 1]
+					stack/keep
 					word/get-local (ctx) (get-word-index/with last path ctx)
 				]
 				parent: first back back tail path
@@ -2861,7 +2861,10 @@ red: context [
 						decorate-symbol parent
 						decorate-symbol last path
 				]
-				foreach pos [-11 -6 -3][new-line skip tail last output pos yes]
+				append last output [
+					stack/reset
+				]
+				foreach pos [-10 -7 -4 -1][new-line skip tail last output pos yes]
 			]
 		]
 		mark: tail output
