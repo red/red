@@ -260,7 +260,7 @@ object: context [
 		
 		int: as red-integer! s/offset
 		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >>> 16
+		index: int/value >> 16
 		count: int/value and FFFFh
 		
 		ctx: GET_CTX(obj) 
@@ -299,7 +299,7 @@ object: context [
 
 		int: as red-integer! s/offset + 1
 		assert TYPE_OF(int) = TYPE_INTEGER
-		index: int/value >>> 16
+		index: int/value >> 16
 		count: int/value and FFFFh
 
 		ctx: GET_CTX(owner) 
