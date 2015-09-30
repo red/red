@@ -1137,6 +1137,7 @@ block: context [
 			part	[integer!]
 			size	[integer!]
 			slots	[integer!]
+			index	[integer!]
 			values?	[logic!]
 			head?	[logic!]
 			tail?	[logic!]
@@ -1195,6 +1196,7 @@ block: context [
 		head?: zero? blk/head
 		tail?: any [(s/offset + blk/head = s/tail) append?]
 		slots: part * cnt
+		index: either append? [(as-integer s/tail - s/offset) >> 4][blk/head]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
@@ -1241,7 +1243,7 @@ block: context [
 			]
 			cnt: cnt - 1
 		]
-		ownership/check as red-value! blk words/_insert blk/head part
+		ownership/check as red-value! blk words/_insert index part
 		
 		unless append? [
 			blk/head: blk/head + slots
