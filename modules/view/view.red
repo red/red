@@ -52,7 +52,7 @@ face!: object [				;-- keep in sync with facet! enum
 
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or system/view/platform/get-facet-id word
+				state/2: state/2 or probe system/view/platform/get-facet-id in self word
 				if all [state/1 system/view/auto-update?][show self]
 			]
 		]
@@ -98,7 +98,10 @@ face!: object [				;-- keep in sync with facet! enum
 							]
 						]
 					][
-						if owner/type <> 'screen [show owner]
+						if owner/type <> 'screen [
+							show owner
+							system/view/platform/on-change-facet owner word target action index part
+						]
 					]
 				][
 					if owner/type <> 'screen [

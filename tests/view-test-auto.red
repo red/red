@@ -121,7 +121,7 @@ button: make face! [
 				remove back tail win/pane
 				remove skip tail win/menu/4 -2
 			]
-			check-face/data: probe not check-face/data
+			check-face/data: not check-face/data
 		]
 	]
 ]

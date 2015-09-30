@@ -845,6 +845,23 @@ change-data: func [
 	]
 ]
 
+change-faces-parent: func [
+	pane   [red-block!]
+	parent [red-object!]
+	index  [integer!]
+	part   [integer!]
+][
+	assert TYPE_OF(pane) = TYPE_BLOCK
+	face: (as red-object! block/rs-head pane) + index
+	tail: face + part
+	assert tail <= as red-object! block/rs-tail pane
+	
+	while [face < tail][
+		if TYPE_OF(face) = TYPE_OBJECT [change-parent face parent]
+		face: face + 1
+	]
+]
+
 change-parent: func [
 	face   [red-object!]
 	parent [red-object!]
@@ -862,6 +879,7 @@ change-parent: func [
 	][
 		SetParent hWnd get-face-handle parent
 	]
+	OS-show-window as-integer hWnd
 ]
 
 update-z-order: func [
@@ -1033,20 +1051,20 @@ OS-update-facet: func [
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
-						change-parent as red-object! value null
-						OS-show-window as-integer get-face-handle face
-					]
+					;if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
+					change-faces-parent as red-block! value null index part
+						;OS-show-window as-integer get-face-handle face
+					;]
 				]
 				any [
 					sym = words/_insert/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][
-					if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
-						change-parent as red-object! value face
-						OS-show-window as-integer get-face-handle face
-					]
+					;if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
+					change-faces-parent as red-block! value face index part
+						;OS-show-window as-integer get-face-handle face
+					;]
 				]
 				true [0]
 			]
@@ -1056,9 +1074,10 @@ OS-update-facet: func [
 		]
 		sym = facets/data [
 			probe "updating-data"
+			OS-update-view face
 		]
 		sym = facets/selected [
-			
+			;OS-update-view face
 		]
 		true [0]
 	]
