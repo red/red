@@ -160,7 +160,6 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				simple/visible?: not simple/visible?
-				show simple
 			]
 		]
 	]
@@ -252,7 +251,7 @@ win/pane: reduce [
 						progress-text/text: form 
 							to percent! (round face/data * 100) / 100.0
 						show progress
-						show progress-text
+						;show progress-text
 					]
 				]
 			]

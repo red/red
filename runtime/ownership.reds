@@ -29,13 +29,13 @@ ownership: context [
 		case [
 			type = TYPE_OBJECT [
 				owner: as red-object! value
-				_hashtable/delete-key table as-integer owner/ctx
+				;_hashtable/delete-key table as-integer owner/ctx
 				;@@ free object's fields and unflag it
 			]
 			ANY_SERIES?(type) [
 				series: as red-series! value
 				s: GET_BUFFER(series)
-				_hashtable/delete-key table as-integer series/node
+				;_hashtable/delete-key table as-integer series/node
 				s/flags: s/flags and not flag-series-owned
 				
 				if ANY_BLOCK?(type) [
