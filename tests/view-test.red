@@ -161,6 +161,12 @@ win: make face! [
 	actors: object [
 		on-menu: func [face [object!] event [event!]][
 			print ["menu selected:" event/picked]
+			switch event/picked [
+				exit [
+					print "calling unview"
+					unview/all
+				]
+			]
 		]
 		on-close: func [face [object!]][
 			print "closing window"
