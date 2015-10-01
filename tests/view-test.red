@@ -166,6 +166,11 @@ win: make face! [
 					print "calling unview"
 					unview/all
 				]
+				sub-m1 [
+					;just to test change of a button's text..
+					win/pane/1/text: "Hello"
+					show win/pane/1
+				]
 			]
 		]
 		on-close: func [face [object!]][
