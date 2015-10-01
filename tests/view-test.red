@@ -161,6 +161,17 @@ win: make face! [
 	actors: object [
 		on-menu: func [face [object!] event [event!]][
 			print ["menu selected:" event/picked]
+			switch event/picked [
+				exit [
+					print "calling unview"
+					unview/all
+				]
+				sub-m1 [
+					;just to test change of a button's text..
+					win/pane/1/text: "Hello"
+					show win/pane/1
+				]
+			]
 		]
 		on-close: func [face [object!]][
 			print "closing window"
