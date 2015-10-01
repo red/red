@@ -913,30 +913,6 @@ update-z-order: func [
 	EndDeferWindowPos hdwp
 ]
 
-OS-unset-parent: func [
-	pane  [red-block!]
-	part  [integer!]
-	/local
-		face [red-object!]
-		tail [red-object!]
-		hWnd [handle!]
-		s	 [series!]
-][
-	assert TYPE_OF(pane) = TYPE_BLOCK
-	s: GET_BUFFER(pane)
-	face: as red-object! s/offset + pane/head
-	tail: as red-object! s/tail
-
-	until [
-		hWnd: get-face-handle face
-		change-visible as-integer hWnd no
-		SetParent hWnd null
-		face: face + 1
-		part: part - 1
-		any [zero? part face = tail]
-	]
-]
-
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -1051,20 +1027,14 @@ OS-update-facet: func [
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					;if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 					change-faces-parent as red-block! value null index part
-						;OS-show-window as-integer get-face-handle face
-					;]
 				]
 				any [
 					sym = words/_insert/symbol
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][
-					;if TYPE_OF(value) = TYPE_OBJECT [	;@@ needs more accurate checking
 					change-faces-parent as red-block! value face index part
-						;OS-show-window as-integer get-face-handle face
-					;]
 				]
 				true [0]
 			]

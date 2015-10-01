@@ -244,13 +244,6 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action index part
 	]
 	
-	unset-parent: routine [
-		target [block!]
-		part   [integer!]
-	][
-		gui/OS-unset-parent target part
-	]
-	
 	destroy-view: routine [face [object!] empty? [logic!]][
 		gui/OS-destroy-view face empty?
 		SET_RETURN(none-value)
