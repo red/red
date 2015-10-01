@@ -211,7 +211,6 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				drop-list/selected: 5
-				show drop-list
 			]
 		]
 	]
@@ -231,7 +230,6 @@ win/pane: reduce [
 					on-menu: func [face [object!] event [event!]][
 						print ["context menu selected:" event/picked]
 						face/data: load append next form event/picked #"%"
-						show face
 					]
 				]
 			]
@@ -250,8 +248,6 @@ win/pane: reduce [
 						progress/data: face/data
 						progress-text/text: form 
 							to percent! (round face/data * 100) / 100.0
-						show progress
-						;show progress-text
 					]
 				]
 			]
@@ -270,7 +266,6 @@ win/pane: reduce [
 			on-change: func [face [object!] event [event! none!]][
 				print ["slider changed:" face/data]
 				progress2/data: face/data
-				show progress2
 			]
 		]
 	]
@@ -394,7 +389,6 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				cam/enable?: not cam/enable?
-				show cam
 			]
 		]
 	]
@@ -408,7 +402,6 @@ win/pane: reduce [
 			on-change: func [face [object!] event [event!]][
 				print ["changed:" face/selected]
 				cam/selected: face/selected
-				show cam
 			]
 		]
 	]

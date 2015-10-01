@@ -52,7 +52,7 @@ face!: object [				;-- keep in sync with facet! enum
 
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or probe system/view/platform/get-facet-id in self word
+				state/2: state/2 or system/view/platform/get-facet-id in self word
 				if all [state/1 system/view/auto-update?][show self]
 			]
 		]
