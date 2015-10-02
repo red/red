@@ -1,9 +1,10 @@
 Red [
+	Purpose: "Test the GUI auto-update mode"
 	Needs: 'View
-	Icon: %red.ico
 ]
 
 system/view/debug?: yes
+live?: system/view/auto-update?: no
 
 workstation?: system/view/platform/product = 1
 
@@ -168,6 +169,10 @@ win: make face! [
 	]
 ]
 
+but-extra: make face! [
+	type: 'button text: "Extra" offset: 500x500 size: 40x25
+]
+
 button: make face! [
 	type: 'button
 	text: "Hello"
@@ -179,8 +184,17 @@ button: make face! [
 			face/size: face/size + (5x5 - random 10x10)
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
-			show win
 			remove back tail drop-list/data
+			probe type? reflect win/pane 'owned
+			either "Extra" <> get in last win/pane 'text [
+				append win/pane but-extra
+				append win/menu/4 ["Inserted" inserted]
+			][
+				remove back tail win/pane
+				remove skip tail win/menu/4 -2
+			]
+			check-face/data: not check-face/data
+			unless live? [show win]
 		]
 	]
 ]
@@ -219,7 +233,7 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				simple/visible?: not simple/visible?
-				show simple
+				unless live? [show simple]
 			]
 		]
 	]
@@ -271,7 +285,7 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				drop-list/selected: 5
-				show drop-list
+				unless live? [show drop-list]
 			]
 		]
 	]
@@ -291,7 +305,7 @@ win/pane: reduce [
 					on-menu: func [face [object!] event [event!]][
 						print ["context menu selected:" event/picked]
 						face/data: load append next form event/picked #"%"
-						show face
+						unless live? [show face]
 					]
 				]
 			]
@@ -308,10 +322,11 @@ win/pane: reduce [
 					on-change: func [face [object!] event [event! none!]][
 						;print ["slider changed:" face/data]
 						progress/data: face/data
-						progress-text/text: form 
-							to percent! (round face/data * 100) / 100.0
-						show progress
-						show progress-text
+						progress-text/text: form to percent! (round face/data * 100) / 100.0
+						unless live? [
+							show progress
+							show progress-text
+						]
 					]
 				]
 			]
@@ -330,12 +345,12 @@ win/pane: reduce [
 			on-change: func [face [object!] event [event! none!]][
 				print ["slider changed:" face/data]
 				progress2/data: face/data
-				show progress2
+				unless live? [show progress2]
 			]
 		]
 	]
 	
-	make face! [
+	check-face: make face! [
 		type: 'check text: "check box" offset: 300x170 size: 90x24
 		data: on
 		actors: object [
@@ -454,7 +469,7 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				cam/enable?: not cam/enable?
-				show cam
+				unless live? [show cam]
 			]
 		]
 	]
@@ -468,7 +483,7 @@ win/pane: reduce [
 			on-change: func [face [object!] event [event!]][
 				print ["changed:" face/selected]
 				cam/selected: face/selected
-				show cam
+				unless live? [show cam]
 			]
 		]
 	]
@@ -563,8 +578,37 @@ win/pane: reduce [
 				][
 					remove/part canvas/draw 2
 				]
-				show canvas
+				unless live? [show canvas]
 			]
+		]
+	]
+]
+
+append win/pane panel: make face! [
+	type:	'panel
+	offset: 400x550
+	size:	80x80
+	pane:	make block! 3
+]
+repeat i 3 [
+	append panel/pane make face! [
+		type:	'base
+		size:	40x40
+		offset: 10x10 * i
+		text:	form i
+		color:	red + (i * 50)
+	]
+]
+
+append win/pane make face! [
+	type: 'button
+	text: "Reverse"
+	offset: 400x640
+	size: 60x24
+	actors: object [
+		on-click: func [face [object!] event [event!]][
+			reverse panel/pane
+			unless live? [show panel]
 		]
 	]
 ]
