@@ -216,6 +216,7 @@ win/pane: reduce [
 				remove back tail drop-list/data
 				check-face/data: not check-face/data
 				remove at text-list/data 4
+				insert at text-list/data 2 random "helloworld"
 				unless live? [
 					show drop-list
 					show check-face

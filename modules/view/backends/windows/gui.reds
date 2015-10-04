@@ -1014,6 +1014,7 @@ OS-update-facet: func [
 									sym = words/_take/symbol
 									sym = words/_clear/symbol
 								][
+									;@@ unbind removed items
 									hWnd: get-face-handle face
 									either all [
 										sym = words/_clear/symbol
@@ -1023,6 +1024,21 @@ OS-update-facet: func [
  									][
 										loop part [remove-list-item hWnd index]
 									]
+								]
+								any [
+									sym = words/_insert/symbol
+									sym = words/_poke/symbol
+									sym = words/_put/symbol
+								][
+									hWnd: get-face-handle face
+									if sym <> words/_insert/symbol [
+										remove-list-item hWnd index
+										;@@ unbind old value
+									]
+									insert-list-item
+										hWnd
+										as red-string! block/rs-abs-at as red-block! value index
+										index
 								]
 								true [0]
 							]
