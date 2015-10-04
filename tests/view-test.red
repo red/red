@@ -184,8 +184,8 @@ button: make face! [
 			face/size: face/size + (5x5 - random 10x10)
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
-			remove back tail drop-list/data
 			probe type? reflect win/pane 'owned
+
 			either "Extra" <> get in last win/pane 'text [
 				append win/pane but-extra
 				append win/menu/4 ["Inserted" inserted]
@@ -193,8 +193,6 @@ button: make face! [
 				remove back tail win/pane
 				remove skip tail win/menu/4 -2
 			]
-			check-face/data: not check-face/data
-			remove at text-list/data 4
 			unless live? [show win]
 		]
 	]
@@ -211,6 +209,21 @@ win/pane: reduce [
 		]
 	]
 	button
+	make face! [
+		type: 'button text: "Change" offset: 180x10 size: 60x40
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				remove back tail drop-list/data
+				check-face/data: not check-face/data
+				remove at text-list/data 4
+				unless live? [
+					show drop-list
+					show check-face
+					show text-list
+				]
+			]
+		]
+	]
 	make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
