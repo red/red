@@ -19,6 +19,7 @@ Red/System [
 #include %menu.reds
 #include %panel.reds
 #include %tab-panel.reds
+#include %text-list.reds
 #include %draw.reds
 
 hScreen:		as handle! 0
@@ -403,52 +404,6 @@ get-screen-size: func [
 	pair/push 
 		GetDeviceCaps hScreen HORZRES
 		GetDeviceCaps hScreen VERTRES
-]
-
-init-text-list: func [
-	hWnd		  [handle!]
-	data		  [red-block!]
-	selected	  [red-integer!]
-	/local
-		str		  [red-string!]
-		tail	  [red-string!]
-		c-str	  [c-string!]
-		str-saved [c-string!]
-		len		  [integer!]
-		value	  [integer!]
-		csize	  [tagSIZE]
-][
-	if any [
-		TYPE_OF(data) = TYPE_BLOCK
-		TYPE_OF(data) = TYPE_HASH
-		TYPE_OF(data) = TYPE_MAP
-	][
-		csize: declare tagSIZE
-		len: 0
-		str:  as red-string! block/rs-head data
-		tail: as red-string! block/rs-tail data
-		while [str < tail][
-			c-str: unicode/to-utf16 str
-			value: string/rs-length? str
-			if len < value [len: value str-saved: c-str]
-			if TYPE_OF(str) = TYPE_STRING [
-				SendMessage 
-					hWnd
-					LB_ADDSTRING
-					0
-					as-integer c-str
-			]
-			str: str + 1
-		]
-		unless zero? len [
-			GetTextExtentPoint32 GetDC hWnd str-saved len csize
-			SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
-		]
-	]
-	if TYPE_OF(selected) <> TYPE_INTEGER [
-		selected/header: TYPE_INTEGER
-		selected/value: -1
-	]
 ]
 
 DWM-enabled?: func [
@@ -1004,7 +959,10 @@ OS-update-facet: func [
 	index  [integer!]
 	part   [integer!]
 	/local
-		sym	[integer!]
+		word [red-word!]
+		sym	 [integer!]
+		type [integer!]
+		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
 	
@@ -1031,8 +989,8 @@ OS-update-facet: func [
 				]
 				any [
 					sym = words/_insert/symbol
-					sym = words/_poke/symbol
-					sym = words/_put/symbol
+					sym = words/_poke/symbol			;@@ unbind old value
+					sym = words/_put/symbol				;@@ unbind old value
 				][
 					change-faces-parent as red-block! value face index part
 				]
@@ -1043,7 +1001,40 @@ OS-update-facet: func [
 			OS-update-view face
 		]
 		sym = facets/data [
-			OS-update-view face
+			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			sym: action/symbol
+			case [
+				type = text-list [
+					switch TYPE_OF(value) [
+						TYPE_BLOCK [
+							case [
+								any [
+									sym = words/_remove/symbol
+									sym = words/_take/symbol
+									sym = words/_clear/symbol
+								][
+									hWnd: get-face-handle face
+									either all [
+										sym = words/_clear/symbol
+										zero? index
+									][
+										SendMessage hWnd LB_RESETCONTENT 0 0
+ 									]
+										loop part [remove-list-item hWnd index]
+									]
+								]
+								true [0]
+							]
+						]
+						TYPE_STRING [
+							probe "list entry updating..."
+						]
+						default [assert false]			;@@ raise a runtime error
+					]
+				]
+				true [OS-update-view face]
+			]
 		]
 		sym = facets/selected [
 			OS-update-view face

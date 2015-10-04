@@ -18,7 +18,10 @@ Red/System [
 
 #define TPM_RETURNCMD		0100h
 
-#define LB_ADDSTRING			384
+#define LB_ADDSTRING			0180h
+#define LB_INSERTSTRING         0181h
+#define LB_DELETESTRING         0182h
+#define LB_RESETCONTENT         0184h
 #define LB_GETCURSEL            0188h
 #define LB_SETHORIZONTALEXTENT  0194h
 

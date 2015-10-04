@@ -4,7 +4,7 @@ Red [
 ]
 
 system/view/debug?: yes
-live?: system/view/auto-update?: no
+live?: system/view/auto-update?: yes
 
 workstation?: system/view/platform/product = 1
 
@@ -194,6 +194,7 @@ button: make face! [
 				remove skip tail win/menu/4 -2
 			]
 			check-face/data: not check-face/data
+			remove at text-list/data 4
 			unless live? [show win]
 		]
 	]
@@ -433,7 +434,7 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	text-list: make face! [
 		type: 'text-list offset: 400x20 size: 165x100
 		data: [
 			"Book 1"
