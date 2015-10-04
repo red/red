@@ -1020,7 +1020,7 @@ OS-update-facet: func [
 										zero? index
 									][
 										SendMessage hWnd LB_RESETCONTENT 0 0
- 									]
+ 									][
 										loop part [remove-list-item hWnd index]
 									]
 								]
