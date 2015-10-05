@@ -218,9 +218,7 @@ win/pane: reduce [
 				check-face/data: not check-face/data
 				remove at text-list/data 4
 				insert at text-list/data 2 random "helloworld"
-print "testing deep change"
 				insert text-list/data/1 #"o"
-probe text-list/data
 				unless live? [
 					show drop-list
 					show check-face
