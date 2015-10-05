@@ -44,7 +44,7 @@ init-text-list: func [
 			str: str + 1
 		]
 		unless zero? len [
-			update-list-hbar hWnd str-saved len no
+			update-list-hbar hWnd str-saved len
 		]
 	]
 	if TYPE_OF(selected) <> TYPE_INTEGER [
@@ -57,15 +57,12 @@ update-list-hbar: func [
 	hWnd  [handle!]
 	str	  [c-string!]
 	len	  [integer!]
-	drop? [logic!]
 	/local
 		csize [tagSIZE]
-		msg	  [integer!]
 ][
 	csize: declare tagSIZE
 	GetTextExtentPoint32 GetDC hWnd str len csize
-	msg: either drop? [CB_SETHORIZONTALEXTENT][LB_SETHORIZONTALEXTENT]
-	SendMessage hWnd msg csize/width 0
+	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
 ]
 
 insert-list-item: func [
@@ -80,7 +77,7 @@ insert-list-item: func [
 	str: unicode/to-utf16 item
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
 	SendMessage hWnd msg pos as-integer str
-	update-list-hbar hWnd str string/rs-length? item drop?
+	unless drop? [update-list-hbar hWnd str string/rs-length? item]
 ]
 
 remove-list-item: func [

@@ -128,6 +128,7 @@ system: context [
 				parse-series:		["PARSE - input must be a series:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
+				invalid-data-facet: ["invalid DATA facet content" :arg1]
 			]
 			math: object [
 				code:				400
