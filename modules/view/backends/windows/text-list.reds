@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"Windows Tab-panel widget"
+	Title:	"Windows text-list widget"
 	Author: "Xie Qingtian, Nenad Rakocevic"
 	File: 	%text-list.reds
 	Tabs: 	4
@@ -44,7 +44,7 @@ init-text-list: func [
 			str: str + 1
 		]
 		unless zero? len [
-			update-list-hbar hWnd str-saved len
+			update-list-hbar hWnd str-saved len no
 		]
 	]
 	if TYPE_OF(selected) <> TYPE_INTEGER [
@@ -54,34 +54,102 @@ init-text-list: func [
 ]
 
 update-list-hbar: func [
-	hWnd [handle!]
-	str	 [c-string!]
-	len	 [integer!]
+	hWnd  [handle!]
+	str	  [c-string!]
+	len	  [integer!]
+	drop? [logic!]
 	/local
 		csize [tagSIZE]
+		msg	  [integer!]
 ][
 	csize: declare tagSIZE
 	GetTextExtentPoint32 GetDC hWnd str len csize
-	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
+	msg: either drop? [CB_SETHORIZONTALEXTENT][LB_SETHORIZONTALEXTENT]
+	SendMessage hWnd msg csize/width 0
 ]
 
 insert-list-item: func [
-	hWnd [handle!]
-	item [red-string!]
-	pos	 [integer!]
+	hWnd  [handle!]
+	item  [red-string!]
+	pos	  [integer!]
+	drop? [logic!]
 	/local
 		str [c-string!]
+		msg	[integer!]
 ][
 	str: unicode/to-utf16 item
-	SendMessage hWnd LB_INSERTSTRING pos as-integer str
-	update-list-hbar hWnd str string/rs-length? item
+	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
+	SendMessage hWnd msg pos as-integer str
+	update-list-hbar hWnd str string/rs-length? item drop?
 ]
 
 remove-list-item: func [
-	hWnd [handle!]
-	pos	 [integer!]
+	hWnd  [handle!]
+	pos	  [integer!]
+	drop? [logic!]
+	/local
+		msg	[integer!]
 ][
-	SendMessage hWnd LB_DELETESTRING pos 0
+	msg: either drop? [CB_DELETESTRING][LB_DELETESTRING]
+	SendMessage hWnd msg pos 0
 	;@@ update the horizontal extent value for scrollbar?
 	;@@ update the selected facet
+]
+
+update-list: func [
+	face  [red-object!]
+	value [red-value!]
+	sym   [integer!]
+	index [integer!]
+	part  [integer!]
+	drop? [logic!]										;-- TRUE: drop-list or drop-down widgets
+	/local
+		msg [integer!]
+][
+	hWnd: get-face-handle face
+	switch TYPE_OF(value) [
+		TYPE_BLOCK [
+			case [
+				any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					;@@ unbind removed items
+					either all [
+						sym = words/_clear/symbol
+						zero? index
+					][
+						msg: either drop? [CB_RESETCONTENT][LB_RESETCONTENT]
+						SendMessage hWnd msg 0 0
+					][
+						loop part [remove-list-item hWnd index drop?]
+					]
+				]
+				any [
+					sym = words/_insert/symbol
+					sym = words/_poke/symbol
+					sym = words/_put/symbol
+				][
+					loop part [
+						if sym <> words/_insert/symbol [
+							remove-list-item hWnd index drop?
+							;@@ unbind old value
+						]
+						insert-list-item
+							hWnd
+							as red-string! block/rs-abs-at as red-block! value index
+							index
+							drop?
+					]
+				]
+				true [0]
+			]
+		]
+		TYPE_STRING [
+			remove-list-item hWnd index drop?
+			insert-list-item hWnd as red-string! value index drop?
+		]
+		default [assert false]			;@@ raise a runtime error
+	]
 ]

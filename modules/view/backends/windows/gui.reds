@@ -1006,52 +1006,13 @@ OS-update-facet: func [
 			sym: action/symbol
 			case [
 				type = text-list [
-					switch TYPE_OF(value) [
-						TYPE_BLOCK [
-							case [
-								any [
-									sym = words/_remove/symbol
-									sym = words/_take/symbol
-									sym = words/_clear/symbol
-								][
-									;@@ unbind removed items
-									hWnd: get-face-handle face
-									either all [
-										sym = words/_clear/symbol
-										zero? index
-									][
-										SendMessage hWnd LB_RESETCONTENT 0 0
- 									][
-										loop part [remove-list-item hWnd index]
-									]
-								]
-								any [
-									sym = words/_insert/symbol
-									sym = words/_poke/symbol
-									sym = words/_put/symbol
-								][
-									hWnd: get-face-handle face
-									loop part [
-										if sym <> words/_insert/symbol [
-											remove-list-item hWnd index
-											;@@ unbind old value
-										]
-										insert-list-item
-											hWnd
-											as red-string! block/rs-abs-at as red-block! value index
-											index
-									]
-								]
-								true [0]
-							]
-						]
-						TYPE_STRING [
-							hWnd: get-face-handle face
-							remove-list-item hWnd index
-							insert-list-item hWnd as red-string! value index
-						]
-						default [assert false]			;@@ raise a runtime error
-					]
+					update-list face value sym index part no
+				]
+				any [
+					type = drop-list
+					type = drop-down
+				][
+					update-list face value sym index part yes
 				]
 				true [OS-update-view face]
 			]

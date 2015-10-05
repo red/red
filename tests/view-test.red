@@ -214,7 +214,7 @@ win/pane: reduce [
 		type: 'button text: "Change" offset: 180x10 size: 60x40
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				remove back tail drop-list/data
+				clear back back tail drop-list/data
 				check-face/data: not check-face/data
 				remove at text-list/data 4
 				insert at text-list/data 2 random "helloworld"
