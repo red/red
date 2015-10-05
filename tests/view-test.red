@@ -228,6 +228,15 @@ win/pane: reduce [
 		]
 	]
 	make face! [
+		type: 'check text: "Debug?" offset: 300x270 size: 80x24
+		data: system/view/debug?
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				system/view/debug?: face/data
+			]
+		]
+	]
+	make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
 		actors: object [
