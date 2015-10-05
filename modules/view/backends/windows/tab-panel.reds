@@ -52,6 +52,27 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 	]
 ]
 
+insert-tab: func [
+	hWnd  [handle!]
+	str	  [red-string!]
+	index [integer!]
+	/local
+		item [TCITEM]
+][
+	item: declare TCITEM
+	item/mask: TCIF_TEXT
+	item/pszText: unicode/to-utf16 str
+	item/cchTextMax: string/rs-length? str
+	item/iImage: -1
+	item/lParam: 0
+
+	SendMessage
+		hWnd
+		TCM_INSERTITEMW
+		index
+		as-integer item
+]
+
 set-tabs: func [
 	hWnd   [handle!]
 	facets [red-value!]
@@ -70,19 +91,7 @@ set-tabs: func [
 		tail: as red-string! block/rs-tail data
 		i: 0
 		while [str < tail][
-			if TYPE_OF(str) = TYPE_STRING [
-				item/mask: TCIF_TEXT
-				item/pszText: unicode/to-utf16 str
-				item/cchTextMax: string/rs-length? str
-				item/iImage: -1
-				item/lParam: 0
-
-				SendMessage
-					hWnd
-					TCM_INSERTITEMW
-					i
-					as-integer item
-			]
+			if TYPE_OF(str) = TYPE_STRING [insert-tab hWnd str i]
 			i: i + 1
 			str: str + 1
 		]
@@ -126,5 +135,51 @@ set-tab: func [
 				ShowWindow get-face-handle obj SW_HIDE
 			]
 		]
+	]
+]
+
+update-tabs: func [
+	face  [red-object!]
+	value [red-value!]
+	sym   [integer!]
+	index [integer!]
+	part  [integer!]
+][
+	hWnd: get-face-handle face
+	switch TYPE_OF(value) [
+		TYPE_BLOCK [
+			case [
+				any [
+					sym = words/_remove/symbol
+					sym = words/_take/symbol
+					sym = words/_clear/symbol
+				][
+					;@@ unbind removed items
+					loop part [SendMessage hWnd TCM_DELETEITEM index 0]
+				]
+				any [
+					sym = words/_insert/symbol
+					sym = words/_poke/symbol
+					sym = words/_put/symbol
+				][
+					loop part [
+						if sym <> words/_insert/symbol [
+							SendMessage hWnd TCM_DELETEITEM index 0
+							;@@ unbind old value
+						]
+						insert-tab
+							hWnd
+							as red-string! block/rs-abs-at as red-block! value index
+							index
+					]
+				]
+				true [0]
+			]
+		]
+		TYPE_STRING [
+			SendMessage hWnd TCM_DELETEITEM index 0
+			insert-tab hWnd as red-string! value index
+		]
+		default [assert false]			;@@ raise a runtime error
 	]
 ]

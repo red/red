@@ -78,10 +78,11 @@ Red/System [
 
 #define PBS_VERTICAL		04h
 
+#define TCM_DELETEITEM		1308h
 #define TCM_GETCURSEL		130Bh
 #define TCM_SETCURSEL		130Ch
 #define TCM_INSERTITEMW		133Eh
-#define TCM_ADJUSTRECT		1328h 
+#define TCM_ADJUSTRECT		1328h
 
 #define TCIF_TEXT			0001h
 

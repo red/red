@@ -174,6 +174,15 @@ but-extra: make face! [
 	type: 'button text: "Extra" offset: 500x500 size: 40x25
 ]
 
+panel-extra: make face! [
+	type: 'panel
+	pane: reduce [
+		make face! [
+			type: 'text text: "Panel 4" offset: 20x80 size: 60x30
+		]
+	]
+]
+
 button: make face! [
 	type: 'button
 	text: "Hello"
@@ -219,6 +228,10 @@ win/pane: reduce [
 				remove at text-list/data 4
 				insert at text-list/data 2 random "helloworld"
 				insert text-list/data/1 #"o"
+				unless "tab 4" = last tab-panel/data [
+					append tab-panel/data "tab 4"
+					;append tab-panel/pane panel-extra
+				]
 				unless live? [
 					show drop-list
 					show check-face
@@ -407,7 +420,7 @@ win/pane: reduce [
 		type: 'image offset: 280x10 size: 100x100
 		data: [%./bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png]
 	]
-	make face! [
+	tab-panel: make face! [
 		type: 'tab-panel offset: 10x320 size: 250x130
 		data: [
 			"tab 1"

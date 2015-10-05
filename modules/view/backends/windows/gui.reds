@@ -1024,6 +1024,9 @@ OS-update-facet: func [
 					
 					update-list face value sym index part yes
 				]
+				type = tab-panel [
+					update-tabs	face value sym index part
+				]
 				true [OS-update-view face]
 			]
 		]
