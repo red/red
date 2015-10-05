@@ -1744,6 +1744,7 @@ string: context [
 			rest	  [integer!]
 			added	  [integer!]
 			type	  [integer!]
+			index	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
@@ -1777,10 +1778,9 @@ string: context [
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
 		
 		s: GET_BUFFER(str)
-		tail?: any [
-			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = str/head
-			append?
-		]
+		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		tail?: any [len = str/head append?]
+		index: either append? [len][str/head]
 		
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
@@ -1837,6 +1837,9 @@ string: context [
 			]
 			cnt: cnt - 1
 		]
+		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
+		ownership/check as red-value! str words/_insert index part
+		
 		unless append? [
 			added: added * dup-n
 			str/head: str/head + added

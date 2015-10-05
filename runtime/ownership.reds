@@ -141,6 +141,7 @@ ownership: context [
 			word   [red-word!]
 			type   [integer!]
 	][
+		;@@ check owned flag first
 		type: TYPE_OF(value)
 		case [
 			type = TYPE_OBJECT [
