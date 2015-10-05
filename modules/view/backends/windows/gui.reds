@@ -1031,20 +1031,24 @@ OS-update-facet: func [
 									sym = words/_put/symbol
 								][
 									hWnd: get-face-handle face
-									if sym <> words/_insert/symbol [
-										remove-list-item hWnd index
-										;@@ unbind old value
+									loop part [
+										if sym <> words/_insert/symbol [
+											remove-list-item hWnd index
+											;@@ unbind old value
+										]
+										insert-list-item
+											hWnd
+											as red-string! block/rs-abs-at as red-block! value index
+											index
 									]
-									insert-list-item
-										hWnd
-										as red-string! block/rs-abs-at as red-block! value index
-										index
 								]
 								true [0]
 							]
 						]
 						TYPE_STRING [
-							probe "list entry updating..."
+							hWnd: get-face-handle face
+							remove-list-item hWnd index
+							insert-list-item hWnd as red-string! value index
 						]
 						default [assert false]			;@@ raise a runtime error
 					]
