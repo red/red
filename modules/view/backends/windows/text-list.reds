@@ -22,12 +22,12 @@ init-text-list: func [
 		len		  [integer!]
 		value	  [integer!]
 ][
+	len: 0
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
 		TYPE_OF(data) = TYPE_HASH
 		TYPE_OF(data) = TYPE_MAP
 	][
-		len: 0
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
 		while [str < tail][
@@ -47,6 +47,8 @@ init-text-list: func [
 			update-list-hbar hWnd str-saved len
 		]
 	]
+	SetWindowLong hWnd wc-offset - 4 len
+
 	if TYPE_OF(selected) <> TYPE_INTEGER [
 		selected/header: TYPE_INTEGER
 		selected/value: -1
@@ -73,11 +75,18 @@ insert-list-item: func [
 	/local
 		str [c-string!]
 		msg	[integer!]
+		len [integer!]
 ][
 	str: unicode/to-utf16 item
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
 	SendMessage hWnd msg pos as-integer str
-	unless drop? [update-list-hbar hWnd str string/rs-length? item]
+	unless drop? [
+		len: string/rs-length? item
+		if len > GetWindowLong hWnd wc-offset - 4 [
+			SetWindowLong hWnd wc-offset - 4 len
+			update-list-hbar hWnd str len
+		]
+	]
 ]
 
 remove-list-item: func [
