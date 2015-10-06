@@ -291,7 +291,8 @@ _hashtable: context [
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
-		h/type: either type = HASH_TABLE_INTEGER [vsize][type]
+		h/type: type
+		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize]
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
@@ -303,7 +304,7 @@ _hashtable: context [
 		h/flags: alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
 		h/keys: alloc-bytes h/n-buckets * size? int-ptr!
 
-		either blk = null [
+		either any [type = HASH_TABLE_INTEGER blk = null][
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
@@ -327,9 +328,12 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
+			int? int-key
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
+
+		int?: h/type = HASH_TABLE_INTEGER
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -361,8 +365,13 @@ _hashtable: context [
 					break?: no
 					until [									;-- kick-out process
 						step: 0
-						k: blk + (idx and 7FFFFFFFh)
-						hash: hash-value k no
+						either int? [
+							int-key: as int-ptr! ((as byte-ptr! blk) + idx)
+							hash: int-key/value
+						][
+							k: blk + (idx and 7FFFFFFFh)
+							hash: hash-value k no
+						]
 						i: hash and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
@@ -413,7 +422,7 @@ _hashtable: context [
 			resize node n-buckets
 		]
 
-		vsize: h/type
+		vsize: as integer! h/indexes
 		blk-node: as series! h/blk/value
 		blk: as byte-ptr! blk-node/offset
 
