@@ -248,10 +248,12 @@ system/view/platform: context [
 		gui/OS-destroy-view face empty?
 		SET_RETURN(none-value)
 	]
+	
 	update-view: routine [face [object!]][
 		gui/OS-update-view face
 		SET_RETURN(none-value)
 	]
+	
 	show-window: routine [id [integer!]] [
 		gui/OS-show-window id
 		SET_RETURN(none-value)

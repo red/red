@@ -230,7 +230,7 @@ win/pane: reduce [
 				insert text-list/data/1 #"o"
 				unless "tab 4" = last tab-panel/data [
 					append tab-panel/data "tab 4"
-					;append tab-panel/pane panel-extra
+					append tab-panel/pane panel-extra
 				]
 				unless live? [
 					show drop-list

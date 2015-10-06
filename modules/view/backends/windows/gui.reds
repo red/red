@@ -821,17 +821,30 @@ change-parent: func [
 	face   [red-object!]
 	parent [red-object!]
 	/local
-		hWnd [handle!]
-		bool [red-logic!]
+		hWnd		[handle!]
+		bool		[red-logic!]
+		type		[red-word!]
+		values		[red-value!]
+		offset		[red-pair!]
+		tab-panel?	[logic!]
 ][
 	hWnd: get-face-handle face
-	bool: as red-logic! get-node-facet face/ctx FACE_OBJ_VISIBLE?
-	bool/value: parent <> null
-
+	values: get-node-facet face/ctx 0
+	bool: as red-logic! values + FACE_OBJ_VISIBLE?
+	tab-panel?: no
+	
+	if parent <> null [
+		assert TYPE_OF(parent) = TYPE_OBJECT
+		type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
+		tab-panel?: tab-panel = symbol/resolve type/symbol
+	]
+	unless tab-panel? [bool/value: parent <> null]
+	
 	either null? parent [
 		change-visible as-integer hWnd no
 		SetParent hWnd null
 	][
+		if tab-panel? [exit]
 		SetParent hWnd get-face-handle parent
 	]
 	OS-show-window as-integer hWnd
@@ -875,6 +888,7 @@ OS-update-view: func [
 		values	[red-value!]
 		state	[red-block!]
 		menu	[red-block!]
+		word	[red-word!]
 		int		[red-integer!]
 		int2	[red-integer!]
 		bool	[red-logic!]
@@ -927,7 +941,10 @@ OS-update-view: func [
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
-		update-z-order as red-block! values + gui/FACE_OBJ_PANE
+		word: as red-word! values + FACE_OBJ_TYPE
+		if tab-panel <> symbol/resolve word/symbol [	;-- tab-panel/pane has custom z-order handling
+			update-z-order as red-block! values + gui/FACE_OBJ_PANE
+		]
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + gui/FACE_OBJ_MENU

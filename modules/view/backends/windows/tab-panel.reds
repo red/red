@@ -124,7 +124,7 @@ set-tab: func [
 		len:	block/rs-length? pane
 
 		if idx <= len [
-			obj: as red-object! panels + idx SW_SHOW
+			obj: as red-object! panels + idx
 			if TYPE_OF(obj) = TYPE_OBJECT [
 				ShowWindow get-face-handle obj SW_SHOW
 			]

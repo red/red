@@ -99,6 +99,17 @@ face!: object [				;-- keep in sync with facet! enum
 						]
 					][
 						if owner/type <> 'screen [
+							if owner/type = 'tab-panel [
+								nb: part
+								faces: skip head target index	;-- account for APPEND
+								until [
+									face: faces/1
+									face/visible?: no
+									face/parent: owner
+									faces: next faces
+									zero? nb: nb - 1
+								]
+							]
 							show owner
 							system/view/platform/on-change-facet owner word target action index part
 						]
