@@ -5,7 +5,10 @@ Red [
 ]
 
 system/view/debug?: yes
-live?: system/view/auto-update?: yes
+;;live?: system/view/auto-update?: no 		;@@ bug to fix!
+
+system/view/auto-update?: yes
+live?: yes
 
 workstation?: system/view/platform/product = 1
 
