@@ -984,16 +984,6 @@ OS-update-facet: func [
 	sym: symbol/resolve facet/symbol
 	
 	case [
-		any [
-			sym = facets/offset
-			sym = facets/size
-			sym = facets/text
-			sym = facets/enable?
-			sym = facets/visible?
-			sym = facets/draw
-		][
-			OS-update-view face
-		]
 		sym = facets/pane [
 			sym: action/symbol 
 			case [
@@ -1013,9 +1003,6 @@ OS-update-facet: func [
 				]
 				true [0]
 			]
-		]
-		sym = facets/menu [
-			OS-update-view face
 		]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
@@ -1047,9 +1034,6 @@ OS-update-facet: func [
 				true [OS-update-view face]
 			]
 		]
-		sym = facets/selected [
-			OS-update-view face
-		]
-		true [0]
+		true [OS-update-view face]
 	]
 ]
