@@ -14,6 +14,71 @@ Red [
 	#include %../../runtime/datatypes/event.reds
 ]
 
+on-face-deep-change*: function [owner word target action index part state][
+	if system/view/debug? [
+		print [
+			"-- on-deep-change event --" 		 lf
+			tab "owner      :" owner/type		 lf
+			tab "action     :" action			 lf
+			tab "word       :" word				 lf
+			tab "target type:" mold type? target lf
+			tab "index      :" index			 lf
+			tab "part       :" part
+		]
+	]
+	if all [state word <> 'state][
+		state/2: state/2 or system/view/platform/get-facet-id word
+
+		if system/view/auto-update? [
+			either word = 'pane [
+				either find [remove clear take] action [
+					either owner/type = 'screen [
+						until [
+							face: target/1
+							if face/type = 'window [
+								if all [object? face/actors in face/actors 'on-close][
+									do [face/actors/on-close face]
+								]
+								system/view/platform/destroy-view face tail? skip head target part
+							]
+							target: next target
+							zero? part: part - 1
+						]
+					][
+						until [
+							face: target/1
+							face/parent: none
+							system/view/platform/destroy-view face no
+							target: next target
+							zero? part: part - 1
+						]
+					]
+				][
+					if owner/type <> 'screen [
+						if owner/type = 'tab-panel [
+							nb: part
+							faces: skip head target index	;-- account for APPEND
+							until [
+								face: faces/1
+								face/visible?: no
+								face/parent: owner
+								faces: next faces
+								zero? nb: nb - 1
+							]
+						]
+						show owner
+						system/view/platform/on-change-facet owner word target action index part
+					]
+				]
+			][
+				if owner/type <> 'screen [
+					system/view/platform/on-change-facet owner word target action index part
+				]
+			]
+		]
+	]
+]
+
 face!: object [				;-- keep in sync with facet! enum
 	type:		'face
 	offset:		none
@@ -59,68 +124,7 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 	
 	on-deep-change*: function [owner word target action index part][
-		if system/view/debug? [
-			print [
-				"-- on-deep-change event --" 		 lf
-				tab "owner      :" owner/type		 lf
-				tab "action     :" action			 lf
-				tab "word       :" word				 lf
-				tab "target type:" mold type? target lf
-				tab "index      :" index			 lf
-				tab "part       :" part
-			]
-		]
-		if all [state word <> 'state][
-			state/2: state/2 or system/view/platform/get-facet-id word
-			
-			if system/view/auto-update? [
-				either word = 'pane [
-					either find [remove clear take] action [
-						either owner/type = 'screen [
-							until [
-								face: target/1
-								if face/type = 'window [
-									if all [object? face/actors in face/actors 'on-close][
-										do [face/actors/on-close face]
-									]
-									system/view/platform/destroy-view face tail? skip head target part
-								]
-								target: next target
-								zero? part: part - 1
-							]
-						][
-							until [
-								face: target/1
-								face/parent: none
-								system/view/platform/destroy-view face no
-								target: next target
-								zero? part: part - 1
-							]
-						]
-					][
-						if owner/type <> 'screen [
-							if owner/type = 'tab-panel [
-								nb: part
-								faces: skip head target index	;-- account for APPEND
-								until [
-									face: faces/1
-									face/visible?: no
-									face/parent: owner
-									faces: next faces
-									zero? nb: nb - 1
-								]
-							]
-							show owner
-							system/view/platform/on-change-facet owner word target action index part
-						]
-					]
-				][
-					if owner/type <> 'screen [
-						system/view/platform/on-change-facet owner word target action index part
-					]
-				]
-			]
-		]
+		on-face-deep-change* owner word target action index part state
 	]
 ]
 
@@ -219,7 +223,7 @@ show: function [
 	/with				 "Link the face to a parent face"
 		parent [object!] "Parent face to link to"
 ][
-	;if system/view/debug? [print ["show:" face/type " with?:" with]]
+	if system/view/debug? [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
 		if face/state/2 <> 0 [system/view/platform/update-view face]
