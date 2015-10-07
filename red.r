@@ -280,7 +280,7 @@ redc: context [
 		]
 		exe: safe-to-local-file exe
 		if with [
-			repend exe [#" " mold file]
+			repend exe [{ "} file {"}]
 			exe: safe-to-local-file exe
 		]
 		sys-call exe									;-- replace the buggy CALL native
