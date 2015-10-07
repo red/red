@@ -37,6 +37,9 @@ Red/System [
 					infix?: yes
 				]
 			]
+			if infix? [
+				if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
+			]
 		]
 	]
 ]
@@ -237,13 +240,20 @@ interpreter: context [
 			op	   [red-op!]
 			s	   [series!]
 			node   [node!]
+			args   [node!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
-		
+
+		args: op/args
+		if null? args [
+			args: _function/preprocess-spec op
+			op/args: args
+		]
+
 		either op/header and body-flag <> 0 [
 			node: as node! op/code
 			s: as series! node/value
