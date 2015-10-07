@@ -189,9 +189,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_AND~
 ]
