@@ -292,7 +292,7 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		h/type: type
-		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize]
+		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize << 4 + 4]
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
@@ -411,7 +411,7 @@ _hashtable: context [
 		return: [red-value!]
 		/local
 			s h x i site last mask step keys hash n-buckets flags
-			ii sh blk idx del? k vsize blk-node
+			ii sh blk idx del? k vsize blk-node len
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -425,6 +425,7 @@ _hashtable: context [
 		vsize: as integer! h/indexes
 		blk-node: as series! h/blk/value
 		blk: as byte-ptr! blk-node/offset
+		len: as-integer blk-node/tail - as cell! blk
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
@@ -453,10 +454,10 @@ _hashtable: context [
 				]
 			][
 				if del? [site: i]
+				step: step + 1
 				i: i + step and mask
 				_HT_CAL_FLAG_INDEX(i ii sh)
 				i: i + 1
-				step: step + 1
 				if i = last [x: site break]
 			]
 			if x = n-buckets [
@@ -469,9 +470,9 @@ _hashtable: context [
 		_HT_CAL_FLAG_INDEX((x - 1) ii sh)
 		case [
 			_BUCKET_IS_EMPTY(flags ii sh) [
-				k: as int-ptr! alloc-tail-unit blk-node vsize << 4 + 4
+				k: as int-ptr! alloc-tail-unit blk-node vsize
 				k/value: key
-				keys/x: as-integer k - as int-ptr! blk
+				keys/x: len
 				_BUCKET_SET_BOTH_FALSE(flags ii sh)
 				h/size: h/size + 1
 				h/n-occupied: h/n-occupied + 1
@@ -492,7 +493,7 @@ _hashtable: context [
 		key		[integer!]
 		return: [red-value!]
 		/local
-			s h i flags last mask step keys hash n-buckets ii sh blk k
+			s h i flags last mask step keys hash ii sh blk k
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -505,8 +506,7 @@ _hashtable: context [
 		keys: as int-ptr! s/offset
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
-		n-buckets: h/n-buckets + 1
-		mask: n-buckets - 2
+		mask: h/n-buckets - 1
 		hash: key
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
@@ -523,10 +523,10 @@ _hashtable: context [
 				]
 			]
 		][
+			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
-			step: step + 1
 			if i = last [return null]
 		]
 
@@ -542,7 +542,7 @@ _hashtable: context [
 		key		[integer!]
 		return: [red-value!]
 		/local
-			s h i flags last mask step keys hash n-buckets ii sh blk k
+			s h i flags last mask step keys hash ii sh blk k
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -555,8 +555,7 @@ _hashtable: context [
 		keys: as int-ptr! s/offset
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
-		n-buckets: h/n-buckets + 1
-		mask: n-buckets - 2
+		mask: h/n-buckets - 1
 		hash: key
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
@@ -573,10 +572,10 @@ _hashtable: context [
 				]
 			]
 		][
+			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
-			step: step + 1
 			if i = last [return null]
 		]
 
@@ -664,10 +663,10 @@ _hashtable: context [
 					][keys/i: keys/i or 80000000h]
 				]
 
+				step: step + 1
 				i: i + step and mask
 				_HT_CAL_FLAG_INDEX(i ii sh)
 				i: i + 1
-				step: step + 1
 				if i = last [x: site continue?: no]
 			]
 			if x = n-buckets [
@@ -713,7 +712,7 @@ _hashtable: context [
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
-			s h i flags last mask step keys hash n-buckets ii sh blk
+			s h i flags last mask step keys hash ii sh blk
 			idx last-idx op find? reverse-head k type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -740,8 +739,7 @@ _hashtable: context [
 		keys: as int-ptr! s/offset
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
-		n-buckets: h/n-buckets + 1
-		mask: n-buckets - 2
+		mask: h/n-buckets - 1
 		hash: hash-value key no
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
@@ -787,10 +785,10 @@ _hashtable: context [
 				]
 			]
 
+			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
-			step: step + 1
 			if i = last [
 				return either find? [blk + last-idx][null]
 			]
