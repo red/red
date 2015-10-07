@@ -499,7 +499,8 @@ interpreter: context [
 			]
 			item: item + 1
 		]
-		
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
+
 		stack/top: saved
 		either sub? [stack/push parent][stack/set-last parent]
 		pc

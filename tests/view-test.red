@@ -235,10 +235,12 @@ win/pane: reduce [
 					append tab-panel/data "tab 4"
 					append tab-panel/pane panel-extra
 				]
+				button/size/x: button/size/x - 1
 				unless live? [
 					show drop-list
 					show check-face
 					show text-list
+					show button
 				]
 			]
 		]

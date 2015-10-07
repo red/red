@@ -169,6 +169,7 @@ set-path*: func [
 	element [red-value!]
 ][
 	stack/set-last actions/eval-path parent element stack/arguments null no
+	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
 set-int-path*: func [
@@ -181,6 +182,7 @@ set-int-path*: func [
 		stack/arguments									;-- value to set
 		null
 		no
+	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
 eval-path*: func [

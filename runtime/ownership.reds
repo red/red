@@ -119,7 +119,7 @@ ownership: context [
 		node	[node!]
 		return: [red-object!]							;-- returns null if not found
 		/local
-			slot   [red-value!]
+			slot [red-value!]
 	][
 		slot: _hashtable/get-value table as-integer node
 		if null? slot [return null]
@@ -136,7 +136,6 @@ ownership: context [
 			slot   [red-value!]
 			parent [red-value!]
 			owner  [red-object!]
-			ctx	   [red-context!]
 			series [red-series!]
 			word   [red-word!]
 			type   [integer!]
@@ -156,19 +155,24 @@ ownership: context [
 		]
 		slot: _hashtable/get-value table as-integer node
 		
-		if all [null? slot type = TYPE_OBJECT][
-			ctx: GET_CTX(owner)
-			if ctx/header and flag-owner <> 0 [			;-- test if object is an owner
-				value: as red-value! owner
-				word: action
-			]
-		]
-		
 		unless null? slot [
 			parent: slot
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
 			object/fire-on-deep owner word value action index part 
+		]
+	]
+	
+	check-slot: func [
+		owner [red-object!]
+		word  [red-word!]
+		value [red-value!]
+		/local
+			ctx [red-context!]
+	][
+		ctx: GET_CTX(owner)
+		if ctx/header and flag-owner <> 0 [				;-- test if object is an owner
+			object/fire-on-deep owner word value words/_set-path -1 -1
 		]
 	]
 	

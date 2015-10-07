@@ -346,12 +346,15 @@ actions: context [
 			value [red-value!]
 	][
 		value: either set? [stack/arguments + 2][null]
-		stack/set-last eval-path 
+		value: stack/set-last eval-path 
 			stack/arguments
 			stack/arguments + 1
 			value
 			null
 			no
+		
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
+		value
 	]
 	
 	eval-path: func [
@@ -361,8 +364,6 @@ actions: context [
 		path	[red-path!]
 		case?	[logic!]
 		return:	[red-value!]
-		/local
-			action-path
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/eval-path"]]
 				
@@ -375,9 +376,7 @@ actions: context [
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		value: action-path parent element value as red-value! path case?
-		object/path-parent/header: TYPE_NONE			;-- disables owner checking
-		value
+		action-path parent element value as red-value! path case?
 	]
 	
 	set-path*: func [][]

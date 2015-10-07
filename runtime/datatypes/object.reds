@@ -23,9 +23,11 @@ object: context [
 		class-id
 	]
 	
-	check-owner: does [
+	check-owner: func [
+		slot [red-value!]
+	][
 		if TYPE_OF(path-parent) = TYPE_OBJECT [
-			ownership/check as red-value! path-parent field-parent -1 -1
+			ownership/check-slot path-parent field-parent slot
 		]
 	]
 	
