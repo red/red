@@ -236,11 +236,15 @@ win/pane: reduce [
 					append tab-panel/pane panel-extra
 				]
 				button/size/x: button/size/x - 1
+				simple/color/2: random 255
+				simple/color/3: random 255
+
 				unless live? [
 					show drop-list
 					show check-face
 					show text-list
 					show button
+					show simple
 				]
 			]
 		]

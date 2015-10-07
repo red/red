@@ -937,7 +937,10 @@ OS-update-view: func [
 		int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 		change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 	]
-	if flags and FACET_FLAG_DRAW <> 0 [
+	if any [
+		flags and FACET_FLAG_DRAW  <> 0
+		flags and FACET_FLAG_COLOR <> 0
+	][
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_PANE <> 0 [

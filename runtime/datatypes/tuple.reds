@@ -471,6 +471,7 @@ tuple: context [
 			either v > 255 [v: 255][if negative? v [v: 0]]
 			value/index: as byte! v
 		]
+		object/check-owner as red-value! tp
 		as red-value! data
 	]
 
@@ -513,6 +514,7 @@ tuple: context [
 			n: n + 1
 			size: size - 1
 		]
+		object/check-owner as red-value! tuple
 		as red-value! tuple
 	]
 
