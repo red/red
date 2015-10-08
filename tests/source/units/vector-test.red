@@ -18,7 +18,7 @@ Red [
 		type [datatype!]
 		spec [block!]
 		len [integer!] 
-		test-value [char! float! integer!]
+		test-value [char! float! integer! percent!]
 		/local
 			vm-v
 	][
@@ -59,6 +59,8 @@ Red [
 	vector-make-test "vector-make-8" float! [float! 64 [1.0 2.0 3.0 4.0 5.0]] 5 0.0
 	
 	vector-make-test "vector-make-9" float! [float! 32 [1.0 2.0 3.0 4.0 5.0]] 5 0.0
+
+	vector-make-test "vector-make-10" percent! [100% 200% 300% 400% 500%] 5 0%
 		
 ===end-group===
 
@@ -188,6 +190,18 @@ Red [
 		
 	--test-- "vector-comparison-10"
 		--assert lesser? make vector! [1 2 3] make vector! [1 2 3 4]
+
+	--test-- "vector-comparison-11"
+		--assert (make vector! [1% 2% 3% 4%]) = make vector! [1% 2% 3% 4%]
+	
+	--test-- "vector-comparison-12"
+		--assert (make vector! [1% 2% 3% 4%]) <> make vector! [1% 2% 3% 3%]
+		
+	--test-- "vector-comparison-13"
+		--assert (make vector! [1% 2% 3% 4%]) > make vector! [1% 2% 3% 3%]
+		
+	--test-- "vector-comparison-14"
+		--assert (make vector! [1% 2% 3% 3%]) < make vector! [1% 2% 3% 4%]
 	
 ===end-group===
 
@@ -217,8 +231,12 @@ Red [
 	--test-- "vector-ordinal-8"
 		--assert 2 = first next make vector! [1 2 3 4]		
 	
-	--test-- "vector-ordinal-7"
+	--test-- "vector-ordinal-9"
 		--assert 3 = second next make vector! [1 2 3 4]
+
+	--test-- "vector-ordinal-10"
+		--assert 3% = second next make vector! [1% 2% 3% 4%]
+	
 		
 ===end-group===
 
@@ -603,6 +621,11 @@ Red [
 		vm10-v2: make vector! [integer! 8 [3 2 1]]
 		vm10-v3: vm10-v1 * vm10-v2
 		--assert vm10-v3 = make vector! [integer! 8 [247 252 255]]
+
+	--test-- "vector-multiply-11"
+		vm-v1: make vector! [100% 200% 300% 400% 500%]
+		vm9-v: vm-v1 * 50%
+		--assert vm9-v = make vector! [50% 100% 150% 200% 250%]
 			
 ===end-group===
 

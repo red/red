@@ -826,7 +826,7 @@ vector: context [
 					p1: p1 + unit1
 					p2: p2 + unit2
 					any [
-						v1 <> v2
+						f1 <> f2
 						p2 >= end
 					]
 				]

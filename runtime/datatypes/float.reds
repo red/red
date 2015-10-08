@@ -244,6 +244,10 @@ float: context [
 					left % right
 				]
 			]
+			default [
+				fire [TO_ERROR(script cannot-use) stack/get-call datatype/push TYPE_FLOAT]
+				0.0
+			]
 		]
 	]
 
