@@ -95,17 +95,7 @@ tuple: context [
 			until [
 				n: n + 1
 				f1: integer/to-float as-integer tp1/n
-				f1: switch type [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_DIV
-					OP_REM [
-						if 0.0 = f2 [fire [TO_ERROR(math zero-divide)]]
-						either type = OP_DIV [f1 / f2][f1 % f2]
-					]
-					default [ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2) 0.0]
-				]
+				f1: float/do-math-op f1 f2 type
 				v1: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
@@ -122,26 +112,7 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: switch type [
-					OP_ADD [v1 + v]
-					OP_SUB [v1 - v]
-					OP_MUL [v1 * v]
-					OP_AND [v1 and v]
-					OP_OR  [v1 or v]
-					OP_XOR [v1 xor v]
-					OP_REM [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 % v]
-					]
-					OP_DIV [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 / v]
-					]
-				]
+				v1: integer/do-math-op v1 v type
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size
