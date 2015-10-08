@@ -7,8 +7,8 @@ Red [
 system/view/debug?: yes
 ;;live?: system/view/auto-update?: no 		;@@ bug to fix!
 
-system/view/auto-update?: yes
-live?: yes
+system/view/auto-update?: no
+live?: no
 
 workstation?: system/view/platform/product = 1
 
@@ -245,6 +245,7 @@ win/pane: reduce [
 					show text-list
 					show button
 					show simple
+					show tab-panel
 				]
 			]
 		]

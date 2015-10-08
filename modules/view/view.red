@@ -14,7 +14,7 @@ Red [
 	#include %../../runtime/datatypes/event.reds
 ]
 
-on-face-deep-change*: function [owner word target action index part state][
+on-face-deep-change*: function [owner word target action index part state forced?][
 	if system/view/debug? [
 		print [
 			"-- on-deep-change event --" 		 lf
@@ -23,13 +23,14 @@ on-face-deep-change*: function [owner word target action index part state][
 			tab "word       :" word				 lf
 			tab "target type:" mold type? target lf
 			tab "index      :" index			 lf
-			tab "part       :" part
+			tab "part       :" part				 lf
+			tab "forced?    :" forced?
 		]
 	]
 	if all [state word <> 'state][
 		state/2: state/2 or system/view/platform/get-facet-id word
 
-		if system/view/auto-update? [
+		either any [forced? system/view/auto-update?][
 			either word = 'pane [
 				either find [remove clear take] action [
 					either owner/type = 'screen [
@@ -62,11 +63,12 @@ on-face-deep-change*: function [owner word target action index part state][
 								face: faces/1
 								face/visible?: no
 								face/parent: owner
+								show/with face owner
 								faces: next faces
 								zero? nb: nb - 1
 							]
 						]
-						show owner
+						unless forced? [show owner]
 						system/view/platform/on-change-facet owner word target action index part
 					]
 				]
@@ -74,6 +76,12 @@ on-face-deep-change*: function [owner word target action index part state][
 				if owner/type <> 'screen [
 					system/view/platform/on-change-facet owner word target action index part
 				]
+			]
+		][
+			unless find [cleared removed] action [
+				reduce/into 
+					[owner word target action index part state]
+					any [state/3 state/3: make block! 28] ;-- 7 slots * 4
 			]
 		]
 	]
@@ -124,7 +132,7 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 	
 	on-deep-change*: function [owner word target action index part][
-		on-face-deep-change* owner word target action index part state
+		on-face-deep-change* owner word target action index part state no
 	]
 ]
 
@@ -226,6 +234,14 @@ show: function [
 	if system/view/debug? [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
+		pending: face/state/3
+		
+		if all [pending not empty? pending][
+			foreach [owner word target action index part state] pending [
+				on-face-deep-change* owner word target action index part state yes
+			]
+			clear pending
+		]
 		if face/state/2 <> 0 [system/view/platform/update-view face]
 	][
 		new?: yes
@@ -251,7 +267,7 @@ show: function [
 				window	[append system/view/screens/1/pane face]
 			]
 		]
-		face/state: reduce [obj 0 0]
+		face/state: reduce [obj 0 none]
 	]
 
 	if face/pane [foreach f face/pane [show/with f face]]
