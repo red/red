@@ -371,24 +371,7 @@ vector: context [
 			]
 			while [i < len][
 				f1: get-value-float p unit
-				f1: switch op [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_REM [f1 % f2]
-					OP_DIV [
-						either 0.0 = f2 [
-							fire [TO_ERROR(math zero-divide)]
-							0.0								;-- pass the compiler's type-checking
-						][
-							f1 / f2
-						]
-					]
-					default [
-						fire [TO_ERROR(script invalid-type) datatype/push left/type]
-						0.0
-					]
-				]
+				f1: float/do-math-op f1 f2 op
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -410,23 +393,7 @@ vector: context [
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
-				v1: switch op [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
+				v1: integer/do-math-op v1 v2 op
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -499,24 +466,7 @@ vector: context [
 			while [i < len1][
 				f1: get-value-float p1 unit1
 				f2: get-value-float p2 unit2
-				f1: switch type [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_REM [f1 % f2]
-					OP_DIV [
-						either 0.0 = f2 [
-							fire [TO_ERROR(math zero-divide)]
-							0.0								;-- pass the compiler's type-checking
-						][
-							f1 / f2
-						]
-					]
-					default [
-						fire [TO_ERROR(script invalid-type) datatype/push left/type]
-						0.0
-					]
-				]
+				f1: float/do-math-op f1 f2 type
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -533,23 +483,7 @@ vector: context [
 			while [i < len1][
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
-				v1: switch type [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
+				v1: integer/do-math-op v1 v2 type
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -710,7 +644,9 @@ vector: context [
 						unit:  switch type [
 							TYPE_CHAR
 							TYPE_INTEGER [size? integer!]
-							TYPE_FLOAT	 [size? float!]
+							TYPE_FLOAT
+							TYPE_PAIR
+							TYPE_PERCENT [size? float!]
 							default [
 								fire [TO_ERROR(script invalid-type) datatype/push type]
 								0

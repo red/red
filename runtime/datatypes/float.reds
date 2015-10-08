@@ -218,6 +218,35 @@ float: context [
 		s0
 	]
 
+	do-math-op: func [
+		left	[float!]
+		right	[float!]
+		type	[integer!]
+		return: [float!]
+	][
+		switch type [
+			OP_ADD [left + right]
+			OP_SUB [left - right]
+			OP_MUL [left * right]
+			OP_DIV [
+				either 0.0 = right [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left / right
+				]
+			]
+			OP_REM [
+				either 0.0 = right [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left % right
+				]
+			]
+		]
+	]
+
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-float!]
@@ -273,28 +302,7 @@ float: context [
 			left/header: TYPE_FLOAT
 		]
 
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [
-				either 0.0 = right/value [
-					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
-				][
-					left/value / right/value
-				]
-			]
-			OP_REM [
-				either 0.0 = right/value [
-					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
-				][
-					left/value % right/value
-				]
-			]
-			default [ERR_EXPECT_ARGUMENT(type1 1) 0.0]
-		]
+		left/value: do-math-op left/value right/value type
 		left
 	]
 

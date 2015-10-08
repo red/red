@@ -53,7 +53,7 @@ tuple: context [
 			swap? [logic!]
 			float? [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
+		#if debug? = yes [if verbose > 0 [print-line "tuple/do-math"]]
 
 		left:  as red-tuple! stack/arguments
 		right: as red-tuple! left + 1
