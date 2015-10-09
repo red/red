@@ -487,7 +487,9 @@ block: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				either cycles/find? value1 [res: 0][
+				either cycles/find? value1 [
+					res: as-integer not natives/same? value1 value2
+				][
 					res: actions/compare-value value1 value2 op
 				]
 				value1: value1 + 1

@@ -990,11 +990,10 @@ object: context [
 
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
-		if obj1/ctx = obj2/ctx [
-			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
-			][return 0]
-		]
+		if all [
+			obj1/ctx = obj2/ctx
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
 
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
