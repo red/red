@@ -1010,6 +1010,8 @@ object: context [
 		s: as series! ctx2/values/value
 		value2: s/offset
 		
+		cycles/push obj1/ctx
+		
 		until [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
@@ -1031,7 +1033,11 @@ object: context [
 						res: as-integer not natives/same? value1 value2 ;-- prevent cycles matching
 					]
 					TYPE_IMAGE [0]						;@@ placeholder for image/compare
-					default [res: actions/compare-value value1 value2 op]
+					default	   [
+						either cycles/find? value1 [res: 0][
+							res: actions/compare-value value1 value2 op
+						]
+					]
 				]
 				sym1: sym1 + 1
 				sym2: sym2 + 1
@@ -1045,6 +1051,7 @@ object: context [
 				sym1 >= tail
 			]
 		]
+		cycles/pop
 		res
 	]
 	

@@ -467,7 +467,9 @@ block: context [
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
 		end: s1/tail											;-- only one "end" is needed
-
+		
+		cycles/push blk1/node
+		
 		until [
 			type1: TYPE_OF(value1)
 			type2: TYPE_OF(value2)
@@ -479,7 +481,9 @@ block: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				res: actions/compare-value value1 value2 op
+				either cycles/find? value1 [res: 0][
+					res: actions/compare-value value1 value2 op
+				]
 				value1: value1 + 1
 				value2: value2 + 1
 			][
@@ -490,6 +494,7 @@ block: context [
 				value1 >= end
 			]
 		]
+		cycles/pop
 		res
 	]
 

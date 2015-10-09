@@ -258,12 +258,23 @@ cycles: context [
 	]
 	
 	find?: func [
-		node	[node!]
+		value	[red-value!]
 		return: [logic!]
 		/local
-			p [node!]
+			obj	 [red-object!]
+			blk	 [red-block!]
+			node [node!]
+			p	 [node!]
 	][
 		if top = stack [return no]
+		
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -286,14 +297,7 @@ cycles: context [
 			s	 [c-string!]
 			size [integer!]
 	][
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
-		either find? node [
+		either find? value [
 			either mold? [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
