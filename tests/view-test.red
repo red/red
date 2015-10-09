@@ -531,7 +531,9 @@ win/pane: reduce [
 			]
 			on-change: func [face [object!] event [event!]][
 				print ["changed:" face/selected]
-				cam/selected: face/selected
+				unless cam/selected = face/selected [
+					cam/selected: face/selected
+				]
 				unless live? [show cam]
 			]
 		]

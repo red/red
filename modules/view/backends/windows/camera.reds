@@ -189,7 +189,6 @@ select-camera: func [
 	free-graph cam
 	init-graph cam idx
 	build-preview-graph cam handle
-	toggle-preview handle true
 ]
 
 collect-camera: func [
