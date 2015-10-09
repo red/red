@@ -1002,9 +1002,7 @@ object: context [
 		if diff <> 0 [
 			return either positive? diff [-1][1]
 		]	
-		if zero? (as-integer tail - sym1) [			;-- empty objects case
-			return 0
-		]
+		if sym1 = tail [return 0]						;-- empty objects case
 		
 		sym2: as red-word! s/offset
 		s: as series! ctx1/values/value
