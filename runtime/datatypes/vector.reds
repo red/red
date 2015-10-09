@@ -833,6 +833,12 @@ vector: context [
 
 		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
 		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
+
+		if all [
+			vec1/node = vec2/node
+			vec1/head = vec2/head
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
 		
 		s1: GET_BUFFER(vec1)
 		s2: GET_BUFFER(vec2)

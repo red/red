@@ -989,7 +989,13 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/compare"]]
 
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
-		
+
+		if obj1/ctx = obj2/ctx [
+			if any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][return 0]
+		]
+
 		ctx1: GET_CTX(obj1)
 		s: as series! ctx1/symbols/value
 		sym1: as red-word! s/offset
@@ -1028,16 +1034,10 @@ object: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				switch TYPE_OF(value1) [
-					TYPE_OBJECT [
-						res: as-integer not natives/same? value1 value2 ;-- prevent cycles matching
-					]
-					TYPE_IMAGE [0]						;@@ placeholder for image/compare
-					default	   [
-						either cycles/find? value1 [res: 0][
-							res: actions/compare-value value1 value2 op
-						]
-					]
+				either cycles/find? value1 [
+					res: as-integer not natives/same? value1 value2
+				][
+					res: actions/compare-value value1 value2 op
 				]
 				sym1: sym1 + 1
 				sym2: sym2 + 1

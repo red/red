@@ -451,6 +451,12 @@ block: context [
 			value2 [red-value!]
 			res	   [integer!]
 	][
+		if all [
+			blk1/node = blk2/node
+			blk1/head = blk2/head
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
 		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head

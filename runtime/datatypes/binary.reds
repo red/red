@@ -504,7 +504,13 @@ binary: context [
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
 		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
-		
+
+		if all [
+			bin1/node = bin2/node
+			bin1/head = bin2/head
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
 		s1: GET_BUFFER(bin1)
 		s2: GET_BUFFER(bin2)
 		len1: rs-length? bin1
