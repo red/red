@@ -121,7 +121,8 @@ update-list: func [
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					;@@ unbind removed items
+					ownership/unbind-each as red-block! value index part
+					
 					either all [
 						sym = words/_clear/symbol
 						zero? index
@@ -137,10 +138,11 @@ update-list: func [
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][
+					;ownership/unbind-each as red-block! value index part
+					
 					loop part [
 						if sym <> words/_insert/symbol [
 							remove-list-item hWnd index drop?
-							;@@ unbind old value
 						]
 						insert-list-item
 							hWnd

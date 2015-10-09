@@ -51,6 +51,22 @@ ownership: context [
 			true [assert false]
 		]
 	]
+	
+	unbind-each: func [
+		list  [red-block!]
+		index [integer!]
+		nb	  [integer!]
+		/local
+			value [red-value!]
+	][
+		s: GET_BUFFER(list)
+		value: s/offset + index
+		
+		loop nb [
+			unbind value
+			value: value + 1
+		]
+	]
 
 	bind: func [
 		container [red-value!]

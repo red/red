@@ -154,7 +154,7 @@ update-tabs: func [
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					;@@ unbind removed items
+					ownership/unbind-each as red-block! value index part
 					loop part [SendMessage hWnd TCM_DELETEITEM index 0]
 				]
 				any [
@@ -164,8 +164,8 @@ update-tabs: func [
 				][
 					loop part [
 						if sym <> words/_insert/symbol [
+							;ownership/unbind-each as red-block! value index part
 							SendMessage hWnd TCM_DELETEITEM index 0
-							;@@ unbind old value
 						]
 						insert-tab
 							hWnd
