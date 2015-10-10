@@ -56,13 +56,18 @@ on-face-deep-change*: function [owner word target action index part state forced
 					]
 				][
 					if owner/type <> 'screen [
-						if owner/type = 'tab-panel [
+						if all [
+							find [tab-panel window] owner/type
+							not find [cleared removed taken] action 
+						][
 							nb: part
-							faces: skip head target index	;-- account for APPEND
+							faces: skip head target index	;-- zero-based absolute index
 							until [
 								face: faces/1
-								face/visible?: no
-								face/parent: owner
+								if owner/type = 'tab-panel [
+									face/visible?: no
+									face/parent: owner
+								]
 								show/with face owner
 								faces: next faces
 								zero? nb: nb - 1
@@ -78,7 +83,10 @@ on-face-deep-change*: function [owner word target action index part state forced
 				]
 			]
 		][
-			unless find [cleared removed] action [
+			unless find [cleared removed taken] action [
+				if find [clear remove take] action [
+					target: copy/part target part
+				]
 				reduce/into 
 					[owner word target action index part state]
 					any [state/3 state/3: make block! 28] ;-- 7 slots * 4
@@ -118,10 +126,8 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 		]
 		if word <> 'state [
-			if system/view/auto-update? [
-				if any [series? old object? old][modify old 'owned none]
-				if any [series? new object? new][modify new 'owned reduce [self word]]
-			]
+			if any [series? old object? old][modify old 'owned none]
+			if any [series? new object? new][modify new 'owned reduce [self word]]
 
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
