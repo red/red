@@ -192,19 +192,19 @@ button: make face! [
 	offset: 100x10
 	size: 60x40
 	actors: object [
-		on-click: func [face [object!] event [event!]][
+		on-click: function [face [object!] event [event!]][
 			;face/color: red
 			face/size: face/size + (5x5 - random 10x10)
 			face/offset: face/offset + (5x5 - random 10x10)
 			win/text: "Hello World"
 			probe type? reflect win/pane 'owned
 
-			either "Extra" <> get in last win/pane 'text [
+			either pos: find win/pane but-extra [
+				remove pos
+				remove skip tail win/menu/4 -2
+			][
 				append win/pane but-extra
 				append win/menu/4 ["Inserted" inserted]
-			][
-				remove back tail win/pane
-				remove skip tail win/menu/4 -2
 			]
 			unless live? [show win]
 		]
