@@ -270,6 +270,7 @@ load: function [
 	if as [
 		if word? type [
 			either codec: select system/codecs type [
+				if url? source [source: read/binary source]
 				return do [codec/decode source]
 			][
 				return none
@@ -293,7 +294,7 @@ load: function [
 		file!	[
 			suffix: suffix? source
 			foreach [name codec] system/codecs [
-				if find codec/suffixes suffix [
+				if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
 					return do [codec/decode source]
 				]
 			]
@@ -301,9 +302,19 @@ load: function [
 		]
 		url!	[
 			;-- TBD search codec in `system/codec`, need to parse http header
-			source: read source
+			source: read/info/binary source
+			either source/1 = 200 [
+				foreach [name codec] system/codecs [
+					foreach mime codec/mime-type [
+						if find source/2/Content-Type mold mime [
+							return do [codec/decode source/3]
+						]
+					]
+				]
+			][return none]
+			source: to string! source/3
 		]
-		binary! [source]
+		binary! [source: to string! source]					;-- UTF-8 encoding
 	][source]
 
 	either part [

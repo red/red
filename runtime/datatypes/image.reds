@@ -135,6 +135,17 @@ image: context [
 		img
 	]
 
+	decode: func [
+		data	[red-value!]
+		return: [red-image!]
+	][
+		either TYPE_OF(data) = TYPE_BINARY [
+			load-binary as red-binary! data
+		][
+			make-at stack/push* as red-string! data
+		]
+	]
+
 	extract-data: func [
 		img		[red-image!]
 		alpha?	[logic!]

@@ -249,17 +249,19 @@ word: context [
 		part 	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
+			s		[series!]
+			str		[red-string!]
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
 		
 		s: GET_BUFFER(symbols)
-		
-		string/form 
-			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
-			buffer
-			arg
-			part
+		str: as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are partial overlapping
+		saved: str/head
+		str/head: 0
+		part: string/form str buffer arg part
+		str/head: saved
+		part
 	]
 	
 	mold: func [
