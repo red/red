@@ -807,7 +807,7 @@ change-faces-parent: func [
 	part   [integer!]
 ][
 	assert TYPE_OF(pane) = TYPE_BLOCK
-	face: (as red-object! block/rs-head pane) + index
+	face: as red-object! block/rs-abs-at pane index
 	tail: face + part
 	assert tail <= as red-object! block/rs-tail pane
 	
