@@ -699,7 +699,7 @@ debase: make native! [[
 ]
 
 to-local-file: make native! [[
-		"Converts a REBOL file path to the local system file path"
+		"Converts a Red file path to the local system file path"
 		path  [file! string!]
 		/full "Prepends current dir for full path (for relative paths only)"
 		return: [string!]

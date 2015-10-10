@@ -1480,6 +1480,7 @@ actions: context [
 		seek	[integer!]
 		binary? [integer!]
 		lines?	[integer!]
+		info?	[integer!]
 		as-arg	[integer!]
 		return:	[red-value!]
 	][
@@ -1489,6 +1490,7 @@ actions: context [
 			stack/arguments + seek
 			binary? <> -1
 			lines? <> -1
+			info? <> -1
 			stack/arguments + as-arg
 	]
 
@@ -1498,6 +1500,7 @@ actions: context [
 		seek	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		as-arg	[red-value!]
 		return: [red-value!]
 		/local
@@ -1511,11 +1514,12 @@ actions: context [
 			seek	[red-value!]
 			binary? [logic!]
 			lines?	[logic!]
+			info?	[logic!]
 			as-arg	[red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr src ACT_READ
 
-		action-read src part seek binary? lines? as-arg
+		action-read src part seek binary? lines? info? as-arg
 	]
 
 	rename*: func [][]
@@ -1524,6 +1528,7 @@ actions: context [
 	write*: func [
 		binary? [integer!]
 		lines?	[integer!]
+		info?	[integer!]
 		append? [integer!]
 		part	[integer!]
 		seek	[integer!]
@@ -1536,6 +1541,7 @@ actions: context [
 			stack/arguments + 1
 			binary? <> -1
 			lines? <> -1
+			info? <> -1
 			append? <> -1
 			stack/arguments + part
 			stack/arguments + seek
@@ -1548,6 +1554,7 @@ actions: context [
 		data	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		append? [logic!]
 		part	[red-value!]
 		seek	[red-value!]
@@ -1564,6 +1571,7 @@ actions: context [
 			data	[red-value!]
 			binary? [logic!]
 			lines?	[logic!]
+			info?	[logic!]
 			append? [logic!]
 			part	[red-value!]
 			seek	[red-value!]
@@ -1572,7 +1580,7 @@ actions: context [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr src ACT_WRITE
 
-		action-write src data binary? lines? append? part seek allow as-arg
+		action-write src data binary? lines? info? append? part seek allow as-arg
 	]
 	
 	

@@ -96,7 +96,7 @@ init-image: func [
 				TYPE_URL   [
 					copy-cell
 						as cell! image/load-binary as red-binary!
-							simple-io/request-http HTTP_GET as red-url! str null null yes no
+							simple-io/request-http HTTP_GET as red-url! str null null yes no no
 						as cell! img
 				]
 				TYPE_FILE  [image/make-at as red-value! img str]

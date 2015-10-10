@@ -303,6 +303,11 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 			
 		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: spec/value
+			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				f: as red-float! type

@@ -561,7 +561,12 @@ system/lexer: context [
 		]
 
 		word-rule: 	[
-			#"%" [ws-no-count | end] (to-word stack "%" word!)	;-- special case for remainder op!
+			#"%" [ws-no-count | end] (
+				to-word stack "%" word!					;-- special case for remainder op!
+			)
+			| #"/" ahead [not-word-char | ws-no-count | control-char | end] (
+				to-word stack "/" word!					;-- special case for / as a word.
+			)
 			| path: s: begin-symbol-rule (type: word!) [
 					url-rule
 					| path-rule							;-- path matched
