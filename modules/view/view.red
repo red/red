@@ -28,7 +28,11 @@ on-face-deep-change*: function [owner word target action index part state forced
 		]
 	]
 	if all [state word <> 'state][
-		either any [forced? system/view/auto-update?][
+		either any [
+			forced?
+			system/view/auto-update?
+			owner/type = 'screen						;-- not postponing windows events
+		][
 			state/2: state/2 or system/view/platform/get-facet-id word
 			
 			either word = 'pane [
