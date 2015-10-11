@@ -89,7 +89,7 @@ on-face-deep-change*: function [owner word target action index part state forced
 				]
 				reduce/into 
 					[owner word target action index part state]
-					any [state/3 state/3: make block! 28] ;-- 7 slots * 4
+					tail any [state/3 state/3: make block! 28] ;-- 7 slots * 4
 			]
 		]
 	]
