@@ -57,6 +57,12 @@ Red/System [
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
 
+CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
+CLSID_JPEG_ENCODER: [557CF401h 11D31A04h 0000739Ah 2EF31EF8h]
+CLSID_GIF_ENCODER:  [557CF402h 11D31A04h 0000739Ah 2EF31EF8h]
+CLSID_TIFF_ENCODER: [557CF405h 11D31A04h 0000739Ah 2EF31EF8h]
+CLSID_PNG_ENCODER:  [557CF406h 11D31A04h 0000739Ah 2EF31EF8h]
+
 RECT!: alias struct! [
 	left	[integer!]
 	top		[integer!]
@@ -165,6 +171,13 @@ BitmapData!: alias struct! [
 		GdipGetImagePixelFormat: "GdipGetImagePixelFormat" [
 			image		[integer!]
 			format		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSaveImageToStream: "GdipSaveImageToStream" [
+			image		[integer!]
+			stream		[this!]
+			encoder		[int-ptr!]
+			params		[integer!]
 			return:		[integer!]
 		]
 	]
@@ -337,4 +350,62 @@ OS-load-binary: func [
 	hr: CreateStreamOnHGlobal hMem true :s
 	GdipCreateBitmapFromStream s :bmp
 	bmp
+]
+
+encode: func [
+	image	[red-image!]
+	format	[integer!]
+	return: [red-binary!]
+	/local
+		bin		[red-binary!]
+		s		[series!]
+		clsid	[int-ptr!]
+		stream	[IStream]
+		storage [IStorage]
+		stat	[tagSTATSTG]
+		IStm	[interface!]
+		ISto	[interface!]
+		len		[integer!]
+		hr		[integer!]
+][
+	switch format [
+		IMAGE_BMP  [clsid: CLSID_BMP_ENCODER]
+		IMAGE_PNG  [clsid: CLSID_PNG_ENCODER]
+		IMAGE_GIF  [clsid: CLSID_GIF_ENCODER]
+		IMAGE_JPEG [clsid: CLSID_JPEG_ENCODER]
+		IMAGE_TIFF [clsid: CLSID_TIFF_ENCODER]
+		default    [probe "Cannot find image encoder" return null]
+	]
+
+	ISto: declare interface!
+	IStm: declare interface!
+	stat: declare tagSTATSTG
+	hr: StgCreateDocfile
+		#u16 "CompoundFile.cmp"
+		STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE
+		0
+		ISto
+	storage: as IStorage ISto/ptr/vtbl
+	hr: storage/CreateStream
+		ISto/ptr
+		#u16 "RedImageStream"
+		STGM_READWRITE or STGM_SHARE_EXCLUSIVE
+		0
+		0
+		IStm
+	hr: GdipSaveImageToStream as-integer image/node IStm/ptr clsid 0
+
+	stream: as IStream IStm/ptr/vtbl
+	stream/Stat IStm/ptr stat 1
+	len: stat/cbSize_low
+
+	bin: binary/make-at stack/push* len
+	s: GET_BUFFER(bin)
+	s/tail: as cell! (as byte-ptr! s/tail) + len
+
+	stream/Seek IStm/ptr 0 0 0 0 0
+	stream/Read IStm/ptr as byte-ptr! s/offset len :hr
+	stream/Release IStm/ptr
+	storage/Release ISto/ptr
+	bin
 ]
