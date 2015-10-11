@@ -242,7 +242,10 @@ process-command-event: func [
 		res	   [integer!]
 ][
 	if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
-		unless null? menu-handle [do-menu hWnd]
+		unless null? menu-handle [
+			do-menu hWnd
+			exit
+		]
 	]
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
