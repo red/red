@@ -178,13 +178,12 @@ word: context [
 	set-in-ctx: func [
 		node	[node!]
 		index	[integer!]
-		return: [red-value!]
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
 			values [series!]
 	][
-		value: stack/arguments
+		value: stack/top - 1
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
@@ -194,10 +193,18 @@ word: context [
 	set-in: func [
 		node  [node!]
 		index [integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
 		
-		stack/set-last set-in-ctx node index
+		value: stack/arguments
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		copy-cell value values/offset + index
+		stack/set-last value
 	]
 	
 	set-local: func [

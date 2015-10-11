@@ -2846,8 +2846,10 @@ red: context [
 				]
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
-				insert last output compose [			;-- save old value
+				insert last output [					;-- save new value
 					stack/keep
+				]
+				append last output compose [			;-- save old value
 					word/get-local (ctx) (get-word-index/with last path ctx)
 				]
 				parent: first back back tail path
