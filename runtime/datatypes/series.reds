@@ -87,6 +87,7 @@ _series: context [
 			s	 [series!]
 			size [integer!]
 			unit [integer!]
+			len	 [integer!]
 			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
@@ -124,6 +125,7 @@ _series: context [
 					ser/header: TYPE_NONE
 				]
 			][
+				len: size
 				temp: as byte-ptr! stack/push*
 				while [size > 0][
 					idx: head + (_random/rand % size << (log-b unit))
@@ -135,6 +137,7 @@ _series: context [
 				]
 				stack/pop 1
 			]
+			ownership/check as red-value! ser words/_random ser/head len
 		]
 		as red-value! ser
 	]
@@ -431,7 +434,7 @@ _series: context [
 			]
 			stack/set-last data
 		]
-		ownership/check as red-value! ser words/_poke offset 0
+		ownership/check as red-value! ser words/_poke offset 1
 		data
 	]
 

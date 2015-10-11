@@ -1121,6 +1121,7 @@ block: context [
 		][
 			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
 		]
+		ownership/check as red-value! blk words/_sort blk/head 0
 		blk
 	]
 		
@@ -1284,6 +1285,7 @@ block: context [
 		blk: as red-block! _series/take blk part-arg deep? last?
 		s: GET_BUFFER(blk)
 
+		ownership/check as red-value! blk words/_take blk/head 1
 		if deep? [
 			slot: s/offset
 			until [
@@ -1304,6 +1306,7 @@ block: context [
 		if 1 = _series/get-length blk yes [								;-- flatten block
 			copy-cell as cell! s/offset as cell! blk
 		]
+		ownership/check as red-value! blk words/_taken blk/head 0
 		as red-value! blk
 	]
 
@@ -1362,6 +1365,8 @@ block: context [
 			_hashtable/delete hash/table as red-value! h2
 			_hashtable/put hash/table as red-value! h2
 		]
+		ownership/check as red-value! blk1 words/_swap blk1/head 1
+		ownership/check as red-value! blk2 words/_swap blk2/head 1
 		blk1
 	]
 
@@ -1393,6 +1398,7 @@ block: context [
 			value: value + 1
 		]
 		s/tail: cur
+		ownership/check as red-value! blk words/_trim blk/head 0
 		as red-series! blk
 	]
 
