@@ -11,12 +11,12 @@ Red/System [
 ]
 
 #enum event-action! [
-	EVT_NO_PROCESS							;-- no further msg processing allowed
-	EVT_DISPATCH							;-- allow DispatchMessage call only
-	EVT_DISPATCH_AND_PROCESS				;-- allow full post-processing of the msg
+	EVT_NO_PROCESS										;-- no further msg processing allowed
+	EVT_DISPATCH										;-- allow DispatchMessage call only
+	EVT_DISPATCH_AND_PROCESS							;-- allow full post-processing of the msg
 ]
 
-gui-evt: declare red-event!					;-- low-level event value slot
+gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
 oldBaseWndProc:	0
@@ -31,7 +31,7 @@ get-event-face: func [
 ][
 	msg: as tagMSG evt/msg
 	handle: get-widget-handle msg
-	if handle = as handle! -1 [				;-- filter out unwanted events
+	if handle = as handle! -1 [							;-- filter out unwanted events
 		return as red-value! none-value
 	]
 
@@ -155,7 +155,7 @@ make-event: func [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
 			assert TYPE_OF(word) = TYPE_WORD
 			if word/symbol = drop-down [get-text msg flags]
-			gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
+			gui-evt/flags: flags + 1 and FFFFh			;-- index is one-based for string!
 		]
 		EVT_CHANGE [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -166,7 +166,7 @@ make-event: func [
 				unless zero? flags [get-text msg -1] 	;-- get text if not done already
 			]
 		]
-		EVT_MENU [gui-evt/flags: flags and FFFFh]	;-- symbol ID of the menu
+		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
 		default	 [0]
 	]
 
@@ -176,9 +176,9 @@ make-event: func [
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
 		case [
-			sym = done [state: EVT_DISPATCH]	;-- prevent other high-level events
-			sym = stop [state: EVT_NO_PROCESS]	;-- prevent all other events
-			true 	   [0]						;-- ignore others
+			sym = done [state: EVT_DISPATCH]			;-- prevent other high-level events
+			sym = stop [state: EVT_NO_PROCESS]			;-- prevent all other events
+			true 	   [0]								;-- ignore others
 		]
 	]
 	state
@@ -241,7 +241,7 @@ process-command-event: func [
 		idx	   [integer!]
 		res	   [integer!]
 ][
-	if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
+	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
 			do-menu hWnd
 			exit
@@ -250,26 +250,26 @@ process-command-event: func [
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-			make-event current-msg 0 EVT_CLICK	;-- should be *after* get-facet call (Windows closing on click case)
+			make-event current-msg 0 EVT_CLICK			;-- should be *after* get-facet call (Windows closing on click case)
 			if any [
 				type/symbol = check
 				type/symbol = radio
 			][
-				current-msg/hWnd: as handle! lParam	;-- force child handle
+				current-msg/hWnd: as handle! lParam		;-- force child handle
 				if get-logic-state current-msg [
 					make-event current-msg 0 EVT_CHANGE
 				]
 			]
 		]
-		EN_CHANGE [								;-- sent also by CreateWindow
+		EN_CHANGE [										;-- sent also by CreateWindow
 			unless null? current-msg [
-				current-msg/hWnd: as handle! lParam	;-- force Edit handle
+				current-msg/hWnd: as handle! lParam		;-- force Edit handle
 				make-event current-msg -1 EVT_CHANGE
 			]
 			0
 		]
 		CBN_SELCHANGE [
-			current-msg/hWnd: as handle! lParam	;-- force ListBox or Combobox handle
+			current-msg/hWnd: as handle! lParam			;-- force ListBox or Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
 			idx: as-integer SendMessage as handle! lParam res 0 0
@@ -280,7 +280,7 @@ process-command-event: func [
 			]
 		]
 		CBN_EDITCHANGE [
-			current-msg/hWnd: as handle! lParam	;-- force Combobox handle
+			current-msg/hWnd: as handle! lParam			;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			unless type/symbol = text-list [
 				make-event current-msg -1 EVT_CHANGE
@@ -342,7 +342,7 @@ WndProc: func [
 		WM_VSCROLL
 		WM_HSCROLL [
 			unless zero? lParam [						;-- message from trackbar
-				current-msg/hWnd: as handle! lParam	;-- trackbar handle
+				current-msg/hWnd: as handle! lParam		;-- trackbar handle
 				get-slider-pos current-msg
 				make-event current-msg 0 EVT_CHANGE
 				return 0
