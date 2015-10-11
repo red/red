@@ -868,10 +868,13 @@ update-z-order: func [
 	tail: as red-object! s/tail
 	nb: (as-integer tail - face) >> 4
 	
-	if null? hdwp [
+	sub?: either null? hdwp [
 		hdwp: BeginDeferWindowPos nb
-		sub?: yes
+		no
+	][
+		yes
 	]
+
 	while [face < tail][
 		if TYPE_OF(face) = TYPE_OBJECT [
 			hdwp: DeferWindowPos
