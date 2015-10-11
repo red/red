@@ -229,7 +229,7 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
 			]
 			TYPE_TUPLE [
-				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE(key)
+				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]

@@ -71,7 +71,7 @@ tuple: context [
 		switch TYPE_OF(right) [
 			TYPE_TUPLE [
 				tp2: (as byte-ptr! right) + 4
-				size2: TUPLE_SIZE(right)
+				size2: TUPLE_SIZE?(right)
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
@@ -89,7 +89,7 @@ tuple: context [
 		]
 
 		tp1: (as byte-ptr! left) + 4
-		size1: TUPLE_SIZE(left)
+		size1: TUPLE_SIZE?(left)
 		n: 0
 		either float? [
 			until [
@@ -103,7 +103,7 @@ tuple: context [
 			]
 		][
 			size: either size1 < size2 [
-				tp1/1: as byte! size2
+				SET_TUPLE_SIZE(left size2)
 				size2
 			][size1]
 			until [
@@ -195,7 +195,7 @@ tuple: context [
 			tp/header: TYPE_UNSET
 		][
 			array: (as byte-ptr! tp) + 4
-			size: TUPLE_SIZE(tp)
+			size: TUPLE_SIZE?(tp)
 			n: 0
 			until [
 				n: n + 1
@@ -221,7 +221,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/form"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 		
 		n: 0
 		until [
@@ -300,8 +300,8 @@ tuple: context [
 		if TYPE_OF(tp2) <> TYPE_TUPLE [RETURN_COMPARE_OTHER]
 		p1: (as byte-ptr! tp1) + 4
 		p2: (as byte-ptr! tp2) + 4
-		sz1: TUPLE_SIZE(tp1)
-		sz2: TUPLE_SIZE(tp2)
+		sz1: TUPLE_SIZE?(tp1)
+		sz2: TUPLE_SIZE?(tp2)
 		sz: either sz1 > sz2 [sz1][sz2]
 
 		i: 0
@@ -363,7 +363,7 @@ tuple: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
-		TUPLE_SIZE(tp)
+		TUPLE_SIZE?(tp)
 	]
 
 	pick: func [
@@ -378,7 +378,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/pick"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -406,7 +406,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/poke"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -438,7 +438,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
 
 		tp: (as byte-ptr! tuple) + 4
-		size: TUPLE_SIZE(tuple)
+		size: TUPLE_SIZE?(tuple)
 		part: size
 		if OPTION?(part-arg) [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [
