@@ -301,12 +301,11 @@ load: function [
 			source: read source
 		]
 		url!	[
-			;-- TBD search codec in `system/codec`, need to parse http header
 			source: read/info/binary source
 			either source/1 = 200 [
 				foreach [name codec] system/codecs [
 					foreach mime codec/mime-type [
-						if find source/2/Content-Type mold mime [
+						if (find source/2/Content-Type mold mime) [
 							return do [codec/decode source/3]
 						]
 					]
@@ -324,6 +323,67 @@ load: function [
 	]
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
+]
+
+save: function [
+	"Saves a value, block, or other data to a file, URL, binary, or string"
+	where [file! url! string! binary! none!] "Where to save"
+	value   "Value(s) to save"
+	/header "Provide a Red header block (or output non-code datatypes)"
+		header-data [block! object!]
+	/all    "TBD: Save in serialized format"
+	/length "Save the length of the script content in the header"
+	/as     "Specify the format of data; use NONE to save as plain text"
+		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
+][
+	either as [
+		if word? format [
+			either codec: select system/codecs format [
+				data: do [codec/encode value]
+			][exit]
+		]
+	][
+		if length [header: true header-data: any [header-data copy []]]
+		if header [
+			if object? :header-data [header-data: body-of header-data]
+		]
+		suffix: suffix? where
+		find-encoder?: no
+		foreach [name codec] system/codecs [
+			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
+				data: do [codec/encode value]
+				find-encoder?: yes
+			]
+		]
+		unless find-encoder? [
+			data: either all [mold/all/only :value][mold/only :value]
+			append data newline
+			case/all [
+				not binary? data [data: to binary! data]
+				length [
+					either pos: find/tail header-data 'length [
+						insert remove pos length? data			;@@ change pos length? data
+					][
+						append header-data compose [length: (length? data)]
+					]
+				]
+				header-data [
+					header-str: copy "Red [^/"					;@@ mold header, use new-line instead
+					foreach [k v] header-data [
+						append header-str reduce [#"^-" mold k #" " mold v newline]
+					]
+					append header-str "]^/"
+					insert data header-str
+				]
+			]
+		]
+	]
+	case [
+		file? where [write where data]
+		url? where [write where data]
+		none? where [data]
+		'else [insert tail where data]
+	]
 ]
 
 cause-error: function [

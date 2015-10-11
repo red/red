@@ -928,6 +928,7 @@ string: context [
 			int [red-integer!]
 			blk [red-block!]
 			ret [red-value!]
+			bin [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 
@@ -937,6 +938,11 @@ string: context [
 			TYPE_URL [
 				set-type copy-cell as cell! spec as cell! type type/value
 				return as red-value! type
+			]
+			TYPE_BINARY [
+				t: -1
+				bin: as byte-ptr! unicode/to-utf8 as red-string! spec :t
+				return stack/set-last as cell! binary/load bin t
 			]
 			default  [0]
 		]

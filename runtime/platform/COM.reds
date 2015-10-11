@@ -34,6 +34,8 @@ CLSID_VideoInputDeviceCategory: [860BB310h 11D05D01h A0003BBDh 86CE11C9h]
 CLSID_CaptureGraphBuilder2:		[BF87B6E1h 11D08C27h AA00F0B3h C5613700h]
 CLSID_FilterGraph:				[E436EBB3h 11CE524Fh 2000539Fh 70A70BAFh]
 
+IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
+
 IID_ICreateDevEnum:				[29840822h 11D05B84h A0003BBDh 86CE11C9h]
 IID_IPropertyBag: 				[55272A00h 11CE42CBh AA003581h 51B84B00h]
 IID_IBaseFilter:				[56A86895h 11CE0AD4h 20003AB0h 70A70BAFh]
@@ -55,6 +57,10 @@ MEDIATYPE_Interleaved:			[73766169h 00100000h AA000080h 719B3800h]
 #define VT_UI1			17
 #define VT_ARRAY		2000h
 
+#define STGM_READWRITE			00000002h
+#define STGM_SHARE_EXCLUSIVE	00000010h
+#define STGM_CREATE				00001000h
+
 tagVARIANT: alias struct! [
 	data1		[integer!]
 	data2		[integer!]
@@ -67,6 +73,27 @@ tagGUID: alias struct! [
 	data2		[integer!]
 	data3		[integer!]
 	data4		[integer!]
+]
+
+tagSTATSTG: alias struct! [
+	pwcsName		[integer!]
+	type			[integer!]
+	cbSize_low		[integer!]
+	cbSize_high		[integer!]
+	mtime_low		[integer!]
+	mtime_high		[integer!]
+	ctime_low		[integer!]
+	ctime_high		[integer!]
+	atime_low		[integer!]
+	atime_high		[integer!]
+	grfMode			[integer!]
+	grfLocks		[integer!]
+	clsid_1			[integer!]
+	clsid_2			[integer!]
+	clsid_3			[integer!]
+	clsid_4			[integer!]
+	grfStateBits	[integer!]
+	reserved		[integer!]
 ]
 
 this!: alias struct! [vtbl [integer!]]
@@ -135,10 +162,58 @@ RenderStream!: alias function! [
 	return:		[integer!]
 ]
 
+CreateStream!: alias function! [
+	this		[this!]
+	pwcsName	[c-string!]
+	mode		[integer!]
+	reserved1	[integer!]
+	reserved2	[integer!]
+	ppstm		[interface!]
+	return: [integer!]
+]
+
 IUnknown: alias struct! [
 	QueryInterface			[QueryInterface!]
 	AddRef					[AddRef!]
 	Release					[Release!]
+]
+
+IStorage: alias struct! [
+	QueryInterface			[QueryInterface!]
+	AddRef					[AddRef!]
+	Release					[Release!]
+	CreateStream			[CreateStream!]
+	OpenStream				[integer!]
+	CreateStorage			[integer!]
+	OpenStorage				[integer!]
+	CopyTo					[integer!]
+	MoveElementTo			[integer!]
+	Commit					[integer!]
+	Revert					[integer!]
+	EnumElements			[integer!]
+	DestroyElement			[integer!]
+	RenameElement			[integer!]
+	SetElementTimes			[integer!]
+	SetClass				[integer!]
+	SetStateBits			[integer!]
+	Stat					[integer!]
+]
+
+IStream: alias struct! [
+	QueryInterface			[QueryInterface!]
+	AddRef					[AddRef!]
+	Release					[Release!]
+	Read					[function! [this [this!] buf [byte-ptr!] cb [integer!] cbRead [int-ptr!] return: [integer!]]]
+	Write					[integer!]
+	Seek					[function! [this [this!] move_low [integer!] move_high [integer!] origin [integer!] pos_low [integer!] pos_high [integer!] return: [integer!]]]
+	SetSize					[integer!]
+	CopyTo					[integer!]
+	Commit					[integer!]
+	Revert					[integer!]
+	LockRegion				[integer!]
+	UnlockRegion			[integer!]
+	Stat					[function! [this [this!] pstat [tagSTATSTG] flag [integer!] return: [integer!]]]
+	Clone					[integer!]
 ]
 
 ICreateDevEnum: alias struct! [
@@ -315,6 +390,13 @@ IWinHttpRequest: alias struct! [
 		CLSIDFromProgID: "CLSIDFromProgID" [
 			lpszProgID	[c-string!]
 			lpclsid		[tagGUID]
+			return:		[integer!]
+		]
+		StgCreateDocfile: "StgCreateDocfile" [
+			pwcsName	[c-string!]
+			grfMode		[integer!]
+			reserved	[integer!]
+			ppstgOpen	[interface!]
 			return:		[integer!]
 		]
 	]
