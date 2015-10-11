@@ -1880,6 +1880,7 @@ natives: context [
 			type = TYPE_URL
 			type = TYPE_VECTOR
 			type = TYPE_BINARY
+			type = TYPE_MAP
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1924,6 +1925,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_URL
 			TYPE_OF(series) = TYPE_VECTOR
 			TYPE_OF(series) = TYPE_BINARY
+			TYPE_OF(series) = TYPE_MAP
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
