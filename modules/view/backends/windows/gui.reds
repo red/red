@@ -852,12 +852,15 @@ change-parent: func [
 
 update-z-order: func [
 	pane [red-block!]
+	hdwp [handle!]
 	/local
 		face [red-object!]
 		tail [red-object!]
+		type [red-word!]
+		blk	 [red-block!]
 		s	 [series!]
 		nb	 [integer!]
-		hdwp [handle!]
+		sub? [logic!]
 ][
 	s: GET_BUFFER(pane)
 	
@@ -865,7 +868,10 @@ update-z-order: func [
 	tail: as red-object! s/tail
 	nb: (as-integer tail - face) >> 4
 	
-	hdwp: BeginDeferWindowPos nb
+	if null? hdwp [
+		hdwp: BeginDeferWindowPos nb
+		sub?: yes
+	]
 	while [face < tail][
 		if TYPE_OF(face) = TYPE_OBJECT [
 			hdwp: DeferWindowPos
@@ -875,10 +881,18 @@ update-z-order: func [
 				0 0
 				0 0
 				SWP_NOSIZE or SWP_NOMOVE
+			
+			type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			
+			if tab-panel = symbol/resolve type/symbol [
+				;-- ensures that panels are above the tab-panel
+				blk: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
+				if TYPE_OF(blk) = TYPE_BLOCK [update-z-order blk hdwp]
+			]
 		]
 		face: face + 1
 	]
-	EndDeferWindowPos hdwp
+	unless sub? [EndDeferWindowPos hdwp]
 ]
 
 OS-update-view: func [
@@ -946,7 +960,9 @@ OS-update-view: func [
 	if flags and FACET_FLAG_PANE <> 0 [
 		word: as red-word! values + FACE_OBJ_TYPE
 		if tab-panel <> symbol/resolve word/symbol [	;-- tab-panel/pane has custom z-order handling
-			update-z-order as red-block! values + gui/FACE_OBJ_PANE
+			update-z-order 
+				as red-block! values + gui/FACE_OBJ_PANE
+				null
 		]
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
