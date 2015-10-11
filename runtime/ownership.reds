@@ -111,7 +111,6 @@ ownership: context [
 				ctx: GET_CTX(obj)
 				
 				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
-					ctx/header: ctx/header or flag-owner
 					s: as series! ctx/values/value
 					
 					value: s/offset
@@ -129,6 +128,18 @@ ownership: context [
 			]
 			true [0]
 		]
+	]
+	
+	set-owner: func [
+		container [red-value!]
+		owner	  [red-object!]
+		word	  [red-word!]
+		/local
+			ctx	  [red-context!]
+	][
+		bind container owner word
+		ctx: GET_CTX(owner)
+		ctx/header: ctx/header or flag-owner
 	]
 	
 	owned?: func [

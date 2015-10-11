@@ -663,7 +663,7 @@ object: context [
 		obj: as red-object! stack/top - 1
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
-		if idx-d <> -1 [ownership/bind as red-value! obj obj null]
+		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
 	]
 	
 	push: func [
@@ -818,7 +818,7 @@ object: context [
 				interpreter/eval blk no
 				obj/class: get-new-id
 				obj/on-set: on-set-defined? ctx
-				if on-deep? obj [ownership/bind as red-value! obj obj null]
+				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
 			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
@@ -1190,7 +1190,7 @@ object: context [
 		sym: symbol/resolve field/symbol
 		case [
 			sym = words/owner [
-				ownership/bind as red-value! obj obj null
+				ownership/set-owner as red-value! obj obj null
 			]
 			true [0]
 		]

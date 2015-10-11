@@ -792,7 +792,7 @@ _series: context [
 				if TYPE_OF(value) = TYPE_BLOCK [
 					args: block/rs-head as red-block! value
 					assert TYPE_OF(args) = TYPE_OBJECT	;@@ raise error on invalid block
-					ownership/bind 
+					ownership/set-owner 
 						as red-value! ser
 						as red-object! args
 						as red-word! args + 1
