@@ -17,7 +17,9 @@ put system/codecs 'gif context [
 	suffixes: [%.gif]
 	
 	encode: routine [img [image!]][
-		stack/set-last as cell! image/encode img IMAGE_GIF
+		#if OS = 'Windows [
+			stack/set-last as cell! image/encode img IMAGE_GIF
+		]
 	]
 
 	decode: routine [data [any-type!]][
