@@ -30,7 +30,7 @@ on-face-deep-change*: function [owner word target action index part state forced
 	if all [state word <> 'state][
 		either any [
 			forced?
-			system/view/auto-update?
+			system/view/auto-sync?
 			owner/type = 'screen						;-- not postponing windows events
 		][
 			state/2: state/2 or system/view/platform/get-facet-id word
@@ -136,7 +136,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or system/view/platform/get-facet-id in self word
-				if all [state/1 system/view/auto-update?][show self]
+				if all [state/1 system/view/auto-sync?][show self]
 			]
 		]
 	]
@@ -223,7 +223,7 @@ system/view: context [
 		:result
 	]
 	
-	auto-update?: no
+	auto-sync?: no
 	debug?: yes
 ]
 
