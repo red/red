@@ -23,9 +23,11 @@ ImageWndProc: func [
 		hBackDC [handle!]
 		ftn		[integer!]
 		bf		[tagBLENDFUNCTION]
+		dc		[handle!]
 ][
 	switch msg [
-		WM_ERASEBKGND [
+		WM_PAINT [
+			dc: BeginPaint hWnd paint
 			hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
 			rect: declare RECT_STRUCT
 			GetClientRect hWnd rect
@@ -37,8 +39,9 @@ ImageWndProc: func [
 			bf/BlendFlags: as-byte 0
 			bf/SourceConstantAlpha: as-byte 255
 			bf/AlphaFormat: as-byte 1
-			AlphaBlend as handle! wParam 0 0 width height hBackDC 0 0 width height ftn
-			return 1
+			AlphaBlend dc 0 0 width height hBackDC 0 0 width height ftn
+			EndPaint hWnd paint
+			return 0
 		]
 		default [0]
 	]
