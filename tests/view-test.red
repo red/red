@@ -219,6 +219,12 @@ button: make face! [
 	]
 ]
 
+button/font: make font! [
+	name: "Arial"
+	size: 12
+	style: 'bold
+]
+
 win/pane: reduce [
 	make face! [
 		type: 'button text: "Hi" offset: 10x10 size: 60x40

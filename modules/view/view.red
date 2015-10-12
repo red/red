@@ -116,6 +116,7 @@ face!: object [				;-- keep in sync with facet! enum
 	state:		none		;-- [handle [integer! none!] change-array [integer!]]
 	;rate:		none		;@@ to be considered
 	edge:		none
+	font:		none
 	actors:		none
 	extra:		none		;-- for storing optional user data
 	draw:		none
@@ -144,6 +145,17 @@ face!: object [				;-- keep in sync with facet! enum
 	on-deep-change*: function [owner word target action index part][
 		on-face-deep-change* owner word target action index part state no
 	]
+]
+
+font!: object [
+	name:	none
+	size:	none
+	style:	none
+	color:	none
+	shadow:	none
+	para:	none
+	state:	none
+	parent:	none
 ]
 
 system/view: context [
