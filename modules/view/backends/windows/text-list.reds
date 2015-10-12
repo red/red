@@ -77,6 +77,11 @@ insert-list-item: func [
 		msg	[integer!]
 		len [integer!]
 ][
+	unless TYPE_OF(item) = TYPE_STRING [exit]
+
+	len: as-integer SendMessage hWnd CB_GETCOUNT 0 0
+	if pos > len [pos: len]
+
 	str: unicode/to-utf16 item
 	msg: either drop? [CB_INSERTSTRING][LB_INSERTSTRING]
 	SendMessage hWnd msg pos as-integer str

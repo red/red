@@ -42,6 +42,7 @@ Red/System [
 
 #define CB_ADDSTRING		0143h
 #define CB_DELETESTRING		0144h
+#define CB_GETCOUNT			0146h
 #define CB_GETCURSEL		0147h
 #define CB_GETLBTEXT		0148h
 #define CB_GETLBTEXTLEN		0149h
