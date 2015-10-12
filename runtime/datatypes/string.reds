@@ -947,8 +947,11 @@ string: context [
 			]
 			TYPE_BINARY [
 				t: -1
-				bin: as byte-ptr! unicode/to-utf8 as red-string! spec :t
+				bin: as byte-ptr! unicode/to-utf8 spec :t
 				return stack/set-last as cell! binary/load bin t
+			]
+			TYPE_ISSUE [
+				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
 			]
 			default  [0]
 		]
@@ -975,6 +978,7 @@ string: context [
 				fire [TO_ERROR(script bad-to-arg) datatype/push t ret]
 			]
 		]
+		if t = TYPE_ISSUE [remove-char spec spec/head]
 		stack/set-last ret
 	]
 
