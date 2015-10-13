@@ -25,7 +25,7 @@ Red/System [
 #define _BUCKET_IS_DEL(flags i s)			[flags/i >> s and 1 = 1]
 #define _BUCKET_IS_NOT_DEL(flags i s)		[flags/i >> s and 1 <> 1]
 #define _BUCKET_IS_EITHER(flags i s)		[flags/i >> s and 3 > 0]
-#define _BUCKET_IS_CLEARED(flags i s)		[flags/i >> s and 3 = 0]
+#define _BUCKET_IS_HAS_KEY(flags i s)		[flags/i >> s and 3 = 0]
 #define _BUCKET_SET_DEL_TRUE(flags i s)		[flags/i: 1 << s or flags/i]
 #define _BUCKET_SET_DEL_FALSE(flags i s)	[flags/i: (not 1 << s) and flags/i]
 #define _BUCKET_SET_EMPTY_FALSE(flags i s)	[flags/i: (not 2 << s) and flags/i]
@@ -358,7 +358,7 @@ _hashtable: context [
 			until [
 				_HT_CAL_FLAG_INDEX(j ii sh)
 				j: j + 1
-				if _BUCKET_IS_CLEARED(flags ii sh) [
+				if _BUCKET_IS_HAS_KEY(flags ii sh) [
 					idx: keys/j
 					mask: new-buckets - 1
 					_BUCKET_SET_DEL_TRUE(flags ii sh)
@@ -383,7 +383,7 @@ _hashtable: context [
 						_BUCKET_SET_EMPTY_FALSE(new-flags ii sh)
 						either all [
 							i <= n-buckets
-							_BUCKET_IS_CLEARED(flags ii sh)
+							_BUCKET_IS_HAS_KEY(flags ii sh)
 						][
 							tmp: keys/i keys/i: idx idx: tmp
 							_BUCKET_SET_DEL_TRUE(flags ii sh)
@@ -454,10 +454,10 @@ _hashtable: context [
 				]
 			][
 				if del? [site: i]
-				step: step + 1
 				i: i + step and mask
 				_HT_CAL_FLAG_INDEX(i ii sh)
 				i: i + 1
+				step: step + 1
 				if i = last [x: site break]
 			]
 			if x = n-buckets [
@@ -523,10 +523,10 @@ _hashtable: context [
 				]
 			]
 		][
-			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
+			step: step + 1
 			if i = last [return null]
 		]
 
@@ -572,10 +572,10 @@ _hashtable: context [
 				]
 			]
 		][
-			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
+			step: step + 1
 			if i = last [return null]
 		]
 
@@ -663,10 +663,10 @@ _hashtable: context [
 					][keys/i: keys/i or 80000000h]
 				]
 
-				step: step + 1
 				i: i + step and mask
 				_HT_CAL_FLAG_INDEX(i ii sh)
 				i: i + 1
+				step: step + 1
 				if i = last [x: site continue?: no]
 			]
 			if x = n-buckets [
@@ -785,10 +785,10 @@ _hashtable: context [
 				]
 			]
 
-			step: step + 1
 			i: i + step and mask
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			i: i + 1
+			step: step + 1
 			if i = last [
 				return either find? [blk + last-idx][null]
 			]

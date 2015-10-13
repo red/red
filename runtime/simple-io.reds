@@ -637,7 +637,9 @@ simple-io: context [
 			str [red-string!]
 			len [integer!]
 	][
-		str: string/rs-make-at stack/push* string/rs-length? as red-string! src
+		len: string/rs-length? as red-string! src
+		if zero? len [len: 1]
+		str: string/rs-make-at stack/push* len
 		file/to-local-path src str no
 		#either OS = 'Windows [
 			unicode/to-utf16 str
@@ -766,13 +768,28 @@ simple-io: context [
 		return:  [logic!]
 		/local
 			len  [integer!]
-			cp	 [integer!]
+			pos  [integer!]
+			cp1  [byte!]
+			cp2  [byte!]
+			cp3  [byte!]
 	][
-		len: string/rs-abs-length? as red-string! filename
-		cp: string/rs-abs-at as red-string! filename len - 1
+		len: string/rs-length? as red-string! filename
+		if zero? len [return false]
+		pos: filename/head + len - 1
+		cp1: as byte! string/rs-abs-at as red-string! filename pos
+		cp2: as byte! either len > 1 [string/rs-abs-at as red-string! filename pos - 1][0]
+		cp3: as byte! either len > 2 [string/rs-abs-at as red-string! filename pos - 2][0]
+
 		either any [
-			cp = as-integer #"/"
-			cp = as-integer #"\"
+			cp1 = #"/"
+			cp1 = #"\"
+			all [
+				cp1 = #"."
+				any [
+					len = 1 cp2 = #"/" cp2 = #"\"
+					all [cp2 = #"." any [cp3 = #"/" cp3 = #"\" len = 2]]
+				]
+			]
 		][true][false]
 	]
 
@@ -786,14 +803,21 @@ simple-io: context [
 			blk		[red-block!]
 			str		[red-string!]
 			len		[integer!]
+			cp		[byte!]
 			s		[series!]
 	][
+		len: string/rs-length? as red-string! filename
+		len: filename/head + len - 1
+		cp: as byte! string/rs-abs-at as red-string! filename len
+		if cp = #"." [string/append-char GET_BUFFER(filename) as-integer #"/"]
+
 		#either OS = 'Windows [
 			s: string/append-char GET_BUFFER(filename) as-integer #"*"
 
 			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
 			handle: FindFirstFile to-OS-path filename info
-			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
+			len: either cp = #"." [1][0]
+			s/tail: as cell! (as byte-ptr! s/tail) - (GET_UNIT(s) << len)
 
 			if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
@@ -854,6 +878,10 @@ simple-io: context [
 					]
 					set-type as red-value! str TYPE_FILE
 				]
+			]
+			if cp = #"." [
+				s: GET_BUFFER(filename)
+				s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)
 			]
 			closedir handle
 			blk
