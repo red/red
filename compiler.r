@@ -2846,11 +2846,9 @@ red: context [
 				]
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
-				insert last output [					;-- save new value
-					stack/keep
-				]
-				append last output compose [			;-- save old value
-					word/get-local (ctx) (get-word-index/with last path ctx)
+				insert clear last output compose [
+					stack/keep							;-- save new value
+					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
 				]
 				parent: first back back tail path
 				fire: pick [

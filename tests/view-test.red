@@ -6,6 +6,8 @@ Red [
 
 system/view/debug?: yes
 live?: system/view/auto-sync?: no
+probe live?
+probe system/view/auto-sync?
 
 workstation?: system/view/platform/product = 1
 
@@ -224,6 +226,7 @@ button/font: make font! [
 	size: 12
 	style: 'bold
 ]
+probe button/font
 
 win/pane: reduce [
 	make face! [
