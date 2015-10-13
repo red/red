@@ -10,6 +10,16 @@ Red/System [
 	}
 ]
 
+refresh-tab-panel: func [
+	/local
+		rect [RECT_STRUCT]
+][
+	unless DWM-enabled? [
+		rect: declare RECT_STRUCT
+		GetClientRect hWnd rect
+		InvalidateRect GetClientArea hWnd rect 0
+	]
+]
 
 process-tab-select: func [
 	hWnd	[handle!]
@@ -58,6 +68,7 @@ insert-tab: func [
 	index [integer!]
 	/local
 		item [TCITEM]
+		rect [RECT_STRUCT]
 ][
 	item: declare TCITEM
 	item/mask: TCIF_TEXT
@@ -71,6 +82,8 @@ insert-tab: func [
 		TCM_INSERTITEMW
 		index
 		as-integer item
+
+	refresh-tab-panel
 ]
 
 set-tabs: func [
@@ -155,7 +168,10 @@ update-tabs: func [
 					sym = words/_clear/symbol
 				][
 					ownership/unbind-each as red-block! value index part
-					loop part [SendMessage hWnd TCM_DELETEITEM index 0]
+					loop part [
+						SendMessage hWnd TCM_DELETEITEM index 0
+						refresh-tab-panel
+					]
 				]
 				any [
 					sym = words/_insert/symbol
