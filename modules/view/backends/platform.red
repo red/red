@@ -60,6 +60,19 @@ system/view/platform: context [
 				FACET_FLAG_DRAW:		00040000h
 			]
 			
+			#enum font-facet! [
+				FONT_OBJ_NAME
+				FONT_OBJ_SIZE
+				FONT_OBJ_STYLE
+				FONT_OBJ_ANGLE
+				FONT_OBJ_COLOR
+				FONT_OBJ_ANTI-ALIAS?
+				FONT_OBJ_SHADOW
+				FONT_OBJ_PARA
+				FONT_OBJ_STATE
+				FONT_OBJ_PARENT
+			]
+			
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP
@@ -144,6 +157,8 @@ system/view/platform: context [
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
 			popup:			symbol/make "popup"
+			
+			ClearType:		symbol/make "ClearType"
 				
 			_down:			word/load "down"
 			_up:			word/load "up"

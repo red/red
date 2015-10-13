@@ -220,9 +220,10 @@ button: make face! [
 ]
 
 button/font: make font! [
-	name: "Arial"
-	size: 12
+	name: "Comic Sans MS"
+	size: 24
 	style: 'bold
+	anti-alias?: yes
 ]
 
 win/pane: reduce [

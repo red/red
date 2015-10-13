@@ -147,15 +147,17 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 ]
 
-font!: object [
-	name:	none
-	size:	none
-	style:	none
-	color:	none
-	shadow:	none
-	para:	none
-	state:	none
-	parent:	none
+font!: object [				;-- keep in sync with font-facet! enum
+	name:		 none
+	size:		 none
+	style:		 none
+	angle:		 0
+	color:		 black
+	anti-alias?: none
+	shadow:		 none
+	para:		 none
+	state:		 none
+	parent:		 none
 ]
 
 system/view: context [

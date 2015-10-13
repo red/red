@@ -14,6 +14,7 @@ Red/System [
 #include %classes.reds
 #include %events.reds
 
+#include %font.reds
 #include %camera.reds
 #include %image.reds
 #include %menu.reds
@@ -48,6 +49,18 @@ get-face-values: func [
 	s/offset
 ]
 
+get-values: func [
+	node	[node!]
+	return: [red-value!]
+	/local
+		ctx	 [red-context!]
+		s	 [series!]
+][
+	ctx: TO_CTX(node)
+	s: as series! ctx/values/value
+	s/offset
+]
+
 get-node-facet: func [
 	node	[node!]
 	facet	[integer!]
@@ -56,9 +69,7 @@ get-node-facet: func [
 		ctx	 [red-context!]
 		s	 [series!]
 ][
-	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
-	s/offset + facet
+	(get-values node) + facet
 ]
 
 get-facets: func [
@@ -433,7 +444,6 @@ OS-make-view: func [
 	parent	[integer!]
 	return: [integer!]
 	/local
-		ctx		  [red-context!]
 		values	  [red-value!]
 		type	  [red-word!]
 		str		  [red-string!]
@@ -462,9 +472,7 @@ OS-make-view: func [
 		vertical? [logic!]
 		panel?	  [logic!]
 ][
-	ctx: GET_CTX(face)
-	s: as series! ctx/values/value
-	values: s/offset
+	values: get-values face/ctx
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -603,7 +611,8 @@ OS-make-view: func [
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
 	BringWindowToTop handle
-	SendMessage handle WM_SETFONT as-integer default-font 1
+	;SendMessage handle WM_SETFONT as-integer default-font 1
+	set-font handle face values
 
 	;-- extra initialization
 	case [

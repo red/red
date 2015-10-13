@@ -1128,6 +1128,23 @@ DwmIsCompositionEnabled!: alias function! [
 			cPoints		[integer!]
 			return:		[integer!]
 		]
+		CreateFont: "CreateFontW" [
+			nHeight				[integer!]
+			nWidth				[integer!]
+			nEscapement			[integer!]
+			nOrientation		[integer!]
+			fnWeight			[integer!]
+			fdwItalic			[integer!]
+			fdwUnderline		[integer!]
+			fdwStrikeOut		[integer!]
+			fdwCharSet			[integer!]
+			fdwOutputPrecision	[integer!]
+			fdwClipPrecision	[integer!]
+			fdwQuality			[integer!]
+			fdwPitchAndFamily	[integer!]
+			lpszFace			[c-string!]
+			return: 			[handle!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
