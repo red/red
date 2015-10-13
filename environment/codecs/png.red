@@ -17,7 +17,9 @@ put system/codecs 'png context [
 	suffixes: [%.png]
 	
 	encode: routine [img [image!]][
-		stack/set-last as cell! image/encode img IMAGE_PNG
+		#if OS = 'Windows [
+			stack/set-last as cell! image/encode img IMAGE_PNG
+		]
 	]
 
 	decode: routine [data [any-type!]][
