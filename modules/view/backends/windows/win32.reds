@@ -23,6 +23,7 @@ Red/System [
 #define LB_DELETESTRING		0182h
 #define LB_RESETCONTENT		0184h
 #define LB_GETCURSEL		0188h
+#define LB_GETCOUNT			018Bh
 #define LB_SETHORIZONTALEXTENT	0194h
 
 #define HORZRES				8
