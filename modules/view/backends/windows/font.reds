@@ -19,11 +19,14 @@ set-font: func [
 		int	 [red-integer!]
 		value	[red-value!]
 		bool	[red-logic!]
-		word	[red-word!]
+		style	[red-word!]
 		str		[red-string!]
+		blk		[red-block!]
+		weight	[integer!]
 		height	[integer!]
 		angle	[integer!]
 		quality [integer!]
+		len		[integer!]
 		name	[c-string!]
 		italic? [logic!]
 		under?	[logic!]
@@ -35,10 +38,6 @@ set-font: func [
 		SendMessage hWnd WM_SETFONT as-integer default-font 1
 		exit
 	]
-	
-	italic?: no
-	under?:  no
-	strike?: no
 	
 	values: get-values font/ctx
 	
@@ -55,8 +54,8 @@ set-font: func [
 			quality: either bool/value [4][0]			;-- ANTIALIASED_QUALITY
 		]
 		TYPE_WORD [
-			word: as red-word! value
-			either ClearType = symbol/resolve word/symbol [
+			style: as red-word! value
+			either ClearType = symbol/resolve style/symbol [
 				quality: 5								;-- CLEARTYPE_QUALITY
 			][
 				quality: 0
@@ -69,12 +68,39 @@ set-font: func [
 	str: as red-string! values + FONT_OBJ_NAME
 	name: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf16 str][null]
 	
+	style: as red-word! values + FONT_OBJ_STYLE
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			len: block/rs-length? blk
+		]
+		TYPE_WORD  [1]
+		default	   [0]
+	]
+	
+	italic?: no
+	under?:  no
+	strike?: no
+	weight:	 0
+
+	loop len [
+		sym: symbol/resolve style/symbol
+		case [
+			sym = _bold	 	 [weight:  700]
+			sym = _italic	 [italic?: yes]
+			sym = _underline [under?:  yes]
+			sym = _strike	 [strike?: yes]
+		]
+		style: style + 1
+	]
+	
 	hFont: CreateFont
 		height
 		0												;-- nWidth
 		0												;-- nEscapement
 		angle											;-- nOrientation
-		0 ;weight
+		weight
 		as-integer italic?
 		as-integer under?
 		as-integer strike?

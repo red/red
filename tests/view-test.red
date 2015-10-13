@@ -222,7 +222,7 @@ button: make face! [
 button/font: make font! [
 	name: "Comic Sans MS"
 	size: 24
-	style: 'bold
+	style: [bold italic underline strike]
 	anti-alias?: yes
 ]
 

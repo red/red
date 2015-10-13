@@ -159,6 +159,10 @@ system/view/platform: context [
 			popup:			symbol/make "popup"
 			
 			ClearType:		symbol/make "ClearType"
+			_bold:			symbol/make "bold"
+			_italic:		symbol/make "italic"
+			_underline:		symbol/make "underline"
+			_strike:		symbol/make "strike"
 				
 			_down:			word/load "down"
 			_up:			word/load "up"
