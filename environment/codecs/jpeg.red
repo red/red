@@ -17,7 +17,9 @@ put system/codecs 'jpeg context [
 	suffixes: [%.jpg %.jpeg %.jpe %.jfif]
 	
 	encode: routine [img [image!]][
-		stack/set-last as cell! image/encode img IMAGE_JPEG
+		#if OS = 'Windows [
+			stack/set-last as cell! image/encode img IMAGE_JPEG
+		]
 	]
 
 	decode: routine [data [any-type!]][

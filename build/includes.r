@@ -57,6 +57,7 @@ write %build/bin/sources.r set-cache [
 		%redbin.reds
 		%sort.reds
 		%hashtable.reds
+		%ownership.reds
 		%stack.reds
 		%tools.reds
 		%unicode.reds
