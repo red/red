@@ -11,13 +11,14 @@ Red/System [
 ]
 
 refresh-tab-panel: func [
+	hWnd [handle!]
 	/local
 		rect [RECT_STRUCT]
 ][
 	unless DWM-enabled? [
 		rect: declare RECT_STRUCT
 		GetClientRect hWnd rect
-		InvalidateRect GetClientArea hWnd rect 0
+		InvalidateRect hWnd rect 0
 	]
 ]
 
@@ -83,7 +84,7 @@ insert-tab: func [
 		index
 		as-integer item
 
-	refresh-tab-panel
+	refresh-tab-panel hWnd
 ]
 
 set-tabs: func [
@@ -170,7 +171,7 @@ update-tabs: func [
 					ownership/unbind-each as red-block! value index part
 					loop part [
 						SendMessage hWnd TCM_DELETEITEM index 0
-						refresh-tab-panel
+						refresh-tab-panel hWnd
 					]
 				]
 				any [
