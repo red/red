@@ -31,6 +31,9 @@ current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		64										;-- offset to our 16 bytes
 
+log-pixels-x:	0
+log-pixels-y:	0
+
 clean-up: does [
 	current-msg: null
 ]
@@ -49,18 +52,6 @@ get-face-values: func [
 	s/offset
 ]
 
-get-values: func [
-	node	[node!]
-	return: [red-value!]
-	/local
-		ctx	 [red-context!]
-		s	 [series!]
-][
-	ctx: TO_CTX(node)
-	s: as series! ctx/values/value
-	s/offset
-]
-
 get-node-facet: func [
 	node	[node!]
 	facet	[integer!]
@@ -69,7 +60,9 @@ get-node-facet: func [
 		ctx	 [red-context!]
 		s	 [series!]
 ][
-	(get-values node) + facet
+	ctx: TO_CTX(node)
+	s: as series! ctx/values/value
+	s/offset + facet
 ]
 
 get-facets: func [
@@ -283,6 +276,9 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
+	
+	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
+	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
 set-logic-state: func [
@@ -472,7 +468,7 @@ OS-make-view: func [
 		vertical? [logic!]
 		panel?	  [logic!]
 ][
-	values: get-values face/ctx
+	values: object/get-values face
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT

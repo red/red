@@ -10,10 +10,11 @@ Red/System [
 	}
 ]
 
-set-font: func [
-	hWnd   [handle!]
-	face   [red-object!]
-	values [red-value!]
+make-font: func [
+	hWnd    [handle!]
+	face    [red-object!]
+	values  [red-value!]
+	return: [handle!]
 	/local
 		font [red-object!]
 		int	 [red-integer!]
@@ -34,15 +35,12 @@ set-font: func [
 		hFont	[handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
-	if TYPE_OF(font) <> TYPE_OBJECT [
-		SendMessage hWnd WM_SETFONT as-integer default-font 1
-		exit
-	]
-	
-	values: get-values font/ctx
+	values: object/get-values font
 	
 	int: as red-integer! values + FONT_OBJ_SIZE
-	height: either TYPE_OF(int) = TYPE_INTEGER [int/value][0]
+	height: either TYPE_OF(int) <> TYPE_INTEGER [0][
+		int/value * log-pixels-y / 72
+	]
 	
 	int: as red-integer! values + FONT_OBJ_ANGLE
 	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value * 10][0]	;-- in tenth of degrees
@@ -111,5 +109,37 @@ set-font: func [
 		0												;-- DEFAULT_PITCH
 		name
 	
+	blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
+	integer/make-in blk as-integer hFont
+	
+	blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
+	block/rs-append blk as red-value! face
+		
+	hFont
+]
+
+set-font: func [
+	hWnd   [handle!]
+	face   [red-object!]
+	values [red-value!]
+	/local
+		font  [red-object!]
+		state [red-block!]
+		int	  [red-integer!]
+		hFont [handle!]
+][
+	font: as red-object! values + FACE_OBJ_FONT
+	if TYPE_OF(font) <> TYPE_OBJECT [
+		SendMessage hWnd WM_SETFONT as-integer default-font 1
+		exit
+	]
+	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+	
+	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state
+		int/value
+	][
+		make-font hWnd face values
+	]
 	SendMessage hWnd WM_SETFONT as-integer hFont 1
 ]

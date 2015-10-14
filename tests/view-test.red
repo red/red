@@ -182,7 +182,7 @@ win: make face! [
 ]
 
 but-extra: make face! [
-	type: 'button text: "Extra" offset: 500x500 size: 40x25
+	type: 'button text: "Extra" offset: 400x500 size: 40x25
 ]
 
 panel-extra: make face! [
@@ -221,7 +221,7 @@ button: make face! [
 
 button/font: make font! [
 	name: "Comic Sans MS"
-	size: 24
+	size: 16
 	style: [bold italic underline strike]
 	anti-alias?: yes
 ]
@@ -646,6 +646,15 @@ win/pane: reduce [
 				]
 				unless live? [show canvas]
 			]
+		]
+	]
+	font-test: make face! [
+		type: 'text text: "The quick brown fox jumps" offset: 500x500 size: 300x25
+		font: make font! [
+			name: "Times New Roman"
+			size: 16
+			style: 'italic
+			anti-alias: yes
 		]
 	]
 ]
