@@ -130,7 +130,7 @@ set-font: func [
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(font) <> TYPE_OBJECT [
-		SendMessage hWnd WM_SETFONT as-integer default-font 1
+		SendMessage hWnd WM_SETFONT as-integer default-font 0
 		exit
 	]
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
@@ -141,5 +141,5 @@ set-font: func [
 	][
 		make-font hWnd face values
 	]
-	SendMessage hWnd WM_SETFONT as-integer hFont 1
+	SendMessage hWnd WM_SETFONT as-integer hFont 0
 ]
