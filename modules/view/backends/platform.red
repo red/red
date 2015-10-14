@@ -132,6 +132,7 @@ system/view/platform: context [
 				draw:		symbol/make "draw"
 			]
 
+			screen:			symbol/make "screen"
 			window:			symbol/make "window"
 			button:			symbol/make "button"
 			check:			symbol/make "check"
@@ -286,6 +287,12 @@ system/view/platform: context [
 		return: [integer!]
 	][
 		gui/OS-make-view face parent
+	]
+
+	to-image: routine [
+		face	[object!]
+	][
+		stack/set-last as red-value! gui/OS-to-image face
 	]
 
 	do-event-loop: routine [no-wait? [logic!]][

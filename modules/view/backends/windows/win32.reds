@@ -1156,6 +1156,12 @@ DwmIsCompositionEnabled!: alias function! [
 			height		[integer!]
 			return:		[integer!]
 		]
+		GdipCreateBitmapFromHBITMAP: "GdipCreateBitmapFromHBITMAP" [
+			hbmp		[handle!]
+			palette		[integer!]
+			bitmap		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [
 			hwnd		[handle!]
 			graphics	[GpGraphics!]
