@@ -312,7 +312,7 @@ make-image: func [
 			x: 0
 			while [x < width][
 				pos: data/stride >> 2 * y + x + 1
-				a: either null? alpha [0][as-integer alpha/1]
+				a: either null? alpha [255][as-integer alpha/1]
 				r: as-integer rgb/1
 				b: as-integer rgb/2
 				g: as-integer rgb/3

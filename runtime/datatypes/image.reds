@@ -207,6 +207,58 @@ image: context [
 		bin
 	]
 
+	set-data: func [
+		img		[red-image!]
+		bin		[red-binary!]
+		alpha?	[logic!]
+		return: [red-binary!]
+		/local
+			x		[integer!]
+			y		[integer!]
+			w		[integer!]
+			h		[integer!]
+			s		[series!]
+			p		[byte-ptr!]
+			stride	[integer!]
+			bitmap	[integer!]
+			pos		[integer!]
+			pixel	[integer!]
+			data	[int-ptr!]
+	][
+		w: IMAGE_WIDTH(img/size)
+		h: IMAGE_HEIGHT(img/size)
+
+		s: GET_BUFFER(bin)
+		p: as byte-ptr! s/offset
+
+		stride: 0
+		bitmap: lock-bitmap as-integer img/node
+		data: get-data bitmap :stride
+		y: 0
+		while [y < h][
+			x: 0
+			while [x < w][
+				pos: stride >> 2 * y + x + 1
+				pixel: data/pos
+				either alpha? [
+					pixel: pixel and 00FFFFFFh or as-integer p/1
+					p: p + 1
+				][
+					pixel: pixel and FF000000h
+							or ((as-integer p/1) << 16)
+							or ((as-integer p/2) << 8)
+							or (as-integer p/3)
+					p: p + 3
+				]
+				data/pos: pixel
+				x: x + 1
+			]
+			y: y + 1
+		]
+		unlock-bitmap as-integer img/node bitmap
+		bin
+	]
+
 	;-- Actions --
 
 	make: func [
@@ -318,7 +370,7 @@ image: context [
 					unlock-bitmap as-integer img/node bitmap
 					return part
 				]
-				if pixel and FF000000h >> 24 <> 0 [alpha?: yes]
+				if pixel and FF000000h >> 24 <> 255 [alpha?: yes]
 				x: x + 1
 			]
 			y: y + 1
@@ -484,7 +536,6 @@ image: context [
 				]
 			]
 			TYPE_WORD [
-				if set? [--NOT_IMPLEMENTED--]					;@@ TBD handle set word
 				w: as red-word! element
 				sym: symbol/resolve w/symbol
 				case [
@@ -492,10 +543,18 @@ image: context [
 						pair/push IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
 					]
 					sym = words/rgb [
-						extract-data parent no
+						either set? [
+							set-data parent as red-binary! value no
+						][
+							extract-data parent no
+						]
 					]
 					sym = words/alpha [
-						extract-data parent yes
+						either set? [
+							set-data parent as red-binary! value yes
+						][
+							extract-data parent yes
+						]
 					]
 					true [
 						fire [TO_ERROR(script invalid-path) stack/arguments element]
