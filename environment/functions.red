@@ -479,6 +479,20 @@ what-dir: func [/local path][
 	path
 ]
 
+to-image: func [value][
+	case [
+		binary? value [
+			;@@ TBD
+		]
+		all [									;-- face!
+			object? value
+			find words-of value words-of face!
+		][
+			system/view/platform/to-image value
+		]
+	]
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------

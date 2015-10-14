@@ -1064,3 +1064,57 @@ OS-update-facet: func [
 		true [OS-update-view face]
 	]
 ]
+
+OS-to-image: func [
+	face	[red-object!]
+	return: [red-image!]
+	/local
+		hWnd 	[handle!]
+		dc		[handle!]
+		mdc		[handle!]
+		rect	[RECT_STRUCT]
+		width	[integer!]
+		height	[integer!]
+		bmp		[handle!]
+		bitmap	[integer!]
+		img		[red-image!]
+		word	[red-word!]
+		type	[integer!]
+		size	[red-pair!]
+		screen? [logic!]
+][
+	rect: declare RECT_STRUCT
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	screen?: screen = symbol/resolve word/symbol
+	either screen? [
+		size: as red-pair! get-node-facet face/ctx FACE_OBJ_SIZE
+		width: size/x
+		height: size/y
+		rect/left: 0
+		rect/top: 0
+		dc: hScreen
+	][
+		hWnd: get-face-handle face
+		GetWindowRect hWnd rect
+		width: rect/right - rect/left
+		height: rect/bottom - rect/top
+		dc: GetDC hWnd
+	]
+
+	mdc: CreateCompatibleDC dc
+	bmp: CreateCompatibleBitmap dc width height
+	SelectObject mdc bmp
+	BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
+
+	bitmap: 0
+	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
+
+	either zero? bitmap [img: as red-image! none-value][
+		img: image/init-image as red-image! stack/push* bitmap
+	]
+
+    DeleteDC mdc
+    DeleteObject bmp
+    unless screen? [ReleaseDC hWnd dc]
+	img
+]
