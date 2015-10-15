@@ -306,23 +306,22 @@ make-image: func [
 	data: as BitmapData! lock-bitmap bitmap
 	scan0: as int-ptr! data/scan0
 
-	unless null? rgb [
-		y: 0
-		while [y < height][
-			x: 0
-			while [x < width][
-				pos: data/stride >> 2 * y + x + 1
-				a: either null? alpha [255][as-integer alpha/1]
+	y: 0
+	while [y < height][
+		x: 0
+		while [x < width][
+			pos: data/stride >> 2 * y + x + 1
+			either null? alpha [a: 255][a: as-integer alpha/1 alpha: alpha + 1]
+			either null? rgb [r: 0 g: 0 b: 0][
 				r: as-integer rgb/1
-				b: as-integer rgb/2
-				g: as-integer rgb/3
-				scan0/pos: r << 16 or (b << 8) or g or (a << 24)
+				g: as-integer rgb/2
+				b: as-integer rgb/3
 				rgb: rgb + 3
-				alpha: alpha + 1
-				x: x + 1
 			]
-			y: y + 1
+			scan0/pos: r << 16 or (g << 8) or b or (a << 24)
+			x: x + 1
 		]
+		y: y + 1
 	]
 
 	unlock-bitmap bitmap as-integer data
