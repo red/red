@@ -485,8 +485,9 @@ to-image: func [value][
 			;@@ TBD
 		]
 		all [									;-- face!
+			system/view
 			object? value
-			find words-of value words-of face!
+			do [find words-of value words-of face!]
 		][
 			system/view/platform/to-image value
 		]
