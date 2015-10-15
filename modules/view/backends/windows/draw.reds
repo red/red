@@ -142,6 +142,7 @@ update-modes: func [
 
 draw-begin: func [
 	hWnd	[handle!]
+	img		[red-image!]
 	return: [handle!]
 	/local
 		dc		 [handle!]
@@ -152,22 +153,29 @@ draw-begin: func [
 		hBackDC  [handle!]
 		graphics [integer!]
 ][
-	dc: BeginPaint hWnd paint
-
 	rect: declare RECT_STRUCT
-	GetClientRect hWnd rect
-	width: rect/right - rect/left
-	height: rect/bottom - rect/top
-
+	either null? hWnd [
+		dc: hScreen
+		width: IMAGE_WIDTH(img/size)
+		height: IMAGE_HEIGHT(img/size)
+		graphics: 0
+		GdipCreateHBITMAPFromBitmap as-integer img/node :graphics 0
+		hBitmap: as handle! graphics
+	][
+		dc: BeginPaint hWnd paint
+		GetClientRect hWnd rect
+		width: rect/right - rect/left
+		height: rect/bottom - rect/top
+		hBitmap: CreateCompatibleBitmap dc width height
+	]
 	hBackDC: CreateCompatibleDC dc
-	hBitmap: CreateCompatibleBitmap dc width height
 	SelectObject hBackDC hBitmap
 	modes/saved-dc: dc
 	modes/bitmap: hBitmap
 
 	dc: hBackDC
 
-	paint-background hWnd dc
+	unless null? hWnd [paint-background hWnd dc]
 
 	SetArcDirection dc AD_CLOCKWISE
 	SetBkMode dc BK_TRANSPARENT
@@ -200,16 +208,25 @@ draw-begin: func [
 draw-end: func [
 	dc	 [handle!]
 	hWnd [handle!]
+	img  [red-image!]
 	/local
 		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
+		bitmap	[integer!]
 ][
 	rect: declare RECT_STRUCT
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
 	BitBlt modes/saved-dc 0 0 width height dc 0 0 SRCCOPY
+
+	if null? hWnd [
+		GdipDisposeImage as-integer img/node
+		bitmap: 0
+		GdipCreateBitmapFromHBITMAP modes/bitmap 0 :bitmap
+		img/node: as node! bitmap
+	]
 
 	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
 	unless zero? modes/g-pen	[GdipDeletePen modes/g-pen]
@@ -219,10 +236,7 @@ draw-end: func [
 
 	DeleteDC dc
 	DeleteObject modes/bitmap
-	;SelectObject dc modes/saved-pen
-	;SelectObject dc modes/saved-brush
-	;SelectObject dc modes/saved-font
-	EndPaint hWnd paint
+	unless null? hWnd [EndPaint hWnd paint]
 ]
 
 to-gdiplus-color: func [

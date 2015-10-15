@@ -164,10 +164,6 @@ BitmapData!: alias struct! [
 			bitmap		[int-ptr!]
 			return:		[integer!]
 		]
-		GdipDisposeImage: "GdipDisposeImage" [
-			image		[integer!]
-			return:		[integer!]
-		]
 		GdipGetImagePixelFormat: "GdipGetImagePixelFormat" [
 			image		[integer!]
 			format		[int-ptr!]
@@ -279,7 +275,7 @@ load-image: func [
 ][
 	handle: 0
 	res: GdipCreateBitmapFromFile filename :handle
-	unless zero? res [platform/error-msg res]
+	unless zero? res [handle: -1]
 	handle
 ]
 

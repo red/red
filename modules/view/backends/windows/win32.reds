@@ -1384,6 +1384,16 @@ DwmIsCompositionEnabled!: alias function! [
 			data		[integer!]
 			return:		[integer!]
 		]
+		GdipCreateHBITMAPFromBitmap: "GdipCreateHBITMAPFromBitmap" [
+			image		[integer!]
+			hbmp		[int-ptr!]
+			background	[integer!]
+			return:		[integer!]
+		]
+		GdipDisposeImage: "GdipDisposeImage" [
+			image		[integer!]
+			return:		[integer!]
+		]
 	]
 	"msimg32.dll" stdcall [
 		AlphaBlend: "AlphaBlend" [
