@@ -240,6 +240,7 @@ image: context [
 			y: y + 1
 		]
 		unlock-bitmap as-integer img/node bitmap
+		ownership/check as red-value! img words/_poke img/head 1 w * h
 		bin
 	]
 
@@ -491,6 +492,7 @@ image: context [
 			a: either TUPLE_SIZE(color) > 3 [as-integer p/4][255]
 			set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
+		ownership/check as red-value! img words/_poke offset 1
 		as red-value! data
 	]
 
