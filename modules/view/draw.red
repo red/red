@@ -502,8 +502,9 @@ Red/System [
 		]
 
 		do-draw: func [
-			handle [handle!]
-			cmds   [red-block!]
+			handle	[handle!]
+			img		[red-image!]
+			cmds	[red-block!]
 			/local
 				cmd	   [red-value!]
 				tail   [red-value!]
@@ -515,7 +516,7 @@ Red/System [
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
-			DC: draw-begin handle
+			DC: draw-begin handle img
 			
 			while [cmd < tail][
 				w: as red-word! cmd
@@ -543,8 +544,8 @@ Red/System [
 				]
 				cmd: cmd + 1
 			]
-			
-			draw-end DC handle
+
+			draw-end DC handle img
 		]
 	]
 ]
@@ -554,5 +555,8 @@ draw: function [
 	image [image! pair!] "Image or size for an image"
 	cmd	  [block!] "Draw commands"
 ][
-	;TBD
+	if pair? image [
+		image: make image! image
+	]
+	system/view/platform/draw-image image cmd
 ]

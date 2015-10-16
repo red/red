@@ -1118,3 +1118,10 @@ OS-to-image: func [
     unless screen? [ReleaseDC hWnd dc]
 	img
 ]
+
+OS-do-draw: func [
+	img		[red-image!]
+	cmds	[red-block!]
+][
+	do-draw null img cmds
+]

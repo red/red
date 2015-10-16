@@ -306,7 +306,7 @@ BaseWndProc: func [
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
-				do-draw hWnd draw
+				do-draw hWnd null draw
 				return 0
 			]
 		]

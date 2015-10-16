@@ -295,6 +295,13 @@ system/view/platform: context [
 		stack/set-last as red-value! gui/OS-to-image face
 	]
 
+	draw-image: routine [
+		image	[image!]
+		cmds	[block!]
+	][
+		gui/OS-do-draw image cmds
+	]
+
 	do-event-loop: routine [no-wait? [logic!]][
 		probe "do-event-loop"
 		gui/do-events no-wait?

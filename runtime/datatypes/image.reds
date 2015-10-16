@@ -87,24 +87,6 @@ image: context [
 		][as red-image! none-value]
 	]
 
-	load-in: func [
-		filename [c-string!]							;-- UTF-8 file pathname
-		blk		 [red-block!]
-		return:  [red-image!]
-		/local
-			img  [red-image!]
-	][
-		img: as red-image! either null = blk [stack/push*][ALLOC_TAIL(blk)]
-		init-image img load-image filename
-	]
-
-	load: func [
-		filename [c-string!]							;-- UTF-8 file pathname
-		return:  [red-image!]
-	][
-		load-in filename null
-	]
-
 	push: func [
 		img [red-image!]
 	][
@@ -136,6 +118,8 @@ image: context [
 			len: -1
 			hr: load-image unicode/to-utf8 src :len
 		]
+
+		if hr = -1 [fire [TO_ERROR(access cannot-open) src]]
 
 		img: as red-image! slot
 		init-image img hr
