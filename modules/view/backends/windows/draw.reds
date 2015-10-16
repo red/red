@@ -560,6 +560,31 @@ OS-draw-ellipse: func [
 	do-draw-ellipse dc upper/x upper/y diameter/x diameter/y
 ]
 
+OS-draw-font: func [
+	dc		[handle!]
+	font	[red-object!]
+	/local
+		vals  [red-value!]
+		state [red-block!]
+		int   [red-integer!]
+		color [red-tuple!]
+		hFont [handle!]
+][
+	vals: object/get-values font
+	state: as red-block! vals + FONT_OBJ_STATE
+	color: as red-tuple! vals + FONT_OBJ_COLOR
+	
+	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state
+		int/value
+	][
+		make-font as red-object! none-value font
+	]
+
+	SelectObject dc hFont
+	SetTextColor dc either TYPE_OF(color) = TYPE_TUPLE [color/array1 and 00FFFFFFh][0]
+]
+
 OS-draw-text: func [
 	dc		[handle!]
 	pos		[red-pair!]

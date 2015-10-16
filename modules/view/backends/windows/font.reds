@@ -11,13 +11,12 @@ Red/System [
 ]
 
 make-font: func [
-	hWnd    [handle!]
-	face    [red-object!]
-	values  [red-value!]
+	face	[red-object!]
+	font	[red-object!]
 	return: [handle!]
 	/local
-		font [red-object!]
-		int	 [red-integer!]
+		values	[red-value!]
+		int		[red-integer!]
 		value	[red-value!]
 		bool	[red-logic!]
 		style	[red-word!]
@@ -34,7 +33,6 @@ make-font: func [
 		strike? [logic!]
 		hFont	[handle!]
 ][
-	font: as red-object! values + FACE_OBJ_FONT
 	values: object/get-values font
 	
 	int: as red-integer! values + FONT_OBJ_SIZE
@@ -139,7 +137,7 @@ set-font: func [
 		int: as red-integer! block/rs-head state
 		int/value
 	][
-		make-font hWnd face values
+		make-font face font
 	]
 	SendMessage hWnd WM_SETFONT as-integer hFont 0
 ]
