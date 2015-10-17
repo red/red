@@ -211,7 +211,8 @@ default-input-completer: func [
 				head	[integer!]
 		][
 			#call [default-input-completer str]
-			result: as red-block! stack/arguments
+			stack/top: stack/arguments + 1
+			result: as red-block! stack/top
 			num: block/rs-length? result
 			unless zero? num [
 				head: str/head
