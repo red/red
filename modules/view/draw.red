@@ -21,6 +21,7 @@ Red/System [
 		_polygon:		symbol/make "polygon"
 		circle:			symbol/make "circle"
 		anti-alias: 	symbol/make "anti-alias"
+		font:			symbol/make "font"
 		text:			symbol/make "text"
 		_ellipse:		symbol/make "ellipse"
 		_arc:			symbol/make "arc"
@@ -359,8 +360,6 @@ Red/System [
 			/local
 				pos	  [red-value!]
 				w	  [red-word!]
-				value [integer!]
-				off?  [logic!]
 		][
 			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
@@ -372,6 +371,28 @@ Red/System [
 			pos
 		]
 
+		draw-font: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				font [red-value!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			if pos >= tail [throw-draw-error cmds cmd]
+
+			font: pos
+			if TYPE_OF(pos) = TYPE_WORD [
+				font: _context/get as red-word! pos
+			]
+			if TYPE_OF(font) <> TYPE_OBJECT [throw-draw-error cmds cmd]
+
+			OS-draw-font DC as red-object! font
+			pos
+		]
+
 		draw-text: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -380,9 +401,6 @@ Red/System [
 			return: [red-value!]
 			/local
 				pos	  [red-value!]
-				w	  [red-word!]
-				value [integer!]
-				off?  [logic!]
 		][
 			pos: cmd + 1								;-- skip the keyword
 			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
@@ -534,6 +552,7 @@ Red/System [
 					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
 					sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
 					sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
+					sym = font		 [cmd: draw-font		DC cmds cmd tail]
 					sym = text		 [cmd: draw-text		DC cmds cmd tail]
 					sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
 					sym = curve		 [cmd: draw-curve		DC cmds cmd tail]

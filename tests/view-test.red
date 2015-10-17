@@ -226,6 +226,14 @@ button/font: make font! [
 	anti-alias?: yes
 ]
 
+font-A: make font! [
+	name: "Comic Sans MS"
+	size: 14
+	color: blue
+	style: [bold italic underline]
+	anti-alias?: yes
+]
+
 win/pane: reduce [
 	make face! [
 		type: 'button text: "Hi" offset: 10x10 size: 60x40
@@ -624,7 +632,8 @@ win/pane: reduce [
 			polygon 232x144 245x144 250x130 255x144 268x144
 				257x153 260x166 250x158 239x166 243x153
 
-			text 40x10 "Hello Red :-)"
+			font font-A
+			text 40x6 "Hello Red :-)"
 			
 			arc 100x25 80x80 0 90 closed
 			pen red
