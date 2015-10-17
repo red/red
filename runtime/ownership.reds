@@ -34,9 +34,13 @@ ownership: context [
 			]
 			ANY_SERIES?(type) [
 				series: as red-series! value
-				s: GET_BUFFER(series)
+				either type = TYPE_IMAGE [
+					series/header: series/header and not flag-owned
+				][
+					s: GET_BUFFER(series)
+					s/flags: s/flags and not flag-series-owned
+				]
 				_hashtable/delete-key table as-integer series/node
-				s/flags: s/flags and not flag-series-owned
 				
 				if ANY_BLOCK?(type) [
 					value: s/offset + series/head
@@ -81,16 +85,27 @@ ownership: context [
 			series [red-series!]
 			type   [integer!]
 			s	   [series!]
+			put?   [logic!]
 	][
 		type: TYPE_OF(container)
 		case [
 			ANY_SERIES?(type) [
+				put?: no
 				series: as red-series! container
-				s: GET_BUFFER(series)
-				
-				if s/flags and flag-series-owned = 0 [	;-- process series if not already owned
-					s/flags: s/flags or flag-series-owned
+				either type = TYPE_IMAGE [
+					if series/header and flag-owned = 0 [
+						series/header: series/header or flag-owned
+						put?: yes
+					]
+				][
+					s: GET_BUFFER(series)
+					if s/flags and flag-series-owned = 0 [
+						s/flags: s/flags or flag-series-owned
+						put?: yes
+					]
+				]
 
+				if put? [	;-- process series if not already owned
 					slot: as red-value! _hashtable/put-key table as-integer series/node
 					copy-cell container slot
 					copy-cell as red-value! owner slot + 1
@@ -168,6 +183,7 @@ ownership: context [
 			type   [integer!]
 	][
 		;@@ check owned flag first
+		;@@ image! use a different flag in series/header than other series
 		type: TYPE_OF(value)
 		case [
 			type = TYPE_OBJECT [
