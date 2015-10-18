@@ -37,8 +37,14 @@ Red/System [
 			size	[integer!]
 			return: [byte-ptr!]
 		]
+		usleep: "usleep" [
+			microseconds [integer!]
+			return: 	 [integer!]
+		]
 	]
 ]
+
+wait: func [time [integer!]][usleep time]
 
 ;-------------------------------------------
 ;-- Print a UCS-4 string to console

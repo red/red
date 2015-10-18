@@ -1701,6 +1701,32 @@ natives: context [
 			multi? <> -1
 	]
 
+	wait*: func [
+		all?	[integer!]
+		only?	[integer!]
+		/local
+			val		[red-float!]
+			int		[red-integer!]
+			time	[integer!]
+			ftime	[float!]
+	][
+		val: as red-float! stack/arguments
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [
+				int: as red-integer! val
+				time: int/value * #either OS = 'Windows [1000][1000000]
+			]
+			TYPE_FLOAT [
+				ftime: val/value * #either OS = 'Windows [1000.0][1000000.0]
+				if ftime < 1.0 [ftime: 1.0]
+				time: float/to-integer ftime
+			]
+			default [fire [TO_ERROR(script invalid-arg) val]]
+		]
+		val/header: TYPE_NONE
+		platform/wait time
+	]
+
 	;--- Natives helper functions ---
 
 	argument-as-float: func [
@@ -2095,6 +2121,7 @@ natives: context [
 			:debase*
 			:to-local-file*
 			:request-file*
+			:wait*
 		]
 	]
 

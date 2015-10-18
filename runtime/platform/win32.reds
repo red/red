@@ -139,6 +139,9 @@ platform: context [
 				hMem			[integer!]
 				return:			[integer!]
 			]
+			Sleep: "Sleep" [
+				dwMilliseconds	[integer!]
+			]
 		]
 		"gdiplus.dll" stdcall [
 			GdiplusStartup: "GdiplusStartup" [
@@ -152,6 +155,8 @@ platform: context [
 			]
 		]
 	]
+
+	wait: func [time [integer!]][Sleep time]
 
 	error-msg: func [
 		error	[integer!]
