@@ -237,14 +237,6 @@ system/view/platform: context [
 			#include %windows/gui.reds
 		]
 	]
-	
-	get-facet-id: routine [
-		facet	[word!]
-		return: [integer!]
-	][
-		assert facet/index <> -1
-		1 << facet/index
-	]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -266,6 +258,11 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action index part
 	]
 	
+	update-font: routine [font [object!] flag [integer!]][
+		gui/update-font font flag
+		SET_RETURN(none-value)
+	]
+	
 	destroy-view: routine [face [object!] empty? [logic!]][
 		gui/OS-destroy-view face empty?
 		SET_RETURN(none-value)
@@ -276,29 +273,20 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 	
-	show-window: routine [id [integer!]] [
+	show-window: routine [id [integer!]][
 		gui/OS-show-window id
 		SET_RETURN(none-value)
 	]
 
-	make-view: routine [
-		face	[object!]
-		parent	[integer!]
-		return: [integer!]
-	][
+	make-view: routine [face [object!] parent [integer!] return: [integer!]][
 		gui/OS-make-view face parent
 	]
 
-	to-image: routine [
-		face	[object!]
-	][
+	to-image: routine [face [object!]][
 		stack/set-last as red-value! gui/OS-to-image face
 	]
 
-	draw-image: routine [
-		image	[image!]
-		cmds	[block!]
-	][
+	draw-image: routine [image [image!] cmds [block!]][
 		gui/OS-do-draw image cmds
 	]
 

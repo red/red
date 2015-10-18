@@ -283,6 +283,16 @@ win/pane: reduce [
 		]
 	]
 	make face! [
+		type: 'check text: "Big/small font" offset: 300x300 size: 80x24
+		data: yes
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				button/font/size: pick [12 20] face/data
+				unless live? [show button]
+			]
+		]
+	]
+	make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
 		actors: object [

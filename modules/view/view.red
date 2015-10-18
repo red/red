@@ -33,7 +33,7 @@ on-face-deep-change*: function [owner word target action index part state forced
 			system/view/auto-sync?
 			owner/type = 'screen						;-- not postponing windows events
 		][
-			state/2: state/2 or system/view/platform/get-facet-id word
+			state/2: state/2 or (1 << ((index? word) - 1))
 			
 			either word = 'pane [
 				either find [remove clear take] action [
@@ -136,7 +136,7 @@ face!: object [				;-- keep in sync with facet! enum
 
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
-				state/2: state/2 or system/view/platform/get-facet-id in self word
+				state/2: state/2 or (1 << ((index? in self word) - 1))
 				if all [state/1 system/view/auto-sync?][show self]
 			]
 		]
@@ -158,6 +158,34 @@ font!: object [				;-- keep in sync with font-facet! enum
 	para:		 none
 	state:		 none
 	parent:		 none
+	
+	on-change*: function [word old new][
+		if system/view/debug? [
+			print [
+				"-- font on-change event --" lf
+				tab "word :" word			 lf
+				tab "old  :" mold old		 lf
+				tab "new  :" mold new
+			]
+		]
+		if word <> 'state [
+			if any [series? old object? old][modify old 'owned none]
+			if any [series? new object? new][modify new 'owned reduce [self word]]
+
+			if all [block? state integer? state/1][ 
+				system/view/platform/update-font self (index? in self word) - 1
+				
+				if block? parent [
+					foreach f parent [
+						if f/state [
+							f/state/2: f/state/2 or (1 << ((index? in f 'font) - 1))
+							if system/view/auto-sync? [show f]
+						]
+					]
+				]
+			]
+		]
+	]
 ]
 
 system/view: context [

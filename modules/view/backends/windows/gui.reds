@@ -977,6 +977,10 @@ OS-update-view: func [
 				null
 		]
 	]
+	if flags and FACET_FLAG_FONT <> 0 [
+		set-font as handle! hWnd face values
+		InvalidateRect as handle! hWnd null 1
+	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + gui/FACE_OBJ_MENU
 		if menu-bar? menu window [

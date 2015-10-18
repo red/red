@@ -107,12 +107,17 @@ make-font: func [
 		0												;-- DEFAULT_PITCH
 		name
 	
-	blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
-	integer/make-in blk as-integer hFont
-	
-	blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
-	block/rs-append blk as red-value! face
-		
+	either null? face [									;-- null => replace underlying GDI font object 
+		int: as red-integer! block/rs-head as red-block! values + FONT_OBJ_STATE
+		int/header: TYPE_INTEGER
+		int/value: as-integer hFont
+	][
+		blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
+		integer/make-in blk as-integer hFont
+
+		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
+		block/rs-append blk as red-value! face
+	]
 	hFont
 ]
 
@@ -140,4 +145,38 @@ set-font: func [
 		make-font face font
 	]
 	SendMessage hWnd WM_SETFONT as-integer hFont 0
+]
+
+free-font: func [
+	font [red-object!]
+	/local
+		values [red-value!]
+		state  [red-block!]
+		int	   [red-integer!]
+][
+	values: object/get-values font
+	state: as red-block! values + FONT_OBJ_STATE
+	if TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state
+		if TYPE_OF(int) = TYPE_INTEGER [
+			DeleteObject as handle! int/value
+		]
+	]
+]
+
+update-font: func [
+	font [red-object!]
+	flag [integer!]
+][
+	switch flag [
+		FONT_OBJ_NAME
+		FONT_OBJ_SIZE
+		FONT_OBJ_STYLE
+		FONT_OBJ_ANGLE
+		FONT_OBJ_ANTI-ALIAS? [
+			free-font font
+			make-font null font
+		]
+		default [0]
+	]
 ]
