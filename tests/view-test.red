@@ -658,7 +658,7 @@ win/pane: reduce [
 		]
 	]
 	font-test: make face! [
-		type: 'text text: "The quick brown fox jumps" offset: 500x500 size: 300x25
+		type: 'text text: "The quick brown fox jumps." offset: 500x500 size: 300x25
 		font: make font! [
 			name: "Times New Roman"
 			size: 16

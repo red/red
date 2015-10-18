@@ -103,11 +103,15 @@ get-widget-handle: func [
 
 			if header and get-type-mask <> TYPE_OBJECT [
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
-				hWnd: as handle! p/2
-				header: GetWindowLong hWnd wc-offset
-
-				if header and get-type-mask <> TYPE_OBJECT [
+				either null? p [
 					hWnd: as handle! -1					;-- not found
+				][
+					hWnd: as handle! p/2
+					header: GetWindowLong hWnd wc-offset
+
+					if header and get-type-mask <> TYPE_OBJECT [
+						hWnd: as handle! -1					;-- not found
+					]
 				]
 			]
 		]
