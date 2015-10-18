@@ -352,6 +352,26 @@ word: context [
 		]
 		res
 	]
+	
+	index?: func [
+		return: [red-value!]
+		/local
+			w	  [red-word!]
+			int	  [red-integer!]
+			index [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/index?"]]
+
+		w: as red-word! stack/arguments
+		int: as red-integer! w
+		index: w/index
+	
+		either index = -1 [int/header: TYPE_NONE][
+			int/header: TYPE_INTEGER
+			int/value:  index + 1						;-- return a 1-based value
+		]
+		as red-value! int
+	]
 
 	init: does [
 		datatype/register [
@@ -395,7 +415,7 @@ word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			:index?
 			null			;insert
 			null			;length?
 			null			;next
