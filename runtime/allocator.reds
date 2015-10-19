@@ -29,6 +29,7 @@ Red/System [
 #define flag-bitset-not		00080000h		;-- complement flag for bitsets
 #define flag-UTF16-cache	00040000h		;-- UTF-16 encoding for string cache buffer
 #define flag-series-owned	00020000h		;-- series is owned by an object
+#define flag-owned			00010000h		;-- cell is owned by and object. (for now only image! use it)
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
