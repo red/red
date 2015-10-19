@@ -293,6 +293,17 @@ win/pane: reduce [
 		]
 	]
 	make face! [
+		type: 'check text: "Italic?" offset: 300x300 size: 80x24
+		data: yes
+		actors: object [
+			on-change: function [face [object!] event [event!]][
+				alter button/font/style 'italic
+				probe button/font/style
+				unless live? [show button]
+			]
+		]
+	]
+	make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
 		actors: object [

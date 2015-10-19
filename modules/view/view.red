@@ -147,6 +147,17 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 ]
 
+update-font-faces: function [parent [block! none!]][
+	if block? parent [
+		foreach f parent [
+			if f/state [
+				f/state/2: f/state/2 or (1 << ((index? in f 'font) - 1))
+				if system/view/auto-sync? [show f]
+			]
+		]
+	]
+]
+
 font!: object [				;-- keep in sync with font-facet! enum
 	name:		 none
 	size:		 none
@@ -174,18 +185,22 @@ font!: object [				;-- keep in sync with font-facet! enum
 
 			if all [block? state integer? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
-				
-				if block? parent [
-					foreach f parent [
-						if f/state [
-							f/state/2: f/state/2 or (1 << ((index? in f 'font) - 1))
-							if system/view/auto-sync? [show f]
-						]
-					]
-				]
+				update-font-faces parent
 			]
 		]
 	]
+	
+	on-deep-change*: function [owner word target action index part][
+		if all [
+			state
+			word <> 'state
+			not find [remove clear take] action
+		][
+			system/view/platform/update-font self (index? in self word) - 1
+			update-font-faces parent
+		]
+	]
+	
 ]
 
 system/view: context [
