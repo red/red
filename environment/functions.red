@@ -380,9 +380,9 @@ save: function [
 	]
 	case [
 		file? where [write where data]
-		url? where [write where data]
+		url?  where [write where data]
 		none? where [data]
-		'else [insert tail where data]
+		'else		[append where data]
 	]
 ]
 
