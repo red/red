@@ -150,6 +150,14 @@ keys-of: :words-of
 
 context: func [spec [block!]][make object! spec]
 
+alter: func [
+	"If a value is not found in a series, append it; otherwise, remove it. Returns true if added"
+	series [series!]
+	value
+][
+	not none? unless remove find series :value [append series :value]
+]
+
 replace: func [
 	series [series!]
 	pattern
