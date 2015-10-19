@@ -3470,6 +3470,7 @@ system-dialect: make-profilable context [
 						if icon: find resources 'icon [
 							insert skip icon 2 reduce ['group-icon icon/2]
 						]
+						append resources reduce ['manifest none]
 					]
 					append job/sections compose/deep/only [
 						rsrc   [- - (resources)]

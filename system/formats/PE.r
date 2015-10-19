@@ -8,6 +8,15 @@ REBOL [
 ]
 
 context [
+	manifest-template: {
+		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+			<dependency>
+				<dependentAssembly>
+					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="x86" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
+				</dependentAssembly>
+			</dependency>
+		</assembly>
+	}
 
 	if all [
 		system/version/4 = 3
@@ -1004,6 +1013,24 @@ context [
 		append out form-struct entry
 	]
 
+	build-res-manifest: func [
+		out		[binary!]
+		buf		[binary!]
+		info	[string! none!]
+		base	[integer!]
+		/local entry data-buf
+	][
+		entry: make-struct resource-data-entry none
+		entry/offset: base + length? buf
+		data-buf: tail buf
+
+		append buf trim/with either info [info][manifest-template] "^/^-"
+		pad4 buf
+
+		entry/size: length? data-buf
+		append out form-struct entry
+	]
+
 	build-resource: func [job [object!] /local resource out buf dir offset][
 		resource: job/sections/rsrc
 		set [out offset] build-res-directory resource/3
@@ -1015,6 +1042,7 @@ context [
 				icon		[build-res-icon out buf info offset]
 				group-icon	[build-res-group-icon out buf info offset]
 				version		[build-res-version out buf info offset job/type]
+				manifest	[build-res-manifest out buf info offset]
 			]
 			pad4 buf
 		]

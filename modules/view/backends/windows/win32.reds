@@ -562,11 +562,6 @@ RECT_STRUCT_FLOAT32: alias struct! [
 	height		[float32!]
 ]
 
-InitCommonControlsEx!: alias function! [
-	lpInitCtrls [INITCOMMONCONTROLSEX]
-	return:		[integer!]
-]
-
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
@@ -585,23 +580,6 @@ DwmIsCompositionEnabled!: alias function! [
 			lpBuffer	[c-string!]
 			uSize		[integer!]
 			return:		[integer!]
-		]
-		CreateActCtx: "CreateActCtxW" [
-			pActCtx		[ACTCTX]
-			return:		[handle!]
-		]
-		ActivateActCtx: "ActivateActCtx" [
-			hActCtx		[handle!]
-			lpCookie	[struct! [ptr [byte-ptr!]]]
-			return:		[integer!]
-		]
-		DeactivateActCtx: "DeactivateActCtx" [
-			dwFlags		[integer!]
-			Cookie		[byte-ptr!]
-			return:		[integer!]
-		]
-		ReleaseActCtx: "ReleaseActCtx" [
-			hActCtx		[handle!]
 		]
 		GetVersionEx: "GetVersionExW" [
 			lpVersionInfo [OSVERSIONINFO]
@@ -1421,6 +1399,20 @@ DwmIsCompositionEnabled!: alias function! [
 			nHeight		[integer!]
 			hWnd		[handle!]
 			nID			[integer!]
+			return:		[integer!]
+		]
+	]
+	"comctl32.dll" stdcall [
+		ImageList_Create: "ImageList_Create" [
+			cx			[integer!]
+			cy			[integer!]
+			flags		[integer!]
+			cInitial	[integer!]
+			cGrow		[integer!]
+			return:		[integer!]
+		]
+		ImageList_Destroy: "ImageList_Destroy" [
+			himl		[integer!]
 			return:		[integer!]
 		]
 	]
