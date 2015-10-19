@@ -133,54 +133,6 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
-enable-visual-styles: func [
-	/local
-		ctx	   [ACTCTX]
-		dir	   [c-string!]
-		ret	   [integer!]
-		actctx [handle!]
-		dll    [handle!]
-		InitCC [InitCommonControlsEx!]
-		ctrls  [INITCOMMONCONTROLSEX]
-		cookie [struct! [ptr [byte-ptr!]]]
-][
-	ctx: declare ACTCTX
-	cookie: declare struct! [ptr [byte-ptr!]]
-	dir: as-c-string allocate 258						;-- 128 UTF-16 codepoints + 2 NUL
-
-	ctx/cbSize:		 size? ACTCTX
-	ctx/dwFlags: 	 ACTCTX_FLAG_RESOURCE_NAME_VALID
-		or ACTCTX_FLAG_SET_PROCESS_DEFAULT
-		or ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID
-
-	ctx/lpSource: 	 #u16 "shell32.dll"
-	ctx/wProcLangID: 0
-	ctx/lpAssDir: 	 dir
-	ctx/lpResource:	 as-c-string 124					;-- Manifest ID in the DLL
-
-	sz: GetSystemDirectory dir 128
-	if sz > 128 [probe "*** GetSystemDirectory: buffer overflow"]
-
-	actctx: CreateActCtx ctx
-	ActivateActCtx actctx cookie
-
-	dll: LoadLibraryEx #u16 "comctl32.dll" 0 0
-	if dll = null [probe "*** Error loading comctl32.dll"]
-
-	InitCC: as InitCommonControlsEx! GetProcAddress dll "InitCommonControlsEx"
-	ctrls: declare INITCOMMONCONTROLSEX
-	ctrls/dwSize: size? INITCOMMONCONTROLSEX
-	ctrls/dwICC: ICC_STANDARD_CLASSES
-			  or ICC_TAB_CLASSES
-			  or ICC_LISTVIEW_CLASSES
-			  or ICC_BAR_CLASSES
-	InitCC ctrls
-
-	DeactivateActCtx 0 cookie/ptr
-	ReleaseActCtx actctx
-	free as byte-ptr! dir
-]
-
 to-bgr: func [
 	node	[node!]
 	return: [integer!]									;-- 00bbggrr format or -1 if not found
@@ -263,13 +215,6 @@ init: func [
 	ver/array1: version-info/dwMajorVersion
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
-
-	unless all [
-		version-info/dwMajorVersion = 5
-		version-info/dwMinorVersion < 1
-	][
-		enable-visual-styles							;-- not called for Win2000
-	]
 
 	register-classes hInstance
 
