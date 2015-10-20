@@ -942,9 +942,12 @@ OS-destroy-view: func [
 	empty? [logic!]
 	/local
 		screen [red-object!]
+		font   [red-object!]
 		pane   [red-block!]
 ][
 	free-handles get-face-handle face
+	font: as red-object! get-node-facet face/ctx FACE_OBJ_FONT
+	if TYPE_OF(font) = TYPE_OBJECT [unlink-font face font]
 	if empty? [clean-up PostQuitMessage 0]
 ]
 

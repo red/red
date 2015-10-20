@@ -160,7 +160,25 @@ free-font: func [
 		int: as red-integer! block/rs-head state
 		if TYPE_OF(int) = TYPE_INTEGER [
 			DeleteObject as handle! int/value
+			state/header: TYPE_NONE
 		]
+	]
+]
+
+unlink-font: func [
+	face [red-object!]
+	font [red-object!]
+	/local
+		values [red-value!]
+		parent [red-block!]
+		res	   [red-value!]
+][
+	values: object/get-values font
+	parent: as red-block! values + FONT_OBJ_PARENT
+	if TYPE_OF(parent) = TYPE_BLOCK [
+		res: block/find parent as red-value! face null no no no null null no no no no
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if block/rs-tail? parent [free-font font]
 	]
 ]
 
