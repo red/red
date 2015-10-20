@@ -294,10 +294,18 @@ do-events: func [/no-wait][
 
 show: function [
 	"Display a new face or update it"
-	face [object!]		 "Face object to display"
-	/with				 "Link the face to a parent face"
-		parent [object!] "Parent face to link to"
+	face [object! block!] "Face object to display"
+	/with				  "Link the face to a parent face"
+		parent [object!]  "Parent face to link to"
 ][
+	if block? face [
+		foreach f face [
+			if word? f [f: get f]
+			if object? f [show f]
+		]
+		exit
+	]
+	
 	if system/view/debug? [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][

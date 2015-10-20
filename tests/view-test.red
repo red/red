@@ -263,12 +263,7 @@ win/pane: reduce [
 				simple/color/3: random 255
 
 				unless live? [
-					show drop-list
-					show check-face
-					show text-list
-					show button
-					show simple
-					show tab-panel
+					show [drop-list check-face text-list button simple tab-panel]
 				]
 			]
 		]
@@ -415,10 +410,7 @@ win/pane: reduce [
 						;print ["slider changed:" face/data]
 						progress/data: face/data
 						progress-text/text: form to percent! (round face/data * 100) / 100.0
-						unless live? [
-							show progress
-							show progress-text
-						]
+						unless live? [show [progress progress-text]]
 					]
 				]
 			]
