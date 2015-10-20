@@ -237,8 +237,14 @@ system/view: context [
 		close			on-close
 	)
 	
-	awake: function [event [event!]][					;@@ temporary until event:// is implemented
-		unless face: event/face [exit]					;-- filter out unbound events
+	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
+		unless face [unless face: event/face [exit]]	;-- filter out unbound events
+		
+		if face/parent [
+			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
+			if :result = 'stop [return 'stop]
+		]
+		
 		type: event/type
 		
 		if all [										;-- radio styles handler
@@ -253,7 +259,7 @@ system/view: context [
 			show face
 		]
 
-		if debug? [
+		if all [debug? face = event/face][
 			print [
 				"event> type:"	event/type
 				"offset:"		event/offset
@@ -327,6 +333,8 @@ show: function [
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
 
+			if with [face/parent: parent]
+			
 			switch face/type [
 				tab-panel [
 					if faces: face/pane [
@@ -338,7 +346,6 @@ show: function [
 						]
 					]
 				]
-				radio	[if with [face/parent: parent]]
 				window	[append system/view/screens/1/pane face]
 			]
 		]
@@ -371,7 +378,8 @@ unview: function [
 ]
 
 dump-face: function [
-	face [object!]
+	"Display debugging info about a face and its children"
+	face [object!] "Face to analyze"
 ][
 	depth: ""
 	print [

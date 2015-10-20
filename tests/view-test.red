@@ -178,6 +178,12 @@ win: make face! [
 		on-close: func [face [object!]][
 			print "closing window"
 		]
+		on-key: func [face [object!] event [event!]][
+			if event/key = 'F5 [
+				print "F5 key caught by window face!" 
+				'stop
+			]
+		]
 	]
 ]
 
