@@ -710,5 +710,6 @@ append win/pane make face! [
 ]
 
 show win
+dump-face win
 
 do-events

@@ -370,5 +370,18 @@ unview: function [
 	]
 ]
 
+dump-face: function [
+	face [object!]
+][
+	depth: ""
+	print [
+		depth "Style:" face/type "Offset:" face/offset "Size:" face/size
+		"Text:" if face/text [mold/part face/text 20]
+	]
+	append depth tab
+	if block? face/pane [foreach f face/pane [dump-face f]]
+	remove depth
+]
+
 #system [event/init]
 system/view/platform/init
