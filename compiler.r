@@ -502,7 +502,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[ctx/values: as node! pop system/thrown: 0 exit]
+			[ctx/values: saved system/thrown: 0 exit]
 		] empty? locals-stack
 
 		append body [
@@ -537,7 +537,7 @@ red: context [
 	emit-exit-function: does [
 		emit [
 			stack/unroll stack/FRAME_FUNCTION
-			ctx/values: as node! pop
+			ctx/values: saved
 			exit
 		]
 		insert-lf -5
@@ -2166,7 +2166,7 @@ red: context [
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol symbols/1]
-		locals: append copy [/local ctx] symbols
+		locals: append copy [/local ctx saved] symbols
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
@@ -2179,7 +2179,7 @@ red: context [
 		
 		append init compose [							;-- point context values series to stack
 			ctx: TO_CTX(to paren! last ctx-stack)
-			push ctx/values								;-- save previous context values pointer
+			saved: ctx/values
 			ctx/values: as node! stack/arguments
 		]
 		new-line skip tail init -4 on
@@ -2218,7 +2218,7 @@ red: context [
 		;-- Function's epilog --
 		append last output compose [
 			stack/unwind-last							;-- closing body stack frame, and propagating last value
-			ctx/values: as node! pop					;-- restore context values pointer
+			ctx/values: saved			;-- restore context values pointer
 		]
 		new-line skip tail last output -4 yes
 		
