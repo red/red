@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define GWL_STYLE			-16
+
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
 #define TBM_SETRANGE		0406h
@@ -212,6 +214,7 @@ Red/System [
 
 #define BM_GETCHECK			00F0h
 #define BM_SETCHECK			00F1h
+#define BM_SETSTYLE			00F4h
 
 #define BN_CLICKED 			0
 
@@ -289,6 +292,7 @@ Red/System [
 #define DC_PEN              19
 
 #define BS_SOLID			0
+#define BS_BITMAP			80h
 
 #define PS_SOLID			0
 #define PS_DASH				1							; -------
@@ -332,7 +336,12 @@ Red/System [
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
 
-#define SRCCOPY             00CC0020h
+#define SRCCOPY					00CC0020h
+
+#define ILC_COLOR24				18h
+#define ILC_COLOR32				20h
+
+#define BCM_SETIMAGELIST		1602h
 
 #define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
 #define ICC_TREEVIEW_CLASSES	00000002h				;-- treeview, tooltips
@@ -364,6 +373,15 @@ Red/System [
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
 #define ETO_CLIPPED			4
+
+BUTTON_IMAGELIST: alias struct! [
+	handle		[integer!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+	align		[integer!]
+]
 
 tagPOINT: alias struct! [
 	x		[integer!]
@@ -1413,6 +1431,12 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		ImageList_Destroy: "ImageList_Destroy" [
 			himl		[integer!]
+			return:		[integer!]
+		]
+		ImageList_Add: "ImageList_Add" [
+			himl		[integer!]
+			hbmImage	[integer!]
+			hbmMask		[integer!]
 			return:		[integer!]
 		]
 	]

@@ -147,7 +147,7 @@ Red/System [
 			off?: no
 
 			switch TYPE_OF(pos) [
-				TYPE_TUPLE [color: as red-tuple! pos]
+				TYPE_TUPLE [color: as red-tuple! pos value: color/array1]
 				;TYPE_IMAGE [img: as red-image! pos]
 				TYPE_WORD  [
 					w: as red-word! pos

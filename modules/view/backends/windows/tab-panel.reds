@@ -158,6 +158,8 @@ update-tabs: func [
 	sym   [integer!]
 	index [integer!]
 	part  [integer!]
+	/local
+		hWnd [handle!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [

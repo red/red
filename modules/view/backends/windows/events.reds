@@ -211,9 +211,7 @@ paint-background: func [
 		color  [integer!]
 ][
 	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
-	if color = -1 [return false]
-
-	hBrush: CreateSolidBrush color
+	hBrush: either color = -1 [GetSysColorBrush COLOR_3DFACE][CreateSolidBrush color]
 	rect: declare RECT_STRUCT
 	GetClientRect hWnd rect
 	FillRect hDC rect hBrush

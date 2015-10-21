@@ -176,6 +176,36 @@ BitmapData!: alias struct! [
 			params		[integer!]
 			return:		[integer!]
 		]
+		GdipGetImageGraphicsContext: "GdipGetImageGraphicsContext" [
+			image		[integer!]
+			graphics	[GpGraphics!]
+			return:		[integer!]
+		]
+		GdipDrawImageRectRectI: "GdipDrawImageRectRectI" [
+			graphics	[integer!]
+			image		[integer!]
+			dstx		[integer!]
+			dsty		[integer!]
+			dstwidth	[integer!]
+			dstheight	[integer!]
+			srcx		[integer!]
+			srcy		[integer!]
+			srcwidth	[integer!]
+			srcheight	[integer!]
+			srcUnit		[integer!]
+			attribute	[integer!]
+			callback	[integer!]
+			data		[integer!]
+			return:		[integer!]
+		]
+		GdipDeleteGraphics: "GdipDeleteGraphics" [
+			graphics	[integer!]
+			return:		[integer!]
+		]
+		GdipDisposeImage: "GdipDisposeImage" [
+			image		[integer!]
+			return:		[integer!]
+		]
 	]
 ]
 
@@ -264,6 +294,42 @@ set-pixel: func [
 ][
 	width: width? bitmap
 	GdipBitmapSetPixel bitmap index % width index / width color
+]
+
+delete: func [img [red-image!]][
+	GdipDisposeImage as-integer img/node
+]
+
+resize: func [
+	img		[red-image!]
+	width	[integer!]
+	height	[integer!]
+	return: [red-image!]
+	/local
+		graphic [integer!]
+		old-w	[integer!]
+		old-h	[integer!]
+		format	[integer!]
+		bitmap	[integer!]
+][
+	old-w: IMAGE_WIDTH(img/size)
+	old-h: IMAGE_HEIGHT(img/size)
+		
+	graphic: 0
+	format: 0
+	bitmap: 0
+	GdipGetImagePixelFormat as-integer img/node :format
+	GdipCreateBitmapFromScan0 width height 0 format null :bitmap
+	GdipGetImageGraphicsContext bitmap :graphic
+	GdipDrawImageRectRectI
+		graphic
+		as-integer img/node
+		0 0 width height
+		0 0 old-w old-h
+		2
+		0 0 0
+	GdipDeleteGraphics graphic
+	init-image as red-image! stack/push* bitmap
 ]
 
 load-image: func [
