@@ -127,6 +127,9 @@ system: context [
 				parse-invalid-ref:	["PARSE - get-word refers to a different series!" :arg1]
 				parse-series:		["PARSE - input must be a series:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
+				parse-overflow:		["PARSE - stack overflow at rule: [" :arg1 "]"]
+				invalid-draw:		["invalid Draw dialect input at:" :arg1]
+				invalid-data-facet: ["invalid DATA facet content" :arg1]
 			]
 			math: object [
 				code:				400
