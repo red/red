@@ -16,6 +16,8 @@ parser: context [
 	series: as red-block! 0
 	rules:  as red-block! 0
 	
+	#define PARSE_MAX_DEPTH		10'000
+	
 	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
 		p/header: TYPE_POINT
@@ -516,7 +518,7 @@ parser: context [
 		match?
 	]
 	
-	detect-infinite-loop: func [
+	check-infinite-loop: func [
 		input	[red-series!]
 		rules	[red-block!]
 		rule	[red-block!]
@@ -539,11 +541,26 @@ parser: context [
 				if all [node = blk/node value + 1 < tail][
 					p: as positions! value - 1
 					if p/input = input/head [
-						PARSE_ERROR [TO_ERROR(script parse-overflow) rule]
+						PARSE_ERROR [TO_ERROR(script parse-infinite) rule]
 					]
 				]
 			]
 			value: value + 1
+		]
+	]
+	
+	check-limits: func [
+		series [red-block!]
+		rules  [red-block!]
+	][
+		s: GET_BUFFER(series)
+		if (as-integer s/tail - s/offset) >> 4 > PARSE_MAX_DEPTH [
+			PARSE_ERROR [TO_ERROR(script parse-stack)]
+		]
+		
+		s: GET_BUFFER(rules)
+		if (as-integer s/tail - s/offset) >> 4 > PARSE_MAX_DEPTH [
+			PARSE_ERROR [TO_ERROR(script parse-stack)]
 		]
 	]
 	
@@ -681,8 +698,9 @@ parser: context [
 			
 			switch state [
 				ST_PUSH_BLOCK [
-					#if debug? = yes [detect-infinite-loop input rules rule]
-				
+					#if debug? = yes [check-infinite-loop input rules rule]
+					check-limits series rules
+					
 					none/make-in rules
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
@@ -726,6 +744,8 @@ parser: context [
 					]
 				]
 				ST_PUSH_RULE [
+					check-limits series rules
+					
 					either any [type = R_COPY type = R_SET][
 						block/rs-append rules cmd
 					][
