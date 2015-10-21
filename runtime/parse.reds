@@ -516,6 +516,37 @@ parser: context [
 		match?
 	]
 	
+	detect-infinite-loop: func [
+		input	[red-series!]
+		rules	[red-block!]
+		rule	[red-block!]
+		/local
+			value	[red-value!]
+			tail	[red-value!]
+			blk		[red-block!]
+			p		[positions!]
+			node	[node!]
+			s		[series!]
+	][
+		s: GET_BUFFER(rules)
+		value: s/offset + rules/head
+		tail:  s/tail
+		node:  rule/node
+		
+		while [value < tail][
+			if TYPE_OF(value) = TYPE_BLOCK [
+				blk: as red-block! value
+				if all [node = blk/node value + 1 < tail][
+					p: as positions! value - 1
+					if p/input = input/head [
+						PARSE_ERROR [TO_ERROR(script parse-overflow) rule]
+					]
+				]
+			]
+			value: value + 1
+		]
+	]
+	
 	fire-event: func [
 		fun	  	[red-function!]
 		event   [red-word!]
@@ -650,6 +681,8 @@ parser: context [
 			
 			switch state [
 				ST_PUSH_BLOCK [
+					#if debug? = yes [detect-infinite-loop input rules rule]
+				
 					none/make-in rules
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
@@ -970,7 +1003,7 @@ parser: context [
 								type = TYPE_FILE
 								type = TYPE_URL
 							][
-								fire [TO_ERROR(script parse-unsupported)]
+								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
 							]
 							PARSE_CHECK_INPUT_EMPTY?
 							dt: as red-datatype! value
