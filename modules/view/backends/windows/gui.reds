@@ -721,39 +721,39 @@ change-selection: func [
 ]
 
 change-data: func [
-	hWnd [integer!]
+	hWnd [handle!]
 	data [red-value!]
 	type [red-word!]
 	/local
-		h		[handle!]
 		f		[red-float!]
 		values	[red-value!]
+		sym		[integer!]
 ][
-	h: as handle! hWnd
+	sym: type/symbol
 	case [
 		all [
-			type/symbol = progress
+			sym = progress
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
-			SendMessage h PBM_SETPOS float/to-integer f/value * 100.0 0
+			SendMessage hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
 		]
-		type/symbol = check [
-			set-logic-state h as red-logic! data yes
+		sym = check [
+			set-logic-state hWnd as red-logic! data yes
 		]
-		type/symbol = radio [
-			set-logic-state h as red-logic! data no
+		sym = radio [
+			set-logic-state hWnd as red-logic! data no
 		]
-		type/symbol = base [		;@@ temporary used to update draw window, remove later.
-			InvalidateRect h null 1
+		sym = base [									;@@ temporary used to update draw window, remove later.
+			InvalidateRect hWnd null 1
 		]
-		type/symbol = _image [
-			values: get-face-values h
-			init-image h as red-block! data as red-image! values + FACE_OBJ_IMAGE
-			InvalidateRect h null 1
+		sym = _image [
+			values: get-face-values hWnd
+			init-image hWnd as red-block! data as red-image! values + FACE_OBJ_IMAGE
+			InvalidateRect hWnd null 1
 		]
-		type/symbol = tab-panel [
-			set-tabs h get-face-values h
+		sym = tab-panel [
+			set-tabs hWnd get-face-values hWnd
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -897,7 +897,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data
-			hWnd 
+			as handle! hWnd 
 			values + FACE_OBJ_DATA
 			as red-word! values + FACE_OBJ_TYPE
 	]
