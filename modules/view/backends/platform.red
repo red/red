@@ -100,7 +100,7 @@ system/view/platform: context [
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h
 				EVT_FLAG_SHIFT_DOWN:	40000000h
-				EVT_FLAG_KEY_DOWN:		80000000h
+				EVT_FLAG_KEY_SPECIAL:	80000000h
 			]
 
 			#enum pen-type! [

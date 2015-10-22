@@ -11,9 +11,8 @@ Red/System [
 ]
 
 #enum event-action! [
-	EVT_NO_PROCESS										;-- no further msg processing allowed
+	EVT_NO_DISPATCH										;-- no further msg processing allowed
 	EVT_DISPATCH										;-- allow DispatchMessage call only
-	EVT_DISPATCH_AND_PROCESS							;-- allow full post-processing of the msg
 ]
 
 gui-evt: declare red-event!								;-- low-level event value slot
@@ -73,8 +72,9 @@ get-event-key: func [
 		char [red-char!]
 ][
 	as red-value! switch evt/type [
-		EVT_KEY [
-			either evt/flags and EVT_FLAG_KEY_DOWN <> 0 [
+		EVT_KEY 
+		EVT_KEY_UP [
+			either evt/flags and EVT_FLAG_KEY_SPECIAL <> 0 [
 				switch evt/flags and FFFFh [
 					VK_PRIOR	[_page-up]
 					VK_NEXT		[_page_down]
@@ -133,23 +133,28 @@ make-event: func [
 		sym	  [integer!]
 		state [integer!]
 		key	  [integer!]
+		char  [integer!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
 	gui-evt/flags: 0
 
-	state: EVT_DISPATCH_AND_PROCESS
+	state: EVT_DISPATCH
 
 	switch evt [
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
-			if key = VK_PROCESSKEY [return EVT_DISPATCH]  ;-- IME-friendly exit
-			gui-evt/flags: key or EVT_FLAG_KEY_DOWN
+			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
+			char: to-char key
+			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
+			gui-evt/flags: key
 			gui-evt/type: EVT_KEY
-			state: EVT_DISPATCH
 		]
-		EVT_KEY [
-			gui-evt/flags: msg/wParam and FFFFh
+		EVT_KEY_UP [
+			key: msg/wParam and FFFFh
+			char: to-char msg/wParam and FFFFh
+			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
+			gui-evt/flags: key
 		]
 		EVT_SELECT [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -177,7 +182,7 @@ make-event: func [
 		sym: symbol/resolve res/symbol
 		case [
 			sym = done [state: EVT_DISPATCH]			;-- prevent other high-level events
-			sym = stop [state: EVT_NO_PROCESS]			;-- prevent all other events
+			sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
 			true 	   [0]								;-- ignore others
 		]
 	]
@@ -219,6 +224,17 @@ paint-background: func [
 	FillRect hDC rect hBrush
 	DeleteObject hBrush
 	true
+]
+
+to-char: func [
+	vkey	[integer!]
+	return:	[integer!]									;-- Unicode char
+][
+	buf: "0123456789"									;-- makes a 10 bytes buffer
+	GetKeyboardState kb-state
+	skey: MapVirtualKey vkey 0							;-- MAPVK_VK_TO_VSC
+	res: ToUnicode vkey skey kb-state buf 10 0
+	either res > 0 [as-integer buf/1][-1]				;-- -1: conversion failed
 ]
 
 init-current-msg: func [
@@ -275,7 +291,7 @@ process-command-event: func [
 			idx: as-integer SendMessage as handle! lParam res 0 0
 			res: make-event current-msg idx EVT_SELECT
 			get-selected current-msg idx + 1
-			if res = EVT_DISPATCH_AND_PROCESS [
+			if res = EVT_DISPATCH [
 				make-event current-msg 0 EVT_CHANGE
 			]
 		]
@@ -383,9 +399,9 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE
-			if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
+			if res  = EVT_DISPATCH [return 0]				;-- continue
 			;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
-			if res  = EVT_NO_PROCESS [clean-up PostQuitMessage 0]	;-- stop
+			if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
 			return 0
 		]
 		default [0]
@@ -395,7 +411,7 @@ WndProc: func [
 	DefWindowProc hWnd msg wParam lParam
 ]
 
-pre-process: func [
+process: func [
 	msg		[tagMSG]
 	return: [integer!]
 	/local
@@ -418,7 +434,7 @@ pre-process: func [
 			menu-origin: null
 			menu-ctx: null
 			either show-context-menu msg pt/x pt/y [
-				EVT_NO_PROCESS
+				EVT_NO_DISPATCH
 			][
 				make-event msg 0 EVT_RIGHT_DOWN
 			]
@@ -435,25 +451,14 @@ pre-process: func [
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[
 			make-event msg 0 EVT_KEY_DOWN
-			EVT_NO_PROCESS
+			EVT_NO_DISPATCH
 		]
 		WM_LBUTTONDBLCLK [
 			make-event msg 0 EVT_DBL_CLICK
-			EVT_DISPATCH_AND_PROCESS
+			EVT_DISPATCH
 		]
 		;WM_DESTROY []
-		default			[EVT_DISPATCH_AND_PROCESS]
-	]
-]
-
-post-process: func [
-	msg	[tagMSG]
-	/local
-		wParam [integer!]
-][
-	switch msg/msg [
-		WM_CHAR [make-event msg 0 EVT_KEY]
-		default [0]
+		default			[EVT_DISPATCH]
 	]
 ]
 
@@ -466,14 +471,11 @@ do-events: func [
 	msg: declare tagMSG
 
 	while [0 < GetMessage msg null 0 0][
-		TranslateMessage msg
-		state: pre-process msg
+		state: process msg
 		if state >= EVT_DISPATCH [
 			current-msg: msg
+			TranslateMessage msg
 			DispatchMessage msg
-			if state = EVT_DISPATCH_AND_PROCESS [
-				post-process msg
-			]
 		]
 		if no-wait? [exit]
 	]

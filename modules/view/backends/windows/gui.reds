@@ -34,6 +34,8 @@ wc-offset:		64										;-- offset to our 16 bytes
 log-pixels-x:	0
 log-pixels-y:	0
 
+kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
+
 clean-up: does [
 	current-msg: null
 ]

@@ -632,6 +632,24 @@ DwmIsCompositionEnabled!: alias function! [
 			cPoint		[integer!]
 			return:		[integer!]
 		]
+		MapVirtualKey: "MapVirtualKeyW" [
+			uCode		[integer!]
+			uMapType	[integer!]
+			return:		[integer!]
+		]
+		ToUnicode: "ToUnicode" [
+			wVirtKey	[integer!]
+			wScanCode	[integer!]
+			lpKeyState	[byte-ptr!]
+			pwszBuff	[c-string!]
+			cchBuff		[integer!]
+			wFlags		[integer!]
+			return:		[integer!]
+		]
+		GetKeyboardState: "GetKeyboardState" [
+			lpKeyState	[byte-ptr!]
+			return:		[logic!]
+		]
 		GetSysColorBrush: "GetSysColorBrush" [
 			index		[integer!]
 			return:		[handle!]

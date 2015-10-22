@@ -26,7 +26,7 @@ process-tab-select: func [
 	hWnd	[handle!]
 	return: [integer!]
 ][
-	as-integer EVT_NO_PROCESS = make-event 
+	as-integer EVT_NO_DISPATCH = make-event 
 		current-msg
 		as-integer SendMessage hWnd TCM_GETCURSEL 0 0
 		EVT_SELECT
