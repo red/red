@@ -876,7 +876,7 @@ OS-update-view: func [
 	s: as series! ctx/values/value
 	values: s/offset
 
-	state: as red-block! values + gui/FACE_OBJ_STATE
+	state: as red-block! values + FACE_OBJ_STATE
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	hWnd: int/value
@@ -884,34 +884,34 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset hWnd as red-pair! values + gui/FACE_OBJ_OFFSET
+		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
-		change-size hWnd as red-pair! values + gui/FACE_OBJ_SIZE
+		change-size hWnd as red-pair! values + FACE_OBJ_SIZE
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text
 			hWnd
-			as red-string! values + gui/FACE_OBJ_TEXT
-			as red-word! values + gui/FACE_OBJ_TYPE
+			as red-string! values + FACE_OBJ_TEXT
+			as red-word! values + FACE_OBJ_TYPE
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data
 			hWnd 
-			values + gui/FACE_OBJ_DATA
-			as red-word! values + gui/FACE_OBJ_TYPE
+			values + FACE_OBJ_DATA
+			as red-word! values + FACE_OBJ_TYPE
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
-		bool: as red-logic! values + gui/FACE_OBJ_ENABLE?
+		bool: as red-logic! values + FACE_OBJ_ENABLE?
 		change-enable hWnd bool/value
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
-		bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
+		bool: as red-logic! values + FACE_OBJ_VISIBLE?
 		change-visible hWnd bool/value
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
-		int2: as red-integer! values + gui/FACE_OBJ_SELECTED
-		change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
+		int2: as red-integer! values + FACE_OBJ_SELECTED
+		change-selection hWnd int2/value as red-word! values + FACE_OBJ_TYPE
 	]
 	if any [
 		flags and FACET_FLAG_DRAW  <> 0
@@ -932,7 +932,7 @@ OS-update-view: func [
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
-		menu: as red-block! values + gui/FACE_OBJ_MENU
+		menu: as red-block! values + FACE_OBJ_MENU
 		if menu-bar? menu window [
 			DestroyMenu GetMenu as handle! hWnd
 			SetMenu as handle! hWnd build-menu menu CreateMenu
