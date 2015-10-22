@@ -99,6 +99,8 @@ set-tabs: func [
 ][
 	item: declare TCITEM
 	data: as red-block! facets + FACE_OBJ_DATA
+	
+	SendMessage hWnd TCM_DELETEALLITEMS 0 0
 
 	if TYPE_OF(data) = TYPE_BLOCK [
 		str:  as red-string! block/rs-head data

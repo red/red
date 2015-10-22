@@ -752,6 +752,9 @@ change-data: func [
 			init-image h as red-block! data as red-image! values + FACE_OBJ_IMAGE
 			InvalidateRect h null 1
 		]
+		type/symbol = tab-panel [
+			set-tabs h get-face-values h
+		]
 		true [0]										;-- default, do nothing
 	]
 ]

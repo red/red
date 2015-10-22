@@ -189,6 +189,12 @@ win: make face! [
 
 but-extra: make face! [
 	type: 'button text: "Extra" offset: 400x500 size: 40x25
+	actors: object [
+		on-click: function [face [object!] event [event!]][
+			tab-panel/data: ["file1" "file2"]
+			unless live? [show tab-panel]
+		]
+	]
 ]
 
 panel-extra: make face! [
