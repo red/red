@@ -212,9 +212,10 @@ Red/System [
 #define WM_CAP_DLG_VIDEOSOURCE		042Ah
 #define WM_CAP_STOP					0444h
 
-#define BM_GETCHECK			00F0h
-#define BM_SETCHECK			00F1h
-#define BM_SETSTYLE			00F4h
+#define BM_GETCHECK			F0h
+#define BM_SETCHECK			F1h
+#define BM_SETSTYLE			F4h
+#define BM_SETIMAGE			F7h
 
 #define BN_CLICKED 			0
 

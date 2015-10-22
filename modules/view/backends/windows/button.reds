@@ -19,6 +19,8 @@ init-button: func [
 		img		[red-image!]
 		beg		[red-image!]
 		size	[red-pair!]
+		blk		[red-block!]
+		str		[red-string!]
 		BIL		[BUTTON_IMAGELIST]
 		width	[integer!]
 		height	[integer!]
@@ -27,17 +29,49 @@ init-button: func [
 		sz		[integer!]
 		bitmap	[integer!]
 		hlist	[integer!]
+		resize? [logic!]
 ][
-	BIL: declare BUTTON_IMAGELIST
+	BIL:  declare BUTTON_IMAGELIST
 	imgs: as red-block! facets + FACE_OBJ_IMAGE
 	size: as red-pair! facets + FACE_OBJ_SIZE
+	str:  as red-string! facets + FACE_OBJ_TEXT
+	resize?: no
 
-	if TYPE_OF(imgs) <> TYPE_BLOCK [exit]
-	num: block/rs-length? imgs
-	if 0 < num [
+	switch TYPE_OF(imgs) [
+		TYPE_IMAGE [
+			blk: block/push-only* 1
+			img: as red-image! imgs
+			block/rs-append blk as red-value! imgs
+			imgs: blk
+			num: 1
+			width: IMAGE_WIDTH(img/size)
+			height: IMAGE_HEIGHT(img/size)
+		]
+		TYPE_BLOCK [
+			num: block/rs-length? imgs
+			beg:  as red-image! block/rs-head imgs
+			img:  beg + 1
+			if all [num = 2 TYPE_OF(img) = TYPE_PAIR][
+				size: as red-pair! img
+				resize?: yes
+				num: 1
+			]
+			width: size/x
+			height: size/y
+		]
+		default [exit]
+	]
+
+	either all [num = 1 TYPE_OF(str) = TYPE_STRING][
+		beg:  as red-image! block/rs-head imgs
+		if resize? [img: image/resize beg width height]
+		bitmap: 0
+		GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
+		SendMessage hWnd BM_SETIMAGE 0 bitmap
+		if resize? [image/delete img]
+		DeleteObject as handle! bitmap
+	][
 		sz: either 1 < num [6][1]
-		width: size/x
-		height: size/y
 		hlist: ImageList_Create width height ILC_COLOR32 sz 0
 		beg:  as red-image! block/rs-head imgs
 		img-1: image/resize beg width height
