@@ -190,8 +190,26 @@ win: make face! [
 but-extra: make face! [
 	type: 'button text: "Extra" offset: 400x500 size: 40x25
 	actors: object [
-		on-click: function [face [object!] event [event!]][
+		on-click: func [face [object!] event [event!]][		;-- `function` would prevent compilation here
 			tab-panel/data: ["file1" "file2"]
+			tab-panel/pane: reduce [
+				make face! [
+					type: 'panel
+					pane: reduce [
+						make face! [
+							type: 'text text: "Panel File 1" offset: 90x40 size: 60x30
+						]
+					]
+				]
+				make face! [
+					type: 'panel
+					pane: reduce [
+						make face! [
+							type: 'text text: "Panel File 2" offset: 80x80 size: 60x30
+						]
+					]
+				]
+			]
 			unless live? [show tab-panel]
 		]
 	]

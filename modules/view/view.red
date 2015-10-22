@@ -99,6 +99,15 @@ on-face-deep-change*: function [owner word target action index part state forced
 	]
 ]
 
+link-tabs-to-parent: function [face [object!]][
+	if faces: face/pane [
+		forall faces [
+			if face/selected <> index? faces [faces/1/visible?: no]
+			faces/1/parent: face
+		]
+	]
+]
+
 face!: object [				;-- keep in sync with facet! enum
 	type:		'face
 	offset:		none
@@ -131,6 +140,10 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 		]
 		if word <> 'state [
+			if word = 'pane [
+				if type = 'tab-panel [link-tabs-to-parent self]	;-- needs to be before `clear old`
+				if block? old [clear head old]			;-- destroy old faces
+			]
 			if any [series? old object? old][modify old 'owned none]
 			if any [series? new object? new][modify new 'owned reduce [self word]]
 
@@ -332,21 +345,11 @@ show: function [
 			]
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
-
 			if with [face/parent: parent]
 			
 			switch face/type [
-				tab-panel [
-					if faces: face/pane [
-						forall faces [
-							if face/selected <> index? faces [
-								faces/1/visible?: no
-							]
-							faces/1/parent: face
-						]
-					]
-				]
-				window	[append system/view/screens/1/pane face]
+				tab-panel [link-tabs-to-parent face]
+				window	  [append system/view/screens/1/pane face]
 			]
 		]
 		face/state: reduce [obj 0 none]
