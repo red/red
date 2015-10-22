@@ -558,7 +558,6 @@ OS-make-view: func [
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
 	BringWindowToTop handle
-	;SendMessage handle WM_SETFONT as-integer default-font 1
 	set-font handle face values
 
 	;-- extra initialization
@@ -607,32 +606,7 @@ OS-make-view: func [
 			sym = drop-down
 			sym = drop-list
 		][
-			if any [
-				TYPE_OF(data) = TYPE_BLOCK
-				TYPE_OF(data) = TYPE_HASH
-				TYPE_OF(data) = TYPE_MAP
-			][
-				str:  as red-string! block/rs-head data
-				tail: as red-string! block/rs-tail data
-				while [str < tail][
-					if TYPE_OF(str) = TYPE_STRING [
-						SendMessage 
-							handle
-							CB_ADDSTRING
-							0
-							as-integer unicode/to-utf16 str
-					]
-					str: str + 1
-				]
-			]
-			either any [null? caption sym = drop-list][
-				int: as red-integer! get-node-facet face/ctx FACE_OBJ_SELECTED
-				if TYPE_OF(int) = TYPE_INTEGER [
-					SendMessage handle CB_SETCURSEL int/value - 1 0
-				]
-			][
-				SetWindowText handle caption
-			]
+			init-drop-list handle data caption selected sym = drop-list
 		]
 		true [0]
 	]
@@ -721,39 +695,57 @@ change-selection: func [
 ]
 
 change-data: func [
-	hWnd [handle!]
-	data [red-value!]
-	type [red-word!]
+	hWnd   [handle!]
+	values [red-value!]
 	/local
+		data 	[red-value!]
+		word 	[red-word!]
 		f		[red-float!]
-		values	[red-value!]
-		sym		[integer!]
+		str		[red-string!]
+		caption [c-string!]
+		type	[integer!]
 ][
-	sym: type/symbol
+	data: as red-value! values + FACE_OBJ_DATA
+	word: as red-word! values + FACE_OBJ_TYPE
+	type: word/symbol
+	
 	case [
 		all [
-			sym = progress
+			type = progress
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
 		]
-		sym = check [
+		type = check [
 			set-logic-state hWnd as red-logic! data yes
 		]
-		sym = radio [
+		type = radio [
 			set-logic-state hWnd as red-logic! data no
 		]
-		sym = base [									;@@ temporary used to update draw window, remove later.
+		type = base [									;@@ temporary used to update draw window, remove later.
 			InvalidateRect hWnd null 1
 		]
-		sym = _image [
-			values: get-face-values hWnd
+		type = _image [
 			init-image hWnd as red-block! data as red-image! values + FACE_OBJ_IMAGE
 			InvalidateRect hWnd null 1
 		]
-		sym = tab-panel [
+		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
+		]
+		any [type = drop-list type = drop-down][
+			str: as red-string! values + FACE_OBJ_TEXT
+			caption: either TYPE_OF(str) = TYPE_STRING [
+				unicode/to-utf16 str
+			][
+				null
+			]
+			init-drop-list 
+				hWnd
+				as red-block! data
+				caption
+				as red-integer! values + FACE_OBJ_SELECTED
+				type = drop-list
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -896,10 +888,7 @@ OS-update-view: func [
 			as red-word! values + FACE_OBJ_TYPE
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
-		change-data
-			as handle! hWnd 
-			values + FACE_OBJ_DATA
-			as red-word! values + FACE_OBJ_TYPE
+		change-data	as handle! hWnd values
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_ENABLE?

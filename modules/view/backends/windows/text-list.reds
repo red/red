@@ -11,9 +11,9 @@ Red/System [
 ]
 
 init-text-list: func [
-	hWnd		  [handle!]
-	data		  [red-block!]
-	selected	  [red-integer!]
+	hWnd	 [handle!]
+	data	 [red-block!]
+	selected [red-integer!]
 	/local
 		str		  [red-string!]
 		tail	  [red-string!]
@@ -52,6 +52,46 @@ init-text-list: func [
 	if TYPE_OF(selected) <> TYPE_INTEGER [
 		selected/header: TYPE_INTEGER
 		selected/value: -1
+	]
+]
+
+init-drop-list: func [
+	hWnd		[handle!]
+	data		[red-block!]
+	caption		[c-string!]
+	selected	[red-integer!]
+	drop-list?	[logic!]
+	/local
+		str	 [red-string!]
+		tail [red-string!]
+][
+	if any [
+		TYPE_OF(data) = TYPE_BLOCK
+		TYPE_OF(data) = TYPE_HASH
+		TYPE_OF(data) = TYPE_MAP
+	][
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+		
+		SendMessage hWnd CB_RESETCONTENT 0 0
+		
+		while [str < tail][
+			if TYPE_OF(str) = TYPE_STRING [
+				SendMessage 
+					hWnd
+					CB_ADDSTRING
+					0
+					as-integer unicode/to-utf16 str
+			]
+			str: str + 1
+		]
+	]
+	either any [null? caption drop-list?][
+		if TYPE_OF(selected) = TYPE_INTEGER [
+			SendMessage hWnd CB_SETCURSEL selected/value - 1 0
+		]
+	][
+		SetWindowText hWnd caption
 	]
 ]
 

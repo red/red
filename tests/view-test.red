@@ -210,7 +210,8 @@ but-extra: make face! [
 					]
 				]
 			]
-			unless live? [show tab-panel]
+			drop-down/data: ["1" 1 "2" 2 "3" 3 "4" 4]
+			unless live? [show [tab-panel drop-down]]
 		]
 	]
 ]
@@ -354,7 +355,7 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	drop-down: make face! [
 		type: 'drop-down
 		text: "type"
 		offset: 100x120
