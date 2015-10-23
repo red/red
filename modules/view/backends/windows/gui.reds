@@ -701,10 +701,17 @@ change-selection: func [
 	idx  [integer!]
 	type [red-word!]
 ][
-	either type/symbol = camera [
-		select-camera as handle! hWnd idx - 1
-	][
-		SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+	sym: symbol/resolve type/symbol
+	case [
+		sym = camera [
+			select-camera as handle! hWnd idx - 1
+		]
+		sym = text-list [
+			SendMessage as handle! hWnd LB_SETCURSEL idx - 1 0
+		]
+		any [sym = drop-list sym = drop-box][
+			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+		]
 	]
 ]
 
