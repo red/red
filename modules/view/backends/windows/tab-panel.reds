@@ -39,7 +39,7 @@ process-tab-change: func [
 ][
 	idx: as-integer SendMessage hWnd TCM_GETCURSEL 0 0
 	current-msg/hWnd: hWnd
-	set-tab current-msg idx
+	set-tab get-facets current-msg idx
 	make-event current-msg idx + 1 EVT_CHANGE
 	get-selected current-msg idx + 1
 ]
@@ -121,17 +121,15 @@ set-tabs: func [
 ]
 
 set-tab: func [
-	msg	 [tagMSG]
-	idx	 [integer!]
+	facets [red-value!]
+	idx	   [integer!]
 	/local
-		facets [red-value!]
 		pane   [red-block!]
 		old	   [red-integer!]
 		panels [red-value!]
 		obj	   [red-object!]
 		len	   [integer!]
 ][
-	facets: get-facets msg
 	pane: as red-block! facets + FACE_OBJ_PANE
 
 	if TYPE_OF(pane) = TYPE_BLOCK [

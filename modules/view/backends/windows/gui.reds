@@ -697,10 +697,14 @@ change-enable: func [
 ]
 
 change-selection: func [
-	hWnd [integer!]
-	idx  [integer!]
-	type [red-word!]
+	hWnd   [integer!]
+	idx	   [integer!]
+	values [red-value!]
+	/local
+		type [red-word!]
+		sym	 [integer!]
 ][
+	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	case [
 		sym = camera [
@@ -709,8 +713,11 @@ change-selection: func [
 		sym = text-list [
 			SendMessage as handle! hWnd LB_SETCURSEL idx - 1 0
 		]
-		any [sym = drop-list sym = drop-box][
+		any [sym = drop-list sym = drop-down][
 			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+		]
+		sym = tab-panel [
+			SendMessage as handle! hWnd TCM_SETCURSEL idx - 1 0
 		]
 	]
 ]
@@ -921,7 +928,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
-		change-selection hWnd int2/value as red-word! values + FACE_OBJ_TYPE
+		change-selection hWnd int2/value values
 	]
 	if any [
 		flags and FACET_FLAG_DRAW  <> 0
