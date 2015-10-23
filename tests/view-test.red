@@ -710,8 +710,7 @@ win/pane: reduce [
 		]
 		actors: object [
 			on-over: func [face [object!] event [event!]][
-				;face/font/style: 
-				probe event/away?
+				face/font/style: pick [italic bold] event/away?
 			]
 		]
 	]

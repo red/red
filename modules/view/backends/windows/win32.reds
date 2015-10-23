@@ -728,9 +728,10 @@ DwmIsCompositionEnabled!: alias function! [
 			y			[integer!]
 			return:		[handle!]
 		]
-		RealChildWindowFromPoint: "ChildWindowFromPoint" [
+		RealChildWindowFromPoint: "RealChildWindowFromPoint" [
 			hwndParent	[handle!]
-			ptCoords	[tagPOINT]
+			x			[integer!]
+			y			[integer!]
 			return:		[handle!]
 		]
 		DefWindowProc: "DefWindowProcW" [

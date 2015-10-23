@@ -26,7 +26,6 @@ Red/System [
 hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
-hover-new:		as handle! 0							;-- new window under mouse cursor
 hover-saved:	as handle! 0							;-- last window under mouse cursor
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
@@ -137,39 +136,16 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
-get-handle-from-xy: func [
-	x		[integer!]
-	y		[integer!]
-	return: [handle!]
-][
-	pt: declare tagPOINT
-	pt/x: x
-	pt/y: y
-	
-	hWnd: WindowFromPoint x y pt
-	either hWnd = GetAncestor hWnd 2 [hWnd][			;-- GA_ROOT
-		MapWindowPoints GetParent hWnd hWnd pt 1
-		RealChildWindowFromPoint hWnd pt
-	]
-]
-
 get-child-from-xy: func [
-	hWnd	[handle!]
+	parent	[handle!]
 	x		[integer!]
 	y		[integer!]
 	return: [handle!]
 	/local
-		handle [handle!]
-		pt	   [tagPOINT]
+		hWnd [handle!]
 ][
-	pt: declare tagPOINT
-	pt/x: x
-	pt/y: y
-?? x 
-?? y
-	handle: RealChildWindowFromPoint hWnd pt
-?? handle	
-	either null? handle [hWnd][handle]
+	hWnd: RealChildWindowFromPoint parent x y
+	either null? hWnd [parent][hWnd]
 ]
 
 

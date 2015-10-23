@@ -30,10 +30,6 @@ get-event-face: func [
 		lParam [integer!]
 ][
 	msg: as tagMSG evt/msg
-	if evt/type = EVT_OVER [
-		handle: either evt/flags and EVT_FLAG_AWAY = 0 [hover-new][hover-saved]
-		assert handle <> null
-	]
 	handle: get-widget-handle msg
 	if handle = as handle! -1 [							;-- filter out unwanted events
 		return as red-value! none-value
@@ -432,20 +428,23 @@ process: func [
 	/local
 		lParam [integer!]
 		pt	   [tagPOINT]
+		hWnd   [handle!]
+		new	   [handle!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
-			hover-new: get-child-from-xy msg/hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-			
-			either hover-new = hover-saved [
+			new: get-child-from-xy msg/hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			either new = hover-saved [
 				; fire event if all over events allowed
 				EVT_DISPATCH
 			][
 				if hover-saved <> null [
+					msg/hWnd: hover-saved
 					make-event msg EVT_FLAG_AWAY EVT_OVER
 				]
-				hover-saved: hover-new
+				hover-saved: new
+				msg/hWnd: new
 				make-event msg 0 EVT_OVER
 			]
 		]
