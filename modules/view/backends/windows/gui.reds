@@ -717,7 +717,7 @@ change-selection: func [
 			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
 		]
 		sym = tab-panel [
-			SendMessage as handle! hWnd TCM_SETCURSEL idx - 1 0
+			select-tab as handle! hWnd idx - 1
 		]
 	]
 ]

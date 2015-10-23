@@ -711,7 +711,7 @@ win/pane: reduce [
 		actors: object [
 			on-over: func [face [object!] event [event!]][
 				face/font/style: pick [italic bold] event/away?
-				tab-panel/selected: pick [0 1] event/away?
+				tab-panel/selected: pick [1 2] event/away?
 				unless live? [show [face tab-panel]]
 			]
 		]

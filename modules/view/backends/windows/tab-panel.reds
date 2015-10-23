@@ -22,13 +22,37 @@ refresh-tab-panel: func [
 	]
 ]
 
+select-tab: func [
+	hWnd [handle!]
+	idx  [integer!]
+	/local
+		nmhdr  [tagNMHDR]
+		parent [handle!]
+][
+	nmhdr: declare tagNMHDR
+	nmhdr/hwndFrom: hWnd
+	nmhdr/idFrom:	0
+	nmhdr/code:		TCN_SELCHANGING
+	
+	parent: GetParent hWnd
+	SendMessage parent WM_NOTIFY 0 as-integer nmhdr
+
+	;SendMessage hWnd TCM_SETCURSEL   idx 0
+	SendMessage hWnd TCM_SETCURFOCUS idx 0
+	
+	nmhdr/hwndFrom: hWnd
+	nmhdr/idFrom:	0
+	nmhdr/code: TCN_SELCHANGE
+	SendMessage parent WM_NOTIFY 0 as-integer nmhdr
+]
+
 process-tab-select: func [
 	hWnd	[handle!]
 	return: [integer!]
 ][
 	as-integer EVT_NO_DISPATCH = make-event 
 		current-msg
-		as-integer SendMessage hWnd TCM_GETCURSEL 0 0
+		1 + as-integer SendMessage hWnd TCM_GETCURSEL 0 0
 		EVT_SELECT
 ]
 
@@ -128,6 +152,7 @@ set-tab: func [
 		old	   [red-integer!]
 		panels [red-value!]
 		obj	   [red-object!]
+		hWnd   [handle!]
 		len	   [integer!]
 ][
 	pane: as red-block! facets + FACE_OBJ_PANE
@@ -140,10 +165,17 @@ set-tab: func [
 		if idx <= len [
 			obj: as red-object! panels + idx
 			if TYPE_OF(obj) = TYPE_OBJECT [
-				ShowWindow get-face-handle obj SW_SHOW
+				hWnd: get-face-handle obj
+				ShowWindow hWnd SW_SHOW
+				BringWindowToTop hWnd
 			]
 		]
-		if old/value <= len [
+		if all [
+			TYPE_OF(old) = TYPE_INTEGER
+			old/value > 0
+			old/value <= len
+			old/value - 1 <> idx
+		][
 			obj: as red-object! panels + old/value - 1
 			if TYPE_OF(obj) = TYPE_OBJECT [
 				ShowWindow get-face-handle obj SW_HIDE
