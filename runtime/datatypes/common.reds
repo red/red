@@ -386,6 +386,7 @@ words: context [
 	flag:			-1
 	code:			-1
 	picked:			-1
+	away?:			-1
 
 	get:			-1
 	put:			-1
@@ -550,6 +551,7 @@ words: context [
 		flag:			symbol/make "flag"
 		code:			symbol/make "code"
 		picked:			symbol/make "picked"
+		away?:			symbol/make "away?"
 
 		get:			symbol/make "get"
 		put:			symbol/make "put"

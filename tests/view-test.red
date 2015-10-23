@@ -708,6 +708,12 @@ win/pane: reduce [
 			style: 'italic
 			anti-alias: yes
 		]
+		actors: object [
+			on-over: func [face [object!] event [event!]][
+				;face/font/style: 
+				probe event/away?
+			]
+		]
 	]
 ]
 

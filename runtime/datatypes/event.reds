@@ -109,6 +109,7 @@ event: context [
 			sym = words/offset	[gui/get-event-offset evt]
 			sym = words/key		[gui/get-event-key evt]
 			sym = words/picked	[gui/get-event-picked evt]
+			sym = words/away?	[gui/get-event-away evt]
 			;sym = words/flag	[gui/get-event-flag	  evt/msg]
 			;sym = words/code	[gui/get-event-code	  evt/msg]
 		]

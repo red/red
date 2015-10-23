@@ -192,6 +192,7 @@ Red/System [
 #define WM_CTLCOLORDLG		0136h
 #define WM_CTLCOLORSCROLLBAR 0137h
 #define WM_CTLCOLORSTATIC	0138h
+#define	WM_MOUSEMOVE		0200h
 #define WM_LBUTTONDOWN		0201h
 #define WM_LBUTTONUP		0202h
 #define WM_LBUTTONDBLCLK	0203h
@@ -712,6 +713,11 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd 		[handle!]
 			return:		[handle!]
 		]
+		GetAncestor: "GetAncestor" [
+			hWnd 		[handle!]
+			gaFlags		[integer!]
+			return:		[handle!]
+		]
 		GetWindow: "GetWindow" [
 			hWnd 		[handle!]
 			uCmd		[integer!]
@@ -720,6 +726,11 @@ DwmIsCompositionEnabled!: alias function! [
 		WindowFromPoint: "WindowFromPoint" [
 			x			[integer!]
 			y			[integer!]
+			return:		[handle!]
+		]
+		RealChildWindowFromPoint: "ChildWindowFromPoint" [
+			hwndParent	[handle!]
+			ptCoords	[tagPOINT]
 			return:		[handle!]
 		]
 		DefWindowProc: "DefWindowProcW" [

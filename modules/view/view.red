@@ -241,7 +241,7 @@ system/view: context [
 		aux-up			on-aux-up
 		click			on-click
 		double-click	on-dbl-click
-		move			on-move
+		over			on-over
 		key				on-key
 		key-up			on-key-up
 		select			on-select

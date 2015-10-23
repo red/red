@@ -27,8 +27,13 @@ get-event-face: func [
 		handle [handle!]
 		face   [red-object!]
 		msg    [tagMSG]
+		lParam [integer!]
 ][
 	msg: as tagMSG evt/msg
+	if evt/type = EVT_OVER [
+		handle: either evt/flags and EVT_FLAG_AWAY = 0 [hover-new][hover-saved]
+		assert handle <> null
+	]
 	handle: get-widget-handle msg
 	if handle = as handle! -1 [							;-- filter out unwanted events
 		return as red-value! none-value
@@ -50,7 +55,7 @@ get-event-offset: func [
 		value  [integer!]
 		msg    [tagMSG]
 ][
-	either evt/type <= EVT_MOVE [
+	either evt/type <= EVT_OVER [
 		msg: as tagMSG evt/msg
 
 		offset: as red-pair! stack/push*
@@ -122,6 +127,13 @@ get-event-picked: func [
 	]
 ]
 
+get-event-away: func [
+	evt		[red-event!]
+	return: [red-value!]
+][
+	as red-value! logic/push evt/flags and EVT_FLAG_AWAY <> 0
+]
+
 make-event: func [
 	msg		[tagMSG]
 	flags	[integer!]
@@ -142,6 +154,9 @@ make-event: func [
 	state: EVT_DISPATCH
 
 	switch evt [
+		EVT_OVER [
+			gui-evt/flags: gui-evt/flags or flags
+		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
 			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
@@ -419,6 +434,21 @@ process: func [
 		pt	   [tagPOINT]
 ][
 	switch msg/msg [
+		WM_MOUSEMOVE [
+			lParam: msg/lParam
+			hover-new: get-child-from-xy msg/hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
+			
+			either hover-new = hover-saved [
+				; fire event if all over events allowed
+				EVT_DISPATCH
+			][
+				if hover-saved <> null [
+					make-event msg EVT_FLAG_AWAY EVT_OVER
+				]
+				hover-saved: hover-new
+				make-event msg 0 EVT_OVER
+			]
+		]
 		WM_LBUTTONDOWN	[
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null

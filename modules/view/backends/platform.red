@@ -84,7 +84,7 @@ system/view/platform: context [
 				EVT_AUX_UP
 				EVT_CLICK
 				EVT_DBL_CLICK
-				EVT_MOVE								;-- last mouse event
+				EVT_OVER								;-- last mouse event
 				
 				EVT_KEY
 				EVT_KEY_DOWN
@@ -97,6 +97,7 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
+				EVT_FLAG_AWAY:			08000000h
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h
 				EVT_FLAG_SHIFT_DOWN:	40000000h
@@ -175,7 +176,7 @@ system/view/platform: context [
 			_aux-up:		word/load "aux-up"
 			_click:			word/load "click"
 			_double-click:	word/load "double-click"
-			_move:			word/load "move"
+			_over:			word/load "over"
 			_key:			word/load "key"
 			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
@@ -222,7 +223,7 @@ system/view/platform: context [
 					EVT_AUX_UP		 [_aux-up]
 					EVT_CLICK		 [_click]
 					EVT_DBL_CLICK	 [_double-click]
-					EVT_MOVE		 [_move]
+					EVT_OVER		 [_over]
 					EVT_KEY			 [_key]
 					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
