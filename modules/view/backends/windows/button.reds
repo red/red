@@ -22,6 +22,7 @@ init-button: func [
 		blk		[red-block!]
 		str		[red-string!]
 		BIL		[BUTTON_IMAGELIST]
+		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		num		[integer!]
@@ -32,6 +33,7 @@ init-button: func [
 		resize? [logic!]
 ][
 	BIL:  declare BUTTON_IMAGELIST
+	rect: declare RECT_STRUCT
 	imgs: as red-block! facets + FACE_OBJ_IMAGE
 	size: as red-pair! facets + FACE_OBJ_SIZE
 	str:  as red-string! facets + FACE_OBJ_TEXT
@@ -63,6 +65,11 @@ init-button: func [
 	]
 
 	either all [num = 1 TYPE_OF(str) = TYPE_STRING][
+		rect/left: 5
+		rect/right: 1
+		rect/top: 1
+		rect/bottom: 1
+		SendMessage hWnd BCM_SETTEXTMARGIN 0 as-integer rect
 		beg:  as red-image! block/rs-head imgs
 		if resize? [img: image/resize beg width height]
 		bitmap: 0

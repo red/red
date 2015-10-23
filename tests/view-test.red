@@ -224,6 +224,7 @@ button/font: make font! [
 	size: 16
 	style: [bold italic underline strike]
 	anti-alias?: yes
+	color: red
 ]
 
 font-A: make font! [

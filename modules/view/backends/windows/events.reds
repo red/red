@@ -288,6 +288,59 @@ process-command-event: func [
 	]
 ]
 
+process-custom-draw: func [
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+	/local
+		item	[tagNMCUSTOMDRAWINFO]
+		values	[red-value!]
+		type	[red-word!]
+		txt		[red-string!]
+		font	[red-object!]
+		color	[red-tuple!]
+		old		[integer!]
+		DC		[handle!]
+][
+	item:	as tagNMCUSTOMDRAWINFO lParam
+	values: get-face-values item/hWndFrom
+	type:	as red-word! values + FACE_OBJ_TYPE
+	DC:		item/hdc
+	case [
+		type/symbol = button [
+			if all [
+				item/dwDrawStage = CDDS_PREPAINT
+				item/uItemState <> CDIS_DISABLED
+			][
+				;@@ TBD draw image
+				font: as red-object! values + FACE_OBJ_FONT
+				if TYPE_OF(font) = TYPE_OBJECT [
+					txt: as red-string! values + FACE_OBJ_TEXT
+					values: object/get-values font
+					color: as red-tuple! values + FONT_OBJ_COLOR
+					if all [
+						TYPE_OF(color) = TYPE_TUPLE
+						color/array1 <> 0
+					][
+						old: SetBkMode DC 1
+						SetTextColor DC color/array1 and 00FFFFFFh
+						DrawText
+							DC
+							unicode/to-utf16 txt
+							-1
+							as RECT_STRUCT (as int-ptr! item) + 5
+							DT_CENTER or DT_VCENTER or DT_SINGLELINE
+						SetBkMode DC old
+						return CDRF_SKIPDEFAULT
+					]
+				]
+			]
+		]
+		true [CDRF_DODEFAULT]
+	]
+	CDRF_DODEFAULT
+]
+
 BaseWndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -334,6 +387,7 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
+				NM_CUSTOMDRAW	[return process-custom-draw wParam lParam]
 				default [0]
 			]
 		]
@@ -349,7 +403,7 @@ WndProc: func [
 		WM_ERASEBKGND [
 			if paint-background hWnd as handle! wParam [return 1]
 		]
-		WM_CTLCOLORBTN
+		WM_CTLCOLORBTN [0]
 		WM_CTLCOLOREDIT
 		WM_CTLCOLORSTATIC 
 		WM_CTLCOLORLISTBOX 
