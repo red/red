@@ -635,11 +635,13 @@ simple-io: context [
 		return: [c-string!]
 		/local
 			str [red-string!]
+			s	[series!]
 			len [integer!]
 	][
 		len: string/rs-length? as red-string! src
+		s: GET_BUFFER(src)
 		if zero? len [len: 1]
-		str: string/rs-make-at stack/push* len
+		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
 		file/to-local-path src str no
 		#either OS = 'Windows [
 			unicode/to-utf16 str

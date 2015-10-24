@@ -67,7 +67,7 @@ file: context [
 	][
 		s: GET_BUFFER(src)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (src/head << (log-b unit))
+		p: (as byte-ptr! s/offset) + (src/head << (unit >> 1))
 		end: (as byte-ptr! s/tail)
 		s: GET_BUFFER(out)
 
