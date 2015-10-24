@@ -358,8 +358,8 @@ Red/System [
 
 #define handle!				[pointer! [integer!]]
 
-#define WIN32_LOWORD(param) (param and FFFFh)
-#define WIN32_HIWORD(param) (param >>> 16)
+#define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
+#define WIN32_HIWORD(param) (param >> 16)
 
 #define IS_EXTENDED_KEY		01000000h
 
