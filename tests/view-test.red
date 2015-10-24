@@ -716,6 +716,32 @@ win/pane: reduce [
 			]
 		]
 	]
+	make face! [
+		type: 'button text: "Drag me" offset: 550x540 size: 70x24
+		actors: object [
+			drag: reduce [none none]
+			on-down: func [face [object!] event [event!]][
+				drag/1: event/offset
+				drag/2: 'down
+			]
+			on-up: func [face [object!] event [event!]][
+				drag/1: none
+			]
+			on-over: function [face [object!] event [event!]][
+				if all [drag/1 not event/away?][
+					old: face/offset
+					new: face/offset + event/offset - drag/1
+					if old <> new [
+						face/offset: new
+						unless live? [show face]
+					]
+				]
+			]
+			on-drop: func [face [object!] event [event!]][
+				
+			]
+		]
+	]
 ]
 
 append win/pane panel: make face! [

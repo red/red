@@ -34,6 +34,8 @@ wc-offset:		64										;-- offset to our 16 bytes
 
 log-pixels-x:	0
 log-pixels-y:	0
+screen-size-x:	0
+screen-size-y:	0
 
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
@@ -373,9 +375,9 @@ get-screen-size: func [
 	id		[integer!]									;@@ Not used yet
 	return: [red-pair!]
 ][
-	pair/push 
-		GetDeviceCaps hScreen HORZRES
-		GetDeviceCaps hScreen VERTRES
+	screen-size-x: GetDeviceCaps hScreen HORZRES
+	screen-size-y: GetDeviceCaps hScreen VERTRES
+	pair/push screen-size-x screen-size-y
 ]
 
 DWM-enabled?: func [
