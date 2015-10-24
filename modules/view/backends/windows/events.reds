@@ -446,6 +446,8 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
+		all?   [logic!]
+		drag?  [logic!]
 		x	   [integer!]
 		y	   [integer!]
 ][
@@ -463,11 +465,13 @@ process: func [
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
 			new: get-child-from-xy msg/hWnd x y
-			;-- temporary let all events pass
-			;either new = hover-saved [
-				; fire event if all over events allowed
-			;	EVT_DISPATCH
-			;][
+			
+			all?:  (get-face-flags new) and FACET_FLAGS_ALL_OVER  <> 0
+			drag?: (get-face-flags new) and FACET_FLAGS_DRAGGABLE <> 0
+			
+			either all [not all? not drag? new = hover-saved][ ;-- block useless events
+				EVT_DISPATCH
+			][
 				if hover-saved <> null [
 					msg/hWnd: hover-saved
 					make-event msg EVT_FLAG_AWAY EVT_OVER
@@ -475,7 +479,7 @@ process: func [
 				hover-saved: new
 				msg/hWnd: new
 				make-event msg 0 EVT_OVER
-			;]
+			]
 		]
 		WM_LBUTTONDOWN	[
 			menu-origin: null							;-- reset if user clicks on menu bar

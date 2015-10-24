@@ -120,6 +120,7 @@ face!: object [				;-- keep in sync with facet! enum
 	enable?:	yes
 	visible?:	yes
 	selected:	none
+	flags:		none
 	parent:		none
 	pane:		none
 	state:		none		;-- [handle [integer! none!] change-array [integer!]]
@@ -164,7 +165,7 @@ update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or 00008000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00010000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]

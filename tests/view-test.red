@@ -718,6 +718,7 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24
+		flags: 'draggable
 		actors: object [
 			drag: reduce [none none]
 			on-down: func [face [object!] event [event!]][

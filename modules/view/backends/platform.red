@@ -26,6 +26,7 @@ system/view/platform: context [
 				FACE_OBJ_ENABLE?
 				FACE_OBJ_VISIBLE?
 				FACE_OBJ_SELECTED
+				FACE_OBJ_FLAGS
 				FACE_OBJ_PARENT
 				FACE_OBJ_PANE
 				FACE_OBJ_STATE
@@ -49,15 +50,21 @@ system/view/platform: context [
 				FACET_FLAG_ENABLE?:		00000100h
 				FACET_FLAG_VISIBLE?:	00000200h
 				FACET_FLAG_SELECTED:	00000400h
-				FACET_FLAG_PARENT:		00000800h
-				FACET_FLAG_PANE:		00001000h
-				FACET_FLAG_STATE:		00002000h
-				;FACET_FLAG_RATE:		00000001h
-				FACET_FLAG_EDGE:		00004000h
-				FACET_FLAG_FONT:		00008000h		;-- keep in sync with values in update-font-faces function
-				FACET_FLAG_ACTOR:		00010000h
-				FACET_FLAG_EXTRA:		00020000h
-				FACET_FLAG_DRAW:		00040000h
+				FACET_FLAG_FLAGS:		00000800h
+				FACET_FLAG_PARENT:		00001000h
+				FACET_FLAG_PANE:		00002000h
+				FACET_FLAG_STATE:		00004000h
+				;FACET_FLAG_RATE:		00004000h
+				FACET_FLAG_EDGE:		00008000h
+				FACET_FLAG_FONT:		00010000h		;-- keep in sync with values in update-font-faces function
+				FACET_FLAG_ACTOR:		00020000h
+				FACET_FLAG_EXTRA:		00040000h
+				FACET_FLAG_DRAW:		00080000h
+			]
+			
+			#enum flags-flag! [
+				FACET_FLAGS_ALL_OVER:	00000001h
+				FACET_FLAGS_DRAGGABLE:	00000002h
 			]
 			
 			#enum font-facet! [
@@ -128,6 +135,7 @@ system/view/platform: context [
 				enable?:	symbol/make "enable?"
 				visible?:	symbol/make "visible?"
 				selected:	symbol/make "selected"
+				flags:		symbol/make "flags"
 				parent:		symbol/make "parent"
 				pane:		symbol/make "pane"
 				state:		symbol/make "state"
@@ -170,7 +178,10 @@ system/view/platform: context [
 			_italic:		symbol/make "italic"
 			_underline:		symbol/make "underline"
 			_strike:		symbol/make "strike"
-				
+			
+			all-over:		symbol/make "all-over"
+			draggable:		symbol/make "draggable"
+			
 			_down:			word/load "down"
 			_up:			word/load "up"
 			_middle-down:	word/load "middle-down"

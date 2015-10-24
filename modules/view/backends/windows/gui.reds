@@ -30,7 +30,7 @@ hover-saved:	as handle! 0							;-- last window under mouse cursor
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
-wc-offset:		64										;-- offset to our 16 bytes
+wc-offset:		60										;-- offset to our 16+4 bytes
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -122,6 +122,13 @@ get-widget-handle: func [
 		]
 	]
 	hWnd
+]
+
+get-face-flags: func [
+	hWnd	[handle!]
+	return: [integer!]
+][
+	GetWindowLong hWnd wc-offset + 16
 ]
 
 get-face-handle: func [
@@ -261,6 +268,43 @@ set-logic-state: func [
 		as-integer state/value							;-- returns 0/1, matches the messages
 	]
 	SendMessage hWnd BM_SETCHECK value 0
+]
+
+get-flags: func [
+	field	[red-block!]
+	return: [integer!]									;-- return a bit-array of all flags
+	/local
+		word  [red-word!]
+		len	  [integer!]
+		sym	  [integer!]
+		flags [integer!]
+][
+	switch TYPE_OF(field) [
+		TYPE_BLOCK [
+			word: as red-word! block/rs-head field
+			len: block/rs-length? field
+			if zero? len [return 0]
+		]
+		TYPE_WORD [
+			word: as red-word! field
+			len: 1
+		]
+		default [return 0]
+	]
+	flags: 0
+	
+	until [
+		sym: symbol/resolve word/symbol
+		case [
+			sym = all-over  [flags: flags or FACET_FLAGS_ALL_OVER]
+			sym = draggable [flags: flags or FACET_FLAGS_DRAGGABLE]
+			;; add other flags here
+		]
+		word: word + 1
+		len: len - 1
+		zero? len
+	]
+	flags
 ]
 
 get-logic-state: func [
@@ -632,6 +676,7 @@ OS-make-view: func [
 	SetWindowLong handle wc-offset + 4  as-integer face/ctx
 	SetWindowLong handle wc-offset + 8  		   face/class
 	SetWindowLong handle wc-offset + 12 as-integer face/on-set
+	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	as-integer handle
 ]
