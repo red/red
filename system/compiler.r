@@ -1543,8 +1543,7 @@ system-dialect: make-profilable context [
 				check-enum-word name 					;-- first checking enumeration identifier possible conflicts
 				parse value [
 					(enum-value: 0)
-					any [
-						[
+					any [[
 							copy enum-names word!
 							| (enum-names: make block! 10) some [
 								set enum-name set-word!
@@ -1552,8 +1551,8 @@ system-dialect: make-profilable context [
 							]	set enum-value [integer! | word!]
 						] 
 						(enum-value: set-enumerator name enum-names enum-value)
-						| set enum-name 1 skip (
-							throw-error ["invalid enumeration:" to word! enum-name]
+						| set enum-name skip (
+							throw-error ["invalid enumeration syntax:" mold enum-name]
 						)
 					]
 				]
