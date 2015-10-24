@@ -387,6 +387,12 @@ words: context [
 	code:			-1
 	picked:			-1
 	away?:			-1
+	ctrl?:			-1
+	shift?:			-1
+	down?:			-1
+	mid-down?:		-1
+	alt-down?:		-1
+	aux-down?:		-1
 
 	get:			-1
 	put:			-1
@@ -552,6 +558,12 @@ words: context [
 		code:			symbol/make "code"
 		picked:			symbol/make "picked"
 		away?:			symbol/make "away?"
+		ctrl?:			symbol/make "ctrl?"
+		shift?:			symbol/make "shift?"
+		down?:			symbol/make "down?"
+		mid-down?:		symbol/make "mid-down?"
+		alt-down?:		symbol/make "mid-down?"
+		aux-down?:		symbol/make "aux-down?"
 
 		get:			symbol/make "get"
 		put:			symbol/make "put"

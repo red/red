@@ -97,6 +97,11 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
+				EVT_FLAG_AX2_DOWN:		00400000h
+				EVT_FLAG_AUX_DOWN:		00800000h
+				EVT_FLAG_ALT_DOWN:		01000000h
+				EVT_FLAG_MID_DOWN:		02000000h
+				EVT_FLAG_DOWN:			04000000h
 				EVT_FLAG_AWAY:			08000000h
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h

@@ -123,11 +123,27 @@ get-event-picked: func [
 	]
 ]
 
-get-event-away: func [
-	evt		[red-event!]
+get-event-flag: func [
+	flags	[integer!]
+	flag	[integer!]
 	return: [red-value!]
 ][
-	as red-value! logic/push evt/flags and EVT_FLAG_AWAY <> 0
+	as red-value! logic/push flags and flag <> 0
+]
+
+decode-down-flags: func [
+	lParam  [integer!]
+	return: [integer!]
+][
+	flags: 0
+	if lParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
+	if lParam and 0002h <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]
+	if lParam and 0004h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]
+	if lParam and 0008h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
+	if lParam and 0010h <> 0 [flags: flags or EVT_FLAG_MID_DOWN]
+	if lParam and 0020h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]
+	if lParam and 0040h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
+	flags
 ]
 
 make-event: func [
@@ -151,7 +167,7 @@ make-event: func [
 
 	switch evt [
 		EVT_OVER [
-			gui-evt/flags: gui-evt/flags or flags
+			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/lParam
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
@@ -430,15 +446,28 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
+		x	   [integer!]
+		y	   [integer!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
-			new: get-child-from-xy msg/hWnd WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-			either new = hover-saved [
-				; fire event if all over events allowed
-				EVT_DISPATCH
+			x: WIN32_LOWORD(lParam)
+			y: WIN32_HIWORD(lParam)
+			if any [
+				x < (0 - screen-size-x) 				;@@ needs `negate` support
+				y < (0 - screen-size-y)
+				x > screen-size-x
+				y > screen-size-y
 			][
+				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
+			]
+			new: get-child-from-xy msg/hWnd x y
+			;-- temporary let all events pass
+			;either new = hover-saved [
+				; fire event if all over events allowed
+			;	EVT_DISPATCH
+			;][
 				if hover-saved <> null [
 					msg/hWnd: hover-saved
 					make-event msg EVT_FLAG_AWAY EVT_OVER
@@ -446,7 +475,7 @@ process: func [
 				hover-saved: new
 				msg/hWnd: new
 				make-event msg 0 EVT_OVER
-			]
+			;]
 		]
 		WM_LBUTTONDOWN	[
 			menu-origin: null							;-- reset if user clicks on menu bar
