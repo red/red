@@ -344,10 +344,10 @@ do-events: func [/no-wait][
 do-actor: function [face [object!] event [event! none!] type [word!]][
 	if all [
 		object? face/actors
-		act: in face/actors select system/view/evt-names type
+		act: in face/actors name: select system/view/evt-names type
 		act: get act
 	][
-		if system/view/debug? [print ["calling actor:" select system/view/evt-names type]]
+		if system/view/debug? [print ["calling actor:" name]]
 		
 		if error? set/any 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO			
 			print :result
