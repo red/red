@@ -686,27 +686,6 @@ simple-io: context [
 		]
 	]
 
-	to-OS-path: func [
-		src		[red-file!]
-		return: [c-string!]
-		/local
-			str [red-string!]
-			s	[series!]
-			len [integer!]
-	][
-		len: string/rs-length? as red-string! src
-		s: GET_BUFFER(src)
-		if zero? len [len: 1]
-		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
-		file/to-local-path src str no
-		#either OS = 'Windows [
-			unicode/to-utf16 str
-		][
-			len: -1
-			unicode/to-utf8 str :len
-		]
-	]
-
 	lines-to-block: func [
 		src		[byte-ptr!]					;-- UTF-8 input buffer
 		size	[integer!]					;-- size of src in bytes (excluding terminal NUL)
@@ -903,7 +882,7 @@ simple-io: context [
 			s: string/append-char GET_BUFFER(filename) as-integer #"*"
 
 			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
-			handle: FindFirstFile to-OS-path filename info
+			handle: FindFirstFile file/to-OS-path filename info
 			len: either cp = #"." [1][0]
 			s/tail: as cell! (as byte-ptr! s/tail) - (GET_UNIT(s) << len)
 
@@ -936,7 +915,7 @@ simple-io: context [
 			free as byte-ptr! info
 			blk
 		][
-			handle: opendir to-OS-path filename
+			handle: opendir file/to-OS-path filename
 			if zero? handle [fire [TO_ERROR(access cannot-open) filename]]
 			blk: block/push-only* 1
 			while [
@@ -987,7 +966,7 @@ simple-io: context [
 			return as red-value! read-dir filename
 		]
 
-		data: read-file to-OS-path filename binary? lines? yes
+		data: read-file file/to-OS-path filename binary? lines? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
@@ -1033,7 +1012,7 @@ simple-io: context [
 			]
 			true [ERR_EXPECT_ARGUMENT(type 1)]
 		]
-		type: write-file to-OS-path filename buf len binary? append? yes
+		type: write-file file/to-OS-path filename buf len binary? append? yes
 		if negative? type [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
@@ -1124,7 +1103,7 @@ simple-io: context [
 			buffer: allocate 520
 
 			if dir >= base [
-				pbuf: as byte-ptr! to-OS-path as red-file! dir
+				pbuf: as byte-ptr! file/to-OS-path as red-file! dir
 				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
 			]
 
@@ -1156,7 +1135,7 @@ simple-io: context [
 
 	request-file: func [
 		title	[red-string!]
-		file	[red-value!]
+		name	[red-value!]
 		filter	[red-block!]
 		save?	[logic!]
 		multi?	[logic!]
@@ -1177,8 +1156,8 @@ simple-io: context [
 			base: stack/arguments
 			filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
 			buffer: allocate MAX_FILE_REQ_BUF
-			either file >= base [
-				pbuf: as byte-ptr! to-OS-path as red-file! file
+			either name >= base [
+				pbuf: as byte-ptr! file/to-OS-path as red-file! name
 				len: lstrlen pbuf
 				len: len << 1 - 1
 				while [all [len > 0 pbuf/len <> #"\"]][len: len - 2]
