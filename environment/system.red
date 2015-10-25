@@ -237,11 +237,11 @@ system: context [
 	]
 	
 	options: context [
-		boot: 			none
+		boot: 			#system [stack/push get-cmdline-name]
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			#system [stack/push get-cmdline-arg]
+		args: 			#system [stack/push get-cmdline-args]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none

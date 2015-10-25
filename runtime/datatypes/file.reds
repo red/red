@@ -12,6 +12,17 @@ Red/System [
 
 file: context [
 	verbose: 0
+	
+	load: func [
+		src		 [c-string!]							;-- source string buffer
+		size	 [integer!]
+		encoding [integer!]
+		return:  [red-file!]
+	][
+		file: as red-file! string/load src size encoding
+		set-type as red-value! file TYPE_FILE
+		file
+	]
 
 	push: func [
 		file [red-file!]
