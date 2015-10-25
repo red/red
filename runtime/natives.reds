@@ -1701,6 +1701,21 @@ natives: context [
 			multi? <> -1
 	]
 
+	request-dir*: func [
+		title	[integer!]
+		dir		[integer!]
+		filter	[integer!]
+		keep?	[integer!]
+		multi?	[integer!]
+	][
+		stack/set-last simple-io/request-dir 
+			as red-string! stack/arguments + title
+			stack/arguments + dir
+			as red-block! stack/arguments + filter
+			keep? <> -1
+			multi? <> -1
+	]
+
 	wait*: func [
 		all?	[integer!]
 		only?	[integer!]
@@ -2122,6 +2137,7 @@ natives: context [
 			:to-local-file*
 			:request-file*
 			:wait*
+			:request-dir*
 		]
 	]
 
