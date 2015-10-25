@@ -123,7 +123,7 @@ face!: object [				;-- keep in sync with facet! enum
 	flags:		none
 	parent:		none
 	pane:		none
-	state:		none		;-- [handle [integer! none!] change-array [integer!]]
+	state:		none		;-- [handle [integer! none!] change-array [integer!] deferred [block! none!] drag-offset [pair! none!]]
 	;rate:		none		;@@ to be considered
 	edge:		none
 	font:		none
@@ -240,6 +240,9 @@ system/view: context [
 		alt-up			on-alt-up
 		aux-down		on-aux-down
 		aux-up			on-aux-up
+		drag-start		on-drag-start
+		drag			on-drag
+		drop			on-drop
 		click			on-click
 		double-click	on-dbl-click
 		over			on-over
@@ -258,10 +261,10 @@ system/view: context [
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
-		
 		type: event/type
 		
-		if all [										;-- radio styles handler
+		;-- Radio faces handler --
+		if all [
 			type = 'click
 			face/type = 'radio
 		][
@@ -272,7 +275,7 @@ system/view: context [
 			type: 'change
 			show face
 		]
-
+		
 		if all [debug? face = event/face][
 			print [
 				"event> type:"	event/type
@@ -281,17 +284,43 @@ system/view: context [
 				;"face:" 		mold event/face
 			]
 		]
-
+		
+		;-- Dragging face handler --
 		if all [
 			object? face/actors
-			act: in face/actors select evt-names type
-			act: get act
+			drag-evt: in face/actors 'drag-on
+			drag-evt: get drag-evt
 		][
-			if error? set/any 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO			
-				print :result
-				result: none
+			either type = drag-evt [
+				face/state/4: event/offset
+				do-actor face event 'drag-start
+			][
+				either type = 'over [
+					if all [
+						drag-offset: face/state/4
+						not event/away? 
+					][
+						new: face/offset + event/offset - drag-offset
+						if face/offset <> new [
+							face/offset: new
+							return do-actor face event 'drag ;-- avoid calling on-over actor
+						]
+					]
+				][
+					if drag-evt = select [
+						up		down
+						mid-up	mid-down
+						alt-up	alt-down
+						aux-up	aux-down
+					] type [
+						face/state/4: none
+						do-actor face event 'drop
+					]
+				]
 			]
 		]
+
+		set/any 'result do-actor face event type
 		
 		if all [type = 'close :result <> 'continue][
 			windows: head remove find system/view/screens/1/pane face
@@ -310,6 +339,22 @@ system/view: context [
 
 do-events: func [/no-wait][
 	system/view/platform/do-event-loop no
+]
+
+do-actor: function [face [object!] event [event! none!] type [word!]][
+	if all [
+		object? face/actors
+		act: in face/actors select system/view/evt-names type
+		act: get act
+	][
+		if system/view/debug? [print ["calling actor:" select system/view/evt-names type]]
+		
+		if error? set/any 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO			
+			print :result
+			result: none
+		]
+	]
+	:result
 ]
 
 show: function [
@@ -353,7 +398,7 @@ show: function [
 				window	  [append system/view/screens/1/pane face]
 			]
 		]
-		face/state: reduce [obj 0 none]
+		face/state: reduce [obj 0 none none]
 	]
 
 	if face/pane [foreach f face/pane [show/with f face]]
