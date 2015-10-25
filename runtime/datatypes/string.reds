@@ -200,7 +200,7 @@ string: context [
 	]
 
 	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-string!]
@@ -834,7 +834,7 @@ string: context [
 	]
 
 	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		blk		 [red-block!]
 		encoding [integer!]
@@ -863,7 +863,7 @@ string: context [
 	]
 	
 	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-string!]
