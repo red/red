@@ -13,38 +13,6 @@ Red/System [
 file: context [
 	verbose: 0
 
-	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size root
-	]
-
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
-		
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_FILE							;-- implicit reset of all header flags
-		normalize as red-file! cell
-		cell
-	]
-
-	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size null
-	]
-
 	push: func [
 		file [red-file!]
 	][

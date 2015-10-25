@@ -30,6 +30,9 @@ simple-io: context [
 
 	#either OS = 'Windows [
 
+		dir-keep: 0
+		dir-inited: false
+
 		#define GENERIC_WRITE			40000000h
 		#define GENERIC_READ 			80000000h
 		#define FILE_SHARE_READ			00000001h
@@ -50,6 +53,15 @@ simple-io: context [
 		#define OFN_ALLOWMULTISELECT	00000200h
 
 		#define WIN32_FIND_DATA_SIZE	592
+
+		#define BIF_RETURNONLYFSDIRS	1
+		#define BIF_USENEWUI			50h
+		#define BIF_SHAREABLE			8000h
+
+		#define BFFM_INITIALIZED		1
+		#define BFFM_SELCHANGED			2
+		#define BFFM_SETSELECTION		1127
+		#define BFFM_SETEXPANDED		1130
 
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]
@@ -90,7 +102,18 @@ simple-io: context [
 			dwReserved			[integer!]
 			FlagsEx				[integer!]
 		]
-	
+
+		tagBROWSEINFO: alias struct! [
+			hwndOwner		[integer!]
+			pidlRoot		[int-ptr!]
+			pszDisplayName	[c-string!]
+			lpszTitle		[c-string!]
+			ulFlags			[integer!]
+			lpfn			[integer!]
+			lParam			[integer!]
+			iImage			[integer!]
+		]
+
 		#import [
 			"kernel32.dll" stdcall [
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
@@ -187,6 +210,34 @@ simple-io: context [
 				GetSaveFileName: "GetSaveFileNameW" [
 					lpofn		[tagOFNW]
 					return:		[integer!]
+				]
+			]
+			"shell32.dll" stdcall [
+				SHBrowseForFolder: "SHBrowseForFolderW" [
+					lpbi		[tagBROWSEINFO]
+					return: 	[integer!]
+				]
+				SHGetPathFromIDList: "SHGetPathFromIDListW" [
+					pidl		[integer!]
+					pszPath		[byte-ptr!]
+					return:		[logic!]
+				]
+			]
+			"user32.dll" stdcall [
+				SendMessage: "SendMessageW" [
+					hWnd		[integer!]
+					msg			[integer!]
+					wParam		[integer!]
+					lParam		[integer!]
+					return: 	[integer!]
+				]
+				GetForegroundWindow: "GetForegroundWindow" [
+					return:		[integer!]
+				]
+			]
+			"ole32.dll" stdcall [
+				CoTaskMemFree: "CoTaskMemFree" [
+					pv		[integer!]
 				]
 			]
 		]
@@ -988,6 +1039,87 @@ simple-io: context [
 		blk
 	]
 
+	req-dir-callback: func [
+		hwnd	[integer!]
+		msg		[integer!]
+		lParam	[integer!]
+		lpData	[integer!]
+		return:	[integer!]
+		/local
+			method [integer!]
+	][
+		method: either lpData = dir-keep [0][1]
+		switch msg [
+			BFFM_INITIALIZED [
+				unless zero? lpData [
+					dir-inited: yes
+					SendMessage hwnd BFFM_SETSELECTION method lpData
+				]
+			]
+			BFFM_SELCHANGED [			;-- located to folder
+				if all [dir-inited not zero? lpData][
+					dir-inited: no
+					SendMessage hwnd BFFM_SETSELECTION method lpData
+				]
+			]
+			default [0]
+		]
+		0
+	]
+
+	request-dir: func [
+		title	[red-string!]
+		dir		[red-value!]
+		filter	[red-block!]
+		keep?	[logic!]
+		multi?	[logic!]
+		return: [red-value!]
+		/local
+			buffer	[byte-ptr!]
+			ret		[integer!]
+			path	[red-value!]
+			base	[red-value!]
+			str		[red-string!]
+			pbuf	[byte-ptr!]
+			bInfo	[tagBROWSEINFO]
+	][
+		#either OS = 'Windows [
+			bInfo: declare tagBROWSEINFO
+			pbuf: null
+			base: stack/arguments
+			buffer: allocate 520
+
+			if dir >= base [
+				pbuf: as byte-ptr! to-OS-path as red-file! dir
+				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
+			]
+
+			bInfo/hwndOwner: GetForegroundWindow
+			bInfo/lpszTitle: either title >= base [unicode/to-utf16 title][null]
+			bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI or BIF_SHAREABLE
+			bInfo/lpfn: as-integer :req-dir-callback
+			bInfo/lParam: either keep? [dir-keep][as-integer pbuf]
+
+			ret: SHBrowseForFolder bInfo
+			path: as red-value! either zero? ret [none-value][
+				if keep? [
+					unless zero? dir-keep [CoTaskMemFree dir-keep]
+					dir-keep: ret
+				]
+				SHGetPathFromIDList ret buffer
+				str: string/load as-c-string buffer lstrlen buffer UTF-16LE
+				string/append-char GET_BUFFER(str) as-integer #"/"
+				str/header: TYPE_FILE
+				#call [to-red-file str]
+				stack/arguments
+			]
+			free buffer
+			path
+		][
+			as red-value! none-value
+		]
+	]
+
 	request-file: func [
 		title	[red-string!]
 		file	[red-value!]
@@ -999,6 +1131,7 @@ simple-io: context [
 			filters [c-string!]
 			buffer	[byte-ptr!]
 			ret		[integer!]
+			len		[integer!]
 			files	[red-value!]
 			base	[red-value!]
 			str		[red-string!]
@@ -1006,22 +1139,29 @@ simple-io: context [
 			ofn
 	][
 		#either OS = 'Windows [
+			ofn: declare tagOFNW
 			base: stack/arguments
 			filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
 			buffer: allocate MAX_FILE_REQ_BUF
 			either file >= base [
-				pbuf: as byte-ptr! unicode/to-utf16 as red-string! file
+				pbuf: as byte-ptr! to-OS-path as red-file! file
+				len: lstrlen pbuf
+				len: len << 1 - 1
+				while [all [len > 0 pbuf/len <> #"\"]][len: len - 2]
+				if len > 0 [
+					pbuf/len: #"^@"
+					ofn/lpstrInitialDir: as-c-string pbuf
+					pbuf: pbuf + len + 1
+				]
 				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
 			][
 				buffer/1: #"^@"
 				buffer/2: #"^@"
 			]
 
-			ofn: declare tagOFNW
 			ofn/lStructSize: size? tagOFNW
-			;ofn/hwndOwner: how to set it?
+			ofn/hwndOwner: GetForegroundWindow
 			ofn/lpstrTitle: either title >= base [unicode/to-utf16 title][null]
-			;ofn/lpstrInitialDir
 			ofn/lpstrFile: buffer
 			ofn/lpstrFilter: either filter >= base [file-filter-to-str filter][filters]
 			ofn/nMaxFile: MAX_FILE_REQ_BUF
