@@ -201,6 +201,11 @@ simple-io: context [
 					lpUsedDefaultChar	[integer!]
 					return:				[integer!]
 				]
+				GetLogicalDriveStrings: "GetLogicalDriveStringsW" [
+					buf-len		[integer!]
+					buffer		[byte-ptr!]
+					return:		[integer!]
+				]
 			]
 			"comdlg32.dll" stdcall [
 				GetOpenFileName: "GetOpenFileNameW" [
@@ -851,11 +856,14 @@ simple-io: context [
 		return:		[red-block!]
 		/local
 			info
+			buf		[byte-ptr!]
+			p		[byte-ptr!]
 			name	[byte-ptr!]
 			handle	[integer!]
 			blk		[red-block!]
 			str		[red-string!]
 			len		[integer!]
+			i		[integer!]
 			cp		[byte!]
 			s		[series!]
 	][
@@ -865,6 +873,33 @@ simple-io: context [
 		if cp = #"." [string/append-char GET_BUFFER(filename) as-integer #"/"]
 
 		#either OS = 'Windows [
+			blk: block/push-only* 1
+			if all [zero? len cp = #"/"][
+				len: 1 + GetLogicalDriveStrings 0 null		;-- add NUL terminal
+				buf: allocate len << 1
+				GetLogicalDriveStrings len buf
+				i: 0
+				name: buf
+				p: name
+				len: len - 2
+				until [
+					if all [name/1 = #"^@" name/2 = #"^@"][
+						name: name - 4
+						name/1: #"/"
+						name/3: #"^@"
+						str: string/load-in as-c-string p lstrlen p blk UTF-16LE
+						str/header: TYPE_FILE
+						name: name + 4
+						p: name + 2
+					]
+					name: name + 2
+					i: i + 1
+					i = len
+				]
+				free buf
+				return blk
+			]
+
 			s: string/append-char GET_BUFFER(filename) as-integer #"*"
 
 			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
@@ -874,7 +909,6 @@ simple-io: context [
 
 			if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
-			blk: block/push-only* 1
 			name: (as byte-ptr! info) + 44
 			until [
 				unless any [		;-- skip over the . and .. dir case
