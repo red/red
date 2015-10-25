@@ -419,14 +419,21 @@ natives: context [
 	]
 	
 	do*: func [
+		args 	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
 			arg	   [red-value!]
+			do-arg [red-value!]
 			str	   [red-string!]
 	][
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
+		do-arg: stack/arguments + args
+		
+		if OPTION?(do-arg) [
+			copy-cell do-arg #get system/script/args
+		]
 		
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [

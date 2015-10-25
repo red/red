@@ -158,6 +158,8 @@ case: make native! [[
 do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
+		/args "If value is a script, this will set its system/script/args"
+			arg "Args passed to a script (normally a string)"
 	]
 	#get-definition NAT_DO
 ]
