@@ -22,7 +22,6 @@ init-button: func [
 		blk		[red-block!]
 		str		[red-string!]
 		BIL		[BUTTON_IMAGELIST]
-		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		num		[integer!]
@@ -64,46 +63,31 @@ init-button: func [
 		default [exit]
 	]
 
-	either all [num = 1 TYPE_OF(str) = TYPE_STRING][
-		rect/left: 5
-		rect/right: 1
-		rect/top: 1
-		rect/bottom: 1
-		SendMessage hWnd BCM_SETTEXTMARGIN 0 as-integer rect
-		beg:  as red-image! block/rs-head imgs
-		if resize? [img: image/resize beg width height]
+	sz: either 1 < num [6][1]
+	hlist: ImageList_Create width height ILC_COLOR32 sz 0
+	beg:  as red-image! block/rs-head imgs
+	img-1: image/resize beg width height
+	i: 0
+	loop sz [
+		either i < num [
+			img: beg + i
+			img: either zero? i [img-1][image/resize img width height]
+		][
+			img: img-1
+		]
 		bitmap: 0
 		GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
-		SendMessage hWnd BM_SETIMAGE 0 bitmap
-		if resize? [image/delete img]
+		ImageList_Add hlist bitmap 0
 		DeleteObject as handle! bitmap
-	][
-		sz: either 1 < num [6][1]
-		hlist: ImageList_Create width height ILC_COLOR32 sz 0
-		beg:  as red-image! block/rs-head imgs
-		img-1: image/resize beg width height
-		i: 0
-		loop sz [
-			either i < num [
-				img: beg + i
-				img: either zero? i [img-1][image/resize img width height]
-			][
-				img: img-1
-			]
-			bitmap: 0
-			GdipCreateHBITMAPFromBitmap as-integer img/node :bitmap 0
-			ImageList_Add hlist bitmap 0
-			DeleteObject as handle! bitmap
-			if all [i > 0 i < num][image/delete img]
-			i: i + 1
-		]
-		image/delete img-1
-		BIL/handle: hlist
-		BIL/align: 4
-		SendMessage hWnd BM_SETSTYLE BS_BITMAP or GetWindowLong hWnd GWL_STYLE 0
-		SendMessage hWnd BCM_SETIMAGELIST 0 0
-		SendMessage hWnd BCM_SETIMAGELIST 0 as-integer BIL
+		if all [i > 0 i < num][image/delete img]
+		i: i + 1
 	]
+	image/delete img-1
+	BIL/handle: hlist
+	BIL/align: 4
+	SendMessage hWnd BM_SETSTYLE BS_BITMAP or GetWindowLong hWnd GWL_STYLE 0
+	SendMessage hWnd BCM_SETIMAGELIST 0 0
+	SendMessage hWnd BCM_SETIMAGELIST 0 as-integer BIL
 ]
 
 update-button: func [

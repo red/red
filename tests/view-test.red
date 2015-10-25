@@ -600,13 +600,8 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'button text: "OK" offset: 570x440 size: 70x38
+		type: 'button offset: 570x440 size: 38x38
 		image: smiley
-		font: make font! [
-			name: "Segoe UI"
-			size: 16
-			style: [bold]
-		]
 	]
 	canvas: make face! [
 		type: 'base text: "canvas" offset: 10x460 size: 300x200 color: silver
