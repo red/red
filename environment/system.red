@@ -241,7 +241,7 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			none
+		args: 			#system [stack/push get-cmdline-arg]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none

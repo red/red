@@ -125,6 +125,9 @@ platform: context [
 				buffer			[byte-ptr!]
 				return:			[integer!]
 			]
+			GetCommandLine: "GetCommandLineW" [
+				return:			[byte-ptr!]
+			]
 			FormatMessage: "FormatMessageW" [
 				dwFlags			[integer!]
 				lpSource		[byte-ptr!]
@@ -141,6 +144,10 @@ platform: context [
 			]
 			Sleep: "Sleep" [
 				dwMilliseconds	[integer!]
+			]
+			lstrlen: "lstrlenW" [
+				str			[byte-ptr!]
+				return:		[integer!]
 			]
 		]
 		"gdiplus.dll" stdcall [
@@ -471,7 +478,7 @@ platform: context [
 		GetCurrentDirectory size path
 		len/value: size - 1
 		as c-string! path
-	] 
+	]
 
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
