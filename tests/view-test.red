@@ -720,18 +720,17 @@ win/pane: reduce [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24
 		flags: 'draggable
 		actors: object [
-			drag: reduce [none none]
+			drag: none
 			on-down: func [face [object!] event [event!]][
-				drag/1: event/offset
-				drag/2: 'down
+				drag: event/offset
 			]
 			on-up: func [face [object!] event [event!]][
-				drag/1: none
+				drag: none
 			]
 			on-over: function [face [object!] event [event!]][
-				if all [drag/1 not event/away?][
+				if all [drag not event/away?][
 					old: face/offset
-					new: face/offset + event/offset - drag/1
+					new: face/offset + event/offset - drag
 					if old <> new [
 						face/offset: new
 						unless live? [show face]

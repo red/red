@@ -56,7 +56,7 @@ system/view/platform: context [
 				FACET_FLAG_STATE:		00004000h
 				;FACET_FLAG_RATE:		00004000h
 				FACET_FLAG_EDGE:		00008000h
-				FACET_FLAG_FONT:		00010000h		;-- keep in sync with values in update-font-faces function
+				FACET_FLAG_FONT:		00010000h		;-- keep in sync with value in update-font-faces function
 				FACET_FLAG_ACTOR:		00020000h
 				FACET_FLAG_EXTRA:		00040000h
 				FACET_FLAG_DRAW:		00080000h
