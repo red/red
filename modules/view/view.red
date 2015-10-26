@@ -33,7 +33,7 @@ on-face-deep-change*: function [owner word target action index part state forced
 			system/view/auto-sync?
 			owner/type = 'screen						;-- not postponing windows events
 		][
-			state/2: state/2 or (1 << ((index? word) - 1))
+			state/2: state/2 or (1 << ((index? in owner word) - 1))
 			
 			either word = 'pane [
 				either find [remove clear take] action [
@@ -166,7 +166,7 @@ update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00020000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]
