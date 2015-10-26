@@ -55,13 +55,13 @@ system/view/platform: context [
 				FACET_FLAG_OPTIONS:		00001000h
 				FACET_FLAG_PARENT:		00002000h
 				FACET_FLAG_PANE:		00004000h
-				FACET_FLAG_STATE:		00004000h
-				;FACET_FLAG_RATE:		00008000h
-				FACET_FLAG_EDGE:		00010000h
-				FACET_FLAG_FONT:		00020000h		;-- keep in sync with value in update-font-faces function
-				FACET_FLAG_ACTOR:		00040000h
-				FACET_FLAG_EXTRA:		00080000h
-				FACET_FLAG_DRAW:		00100000h
+				FACET_FLAG_STATE:		00008000h
+				;FACET_FLAG_RATE:		00010000h
+				FACET_FLAG_EDGE:		00020000h
+				FACET_FLAG_FONT:		00040000h	;-- keep in sync with value in update-font-faces function
+				FACET_FLAG_ACTOR:		00080000h
+				FACET_FLAG_EXTRA:		00100000h
+				FACET_FLAG_DRAW:		00200000h
 			]
 			
 			#enum flags-flag! [

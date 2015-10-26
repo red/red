@@ -166,7 +166,7 @@ update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or 00020000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]
