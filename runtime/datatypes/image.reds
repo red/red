@@ -104,26 +104,11 @@ image: context [
 			str   [red-string!]
 			len   [integer!]
 			hr    [integer!]
-			file? [logic!]
 	][
-		file?: TYPE_OF(src) = TYPE_FILE
-		if file? [
-			str: string/rs-make-at stack/push* string/rs-length? src
-			file/to-local-path src str no
-			src: str
-		]
-		#either OS = 'Windows [
-			hr: load-image unicode/to-utf16 src
-		][
-			len: -1
-			hr: load-image unicode/to-utf8 src :len
-		]
-
+		hr: load-image file/to-OS-path src
 		if hr = -1 [fire [TO_ERROR(access cannot-open) src]]
-
 		img: as red-image! slot
 		init-image img hr
-		if file? [stack/pop 1]
 		img
 	]
 
