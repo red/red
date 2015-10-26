@@ -32,6 +32,31 @@ file: context [
 		copy-cell as red-value! file stack/push*
 	]
 
+	to-OS-path: func [
+		src		[red-file!]
+		return: [c-string!]
+		/local
+			str [red-string!]
+			s	[series!]
+			len [integer!]
+			ret [c-string!]
+	][
+		len: string/rs-length? as red-string! src
+		s: GET_BUFFER(src)
+		if zero? len [len: 1]
+		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
+		file/to-local-path src str no
+
+		#either OS = 'Windows [
+			ret: unicode/to-utf16 str
+		][
+			len: -1
+			ret: unicode/to-utf8 str :len
+		]
+		stack/pop 1
+		ret
+	]
+
 	to-local-path: func [
 		src		[red-file!]
 		out		[red-string!]
