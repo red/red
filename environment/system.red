@@ -237,7 +237,7 @@ system: context [
 	]
 	
 	options: context [
-		boot: 			#system [stack/push get-cmdline-name]
+		boot: 			none
 		home: 			none
 		path: 			what-dir
 		script: 		none

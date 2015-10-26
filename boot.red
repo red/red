@@ -25,3 +25,5 @@ Red [
 #include %environment/codecs/jpeg.red
 #include %environment/codecs/bmp.red
 #include %environment/codecs/gif.red
+
+extract-boot-args

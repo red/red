@@ -502,6 +502,20 @@ to-image: func [value][
 	]
 ]
 
+extract-boot-args: function [][
+	args: system/options/args
+	pos: find args get pick [dbl-quote space] args/1 = dbl-quote
+	
+	either pos [
+		system/options/boot: copy/part args pos
+		if pos/2 = space [pos: skip pos 2]
+		remove/part args pos
+	][
+		system/options/boot: args
+		system/options/args: none
+	]
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
