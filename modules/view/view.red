@@ -121,6 +121,7 @@ face!: object [				;-- keep in sync with facet! enum
 	visible?:	yes
 	selected:	none
 	flags:		none
+	options:	none
 	parent:		none
 	pane:		none
 	state:		none		;-- [handle [integer! none!] change-array [integer!] deferred [block! none!] drag-offset [pair! none!]]
@@ -165,7 +166,7 @@ update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or 00010000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00020000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]
@@ -287,11 +288,17 @@ system/view: context [
 		
 		;-- Dragging face handler --
 		if all [
-			object? face/actors
-			drag-evt: in face/actors 'drag-on
-			drag-evt: get drag-evt
+			block? face/options
+			drag-evt: face/options/drag-on
 		][
 			either type = drag-evt [
+				either block? flags: face/flags [
+					unless find flags 'all-over [append flags 'all-over]
+				][
+					if flags <> 'all-over [
+						face/flags: either flags [reduce [flags 'all-over]]['all-over]
+					]
+				]
 				face/state/4: event/offset
 				do-actor face event 'drag-start
 			][

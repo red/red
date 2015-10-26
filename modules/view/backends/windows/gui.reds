@@ -296,9 +296,9 @@ get-flags: func [
 	until [
 		sym: symbol/resolve word/symbol
 		case [
-			sym = all-over  [flags: flags or FACET_FLAGS_ALL_OVER]
-			sym = draggable [flags: flags or FACET_FLAGS_DRAGGABLE]
+			sym = all-over [flags: flags or FACET_FLAGS_ALL_OVER]
 			;; add other flags here
+			true [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
 		len: len - 1
@@ -976,6 +976,9 @@ OS-update-view: func [
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
 		change-selection hWnd int2/value values
+	]
+	if flags and FACET_FLAG_FLAGS <> 0 [
+		SetWindowLong as handle! hWnd wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if any [
 		flags and FACET_FLAG_DRAW  <> 0

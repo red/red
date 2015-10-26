@@ -446,8 +446,6 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
-		all?   [logic!]
-		drag?  [logic!]
 		x	   [integer!]
 		y	   [integer!]
 ][
@@ -466,10 +464,10 @@ process: func [
 			]
 			new: get-child-from-xy msg/hWnd x y
 			
-			all?:  (get-face-flags new) and FACET_FLAGS_ALL_OVER  <> 0
-			drag?: (get-face-flags new) and FACET_FLAGS_DRAGGABLE <> 0
-			
-			either all [not all? not drag? new = hover-saved][ ;-- block useless events
+			either all [
+				(get-face-flags new) and FACET_FLAGS_ALL_OVER = 0
+				new = hover-saved
+			][											;-- block useless events
 				EVT_DISPATCH
 			][
 				if hover-saved <> null [
