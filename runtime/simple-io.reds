@@ -1094,7 +1094,7 @@ simple-io: context [
 			base	[red-value!]
 			str		[red-string!]
 			pbuf	[byte-ptr!]
-			bInfo	[tagBROWSEINFO]
+			bInfo
 	][
 		#either OS = 'Windows [
 			bInfo: declare tagBROWSEINFO
