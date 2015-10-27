@@ -729,11 +729,16 @@ change-text: func [
 change-visible: func [
 	hWnd  [integer!]
 	show? [logic!]
+	type  [red-word!]
 	/local
 		value [integer!]
 ][
 	value: either show? [SW_SHOW][SW_HIDE]
 	ShowWindow as handle! hWnd value
+	if type/symbol = group-box [
+		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
+		ShowWindow as handle! hWnd value
+	]
 ]
 
 change-enable: func [
@@ -797,9 +802,6 @@ change-data: func [
 		]
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
-		]
-		type = base [									;@@ temporary used to update draw window, remove later.
-			InvalidateRect hWnd null 1
 		]
 		type = _image [
 			init-image hWnd as red-block! data as red-image! values + FACE_OBJ_IMAGE
@@ -867,7 +869,7 @@ change-parent: func [
 	unless tab-panel? [bool/value: parent <> null]
 	
 	either null? parent [
-		change-visible as-integer hWnd no
+		change-visible as-integer hWnd no as red-word! values + FACE_OBJ_TYPE
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -971,7 +973,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd bool/value
+		change-visible hWnd bool/value as red-word! values + FACE_OBJ_TYPE
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
