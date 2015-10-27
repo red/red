@@ -274,8 +274,8 @@ process-special-keys: func [
 	if (GetAsyncKeyState 10h) and 8000h <> 0 [state: state or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
 	if (GetAsyncKeyState 11h) and 8000h <> 0 [state: state or EVT_FLAG_CTRL_DOWN]  ;-- VK_CONTROL
 	if state <> 0 [
-		if flags and EVT_FLAG_CTRL_DOWN <> 0 [key: key + 64] 
-		key: key or flags
+		if state and EVT_FLAG_CTRL_DOWN <> 0 [key: key + 64] 
+		key: key or state
 	]
 	key
 ]
