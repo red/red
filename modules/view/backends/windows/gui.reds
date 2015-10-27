@@ -679,7 +679,25 @@ OS-make-view: func [
 	SetWindowLong handle wc-offset + 12 as-integer face/on-set
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
+	;-- post processing
+	if sym = base [
+		SetWindowLong handle wc-offset - 4 0
+		change-draw as-integer handle values				;-- cache draw dc
+	]
+
 	as-integer handle
+]
+
+change-draw: func [
+	hWnd	[integer!]
+	values	[red-value!]
+	/local
+		draw [red-block!]
+][
+	draw: as red-block! values + FACE_OBJ_DRAW
+	if TYPE_OF(draw) = TYPE_BLOCK [
+		do-draw as handle! hWnd null draw yes no
+	]
 ]
 
 change-size: func [
@@ -934,6 +952,7 @@ OS-update-view: func [
 		values	[red-value!]
 		state	[red-block!]
 		menu	[red-block!]
+		draw	[red-block!]
 		word	[red-word!]
 		int		[red-integer!]
 		int2	[red-integer!]
@@ -983,10 +1002,11 @@ OS-update-view: func [
 	if flags and FACET_FLAG_FLAGS <> 0 [
 		SetWindowLong as handle! hWnd wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
-	if any [
-		flags and FACET_FLAG_DRAW  <> 0
-		flags and FACET_FLAG_COLOR <> 0
-	][
+	if flags and FACET_FLAG_DRAW  <> 0 [
+		change-draw hWnd values
+		InvalidateRect as handle! hWnd null 1
+	]
+	if flags and FACET_FLAG_COLOR <> 0 [
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
@@ -1154,5 +1174,5 @@ OS-do-draw: func [
 	img		[red-image!]
 	cmds	[red-block!]
 ][
-	do-draw null img cmds
+	do-draw null img cmds no no
 ]
