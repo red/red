@@ -246,6 +246,34 @@ simple-io: context [
 				]
 			]
 		]
+
+		req-dir-callback: func [
+			hwnd	[integer!]
+			msg		[integer!]
+			lParam	[integer!]
+			lpData	[integer!]
+			return:	[integer!]
+			/local
+				method [integer!]
+		][
+			method: either lpData = dir-keep [0][1]
+			switch msg [
+				BFFM_INITIALIZED [
+					unless zero? lpData [
+						dir-inited: yes
+						SendMessage hwnd BFFM_SETSELECTION method lpData
+					]
+				]
+				BFFM_SELCHANGED [			;-- located to folder
+					if all [dir-inited not zero? lpData][
+						dir-inited: no
+						SendMessage hwnd BFFM_SETSELECTION method lpData
+					]
+				]
+				default [0]
+			]
+			0
+		]
 	][
 		#define O_RDONLY	0
 		#define O_WRONLY	1
@@ -1050,34 +1078,6 @@ simple-io: context [
 	][
 		blk: block/push-only* 1
 		blk
-	]
-
-	req-dir-callback: func [
-		hwnd	[integer!]
-		msg		[integer!]
-		lParam	[integer!]
-		lpData	[integer!]
-		return:	[integer!]
-		/local
-			method [integer!]
-	][
-		method: either lpData = dir-keep [0][1]
-		switch msg [
-			BFFM_INITIALIZED [
-				unless zero? lpData [
-					dir-inited: yes
-					SendMessage hwnd BFFM_SETSELECTION method lpData
-				]
-			]
-			BFFM_SELCHANGED [			;-- located to folder
-				if all [dir-inited not zero? lpData][
-					dir-inited: no
-					SendMessage hwnd BFFM_SETSELECTION method lpData
-				]
-			]
-			default [0]
-		]
-		0
 	]
 
 	request-dir: func [
