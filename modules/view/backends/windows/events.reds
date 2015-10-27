@@ -20,6 +20,11 @@ gui-evt/header: TYPE_EVENT
 
 oldBaseWndProc:	0
 
+flags-blk: declare red-block!							;-- static block value for event/flags
+flags-blk/header:	TYPE_BLOCK
+flags-blk/head:		0
+flags-blk/node:		alloc-cells 4
+
 get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -121,6 +126,24 @@ get-event-picked: func [
 	][
 		integer/push evt/flags and FFFFh
 	]
+]
+
+get-event-flags: func [
+	evt		[red-event!]
+	return: [red-value!]
+	/local
+		blk [red-block!]
+][
+	blk: flags-blk
+	block/rs-clear blk	
+	if evt/flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
+	if evt/flags and EVT_FLAG_DOWN		 <> 0 [block/rs-append blk as red-value! _down]
+	if evt/flags and EVT_FLAG_MID_DOWN	 <> 0 [block/rs-append blk as red-value! _mid-down]
+	if evt/flags and EVT_FLAG_ALT_DOWN	 <> 0 [block/rs-append blk as red-value! _alt-down]
+	if evt/flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
+	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
+	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
+	as red-value! blk
 ]
 
 get-event-flag: func [
@@ -271,8 +294,13 @@ process-special-keys: func [
 		state [integer!]
 ][
 	state: 0
+	if (GetAsyncKeyState 01h) and 8000h <> 0 [state: state or EVT_FLAG_DOWN]  	   ;-- VK_LBUTTON
+	if (GetAsyncKeyState 02h) and 8000h <> 0 [state: state or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
+	if (GetAsyncKeyState 04h) and 8000h <> 0 [state: state or EVT_FLAG_MID_DOWN]   ;-- VK_MBUTTON
+	if (GetAsyncKeyState 05h) and 8000h <> 0 [state: state or EVT_FLAG_AUX_DOWN]   ;-- VK_XBUTTON1
 	if (GetAsyncKeyState 10h) and 8000h <> 0 [state: state or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
 	if (GetAsyncKeyState 11h) and 8000h <> 0 [state: state or EVT_FLAG_CTRL_DOWN]  ;-- VK_CONTROL
+	
 	if state <> 0 [
 		if state and EVT_FLAG_CTRL_DOWN <> 0 [key: key + 64] 
 		key: key or state

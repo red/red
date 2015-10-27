@@ -282,7 +282,7 @@ system/view: context [
 				"event> type:"	event/type
 				"offset:"		event/offset
 				"key:"			mold event/key
-				;"face:" 		mold event/face
+				either find [key key-up] event/type [reduce ["flags:" mold event/flags]][""]
 			]
 		]
 		

@@ -184,10 +184,13 @@ system/view/platform: context [
 			all-over:		symbol/make "all-over"
 			draggable:		symbol/make "draggable"
 			
+			_control:		word/load "control"
+			_shift:			word/load "shift"
+			_away:			word/load "away"
 			_down:			word/load "down"
 			_up:			word/load "up"
-			_middle-down:	word/load "middle-down"
-			_middle-up:		word/load "middle-up"
+			_mid-down:		word/load "mid-down"
+			_mid-up:		word/load "mid-up"
 			_alt-down:		word/load "alt-down"
 			_alt-up:		word/load "alt-up"
 			_aux-down:		word/load "aux-down"
@@ -233,8 +236,8 @@ system/view/platform: context [
 				as red-value! switch evt/type [
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
-					EVT_MIDDLE_DOWN	 [_middle-down]
-					EVT_MIDDLE_UP	 [_middle-up]
+					EVT_MIDDLE_DOWN	 [_mid-down]
+					EVT_MIDDLE_UP	 [_mid-up]
 					EVT_RIGHT_DOWN	 [_alt-down]
 					EVT_RIGHT_UP	 [_alt-up]
 					EVT_AUX_DOWN	 [_aux-down]
