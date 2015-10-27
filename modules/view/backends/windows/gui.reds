@@ -672,6 +672,7 @@ OS-make-view: func [
 	]
 	
 	;-- store the face value in the extra space of the window struct
+	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
 	SetWindowLong handle wc-offset		  		   face/header
 	SetWindowLong handle wc-offset + 4  as-integer face/ctx
 	SetWindowLong handle wc-offset + 8  		   face/class
