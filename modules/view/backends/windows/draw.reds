@@ -143,6 +143,7 @@ update-modes: func [
 draw-begin: func [
 	hWnd	[handle!]
 	img		[red-image!]
+	paint?	[logic!]
 	return: [handle!]
 	/local
 		dc		 [handle!]
@@ -155,22 +156,22 @@ draw-begin: func [
 ][
 	rect: declare RECT_STRUCT
 	either null? hWnd [
-		dc: hScreen
 		width: IMAGE_WIDTH(img/size)
 		height: IMAGE_HEIGHT(img/size)
 		graphics: 0
 		GdipCreateHBITMAPFromBitmap as-integer img/node :graphics 0
 		hBitmap: as handle! graphics
+		hBackDC: CreateCompatibleDC hScreen
 	][
-		dc: BeginPaint hWnd paint
+		dc: either paint? [BeginPaint hWnd paint][GetDC hWnd]
 		GetClientRect hWnd rect
 		width: rect/right - rect/left
 		height: rect/bottom - rect/top
 		hBitmap: CreateCompatibleBitmap dc width height
+		hBackDC: CreateCompatibleDC dc
+		unless paint? [ReleaseDC hWnd dc]
 	]
-	hBackDC: CreateCompatibleDC dc
 	SelectObject hBackDC hBitmap
-	modes/saved-dc: dc
 	modes/bitmap: hBitmap
 
 	dc: hBackDC
@@ -206,20 +207,23 @@ draw-begin: func [
 ]
 
 draw-end: func [
-	dc	 [handle!]
-	hWnd [handle!]
-	img  [red-image!]
+	dc		[handle!]
+	hWnd	[handle!]
+	img		[red-image!]
+	cache?	[logic!]
+	paint?	[logic!]
 	/local
 		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		bitmap	[integer!]
+		old-dc	[integer!]
 ][
 	rect: declare RECT_STRUCT
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
-	BitBlt modes/saved-dc 0 0 width height dc 0 0 SRCCOPY
+	if paint? [BitBlt modes/saved-dc 0 0 width height dc 0 0 SRCCOPY]
 
 	if null? hWnd [
 		GdipDisposeImage as-integer img/node
@@ -234,9 +238,15 @@ draw-end: func [
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
-	DeleteDC dc
 	DeleteObject modes/bitmap
-	unless null? hWnd [EndPaint hWnd paint]
+	either cache? [
+		old-dc: GetWindowLong hWnd wc-offset - 4
+		unless zero? old-dc [DeleteDC as handle! old-dc]
+		SetWindowLong hWnd wc-offset - 4 as-integer dc
+	][
+		DeleteDC dc
+		if all [hWnd <> null paint?][EndPaint hWnd paint]
+	]
 ]
 
 to-gdiplus-color: func [

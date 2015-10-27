@@ -523,6 +523,8 @@ Red/System [
 			handle	[handle!]
 			img		[red-image!]
 			cmds	[red-block!]
+			cache?	[logic!]
+			paint?	[logic!]
 			/local
 				cmd	   [red-value!]
 				tail   [red-value!]
@@ -534,7 +536,7 @@ Red/System [
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
-			DC: draw-begin handle img
+			DC: draw-begin handle img paint?
 			
 			while [cmd < tail][
 				w: as red-word! cmd
@@ -564,7 +566,7 @@ Red/System [
 				cmd: cmd + 1
 			]
 
-			draw-end DC handle img
+			draw-end DC handle img cache? paint?
 		]
 	]
 ]

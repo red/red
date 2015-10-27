@@ -333,6 +333,38 @@ process-command-event: func [
 	]
 ]
 
+bitblt-memory-dc: func [
+	hWnd	[handle!]
+	alpha?	[logic!]
+	/local
+		rect	[RECT_STRUCT]
+		width	[integer!]
+		height	[integer!]
+		hBackDC [handle!]
+		ftn		[integer!]
+		bf		[tagBLENDFUNCTION]
+		dc		[handle!]
+][
+	dc: BeginPaint hWnd paint
+	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
+	rect: declare RECT_STRUCT
+	GetClientRect hWnd rect
+	width: rect/right - rect/left
+	height: rect/bottom - rect/top
+	either alpha? [
+		ftn: 0
+		bf: as tagBLENDFUNCTION :ftn
+		bf/BlendOp: as-byte 0
+		bf/BlendFlags: as-byte 0
+		bf/SourceConstantAlpha: as-byte 255
+		bf/AlphaFormat: as-byte 1
+		AlphaBlend dc 0 0 width height hBackDC 0 0 width height ftn
+	][
+		BitBlt dc 0 0 width height hBackDC 0 0 SRCCOPY
+	]
+	EndPaint hWnd paint
+]
+
 BaseWndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -351,7 +383,7 @@ BaseWndProc: func [
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
-				do-draw hWnd null draw
+				bitblt-memory-dc hWnd no
 				return 0
 			]
 		]
