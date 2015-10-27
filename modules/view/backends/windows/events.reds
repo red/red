@@ -174,14 +174,14 @@ make-event: func [
 			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
 			char: to-char key
 			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
-			gui-evt/flags: key
+			gui-evt/flags: process-special-keys key
 			gui-evt/type: EVT_KEY
 		]
 		EVT_KEY_UP [
 			key: msg/wParam and FFFFh
 			char: to-char msg/wParam and FFFFh
 			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
-			gui-evt/flags: key
+			gui-evt/flags: process-special-keys key
 		]
 		EVT_SELECT [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -264,6 +264,22 @@ to-char: func [
 	either res > 0 [as-integer buf/1][-1]				;-- -1: conversion failed
 ]
 
+process-special-keys: func [
+	key		[integer!]
+	return: [integer!]
+	/local
+		state [integer!]
+][
+	state: 0
+	if (GetAsyncKeyState 10h) and 8000h <> 0 [state: state or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
+	if (GetAsyncKeyState 11h) and 8000h <> 0 [state: state or EVT_FLAG_CTRL_DOWN]  ;-- VK_CONTROL
+	if state <> 0 [
+		if flags and EVT_FLAG_CTRL_DOWN <> 0 [key: key + 64] 
+		key: key or flags
+	]
+	key
+]
+
 init-current-msg: func [
 	/local
 		pos [integer!]
@@ -307,7 +323,7 @@ process-command-event: func [
 		EN_CHANGE [										;-- sent also by CreateWindow
 			unless any [
 				null? current-msg 
-				(GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT ;-- ignore CreatWindow-time events
+				(GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT ;-- ignore CreateWindow-time events
 			][
 				current-msg/hWnd: as handle! lParam		;-- force Edit handle
 				make-event current-msg -1 EVT_CHANGE

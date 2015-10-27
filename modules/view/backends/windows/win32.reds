@@ -920,6 +920,10 @@ DwmIsCompositionEnabled!: alias function! [
 			lpIconName	[c-string!]
 			return:		[handle!]
 		]
+		GetAsyncKeyState: "GetAsyncKeyState" [
+			nVirtKey	[integer!]
+			return:		[integer!]						;-- returns a 16-bit value
+		]
 	]
 	"gdi32.dll" stdcall [
 		ExtTextOut: "ExtTextOutW" [
