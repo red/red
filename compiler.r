@@ -841,6 +841,11 @@ red: context [
 		either path/1 = 'self [
 			bind? path/1
 		][
+			all [
+				1 < length? obj-stack
+				in do obj-stack path/1
+				insert path next obj-stack			;-- insert prefix into object path
+			]
 			search-obj to path! path
 		]
 	]
@@ -1192,6 +1197,8 @@ red: context [
 			]
 		]
 		pos: tail output
+		
+		if path/1 = last obj-stack [remove path]		;-- remove temp object prefix inserted by object-access?
 		
 		emit either integer? last path [
 			pick [set-int-path* eval-int-path*] set?
@@ -2674,6 +2681,7 @@ red: context [
 		]
 		emit-close-frame
 		pop-call
+		emit [stack/pop 1]
 	]
 	
 	comp-set: has [name call case?][
