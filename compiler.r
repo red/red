@@ -1647,7 +1647,7 @@ red: context [
 				emit-open-frame 'do						;-- defer it to runtime evaluation
 				emit compose [block/push get-root (blk-idx)]
 				insert-lf -2
-				emit-native 'do
+				emit-native/with 'do [-1]
 				emit-close-frame
 
 				pc: skip pc 2
