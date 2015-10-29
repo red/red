@@ -180,6 +180,7 @@ free-handles: func [
 		pane   [red-block!]
 		state  [red-value!]
 		sym	   [integer!]
+		dc	   [integer!]
 		cam	   [camera!]
 ][
 	values: get-face-values hWnd
@@ -211,6 +212,10 @@ free-handles: func [
 				teardown-graph cam
 				free-graph cam
 			]
+		]
+		sym = base [
+			dc: GetWindowLong hWnd wc-offset - 4
+			unless zero? dc [DeleteDC as handle! dc]			;-- delete cached draw dc
 		]
 		true [
 			0
@@ -668,6 +673,7 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
+		sym = base [SetWindowLong handle wc-offset - 4 0]
 		true [0]
 	]
 	
@@ -679,25 +685,7 @@ OS-make-view: func [
 	SetWindowLong handle wc-offset + 12 as-integer face/on-set
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
-	;-- post processing
-	if sym = base [
-		SetWindowLong handle wc-offset - 4 0
-		change-draw as-integer handle values				;-- cache draw dc
-	]
-
 	as-integer handle
-]
-
-change-draw: func [
-	hWnd	[integer!]
-	values	[red-value!]
-	/local
-		draw [red-block!]
-][
-	draw: as red-block! values + FACE_OBJ_DRAW
-	if TYPE_OF(draw) = TYPE_BLOCK [
-		do-draw as handle! hWnd null draw yes no
-	]
 ]
 
 change-size: func [
@@ -1007,7 +995,7 @@ OS-update-view: func [
 		SetWindowLong as handle! hWnd wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		change-draw hWnd values
+		SetWindowLong as handle! hWnd wc-offset - 4 0
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
