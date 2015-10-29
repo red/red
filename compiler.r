@@ -34,6 +34,7 @@ red: context [
 	paths-stack:   make block! 4						;-- stack of generated code for handling dual codepaths for paths
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
+	current-call:  none
 	
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
@@ -2979,6 +2980,7 @@ red: context [
 			][
 				emit-open-frame name
 			]
+			current-call: call							;-- for error reporting
 			comp-arguments spec/3 spec/2				;-- fetch arguments
 			
 			either compact? [
@@ -3648,7 +3650,7 @@ red: context [
 
 		]
 		if tail? pc [
-			pc: back pc
+			pc: any [find/reverse pc current-call back pc]
 			throw-error "missing argument"
 		]
 		
