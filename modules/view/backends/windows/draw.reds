@@ -163,13 +163,12 @@ draw-begin: func [
 		hBitmap: as handle! graphics
 		hBackDC: CreateCompatibleDC hScreen
 	][
-		dc: either paint? [BeginPaint hWnd paint][GetDC hWnd]
+		dc: either paint? [BeginPaint hWnd paint][hScreen]
 		GetClientRect hWnd rect
 		width: rect/right - rect/left
 		height: rect/bottom - rect/top
 		hBitmap: CreateCompatibleBitmap dc width height
 		hBackDC: CreateCompatibleDC dc
-		unless paint? [ReleaseDC hWnd dc]
 	]
 	SelectObject hBackDC hBitmap
 	modes/bitmap: hBitmap
@@ -223,7 +222,7 @@ draw-end: func [
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
-	if paint? [BitBlt modes/saved-dc 0 0 width height dc 0 0 SRCCOPY]
+	if paint? [BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY]
 
 	if null? hWnd [
 		GdipDisposeImage as-integer img/node
@@ -245,8 +244,8 @@ draw-end: func [
 		SetWindowLong hWnd wc-offset - 4 as-integer dc
 	][
 		DeleteDC dc
-		if all [hWnd <> null paint?][EndPaint hWnd paint]
 	]
+	if all [hWnd <> null paint?][EndPaint hWnd paint]
 ]
 
 to-gdiplus-color: func [
