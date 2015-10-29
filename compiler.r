@@ -3175,7 +3175,7 @@ red: context [
 			pc: back pc
 			comp-expression								;-- fetch a value
 		][
-			unless any [bound? deep?][
+			unless bound? [
 				emit-push-word name	original 			;-- push set-word
 			]
 		]
