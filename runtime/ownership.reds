@@ -171,6 +171,7 @@ ownership: context [
 	check: func [
 		value  [red-value!]								;-- series or object where a change occurs
 		action [red-word!]								;-- series: type of change, object: field
+		new	   [red-value!]								;-- newly inserted value or null
 		index  [integer!]								;-- start position of the change
 		part   [integer!]								;-- nb of values affected
 		/local
@@ -202,7 +203,7 @@ ownership: context [
 			parent: slot
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
-			object/fire-on-deep owner word value action index part 
+			object/fire-on-deep owner word value action new index part 
 		]
 	]
 	
@@ -215,7 +216,7 @@ ownership: context [
 	][
 		ctx: GET_CTX(owner)
 		if ctx/header and flag-owner <> 0 [				;-- test if object is an owner
-			object/fire-on-deep owner word value words/_set-path -1 -1
+			object/fire-on-deep owner word value words/_set-path null -1 -1
 		]
 	]
 	

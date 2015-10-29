@@ -152,11 +152,13 @@ update-list: func [
 	face  [red-object!]
 	value [red-value!]
 	sym   [integer!]
+	new	  [red-value!]
 	index [integer!]
 	part  [integer!]
 	drop? [logic!]										;-- TRUE: drop-list or drop-down widgets
 	/local
 		msg [integer!]
+		str [red-string!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
@@ -186,15 +188,17 @@ update-list: func [
 				][
 					;ownership/unbind-each as red-block! value index part
 					
+					str: as red-string! either null? new [
+						block/rs-abs-at as red-block! value index
+					][
+						new
+					]
 					loop part [
 						if sym <> words/_insert/symbol [
 							remove-list-item hWnd index drop?
 						]
-						insert-list-item
-							hWnd
-							as red-string! block/rs-abs-at as red-block! value index
-							index
-							drop?
+						insert-list-item hWnd str index drop?
+						str: str + 1
 					]
 				]
 				true [0]

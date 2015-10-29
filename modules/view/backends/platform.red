@@ -274,10 +274,11 @@ system/view/platform: context [
 		word   [word!]
 		value  [any-type!]
 		action [word!]
+		new	   [any-type!]
 		index  [integer!]
 		part   [integer!]
 	][
-		gui/OS-update-facet owner word value action index part
+		gui/OS-update-facet owner word value action new index part
 	]
 	
 	update-font: routine [font [object!] flag [integer!]][

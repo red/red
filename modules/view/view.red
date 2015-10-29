@@ -14,7 +14,7 @@ Red [
 	#include %../../runtime/datatypes/event.reds
 ]
 
-on-face-deep-change*: function [owner word target action index part state forced?][
+on-face-deep-change*: function [owner word target action new index part state forced?][
 	if system/view/debug? [
 		print [
 			"-- on-deep-change event --" 		 lf
@@ -22,6 +22,7 @@ on-face-deep-change*: function [owner word target action index part state forced
 			tab "action     :" action			 lf
 			tab "word       :" word				 lf
 			tab "target type:" mold type? target lf
+			tab "new value  :" mold type? new	 lf
 			tab "index      :" index			 lf
 			tab "part       :" part				 lf
 			tab "forced?    :" forced?
@@ -78,12 +79,12 @@ on-face-deep-change*: function [owner word target action index part state forced
 							]
 						]
 						unless forced? [show owner]
-						system/view/platform/on-change-facet owner word target action index part
+						system/view/platform/on-change-facet owner word target action new index part
 					]
 				]
 			][
 				if owner/type <> 'screen [
-					system/view/platform/on-change-facet owner word target action index part
+					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
 		][
@@ -91,8 +92,8 @@ on-face-deep-change*: function [owner word target action index part state forced
 				if find [clear remove take] action [
 					target: copy/part target part
 				]
-				reduce/into 
-					[owner word target action index part state]
+				reduce/into
+					[owner word target action new index part state]
 					tail any [state/3 state/3: make block! 28] ;-- 7 slots * 4
 			]
 		]
@@ -157,8 +158,8 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 	]
 	
-	on-deep-change*: function [owner word target action index part][
-		on-face-deep-change* owner word target action index part state no
+	on-deep-change*: function [owner word target action new index part][
+		on-face-deep-change* owner word target action new index part state no
 	]
 ]
 
@@ -205,7 +206,7 @@ font!: object [				;-- keep in sync with font-facet! enum
 		]
 	]
 	
-	on-deep-change*: function [owner word target action index part][
+	on-deep-change*: function [owner word target action new index part][
 		if all [
 			state
 			word <> 'state
@@ -384,8 +385,8 @@ show: function [
 		pending: face/state/3
 		
 		if all [pending not empty? pending][
-			foreach [owner word target action index part state] pending [
-				on-face-deep-change* owner word target action index part state yes
+			foreach [owner word target action new index part state] pending [
+				on-face-deep-change* owner word target action new index part state yes
 			]
 			clear pending
 		]

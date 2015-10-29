@@ -188,8 +188,12 @@ update-tabs: func [
 	face  [red-object!]
 	value [red-value!]
 	sym   [integer!]
+	new	  [red-value!]
 	index [integer!]
 	part  [integer!]
+	/local
+		hWnd [handle!]
+		str  [red-string!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
@@ -211,15 +215,18 @@ update-tabs: func [
 					sym = words/_poke/symbol
 					sym = words/_put/symbol
 				][
+					str: as red-string! either null? new [
+						block/rs-abs-at as red-block! value index
+					][
+						new
+					]
 					loop part [
 						if sym <> words/_insert/symbol [
 							;ownership/unbind-each as red-block! value index part
 							SendMessage hWnd TCM_DELETEITEM index 0
 						]
-						insert-tab
-							hWnd
-							as red-string! block/rs-abs-at as red-block! value index
-							index
+						insert-tab hWnd str index
+						str: str + 1
 					]
 				]
 				true [0]

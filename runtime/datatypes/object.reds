@@ -284,6 +284,7 @@ object: context [
 		word   [red-word!]
 		target [red-value!]
 		action [red-word!]
+		new	   [red-value!]
 		pos	   [integer!]
 		nb	   [integer!]
 		/local
@@ -303,6 +304,8 @@ object: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		index: int/value >> 16
 		count: int/value and FFFFh
+		
+		if null? new [new: as red-value! none-value]
 
 		ctx: GET_CTX(owner) 
 		s: as series! ctx/values/value
@@ -314,6 +317,7 @@ object: context [
 		stack/push as red-value! word
 		stack/push target
 		stack/push as red-value! action
+		stack/push new
 		integer/push pos
 		integer/push nb
 		if positive? count [_function/init-locals count]

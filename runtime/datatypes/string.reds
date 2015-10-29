@@ -1731,7 +1731,7 @@ string: context [
 		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
 		_sort/qsort buffer len unit * step op flags cmp
-		ownership/check as red-value! str words/_sort str/head 0
+		ownership/check as red-value! str words/_sort null str/head 0
 		str
 	]
 
@@ -1855,7 +1855,7 @@ string: context [
 			cnt: cnt - 1
 		]
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
-		ownership/check as red-value! str words/_insert index part
+		ownership/check as red-value! str words/_insert value index part
 		
 		unless append? [
 			added: added * dup-n
@@ -1896,8 +1896,8 @@ string: context [
 		char2: get-char head2 unit2
 		poke-char s1 head1 char2
 		poke-char s2 head2 char1
-		ownership/check as red-value! str1 words/_swap str1/head 1
-		ownership/check as red-value! str2 words/_swap str2/head 1
+		ownership/check as red-value! str1 words/_swap null str1/head 1
+		ownership/check as red-value! str2 words/_swap null str2/head 1
 		str1
 	]
 
@@ -2118,7 +2118,7 @@ string: context [
 			not OPTION?(part-arg)
 			1 = _series/get-length as red-series! str yes
 		][
-			ownership/check as red-value! str words/_take str/head 1
+			ownership/check as red-value! str words/_take null str/head 1
 			unit: GET_UNIT(s)
 			either TYPE_OF(str) = TYPE_VECTOR [
 				vec: as red-vector! str
@@ -2128,7 +2128,7 @@ string: context [
 				char/header: TYPE_CHAR
 				char/value:  string/get-char as byte-ptr! s/offset unit
 			]
-			ownership/check as red-value! str words/_taken str/head 0
+			ownership/check as red-value! str words/_taken null str/head 0
 		]
 		as red-value! str
 	]
@@ -2151,7 +2151,7 @@ string: context [
 			lines? [trim-lines str]
 			true  [trim-head-tail str head? tail?]
 		]
-		ownership/check as red-value! str words/_trim str/head 0
+		ownership/check as red-value! str words/_trim null str/head 0
 		as red-series! str
 	]
 

@@ -850,11 +850,15 @@ change-data: func [
 change-faces-parent: func [
 	pane   [red-block!]
 	parent [red-object!]
+	new	   [red-value!]
 	index  [integer!]
 	part   [integer!]
+	/local
+		face [red-object!]
+		tail [red-object!]
 ][
 	assert TYPE_OF(pane) = TYPE_BLOCK
-	face: as red-object! block/rs-abs-at pane index
+	face: as red-object! either null? new [block/rs-abs-at pane index][new]
 	tail: face + part
 	assert tail <= as red-object! block/rs-tail pane
 	
@@ -1051,6 +1055,7 @@ OS-update-facet: func [
 	facet  [red-word!]
 	value  [red-value!]
 	action [red-word!]
+	new	   [red-value!]
 	index  [integer!]
 	part   [integer!]
 	/local
@@ -1070,14 +1075,14 @@ OS-update-facet: func [
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					change-faces-parent as red-block! value null index part
+					change-faces-parent as red-block! value null new index part
 				]
 				any [
 					sym = words/_insert/symbol
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
 				][
-					change-faces-parent as red-block! value face index part
+					change-faces-parent as red-block! value face new index part
 				]
 				true [0]
 			]
@@ -1088,7 +1093,7 @@ OS-update-facet: func [
 			sym: action/symbol
 			case [
 				type = text-list [
-					update-list face value sym index part no
+					update-list face value sym new index part no
 				]
 				any [
 					type = drop-list
@@ -1104,10 +1109,10 @@ OS-update-facet: func [
 					part:   part / 2
 					if zero? part [exit]
 					
-					update-list face value sym index part yes
+					update-list face value sym new index part yes
 				]
 				type = tab-panel [
-					update-tabs	face value sym index part
+					update-tabs	face value sym new index part
 				]
 				true [OS-update-view face]
 			]

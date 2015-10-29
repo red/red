@@ -137,7 +137,7 @@ _series: context [
 				]
 				stack/pop 1
 			]
-			ownership/check as red-value! ser words/_random ser/head len
+			ownership/check as red-value! ser words/_random null ser/head len
 		]
 		as red-value! ser
 	]
@@ -369,9 +369,9 @@ _series: context [
 
 		s: GET_BUFFER(ser)
 		size: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - ser/head
-		ownership/check as red-value! ser words/_clear ser/head size
+		ownership/check as red-value! ser words/_clear null ser/head size
 		s/tail: as cell! (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s)))
-		ownership/check as red-value! ser words/_cleared ser/head 0
+		ownership/check as red-value! ser words/_cleared null ser/head 0
 		as red-value! ser
 	]
 
@@ -434,7 +434,7 @@ _series: context [
 			]
 			stack/set-last data
 		]
-		ownership/check as red-value! ser words/_poke offset 1
+		ownership/check as red-value! ser words/_poke data offset 1
 		data
 	]
 
@@ -481,7 +481,7 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
-		ownership/check as red-value! ser words/_remove ser/head items
+		ownership/check as red-value! ser words/_remove null ser/head items
 		
 		either head + part < tail [
 			move-memory
@@ -498,7 +498,7 @@ _series: context [
 		][
 			s/tail: as red-value! head
 		]
-		ownership/check as red-value! ser words/_removed ser/head 0
+		ownership/check as red-value! ser words/_removed null ser/head 0
 		ser
 	]
 
@@ -571,7 +571,7 @@ _series: context [
 			tail: tail - unit
 		]
 		stack/pop 1
-		ownership/check as red-value! ser words/_reverse ser/head items
+		ownership/check as red-value! ser words/_reverse null ser/head items
 		ser
 	]
 
@@ -636,7 +636,7 @@ _series: context [
 		ser2/node:  node
 		ser2/head:  0
 		
-		ownership/check as red-value! ser words/_take ser/head part
+		ownership/check as red-value! ser words/_take null ser/head part
 
 		either positive? part [
 			tail: as byte-ptr! s/tail
@@ -667,7 +667,7 @@ _series: context [
 			]
 		][return as red-value! ser2]
 		
-		ownership/check as red-value! ser words/_taken ser/head 0
+		ownership/check as red-value! ser words/_taken null ser/head 0
 		as red-value! ser2
 	]
 
@@ -699,8 +699,8 @@ _series: context [
 		char2: string/get-char head2 unit2
 		string/poke-char s1 head1 char2
 		string/poke-char s2 head2 char1
-		;ownership/check as red-value! ser1 words/_remove offset part
-		;ownership/check as red-value! ser2 words/_remove offset part
+		;ownership/check as red-value! ser1 words/_remove null offset part
+		;ownership/check as red-value! ser2 words/_remove null offset part
 		ser1
 	]
 

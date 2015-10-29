@@ -1129,7 +1129,6 @@ case-folding: context [
 		op		 [integer!]
 		flags	 [integer!]
 		return:  [integer!]
-
 	][
 		p1/value - p2/value
 	]
@@ -1283,7 +1282,7 @@ case-folding: context [
 				p: p + unit
 			]
 			w: either upper? [words/_uppercase][words/_lowercase]
-			ownership/check as red-value! str w str/head len
+			ownership/check as red-value! str w null str/head len
 		]
 		arg
 	]
