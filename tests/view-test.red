@@ -255,6 +255,7 @@ button/font: make font! [
 	size: 16
 	style: [bold italic underline strike]
 	anti-alias?: yes
+	color: red
 ]
 
 font-A: make font! [
@@ -620,6 +621,10 @@ win/pane: reduce [
 				unview/all
 			]
 		]
+	]
+	make face! [
+		type: 'button offset: 570x440 size: 38x38
+		image: smiley
 	]
 	canvas: make face! [
 		type: 'base text: "canvas" offset: 10x460 size: 300x200 color: silver

@@ -21,6 +21,7 @@ Red/System [
 #include %panel.reds
 #include %tab-panel.reds
 #include %text-list.reds
+#include %button.reds
 #include %draw.reds
 
 hScreen:		as handle! 0
@@ -627,6 +628,7 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
+		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]
 		sym = _image	[init-image handle data img]

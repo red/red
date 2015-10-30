@@ -259,7 +259,8 @@ to-gdiplus-color: func [
 	red: color and FFh << 16
 	green: color and 0000FF00h
 	blue: color >> 16 and FFh
-	red or green or blue or FF000000h
+	color: color and FF000000h
+	red or green or blue or color
 ]
 
 OS-draw-anti-alias: func [
