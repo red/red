@@ -259,8 +259,7 @@ to-gdiplus-color: func [
 	red: color and FFh << 16
 	green: color and 0000FF00h
 	blue: color >> 16 and FFh
-	color: color and FF000000h
-	red or green or blue or color
+	red or green or blue or FF000000h
 ]
 
 OS-draw-anti-alias: func [
@@ -311,8 +310,10 @@ OS-draw-pen: func [
 	dc	  [handle!]
 	color [integer!]									;-- 00bbggrr format
 ][
-	modes/pen-color: color
-	update-modes dc
+	if modes/pen-color <> color [
+		modes/pen-color: color
+		update-modes dc
+	]
 ]
 
 OS-draw-fill-pen: func [
@@ -320,16 +321,21 @@ OS-draw-fill-pen: func [
 	color [integer!]									;-- 00bbggrr format
 	off?  [logic!]
 ][
-	modes/brush-color: either off? [-1][color]
-	update-modes dc
+	color: either off? [-1][color]
+	if modes/brush-color <> color [
+		modes/brush-color: color
+		update-modes dc
+	]
 ]
 
 OS-draw-line-width: func [
 	dc	  [handle!]
 	width [integer!]
 ][
-	modes/pen-width: width
-	update-modes dc
+	if modes/pen-width <> width [
+		modes/pen-width: width
+		update-modes dc
+	]
 ]
 
 gdiplus-roundrect-path: func [
