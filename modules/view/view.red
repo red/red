@@ -321,8 +321,8 @@ system/view: context [
 						alt-up	alt-down
 						aux-up	aux-down
 					] type [
-						face/state/4: none
 						do-actor face event 'drop
+						face/state/4: none
 					]
 				]
 			]

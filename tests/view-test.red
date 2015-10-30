@@ -721,16 +721,10 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	dropped: make face! [
 		type: 'base text: "Drop here" offset: 630x540 size: 80x80
 		color: silver
 		draw: [font font-A text 35x50 "0"]
-		actors: object [
-			on-drop: func [face [object!] event [event!]][
-				print "received"
-				;unless live? [show face]
-			]
-		]
 	]
 	make face! [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24
@@ -745,10 +739,16 @@ win/pane: reduce [
 			on-drag: func [face [object!] event [event!]][
 				prin dot
 			]
-			on-drop: func [face [object!] event [event!]][
+			on-drop: function [face [object!] event [event!]][
 				print "dropping"
 				;face/offset: face/offset + 4x4
-				;unless live? [show face]
+
+				pos: face/offset + face/state/4 	;-- calculate mouse position
+				if within? pos dropped/offset dropped/size [
+					face/offset: 550x540
+					dropped/draw/5: form 1 + load last dropped/draw
+					unless live? [show dropped]
+				]
 			]
 		]
 	]
