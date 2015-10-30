@@ -717,6 +717,17 @@ win/pane: reduce [
 		]
 	]
 	make face! [
+		type: 'base text: "Drop here" offset: 630x540 size: 80x80
+		color: silver
+		draw: [text 10x10 "hello"]
+		actors: object [
+			on-drop: func [face [object!] event [event!]][
+				print "received"
+				;unless live? [show face]
+			]
+		]
+	]
+	make face! [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24
 		options: [drag-on: 'down]
 		actors: object [
