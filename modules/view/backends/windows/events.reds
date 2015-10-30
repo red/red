@@ -255,26 +255,6 @@ call-custom-proc: func [
 	]
 ]
 
-paint-background: func [
-	hWnd	[handle!]
-	hDC		[handle!]
-	return: [logic!]
-	/local
-		rect   [RECT_STRUCT]
-		hBrush [handle!]
-		color  [integer!]
-][
-	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
-	if color = -1 [return false]
-
-	hBrush: CreateSolidBrush color
-	rect: declare RECT_STRUCT
-	GetClientRect hWnd rect
-	FillRect hDC rect hBrush
-	DeleteObject hBrush
-	true
-]
-
 to-char: func [
 	vkey	[integer!]
 	return:	[integer!]									;-- Unicode char
@@ -379,6 +359,82 @@ process-command-event: func [
 	]
 ]
 
+paint-background: func [
+	hWnd	[handle!]
+	hDC		[handle!]
+	return: [logic!]
+	/local
+		rect   [RECT_STRUCT]
+		hBrush [handle!]
+		color  [integer!]
+][
+	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
+	if color = -1 [return false]
+
+	hBrush: CreateSolidBrush color
+	rect: declare RECT_STRUCT
+	GetClientRect hWnd rect
+	FillRect hDC rect hBrush
+	DeleteObject hBrush
+	true
+]
+
+render-base: func [
+	hWnd	[handle!]
+	hDC		[handle!]
+	return: [logic!]
+	/local
+		values [red-value!]
+		type   [red-word!]
+		rc	   [RECT_STRUCT]
+][
+	paint-background hWnd hDC
+	values: get-face-values hWnd
+	rc: declare RECT_STRUCT
+	type: as red-word! values + FACE_OBJ_TYPE
+	if group-box <> symbol/resolve type/symbol [
+		GetClientRect hWnd rc
+		render-text values hDC rc
+	]
+	true
+]
+
+render-text: func [
+	values [red-value!]
+	hDC	   [handle!]
+	rc	   [RECT_STRUCT]
+	/local
+		text	[red-string!]
+		font	[red-object!]
+		color	[red-tuple!]
+		old		[integer!]
+][
+	text: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(text) = TYPE_STRING [
+		font: as red-object! values + FACE_OBJ_FONT
+		either TYPE_OF(font) = TYPE_OBJECT [
+			values: object/get-values font
+			color: as red-tuple! values + FONT_OBJ_COLOR
+			if all [
+				TYPE_OF(color) = TYPE_TUPLE
+				color/array1 <> 0
+			][
+				SetTextColor hDC color/array1 and 00FFFFFFh
+			]
+		][
+			SelectObject hDC GetStockObject 17			;-- select default GUI font
+		]
+		old: SetBkMode hDC 1
+		DrawText
+			hDC
+			unicode/to-utf16 text
+			-1
+			rc
+			DT_CENTER or DT_VCENTER or DT_SINGLELINE
+		SetBkMode hDC old
+	]
+]
+
 process-custom-draw: func [
 	wParam	[integer!]
 	lParam	[integer!]
@@ -477,7 +533,7 @@ BaseWndProc: func [
 		WM_ERASEBKGND [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [return 1]				;-- draw background in WM_PAINT to avoid flicker
-			if paint-background hWnd as handle! wParam [return 1]
+			if render-base hWnd as handle! wParam [return 1]
 		]
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW

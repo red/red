@@ -175,7 +175,7 @@ draw-begin: func [
 
 	dc: hBackDC
 
-	unless null? hWnd [paint-background hWnd dc]
+	unless null? hWnd [render-base hWnd dc]
 
 	SetArcDirection dc AD_CLOCKWISE
 	SetBkMode dc BK_TRANSPARENT

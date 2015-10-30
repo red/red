@@ -627,7 +627,7 @@ win/pane: reduce [
 		image: smiley
 	]
 	canvas: make face! [
-		type: 'base text: "canvas" offset: 10x460 size: 300x200 color: silver
+		type: 'base offset: 10x460 size: 300x200 color: silver
 		draw: [
 			image smiley 10x30
 
@@ -724,7 +724,7 @@ win/pane: reduce [
 	make face! [
 		type: 'base text: "Drop here" offset: 630x540 size: 80x80
 		color: silver
-		draw: [text 10x10 "hello"]
+		draw: [font font-A text 35x50 "0"]
 		actors: object [
 			on-drop: func [face [object!] event [event!]][
 				print "received"
