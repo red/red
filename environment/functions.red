@@ -502,6 +502,21 @@ to-image: func [value][
 	]
 ]
 
+within?: func [
+	"Return TRUE if the point is within the rectangle bounds"
+	point	[pair!] "XY position"
+	offset  [pair!] "Offset of area"
+	size	[pair!] "Size of area"
+	return: [logic!]
+][
+	all [
+		point/x >= offset/x
+		point/y >= offset/y
+		point/x < (offset/x + size/x)
+		point/y < (offset/y + size/y)
+	]
+]
+
 extract-boot-args: function [][
 	args: system/options/args
 	pos: find args get pick [dbl-quote space] args/1 = dbl-quote
