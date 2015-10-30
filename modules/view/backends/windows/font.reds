@@ -87,6 +87,7 @@ make-font: func [
 			sym = _italic	 [italic?: yes]
 			sym = _underline [under?:  yes]
 			sym = _strike	 [strike?: yes]
+			true			 [0]
 		]
 		style: style + 1
 	]

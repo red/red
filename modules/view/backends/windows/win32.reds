@@ -10,6 +10,30 @@ Red/System [
 	}
 ]
 
+#define GWL_STYLE				-16
+#define NM_CUSTOMDRAW			-12
+#define CDRF_DODEFAULT			0
+#define CDRF_NEWFONT			2
+#define CDRF_SKIPDEFAULT		4
+#define CDRF_DOERASE			8			;-- draw the background
+#define CDRF_SKIPPOSTPAINT		0100h		;-- don't draw the focus rect
+
+#define CDRF_NOTIFYPOSTPAINT	10h
+#define CDRF_NOTIFYITEMDRAW		20h
+
+#define CDDS_PREPAINT			1
+#define CDDS_POSTPAINT			2
+#define CDDS_PREERASE			3
+#define CDDS_POSTERASE			4
+
+#define CDIS_DISABLED			4
+
+;-- DrawText() Format Flags
+
+#define DT_CENTER				0001h
+#define DT_VCENTER				0004h
+#define DT_SINGLELINE			0020h
+
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
 #define TBM_SETRANGE		0406h
@@ -214,8 +238,10 @@ Red/System [
 #define WM_CAP_DLG_VIDEOSOURCE		042Ah
 #define WM_CAP_STOP					0444h
 
-#define BM_GETCHECK			00F0h
-#define BM_SETCHECK			00F1h
+#define BM_GETCHECK			F0h
+#define BM_SETCHECK			F1h
+#define BM_SETSTYLE			F4h
+#define BM_SETIMAGE			F7h
 
 #define BN_CLICKED 			0
 
@@ -293,6 +319,7 @@ Red/System [
 #define DC_PEN              19
 
 #define BS_SOLID			0
+#define BS_BITMAP			80h
 
 #define PS_SOLID			0
 #define PS_DASH				1							; -------
@@ -336,7 +363,13 @@ Red/System [
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
 
-#define SRCCOPY             00CC0020h
+#define SRCCOPY					00CC0020h
+
+#define ILC_COLOR24				18h
+#define ILC_COLOR32				20h
+
+#define BCM_SETIMAGELIST		1602h
+#define BCM_SETTEXTMARGIN		1604h
 
 #define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
 #define ICC_TREEVIEW_CLASSES	00000002h				;-- treeview, tooltips
@@ -368,6 +401,15 @@ Red/System [
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
 #define ETO_CLIPPED			4
+
+BUTTON_IMAGELIST: alias struct! [
+	handle		[integer!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+	align		[integer!]
+]
 
 tagPOINT: alias struct! [
 	x		[integer!]
@@ -425,6 +467,21 @@ tagBLENDFUNCTION: alias struct! [
 	BlendFlags			[byte!]
 	SourceConstantAlpha	[byte!]
 	AlphaFormat			[byte!]
+]
+
+tagNMCUSTOMDRAWINFO: alias struct! [
+	hWndFrom	[handle!]
+	idFrom		[integer!]
+	code		[integer!]
+	dwDrawStage [integer!]
+	hdc			[handle!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+	dwItemSpec	[int-ptr!];this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
+	uItemState	[integer!]
+	lItemlParam [integer!]
 ]
 
 wndproc-cb!: alias function! [
@@ -610,6 +667,14 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		DrawText: "DrawTextW" [
+			hDC			[handle!]
+			lpchText	[c-string!]
+			nCount		[integer!]
+			lpRect		[RECT_STRUCT]
+			uFormat		[integer!]
+			return:		[integer!]
+		]
 		GetDC: "GetDC" [
 			hWnd		[handle!]
 			return:		[handle!]
@@ -1450,6 +1515,12 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		ImageList_Destroy: "ImageList_Destroy" [
 			himl		[integer!]
+			return:		[integer!]
+		]
+		ImageList_Add: "ImageList_Add" [
+			himl		[integer!]
+			hbmImage	[integer!]
+			hbmMask		[integer!]
 			return:		[integer!]
 		]
 	]
