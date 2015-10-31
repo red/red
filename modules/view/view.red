@@ -303,26 +303,25 @@ system/view: context [
 				face/state/4: event/offset
 				do-actor face event 'drag-start
 			][
-				either type = 'over [
-					if all [
-						drag-offset: face/state/4
-						not event/away? 
-					][
-						new: face/offset + event/offset - drag-offset
-						if face/offset <> new [
-							face/offset: new
-							return do-actor face event 'drag ;-- avoid calling on-over actor
+				if drag-offset: face/state/4 [
+					either type = 'over [
+						unless event/away? [
+							new: face/offset + event/offset - drag-offset
+							if face/offset <> new [
+								face/offset: new
+								return do-actor face event 'drag ;-- avoid calling on-over actor
+							]
 						]
-					]
-				][
-					if drag-evt = select [
-						up		down
-						mid-up	mid-down
-						alt-up	alt-down
-						aux-up	aux-down
-					] type [
-						do-actor face event 'drop
-						face/state/4: none
+					][
+						if drag-evt = select [
+							up		down
+							mid-up	mid-down
+							alt-up	alt-down
+							aux-up	aux-down
+						] type [
+							do-actor face event 'drop
+							face/state/4: none
+						]
 					]
 				]
 			]
