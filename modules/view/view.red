@@ -128,6 +128,7 @@ face!: object [				;-- keep in sync with facet! enum
 	state:		none		;-- [handle [integer! none!] change-array [integer!] deferred [block! none!] drag-offset [pair! none!]]
 	;rate:		none		;@@ to be considered
 	edge:		none
+	para:		none
 	font:		none
 	actors:		none
 	extra:		none		;-- for storing optional user data
@@ -200,7 +201,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 
 			if all [block? state integer? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
-				update-related-faces parent 00020000h
+				update-related-faces parent 00040000h
 			]
 		]
 	]
@@ -212,7 +213,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? in self word) - 1
-			update-related-faces parent 00020000h
+			update-related-faces parent 00040000h
 		]
 	]	
 ]
@@ -236,9 +237,13 @@ para!: object [
 				tab "new  :" mold new
 			]
 		]
-		unless find [state parent] word [
-			;system/view/platform/update-para self (index? in self word) - 1
-			;update-related-faces parent ??
+		if all [
+			not find [state parent] word
+			block? parent
+		][
+			foreach f parent [
+				system/view/platform/update-para f self (index? in self word) - 1
+			]
 		]
 	]
 ]

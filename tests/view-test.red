@@ -269,6 +269,7 @@ font-A: make font! [
 win/pane: reduce [
 	make face! [
 		type: 'button text: "Hi" offset: 10x10 size: 60x40
+		para: make para! [align: 'left]
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				print "Testing error handling in awake event: 1 / 0"

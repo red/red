@@ -33,6 +33,7 @@ system/view/platform: context [
 				FACE_OBJ_STATE
 				;FACE_OBJ_RATE
 				FACE_OBJ_EDGE
+				FACE_OBJ_PARA
 				FACE_OBJ_FONT
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
@@ -58,10 +59,11 @@ system/view/platform: context [
 				FACET_FLAG_STATE:		00008000h
 				;FACET_FLAG_RATE:		
 				FACET_FLAG_EDGE:		00010000h
-				FACET_FLAG_FONT:		00020000h	;-- keep in sync with value in update-font-faces function
-				FACET_FLAG_ACTOR:		00040000h
-				FACET_FLAG_EXTRA:		00080000h
-				FACET_FLAG_DRAW:		00100000h
+				FACET_FLAG_PARA:		00020000h
+				FACET_FLAG_FONT:		00040000h	;-- keep in sync with value in update-font-faces function
+				FACET_FLAG_ACTOR:		00080000h
+				FACET_FLAG_EXTRA:		00100000h
+				FACET_FLAG_DRAW:		00200000h
 			]
 			
 			#enum flags-flag! [
@@ -79,6 +81,17 @@ system/view/platform: context [
 				FONT_OBJ_SHADOW
 				FONT_OBJ_STATE
 				FONT_OBJ_PARENT
+			]
+			
+			#enum para-facet! [
+				PARA_OBJ_ORIGIN
+				PARA_OBJ_PADDING
+				PARA_OBJ_SCROLL
+				PARA_OBJ_ALIGN
+				PARA_OBJ_V-ALIGN
+				PARA_OBJ_WRAP?
+				PARA_OBJ_STATE
+				PARA_OBJ_PARENT
 			]
 			
 			#enum event-type! [
@@ -145,6 +158,21 @@ system/view/platform: context [
 				actors:		symbol/make "actors"
 				extra:		symbol/make "extra"
 				draw:		symbol/make "draw"
+			]
+			
+			_para: context [
+				origin: 	symbol/make "origin"
+				padding:	symbol/make "padding"
+				scroll:		symbol/make "scroll"
+				align:		symbol/make "align"
+				v-align:	symbol/make "v-align"
+				wrap?:		symbol/make "wrap?"
+				left:		symbol/make "left"
+				center:		symbol/make "center"
+				right:		symbol/make "right"
+				top:		symbol/make "top"
+				middle:		symbol/make "middle"
+				bottom:		symbol/make "bottom"
 			]
 
 			screen:			symbol/make "screen"
@@ -282,6 +310,11 @@ system/view/platform: context [
 	
 	update-font: routine [font [object!] flag [integer!]][
 		gui/update-font font flag
+		SET_RETURN(none-value)
+	]
+	
+	update-para: routine [font [object!] flag [integer!]][
+		;gui/update-para font flag
 		SET_RETURN(none-value)
 	]
 	
