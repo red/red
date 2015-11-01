@@ -400,9 +400,14 @@ red: context [
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			emit case [									;-- global word
-				literal ['get-word/get]
-				any?	['word/get-any]
-				'else	[
+				all [
+					literal
+					obj = rebol-gctx
+				][
+					'get-word/get
+				]
+				any?  ['word/get-any]
+				'else [
 					emit-push-from name name 'word [get-local get]
 					exit
 				]
