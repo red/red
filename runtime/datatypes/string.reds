@@ -843,17 +843,12 @@ string: context [
 			str  [red-string!]
 	][
 		str: as red-string! either null = blk [stack/push*][ALLOC_TAIL(blk)]
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 0
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/head:	0
+		str/cache:	null
 		switch encoding [
-			UTF-8	 [
-				str/node: unicode/load-utf8 src size
-				str/cache: either size < 64 [src][null]	;-- cache only small strings
-			]
-			UTF-16LE [
-				str/node: unicode/load-utf16 src size null
-				str/cache: null
-			]
+			UTF-8	 [str/node: unicode/load-utf8 src size]
+			UTF-16LE [str/node: unicode/load-utf16 src size null]
 			default	 [
 				print "*** Loading Error: input encoding unsupported"
 				halt
