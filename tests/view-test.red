@@ -746,7 +746,7 @@ win/pane: reduce [
 				pos: face/offset + face/state/4 	;-- calculate mouse position
 				if within? pos dropped/offset dropped/size [
 					face/offset: 550x540
-					dropped/draw/5: form 1 + load last dropped/draw
+					dropped/draw/5: form 1 + to integer! dropped/draw/5
 					unless live? [show dropped]
 				]
 			]
