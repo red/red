@@ -2846,7 +2846,7 @@ red: context [
 			ctx: second obj: find objects obj
 
 			true-blk: compose/deep pick [
-				[[word/set-in-ctx (ctx) (get-word-index/with last path ctx)]]
+				[[word/set-in	  (ctx) (get-word-index/with last path ctx)]]
 				[[word/get-local  (ctx) (get-word-index/with last path ctx)]]
 			] set?
 			
