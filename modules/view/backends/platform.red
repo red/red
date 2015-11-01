@@ -77,7 +77,6 @@ system/view/platform: context [
 				FONT_OBJ_COLOR
 				FONT_OBJ_ANTI-ALIAS?
 				FONT_OBJ_SHADOW
-				FONT_OBJ_PARA
 				FONT_OBJ_STATE
 				FONT_OBJ_PARENT
 			]

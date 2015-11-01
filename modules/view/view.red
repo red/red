@@ -163,18 +163,18 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 ]
 
-update-font-faces: function [parent [block! none!]][
+update-related-faces: function [parent [block! none!] flag [integer!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or 00020000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or flag			;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]
 	]
 ]
 
-font!: object [				;-- keep in sync with font-facet! enum
+font!: object [											;-- keep in sync with font-facet! enum
 	name:		 none
 	size:		 none
 	style:		 none
@@ -182,7 +182,6 @@ font!: object [				;-- keep in sync with font-facet! enum
 	color:		 black
 	anti-alias?: none
 	shadow:		 none
-	para:		 none
 	state:		 none
 	parent:		 none
 	
@@ -201,7 +200,7 @@ font!: object [				;-- keep in sync with font-facet! enum
 
 			if all [block? state integer? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
-				update-font-faces parent
+				update-related-faces parent 00020000h
 			]
 		]
 	]
@@ -213,10 +212,35 @@ font!: object [				;-- keep in sync with font-facet! enum
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? in self word) - 1
-			update-font-faces parent
+			update-related-faces parent 00020000h
+		]
+	]	
+]
+
+para!: object [
+	origin: 	none
+	padding:	none
+	scroll:		none
+	align:		none
+	v-align:	none
+	wrap?:		no
+	state:		0
+	parent:		none
+	
+	on-change*: function [word old new][
+		if system/view/debug? [
+			print [
+				"-- para on-change event --" lf
+				tab "word :" word			 lf
+				tab "old  :" mold old		 lf
+				tab "new  :" mold new
+			]
+		]
+		unless find [state parent] word [
+			;system/view/platform/update-para self (index? in self word) - 1
+			;update-related-faces parent ??
 		]
 	]
-	
 ]
 
 system/view: context [
