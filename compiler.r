@@ -2922,14 +2922,14 @@ red: context [
 		]
 		mark: tail output
 		
-		either any [obj? set? get? dynamic? not parse path [some word!]][
+		;either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
 				emit-path path set? to logic! obj?
 				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
 			]
-		][
-			append/only paths-stack path				;-- defer path generation
-		]
+		;][
+		;	append/only paths-stack path				;-- defer path generation
+		;]
 		
 		if all [obj? not self?][change/only/part mark copy mark tail output]
 		unless set? [pc: next pc]
