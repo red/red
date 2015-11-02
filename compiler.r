@@ -802,6 +802,13 @@ red: context [
 		either local-word? name ['func-objs]['objects]
 	]
 	
+	find-object: func [spec [word! object!] /by-name][
+		case [
+			by-name [find/skip objects spec 6]
+			'else	[none]
+		]
+	]
+	
 	find-proto: func [obj [block!] fun [word!] /local proto o multi?][
 		if proto: obj/4 [
 			all [
@@ -834,11 +841,15 @@ red: context [
 
 		base: get-obj-base-word path/1
 		do search									;-- check if path is an absolute object path
-
 		if all [not found? 1 < length? obj-stack][
 			base: obj-stack
-			do search								;-- check if path is a relative object path
-			unless found? [return none]				;-- not an object access path
+			do search								;-- check if path is a relative object path			
+			unless all [
+				found?
+				find fpath path/1					;-- check if the start of path is in the found path (avoids false positive)
+			][
+				return none							;-- not an object access path
+			]
 		]
 		reduce [found? fpath base]
 	]
@@ -856,9 +867,16 @@ red: context [
 		]
 	]
 	
-	is-object?: func [expr][
+	is-object?: func [expr /local pos][
 		unless find [word! get-word! path!] type?/word expr [return none]
-		attempt [do join obj-stack expr]
+		any [
+			attempt [do join obj-stack expr]
+			all [
+				find [object! word!] type?/word expr
+				pos: find-object/by-name expr
+				pos/2
+			]
+		]
 	]
 	
 	obj-func-call?: func [name [any-word!] /local obj][
@@ -1596,8 +1614,9 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d
+			event pos2 loc-s loc-d shadow-path saved-pc saved set?
 	][
+		saved-pc: pc
 		either set-path? original: pc/-1 [
 			path: original
 		][
@@ -1719,12 +1738,26 @@ red: context [
 			none										;-- [idx loc idx2 loc2...] (for events)
 		]
 		on-set-info: back tail objects
-		
+
+		shadow-path: either all [
+			with
+			find [lit-word! lit-path!] type?/word saved-pc/-2
+			saved-pc/-3 = 'set
+		][
+			set?: yes
+			either lit-word? saved: saved-pc/-2 [		;-- from root level
+				to path! reduce ['objects to word! saved]
+			][
+				head insert saved 'objects
+			]
+		][
+			join obj-stack either path [to path! path][name] ;-- account for current object stack
+		]
 		either path [
-			do reduce [to set-path! join obj-stack to path! path obj] ;-- set object in shadow tree
+			do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
 		][
 			unless tail? next obj-stack [				;-- set object in shadow tree (if sub-object)
-				do reduce [to set-path! join obj-stack name obj]
+				do reduce [to set-path! shadow-path obj]
 			]
 		]
 		if body? [bind body obj]
@@ -1765,10 +1798,15 @@ red: context [
 				pc: skip pc 2
 			]
 			all [body? not empty? pc/2][
-				append obj-stack any [path name]
+				saved: copy obj-stack					;-- preserve current object stack
+				either set? [
+					obj-stack: append to path! 'objects any [path name] ;-- from root
+				][
+					append obj-stack any [path name]	;-- from current objects stack
+				]
 				pc: next pc
 				comp-next-block
-				clear skip tail obj-stack either path [negate length? path][-1]
+				obj-stack: saved						;-- restore objects stack
 			]
 			'else [
 				pc: skip pc 2
@@ -2874,7 +2912,7 @@ red: context [
 				repend last output [
 					fire
 						decorate-symbol parent
-						decorate-symbol last path
+						decorate-exec-ctx decorate-symbol last path
 				]
 				append last output [
 					stack/reset
@@ -2884,14 +2922,14 @@ red: context [
 		]
 		mark: tail output
 		
-		;either any [obj? set? get? dynamic? not parse path [some word!]][
+		either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
 				emit-path path set? to logic! obj?
 				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
 			]
-		;][
-		;	append/only paths-stack path				;-- defer path generation
-		;]
+		][
+			append/only paths-stack path				;-- defer path generation
+		]
 		
 		if all [obj? not self?][change/only/part mark copy mark tail output]
 		unless set? [pc: next pc]
@@ -3172,7 +3210,7 @@ red: context [
 			exit
 		]
 		
-		if all [word? name not path? pc/1 is-object? pc/1][
+		if all [word? name not path? pc/1 word? pc/1 is-object? pc/1][
 			register-object/store pc/1 name
 		]
 		;-- General case: emit stack-oriented construction code --
@@ -3766,7 +3804,7 @@ red: context [
 	]
 	
 	register-object: func [obj [word!] name /store /local pos prev entry][
-		if pos: find/skip objects obj 6 [
+		if pos: find-object/by-name obj [
 			;if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
 
 			insert entry: tail objects copy/part pos 6
@@ -3839,7 +3877,7 @@ red: context [
 				depth: max-depth
 				preprocess-types name spec
 
-				comp-func-body name spec body symbols locals-nb
+				comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
 			]
 		]
 		clear locals-stack
