@@ -164,11 +164,11 @@ face!: object [				;-- keep in sync with facet! enum
 	]
 ]
 
-update-related-faces: function [parent [block! none!] flag [integer!]][
+update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
-				f/state/2: f/state/2 or flag			;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
 		]
@@ -201,7 +201,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 
 			if all [block? state integer? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
-				update-related-faces parent 00040000h
+				update-font-faces parent
 			]
 		]
 	]
@@ -213,7 +213,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			not find [remove clear take] action
 		][
 			system/view/platform/update-font self (index? in self word) - 1
-			update-related-faces parent 00040000h
+			update-font-faces parent
 		]
 	]	
 ]
