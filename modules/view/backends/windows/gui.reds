@@ -283,16 +283,23 @@ get-para-flags: func [
 	align:  as red-word! values + PARA_OBJ_V-ALIGN
 	v-sym:  symbol/resolve align/symbol
 	
-	left:	0
-	center: 0
-	right:	0
-	top:	0
-	middle:	0
-	bottom:	0
+	left:	 0
+	center:  0
+	right:	 0
+	top:	 0
+	middle:	 0
+	bottom:	 0
+	default: 0
 	
 	case [
 		type = base [
-			
+			left:	0000h								;-- DT_LEFT
+			center: 0001h								;-- DT_CENTER
+			right:  0002h								;-- DT_RIGHT
+			top:	0000h								;-- DT_TOP
+			middle: 0004h								;-- DT_VCENTER
+			bottom: 0008h								;-- DT_BOTTOM
+			default: center	
 		]
 		any [
 			type = button
@@ -302,10 +309,11 @@ get-para-flags: func [
 			left:	00000100h							;-- BS_LEFT
 			center: 00000300h							;-- BS_CENTER
 			right:	00000200h							;-- BS_RIGHT
-			
 			top:	00000400h							;-- BS_TOP
 			middle: 00000C00h							;-- BS_VCENTER
 			bottom: 00000800h							;-- BS_BOTTOM
+			
+			default: either type = button [center][left]
 		]
 		any [
 			type = field
