@@ -279,6 +279,7 @@ image: context [
 			bin		[red-binary!]
 			rgb		[byte-ptr!]
 			alpha	[byte-ptr!]
+			color	[red-tuple!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "img/make"]]
 
@@ -286,8 +287,9 @@ image: context [
 		img/header: TYPE_IMAGE
 		img/head: 0
 
-		rgb: null
+		rgb:   null
 		alpha: null
+		color: null
 		switch TYPE_OF(spec) [
 			TYPE_PAIR [
 				pair: as red-pair! spec
@@ -297,7 +299,11 @@ image: context [
 				pair: as red-pair! block/rs-head blk
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
-					rgb: binary/rs-head bin
+					switch TYPE_OF(bin) [
+						TYPE_BINARY [rgb: binary/rs-head bin]
+						TYPE_TUPLE	[color: as red-tuple! bin]
+						default		[fire [TO_ERROR(script invalid-arg) bin]]
+					]
 				]
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
@@ -308,7 +314,7 @@ image: context [
 		]
 
 		img/size: pair/y << 16 or pair/x
-		img/node: as node! make-image pair/x pair/y rgb alpha
+		img/node: as node! make-image pair/x pair/y rgb alpha color
 		img
 	]
 

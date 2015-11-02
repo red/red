@@ -354,6 +354,7 @@ make-image: func [
 	height	[integer!]
 	rgb		[byte-ptr!]
 	alpha	[byte-ptr!]
+	color	[red-tuple!]
 	return: [integer!]
 	/local
 		a		[integer!]
@@ -373,21 +374,36 @@ make-image: func [
 	scan0: as int-ptr! data/scan0
 
 	y: 0
-	while [y < height][
-		x: 0
-		while [x < width][
-			pos: data/stride >> 2 * y + x + 1
-			either null? alpha [a: 255][a: as-integer alpha/1 alpha: alpha + 1]
-			either null? rgb [r: 0 g: 0 b: 0][
-				r: as-integer rgb/1
-				g: as-integer rgb/2
-				b: as-integer rgb/3
-				rgb: rgb + 3
+	either null? color [
+		while [y < height][
+			x: 0
+			while [x < width][
+				pos: data/stride >> 2 * y + x + 1
+				either null? alpha [a: 255][a: as-integer alpha/1 alpha: alpha + 1]
+				either null? rgb [r: 0 g: 0 b: 0][
+					r: as-integer rgb/1
+					g: as-integer rgb/2
+					b: as-integer rgb/3
+					rgb: rgb + 3
+				]
+				scan0/pos: r << 16 or (g << 8) or b or (a << 24)
+				x: x + 1
 			]
-			scan0/pos: r << 16 or (g << 8) or b or (a << 24)
-			x: x + 1
+			y: y + 1
 		]
-		y: y + 1
+	][
+		a: color/array1
+		if TUPLE_SIZE(color) = 3 [a: a or FF000000h]
+		a: a >> 16 and FFh or (a and FF00h) or (a and FFh << 16) or (a and FF000000h)
+		while [y < height][
+			x: 0
+			while [x < width][
+				pos: data/stride >> 2 * y + x + 1
+				scan0/pos: a
+				x: x + 1
+			]
+			y: y + 1
+		]
 	]
 
 	unlock-bitmap bitmap as-integer data
