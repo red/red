@@ -268,6 +268,8 @@ get-para-flags: func [
 	/local
 		values  [red-value!]
 		align   [red-word!]
+		bool	[red-logic!]
+		wrap?	[logic!]
 		flags   [integer!]
 		left    [integer!]
 		center  [integer!]
@@ -282,6 +284,12 @@ get-para-flags: func [
 	h-sym:  symbol/resolve align/symbol
 	align:  as red-word! values + PARA_OBJ_V-ALIGN
 	v-sym:  symbol/resolve align/symbol
+	bool:   as red-logic! values + PARA_OBJ_WRAP?
+	
+	wrap?:	any [
+		TYPE_OF(bool) = TYPE_NONE
+		all [TYPE_OF(bool) = TYPE_LOGIC not bool/value]
+	]
 	
 	left:	 0
 	center:  0
@@ -290,6 +298,7 @@ get-para-flags: func [
 	middle:	 0
 	bottom:	 0
 	default: 0
+	flags:	 0
 	
 	case [
 		type = base [
@@ -299,7 +308,9 @@ get-para-flags: func [
 			top:	0000h								;-- DT_TOP
 			middle: 0004h								;-- DT_VCENTER
 			bottom: 0008h								;-- DT_BOTTOM
-			default: center	
+			default: center
+			
+			unless wrap? [flags: 00000020h]				;-- DT_SINGLELINE
 		]
 		any [
 			type = button
@@ -324,16 +335,18 @@ get-para-flags: func [
 			center: 0001h								;-- ES_CENTER / SS_CENTER
 			right:  0002h								;-- ES_RIGHT / SS_RIGHT
 			default: left
+			
+			if all [not wrap? type = text][
+				flags: 00004000h						;-- SS_ENDELLIPSIS
+			]
 		]
-		type = drop-down [
-		
-		]
+		true [0]
 	]
 	case [
-		h-sym = _para/left	 [flags: left]
-		h-sym = _para/center [flags: center]
-		h-sym = _para/right	 [flags: right]
-		true				 [flags: default]
+		h-sym = _para/left	 [flags: flags or left]
+		h-sym = _para/center [flags: flags or center]
+		h-sym = _para/right	 [flags: flags or right]
+		true				 [flags: flags or default]
 	]
 	case [
 		v-sym = _para/top	 [flags: flags or top]

@@ -313,6 +313,7 @@ win/pane: reduce [
 	make face! [
 		type: 'check text: "Big/small font" offset: 300x300 size: 80x24
 		data: yes
+		para: make para! [wrap?: yes]
 		actors: object [
 			on-change: func [face [object!] event [event!]][
 				button/font/size: pick [12 20] face/data
