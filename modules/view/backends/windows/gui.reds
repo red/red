@@ -261,6 +261,89 @@ init: func [
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
+get-para-flags: func [
+	type	[integer!]
+	para	[red-object!]
+	return: [integer!]
+	/local
+		values  [red-value!]
+		align   [red-word!]
+		flags   [integer!]
+		left    [integer!]
+		center  [integer!]
+		right   [integer!]
+		top	    [integer!]
+		middle  [integer!]
+		bottom  [integer!]
+		default [integer!]
+][
+	values: object/get-values para
+	align:  as red-word! values + PARA_OBJ_ALIGN
+	h-sym:  symbol/resolve align/symbol
+	align:  as red-word! values + PARA_OBJ_V-ALIGN
+	v-sym:  symbol/resolve align/symbol
+	
+	left:	 0
+	center:  0
+	right:	 0
+	top:	 0
+	middle:	 0
+	bottom:	 0
+	default: 0
+	
+	case [
+		type = base [
+			left:	0000h								;-- DT_LEFT
+			center: 0001h								;-- DT_CENTER
+			right:  0002h								;-- DT_RIGHT
+			top:	0000h								;-- DT_TOP
+			middle: 0004h								;-- DT_VCENTER
+			bottom: 0008h								;-- DT_BOTTOM
+			default: center	
+		]
+		any [
+			type = button
+			type = check
+			type = radio
+		][
+			left:	00000100h							;-- BS_LEFT
+			center: 00000300h							;-- BS_CENTER
+			right:	00000200h							;-- BS_RIGHT
+			top:	00000400h							;-- BS_TOP
+			middle: 00000C00h							;-- BS_VCENTER
+			bottom: 00000800h							;-- BS_BOTTOM
+			
+			default: either type = button [center][left]
+		]
+		any [
+			type = field
+			type = area
+			type = text
+		][
+			left:	0000h								;-- ES_LEFT / SS_LEFT
+			center: 0001h								;-- ES_CENTER / SS_CENTER
+			right:  0002h								;-- ES_RIGHT / SS_RIGHT
+			default: left
+		]
+		type = drop-down [
+		
+		]
+	]
+	case [
+		h-sym = _para/left	 [flags: left]
+		h-sym = _para/center [flags: center]
+		h-sym = _para/right	 [flags: right]
+		true				 [flags: default]
+	]
+	case [
+		v-sym = _para/top	 [flags: flags or top]
+		v-sym = _para/middle [flags: flags or middle]
+		v-sym = _para/bottom [flags: flags or bottom]
+		true				 [0]
+	]
+	flags
+]
+
 set-logic-state: func [
 	hWnd   [handle!]
 	state  [red-logic!]
@@ -470,6 +553,7 @@ OS-make-view: func [
 		show?	  [red-logic!]
 		open?	  [red-logic!]
 		selected  [red-integer!]
+		para	  [red-object!]
 		flags	  [integer!]
 		ws-flags  [integer!]
 		sym		  [integer!]
@@ -497,6 +581,7 @@ OS-make-view: func [
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
+	para:	  as red-object!	values + FACE_OBJ_PARA
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
@@ -507,6 +592,9 @@ OS-make-view: func [
 	panel?:	  no
 
 	if show?/value [flags: flags or WS_VISIBLE]
+	if TYPE_OF(para) = TYPE_OBJECT [
+		flags: flags or get-para-flags sym para
+	]
 
 	case [
 		sym = button [

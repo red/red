@@ -13,7 +13,6 @@ Red/System [
 modes: declare struct! [
 	pen		  	[handle!]
 	brush	 	[handle!]
-	font		[handle!]
 	pen-join	[integer!]
 	pen-cap		[integer!]
 	pen-width	[integer!]
@@ -21,13 +20,10 @@ modes: declare struct! [
 	pen-color	[integer!]								;-- 00bbggrr format
 	brush-color [integer!]								;-- 00bbggrr format
 	bitmap		[handle!]
-	saved-dc	[handle!]
-	saved-pen	[handle!]
-	saved-brush [handle!]
-	saved-font	[handle!]
 	graphics	[integer!]								;-- gdiplus graphics
 	g-pen		[integer!]								;-- gdiplus pen
 	g-brush		[integer!]								;-- gdiplus brush
+	on-image?	[logic!]								;-- drawing on image?
 ]
 
 paint: declare tagPAINTSTRUCT
@@ -154,39 +150,8 @@ draw-begin: func [
 		hBackDC  [handle!]
 		graphics [integer!]
 ][
-	rect: declare RECT_STRUCT
-	either null? hWnd [
-		width: IMAGE_WIDTH(img/size)
-		height: IMAGE_HEIGHT(img/size)
-		graphics: 0
-		GdipCreateHBITMAPFromBitmap as-integer img/node :graphics 0
-		hBitmap: as handle! graphics
-		hBackDC: CreateCompatibleDC hScreen
-	][
-		dc: either paint? [BeginPaint hWnd paint][hScreen]
-		GetClientRect hWnd rect
-		width: rect/right - rect/left
-		height: rect/bottom - rect/top
-		hBitmap: CreateCompatibleBitmap dc width height
-		hBackDC: CreateCompatibleDC dc
-	]
-	SelectObject hBackDC hBitmap
-	modes/bitmap: hBitmap
-
-	dc: hBackDC
-
-	unless null? hWnd [render-base hWnd dc]
-
-	SetArcDirection dc AD_CLOCKWISE
-	SetBkMode dc BK_TRANSPARENT
-
-	modes/saved-pen:	SelectObject dc GetStockObject DC_PEN
-	modes/saved-brush:	SelectObject dc GetStockObject DC_BRUSH	
-	;modes/saved-font:	SelectObject dc GetStockObject ANSI_FIXED_FONT
-
 	modes/pen:			null
 	modes/brush:		null
-	modes/font:			null
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
 	modes/pen-color:	00FFFFFFh						;-- default: black
@@ -195,12 +160,38 @@ draw-begin: func [
 	modes/brush-color:	-1
 	modes/g-brush:		0
 	modes/g-pen:		0
+	modes/on-image?:	no
+	anti-alias?:		no
+	dc:					null
 
-	graphics: 0
-	GdipCreateFromHDC dc :graphics
+	rect: declare RECT_STRUCT
+	either null? hWnd [
+		modes/on-image?: yes
+		anti-alias?: yes
+		graphics: 0
+		image/GdipGetImageGraphicsContext as-integer img/node :graphics
+		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
+	][
+		dc: either paint? [BeginPaint hWnd paint][hScreen]
+		GetClientRect hWnd rect
+		width: rect/right - rect/left
+		height: rect/bottom - rect/top
+		hBitmap: CreateCompatibleBitmap dc width height
+		hBackDC: CreateCompatibleDC dc
+		SelectObject hBackDC hBitmap
+		modes/bitmap: hBitmap
+
+		dc: hBackDC
+
+		unless null? hWnd [render-base hWnd dc]
+
+		SetArcDirection dc AD_CLOCKWISE
+		SetBkMode dc BK_TRANSPARENT
+
+		graphics: 0
+		GdipCreateFromHDC dc :graphics	
+	]
 	modes/graphics:	graphics
-
-	anti-alias?: no
 	update-modes dc
 	dc
 ]
@@ -224,26 +215,21 @@ draw-end: func [
 	height: rect/bottom - rect/top
 	if paint? [BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY]
 
-	if null? hWnd [
-		GdipDisposeImage as-integer img/node
-		bitmap: 0
-		GdipCreateBitmapFromHBITMAP modes/bitmap 0 :bitmap
-		img/node: as node! bitmap
-	]
-
 	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
 	unless zero? modes/g-pen	[GdipDeletePen modes/g-pen]
 	unless zero? modes/g-brush	[GdipDeleteBrush modes/g-brush]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
-	DeleteObject modes/bitmap
-	either cache? [
-		old-dc: GetWindowLong hWnd wc-offset - 4
-		unless zero? old-dc [DeleteDC as handle! old-dc]
-		SetWindowLong hWnd wc-offset - 4 as-integer dc
-	][
-		DeleteDC dc
+	unless modes/on-image? [
+		DeleteObject modes/bitmap
+		either cache? [
+			old-dc: GetWindowLong hWnd wc-offset - 4
+			unless zero? old-dc [DeleteDC as handle! old-dc]
+			SetWindowLong hWnd wc-offset - 4 as-integer dc
+		][
+			DeleteDC dc
+		]
 	]
 	if all [hWnd <> null paint?][EndPaint hWnd paint]
 ]
@@ -265,13 +251,17 @@ to-gdiplus-color: func [
 OS-draw-anti-alias: func [
 	dc	 [handle!]
 	off? [logic!]
+	/local
+		on-image? [logic!]
 ][
-	if anti-alias? <> off? [
+	on-image?: modes/on-image?
+	if any [on-image? anti-alias? <> off?] [
 		anti-alias?: off?
 		either anti-alias? [
-			update-gdiplus-modes dc
+			unless on-image? [update-gdiplus-modes dc]
 			GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
 		][
+			if on-image? [anti-alias?: yes]			;-- always use GDI+ to draw on image
 			GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
 		]
 	]
@@ -388,7 +378,6 @@ OS-draw-box: func [
 	/local
 		radius [red-integer!]
 		rad	   [integer!]
-		width  [integer!]
 ][
 	either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
@@ -407,8 +396,7 @@ OS-draw-box: func [
 		]
 	][
 		either anti-alias? [
-			unless null? modes/brush [				;-- fill rect
-				width: modes/pen-width
+			unless zero? modes/g-brush [				;-- fill rect
 				GdipFillRectangleI
 					modes/graphics
 					modes/g-brush

@@ -269,6 +269,7 @@ font-A: make font! [
 win/pane: reduce [
 	make face! [
 		type: 'button text: "Hi" offset: 10x10 size: 60x40
+		para: make para! [align: 'left]
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				print "Testing error handling in awake event: 1 / 0"
@@ -724,7 +725,8 @@ win/pane: reduce [
 	dropped: make face! [
 		type: 'base text: "Drop here" offset: 630x540 size: 80x80
 		color: silver
-		draw: [font font-A text 35x50 "0"]
+		draw: [font font-A text 35x30 "0"]
+		para: make para! [v-align: 'top]
 	]
 	make face! [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24
