@@ -151,7 +151,7 @@ image: context [
 		p: as byte-ptr! s/offset
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node
+		bitmap: lock-bitmap as-integer img/node no
 		data: get-data bitmap :stride
 		y: 0
 		while [y < h][
@@ -201,7 +201,7 @@ image: context [
 		p: as byte-ptr! s/offset
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node
+		bitmap: lock-bitmap as-integer img/node yes
 		data: get-data bitmap :stride
 		y: 0
 		while [y < h][
@@ -321,7 +321,7 @@ image: context [
 		part: part - 5
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node
+		bitmap: lock-bitmap as-integer img/node no
 		data: get-data bitmap :stride
 		y: 0
 		count: 0
@@ -340,7 +340,7 @@ image: context [
 					unlock-bitmap as-integer img/node bitmap
 					return part
 				]
-				if pixel and FF000000h >> 24 <> 255 [alpha?: yes]
+				if pixel and FF000000h >>> 24 <> 255 [alpha?: yes]
 				x: x + 1
 			]
 			y: y + 1
