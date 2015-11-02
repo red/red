@@ -11,19 +11,22 @@ Red/System [
 ]
 
 modes: declare struct! [
-	pen		  	[handle!]
-	brush	 	[handle!]
-	pen-join	[integer!]
-	pen-cap		[integer!]
-	pen-width	[integer!]
-	pen-style	[integer!]
-	pen-color	[integer!]								;-- 00bbggrr format
-	brush-color [integer!]								;-- 00bbggrr format
-	bitmap		[handle!]
-	graphics	[integer!]								;-- gdiplus graphics
-	g-pen		[integer!]								;-- gdiplus pen
-	g-brush		[integer!]								;-- gdiplus brush
-	on-image?	[logic!]								;-- drawing on image?
+	pen				[handle!]
+	brush			[handle!]
+	pen-join		[integer!]
+	pen-cap			[integer!]
+	pen-width		[integer!]
+	pen-style		[integer!]
+	pen-color		[integer!]								;-- 00bbggrr format
+	brush-color		[integer!]								;-- 00bbggrr format
+	font-color		[integer!]
+	bitmap			[handle!]
+	graphics		[integer!]								;-- gdiplus graphics
+	gp-pen			[integer!]								;-- gdiplus pen
+	gp-brush		[integer!]								;-- gdiplus brush
+	gp-font			[integer!]								;-- gdiplus font
+	gp-font-brush	[integer!]
+	on-image?		[logic!]								;-- drawing on image?
 ]
 
 paint: declare tagPAINTSTRUCT
@@ -33,19 +36,39 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 
 anti-alias?: no
 
+update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
+	unless zero? modes/gp-font-brush [
+		GdipDeleteBrush modes/gp-font-brush
+		modes/gp-font-brush: 0
+	]
+	if modes/font-color <> color [
+		modes/font-color: color
+		brush: 0
+		GdipCreateSolidFill to-gdiplus-color color :brush
+		modes/gp-font-brush: brush
+	]
+]
+
+update-gdiplus-font: func [dc [handle!] /local font [integer!]][
+	font: 0
+	unless zero? modes/gp-font [GdipDeleteFont modes/gp-font]
+	res: GdipCreateFontFromDC as-integer dc :font
+	modes/gp-font: font
+]
+
 update-gdiplus-modes: func [
 	dc [handle!]
 	/local
 		handle [integer!]
 ][
-	unless zero? modes/g-pen [GdipDeletePen modes/g-pen]
+	unless zero? modes/gp-pen [GdipDeletePen modes/gp-pen]
 	handle: 0
 	GdipCreatePen1
 		to-gdiplus-color modes/pen-color
 		as float32! integer/to-float modes/pen-width
 		GDIPLUS_UNIT_WORLD
 		:handle
-	modes/g-pen: handle
+	modes/gp-pen: handle
 
 	if modes/pen-join <> -1 [
 		OS-draw-line-join dc modes/pen-join
@@ -56,13 +79,13 @@ update-gdiplus-modes: func [
 	]
 
 	handle: 0
-	unless zero? modes/g-brush [
-		GdipDeleteBrush modes/g-brush
-		modes/g-brush: 0
+	unless zero? modes/gp-brush [
+		GdipDeleteBrush modes/gp-brush
+		modes/gp-brush: 0
 	]
 	if modes/brush-color <> -1 [
 		GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
-		modes/g-brush: handle
+		modes/gp-brush: handle
 	]
 ]
 
@@ -158,8 +181,11 @@ draw-begin: func [
 	modes/pen-join:		-1
 	modes/pen-cap:		-1
 	modes/brush-color:	-1
-	modes/g-brush:		0
-	modes/g-pen:		0
+	modes/font-color:	-1
+	modes/gp-brush:		0
+	modes/gp-pen:		0
+	modes/gp-font:		0
+	modes/gp-font-brush: 0
 	modes/on-image?:	no
 	anti-alias?:		no
 	dc:					null
@@ -171,6 +197,9 @@ draw-begin: func [
 		graphics: 0
 		image/GdipGetImageGraphicsContext as-integer img/node :graphics
 		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
+		dc: CreateCompatibleDC hScreen
+		SelectObject dc default-font
+		update-gdiplus-font-color 0
 	][
 		dc: either paint? [BeginPaint hWnd paint][hScreen]
 		GetClientRect hWnd rect
@@ -193,6 +222,7 @@ draw-begin: func [
 	]
 	modes/graphics:	graphics
 	update-modes dc
+	update-gdiplus-font dc
 	dc
 ]
 
@@ -216,20 +246,20 @@ draw-end: func [
 	if paint? [BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY]
 
 	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
-	unless zero? modes/g-pen	[GdipDeletePen modes/g-pen]
-	unless zero? modes/g-brush	[GdipDeleteBrush modes/g-brush]
+	unless zero? modes/gp-pen	[GdipDeletePen modes/gp-pen]
+	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
 	unless modes/on-image? [
 		DeleteObject modes/bitmap
-		either cache? [
-			old-dc: GetWindowLong hWnd wc-offset - 4
-			unless zero? old-dc [DeleteDC as handle! old-dc]
-			SetWindowLong hWnd wc-offset - 4 as-integer dc
-		][
-			DeleteDC dc
-		]
+	]
+	either cache? [
+		old-dc: GetWindowLong hWnd wc-offset - 4
+		unless zero? old-dc [DeleteDC as handle! old-dc]
+		SetWindowLong hWnd wc-offset - 4 as-integer dc
+	][
+		DeleteDC dc
 	]
 	if all [hWnd <> null paint?][EndPaint hWnd paint]
 ]
@@ -260,9 +290,11 @@ OS-draw-anti-alias: func [
 		either anti-alias? [
 			unless on-image? [update-gdiplus-modes dc]
 			GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
+			GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
 		][
 			if on-image? [anti-alias?: yes]			;-- always use GDI+ to draw on image
 			GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
+			GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
 		]
 	]
 ]
@@ -289,7 +321,7 @@ OS-draw-line: func [
 		pair: pair + 1	
 	]
 	either anti-alias? [
-		res: GdipDrawLinesI modes/graphics modes/g-pen edges nb
+		res: GdipDrawLinesI modes/graphics modes/gp-pen edges nb
 	][
 		if null? modes/pen [OS-draw-pen dc modes/pen-color]
 		Polyline dc edges nb
@@ -365,9 +397,9 @@ gdiplus-draw-roundbox: func [
 	res: GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
 	if fill? [
-		GdipFillPath modes/graphics modes/g-brush path
+		GdipFillPath modes/graphics modes/gp-brush path
 	]
-	GdipDrawPath modes/graphics modes/g-pen path
+	GdipDrawPath modes/graphics modes/gp-pen path
 	GdipDeletePath path
 ]
 
@@ -396,10 +428,10 @@ OS-draw-box: func [
 		]
 	][
 		either anti-alias? [
-			unless zero? modes/g-brush [				;-- fill rect
+			unless zero? modes/gp-brush [				;-- fill rect
 				GdipFillRectangleI
 					modes/graphics
-					modes/g-brush
+					modes/gp-brush
 					upper/x
 					upper/y
 					lower/x - upper/x - 1
@@ -407,7 +439,7 @@ OS-draw-box: func [
 			]
 			GdipDrawRectangleI
 				modes/graphics
-				modes/g-pen
+				modes/gp-pen
 				upper/x
 				upper/y
 				lower/x - upper/x - 1
@@ -449,12 +481,12 @@ OS-draw-triangle: func [
 		if modes/brush-color <> -1 [
 			GdipFillPolygonI
 				modes/graphics
-				modes/g-brush
+				modes/gp-brush
 				edges
 				4
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics modes/g-pen edges 4
+		GdipDrawPolygonI modes/graphics modes/gp-pen edges 4
 	][
 		either modes/brush-color = -1 [
 			Polyline dc edges 4
@@ -493,12 +525,12 @@ OS-draw-polygon: func [
 		if modes/brush-color <> -1 [
 			GdipFillPolygonI
 				modes/graphics
-				modes/g-brush
+				modes/gp-brush
 				edges
 				nb + 1
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics modes/g-pen edges nb + 1
+		GdipDrawPolygonI modes/graphics modes/gp-pen edges nb + 1
 	][
 		either modes/brush-color = -1 [
 			Polyline dc edges nb + 1
@@ -519,7 +551,7 @@ do-draw-ellipse: func [
 		if modes/brush-color <> -1 [
 			GdipFillEllipseI
 				modes/graphics
-				modes/g-brush
+				modes/gp-brush
 				x
 				y
 				width - 1
@@ -527,7 +559,7 @@ do-draw-ellipse: func [
 		]
 		GdipDrawEllipseI
 			modes/graphics
-			modes/g-pen
+			modes/gp-pen
 			x
 			y
 			width - 1
@@ -586,7 +618,11 @@ OS-draw-font: func [
 	]
 
 	SelectObject dc hFont
-	SetTextColor dc either TYPE_OF(color) = TYPE_TUPLE [color/array1 and 00FFFFFFh][0]
+	if TYPE_OF(color) = TYPE_TUPLE [
+		SetTextColor dc color/array1 and 00FFFFFFh
+		if modes/on-image? [update-gdiplus-font-color color/array1]
+	]
+	if modes/on-image? [update-gdiplus-font dc]
 ]
 
 OS-draw-text: func [
@@ -596,10 +632,20 @@ OS-draw-text: func [
 	/local
 		str		[c-string!]
 		len		[integer!]
+		rect	[RECT_STRUCT_FLOAT32]
 ][
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
-	ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
+	either modes/on-image? [
+		rect: declare RECT_STRUCT_FLOAT32
+		rect/x: as float32! integer/to-float pos/x
+		rect/y: as float32! integer/to-float pos/y
+		rect/width: as float32! 0.0
+		rect/height: as float32! 0.0
+		GdipDrawString modes/graphics str len modes/gp-font rect 0 modes/gp-font-brush
+	][
+		ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
+	]
 ]
 
 OS-draw-arc: func [
@@ -640,7 +686,7 @@ OS-draw-arc: func [
 			if modes/brush-color <> -1 [
 				GdipFillPieI
 					modes/graphics
-					modes/g-brush
+					modes/gp-brush
 					center/x - rad-x - 1
 					center/y - rad-y - 1
 					rad-x << 1
@@ -650,7 +696,7 @@ OS-draw-arc: func [
 			]
 			GdipDrawPieI
 				modes/graphics
-				modes/g-pen
+				modes/gp-pen
 				center/x - rad-x - 1
 				center/y - rad-y - 1
 				rad-x << 1
@@ -660,7 +706,7 @@ OS-draw-arc: func [
 		][
 			GdipDrawArcI
 				modes/graphics
-				modes/g-pen
+				modes/gp-pen
 				center/x - rad-x - 1
 				center/y - rad-y - 1
 				rad-x << 1
@@ -769,7 +815,7 @@ OS-draw-curve: func [
 	]
 
 	either anti-alias? [
-		GdipDrawBeziersI modes/graphics modes/g-pen edges 4
+		GdipDrawBeziersI modes/graphics modes/gp-pen edges 4
 	][
 		PolyBezier dc edges 4
 	]
@@ -791,7 +837,7 @@ OS-draw-line-join: func [
 			style = bevel		[mode: GDIPLUS_BEVEL]
 			true				[mode: GDIPLUS_MITER]
 		]
-		GdipSetPenLineJoin modes/g-pen mode
+		GdipSetPenLineJoin modes/gp-pen mode
 	][
 		update-pen dc PEN_LINE_JOIN
 	]
@@ -812,8 +858,8 @@ OS-draw-line-cap: func [
 			style = _round		[mode: GDIPLUS_LINECAPROUND]
 			true				[mode: GDIPLUS_LINECAPFLAT]
 		]
-		GdipSetPenStartCap modes/g-pen mode
-		GdipSetPenEndCap modes/g-pen mode
+		GdipSetPenStartCap modes/gp-pen mode
+		GdipSetPenEndCap modes/gp-pen mode
 	][
 		update-pen dc PEN_LINE_CAP
 	]
