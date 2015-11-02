@@ -80,16 +80,18 @@ make-font: func [
 	strike?: no
 	weight:	 0
 
-	loop len [
-		sym: symbol/resolve style/symbol
-		case [
-			sym = _bold	 	 [weight:  700]
-			sym = _italic	 [italic?: yes]
-			sym = _underline [under?:  yes]
-			sym = _strike	 [strike?: yes]
-			true			 [0]
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [
+				sym = _bold	 	 [weight:  700]
+				sym = _italic	 [italic?: yes]
+				sym = _underline [under?:  yes]
+				sym = _strike	 [strike?: yes]
+				true			 [0]
+			]
+			style: style + 1
 		]
-		style: style + 1
 	]
 	
 	hFont: CreateFont

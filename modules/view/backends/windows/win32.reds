@@ -363,6 +363,9 @@ Red/System [
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
 
+#define TextRenderingHintSystemDefault		0
+#define TextRenderingHintAntiAliasGridFit	3
+
 #define SRCCOPY					00CC0020h
 
 #define ILC_COLOR24				18h
@@ -1227,6 +1230,20 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateFontFromDC: "GdipCreateFontFromDC" [
+			hdc			[integer!]
+			font		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeleteFont: "GdipDeleteFont" [
+			font		[integer!]
+			return:		[integer!]
+		]
+		GdipSetTextRenderingHint: "GdipSetTextRenderingHint" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
 			graphics	[integer!]
 			image		[integer!]
