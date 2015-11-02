@@ -233,10 +233,13 @@ height?: func [
 
 lock-bitmap: func [
 	handle		[integer!]
+	write?		[logic!]
 	return:		[integer!]
 	/local
 		rect	[RECT!]
 		data	[BitmapData!]
+		mode	[integer!]
+		res		[integer!]
 ][
 	rect: declare RECT!
 	data: as BitmapData! allocate size? BitmapData!
@@ -244,8 +247,9 @@ lock-bitmap: func [
 	rect/top: 0
 	rect/right: width? handle
 	rect/bottom: height? handle
-	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppARGB data
-	as-integer data
+	mode: either write? [ImageLockModeWrite][ImageLockModeRead]
+	res: GdipBitmapLockBits handle rect mode PixelFormat32bppARGB data
+	either zero? res [as-integer data][0]
 ]
 
 unlock-bitmap: func [
@@ -365,7 +369,7 @@ make-image: func [
 ][
 	bitmap: 0
 	GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
-	data: as BitmapData! lock-bitmap bitmap
+	data: as BitmapData! lock-bitmap bitmap yes
 	scan0: as int-ptr! data/scan0
 
 	y: 0
