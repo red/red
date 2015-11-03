@@ -162,7 +162,7 @@ system/console: context [
 		if script: read-argument [
 			script: load script
 			either any [
-				not script/1 == 'Red
+				not script: find script 'Red
 				not block? script/2 
 			][
 				print "*** Error: not a Red program!"
