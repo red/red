@@ -109,6 +109,33 @@ link-tabs-to-parent: function [face [object!]][
 	]
 ]
 
+link-sub-to-parent: function [face [object!] type [word!] old new][
+	if all [
+		object? new
+		parent: in new 'parent
+		block? get parent
+	][
+		append parent face
+		all [
+			object? old
+			parent: in new 'parent
+			block? get parent
+			remove find parent face
+		]
+	]
+]
+
+update-font-faces: function [parent [block! none!]][
+	if block? parent [
+		foreach f parent [
+			if f/state [
+				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
+				if system/view/auto-sync? [show f]
+			]
+		]
+	]
+]
+
 face!: object [				;-- keep in sync with facet! enum
 	type:		'face
 	offset:		none
@@ -150,6 +177,9 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 			if any [series? old object? old][modify old 'owned none]
 			if any [series? new object? new][modify new 'owned reduce [self word]]
+			
+			if word = 'font [link-sub-to-parent self 'font old new]
+			if word = 'para [link-sub-to-parent self 'para old new]
 
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
@@ -161,17 +191,6 @@ face!: object [				;-- keep in sync with facet! enum
 	
 	on-deep-change*: function [owner word target action new index part][
 		on-face-deep-change* owner word target action new index part state no
-	]
-]
-
-update-font-faces: function [parent [block! none!]][
-	if block? parent [
-		foreach f parent [
-			if f/state [
-				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
-				if system/view/auto-sync? [show f]
-			]
-		]
 	]
 ]
 
@@ -191,8 +210,8 @@ font!: object [											;-- keep in sync with font-facet! enum
 			print [
 				"-- font on-change event --" lf
 				tab "word :" word			 lf
-				tab "old  :" mold old		 lf
-				tab "new  :" mold new
+				tab "old  :" type? old		 lf
+				tab "new  :" type? new
 			]
 		]
 		if word <> 'state [
@@ -233,8 +252,8 @@ para!: object [
 			print [
 				"-- para on-change event --" lf
 				tab "word :" word			 lf
-				tab "old  :" mold old		 lf
-				tab "new  :" mold new
+				tab "old  :" type? old		 lf
+				tab "new  :" type? new
 			]
 		]
 		if all [
@@ -242,7 +261,8 @@ para!: object [
 			block? parent
 		][
 			foreach f parent [
-				system/view/platform/update-para f self (index? in self word) - 1
+				system/view/platform/update-para f self (index? in self word) - 1 ;-- sets f/state flag too
+				if all [f/state f/state/1 system/view/auto-sync?][show f]
 			]
 		]
 	]
@@ -428,6 +448,13 @@ show: function [
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
+			
+			if all [
+				para: face/para
+				p: in face/para parent
+			][
+				either block? p [append p face][face/para/parent: reduce [face]]
+			]
 			
 			switch face/type [
 				tab-panel [link-tabs-to-parent face]

@@ -266,8 +266,11 @@ font-A: make font! [
 	anti-alias?: yes
 ]
 
+h-modes: [left center right center]
+v-modes: [middle top middle bottom]
+
 win/pane: reduce [
-	make face! [
+	hi: make face! [
 		type: 'button text: "Hi" offset: 10x10 size: 60x40
 		para: make para! [align: 'left]
 		actors: object [
@@ -295,8 +298,14 @@ win/pane: reduce [
 				simple/color/2: random 255
 				simple/color/3: random 255
 
+				if tail? h-modes: next h-modes [h-modes: head h-modes]
+				hi/para/align: h-modes/1
+
+				if tail? v-modes: next v-modes [v-modes: head v-modes]
+				hi/para/v-align: v-modes/1
+
 				unless live? [
-					show [drop-list check-face text-list button simple tab-panel]
+					show [drop-list check-face text-list button simple tab-panel hi]
 				]
 			]
 		]
@@ -331,9 +340,10 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	edit: make face! [
 		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
+		para: make para! [align: 'left]
 		actors: object [
 			on-change: func [face [object!] event [event!]][
 				print ["field changed:" mold face/text]

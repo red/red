@@ -308,13 +308,13 @@ system/view/platform: context [
 		gui/OS-update-facet owner word value action new index part
 	]
 	
-	update-font: routine [font [object!] flag [integer!]][
-		gui/update-font font flag
+	update-font: routine [font [object!] flags [integer!]][
+		gui/update-font font flags
 		SET_RETURN(none-value)
 	]
 	
-	update-para: routine [font [object!] flag [integer!]][
-		;gui/update-para font flag
+	update-para: routine [face [object!] flags [integer!]][
+		gui/update-para face flags
 		SET_RETURN(none-value)
 	]
 	

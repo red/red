@@ -10,8 +10,10 @@ Red/System [
 	}
 ]
 
-#define GWL_STYLE				-16
 #define NM_CUSTOMDRAW			-12
+#define GWL_STYLE				-16
+#define GWL_EXSTYLE				-20
+
 #define CDRF_DODEFAULT			0
 #define CDRF_NEWFONT			2
 #define CDRF_SKIPDEFAULT		4
