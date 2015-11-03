@@ -55,7 +55,10 @@ get-event-offset: func [
 		value  [integer!]
 		msg    [tagMSG]
 ][
-	either evt/type <= EVT_OVER [
+	either any [
+		evt/type <= EVT_OVER
+		evt/type = EVT_MOVING
+	][
 		msg: as tagMSG evt/msg
 
 		offset: as red-pair! stack/push*
@@ -566,8 +569,15 @@ WndProc: func [
 		color  [integer!]
 		handle [handle!]
 		nmhdr  [tagNMHDR]
+		rc	   [RECT_STRUCT]
 ][
 	switch msg [
+		WM_MOVING [
+			current-msg/hWnd: hWnd
+			rc: as RECT_STRUCT lParam
+			current-msg/lParam: rc/top << 16 or rc/left
+			make-event current-msg 0 EVT_MOVING
+		]
 		WM_COMMAND [
 			process-command-event hWnd msg wParam lParam
 		]

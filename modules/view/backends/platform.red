@@ -113,7 +113,9 @@ system/view/platform: context [
 				EVT_SELECT
 				EVT_CHANGE
 				EVT_MENU
-				EVT_CLOSE
+				
+				EVT_CLOSE								;-- window events
+				EVT_MOVING
 			]
 			
 			#enum event-flag! [
@@ -231,6 +233,7 @@ system/view/platform: context [
 			_change:		word/load "change"
 			_menu:			word/load "menu"
 			_close:			word/load "close"
+			_move:			word/load "move"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -278,6 +281,7 @@ system/view/platform: context [
 					EVT_CHANGE		 [_change]
 					EVT_MENU		 [_menu]
 					EVT_CLOSE		 [_close]
+					EVT_MOVING		 [_move]
 				]
 			]
 
