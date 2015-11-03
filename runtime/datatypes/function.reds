@@ -547,6 +547,8 @@ _function: context [
 		
 		while [value < tail][
 			switch TYPE_OF(value) [
+				TYPE_STRING
+				TYPE_BLOCK
 				TYPE_WORD 	  [0]						;-- do nothing
 				TYPE_REFINEMENT
 				TYPE_GET_WORD
