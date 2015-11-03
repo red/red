@@ -192,37 +192,74 @@ image: context [
 			bitmap	[integer!]
 			pos		[integer!]
 			pixel	[integer!]
+			tp		[red-tuple!]
+			int		[red-integer!]
+			color	[integer!]
 			data	[int-ptr!]
+			type	[integer!]
 	][
 		w: IMAGE_WIDTH(img/size)
 		h: IMAGE_HEIGHT(img/size)
 
-		s: GET_BUFFER(bin)
-		p: as byte-ptr! s/offset
+		type: TYPE_OF(bin)
+
+		if type = TYPE_BINARY [
+			s: GET_BUFFER(bin)
+			p: as byte-ptr! s/offset
+		]
 
 		stride: 0
 		bitmap: lock-bitmap as-integer img/node yes
 		data: get-data bitmap :stride
 		y: 0
-		while [y < h][
-			x: 0
-			while [x < w][
-				pos: stride >> 2 * y + x + 1
-				pixel: data/pos
-				either alpha? [
-					pixel: pixel and 00FFFFFFh or as-integer p/1
-					p: p + 1
-				][
-					pixel: pixel and FF000000h
-							or ((as-integer p/1) << 16)
-							or ((as-integer p/2) << 8)
-							or (as-integer p/3)
-					p: p + 3
+		either type = TYPE_BINARY [
+			while [y < h][
+				x: 0
+				while [x < w][
+					pos: stride >> 2 * y + x + 1
+					pixel: data/pos
+					either alpha? [
+						pixel: pixel and 00FFFFFFh or ((as-integer p/1) << 24)
+						p: p + 1
+					][
+						pixel: pixel and FF000000h
+								or ((as-integer p/1) << 16)
+								or ((as-integer p/2) << 8)
+								or (as-integer p/3)
+						p: p + 3
+					]
+					data/pos: pixel
+					x: x + 1
 				]
-				data/pos: pixel
-				x: x + 1
+				y: y + 1
 			]
-			y: y + 1
+		][
+			either type = TYPE_TUPLE [
+				tp: as red-tuple! bin
+				color: tp/array1
+			][
+				int: as red-integer! bin
+				color: int/value
+			]
+			color: either alpha? [color << 24][
+				color: color and 00FFFFFFh
+				color >> 16 or (color and FF00h) or (color and FFh << 16)
+			]
+			while [y < h][
+				x: 0
+				while [x < w][
+					pos: stride >> 2 * y + x + 1
+					pixel: data/pos
+					pixel: either alpha? [
+						pixel and 00FFFFFFh or color
+					][
+						pixel and FF000000h or color
+					]
+					data/pos: pixel
+					x: x + 1
+				]
+				y: y + 1
+			]
 		]
 		unlock-bitmap as-integer img/node bitmap
 		ownership/check as red-value! img words/_poke as red-value! bin img/head 0
@@ -242,6 +279,7 @@ image: context [
 			bin		[red-binary!]
 			rgb		[byte-ptr!]
 			alpha	[byte-ptr!]
+			color	[red-tuple!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "img/make"]]
 
@@ -249,8 +287,9 @@ image: context [
 		img/header: TYPE_IMAGE
 		img/head: 0
 
-		rgb: null
+		rgb:   null
 		alpha: null
+		color: null
 		switch TYPE_OF(spec) [
 			TYPE_PAIR [
 				pair: as red-pair! spec
@@ -260,7 +299,11 @@ image: context [
 				pair: as red-pair! block/rs-head blk
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
-					rgb: binary/rs-head bin
+					switch TYPE_OF(bin) [
+						TYPE_BINARY [rgb: binary/rs-head bin]
+						TYPE_TUPLE	[color: as red-tuple! bin]
+						default		[fire [TO_ERROR(script invalid-arg) bin]]
+					]
 				]
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
@@ -271,7 +314,7 @@ image: context [
 		]
 
 		img/size: pair/y << 16 or pair/x
-		img/node: as node! make-image pair/x pair/y rgb alpha
+		img/node: as node! make-image pair/x pair/y rgb alpha color
 		img
 	]
 
