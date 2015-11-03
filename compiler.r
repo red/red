@@ -11,7 +11,7 @@ do-cache %system/compiler.r
 
 red: context [
 	verbose:	   0									;-- logs verbosity level
-	job: 		   none									;-- reference the current job object	
+	job: 		   none									;-- reference the current job object
 	script-name:   none
 	script-path:   none
 	script-file:   none									;-- #system metadata for R/S loader
@@ -3236,12 +3236,12 @@ red: context [
 			][
 				do take-frame
 				check-redefined name original
-				pc: next pc			
+				pc: next pc
 				defer: either proto [
 					comp-context/with/extend original proto
 				][
 					comp-context/with original
-				]				
+				]
 			]
 			all [
 				any [word? pc/1 path? pc/1]
