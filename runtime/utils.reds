@@ -23,3 +23,12 @@ get-cmdline-args: func [
 		as red-value! none-value
 	]
 ]
+
+check-arg-type: func [
+	arg		[red-value!]
+	type	[integer!]
+][
+	if TYPE_OF(arg) <> type [
+		fire [TO_ERROR(script invalid-arg) arg]
+	]
+]
