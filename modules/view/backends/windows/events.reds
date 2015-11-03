@@ -18,7 +18,8 @@ Red/System [
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
-oldBaseWndProc:	0
+oldBaseWndProc:	 0
+modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_BLOCK
@@ -58,6 +59,9 @@ get-event-offset: func [
 	either any [
 		evt/type <= EVT_OVER
 		evt/type = EVT_MOVING
+		evt/type = EVT_SIZING
+		evt/type = EVT_MOVE
+		evt/type = EVT_SIZE
 	][
 		msg: as tagMSG evt/msg
 
@@ -567,16 +571,26 @@ WndProc: func [
 	/local
 		res	   [integer!]
 		color  [integer!]
+		type   [integer!]
 		handle [handle!]
 		nmhdr  [tagNMHDR]
 		rc	   [RECT_STRUCT]
 ][
 	switch msg [
-		WM_MOVING [
+		WM_MOVING
+		WM_SIZING [
 			current-msg/hWnd: hWnd
 			rc: as RECT_STRUCT lParam
 			current-msg/lParam: rc/top << 16 or rc/left
-			make-event current-msg 0 EVT_MOVING
+			type: either msg = WM_MOVING [EVT_MOVING][EVT_SIZING]
+			modal-loop-type: type						;-- save it for WM_EXITSIZEMOVE
+			make-event current-msg 0 type
+			return 1									;-- TRUE
+		]
+		WM_EXITSIZEMOVE [
+			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
+			make-event current-msg 0 type
+			return 0
 		]
 		WM_COMMAND [
 			process-command-event hWnd msg wParam lParam

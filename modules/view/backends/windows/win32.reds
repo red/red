@@ -190,6 +190,8 @@ Red/System [
 #define SS_SIMPLE			00000000h
 
 #define WM_DESTROY			0002h
+#define WM_MOVE				0003h
+#define WM_SIZE				0005h
 #define WM_CLOSE			0010h
 #define WM_SETTEXT			000Ch
 #define WM_GETTEXT			000Dh
@@ -229,7 +231,9 @@ Red/System [
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
 #define WM_ENTERMENULOOP	0211h
+#define WM_SIZING			0214h
 #define WM_MOVING			0216h
+#define WM_EXITSIZEMOVE		0232h
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh

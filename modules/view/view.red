@@ -303,6 +303,9 @@ system/view: context [
 		menu			on-menu
 		close			on-close
 		move			on-move
+		resize			on-size
+		moving			on-moving
+		resizing		on-resizing
 	)
 	
 	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
