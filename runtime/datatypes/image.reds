@@ -297,6 +297,8 @@ image: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				pair: as red-pair! block/rs-head blk
+				check-arg-type as red-value! pair TYPE_PAIR
+
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
 					switch TYPE_OF(bin) [
@@ -307,6 +309,7 @@ image: context [
 				]
 				unless block/rs-next blk [
 					bin: as red-binary! block/rs-head blk
+					check-arg-type as red-value! bin TYPE_BINARY
 					alpha: binary/rs-head bin
 				]
 			]
