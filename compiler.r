@@ -1694,7 +1694,7 @@ red: context [
 			unless find [context object object!] pc/1 [
 				unless new: is-object? pc/2 [
 					comp-call 'make select functions 'make ;-- fallback to runtime creation
-					exit
+					return none
 				]
 				
 				ctx2: select objects new				;-- multiple inheritance case
@@ -1754,7 +1754,7 @@ red: context [
 			join obj-stack either path [to path! path][name] ;-- account for current object stack
 		]
 		either path [
-			do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
+			do reduce [to set-path! shadow-path obj] 	;-- set object in shadow tree
 		][
 			unless tail? next obj-stack [				;-- set object in shadow tree (if sub-object)
 				do reduce [to set-path! shadow-path obj]
@@ -2778,7 +2778,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field? parent fire
+			fpath symbol obj self? true-blk defer obj-field? parent fire index
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2882,10 +2882,13 @@ red: context [
 			any [self? (length? path) = length? fpath]	;-- allow only object-path/field forms
 		][
 			ctx: second obj: find objects obj
-
+			unless index: get-word-index/with last path ctx [
+				throw-error ["word" last path "not defined in" path]
+			]
+			
 			true-blk: compose/deep pick [
-				[[word/set-in	  (ctx) (get-word-index/with last path ctx)]]
-				[[word/get-local  (ctx) (get-word-index/with last path ctx)]]
+				[[word/set-in	 (ctx) (index)]]
+				[[word/get-local (ctx) (index)]]
 			] set?
 			
 			either self? [
@@ -3233,12 +3236,12 @@ red: context [
 			][
 				do take-frame
 				check-redefined name original
-				pc: next pc
+				pc: next pc			
 				defer: either proto [
 					comp-context/with/extend original proto
 				][
 					comp-context/with original
-				]
+				]				
 			]
 			all [
 				any [word? pc/1 path? pc/1]
