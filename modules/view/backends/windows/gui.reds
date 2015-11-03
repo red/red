@@ -945,6 +945,30 @@ update-z-order: func [
 	unless sub? [EndDeferWindowPos hdwp]
 ]
 
+unlink-sub-obj: func [
+	face  [red-object!]
+	obj   [red-object!]
+	field [integer!]
+	/local
+		values [red-value!]
+		parent [red-block!]
+		res	   [red-value!]
+][
+	values: object/get-values obj
+	parent: as red-block! values + field
+	
+	if TYPE_OF(parent) = TYPE_BLOCK [
+		res: block/find parent as red-value! face null no no no null null no no no no
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if all [
+			field = FONT_OBJ_PARENT
+			block/rs-tail? parent
+		][
+			free-font obj
+		]
+	]
+]
+
 OS-update-view: func [
 	face [red-object!]
 	/local
@@ -1039,13 +1063,18 @@ OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 	/local
-		screen [red-object!]
-		font   [red-object!]
-		pane   [red-block!]
+		values [red-value!]
+		obj	   [red-object!]
 ][
 	free-handles get-face-handle face
-	font: as red-object! get-node-facet face/ctx FACE_OBJ_FONT
-	if TYPE_OF(font) = TYPE_OBJECT [unlink-font face font]
+	values: object/get-values face
+	
+	obj: as red-object! values + FACE_OBJ_FONT
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+	
+	obj: as red-object! values + FACE_OBJ_PARA
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+	
 	if empty? [clean-up PostQuitMessage 0]
 ]
 

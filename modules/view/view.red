@@ -244,7 +244,6 @@ para!: object [
 	align:		none
 	v-align:	none
 	wrap?:		no
-	state:		0
 	parent:		none
 	
 	on-change*: function [word old new][
@@ -261,7 +260,7 @@ para!: object [
 			block? parent
 		][
 			foreach f parent [
-				system/view/platform/update-para f self (index? in self word) - 1 ;-- sets f/state flag too
+				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1 system/view/auto-sync?][show f]
 			]
 		]

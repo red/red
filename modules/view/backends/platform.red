@@ -90,7 +90,6 @@ system/view/platform: context [
 				PARA_OBJ_ALIGN
 				PARA_OBJ_V-ALIGN
 				PARA_OBJ_WRAP?
-				PARA_OBJ_STATE
 				PARA_OBJ_PARENT
 			]
 			
