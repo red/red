@@ -110,6 +110,12 @@ system/view/platform: context [
 				EVT_KEY_DOWN
 				EVT_KEY_UP
 				
+				EVT_ZOOM
+				EVT_PAN
+				EVT_ROTATE
+				EVT_TWO_TAP
+				EVT_PRESS_TAP
+				
 				EVT_SELECT
 				EVT_CHANGE
 				EVT_MENU
@@ -240,6 +246,11 @@ system/view/platform: context [
 			_resize:		word/load "resize"
 			_moving:		word/load "moving"
 			_resizing:		word/load "resizing"
+			_zoom:			word/load "zoom"
+			_pan:			word/load "pan"
+			_rotate:		word/load "rotate"
+			_two-tap:		word/load "two-tap"
+			_press-tap:		word/load "press-tap"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -291,6 +302,11 @@ system/view/platform: context [
 					EVT_SIZE		 [_resize]
 					EVT_MOVING		 [_moving]
 					EVT_SIZING		 [_resizing]
+					EVT_ZOOM		 [_zoom]
+					EVT_PAN			 [_pan]
+					EVT_ROTATE		 [_rotate]
+					EVT_TWO_TAP		 [_two-tap]
+					EVT_PRESS_TAP	 [_press-tap]
 				]
 			]
 

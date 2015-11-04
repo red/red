@@ -306,6 +306,11 @@ system/view: context [
 		resize			on-size
 		moving			on-moving
 		resizing		on-resizing
+		zoom			on-zoom
+		pan				on-pan
+		rotate			on-rotate
+		two-tap			on-two-tap
+		press-tap		on-press-tap
 	)
 	
 	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented

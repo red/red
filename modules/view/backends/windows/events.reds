@@ -55,25 +55,45 @@ get-event-offset: func [
 		offset [red-pair!]
 		value  [integer!]
 		msg    [tagMSG]
+		gi	   [GESTUREINFO]
 ][
-	either any [
-		evt/type <= EVT_OVER
-		evt/type = EVT_MOVING
-		evt/type = EVT_SIZING
-		evt/type = EVT_MOVE
-		evt/type = EVT_SIZE
-	][
-		msg: as tagMSG evt/msg
+	case [
+		any [
+			evt/type <= EVT_OVER
+			evt/type = EVT_MOVING
+			evt/type = EVT_SIZING
+			evt/type = EVT_MOVE
+			evt/type = EVT_SIZE
+		][
+			msg: as tagMSG evt/msg
 
-		offset: as red-pair! stack/push*
-		offset/header: TYPE_PAIR
-		value: msg/lParam
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			value: msg/lParam
 
-		offset/x: WIN32_LOWORD(value)
-		offset/y: WIN32_HIWORD(value)
-		as red-value! offset
-	][
-		as red-value! none-value
+			offset/x: WIN32_LOWORD(value)
+			offset/y: WIN32_HIWORD(value)
+			as red-value! offset
+		]
+		any [
+			evt/type = EVT_ZOOM
+			evt/type = EVT_PAN
+			evt/type = EVT_ROTATE
+			evt/type = EVT_TWO_TAP
+			evt/type = EVT_PRESS_TAP
+		][
+			msg: as tagMSG evt/msg
+			gi: get-gesture-info msg/lParam
+			
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+			value: gi/ptsLocation						;-- coordinates of center point		
+
+			offset/x: WIN32_LOWORD(value)
+			offset/y: WIN32_HIWORD(value)
+			as red-value! offset
+		]
+		true [as red-value! none-value]
 	]
 ]
 
@@ -126,11 +146,26 @@ get-event-key: func [
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
+	/local
+		int	[red-integer!]
+		msg	[tagMSG]
+		gi	[GESTUREINFO]
 ][
-	as red-value! either evt/type = EVT_MENU [
-		word/push* evt/flags and FFFFh
-	][
-		integer/push evt/flags and FFFFh
+	as red-value! switch evt/type [
+		EVT_ZOOM
+		EVT_PAN
+		EVT_ROTATE
+		EVT_TWO_TAP
+		EVT_PRESS_TAP [
+			msg: as tagMSG evt/msg
+			gi: get-gesture-info msg/lParam
+			int: as red-integer! stack/push*
+			int/header: TYPE_INTEGER
+			int/value: gi/ullArgumentH
+			as red-value! int
+		]
+		EVT_MENU [word/push* evt/flags and FFFFh]
+		default	 [integer/push evt/flags and FFFFh]
 	]
 ]
 
@@ -572,9 +607,12 @@ WndProc: func [
 		res	   [integer!]
 		color  [integer!]
 		type   [integer!]
+		pos	   [integer!]
 		handle [handle!]
 		nmhdr  [tagNMHDR]
 		rc	   [RECT_STRUCT]
+		gi	   [GESTUREINFO]
+		pt	   [tagPOINT]
 ][
 	switch msg [
 		WM_MOVING
@@ -591,6 +629,31 @@ WndProc: func [
 			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 			make-event current-msg 0 type
 			return 0
+		]
+		WM_GESTURE [
+			handle: hWnd
+			type: switch wParam [
+				3		[EVT_ZOOM]
+				4		[EVT_PAN]
+				5		[EVT_ROTATE]
+				6		[EVT_TWO_TAP]
+				7		[EVT_PRESS_TAP]
+				default [0]
+			]
+			if type <> 0 [
+				gi: get-gesture-info lParam
+				pos: gi/ptsLocation
+				pt: declare tagPOINT
+				pt/x: WIN32_LOWORD(pos)
+				pt/y: WIN32_HIWORD(pos)
+				ScreenToClient hWnd pt
+				handle: get-child-from-xy hWnd pt/x pt/y
+				
+				current-msg/hWnd: handle
+				current-msg/lParam: lParam
+				make-event current-msg 0 type
+				;return 0
+			]
 		]
 		WM_COMMAND [
 			process-command-event hWnd msg wParam lParam

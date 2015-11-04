@@ -159,6 +159,17 @@ get-child-from-xy: func [
 	either null? hWnd [parent][hWnd]
 ]
 
+get-gesture-info: func [
+	handle  [integer!]
+	return: [GESTUREINFO]
+	/local
+		gi [GESTUREINFO]
+][
+	gi: declare GESTUREINFO
+	gi/cbSize: size? GESTUREINFO
+	GetGestureInfo as GESTUREINFO handle gi
+	gi
+]
 
 to-bgr: func [
 	node	[node!]
@@ -260,6 +271,20 @@ init: func [
 	
 	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+]
+
+init-window: func [
+	hWnd   [handle!]
+	values [red-value!]
+	/local
+		gc [GESTURECONFIG]
+][
+	gc: declare GESTURECONFIG
+	gc.dwID:	0
+	gc.dwBlock: 0
+	gc.dwWant:	1										;-- GC_ALLGESTURES
+	
+	SetGestureConfig hWnd 0 1 gc size? gc
 ]
 
 set-logic-state: func [
@@ -634,6 +659,7 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
+		sym = window	[init-window handle values]
 		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]

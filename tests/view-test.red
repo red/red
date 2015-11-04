@@ -109,7 +109,7 @@ sub-win: make face! [
 ]
 
 win: make face! [
-	type: 'window text: "Red View" offset: 500x500 size: 800x800
+	type: 'window text: "Red View" offset: 500x500 size: 1100x800
 	menu: [
 		;popup						;-- forces context menu for window
 		"File" [
@@ -762,6 +762,37 @@ win/pane: reduce [
 					dropped/draw/5: form 1 + to integer! dropped/draw/5
 					unless live? [show dropped]
 				]
+			]
+		]
+	]
+	make face! [
+		type: 'base offset: 750x140 size: 300x300 color: silver
+		text: "Pinch me"
+		draw: [fill-pen red polygon 100x100 250x100 250x250 100x250]
+		actors: object [
+			angle: 0
+			distance: 0
+			center: 175x175
+			sz: 75
+
+			on-zoom: func [face [object!] event [event!] /local factor new][
+				probe "zooming"
+				if distance <> 0 [
+					factor: 1 - ((to float! event/picked) - distance / distance)
+					new: to integer! sz * factor
+					if new > 10 [
+						sz: new	
+						draw/4: center - as-pair sz sz
+						draw/5: center + (1x-1 * sz)
+						draw/6: center + as-pair sz sz
+						draw/7: center + (-1x1 * sz)
+						unless live? [show face]
+					]
+				]
+				distance: event/picked
+			]
+			on-rotate: func [face [object!] event [event!]][
+				probe "rotating"
 			]
 		]
 	]

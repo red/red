@@ -214,6 +214,7 @@ Red/System [
 #define WM_HSCROLL			0114h
 #define WM_VSCROLL			0115h
 #define WM_INITMENU			0116h
+#define WM_GESTURE			0119h
 #define WM_MENUSELECT		011Fh
 #define WM_MENUCOMMAND		0126h
 #define WM_CTLCOLOREDIT		0133h
@@ -525,6 +526,27 @@ SCROLLINFO: alias struct! [
 	nPage		[integer!]
 	nPos		[integer!]
 	nTrackPos	[integer!]
+]
+
+GESTUREINFO: alias struct! [
+	cbSize		 [integer!]
+	dwFlags		 [integer!]
+	dwID		 [integer!]
+	hwndTarget	 [handle!]
+	ptsLocation	 [integer!]
+	dwInstanceID [integer!]
+	dwSequenceID [integer!]
+	pad1		 [integer!]
+	ullArgumentH [integer!]
+	ullArgumentL [integer!]
+	cbExtraArgs	 [integer!]
+	pad2		 [integer!]
+]
+
+GESTURECONFIG: alias struct! [
+	dwID		[integer!]
+	dwWant		[integer!]
+	dwBlock		[integer!]
 ]
 
 ACTCTX: alias struct! [
@@ -968,6 +990,11 @@ DwmIsCompositionEnabled!: alias function! [
 			lpPoint		[tagPOINT]
 			return:		[logic!]
 		]
+		ScreenToClient: "ScreenToClient" [
+			hWnd		[handle!]
+			lpPoint		[tagPOINT]
+			return:		[logic!]
+		]
 		SetParent: "SetParent" [
 			hChild		[handle!]
 			hNewParent	[handle!]
@@ -998,6 +1025,19 @@ DwmIsCompositionEnabled!: alias function! [
 		GetAsyncKeyState: "GetAsyncKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]						;-- returns a 16-bit value
+		]
+		SetGestureConfig: "SetGestureConfig" [
+			hWnd		[handle!]
+			dwReserved	[integer!]						;-- set it to 0
+			cIDs		[integer!]
+			pConfig		[GESTURECONFIG]
+			cbSize		[integer!]
+			return:		[logic!]
+		]
+		GetGestureInfo: "GetGestureInfo" [
+			hIn			[GESTUREINFO]
+			hOut		[GESTUREINFO]
+			return:		[logic!]
 		]
 	]
 	"gdi32.dll" stdcall [
