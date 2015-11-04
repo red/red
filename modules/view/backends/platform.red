@@ -317,6 +317,7 @@ system/view/platform: context [
 		index  [integer!]
 		part   [integer!]
 	][
+		if TYPE_OF(new) = TYPE_NONE [new: null]
 		gui/OS-update-facet owner word value action new index part
 	]
 	
