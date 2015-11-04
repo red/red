@@ -771,14 +771,11 @@ win/pane: reduce [
 		draw: [fill-pen red polygon 100x100 250x100 250x250 100x250]
 		actors: object [
 			angle: 0
-			distance: 0
 			center: 175x175
 			sz: 75
 
 			on-zoom: func [face [object!] event [event!] /local factor new][
-				probe "zooming"
-				if distance <> 0 [
-					factor: 1 - ((to float! event/picked) - distance / distance)
+				if factor: event/picked [
 					new: to integer! sz * factor
 					if new > 10 [
 						sz: new	
@@ -789,7 +786,6 @@ win/pane: reduce [
 						unless live? [show face]
 					]
 				]
-				distance: event/picked
 			]
 			on-rotate: func [face [object!] event [event!]][
 				probe "rotating"

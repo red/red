@@ -20,6 +20,7 @@ gui-evt/header: TYPE_EVENT
 
 oldBaseWndProc:	 0
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
+zoom-distance:	 0
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_BLOCK
@@ -147,9 +148,12 @@ get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
+		res [red-value!]
 		int	[red-integer!]
+		pct [red-float!]
 		msg	[tagMSG]
 		gi	[GESTUREINFO]
+		zd	[float!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -159,10 +163,22 @@ get-event-picked: func [
 		EVT_PRESS_TAP [
 			msg: as tagMSG evt/msg
 			gi: get-gesture-info msg/lParam
-			int: as red-integer! stack/push*
-			int/header: TYPE_INTEGER
-			int/value: gi/ullArgumentH
-			as red-value! int
+			either evt/type = EVT_ZOOM [
+				res: as red-value! either zoom-distance = -1 [none/push][
+					pct: as red-float! stack/push*
+					pct/header: TYPE_PERCENT
+					zd: integer/to-float zoom-distance
+					pct/value: 1.0 + ((integer/to-float gi/ullArgumentH) - zd / zd)				
+					pct
+				]
+				zoom-distance: gi/ullArgumentH
+				res
+			][
+				int: as red-integer! stack/push*
+				int/header: TYPE_INTEGER
+				int/value: gi/ullArgumentH
+				int
+			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		default	 [integer/push evt/flags and FFFFh]
@@ -633,6 +649,8 @@ WndProc: func [
 		WM_GESTURE [
 			handle: hWnd
 			type: switch wParam [
+				1		[zoom-distance: -1 0]
+				2		[zoom-distance: -1 0]
 				3		[EVT_ZOOM]
 				4		[EVT_PAN]
 				5		[EVT_ROTATE]
