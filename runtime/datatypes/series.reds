@@ -432,9 +432,9 @@ _series: context [
 					string/poke-char s pos char/value
 				]
 			]
+			ownership/check as red-value! ser words/_poke data offset 1
 			stack/set-last data
 		]
-		ownership/check as red-value! ser words/_poke data offset 1
 		data
 	]
 
