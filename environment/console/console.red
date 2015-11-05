@@ -54,6 +54,10 @@ system/console: context [
 		either equal-string? args/item "--catch" [
 			bool: as red-logic! #get system/console/catch?
 			bool/value: yes
+			if system/args-count = 2 [
+				SET_RETURN(none-value)
+				exit
+			]
 			args: system/args-list + 2
 		][
 			if system/args-count = 3 [
