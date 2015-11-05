@@ -115,7 +115,13 @@ system/console: context [
 			if error? code: try [load/all buffer][print code]
 			
 			unless any [error? code tail? code][
-				set/any 'result try/all code
+				set/any 'result try/all [
+					if 'halt-request = catch/name [
+						do code
+					] 'console [
+						print "(halted)"				;-- return an unset value
+					]
+				]
 				
 				case [
 					error? :result [
@@ -182,6 +188,7 @@ system/console: context [
 	]
 ]
 
+halt: does [throw/name 'halt-request 'console]
 q: :quit
 
 system/console/launch

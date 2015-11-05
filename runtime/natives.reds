@@ -730,8 +730,6 @@ natives: context [
 		bool/header: TYPE_LOGIC
 	]
 	
-	halt*: does [halt]
-	
 	type?*: func [
 		word?	 [integer!]
 		return:  [red-value!]
@@ -2093,7 +2091,6 @@ natives: context [
 			:greater-or-equal?*
 			:same?*
 			:not*
-			:halt*
 			:type?*
 			:reduce*
 			:compose*

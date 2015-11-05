@@ -290,12 +290,6 @@ not: make native! [[
 	#get-definition NAT_NOT
 ]
 
-halt: make native! [[
-		"Stops evaluation"
-	]
-	#get-definition NAT_HALT
-]
-
 type?: make native! [[
 		"Returns the datatype of a value"
 		value [any-type!]
