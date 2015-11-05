@@ -165,3 +165,22 @@ degree-to-radians: func [
 	val: val * PI / 180.0			;-- to radians
 	val
 ]
+
+equal-string?: func [
+	str1	[c-string!]
+	str2	[c-string!]
+	return: [logic!]
+	/local
+		size [integer!]
+		c	 [byte!]
+][
+	size: length? str1
+	if size <> length? str2 [return no]
+	
+	while [c: str1/1 c <> null-byte][
+		if c <> str2/1 [return no]
+		str1: str1 + 1
+		str2: str2 + 1
+	]
+	yes
+]
