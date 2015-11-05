@@ -186,12 +186,12 @@ redc: context [
 		file
 	]
 	
-	add-legacy-flags: func [][
+	add-legacy-flags: func [opts [object!]][
 		if win-version < 52 [
-			either config/legacy [						;-- do not compile gesture support code for XP
-				append config/legacy 'no-touch
+			either opts/legacy [						;-- do not compile gesture support code for XP
+				append opts/legacy 'no-touch
 			][
-				config/legacy: copy [no-touch]
+				opts/legacy: copy [no-touch]
 			]
 		]
 	]
