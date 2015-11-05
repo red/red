@@ -59,7 +59,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 				][
 					if owner/type <> 'screen [
 						if all [
-							find [tab-panel window] owner/type
+							find [tab-panel window panel] owner/type
 							not find [cleared removed taken] action 
 						][
 							nb: part
