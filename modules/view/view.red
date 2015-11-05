@@ -42,9 +42,6 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								if all [object? face/actors in face/actors 'on-close][
-									do [face/actors/on-close face]
-								]
 								system/view/platform/destroy-view face tail? skip head target part
 							]
 							target: next target
