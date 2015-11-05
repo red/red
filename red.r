@@ -15,6 +15,7 @@ unless value? 'encap-fs [do %system/utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
 	do-cache %compiler.r
+	do-cache %quick-test/call.r							;@@ put `call.r` in proper place when we encap
 ]
 
 redc: context [
@@ -80,9 +81,9 @@ redc: context [
 	
 	if Windows? [
 		use [buf][
-			call/output "ver" buf: make string! 128
+			win-call/output "cmd /c ver" buf: make string! 128
 			attempt [
-				pos: next find/tail buf "Version"
+				pos: find/last/tail buf #" "
 				buf: parse copy/part pos find pos #"]" "."
 				win-version: load join buf/1 buf/2
 			]
