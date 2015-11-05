@@ -34,17 +34,33 @@ system/console: context [
 
 	prompt: "red>> "
 	history: make block! 200
+	catch?:	 no											;-- YES: force script to fallback into the console
 
 	read-argument: routine [
 		/local
 			args [str-array!]
 			str	 [red-string!]
+			bool [red-logic!]
 	][
-		if system/args-count <> 2 [
+		if any [
+			system/args-count < 2 
+			system/args-count > 3
+		][
 			SET_RETURN(none-value)
 			exit
 		]
 		args: system/args-list + 1							;-- skip binary filename
+		
+		either equal-string? args/item "--catch" [
+			bool: as red-logic! #get system/console/catch?
+			bool/value: yes
+			args: system/args-list + 2
+		][
+			if system/args-count = 3 [
+				print-line "error: invalid command-line"
+				quit -1
+			]
+		]
 		str: as red-string! simple-io/read-file args/item no no no
 		SET_RETURN(str)
 	]
@@ -116,10 +132,12 @@ system/console: context [
 			
 			unless any [error? code tail? code][
 				set/any 'result try/all [
-					if 'halt-request = catch/name [
-						do code
+					either 'halt-request = catch/name [
+						set/any 'result do code
 					] 'console [
 						print "(halted)"				;-- return an unset value
+					][
+						:result
 					]
 				]
 				
@@ -173,9 +191,13 @@ system/console: context [
 			][
 				print "*** Error: not a Red program!"
 			][
-				if 'halt-request = catch/name [do skip script 2] 'console [
-					print "(halted)"
-					run
+				either catch? [
+					if 'halt-request = catch/name [do skip script 2] 'console [
+						print "(halted)"
+						run
+					]
+				][
+					do skip script 2
 				]
 			]
 			quit
