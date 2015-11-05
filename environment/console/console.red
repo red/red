@@ -173,7 +173,10 @@ system/console: context [
 			][
 				print "*** Error: not a Red program!"
 			][
-				do skip script 2
+				if 'halt-request = catch/name [do skip script 2] 'console [
+					print "(halted)"
+					run
+				]
 			]
 			quit
 		]
