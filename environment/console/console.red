@@ -108,9 +108,7 @@ system/console: context [
 	
 	try-do: func [code /local result return: [any-type!]][
 		set/any 'result try/all [
-			either 'halt-request = catch/name [
-				set/any 'result do code
-			] 'console [
+			either 'halt-request = catch/name [set/any 'result do code] 'console [
 				print "(halted)"						;-- return an unset value
 			][
 				:result
