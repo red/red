@@ -105,6 +105,19 @@ system/console: context [
 		]
 		list
 	]
+	
+	try-do: func [code /local result return: [any-type!]][
+		set/any 'result try/all [
+			either 'halt-request = catch/name [
+				set/any 'result do code
+			] 'console [
+				print "(halted)"						;-- return an unset value
+			][
+				:result
+			]
+		]
+		:result
+	]
 
 	run: function [][
 		buffer: make string! 10000
@@ -131,15 +144,7 @@ system/console: context [
 			if error? code: try [load/all buffer][print code]
 			
 			unless any [error? code tail? code][
-				set/any 'result try/all [
-					either 'halt-request = catch/name [
-						set/any 'result do code
-					] 'console [
-						print "(halted)"				;-- return an unset value
-					][
-						:result
-					]
-				]
+				set/any 'result try-do code
 				
 				case [
 					error? :result [
@@ -192,10 +197,9 @@ system/console: context [
 				print "*** Error: not a Red program!"
 			][
 				either catch? [
-					if 'halt-request = catch/name [do skip script 2] 'console [
-						print "(halted)"
-						run
-					]
+					set/any 'result try-do skip script 2
+					if error? :result [print result]
+					run
 				][
 					do skip script 2
 				]
