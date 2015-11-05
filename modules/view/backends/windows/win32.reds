@@ -1026,19 +1026,6 @@ DwmIsCompositionEnabled!: alias function! [
 			nVirtKey	[integer!]
 			return:		[integer!]						;-- returns a 16-bit value
 		]
-		SetGestureConfig: "SetGestureConfig" [
-			hWnd		[handle!]
-			dwReserved	[integer!]						;-- set it to 0
-			cIDs		[integer!]
-			pConfig		[GESTURECONFIG]
-			cbSize		[integer!]
-			return:		[logic!]
-		]
-		GetGestureInfo: "GetGestureInfo" [
-			hIn			[GESTUREINFO]
-			hOut		[GESTUREINFO]
-			return:		[logic!]
-		]
 	]
 	"gdi32.dll" stdcall [
 		ExtTextOut: "ExtTextOutW" [
@@ -1586,6 +1573,29 @@ DwmIsCompositionEnabled!: alias function! [
 			hbmImage	[integer!]
 			hbmMask		[integer!]
 			return:		[integer!]
+		]
+	]
+]
+
+
+#case [
+	all [legacy not find legacy 'no-touch] [
+		#import [
+			"User32.dll" stdcall [
+				SetGestureConfig: "SetGestureConfig" [
+					hWnd		[handle!]
+					dwReserved	[integer!]						;-- set it to 0
+					cIDs		[integer!]
+					pConfig		[GESTURECONFIG]
+					cbSize		[integer!]
+					return:		[logic!]
+				]
+				GetGestureInfo: "GetGestureInfo" [
+					hIn			[GESTUREINFO]
+					hOut		[GESTUREINFO]
+					return:		[logic!]
+				]
+			]
 		]
 	]
 ]

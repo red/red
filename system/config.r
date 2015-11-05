@@ -48,6 +48,13 @@ Windows [
 	type:		'exe
 	sub-system: 'GUI
 ]
+WindowsXP [
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'GUI
+	legacy:		[no-touch]
+]
 ;-------------------------
 WinDLL [
 	OS:			'Windows

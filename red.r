@@ -20,6 +20,7 @@ unless all [value? 'red object? :red][
 redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
+	win-version:	none								;-- Windows version extracted from "ver" command
 
 	Windows?:  system/version/4 = 3
 	load-lib?: any [encap? find system/components 'Library]
@@ -74,6 +75,17 @@ redc: context [
 			libc: load/library libc
 			sys-call: make routine! [cmd [string!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
+		]
+	]
+	
+	if Windows? [
+		use [buf][
+			call/output "ver" buf: make string! 128
+			attempt [
+				pos: next find/tail buf "Version"
+				buf: parse copy/part pos find pos #"]" "."
+				win-version: load join buf/1 buf/2
+			]
 		]
 	]
 	
@@ -174,6 +186,16 @@ redc: context [
 		file
 	]
 	
+	add-legacy-flags: func [][
+		if win-version < 52 [
+			either config/legacy [						;-- do not compile gesture support code for XP
+				append config/legacy 'no-touch
+			][
+				config/legacy: copy [no-touch]
+			]
+		]
+	]
+	
 	build-compress-lib: has [script basename filename text opts ext src][
 		src: %runtime/crush.reds
 		
@@ -217,6 +239,7 @@ redc: context [
 			opts: make opts select load-targets opts/config-name
 			opts/type: 'dll
 			if opts/OS <> 'Windows [opts/PIC?: yes]
+			add-legacy-flags opts
 			
 			print "Pre-compiling compression library..."
 			unless encap? [
@@ -265,6 +288,7 @@ redc: context [
 				red-help?: yes							;-- include doc-strings
 			]
 			opts: make opts select load-targets opts/config-name
+			add-legacy-flags opts
 
 			print "Pre-compiling Red console..."
 			result: red/compile script opts
@@ -396,6 +420,8 @@ redc: context [
 		unless exists? src [
 			fail ["Cannot access source file:" src]
 		]
+		
+		add-legacy-flags opts
 
 		reduce [src opts]
 	]
