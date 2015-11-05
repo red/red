@@ -1579,7 +1579,7 @@ DwmIsCompositionEnabled!: alias function! [
 
 
 #case [
-	all [legacy not find legacy 'no-touch] [
+	any [not legacy not find legacy 'no-touch] [
 		#import [
 			"User32.dll" stdcall [
 				SetGestureConfig: "SetGestureConfig" [

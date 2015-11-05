@@ -168,7 +168,7 @@ get-gesture-info: func [
 	gi: declare GESTUREINFO
 	gi/cbSize: size? GESTUREINFO
 	#case [
-		all [legacy not find legacy 'no-touch] [
+		any [not legacy not find legacy 'no-touch] [
 			GetGestureInfo as GESTUREINFO handle gi
 		]
 	]
