@@ -314,9 +314,9 @@ system/lexer: context [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base base64-char
+			four half non-zero path-end base base64-char slash-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -366,17 +366,18 @@ system/lexer: context [
 			]
 			cs/17: charset "01234"						;-- four
 			cs/18: charset "012345"						;-- half
-		    cs/19: charset "123456789"					;-- non-zero
-		    cs/20: charset {^{"[]();}					;-- path-end
-		    cs/21: union cs/1 charset [					;-- base64-char
-					#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
-				]
+			cs/19: charset "123456789"					;-- non-zero
+			cs/20: charset {^{"[]();}					;-- path-end
+			cs/21: union cs/1 charset [					;-- base64-char
+				#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+			]
+			cs/22: charset {[](){}":;}					;-- slash-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base64-char
+			four half non-zero path-end base64-char slash-end
 		] cs
 
 		byte: [
@@ -559,24 +560,33 @@ system/lexer: context [
 			]
 			(pop stack)
 		]
+		
+		special-words: [
+			[
+				#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
+				| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
+					#"/" 
+					ahead [slash-end | ws-no-count | control-char | end] (value: "//")
+					| (value: "/")
+				]
+			]
+			opt [#":" (type: set-word!)]
+			(to-word stack value type)				;-- special case for / and // as words
+		]
 
 		word-rule: 	[
-			#"%" [ws-no-count | end] (
-				to-word stack "%" word!					;-- special case for remainder op!
-			)
-			| #"/" ahead [not-word-char | ws-no-count | control-char | end] (
-				to-word stack "/" word!					;-- special case for / as a word.
-			)
+			(type: word!) special-words
 			| path: s: begin-symbol-rule (type: word!) [
-					url-rule
-					| path-rule							;-- path matched
-					| opt [#":" (type: set-word!)]
-					  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
-			  ]
+				url-rule
+				| path-rule							;-- path matched
+				| opt [#":" (type: set-word!)]
+				  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
+			]
 		]
 
 		get-word-rule: [
-			#":" (type: get-word!) s: begin-symbol-rule [
+			#":" (type: get-word!) special-words
+			| s: begin-symbol-rule [
 				path-rule (type: get-path!)
 				| (to-word stack copy/part s e type)	;-- get-word matched
 			]
