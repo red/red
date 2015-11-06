@@ -26,6 +26,8 @@ quit: func [
 	quit-return any [status 0]
 ]
 
+halt: :quit			
+
 empty?: func [
 	"Returns true if a series is at its tail"
 	series	[series! none!]
@@ -535,5 +537,6 @@ extract-boot-args: function [][
 ;-				Aliases					  -
 ;------------------------------------------
 
-atan2: :arctangent2
-object: :context
+atan2:		:arctangent2
+object:		:context
+halt:		:quit										;-- default behavior unless console is loaded

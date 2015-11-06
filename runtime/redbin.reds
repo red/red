@@ -408,6 +408,7 @@ redbin: context [
 			len			[integer!]
 			count		[integer!]
 			i			[integer!]
+			s			[series!]
 	][
 		;----------------
 		;-- decode header

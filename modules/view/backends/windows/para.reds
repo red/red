@@ -14,14 +14,15 @@ update-para: func [
 	face	[red-object!]
 	flags	[integer!]
 	/local
-		para  [red-object!]
-		type  [red-word!]
-		state [red-block!]
-		int	  [red-integer!]
-		hWnd  [handle!]
-		sym	  [integer!]
-		style [integer!]
-		mask  [integer!]
+		para   [red-object!]
+		type   [red-word!]
+		state  [red-block!]
+		int	   [red-integer!]
+		values [red-value!]
+		hWnd   [handle!]
+		sym	   [integer!]
+		style  [integer!]
+		mask   [integer!]
 ][
 	values: object/get-values face
 	type:	as red-word! values + FACE_OBJ_TYPE
@@ -79,6 +80,8 @@ get-para-flags: func [
 		middle  [integer!]
 		bottom  [integer!]
 		default [integer!]
+		h-sym	[integer!]
+		v-sym	[integer!]
 ][
 	values: object/get-values para
 	align:  as red-word! values + PARA_OBJ_ALIGN

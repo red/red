@@ -102,6 +102,7 @@ red: context [
 	root:	 	declare red-block!						;-- root block
 	symbols: 	declare red-block! 						;-- symbols table
 	global-ctx: declare node!							;-- global context
+	verbosity:  0
 
 	;-- Booting... --
 	
@@ -181,7 +182,6 @@ red: context [
 		redbin/boot-load
 		
 		#if debug? = yes [
-			verbosity: 0
 			datatype/verbose:	verbosity
 			unset/verbose:		verbosity
 			none/verbose:		verbosity

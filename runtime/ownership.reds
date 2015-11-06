@@ -62,6 +62,7 @@ ownership: context [
 		nb	  [integer!]
 		/local
 			value [red-value!]
+			s	  [series!]
 	][
 		s: GET_BUFFER(list)
 		value: s/offset + index

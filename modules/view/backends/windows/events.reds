@@ -214,6 +214,8 @@ get-event-flag: func [
 decode-down-flags: func [
 	lParam  [integer!]
 	return: [integer!]
+	/local
+		flags [integer!]
 ][
 	flags: 0
 	if lParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
@@ -316,6 +318,10 @@ call-custom-proc: func [
 to-char: func [
 	vkey	[integer!]
 	return:	[integer!]									;-- Unicode char
+	/local
+		buf  [c-string!]
+		skey [integer!]
+		res	 [integer!]
 ][
 	buf: "0123456789"									;-- makes a 10 bytes buffer
 	GetKeyboardState kb-state

@@ -42,7 +42,8 @@ actions: context [
 		path	[red-value!]
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
-			type [integer!]								;-- datatype ID
+			type  [integer!]							;-- datatype ID
+			index [integer!]
 	][
 		type:  TYPE_OF(value)
 		index: type << 8 + action
@@ -364,6 +365,8 @@ actions: context [
 		path	[red-path!]
 		case?	[logic!]
 		return:	[red-value!]
+		/local
+			action-path
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/eval-path"]]
 				

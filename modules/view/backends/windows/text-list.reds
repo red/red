@@ -157,8 +157,9 @@ update-list: func [
 	part  [integer!]
 	drop? [logic!]										;-- TRUE: drop-list or drop-down widgets
 	/local
-		msg [integer!]
-		str [red-string!]
+		hWnd [handle!]
+		msg  [integer!]
+		str  [red-string!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [

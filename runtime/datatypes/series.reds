@@ -785,6 +785,7 @@ _series: context [
 		return:	[red-value!]
 		/local
 			args [red-value!]
+			sym	 [integer!]
 	][
 		sym: symbol/resolve field/symbol
 		case [

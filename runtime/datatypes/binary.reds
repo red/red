@@ -450,7 +450,7 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/make"]]
 
-		bin: as red-binary! string/make proto spec type
+		bin: as red-binary! string/make proto spec
 		set-type as red-value! bin TYPE_BINARY
 		bin
 	]

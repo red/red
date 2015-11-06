@@ -379,6 +379,7 @@ Red/System [
 			return: [red-value!]
 			/local
 				font [red-value!]
+				pos	 [red-value!]
 		][
 			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]

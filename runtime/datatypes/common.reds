@@ -153,6 +153,7 @@ type-check: func [
 	arg		 [red-value!]
 	return:  [red-value!]
 	/local
+		type [integer!]
 		bits [byte-ptr!]
 		pos	 [byte-ptr!]								;-- required by BS_TEST_BIT
 		set? [logic!]									;-- required by BS_TEST_BIT
@@ -339,6 +340,11 @@ words: context [
 	values:			-1
 	owner:			-1
 	owned:			-1
+	
+	windows:		-1
+	syllable:		-1
+	macosx:			-1
+	linux:			-1
 	
 	any*:			-1
 	break*:			-1

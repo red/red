@@ -178,6 +178,8 @@ get-gesture-info: func [
 to-bgr: func [
 	node	[node!]
 	return: [integer!]									;-- 00bbggrr format or -1 if not found
+	/local
+		color [red-tuple!]
 ][
 	color: as red-tuple! get-node-facet node FACE_OBJ_COLOR
 	either TYPE_OF(color) = TYPE_TUPLE [

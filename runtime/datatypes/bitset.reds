@@ -614,8 +614,7 @@ bitset: context [
 		op		[integer!]								;-- type of comparison
 		return: [integer!]
 		/local
-			s1	  [series!]
-			s2	  [series!]
+			s	  [series!]
 			head  [byte-ptr!]
 			p	  [byte-ptr!]
 			p2	  [byte-ptr!]

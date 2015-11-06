@@ -154,13 +154,14 @@ _function: context [
 		index	[integer!]								;-- 0-base index position of function in path
 		return: [integer!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			s	  [series!]
-			count [integer!]
-			cnt	  [integer!]
-			len	  [integer!]
-			stop? [logic!]
+			value  [red-value!]
+			tail   [red-value!]
+			s	   [series!]
+			count  [integer!]
+			locals [integer!]
+			cnt	   [integer!]
+			len	   [integer!]
+			stop?  [logic!]
 	][
 		s: as series! fun/spec/value
 		

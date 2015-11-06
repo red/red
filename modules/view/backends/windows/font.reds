@@ -27,6 +27,7 @@ make-font: func [
 		angle	[integer!]
 		quality [integer!]
 		len		[integer!]
+		sym		[integer!]
 		name	[c-string!]
 		italic? [logic!]
 		under?	[logic!]

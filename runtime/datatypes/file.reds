@@ -18,6 +18,8 @@ file: context [
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-file!]
+		/local
+			file [red-file!]
 	][
 		file: as red-file! string/load src size encoding
 		set-type as red-value! file TYPE_FILE

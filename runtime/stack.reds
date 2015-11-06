@@ -298,6 +298,7 @@ stack: context [										;-- call stack
 		part	[integer!]
 		return: [integer!]
 		/local
+			value [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]

@@ -22,6 +22,7 @@ init-button: func [
 		blk		[red-block!]
 		str		[red-string!]
 		BIL		[BUTTON_IMAGELIST]
+		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		num		[integer!]
@@ -96,6 +97,8 @@ update-button: func [
 	sym   [integer!]
 	index [integer!]
 	part  [integer!]
+	/local
+		hWnd [handle!]
 ][
 	hWnd: get-face-handle face
 ]

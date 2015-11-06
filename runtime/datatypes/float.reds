@@ -67,7 +67,7 @@ float: context [
 		value	[float!]
 		return: [red-float!]
 		/local
-			int [red-float!]
+			fl [red-float!]
 	][
 		fl: as red-float! stack/arguments
 		fl/header: TYPE_FLOAT

@@ -250,6 +250,7 @@ object: context [
 		/local
 			fun	  [red-function!]
 			int	  [red-integer!]
+			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
 			s	  [series!]
@@ -290,6 +291,7 @@ object: context [
 		/local
 			fun	  [red-function!]
 			int	  [red-integer!]
+			ctx	  [red-context!]
 			index [integer!]
 			count [integer!]
 			s	  [series!]
@@ -640,6 +642,7 @@ object: context [
 		/local
 			ctx [red-context!]
 			obj	[red-object!]
+			s	[series!]
 	][
 		ctx: TO_CTX(node)
 		s: as series! ctx/values/value
@@ -1190,6 +1193,8 @@ object: context [
 		value	[red-value!]
 		case?	[logic!]
 		return:	[red-value!]
+		/local
+			sym [integer!]
 	][
 		sym: symbol/resolve field/symbol
 		case [

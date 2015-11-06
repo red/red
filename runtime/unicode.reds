@@ -589,6 +589,7 @@ unicode: context [
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
+			size [integer!]
 			unit [integer!]
 			cp	 [integer!]
 			p4	 [int-ptr!]

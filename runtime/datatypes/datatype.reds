@@ -159,6 +159,8 @@ datatype: context [
 		part	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			name [names!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 

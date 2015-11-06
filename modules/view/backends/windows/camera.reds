@@ -210,6 +210,7 @@ collect-camera: func [
 		len		[int-ptr!]
 		size	[integer!]
 		dev-ptr [int-ptr!]
+		fetched [integer!]
 ][
 	IDev:  declare interface!
 	IEnum: declare interface!

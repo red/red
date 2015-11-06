@@ -193,6 +193,7 @@ parser: context [
 			tail  [red-value!]
 			value [red-value!]
 			w	  [red-word!]
+			s	  [series!]
 	][
 		s: GET_BUFFER(rule)
 		head:  s/offset + ((as-integer pos - s/offset) >> 4)
@@ -552,6 +553,8 @@ parser: context [
 	check-limits: func [
 		series [red-block!]
 		rules  [red-block!]
+		/local
+			s [series!]
 	][
 		s: GET_BUFFER(series)
 		if (as-integer s/tail - s/offset) >> 4 > PARSE_MAX_DEPTH [

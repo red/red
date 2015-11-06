@@ -74,8 +74,9 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 	x	   [integer!]
 	y	   [integer!]
 	/local
-		type [red-word!]
-		pos	 [red-pair!]
+		values [red-value!]
+		type   [red-word!]
+		pos	   [red-pair!]
 ][
 	values: get-face-values parent
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -118,6 +119,7 @@ set-tabs: func [
 		data [red-block!]
 		str	 [red-string!]
 		tail [red-string!]
+		int	 [red-integer!]
 		item [TCITEM]
 		i	 [integer!]
 ][

@@ -49,7 +49,7 @@ update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
 	]
 ]
 
-update-gdiplus-font: func [dc [handle!] /local font [integer!]][
+update-gdiplus-font: func [dc [handle!] /local font [integer!] res [integer!]][
 	font: 0
 	unless zero? modes/gp-font [GdipDeleteFont modes/gp-font]
 	res: GdipCreateFontFromDC as-integer dc :font

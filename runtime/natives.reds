@@ -878,6 +878,7 @@ natives: context [
 		only [integer!]
 		into [integer!]
 		/local
+			arg	  [red-value!]
 			into? [logic!]
 	][
 		arg: stack/arguments
