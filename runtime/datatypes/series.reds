@@ -730,19 +730,15 @@ _series: context [
 		s: GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 
-		offset: ser/head << (log-b unit)
-		part: (as-integer s/tail - s/offset) - offset
+		offset: ser/head
+		part: (as-integer s/tail - s/offset) >> (log-b unit) - offset
 
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
-				case [
-					int/value > (part >> (log-b unit)) [part >> (log-b unit)]
-					positive? int/value [int/value]
-					true				[0]
-				]
+				either int/value > part [part][int/value]
 			][
 				ser2: as red-series! part-arg
 				unless all [
@@ -753,10 +749,14 @@ _series: context [
 				]
 				ser2/head - ser/head
 			]
-			part: part << (log-b unit)
 		]
-
-		node: 	alloc-bytes part
+		if negative? part [
+			part: 0 - part
+			offset: offset - part
+			if negative? offset [offset: 0 part: ser/head]
+		]
+		part:	part << (log-b unit)
+		node:	alloc-bytes part
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 
