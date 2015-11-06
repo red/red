@@ -572,7 +572,7 @@ float: context [
 
 		if all [
 			op = COMP_STRICT_EQUAL
-			TYPE_OF(value1) <> TYPE_OF(value1)
+			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
 
 		left: value1/value
