@@ -2302,7 +2302,16 @@ system-dialect: make-profilable context [
 			pc: next pc
 			if set-word? name [
 				n: to word! name
-				unless any [locals local-variable? n][store-ns-symbol n]
+				if all [
+					locals
+					not local-variable? n
+					not find globals resolve-ns n
+				][
+					throw-error ["undeclared variable:" name]
+				]
+				unless any [locals local-variable? n][
+					store-ns-symbol n
+				]
 				
 				unless all [
 					local-variable? n
