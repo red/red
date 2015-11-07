@@ -948,6 +948,13 @@ string: context [
 			TYPE_ISSUE [
 				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
 			]
+			TYPE_WORD
+			TYPE_LIT_WORD
+			TYPE_SET_WORD [
+				ret: as red-value! word/box (symbol/make-alt spec)
+				set-type ret t
+				return ret
+			]
 			default  [0]
 		]
 
