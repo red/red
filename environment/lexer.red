@@ -585,10 +585,12 @@ system/lexer: context [
 		]
 
 		get-word-rule: [
-			#":" (type: get-word!) special-words
-			| s: begin-symbol-rule [
-				path-rule (type: get-path!)
-				| (to-word stack copy/part s e type)	;-- get-word matched
+			#":" (type: get-word!) [
+				special-words
+				| s: begin-symbol-rule [
+					path-rule (type: get-path!)
+					| (to-word stack copy/part s e type)	;-- get-word matched
+				]
 			]
 		]
 
