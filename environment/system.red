@@ -131,6 +131,7 @@ system: context [
 				parse-stack:		["PARSE - stack limit reached"]
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
+				not-window:			"VIEW - expected a window root face"
 			]
 			math: object [
 				code:				400

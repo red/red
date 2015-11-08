@@ -83,7 +83,7 @@ root-face: make-face none 'window [
 	offset: 400x400
 ]
 
-view: func [
+layout: func [
 	spec [block!]
 	/local pos arg arg2 options-rule opts value value2 current type action
 ][
@@ -134,7 +134,5 @@ view: func [
 			;| set type 'calendar  options-rule (make-face current type opts)
 		]
 	]
-	show root-face
-	do-events
+	root-face
 ]
-

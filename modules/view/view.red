@@ -494,6 +494,33 @@ unview: function [
 	]
 ]
 
+view: function [
+	"Displays a window view from a layout block or from a window face"
+	spec [block! object!]	"Layout block or face object"
+	/options
+		opts [block!]		"Optional features"
+	;/modal					"Display a modal window (pop-up)"
+	/no-wait				"Return immediately - do not wait"
+][
+	unless system/view/screens [system/view/platform/init]
+	
+	if block? spec [spec: layout spec]
+	if spec/type <> 'window [make error! [script not-window]]
+	
+	unless spec/text   [spec/text: "Red: untitled"]
+	unless spec/offset [center-face spec]
+	show spec
+	
+	unless no-wait [do-events]
+]
+
+center-face: function [
+	"Center a face inside its parent"
+	face [object!]	"Face to center"
+][
+	face/offset: face/parent/size - face/size / 2
+]
+
 dump-face: function [
 	"Display debugging info about a face and its children"
 	face [object!] "Face to analyze"
@@ -509,4 +536,3 @@ dump-face: function [
 ]
 
 #system [event/init]
-system/view/platform/init
