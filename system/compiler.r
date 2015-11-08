@@ -3473,6 +3473,11 @@ system-dialect: make-profilable context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
+				unless empty? compiler/exports [
+					append job/sections compose/deep/only [
+						export [- - (compiler/exports)]
+					]
+				]
 				unless empty? resources [
 					if job/OS = 'Windows [
 						if icon: find resources 'icon [
@@ -3482,11 +3487,6 @@ system-dialect: make-profilable context [
 					]
 					append job/sections compose/deep/only [
 						rsrc   [- - (resources)]
-					]
-				]
-				unless empty? compiler/exports [
-					append job/sections compose/deep/only [
-						export [- - (compiler/exports)]
 					]
 				]
 				if opts/debug? [
