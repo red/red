@@ -178,6 +178,7 @@ get-gesture-info: func [
 get-text-size: func [
 	hWnd	[handle!]
 	str		[red-string!]
+	font	[red-object!]
 	len		[integer!]
 	pair	[red-pair!]
 	return: [tagSIZE]
@@ -187,6 +188,7 @@ get-text-size: func [
 ][
 	size: declare tagSIZE
 	dc: GetDC hWnd
+	SelectObject dc get-font-handle font
 	
 	GetTextExtentPoint32
 		dc

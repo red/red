@@ -151,21 +151,34 @@ set-font: func [
 	SendMessage hWnd WM_SETFONT as-integer hFont 0
 ]
 
-free-font: func [
-	font [red-object!]
+get-font-handle: func [
+	font	[red-object!]
+	return: [handle!]
 	/local
-		values [red-value!]
 		state  [red-block!]
 		int	   [red-integer!]
 ][
-	values: object/get-values font
-	state: as red-block! values + FONT_OBJ_STATE
+	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
 		if TYPE_OF(int) = TYPE_INTEGER [
-			DeleteObject as handle! int/value
-			state/header: TYPE_NONE
+			return as handle! int/value
 		]
+	]
+	null
+]
+
+free-font: func [
+	font [red-object!]
+	/local
+		state [red-block!]
+		hFont [handle!]
+][
+	hFont: get-font-handle font
+	if hFont <> null [
+		DeleteObject hFont
+		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
+		state/header: TYPE_NONE
 	]
 ]
 

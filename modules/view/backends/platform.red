@@ -328,11 +328,13 @@ system/view/platform: context [
 		"Returns the area size of the text in a face"
 		face [object!]	"Face containing the text to size"
 		/local
-			text [red-string!]
-			pair [red-pair!]
+			values [red-value!]
+			text   [red-string!]
+			pair   [red-pair!]
 	][
 		;@@ check if object is a face?
-		text: as red-string! gui/get-node-facet face/ctx gui/FACE_OBJ_TEXT
+		values: object/get-values face
+		text: as red-string! values + gui/FACE_OBJ_TEXT
 		if TYPE_OF(text) <> TYPE_STRING [
 			SET_RETURN(none-value)
 			exit
@@ -343,6 +345,7 @@ system/view/platform: context [
 		gui/get-text-size
 			gui/get-face-handle face
 			text
+			as red-object! values + gui/FACE_OBJ_FONT
 			string/rs-length? text
 			pair
 	]
