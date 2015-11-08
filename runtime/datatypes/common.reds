@@ -316,6 +316,7 @@ words: context [
 	integer!:		-1
 	char!:			-1
     float!:			-1
+    percent!:		-1
 	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
@@ -430,6 +431,7 @@ words: context [
 		integer!:		symbol/make "integer!"
 		char!:			symbol/make "char!"
 		float!:			symbol/make "float!"
+		percent!:		symbol/make "percent!"
 		any-type!:		symbol/make "any-type!"
 		exit*:			symbol/make "exit"
 		return*:		symbol/make "return"

@@ -15,211 +15,228 @@ Red [
 
 	--test-- "series-fstff-1"
 	  sf1-ser:  [1 2 3 4 5]
-	--assert 1 = first sf1-ser
-	--assert 2 = second sf1-ser
-	--assert 3 = third sf1-ser
-	--assert 4 = fourth sf1-ser
-	--assert 5 = fifth sf1-ser
-	--assert 5 = last sf1-ser
+		--assert 1 = first sf1-ser
+		--assert 2 = second sf1-ser
+		--assert 3 = third sf1-ser
+		--assert 4 = fourth sf1-ser
+		--assert 5 = fifth sf1-ser
+		--assert 5 = last sf1-ser
 
 	--test-- "series-fstff-2"
 	  sf2-ser:  [1 2 3 4 5]
-	--assert 2 = first next sf2-ser
+	  --assert 2 = first next sf2-ser
 	
 	--test-- "series-fstff-3"
 	  sf3-ser:  "12345"
-	--assert 49 = first sf3-ser
-	--assert 53 = last sf3-ser
+	  --assert 49 = first sf3-ser
+	  --assert 53 = last sf3-ser
 	
 	--test-- "series-fstff-4"
 	  sf4-ser:  [1 2 3 4 5]
-	--assert none = fifth next sf4-ser
+	  --assert none = fifth next sf4-ser
 	
 	--test-- "series-fstff-5"
 	  sf5-ser:  "12345"
-	--assert 53 = fifth sf5-ser
+	  --assert 53 = fifth sf5-ser
 	
 	--test-- "series-fstff-6"
 	  stf6-ser: #{000102}
-	--assert 0 = first stf6-ser
-	--assert 1 = second stf6-ser
-	--assert 2 = last stf6-ser
+		--assert 0 = first stf6-ser
+		--assert 1 = second stf6-ser
+		--assert 2 = last stf6-ser
 	
 	--test-- "series-fstff-7"
-	--assert 'a = first [a b c d]
+		--assert 'a = first [a b c d]
 	
 	--test-- "series-fstff-8"
-	--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
+		--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
 	
 	--test-- "series-fstff-9"
-	--assert #"^(00)" = first "^(00)"
+		--assert #"^(00)" = first "^(00)"
 	
 	--test-- "series-fstff-10"
-	--assert #"^(00)" = first "^(00)a" 
+		--assert #"^(00)" = first "^(00)a" 
 	  
 	--test-- "series-fstff-11"
-	--assert #"^(00)" = second "a^(00)"
+		--assert #"^(00)" = second "a^(00)"
 	
 	--test-- "series-fstff-12"
-	--assert #"^(00)" = second "a^(00)b"
+		--assert #"^(00)" = second "a^(00)b"
 
 	--test-- "series-fstff-13"
-	sf6-ser: make hash! [a b]
-	--assert 'a = first sf6-ser
-	--assert 'b = last sf6-ser
+		sf6-ser: make hash! [a b]
+		--assert 'a = first sf6-ser
+		--assert 'b = last sf6-ser
 
 	--test-- "series-fstff-14"
-	sf7-ser: make hash! [1 2 3]
-	--assert 2 = first next sf7-ser
-	--assert none = fifth next sf7-ser
+		sf7-ser: make hash! [1 2 3]
+		--assert 2 = first next sf7-ser
+		--assert none = fifth next sf7-ser
 	
 ===end-group===
 
 ===start-group=== "next"
   --test-- "series-next-1"
-  --assert 2 = first next [1 2 3 4 5]
+  	--assert 2 = first next [1 2 3 4 5]
   --test-- "series-next-2"
-  --assert 3 = first next next [1 2 3 4 5]
+  	--assert 3 = first next next [1 2 3 4 5]
   --test-- "series-next-3"
-  --assert 4 = first next next next [1 2 3 4 5]
+  	--assert 4 = first next next next [1 2 3 4 5]
   --test-- "series-next-4"
-  --assert 5 = first next next next next [1 2 3 4 5]
+  	--assert 5 = first next next next next [1 2 3 4 5]
   --test-- "series-next-5"
-  --assert none = first next next next next next [1 2 3 4 5]
+  	--assert none = first next next next next next [1 2 3 4 5]
   --test-- "series-next-6"
-  --assert 50 = first next "12345"
+ 	 --assert 50 = first next "12345"
   --test-- "series-next-7"
-  --assert 51 = first next next "12345"
+ 	 --assert 51 = first next next "12345"
   --test-- "series-next-8"
-  --assert 52 = first next next next "12345"
+	  --assert 52 = first next next next "12345"
   --test-- "series-next-9"
-  --assert 53 = first next next next next "12345"
+	  --assert 53 = first next next next next "12345"
   --test-- "series-next-10"
-  --assert none = first next next next next next "12345"
+ 	 --assert none = first next next next next next "12345"
   --test-- "series-next-11"
-  --assert #"^(00)" = first next "a^(00)"
+  	--assert #"^(00)" = first next "a^(00)"
   --test-- "series-next-12"
-  --assert #"^(00)" = first next "a^(00)b" 
+ 	 --assert #"^(00)" = first next "a^(00)b" 
   --test-- "series-next-13"
-  --assert 1 = first next #{000102} 
+ 	 --assert 1 = first next #{000102} 
 ===end-group===
 
 ===start-group=== "back"
   --test-- "series-back-1"
-  --assert 1 = first back next [1 2 3 4 5]
+  	--assert 1 = first back next [1 2 3 4 5]
   --test-- "series-back-2"
-  --assert 1 = first back back next next [1 2 3 4 5]
+  	--assert 1 = first back back next next [1 2 3 4 5]
   --test-- "series-back-3"
-  --assert 1 = first back back back next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back next next next [1 2 3 4 5]
   --test-- "series-back-4"
-  --assert 1 = first back back back back next next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back back next next next next [1 2 3 4 5]
   --test-- "series-back-5"
-  --assert 1 = first back back back back back next next next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back back back next next next next next [1 2 3 4 5]
   --test-- "series-back-6"
-  --assert 49 = first back next "12345"
+ 	 --assert 49 = first back next "12345"
   --test-- "series-back-7"
-  --assert 50 = first back next next "12345"
+ 	 --assert 50 = first back next next "12345"
   --test-- "series-back-8"
-  --assert 51 = first back next next next "12345"
+ 	 --assert 51 = first back next next next "12345"
   --test-- "series-back-9"
-  --assert 52 = first back next next next next "12345"
+ 	 --assert 52 = first back next next next next "12345"
   --test-- "series-back-10"
-  --assert 53 = first back next next next next next "12345"
+  	--assert 53 = first back next next next next next "12345"
   --test-- "series-back-11"
-  --assert 49 = first back "12345"
+  	--assert 49 = first back "12345"
   --test-- "series-back-12"
-  --assert 1 = first back next make hash! [1 2 3 4 5]
+  	--assert 1 = first back next make hash! [1 2 3 4 5]
   --test-- "series-back-13"
-  --assert 1 = first back next next #{00010203}
+ 	 --assert 1 = first back next next #{00010203}
 ===end-group===
 
 ===start-group=== "tail"
   --test-- "series-tail-1"
-  --assert 5 = first back tail [1 2 3 4 5]
+  	--assert 5 = first back tail [1 2 3 4 5]
   --test-- "seried-tail-2" 
-  --assert none = pick tail [1 2 3 4 5] 1
+  	--assert none = pick tail [1 2 3 4 5] 1
   --test-- "series-tail-3"
-  hs-ser-1: make hash! [1 2 3 4 5]
-  --assert 5 = first back tail hs-ser-1
+  	hs-ser-1: make hash! [1 2 3 4 5]
+  	--assert 5 = first back tail hs-ser-1
   --test-- "seried-tail-4"
-  hs-ser-2: make hash! [1 2 3 4 5]
-  --assert none = pick tail hs-ser-2 1
+  	hs-ser-2: make hash! [1 2 3 4 5]
+  	--assert none = pick tail hs-ser-2 1
   --test-- "series-tail-5"
-  --assert #{02} = back tail #{0102}
+  	--assert #{02} = back tail #{0102}
 ===end-group===
 
 ===start-group=== "pick"
 
   --test-- "series-pick-1"
-  --assert none = pick "" 1
+  	--assert none = pick "" 1
   
   --test-- "series-pick-2"
-  --assert none = pick "" 0
+  	--assert none = pick "" 0
   
   --test-- "series-pick-3"
-  --assert none = pick "" 2
+ 	 --assert none = pick "" 2
   
   --test-- "series-pick-4"
-  --assert 49 = pick "12345" 1
+ 	 --assert 49 = pick "12345" 1
   
   --test-- "series-pick-5"
-  --assert 53 = pick "12345" 5
+ 	 --assert 53 = pick "12345" 5
   
   --test-- "series-pick-6"
-  --assert 1 = pick [1 2 3 4 5] 1
+	  --assert 1 = pick [1 2 3 4 5] 1
   
   --test-- "series-pick-7"
-  --assert 2 = pick [1 2 3 4 5] 2
+	  --assert 2 = pick [1 2 3 4 5] 2
   
   --test-- "series-pick-8"
-  --assert 4 = pick [1 2 3 4 5] 4
+ 	 --assert 4 = pick [1 2 3 4 5] 4
   
   --test-- "series-pick-9"
-  --assert 5 = pick [1 2 3 4 5] 5
+ 	 --assert 5 = pick [1 2 3 4 5] 5
   
   --test-- "series-pick-10"
-  --assert 2 = pick next next next [1 2 3 4 5] -2
+	  --assert 2 = pick next next next [1 2 3 4 5] -2
   
   --test-- "series-pick-11"
-  --assert 3 = pick next next next [1 2 3 4 5] -1
+ 	 --assert 3 = pick next next next [1 2 3 4 5] -1
   
   --test-- "series-pick-12"
-  --assert none = pick next next next [1 2 3 4 5] 0
+ 	 --assert none = pick next next next [1 2 3 4 5] 0
   
   --test-- "series-pick-13"
-  --assert none = pick "12345" -1
+ 	 --assert none = pick "12345" -1
   
   --test-- "series-pick-14"
     sp14-i: 1
-  --assert 1 = pick [1 2 3 4 5] sp14-i
+    --assert 1 = pick [1 2 3 4 5] sp14-i
   
   --test-- "series-pick-15"
     sp15-i: 4
-  --assert 4 = pick [1 2 3 4 5] sp15-i
+    --assert 4 = pick [1 2 3 4 5] sp15-i
   
   --test-- "series-pick-16"
     sp16-i: -2
-  --assert 2 = pick next next next [1 2 3 4 5] sp16-i
+    --assert 2 = pick next next next [1 2 3 4 5] sp16-i
   
   --test-- "series-pick-17"
     sp17-i: 0
-  --assert none = pick next next next [1 2 3 4 5] sp17-i
+    --assert none = pick next next next [1 2 3 4 5] sp17-i
   
   --test-- "series-pick-18"
     sp18-i: -1
-  --assert none = pick "12345" sp18-i
+    --assert none = pick "12345" sp18-i
   
   --test-- "series-pick-19"
-  --assert 5 = pick make hash! [1 2 3 4 5] 5
+  	--assert 5 = pick make hash! [1 2 3 4 5] 5
   
   --test-- "series-pick-20"
-  --assert 2 = pick next next next make hash! [1 2 3 4 5] -2
+  	--assert 2 = pick next next next make hash! [1 2 3 4 5] -2
   
   --test-- "series-pick-21"
-  --assert  2 = pick #{0102} 2
+  	--assert  2 = pick #{0102} 2
 
   --test-- "series-pick-22"
-  --assert  1 = pick tail #{0102} -2
+  	--assert  1 = pick tail #{0102} -2
+  
+  --test-- "series-pick-23"
+  	sp23-b: [4 7 9 [11] test /ref 'red]
+  	--assert 7 = pick sp23-b 2
+  	
+  --test-- "series-pick-24"
+  	sp24-b: [4 7 9 [11] test /ref 'red]
+  	--assert 11 = pick pick sp24-b 4 1
+ 
+  --test-- "series-pick-25"
+  	sp25-b: [4 7 9 [11] test /ref 'red]
+  	--assert /ref = pick sp25-b 6
+  	
+  --test-- "series-pick-26"
+  	sp26-b: [4 7 9 [11] test /ref 'red]
+  	--assert 'red = pick sp26-b 7
+  	
 ===end-group===
 
 ===start-group=== "select"
