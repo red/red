@@ -12,6 +12,7 @@ Red [
 
 #system [
 	#include %../../runtime/datatypes/event.reds
+	event/init
 ]
 
 on-face-deep-change*: function [owner word target action new index part state forced?][
@@ -547,5 +548,3 @@ dump-face: function [
 	if block? face/pane [foreach f face/pane [dump-face f]]
 	remove depth
 ]
-
-#system [event/init]
