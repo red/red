@@ -307,6 +307,7 @@ win/pane: reduce [
 				unless live? [
 					show [drop-list check-face text-list button simple tab-panel hi]
 				]
+				print [{"Hello" size:} size-text button]
 			]
 		]
 	]

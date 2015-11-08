@@ -324,6 +324,29 @@ system/view/platform: context [
 		SET_RETURN(pair)
 	]
 	
+	set 'size-text routine [
+		"Returns the area size of the text in a face"
+		face [object!]	"Face containing the text to size"
+		/local
+			text [red-string!]
+			pair [red-pair!]
+	][
+		;@@ check if object is a face?
+		text: as red-string! gui/get-node-facet face/ctx gui/FACE_OBJ_TEXT
+		if TYPE_OF(text) <> TYPE_STRING [
+			SET_RETURN(none-value)
+			exit
+		]
+		pair: as red-pair! stack/arguments
+		pair/header: TYPE_PAIR
+		
+		gui/get-text-size
+			gui/get-face-handle face
+			text
+			string/rs-length? text
+			pair
+	]
+	
 	on-change-facet: routine [
 		owner  [object!]
 		word   [word!]

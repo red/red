@@ -175,6 +175,33 @@ get-gesture-info: func [
 	gi
 ]
 
+get-text-size: func [
+	hWnd	[handle!]
+	str		[red-string!]
+	len		[integer!]
+	pair	[red-pair!]
+	return: [tagSIZE]
+	/local
+		dc	 [handle!]
+		size [tagSIZE]
+][
+	size: declare tagSIZE
+	dc: GetDC hWnd
+	
+	GetTextExtentPoint32
+		dc
+		unicode/to-utf16 str
+		string/rs-length? str
+		size
+	
+	ReleaseDC hWnd dc
+	if pair <> null [
+		pair/x: size/width
+		pair/y: size/height
+	]
+	size
+]
+
 to-bgr: func [
 	node	[node!]
 	return: [integer!]									;-- 00bbggrr format or -1 if not found
