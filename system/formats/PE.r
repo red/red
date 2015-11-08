@@ -146,7 +146,7 @@ context [
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
-			reloc				#{52000040} ;-- [read shared discardable initialized]
+			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
 			code				#{60000020}	;-- [read code execute]
@@ -608,7 +608,7 @@ context [
 		block: 0
 		
 		open-block: [
-			header: buffer
+			header: tail buffer
 			append buffer #{0000000000000000}			;-- reserve 64-bit for the header
 		]
 		close-block: [
@@ -620,8 +620,9 @@ context [
 		foreach offset refs [
 			offset: offset - 1
 			if offset - block > _4K [
-				do close-block
 				pad4 buffer
+				do close-block
+				do open-block
 				base: base + _4K
 				block: block + _4K
 			]
@@ -641,7 +642,9 @@ context [
 			either all [spec/1 = 'global block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
-				foreach ref spec/3 [append code-refs ref]
+				if spec/1 <> 'import [
+					foreach ref spec/3 [append code-refs ref]
+				]
 			]
 		]
 		sort code-refs
@@ -682,7 +685,7 @@ context [
 		
 		flags: to integer! defs/dll-flags/nx-compat
 		case/all [
-			job/PIC? 		[flags: flags or to integer! defs/dll-flags/dynamic-base]
+			job/type = 'dll	[flags: flags or to integer! defs/dll-flags/dynamic-base]
 			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		]
 		
@@ -758,9 +761,9 @@ context [
 		sh/virtual-address:	section-addr?/memory job name
 		sh/raw-data-size: 	file-align * round/ceiling (length? spec/2) / file-align
 		sh/raw-data-ptr:	section-addr?/file job name
-		sh/relocations-ptr:	0							;-- image or obj with no relocations
+		sh/relocations-ptr:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-ptr:	0
-		sh/relocations-nb:	0							;-- zero for executable images
+		sh/relocations-nb:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-nb:		0
 		sh/flags:			to integer! select defs/s-type name		
 
@@ -1075,9 +1078,9 @@ context [
 		
 		build-import job								;-- populate import section buffer
 
-		if find job/sections 'rsrc	[build-resource job]
-
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
+
+		if find job/sections 'rsrc	[build-resource job]
 		
 		if find [dll drv] job/type [build-reloc job]
 
