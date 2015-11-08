@@ -516,9 +516,22 @@ view: function [
 
 center-face: function [
 	"Center a face inside its parent"
-	face [object!]	"Face to center"
+	face [object!]		 "Face to center"
+	/with				 "Provide a reference face for centering instead of parent face"
+		parent [object!] "Reference face"
 ][
-	face/offset: face/parent/size - face/size / 2
+	unless parent [
+		parent: either face/type = 'window [
+			system/view/screens/1						;@@ to be improved for multi-display support
+		][
+			face/parent
+		]
+	]
+	either parent [
+		face/offset: parent/size - face/size / 2
+	][
+		print "CENTER-FACE: face has no parent!"		;-- temporary check
+	]
 ]
 
 dump-face: function [
