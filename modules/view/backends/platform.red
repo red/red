@@ -375,9 +375,8 @@ system/view/platform: context [
 	]
 
 	do-event-loop: routine [no-wait? [logic!]][
-		probe "do-event-loop"
 		gui/do-events no-wait?
-		probe "exited from event-loop"
+		SET_RETURN(unset-value)
 	]
 	
 	init: has [svs][
