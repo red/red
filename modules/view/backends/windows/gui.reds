@@ -494,8 +494,6 @@ OS-make-view: func [
 		sym		  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
-		offx	  [integer!]
-		offy	  [integer!]
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
@@ -522,8 +520,6 @@ OS-make-view: func [
 	ws-flags: 0
 	id:		  0
 	sym: 	  symbol/resolve type/symbol
-	offx:	  offset/x
-	offy:	  offset/y
 	panel?:	  no
 
 	if show?/value [flags: flags or WS_VISIBLE]
@@ -550,8 +546,6 @@ OS-make-view: func [
 		][
 			class: #u16 "RedPanel"
 			init-panel values as handle! parent
-			offx: offset/x								;-- refresh locals
-			offy: offset/y
 			panel?: yes
 		]
 		sym = tab-panel [
@@ -605,8 +599,6 @@ OS-make-view: func [
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
-			offx:  CW_USEDEFAULT
-			offy:  CW_USEDEFAULT
 			if menu-bar? menu window [
 				id: as-integer build-menu menu CreateMenu
 			]
@@ -635,8 +627,8 @@ OS-make-view: func [
 		class
 		caption
 		flags
-		offx
-		offy
+		offset/x
+		offset/y
 		size/x
 		size/y
 		as int-ptr! parent
@@ -676,7 +668,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 4 as-integer hWnd
 		]
 		panel? [
-			adjust-parent handle as handle! parent offx offy
+			adjust-parent handle as handle! parent offset/x offset/y
 		]
 		sym = slider [
 			vertical?: size/y > size/x

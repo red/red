@@ -109,7 +109,7 @@ sub-win: make face! [
 ]
 
 win: make face! [
-	type: 'window text: "Red View" offset: 500x500 size: 1100x800
+	type: 'window text: "Red View" size: 1100x800
 	menu: [
 		;popup						;-- forces context menu for window
 		"File" [
