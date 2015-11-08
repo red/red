@@ -1026,6 +1026,9 @@ DwmIsCompositionEnabled!: alias function! [
 			nVirtKey	[integer!]
 			return:		[integer!]						;-- returns a 16-bit value
 		]
+		GetCapture: "GetCapture" [
+			return:		[handle!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		ExtTextOut: "ExtTextOutW" [

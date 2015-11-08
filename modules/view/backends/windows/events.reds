@@ -789,12 +789,14 @@ process: func [
 			]
 		]
 		WM_LBUTTONDOWN	[
+			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
 		WM_RBUTTONDOWN	[
+			if GetCapture <> null [return EVT_DISPATCH]
 			lParam: msg/lParam
 			pt: declare tagPOINT
 			pt/x: WIN32_LOWORD(lParam)
