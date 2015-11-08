@@ -26,8 +26,6 @@ quit: func [
 	quit-return any [status 0]
 ]
 
-halt: :quit			
-
 empty?: func [
 	"Returns true if a series is at its tail"
 	series	[series! none!]
