@@ -761,6 +761,7 @@ _series: context [
 		buffer/flags: s/flags							;@@ filter flags?
 
 		unless zero? part [
+			offset: offset << (log-b unit)
 			copy-memory
 				as byte-ptr! buffer/offset
 				(as byte-ptr! s/offset) + offset
