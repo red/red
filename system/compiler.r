@@ -2297,24 +2297,16 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum ns][
+		comp-assignment: has [name value n enum ns local?][
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
 				n: to word! name
-				if all [
-					locals
-					not local-variable? n
-					not find globals resolve-ns n
-				][
-					throw-error ["undeclared variable:" name]
-				]
-				unless any [locals local-variable? n][
-					store-ns-symbol n
-				]
+				local?: local-variable? n
+				unless any [locals local?][store-ns-symbol n]
 				
 				unless all [
-					local-variable? n
+					local?
 					n = 'context						;-- explicitly allow 'context name for local variables
 				][
 					check-keywords n					;-- forbid keywords redefinition
@@ -2324,7 +2316,7 @@ system-dialect: make-profilable context [
 					throw-error ["redeclaration of definition" name]
 				]
 				if all [
-					not local-variable? n
+					not local?
 					enum: enum-id? n
 				][
 					backtrack name
@@ -2336,9 +2328,13 @@ system-dialect: make-profilable context [
 				][
 					throw-error "storing a function! requires a type casting"
 				]
-				unless local-variable? n [
+				unless local? [
+					ns: resolve-ns n
+					if all [locals ns not find globals ns][
+						throw-error ["variable" n "not declared"]
+					]
 					if all [ns-path none? locals][add-ns-symbol pc/-1]
-					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
+					if all [ns ns <> n][name: to set-word! ns]
 					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
 			]
