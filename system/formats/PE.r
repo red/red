@@ -653,9 +653,7 @@ context [
 			either all [spec/1 = 'global block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
-				if spec/1 <> 'import [
-					foreach ref spec/3 [append code-refs ref]
-				]
+				foreach ref spec/3 [append code-refs ref]
 			]
 		]
 		sort code-refs
