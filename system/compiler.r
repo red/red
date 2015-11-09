@@ -2830,7 +2830,10 @@ system-dialect: make-profilable context [
 				variable: expr/1
 				expr: expr/2							;-- switch to assigned expression
 				if set-word? variable [
-					new?: not exists-variable? variable
+					new?: any [
+						not exists-variable? variable
+						to logic! find [string! paren!] type?/word expr
+					]
 				]
 			]			
 			if object? expr [							;-- unbox type-casting object
