@@ -12,12 +12,23 @@ context [
 		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
 			<dependency>
 				<dependentAssembly>
-					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="x86" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
+					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
 				</dependentAssembly>
 			</dependency>
+			<trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+				<security>
+					<requestedPrivileges>
+						<requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+					</requestedPrivileges>
+				</security>
+			</trustInfo>
+			<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+				<application>
+					<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"></supportedOS>
+				</application>
+			</compatibility>
 		</assembly>
 	}
-
 	if all [
 		system/version/4 = 3
 		find system/components 'Library 
@@ -642,9 +653,7 @@ context [
 			either all [spec/1 = 'global block? spec/4][
 				foreach ref spec/4 [append data-refs ref]
 			][
-				if spec/1 <> 'import [
-					foreach ref spec/3 [append code-refs ref]
-				]
+				foreach ref spec/3 [append code-refs ref]
 			]
 		]
 		sort code-refs
