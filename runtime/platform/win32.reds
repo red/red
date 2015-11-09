@@ -299,7 +299,7 @@ platform: context [
 
 		while [not zero? size][
 			cp: str/value
-			either str/value > FFFFh [
+			either cp > FFFFh [
 				cp: cp - 00010000h						;-- encode surrogate pair
 				putwchar cp >> 10 + D800h				;-- emit lead
 				putwchar cp and 03FFh + DC00h			;-- emit trail
