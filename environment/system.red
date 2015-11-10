@@ -132,6 +132,7 @@ system: context [
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				not-window:			"VIEW - expected a window root face"
+				not-linked:			"VIEW - face not linked to a window"
 			]
 			math: object [
 				code:				400

@@ -432,7 +432,6 @@ show: function [
 		]
 		exit
 	]
-	
 	if system/view/debug? [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
@@ -447,7 +446,11 @@ show: function [
 		if face/state/2 <> 0 [system/view/platform/update-view face]
 	][
 		new?: yes
+		
 		if face/type <> 'screen [
+			if all [not parent not object? face/parent face/type <> 'window][
+				cause-error 'script 'not-linked []
+			]
 			if all [object? face/actors in face/actors 'on-make][
 				do [face/actors/on-make face none]
 			]
@@ -506,7 +509,7 @@ view: function [
 	unless system/view/screens [system/view/platform/init]
 	
 	if block? spec [spec: layout spec]
-	if spec/type <> 'window [make error! [script not-window]]
+	if spec/type <> 'window [cause-error 'script 'not-window []]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
