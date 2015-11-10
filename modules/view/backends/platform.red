@@ -331,11 +331,16 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
+			handle [handle!]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
 		text: as red-string! values + gui/FACE_OBJ_TEXT
-		if TYPE_OF(text) <> TYPE_STRING [
+		handle: gui/face-handle? face
+		if any [
+			null? handle
+			TYPE_OF(text) <> TYPE_STRING
+		][
 			SET_RETURN(none-value)
 			exit
 		]

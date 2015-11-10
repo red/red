@@ -133,6 +133,21 @@ get-face-flags: func [
 	GetWindowLong hWnd wc-offset + 16
 ]
 
+face-handle?: func [
+	face	[red-object!]
+	return: [handle!]									;-- returns NULL is no handle
+	/local
+		state [red-block!]
+		int	  [red-integer!]
+][
+	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
+	if TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state
+		if TYPE_OF(int) = TYPE_INTEGER [return as handle! int/value]
+	]
+	null
+]
+
 get-face-handle: func [
 	face	[red-object!]
 	return: [handle!]
