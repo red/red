@@ -837,7 +837,7 @@ change-selection: func [
 			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
 		]
 		sym = tab-panel [
-			select-tab as handle! hWnd idx - 1
+			select-tab as handle! hWnd idx - 1		;@@ requires range checking
 		]
 	]
 ]

@@ -121,28 +121,37 @@ set-tabs: func [
 		tail [red-string!]
 		int	 [red-integer!]
 		item [TCITEM]
-		i	 [integer!]
+		nb	 [integer!]
 ][
 	item: declare TCITEM
 	data: as red-block! facets + FACE_OBJ_DATA
+	nb: 0
 	
 	SendMessage hWnd TCM_DELETEALLITEMS 0 0
 
 	if TYPE_OF(data) = TYPE_BLOCK [
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
-		i: 0
+		nb: 0
 		while [str < tail][
-			if TYPE_OF(str) = TYPE_STRING [insert-tab hWnd str i]
-			i: i + 1
+			if TYPE_OF(str) = TYPE_STRING [
+				insert-tab hWnd str nb
+				nb: nb + 1
+			]
 			str: str + 1
 		]
 	]
 	int: as red-integer! facets + FACE_OBJ_SELECTED
 
-	if TYPE_OF(int) <> TYPE_INTEGER [
+	either TYPE_OF(int) <> TYPE_INTEGER [
 		int/header: TYPE_INTEGER						;-- force selection on first tab
 		int/value:  1
+	][
+		case [
+			int/value < 1  [int/value: 1]
+			int/value > nb [int/value: nb]
+			true 		   [0]
+		]
 	]
 ]
 
