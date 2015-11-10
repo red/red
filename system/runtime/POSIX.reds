@@ -111,7 +111,10 @@ posix-startup-ctx: context [
 		***-on-quit error UCTX_INSTRUCTION(ctx)
 	]
 
-	init: does [
+	init: func [
+		/local
+			__sigaction-options [sigaction!]
+	][
 		__sigaction-options: declare sigaction!
 
 		__sigaction-options/sigaction: 	as-integer :***-on-signal
