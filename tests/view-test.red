@@ -308,6 +308,7 @@ win/pane: reduce [
 					show [drop-list check-face text-list button simple tab-panel hi]
 				]
 				print [{"Hello" size:} size-text button]
+				print [{"Base" size:} size-text base-face]
 			]
 		]
 	]
@@ -739,6 +740,16 @@ win/pane: reduce [
 		color: silver
 		draw: [font font-A text 35x30 "0"]
 		para: make para! [v-align: 'top]
+	]
+	base-face: make face! [
+		type: 'base text: "Base face" offset: 630x630 size: 80x80
+		color: beige
+		font: make font! [
+			name: "Times New Roman"
+			size: 16
+			style: 'italic
+			anti-alias: yes
+		]
 	]
 	make face! [
 		type: 'button text: "Drag me" offset: 550x540 size: 70x24

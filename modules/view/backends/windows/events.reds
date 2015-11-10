@@ -472,13 +472,18 @@ render-text: func [
 		font	[red-object!]
 		para	[red-object!]
 		color	[red-tuple!]
+		state	[red-block!]
+		int		[red-integer!]
+		hFont	[handle!]
 		old		[integer!]
 		flags	[integer!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
-		either TYPE_OF(font) = TYPE_OBJECT [
+		hFont: GetStockObject 17						;-- select default GUI font
+		
+		if TYPE_OF(font) = TYPE_OBJECT [
 			values: object/get-values font
 			color: as red-tuple! values + FONT_OBJ_COLOR
 			if all [
@@ -487,9 +492,16 @@ render-text: func [
 			][
 				SetTextColor hDC color/array1 and 00FFFFFFh
 			]
-		][
-			SelectObject hDC GetStockObject 17			;-- select default GUI font
+			state: as red-block! values + FONT_OBJ_STATE
+			if TYPE_OF(state) = TYPE_BLOCK [
+				int: as red-integer! block/rs-head state
+				if TYPE_OF(int) = TYPE_INTEGER [
+					hFont: as handle! int/value
+				]
+			]
 		]
+		SelectObject hDC hFont
+		
 		flags: DT_SINGLELINE
 		para: as red-object! values + FACE_OBJ_PARA
 		flags: either TYPE_OF(para) = TYPE_OBJECT [
