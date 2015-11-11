@@ -720,17 +720,15 @@ WndProc: func [
 		WM_CTLCOLORSTATIC 
 		WM_CTLCOLORLISTBOX 
 		WM_CTLCOLORSCROLLBAR [
-			if GetCapture = null [
-				if null? current-msg [init-current-msg]
-				current-msg/hWnd: as handle! lParam			;-- force child handle
-				handle: get-widget-handle current-msg
-				if handle <> as handle! -1 [
-					color: to-bgr as node! GetWindowLong handle wc-offset + 4
-					if color <> -1 [
-						SetBkMode as handle! wParam BK_TRANSPARENT 
-						SetDCBrushColor as handle! wParam color
-						return as-integer GetStockObject DC_BRUSH
-					]
+			if null? current-msg [init-current-msg]
+			current-msg/hWnd: as handle! lParam			;-- force child handle
+			handle: get-widget-handle current-msg
+			if handle <> as handle! -1 [
+				color: to-bgr as node! GetWindowLong handle wc-offset + 4
+				if color <> -1 [
+					SetBkMode as handle! wParam BK_TRANSPARENT 
+					SetDCBrushColor as handle! wParam color
+					return as-integer GetStockObject DC_BRUSH
 				]
 			]
 		]

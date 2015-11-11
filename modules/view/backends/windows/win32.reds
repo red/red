@@ -662,6 +662,9 @@ DwmIsCompositionEnabled!: alias function! [
 
 #import [
 	"kernel32.dll" stdcall [
+		GetCurrentProcessId: "GetCurrentProcessId" [
+			return:		[integer!]
+		]
 		GetModuleHandle: "GetModuleHandleW" [
 			lpModuleName [integer!]
 			return:		 [handle!]
@@ -699,6 +702,11 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetWindowThreadProcessId: "GetWindowThreadProcessId" [
+			hWnd		[handle!]
+			process-id	[int-ptr!]
+			return:		[integer!]
+		]
 		DrawText: "DrawTextW" [
 			hDC			[handle!]
 			lpchText	[c-string!]
