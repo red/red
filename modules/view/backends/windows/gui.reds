@@ -25,6 +25,7 @@ Red/System [
 #include %button.reds
 #include %draw.reds
 
+process-id:		0
 hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
@@ -96,6 +97,7 @@ get-widget-handle: func [
 		hWnd   [handle!]
 		header [integer!]
 		p	   [int-ptr!]
+		id	   [integer!]
 ][
 	hWnd: msg/hWnd
 	header: GetWindowLong hWnd wc-offset
@@ -109,6 +111,10 @@ get-widget-handle: func [
 			header: GetWindowLong hWnd wc-offset
 
 			if header and get-type-mask <> TYPE_OBJECT [
+				id: 0
+				GetWindowThreadProcessId hWnd :id
+				if id <> process-id [return as handle! -1]
+
 				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				either null? p [
 					hWnd: as handle! -1					;-- not found
@@ -296,6 +302,7 @@ init: func [
 		ver [red-tuple!]
 		int [red-integer!]
 ][
+	process-id: GetCurrentProcessId
 	hScreen: GetDC null
 	hInstance: GetModuleHandle 0
 	default-font: GetStockObject DEFAULT_GUI_FONT
