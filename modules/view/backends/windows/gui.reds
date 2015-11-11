@@ -519,6 +519,7 @@ OS-make-view: func [
 	parent	[integer!]
 	return: [integer!]
 	/local
+		face-old  [red-object!]
 		values	  [red-value!]
 		type	  [red-word!]
 		str		  [red-string!]
@@ -546,7 +547,10 @@ OS-make-view: func [
 		vertical? [logic!]
 		panel?	  [logic!]
 ][
-	values: object/get-values face
+	face-old: declare red-object!
+	copy-cell as cell! face as cell! face-old		;-- face might be corrupted by make-event
+
+	values: object/get-values face-old
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -681,9 +685,8 @@ OS-make-view: func [
 		null
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
-
 	BringWindowToTop handle
-	set-font handle face values
+	set-font handle face-old values
 
 	;-- extra initialization
 	case [
@@ -739,11 +742,11 @@ OS-make-view: func [
 	]
 	
 	;-- store the face value in the extra space of the window struct
-	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	SetWindowLong handle wc-offset		  		   face/header
-	SetWindowLong handle wc-offset + 4  as-integer face/ctx
-	SetWindowLong handle wc-offset + 8  		   face/class
-	SetWindowLong handle wc-offset + 12 as-integer face/on-set
+	assert TYPE_OF(face-old) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
+	SetWindowLong handle wc-offset		  		   face-old/header
+	SetWindowLong handle wc-offset + 4  as-integer face-old/ctx
+	SetWindowLong handle wc-offset + 8  		   face-old/class
+	SetWindowLong handle wc-offset + 12 as-integer face-old/on-set
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	as-integer handle
