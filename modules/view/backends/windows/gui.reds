@@ -556,6 +556,8 @@ OS-make-view: func [
 		vertical? [logic!]
 		panel?	  [logic!]
 ][
+	stack/mark-func words/_body
+
 	values: object/get-values face
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
@@ -766,6 +768,7 @@ OS-make-view: func [
 	SetWindowLong handle wc-offset + 12 as-integer face/on-set
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
+	stack/unwind
 	as-integer handle
 ]
 
