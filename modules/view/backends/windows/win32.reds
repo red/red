@@ -909,6 +909,13 @@ DwmIsCompositionEnabled!: alias function! [
 			hbr			[handle!]
 			return:		[integer!]
 		]
+		AdjustWindowRectEx: "AdjustWindowRectEx" [
+			lpRect		[RECT_STRUCT]
+			dwStyle		[integer!]
+			bMenu		[logic!]
+			dwExStyle	[integer!]
+			return:		[logic!]
+		]
 		BringWindowToTop: "BringWindowToTop" [
 			hWnd		[handle!]
 			return:		[logic!]

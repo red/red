@@ -536,12 +536,15 @@ OS-make-view: func [
 		flags	  [integer!]
 		ws-flags  [integer!]
 		sym		  [integer!]
+		size-x	  [integer!]
+		size-y	  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
 		p		  [ext-class!]
+		rc		  [RECT_STRUCT]
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
@@ -565,6 +568,8 @@ OS-make-view: func [
 	id:		  0
 	sym: 	  symbol/resolve type/symbol
 	panel?:	  no
+	size-x:	  size/x
+	size-y:	  size/y
 
 	if show?/value [flags: flags or WS_VISIBLE]
 	if TYPE_OF(para) = TYPE_OBJECT [
@@ -623,11 +628,11 @@ OS-make-view: func [
 		]
 		sym = progress [
 			class: #u16 "RedProgress"
-			if size/y > size/x [flags: flags or PBS_VERTICAL]
+			if size-y > size-x [flags: flags or PBS_VERTICAL]
 		]
 		sym = slider [
 			class: #u16 "RedSlider"
-			if size/y > size/x [
+			if size-y > size-x [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
 		]
@@ -646,6 +651,14 @@ OS-make-view: func [
 			if menu-bar? menu window [
 				id: as-integer build-menu menu CreateMenu
 			]
+			rc: declare RECT_STRUCT
+			rc/top:	   0
+			rc/left:   0
+			rc/right:  size/x
+			rc/bottom: size/y
+			AdjustWindowRectEx rc flags id <> 0 ws-flags ;-- account for edges
+			size-x: rc/right  - rc/left
+			size-y: rc/bottom - rc/top
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -673,8 +686,8 @@ OS-make-view: func [
 		flags
 		offset/x
 		offset/y
-		size/x
-		size/y
+		size-x
+		size-y
 		as int-ptr! parent
 		as handle! id
 		hInstance
