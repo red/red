@@ -2356,7 +2356,7 @@ red: context [
 	comp-func: func [
 		/collect /does /has
 		/local
-			name word spec body symbols locals-nb spec-idx body-idx ctx pos
+			name word spec body symbols locals-nb spec-idx body-idx ctx pos octx
 			src-name original global? path obj fpath shadow defer ctx-idx body-code
 	][
 		original: pc/-1
@@ -2428,17 +2428,20 @@ red: context [
 			[null]
 		]
 		
+		octx: either 1 < length? obj-stack [select objects do obj-stack]['null]
+		if all [global? octx <> 'null][append last functions octx]	;-- add origin obj ctx to function's entry
+		
 		defer: compose [
 			_function/push get-root (spec-idx) (body-code) (ctx)
 			as integer! (to get-word! decorate-func/strict name)
-			(either 1 < length? obj-stack [select objects do obj-stack]['null])
+			(octx)
 		]
 		new-line defer yes
 		new-line skip tail defer -4 no
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
 			copy locals-stack copy ssa-names copy ctx-stack
-			all [not global? 1 < length? obj-stack next first do obj-stack] ;-- save optional wrapping object
+			all [1 < length? obj-stack next first do obj-stack] ;-- save optional wrapping object
 		]
 		pop-context
 		pc: skip pc 2
@@ -3319,10 +3322,13 @@ red: context [
 			all [
 				not literal
 				not local?
-				all [
-					alter: get-prefix-func original
-					entry: find functions alter
-					name: alter
+				any [
+					all [
+						alter: get-prefix-func original
+						entry: find functions alter
+						name: alter
+					]
+					entry: find functions name
 				]
 			][
 				if alter: select-ssa name [entry: find functions alter]
