@@ -2821,12 +2821,15 @@ red: context [
 			switch/default type?/word value: path/1 [
 				word! [
 					if all [not set? not get? entry: find functions value][
-						if alter: select-ssa value [
-							entry: find functions alter
-						]
 						if head? path [
+							if alter: select-ssa value [entry: find functions alter]
 							pc: next pc
-							comp-call path entry/2		;-- call function with refinements
+							
+							either pick entry/2 5 [
+								comp-call/with path entry/2 value entry/2/5
+							][
+								comp-call path entry/2		;-- call function with refinements
+							]
 							exit
 						]
 					]
