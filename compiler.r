@@ -3242,6 +3242,7 @@ red: context [
 				][
 					comp-context/with original
 				]
+				unless defer [insert mark start]		;-- restore beginning of frame
 			]
 			all [
 				any [word? pc/1 path? pc/1]
