@@ -12,17 +12,50 @@ Red [
 
 system/view/VID: context [
 	styles: #(
-		window		[type: 'window	size: 300x300]
-		base		[type: 'base	size: 80x80]
-		button 		[type: 'button	size: 60x30]
-		text		[type: 'text	size: 80x24]
-		field		[type: 'field	size: 80x24]
-		area		[type: 'area	size: 150x150]
-		check		[type: 'check	size: 80x24]
-		radio		[type: 'radio	size: 80x24]
-		progress	[type: 'progress size: 150x16]
-		slider		[type: 'slider	size: 150x24]
-		camera		[type: 'camera	size: 250x250]
+		window: [
+			default-actor: on-click
+			template: [type: 'window size: 300x300]
+		]
+		base: [
+			default-actor: on-click
+			template: [type: 'base size: 80x80]
+		]
+		button: [
+			default-actor: on-click
+			template: [type: 'button size: 60x30]
+		]
+		text: [
+			default-actor: on-change
+			template: [type: 'text size: 80x24]
+		]
+		field: [
+			default-actor: on-change					;@@ on-enter?
+			template: [type: 'field size: 80x24]
+		]
+		area: [
+			default-actor: on-change					;@@ on-enter?
+			template: [type: 'area size: 150x150]
+		]
+		check: [
+			default-actor: on-change
+			template: [type: 'check size: 80x24]
+		]
+		radio: [
+			default-actor: on-change
+			template: [type: 'radio size: 80x24]
+		]
+		progress: [
+			default-actor: on-change
+			template: [type: 'progress size: 150x16]
+		]
+		slider: [
+			default-actor: on-change
+			template: [type: 'slider size: 150x24]
+		]
+		camera: [
+			default-actor: on-down
+			template: [type: 'camera size: 250x250]
+		]
 	)
 	
 	default-font: [name "Tahoma" size 9 color 'black]
@@ -63,14 +96,14 @@ system/view/VID: context [
 		]
 	]
 	
-	make-actor: function [obj [object!] name [word!] spec [block!]][
-		unless any [name block? spec/2][raise-error spec]
+	make-actor: function [obj [object!] name [word!] body spec [block!]][
+		unless any [name block? body][raise-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
 		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
 			'func [face [object!] event [event!]]
-			spec/2
+			body
 		]
 	]
 	
@@ -89,7 +122,7 @@ system/view/VID: context [
 		current:	  0
 		cursor:		  origin
 		
-		unless panel [panel: make face! styles/window]
+		unless panel [panel: make face! styles/window/template]
 		
 		while [not tail? spec][
 			value: spec/1
@@ -124,7 +157,7 @@ system/view/VID: context [
 				][
 					raise-error spec
 				]
-				face: make face! style
+				face: make face! style/template
 				set opts none
 				opt?: yes
 
@@ -145,8 +178,8 @@ system/view/VID: context [
 						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
 						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
 						
-						find system/view/evt-names value [
-							make-actor opts value spec spec: next spec
+						all [word? value find system/view/evt-names value][
+							make-actor opts value spec/2 spec spec: next spec
 						]
 						'else [
 							switch/default type?/word value [
@@ -157,7 +190,7 @@ system/view/VID: context [
 								tuple!	 [either opts/color [opt?: no][opts/color: value]]
 								string!	 [either opts/text  [opt?: no][opts/text:  value]]
 								percent! [opts/data: value]
-								block!	 []
+								block!	 [make-actor opts style/default-actor spec/1 spec]
 								char!	 []
 							][
 								opt?: no

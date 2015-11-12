@@ -8,13 +8,15 @@ Red [
 view [
 	;below
 	text "Hello"
-	button "Hello" 100x40 on-click [bar/data: random 100%]
+	button "Hello" 100x40 [bar/data: random 100%]
 	button "World"
 	return
 
 	button "China"
 	text "Red Language" 100 right
-	field 120
+	field 120 on-key [
+		if event/key = cr [probe do face/text] 	; clear face/text
+	]
 	return
 	
 	slider 50%
@@ -27,4 +29,3 @@ view [
 	radio "option 4"
 	return
 ]
-
