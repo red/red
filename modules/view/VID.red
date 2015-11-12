@@ -68,13 +68,17 @@ system/view/VID: context [
 			default-actor: on-select
 			template: [type: 'drop-down size: 100x24]
 		]
+		panel: [
+			default-actor: on-click						;@@ something better?
+			template: [type: 'panel size: 200x200]
+		]
+		group-box: [
+			default-actor: on-click						;@@ something better?
+			template: [type: 'group-box size: 200x200]
+		]
 	)
 	
 	default-font: [name "Tahoma" size 9 color 'black]
-	
-	opts: object [
-		type: offset: size: text: color: font: para: data: extra: actors: none
-	]
 	
 	raise-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
@@ -120,7 +124,7 @@ system/view/VID: context [
 	]
 	
 	set 'layout function [
-		"Return a face with a pane built from a description using VID"
+		"Return a face with a pane built from a VID description"
 		spec [block!]
 		/parent panel [object!]
 	][
@@ -133,6 +137,10 @@ system/view/VID: context [
 		max-sz:	  	  0
 		current:	  0
 		cursor:		  origin
+		
+		opts: object [
+			type: offset: size: text: color: font: para: data: extra: actors: none
+		]
 		
 		unless panel [panel: make face! styles/window/template]
 		
@@ -202,7 +210,14 @@ system/view/VID: context [
 								tuple!	 [either opts/color [opt?: no][opts/color: value]]
 								string!	 [either opts/text  [opt?: no][opts/text:  value]]
 								percent! [opts/data: value]
-								block!	 [make-actor opts style/default-actor spec/1 spec]
+								block!	 [
+									switch/default face/type [
+										panel	  [layout/parent value face]
+										group-box [layout/parent value face]
+									][
+										make-actor opts style/default-actor spec/1 spec
+									]
+								]
 								char!	 []
 							][
 								opt?: no
@@ -218,8 +233,7 @@ system/view/VID: context [
 						unless font/:field [font/:field: value]
 					]
 				]
-
-				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
+				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]				
 				if block? face/actors [face/actors: make object! face/actors]
 				;if all [not opts/size opts/text][face/size: spacing + size-text face]
 	

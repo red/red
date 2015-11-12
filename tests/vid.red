@@ -19,6 +19,14 @@ view [
 	]
 	return
 	
+	group-box [
+		below
+		text "in panel"
+		button "A"
+		button "B"
+		button "C"
+	]
+	
 	slider 50%
 	bar: progress 5%
 	return
@@ -32,4 +40,5 @@ view [
 	text-list data ["one" "two" "three" "four"] ;[probe pick face/data event/selected]
 	drop-list data ["one" "two" "three" "four"] 
 	drop-down data ["one" "two" "three" "four"]
+	
 ]
