@@ -3302,13 +3302,14 @@ red: context [
 		pc: next pc										;@@ move it deeper
 		
 		case [
-			all [not thru name = 'exit]	 [comp-exit]
+			all [not thru name = 'exit	][comp-exit]
 			all [not thru name = 'return][comp-return]
-			all [not thru name = 'self]  [comp-self original]
+			all [not thru name = 'self	][comp-self original]
 			all [
 				not final
 				not local?
 				name = 'make
+				word? pc/1
 				any-function? pc/1
 			][
 				fetch-functions skip pc -2				;-- extract functions definitions
