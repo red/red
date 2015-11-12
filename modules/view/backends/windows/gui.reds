@@ -604,6 +604,8 @@ OS-make-view: func [
 		][
 			class: #u16 "RedPanel"
 			init-panel values as handle! parent
+			size-x:	size/x
+			size-y:	size/y
 			panel?: yes
 		]
 		sym = tab-panel [
