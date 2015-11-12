@@ -6,9 +6,9 @@ Red [
 ]
 
 view [
-	below
+	;below
 	text "Hello"
-	button "Hello" 100x40 ;on-click [sld/data: random 100%]
+	button "Hello" 100x40 on-click [bar/data: random 100%]
 	button "World"
 	return
 
@@ -17,8 +17,8 @@ view [
 	field 120
 	return
 	
-	sld: slider 50%
-	progress 25%
+	slider 50%
+	bar: progress 5%
 	return
 	
 	check "option 1"

@@ -279,7 +279,7 @@ system/view: context [
 	platform: none	
 	VID: none
 	
-	evt-names: #(
+	evt-names: make hash! [
 		down			on-down
 		up				on-up
 		middle-down		on-mid-down
@@ -309,7 +309,7 @@ system/view: context [
 		rotate			on-rotate
 		two-tap			on-two-tap
 		press-tap		on-press-tap
-	)
+	]
 	
 	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
@@ -391,7 +391,7 @@ system/view: context [
 		:result
 	]
 	
-	auto-sync?: no
+	auto-sync?: yes
 	debug?: no
 ]
 

@@ -63,16 +63,11 @@ system/view/VID: context [
 		]
 	]
 	
-	make-actor: function [obj [object!] spec [block!]][
-		unless any [
-			name: select system/view/evt-names spec/1
-			block? spec/2
-		][
-			raise-error spec
-		]
+	make-actor: function [obj [object!] name [word!] spec [block!]][
+		unless any [name block? spec/2][raise-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
-		append obj/actors probe reduce [
+		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
 			'func [face [object!] event [event!]]
 			spec/2
@@ -80,6 +75,7 @@ system/view/VID: context [
 	]
 	
 	set 'layout function [
+		"Return a face with a pane built from a description using VID"
 		spec [block!]
 		/parent panel [object!]
 	][
@@ -148,7 +144,10 @@ system/view/VID: context [
 						;data []
 						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
 						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
-						value = 'on	  [make-actor opts spec: next spec spec: skip spec 2]
+						
+						find system/view/evt-names value [
+							make-actor opts value spec spec: next spec
+						]
 						'else [
 							switch/default type?/word value [
 								integer! [
@@ -174,9 +173,9 @@ system/view/VID: context [
 						unless font/:field [font/:field: value]
 					]
 				]
-				;if opts/actors [face/actors: make opts/actors []]
-				
+
 				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
+				if block? face/actors [face/actors: make object! face/actors]
 				;if all [not opts/size opts/text][face/size: spacing + size-text face]
 	
 				;-- update cursor position --
