@@ -56,6 +56,18 @@ system/view/VID: context [
 			default-actor: on-down
 			template: [type: 'camera size: 250x250]
 		]
+		text-list: [
+			default-actor: on-select
+			template: [type: 'text-list size: 100x140]
+		]
+		drop-list: [
+			default-actor: on-select
+			template: [type: 'drop-list size: 100x24]
+		]
+		drop-down: [
+			default-actor: on-select
+			template: [type: 'drop-down size: 100x24]
+		]
 	)
 	
 	default-font: [name "Tahoma" size 9 color 'black]
@@ -174,7 +186,7 @@ system/view/VID: context [
 						find [bold italic underline] value [
 							opt?: add-flag opts 'font 'style value
 						]
-						;data []
+						value = 'data [opts/data: first spec: next spec]
 						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
 						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
 						

@@ -28,4 +28,8 @@ view [
 	radio "option 3"
 	radio "option 4"
 	return
+	
+	text-list data ["one" "two" "three" "four"] ;[probe pick face/data event/selected]
+	drop-list data ["one" "two" "three" "four"] 
+	drop-down data ["one" "two" "three" "four"]
 ]
