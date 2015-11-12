@@ -392,7 +392,7 @@ system/view: context [
 	]
 	
 	auto-sync?: no
-	debug?: yes
+	debug?: no
 ]
 
 #include %backends/platform.red

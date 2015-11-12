@@ -1,9 +1,9 @@
 Red [
-	Title:   "Red View Interface Dialect"
+	Title:   "View Interface Dialect"
 	Author:  "Nenad Rakocevic"
 	File: 	 %VID.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -11,130 +11,203 @@ Red [
 ]
 
 system/view/VID: context [
-	at-offset: pad-offset: none
+	styles: #(
+		window		[type: 'window	size: 300x300]
+		base		[type: 'base	size: 80x80]
+		button 		[type: 'button	size: 60x30]
+		text		[type: 'text	size: 80x24]
+		field		[type: 'field	size: 80x24]
+		area		[type: 'area	size: 150x150]
+		check		[type: 'check	size: 80x24]
+		radio		[type: 'radio	size: 80x24]
+		progress	[type: 'progress size: 150x16]
+		slider		[type: 'slider	size: 150x24]
+		camera		[type: 'camera	size: 250x250]
+	)
+	
+	default-font: [name "Tahoma" size 9 color 'black]
+	
+	opts: object [
+		type: offset: size: text: color: font: para: data: extra: actors: none
+	]
+	
+	raise-error: func [spec [block!]][
+		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
+	]
 
-	cursor: 	  [0 0 0x0]									;-- max-x|y, current-x|y, next-face-coordinates
-	direction: 	  'across
-	origin:	  	  10x10
-	spacing:	  10x10
-
-	reset-cursor: does [
-		either direction = 'across [
-			cursor/3/x: origin/x
-			cursor/3/y: cursor/3/y + cursor/1 + spacing/y
+	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
+		unless obj/:facet [
+			obj/:facet: make get select [font font! para para!] facet []
+		]		
+		obj: obj/:facet
+		
+		make logic! either blk: obj/:field [
+			unless block? blk [obj/:field: blk: reduce [blk]]
+			alter blk flag
 		][
-			cursor/3/x: cursor/3/x + cursor/1 + spacing/x
-			cursor/3/y: origin/y
+			obj/:field: flag
 		]
-		cursor/2: cursor/1
-		cursor/1: 0
-	]
-
-	make-face: func [
-		parent [object! none!]
-		type   [word!]
-		opts   [block! none!]
-		/local face value list offset
-	][
-		face: make face! []
-		face/type: type
-
-		if opts [
-			face/offset: any [opts/offset 0x0]
-			face/size:   any [opts/size 100x80]
-			face/text:	 opts/text
-
-			if find opts 'action [
-				face/actors: opts/action
-			]
-		]
-
-		if parent [
-			unless list: parent/pane [parent/pane: list: make block! 8]
-			;face/parent: parent
-
-			either at-offset [
-				face/offset: at-offset
+	]													;-- returns TRUE if added
+	
+	fetch-argument: function [expected [datatype!] spec [block!]][
+		either expected = type: type? value: spec/1 [
+			value
+		][
+			if all [
+				type = word!
+				expected = type? value: get value 
 			][
-				offset: either empty? list [origin][cursor/3]
-				if pad-offset [offset: offset + pad-offset]
-				face/offset: spacing
-
-				either direction = 'across [
-					face/offset/x: face/offset/x + offset/x + spacing/x
-					face/offset/y: cursor/2 + spacing/y
-					if face/size/y > cursor/1 [cursor/1: face/size/y]
-				][
-					face/offset/x: cursor/2 + spacing/x
-					face/offset/y: face/offset/y + offset/y + spacing/y
-					if face/size/x > cursor/1 [cursor/1: face/size/x]
-				]
-				cursor/3: offset + face/size + spacing
+				return value
 			]
-			append/only list face
+			raise-error spec
 		]
-
-		at-offset: pad-offset: none							;-- reset global flags
-		face
 	]
-
-	root-face: make-face none 'window [
-		text: "VID test"
-		size: 800x600
-		offset: 400x400
+	
+	make-actor: function [obj [object!] spec [block!]][
+		unless any [
+			name: select system/view/evt-names spec/1
+			block? spec/2
+		][
+			raise-error spec
+		]
+		unless obj/actors [obj/actors: make block! 4]
+		
+		append obj/actors probe reduce [
+			load append form name #":"	;@@ to set-word!
+			'func [face [object!] event [event!]]
+			spec/2
+		]
 	]
-
-	set 'layout func [
+	
+	set 'layout function [
 		spec [block!]
-		/local pos arg arg2 options-rule opts value value2 current type action
+		/parent panel [object!]
 	][
-		opts: []
-		current: root-face
-
-		options-rule: [
-			(clear opts)
-			any [
-				(value2: none)
-				set value [integer! | pair!] (
-					append opts [size:]
-					append/only opts either pair? value [value][
-						make pair! probe reduce [value 80]
+		list:		  make block! 4
+		local-styles: clear []
+		pane-size:	  0x0
+		direction: 	  'across
+		origin:		  10x10
+		spacing:	  10x10
+		max-sz:	  	  0
+		current:	  0
+		cursor:		  origin
+		
+		unless panel [panel: make face! styles/window]
+		
+		while [not tail? spec][
+			value: spec/1
+			at-offset: none
+			
+			switch/default value [
+				across	[direction: value]				;@@ fix this
+				below	[direction: value]
+				title	[panel/text: fetch-argument string! spec: next spec]
+				space	[spacing: fetch-argument pair! spec: next spec]
+				origin	[cursor: fetch-argument pair! spec: next spec]
+				return	[
+					cursor: either direction = 'across [
+						as-pair origin/x cursor/y + max-sz + spacing/y
+					][
+						as-pair cursor/x + max-sz + spacing/x origin/y
 					]
-				)
-				| set value string! (
-					append opts [text:]
-					append opts value
-				)
-				| set action block! (
-					append opts [action:]
-					append/only opts action
-				)
-			]
-		]
+					max-sz: 0
+				]
+				at		[at-offset: fetch-argument pair! spec: next spec]
+				pad		[]
+				style	[]
+			][
+				name: none
+				if set-word? value [
+					name: value
+					value: first spec: next spec
+				]
+				unless style: any [
+					select styles value
+					select local-styles value
+				][
+					raise-error spec
+				]
+				face: make face! style
+				set opts none
+				opt?: yes
 
-		parse spec [
-			pos: any [
-				;------ Positioning ------
-				  'title	set arg string!
-				| 'space	set arg pair!
-				| 'origin	set arg pair!
-				| 'across	(direction: 'across)
-				| 'below	(direction: 'below)
-				| 'return	(reset-cursor)
-				| 'at		set at-offset pair!
-				| 'pad 		set pad-offset pair!
-
-				;------ Widgets ------
-				| set type 'button options-rule (make-face current type opts)
-				| set type 'text   options-rule (make-face current type opts)
-				| set type 'field  options-rule (make-face current type opts)
-				| set type 'check  options-rule (make-face current type opts)
-				| set type 'radio  options-rule (make-face current type opts)
-				;| set type 'toggle options-rule (make-face current type opts)
-				;| set type 'clock  options-rule (make-face current type opts)
-				;| set type 'calendar  options-rule (make-face current type opts)
+				;-- process style options --
+				until [
+					value: first spec: next spec
+					case [
+						find [left center right] value [
+							opt?: add-flag opts 'para 'align value
+						]
+						find [top middle bottom] value [
+							opt?: add-flag opts 'para 'v-align value
+						]
+						find [bold italic underline] value [
+							opt?: add-flag opts 'font 'style value
+						]
+						;data []
+						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
+						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
+						value = 'on	  [make-actor opts spec: next spec spec: skip spec 2]
+						'else [
+							switch/default type?/word value [
+								integer! [
+									either opts/size [opt?: no][opts/size: as-pair value face/size/y]
+								]
+								pair!	 [either opts/size  [opt?: no][opts/size:  value]]
+								tuple!	 [either opts/color [opt?: no][opts/color: value]]
+								string!	 [either opts/text  [opt?: no][opts/text:  value]]
+								percent! [opts/data: value]
+								block!	 []
+								char!	 []
+							][
+								opt?: no
+							]
+						]
+					]
+					any [not opt? tail? spec]
+				]
+				unless opt? [spec: back spec]
+				
+				if font: opts/font [
+					foreach [field value] default-font [
+						unless font/:field [font/:field: value]
+					]
+				]
+				;if opts/actors [face/actors: make opts/actors []]
+				
+				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
+				;if all [not opts/size opts/text][face/size: spacing + size-text face]
+	
+				;-- update cursor position --
+				either at-offset [face/offset: at-offset][
+					either direction = 'across [
+						if cursor/x <> origin/x [cursor/x: cursor/x + spacing/x]
+						max-sz: max max-sz face/size/y
+						face/offset: cursor
+						cursor/x: cursor/x + face/size/x
+					][
+						if cursor/y <> origin/y [cursor/y: cursor/y + spacing/y]
+						max-sz: max max-sz face/size/x
+						face/offset: cursor
+						cursor/y: cursor/y + face/size/y
+					]
+				]
+				append list face
+				if name [set name face]
+				
+				box: face/offset + face/size + spacing
+				if box/x > pane-size/x [pane-size/x: box/x]
+				if box/y > pane-size/y [pane-size/y: box/y]
 			]
+			spec: next spec
 		]
-		root-face
+		panel/pane: list
+		
+		unless parent [
+			;center-face panel
+			if pane-size <> 0x0 [panel/size: pane-size]
+		]
+		panel
 	]
 ]
