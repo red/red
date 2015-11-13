@@ -52,6 +52,10 @@ system/view/VID: context [
 			default-actor: on-change
 			template: [type: 'slider size: 150x24]
 		]
+		image: [
+			default-actor: on-down
+			template: [type: 'image size: 100x100]
+		]
 		camera: [
 			default-actor: on-down
 			template: [type: 'camera size: 250x250]
@@ -139,7 +143,8 @@ system/view/VID: context [
 		cursor:		  origin
 		
 		opts: object [
-			type: offset: size: text: color: font: para: data: extra: actors: none
+			type: offset: size: text: color: image: font: para: data:
+			extra: actors: none
 		]
 		
 		unless panel [panel: make face! styles/window/template]
@@ -202,6 +207,8 @@ system/view/VID: context [
 							make-actor opts value spec/2 spec spec: next spec
 						]
 						'else [
+							if find [file! url!] type?/word value [value: load value]
+							
 							switch/default type?/word value [
 								integer! [
 									either opts/size [opt?: no][opts/size: as-pair value face/size/y]
@@ -209,7 +216,8 @@ system/view/VID: context [
 								pair!	 [either opts/size  [opt?: no][opts/size:  value]]
 								tuple!	 [either opts/color [opt?: no][opts/color: value]]
 								string!	 [either opts/text  [opt?: no][opts/text:  value]]
-								percent! [opts/data: value]
+								percent! [either opts/data  [opt?: no][opts/data: value]]
+								image!	 [either opts/image [opt?: no][opts/image: value]]
 								block!	 [
 									switch/default face/type [
 										panel	  [layout/parent value face]
