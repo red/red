@@ -530,7 +530,7 @@ extract: function [
 	unless into [output: make series (length? series) / width]
 	
 	while [not tail? series][
-		append output series/1
+		append/only output series/1
 		series: skip series width
 	]
 	output
