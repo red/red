@@ -14,7 +14,7 @@ attempt: func [
 	"Tries to evaluate and returns result or NONE on error"
 	value
 ][
-	if not error? set/any 'value try :value [get/any 'value]
+	unless error? set/any 'value try :value [get/any 'value]
 ]
 
 comment: func [value][]
