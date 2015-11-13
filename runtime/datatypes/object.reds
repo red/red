@@ -885,7 +885,12 @@ object: context [
 					word/header: TYPE_SET_WORD
 					word/ctx: obj/ctx
 					
-					block/rs-append blk vals
+					value: block/rs-append blk vals
+					switch TYPE_OF(value) [
+						TYPE_WORD [set-type value TYPE_LIT_WORD]
+						TYPE_PATH [set-type value TYPE_LIT_PATH]
+						default   [0]
+					]
 					syms: syms + 1
 					vals: vals + 1
 				]
