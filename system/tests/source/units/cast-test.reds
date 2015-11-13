@@ -268,6 +268,9 @@ Red/System [
 		--assert csc1-str/3 = #"n"
 		--assert csc1-str/4 = #"a"
 		--assert csc1-str/5 = #"d"
+		
+		--test-- "c-string-cast-2"
+			--assert true = as logic! ""
 
 	--test-- "c-string-cast-3"
 		csc3-str: ""
@@ -305,11 +308,17 @@ Red/System [
 		csc7-struct: as [struct! [
 			c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
 		]] csc7-str
-	--assert csc7-struct/c1 = #"P"
-	--assert csc7-struct/c2 = #"e"
-	--assert csc7-struct/c3 = #"t"
-	--assert csc7-struct/c4 = #"e"
-	--assert csc7-struct/c5 = #"r"
+		--assert csc7-struct/c1 = #"P"
+		--assert csc7-struct/c2 = #"e"
+		--assert csc7-struct/c3 = #"t"
+		--assert csc7-struct/c4 = #"e"
+		--assert csc7-struct/c5 = #"r"
+		
+	--test-- "C-string-cast-8"
+		csc8-p: declare byte-ptr!
+		csc8-p: null
+		csc8-s: as c-string! csc8-p
+		--assert false = as logic! csc8-s
   
 ===end-group===
 
