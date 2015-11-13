@@ -361,6 +361,11 @@ unicode: context [
 
 		if zero? size [return node]
 		;assert not zero? as-integer src/1				;@@ ensure input string not empty
+		
+		if all [src/1 = #"^(EF)" src/2 = #"^(BB)" src/3 = #"^(BF)"][ ;-- skip BOM if present
+			src: src + 3
+			count: count - 3
+		]
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
 		;-- (res/value replaced by cp, 'u renamed to 'src)
