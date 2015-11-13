@@ -120,6 +120,77 @@ system/view/VID: context [
 		]
 	]
 	
+	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] return: [block!]][
+		set opts none
+		opt?: yes
+		
+		;-- process style options --
+		until [
+			value: first spec: next spec
+			case [
+				find [left center right] value [
+					opt?: add-flag opts 'para 'align value
+				]
+				find [top middle bottom] value [
+					opt?: add-flag opts 'para 'v-align value
+				]
+				find [bold italic underline] value [
+					opt?: add-flag opts 'font 'style value
+				]
+				value = 'data [opts/data: first spec: next spec]
+				value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
+				value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
+
+				all [word? value find/skip next system/view/evt-names value 2][
+					make-actor opts value spec/2 spec spec: next spec
+				]
+				'else [
+					if word? value [attempt [value: get value]]
+					if find [file! url!] type?/word value [value: load value]
+
+					switch/default type?/word value [
+						integer! [
+							either opts/size [opt?: no][opts/size: as-pair value face/size/y]
+						]
+						pair!	 [either opts/size  [opt?: no][opts/size:  value]]
+						tuple!	 [either opts/color [opt?: no][opts/color: value]]
+						string!	 [either opts/text  [opt?: no][opts/text:  value]]
+						percent! [either opts/data  [opt?: no][opts/data: value]]
+						image!	 [either opts/image [opt?: no][opts/image: value]]
+						block!	 [
+							switch/default face/type [
+								panel	  [layout/parent value face]
+								group-box [layout/parent value face]
+								tab-panel [
+									face/pane: make block! (length? value) / 2
+									opts/data: extract value 2
+									foreach p extract next value 2 [
+										layout/parent reduce ['panel copy p] face
+									]
+								]
+							][make-actor opts style/default-actor spec/1 spec]
+						]
+						char!	 []
+					][
+						opt?: no
+					]
+				]
+			]
+			any [not opt? tail? spec]
+		]
+		unless opt? [spec: back spec]
+
+		if font: opts/font [
+			foreach [field value] default-font [
+				unless font/:field [font/:field: value]
+			]
+		]
+		foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
+		if block? face/actors [face/actors: make object! face/actors]
+		;if all [not opts/size opts/text][face/size: spacing + size-text face]
+		spec
+	]
+	
 	make-actor: function [obj [object!] name [word!] body spec [block!]][
 		unless any [name block? body][raise-error spec]
 		unless obj/actors [obj/actors: make block! 4]
@@ -191,72 +262,7 @@ system/view/VID: context [
 					raise-error spec
 				]
 				face: make face! style/template
-				set opts none
-				opt?: yes
-
-				;-- process style options --
-				until [
-					value: first spec: next spec
-					case [
-						find [left center right] value [
-							opt?: add-flag opts 'para 'align value
-						]
-						find [top middle bottom] value [
-							opt?: add-flag opts 'para 'v-align value
-						]
-						find [bold italic underline] value [
-							opt?: add-flag opts 'font 'style value
-						]
-						value = 'data [opts/data: first spec: next spec]
-						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
-						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
-						
-						all [word? value find/skip next system/view/evt-names value 2][
-							make-actor opts value spec/2 spec spec: next spec
-						]
-						'else [
-							if find [file! url!] type?/word value [value: load value]
-							
-							switch/default type?/word value [
-								integer! [
-									either opts/size [opt?: no][opts/size: as-pair value face/size/y]
-								]
-								pair!	 [either opts/size  [opt?: no][opts/size:  value]]
-								tuple!	 [either opts/color [opt?: no][opts/color: value]]
-								string!	 [either opts/text  [opt?: no][opts/text:  value]]
-								percent! [either opts/data  [opt?: no][opts/data: value]]
-								image!	 [either opts/image [opt?: no][opts/image: value]]
-								block!	 [
-									switch/default face/type [
-										panel	  [layout/parent value face]
-										group-box [layout/parent value face]
-										tab-panel [
-											face/pane: make block! (length? value) / 2
-											opts/data: extract value 2
-											foreach p extract next value 2 [
-												layout/parent reduce ['panel copy p] face
-											]
-										]
-									][make-actor opts style/default-actor spec/1 spec]
-								]
-								char!	 []
-							][
-								opt?: no
-							]
-						]
-					]
-					any [not opt? tail? spec]
-				]
-				unless opt? [spec: back spec]
-				
-				if font: opts/font [
-					foreach [field value] default-font [
-						unless font/:field [font/:field: value]
-					]
-				]
-				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
-				if block? face/actors [face/actors: make object! face/actors]
-				;if all [not opts/size opts/text][face/size: spacing + size-text face]
+				spec: fetch-options face opts style spec
 				
 				either styling? [
 					value: copy style
