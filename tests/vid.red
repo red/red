@@ -21,11 +21,13 @@ view [
 	return
 	
 	group-box [
+		style but: button 25
+		
 		below
 		text "in panel"
-		button "A"
-		button "B"
-		button "C"
+		but "A"
+		but "B"
+		but "C"
 	]
 	tab-panel [
 		"tab1" [at 50x50 button "one"]

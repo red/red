@@ -137,7 +137,7 @@ system/view/VID: context [
 		/parent panel [object!]
 	][
 		list:		  make block! 4
-		local-styles: clear []
+		local-styles: make block! 2
 		pane-size:	  0x0
 		direction: 	  'across
 		origin:		  10x10
@@ -172,12 +172,17 @@ system/view/VID: context [
 				]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
-				style	[]
+				style	[
+					unless set-word? name: first spec: next spec [raise-error spec]
+					styling?: yes
+				]
 			][
-				name: none
-				if set-word? value [
-					name: value
-					value: first spec: next spec
+				unless styling? [
+					name: none
+					if set-word? value [
+						name: value
+						value: first spec: next spec
+					]
 				]
 				unless style: any [
 					select styles value
@@ -249,33 +254,42 @@ system/view/VID: context [
 						unless font/:field [font/:field: value]
 					]
 				]
-				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]				
+				foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
 				if block? face/actors [face/actors: make object! face/actors]
 				;if all [not opts/size opts/text][face/size: spacing + size-text face]
-	
-				;-- update cursor position --
-				either at-offset [
-					face/offset: at-offset
-					at-offset: none
-				][
-					either direction = 'across [
-						if cursor/x <> origin/x [cursor/x: cursor/x + spacing/x]
-						max-sz: max max-sz face/size/y
-						face/offset: cursor
-						cursor/x: cursor/x + face/size/x
-					][
-						if cursor/y <> origin/y [cursor/y: cursor/y + spacing/y]
-						max-sz: max max-sz face/size/x
-						face/offset: cursor
-						cursor/y: cursor/y + face/size/y
-					]
-				]
-				append list face
-				if name [set name face]
 				
-				box: face/offset + face/size + spacing
-				if box/x > pane-size/x [pane-size/x: box/x]
-				if box/y > pane-size/y [pane-size/y: box/y]
+				either styling? [
+					value: copy style
+					parse value/template: body-of face [
+						some [remove [set-word! [none! | function!]] | skip]
+					]
+					reduce/into [to word! form name value] tail local-styles
+					styling?: off
+				][
+					;-- update cursor position --
+					either at-offset [
+						face/offset: at-offset
+						at-offset: none
+					][
+						either direction = 'across [
+							if cursor/x <> origin/x [cursor/x: cursor/x + spacing/x]
+							max-sz: max max-sz face/size/y
+							face/offset: cursor
+							cursor/x: cursor/x + face/size/x
+						][
+							if cursor/y <> origin/y [cursor/y: cursor/y + spacing/y]
+							max-sz: max max-sz face/size/x
+							face/offset: cursor
+							cursor/y: cursor/y + face/size/y
+						]
+					]
+					append list face
+					if name [set name face]
+
+					box: face/offset + face/size + spacing
+					if box/x > pane-size/x [pane-size/x: box/x]
+					if box/y > pane-size/y [pane-size/y: box/y]
+				]
 			]
 			spec: next spec
 		]
