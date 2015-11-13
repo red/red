@@ -33,8 +33,8 @@ view [
 	]
 	
 	below
-	slider 50%
-	bar: progress 5%
+	slider 5%
+	pad 10x0 bar: progress 50% 130
 	across
 	return
 	

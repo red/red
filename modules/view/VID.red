@@ -171,7 +171,7 @@ system/view/VID: context [
 					max-sz: 0
 				]
 				at		[at-offset: fetch-argument pair! spec: next spec]
-				pad		[]
+				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				style	[]
 			][
 				name: none
