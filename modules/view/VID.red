@@ -148,15 +148,13 @@ system/view/VID: context [
 					if word? value [attempt [value: get value]]
 					if find [file! url!] type?/word value [value: load value]
 
-					switch/default type?/word value [
-						integer! [
-							either opts/size [opt?: no][opts/size: as-pair value face/size/y]
-						]
-						pair!	 [either opts/size  [opt?: no][opts/size:  value]]
-						tuple!	 [either opts/color [opt?: no][opts/color: value]]
-						string!	 [either opts/text  [opt?: no][opts/text:  value]]
-						percent! [either opts/data  [opt?: no][opts/data: value]]
-						image!	 [either opts/image [opt?: no][opts/image: value]]
+					opt?: switch/default type?/word value [
+						integer! [unless opts/size  [opts/size:  as-pair value face/size/y]]
+						pair!	 [unless opts/size  [opts/size:  value]]
+						tuple!	 [unless opts/color [opts/color: value]]
+						string!	 [unless opts/text  [opts/text:  value]]
+						percent! [unless opts/data  [opts/data:  value]]
+						image!	 [unless opts/image [opts/image: value]]
 						block!	 [
 							switch/default face/type [
 								panel	  [layout/parent value face]
@@ -169,11 +167,10 @@ system/view/VID: context [
 									]
 								]
 							][make-actor opts style/default-actor spec/1 spec]
+							yes
 						]
-						char!	 []
-					][
-						opt?: no
-					]
+						char!	 [yes]
+					][no]
 				]
 			]
 			any [not opt? tail? spec]

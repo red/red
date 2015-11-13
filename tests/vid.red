@@ -24,6 +24,7 @@ view [
 		style but: button 25
 		
 		below
+		base red "ok" 25x25
 		text "in panel"
 		but "A"
 		but "B"
