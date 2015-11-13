@@ -6,6 +6,7 @@ Red [
 ]
 
 view [
+	title "VID test"
 	;below
 	text "Hello"
 	button "Hello" 100x40 [bar/data: random 100%]
@@ -26,9 +27,15 @@ view [
 		button "B"
 		button "C"
 	]
+	tab-panel [
+		"tab1" [at 50x50 button "one"]
+		"tab2" [at 80x10 text "two"]
+	]
 	
+	below
 	slider 50%
 	bar: progress 5%
+	across
 	return
 	
 	check "option 1"
@@ -38,7 +45,7 @@ view [
 	return
 	
 	text-list data ["one" "two" "three" "four"] ;[probe pick face/data event/selected]
-	drop-list data ["one" "two" "three" "four"] 
+	drop-list data ["one" 4 "two" 5 "three" 6 "four" 7] 
 	drop-down data ["one" "two" "three" "four"]
 	
 ]

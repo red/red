@@ -46,7 +46,7 @@ system/view/VID: context [
 		]
 		progress: [
 			default-actor: on-change
-			template: [type: 'progress size: 150x16]
+			template: [type: 'progress size: 140x16]
 		]
 		slider: [
 			default-actor: on-change
@@ -79,6 +79,10 @@ system/view/VID: context [
 		group-box: [
 			default-actor: on-click						;@@ something better?
 			template: [type: 'group-box size: 200x200]
+		]
+		tab-panel: [
+			default-actor: on-select
+			template: [type: 'tab-panel size: 200x200]
 		]
 	)
 	
@@ -151,7 +155,6 @@ system/view/VID: context [
 		
 		while [not tail? spec][
 			value: spec/1
-			at-offset: none
 			
 			switch/default value [
 				across	[direction: value]				;@@ fix this
@@ -222,9 +225,14 @@ system/view/VID: context [
 									switch/default face/type [
 										panel	  [layout/parent value face]
 										group-box [layout/parent value face]
-									][
-										make-actor opts style/default-actor spec/1 spec
-									]
+										tab-panel [
+											face/pane: make block! (length? value) / 2
+											opts/data: extract value 2
+											foreach p extract next value 2 [
+												layout/parent reduce ['panel copy p] face
+											]
+										]
+									][make-actor opts style/default-actor spec/1 spec]
 								]
 								char!	 []
 							][
@@ -246,7 +254,10 @@ system/view/VID: context [
 				;if all [not opts/size opts/text][face/size: spacing + size-text face]
 	
 				;-- update cursor position --
-				either at-offset [face/offset: at-offset][
+				either at-offset [
+					face/offset: at-offset
+					at-offset: none
+				][
 					either direction = 'across [
 						if cursor/x <> origin/x [cursor/x: cursor/x + spacing/x]
 						max-sz: max max-sz face/size/y
@@ -268,7 +279,7 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
-		panel/pane: list
+		either block? panel/pane [append panel/pane list][panel/pane: list]
 		
 		unless parent [
 			;center-face panel
