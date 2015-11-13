@@ -21,7 +21,7 @@ view [
 	return
 	
 	group-box [
-		style but: button 25
+		style but: button 25 font [name: "Comic Sans MS" size: 12 color: blue]
 		
 		below
 		base red "ok" 25x25
@@ -41,9 +41,9 @@ view [
 	across
 	return
 	
-	check "option 1"
-	check "option 2"
-	radio "option 3"
+	check "option 1" font-size 14
+	check "option 2" font-color orange
+	radio "option 3" font-name "Times New Roman"
 	radio "option 4"
 	return
 	

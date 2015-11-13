@@ -128,18 +128,17 @@ system/view/VID: context [
 		until [
 			value: first spec: next spec
 			case [
-				find [left center right] value [
-					opt?: add-flag opts 'para 'align value
-				]
-				find [top middle bottom] value [
-					opt?: add-flag opts 'para 'v-align value
-				]
-				find [bold italic underline] value [
-					opt?: add-flag opts 'font 'style value
-				]
+				find [left center right] value [opt?: add-flag opts 'para 'align value]
+				find [top middle bottom] value [opt?: add-flag opts 'para 'v-align value]
+				find [bold italic underline] value [opt?: add-flag opts 'font 'style value]
+				
 				value = 'data [opts/data: first spec: next spec]
 				value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
 				value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
+				
+				value = 'font-size  [add-flag opts 'font 'size  fetch-argument integer! spec: next spec]
+				value = 'font-color [add-flag opts 'font 'color fetch-argument tuple! spec: next spec]
+				value = 'font-name  [add-flag opts 'font 'name  fetch-argument string! spec: next spec]
 
 				all [word? value find/skip next system/view/evt-names value 2][
 					make-actor opts value spec/2 spec spec: next spec
