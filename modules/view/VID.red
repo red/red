@@ -204,6 +204,7 @@ system/view/VID: context [
 		"Return a face with a pane built from a VID description"
 		spec [block!]
 		/parent panel [object!]
+		/local axis anti								;-- defined in a SET block
 	][
 		list:		  make block! 4
 		local-styles: make block! 2
@@ -275,17 +276,11 @@ system/view/VID: context [
 						face/offset: at-offset
 						at-offset: none
 					][
-						either direction = 'across [
-							if cursor/x <> origin/x [cursor/x: cursor/x + spacing/x]
-							max-sz: max max-sz face/size/y
-							face/offset: cursor
-							cursor/x: cursor/x + face/size/x
-						][
-							if cursor/y <> origin/y [cursor/y: cursor/y + spacing/y]
-							max-sz: max max-sz face/size/x
-							face/offset: cursor
-							cursor/y: cursor/y + face/size/y
-						]
+						set [axis anti] pick [[x y][y x]] direction = 'across
+						if cursor/:axis <> origin/:axis [cursor/:axis: cursor/:axis + spacing/:axis]
+						max-sz: max max-sz face/size/:anti
+						face/offset: cursor
+						cursor/:axis: cursor/:axis + face/size/:axis
 					]
 					append list face
 					if name [set name face]
