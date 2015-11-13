@@ -517,6 +517,25 @@ within?: func [
 	]
 ]
 
+extract: function [
+	"Extracts a value from a series at regular intervals"
+	series	[series!]
+	width	[integer!]	 "Size of each entry (the skip)"
+	/index				 "Extract from an offset position"
+		pos [integer!]	 "The position" 
+	/into				 "Provide an output series instead of creating a new one"
+		output [series!] "Output series"
+][
+	if pos [series: at series pos]
+	unless into [output: make series (length? series) / width]
+	
+	while [not tail? series][
+		append output series/1
+		series: skip series width
+	]
+	output
+]
+
 extract-boot-args: function [][
 	args: system/options/args
 	pos: find args get pick [dbl-quote space] args/1 = dbl-quote
