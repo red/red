@@ -127,23 +127,25 @@ system/view/VID: context [
 		;-- process style options --
 		until [
 			value: first spec: next spec
-			case [
-				find [left center right] value [opt?: add-flag opts 'para 'align value]
-				find [top middle bottom] value [opt?: add-flag opts 'para 'v-align value]
-				find [bold italic underline] value [opt?: add-flag opts 'font 'style value]
-				
-				value = 'data [opts/data: first spec: next spec]
-				value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
-				value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
-				
-				value = 'font-size  [add-flag opts 'font 'size  fetch-argument integer! spec: next spec]
-				value = 'font-color [add-flag opts 'font 'color fetch-argument tuple! spec: next spec]
-				value = 'font-name  [add-flag opts 'font 'name  fetch-argument string! spec: next spec]
-
-				all [word? value find/skip next system/view/evt-names value 2][
+			match?: parse spec [[
+				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
+				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
+				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
+				| 'extra	  (opts/extra: first spec: next spec)
+				| 'data		  (opts/data:  first spec: next spec)
+				| 'font		  (opts/font: make font! fetch-argument block! spec: next spec)
+				| 'para		  (opts/para: make para! fetch-argument block! spec: next spec)
+				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
+				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
+				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
+				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
+				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
+				] to end
+			]
+			unless match? [
+				either all [word? value find/skip next system/view/evt-names value 2][
 					make-actor opts value spec/2 spec spec: next spec
-				]
-				'else [
+				][
 					if word? value [attempt [value: get value]]
 					if find [file! url!] type?/word value [value: load value]
 
