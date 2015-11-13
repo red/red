@@ -206,7 +206,7 @@ system/view/VID: context [
 						value = 'font [opts/font: make font! fetch-argument block! spec: next spec]
 						value = 'para [opts/para: make para! fetch-argument block! spec: next spec]
 						
-						all [word? value find system/view/evt-names value][
+						all [word? value find/skip next system/view/evt-names value 2][
 							make-actor opts value spec/2 spec spec: next spec
 						]
 						'else [
