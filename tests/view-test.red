@@ -192,7 +192,7 @@ but-extra: make face! [
 	actors: object [
 		on-click: func [face [object!] event [event!]][		;-- `function` would prevent compilation here
 			tab-panel/selected: 1
-			tab-panel/data: copy ["file1" "file2"]
+			tab-panel/data: ["file1" "file2"]
 			tab-panel/pane: reduce [
 				make face! [
 					type: 'panel
