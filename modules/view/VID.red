@@ -74,15 +74,15 @@ system/view/VID: context [
 		]
 		panel: [
 			default-actor: on-click						;@@ something better?
-			template: [type: 'panel size: 200x200]
+			template: [type: 'panel]
 		]
 		group-box: [
 			default-actor: on-click						;@@ something better?
-			template: [type: 'group-box size: 200x200]
+			template: [type: 'group-box]
 		]
 		tab-panel: [
 			default-actor: on-select
-			template: [type: 'tab-panel size: 200x200]
+			template: [type: 'tab-panel]
 		]
 	)
 	
@@ -172,9 +172,14 @@ system/view/VID: context [
 								tab-panel [
 									face/pane: make block! (length? value) / 2
 									opts/data: extract value 2
+									max-sz: 0x0
 									foreach p extract next value 2 [
 										layout/parent reduce ['panel copy p] face divides
+										p: last face/pane
+										if p/size/x > max-sz/x [max-sz/x: p/size/x]
+										if p/size/y > max-sz/y [max-sz/y: p/size/y]
 									]
+									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
 							][make-actor opts style/default-actor spec/1 spec]
 							yes
@@ -318,10 +323,8 @@ system/view/VID: context [
 		]
 		either block? panel/pane [append panel/pane list][panel/pane: list]
 		
-		unless parent [
-			;center-face panel
-			if pane-size <> 0x0 [panel/size: pane-size]
-		]
+		if pane-size <> 0x0 [panel/size: pane-size]
+		unless panel/size [panel/size: 200x200]
 		panel
 	]
 ]
