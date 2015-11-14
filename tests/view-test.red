@@ -402,7 +402,7 @@ win/pane: reduce [
 			"option 50"		550
 		]
 		actors: object [
-			on-make: func [face [object!]][
+			on-create: func [face [object!]][
 				face/selected: 2
 			]
 			on-select: func [face [object!] event [event!]][
@@ -449,7 +449,7 @@ win/pane: reduce [
 				type: 'slider offset: 10x110 size: 120x24
 				data: 50%
 				actors: object [
-					on-make: func [face [object!]][
+					on-create: func [face [object!]][
 						on-change face none
 					]
 					on-change: func [face [object!] event [event! none!]][
@@ -469,7 +469,7 @@ win/pane: reduce [
 		type: 'slider offset: 230x170 size: 24x120
 		data: 25%
 		actors: object [
-			on-make: func [face [object!]][
+			on-create: func [face [object!]][
 				on-change face none
 			]
 			on-change: func [face [object!] event [event! none!]][
@@ -606,7 +606,7 @@ win/pane: reduce [
 	make face! [
 		type: 'drop-list offset: 480x402 size: 160x32
 		actors: object [
-			on-make: func [face [object!]][
+			on-create: func [face [object!]][
 				face/data: cam/data
 				face/selected: 1
 			]

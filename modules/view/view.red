@@ -451,8 +451,8 @@ show: function [
 			if all [not parent not object? face/parent face/type <> 'window][
 				cause-error 'script 'not-linked []
 			]
-			if all [object? face/actors in face/actors 'on-make][
-				do [face/actors/on-make face none]
+			if all [object? face/actors in face/actors 'on-create][
+				do [face/actors/on-create face none]
 			]
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
