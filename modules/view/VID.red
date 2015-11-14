@@ -123,6 +123,7 @@ system/view/VID: context [
 	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] return: [block!]][
 		set opts none
 		opt?: yes
+		divides: none
 		
 		;-- process style options --
 		until [
@@ -150,21 +151,29 @@ system/view/VID: context [
 					if find [file! url!] type?/word value [value: load value]
 
 					opt?: switch/default type?/word value [
-						integer! [unless opts/size  [opts/size:  as-pair value face/size/y]]
 						pair!	 [unless opts/size  [opts/size:  value]]
 						tuple!	 [unless opts/color [opts/color: value]]
 						string!	 [unless opts/text  [opts/text:  value]]
 						percent! [unless opts/data  [opts/data:  value]]
 						image!	 [unless opts/image [opts/image: value]]
+						integer! [
+							unless opts/size [
+								either find [panel group-box] face/type [
+									divides: value
+								][
+									opts/size: as-pair value face/size/y
+								]
+							]
+						]
 						block!	 [
 							switch/default face/type [
-								panel	  [layout/parent value face]
-								group-box [layout/parent value face]
+								panel	  [layout/parent value face divides]
+								group-box [layout/parent value face divides]
 								tab-panel [
 									face/pane: make block! (length? value) / 2
 									opts/data: extract value 2
 									foreach p extract next value 2 [
-										layout/parent reduce ['panel copy p] face
+										layout/parent reduce ['panel copy p] face divides
 									]
 								]
 							][make-actor opts style/default-actor spec/1 spec]
@@ -203,7 +212,9 @@ system/view/VID: context [
 	set 'layout function [
 		"Return a face with a pane built from a VID description"
 		spec [block!]
-		/parent panel [object!]
+		/parent
+			panel	[object!]
+			divides [integer! none!]
 		/local axis anti								;-- defined in a SET block
 	][
 		list:		  make block! 4
@@ -221,10 +232,17 @@ system/view/VID: context [
 			extra: actors: none
 		]
 		
+		reset: [
+			cursor: as-pair origin/:axis cursor/:anti + max-sz + spacing/:anti
+			if direction = 'below [cursor: reverse cursor]
+			max-sz: 0
+		]
+		
 		unless panel [panel: make face! styles/window/template]
 		
 		while [not tail? spec][
 			value: spec/1
+			set [axis anti] pick [[x y][y x]] direction = 'across
 			
 			switch/default value [
 				across	[direction: value]				;@@ fix this
@@ -232,16 +250,9 @@ system/view/VID: context [
 				title	[panel/text: fetch-argument string! spec: next spec]
 				space	[spacing: fetch-argument pair! spec: next spec]
 				origin	[cursor: fetch-argument pair! spec: next spec]
-				return	[
-					cursor: either direction = 'across [
-						as-pair origin/x cursor/y + max-sz + spacing/y
-					][
-						as-pair cursor/x + max-sz + spacing/x origin/y
-					]
-					max-sz: 0
-				]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
+				return	[do reset]
 				style	[
 					unless set-word? name: first spec: next spec [raise-error spec]
 					styling?: yes
@@ -276,11 +287,24 @@ system/view/VID: context [
 						face/offset: at-offset
 						at-offset: none
 					][
-						set [axis anti] pick [[x y][y x]] direction = 'across
-						if cursor/:axis <> origin/:axis [cursor/:axis: cursor/:axis + spacing/:axis]
+						either all [
+							divide?: all [divides divides <= length? list]
+							zero? index: (length? list) // divides
+						][
+							do reset
+						][
+							if cursor/:axis <> origin/:axis [
+								cursor/:axis: cursor/:axis + spacing/:axis
+							]
+						]
 						max-sz: max max-sz face/size/:anti
 						face/offset: cursor
 						cursor/:axis: cursor/:axis + face/size/:axis
+						
+						if all [divide? index > 0][
+							index: index + 1
+							face/offset/:axis: list/:index/offset/:axis
+						]
 					]
 					append list face
 					if name [set name face]

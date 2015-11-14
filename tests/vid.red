@@ -20,15 +20,13 @@ view [
 	]
 	return
 	
-	group-box [
+	group-box 3 [
 		style but: button 25 font [name: "Comic Sans MS" size: 12 color: blue]
 		
-		below
 		base red "ok" 25x25
-		text "in panel"
-		but "A"
-		but "B"
-		but "C"
+		text "in panel" 40
+		but "A" but "B" but "C"
+		but "D" but "E"	but "F"
 	]
 	tab-panel [
 		"tab1" [at 50x50 button "one"]
