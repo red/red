@@ -101,9 +101,12 @@ update-list-hbar: func [
 	len	  [integer!]
 	/local
 		csize [tagSIZE]
+		dc	  [handle!]
 ][
 	csize: declare tagSIZE
-	GetTextExtentPoint32 GetDC hWnd str len csize
+	dc: GetDC hWnd
+	GetTextExtentPoint32 dc str len csize
+	ReleaseDC dc
 	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
 ]
 
