@@ -45,8 +45,9 @@ view [
 	radio "option 4"
 	return
 	
-	text-list data ["one" "two" "three" "four"] ;[probe pick face/data event/selected]
+	list: text-list data ["one" "two" "three" "four"] ;[probe pick face/data event/selected]
 	drop-list data ["one" 4 "two" 5 "three" 6 "four" 7] 
 	drop-down data ["one" "two" "three" "four"]
 	
+	do [append list/data "five"]
 ]

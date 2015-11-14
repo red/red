@@ -257,6 +257,7 @@ system/view/VID: context [
 				origin	[cursor: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
+				do		[do fetch-argument block! spec: next spec]
 				return	[do reset]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
