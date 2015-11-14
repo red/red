@@ -191,7 +191,8 @@ but-extra: make face! [
 	type: 'button text: "Extra" offset: 400x500 size: 40x25
 	actors: object [
 		on-click: func [face [object!] event [event!]][		;-- `function` would prevent compilation here
-			tab-panel/data: ["file1" "file2"]
+			tab-panel/selected: 1
+			tab-panel/data: copy ["file1" "file2"]
 			tab-panel/pane: reduce [
 				make face! [
 					type: 'panel
