@@ -88,14 +88,14 @@ system/view/VID: context [
 	
 	default-font: [name "Tahoma" size 9 color 'black]
 	
-	raise-error: func [spec [block!]][
+	throw-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
 	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
 		unless obj/:facet [
 			obj/:facet: make get select [font font! para para!] facet []
-		]		
+		]
 		obj: obj/:facet
 		
 		make logic! either blk: obj/:field [
@@ -116,7 +116,7 @@ system/view/VID: context [
 			][
 				return value
 			]
-			raise-error spec
+			throw-error spec
 		]
 	]
 	
@@ -204,7 +204,7 @@ system/view/VID: context [
 	]
 	
 	make-actor: function [obj [object!] name [word!] body spec [block!]][
-		unless any [name block? body][raise-error spec]
+		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
 		append obj/actors reduce [
@@ -259,7 +259,7 @@ system/view/VID: context [
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				return	[do reset]
 				style	[
-					unless set-word? name: first spec: next spec [raise-error spec]
+					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
 				]
 			][
@@ -274,7 +274,7 @@ system/view/VID: context [
 					select styles value
 					select local-styles value
 				][
-					raise-error spec
+					throw-error spec
 				]
 				face: make face! style/template
 				spec: fetch-options face opts style spec
