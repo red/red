@@ -175,7 +175,7 @@ win: make face! [
 				]
 			]
 		]
-		on-close: func [face [object!]][
+		on-close: func [face [object!] event [event!]][
 			print "closing window"
 		]
 		on-key: func [face [object!] event [event!]][
