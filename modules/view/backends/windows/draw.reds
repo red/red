@@ -37,11 +37,11 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 anti-alias?: no
 
 update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
-	unless zero? modes/gp-font-brush [
-		GdipDeleteBrush modes/gp-font-brush
-		modes/gp-font-brush: 0
-	]
 	if modes/font-color <> color [
+		unless zero? modes/gp-font-brush [
+			GdipDeleteBrush modes/gp-font-brush
+			modes/gp-font-brush: 0
+		]
 		modes/font-color: color
 		brush: 0
 		GdipCreateSolidFill to-gdiplus-color color :brush
@@ -160,10 +160,11 @@ update-modes: func [
 ]
 
 draw-begin: func [
-	hWnd	[handle!]
-	img		[red-image!]
-	paint?	[logic!]
-	return: [handle!]
+	hWnd		[handle!]
+	img			[red-image!]
+	on-graphic? [logic!]
+	paint?		[logic!]
+	return: 	[handle!]
 	/local
 		dc		 [handle!]
 		rect	 [RECT_STRUCT]
@@ -194,12 +195,17 @@ draw-begin: func [
 	either null? hWnd [
 		modes/on-image?: yes
 		anti-alias?: yes
-		graphics: 0
-		image/GdipGetImageGraphicsContext as-integer img/node :graphics
-		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
+		either on-graphic? [
+			graphics: as-integer img
+		][
+			graphics: 0
+			image/GdipGetImageGraphicsContext as-integer img/node :graphics
+		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
-		update-gdiplus-font-color 0
+		SetTextColor dc 0
+		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
+		update-gdiplus-font-color FE000000h
 	][
 		dc: either paint? [BeginPaint hWnd paint][hScreen]
 		GetClientRect hWnd rect
@@ -212,7 +218,7 @@ draw-begin: func [
 
 		dc: hBackDC
 
-		unless null? hWnd [render-base hWnd dc]
+		unless all [null? hWnd not on-graphic?][render-base hWnd dc]
 
 		SetArcDirection dc AD_CLOCKWISE
 		SetBkMode dc BK_TRANSPARENT
@@ -227,11 +233,11 @@ draw-begin: func [
 ]
 
 draw-end: func [
-	dc		[handle!]
-	hWnd	[handle!]
-	img		[red-image!]
-	cache?	[logic!]
-	paint?	[logic!]
+	dc			[handle!]
+	hWnd		[handle!]
+	on-graphic? [logic!]
+	cache?		[logic!]
+	paint?		[logic!]
 	/local
 		rect	[RECT_STRUCT]
 		width	[integer!]
@@ -240,12 +246,14 @@ draw-end: func [
 		old-dc	[integer!]
 ][
 	rect: declare RECT_STRUCT
-	GetClientRect hWnd rect
-	width: rect/right - rect/left
-	height: rect/bottom - rect/top
-	if paint? [BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY]
+	if paint? [
+		GetClientRect hWnd rect
+		width: rect/right - rect/left
+		height: rect/bottom - rect/top
+		BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY
+	]
 
-	unless zero? modes/graphics [GdipDeleteGraphics modes/graphics]
+	unless any [on-graphic? zero? modes/graphics][GdipDeleteGraphics modes/graphics]
 	unless zero? modes/gp-pen	[GdipDeletePen modes/gp-pen]
 	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
 	unless null? modes/pen		[DeleteObject modes/pen]
@@ -271,11 +279,14 @@ to-gdiplus-color: func [
 		red   [integer!]
 		green [integer!]
 		blue  [integer!]
+		alpha [integer!]
 ][
 	red: color and FFh << 16
 	green: color and 0000FF00h
 	blue: color >> 16 and FFh
-	red or green or blue or FF000000h
+	alpha: color and FF000000h
+	if zero? alpha [alpha: FF000000h]
+	red or green or blue or alpha
 ]
 
 OS-draw-anti-alias: func [

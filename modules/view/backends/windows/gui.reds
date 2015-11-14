@@ -17,7 +17,7 @@ Red/System [
 #include %font.reds
 #include %para.reds
 #include %camera.reds
-#include %image.reds
+#include %base.reds
 #include %menu.reds
 #include %panel.reds
 #include %tab-panel.reds
@@ -34,6 +34,7 @@ version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
+win8+?:			no
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -257,7 +258,7 @@ free-handles: func [
 	sym: symbol/resolve type/symbol
 	
 	case [
-		sym = window [
+		any [sym = panel sym = window] [
 			pane: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(pane) = TYPE_BLOCK [
 				face: as red-object! block/rs-head pane
@@ -271,9 +272,6 @@ free-handles: func [
 		sym = group-box [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong hWnd wc-offset - 4 as-integer hWnd
-		]
-		sym = _image [
-			DeleteDC as handle! GetWindowLong hWnd wc-offset - 4
 		]
 		sym = camera [
 			cam: as camera! GetWindowLong hWnd wc-offset - 4
@@ -309,6 +307,11 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
+	win8+?: either all [
+		version-info/dwMajorVersion >= 6
+		version-info/dwMinorVersion >= 2
+	][yes][no]
+
 	ver: as red-tuple! #get system/view/platform/version
 
 	ver/header: TYPE_TUPLE or (3 << 19)
@@ -519,6 +522,10 @@ OS-show-window: func [
 ][
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
+	unless win8+? [
+		update-layered-window as handle! hWnd null null
+	]
+	SetFocus as handle! hWnd
 ]
 
 OS-make-view: func [
@@ -555,6 +562,8 @@ OS-make-view: func [
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
+		alpha?	  [logic!]
+		pt		  [tagPOINT]
 ][
 	stack/mark-func words/_body
 
@@ -577,6 +586,7 @@ OS-make-view: func [
 	id:		  0
 	sym: 	  symbol/resolve type/symbol
 	panel?:	  no
+	alpha?:   yes
 	size-x:	  size/x
 	size-y:	  size/y
 
@@ -647,14 +657,21 @@ OS-make-view: func [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
 		]
-		sym = _image [
-			class: #u16 "RedImage"
+		sym = base [
+			class: #u16 "RedBase"
+			alpha?: transparent-base?
+						as red-tuple! values + FACE_OBJ_COLOR
+						as red-image! values + FACE_OBJ_IMAGE
+						?? alpha?
+			if alpha? [
+				either win8+? [ws-flags: WS_EX_LAYERED][
+					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
+					flags: WS_POPUP
+				]
+			]
 		]
 		sym = camera [
 			class: #u16 "RedCamera"
-		]
-		sym = base [
-			class: #u16 "Base"
 		]
 		sym = window [
 			class: #u16 "RedWindow"
@@ -687,7 +704,9 @@ OS-make-view: func [
 	]
 
 	unless DWM-enabled? [
-		ws-flags: ws-flags or WS_EX_COMPOSITED			;-- this flag conflicts with DWM
+		unless all [sym = base alpha?] [
+			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+		]
 	]
 
 	handle: CreateWindowEx
@@ -714,7 +733,15 @@ OS-make-view: func [
 		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]
-		sym = _image	[init-image handle data img]
+		sym = base		[
+			if alpha? [
+				pt: as tagPOINT (as int-ptr! offset) + 2
+				unless win8+? [
+					ClientToScreen as handle! parent pt		;-- convert client offset to screen offset
+				]
+				update-base handle as handle! parent pt values
+			]
+		]
 		sym = tab-panel [set-tabs handle values]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
@@ -759,6 +786,11 @@ OS-make-view: func [
 			init-drop-list handle data caption selected sym = drop-list
 		]
 		sym = base [SetWindowLong handle wc-offset - 4 0]
+		sym = window [									;-- set main window's offset
+			GetWindowRect handle rc
+			offset/x: rc/top
+			offset/y: rc/left
+		]
 		true [0]
 	]
 	
@@ -789,13 +821,39 @@ change-size: func [
 change-offset: func [
 	hWnd [integer!]
 	pos  [red-pair!]
+	type [red-word!]
+	/local
+		owner [handle!]
+		size  [red-pair!]
+		flags [integer!]
+		style [integer!]
+		rect  [RECT_STRUCT]
 ][
+	flags: SWP_NOSIZE or SWP_NOZORDER
+	rect: declare RECT_STRUCT
+	if type/symbol = base [
+		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
+		if style and WS_EX_LAYERED > 0 [
+			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
+			owner: GetParent as handle! hWnd
+			GetClientRect owner rect
+			unless win8+? [
+				flags: flags or SWP_NOACTIVATE
+				ClientToScreen owner as tagPOINT rect
+				ClientToScreen owner (as tagPOINT rect) + 1
+			]
+			if rect/top  > pos/y [pos/y: rect/top]
+			if rect/left > pos/x [pos/x: rect/left]
+			if pos/y + size/y > rect/bottom [pos/y: rect/bottom - size/y]
+			if pos/x + size/x > rect/right  [pos/x: rect/right - size/x]
+		]
+	]
 	SetWindowPos 
 		as handle! hWnd
 		as handle! 0
 		pos/x pos/y
 		0 0
-		SWP_NOSIZE or SWP_NOZORDER
+		flags
 ]
 
 change-text: func [
@@ -896,9 +954,9 @@ change-data: func [
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
 		]
-		type = _image [
-			init-image hWnd as red-block! data as red-image! values + FACE_OBJ_IMAGE
-			InvalidateRect hWnd null 1
+		type = base [
+			0
+			;update-base hWnd pt values
 		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
@@ -1075,7 +1133,10 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET
+		change-offset
+			hWnd
+			as red-pair! values + FACE_OBJ_OFFSET
+			as red-word! values + FACE_OBJ_TYPE
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size hWnd as red-pair! values + FACE_OBJ_SIZE
@@ -1285,5 +1346,5 @@ OS-do-draw: func [
 	img		[red-image!]
 	cmds	[red-block!]
 ][
-	do-draw null img cmds no no
+	do-draw null img cmds no no no
 ]
