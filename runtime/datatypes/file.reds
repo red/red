@@ -148,6 +148,31 @@ file: context [
 		file
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-file!]
+		return: [red-value!]
+		/local
+			t	[integer!]
+			f	[red-float!]
+			int [red-integer!]
+			blk [red-block!]
+			ret [red-value!]
+			bin [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
+
+		t: type/value
+		switch t [
+			TYPE_STRING
+			TYPE_URL [
+				set-type copy-cell as cell! spec as cell! type t
+			]
+			default  [--NOT_IMPLEMENTED--]
+		]
+		as red-value! type
+	]
+
 	mold: func [
 		file    [red-file!]
 		buffer	[red-string!]
@@ -259,7 +284,7 @@ file: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
