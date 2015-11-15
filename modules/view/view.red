@@ -279,6 +279,8 @@ system/view: context [
 	platform: none	
 	VID: none
 	
+	handlers: make block! 10
+	
 	evt-names: make hash! [
 		down			on-down
 		up				on-up
@@ -320,68 +322,11 @@ system/view: context [
 		]
 		type: event/type
 		
-		;-- Radio faces handler --
-		if all [
-			type = 'click
-			face/type = 'radio
-		][
-			foreach f face/parent/pane [
-				if f/type = 'radio [f/data: off show f]
-			]
-			face/data: on
-			type: 'change
-			show face
+		foreach handler handlers [
+			set/any 'result do [handler face event]
+			if :result [return :result]
 		]
 		
-		if all [debug? face = event/face][
-			print [
-				"event> type:"	event/type
-				"offset:"		event/offset
-				"key:"			mold event/key
-				either find [key key-up] event/type [reduce ["flags:" mold event/flags]][""]
-			]
-		]
-		
-		;-- Dragging face handler --
-		if all [
-			block? face/options
-			drag-evt: face/options/drag-on
-		][
-			either type = drag-evt [
-				either block? flags: face/flags [
-					unless find flags 'all-over [append flags 'all-over]
-				][
-					if flags <> 'all-over [
-						face/flags: either flags [reduce [flags 'all-over]]['all-over]
-					]
-				]
-				face/state/4: event/offset
-				do-actor face event 'drag-start
-			][
-				if drag-offset: face/state/4 [
-					either type = 'over [
-						unless event/away? [
-							new: face/offset + event/offset - drag-offset
-							if face/offset <> new [
-								face/offset: new
-								return do-actor face event 'drag ;-- avoid calling on-over actor
-							]
-						]
-					][
-						if drag-evt = select [
-							up		down
-							mid-up	mid-down
-							alt-up	alt-down
-							aux-up	aux-down
-						] type [
-							do-actor face event 'drop
-							face/state/4: none
-						]
-					]
-				]
-			]
-		]
-
 		set/any 'result do-actor face event type
 		
 		if all [type = 'close :result <> 'continue][
@@ -550,4 +495,93 @@ dump-face: function [
 	append depth tab
 	if block? face/pane [foreach f face/pane [dump-face f]]
 	remove depth
+]
+
+insert-event-func: function [
+	"Add a function to monitor global events. Return the function"
+	fun [block! function!] "A function or a function body block"
+][
+	if block? :fun [fun: do [function [face event] fun]]	;@@ compiler chokes on 'function call
+	insert system/view/handlers :fun
+	:fun
+]
+
+remove-event-func: func [
+	"Remove an event function previously added"
+	fun [function!]
+][
+	remove find system/view/handlers :fun
+]
+
+;=== Global handlers ===
+
+;-- Dragging face handler --
+insert-event-func [
+	if all [
+		block? face/options
+		drag-evt: face/options/drag-on
+	][
+		type: event/type
+		either type = drag-evt [
+			either block? flags: face/flags [
+				unless find flags 'all-over [append flags 'all-over]
+			][
+				if flags <> 'all-over [
+					face/flags: either flags [reduce [flags 'all-over]]['all-over]
+				]
+			]
+			face/state/4: event/offset
+			do-actor face event 'drag-start
+		][
+			if drag-offset: face/state/4 [
+				either type = 'over [
+					unless event/away? [
+						new: face/offset + event/offset - drag-offset
+						if face/offset <> new [
+							face/offset: new
+							return do-actor face event 'drag ;-- avoid calling on-over actor
+						]
+					]
+				][
+					if drag-evt = select [
+						up		down
+						mid-up	mid-down
+						alt-up	alt-down
+						aux-up	aux-down
+					] type [
+						do-actor face event 'drop
+						face/state/4: none
+					]
+				]
+			]
+		]
+	]
+	none
+]
+
+;-- Debug info handler --
+insert-event-func [
+	if all [system/view/debug? face = event/face][
+		print [
+			"event> type:"	event/type
+			"offset:"		event/offset
+			"key:"			mold event/key
+			either find [key key-up] event/type [reduce ["flags:" mold event/flags]][""]
+		]
+	]
+	none
+]
+
+;-- Radio faces handler --
+insert-event-func [
+	if all [
+		event/type = 'click
+		face/type = 'radio
+	][
+		foreach f face/parent/pane [if f/type = 'radio [f/data: off show f]]
+		face/data: on
+		event/type: 'change
+		show face
+	]
+	none
 ]
