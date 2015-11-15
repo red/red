@@ -38,7 +38,7 @@ make-font: func [
 	
 	int: as red-integer! values + FONT_OBJ_SIZE
 	height: either TYPE_OF(int) <> TYPE_INTEGER [0][
-		int/value * log-pixels-y / 72
+		0 - (int/value * log-pixels-y / 72)
 	]
 	
 	int: as red-integer! values + FONT_OBJ_ANGLE

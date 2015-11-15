@@ -5,7 +5,8 @@ REBOL [
 ]
 
 context [
-	kernel32: load/library %kernel32.dll
+	sys-path: to-rebol-file get-env "SystemRoot"
+	kernel32: load/library sys-path/System32/kernel32.dll
 
 	SECURITY_ATTRIBUTES: make struct! [
 		nLength 			 [integer!]

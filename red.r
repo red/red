@@ -15,7 +15,6 @@ unless value? 'encap-fs [do %system/utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
 	do-cache %compiler.r
-	do-cache %quick-test/call.r							;@@ put `call.r` in proper place when we encap
 ]
 
 redc: context [
@@ -80,6 +79,7 @@ redc: context [
 	]
 	
 	if Windows? [
+		do-cache %quick-test/call.r						;@@ put `call.r` in proper place when we encap
 		use [buf][
 			win-call/output "cmd /c ver" buf: make string! 128
 			attempt [
@@ -188,7 +188,7 @@ redc: context [
 	]
 	
 	add-legacy-flags: func [opts [object!]][
-		if win-version < 52 [
+		if all [Windows? win-version < 52][
 			either opts/legacy [						;-- do not compile gesture support code for XP
 				append opts/legacy 'no-touch
 			][
