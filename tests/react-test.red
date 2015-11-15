@@ -5,7 +5,7 @@ Red [
 	Needs:	 'View
 ]
 
-as-color: func [r g b][
+as-color: function [r g b][
 	color: 0.0.0
 	if r [color/1: to integer! 256 * r]
 	if g [color/2: to integer! 256 * g]
@@ -13,7 +13,7 @@ as-color: func [r g b][
 	color
 ]
 
-to-text: func [val][form to integer! 0.5 + round 255 * val]
+to-text: function [val][form to integer! 0.5 + round 255 * val]
 
 view [
 	style txt: text right
