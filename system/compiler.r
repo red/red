@@ -2305,6 +2305,10 @@ system-dialect: make-profilable context [
 				local?: local-variable? n
 				unless any [locals local?][store-ns-symbol n]
 				
+				if find [set-word! set-path!] type?/word pc/1 [
+					backtrack name
+					throw-error "cascading assignments not supported"
+				]
 				unless all [
 					local?
 					n = 'context						;-- explicitly allow 'context name for local variables
