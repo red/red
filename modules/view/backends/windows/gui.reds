@@ -197,27 +197,26 @@ get-gesture-info: func [
 ]
 
 get-text-size: func [
-	hWnd	[handle!]
 	str		[red-string!]
-	font	[red-object!]
+	hFont	[handle!]
 	len		[integer!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
-		dc	 [handle!]
-		size [tagSIZE]
+		saved [handle!]
+		size  [tagSIZE]
 ][
 	size: declare tagSIZE
-	dc: GetDC hWnd
-	SelectObject dc get-font-handle font
+	if null? hFont [hFont: GetStockObject DEFAULT_GUI_FONT]
+	saved: SelectObject hScreen hFont
 	
 	GetTextExtentPoint32
-		dc
+		hScreen
 		unicode/to-utf16 str
 		string/rs-length? str
 		size
-	
-	ReleaseDC hWnd dc
+
+	SelectObject hScreen saved
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height

@@ -373,28 +373,28 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
-			handle [handle!]
+			font   [red-object!]
+			state  [red-block!]
+			hFont  [handle!]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
 		text: as red-string! values + gui/FACE_OBJ_TEXT
-		handle: gui/face-handle? face
-		if any [
-			null? handle
-			TYPE_OF(text) <> TYPE_STRING
-		][
+		if TYPE_OF(text) <> TYPE_STRING [
 			SET_RETURN(none-value)
 			exit
 		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size
-			gui/get-face-handle face
-			text
-			as red-object! values + gui/FACE_OBJ_FONT
-			string/rs-length? text
-			pair
+		font: as red-object! values + gui/FACE_OBJ_FONT
+		hFont: either TYPE_OF(font) = TYPE_OBJECT [
+			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
+			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font]
+		][
+			null
+		]
+		gui/get-text-size text hFont string/rs-length? text pair
 	]
 	
 	on-change-facet: routine [
