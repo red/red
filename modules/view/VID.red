@@ -200,7 +200,11 @@ system/view/VID: context [
 		]
 		foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
 		if block? face/actors [face/actors: make object! face/actors]
-		;if all [not opts/size opts/text][face/size: spacing + size-text face]
+		
+		if all [not opts/size opts/text min-size: size-text face][
+			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
+			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
+		]
 		spec
 	]
 	
