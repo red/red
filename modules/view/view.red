@@ -134,6 +134,19 @@ update-font-faces: function [parent [block! none!]][
 	]
 ]
 
+check-reactions: function [face [object!] facet [word!]][
+	pos: system/view/reactors
+	while [
+		all [
+			pos: find pos face							;@@ /skip 3 fails
+			pos/2 = facet
+		]
+	][
+		do pos/3
+		pos: next pos
+	]
+]
+
 face!: object [				;-- keep in sync with facet! enum
 	type:		'face
 	offset:		none
@@ -179,6 +192,8 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'font [link-sub-to-parent self 'font old new]
 			if word = 'para [link-sub-to-parent self 'para old new]
 
+			check-reactions self word
+			
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
 				state/2: state/2 or (1 << ((index? in self word) - 1))
@@ -280,6 +295,7 @@ system/view: context [
 	VID: none
 	
 	handlers: make block! 10
+	reactors: make block! 100
 	
 	evt-names: make hash! [
 		down			on-down
@@ -584,4 +600,14 @@ insert-event-func [
 		show face
 	]
 	none
+]
+
+;-- Reactors support handler --
+insert-event-func [
+	if all [
+		event/type = 'change
+		face/type = 'slider
+	][
+		check-reactions face 'data
+	]
 ]

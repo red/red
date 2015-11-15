@@ -86,10 +86,34 @@ system/view/VID: context [
 		]
 	)
 	
+	reactors: make block! 20
+	
 	default-font: [name "Tahoma" size 9 color 'black]
 	
 	throw-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
+	]
+	
+	process-reactors: function [][
+		foreach [face blk] reactors [
+			parse blk rule: [
+				any [
+					item: ahead [path! | lit-path! | get-path!] skip (
+						item: item/1
+						if all [
+							object? obj: get item/1
+							in obj 'type
+							in obj 'offset
+						][
+							append system/view/reactors reduce [obj item/2 blk]
+						]
+					)
+					| set-path!
+					| into rule
+					| skip
+				]
+			]
+		]
 	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
@@ -142,6 +166,7 @@ system/view/VID: context [
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
+				| 'react	  (append reactors reduce [face fetch-argument block! spec: next spec])
 				] to end
 			]
 			unless match? [
@@ -333,6 +358,7 @@ system/view/VID: context [
 		unless panel/size [
 			panel/size: either pane-size <> 0x0 [pane-size][200x200]
 		]
+		unless parent [process-reactors]
 		panel
 	]
 ]
