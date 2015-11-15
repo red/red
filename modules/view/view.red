@@ -506,7 +506,7 @@ insert-event-func: function [
 	:fun
 ]
 
-remove-event-func: func [
+remove-event-func: function [
 	"Remove an event function previously added"
 	fun [function!]
 ][

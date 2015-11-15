@@ -14,7 +14,7 @@ system/view/VID: context [
 	styles: #(
 		window: [
 			default-actor: on-click
-			template: [type: 'window size: 300x300]
+			template: [type: 'window]
 		]
 		base: [
 			default-actor: on-click
@@ -256,6 +256,7 @@ system/view/VID: context [
 				title	[panel/text: fetch-argument string! spec: next spec]
 				space	[spacing: fetch-argument pair! spec: next spec]
 				origin	[cursor: fetch-argument pair! spec: next spec]
+				size	[panel/size: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				do		[do fetch-argument block! spec: next spec]
@@ -325,8 +326,9 @@ system/view/VID: context [
 		]
 		either block? panel/pane [append panel/pane list][panel/pane: list]
 		
-		if pane-size <> 0x0 [panel/size: pane-size]
-		unless panel/size [panel/size: 200x200]
+		unless panel/size [
+			panel/size: either pane-size <> 0x0 [pane-size][200x200]
+		]
 		panel
 	]
 ]
