@@ -24,7 +24,7 @@ view [
 		style but: button 25 font [name: "Comic Sans MS" size: 12 color: blue]
 		
 		base red "ok" 25x25
-		text "in panel" 40
+		text "in panel"
 		but "A" but "B" but "C"
 		but "D" but "E"	but "F"
 	]
@@ -39,6 +39,7 @@ view [
 	base 50x50 draw [fill-pen blue circle 25x25 15]
 	across
 	return
+	pad 0x-140
 	
 	check "option 1" font-size 14
 	check "option 2" font-color orange
