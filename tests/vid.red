@@ -36,6 +36,7 @@ view [
 	below
 	slider 5%
 	pad 10x0 bar: progress 50% 130
+	base 50x50 draw [fill-pen blue circle 25x25 15]
 	across
 	return
 	

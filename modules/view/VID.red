@@ -18,7 +18,7 @@ system/view/VID: context [
 		]
 		base: [
 			default-actor: on-click
-			template: [type: 'base size: 80x80]
+			template: [type: 'base size: 80x80 color: 128.128.128]
 		]
 		button: [
 			default-actor: on-click
@@ -134,6 +134,7 @@ system/view/VID: context [
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: first spec: next spec)
 				| 'data		  (opts/data:  first spec: next spec)
+				| 'draw		  (opts/draw: fetch-argument block! spec: next spec)
 				| 'font		  (opts/font: make font! fetch-argument block! spec: next spec)
 				| 'para		  (opts/para: make para! fetch-argument block! spec: next spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
@@ -234,7 +235,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: image: font: para: data:
-			extra: actors: none
+			extra: actors: draw: none
 		]
 		
 		reset: [
