@@ -260,7 +260,7 @@ button/font: make font! [
 
 font-A: make font! [
 	name: "Comic Sans MS"
-	size: 14
+	size: 10
 	color: blue
 	style: [bold italic underline]
 	anti-alias?: yes
@@ -314,6 +314,7 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'check text: "Debug?" offset: 300x270 size: 80x24
+		font: font-A
 		data: system/view/debug?
 		actors: object [
 			on-change: func [face [object!] event [event!]][
@@ -354,6 +355,7 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'area text: {Multiline area widget} offset: 580x24 size: 160x100
+		font: font-A
 		actors: object [
 			on-change: func [face [object!] event [event!]][
 				print ["field changed:" mold face/text]
@@ -375,6 +377,7 @@ win/pane: reduce [
 		text: "type"
 		offset: 100x120
 		size: 80x24
+		font: font-A
 		color: 240.230.140
 		data: [
 			"option 1"		11
@@ -491,6 +494,8 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'radio text: "radio 1" offset: 300x200 size: 90x24
+		font: font-A
+		options: [drag-on: 'down]
 		;data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
@@ -566,6 +571,7 @@ win/pane: reduce [
 	]
 	text-list: make face! [
 		type: 'text-list offset: 400x20 size: 165x100
+		font: font-A
 		data: [
 			"Book 1"
 			"Book 2"

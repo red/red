@@ -228,11 +228,12 @@ get-text-size: func [
 
 to-bgr: func [
 	node	[node!]
+	pos		[integer!]
 	return: [integer!]									;-- 00bbggrr format or -1 if not found
 	/local
 		color [red-tuple!]
 ][
-	color: as red-tuple! get-node-facet node FACE_OBJ_COLOR
+	color: as red-tuple! get-node-facet node pos
 	either TYPE_OF(color) = TYPE_TUPLE [
 		color/array1 and 00FFFFFFh
 	][

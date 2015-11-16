@@ -432,7 +432,7 @@ paint-background: func [
 		hBrush [handle!]
 		color  [integer!]
 ][
-	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
+	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
 	if color = -1 [return false]
 
 	hBrush: CreateSolidBrush color
@@ -454,6 +454,7 @@ process-custom-draw: func [
 		txt		[red-string!]
 		font	[red-object!]
 		color	[red-tuple!]
+		sym		[integer!]
 		old		[integer!]
 		DC		[handle!]
 ][
@@ -461,37 +462,39 @@ process-custom-draw: func [
 	values: get-face-values item/hWndFrom
 	type:	as red-word! values + FACE_OBJ_TYPE
 	DC:		item/hdc
-	case [
-		type/symbol = button [
-			if all [
-				item/dwDrawStage = CDDS_PREPAINT
-				item/uItemState <> CDIS_DISABLED
-			][
-				;@@ TBD draw image
-				font: as red-object! values + FACE_OBJ_FONT
-				if TYPE_OF(font) = TYPE_OBJECT [
-					txt: as red-string! values + FACE_OBJ_TEXT
-					values: object/get-values font
-					color: as red-tuple! values + FONT_OBJ_COLOR
-					if all [
-						TYPE_OF(color) = TYPE_TUPLE
-						color/array1 <> 0
-					][
-						old: SetBkMode DC 1
-						SetTextColor DC color/array1 and 00FFFFFFh
-						DrawText
-							DC
-							unicode/to-utf16 txt
-							-1
-							as RECT_STRUCT (as int-ptr! item) + 5
-							DT_CENTER or DT_VCENTER or DT_SINGLELINE
-						SetBkMode DC old
-						return CDRF_SKIPDEFAULT
-					]
+	sym: symbol/resolve type/symbol
+	if any [
+		sym = check
+		sym = radio
+		sym = button
+	][
+		if all [
+			item/dwDrawStage = CDDS_PREPAINT
+			item/uItemState <> CDIS_DISABLED
+		][
+			;@@ TBD draw image
+			font: as red-object! values + FACE_OBJ_FONT
+			if TYPE_OF(font) = TYPE_OBJECT [
+				txt: as red-string! values + FACE_OBJ_TEXT
+				values: object/get-values font
+				color: as red-tuple! values + FONT_OBJ_COLOR
+				if all [
+					TYPE_OF(color) = TYPE_TUPLE
+					color/array1 <> 0
+				][
+					old: SetBkMode DC 1
+					SetTextColor DC color/array1 and 00FFFFFFh
+					DrawText
+						DC
+						unicode/to-utf16 txt
+						-1
+						as RECT_STRUCT (as int-ptr! item) + 5
+						DT_CENTER or DT_VCENTER or DT_SINGLELINE
+					SetBkMode DC old
+					return CDRF_SKIPDEFAULT
 				]
 			]
 		]
-		true [CDRF_DODEFAULT]
 	]
 	CDRF_DODEFAULT
 ]
@@ -540,6 +543,8 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
+		font   [red-object!]
+		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		rc	   [RECT_STRUCT]
 		gi	   [GESTUREINFO]
@@ -625,20 +630,34 @@ WndProc: func [
 		WM_ERASEBKGND [
 			if paint-background hWnd as handle! wParam [return 1]
 		]
-		WM_CTLCOLORBTN [0]
 		WM_CTLCOLOREDIT
 		WM_CTLCOLORSTATIC 
-		WM_CTLCOLORLISTBOX 
-		WM_CTLCOLORSCROLLBAR [
+		WM_CTLCOLORLISTBOX [
 			if null? current-msg [init-current-msg]
 			current-msg/hWnd: as handle! lParam			;-- force child handle
 			handle: get-widget-handle current-msg
+			brush: null
 			if handle <> as handle! -1 [
-				color: to-bgr as node! GetWindowLong handle wc-offset + 4
+				font: (as red-object! get-face-values handle) + FACE_OBJ_FONT
+				if TYPE_OF(font) = TYPE_OBJECT [
+					color: to-bgr font/ctx FONT_OBJ_COLOR
+					if color <> -1 [
+						SetTextColor as handle! wParam color
+						brush: either msg = WM_CTLCOLORSTATIC [
+							GetSysColorBrush COLOR_3DFACE
+						][
+							GetStockObject DC_BRUSH
+						]
+					]
+				]
+				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
 				if color <> -1 [
-					SetBkMode as handle! wParam BK_TRANSPARENT 
 					SetDCBrushColor as handle! wParam color
-					return as-integer GetStockObject DC_BRUSH
+					brush: GetStockObject DC_BRUSH
+				]
+				unless null? brush [
+					SetBkMode as handle! wParam BK_TRANSPARENT
+					return as-integer brush
 				]
 			]
 		]
