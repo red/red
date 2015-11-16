@@ -135,15 +135,16 @@ update-font-faces: function [parent [block! none!]][
 ]
 
 check-reactions: function [face [object!] facet [word!]][
-	pos: system/view/reactors
-	while [
-		all [
-			pos: find pos face							;@@ /skip 3 fails
-			pos/2 = facet
+	unless empty? pos: system/view/reactors [
+		while [
+			all [
+				pos: find pos face							;@@ /skip 3 fails
+				pos/2 = facet
+			]
+		][
+			do pos/3
+			pos: skip pos 3
 		]
-	][
-		do pos/3
-		pos: next pos
 	]
 ]
 
