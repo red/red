@@ -644,6 +644,7 @@ WndProc: func [
 					if color <> -1 [
 						SetTextColor as handle! wParam color
 						brush: either msg = WM_CTLCOLORSTATIC [
+							SetBkMode as handle! wParam BK_TRANSPARENT
 							GetSysColorBrush COLOR_3DFACE
 						][
 							GetStockObject DC_BRUSH
@@ -652,11 +653,11 @@ WndProc: func [
 				]
 				color: to-bgr as node! GetWindowLong handle wc-offset + 4 FACE_OBJ_COLOR
 				if color <> -1 [
+					SetBkColor as handle! wParam color
 					SetDCBrushColor as handle! wParam color
 					brush: GetStockObject DC_BRUSH
 				]
 				unless null? brush [
-					SetBkMode as handle! wParam BK_TRANSPARENT
 					return as-integer brush
 				]
 			]
