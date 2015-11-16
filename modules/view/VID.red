@@ -14,11 +14,11 @@ system/view/VID: context [
 	styles: #(
 		window: [
 			default-actor: on-click
-			template: [type: 'window size: 300x300]
+			template: [type: 'window]
 		]
 		base: [
 			default-actor: on-click
-			template: [type: 'base size: 80x80]
+			template: [type: 'base size: 80x80 color: 128.128.128]
 		]
 		button: [
 			default-actor: on-click
@@ -86,10 +86,34 @@ system/view/VID: context [
 		]
 	)
 	
+	reactors: make block! 20
+	
 	default-font: [name "Tahoma" size 9 color 'black]
 	
 	throw-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
+	]
+	
+	process-reactors: function [][
+		foreach [face blk] reactors [
+			parse blk rule: [
+				any [
+					item: ahead [path! | lit-path! | get-path!] skip (
+						item: item/1
+						if all [
+							object? obj: get item/1
+							in obj 'type
+							in obj 'offset
+						][
+							append system/view/reactors reduce [obj item/2 blk]
+						]
+					)
+					| set-path!
+					| into rule
+					| skip
+				]
+			]
+		]
 	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
@@ -134,6 +158,7 @@ system/view/VID: context [
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: first spec: next spec)
 				| 'data		  (opts/data:  first spec: next spec)
+				| 'draw		  (opts/draw: fetch-argument block! spec: next spec)
 				| 'font		  (opts/font: make font! fetch-argument block! spec: next spec)
 				| 'para		  (opts/para: make para! fetch-argument block! spec: next spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
@@ -141,6 +166,7 @@ system/view/VID: context [
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
+				| 'react	  (append reactors reduce [face fetch-argument block! spec: next spec])
 				] to end
 			]
 			unless match? [
@@ -199,7 +225,11 @@ system/view/VID: context [
 		]
 		foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
 		if block? face/actors [face/actors: make object! face/actors]
-		;if all [not opts/size opts/text][face/size: spacing + size-text face]
+		
+		if all [not opts/size opts/text min-size: size-text face][
+			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
+			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
+		]
 		spec
 	]
 	
@@ -234,7 +264,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: image: font: para: data:
-			extra: actors: none
+			extra: actors: draw: none
 		]
 		
 		reset: [
@@ -255,6 +285,7 @@ system/view/VID: context [
 				title	[panel/text: fetch-argument string! spec: next spec]
 				space	[spacing: fetch-argument pair! spec: next spec]
 				origin	[cursor: fetch-argument pair! spec: next spec]
+				size	[panel/size: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				do		[do fetch-argument block! spec: next spec]
@@ -324,8 +355,10 @@ system/view/VID: context [
 		]
 		either block? panel/pane [append panel/pane list][panel/pane: list]
 		
-		if pane-size <> 0x0 [panel/size: pane-size]
-		unless panel/size [panel/size: 200x200]
+		unless panel/size [
+			panel/size: either pane-size <> 0x0 [pane-size][200x200]
+		]
+		unless parent [process-reactors]
 		panel
 	]
 ]

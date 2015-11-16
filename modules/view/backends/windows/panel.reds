@@ -91,6 +91,6 @@ PanelWndProc: func [
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
-	;DefWindowProc hWnd msg wParam lParam					;@@ need to refactor base face, temporary use it to refresh background
+
 	CallWindowProc as wndproc-cb! :WndProc hWnd msg wParam lParam
 ]

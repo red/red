@@ -163,6 +163,8 @@ Red/System [
 #define WS_GROUP			00020000h
 #define WS_BORDER			00400000h
 #define WS_CLIPSIBLINGS 	04000000h
+#define WS_POPUP		 	80000000h
+#define WS_EX_TOOLWINDOW	00000080h
 
 #define SIF_RANGE			0001h
 #define SIF_PAGE			0002h
@@ -235,6 +237,8 @@ Red/System [
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
 #define WM_EXITSIZEMOVE		0232h
+#define WM_WINDOWPOSCHANGED 0047h
+#define WM_MOUSEACTIVATE	0021h
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -420,6 +424,16 @@ BUTTON_IMAGELIST: alias struct! [
 	right		[integer!]
 	bottom		[integer!]
 	align		[integer!]
+]
+
+tagWINDOWPOS: alias struct! [
+	hWnd			[handle!]
+	hwndInsertAfter	[handle!]
+	x				[integer!]
+	y				[integer!]
+	cx				[integer!]
+	cy				[integer!]
+	flags			[integer!]
 ]
 
 tagPOINT: alias struct! [
@@ -702,6 +716,35 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SetWindowRgn: "SetWindowRgn" [
+			hWnd		[handle!]
+			hRgn		[handle!]
+			redraw		[logic!]
+			return:		[integer!]
+		]
+		SetFocus: "SetFocus" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
+		SetCapture: "SetCapture" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
+		ReleaseCapture: "ReleaseCapture" [
+			return:		[logic!]
+		]
+		UpdateLayeredWindow: "UpdateLayeredWindow" [
+			hwnd		[handle!]
+			hdcDst		[handle!]
+			pptDst		[tagPOINT]
+			psize		[tagSIZE]
+			hdcSrc		[handle!]
+			pptSrc		[tagPOINT]
+			crKey		[integer!]
+			pblend		[integer!]
+			dwFlags		[integer!]
+			return:		[logic!]
+		]
 		GetWindowThreadProcessId: "GetWindowThreadProcessId" [
 			hWnd		[handle!]
 			process-id	[int-ptr!]
@@ -1046,6 +1089,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		CreateRectRgn: "CreateRectRgn" [
+			left		[integer!]
+			top			[integer!]
+			right		[integer!]
+			bottom		[integer!]
+			return:		[handle!]
+		]
 		ExtTextOut: "ExtTextOutW" [
 			hdc			[handle!]
 			X			[integer!]
@@ -1282,6 +1332,26 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipDeleteStringFormat: "GdipDeleteStringFormat" [
+			format		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateStringFormat: "GdipCreateStringFormat" [
+			attributes	[integer!]
+			language	[integer!]
+			format		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSetStringFormatAlign: "GdipSetStringFormatAlign" [
+			format		[integer!]
+			align		[integer!]
+			return:		[integer!]
+		]
+		GdipSetStringFormatLineAlign: "GdipSetStringFormatLineAlign" [
+			format		[integer!]
+			align		[integer!]
+			return:		[integer!]
+		]
 		GdipCreateFontFromDC: "GdipCreateFontFromDC" [
 			hdc			[integer!]
 			font		[int-ptr!]

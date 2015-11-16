@@ -309,6 +309,48 @@ system/view/platform: context [
 					EVT_PRESS_TAP	 [_press-tap]
 				]
 			]
+			
+			set-event-type: func [
+				evt		[red-event!]
+				word	[red-word!]
+				/local
+					sym [integer!]
+			][
+				sym: symbol/resolve word/symbol
+				case [
+					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
+					sym = _up/symbol			[sym: EVT_LEFT_UP]
+					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
+					sym = _mid-up/symbol		[sym: EVT_MIDDLE_UP]
+					sym = _alt-down/symbol		[sym: EVT_RIGHT_DOWN]
+					sym = _alt-up/symbol		[sym: EVT_RIGHT_UP]
+					sym = _aux-down/symbol		[sym: EVT_AUX_DOWN]
+					sym = _aux-up/symbol		[sym: EVT_AUX_UP]
+					sym = _click/symbol			[sym: EVT_CLICK]
+					sym = _double-click/symbol	[sym: EVT_DBL_CLICK]
+					sym = _over/symbol			[sym: EVT_OVER]
+					sym = _key/symbol			[sym: EVT_KEY]
+					;sym = _key-down/symbol 	[sym: EVT_KEY_DOWN]
+					sym = _key-up/symbol		[sym: EVT_KEY_UP]
+					sym = _select/symbol		[sym: EVT_SELECT]
+					sym = _change/symbol		[sym: EVT_CHANGE]
+					sym = _menu/symbol			[sym: EVT_MENU]
+					sym = _close/symbol			[sym: EVT_CLOSE]
+					sym = _move/symbol			[sym: EVT_MOVE]
+					sym = _resize/symbol		[sym: EVT_SIZE]
+					sym = _moving/symbol		[sym: EVT_MOVING]
+					sym = _resizing/symbol		[sym: EVT_SIZING]
+					sym = _zoom/symbol			[sym: EVT_ZOOM]
+					sym = _pan/symbol			[sym: EVT_PAN]
+					sym = _rotate/symbol		[sym: EVT_ROTATE]
+					sym = _two-tap/symbol		[sym: EVT_TWO_TAP]
+					sym = _press-tap/symbol		[sym: EVT_PRESS_TAP]
+					true [
+						fire [TO_ERROR(script not-event-type) word]
+					]
+				]
+				evt/type: sym
+			]
 
 			;#include %android/gui.reds
 			#include %windows/gui.reds
@@ -331,28 +373,28 @@ system/view/platform: context [
 			values [red-value!]
 			text   [red-string!]
 			pair   [red-pair!]
-			handle [handle!]
+			font   [red-object!]
+			state  [red-block!]
+			hFont  [handle!]
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
 		text: as red-string! values + gui/FACE_OBJ_TEXT
-		handle: gui/face-handle? face
-		if any [
-			null? handle
-			TYPE_OF(text) <> TYPE_STRING
-		][
+		if TYPE_OF(text) <> TYPE_STRING [
 			SET_RETURN(none-value)
 			exit
 		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size
-			gui/get-face-handle face
-			text
-			as red-object! values + gui/FACE_OBJ_FONT
-			string/rs-length? text
-			pair
+		font: as red-object! values + gui/FACE_OBJ_FONT
+		hFont: either TYPE_OF(font) = TYPE_OBJECT [
+			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
+			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font]
+		][
+			null
+		]
+		gui/get-text-size text hFont string/rs-length? text pair
 	]
 	
 	on-change-facet: routine [
