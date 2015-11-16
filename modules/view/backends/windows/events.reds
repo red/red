@@ -554,7 +554,7 @@ WndProc: func [
 				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
 				offset/x: winpos/x - offset/x
 				offset/y: winpos/y - offset/y
-				update-layered-window hWnd null offset
+				update-layered-window hWnd null offset winpos
 				offset/x: winpos/x
 				offset/y: winpos/y
 			]

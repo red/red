@@ -26,6 +26,7 @@ Red/System [
 #include %draw.reds
 
 process-id:		0
+border-width:	0
 hScreen:		as handle! 0
 hInstance:		as handle! 0
 default-font:	as handle! 0
@@ -523,7 +524,7 @@ OS-show-window: func [
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
-		update-layered-window as handle! hWnd null null
+		update-layered-window as handle! hWnd null null null
 	]
 	SetFocus as handle! hWnd
 ]
@@ -662,7 +663,6 @@ OS-make-view: func [
 			alpha?: transparent-base?
 						as red-tuple! values + FACE_OBJ_COLOR
 						as red-image! values + FACE_OBJ_IMAGE
-						?? alpha?
 			if alpha? [
 				either win8+? [ws-flags: WS_EX_LAYERED][
 					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
@@ -739,7 +739,7 @@ OS-make-view: func [
 				unless win8+? [
 					ClientToScreen as handle! parent pt		;-- convert client offset to screen offset
 				]
-				update-base handle as handle! parent pt values
+				update-base handle as handle! parent pt values null
 			]
 		]
 		sym = tab-panel [set-tabs handle values]

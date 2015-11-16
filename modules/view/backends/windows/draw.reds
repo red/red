@@ -218,7 +218,7 @@ draw-begin: func [
 
 		dc: hBackDC
 
-		unless all [null? hWnd not on-graphic?][render-base hWnd dc]
+		if any [hWnd <> null not on-graphic?][render-base hWnd dc]
 
 		SetArcDirection dc AD_CLOCKWISE
 		SetBkMode dc BK_TRANSPARENT

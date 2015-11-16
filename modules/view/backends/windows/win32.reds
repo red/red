@@ -716,6 +716,12 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SetWindowRgn: "SetWindowRgn" [
+			hWnd		[handle!]
+			hRgn		[handle!]
+			redraw		[logic!]
+			return:		[integer!]
+		]
 		SetFocus: "SetFocus" [
 			hWnd		[handle!]
 			return:		[handle!]
@@ -1083,6 +1089,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		CreateRectRgn: "CreateRectRgn" [
+			left		[integer!]
+			top			[integer!]
+			right		[integer!]
+			bottom		[integer!]
+			return:		[handle!]
+		]
 		ExtTextOut: "ExtTextOutW" [
 			hdc			[handle!]
 			X			[integer!]

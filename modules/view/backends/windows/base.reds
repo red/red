@@ -48,7 +48,7 @@ render-text: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
-		hFont: GetStockObject 17						;-- select default GUI font
+		hFont: GetStockObject DEFAULT_GUI_FONT				;-- select default GUI font
 		
 		if TYPE_OF(font) = TYPE_OBJECT [
 			values: object/get-values font
@@ -86,6 +86,7 @@ update-layered-window: func [
 	hWnd		[handle!]
 	hdwp		[handle!]
 	offset		[red-pair!]
+	winpos		[tagWINDOWPOS]
 	/local
 		values	[red-value!]
 		pane	[red-block!]
@@ -95,9 +96,15 @@ update-layered-window: func [
 		face	[red-object!]
 		tail	[red-object!]
 		pos		[red-pair!]
+		size	[red-pair!]
+		rect	[RECT_STRUCT]
 		sym		[integer!]
 		style	[integer!]
+		border	[integer!]
+		width	[integer!]
+		height	[integer!]
 		sub?	[logic!]
+		rgn		[handle!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -119,7 +126,7 @@ update-layered-window: func [
 				while [face < tail][
 					state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 					if TYPE_OF(state) = TYPE_BLOCK [
-						update-layered-window get-face-handle face hdwp offset
+						update-layered-window get-face-handle face hdwp offset winpos
 					]
 					face: face + 1
 				]
@@ -130,15 +137,39 @@ update-layered-window: func [
 				style: GetWindowLong hWnd GWL_EXSTYLE
 				if style and WS_EX_LAYERED > 0 [
 					pos: as red-pair! values + FACE_OBJ_OFFSET
-					pos/x: pos/x + offset/x
-					pos/y: pos/y + offset/y
-					hdwp: DeferWindowPos
-						hdwp
-						hWnd
-						null
-						pos/x pos/y
-						0 0
-						SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+					unless all [zero? offset/x zero? offset/y][
+						pos/x: pos/x + offset/x
+						pos/y: pos/y + offset/y
+						hdwp: DeferWindowPos
+							hdwp
+							hWnd
+							null
+							pos/x pos/y
+							0 0
+							SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+					]
+					if all [										;-- clip window
+						winpos/flags and SWP_NOSIZE = 0				;-- sized
+						winpos/flags and 8000h = 0					;-- not maximize and minimize
+					][
+						rect: declare RECT_STRUCT
+						GetClientRect winpos/hWnd rect
+						border: winpos/cx - rect/right >> 1
+						size: as red-pair! values + FACE_OBJ_SIZE
+						width: size/x
+						height: size/y
+						if pos/x + size/x > (winpos/x + winpos/cx) [
+							width: size/x - (pos/x + size/x - (winpos/x + winpos/cx)) - border
+						]
+						if pos/y + size/y > (winpos/y + winpos/cy) [
+							height: size/y - (pos/y + size/y - (winpos/y + winpos/cy)) - border
+						]
+
+						;@@ clip only when needed
+						rgn: CreateRectRgn 0 0 width height
+						SetWindowRgn hWnd rgn false
+						DeleteObject rgn
+					]
 				]
 			][
 				bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -186,7 +217,6 @@ BaseWndProc: func [
 
 update-base-image: func [
 	graphic		[integer!]
-	data		[red-block!]
 	img			[red-image!]
 	width		[integer!]
 	height		[integer!]
@@ -194,28 +224,6 @@ update-base-image: func [
 		str  [red-string!]
 		tail [red-string!]
 ][
-	if any [
-		TYPE_OF(data) = TYPE_BLOCK
-		TYPE_OF(data) = TYPE_HASH
-		TYPE_OF(data) = TYPE_MAP
-	][
-		str:  as red-string! block/rs-head data
-		tail: as red-string! block/rs-tail data
-		while [str < tail][
-			switch TYPE_OF(str) [
-				TYPE_URL   [
-					copy-cell
-						as cell! image/load-binary as red-binary!
-							simple-io/request-http HTTP_GET as red-url! str null null yes no no
-						as cell! img
-				]
-				TYPE_FILE  [image/make-at as red-value! img str]
-				TYPE_IMAGE [copy-cell as cell! str as cell! img]
-				default [0]
-			]
-			str: str + 1
-		]
-	]
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipDrawImageRectI graphic as-integer img/node 0 0 width height
 	]
@@ -328,14 +336,13 @@ update-base: func [
 	ptDst	[tagPOINT]
 	values	[red-value!]
 	/local
-		data	[red-block!]
 		img		[red-image!]
 		color	[red-tuple!]
 		cmds	[red-block!]
 		text	[red-string!]
 		font	[red-object!]
 		para	[red-object!]
-		rect	[RECT_STRUCT]
+		sz		[red-pair!]
 		width	[integer!]
 		height	[integer!]
 		hBitmap [handle!]
@@ -348,17 +355,15 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
-	data:	as red-block! values + FACE_OBJ_DATA
-	img:	as red-image! values + FACE_OBJ_IMAGE
-	color:	as red-tuple! values + FACE_OBJ_COLOR
-	cmds:	as red-block! values + FACE_OBJ_DRAW
+	img:	as red-image!  values + FACE_OBJ_IMAGE
+	color:	as red-tuple!  values + FACE_OBJ_COLOR
+	cmds:	as red-block!  values + FACE_OBJ_DRAW
 	text:	as red-string! values + FACE_OBJ_TEXT
 	font:	as red-object! values + FACE_OBJ_FONT
 	para:	as red-object! values + FACE_OBJ_PARA
-	rect:   declare RECT_STRUCT
+	sz:		as red-pair!   values + FACE_OBJ_SIZE
 	ptSrc:  declare tagPOINT
-	size:   declare tagSIZE
-	alpha?: yes
+	alpha?: yes     
 	graphic: 0
 
 	unless transparent-base? color img [
@@ -368,9 +373,8 @@ update-base: func [
 		exit
 	]
 
-	GetClientRect hWnd rect
-	width: rect/right - rect/left
-	height: rect/bottom - rect/top
+	width: sz/x
+	height: sz/y
 	hBackDC: CreateCompatibleDC hScreen
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
@@ -379,14 +383,13 @@ update-base: func [
 	if TYPE_OF(color) = TYPE_TUPLE [					;-- update background
 		alpha?: update-base-background graphic color width height
 	]
-	update-base-image graphic data img width height
+	update-base-image graphic img width height
 	update-base-text graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no
 
 	ptSrc/x: 0
 	ptSrc/y: 0
-	size/width: width
-	size/height: height
+	size: as tagSIZE (as int-ptr! sz) + 2
 	ftn: 0
 	bf: as tagBLENDFUNCTION :ftn
 	bf/BlendOp: as-byte 0
