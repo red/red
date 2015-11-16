@@ -443,78 +443,6 @@ paint-background: func [
 	true
 ]
 
-render-base: func [
-	hWnd	[handle!]
-	hDC		[handle!]
-	return: [logic!]
-	/local
-		values [red-value!]
-		type   [red-word!]
-		rc	   [RECT_STRUCT]
-][
-	paint-background hWnd hDC
-	values: get-face-values hWnd
-	rc: declare RECT_STRUCT
-	type: as red-word! values + FACE_OBJ_TYPE
-	if group-box <> symbol/resolve type/symbol [
-		GetClientRect hWnd rc
-		render-text values hDC rc
-	]
-	true
-]
-
-render-text: func [
-	values [red-value!]
-	hDC	   [handle!]
-	rc	   [RECT_STRUCT]
-	/local
-		text	[red-string!]
-		font	[red-object!]
-		para	[red-object!]
-		color	[red-tuple!]
-		state	[red-block!]
-		int		[red-integer!]
-		hFont	[handle!]
-		old		[integer!]
-		flags	[integer!]
-][
-	text: as red-string! values + FACE_OBJ_TEXT
-	if TYPE_OF(text) = TYPE_STRING [
-		font: as red-object! values + FACE_OBJ_FONT
-		hFont: GetStockObject 17						;-- select default GUI font
-		
-		if TYPE_OF(font) = TYPE_OBJECT [
-			values: object/get-values font
-			color: as red-tuple! values + FONT_OBJ_COLOR
-			if all [
-				TYPE_OF(color) = TYPE_TUPLE
-				color/array1 <> 0
-			][
-				SetTextColor hDC color/array1 and 00FFFFFFh
-			]
-			state: as red-block! values + FONT_OBJ_STATE
-			if TYPE_OF(state) = TYPE_BLOCK [
-				int: as red-integer! block/rs-head state
-				if TYPE_OF(int) = TYPE_INTEGER [
-					hFont: as handle! int/value
-				]
-			]
-		]
-		SelectObject hDC hFont
-		
-		flags: DT_SINGLELINE
-		para: as red-object! values + FACE_OBJ_PARA
-		flags: either TYPE_OF(para) = TYPE_OBJECT [
-			get-para-flags base para
-		][
-			flags or DT_CENTER or DT_VCENTER
-		]
-		old: SetBkMode hDC 1
-		DrawText hDC unicode/to-utf16 text -1 rc flags
-		SetBkMode hDC old
-	]
-]
-
 process-custom-draw: func [
 	wParam	[integer!]
 	lParam	[integer!]
@@ -600,37 +528,6 @@ bitblt-memory-dc: func [
 	EndPaint hWnd paint
 ]
 
-BaseWndProc: func [
-	hWnd	[handle!]
-	msg		[integer!]
-	wParam	[integer!]
-	lParam	[integer!]
-	return: [integer!]
-	/local
-		draw [red-block!]
-][
-	switch msg [
-		WM_ERASEBKGND [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			if TYPE_OF(draw) = TYPE_BLOCK [return 1]				;-- draw background in WM_PAINT to avoid flicker
-			if render-base hWnd as handle! wParam [return 1]
-		]
-		WM_PAINT [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			if TYPE_OF(draw) = TYPE_BLOCK [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw yes yes
-				][
-					bitblt-memory-dc hWnd no
-				]
-				return 0
-			]
-		]
-		default [0]
-	]
-	DefWindowProc hWnd msg wParam lParam
-]
-
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -647,8 +544,21 @@ WndProc: func [
 		rc	   [RECT_STRUCT]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
+		offset [red-pair!]
+		winpos [tagWINDOWPOS]
 ][
 	switch msg [
+		WM_WINDOWPOSCHANGED [
+			unless win8+? [
+				winpos: as tagWINDOWPOS lParam
+				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
+				offset/x: winpos/x - offset/x
+				offset/y: winpos/y - offset/y
+				update-layered-window hWnd null offset winpos
+				offset/x: winpos/x
+				offset/y: winpos/y
+			]
+		]
 		WM_MOVING
 		WM_SIZING [
 			current-msg/hWnd: hWnd
