@@ -18,8 +18,9 @@ render-base: func [
 		values [red-value!]
 		type   [red-word!]
 		rc	   [RECT_STRUCT]
+		res	   [logic!]
 ][
-	paint-background hWnd hDC
+	res: paint-background hWnd hDC
 	values: get-face-values hWnd
 	rc: declare RECT_STRUCT
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -27,7 +28,7 @@ render-base: func [
 		GetClientRect hWnd rc
 		render-text values hDC rc
 	]
-	true
+	res
 ]
 
 render-text: func [
@@ -355,6 +356,13 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
+	flags: GetWindowLong hWnd GWL_EXSTYLE
+	if zero? (flags and WS_EX_LAYERED) [
+		SetWindowLong hWnd wc-offset - 4 0
+		InvalidateRect hWnd null 1
+		exit
+	]
+
 	img:	as red-image!  values + FACE_OBJ_IMAGE
 	color:	as red-tuple!  values + FACE_OBJ_COLOR
 	cmds:	as red-block!  values + FACE_OBJ_DRAW
