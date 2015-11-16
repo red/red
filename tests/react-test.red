@@ -20,9 +20,9 @@ view [
 	style value: text "0" 30 right bold
 	
 	across
-	txt "Red:"   R: slider 256 vR: value react [vR/text: to-text R/data] return
-	txt "Green:" G: slider 256 vG: value react [vG/text: to-text G/data] return
-	txt "Blue:"  B: slider 256 vB: value react [vB/text: to-text B/data]
+	txt "Red:"   R: slider 256 value react [face/text: to-text R/data] return
+	txt "Green:" G: slider 256 value react [face/text: to-text G/data] return
+	txt "Blue:"  B: slider 256 value react [face/text: to-text B/data]
 	
-	pad 0x-65 box: base react [box/color: as-color R/data G/data B/data]
+	pad 0x-65 base react [face/color: as-color R/data G/data B/data]
 ]

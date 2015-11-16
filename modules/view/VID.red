@@ -94,8 +94,12 @@ system/view/VID: context [
 		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
 	]
 	
+	react-ctx: context [face: none]
+	
 	process-reactors: function [][
-		foreach [face blk] reactors [
+		foreach [f blk] reactors [
+			bind blk ctx: make react-ctx [face: f]
+			
 			parse blk rule: [
 				any [
 					item: ahead [path! | lit-path! | get-path!] skip (
@@ -105,7 +109,7 @@ system/view/VID: context [
 							in obj 'type
 							in obj 'offset
 						][
-							append system/view/reactors reduce [obj item/2 blk]
+							append system/view/reactors reduce [obj item/2 blk ctx]
 						]
 					)
 					| set-path!

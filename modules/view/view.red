@@ -138,12 +138,12 @@ check-reactions: function [face [object!] facet [word!]][
 	unless empty? pos: system/view/reactors [
 		while [
 			all [
-				pos: find pos face							;@@ /skip 3 fails
+				pos: find pos face							;@@ /skip 4 fails
 				pos/2 = facet
 			]
 		][
 			do pos/3
-			pos: skip pos 3
+			pos: skip pos 4
 		]
 	]
 ]
