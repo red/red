@@ -150,12 +150,13 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
 		used: as-integer s/tail - s/offset
-		if used * 2 > s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2					;-- reserve one more for edge cases
+		used: used << 1 
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  (as byte-ptr! s/offset) + (used * 2)
+		dst:  (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 		
 		while [src > base][								;-- in-place conversion
@@ -179,13 +180,14 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS4"]]
 
-		used: as-integer s/tail - s/offset	
-		if used * 4 > s/size [							;-- ensure we have enough space
-			s: expand-series s used * 4					;-- reserve one more for edge cases
+		used: as-integer s/tail - s/offset
+		used: used << 2
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 4					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 4)
+		dst:  as int-ptr! (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 
 		while [src > base][								;-- in-place conversion
@@ -209,12 +211,13 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
 
 		used: as-integer s/tail - s/offset	
-		if used * 2 > s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2
+		used: used << 1
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 4
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 2)
+		dst:  as int-ptr! (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 
 		while [src > base][								;-- in-place conversion
