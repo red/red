@@ -54,7 +54,7 @@ system/view/VID: context [
 		]
 		image: [
 			default-actor: on-down
-			template: [type: 'image size: 100x100]
+			template: [type: 'base size: 100x100]
 		]
 		camera: [
 			default-actor: on-down
