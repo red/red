@@ -512,6 +512,7 @@ dump-face: function [
 	append depth tab
 	if block? face/pane [foreach f face/pane [dump-face f]]
 	remove depth
+	face
 ]
 
 insert-event-func: function [
