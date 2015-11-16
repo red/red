@@ -618,7 +618,7 @@ image: context [
 	init: does [
 		datatype/register [
 			TYPE_IMAGE
-			TYPE_VALUE
+			TYPE_SERIES
 			"image!"
 			;-- General actions --
 			:make
@@ -678,7 +678,7 @@ image: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

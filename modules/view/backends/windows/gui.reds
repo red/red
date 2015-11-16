@@ -739,7 +739,7 @@ OS-make-view: func [
 				unless win8+? [
 					ClientToScreen as handle! parent pt		;-- convert client offset to screen offset
 				]
-				update-base handle as handle! parent pt values null
+				update-base handle as handle! parent pt values
 			]
 		]
 		sym = tab-panel [set-tabs handle values]
@@ -821,7 +821,7 @@ change-size: func [
 change-offset: func [
 	hWnd [integer!]
 	pos  [red-pair!]
-	type [red-word!]
+	type [integer!]
 	/local
 		owner [handle!]
 		size  [red-pair!]
@@ -831,7 +831,7 @@ change-offset: func [
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	rect: declare RECT_STRUCT
-	if type/symbol = base [
+	if type = base [
 		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
 			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
@@ -857,12 +857,18 @@ change-offset: func [
 ]
 
 change-text: func [
-	hWnd [integer!]
-	str  [red-string!]
-	type [red-word!]
+	hWnd	[integer!]
+	values	[red-value!]
+	type	[integer!]
 	/local
 		text [c-string!]
+		str  [red-string!]
 ][
+	if type = base [
+		update-base as handle! hWnd null null values
+		exit
+	]
+	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
 		TYPE_STRING [text: unicode/to-utf16 str]
@@ -870,7 +876,7 @@ change-text: func [
 		default		[0]									;@@ Auto-convert?
 	]
 	unless null? text [
-		if type/symbol = group-box [
+		if type = group-box [
 			hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		]
 		SetWindowText as handle! hWnd text
@@ -880,16 +886,24 @@ change-text: func [
 change-visible: func [
 	hWnd  [integer!]
 	show? [logic!]
-	type  [red-word!]
+	type  [integer!]
 	/local
 		value [integer!]
 ][
 	value: either show? [SW_SHOW][SW_HIDE]
 	ShowWindow as handle! hWnd value
-	if type/symbol = group-box [
+	if type = group-box [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		ShowWindow as handle! hWnd value
 	]
+]
+
+change-image: func [
+	hWnd	[integer!]
+	values	[red-value!]
+	type	[integer!]
+][
+	if type = base [update-base as handle! hWnd null null values]
 ]
 
 change-enable: func [
@@ -1015,16 +1029,16 @@ change-parent: func [
 	values: get-node-facet face/ctx 0
 	bool: as red-logic! values + FACE_OBJ_VISIBLE?
 	tab-panel?: no
-	
+	type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
+
 	if parent <> null [
-		assert TYPE_OF(parent) = TYPE_OBJECT
-		type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
+		assert TYPE_OF(parent) = TYPE_OBJECT		
 		tab-panel?: tab-panel = symbol/resolve type/symbol
 	]
 	unless tab-panel? [bool/value: parent <> null]
 	
 	either null? parent [
-		change-visible as-integer hWnd no as red-word! values + FACE_OBJ_TYPE
+		change-visible as-integer hWnd no symbol/resolve type/symbol
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
@@ -1120,12 +1134,15 @@ OS-update-view: func [
 		s		[series!]
 		hWnd	[integer!]
 		flags	[integer!]
+		type	[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
 
 	state: as red-block! values + FACE_OBJ_STATE
+	word: as red-word! values + FACE_OBJ_TYPE
+	type: symbol/resolve word/symbol
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	hWnd: int/value
@@ -1133,19 +1150,13 @@ OS-update-view: func [
 	flags: int/value
 
 	if flags and FACET_FLAG_OFFSET <> 0 [
-		change-offset
-			hWnd
-			as red-pair! values + FACE_OBJ_OFFSET
-			as red-word! values + FACE_OBJ_TYPE
+		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
 		change-size hWnd as red-pair! values + FACE_OBJ_SIZE
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
-		change-text
-			hWnd
-			as red-string! values + FACE_OBJ_TEXT
-			as red-word! values + FACE_OBJ_TYPE
+		change-text hWnd values type
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data	as handle! hWnd values
@@ -1156,25 +1167,30 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
-		change-visible hWnd bool/value as red-word! values + FACE_OBJ_TYPE
+		change-visible hWnd bool/value type
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
 		change-selection hWnd int2/value values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
-		SetWindowLong as handle! hWnd wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
+		SetWindowLong
+			as handle! hWnd
+			wc-offset + 16
+			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		SetWindowLong as handle! hWnd wc-offset - 4 0
-		InvalidateRect as handle! hWnd null 1
+		if type = base [update-base as handle! hWnd null null values]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
-		InvalidateRect as handle! hWnd null 1
+		either type = base [
+			update-base as handle! hWnd null null values
+		][
+			InvalidateRect as handle! hWnd null 1
+		]
 	]
 	if flags and FACET_FLAG_PANE <> 0 [
-		word: as red-word! values + FACE_OBJ_TYPE
-		if tab-panel <> symbol/resolve word/symbol [	;-- tab-panel/pane has custom z-order handling
+		if tab-panel <> type [				;-- tab-panel/pane has custom z-order handling
 			update-z-order 
 				as red-block! values + gui/FACE_OBJ_PANE
 				null
@@ -1193,6 +1209,9 @@ OS-update-view: func [
 			DestroyMenu GetMenu as handle! hWnd
 			SetMenu as handle! hWnd build-menu menu CreateMenu
 		]
+	]
+	if flags and FACET_FLAG_IMAGE <> 0 [
+		change-image hWnd values type
 	]
 	
 	int/value: 0										;-- reset flags
