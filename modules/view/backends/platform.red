@@ -384,9 +384,7 @@ system/view/platform: context [
 			SET_RETURN(none-value)
 			exit
 		]
-		pair: as red-pair! stack/arguments
-		pair/header: TYPE_PAIR
-		
+
 		font: as red-object! values + gui/FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
 			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
@@ -394,6 +392,9 @@ system/view/platform: context [
 		][
 			null
 		]
+		pair: as red-pair! stack/arguments
+		pair/header: TYPE_PAIR
+		
 		gui/get-text-size text hFont string/rs-length? text pair
 	]
 	
