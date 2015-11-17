@@ -282,8 +282,10 @@ free-handles: func [
 			]
 		]
 		sym = base [
-			dc: GetWindowLong hWnd wc-offset - 4
-			unless zero? dc [DeleteDC as handle! dc]			;-- delete cached draw dc
+			if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
+				dc: GetWindowLong hWnd wc-offset - 4
+				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
+			]
 		]
 		true [
 			0
@@ -734,6 +736,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
+			SetWindowLong handle wc-offset - 4 0
 			if alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
@@ -785,7 +788,6 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = base [SetWindowLong handle wc-offset - 4 0]
 		sym = window [									;-- set main window's offset
 			GetWindowRect handle rc
 			offset/x: rc/top
