@@ -1584,14 +1584,37 @@ natives: context [
 	as-pair*: func [
 		/local
 			pair [red-pair!]
+			arg	 [red-value!]
 			int  [red-integer!]
+			fl	 [red-float!]
 	][
-		pair: as red-pair! stack/arguments
+		arg: stack/arguments
+		pair: as red-pair! arg
+		
+		switch TYPE_OF(arg) [
+			TYPE_INTEGER [
+				int: as red-integer! arg
+				pair/x: int/value
+			]
+			TYPE_FLOAT	 [
+				fl: as red-float! arg
+				pair/x: float/to-integer fl/value
+			]
+			default		 [assert false]
+		]
+		arg: arg + 1
+		switch TYPE_OF(arg) [
+			TYPE_INTEGER [
+				int: as red-integer! arg
+				pair/y: int/value
+			]
+			TYPE_FLOAT	 [
+				fl: as red-float! arg
+				pair/y: float/to-integer fl/value
+			]
+			default		[assert false]
+		]
 		pair/header: TYPE_PAIR
-		int: as red-integer! pair
-		pair/x: int/value
-		int: as red-integer! pair + 1
-		pair/y: int/value
 	]
 	
 	break*: func [returned [integer!]][stack/throw-break returned <> -1 no]

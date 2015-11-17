@@ -625,8 +625,8 @@ lowercase: make native! [[
 
 as-pair: make native! [[
 		"Combine X and Y values into a pair"
-		x [integer!]
-		y [integer!]
+		x [integer! float!]
+		y [integer! float!]
 	]
 	#get-definition NAT_AS_PAIR
 ]
