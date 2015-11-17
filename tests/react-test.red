@@ -13,10 +13,10 @@ as-color: function [r g b][
 	color
 ]
 
-to-text: function [val][form to integer! 0.5 + round 255 * val]
+to-text: function [val][form to integer! 0.5 + round 255 * any [val 0]]
 
 view [
-	style txt: text right
+	style txt: text 60 right
 	style value: text "0" 30 right bold
 	
 	across

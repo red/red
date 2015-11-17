@@ -85,6 +85,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
+			check-reactions owner 'word
 		][
 			unless find [cleared removed taken] action [
 				if find [clear remove take] action [
@@ -127,9 +128,19 @@ update-font-faces: function [parent [block! none!]][
 	if block? parent [
 		foreach f parent [
 			if f/state [
+				check-reactions f 'font
 				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
 				if system/view/auto-sync? [show f]
 			]
+		]
+	]
+]
+
+check-all-reactions: function [face [object!]][
+	unless empty? pos: system/view/reactors [
+		while [pos: find pos face][							;@@ /skip 4 fails
+			do pos/3
+			pos: skip pos 4
 		]
 	]
 ]
@@ -274,6 +285,7 @@ para!: object [
 			block? parent
 		][
 			foreach f parent [
+				check-reactions f 'para
 				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
 				if all [f/state f/state/1 system/view/auto-sync?][show f]
 			]
@@ -436,6 +448,7 @@ show: function [
 	]
 
 	if face/pane [foreach f face/pane [show/with f face]]
+	check-all-reactions face
 	
 	if all [new? face/type = 'window][
 		system/view/platform/show-window obj
