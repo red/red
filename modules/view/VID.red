@@ -103,7 +103,9 @@ system/view/VID: context [
 			parse blk rule: [
 				any [
 					item: ahead [path! | lit-path! | get-path!] skip (
-						item: item/1
+						if unset? get/any item: item/1 [
+							cause-error 'script 'no-value [item]
+						]
 						if all [
 							object? obj: get item/1
 							in obj 'type
@@ -243,7 +245,7 @@ system/view/VID: context [
 		
 		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
-			'func [face [object!] event [event!]]
+			'func [face [object!] event [event! none!]]
 			body
 		]
 	]
