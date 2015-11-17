@@ -121,6 +121,30 @@ system/view/VID: context [
 			]
 		]
 	]
+	
+	calc-size: function [face [object!]][
+		either all [
+			block? data: face/data
+			not empty? data 
+			find [text-list drop-list drop-down] face/type
+		][
+			saved: face/text
+			min-sz: 0x0
+			foreach txt data [
+				face/text: txt
+				size: size-text face
+				if size/x > min-sz/x [min-sz/x: size/x]
+				if size/y > min-sz/y [min-sz/y: size/y]
+			]
+			face/text: saved
+			size: size-text face
+			if size/x > min-sz/x [min-sz/x: size/x]
+			if size/y > min-sz/y [min-sz/y: size/y]
+			min-sz
+		][
+			size-text face
+		]
+	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
 		unless obj/:facet [
@@ -232,7 +256,7 @@ system/view/VID: context [
 		foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [not opts/size opts/text min-size: size-text face][
+		if all [not opts/size opts/text min-size: calc-size face][
 			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
 			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
 		]
