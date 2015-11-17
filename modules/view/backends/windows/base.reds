@@ -15,17 +15,33 @@ render-base: func [
 	hDC		[handle!]
 	return: [logic!]
 	/local
-		values [red-value!]
-		type   [red-word!]
-		rc	   [RECT_STRUCT]
-		res	   [logic!]
+		values	[red-value!]
+		img		[red-image!]
+		type	[red-word!]
+		rc		[RECT_STRUCT]
+		graphic	[integer!]
+		res		[logic!]
 ][
+	graphic: 0
 	res: paint-background hWnd hDC
+	
 	values: get-face-values hWnd
-	rc: declare RECT_STRUCT
 	type: as red-word! values + FACE_OBJ_TYPE
+	img: as red-image! values + FACE_OBJ_IMAGE
+
+	rc: declare RECT_STRUCT
+	GetClientRect hWnd rc
+	if TYPE_OF(img) = TYPE_IMAGE [
+		GdipCreateFromHDC hDC :graphic
+		GdipDrawImageRectI
+			graphic
+			as-integer img/node
+			0 0
+			rc/right - rc/left rc/bottom - rc/top
+		GdipDeleteGraphics graphic
+	]
+
 	if group-box <> symbol/resolve type/symbol [
-		GetClientRect hWnd rc
 		render-text values hDC rc
 	]
 	res
@@ -166,10 +182,16 @@ update-layered-window: func [
 							height: size/y - (pos/y + size/y - (winpos/y + winpos/cy)) - border
 						]
 
-						;@@ clip only when needed
-						rgn: CreateRectRgn 0 0 width height
-						SetWindowRgn hWnd rgn false
-						DeleteObject rgn
+						either any [
+							width <> size/x
+							height <> size/y
+							1 = GetWindowLong hWnd wc-offset - 4
+						][
+							SetWindowLong hWnd wc-offset - 4 1
+							rgn: CreateRectRgn 0 0 width height
+							SetWindowRgn hWnd rgn false
+							DeleteObject rgn
+						][SetWindowLong hWnd wc-offset - 4 0]
 					]
 				]
 			][
@@ -189,27 +211,28 @@ BaseWndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
-		draw [red-block!]
+		flags	[integer!]
+		draw	[red-block!]
 ][
 	switch msg [
-		WM_MOUSEACTIVATE [return 3]				;-- do not make it activated when click it
+		WM_MOUSEACTIVATE [
+			flags: GetWindowLong hWnd GWL_EXSTYLE
+			if flags and WS_EX_LAYERED > 0 [
+				SetActiveWindow GetParent hWnd
+				return 3							;-- do not make it activated when click it
+			]
+		]
 		WM_LBUTTONDOWN	 [SetCapture hWnd]
 		WM_LBUTTONUP	 [ReleaseCapture]
-		WM_ERASEBKGND	 [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			if TYPE_OF(draw) = TYPE_BLOCK [return 1]				;-- draw background in WM_PAINT to avoid flicker
-			if render-base hWnd as handle! wParam [return 1]
-		]
+		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			if TYPE_OF(draw) = TYPE_BLOCK [
-				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw no yes yes
-				][
-					bitblt-memory-dc hWnd no
-				]
-				return 0
+			either zero? GetWindowLong hWnd wc-offset - 4 [
+				do-draw hWnd null draw no yes yes
+			][
+				bitblt-memory-dc hWnd no
 			]
+			return 0
 		]
 		default [0]
 	]

@@ -716,6 +716,10 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SetActiveWindow: "SetActiveWindow" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
 		SetWindowRgn: "SetWindowRgn" [
 			hWnd		[handle!]
 			hRgn		[handle!]

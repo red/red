@@ -535,42 +535,44 @@ Red/System [
 				DC	   [handle!]						;-- drawing context (opaque handle)
 				sym	   [integer!]
 		][
-			if any [
-				TYPE_OF(cmds) <> TYPE_BLOCK
-				zero? block/rs-length? cmds
+			if all [
+				null? handle
+				any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds]
 			][exit]
 
-			cmd:  block/rs-head cmds
-			tail: block/rs-tail cmds
-
 			DC: draw-begin handle img on-graphic? paint?
-			
-			while [cmd < tail][
-				w: as red-word! cmd
-				if TYPE_OF(w) <> TYPE_WORD [throw-draw-error cmds cmd]
-				sym: symbol/resolve w/symbol
+
+			if TYPE_OF(cmds) = TYPE_BLOCK [
+				cmd:  block/rs-head cmds
+				tail: block/rs-tail cmds
 				
-				case [
-					sym = pen		 [cmd: draw-pen			DC cmds cmd tail]
-					sym = box		 [cmd: draw-box			DC cmds cmd tail]
-					sym = line		 [cmd: draw-line		DC cmds cmd tail]
-					sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
-					sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
-					sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
-					sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
-					sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
-					sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
-					sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
-					sym = font		 [cmd: draw-font		DC cmds cmd tail]
-					sym = text		 [cmd: draw-text		DC cmds cmd tail]
-					sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
-					sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
-					sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
-					sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
-					sym = _image	 [cmd: draw-image		DC cmds cmd tail]
-					true 			 [throw-draw-error cmds cmd]
+				while [cmd < tail][
+					w: as red-word! cmd
+					if TYPE_OF(w) <> TYPE_WORD [throw-draw-error cmds cmd]
+					sym: symbol/resolve w/symbol
+					
+					case [
+						sym = pen		 [cmd: draw-pen			DC cmds cmd tail]
+						sym = box		 [cmd: draw-box			DC cmds cmd tail]
+						sym = line		 [cmd: draw-line		DC cmds cmd tail]
+						sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
+						sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
+						sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
+						sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
+						sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
+						sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
+						sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
+						sym = font		 [cmd: draw-font		DC cmds cmd tail]
+						sym = text		 [cmd: draw-text		DC cmds cmd tail]
+						sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
+						sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
+						sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
+						sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
+						sym = _image	 [cmd: draw-image		DC cmds cmd tail]
+						true 			 [throw-draw-error cmds cmd]
+					]
+					cmd: cmd + 1
 				]
-				cmd: cmd + 1
 			]
 
 			draw-end DC handle on-graphic? cache? paint?

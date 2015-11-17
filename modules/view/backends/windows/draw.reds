@@ -218,10 +218,10 @@ draw-begin: func [
 
 		dc: hBackDC
 
-		if any [hWnd <> null not on-graphic?][render-base hWnd dc]
-
 		SetArcDirection dc AD_CLOCKWISE
 		SetBkMode dc BK_TRANSPARENT
+
+		render-base hWnd dc
 
 		graphics: 0
 		GdipCreateFromHDC dc :graphics	
