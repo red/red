@@ -1259,7 +1259,7 @@ block: context [
 		]
 		ownership/check as red-value! blk words/_insert value index part
 		
-		unless append? [
+		either append? [blk/head: 0][
 			blk/head: blk/head + slots
 			s: GET_BUFFER(blk)
 			assert s/offset + blk/head <= s/tail

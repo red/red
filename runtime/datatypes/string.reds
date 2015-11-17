@@ -1859,7 +1859,7 @@ string: context [
 		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
 		ownership/check as red-value! str words/_insert value index part
 		
-		unless append? [
+		either append? [str/head: 0][
 			added: added * dup-n
 			str/head: str/head + added
 			s: GET_BUFFER(str)
