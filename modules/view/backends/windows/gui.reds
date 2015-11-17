@@ -518,6 +518,17 @@ DWM-enabled?: func [
 	either zero? enabled [false][true]
 ]
 
+store-face-to-hWnd: func [
+	hWnd	[handle!]
+	face	[red-object!]
+][
+	if (GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT [exit]
+	SetWindowLong hWnd wc-offset				 face/header
+	SetWindowLong hWnd wc-offset + 4  as-integer face/ctx
+	SetWindowLong hWnd wc-offset + 8			 face/class
+	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
+]
+
 OS-show-window: func [
 	hWnd [integer!]
 ][
@@ -721,7 +732,7 @@ OS-make-view: func [
 		as int-ptr! parent
 		as handle! id
 		hInstance
-		null
+		as int-ptr! face
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
@@ -796,10 +807,7 @@ OS-make-view: func [
 	
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	SetWindowLong handle wc-offset		  		   face/header
-	SetWindowLong handle wc-offset + 4  as-integer face/ctx
-	SetWindowLong handle wc-offset + 8  		   face/class
-	SetWindowLong handle wc-offset + 12 as-integer face/on-set
+	store-face-to-hWnd handle face
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	stack/unwind

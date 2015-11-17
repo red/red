@@ -550,9 +550,14 @@ WndProc: func [
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
 		offset [red-pair!]
+		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 ][
 	switch msg [
+		WM_NCCREATE [
+			p-int: as int-ptr! lParam
+			store-face-to-hWnd hWnd as red-object! p-int/value
+		]
 		WM_WINDOWPOSCHANGED [
 			unless win8+? [
 				winpos: as tagWINDOWPOS lParam
@@ -562,6 +567,7 @@ WndProc: func [
 				update-layered-window hWnd null offset winpos
 				offset/x: winpos/x
 				offset/y: winpos/y
+				return 0
 			]
 		]
 		WM_MOVING
@@ -621,6 +627,7 @@ WndProc: func [
 		WM_VSCROLL
 		WM_HSCROLL [
 			unless zero? lParam [						;-- message from trackbar
+				if null? current-msg [init-current-msg]
 				current-msg/hWnd: as handle! lParam		;-- trackbar handle
 				get-slider-pos current-msg
 				make-event current-msg 0 EVT_CHANGE
