@@ -61,15 +61,15 @@ system/view/VID: context [
 			template: [type: 'camera size: 250x250]
 		]
 		text-list: [
-			default-actor: on-select
+			default-actor: on-change
 			template: [type: 'text-list size: 100x140]
 		]
 		drop-list: [
-			default-actor: on-select
+			default-actor: on-change
 			template: [type: 'drop-list size: 100x24]
 		]
 		drop-down: [
-			default-actor: on-select
+			default-actor: on-change
 			template: [type: 'drop-down size: 100x24]
 		]
 		panel: [
