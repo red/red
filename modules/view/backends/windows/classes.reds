@@ -147,15 +147,6 @@ register-classes: func [
 	RegisterClassEx wcex
 
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
-	wcex/lpfnWndProc:	:PanelWndProc
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hIcon:			null
-	wcex/hInstance:		hInstance
-	wcex/lpszClassName: #u16 "RedPanel"
-
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:BaseWndProc
 	wcex/cbClsExtra:	0
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
@@ -186,4 +177,6 @@ register-classes: func [
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
+
+	make-super-class #u16 "RedPanel" #u16 "RedWindow" 0 no
 ]

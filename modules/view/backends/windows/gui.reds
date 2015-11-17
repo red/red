@@ -282,8 +282,10 @@ free-handles: func [
 			]
 		]
 		sym = base [
-			dc: GetWindowLong hWnd wc-offset - 4
-			unless zero? dc [DeleteDC as handle! dc]			;-- delete cached draw dc
+			if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
+				dc: GetWindowLong hWnd wc-offset - 4
+				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
+			]
 		]
 		true [
 			0
@@ -518,6 +520,17 @@ DWM-enabled?: func [
 	either zero? enabled [false][true]
 ]
 
+store-face-to-hWnd: func [
+	hWnd	[handle!]
+	face	[red-object!]
+][
+	if (GetWindowLong hWnd wc-offset) and get-type-mask = TYPE_OBJECT [exit]
+	SetWindowLong hWnd wc-offset				 face/header
+	SetWindowLong hWnd wc-offset + 4  as-integer face/ctx
+	SetWindowLong hWnd wc-offset + 8			 face/class
+	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
+]
+
 OS-show-window: func [
 	hWnd [integer!]
 ][
@@ -721,7 +734,7 @@ OS-make-view: func [
 		as int-ptr! parent
 		as handle! id
 		hInstance
-		null
+		as int-ptr! face
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
@@ -734,6 +747,7 @@ OS-make-view: func [
 		sym = camera	[init-camera handle data open?/value]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
+			SetWindowLong handle wc-offset - 4 0
 			if alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
@@ -785,7 +799,6 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = base [SetWindowLong handle wc-offset - 4 0]
 		sym = window [									;-- set main window's offset
 			GetWindowRect handle rc
 			offset/x: rc/top
@@ -796,10 +809,7 @@ OS-make-view: func [
 	
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	SetWindowLong handle wc-offset		  		   face/header
-	SetWindowLong handle wc-offset + 4  as-integer face/ctx
-	SetWindowLong handle wc-offset + 8  		   face/class
-	SetWindowLong handle wc-offset + 12 as-integer face/on-set
+	store-face-to-hWnd handle face
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	stack/unwind

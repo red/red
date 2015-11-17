@@ -191,6 +191,7 @@ Red/System [
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 
+#define WM_NCCREATE			0081h
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
 #define WM_SIZE				0005h
@@ -716,6 +717,10 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SetActiveWindow: "SetActiveWindow" [
+			hWnd		[handle!]
+			return:		[handle!]
+		]
 		SetWindowRgn: "SetWindowRgn" [
 			hWnd		[handle!]
 			hRgn		[handle!]
