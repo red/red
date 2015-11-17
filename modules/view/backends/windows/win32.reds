@@ -906,6 +906,14 @@ DwmIsCompositionEnabled!: alias function! [
 			lParam		[integer!]
 			return: 	[integer!]
 		]
+		PeekMessage: "PeekMessageW" [
+			msg			[tagMSG]
+			hWnd		[handle!]
+			msgMin		[integer!]
+			msgMax		[integer!]
+			removeMsg	[integer!]
+			return: 	[integer!]
+		]
 		TranslateMessage: "TranslateMessage" [
 			msg			[tagMSG]
 			return: 	[logic!]

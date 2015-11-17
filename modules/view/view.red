@@ -374,7 +374,7 @@ system/view: context [
 #include %VID.red
 
 do-events: func [/no-wait][
-	system/view/platform/do-event-loop no
+	system/view/platform/do-event-loop no-wait
 ]
 
 do-actor: function [face [object!] event [event! none!] type [word!]][

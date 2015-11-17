@@ -783,7 +783,13 @@ do-events: func [
 ][
 	msg: declare tagMSG
 
-	while [0 < GetMessage msg null 0 0][
+	while [
+		either no-wait? [
+			0 < PeekMessage msg null 0 0 1
+		][
+			0 < GetMessage msg null 0 0
+		]
+	][
 		state: process msg
 		if state >= EVT_DISPATCH [
 			current-msg: msg
