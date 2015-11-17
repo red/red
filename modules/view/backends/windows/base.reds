@@ -104,6 +104,7 @@ update-layered-window: func [
 	hdwp		[handle!]
 	offset		[red-pair!]
 	winpos		[tagWINDOWPOS]
+	showflag	[integer!]
 	/local
 		values	[red-value!]
 		pane	[red-block!]
@@ -135,7 +136,7 @@ update-layered-window: func [
 
 	sym: symbol/resolve type/symbol
 	case [
-		any [sym = window sym = panel] [
+		any [sym = window sym = panel sym = group-box sym = tab-panel] [
 			pane: as red-block! values + FACE_OBJ_PANE
 			if TYPE_OF(pane) = TYPE_BLOCK [
 				face: as red-object! block/rs-head pane
@@ -143,7 +144,7 @@ update-layered-window: func [
 				while [face < tail][
 					state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 					if TYPE_OF(state) = TYPE_BLOCK [
-						update-layered-window get-face-handle face hdwp offset winpos
+						update-layered-window get-face-handle face hdwp offset winpos showflag
 					]
 					face: face + 1
 				]
@@ -195,8 +196,11 @@ update-layered-window: func [
 					]
 				]
 			][
-				bool: as red-logic! values + FACE_OBJ_VISIBLE?
-				ShowWindow hWnd either bool/value [SW_SHOW][SW_HIDE]
+				if showflag = -1 [
+					bool: as red-logic! values + FACE_OBJ_VISIBLE?
+					showflag: either bool/value [SW_SHOW][SW_HIDE]
+				]
+				ShowWindow hWnd showflag
 			]
 		]
 		true [0]

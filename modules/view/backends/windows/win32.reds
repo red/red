@@ -58,6 +58,7 @@ Red/System [
 
 #define SW_HIDE				0
 #define SW_SHOW				5
+#define SW_SHOWDEFAULT		10
 
 #define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
@@ -171,8 +172,6 @@ Red/System [
 #define SIF_POS				0004h
 #define SIF_DISABLENOSCROLL	0008h
 #define SB_VERT				1
-#define SW_SHOW				5
-#define SW_SHOWDEFAULT		10
 
 #define BS_PUSHBUTTON		00000000h
 #define BS_DEFPUSHBUTTON	00000001h
