@@ -23,20 +23,20 @@ view [
 	group-box 3 [
 		style but: button 25 font [name: "Comic Sans MS" size: 12 color: blue]
 		
-		base red "ok" 25x25
+		base 0.233.1.177 "ok" 25x25
 		text "in panel"
 		but "A" but "B" but "C"
 		but "D" but "E"	but "F"
 	]
 	tab-panel [
-		"tab1" [at 50x50 button "one"]
+		"tab1" [at 10x10 base 0.2.233.188 15x15 at 50x50 button "one"]
 		"tab2" [at 80x10 text "two"]
 	]
 	
 	below
 	slider 5%
 	pad 10x0 bar: progress 50% 130
-	base 50x50 draw [fill-pen blue circle 25x25 15]
+	base 255.0.0.138 50x50 draw [fill-pen blue circle 25x25 15]
 	across
 	return
 	pad 0x-140

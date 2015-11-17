@@ -537,7 +537,7 @@ OS-show-window: func [
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
-		update-layered-window as handle! hWnd null null null
+		update-layered-window as handle! hWnd null null null -1
 	]
 	SetFocus as handle! hWnd
 ]
@@ -798,11 +798,6 @@ OS-make-view: func [
 			sym = drop-list
 		][
 			init-drop-list handle data caption selected sym = drop-list
-		]
-		sym = window [									;-- set main window's offset
-			GetWindowRect handle rc
-			offset/x: rc/top
-			offset/y: rc/left
 		]
 		true [0]
 	]

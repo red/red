@@ -155,6 +155,16 @@ set-tabs: func [
 	]
 ]
 
+show-tab: func [
+	hWnd [handle!]
+	flag [integer!]
+][
+	ShowWindow hWnd flag
+	unless win8+? [
+		update-layered-window hWnd null null null flag
+	]
+]
+
 set-tab: func [
 	facets [red-value!]
 	idx	   [integer!]
@@ -177,7 +187,7 @@ set-tab: func [
 			obj: as red-object! panels + idx
 			if TYPE_OF(obj) = TYPE_OBJECT [
 				hWnd: get-face-handle obj
-				ShowWindow hWnd SW_SHOW
+				show-tab hWnd SW_SHOW
 				BringWindowToTop hWnd
 			]
 		]
@@ -189,7 +199,7 @@ set-tab: func [
 		][
 			obj: as red-object! panels + old/value - 1
 			if TYPE_OF(obj) = TYPE_OBJECT [
-				ShowWindow get-face-handle obj SW_HIDE
+				show-tab get-face-handle obj SW_HIDE
 			]
 		]
 	]
