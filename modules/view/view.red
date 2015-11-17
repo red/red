@@ -199,8 +199,10 @@ face!: object [				;-- keep in sync with facet! enum
 				if block? old [clear head old]			;-- destroy old faces
 			]
 			if any [series? old object? old][modify old 'owned none]
-			if any [series? new object? new][modify new 'owned reduce [self word]]
 			
+			unless find [font para edge actors extra] word [
+				if any [series? new object? new][modify new 'owned reduce [self word]]
+			]
 			if word = 'font [link-sub-to-parent self 'font old new]
 			if word = 'para [link-sub-to-parent self 'para old new]
 
