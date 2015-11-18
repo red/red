@@ -139,7 +139,7 @@ update-font-faces: function [parent [block! none!]][
 check-all-reactions: function [face [object!]][
 	unless empty? pos: system/view/reactors [
 		while [pos: find pos face][							;@@ /skip 4 fails
-			do pos/3
+			do-safe pos/3
 			pos: skip pos 4
 		]
 	]
@@ -153,7 +153,7 @@ check-reactions: function [face [object!] facet [word!]][
 				pos/2 = facet
 			]
 		][
-			do pos/3
+			do-safe pos/3
 			pos: skip pos 4
 		]
 	]
@@ -354,7 +354,7 @@ system/view: context [
 		type: event/type
 		
 		foreach handler handlers [
-			set/any 'result do [handler face event]
+			set/any 'result do-safe [handler face event]
 			if :result [return :result]
 		]
 		
@@ -379,6 +379,14 @@ do-events: func [/no-wait][
 	system/view/platform/do-event-loop no-wait
 ]
 
+do-safe: func [code [block!] /local result][
+	if error? set/any 'result try/all code [
+		print :result
+		result: none
+	]
+	get/any 'result
+]
+
 do-actor: function [face [object!] event [event! none!] type [word!]][
 	if all [
 		object? face/actors
@@ -387,10 +395,7 @@ do-actor: function [face [object!] event [event! none!] type [word!]][
 	][
 		if system/view/debug? [print ["calling actor:" name]]
 		
-		if error? set/any 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO			
-			print :result
-			result: none
-		]
+		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
 	]
 	:result
 ]
@@ -428,7 +433,7 @@ show: function [
 				cause-error 'script 'not-linked []
 			]
 			if all [object? face/actors in face/actors 'on-create][
-				do [face/actors/on-create face none]
+				do-safe [face/actors/on-create face none]
 			]
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
@@ -621,10 +626,22 @@ insert-event-func [
 
 ;-- Reactors support handler --
 insert-event-func [
-	if all [
-		event/type = 'change
-		face/type = 'slider
-	][
-		check-reactions face 'data
+	if event/type = 'change [
+		facet: switch/default face/type [
+			slider		['data]
+			check		['data]
+			radio		['data]
+			tab-panel	['data]
+			field		['text]
+			area		['text]
+			text-list	['selected]
+		][none]
+		
+		if facet [check-reactions face facet]
+	]
+	all [
+		event/type = 'select
+		find [text-list drop-list drop-down] face/type
+		check-reactions face 'selected
 	]
 ]
