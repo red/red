@@ -3384,6 +3384,9 @@ system-dialect: make-profilable context [
 				append info either loader/relative-path? file [
 					join main-path file
 				][file]
+				unless exists? last info [
+					red/throw-error ["cannot find icon:" last info]
+				]
 			]
 			append/only res copy info
 		]

@@ -196,10 +196,10 @@ update-layered-window: func [
 					]
 				]
 			][
-				if showflag = -1 [
-					bool: as red-logic! values + FACE_OBJ_VISIBLE?
-					showflag: either bool/value [SW_SHOW][SW_HIDE]
-				]
+				bool: as red-logic! values + FACE_OBJ_VISIBLE?
+				either bool/value [
+					if showflag = -1 [showflag: SW_SHOWNA]
+				][showflag: SW_HIDE]
 				ShowWindow hWnd showflag
 			]
 		]
