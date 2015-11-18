@@ -375,7 +375,7 @@ system/view: context [
 #include %draw.red
 #include %VID.red
 
-do-events: func [/no-wait][
+do-events: func [/no-wait return: [logic!]][
 	system/view/platform/do-event-loop no-wait
 ]
 

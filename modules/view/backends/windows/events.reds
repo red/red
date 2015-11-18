@@ -784,11 +784,15 @@ process: func [
 
 do-events: func [
 	no-wait? [logic!]
+	return:  [logic!]
 	/local
 		msg	  [tagMSG]
 		state [integer!]
+		res	  [integer!]
+		msg?  [logic!]
 ][
 	msg: declare tagMSG
+	msg?: no
 
 	while [
 		either no-wait? [
@@ -797,12 +801,14 @@ do-events: func [
 			0 < GetMessage msg null 0 0
 		]
 	][
+		unless msg? [msg?: yes]
 		state: process msg
 		if state >= EVT_DISPATCH [
 			current-msg: msg
 			TranslateMessage msg
 			DispatchMessage msg
 		]
-		if no-wait? [exit]
+		if no-wait? [return msg?]
 	]
+	msg?
 ]

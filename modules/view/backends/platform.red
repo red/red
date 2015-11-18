@@ -448,9 +448,10 @@ system/view/platform: context [
 		gui/OS-do-draw image cmds
 	]
 
-	do-event-loop: routine [no-wait? [logic!]][
-		gui/do-events no-wait?
-		SET_RETURN(unset-value)
+	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
+		bool: as red-logic! stack/arguments
+		bool/header: TYPE_LOGIC
+		bool/value:  gui/do-events no-wait?
 	]
 	
 	init: has [svs][
