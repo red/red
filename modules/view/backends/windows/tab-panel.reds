@@ -161,6 +161,7 @@ show-tab: func [
 ][
 	ShowWindow hWnd flag
 	unless win8+? [
+		if flag = SW_SHOW [flag: SW_SHOWNA]
 		update-layered-window hWnd null null null flag
 	]
 ]

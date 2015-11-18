@@ -58,6 +58,7 @@ Red/System [
 
 #define SW_HIDE				0
 #define SW_SHOW				5
+#define SW_SHOWNA			8
 #define SW_SHOWDEFAULT		10
 
 #define COLOR_BACKGROUND	1
