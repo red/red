@@ -221,6 +221,7 @@ system/view/platform: context [
 			all-over:		symbol/make "all-over"
 			draggable:		symbol/make "draggable"
 			
+			_text:			word/load "text"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
 			_away:			word/load "away"

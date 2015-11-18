@@ -427,6 +427,7 @@ get-text: func [
 	/local
 		size	[integer!]
 		str		[red-string!]
+		face	[red-object!]
 		out		[c-string!]
 ][
 	size: as-integer either idx = -1 [
@@ -451,6 +452,12 @@ get-text: func [
 			SendMessage msg/hWnd CB_GETLBTEXT idx as-integer out
 		]
 		unicode/load-utf16 null size str
+		
+		face: push-face msg/hWnd
+		if TYPE_OF(face) = TYPE_OBJECT [
+			ownership/bind as red-value! str face _text
+		]
+		stack/pop 1
 	]
 ]
 

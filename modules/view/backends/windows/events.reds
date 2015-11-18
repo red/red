@@ -27,6 +27,20 @@ flags-blk/header:	TYPE_BLOCK
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
 
+push-face: func [
+	handle  [handle!]
+	return: [red-object!]
+	/local
+		face [red-object!]
+][
+	face: as red-object! stack/push*
+	face/header:		  GetWindowLong handle wc-offset
+	face/ctx:	 as node! GetWindowLong handle wc-offset + 4
+	face/class:			  GetWindowLong handle wc-offset + 8
+	face/on-set: as node! GetWindowLong handle wc-offset + 12
+	face
+]
+
 get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -37,16 +51,11 @@ get-event-face: func [
 ][
 	msg: as tagMSG evt/msg
 	handle: get-widget-handle msg
-	if handle = as handle! -1 [							;-- filter out unwanted events
-		return as red-value! none-value
+	as red-value! either handle = as handle! -1 [		;-- filter out unwanted events
+		none-value
+	][
+		push-face handle
 	]
-
-	face: as red-object! stack/push*
-	face/header:		  GetWindowLong handle wc-offset
-	face/ctx:	 as node! GetWindowLong handle wc-offset + 4
-	face/class:			  GetWindowLong handle wc-offset + 8
-	face/on-set: as node! GetWindowLong handle wc-offset + 12
-	as red-value! face
 ]
 
 get-event-offset: func [

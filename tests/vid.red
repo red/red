@@ -16,7 +16,7 @@ view [
 	button "China"
 	text "Red Language" 100 right
 	field 120 on-key [
-		if event/key = cr [probe do face/text] 	; clear face/text
+		if event/key = cr [probe do face/text clear face/text]
 	]
 	return
 	
