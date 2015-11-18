@@ -18,6 +18,13 @@ parser: context [
 	
 	#define PARSE_MAX_DEPTH		10'000
 	
+	#define PARSE_PUSH_INPUTPOS  [
+		in: as input! ALLOC_TAIL(rules)
+		in/header: TYPE_POINT
+		in/node:   input/node
+		;in/size:   einput/head
+	]
+	
 	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
 		p/header: TYPE_POINT
@@ -142,6 +149,13 @@ parser: context [
 		rule   [integer!]
 		input  [integer!]
 		sub    [integer!]
+	]
+	
+	input!: alias struct! [
+		header [integer!]
+		head   [integer!]
+		node   [node!]
+		pos	   [integer!]
 	]
 	
 	#if debug? = yes [
@@ -528,6 +542,7 @@ parser: context [
 			tail	[red-value!]
 			blk		[red-block!]
 			p		[positions!]
+			in		[input!]
 			node	[node!]
 			s		[series!]
 	][
@@ -539,9 +554,13 @@ parser: context [
 		while [value < tail][
 			if TYPE_OF(value) = TYPE_BLOCK [
 				blk: as red-block! value
-				if all [node = blk/node value + 1 < tail][
+				if all [node = blk/node rule/head = blk/head value + 1 < tail][
 					p: as positions! value - 1
-					if p/input = input/head [
+					in: as input! value - 2
+					if all [
+						p/input = input/head
+						in/node = input/node
+					][
 						PARSE_ERROR [TO_ERROR(script parse-infinite) rule]
 					]
 				]
@@ -657,6 +676,7 @@ parser: context [
 			w		 [red-word!]
 			t 		 [triple!]
 			p		 [positions!]
+			in		 [input!]
 			state	 [states!]
 			type	 [integer!]
 			sym		 [integer!]
@@ -701,10 +721,9 @@ parser: context [
 			
 			switch state [
 				ST_PUSH_BLOCK [
-					#if debug? = yes [check-infinite-loop input rules rule]
 					check-limits series rules
 					
-					none/make-in rules
+					#either debug? = yes [PARSE_PUSH_INPUTPOS][none/make-in rules]
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
 					if all [value <> null value <> rule][
@@ -714,6 +733,7 @@ parser: context [
 					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
 					
+					;#if debug? = yes [check-infinite-loop input rules rule]
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag
 					PARSE_TRACE(_push)
 					state: ST_NEXT_ACTION
@@ -1319,8 +1339,9 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/into [				;-- INTO
-							if TYPE_OF(input) <> TYPE_BLOCK [
-								PARSE_ERROR [TO_ERROR(script parse-series) input]
+							type: TYPE_OF(input)
+							unless ANY_BLOCK?(type) [
+								PARSE_ERROR [TO_ERROR(script parse-block) input]
 							]
 							value: cmd + 1
 							if value = tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_into]]
@@ -1334,7 +1355,7 @@ parser: context [
 							value: block/rs-head input
 							type: TYPE_OF(value)
 							either ANY_SERIES?(type) [
-								input: as red-series! block/rs-append series as red-value! block/rs-head input
+								input: as red-series! block/rs-append series value
 								min:  R_NONE
 								type: R_INTO
 								state: ST_PUSH_RULE

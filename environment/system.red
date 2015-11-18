@@ -125,7 +125,7 @@ system: context [
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
 				;parse-command:		"PARSE - command cannot be used as variable:" :arg1]
 				parse-invalid-ref:	["PARSE - get-word refers to a different series!" :arg1]
-				parse-series:		["PARSE - input must be a series:" :arg1]
+				parse-block:		["PARSE - input must be of any-block! type:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
 				parse-stack:		["PARSE - stack limit reached"]
