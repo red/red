@@ -102,7 +102,7 @@ system/view/VID: context [
 			
 			parse blk rule: [
 				any [
-					item: ahead [path! | lit-path! | get-path!] skip (
+					item: [path! | lit-path! | get-path!] (
 						if unset? get/any item: item/1 [
 							cause-error 'script 'no-value [item]
 						]
