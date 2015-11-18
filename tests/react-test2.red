@@ -5,12 +5,14 @@ Red [
 	Needs:	 'View
 ]
 
+to-integer: function [str [string!]][
+	either empty? str [0][to integer! str]
+]
+
 view [
 	below
-	A: field "0" right
-	B: field "0" right
-	panel [
-		text "Total:" 50
-		text "0" 20 react [face/text: form (to integer! A/text) + (to integer! B/text)]
-	]
+	A: field "0" right bold
+	B: field "0" right bold
+	
+	text "0" 75 right bold react [face/text: form (to-integer A/text) + (to-integer B/text)]
 ]
