@@ -643,9 +643,8 @@ system/lexer: context [
 			  ahead [integer-end | ws-no-count | end]
 			  (value: make-number s e type)
 			  opt [
-				#"x" (value2: 0x0 value2/x: value)
-				s: integer-number-rule
-				(value2/y: make-number s e type value: value2)
+				#"x" s: integer-number-rule
+				(value: as-pair value make-number s e type)
 			  ]
 		]
 
