@@ -383,7 +383,10 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
-		either block? panel/pane [append panel/pane list][panel/pane: list]
+		either block? panel/pane [append panel/pane list][
+			panel/pane: list
+			modify panel/pane 'owned none
+		]
 		
 		unless panel/size [
 			panel/size: either pane-size <> 0x0 [pane-size][200x200]

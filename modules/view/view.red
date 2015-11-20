@@ -195,8 +195,8 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
-				if type = 'tab-panel [link-tabs-to-parent self]	;-- needs to be before `clear old`
-				if block? old [clear head old]			;-- destroy old faces
+				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
+				if all [block? old not empty? old][clear head old]	;-- destroy old faces
 			]
 			if any [series? old object? old][modify old 'owned none]
 			
