@@ -1067,6 +1067,7 @@ update-z-order: func [
 		tail [red-object!]
 		type [red-word!]
 		blk	 [red-block!]
+		hWnd [handle!]
 		s	 [series!]
 		nb	 [integer!]
 		sub? [logic!]
@@ -1086,20 +1087,23 @@ update-z-order: func [
 
 	while [face < tail][
 		if TYPE_OF(face) = TYPE_OBJECT [
-			hdwp: DeferWindowPos
-				hdwp
-				get-face-handle face
-				as handle! 0							;-- HWND_TOP
-				0 0
-				0 0
-				SWP_NOSIZE or SWP_NOMOVE
-			
-			type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-			
-			if tab-panel = symbol/resolve type/symbol [
-				;-- ensures that panels are above the tab-panel
-				blk: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
-				if TYPE_OF(blk) = TYPE_BLOCK [update-z-order blk hdwp]
+			hWnd: face-handle? face
+			unless null? hWnd [
+				hdwp: DeferWindowPos
+					hdwp
+					hWnd
+					as handle! 0							;-- HWND_TOP
+					0 0
+					0 0
+					SWP_NOSIZE or SWP_NOMOVE
+				
+				type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+				
+				if tab-panel = symbol/resolve type/symbol [
+					;-- ensures that panels are above the tab-panel
+					blk: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
+					if TYPE_OF(blk) = TYPE_BLOCK [update-z-order blk hdwp]
+				]
 			]
 		]
 		face: face + 1
