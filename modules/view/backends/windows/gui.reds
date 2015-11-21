@@ -798,7 +798,7 @@ OS-make-view: func [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
 		]
-		sym = check [set-logic-state handle as red-logic! data yes]
+		sym = check [set-logic-state handle as red-logic! data no]
 		sym = radio [set-logic-state handle as red-logic! data no]
 		any [
 			sym = drop-down
