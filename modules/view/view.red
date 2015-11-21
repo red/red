@@ -497,7 +497,7 @@ view: function [
 	unless spec/offset [center-face spec]
 	show spec
 	
-	unless no-wait [do-events]
+	either no-wait [spec][do-events]
 ]
 
 center-face: function [
