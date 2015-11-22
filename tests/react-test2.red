@@ -14,5 +14,7 @@ view [
 	A: field "0" right bold
 	B: field "0" right bold
 	
-	text "0" 75 right bold react [face/text: form (to-integer A/text) + (to-integer B/text)]
+	text "0" 75 right bold react [
+		face/text: form (to-integer A/text) + (to-integer B/text)
+	]
 ]
