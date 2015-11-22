@@ -85,7 +85,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
-			check-reactions owner 'word
+			;check-reactions owner word
 		][
 			unless find [cleared removed taken] action [
 				if find [clear remove take] action [
