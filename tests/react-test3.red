@@ -8,8 +8,12 @@ Red [
 digit: charset "0123456789"
 
 view [
-	text "Number" right num: field "" return
+	text "Number" right num1: field "" return
+	text "Number" right num2: field "" return
 	text "Invalid input" font [color: red style: 'bold] react [
-		face/visible?: not parse num/text [any digit]
+		face/visible?: not all [
+			parse num1/text [any digit]
+			parse num2/text [any digit]
+		]
 	]
 ]
