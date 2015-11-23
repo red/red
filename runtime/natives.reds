@@ -426,6 +426,8 @@ natives: context [
 			arg	   [red-value!]
 			do-arg [red-value!]
 			str	   [red-string!]
+			out    [red-string!]
+			len	   [integer!]
 	][
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer

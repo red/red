@@ -1,5 +1,5 @@
 REBOL [
-  	Title:   "Red 'Extra' Tests"
+  	Title:   "Red 'Pre Extra' Tests"
 	Author:  "Peter W A Wood"
 	Version: 0.1.0
 	Tabs:	 4
@@ -14,15 +14,11 @@ REBOL [
 ===end-group===
 
 ===start-group=== "Red runtime tests"
-  	--run-test-file-quiet %source/runtime/tools-test.reds
   	--run-test-file-quiet %source/runtime/unicode-test.red
 ===end-group===
 
 ===start-group=== "Red Compiler tests"
-  	--run-script-quiet %source/compiler/print-test.r
-  	--run-script-quiet %source/compiler/regression-tests.r
-  	--run-script-quiet %source/compiler/run-time-error-test.r
-  	--run-script-quiet %source/compiler/compile-error-test.r
+  	
 ===end-group===
 
 ===start-group=== "Red Library tests"

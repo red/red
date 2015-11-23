@@ -289,6 +289,17 @@ Red [
 		hs-select-1: make hash! [aBc 1 abc 2 ABc 3]
 		--assert 1 = select hs-select-1 'abc
 		--assert 2 = select/case hs-select-1 'abc
+	
+	comment {
+	--test-- "series-select-21"
+		ss21-h: make hash! [1x2 0 3x4 1]
+		--assert 0 = select ss21-h 1x2
+	}	
+		
+	--test-- "series-select-22"
+		ss21-b: [1x2 0 3x4 1]
+		--assert 0 = select ss21-b 1x2
+		
 ===end-group===
 
 ===start-group=== "append"
@@ -711,6 +722,14 @@ Red [
 		--assert 3 = index? find/tail #{61626342} #"b"
 	--test-- "series-find-101"
 		--assert 4 = index? find/reverse tail #{42626342} #{42}
+		
+	--test-- "series-find-102"
+		--assert [3x4 1] = find [1x2 0 3x4 1] 3x4
+	comment {
+	--test-- "series-find-103"
+		--assert equal? make hash! [3x4 1] find make hash! [1x2 0 3x4 1] 3x4
+	}	
+		
 ===end-group===
 
 ===start-group=== "remove"
