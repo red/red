@@ -131,55 +131,6 @@ file: context [
 		]
 	]
 
-	to-local-path: func [
-		src		[red-file!]
-		out		[red-string!]
-		full?	[logic!]
-		/local
-			s	 [series!]
-			p	 [byte-ptr!]
-			end  [byte-ptr!]
-			unit [integer!]
-			c	 [integer!]
-			d	 [integer!]
-	][
-		s: GET_BUFFER(src)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (src/head << (log-b unit))
-		end: (as byte-ptr! s/tail)
-		s: GET_BUFFER(out)
-
-		;-- prescan for: /c/dir, convert it to c:/ on Windows
-		c: string/get-char p unit
-		either c = as-integer #"/" [
-			#if OS = 'Windows [
-				p: p + unit
-				if p < end [
-					c: string/get-char p unit
-					p: p + unit
-				]
-				if c <> as-integer #"/" [		;-- %/c
-					if p < end [d: string/get-char p unit]
-					either d = as-integer #"/" [
-						string/append-char s c
-						string/append-char s as-integer #":"
-					][
-						string/append-char s OS_DIR_SEP
-					]
-				]
-			]
-			string/append-char s OS_DIR_SEP
-		][
-			out
-		]
-
-		while [p: p + unit p < end][
-			c: string/get-char p unit
-			string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
-		]
-		out
-	]
-
 	;-- Actions --
 
 	make: func [

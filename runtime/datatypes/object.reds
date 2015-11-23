@@ -451,7 +451,6 @@ object: context [
 					part: part - 1
 				]
 			]
-			]
 			sym: sym + 1
 			value: value + 1
 		]
