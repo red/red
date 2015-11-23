@@ -520,7 +520,7 @@ image: context [
 			r: as-integer p/1
 			g: as-integer p/2
 			b: as-integer p/3
-			a: either TUPLE_SIZE(color) > 3 [as-integer p/4][255]
+			a: either TUPLE_SIZE?(color) > 3 [as-integer p/4][255]
 			set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1

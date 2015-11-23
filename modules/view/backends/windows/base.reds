@@ -354,7 +354,7 @@ transparent-base?: func [
 ][
 	either all [
 		TYPE_OF(color) = TYPE_TUPLE
-		any [TUPLE_SIZE(color) = 3 color/array1 >>> 24 = 255]
+		any [TUPLE_SIZE?(color) = 3 color/array1 >>> 24 = 255]
 	][false][true]
 ]
 

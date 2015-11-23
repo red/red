@@ -393,7 +393,7 @@ make-image: func [
 		]
 	][
 		a: color/array1
-		if TUPLE_SIZE(color) = 3 [a: a or FF000000h]
+		if TUPLE_SIZE?(color) = 3 [a: a or FF000000h]
 		a: a >> 16 and FFh or (a and FF00h) or (a and FFh << 16) or (a and FF000000h)
 		while [y < height][
 			x: 0
