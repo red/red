@@ -351,16 +351,17 @@ system/view: context [
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
 		]
-		type: event/type
 		
-		foreach handler handlers [
-			set/any 'result do-safe [handler face event]
-			if :result [return :result]
+		if face/type = 'window [
+			foreach handler handlers [
+				set/any 'result do-safe [handler face event]
+				if :result [return :result]
+			]
 		]
 		
-		set/any 'result do-actor face event type
+		set/any 'result do-actor face event event/type
 		
-		if all [type = 'close :result <> 'continue][
+		if all [event/type = 'close :result <> 'continue][
 			windows: head remove find system/view/screens/1/pane face
 			result: pick [stop done] tail? windows
 		]	
@@ -556,9 +557,10 @@ remove-event-func: function [
 ;-- Dragging face handler --
 insert-event-func [
 	if all [
-		block? face/options
-		drag-evt: face/options/drag-on
+		block? event/face/options
+		drag-evt: event/face/options/drag-on
 	][
+		face: event/face
 		type: event/type
 		either type = drag-evt [
 			either block? flags: face/flags [
@@ -614,12 +616,12 @@ insert-event-func [
 insert-event-func [
 	if all [
 		event/type = 'click
-		face/type = 'radio
+		event/face/type = 'radio
 	][
-		foreach f face/parent/pane [if f/type = 'radio [f/data: off show f]]
-		face/data: on
+		foreach f event/face/parent/pane [if f/type = 'radio [f/data: off show f]]
+		event/face/data: on
 		event/type: 'change
-		show face
+		show event/face
 	]
 	none
 ]
@@ -627,6 +629,7 @@ insert-event-func [
 ;-- Reactors support handler --
 insert-event-func [
 	if event/type = 'change [
+		face: event/face
 		facet: switch/default face/type [
 			slider		['data]
 			check		['data]
@@ -641,7 +644,8 @@ insert-event-func [
 	]
 	all [
 		event/type = 'select
-		find [text-list drop-list drop-down] face/type
-		check-reactions face 'selected
+		find [text-list drop-list drop-down] event/face/type
+		check-reactions event/face 'selected
 	]
+	none
 ]
