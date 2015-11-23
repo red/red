@@ -314,7 +314,7 @@ system/view/VID: context [
 				below	[direction: value]
 				title	[panel/text: fetch-argument string! spec: next spec]
 				space	[spacing: fetch-argument pair! spec: next spec]
-				origin	[cursor: fetch-argument pair! spec: next spec]
+				origin	[origin: cursor: fetch-argument pair! spec: next spec]
 				size	[panel/size: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
