@@ -919,7 +919,7 @@ red: context [
 			if spec/1 = /local [break]					;-- avoid processing local variable
 			if all [
 				block? value: spec/1
-				not find [integer! logic!] value/1 
+				not find [integer! logic! float!] value/1 
 			][
 				value/1: decorate-type either value/1 = 'any-type! ['value!][value/1]
 			]
@@ -1288,6 +1288,14 @@ red: context [
 		if frame? [emit-close-frame]
 	]
 	
+	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
+		all [
+			type: select spec return-def
+			find [integer! logic! float!] type/1
+			type
+		]
+	]
+	
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
 		emit [stack/reset]
 
@@ -1319,8 +1327,9 @@ red: context [
 				unless block? spec/2 [
 					insert/only next spec [red-value!]
 				]
-				either find [integer! logic!] spec/2/1 [
-					append/only output append to path! form get spec/2/1 'get
+				either find [integer! logic! float!] spec/2/1 [
+					type: either spec/2/1 = 'float! ['float][get spec/2/1]
+					append/only output append to path! form type 'get
 				][
 					emit reduce ['as spec/2/1]
 				]

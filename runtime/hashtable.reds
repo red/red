@@ -187,6 +187,7 @@ _hashtable: context [
 			TYPE_ISSUE
 			TYPE_POINT
 			TYPE_DATATYPE
+			TYPE_PAIR
 			TYPE_PERCENT
 			TYPE_TUPLE [true]
 			default    [false]
@@ -209,6 +210,7 @@ _hashtable: context [
 			TYPE_CHAR
 			TYPE_INTEGER [key/data2]
 			TYPE_FLOAT
+			TYPE_PAIR
 			TYPE_PERCENT [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
@@ -227,7 +229,7 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
 			]
 			TYPE_TUPLE [
-				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE(key)
+				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
