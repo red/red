@@ -34,7 +34,7 @@ Red/System [
 		--assert -1.0 = cos pi
 	
 	--test-- "float-ext-2"
-		--assertf~= 0.0 sin pi	1E-10
+		--assertf~= 0.0 sin pi 1E-12
 	
 	--test-- "float-ext-3"
 		--assert -1.0 = cos 3.14159265358979
