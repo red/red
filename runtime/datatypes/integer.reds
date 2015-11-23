@@ -94,6 +94,38 @@ integer: context [
 		s + c
 	]
 
+	do-math-op: func [
+		left		[integer!]
+		right		[integer!]
+		type		[math-op!]
+		return:		[integer!]
+	][
+		switch type [
+			OP_ADD [left + right]
+			OP_SUB [left - right]
+			OP_MUL [left * right]
+			OP_AND [left and right]
+			OP_OR  [left or right]
+			OP_XOR [left xor right]
+			OP_REM [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left % right
+				]
+			]
+			OP_DIV [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left / right
+				]
+			]
+		]
+	]
+
 	do-math: func [
 		type		[math-op!]
 		return:		[red-value!]
@@ -125,30 +157,7 @@ integer: context [
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: switch type [
-					OP_ADD [left/value + right/value]
-					OP_SUB [left/value - right/value]
-					OP_MUL [left/value * right/value]
-					OP_AND [left/value and right/value]
-					OP_OR  [left/value or right/value]
-					OP_XOR [left/value xor right/value]
-					OP_REM [
-						either zero? right/value [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							left/value % right/value
-						]
-					]
-					OP_DIV [
-						either zero? right/value [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							left/value / right/value
-						]
-					]
-				]
+				left/value: do-math-op left/value right/value type
 			]
 			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
 			TYPE_PAIR  [

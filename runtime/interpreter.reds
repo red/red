@@ -37,6 +37,9 @@ Red/System [
 					infix?: yes
 				]
 			]
+			if infix? [
+				if next + 1 = end [fire [TO_ERROR(script no-op-arg) next]]
+			]
 		]
 	]
 ]

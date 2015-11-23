@@ -76,7 +76,7 @@ tuple: context [
 			swap? [logic!]
 			float? [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
+		#if debug? = yes [if verbose > 0 [print-line "tuple/do-math"]]
 
 		left:  as red-tuple! stack/arguments
 		right: as red-tuple! left + 1
@@ -94,7 +94,7 @@ tuple: context [
 		switch TYPE_OF(right) [
 			TYPE_TUPLE [
 				tp2: (as byte-ptr! right) + 4
-				size2: TUPLE_SIZE(right)
+				size2: TUPLE_SIZE?(right)
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
@@ -112,23 +112,13 @@ tuple: context [
 		]
 
 		tp1: (as byte-ptr! left) + 4
-		size1: TUPLE_SIZE(left)
+		size1: TUPLE_SIZE?(left)
 		n: 0
 		either float? [
 			until [
 				n: n + 1
 				f1: integer/to-float as-integer tp1/n
-				f1: switch type [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_DIV
-					OP_REM [
-						if 0.0 = f2 [fire [TO_ERROR(math zero-divide)]]
-						either type = OP_DIV [f1 / f2][f1 % f2]
-					]
-					default [ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2) 0.0]
-				]
+				f1: float/do-math-op f1 f2 type
 				v1: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
@@ -136,7 +126,7 @@ tuple: context [
 			]
 		][
 			size: either size1 < size2 [
-				tp1/1: as byte! size2
+				SET_TUPLE_SIZE(left size2)
 				size2
 			][size1]
 			until [
@@ -145,26 +135,7 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: switch type [
-					OP_ADD [v1 + v]
-					OP_SUB [v1 - v]
-					OP_MUL [v1 * v]
-					OP_AND [v1 and v]
-					OP_OR  [v1 or v]
-					OP_XOR [v1 xor v]
-					OP_REM [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 % v]
-					]
-					OP_DIV [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 / v]
-					]
-				]
+				v1: integer/do-math-op v1 v type
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size
@@ -247,7 +218,7 @@ tuple: context [
 			tp/header: TYPE_UNSET
 		][
 			array: (as byte-ptr! tp) + 4
-			size: TUPLE_SIZE(tp)
+			size: TUPLE_SIZE?(tp)
 			n: 0
 			until [
 				n: n + 1
@@ -273,7 +244,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/form"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 		
 		n: 0
 		until [
@@ -352,8 +323,8 @@ tuple: context [
 		if TYPE_OF(tp2) <> TYPE_TUPLE [RETURN_COMPARE_OTHER]
 		p1: (as byte-ptr! tp1) + 4
 		p2: (as byte-ptr! tp2) + 4
-		sz1: TUPLE_SIZE(tp1)
-		sz2: TUPLE_SIZE(tp2)
+		sz1: TUPLE_SIZE?(tp1)
+		sz2: TUPLE_SIZE?(tp2)
 		sz: either sz1 > sz2 [sz1][sz2]
 
 		i: 0
@@ -415,7 +386,7 @@ tuple: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
-		TUPLE_SIZE(tp)
+		TUPLE_SIZE?(tp)
 	]
 
 	pick: func [
@@ -430,7 +401,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/pick"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -458,7 +429,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/poke"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -491,7 +462,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
 
 		tp: (as byte-ptr! tuple) + 4
-		size: TUPLE_SIZE(tuple)
+		size: TUPLE_SIZE?(tuple)
 		part: size
 		if OPTION?(part-arg) [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [

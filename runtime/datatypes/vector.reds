@@ -192,9 +192,10 @@ vector: context [
 				int/value: get-value-int as int-ptr! p unit
 				as red-value! int				
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				float: as red-float! stack/push*
-				float/header: TYPE_FLOAT
+				float/header: type
 				float/value: get-value-float p unit
 				as red-value! float
 			]
@@ -223,7 +224,8 @@ vector: context [
 					4 [int/value]
 				]
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				f: as red-float! value
 				either unit = 8 [
 					pf: as pointer! [float!] p
@@ -272,6 +274,7 @@ vector: context [
 			unit	[integer!]
 			pf		[pointer! [float!]]
 			pf32	[pointer! [float32!]]
+			fl		[float!]
 			formed	[c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/serialize"]]
@@ -303,16 +306,24 @@ vector: context [
 					part - 1
 				]
 			][
-				either vec/type = TYPE_FLOAT [
-					formed: either unit = 8 [
-						pf: as pointer! [float!] p
-						float/form-float pf/value float/FORM_FLOAT_64
-					][
-						pf32: as pointer! [float32!] p
-						float/form-float as-float pf32/value float/FORM_FLOAT_32
+				switch vec/type [
+					TYPE_INTEGER [
+						formed: integer/form-signed get-value-int as int-ptr! p unit
 					]
-				][
-					formed: integer/form-signed get-value-int as int-ptr! p unit
+					TYPE_FLOAT [
+						formed: either unit = 8 [
+							pf: as pointer! [float!] p
+							float/form-float pf/value float/FORM_FLOAT_64
+						][
+							pf32: as pointer! [float32!] p
+							float/form-float as-float pf32/value float/FORM_FLOAT_32
+						]
+					]
+					TYPE_PERCENT [
+						pf: as pointer! [float!] p
+						fl: pf/value * 100.0
+						formed: float/form-float fl float/FORM_PERCENT
+					]
 				]
 				string/concatenate-literal buffer formed
 				part: part - system/words/length? formed	;@@ optimize by removing length?
@@ -348,47 +359,24 @@ vector: context [
 			int		[red-integer!]
 			fl		[red-float!]
 	][
-		type: TYPE_OF(right)
-		if all [
-			type <> TYPE_INTEGER
-			type <> TYPE_FLOAT
-		][
-			fire [TO_ERROR(script invalid-type) datatype/push type]
-		]
-
 		s: GET_BUFFER(left)
 		unit: GET_UNIT(s)
 		len: rs-length? left
 		p: (as byte-ptr! s/offset) + (left/head << (log-b unit))
 		i: 0
-		either left/type = TYPE_FLOAT [
-			either type = TYPE_FLOAT [
-				fl: as red-float! right
-				f2: fl/value
-			][
+		type: TYPE_OF(right)
+
+		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
+			either type = TYPE_INTEGER [
 				int: as red-integer! right
 				f2: integer/to-float int/value
+			][
+				fl: as red-float! right
+				f2: fl/value
 			]
 			while [i < len][
 				f1: get-value-float p unit
-				f1: switch op [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_REM [f1 % f2]
-					OP_DIV [
-						either 0.0 = f2 [
-							fire [TO_ERROR(math zero-divide)]
-							0.0								;-- pass the compiler's type-checking
-						][
-							f1 / f2
-						]
-					]
-					default [
-						fire [TO_ERROR(script invalid-type) datatype/push left/type]
-						0.0
-					]
-				]
+				f1: float/do-math-op f1 f2 op
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -410,23 +398,7 @@ vector: context [
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
-				v1: switch op [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
+				v1: integer/do-math-op v1 v2 op
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -495,28 +467,11 @@ vector: context [
 
 		i: 0
 		p:  as byte-ptr! buffer/offset
-		either left/type = TYPE_FLOAT [
+		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
 			while [i < len1][
 				f1: get-value-float p1 unit1
 				f2: get-value-float p2 unit2
-				f1: switch type [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_REM [f1 % f2]
-					OP_DIV [
-						either 0.0 = f2 [
-							fire [TO_ERROR(math zero-divide)]
-							0.0								;-- pass the compiler's type-checking
-						][
-							f1 / f2
-						]
-					]
-					default [
-						fire [TO_ERROR(script invalid-type) datatype/push left/type]
-						0.0
-					]
-				]
+				f1: float/do-math-op f1 f2 type
 				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f1
@@ -533,23 +488,7 @@ vector: context [
 			while [i < len1][
 				v1: get-value-int as int-ptr! p1 unit1
 				v2: get-value-int as int-ptr! p2 unit2
-				v1: switch type [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
+				v1: integer/do-math-op v1 v2 type
 				switch unit [
 					1 [p/value: as-byte v1]
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
@@ -671,6 +610,7 @@ vector: context [
 							sym = words/integer!	[TYPE_INTEGER]
 							sym = words/char!		[TYPE_CHAR]
 							sym = words/float!		[TYPE_FLOAT]
+							sym = words/percent!	[TYPE_PERCENT]
 							true					[
 								fire [TO_ERROR(script bad-make-arg) proto spec]
 								0
@@ -710,7 +650,8 @@ vector: context [
 						unit:  switch type [
 							TYPE_CHAR
 							TYPE_INTEGER [size? integer!]
-							TYPE_FLOAT	 [size? float!]
+							TYPE_FLOAT
+							TYPE_PERCENT [size? float!]
 							default [
 								fire [TO_ERROR(script invalid-type) datatype/push type]
 								0
@@ -768,6 +709,7 @@ vector: context [
 			formed [c-string!]
 			s	   [series!]
 			unit   [integer!]
+			type   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/mold"]]
 		
@@ -776,16 +718,17 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		
+		type: vec/type
+
 		either any [
-			all [unit = 4 any [vec/type = TYPE_CHAR vec/type = TYPE_INTEGER]]
-			all [unit = 8 vec/type = TYPE_FLOAT]
+			all [unit = 4 any [type = TYPE_CHAR type = TYPE_INTEGER]]
+			all [unit = 8 any [type = TYPE_FLOAT type = TYPE_PERCENT]]
 		][
 			part: serialize vec buffer only? all? flat? arg part yes
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part - 1
 		][
-			string/concatenate-literal buffer switch vec/type [
+			string/concatenate-literal buffer switch type [
 				TYPE_CHAR		[part: part - 5 "char!"]
 				TYPE_INTEGER	[part: part - 8 "integer!"]
 				TYPE_FLOAT		[part: part - 6 "float!"]
@@ -881,14 +824,15 @@ vector: context [
 				if v1 = v2 [v1: len1 v2: len2]
 				SIGN_COMPARE_RESULT(v1 v2)
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				until [
 					f1: get-value-float p1 unit1
 					f2: get-value-float p2 unit2
 					p1: p1 + unit1
 					p2: p2 + unit2
 					any [
-						v1 <> v2
+						f1 <> f2
 						p2 >= end
 					]
 				]
