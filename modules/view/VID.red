@@ -276,7 +276,8 @@ system/view/VID: context [
 	
 	set 'layout function [
 		"Return a face with a pane built from a VID description"
-		spec [block!]
+		spec		[block!]	"Dialect block of styles, attributes, and layouts"
+		/tight					"Zero offset and origin"
 		/parent
 			panel	[object!]
 			divides [integer! none!]
@@ -286,11 +287,10 @@ system/view/VID: context [
 		local-styles: make block! 2
 		pane-size:	  0x0
 		direction: 	  'across
-		origin:		  10x10
-		spacing:	  10x10
 		max-sz:	  	  0
 		current:	  0
-		cursor:		  origin
+		
+		cursor:	origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
 			type: offset: size: text: color: image: font: para: data:

@@ -484,6 +484,7 @@ unview: function [
 view: function [
 	"Displays a window view from a layout block or from a window face"
 	spec [block! object!]	"Layout block or face object"
+	/tight					"Zero offset and origin"
 	/options
 		opts [block!]		"Optional features"
 	;/modal					"Display a modal window (pop-up)"
@@ -491,7 +492,7 @@ view: function [
 ][
 	unless system/view/screens [system/view/platform/init]
 	
-	if block? spec [spec: layout spec]
+	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
