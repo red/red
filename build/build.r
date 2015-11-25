@@ -9,6 +9,23 @@ REBOL [
 
 Windows?: system/version/4 = 3
 
+;-- Check Rebol SDK setup
+unless exists? %encap-paths.r [
+	write  %encap-paths.r read  %encap-paths.r.sample
+	print "--------------------------------------------------"
+	print "  Build setup Error!"
+	print ""
+	print "  Rebol SDK paths are not yet setup for building"
+	print ["  unable to find file: " to-local-file clean-path %encap-paths.r ]
+	print ""
+	print "  Created a new %encap-paths.r file..."
+	print "  Edit this file and change the paths to your system's configuration"
+	print "---------------------------------------------"
+	print ""
+	ask "to continue build (after you've edited file) ... ^/ press enter ..."
+	
+]
+
 ;-- Parameters
 encapper: 		%enpro
 bin:			%bin/
