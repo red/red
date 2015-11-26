@@ -43,7 +43,7 @@ pair: context [
 				y: x
 			]
 			default [
-				print-line "*** Math Error: unsupported right operand for pair operation"
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		
