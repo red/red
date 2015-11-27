@@ -100,6 +100,9 @@ pair: context [
 		/local
 			int	 [red-integer!]
 			int2 [red-integer!]
+			fl	 [red-float!]
+			x	 [integer!]
+			y	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
 
@@ -112,13 +115,25 @@ pair: context [
 				int: as red-integer! block/rs-head as red-block! spec
 				int2: int + 1
 				if any [
-					2 <> block/rs-length? as red-block! spec
-					TYPE_OF(int)  <> TYPE_INTEGER
-					TYPE_OF(int2) <> TYPE_INTEGER
+					2 > block/rs-length? as red-block! spec
+					all [TYPE_OF(int)  <> TYPE_INTEGER TYPE_OF(int)  <> TYPE_FLOAT]
+					all [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(int2) <> TYPE_FLOAT]
 				][
 					fire [TO_ERROR(syntax malconstruct) spec]
 				]
-				push int/value int2/value
+				x: either TYPE_OF(int) = TYPE_FLOAT [
+					fl: as red-float! int
+					float/to-integer fl/value
+				][
+					int/value
+				]
+				y: either TYPE_OF(int2) = TYPE_FLOAT [
+					fl: as red-float! int2
+					float/to-integer fl/value
+				][
+					int2/value
+				]	
+				push x y
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) spec]
