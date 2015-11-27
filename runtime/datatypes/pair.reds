@@ -43,7 +43,7 @@ pair: context [
 				y: x
 			]
 			default [
-				print-line "*** Math Error: unsupported right operand for pair operation"
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		
@@ -108,7 +108,7 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
-			default [
+			TYPE_BLOCK [
 				int: as red-integer! block/rs-head as red-block! spec
 				int2: int + 1
 				if any [
@@ -116,9 +116,13 @@ pair: context [
 					TYPE_OF(int)  <> TYPE_INTEGER
 					TYPE_OF(int2) <> TYPE_INTEGER
 				][
-					print-line "*** MAKE Error: pair expects a block with two integers"
+					fire [TO_ERROR(syntax malconstruct) spec]
 				]
 				push int/value int2/value
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) spec]
+				push 0 0
 			]
 		]
 	]
