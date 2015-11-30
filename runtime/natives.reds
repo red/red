@@ -528,7 +528,7 @@ natives: context [
 				interpreter/eval-path value null null yes no no case? <> -1
 			]
 			TYPE_OBJECT [
-				set-obj-many as red-object! w value
+				object/set-many as red-object! w value
 				stack/set-last value
 			]
 			TYPE_MAP [
@@ -1855,38 +1855,6 @@ natives: context [
 			(as byte-ptr! s/offset)
 				+ (series/head << (log-b GET_UNIT(s)))
 				< (as byte-ptr! s/tail)
-		]
-	]
-	
-	set-obj-many: func [
-		obj	  [red-object!]
-		value [red-value!]
-		/local
-			ctx		[red-context!]
-			blk		[red-block!]
-			values	[red-value!]
-			tail	[red-value!]
-			s		[series!]
-			i		[integer!]
-	][
-		ctx: GET_CTX(obj)
-		s: as series! ctx/values/value
-		values: s/offset
-		tail: s/tail
-		
-		either TYPE_OF(value) = TYPE_BLOCK [
-			blk: as red-block! value
-			i: 1
-			while [values < tail][
-				copy-cell (_series/pick as red-series! blk i null) values
-				values: values + 1
-				i: i + 1
-			]
-		][
-			while [values < tail][
-				copy-cell value values
-				values: values + 1
-			]
 		]
 	]
 	

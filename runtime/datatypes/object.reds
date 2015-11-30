@@ -119,6 +119,60 @@ object: context [
 		(as-integer s/tail - s/offset) >> 4
 	]
 	
+	set-many: func [
+		obj	  [red-object!]
+		value [red-value!]
+		/local
+			ctx		[red-context!]
+			blk		[red-block!]
+			obj2	[red-object!]
+			ctx2	[red-context!]
+			word	[red-word!]
+			values	[red-value!]
+			values2	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+			i		[integer!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		values: s/offset
+		tail: s/tail
+
+		switch TYPE_OF(value) [
+			TYPE_BLOCK [
+				blk: as red-block! value
+				i: 1
+				while [values < tail][
+					copy-cell (_series/pick as red-series! blk i null) values
+					values: values + 1
+					i: i + 1
+				]
+			]
+			TYPE_OBJECT [
+				obj2: as red-object! value
+				ctx2: GET_CTX(obj2)
+				values2: get-values obj2
+				
+				s: as series! ctx/symbols/value
+				word: as red-word! s/offset
+				
+				while [values < tail][
+					i: _context/find-word ctx2 word/symbol yes
+					if i > -1 [copy-cell values2 + i values]
+					word: word + 1
+					values: values + 1
+				]
+			]
+			default [
+				while [values < tail][
+					copy-cell value values
+					values: values + 1
+				]
+			]
+		]
+	]
+	
 	save-self-object: func [
 		obj		[red-object!]
 		return: [node!]
