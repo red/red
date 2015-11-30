@@ -920,8 +920,7 @@ string: context [
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
 		str/cache:	null
 		if TYPE_OF(spec) = TYPE_BLOCK [
-			insert str spec null no null no
-			str/head: 	0
+			insert str spec null no null yes
 		]
 		str
 	]
