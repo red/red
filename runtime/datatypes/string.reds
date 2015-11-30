@@ -909,6 +909,9 @@ string: context [
 				int: as red-integer! spec
 				size: int/value
 			]
+			TYPE_BLOCK [
+				size: 32 								;@@ should we do some analysis and predict required size?
+			]
 			default [--NOT_IMPLEMENTED--]
 		]
 		str: as red-string! stack/push*
@@ -916,6 +919,10 @@ string: context [
 		str/head: 	0
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
 		str/cache:	null
+		if TYPE_OF(spec) = TYPE_BLOCK [
+			insert str spec null no null no
+			str/head: 	0
+		]
 		str
 	]
 
