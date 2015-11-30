@@ -695,7 +695,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
+			flags: WS_SYSMENU or WS_CAPTION or WS_GROUP ;or WS_CLIPCHILDREN
 			if menu-bar? menu window [
 				id: as-integer build-menu menu CreateMenu
 			]
