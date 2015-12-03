@@ -1084,7 +1084,8 @@ natives: context [
 	][
 		set1:	  stack/arguments
 		skip-arg: set1 + skip
-		case?:	  as logic! cased + 1
+		cased:    cased + 1								;@@ woraround for issue #1481
+		case?:	  as logic! cased
 		
 		switch TYPE_OF(set1) [
 			TYPE_BLOCK   

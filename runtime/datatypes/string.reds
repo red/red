@@ -2195,6 +2195,7 @@ string: context [
 		if op = OP_INTERSECT  [check?: yes]
 		if op = OP_EXCLUDE	  [check?: yes invert?: yes]
 		if op = OP_DIFFERENCE [both?: yes check?: yes invert?: yes]
+		if op = OP_UNIQUE	  [case?: not case?]
 
 		ser1: as red-series! stack/arguments
 		ser2: ser1 + 1
