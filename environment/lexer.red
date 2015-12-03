@@ -314,9 +314,9 @@ system/lexer: context [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base base64-char slash-end
+			four half non-zero path-end base base64-char slash-end not-issue-char
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -372,12 +372,13 @@ system/lexer: context [
 				#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
 			]
 			cs/22: charset {[](){}":;}					;-- slash-end
+			cs/23: charset {/\,[](){}"%$@;}				;-- not-issue-char
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base64-char slash-end
+			four half non-zero path-end base64-char slash-end not-issue-char
 		] cs
 
 		byte: [
@@ -603,7 +604,8 @@ system/lexer: context [
 		]
 
 		issue-rule: [
-			#"#" (type: issue!) s: symbol-rule (
+			#"#" (type: issue!)
+			s: some [ahead [not-issue-char | ws-no-count | control-char] break | skip] e: (
 				if (index? s) = index? e [
 					cause-error 'syntax 'invalid [mold type trim/lines copy skip s -4]
 				]

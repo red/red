@@ -75,6 +75,7 @@ lexer: context [
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-issue-char: charset {/\,[](){}"%$@;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
@@ -223,7 +224,10 @@ lexer: context [
 		)
 	]
 	
-	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+	issue-rule: [
+		#"#" (type: issue!)
+		s: (stop: [not-issue-char | ws-no-count | control-char])	some UTF8-filtered-char e:
+	]
 	
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
