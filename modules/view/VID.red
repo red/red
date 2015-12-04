@@ -114,7 +114,7 @@ system/view/VID: context [
 							append system/view/reactors reduce [obj item/2 blk ctx]
 						]
 					)
-					| set-path!
+					| set-path! | any-string!
 					| into rule
 					| skip
 				]
