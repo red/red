@@ -160,7 +160,7 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  	compile: func [
+  compile: func [
   		src [file!]
   		/bin
   		/lib
@@ -247,6 +247,7 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
+    recycle
     either compile-ok? [
       exe
     ][
@@ -356,6 +357,7 @@ qt: make object! [
     clear output
     do call* exec output
     if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    recycle
     if all [
       source-file?
       not pgm
