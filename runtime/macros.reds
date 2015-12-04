@@ -366,6 +366,11 @@ Red/System [
 	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
 ]
 
+#define BS_TEST_BIT_ALT(ts bit) [
+	pos: ((as byte-ptr! ts) + 4) + (bit >> 3)
+	pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
+]
+
 #define BS_PROCESS_SET_VIRTUAL(bs bit) [
 	either not? [
 		if virtual-bit? bs bit [return 1]

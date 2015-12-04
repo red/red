@@ -678,7 +678,9 @@ parser: context [
 			p		 [positions!]
 			in		 [input!]
 			state	 [states!]
+			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
+			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
 			max		 [integer!]
@@ -1028,8 +1030,8 @@ parser: context [
 					]
 				]
 				ST_DO_ACTION [
-					type: TYPE_OF(value)				;-- value is used in this state instead of cmd
-					switch type [						;-- allows to enter the state with cmd or :cmd (if word!)
+					dt-type: TYPE_OF(value)				;-- value is used in this state instead of cmd
+					switch dt-type [					;-- allows to enter the state with cmd or :cmd (if word!)
 						TYPE_WORD 	[
 							if all [value <> cmd TYPE_OF(cmd) = TYPE_WORD][
 								PARSE_ERROR [TO_ERROR(script parse-rule) value]
@@ -1039,6 +1041,7 @@ parser: context [
 						TYPE_BLOCK 	[
 							state: ST_PUSH_BLOCK
 						]
+						TYPE_TYPESET
 						TYPE_DATATYPE [
 							type: TYPE_OF(input)
 							if any [					;TBD: replace with ANY_STRING?
@@ -1049,12 +1052,15 @@ parser: context [
 								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
 							]
 							PARSE_CHECK_INPUT_EMPTY?
-							dt: as red-datatype! value
-							either end? [
-								match?: false
-							][
+							either end? [match?: false][
+								dt: as red-datatype! value
 								value: block/rs-head input
-								match?: TYPE_OF(value) = dt/value
+								match?: either dt-type = TYPE_TYPESET [
+									type: TYPE_OF(value)
+									BS_TEST_BIT_ALT(dt type)
+								][
+									TYPE_OF(value) = dt/value
+								]
 								PARSE_TRACE(_match)
 							]
 							state: either match? [ST_NEXT_INPUT][ST_CHECK_PENDING]
@@ -1202,6 +1208,7 @@ parser: context [
 							TYPE_BLOCK	 [state: ST_PUSH_BLOCK]
 							TYPE_WORD	 [state: ST_WORD rule?: all [type <> R_COLLECT type <> R_KEEP]]
 							TYPE_DATATYPE
+							TYPE_TYPESET
 							TYPE_SET_WORD
 							TYPE_GET_WORD
 							TYPE_INTEGER [state: ST_DO_ACTION]
