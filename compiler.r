@@ -1754,7 +1754,11 @@ red: context [
 			join obj-stack either path [to path! path][name] ;-- account for current object stack
 		]
 		either path [
-			do reduce [to set-path! shadow-path obj] 	;-- set object in shadow tree
+			unless attempt [
+				do reduce [to set-path! shadow-path obj] ;-- set object in shadow tree
+			][
+				path: symbol							;-- undefined object path, so use ctx name
+			]
 		][
 			unless tail? next obj-stack [				;-- set object in shadow tree (if sub-object)
 				do reduce [to set-path! shadow-path obj]
@@ -2935,7 +2939,7 @@ red: context [
 		
 		;either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
-				emit-path path set? to logic! obj?
+				emit-path path set? to logic! any [obj? defer]
 				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
 			]
 		;][
