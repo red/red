@@ -1,4 +1,4 @@
-Red [
+fRed [
 	Title:	"Red PARSE test script"
 	Author:	"Nenad Rakocevic"
 	File:	%parse-test.reds
@@ -34,6 +34,11 @@ Red [
 	--test-- "blk-17"	--assert not parse	[a 123]		['a char!]
 	--test-- "blk-18"	--assert parse		[a 123]		[['a][integer!]]
 	--test-- "blk-19"	--assert not parse	[a 123]		['a [char!]]
+
+	--test-- "blk-19-1"	--assert parse		[123]		[number!]
+	--test-- "blk-19-2"	--assert not parse	[123]		[any-string!]
+	--test-- "blk-19-3"	--assert parse		[123]		[[number!]]
+	--test-- "blk-19-4"	--assert not parse	[123]		[[any-string!]]	
 	
 	--test-- "blk-20"
 		res: 0	
