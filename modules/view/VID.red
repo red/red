@@ -250,10 +250,11 @@ system/view/VID: context [
 
 		if font: opts/font [
 			foreach [field value] default-font [
-				unless font/:field [font/:field: value]
+				if none? font/:field [font/:field: value]
 			]
 		]
-		foreach facet words-of opts [if value: opts/:facet [face/:facet: value]]
+		set/some face opts
+		
 		if block? face/actors [face/actors: make object! face/actors]
 		
 		if all [not opts/size opts/text min-size: calc-size face][
