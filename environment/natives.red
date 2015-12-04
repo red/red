@@ -187,7 +187,7 @@ compose: make native! [[
 get: make native! [[
 		"Returns the value a word refers to"
 		word	[word! path!]
-		/any "If word has no value, return UNSET rather than causing an error"
+		/any  "If word has no value, return UNSET rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
 	] 
@@ -198,8 +198,10 @@ set: make native! [[
 		"Sets the value(s) one or more words refer to"
 		word	[any-word! block! object! path! map!] "Word, object, map or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
-		/any "Allow UNSET as a value rather than causing an error"
+		/any  "Allow UNSET as a value rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
+		/only "Block or object value argument is set as a single value"
+		/some "None values in a block or object value argument, are not set"
 		return: [any-type!]
 	]
 	#get-definition NAT_SET

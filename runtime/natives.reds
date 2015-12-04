@@ -508,15 +508,21 @@ natives: context [
 	]
 	
 	set*: func [
-		any?  [integer!]
-		case? [integer!]
+		any?   [integer!]
+		case?  [integer!]
+		_only? [integer!]
+		_some? [integer!]
 		/local
 			w	  [red-word!]
 			value [red-value!]
 			blk	  [red-block!]
+			only? [logic!]
+			some? [logic!]
 	][
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
+		only?: _only? <> -1
+		some?: _some? <> -1
 		
 		switch TYPE_OF(w) [
 			TYPE_PATH
@@ -528,16 +534,16 @@ natives: context [
 				interpreter/eval-path value null null yes no no case? <> -1
 			]
 			TYPE_OBJECT [
-				object/set-many as red-object! w value
+				object/set-many as red-object! w value only? some?
 				stack/set-last value
 			]
 			TYPE_MAP [
-				map/set-many as red-hash! w as red-block! value
+				map/set-many as red-hash! w as red-block! value only? some?
 				stack/set-last value
 			]
 			TYPE_BLOCK [
 				blk: as red-block! w
-				set-many blk value block/rs-length? blk
+				set-many blk value block/rs-length? blk only? some?
 				stack/set-last value
 			]
 			default [
@@ -1862,6 +1868,8 @@ natives: context [
 		words [red-block!]
 		value [red-value!]
 		size  [integer!]
+		only? [logic!]
+		some? [logic!]
 		/local
 			v		[red-value!]
 			blk		[red-block!]
@@ -1875,8 +1883,10 @@ natives: context [
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
-			v: either block? [_series/pick as red-series! blk i null][value]
-			_context/set (as red-word! _series/pick as red-series! words i null) v
+			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
+			unless all [some? TYPE_OF(v) = TYPE_NONE][
+				_context/set (as red-word! _series/pick as red-series! words i null) v
+			]
 			i: i + 1
 		]
 	]
@@ -1937,7 +1947,7 @@ natives: context [
 			][
 				set-many-string blk as red-string! series size
 			][
-				set-many blk as red-value! series size
+				set-many blk as red-value! series size no no
 			]
 		]
 		series/head: series/head + size

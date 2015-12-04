@@ -1792,7 +1792,7 @@ red: context [
 					emit-push-word name name
 					comp-literal/with value
 					
-					emit-native/with 'set [-1 -1]
+					emit-native/with 'set [-1 -1 -1 -1]
 					emit-close-frame
 				]
 				pc: skip pc 2
@@ -2731,7 +2731,7 @@ red: context [
 		emit [stack/pop 1]
 	]
 	
-	comp-set: has [name call case?][
+	comp-set: has [name call case? only? some?][
 		either lit-word? pc/1 [
 			name: to word! pc/1
 			either local-bound? pc/1 [
@@ -2748,11 +2748,13 @@ red: context [
 				]
 			]
 			call: pc/-1
-			case?: to logic! all [path? call find call 'case]
+			foreach [flag opt][case? case only? only some? some][
+				set flag pick [0 -1] to logic! all [path? call find call opt]
+			]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
-			emit-native/with 'set reduce [-1 pick [0 -1] case?]
+			emit-native/with 'set reduce [-1 case? only? some?]
 			emit-close-frame
 		]
 	]
@@ -3270,7 +3272,7 @@ red: context [
 		]
 		
 		either native [
-			emit-native/with 'set [-1 -1]			;@@ refinement not handled yet
+			emit-native/with 'set [-1 -1 -1 -1]			;@@ refinement not handled yet
 		][
 			either all [bound? ctx: select objects obj][
 				emit 'word/set-in

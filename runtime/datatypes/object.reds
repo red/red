@@ -122,6 +122,8 @@ object: context [
 	set-many: func [
 		obj	  [red-object!]
 		value [red-value!]
+		only? [logic!]
+		some? [logic!]
 		/local
 			ctx		[red-context!]
 			blk		[red-block!]
@@ -131,44 +133,48 @@ object: context [
 			values	[red-value!]
 			values2	[red-value!]
 			tail	[red-value!]
+			new		[red-value!]
 			s		[series!]
 			i		[integer!]
+			type	[integer!]
 	][
-		ctx: GET_CTX(obj)
-		s: as series! ctx/values/value
+		ctx:	GET_CTX(obj)
+		s:		as series! ctx/values/value
 		values: s/offset
-		tail: s/tail
+		tail:	s/tail
+		type:	TYPE_OF(value)
 
-		switch TYPE_OF(value) [
-			TYPE_BLOCK [
+		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
+			either type = TYPE_BLOCK [
 				blk: as red-block! value
 				i: 1
 				while [values < tail][
-					copy-cell (_series/pick as red-series! blk i null) values
+					new: _series/pick as red-series! blk i null
+					unless all [some? TYPE_OF(new) = TYPE_NONE][copy-cell new values]
 					values: values + 1
 					i: i + 1
 				]
-			]
-			TYPE_OBJECT [
+			][
 				obj2: as red-object! value
 				ctx2: GET_CTX(obj2)
 				values2: get-values obj2
 				
 				s: as series! ctx/symbols/value
 				word: as red-word! s/offset
-				
 				while [values < tail][
 					i: _context/find-word ctx2 word/symbol yes
-					if i > -1 [copy-cell values2 + i values]
+					if i > -1 [
+						new: values2 + i
+						unless all [some? TYPE_OF(new) = TYPE_NONE][copy-cell new values]
+					]
 					word: word + 1
 					values: values + 1
 				]
 			]
-			default [
-				while [values < tail][
-					copy-cell value values
-					values: values + 1
-				]
+		][
+			while [values < tail][
+				copy-cell value values
+				values: values + 1
 			]
 		]
 	]
