@@ -264,4 +264,73 @@ Red [
 
 ===end-group===
 
+===start-group=== "SET tests"
+
+	--test-- "set-1"
+		--assert 123 = set 'value 123
+		--assert value = 123
+		
+	--test-- "set-2"
+		--assert 456 = set [A B] 456
+		--assert a = 456
+		--assert b = 456
+		
+	--test-- "set-3"
+		--assert [7 8] = set [A B] [7 8]
+		--assert a = 7
+		--assert b = 8
+		
+	--test-- "set-4"
+		--assert [4 5] = set/only [A B] [4 5]
+		--assert a = [4 5]
+		--assert b = [4 5]
+		
+	--test-- "set-5"
+		--assert [4 #[none]] = set [A B] reduce [4 none]
+		--assert a = 4
+		--assert b = none
+		
+	--test-- "set-6"
+		b: 789
+		--assert [4 #[none]] = set/some [A B] reduce [4 none]
+		--assert a = 4
+		--assert b = 789
+
+	--test-- "set-7"
+		obj: object [a: 1 b: 2]
+		--assert [4 5] = set obj [4 5]
+		--assert obj/a = 4
+		--assert obj/b = 5
+
+	--test-- "set-8"
+		obj:  object [a: 3 b: 4]
+		obj2: object [z: 0 a: 6 b: 7 c: 9]
+		--assert obj2 = set obj obj2
+		--assert "make object! [a: 6 b: 7]" = mold/flat obj
+		--assert "make object! [z: 0 a: 6 b: 7 c: 9]" = mold/flat obj2
+		
+	--test-- "set-9"
+		obj:  object [a: 3 b: 4]
+		obj2: object [z: 0]
+		--assert obj2 = set/only obj obj2
+		--assert obj/a = obj2
+		--assert obj/b = obj2
+		
+	--test-- "set-10"
+		obj:  object [a: 3 b: 4]
+		obj2: object [z: 0 a: none b: 7]
+		--assert obj2 = set obj obj2
+		--assert "make object! [a: none b: 7]" = mold/flat obj
+		--assert "make object! [z: 0 a: none b: 7]" = mold/flat obj2
+
+	--test-- "set-11"
+		obj:  object [a: 3 b: 4]
+		obj2: object [z: 0 a: none b: 7]
+		--assert obj2 = set/some obj obj2
+		--assert "make object! [a: 3 b: 7]" = mold/flat obj
+		--assert "make object! [z: 0 a: none b: 7]" = mold/flat obj2
+		
+
+===end-group===
+
 ~~~end-file~~~
