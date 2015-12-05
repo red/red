@@ -377,9 +377,14 @@ get-flags: func [
 	until [
 		sym: symbol/resolve word/symbol
 		case [
-			sym = all-over [flags: flags or FACET_FLAGS_ALL_OVER]
-			;; add other flags here
-			true [fire [TO_ERROR(script invalid-arg) word]]
+			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
+			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
+			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
+			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
+			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
+			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
+			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
+			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
 		len: len - 1
@@ -570,6 +575,7 @@ OS-make-view: func [
 		para	  [red-object!]
 		flags	  [integer!]
 		ws-flags  [integer!]
+		bits	  [integer!]
 		sym		  [integer!]
 		size-x	  [integer!]
 		size-y	  [integer!]
@@ -681,8 +687,9 @@ OS-make-view: func [
 		sym = base [
 			class: #u16 "RedBase"
 			alpha?: transparent-base?
-						as red-tuple! values + FACE_OBJ_COLOR
-						as red-image! values + FACE_OBJ_IMAGE
+				as red-tuple! values + FACE_OBJ_COLOR
+				as red-image! values + FACE_OBJ_IMAGE
+			
 			if alpha? [
 				either win8+? [ws-flags: WS_EX_LAYERED][
 					ws-flags: WS_EX_LAYERED or WS_EX_TOOLWINDOW
@@ -695,8 +702,14 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_SYSMENU or WS_CAPTION or WS_GROUP ;or WS_CLIPCHILDREN
+			flags: WS_BORDER ;or WS_CLIPCHILDREN
+			bits: get-flags as red-block! values + FACE_OBJ_FLAGS
+			if bits and FACET_FLAGS_RESIZE <> 0 [flags: flags or WS_THICKFRAME]
+			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
+			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
+			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
 			if menu-bar? menu window [
+				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
 			]
 			rc: declare RECT_STRUCT
@@ -805,6 +818,10 @@ OS-make-view: func [
 			sym = drop-list
 		][
 			init-drop-list handle data caption selected sym = drop-list
+		]
+		sym = window [
+			if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
+			if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
 		]
 		true [0]
 	]

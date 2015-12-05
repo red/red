@@ -69,6 +69,13 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 				FACET_FLAGS_DRAGGABLE:	00000002h
+				
+				FACET_FLAGS_RESIZE:		04000000h
+				FACET_FLAGS_NO_BTNS:	08000000h
+				FACET_FLAGS_NO_MAX:		10000000h
+				FACET_FLAGS_NO_MIN:		20000000h
+				FACET_FLAGS_NO_TITLE:	40000000h
+				FACET_FLAGS_NO_BORDER:	80000000h
 			]
 			
 			#enum font-facet! [
@@ -220,6 +227,12 @@ system/view/platform: context [
 			
 			all-over:		symbol/make "all-over"
 			draggable:		symbol/make "draggable"
+			resize:			symbol/make "resize"
+			no-title:		symbol/make "no-title"
+			no-border:		symbol/make "no-border"
+			no-min:			symbol/make "no-min"
+			no-max:			symbol/make "no-max"
+			no-buttons:		symbol/make "no-buttons"
 			
 			_text:			word/load "text"
 			_control:		word/load "control"
