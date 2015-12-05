@@ -277,11 +277,13 @@ system/view/VID: context [
 	
 	set 'layout function [
 		"Return a face with a pane built from a VID description"
-		spec		[block!]	"Dialect block of styles, attributes, and layouts"
+		spec		  [block!]	"Dialect block of styles, attributes, and layouts"
 		/tight					"Zero offset and origin"
+		/options
+			user-opts [block!]	"Optional features in [name: value] format"
 		/parent
-			panel	[object!]
-			divides [integer! none!]
+			panel	  [object!]
+			divides   [integer! none!]
 		/local axis anti								;-- defined in a SET block
 	][
 		list:		  make block! 4
@@ -392,6 +394,8 @@ system/view/VID: context [
 		unless panel/size [
 			panel/size: either pane-size <> 0x0 [pane-size][200x200]
 		]
+		if options [set panel make object! user-opts]
+		
 		unless parent [process-reactors]
 		panel
 	]

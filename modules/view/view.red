@@ -486,7 +486,7 @@ view: function [
 	spec [block! object!]	"Layout block or face object"
 	/tight					"Zero offset and origin"
 	/options
-		opts [block!]		"Optional features"
+		opts [block!]		"Optional features in [name: value] format"
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
 ][
@@ -494,6 +494,7 @@ view: function [
 	
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
+	if options [set spec make object! opts]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
