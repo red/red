@@ -27,7 +27,7 @@ dbl-quote:	 #"^""
 
 pi: 3.141592653589793
 
-Rebol: false
+Rebol: false											;-- makes loading Rebol scripts easier
 
 ;-- warning: following typeset definitions are processed by the compiler, do not change them
 ;-- unless you know what you are doing!
