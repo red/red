@@ -487,6 +487,8 @@ view: function [
 	/tight					"Zero offset and origin"
 	/options
 		opts [block!]		"Optional features in [name: value] format"
+	/flags
+		flgs [block! word!]	"One or more window flags"
 	;/modal					"Display a modal window (pop-up)"
 	/no-wait				"Return immediately - do not wait"
 ][
@@ -495,6 +497,7 @@ view: function [
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set spec make object! opts]
+	if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
