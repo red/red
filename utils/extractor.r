@@ -41,6 +41,6 @@ context [
 	
 	data: none
 	
-	scalars: context [typeset!: block!]					;-- fake a convenient definition
-	scalars: make scalars copy skip load-cache %environment/scalars.red 2
+	set 'typeset! block!								;-- fake a convenient definition
+	scalars: make object! copy skip load-cache %environment/scalars.red 2
 ]
