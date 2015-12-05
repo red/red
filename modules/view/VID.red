@@ -145,6 +145,12 @@ system/view/VID: context [
 			size-text face
 		]
 	]
+	
+	pre-load: func [value][
+		if word? value [attempt [value: get value]]
+		if find [file! url!] type?/word value [value: load value]
+		value
+	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
 		unless obj/:facet [
@@ -160,13 +166,17 @@ system/view/VID: context [
 		]
 	]													;-- returns TRUE if added
 	
-	fetch-argument: function [expected [datatype!] spec [block!]][
+	fetch-argument: function [expected [datatype! typeset!] spec [block!]][
 		either expected = type: type? value: spec/1 [
 			value
 		][
 			if all [
 				type = word!
-				expected = type? value: get value 
+				value: get value
+				any [
+					all [datatype? expected expected = type? value]
+					all [typeset? expected find expected type? value]
+				]
 			][
 				return value
 			]
@@ -203,10 +213,7 @@ system/view/VID: context [
 				either all [word? value find/skip next system/view/evt-names value 2][
 					make-actor opts value spec/2 spec spec: next spec
 				][
-					if word? value [attempt [value: get value]]
-					if find [file! url!] type?/word value [value: load value]
-
-					opt?: switch/default type?/word value [
+					opt?: switch/default type?/word value: pre-load value [
 						pair!	 [unless opts/size  [opts/size:  value]]
 						tuple!	 [unless opts/color [opts/color: value]]
 						string!	 [unless opts/text  [opts/text:  value]]
@@ -286,12 +293,14 @@ system/view/VID: context [
 			divides   [integer! none!]
 		/local axis anti								;-- defined in a SET block
 	][
-		list:		  make block! 4
-		local-styles: make block! 2
-		pane-size:	  0x0
+		background!:  make typeset! [image! file! tuple! word!]
+		list:		  make block! 4						;-- panel's pane block
+		local-styles: make block! 2						;-- panel-local styles definitions
+		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
-		max-sz:	  	  0
-		current:	  0
+		max-sz:		  0									;-- maximum width/height of current column/row
+		current:	  0									;-- layout's cursor position
+		global?: 	  yes								;-- TRUE: panel options expected
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
 		
@@ -308,17 +317,32 @@ system/view/VID: context [
 		
 		unless panel [panel: make face! styles/window/template]
 		
-		while [not tail? spec][
+		
+		while [all [global? not tail? spec]][			;-- process wrapping panel options
+			switch/default spec/1 [
+				title	 [panel/text: fetch-argument string! spec: next spec]
+				size	 [panel/size: fetch-argument pair! spec: next spec]
+				backdrop [
+					value: pre-load fetch-argument background! spec: next spec
+					switch type?/word value [
+						tuple! [panel/color: value]
+						image! [panel/image: value]
+					]
+				]
+			][global?: no]
+			
+			if global? [spec: next spec]
+		]
+		
+		while [not tail? spec][							;-- process panel's content
 			value: spec/1
 			set [axis anti] pick [[x y][y x]] direction = 'across
 			
 			switch/default value [
 				across	[direction: value]				;@@ fix this
 				below	[direction: value]
-				title	[panel/text: fetch-argument string! spec: next spec]
 				space	[spacing: fetch-argument pair! spec: next spec]
 				origin	[origin: cursor: fetch-argument pair! spec: next spec]
-				size	[panel/size: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				do		[do-safe fetch-argument block! spec: next spec]
