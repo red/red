@@ -553,6 +553,7 @@ WndProc: func [
 		pos	   [integer!]
 		handle [handle!]
 		font   [red-object!]
+		draw   [red-block!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		rc	   [RECT_STRUCT]
@@ -645,6 +646,16 @@ WndProc: func [
 		]
 		WM_ERASEBKGND [
 			if paint-background hWnd as handle! wParam [return 1]
+		]
+		WM_PAINT [
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			if TYPE_OF(draw) = TYPE_BLOCK [
+				either zero? GetWindowLong hWnd wc-offset - 4 [
+					do-draw hWnd null draw no yes yes
+				][
+					bitblt-memory-dc hWnd no
+				]
+			]
 		]
 		WM_CTLCOLOREDIT
 		WM_CTLCOLORSTATIC 
