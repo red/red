@@ -303,17 +303,17 @@ init: func [
 		ver [red-tuple!]
 		int [red-integer!]
 ][
-	process-id: GetCurrentProcessId
-	hScreen: GetDC null
-	hInstance: GetModuleHandle 0
-	default-font: GetStockObject DEFAULT_GUI_FONT
+	process-id:		GetCurrentProcessId
+	hScreen:		GetDC null
+	hInstance:		GetModuleHandle 0
+	default-font:	GetStockObject DEFAULT_GUI_FONT
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: either all [
+	win8+?: all [
 		version-info/dwMajorVersion >= 6
 		version-info/dwMinorVersion >= 2
-	][yes][no]
+	]
 
 	ver: as red-tuple! #get system/view/platform/version
 
