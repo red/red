@@ -215,6 +215,8 @@ system/view/VID: context [
 		/tight					"Zero offset and origin"
 		/options
 			user-opts [block!]	"Optional features in [name: value] format"
+		/flags
+			flgs [block! word!]	"One or more window flags"
 		/parent
 			panel	  [object!]
 			divides   [integer! none!]
@@ -243,7 +245,6 @@ system/view/VID: context [
 		]
 		
 		unless panel [panel: make face! styles/window/template]
-		
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -346,6 +347,7 @@ system/view/VID: context [
 			panel/size: either pane-size <> 0x0 [pane-size][200x200]
 		]
 		if options [set panel make object! user-opts]
+		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
 		unless parent [process-reactors]
 		panel
