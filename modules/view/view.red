@@ -535,9 +535,9 @@ dump-face: function [
 		depth "Style:" face/type "Offset:" face/offset "Size:" face/size
 		"Text:" if face/text [mold/part face/text 20]
 	]
-	append depth tab
+	append depth "    "
 	if block? face/pane [foreach f face/pane [dump-face f]]
-	remove depth
+	remove/part depth 4
 	face
 ]
 
