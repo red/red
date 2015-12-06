@@ -17,16 +17,17 @@ render-base: func [
 	/local
 		values	[red-value!]
 		img		[red-image!]
-		type	[red-word!]
+		w		[red-word!]
 		rc		[RECT_STRUCT]
 		graphic	[integer!]
+		type	[integer!]
 		res		[logic!]
 ][
 	graphic: 0
 	res: paint-background hWnd hDC
 	
 	values: get-face-values hWnd
-	type: as red-word! values + FACE_OBJ_TYPE
+	w: as red-word! values + FACE_OBJ_TYPE
 	img: as red-image! values + FACE_OBJ_IMAGE
 
 	rc: declare RECT_STRUCT
@@ -41,7 +42,8 @@ render-base: func [
 		GdipDeleteGraphics graphic
 	]
 
-	if group-box <> symbol/resolve type/symbol [
+	type: symbol/resolve w/symbol
+	if all [group-box <> type window <> type] [
 		render-text values hDC rc
 	]
 	res
