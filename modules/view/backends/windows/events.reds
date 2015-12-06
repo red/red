@@ -243,12 +243,14 @@ make-event: func [
 	evt		[integer!]
 	return: [integer!]
 	/local
-		res	  [red-word!]
-		word  [red-word!]
-		sym	  [integer!]
-		state [integer!]
-		key	  [integer!]
-		char  [integer!]
+		res	   [red-word!]
+		word   [red-word!]
+		pair   [red-pair!]
+		sym	   [integer!]
+		state  [integer!]
+		lParam [integer!]
+		key	   [integer!]
+		char   [integer!]
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
@@ -259,6 +261,15 @@ make-event: func [
 	switch evt [
 		EVT_OVER [
 			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/lParam
+		]
+		EVT_MOVE
+		EVT_SIZE [
+			lParam: msg/lParam
+			sym: either evt = EVT_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
+			pair: as red-pair! get-facet msg sym
+			pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
+			pair/x: WIN32_LOWORD(lParam)
+			pair/y: WIN32_HIWORD(lParam)
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
@@ -540,6 +551,52 @@ bitblt-memory-dc: func [
 	EndPaint hWnd paint
 ]
 
+init-window: func [
+	handle [handle!]
+	lParam [integer!]
+	/local
+		cs		[tagCREATESTRUCT]
+		face	[red-object!]
+		values	[red-value!]
+		offset	[red-pair!]
+		size	[red-pair!]
+		bits	[integer!]
+		rc		[RECT_STRUCT]
+		win		[RECT_STRUCT]
+		client	[RECT_STRUCT]
+		pt		[tagPOINT]
+][
+	cs:		as tagCREATESTRUCT lParam
+	face:	as red-object! cs/lpParams
+	assert TYPE_OF(face) = TYPE_OBJECT
+	values: object/get-values as red-object! face
+	bits:	get-flags as red-block! values + FACE_OBJ_FLAGS
+	offset: as red-pair! values + FACE_OBJ_OFFSET
+	size:	as red-pair! values + FACE_OBJ_SIZE
+
+	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
+	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+
+	client: declare RECT_STRUCT
+	win:	declare RECT_STRUCT	
+	pt:		declare tagPOINT
+
+	GetClientRect handle client
+	GetWindowRect handle win
+
+	pt/x: win/left
+	pt/y: win/top
+	ScreenToClient handle pt
+	
+	SetWindowPos								;-- adjust window size/pos to account for edges
+		handle null
+		offset/x + pt/x
+		offset/y + pt/y
+		size/x + (win/right - win/left) - client/right
+		size/y + (win/bottom - win/top) - client/bottom
+		SWP_NOZORDER
+]
+
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -560,6 +617,7 @@ WndProc: func [
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
 		offset [red-pair!]
+		pair   [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 ][
@@ -571,23 +629,50 @@ WndProc: func [
 		WM_WINDOWPOSCHANGED [
 			unless win8+? [
 				winpos: as tagWINDOWPOS lParam
+				pt: declare tagPOINT
+				pt/x: winpos/x
+				pt/y: winpos/y
+				ScreenToClient hWnd pt
 				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
-				offset/x: winpos/x - offset/x
-				offset/y: winpos/y - offset/y
-				update-layered-window hWnd null offset winpos -1
-				offset/x: winpos/x
-				offset/y: winpos/y
-				return 0
+				pt/x: winpos/x - offset/x - pt/x
+				pt/y: winpos/y - offset/y - pt/y
+				update-layered-window hWnd null pt winpos -1
 			]
+		]
+		WM_MOVE [
+			current-msg/hWnd: hWnd
+			current-msg/lParam: lParam
+			make-event current-msg 0 EVT_MOVE
+		]
+		WM_SIZE [
+			current-msg/hWnd: hWnd
+			current-msg/lParam: lParam
+			make-event current-msg 0 EVT_SIZE
 		]
 		WM_MOVING
 		WM_SIZING [
 			current-msg/hWnd: hWnd
 			rc: as RECT_STRUCT lParam
-			current-msg/lParam: rc/top << 16 or rc/left
-			type: either msg = WM_MOVING [EVT_MOVING][EVT_SIZING]
+			type: either msg = WM_MOVING [
+				current-msg/lParam: rc/top << 16 or rc/left
+				EVT_MOVING
+			][
+				current-msg/lParam: (rc/bottom - rc/top) << 16 or (rc/right - rc/left)
+				EVT_SIZING
+			]
 			modal-loop-type: type						;-- save it for WM_EXITSIZEMOVE
 			make-event current-msg 0 type
+			
+			pair: as red-pair! stack/arguments
+			if TYPE_OF(pair) = TYPE_PAIR [
+				either msg = WM_MOVING [
+					rc/left: pair/x					;@@ convert to window size
+					rc/top:  pair/y
+				][
+					rc/right:  rc/left + pair/x		;@@ convert to window size
+					rc/bottom: rc/top + pair/y
+				]
+			]
 			return 1									;-- TRUE
 		]
 		WM_EXITSIZEMOVE [
@@ -701,6 +786,9 @@ WndProc: func [
 				menu-handle: as handle! lParam
 			]
 			return 0
+		]
+		WM_CREATE [
+			init-window hWnd lParam
 		]
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE

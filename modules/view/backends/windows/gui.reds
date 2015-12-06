@@ -583,8 +583,6 @@ OS-make-view: func [
 		handle	  [handle!]
 		hWnd	  [handle!]
 		p		  [ext-class!]
-		win		  [RECT_STRUCT]
-		client	  [RECT_STRUCT]
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
@@ -805,20 +803,6 @@ OS-make-view: func [
 			sym = drop-list
 		][
 			init-drop-list handle data caption selected sym = drop-list
-		]
-		sym = window [
-			if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
-			if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
-			
-			win: declare RECT_STRUCT					;-- adjust window's size to account for edges
-			client: declare RECT_STRUCT
-			GetClientRect handle client
-			GetWindowRect handle win
-			SetWindowPos
-				handle null 0 0
-				size/x + (client/left - win/left) + (win/right   - client/right)
-				size/y + (client/top  - win/top)  + (win/bottom  - client/bottom)
-				SWP_NOMOVE or SWP_NOZORDER
 		]
 		true [0]
 	]

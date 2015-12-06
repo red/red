@@ -199,6 +199,7 @@ Red/System [
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 
+#define WM_CREATE			0001h
 #define WM_NCCREATE			0081h
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
@@ -516,6 +517,21 @@ tagNMCUSTOMDRAWINFO: alias struct! [
 	dwItemSpec	[int-ptr!];this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
 	uItemState	[integer!]
 	lItemlParam [integer!]
+]
+
+tagCREATESTRUCT: alias struct! [
+	lpParams 	[int-ptr!]
+	hInstance	[handle!]
+	hMenu		[handle!]
+	hwndParent	[integer!]
+	cy			[integer!]
+	cx			[integer!]
+	y			[integer!]
+	x			[integer!]
+	style		[integer!]
+	lpszName	[byte-ptr!]
+	lpszClass	[byte-ptr!]
+	dwExStyle	[integer!]
 ]
 
 wndproc-cb!: alias function! [

@@ -102,7 +102,7 @@ render-text: func [
 update-layered-window: func [
 	hWnd		[handle!]
 	hdwp		[handle!]
-	offset		[red-pair!]
+	offset		[tagPOINT]
 	winpos		[tagWINDOWPOS]
 	showflag	[integer!]
 	/local
