@@ -325,6 +325,20 @@ modulo: func [
 
 eval-set-path: func [value1][]
 
+with: func [
+	"Binds context or multiple contexts to block and evaluate it"
+	contexts [object! block!]  "Context or block with multiple contexts"
+	body    [block!]          "Block to evaluate"
+][
+	do either block? contexts [
+		contexts: reduce contexts
+		forall contexts [ body: bind body contexts/1 ]
+		body
+	][
+		bind body contexts
+	]
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
