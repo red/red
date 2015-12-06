@@ -577,15 +577,14 @@ OS-make-view: func [
 		ws-flags  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
-		size-x	  [integer!]
-		size-y	  [integer!]
 		class	  [c-string!]
 		caption   [c-string!]
 		value	  [integer!]
 		handle	  [handle!]
 		hWnd	  [handle!]
 		p		  [ext-class!]
-		rc		  [RECT_STRUCT]
+		win		  [RECT_STRUCT]
+		client	  [RECT_STRUCT]
 		id		  [integer!]
 		vertical? [logic!]
 		panel?	  [logic!]
@@ -614,8 +613,6 @@ OS-make-view: func [
 	sym: 	  symbol/resolve type/symbol
 	panel?:	  no
 	alpha?:   yes
-	size-x:	  size/x
-	size-y:	  size/y
 
 	if show?/value [flags: flags or WS_VISIBLE]
 	if TYPE_OF(para) = TYPE_OBJECT [
@@ -641,8 +638,6 @@ OS-make-view: func [
 		][
 			class: #u16 "RedPanel"
 			init-panel values as handle! parent
-			size-x:	size/x
-			size-y:	size/y
 			panel?: yes
 		]
 		sym = tab-panel [
@@ -676,11 +671,11 @@ OS-make-view: func [
 		]
 		sym = progress [
 			class: #u16 "RedProgress"
-			if size-y > size-x [flags: flags or PBS_VERTICAL]
+			if size/y > size/x [flags: flags or PBS_VERTICAL]
 		]
 		sym = slider [
 			class: #u16 "RedSlider"
-			if size-y > size-x [
+			if size/y > size/x [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
 		]
@@ -712,14 +707,6 @@ OS-make-view: func [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
 			]
-			rc: declare RECT_STRUCT
-			rc/top:	   0
-			rc/left:   0
-			rc/right:  size/x
-			rc/bottom: size/y
-			AdjustWindowRectEx rc flags id <> 0 ws-flags ;-- account for edges
-			size-x: rc/right  - rc/left
-			size-y: rc/bottom - rc/top
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -749,8 +736,8 @@ OS-make-view: func [
 		flags
 		offset/x
 		offset/y
-		size-x
-		size-y
+		size/x
+		size/y
 		as int-ptr! parent
 		as handle! id
 		hInstance
@@ -822,6 +809,16 @@ OS-make-view: func [
 		sym = window [
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+			
+			win: declare RECT_STRUCT					;-- adjust window's size to account for edges
+			client: declare RECT_STRUCT
+			GetClientRect handle client
+			GetWindowRect handle win
+			SetWindowPos
+				handle null 0 0
+				size/x + (client/left - win/left) + (win/right   - client/right)
+				size/y + (client/top  - win/top)  + (win/bottom  - client/bottom)
+				SWP_NOMOVE or SWP_NOZORDER
 		]
 		true [0]
 	]
