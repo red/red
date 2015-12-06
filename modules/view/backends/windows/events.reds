@@ -245,10 +245,8 @@ make-event: func [
 	/local
 		res	   [red-word!]
 		word   [red-word!]
-		pair   [red-pair!]
 		sym	   [integer!]
 		state  [integer!]
-		lParam [integer!]
 		key	   [integer!]
 		char   [integer!]
 ][
@@ -261,15 +259,6 @@ make-event: func [
 	switch evt [
 		EVT_OVER [
 			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/lParam
-		]
-		EVT_MOVE
-		EVT_SIZE [
-			lParam: msg/lParam
-			sym: either evt = EVT_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
-			pair: as red-pair! get-facet msg sym
-			pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
-			pair/x: WIN32_LOWORD(lParam)
-			pair/y: WIN32_HIWORD(lParam)
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
@@ -639,15 +628,14 @@ WndProc: func [
 				update-layered-window hWnd null pt winpos -1
 			]
 		]
-		WM_MOVE [
-			current-msg/hWnd: hWnd
-			current-msg/lParam: lParam
-			make-event current-msg 0 EVT_MOVE
-		]
+		WM_MOVE
 		WM_SIZE [
+			type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
 			current-msg/hWnd: hWnd
-			current-msg/lParam: lParam
-			make-event current-msg 0 EVT_SIZE
+			pair: as red-pair! get-facet current-msg type
+			pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
+			pair/x: WIN32_LOWORD(lParam)
+			pair/y: WIN32_HIWORD(lParam)
 		]
 		WM_MOVING
 		WM_SIZING [
