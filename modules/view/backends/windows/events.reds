@@ -645,7 +645,10 @@ WndProc: func [
 			]
 		]
 		WM_ERASEBKGND [
-			if paint-background hWnd as handle! wParam [return 1]
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			unless TYPE_OF(draw) = TYPE_BLOCK [			;-- draw background in draw to avoid flickering
+				if paint-background hWnd as handle! wParam [return 1]
+			]
 		]
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
