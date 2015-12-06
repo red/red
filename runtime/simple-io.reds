@@ -1349,22 +1349,23 @@ simple-io: context [
 
 				either hr >= 0 [
 					if method = HTTP_POST [
-						bstr-u: SysAllocString #u16 "Content-Type"
-						bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
-						http/SetRequestHeader IH/ptr bstr-u bstr-m
-						SysFreeString bstr-m
-						SysFreeString bstr-u
-					]
-					if all [method = HTTP_POST header <> null][
-						s: GET_BUFFER(header)
-						value: s/offset + header/head
-						tail:  s/tail
+						either header <> null [
+							s: GET_BUFFER(header)
+							value: s/offset + header/head
+							tail:  s/tail
 
-						while [value < tail][
-							bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
-							value: value + 1
-							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
-							value: value + 1
+							while [value < tail][
+								bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+								value: value + 1
+								bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+								value: value + 1
+								http/SetRequestHeader IH/ptr bstr-u bstr-m
+								SysFreeString bstr-m
+								SysFreeString bstr-u
+							]
+						][
+							bstr-u: SysAllocString #u16 "Content-Type"
+							bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
 							http/SetRequestHeader IH/ptr bstr-u bstr-m
 							SysFreeString bstr-m
 							SysFreeString bstr-u
