@@ -621,10 +621,15 @@ WndProc: func [
 		WM_SIZING [
 			rc: as RECT_STRUCT lParam
 			type: either msg = WM_MOVING [
-				current-msg/lParam: rc/top << 16 or rc/left
+				pt: declare tagPOINT
+				pt/x: rc/left
+				pt/y: rc/top
+				ScreenToClient hWnd pt
+				current-msg/lParam: (rc/top - pt/y) << 16 or (rc/left - pt/x)
 				EVT_MOVING
 			][
-				current-msg/lParam: (rc/bottom - rc/top) << 16 or (rc/right - rc/left)
+				pt: delta-size hWnd
+				current-msg/lParam: (rc/bottom - rc/top - pt/y) << 16 or (rc/right - rc/left - pt/x)
 				EVT_SIZING
 			]
 			modal-loop-type: type						;-- save it for WM_EXITSIZEMOVE
