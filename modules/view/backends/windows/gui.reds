@@ -336,6 +336,40 @@ init: func [
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
+init-window: func [
+	handle [handle!]
+	offset	[red-pair!]
+	size	[red-pair!]
+	bits	[integer!]
+	/local
+		rc		[RECT_STRUCT]
+		win		[RECT_STRUCT]
+		client	[RECT_STRUCT]
+		pt		[tagPOINT]
+][
+	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
+	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+
+	client: declare RECT_STRUCT
+	win:	declare RECT_STRUCT	
+	pt:		declare tagPOINT
+
+	GetClientRect handle client
+	GetWindowRect handle win
+
+	pt/x: win/left
+	pt/y: win/top
+	ScreenToClient handle pt
+	
+	SetWindowPos								;-- adjust window size/pos to account for edges
+		handle null
+		offset/x + pt/x
+		offset/y + pt/y
+		size/x + (win/right - win/left) - client/right
+		size/y + (win/bottom - win/top) - client/bottom
+		SWP_NOZORDER
+]
+
 set-logic-state: func [
 	hWnd   [handle!]
 	state  [red-logic!]
@@ -612,7 +646,8 @@ OS-make-view: func [
 	panel?:	  no
 	alpha?:   yes
 
-	if show?/value [flags: flags or WS_VISIBLE]
+	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
+	
 	if TYPE_OF(para) = TYPE_OBJECT [
 		flags: flags or get-para-flags sym para
 	]
@@ -804,6 +839,7 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
+		sym = window [init-window handle offset size bits]
 		true [0]
 	]
 	

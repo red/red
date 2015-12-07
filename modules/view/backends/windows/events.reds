@@ -564,52 +564,6 @@ delta-size: func [
 	pt
 ]
 
-init-window: func [
-	handle [handle!]
-	lParam [integer!]
-	/local
-		cs		[tagCREATESTRUCT]
-		face	[red-object!]
-		values	[red-value!]
-		offset	[red-pair!]
-		size	[red-pair!]
-		bits	[integer!]
-		rc		[RECT_STRUCT]
-		win		[RECT_STRUCT]
-		client	[RECT_STRUCT]
-		pt		[tagPOINT]
-][
-	cs:		as tagCREATESTRUCT lParam
-	face:	as red-object! cs/lpParams
-	assert TYPE_OF(face) = TYPE_OBJECT
-	values: object/get-values as red-object! face
-	bits:	get-flags as red-block! values + FACE_OBJ_FLAGS
-	offset: as red-pair! values + FACE_OBJ_OFFSET
-	size:	as red-pair! values + FACE_OBJ_SIZE
-
-	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
-	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
-
-	client: declare RECT_STRUCT
-	win:	declare RECT_STRUCT	
-	pt:		declare tagPOINT
-
-	GetClientRect handle client
-	GetWindowRect handle win
-
-	pt/x: win/left
-	pt/y: win/top
-	ScreenToClient handle pt
-	
-	SetWindowPos								;-- adjust window size/pos to account for edges
-		handle null
-		offset/x + pt/x
-		offset/y + pt/y
-		size/x + (win/right - win/left) - client/right
-		size/y + (win/bottom - win/top) - client/bottom
-		SWP_NOZORDER
-]
-
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -654,12 +608,14 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
-			current-msg/hWnd: hWnd
-			pair: as red-pair! get-facet current-msg type
-			pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
-			pair/x: WIN32_LOWORD(lParam)
-			pair/y: WIN32_HIWORD(lParam)
+			if current-msg <> null [
+				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
+				current-msg/hWnd: hWnd
+				pair: as red-pair! get-facet current-msg type
+				pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
+				pair/x: WIN32_LOWORD(lParam)
+				pair/y: WIN32_HIWORD(lParam)
+			]
 		]
 		WM_MOVING
 		WM_SIZING [
@@ -808,9 +764,6 @@ WndProc: func [
 				menu-handle: as handle! lParam
 			]
 			return 0
-		]
-		WM_CREATE [
-			init-window hWnd lParam
 		]
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE
