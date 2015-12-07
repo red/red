@@ -540,6 +540,30 @@ bitblt-memory-dc: func [
 	EndPaint hWnd paint
 ]
 
+delta-size: func [
+	hWnd	[handle!]
+	return: [tagPOINT]
+	/local
+		win		[RECT_STRUCT]
+		client	[RECT_STRUCT]
+		pt		[tagPOINT]
+][
+	client: declare RECT_STRUCT
+	win:	declare RECT_STRUCT	
+	pt:		declare tagPOINT
+
+	GetClientRect hWnd client
+	GetWindowRect hWnd win
+
+	pt/x: win/left
+	pt/y: win/top
+	ScreenToClient hWnd pt
+
+	pt/x: (win/right - win/left) - client/right
+	pt/y: (win/bottom - win/top) - client/bottom
+	pt
+]
+
 init-window: func [
 	handle [handle!]
 	lParam [integer!]
@@ -639,7 +663,6 @@ WndProc: func [
 		]
 		WM_MOVING
 		WM_SIZING [
-			current-msg/hWnd: hWnd
 			rc: as RECT_STRUCT lParam
 			type: either msg = WM_MOVING [
 				current-msg/lParam: rc/top << 16 or rc/left
@@ -649,16 +672,24 @@ WndProc: func [
 				EVT_SIZING
 			]
 			modal-loop-type: type						;-- save it for WM_EXITSIZEMOVE
+			current-msg/hWnd: hWnd
 			make-event current-msg 0 type
 			
 			pair: as red-pair! stack/arguments
 			if TYPE_OF(pair) = TYPE_PAIR [
 				either msg = WM_MOVING [
-					rc/left: pair/x					;@@ convert to window size
-					rc/top:  pair/y
+					pt: declare tagPOINT
+					pt/x: rc/left
+					pt/y: rc/top
+					ScreenToClient hWnd pt
+					rc/left:   pair/x	 + pt/x
+					rc/top:	   pair/y	 + pt/y
+					rc/right:  rc/right	 + pt/x
+					rc/bottom: rc/bottom + pt/y
 				][
-					rc/right:  rc/left + pair/x		;@@ convert to window size
-					rc/bottom: rc/top + pair/y
+					pt: delta-size hWnd
+					rc/right:  rc/left + pair/x + pt/x
+					rc/bottom: rc/top + pair/y + pt/y
 				]
 			]
 			return 1									;-- TRUE
