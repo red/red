@@ -540,6 +540,21 @@ bitblt-memory-dc: func [
 	EndPaint hWnd paint
 ]
 
+screen-to-client: func [
+	hWnd	[handle!]
+	x		[integer!]
+	y		[integer!]
+	return: [tagPOINT]
+	/local
+		pt	[tagPOINT]
+][
+	pt: declare tagPOINT
+	pt/x: x
+	pt/y: y
+	ScreenToClient hWnd pt
+	pt
+]
+
 delta-size: func [
 	hWnd	[handle!]
 	return: [tagPOINT]
@@ -550,15 +565,11 @@ delta-size: func [
 ][
 	client: declare RECT_STRUCT
 	win:	declare RECT_STRUCT	
-	pt:		declare tagPOINT
 
 	GetClientRect hWnd client
 	GetWindowRect hWnd win
-
-	pt/x: win/left
-	pt/y: win/top
-	ScreenToClient hWnd pt
-
+	
+	pt: screen-to-client hWnd win/left win/top
 	pt/x: (win/right - win/left) - client/right
 	pt/y: (win/bottom - win/top) - client/bottom
 	pt
@@ -596,10 +607,7 @@ WndProc: func [
 		WM_WINDOWPOSCHANGED [
 			unless win8+? [
 				winpos: as tagWINDOWPOS lParam
-				pt: declare tagPOINT
-				pt/x: winpos/x
-				pt/y: winpos/y
-				ScreenToClient hWnd pt
+				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
 				pt/x: winpos/x - offset/x - pt/x
 				pt/y: winpos/y - offset/y - pt/y
@@ -621,10 +629,7 @@ WndProc: func [
 		WM_SIZING [
 			rc: as RECT_STRUCT lParam
 			type: either msg = WM_MOVING [
-				pt: declare tagPOINT
-				pt/x: rc/left
-				pt/y: rc/top
-				ScreenToClient hWnd pt
+				pt: screen-to-client hWnd rc/left rc/top
 				current-msg/lParam: (rc/top - pt/y) << 16 or (rc/left - pt/x)
 				EVT_MOVING
 			][
@@ -639,10 +644,7 @@ WndProc: func [
 			pair: as red-pair! stack/arguments
 			if TYPE_OF(pair) = TYPE_PAIR [
 				either msg = WM_MOVING [
-					pt: declare tagPOINT
-					pt/x: rc/left
-					pt/y: rc/top
-					ScreenToClient hWnd pt
+					pt: screen-to-client hWnd rc/left rc/top
 					rc/left:   pair/x	 + pt/x
 					rc/top:	   pair/y	 + pt/y
 					rc/right:  rc/right	 + pt/x
@@ -675,10 +677,7 @@ WndProc: func [
 			if type <> 0 [
 				gi: get-gesture-info lParam
 				pos: gi/ptsLocation
-				pt: declare tagPOINT
-				pt/x: WIN32_LOWORD(pos)
-				pt/y: WIN32_HIWORD(pos)
-				ScreenToClient hWnd pt
+				pt: screen-to-client hWnd WIN32_LOWORD(pos) WIN32_HIWORD(pos)
 				handle: get-child-from-xy hWnd pt/x pt/y
 				
 				current-msg/hWnd: handle

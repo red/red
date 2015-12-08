@@ -352,14 +352,10 @@ init-window: func [
 
 	client: declare RECT_STRUCT
 	win:	declare RECT_STRUCT	
-	pt:		declare tagPOINT
 
 	GetClientRect handle client
 	GetWindowRect handle win
-
-	pt/x: win/left
-	pt/y: win/top
-	ScreenToClient handle pt
+	pt: screen-to-client handle win/left win/top
 	
 	SetWindowPos								;-- adjust window size/pos to account for edges
 		handle null
