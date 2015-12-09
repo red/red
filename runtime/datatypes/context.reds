@@ -86,6 +86,7 @@ _context: context [
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: sym
+		s: as series! ctx/symbols/value
 
 		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
 			find-word ctx sym yes
