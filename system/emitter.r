@@ -344,9 +344,11 @@ emitter: make-profilable context [
 					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				]
 			]
-			if all [new-global? spec compiler/job/PIC? not libc-init?][
+			if all [compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
-				target/emit-store saved value n-spec	;-- store it in pointer variable
+				if new-global? spec [
+					target/emit-store saved value n-spec ;-- store it in pointer variable
+				]
 			]
 			if n-spec [spec: n-spec]
 		][

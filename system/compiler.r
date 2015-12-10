@@ -3272,6 +3272,8 @@ system-dialect: make-profilable context [
 	comp-start: has [script][
 		emitter/libc-init?: yes
 		emitter/start-prolog
+		;emitter/target/on-init							;@@ required?
+		
 		script:	either encap? [
 			set-cache-base %system/runtime/
 			%start.reds
