@@ -1002,10 +1002,13 @@ object: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			word	[red-word!]
-			ctx		[red-context!]
-			old		[red-value!]
-			on-set? [logic!]
+			word	 [red-word!]
+			ctx		 [red-context!]
+			old		 [red-value!]
+			res		 [red-value!]
+			save-ctx [node!]
+			save-idx [integer!]
+			on-set?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
@@ -1015,6 +1018,8 @@ object: context [
 		ctx: GET_CTX(parent)
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
+			save-idx: word/index
+			save-ctx: word/ctx
 			word/index: _context/find-word ctx word/symbol yes
 			if word/index = -1 [
 				fire [TO_ERROR(script invalid-path) path element]
@@ -1023,7 +1028,7 @@ object: context [
 		]
 		on-set?: parent/on-set <> null
 		
-		either value <> null [
+		res: either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx
 			if on-set? [fire-on-set parent as red-word! element old value]
@@ -1035,6 +1040,9 @@ object: context [
 			]
 			_context/get-in word ctx
 		]
+		word/index: save-idx
+		word/ctx: save-ctx
+		res
 	]
 	
 	compare: func [
