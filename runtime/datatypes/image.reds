@@ -32,7 +32,7 @@ image: context [
 	;-- ]
 	;--------------------------------------------
 	#switch OS [
-		Windows  [#include %image-gdiplus.reds]
+		Windows  [#include %../../modules/view/backends/windows/image-gdiplus.reds]
 		Syllable []
 		MacOSX   []
 		Android  []
