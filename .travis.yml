@@ -31,7 +31,7 @@ before_install:
 install:
     # 32b "multiarch" libraries are necessary to run 32b binaries on the 64b
     # Travis VM.
-    - sudo apt-get install -y libc6:i386
+    - sudo apt-get install -y libc6:i386 libcurl3:i386
     # Rebol 2 is necessary for building Red.
     - wget http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz
     - tar xvfz rebol-core-278-4-2.tar.gz -C /tmp
