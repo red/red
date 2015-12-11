@@ -53,7 +53,18 @@ Red/System [
 			cmds/head: (as-integer cmd - base) >> 4
 			fire [TO_ERROR(script invalid-draw) cmds]
 		]
-		
+
+		get-color-int: func [
+			tp		[red-tuple!]
+			return: [integer!]
+			/local
+				color [integer!]
+		][
+			color: tp/array1
+			if TUPLE_SIZE?(tp) = 3 [color: color or FF000000h]
+			color
+		]
+
 		draw-line: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -125,7 +136,7 @@ Red/System [
 				]
 				default [throw-draw-error cmds cmd]
 			]
-			OS-draw-pen DC color/array1
+			OS-draw-pen DC get-color-int color
 			pos
 		]
 		
@@ -147,7 +158,7 @@ Red/System [
 			off?: no
 
 			switch TYPE_OF(pos) [
-				TYPE_TUPLE [color: as red-tuple! pos value: color/array1]
+				TYPE_TUPLE [value: get-color-int as red-tuple! pos]
 				;TYPE_IMAGE [img: as red-image! pos]
 				TYPE_WORD  [
 					w: as red-word! pos
@@ -159,7 +170,7 @@ Red/System [
 						if TYPE_OF(color) <> TYPE_TUPLE [
 							throw-draw-error cmds cmd
 						]
-						value: color/array1
+						value: get-color-int color
 					]
 				]
 				default [throw-draw-error cmds cmd]

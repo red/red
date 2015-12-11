@@ -1844,10 +1844,15 @@ natives: context [
 		/local
 			s	 [series!]
 			type [integer!]
+			img  [red-image!]
 	][
-		s: GET_BUFFER(series)
 	
 		type: TYPE_OF(series)
+		if type = TYPE_IMAGE [
+			img: as red-image! series
+			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > img/head
+		]
+		s: GET_BUFFER(series)
 		either any [									;@@ replace with any-block?
 			type = TYPE_BLOCK
 			type = TYPE_PAREN
@@ -1905,7 +1910,22 @@ natives: context [
 			i: i + 1
 		]
 	]
-	
+
+	set-many-image: func [
+		words	[red-block!]
+		img		[red-image!]
+		size	[integer!]
+		/local
+			v [red-value!]
+			i [integer!]
+	][
+		i: 1
+		while [i <= size][
+			_context/set (as red-word! _series/pick as red-series! words i null) image/pick img i null
+			i: i + 1
+		]
+	]
+
 	foreach-next-block: func [
 		size	[integer!]								;-- number of words in the block
 		return: [logic!]
@@ -1933,21 +1953,26 @@ natives: context [
 			type = TYPE_VECTOR
 			type = TYPE_BINARY
 			type = TYPE_MAP
+			type = TYPE_IMAGE
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
 		result: loop? series
 		if result [
-			either any [
-				type = TYPE_STRING
-				type = TYPE_FILE
-				type = TYPE_URL
-				type = TYPE_VECTOR
-				type = TYPE_BINARY
-			][
-				set-many-string blk as red-string! series size
-			][
-				set-many blk as red-value! series size no no
+			switch type [
+				TYPE_STRING
+				TYPE_FILE
+				TYPE_URL
+				TYPE_VECTOR
+				TYPE_BINARY [
+					set-many-string blk as red-string! series size
+				]
+				TYPE_IMAGE [
+					set-many-image blk as red-image! series size
+				]
+				default [
+					set-many blk as red-value! series size no no
+				]
 			]
 		]
 		series/head: series/head + size
@@ -1978,6 +2003,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_VECTOR
 			TYPE_OF(series) = TYPE_BINARY
 			TYPE_OF(series) = TYPE_MAP
+			TYPE_OF(series) = TYPE_IMAGE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		

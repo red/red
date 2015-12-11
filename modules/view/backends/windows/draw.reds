@@ -26,6 +26,7 @@ modes: declare struct! [
 	gp-brush		[integer!]								;-- gdiplus brush
 	gp-font			[integer!]								;-- gdiplus font
 	gp-font-brush	[integer!]
+	brush?			[logic!]
 	on-image?		[logic!]								;-- drawing on image?
 ]
 
@@ -83,7 +84,7 @@ update-gdiplus-modes: func [
 		GdipDeleteBrush modes/gp-brush
 		modes/gp-brush: 0
 	]
-	if modes/brush-color <> -1 [
+	if modes/brush? [
 		GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
 		modes/gp-brush: handle
 	]
@@ -100,7 +101,7 @@ update-pen: func [
 	mode: 0
 	unless null? modes/pen [DeleteObject modes/pen]
 	either type < PEN_LINE_CAP [
-		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color and 00FFFFFFh
 	][
 		if modes/pen-join <> -1 [
 			style: modes/pen-join
@@ -123,7 +124,7 @@ update-pen: func [
 		]
 		brush: declare tagLOGBRUSH
 		brush/lbStyle: BS_SOLID
-		brush/lbColor: modes/pen-color
+		brush/lbColor: modes/pen-color and 00FFFFFFh
 		modes/pen: ExtCreatePen
 			PS_GEOMETRIC or modes/pen-style or mode
 			modes/pen-width
@@ -150,10 +151,10 @@ update-modes: func [
 		update-pen dc type
 
 		unless null? modes/brush [DeleteObject modes/brush]
-		modes/brush: either modes/brush-color = -1 [
-			GetStockObject NULL_BRUSH
+		modes/brush: either modes/brush? [
+			CreateSolidBrush modes/brush-color and 00FFFFFFh
 		][
-			CreateSolidBrush modes/brush-color
+			GetStockObject NULL_BRUSH
 		]
 		SelectObject dc modes/brush
 	]
@@ -188,6 +189,7 @@ draw-begin: func [
 	modes/gp-font:		0
 	modes/gp-font-brush: 0
 	modes/on-image?:	no
+	modes/brush?:		no
 	anti-alias?:		no
 	dc:					null
 
@@ -285,7 +287,6 @@ to-gdiplus-color: func [
 	green: color and 0000FF00h
 	blue: color >> 16 and FFh
 	alpha: color and FF000000h
-	if zero? alpha [alpha: FF000000h]
 	red or green or blue or alpha
 ]
 
@@ -354,7 +355,7 @@ OS-draw-fill-pen: func [
 	color [integer!]									;-- 00bbggrr format
 	off?  [logic!]
 ][
-	color: either off? [-1][color]
+	modes/brush?: not off?
 	if modes/brush-color <> color [
 		modes/brush-color: color
 		update-modes dc
@@ -433,7 +434,7 @@ OS-draw-box: func [
 				lower/x - upper/x
 				lower/y - upper/y
 				rad
-				modes/brush-color <> -1
+				modes/brush?
 		][
 			RoundRect dc upper/x upper/y lower/x lower/y rad rad
 		]
@@ -489,7 +490,7 @@ OS-draw-triangle: func [
 	point/y: start/y
 
 	either anti-alias? [
-		if modes/brush-color <> -1 [
+		if modes/brush? [
 			GdipFillPolygonI
 				modes/graphics
 				modes/gp-brush
@@ -499,10 +500,10 @@ OS-draw-triangle: func [
 		]
 		GdipDrawPolygonI modes/graphics modes/gp-pen edges 4
 	][
-		either modes/brush-color = -1 [
-			Polyline dc edges 4
-		][
+		either modes/brush? [
 			Polygon dc edges 4
+		][
+			Polyline dc edges 4
 		]
 	]
 ]
@@ -533,7 +534,7 @@ OS-draw-polygon: func [
 	point/y: start/y
 
 	either anti-alias? [
-		if modes/brush-color <> -1 [
+		if modes/brush? [
 			GdipFillPolygonI
 				modes/graphics
 				modes/gp-brush
@@ -543,10 +544,10 @@ OS-draw-polygon: func [
 		]
 		GdipDrawPolygonI modes/graphics modes/gp-pen edges nb + 1
 	][
-		either modes/brush-color = -1 [
-			Polyline dc edges nb + 1
-		][
+		either modes/brush? [
 			Polygon dc edges nb + 1
+		][
+			Polyline dc edges nb + 1
 		]
 	]
 ]
@@ -559,7 +560,7 @@ do-draw-ellipse: func [
 	height	[integer!]
 ][
 	either anti-alias? [
-		if modes/brush-color <> -1 [
+		if modes/brush? [
 			GdipFillEllipseI
 				modes/graphics
 				modes/gp-brush
@@ -694,7 +695,7 @@ OS-draw-arc: func [
 
 	either anti-alias? [
 		either closed? [
-			if modes/brush-color <> -1 [
+			if modes/brush? [
 				GdipFillPieI
 					modes/graphics
 					modes/gp-brush
