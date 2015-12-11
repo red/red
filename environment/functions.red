@@ -544,6 +544,7 @@ extract-boot-args: function [][
 		system/options/boot: copy/part args pos
 		if pos/2 = space [pos: skip pos 2]
 		remove/part args pos
+		trim/head args
 	][
 		system/options/boot: args
 		system/options/args: none
