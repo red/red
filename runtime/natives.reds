@@ -1953,7 +1953,11 @@ natives: context [
 					set-many-string blk as red-string! series size
 				]
 				TYPE_IMAGE [
-					image/set-many-image blk as red-image! series size
+					#either OS = 'Windows [
+						image/set-many blk as red-image! series size
+					][
+						--NOT_IMPLEMENTED--
+					]
 				]
 				default [
 					set-many blk as red-value! series size no no

@@ -21,7 +21,7 @@ Red/System [
 image: context [
 	verbose: 0
 
-	set-many-image: func [
+	set-many: func [
 		words	[red-block!]
 		img		[red-image!]
 		size	[integer!]
