@@ -1911,21 +1911,6 @@ natives: context [
 		]
 	]
 
-	set-many-image: func [
-		words	[red-block!]
-		img		[red-image!]
-		size	[integer!]
-		/local
-			v [red-value!]
-			i [integer!]
-	][
-		i: 1
-		while [i <= size][
-			_context/set (as red-word! _series/pick as red-series! words i null) image/pick img i null
-			i: i + 1
-		]
-	]
-
 	foreach-next-block: func [
 		size	[integer!]								;-- number of words in the block
 		return: [logic!]
@@ -1968,7 +1953,7 @@ natives: context [
 					set-many-string blk as red-string! series size
 				]
 				TYPE_IMAGE [
-					set-many-image blk as red-image! series size
+					image/set-many-image blk as red-image! series size
 				]
 				default [
 					set-many blk as red-value! series size no no

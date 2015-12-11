@@ -20,7 +20,22 @@ Red/System [
 
 image: context [
 	verbose: 0
-	
+
+	set-many-image: func [
+		words	[red-block!]
+		img		[red-image!]
+		size	[integer!]
+		/local
+			v [red-value!]
+			i [integer!]
+	][
+		i: 1
+		while [i <= size][
+			_context/set (as red-word! _series/pick as red-series! words i null) image/pick img i null
+			i: i + 1
+		]
+	]
+
 	known-image?: func [
 		data	[red-binary!]
 		return: [logic!]
