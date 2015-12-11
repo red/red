@@ -20,26 +20,7 @@ Red/System [
 
 image: context [
 	verbose: 0
-
-	#define IMAGE_WIDTH(size)  (size and FFFFh) 
-	#define IMAGE_HEIGHT(size) (size >> 16) 
-
-	;--------------------------------------------
-	;-- Import OS dependent functions
-	;-- load-image: func [								;-- return handle
-	;-- 	filename [c-string!]
-	;-- 	return:  [integer!]
-	;-- ]
-	;--------------------------------------------
-	#switch OS [
-		Windows  [#include %../../modules/view/backends/windows/image-gdiplus.reds]
-		Syllable []
-		MacOSX   []
-		Android  []
-		FreeBSD  []
-		#default []										;-- Linux
-	]
-
+	
 	known-image?: func [
 		data	[red-binary!]
 		return: [logic!]
@@ -47,7 +28,7 @@ image: context [
 			p	[byte-ptr!]
 	][
 		p: binary/rs-head data
-		either any [
+		any [
 			all [										;-- PNG
 				p/1 = #"^(89)"
 				p/2 = #"P" p/3 = #"N" p/4 = #"G"
@@ -58,7 +39,7 @@ image: context [
 				p/1 = #"G" p/2 = #"I" p/3 = #"F"
 				p/4 = #"8" p/5 = #"9" p/6 = #"a"
 			]
-		][true][false]
+		]
 	]
 
 	init-image: func [
@@ -69,9 +50,18 @@ image: context [
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img/head: 0
 
-		img/size: (height? handle) << 16 or width? handle
+		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
 		img/node: as node! handle
 		img
+	]
+	
+	resize: func [
+		img		[red-image!]
+		width	[integer!]
+		height	[integer!]
+		return: [red-image!]
+	][
+		init-image as red-image! stack/push* OS-image/resize img width height
 	]
 
 	load-binary: func [
@@ -83,14 +73,14 @@ image: context [
 		either known-image? data [
 			init-image
 				as red-image! stack/push*
-				OS-load-binary binary/rs-head data binary/rs-length? data
+				OS-image/load-binary binary/rs-head data binary/rs-length? data
 		][as red-image! none-value]
 	]
 
 	push: func [
 		img [red-image!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "img/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/push"]]
 		
 		copy-cell as red-value! img stack/push*
 	]
@@ -105,11 +95,23 @@ image: context [
 			len   [integer!]
 			hr    [integer!]
 	][
-		hr: load-image file/to-OS-path src
+		hr: OS-image/load-image file/to-OS-path src
 		if hr = -1 [fire [TO_ERROR(access cannot-open) src]]
 		img: as red-image! slot
 		init-image img hr
 		img
+	]
+	
+	delete: func [img [red-image!]][
+		OS-image/delete img
+	]
+	
+	encode: func [
+		image	[red-image!]
+		format	[integer!]
+		return: [red-binary!]
+	][
+		OS-image/encode image format stack/push*
 	]
 
 	decode: func [
@@ -151,8 +153,8 @@ image: context [
 		p: as byte-ptr! s/offset
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node no
-		data: get-data bitmap :stride
+		bitmap: OS-image/lock-bitmap as-integer img/node no
+		data: OS-image/get-data bitmap :stride
 		y: 0
 		while [y < h][
 			x: 0
@@ -172,7 +174,7 @@ image: context [
 			]
 			y: y + 1
 		]
-		unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap as-integer img/node bitmap
 		bin
 	]
 
@@ -209,8 +211,8 @@ image: context [
 		]
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node yes
-		data: get-data bitmap :stride
+		bitmap: OS-image/lock-bitmap as-integer img/node yes
+		data: OS-image/get-data bitmap :stride
 		y: 0
 		either type = TYPE_BINARY [
 			while [y < h][
@@ -261,7 +263,7 @@ image: context [
 				y: y + 1
 			]
 		]
-		unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap as-integer img/node bitmap
 		ownership/check as red-value! img words/_poke as red-value! bin img/head 0
 		bin
 	]
@@ -281,7 +283,7 @@ image: context [
 			alpha	[byte-ptr!]
 			color	[red-tuple!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "img/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/make"]]
 
 		img: as red-image! stack/push*
 		img/header: TYPE_IMAGE
@@ -317,7 +319,7 @@ image: context [
 		]
 
 		img/size: pair/y << 16 or pair/x
-		img/node: as node! make-image pair/x pair/y rgb alpha color
+		img/node: as node! OS-image/make-image pair/x pair/y rgb alpha color
 		img
 	]
 
@@ -345,7 +347,7 @@ image: context [
 			stride	[integer!]
 			pos		[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "img/serialize"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/serialize"]]
 
 		alpha?: no
 		width: IMAGE_WIDTH(img/size)
@@ -367,8 +369,8 @@ image: context [
 		part: part - 5
 
 		stride: 0
-		bitmap: lock-bitmap as-integer img/node no
-		data: get-data bitmap :stride
+		bitmap: OS-image/lock-bitmap as-integer img/node no
+		data: OS-image/get-data bitmap :stride
 		y: 0
 		count: 0
 		while [y < height][
@@ -383,7 +385,7 @@ image: context [
 				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 				part: part - 6
 				if all [OPTION?(arg) part <= 0][
-					unlock-bitmap as-integer img/node bitmap
+					OS-image/unlock-bitmap as-integer img/node bitmap
 					return part
 				]
 				if pixel and FF000000h >>> 24 <> 255 [alpha?: yes]
@@ -409,7 +411,7 @@ image: context [
 					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 					part: part - 2
 					if all [OPTION?(arg) part <= 0][
-						unlock-bitmap as-integer img/node bitmap
+						OS-image/unlock-bitmap as-integer img/node bitmap
 						return part
 					]
 					x: x + 1
@@ -418,7 +420,7 @@ image: context [
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
-		unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap as-integer img/node bitmap
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 2												;-- #"}" and #"]"
 	]
@@ -430,7 +432,7 @@ image: context [
 		part 	  [integer!]
 		return:   [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "img/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/form"]]
 
 		serialize img buffer no no no arg part no
 	]
@@ -446,7 +448,7 @@ image: context [
 		indent	[integer!]
 		return:	[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "img/mold"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/mold"]]
 
 		serialize img buffer only? all? flat? arg part yes
 	]
@@ -478,13 +480,13 @@ image: context [
 		][
 			none-value
 		][
-			pixel: get-pixel as-integer img/node offset
+			pixel: OS-image/get-pixel as-integer img/node offset
 			as red-value! tuple/rs-make [
-					pixel and 00FF0000h >> 16
-					pixel and FF00h >> 8
-					pixel and FFh
-					pixel and FF000000h >> 24
-				]
+				pixel and 00FF0000h >> 16
+				pixel and FF00h >> 8
+				pixel and FFh
+				pixel and FF000000h >> 24
+			]
 		]
 	]
 
@@ -521,7 +523,7 @@ image: context [
 			g: as-integer p/2
 			b: as-integer p/3
 			a: either TUPLE_SIZE?(color) > 3 [as-integer p/4][255]
-			set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
+			OS-image/set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
 		as red-value! data

@@ -199,7 +199,7 @@ draw-begin: func [
 			graphics: as-integer img
 		][
 			graphics: 0
-			image/GdipGetImageGraphicsContext as-integer img/node :graphics
+			OS-image/GdipGetImageGraphicsContext as-integer img/node :graphics
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font

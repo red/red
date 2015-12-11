@@ -15,7 +15,8 @@ tuple: context [
 
 	rs-make: func [
 		[variadic]
-		count [integer!] list [int-ptr!]
+		count	[integer!]
+		list	[int-ptr!]
 		return: [red-tuple!]
 		/local
 			tuple	[red-tuple!]

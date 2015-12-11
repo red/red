@@ -39,6 +39,21 @@ red: context [
 	#include %hashtable.reds
 	#include %ownership.reds
 	
+	;--------------------------------------------
+	;-- Import OS dependent image functions
+	;-- load-image: func [								;-- return handle
+	;-- 	filename [c-string!]
+	;-- 	return:  [integer!]
+	;-- ]
+	;--------------------------------------------
+	#switch OS [
+		Windows  [#include %platform/image-gdiplus.reds]
+		Syllable []
+		MacOSX	 []
+		FreeBSD  []
+		#default []
+	]
+	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
@@ -81,7 +96,7 @@ red: context [
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
 	#include %datatypes/binary.reds
-	#if OS = 'Windows [#include %datatypes/image.reds]
+	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	
 	;-- Debugging helpers --
 	
@@ -155,13 +170,13 @@ red: context [
 		pair/init
 		percent/init
 		tuple/init
-		#if OS = 'Windows [image/init]
+		#if OS = 'Windows [image/init]					;-- temporary
 		
 		actions/init
 		
 		;-- initialize memory before anything else
-		alloc-node-frame nodes-per-frame				;-- 5k nodes
-		alloc-series-frame								;-- first frame of 512KB
+		alloc-node-frame nodes-per-frame				;-- 10k nodes
+		alloc-series-frame								;-- first frame of 1MB
 
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 1000
