@@ -134,15 +134,20 @@ object: context [
 			values2	[red-value!]
 			tail	[red-value!]
 			new		[red-value!]
+			old		[red-value!]
 			s		[series!]
 			i		[integer!]
 			type	[integer!]
+			on-set?	[logic!]
 	][
 		ctx:	GET_CTX(obj)
 		s:		as series! ctx/values/value
 		values: s/offset
 		tail:	s/tail
 		type:	TYPE_OF(value)
+		on-set?: obj/on-set <> null
+		s: as series! ctx/symbols/value
+		word: as red-word! s/offset
 
 		either all [not only? any [type = TYPE_BLOCK type = TYPE_OBJECT]][
 			either type = TYPE_BLOCK [
@@ -150,7 +155,12 @@ object: context [
 				i: 1
 				while [values < tail][
 					new: _series/pick as red-series! blk i null
-					unless all [some? TYPE_OF(new) = TYPE_NONE][copy-cell new values]
+					unless all [some? TYPE_OF(new) = TYPE_NONE][
+						if on-set? [old: stack/push values]
+						copy-cell new values
+						if on-set? [fire-on-set obj word old new]
+					]
+					word: word + 1
 					values: values + 1
 					i: i + 1
 				]
@@ -159,13 +169,15 @@ object: context [
 				ctx2: GET_CTX(obj2)
 				values2: get-values obj2
 				
-				s: as series! ctx/symbols/value
-				word: as red-word! s/offset
 				while [values < tail][
 					i: _context/find-word ctx2 word/symbol yes
 					if i > -1 [
 						new: values2 + i
-						unless all [some? TYPE_OF(new) = TYPE_NONE][copy-cell new values]
+						unless all [some? TYPE_OF(new) = TYPE_NONE][
+							if on-set? [old: stack/push values]
+							copy-cell new values
+							if on-set? [fire-on-set obj word old new]
+						]
 					]
 					word: word + 1
 					values: values + 1
@@ -173,7 +185,10 @@ object: context [
 			]
 		][
 			while [values < tail][
+				if on-set? [old: stack/push values]
 				copy-cell value values
+				if on-set? [fire-on-set obj word old new]
+				word: word + 1
 				values: values + 1
 			]
 		]
