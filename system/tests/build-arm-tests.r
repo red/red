@@ -15,7 +15,7 @@ if all [
     system/version/4 = 3
     system/version/3 = 8              
 ][
-		do %../../quick-test/call.r					               
+		do %../../utils/call.r
 		set 'call :win-call
 ]
 

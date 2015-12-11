@@ -15,9 +15,9 @@ compile-test-dylibs: func [
 	if all [
 		not value? 'win-call
     	system/version/4 = 3
-    	system/version/3 = 8              
+    	system/version/3 = 8
 	][
-		do %../../quick-test/call.r					               
+		do %../../utils/call.r
 		set 'call :win-call
 	]	
 
@@ -35,7 +35,7 @@ compile-test-dylibs: func [
 			to-local-file system/options/boot " -sc "
             to-local-file clean-path %../../red.r
             " -dlib  -t " target " -o " lib " "
-    		to-local-file clean-path join %source/units/ dll	
+    		to-local-file clean-path join %source/units/ dll
     	]
 		clear output
 		call/output cmd output

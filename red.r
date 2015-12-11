@@ -79,7 +79,7 @@ redc: context [
 	]
 	
 	if Windows? [
-		do-cache %quick-test/call.r						;@@ put `call.r` in proper place when we encap
+		do-cache %utils/call.r						;@@ put `call.r` in proper place when we encap
 		use [buf][
 			win-call/output "cmd /c ver" buf: make string! 128
 			attempt [

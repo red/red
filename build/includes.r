@@ -153,6 +153,7 @@ write %build/bin/sources.r set-cache [
 	%utils/ [
 		%extractor.r
 		%redbin.r
+		%call.r
 	]
 	%system/ [
 		%compiler.r
