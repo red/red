@@ -28,21 +28,28 @@ Red/System [
 			args [str-array!]
 			new	 [c-string!]
 			dst	 [c-string!]
+			tail [c-string!]
 			s	 [c-string!]
 			size [integer!]
 	][
-		size: 100'000									;-- enough?
+		size: 10'000									;-- enough?
 		new: as-c-string allocate size
 		args: system/args-list 
 		dst: new
+		tail: new + size - 2							;-- leaving space for a terminal null
 
 		until [
-		   s: args/item
-		   until [dst/1: s/1 dst: dst + 1 s: s + 1 s/1 = null-byte]
-		   dst/1: #" "
-		   dst: dst + 1
-		   args: args + 1 
-		   args/item = null 
+			s: args/item
+			until [
+				dst/1: s/1
+				dst: dst + 1
+				s: s + 1
+				any [s/1 = null-byte dst = tail]
+			]
+			dst/1: #" "
+			dst: dst + 1
+			args: args + 1 
+			any [args/item = null dst >= tail]
 		]
 		dst: dst - 1
 		dst/1: null-byte
