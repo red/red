@@ -63,6 +63,7 @@ write %build/bin/sources.r set-cache [
 		%unicode.reds
 		%simple-io.reds
 		%crush.reds
+		%utils.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -73,6 +74,7 @@ write %build/bin/sources.r set-cache [
 			%context.reds
 			%datatype.reds
 			%error.reds
+			%event.reds
 			%file.reds
 			%float.reds
 			%function.reds
@@ -117,6 +119,35 @@ write %build/bin/sources.r set-cache [
 			%POSIX.reds
 			%syllable.reds
 			%win32.reds
+			%COM.reds
+			%image-gdiplus.reds
+		]
+	]
+	%modules/ [
+		%view/ [
+			%view.red
+			%draw.red
+			%styles.red
+			%VID.red
+			%backends/ [
+				%platform.red
+				%windows/ [
+					%base.reds
+					%button.reds
+					%camera.reds
+					%classes.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gui.reds
+					%menu.reds
+					%panel.reds
+					%para.reds
+					%tab-panel.reds
+					%text-list.reds
+					%win32.reds
+				]
+			]
 		]
 	]
 	%utils/ [
