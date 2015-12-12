@@ -2135,6 +2135,73 @@ string: context [
 		as red-value! str
 	]
 
+	put: func [
+		str		[red-string!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			result [red-string!]
+			str2   [red-string!]
+			head2  [integer!]
+			char   [red-char!]
+			char?  [logic!]
+			s	   [series!]
+			offset [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/put"]]
+
+		char?: yes
+		if TYPE_OF(value) <> TYPE_CHAR [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
+		offset: switch TYPE_OF(field) [
+			TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD TYPE_BINARY [
+				char?: no
+				either TYPE_OF(field) = TYPE_WORD [
+					str2: as red-string! word/get-buffer as red-word! field
+					head2: 0							;-- str2/head = -1 (casted from symbol!)
+				][
+					str2: as red-string! field
+					head2: str2/head
+				]
+				s: GET_BUFFER(str2)
+				(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - head2
+			]
+			TYPE_CHAR [1]
+			default [TO_ERROR(script invalid-arg) value 0]
+		]
+		char: as red-char! value
+		cp: char/value
+
+		result: as red-string! find str field null yes case? no null null no no no no
+
+		either TYPE_OF(result) = TYPE_NONE [
+			either char? [
+				char: as red-char! field
+				append-char GET_BUFFER(str) char/value
+			][
+				concatenate str as red-string! field -1 0 yes no
+			]
+			append-char GET_BUFFER(str) cp
+		][
+			str: as red-string! result
+			s: GET_BUFFER(str)
+			p: (as byte-ptr! s/offset) + ((str/head + offset) << (GET_UNIT(s) >> 1))
+
+			either p < as byte-ptr! s/tail [
+				poke-char s p cp
+			][
+				append-char s cp
+			]
+		]
+		value
+	]
+
 	trim: func [
 		str			[red-string!]
 		head?		[logic!]
@@ -2294,7 +2361,7 @@ string: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			:put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			:select
