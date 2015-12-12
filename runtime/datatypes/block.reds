@@ -909,6 +909,37 @@ block: context [
 		result
 	]
 
+	put: func [
+		blk		[red-block!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			s	   [series!]
+			p	   [red-value!]
+			result [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
+		
+		result: as red-block! find blk field null yes case? no null null no no no no
+
+		either TYPE_OF(result) = TYPE_NONE [
+			rs-append blk field
+			rs-append blk value
+		][
+			s: GET_BUFFER(result)
+			p: s/offset + result/head + 1
+			
+			either p < s/tail [
+				copy-cell value p
+			][
+				rs-append blk value
+			]
+		]
+		value
+	]
+
 	compare-value: func [								;-- Compare function return integer!
 		value1   [red-value!]
 		value2   [red-value!]
@@ -1610,7 +1641,7 @@ block: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			:put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			:select
