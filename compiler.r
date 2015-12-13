@@ -3570,13 +3570,29 @@ red: context [
 		]
 		insert-lf -1
 	]
+	
+	in-cache?: func [file [file!] /local path][
+		either encap? [
+			if exists?-cache file [return yes]
+			
+			path: either slash = first script-path [
+				skip script-path length? system/script/path
+			][
+				script-path
+			]
+			exists?-cache secure-clean-path join path file
+		][
+			no
+		]
+	]
 
-	comp-directive: has [file saved version mark script-file][
+	comp-directive: has [file saved version mark script-file cache?][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
 					throw-error ["#include requires a file argument:" pc/2]
 				]
+				cache?: in-cache? file
 				append include-stk script-path
 				
 				script-path: either all [not booting? relative-path? file][
@@ -3585,7 +3601,8 @@ red: context [
 				][
 					none
 				]
-				unless any [booting? exists? file][
+				
+				unless any [cache? booting? exists? file][
 					throw-error ["include file not found:" pc/2]
 				]
 				either find included-list file [
@@ -3929,7 +3946,7 @@ red: context [
 		redbin/finish pick [[compress] []] to logic! redc/load-lib?
 	]
 	
-	comp-source: func [code [block!] /local user main][
+	comp-source: func [code [block!] /local user main saved][
 		output: make block! 10000
 		comp-init
 		
@@ -3939,6 +3956,15 @@ red: context [
 		comp-block
 		make-keywords									;-- register intrinsics functions
 		booting?: no
+		
+		foreach module needed [
+			saved: if script-path [copy script-path]
+			script-path: first split-path module
+			pc: next load-source/hidden module
+			unless job/red-help? [clear-docstrings pc]
+			comp-block
+			script-path: saved
+		]
 		
 		pc: code										;-- compile user code
 		user: tail output
@@ -4093,6 +4119,9 @@ red: context [
 	]
 	
 	load-source: func [file [file! block!] /hidden /local src][
+		if all [encap? slash = first file][
+			file: head remove/part copy file length? system/script/path
+		]
 		either file? file [
 			unless hidden [script-name: file]
 			src: lexer/process read-binary-cache file
@@ -4113,15 +4142,9 @@ red: context [
 					unless file: select standard-modules mod [
 						throw-error ["module not found:" mod]
 					]
-					unless find needed mod [
-						file: split-path join system/script/path file
-						script-path: file/1
-						repend mods [#include file/2 #pop-path]
-						append needed mod
-					]
+					unless find needed file [append needed file]
 				]
-				insert src mods
-			]	
+			]
 		]
 	]
 	

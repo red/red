@@ -411,14 +411,28 @@ loader: make-profilable context [
 		change stack/1 length? stack/1				;-- update root header size	
 		insert src stack/1							;-- return source with hidden root header
 	]
+	
+	prefix-cache: func [file [file!] /local path][
+		path: either empty? ssp-stack [system/script/path][first ssp-stack]
+		path: skip system/script/path length? path
+		secure-clean-path join path file
+	]
 
 	process: func [
 		input [file! string! block!] /sub /with name [file!] /short /own
-		/local src err path ssp pushed? raw
+		/local src err path ssp pushed? raw cache? new
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 		
-		if own [raw: input]
+		cache?: all [
+			encap?
+			file? input
+			any [
+				exists?-cache input
+				exists?-cache new: prefix-cache input
+			]
+		]
+		if any [own cache?][raw: input]
 		
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
@@ -437,8 +451,10 @@ loader: make-profilable context [
 				]
 				pushed?: yes
 			]
+			
 			if error? set/any 'err try [			;-- read source file
-				src: as-string either all [encap? own][
+				src: as-string either any [cache? all [encap? own]][
+					if all [cache? new][raw: new]
 					read-binary-cache raw
 				][
 					read/binary input
