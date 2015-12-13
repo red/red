@@ -3574,6 +3574,7 @@ red: context [
 	in-cache?: func [file [file!] /local path][
 		either encap? [
 			if exists?-cache file [return yes]
+			if any [not value? 'script-path not script-path][return no]
 			
 			path: either slash = first script-path [
 				skip script-path length? system/script/path
@@ -3619,7 +3620,7 @@ red: context [
 					]
 					saved: script-name
 					insert skip pc 2 #pop-path
-					change/part pc next load-source file 2	;@@ Header skipped, should be processed
+					change/part pc next load-source/header file 2	;@@ Header skipped, should be processed
 					script-name: saved
 					append included-list file
 					unless empty? expr-stack [comp-expression]
@@ -4118,8 +4119,8 @@ red: context [
 		]
 	]
 	
-	load-source: func [file [file! block!] /hidden /local src][
-		if all [encap? slash = first file][
+	load-source: func [file [file! block!] /hidden /header /local src][
+		if all [encap? header slash = first file not exists? file][
 			file: head remove/part copy file length? system/script/path
 		]
 		either file? file [
