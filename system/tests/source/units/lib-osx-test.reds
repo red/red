@@ -6,6 +6,8 @@ Red/System [
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
+;; This test cannot be run on its own; it is included in lib-test.reds
+
 #include %../../../../quick-test/quick-test.reds
 
 ;; library declarations
@@ -18,12 +20,9 @@ Red/System [
 	]
 ]
 
-~~~start-file~~~ "lib osx"
 
 ===start-group=== "OS X SQLite"
 
-	--test-- "libsql1"		--assert (0 < sqlite3_libversion_number)
+	--test-- "libsql1"		--assert (3 < sqlite3_libversion_number)
   
 ===end-group===
-
-~~~end-file~~~
