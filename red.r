@@ -82,10 +82,10 @@ redc: context [
 		do-cache %utils/call.r						;@@ put `call.r` in proper place when we encap
 		use [buf][
 			win-call/output "cmd /c ver" buf: make string! 128
-			attempt [
-				pos: find/last/tail buf #" "
-				buf: parse copy/part pos find pos #"]" "."
-				win-version: load join buf/1 buf/2
+			parse/all buf [[thru "[" | thru "Version"] thru #" " pos:]
+			win-version: any [
+				attempt [load copy/part back remove next pos 2]
+				0
 			]
 		]
 	]
