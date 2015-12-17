@@ -291,7 +291,7 @@ to-gdiplus-color: func [
 		alpha [integer!]
 ][
 	red: color and FFh << 16
-	green: color and 0000FF00h
+	green: color and FF00h
 	blue: color >> 16 and FFh
 	alpha: (255 - (color >>> 24)) << 24
 	red or green or blue or alpha
