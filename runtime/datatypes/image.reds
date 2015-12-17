@@ -177,7 +177,7 @@ image: context [
 				pos: stride >> 2 * y + x + 1
 				pixel: data/pos
 				either alpha? [
-					p/1: as-byte pixel >>> 24
+					p/1: as-byte 255 - (pixel >>> 24)
 					p: p + 1
 				][
 					p/1: as-byte pixel and 00FF0000h >> 16
@@ -236,7 +236,7 @@ image: context [
 					pos: stride >> 2 * y + x + 1
 					pixel: data/pos
 					either alpha? [
-						pixel: pixel and 00FFFFFFh or ((as-integer p/1) << 24)
+						pixel: pixel and 00FFFFFFh or ((255 - as-integer p/1) << 24)
 						p: p + 1
 					][
 						pixel: pixel and FF000000h
@@ -258,7 +258,7 @@ image: context [
 				int: as red-integer! bin
 				color: int/value
 			]
-			color: either alpha? [color << 24][
+			color: either alpha? [255 - color << 24][
 				color: color and 00FFFFFFh
 				color >> 16 or (color and FF00h) or (color and FFh << 16)
 			]
@@ -403,7 +403,7 @@ image: context [
 					OS-image/unlock-bitmap as-integer img/node bitmap
 					return part
 				]
-				if pixel and FF000000h >>> 24 <> 255 [alpha?: yes]
+				if pixel >>> 24 <> 255 [alpha?: yes]
 				x: x + 1
 			]
 			y: y + 1
@@ -421,7 +421,7 @@ image: context [
 				while [x < width][
 					pos: stride >> 2 * y + x + 1
 					pixel: data/pos
-					string/concatenate-literal buffer string/byte-to-hex pixel and FF000000h >> 24
+					string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
 					count: count + 1
 					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 					part: part - 2
@@ -500,7 +500,7 @@ image: context [
 				pixel and 00FF0000h >> 16
 				pixel and FF00h >> 8
 				pixel and FFh
-				pixel and FF000000h >> 24
+				255 - (pixel >>> 24)
 			]
 		]
 	]
@@ -537,7 +537,7 @@ image: context [
 			r: as-integer p/1
 			g: as-integer p/2
 			b: as-integer p/3
-			a: either TUPLE_SIZE?(color) > 3 [as-integer p/4][255]
+			a: either TUPLE_SIZE?(color) > 3 [255 - as-integer p/4][255]
 			OS-image/set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
