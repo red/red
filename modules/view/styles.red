@@ -49,7 +49,7 @@ styles: #(
 	]
 	slider: [
 		default-actor: on-change
-		template: [type: 'slider size: 150x24]
+		template: [type: 'slider size: 150x24 data: 0%]
 	]
 	image: [
 		default-actor: on-down

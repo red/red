@@ -28,6 +28,8 @@ modes: declare struct! [
 	gp-font-brush	[integer!]
 	brush?			[logic!]
 	on-image?		[logic!]								;-- drawing on image?
+	alpha-pen?		[logic!]
+	alpha-brush?	[logic!]
 ]
 
 paint: declare tagPAINTSTRUCT
@@ -36,6 +38,7 @@ max-edges: 1000												;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
 
 anti-alias?: no
+GDI+?: no
 
 update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
 	if modes/font-color <> color [
@@ -101,7 +104,7 @@ update-pen: func [
 	mode: 0
 	unless null? modes/pen [DeleteObject modes/pen]
 	either type < PEN_LINE_CAP [
-		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color and 00FFFFFFh
+		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
 	][
 		if modes/pen-join <> -1 [
 			style: modes/pen-join
@@ -124,7 +127,7 @@ update-pen: func [
 		]
 		brush: declare tagLOGBRUSH
 		brush/lbStyle: BS_SOLID
-		brush/lbColor: modes/pen-color and 00FFFFFFh
+		brush/lbColor: modes/pen-color
 		modes/pen: ExtCreatePen
 			PS_GEOMETRIC or modes/pen-style or mode
 			modes/pen-width
@@ -141,7 +144,7 @@ update-modes: func [
 		handle	[integer!]
 		type	[integer!]
 ][
-	either anti-alias? [
+	either GDI+? [
 		update-gdiplus-modes dc
 	][
 		type: either all [
@@ -152,7 +155,7 @@ update-modes: func [
 
 		unless null? modes/brush [DeleteObject modes/brush]
 		modes/brush: either modes/brush? [
-			CreateSolidBrush modes/brush-color and 00FFFFFFh
+			CreateSolidBrush modes/brush-color
 		][
 			GetStockObject NULL_BRUSH
 		]
@@ -191,12 +194,16 @@ draw-begin: func [
 	modes/on-image?:	no
 	modes/brush?:		no
 	anti-alias?:		no
+	modes/alpha-pen?:	no
+	modes/alpha-brush?:	no
+	GDI+?:				no
 	dc:					null
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
 		modes/on-image?: yes
 		anti-alias?: yes
+		GDI+?: yes
 		either on-graphic? [
 			graphics: as-integer img
 		][
@@ -286,28 +293,27 @@ to-gdiplus-color: func [
 	red: color and FFh << 16
 	green: color and 0000FF00h
 	blue: color >> 16 and FFh
-	alpha: color and FF000000h
+	alpha: (255 - (color >>> 24)) << 24
 	red or green or blue or alpha
 ]
 
 OS-draw-anti-alias: func [
 	dc	 [handle!]
-	off? [logic!]
+	on? [logic!]
 	/local
 		on-image? [logic!]
 ][
 	on-image?: modes/on-image?
-	if any [on-image? anti-alias? <> off?] [
-		anti-alias?: off?
-		either anti-alias? [
-			unless on-image? [update-gdiplus-modes dc]
-			GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
-			GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
-		][
-			if on-image? [anti-alias?: yes]			;-- always use GDI+ to draw on image
-			GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
-			GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
-		]
+	anti-alias?: on?
+	either on? [
+		GDI+?: yes
+		unless on-image? [update-gdiplus-modes dc]
+		GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
+		GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
+	][
+		if on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
+		GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
+		GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
 	]
 ]
 
@@ -332,33 +338,44 @@ OS-draw-line: func [
 		pt: pt + 1
 		pair: pair + 1	
 	]
-	either anti-alias? [
+	either GDI+? [
 		res: GdipDrawLinesI modes/graphics modes/gp-pen edges nb
 	][
-		if null? modes/pen [OS-draw-pen dc modes/pen-color]
+		if null? modes/pen [OS-draw-pen dc modes/pen-color no]
 		Polyline dc edges nb
 	]
 ]
 
 OS-draw-pen: func [
-	dc	  [handle!]
-	color [integer!]									;-- 00bbggrr format
+	dc	   [handle!]
+	color  [integer!]									;-- 00bbggrr format
+	alpha? [logic!]
 ][
-	if modes/pen-color <> color [
+	modes/alpha-pen?: alpha?
+	GDI+?: any [alpha? anti-alias? modes/alpha-brush?]
+	either modes/pen-color <> color [
 		modes/pen-color: color
 		update-modes dc
+	][
+		unless GDI+? [update-modes dc]
 	]
 ]
 
 OS-draw-fill-pen: func [
-	dc	  [handle!]
-	color [integer!]									;-- 00bbggrr format
-	off?  [logic!]
+	dc	   [handle!]
+	color  [integer!]									;-- 00bbggrr format
+	off?   [logic!]
+	alpha? [logic!]
 ][
+	modes/alpha-brush?: alpha?
+	GDI+?: any [alpha? anti-alias? modes/alpha-pen?]
+
 	modes/brush?: not off?
-	if modes/brush-color <> color [
+	either modes/brush-color <> color [
 		modes/brush-color: color
 		update-modes dc
+	][
+		unless GDI+? [update-modes dc]
 	]
 ]
 
@@ -427,7 +444,7 @@ OS-draw-box: func [
 		radius: as red-integer! lower
 		lower:  lower - 1
 		rad: radius/value
-		either anti-alias? [
+		either GDI+? [
 			gdiplus-draw-roundbox
 				upper/x
 				upper/y
@@ -439,7 +456,7 @@ OS-draw-box: func [
 			RoundRect dc upper/x upper/y lower/x lower/y rad rad
 		]
 	][
-		either anti-alias? [
+		either GDI+? [
 			unless zero? modes/gp-brush [				;-- fill rect
 				GdipFillRectangleI
 					modes/graphics
@@ -489,7 +506,7 @@ OS-draw-triangle: func [
 	point/x: start/x									;-- close the triangle
 	point/y: start/y
 
-	either anti-alias? [
+	either GDI+? [
 		if modes/brush? [
 			GdipFillPolygonI
 				modes/graphics
@@ -533,7 +550,7 @@ OS-draw-polygon: func [
 	point/x: start/x									;-- close the polygon
 	point/y: start/y
 
-	either anti-alias? [
+	either GDI+? [
 		if modes/brush? [
 			GdipFillPolygonI
 				modes/graphics
@@ -559,7 +576,7 @@ do-draw-ellipse: func [
 	width	[integer!]
 	height	[integer!]
 ][
-	either anti-alias? [
+	either GDI+? [
 		if modes/brush? [
 			GdipFillEllipseI
 				modes/graphics
@@ -631,7 +648,7 @@ OS-draw-font: func [
 
 	SelectObject dc hFont
 	if TYPE_OF(color) = TYPE_TUPLE [
-		SetTextColor dc color/array1 and 00FFFFFFh
+		SetTextColor dc color/array1
 		if modes/on-image? [update-gdiplus-font-color color/array1]
 	]
 	if modes/on-image? [update-gdiplus-font dc]
@@ -693,7 +710,7 @@ OS-draw-arc: func [
 
 	closed?: angle < end
 
-	either anti-alias? [
+	either GDI+? [
 		either closed? [
 			if modes/brush? [
 				GdipFillPieI
@@ -826,7 +843,7 @@ OS-draw-curve: func [
 		]
 	]
 
-	either anti-alias? [
+	either GDI+? [
 		GdipDrawBeziersI modes/graphics modes/gp-pen edges 4
 	][
 		PolyBezier dc edges 4
@@ -841,7 +858,7 @@ OS-draw-line-join: func [
 ][
 	mode: 0
 	modes/pen-join: style
-	either anti-alias? [
+	either GDI+? [
 		case [
 			style = miter		[mode: GDIPLUS_MITER]
 			style = miter-bevel [mode: GDIPLUS_MITERCLIPPED]
@@ -863,7 +880,7 @@ OS-draw-line-cap: func [
 ][
 	mode: 0
 	modes/pen-cap: style
-	either anti-alias? [
+	either GDI+? [
 		case [
 			style = flat		[mode: GDIPLUS_LINECAPFLAT]
 			style = square		[mode: GDIPLUS_LINECAPSQUARE]

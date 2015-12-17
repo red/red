@@ -56,12 +56,16 @@ Red/System [
 
 		get-color-int: func [
 			tp		[red-tuple!]
+			alpha?	[int-ptr!]
 			return: [integer!]
 			/local
 				color [integer!]
 		][
 			color: tp/array1
-			if TUPLE_SIZE?(tp) = 3 [color: color or FF000000h]
+			alpha?/value: either TUPLE_SIZE?(tp) = 3 [
+				color: color and 00FFFFFFh
+				0
+			][1]
 			color
 		]
 
@@ -122,6 +126,8 @@ Red/System [
 			/local
 				pos	  [red-value!]
 				color [red-tuple!]
+				alpha? [integer!]
+				c	  [integer!]
 		][
 			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
@@ -136,7 +142,9 @@ Red/System [
 				]
 				default [throw-draw-error cmds cmd]
 			]
-			OS-draw-pen DC get-color-int color
+			alpha?: 0
+			c: get-color-int color :alpha?
+			OS-draw-pen DC c as logic! alpha?
 			pos
 		]
 		
@@ -152,13 +160,15 @@ Red/System [
 				w	  [red-word!]
 				value [integer!]
 				off?  [logic!]
+				alpha? [integer!]
 		][
 			pos: cmd + 1								;-- skip the keyword
 			if pos >= tail [throw-draw-error cmds cmd]
 			off?: no
+			alpha?: 0
 
 			switch TYPE_OF(pos) [
-				TYPE_TUPLE [value: get-color-int as red-tuple! pos]
+				TYPE_TUPLE [value: get-color-int as red-tuple! pos :alpha?]
 				;TYPE_IMAGE [img: as red-image! pos]
 				TYPE_WORD  [
 					w: as red-word! pos
@@ -170,12 +180,12 @@ Red/System [
 						if TYPE_OF(color) <> TYPE_TUPLE [
 							throw-draw-error cmds cmd
 						]
-						value: get-color-int color
+						value: get-color-int color :alpha?
 					]
 				]
 				default [throw-draw-error cmds cmd]
 			]
-			OS-draw-fill-pen DC value off?
+			OS-draw-fill-pen DC value off? as logic! alpha?
 			pos
 		]
 		
@@ -377,7 +387,7 @@ Red/System [
 
 			either TYPE_OF(pos) = TYPE_WORD  [
 				w: as red-word! pos
-				OS-draw-anti-alias DC either _off = symbol/resolve w/symbol [no][yes]
+				OS-draw-anti-alias DC _off <> symbol/resolve w/symbol
 			][throw-draw-error cmds cmd]
 			pos
 		]
