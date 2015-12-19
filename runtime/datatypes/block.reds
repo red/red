@@ -921,23 +921,8 @@ block: context [
 			result [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
-		
-		result: as red-block! find blk field null yes case? no null null no no no no
 
-		either TYPE_OF(result) = TYPE_NONE [
-			rs-append blk field
-			rs-append blk value
-		][
-			s: GET_BUFFER(result)
-			p: s/offset + result/head + 1
-			
-			either p < s/tail [
-				copy-cell value p
-			][
-				rs-append blk value
-			]
-		]
-		value
+		eval-path blk field value as red-value! none-value case?
 	]
 
 	compare-value: func [								;-- Compare function return integer!
