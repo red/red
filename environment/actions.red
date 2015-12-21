@@ -375,11 +375,11 @@ poke: make action! [[
 
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
-		series	 [series! map!]
+		series	 [series! map! object!]
 		key 	 [scalar! any-string! any-word!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
-		return:  [series! map!]
+		return:  [series! map! object!]
 	]
 	#get-definition ACT_PUT
 ]

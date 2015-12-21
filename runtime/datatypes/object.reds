@@ -1293,7 +1293,20 @@ object: context [
 		]
 		value
 	]
-	
+
+	put: func [
+		obj		[red-object!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/put"]]
+
+		eval-path obj field value as red-value! none-value case?
+		value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -1342,7 +1355,7 @@ object: context [
 			null			;next
 			null			;pick
 			null			;poke
-			null			;put
+			:put
 			null			;remove
 			null			;reverse
 			:select
