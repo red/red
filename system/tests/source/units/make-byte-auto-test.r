@@ -172,9 +172,3 @@ append tests {~~~end-file~~~^(0A)^(0A)}
 write/append file-out tests
       
 print ["Number of assertions generated" test-number]
-
-
-
-
-
-
