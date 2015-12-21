@@ -603,11 +603,11 @@ Red/System [
 
 draw: function [
 	"Draws scalable vector graphics to an image"
-	image [image! pair!] "Image or size for an image"
-	cmd	  [block!] "Draw commands"
+	image	[image! pair!]	"Image or size for an image"
+	cmd		[block!]		"Draw commands"
+	return: [image!]
 ][
-	if pair? image [
-		image: make image! image
-	]
+	if pair? image [image: make image! image]
 	system/view/platform/draw-image image cmd
+	image
 ]
