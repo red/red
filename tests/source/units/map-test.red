@@ -131,4 +131,57 @@ Red [
 
 ===end-group===
 
+===start-group=== "function values"
+
+	--test-- "map-func-1"
+		mf1-a: 1
+		mf1-m: make map! compose [
+			mf1-a: 2
+			f: (func[][mf1-a])
+		]
+		--assert 1 = do mf1-m/f
+	
+	--test-- "map-func-2"
+		mf2-a: 1
+		mf2-m: make map! compose [
+			mf2-a: 2
+			f: (func[][mf2-m/mf2-a])
+		]
+		--assert 2 = do mf2-m/f
+
+===end-group===
+
+===start-group=== "serialise"
+
+	--test-- "map-serialise-1"
+		mser1-m: #(a 1 b 2 c 3)
+		--assert {#(^/    a: 1^/    b: 2^/    c: 3^/)} = mold mser1-m
+		--assert "a: 1^/b: 2^/c: 3" = form mser1-m
+	
+	--test-- "map-serialise-2"
+		mser2-m: #("a" 1 "b" 2 "c" 3)
+		--assert {#(^/    "a" 1^/    "b" 2^/    "c" 3^/)} = mold mser2-m
+		--assert {"a" 1^/"b" 2^/"c" 3} = form mser2-m
+		
+	--test-- "map-serialise-3"
+		mser3-m: #(a 1 b 2 c 3)
+		--assert #(a: 1 b: 2 c: 3) = load mold mser3-m
+		--assert #(a: 1 b: 2 c: 3) = make map! load form mser3-m
+	
+	--test-- "map-serialise-4"
+		mser4-m: #("a" 1 "b" 2 "c" 3)
+		--assert #("a" 1 "b" 2 "c" 3) = load mold mser4-m
+		--assert #("a" 1 "b" 2 "c" 3) = make map! load form mser4-m
+		
+	--test-- "map-serialise-5"
+		--assert #(a: 1 b: 2 c: 3) = load mold #(a 1 b 2 c 3)
+		--assert #(a: 1 b: 2 c: 3) = make map! load form #(a 1 b 2 c 3)
+	
+	--test-- "map-serialise-6"
+		mser4-m: #("a" 1 "b" 2 "c" 3)
+		--assert #("a" 1 "b" 2 "c" 3) = load mold #("a" 1 "b" 2 "c" 3)
+		--assert #("a" 1 "b" 2 "c" 3) = make map! load form #("a" 1 "b" 2 "c" 3)
+
+===end-group===
+
 ~~~end-file~~~
