@@ -139,7 +139,7 @@ Red [
 			mf1-a: 2
 			f: (func[][mf1-a])
 		]
-		;--assert 1 = do mf1-m/f
+		--assert 1 = do [mf1-m/f]
 	
 	--test-- "map-func-2"
 		mf2-a: 1
@@ -147,7 +147,7 @@ Red [
 			mf2-a: 2
 			f: (func[][mf2-m/mf2-a])
 		]
-		;--assert 2 = do mf2-m/f
+		--assert 2 = do [mf2-m/f]
 
 ===end-group===
 
