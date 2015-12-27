@@ -263,7 +263,7 @@ redc: context [
 		]
 	]
 	
-	run-console: func [/with file [string!] /local opts result script filename exe console files][
+	run-console: func [/with file [string!] /local opts result script filename exe console files source][
 		script: temp-dir/red-console.red
 		filename: decorate-name %console
 		exe: temp-dir/:filename
@@ -274,7 +274,9 @@ redc: context [
 		
 		unless exists? exe [
 			console: %environment/console/
-			write script read-cache console/console.red
+			source: copy read-cache console/console.red
+			if Windows? [insert find/tail source #"[" "Needs: 'View^/"]
+			write script source
 			
 			files: [%help.red %input.red %wcwidth.reds %win32.reds %POSIX.reds]
 			
