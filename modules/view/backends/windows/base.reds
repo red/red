@@ -117,6 +117,7 @@ update-layered-window: func [
 		tail	[red-object!]
 		pos		[red-pair!]
 		size	[red-pair!]
+		pt		[tagPOINT]
 		rect	[RECT_STRUCT]
 		sym		[integer!]
 		style	[integer!]
@@ -157,6 +158,9 @@ update-layered-window: func [
 				style: GetWindowLong hWnd GWL_EXSTYLE
 				if style and WS_EX_LAYERED > 0 [
 					pos: as red-pair! values + FACE_OBJ_OFFSET
+					pt: declare tagPOINT
+					pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
+					pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
 					unless all [zero? offset/x zero? offset/y][
 						pos/x: pos/x + offset/x
 						pos/y: pos/y + offset/y
@@ -164,9 +168,11 @@ update-layered-window: func [
 							hdwp
 							hWnd
 							null
-							pos/x pos/y
+							pt/x pt/y
 							0 0
 							SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+						SetWindowLong hWnd wc-offset - 4 pt/x
+						SetWindowLong hWnd wc-offset - 8 pt/y
 					]
 					if all [										;-- clip window
 						winpos/flags and SWP_NOSIZE = 0				;-- sized
@@ -178,23 +184,23 @@ update-layered-window: func [
 						size: as red-pair! values + FACE_OBJ_SIZE
 						width: size/x
 						height: size/y
-						if pos/x + size/x > (winpos/x + winpos/cx) [
-							width: size/x - (pos/x + size/x - (winpos/x + winpos/cx)) - border
+						if pt/x + size/x > (winpos/x + winpos/cx) [
+							width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
 						]
-						if pos/y + size/y > (winpos/y + winpos/cy) [
-							height: size/y - (pos/y + size/y - (winpos/y + winpos/cy)) - border
+						if pt/y + size/y > (winpos/y + winpos/cy) [
+							height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
 						]
 
 						either any [
 							width <> size/x
 							height <> size/y
-							1 = GetWindowLong hWnd wc-offset - 4
+							1 = GetWindowLong hWnd wc-offset - 12
 						][
-							SetWindowLong hWnd wc-offset - 4 1
+							SetWindowLong hWnd wc-offset - 12 1
 							rgn: CreateRectRgn 0 0 width height
 							SetWindowRgn hWnd rgn false
 							DeleteObject rgn
-						][SetWindowLong hWnd wc-offset - 4 0]
+						][SetWindowLong hWnd wc-offset - 12 0]
 					]
 				]
 			][

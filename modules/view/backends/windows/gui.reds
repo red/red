@@ -785,9 +785,13 @@ OS-make-view: func [
 		sym = base		[
 			SetWindowLong handle wc-offset - 4 0
 			if alpha? [
-				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
+					pt: declare tagPOINT
+					pt/x: offset/x
+					pt/y: offset/y
 					ClientToScreen as handle! parent pt		;-- convert client offset to screen offset
+					SetWindowLong handle wc-offset - 4 pt/x
+					SetWindowLong handle wc-offset - 8 pt/y
 				]
 				update-base handle as handle! parent pt values
 			]
@@ -869,25 +873,31 @@ change-offset: func [
 		size  [red-pair!]
 		flags [integer!]
 		style [integer!]
+		pt    [red-pair!]
 		rect  [RECT_STRUCT]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	rect: declare RECT_STRUCT
+	pt: declare red-pair!
 	if type = base [
 		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
 			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
 			owner: GetParent as handle! hWnd
 			GetClientRect owner rect
-			unless win8+? [
-				flags: flags or SWP_NOACTIVATE
-				ClientToScreen owner as tagPOINT rect
-				ClientToScreen owner (as tagPOINT rect) + 1
-			]
 			if rect/top  > pos/y [pos/y: rect/top]
 			if rect/left > pos/x [pos/x: rect/left]
 			if pos/y + size/y > rect/bottom [pos/y: rect/bottom - size/y]
 			if pos/x + size/x > rect/right  [pos/x: rect/right - size/x]
+			unless win8+? [
+				flags: flags or SWP_NOACTIVATE
+				pt/x: pos/x
+				pt/y: pos/y
+				ClientToScreen owner (as tagPOINT pt) + 1
+				pos: pt
+				SetWindowLong as handle! hWnd wc-offset - 4 pos/x
+				SetWindowLong as handle! hWnd wc-offset - 8 pos/y
+			]
 		]
 	]
 	SetWindowPos 
