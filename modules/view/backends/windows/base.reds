@@ -101,6 +101,66 @@ render-text: func [
 	]
 ]
 
+clip-layered-window: func [
+	hWnd		[handle!]
+	size		[red-pair!]
+	x			[integer!]
+	y			[integer!]
+	new-width	[integer!]
+	new-height	[integer!]
+	/local
+		rgn		[handle!]
+][
+	either any [
+		not zero? x
+		not zero? y
+		size/x <> new-width
+		size/y <> new-height
+		1 = GetWindowLong hWnd wc-offset - 12
+	][
+		SetWindowLong hWnd wc-offset - 12 1
+		rgn: CreateRectRgn x y new-width new-height
+		SetWindowRgn hWnd rgn false
+		DeleteObject rgn
+	][SetWindowLong hWnd wc-offset - 12 0]
+]
+
+process-layered-region: func [
+	hWnd	[handle!]
+	size	[red-pair!]
+	pos		[red-pair!]
+	/local
+		x	  [integer!]
+		y	  [integer!]
+		w	  [integer!]
+		h	  [integer!]
+		owner [handle!]
+		rect  [RECT_STRUCT]
+][
+	rect: declare RECT_STRUCT
+	owner: GetParent hWnd
+	GetClientRect owner rect
+	x: pos/x
+	either negative? x [
+		x: either x + size/x < 0 [size/x][0 - x]
+		w: size/x
+	][
+		w: x + size/x - rect/right
+		w: either positive? w [size/x - w][size/x]
+		x: 0
+	]
+	y: pos/y
+	either negative? y [
+		y: either y + size/y < 0 [size/y][0 - y]
+		h: size/y
+	][
+		h: y + size/y - rect/bottom
+		h: either positive? h [size/y - h][size/y]
+		y: 0
+	]
+	clip-layered-window hWnd size x y w h
+]
+
 update-layered-window: func [
 	hWnd		[handle!]
 	hdwp		[handle!]
@@ -125,7 +185,6 @@ update-layered-window: func [
 		width	[integer!]
 		height	[integer!]
 		sub?	[logic!]
-		rgn		[handle!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -184,23 +243,14 @@ update-layered-window: func [
 						size: as red-pair! values + FACE_OBJ_SIZE
 						width: size/x
 						height: size/y
-						if pt/x + size/x > (winpos/x + winpos/cx) [
+						if pt/x + size/x + border > (winpos/x + winpos/cx) [
 							width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
 						]
-						if pt/y + size/y > (winpos/y + winpos/cy) [
+						if pt/y + size/y + border > (winpos/y + winpos/cy) [
 							height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
 						]
 
-						either any [
-							width <> size/x
-							height <> size/y
-							1 = GetWindowLong hWnd wc-offset - 12
-						][
-							SetWindowLong hWnd wc-offset - 12 1
-							rgn: CreateRectRgn 0 0 width height
-							SetWindowRgn hWnd rgn false
-							DeleteObject rgn
-						][SetWindowLong hWnd wc-offset - 12 0]
+						clip-layered-window hWnd size 0 0 width height
 					]
 				]
 			][
