@@ -368,6 +368,8 @@ system/view: context [
 		:result
 	]
 	
+	init: does [unless screens [system/view/platform/init]]
+	
 	auto-sync?: yes
 	debug?: no
 ]
