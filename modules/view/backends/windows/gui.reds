@@ -784,8 +784,10 @@ OS-make-view: func [
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
 			SetWindowLong handle wc-offset - 4 0
+			pt: as tagPOINT (as int-ptr! offset) + 2
 			if alpha? [
 				unless win8+? [
+					process-layered-region handle size offset
 					pt: declare tagPOINT
 					pt/x: offset/x
 					pt/y: offset/y
@@ -861,7 +863,7 @@ change-size: func [
 		as handle! 0
 		0 0
 		size/x size/y 
-		SWP_NOMOVE or SWP_NOZORDER
+		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
 ]
 
 change-offset: func [
@@ -874,22 +876,16 @@ change-offset: func [
 		flags [integer!]
 		style [integer!]
 		pt    [red-pair!]
-		rect  [RECT_STRUCT]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
-	rect: declare RECT_STRUCT
 	pt: declare red-pair!
 	if type = base [
 		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
 			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
 			owner: GetParent as handle! hWnd
-			GetClientRect owner rect
-			if rect/top  > pos/y [pos/y: rect/top]
-			if rect/left > pos/x [pos/x: rect/left]
-			if pos/y + size/y > rect/bottom [pos/y: rect/bottom - size/y]
-			if pos/x + size/x > rect/right  [pos/x: rect/right - size/x]
 			unless win8+? [
+				process-layered-region as handle! hWnd size pos
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y
