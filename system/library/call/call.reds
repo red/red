@@ -81,6 +81,8 @@ system-call: context [
 		buffer       [byte-ptr!]
 		newsize      [integer!]
 		return:      [byte-ptr!]
+		/local
+			tmp [binary!]
 	][
 		tmp: resize buffer newsize						;-- Resize output buffer to new size
 		either tmp = null [								;-- reallocation failed, uses current output buffer
