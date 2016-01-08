@@ -453,6 +453,7 @@ get-selected: func [
 		int [red-integer!]
 ][
 	int: as red-integer! get-facet msg FACE_OBJ_SELECTED
+	int/header: TYPE_INTEGER
 	int/value: idx
 ]
 
@@ -780,7 +781,7 @@ OS-make-view: func [
 	;-- extra initialization
 	case [
 		sym = button	[init-button handle values]
-		sym = camera	[init-camera handle data open?/value]
+		sym = camera	[init-camera handle data false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
 			SetWindowLong handle wc-offset - 4 0
@@ -954,18 +955,12 @@ change-image: func [
 	if type = base [update-base as handle! hWnd null null values]
 ]
 
-change-enable: func [
-	hWnd	[integer!]
-	enable? [logic!]
-][
-	toggle-preview as handle! hWnd enable?
-]
-
 change-selection: func [
 	hWnd   [integer!]
 	idx	   [integer!]
 	values [red-value!]
 	/local
+		int  [red-value!]
 		type [red-word!]
 		sym	 [integer!]
 ][
@@ -973,7 +968,13 @@ change-selection: func [
 	sym: symbol/resolve type/symbol
 	case [
 		sym = camera [
-			select-camera as handle! hWnd idx - 1
+			int: values + FACE_OBJ_SELECTED
+			either TYPE_OF(int) = TYPE_NONE [
+				stop-camera as handle! hWnd
+			][
+				select-camera as handle! hWnd idx - 1
+				toggle-preview as handle! hWnd true
+			]
 		]
 		sym = text-list [
 			SendMessage as handle! hWnd LB_SETCURSEL idx - 1 0
@@ -1215,7 +1216,6 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_ENABLE?
-		change-enable hWnd bool/value
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?

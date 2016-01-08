@@ -59,6 +59,12 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 	]
 ]
 
+stop-camera: func [handle [handle!] /local cam [camera!]][
+	cam: as camera! GetWindowLong handle wc-offset - 4
+	teardown-graph cam
+	free-graph cam
+]
+
 init-graph: func [
 	cam		[camera!]
 	idx		[integer!]
