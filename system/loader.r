@@ -165,8 +165,8 @@ loader: make-profilable context [
 						][
 							all [
 								path: find [path! set-path!] type?/word value
-								find [word! set-word!] to word! type
-								type: get path/1
+								type: find [word! set-word!] to word! type
+								type: get pick head path index? type
 							]
 							to type value				;-- get/set => convert value
 						]
