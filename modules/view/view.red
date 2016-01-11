@@ -508,6 +508,33 @@ view: function [
 	either no-wait [spec][do-events]
 ]
 
+react: function [
+	"Defines a new reactive action on one or more faces"
+	spec [block!]			"reaction spec block"
+	/with					"specifies an optional face object (internal use)"
+		ctx [object! none!] "optional face context"
+][
+	parse spec rule: [
+		any [
+			item: [path! | lit-path! | get-path!] (
+				if unset? get/any item: item/1 [
+					cause-error 'script 'no-value [item]
+				]
+				if all [
+					object? obj: get item/1
+					in obj 'type
+					in obj 'offset
+				][
+					append system/view/reactors reduce [obj item/2 blk ctx]
+				]
+			)
+			| set-path! | any-string!
+			| into rule
+			| skip
+		]
+	]
+]
+
 center-face: function [
 	"Center a face inside its parent"
 	face [object!]		 "Face to center"

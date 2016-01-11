@@ -26,26 +26,7 @@ system/view/VID: context [
 	process-reactors: function [][
 		foreach [f blk] reactors [
 			bind blk ctx: make react-ctx [face: f]
-			
-			parse blk rule: [
-				any [
-					item: [path! | lit-path! | get-path!] (
-						if unset? get/any item: item/1 [
-							cause-error 'script 'no-value [item]
-						]
-						if all [
-							object? obj: get item/1
-							in obj 'type
-							in obj 'offset
-						][
-							append system/view/reactors reduce [obj item/2 blk ctx]
-						]
-					)
-					| set-path! | any-string!
-					| into rule
-					| skip
-				]
-			]
+			react blk ctx
 		]
 	]
 	
@@ -232,6 +213,8 @@ system/view/VID: context [
 		global?: 	  yes								;-- TRUE: panel options expected
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
+		react-ctx/face: none
+		clear reactors
 		
 		opts: object [
 			type: offset: size: text: color: image: font: para: data:
