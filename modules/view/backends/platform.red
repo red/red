@@ -68,7 +68,6 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
-				FACET_FLAGS_DRAGGABLE:	00000002h
 				
 				FACET_FLAGS_RESIZE:		04000000h
 				FACET_FLAGS_NO_BTNS:	08000000h
