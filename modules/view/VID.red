@@ -26,7 +26,7 @@ system/view/VID: context [
 	process-reactors: function [][
 		foreach [f blk] reactors [
 			bind blk ctx: make react-ctx [face: f]
-			react blk ctx
+			react/with blk ctx
 		]
 	]
 	
