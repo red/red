@@ -525,7 +525,7 @@ react: function [
 					in obj 'type
 					in obj 'offset
 				][
-					append system/view/reactors reduce [obj item/2 blk ctx]
+					append system/view/reactors reduce [obj item/2 spec ctx]
 				]
 			)
 			| set-path! | any-string!
