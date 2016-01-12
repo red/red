@@ -193,7 +193,10 @@ update-list: func [
 				][
 					;ownership/unbind-each as red-block! value index part
 					
-					str: as red-string! either null? new [
+					str: as red-string! either any [
+						null? new
+						TYPE_OF(new) = TYPE_BLOCK
+					][
 						block/rs-abs-at as red-block! value index
 					][
 						new

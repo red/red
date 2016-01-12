@@ -74,6 +74,11 @@ system/view/VID: context [
 		]
 	]													;-- returns TRUE if added
 	
+	fetch-value: function [blk][
+		value: blk/1
+		any [all [word? :value get :value] value]
+	]
+	
 	fetch-argument: function [expected [datatype! typeset!] spec [block!]][
 		either expected = type: type? value: spec/1 [
 			value
@@ -104,8 +109,8 @@ system/view/VID: context [
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
-				| 'extra	  (opts/extra: first spec: next spec)
-				| 'data		  (opts/data:  first spec: next spec)
+				| 'extra	  (opts/extra: fetch-value spec: next spec)
+				| 'data		  (opts/data: fetch-value spec: next spec)
 				| 'draw		  (opts/draw: fetch-argument block! spec: next spec)
 				| 'font		  (opts/font: make font! fetch-argument block! spec: next spec)
 				| 'para		  (opts/para: make para! fetch-argument block! spec: next spec)
