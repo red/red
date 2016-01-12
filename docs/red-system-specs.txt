@@ -2970,7 +2970,7 @@ The following example is Windows-specific.
  			size 	[integer!]
  			return: [c-string!]
  		]
- 		free: "free" [
+ 		release: "free" [
  			block	[c-string!]
  		]
  	]
@@ -2984,7 +2984,7 @@ The following example is Windows-specific.
  get-env "windir" buf  max-size
 
  print buf
- free buf
+ release buf
  
 would output:
 
