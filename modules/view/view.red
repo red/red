@@ -520,12 +520,30 @@ react: function [
 				if unset? get/any item: item/1 [
 					cause-error 'script 'no-value [item]
 				]
-				if all [
+				obj: none
+				part: (length? item) - 1
+				
+				unless all [							;-- search for an object (deep first)
+					2 = length? item
 					object? obj: get item/1
+				][
+					until [
+						path: copy/part item part
+						part: part - 1
+						any [
+							object? obj: attempt [get path]
+							part = 1
+						]
+					]
+				]
+				
+				if all [
+					object? obj							;-- rough checks for face object
 					in obj 'type
 					in obj 'offset
 				][
-					append system/view/reactors reduce [obj item/2 spec ctx]
+					part: part + 1
+					append system/view/reactors reduce [obj item/:part spec ctx]
 				]
 			)
 			| set-path! | any-string!
