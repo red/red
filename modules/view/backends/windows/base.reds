@@ -135,10 +135,13 @@ process-layered-region: func [
 		w	  [integer!]
 		h	  [integer!]
 		owner [handle!]
+		offset [red-pair!]
 		rect  [RECT_STRUCT]
 ][
 	rect: declare RECT_STRUCT
-	owner: GetParent hWnd
+	owner: as handle! GetWindowLong hWnd wc-offset - 16
+	assert owner <> null
+
 	GetClientRect owner rect
 	x: pos/x
 	either negative? x [

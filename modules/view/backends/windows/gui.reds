@@ -641,7 +641,7 @@ OS-make-view: func [
 	id:		  0
 	sym: 	  symbol/resolve type/symbol
 	panel?:	  no
-	alpha?:   yes
+	alpha?:   no
 
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
 	
@@ -754,7 +754,7 @@ OS-make-view: func [
 	]
 
 	unless DWM-enabled? [
-		unless all [sym = base alpha?] [
+		unless alpha? [
 			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 		]
 	]
@@ -775,7 +775,7 @@ OS-make-view: func [
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
-	BringWindowToTop handle
+	unless alpha? [BringWindowToTop handle]
 	set-font handle face values
 
 	;-- extra initialization
@@ -788,6 +788,7 @@ OS-make-view: func [
 			pt: as tagPOINT (as int-ptr! offset) + 2
 			if alpha? [
 				unless win8+? [
+					SetWindowLong handle wc-offset - 16 parent
 					process-layered-region handle size offset
 					pt: declare tagPOINT
 					pt/x: offset/x
@@ -1077,6 +1078,15 @@ change-parent: func [
 	hWnd: get-face-handle face
 	values: get-node-facet face/ctx 0
 	bool: as red-logic! values + FACE_OBJ_VISIBLE?
+	type: as red-word! values + FACE_OBJ_TYPE
+	if all [
+		base = symbol/resolve type/symbol
+		bool/value
+	][
+		ShowWindow hWnd SW_SHOWNA
+		exit
+	]
+
 	tab-panel?: no
 	type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
 
@@ -1132,7 +1142,7 @@ update-z-order: func [
 					as handle! 0							;-- HWND_TOP
 					0 0
 					0 0
-					SWP_NOSIZE or SWP_NOMOVE
+					SWP_NOSIZE or SWP_NOMOVE or SWP_NOACTIVATE
 				
 				type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 				
