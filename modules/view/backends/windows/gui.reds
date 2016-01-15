@@ -727,7 +727,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_BORDER ;or WS_CLIPCHILDREN
+			flags: WS_BORDER or WS_CLIPCHILDREN
 			bits: get-flags as red-block! values + FACE_OBJ_FLAGS
 			if bits and FACET_FLAGS_RESIZE <> 0 [flags: flags or WS_THICKFRAME]
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
@@ -885,7 +885,7 @@ change-offset: func [
 		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
 			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
-			owner: GetParent as handle! hWnd
+			owner: as handle! GetWindowLong as handle! hWnd wc-offset - 16
 			unless win8+? [
 				process-layered-region as handle! hWnd size pos
 				flags: flags or SWP_NOACTIVATE

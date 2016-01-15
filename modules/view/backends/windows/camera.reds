@@ -35,12 +35,12 @@ init-camera: func [
 ][
 	cam: as camera! allocate size? camera!				;@@ need to be freed
 	val: collect-camera cam data
-	SetWindowLong hWnd wc-offset - 4 val
 	either zero? val [free as byte-ptr! cam][
 		init-graph cam 0
 		build-preview-graph cam hWnd
 		toggle-preview hWnd open?
 	]
+	SetWindowLong hWnd wc-offset - 4 val
 ]
 
 free-graph: func [cam [camera!] /local interface [IUnknown]][
@@ -61,8 +61,10 @@ teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
 
 stop-camera: func [handle [handle!] /local cam [camera!]][
 	cam: as camera! GetWindowLong handle wc-offset - 4
-	teardown-graph cam
-	free-graph cam
+	unless null? cam [
+		teardown-graph cam
+		free-graph cam
+	]
 ]
 
 init-graph: func [
