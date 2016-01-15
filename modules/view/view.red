@@ -298,7 +298,6 @@ para!: object [
 system/view: context [
 	screens: 	none
 	event-port: none
-	handlers: 	none
 
 	metrics: object [
 		screen-size: 	none
@@ -551,6 +550,14 @@ react: function [
 			| skip
 		]
 	]
+]
+
+remove-reactor: function [
+	"Destroys reactive actions created by REACT function"
+	faces [object! block!] "Face(s) referenced in a reactive action"
+][
+	process: [while [pos: find system/view/reactors face][remove/part pos 4]]
+	either block? faces [foreach face faces [do process face]][do process face]
 ]
 
 center-face: function [
