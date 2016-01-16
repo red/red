@@ -1876,6 +1876,7 @@ natives: context [
 		only? [logic!]
 		some? [logic!]
 		/local
+			w		[red-word!]
 			v		[red-value!]
 			blk		[red-block!]
 			i		[integer!]
@@ -1890,7 +1891,17 @@ natives: context [
 		while [i <= size][
 			v: either all [block? not only?][_series/pick as red-series! blk i null][value]
 			unless all [some? TYPE_OF(v) = TYPE_NONE][
-				_context/set (as red-word! _series/pick as red-series! words i null) v
+				w: as red-word! _series/pick as red-series! words i null
+				type: TYPE_OF(w)
+				unless any [
+					type = TYPE_WORD
+					type = TYPE_GET_WORD
+					type = TYPE_SET_WORD
+					type = TYPE_LIT_WORD
+				][
+					fire [TO_ERROR(script invalid-arg) w]
+				]
+				_context/set w v
 			]
 			i: i + 1
 		]
