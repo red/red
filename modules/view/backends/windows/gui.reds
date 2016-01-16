@@ -374,6 +374,8 @@ set-logic-state: func [
 		value [integer!]
 ][
 	value: either TYPE_OF(state) <> TYPE_LOGIC [
+		state/header: TYPE_LOGIC
+		state/value: check?
 		either check? [BST_INDETERMINATE][false]
 	][
 		as-integer state/value							;-- returns 0/1, matches the messages
