@@ -716,6 +716,27 @@ binary: context [
 		do-math OP_XOR
 	]
 
+	complement: func [
+		bin		[red-binary!]
+		return:	[red-value!]
+		/local
+			s      [series!]
+			head   [byte-ptr!]
+			tail   [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/complement"]]
+
+		s: GET_BUFFER(bin)
+		head: (as byte-ptr! s/offset) + bin/head
+		tail: as byte-ptr! s/tail
+
+		while [head < tail][
+			head/1: not head/1
+			head: head + 1
+		]
+		as red-value! bin
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BINARY
@@ -745,7 +766,7 @@ binary: context [
 			null			;odd?
 			;-- Bitwise actions --
 			:and~
-			null			;complement
+			:complement
 			:or~
 			:xor~
 			;-- Series actions --
