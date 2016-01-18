@@ -439,9 +439,19 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
 			int: as red-integer! data
-			v: int/value
-			either v > 255 [v: 255][if negative? v [v: 0]]
-			value/index: as byte! v
+			either TYPE_OF(int) = TYPE_NONE [
+				v: size - index + 1
+				size: either index > 3 [index - 1][3]
+				loop v [
+					value/index: as byte! 0
+					index: index + 1
+				]
+				SET_TUPLE_SIZE(tp size)
+			][
+				v: int/value
+				either v > 255 [v: 255][if negative? v [v: 0]]
+				value/index: as byte! v
+			]
 		]
 		object/check-owner as red-value! tp
 		as red-value! data
