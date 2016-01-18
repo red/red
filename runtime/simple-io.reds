@@ -1071,13 +1071,23 @@ simple-io: context [
 	]
 
 	file-list-to-block: func [
+		blk		[red-block!]
+		path	[red-string!]
 		buffer	[byte-ptr!]
-		return: [red-block!]
 		/local
-			blk [red-block!]
+			dir [red-string!]
+			name [red-string!]
+			len [integer!]
 	][
-		blk: block/push-only* 1
-		blk
+		until [
+			dir: as red-string! ALLOC_TAIL(blk)
+			_series/copy as red-series! path as red-series! dir null yes null
+			len: lstrlen buffer
+			name: string/load as-c-string buffer len UTF-16LE
+			string/concatenate dir name -1 0 yes no
+			buffer: buffer + (len + 1 * 2)
+			all [buffer/1 = #"^@" buffer/2 = #"^@"]
+		]
 	]
 
 	request-dir: func [
@@ -1148,6 +1158,7 @@ simple-io: context [
 			files	[red-value!]
 			base	[red-value!]
 			str		[red-string!]
+			blk		[red-block!]
 			pbuf	[byte-ptr!]
 			ofn
 	][
@@ -1186,12 +1197,23 @@ simple-io: context [
 
 			ret: either save? [GetSaveFileName ofn][GetOpenFileName ofn]
 			files: as red-value! either zero? ret [none-value][
+				len: lstrlen buffer
+				str: string/load as-c-string buffer len UTF-16LE
+				#call [to-red-file str]
+				str: as red-string! stack/arguments
 				as red-value! either multi? [
-					file-list-to-block buffer
+					pbuf: buffer + (len + 1 * 2)
+					stack/push*							;@@ stack/arguments is already used after #call [...]
+					blk: block/push-only* 1
+					either all [pbuf/1 = #"^@" pbuf/2 = #"^@"][
+						block/rs-append blk as red-value! str
+					][
+						string/append-char GET_BUFFER(str) as-integer #"/"
+						file-list-to-block blk str pbuf
+					]
+					blk
 				][
-					str: string/load as-c-string buffer lstrlen buffer UTF-16LE
-					#call [to-red-file str]
-					stack/arguments
+					str
 				]
 			]
 			free buffer
