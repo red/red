@@ -391,12 +391,20 @@ red: context [
 		]
 	]
 	
-	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new obj][
+	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new obj ctx][
 		either all [
 			rebol-gctx <> obj: bind? original
-			find shadow-funcs obj
-		][
-			emit 'stack/push							;-- local word
+			ctx: select shadow-funcs obj
+		][	
+			either all [not empty? ctx-stack ctx <> last ctx-stack][
+				emit 'word/get-local
+				emit ctx
+				emit get-word-index name				;-- word from another function context
+				insert-lf -3
+				exit
+			][
+				emit 'stack/push						;-- local word
+			]
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			emit case [									;-- global word
