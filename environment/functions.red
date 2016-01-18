@@ -10,6 +10,14 @@ Red [
 	}
 ]
 
+also: func [
+	"Returns the first value, but also evaluates the second."
+	value1 [any-type!]
+	value2 [any-type!]
+][
+	get/any 'value1
+]
+
 attempt: func [
 	"Tries to evaluate and returns result or NONE on error"
 	value
