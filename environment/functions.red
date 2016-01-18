@@ -562,13 +562,13 @@ extract-boot-args: function [][
 collect: function [
 	body [block!]		 "Block to evaluate"
 	/into 		  		 "Insert into a buffer instead (returns position after insert)"
-		output [series!] "The buffer series (modified)"
+		collected [series!] "The buffer series (modified)"
 ][
-	keep: func [v /only][either only [append/only output v][append output v]]
+	keep: func [v /only][either only [append/only collected v][append collected v]]
 	
-	unless output [output: make block! 16]
-	do bind body 'output
-	either into [output][head output]
+	unless collected [collected: make block! 16]
+	do bind body 'collected
+	either into [collected][head collected]
 ]
 
 ;------------------------------------------
