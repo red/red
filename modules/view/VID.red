@@ -28,6 +28,8 @@ system/view/VID: context [
 			bind blk ctx: make react-ctx [face: f]
 			react/with blk ctx
 		]
+		react-ctx/face: none
+		clear reactors
 	]
 	
 	calc-size: function [face [object!]][
@@ -218,8 +220,6 @@ system/view/VID: context [
 		global?: 	  yes								;-- TRUE: panel options expected
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
-		react-ctx/face: none
-		clear reactors
 		
 		opts: object [
 			type: offset: size: text: color: image: font: para: data:
