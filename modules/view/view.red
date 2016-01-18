@@ -509,45 +509,49 @@ view: function [
 
 react: function [
 	"Defines a new reactive action on one or more faces"
-	spec [block!]			"reaction spec block"
-	/with					"specifies an optional face object (internal use)"
-		ctx [object! none!] "optional face context"
+	spec [block!]			"Reaction spec block"
+	/with					"Specifies an optional face object (internal use)"
+		ctx [object! none!] "Optional face context"
+	return: [block!]		"List of faces causing a reaction"
 ][
-	parse spec rule: [
-		any [
-			item: [path! | lit-path! | get-path!] (
-				if unset? get/any item: item/1 [
-					cause-error 'script 'no-value [item]
-				]
-				obj: none
-				part: (length? item) - 1
-				
-				unless all [							;-- search for an object (deep first)
-					2 = length? item
-					object? obj: get item/1
-				][
-					until [
-						path: copy/part item part
-						part: part - 1
-						any [
-							object? obj: attempt [get path]
-							part = 1
+	collect [
+		parse spec rule: [
+			any [
+				item: [path! | lit-path! | get-path!] (
+					if unset? get/any item: item/1 [
+						cause-error 'script 'no-value [item]
+					]
+					obj: none
+					part: (length? item) - 1
+
+					unless all [							;-- search for an object (deep first)
+						2 = length? item
+						object? obj: get item/1
+					][
+						until [
+							path: copy/part item part
+							part: part - 1
+							any [
+								object? obj: attempt [get path]
+								part = 1
+							]
 						]
 					]
-				]
-				
-				if all [
-					object? obj							;-- rough checks for face object
-					in obj 'type
-					in obj 'offset
-				][
-					part: part + 1
-					append system/view/reactors reduce [obj item/:part spec ctx]
-				]
-			)
-			| set-path! | any-string!
-			| into rule
-			| skip
+
+					if all [
+						object? obj							;-- rough checks for face object
+						in obj 'type
+						in obj 'offset
+					][
+						part: part + 1
+						append system/view/reactors reduce [obj item/:part spec ctx]
+						unless find collected obj [keep obj]
+					]
+				)
+				| set-path! | any-string!
+				| into rule
+				| skip
+			]
 		]
 	]
 ]
