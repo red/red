@@ -195,12 +195,13 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
+				new-pane?: not all [block? old block? new same? head old head new]				
 				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
-				if all [block? old not empty? old][clear head old]	;-- destroy old faces
+				if all [new-pane? block? old not empty? old][clear head old]	;-- destroy old faces
 			]
-			if any [series? old object? old][modify old 'owned none]
+			if all [new-pane? any [series? old object? old]][modify old 'owned none]
 			
-			unless find [font para edge actors extra] word [
+			unless any [new-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font [link-sub-to-parent self 'font old new]
@@ -361,8 +362,9 @@ system/view: context [
 		set/any 'result do-actor face event event/type
 		
 		if all [event/type = 'close :result <> 'continue][
-			windows: head remove find system/view/screens/1/pane face
-			result: pick [stop done] tail? windows
+			svs: system/view/screens/1		
+			remove find svs/pane face
+			result: pick [stop done] tail? at svs/pane pick tail svs/state/4 -2
 		]	
 		:result
 	]
@@ -377,8 +379,15 @@ system/view: context [
 #include %draw.red
 #include %VID.red
 
-do-events: func [/no-wait return: [logic!]][
-	system/view/platform/do-event-loop no-wait
+do-events: function [/no-wait return: [logic!]][
+	unless no-wait [
+		svs: system/view/screens/1
+		append svs/state/4 index? tail svs/pane
+	]
+	result: system/view/platform/do-event-loop no-wait
+	
+	unless no-wait [remove back tail svs/state/4]
+	:result
 ]
 
 do-safe: func [code [block!] /local result][
