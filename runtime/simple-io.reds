@@ -1079,14 +1079,16 @@ simple-io: context [
 			name [red-string!]
 			len [integer!]
 	][
-		until [
-			dir: as red-string! ALLOC_TAIL(blk)
-			_series/copy as red-series! path as red-series! dir null yes null
-			len: lstrlen buffer
-			name: string/load as-c-string buffer len UTF-16LE
-			string/concatenate dir name -1 0 yes no
-			buffer: buffer + (len + 1 * 2)
-			all [buffer/1 = #"^@" buffer/2 = #"^@"]
+		#if OS = 'Windows [
+			until [
+				dir: as red-string! ALLOC_TAIL(blk)
+				_series/copy as red-series! path as red-series! dir null yes null
+				len: lstrlen buffer
+				name: string/load as-c-string buffer len UTF-16LE
+				string/concatenate dir name -1 0 yes no
+				buffer: buffer + (len + 1 * 2)
+				all [buffer/1 = #"^@" buffer/2 = #"^@"]
+			]
 		]
 	]
 
