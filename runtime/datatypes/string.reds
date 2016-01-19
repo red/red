@@ -754,7 +754,7 @@ string: context [
 		size2: (as-integer s2/tail - s2/offset) - h2
 		size:  (as-integer s1/tail - s1/offset) + (unit1 / unit2 * size2)		;-- account for keep?
 
-		if s1/size < size [s1: expand-series s1 size]
+		if s1/size < size [s1: expand-series s1 0]
 		
 		if part >= 0 [
 			part: part << (log-b unit2)
