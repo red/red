@@ -379,12 +379,12 @@ system/view: context [
 #include %draw.red
 #include %VID.red
 
-do-events: function [/no-wait return: [logic!]][
+do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
 		svs: system/view/screens/1
 		append svs/state/4 index? tail svs/pane
 	]
-	result: system/view/platform/do-event-loop no-wait
+	set/any 'result system/view/platform/do-event-loop no-wait
 	
 	unless no-wait [remove back tail svs/state/4]
 	:result
