@@ -25,6 +25,7 @@ Red/System [
 #include %button.reds
 #include %draw.reds
 
+exit-loop:		0
 process-id:		0
 border-width:	0
 hScreen:		as handle! 0
@@ -1297,7 +1298,11 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
-	if empty? [clean-up PostQuitMessage 0]
+	if empty? [
+		clean-up
+		exit-loop: exit-loop + 1
+		PostQuitMessage 0
+	]
 ]
 
 OS-update-facet: func [

@@ -880,7 +880,8 @@ do-events: func [
 ][
 	msg: declare tagMSG
 	msg?: no
-
+	exit-loop: 0
+	
 	while [
 		either no-wait? [
 			0 < PeekMessage msg null 0 0 1
@@ -897,5 +898,7 @@ do-events: func [
 		]
 		if no-wait? [return msg?]
 	]
+	exit-loop: exit-loop - 1
+	if exit-loop > 0 [PostQuitMessage 0]
 	msg?
 ]
