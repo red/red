@@ -195,13 +195,13 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
-				new-pane?: not all [block? old block? new same? head old head new]				
+				same-pane?: all [block? old block? new same? head old head new]				
 				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
-				if all [new-pane? block? old not empty? old][clear head old]	;-- destroy old faces
+				if all [not same-pane? block? old not empty? old][clear head old]	;-- destroy old faces
 			]
-			if all [new-pane? any [series? old object? old]][modify old 'owned none]
+			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
 			
-			unless any [new-pane? find [font para edge actors extra] word][
+			unless any [same-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font [link-sub-to-parent self 'font old new]
