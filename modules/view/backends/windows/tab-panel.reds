@@ -152,6 +152,7 @@ set-tabs: func [
 			int/value > nb [int/value: nb]
 			true 		   [0]
 		]
+		select-tab hWnd int/value - 1
 	]
 ]
 

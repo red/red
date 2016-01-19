@@ -741,10 +741,14 @@ OS-make-view: func [
 			class: #u16 "RedWindow"
 			flags: WS_BORDER or WS_CLIPCHILDREN
 			bits: get-flags as red-block! values + FACE_OBJ_FLAGS
-			if bits and FACET_FLAGS_RESIZE <> 0 [flags: flags or WS_THICKFRAME]
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
+			flags: either bits and FACET_FLAGS_RESIZE = 0 [
+				flags and (not WS_MAXIMIZEBOX)
+			][
+				flags or WS_THICKFRAME
+			]
 			if menu-bar? menu window [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
