@@ -168,6 +168,18 @@ register-classes: func [
 
 	RegisterClassEx wcex
 
+	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+	with terminal [
+		wcex/lpfnWndProc:	:ConsoleWndProc
+	]
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
+	wcex/hInstance:		hInstance
+	wcex/hCursor:		LoadCursor null IDC_IBEAM
+	wcex/hbrBackground:	0
+	wcex/lpszClassName: #u16 "RedConsole"
+
+	RegisterClassEx wcex
+
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
 	make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes

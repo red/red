@@ -376,8 +376,20 @@ system/view: context [
 ]
 
 #include %backends/platform.red
+#include %../../environment/console/console-object.red
+#include %../../environment/console/auto-complete.red
 #include %draw.red
 #include %VID.red
+
+ask: function [
+	question [string!]
+	return:  [string!]
+][
+	buffer: make string! 1
+	buffer
+]
+
+input: does [ask ""]
 
 do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [

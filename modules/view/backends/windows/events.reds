@@ -588,6 +588,7 @@ WndProc: func [
 		pos	   [integer!]
 		handle [handle!]
 		font   [red-object!]
+		face   [red-object!]
 		draw   [red-block!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
@@ -641,26 +642,33 @@ WndProc: func [
 			current-msg/hWnd: hWnd
 			make-event current-msg 0 type
 			
-			pair: as red-pair! stack/arguments
-			if TYPE_OF(pair) = TYPE_PAIR [
-				either msg = WM_MOVING [
-					pt: screen-to-client hWnd rc/left rc/top
-					rc/left:   pair/x	 + pt/x
-					rc/top:	   pair/y	 + pt/y
-					rc/right:  rc/right	 + pt/x
-					rc/bottom: rc/bottom + pt/y
-				][
-					pt: delta-size hWnd
-					rc/right:  rc/left + pair/x + pt/x
-					rc/bottom: rc/top + pair/y + pt/y
-				]
-			]
+			;pair: as red-pair! stack/arguments
+			;if TYPE_OF(pair) = TYPE_PAIR [
+			;	either msg = WM_MOVING [
+			;		pt: screen-to-client hWnd rc/left rc/top
+			;		rc/left:   pair/x	 + pt/x
+			;		rc/top:	   pair/y	 + pt/y
+			;		rc/right:  rc/right	 + pt/x
+			;		rc/bottom: rc/bottom + pt/y
+			;	][
+			;		pt: delta-size hWnd
+			;		rc/right:  rc/left + pair/x + pt/x
+			;		rc/bottom: rc/top + pair/y + pt/y
+			;	]
+			;]
 			return 1									;-- TRUE
 		]
 		WM_EXITSIZEMOVE [
 			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 			make-event current-msg 0 type
 			return 0
+		]
+		WM_SETFOCUS [
+			face: (as red-object! get-face-values hWnd) + FACE_OBJ_SELECTED
+			if TYPE_OF(face) = TYPE_OBJECT [
+				handle: face-handle? face
+				unless null? handle [SetFocus handle]
+			]
 		]
 		WM_GESTURE [
 			handle: hWnd

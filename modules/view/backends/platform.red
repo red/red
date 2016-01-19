@@ -210,6 +210,7 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
+			console:		symbol/make "console"
 			
 			
 			---:			symbol/make "---"
@@ -367,6 +368,7 @@ system/view/platform: context [
 
 			;#include %android/gui.reds
 			#include %windows/gui.reds
+			#include %terminal.reds
 		]
 	]
 

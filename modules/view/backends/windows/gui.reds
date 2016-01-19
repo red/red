@@ -579,13 +579,17 @@ store-face-to-hWnd: func [
 
 OS-show-window: func [
 	hWnd [integer!]
+	/local
+		face	[red-object!]
 ][
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
 		update-layered-window as handle! hWnd null null null -1
 	]
-	SetFocus as handle! hWnd
+
+	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
+	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
 ]
 
 OS-make-view: func [
@@ -727,6 +731,11 @@ OS-make-view: func [
 		]
 		sym = camera [
 			class: #u16 "RedCamera"
+		]
+		sym = console [
+			class: #u16 "RedConsole"
+			ws-flags: WS_EX_ACCEPTFILES
+			flags: flags or WS_VSCROLL
 		]
 		sym = window [
 			class: #u16 "RedWindow"

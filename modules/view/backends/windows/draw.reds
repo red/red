@@ -259,7 +259,7 @@ draw-end: func [
 		GetClientRect hWnd rect
 		width: rect/right - rect/left
 		height: rect/bottom - rect/top
-		BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY
+		BitBlt paint/hdc 0 0 width height dc 0 0 SRCCOPY
 	]
 
 	unless any [on-graphic? zero? modes/graphics][GdipDeleteGraphics modes/graphics]

@@ -586,9 +586,20 @@ unicode: context [
 		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
 		node
 	]
-	
+
 	to-utf16: func [
 		str		[red-string!]
+		return:	[c-string!]
+		/local
+			len [integer!]
+	][
+		len: -1
+		to-utf16-len str :len
+	]
+
+	to-utf16-len: func [
+		str		[red-string!]
+		len		[int-ptr!]					;-- len/value = -1 convert all chars
 		return: [c-string!]
 		/local
 			s	 [series!]
@@ -597,6 +608,7 @@ unicode: context [
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
+			part [integer!]
 			size [integer!]
 			unit [integer!]
 			cp	 [integer!]
@@ -604,8 +616,11 @@ unicode: context [
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
+		size: string/rs-length? str
+		if all [len/value <> -1 len/value < size][size: len/value]
+		part: size
+		size: size << 1 + 2			;-- including terminal-NUL
 
-		size: (string/rs-length? str) << 1 + 2			;-- including terminal-NUL
 		either null? str/cache [
 			node: alloc-bytes size
 			s2: as series! node/value
@@ -616,7 +631,7 @@ unicode: context [
 		str/cache: as-c-string s2/offset
 		
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-		tail: as byte-ptr! s/tail
+		tail: src + (part << (unit >> 1))
 		dst:  as byte-ptr! str/cache
 		switch unit [
 			Latin1 [
@@ -652,6 +667,7 @@ unicode: context [
 							dst/4: as-byte unit >> 8
 							p4: as int-ptr! dst
 							dst: dst + 4
+							len/value: len/value + 1
 						]
 						true [print "Error: to-utf16 codepoint overflow" return null]
 					]
