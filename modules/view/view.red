@@ -43,7 +43,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								system/view/platform/destroy-view face tail? skip at target pick tail owner/state/4 -2 part
+								system/view/platform/destroy-view face tail? skip at head target pick tail owner/state/4 -2 part
 							]
 							target: next target
 							zero? part: part - 1
