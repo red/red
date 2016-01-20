@@ -2935,7 +2935,7 @@ red: context [
 					breaks: [-12 -9 -6 -1]
 					set [obj fpath] object-access? copy/part path (length? path) - 1
 					ctx: second obj: find objects obj
-					['word/push-local ctx get-word-index/with pick tail path -2 ctx]
+					['word/from ctx get-word-index/with pick tail path -2 ctx]
 				][
 					breaks: [-10 -7 -4 -1]				;-- word is in global context
 					decorate-symbol path/1
