@@ -91,15 +91,25 @@ word: context [
 		node	[node!]
 		index	[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+
+		push from node index
+	]
+	
+	from: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-word!]
 		/local
 			ctx	[red-context!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
 		
 		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
-		push as red-word! s/offset + index
+		as red-word! s/offset + index
 	]
 	
 	at: func [
