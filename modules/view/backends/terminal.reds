@@ -319,18 +319,15 @@ terminal: context [
 				node/offset: offset
 				offset: string/rs-length? data
 				node/length: offset - node/offset
-				cursor: cursor + 1
-				if cursor > max [buf/tail: buf/offset cursor: 1]
-				if cursor = head [head: head % max + 1]
 				unless last? [nlines: nlines + 1]
-				if cp = 10 [
-					out/last: cursor
-					node/length: node/length - 1
-				]
+				if cp = 10 [node/length: node/length - 1]
 				n: string-lines? data node/offset node/length vt/cols
 				delta: either any [append? last?][n - node/nlines][n]
 				node/nlines: n
 				added: added + delta
+				cursor: cursor + 1
+				if cursor > max [buf/tail: buf/offset cursor: 1]
+				if cursor = head [head: head % max + 1]
 				node: lines + cursor - 1
 				node/nlines: 0
 			]
@@ -570,7 +567,7 @@ terminal: context [
 		out/last: 1
 		out/lines: as line-node! allocate out/max * size? line-node!
 		out/lines/offset: 0
-		out/lines/nlines: 0
+		out/lines/nlines: 1
 		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 4000
 		out/nlines: 1
 		out/h-idx: 0
@@ -926,7 +923,7 @@ terminal: context [
 			]
 			RS_KEY_ENTER [
 				add-history vt
-				emit-char vt cp no
+				emit-char vt 10 no
 				out/last: out/tail
 				#call [system/console/eval-command input]
 				set-prompt vt as red-string! #get system/console/cue

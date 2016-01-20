@@ -2,9 +2,12 @@ Red [Needs: 'View]
 
 #include %../environment/console/help.red
 
+system/view/init
+font-name: either find [5.1.0 5.0.0] system/view/platform/version ["Fixedsys"]["Consolas"]
+
 console: make face! [
 	type: 'console size: 640x400
-	font: make font! [name: "Consolas" size: 11]
+	font: make font! [name: font-name size: 11]
 ]
 
 win: make face! [
