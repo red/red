@@ -279,6 +279,22 @@ system: context [
 				]
 			]
 		]
+
+		on-change*: func [word old new][
+			probe "on-change*"
+			?? old
+			?? new
+			if word = 'path [set-current-dir new]
+		]
+
+		on-deep-change*: function [owner word target action new index part][
+			if all [
+				word = 'path
+				not find [remove clear take] action
+			][
+				set-current-dir new
+			]
+		]
 	]
 	
 	script: context [

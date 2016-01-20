@@ -72,13 +72,13 @@ last-lf?: routine [/local bool [red-logic!]][
 	bool/value:	 natives/last-lf?
 ]
 
-get-current-dir: routine [/local len [integer!] path [c-string!]][
-	len: 0
-	path: platform/get-current-dir :len
-	#either OS = 'Windows [
-		stack/set-last as cell! string/load path len UTF-16LE
-	][
-		stack/set-last as cell! string/load path len UTF-8
+get-current-dir: routine [][
+	stack/set-last as red-value! file/get-current-dir
+]
+
+set-current-dir: routine [path [string!] /local dir [red-file!]][
+	dir: as red-file! stack/arguments
+	unless platform/set-current-dir file/to-OS-path dir [
+		fire [TO_ERROR(access cannot-open) dir]
 	]
-	free as byte-ptr! path
 ]
