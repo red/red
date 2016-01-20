@@ -221,19 +221,19 @@ get-event-flag: func [
 ]
 
 decode-down-flags: func [
-	lParam  [integer!]
+	wParam  [integer!]
 	return: [integer!]
 	/local
 		flags [integer!]
 ][
 	flags: 0
-	if lParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
-	if lParam and 0002h <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]
-	if lParam and 0004h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]
-	if lParam and 0008h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
-	if lParam and 0010h <> 0 [flags: flags or EVT_FLAG_MID_DOWN]
-	if lParam and 0020h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]
-	if lParam and 0040h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
+	if wParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
+	if wParam and 0002h <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]
+	if wParam and 0004h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]
+	if wParam and 0008h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
+	if wParam and 0010h <> 0 [flags: flags or EVT_FLAG_MID_DOWN]
+	if wParam and 0020h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]
+	if wParam and 0040h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
 	flags
 ]
 
@@ -258,7 +258,7 @@ make-event: func [
 
 	switch evt [
 		EVT_OVER [
-			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/lParam
+			gui-evt/flags: gui-evt/flags or flags or decode-down-flags msg/wParam
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
