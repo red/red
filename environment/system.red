@@ -281,9 +281,6 @@ system: context [
 		]
 
 		on-change*: func [word old new][
-			probe "on-change*"
-			?? old
-			?? new
 			if word = 'path [set-current-dir new]
 		]
 
