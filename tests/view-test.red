@@ -103,11 +103,13 @@ sub-win: make face! [
 		make face! [
 			type: 'button text: "Close" offset: 120x10 size: 60x20
 			actors: object [
-				on-click: func [face [object!] event [event!]][unview]
+				on-click: func [face [object!] event [event!]][unview/all]
 			]
 		]
 	]
 ]
+
+;; requires pane cursor to be moved back in closing event handler
 
 win: make face! [
 	type: 'window text: "Red View" size: 1100x800
@@ -634,7 +636,7 @@ win/pane: reduce [
 		type: 'button text: "Sub-window" offset: 400x440 size: 70x24
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				show sub-win
+				view sub-win
 			]
 		]
 	]

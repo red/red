@@ -362,9 +362,9 @@ system/view: context [
 		set/any 'result do-actor face event event/type
 		
 		if all [event/type = 'close :result <> 'continue][
-			svs: system/view/screens/1		
+			svs: system/view/screens/1
 			remove find svs/pane face
-			result: pick [stop done] tail? at svs/pane pick tail svs/state/4 -2
+			result: pick [stop done] tail? at head svs/pane pick tail svs/state/4 -2
 		]	
 		:result
 	]
@@ -383,10 +383,18 @@ do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
 		svs: system/view/screens/1
 		append svs/state/4 index? tail svs/pane
+		svs/pane: at head svs/pane pick tail svs/state/4 -2
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
 	
-	unless no-wait [remove back tail svs/state/4]
+	unless no-wait [
+		remove back tail svs/state/4
+		svs/pane: either 1 = length? svs/state/4 [
+			head svs/pane
+		][
+			at head svs/pane pick tail svs/state/4 -2
+		]
+	]
 	:result
 ]
 
