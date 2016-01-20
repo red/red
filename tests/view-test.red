@@ -4,7 +4,7 @@ Red [
 	Icon: %red.ico
 ]
 
-system/view/debug?: yes
+system/view/debug?: no
 live?: system/view/auto-sync?: no
 
 workstation?: system/view/platform/product = 1
@@ -104,6 +104,19 @@ sub-win: make face! [
 			type: 'button text: "Close" offset: 120x10 size: 60x20
 			actors: object [
 				on-click: func [face [object!] event [event!]][unview/all]
+			]
+		]
+	]
+]
+
+sub-win2: make face! [
+	type: 'window text: "Sub" offset: 200x200 size: 200x100
+	pane: reduce [
+		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
+		make face! [
+			type: 'button text: "Close" offset: 120x10 size: 60x20
+			actors: object [
+				on-click: func [face [object!] event [event!]][unview]
 			]
 		]
 	]
@@ -637,6 +650,14 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				view sub-win
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Sub-window 2" offset: 400x470 size: 70x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				show sub-win2
 			]
 		]
 	]

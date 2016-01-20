@@ -364,7 +364,7 @@ system/view: context [
 		if all [event/type = 'close :result <> 'continue][
 			svs: system/view/screens/1
 			remove find svs/pane face
-			result: pick [stop done] tail? at head svs/pane pick tail svs/state/4 -2
+			result: pick [stop done] tail? at svs/pane pick tail svs/state/4 -2
 		]	
 		:result
 	]
@@ -383,18 +383,10 @@ do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
 		svs: system/view/screens/1
 		append svs/state/4 index? tail svs/pane
-		svs/pane: at head svs/pane pick tail svs/state/4 -2
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
 	
-	unless no-wait [
-		remove back tail svs/state/4
-		svs/pane: either 1 = length? svs/state/4 [
-			head svs/pane
-		][
-			at head svs/pane pick tail svs/state/4 -2
-		]
-	]
+	unless no-wait [remove back tail svs/state/4]
 	:result
 ]
 
@@ -490,11 +482,16 @@ unview: function [
 	if system/view/debug? [print ["unview: all:" :all "only:" only]]
 	
 	all?: :all											;-- compiler does not support redefining ALL
-	if empty? pane: system/view/screens/1/pane [exit]
+	svs: system/view/screens/1
+	if empty? pane: svs/pane [exit]
 	
 	case [
 		only  [remove find pane face]
-		all?  [while [not tail? pane][remove pane]]
+		all?  [
+			list: svs/state/4							;-- remove only the windows managed by latest event loop
+			pane: either 1 = length? list [head pane][at pane pick tail list -2]
+			while [not tail? pane][remove pane]
+		]
 		'else [remove back tail pane]
 	]
 ]
@@ -521,7 +518,8 @@ view: function [
 	unless spec/offset [center-face spec]
 	show spec
 	
-	either no-wait [spec][do-events]
+	either no-wait [spec][do-events ()]					;-- return unset! value by default
+	
 ]
 
 react: function [
