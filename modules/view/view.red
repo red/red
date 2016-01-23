@@ -312,6 +312,7 @@ system/view: context [
 	reactors: make block! 100
 	
 	evt-names: make hash! [
+		detect			on-detect
 		down			on-down
 		up				on-up
 		middle-down		on-mid-down
@@ -352,9 +353,11 @@ system/view: context [
 				if :result [return :result]
 			]
 		]
+		set/any 'result do-actor face event 'detect	;-- event capturing
 		
-		set/any 'result do-actor face event event/type
-		
+		if :result <> 'done [
+			set/any 'result do-actor face event event/type
+		]
 		if all [face/parent :result <> 'done][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
