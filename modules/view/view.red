@@ -346,11 +346,6 @@ system/view: context [
 	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
-		if face/parent [
-			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
-			if :result = 'stop [return 'stop]
-		]
-		
 		if face/type = 'window [
 			foreach handler handlers [
 				set/any 'result do-safe [handler face event]
@@ -359,6 +354,11 @@ system/view: context [
 		]
 		
 		set/any 'result do-actor face event event/type
+		
+		if all [face/parent :result <> 'done][
+			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
+			if :result = 'stop [return 'stop]
+		]
 		
 		if all [event/type = 'close :result <> 'continue][
 			windows: head remove find system/view/screens/1/pane face
