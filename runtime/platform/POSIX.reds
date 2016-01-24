@@ -37,6 +37,10 @@ Red/System [
 			size	[integer!]
 			return: [byte-ptr!]
 		]
+		chdir: "chdir" [
+			path	[c-string!]
+			return: [integer!]
+		]
 		usleep: "usleep" [
 			microseconds [integer!]
 			return: 	 [integer!]
@@ -242,4 +246,11 @@ get-current-dir: func [
 	if null? getcwd path 4095 [path/1: #"^@"]
 	len/value: length? as c-string! path
 	as c-string! path
+]
+
+set-current-dir: func [
+	path	[c-string!]
+	return: [logic!]
+][
+	zero? chdir path
 ]

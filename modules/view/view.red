@@ -313,6 +313,7 @@ system/view: context [
 	reactors: make block! 100
 	
 	evt-names: make hash! [
+		detect			on-detect
 		down			on-down
 		up				on-up
 		middle-down		on-mid-down
@@ -344,13 +345,8 @@ system/view: context [
 		press-tap		on-press-tap
 	]
 	
-	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
-		unless face [unless face: event/face [exit]]	;-- filter out unbound events
-		
-		if face/parent [
-			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
-			if :result = 'stop [return 'stop]
-		]
+	capture-events: function [face [object!] event [event!] /local result][
+		if face/parent [capture-events face/parent event]
 		
 		if face/type = 'window [
 			foreach handler handlers [
@@ -358,8 +354,23 @@ system/view: context [
 				if :result [return :result]
 			]
 		]
+		do-actor face event 'detect
+	]
+	
+	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
+		unless face [unless face: event/face [exit]]	;-- filter out unbound events
+		
+		unless with [
+			set/any 'result capture-events face event	;-- event capturing
+			if find [stop done] :result [return :result]
+		]
 		
 		set/any 'result do-actor face event event/type
+		
+		if all [face/parent :result <> 'done][
+			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
+			if :result = 'stop [return 'stop]
+		]
 		
 		if all [event/type = 'close :result <> 'continue][
 			svs: system/view/screens/1
@@ -398,7 +409,7 @@ do-safe: func [code [block!] /local result][
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!]][
+do-actor: function [face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type

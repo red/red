@@ -125,6 +125,10 @@ platform: context [
 				buffer			[byte-ptr!]
 				return:			[integer!]
 			]
+			SetCurrentDirectory: "SetCurrentDirectoryW" [
+				lpPathName		[c-string!]
+				return:			[logic!]
+			]
 			GetCommandLine: "GetCommandLineW" [
 				return:			[byte-ptr!]
 			]
@@ -478,6 +482,13 @@ platform: context [
 		GetCurrentDirectory size path
 		len/value: size - 1
 		as c-string! path
+	]
+
+	set-current-dir: func [
+		path	[c-string!]
+		return: [logic!]
+	][
+		SetCurrentDirectory path
 	]
 
 	;-------------------------------------------

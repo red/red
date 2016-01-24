@@ -1071,13 +1071,25 @@ simple-io: context [
 	]
 
 	file-list-to-block: func [
+		blk		[red-block!]
+		path	[red-string!]
 		buffer	[byte-ptr!]
-		return: [red-block!]
 		/local
-			blk [red-block!]
+			dir [red-string!]
+			name [red-string!]
+			len [integer!]
 	][
-		blk: block/push-only* 1
-		blk
+		#if OS = 'Windows [
+			until [
+				dir: as red-string! ALLOC_TAIL(blk)
+				_series/copy as red-series! path as red-series! dir null yes null
+				len: lstrlen buffer
+				name: string/load as-c-string buffer len UTF-16LE
+				string/concatenate dir name -1 0 yes no
+				buffer: buffer + (len + 1 * 2)
+				all [buffer/1 = #"^@" buffer/2 = #"^@"]
+			]
+		]
 	]
 
 	request-dir: func [
@@ -1148,6 +1160,7 @@ simple-io: context [
 			files	[red-value!]
 			base	[red-value!]
 			str		[red-string!]
+			blk		[red-block!]
 			pbuf	[byte-ptr!]
 			ofn
 	][
@@ -1186,12 +1199,23 @@ simple-io: context [
 
 			ret: either save? [GetSaveFileName ofn][GetOpenFileName ofn]
 			files: as red-value! either zero? ret [none-value][
+				len: lstrlen buffer
+				str: string/load as-c-string buffer len UTF-16LE
+				#call [to-red-file str]
+				str: as red-string! stack/arguments
 				as red-value! either multi? [
-					file-list-to-block buffer
+					pbuf: buffer + (len + 1 * 2)
+					stack/push*							;@@ stack/arguments is already used after #call [...]
+					blk: block/push-only* 1
+					either all [pbuf/1 = #"^@" pbuf/2 = #"^@"][
+						block/rs-append blk as red-value! str
+					][
+						string/append-char GET_BUFFER(str) as-integer #"/"
+						file-list-to-block blk str pbuf
+					]
+					blk
 				][
-					str: string/load as-c-string buffer lstrlen buffer UTF-16LE
-					#call [to-red-file str]
-					stack/arguments
+					str
 				]
 			]
 			free buffer
@@ -1348,28 +1372,26 @@ simple-io: context [
 				]
 
 				either hr >= 0 [
-					if method = HTTP_POST [
-						either header <> null [
-							s: GET_BUFFER(header)
-							value: s/offset + header/head
-							tail:  s/tail
+					either header <> null [
+						s: GET_BUFFER(header)
+						value: s/offset + header/head
+						tail:  s/tail
 
-							while [value < tail][
-								bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
-								value: value + 1
-								bstr-m: SysAllocString unicode/to-utf16 as red-string! value
-								value: value + 1
-								http/SetRequestHeader IH/ptr bstr-u bstr-m
-								SysFreeString bstr-m
-								SysFreeString bstr-u
-							]
-						][
-							bstr-u: SysAllocString #u16 "Content-Type"
-							bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
+						while [value < tail][
+							bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+							value: value + 1
+							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
+							value: value + 1
 							http/SetRequestHeader IH/ptr bstr-u bstr-m
 							SysFreeString bstr-m
 							SysFreeString bstr-u
 						]
+					][
+						bstr-u: SysAllocString #u16 "Content-Type"
+						bstr-m: SysAllocString #u16 "application/x-www-form-urlencoded"
+						http/SetRequestHeader IH/ptr bstr-u bstr-m
+						SysFreeString bstr-m
+						SysFreeString bstr-u
 					]
 					hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
 				][
@@ -1672,24 +1694,23 @@ simple-io: context [
 					]
 					body: CFDataCreate 0 buf datalen
 					CFHTTPMessageSetBody req body
+				]
 
-					CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
+				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
+				if header <> null [
+					s: GET_BUFFER(header)
+					value: s/offset + header/head
+					tail:  s/tail
 
-					if header <> null [
-						s: GET_BUFFER(header)
-						value: s/offset + header/head
-						tail:  s/tail
-
-						while [value < tail][
-							len: -1
-							cf-key: CFSTR((unicode/to-utf8 word/to-string as red-word! value :len))
-							value: value + 1
-							len: -1
-							cf-val: CFString((unicode/to-utf8 as red-string! value :len))
-							value: value + 1
-							CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
-							CFRelease cf-val
-						]
+					while [value < tail][
+						len: -1
+						cf-key: CFSTR((unicode/to-utf8 word/to-string as red-word! value :len))
+						value: value + 1
+						len: -1
+						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
+						value: value + 1
+						CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
+						CFRelease cf-val
 					]
 				]
 
@@ -1953,28 +1974,29 @@ simple-io: context [
 					curl_easy_setopt curl CURLOPT_HEADERFUNCTION as-integer :get-http-header
 				]
 
+				if header <> null [
+					s: GET_BUFFER(header)
+					value: s/offset + header/head
+					tail:  s/tail
+
+					while [value < tail][
+						str: word/to-string as red-word! value
+						string/append-char GET_BUFFER(str) as-integer #":"
+						string/append-char GET_BUFFER(str) as-integer #" "
+						value: value + 1
+						string/concatenate str as red-string! value -1 0 yes no
+						len: -1
+						slist: curl_slist_append slist unicode/to-utf8 str :len
+						value: value + 1
+					]
+					curl_easy_setopt curl CURLOPT_HTTPHEADER slist
+				]
+
 				case [
 					method = HTTP_GET [
 						curl_easy_setopt curl CURLOPT_HTTPGET 1
 					]
 					method = HTTP_POST [
-						if header <> null [
-							s: GET_BUFFER(header)
-							value: s/offset + header/head
-							tail:  s/tail
-
-							while [value < tail][
-								str: word/to-string as red-word! value
-								string/append-char GET_BUFFER(str) as-integer #":"
-								string/append-char GET_BUFFER(str) as-integer #" "
-								value: value + 1
-								string/concatenate str as red-string! value -1 0 yes no
-								len: -1
-								slist: curl_slist_append slist unicode/to-utf8 str :len
-								value: value + 1
-							]
-							curl_easy_setopt curl CURLOPT_HTTPHEADER slist
-						]
 						len: -1
 						either TYPE_OF(data) = TYPE_STRING [
 							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len

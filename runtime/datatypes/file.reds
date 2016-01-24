@@ -59,6 +59,24 @@ file: context [
 		ret
 	]
 
+	get-current-dir: func [
+		return: [red-string!]
+		/local
+			len  [integer!]
+			path [c-string!]
+			dir  [red-string!]
+	][
+		len: 0
+		path: platform/get-current-dir :len
+		#either OS = 'Windows [
+			dir: string/load path len UTF-16LE
+		][
+			dir: string/load path len UTF-8
+		]
+		free as byte-ptr! path
+		dir
+	]
+
 	to-local-path: func [
 		src		[red-file!]
 		out		[red-string!]
@@ -67,6 +85,8 @@ file: context [
 			s	 [series!]
 			p	 [byte-ptr!]
 			end  [byte-ptr!]
+			dir  [c-string!]
+			len  [integer!]
 			unit [integer!]
 			c	 [integer!]
 			d	 [integer!]
@@ -87,23 +107,30 @@ file: context [
 					p: p + unit
 				]
 				if c <> as-integer #"/" [		;-- %/c
+					d: as-integer #"/"
 					if p < end [d: string/get-char p unit]
 					either d = as-integer #"/" [
-						string/append-char s c
-						string/append-char s as-integer #":"
+						s: string/append-char s c
+						s: string/append-char s as-integer #":"
+						p: p + unit
 					][
-						string/append-char s OS_DIR_SEP
+						s: string/append-char s OS_DIR_SEP
+						p: p - unit
 					]
 				]
 			]
-			string/append-char s OS_DIR_SEP
+			s: string/append-char s OS_DIR_SEP
 		][
-			string/append-char s c
+			if full? [
+				string/concatenate out get-current-dir -1 0 yes no
+				s: string/append-char GET_BUFFER(out) OS_DIR_SEP
+			]
 		]
 
-		while [p: p + unit p < end][
+		while [p < end][
 			c: string/get-char p unit
-			string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
+			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
+			p: p + unit
 		]
 		out
 	]
