@@ -353,7 +353,7 @@ system/view: context [
 				if :result [return :result]
 			]
 		]
-		do-actor face event 'detect
+		if capturing? [do-actor face event 'detect]
 	]
 	
 	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
@@ -380,6 +380,7 @@ system/view: context [
 	
 	init: does [unless screens [system/view/platform/init]]
 	
+	capturing?: no
 	auto-sync?: yes
 	debug?: no
 ]
