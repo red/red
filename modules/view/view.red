@@ -360,7 +360,7 @@ system/view: context [
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [
-			set/any 'result capture-events face event
+			set/any 'result capture-events face event	;-- event capturing
 			if find [stop done] :result [return :result]
 		]
 		
