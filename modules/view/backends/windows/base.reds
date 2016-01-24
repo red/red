@@ -182,7 +182,6 @@ update-layered-window: func [
 		size	[red-pair!]
 		pt		[tagPOINT]
 		rect	[RECT_STRUCT]
-		sym		[integer!]
 		style	[integer!]
 		border	[integer!]
 		width	[integer!]
@@ -199,72 +198,73 @@ update-layered-window: func [
 		yes
 	]
 
-	sym: symbol/resolve type/symbol
-	case [
-		any [sym = window sym = panel sym = group-box sym = tab-panel] [
-			pane: as red-block! values + FACE_OBJ_PANE
-			if TYPE_OF(pane) = TYPE_BLOCK [
-				face: as red-object! block/rs-head pane
-				tail: as red-object! block/rs-tail pane
-				while [face < tail][
-					state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
-					if TYPE_OF(state) = TYPE_BLOCK [
-						update-layered-window get-face-handle face hdwp offset winpos showflag
-					]
-					face: face + 1
-				]
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		bool: as red-logic! values + FACE_OBJ_VISIBLE?
+		unless bool/value [showflag: -2]
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
+			if TYPE_OF(state) = TYPE_BLOCK [
+				update-layered-window get-face-handle face hdwp offset winpos showflag
 			]
+			face: face + 1
 		]
-		sym = base [
-			either offset <> null [
-				style: GetWindowLong hWnd GWL_EXSTYLE
-				if style and WS_EX_LAYERED > 0 [
-					pos: as red-pair! values + FACE_OBJ_OFFSET
-					pt: declare tagPOINT
-					pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
-					pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
-					unless all [zero? offset/x zero? offset/y][
-						pos/x: pos/x + offset/x
-						pos/y: pos/y + offset/y
-						hdwp: DeferWindowPos
-							hdwp
-							hWnd
-							null
-							pt/x pt/y
-							0 0
-							SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-						SetWindowLong hWnd wc-offset - 4 pt/x
-						SetWindowLong hWnd wc-offset - 8 pt/y
+	]
+	if all [
+		sub?
+		base = symbol/resolve type/symbol
+	][
+		either offset <> null [
+			style: GetWindowLong hWnd GWL_EXSTYLE
+			if style and WS_EX_LAYERED > 0 [
+				pt: declare tagPOINT
+				pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
+				pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
+				unless all [zero? offset/x zero? offset/y][
+					hdwp: DeferWindowPos
+						hdwp
+						hWnd
+						null
+						pt/x pt/y
+						0 0
+						SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+					SetWindowLong hWnd wc-offset - 4 pt/x
+					SetWindowLong hWnd wc-offset - 8 pt/y
+				]
+				if all [										;-- clip window
+					winpos <> null
+					winpos/flags and SWP_NOSIZE = 0				;-- sized
+					winpos/flags and 8000h = 0					;-- not maximize and minimize
+				][
+					rect: declare RECT_STRUCT
+					GetClientRect winpos/hWnd rect
+					border: winpos/cx - rect/right >> 1
+					size: as red-pair! values + FACE_OBJ_SIZE
+					width: size/x
+					height: size/y
+					if pt/x + size/x + border > (winpos/x + winpos/cx) [
+						width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
 					]
-					if all [										;-- clip window
-						winpos/flags and SWP_NOSIZE = 0				;-- sized
-						winpos/flags and 8000h = 0					;-- not maximize and minimize
-					][
-						rect: declare RECT_STRUCT
-						GetClientRect winpos/hWnd rect
-						border: winpos/cx - rect/right >> 1
-						size: as red-pair! values + FACE_OBJ_SIZE
-						width: size/x
-						height: size/y
-						if pt/x + size/x + border > (winpos/x + winpos/cx) [
-							width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
-						]
-						if pt/y + size/y + border > (winpos/y + winpos/cy) [
-							height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
-						]
+					if pt/y + size/y + border > (winpos/y + winpos/cy) [
+						height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
+					]
 
-						clip-layered-window hWnd size 0 0 width height
-					]
+					clip-layered-window hWnd size 0 0 width height
 				]
-			][
-				bool: as red-logic! values + FACE_OBJ_VISIBLE?
-				either bool/value [
-					if showflag = -1 [showflag: SW_SHOWNA]
-				][showflag: SW_HIDE]
-				ShowWindow hWnd showflag
 			]
+		][
+			bool: as red-logic! values + FACE_OBJ_VISIBLE?
+			either bool/value [
+				case [
+					showflag = -1 [showflag: SW_SHOWNA]
+					showflag = -2 [showflag: SW_HIDE]		;-- parent is invisible
+					true [0]
+				]
+			][showflag: SW_HIDE]
+			ShowWindow hWnd showflag
 		]
-		true [0]
 	]
 	unless sub? [EndDeferWindowPos hdwp]
 ]
@@ -278,6 +278,9 @@ BaseWndProc: func [
 	/local
 		flags	[integer!]
 		draw	[red-block!]
+		pt		[tagPOINT]
+		offset	[red-pair!]
+		winpos	[tagWINDOWPOS]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
