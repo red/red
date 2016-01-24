@@ -97,7 +97,7 @@ FFFFFFFFFFFFFF000000000000000000000000000000FFFFFFFFFFFFFFFFFF00
 }]
 
 sub-win: make face! [
-	type: 'window text: "Sub" offset: 200x200 size: 200x100
+	type: 'window text: "Sub 1-View" offset: 200x200 size: 200x100
 	pane: reduce [
 		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
 		make face! [
@@ -110,7 +110,7 @@ sub-win: make face! [
 ]
 
 sub-win2: make face! [
-	type: 'window text: "Sub" offset: 200x200 size: 200x100
+	type: 'window text: "Sub 2-Show" offset: 200x200 size: 200x100
 	pane: reduce [
 		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
 		make face! [

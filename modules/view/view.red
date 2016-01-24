@@ -43,7 +43,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								system/view/platform/destroy-view face tail? skip at head target pick tail owner/state/4 -2 part
+								system/view/platform/destroy-view face face/state/4 = 1
 							]
 							target: next target
 							zero? part: part - 1
@@ -373,9 +373,8 @@ system/view: context [
 		]
 		
 		if all [event/type = 'close :result <> 'continue][
-			svs: system/view/screens/1
-			remove find svs/pane face
-			result: pick [stop done] tail? at svs/pane pick tail svs/state/4 -2
+			remove find system/view/screens/1/pane face
+			result: pick [stop done] face/state/4 = 1
 		]	
 		:result
 	]
@@ -392,12 +391,12 @@ system/view: context [
 
 do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
-		svs: system/view/screens/1
-		append svs/state/4 index? tail svs/pane
+		win: last system/view/screens/1/pane
+		win/state/4: 1
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
 	
-	unless no-wait [remove back tail svs/state/4]
+	unless no-wait [win/state/4: 0]
 	:result
 ]
 
@@ -498,11 +497,7 @@ unview: function [
 	
 	case [
 		only  [remove find pane face]
-		all?  [
-			list: svs/state/4							;-- remove only the windows managed by latest event loop
-			pane: either 1 = length? list [head pane][at pane pick tail list -2]
-			while [not tail? pane][remove pane]
-		]
+		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
 ]
