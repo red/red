@@ -344,8 +344,8 @@ system/view: context [
 		press-tap		on-press-tap
 	]
 	
-	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
-		unless face [unless face: event/face [exit]]	;-- filter out unbound events
+	capture-events: function [face [object!] event [event!] /local result][
+		if face/parent [capture-events face/parent event]
 		
 		if face/type = 'window [
 			foreach handler handlers [
@@ -353,11 +353,19 @@ system/view: context [
 				if :result [return :result]
 			]
 		]
-		set/any 'result do-actor face event 'detect	;-- event capturing
+		do-actor face event 'detect
+	]
+	
+	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
+		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
-		if :result <> 'done [
-			set/any 'result do-actor face event event/type
+		unless with [
+			set/any 'result capture-events face event
+			if find [stop done] :result [return :result]
 		]
+		
+		set/any 'result do-actor face event event/type
+		
 		if all [face/parent :result <> 'done][
 			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
 			if :result = 'stop [return 'stop]
@@ -392,7 +400,7 @@ do-safe: func [code [block!] /local result][
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!]][
+do-actor: function [face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type
