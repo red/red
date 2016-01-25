@@ -12,7 +12,7 @@ Red [
 
 #include %input.red
 #include %help.red
-#include %console-object.red
+#include %engine.red
 
 if system/platform = 'Windows [
 	system/console/init-console "Red Console"

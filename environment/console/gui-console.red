@@ -1,7 +1,7 @@
 Red [Needs: 'View]
 
 #include %help.red
-#include %console-object.red
+#include %engine.red
 #include %auto-complete.red
 
 ask: function [
