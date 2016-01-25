@@ -43,7 +43,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								system/view/platform/destroy-view face face/state/4 = 1
+								system/view/platform/destroy-view face face/state/4
 							]
 							target: next target
 							zero? part: part - 1
@@ -374,7 +374,7 @@ system/view: context [
 		
 		if all [event/type = 'close :result <> 'continue][
 			remove find system/view/screens/1/pane face
-			result: pick [stop done] face/state/4 = 1
+			result: pick [stop done] face/state/4
 		]	
 		:result
 	]
@@ -386,25 +386,13 @@ system/view: context [
 ]
 
 #include %backends/platform.red
-#include %../../environment/console/console-object.red
-#include %../../environment/console/auto-complete.red
 #include %draw.red
 #include %VID.red
-
-ask: function [
-	question [string!]
-	return:  [string!]
-][
-	buffer: make string! 1
-	buffer
-]
-
-input: does [ask ""]
 
 do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
 		win: last system/view/screens/1/pane
-		win/state/4: 1
+		win/state/4: true
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
 	:result
