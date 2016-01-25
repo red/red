@@ -23,4 +23,9 @@ win: make face! [
 	pane: reduce [console]
 ]
 
-view/flags win [resize]
+view/flags/no-wait win [resize]
+
+svs: system/view/screens/1
+svs/pane: next svs/pane
+
+do-events

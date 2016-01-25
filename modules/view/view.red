@@ -407,8 +407,6 @@ do-events: function [/no-wait return: [logic!] /local result][
 		win/state/4: 1
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
-	
-	unless no-wait [win/state/4: 0]
 	:result
 ]
 
@@ -508,7 +506,7 @@ unview: function [
 	if empty? pane: svs/pane [exit]
 	
 	case [
-		only  [remove find pane face]
+		only  [remove find head pane face]
 		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
