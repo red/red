@@ -1,6 +1,18 @@
 Red [Needs: 'View]
 
 #include %../environment/console/help.red
+#include %../environment/console/console-object.red
+#include %../environment/console/auto-complete.red
+
+ask: function [
+	question [string!]
+	return:  [string!]
+][
+	buffer: make string! 1
+	buffer
+]
+
+input: does [ask ""]
 
 system/view/init
 font-name: either find [5.1.0 5.0.0] system/view/platform/version ["Fixedsys"]["Consolas"]
