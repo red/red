@@ -1,8 +1,8 @@
 Red [Needs: 'View]
 
-#include %../environment/console/help.red
-#include %../environment/console/console-object.red
-#include %../environment/console/auto-complete.red
+#include %help.red
+#include %console-object.red
+#include %auto-complete.red
 
 ask: function [
 	question [string!]
