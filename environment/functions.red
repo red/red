@@ -495,6 +495,13 @@ what-dir: func [/local path][
 	path
 ]
 
+change-dir: func [
+	"Changes the active directory path"
+	dir [file!]
+][
+	system/options/path: dir
+]
+
 to-image: func [value][
 	case [
 		binary? value [

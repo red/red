@@ -476,7 +476,6 @@ system/view/platform: context [
 		system/view/screens: svs: make block! 6
 		
 		append svs make face! [							;-- default screen
-			name:	none
 			type:	'screen
 			offset: 0x0
 			size:	get-screen-size 0

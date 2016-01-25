@@ -43,7 +43,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								system/view/platform/destroy-view face tail? skip at head target pick tail owner/state/4 -2 part
+								system/view/platform/destroy-view face face/state/4 = 1
 							]
 							target: next target
 							zero? part: part - 1
@@ -313,6 +313,7 @@ system/view: context [
 	reactors: make block! 100
 	
 	evt-names: make hash! [
+		detect			on-detect
 		down			on-down
 		up				on-up
 		middle-down		on-mid-down
@@ -344,13 +345,8 @@ system/view: context [
 		press-tap		on-press-tap
 	]
 	
-	awake: function [event [event!] /with face][		;@@ temporary until event:// is implemented
-		unless face [unless face: event/face [exit]]	;-- filter out unbound events
-		
-		if face/parent [
-			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
-			if :result = 'stop [return 'stop]
-		]
+	capture-events: function [face [object!] event [event!] /local result][
+		if face/parent [capture-events face/parent event]
 		
 		if face/type = 'window [
 			foreach handler handlers [
@@ -358,13 +354,27 @@ system/view: context [
 				if :result [return :result]
 			]
 		]
+		do-actor face event 'detect
+	]
+	
+	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
+		unless face [unless face: event/face [exit]]	;-- filter out unbound events
+		
+		unless with [
+			set/any 'result capture-events face event	;-- event capturing
+			if find [stop done] :result [return :result]
+		]
 		
 		set/any 'result do-actor face event event/type
 		
+		if all [face/parent :result <> 'done][
+			set/any 'result system/view/awake/with event face/parent ;-- event bubbling
+			if :result = 'stop [return 'stop]
+		]
+		
 		if all [event/type = 'close :result <> 'continue][
-			svs: system/view/screens/1		
-			remove find svs/pane face
-			result: pick [stop done] tail? at svs/pane pick tail svs/state/4 -2
+			remove find system/view/screens/1/pane face
+			result: pick [stop done] face/state/4 = 1
 		]	
 		:result
 	]
@@ -393,12 +403,12 @@ input: does [ask ""]
 
 do-events: function [/no-wait return: [logic!] /local result][
 	unless no-wait [
-		svs: system/view/screens/1
-		append svs/state/4 index? tail svs/pane
+		win: last system/view/screens/1/pane
+		win/state/4: 1
 	]
 	set/any 'result system/view/platform/do-event-loop no-wait
 	
-	unless no-wait [remove back tail svs/state/4]
+	unless no-wait [win/state/4: 0]
 	:result
 ]
 
@@ -410,7 +420,7 @@ do-safe: func [code [block!] /local result][
 	get/any 'result
 ]
 
-do-actor: function [face [object!] event [event! none!] type [word!]][
+do-actor: function [face [object!] event [event! none!] type [word!] /local result][
 	if all [
 		object? face/actors
 		act: in face/actors name: select system/view/evt-names type
@@ -494,11 +504,12 @@ unview: function [
 	if system/view/debug? [print ["unview: all:" :all "only:" only]]
 	
 	all?: :all											;-- compiler does not support redefining ALL
-	if empty? pane: system/view/screens/1/pane [exit]
+	svs: system/view/screens/1
+	if empty? pane: svs/pane [exit]
 	
 	case [
 		only  [remove find pane face]
-		all?  [while [not tail? pane][remove pane]]
+		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
 ]
@@ -525,7 +536,8 @@ view: function [
 	unless spec/offset [center-face spec]
 	show spec
 	
-	either no-wait [spec][do-events]
+	either no-wait [spec][do-events ()]					;-- return unset! value by default
+	
 ]
 
 react: function [

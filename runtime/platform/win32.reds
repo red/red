@@ -120,6 +120,10 @@ platform: context [
 				buffer			[byte-ptr!]
 				return:			[integer!]
 			]
+			SetCurrentDirectory: "SetCurrentDirectoryW" [
+				lpPathName		[c-string!]
+				return:			[logic!]
+			]
 			GetCommandLine: "GetCommandLineW" [
 				return:			[byte-ptr!]
 			]
@@ -226,6 +230,13 @@ platform: context [
 	]
 
 	wait: func [time [integer!]][Sleep time]
+
+	set-current-dir: func [
+		path	[c-string!]
+		return: [logic!]
+	][
+		SetCurrentDirectory path
+	]
 
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks

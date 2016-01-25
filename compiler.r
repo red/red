@@ -2795,7 +2795,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field? parent fire index
+			fpath symbol obj self? true-blk defer obj-field? parent fire index breaks
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2926,21 +2926,29 @@ red: context [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
 				]
-				parent: first back back tail path
 				fire: pick [
 					object/loc-fire-on-set*
 					object/fire-on-set*
-				] to logic! local-word? parent
+				] to logic! local-word? first back back tail path
 				
-				repend last output [
+				parent: either 2 < length? path [		;-- extract word from parent context
+					breaks: [-12 -9 -6 -1]
+					set [obj fpath] object-access? copy/part path (length? path) - 1
+					ctx: second obj: find objects obj
+					['word/from ctx get-word-index/with pick tail path -2 ctx]
+				][
+					breaks: [-10 -7 -4 -1]				;-- word is in global context
+					[decorate-symbol path/1]
+				]
+				repend last output compose [
 					fire
-						decorate-symbol parent
+						(parent)
 						decorate-exec-ctx decorate-symbol last path
 				]
 				append last output [
 					stack/reset
 				]
-				foreach pos [-10 -7 -4 -1][new-line skip tail last output pos yes]
+				foreach pos breaks [new-line skip tail last output pos yes]
 			]
 		]
 		mark: tail output
