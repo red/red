@@ -163,7 +163,11 @@ platform: context [
 	]
 
 	#either sub-system = 'gui [
-		#include %win32-gui.reds
+		#either debug? = yes [
+			#include %win32-cli.reds
+		][
+			#include %win32-gui.reds
+		]
 	][
 		#include %win32-cli.reds
 	]

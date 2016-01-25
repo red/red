@@ -373,8 +373,9 @@ system/view: context [
 		]
 		
 		if all [event/type = 'close :result <> 'continue][
-			remove find system/view/screens/1/pane face
-			result: pick [stop done] face/state/4
+			flag?: face/state/4							;-- face/state will be none after remove call
+			remove find head system/view/screens/1/pane face
+			result: pick [stop done] flag?
 		]	
 		:result
 	]
