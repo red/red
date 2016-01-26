@@ -248,11 +248,25 @@ on-key-down: func [
 		VK_END		[RS_KEY_END]
 		VK_PRIOR	[RS_KEY_PAGE_UP]
 		VK_NEXT		[RS_KEY_PAGE_DOWN]
-		VK_LEFT		[RS_KEY_LEFT]
-		VK_RIGHT	[RS_KEY_RIGHT]
+		VK_LEFT		[
+			case [
+				negative? ctrl  [RS_KEY_CTRL_LEFT]
+				negative? shift [RS_KEY_SHIFT_LEFT]
+				true			[RS_KEY_LEFT]
+			]
+		]
+		VK_RIGHT	[
+			case [
+				negative? ctrl  [RS_KEY_CTRL_RIGHT]
+				negative? shift [RS_KEY_SHIFT_RIGHT]
+				true			[RS_KEY_RIGHT]
+			]
+		]
 		VK_UP		[RS_KEY_UP]
 		VK_DOWN		[RS_KEY_DOWN]
-		VK_DELETE	[RS_KEY_DELETE]
+		VK_DELETE	[
+			either negative? ctrl [RS_KEY_CTRL_DELETE][RS_KEY_DELETE]
+		]
 		default		[RS_KEY_NONE]
 	]
 ]
@@ -342,7 +356,7 @@ ConsoleWndProc: func [
 		]
 		WM_SETFOCUS [
 			CreateCaret hWnd null 1 vt/char-h
-			update-caret vt
+			if vt/input? [update-caret vt]
 			return 0
 		]
 		WM_KILLFOCUS [
@@ -355,9 +369,7 @@ ConsoleWndProc: func [
 			either select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes [
 				SetCapture hWnd
 			][
-				out: vt/out
-				out/s-head: -1
-				out/s-tail: -1
+				cancel-select vt
 				refresh vt
 			]
 			return 0
@@ -370,8 +382,6 @@ ConsoleWndProc: func [
 				out/s-h-idx = out/s-t-idx
 			][
 				cancel-select vt
-				out/s-head: -1
-				out/s-tail: -1
 				refresh vt
 			]
 			ReleaseCapture
