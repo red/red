@@ -417,6 +417,7 @@ get-flags: func [
 			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
 			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
+			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1

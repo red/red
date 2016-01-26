@@ -69,6 +69,7 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 				
+				FACET_FLAGS_MODAL:		02000000h
 				FACET_FLAGS_RESIZE:		04000000h
 				FACET_FLAGS_NO_BTNS:	08000000h
 				FACET_FLAGS_NO_MAX:		10000000h
@@ -233,6 +234,7 @@ system/view/platform: context [
 			no-min:			symbol/make "no-min"
 			no-max:			symbol/make "no-max"
 			no-buttons:		symbol/make "no-buttons"
+			modal:			symbol/make "modal"
 			
 			_text:			word/load "text"
 			_control:		word/load "control"

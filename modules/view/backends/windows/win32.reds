@@ -988,6 +988,11 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
+		EnableWindow: "EnableWindow" [
+			hWnd		[handle!]
+			bEnable		[logic!]
+			return:		[logic!]
+		]
 		InvalidateRect: "InvalidateRect" [
 			hWnd		[handle!]
 			lpRect		[RECT_STRUCT]

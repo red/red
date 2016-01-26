@@ -15,6 +15,41 @@ Red [
 	event/init
 ]
 
+find-flag?: routine [
+	facet	[any-type!]
+	flag 	[word!]
+	/local
+		word   [red-word!]
+		value  [red-value!]
+		tail   [red-value!]
+		bool   [red-logic!]
+		found? [logic!]
+][
+	switch TYPE_OF(facet) [
+		TYPE_WORD  [
+			word: as red-word! facet
+			found?: EQUAL_WORDS?(flag word)
+		]
+		TYPE_BLOCK [
+			found?: no
+			value: block/rs-head as red-block! facet
+			tail:  block/rs-tail as red-block! facet
+			
+			while [all [not found? value < tail]][
+				if TYPE_OF(value) = TYPE_WORD [
+					word: as red-word! value
+					found?: EQUAL_WORDS?(flag word)
+				]
+				value: value + 1
+			]
+		]
+		default [found?: no]
+	]
+	bool: as red-logic! stack/arguments
+	bool/header: TYPE_LOGIC
+	bool/value:	 found?
+]
+
 on-face-deep-change*: function [owner word target action new index part state forced?][
 	if system/view/debug? [
 		print [
@@ -43,7 +78,17 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
+								modal?: find-flag? face/flags 'modal
 								system/view/platform/destroy-view face face/state/4
+								
+								if all [modal? not empty? head target][
+									pane: target
+									until [
+										pane: back pane
+										pane/1/enable?: yes
+										any [head? pane find-flag? pane/1/flags 'modal]
+									]
+								]
 							]
 							target: next target
 							zero? part: part - 1
@@ -467,7 +512,13 @@ show: function [
 			
 			switch face/type [
 				tab-panel [link-tabs-to-parent face]
-				window	  [append system/view/screens/1/pane face]
+				window	  [
+					pane: system/view/screens/1/pane
+					if find-flag? face/flags 'modal [
+						foreach f head pane [f/enable?: no]
+					]
+					append pane face
+				]
 			]
 		]
 		face/state: reduce [obj 0 none none]
