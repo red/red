@@ -121,6 +121,12 @@ paste-from-clipboard: func [
 				either cp = as-integer #"^-" [
 					loop 4 [edit vt 32]
 				][
+					if all [
+						cp = 13
+						(as-integer p/4) << 8 + p/3 = 10
+					][
+						p: p + 2
+					]
 					if cp = 10 [cp: 13]
 					edit vt cp
 				]
@@ -413,4 +419,32 @@ ConsoleWndProc: func [
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
+]
+
+wcex: declare WNDCLASSEX
+
+wcex/cbSize: 		size? WNDCLASSEX
+wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+wcex/lpfnWndProc:	:ConsoleWndProc
+wcex/cbClsExtra:	0
+wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
+wcex/hInstance:		hInstance
+wcex/hIcon:			null
+wcex/hCursor:		LoadCursor null IDC_IBEAM
+wcex/hbrBackground:	0
+wcex/lpszMenuName:	null
+wcex/lpszClassName: #u16 "RedConsole"
+wcex/hIconSm:		0
+
+RegisterClassEx wcex
+
+register-class [
+	#u16 "RedConsole"								;-- widget original name
+	null											;-- new internal name
+	symbol/make "console"							;-- Red-level style name
+	WS_EX_ACCEPTFILES								;-- exStyle flags
+	WS_VSCROLL										;-- style flags
+	0												;-- base ID for instances
+	null											;-- style custom event handler
+	null											;-- parent custom event handler
 ]
