@@ -4,7 +4,7 @@ Red [
 	Icon: %red.ico
 ]
 
-system/view/debug?: no
+system/view/debug?: yes
 live?: system/view/auto-sync?: no
 
 workstation?: system/view/platform/product = 1

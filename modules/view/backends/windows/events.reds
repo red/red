@@ -410,6 +410,14 @@ process-command-event: func [
 			]
 			0
 		]
+		EN_SETFOCUS [
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_FOCUS
+		]
+		EN_KILLFOCUS [
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_UNFOCUS
+		]
 		CBN_SELCHANGE [
 			current-msg/hWnd: as handle! lParam			;-- force ListBox or Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE

@@ -90,6 +90,8 @@ Red/System [
 #define LBN_DBLCLK          2
 
 #define EN_CHANGE			0300h
+#define EN_SETFOCUS			0100h
+#define EN_KILLFOCUS		0200h
 
 #define TCN_SELCHANGE       -551
 #define TCN_SELCHANGING		-552

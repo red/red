@@ -375,6 +375,8 @@ system/view: context [
 		over			on-over
 		key				on-key
 		key-up			on-key-up
+		focus			on-focus
+		unfocus			on-unfocus
 		select			on-select
 		change			on-change
 		menu			on-menu
