@@ -342,7 +342,7 @@ ConsoleWndProc: func [
 		]
 		WM_SETFOCUS [
 			CreateCaret hWnd null 1 vt/char-h
-			update-caret vt
+			if vt/input? [update-caret vt]
 			return 0
 		]
 		WM_KILLFOCUS [

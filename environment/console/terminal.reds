@@ -106,6 +106,7 @@ terminal: context [
 		select?		[logic!]
 		select-all? [logic!]
 		ask?		[logic!]
+		input?		[logic!]
 		select-x	[integer!]
 		select-y	[integer!]
 		s-head		[integer!]
@@ -530,6 +531,13 @@ terminal: context [
 		refresh vt
 	]
 
+	hide-caret: func [vt [terminal!]][
+		if vt/caret? [
+			vt/caret?: no
+			OS-hide-caret vt
+		]
+	]
+
 	update-caret: func [
 		vt [terminal!]
 		/local
@@ -607,6 +615,7 @@ terminal: context [
 		vt/select?: no
 		vt/select-all?: no
 		vt/ask?: no
+		vt/input?: yes
 		vt/prompt: as red-string! #get system/console/prompt
 		vt/prompt-len: string/rs-length? vt/prompt
 
@@ -929,6 +938,8 @@ terminal: context [
 			cursor	[integer!]
 			cue		[red-string!]
 	][
+		unless vt/input? [exit]
+
 		out: vt/out
 		input: vt/in
 		cursor: vt/cursor
@@ -938,6 +949,8 @@ terminal: context [
 				if zero? complete-line vt input [edit vt 32]
 			]
 			RS_KEY_ENTER [
+				vt/input?: no
+				hide-caret vt
 				cursor: string/rs-abs-length? input
 				vt/cursor: cursor
 				unless 27 = string/rs-abs-at input cursor - 1 [
@@ -946,9 +959,11 @@ terminal: context [
 				]
 				out/last: out/tail
 				#call [system/console/eval-command input]
+				vt/input?: yes
 				set-prompt vt as red-string! #get system/console/cue
 				cursor: out/tail - 1
 				out/last: either zero? cursor [out/max][cursor]
+				update-caret vt
 			]
 			RS_KEY_CTRL_H
 			RS_KEY_BACKSPACE [unless emit-char vt cp yes [exit]]
