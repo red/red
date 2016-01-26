@@ -28,6 +28,7 @@ terminal: context [
 	#define RS_KEY_CTRL_RIGHT	-31
 	#define RS_KEY_SHIFT_LEFT	-32
 	#define RS_KEY_SHIFT_RIGHT	-33
+	#define RS_KEY_CTRL_DELETE	-34
 	#define RS_KEY_CTRL_A		1
 	#define RS_KEY_CTRL_B		2
 	#define RS_KEY_CTRL_C		3
@@ -1022,6 +1023,11 @@ terminal: context [
 				emit-char vt cp no
 				edit vt RS_KEY_ENTER
 			]
+			RS_KEY_CTRL_LEFT   [0]
+			RS_KEY_SHIFT_LEFT  [0]
+			RS_KEY_CTRL_RIGHT  [0]
+			RS_KEY_SHIFT_RIGHT [0]
+			RS_KEY_CTRL_DELETE [0]
 			default [
 				if cp < 32 [exit]
 				emit-char vt cp no

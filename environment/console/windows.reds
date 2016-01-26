@@ -248,11 +248,25 @@ on-key-down: func [
 		VK_END		[RS_KEY_END]
 		VK_PRIOR	[RS_KEY_PAGE_UP]
 		VK_NEXT		[RS_KEY_PAGE_DOWN]
-		VK_LEFT		[RS_KEY_LEFT]
-		VK_RIGHT	[RS_KEY_RIGHT]
+		VK_LEFT		[
+			case [
+				negative? ctrl  [RS_KEY_CTRL_LEFT]
+				negative? shift [RS_KEY_SHIFT_LEFT]
+				true			[RS_KEY_LEFT]
+			]
+		]
+		VK_RIGHT	[
+			case [
+				negative? ctrl  [RS_KEY_CTRL_RIGHT]
+				negative? shift [RS_KEY_SHIFT_RIGHT]
+				true			[RS_KEY_RIGHT]
+			]
+		]
 		VK_UP		[RS_KEY_UP]
 		VK_DOWN		[RS_KEY_DOWN]
-		VK_DELETE	[RS_KEY_DELETE]
+		VK_DELETE	[
+			either negative? ctrl [RS_KEY_CTRL_DELETE][RS_KEY_DELETE]
+		]
 		default		[RS_KEY_NONE]
 	]
 ]
