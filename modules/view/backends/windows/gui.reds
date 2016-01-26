@@ -347,9 +347,15 @@ init-window: func [
 		win		[RECT_STRUCT]
 		client	[RECT_STRUCT]
 		pt		[tagPOINT]
+		z-order [integer!]
+		modes	[integer!]
 ][
+	modes: SWP_NOZORDER
+	z-order: 0
+	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
 	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+	if bits and FACET_FLAGS_MODAL	  <> 0 [modes: 0 z-order: -1]
 
 	client: declare RECT_STRUCT
 	win:	declare RECT_STRUCT	
@@ -359,12 +365,13 @@ init-window: func [
 	pt: screen-to-client handle win/left win/top
 	
 	SetWindowPos								;-- adjust window size/pos to account for edges
-		handle null
+		handle
+		as handle! z-order
 		offset/x + pt/x
 		offset/y + pt/y
 		size/x + (win/right - win/left) - client/right
 		size/y + (win/bottom - win/top) - client/bottom
-		SWP_NOZORDER
+		modes
 ]
 
 set-logic-state: func [
@@ -418,6 +425,7 @@ get-flags: func [
 			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
+			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -745,6 +753,8 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
+			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
+			
 			flags: either bits and FACET_FLAGS_RESIZE = 0 [
 				flags and (not WS_MAXIMIZEBOX)
 			][
@@ -753,7 +763,7 @@ OS-make-view: func [
 			if menu-bar? menu window [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
-			]
+			]			
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
