@@ -1242,6 +1242,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_ENABLE?
+		EnableWindow as handle! hWnd bool/value
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
