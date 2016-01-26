@@ -1,4 +1,15 @@
-Red [Needs: 'View]
+Red [
+	Title:		"Red GUI Console"
+	File:		%gui-console.red
+	Tabs:		4
+	Icon:		%../../tests/red.ico
+	Version:	0.9.0
+	Needs:		'View
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
+]
 
 #include %help.red
 #include %engine.red
