@@ -666,6 +666,8 @@ terminal: context [
 				head = tail
 			]
 		]
+		out/s-head: -1
+		out/s-tail: -1
 	]
 
 	mark-select: func [
@@ -943,6 +945,9 @@ terminal: context [
 		out: vt/out
 		input: vt/in
 		cursor: vt/cursor
+
+		if out/s-head <> -1 [cancel-select vt]
+
 		switch cp [
 			RS_KEY_NONE [exit]
 			RS_KEY_TAB [

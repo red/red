@@ -355,9 +355,7 @@ ConsoleWndProc: func [
 			either select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes [
 				SetCapture hWnd
 			][
-				out: vt/out
-				out/s-head: -1
-				out/s-tail: -1
+				cancel-select vt
 				refresh vt
 			]
 			return 0
@@ -370,8 +368,6 @@ ConsoleWndProc: func [
 				out/s-h-idx = out/s-t-idx
 			][
 				cancel-select vt
-				out/s-head: -1
-				out/s-tail: -1
 				refresh vt
 			]
 			ReleaseCapture
