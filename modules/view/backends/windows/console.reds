@@ -229,7 +229,14 @@ OS-refresh: func [
 on-key-down: func [
 	key		[integer!]
 	return: [integer!]
+	/local
+		ctrl	[integer!]
+		shift	[integer!]
 ][
+	ctrl: GetKeyState VK_CONTROL		;@@ GetKeyState return short
+	ctrl: WIN32_LOWORD(ctrl)
+	shift: GetKeyState VK_SHIFT			;@@ GetKeyState return short
+	shift: WIN32_LOWORD(shift)
 	switch key [
 		VK_HOME		[RS_KEY_HOME]
 		VK_END		[RS_KEY_END]

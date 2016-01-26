@@ -24,6 +24,10 @@ terminal: context [
 	#define RS_KEY_DELETE		-27
 	#define RS_KEY_PAGE_UP		-28
 	#define RS_KEY_PAGE_DOWN	-29
+	#define RS_KEY_CTRL_LEFT	-30
+	#define RS_KEY_CTRL_RIGHT	-31
+	#define RS_KEY_SHIFT_LEFT	-32
+	#define RS_KEY_SHIFT_RIGHT	-33
 	#define RS_KEY_CTRL_A		1
 	#define RS_KEY_CTRL_B		2
 	#define RS_KEY_CTRL_C		3
@@ -470,9 +474,13 @@ terminal: context [
 		len: string/rs-abs-length? input
 
 		either del? [
-			if head = vt/prompt-len [return false]
+			if any [
+				head = vt/prompt-len
+				head > len
+			][
+				return false
+			]
 			head: head - 1
-			cp: string/rs-abs-at input head
 			string/remove-char input head
 		][
 			insert-into-line input head cp
@@ -487,8 +495,9 @@ terminal: context [
 			out/tail: out/last
 			tail: as byte-ptr! s/tail
 			w: GET_UNIT(s)
-			if cp = as-integer #"^[" [tail: tail - w]
+			if cp = as-integer #"^[" [string/poke-char s tail - w 10]
 			emit-c-string vt as byte-ptr! s/offset tail w yes no
+			if cp = as-integer #"^[" [string/poke-char s tail - w 27]
 		]
 		true
 	]
@@ -922,8 +931,12 @@ terminal: context [
 				if zero? complete-line vt input [edit vt 32]
 			]
 			RS_KEY_ENTER [
-				add-history vt
-				emit-char vt 10 no
+				cursor: string/rs-abs-length? input
+				vt/cursor: cursor
+				unless 27 = string/rs-abs-at input cursor - 1 [
+					add-history vt
+					emit-char vt 10 no
+				]
 				out/last: out/tail
 				#call [system/console/eval-command input]
 				set-prompt vt as red-string! #get system/console/cue
@@ -953,12 +966,21 @@ terminal: context [
 			RS_KEY_DOWN
 			RS_KEY_CTRL_N [fetch-history vt no]
 			RS_KEY_CTRL_A [select-all vt]
-			RS_KEY_HOME [0
+			RS_KEY_HOME [
+				vt/cursor: input/head
+				update-caret vt
 			]
 			RS_KEY_CTRL_E
-			RS_KEY_END [0
+			RS_KEY_END [
+				vt/cursor: string/rs-abs-length? input
+				update-caret vt
 			]
-			RS_KEY_DELETE [0
+			RS_KEY_DELETE [
+				vt/cursor: vt/cursor + 1
+				unless emit-char vt cp yes [
+					vt/cursor: vt/cursor - 1
+					exit
+				]
 			]
 			RS_KEY_CTRL_C [
 				copy-to-clipboard vt
@@ -969,6 +991,7 @@ terminal: context [
 				exit
 			]
 			RS_KEY_ESCAPE [
+				vt/cursor: string/rs-abs-length? input
 				emit-char vt cp no
 				edit vt RS_KEY_ENTER
 			]
