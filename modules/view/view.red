@@ -736,7 +736,7 @@ insert-event-func [
 
 ;-- Debug info handler --
 insert-event-func [
-	if all [system/view/debug? face = event/face][
+	if system/view/debug? [
 		print [
 			"event> type:"	event/type
 			"offset:"		event/offset
