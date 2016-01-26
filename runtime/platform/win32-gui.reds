@@ -20,7 +20,7 @@ print-UCS4: func [
 		cp [integer!]								;-- codepoint
 ][
 	assert str <> null
-	exec/gui/terminal/vprint as byte-ptr! str size UCS-4
+	exec/terminal/vprint as byte-ptr! str size UCS-4
 ]
 
 ;-------------------------------------------
@@ -33,7 +33,7 @@ print-line-UCS4: func [
 		cp [integer!]								;-- codepoint
 ][
 	assert str <> null
-	exec/gui/terminal/vprint-line as byte-ptr! str size UCS-4
+	exec/terminal/vprint-line as byte-ptr! str size UCS-4
 ]
 
 ;-------------------------------------------
@@ -46,7 +46,7 @@ print-UCS2: func [
 		chars [integer!]
 ][
 	assert str <> null
-	exec/gui/terminal/vprint str size UCS-2
+	exec/terminal/vprint str size UCS-2
 ]
 
 ;-------------------------------------------
@@ -57,7 +57,7 @@ print-line-UCS2: func [
 	size	[integer!]
 ][
 	assert str <> null
-	exec/gui/terminal/vprint-line str size UCS-2
+	exec/terminal/vprint-line str size UCS-2
 ]
 
 ;-------------------------------------------
@@ -70,7 +70,7 @@ print-Latin1: func [
 		chars [integer!]							;-- mumber of used chars in buffer
 ][
 	assert str <> null
-	exec/gui/terminal/vprint as byte-ptr! str size Latin1
+	exec/terminal/vprint as byte-ptr! str size Latin1
 ]
 
 ;-------------------------------------------
@@ -81,7 +81,7 @@ print-line-Latin1: func [
 	size [integer!]
 ][
 	assert str <> null
-	exec/gui/terminal/vprint-line as byte-ptr! str size Latin1
+	exec/terminal/vprint-line as byte-ptr! str size Latin1
 ]
 
 
@@ -91,7 +91,7 @@ print-line-Latin1: func [
 
 prin*: func [s [c-string!] return: [c-string!] /local p][
 	;p: s
-	;exec/gui/terminal/vprint as byte-ptr! s -1 Latin1
+	;exec/terminal/vprint as byte-ptr! s -1 Latin1
 	s
 ]
 

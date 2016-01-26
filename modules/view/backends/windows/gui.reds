@@ -733,11 +733,6 @@ OS-make-view: func [
 		sym = camera [
 			class: #u16 "RedCamera"
 		]
-		sym = console [
-			class: #u16 "RedConsole"
-			ws-flags: WS_EX_ACCEPTFILES
-			flags: flags or WS_VSCROLL
-		]
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_BORDER or WS_CLIPCHILDREN

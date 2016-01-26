@@ -15,6 +15,10 @@ Red [
 #include %engine.red
 #include %auto-complete.red
 
+#system [
+	#include %terminal.reds
+]
+
 ask: function [
 	question [string!]
 	return:  [string!]

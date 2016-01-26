@@ -71,11 +71,15 @@ register-class: func [
 	list: list + 1
 	arg8: list/value
 
-	old-proc: make-super-class
-		as-c-string arg2
-		as-c-string arg1
-		arg7
-		yes
+	either zero? arg2 [
+		arg2: arg1
+	][
+		old-proc: make-super-class
+			as-c-string arg2
+			as-c-string arg1
+			arg7
+			yes
+	]
 
 	p: ext-cls-tail
 	ext-cls-tail: ext-cls-tail + 1
@@ -165,18 +169,6 @@ register-classes: func [
 	wcex/hInstance:		hInstance
 	wcex/hbrBackground:	COLOR_BACKGROUND + 1
 	wcex/lpszClassName: #u16 "RedCamera"
-
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
-	with terminal [
-		wcex/lpfnWndProc:	:ConsoleWndProc
-	]
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
-	wcex/hCursor:		LoadCursor null IDC_IBEAM
-	wcex/hbrBackground:	0
-	wcex/lpszClassName: #u16 "RedConsole"
 
 	RegisterClassEx wcex
 

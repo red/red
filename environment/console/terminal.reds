@@ -53,6 +53,13 @@ terminal: context [
 	#define SCROLL_BOTTOM	7FFFFFFFh
 	#define SCROLL_TRACK	7FFFFFFEh
 
+	RECT_STRUCT: alias struct! [
+		left		[integer!]
+		top			[integer!]
+		right		[integer!]
+		bottom		[integer!]
+	]
+
 	line-node!: alias struct! [
 		offset	[integer!]
 		length	[integer!]
@@ -116,7 +123,7 @@ terminal: context [
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
 
-	#include %../../../environment/console/wcwidth.reds
+	#include %wcwidth.reds
 
 	#either OS = 'Windows [
 		char-width?: func [
@@ -1167,13 +1174,15 @@ terminal: context [
 		OS-draw-text null 0 0 y win-w win-h - y + char-h
 	]
 
-	#switch OS [
-		Windows  [#include %windows/console.reds]
-		Android  []
-		MacOSX   []
-		FreeBSD  []
-		Syllable []
-		#default []										;-- Linux
+	with gui [
+		#switch OS [
+			Windows  [#include %windows.reds]
+			Android  []
+			MacOSX   []
+			FreeBSD  []
+			Syllable []
+			#default []										;-- Linux
+		]
 	]
 
 	vprint: func [
@@ -1190,6 +1199,7 @@ terminal: context [
 		out/tail: out/last
 		out/nlines: out/nlines - 1
 		emit-c-string vt str str + size unit no yes
+		refresh vt
 	]
 
 	vprint-line: func [
@@ -1205,5 +1215,6 @@ terminal: context [
 		out/tail: out/last
 		emit-c-string vt str str + size unit no yes
 		out/last: out/tail
+		refresh vt
 	]
 ]
