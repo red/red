@@ -4149,6 +4149,10 @@ red: context [
 		src
 	]
 	
+	process-config: func [header [block!] job [object!]][
+		if spec: select header first [config:][do bind spec job]
+	]
+	
 	process-needs: func [header [block!] src [block!] /local list file mods][
 		case [
 			list: select header first [Needs:][
@@ -4214,6 +4218,7 @@ red: context [
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
+			process-config src/1 job
 			process-needs src/1 next src
 			system-dialect/collect-resources src/1 resources file
 			src: next src

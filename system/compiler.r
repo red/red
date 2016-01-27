@@ -62,6 +62,7 @@ system-dialect: make-profilable context [
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
+		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 	]
 	
 	compiler: make-profilable context [
