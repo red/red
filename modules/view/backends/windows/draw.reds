@@ -592,6 +592,8 @@ OS-draw-spline: func [
 	]
 	;if nb = max-edges [fire error]
 
+	unless GDI+? [update-gdiplus-modes dc]					;-- force to use GDI+
+
 	if modes/brush? [
 		GdipFillClosedCurveI
 			modes/graphics
