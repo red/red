@@ -495,6 +495,7 @@ block: context [
 				value1: value1 + 1
 				value2: value2 + 1
 			][
+				cycles/pop
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
