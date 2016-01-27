@@ -2,6 +2,7 @@ Red [
 	Title:	"Red console"
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%console.red
+	Needs:	'View
 	Tabs: 	4
 	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
