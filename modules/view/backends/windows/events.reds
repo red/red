@@ -788,6 +788,10 @@ WndProc: func [
 			return 0
 		]
 		WM_CLOSE [
+			handle: current-msg/hWnd
+			SetFocus current-msg/hWnd					;-- force focus on the closing window,
+			current-msg/hWnd: handle					;-- prevents late unfocus event generation.
+			
 			res: make-event current-msg 0 EVT_CLOSE
 			if res  = EVT_DISPATCH [return 0]				;-- continue
 			;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
