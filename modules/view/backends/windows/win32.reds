@@ -82,9 +82,12 @@ Red/System [
 #define CB_SETHORIZONTALEXTENT 015Eh
 
 #define CBN_SELCHANGE       1
+#define CBN_SETFOCUS		3
+#define CBN_KILLFOCUS		4
 #define CBN_EDITCHANGE		5
 #define CBN_SELENDOK		9
 #define CBN_SELENDCANCEL	10
+
 
 #define LBN_SELCHANGE       1
 #define LBN_DBLCLK          2

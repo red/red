@@ -410,11 +410,13 @@ process-command-event: func [
 			]
 			0
 		]
-		EN_SETFOCUS [
+		EN_SETFOCUS
+		CBN_SETFOCUS [
 			current-msg/hWnd: as handle! lParam
 			make-event current-msg 0 EVT_FOCUS
 		]
-		EN_KILLFOCUS [
+		EN_KILLFOCUS
+		CBN_KILLFOCUS [
 			current-msg/hWnd: as handle! lParam
 			make-event current-msg 0 EVT_UNFOCUS
 		]
