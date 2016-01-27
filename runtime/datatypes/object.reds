@@ -1116,6 +1116,7 @@ object: context [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
+				cycles/pop
 				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
@@ -1138,6 +1139,7 @@ object: context [
 				value1: value1 + 1
 				value2: value2 + 1
 			][
+				cycles/pop
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
