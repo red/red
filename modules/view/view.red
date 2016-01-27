@@ -749,11 +749,10 @@ insert-event-func [
 
 ;-- 'enter event handler --
 insert-event-func [
-	if all [
+	all [
 		event/type = 'key
 		find "^M^/" event/key
 		find [field drop-down] event/face/type
-	][
 		event/type: 'enter
 	]
 	event
@@ -768,9 +767,8 @@ insert-event-func [
 		foreach f event/face/parent/pane [if f/type = 'radio [f/data: off show f]]
 		event/face/data: on
 		event/type: 'change
-		show event/face
 	]
-	none
+	event
 ]
 
 ;-- Reactors support handler --
