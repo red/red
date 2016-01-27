@@ -465,7 +465,7 @@ OS-image: context [
 		stat: declare tagSTATSTG
 		hr: StgCreateDocfile
 			#u16 "CompoundFile.cmp"
-			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE
+			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
 			0
 			ISto
 		storage: as IStorage ISto/ptr/vtbl
