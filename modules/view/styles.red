@@ -28,11 +28,11 @@ styles: #(
 		template: [type: 'text size: 80x24]
 	]
 	field: [
-		default-actor: on-change					;@@ on-enter?
+		default-actor: on-enter
 		template: [type: 'field size: 80x24]
 	]
 	area: [
-		default-actor: on-change					;@@ on-enter?
+		default-actor: on-change
 		template: [type: 'area size: 150x150]
 	]
 	check: [
@@ -68,7 +68,7 @@ styles: #(
 		template: [type: 'drop-list size: 100x24]
 	]
 	drop-down: [
-		default-actor: on-change
+		default-actor: on-enter
 		template: [type: 'drop-down size: 100x24]
 	]
 	panel: [

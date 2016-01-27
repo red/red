@@ -119,6 +119,7 @@ system/view/platform: context [
 				EVT_KEY_UP
 				EVT_FOCUS
 				EVT_UNFOCUS
+				EVT_ENTER
 				
 				EVT_ZOOM
 				EVT_PAN
@@ -260,6 +261,7 @@ system/view/platform: context [
 			_unfocus:		word/load "unfocus"
 			_select:		word/load "select"
 			_change:		word/load "change"
+			_enter:			word/load "enter"
 			_menu:			word/load "menu"
 			_close:			word/load "close"
 			_move:			word/load "move"
@@ -318,6 +320,7 @@ system/view/platform: context [
 					EVT_UNFOCUS		 [_unfocus]
 					EVT_SELECT	 	 [_select]
 					EVT_CHANGE		 [_change]
+					EVT_ENTER		 [_enter]
 					EVT_MENU		 [_menu]
 					EVT_CLOSE		 [_close]
 					EVT_MOVE		 [_move]
@@ -358,6 +361,7 @@ system/view/platform: context [
 					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]
 					sym = _select/symbol		[sym: EVT_SELECT]
 					sym = _change/symbol		[sym: EVT_CHANGE]
+					sym = _enter/symbol			[sym: EVT_ENTER]
 					sym = _menu/symbol			[sym: EVT_MENU]
 					sym = _close/symbol			[sym: EVT_CLOSE]
 					sym = _move/symbol			[sym: EVT_MOVE]

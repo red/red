@@ -15,6 +15,8 @@ Red [
 	event/init
 ]
 
+event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
+
 find-flag?: routine [
 	facet	[any-type!]
 	flag 	[word!]
@@ -379,6 +381,7 @@ system/view: context [
 		unfocus			on-unfocus
 		select			on-select
 		change			on-change
+		enter			on-enter
 		menu			on-menu
 		close			on-close
 		move			on-move
@@ -392,22 +395,19 @@ system/view: context [
 		press-tap		on-press-tap
 	]
 	
-	capture-events: function [face [object!] event [event!] /local result][
+	capture-events: function [face [object!] event [event!]][
 		if face/parent [capture-events face/parent event]
-		
-		if face/type = 'window [
-			foreach handler handlers [
-				set/any 'result do-safe [handler face event]
-				if :result [return :result]
-			]
-		]
 		do-actor face event 'detect
 	]
 	
 	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
-		unless with [
+		unless with [									;-- protect following code from recursion
+			foreach handler handlers [
+				set/any 'result do-safe [handler face event]
+				either event? :result [event: result][if :result [return :result]]
+			]
 			set/any 'result capture-events face event	;-- event capturing
 			if find [stop done] :result [return :result]
 		]
@@ -745,6 +745,18 @@ insert-event-func [
 		]
 	]
 	none
+]
+
+;-- 'enter event handler --
+insert-event-func [
+	if all [
+		event/type = 'key
+		find "^M^/" event/key
+		find [field drop-down] event/face/type
+	][
+		event/type: 'enter
+	]
+	event
 ]
 
 ;-- Radio faces handler --
