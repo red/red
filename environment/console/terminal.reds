@@ -1220,6 +1220,9 @@ terminal: context [
 			out [ring-buffer!]
 	][
 		if zero? size [exit]
+		if negative? size [
+			size: length? as c-string! str
+		]
 		vt: as terminal! v-terminal
 		out: vt/out
 		out/tail: out/last

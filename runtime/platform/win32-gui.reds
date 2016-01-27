@@ -89,28 +89,39 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
+sprintf-buf: "0000000000000000000000000000000"			;-- 32 bytes wide, big enough.
+
 prin*: func [s [c-string!] return: [c-string!] /local p][
-	;p: s
-	;exec/terminal/vprint as byte-ptr! s -1 Latin1
+	exec/terminal/vprint as byte-ptr! s -1 Latin1
 	s
 ]
 
-prin-int*: func [i [integer!] return: [integer!]][		;@@ TBD
+prin-int*: func [i [integer!] return: [integer!]][
+	sprintf [sprintf-buf "%i" i]
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
 	i
 ]
 
-prin-2hex*: func [i [integer!] return: [integer!]][		;@@ TBD
+prin-2hex*: func [i [integer!] return: [integer!]][
+	sprintf [sprintf-buf "%02X" i]
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
 	i
 ]
 
-prin-hex*: func [i [integer!] return: [integer!]][		;@@ TBD
+prin-hex*: func [i [integer!] return: [integer!]][
+	sprintf [sprintf-buf "%08X" i]
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
 	i
 ]
 
-prin-float*: func [f [float!] return: [float!]][		;@@ TBD
+prin-float*: func [f [float!] return: [float!]][
+	sprintf [sprintf-buf "%.16g" f]
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
 	f
 ]
 
-prin-float32*: func [f [float32!] return: [float32!]][	;@@ TBD
+prin-float32*: func [f [float32!] return: [float32!]][
+	sprintf [sprintf-buf "%.7g" as-float f]
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
 	f
 ]
