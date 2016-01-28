@@ -673,12 +673,8 @@ WndProc: func [
 			make-event current-msg 0 type
 			return 0
 		]
-		WM_SETFOCUS [
-			face: (as red-object! get-face-values hWnd) + FACE_OBJ_SELECTED
-			if TYPE_OF(face) = TYPE_OBJECT [
-				handle: face-handle? face
-				unless null? handle [SetFocus handle]
-			]
+		WM_ACTIVATE [
+			if WIN32_LOWORD(wParam) = 1 [set-selected-focus hWnd return 0]
 		]
 		WM_GESTURE [
 			handle: hWnd

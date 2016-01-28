@@ -219,6 +219,7 @@ Red/System [
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
 #define WM_SIZE				0005h
+#define WM_ACTIVATE			0006h
 #define WM_SETFOCUS			0007h
 #define WM_KILLFOCUS		0008h
 #define WM_CLOSE			0010h

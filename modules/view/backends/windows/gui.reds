@@ -374,6 +374,23 @@ init-window: func [
 		modes
 ]
 
+set-selected-focus: func [
+	hWnd [handle!]
+	/local
+		face   [red-object!]
+		values [red-value!]
+		handle [handle!]
+][
+	values: get-face-values hWnd
+	if values <> null [
+		face: as red-object! values + FACE_OBJ_SELECTED
+		if TYPE_OF(face) = TYPE_OBJECT [
+			handle: face-handle? face
+			unless null? handle [SetFocus handle]
+		]
+	]
+]
+
 set-logic-state: func [
 	hWnd   [handle!]
 	state  [red-logic!]
@@ -980,33 +997,40 @@ change-image: func [
 
 change-selection: func [
 	hWnd   [integer!]
-	idx	   [integer!]
+	int	   [red-integer!]								;-- can be also none! | object!
 	values [red-value!]
 	/local
-		int  [red-value!]
-		type [red-word!]
-		sym	 [integer!]
+		face   [red-object!]
+		type   [red-word!]
+		handle [handle!]
+		sym	   [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	case [
 		sym = camera [
-			int: values + FACE_OBJ_SELECTED
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera as handle! hWnd
 			][
-				select-camera as handle! hWnd idx - 1
+				select-camera as handle! hWnd int/value - 1
 				toggle-preview as handle! hWnd true
 			]
 		]
 		sym = text-list [
-			SendMessage as handle! hWnd LB_SETCURSEL idx - 1 0
+			SendMessage as handle! hWnd LB_SETCURSEL int/value - 1 0
 		]
 		any [sym = drop-list sym = drop-down][
-			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+			SendMessage as handle! hWnd CB_SETCURSEL int/value - 1 0
 		]
 		sym = tab-panel [
-			select-tab as handle! hWnd idx - 1		;@@ requires range checking
+			select-tab as handle! hWnd int/value - 1	;@@ requires range checking
+		]
+		sym = window [
+			switch TYPE_OF(int) [
+				TYPE_OBJECT [set-selected-focus as handle! hWnd]
+				TYPE_NONE	[SetFocus as handle! hWnd]
+				default [0]
+			]
 		]
 	]
 ]
@@ -1256,7 +1280,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
-		change-selection hWnd int2/value values
+		change-selection hWnd int2 values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
 		SetWindowLong
