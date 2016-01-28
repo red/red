@@ -337,8 +337,32 @@ init: func [
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
-init-window: func [
-	handle [handle!]
+find-last-window: func [
+	return: [handle!]
+	/local
+		obj  [red-object!]
+		pane [red-block!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	obj: as red-object! block/rs-head pane				;-- 1st screen
+	if null? obj [return null]	
+	
+	pane: as red-block! (object/get-values obj) + FACE_OBJ_PANE ;-- windows list
+	
+	either all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		2 <= (pane/head + block/rs-length? pane)
+	][
+		face-handle? as red-object! (block/rs-tail pane) - 1
+	][
+		null
+	]
+]
+
+init-window: func [										;-- post-creation settings
+	handle  [handle!]
 	offset	[red-pair!]
 	size	[red-pair!]
 	bits	[integer!]
@@ -347,15 +371,18 @@ init-window: func [
 		win		[RECT_STRUCT]
 		client	[RECT_STRUCT]
 		pt		[tagPOINT]
-		z-order [integer!]
+		owner	[handle!]
 		modes	[integer!]
 ][
 	modes: SWP_NOZORDER
-	z-order: 0
 	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
 	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
-	if bits and FACET_FLAGS_MODAL	  <> 0 [modes: 0 z-order: -1]
+	if bits and FACET_FLAGS_MODAL	  <> 0 [
+		modes: 0
+		owner: find-last-window
+		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
+	]
 
 	client: declare RECT_STRUCT
 	win:	declare RECT_STRUCT	
@@ -366,7 +393,7 @@ init-window: func [
 	
 	SetWindowPos								;-- adjust window size/pos to account for edges
 		handle
-		as handle! z-order
+		as handle! 0							;-- HWND_TOP
 		offset/x + pt/x
 		offset/y + pt/y
 		size/x + (win/right - win/left) - client/right
