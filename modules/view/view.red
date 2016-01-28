@@ -88,6 +88,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 									until [
 										pane: back pane
 										pane/1/enable?: yes
+										unless system/view/auto-sync? [show pane/1]
 										any [head? pane find-flag? pane/1/flags 'modal]
 									]
 								]
@@ -517,7 +518,10 @@ show: function [
 				window	  [
 					pane: system/view/screens/1/pane
 					if find-flag? face/flags 'modal [
-						foreach f head pane [f/enable?: no]
+						foreach f head pane [
+							f/enable?: no
+							unless system/view/auto-sync? [show f]
+						]
 					]
 					append pane face
 				]

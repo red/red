@@ -10,7 +10,10 @@ Red/System [
 	}
 ]
 
+
 #define NM_CUSTOMDRAW			-12
+
+#define GWL_HWNDPARENT			-8
 #define GWL_STYLE				-16
 #define GWL_EXSTYLE				-20
 
