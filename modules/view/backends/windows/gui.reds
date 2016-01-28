@@ -353,7 +353,7 @@ find-last-window: func [
 	
 	either all [
 		TYPE_OF(pane) = TYPE_BLOCK
-		2 <= (pane/head + block/rs-length? pane)
+		0 < (pane/head + block/rs-length? pane)
 	][
 		face-handle? as red-object! (block/rs-tail pane) - 1
 	][
