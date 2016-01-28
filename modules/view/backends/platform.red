@@ -68,6 +68,7 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
+				FACET_FLAGS_OVER:		00000002h
 				
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -229,6 +230,7 @@ system/view/platform: context [
 			_strike:		symbol/make "strike"
 			
 			all-over:		symbol/make "all-over"
+			over:			symbol/make "over"
 			draggable:		symbol/make "draggable"
 			resize:			symbol/make "resize"
 			no-title:		symbol/make "no-title"

@@ -811,6 +811,8 @@ process: func [
 		new	   [handle!]
 		x	   [integer!]
 		y	   [integer!]
+		flags  [integer!]
+		all?   [logic!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
@@ -826,10 +828,15 @@ process: func [
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
 			new: get-child-from-xy msg/hWnd x y
-			
+		
+			hWnd: either null? hover-saved [new][hover-saved]
+			all?: (get-face-flags hWnd) and FACET_FLAGS_ALL_OVER <> 0
+			flags: get-face-flags new
+
 			either all [
-				(get-face-flags new) and FACET_FLAGS_ALL_OVER = 0
-				new = hover-saved
+				not all?
+				flags and (FACET_FLAGS_ALL_OVER or FACET_FLAGS_OVER) = 0
+				;new = hover-saved
 			][											;-- block useless events
 				EVT_DISPATCH
 			][
@@ -837,8 +844,13 @@ process: func [
 					msg/hWnd: hover-saved
 					make-event msg EVT_FLAG_AWAY EVT_OVER
 				]
-				hover-saved: new
-				msg/hWnd: new
+				either all? [
+					if null? hover-saved [hover-saved: new]
+					msg/hWnd: hover-saved				;-- send all EVT_OVER to origin face
+				][
+					hover-saved: new
+					msg/hWnd: new						;-- send EVT_OVER to face under mouse cursor
+				]
 				make-event msg 0 EVT_OVER
 			]
 		]

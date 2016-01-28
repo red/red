@@ -462,6 +462,7 @@ get-flags: func [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
+			sym = over	 	 [flags: flags or FACET_FLAGS_OVER]
 			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
 			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
 			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
