@@ -219,9 +219,8 @@ OS-hide-caret: func [vt [terminal!]][
 	HideCaret vt/hwnd
 ]
 
-OS-update-caret: func [vt [terminal!] /local w][
-	w: vt/char-w
-	SetCaretPos vt/caret-x * w vt/caret-y * vt/char-h
+OS-update-caret: func [vt [terminal!]][
+	SetCaretPos vt/caret-x * vt/char-w vt/caret-y * vt/char-h
 	unless vt/caret? [ShowCaret vt/hwnd vt/caret?: yes]
 ]
 
@@ -403,14 +402,14 @@ ConsoleWndProc: func [
 			return 0
 		]
 		WM_KEYDOWN [
-			;SendMessage GetParent vt/hwnd WM_COMMAND VTN_KEYDOWN << 16 or (wParam and FFFFh) as-integer vt/hwnd
-			edit vt on-key-down wParam
+			wParam: on-key-down wParam
+			unless zero? wParam [edit vt wParam]
 			return 0
 		]
 		WM_CHAR [
 			state: GetKeyState VK_LCONTROL		;@@ GetKeyState return short
 			state: WIN32_LOWORD(state)
-			unless all [wParam = 3 zero? state][edit vt wParam]
+			unless all [wParam = 3 state >= 0][edit vt wParam]
 			return 0
 		]
 		WM_NCDESTROY [

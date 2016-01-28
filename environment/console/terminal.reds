@@ -108,12 +108,15 @@ terminal: context [
 		select-all? [logic!]
 		ask?		[logic!]
 		input?		[logic!]
+		s-mode?		[logic!]
 		select-x	[integer!]
 		select-y	[integer!]
 		s-head		[integer!]
 		s-h-idx		[integer!]
 		cursor		[integer!]				;-- cursor of edit line
-		width		[integer!]				;-- width of edit line
+		edit-y		[integer!]				;-- cursor Y position
+		edit-head	[integer!]
+		edit-tail	[integer!]
 		prompt-len	[integer!]				;-- length of prompt
 		prompt		[red-string!]
 		hwnd		[int-ptr!]				;@@ OS-Dependent field
@@ -476,11 +479,14 @@ terminal: context [
 			w		[integer!]
 			s		[series!]
 			tail	[byte-ptr!]
+			select? [logic!]
 	][
 		input: vt/in
 		out: vt/out
-		head: vt/cursor
 		len: string/rs-abs-length? input
+
+		select?: delete-selection vt
+		head: vt/cursor
 
 		either del? [
 			if any [
@@ -489,8 +495,10 @@ terminal: context [
 			][
 				return false
 			]
-			head: head - 1
-			string/remove-char input head
+			unless select? [
+				head: head - 1
+				string/remove-char input head
+			]
 		][
 			insert-into-line input head cp
 			head: head + 1
@@ -547,6 +555,7 @@ terminal: context [
 	][
 		cols: vt/cols
 		x: string-width? vt/in 0 vt/cursor cols
+		vt/caret-y: x - 1 / cols + vt/edit-y
 		if positive? x [
 			x: x % cols
 			if zero? x [x: cols]
@@ -617,6 +626,8 @@ terminal: context [
 		vt/select-all?: no
 		vt/ask?: no
 		vt/input?: yes
+		vt/s-mode?: no
+		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
 		vt/prompt-len: string/rs-length? vt/prompt
 
@@ -669,6 +680,10 @@ terminal: context [
 		]
 		out/s-head: -1
 		out/s-tail: -1
+		if vt/s-mode? [
+			vt/s-mode?: no
+			refresh vt
+		]
 	]
 
 	mark-select: func [
@@ -932,6 +947,67 @@ terminal: context [
 		num
 	]
 
+	move-cursor: func [
+		vt		[terminal!]
+		left?	[logic!]
+		/local
+			input	[red-string!]
+			cursor	[integer!]
+	][
+		input: vt/in
+		cursor: vt/cursor
+		vt/cursor: either left? [
+			if input/head = cursor [exit]
+			cursor - 1
+		][
+			if cursor = string/rs-abs-length? input [exit]
+			cursor + 1
+		]
+		update-caret vt
+	]
+
+	select-edit: func [
+		vt		[terminal!]
+		left?	[logic!]
+		/local
+			x	[integer!]
+			y	[integer!]
+	][
+		x: vt/caret-x * vt/char-w
+		y: vt/caret-y * vt/char-h
+		unless vt/s-mode? [
+			cancel-select vt
+			select vt x y yes
+			mark-select vt
+			vt/s-mode?: yes
+		]
+		move-cursor vt left?
+		x: vt/caret-x * vt/char-w
+		select vt x y no
+		vt/edit-head: vt/out/s-h-idx
+		vt/edit-tail: vt/out/s-t-idx
+		if vt/edit-head = vt/edit-tail [vt/edit-head: -1]
+		vt/select?: no
+	]
+
+	delete-selection: func [
+		vt		[terminal!]
+		return: [logic!]
+		/local
+			input	[red-string!]
+			head	[integer!]
+	][
+		head: vt/edit-head
+		if head <> -1 [
+			input: vt/in
+			string/remove-part input head vt/edit-tail - head
+			vt/cursor: head
+			vt/edit-head: -1
+			return true
+		]
+		false
+	]
+
 	edit: func [
 		vt		[terminal!]
 		cp		[integer!]
@@ -947,7 +1023,14 @@ terminal: context [
 		input: vt/in
 		cursor: vt/cursor
 
-		if out/s-head <> -1 [cancel-select vt]
+		if all [
+			cp <> RS_KEY_SHIFT_LEFT
+			cp <> RS_KEY_SHIFT_RIGHT
+			cp <> RS_KEY_CTRL_C
+			any [out/s-head <> -1 vt/s-mode?]
+		][
+			cancel-select vt
+		]
 
 		switch cp [
 			RS_KEY_NONE [exit]
@@ -975,18 +1058,14 @@ terminal: context [
 			RS_KEY_BACKSPACE [unless emit-char vt cp yes [exit]]
 			RS_KEY_CTRL_B
 			RS_KEY_LEFT [
-				unless input/head = cursor [
-					vt/cursor: cursor - 1
-					update-caret vt
-				]
+				move-cursor vt yes
+				vt/edit-head: -1
 				exit
 			]
 			RS_KEY_CTRL_F
 			RS_KEY_RIGHT [
-				unless cursor = string/rs-abs-length? input [
-					vt/cursor: cursor + 1
-					update-caret vt
-				]
+				move-cursor vt no
+				vt/edit-head: -1
 				exit
 			]
 			RS_KEY_UP
@@ -1016,6 +1095,7 @@ terminal: context [
 			]
 			RS_KEY_CTRL_V [
 				paste-from-clipboard vt
+				vt/edit-head: -1
 				exit
 			]
 			RS_KEY_ESCAPE [
@@ -1024,15 +1104,20 @@ terminal: context [
 				edit vt RS_KEY_ENTER
 			]
 			RS_KEY_CTRL_LEFT   [0]
-			RS_KEY_SHIFT_LEFT  [0]
+			RS_KEY_SHIFT_LEFT  [
+				select-edit vt yes
+			]
 			RS_KEY_CTRL_RIGHT  [0]
-			RS_KEY_SHIFT_RIGHT [0]
+			RS_KEY_SHIFT_RIGHT [
+				select-edit vt no
+			]
 			RS_KEY_CTRL_DELETE [0]
 			default [
 				if cp < 32 [exit]
 				emit-char vt cp no
 			]
 		]
+		unless vt/s-mode? [vt/edit-head: -1]
 		refresh vt
 	]
 
@@ -1073,10 +1158,12 @@ terminal: context [
 			unit	[integer!]
 			cp		[integer!]
 			char-h	[integer!]
+			win-w	[integer!]
 			p		[byte-ptr!]
 			str		[c-string!]
 	][
 		cols: vt/cols
+		win-w: vt/win-w
 		char-h: vt/char-h
 		offset: line/head
 		s: GET_BUFFER(line)
@@ -1092,7 +1179,7 @@ terminal: context [
 			length: length - 1
 			offset: offset + 1
 			p: p + unit
-			if x + w > vt/win-w [
+			if x + w > win-w [
 				x: 0
 				y: y + char-h
 			]
@@ -1100,6 +1187,9 @@ terminal: context [
 			x: x + w
 		]
 		unless vt/select-all? [set-normal-color vt]
+		if x < win-w [
+			OS-draw-text null 0 x y win-w - x char-h
+		]
 		y + char-h
 	]
 
@@ -1118,6 +1208,7 @@ terminal: context [
 			len			[integer!]
 			offset		[integer!]
 			nlines		[integer!]
+			cols		[integer!]
 			lines		[line-node!]
 			node		[line-node!]
 			data		[red-string!]
@@ -1129,6 +1220,7 @@ terminal: context [
 		win-w: vt/win-w
 		win-h: vt/win-h
 		char-h: vt/char-h
+		cols: vt/cols
 		out: vt/out
 		data: out/data
 		lines: out/lines
@@ -1147,7 +1239,7 @@ terminal: context [
 			nlines: node/nlines
 			select?: nlines and 80000000h <> 0
 			either not zero? len [
-				n: string-lines? data node/offset node/length vt/cols
+				n: string-lines? data node/offset node/length cols
 				data/head: offset
 				case [
 					start = out/s-head [
@@ -1167,7 +1259,7 @@ terminal: context [
 					true [
 						inversed?: set-text-color vt select? inversed?
 						while [len > 0][
-							cnt: count-chars data offset len vt/cols
+							cnt: count-chars data offset len cols
 							data/head: offset
 							len: len - cnt
 							offset: offset + cnt
@@ -1175,9 +1267,10 @@ terminal: context [
 							OS-draw-text c-str cnt 0 y win-w char-h
 							y: y + char-h
 						]
+						nlines: nlines and 7FFFFFFFh
 						if n - nlines <> 0 [
-							vt/nlines: vt/nlines + n - (nlines and 7FFFFFFFh)
-							node/nlines: nlines and 80000000h or n
+							vt/nlines: vt/nlines + n - nlines
+							node/nlines: node/nlines and 80000000h or n
 						]
 					]
 				]
@@ -1191,10 +1284,11 @@ terminal: context [
 			offset: node/offset
 			len: node/length
 		]
-		vt/caret-y: either all [
+		nlines: either all [
 			start = tail
 			y <= win-h
-		][y / char-h - 1][vt/rows + 1]
+		][y / char-h][vt/rows + 2]
+		vt/edit-y: nlines - n
 		if any [vt/select-all? inversed?][set-normal-color vt]
 		data/head: 0
 		OS-draw-text null 0 0 y win-w win-h - y + char-h
