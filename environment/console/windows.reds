@@ -220,7 +220,7 @@ OS-hide-caret: func [vt [terminal!]][
 ]
 
 OS-update-caret: func [vt [terminal!]][
-	SetCaretPos vt/caret-x * vt/char-w vt/caret-y * vt/char-h
+	SetCaretPos vt/caret-x * vt/char-w + vt/pad-left vt/caret-y * vt/char-h
 	unless vt/caret? [ShowCaret vt/hwnd vt/caret?: yes]
 ]
 
@@ -321,7 +321,7 @@ ConsoleWndProc: func [
 		WM_SIZE [
 			vt/win-w: WIN32_LOWORD(lParam)
 			vt/win-h: WIN32_HIWORD(lParam)
-			vt/cols: vt/win-w / vt/char-w
+			vt/cols: vt/win-w - vt/pad-left / vt/char-w
 			vt/rows: vt/win-h / vt/char-h
 			OS-refresh vt null
 			return 0

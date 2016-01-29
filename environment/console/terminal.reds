@@ -103,6 +103,7 @@ terminal: context [
 		char-h		[integer!]
 		caret-x		[integer!]
 		caret-y		[integer!]
+		pad-left	[integer!]
 		caret?		[logic!]
 		select?		[logic!]
 		select-all? [logic!]
@@ -185,7 +186,7 @@ terminal: context [
 		until [
 			cp: string/get-char p unit
 			w: char-width? cp
-			if all [w = 2 len + 1 % width = 0][w: 1]
+			if all [w = 2 len + 1 % width = 0][w: 1 p: p - unit]
 			len: len + w
 			p: p + unit
 			any [len % width = 0 p = tail]
@@ -582,7 +583,7 @@ terminal: context [
 		char-x	[integer!]
 		char-y	[integer!]
 	][
-		vt/cols: vt/win-w / char-x
+		vt/cols: vt/win-w - vt/pad-left / char-x
 		vt/rows: vt/win-h / char-y
 		vt/char-w: char-x
 		vt/char-h: char-y
@@ -610,6 +611,7 @@ terminal: context [
 		out/h-idx: 0
 		out/s-head: -1
 
+		vt/pad-left: 3
 		vt/win-w: win-x
 		vt/win-h: win-y
 		update-font vt char-x char-y
@@ -758,19 +760,24 @@ terminal: context [
 		node: lines + head - 1
 		offset: node/offset + out/h-idx
 		len: node/length - out/h-idx
-		while [all [y > 0 head <> tail]][
+		while [y > 0][
 			w: string-lines? data offset len cols
 			y: y - w
 			if y < 0 [break]
 			head: head % max + 1
+			if head = tail [break]
 			node: lines + head - 1
 			offset: node/offset
 			len: node/length
 		]
-		if head = tail [return false]
+		if all [start? head = tail][return false]
+		if head = tail [
+			head: out/last
+			y: w
+		]
 
 		unless zero? y [y: w + y]
-		x: x / vt/char-w
+		x: vt/char-w / 2 + x - vt/pad-left / vt/char-w
 		if any [zero? len y > 0 x <> 0][
 			x: either zero? len [0][
 				count-chars data offset len cols * y + x
@@ -1216,7 +1223,7 @@ terminal: context [
 		s: GET_BUFFER(line)
 		unit: GET_UNIT(s)
 		p: string/rs-head line
-		x: 0
+		x: vt/pad-left
 		while [length > 0][
 			if offset = start [set-select-color vt]
 			if offset = end	  [set-normal-color vt]
@@ -1227,7 +1234,7 @@ terminal: context [
 			offset: offset + 1
 			p: p + unit
 			if x + w > win-w [
-				x: 0
+				x: vt/pad-left
 				y: y + char-h
 			]
 			OS-draw-text str 1 x y w char-h
@@ -1243,6 +1250,7 @@ terminal: context [
 	paint: func [
 		vt		[terminal!]
 		/local
+			x			[integer!]
 			y			[integer!]
 			char-h		[integer!]
 			win-w		[integer!]
@@ -1278,6 +1286,7 @@ terminal: context [
 		node: lines + start - 1
 		offset: node/offset + out/h-idx
 		len: node/length - (offset - node/offset)
+		x: vt/pad-left
 		y: 0
 
 		if vt/select-all? [set-select-color vt]
@@ -1311,7 +1320,7 @@ terminal: context [
 							len: len - cnt
 							offset: offset + cnt
 							c-str: unicode/to-utf16-len data :cnt
-							OS-draw-text c-str cnt 0 y win-w char-h
+							OS-draw-text c-str cnt x y win-w char-h
 							y: y + char-h
 						]
 						nlines: nlines and 7FFFFFFFh
@@ -1323,7 +1332,7 @@ terminal: context [
 				]
 			][
 				inversed?: set-text-color vt select? inversed?
-				OS-draw-text null 0 0 y win-w char-h
+				OS-draw-text null 0 x y win-w char-h
 				y: y + char-h
 			]
 			start: start % out/max + 1
@@ -1338,7 +1347,7 @@ terminal: context [
 		vt/edit-y: nlines - n
 		if any [vt/select-all? inversed?][set-normal-color vt]
 		data/head: 0
-		OS-draw-text null 0 0 y win-w win-h - y + char-h
+		OS-draw-text null 0 x y win-w win-h - y + char-h
 	]
 
 	with gui [
