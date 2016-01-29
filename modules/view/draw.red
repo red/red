@@ -26,6 +26,7 @@ Red/System [
 		_ellipse:		symbol/make "ellipse"
 		_arc:			symbol/make "arc"
 		curve:			symbol/make "curve"
+		spline:			symbol/make "spline"
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
 		
@@ -334,6 +335,34 @@ Red/System [
 			pos
 		]
 
+		draw-spline: func [
+			DC		[handle!]
+			cmds	[red-block!]
+			cmd		[red-value!]
+			tail	[red-value!]
+			return: [red-value!]
+			/local
+				pos		[red-value!]
+				w		[red-word!]
+				closed? [logic!]
+		][
+			pos: cmd + 1								;-- skip the keyword
+			closed?: no
+			if all [pos < tail TYPE_OF(pos) = TYPE_WORD][
+				w: as red-word! pos
+				if closed = symbol/resolve w/symbol [closed?: yes]
+				cmd: cmd + 1
+				pos: pos + 1
+			]
+			while [all [pos < tail TYPE_OF(pos) = TYPE_PAIR]][
+				pos: pos + 1
+			]
+			pos: pos - 1
+
+			OS-draw-spline DC as red-pair! cmd + 1 as red-pair! pos closed?
+			pos
+		]
+
 		draw-arc: func [
 			DC		[handle!]
 			cmds	[red-block!]
@@ -587,6 +616,7 @@ Red/System [
 						sym = text		 [cmd: draw-text		DC cmds cmd tail]
 						sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
 						sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
+						sym = spline	 [cmd: draw-spline		DC cmds cmd tail]
 						sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
 						sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
 						sym = _image	 [cmd: draw-image		DC cmds cmd tail]

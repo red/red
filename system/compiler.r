@@ -62,6 +62,7 @@ system-dialect: make-profilable context [
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
+		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 	]
 	
 	compiler: make-profilable context [
@@ -3375,22 +3376,37 @@ system-dialect: make-profilable context [
 		header	[block!]
 		res		[block!]
 		file	[file!]
-		/local icon name value info main-path version-info-key
+		/local icon name value info main-path version-info-key base
 	][
 		info: make block! 8
 		main-path: first split-path file
-		if icon: select header first [Icon:][
+		base: either encap? [%system/assets/][%assets/]
+		
+		either icon: select header first [Icon:][
 			append res 'icon
-			icon: either file? icon [reduce [icon]][icon]
-			foreach file icon [
-				append info either loader/relative-path? file [
-					join main-path file
-				][file]
-				unless exists? last info [
-					red/throw-error ["cannot find icon:" last info]
+			either any [word? :icon any-word? :icon][
+				repend/only res [
+					join base select [
+						default %red.ico
+						flat 	%red.ico
+						old		%red-3D.ico
+						mono	%red-mono.ico
+					] :icon
 				]
+			][
+				icon: either file? icon [reduce [icon]][icon]
+				foreach file icon [
+					append info either loader/relative-path? file [
+						join main-path file
+					][file]
+					unless exists? last info [
+						red/throw-error ["cannot find icon:" last info]
+					]
+				]
+				append/only res copy info
 			]
-			append/only res copy info
+		][
+			append res compose/deep [icon [(base/red.ico)]]
 		]
 
 		clear info
@@ -3455,7 +3471,7 @@ system-dialect: make-profilable context [
 					src: loader/process/with job-data/1 file
 				][
 					src: loader/process file
-					collect-resources src/2 resources file
+					if job/OS = 'Windows [collect-resources src/2 resources file]
 				]
 				compiler/run job src file
 			]

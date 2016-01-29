@@ -259,7 +259,7 @@ draw-end: func [
 		GetClientRect hWnd rect
 		width: rect/right - rect/left
 		height: rect/bottom - rect/top
-		BitBlt as handle! paint/hdc 0 0 width height dc 0 0 SRCCOPY
+		BitBlt paint/hdc 0 0 width height dc 0 0 SRCCOPY
 	]
 
 	unless any [on-graphic? zero? modes/graphics][GdipDeleteGraphics modes/graphics]
@@ -566,6 +566,46 @@ OS-draw-polygon: func [
 		][
 			Polyline dc edges nb + 1
 		]
+	]
+]
+
+OS-draw-spline: func [
+	dc		[handle!]
+	start	[red-pair!]
+	end		[red-pair!]
+	closed? [logic!]
+	/local
+		pair  [red-pair!]
+		point [tagPOINT]
+		nb	  [integer!]
+][
+	point: edges
+	pair:  start
+	nb:	   0
+	
+	while [all [pair <= end nb < max-edges]][
+		point/x: pair/x
+		point/y: pair/y
+		nb: nb + 1
+		point: point + 1
+		pair: pair + 1	
+	]
+	;if nb = max-edges [fire error]
+
+	unless GDI+? [update-gdiplus-modes dc]					;-- force to use GDI+
+
+	if modes/brush? [
+		GdipFillClosedCurveI
+			modes/graphics
+			modes/gp-brush
+			edges
+			nb
+			GDIPLUS_FILLMODE_ALTERNATE
+	]
+	either closed? [
+		GdipDrawClosedCurveI modes/graphics modes/gp-pen edges nb
+	][
+		GdipDrawCurveI modes/graphics modes/gp-pen edges nb
 	]
 ]
 

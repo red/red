@@ -1,7 +1,6 @@
 Red [
 	Purpose: "Test the GUI auto-update mode"
 	Needs: 'View
-	Icon: %red.ico
 ]
 
 system/view/debug?: yes
@@ -97,7 +96,20 @@ FFFFFFFFFFFFFF000000000000000000000000000000FFFFFFFFFFFFFFFFFF00
 }]
 
 sub-win: make face! [
-	type: 'window text: "Sub" offset: 200x200 size: 200x100
+	type: 'window text: "Sub 1-View" offset: 200x200 size: 200x100
+	pane: reduce [
+		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
+		make face! [
+			type: 'button text: "Close" offset: 120x10 size: 60x20
+			actors: object [
+				on-click: func [face [object!] event [event!]][unview/all]
+			]
+		]
+	]
+]
+
+sub-win2: make face! [
+	type: 'window text: "Sub 2-Show" offset: 200x200 size: 200x100
 	pane: reduce [
 		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
 		make face! [
@@ -108,6 +120,8 @@ sub-win: make face! [
 		]
 	]
 ]
+
+;; requires pane cursor to be moved back in closing event handler
 
 win: make face! [
 	type: 'window text: "Red View" size: 1100x800
@@ -634,7 +648,15 @@ win/pane: reduce [
 		type: 'button text: "Sub-window" offset: 400x440 size: 70x24
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				show sub-win
+				view sub-win
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Sub-window 2" offset: 400x470 size: 70x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				show sub-win2
 			]
 		]
 	]

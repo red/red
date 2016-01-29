@@ -301,7 +301,7 @@ string: context [
 	rs-find-char: func [
 		str		[red-string!]
 		cp		[integer!]
-		case?	[logic!]
+		case?	[logic!]				;-- case sensitive?
 		return: [logic!]
 		/local
 			s	 [series!]
@@ -316,7 +316,7 @@ string: context [
 		tail: as byte-ptr! s/tail
 		while [head < tail][
 			c1: get-char head unit
-			if case? [
+			unless case? [
 				c1: case-folding/folding-case c1 yes	;-- uppercase c1
 				cp: case-folding/folding-case cp yes	;-- uppercase cp
 			]
@@ -368,7 +368,39 @@ string: context [
 		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
 		s
 	]
-	
+
+	remove-part: func [
+		str		[red-string!]
+		offset	[integer!]
+		part	[integer!]
+		return:	[red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+	][
+		assert offset >= 0
+		assert part > 0
+
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return str]					;-- early exit if nothing to remove
+
+		part: part << (unit >> 1)
+		if head + part < tail [
+			move-memory 
+				head
+				head + part
+				as-integer tail - head - part
+		]
+		s/tail: as red-value! tail - part
+		str
+	]
+
 	append-char: func [
 		s		[series!]
 		cp		[integer!]								;-- codepoint

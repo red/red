@@ -68,7 +68,10 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
+				FACET_FLAGS_OVER:		00000002h
 				
+				FACET_FLAGS_POPUP:		01000000h
+				FACET_FLAGS_MODAL:		02000000h
 				FACET_FLAGS_RESIZE:		04000000h
 				FACET_FLAGS_NO_BTNS:	08000000h
 				FACET_FLAGS_NO_MAX:		10000000h
@@ -115,6 +118,9 @@ system/view/platform: context [
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				EVT_FOCUS
+				EVT_UNFOCUS
+				EVT_ENTER
 				
 				EVT_ZOOM
 				EVT_PAN
@@ -211,7 +217,6 @@ system/view/platform: context [
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
 			
-			
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
@@ -225,6 +230,7 @@ system/view/platform: context [
 			_strike:		symbol/make "strike"
 			
 			all-over:		symbol/make "all-over"
+			over:			symbol/make "over"
 			draggable:		symbol/make "draggable"
 			resize:			symbol/make "resize"
 			no-title:		symbol/make "no-title"
@@ -232,6 +238,8 @@ system/view/platform: context [
 			no-min:			symbol/make "no-min"
 			no-max:			symbol/make "no-max"
 			no-buttons:		symbol/make "no-buttons"
+			modal:			symbol/make "modal"
+			popup:			symbol/make "popup"
 			
 			_text:			word/load "text"
 			_control:		word/load "control"
@@ -251,8 +259,11 @@ system/view/platform: context [
 			_key:			word/load "key"
 			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			_focus:			word/load "focus"
+			_unfocus:		word/load "unfocus"
 			_select:		word/load "select"
 			_change:		word/load "change"
+			_enter:			word/load "enter"
 			_menu:			word/load "menu"
 			_close:			word/load "close"
 			_move:			word/load "move"
@@ -307,8 +318,11 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
+					EVT_FOCUS		 [_focus]
+					EVT_UNFOCUS		 [_unfocus]
 					EVT_SELECT	 	 [_select]
 					EVT_CHANGE		 [_change]
+					EVT_ENTER		 [_enter]
 					EVT_MENU		 [_menu]
 					EVT_CLOSE		 [_close]
 					EVT_MOVE		 [_move]
@@ -345,8 +359,11 @@ system/view/platform: context [
 					sym = _key/symbol			[sym: EVT_KEY]
 					;sym = _key-down/symbol 	[sym: EVT_KEY_DOWN]
 					sym = _key-up/symbol		[sym: EVT_KEY_UP]
+					sym = _focus/symbol			[sym: EVT_FOCUS]
+					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]
 					sym = _select/symbol		[sym: EVT_SELECT]
 					sym = _change/symbol		[sym: EVT_CHANGE]
+					sym = _enter/symbol			[sym: EVT_ENTER]
 					sym = _menu/symbol			[sym: EVT_MENU]
 					sym = _close/symbol			[sym: EVT_CLOSE]
 					sym = _move/symbol			[sym: EVT_MOVE]
@@ -478,7 +495,7 @@ system/view/platform: context [
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
-			state:	reduce [0 0 none none]
+			state:	reduce [0 0 none copy [1]]
 		]
 	]
 	

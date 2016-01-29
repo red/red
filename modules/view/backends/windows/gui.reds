@@ -25,6 +25,7 @@ Red/System [
 #include %button.reds
 #include %draw.reds
 
+exit-loop:		0
 process-id:		0
 border-width:	0
 hScreen:		as handle! 0
@@ -336,8 +337,32 @@ init: func [
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
-init-window: func [
-	handle [handle!]
+find-last-window: func [
+	return: [handle!]
+	/local
+		obj  [red-object!]
+		pane [red-block!]
+][
+	pane: as red-block! #get system/view/screens		;-- screens list
+	if null? pane [return null]
+	
+	obj: as red-object! block/rs-head pane				;-- 1st screen
+	if null? obj [return null]	
+	
+	pane: as red-block! (object/get-values obj) + FACE_OBJ_PANE ;-- windows list
+	
+	either all [
+		TYPE_OF(pane) = TYPE_BLOCK
+		0 < (pane/head + block/rs-length? pane)
+	][
+		face-handle? as red-object! (block/rs-tail pane) - 1
+	][
+		null
+	]
+]
+
+init-window: func [										;-- post-creation settings
+	handle  [handle!]
 	offset	[red-pair!]
 	size	[red-pair!]
 	bits	[integer!]
@@ -346,9 +371,18 @@ init-window: func [
 		win		[RECT_STRUCT]
 		client	[RECT_STRUCT]
 		pt		[tagPOINT]
+		owner	[handle!]
+		modes	[integer!]
 ][
+	modes: SWP_NOZORDER
+	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
 	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+	if bits and FACET_FLAGS_MODAL	  <> 0 [
+		modes: 0
+		owner: find-last-window
+		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
+	]
 
 	client: declare RECT_STRUCT
 	win:	declare RECT_STRUCT	
@@ -358,12 +392,30 @@ init-window: func [
 	pt: screen-to-client handle win/left win/top
 	
 	SetWindowPos								;-- adjust window size/pos to account for edges
-		handle null
+		handle
+		as handle! 0							;-- HWND_TOP
 		offset/x + pt/x
 		offset/y + pt/y
 		size/x + (win/right - win/left) - client/right
 		size/y + (win/bottom - win/top) - client/bottom
-		SWP_NOZORDER
+		modes
+]
+
+set-selected-focus: func [
+	hWnd [handle!]
+	/local
+		face   [red-object!]
+		values [red-value!]
+		handle [handle!]
+][
+	values: get-face-values hWnd
+	if values <> null [
+		face: as red-object! values + FACE_OBJ_SELECTED
+		if TYPE_OF(face) = TYPE_OBJECT [
+			handle: face-handle? face
+			unless null? handle [SetFocus handle]
+		]
+	]
 ]
 
 set-logic-state: func [
@@ -410,12 +462,15 @@ get-flags: func [
 		sym: symbol/resolve word/symbol
 		case [
 			sym = all-over	 [flags: flags or FACET_FLAGS_ALL_OVER]
+			sym = over	 	 [flags: flags or FACET_FLAGS_OVER]
 			sym = resize	 [flags: flags or FACET_FLAGS_RESIZE]
 			sym = no-title	 [flags: flags or FACET_FLAGS_NO_TITLE]
 			sym = no-border  [flags: flags or FACET_FLAGS_NO_BORDER]
 			sym = no-min	 [flags: flags or FACET_FLAGS_NO_MIN]
 			sym = no-max	 [flags: flags or FACET_FLAGS_NO_MAX]
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
+			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
+			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -578,13 +633,17 @@ store-face-to-hWnd: func [
 
 OS-show-window: func [
 	hWnd [integer!]
+	/local
+		face	[red-object!]
 ][
 	ShowWindow as handle! hWnd SW_SHOWDEFAULT
 	UpdateWindow as handle! hWnd
 	unless win8+? [
 		update-layered-window as handle! hWnd null null null -1
 	]
-	SetFocus as handle! hWnd
+
+	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
+	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
 ]
 
 OS-make-view: func [
@@ -734,6 +793,8 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
+			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
+			
 			flags: either bits and FACET_FLAGS_RESIZE = 0 [
 				flags and (not WS_MAXIMIZEBOX)
 			][
@@ -742,7 +803,7 @@ OS-make-view: func [
 			if menu-bar? menu window [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
-			]
+			]			
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -884,28 +945,35 @@ change-offset: func [
 		flags [integer!]
 		style [integer!]
 		pt    [red-pair!]
+		offset [tagPOINT]
+		handle [handle!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	pt: declare red-pair!
+	handle: as handle! hWnd
 	if type = base [
-		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
+		style: GetWindowLong handle GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
-			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
-			owner: as handle! GetWindowLong as handle! hWnd wc-offset - 16
+			size: as red-pair! (get-face-values handle) + FACE_OBJ_SIZE
+			owner: as handle! GetWindowLong handle wc-offset - 16
 			unless win8+? [
-				process-layered-region as handle! hWnd size pos
+				process-layered-region handle size pos
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y
 				ClientToScreen owner (as tagPOINT pt) + 1
+				offset: as tagPOINT pt
+				offset/x: pt/x - GetWindowLong handle wc-offset - 4
+				offset/y: pt/y - GetWindowLong handle wc-offset - 8
 				pos: pt
-				SetWindowLong as handle! hWnd wc-offset - 4 pos/x
-				SetWindowLong as handle! hWnd wc-offset - 8 pos/y
+				SetWindowLong handle wc-offset - 4 pos/x
+				SetWindowLong handle wc-offset - 8 pos/y
+				update-layered-window handle null offset null -1
 			]
 		]
 	]
 	SetWindowPos 
-		as handle! hWnd
+		handle
 		as handle! 0
 		pos/x pos/y
 		0 0
@@ -952,6 +1020,9 @@ change-visible: func [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		ShowWindow as handle! hWnd value
 	]
+	unless win8+? [
+		update-layered-window as handle! hWnd null null null -1
+	]
 ]
 
 change-image: func [
@@ -964,33 +1035,40 @@ change-image: func [
 
 change-selection: func [
 	hWnd   [integer!]
-	idx	   [integer!]
+	int	   [red-integer!]								;-- can be also none! | object!
 	values [red-value!]
 	/local
-		int  [red-value!]
-		type [red-word!]
-		sym	 [integer!]
+		face   [red-object!]
+		type   [red-word!]
+		handle [handle!]
+		sym	   [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	case [
 		sym = camera [
-			int: values + FACE_OBJ_SELECTED
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera as handle! hWnd
 			][
-				select-camera as handle! hWnd idx - 1
+				select-camera as handle! hWnd int/value - 1
 				toggle-preview as handle! hWnd true
 			]
 		]
 		sym = text-list [
-			SendMessage as handle! hWnd LB_SETCURSEL idx - 1 0
+			SendMessage as handle! hWnd LB_SETCURSEL int/value - 1 0
 		]
 		any [sym = drop-list sym = drop-down][
-			SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+			SendMessage as handle! hWnd CB_SETCURSEL int/value - 1 0
 		]
 		sym = tab-panel [
-			select-tab as handle! hWnd idx - 1		;@@ requires range checking
+			select-tab as handle! hWnd int/value - 1	;@@ requires range checking
+		]
+		sym = window [
+			switch TYPE_OF(int) [
+				TYPE_OBJECT [set-selected-focus as handle! hWnd]
+				TYPE_NONE	[SetFocus as handle! hWnd]
+				default [0]
+			]
 		]
 	]
 ]
@@ -1232,6 +1310,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_ENABLE?
+		EnableWindow as handle! hWnd bool/value
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -1239,7 +1318,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_SELECTED <> 0 [
 		int2: as red-integer! values + FACE_OBJ_SELECTED
-		change-selection hWnd int2/value values
+		change-selection hWnd int2 values
 	]
 	if flags and FACET_FLAG_FLAGS <> 0 [
 		SetWindowLong
@@ -1301,7 +1380,11 @@ OS-destroy-view: func [
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 	
-	if empty? [clean-up PostQuitMessage 0]
+	if empty? [
+		clean-up
+		exit-loop: exit-loop + 1
+		PostQuitMessage 0
+	]
 ]
 
 OS-update-facet: func [

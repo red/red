@@ -343,11 +343,36 @@ OS-image: context [
 		/local
 			handle	[integer!]
 			res		[integer!]
+			bitmap	[integer!]
+			format	[integer!]
+			w		[integer!]
+			h		[integer!]
+			src		[byte-ptr!]
+			dst		[byte-ptr!]
+			bmp-src [BitmapData!]
+			bmp-dst [BitmapData!]
 	][
 		handle: 0
 		res: GdipCreateBitmapFromFile filename :handle
-		unless zero? res [handle: -1]
-		handle
+		unless zero? res [return -1]
+
+		format: 0
+		bitmap: 0
+		GdipGetImagePixelFormat handle :format
+		w: width? handle
+		h: height? handle
+		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
+
+		bmp-src: as BitmapData! lock-bitmap handle no
+		src: bmp-src/scan0
+		bmp-dst: as BitmapData! lock-bitmap bitmap yes
+		dst: bmp-dst/scan0
+		copy-memory dst src w * h * 4
+		unlock-bitmap handle as-integer bmp-src
+		unlock-bitmap bitmap as-integer bmp-dst
+
+		GdipDisposeImage handle 
+		bitmap
 	]
 
 	make-image: func [
@@ -465,7 +490,7 @@ OS-image: context [
 		stat: declare tagSTATSTG
 		hr: StgCreateDocfile
 			#u16 "CompoundFile.cmp"
-			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE
+			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
 			0
 			ISto
 		storage: as IStorage ISto/ptr/vtbl

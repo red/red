@@ -3,7 +3,6 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %hello.reds
 	Tabs:	 4
-	Icon:	 %../../tests/red.ico
 	Version: 1.0.2.4
 	Company: "FullStack Technologies"
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."

@@ -35,11 +35,16 @@ write %build/bin/sources.r set-cache [
 			%png.red
 		]
 		%console/ [
+			%auto-complete.red
 			%console.red
+			%engine.red
+			%gui-console.red
 			%help.red
 			%input.red
 			%wcwidth.reds
 			%POSIX.reds
+			%terminal.reds
+			%windows.reds
 			%win32.reds
 		]
 	]
@@ -121,6 +126,8 @@ write %build/bin/sources.r set-cache [
 			%win32.reds
 			%COM.reds
 			%image-gdiplus.reds
+			%win32-cli.reds
+			%win32-gui.reds
 		]
 	]
 	%modules/ [
@@ -161,6 +168,11 @@ write %build/bin/sources.r set-cache [
 		%emitter.r
 		%linker.r
 		%loader.r
+		%assets/ [
+			%red.ico
+			%red-3D.ico
+			%red-mono.ico
+		]
 		%runtime/ [
 			%android.reds
 			%common.reds

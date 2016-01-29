@@ -410,6 +410,16 @@ process-command-event: func [
 			]
 			0
 		]
+		EN_SETFOCUS
+		CBN_SETFOCUS [
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_FOCUS
+		]
+		EN_KILLFOCUS
+		CBN_KILLFOCUS [
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_UNFOCUS
+		]
 		CBN_SELCHANGE [
 			current-msg/hWnd: as handle! lParam			;-- force ListBox or Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
@@ -588,6 +598,7 @@ WndProc: func [
 		pos	   [integer!]
 		handle [handle!]
 		font   [red-object!]
+		face   [red-object!]
 		draw   [red-block!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
@@ -641,26 +652,29 @@ WndProc: func [
 			current-msg/hWnd: hWnd
 			make-event current-msg 0 type
 			
-			pair: as red-pair! stack/arguments
-			if TYPE_OF(pair) = TYPE_PAIR [
-				either msg = WM_MOVING [
-					pt: screen-to-client hWnd rc/left rc/top
-					rc/left:   pair/x	 + pt/x
-					rc/top:	   pair/y	 + pt/y
-					rc/right:  rc/right	 + pt/x
-					rc/bottom: rc/bottom + pt/y
-				][
-					pt: delta-size hWnd
-					rc/right:  rc/left + pair/x + pt/x
-					rc/bottom: rc/top + pair/y + pt/y
-				]
-			]
+			;pair: as red-pair! stack/arguments
+			;if TYPE_OF(pair) = TYPE_PAIR [
+			;	either msg = WM_MOVING [
+			;		pt: screen-to-client hWnd rc/left rc/top
+			;		rc/left:   pair/x	 + pt/x
+			;		rc/top:	   pair/y	 + pt/y
+			;		rc/right:  rc/right	 + pt/x
+			;		rc/bottom: rc/bottom + pt/y
+			;	][
+			;		pt: delta-size hWnd
+			;		rc/right:  rc/left + pair/x + pt/x
+			;		rc/bottom: rc/top + pair/y + pt/y
+			;	]
+			;]
 			return 1									;-- TRUE
 		]
 		WM_EXITSIZEMOVE [
 			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 			make-event current-msg 0 type
 			return 0
+		]
+		WM_ACTIVATE [
+			if WIN32_LOWORD(wParam) = 1 [set-selected-focus hWnd return 0]
 		]
 		WM_GESTURE [
 			handle: hWnd
@@ -770,6 +784,10 @@ WndProc: func [
 			return 0
 		]
 		WM_CLOSE [
+			handle: current-msg/hWnd
+			SetFocus current-msg/hWnd					;-- force focus on the closing window,
+			current-msg/hWnd: handle					;-- prevents late unfocus event generation.
+			
 			res: make-event current-msg 0 EVT_CLOSE
 			if res  = EVT_DISPATCH [return 0]				;-- continue
 			;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
@@ -793,6 +811,8 @@ process: func [
 		new	   [handle!]
 		x	   [integer!]
 		y	   [integer!]
+		flags  [integer!]
+		all?   [logic!]
 ][
 	switch msg/msg [
 		WM_MOUSEMOVE [
@@ -808,10 +828,15 @@ process: func [
 				return EVT_DISPATCH						;-- filter out buggy mouse positions (thanks MS!)
 			]
 			new: get-child-from-xy msg/hWnd x y
-			
+		
+			hWnd: either null? hover-saved [new][hover-saved]
+			all?: (get-face-flags hWnd) and FACET_FLAGS_ALL_OVER <> 0
+			flags: get-face-flags new
+
 			either all [
-				(get-face-flags new) and FACET_FLAGS_ALL_OVER = 0
-				new = hover-saved
+				not all?
+				flags and (FACET_FLAGS_ALL_OVER or FACET_FLAGS_OVER) = 0
+				;new = hover-saved
 			][											;-- block useless events
 				EVT_DISPATCH
 			][
@@ -819,8 +844,13 @@ process: func [
 					msg/hWnd: hover-saved
 					make-event msg EVT_FLAG_AWAY EVT_OVER
 				]
-				hover-saved: new
-				msg/hWnd: new
+				either all? [
+					if null? hover-saved [hover-saved: new]
+					msg/hWnd: hover-saved				;-- send all EVT_OVER to origin face
+				][
+					hover-saved: new
+					msg/hWnd: new						;-- send EVT_OVER to face under mouse cursor
+				]
 				make-event msg 0 EVT_OVER
 			]
 		]
@@ -880,7 +910,8 @@ do-events: func [
 ][
 	msg: declare tagMSG
 	msg?: no
-
+	exit-loop: 0
+	
 	while [
 		either no-wait? [
 			0 < PeekMessage msg null 0 0 1
@@ -897,5 +928,7 @@ do-events: func [
 		]
 		if no-wait? [return msg?]
 	]
+	exit-loop: exit-loop - 1
+	if exit-loop > 0 [PostQuitMessage 0]
 	msg?
 ]

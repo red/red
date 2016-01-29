@@ -15,6 +15,43 @@ Red [
 	event/init
 ]
 
+event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
+
+find-flag?: routine [
+	facet	[any-type!]
+	flag 	[word!]
+	/local
+		word   [red-word!]
+		value  [red-value!]
+		tail   [red-value!]
+		bool   [red-logic!]
+		found? [logic!]
+][
+	switch TYPE_OF(facet) [
+		TYPE_WORD  [
+			word: as red-word! facet
+			found?: EQUAL_WORDS?(flag word)
+		]
+		TYPE_BLOCK [
+			found?: no
+			value: block/rs-head as red-block! facet
+			tail:  block/rs-tail as red-block! facet
+			
+			while [all [not found? value < tail]][
+				if TYPE_OF(value) = TYPE_WORD [
+					word: as red-word! value
+					found?: EQUAL_WORDS?(flag word)
+				]
+				value: value + 1
+			]
+		]
+		default [found?: no]
+	]
+	bool: as red-logic! stack/arguments
+	bool/header: TYPE_LOGIC
+	bool/value:	 found?
+]
+
 on-face-deep-change*: function [owner word target action new index part state forced?][
 	if system/view/debug? [
 		print [
@@ -43,7 +80,18 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						until [
 							face: target/1
 							if face/type = 'window [
-								system/view/platform/destroy-view face tail? skip head target part
+								modal?: find-flag? face/flags 'modal
+								system/view/platform/destroy-view face face/state/4
+								
+								if all [modal? not empty? head target][
+									pane: target
+									until [
+										pane: back pane
+										pane/1/enable?: yes
+										unless system/view/auto-sync? [show pane/1]
+										any [head? pane find-flag? pane/1/flags 'modal]
+									]
+								]
 							]
 							target: next target
 							zero? part: part - 1
@@ -195,12 +243,13 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
+				same-pane?: all [block? old block? new same? head old head new]
 				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
-				if all [block? old not empty? old][clear head old]	;-- destroy old faces
+				if all [not same-pane? block? old not empty? old][clear head old]	;-- destroy old faces
 			]
-			if any [series? old object? old][modify old 'owned none]
+			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
 			
-			unless find [font para edge actors extra] word [
+			unless any [same-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font [link-sub-to-parent self 'font old new]
@@ -329,8 +378,11 @@ system/view: context [
 		over			on-over
 		key				on-key
 		key-up			on-key-up
+		focus			on-focus
+		unfocus			on-unfocus
 		select			on-select
 		change			on-change
+		enter			on-enter
 		menu			on-menu
 		close			on-close
 		move			on-move
@@ -344,22 +396,19 @@ system/view: context [
 		press-tap		on-press-tap
 	]
 	
-	capture-events: function [face [object!] event [event!] /local result][
+	capture-events: function [face [object!] event [event!]][
 		if face/parent [capture-events face/parent event]
-		
-		if face/type = 'window [
-			foreach handler handlers [
-				set/any 'result do-safe [handler face event]
-				if :result [return :result]
-			]
-		]
 		if capturing? [do-actor face event 'detect]
 	]
 	
 	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
-		unless with [
+		unless with [									;-- protect following code from recursion
+			foreach handler handlers [
+				set/any 'result do-safe [handler face event]
+				either event? :result [event: result][if :result [return :result]]
+			]
 			set/any 'result capture-events face event	;-- event capturing
 			if find [stop done] :result [return :result]
 		]
@@ -372,8 +421,8 @@ system/view: context [
 		]
 		
 		if all [event/type = 'close :result <> 'continue][
-			windows: head remove find system/view/screens/1/pane face
-			result: pick [stop done] tail? windows
+			result: pick [stop done] face/state/4		;-- face/state will be none after remove call
+			remove find head system/view/screens/1/pane face
 		]	
 		:result
 	]
@@ -389,8 +438,11 @@ system/view: context [
 #include %draw.red
 #include %VID.red
 
-do-events: func [/no-wait return: [logic!]][
-	system/view/platform/do-event-loop no-wait
+do-events: function [/no-wait return: [logic!] /local result][
+	win: last system/view/screens/1/pane
+	win/state/4: not no-wait							;-- mark the window from which the event loop starts
+	set/any 'result system/view/platform/do-event-loop no-wait
+	:result
 ]
 
 do-safe: func [code [block!] /local result][
@@ -462,10 +514,19 @@ show: function [
 			
 			switch face/type [
 				tab-panel [link-tabs-to-parent face]
-				window	  [append system/view/screens/1/pane face]
+				window	  [
+					pane: system/view/screens/1/pane
+					if find-flag? face/flags 'modal [
+						foreach f head pane [
+							f/enable?: no
+							unless system/view/auto-sync? [show f]
+						]
+					]
+					append pane face
+				]
 			]
 		]
-		face/state: reduce [obj 0 none none]
+		face/state: reduce [obj 0 none false]
 	]
 
 	if face/pane [foreach f face/pane [show/with f face]]
@@ -485,11 +546,12 @@ unview: function [
 	if system/view/debug? [print ["unview: all:" :all "only:" only]]
 	
 	all?: :all											;-- compiler does not support redefining ALL
-	if empty? pane: system/view/screens/1/pane [exit]
+	svs: system/view/screens/1
+	if empty? pane: svs/pane [exit]
 	
 	case [
-		only  [remove find pane face]
-		all?  [while [not tail? pane][remove pane]]
+		only  [remove find head pane face]
+		all?  [while [not tail? pane][remove back tail pane]]
 		'else [remove back tail pane]
 	]
 ]
@@ -516,7 +578,8 @@ view: function [
 	unless spec/offset [center-face spec]
 	show spec
 	
-	either no-wait [spec][do-events]
+	either no-wait [spec][do-events ()]					;-- return unset! value by default
+	
 ]
 
 react: function [
@@ -676,7 +739,7 @@ insert-event-func [
 
 ;-- Debug info handler --
 insert-event-func [
-	if all [system/view/debug? face = event/face][
+	if system/view/debug? [
 		print [
 			"event> type:"	event/type
 			"offset:"		event/offset
@@ -685,6 +748,17 @@ insert-event-func [
 		]
 	]
 	none
+]
+
+;-- 'enter event handler --
+insert-event-func [
+	all [
+		event/type = 'key
+		find "^M^/" event/key
+		find [field drop-down] event/face/type
+		event/type: 'enter
+	]
+	event
 ]
 
 ;-- Radio faces handler --
@@ -696,9 +770,8 @@ insert-event-func [
 		foreach f event/face/parent/pane [if f/type = 'radio [f/data: off show f]]
 		event/face/data: on
 		event/type: 'change
-		show event/face
 	]
-	none
+	event
 ]
 
 ;-- Reactors support handler --

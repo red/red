@@ -10,7 +10,10 @@ Red/System [
 	}
 ]
 
+
 #define NM_CUSTOMDRAW			-12
+
+#define GWL_HWNDPARENT			-8
 #define GWL_STYLE				-16
 #define GWL_EXSTYLE				-20
 
@@ -82,14 +85,19 @@ Red/System [
 #define CB_SETHORIZONTALEXTENT 015Eh
 
 #define CBN_SELCHANGE       1
+#define CBN_SETFOCUS		3
+#define CBN_KILLFOCUS		4
 #define CBN_EDITCHANGE		5
 #define CBN_SELENDOK		9
 #define CBN_SELENDCANCEL	10
+
 
 #define LBN_SELCHANGE       1
 #define LBN_DBLCLK          2
 
 #define EN_CHANGE			0300h
+#define EN_SETFOCUS			0100h
+#define EN_KILLFOCUS		0200h
 
 #define TCN_SELCHANGE       -551
 #define TCN_SELCHANGING		-552
@@ -147,6 +155,7 @@ Red/System [
 #define MNS_CHECKORBMP		04000000h
 
 #define IDC_ARROW			7F00h
+#define IDC_IBEAM			7F01h
 
 #define CW_USEDEFAULT		80000000h
 
@@ -182,6 +191,14 @@ Red/System [
 #define SIF_DISABLENOSCROLL	0008h
 #define SB_VERT				1
 
+#define SB_LINEUP			0
+#define SB_LINEDOWN			1
+#define SB_PAGEUP			2
+#define SB_PAGEDOWN			3
+#define SB_THUMBTRACK		5
+#define SB_TOP				6
+#define SB_BOTTOM			7
+
 #define BS_PUSHBUTTON		00000000h
 #define BS_DEFPUSHBUTTON	00000001h
 #define BS_CHECKBOX			00000002h
@@ -201,9 +218,13 @@ Red/System [
 
 #define WM_CREATE			0001h
 #define WM_NCCREATE			0081h
+#define WM_NCDESTROY		0081h
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
 #define WM_SIZE				0005h
+#define WM_ACTIVATE			0006h
+#define WM_SETFOCUS			0007h
+#define WM_KILLFOCUS		0008h
 #define WM_CLOSE			0010h
 #define WM_SETTEXT			000Ch
 #define WM_GETTEXT			000Dh
@@ -243,10 +264,14 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
+#define	WM_MOUSEWHELL		020Ah
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
 #define WM_EXITSIZEMOVE		0232h
+#define WM_COPY				0301h
+#define WM_PASTE			0302h
+#define WM_CLEAR			0303h
 #define WM_WINDOWPOSCHANGED 0047h
 #define WM_MOUSEACTIVATE	0021h
 
@@ -271,6 +296,8 @@ Red/System [
 #define BST_CHECKED			1
 #define BST_INDETERMINATE	2
 
+#define VK_SHIFT			10h
+#define VK_CONTROL			11h
 #define VK_SPACE			20h
 #define VK_PRIOR			21h
 #define VK_NEXT				22h
@@ -314,6 +341,7 @@ Red/System [
 #define VK_F22				85h
 #define VK_F23				86h
 #define VK_F24				87h
+#define VK_LCONTROL			A2h
 #define VK_PROCESSKEY		E5h
 
 #define DEFAULT_GUI_FONT 	17
@@ -425,7 +453,13 @@ Red/System [
 #define AD_CLOCKWISE		2
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
+#define SYSTEM_FIXED_FONT	16
+#define ETO_OPAQUE			2
 #define ETO_CLIPPED			4
+
+#define CF_TEXT				1
+#define CF_UNICODETEXT		13
+#define GA_ROOT				2
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -472,8 +506,29 @@ tagLOGBRUSH: alias struct! [
 	lbHatch [integer!]
 ]
 
+tagTEXTMETRIC: alias struct! [
+	tmHeight			[integer!]
+	tmAscent			[integer!]
+	tmDescent			[integer!]
+	tmInternalLeading	[integer!]
+	tmExternalLeading	[integer!]
+	tmAveCharWidth		[integer!]
+	tmMaxCharWidth		[integer!]
+	tmWeight			[integer!]
+	tmOverhang			[integer!]
+	tmDigitizedAspectX	[integer!]
+	tmDigitizedAspectY	[integer!]
+	tmFirstLastChar		[integer!]
+	tmDefaultBreakChar	[integer!]
+	tmItalic			[byte!]
+	tmUnderlined		[byte!]
+	tmStruckOut			[byte!]
+	tmPitchAndFamily	[byte!]
+	tmCharSet			[byte!]
+]
+
 tagPAINTSTRUCT: alias struct! [
-	hdc			 [integer!]
+	hdc			 [handle!]
 	fErase		 [integer!]
 	left		 [integer!]
 	top			 [integer!]
@@ -517,6 +572,16 @@ tagNMCUSTOMDRAWINFO: alias struct! [
 	dwItemSpec	[int-ptr!];this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
 	uItemState	[integer!]
 	lItemlParam [integer!]
+]
+
+tagSCROLLINFO: alias struct! [
+	cbSize		[integer!]
+	fMask		[integer!]
+	nMin		[integer!]
+	nMax		[integer!]
+	nPage		[integer!]
+	nPos		[integer!]
+	nTrackPos	[integer!]
 ]
 
 tagCREATESTRUCT: alias struct! [
@@ -701,6 +766,23 @@ DwmIsCompositionEnabled!: alias function! [
 
 #import [
 	"kernel32.dll" stdcall [
+		GlobalAlloc: "GlobalAlloc" [
+			flags		[integer!]
+			size		[integer!]
+			return:		[handle!]
+		]
+		GlobalFree: "GlobalFree" [
+			hMem		[handle!]
+			return:		[integer!]
+		]
+		GlobalLock: "GlobalLock" [
+			hMem		[handle!]
+			return:		[byte-ptr!]
+		]
+		GlobalUnlock: "GlobalUnlock" [
+			hMem		[handle!]
+			return:		[integer!]
+		]
 		GetCurrentProcessId: "GetCurrentProcessId" [
 			return:		[integer!]
 		]
@@ -741,6 +823,33 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		OpenClipboard: "OpenClipboard" [
+			hWnd		[handle!]
+			return:		[logic!]
+		]
+		SetClipboardData: "SetClipboardData" [
+			uFormat		[integer!]
+			hMem		[handle!]
+			return:		[handle!]
+		]
+		GetClipboardData: "GetClipboardData" [
+			uFormat		[integer!]
+			return:		[handle!]
+		]
+		EmptyClipboard: "EmptyClipboard" [
+			return:		[integer!]
+		]
+		CloseClipboard: "CloseClipboard" [
+			return:		[integer!]
+		]
+		IsClipboardFormatAvailable: "IsClipboardFormatAvailable" [
+			format		[integer!]
+			return:		[logic!]
+		]
+		GetKeyState: "GetKeyState" [
+			nVirtKey	[integer!]
+			return:		[integer!]
+		]
 		SetActiveWindow: "SetActiveWindow" [
 			hWnd		[handle!]
 			return:		[handle!]
@@ -873,6 +982,12 @@ DwmIsCompositionEnabled!: alias function! [
 			fRedraw		 [logic!]
 			return: 	 [integer!]
 		]
+		GetScrollInfo: "GetScrollInfo" [
+			hWnd		[handle!]
+			nBar		[integer!]
+			lpsi		[tagSCROLLINFO]
+			return:		[integer!]
+		]
 		ShowWindow: "ShowWindow" [
 			hWnd		[handle!]
 			nCmdShow	[integer!]
@@ -880,6 +995,11 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		UpdateWindow: "UpdateWindow" [
 			hWnd		[handle!]
+			return:		[logic!]
+		]
+		EnableWindow: "EnableWindow" [
+			hWnd		[handle!]
+			bEnable		[logic!]
 			return:		[logic!]
 		]
 		InvalidateRect: "InvalidateRect" [
@@ -955,6 +1075,13 @@ DwmIsCompositionEnabled!: alias function! [
 			nExitCode	[integer!]
 		]
 		SendMessage: "SendMessageW" [
+			hWnd		[handle!]
+			msg			[integer!]
+			wParam		[integer!]
+			lParam		[integer!]
+			return: 	[handle!]
+		]
+		PostMessage: "PostMessageW" [
 			hWnd		[handle!]
 			msg			[integer!]
 			wParam		[integer!]
@@ -1057,6 +1184,13 @@ DwmIsCompositionEnabled!: alias function! [
 		CreatePopupMenu: "CreatePopupMenu" [
 			return:		[handle!]
 		]
+		AppendMenu: "AppendMenuW" [
+			hMenu		[handle!]
+			uFlags		[integer!]
+			uIDNewItem	[integer!]
+			lpNewItem	[c-string!]
+			return:		[logic!]
+		]
 		InsertMenuItem: "InsertMenuItemW" [
 			hMenu		[handle!]
 			uItem		[integer!]
@@ -1124,8 +1258,51 @@ DwmIsCompositionEnabled!: alias function! [
 		GetCapture: "GetCapture" [
 			return:		[handle!]
 		]
+		GetTabbedTextExtent: "GetTabbedTextExtentW" [
+			hdc			[handle!]
+			lpString	[c-string!]
+			len			[integer!]
+			nTabPos		[integer!]
+			lpnTabStop	[int-ptr!]
+			return:		[integer!]
+		]
+		CreateCaret: "CreateCaret" [
+			hWnd		[handle!]
+			bitmap		[handle!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		DestroyCaret: "DestroyCaret" [
+			return:		[integer!]
+		]
+		HideCaret: "HideCaret" [
+			hWnd		[handle!]
+			return:		[integer!]
+		]
+		ShowCaret: "ShowCaret" [
+			hWnd		[handle!]
+			return:		[integer!]
+		]
+		SetCaretPos: "SetCaretPos" [
+			x			[integer!]
+			y			[integer!]
+			return:		[integer!]
+		]
 	]
 	"gdi32.dll" stdcall [
+		GetCharWidth32: "GetCharWidth32W" [
+			hdc			[handle!]
+			iFirst		[integer!]
+			iLast		[integer!]
+			lpBuffer	[int-ptr!]
+			return:		[integer!]
+		]
+		GetTextMetrics: "GetTextMetricsW" [
+			hdc			[handle!]
+			lptm		[tagTEXTMETRIC]
+			return:		[integer!]
+		]
 		CreateRectRgn: "CreateRectRgn" [
 			left		[integer!]
 			top			[integer!]
@@ -1142,6 +1319,7 @@ DwmIsCompositionEnabled!: alias function! [
 			lpString	[c-string!]
 			cbCount		[integer!]						;-- count of characters
 			lpDx		[int-ptr!]
+			return:		[integer!]
 		]	
 		GetTextExtentPoint32: "GetTextExtentPoint32W" [
 			hdc			[handle!]
@@ -1606,6 +1784,28 @@ DwmIsCompositionEnabled!: alias function! [
 			pen			[integer!]
 			points		[tagPOINT]
 			count		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawCurveI: "GdipDrawCurveI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawClosedCurveI: "GdipDrawClosedCurveI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipFillClosedCurveI: "GdipFillClosedCurveI" [
+			graphics	[integer!]
+			brush		[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			fillMode	[integer!]
 			return:		[integer!]
 		]
 		GdipSetPenLineJoin: "GdipSetPenLineJoin" [

@@ -783,7 +783,7 @@ context [
 	icon-number?: func [icons [block!] /local data num][
 		num: 0
 		foreach icon icons [
-			data: read/binary icon
+			data: read-binary-cache icon
 			num: num + to-integer reverse copy/part skip data 4 2
 		]
 		num
@@ -861,7 +861,7 @@ context [
 	][
 		entry: make-struct resource-data-entry none
 		foreach icon icons [
-			data: read/binary icon
+			data: read-binary-cache icon
 			nb: to-integer reverse copy/part skip data 4 2
 			p: skip data 6
 			for i 1 nb 1 [
@@ -890,7 +890,7 @@ context [
 			entry/offset: base + length? buf
 			data-buf: tail buf
 
-			data: read/binary icon
+			data: read-binary-cache icon
 			nb: to-integer reverse copy/part skip data 4 2
 
 			icon-dir/type: 1
