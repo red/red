@@ -301,7 +301,7 @@ string: context [
 	rs-find-char: func [
 		str		[red-string!]
 		cp		[integer!]
-		case?	[logic!]
+		case?	[logic!]				;-- case sensitive?
 		return: [logic!]
 		/local
 			s	 [series!]
@@ -316,7 +316,7 @@ string: context [
 		tail: as byte-ptr! s/tail
 		while [head < tail][
 			c1: get-char head unit
-			if case? [
+			unless case? [
 				c1: case-folding/folding-case c1 yes	;-- uppercase c1
 				cp: case-folding/folding-case cp yes	;-- uppercase cp
 			]

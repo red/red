@@ -243,7 +243,7 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
-				same-pane?: all [block? old block? new same? head old head new]				
+				same-pane?: all [block? old block? new same? head old head new]
 				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
 				if all [not same-pane? block? old not empty? old][clear head old]	;-- destroy old faces
 			]
@@ -398,7 +398,7 @@ system/view: context [
 	
 	capture-events: function [face [object!] event [event!]][
 		if face/parent [capture-events face/parent event]
-		do-actor face event 'detect
+		if capturing? [do-actor face event 'detect]
 	]
 	
 	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
@@ -429,6 +429,7 @@ system/view: context [
 	
 	init: does [unless screens [system/view/platform/init]]
 	
+	capturing?: no
 	auto-sync?: yes
 	debug?: no
 ]

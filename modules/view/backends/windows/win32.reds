@@ -1786,6 +1786,28 @@ DwmIsCompositionEnabled!: alias function! [
 			count		[integer!]
 			return:		[integer!]
 		]
+		GdipDrawCurveI: "GdipDrawCurveI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipDrawClosedCurveI: "GdipDrawClosedCurveI" [
+			graphics	[integer!]
+			pen			[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipFillClosedCurveI: "GdipFillClosedCurveI" [
+			graphics	[integer!]
+			brush		[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			fillMode	[integer!]
+			return:		[integer!]
+		]
 		GdipSetPenLineJoin: "GdipSetPenLineJoin" [
 			pen			[integer!]
 			linejoin	[integer!]

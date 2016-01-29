@@ -945,28 +945,35 @@ change-offset: func [
 		flags [integer!]
 		style [integer!]
 		pt    [red-pair!]
+		offset [tagPOINT]
+		handle [handle!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	pt: declare red-pair!
+	handle: as handle! hWnd
 	if type = base [
-		style: GetWindowLong as handle! hWnd GWL_EXSTYLE
+		style: GetWindowLong handle GWL_EXSTYLE
 		if style and WS_EX_LAYERED > 0 [
-			size: as red-pair! (get-face-values as handle! hWnd) + FACE_OBJ_SIZE
-			owner: as handle! GetWindowLong as handle! hWnd wc-offset - 16
+			size: as red-pair! (get-face-values handle) + FACE_OBJ_SIZE
+			owner: as handle! GetWindowLong handle wc-offset - 16
 			unless win8+? [
-				process-layered-region as handle! hWnd size pos
+				process-layered-region handle size pos
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y
 				ClientToScreen owner (as tagPOINT pt) + 1
+				offset: as tagPOINT pt
+				offset/x: pt/x - GetWindowLong handle wc-offset - 4
+				offset/y: pt/y - GetWindowLong handle wc-offset - 8
 				pos: pt
-				SetWindowLong as handle! hWnd wc-offset - 4 pos/x
-				SetWindowLong as handle! hWnd wc-offset - 8 pos/y
+				SetWindowLong handle wc-offset - 4 pos/x
+				SetWindowLong handle wc-offset - 8 pos/y
+				update-layered-window handle null offset null -1
 			]
 		]
 	]
 	SetWindowPos 
-		as handle! hWnd
+		handle
 		as handle! 0
 		pos/x pos/y
 		0 0
@@ -1012,6 +1019,9 @@ change-visible: func [
 	if type = group-box [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		ShowWindow as handle! hWnd value
+	]
+	unless win8+? [
+		update-layered-window as handle! hWnd null null null -1
 	]
 ]
 
