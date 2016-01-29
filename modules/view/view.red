@@ -438,10 +438,8 @@ system/view: context [
 #include %VID.red
 
 do-events: function [/no-wait return: [logic!] /local result][
-	unless no-wait [
-		win: last system/view/screens/1/pane
-		win/state/4: true
-	]
+	win: last system/view/screens/1/pane
+	win/state/4: not no-wait							;-- mark the window from which the event loop starts
 	set/any 'result system/view/platform/do-event-loop no-wait
 	:result
 ]
@@ -527,7 +525,7 @@ show: function [
 				]
 			]
 		]
-		face/state: reduce [obj 0 none none]
+		face/state: reduce [obj 0 none false]
 	]
 
 	if face/pane [foreach f face/pane [show/with f face]]
