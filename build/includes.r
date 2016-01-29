@@ -168,6 +168,11 @@ write %build/bin/sources.r set-cache [
 		%emitter.r
 		%linker.r
 		%loader.r
+		%assets/ [
+			%red.ico
+			%red-3D.ico
+			%red-mono.ico
+		]
 		%runtime/ [
 			%android.reds
 			%common.reds
