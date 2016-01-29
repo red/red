@@ -263,7 +263,10 @@ redc: context [
 		]
 	]
 	
-	run-console: func [/with file [string!] /local opts result script filename exe console files source][
+	run-console: func [
+		gui? [logic!] /with file [string!]
+		/local opts result script filename exe console files source con-engine
+	][
 		script: temp-dir/red-console.red
 		filename: decorate-name %console
 		exe: temp-dir/:filename
@@ -274,8 +277,9 @@ redc: context [
 		
 		unless exists? exe [
 			console: %environment/console/
-			source: copy read-cache console/console.red
-			if Windows? [insert find/tail source #"[" "Needs: 'View^/"]
+			con-engine: pick [%gui-console.red %console.red] gui?
+			source: copy read-cache console/:con-engine
+			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 			
 			files: [
@@ -320,7 +324,7 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target?
+		mode target? gui?
 	][
 		args: any [
 			all [args parse args none]
@@ -329,6 +333,7 @@ redc: context [
 		]
 		target: default-target
 		opts: make system-dialect/options-class [link?: yes]
+		gui?: Windows?									;-- use GUI console by default on Windows
 
 		parse/case args [
 			any [
@@ -341,6 +346,7 @@ redc: context [
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
+				| "--cli"					(gui?: no)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
 			]
@@ -409,7 +415,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console
+				run-console gui?
 			][
 				fail "No source files specified."
 			]
@@ -417,7 +423,7 @@ redc: context [
 		
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with filename
+			run-console/with gui? filename
 		]
 		
 		if slash <> first src [							;-- if relative path

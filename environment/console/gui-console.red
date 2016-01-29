@@ -2,7 +2,7 @@ Red [
 	Title:		"Red GUI Console"
 	File:		%gui-console.red
 	Tabs:		4
-	Icon:		%../../tests/red.ico
+	Icon:		%../../tests/red-mono.ico
 	Version:	0.9.0
 	Needs:		'View
 	Config:		[gui-console?: yes]
