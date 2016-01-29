@@ -408,9 +408,7 @@ set-selected-focus: func [
 		values [red-value!]
 		handle [handle!]
 ][
-?? hWnd
 	values: get-face-values hWnd
-?? values
 	if values <> null [
 		face: as red-object! values + FACE_OBJ_SELECTED
 		if TYPE_OF(face) = TYPE_OBJECT [
