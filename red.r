@@ -278,8 +278,11 @@ redc: context [
 			if Windows? [insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 			
-			files: [%help.red %input.red %wcwidth.reds %win32.reds %POSIX.reds]
-			
+			files: [
+				%auto-complete.red %engine.red %help.red %input.red
+				%wcwidth.reds %win32.reds %POSIX.reds %terminal.reds
+				%windows.reds
+			]
 			foreach file files [write temp-dir/:file read-cache console/:file]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
