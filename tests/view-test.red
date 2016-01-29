@@ -1,7 +1,6 @@
 Red [
 	Purpose: "Test the GUI auto-update mode"
 	Needs: 'View
-	Icon: %red.ico
 ]
 
 system/view/debug?: yes
