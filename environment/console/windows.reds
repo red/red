@@ -371,6 +371,8 @@ ConsoleWndProc: func [
 				cancel-select vt
 				refresh vt
 			]
+			vt/edit-head: -1
+			check-cursor vt
 			return 0
 		]
 		WM_LBUTTONUP [
@@ -383,6 +385,7 @@ ConsoleWndProc: func [
 				cancel-select vt
 				refresh vt
 			]
+			check-selection vt
 			ReleaseCapture
 			return 0
 		]
@@ -395,6 +398,7 @@ ConsoleWndProc: func [
 					out/s-head = out/s-tail
 					out/s-h-idx = out/s-t-idx
 				][
+					check-cursor vt
 					mark-select vt
 					refresh vt
 				]

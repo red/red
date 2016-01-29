@@ -489,9 +489,12 @@ terminal: context [
 		head: vt/cursor
 
 		either del? [
-			if any [
-				head = vt/prompt-len
-				head > len
+			if all [
+				not select?
+				any [
+					head = vt/prompt-len
+					head > len
+				]
 			][
 				return false
 			]
@@ -964,6 +967,50 @@ terminal: context [
 			cursor + 1
 		]
 		update-caret vt
+	]
+
+	check-cursor: func [
+		vt		[terminal!]
+		/local
+			out [ring-buffer!]
+	][
+		out: vt/out
+		if all [
+			any [
+				vt/s-head = out/last
+				out/s-tail = out/last
+			]
+			out/s-t-idx >= vt/prompt-len
+		][
+			vt/cursor: either all [
+				out/s-tail = out/s-head
+				vt/s-h-idx > out/s-h-idx
+			][
+				out/s-h-idx
+			][
+				out/s-t-idx
+			]
+			update-caret vt
+		]
+	]
+
+	check-selection: func [
+		vt		[terminal!]
+		/local
+			out		[ring-buffer!]
+			input	[red-string!]
+	][
+		out: vt/out
+		input: vt/in
+		if all [
+			out/s-head <> -1
+			out/s-tail = out/last
+		][
+			vt/edit-head: either out/s-head = out/s-tail [out/s-h-idx][0]
+			if vt/edit-head < vt/prompt-len [vt/edit-head: vt/prompt-len]
+			vt/edit-tail: out/s-t-idx
+			vt/s-mode?: yes
+		]
 	]
 
 	select-edit: func [
