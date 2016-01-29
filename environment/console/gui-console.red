@@ -2,9 +2,9 @@ Red [
 	Title:		"Red GUI Console"
 	File:		%gui-console.red
 	Tabs:		4
-	Icon:		%../../tests/red.ico
+	Icon:		default
 	Version:	0.9.0
-	Needs:		'View
+	Needs:		View
 	Config:		[gui-console?: yes]
 	License: {
 		Distributed under the Boost Software License, Version 1.0.

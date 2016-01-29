@@ -3384,7 +3384,7 @@ system-dialect: make-profilable context [
 		
 		either icon: select header first [Icon:][
 			append res 'icon
-			either word? :icon [
+			either any [word? :icon any-word? :icon][
 				repend/only res [
 					join base select [
 						default %red.ico

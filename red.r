@@ -48,8 +48,20 @@ redc: context [
 							pszPath		[string!]
 							return: 	[integer!]
 					] shell32 "SHGetFolderPathA"
+					
+					ShellExecute: make routine! [
+							hwnd 		 [integer!]
+							lpOperation  [string!]
+							lpFile		 [string!]
+							lpParameters [integer!]
+							lpDirectory  [integer!]
+							nShowCmd	 [integer!]
+							return:		 [integer!]
+					] shell32 "ShellExecuteA"
 
 					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+					
+					gui-sys-call: func [cmd [string!]][ShellExecute 0 "open" cmd 0 0 1]
 
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
@@ -263,19 +275,29 @@ redc: context [
 		]
 	]
 	
-	run-console: func [/with file [string!] /local opts result script filename exe console files source][
+	run-console: func [
+		gui? [logic!] /with file [string!]
+		/local opts result script filename exe console files source con-engine gui-target
+	][
 		script: temp-dir/red-console.red
-		filename: decorate-name %console
+		filename: decorate-name pick [%gui-console %console] gui?
 		exe: temp-dir/:filename
 
 		if Windows? [append exe %.exe]
 		
 		unless exists? temp-dir [make-dir temp-dir]
-		
 		unless exists? exe [
 			console: %environment/console/
-			source: copy read-cache console/console.red
-			if Windows? [insert find/tail source #"[" "Needs: 'View^/"]
+			con-engine: pick [%gui-console.red %console.red] gui?
+			if gui? [
+				gui-target: select [
+					;"Darwin"	OSX
+					"MSDOS"		Windows
+					;"Linux"		Linux-GTK
+				] default-target
+			]
+			source: copy read-cache console/:con-engine
+			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 			
 			files: [
@@ -288,15 +310,16 @@ redc: context [
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				unicode?: yes
-				config-name: to word! default-target
+				config-name: any [gui-target to word! default-target]
 				build-basename: filename
 				build-prefix: temp-dir
 				red-help?: yes							;-- include doc-strings
+				gui-console?: gui?
 			]
 			opts: make opts select load-targets opts/config-name
 			add-legacy-flags opts
 
-			print "Pre-compiling Red console..."
+			print ["Pre-compiling Red" pick ["GUI" ""] gui? "console..."]
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result
 			
@@ -313,14 +336,14 @@ redc: context [
 			repend exe [{ "} file {"}]
 			exe: safe-to-local-file exe
 		]
-		sys-call exe									;-- replace the buggy CALL native
+		either gui? [gui-sys-call exe][sys-call exe]	;-- replace the buggy CALL native
 		quit/return 0
 	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target?
+		mode target? gui?
 	][
 		args: any [
 			all [args parse args none]
@@ -329,6 +352,7 @@ redc: context [
 		]
 		target: default-target
 		opts: make system-dialect/options-class [link?: yes]
+		gui?: Windows?									;-- use GUI console by default on Windows
 
 		parse/case args [
 			any [
@@ -341,6 +365,7 @@ redc: context [
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
+				| "--cli"					(gui?: no)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
 			]
@@ -409,7 +434,7 @@ redc: context [
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console
+				run-console gui?
 			][
 				fail "No source files specified."
 			]
@@ -417,7 +442,7 @@ redc: context [
 		
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with filename
+			run-console/with gui? filename
 		]
 		
 		if slash <> first src [							;-- if relative path
