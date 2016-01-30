@@ -195,7 +195,7 @@ system/console: context [
 				block? script/2 
 			][
 				print "*** Error: not a Red program!"
-				quit/return -2
+				;quit/return -2
 			][
 				either catch? [
 					set/any 'result try-do skip script 2
@@ -205,7 +205,8 @@ system/console: context [
 					do skip script 2
 				]
 			]
-			quit
+			;quit
+			exit
 		]
 		run
 	]
