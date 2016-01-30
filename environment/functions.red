@@ -555,13 +555,13 @@ extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
 	args: system/options/args
-	pos: find args get pick [dbl-quote space] args/1 = dbl-quote
+	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
 	
 	either pos [
-		system/options/boot: copy/part args pos
+		system/options/boot: copy/part next args pos
 		if pos/2 = space [pos: skip pos 2]
 		remove/part args pos
-		trim/head args
+		if empty? trim/head args [system/options/args: none]
 	][
 		system/options/boot: args
 		system/options/args: none

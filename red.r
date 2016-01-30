@@ -53,7 +53,7 @@ redc: context [
 							hwnd 		 [integer!]
 							lpOperation  [string!]
 							lpFile		 [string!]
-							lpParameters [integer!]
+							lpParameters [string!]
 							lpDirectory  [integer!]
 							nShowCmd	 [integer!]
 							return:		 [integer!]
@@ -61,7 +61,9 @@ redc: context [
 
 					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 					
-					gui-sys-call: func [cmd [string!]][ShellExecute 0 "open" cmd 0 0 1]
+					gui-sys-call: func [cmd [string!] args [string!]][
+						ShellExecute 0 "open" cmd args 0 1
+					]
 
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
@@ -340,11 +342,16 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
-		if with [
-			repend exe [{ "} file {"}]
-			exe: safe-to-local-file exe
+
+		either gui? [
+			gui-sys-call exe any [file make string! 1]
+		][
+			if with [
+				repend exe [{ "} file {"}]
+				exe: safe-to-local-file exe
+			]
+			sys-call exe								;-- replace the buggy CALL native
 		]
-		either gui? [gui-sys-call exe][sys-call exe]	;-- replace the buggy CALL native
 		quit/return 0
 	]
 

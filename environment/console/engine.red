@@ -45,12 +45,16 @@ system/console: context [
 			args: split any [pos args] space
 			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
 			
-			if all [
-				not tail? args
-				not src: attempt [read to file! args/1]
-			][
-				print "*** Error: cannot access argument file"
-				quit/return -1
+			unless tail? args [
+				file: args/1
+				if file/1 = dbl-quote [
+					remove file
+					remove back tail file
+				]
+				unless src: attempt [read to file! file][
+					print "*** Error: cannot access argument file"
+					;quit/return -1
+				]
 			]
 			src
 		]
