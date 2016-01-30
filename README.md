@@ -14,7 +14,7 @@ Making a Red "Hello World"
 ------------------------
 The Red toolchain comes as a single **half-megabyte** executable file that you can download from [here](http://www.red-lang.org/p/download.html) for the big-3 platforms. 
 
-1. Put the downloaded **red** binary in a folder that's in the PATH, or just in the working folder.
+1. Put the downloaded **red** binary in the working folder.
 
 2. In a code or text editor, write the following Hello World program:
 
@@ -96,6 +96,7 @@ Cross-compilation targets:
     Android      : Android, ARMv5
     Android-x86	 : Android, x86
 
+_Note_: Running Red binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547).
 
 Running the Red REPL
 -----------------------
