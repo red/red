@@ -37,38 +37,23 @@ system/console: context [
 	sub-system-gui?: #system [
 		logic/box #either sub-system = 'console [no][yes]
 	]
-
-	read-argument: routine [
-		/local
-			args [str-array!]
-			str	 [red-string!]
-			bool [red-logic!]
-	][
-		if any [
-			system/args-count < 2 
-			system/args-count > 3
-		][
-			SET_RETURN(none-value)
-			exit
-		]
-		args: system/args-list + 1							;-- skip binary filename
-		
-		either equal-string? args/item "--catch" [
-			bool: as red-logic! #get system/console/catch?
-			bool/value: yes
-			if system/args-count = 2 [
-				SET_RETURN(none-value)
-				exit
+	
+	read-argument: function [][
+		if args: system/options/args [
+			system/console/catch?: make logic! pos: find/tail args "--catch"
+			
+			args: split any [pos args] space
+			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
+			
+			if all [
+				not tail? args
+				not src: attempt [read to file! args/1]
+			][
+				print "*** Error: cannot access argument file"
+				quit/return -1
 			]
-			args: system/args-list + 2
-		][
-			if system/args-count = 3 [
-				print-line "error: invalid command-line"
-				quit -1
-			]
+			src
 		]
-		str: as red-string! simple-io/read-file args/item no no no
-		SET_RETURN(str)
 	]
 
 	init-console: routine [
@@ -200,12 +185,13 @@ system/console: context [
 
 	launch: function [][
 		if script: read-argument [
-			script: load script
-			either any [
-				not script: find script 'Red
-				not block? script/2 
+			either not all [
+				script: attempt [load script]
+				script: find script 'Red
+				block? script/2 
 			][
 				print "*** Error: not a Red program!"
+				quit/return -2
 			][
 				either catch? [
 					set/any 'result try-do skip script 2
