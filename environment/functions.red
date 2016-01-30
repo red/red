@@ -578,6 +578,17 @@ collect: function [
 	either into [collected][head collected]
 ]
 
+flip-exe-flag: function [
+	"Flip the sub-system for the red.exe between console and GUI modes (Windows only)"
+	path [file!]		"Path to the red.exe (ending with /)"
+][
+	file: append copy path %red.exe
+	buffer: read/binary file
+	flag: skip find/tail/case buffer "PE" 90
+	flag/1: either flag/1 = 2 [3][2]
+	write/binary file buffer
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
