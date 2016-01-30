@@ -91,9 +91,17 @@ redc: context [
 	]
 	
 	if Windows? [
-		do-cache %utils/call.r						;@@ put `call.r` in proper place when we encap
-		use [buf][
-			win-call/output "cmd /c ver" buf: make string! 128
+		use [buf cmd][
+			cmd: "cmd /c ver"
+			buf: make string! 128
+			
+			either load-lib? [
+				do-cache %utils/call.r					;@@ put `call.r` in proper place when we encap
+				win-call/output cmd buf
+			][
+				set 'win-call :call						;-- Rebol/Core compatible mode
+				win-call/output/show cmd buf			;-- not using /show would freeze CALL
+			]
 			parse/all buf [[thru "[" | thru "Version"] thru #" " pos:]
 			win-version: any [
 				attempt [load copy/part back remove next pos 2]
