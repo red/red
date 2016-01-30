@@ -592,6 +592,17 @@ flip-exe-flag: function [
 	write/binary file buffer
 ]
 
+split: function [
+	"Break a string series into pieces using the provided delimiters"
+	series	[any-string!]	"String series to split"
+	dlm		[string! char!]	"Delimiter as a char or string pattern"
+	return: [block!]		"Returns a block of split pieces without the delimiters"
+	/local value
+][
+	rule: complement charset dlm
+	parse series [collect [any [keep copy value some rule | skip]]]
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
