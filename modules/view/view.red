@@ -186,7 +186,7 @@ update-font-faces: function [parent [block! none!]][
 
 check-all-reactions: function [face [object!]][
 	unless empty? pos: system/view/reactors [
-		while [pos: find pos face][							;@@ /skip 4 fails
+		while [pos: find/skip pos face 4][
 			do-safe pos/3
 			pos: skip pos 4
 		]
@@ -197,7 +197,7 @@ check-reactions: function [face [object!] facet [word!]][
 	unless empty? pos: system/view/reactors [
 		while [
 			all [
-				pos: find pos face							;@@ /skip 4 fails
+				pos: find/skip pos face	4
 				pos/2 = facet
 			]
 		][
