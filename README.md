@@ -96,7 +96,7 @@ Cross-compilation targets:
     Android      : Android, ARMv5
     Android-x86	 : Android, x86
 
-_Note_: Running Red binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547).
+_Note_: Running the Red toolchain binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547).
 
 Running the Red REPL
 -----------------------
