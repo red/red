@@ -551,7 +551,9 @@ extract: function [
 	output
 ]
 
-extract-boot-args: function [][
+extract-boot-args: function [
+	"Process command-line arguments and store values in system/options (internal usage)"
+][
 	args: system/options/args
 	pos: find args get pick [dbl-quote space] args/1 = dbl-quote
 	
@@ -567,6 +569,7 @@ extract-boot-args: function [][
 ]
 
 collect: function [
+	"Collect in a new block all the values passed to KEEP function from the body block"
 	body [block!]		 "Block to evaluate"
 	/into 		  		 "Insert into a buffer instead (returns position after insert)"
 		collected [series!] "The buffer series (modified)"
