@@ -12,8 +12,16 @@ Red/System [
 
 #define VT_MSG_SELALL	0401h
 
-ps:  as tagPAINTSTRUCT 0
-hdc: as handle! 0
+ps:				as tagPAINTSTRUCT 0
+hdc:			as handle! 0
+mdc:			as handle! 0
+mbmp:			as handle! 0
+timer:			as handle! 0
+max-win-width:	0
+pad-left:		0
+scroll-count:	0
+scroll-x:		0
+scroll-y:		0
 
 update-scrollbar: func [
 	vt		[terminal!]
@@ -33,15 +41,15 @@ update-scrollbar: func [
 set-select-color: func [
 	vt		[terminal!]
 ][
-	SetTextColor hdc 00FFFFFFh
-	SetBkColor hdc 0
+	SetTextColor mdc 00FFFFFFh
+	SetBkColor mdc 0
 ]
 
 set-normal-color: func [
 	vt		[terminal!]
 ][
-	SetTextColor hdc 0
-	SetBkColor hdc 00FFFFFFh
+	SetTextColor mdc 0
+	SetBkColor mdc 00FFFFFFh
 ]
 
 copy-to-clipboard: func [
@@ -196,11 +204,14 @@ OS-draw-text: func [
 		rc		[RECT_STRUCT]
 ][
 	rc: declare RECT_STRUCT
-	rc/top: y
-	rc/bottom: y + h
+	rc/top: 0
+	rc/bottom: h
 	rc/left: x
 	rc/right: x + w
-	ExtTextOut hdc x y ETO_OPAQUE or ETO_CLIPPED rc str len null
+	ExtTextOut mdc x 0 ETO_OPAQUE or ETO_CLIPPED rc str len null
+	if x + w = max-win-width [
+		BitBlt hdc pad-left y max-win-width - pad-left h mdc 0 0 SRCCOPY
+	]
 ]
 
 OS-init: func [vt [terminal!]][
@@ -305,9 +316,16 @@ ConsoleWndProc: func [
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_PAINT [
 			hdc: BeginPaint hWnd ps
-			SelectObject hdc vt/font
+			pad-left: vt/pad-left
+			max-win-width: vt/win-w
+			mdc: CreateCompatibleDC hdc
+			mbmp: CreateCompatibleBitmap hdc max-win-width vt/char-h
+			SelectObject mdc mbmp
+			SelectObject mdc vt/font
 			paint vt
 			EndPaint hWnd ps
+			DeleteDC mdc
+			DeleteObject mbmp
 			if vt/caret? [update-caret vt]
 			update-scrollbar vt
 			return 0
@@ -378,6 +396,10 @@ ConsoleWndProc: func [
 		WM_LBUTTONUP [
 			vt/select?: no
 			out: vt/out
+			if scroll-count <> 0 [
+				KillTimer vt/hwnd timer
+				scroll-count: 0
+			]
 			if all [
 				out/s-head = out/s-tail
 				out/s-h-idx = out/s-t-idx
@@ -391,19 +413,48 @@ ConsoleWndProc: func [
 		]
 		WM_MOUSEMOVE [
 			if vt/select? [
-				cancel-select vt
-				select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) no
 				out: vt/out
-				unless all [
-					out/s-head = out/s-tail
-					out/s-h-idx = out/s-t-idx
+				cancel-select vt
+				scroll-x: WIN32_LOWORD(lParam)
+				scroll-y: WIN32_HIWORD(lParam)
+				either any [
+					all [
+						vt/top <> out/last
+						scroll-y > vt/win-h
+					]
+					all [
+						vt/top <> out/head
+						scroll-y < 0
+					]
 				][
-					check-cursor vt
-					mark-select vt
-					refresh vt
+					scroll-count: 0
+					timer: SetTimer vt/hwnd 1 10 null
+				][
+					if scroll-count <> 0 [
+						KillTimer vt/hwnd timer
+						scroll-count: 0
+					]
+					select vt scroll-x scroll-y no
+					unless all [
+						out/s-head = out/s-tail
+						out/s-h-idx = out/s-t-idx
+					][
+						check-cursor vt
+						mark-select vt
+						refresh vt
+					]
 				]
 			]
 			return 0
+		]
+		WM_TIMER [
+			scroll-count: scroll-count + 1
+			delta: either negative? scroll-y [-1][1]
+			scroll vt delta
+			cancel-select vt
+			select vt scroll-x scroll-y no
+			mark-select vt
+			refresh vt
 		]
 		WM_KEYDOWN [
 			wParam: on-key-down wParam

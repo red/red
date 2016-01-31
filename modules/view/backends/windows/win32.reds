@@ -607,6 +607,13 @@ wndproc-cb!: alias function! [
 	return: [integer!]
 ]
 
+timer-cb!: alias function! [
+	hWnd	[handle!]
+	msg		[integer!]
+	idEvent	[int-ptr!]
+	dwTime	[integer!]
+]
+
 WNDCLASSEX: alias struct! [
 	cbSize		  [integer!]
 	style		  [integer!]
@@ -823,6 +830,18 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SetTimer: "SetTimer" [
+			hWnd		[handle!]
+			nIDEvent	[integer!]
+			uElapse		[integer!]
+			lpTimerFunc [timer-cb!]
+			return:		[int-ptr!]
+		]
+		KillTimer: "KillTimer" [
+			hWnd		[handle!]
+			uIDEvent	[int-ptr!]
+			return:		[logic!]
+		]
 		OpenClipboard: "OpenClipboard" [
 			hWnd		[handle!]
 			return:		[logic!]
