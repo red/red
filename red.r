@@ -264,7 +264,7 @@ redc: context [
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 			add-legacy-flags opts
 			
-			print "Pre-compiling compression library..."
+			print "Compiling compression library..."
 			unless encap? [
 				change-dir %system/
 				script: head insert script %../
@@ -329,7 +329,7 @@ redc: context [
 			opts: make opts select load-targets opts/config-name
 			add-legacy-flags opts
 
-			print ["Pre-compiling Red" pick ["GUI" ""] gui? "console..."]
+			print replace "Compiling Red $console..." "$" pick ["GUI " ""] gui?
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result
 			
