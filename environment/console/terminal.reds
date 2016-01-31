@@ -365,8 +365,7 @@ terminal: context [
 		reposition vt
 
 		either nlines >= max [out/nlines: max vt/pos: vt/nlines - vt/rows + 1][
-			offset: vt/nlines - vt/pos - vt/rows
-			if positive? offset [vt/pos: vt/top + vt/top-offset]
+			if vt/nlines > vt/rows [vt/pos: vt/nlines - vt/rows + 1]
 		]
 	]
 
@@ -387,8 +386,6 @@ terminal: context [
 		tail: as byte-ptr! s/tail
 		emit-c-string vt p tail unit last? append?
 	]
-
-	emit-newline: func [vt [terminal!]][emit-c-string vt null null 1 no no]
 
 	preprocess: func [
 		vt		[terminal!]
@@ -609,7 +606,7 @@ terminal: context [
 		out/last: 1
 		out/lines: as line-node! allocate out/max * size? line-node!
 		out/lines/offset: 0
-		out/lines/nlines: 1
+		out/lines/nlines: 0
 		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 4000
 		out/nlines: 1
 		out/h-idx: 0
@@ -643,7 +640,6 @@ terminal: context [
 		OS-init vt
 
 		#call [system/console/launch]
-		emit-newline vt
 		set-prompt vt vt/prompt
 	]
 
