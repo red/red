@@ -312,24 +312,29 @@ terminal: context [
 			cp		[integer!]
 			max		[integer!]
 	][
+		if p = tail [exit]
+
 		out: vt/out
 		nlines: out/nlines
 		max: out/max
 		data: out/data
 		added: 0
 		head:	out/head
-		cursor: out/tail
+		cursor: either append? [out/last][out/tail]
 		lines: out/lines
 		node: lines + cursor - 1
 		buf: GET_BUFFER(data)
 		offset: either append? [node/offset][string/rs-length? data]
 
-		if p = tail [p: as byte-ptr! "^/" tail: p + 1 unit: 1]
 		until [
 			cp: string/get-char p unit
 			p: p + unit
 
-			buf: string/append-char buf cp
+			either cp = 9 [
+				string/concatenate-literal data "    "
+			][
+				buf: string/append-char buf cp
+			]
 			if any [cp = 10 p = tail][
 				node/offset: offset
 				offset: string/rs-length? data
@@ -340,6 +345,7 @@ terminal: context [
 				delta: either any [append? last?][n - node/nlines][n]
 				node/nlines: n
 				added: added + delta
+				out/last: cursor
 				cursor: cursor + 1
 				if cursor > max [buf/tail: buf/offset cursor: 1]
 				if cursor = head [head: head % max + 1]
@@ -348,8 +354,8 @@ terminal: context [
 			]
 			p = tail
 		]
-		if all [cp <> 10 natives/lf?][string/append-char buf 10]
 		node/offset: string/rs-length? data
+		if cp = 10 [out/last: cursor]
 
 		out/nlines: nlines
 		out/head: head
@@ -360,7 +366,7 @@ terminal: context [
 
 		either nlines >= max [out/nlines: max vt/pos: vt/nlines - vt/rows + 1][
 			offset: vt/nlines - vt/pos - vt/rows
-			if positive? offset [vt/pos: vt/pos + offset + 1]
+			if positive? offset [vt/pos: vt/top + vt/top-offset]
 		]
 	]
 
@@ -639,7 +645,6 @@ terminal: context [
 		#call [system/console/launch]
 		emit-newline vt
 		set-prompt vt vt/prompt
-		out/last: out/tail - 1
 	]
 
 	close: func [
@@ -962,8 +967,6 @@ terminal: context [
 				str/head: 0
 				emit-string vt str no no
 				str/head: head
-				head: out/tail - 1
-				out/last: either zero? head [out/max][head]
 			]
 		]
 		num
@@ -1117,8 +1120,6 @@ terminal: context [
 				#call [system/console/eval-command input]
 				vt/input?: yes
 				set-prompt vt as red-string! #get system/console/cue
-				cursor: out/tail - 1
-				out/last: either zero? cursor [out/max][cursor]
 				update-caret vt
 			]
 			RS_KEY_CTRL_H
@@ -1386,35 +1387,22 @@ terminal: context [
 		str		[byte-ptr!]
 		size	[integer!]
 		unit	[integer!]
+		nl?		[logic!]
 		/local
 			vt	[terminal!]
 			out [ring-buffer!]
 	][
-		if zero? size [exit]
 		if negative? size [
 			size: length? as c-string! str
 		]
 		vt: as terminal! v-terminal
 		out: vt/out
-		out/tail: out/last
 		out/nlines: out/nlines - 1
 		emit-c-string vt str str + size unit no yes
-		refresh vt
-	]
-
-	vprint-line: func [
-		str		[byte-ptr!]
-		size	[integer!]
-		unit	[integer!]
-		/local
-			vt	[terminal!]
-			out [ring-buffer!]
-	][
-		vt: as terminal! v-terminal
-		out: vt/out
-		out/tail: out/last
-		emit-c-string vt str str + size unit no yes
-		out/last: out/tail
+		if nl? [
+			str: as byte-ptr! "^/"
+			emit-c-string vt str str + 1 1 no yes
+		]
 		refresh vt
 	]
 ]

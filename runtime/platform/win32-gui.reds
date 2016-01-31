@@ -16,11 +16,9 @@ Red/System [
 print-UCS4: func [
 	str    [int-ptr!]								;-- UCS-4 string
 	size   [integer!]
-	/local
-		cp [integer!]								;-- codepoint
 ][
 	assert str <> null
-	exec/terminal/vprint as byte-ptr! str size UCS-4
+	exec/terminal/vprint as byte-ptr! str size UCS-4 no
 ]
 
 ;-------------------------------------------
@@ -29,11 +27,9 @@ print-UCS4: func [
 print-line-UCS4: func [
 	str    [int-ptr!]								;-- UCS-4 string
 	size   [integer!]
-	/local
-		cp [integer!]								;-- codepoint
 ][
 	assert str <> null
-	exec/terminal/vprint-line as byte-ptr! str size UCS-4
+	exec/terminal/vprint as byte-ptr! str size UCS-4 yes
 ]
 
 ;-------------------------------------------
@@ -42,11 +38,9 @@ print-line-UCS4: func [
 print-UCS2: func [
 	str 	[byte-ptr!]								;-- UCS-2 string
 	size	[integer!]
-	/local
-		chars [integer!]
 ][
 	assert str <> null
-	exec/terminal/vprint str size UCS-2
+	exec/terminal/vprint str size UCS-2 no
 ]
 
 ;-------------------------------------------
@@ -57,7 +51,7 @@ print-line-UCS2: func [
 	size	[integer!]
 ][
 	assert str <> null
-	exec/terminal/vprint-line str size UCS-2
+	exec/terminal/vprint str size UCS-2 yes
 ]
 
 ;-------------------------------------------
@@ -66,11 +60,9 @@ print-line-UCS2: func [
 print-Latin1: func [
 	str 	[c-string!]								;-- Latin-1 string
 	size	[integer!]
-	/local
-		chars [integer!]							;-- mumber of used chars in buffer
 ][
 	assert str <> null
-	exec/terminal/vprint as byte-ptr! str size Latin1
+	exec/terminal/vprint as byte-ptr! str size Latin1 no
 ]
 
 ;-------------------------------------------
@@ -81,7 +73,7 @@ print-line-Latin1: func [
 	size [integer!]
 ][
 	assert str <> null
-	exec/terminal/vprint-line as byte-ptr! str size Latin1
+	exec/terminal/vprint as byte-ptr! str size Latin1 yes
 ]
 
 
@@ -91,37 +83,37 @@ print-line-Latin1: func [
 
 sprintf-buf: "0000000000000000000000000000000"			;-- 32 bytes wide, big enough.
 
-prin*: func [s [c-string!] return: [c-string!] /local p][
-	exec/terminal/vprint as byte-ptr! s -1 Latin1
+prin*: func [s [c-string!] return: [c-string!]][
+	exec/terminal/vprint as byte-ptr! s -1 Latin1 no
 	s
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%i" i]
-	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1 no
 	i
 ]
 
 prin-2hex*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%02X" i]
-	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1 no
 	i
 ]
 
 prin-hex*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%08X" i]
-	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1 no
 	i
 ]
 
 prin-float*: func [f [float!] return: [float!]][
 	sprintf [sprintf-buf "%.16g" f]
-	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1 no
 	f
 ]
 
 prin-float32*: func [f [float32!] return: [float32!]][
 	sprintf [sprintf-buf "%.7g" as-float f]
-	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1
+	exec/terminal/vprint as byte-ptr! sprintf-buf -1 Latin1 no
 	f
 ]
