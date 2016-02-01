@@ -1114,8 +1114,10 @@ terminal: context [
 					add-history vt
 					emit-char vt 10 no
 				]
-				vt/ask?: no
-				gui/PostQuitMessage 0
+				if vt/ask? [
+					vt/ask?: no
+					gui/PostQuitMessage 0
+				]
 			]
 			RS_KEY_CTRL_H
 			RS_KEY_BACKSPACE [unless emit-char vt cp yes [exit]]
@@ -1157,7 +1159,7 @@ terminal: context [
 				exit
 			]
 			RS_KEY_CTRL_V [
-				paste-from-clipboard vt
+				paste-from-clipboard vt no
 				vt/edit-head: -1
 				exit
 			]
@@ -1385,14 +1387,16 @@ terminal: context [
 			vt		[terminal!]
 	][
 		vt: as terminal! v-terminal
-		vt/ask?: yes
 		vt/input?: yes
 		set-prompt vt question
 		refresh vt
-		update-caret vt
-		stack/mark-func words/_body
-		gui/do-events no
-		stack/unwind
+		unless paste-from-clipboard vt yes [
+			vt/ask?: yes
+			update-caret vt
+			stack/mark-func words/_body
+			gui/do-events no
+			stack/unwind
+		]
 		vt/in
 	]
 

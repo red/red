@@ -22,6 +22,8 @@ pad-left:		0
 scroll-count:	0
 scroll-x:		0
 scroll-y:		0
+clipboard:		as handle! 0
+paste-data:		as byte-ptr! 0	
 
 update-scrollbar: func [
 	vt		[terminal!]
@@ -111,16 +113,26 @@ copy-to-clipboard: func [
 ]
 
 paste-from-clipboard: func [
-	vt		[terminal!]
+	vt			[terminal!]
+	continue?	[logic!]
+	return:		[logic!]
 	/local
 		hMem	[handle!]
 		p		[byte-ptr!]
 		cp		[integer!]
 ][
-	unless OpenClipboard GetParent vt/hwnd [exit]
-	hMem: GetClipboardData CF_UNICODETEXT
+	if all [continue? null? clipboard][return false]
+	p: null
+	either continue? [
+		hMem: clipboard
+		p: paste-data
+	][
+		unless OpenClipboard GetParent vt/hwnd [return false]
+		hMem: GetClipboardData CF_UNICODETEXT
+	]
+
 	if hMem <> null [
-		p: GlobalLock hMem
+		unless continue? [p: GlobalLock hMem]
 		if p <> null [
 			while [
 				cp: (as-integer p/2) << 8 + p/1
@@ -139,11 +151,18 @@ paste-from-clipboard: func [
 					edit vt cp
 				]
 				p: p + 2
+				if cp = 13 [
+					clipboard: hMem
+					paste-data: p
+					return true
+				]
 			]
 			GlobalUnlock hMem
 		]
 	]
 	CloseClipboard
+	clipboard: null
+	false
 ]
 
 popup-menu: func [
@@ -476,7 +495,7 @@ ConsoleWndProc: func [
 			popup-menu vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
 		]
 		WM_COPY [copy-to-clipboard vt]
-		WM_PASTE [paste-from-clipboard vt]
+		WM_PASTE [paste-from-clipboard vt no]
 		WM_CLEAR [0]
 		VT_MSG_SELALL [
 			select-all vt
