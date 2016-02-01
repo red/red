@@ -78,7 +78,7 @@ system/view/VID: context [
 	
 	fetch-value: function [blk][
 		value: blk/1
-		any [all [word? :value get :value] value]
+		any [all [any [word? :value path? :value] get :value] value]
 	]
 	
 	fetch-argument: function [expected [datatype! typeset!] spec [block!]][
