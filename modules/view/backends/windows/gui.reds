@@ -1101,10 +1101,6 @@ change-data: func [
 		type = radio [
 			set-logic-state hWnd as red-logic! data no
 		]
-		type = base [
-			0
-			;update-base hWnd pt values
-		]
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
 		]

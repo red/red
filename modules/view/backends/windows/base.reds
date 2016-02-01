@@ -293,6 +293,7 @@ BaseWndProc: func [
 		WM_LBUTTONDOWN	 [SetCapture hWnd]
 		WM_LBUTTONUP	 [ReleaseCapture]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
+		WM_SIZE  [update-base hWnd null null get-face-values hWnd]
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either zero? GetWindowLong hWnd wc-offset - 4 [
@@ -449,7 +450,8 @@ update-base: func [
 ][
 	flags: GetWindowLong hWnd GWL_EXSTYLE
 	if zero? (flags and WS_EX_LAYERED) [
-		DeleteDC as handle! GetWindowLong hWnd wc-offset - 4
+		graphic: GetWindowLong hWnd wc-offset - 4
+		DeleteDC as handle! graphic
 		SetWindowLong hWnd wc-offset - 4 0
 		InvalidateRect hWnd null 1
 		exit
@@ -469,7 +471,7 @@ update-base: func [
 	unless transparent-base? color img [
 		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_VISIBLE or WS_CLIPSIBLINGS 
 		SetWindowLong hWnd GWL_EXSTYLE 0
-		SetParent hWnd parent
+		unless null? parent [SetParent hWnd parent]
 		exit
 	]
 
