@@ -2,7 +2,6 @@ Red [
 	Title:	"Red system/console object"
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%console-object.red
-	Needs:	'View
 	Tabs: 	4
 	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {

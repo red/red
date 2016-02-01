@@ -758,7 +758,7 @@ win/pane: reduce [
 			name: "Times New Roman"
 			size: 16
 			style: 'italic
-			anti-alias: yes
+			anti-alias?: yes
 		]
 		actors: object [
 			on-over: func [face [object!] event [event!]][
@@ -781,7 +781,7 @@ win/pane: reduce [
 			name: "Times New Roman"
 			size: 16
 			style: 'italic
-			anti-alias: yes
+			anti-alias?: yes
 		]
 	]
 	make face! [
