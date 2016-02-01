@@ -133,7 +133,12 @@ system/view/VID: context [
 						tuple!	 [unless opts/color [opts/color: value]]
 						string!	 [unless opts/text  [opts/text:  value]]
 						percent! [unless opts/data  [opts/data:  value]]
-						image!	 [unless opts/image [opts/image: value]]
+						image!	 [
+							unless opts/image [
+								opts/image: value
+								unless opts/size [opts/size: value/size]
+							]
+						]
 						integer! [
 							unless opts/size [
 								either find [panel group-box] face/type [
