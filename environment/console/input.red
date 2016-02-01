@@ -26,23 +26,6 @@ unless system/console [
 
 #system [
 	terminal: context [
-	
-		#enum special-key! [
-			KEY_UNSET:		 -1
-			KEY_NONE:		  0
-			KEY_UP:			-20
-			KEY_DOWN:		-21
-			KEY_RIGHT:		-22
-			KEY_LEFT:		-23
-			KEY_END:		-24
-			KEY_HOME:		-25
-			KEY_INSERT:		-26
-			KEY_DELETE:		-27
-			KEY_PAGE_UP:	-28
-			KEY_PAGE_DOWN:	-29
-			KEY_ESC:		-30
-		]
-
 		#define KEY_CTRL_A		1
 		#define KEY_CTRL_B		2
 		#define KEY_CTRL_C		3
