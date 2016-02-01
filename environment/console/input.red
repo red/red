@@ -26,24 +26,40 @@ unless system/console [
 
 #system [
 	terminal: context [
-		#define KEY_CTRL_A		1
-		#define KEY_CTRL_B		2
-		#define KEY_CTRL_C		3
-		#define KEY_CTRL_D		4
-		#define KEY_CTRL_E		5
-		#define KEY_CTRL_F		6
-		#define KEY_CTRL_H		8
-		#define KEY_TAB			9
-		#define KEY_CTRL_K		11
-		#define KEY_CTRL_L		12
-		#define KEY_ENTER		13
-		#define KEY_CTRL_N		14
-		#define KEY_CTRL_P		16
-		#define KEY_CTRL_T		20
-		#define KEY_CTRL_U		21
-		#define KEY_CTRL_W		23
-		#define KEY_ESCAPE		27
-		#define KEY_BACKSPACE	127
+	
+		#enum special-key! [
+			KEY_UNSET:		 -1
+			KEY_NONE:		  0
+			KEY_UP:			-20
+			KEY_DOWN:		-21
+			KEY_RIGHT:		-22
+			KEY_LEFT:		-23
+			KEY_END:		-24
+			KEY_HOME:		-25
+			KEY_INSERT:		-26
+			KEY_DELETE:		-27
+			KEY_PAGE_UP:	-28
+			KEY_PAGE_DOWN:	-29
+			KEY_ESC:		-30
+			KEY_CTRL_A:		  1
+			KEY_CTRL_B:		  2
+			KEY_CTRL_C:		  3
+			KEY_CTRL_D:		  4
+			KEY_CTRL_E:		  5
+			KEY_CTRL_F:		  6
+			KEY_CTRL_H:		  8
+			KEY_TAB:		  9
+			KEY_CTRL_K:		 11
+			KEY_CTRL_L:		 12
+			KEY_ENTER:		 13
+			KEY_CTRL_N:		 14
+			KEY_CTRL_P:		 16
+			KEY_CTRL_T:		 20
+			KEY_CTRL_U:		 21
+			KEY_CTRL_W:		 23
+			KEY_ESCAPE:		 27
+			KEY_BACKSPACE:	127
+		]
 		
 		#include %wcwidth.reds
 		
