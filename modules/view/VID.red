@@ -65,6 +65,7 @@ system/view/VID: context [
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
 		unless obj/:facet [
 			obj/:facet: make get select [font font! para para!] facet []
+			if field = 'color [obj/font/color: none]	;-- fixes #1458
 		]
 		obj: obj/:facet
 		
