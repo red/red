@@ -73,11 +73,11 @@ styles: #(
 	]
 	panel: [
 		default-actor: on-click						;@@ something better?
-		template: [type: 'panel]
+		template: [type: 'panel size: 200x200]
 	]
 	group-box: [
 		default-actor: on-click						;@@ something better?
-		template: [type: 'group-box]
+		template: [type: 'group-box size: 200x200]
 	]
 	tab-panel: [
 		default-actor: on-select
