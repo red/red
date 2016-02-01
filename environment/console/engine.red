@@ -33,9 +33,7 @@ system/console: context [
 	history: make block! 200
 	catch?:	 no											;-- YES: force script to fallback into the console
 
-	sub-system-gui?: #system [
-		logic/box #either sub-system = 'console [no][yes]
-	]
+	gui?: #system [logic/box #either gui-console? = 'yes [yes][no]]
 	
 	read-argument: function [][
 		if args: system/options/args [
