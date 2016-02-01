@@ -467,8 +467,10 @@ ConsoleWndProc: func [
 			unless all [wParam = 3 state >= 0][edit vt wParam]
 			return 0
 		]
-		WM_NCDESTROY [
+		WM_DESTROY [
 			close vt
+			if vt/ask? [quit -1]
+			return 0
 		]
 		WM_CONTEXTMENU [
 			popup-menu vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)

@@ -20,12 +20,11 @@ Red [
 	#include %terminal.reds
 ]
 
-ask: function [
+ask: routine [
 	question [string!]
 	return:  [string!]
 ][
-	buffer: make string! 1
-	buffer
+	as red-string! stack/set-last as cell! terminal/ask question
 ]
 
 input: does [ask ""]
@@ -55,5 +54,7 @@ view/flags/no-wait win [resize]
 
 svs: system/view/screens/1
 svs/pane: next svs/pane
+
+system/console/launch
 
 do-events

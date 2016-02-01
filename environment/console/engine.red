@@ -182,9 +182,7 @@ system/console: context [
 			"--== Red" system/version "==--" lf
 			"Type HELP for starting information." lf
 		]
-		unless sub-system-gui? [
-			forever [eval-command ask any [cue prompt]]
-		]
+		forever [eval-command ask any [cue prompt]]
 	]
 
 	launch: function [][

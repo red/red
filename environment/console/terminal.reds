@@ -312,7 +312,7 @@ terminal: context [
 			cp		[integer!]
 			max		[integer!]
 	][
-		if p = tail [exit]
+		if all [append? p = tail][exit]
 
 		out: vt/out
 		nlines: out/nlines
@@ -325,15 +325,18 @@ terminal: context [
 		node: lines + cursor - 1
 		buf: GET_BUFFER(data)
 		offset: either append? [node/offset][string/rs-length? data]
+		cp: 0
 
 		until [
-			cp: string/get-char p unit
-			p: p + unit
+			if p <> tail [
+				cp: string/get-char p unit
+				p: p + unit
 
-			either cp = 9 [
-				string/concatenate-literal data "    "
-			][
-				buf: string/append-char buf cp
+				either cp = 9 [
+					string/concatenate-literal data "    "
+				][
+					buf: string/append-char buf cp
+				]
 			]
 			if any [cp = 10 p = tail][
 				node/offset: offset
@@ -520,6 +523,7 @@ terminal: context [
 			if cp = as-integer #"^[" [string/poke-char s tail - w 10]
 			emit-c-string vt as byte-ptr! s/offset tail w yes no
 			if cp = as-integer #"^[" [string/poke-char s tail - w 27]
+			if cp = 10 [s/tail: as cell! tail - w]
 		]
 		true
 	]
@@ -625,6 +629,7 @@ terminal: context [
 		vt/history-cnt: 0
 		vt/pos: 1
 		vt/top: 1
+		vt/top-offset: 0
 		vt/nlines: 0
 		vt/scroll: 0
 		vt/caret?: no
@@ -638,9 +643,6 @@ terminal: context [
 		vt/prompt-len: string/rs-length? vt/prompt
 
 		OS-init vt
-
-		#call [system/console/launch]
-		set-prompt vt vt/prompt
 	]
 
 	close: func [
@@ -1112,11 +1114,8 @@ terminal: context [
 					add-history vt
 					emit-char vt 10 no
 				]
-				out/last: out/tail
-				#call [system/console/eval-command input]
-				vt/input?: yes
-				set-prompt vt as red-string! #get system/console/cue
-				update-caret vt
+				vt/ask?: no
+				gui/PostQuitMessage 0
 			]
 			RS_KEY_CTRL_H
 			RS_KEY_BACKSPACE [unless emit-char vt cp yes [exit]]
@@ -1377,6 +1376,24 @@ terminal: context [
 			Syllable []
 			#default []										;-- Linux
 		]
+	]
+
+	ask: func [
+		question	[red-string!]
+		return:		[red-string!]
+		/local
+			vt		[terminal!]
+	][
+		vt: as terminal! v-terminal
+		vt/ask?: yes
+		vt/input?: yes
+		set-prompt vt question
+		refresh vt
+		update-caret vt
+		stack/mark-func words/_body
+		gui/do-events no
+		stack/unwind
+		vt/in
 	]
 
 	vprint: func [
