@@ -353,10 +353,10 @@ system-dialect: make-profilable context [
 				with-alias-resolution off [type: resolve-expr-type value]
 			]
 			
-			either alias: find-aliased/position type/1 [		
+			either alias: find-aliased/position type/1 [
 				get-alias-id alias
 			][
-				type: resolve-aliased type
+				type: any [resolve-aliased/silent type [integer!]]
 				type: switch/default type/1 [
 					any-pointer! ['int-ptr!]
 					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
@@ -478,7 +478,7 @@ system-dialect: make-profilable context [
 						count: count + 1
 						id: get-type-id/direct spec/1
 						if id >= 1000 [id: 100]
-						append array to-char id
+						append array to char! id
 					)
 				]
 			]
@@ -537,7 +537,7 @@ system-dialect: make-profilable context [
 			either position [pos][all [pos pos/2]]
 		]
 		
-		resolve-aliased: func [type [block!] /local name][
+		resolve-aliased: func [type [block!] /silent /local name][
 			name: type/1
 			all [
 				type/1								;-- ensure it is not [none]
@@ -548,7 +548,10 @@ system-dialect: make-profilable context [
 					type: [integer!]
 				]
 				not type: find-aliased name
-				throw-error ["unknown type:" type]
+				any [
+					all [silent return none]
+					throw-error ["unknown type:" type]
+				]
 			]
 			type
 		]
