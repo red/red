@@ -337,7 +337,7 @@ system/view/VID: context [
 			modify panel/pane 'owned none
 		]
 		
-		unless panel/size [
+		if any [not panel/size panel/size < pane-size][
 			panel/size: either pane-size <> 0x0 [pane-size][200x200]
 		]
 		if options [set panel make object! user-opts]
