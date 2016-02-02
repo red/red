@@ -259,8 +259,8 @@ back: make action! [[
 
 clear: make action! [[
 		"Removes series values from current index to tail; returns new tail"
-		series	 [series! bitset! map!]
-		return:  [series! bitset! map!]
+		series	 [series! bitset! map! none!]
+		return:  [series! bitset! map! none!]
 	]
 	#get-definition ACT_CLEAR
 ]
@@ -339,8 +339,8 @@ insert: make action! [[
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail"
-		series	 [series! bitset! map! tuple!]
-		return:  [integer!]
+		series	 [series! bitset! map! tuple! none!]
+		return:  [integer! none!]
 	]
 	#get-definition ACT_LENGTH?
 ]
