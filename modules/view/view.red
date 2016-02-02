@@ -427,8 +427,6 @@ system/view: context [
 		:result
 	]
 	
-	init: does [unless screens [system/view/platform/init]]
-	
 	capturing?: no
 	auto-sync?: yes
 	debug?: no

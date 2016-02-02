@@ -29,8 +29,7 @@ ask: routine [
 
 input: does [ask ""]
 
-system/view/init
-font-name: either find [5.1.0 5.0.0] system/view/platform/version ["Fixedsys"]["Consolas"]
+font-name: pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
 console: make face! [
 	type: 'console size: 640x400

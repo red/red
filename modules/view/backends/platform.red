@@ -501,4 +501,6 @@ system/view/platform: context [
 	version: none
 	build:	 none
 	product: none
+	
+	init
 ]
