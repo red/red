@@ -334,7 +334,7 @@ system/view/VID: context [
 		]
 		either block? panel/pane [append panel/pane list][
 			panel/pane: list
-			modify panel/pane 'owned none
+			modify panel/pane 'owned none				;@@ ??
 		]
 		
 		if any [not panel/size panel/size < pane-size][
