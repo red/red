@@ -161,12 +161,21 @@ Red/System [
 	]
 
 	prin-float: func [f [float!] return: [float!]][
-		printf ["%.16g" f]
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.16g" f]
+		]
 		f
 	]
 
-	prin-float32: func [f [float32!] return: [float32!]][
-		printf ["%.7g" as-float f]
-		f
+	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!]][
+		f: as float! f32
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.7g" f]
+		]
+		f32
 	]
 ]
