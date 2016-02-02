@@ -742,7 +742,7 @@ insert-event-func [
 			"event> type:"	event/type
 			"offset:"		event/offset
 			"key:"			mold event/key
-			either find [key key-up] event/type [reduce ["flags:" mold event/flags]][""]
+			"flags:" 		mold event/flags
 		]
 	]
 	none

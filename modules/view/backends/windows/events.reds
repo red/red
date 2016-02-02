@@ -289,6 +289,25 @@ make-event: func [
 				unless zero? flags [get-text msg -1] 	;-- get text if not done already
 			]
 		]
+		EVT_LEFT_DOWN
+		EVT_LEFT_UP
+		EVT_RIGHT_DOWN
+		EVT_RIGHT_UP
+		EVT_MIDDLE_DOWN
+		EVT_MIDDLE_UP
+		EVT_DBL_CLICK [
+			key: 0
+			flags: msg/wParam
+			if flags and 08h <> 0 [key: EVT_FLAG_CTRL_DOWN]			;-- MK_CONTROL
+			if flags and 04h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
+			gui-evt/flags: key
+		]
+		EVT_CLICK [
+			key: 0
+			if (GetAsyncKeyState 11h) and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]		   ;-- VK_CONTROL
+			if (GetAsyncKeyState 10h) and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
+			gui-evt/flags: key
+		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
 		default	 [0]
 	]
