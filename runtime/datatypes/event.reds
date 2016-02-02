@@ -123,6 +123,7 @@ event: context [
 				sym = words/ctrl?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_CTRL_DOWN]
 				sym = words/shift?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_SHIFT_DOWN]
 				;sym = words/code	  [gui/get-event-code	  evt/msg]
+				true 				  [fire [TO_ERROR(script invalid-path) path element] null]
 			]
 		]
 	]

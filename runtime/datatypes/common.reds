@@ -572,7 +572,7 @@ words: context [
 		shift?:			symbol/make "shift?"
 		down?:			symbol/make "down?"
 		mid-down?:		symbol/make "mid-down?"
-		alt-down?:		symbol/make "mid-down?"
+		alt-down?:		symbol/make "alt-down?"
 		aux-down?:		symbol/make "aux-down?"
 
 		get:			symbol/make "get"
