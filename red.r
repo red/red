@@ -381,6 +381,7 @@ redc: context [
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--cli"					(gui?: no)
+				| "--catch"								;-- just pass-thru
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
 			]

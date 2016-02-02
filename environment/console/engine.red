@@ -38,9 +38,12 @@ system/console: context [
 	
 	read-argument: function [][
 		if args: system/options/args [
-			system/console/catch?: make logic! pos: find/tail args "--catch"
+			--catch: "--catch"
+			if system/console/catch?: make logic! pos: find args --catch [
+				remove/part pos 1 + length? --catch		;-- remove extra space too
+			]
 			
-			args: split any [pos args] space
+			args: split args space
 			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
 			
 			unless tail? args [
