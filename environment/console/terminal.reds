@@ -116,6 +116,7 @@ terminal: context [
 		s-head		[integer!]
 		s-h-idx		[integer!]
 		cursor		[integer!]				;-- cursor of edit line
+		edit-pos	[integer!]
 		edit-y		[integer!]				;-- cursor Y position
 		edit-head	[integer!]
 		edit-tail	[integer!]
@@ -290,6 +291,7 @@ terminal: context [
 		input/head: vt/prompt-len
 		vt/cursor: vt/prompt-len
 		emit-string vt prompt no no
+		vt/edit-pos: vt/out/last
 	]
 
 	emit-c-string: func [
@@ -489,7 +491,7 @@ terminal: context [
 	][
 		input: vt/in
 		out: vt/out
-		len: string/rs-abs-length? input
+		len: either vt/edit-pos = out/last [string/rs-abs-length? input][0]
 
 		select?: delete-selection vt
 		head: vt/cursor

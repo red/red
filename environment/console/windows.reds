@@ -314,6 +314,7 @@ ConsoleWndProc: func [
 		state	[integer!]
 		out		[ring-buffer!]
 		p-int	[int-ptr!]
+		limit	[red-integer!]
 ][
 	vt: as terminal! GetWindowLong hWnd wc-offset - 4
 	switch msg [
@@ -360,6 +361,8 @@ ConsoleWndProc: func [
 			vt/win-h: WIN32_HIWORD(lParam)
 			vt/cols: vt/win-w - vt/pad-left / vt/char-w
 			vt/rows: vt/win-h / vt/char-h
+			limit: as red-integer! #get system/console/limit
+			limit/value: vt/cols - 13
 			OS-refresh vt null
 			return 0
 		]
