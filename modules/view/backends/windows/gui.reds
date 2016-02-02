@@ -258,19 +258,17 @@ free-handles: func [
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
-	
-	case [
-		any [sym = panel sym = window] [
-			pane: as red-block! values + FACE_OBJ_PANE
-			if TYPE_OF(pane) = TYPE_BLOCK [
-				face: as red-object! block/rs-head pane
-				tail: as red-object! block/rs-tail pane
-				while [face < tail][
-					free-handles get-face-handle face
-					face: face + 1
-				]
-			]
+
+	pane: as red-block! values + FACE_OBJ_PANE
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			free-handles get-face-handle face
+			face: face + 1
 		]
+	]	
+	case [
 		sym = group-box [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong hWnd wc-offset - 4 as-integer hWnd
