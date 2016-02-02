@@ -638,7 +638,7 @@ terminal: context [
 		vt/select?: no
 		vt/select-all?: no
 		vt/ask?: no
-		vt/input?: yes
+		vt/input?: no
 		vt/s-mode?: no
 		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
@@ -849,7 +849,6 @@ terminal: context [
 			input	[red-string!]
 			len		[integer!]
 			idx		[integer!]
-			next	[integer!]
 			beg		[integer!]
 			end		[integer!]
 			s		[series!]
@@ -864,20 +863,16 @@ terminal: context [
 		len: string/rs-length? input
 		cut-red-string input len
 
-		either up? [
-			vt/history-pre: either idx = beg [idx % vt/history-cnt + 1][idx]
-		][
+		unless up? [
 			idx: either 1 = block/rs-length? hist [end][vt/history-pre]
-			either idx <> end [
-				next: idx % vt/history-cnt + 1
-				vt/history-pre: next
-			][
-				vt/history-pos: either end - 1 = 0 [vt/history-max][end - 1]
-			]
 		]
-		if idx <> end [
-			vt/history-pos: either idx = beg [beg][idx - 1]
+		either idx <> end [
 			string/concatenate input as red-string! block/rs-abs-at hist idx - 1 -1 0 yes no
+			vt/history-pos: either idx = beg [beg][idx - 1]
+			vt/history-pre: idx % vt/history-cnt + 1
+		][
+			vt/history-pos: either end - 1 = 0 [vt/history-max][end - 1]
+			vt/history-pre: end
 		]
 
 		cut-red-string vt/out/data len
