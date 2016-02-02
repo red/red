@@ -674,7 +674,7 @@ WndProc: func [
 			return 0
 		]
 		WM_ACTIVATE [
-			if WIN32_LOWORD(wParam) = 1 [set-selected-focus hWnd return 0]
+			if WIN32_LOWORD(wParam) <> 0 [set-selected-focus hWnd return 0]
 		]
 		WM_GESTURE [
 			handle: hWnd

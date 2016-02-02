@@ -31,6 +31,7 @@ system/console: context [
 
 	prompt: "red>> "
 	history: make block! 200
+	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
 
 	gui?: #system [logic/box #either gui-console? = 'yes [yes][no]]
@@ -142,7 +143,7 @@ system/console: context [
 						print result
 					]
 					not unset? :result [
-						if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
+						if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
 							clear back tail result
 							append result "..."
 						]
