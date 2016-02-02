@@ -1013,12 +1013,12 @@ change-visible: func [
 ][
 	value: either show? [SW_SHOW][SW_HIDE]
 	ShowWindow as handle! hWnd value
+	unless win8+? [
+		update-layered-window as handle! hWnd null null null -1
+	]
 	if type = group-box [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		ShowWindow as handle! hWnd value
-	]
-	unless win8+? [
-		update-layered-window as handle! hWnd null null null -1
 	]
 ]
 
