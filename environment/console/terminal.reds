@@ -87,6 +87,9 @@ terminal: context [
 		buffer		[red-string!]			;-- line buffer for multiline support
 		out			[ring-buffer!]			;-- output buffer
 		history		[red-block!]
+		history-pos [integer!]
+		history-pre [integer!]
+		history-beg [integer!]
 		history-end [integer!]
 		history-cnt [integer!]
 		history-max [integer!]				;-- maximum number of lines in history block
@@ -281,7 +284,7 @@ terminal: context [
 	][
 		input: vt/in
 		string/rs-reset input
-		if TYPE_OF(prompt) = TYPE_NONE [prompt: vt/prompt]
+		vt/prompt: prompt
 		string/concatenate input prompt -1 0 yes no
 		vt/prompt-len: string/rs-length? prompt
 		input/head: vt/prompt-len
@@ -312,8 +315,6 @@ terminal: context [
 			cp		[integer!]
 			max		[integer!]
 	][
-		if all [append? p = tail][exit]
-
 		out: vt/out
 		nlines: out/nlines
 		max: out/max
@@ -513,8 +514,7 @@ terminal: context [
 		]
 		vt/cursor: head
 
-		s: GET_BUFFER(out/data)
-		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
+		cut-red-string out/data len
 		if any [not del? len > 1][
 			s: GET_BUFFER(input)
 			out/tail: out/last
@@ -625,8 +625,10 @@ terminal: context [
 		vt/buffer: as red-string! #get system/console/buffer
 		vt/history: as red-block! #get system/console/history
 		vt/history-max: 200
+		vt/history-pos: 0
+		vt/history-beg: 1
 		vt/history-end: 1
-		vt/history-cnt: 0
+		vt/history-cnt: 1
 		vt/pos: 1
 		vt/top: 1
 		vt/top-offset: 0
@@ -636,7 +638,7 @@ terminal: context [
 		vt/select?: no
 		vt/select-all?: no
 		vt/ask?: no
-		vt/input?: yes
+		vt/input?: no
 		vt/s-mode?: no
 		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
@@ -845,32 +847,38 @@ terminal: context [
 		/local
 			hist	[red-block!]
 			input	[red-string!]
-			tail	[integer!]
+			len		[integer!]
 			idx		[integer!]
+			beg		[integer!]
+			end		[integer!]
+			s		[series!]
 	][
 		hist: vt/history
-		if zero? hist/head [exit]
+		idx: vt/history-pos
+		if zero? idx [exit]
 
-		idx: hist/head
-		tail: 1
-		either up? [
-			tail: idx - 1
-			if zero? tail [tail: vt/history-cnt]
+		beg: vt/history-beg
+		end: vt/history-end
+		input: vt/in
+		len: string/rs-length? input
+		cut-red-string input len
+
+		unless up? [
+			idx: either 1 = block/rs-length? hist [end][vt/history-pre]
+		]
+		either idx <> end [
+			string/concatenate input as red-string! block/rs-abs-at hist idx - 1 -1 0 yes no
+			vt/history-pos: either idx = beg [beg][idx - 1]
+			vt/history-pre: idx % vt/history-cnt + 1
 		][
-			tail: idx % vt/history-cnt + 1
+			vt/history-pos: either end - 1 = 0 [vt/history-max][end - 1]
+			vt/history-pre: end
 		]
 
-		hist/head: idx - 1
-		input: vt/in
-		string/rs-reset input
-		string/concatenate input vt/prompt -1 0 yes no
-		string/concatenate input as red-string! block/rs-head hist -1 0 yes no
-
-		vt/out/tail: vt/out/last
-		emit-string vt input yes no
+		cut-red-string vt/out/data len
+		emit-string vt input yes yes
 		input/head: vt/prompt-len
 		vt/cursor: string/rs-abs-length? input
-		hist/head: tail
 	]
 
 	add-history: func [
@@ -878,25 +886,27 @@ terminal: context [
 		/local
 			str		[red-value!]
 			history [red-block!]
+			max		[integer!]
 	][
 		str: as red-value! vt/in
 		history: vt/history
-		history/head: 0
+		max: vt/history-max
 		unless zero? string/rs-length? as red-string! str [
 			str: as red-value! _series/copy
 				 as red-series! str
 				 as red-series! stack/push*
 				 stack/arguments true stack/arguments
 
-			either vt/history-cnt = vt/history-max [
+			either vt/history-cnt = max [
 				_series/poke as red-series! history vt/history-end str null
+				vt/history-beg: vt/history-beg % max + 1
 			][
 				block/rs-append history str
 				vt/history-cnt: vt/history-cnt + 1
 			]
 			stack/pop 1
-			history/head: vt/history-end
-			vt/history-end: vt/history-end % vt/history-max + 1
+			vt/history-pos: vt/history-end
+			vt/history-end: vt/history-end % max + 1
 		]
 	]
 
