@@ -336,10 +336,8 @@ system/view/VID: context [
 			panel/pane: list
 			modify panel/pane 'owned none
 		]
+		if pane-size <> 0x0 [panel/size: pane-size]
 		
-		if any [not panel/size panel/size < pane-size][
-			panel/size: either pane-size <> 0x0 [pane-size][200x200]
-		]
 		if options [set panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
