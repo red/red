@@ -687,6 +687,7 @@ parser: context [
 			s		 [series!]
 			cnt		 [integer!]
 			offset	 [integer!]
+			cnt-col	 [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -709,7 +710,8 @@ parser: context [
 		type:	  -1
 		min:	  -1
 		max:	  -1
-		cnt:	  0
+		cnt:	   0
+		cnt-col:   0
 		state:    ST_NEXT_ACTION
 		
 		save-stack
@@ -952,6 +954,7 @@ parser: context [
 								match?: not match?
 							]
 							R_COLLECT [
+								cnt-col: cnt-col - 1
 								value: stack/top - 1
 
 								either stack/top - 2 = base [	;-- root unnamed block reached
@@ -1324,6 +1327,7 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/keep [				;-- KEEP
+							if cnt-col = 0 [PARSE_ERROR [TO_ERROR(script parse-keep) words/_keep]]
 							value: cmd + 1
 							min:   R_NONE
 							type:  either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][R_KEEP]
@@ -1426,6 +1430,7 @@ parser: context [
 							state: ST_MATCH
 						]
 						sym = words/collect [			;-- COLLECT
+							cnt-col: cnt-col + 1
 							max: R_NONE
 							into?: no
 							w: as red-word! cmd + 1
