@@ -2755,6 +2755,7 @@ red: context [
 		][
 			if block? pc/1 [							;-- if words are literals, register them
 				foreach w pc/1 [
+					unless any-word? w [throw-error ["Invalid argument to SET:" mold pc/1]]
 					add-symbol w: to word! w
 					unless local-word? w [add-global w]	;-- register it as global
 				]
