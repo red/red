@@ -46,10 +46,12 @@ system/view/VID: context [
 				if size/x > min-sz/x [min-sz/x: size/x]
 				if size/y > min-sz/y [min-sz/y: size/y]
 			]
-			face/text: saved
-			size: size-text face
-			if size/x > min-sz/x [min-sz/x: size/x]
-			if size/y > min-sz/y [min-sz/y: size/y]
+			if face/type <> 'drop-list [
+				face/text: saved
+				size: size-text face
+				if size/x > min-sz/x [min-sz/x: size/x]
+				if size/y > min-sz/y [min-sz/y: size/y]
+			]
 			min-sz
 		][
 			size-text face
