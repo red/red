@@ -167,6 +167,75 @@ show-tab: func [
 	]
 ]
 
+get-panel-handle: func [
+	hWnd	[handle!]			;-- Tab-panel handle!
+	return: [handle!]
+	/local
+		values	[red-value!]
+		pane	[red-block!]
+		idx		[red-integer!]
+		obj		[red-object!]
+][
+	values: get-face-values hWnd
+	pane: as red-block! values + FACE_OBJ_PANE
+	idx: as red-integer! values + FACE_OBJ_SELECTED
+	obj: as red-object! (block/rs-head pane) + idx/value - 1
+	either TYPE_OF(obj) = TYPE_OBJECT [
+		get-face-handle obj
+	][
+		null
+	]
+]
+
+update-tab-contents: func [
+	hWnd	[handle!]
+	type	[integer!]
+	/local
+		nshow  [integer!]
+		parent [handle!]
+		values [red-value!]
+		show?  [red-logic!]
+		pane   [red-block!]
+		pos    [red-pair!]
+		obj    [red-object!]
+		tail   [red-object!]
+][
+	parent: hWnd
+	values: get-face-values parent
+	switch type [
+		FACE_OBJ_SIZE
+		FACE_OBJ_OFFSET [
+			pane: as red-block! values + FACE_OBJ_PANE
+			if TYPE_OF(pane) = TYPE_BLOCK [
+				obj:  as red-object! block/rs-head pane
+				tail: as red-object! block/rs-tail pane
+				while [obj < tail][
+					if TYPE_OF(obj) = TYPE_OBJECT [
+						hWnd: get-face-handle obj
+						values: get-face-values hWnd
+						init-panel values parent
+						either type = FACE_OBJ_SIZE [
+							change-size
+								as-integer hWnd
+								as red-pair! values + FACE_OBJ_SIZE panel
+						][
+							pos: as red-pair! values + FACE_OBJ_OFFSET
+							adjust-parent hWnd parent pos/x pos/y
+						]
+					]
+					obj: obj + 1
+				]
+			]
+		]
+		FACE_OBJ_VISIBLE? [
+			show?: as red-logic! values + FACE_OBJ_VISIBLE?
+			nshow: either show?/value [SW_SHOW][SW_HIDE]
+			show-tab get-panel-handle parent nshow
+		]
+		default [0]
+	]
+]
+
 set-tab: func [
 	facets [red-value!]
 	idx	   [integer!]

@@ -923,6 +923,7 @@ OS-make-view: func [
 change-size: func [
 	hWnd [integer!]
 	size [red-pair!]
+	type [integer!]
 ][
 	SetWindowPos 
 		as handle! hWnd
@@ -930,6 +931,7 @@ change-size: func [
 		0 0
 		size/x size/y 
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+	if type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_SIZE]
 ]
 
 change-offset: func [
@@ -975,6 +977,7 @@ change-offset: func [
 		pos/x pos/y
 		0 0
 		flags
+	if type = tab-panel [update-tab-contents handle FACE_OBJ_OFFSET]
 ]
 
 change-text: func [
@@ -1020,6 +1023,7 @@ change-visible: func [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		ShowWindow as handle! hWnd value
 	]
+	if type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_VISIBLE?]
 ]
 
 change-image: func [
@@ -1293,7 +1297,7 @@ OS-update-view: func [
 		change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
 	]
 	if flags and FACET_FLAG_SIZE <> 0 [
-		change-size hWnd as red-pair! values + FACE_OBJ_SIZE
+		change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text hWnd values type
