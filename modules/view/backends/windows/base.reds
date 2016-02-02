@@ -293,7 +293,11 @@ BaseWndProc: func [
 		WM_LBUTTONDOWN	 [SetCapture hWnd]
 		WM_LBUTTONUP	 [ReleaseCapture]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
-		WM_SIZE  [update-base hWnd null null get-face-values hWnd]
+		WM_SIZE  [
+			unless zero? GetWindowLong hWnd wc-offset + 4 [
+				update-base hWnd null null get-face-values hWnd
+			]
+		]
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either zero? GetWindowLong hWnd wc-offset - 4 [
