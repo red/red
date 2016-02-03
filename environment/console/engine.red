@@ -42,10 +42,13 @@ system/console: context [
 			if system/console/catch?: make logic! pos: find args --catch [
 				remove/part pos 1 + length? --catch		;-- remove extra space too
 			]
-			
-			args: split args space
+
+			quote-arg: [{"} any [ahead [#"^""] break | skip] {"}]
+			normal-arg: complement charset space
+			rule: [quote-arg | normal-arg]
+			args: parse args [collect [any [keep copy value some rule | skip]]]
 			while [all [not tail? args find/match args/1 "--"]][args: next args] ;-- skip options
-			
+
 			unless tail? args [
 				file: args/1
 				if file/1 = dbl-quote [
