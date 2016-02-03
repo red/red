@@ -639,6 +639,7 @@ OS-show-window: func [
 		update-layered-window as handle! hWnd null null null -1
 	]
 
+	SetForegroundWindow as handle! hWnd
 	face: (as red-object! get-face-values as handle! hWnd) + FACE_OBJ_SELECTED
 	if TYPE_OF(face) = TYPE_OBJECT [SetFocus get-face-handle face]
 ]

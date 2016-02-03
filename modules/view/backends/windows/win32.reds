@@ -873,6 +873,10 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			return:		[handle!]
 		]
+		SetForegroundWindow: "SetForegroundWindow" [
+			hWnd		[handle!]
+			return:		[logic!]
+		]
 		SetWindowRgn: "SetWindowRgn" [
 			hWnd		[handle!]
 			hRgn		[handle!]
