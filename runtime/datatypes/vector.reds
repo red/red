@@ -394,7 +394,7 @@ vector: context [
 			][
 				fl: as red-float! right
 				f1: fl/value
-				v2: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
+				v2: float/to-integer f1
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
