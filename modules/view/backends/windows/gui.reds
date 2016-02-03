@@ -839,7 +839,7 @@ OS-make-view: func [
 
 	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 
-	unless alpha? [BringWindowToTop handle]
+	if any [win8+? not alpha?][BringWindowToTop handle]
 	set-font handle face values
 
 	;-- extra initialization
