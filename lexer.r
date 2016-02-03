@@ -346,7 +346,9 @@ lexer: context [
 		(cnt: 1 fail?: none)
 		any [[
 				counted-newline 
-				| "^^{" | "^^}"
+				| "^^^^"
+				| "^^{"
+				| "^^}"
 				| #"{" (cnt: cnt + 1)
 				| e: #"}" (if zero? cnt: cnt - 1 [fail?: [end skip]])
 				| UTF8-char
