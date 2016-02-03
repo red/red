@@ -45,14 +45,15 @@ op: context [
 
 		flag: 0
 		type: TYPE_OF(spec)
-		assert any [
+		unless any [
 			TYPE_OF(spec) = TYPE_BLOCK
 			TYPE_OF(spec) = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
 			TYPE_OF(spec) = TYPE_NATIVE
 			TYPE_OF(spec) = TYPE_OP
 			TYPE_OF(spec) = TYPE_FUNCTION
 			TYPE_OF(spec) = TYPE_ROUTINE
-		]
+		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
+		
 		node: switch type [
 			TYPE_BLOCK [
 				s: GET_BUFFER(spec)
