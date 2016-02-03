@@ -216,6 +216,9 @@ Red/System [
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 
+#define SIZE_MINIMIZED		1
+#define SIZE_MAXIMIZED		2
+
 #define WM_CREATE			0001h
 #define WM_NCCREATE			0081h
 #define WM_NCDESTROY		0082h

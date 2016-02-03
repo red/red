@@ -653,24 +653,14 @@ WndProc: func [
 				pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
 				pair/x: WIN32_LOWORD(lParam)
 				pair/y: WIN32_HIWORD(lParam)
+
+				modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+				current-msg/lParam: lParam
+				make-event current-msg 0 modal-loop-type
 			]
 		]
 		WM_MOVING
 		WM_SIZING [
-			rc: as RECT_STRUCT lParam
-			type: either msg = WM_MOVING [
-				pt: screen-to-client hWnd rc/left rc/top
-				current-msg/lParam: (rc/top - pt/y) << 16 or (rc/left - pt/x)
-				EVT_MOVING
-			][
-				pt: delta-size hWnd
-				current-msg/lParam: (rc/bottom - rc/top - pt/y) << 16 or (rc/right - rc/left - pt/x)
-				EVT_SIZING
-			]
-			modal-loop-type: type						;-- save it for WM_EXITSIZEMOVE
-			current-msg/hWnd: hWnd
-			make-event current-msg 0 type
-			
 			;pair: as red-pair! stack/arguments
 			;if TYPE_OF(pair) = TYPE_PAIR [
 			;	either msg = WM_MOVING [
