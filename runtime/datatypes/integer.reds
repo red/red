@@ -177,7 +177,7 @@ integer: context [
 				copy-cell as red-value! right as red-value! left
 				tp: (as byte-ptr! left) + 4
 				size: as-integer tp/1
-				n: 1
+				n: 0
 				until [
 					n: n + 1
 					v: as-integer tp/n
@@ -190,7 +190,7 @@ integer: context [
 					]
 					either v > 255 [v: 255][if negative? v [v: 0]]
 					tp/n: as byte! v
-					n > size
+					n = size
 				]
 			]
 			default [
