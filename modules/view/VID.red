@@ -223,6 +223,7 @@ system/view/VID: context [
 		local-styles: make block! 2						;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
+		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
@@ -245,7 +246,7 @@ system/view/VID: context [
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
 				title	 [panel/text: fetch-argument string! spec: next spec]
-				size	 [panel/size: fetch-argument pair! spec: next spec]
+				size	 [size: fetch-argument pair! spec: next spec]
 				backdrop [
 					value: pre-load fetch-argument background! spec: next spec
 					switch type?/word value [
@@ -338,7 +339,9 @@ system/view/VID: context [
 			panel/pane: list
 			modify panel/pane 'owned none				;@@ ??
 		]
-		if pane-size <> 0x0 [panel/size: pane-size]
+		either size [panel/size: size][
+			if pane-size <> 0x0 [panel/size: pane-size]
+		]
 		
 		if options [set panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
