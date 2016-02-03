@@ -164,9 +164,9 @@ Other useful functions:
 			print "` is an object! of value:"
 
 			foreach w words-of get word [
-				value: get/any in get word w
+				set/any 'value get/any in get word w
 
-				desc: case [
+				set/any 'desc case [
 					object? :value  [words-of value]
 					find [op! action! native! function! routine!] type?/word :value [
 						spec: spec-of :value
