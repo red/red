@@ -73,7 +73,7 @@ mold: make action! [[
 
 modify: make action! [[
 		"Change mode for target aggregate value"
-		target	 [map! object! series!]
+		target	 [object! series!]
 		field 	 [word!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive lookup"
