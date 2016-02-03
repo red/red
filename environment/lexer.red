@@ -314,9 +314,9 @@ system/lexer: context [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base base64-char slash-end
+			four half non-zero path-end base base64-char slash-end not-url-char
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -372,12 +372,13 @@ system/lexer: context [
 				#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
 			]
 			cs/22: charset {[](){}":;}					;-- slash-end
+			cs/23: charset {[](){}";}					;-- not-url-char
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end base64-char slash-end
+			four half non-zero path-end base64-char slash-end not-url-char
 		] cs
 
 		byte: [
@@ -522,7 +523,7 @@ system/lexer: context [
 		]
 
 		url-rule: [
-			#":" not [integer-end | ws-no-count | end]
+			#":" not [not-url-char | ws-no-count | end]
 			any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
 			(type: url! store stack do make-file)
 		]
