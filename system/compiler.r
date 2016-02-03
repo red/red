@@ -1481,17 +1481,19 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			unless parse defs [
 				some [
 					pos: set lib string! (
+						new?: no
 						unless list: select imports lib [
-							repend imports [lib list: make block! 10]
+						 	list: make block! 10
+							new?: yes
 						]
 					)
-					pos: set cc ['cdecl | 'stdcall]		;-- calling convention	
+					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
 					pos: into [
 						some [
 							specs:						;-- new function mapping marker
@@ -1504,17 +1506,19 @@ system-dialect: make-profilable context [
 								]
 								check-func-name name
 							)
-							pos: set id   string!   (repend list [id reloc: make block! 1])
+							pos: set id   string!
 							pos: set spec block!    (
 								check-specs/extend name spec
 								clear-docstrings spec
 								specs: copy specs
 								specs/1: name
 								add-function 'import specs cc
+								reloc: all [funcs: select imports lib select funcs id]
+								unless reloc [repend list [id reloc: make block! 1]]
 								emitter/import-function name reloc
 							)
 						]
-					]
+					](if new? [repend imports [lib list]])
 				]
 			][
 				throw-error ["invalid import specification at:" pos]
