@@ -155,7 +155,7 @@ paste-from-clipboard: func [
 					cp: (as-integer p/2) << 8 + p/1
 					clipboard: hMem
 					paste-data: p
-					unless zero? cp [return true]
+					either zero? cp [cp: 13 break][return true]
 				]
 			]
 			GlobalUnlock hMem
@@ -163,7 +163,7 @@ paste-from-clipboard: func [
 	]
 	CloseClipboard
 	clipboard: null
-	false
+	either cp = 13 [true][false]
 ]
 
 popup-menu: func [
