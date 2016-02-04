@@ -106,6 +106,8 @@ terminal: context [
 		char-h		[integer!]
 		caret-x		[integer!]
 		caret-y		[integer!]
+		bg-color	[integer!]
+		font-color	[integer!]
 		pad-left	[integer!]
 		caret?		[logic!]
 		select?		[logic!]
@@ -618,6 +620,8 @@ terminal: context [
 		out/h-idx: 0
 		out/s-head: -1
 
+		vt/bg-color: 00FCFCFCh
+		vt/font-color: 00000000h
 		vt/pad-left: 3
 		vt/win-w: win-x
 		vt/win-h: win-y
