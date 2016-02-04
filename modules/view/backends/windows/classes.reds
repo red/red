@@ -25,6 +25,7 @@ max-ext-styles: 	20
 ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
 ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
+OldFaceWndProc:		0
 
 find-class: func [
 	name	[red-word!]
@@ -128,6 +129,21 @@ make-super-class: func [
 	old
 ]
 
+FaceWndProc: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+][
+	switch msg [
+		WM_LBUTTONDOWN	 [SetCapture hWnd]
+		WM_LBUTTONUP	 [ReleaseCapture]
+		default [0]
+	]
+	CallWindowProc as wndproc-cb! OldFaceWndProc hWnd msg wParam lParam
+]
+
 register-classes: func [
 	hInstance [handle!]
 	/local
@@ -175,12 +191,16 @@ register-classes: func [
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
 	make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
-	make-super-class #u16 "RedFace"		#u16 "STATIC"			 0 yes
 	make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
+	make-super-class #u16 "RedPanel"	#u16 "RedWindow"		 0 no
 
-	make-super-class #u16 "RedPanel" #u16 "RedWindow" 0 no
+	OldFaceWndProc: make-super-class
+		#u16 "RedFace"
+		#u16 "STATIC"
+		as-integer :FaceWndProc
+		yes
 ]

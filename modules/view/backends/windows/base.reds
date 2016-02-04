@@ -290,8 +290,8 @@ BaseWndProc: func [
 				return 3							;-- do not make it activated when click it
 			]
 		]
-		WM_LBUTTONDOWN	 [SetCapture hWnd]
-		WM_LBUTTONUP	 [ReleaseCapture]
+		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
+		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
 			unless zero? GetWindowLong hWnd wc-offset + 4 [
