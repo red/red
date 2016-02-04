@@ -2839,15 +2839,24 @@ red: context [
 		forall path [									;-- preprocessing path
 			switch/default type?/word value: path/1 [
 				word! [
-					if all [not set? not get? entry: find functions value][
+					if all [
+						not set? not get?
+						all [
+							alter: get-prefix-func value
+							entry: find functions alter
+							name: alter
+						]
+					][
 						if head? path [
-							if alter: select-ssa value [entry: find functions alter]
+							if alter: select-ssa name [entry: find functions alter]
 							pc: next pc
-							
-							either pick entry/2 5 [
-								comp-call/with path entry/2 value entry/2/5
+							either ctx: any [
+								obj-func-call? value
+								pick entry/2 5
 							][
-								comp-call path entry/2		;-- call function with refinements
+								comp-call/with name entry/2 name ctx ;-- call function with refinements
+							][
+								comp-call path entry/2
 							]
 							exit
 						]
