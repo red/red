@@ -889,27 +889,45 @@ terminal: context [
 			str		[red-value!]
 			history [red-block!]
 			max		[integer!]
+			end		[integer!]
+			len		[integer!]
+			add?	[logic!]
 	][
 		str: as red-value! vt/in
 		history: vt/history
 		max: vt/history-max
-		unless zero? string/rs-length? as red-string! str [
+		end: vt/history-end
+		len: block/rs-length? history
+		add?: no
+		unless any [
+			zero? string/rs-length? as red-string! str
+			all [
+				len > 0
+				zero? string/equal? as red-string! str as red-string! block/rs-abs-at history len - 1 COMP_STRICT_EQUAL no
+			]
+		][
+			add?: yes
 			str: as red-value! _series/copy
 				 as red-series! str
 				 as red-series! stack/push*
 				 stack/arguments true stack/arguments
 
 			either vt/history-cnt = max [
-				_series/poke as red-series! history vt/history-end str null
+				_series/poke as red-series! history end str null
 				vt/history-beg: vt/history-beg % max + 1
 			][
 				block/rs-append history str
 				vt/history-cnt: vt/history-cnt + 1
 			]
 			stack/pop 1
-			vt/history-pos: vt/history-end
-			vt/history-end: vt/history-end % max + 1
 		]
+		either add? [
+			vt/history-pos: end
+			vt/history-end: end % max + 1
+		][
+			if len > 0 [vt/history-pos: either end - 1 = 0 [max][end - 1]]
+		]
+		vt/history-pre: vt/history-end
 	]
 
 	cut-red-string: func [
