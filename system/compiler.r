@@ -96,6 +96,8 @@ system-dialect: make-profilable context [
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		decoration:		 slash							;-- decoration separator for namespaces
 		shift-right-sym: to word! ">>>"					;-- workaround REBOL LOAD limitation
+		less-or-equal:	 to word! "<="					;-- workaround REBOL LOAD limitation
+		greater-than:	 to word! ">"					;-- workaround REBOL LOAD limitation
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
@@ -2215,7 +2217,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-loop: has [expr chunk start][
+		comp-loop: has [expr body start][
 			pc: next pc
 			
 			fetch-expression/keep/final						;-- compile expression
@@ -2223,18 +2225,22 @@ system-dialect: make-profilable context [
 				throw-error "LOOP requires an integer as argument"
 			]
 			check-body pc/1
+			emitter/target/emit-integer-operation '= [<last> 0]	;-- insert counter comparison to 0 (skipping)
+			
 			emitter/init-loop-jumps
 			push-loop 'loop
 			start: comp-chunked [emitter/target/emit-start-loop]
-			set [expr chunk] comp-block-chunked
+			set [expr body] comp-block-chunked
 			pop-loop
 			
-			chunk: emitter/chunks/join start chunk
-			emitter/resolve-loop-jumps chunk 'cont-next
-			chunk: emitter/chunks/join chunk comp-chunked [emitter/target/emit-end-loop]
-			emitter/branch/back/on chunk '=
-			emitter/resolve-loop-jumps chunk 'breaks
-			emitter/merge chunk	
+			body: emitter/chunks/join start body
+			emitter/resolve-loop-jumps body 'cont-next
+			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop]
+			emitter/target/signed?: yes					;-- force signed comparison for the counter
+			emitter/branch/back/on body less-or-equal
+			emitter/resolve-loop-jumps body 'breaks
+			emitter/branch/over/on body greater-than	;-- skip loop if counter <= 0
+			emitter/merge body
 			last-type: none-type
 			<last>
 		]
