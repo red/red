@@ -12,6 +12,14 @@ Red [
 
 system/lexer: context [
 
+	throw-error: function [spec [block!] /missing][
+		spec: reduce spec
+		src: back tail spec
+		src/1: mold/flat/part src/1 40
+		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
+		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
+	]
+
 	make-binary: routine [
 		start  [string!]
 		end    [string!]
@@ -454,12 +462,12 @@ system/lexer: context [
 			{#"} s: [
 				 escaped-char
 				| ahead [non-printable-char | not-str-char]
-				  (cause-error 'syntax 'invalid [char! mold skip s -2])
+				  (throw-error [char! skip s -2])
 				  reject
 				| skip (value: s/1)
 			][
 				{"}
-				| (cause-error 'syntax 'invalid [char! mold skip s -2])
+				| (throw-error [char! skip s -2])
 			]
 		]
 
@@ -487,9 +495,7 @@ system/lexer: context [
 		]
 
 		multiline-string: [
-			#"{" s: nested-curly-braces (
-				unless zero? cnt [cause-error 'syntax 'invalid [string! mold s]]
-			)
+			#"{" s: nested-curly-braces (unless zero? cnt [throw-error [string! s]])
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
@@ -551,13 +557,12 @@ system/lexer: context [
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (cause-error 'syntax 'invalid [path! trim/lines copy path])
+					| (throw-error [path! path])
 					  reject
 				]
 			]
 			opt [#":" (type: set-path! set-path back tail stack)][
-				ahead [path-end | ws | end] 
-				| (cause-error 'syntax 'invalid [type trim/lines copy path])
+				ahead [path-end | ws | end] | (throw-error [type path])
 			]
 			(pop stack)
 		]
@@ -600,14 +605,12 @@ system/lexer: context [
 				path-rule (type: lit-path!)				;-- path matched
 				| (to-word stack copy/part s e type)	;-- lit-word matched
 			] 
-			opt [#":" (cause-error 'syntax 'invalid [type trim/lines copy back s])]
+			opt [#":" (throw-error [type back s])]
 		]
 
 		issue-rule: [
 			#"#" (type: issue!) s: symbol-rule (
-				if (index? s) = index? e [
-					cause-error 'syntax 'invalid [mold type trim/lines copy skip s -4]
-				]
+				if (index? s) = index? e [throw-error [mold type skip s -4]]
 				to-word stack copy/part s e type
 			)
 		]
@@ -622,9 +625,7 @@ system/lexer: context [
 		]
 		
 		sticky-word-rule: [								;-- protect from sticky words typos
-			ahead [integer-end | ws-no-count | end | (
-				cause-error 'syntax 'invalid [mold type copy s]
-			)]
+			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
 		hexa-rule: [2 8 hexa e: #"h"]
 
@@ -734,7 +735,7 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(cause-error 'syntax 'missing [trim/lines copy skip pos -3 value])
+			(throw-error/missing [value skip pos -3])
 		]
 
 		literal-value: [
@@ -769,7 +770,7 @@ system/lexer: context [
 		][
 			parse/case src red-rules
 		][
-			cause-error 'syntax 'invalid ['value copy/part pos 20]
+			throw-error ['value pos]
 		]
 		stack/1
 	]
