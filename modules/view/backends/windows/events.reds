@@ -457,6 +457,11 @@ process-command-event: func [
 				make-event current-msg -1 EVT_CHANGE
 			]
 		]
+		STN_CLICKED [
+			init-current-msg
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_LEFT_DOWN
+		]
 		default [0]
 	]
 ]
