@@ -525,6 +525,11 @@ red: context [
 		reduce [body]
 	]
 	
+	emit-function: func [name [word!] /with ctx-name [word!]][
+		emit decorate-func name
+		insert-lf either with [emit ctx-name -2][-1]
+	]
+	
 	emit-action: func [name [word!] /with options [block!]][
 		emit join actions-prefix to word! join name #"*"
 		insert-lf either with [
@@ -1677,20 +1682,19 @@ red: context [
 			forskip words 2 [append spec to word! words/1]
 		][
 			unless extend [
-				blk: copy/part pc 2
-				blk-idx: either empty? ctx-stack [
-					redbin/emit-block blk
+				pos: tail output						;-- defer it to runtime evaluation	
+				pc: next pc
+				either pc/-1 = 'object! [
+					emit-open-frame 'make
+					emit-get-word pc/-1 pc/-1
+					comp-expression
+					emit-action 'make
 				][
-					redbin/emit-block/with blk last ctx-stack
+					emit-open-frame 'context
+					comp-expression
+					emit-function 'context
 				]
-				pos: tail output
-				emit-open-frame 'do						;-- defer it to runtime evaluation
-				emit compose [block/push get-root (blk-idx)]
-				insert-lf -2
-				emit-native/with 'do [-1]
 				emit-close-frame
-
-				pc: skip pc 2
 				defer: copy pos
 				clear pos
 				return defer
