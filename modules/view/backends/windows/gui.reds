@@ -744,7 +744,7 @@ OS-make-view: func [
 		]
 		sym = text [
 			class: #u16 "RedFace"
-			flags: flags or SS_SIMPLE
+			flags: flags or SS_SIMPLE or SS_NOTIFY
 		]
 		sym = text-list [
 			class: #u16 "RedListBox"

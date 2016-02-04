@@ -215,6 +215,9 @@ Red/System [
 #define ES_AUTOHSCROLL      00000080h
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
+#define SS_NOTIFY			00000100h
+
+#define STN_CLICKED			0
 
 #define SIZE_MINIMIZED		1
 #define SIZE_MAXIMIZED		2
