@@ -15,6 +15,7 @@ lexer: context [
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
+	mark:	none									;-- use for keeping input cursor at same position
 	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
@@ -231,12 +232,8 @@ lexer: context [
 	
 	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
 
-	sticky-word-rule: [
-		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip])
-		] :pos
-		fail?
+	sticky-word-rule: [								;-- protect from sticky words typos
+		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
 	tuple-value-rule: [
@@ -244,10 +241,7 @@ lexer: context [
 		byte dot byte 1 8 [dot byte] e:
 	]
 
-	tuple-rule: [
-		tuple-value-rule
-		sticky-word-rule
-	]
+	tuple-rule: [tuple-value-rule sticky-word-rule]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -422,10 +416,10 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push value)
-			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| integer-rule	  (stack/push value)
+			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)

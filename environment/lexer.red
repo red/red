@@ -620,17 +620,19 @@ system/lexer: context [
 			]
 			(to-word stack copy/part s e type)
 		]
-
+		
+		sticky-word-rule: [								;-- protect from sticky words typos
+			ahead [integer-end | ws-no-count | end | (
+				cause-error 'syntax 'invalid [mold type copy s]
+			)]
+		]
 		hexa-rule: [2 8 hexa e: #"h"]
 
 		tuple-value-rule: [
 			byte 2 11 [dot byte] e: (type: tuple!)
 		]
 
-		tuple-rule: [
-			tuple-value-rule
-			ahead [integer-end | ws-no-count | end]
-		]
+		tuple-rule: [tuple-value-rule sticky-word-rule]
 
 		integer-number-rule: [
 			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
@@ -641,7 +643,7 @@ system/lexer: context [
 			| integer-number-rule
 			  opt [float-number-rule | float-exp-rule e: (type: float!)]
 			  opt [#"%" (type: percent!)]
-			  ahead [integer-end | ws-no-count | end]
+			  sticky-word-rule
 			  (value: make-number s e type)
 			  opt [
 				#"x" s: integer-number-rule
@@ -666,7 +668,7 @@ system/lexer: context [
 		float-rule: [
 			opt [#"-" | #"+"] float-number-rule
 			opt [#"%" (type: percent!)]
-			ahead [integer-end | ws-no-count | end]
+			sticky-word-rule
 		]
 		
 		map-rule: [
@@ -739,10 +741,10 @@ system/lexer: context [
 			pos: (e: none) s: [
 				comment-rule
 				| escaped-rule		(store stack value)
-				| integer-rule		if (value) (store stack value)
-				| float-rule		if (value: make-float s e type) (store stack value)
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
+				| integer-rule		if (value) (store stack value)
+				| float-rule		if (value: make-float s e type) (store stack value)
 				| word-rule
 				| lit-word-rule
 				| get-word-rule
