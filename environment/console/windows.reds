@@ -152,9 +152,10 @@ paste-from-clipboard: func [
 				]
 				p: p + 2
 				if cp = 13 [
+					cp: (as-integer p/2) << 8 + p/1
 					clipboard: hMem
 					paste-data: p
-					return true
+					unless zero? cp [return true]
 				]
 			]
 			GlobalUnlock hMem
