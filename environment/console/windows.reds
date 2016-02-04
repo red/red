@@ -43,15 +43,15 @@ update-scrollbar: func [
 set-select-color: func [
 	vt		[terminal!]
 ][
-	SetTextColor mdc 00FFFFFFh
-	SetBkColor mdc 0
+	SetTextColor mdc vt/bg-color
+	SetBkColor mdc vt/font-color
 ]
 
 set-normal-color: func [
 	vt		[terminal!]
 ][
-	SetTextColor mdc 0
-	SetBkColor mdc 00FFFFFFh
+	SetTextColor mdc vt/font-color
+	SetBkColor mdc vt/bg-color
 ]
 
 copy-to-clipboard: func [
@@ -230,6 +230,9 @@ OS-draw-text: func [
 	rc/right: x + w
 	ExtTextOut mdc x 0 ETO_OPAQUE or ETO_CLIPPED rc str len null
 	if x + w = max-win-width [
+		rc/left: 0
+		rc/right: pad-left
+		ExtTextOut hdc 0 0 ETO_OPAQUE rc null 0 null
 		BitBlt hdc pad-left y max-win-width - pad-left h mdc 0 0 SRCCOPY
 	]
 ]
