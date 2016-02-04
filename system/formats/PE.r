@@ -688,6 +688,17 @@ context [
 		append job/buffer form-struct fh
 	]
 
+	initdata-size?: func [sections [block!] /local n flag][
+		n: 0
+		foreach [name spec] sections [
+			flag: select defs/s-type name
+			unless zero? to integer! flag and #{00000040} [
+				n: n + (length? spec/2) + (pad-size? spec/2)
+			]
+		]
+		n
+	]
+
 	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
@@ -719,7 +730,7 @@ context [
 		oh/major-link-version:  linker/version/1
 		oh/minor-link-version:	linker/version/2
 		oh/code-size:			length? job/sections/code/2
-		oh/initdata-size:		length? job/sections/data/2
+		oh/initdata-size:		initdata-size? job/sections
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
 		oh/code-base:			code-base
