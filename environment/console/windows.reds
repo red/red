@@ -346,6 +346,7 @@ ConsoleWndProc: func [
 			mbmp: CreateCompatibleBitmap hdc max-win-width vt/char-h
 			SelectObject mdc mbmp
 			SelectObject mdc vt/font
+			set-normal-color vt
 			paint vt
 			EndPaint hWnd ps
 			DeleteDC mdc
