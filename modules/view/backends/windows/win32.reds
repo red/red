@@ -33,6 +33,8 @@ Red/System [
 
 #define CDIS_DISABLED			4
 
+#define GW_OWNER				4
+
 ;-- DrawText() Format Flags
 
 #define DT_CENTER				0001h
