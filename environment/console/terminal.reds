@@ -999,6 +999,7 @@ terminal: context [
 				str/head: 0
 				emit-string vt str no no
 				str/head: head
+				vt/edit-pos: out/last
 			]
 		]
 		num
