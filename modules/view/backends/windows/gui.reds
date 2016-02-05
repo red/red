@@ -1366,12 +1366,20 @@ OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 	/local
+		handle [handle!]
 		values [red-value!]
 		obj	   [red-object!]
+		flags  [integer!]
 ][
-	free-handles get-face-handle face
+	handle: get-face-handle face
 	values: object/get-values face
-	
+	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+	if flags and FACET_FLAGS_MODAL <> 0 [
+		SetActiveWindow GetWindow handle GW_OWNER
+	]
+
+	free-handles handle
+
 	obj: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 	
