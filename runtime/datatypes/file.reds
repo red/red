@@ -284,6 +284,7 @@ file: context [
 		data	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		append? [logic!]
 		part	[red-value!]
 		seek	[red-value!]
