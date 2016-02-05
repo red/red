@@ -484,18 +484,14 @@ integer: context [
 		return: [integer!]
 		/local
 			res  [integer!]
-			neg? [logic!]
 	][
 		res: 1
-		neg?: false
-
-		if exp < 0 [neg?: true exp: 0 - exp]
 		while [exp <> 0][
 			if as logic! exp and 1 [res: res * base]
 			exp: exp >> 1
 			base: base * base
 		]
-		either neg? [1 / res][res]
+		res
 	]
 
 	power: func [

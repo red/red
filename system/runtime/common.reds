@@ -118,10 +118,9 @@ re-throw: func [/local id [integer!]][
 
 
 #if type = 'exe [
-	#switch target [
+	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
-												;-- and overflow raise exceptions.
+			system/fpu/control-word: 027Fh
 			system/fpu/update
 		]
 		ARM [

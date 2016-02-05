@@ -1403,7 +1403,7 @@ string: context [
 		
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		buffer: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		end: as byte-ptr! s/tail
 
 		if any [							;-- early exit if string is empty or at tail
@@ -1432,7 +1432,7 @@ string: context [
 					result/header: TYPE_NONE
 					return result
 				]
-				(as byte-ptr! s/offset) + (int/value - 1 << (log-b unit)) ;-- int argument is 1-based
+				buffer + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
 			][
 				str2: as red-string! part
 				unless all [
@@ -1441,7 +1441,7 @@ string: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
-				(as byte-ptr! s/offset) + (str2/head << (log-b unit))
+				buffer + (str2/head << (unit >> 1))
 			]
 			part?: yes
 		]
@@ -1453,7 +1453,7 @@ string: context [
 			]
 			reverse? [
 				step: 0 - step
-				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head - 1 << (log-b unit))]
+				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))]
 				end: as byte-ptr! s/offset
 				if buffer < end [							;-- early exit if str/head = 0
 					result/header: TYPE_NONE
@@ -1461,14 +1461,13 @@ string: context [
 				]
 			]
 			true [
-				buffer: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
 
 		case?: either TYPE_OF(str) = TYPE_STRING [not case?][no]			;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
-		step: step << (log-b unit)
+		step: step << (unit >> 1)
 		pattern: null
 		
 		;-- Value argument processing --
@@ -1495,7 +1494,7 @@ string: context [
 				]
 				s2: GET_BUFFER(str2)
 				unit2: GET_UNIT(s2)
-				pattern: (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
+				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [
@@ -1608,7 +1607,7 @@ string: context [
 		
 		either found? [
 			str: as red-string! result
-			str/head: (as-integer buffer - s/offset) >> (log-b unit)	;-- just change the head position on stack
+			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
 		][
 			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
