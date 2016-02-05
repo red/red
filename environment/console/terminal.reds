@@ -114,6 +114,7 @@ terminal: context [
 		select-all? [logic!]
 		ask?		[logic!]
 		input?		[logic!]
+		s-end?		[logic!]
 		s-mode?		[logic!]
 		s-head		[integer!]
 		s-h-idx		[integer!]
@@ -646,6 +647,7 @@ terminal: context [
 		vt/ask?: no
 		vt/input?: no
 		vt/s-mode?: no
+		vt/s-end?: no
 		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
 		vt/prompt-len: string/rs-length? vt/prompt
@@ -791,8 +793,9 @@ terminal: context [
 			offset: node/offset
 			len: node/length
 		]
-		if all [start? head = tail][return false]
+
 		if head = tail [
+			either start? [vt/s-end?: yes][if vt/s-end? [return false]]
 			head: out/last
 			y: w
 		]

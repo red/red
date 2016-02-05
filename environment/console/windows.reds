@@ -230,9 +230,6 @@ OS-draw-text: func [
 	rc/right: x + w
 	ExtTextOut mdc x 0 ETO_OPAQUE or ETO_CLIPPED rc str len null
 	if x + w = max-win-width [
-		rc/left: 0
-		rc/right: pad-left
-		ExtTextOut hdc 0 0 ETO_OPAQUE rc null 0 null
 		BitBlt hdc pad-left y max-win-width - pad-left h mdc 0 0 SRCCOPY
 	]
 ]
@@ -319,6 +316,7 @@ ConsoleWndProc: func [
 		out		[ring-buffer!]
 		p-int	[int-ptr!]
 		limit	[red-integer!]
+		rc		[RECT_STRUCT]
 ][
 	vt: as terminal! GetWindowLong hWnd wc-offset - 4
 	switch msg [
@@ -347,6 +345,12 @@ ConsoleWndProc: func [
 			SelectObject mdc mbmp
 			SelectObject mdc vt/font
 			set-normal-color vt
+			rc: declare RECT_STRUCT
+			rc/top: 0
+			rc/bottom: vt/win-h
+			rc/left: 0
+			rc/right: pad-left
+			ExtTextOut hdc 0 0 ETO_OPAQUE rc null 0 null
 			paint vt
 			EndPaint hWnd ps
 			DeleteDC mdc
@@ -410,21 +414,19 @@ ConsoleWndProc: func [
 		]
 		WM_LBUTTONDOWN [
 			cancel-select vt
-			either select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes [
-				SetCapture hWnd
-			][
-				cancel-select vt
-				refresh vt
-			]
+			refresh vt
+			SetCapture hWnd
+			select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes
 			vt/edit-head: -1
 			check-cursor vt
 			return 0
 		]
 		WM_LBUTTONUP [
 			vt/select?: no
+			vt/s-end?: no
 			out: vt/out
 			if scroll-count <> 0 [
-				KillTimer vt/hwnd timer
+				KillTimer hWnd timer
 				scroll-count: 0
 			]
 			if all [
@@ -455,21 +457,23 @@ ConsoleWndProc: func [
 					]
 				][
 					scroll-count: 0
-					timer: SetTimer vt/hwnd 1 10 null
+					timer: SetTimer hWnd 1 10 null
 				][
 					if scroll-count <> 0 [
-						KillTimer vt/hwnd timer
+						KillTimer hWnd timer
 						scroll-count: 0
 					]
-					select vt scroll-x scroll-y no
-					unless all [
-						out/s-head = out/s-tail
-						out/s-h-idx = out/s-t-idx
+					if all [
+						select vt scroll-x scroll-y no
+						any [
+							out/s-head <> out/s-tail
+							out/s-h-idx <> out/s-t-idx
+						]
 					][
 						check-cursor vt
 						mark-select vt
-						refresh vt
 					]
+					refresh vt
 				]
 			]
 			return 0
