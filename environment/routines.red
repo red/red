@@ -15,42 +15,42 @@ cos: routine [
 	"Returns the trigonometric cosine"
 	angle [float!] "Angle in radians"
 ][
-	natives/cosine* 1
+	natives/cosine* no 1
 ]
 
 sin: routine [
 	"Returns the trigonometric sine"
 	angle [float!] "Angle in radians"
 ][
-	natives/sine* 1
+	natives/sine* no 1
 ]
 
 tan: routine [
 	"Returns the trigonometric tangent"
 	angle [float!] "Angle in radians"
 ][
-	natives/tangent* 1
+	natives/tangent* no 1
 ]
 
 acos: routine [
 	"Returns the trigonometric arccosine"
 	angle [float!] "Angle in radians"
 ][
-	natives/arccosine* 1
+	natives/arccosine* no 1
 ]
 
 asin: routine [
 	"Returns the trigonometric arcsine"
 	angle [float!] "Angle in radians"
 ][
-	natives/arcsine* 1
+	natives/arcsine* no 1
 ]
 
 atan: routine [
 	"Returns the trigonometric arctangent"
 	angle [float!] "Angle in radians"
 ][
-	natives/arctangent* 1
+	natives/arctangent* no 1
 ]
 
 quit-return: routine [
@@ -61,9 +61,9 @@ quit-return: routine [
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [][natives/shift* -1 -1]
-shift-left:	   routine [][natives/shift* 1 -1]
-shift-logical: routine [][natives/shift* -1 1]
+shift-right:   routine [][natives/shift* no -1 -1]
+shift-left:	   routine [][natives/shift* no 1 -1]
+shift-logical: routine [][natives/shift* no -1 1]
 
 ;-- Helping routine for console, returns true if last output character was a LF
 last-lf?: routine [/local bool [red-logic!]][

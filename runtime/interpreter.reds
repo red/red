@@ -392,7 +392,7 @@ interpreter: context [
 						p: as int-ptr! s/offset
 						size: (as-integer (as int-ptr! s/tail) - p) / 4
 						ref-array: system/stack/top - size
-						system/stack/top: ref-array			;-- reserve space on native stack for refs array
+						system/stack/top: ref-array		;-- reserve space on native stack for refs array
 						copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
 					]
 					default [assert false]				;-- trap it, if stack corrupted 
@@ -403,6 +403,7 @@ interpreter: context [
 		
 		unless function? [
 			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
+			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
 			call: as function! [] native/code			;-- direct call for actions/natives
 			call
 		]

@@ -370,7 +370,7 @@ stack: context [										;-- call stack
 			saved: arguments
 			arguments: extra							;-- use the top stack frame @@ overflows!
 			set-last as red-value! err
-			natives/print*
+			natives/print* no
 			arguments: saved
 		]
 		stack/push as red-value! err

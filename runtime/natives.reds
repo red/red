@@ -47,7 +47,7 @@ natives: context [
 	
 	;--- Natives ----
 	
-	if*: does [
+	if*: func [check? [logic!]][
 		either logic/false? [
 			RETURN_NONE
 		][
@@ -55,7 +55,7 @@ natives: context [
 		]
 	]
 	
-	unless*: does [
+	unless*: func [check? [logic!]][
 		either logic/false? [
 			interpreter/eval as red-block! stack/arguments + 1 yes
 		][
@@ -64,6 +64,7 @@ natives: context [
 	]
 	
 	either*: func [
+		check? [logic!]
 		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
@@ -71,6 +72,7 @@ natives: context [
 	]
 	
 	any*: func [
+		check? [logic!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -86,6 +88,7 @@ natives: context [
 	]
 	
 	all*: func [
+		check? [logic!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -102,6 +105,7 @@ natives: context [
 	]
 	
 	while*:	func [
+		check? [logic!]
 		/local
 			cond  [red-block!]
 			body  [red-block!]
@@ -129,6 +133,7 @@ natives: context [
 	]
 	
 	until*: func [
+		check? [logic!]
 		/local
 			body  [red-block!]
 	][
@@ -151,6 +156,7 @@ natives: context [
 	
 	loop*: func [
 		[catch]
+		check? [logic!]
 		/local
 			body  [red-block!]
 			count [integer!]
@@ -179,6 +185,7 @@ natives: context [
 	]
 	
 	repeat*: func [
+		check? [logic!]
 		/local
 			w	   [red-word!]
 			body   [red-block!]
@@ -216,6 +223,7 @@ natives: context [
 	]
 	
 	forever*: func [
+		check? [logic!]
 		/local
 			body  [red-block!]
 	][
@@ -235,6 +243,7 @@ natives: context [
 	]
 	
 	foreach*: func [
+		check? [logic!]
 		/local
 			value [red-value!]
 			body  [red-block!]
@@ -278,6 +287,7 @@ natives: context [
 	]
 	
 	forall*: func [
+		check? [logic!]
 		/local
 			w 	   [red-word!]
 			body   [red-block!]
@@ -308,7 +318,7 @@ natives: context [
 		_context/set w saved
 	]
 	
-	func*: does [
+	func*: func [check? [logic!]][
 		_function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
@@ -319,27 +329,31 @@ natives: context [
 		stack/set-last stack/top - 1
 	]
 	
-	function*:	does [
+	function*: func [check? [logic!]][
 		_function/collect-words
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
-		func*
+		func* check?
 	]
 	
-	does*: does [
+	does*: func [check? [logic!]][
 		copy-cell stack/arguments stack/push*
 		block/make-at as red-block! stack/arguments 1
-		func*
+		func* check?
 	]
 	
-	has*: func [/local blk [red-block!]][
+	has*: func [
+		check? [logic!]
+		/local blk [red-block!]
+	][
 		blk: as red-block! stack/arguments
 		block/insert-value blk as red-value! refinements/local
 		blk/head: blk/head - 1
-		func*
+		func* check?
 	]
 		
 	switch*: func [
+		check? [logic!]
 		default? [integer!]
 		/local
 			pos	 [red-value!]
@@ -390,6 +404,7 @@ natives: context [
 	]
 	
 	case*: func [
+		check?	  [logic!]
 		all? 	  [integer!]
 		/local
 			value [red-value!]
@@ -419,6 +434,7 @@ natives: context [
 	]
 	
 	do*: func [
+		check?  [logic!]
 		args 	[integer!]
 		return: [integer!]
 		/local
@@ -482,16 +498,15 @@ natives: context [
 	]
 	
 	get*: func [
-		any?  [integer!]
-		case? [integer!]
+		check? [logic!]
+		any?   [integer!]
+		case?  [integer!]
 		/local
 			value [red-value!]
-			type  [integer!]
 	][
 		value: stack/arguments
-		type: TYPE_OF(value)
 		
-		switch type [
+		switch TYPE_OF(value) [
 			TYPE_PATH
 			TYPE_GET_PATH
 			TYPE_SET_PATH
@@ -508,6 +523,7 @@ natives: context [
 	]
 	
 	set*: func [
+		check? [logic!]
 		any?   [integer!]
 		case?  [integer!]
 		_only? [integer!]
@@ -552,7 +568,7 @@ natives: context [
 		]
 	]
 
-	print*: does [
+	print*: func [check? [logic!]][
 		lf?: yes											;@@ get rid of this global state
 		prin*
 		lf?: no
@@ -560,6 +576,7 @@ natives: context [
 	]
 	
 	prin*: func [
+		check? [logic!]
 		/local
 			arg		[red-value!]
 			str		[red-string!]
@@ -577,7 +594,7 @@ natives: context [
 			block/rs-clear buffer-blk
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
-			reduce* 1
+			reduce* no 1
 			blk: as red-block! arg
 			blk/head: 0										;-- head changed by reduce/into
 		]
@@ -619,49 +636,56 @@ natives: context [
 	]
 	
 	equal?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/equal?"]]
 		actions/compare* COMP_EQUAL
 	]
 	
 	not-equal?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/not-equal?"]]
 		actions/compare* COMP_NOT_EQUAL
 	]
 	
 	strict-equal?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/strict-equal?"]]
 		actions/compare* COMP_STRICT_EQUAL
 	]
 	
 	lesser?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser?"]]
 		actions/compare* COMP_LESSER
 	]
 	
 	greater?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater?"]]
 		actions/compare* COMP_GREATER
 	]
 	
 	lesser-or-equal?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser-or-equal?"]]
 		actions/compare* COMP_LESSER_EQUAL
 	]	
 	
 	greater-or-equal?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater-or-equal?"]]
 		actions/compare* COMP_GREATER_EQUAL
@@ -715,7 +739,8 @@ natives: context [
 	]
 	
 	same?*: func [
-		return:	   [red-logic!]
+		check?  [logic!]
+		return:	[red-logic!]
 		/local
 			result [red-logic!]
 			arg1   [red-value!]
@@ -731,7 +756,9 @@ natives: context [
 	]
 
 	not*: func [
-		/local bool [red-logic!]
+		check? [logic!]
+		/local
+			bool [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/not"]]
 		
@@ -741,6 +768,7 @@ natives: context [
 	]
 	
 	type?*: func [
+		check?   [logic!]
 		word?	 [integer!]
 		return:  [red-value!]
 		/local
@@ -761,7 +789,8 @@ natives: context [
 	]
 	
 	reduce*: func [
-		into [integer!]
+		check? [logic!]
+		into   [integer!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -884,9 +913,10 @@ natives: context [
 	]
 	
 	compose*: func [
-		deep [integer!]
-		only [integer!]
-		into [integer!]
+		check?  [logic!]
+		deep	[integer!]
+		only	[integer!]
+		into	[integer!]
 		/local
 			arg	  [red-value!]
 			into? [logic!]
@@ -911,8 +941,9 @@ natives: context [
 	]
 	
 	stats*: func [
-		show [integer!]
-		info [integer!]
+		check?  [logic!]
+		show	[integer!]
+		info	[integer!]
 		/local
 			blk [red-block!]
 	][
@@ -933,6 +964,7 @@ natives: context [
 	]
 	
 	bind*: func [
+		check? [logic!]
 		copy [integer!]
 		/local
 			value [red-value!]
@@ -974,6 +1006,7 @@ natives: context [
 	]
 	
 	in*: func [
+		check? [logic!]
 		/local
 			obj  [red-object!]
 			ctx  [red-context!]
@@ -1006,6 +1039,7 @@ natives: context [
 	]
 
 	parse*: func [
+		check?  [logic!]
 		case?	[integer!]
 		;strict? [integer!]
 		part	[integer!]
@@ -1079,7 +1113,7 @@ natives: context [
 		]
 	]
 
-	do-set-op*: func [
+	do-set-op: func [
 		cased	 [integer!]
 		skip	 [integer!]
 		op		 [integer!]
@@ -1103,42 +1137,48 @@ natives: context [
 	]
 	
 	union*: func [
-		cased	 [integer!]
-		skip	 [integer!]
+		check? [logic!]
+		cased  [integer!]
+		skip   [integer!]
 	][
-		do-set-op* cased skip OP_UNION
+		do-set-op cased skip OP_UNION
 	]
 	
 	intersect*: func [
-		cased	 [integer!]
-		skip	 [integer!]
+		check? [logic!]
+		cased  [integer!]
+		skip   [integer!]
 	][
-		do-set-op* cased skip OP_INTERSECT
+		do-set-op cased skip OP_INTERSECT
 	]
 	
 	unique*: func [
-		cased	 [integer!]
-		skip	 [integer!]
+		check? [logic!]
+		cased  [integer!]
+		skip   [integer!]
 	][
-		do-set-op* cased skip OP_UNIQUE
+		do-set-op cased skip OP_UNIQUE
 	]
 	
 	difference*: func [
-		cased	 [integer!]
-		skip	 [integer!]
+		check? [logic!]
+		cased  [integer!]
+		skip   [integer!]
 	][
-		do-set-op* cased skip OP_DIFFERENCE
+		do-set-op cased skip OP_DIFFERENCE
 	]
 
 	exclude*: func [
-		cased	 [integer!]
-		skip	 [integer!]
+		check? [logic!]
+		cased  [integer!]
+		skip   [integer!]
 	][
-		do-set-op* cased skip OP_EXCLUDE
+		do-set-op cased skip OP_EXCLUDE
 	]
 
 	complement?*: func [
-		return:    [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 		/local
 			bits   [red-bitset!]
 			s	   [series!]
@@ -1159,7 +1199,8 @@ natives: context [
 	]
 
 	dehex*: func [
-		return:		[red-string!]
+		check?  [logic!]
+		return: [red-string!]
 		/local
 			str		[red-string!]
 			buffer	[red-string!]
@@ -1203,6 +1244,7 @@ natives: context [
 	]
 
 	debase*: func [
+		check?   [logic!]
 		base-arg [integer!]
 		/local
 			data [red-string!]
@@ -1238,6 +1280,7 @@ natives: context [
 	]
 
 	negative?*: func [
+		check?  [logic!]
 		return:	[red-logic!]
 		/local
 			num [red-integer!]
@@ -1261,6 +1304,7 @@ natives: context [
 	]
 
 	positive?*: func [
+		check?  [logic!]
 		return: [red-logic!]
 		/local
 			num [red-integer!]
@@ -1284,6 +1328,7 @@ natives: context [
 	]
 
 	max*: func [
+		check? [logic!]
 		/local
 			args	[red-value!]
 			result	[logic!]
@@ -1296,6 +1341,7 @@ natives: context [
 	]
 
 	min*: func [
+		check? [logic!]
 		/local
 			args	[red-value!]
 			result	[logic!]
@@ -1308,8 +1354,9 @@ natives: context [
 	]
 
 	shift*: func [
-		left	 [integer!]
-		logical  [integer!]
+		check?	[logic!]
+		left	[integer!]
+		logical	[integer!]
 		/local
 			data [red-integer!]
 			bits [red-integer!]
@@ -1330,7 +1377,8 @@ natives: context [
 	]
 
 	to-hex*: func [
-		size	  [integer!]
+		check? [logic!]
+		size   [integer!]
 		/local
 			arg	  [red-integer!]
 			limit [red-integer!]
@@ -1350,6 +1398,7 @@ natives: context [
 	]
 
 	sine*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1361,6 +1410,7 @@ natives: context [
 	]
 
 	cosine*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1372,6 +1422,7 @@ natives: context [
 	]
 
 	tangent*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1386,6 +1437,7 @@ natives: context [
 	]
 
 	arcsine*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1394,6 +1446,7 @@ natives: context [
 	]
 
 	arccosine*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1402,6 +1455,7 @@ natives: context [
 	]
 
 	arctangent*: func [
+		check?  [logic!]
 		radians [integer!]
 		/local
 			f	[red-float!]
@@ -1410,6 +1464,7 @@ natives: context [
 	]
 
 	arctangent2*: func [
+		check? [logic!]
 		/local
 			f	[red-float!]
 			n	[red-integer!]
@@ -1436,7 +1491,8 @@ natives: context [
 	]
 
 	NaN?*: func [
-		return:  [red-logic!]
+		check?  [logic!]
+		return: [red-logic!]
 		/local
 			f	 [red-float!]
 			ret  [red-logic!]
@@ -1449,48 +1505,54 @@ natives: context [
 	]
 
 	log-2*: func [
+		check? [logic!]
 		/local
-			f	[red-float!]
+			f  [red-float!]
 	][
 		f: argument-as-float
 		f/value: (log f/value) / 0.6931471805599453
 	]
 
 	log-10*: func [
+		check? [logic!]
 		/local
-			f	[red-float!]
+			f  [red-float!]
 	][
 		f: argument-as-float
 		f/value: log10 f/value
 	]
 
 	log-e*: func [
+		check? [logic!]
 		/local
-			f	[red-float!]
+			f  [red-float!]
 	][
 		f: argument-as-float
 		f/value: log f/value
 	]
 
 	exp*: func [
+		check? [logic!]
 		/local
-			f	[red-float!]
+			f  [red-float!]
 	][
 		f: argument-as-float
 		f/value: pow 2.718281828459045235360287471 f/value
 	]
 
 	square-root*: func [
+		check? [logic!]
 		/local
-			f	[red-float!]
+			f  [red-float!]
 	][
 		f: argument-as-float
 		f/value: sqrt f/value
 	]
 	
 	construct*: func [
-		_with [integer!]
-		only  [integer!]
+		check? [logic!]
+		_with  [integer!]
+		only   [integer!]
 		/local
 			proto [red-object!]
 	][
@@ -1503,6 +1565,7 @@ natives: context [
 	]
 
 	value?*: func [
+		check? [logic!]
 		/local
 			value  [red-value!]
 			result [red-logic!]
@@ -1533,7 +1596,8 @@ natives: context [
 	]
 	
 	try*: func [
-		_all [integer!]
+		check?  [logic!]
+		_all	[integer!]
 		return: [integer!]
 		/local
 			arg	   [red-value!]
@@ -1581,15 +1645,22 @@ natives: context [
 		result
 	]
 
-	uppercase*: func [part [integer!]][
+	uppercase*: func [
+		check? [logic!]
+		part [integer!]
+	][
 		case-folding/change-case stack/arguments part yes
 	]
 
-	lowercase*: func [part [integer!]][
+	lowercase*: func [
+		check? [logic!]
+		part [integer!]
+	][
 		case-folding/change-case stack/arguments part no
 	]
 	
 	as-pair*: func [
+		check? [logic!]
 		/local
 			pair [red-pair!]
 			arg	 [red-value!]
@@ -1625,23 +1696,25 @@ natives: context [
 		pair/header: TYPE_PAIR
 	]
 	
-	break*: func [returned [integer!]][stack/throw-break returned <> -1 no]
+	break*: func [check? [logic!] returned [integer!]][stack/throw-break returned <> -1 no]
 	
-	continue*: does [stack/throw-break no yes]
+	continue*: func [check? [logic!]][stack/throw-break no yes]
 	
-	exit*: does [stack/throw-exit no]
+	exit*: func [check? [logic!]][stack/throw-exit no]
 	
-	return*: does [stack/throw-exit yes]
+	return*: func [check? [logic!]][stack/throw-exit yes]
 	
 	throw*: func [
-		name [integer!]
+		check? [logic!]
+		name   [integer!]
 	][
 		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
 		stack/throw-throw RED_THROWN_THROW
 	]
 	
 	catch*: func [
-		name [integer!]
+		check? [logic!]
+		name   [integer!]
 		/local
 			arg	   [red-value!]
 			c-name [red-word!]
@@ -1697,7 +1770,8 @@ natives: context [
 	]
 	
 	extend*: func [
-		case? [integer!]
+		check? [logic!]
+		case?  [integer!]
 		/local
 			arg [red-value!]
 	][
@@ -1714,7 +1788,8 @@ natives: context [
 	]
 
 	to-local-file*: func [
-		full? [integer!]
+		check? [logic!]
+		full?  [integer!]
 		/local
 			src  [red-file!]
 			out  [red-string!]
@@ -1726,6 +1801,7 @@ natives: context [
 	]
 
 	request-file*: func [
+		check?  [logic!]
 		title	[integer!]
 		file	[integer!]
 		filter	[integer!]
@@ -1741,6 +1817,7 @@ natives: context [
 	]
 
 	request-dir*: func [
+		check?  [logic!]
 		title	[integer!]
 		dir		[integer!]
 		filter	[integer!]
@@ -1756,6 +1833,7 @@ natives: context [
 	]
 
 	wait*: func [
+		check?	[logic!]
 		all?	[integer!]
 		only?	[integer!]
 		/local

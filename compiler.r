@@ -543,11 +543,12 @@ red: context [
 	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
 		if wrap?: to logic! find [parse do] name [emit 'switch]
 		emit join natives-prefix to word! join name #"*"
+		emit 'yes										;-- request run-time type-checking
 		pos: either with [
 			emit options
-			-1 - length? options
+			-2 - length? options
 		][
-			-1
+			-2
 		]
 		insert-lf pos - pick [1 0] wrap?
 		if wrap? [emit build-exception-handler]
@@ -3457,7 +3458,7 @@ red: context [
 					routine!  [emit-routine name spec/3]
 				][
 					emit make-func-prefix name
-					insert-lf -1
+					insert-lf either spec/1 = 'native! [emit 'yes -2][-1] ;-- request run-time type-checking
 				]
 				
 				emit-close-frame
