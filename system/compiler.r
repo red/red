@@ -2891,14 +2891,6 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
-				if all [
-					variable boxed						;-- process casting if result assigned to variable
-					last-type/1 = 'logic!
-					boxed/type  = 'integer!				;-- fixes #967
-				][
-					emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
-					last-type: boxed/type
-				]
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
@@ -2918,20 +2910,30 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if all [
-				any [
-					keep?
-					variable							;-- result needs to be stored
-					all [
-						'case = pick tail expr-call-stack -3
-						#test <> pick tail expr-call-stack -2
-						4 <= length? expr-call-stack
+			if block? expr [							;-- if expr is a function call	
+				if all [
+					any [
+						keep?
+						variable						;-- result needs to be stored
+						all [
+							'case = pick tail expr-call-stack -3
+							#test <> pick tail expr-call-stack -2
+							4 <= length? expr-call-stack
+						]
 					]
+					last-type/1 = 'logic!				;-- function's return type is logic!
+				][
+					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before storing
 				]
-				block? expr								;-- and if expr is a function call		
-				last-type/1 = 'logic!					;-- which return type is logic!
-			][
-				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
+				if all [
+					variable boxed						;-- process casting if result assigned to variable
+					find [logic! integer!] last-type/1
+					find [logic! integer!] boxed/type	;-- fixes #967
+					last-type/1 <> boxed/type
+				][
+					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
+					last-type: boxed/type
+				]
 			]
 			
 			if all [									;-- clean FPU stack when required
