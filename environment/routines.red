@@ -61,9 +61,9 @@ quit-return: routine [
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [][natives/shift* no -1 -1]
-shift-left:	   routine [][natives/shift* no 1 -1]
-shift-logical: routine [][natives/shift* no -1 1]
+shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
+shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]
+shift-logical: routine [data [integer!] bits [integer!]][natives/shift* no -1 1]
 
 ;-- Helping routine for console, returns true if last output character was a LF
 last-lf?: routine [/local bool [red-logic!]][
