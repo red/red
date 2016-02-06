@@ -505,6 +505,7 @@ natives: context [
 			value [red-value!]
 	][
 		value: stack/arguments
+		#typecheck get
 		
 		switch TYPE_OF(value) [
 			TYPE_PATH

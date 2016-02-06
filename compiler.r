@@ -32,6 +32,7 @@ red: context [
 	container-obj?: none								;-- closest wrapping object
 	func-objs:	   none									;-- points to 'objects first in-function object
 	paths-stack:   make block! 4						;-- stack of generated code for handling dual codepaths for paths
+	native-ts:	   make block! 200						;-- prepared native! typesets: [name [<ts-list>] ...]
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	current-call:  none
@@ -543,7 +544,7 @@ red: context [
 	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
 		if wrap?: to logic! find [parse do] name [emit 'switch]
 		emit join natives-prefix to word! join name #"*"
-		emit 'yes										;-- request run-time type-checking
+		emit 'true										;-- request run-time type-checking
 		pos: either with [
 			emit options
 			-2 - length? options
@@ -604,7 +605,7 @@ red: context [
 	]
 	
 	make-typeset: func [
-		spec [block!] option [block! none!] f-spec [block!]
+		spec [block!] option [block! none!] f-spec [block!] native? [logic!]
 		/local bs ts word bit idx name
 	][
 		spec: sort spec									;-- sort types to reduce cache misses
@@ -616,13 +617,15 @@ red: context [
 			ts: copy [0 0 0]
 
 			foreach type spec [
-				type: either word: in extracts/scalars type [get word][reduce [type]]
-				
-				foreach word type [
-					bit: get-RS-type-ID name: word
-					unless bit [throw-error/near ["invalid datatype name:" name] f-spec]
-					idx: (bit / 32) + 1
-					poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
+				unless block? type [
+					type: either word: in extracts/scalars type [get word][reduce [type]]
+
+					foreach word type [
+						bit: get-RS-type-ID name: word
+						unless bit [throw-error/near ["invalid datatype name:" name] f-spec]
+						idx: (bit / 32) + 1
+						poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
+					]
 				]
 			]
 			forall ts [ts/1: to integer! to-bin32 ts/1]	;-- convert to little-endian values
@@ -635,16 +638,21 @@ red: context [
 			]
 			append types-cache reduce [spec ts name]
 		]
-		either option [
+		spec: either option [
 			option: to word! join "~" clean-lf-flag option/1
 			reduce ['type-check-alt option name]
 		][
 			reduce ['type-check name]
 		]
+		if native? [
+			clear back tail spec
+			append spec compose [as red-typeset! get-root (idx)]
+		]
+		spec
 	]
 	
-	emit-type-checking: func [name [word!] spec [block!] /local pos type][
-		name: to word! next form name					;-- remove prefix decoration
+	emit-type-checking: func [name [word!] spec [block!] /native /local pos type][
+		unless native [name: to word! next form name]	;-- remove prefix decoration
 		
 		either pos: find spec name [
 			type: case [
@@ -652,11 +660,10 @@ red: context [
 				all [string? pos/3 block? pos/3][pos/3]
 				'else 							[[default!]]
 			]
-			make-typeset type find/reverse pos refinement! spec
+			make-typeset type find/reverse pos refinement! spec to logic! native
 		][
 			none
 		]
-		
 	]
 	
 	get-counter: does [s-counter: s-counter + 1]
@@ -1203,12 +1210,12 @@ red: context [
 		repend functions [name reduce [any [kind 'function!] arity spec refs]]
 	]
 	
-	fetch-functions: func [pos [block!] /local name type spec refs arity][
+	fetch-functions: func [pos [block!] /local name type spec refs arity nat?][
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
-			native! [if find intrinsics name [type: 'intrinsic!]]
+			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
 			action! [append actions name]
 			op!     [repend op-actions [name to word! pos/4]]
 		]
@@ -1217,6 +1224,7 @@ red: context [
 		][
 			clean-lf-deep pos/4/1
 		]
+		if nat? [prepare-typesets name spec]
 		set [refs arity] make-refs-table spec
 		repend functions [name reduce [type arity spec refs]]
 	]
@@ -3469,6 +3477,32 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
+	prepare-typesets: func [name [word!] spec [block!] /local list cnt arg][
+		list: make block! 8
+		cnt: 0
+
+		parse spec [
+			any [
+				set arg [word! | lit-word! | get-word!] (
+					append list compose [
+						(emit-type-checking/native arg spec)
+						(cnt)
+						stack/arguments
+					]
+					new-line back tail list off
+					insert-lf either cnt > 0 [repend list ['+ cnt] -5][-3]
+					cnt: cnt + 1
+				)
+				| skip
+			]
+		]
+		repend native-ts [name list]
+	]
+		
+	process-typecheck-directive: func [name [word!]][
+		select native-ts name
+	]
+	
 	process-get-directive: func [
 		path code [block!] /local obj fpath ctx blk idx
 	][
@@ -4212,6 +4246,7 @@ red: context [
 		clear lit-vars/context
 		clear types-cache
 		clear shadow-funcs
+		clear native-ts
 		s-counter: 0
 		depth:	   0
 		max-depth: 0

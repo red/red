@@ -1593,6 +1593,17 @@ system-dialect: make-profilable context [
 			fetch-expression
 		]
 		
+		process-check: func [code [block!] /local checks][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore directive
+				return none
+			]
+			checks: red/process-typecheck-directive code/2
+			remove/part pc 2
+			insert pc checks
+			none										;-- do not return an expression to compile
+		]
+		
 		process-call: func [code [block!] /local mark][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #call directive
@@ -1624,16 +1635,17 @@ system-dialect: make-profilable context [
 
 		comp-directive: has [body][
 			switch/default pc/1 [
-				#import  [process-import  pc/2  pc: skip pc 2]
-				#export  [process-export  pc/2  pc: skip pc 2]
-				#syscall [process-syscall pc/2	pc: skip pc 2]
-				#call	 [process-call	  pc]
-				#get	 [process-get	  pc]
-				#in		 [process-in	  pc]
-				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
-				#verbose [set-verbose-level pc/2 pc: skip pc 2 none]
-				#u16	 [process-u16 	  pc]
-				#script	 [								;-- internal compiler directive
+				#import    [process-import  pc/2  pc: skip pc 2]
+				#export    [process-export  pc/2  pc: skip pc 2]
+				#syscall   [process-syscall pc/2  pc: skip pc 2]
+				#call	   [process-call  pc]
+				#get	   [process-get	  pc]
+				#in		   [process-in	  pc]
+				#typecheck [process-check pc]			;-- internal compiler directive
+				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
+				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
+				#u16	   [process-u16 	  pc]
+				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					]
