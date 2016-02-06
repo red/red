@@ -505,7 +505,7 @@ show: function [
 			
 			if all [
 				para: face/para
-				p: in face/para parent
+				p: in face/para 'parent
 			][
 				either block? p [append p face][face/para/parent: reduce [face]]
 			]
