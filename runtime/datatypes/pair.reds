@@ -27,10 +27,6 @@ pair: context [
 		right: left + 1
 		
 		assert TYPE_OF(left) = TYPE_PAIR
-		assert any [
-			TYPE_OF(right) = TYPE_PAIR
-			TYPE_OF(right) = TYPE_INTEGER
-		]
 		
 		switch TYPE_OF(right) [
 			TYPE_PAIR 	 [
