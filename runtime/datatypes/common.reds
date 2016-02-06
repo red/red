@@ -134,7 +134,16 @@ fire: func [
 	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
 ]
 
-type-check-alt: func [
+type-check-opt: func [									;-- used by #typecheck
+	ref		 [integer!]
+	expected [red-typeset!]
+	index	 [integer!]
+	arg		 [red-value!]
+][
+	if ref > -1 [type-check expected index arg]
+]
+
+type-check-alt: func [									;-- for compiled user code
 	ref		 [red-value!]
 	expected [red-typeset!]
 	index	 [integer!]

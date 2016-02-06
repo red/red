@@ -610,7 +610,7 @@ red: context [
 	][
 		spec: sort spec									;-- sort types to reduce cache misses
 		
-		either bs: find/only/skip types-cache spec 3 [
+		either bs: find/only/skip types-cache spec 4 [
 			ts: bs/2
 			name: bs/3
 		][
@@ -636,7 +636,7 @@ red: context [
 				emit compose [(to set-word! name) as red-typeset! get-root (idx)]
 				insert-lf -5
 			]
-			append types-cache reduce [spec ts name]
+			append types-cache reduce [spec ts name idx]
 		]
 		spec: either option [
 			option: to word! join "~" clean-lf-flag option/1
@@ -646,7 +646,7 @@ red: context [
 		]
 		if native? [
 			clear back tail spec
-			append spec compose [as red-typeset! get-root (idx)]
+			append spec compose [as red-typeset! get-root (any [idx bs/4])]
 		]
 		spec
 	]
@@ -654,7 +654,10 @@ red: context [
 	emit-type-checking: func [name [word!] spec [block!] /native /local pos type][
 		unless native [name: to word! next form name]	;-- remove prefix decoration
 		
-		either pos: find spec name [
+		either pos: any [
+			find spec name
+			find spec to lit-word! name
+		][
 			type: case [
 				block? pos/2 					[pos/2]
 				all [string? pos/3 block? pos/3][pos/3]
@@ -3477,10 +3480,10 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	prepare-typesets: func [name [word!] spec [block!] /local list cnt arg][
+	prepare-typesets: func [name [word!] spec [block!] /local list cnt arg expr][
 		list: insert make block! 10 [0 0x0]				;-- insert fake debug header info
 		cnt: 0
-
+		
 		parse spec [
 			any [
 				set arg [word! | lit-word! | get-word!] (
@@ -3490,17 +3493,55 @@ red: context [
 						stack/arguments
 					]
 					new-line back tail list off
-					insert-lf either cnt > 0 [repend list ['+ cnt] -5][-3]
+					insert-lf either cnt > 0 [
+						expr: to paren! compose [stack/arguments + (cnt)]
+						expr: insert expr [0 0x0]		;-- insert fake debug header info				
+						change/only back tail list expr
+						-5
+					][-3]
 					cnt: cnt + 1
 				)
 				| skip
 			]
 		]
-		repend native-ts [name reduce ['if 'check? list]]
+		unless empty? list [
+			list: insert list [0 0x0]
+			list: reduce ['if 'check? list]
+			repend native-ts [name list]
+		]
 	]
 		
-	process-typecheck-directive: func [name [word!]][
-		probe select native-ts name
+	process-typecheck-directive: func [spec [word! block!] /local name res pos refs][
+		name: either block? spec [spec/1][spec]
+		if pos: select [								;-- words protected from macro replacement
+			-unless-	unless
+			-forever-	forever
+			-does-		does
+			-prin-		prin
+			-positive?-	positive?
+			-negative?-	negative?
+			-max-		max
+			-min-		min
+		] name [
+			name: pos
+		]
+		res: select native-ts name
+		
+		if all [res block? spec][
+			refs: functions/:name/4
+			spec: next spec
+			parse res/3 [								;-- rewrite checks for optional args
+				some [
+					pos: 'type-check-alt (
+						if tail? spec [throw-error ["missing values in #typecheck block:" spec]]
+						pos/1: 'type-check-opt
+						pos/2: pick spec select refs to refinement! next form pos/2
+					) 2 skip
+					| skip
+				]
+			]
+		]
+		res
 	]
 	
 	process-get-directive: func [

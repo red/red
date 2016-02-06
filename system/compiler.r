@@ -1600,7 +1600,7 @@ system-dialect: make-profilable context [
 			]
 			checks: red/process-typecheck-directive code/2
 			remove/part pc 2
-			insert pc checks
+			if checks [insert pc checks]
 			none										;-- do not return an expression to compile
 		]
 		
