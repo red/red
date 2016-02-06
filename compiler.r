@@ -3478,7 +3478,7 @@ red: context [
 	]
 	
 	prepare-typesets: func [name [word!] spec [block!] /local list cnt arg][
-		list: make block! 8
+		list: insert make block! 10 [0 0x0]				;-- insert fake debug header info
 		cnt: 0
 
 		parse spec [
@@ -3496,11 +3496,11 @@ red: context [
 				| skip
 			]
 		]
-		repend native-ts [name list]
+		repend native-ts [name reduce ['if 'check? list]]
 	]
 		
 	process-typecheck-directive: func [name [word!]][
-		select native-ts name
+		probe select native-ts name
 	]
 	
 	process-get-directive: func [
