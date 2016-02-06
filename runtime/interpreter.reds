@@ -231,37 +231,83 @@ interpreter: context [
 		sub?	  [logic!]
 		return:   [red-value!]
 		/local
-			next   [red-word!]
-			left   [red-value!]
-			fun	   [red-function!]
-			infix? [logic!]
-			op	   [red-op!]
-			s	   [series!]
-			node   [node!]
+			next	[red-word!]
+			left	[red-value!]
+			fun		[red-function!]
+			blk		[red-block!]
+			slot	[red-value!]
+			arg		[red-value!]
+			more	[red-value!]
+			infix?	[logic!]
+			op		[red-op!]
+			s		[series!]
+			type	[integer!]
+			pos		[byte-ptr!]
+			bits	[byte-ptr!]
+			set?	[logic!]
+			args	[node!]
+			node	[node!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
+		fun: null
 		
 		either op/header and body-flag <> 0 [
 			node: as node! op/code
 			s: as series! node/value
-			fun: as red-function! s/offset + 3
+			more: s/offset
+			fun: as red-function! more + 3
 			
+			s: as series! fun/more/value
+			blk: as red-block! s/offset + 1
+			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
+		][
+			args: op/args
+		]
+		if null? args [
+			args: _function/preprocess-spec as red-native! op
+
+			either fun <> null [
+				blk/header: TYPE_BLOCK
+				blk/head:	0
+				blk/node:	args
+			][
+				op/args: args
+			]
+		]
+		
+		s: as series! args/value
+		slot: s/offset + 1
+		bits: (as byte-ptr! slot) + 4
+		arg:  stack/arguments
+		type: TYPE_OF(arg)
+		BS_TEST_BIT(bits type set?)
+		unless set? [ERR_EXPECT_ARGUMENT(type 0)]
+		
+		slot: slot + 2
+		bits: (as byte-ptr! slot) + 4
+		arg:  arg + 1
+		type: TYPE_OF(arg)
+		BS_TEST_BIT(bits type set?)
+		unless set? [ERR_EXPECT_ARGUMENT(type 1)]
+
+		either fun <> null [
 			either TYPE_OF(fun) = TYPE_ROUTINE [
-				exec-routine as red-routine! fun		;@@ no type-checking!
+				exec-routine as red-routine! fun
 			][
 				set-locals fun
-				eval-function fun as red-block! s/offset ;@@ no type-checking!
+				eval-function fun as red-block! more
 			]
 		][
+			if op/header and flag-native-op <> 0 [push yes]	;-- type-checking for natives.
 			call-op: as function! [] op/code
 			call-op
 			0											;-- @@ to make compiler happy!
 		]
-
+		
 		#if debug? = yes [
 			if verbose > 0 [
 				value: stack/arguments

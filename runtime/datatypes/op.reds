@@ -46,12 +46,12 @@ op: context [
 		flag: 0
 		type: TYPE_OF(spec)
 		unless any [
-			TYPE_OF(spec) = TYPE_BLOCK
-			TYPE_OF(spec) = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
-			TYPE_OF(spec) = TYPE_NATIVE
-			TYPE_OF(spec) = TYPE_OP
-			TYPE_OF(spec) = TYPE_FUNCTION
-			TYPE_OF(spec) = TYPE_ROUTINE
+			type = TYPE_BLOCK
+			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
+			type = TYPE_NATIVE
+			type = TYPE_OP
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
 		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
 		
 		node: switch type [
@@ -63,6 +63,7 @@ op: context [
 			TYPE_ACTION
 			TYPE_NATIVE
 			TYPE_OP [
+				if type = TYPE_NATIVE [flag: flag-native-op]
 				native: as red-native! spec
 				code: native/code
 				native/spec

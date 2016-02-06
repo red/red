@@ -29,8 +29,9 @@ Red/System [
 #define flag-bitset-not		00080000h		;-- complement flag for bitsets
 #define flag-UTF16-cache	00040000h		;-- UTF-16 encoding for string cache buffer
 #define flag-series-owned	00020000h		;-- series is owned by an object
-#define flag-owned			00010000h		;-- cell is owned by and object. (for now only image! use it)
+#define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
+#define flag-native-op		00010000h		;-- operator is made from a native! function
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
 #define flag-self-mask		01000000h		;-- mask for self? flag
@@ -58,7 +59,10 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	24:		self?							;-- self-aware context flag
 ;	23:		node-body						;-- op! body points to a block node (instead of native code)
 ;	22-19:	tuple-size						;-- size of tuple
-;   18-8:	<reserved>
+;	18:		series-owned					;-- mark a series owned by an object
+;	17:		owner							;-- indicate that an object is an owner
+;	16:		native! op						;-- operator is made from a native! function
+;   15-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

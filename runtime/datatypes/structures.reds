@@ -220,7 +220,7 @@ red-native!: alias struct! [
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	args	[node!]									;-- list of typed arguments (including optional ones)
+	args	[node!]									;-- list of typed arguments
 	spec	[node!]									;-- op spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
