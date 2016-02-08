@@ -138,9 +138,8 @@ type-check-opt: func [									;-- used by #typecheck
 	ref		 [integer!]
 	expected [red-typeset!]
 	index	 [integer!]
-	arg		 [red-value!]
 ][
-	if ref > -1 [type-check expected index arg]
+	if ref > -1 [type-check expected index stack/arguments + ref]
 ]
 
 type-check-alt: func [									;-- for compiled user code

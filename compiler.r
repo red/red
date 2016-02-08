@@ -3536,6 +3536,7 @@ red: context [
 						if tail? spec [throw-error ["missing values in #typecheck block:" spec]]
 						pos/1: 'type-check-opt
 						pos/2: pick spec select refs to refinement! next form pos/2
+						remove at pos 8
 					) 2 skip
 					| skip
 				]
