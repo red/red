@@ -874,6 +874,7 @@ parser: context [
 									][
 										p/input: input/head	;-- refresh saved input head before new iteration
 										cmd: (block/rs-head rule) + p/rule ;-- loop rule
+										PARSE_TRACE(_pop)
 										PARSE_TRACE(_iterate)
 										state: ST_NEXT_ACTION
 										pop?: no
