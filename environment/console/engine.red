@@ -199,13 +199,9 @@ system/console: context [
 				print "*** Error: not a Red program!"
 				;quit/return -2
 			][
-				either catch? [
-					set/any 'result try-do skip script 2
-					if error? :result [print result]
-					run
-				][
-					do skip script 2
-				]
+				set/any 'result try-do skip script 2
+				if error? :result [print result]
+				if catch? [run]
 			]
 			;quit
 			exit
