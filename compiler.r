@@ -2866,7 +2866,7 @@ red: context [
 								obj-func-call? value
 								pick entry/2 5
 							][
-								comp-call/with name entry/2 name ctx ;-- call function with refinements
+								comp-call/with path entry/2 name ctx ;-- call function with refinements
 							][
 								comp-call path entry/2
 							]
