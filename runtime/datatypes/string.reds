@@ -693,6 +693,7 @@ string: context [
 		/local
 			char [red-char!]
 			s	 [series!]
+			type [integer!]
 			unit [integer!]
 			c1	 [integer!]
 			c2	 [integer!]
@@ -715,7 +716,12 @@ string: context [
 			]
 			c1 = c2
 		][
-			either TYPE_OF(value) <> TYPE_STRING [no][	;-- @@ extend it to accept string! derivatives?
+			type: TYPE_OF(value)
+			either all [								;@@ ANY_STRING
+				type <> TYPE_STRING
+				type <> TYPE_FILE
+				type <> TYPE_URL
+			][no][
 				zero? equal? str as red-string! value op yes
 			]
 		]

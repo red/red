@@ -192,7 +192,11 @@ parser: context [
 		end?: either any [type = TYPE_CHAR type = TYPE_BITSET][
 			string/rs-next str
 		][
-			assert TYPE_OF(value) = TYPE_STRING
+			assert any [
+				TYPE_OF(value) = TYPE_STRING
+				TYPE_OF(value) = TYPE_FILE
+				TYPE_OF(value) = TYPE_URL
+			]
 			string/rs-skip str string/rs-length? as red-string! value
 		]
 		end?
