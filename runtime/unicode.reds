@@ -633,6 +633,7 @@ unicode: context [
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
 		dst:  as byte-ptr! str/cache
+
 		switch unit [
 			Latin1 [
 				while [src < tail][								;-- in-place conversion
