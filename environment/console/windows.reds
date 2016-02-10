@@ -413,32 +413,36 @@ ConsoleWndProc: func [
 			return 0
 		]
 		WM_LBUTTONDOWN [
-			cancel-select vt
-			refresh vt
-			SetCapture hWnd
-			select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes
-			vt/edit-head: -1
-			check-cursor vt
+			if vt/out/head <> vt/out/tail [
+				cancel-select vt
+				refresh vt
+				SetCapture hWnd
+				select vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam) yes
+				vt/edit-head: -1
+				check-cursor vt
+			]
 			return 0
 		]
 		WM_LBUTTONUP [
-			vt/select?: no
-			vt/s-end?: no
-			out: vt/out
-			if scroll-count <> 0 [
-				KillTimer hWnd timer
-				scroll-count: 0
+			if vt/select? [
+				vt/select?: no
+				vt/s-end?: no
+				if scroll-count <> 0 [
+					KillTimer hWnd timer
+					scroll-count: 0
+				]
+				out: vt/out
+				if all [
+					out/s-head = out/s-tail
+					out/s-h-idx = out/s-t-idx
+				][
+					cancel-select vt
+					refresh vt
+				]
+				check-selection vt
+				ReleaseCapture
+				return 0
 			]
-			if all [
-				out/s-head = out/s-tail
-				out/s-h-idx = out/s-t-idx
-			][
-				cancel-select vt
-				refresh vt
-			]
-			check-selection vt
-			ReleaseCapture
-			return 0
 		]
 		WM_MOUSEMOVE [
 			if vt/select? [
