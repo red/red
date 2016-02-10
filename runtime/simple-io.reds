@@ -784,7 +784,7 @@ simple-io: context [
 				str/header: TYPE_STRING							;-- implicit reset of all header flags
 				str/head: 0
 				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-				str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
+				str/cache: null									;-- @@ cache small strings?
 				str
 			]
 		]
