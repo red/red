@@ -652,9 +652,14 @@ parser: context [
 		restore-stack
 	]
 	
-	eval: func [code [red-value!]][
+	eval: func [code [red-value!] /local len [integer!]][
+		len: block/rs-length? series
+		series/head: series/head + len
+		
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		if system/thrown <> 0 [reset re-throw]
+		
+		series/head: series/head - len
 	]
 
 	process: func [
