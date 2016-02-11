@@ -865,7 +865,10 @@ OS-make-view: func [
 				update-base handle as handle! parent pt values
 			]
 		]
-		sym = tab-panel [set-tabs handle values]
+		sym = tab-panel [
+			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
+			set-tabs handle values
+		]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx
