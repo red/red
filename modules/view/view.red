@@ -149,8 +149,9 @@ on-face-deep-change*: function [owner word target action new index part state fo
 
 link-tabs-to-parent: function [face [object!]][
 	if faces: face/pane [
+		visible?: face/visible?
 		forall faces [
-			if face/selected <> index? faces [faces/1/visible?: no]
+			faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			faces/1/parent: face
 		]
 	]
