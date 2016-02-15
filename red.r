@@ -210,7 +210,7 @@ redc: context [
 	]
 	
 	add-legacy-flags: func [opts [object!]][
-		if all [Windows? win-version < 52][
+		if all [Windows? win-version <= 52][
 			either opts/legacy [						;-- do not compile gesture support code for XP
 				append opts/legacy 'no-touch
 			][
