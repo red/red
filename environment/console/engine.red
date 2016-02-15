@@ -34,7 +34,7 @@ system/console: context [
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
 
-	gui?: #system [logic/box #either gui-console? = 'yes [yes][no]]
+	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
 		if args: system/options/args [
@@ -176,16 +176,18 @@ system/console: context [
 		]
 	]
 
-	run: function [][
-		print [
-			"--== Red" system/version "==--" lf
-			"Type HELP for starting information." lf
+	run: function [/no-banner][
+		unless no-banner [
+			print [
+				"--== Red" system/version "==--" lf
+				"Type HELP for starting information." lf
+			]
 		]
 		forever [eval-command ask any [cue prompt]]
 	]
 
 	launch: function [][
-		if script: read-argument [
+		either script: read-argument [
 			either not all [
 				script: attempt [load script]
 				script: find script 'Red
@@ -196,12 +198,11 @@ system/console: context [
 			][
 				set/any 'result try-do skip script 2
 				if error? :result [print result]
-				if catch? [run]
 			]
-			;quit
-			exit
+			if any [catch? gui?][run/no-banner]
+		][
+			run
 		]
-		run
 	]
 ]
 
