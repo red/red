@@ -870,3 +870,4 @@ append win/pane make face! [
 
 dump-face win
 view win
+system/view/debug?: no
