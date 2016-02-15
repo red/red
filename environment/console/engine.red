@@ -1,7 +1,7 @@
 Red [
 	Title:	"Red system/console object"
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
-	File: 	%console-object.red
+	File: 	%engine.red
 	Tabs: 	4
 	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -82,27 +82,22 @@ system/console: context [
 		buffer	[string!]
 		return: [block!]
 	][
-		list: copy [0 0]
-		c: none
-
-		foreach c buffer [
-			case [
-				escaped?	[escaped?: no]
-				in-comment? [if c = #"^/" [in-comment?: no]]
-				'else [
-					switch c [
-						#"^^" [escaped?: yes]
-						#";"  [if all [zero? list/2 not in-string?][in-comment?: yes]]
-						#"["  [unless in-string? [list/1: list/1 + 1]]
-						#"]"  [unless in-string? [list/1: list/1 - 1]]
-						#"^"" [if zero? list/2 [in-string?: not in-string?]]
-						#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
-						#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
-					]
-				]
+		count: copy [0 0]
+		escaped: [#"^^" skip]
+		
+		parse buffer [
+			any [
+				escaped
+				| #";" thru lf
+				| #"[" (count/1: count/1 + 1)
+				| #"]" (count/1: count/1 - 1)
+				| dbl-quote any [escaped | dbl-quote break | skip]
+				| #"{" (count/2: count/2 + 1)
+				  any [escaped | #"}" (count/2: count/2 - 1) break | skip]
+				| skip
 			]
 		]
-		list
+		count
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
