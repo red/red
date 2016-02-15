@@ -49,9 +49,11 @@ init-text-list: func [
 	]
 	SetWindowLong hWnd wc-offset - 4 len
 
-	if TYPE_OF(selected) <> TYPE_INTEGER [
+	either TYPE_OF(selected) <> TYPE_INTEGER [
 		selected/header: TYPE_INTEGER
 		selected/value: -1
+	][
+		SendMessage hWnd LB_SETCURSEL selected/value - 1 0
 	]
 ]
 
