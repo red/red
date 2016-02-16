@@ -573,7 +573,7 @@ view: function [
 	if options [set spec make object! opts]
 	if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 	
-	unless spec/text   [spec/text: copy "Red: untitled"]
+	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
 	show spec
 	
