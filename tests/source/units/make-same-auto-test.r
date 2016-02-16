@@ -141,8 +141,8 @@ add-not-same-test {#"e"} {#"è"}
 add-same-test {#"^^(010000)"} {#"^^(010000)"}
 add-same-test {true} {true}
 add-same-test {true} {#[true]}
-;add-same-test {none} {#[none]}       			;Issue #1627
-;add-same-test {none} {none}					;Issue #1627
+add-same-test {none} {#[none]}
+add-same-test {none} {none}
 add-same-test {'true} {first [true]}
 add-same-test {first [#[true]]} {#[true]}
 add-same-test {false} {false}
