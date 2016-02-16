@@ -619,16 +619,9 @@ unicode: context [
 		size: string/rs-length? str
 		if all [len/value <> -1 len/value < size][size: len/value]
 		part: size
-		size: size << 1 + 2			;-- including terminal-NUL
+		size: size << 1 + 2								;-- including terminal-NUL
 
-		either null? str/cache [
-			node: alloc-bytes size
-			s2: as series! node/value
-		][
-			s2: as series! str/cache - size? series!
-			if s2/size < size [s2: expand-series s2 size]
-		]
-		str/cache: as-c-string s2/offset
+		get-cache str size
 		
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
@@ -636,7 +629,7 @@ unicode: context [
 
 		switch unit [
 			Latin1 [
-				while [src < tail][								;-- in-place conversion
+				while [src < tail][						;-- in-place conversion
 					dst/1: src/1
 					dst/2: null-byte
 					src: src + 1

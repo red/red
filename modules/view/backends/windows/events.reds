@@ -419,13 +419,12 @@ process-command-event: func [
 				]
 			]
 		]
-		EN_CHANGE [										;-- sent also by CreateWindow
-			unless any [
-				null? current-msg 
-				(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT ;-- ignore CreateWindow-time events
-			][
-				current-msg/hWnd: as handle! lParam		;-- force Edit handle
-				make-event current-msg -1 EVT_CHANGE
+		EN_CHANGE [										  ;-- sent also by CreateWindow
+			unless any [null? current-msg no-face? hWnd][ ;-- ignore CreateWindow-time events
+				unless no-face? as handle! lParam [		  ;-- ignore CreateWindow-time events (fixes #1596)
+					current-msg/hWnd: as handle! lParam	  ;-- force Edit handle
+					make-event current-msg -1 EVT_CHANGE
+				]
 			]
 			0
 		]

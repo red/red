@@ -49,6 +49,13 @@ clean-up: does [
 	current-msg: null
 ]
 
+no-face?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT
+]
+
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]
@@ -98,22 +105,16 @@ get-widget-handle: func [
 	return: [handle!]
 	/local
 		hWnd   [handle!]
-		header [integer!]
 		p	   [int-ptr!]
 		id	   [integer!]
 ][
 	hWnd: msg/hWnd
-	header: GetWindowLong hWnd wc-offset
 
-	if header and get-type-mask <> TYPE_OBJECT [
+	if no-face? hWnd [
 		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
-		header: GetWindowLong hWnd wc-offset
-
-		if header and get-type-mask <> TYPE_OBJECT [
+		if no-face? hWnd [
 			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
-			header: GetWindowLong hWnd wc-offset
-
-			if header and get-type-mask <> TYPE_OBJECT [
+			if no-face? hWnd [
 				id: 0
 				GetWindowThreadProcessId hWnd :id
 				if id <> process-id [return as handle! -1]
@@ -123,11 +124,7 @@ get-widget-handle: func [
 					hWnd: as handle! -1					;-- not found
 				][
 					hWnd: as handle! p/2
-					header: GetWindowLong hWnd wc-offset
-
-					if header and get-type-mask <> TYPE_OBJECT [
-						hWnd: as handle! -1				;-- not found
-					]
+					if no-face? hWnd [hWnd: as handle! -1]	;-- not found
 				]
 			]
 		]
@@ -515,10 +512,10 @@ get-text: func [
 	msg	[tagMSG]
 	idx	[integer!]
 	/local
-		size	[integer!]
-		str		[red-string!]
-		face	[red-object!]
-		out		[c-string!]
+		size [integer!]
+		str	 [red-string!]
+		face [red-object!]
+		out	 [c-string!]
 ][
 	size: as-integer either idx = -1 [
 		SendMessage msg/hWnd WM_GETTEXTLENGTH idx 0
