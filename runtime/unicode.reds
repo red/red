@@ -499,7 +499,7 @@ unicode: context [
 		unit: 1
 		src: src + 1
 		while [size > 0][
-			c: src/2									;-- UTF-16LE, high byte in 2nd position
+			c: src/1									;-- UTF-16LE, high byte in 2nd position
 			if all [#"^(D8)" <= c c <= #"^(DF)"][return 4]	;-- max
 			if c <> null-byte [unit: 2]
 			src: src + 2
