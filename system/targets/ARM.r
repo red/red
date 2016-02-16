@@ -1424,7 +1424,7 @@ make-profilable make target-class [
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
-			if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
+			if size <> 8 [emit-swap-regs/alt]		;-- save value/restore address
 		]
 
 		switch type [
@@ -1469,7 +1469,7 @@ make-profilable make target-class [
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
 			at buffer offset
-			reverse to-bin24 shift negate offset 2
+			reverse to-bin24 shift negate offset + 4 2
 	]
 	
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
