@@ -768,7 +768,7 @@ _hashtable: context [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
 					TYPE_OF(k) = TYPE_OF(key)
 					actions/compare k key op
-					idx - head % skip = 0
+					idx - head // skip = 0
 				][
 					either reverse? [
 						if all [idx < head idx > last-idx][last-idx: idx find?: yes]
