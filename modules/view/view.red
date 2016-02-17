@@ -158,15 +158,14 @@ link-tabs-to-parent: function [face [object!]][
 ]
 
 link-sub-to-parent: function [face [object!] type [word!] old new][
-	if all [
-		object? new
-		parent: in new 'parent
-		block? get parent
-	][
-		append parent face
+	if object? new [
+		unless all [parent: in new 'parent block? get parent][
+			new/parent: make block! 4
+		]
+		append new/parent face
 		all [
 			object? old
-			parent: in new 'parent
+			parent: in old 'parent
 			block? get parent
 			remove find parent face
 		]
@@ -504,11 +503,12 @@ show: function [
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
-			if all [
-				para: face/para
-				p: in face/para 'parent
-			][
-				either block? p [append p face][face/para/parent: reduce [face]]
+			if all [para: face/para	p: in para 'parent][
+				either block? p: get p [
+					unless find p face [append p face]
+				][
+					para/parent: reduce [face]
+				]
 			]
 			
 			switch face/type [
