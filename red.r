@@ -115,13 +115,12 @@ redc: context [
 	;; Select a default target based on the REBOL version.
 	default-target: does [
 		any [
-			select [
-				2 "Darwin"
-				3 "MSDOS"
-				4 "Linux"
-				7 "FreeBSD"
-			] system/version/4
-			"MSDOS"
+			switch/default system/version/4 [
+				2 ["Darwin"]
+				3 ["MSDOS"]
+				4 [either system/version/5 = 8 ["RPI"]["Linux"]]
+				7 ["FreeBSD"]
+			]["MSDOS"]
 		]
 	]
 
