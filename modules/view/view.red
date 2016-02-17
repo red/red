@@ -503,11 +503,13 @@ show: function [
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
-			if all [para: face/para	p: in para 'parent][
-				either block? p: get p [
-					unless find p face [append p face]
-				][
-					para/parent: reduce [face]
+			foreach field [para font][
+				if all [field: face/:field p: in field 'parent][
+					either block? p: get p [
+						unless find p face [append p face]
+					][
+						field/parent: reduce [face]
+					]
 				]
 			]
 			
