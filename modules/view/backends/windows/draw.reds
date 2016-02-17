@@ -53,10 +53,10 @@ update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
 	]
 ]
 
-update-gdiplus-font: func [dc [handle!] /local font [integer!] res [integer!]][
+update-gdiplus-font: func [dc [handle!] /local font [integer!]][
 	font: 0
 	unless zero? modes/gp-font [GdipDeleteFont modes/gp-font]
-	res: GdipCreateFontFromDC as-integer dc :font
+	GdipCreateFontFromDC as-integer dc :font
 	modes/gp-font: font
 ]
 
@@ -214,7 +214,7 @@ draw-begin: func [
 		SelectObject dc default-font
 		SetTextColor dc 0
 		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
-		update-gdiplus-font-color FE000000h
+		update-gdiplus-font-color 0
 	][
 		dc: either paint? [BeginPaint hWnd paint][hScreen]
 		GetClientRect hWnd rect
