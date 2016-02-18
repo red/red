@@ -250,6 +250,7 @@ Red/System [
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
+#define WM_DEADCHAR 		0103h
 #define WM_SYSKEYDOWN		0104h
 #define WM_SYSKEYUP			0105h
 #define WM_COMMAND 			0111h
