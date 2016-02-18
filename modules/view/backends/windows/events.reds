@@ -620,9 +620,11 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
+		ret?   [logic!]
 		font   [red-object!]
 		face   [red-object!]
 		draw   [red-block!]
+		values [red-value!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		rc	   [RECT_STRUCT]
@@ -632,6 +634,7 @@ WndProc: func [
 		pair   [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
+		info   [tagMINMAXINFO]
 ][
 	switch msg [
 		WM_NCCREATE [
@@ -650,17 +653,21 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if current-msg <> null [
+			if all [
+				current-msg <> null
+				(GetAsyncKeyState 01h) and 8000h <> 0	;-- VK_LBUTTON
+			][
 				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
 				current-msg/hWnd: hWnd
 				pair: as red-pair! get-facet current-msg type
-				pair/header: TYPE_PAIR						;-- forces pair! in case user changed it
+				pair/header: TYPE_PAIR					;-- forces pair! in case user changed it
 				pair/x: WIN32_LOWORD(lParam)
 				pair/y: WIN32_HIWORD(lParam)
 
 				modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 				current-msg/lParam: lParam
 				make-event current-msg 0 modal-loop-type
+				return 0
 			]
 		]
 		WM_MOVING
@@ -679,7 +686,7 @@ WndProc: func [
 			;		rc/bottom: rc/top + pair/y + pt/y
 			;	]
 			;]
-			return 1									;-- TRUE
+			;return 1									;-- TRUE
 		]
 		WM_EXITSIZEMOVE [
 			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
@@ -795,6 +802,25 @@ WndProc: func [
 				menu-handle: as handle! lParam
 			]
 			return 0
+		]
+		WM_GETMINMAXINFO [
+			values: get-face-values hWnd
+			pair: as red-pair! values + FACE_OBJ_SIZE
+			info: as tagMINMAXINFO lParam
+
+			ret?: no
+			if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: pair/x ret?: yes]
+			if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: pair/y ret?: yes]
+			if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: pair/x ret?: yes]
+			if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: pair/y ret?: yes]
+			if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: pair/x ret?: yes]
+			if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: pair/y ret?: yes]
+			
+			pair: as red-pair! values + FACE_OBJ_OFFSET
+			if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x ret?: yes]
+			if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y ret?: yes]
+			
+			if ret? [return 0]
 		]
 		WM_CLOSE [
 			handle: current-msg/hWnd

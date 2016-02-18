@@ -240,8 +240,11 @@ Red/System [
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_CTLCOLOR			0019h
+#define WM_MOUSEACTIVATE	0021h
+#define WM_GETMINMAXINFO	0024h
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
+#define WM_WINDOWPOSCHANGED 0047h
 #define WM_NOTIFY			004Eh
 #define WM_CONTEXTMENU		007Bh
 #define WM_KEYDOWN			0100h
@@ -280,8 +283,6 @@ Red/System [
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
-#define WM_WINDOWPOSCHANGED 0047h
-#define WM_MOUSEACTIVATE	0021h
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -605,6 +606,19 @@ tagCREATESTRUCT: alias struct! [
 	lpszName	[byte-ptr!]
 	lpszClass	[byte-ptr!]
 	dwExStyle	[integer!]
+]
+
+tagMINMAXINFO: alias struct! [
+	ptReserved.x	 [integer!]
+	ptReserved.y	 [integer!]
+	ptMaxSize.x		 [integer!]
+	ptMaxSize.y		 [integer!]
+	ptMaxPosition.x	 [integer!]
+	ptMaxPosition.y	 [integer!]
+	ptMinTrackSize.x [integer!]
+	ptMinTrackSize.y [integer!]
+	ptMaxTrackSize.x [integer!]
+	ptMaxTrackSize.y [integer!]
 ]
 
 wndproc-cb!: alias function! [
