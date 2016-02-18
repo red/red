@@ -364,8 +364,8 @@ system/view: context [
 		detect			on-detect
 		down			on-down
 		up				on-up
-		middle-down		on-mid-down
-		middle-up		on-mid-up
+		mid-down		on-mid-down
+		mid-up			on-mid-up
 		alt-down		on-alt-down
 		alt-up			on-alt-up
 		aux-down		on-aux-down
@@ -374,7 +374,7 @@ system/view: context [
 		drag			on-drag
 		drop			on-drop
 		click			on-click
-		double-click	on-dbl-click
+		dbl-click		on-dbl-click
 		over			on-over
 		key				on-key
 		key-up			on-key-up
@@ -386,7 +386,7 @@ system/view: context [
 		menu			on-menu
 		close			on-close
 		move			on-move
-		resize			on-size
+		resize			on-resize
 		moving			on-moving
 		resizing		on-resizing
 		zoom			on-zoom
