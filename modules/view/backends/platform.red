@@ -253,7 +253,7 @@ system/view/platform: context [
 			_aux-down:		word/load "aux-down"
 			_aux-up:		word/load "aux-up"
 			_click:			word/load "click"
-			_double-click:	word/load "double-click"
+			_dbl-click:		word/load "dbl-click"
 			_over:			word/load "over"
 			_key:			word/load "key"
 			_key-down:		word/load "key-down"
@@ -312,7 +312,7 @@ system/view/platform: context [
 					EVT_AUX_DOWN	 [_aux-down]
 					EVT_AUX_UP		 [_aux-up]
 					EVT_CLICK		 [_click]
-					EVT_DBL_CLICK	 [_double-click]
+					EVT_DBL_CLICK	 [_dbl-click]
 					EVT_OVER		 [_over]
 					EVT_KEY			 [_key]
 					EVT_KEY_DOWN	 [_key-down]
@@ -353,7 +353,7 @@ system/view/platform: context [
 					sym = _aux-down/symbol		[sym: EVT_AUX_DOWN]
 					sym = _aux-up/symbol		[sym: EVT_AUX_UP]
 					sym = _click/symbol			[sym: EVT_CLICK]
-					sym = _double-click/symbol	[sym: EVT_DBL_CLICK]
+					sym = _dbl-click/symbol		[sym: EVT_DBL_CLICK]
 					sym = _over/symbol			[sym: EVT_OVER]
 					sym = _key/symbol			[sym: EVT_KEY]
 					sym = _key-down/symbol		[sym: EVT_KEY_DOWN]

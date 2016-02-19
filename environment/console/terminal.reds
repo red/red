@@ -1447,6 +1447,8 @@ terminal: context [
 			vt	[terminal!]
 			out [ring-buffer!]
 	][
+		#if debug? = yes [if zero? v-terminal [exit]]
+
 		if negative? size [
 			size: length? as c-string! str
 		]

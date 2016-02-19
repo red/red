@@ -559,6 +559,7 @@ extract-boot-args: function [
 	
 	either pos [
 		system/options/boot: copy/part next args pos
+		if pos/1 = dbl-quote [pos: next pos]
 		if pos/2 = space [pos: skip pos 2]
 		remove/part args pos
 		if empty? trim/head args [system/options/args: none]

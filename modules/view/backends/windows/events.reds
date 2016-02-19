@@ -819,23 +819,25 @@ WndProc: func [
 			return 0
 		]
 		WM_GETMINMAXINFO [
-			values: get-face-values hWnd
-			pair: as red-pair! values + FACE_OBJ_SIZE
-			info: as tagMINMAXINFO lParam
+			unless no-face? hWnd [
+				values: get-face-values hWnd
+				pair: as red-pair! values + FACE_OBJ_SIZE
+				info: as tagMINMAXINFO lParam
 
-			ret?: no
-			if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: pair/x ret?: yes]
-			if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: pair/y ret?: yes]
-			if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: pair/x ret?: yes]
-			if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: pair/y ret?: yes]
-			if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: pair/x ret?: yes]
-			if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: pair/y ret?: yes]
-			
-			pair: as red-pair! values + FACE_OBJ_OFFSET
-			if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x ret?: yes]
-			if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y ret?: yes]
-			
-			if ret? [return 0]
+				ret?: no
+				if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: pair/x ret?: yes]
+				if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: pair/y ret?: yes]
+				if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: pair/x ret?: yes]
+				if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: pair/y ret?: yes]
+				if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: pair/x ret?: yes]
+				if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: pair/y ret?: yes]
+
+				pair: as red-pair! values + FACE_OBJ_OFFSET
+				if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x ret?: yes]
+				if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y ret?: yes]
+
+				if ret? [return 0]
+			]
 		]
 		WM_CLOSE [
 			handle: current-msg/hWnd
