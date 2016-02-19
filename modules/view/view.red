@@ -377,6 +377,7 @@ system/view: context [
 		dbl-click		on-dbl-click
 		over			on-over
 		key				on-key
+		key-down		on-key-down
 		key-up			on-key-up
 		focus			on-focus
 		unfocus			on-unfocus

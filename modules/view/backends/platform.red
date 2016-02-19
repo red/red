@@ -256,7 +256,7 @@ system/view/platform: context [
 			_double-click:	word/load "double-click"
 			_over:			word/load "over"
 			_key:			word/load "key"
-			;_key-down:		word/load "key-down"
+			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
 			_focus:			word/load "focus"
 			_unfocus:		word/load "unfocus"
@@ -315,7 +315,7 @@ system/view/platform: context [
 					EVT_DBL_CLICK	 [_double-click]
 					EVT_OVER		 [_over]
 					EVT_KEY			 [_key]
-					;EVT_KEY_DOWN	 [_key-down]
+					EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
 					EVT_FOCUS		 [_focus]
 					EVT_UNFOCUS		 [_unfocus]
@@ -356,7 +356,7 @@ system/view/platform: context [
 					sym = _double-click/symbol	[sym: EVT_DBL_CLICK]
 					sym = _over/symbol			[sym: EVT_OVER]
 					sym = _key/symbol			[sym: EVT_KEY]
-					;sym = _key-down/symbol 	[sym: EVT_KEY_DOWN]
+					sym = _key-down/symbol		[sym: EVT_KEY_DOWN]
 					sym = _key-up/symbol		[sym: EVT_KEY_UP]
 					sym = _focus/symbol			[sym: EVT_FOCUS]
 					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]

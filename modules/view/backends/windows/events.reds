@@ -114,10 +114,11 @@ get-event-key: func [
 		char [red-char!]
 ][
 	as red-value! switch evt/type [
-		EVT_KEY 
-		EVT_KEY_UP [
-			either evt/flags and EVT_FLAG_KEY_SPECIAL <> 0 [
-				switch evt/flags and FFFFh [
+		EVT_KEY
+		EVT_KEY_UP
+		EVT_KEY_DOWN [
+			either special-key <> -1 [
+				switch special-key [
 					VK_PRIOR	[_page-up]
 					VK_NEXT		[_page_down]
 					VK_END		[_end]
@@ -237,6 +238,22 @@ decode-down-flags: func [
 	flags
 ]
 
+char-keys: [
+	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
+]
+
+char-key?: func [
+	key	    [byte!]									;-- virtual key code
+	return: [logic!]
+	/local
+		slot [byte-ptr!]
+][
+	slot: (as byte-ptr! char-keys) + as-integer (key >>> 3)
+	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
+]
+
+special-key: -1
+
 make-event: func [
 	msg		[tagMSG]
 	flags	[integer!]
@@ -263,16 +280,14 @@ make-event: func [
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
 			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
-			char: to-char key
-			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
-			gui-evt/flags: process-special-keys key
-			gui-evt/type: EVT_KEY
+			special-key: either char-key? as-byte key [-1][key]
+			gui-evt/flags: key
 		]
 		EVT_KEY_UP [
-			key: msg/wParam and FFFFh
-			char: to-char msg/wParam and FFFFh
-			key: either char = -1 [key or EVT_FLAG_KEY_SPECIAL][char]
-			gui-evt/flags: process-special-keys key
+			gui-evt/flags: msg/wParam and FFFFh
+		]
+		EVT_KEY [
+			gui-evt/flags: msg/wParam
 		]
 		EVT_SELECT [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -848,6 +863,7 @@ process: func [
 		pt	   [tagPOINT]
 		hWnd   [handle!]
 		new	   [handle!]
+		res	   [integer!]
 		x	   [integer!]
 		y	   [integer!]
 		evt?   [logic!]
@@ -912,12 +928,23 @@ process: func [
 			get-slider-pos msg
 			make-event current-msg 0 EVT_CHANGE
 		]
-		WM_KEYDOWN		[make-event msg 0 EVT_KEY_DOWN]
+		WM_KEYDOWN		[
+			res: make-event msg 0 EVT_KEY_DOWN
+			if res <> EVT_NO_DISPATCH [
+				if special-key <> -1 [res: make-event msg 0 EVT_KEY] ;-- force a KEY event
+			]	
+			res
+		]
 		WM_SYSKEYUP
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[
 			make-event msg 0 EVT_KEY_DOWN
 			EVT_NO_DISPATCH
+		]
+		WM_CHAR
+		WM_DEADCHAR [
+			make-event current-msg 0 EVT_KEY
+			EVT_DISPATCH
 		]
 		WM_LBUTTONDBLCLK [
 			make-event msg 0 EVT_DBL_CLICK
