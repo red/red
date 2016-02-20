@@ -148,7 +148,7 @@ system/view/platform: context [
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h
 				EVT_FLAG_SHIFT_DOWN:	40000000h
-				EVT_FLAG_KEY_SPECIAL:	80000000h
+				;EVT_FLAG_KEY_SPECIAL:	80000000h		;@@ deprecated
 			]
 
 			#enum pen-type! [
@@ -297,6 +297,12 @@ system/view/platform: context [
 			_F10:			word/load "F10"
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
+			_left-shift:	word/load "left-shift"
+			_right-shift:	word/load "right-shift"
+			_left-control:	word/load "left-control"
+			_right-control:	word/load "right-control"
+			_left-menu:		word/load "left-menu"
+			_right-menu:	word/load "right-menu"
 
 			get-event-type: func [
 				evt		[red-event!]

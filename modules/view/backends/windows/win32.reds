@@ -308,6 +308,7 @@ Red/System [
 
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
+#define VK_MENU				12h
 #define VK_SPACE			20h
 #define VK_PRIOR			21h
 #define VK_NEXT				22h
@@ -351,7 +352,12 @@ Red/System [
 #define VK_F22				85h
 #define VK_F23				86h
 #define VK_F24				87h
+#define VK_LSHIFT			A0h
+#define VK_RSHIFT			A1h
 #define VK_LCONTROL			A2h
+#define VK_RCONTROL			A3h
+#define VK_LMENU			A4h
+#define VK_RMENU			A5h
 #define VK_PROCESSKEY		E5h
 
 #define DEFAULT_GUI_FONT 	17

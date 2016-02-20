@@ -146,7 +146,20 @@ get-event-key: func [
 					VK_F10		[_F10]
 					VK_F11		[_F11]
 					VK_F12		[_F12]
-					default		[none-value]
+					VK_LSHIFT	[_left-shift]
+					VK_RSHIFT	[_right-shift]
+					VK_LCONTROL	[_left-control]
+					VK_RCONTROL	[_right-control]
+					VK_LMENU	[_left-menu]
+					VK_RMENU	[_right-menu]
+					default		[
+						either evt/type = EVT_KEY [none-value][
+							char: as red-char! stack/push*
+							char/header: TYPE_CHAR
+							char/value: evt/flags and FFFFh
+							as red-value! char
+						]
+					]
 				]
 			][
 				char: as red-char! stack/push*
@@ -243,6 +256,28 @@ decode-down-flags: func [
 	flags
 ]
 
+map-left-right: func [
+	wParam  [integer!]
+	lParam  [integer!]
+	return: [integer!]
+	/local
+		scancode [integer!]
+		key		 [integer!]
+		extend?	 [logic!]
+][
+	key: wParam and FFFFh
+	scancode: lParam and 00FF0000h >>> 16
+	extend?: lParam and 01000000h <> 0
+	
+	switch key [
+		VK_SHIFT   [key: MapVirtualKey scancode 3]		;-- MAPVK_VSC_TO_VK_EX
+		VK_CONTROL [key: either extend? [VK_RCONTROL][VK_LCONTROL]]
+		VK_MENU	   [key: either extend? [VK_RMENU][VK_LMENU]]
+		default    [0]
+	]	
+	key
+]
+
 check-extra-keys: func [
 	only?	[logic!]
 	return: [integer!]
@@ -250,8 +285,9 @@ check-extra-keys: func [
 		key [integer!]
 ][
 	key: 0
-	if (GetAsyncKeyState 11h) and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]		   ;-- VK_CONTROL
-	if (GetAsyncKeyState 10h) and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
+	if (GetAsyncKeyState VK_CONTROL)  and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]
+	if (GetAsyncKeyState VK_SHIFT)    and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
+	
 	unless only? [
 		if (GetAsyncKeyState 01h) and 8000h <> 0 [key: key or EVT_FLAG_DOWN] 	   ;-- VK_LBUTTON
 		if (GetAsyncKeyState 02h) and 8000h <> 0 [key: key or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
@@ -297,14 +333,19 @@ make-event: func [
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
 			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
-			special-key: either char-key? as-byte key [-1][key]
+			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY_UP [
-			gui-evt/flags: msg/wParam and FFFFh or check-extra-keys no
+			key: msg/wParam and FFFFh
+			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
+			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY [
-			gui-evt/flags: msg/wParam or check-extra-keys no
+			char: msg/wParam
+			key: check-extra-keys no
+			if key and EVT_FLAG_CTRL_DOWN <> 0 [char: char + 64]
+			gui-evt/flags: char or key
 		]
 		EVT_SELECT [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -947,7 +988,15 @@ process: func [
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [
-				if special-key <> -1 [res: make-event msg 0 EVT_KEY] ;-- force a KEY event
+				if special-key <> -1 [
+					switch special-key [
+						VK_SHIFT	VK_CONTROL
+						VK_LSHIFT	VK_RSHIFT
+						VK_LCONTROL	VK_RCONTROL
+						VK_LMENU	VK_RMENU [0]				 ;-- no KEY event
+						default  [res: make-event msg 0 EVT_KEY] ;-- force a KEY event
+					]
+				]
 			]	
 			res
 		]
