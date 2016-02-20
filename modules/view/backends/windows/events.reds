@@ -21,11 +21,16 @@ gui-evt/header: TYPE_EVENT
 oldBaseWndProc:	 0
 modal-loop-type: 0										;-- remanence of last EVT_MOVE or EVT_SIZE
 zoom-distance:	 0
+special-key: 	-1										;-- <> -1 if a non-displayable key is pressed
 
 flags-blk: declare red-block!							;-- static block value for event/flags
 flags-blk/header:	TYPE_BLOCK
 flags-blk/head:		0
 flags-blk/node:		alloc-cells 4
+
+char-keys: [
+	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
+]
 
 push-face: func [
 	handle  [handle!]
@@ -238,8 +243,22 @@ decode-down-flags: func [
 	flags
 ]
 
-char-keys: [
-	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
+check-extra-keys: func [
+	only?	[logic!]
+	return: [integer!]
+	/local
+		key [integer!]
+][
+	key: 0
+	if (GetAsyncKeyState 11h) and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]		   ;-- VK_CONTROL
+	if (GetAsyncKeyState 10h) and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
+	unless only? [
+		if (GetAsyncKeyState 01h) and 8000h <> 0 [key: key or EVT_FLAG_DOWN] 	   ;-- VK_LBUTTON
+		if (GetAsyncKeyState 02h) and 8000h <> 0 [key: key or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
+		if (GetAsyncKeyState 04h) and 8000h <> 0 [key: key or EVT_FLAG_MID_DOWN]   ;-- VK_MBUTTON
+		if (GetAsyncKeyState 05h) and 8000h <> 0 [key: key or EVT_FLAG_AUX_DOWN]   ;-- VK_XBUTTON1
+	]
+	key
 ]
 
 char-key?: func [
@@ -251,8 +270,6 @@ char-key?: func [
 	slot: (as byte-ptr! char-keys) + as-integer (key >>> 3)
 	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
 ]
-
-special-key: -1
 
 make-event: func [
 	msg		[tagMSG]
@@ -281,13 +298,13 @@ make-event: func [
 			key: msg/wParam and FFFFh
 			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
 			special-key: either char-key? as-byte key [-1][key]
-			gui-evt/flags: key
+			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY_UP [
-			gui-evt/flags: msg/wParam and FFFFh
+			gui-evt/flags: msg/wParam and FFFFh or check-extra-keys no
 		]
 		EVT_KEY [
-			gui-evt/flags: msg/wParam
+			gui-evt/flags: msg/wParam or check-extra-keys no
 		]
 		EVT_SELECT [
 			word: as red-word! get-facet msg FACE_OBJ_TYPE
@@ -318,10 +335,7 @@ make-event: func [
 			gui-evt/flags: key
 		]
 		EVT_CLICK [
-			key: 0
-			if (GetAsyncKeyState 11h) and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]		   ;-- VK_CONTROL
-			if (GetAsyncKeyState 10h) and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
-			gui-evt/flags: key
+			gui-evt/flags: check-extra-keys yes
 		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
 		default	 [0]
