@@ -625,6 +625,49 @@ store-face-to-hWnd: func [
 	SetWindowLong hWnd wc-offset + 12 as-integer face/on-set
 ]
 
+evolve-base-face: func [
+	hWnd	[handle!]
+	return: [handle!]
+	/local
+		values	[red-value!]
+		type	[red-word!]
+		handle	[handle!]
+		size	[red-pair!]
+		visible [red-logic!]
+][
+	values: get-face-values hWnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	if all [
+		base = symbol/resolve type/symbol
+		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+	][
+		handle: as handle! GetWindowLong hWnd wc-offset - 20
+		if null? handle [
+			size: as red-pair! values + FACE_OBJ_SIZE
+			visible: as red-logic! values + FACE_OBJ_VISIBLE?
+			handle: CreateWindowEx
+				WS_EX_LAYERED
+				#u16 "RedBaseInternal"
+				null
+				WS_POPUP
+				GetWindowLong hWnd wc-offset - 4
+				GetWindowLong hWnd wc-offset - 8
+				size/x
+				size/y
+				hWnd
+				null
+				hInstance
+				null
+
+			SetLayeredWindowAttributes handle 1 0 1
+			if visible/value [ShowWindow handle SW_SHOWNA]
+			SetWindowLong hWnd wc-offset - 20 as-integer handle
+		]
+		hWnd: handle
+	]
+	hWnd
+]
+
 OS-show-window: func [
 	hWnd [integer!]
 	/local
@@ -821,6 +864,13 @@ OS-make-view: func [
 		]
 	]
 
+	if all [
+		parent <> 0
+		sym <> base
+	][
+		parent: as-integer evolve-base-face as handle! parent
+	]
+
 	handle: CreateWindowEx
 		ws-flags
 		class
@@ -847,8 +897,9 @@ OS-make-view: func [
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
 			SetWindowLong handle wc-offset - 4 0
-			pt: as tagPOINT (as int-ptr! offset) + 2
+			SetWindowLong handle wc-offset - 20 0
 			if alpha? [
+				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
 					SetWindowLong handle wc-offset - 16 parent
 					process-layered-region handle size offset
@@ -932,6 +983,14 @@ change-size: func [
 		0 0
 		size/x size/y 
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
+
+	if all [
+		type = base
+		0 <> (WS_EX_LAYERED and GetWindowLong as handle! hWnd GWL_EXSTYLE)
+	][
+		hWnd: GetWindowLong as handle! hWnd wc-offset - 20
+		if hWnd <> 0 [change-size hWnd size -1]
+	]
 	if type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_SIZE]
 ]
 
@@ -941,6 +1000,7 @@ change-offset: func [
 	type [integer!]
 	/local
 		owner [handle!]
+		child [handle!]
 		size  [red-pair!]
 		flags [integer!]
 		style [integer!]
@@ -956,8 +1016,10 @@ change-offset: func [
 		if style and WS_EX_LAYERED > 0 [
 			size: as red-pair! (get-face-values handle) + FACE_OBJ_SIZE
 			owner: as handle! GetWindowLong handle wc-offset - 16
+			child: as handle! GetWindowLong handle wc-offset - 20
 			unless win8+? [
 				process-layered-region handle size pos
+				if child <> null [process-layered-region child size pos]
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y
@@ -969,6 +1031,15 @@ change-offset: func [
 				SetWindowLong handle wc-offset - 4 pos/x
 				SetWindowLong handle wc-offset - 8 pos/y
 				update-layered-window handle null offset null -1
+
+				if child <> null [
+					SetWindowPos
+						child
+						as handle! 0
+						pos/x pos/y
+						0 0
+						flags
+				]
 			]
 		]
 	]
