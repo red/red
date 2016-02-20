@@ -215,14 +215,24 @@ update-layered-window: func [
 	if all [
 		sub?
 		base = symbol/resolve type/symbol
+		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			style: GetWindowLong hWnd GWL_EXSTYLE
-			if style and WS_EX_LAYERED > 0 [
-				pt: declare tagPOINT
-				pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
-				pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
-				unless all [zero? offset/x zero? offset/y][
+			pt: declare tagPOINT
+			pt/x: offset/x + GetWindowLong hWnd wc-offset - 4
+			pt/y: offset/y + GetWindowLong hWnd wc-offset - 8
+			unless all [zero? offset/x zero? offset/y][
+				hdwp: DeferWindowPos
+					hdwp
+					hWnd
+					null
+					pt/x pt/y
+					0 0
+					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+				SetWindowLong hWnd wc-offset - 4 pt/x
+				SetWindowLong hWnd wc-offset - 8 pt/y
+				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
+				if hWnd <> null [
 					hdwp: DeferWindowPos
 						hdwp
 						hWnd
@@ -230,29 +240,27 @@ update-layered-window: func [
 						pt/x pt/y
 						0 0
 						SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-					SetWindowLong hWnd wc-offset - 4 pt/x
-					SetWindowLong hWnd wc-offset - 8 pt/y
 				]
-				if all [										;-- clip window
-					winpos <> null
-					winpos/flags and SWP_NOSIZE = 0				;-- sized
-					winpos/flags and 8000h = 0					;-- not maximize and minimize
-				][
-					rect: declare RECT_STRUCT
-					GetClientRect winpos/hWnd rect
-					border: winpos/cx - rect/right >> 1
-					size: as red-pair! values + FACE_OBJ_SIZE
-					width: size/x
-					height: size/y
-					if pt/x + size/x + border > (winpos/x + winpos/cx) [
-						width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
-					]
-					if pt/y + size/y + border > (winpos/y + winpos/cy) [
-						height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
-					]
+			]
+			if all [										;-- clip window
+				winpos <> null
+				winpos/flags and SWP_NOSIZE = 0				;-- sized
+				winpos/flags and 8000h = 0					;-- not maximize and minimize
+			][
+				rect: declare RECT_STRUCT
+				GetClientRect winpos/hWnd rect
+				border: winpos/cx - rect/right >> 1
+				size: as red-pair! values + FACE_OBJ_SIZE
+				width: size/x
+				height: size/y
+				if pt/x + size/x + border > (winpos/x + winpos/cx) [
+					width: size/x - (pt/x + size/x - (winpos/x + winpos/cx)) - border
+				]
+				if pt/y + size/y + border > (winpos/y + winpos/cy) [
+					height: size/y - (pt/y + size/y - (winpos/y + winpos/cy)) - border
+				]
 
-					clip-layered-window hWnd size 0 0 width height
-				]
+				clip-layered-window hWnd size 0 0 width height
 			]
 		][
 			bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -264,9 +272,37 @@ update-layered-window: func [
 				]
 			][showflag: SW_HIDE]
 			ShowWindow hWnd showflag
+			hWnd: as handle! GetWindowLong hWnd wc-offset - 20
+			if hWnd <> null [ShowWindow hWnd showflag]
 		]
 	]
 	unless sub? [EndDeferWindowPos hdwp]
+]
+
+BaseInternalWndProc: func [
+	hWnd	[handle!]
+	msg		[integer!]
+	wParam	[integer!]
+	lParam	[integer!]
+	return: [integer!]
+	/local
+		rect	[RECT_STRUCT]
+		hBrush	[handle!]
+][
+	switch msg [
+		WM_MOUSEACTIVATE [return 3]							;-- do not make it activated when click it
+		WM_NCHITTEST	 [return -1]
+		WM_ERASEBKGND	 [
+			hBrush: CreateSolidBrush 1
+			rect: declare RECT_STRUCT
+			GetClientRect hWnd rect
+			FillRect as handle! wParam rect hBrush
+			DeleteObject hBrush
+			return 1
+		]
+		default [0]
+	]
+	DefWindowProc hWnd msg wParam lParam
 ]
 
 BaseWndProc: func [

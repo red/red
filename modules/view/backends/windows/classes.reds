@@ -180,6 +180,19 @@ register-classes: func [
 	RegisterClassEx wcex
 
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+	wcex/lpfnWndProc:	:BaseInternalWndProc
+	wcex/cbClsExtra:	0
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
+	wcex/hInstance:		hInstance
+	wcex/hIcon:			null
+	wcex/hCursor:		LoadCursor null IDC_ARROW
+	wcex/hbrBackground:	COLOR_3DFACE + 1
+	wcex/lpszMenuName:	null
+	wcex/lpszClassName: #u16 "RedBaseInternal"
+
+	RegisterClassEx wcex
+
+	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:CameraWndProc
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
