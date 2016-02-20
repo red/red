@@ -227,6 +227,7 @@ Red/System [
 #define WM_CREATE			0001h
 #define WM_NCCREATE			0081h
 #define WM_NCDESTROY		0082h
+#define WM_NCHITTEST		0084h
 #define WM_DESTROY			0002h
 #define WM_MOVE				0003h
 #define WM_SIZE				0005h
@@ -916,6 +917,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		ReleaseCapture: "ReleaseCapture" [
 			return:		[logic!]
+		]
+		SetLayeredWindowAttributes: "SetLayeredWindowAttributes" [
+			hWnd		[handle!]
+			crKey		[integer!]
+			bAlpha		[integer!]
+			dwFlags		[integer!]
+			return:		[integer!]
 		]
 		UpdateLayeredWindow: "UpdateLayeredWindow" [
 			hwnd		[handle!]
