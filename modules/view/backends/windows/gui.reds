@@ -660,6 +660,7 @@ evolve-base-face: func [
 				null
 
 			SetLayeredWindowAttributes handle 1 0 1
+			SetWindowLong handle wc-offset - 20 0
 			if visible/value [ShowWindow handle SW_SHOWNA]
 			SetWindowLong hWnd wc-offset - 20 as-integer handle
 		]
@@ -1019,7 +1020,6 @@ change-offset: func [
 			child: as handle! GetWindowLong handle wc-offset - 20
 			unless win8+? [
 				process-layered-region handle size pos
-				if child <> null [process-layered-region child size pos]
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y

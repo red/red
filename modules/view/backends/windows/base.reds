@@ -110,6 +110,7 @@ clip-layered-window: func [
 	new-height	[integer!]
 	/local
 		rgn		[handle!]
+		child	[handle!]
 ][
 	either any [
 		not zero? x
@@ -121,7 +122,11 @@ clip-layered-window: func [
 		SetWindowLong hWnd wc-offset - 12 1
 		rgn: CreateRectRgn x y new-width new-height
 		SetWindowRgn hWnd rgn false
-		DeleteObject rgn
+		child: as handle! GetWindowLong hWnd wc-offset - 20
+		if child <> null [
+			rgn: CreateRectRgn x y new-width new-height
+			SetWindowRgn child rgn false
+		]
 	][SetWindowLong hWnd wc-offset - 12 0]
 ]
 
