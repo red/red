@@ -291,6 +291,7 @@ system/view/VID: context [
 					throw-error spec
 				]
 				face: make face! style/template
+				clear reactors
 				spec: fetch-options face opts style spec
 				
 				either styling? [
@@ -332,6 +333,7 @@ system/view/VID: context [
 					if box/x > pane-size/x [pane-size/x: box/x]
 					if box/y > pane-size/y [pane-size/y: box/y]
 				]
+				process-reactors						;-- Needs to be after [set name face]
 			]
 			spec: next spec
 		]
@@ -346,7 +348,6 @@ system/view/VID: context [
 		if options [set panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
-		unless parent [process-reactors]
 		panel
 	]
 ]

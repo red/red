@@ -604,6 +604,7 @@ react: function [
 							path: copy/part item part
 							part: part - 1
 							any [
+								tail? path
 								object? obj: attempt [get path]
 								part = 1
 							]
