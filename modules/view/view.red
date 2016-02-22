@@ -178,7 +178,7 @@ update-font-faces: function [parent [block! none!]][
 			if f/state [
 				check-reactions f 'font
 				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
-				if system/view/auto-sync? [show f]
+				show f
 			]
 		]
 	]
@@ -195,13 +195,8 @@ check-all-reactions: function [face [object!]][
 
 check-reactions: function [face [object!] facet [word!]][
 	unless empty? pos: system/view/reactors [
-		while [
-			all [
-				pos: find/skip pos face	4
-				pos/2 = facet
-			]
-		][
-			do-safe pos/3
+		while [pos: find/skip pos face	4][
+			if pos/2 = facet [do-safe pos/3]
 			pos: skip pos 4
 		]
 	]
@@ -787,15 +782,12 @@ insert-event-func [
 			tab-panel	['data]
 			field		['text]
 			area		['text]
+			drop-down	['text]
 			text-list	['selected]
+			drop-list	['selected]
 		][none]
 		
 		if facet [check-reactions face facet]
-	]
-	all [
-		event/type = 'select
-		find [text-list drop-list drop-down] event/face/type
-		check-reactions event/face 'selected
 	]
 	none
 ]
