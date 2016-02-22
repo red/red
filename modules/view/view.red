@@ -166,7 +166,7 @@ link-sub-to-parent: function [face [object!] type [word!] old new][
 		all [
 			object? old
 			parent: in old 'parent
-			block? get parent
+			block? parent: get parent
 			remove find parent face
 		]
 	]
@@ -333,7 +333,7 @@ para!: object [
 			foreach f parent [
 				check-reactions f 'para
 				system/view/platform/update-para f (index? in self word) - 1 ;-- sets f/state flag too
-				if all [f/state f/state/1 system/view/auto-sync?][show f]
+				if all [f/state f/state/1][show f]
 			]
 		]
 	]

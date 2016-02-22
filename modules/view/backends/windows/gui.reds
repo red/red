@@ -1417,6 +1417,7 @@ OS-update-view: func [
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_PARA <> 0 [
+		update-para face 0
 		InvalidateRect as handle! hWnd null 1
 	]
 	if flags and FACET_FLAG_MENU <> 0 [
