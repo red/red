@@ -7,6 +7,8 @@ Red [
 
 view [
 	text "Text:" f: area 200x80 font [name: "Comic Sans MS" size: 15 color: black] return
+
+	text "Size in pixels:" sz: text "0x0" react [sz/text: form size-text f f/text] return
 	
 	text "Font name:" drop-list
 		data  ["Arial" "Consolas" "Comic Sans MS" "Times"]
@@ -17,7 +19,5 @@ view [
 	button "+" bold 24x24 [s/text: form (load s/text) + 1]
 	button "-" bold 24x24 [s/text: form max 1 (load s/text) - 1]
 	return
-	
-	text "Size in pixels:" sz: text "0x0" react [sz/text: form size-text f f/text] return
 ]
 
