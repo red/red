@@ -213,6 +213,7 @@ system: context [
 		]
 		
 		last-error: none
+		trace?: yes
 	]
 	
 	modules: make block! 8
