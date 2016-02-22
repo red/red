@@ -690,6 +690,20 @@ delta-size: func [
 	pt
 ]
 
+update-pair-facet: func [
+	hWnd   [handle!]
+	type   [integer!]
+	lParam [integer!]
+	/local
+		pair [red-pair!]
+][
+	current-msg/hWnd: hWnd
+	pair: as red-pair! get-facet current-msg type
+	pair/header: TYPE_PAIR								;-- forces pair! in case user changed it
+	pair/x: WIN32_LOWORD(lParam)
+	pair/y: WIN32_HIWORD(lParam)
+]
+
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -717,6 +731,7 @@ WndProc: func [
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 		info   [tagMINMAXINFO]
+		max?   [logic!]
 ][
 	switch msg [
 		WM_NCCREATE [
@@ -735,25 +750,30 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if all [
-				current-msg <> null
-				(GetAsyncKeyState 01h) and 8000h <> 0	;-- VK_LBUTTON
-			][
-				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
-				current-msg/hWnd: hWnd
-				pair: as red-pair! get-facet current-msg type
-				pair/header: TYPE_PAIR					;-- forces pair! in case user changed it
-				pair/x: WIN32_LOWORD(lParam)
-				pair/y: WIN32_HIWORD(lParam)
-
-				modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
-				current-msg/lParam: lParam
-				make-event current-msg 0 modal-loop-type
+			if current-msg <> null [
+				max?: 1 = GetWindowLong hWnd wc-offset - 8 1  ;-- check if restored from maximized state
+				either all [
+					msg = WM_SIZE
+					any [wParam = SIZE_MAXIMIZED max?]
+				][
+					update-pair-facet hWnd FACE_OBJ_SIZE lParam
+					max?: not max?
+					SetWindowLong hWnd wc-offset - 8 as-integer max? ;-- store the toggled flag
+					make-event current-msg 0 EVT_SIZE
+				][
+					if (GetAsyncKeyState 01h) and 8000h <> 0 [ ;-- VK_LBUTTON
+						type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
+						update-pair-facet hWnd type lParam
+						modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+						current-msg/lParam: lParam
+						make-event current-msg 0 modal-loop-type
+					]
+				]
 				return 0
 			]
 		]
-		WM_MOVING
-		WM_SIZING [
+		;WM_MOVING
+		;WM_SIZING [
 			;pair: as red-pair! stack/arguments
 			;if TYPE_OF(pair) = TYPE_PAIR [
 			;	either msg = WM_MOVING [
@@ -769,7 +789,7 @@ WndProc: func [
 			;	]
 			;]
 			;return 1									;-- TRUE
-		]
+		;]
 		WM_EXITSIZEMOVE [
 			type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 			make-event current-msg 0 type
