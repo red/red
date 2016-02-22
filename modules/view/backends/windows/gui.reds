@@ -306,10 +306,7 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: all [
-		version-info/dwMajorVersion >= 6
-		version-info/dwMinorVersion >= 2
-	]
+	win8+?: no
 
 	ver: as red-tuple! #get system/view/platform/version
 
