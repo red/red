@@ -307,11 +307,9 @@ Red [
 		--assert 1 = select hs-select-1 'abc
 		--assert 2 = select/case hs-select-1 'abc
 	
-	comment {
 	--test-- "series-select-21"
 		ss21-h: make hash! [1x2 0 3x4 1]
 		--assert 0 = select ss21-h 1x2
-	}	
 		
 	--test-- "series-select-22"
 		ss21-b: [1x2 0 3x4 1]
@@ -742,10 +740,10 @@ Red [
 		
 	--test-- "series-find-102"
 		--assert [3x4 1] = find [1x2 0 3x4 1] 3x4
-	comment {
+	
 	--test-- "series-find-103"
 		--assert equal? make hash! [3x4 1] find make hash! [1x2 0 3x4 1] 3x4
-	}	
+
 		
 ===end-group===
 
@@ -1436,6 +1434,18 @@ Red [
 		su3-c: union/skip su3-a su3-b 2
 		--assert ["a" "A" "b" "B" "e" "E"] = sort/skip su3-c 2
   
+===end-group===
+
+===start-group=== "series-unicode"
+
+	--test-- "suc1"
+		--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+						read %tests/fixtures/chinese-characters.txt
+						
+	--test-- "suc2"
+		print read/lines %tests/fixtures/chinese-characters.txt
+		--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+						read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
 ~~~end-file~~~
