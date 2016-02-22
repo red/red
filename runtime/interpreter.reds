@@ -480,13 +480,12 @@ interpreter: context [
 		path:   as red-path! value
 		head:   block/rs-head as red-block! path
 		tail:   block/rs-tail as red-block! path
+		if head = tail [fire [TO_ERROR(script empty-path)]]
+		
 		item:   head + 1
 		saved:  stack/top
 		
-		if TYPE_OF(head) <> TYPE_WORD [
-			print-line "*** Error: path value must start with a word!"
-			halt
-		]
+		if TYPE_OF(head) <> TYPE_WORD [fire [TO_ERROR(script word-first) path]]
 		
 		parent: _context/get as red-word! head
 		
