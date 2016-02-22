@@ -32,18 +32,23 @@ char-keys: [
 	1000C400h C0FF0080h E0FFFF7Fh 0000F7FFh 00000000h 3F000000h 1F000080h 00FC7F38h
 ]
 
-push-face: func [
+make-at: func [
 	handle  [handle!]
+	face	[red-object!]
 	return: [red-object!]
-	/local
-		face [red-object!]
 ][
-	face: as red-object! stack/push*
 	face/header:		  GetWindowLong handle wc-offset
 	face/ctx:	 as node! GetWindowLong handle wc-offset + 4
 	face/class:			  GetWindowLong handle wc-offset + 8
 	face/on-set: as node! GetWindowLong handle wc-offset + 12
 	face
+]
+
+push-face: func [
+	handle  [handle!]
+	return: [red-object!]
+][
+	make-at handle as red-object! stack/push*
 ]
 
 get-event-face: func [
@@ -466,6 +471,7 @@ process-command-event: func [
 	lParam	[integer!]
 	/local
 		type   [red-word!]
+		values [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
 ][
@@ -500,6 +506,12 @@ process-command-event: func [
 		]
 		EN_SETFOCUS
 		CBN_SETFOCUS [
+			values: get-face-values hWnd
+			if values <> null [
+				make-at 
+					as handle! lParam
+					as red-object! values + FACE_OBJ_SELECTED
+			]
 			current-msg/hWnd: as handle! lParam
 			make-event current-msg 0 EVT_FOCUS
 		]
