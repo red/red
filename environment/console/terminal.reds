@@ -635,7 +635,7 @@ terminal: context [
 		vt/history-pos: 0
 		vt/history-beg: 1
 		vt/history-end: 1
-		vt/history-cnt: 1
+		vt/history-cnt: 0
 		vt/pos: 1
 		vt/top: 1
 		vt/top-offset: 0
@@ -850,6 +850,30 @@ terminal: context [
 		out/s-t-idx: node/length
 	]
 
+	refresh-history: func [
+		vt		[terminal!]
+		return: [red-block!]
+		/local
+			hist	[red-block!]
+			len		[integer!]
+	][
+		hist: as red-block! #get system/console/history
+		len: block/rs-length? hist
+		if len <> vt/history-cnt [
+			vt/history: hist
+			vt/history-cnt: len
+			vt/history-beg: 1
+			vt/history-end: len + 1
+			vt/history-pos: len
+			if len >= vt/history-max [
+				vt/history-max: len
+				vt/history-end: 1
+			]
+			vt/history-pre: vt/history-end
+		]
+		vt/history
+	]
+
 	fetch-history: func [
 		vt		[terminal!]
 		up?		[logic!]
@@ -862,7 +886,7 @@ terminal: context [
 			end		[integer!]
 			s		[series!]
 	][
-		hist: vt/history
+		hist: refresh-history vt
 		idx: vt/history-pos
 		if zero? idx [exit]
 
@@ -878,7 +902,7 @@ terminal: context [
 		either idx <> end [
 			string/concatenate input as red-string! block/rs-abs-at hist idx - 1 -1 0 yes no
 			vt/history-pos: either idx = beg [beg][idx - 1]
-			vt/history-pre: idx % vt/history-cnt + 1
+			vt/history-pre: idx % (vt/history-cnt + 1) + 1
 		][
 			vt/history-pos: either end - 1 = 0 [vt/history-max][end - 1]
 			vt/history-pre: end
@@ -901,7 +925,7 @@ terminal: context [
 			add?	[logic!]
 	][
 		str: as red-value! vt/in
-		history: vt/history
+		history: refresh-history vt
 		max: vt/history-max
 		end: vt/history-end
 		len: block/rs-length? history
