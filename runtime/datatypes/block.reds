@@ -203,7 +203,7 @@ block: context [
 	][
 		s: GET_BUFFER(blk)
 		size: as-integer s/tail + 1 - s/offset
-		if size > s/size [s: expand-series s size]
+		if size > s/size [s: expand-series s size * 2]
 		head: s/offset + blk/head
 		
 		move-memory										;-- make space
@@ -1231,7 +1231,7 @@ block: context [
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
-			if size > s/size [s: expand-series s size]
+			if size > s/size [s: expand-series s size * 2]
 			head: s/offset + blk/head
 			move-memory									;-- make space
 				as byte-ptr! head + slots
