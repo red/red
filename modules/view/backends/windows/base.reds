@@ -327,7 +327,6 @@ BaseWndProc: func [
 		WM_MOUSEACTIVATE [
 			flags: GetWindowLong hWnd GWL_EXSTYLE
 			if flags and WS_EX_LAYERED > 0 [
-				SetActiveWindow GetParent hWnd
 				return 3							;-- do not make it activated when click it
 			]
 		]
