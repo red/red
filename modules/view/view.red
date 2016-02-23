@@ -135,13 +135,19 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			]
 			;check-reactions owner word
 		][
-			unless find [cleared removed taken] action [
-				if find [clear remove take] action [
-					target: copy/part target part
+			if any [								;-- drop multiple changes on same facet
+				none? state/3
+				find [data options pane flags] word
+				not find/skip next state/3 word 8
+			][
+				unless find [cleared removed taken] action [
+					if find [clear remove take] action [
+						target: copy/part target part
+					]
+					reduce/into
+						[owner word target action new index part state]
+						tail any [state/3 state/3: make block! 28] ;-- 8 slots * 4
 				]
-				reduce/into
-					[owner word target action new index part state]
-					tail any [state/3 state/3: make block! 28] ;-- 7 slots * 4
 			]
 		]
 	]
