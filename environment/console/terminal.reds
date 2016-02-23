@@ -29,6 +29,8 @@ terminal: context [
 	#define RS_KEY_SHIFT_LEFT	-32
 	#define RS_KEY_SHIFT_RIGHT	-33
 	#define RS_KEY_CTRL_DELETE	-34
+	#define RS_KEY_SHIFT_HOME	-35
+	#define RS_KEY_SHIFT_END	-36
 	#define RS_KEY_CTRL_A		1
 	#define RS_KEY_CTRL_B		2
 	#define RS_KEY_CTRL_C		3
@@ -635,7 +637,7 @@ terminal: context [
 		vt/history-pos: 0
 		vt/history-beg: 1
 		vt/history-end: 1
-		vt/history-cnt: 1
+		vt/history-cnt: 0
 		vt/pos: 1
 		vt/top: 1
 		vt/top-offset: 0
@@ -850,6 +852,30 @@ terminal: context [
 		out/s-t-idx: node/length
 	]
 
+	refresh-history: func [
+		vt		[terminal!]
+		return: [red-block!]
+		/local
+			hist	[red-block!]
+			len		[integer!]
+	][
+		hist: as red-block! #get system/console/history
+		len: block/rs-length? hist
+		if len <> vt/history-cnt [
+			vt/history: hist
+			vt/history-cnt: len
+			vt/history-beg: 1
+			vt/history-end: len + 1
+			vt/history-pos: len
+			if len >= vt/history-max [
+				vt/history-max: len
+				vt/history-end: 1
+			]
+			vt/history-pre: vt/history-end
+		]
+		vt/history
+	]
+
 	fetch-history: func [
 		vt		[terminal!]
 		up?		[logic!]
@@ -862,7 +888,7 @@ terminal: context [
 			end		[integer!]
 			s		[series!]
 	][
-		hist: vt/history
+		hist: refresh-history vt
 		idx: vt/history-pos
 		if zero? idx [exit]
 
@@ -878,7 +904,7 @@ terminal: context [
 		either idx <> end [
 			string/concatenate input as red-string! block/rs-abs-at hist idx - 1 -1 0 yes no
 			vt/history-pos: either idx = beg [beg][idx - 1]
-			vt/history-pre: idx % vt/history-cnt + 1
+			vt/history-pre: idx % (vt/history-cnt + 1) + 1
 		][
 			vt/history-pos: either end - 1 = 0 [vt/history-max][end - 1]
 			vt/history-pre: end
@@ -901,7 +927,7 @@ terminal: context [
 			add?	[logic!]
 	][
 		str: as red-value! vt/in
-		history: vt/history
+		history: refresh-history vt
 		max: vt/history-max
 		end: vt/history-end
 		len: block/rs-length? history
@@ -1074,7 +1100,7 @@ terminal: context [
 
 	select-edit: func [
 		vt		[terminal!]
-		left?	[logic!]
+		key		[integer!]
 		/local
 			x	[integer!]
 			y	[integer!]
@@ -1087,7 +1113,17 @@ terminal: context [
 			mark-select vt
 			vt/s-mode?: yes
 		]
-		move-cursor vt left?
+		switch key [
+			RS_KEY_HOME [
+				vt/cursor: vt/in/head
+				update-caret vt
+			]
+			RS_KEY_END [
+				vt/cursor: string/rs-abs-length? vt/in
+				update-caret vt
+			]
+			default [move-cursor vt key = RS_KEY_LEFT]
+		]
 		x: vt/caret-x * vt/char-w
 		select vt x y no
 		vt/edit-head: vt/out/s-h-idx
@@ -1132,6 +1168,8 @@ terminal: context [
 		if all [
 			cp <> RS_KEY_SHIFT_LEFT
 			cp <> RS_KEY_SHIFT_RIGHT
+			cp <> RS_KEY_SHIFT_HOME
+			cp <> RS_KEY_SHIFT_END
 			cp <> RS_KEY_CTRL_C
 			any [out/s-head <> -1 vt/s-mode?]
 		][
@@ -1208,11 +1246,17 @@ terminal: context [
 			]
 			RS_KEY_CTRL_LEFT   [0]
 			RS_KEY_SHIFT_LEFT  [
-				select-edit vt yes
+				select-edit vt RS_KEY_LEFT
 			]
 			RS_KEY_CTRL_RIGHT  [0]
 			RS_KEY_SHIFT_RIGHT [
-				select-edit vt no
+				select-edit vt RS_KEY_RIGHT
+			]
+			RS_KEY_SHIFT_HOME [
+				select-edit vt RS_KEY_HOME
+			]
+			RS_KEY_SHIFT_END [
+				select-edit vt RS_KEY_END
 			]
 			RS_KEY_CTRL_DELETE [0]
 			default [
