@@ -29,6 +29,8 @@ terminal: context [
 	#define RS_KEY_SHIFT_LEFT	-32
 	#define RS_KEY_SHIFT_RIGHT	-33
 	#define RS_KEY_CTRL_DELETE	-34
+	#define RS_KEY_SHIFT_HOME	-35
+	#define RS_KEY_SHIFT_END	-36
 	#define RS_KEY_CTRL_A		1
 	#define RS_KEY_CTRL_B		2
 	#define RS_KEY_CTRL_C		3
@@ -1098,7 +1100,7 @@ terminal: context [
 
 	select-edit: func [
 		vt		[terminal!]
-		left?	[logic!]
+		key		[integer!]
 		/local
 			x	[integer!]
 			y	[integer!]
@@ -1111,7 +1113,17 @@ terminal: context [
 			mark-select vt
 			vt/s-mode?: yes
 		]
-		move-cursor vt left?
+		switch key [
+			RS_KEY_HOME [
+				vt/cursor: vt/in/head
+				update-caret vt
+			]
+			RS_KEY_END [
+				vt/cursor: string/rs-abs-length? vt/in
+				update-caret vt
+			]
+			default [move-cursor vt key = RS_KEY_LEFT]
+		]
 		x: vt/caret-x * vt/char-w
 		select vt x y no
 		vt/edit-head: vt/out/s-h-idx
@@ -1156,6 +1168,8 @@ terminal: context [
 		if all [
 			cp <> RS_KEY_SHIFT_LEFT
 			cp <> RS_KEY_SHIFT_RIGHT
+			cp <> RS_KEY_SHIFT_HOME
+			cp <> RS_KEY_SHIFT_END
 			cp <> RS_KEY_CTRL_C
 			any [out/s-head <> -1 vt/s-mode?]
 		][
@@ -1232,11 +1246,17 @@ terminal: context [
 			]
 			RS_KEY_CTRL_LEFT   [0]
 			RS_KEY_SHIFT_LEFT  [
-				select-edit vt yes
+				select-edit vt RS_KEY_LEFT
 			]
 			RS_KEY_CTRL_RIGHT  [0]
 			RS_KEY_SHIFT_RIGHT [
-				select-edit vt no
+				select-edit vt RS_KEY_RIGHT
+			]
+			RS_KEY_SHIFT_HOME [
+				select-edit vt RS_KEY_HOME
+			]
+			RS_KEY_SHIFT_END [
+				select-edit vt RS_KEY_END
 			]
 			RS_KEY_CTRL_DELETE [0]
 			default [

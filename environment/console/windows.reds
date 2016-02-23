@@ -274,8 +274,12 @@ on-key-down: func [
 	shift: GetKeyState VK_SHIFT			;@@ GetKeyState return short
 	shift: WIN32_LOWORD(shift)
 	switch key [
-		VK_HOME		[RS_KEY_HOME]
-		VK_END		[RS_KEY_END]
+		VK_HOME		[
+			either negative? shift [RS_KEY_SHIFT_HOME][RS_KEY_HOME]
+		]
+		VK_END		[
+			either negative? shift [RS_KEY_SHIFT_END][RS_KEY_END]
+		]
 		VK_PRIOR	[RS_KEY_PAGE_UP]
 		VK_NEXT		[RS_KEY_PAGE_DOWN]
 		VK_LEFT		[
