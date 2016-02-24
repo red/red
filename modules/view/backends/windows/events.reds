@@ -932,7 +932,7 @@ WndProc: func [
 			return 0
 		]
 		WM_GETMINMAXINFO [
-			set-window-info hWnd lParam
+			if set-window-info hWnd lParam [return 0]
 		]
 		WM_CLOSE [
 			handle: current-msg/hWnd
