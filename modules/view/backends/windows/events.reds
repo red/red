@@ -704,6 +704,47 @@ update-pair-facet: func [
 	pair/y: WIN32_HIWORD(lParam)
 ]
 
+set-window-info: func [
+	hWnd	[handle!]
+	lParam	[integer!]
+	return: [logic!]
+	/local
+		x	   [integer!]
+		y	   [integer!]
+		cx	   [integer!]
+		cy	   [integer!]
+		values	[red-value!]
+		pair	[red-pair!]
+		info	[tagMINMAXINFO]
+		ret?	[logic!]
+][
+	ret?: no
+	unless no-face? hWnd [
+		x: 0
+		y: 0
+		cx: 0
+		cy: 0
+		window-border-info? hWnd :x :y :cx :cy
+		values: get-face-values hWnd
+		pair: as red-pair! values + FACE_OBJ_SIZE
+		info: as tagMINMAXINFO lParam
+		cx: pair/x + cx
+		cy: pair/y + cy
+
+		if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: cx ret?: yes]
+		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
+		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
+		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
+		if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: cx ret?: yes]
+		if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: cy ret?: yes]
+
+		pair: as red-pair! values + FACE_OBJ_OFFSET
+		if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x + x ret?: yes]
+		if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y + y ret?: yes]
+	]
+	ret?
+]
+
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -716,22 +757,16 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
-		ret?   [logic!]
 		font   [red-object!]
 		face   [red-object!]
 		draw   [red-block!]
-		values [red-value!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
-		rc	   [RECT_STRUCT]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
 		offset [red-pair!]
-		pair   [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
-		info   [tagMINMAXINFO]
-		max?   [logic!]
 ][
 	switch msg [
 		WM_NCCREATE [
@@ -751,23 +786,14 @@ WndProc: func [
 		WM_MOVE
 		WM_SIZE [
 			if current-msg <> null [
-				max?: 1 = GetWindowLong hWnd wc-offset - 8 1  ;-- check if restored from maximized state
-				either all [
-					msg = WM_SIZE
-					any [wParam = SIZE_MAXIMIZED max?]
-				][
-					update-pair-facet hWnd FACE_OBJ_SIZE lParam
-					max?: not max?
-					SetWindowLong hWnd wc-offset - 8 as-integer max? ;-- store the toggled flag
+				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
+				update-pair-facet hWnd type lParam
+				modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+				current-msg/lParam: lParam
+				make-event current-msg 0 modal-loop-type
+
+				if all [msg = WM_SIZE wParam = SIZE_MAXIMIZED][
 					make-event current-msg 0 EVT_SIZE
-				][
-					if (GetAsyncKeyState 01h) and 8000h <> 0 [ ;-- VK_LBUTTON
-						type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
-						update-pair-facet hWnd type lParam
-						modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
-						current-msg/lParam: lParam
-						make-event current-msg 0 modal-loop-type
-					]
 				]
 				return 0
 			]
@@ -906,25 +932,7 @@ WndProc: func [
 			return 0
 		]
 		WM_GETMINMAXINFO [
-			unless no-face? hWnd [
-				values: get-face-values hWnd
-				pair: as red-pair! values + FACE_OBJ_SIZE
-				info: as tagMINMAXINFO lParam
-
-				ret?: no
-				if pair/x > info/ptMaxSize.x [info/ptMaxSize.x: pair/x ret?: yes]
-				if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: pair/y ret?: yes]
-				if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: pair/x ret?: yes]
-				if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: pair/y ret?: yes]
-				if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: pair/x ret?: yes]
-				if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: pair/y ret?: yes]
-
-				pair: as red-pair! values + FACE_OBJ_OFFSET
-				if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x ret?: yes]
-				if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y ret?: yes]
-
-				if ret? [return 0]
-			]
+			set-window-info hWnd lParam
 		]
 		WM_CLOSE [
 			handle: current-msg/hWnd

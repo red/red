@@ -353,16 +353,39 @@ find-last-window: func [
 	]
 ]
 
+window-border-info?: func [
+	handle	[handle!]
+	x		[int-ptr!]
+	y		[int-ptr!]
+	width	[int-ptr!]
+	height	[int-ptr!]
+	/local
+		win		[RECT_STRUCT]
+		client	[RECT_STRUCT]
+		pt		[tagPOINT]
+][
+	client: declare RECT_STRUCT
+	win:	declare RECT_STRUCT	
+
+	GetClientRect handle client
+	GetWindowRect handle win
+	pt: screen-to-client handle win/left win/top
+	x/value: pt/x
+	y/value: pt/y
+	width/value: (win/right - win/left) - client/right
+	height/value: (win/bottom - win/top) - client/bottom
+]
+
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
 	offset	[red-pair!]
 	size	[red-pair!]
 	bits	[integer!]
 	/local
-		rc		[RECT_STRUCT]
-		win		[RECT_STRUCT]
-		client	[RECT_STRUCT]
-		pt		[tagPOINT]
+		x		[integer!]
+		y		[integer!]
+		cx		[integer!]
+		cy		[integer!]
 		owner	[handle!]
 		modes	[integer!]
 ][
@@ -376,20 +399,19 @@ init-window: func [										;-- post-creation settings
 		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
 	]
 
-	client: declare RECT_STRUCT
-	win:	declare RECT_STRUCT	
+	x: 0
+	y: 0
+	cx: 0
+	cy: 0
+	window-border-info? handle :x :y :cx :cy
 
-	GetClientRect handle client
-	GetWindowRect handle win
-	pt: screen-to-client handle win/left win/top
-	
 	SetWindowPos								;-- adjust window size/pos to account for edges
 		handle
 		as handle! 0							;-- HWND_TOP
-		offset/x + pt/x
-		offset/y + pt/y
-		size/x + (win/right - win/left) - client/right
-		size/y + (win/bottom - win/top) - client/bottom
+		offset/x + x
+		offset/y + y
+		size/x + cx
+		size/y + cy
 		modes
 ]
 
@@ -965,7 +987,6 @@ OS-make-view: func [
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
 	store-face-to-hWnd handle face
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
-
 	stack/unwind
 	as-integer handle
 ]
