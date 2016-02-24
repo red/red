@@ -369,9 +369,11 @@ window-border-info?: func [
 
 	GetClientRect handle client
 	GetWindowRect handle win
-	pt: screen-to-client handle win/left win/top
-	x/value: pt/x
-	y/value: pt/y
+	if x <> null [
+		pt: screen-to-client handle win/left win/top
+		x/value: pt/x
+		y/value: pt/y
+	]
 	width/value: (win/right - win/left) - client/right
 	height/value: (win/bottom - win/top) - client/bottom
 ]
@@ -995,12 +997,18 @@ change-size: func [
 	hWnd [integer!]
 	size [red-pair!]
 	type [integer!]
+	/local
+		cx	[integer!]
+		cy	[integer!]
 ][
+	cx: 0
+	cy: 0
+	window-border-info? as handle! hWnd null null :cx :cy
 	SetWindowPos 
 		as handle! hWnd
 		as handle! 0
 		0 0
-		size/x size/y 
+		size/x + cx size/y + cy
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
 
 	if all [
