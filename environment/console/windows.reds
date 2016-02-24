@@ -508,8 +508,7 @@ ConsoleWndProc: func [
 		]
 		WM_DESTROY [
 			close vt
-			if vt/ask? [quit -1]
-			return 0
+			quit 0
 		]
 		WM_CONTEXTMENU [
 			popup-menu vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
