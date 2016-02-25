@@ -381,10 +381,10 @@ OS-draw-fill-pen: func [
 
 OS-draw-line-width: func [
 	dc	  [handle!]
-	width [integer!]
+	width [red-integer!]
 ][
-	if modes/pen-width <> width [
-		modes/pen-width: width
+	if modes/pen-width <> width/value [
+		modes/pen-width: width/value
 		update-modes dc
 	]
 ]
@@ -482,7 +482,6 @@ OS-draw-box: func [
 OS-draw-triangle: func [
 	dc	  [handle!]
 	start [red-pair!]
-	end	  [red-pair!]
 	/local
 		pair  [red-pair!]
 		point [tagPOINT]
@@ -646,15 +645,15 @@ OS-draw-circle: func [
 		rad-x [integer!]
 		rad-y [integer!]
 ][
-	either center + 1 = radius [
+	either center + 1 = radius [						;-- center, radius
 		rad-x: radius/value
 		rad-y: rad-x
 	][
-		rad-y: radius/value
+		rad-y: radius/value								;-- center, radius-x, radius-y
 		radius: radius - 1
 		rad-x: radius/value
 	]
-	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x << 1 rad-y << 1
+	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x * 2 rad-y * 2
 ]
 
 OS-draw-ellipse: func [

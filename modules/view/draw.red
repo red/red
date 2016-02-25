@@ -69,505 +69,206 @@ Red/System [
 			][1]
 			color
 		]
-
-		draw-line: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			
-			while [all [TYPE_OF(pos) = TYPE_PAIR pos < tail]][
-				pos: pos + 1
+		
+		#define DRAW_FETCH_VALUE(type) [
+			cmd: cmd + 1
+			if any [cmd >= tail TYPE_OF(cmd) <> type][
+				throw-draw-error cmds cmd
 			]
-			pos: pos - 1
-			if cmd + 2 > pos [throw-draw-error cmds cmd]
-			
-			OS-draw-line DC as red-pair! cmd + 1 as red-pair! pos
-			pos
 		]
 		
-		draw-line-width: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-				int [red-integer!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-
-			switch TYPE_OF(pos) [
-				TYPE_INTEGER [int: as red-integer! pos]
-				TYPE_WORD  [
-					int: as red-integer! _context/get as red-word! pos
-					if TYPE_OF(int) <> TYPE_INTEGER [
-						throw-draw-error cmds cmd
-					]
-				]
-				default [throw-draw-error cmds cmd]
-			]
-			OS-draw-line-width DC int/value
-			pos
+		#define DRAW_FETCH_OPT_VALUE(type) [
+			pos: cmd + 1
+			if all [pos < tail TYPE_OF(pos) = type][cmd: pos]
 		]
 		
-		draw-pen: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	  [red-value!]
-				color [red-tuple!]
-				alpha? [integer!]
-				c	  [integer!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-			
-			switch TYPE_OF(pos) [
-				TYPE_TUPLE [color: as red-tuple! pos]
-				TYPE_WORD  [
-					color: as red-tuple! _context/get as red-word! pos
-					if TYPE_OF(color) <> TYPE_TUPLE [
-						throw-draw-error cmds cmd
-					]
-				]
-				default [throw-draw-error cmds cmd]
-			]
+		#define DRAW_FETCH_SOME_PAIR [
+			until [cmd: cmd + 1 any [TYPE_OF(cmd) <> TYPE_PAIR cmd = tail]]
+			cmd: cmd - 1
+		]
+		
+		#define DRAW_FETCH_NAMED_VALUE(type) [
+			cmd: cmd + 1
+			if cmd >= tail [throw-draw-error cmds cmd]
+			value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+			if TYPE_OF(value) <> type [throw-draw-error cmds cmd]
+		]
+		
+		#define DRAW_FETCH_TUPLE [
+			DRAW_FETCH_NAMED_VALUE(TYPE_TUPLE)
 			alpha?: 0
-			c: get-color-int color :alpha?
-			OS-draw-pen DC c as logic! alpha?
-			pos
+			rgb: get-color-int as red-tuple! value :alpha?
 		]
 		
-		draw-fill-pen: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
+		parse-draw: func [
+			cmds [red-block!]
+			DC	 [handle!]
 			/local
-				pos	  [red-value!]
-				color [red-tuple!]
-				w	  [red-word!]
-				value [integer!]
-				off?  [logic!]
-				alpha? [integer!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-			off?: no
-			alpha?: 0
-
-			switch TYPE_OF(pos) [
-				TYPE_TUPLE [value: get-color-int as red-tuple! pos :alpha?]
-				;TYPE_IMAGE [img: as red-image! pos]
-				TYPE_WORD  [
-					w: as red-word! pos
-					either _off = symbol/resolve w/symbol [
-						value: -1
-						off?: yes
-					][
-						color: as red-tuple! _context/get as red-word! pos
-						if TYPE_OF(color) <> TYPE_TUPLE [
-							throw-draw-error cmds cmd
-						]
-						value: get-color-int color :alpha?
-					]
-				]
-				default [throw-draw-error cmds cmd]
-			]
-			OS-draw-fill-pen DC value off? as logic! alpha?
-			pos
-		]
-		
-		draw-box: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- optional radius argument
-				pos: pos - 1
-			]
-			OS-draw-box DC as red-pair! cmd + 1 as red-pair! pos
-			pos
-		]
-		
-		draw-triangle: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			OS-draw-triangle DC as red-pair! cmd + 1 as red-pair! pos
-			pos
-		]
-		
-		draw-polygon: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			while [all [TYPE_OF(pos) = TYPE_PAIR pos < tail]][
-				pos: pos + 1
-			]
-			pos: pos - 1
-			
-			OS-draw-polygon DC as red-pair! cmd + 1 as red-pair! pos
-			pos
-		]
-		
-		draw-circle: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- optional radius-y argument
-				pos: pos - 1
-			]
-			OS-draw-circle DC as red-pair! cmd + 1 as red-integer! pos
-			pos
-		]
-
-		draw-ellipse: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			OS-draw-ellipse DC as red-pair! cmd + 1 as red-pair! pos
-			pos
-		]
-
-		draw-curve: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-				w	[red-word!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][		;-- optional point 4
-				pos: pos - 1
-			]
-			OS-draw-curve DC as red-pair! cmd + 1 as red-pair! pos
-			pos
-		]
-
-		draw-spline: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
+				cmd		[red-value!]
+				tail	[red-value!]
+				start	[red-value!]
 				pos		[red-value!]
-				w		[red-word!]
+				value	[red-value!]
+				word	[red-word!]
+				pattern [red-word!]
+				point	[red-pair!]
+				color	[red-tuple!]
+				sym		[integer!]
+				rgb		[integer!]
+				alpha?	[integer!]
+				off?	[logic!]
+				pair?	[logic!]
+				border?	[logic!]
 				closed? [logic!]
 		][
-			pos: cmd + 1								;-- skip the keyword
-			closed?: no
-			if all [pos < tail TYPE_OF(pos) = TYPE_WORD][
-				w: as red-word! pos
-				if closed = symbol/resolve w/symbol [closed?: yes]
-				cmd: cmd + 1
-				pos: pos + 1
-			]
-			while [all [pos < tail TYPE_OF(pos) = TYPE_PAIR]][
-				pos: pos + 1
-			]
-			pos: pos - 1
+			cmd:  block/rs-head cmds
+			tail: block/rs-tail cmds
 
-			OS-draw-spline DC as red-pair! cmd + 1 as red-pair! pos closed?
-			pos
-		]
-
-		draw-arc: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	[red-value!]
-				w	[red-word!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- angle-begin argument
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_INTEGER][	;-- angle-length argument
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_WORD][		;-- optional closed argument
-				pos: pos - 1
-			]
-			w: as red-word! pos
-			if all [TYPE_OF(w) = TYPE_WORD closed <> symbol/resolve w/symbol][
-				pos: pos - 1
-			]
-			OS-draw-arc DC as red-pair! cmd + 1 as red-value! pos
-			pos
-		]
-
-		draw-anti-alias: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	  [red-value!]
-				w	  [red-word!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-
-			either TYPE_OF(pos) = TYPE_WORD  [
-				w: as red-word! pos
-				OS-draw-anti-alias DC _off <> symbol/resolve w/symbol
-			][throw-draw-error cmds cmd]
-			pos
-		]
-
-		draw-font: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				font [red-value!]
-				pos	 [red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-
-			font: pos
-			if TYPE_OF(pos) = TYPE_WORD [
-				font: _context/get as red-word! pos
-			]
-			if TYPE_OF(font) <> TYPE_OBJECT [throw-draw-error cmds cmd]
-
-			OS-draw-font DC as red-object! font
-			pos
-		]
-
-		draw-text: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	  [red-value!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_PAIR][
-				throw-draw-error cmds cmd
-			]
-			pos: pos + 1
-			if any [pos >= tail TYPE_OF(pos) <> TYPE_STRING][
-				throw-draw-error cmds cmd
-			]
-			OS-draw-text DC as red-pair! cmd + 1 as red-string! pos
-			pos
-		]
-
-		draw-line-join: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	  [red-value!]
-				mode  [red-word!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-			
-			either TYPE_OF(pos) = TYPE_WORD  [
-				mode: as red-word! pos
-			][throw-draw-error cmds cmd]
-
-			OS-draw-line-join DC symbol/resolve mode/symbol
-			pos
-		]
-
-		draw-line-cap: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos	  [red-value!]
-				mode  [red-word!]
-		][
-			pos: cmd + 1								;-- skip the keyword
-			if pos >= tail [throw-draw-error cmds cmd]
-			
-			either TYPE_OF(pos) = TYPE_WORD  [
-				mode: as red-word! pos
-			][throw-draw-error cmds cmd]
-
-			OS-draw-line-cap DC symbol/resolve mode/symbol
-			pos
-		]
-
-		draw-image: func [
-			DC		[handle!]
-			cmds	[red-block!]
-			cmd		[red-value!]
-			tail	[red-value!]
-			return: [red-value!]
-			/local
-				pos			[red-value!]
-				w			[red-word!]
-				sym			[integer!]
-				image		[red-image!]
-				upper-left	[red-pair!]
-				key-color	[red-tuple!]
-				border?		[logic!]
-				pattern		[red-word!]
-		][
-			pos:		cmd
-			image:		null
-			upper-left: null
-			border?:	no
-			key-color:	null
-			pattern:	null
-			while [pos: pos + 1 pos < tail][
-				switch TYPE_OF(pos) [
-					TYPE_IMAGE [
-						image: as red-image! pos
+			while [cmd < tail][
+				word: as red-word! cmd
+				if TYPE_OF(word) <> TYPE_WORD [throw-draw-error cmds cmd]
+				sym: symbol/resolve word/symbol
+				start: cmd + 1
+				
+				case [
+					sym = pen [
+						DRAW_FETCH_TUPLE
+						OS-draw-pen DC rgb as logic! alpha?
 					]
-					TYPE_PAIR [
-						upper-left: as red-pair! pos
-						until [
-							pos: pos + 1
-							TYPE_OF(pos) <> TYPE_PAIR
+					sym = box [
+						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+						DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+						OS-draw-box DC as red-pair! start as red-pair! cmd
+					]
+					sym = line [
+						DRAW_FETCH_SOME_PAIR
+						if start + 2 > cmd [throw-draw-error cmds cmd]
+						OS-draw-line DC as red-pair! start as red-pair! cmd
+					]
+					sym = line-width [
+						DRAW_FETCH_VALUE(TYPE_INTEGER)
+						OS-draw-line-width DC as red-integer! start
+					]
+					sym = fill-pen [
+						off?: no
+						if TYPE_OF(start) = TYPE_WORD [
+							word: as red-word! start
+							off?: _off = symbol/resolve word/symbol
 						]
-						pos: pos - 1
+						either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
+						OS-draw-fill-pen DC rgb off? as logic! alpha?
 					]
-					TYPE_TUPLE [key-color: as red-tuple! pos]
-					TYPE_WORD [
-						w: as red-word! pos
-						either cmd + 1 = pos [
-							image: as red-image! _context/get w
+					sym = triangle [
+						loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+						OS-draw-triangle DC as red-pair! start
+					]
+					sym = _polygon [
+						DRAW_FETCH_SOME_PAIR
+						OS-draw-polygon DC as red-pair! start as red-pair! cmd
+					]
+					sym = circle [
+						DRAW_FETCH_VALUE(TYPE_PAIR)			;-- center
+						DRAW_FETCH_VALUE(TYPE_INTEGER)		;-- radius
+						DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- radius-y (optional)
+						OS-draw-circle DC as red-pair! start as red-integer! cmd
+					]
+					sym = _ellipse [
+						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- center, radius
+						OS-draw-ellipse DC as red-pair! start as red-pair! cmd
+					]	
+					sym = anti-alias [
+						either TYPE_OF(start) = TYPE_WORD [
+							word: as red-word! start
+							OS-draw-anti-alias DC _off <> symbol/resolve word/symbol
 						][
-							sym: symbol/resolve w/symbol
-							case [
-								sym = border [border?: yes]
-								any [sym = repeat sym = reflect][
-									pattern: as red-word! pos
-									;@@ TBD check if followed by four integers
-								]
-								true [
-									break
-								]
+							throw-draw-error cmds cmd
+						]
+						cmd: start
+					]
+					sym = font [
+						DRAW_FETCH_NAMED_VALUE(TYPE_OBJECT)
+						OS-draw-font DC as red-object! value
+					]
+					sym = text [
+						DRAW_FETCH_VALUE(TYPE_PAIR)		;-- position
+						DRAW_FETCH_VALUE(TYPE_STRING)	;-- text string
+						OS-draw-text DC as red-pair! start as red-string! cmd
+					]
+					sym = _arc [
+						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
+						loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
+						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+						word: as red-word! cmd
+						if all [TYPE_OF(word) = TYPE_WORD closed <> symbol/resolve word/symbol][
+							cmd: cmd - 1
+						]
+						OS-draw-arc DC as red-pair! start as red-value! cmd
+					]
+					sym = curve	[
+						loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+						OS-draw-curve DC as red-pair! start as red-pair! cmd
+					]
+					sym = spline [
+						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+						closed?: no
+						if TYPE_OF(cmd) = TYPE_WORD [
+							word: as red-word! cmd
+							closed?: closed = symbol/resolve word/symbol
+						]
+						DRAW_FETCH_SOME_PAIR
+						OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
+					]
+					sym = line-join	[
+						DRAW_FETCH_VALUE(TYPE_WORD)
+						word: as red-word! start
+						OS-draw-line-join DC symbol/resolve word/symbol
+					]
+					sym = line-cap [
+						DRAW_FETCH_VALUE(TYPE_WORD)
+						word: as red-word! start
+						OS-draw-line-cap DC symbol/resolve word/symbol
+					]
+					sym = _image [
+						DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
+						start: value
+						pos: cmd + 1
+						pair?: TYPE_OF(pos) = TYPE_PAIR
+						point: either pair? [as red-pair! pos][null]
+						if pair? [
+							DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
+							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
+							if all [point < cmd TYPE_OF(cmd) = TYPE_PAIR][
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
 							]
 						]
+						color: null
+						pos: cmd + 1
+						if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
+							if pos >= tail [throw-draw-error cmds cmd]
+							value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
+							if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
+						]
+						border?: no
+						pattern: null
+						pos: cmd + 1
+						if TYPE_OF(pos) = TYPE_WORD [
+							word: as red-word! pos
+							sym: symbol/resolve word/symbol
+							case [
+								sym = border [border?: yes cmd: cmd + 1]
+								;any [sym = repeat sym = reflect][
+								;	;@@ TBD check if followed by four integers
+								;]
+								true [0]
+							]
+						]
+						OS-draw-image DC as red-image! start point color border? pattern
 					]
-					default [break]
+					true [throw-draw-error cmds cmd]
 				]
+				cmd: cmd + 1
 			]
-
-			if null? image [throw-draw-error cmds cmd]
-			OS-draw-image DC image upper-left key-color border? pattern
-			pos - 1
 		]
 
 		do-draw: func [
@@ -578,12 +279,7 @@ Red/System [
 			cache?		[logic!]
 			paint?		[logic!]
 			/local
-				cmd	   [red-value!]
-				tail   [red-value!]
-				pos	   [red-value!]
-				w	   [red-word!]
 				DC	   [handle!]						;-- drawing context (opaque handle)
-				sym	   [integer!]
 		][
 			if all [
 				null? handle
@@ -591,41 +287,9 @@ Red/System [
 			][exit]
 
 			DC: draw-begin handle img on-graphic? paint?
-
 			if TYPE_OF(cmds) = TYPE_BLOCK [
-				cmd:  block/rs-head cmds
-				tail: block/rs-tail cmds
-				
-				while [cmd < tail][
-					w: as red-word! cmd
-					if TYPE_OF(w) <> TYPE_WORD [throw-draw-error cmds cmd]
-					sym: symbol/resolve w/symbol
-					
-					case [
-						sym = pen		 [cmd: draw-pen			DC cmds cmd tail]
-						sym = box		 [cmd: draw-box			DC cmds cmd tail]
-						sym = line		 [cmd: draw-line		DC cmds cmd tail]
-						sym = line-width [cmd: draw-line-width	DC cmds cmd tail]
-						sym = fill-pen	 [cmd: draw-fill-pen	DC cmds cmd tail]
-						sym = triangle	 [cmd: draw-triangle	DC cmds cmd tail]
-						sym = _polygon	 [cmd: draw-polygon		DC cmds cmd tail]
-						sym = circle	 [cmd: draw-circle		DC cmds cmd tail]	
-						sym = _ellipse	 [cmd: draw-ellipse		DC cmds cmd tail]	
-						sym = anti-alias [cmd: draw-anti-alias	DC cmds cmd tail]
-						sym = font		 [cmd: draw-font		DC cmds cmd tail]
-						sym = text		 [cmd: draw-text		DC cmds cmd tail]
-						sym = _arc		 [cmd: draw-arc			DC cmds cmd tail]
-						sym = curve		 [cmd: draw-curve		DC cmds cmd tail]
-						sym = spline	 [cmd: draw-spline		DC cmds cmd tail]
-						sym = line-join	 [cmd: draw-line-join	DC cmds cmd tail]
-						sym = line-cap	 [cmd: draw-line-cap	DC cmds cmd tail]
-						sym = _image	 [cmd: draw-image		DC cmds cmd tail]
-						true 			 [throw-draw-error cmds cmd]
-					]
-					cmd: cmd + 1
-				]
+				parse-draw cmds DC
 			]
-
 			draw-end DC handle on-graphic? cache? paint?
 		]
 	]
