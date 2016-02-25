@@ -38,7 +38,6 @@ Red/System [
 		bevel:			symbol/make "bevel"
 		square:			symbol/make "square"
 		flat:			symbol/make "flat"
-		key-color:		symbol/make "key-color"
 		border:			symbol/make "border"
 		repeat:			symbol/make "repeat"
 		reflect:		symbol/make "reflect"
