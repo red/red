@@ -712,8 +712,8 @@ insert-event-func [
 					face/flags: either flags [reduce [flags 'all-over]]['all-over]
 				]
 			]
-			face/state/4: event/offset
 			do-actor face event 'drag-start
+			face/state/4: event/offset
 		][
 			if drag-offset: face/state/4 [
 				either type = 'over [
