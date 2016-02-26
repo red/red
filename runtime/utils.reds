@@ -40,14 +40,18 @@ Red/System [
 
 		until [
 			s: args/item
+
+			dst/1: #"^""
+			dst: dst + 1
 			until [
 				dst/1: s/1
 				dst: dst + 1
 				s: s + 1
 				any [s/1 = null-byte dst = tail]
 			]
-			dst/1: #" "
-			dst: dst + 1
+			dst/1: #"^""
+			dst/2: #" "
+			dst: dst + 2
 			args: args + 1 
 			any [args/item = null dst >= tail]
 		]
