@@ -251,6 +251,7 @@ free-handles: func [
 		sym	   [integer!]
 		dc	   [integer!]
 		cam	   [camera!]
+		handle [handle!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -261,7 +262,8 @@ free-handles: func [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
-			free-handles get-face-handle face
+			handle: face-handle? face
+			if handle <> null [free-handles handle]
 			face: face + 1
 		]
 	]	
