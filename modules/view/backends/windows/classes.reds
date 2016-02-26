@@ -40,7 +40,6 @@ find-class: func [
 		if p/symbol = sym [return p]
 		p: p + 1
 	]
-	print-line "gui/find-class failed"
 	null
 ]
 

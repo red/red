@@ -867,10 +867,14 @@ OS-make-view: func [
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
-			class: p/class
-			ws-flags: ws-flags or p/ex-styles
-			flags: flags or p/styles
-			id: p/base-id
+			either null? p [
+				fire [TO_ERROR(script face-type) type]
+			][
+				class: p/class
+				ws-flags: ws-flags or p/ex-styles
+				flags: flags or p/styles
+				id: p/base-id
+			]
 		]
 	]
 
