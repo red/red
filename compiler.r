@@ -503,11 +503,13 @@ red: context [
 		body: make block! 8
 		either empty? intersect iterators expr-stack [
 			append body [
+				0					[0]
 				RED_THROWN_BREAK
 				RED_THROWN_CONTINUE [re-throw]
 			]
 		][
 			append body [
+				0					[0]
 				RED_THROWN_BREAK    [break]
 				RED_THROWN_CONTINUE [continue]
 			]
