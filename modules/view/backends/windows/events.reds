@@ -433,27 +433,6 @@ to-char: func [
 	either res > 0 [as-integer buf/1][-1]				;-- -1: conversion failed
 ]
 
-process-special-keys: func [
-	key		[integer!]
-	return: [integer!]
-	/local
-		state [integer!]
-][
-	state: 0
-	if (GetAsyncKeyState 01h) and 8000h <> 0 [state: state or EVT_FLAG_DOWN]  	   ;-- VK_LBUTTON
-	if (GetAsyncKeyState 02h) and 8000h <> 0 [state: state or EVT_FLAG_ALT_DOWN]   ;-- VK_RBUTTON
-	if (GetAsyncKeyState 04h) and 8000h <> 0 [state: state or EVT_FLAG_MID_DOWN]   ;-- VK_MBUTTON
-	if (GetAsyncKeyState 05h) and 8000h <> 0 [state: state or EVT_FLAG_AUX_DOWN]   ;-- VK_XBUTTON1
-	if (GetAsyncKeyState 10h) and 8000h <> 0 [state: state or EVT_FLAG_SHIFT_DOWN] ;-- VK_SHIFT
-	if (GetAsyncKeyState 11h) and 8000h <> 0 [state: state or EVT_FLAG_CTRL_DOWN]  ;-- VK_CONTROL
-	
-	if state <> 0 [
-		if state and EVT_FLAG_CTRL_DOWN <> 0 [key: key + 64] 
-		key: key or state
-	]
-	key
-]
-
 init-current-msg: func [
 	/local
 		pos [integer!]
