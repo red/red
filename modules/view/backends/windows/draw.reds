@@ -30,6 +30,7 @@ modes: declare struct! [
 	on-image?		[logic!]								;-- drawing on image?
 	alpha-pen?		[logic!]
 	alpha-brush?	[logic!]
+	font-color?		[logic!]
 ]
 
 paint: declare tagPAINTSTRUCT
@@ -196,6 +197,7 @@ draw-begin: func [
 	anti-alias?:		no
 	modes/alpha-pen?:	no
 	modes/alpha-brush?:	no
+	modes/font-color?:	no
 	GDI+?:				no
 	dc:					null
 
@@ -212,9 +214,9 @@ draw-begin: func [
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
-		SetTextColor dc 0
+		SetTextColor dc modes/pen-color
 		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
-		update-gdiplus-font-color 0
+		update-gdiplus-font-color modes/pen-color
 	][
 		dc: either paint? [BeginPaint hWnd paint][hScreen]
 		GetClientRect hWnd rect
@@ -358,6 +360,9 @@ OS-draw-pen: func [
 		update-modes dc
 	][
 		unless GDI+? [update-modes dc]
+	]
+	if all [GDI+? not modes/font-color?][
+		update-gdiplus-font-color color
 	]
 ]
 
@@ -686,9 +691,12 @@ OS-draw-font: func [
 	]
 
 	SelectObject dc hFont
-	if TYPE_OF(color) = TYPE_TUPLE [
+	modes/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
 		SetTextColor dc color/array1
 		if modes/on-image? [update-gdiplus-font-color color/array1]
+		yes
+	][
+		no
 	]
 	if modes/on-image? [update-gdiplus-font dc]
 ]
