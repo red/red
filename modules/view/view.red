@@ -705,12 +705,8 @@ insert-event-func [
 		face: event/face
 		type: event/type
 		either type = drag-evt [
-			either block? flags: face/flags [
-				unless find flags 'all-over [append flags 'all-over]
-			][
-				if flags <> 'all-over [
-					face/flags: either flags [reduce [flags 'all-over]]['all-over]
-				]
+			unless find-flag? flags: face/flags 'all-over [
+				either block? flags [append flags 'all-over][face/flags: 'all-over]
 			]
 			do-actor face event 'drag-start
 			face/state/4: event/offset
