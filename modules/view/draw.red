@@ -111,6 +111,7 @@ Red/System [
 				word	[red-word!]
 				pattern [red-word!]
 				point	[red-pair!]
+				blk		[red-block!]
 				color	[red-tuple!]
 				sym		[integer!]
 				rgb		[integer!]
@@ -124,147 +125,159 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			while [cmd < tail][
-				word: as red-word! cmd
-				if TYPE_OF(word) <> TYPE_WORD [throw-draw-error cmds cmd]
-				sym: symbol/resolve word/symbol
-				start: cmd + 1
-				
-				case [
-					sym = pen [
-						DRAW_FETCH_TUPLE
-						OS-draw-pen DC rgb as logic! alpha?
+				switch TYPE_OF(cmd) [
+					TYPE_SET_WORD [
+						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
+						blk/head: (as-integer cmd - block/rs-head cmds) / size? cell!
 					]
-					sym = box [
-						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-						DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
-						OS-draw-box DC as red-pair! start as red-pair! cmd
+					TYPE_BLOCK [
+						parse-draw as red-block! cmd DC
+						cmd: cmd + 1
 					]
-					sym = line [
-						DRAW_FETCH_SOME_PAIR
-						if start + 2 > cmd [throw-draw-error cmds cmd]
-						OS-draw-line DC as red-pair! start as red-pair! cmd
-					]
-					sym = line-width [
-						DRAW_FETCH_VALUE(TYPE_INTEGER)
-						OS-draw-line-width DC as red-integer! start
-					]
-					sym = fill-pen [
-						off?: no
-						if TYPE_OF(start) = TYPE_WORD [
-							word: as red-word! start
-							off?: _off = symbol/resolve word/symbol
-						]
-						either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
-						OS-draw-fill-pen DC rgb off? as logic! alpha?
-					]
-					sym = triangle [
-						loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-						OS-draw-triangle DC as red-pair! start
-					]
-					sym = _polygon [
-						DRAW_FETCH_SOME_PAIR
-						OS-draw-polygon DC as red-pair! start as red-pair! cmd
-					]
-					sym = circle [
-						DRAW_FETCH_VALUE(TYPE_PAIR)			;-- center
-						DRAW_FETCH_VALUE(TYPE_INTEGER)		;-- radius
-						DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- radius-y (optional)
-						OS-draw-circle DC as red-pair! start as red-integer! cmd
-					]
-					sym = _ellipse [
-						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- center, radius
-						OS-draw-ellipse DC as red-pair! start as red-pair! cmd
-					]	
-					sym = anti-alias [
-						either TYPE_OF(start) = TYPE_WORD [
-							word: as red-word! start
-							OS-draw-anti-alias DC _off <> symbol/resolve word/symbol
-						][
-							throw-draw-error cmds cmd
-						]
-						cmd: start
-					]
-					sym = font [
-						DRAW_FETCH_NAMED_VALUE(TYPE_OBJECT)
-						OS-draw-font DC as red-object! value
-					]
-					sym = text [
-						DRAW_FETCH_VALUE(TYPE_PAIR)		;-- position
-						DRAW_FETCH_VALUE(TYPE_STRING)	;-- text string
-						OS-draw-text DC as red-pair! start as red-string! cmd
-					]
-					sym = _arc [
-						loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
-						loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
-						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+					TYPE_WORD [
 						word: as red-word! cmd
-						if all [TYPE_OF(word) = TYPE_WORD closed <> symbol/resolve word/symbol][
-							cmd: cmd - 1
-						]
-						OS-draw-arc DC as red-pair! start as red-value! cmd
-					]
-					sym = curve	[
-						loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-						DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
-						OS-draw-curve DC as red-pair! start as red-pair! cmd
-					]
-					sym = spline [
-						DRAW_FETCH_OPT_VALUE(TYPE_WORD)
-						closed?: no
-						if TYPE_OF(cmd) = TYPE_WORD [
-							word: as red-word! cmd
-							closed?: closed = symbol/resolve word/symbol
-						]
-						DRAW_FETCH_SOME_PAIR
-						OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
-					]
-					sym = line-join	[
-						DRAW_FETCH_VALUE(TYPE_WORD)
-						word: as red-word! start
-						OS-draw-line-join DC symbol/resolve word/symbol
-					]
-					sym = line-cap [
-						DRAW_FETCH_VALUE(TYPE_WORD)
-						word: as red-word! start
-						OS-draw-line-cap DC symbol/resolve word/symbol
-					]
-					sym = _image [
-						DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
-						start: value
-						pos: cmd + 1
-						pair?: TYPE_OF(pos) = TYPE_PAIR
-						point: either pair? [as red-pair! pos][null]
-						if pair? [
-							DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
-							DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
-							if all [point < cmd TYPE_OF(cmd) = TYPE_PAIR][
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
+						sym: symbol/resolve word/symbol
+						start: cmd + 1
+
+						case [
+							sym = pen [
+								DRAW_FETCH_TUPLE
+								OS-draw-pen DC rgb as logic! alpha?
 							]
-						]
-						color: null
-						pos: cmd + 1
-						if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
-							if pos >= tail [throw-draw-error cmds cmd]
-							value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
-							if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
-						]
-						border?: no
-						pattern: null
-						pos: cmd + 1
-						if TYPE_OF(pos) = TYPE_WORD [
-							word: as red-word! pos
-							sym: symbol/resolve word/symbol
-							case [
-								sym = border [border?: yes cmd: cmd + 1]
-								;any [sym = repeat sym = reflect][
-								;	;@@ TBD check if followed by four integers
-								;]
-								true [0]
+							sym = box [
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+								OS-draw-box DC as red-pair! start as red-pair! cmd
 							]
+							sym = line [
+								DRAW_FETCH_SOME_PAIR
+								if start + 2 > cmd [throw-draw-error cmds cmd]
+								OS-draw-line DC as red-pair! start as red-pair! cmd
+							]
+							sym = line-width [
+								DRAW_FETCH_VALUE(TYPE_INTEGER)
+								OS-draw-line-width DC as red-integer! start
+							]
+							sym = fill-pen [
+								off?: no
+								if TYPE_OF(start) = TYPE_WORD [
+									word: as red-word! start
+									off?: _off = symbol/resolve word/symbol
+								]
+								either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
+								OS-draw-fill-pen DC rgb off? as logic! alpha?
+							]
+							sym = triangle [
+								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								OS-draw-triangle DC as red-pair! start
+							]
+							sym = _polygon [
+								DRAW_FETCH_SOME_PAIR
+								OS-draw-polygon DC as red-pair! start as red-pair! cmd
+							]
+							sym = circle [
+								DRAW_FETCH_VALUE(TYPE_PAIR)			;-- center
+								DRAW_FETCH_VALUE(TYPE_INTEGER)		;-- radius
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)	;-- radius-y (optional)
+								OS-draw-circle DC as red-pair! start as red-integer! cmd
+							]
+							sym = _ellipse [
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- center, radius
+								OS-draw-ellipse DC as red-pair! start as red-pair! cmd
+							]	
+							sym = anti-alias [
+								either TYPE_OF(start) = TYPE_WORD [
+									word: as red-word! start
+									OS-draw-anti-alias DC _off <> symbol/resolve word/symbol
+								][
+									throw-draw-error cmds cmd
+								]
+								cmd: start
+							]
+							sym = font [
+								DRAW_FETCH_NAMED_VALUE(TYPE_OBJECT)
+								OS-draw-font DC as red-object! value
+							]
+							sym = text [
+								DRAW_FETCH_VALUE(TYPE_PAIR)		;-- position
+								DRAW_FETCH_VALUE(TYPE_STRING)	;-- text string
+								OS-draw-text DC as red-pair! start as red-string! cmd
+							]
+							sym = _arc [
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
+								loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								word: as red-word! cmd
+								if all [TYPE_OF(word) = TYPE_WORD closed <> symbol/resolve word/symbol][
+									cmd: cmd - 1
+								]
+								OS-draw-arc DC as red-pair! start as red-value! cmd
+							]
+							sym = curve	[
+								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								OS-draw-curve DC as red-pair! start as red-pair! cmd
+							]
+							sym = spline [
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								closed?: no
+								if TYPE_OF(cmd) = TYPE_WORD [
+									word: as red-word! cmd
+									closed?: closed = symbol/resolve word/symbol
+								]
+								DRAW_FETCH_SOME_PAIR
+								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
+							]
+							sym = line-join	[
+								DRAW_FETCH_VALUE(TYPE_WORD)
+								word: as red-word! start
+								OS-draw-line-join DC symbol/resolve word/symbol
+							]
+							sym = line-cap [
+								DRAW_FETCH_VALUE(TYPE_WORD)
+								word: as red-word! start
+								OS-draw-line-cap DC symbol/resolve word/symbol
+							]
+							sym = _image [
+								DRAW_FETCH_NAMED_VALUE(TYPE_IMAGE)
+								start: value
+								pos: cmd + 1
+								pair?: TYPE_OF(pos) = TYPE_PAIR
+								point: either pair? [as red-pair! pos][null]
+								if pair? [
+									DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
+									DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
+									if all [point < cmd TYPE_OF(cmd) = TYPE_PAIR][
+										loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
+									]
+								]
+								color: null
+								pos: cmd + 1
+								if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
+									if pos >= tail [throw-draw-error cmds cmd]
+									value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
+									if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
+								]
+								border?: no
+								pattern: null
+								pos: cmd + 1
+								if TYPE_OF(pos) = TYPE_WORD [
+									word: as red-word! pos
+									sym: symbol/resolve word/symbol
+									case [
+										sym = border [border?: yes cmd: cmd + 1]
+										;any [sym = repeat sym = reflect][
+										;	;@@ TBD check if followed by four integers
+										;]
+										true [0]
+									]
+								]
+								OS-draw-image DC as red-image! start point color border? pattern
+							]
+							true [throw-draw-error cmds cmd]
 						]
-						OS-draw-image DC as red-image! start point color border? pattern
 					]
-					true [throw-draw-error cmds cmd]
+					default [throw-draw-error cmds cmd]
 				]
 				cmd: cmd + 1
 			]
