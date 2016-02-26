@@ -143,7 +143,7 @@ Red/System [
 							]
 							sym = line [
 								DRAW_FETCH_SOME_PAIR
-								if start + 2 > cmd [throw-draw-error cmds cmd]
+								if start = cmd [throw-draw-error cmds cmd]
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
 							sym = line-width [
