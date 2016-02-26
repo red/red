@@ -126,14 +126,6 @@ Red/System [
 
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
-					TYPE_SET_WORD [
-						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
-						blk/head: (as-integer cmd - block/rs-head cmds) / size? cell!
-					]
-					TYPE_BLOCK [
-						parse-draw as red-block! cmd DC
-						cmd: cmd + 1
-					]
 					TYPE_WORD [
 						word: as red-word! cmd
 						sym: symbol/resolve word/symbol
@@ -276,6 +268,14 @@ Red/System [
 							]
 							true [throw-draw-error cmds cmd]
 						]
+					]
+					TYPE_SET_WORD [
+						blk: as red-block! _context/set as red-word! cmd as red-value! cmds
+						blk/head: (as-integer cmd - block/rs-head cmds) / size? cell!
+					]
+					TYPE_BLOCK [
+						parse-draw as red-block! cmd DC
+						cmd: cmd + 1
 					]
 					default [throw-draw-error cmds cmd]
 				]
