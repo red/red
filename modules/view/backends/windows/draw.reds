@@ -448,7 +448,7 @@ OS-draw-box: func [
 	either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
-		rad: radius/value
+		rad: radius/value * 2
 		either GDI+? [
 			gdiplus-draw-roundbox
 				upper/x
