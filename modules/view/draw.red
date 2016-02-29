@@ -200,7 +200,11 @@ Red/System [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_INTEGER)]	;-- angle begin/length (degrees)
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								word: as red-word! cmd
-								if all [TYPE_OF(word) = TYPE_WORD closed <> symbol/resolve word/symbol][
+								if all [
+									cmd < tail
+									TYPE_OF(word) = TYPE_WORD
+									closed <> symbol/resolve word/symbol
+								][
 									cmd: cmd - 1
 								]
 								OS-draw-arc DC as red-pair! start as red-value! cmd
@@ -217,6 +221,7 @@ Red/System [
 								if all [cmd < tail TYPE_OF(cmd) = TYPE_WORD][
 									word: as red-word! cmd
 									closed?: closed = symbol/resolve word/symbol
+									cmd: cmd - 1
 								]
 								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
 							]
@@ -239,7 +244,7 @@ Red/System [
 								if pair? [
 									DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
 									DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
-									if all [point < cmd TYPE_OF(cmd) = TYPE_PAIR][
+									if all [point < cmd cmd < tail TYPE_OF(cmd) = TYPE_PAIR][
 										loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
 									]
 								]
