@@ -211,13 +211,13 @@ Red/System [
 								OS-draw-curve DC as red-pair! start as red-pair! cmd
 							]
 							sym = spline [
+								DRAW_FETCH_SOME_PAIR
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
 								closed?: no
-								if TYPE_OF(cmd) = TYPE_WORD [
+								if all [cmd < tail TYPE_OF(cmd) = TYPE_WORD][
 									word: as red-word! cmd
 									closed?: closed = symbol/resolve word/symbol
 								]
-								DRAW_FETCH_SOME_PAIR
 								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
 							]
 							sym = line-join	[
