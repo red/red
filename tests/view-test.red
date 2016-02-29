@@ -708,7 +708,7 @@ win/pane: reduce [
 			line-width 1
 			pen purple
 			fill-pen purple
-			box 220x10 280x70 20
+			box 220x10 280x70 10
 			pen gray
 			fill-pen white
 			ellipse 240x20 20x40
