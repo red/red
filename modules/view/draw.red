@@ -165,6 +165,7 @@ Red/System [
 							]
 							sym = _polygon [
 								DRAW_FETCH_SOME_PAIR
+								if start + 3 > cmd [throw-draw-error cmds cmd]
 								OS-draw-polygon DC as red-pair! start as red-pair! cmd
 							]
 							sym = circle [
@@ -223,6 +224,7 @@ Red/System [
 									closed?: closed = symbol/resolve word/symbol
 									cmd: cmd - 1
 								]
+								if start + 2 > cmd [throw-draw-error cmds cmd]
 								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
 							]
 							sym = line-join	[
