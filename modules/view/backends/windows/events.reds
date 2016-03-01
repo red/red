@@ -739,6 +739,7 @@ WndProc: func [
 		font   [red-object!]
 		face   [red-object!]
 		draw   [red-block!]
+		state  [red-block!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
@@ -764,7 +765,11 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if current-msg <> null [
+			state: (as red-block! get-face-values hWnd) + FACE_OBJ_STATE
+			if all [
+				TYPE_OF(state) = TYPE_BLOCK			;-- already created the window
+				current-msg <> null
+			][
 				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
 				update-pair-facet hWnd type lParam
 				modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
