@@ -111,6 +111,7 @@ Red/System [
 				word	[red-word!]
 				pattern [red-word!]
 				point	[red-pair!]
+				end		[red-pair!]
 				blk		[red-block!]
 				color	[red-tuple!]
 				sym		[integer!]
@@ -243,35 +244,41 @@ Red/System [
 								pos: cmd + 1
 								pair?: TYPE_OF(pos) = TYPE_PAIR
 								point: either pair? [as red-pair! pos][null]
+								end: null
 								if pair? [
 									DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
 									DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
-									if all [point < cmd cmd < tail TYPE_OF(cmd) = TYPE_PAIR][
+									if cmd + 1 < tail [
 										loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
 									]
+									end: as red-pair! cmd
 								]
 								color: null
-								pos: cmd + 1
-								if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
-									if pos >= tail [throw-draw-error cmds cmd]
-									value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
-									if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
-								]
 								border?: no
 								pattern: null
+
 								pos: cmd + 1
-								if TYPE_OF(pos) = TYPE_WORD [
-									word: as red-word! pos
-									sym: symbol/resolve word/symbol
-									case [
-										sym = border [border?: yes cmd: cmd + 1]
-										;any [sym = repeat sym = reflect][
-										;	;@@ TBD check if followed by four integers
-										;]
-										true [0]
+								if pos < tail [
+									if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
+										if pos >= tail [throw-draw-error cmds cmd]
+										value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
+										if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
+									]
+
+									pos: cmd + 1
+									if all [pos < tail TYPE_OF(pos) = TYPE_WORD][
+										word: as red-word! pos
+										sym: symbol/resolve word/symbol
+										case [
+											sym = border [border?: yes cmd: cmd + 1]
+											;any [sym = repeat sym = reflect][
+											;	;@@ TBD check if followed by four integers
+											;]
+											true [0]
+										]
 									]
 								]
-								OS-draw-image DC as red-image! start point color border? pattern
+								OS-draw-image DC as red-image! start point end color border? pattern
 							]
 							true [throw-draw-error cmds cmd]
 						]

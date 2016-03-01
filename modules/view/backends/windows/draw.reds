@@ -944,7 +944,8 @@ OS-draw-line-cap: func [
 OS-draw-image: func [
 	dc			[handle!]
 	image		[red-image!]
-	rect		[red-pair!]
+	start		[red-pair!]
+	end			[red-pair!]
 	key-color	[red-tuple!]
 	border?		[logic!]
 	pattern		[red-word!]
@@ -954,15 +955,17 @@ OS-draw-image: func [
 		width	[integer!]
 		height	[integer!]
 ][
-	x: rect/x
-	y: rect/y
-	rect: rect + 1
-	either TYPE_OF(rect) <> TYPE_PAIR [
-		width:  IMAGE_WIDTH(image/size)
-		height: IMAGE_HEIGHT(image/size)
-	][
-		width: rect/x - x
-		height: rect/y - y
+	either null? start [x: 0 y: 0][x: start/x y: start/y]
+	case [
+		start + 1 > end [
+			width:  IMAGE_WIDTH(image/size)
+			height: IMAGE_HEIGHT(image/size)
+		]
+		start + 1 = end [
+			width: end/x - x
+			height: end/y - y
+		]
+		true [0]
 	]
 	GdipDrawImageRectRectI
 		modes/graphics
