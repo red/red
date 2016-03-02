@@ -33,6 +33,7 @@ throw-test.red
 vector-test.red
 map-test.red
 do-test.red
+pair-test.red
 auto-tests/integer-auto-test.red
 auto-tests/float-auto-test.red
 auto-tests/infix-equal-auto-test.red
