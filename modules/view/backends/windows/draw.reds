@@ -183,7 +183,7 @@ draw-begin: func [
 	modes/brush:		null
 	modes/pen-width:	1
 	modes/pen-style:	PS_SOLID
-	modes/pen-color:	00FFFFFFh						;-- default: black
+	modes/pen-color:	0						;-- default: black
 	modes/pen-join:		-1
 	modes/pen-cap:		-1
 	modes/brush-color:	-1
