@@ -12,11 +12,11 @@ Red [
 
 styles: #(
 	window: [
-		default-actor: on-click
+		default-actor: on-down
 		template: [type: 'window]
 	]
 	base: [
-		default-actor: on-click
+		default-actor: on-down
 		template: [type: 'base size: 80x80 color: 128.128.128]
 	]
 	button: [
@@ -72,11 +72,11 @@ styles: #(
 		template: [type: 'drop-down size: 100x24]
 	]
 	panel: [
-		default-actor: on-click						;@@ something better?
+		default-actor: on-down						;@@ something better?
 		template: [type: 'panel size: 200x200]
 	]
 	group-box: [
-		default-actor: on-click						;@@ something better?
+		default-actor: on-down						;@@ something better?
 		template: [type: 'group-box size: 200x200]
 	]
 	tab-panel: [
