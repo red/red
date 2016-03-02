@@ -716,7 +716,7 @@ insert-event-func [
 					unless event/away? [
 						new: face/offset + event/offset - drag-offset
 						if face/offset <> new [
-							face/offset: new
+							if system/view/auto-sync? [face/offset: new]
 							return do-actor face event 'drag ;-- avoid calling on-over actor
 						]
 					]
@@ -727,6 +727,10 @@ insert-event-func [
 						alt-up	alt-down
 						aux-up	aux-down
 					] type [
+						unless system/view/auto-sync? [
+							new: face/offset + event/offset - drag-offset
+							if face/offset <> new [face/offset: new]
+						]
 						do-actor face event 'drop
 						face/state/4: none
 					]
