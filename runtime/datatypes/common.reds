@@ -107,6 +107,20 @@ get-root-node: func [
 	obj/ctx
 ]
 
+report: func [
+	type  [red-value!]
+	id    [red-value!]
+	arg1  [red-value!]
+	arg2  [red-value!]
+	arg3  [red-value!]
+][	
+	stack/mark-native words/_body
+	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	natives/print* no
+	stack/set-last unset-value
+	stack/unwind
+]
+
 fire: func [
 	[variadic]
 	count	[integer!]

@@ -43,15 +43,21 @@ Red/System [
 		reflect:		symbol/make "reflect"
 
 		throw-draw-error: func [
-			cmds [red-block!]
-			cmd  [red-value!]
+			cmds   [red-block!]
+			cmd	   [red-value!]
+			catch? [logic!]
 			/local
 				base [red-value!]
 		][
 			base: block/rs-head cmds
 			cmds: as red-block! stack/push as red-value! cmds
 			cmds/head: (as-integer cmd - base) >> 4
-			fire [TO_ERROR(script invalid-draw) cmds]
+			either catch? [
+				report TO_ERROR(script invalid-draw) as red-value! cmds null null
+				throw RED_THROWN_ERROR
+			][
+				fire [TO_ERROR(script invalid-draw) cmds]
+			]
 		]
 
 		get-color-int: func [
@@ -72,7 +78,7 @@ Red/System [
 		#define DRAW_FETCH_VALUE(type) [
 			cmd: cmd + 1
 			if any [cmd >= tail TYPE_OF(cmd) <> type][
-				throw-draw-error cmds cmd
+				throw-draw-error cmds cmd catch?
 			]
 		]
 		
@@ -88,9 +94,9 @@ Red/System [
 		
 		#define DRAW_FETCH_NAMED_VALUE(type) [
 			cmd: cmd + 1
-			if cmd >= tail [throw-draw-error cmds cmd]
+			if cmd >= tail [throw-draw-error cmds cmd catch?]
 			value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
-			if TYPE_OF(value) <> type [throw-draw-error cmds cmd]
+			if TYPE_OF(value) <> type [throw-draw-error cmds cmd catch?]
 		]
 		
 		#define DRAW_FETCH_TUPLE [
@@ -100,8 +106,9 @@ Red/System [
 		]
 		
 		parse-draw: func [
-			cmds [red-block!]
-			DC	 [handle!]
+			cmds   [red-block!]
+			DC	   [handle!]
+			catch? [logic!]								;-- YES: report errors, NO: fire errors
 			/local
 				cmd		[red-value!]
 				tail	[red-value!]
@@ -144,7 +151,7 @@ Red/System [
 							]
 							sym = line [
 								DRAW_FETCH_SOME_PAIR
-								if start = cmd [throw-draw-error cmds cmd]
+								if start = cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
 							sym = line-width [
@@ -166,7 +173,7 @@ Red/System [
 							]
 							sym = _polygon [
 								DRAW_FETCH_SOME_PAIR
-								if start + 3 > cmd [throw-draw-error cmds cmd]
+								if start + 3 > cmd [throw-draw-error cmds cmd catch?]
 								OS-draw-polygon DC as red-pair! start as red-pair! cmd
 							]
 							sym = circle [
@@ -184,7 +191,7 @@ Red/System [
 									word: as red-word! start
 									OS-draw-anti-alias DC _off <> symbol/resolve word/symbol
 								][
-									throw-draw-error cmds cmd
+									throw-draw-error cmds cmd catch?
 								]
 								cmd: start
 							]
@@ -225,7 +232,7 @@ Red/System [
 									closed?: closed = symbol/resolve word/symbol
 									cmd: cmd - 1
 								]
-								if start + 2 > cmd [throw-draw-error cmds cmd]
+								if start + 2 > cmd [throw-draw-error cmds cmd + 1 catch?]
 								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
 							]
 							sym = line-join	[
@@ -260,7 +267,7 @@ Red/System [
 								pos: cmd + 1
 								if pos < tail [
 									if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
-										if pos >= tail [throw-draw-error cmds cmd]
+										if pos >= tail [throw-draw-error cmds cmd catch?]
 										value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
 										if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
 									]
@@ -280,7 +287,7 @@ Red/System [
 								]
 								OS-draw-image DC as red-image! start point end color border? pattern
 							]
-							true [throw-draw-error cmds cmd]
+							true [throw-draw-error cmds cmd catch?]
 						]
 					]
 					TYPE_SET_WORD [
@@ -288,10 +295,10 @@ Red/System [
 						blk/head: (as-integer cmd - block/rs-head cmds) / size? cell!
 					]
 					TYPE_BLOCK [
-						parse-draw as red-block! cmd DC
+						parse-draw as red-block! cmd DC catch?
 						cmd: cmd + 1
 					]
-					default [throw-draw-error cmds cmd]
+					default [throw-draw-error cmds cmd catch?]
 				]
 				cmd: cmd + 1
 			]
@@ -304,6 +311,7 @@ Red/System [
 			on-graphic? [logic!]
 			cache?		[logic!]
 			paint?		[logic!]
+			catch?		[logic!]
 			/local
 				DC	   [handle!]						;-- drawing context (opaque handle)
 		][
@@ -312,11 +320,17 @@ Red/System [
 				any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds]
 			][exit]
 
+			system/thrown: 0
+
 			DC: draw-begin handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
-				parse-draw cmds DC
+				catch RED_THROWN_ERROR [parse-draw cmds DC catch?]
 			]
 			draw-end DC handle on-graphic? cache? paint?
+			
+			if system/thrown = RED_THROWN_ERROR [
+				either catch? [system/thrown: 0][re-throw]
+			]
 		]
 	]
 ]

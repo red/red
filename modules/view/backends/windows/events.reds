@@ -864,7 +864,7 @@ WndProc: func [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
-					do-draw hWnd null draw no yes yes
+					do-draw hWnd null draw no yes yes yes
 				][
 					bitblt-memory-dc hWnd no
 				]

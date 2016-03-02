@@ -341,7 +341,7 @@ BaseWndProc: func [
 		WM_PAINT [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either zero? GetWindowLong hWnd wc-offset - 4 [
-				do-draw hWnd null draw no yes yes
+				do-draw hWnd null draw no yes yes yes
 			][
 				bitblt-memory-dc hWnd no
 			]
@@ -531,7 +531,7 @@ update-base: func [
 	]
 	update-base-image graphic img width height
 	update-base-text graphic hBackDC text font para width height
-	do-draw null as red-image! graphic cmds yes no no
+	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0
 	ptSrc/y: 0
