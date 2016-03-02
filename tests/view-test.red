@@ -740,11 +740,11 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'check text: "anti alias" offset: 265x430 size: 90x24
-		data: off
+		data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				either face/data = on [
-					insert canvas/draw [anti-alias on]
+				either face/data = off [
+					insert canvas/draw [anti-alias off]
 				][
 					remove/part canvas/draw 2
 				]

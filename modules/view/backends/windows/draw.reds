@@ -194,18 +194,14 @@ draw-begin: func [
 	modes/gp-font-brush: 0
 	modes/on-image?:	no
 	modes/brush?:		no
-	anti-alias?:		no
 	modes/alpha-pen?:	no
 	modes/alpha-brush?:	no
 	modes/font-color?:	no
-	GDI+?:				no
 	dc:					null
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
 		modes/on-image?: yes
-		anti-alias?: yes
-		GDI+?: yes
 		either on-graphic? [
 			graphics: as-integer img
 		][
@@ -215,7 +211,6 @@ draw-begin: func [
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
 		SetTextColor dc modes/pen-color
-		GdipSetSmoothingMode graphics GDIPLUS_HIGHSPPED
 		update-gdiplus-font-color modes/pen-color
 	][
 		dc: either paint? [BeginPaint hWnd paint][hScreen]
@@ -238,6 +233,7 @@ draw-begin: func [
 		GdipCreateFromHDC dc :graphics	
 	]
 	modes/graphics:	graphics
+	OS-draw-anti-alias dc yes
 	update-modes dc
 	update-gdiplus-font dc
 	dc
@@ -302,18 +298,14 @@ to-gdiplus-color: func [
 OS-draw-anti-alias: func [
 	dc	 [handle!]
 	on? [logic!]
-	/local
-		on-image? [logic!]
 ][
-	on-image?: modes/on-image?
 	anti-alias?: on?
 	either on? [
 		GDI+?: yes
-		unless on-image? [update-gdiplus-modes dc]
 		GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
 		GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
 	][
-		if on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
+		if modes/on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
 		GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
 		GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
 	]
@@ -957,7 +949,7 @@ OS-draw-image: func [
 ][
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
-		start + 1 > end [
+		start = end [
 			width:  IMAGE_WIDTH(image/size)
 			height: IMAGE_HEIGHT(image/size)
 		]
@@ -965,7 +957,7 @@ OS-draw-image: func [
 			width: end/x - x
 			height: end/y - y
 		]
-		true [0]
+		true [0]							;@@ TBD four control points
 	]
 	GdipDrawImageRectRectI
 		modes/graphics
