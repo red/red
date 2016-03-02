@@ -246,10 +246,10 @@ Red/System [
 								point: either pair? [as red-pair! pos][null]
 								end: null
 								if pair? [
-									DRAW_FETCH_VALUE(TYPE_PAIR)		;-- upper-left point
-									DRAW_FETCH_OPT_VALUE(TYPE_PAIR)	;-- upper-right point (lower-right if only 2 pairs)
-									if cmd + 1 < tail [
-										loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)] ;-- lower-left/right points
+									cmd: pos						;-- upper-left point
+									until [
+										DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+										cmd <> pos
 									]
 									end: as red-pair! cmd
 								]

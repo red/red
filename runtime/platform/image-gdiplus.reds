@@ -406,7 +406,7 @@ OS-image: context [
 				while [x < width][
 					pos: data/stride >> 2 * y + x + 1
 					either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
-					either null? rgb [r: 0 g: 0 b: 0][
+					either null? rgb [r: 255 g: 255 b: 255][
 						r: as-integer rgb/1
 						g: as-integer rgb/2
 						b: as-integer rgb/3
