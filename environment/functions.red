@@ -10,6 +10,10 @@ Red [
 	}
 ]
 
+routine: func [spec [block!] body [block!]][
+	cause-error 'internal 'routines []
+]
+
 also: func [
 	"Returns the first value, but also evaluates the second."
 	value1 [any-type!]

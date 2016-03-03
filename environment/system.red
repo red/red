@@ -205,6 +205,7 @@ system: context [
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		"error object or fields were not valid"
+				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
 			]
 		]
 
