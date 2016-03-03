@@ -250,4 +250,13 @@ Red [
 	
 ===end-group===
 
+===start-group=== "pair - comparison"
+
+	--test-- "pcomp-1"		--assert equal? 1x1 1x1
+	--test-- "pcomp-2"		--assert not-equal? 1x1 1x0
+	--test-- "pcomp-3"		--assert not-equal? 1x1 0x1
+	--test-- "pcomp-4"		--assert not-equal? 1x1 0x0
+
+===end-group===
+
 ~~~end-file~~~
