@@ -121,11 +121,12 @@ Other useful functions:
 			any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
 		][
 			prin ["^/USAGE:^/" tab ]
+			unless op? :func [prin func-name prin " "]
 
 			parse spec-of :fun [
 				start: [									;-- 1st pass
 					any [block! | string! ]
-					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin [func-name mold w]])]
+					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin mold w])]
 					any [
 						/local to end
 						| set w [word! | lit-word! | get-word!] (prin [" " w])
