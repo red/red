@@ -1052,12 +1052,11 @@ make-profilable make target-class [
 	
 	emit-push-float: func [idx [integer!] type [block!]][
 		width: select emitter/datatypes type/1
+		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+			to char! width
 		emit-float
 			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
 			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
-
-		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
-			to char! width
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -2140,15 +2139,21 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-hf-return: func [spec [block!] /local type][
+	emit-hf-return: func [spec [block!] /reverse /local type][
 		if all [
 			compiler/job/ABI = 'hard-float
 			find [float! float64! float32!] type: select spec first [return:]
 		][
 			width: select emitter/datatypes type/1
-			emit-float
-				#{ec510b10}							;-- FMRRD r0, r1, d0
-				#{ee100a10}							;-- FMRS r0, s0
+			either reverse [
+				emit-float
+					#{ec410b10}						;-- FMDRR d0, r0, r1, d0
+					#{ee000a10}						;-- FMSR s0, r0
+			][
+				emit-float
+					#{ec510b10}						;-- FMRRD r0, r1, d0
+					#{ee100a10}						;-- FMRS r0, s0
+			]
 		]
 	]
 
@@ -2455,7 +2460,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-hf-return fspec/4
+			emit-hf-return/reverse fspec/4
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr
