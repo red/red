@@ -12,7 +12,7 @@ The Red software stack also contains another language, **Red/System**, which is 
 
 Making a Red "Hello World"
 ------------------------
-The Red toolchain comes as a single **half-megabyte** executable file that you can download from [here](http://www.red-lang.org/p/download.html) for the big-3 platforms. 
+The Red toolchain comes as a single **one-megabyte** executable file that you can download from [here](http://www.red-lang.org/p/download.html) for the big-3 platforms. 
 
 1. Put the downloaded **red** binary in the working folder.
 
