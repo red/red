@@ -1007,11 +1007,10 @@ change-size: func [
 		cx	[integer!]
 		cy	[integer!]
 ][
-	if type = window [
-		cx: 0
-		cy: 0
-		window-border-info? as handle! hWnd null null :cx :cy
-	]
+	cx: 0
+	cy: 0
+	if type = window [window-border-info? as handle! hWnd null null :cx :cy]
+
 	SetWindowPos 
 		as handle! hWnd
 		as handle! 0
