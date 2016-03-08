@@ -513,9 +513,11 @@ update-base: func [
 	graphic: 0
 
 	unless transparent-base? color img [
-		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_VISIBLE or WS_CLIPSIBLINGS 
+		SetWindowLong hWnd GWL_STYLE WS_CHILD or WS_CLIPSIBLINGS
 		SetWindowLong hWnd GWL_EXSTYLE 0
 		unless null? parent [SetParent hWnd parent]
+		update-base hWnd parent ptDst values
+		ShowWindow hWnd SW_SHOW
 		exit
 	]
 
