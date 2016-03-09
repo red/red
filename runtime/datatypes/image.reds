@@ -283,6 +283,36 @@ image: context [
 		bin
 	]
 
+	get-position: func [
+		base		[integer!]
+		return:		[integer!]
+		/local
+			img		[red-image!]
+			index	[red-integer!]
+			s		[series!]
+			offset	[integer!]
+			max		[integer!]
+			idx		[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
+		
+		img: as red-image! stack/arguments
+		index: as red-integer! img + 1
+
+		either TYPE_OF(index) = TYPE_INTEGER [
+			idx: index/value
+			if all [base = 1 idx <= 0][base: base - 1]
+		][
+			--NOT_IMPLEMENTED--
+		]
+
+		offset: img/head + idx - base
+		if negative? offset [offset: 0]
+		max: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		if offset > max [offset: max]
+		offset
+	]
+
 	;-- Actions --
 
 	make: func [
@@ -386,6 +416,7 @@ image: context [
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
+		data: data + img/head
 		y: 0
 		count: 0
 		while [y < height][
@@ -611,8 +642,10 @@ image: context [
 		/local
 			type [integer!]
 			res  [integer!]
+			bmp1 [integer!]
+			bmp2 [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "image!/compare"]]
+		#if debug? = yes [if verbose > 0 [print-line "image/compare"]]
 
 		type: TYPE_OF(arg2)
 		if type <> TYPE_IMAGE [RETURN_COMPARE_OTHER]
@@ -623,13 +656,122 @@ image: context [
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: SIGN_COMPARE_RESULT((as-integer arg1/node) (as-integer arg2/node))
+				either any [
+					arg1/size <> arg2/size
+					all [arg1/size = arg2/size arg1/head <> arg2/head]
+				][
+					res: 1
+				][
+					type: 0
+					bmp1: OS-image/lock-bitmap as-integer arg1/node no
+					bmp2: OS-image/lock-bitmap as-integer arg2/node no
+					res: compare-memory
+						as byte-ptr! OS-image/get-data bmp1 :type
+						as byte-ptr! OS-image/get-data bmp2 :type
+						IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
+					OS-image/unlock-bitmap as-integer arg1/node bmp1
+					OS-image/unlock-bitmap as-integer arg2/node bmp2
+				]
 			]
 			default [
 				res: -2
 			]
 		]
 		res
+	]
+
+	;--- Series actions ---
+
+	at: func [
+		return:	[red-image!]
+		/local
+			img	[red-image!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
+
+		img: as red-image! stack/arguments
+		img/head: get-position 1
+		img
+	]
+
+	next: func [
+		return:	[red-image!]
+		/local
+			img		[red-image!]
+			offset	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/next"]]
+
+		img: as red-image! stack/arguments
+		offset: img/head + 1
+		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset  [
+			img/head: offset
+		]
+		img
+	]
+
+	skip: func [
+		return:	[red-image!]
+		/local
+			img	[red-image!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/skip"]]
+
+		img: as red-image! stack/arguments
+		img/head: get-position 0
+		img
+	]
+
+	copy: func [
+		img	    	[red-image!]
+		new			[red-image!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		types		[red-value!]
+		return:		[red-image!]
+		/local
+			part?	[logic!]
+			int		[red-integer!]
+			img2	[red-image!]
+			offset	[integer!]
+			part	[integer!]
+			type	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/copy"]]
+
+		offset: img/head
+		part: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - offset
+		part?: no
+
+		if OPTION?(part-arg) [
+			part?: yes
+			type: TYPE_OF(part-arg)
+			case [
+				type = TYPE_INTEGER [
+					int: as red-integer! part-arg
+					part: either int/value > part [part][int/value]
+				]
+				type = TYPE_PAIR [0]
+				true [
+					img2: as red-image! part-arg
+					unless all [
+						TYPE_OF(img2) = TYPE_IMAGE
+						img2/node = img/node
+					][
+						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+					]
+					part: img2/head - img/head
+				]
+			]
+		]
+
+		if negative? part [
+			part: 0 - part
+			offset: offset - part
+			if negative? offset [offset: 0 part: img/head]
+		]
+
+		OS-image/clone img new part as red-pair! part-arg part?
 	]
 
 	init: does [
@@ -666,18 +808,18 @@ image: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			null			;at
-			null			;back
+			:at
+			INHERIT_ACTION	;back
 			null			;change
 			null			;clear
-			null			;copy
+			:copy
 			null			;find
-			null			;head
-			null			;head?
-			null			;index?
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
 			null			;insert
 			null			;length?
-			null			;next
+			:next
 			:pick
 			:poke
 			null			;put
@@ -685,7 +827,7 @@ image: context [
 			null			;reverse
 			null			;select
 			null			;sort
-			null			;skip
+			:skip
 			null			;swap
 			null			;tail
 			null			;tail?

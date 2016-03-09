@@ -242,14 +242,10 @@ _series: context [
 		return:	[red-value!]
 		/local
 			ser	[red-series!]
-			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/back"]]
 		
 		ser: as red-series! stack/arguments
-
-		s: GET_BUFFER(ser)
-
 		if ser/head >= 1 [ser/head: ser/head - 1]
 		as red-value! ser
 	]

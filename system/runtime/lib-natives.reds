@@ -68,6 +68,24 @@ copy-memory: func [						;; copy a memory buffer to a new region in a safe way ;
 	target
 ]
 
+compare-memory: func [				;; compare two blocks of memory ;; 
+	ptr1		[byte-ptr!]     	;; pointer to block of memory ;;
+	ptr2		[byte-ptr!]     	;; pointer to block of memory ;;
+	size		[integer!]      	;; number of bytes to compare ;;
+	return:		[integer!]
+	/local
+		n		[integer!]
+][
+	if any [zero? size ptr1 = ptr2][return 0]
+	n: 0
+	until [
+		n: n + 1
+		size: size - 1
+		any [ptr1/n <> ptr2/n zero? size]
+	]
+	ptr1/n - ptr2/n
+]
+
 length?: func [							;; return the number of characters from a c-string value ;;
 	s 		[c-string!]					;; c-string value ;;
 	return: [integer!]
