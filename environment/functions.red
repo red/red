@@ -658,7 +658,7 @@ clean-path: func [
 			while [
 				all [
 					#"/" = first file
-					f: find/tail out #"/"
+					do [f: find/tail out #"/"]
 				]
 			] [
 				file: next file
