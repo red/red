@@ -208,5 +208,13 @@ system/console: context [
 	]
 ]
 
+;-- Console-oriented function definitions
+
+ll:   does [list-dir/col 1]
+pwd:  does [prin mold system/options/path]
 halt: does [throw/name 'halt-request 'console]
-q: :quit
+
+cd:		:change-dir
+ls: 	:list-dir
+dir:	:ls
+q: 		:quit
