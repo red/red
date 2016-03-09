@@ -506,6 +506,33 @@ change-dir: func [
 	system/options/path: dir
 ]
 
+list-dir: function [
+	"Displays a list of files and folders from current working path"
+	/col				"Forces the display in a given number of columns"
+		n [integer!]	"Number of columns"
+][
+	list: read %.
+	max-sz: either n [
+		system/console/limit / n - n					;-- account for n extra spaces
+	][
+		n: system/console/limit / 22					;-- account for n extra spaces
+		22 - n
+	]
+
+	while [not tail? list][
+		loop n [
+			if max-sz <= length? name: list/1 [
+				name: append copy/part name max-sz - 4 "..."
+			]
+			prin tab
+			prin pad mold name max-sz
+			prin " "
+			if tail? list: next list [break]
+		]
+		prin lf
+	]
+]
+
 to-image: func [value][
 	case [
 		binary? value [
