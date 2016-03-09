@@ -356,13 +356,14 @@ OS-image: context [
 		dst		[integer!]
 		src		[integer!]
 		bytes	[integer!]
+		offset	[integer!]
 		/local
 			bmp-src [BitmapData!]
 			bmp-dst [BitmapData!]
 	][
 		bmp-src: as BitmapData! lock-bitmap src no
 		bmp-dst: as BitmapData! lock-bitmap dst yes
-		copy-memory bmp-dst/scan0 bmp-src/scan0 bytes
+		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
 		unlock-bitmap src as-integer bmp-src
 		unlock-bitmap dst as-integer bmp-dst
 	]
@@ -389,7 +390,7 @@ OS-image: context [
 		h: height? handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
-		copy bitmap handle w * h * 4
+		copy bitmap handle w * h * 4 0
 
 		GdipDisposeImage handle 
 		bitmap
@@ -589,7 +590,7 @@ OS-image: context [
 				if zero? part [w: 1]
 				GdipCreateBitmapFromScan0 w h 0 format null :bmp
 				either zero? part [w: 0 h: 0][
-					copy bmp handle w * h * 4
+					copy bmp handle w * h * 4 offset * 4
 				]
 			]
 			dst/size: h << 16 or w
