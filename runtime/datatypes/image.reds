@@ -632,6 +632,60 @@ image: context [
 		res
 	]
 
+	;--- Series actions ---
+
+	copy: func [
+		img	    	[red-image!]
+		new			[red-image!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		types		[red-value!]
+		return:		[red-image!]
+		/local
+			part?	[logic!]
+			int		[red-integer!]
+			img2	[red-image!]
+			offset	[integer!]
+			part	[integer!]
+			type	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/copy"]]
+
+		offset: img/head
+		part: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - offset
+		part?: no
+
+		if OPTION?(part-arg) [
+			part?: yes
+			type: TYPE_OF(part-arg)
+			case [
+				type = TYPE_INTEGER [
+					int: as red-integer! part-arg
+					part: either int/value > part [part][int/value]
+				]
+				type = TYPE_PAIR [0]
+				true [
+					img2: as red-image! part-arg
+					unless all [
+						TYPE_OF(img2) = TYPE_IMAGE
+						img2/node = img/node
+					][
+						ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+					]
+					part: img2/head - img/head
+				]
+			]
+		]
+
+		if negative? part [
+			part: 0 - part
+			offset: offset - part
+			if negative? offset [offset: 0 part: img/head]
+		]
+
+		OS-image/clone img new part as red-pair! part-arg part?
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_IMAGE
@@ -670,11 +724,11 @@ image: context [
 			null			;back
 			null			;change
 			null			;clear
-			null			;copy
+			:copy
 			null			;find
-			null			;head
-			null			;head?
-			null			;index?
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
 			null			;insert
 			null			;length?
 			null			;next
