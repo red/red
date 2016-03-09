@@ -503,7 +503,7 @@ change-dir: func [
 	"Changes the active directory path"
 	dir [file!]	"New active directory of relative path to the new one"
 ][
-	if slash <> first dir [dir: append copy system/options/path clean-path dir]
+	if slash <> first dir [dir: clean-path append copy system/options/path dir]
 	system/options/path: dir
 ]
 
