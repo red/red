@@ -152,7 +152,6 @@ interpreter: context [
 	]
 	
 	eval-function: func [
-		[catch]
 		fun  [red-function!]
 		body [red-block!]
 		/local
@@ -164,7 +163,7 @@ interpreter: context [
 		ctx/values: as node! stack/arguments
 		stack/set-in-func-flag yes
 		
-		eval body yes
+		catch RED_THROWN_ERROR [eval body yes]
 		
 		stack/set-in-func-flag no
 		ctx/values: saved

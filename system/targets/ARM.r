@@ -2321,9 +2321,9 @@ make-profilable make target-class [
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			12
 		][
-			emit-load-local #{e50b0000}	-4			;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
-			emit-load-local #{e50b0000}	-8			;-- STR r0, [fp, -8]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			12
 		]
 	]
@@ -2335,7 +2335,10 @@ make-profilable make target-class [
 			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
 			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
 		][
-			offset: offset + 8						;-- account for the 2 catch slots on stack 
+			emit-i32 #{e3a00000}					;-- MOV r0, 0
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			;offset: offset + 8						;-- account for the 2 catch slots on stack 
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
