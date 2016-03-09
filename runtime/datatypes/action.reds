@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %action.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -42,11 +42,11 @@ action: context [
 		spec: as red-block! s/offset
 		
 		action: as red-action! stack/push*
-		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
+		action/header:	TYPE_ACTION						;-- implicit reset of all header flags
 		action/spec:    spec/node						; @@ copy spec block if not at head
-		;action/symbols: clean-spec spec 				; @@ TBD
+		action/args: 	null
 			
-		index: (integer/get s/offset + 1)				;-- action IDs are one-based
+		index: integer/get s/offset + 1					;-- action IDs are one-based
 		action/code: actions/table/index
 		
 		action
@@ -172,6 +172,7 @@ action: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

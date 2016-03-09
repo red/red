@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -124,4 +124,6 @@ system: declare struct! [					;-- store runtime accessible system values
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)
 	thrown		[integer!]					;-- last THROWn value
+	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
+	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 ]

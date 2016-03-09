@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 29/07/2014
-	Revision: 42
+	Date: 09/03/2016
+	Revision: 46
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -784,7 +784,7 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable>: [<items>]
 
  <variable> : a pointer of same type as the array items.
- <items>    : is a non-empty list of integer!, byte!, float! or float32! values.
+ <items>    : is a non-empty list of integer!, byte!, float! literal values.
  
 The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit word just preceding the beginning of the array.
 
@@ -837,29 +837,29 @@ Examples:
 
 There is no specific support in Red/System for C-like void pointers. The official way is to use a pointer! [byte!] type to represent C void* pointers.
 
-For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and type cast to the target type.
+For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and converted using type casting to the target type.
 
 Example:
 
  p-buffer!: alias struct! [buffer [c-string!]]
 
- get-hello: function [
- 	s [p-buffer]
- 	return: [p-buffer]					;-- returns a pointer to a c-string
+ set-hello: function [
+ 	s [p-buffer!]
  ][
  	s/buffer: "hello"
  	s									;-- equivalent to C's char **
  ]
- 
+
  foo: func [
  	/local
- 		c [pointer! [integer!]]
- 		s [c-string!]
+ 		c [p-buffer!]
  ][
- 	c: get-hello
- 	s: as c-string! c/value
- 	print s
+ 	c: declare p-buffer!
+ 	set-hello c
+ 	print c/buffer
  ]
+
+ foo									;-- call foo function
 would print
  hello
     
@@ -1609,99 +1609,6 @@ Immediately quits the function and returns a value.
  	"ok"								;-- return "ok" if a <> 0
  ]
 
----Exceptions
-
-Exit and Return are sometimes not enough when it is needed to interrupt current execution and go back through several parent calls before resuming execution. Exceptions are solving such case by providing a way to resume execution from a parent caller anywhere in the calling hierarchy, up to global code level.
-
-+++Throwing an exception
-
-Raising a new exception is done by calling the <b>throw</b> function followed by an integer value used as the exception ID.
-
-<b>Syntax</b>
-
- throw <id>
-
- <id> : integer value used as exception ID
- 
-<b>Throw</b> will produce an exception that will move up through the parent calls until one with a <b>catch</b> attribute is found. If no such attribute is found, the exception will stop once global code is reached and resume execution from there.
-
-<u>Note</u>: if <b>throw</b> is used from a function that has the <b>catch</b> attribute, the exception will still be raised and go through parent calls. Only a parent call with a <b>catch</b> attribute can stop it. This way, when a function catches an exception, it can re-<b>throw</b> it if required.
-
-Example:
-
- baz: does [
- 	print " "
- 	throw 123
- 	print "<hidden>"
- ]
- bar: does [
- 	print "hello"
- 	baz
- 	print "<hidden>"
- ]
- foo: func [[catch]][
- 	bar
- 	print "world"
- ]
-
- foo
-will output:
- hello world
- 
-\note No callbacks support
-The exception mechanism does not work across external calls, so a callback function must not use <b>throw</b>, else a crash will be the likely outcome.
-
-/note
-
-+++Reading exception value
-
-The integer argument passed to <b>throw</b> is propagated with the exception, it can be read using a system access path: <b>system/thrown</b>
-
-<b>Syntax</b>
-
- system/thrown							;-- read access (returns an integer)
- system/thrown: <id>					;-- write access
-
- <id>  : integer value
- 
-The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
- 
-<b>Examples</b>
-
- foo									;-- taken from previous example
- print system/thrown
-will output:
- 123
- 
-A dispatching use case would look like this:
-
- foo: does [throw 10]
- bar: does [throw 20]
- baz: does [throw 30]
-
- dispatch: func [[catch] n [integer!]][
- 	system/thrown: 0					;-- this is only useful if no exception occurs
-
- 	switch n [
- 		1 [foo]
- 		2 [bar]
- 		3 [baz]
- 		default [
- 			print-line "do nothing"
- 		]
- 	]
- 	switch system/thrown [
- 		0  [print "no exception occured"]
- 		10 [print "foo"]
- 		20 [print "bar"]
- 		30 [print "baz"]
- 	]
- ]
-
- dispatch 2
-will output:
-	bar
-
 ===Scoping
 
 In Red/System, variables are statically scoped. The place in source code where a variable is declared determines its scope. 
@@ -2068,6 +1975,31 @@ An alternative way to write it (allowed because all code paths return a value of
  ]
  
  prin ["a is " msg lf]
+ 
+---loop
+
+Loop over a block of code, decrementing a counter down to zero. LOOP does not return any value, so it cannot be used in an expression.
+
+<b>Syntax</b>
+
+ loop <counter> [<code>]
+
+ <counter> : a valid expression returning a positive integer value
+ <code>	   : code to execute while the condition is not met
+
+<b>Examples</b>
+
+ loop 3 [print "o"]
+will output:
+
+ ooo
+
+ a: 2
+ b: 3
+ loop a + b [print "o"]
+will output:
+
+ ooooo
 
 ---until
 
@@ -2120,6 +2052,48 @@ While a given condition is met, execute a block of code. WHILE does not return a
 will output:
 
  ooooo
+ 
+---break
+
+BREAK allows to break out of the nearest enclosing loop at once and resume execution after the loop.
+
+<b>Syntax</b>
+
+ break
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	break
+ 	c: c - 1
+ 	c = 0
+ ]
+will output:
+
+ o
+
+---continue
+
+CONTINUE skips the remaining part of a body loop and resume execution at next loop iteration.
+
+<b>Syntax</b>
+
+ continue
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	c: c - 1
+	either c > 3 [continue][break]
+ 	c = 0
+ ]
+will output:
+
+ oo
 
 ---any
 
@@ -2246,7 +2220,166 @@ Example using multiple values for matching:
  ]
 will output:
  odd
+ 
+===Exceptions
 
+Exit and Return are sometimes not enough when it is needed to interrupt current execution and go back through several parent calls before resuming execution. Exceptions are solving such case by providing a way to resume execution from a parent caller anywhere in the calling hierarchy, up to global code level.
+
+---Throw
+
+Raising a new exception is done by calling the <b>throw</b> function followed by an integer value used as the exception ID.
+
+<b>Syntax</b>
+
+ throw <id>
+
+ <id> : integer value used as exception ID
+ 
+<b>Throw</b> will produce an exception that will move up through the parent calls until:
+
+* a <b>catch</b> statement is encountered and the exception filter value is greater or equal than the exception ID value.
+
+* a function with a <b>[catch]</b> attribute is found. 
+
+If no <b>catch</b> is encountered, the exception, once reaching global code level, with exit the program with a <u>runtime error</u>.
+
+<u>Note</u>: if <b>throw</b> is used from a function that has the <b>catch</b> attribute, the exception will still be raised and go through parent calls. This way, when a function with a <b>[catch]</b> attribute catches an exception, it can re-<b>throw</b> it if required.
+
+\note No callbacks support
+The exception mechanism does not work across external calls, so a callback function must not use <b>throw</b>, else a crash will be the likely outcome. Nested exceptions are still possible as long as they are caught before the callback function returns.
+
+/note
+
+---Catch
+
+There are two ways to catch exceptions created using <b>throw</b>.
+
++++Catch statement
+
+<b>Syntax</b>
+
+ catch <filter> [<body>]
+
+ <filter> : integer value used to filter exceptions.
+ <body>   : arbitrary body of code to which this catch applies to.
+ 
+An exception occuring in &lt;body&gt; block (including deeply nested ones that were uncaught) will be caught only if its ID value is less or equal than the &lt;filter&gt; value. Once an exception is being caught, the execution resumes after the <b>catch</b> body block.
+
+<u>Note</u>: Once an exception is caught by <b>catch</b>, the exception value can be retrieved using <b>system/thrown</b>.
+
+Example in global context:
+
+ catch 123 [
+     print "hello"
+     throw 10
+     print "<hidden>"
+ ]
+ print " world"
+will output:
+ hello world
+
+Example using a nested exception:
+
+ bar: does [
+ 	print "hello"
+ 	throw 123
+ 	print "<hidden>"
+ ]
+
+ foo: does [
+ 	catch 5 [bar]						;-- exception 123 not catchable
+ 	print "<hidden>"
+ ]
+
+ catch 1000 [foo]						;-- exception will be caught here
+will output:
+ hello
+ 
++++Catch attribute
+
+<b>Syntax</b>
+
+ func [[catch]...][...]
+
+A <b>[catch]</b> attribute will make the function catch all exceptions and resume at the next instruction. This attribute cannot be used in conjunction with other function attributes.
+
+\note Implementation note
+The internal threshold value for the [catch] attribute is set to FFFFFFFEh. The FFFFFFFFh value is defined as the CATCH_ALL macro and reserved for the internal catching sub-system at root level.
+
+/note
+
+Example:
+
+ baz: does [
+ 	print " "
+ 	throw 123
+ 	print "<hidden>"					;-- never executed
+ ]
+ bar: does [
+ 	print "hello"
+ 	baz
+ 	print "<hidden>"					;-- never executed
+ ]
+ foo: func [[catch]][
+ 	bar
+ 	print "world"						;-- execution resumes there
+ ]
+
+ foo
+will output:
+ hello world
+ 
+
+---Exception value
+
+The integer argument passed to <b>throw</b> is propagated with the exception, it can be read using a system access path: <b>system/thrown</b>
+
+<b>Syntax</b>
+
+ system/thrown							;-- read access (returns an integer)
+ system/thrown: <id>					;-- write access
+
+ <id> : integer value
+ 
+The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
+ 
+<b>Examples</b>
+
+ foo									;-- taken from previous example
+ print system/thrown
+will output:
+ 123
+ 
+A dispatching use case would look like this:
+
+ foo: does [throw 10]
+ bar: does [throw 20]
+ baz: does [throw 30]
+
+ dispatch: func [[catch] n [integer!]][
+ 	system/thrown: 0					;-- this is only useful if no exception occurs
+
+ 	switch n [
+ 		1 [foo]
+ 		2 [bar]
+ 		3 [baz]
+ 		default [
+ 			print-line "do nothing"
+ 		]
+ 	]
+ 	switch system/thrown [
+ 		0  [print "no exception occured"]
+ 		10 [print "foo"]
+ 		20 [print "bar"]
+ 		30 [print "baz"]
+ 	]
+ ]
+
+ dispatch 2
+will output:
+	bar
+	
+	
 ===Stack functions
 
 ---push
@@ -2837,7 +2970,7 @@ The following example is Windows-specific.
  			size 	[integer!]
  			return: [c-string!]
  		]
- 		free: "free" [
+ 		release: "free" [
  			block	[c-string!]
  		]
  	]
@@ -2851,7 +2984,7 @@ The following example is Windows-specific.
  get-env "windir" buf  max-size
 
  print buf
- free buf
+ release buf
  
 would output:
 
@@ -3262,6 +3395,19 @@ When generating a shared library, the Red/System toolchain needs to know which i
  <cconv>   : optional calling convention word (stdcall or cdecl)
     
 One or several #export directives can be used in the same Red/System library code.
+
+---#u16
+
+Converts a literal string to UTF-16LE format. The string is stored in memory in that new format with a terminal UTF-16 NUL character.
+
+<b>Syntax</b>
+
+ #u16 <string>
+
+ <string> : a literal c-string!
+ 
+Only literal strings can be statically processed by this directive.
+
     
 ===Source code organization
 
@@ -3442,10 +3588,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     >>			>=		    >>>
     ??			alias 		all
     and   		any			as
-    assert		case		comment
-    context		declare     either
-    exit		false		func
-    function	if			not
+    assert		break		case
+    comment		context		continue
+    declare		either		exit
+    false		func		function
+    if			loop		not
     null		or			pop
     push		return		size?
     switch		throw		true
@@ -3573,6 +3720,28 @@ will output:
 
 ===Document History
 
+*<b>09/03/2016 - revision 46</b>
+
+*>Added #u16 directive description.
+
+
+*<b>12/05/2015 - revision 45</b>
+
+*>Added BREAK and CONTINUE descriptions.
+
+*>Added LOOP description.
+
+*>Updated keywords section.
+
+
+
+*<b>13/03/2015 - revision 44</b>
+
+*>Move exceptions description to its own separate section and upgraded it with the new CATCH statement description.
+
+*>Fixed C void pointer bad code example
+
+
 *<b>13/10/2014 - revision 43</b>
 
 *>Added notes about the possible future distinction between <b>function</b> and <b>func</b>. 
@@ -3580,6 +3749,8 @@ will output:
 *>Fixed 2 misleading statements about whether or not the condition is met in <b>until</b>.
 
 *>Minor grammar cleanups.
+
+
 
 *<b>29/07/2014 - revision 42</b>
 

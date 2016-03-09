@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %integer.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -94,12 +94,50 @@ integer: context [
 		s + c
 	]
 
+	do-math-op: func [
+		left		[integer!]
+		right		[integer!]
+		type		[math-op!]
+		return:		[integer!]
+	][
+		switch type [
+			OP_ADD [left + right]
+			OP_SUB [left - right]
+			OP_MUL [left * right]
+			OP_AND [left and right]
+			OP_OR  [left or right]
+			OP_XOR [left xor right]
+			OP_REM [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left % right
+				]
+			]
+			OP_DIV [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left / right
+				]
+			]
+		]
+	]
+
 	do-math: func [
 		type		[math-op!]
 		return:		[red-value!]
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
+			pair	[red-pair!]
+			value	[integer!]
+			size	[integer!]
+			n		[integer!]
+			v		[integer!]
+			tp		[byte-ptr!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
@@ -112,43 +150,82 @@ integer: context [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 			TYPE_OF(right) = TYPE_FLOAT
+			TYPE_OF(right) = TYPE_PERCENT
+			TYPE_OF(right) = TYPE_PAIR
+			TYPE_OF(right) = TYPE_TUPLE
 		]
 
-		either TYPE_OF(right) = TYPE_FLOAT [
-			float/do-math type
-		][
-			left/value: switch type [
-				OP_ADD [left/value + right/value]
-				OP_SUB [left/value - right/value]
-				OP_MUL [left/value * right/value]
-				OP_REM [left/value % right/value]
-				OP_AND [left/value and right/value]
-				OP_OR  [left/value or right/value]
-				OP_XOR [left/value xor right/value]
-				OP_DIV [
-					either zero? right/value [
-						fire [TO_ERROR(math zero-divide)]
-						0								;-- pass the compiler's type-checking
-					][
-						left/value / right/value
+		switch TYPE_OF(right) [
+			TYPE_INTEGER TYPE_CHAR [
+				left/value: do-math-op left/value right/value type
+			]
+			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
+			TYPE_PAIR  [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				pair: as red-pair! left
+				switch type [
+					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
+					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
+					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
 					]
 				]
+			]
+			TYPE_TUPLE [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				tp: (as byte-ptr! left) + 4
+				size: as-integer tp/1
+				n: 0
+				until [
+					n: n + 1
+					v: as-integer tp/n
+					switch type [
+						OP_ADD [v: v + value]
+						OP_MUL [v: v * value]
+						OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+							ERR_EXPECT_ARGUMENT(TYPE_PERCENT 1)
+						]
+					]
+					either v > 255 [v: 255][if negative? v [v: 0]]
+					tp/n: as byte! v
+					n = size
+				]
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		as red-value! left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
-		value 	[integer!]
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-integer!]
 		/local
 			int [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
-		
-		int: as red-integer! ALLOC_TAIL(blk)
+		int: as red-integer! slot
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
+	]
+
+	make-in: func [
+		parent 	[red-block!]
+		value 	[integer!]
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/make-in"]]
+		
+		int: as red-integer! ALLOC_TAIL(parent)
+		int/header: TYPE_INTEGER
+		int/value: value
+		int
 	]
 	
 	push: func [
@@ -215,8 +292,10 @@ integer: context [
 			_random/srand int/value
 			int/header: TYPE_UNSET
 		][
-			n: _random/rand % int/value + 1
-			int/value: either negative? int/value [0 - n][n]
+			unless zero? int/value [
+				n: _random/rand % int/value + 1
+				int/value: either negative? int/value [0 - n][n]
+			]
 		]
 		as red-value! int
 	]
@@ -226,15 +305,22 @@ integer: context [
 		spec	[red-integer!]
 		return: [red-value!]
 		/local
+			int [red-integer!]
 			f	[red-float!]
 			buf [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 			
 		switch type/value [
-			TYPE_FLOAT [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: spec/value
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				f: as red-float! type
-				f/header: TYPE_FLOAT
+				f/header: type/value
 				f/value: to-float spec/value
 			]
 			TYPE_STRING [
@@ -242,7 +328,7 @@ integer: context [
 				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
-				fire [TO_ERROR(script bad-make-arg) type spec]
+				fire [TO_ERROR(script bad-to-arg) type spec]
 			]
 		]
 		as red-value! type
@@ -338,8 +424,7 @@ integer: context [
 	absolute: func [
 		return: [red-integer!]
 		/local
-			int	  [red-integer!]
-			value [integer!]
+			int	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		
@@ -399,18 +484,14 @@ integer: context [
 		return: [integer!]
 		/local
 			res  [integer!]
-			neg? [logic!]
 	][
 		res: 1
-		neg?: false
-
-		if exp < 0 [neg?: true exp: 0 - exp]
 		while [exp <> 0][
 			if as logic! exp and 1 [res: res * base]
 			exp: exp >> 1
 			base: base * base
 		]
-		either neg? [1 / res][res]
+		res
 	]
 
 	power: func [
@@ -582,6 +663,7 @@ integer: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

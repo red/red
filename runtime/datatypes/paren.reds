@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %paren.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -85,21 +85,6 @@ paren: context [
 		if TYPE_OF(value2) <> TYPE_PAREN [RETURN_COMPARE_OTHER]
 		block/compare-each as red-block! value1 as red-block! value2 op
 	]
-	
-	copy: func [
-		paren   [red-paren!]
-		new		[red-paren!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/copy"]]
-
-		paren: as red-paren! block/copy as red-block! paren as red-paren! new arg deep? types
-		paren/header: TYPE_PAREN
-		as red-series! paren
-	]
 
 	init: does [
 		datatype/register [
@@ -109,7 +94,7 @@ paren: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
@@ -139,7 +124,7 @@ paren: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
@@ -149,10 +134,11 @@ paren: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
-			null			;sort
+			INHERIT_ACTION	;sort
 			INHERIT_ACTION	;skip
 			INHERIT_ACTION	;swap
 			INHERIT_ACTION	;tail
@@ -163,7 +149,7 @@ paren: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

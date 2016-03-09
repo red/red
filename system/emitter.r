@@ -3,19 +3,22 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %emitter.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 do-cache %system/targets/target-class.r
 
 emitter: make-profilable context [
-	code-buf: make binary! 100'000
-	data-buf: make binary! 100'000
-	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
-	stack: 	  make hash! 40				;-- [name offset ...]
-	exits:	  make block! 1				;-- [offset ...]	(funcs exits points)
-	verbose:  0							;-- logs verbosity level
+	code-buf:  make binary! 100'000
+	data-buf:  make binary! 100'000
+	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
+	stack: 	   make hash! 40			;-- [name offset ...]
+	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
+	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
 	compiler: none						;-- just a short-cut
@@ -129,7 +132,6 @@ emitter: make-profilable context [
 		either empty? chunks/queue [
 			append code-buf chunk/1
 		][
-			clear at code-buf chunk/3
 			append code-buf chunk/1						;-- replace obsolete buffer
 			append second last chunks/queue chunk/2
 		]
@@ -195,8 +197,6 @@ emitter: make-profilable context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
-		if all [paren? value not word? value/1][type: 'array!]
-		
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -282,6 +282,12 @@ emitter: make-profilable context [
 				ptr: tail data-buf							;-- ensure array pointer skips size info
 				foreach item value [store-global item type none]
 			]
+			binary! [
+				pad-data-buf 8								;-- forces 64-bit alignment
+				ptr: tail data-buf
+				append ptr value
+				pad-data-buf target/ptr-size
+			]
 		][
 			compiler/throw-error ["store-global unexpected type:" type]
 		]
@@ -321,13 +327,16 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global value 'pointer! none		;-- allocate separate variable slot
+				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				saved: name
 				name: none								;-- anonymous data storing
 			]
-			if any [not new-global? string? value paren? value][
+			if all [paren? value not word? value/1][
+				type: [array!]
+			]
+			if any [not new-global?	string? value paren? value][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: either compiler/job/PIC? [
 					store-value name value type			;-- store new value in data buffer
@@ -335,9 +344,11 @@ emitter: make-profilable context [
 					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				]
 			]
-			if all [new-global? spec compiler/job/PIC? not libc-init?][
+			if all [compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
-				target/emit-store saved value n-spec	;-- store it in pointer variable
+				if new-global? spec [
+					target/emit-store saved value n-spec ;-- store it in pointer variable
+				]
 			]
 			if n-spec [spec: n-spec]
 		][
@@ -554,11 +565,29 @@ emitter: make-profilable context [
 		size
 	]
 	
+	init-loop-jumps: does [
+		append/only breaks	  make block! 1
+		append/only cont-next make block! 1
+		append/only cont-back make block! 1
+	]
+	
+	resolve-loop-jumps: func [chunk [block!] type [word!] /local list end len buffer][
+		list: emitter/:type
+		buffer: chunk/1
+		len: (last chunk) - 1
+		
+		either type = 'cont-back [
+			foreach ptr last list [target/patch-jump-back buffer ptr - len]
+		][
+			end: index? tail buffer
+			foreach ptr last list [target/patch-jump-point buffer ptr - len end]
+		]
+		remove back tail list
+	]
+	
 	resolve-exit-points: has [end][
 		end: tail-ptr
-		foreach ptr exits [
-			target/patch-exit-call code-buf ptr end
-		]
+		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][

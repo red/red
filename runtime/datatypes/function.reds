@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %function.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -154,13 +154,14 @@ _function: context [
 		index	[integer!]								;-- 0-base index position of function in path
 		return: [integer!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			s	  [series!]
-			count [integer!]
-			cnt	  [integer!]
-			len	  [integer!]
-			stop? [logic!]
+			value  [red-value!]
+			tail   [red-value!]
+			s	   [series!]
+			count  [integer!]
+			locals [integer!]
+			cnt	   [integer!]
+			len	   [integer!]
+			stop?  [logic!]
 	][
 		s: as series! fun/spec/value
 		
@@ -236,6 +237,184 @@ _function: context [
 				0
 			]
 		]
+	]
+	
+	preprocess-func-options: func [
+		args	  [red-block!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		tail	  [red-value!]
+		/local
+			base  [red-value!]
+			value [red-value!]
+			head  [red-value!]
+			end	  [red-value!]
+			word  [red-word!]
+			ref	  [red-refinement!]
+			bool  [red-logic!]
+	][
+		base: block/rs-head args
+		end:  block/rs-tail args
+
+		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+			base: base + 2
+		]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
+
+		value: pos + 1
+		
+		while [value < tail][
+			word: as red-word! value
+			head: base
+			bool: null
+			
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script no-refine) fname word]
+			]
+			while [head < end][
+				if TYPE_OF(head) = TYPE_REFINEMENT [
+					ref: as red-refinement! head
+
+					if EQUAL_WORDS?(ref word) [
+						bool: as red-logic! head + 1
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						bool/value: true
+						head: end						;-- force loop exit
+					]
+				]
+				head: head + 2 
+			]
+			if null? bool [fire [TO_ERROR(script no-refine) fname word]]
+			value: value + 1
+		]
+	]
+
+	preprocess-options: func [
+		fun 	  [red-native!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		function? [logic!]
+		return:   [node!]
+		/local
+			args	  [red-block!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+	][
+		saved: stack/top
+
+		args: as red-block! stack/push*
+		args/header: TYPE_BLOCK
+		args/head:	 0
+		args/node:	 list
+		args: 		 block/clone args no no				;-- copy it before modifying it
+		
+		tail:  block/rs-tail as red-block! path
+
+		either function? [
+			preprocess-func-options args path pos list fname tail
+		][
+			native/preprocess-options args fun path pos list fname tail
+		]
+		stack/top: saved
+		args/node
+	]
+
+	preprocess-spec: func [
+		native 	[red-native!]
+		return: [node!]
+		/local
+			fun		  [red-function!]
+			vec		  [red-vector!]
+			list	  [red-block!]
+			value	  [red-value!]
+			value2	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+			w		  [red-word!]
+			dt		  [red-datatype!]
+			blk		  [red-block!]
+			rt		  [red-routine!]
+			s		  [series!]
+			routine?  [logic!]
+			function? [logic!]
+			required? [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
+
+		saved:	   stack/top
+		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
+
+		s: as series! either function? [
+			fun:  as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		unless function? [
+			vec: vector/make-at stack/push* 12 TYPE_INTEGER 4
+		]
+
+		list:		block/push-only* 8
+		value:		s/offset
+		tail:		s/tail
+		required?:	yes
+
+		while [value < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["cache: spec entry type: " TYPE_OF(value)]]]
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if any [function? required?][		;@@ routine! should not be accepted here...
+						block/rs-append list value
+						blk: as red-block! value + 1
+						either all [
+							blk < tail
+							TYPE_OF(blk) = TYPE_BLOCK
+						][
+							typeset/make-with list blk
+						][
+							typeset/make-default list
+						]
+					]
+				]
+				TYPE_REFINEMENT [
+					required?: no
+					either function? [
+						block/rs-append list value
+						block/rs-append list as red-value! false-value
+					][
+						vector/rs-append-int vec -1
+					]
+				]
+				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
+					blk: as red-block! value + 1
+					assert TYPE_OF(blk) = TYPE_BLOCK
+					unless routine? [
+						block/rs-append list value
+						typeset/make-with list blk
+					]
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		
+		unless function? [
+			block/rs-append list as red-value! none-value ;-- place-holder for argument name
+			block/rs-append list as red-value! vec
+		]
+		stack/top: saved
+		list/node
 	]
 	
 	collect-word: func [
@@ -346,7 +525,7 @@ _function: context [
 		list: block/push* 8
 		block/rs-append list as red-value! refinements/local
 		
-		ignore: block/clone spec no
+		ignore: block/clone spec no no
 		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
@@ -354,7 +533,7 @@ _function: context [
 		extern?: no
 
 		if TYPE_OF(extern) = TYPE_BLOCK [
-			value: block/pick extern 1 null
+			value: _series/pick as red-series! extern 1 null
 
 			extern?: TYPE_OF(value) = TYPE_REFINEMENT	;-- ensure it is not another word type
 			if extern? [
@@ -369,6 +548,8 @@ _function: context [
 		
 		while [value < tail][
 			switch TYPE_OF(value) [
+				TYPE_STRING
+				TYPE_BLOCK
 				TYPE_WORD 	  [0]						;-- do nothing
 				TYPE_REFINEMENT
 				TYPE_GET_WORD
@@ -471,6 +652,7 @@ _function: context [
 			native [red-native!]
 			value  [red-value!]
 			int	   [red-integer!]
+			args	   [red-block!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
@@ -484,7 +666,10 @@ _function: context [
 		more: as series! fun/more/value
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
-		alloc-tail more									;-- reserved place for "symbols"
+		
+		args: as red-block! alloc-tail more
+		args/header: TYPE_BLOCK
+		args/node:   null
 		
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
@@ -662,6 +847,7 @@ _function: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

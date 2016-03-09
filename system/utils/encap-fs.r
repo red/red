@@ -55,11 +55,12 @@ encap-fs: context [
 				file: mold filename: file
 				insert tail out "^/^-"
 				insert tail out file
+				insert tail out #" "
 				either find/only text-files suffix? file [
 					insert tail out "^-^-"
 					insert tail out mold read filename
 				][
-					insert tail out read/binary filename
+					insert tail out mold read/binary filename
 				]
 				
 			]

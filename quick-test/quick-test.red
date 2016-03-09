@@ -3,8 +3,8 @@ Red [
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.red
 	Version: "0.2.0"
-	Rights:  "Copyright (C) 2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; counters
@@ -16,6 +16,8 @@ qt-file-tests: 0
 qt-file-asserts: 0 
 qt-file-passes: 0 
 qt-file-failures: 0
+
+qt-file-name: none
 
 ;; group switches
 qt-group-name-not-printed: true

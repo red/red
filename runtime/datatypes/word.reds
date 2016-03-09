@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -91,15 +91,42 @@ word: context [
 		node	[node!]
 		index	[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+
+		push from node index
+	]
+	
+	from: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-word!]
 		/local
 			ctx	[red-context!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
 		
 		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
-		push as red-word! s/offset + index
+		as red-word! s/offset + index
+	]
+	
+	at: func [
+		node	[node!]
+		sym		[integer!]
+		return: [red-word!]
+		/local
+			ctx	[red-context!]
+			idx [integer!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/at"]]
+
+		ctx: TO_CTX(node)
+		idx: _context/find-word ctx sym no
+		s: as series! ctx/symbols/value
+		as red-word! s/offset + idx
 	]
 	
 	get-in: func [
@@ -158,21 +185,37 @@ word: context [
 		stack/set-last value
 	]
 
+	replace: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
 	set-in: func [
-		node  [node!]
-		index [integer!]
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
 			values [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
-
+		
 		value: stack/arguments
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
-		stack/set-last value
+		value
 	]
 	
 	set-local: func [
@@ -209,7 +252,20 @@ word: context [
 		CHECK_UNSET(value word)
 		value
 	]
-	
+
+	to-string: func [
+		w		[red-word!]
+		return: [red-string!]
+		/local
+			s	[series!]
+			str [red-string!]
+	][
+		s: GET_BUFFER(symbols)
+		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/head: 0
+		str
+	]
+
 	;-- Actions --
 	
 	form: func [
@@ -219,17 +275,19 @@ word: context [
 		part 	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
+			s		[series!]
+			str		[red-string!]
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
 		
 		s: GET_BUFFER(symbols)
-		
-		string/form 
-			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
-			buffer
-			arg
-			part
+		str: as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are partial overlapping
+		saved: str/head
+		str/head: 0
+		part: string/form str buffer arg part
+		str/head: saved
+		part
 	]
 	
 	mold: func [
@@ -268,6 +326,7 @@ word: context [
 		op		 [integer!]								;-- type of comparison
 		return:	 [integer!]
 		/local
+			s	 [series!]
 			type [integer!]
 			res	 [integer!]
 			str1 [red-string!]
@@ -295,6 +354,26 @@ word: context [
 			]
 		]
 		res
+	]
+	
+	index?: func [
+		return: [red-value!]
+		/local
+			w	  [red-word!]
+			int	  [red-integer!]
+			index [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/index?"]]
+
+		w: as red-word! stack/arguments
+		int: as red-integer! w
+		index: w/index
+	
+		either index = -1 [int/header: TYPE_NONE][
+			int/header: TYPE_INTEGER
+			int/value:  index + 1						;-- return a 1-based value
+		]
+		as red-value! int
 	]
 
 	init: does [
@@ -339,12 +418,13 @@ word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			:index?
 			null			;insert
 			null			;length?
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

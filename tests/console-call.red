@@ -3,10 +3,10 @@ Red [
 	Author: ["Nenad Rakocevic" "Kaj de Vos"]
 	File: 	%console.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2013 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -96,7 +96,7 @@ read-argument: routine [
 		exit
 	]
 	args: system/args-list + 1							;-- skip binary filename
-	str: simple-io/read-txt args/item
+	str: as red-string! simple-io/read-file args/item no no no
 	SET_RETURN(str)
 ]
 

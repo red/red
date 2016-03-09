@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %IA-32.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 make-profilable make target-class [
@@ -67,8 +67,9 @@ make-profilable make target-class [
 			not runtime?
 			compiler/job/need-main?
 		][
-			emit-pop								;-- pop zero padding
-			emit-pop								;-- pop CATCH_ALL barrier
+			emit #{89EC}							;-- MOV esp, ebp
+			emit-pop								;-- pop exceptions threshold slot
+			emit-pop								;-- pop exceptions address slot
 			emit #{5D}								;-- POP ebp
 			args: switch/default compiler/job/OS [
 				Syllable [6]
@@ -434,7 +435,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
-		
+
+	emit-log-b: func [type][
+		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
+		emit #{0FBDC0}								;-- BSR eax, eax
+	]
+
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		
@@ -894,13 +900,27 @@ make-profilable make target-class [
 		]
 	]
 	
-	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
-		change at code-buf ptr to-bin32 exit-point - ptr - branch-offset-size
+	emit-start-loop: does [
+		emit #{50}									;-- PUSH eax
 	]
 	
-	emit-exit: does [
+	emit-end-loop: does [
+		emit #{58} 									;-- POP eax
+		emit #{83E801}								;-- SUB eax, 1
+	]
+	
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
+		change at buffer offset to-bin32 negate offset + 4 - 1
+	]
+	
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
+		change at buffer ptr to-bin32 exit-point - ptr - branch-offset-size
+	]
+	
+	emit-jump-point: func [type [block!]][
+		if verbose >= 3 [print ">>>emitting jump point"]
 		emit #{E9}									;-- JMP imm32
-		emit-reloc-addr compose/only [- - (emitter/exits)]
+		emit-reloc-addr compose/only [- - (type)]
 	]
 
 	emit-branch: func [
@@ -1407,6 +1427,7 @@ make-profilable make target-class [
 	]
 	
 	emit-float-trash-last: does [
+		if verbose >= 3 [print ">>>cleaning FPU stack base"]
 		emit #{DDD8}								;-- FSTP st0
 	]
 	
@@ -1728,10 +1749,11 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-throw: func [value [integer! word!]][
+	emit-throw: func [value [integer! word!] /thru][
 		emit-load value
-		
-		emit #{EB01}								;--			JMP _1st
+		if verbose >= 3 [print [">>>emitting THROW" value]]
+
+		if thru [emit #{EB01}]						;--			JMP _1st
 		emit #{C9}									;-- _loop:	LEAVE
 		emit #{3945FC}								;--	_1st:	CMP [ebp-4], eax ; compare with catch flag
 		emit #{72FA}								;-- 		JB _loop
@@ -1750,6 +1772,7 @@ make-profilable make target-class [
 	]
 	
 	emit-open-catch: func [body-size [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH prolog"]
 		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
 		emit #{FF75F8}						 		;--	PUSH [ebp-8]		; save old catch address
 		emit #{8945FC}								;-- MOV  [ebp-4], eax	; rewrite the catch ID
@@ -1762,6 +1785,7 @@ make-profilable make target-class [
 	]
 	
 	emit-close-catch: func [offset [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH epilog"]
 		offset: offset + 8							;-- account for the 2 catch slots on stack
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp

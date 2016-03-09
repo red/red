@@ -3,29 +3,112 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
 system/lexer: context [
 
-	make-number: routine [
+	throw-error: function [spec [block!] /missing][
+		spec: reduce spec
+		src: back tail spec
+		src/1: mold/flat/part src/1 40
+		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
+		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
+	]
+
+	make-binary: routine [
+		start  [string!]
+		end    [string!]
+		base   [integer!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-binary!]
+	][
+		s:  GET_BUFFER(start)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+		
+		ret: as red-binary! stack/arguments
+		ret/head: 0
+		ret/header: TYPE_BINARY
+		ret/node: switch base [
+			16 [binary/decode-16 p len unit]
+			2  [binary/decode-2  p len unit]
+			64 [binary/decode-64 p len unit]
+		]
+		if ret/node = null [ret/header: TYPE_NONE]			;-- return NONE!
+	]
+
+	make-tuple: routine [
 		start  [string!]
 		end	   [string!]
-		float? [logic!]
 		/local
+			str  [series!]
 			c	 [integer!]
 			n	 [integer!]
 			m	 [integer!]
 			len  [integer!]
+			unit [integer!]
+			size [integer!]
+			p	 [byte-ptr!]
+			tp	 [byte-ptr!]
+			ret  [red-value!]
+	][
+		str:  GET_BUFFER(start)
+		unit: GET_UNIT(str)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+		ret: stack/arguments
+		tp: (as byte-ptr! ret) + 4
+
+		n: 0
+		size: 0
+		until [
+			c: string/get-char p unit
+			either c = as-integer #"." [
+				size: size + 1
+				tp/size: as byte! n
+				n: 0
+			][
+				m: n * 10
+				n: m
+				m: n + c - #"0"
+				n: m
+			]
+			p: p + unit
+			len: len - 1
+			zero? len
+		]
+		size: size + 1									;-- last number
+		tp/size: as byte! n
+		ret/header: TYPE_TUPLE or (size << 19)
+		ret
+	]
+
+	make-number: routine [
+		start  [string!]
+		end	   [string!]
+		type   [datatype!]
+		/local
+			str  [series!]
+			c	 [integer!]
+			n	 [integer!]
+			m	 [integer!]
+			len  [integer!]
+			unit [integer!]
 			p	 [byte-ptr!]
 			neg? [logic!]
 	][
-		if float? [
-			make-float start end							;-- decimal! escape path
+		if type/value <> TYPE_INTEGER [
+			make-float start end type					;-- decimal! escape path
 			exit
 		]
 		str:  GET_BUFFER(start)
@@ -70,21 +153,28 @@ system/lexer: context [
 	make-float: routine [
 		start [string!]
 		end	  [string!]
+		type  [datatype!]
 		/local
 			str  [series!]
 			cp	 [integer!]
 			unit [integer!]
+			len  [integer!]
 			p	 [byte-ptr!]
 			tail [byte-ptr!]
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
 			byte [byte!]
+			f	 [float!]
 	][
+		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
+
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
-		tail: p + ((end/head - start/head) << (unit >> 1))
-		cur:  p
+		len:  end/head - start/head
+		tail: p + (len << (unit >> 1))
+
+		if len > 31 [cur: allocate len + 1]
 		s0:   cur
 
 		until [											;-- convert to ascii string
@@ -99,8 +189,9 @@ system/lexer: context [
 		]
 		byte: cur/1										;-- store last byte
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		float/box string/to-float s0
-		cur/1: byte										;-- revert the byte back
+		f: string/to-float s0
+		if len > 31 [free s0]
+		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
 	]
 
 	make-hexa: routine [
@@ -169,6 +260,7 @@ system/lexer: context [
 			TYPE_LIT_WORD [TYPE_LIT_PATH]
 			default [TYPE_PATH]
 		]
+		path/args: null
 	]
 
 	set-path: routine [
@@ -176,7 +268,8 @@ system/lexer: context [
 		/local
 			path [red-path!]
 	][
-		path: as red-path! block/pick stack 1 null
+		path: as red-path! _series/pick as red-series! stack 1 null
+		path/args: null
 		set-type as red-value! path TYPE_SET_PATH
 	]
 
@@ -225,12 +318,13 @@ system/lexer: context [
 			length [integer! string!]
 		return: [block!]
 		/local
-			new s e c hex pos value cnt type process
+			new s e c hex pos value cnt type process path
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
+			four half non-zero path-end base base64-char slash-end not-url-char
 	][
-		cs:		[- - - - - - - - - - - - - - - -]		;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -267,18 +361,41 @@ system/lexer: context [
 			cs/9:  #"^""								;-- not-str-char
 			cs/10: #"}"									;-- not-mstr-char
 			cs/11: charset [#"^(40)" - #"^(5F)"]		;-- caret-char
-			cs/12: charset [#"^(00)" - #"^(1F)"]		;-- non-printable-char
-			cs/13: charset {^{"[]);}					;-- integer-end
+			cs/12: charset [							;-- non-printable-char
+				#"^(00)" - #"^(08)"						;-- (exclude TAB)
+				#"^(0A)" - #"^(1F)"
+			]
+			cs/13: charset {^{"[]();x}					;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
-			cs/16: charset [#"^(00)" - #"^(1F)"] 		;-- ASCII control characters
-
+			cs/16: charset [ 							;-- Control characters
+				#"^(00)" - #"^(1F)"						;-- C0 control codes
+				#"^(80)" - #"^(9F)"						;-- C1 control codes
+			]
+			cs/17: charset "01234"						;-- four
+			cs/18: charset "012345"						;-- half
+			cs/19: charset "123456789"					;-- non-zero
+			cs/20: charset {^{"[]();}					;-- path-end
+			cs/21: union cs/1 charset [					;-- base64-char
+				#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+			]
+			cs/22: charset {[](){}":;}					;-- slash-end
+			cs/23: charset {[](){}";}					;-- not-url-char
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
+			four half non-zero path-end base64-char slash-end not-url-char
 		] cs
+
+		byte: [
+			"25" half
+			| "2" four digit
+			| "1" digit digit
+			| non-zero digit
+			| digit
+		]
 
 		;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 		ws: [
@@ -323,7 +440,7 @@ system/lexer: context [
 					| "esc"  (value: #"^(1B)")
 					| "del"	 (value: #"^(7F)")
 				]
-				| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
 				)
 			] #")"
@@ -344,9 +461,14 @@ system/lexer: context [
 		char-rule: [
 			{#"} s: [
 				 escaped-char
-				| ahead [non-printable-char | not-str-char] break
+				| ahead [non-printable-char | not-str-char]
+				  (throw-error [char! skip s -2])
+				  reject
 				| skip (value: s/1)
-			] {"}
+			][
+				{"}
+				| (throw-error [char! skip s -2])
+			]
 		]
 
 		line-string: [
@@ -363,18 +485,40 @@ system/lexer: context [
 			(cnt: 1)
 			any [
 				counted-newline 
-				| "^^{" 
+				| "^^{"
 				| "^^}"
-				| #"{" 	  (cnt: cnt + 1)
+				| #"{" (cnt: cnt + 1)
 				| e: #"}" if (zero? cnt: cnt - 1) break
 				| escaped-char
 				| skip
 			]
 		]
 
-		multiline-string: [#"{" s: nested-curly-braces]
+		multiline-string: [
+			#"{" s: nested-curly-braces (unless zero? cnt [throw-error [string! s]])
+		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
+
+		base-2-rule: [
+			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+			(base: 2)
+		]
+
+		base-16-rule: [
+			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
+			(base: 16)
+		]
+
+		base-64-rule: [						;@@ correct me!
+			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
+			(base: 64)
+		]
+
+		binary-rule: [
+			(type: binary!)
+			base-16-rule | base-2-rule | base-64-rule
+		]
 
 		file-rule: [
 			#"%" [
@@ -385,7 +529,7 @@ system/lexer: context [
 		]
 
 		url-rule: [
-			#":" not [integer-end | ws-no-count | end]
+			#":" not [not-url-char | ws-no-count | end]
 			any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
 			(type: url! store stack do make-file)
 		]
@@ -403,36 +547,56 @@ system/lexer: context [
 			ahead slash (								;-- path detection barrier
 				push-path stack type					;-- create empty path
 				to-word stack copy/part s e word!		;-- push 1st path element
+				type: path!
 			)
 			some [
 				slash
 				s: [
-					integer-number-rule			(store stack make-number s e no)
+					integer-number-rule			(store stack make-number s e type)
 					| begin-symbol-rule			(to-word stack copy/part s e word!)
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (type: none print ["*** Syntax Error: invalid path value at:" back s])
+					| (throw-error [path! path])
 					  reject
 				]
-				opt [#":" (set-path back tail stack)]
-			] (pop stack)
+			]
+			opt [#":" (type: set-path! set-path back tail stack)][
+				ahead [path-end | ws | end] | (throw-error [type path])
+			]
+			(pop stack)
+		]
+		
+		special-words: [
+			[
+				#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
+				| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
+					#"/" 
+					ahead [slash-end | ws-no-count | control-char | end] (value: "//")
+					| (value: "/")
+				]
+			]
+			opt [#":" (type: set-word!)]
+			(to-word stack value type)				;-- special case for / and // as words
 		]
 
 		word-rule: 	[
-			#"%" ws-no-count (to-word stack "%" word!)	;-- special case for remainder op!
-			| s: begin-symbol-rule (type: word!) [
-					url-rule
-					| path-rule							;-- path matched
-					| opt [#":" (type: set-word!)]
-					  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
-			  ]
+			(type: word!) special-words
+			| path: s: begin-symbol-rule (type: word!) [
+				url-rule
+				| path-rule							;-- path matched
+				| opt [#":" (type: set-word!)]
+				  (if type [to-word stack copy/part s e type])	;-- word or set-word matched
+			]
 		]
 
 		get-word-rule: [
-			#":" (type: get-word!) s: begin-symbol-rule [
-				path-rule (type: get-path!)
-				| (to-word stack copy/part s e type)	;-- get-word matched
+			#":" (type: get-word!) [
+				special-words
+				| s: begin-symbol-rule [
+					path-rule (type: get-path!)
+					| (to-word stack copy/part s e type)	;-- get-word matched
+				]
 			]
 		]
 
@@ -440,12 +604,15 @@ system/lexer: context [
 			#"'" (type: lit-word!) s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched
 				| (to-word stack copy/part s e type)	;-- lit-word matched
-			]
+			] 
+			opt [#":" (throw-error [type back s])]
 		]
 
 		issue-rule: [
-			#"#" (type: issue!) s: symbol-rule 
-			(to-word stack copy/part s e type)
+			#"#" (type: issue!) s: symbol-rule (
+				if (index? s) = index? e [throw-error [mold type skip s -4]]
+				to-word stack copy/part s e type
+			)
 		]
 
 		refinement-rule: [
@@ -456,18 +623,33 @@ system/lexer: context [
 			]
 			(to-word stack copy/part s e type)
 		]
-
+		
+		sticky-word-rule: [								;-- protect from sticky words typos
+			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
+		]
 		hexa-rule: [2 8 hexa e: #"h"]
 
+		tuple-value-rule: [
+			byte 2 11 [dot byte] e: (type: tuple!)
+		]
+
+		tuple-rule: [tuple-value-rule sticky-word-rule]
+
 		integer-number-rule: [
-			opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
+			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
 		]
 
 		integer-rule: [
-			float-special								;-- escape path for NaN, INFs
+			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
 			| integer-number-rule
 			  opt [float-number-rule | float-exp-rule e: (type: float!)]
-			  ahead [integer-end | ws-no-count | end]
+			  opt [#"%" (type: percent!)]
+			  sticky-word-rule
+			  (value: make-number s e type)
+			  opt [
+				#"x" s: integer-number-rule
+				(value: as-pair value make-number s e type)
+			  ]
 		]
 
 		float-special: [
@@ -486,7 +668,18 @@ system/lexer: context [
 
 		float-rule: [
 			opt [#"-" | #"+"] float-number-rule
-			ahead [integer-end | ws-no-count | end]
+			opt [#"%" (type: percent!)]
+			sticky-word-rule
+		]
+		
+		map-rule: [
+			"#(" (append/only stack make block! 4)
+			any-value
+			#")" (
+				value: back tail stack
+				value/1: make map! value/1
+				pop stack
+			)
 		]
 
 		block-rule: [
@@ -542,27 +735,29 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(print ["missing matching" value])
+			(throw-error/missing [value skip pos -3])
 		]
 
 		literal-value: [
 			pos: (e: none) s: [
 				comment-rule
 				| escaped-rule		(store stack value)
-				| integer-rule		if (value: make-number s e type = float!) (store stack value)
-				| float-rule		if (value: make-float s e) (store stack value)
+				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
+				| integer-rule		if (value) (store stack value)
+				| float-rule		if (value: make-float s e type) (store stack value)
 				| word-rule
 				| lit-word-rule
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
-				| issue-rule
 				| block-rule
 				| paren-rule
 				| string-rule		(store stack do make-string)
-				;| binary-rule	  	(stack/push load-binary s e)
+				| binary-rule		if (value: make-binary s e base) (store stack value)
+				| map-rule
+				| issue-rule
 			]
 		]
 
@@ -575,7 +770,7 @@ system/lexer: context [
 		][
 			parse/case src red-rules
 		][
-			print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
+			throw-error ['value pos]
 		]
 		stack/1
 	]

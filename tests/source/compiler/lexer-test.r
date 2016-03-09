@@ -3,8 +3,8 @@ Rebol [
 	Author:  "Peter W A Wood"
 	File: 	 %byte-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ;; setup
@@ -179,7 +179,7 @@ do %../../../lexer.r
 	    1: 1
 	  }
 	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid word! value"
+	--assert-printed? "*** Syntax Error: Invalid integer! value"
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
 	  

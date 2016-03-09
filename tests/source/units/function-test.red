@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %function-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -77,9 +77,9 @@ Red [
 	--test-- "fun-11"
 		non-evaluated: func ['param] [param]
 		res: first [(1 + 2)]
-		--assert quote (1 + 2) = res
-		--assert non-evaluated (quote (1 + 2)) = res
-		--assert non-evaluated quote (1 + 2) = 3
+		--assert res = quote (1 + 2)
+		--assert res = non-evaluated (quote (1 + 2))
+		--assert 'quote = non-evaluated quote (1 + 2)
 
 ===end-group===
 
@@ -209,6 +209,13 @@ Red [
 	--test-- "fun-ret-14"								;-- issue #778
 	 	--assert 1 = do load "f: func [][return 1] t: f"
 		
+	--test-- "fun-ret-15"								;-- issue #1169
+		f: does [parse "1" [(return 123)]]
+		--assert f = 123
+
+	--test-- "fun-ret-16"
+		f: does [do [return 124]]
+		--assert f = 124
 
 ===end-group===
 
@@ -231,13 +238,13 @@ Red [
 	--test-- "fun-ref-2"
 		blk: clean-strings spec-of :append	
 		--assert blk = [
-			series [series!] value [any-type!] /part length [number! series!]
-			/only /dup count [number!] return: [series!]
+			series [series! bitset! map!] value [any-type!] /part length [number! series!]
+			/only /dup count [number!] return: [series! bitset! map!]
 		]
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block! object!] value [any-type!] /any return: [any-type!]]
+		--assert blk = [word [any-word! block! object! path! map!] value [any-type!] /any /case /only /some return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<
@@ -351,16 +358,18 @@ Red [
 		***: make op! :infix
 		--assert 7 *** 3 = 73
 
-	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
-		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
-
-		--test-- "infix-2"
-				*+*: make op! :infix2
-			--assert 5 *+* 6 = 106
-
-		--test-- "infix-3"
-			--assert 5 *+* 6 *** 7 = 1067
-	]
+;; Test commented as routine declaration cannot be handled in a code block anymore...
+;;
+;	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
+;		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
+;
+;		--test-- "infix-2"
+;			*+*: make op! :infix2
+;			--assert 5 *+* 6 = 106
+;
+;		--test-- "infix-3"
+;			--assert 5 *+* 6 *** 7 = 1067
+;	]
 
 ===end-group===
 
@@ -403,7 +412,7 @@ Red [
 				"00000"
 			]
 		]
-		--assert "12345" s5-f/extern "12345"
+		--assert "12345" = s5-f/extern "12345"
 		
 	--test-- "scope6 issue #825"
 		s6-text: "abcde"

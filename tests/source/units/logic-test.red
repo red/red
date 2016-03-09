@@ -4,8 +4,8 @@ Red [
 	File: 	 %logic-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -184,20 +184,20 @@ Red [
   --assert not a
   
   --test-- "logic-all-15"
-  --assert not log-foo all [1 = 2]
+  --assert not log-foo make logic! all [1 = 2]
    
   --test-- "logic-all-16"
   --assert log-foo all [1 < 2 3 <> 4]
   
   --test-- "logic-all-17"
-  --assert not log-foo all [1 = 2 3 <> 4]
+  --assert not log-foo make logic! all [1 = 2 3 <> 4]
 
   --test-- "logic-all-18"
     a: log-foo all [1 < 2]
   --assert a 
  
   --test-- "logic-all-19"
-    a: log-foo all [1 = 2]
+    a: log-foo make logic! all [1 = 2]
   --assert not a
   
   --test-- "logic-all-20"

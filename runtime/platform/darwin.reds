@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %darwin.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
@@ -33,10 +33,26 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
+			objc_getClass: "objc_getClass" [
+				class		[c-string!]
+				return:		[integer!]
+			]
+			sel_getUid: "sel_getUid" [
+				name		[c-string!]
+				return:		[integer!]
+			]
+			objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		]
 	]
 
 	page-size: 0
+
+	true-value: 0						;-- Core Foundation: True value
+
+	init-cf-bool: does [
+		dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
+		true-value: objc_msgSend [objc_getClass "NSNumber" sel_getUid "numberWithBool:" 1]
+	]
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -63,6 +79,7 @@ platform: context [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr prot
 	][
+		size: round-to-next size 16
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
@@ -94,5 +111,6 @@ platform: context [
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
+		init-cf-bool
 	]
 ]

@@ -3,12 +3,14 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %POSIX.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
+
+#define OS_DIR_SEP 47						;-- #"/"
 
 #import [									;-- mandatory C bindings
 	LIBC-file cdecl [
@@ -16,6 +18,10 @@ Red/System [
 			signum	[integer!]
 			action	[sigaction!]
 			oldact	[sigaction!]
+			return: [integer!]
+		]
+		sigemptyset: "sigemptyset" [
+			mask	[integer!]
 			return: [integer!]
 		]
 	]
@@ -51,6 +57,10 @@ posix-startup-ctx: context [
 	][
 		error: 99								;-- default unknown error
 		code: info/code
+		
+		system/debug: declare __stack!			;-- allocate a __stack! struct
+		system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
+		system/debug/top: 	as int-ptr! UCTX_GET_STACK_TOP(ctx)
 
 		error: switch signal [
 			SIGILL [
@@ -101,7 +111,10 @@ posix-startup-ctx: context [
 		***-on-quit error UCTX_INSTRUCTION(ctx)
 	]
 
-	init: does [
+	init: func [
+		/local
+			__sigaction-options [sigaction!]
+	][
 		__sigaction-options: declare sigaction!
 
 		__sigaction-options/sigaction: 	as-integer :***-on-signal

@@ -1,12 +1,12 @@
 Red [
 	Title:   "Red base environment definitions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %boot.red
+	File: 	 %datatypes.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -25,12 +25,11 @@ error!:			make datatype! #get-definition TYPE_ERROR
 typeset!:		make datatype! #get-definition TYPE_TYPESET
 file!:			make datatype! #get-definition TYPE_FILE
 url!:			make datatype! #get-definition TYPE_URL
-
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
 refinement!:	make datatype! #get-definition TYPE_REFINEMENT
-;binary!:		make datatype! #get-definition TYPE_BINARY
+binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
@@ -50,6 +49,13 @@ bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 vector!:		make datatype! #get-definition TYPE_VECTOR
+map!:			make datatype! #get-definition TYPE_MAP
+hash!:			make datatype! #get-definition TYPE_HASH
+pair!:			make datatype! #get-definition TYPE_PAIR
+percent!:		make datatype! #get-definition TYPE_PERCENT
+tuple!:			make datatype! #get-definition TYPE_TUPLE
+event!:			make datatype! #get-definition TYPE_EVENT
+image!:			make datatype! #get-definition TYPE_IMAGE
 
 none:  			make none! 0
 true:  			make logic! 1

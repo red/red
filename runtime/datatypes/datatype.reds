@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %datatype.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -88,6 +88,21 @@ datatype: context [
 		]
 	]
 	
+	make-in: func [
+		parent	[red-block!]
+		type	[integer!]
+		return: [red-datatype!]
+		/local
+			dt  [red-datatype!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/make-in"]]
+
+		dt: as red-datatype! ALLOC_TAIL(parent)
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+		dt/value: type
+		dt
+	]
+	
 	push: func [
 		type	[integer!]
 		return: [red-datatype!]
@@ -144,6 +159,8 @@ datatype: context [
 		part	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			name [names!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
@@ -223,6 +240,7 @@ datatype: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

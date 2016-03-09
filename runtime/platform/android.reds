@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %android.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
@@ -48,30 +48,45 @@ prin-unicode-msg: does [
 	print-line "*** Error: logcat does not support Unicode!"
 ]
 
-print-UCS4: func [str [int-ptr!]][						;-- zero-terminated UCS-4 string
+print-UCS4: func [str [int-ptr!] size [integer!]][						;-- UCS-4 string
 	prin-unicode-msg
 ]
 
-print-line-UCS4: func [str [int-ptr!]][					;-- zero-terminated UCS-4 string
+print-line-UCS4: func [str [int-ptr!] size [integer!]][					;-- UCS-4 string
 	prin-unicode-msg
 ]
 
-print-UCS2: func [str [byte-ptr!]][						;-- zero-terminated UCS-2 string
+print-UCS2: func [str [byte-ptr!] size [integer!]][						;-- UCS-2 string
 	prin-unicode-msg
 ]
 
-print-line-UCS2: func [str [byte-ptr!]][				;-- zero-terminated UCS-2 string
+print-line-UCS2: func [str [byte-ptr!] size [integer!]][				;-- UCS-2 string
 	prin-unicode-msg
 ]
 
-print-Latin1: func [str [c-string!]][					;-- zero-terminated Latin-1 string
+print-Latin1: func [str [c-string!] size [integer!]][					;-- Latin-1 string
 	assert str <> null
-	prin* str
+	until [
+		either s/1 = #"^/" [
+			buffer/tail: null-byte
+			android-log-write buffer
+			tail: 1
+		][
+			buffer/tail: s/1
+			tail: tail + 1
+		]
+		s: s + 1
+		size: size - 1
+		any [
+			zero? size
+			tail >= OUTPUT_BUF_SIZE 
+		]
+	]
 ]
 
-print-line-Latin1: func [str [c-string!]][				;-- zero-terminated Latin-1 string
+print-line-Latin1: func [str [c-string!] size [integer!]][				;-- Latin-1 string
 	assert str <> null
-	prin* str
+	print-Latin1 str size
 	prin* "^/"
 ]
 

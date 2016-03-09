@@ -3,10 +3,10 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -14,8 +14,12 @@ system: context [
 	version: #version
 	build:	 #build-date
 		
-	words: func	["Return a block of global words available"][
-		#system [_context/get-words]
+	words: #system [
+		obj: as red-object! stack/push*
+		obj/header: TYPE_OBJECT
+		obj/ctx:	global-ctx
+		obj/class:	-1
+		obj/on-set:	null
 	]
 	
 	platform: func ["Return a word identifying the operating system"][
@@ -32,7 +36,8 @@ system: context [
 	catalog: context [
 		datatypes:
 		actions:
-		natives:
+		natives: none
+		
 		errors: context [
 			throw: object [
 				code:				0
@@ -50,8 +55,8 @@ system: context [
 			syntax: object [
 				code:				200
 				type:				"Syntax error"
-				invalid:			["invalid" :arg1 "--" :arg2]
-				missing:			["missing" :arg2 "at" :arg1]
+				invalid:			["invalid" :arg1 "at" :arg2]
+				missing:			["missing" :arg1 "at" :arg2]
 				no-header:			["script is missing a Red header:" :arg1]
 				no-rs-header:		["script is missing a Red/System header:" :arg1]
 				bad-header:			["script header is not valid:" :arg1]
@@ -80,11 +85,15 @@ system: context [
 				not-related:		["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def:		["invalid function definition:" :arg1]
 				bad-func-arg:		["function argument" :arg1 "is not valid"]
-				bad-func-extern:	["invalid /extern value" :arg1]
+				bad-func-extern:	["invalid /extern value:" :arg1]
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
+				word-first:			["path must start with a word:" :arg1]
+				empty-path:			"cannot evaluate an empty path value"
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
+				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
+				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
 				bad-path-type:		["path" :arg1 "is not valid for" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]
@@ -100,11 +109,12 @@ system: context [
 				size-limit:			["maximum limit reached:" :arg1]
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
-				;locked-word:		["protected variable - cannot modify:" :arg1]
+				locked-word:		["protected word - cannot modify:" :arg1]
 				;protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
-				bad-make-arg:		["cannot MAKE/TO" :arg1 "from:" :arg2]
+				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
+                bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
 				;bad-decode:		"missing or unsupported encoding marker"
@@ -117,7 +127,18 @@ system: context [
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
 				;parse-command:		"PARSE - command cannot be used as variable:" :arg1]
 				parse-invalid-ref:	["PARSE - get-word refers to a different series!" :arg1]
-				parse-series:		["PARSE - input must be a series:" :arg1]
+				parse-block:		["PARSE - input must be of any-block! type:" :arg1]
+				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
+				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
+				parse-stack:		["PARSE - stack limit reached"]
+				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
+				invalid-draw:		["invalid Draw dialect input at:" :arg1]
+				invalid-data-facet: ["invalid DATA facet content" :arg1]
+				face-type:			["VIEW - invalid face type:" :arg1]
+				not-window:			"VIEW - expected a window root face"
+				not-linked:			"VIEW - face not linked to a window"
+				not-event-type:		["VIEW - not a valid event type" :arg1]
+				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
 			]
 			math: object [
 				code:				400
@@ -129,10 +150,11 @@ system: context [
 			access: object [
 				code:				500
 				type:				"Access error"
-				;cannot-open:		["cannot open:" :arg1 "reason:" :arg2]
+				cannot-open:		["cannot open:" :arg1]
+				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
 				;not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
-				;no-connect:		["cannot connect:" :arg1 "reason:" :arg2]
+				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
@@ -179,9 +201,11 @@ system: context [
 				;bad-series:		"invalid series"
 				;limit-hit:			["internal limit reached:" :arg1]
 				;bad-sys-func:		["invalid or missing system function:" :arg1]
+				too-deep:			"block or paren series is too deep to display"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		"error object or fields were not valid"
+				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
 			]
 		]
 
@@ -189,14 +213,15 @@ system: context [
 	
 	state: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
-			#system [logic/box stack/eval?]
+			#system [logic/box stack/eval? null]
 		]
 		
 		last-error: none
+		trace?: yes
 	]
 	
 	modules: make block! 8
-	codecs:  context []
+	codecs:  make map! 8
 	schemes: context []
 	ports:	 context []
 	
@@ -205,6 +230,11 @@ system: context [
 		language*:										;-- in locale language
 		locale:
 		locale*: none									;-- in locale language
+
+		;collation: context [
+		;	lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
+		;	upper-to-lower: #system [stack/set-last as cell! case-folding/upper-to-lower]
+		;]
 
 		months: [
 		  "January" "February" "March" "April" "May" "June"
@@ -219,9 +249,9 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			none
+		path: 			what-dir
 		script: 		none
-		args: 			none
+		args: 			#system [stack/push get-cmdline-args]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none
@@ -255,6 +285,19 @@ system: context [
 				]
 			]
 		]
+
+		on-change*: func [word old new][
+			if word = 'path [set-current-dir new]
+		]
+
+		on-deep-change*: function [owner word target action new index part][
+			if all [
+				word = 'path
+				not find [remove clear take] action
+			][
+				set-current-dir new
+			]
+		]
 	]
 	
 	script: context [
@@ -270,17 +313,7 @@ system: context [
 		]
 	]
 	
-	view: context [
-		screen: 	none
-		event-port: none
-		
-		metrics: context [
-			screen-size: 	none
-			dpi:			none
-			;scaling:		1x1
-		]
-	]
-	
-	lexer: none
-	console: none
+	lexer:		none
+	console:	none
+	view:		none
 ]

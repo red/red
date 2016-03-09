@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -17,20 +17,37 @@ __line-record!: alias struct! [				;-- debug lines records associating code addr
 	file	[integer!]						;-- source file name c-string offset (from first record)
 ]
 
+__func-record!: alias struct! [				;-- debug lines records associating code addresses and source lines
+	entry	[byte-ptr!]						;-- entry point of the funcion
+	name	[integer!]						;-- function's name c-string offset (from first record)
+	arity	[integer!]						;-- function's arity
+	args	[byte-ptr!]						;-- array of arguments types pointer
+]
+
 __debug-lines: declare __line-record!		;-- pointer to first debug-lines record (set at link-time)
+__debug-funcs: declare __func-record!		;-- pointer to first debug-funcs record (set at link-time)
+
+__debug-lines-nb: 0							;-- number of line records to consult (set at link-time)
+__debug-funcs-nb: 0							;-- number of function records to consult (set at link-time)
 
 ;-------------------------------------------
 ;-- Calculate line number for a runtime error and print it (internal function).
 ;-------------------------------------------
 __print-debug-line: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local base records
+	/local base records nb
 ][
 	records: __debug-lines
 	base: as byte-ptr! records
 
+	nb: __debug-lines-nb
 	while [records/address < address][		;-- search for the closest record
 		records: records + 1
+		nb: nb - 1
+		if zero? nb [
+			print [lf "*** Cannot determine source file/line info." lf]
+			exit
+		]
 	]
 	if records/address > address [			;-- if not an exact match, use the closest lower record
 		records: records - 1
@@ -39,6 +56,92 @@ __print-debug-line: func [
 		lf "*** in file: " as-c-string base + records/file
 		lf "*** at line: " records/line
 		lf
+	]
+]
+
+;-------------------------------------------
+;-- Dump the native call stack (internal function).
+;-------------------------------------------
+__print-debug-stack: func [
+	address [byte-ptr!]						;-- memory address where the runtime error happened
+	/local ret base records nb next end top frame s value lines pf [pointer! [float!]] unused
+][
+	base:	as byte-ptr! __debug-funcs
+	frame:	system/debug/frame
+	ret:	as int-ptr! address
+	top:	frame + 2
+	lines:	40								;-- max number of lines displayed
+	print-line "***"
+	
+	until [
+		nb: __debug-funcs-nb
+		records: __debug-funcs
+		until [
+			either nb = 1 [
+				end: records/entry + 00010000h	;-- set arbitrary limit of 100KB for last func size
+			][
+				next: records + 1
+				end: next/entry
+			]
+			if all [
+				records/entry <= ret
+				ret < end
+			][
+				break
+			]
+			records: records + 1
+			nb: nb - 1
+			zero? nb
+		]
+		unless zero? nb [
+			print ["***   stack: " as-c-string base + records/name]
+			if records/args = as int-ptr! -1 [
+				print [lf lf]
+				exit						;-- exit if a "barrier" function is encountered (set by linker)
+			]
+			s: as-c-string base + records/args
+
+			unless zero? records/arity [
+				loop records/arity [
+					print #" "
+					value: top/value
+					switch as-integer s/1 [
+						type-logic!	   [print as-logic value]
+						type-integer!  [print value]
+						type-byte!	   [prin-molded-byte as byte! value]
+						type-float32!  [print as float32! value]
+						type-float!	   [
+							pf: as pointer! [float!] top
+							unused: prin-float pf/value
+							top: top + 1
+						]
+						type-c-string! [
+							#either debug-safe? = yes [
+								print [as byte-ptr! value #"h"]
+							][
+								prin-byte #"^""
+								prin-only as-c-string value 12
+								if 12 < length? as-c-string value [prin-byte #">"]
+								prin-byte #"^""
+							]
+						]
+						default		   [print [as byte-ptr! value #"h"]]
+					]
+					top: top + 1
+					s: s + 1
+				]
+			]
+			print lf
+			lines: lines - 1
+		]
+		
+		top: frame
+		frame: as int-ptr! top/value
+		top: top + 1
+		ret: as int-ptr! top/value
+		top: frame + 2
+		
+		any [zero? nb zero? lines]
 	]
 ]
 

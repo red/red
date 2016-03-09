@@ -1,8 +1,8 @@
 REBOL [
-    Title:   "Builds a set of Red Tests to run on an ARM host"
+    Title:   "Builds a set of Red & Red/System Tests to run on an ARM host"
 	File: 	 %build-arm-tests.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.2.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -15,9 +15,9 @@ system/options/quiet: true
 ;; use win-call if running Rebol 2.7.8 under Windows
 if all [
     system/version/4 = 3
-    system/version/3 = 8              
+    system/version/3 = 8
 ][
-		do %../quick-test/call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 ]
 
@@ -29,16 +29,13 @@ if system/script/args  [
 	    target = "Linux"
 	    target = "Android"
 	    target = "RPi"
+	    target = "Darwin"
 	][
 	    target: none
 	]
 ]
 
-;; init
-file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
-a-file-name: ["%" some file-chars ".red" ] 
-a-test-file: ["--run-test-file-quiet " copy file a-file-name]
-
+;; if no target supplied, ask the user
 unless target [
     target: ask {
         Choose ARM target:
@@ -56,25 +53,25 @@ make-dir/deep arm-dir
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]
 
-;; get the list of test source files
-test-files: copy []
-all-tests: read %run-all.r
-parse/all all-tests [
-	thru "Red Units tests"
-	any [a-test-file (append test-files to file! file) | skip]
-]
+;; build the test files
+do %source/units/run-all-init.r
 
 ;; compile the tests into to runnable/arm-tests/red
 output: copy ""
-foreach test-file test-files [
-    exe: copy find/last/tail test-file "/"
-    exe: replace exe ".red" ""
+foreach file [
+    "run-all-comp1.red"
+    "run-all-comp2.red"
+    "run-all-interp.red"
+][
+    print ["Compiling" file] "..." 
+    test-file: join %source/units/auto-tests/ file
+    exe: replace file ".red" ""
     exe: to-local-file join arm-dir exe
     cmd: join "" [  to-local-file system/options/boot " -sc "
-                    to-local-file clean-path %../red.r
-                    " -t " target " -o " exe " "
-    				to-local-file test-file	
-    			]
+        to-local-file clean-path %../red.r
+        " -t " target " -o " exe " "
+    	to-local-file test-file	
+    ]
     clear output
     call/output cmd output
     print output

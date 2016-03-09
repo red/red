@@ -3,54 +3,62 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %macros.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-#enum datatypes! [
-	TYPE_VALUE
-	TYPE_DATATYPE
-	TYPE_UNSET
-	TYPE_NONE
-	TYPE_LOGIC
-	TYPE_BLOCK
-	TYPE_PAREN
-	TYPE_STRING
-	TYPE_FILE
-	TYPE_URL
-	TYPE_CHAR
-	TYPE_INTEGER
-	TYPE_FLOAT
-	TYPE_SYMBOL
-	TYPE_CONTEXT
-	TYPE_WORD
-	TYPE_SET_WORD
-	TYPE_LIT_WORD
-	TYPE_GET_WORD
-	TYPE_REFINEMENT
-	TYPE_ISSUE
-	TYPE_NATIVE
-	TYPE_ACTION
-	TYPE_OP
-	TYPE_FUNCTION
-	TYPE_PATH
-	TYPE_LIT_PATH
-	TYPE_SET_PATH
-	TYPE_GET_PATH
-	TYPE_ROUTINE
-	TYPE_BITSET
-	TYPE_POINT
-	TYPE_OBJECT
-	TYPE_TYPESET
-	TYPE_ERROR
-	TYPE_VECTOR
-	
-	TYPE_BINARY
+#enum datatypes! [										;-- Order must not be changed!
+	TYPE_VALUE											;-- 00		00
+	TYPE_DATATYPE										;-- 01		01
+	TYPE_UNSET											;-- 02		02
+	TYPE_NONE											;-- 03		03
+	TYPE_LOGIC											;-- 04		04
+	TYPE_BLOCK											;-- 05		05
+	TYPE_PAREN											;-- 06		06
+	TYPE_STRING											;-- 07		07
+	TYPE_FILE											;-- 08		08
+	TYPE_URL											;-- 09		09
+	TYPE_CHAR											;-- 0A		10
+	TYPE_INTEGER										;-- 0B		11
+	TYPE_FLOAT											;-- 0C		12
+	TYPE_SYMBOL											;-- 0D		13
+	TYPE_CONTEXT										;-- 0E		14
+	TYPE_WORD											;-- 0F		15
+	TYPE_SET_WORD										;-- 10		16
+	TYPE_LIT_WORD										;-- 11		17
+	TYPE_GET_WORD										;-- 12		18
+	TYPE_REFINEMENT										;-- 13		19
+	TYPE_ISSUE											;-- 14		20
+	TYPE_NATIVE											;-- 15		21
+	TYPE_ACTION											;-- 16		22
+	TYPE_OP												;-- 17		23
+	TYPE_FUNCTION										;-- 18		24
+	TYPE_PATH											;-- 19		25
+	TYPE_LIT_PATH										;-- 1A		26
+	TYPE_SET_PATH										;-- 1B		27
+	TYPE_GET_PATH										;-- 1C		28
+	TYPE_ROUTINE										;-- 1D		29
+	TYPE_BITSET											;-- 1E		30
+	TYPE_POINT											;-- 1F		31
+	TYPE_OBJECT											;-- 20		32
+	TYPE_TYPESET										;-- 21		33
+	TYPE_ERROR											;-- 22		34
+	TYPE_VECTOR											;-- 23		35
+	TYPE_HASH											;-- 24		36
+	TYPE_PAIR											;-- 25		37
+	TYPE_PERCENT										;-- 26		38
+	TYPE_TUPLE											;-- 27		39
+	TYPE_MAP											;-- 28		40
+	TYPE_BINARY											;-- 29		41
+	TYPE_SERIES											;-- 2A		42
+	TYPE_IMAGE											;-- 2B		43
+	TYPE_EVENT											;-- 2C		44
 	TYPE_CLOSURE
 	TYPE_PORT
+	
 ]
 
 #enum actions! [
@@ -102,6 +110,7 @@ Red/System [
 	ACT_NEXT
 	ACT_PICK
 	ACT_POKE
+	ACT_PUT
 	ACT_REMOVE
 	ACT_REVERSE
 	ACT_SELECT
@@ -162,7 +171,6 @@ Red/System [
 	NAT_GREATER_OR_EQUAL?
 	NAT_SAME?
 	NAT_NOT
-	NAT_HALT
 	NAT_TYPE?
 	NAT_REDUCE
 	NAT_COMPOSE
@@ -174,6 +182,7 @@ Red/System [
 	NAT_INTERSECT
 	NAT_UNIQUE
 	NAT_DIFFERENCE
+	NAT_EXCLUDE
 	NAT_COMPLEMENT?
 	NAT_DEHEX
 	NAT_NEGATIVE?
@@ -198,6 +207,21 @@ Red/System [
 	NAT_CONSTRUCT
 	NAT_VALUE?
 	NAT_TRY
+	NAT_UPPERCASE
+	NAT_LOWERCASE
+	NAT_AS_PAIR
+	NAT_BREAK
+	NAT_CONTINUE
+	NAT_EXIT
+	NAT_RETURN
+	NAT_THROW
+	NAT_CATCH
+	NAT_EXTEND
+	NAT_DEBASE
+	NAT_TO_LOCAL_FILE
+	NAT_REQUEST_FILE
+	NAT_WAIT
+	NAT_REQUEST_DIR
 ]
 
 #enum math-op! [
@@ -210,6 +234,12 @@ Red/System [
 	OP_OR
 	OP_AND
 	OP_XOR
+	;-- set op!
+	OP_UNIQUE
+	OP_UNION
+	OP_INTERSECT
+	OP_EXCLUDE
+	OP_DIFFERENCE
 ]
 
 #enum comparison-op! [
@@ -225,13 +255,17 @@ Red/System [
 ]
 
 #enum exceptions! [
-	NO_EXCEPTION
-	THROWN_EXIT
-	THROWN_RETURN
+	RED_NO_EXCEPTION
+	RED_THROWN_THROW:		195939000
+	RED_THROWN_EXIT
+	RED_THROWN_RETURN
+	RED_THROWN_CONTINUE
+	RED_THROWN_BREAK
+	RED_THROWN_ERROR:		195939070				;-- #0BADCAFE (keep it positive)
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		60							;-- number of actions (exact number)
+#define ACTIONS_NB		61							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [
@@ -240,9 +274,9 @@ Red/System [
 	#define ------------| 	comment
 ]
 
-#define RED_ERROR			195939070				;-- #0BADCAFE (keep it positive)
-
 #define TYPE_OF(value)		(value/header and get-type-mask)
+#define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
+#define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
 #define ALLOC_TAIL(series)	[alloc-at-tail series]
@@ -301,6 +335,19 @@ Red/System [
 		type = TYPE_STRING
 		type = TYPE_FILE
 		type = TYPE_URL
+		type = TYPE_BINARY
+		type = TYPE_IMAGE
+	]
+]
+
+#define ANY_BLOCK?(type)	[
+	any [									;@@ replace with ANY_BLOCK?
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
 	]
 ]
 
@@ -317,6 +364,11 @@ Red/System [
 #define BS_TEST_BIT(array bit set?)  [
 	pos: array + (bit >> 3)
 	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
+]
+
+#define BS_TEST_BIT_ALT(ts bit) [
+	pos: ((as byte-ptr! ts) + 4) + (bit >> 3)
+	pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
 ]
 
 #define BS_PROCESS_SET_VIRTUAL(bs bit) [
@@ -380,6 +432,9 @@ Red/System [
 #define SIGN_COMPARE_RESULT(a b) [
 	either a < b [-1][either a > b [1][0]]
 ]
+
+#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_HEIGHT(size) (size >> 16)
 
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]

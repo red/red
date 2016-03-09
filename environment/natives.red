@@ -1,12 +1,12 @@
 Red [
 	Title:   "Red base environment definitions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %boot.red
+	File: 	 %natives.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -50,7 +50,7 @@ all: make native! [[
 ]
 
 while: make native! [[
-		"Evaluates body until condition is true"
+		"Evaluates body as long as condition is true"
 		cond [block!]
 		body [block!]
 	]
@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series!]
+		series [series! map!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -104,11 +104,6 @@ forall: make native! [[
 	]
 	#get-definition NAT_FORALL
 ]
-
-;break: make native! [
-;	[]													;@@ add /return option
-;	none
-;]
 
 func: make native! [[
 		"Defines a function with a given spec and body"
@@ -163,6 +158,8 @@ case: make native! [[
 do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
+		/args "If value is a script, this will set its system/script/args"
+			arg "Args passed to a script (normally a string)"
 	]
 	#get-definition NAT_DO
 ]
@@ -178,7 +175,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value [block!]
+		value
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
@@ -189,8 +186,9 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word!]
-		/any "If word has no value, return UNSET rather than causing an error"
+		word	[word! path!]
+		/any  "If word has no value, return UNSET rather than causing an error"
+		/case "Use case-sensitive comparison (path only)"
 		return: [any-type!]
 	] 
 	#get-definition NAT_GET
@@ -198,9 +196,12 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block! object!] "Word, object or block of words to set"
+		word	[any-word! block! object! path! map!] "Word, object, map or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
-		/any "Allow UNSET as a value rather than causing an error"
+		/any  "Allow UNSET as a value rather than causing an error"
+		/case "Use case-sensitive comparison (path only)"
+		/only "Block or object value argument is set as a single value"
+		/some "None values in a block or object value argument, are not set"
 		return: [any-type!]
 	]
 	#get-definition NAT_SET
@@ -291,12 +292,6 @@ not: make native! [[
 	#get-definition NAT_NOT
 ]
 
-halt: make native! [[
-		"Stops evaluation"
-	]
-	#get-definition NAT_HALT
-]
-
 type?: make native! [[
 		"Returns the datatype of a value"
 		value [any-type!]
@@ -316,7 +311,7 @@ stats: make native! [[
 
 bind: make native! [[
 		word 	[block! any-word!]
-		context [any-word! any-object!]
+		context [any-word! any-object! function!]
 		/copy
 		return: [block! any-word!]
 	]
@@ -352,14 +347,62 @@ parse: make native! [[
 ]
 
 union: make native! [[
-		set1 [block! string! bitset! typeset!]
-		set2 [block! string! bitset! typeset!]
-		/case
+		"Returns the union of two data sets"
+		set1 [block! hash! string! bitset! typeset!]
+		set2 [block! hash! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return: [block! string! bitset! typeset!]
+		return: [block! hash! string! bitset! typeset!]
 	]
 	#get-definition NAT_UNION
+]
+
+unique: make native! [[
+		"Returns the data set with duplicates removed"
+		set [block! hash! string!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! hash! string!]
+	]
+	#get-definition NAT_UNIQUE
+]
+
+intersect: make native! [[
+		"Returns the intersection of two data sets"
+		set1 [block! hash! string! bitset! typeset!]
+		set2 [block! hash! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! hash! string! bitset! typeset!]
+	]
+	#get-definition NAT_INTERSECT
+]
+
+difference: make native! [[
+		"Returns the special difference of two data sets"
+		set1 [block! hash! string! bitset! typeset!]
+		set2 [block! hash! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! hash! string! bitset! typeset!]
+	]
+	#get-definition NAT_DIFFERENCE
+]
+
+exclude: make native! [[
+		"Returns the first data set less the second data set"
+		set1 [block! hash! string! bitset! typeset!]
+		set2 [block! hash! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! hash! string! bitset! typeset!]
+	]
+	#get-definition NAT_EXCLUDE
 ]
 
 complement?: make native! [[
@@ -392,34 +435,34 @@ positive?: make native! [[
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series!]
-		value2 [number! series!]
+		value1 [number! series! char!]
+		value2 [number! series! char!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series!]
-		value2 [number! series!]
+		value1 [number! series! char!]
+		value2 [number! series! char!]
 	]
 	#get-definition NAT_MIN
 ]
 
 shift: make native! [[
 		"Perform a bit shift operation. Right shift (decreasing) by default"
-		data	[integer! binary!]
+		data	[integer!]
 		bits	[integer!]
 		/left	 "Shift bits to the left (increasing)"
 		/logical "Use logical shift (unsigned, fill with zero)"
-		return: [integer! binary!]
+		return: [integer!]
 	]
 	#get-definition NAT_SHIFT
 ]
 
 to-hex: make native! [[
 		"Converts numeric value to a hex issue! datatype (with leading # and 0's)"
-		value	[integer! tuple!]
+		value	[integer!]
 		/size "Specify number of hex digits in result"
 			length [integer!]
 		return: [issue!]
@@ -548,7 +591,7 @@ construct: make native! [[
 
 value?: make native! [[
 		"Returns TRUE if the word has a value"
-		value	[word!]
+		value
 		return: [logic!]
 	]
 	#get-definition NAT_VALUE?
@@ -557,6 +600,144 @@ value?: make native! [[
 try: make native! [[
 		"Tries to DO a block and returns its value or an error"
 		block	[block!]
+		/all "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions"
 	]
 	#get-definition NAT_TRY
+]
+
+uppercase: make native! [[
+		"Converts string of characters to uppercase"
+		string		[any-string! char!]
+		/part "Limits to a given length or position"
+			limit	[number! any-string!]
+		return: 	[any-string! char!]
+	]
+	#get-definition NAT_UPPERCASE
+]
+
+lowercase: make native! [[
+		"Converts string of characters to lowercase"
+		string		[any-string! char!]
+		/part "Limits to a given length or position"
+			limit	[number! any-string!]
+		return:		[any-string! char!]
+	]
+	#get-definition NAT_LOWERCASE
+]
+
+as-pair: make native! [[
+		"Combine X and Y values into a pair"
+		x [integer! float!]
+		y [integer! float!]
+	]
+	#get-definition NAT_AS_PAIR
+]
+
+break: make native! [[
+		"Breaks out of a loop, while, until, repeat, foreach, etc"
+		/return "Forces the loop function to return a value"
+			value [any-type!]
+	]
+	#get-definition NAT_BREAK
+]
+
+continue: make native! [[
+		"Throws control back to top of loop"
+	]
+	#get-definition NAT_CONTINUE
+]
+
+exit: make native! [[
+		"Exits a function, returning no value"
+	]
+	#get-definition NAT_EXIT
+]
+
+return: make native! [[
+		"Returns a value from a function"
+		value [any-type!]
+	]
+	#get-definition NAT_RETURN
+]
+
+throw: make native! [[
+		"Throws control back to a previous catch"
+		value [any-type!] "Value returned from catch"
+		/name "Throws to a named catch"
+			word [word!]
+	]
+	#get-definition NAT_THROW
+]
+
+catch: make native! [[
+		"Catches a throw from a block and returns its value"
+		block [block!] "Block to evaluate"
+		/name "Catches a named throw"
+			word [word! block!] "One or more names"
+	]
+	#get-definition NAT_CATCH
+]
+
+extend: make native! [[
+		"Extend an object or map value with list of key and value pairs"
+		obj  [object! map!]
+		spec [block! hash! map!]
+		/case "Use case-sensitive comparison"
+	]
+	#get-definition NAT_EXTEND
+]
+
+debase: make native! [[
+		"Decodes binary-coded string (BASE-64 default) to binary value"
+		value [string!] "The string to decode"
+		/base "Binary base to use"
+			base-value [integer!] "The base to convert from: 64, 16, or 2"
+	]
+	#get-definition NAT_DEBASE
+]
+
+to-local-file: make native! [[
+		"Converts a Red file path to the local system file path"
+		path  [file! string!]
+		/full "Prepends current dir for full path (for relative paths only)"
+		return: [string!]
+	]
+	#get-definition NAT_TO_LOCAL_FILE
+]
+
+request-file: make native! [[
+		"Asks user to select a file and returns full file path (or block of paths)"
+		/title	"Window title"
+			text [string!]
+		/file	"Default file name or directory"
+			name [string! file!]
+		/filter	"Block of filters (filter-name filter)"
+			list [block!]
+		/save	"File save mode"
+		/multi	"Allows multiple file selection, returned as a block"
+	]
+	#get-definition NAT_REQUEST_FILE
+]
+
+request-dir: make native! [[
+		"Asks user to select a directory and returns full directory path (or block of paths)"
+		/title	"Window title"
+			text [string!]
+		/dir	"Set starting directory"
+			name [string! file!]
+		/filter	"TBD: Block of filters (filter-name filter)"
+			list [block!]
+		/keep	"Keep previous directory path"
+		/multi	"TBD: Allows multiple file selection, returned as a block"
+	]
+	#get-definition NAT_REQUEST_DIR
+]
+
+wait: make native! [[
+		"Waits for a duration, port, or both"
+		value [number! block! none!]
+		/all "Returns all in a block"
+		/only "Only check for ports given in the block to this function"
+	]
+	#get-definition NAT_WAIT
 ]

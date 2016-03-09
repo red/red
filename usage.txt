@@ -1,7 +1,7 @@
 
 Usage: red [options] [file]
 
-[file]: any Red or Red/System source file. Any Red or Red/System source file. If no file and no option is provided, the REPL will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
+[file]: any Red or Red/System source file. If no file and no option is provided, the interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
 [options]:
     -c, --compile                  : Generate an executable in the working
@@ -43,6 +43,7 @@ Cross-compilation targets:
     RPi          : GNU/Linux, ARMv5, armhf (hard-float)
     Darwin       : Mac OS X Intel, console-only applications
     Syllable     : Syllable OS, x86
+    FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
     Android-x86	 : Android, x86
 	

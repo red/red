@@ -3,10 +3,10 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%POSIX.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Freely inspired by linenoise fork from msteveb:
@@ -240,10 +240,10 @@ check-special: func [
 		c2 [byte!]
 ][
 	c: fd-read-char 50
-	if (as-integer c) < 0 [return 27]
+	if (as-integer c) > 127 [return 27]
 
 	c2: fd-read-char 50
-	if (as-integer c) < 0 [return as-integer c2]
+	if (as-integer c2) > 127 [return as-integer c2]
 
 	if any [c = #"[" c = #"O"][
 		switch c2 [
@@ -441,16 +441,16 @@ init: func [
 		term [termios!]
 		cc	 [byte-ptr!]
 		so	 [sigaction!]
+		mask [integer!]
 ][
 	relative-y: 0
 	utf-char: as-c-string allocate 10
-
-	copy-cell as red-value! line as red-value! input-line
-	copy-cell as red-value! hist-blk as red-value! history
-
+	
 	so: declare sigaction!						;-- install resizing signal trap
+	mask: (as-integer so) + 4
+	sigemptyset mask
 	so/sigaction: as-integer :on-resize
-	so/flags: 	SA_SIGINFO ;or SA_RESTART
+	so/flags: 0
 	sigaction SIGWINCH so as sigaction! 0
 
 	term: declare termios!

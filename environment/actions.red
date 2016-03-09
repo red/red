@@ -1,12 +1,12 @@
 Red [
 	Title:   "Red base environment definitions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %boot.red
+	File: 	 %actions.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -14,8 +14,8 @@ Red [
 
 make: make action! [[									;--	this one works!	;-)
 		"Returns a new value made from a spec for that value's type"
-		type	 [any-type!] "The datatype or a prototype value"
-		spec	 [any-type!] "The specification	of the new value"
+		type	 [any-type!] "The datatype, an example or prototype value"
+		spec	 [any-type!] "The specification of the new value"
 		return:  [any-type!] "Returns the specified datatype"
 	]
 	#get-definition ACT_MAKE
@@ -23,7 +23,7 @@ make: make action! [[									;--	this one works!	;-)
 
 random: make action! [[
 		"Returns a random value of the same datatype; or shuffles series"
-		value   [any-type!] "Maximum value of result (modified when series)"
+		value	"Maximum value of result (modified when series)"
 		/seed   "Restart or randomize"
 		/secure "TBD: Returns a cryptographically secure random number"
 		/only	"Pick a random value from a series"
@@ -71,47 +71,58 @@ mold: make action! [[
 	#get-definition ACT_MOLD
 ]
 
+modify: make action! [[
+		"Change mode for target aggregate value"
+		target	 [object! series!]
+		field 	 [word!]
+		value 	 [any-type!]
+		/case "Perform a case-sensitive lookup"
+		return:  [map! file!]
+	]
+	#get-definition ACT_MODIFY
+]
+
 ;-- Scalar actions --
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number!]
-		return:  [number!]
+		value	 [number! pair!]
+		return:  [number! pair!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char!] "The dividend (numerator)"
-		value2	 [number! char!] "The divisor (denominator)"
-		return:  [number! char!]
+		value1	 [number! char! pair! tuple! vector!] "The dividend (numerator)"
+		value2	 [number! char! pair! tuple! vector!] "The divisor (denominator)"
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! bitset! pair!]
+		return:  [number! bitset! pair!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -127,24 +138,11 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char!]
-		value2 	 [number! char!]
-		return:  [number! char!]
+		value1 	 [number! char! pair! tuple! vector!]
+		value2 	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_REMAINDER
-]
-
-modulo: func [
-	"Compute a nonnegative remainder of A divided by B"
-	a		[number!]
-	b		[number!]
-	return: [number!]
-	/local r
-][
-	b: absolute b
-    all [0 > r: a % b r: r + b]
-    a: absolute a
-    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
 ]
 
 round: make action! [[
@@ -164,9 +162,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -191,35 +189,35 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_AND~
 ]
 
 complement: make action! [[
 		"Returns the opposite (complementing) value of the input value"
-		value	[logic! integer! bitset! typeset!]
-		return: [logic! integer! bitset! typeset!]
+		value	[logic! integer! bitset! typeset! binary!]
+		return: [logic! integer! bitset! typeset! binary!]
 	]
 	#get-definition ACT_COMPLEMENT
 ]
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_XOR~
 ]
@@ -228,14 +226,14 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series!]
+		series	   [series! bitset! map!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series!]
+		return:    [series! bitset! map!]
 	]
 	#get-definition ACT_APPEND
 ]
@@ -261,28 +259,28 @@ back: make action! [[
 
 clear: make action! [[
 		"Removes series values from current index to tail; returns new tail"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! bitset! map! none!]
+		return:  [series! bitset! map! none!]
 	]
 	#get-definition ACT_CLEAR
 ]
 
 copy: make action! [[
 		"Returns a copy of a non-scalar value"
-		value	 [series!]
+		value	 [series! any-object! bitset! map!]
 		/part	 "Limit the length of the result"
 			length [number! series!]
 		/deep	 "Copy nested values"
 		/types	 "Copy only specific types of non-scalar values"
 			kind [datatype!]
-		return:  [series!]
+		return:  [series! any-object! bitset! map!]
 	]
 	#get-definition ACT_COPY
 ]
 
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
-		series	 [series! none!]
+		series	 [series! bitset! typeset! any-object! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]
@@ -318,8 +316,8 @@ head?: make action! [[
 ]
 
 index?: make action! [[
-		"Returns the current series index, relative to the head"
-		series	 [series!]
+		"Returns the current index of series relative to the head, or of word in a context"
+		series	 [series! word!]
 		return:  [integer!]
 	]
 	#get-definition ACT_INDEX?
@@ -327,22 +325,22 @@ index?: make action! [[
 
 insert: make action! [[
 		"Inserts value(s) at series index; returns series head"
-		series	   [series!]
+		series	   [series! bitset! map!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series!]
+		return:    [series! bitset! map!]
 	]
 	#get-definition ACT_INSERT
 ]
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail"
-		series	 [series!]
-		return:  [integer!]
+		series	 [series! bitset! map! tuple! none!]
+		return:  [integer! none!]
 	]
 	#get-definition ACT_LENGTH?
 ]
@@ -358,8 +356,8 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series!]
-		index 	 [integer! logic!]
+		series	 [series! bitset! pair! tuple!]
+		index 	 [scalar! any-string! any-word! block! logic!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
@@ -367,37 +365,48 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series!]
-		index 	 [integer! logic!]
+		series	 [series! bitset! tuple!]
+		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
-		return:  [series!]
+		return:  [series! bitset!]
 	]
 	#get-definition ACT_POKE
 ]
 
+put: make action! [[
+		"Replaces the value following a key, and returns the new value"
+		series	 [series! map! object!]
+		key 	 [scalar! any-string! any-word!]
+		value 	 [any-type!]
+		/case "Perform a case-sensitive search"
+		return:  [series! map! object!]
+	]
+	#get-definition ACT_PUT
+]
+
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
-		series	 [series! none!]
+		series	 [series! bitset! none!]
 		/part "Removes a number of values, or values up to the given series index"
-			length [number! series!]
-		return:  [series! none!]
+			length [number! char! series!]
+		return:  [series! bitset! none!]
 	]
 	#get-definition ACT_REMOVE
 ]
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! gob! tuple! pair!]
+		series	 [series! pair! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
-		return:  [series! gob! tuple! pair!]
+		return:  [series! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE
 ]
 
 select: make action! [[
 		"Find a value in a series and return the next value, or NONE"
-		series	 [series! none!]
+		series	 [series! any-object! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]
@@ -469,9 +478,9 @@ tail?: make action! [[
 
 take: make action! [[
 		"Removes and returns one or more elements"
-		series	 [series!]
+		series	 [series! none!]
 		/part	 "Specifies a length or end position"
-			length [number! series! pair!]
+			length [number! series!]
 		/deep	 "Copy nested values"
 		/last	 "Take it from the tail end"
 	]
@@ -480,14 +489,14 @@ take: make action! [[
 
 trim: make action! [[
 		"Removes space from a string or NONE from a block or object"
-		series	[series! object! error! module!]
+		series	[series! object! error! map!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
 		/lines	"Removes all line breaks and extra spaces"
 		/all	"Removes all whitespace"
 		/with	"Same as /all, but removes characters in 'str'"
-			str [char! string! binary! integer!]
+			str [char! string! integer!]
 	]
 	#get-definition ACT_TRIM
 ]
@@ -497,11 +506,42 @@ trim: make action! [[
 ;create
 ;close
 ;delete
-;modify
 ;open
 ;open?
 ;query
-;read
+read: make action! [[
+		"Read from a file, URL, or other port"
+		source	[file! url!]
+		/part	"Partial read a given number of units (source relative)"
+			length [number!]
+		/seek	"Read from a specific position (source relative)"
+			index [number!]
+		/binary	"Preserves contents exactly"
+		/lines	"Convert to block of strings"
+		/info
+		/as		"Read with the specified encoding, default is 'UTF-8"
+			encoding [word!]
+	]
+	#get-definition ACT_READ
+]
 ;rename
 ;update
-;write
+write: make action! [[
+		"Writes to a file, URL, or other port"
+		destination	[file! url!]
+		data		[any-type!]
+		/binary	"Preserves contents exactly"
+		/lines	"Write each value in a block as a separate line"
+		/info
+		/append "Write data at end of file"
+		/part	"Partial write a given number of units"
+			length	[number!]
+		/seek	"Write at a specific position"
+			index	[number!]
+		/allow	"Specifies protection attributes"
+			access	[block!]
+		/as		"Write with the specified encoding, default is 'UTF-8"
+			encoding [word!]
+	]
+	#get-definition ACT_WRITE
+]

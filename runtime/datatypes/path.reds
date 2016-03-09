@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -25,6 +25,7 @@ path: context [
 		p/header: TYPE_PATH								;-- implicit reset of all header flags
 		p/head:   0
 		p/node:   alloc-cells size
+		p/args:	  null
 		push p
 		p
 	]
@@ -35,6 +36,7 @@ path: context [
 		#if debug? = yes [if verbose > 0 [print-line "path/push"]]
 
 		p/header: TYPE_PATH								;@@ type casting (from block! to path!)
+		p/args:	  null
 		copy-cell as red-value! p stack/push*
 	]
 
@@ -52,6 +54,7 @@ path: context [
 
 		path: as red-path! block/make proto spec
 		path/header: TYPE_PATH
+		path/args:	 null
 		path
 	]
 	
@@ -145,8 +148,8 @@ path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/copy"]]
 
-		path: as red-path! block/copy as red-block! path as red-path! new arg deep? types
-		path/header: TYPE_PATH
+		path: as red-path! block/copy as red-block! path as red-block! new arg deep? types
+		path/args:	 null
 		as red-series! path
 	]
 	
@@ -157,8 +160,8 @@ path: context [
 			"path!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
-			null			;reflect
+			null			;random
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
@@ -198,6 +201,7 @@ path: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -212,7 +216,7 @@ path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

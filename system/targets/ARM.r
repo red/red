@@ -3,8 +3,8 @@ REBOL [
 	Author:		"Andreas Bolka, Nenad Rakocevic"
 	File:		%ARM.r
 	Tabs:	 4
-	Rights:		"Copyright (C) 2011-2012 Andreas Bolka, Nenad Rakocevic. All rights reserved."
-	License:	"BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:		"Copyright (C) 2011-2015 Andreas Bolka, Nenad Rakocevic. All rights reserved."
+	License:	"BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 make-profilable make target-class [
@@ -17,7 +17,7 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
-	locals-offset:		4							;-- offset from frame pointer to local variables (catch ID + addr)
+	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	insn-size:			4
 
 	
@@ -390,7 +390,7 @@ make-profilable make target-class [
 			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 			#{092d0001}			; PUSHEQ {r0}
-			#{0a000000}			; BEQ ***-on-quit		; call runtime error handler
+			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
 			#{e1500001}			; CMP r0, r1			; if dividend = divisor
 			#{0a00000b}			; BEQ .equal
 			#{e1a03000}			; MOV r3, r0			; r3: dividend
@@ -479,7 +479,7 @@ make-profilable make target-class [
  			emit-i32 opcode
  		]
  		;-- link it with runtime error handler
- 		append emitter/symbols/***-on-quit/3 base + (4 * insn-size)
+ 		append emitter/symbols/***-on-div-error/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
@@ -541,8 +541,9 @@ make-profilable make target-class [
 			compiler/job/runtime?
 			compiler/job/need-main?
 		][
-			emit-pop								;-- pop zero padding
-			emit-pop								;-- pop CATCH_ALL barrier
+			emit-i32 #{e1a0d00b}					;-- MOV sp, fp		; unwind root frame
+			emit-pop								;-- pop exceptions threshold slot
+			emit-pop								;-- pop exceptions address slot
 			emit-i32 #{e8bd0800}					;-- POP {fp}
 			emit-epilog '***_start [] 7 * 4 0		;-- restore all before returning in __libc_start_main()
 		]
@@ -1033,7 +1034,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit-i32 #{e8bd0001}						;-- POP {r0}
 	]
-	
+
+	emit-log-b: func [type][
+		emit-i32 #{e16f0f10}						;-- CLZ r0, r0
+		emit-i32 #{e260001f}						;-- RSB r0, r0, #31
+	]
+
 	emit-pop-float: func [idx [integer!] /with type [block!]][
 		if with [width: select emitter/datatypes type/1]
 		emit-float
@@ -1046,12 +1052,11 @@ make-profilable make target-class [
 	
 	emit-push-float: func [idx [integer!] type [block!]][
 		width: select emitter/datatypes type/1
+		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+			to char! width
 		emit-float
 			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
 			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
-
-		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
-			to char! width
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -1272,6 +1277,7 @@ make-profilable make target-class [
 				do store-word
 			]
 			string! paren! [
+				if spec [emit-load-literal-ptr spec/2]
 				do store-word
 			]
 		]
@@ -1417,7 +1423,7 @@ make-profilable make target-class [
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
-			if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
+			if size <> 8 [emit-swap-regs/alt]		;-- save value/restore address
 		]
 
 		switch type [
@@ -1450,15 +1456,30 @@ make-profilable make target-class [
 		]
 	]
 	
-	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
+	emit-start-loop: does [
+		emit-i32 #{e92d0001}						;-- PUSH {r0}
+	]
+
+	emit-end-loop: does [
+		emit-i32 #{e8bd0001}						;-- POP {r0}
+		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
+	]
+	
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
-			at code-buf ptr
+			at buffer offset
+			reverse to-bin24 shift negate offset + 4 2
+	]
+	
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
+		change 
+			at buffer ptr
 			reverse to-bin24 shift exit-point - ptr - (2 * branch-offset-size) 2
 	]
 	
-	emit-exit: does [
-		if verbose >= 3 [print ">>>exiting function"]
-		emit-reloc-addr emitter/exits
+	emit-jump-point: func [type [block!]][
+		if verbose >= 3 [print ">>>emitting jump point"]
+		emit-reloc-addr type
 		emit-i32 #{ea000000}						;-- B <disp>
 	]
 	
@@ -2118,15 +2139,21 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-hf-return: func [spec [block!] /local type][
+	emit-hf-return: func [spec [block!] /reverse /local type][
 		if all [
 			compiler/job/ABI = 'hard-float
 			find [float! float64! float32!] type: select spec first [return:]
 		][
 			width: select emitter/datatypes type/1
-			emit-float
-				#{ec510b10}							;-- FMRRD r0, r1, d0
-				#{ee100a10}							;-- FMRS r0, s0
+			either reverse [
+				emit-float
+					#{ec410b10}						;-- FMDRR d0, r0, r1, d0
+					#{ee000a10}						;-- FMSR s0, r0
+			][
+				emit-float
+					#{ec510b10}						;-- FMRRD r0, r1, d0
+					#{ee100a10}						;-- FMRS r0, s0
+			]
 		]
 	]
 
@@ -2260,19 +2287,66 @@ make-profilable make target-class [
 		emit-i32 #{e1a0d00c}                        ;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
 	]
 	
-	emit-throw: func [value [integer! word!]][
+	emit-throw: func [value [integer! word!] /thru][
 		emit-load value
-
-		emit-i32 #{e1a0d00b}						;-- 		MOV sp, fp		; unwind 1st frame
-		emit-i32 #{e8bd4800}						;-- 		POP {fp,lr}
+		unless thru [
+			emit-i32 #{e1a0d00b}					;-- 		MOV sp, fp		; unwind 1st frame
+			emit-i32 #{e8bd4800}					;-- 		POP {fp,lr}
+		]
 		emit-i32 #{e24bd004}						;-- _loop:	SUB sp, fp, #4
-		emit-i32 #{e8bd0004}						;-- 		POP {r2} 		; get flag
-		emit-i32 #{e1520000}						;-- 		CMP r2, r0
+		emit-i32 #{e8bd0002}						;-- 		POP {r1} 		; get flag
+		emit-i32 #{e1510000}						;-- 		CMP r1, r0
 		emit-i32 #{38bd4800}						;-- 		POPLO {fp,lr} 	; unwind frame if r2 < r0
 		emit-i32 #{3afffffa}						;-- 		BLO _loop		; next frame
-													;-- _exit:  
+		emit-i32 #{e1a02000}						;--			MOV r2, r0		; save r0
+
 		emitter/access-path to set-path! 'system/thrown <last>
-		emit-i32 #{e1a0f00e}						;--			MOV pc, lr
+		emit-i32 #{e3710001}						;--			CMN r1, 1		; compare with 2's complement
+		emit-i32 #{1a000003}						;--			BNE _next
+		emit-load-local #{e59b1000} 0				;--			LDR r1, [fp, 0]
+		emit-i32 #{e1510002}						;-- 		CMP r1, r2
+		emit-load-local #{259b1000} 4				;--			LDRHS r1, [fp, 4]
+		emit-i32 #{21a0f001}						;--			MOVHS pc, r1
+		emit-load-local #{e59b1000} -8				;--	_next:	LDR r1, [fp, -8]
+		emit-i32 #{e3510000}						;--			CMP r1, 0
+		emit-i32 #{11a0f001}						;--			MOVNE pc, r1
+		emit-i32 #{e35e0000}						;--			CMP lr, 0
+		emit-i32 #{11a0f00e}						;--			MOVNE pc, lr
+	]
+	
+	emit-open-catch: func [body-size [integer!] global? [logic!]][
+		either global? [
+			emit-op-imm32 #{e28f2000} body-size	+ 4	;-- ADD r2, pc, #value
+			emit-i32 #{e58b2004}					;-- STR r2, [fp, 4]
+			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
+			12
+		][
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			12
+		]
+	]
+
+	emit-close-catch: func [offset [integer!] global? [logic!]][
+		either global? [
+			emit-i32 #{e3a00000}					;-- MOV r0, 0
+			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
+			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
+			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
+		][
+			emit-i32 #{e3a00000}					;-- MOV r0, 0
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			;offset: offset + 8						;-- account for the 2 catch slots on stack 
+			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			either offset > 255 [
+				emit-load-imm32/reg offset 4
+				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
+			][
+				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, locals-size
+			]
+		]
 	]
 
 	emit-prolog: func [
@@ -2330,7 +2404,7 @@ make-profilable make target-class [
 						emit-push-float fargs-nb - freg arg 		 ;-- push in reverse order
 						freg: freg + 1
 					][
-						emit-i32 #{e92d00}		;-- PUSH {r<n>}
+						emit-i32 #{e92d00}			;-- PUSH {r<n>}
 						emit-i32 to char! shift/left 1 args-nb - reg ;-- push in reverse order
 						reg: reg + 1
 					]
@@ -2354,7 +2428,7 @@ make-profilable make target-class [
 		emit-i32 #{e1a0b00d}						;-- MOV fp, sp
 		
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
-		emit-push 0									;-- keep stack aligned on 64-bit
+		emit-push 0									;-- reserve slot for catch resume address
 		
 		unless zero? locals-size [
 			locals-size: round/to/ceiling locals-size 4
@@ -2398,7 +2472,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-hf-return fspec/4
+			emit-hf-return/reverse fspec/4
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr

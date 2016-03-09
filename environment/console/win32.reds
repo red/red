@@ -3,10 +3,10 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%win32.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Freely inspired by linenoise fork from msteveb:
@@ -260,9 +260,6 @@ init: func [
 	/local
 		mode	[integer!]
 ][
-	copy-cell as red-value! line as red-value! input-line
-	copy-cell as red-value! hist-blk as red-value! history
-
 	GetConsoleMode stdin :saved-con
 	mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
 	mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text

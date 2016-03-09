@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %logic.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -83,6 +83,21 @@ logic: context [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]
+	]
+	
+	make-in: func [
+		parent	 [red-block!]
+		value 	 [logic!]
+		return:	 [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/make-in"]]
+
+		cell: as red-logic! ALLOC_TAIL(parent)
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		cell/value: value
+		cell
 	]
 	
 	push: func [
@@ -303,6 +318,7 @@ logic: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %char.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -17,8 +17,15 @@ char: context [
 		op		[math-op!]
 		return: [red-value!]
 		/local
-			char [red-char!]
+			right [red-float!]
+			char  [red-char!]
 	][
+		right: as red-float! stack/arguments + 1
+		if TYPE_OF(right) = TYPE_FLOAT [
+			char: as red-char! right
+			char/header: TYPE_CHAR
+			char/value: float/to-integer right/value
+		]
 		char: as red-char! integer/do-math op
 		char/header: TYPE_CHAR
 		
@@ -31,21 +38,24 @@ char: context [
 		as red-value! char
 	]
 	
-	load-in: func [
-		value [integer!]
-		blk	  [red-block!]
+	make-in: func [
+		parent	[red-block!]
+		value	[integer!]
+		return: [red-char!]
 		/local
 			cell [red-char!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "char/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "char/make-in"]]
 
-		cell: as red-char! ALLOC_TAIL(blk)
+		cell: as red-char! ALLOC_TAIL(parent)
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 
 	push: func [
 		value	 [integer!]
+		return:	 [red-char!]
 		/local
 			cell [red-char!]
 	][
@@ -53,6 +63,7 @@ char: context [
 		cell: as red-char! stack/push*
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 	
 	;-- Actions --
@@ -193,7 +204,7 @@ char: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			null			;eval-path
@@ -232,6 +243,7 @@ char: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,16 +3,18 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %POSIX.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
 
 #define __LC_CTYPE 0
 #define __LC_ALL   6
+
+#define RTLD_LAZY	1
 
 #import [
 	LIBC-file cdecl [
@@ -25,20 +27,42 @@ Red/System [
 			locale		[c-string!]
 			return:		[c-string!]
 		]
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
+		]
+		getcwd: "getcwd" [
+			buf		[byte-ptr!]
+			size	[integer!]
+			return: [byte-ptr!]
+		]
+		chdir: "chdir" [
+			path	[c-string!]
+			return: [integer!]
+		]
+		usleep: "usleep" [
+			microseconds [integer!]
+			return: 	 [integer!]
+		]
 	]
 ]
+
+wait: func [time [integer!]][usleep time]
 
 ;-------------------------------------------
 ;-- Print a UCS-4 string to console
 ;-------------------------------------------
 print-UCS4: func [
 	str 	[int-ptr!]									;-- zero-terminated UCS-4 string
+	size	[integer!]
 	/local
 		cp [integer!]
 ][
 	assert str <> null
 
-	while [cp: str/value not zero? cp][
+	while [not zero? size][
+		cp: str/value 
 		case [
 			cp <= 7Fh [
 				putchar as-byte cp
@@ -62,6 +86,7 @@ print-UCS4: func [
 				print-line "Error in print-UCS4: codepoint > 1FFFFFh"
 			]
 		]
+		size: size - 4
 		str: str + 1
 	]
 ]
@@ -70,13 +95,14 @@ print-UCS4: func [
 ;-- Print a UCS-4 string to console
 ;-------------------------------------------
 print-line-UCS4: func [
-	str    [int-ptr!]									;-- zero-terminated UCS-4 string
+	str    [int-ptr!]									;-- UCS-4 string
+	size   [integer!]
 	/local
 		cp [integer!]									;-- codepoint
 ][
 	assert str <> null
 
-	print-UCS4 str										;@@ throw an error on failure
+	print-UCS4 str size									;@@ throw an error on failure
 	putchar as-byte 10									;-- newline
 ]
 
@@ -84,17 +110,16 @@ print-line-UCS4: func [
 ;-- Print a UCS-2 string to console
 ;-------------------------------------------
 print-UCS2: func [
-	str 	[byte-ptr!]									;-- zero-terminated UCS-2 string
+	str 	[byte-ptr!]									;-- UCS-2 string
+	size	[integer!]
 	/local
 		cp [integer!]
 ][
 	assert str <> null
 
-	while [
+	while [not zero? size][
 		cp: as-integer str/2
 		cp: cp << 8 + str/1
-		not zero? cp
-	][
 		case [
 			cp <= 7Fh [
 				putchar as-byte cp
@@ -109,6 +134,7 @@ print-UCS2: func [
 				putchar as-byte cp and 3Fh or 80h
 			]
 		]
+		size: size - 2
 		str: str + 2
 	]
 ]
@@ -117,10 +143,11 @@ print-UCS2: func [
 ;-- Print a UCS-2 string with newline to console
 ;-------------------------------------------
 print-line-UCS2: func [
-	str 	[byte-ptr!]									;-- zero-terminated UCS-2 string
+	str 	[byte-ptr!]									;-- UCS-2 string
+	size	[integer!]
 ][
 	assert str <> null
-	print-UCS2 str
+	print-UCS2 str size
 	putchar as-byte 10									;-- newline
 ]
 
@@ -128,20 +155,35 @@ print-line-UCS2: func [
 ;-- Print a Latin-1 string to console
 ;-------------------------------------------
 print-Latin1: func [
-	str 	[c-string!]									;-- zero-terminated Latin-1 string
+	str 	[c-string!]									;-- Latin-1 string
+	size	[integer!]
+	/local
+		cp [integer!]
 ][
 	assert str <> null
-	prin* str
+
+	while [not zero? size][
+		cp: as-integer str/1
+		either cp <= 7Fh [
+			putchar as-byte cp
+		][
+			putchar as-byte cp >> 6 or C0h
+			putchar as-byte cp and 3Fh or 80h
+		]
+		size: size - 1
+		str: str + 1
+	]
 ]
 
 ;-------------------------------------------
 ;-- Print a Latin-1 string with newline to console
 ;-------------------------------------------
 print-line-Latin1: func [
-	str [c-string!]										;-- zero-terminated Latin-1 string
+	str  [c-string!]									;-- Latin-1 string
+	size [integer!]
 ][
 	assert str <> null
-	prin* str
+	print-Latin1 str size
 	putchar as-byte 10									;-- newline
 ]
 
@@ -170,7 +212,12 @@ prin*: func [
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
-	printf ["%i" i]									;-- UTF-8 literal string
+	printf ["%i" i]										;-- UTF-8 literal string
+	i
+]
+
+prin-2hex*: func [i [integer!] return: [integer!]][
+	printf ["%02X" i]									;-- UTF-8 literal string
 	i
 ]
 
@@ -187,4 +234,23 @@ prin-float*: func [f [float!] return: [float!]][
 prin-float32*: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
+]
+
+get-current-dir: func [
+	len		[int-ptr!]
+	return: [c-string!]
+	/local
+		path [byte-ptr!]
+][
+	path: allocate 4096
+	if null? getcwd path 4095 [path/1: #"^@"]
+	len/value: length? as c-string! path
+	as c-string! path
+]
+
+set-current-dir: func [
+	path	[c-string!]
+	return: [logic!]
+][
+	zero? chdir path
 ]

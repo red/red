@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %none.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -15,13 +15,13 @@ none-value: declare red-value!							;-- preallocate none! value
 none: context [
 	verbose: 0
 	
-	rs-push: func [
-		blk		[red-block!]
+	make-in: func [
+		parent	[red-block!]
 		return:	[red-value!]							;-- return cell pointer
 		/local
 			cell 	[red-none!]
 	][
-		cell: as red-none! ALLOC_TAIL(blk)
+		cell: as red-none! ALLOC_TAIL(parent)
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]
@@ -176,8 +176,16 @@ none: context [
 	][
 		push-last
 	]
-	
-	take: does []
+
+	take: func [
+		value	 [red-value!]
+		part-arg [red-value!]
+		deep?	 [logic!]
+		last?	 [logic!]
+		return:  [red-value!]
+	][
+		push-last
+	]
 
 	init: does [
 		none-value/header: TYPE_NONE
@@ -229,6 +237,7 @@ none: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			:remove
 			null			;reverse
 			:select

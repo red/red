@@ -3,15 +3,126 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %native.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
 native: context [
 	verbose: 0
+	
+	preprocess-options: func [							;-- cache optional typesets for native calls
+		args	  [red-block!]
+		native	  [red-native!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		tail	  [red-value!]
+		/local	
+			value	  [red-value!]
+			base	  [red-value!]
+			head	  [red-value!]
+			end		  [red-value!]
+			word	  [red-word!]
+			ref		  [red-refinement!]
+			blk		  [red-value!]
+			vec		  [red-vector!]
+			bool	  [red-logic!]
+			s		  [series!]
+			ref-array [int-ptr!]
+			saved	  [node!]
+			index	  [integer!]
+			offset	  [integer!]
+			ref?	  [logic!]
+			found?	  [logic!]
+	][
+		s: GET_BUFFER(args)
+		vec: vector/clone as red-vector! s/tail - 1
+		saved: vec/node
+		s/tail: s/tail - 2								;-- clear the vector record
+		
+		s: as series! native/spec/value
+		base:	s/offset
+		head:	base
+		end:	s/tail
+		value:	pos + 1
+		offset: 0
+
+		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+			switch TYPE_OF(base) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [offset: offset + 1]
+				default [0]
+			]
+			base: base + 1
+		]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! value]]
+
+		s: GET_BUFFER(vec)
+		ref-array: as int-ptr! s/offset
+
+		while [value < tail][
+			word: as red-word! value
+			
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script no-refine) fname word]
+			]
+			head:	base
+			ref?:	no
+			found?: no
+			index:	1
+
+			while [head < end][
+				switch TYPE_OF(head) [
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD [
+						if ref? [
+							block/rs-append args head
+							blk: head + 1
+							either all [
+								blk < end
+								TYPE_OF(blk) = TYPE_BLOCK
+							][
+								typeset/make-with args as red-block! blk
+							][
+								typeset/make-default args
+							]
+							offset: offset + 1
+						]
+					]
+					TYPE_REFINEMENT [
+						ref: as red-refinement! head
+						either EQUAL_WORDS?(ref word) [
+							ref-array/index: offset
+							ref?: yes
+							found?: yes
+						][
+							ref?: no
+						]
+						index: index + 1
+					]
+					TYPE_SET_WORD [head: end]
+					default [0]							;-- ignore other values
+				]
+				head: head + 1 
+			]
+			unless found? [fire [TO_ERROR(script no-refine) fname word]]
+			value: value + 1
+		]
+		
+		block/rs-append args as red-value! none-value	;-- restore vector record
+		
+		vec: as red-vector! ALLOC_TAIL(args)
+		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
+		vec/head: 	0
+		vec/node: 	saved
+		vec/type:	TYPE_INTEGER
+	]
 	
 	push: func [
 		/local
@@ -44,7 +155,7 @@ native: context [
 		native: as red-native! stack/push*
 		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
 		native/spec:    spec/node						; @@ copy spec block if not at head
-		;native/symbols: clean-spec spec 				; @@ TBD
+		native/args:	null
 		
 		index: integer/get s/offset + 1
 		native/code: natives/table/index
@@ -193,6 +304,7 @@ native: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %routine.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -49,29 +49,38 @@ routine: context [
 		spec	 [red-block!]
 		body	 [red-block!]
 		code	 [integer!]
+		ret-type [integer!]
 		return:	 [red-routine!]							;-- return function's local context
 		/local
 			cell   [red-routine!]
 			native [red-native!]
 			value  [red-value!]
+			args   [red-block!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
 		cell: as red-routine! stack/push*
-		cell/header: TYPE_ROUTINE						;-- implicit reset of all header flags
-		cell/spec:	 spec/node
-		cell/more:	 alloc-cells 3
+		cell/header:   TYPE_ROUTINE						;-- implicit reset of all header flags
+		cell/ret-type: ret-type
+		cell/spec:	   spec/node
+		cell/more:	   alloc-cells 4
 		
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
-		alloc-tail more									;-- reserved place for "symbols"
+		
+		args: as red-block! alloc-tail more
+		args/header: TYPE_BLOCK
+		args/node:   null
 
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
 		native/code: code
-		
+
+		value: alloc-tail more							;-- routine value self-reference (for op!)
+		value/header: TYPE_UNSET
+
 		set-arity cell
 		cell
 	]
@@ -195,6 +204,7 @@ routine: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Bruno Anselme"
 	EMail:   "be.red@free.fr"
 	File:    %panel-example.reds
-	Rights:  "Copyright (c) 2013 Bruno Anselme"
+	Rights:  "Copyright (c) 2013-2015 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Needs: {
 		Red/System >= 0.3.1

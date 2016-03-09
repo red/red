@@ -1,12 +1,12 @@
 Red [
 	Title:   "Red base environment definitions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %boot.red
+	File: 	 %routines.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -15,42 +15,42 @@ cos: routine [
 	"Returns the trigonometric cosine"
 	angle [float!] "Angle in radians"
 ][
-	natives/cosine* 1
+	natives/cosine* no 1
 ]
 
 sin: routine [
 	"Returns the trigonometric sine"
 	angle [float!] "Angle in radians"
 ][
-	natives/sine* 1
+	natives/sine* no 1
 ]
 
 tan: routine [
 	"Returns the trigonometric tangent"
 	angle [float!] "Angle in radians"
 ][
-	natives/tangent* 1
+	natives/tangent* no 1
 ]
 
-arccos: routine [
+acos: routine [
 	"Returns the trigonometric arccosine"
 	angle [float!] "Angle in radians"
 ][
-	natives/arccosine* 1
+	natives/arccosine* no 1
 ]
 
-arcsin: routine [
+asin: routine [
 	"Returns the trigonometric arcsine"
 	angle [float!] "Angle in radians"
 ][
-	natives/arcsine* 1
+	natives/arcsine* no 1
 ]
 
-arctan: routine [
+atan: routine [
 	"Returns the trigonometric arctangent"
 	angle [float!] "Angle in radians"
 ][
-	natives/arctangent* 1
+	natives/arctangent* no 1
 ]
 
 quit-return: routine [
@@ -61,6 +61,24 @@ quit-return: routine [
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [][natives/shift* -1 -1]
-shift-left:	   routine [][natives/shift* 1 -1]
-shift-logical: routine [][natives/shift* -1 1]
+shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
+shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]
+shift-logical: routine [data [integer!] bits [integer!]][natives/shift* no -1 1]
+
+;-- Helping routine for console, returns true if last output character was a LF
+last-lf?: routine [/local bool [red-logic!]][
+	bool: as red-logic! stack/arguments
+	bool/header: TYPE_LOGIC
+	bool/value:	 natives/last-lf?
+]
+
+get-current-dir: routine [][
+	stack/set-last as red-value! file/get-current-dir
+]
+
+set-current-dir: routine [path [string!] /local dir [red-file!]][
+	dir: as red-file! stack/arguments
+	unless platform/set-current-dir file/to-OS-path dir [
+		fire [TO_ERROR(access cannot-open) dir]
+	]
+]

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %string.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -80,6 +80,24 @@ string: context [
 		strtod s0 null
 	]
 
+	byte-to-hex: func [
+		byte	 [integer!]
+		return:  [c-string!]
+		/local
+			ss	 [c-string!]
+			h	 [c-string!]
+			i	 [integer!]
+	][
+		ss: "00"
+		h: "0123456789ABCDEF"
+
+		i: byte and 15 + 1								;-- byte // 16 + 1
+		ss/2: h/i
+		i: byte >> 4 and 15 + 1							;-- byte // 16 + 1
+		ss/1: h/i
+		ss
+	]
+ 
 	to-hex: func [
 		value	 [integer!]
 		char?	 [logic!]
@@ -181,13 +199,29 @@ string: context [
 		p
 	]
 
+	rs-load: func [
+		src		 [c-string!]							;-- source string buffer
+		size	 [integer!]
+		encoding [integer!]
+		return:  [red-string!]
+	][
+		load-in src size root encoding
+	]
+
 	rs-length?: func [
 		str	    [red-string!]
 		return: [integer!]
 	][
-		get-length str no
+		_series/get-length as red-series! str no
 	]
-	
+
+	rs-abs-length?: func [
+		str	    [red-string!]
+		return: [integer!]
+	][
+		_series/get-length as red-series! str yes
+	]
+
 	rs-skip: func [
 		str 	[red-string!]
 		len		[integer!]
@@ -196,21 +230,14 @@ string: context [
 			s	   [series!]
 			offset [integer!]
 	][
-		assert len >= 0
-		s: GET_BUFFER(str)
-		offset: str/head + len << (GET_UNIT(s) >> 1)
-
-		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
-			str/head: str/head + len
-		]
-		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
+		_series/rs-skip as red-series! str len
 	]
 	
 	rs-next: func [
 		str 	[red-string!]
 		return: [logic!]
 	][
-		rs-skip str 1
+		_series/rs-skip as red-series! str 1
 	]
 
 	rs-head: func [
@@ -220,7 +247,7 @@ string: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(str)
-		(as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))
+		(as byte-ptr! s/offset) + (str/head << (log-b GET_UNIT(s)))
 	]
 
 	rs-tail: func [
@@ -240,7 +267,7 @@ string: context [
 			s [series!]
 	][
 		s: GET_BUFFER(str)
-		(as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) >= as byte-ptr! s/tail
+		(as byte-ptr! s/offset) + (str/head << (log-b GET_UNIT(s))) >= as byte-ptr! s/tail
 	]
 	
 	rs-abs-at: func [
@@ -255,7 +282,7 @@ string: context [
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 
-		p: (as byte-ptr! s/offset) + (pos << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (pos << (log-b unit))
 		assert p < as byte-ptr! s/tail
 		get-char p unit
 	]
@@ -270,7 +297,35 @@ string: context [
 		s/tail: s/offset
 		str/head: 0
 	]
-	
+
+	rs-find-char: func [
+		str		[red-string!]
+		cp		[integer!]
+		case?	[logic!]				;-- case sensitive?
+		return: [logic!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			head [byte-ptr!]
+			tail [byte-ptr!]
+			c1	 [integer!]
+	][
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		while [head < tail][
+			c1: get-char head unit
+			unless case? [
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				cp: case-folding/folding-case cp yes	;-- uppercase cp
+			]
+			if c1 = cp [return true]
+			head: head + unit
+		]
+		false
+	]
+
 	get-char: func [
 		p	    [byte-ptr!]
 		unit	[integer!]
@@ -284,40 +339,7 @@ string: context [
 			UCS-4  [p4: as int-ptr! p p4/value]
 		]
 	]
-	
-	get-position: func [
-		base	   [integer!]
-		return:	   [integer!]
-		/local
-			str	   [red-string!]
-			index  [red-integer!]
-			s	   [series!]
-			offset [integer!]
-			max	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/get-position"]]
 
-		str: as red-string! stack/arguments
-		index: as red-integer! str + 1
-
-		assert any [
-			TYPE_OF(str) = TYPE_STRING					;@@ ANY_STRING?
-			TYPE_OF(str) = TYPE_FILE
-			TYPE_OF(str) = TYPE_URL
-		]
-		assert TYPE_OF(index) = TYPE_INTEGER
-
-		s: GET_BUFFER(str)
-
-		if all [base = 1 index/value <= 0][base: base - 1]
-		offset: str/head + index/value - base			;-- index is one-based
-		if negative? offset [offset: 0]
-		max: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)
-		if offset > max [offset: max]
-
-		offset
-	]
-	
 	rs-make-at: func [
 		slot	[cell!]
 		size 	[integer!]								;-- number of cells to pre-allocate
@@ -329,36 +351,10 @@ string: context [
 		p: alloc-series size 1 0
 		set-type slot TYPE_STRING						;@@ decide to use or not 'set-type...
 		str: as red-string! slot
-		str/head: 0
-		str/node: p
+		str/head:  0
+		str/node:  p
+		str/cache: null
 		str
-	]
-	
-	get-length: func [
-		str		   [red-string!]
-		absolute?  [logic!]
-		return:	   [integer!]
-		/local
-			s	   [series!]
-			offset [integer!]
-	][
-		s: GET_BUFFER(str)
-		offset: either absolute? [0][str/head]
-		if negative? offset [offset: 0]					;-- @@ beware of symbol/index leaking here...
-		(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - offset
-	]
-	
-	add-terminal-NUL: func [
-		p	   [byte-ptr!]
-		unit   [integer!]
-		/local
-			p4 [int-ptr!]
-	][
-		switch unit [
-			Latin1 [p/1: as-byte 0]
-			UCS-2  [p/1: as-byte 0 p/2: as-byte 0]
-			UCS-4  [p4: as int-ptr! p p4/1: 0]
-		]
 	]
 	
 	truncate-from-tail: func [
@@ -370,10 +366,41 @@ string: context [
 		assert negative? offset
 		
 		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
-		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		s
 	]
-	
+
+	remove-part: func [
+		str		[red-string!]
+		offset	[integer!]
+		part	[integer!]
+		return:	[red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+	][
+		assert offset >= 0
+		assert part > 0
+
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return str]					;-- early exit if nothing to remove
+
+		part: part << (unit >> 1)
+		if head + part < tail [
+			move-memory 
+				head
+				head + part
+				as-integer tail - head - part
+		]
+		s/tail: as red-value! tail - part
+		str
+	]
+
 	append-char: func [
 		s		[series!]
 		cp		[integer!]								;-- codepoint
@@ -385,15 +412,13 @@ string: context [
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
-					cp <= FFh [
-						s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here					
-						p: alloc-tail-unit s 1					
-						p/0: as-byte cp					;-- overwrite termination NUL character
-						p/1: as-byte 0					;-- add it back at next position
-						s: GET_BUFFER(s)				;-- refresh s pointer if relocated by alloc-tail-unit
-						s/tail: as cell! p				;-- reset tail just before NUL
+					cp <= FFh [				
+						p: alloc-tail-unit s 1
+						p/1: as-byte cp
+						s: GET_BUFFER(s)
 					]
 					cp <= FFFFh [
+						p: as byte-ptr! s/offset
 						s: unicode/Latin1-to-UCS2 s
 						s: append-char s cp
 					]
@@ -405,31 +430,22 @@ string: context [
 			]
 			UCS-2 [
 				either cp <= FFFFh [
-					s/tail: as cell! (as byte-ptr! s/tail) + 2	;-- safe to increment here
 					p: alloc-tail-unit s 2
-					
-					p/-1: as-byte (cp and FFh)			;-- overwrite termination NUL character
-					p/0: as-byte (cp >> 8)
-					p/1: as-byte 0						;-- add it back
-					p/2: as-byte 0
-					
-					s: GET_BUFFER(s)					;-- refresh s pointer if relocated by alloc-tail-unit
-					s/tail: as cell! p 					;-- reset tail just before NUL
+					p/1: as-byte (cp and FFh)
+					p/2: as-byte (cp >> 8)
+					s: GET_BUFFER(s)
 				][
 					s: unicode/UCS2-to-UCS4 s
 					s: append-char s cp
 				]
 			]
 			UCS-4 [
-				s/tail: as cell! (as int-ptr! s/tail) + 1	;-- safe to increment here
 				p4: as int-ptr! alloc-tail-unit s 4
-				p4/0: cp								;-- overwrite termination NUL character
-				p4/1: 0									;-- add it back
-				s: GET_BUFFER(s)						;-- refresh s pointer if relocated by alloc-tail-unit
-				s/tail: as cell! p4						;-- reset tail just before NUL
+				p4/1: cp
+				s: GET_BUFFER(s)
 			]
 		]
-		s
+		s										;-- refresh s address
 	]
 	
 	insert-char: func [
@@ -457,7 +473,7 @@ string: context [
 		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
-		p: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 	
 		move-memory										;-- make space
 			p + unit
@@ -465,7 +481,6 @@ string: context [
 			as-integer (as byte-ptr! s/tail) - p
 
 		s/tail: as cell! (as byte-ptr! s/tail) + unit
-		add-terminal-NUL as byte-ptr! s/tail unit
 		
 		poke-char s p cp
 		s
@@ -485,7 +500,7 @@ string: context [
 		
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		head: (as byte-ptr! s/offset) + (offset << (log-b unit))
 		tail: as byte-ptr! s/tail
 
 		if head >= tail [return str]					;-- early exit if nothing to remove
@@ -494,7 +509,7 @@ string: context [
 			move-memory 
 				head
 				head + unit
-				as-integer tail - head					;-- account for trailing NUL
+				as-integer tail - head - unit
 		]
 		s/tail: as red-value! tail - unit
 		str
@@ -560,6 +575,8 @@ string: context [
 			unit2 [integer!]
 			size1 [integer!]
 			size2 [integer!]
+			head1 [integer!]
+			head2 [integer!]
 			end	  [byte-ptr!]
 			p1	  [byte-ptr!]
 			p2	  [byte-ptr!]
@@ -568,11 +585,19 @@ string: context [
 			c2	  [integer!]
 			lax?  [logic!]
 	][
+		if all [
+			str1/node = str2/node
+			str1/head = str2/head
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1) - str2/head
+		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
+		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
+		size2: (as-integer s2/tail - s2/offset) >> (log-b unit2) - head2
 		end: as byte-ptr! s2/tail							;-- only one "end" is needed
 
 		either match? [
@@ -580,7 +605,7 @@ string: context [
 				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
 			]
 		][
-			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1) - str1/head
+			size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
@@ -588,14 +613,14 @@ string: context [
 				][return 1]
 
 				if size2 > size1 [
-					end: end - (size2 - size1 << (unit2 >> 1))
+					end: end - (size2 - size1 << (log-b unit2))
 				]
 			][
 				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
 		]
-		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
-		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		p1:  (as byte-ptr! s1/offset) + (head1 << (log-b unit1))
+		p2:  (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 
 		until [	
@@ -610,8 +635,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 			]
 			if lax? [
-				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				c2: case-folding/folding-case c2 yes	;-- uppercase c2
 			]
 			p1: p1 + unit1
 			p2: p2 + unit2
@@ -636,6 +661,7 @@ string: context [
 			p4	   [int-ptr!]
 			cp	   [integer!]
 			size   [integer!]
+			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			match? [logic!]
 	][
@@ -667,6 +693,7 @@ string: context [
 		/local
 			char [red-char!]
 			s	 [series!]
+			type [integer!]
 			unit [integer!]
 			c1	 [integer!]
 			c2	 [integer!]
@@ -678,16 +705,23 @@ string: context [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			c2: get-char 
-				(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+				(as byte-ptr! s/offset) + (str/head << (log-b unit))
 				unit
 			
 			if op <> COMP_STRICT_EQUAL [
 				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
 				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				c2: case-folding/folding-case c2 yes	;-- uppercase c2
 			]
 			c1 = c2
 		][
-			either TYPE_OF(value) <> TYPE_STRING [no][	;-- @@ extend it to accept string! derivatives?
+			type: TYPE_OF(value)
+			either all [								;@@ ANY_STRING
+				type <> TYPE_STRING
+				type <> TYPE_FILE
+				type <> TYPE_URL
+			][no][
 				zero? equal? str as red-string! value op yes
 			]
 		]
@@ -708,16 +742,20 @@ string: context [
 			size  [integer!]
 			size2 [integer!]
 			p	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
 			limit [byte-ptr!]
 			cp	  [integer!]
 			h1	  [integer!]
 			h2	  [integer!]
+			diff? [logic!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		
+		diff?: unit1 <> unit2
+
 		case [											;-- harmonize both encodings
 			unit1 < unit2 [
 				switch unit2 [
@@ -748,15 +786,16 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (unit1 >> 1)]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
+		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
+		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + size2 + unit1		;-- account for terminal NUL
-		if s1/size < size [s1: expand-series s1 size]
+		size:  (as-integer s1/tail - s1/offset) + (unit1 / unit2 * size2)		;-- account for keep?
+
+		if s1/size < size [s1: expand-series s1 size * 2]
 		
 		if part >= 0 [
-			part: part << (unit2 >> 1)
+			part: part << (log-b unit2)
 			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
 		]
 		if insert? [
@@ -765,37 +804,36 @@ string: context [
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
-		
-		either all [keep? unit1 <> unit2][
-			p: (as byte-ptr! s1/offset) + h1
-			limit: p + size2
-			while [p < limit][
-				either unit2 = UCS-2 [
-					cp: (as-integer p/2) << 8 + p/1
-					p: p + 2
-				][
-					cp: as-integer p/1
-					p: p + 1
+
+		p: either insert? [
+			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
+		][
+			as byte-ptr! s1/tail
+		]
+		either all [keep? diff?][
+			p2: (as byte-ptr! s2/offset) + h2
+			limit: p2 + size2
+			while [p2 < limit][
+				switch unit2 [
+					Latin1 [cp: as-integer p2/1]
+					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
+					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
 				s1: either insert? [
-					poke-char s1 p + (offset << (unit1 >> 1)) cp
+					poke-char s1 p cp
 				][
 					append-char s1 cp
 				]
+				p: p + unit1
+				p2: p2 + unit2
 			]
 		][
-			p: either insert? [
-				(as byte-ptr! s1/offset) + (offset << (unit1 >> 1)) + h1
-			][
-				as byte-ptr! s1/tail
-			]
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
 			p: p + size2
 		]
 		if insert? [p: (as byte-ptr! s1/tail) + size2] 
 		
-		add-terminal-NUL p unit1
-		s1/tail: as cell! p							;-- reset tail just before NUL
+		s1/tail: as cell! p
 	]
 	
 	concatenate-literal: func [
@@ -834,7 +872,7 @@ string: context [
 	]
 
 	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		blk		 [red-block!]
 		encoding [integer!]
@@ -842,18 +880,13 @@ string: context [
 		/local
 			str  [red-string!]
 	][
-		str: as red-string! ALLOC_TAIL(blk)
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 0
+		str: as red-string! either null = blk [stack/push*][ALLOC_TAIL(blk)]
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/head:	0
+		str/cache:	null
 		switch encoding [
-			UTF-8	 [
-				str/node: unicode/load-utf8 src size
-				str/cache: either size < 64 [src][null]	;-- cache only small strings
-			]
-			UTF-16LE [
-				str/node: unicode/load-utf16 src size
-				str/cache: null
-			]
+			UTF-8	 [str/node: unicode/load-utf8 src size]
+			UTF-16LE [str/node: unicode/load-utf16 src size null]
 			default	 [
 				print "*** Loading Error: input encoding unsupported"
 				halt
@@ -863,12 +896,28 @@ string: context [
 	]
 	
 	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
 		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root encoding
+		load-in src size null encoding
+	]
+	
+	make-at: func [
+		slot	[red-value!]
+		size 	[integer!]								;-- number of bytes to pre-allocate
+		unit	[integer!]
+		return:	[red-string!]
+		/local 
+			str	[red-string!]
+	][
+		str: as red-string! slot
+		str/header: TYPE_STRING
+		str/head:	0
+		str/node:	alloc-bytes size << (unit >> 1)
+		str/cache:	null
+		str
 	]
 	
 	push: func [
@@ -904,56 +953,8 @@ string: context [
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 	0
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+		str/cache:	null
 		str
-	]
-
-	random: func [
-		str		[red-string!]
-		seed?	[logic!]
-		secure? [logic!]
-		only?   [logic!]
-		return: [red-value!]
-		/local
-			char [red-char!]
-			s	 [series!]
-			size [integer!]
-			unit [integer!]
-			temp [integer!]
-			idx	 [byte-ptr!]
-			head [byte-ptr!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/random"]]
-
-		either seed? [
-			str/header: TYPE_UNSET				;-- TODO: calc string to seed.
-		][
-			temp: 0
-			s: GET_BUFFER(str)
-			unit: GET_UNIT(s)
-			head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			size: (as-integer s/tail - s/offset) >> (unit >> 1) - str/head
-
-			if only? [
-				either positive? size [
-					idx: head + (_random/rand % size << (unit >> 1))
-					char: as red-char! str
-					char/header: TYPE_CHAR
-					char/value: get-char idx unit
-				][
-					str/header: TYPE_NONE
-				]
-			]
-
-			while [size > 0][
-				idx: head + (_random/rand % size << (unit >> 1))
-				copy-memory as byte-ptr! :temp head unit
-				copy-memory head idx unit
-				copy-memory idx as byte-ptr! :temp unit
-				head: head + unit
-				size: size - 1
-			]
-		]
-		as red-value! str
 	]
 
 	to: func [
@@ -966,10 +967,35 @@ string: context [
 			int [red-integer!]
 			blk [red-block!]
 			ret [red-value!]
+			bin [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 
 		t: type/value
+		switch t [
+			TYPE_FILE
+			TYPE_URL [
+				set-type copy-cell as cell! spec as cell! type type/value
+				return as red-value! type
+			]
+			TYPE_BINARY [
+				t: -1
+				bin: as byte-ptr! unicode/to-utf8 spec :t
+				return stack/set-last as cell! binary/load bin t
+			]
+			TYPE_ISSUE [
+				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
+			]
+			TYPE_WORD
+			TYPE_LIT_WORD
+			TYPE_SET_WORD [
+				ret: as red-value! word/box (symbol/make-alt spec)
+				set-type ret t
+				return ret
+			]
+			default  [0]
+		]
+
 		blk: as red-block! type
 		#call [system/lexer/transcode spec none]
 
@@ -989,9 +1015,10 @@ string: context [
 			]
 		][
 			if TYPE_OF(ret) <> t [
-				fire [TO_ERROR(script bad-make-arg) type spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push t ret]
 			]
 		]
+		if t = TYPE_ISSUE [remove-char spec spec/head]
 		stack/set-last ret
 	]
 
@@ -1011,8 +1038,9 @@ string: context [
 			int: as red-integer! arg
 			int/value	
 		][-1]
-		concatenate buffer str limit 0 no no
-		part - get-length str no
+		concatenate buffer str limit 0 yes no
+		
+		part - rs-length? str
 	]
 	
 	sniff-chars: func [
@@ -1112,13 +1140,13 @@ string: context [
 		
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		head: p
 		
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
@@ -1131,7 +1159,7 @@ string: context [
 			nl >= 3
 			negative? curly
 			positive? quote
-			BRACES_THRESHOLD <= get-length str no
+			BRACES_THRESHOLD <= rs-length? str
 		][
 			open:  #"{"
 			close: #"}"
@@ -1165,13 +1193,15 @@ string: context [
 		]
 
 		append-char GET_BUFFER(buffer) as-integer close
-		part - ((as-integer tail - head) >> (unit >> 1)) - 2
+		part - ((as-integer tail - head) >> (log-b unit)) - 2
 	]
 	
 	eval-path: func [
 		parent	[red-string!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -1182,13 +1212,17 @@ string: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either set? [
-					poke parent int/value as red-char! value null	;TBD: add char! checking!
+					_series/poke as red-series! parent int/value value null	;TBD: add char! checking!
 					value
 				][
-					pick parent int/value null
+					_series/pick as red-series! parent int/value null
 				]
 			]
 			TYPE_WORD [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(element)]
+				null
+			]
+			default [
 				either set? [
 					element: find parent element null no no no null null no no no no
 					actions/poke as red-series! element 2 value null
@@ -1196,13 +1230,6 @@ string: context [
 				][
 					select parent element null no no no null null no no
 				]
-			]
-			default [
-				fire [
-					TO_ERROR(script invalid-type)
-					datatype/push TYPE_OF(element)
-				]
-				null
 			]
 		]
 	]
@@ -1265,8 +1292,8 @@ string: context [
 		c1: (as-integer p1/2) << 8 + p1/1
 		c2: (as-integer p2/2) << 8 + p2/1
 		if op = COMP_EQUAL [
-			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
-			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+			c1: case-folding/folding-case c1 yes	;-- uppercase c1
+			c2: case-folding/folding-case c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1287,144 +1314,56 @@ string: context [
 		p4: as int-ptr! p2
 		c2: p4/1
 		if op = COMP_EQUAL [
-			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
-			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+			c1: case-folding/folding-case c1 yes	;-- uppercase c1
+			c2: case-folding/folding-case c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
 
-	;--- Property reading actions ---
-
-	head?: func [
-		return:	  [red-value!]
-		/local
-			str	  [red-string!]
-			state [red-logic!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/head?"]]
-
-		str:   as red-string! stack/arguments
-		state: as red-logic! str
-
-		state/header: TYPE_LOGIC
-		state/value:  zero? str/head
-		as red-value! state
-	]
-
-	tail?: func [
-		return:	  [red-value!]
-		/local
-			str	  [red-string!]
-			state [red-logic!]
-			s	  [series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/tail?"]]
-
-		str:   as red-string! stack/arguments
-		state: as red-logic! str
-
-		s: GET_BUFFER(str)
-
-		state/header: TYPE_LOGIC
-		state/value:  (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) = as byte-ptr! s/tail
-		as red-value! state
-	]
-
-	index?: func [
-		return:	  [red-value!]
-		/local
-			str	  [red-string!]
-			index [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/index?"]]
-
-		str:   as red-string! stack/arguments
-		index: as red-integer! str
-
-		index/header: TYPE_INTEGER
-		index/value:  str/head + 1
-		as red-value! index
-	]
-
-	length?: func [
-		str		[red-string!]
+	compare-float32: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
 		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/length?"]]
-
-		rs-length? str
-	]
-	
-	;--- Navigation actions ---
-
-	at: func [
-		return:	[red-value!]
 		/local
-			str	[red-string!]
+			pf	[pointer! [float32!]]
+			f1	[float32!]
+			f2	[float32!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/at"]]
-
-		str: as red-string! stack/arguments
-		str/head: get-position 1
-		as red-value! str
+		pf: as pointer! [float32!] p1
+		f1: pf/1
+		pf: as pointer! [float32!] p2
+		f2: pf/1
+		either zero? flags [
+			SIGN_COMPARE_RESULT(f1 f2)
+		][
+			SIGN_COMPARE_RESULT(f2 f1)
+		]
 	]
 
-	back: func [
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/back"]]
-
-		block/back										;-- identical behaviour as block!
-	]
-
-	next: func [
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/next"]]
-
-		rs-next as red-string! stack/arguments
-		stack/arguments
-	]
-
-	skip: func [
-		return:	[red-value!]
+	compare-float: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
 		/local
-			str	[red-string!]
+			pf	[pointer! [float!]]
+			f1	[float!]
+			f2	[float!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/skip"]]
-
-		str: as red-string! stack/arguments
-		str/head: get-position 0
-		as red-value! str
+		pf: as pointer! [float!] p1
+		f1: pf/1
+		pf: as pointer! [float!] p2
+		f2: pf/1
+		either zero? flags [
+			SIGN_COMPARE_RESULT(f1 f2)
+		][
+			SIGN_COMPARE_RESULT(f2 f1)
+		]
 	]
 
-	head: func [
-		return:	[red-value!]
-		/local
-			str	[red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/head"]]
-
-		str: as red-string! stack/arguments
-		str/head: 0
-		as red-value! str
-	]
-
-	tail: func [
-		return:	[red-value!]
-		/local
-			str	[red-string!]
-			s	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/tail"]]
-
-		str: as red-string! stack/arguments
-		s: GET_BUFFER(str)
-
-		str/head: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)
-		as red-value! str
-	]
-	
 	find: func [
 		str			[red-string!]
 		value		[red-value!]
@@ -1499,7 +1438,7 @@ string: context [
 					result/header: TYPE_NONE
 					return result
 				]
-				(as byte-ptr! s/offset) + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
+				buffer + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
 			][
 				str2: as red-string! part
 				unless all [
@@ -1508,7 +1447,7 @@ string: context [
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
-				(as byte-ptr! s/offset) + (str2/head << (unit >> 1))
+				buffer + (str2/head << (unit >> 1))
 			]
 			part?: yes
 		]
@@ -1528,11 +1467,11 @@ string: context [
 				]
 			]
 			true [
-				buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
-		case?: not case?								;-- inverted case? meaning
+
+		case?: either TYPE_OF(str) = TYPE_STRING [not case?][no]			;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
@@ -1543,11 +1482,14 @@ string: context [
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
-				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				if case? [
+					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+				]
 			]
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
+			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
@@ -1562,8 +1504,19 @@ string: context [
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [
-				result/header: TYPE_NONE
-				return result
+				either all [
+					any [
+						TYPE_OF(str) = TYPE_VECTOR
+						TYPE_OF(str) = TYPE_BINARY
+					]
+					TYPE_OF(value) = TYPE_INTEGER
+				][
+					char: as red-char! value
+					c2: char/value
+				][
+					result/header: TYPE_NONE
+					return result
+				]
 			]
 		]
 		
@@ -1575,7 +1528,9 @@ string: context [
 					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
-				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+				if case? [
+					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				]
 				found?: c1 = c2
 				
 				if any [
@@ -1617,8 +1572,10 @@ string: context [
 							UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 						]
 					]
-					if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
-					if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					if case? [
+						c1: case-folding/folding-case c1 yes	;-- uppercase c1
+						c2: case-folding/folding-case c2 yes	;-- uppercase c2
+					]
 					found?: c1 = c2
 					
 					p1: p1 + unit
@@ -1689,7 +1646,7 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD [
+				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1698,7 +1655,7 @@ string: context [
 						head2: str2/head
 					]
 					s: GET_BUFFER(str2)
-					(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - head2
+					(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - head2
 				]
 				default [1]
 			]
@@ -1706,11 +1663,11 @@ string: context [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			
-			p: (as byte-ptr! s/offset) + ((str/head + offset) << (unit >> 1))
+			p: (as byte-ptr! s/offset) + ((str/head + offset) << (log-b unit))
 			
 			either p < as byte-ptr! s/tail [
 				char: as red-char! result
-				char/header: TYPE_CHAR
+				char/header: either TYPE_OF(str) = TYPE_VECTOR [as-integer str/cache][TYPE_CHAR]
 				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
@@ -1747,7 +1704,7 @@ string: context [
 		step: 1
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		mult: unit >> 1
+		mult: log-b unit
 		buffer: (as byte-ptr! s/offset) + (str/head << mult)
 		end: as byte-ptr! s/tail
 		len: (as-integer end - buffer) >> mult
@@ -1789,57 +1746,34 @@ string: context [
 			]
 			if step > 1 [len: len / step]
 		]
-		cmp: switch unit [
-			Latin1 [as-integer :compare-Latin1]
-			UCS-2  [as-integer :compare-UCS2]
-			UCS-4  [as-integer :compare-UCS4]
+
+		if unit = 6 [unit: 8]
+		cmp: either all [
+			TYPE_OF(str) = TYPE_VECTOR
+			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
+		][
+			switch unit [
+				4 [as-integer :compare-float32]
+				8 [as-integer :compare-float]
+			]
+		][
+			switch unit [
+				Latin1  [as-integer :compare-Latin1]
+				UCS-2   [as-integer :compare-UCS2]
+				UCS-4   [as-integer :compare-UCS4]
+			]
 		]
-		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		op: either TYPE_OF(str) = TYPE_VECTOR [
+			COMP_STRICT_EQUAL
+		][
+			either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
 		_sort/qsort buffer len unit * step op flags cmp
+		ownership/check as red-value! str words/_sort null str/head 0
 		str
 	]
 
-	;--- Reading actions ---
-
-	pick: func [
-		str		[red-string!]
-		index	[integer!]
-		boxed	[red-value!]
-		return:	[red-value!]
-		/local
-			char   [red-char!]
-			s	   [series!]
-			offset [integer!]
-			unit   [integer!]
-			p1	   [byte-ptr!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/pick"]]
-
-		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		
-		offset: str/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-
-		p1: (as byte-ptr! s/offset) + (offset << (unit >> 1))
-		
-		either any [
-			zero? index
-			p1 >= as byte-ptr! s/tail
-			p1 <  as byte-ptr! s/offset
-		][
-			none-value
-		][
-			char: as red-char! stack/push*
-			char/header: TYPE_CHAR		
-			char/value:  get-char p1 unit
-			as red-value! char
-		]
-	]
-	
-	;--- Modifying actions ---
-		
 	insert: func [
 		str		 [red-string!]
 		value	 [red-value!]
@@ -1866,6 +1800,7 @@ string: context [
 			rest	  [integer!]
 			added	  [integer!]
 			type	  [integer!]
+			index	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
@@ -1899,10 +1834,9 @@ string: context [
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
 		
 		s: GET_BUFFER(str)
-		tail?: any [
-			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = str/head
-			append?
-		]
+		len: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		tail?: any [len = str/head append?]
+		index: either append? [len][str/head]
 		
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
@@ -1959,264 +1893,19 @@ string: context [
 			]
 			cnt: cnt - 1
 		]
-		unless append? [
+		if part < 0 [part: 1]							;-- ownership/check needs part >= 0
+		ownership/check as red-value! str words/_insert value index part
+		
+		either append? [str/head: 0][
 			added: added * dup-n
 			str/head: str/head + added
 			s: GET_BUFFER(str)
-			assert (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
+			assert (as byte-ptr! s/offset) + (str/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		stack/pop 1										;-- pop the FORM slot
 		as red-value! str
 	]
 
-	clear: func [
-		str		[red-string!]
-		return:	[red-value!]
-		/local
-			s	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/clear"]]
-
-		s: GET_BUFFER(str)
-		s/tail: as cell! (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))	
-		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
-		as red-value! str
-	]
-
-	poke: func [
-		str		[red-string!]
-		index	[integer!]
-		char	[red-char!]
-		boxed	[red-value!]
-		return:	[red-value!]
-		/local
-			s	   [series!]
-			offset [integer!]
-			pos	   [byte-ptr!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/poke"]]
-
-		s: GET_BUFFER(str)
-		
-		offset: str/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-		
-		pos: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
-		
-		either any [
-			zero? index
-			pos >= as byte-ptr! s/tail
-			pos <  as byte-ptr! s/offset
-		][
-			fire [
-				TO_ERROR(script out-of-range)
-				integer/push index
-			]
-		][
-			if TYPE_OF(char) <> TYPE_CHAR [
-				fire [TO_ERROR(script invalid-arg) char]
-			]
-			poke-char s pos char/value
-			stack/set-last as red-value! char
-		]
-		as red-value! char
-	]
-	
-	remove: func [
-		str	 	 [red-string!]
-		part-arg [red-value!]
-		return:	 [red-string!]
-		/local
-			s		[series!]
-			part	[integer!]
-			unit	[integer!]
-			head	[byte-ptr!]
-			tail	[byte-ptr!]
-			int		[red-integer!]
-			str2	[red-string!]
-	][
-		s:    GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-		tail: as byte-ptr! s/tail
-		
-		if head = tail [return str]						;-- early exit if nothing to remove
-
-		part: unit
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				str2: as red-string! part-arg
-				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
-					str2/node = str/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				str2/head - str/head
-			]
-			if part <= 0 [return str]					;-- early exit if negative /part index
-			part: part << (unit >> 1)
-		]
-
-		if head + part < tail [
-			move-memory 
-				head
-				head + part
-				as-integer tail - (head + part) + unit ;-- size including trailing NUL
-		]
-		s/tail: as red-value! tail - part
-		str
-	]
-
-	reverse: func [
-		str	 	 [red-string!]
-		part-arg [red-value!]
-		return:	 [red-string!]
-		/local
-			s		[series!]
-			part	[integer!]
-			unit	[integer!]
-			head	[byte-ptr!]
-			tail	[byte-ptr!]
-			temp	[byte-ptr!]
-			int		[red-integer!]
-			str2	[red-string!]
-	][
-		s:    GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-		tail: as byte-ptr! s/tail
-
-		if head = tail [return str]						;-- early exit if nothing to reverse
-
-		part: 0
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				str2: as red-string! part-arg
-				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
-					str2/node = str/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				str2/head - str/head
-			]
-			if part <= 0 [return str]					;-- early exit if negative /part index
-			part: part << (unit >> 1)
-		]
-
-		if all [positive? part head + part < tail] [tail: head + part]
-		tail: tail - unit								;-- point to last value
-		temp: as byte-ptr! :part
-		while [head < tail][							;-- TODO: optimise it according to unit
-			copy-memory temp head unit
-			copy-memory head tail unit
-			copy-memory tail temp unit
-			head: head + unit
-			tail: tail - unit
-		]
-		str
-	]
-
-	take: func [
-		str	    	[red-string!]
-		part-arg	[red-value!]
-		deep?		[logic!]
-		last?		[logic!]
-		return:		[red-value!]
-		/local
-			int		[red-integer!]
-			str2	[red-string!]
-			char	[red-char!]
-			offset	[byte-ptr!]
-			tail	[byte-ptr!]
-			s		[series!]
-			buffer	[series!]
-			node	[node!]
-			unit	[integer!]
-			part	[integer!]
-			bytes	[integer!]
-			size	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/take"]]
-
-		size: rs-length? str
-		if size <= 0 [									;-- early exit if nothing to take
-			set-type as cell! str TYPE_NONE
-			return as red-value! str
-		]
-		s:    GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		part: 1
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				str2: as red-string! part-arg
-				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
-					str2/node = str/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				either str2/head < str/head [0][
-					either last? [size - (str2/head - str/head)][str2/head - str/head]
-				]
-			]
-			if part > size [part: size]
-		]
-
-		bytes:	part << (unit >> 1)
-		node: 	alloc-bytes bytes + unit
-		buffer: as series! node/value
-		buffer/flags: s/flags							;@@ filter flags?
-
-		str2: as red-string! stack/push*
-		str2/header: TYPE_STRING
-		str2/node: 	node
-		str2/head: 	0
-
-		either positive? part [
-			tail: as byte-ptr! s/tail
-			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			if last? [
-				offset: tail - bytes
-				s/tail: as cell! offset
-			]
-			copy-memory
-				as byte-ptr! buffer/offset
-				offset
-				bytes
-			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
-
-			unless last? [
-				move-memory
-					offset
-					offset + bytes
-					as-integer tail - offset - bytes
-				s/tail: as cell! tail - bytes
-			]
-			add-terminal-NUL as byte-ptr! buffer/tail unit
-			add-terminal-NUL as byte-ptr! s/tail unit
-		][return as red-value! str2]
-
-		if part = 1 [									;-- return char!
-			char: as red-char! str2
-			char/header: TYPE_CHAR
-			char/value:  get-char as byte-ptr! buffer/offset unit
-		]
-		as red-value! str2
-	]
 
 	swap: func [
 		str1	 [red-string!]
@@ -2234,18 +1923,20 @@ string: context [
 	][
 		s1:    GET_BUFFER(str1)
 		unit1: GET_UNIT(s1)
-		head1: (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
+		head1: (as byte-ptr! s1/offset) + (str1/head << (log-b unit1))
 		if head1 = as byte-ptr! s1/tail [return str1]				;-- early exit if nothing to swap
 
 		s2:    GET_BUFFER(str2)
 		unit2: GET_UNIT(s2)
-		head2: (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		head2: (as byte-ptr! s2/offset) + (str2/head << (log-b unit2))
 		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
 
 		char1: get-char head1 unit1
 		char2: get-char head2 unit2
 		poke-char s1 head1 char2
 		poke-char s2 head2 char1
+		ownership/check as red-value! str1 words/_swap null str1/head 1
+		ownership/check as red-value! str2 words/_swap null str2/head 1
 		str1
 	]
 
@@ -2281,10 +1972,10 @@ string: context [
 					str2: as red-string! with-arg
 					s:    GET_BUFFER(str2)
 					unit: GET_UNIT(s)
-					head: (as byte-ptr! s/offset) + (str2/head << (unit >> 1))
+					head: (as byte-ptr! s/offset) + (str2/head << (log-b unit))
 					tail: as byte-ptr! s/tail
 
-					size: (as integer! tail - head) >> (unit >> 1)
+					size: (as integer! tail - head) >> (log-b unit)
 					if zero? size [exit]				;-- early exit
 
 					if size > wlen [
@@ -2303,7 +1994,7 @@ string: context [
 
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		cur: head
 		while [head < tail][
@@ -2321,7 +2012,6 @@ string: context [
 			]
 			head: head + unit
 		]
-		add-terminal-NUL cur unit
 
 		s/tail: as red-value! cur
 		if wlen > 4 [free as byte-ptr! with-chars]
@@ -2341,7 +2031,7 @@ string: context [
 		pad: 0
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		cur: head
 		while [head < tail][
@@ -2360,7 +2050,6 @@ string: context [
 			head: head + unit
 		]
 		if pad = 2 [cur: cur - unit]
-		add-terminal-NUL cur unit
 
 		s/tail: as red-value! cur
 	]
@@ -2384,7 +2073,7 @@ string: context [
 		append-lf?: no
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		cur: head
 
@@ -2446,8 +2135,41 @@ string: context [
 			poke-char s cur 10
 			cur: cur + 1
 		]
-		add-terminal-NUL cur unit
 		s/tail: as red-value! cur
+	]
+	
+	take: func [
+		str	    	[red-string!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+		/local
+			char	[red-char!]
+			vec		[red-vector!]
+			s		[series!]
+			unit	[integer!]
+	][
+		str: as red-string! _series/take as red-series! str part-arg deep? last?
+		s: GET_BUFFER(str)
+
+		if all [
+			not OPTION?(part-arg)
+			1 = _series/get-length as red-series! str yes
+		][
+			ownership/check as red-value! str words/_take null str/head 1
+			unit: GET_UNIT(s)
+			either TYPE_OF(str) = TYPE_VECTOR [
+				vec: as red-vector! str
+				str: as red-string! vector/get-value as byte-ptr! s/offset unit vec/type
+			][										;-- return char!
+				char: as red-char! str
+				char/header: TYPE_CHAR
+				char/value:  string/get-char as byte-ptr! s/offset unit
+			]
+			ownership/check as red-value! str words/_taken null str/head 0
+		]
+		as red-value! str
 	]
 
 	trim: func [
@@ -2468,88 +2190,107 @@ string: context [
 			lines? [trim-lines str]
 			true  [trim-head-tail str head? tail?]
 		]
+		ownership/check as red-value! str words/_trim null str/head 0
 		as red-series! str
 	]
 
-	;--- Misc actions ---
-
-	copy: func [
-		str	    	[red-string!]
-		new			[red-string!]
-		part-arg	[red-value!]
-		deep?		[logic!]
-		types		[red-value!]
-		return:		[red-series!]
+	do-set-op: func [
+		case?	 [logic!]
+		skip-arg [red-integer!]
+		op		 [integer!]
+		return:  [red-series!]
 		/local
-			int		[red-integer!]
-			str2	[red-string!]
-			offset	[integer!]
-			s		[series!]
-			buffer	[series!]
-			node	[node!]
+			ser1	[red-series!]
+			ser2	[red-series!]
+			new		[red-series!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
 			unit	[integer!]
-			part	[integer!]
+			i		[integer!]
+			n		[integer!]
+			s		[series!]
+			s2		[series!]
+			cp		[integer!]
+			len		[integer!]
+			step	[integer!]
+			check?	[logic!]
+			invert? [logic!]
+			both?	[logic!]
+			find?	[logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/copy"]]
-
-		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-
-		offset: str/head << (unit >> 1)
-		part: (as-integer s/tail - s/offset) - offset
-
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				case [
-					int/value > (part >> (unit >> 1)) [part >> (unit >> 1)]
-					positive? int/value [int/value]
-					true				[0]
-				]
-			][
-				str2: as red-string! part-arg
-				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
-					str2/node = str/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				str2/head - str/head
+		step: 1
+		if OPTION?(skip-arg) [
+			assert TYPE_OF(skip-arg) = TYPE_INTEGER
+			step: skip-arg/value
+			if step <= 0 [
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)
 			]
-			part: part << (unit >> 1)
 		]
-		
-		node: 	alloc-bytes part + unit
-		buffer: as series! node/value
-		buffer/flags: s/flags							;@@ filter flags?
-		
-		unless zero? part [
-			copy-memory 
-				as byte-ptr! buffer/offset
-				(as byte-ptr! s/offset) + offset
-				part
 
-			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
+		find?: yes both?: no check?: no invert?: no
+		if op = OP_UNION	  [both?: yes]
+		if op = OP_INTERSECT  [check?: yes]
+		if op = OP_EXCLUDE	  [check?: yes invert?: yes]
+		if op = OP_DIFFERENCE [both?: yes check?: yes invert?: yes]
+
+		ser1: as red-series! stack/arguments
+		ser2: ser1 + 1
+		len: _series/get-length ser1 no
+		len: len + either op = OP_UNION [_series/get-length ser2 no][0]
+		new: as red-series! string/rs-make-at stack/push* len
+		s2: GET_BUFFER(new)
+		n: 2
+
+		until [
+			s: GET_BUFFER(ser1)
+			unit: GET_UNIT(s)
+			head: (as byte-ptr! s/offset) + (ser1/head << (log-b unit))
+			tail: as byte-ptr! s/tail
+
+			while [head < tail] [			;-- iterate over first series
+				cp: string/get-char head unit
+				if check? [
+					find?: string/rs-find-char as red-string! ser2 cp case?
+					if invert? [find?: not find?]
+				]
+				if all [
+					find?
+					not string/rs-find-char as red-string! new cp case?
+				][
+					s2: string/append-char s2 cp
+				]
+
+				i: 1
+				while [						;-- skip some chars
+					head: head + unit
+					all [head < tail i < step]
+				][
+					i: i + 1
+					s2: string/append-char s2 string/get-char head unit
+				]
+			]
+
+			either both? [					;-- iterate over second series?
+				ser1: ser2
+				ser2: as red-series! stack/arguments
+				n: n - 1
+			][n: 0]
+			zero? n
 		]
-		add-terminal-NUL as byte-ptr! buffer/tail unit
-		
-		new/header: TYPE_STRING
-		new/node: 	node
-		new/head: 	0
-		
-		as red-series! new
+		ser1/node: new/node
+		ser1/head: 0
+		stack/pop 1
+		ser1
 	]
 
 	init: does [
 		datatype/register [
 			TYPE_STRING
-			TYPE_VALUE
+			TYPE_SERIES
 			"string!"
 			;-- General actions --
 			:make
-			:random
+			INHERIT_ACTION	;random
 			null			;reflect
 			:to
 			:form
@@ -2576,35 +2317,36 @@ string: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			:at
-			:back
+			INHERIT_ACTION	;at
+			INHERIT_ACTION	;back
 			null			;change
-			:clear
-			:copy
+			INHERIT_ACTION	;clear
+			INHERIT_ACTION	;copy
 			:find
-			:head
-			:head?
-			:index?
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
 			:insert
-			:length?
-			:next
-			:pick
-			:poke
-			:remove
-			:reverse
+			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;next
+			INHERIT_ACTION	;pick
+			INHERIT_ACTION	;poke
+			null			;put
+			INHERIT_ACTION	;remove
+			INHERIT_ACTION	;reverse
 			:select
 			:sort
-			:skip
+			INHERIT_ACTION	;skip
 			:swap
-			:tail
-			:tail?
+			INHERIT_ACTION	;tail
+			INHERIT_ACTION	;tail?
 			:take
 			:trim
 			;-- I/O actions --
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

@@ -3,12 +3,14 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %win32.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
+
+#include %COM.reds
 
 #define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
@@ -26,6 +28,12 @@ Red/System [
 #define FILE_SHARE_WRITE	00000002h
 #define OPEN_EXISTING		00000003h
 
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
+#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
+#define FORMAT_MESSAGE_FROM_STRING        00000400h
+#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
+#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
+
 #define WEOF				FFFFh
 
 platform: context [
@@ -35,8 +43,15 @@ platform: context [
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
+	GdiplusStartupInput!: alias struct! [
+		GdiplusVersion				[integer!]
+		DebugEventCallback			[integer!]
+		SuppressBackgroundThread	[integer!]
+		SuppressExternalCodecs		[integer!]
+	]
+
+	gdiplus-token: 0
 	page-size: 4096
-	confd: -2
 
 	#import [
 		LIBC-file cdecl [
@@ -100,7 +115,61 @@ platform: context [
 				mode			[int-ptr!]
 				return:			[integer!]
 			]
+			GetCurrentDirectory: "GetCurrentDirectoryW" [
+				buf-len			[integer!]
+				buffer			[byte-ptr!]
+				return:			[integer!]
+			]
+			SetCurrentDirectory: "SetCurrentDirectoryW" [
+				lpPathName		[c-string!]
+				return:			[logic!]
+			]
+			GetCommandLine: "GetCommandLineW" [
+				return:			[byte-ptr!]
+			]
+			FormatMessage: "FormatMessageW" [
+				dwFlags			[integer!]
+				lpSource		[byte-ptr!]
+				dwMessageId		[integer!]
+				dwLanguageId	[integer!]
+				lpBuffer		[int-ptr!]
+				nSize			[integer!]
+				Argument		[integer!]
+				return:			[integer!]
+			]
+			LocalFree: "LocalFree" [
+				hMem			[integer!]
+				return:			[integer!]
+			]
+			Sleep: "Sleep" [
+				dwMilliseconds	[integer!]
+			]
+			lstrlen: "lstrlenW" [
+				str			[byte-ptr!]
+				return:		[integer!]
+			]
 		]
+		"gdiplus.dll" stdcall [
+			GdiplusStartup: "GdiplusStartup" [
+				token		[int-ptr!]
+				input		[integer!]
+				output		[integer!]
+				return:		[integer!]
+			]
+			GdiplusShutdown: "GdiplusShutdown" [
+				token		[integer!]
+			]
+		]
+	]
+
+	#either sub-system = 'gui [
+		#either gui-console? = yes [
+			#include %win32-gui.reds
+		][
+			#include %win32-cli.reds
+		]
+	][
+		#include %win32-cli.reds
 	]
 
 	;-------------------------------------------
@@ -137,185 +206,51 @@ platform: context [
 		]
 	]
 
-	;-------------------------------------------
-	;-- Initialize console ouput handle
-	;-------------------------------------------
-	init-console-out: func [][
-		confd: simple-io/CreateFile
-					"CONOUT$"
-					GENERIC_WRITE
-					FILE_SHARE_READ or FILE_SHARE_WRITE
-					null
-					OPEN_EXISTING
-					0
-					null
+	init-gdiplus: func [/local startup-input res][
+		startup-input: declare GdiplusStartupInput!
+		startup-input/GdiplusVersion: 1
+		startup-input/DebugEventCallback: 0
+		startup-input/SuppressBackgroundThread: 0
+		startup-input/SuppressExternalCodecs: 0
+		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
 	]
 
-	;-------------------------------------------
-	;-- putwchar use windows api internal
-	;-------------------------------------------
-	putwchar: func [
-		wchar	[integer!]								;-- wchar is 16-bit on Windows
-		return:	[integer!]
+	shutdown-gdiplus: does [
+		GdiplusShutdown gdiplus-token 
+	]
+
+	get-current-dir: func [
+		len		[int-ptr!]
+		return: [c-string!]
 		/local
-			n	[integer!]
-			cr	[integer!]
-			con	[integer!]
+			size [integer!]
+			path [byte-ptr!]
 	][
-		n: 0
-		cr: as integer! #"^M"
-
-		con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
-		either con > 0 [									;-- output to console
-			if confd = -2 [init-console-out]
-			if confd = -1 [return WEOF]
-			WriteConsole confd (as byte-ptr! :wchar) 1 :n null
-		][													;-- output to redirection file
-			if wchar = as integer! #"^/" [					;-- convert lf to crlf
-				WriteFile _get_osfhandle fd-stdout (as c-string! :cr) 2 :n 0
-			]
-			WriteFile _get_osfhandle fd-stdout (as c-string! :wchar) 2 :n 0
-		]
-		wchar
+		size: GetCurrentDirectory 0 null				;-- include NUL terminator
+		path: allocate size << 1
+		GetCurrentDirectory size path
+		len/value: size - 1
+		as c-string! path
 	]
 
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
-		/local
-			cp [integer!]								;-- codepoint
+	wait: func [time [integer!]][Sleep time]
+
+	set-current-dir: func [
+		path	[c-string!]
+		return: [logic!]
 	][
-		assert str <> null
-
-		while [cp: str/value not zero? cp][
-			either str/value > FFFFh [
-				cp: cp - 00010000h						;-- encode surrogate pair
-				putwchar cp >> 10 + D800h				;-- emit lead
-				putwchar cp and 03FFh + DC00h			;-- emit trail
-			][
-				putwchar cp								;-- UCS-2 codepoint
-			]
-			str: str + 1
-		]
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-line-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-		print-UCS4 str									;@@ throw an error on failure
-		putwchar 10										;-- newline
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-2 string to console
-	;-------------------------------------------
-	print-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
-		/local
-			p	[byte-ptr!]
-			cp	[integer!]
-	][
-		assert str <> null
-		p: str
-		while [
-			cp: (as-integer p/2) << 8 + p/1
-			cp <> 0
-		][
-			putwchar cp
-			p: p + 2
-		]
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-2 string with newline to console
-	;-------------------------------------------
-	print-line-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
-	][
-		assert str <> null
-		print-UCS2 str									;@@ throw an error on failure
-		putwchar 10										;-- newline
-	]
-
-	;-------------------------------------------
-	;-- Print a Latin-1 string to console
-	;-------------------------------------------
-	print-Latin1: func [
-		str 	[c-string!]								;-- zero-terminated Latin-1 string
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-
-		while [cp: as-integer str/1 not zero? cp][
-			putwchar cp
-			str: str + 1
-		]
-	]
-
-	;-------------------------------------------
-	;-- Print a Latin-1 string with newline to console
-	;-------------------------------------------
-	print-line-Latin1: func [
-		str [c-string!]									;-- zero-terminated Latin-1 string
-	][
-		assert str <> null
-		print-Latin1 str
-		putwchar 10										;-- newline
-	]
-
-	;-------------------------------------------
-	;-- Red/System Unicode replacement printing functions
-	;-------------------------------------------
-
-	prin*: func [s [c-string!] return: [c-string!] /local p][
-		p: s
-		while [p/1 <> null-byte][
-			putwchar as-integer p/1
-			p: p + 1
-		]
-		s
-	]
-
-	prin-int*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
-		fflush null													;-- flush all streams
-		i
-	]
-
-	prin-hex*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
-		fflush null
-		i
-	]
-
-	prin-float*: func [f [float!] return: [float!]][
-		wprintf ["%^(00).^(00)1^(00)6^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
-		fflush null
-		f
-	]
-
-	prin-float32*: func [f [float32!] return: [float32!]][
-		wprintf ["%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
-		fflush null
-		f
+		SetCurrentDirectory path
 	]
 
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: does [
+		init-gdiplus
 		#if unicode? = yes [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
 		]
+		CoInitializeEx 0 COINIT_APARTMENTTHREADED
 	]
 ]

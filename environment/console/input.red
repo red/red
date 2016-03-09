@@ -3,10 +3,10 @@ Red [
 	Author: "Nenad Rakocevic"
 	File: 	%input.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Freely inspired by linenoise fork from msteveb:
@@ -14,93 +14,15 @@ Red [
 	}
 ]
 
-complete-from-path: func [
-	str [string!]
-	/local s result word w1 ptr words first? sys-word
-][
-	result: make block! 4
-	first?: yes
-	s: ptr: str
-	while [ptr: find str #"/"][
-		word: to word! copy/part str ptr
-		either first? [
-			if value? word [
-				w1: get word
-				first?: no
-			]
-		][
-			w1: get in w1 word
-		]
-		str: either object? w1 [next ptr][""]
+;;@@ Temporary patch to allow inclusion in user code.
+unless system/console [
+	system/console: context [
+        history: make block! 200
 	]
-	if any [function? w1 action? w1 native? w1 routine? w1] [
-		word: find/last/tail s #"/"
-		words: make block! 4
-		foreach w spec-of w1 [
-			if refinement? w [append words w]
-		]
-	]
-	if object? w1 [
-		word: str
-		words: words-of w1
-	]
-	if words [
-		foreach w words [
-			sys-word: form w
-			if any [empty? word find/match sys-word word] [
-				append result sys-word
-			]
-		]
-	]
-
-	if 1 = length? result [
-		poke result 1 append copy/part s word result/1
-	]
-	result
 ]
+;; End patch
 
-default-input-completer: func [
-	str [string!]
-	/local word ptr result sys-word delim?
-][
-	result: make block! 4
-	delimiters: [#" " #"[" #"("]
-	delim?: no
-	ptr: str: head str
-	foreach d delimiters [
-		word: find/last/tail str d
-		if all [word (index? ptr) < (index? word)] [ptr: word]
-	]
-	either head? ptr [word: str][word: ptr delim?: yes]
-	unless empty? word [
-		either all [
-			#"/" <> word/1
-			ptr: find word #"/"
-			#" " <> pick ptr -1
-		][
-			result: complete-from-path word
-		][
-			foreach w system/words [
-				if value? w [
-					sys-word: mold w
-					if find/match sys-word word [
-						append result sys-word
-					]
-				]
-			]
-		]
-	]
-	if 1 = length? result [
-		either word = result/1 [
-			clear result
-		][
-			if delim? [
-				poke result 1 append copy/part str word result/1
-			]
-		]
-	]
-	result
-]
+#include %auto-complete.red
 
 #system [
 	terminal: context [
@@ -119,26 +41,25 @@ default-input-completer: func [
 			KEY_PAGE_UP:	-28
 			KEY_PAGE_DOWN:	-29
 			KEY_ESC:		-30
+			KEY_CTRL_A:		  1
+			KEY_CTRL_B:		  2
+			KEY_CTRL_C:		  3
+			KEY_CTRL_D:		  4
+			KEY_CTRL_E:		  5
+			KEY_CTRL_F:		  6
+			KEY_CTRL_H:		  8
+			KEY_TAB:		  9
+			KEY_CTRL_K:		 11
+			KEY_CTRL_L:		 12
+			KEY_ENTER:		 13
+			KEY_CTRL_N:		 14
+			KEY_CTRL_P:		 16
+			KEY_CTRL_T:		 20
+			KEY_CTRL_U:		 21
+			KEY_CTRL_W:		 23
+			KEY_ESCAPE:		 27
+			KEY_BACKSPACE:	127
 		]
-
-		#define KEY_CTRL_A		1
-		#define KEY_CTRL_B		2
-		#define KEY_CTRL_C		3
-		#define KEY_CTRL_D		4
-		#define KEY_CTRL_E		5
-		#define KEY_CTRL_F		6
-		#define KEY_CTRL_H		8
-		#define KEY_TAB			9
-		#define KEY_CTRL_K		11
-		#define KEY_CTRL_L		12
-		#define KEY_ENTER		13
-		#define KEY_CTRL_N		14
-		#define KEY_CTRL_P		16
-		#define KEY_CTRL_T		20
-		#define KEY_CTRL_U		21
-		#define KEY_CTRL_W		23
-		#define KEY_ESCAPE		27
-		#define KEY_BACKSPACE	127
 		
 		#include %wcwidth.reds
 		
@@ -172,13 +93,13 @@ default-input-completer: func [
 		][
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			offset: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 			cp: 0
 			if offset < as byte-ptr! s/tail [cp: string/get-char offset unit]
 			cp > FFh
 		]
 
-		on-resize: does [
+		on-resize: func [[cdecl] sig [integer!]][
 			get-window-size
 			refresh
 		]
@@ -190,26 +111,41 @@ default-input-completer: func [
 				line	[red-string!]
 				result	[red-block!]
 				num		[integer!]
+				str2	[red-string!]
+				head	[integer!]
 		][
 			#call [default-input-completer str]
-			result: as red-block! stack/arguments
+			stack/top: stack/arguments + 1
+			result: as red-block! stack/top
 			num: block/rs-length? result
 			unless zero? num [
+				head: str/head
+				str/head: 0
+				_series/copy
+					as red-series! str
+					as red-series! saved-line
+					stack/arguments
+					yes
+					stack/arguments
+				saved-line/head: head
 				line: input-line
-				if num > 1 [
-					str/head: 0
-					string/copy str saved-line stack/arguments yes stack/arguments
-				]
-
 				string/rs-reset line
-				until [
-					string/concatenate line as red-string! block/rs-head result -1 0 yes no
-					unless num = 1 [string/append-char GET_BUFFER(line) 32]
-					block/rs-next result
-					block/rs-tail? result
-				]
 
-				line/head: string/get-length line yes
+				either num = 1 [
+					str2: as red-string! block/rs-head result
+					head: str2/head
+					str2/head: 0
+					string/concatenate line str2 -1 0 yes no
+					line/head: head
+				][
+					until [
+						string/concatenate line as red-string! block/rs-head result -1 0 yes no
+						string/append-char GET_BUFFER(line) 32
+						block/rs-next result
+						block/rs-tail? result
+					]
+					line/head: string/rs-abs-length? line
+				]
 				refresh
 			]
 			num
@@ -229,7 +165,7 @@ default-input-completer: func [
 		fetch-history: does [
 			string/rs-reset input-line
 			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
-			input-line/head: string/get-length input-line yes
+			input-line/head: string/rs-abs-length? input-line
 		]
 
 		init-buffer: func [
@@ -243,8 +179,8 @@ default-input-completer: func [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			if unit < 2 [unit: 2]			;-- always treat string as widechar string
-			size: (string/get-length str yes) << (unit >> 1)
-			size: size + (string/get-length prompt yes) << (unit >> 1)
+			size: (string/rs-abs-length? str) << (log-b unit)
+			size: size + (string/rs-abs-length? prompt) << (log-b unit)
 			if size > buf-size [
 				buf-size: size
 				free buffer
@@ -275,7 +211,7 @@ default-input-completer: func [
 			bytes:	0
 			series: GET_BUFFER(str)
 			unit: 	GET_UNIT(series)
-			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
+			offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
 			tail:   as byte-ptr! series/tail
 			if head-as-tail? [
 				tail: offset
@@ -348,6 +284,7 @@ default-input-completer: func [
 			prompt-str [red-string!]
 			/local
 				line   [red-string!]
+				head   [integer!]
 				c	   [integer!]
 				n	   [integer!]
 		][
@@ -356,9 +293,11 @@ default-input-completer: func [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
-			unless zero? string/rs-length? saved-line [
+			unless zero? string/rs-abs-length? saved-line [
+				head: saved-line/head
+				saved-line/head: 0
 				string/concatenate line saved-line -1 0 yes no
-				line/head: string/get-length line yes
+				line/head: head
 			]
 			refresh
 
@@ -417,7 +356,7 @@ default-input-completer: func [
 						unless zero? history/head [
 							history/head: history/head - 1
 							fetch-history
-							line/head: string/get-length line yes
+							line/head: string/rs-abs-length? line
 							refresh
 						]
 					]
@@ -440,7 +379,7 @@ default-input-completer: func [
 					]
 					KEY_CTRL_E
 					KEY_END [
-						line/head: string/get-length line yes
+						line/head: string/rs-abs-length? line
 						refresh
 					]
 					KEY_DELETE [
@@ -481,14 +420,24 @@ default-input-completer: func [
 			]
 			line/head: 0
 		]
+		
+		setup: func [
+			line [red-string!]
+			hist [red-block!]
+		][
+			copy-cell as red-value! line as red-value! input-line
+			copy-cell as red-value! hist as red-value! history
+
+			init line hist					;-- enter raw mode
+		]
 	]
 ]
 
-set-buffer-history: routine [line [string!] hist [block!]][
-	terminal/init line hist
+_set-buffer-history: routine [line [string!] hist [block!]][
+	terminal/setup line hist
 ]
 
-read-input: routine [prompt [string!]][
+_read-input: routine [prompt [string!]][
 	terminal/edit prompt
 	terminal/restore
 	print-line ""
@@ -499,8 +448,8 @@ ask: function [
 	return:  [string!]
 ][
 	buffer: make string! 1
-	set-buffer-history buffer head system/console/history
-	read-input question
+	_set-buffer-history buffer head system/console/history
+	_read-input question
 	buffer
 ]
 

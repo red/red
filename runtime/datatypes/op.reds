@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %op.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -45,14 +45,15 @@ op: context [
 
 		flag: 0
 		type: TYPE_OF(spec)
-		assert any [
-			TYPE_OF(spec) = TYPE_BLOCK
-			TYPE_OF(spec) = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
-			TYPE_OF(spec) = TYPE_NATIVE
-			TYPE_OF(spec) = TYPE_OP
-			TYPE_OF(spec) = TYPE_FUNCTION
-			TYPE_OF(spec) = TYPE_ROUTINE
-		]
+		unless any [
+			type = TYPE_BLOCK
+			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
+			type = TYPE_NATIVE
+			type = TYPE_OP
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
+		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
+		
 		node: switch type [
 			TYPE_BLOCK [
 				s: GET_BUFFER(spec)
@@ -62,6 +63,7 @@ op: context [
 			TYPE_ACTION
 			TYPE_NATIVE
 			TYPE_OP [
+				if type = TYPE_NATIVE [flag: flag-native-op]
 				native: as red-native! spec
 				code: native/code
 				native/spec
@@ -81,9 +83,8 @@ op: context [
 		op: as red-op! stack/push*
 		op/header: TYPE_OP or flag						;-- implicit reset of all header flags
 		op/spec:   node									; @@ copy spec block
-		;op/symbols: clean-spec spec 					; @@ TBD
-		
-		op/code: code
+		op/args:   null
+		op/code:   code
 		
 		op
 	]
@@ -207,6 +208,7 @@ op: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

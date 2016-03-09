@@ -4,8 +4,8 @@ REBOL [
 	File: 	 %quick-test.r
 	Version: 0.12.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
@@ -39,6 +39,15 @@ qt: make object! [
   
   ;; switch for binary compiler usage
   binary?: false
+
+  ;; check if call-show? is enabled for call
+  either any [
+  		not value? 'call-show?
+  		equal? call-show? 'wait
+  	] [call-show?: 'wait] [call-show?: 'show]
+  call*: to path! 'call
+  append call* :call-show?
+  append call* 'output
   
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
@@ -64,9 +73,9 @@ qt: make object! [
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
     windows-os?
-    system/version/3 = 8              
+    system/version/3 = 8
   ][
-		do %call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 	]
 	
@@ -151,7 +160,7 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  	compile: func [
+  compile: func [
   		src [file!]
   		/bin
   		/lib
@@ -207,7 +216,7 @@ qt: make object! [
     		]  		
     	]
     	comp-output: make string! 1024
-    	call/wait/output cmd comp-output
+    	do call* cmd comp-output
     ][
     	comp: mold compose/deep [
     	  REBOL []
@@ -228,7 +237,7 @@ qt: make object! [
 
     	;; compose command line and call it
     	cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    	call/wait/output cmd make string! 1024	;; redirect output to anonymous
+    	do call* cmd make string! 1024	;; redirect output to anonymous
     											;; buffer
     ]
     
@@ -238,6 +247,7 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
+    recycle
     either compile-ok? [
       exe
     ][
@@ -345,8 +355,9 @@ qt: make object! [
     exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
-    call/output/wait exec output
+    do call* exec output
     if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    recycle
     if all [
       source-file?
       not pgm
@@ -371,7 +382,7 @@ qt: make object! [
   ][
     source-file?: false
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/wait cmd
+    do call* cmd make string! 1024
   ]
   
   run-unit-test-quiet: func [
@@ -386,7 +397,7 @@ qt: make object! [
     prin [ "running " test-name #"^(0D)"]
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/output/wait cmd output
+    do call* cmd output
     if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output

@@ -3,8 +3,8 @@ Red/System [
 	Author:  "Peter W A Wood"
 	File: 	 %float-lib-test-source.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ;; This script needs to be processed by make-lib-auto-test.r which sets the
@@ -19,66 +19,65 @@ Red/System [
 
 ;; library declarations
 #import [
-  LIB1 cdecl [
-    addone: "addone" [
-      f       [float!]
-      return: [float!]
-    ]
-    subtractone: "subtractone" [
-      f       [float!]
-      return: [float!]
-    ]
-  ]
+	LIB1 cdecl [
+		addone: "addone" [
+			f       [float!]
+			return: [float!]
+		]
+		subtractone: "subtractone" [
+			f       [float!]
+			return: [float!]
+		]
+	]
 ]
 
 #import [
-  LIB2 cdecl [
-    twice: "twice" [
-      f       [float!]
-      return: [float!]
-    ]
-  ]
+	LIB2 cdecl [
+		twice: "twice" [
+			f       [float!]
+			return: [float!]
+		]
+	]
 ]
 
 #import [
-  LIB3 cdecl [
-    halve: "halve" [
-      f       [float!]
-      return: [float!]
-    ]
-  ]
+	LIB3 cdecl [
+		halve: "halve" [
+			f       [float!]
+			return: [float!]
+		]
+	]
 ]
 
 ~~~start-file~~~ "library - float"
 
-    f: 0.0
+		f: 0.0
   
-  --test-- "flib1"
-  --assert 2.0 = addone 1.0
+	--test-- "flib1"
+		--assert 2.0 = addone 1.0
   
-  --test-- "flib2"
-    f: addone 1.0
-  --assert f = 2.0
+	--test-- "flib2"
+		f: addone 1.0
+		--assert f = 2.0
   
-  --test-- "flib3"
-    f: subtractone 2.0
-  --assert f = 1.0
+	--test-- "flib3"
+		f: subtractone 2.0
+		--assert f = 1.0
   
-  --test-- "flib4"
-  --assert 1.0 = subtractone 2.0
+	--test-- "flib4"
+		--assert 1.0 = subtractone 2.0
   
-  --test-- "flib5"    
-    f: twice 1.0
-  --assert f = 2.0
+	--test-- "flib5"    
+		f: twice 1.0
+		--assert f = 2.0
   
-  --test-- "flib6"
-  --assert 2.0 = twice 1.0
+	--test-- "flib6"
+		--assert 2.0 = twice 1.0
   
-  --test-- "flib7"
-  --assert 1.0 = halve 2.0
+	--test-- "flib7"
+		--assert 1.0 = halve 2.0
     
-  --test-- "flib8"
-  --assert 0.5 = halve 1.0
+	--test-- "flib8"
+		--assert 0.5 = halve 1.0
   
 ~~~end-file~~~
-

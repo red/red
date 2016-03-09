@@ -3,17 +3,17 @@ Red [
 	Author:	["Ingo Hohmann" "Nenad Rakocevic"]
 	File:	%help.red
 	Tabs:	4
-	Rights:	"Copyright (C) 2014 Ingo Hohmann, Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2014-2015 Ingo Hohmann, Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-help: func [
-	"Get help for functions"
+help: function [
+	"Display helping information about words and other values"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2 value
+	/local word type info w attributes block ref
 ][
 	tab: tab4: "    "
 	tab8: "        "
@@ -42,10 +42,12 @@ Other useful functions:
 }
 			exit
 		]
-		all [word? word datatype? get :word] [			;-- HELP <datatype!>
+		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
-			foreach w system/words [
+			found?: no
+			foreach w sort words-of system/words [
 				if type = type? get w [
+					found?: yes
 					case [
 						any [function? get w native? get w action? get w op? get w routine? get w][
 							prin [tab w]
@@ -69,10 +71,11 @@ Other useful functions:
 					]
 				]
 			]
+			unless found? [print "No value of that type found in global space."]
 			exit
 		]
-		string? word [
-			foreach w system/words [
+		string? :word [
+			foreach w sort words-of system/words [
 				if any [function? get w native? get w action? get w op? get w routine? get w][
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
@@ -91,6 +94,11 @@ Other useful functions:
 			]
 			exit
 		]
+		not any [word? :word path? :word][				;-- all others except word!
+			type: type? :word
+			print [mold :word "is" a-an form type type]
+			exit
+		]
 	]
 	
 	func-name: :word
@@ -102,19 +110,23 @@ Other useful functions:
 		opt [set info string! (prin [" =>" append form info dot])]
 		(prin lf)
 	]
-
+	
 	case [
+		unset? get/any :word [
+			print ["Word" :word "is not defined"]
+		]
 		all [
 			any [word? func-name path? func-name]
 			fun: get func-name
 			any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
 		][
 			prin ["^/USAGE:^/" tab ]
+			unless op? :func [prin func-name prin " "]
 
 			parse spec-of :fun [
 				start: [									;-- 1st pass
 					any [block! | string! ]
-					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin [func-name mold w]])]
+					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin mold w])]
 					any [
 						/local to end
 						| set w [word! | lit-word! | get-word!] (prin [" " w])
@@ -153,9 +165,9 @@ Other useful functions:
 			print "` is an object! of value:"
 
 			foreach w words-of get word [
-				value: get/any in get word w
+				set/any 'value get/any in get word w
 
-				desc: case [
+				set/any 'desc case [
 					object? :value  [words-of value]
 					find [op! action! native! function! routine!] type?/word :value [
 						spec: spec-of :value
@@ -194,10 +206,12 @@ Other useful functions:
 
 ?: :help
 
-what: function [
-	"Lists all functions, or words of a given type"
-][
-	foreach w system/words [
+a-an: function [s [string!]][
+	pick ["an" "a"] make logic! find "aeiou" s/1
+]
+
+what: function ["Lists all functions"][
+	foreach w words-of system/words [
 		if any [function? get w native? get w action? get w op? get w routine? get w][
 			prin pad form w 15
 			spec: spec-of get w
@@ -222,12 +236,11 @@ source: function [
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
 	][
-		["Sorry," func-name "is a" mold type? get func-name "so no source is available"]
+		type: mold type? get func-name
+		["Sorry," func-name "is" a-an type type "so no source is available"]
 	]
 ]
 
-about: function [
-	"Print Red version information"
-][
+about: function ["Print Red version information"][
 	print ["Red" system/version #"-" system/build]
 ]

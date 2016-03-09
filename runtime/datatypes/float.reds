@@ -1,12 +1,12 @@
 Red/System [
 	Title:   "Float! datatype runtime functions"
-	Author:  "Nenad Rakocevic, Oldes"
-	File: 	 %decimal.reds
+	Author:  "Nenad Rakocevic, Oldes, Qingtian Xie"
+	File: 	 %float.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -14,6 +14,12 @@ Red/System [
 
 float: context [
 	verbose: 0
+
+	#enum form-type! [
+		FORM_FLOAT_32
+		FORM_FLOAT_64
+		FORM_PERCENT
+	]
 
 	pretty-print?: true
 	full-support?: false
@@ -46,25 +52,6 @@ float: context [
 		value
 	]
 
-	get*: func [										;-- unboxing float value from stack
-		return: [float!]
-		/local
-			fl [red-float!]
-	][
-		fl: as red-float! stack/arguments
-		assert TYPE_OF(fl) = TYPE_FLOAT
-		fl/value
-	]
-
-	get-any*: func [									;-- special get* variant for SWITCH
-		return: [float!]
-		/local
-			fl [red-float!]
-	][
-		fl: as red-float! stack/arguments
-		either TYPE_OF(fl) = TYPE_FLOAT [fl/value][0.0] ;-- accept NONE values
-	]
-
 	get: func [											;-- unboxing float value
 		value	[red-value!]
 		return: [float!]
@@ -80,7 +67,7 @@ float: context [
 		value	[float!]
 		return: [red-float!]
 		/local
-			int [red-float!]
+			fl [red-float!]
 	][
 		fl: as red-float! stack/arguments
 		fl/header: TYPE_FLOAT
@@ -97,6 +84,7 @@ float: context [
 	][
 		;-- Based on this method: http://stackoverflow.com/a/429812/494472
 		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
+		number: either number < 0.0 [ceil number][floor number]
 		f: number + 6755399441055744.0
 		d: as int-ptr! :f
 		d/value
@@ -104,6 +92,7 @@ float: context [
 
 	form-float: func [
 		f			[float!]
+		type		[integer!]
 		return:		[c-string!]
 		/local
 			s		[c-string!]
@@ -132,13 +121,19 @@ float: context [
 
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return "0.0"]
+			if temp < DBL_EPSILON [return either type = FORM_PERCENT ["0%"]["0.0"]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		s/17: #"0"
-		s/18: #"0"
-		sprintf [s "%.16g" f]
+		either type = FORM_FLOAT_32 [
+			s/8: #"0"
+			s/9: #"0"
+			sprintf [s "%.7g" f]
+		][
+			s/17: #"0"
+			s/18: #"0"
+			sprintf [s "%.16g" f]
+		]
 
 		p:  null
 		p1: null
@@ -185,7 +180,11 @@ float: context [
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
-						sprintf [s0 "%.14g" f]
+						either type = FORM_FLOAT_32 [
+							sprintf [s0 "%.5g" f]
+						][
+							sprintf [s0 "%.14g" f]
+						]
 						s: s0
 					]
 				]
@@ -202,17 +201,55 @@ float: context [
 			s/1: #"^@"
 			p: p0
 		]
-		unless dot? [											;-- added tailing ".0"
-			either p = null [
-				p: s
-			][
-				move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+		either type = FORM_PERCENT [
+			s/1: #"%"
+			s/2: #"^@"
+		][
+			unless dot? [										;-- added tailing ".0"
+				either p = null [
+					p: s
+				][
+					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+				]
+				p/1: #"."
+				p/2: #"0"
+				s/3: #"^@"
 			]
-			p/1: #"."
-			p/2: #"0"
-			s/3: #"^@"
 		]
 		s0
+	]
+
+	do-math-op: func [
+		left	[float!]
+		right	[float!]
+		type	[integer!]
+		return: [float!]
+	][
+		switch type [
+			OP_ADD [left + right]
+			OP_SUB [left - right]
+			OP_MUL [left * right]
+			OP_DIV [
+				either 0.0 = right [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left / right
+				]
+			]
+			OP_REM [
+				either 0.0 = right [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left % right
+				]
+			]
+			default [
+				fire [TO_ERROR(script cannot-use) stack/get-call datatype/push TYPE_FLOAT]
+				0.0
+			]
+		]
 	]
 
 	do-math: func [
@@ -221,6 +258,8 @@ float: context [
 		/local
 			left  [red-float!]
 			right [red-float!]
+			type1 [integer!]
+			type2 [integer!]
 			int   [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
@@ -228,47 +267,65 @@ float: context [
 		left:  as red-float! stack/arguments
 		right: as red-float! left + 1
 
-		assert any [									;@@ replace by typeset check when possible
-			TYPE_OF(left) = TYPE_INTEGER
-			TYPE_OF(left) = TYPE_FLOAT
-		]
+		type1: TYPE_OF(left)
+		type2: TYPE_OF(right)
+
 		assert any [
-			TYPE_OF(right) = TYPE_INTEGER
-			TYPE_OF(right) = TYPE_CHAR
-			TYPE_OF(right) = TYPE_FLOAT
+			type1 = TYPE_INTEGER
+			type1 = TYPE_FLOAT
+			type1 = TYPE_PERCENT
 		]
 
-		if TYPE_OF(left) <> TYPE_FLOAT [
+		if type2 = TYPE_TUPLE [
+			return as red-float! tuple/do-math type
+		]
+
+		unless any [						;@@ replace by typeset check when possible
+			type2 = TYPE_INTEGER
+			type2 = TYPE_CHAR
+			type2 = TYPE_FLOAT
+			type2 = TYPE_PERCENT
+		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
+
+		if type1 = TYPE_INTEGER [
 			int: as red-integer! left
 			left/header: TYPE_FLOAT
 			left/value: integer/to-float int/value
 		]
-		if TYPE_OF(right) <> TYPE_FLOAT [
+		if any [
+			type2 = TYPE_INTEGER
+			type2 = TYPE_CHAR
+		][
 			int: as red-integer! right
 			right/value: integer/to-float int/value
 		]
 
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
-			OP_REM [left/value % right/value]
+		if all [							;-- convert percent! to float!
+			type1 = TYPE_PERCENT
+			type2 <> TYPE_PERCENT
+		][
+			left/header: TYPE_FLOAT
 		]
+
+		left/value: do-math-op left/value right/value type
 		left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
-		value 	[float!]
+	make-in: func [
+		parent	[red-block!]
+		high	[integer!]
+		low		[integer!]
+		return: [red-float!]
 		/local
-			fl [red-float!]
+			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
 
-		fl: as red-float! ALLOC_TAIL(blk)
-		fl/header: TYPE_FLOAT
-		fl/value: value
+		cell: ALLOC_TAIL(parent)
+		cell/header: TYPE_FLOAT
+		cell/data2: low
+		cell/data3: high
+		as red-float! cell
 	]
 	
 	push64: func [
@@ -307,12 +364,27 @@ float: context [
 		proto	 [red-value!]	
 		spec	 [red-value!]
 		return:	 [red-float!]
+		/local
+			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_FLOAT [
 				as red-float! spec
+			]
+			TYPE_INTEGER [
+				fl: as red-float! spec
+				int: as red-integer! spec
+				fl/value: integer/to-float int/value
+				fl/header: TYPE_FLOAT
+				fl
+			]
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				fl/header: TYPE_FLOAT
+				fl
 			]
 			default [
 				--NOT_IMPLEMENTED--
@@ -349,6 +421,7 @@ float: context [
 		spec	[red-float!]
 		return: [red-value!]
 		/local
+			fl  [red-float!]
 			int [red-integer!]
 			buf [red-string!]
 			f	[float!]
@@ -360,11 +433,16 @@ float: context [
 			TYPE_INTEGER [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
-				int/value: to-integer either f < 0.0 [f + 0.4999999999999999][f - 0.4999999999999999]
+				int/value: to-integer f
+			]
+			TYPE_PERCENT [
+				fl: as red-float! type
+				fl/header: TYPE_PERCENT
+				fl/value: f
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-float f
+				string/concatenate-literal buf form-float f FORM_FLOAT_64
 			]
 			default [
 				--NOT_IMPLEMENTED--
@@ -384,7 +462,7 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
 
-		formed: form-float fl/value
+		formed: form-float fl/value FORM_FLOAT_64
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]
@@ -507,7 +585,7 @@ float: context [
 
 		if all [
 			op = COMP_STRICT_EQUAL
-			TYPE_OF(value2) <> TYPE_FLOAT
+			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
 
 		left: value1/value
@@ -518,6 +596,7 @@ float: context [
 				int: as red-integer! value2
 				right: integer/to-float int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [right: value2/value]
 			default [RETURN_COMPARE_OTHER]
 		]
@@ -753,6 +832,7 @@ float: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

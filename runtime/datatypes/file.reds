@@ -3,37 +3,27 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %file.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
 file: context [
 	verbose: 0
 	
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
-		
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_FILE							;-- implicit reset of all header flags
-		cell
-	]
-
 	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
-		return:  [red-string!]
+		encoding [integer!]
+		return:  [red-file!]
+		/local
+			file [red-file!]
 	][
-		load-in src size root
+		file: as red-file! string/load src size encoding
+		set-type as red-value! file TYPE_FILE
+		file
 	]
 
 	push: func [
@@ -42,6 +32,130 @@ file: context [
 		#if debug? = yes [if verbose > 0 [print-line "file/push"]]
 		
 		copy-cell as red-value! file stack/push*
+	]
+
+	to-OS-path: func [
+		src		[red-file!]
+		return: [c-string!]
+		/local
+			str [red-string!]
+			s	[series!]
+			len [integer!]
+			ret [c-string!]
+	][
+		len: string/rs-length? as red-string! src
+		s: GET_BUFFER(src)
+		if zero? len [len: 1]
+		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
+		file/to-local-path src str no
+
+		#either OS = 'Windows [
+			ret: unicode/to-utf16 str
+		][
+			len: -1
+			ret: unicode/to-utf8 str :len
+		]
+		stack/pop 1
+		ret
+	]
+
+	get-current-dir: func [
+		return: [red-string!]
+		/local
+			len  [integer!]
+			path [c-string!]
+			dir  [red-string!]
+	][
+		len: 0
+		path: platform/get-current-dir :len
+		#either OS = 'Windows [
+			dir: string/load path len UTF-16LE
+		][
+			dir: string/load path len UTF-8
+		]
+		free as byte-ptr! path
+		dir
+	]
+
+	to-local-path: func [
+		src		[red-file!]
+		out		[red-string!]
+		full?	[logic!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			end  [byte-ptr!]
+			dir  [c-string!]
+			len  [integer!]
+			unit [integer!]
+			c	 [integer!]
+			d	 [integer!]
+	][
+		s: GET_BUFFER(src)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (src/head << (unit >> 1))
+		end: (as byte-ptr! s/tail)
+		s: GET_BUFFER(out)
+
+		;-- prescan for: /c/dir, convert it to c:/ on Windows
+		c: string/get-char p unit
+		either c = as-integer #"/" [
+			#if OS = 'Windows [
+				p: p + unit
+				if p < end [
+					c: string/get-char p unit
+					p: p + unit
+				]
+				if c <> as-integer #"/" [		;-- %/c
+					d: as-integer #"/"
+					if p < end [d: string/get-char p unit]
+					either d = as-integer #"/" [
+						s: string/append-char s c
+						s: string/append-char s as-integer #":"
+						p: p + unit
+					][
+						s: string/append-char s OS_DIR_SEP
+						p: p - unit
+					]
+				]
+			]
+			s: string/append-char s OS_DIR_SEP
+		][
+			if full? [
+				string/concatenate out get-current-dir -1 0 yes no
+				s: string/append-char GET_BUFFER(out) OS_DIR_SEP
+			]
+		]
+
+		while [p < end][
+			c: string/get-char p unit
+			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
+			p: p + unit
+		]
+		out
+	]
+
+	normalize: func [
+		file    [red-file!]
+		/local
+			s	   [series!]
+			unit   [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+			tail   [byte-ptr!]
+	][
+		s: GET_BUFFER(file)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		while [p < tail][
+			cp: string/get-char p unit
+			if cp = as-integer #"\" [
+				string/poke-char s p as-integer #"/"
+			]
+			p: p + unit
+		]
 	]
 
 	;-- Actions --
@@ -59,6 +173,31 @@ file: context [
 		file: as red-file! string/make proto spec type
 		set-type as red-value! file TYPE_FILE
 		file
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-file!]
+		return: [red-value!]
+		/local
+			t	[integer!]
+			f	[red-float!]
+			int [red-integer!]
+			blk [red-block!]
+			ret [red-value!]
+			bin [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
+
+		t: type/value
+		switch t [
+			TYPE_STRING
+			TYPE_URL [
+				set-type copy-cell as cell! spec as cell! type t
+			]
+			default  [--NOT_IMPLEMENTED--]
+		]
+		as red-value! type
 	]
 
 	mold: func [
@@ -81,6 +220,7 @@ file: context [
 			p4	   [int-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
+			empty? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/mold"]]
 
@@ -91,44 +231,76 @@ file: context [
 
 		s: GET_BUFFER(file)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (file/head << (log-b unit))
 		head: p
+		empty?: p = as byte-ptr! s/tail
 
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
 		string/append-char GET_BUFFER(buffer) as-integer #"%"
-
-		while [p < tail][
-			cp: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
+		either empty? [
+			string/concatenate-literal buffer {""}
+		][
+			while [p < tail][
+				cp: switch unit [
+					Latin1 [as-integer p/value]
+					UCS-2  [(as-integer p/2) << 8 + p/1]
+					UCS-4  [p4: as int-ptr! p p4/value]
+				]
+				string/append-escaped-char buffer cp string/ESC_URL all?
+				p: p + unit
 			]
-			string/append-escaped-char buffer cp string/ESC_URL all?
-			p: p + unit
 		]
-
-		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
+		part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
-	copy: func [
-		file    [red-file!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "file/copy"]]
-				
-		file: as red-file! string/copy as red-string! file new arg deep? types
-		file/header: TYPE_FILE
-		as red-series! file
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/read as red-file! src binary? lines?
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/write as red-file! dest data part binary? append?
+		as red-value! unset-value
 	]
 
 	init: does [
@@ -138,9 +310,9 @@ file: context [
 			"file!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -169,7 +341,7 @@ file: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
@@ -179,6 +351,7 @@ file: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -193,14 +366,14 @@ file: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

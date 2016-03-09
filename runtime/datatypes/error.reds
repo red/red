@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %error.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -35,18 +35,17 @@ error: context [
 		copy-cell value base + field-where
 	]
 	
-	set-stack: func [
-		error [red-object!]
-		ptr	  [int-ptr!]
+	get-type: func [
+		err		[red-object!]
+		return: [integer!]
 		/local
-			base [red-value!]
-			int	 [red-integer!]
+			type [red-word!]
 	][
-		base: object/get-values error
-		int: as red-integer! base + field-stack
-		int/header: TYPE_INTEGER
-		int/value:  as-integer ptr
+		type: as red-word! (object/get-values err) + field-type
+		type/symbol
 	]
+	
+	get-stack-id: func [return: [integer!]][field-stack]
 	
 	get-call-argument: func [
 		idx		[integer!]
@@ -57,13 +56,24 @@ error: context [
 			value [red-value!]
 			end	  [red-value!]
 			s	  [series!]
+			type  [integer!]
 	][
-		fun:   as red-function! _context/get stack/get-call
+		fun: as red-function! _context/get stack/get-call
+		type: TYPE_OF(fun)
+		if all [
+			 type <> TYPE_FUNCTION						;@@ replace by ANY_FUNCTION
+			 type <> TYPE_ACTION
+			 type <> TYPE_NATIVE
+			 type <> TYPE_OP
+			 type <> TYPE_ROUTINE
+		][
+			return words/_anon
+		]
 		s:	   as series! fun/spec/value
 		value: s/offset
 		end:   s/tail
 
-		cnt: 1
+		cnt: 0
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
@@ -219,17 +229,16 @@ error: context [
 						]
 					]
 					TYPE_SET_WORD [
-						value: block/select-word blk words/_type
+						value: block/select-word blk words/_type no
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_type]
 						]
-						copy-cell value base + field-type
-
-						value: block/select-word blk words/_id
+						value: block/select-word blk words/_id no
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_id]
 						]
-						copy-cell value base + field-id
+						_context/bind blk GET_CTX(new) new/ctx yes
+						interpreter/eval blk no
 					]
 					default [
 						fire [TO_ERROR(internal invalid-error)]
@@ -255,6 +264,7 @@ error: context [
 			value	[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
+			bool	[red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
 		
@@ -279,7 +289,7 @@ error: context [
 			string/concatenate buffer str -1 0 yes no
 			part: part - string/rs-length? str
 		][
-			blk: block/clone as red-block! value no
+			blk: block/clone as red-block! value no no
 			blk: reduce blk obj
 			part: block/form blk buffer arg part
 		]
@@ -295,8 +305,11 @@ error: context [
 			part: part - 3
 		]
 		
-		value: #get system/console
-		if TYPE_OF(value) = TYPE_NONE [
+		bool: as red-logic! #get system/state/trace?
+		if all [
+			TYPE_OF(bool) = TYPE_LOGIC
+			bool/value
+		][
 			value: base + field-stack
 			if TYPE_OF(value) = TYPE_INTEGER [
 				string/concatenate-literal buffer "^/*** Stack: "
@@ -374,6 +387,7 @@ error: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			INHERIT_ACTION	;select

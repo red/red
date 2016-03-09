@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %get-path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -65,7 +65,7 @@ get-path: context [
 		#if debug? = yes [if verbose > 0 [print-line "get-path/form"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		path/form p buffer arg part - 1
+		path/form as red-path! p buffer arg part - 1
 	]
 	
 	mold: func [
@@ -81,7 +81,8 @@ get-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/mold"]]
 
-		form p buffer arg part
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
 	compare: func [
@@ -96,21 +97,6 @@ get-path: context [
 		block/compare-each value1 value2 op
 	]
 	
-	copy: func [
-		path    [red-path!]
-		new		[red-get-path!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/copy"]]
-		
-		path: as red-path! block/copy as red-block! path as red-get-path! new arg deep? types
-		path/header: TYPE_GET_PATH
-		as red-series! path
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_GET_PATH
@@ -118,8 +104,8 @@ get-path: context [
 			"get-path!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
-			null			;reflect
+			null			;random
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
@@ -149,7 +135,7 @@ get-path: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
@@ -159,6 +145,7 @@ get-path: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -173,7 +160,7 @@ get-path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

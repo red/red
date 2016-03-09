@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %target-class.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 target-class: context [
@@ -30,7 +30,7 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: none
+	emit-throw:	on-init: emit-alt-last: emit-log-b: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -212,7 +212,7 @@ target-class: context [
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
-			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			arg: either object? args/:c [compiler/cast args/:c][args/:c]
 			set op either arg = <last> [
 				 'reg								;-- value in accumulator
 			][
@@ -249,7 +249,14 @@ target-class: context [
 				emit-call-import args fspec spec attribs
 			]
 			native [
-				emit-call-native args fspec spec attribs
+				switch/default name [
+					log-b [								;@@ needs a new function type...
+						emit-pop
+						emit-log-b compiler/last-type/1
+					]
+				][
+					emit-call-native args fspec spec attribs
+				]
 			]
 			routine [
 				emit-call-native/routine args fspec spec attribs name
@@ -263,7 +270,11 @@ target-class: context [
 					throw [
 						compiler/check-throw
 						compiler/last-type: [integer!]
-						emit-throw args/1
+						either compiler/catch-attribut? [
+							emit-throw args/1
+						][
+							emit-throw/thru args/1
+						]
 					]
 				] name
 				if name = 'not [res: compiler/get-type args/1]

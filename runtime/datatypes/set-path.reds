@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %set-path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -64,7 +64,7 @@ set-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/form"]]
 		
-		part: path/form p buffer arg part
+		part: path/form as red-path! p buffer arg part
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		part - 1
 	]
@@ -82,7 +82,9 @@ set-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/mold"]]
 
-		form p buffer arg part
+		part: path/mold as red-path! p buffer only? all? flat? arg part 0
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		part - 1
 	]
 	
 	compare: func [
@@ -96,21 +98,6 @@ set-path: context [
 		if TYPE_OF(value2) <> TYPE_SET_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each value1 value2 op
 	]
-	
-	copy: func [
-		path    [red-path!]
-		new		[red-set-path!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-path/copy"]]
-
-		path: as red-path! block/copy as red-block! path as red-set-path! new arg deep? types
-		path/header: TYPE_SET_PATH
-		as red-series! path
-	]
 
 	init: does [
 		datatype/register [
@@ -119,8 +106,8 @@ set-path: context [
 			"set-path!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
-			null			;reflect
+			null			;random
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
@@ -150,7 +137,7 @@ set-path: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
@@ -160,6 +147,7 @@ set-path: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -174,7 +162,7 @@ set-path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

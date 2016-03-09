@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lexer.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 lexer: context [
@@ -15,13 +15,17 @@ lexer: context [
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
+	mark:	none									;-- use for keeping input cursor at same position
+	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
+	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
+	base:	16										;-- binary base
 	
 	;====== Parsing rules ======
 
@@ -42,6 +46,7 @@ lexer: context [
 
 	hexa:  union digit charset "ABCDEF"
 	hexa-char: union hexa charset "abcdef"
+	base64-char: union digit charset [#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="]
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -56,14 +61,14 @@ lexer: context [
 	]
 	
 	UTF8-3: reduce [
-		#{E0} 	 charset [#"^(A0)" - #"^(BF)"] UTF8-tail
+		#{E0} 	 charset [#"^(A0)" - #"^(BF)"]   UTF8-tail
 		'| 		 charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
-		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
+		'| #{ED} charset [#"^(80)" - #"^(9F)"]   UTF8-tail
 		'| 		 charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
 	]
 	
 	UTF8-4: reduce [
-		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
+		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail 
 		'| 		 charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
 		'| #{F4} charset [#"^(80)" - #"^(8F)"] 2 UTF8-tail
 	]
@@ -78,12 +83,13 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]);}
+	integer-end:	charset {^{"[]();x}
+	path-end:		charset {^{"[]();}
 	stop: 		    none
 
-	control-char: reduce [
-		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
-		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
+	control-char: reduce [ 							;-- Control characters
+		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
+		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C1 control codes (UTF-8 encoded)
 	]
 	
 	UTF8-filtered-char: [
@@ -172,15 +178,16 @@ lexer: context [
 				]
 				type: path!
 			)
-			opt [#":" (type: set-path!)]
 		]
+		opt [#":" (type: set-path!)]
+		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters				
 		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
 		(type: word!)
 		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
-		| s: begin-symbol-rule [
+		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
 			| (value: copy/part s e)				;-- word matched
@@ -207,7 +214,14 @@ lexer: context [
 				type: lit-word!
 				value: copy/part s e				;-- word matched
 			)
-		]
+		][s: #":" :s (throw-error) | none]
+	]
+	
+	map-rule: [
+		"#(" (stack/push block!) any-value #")" (
+			stack/push/head #!map!
+			value: stack/pop block!
+		)
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
@@ -218,23 +232,16 @@ lexer: context [
 	
 	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
 
-	sticky-word-rule: [
-		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip])
-		] :pos
-		fail?
+	sticky-word-rule: [								;-- protect from sticky words typos
+		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
 	tuple-value-rule: [
 		(type: tuple!)
-		byte dot byte 1 8 [dot byte | dot] e:
+		byte dot byte 1 8 [dot byte] e:
 	]
 
-	tuple-rule: [
-		tuple-value-rule
-		sticky-word-rule
-	]
+	tuple-rule: [tuple-value-rule sticky-word-rule]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -242,18 +249,28 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		decimal-special									;-- escape path for NaN, INFs
-		| integer-number-rule
-		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
-		  sticky-word-rule
+		decimal-special	e:								;-- escape path for NaN, INFs
+		(type: issue! value: load-number copy/part s e)
+		|	integer-number-rule
+			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
+			opt [#"%" e: (type: issue!)]
+			sticky-word-rule
+			(value: load-number copy/part s e)
+			opt [
+				#"x" (
+					type: pair!
+					value2: to pair! reduce [value 0]
+				)
+				s: integer-number-rule
+				(value2/2: load-number copy/part s e value: value2)
+			]
 	]
 
 	decimal-special: [
-		s: "-0.0" e: (type: issue!) |
-			(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
-				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
-				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
-		] e: (type: issue!)
+		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		]
 	]
 	
 	decimal-exp-rule: [
@@ -266,7 +283,7 @@ lexer: context [
 	]
 
 	decimal-rule: [
-		decimal-number-rule
+		decimal-number-rule opt [#"%" e: (type: issue!)]
 		sticky-word-rule
 	]
 		
@@ -321,10 +338,11 @@ lexer: context [
 	
 	nested-curly-braces: [
 		(cnt: 1 fail?: none)
-		any [
-			[
+		any [[
 				counted-newline 
-				| "^^{" | "^^}"
+				| "^^^^"
+				| "^^{"
+				| "^^}"
 				| #"{" (cnt: cnt + 1)
 				| e: #"}" (if zero? cnt: cnt - 1 [fail?: [end skip]])
 				| UTF8-char
@@ -336,16 +354,32 @@ lexer: context [
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
 	
 	string-rule: [line-string | multiline-string]
-	
-	binary-rule: [
-		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}"
+
+	base-2-rule: [
+		"2#{" (type: binary!)
+		s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+		e: #"}" (base: 2)
 	]
 	
+	base-16-rule: [
+		"#{" (type: binary!) 
+		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+		e: #"}" (base: 16)
+	]
+
+	base-64-rule: [
+		"64#{" (type: binary!)
+		s: any [counted-newline | base64-char | ws-no-count | comment-rule]
+		e: #"}" (base: 64)
+	]
+
+	binary-rule: [base-16-rule | base-2-rule | base-64-rule]
+
 	file-rule: [
-		#"%" (type: file! stop: [not-file-char | ws-no-count])
-		s: any UTF8-filtered-char e:
+		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
+			#"^"" s: any UTF8-filtered-char e: #"^""
+			| s: any UTF8-filtered-char e:
+		]
 	]
 
 	url-rule: [
@@ -382,29 +416,30 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-number    copy/part s e)
-			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| integer-rule	  (stack/push value)
+			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
-			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| binary-rule	  (stack/push load-binary s e)
+			| binary-rule	  (stack/push load-binary s e base)
+			| map-rule		  (stack/push value)
+			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 		]
 	]
 	
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
-		pos: thru "Red" opt ["/System" (rs?: yes stack/push 'Red/System)]
+		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
 		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
@@ -421,13 +456,17 @@ lexer: context [
 	stack: context [
 		stk: []
 		
-		push: func [value][
+		push: func [value /head][
 			either any [value = block! value = paren! value = path!][
 				if value = path! [value: block!]
 				insert/only tail stk value: make value 1
 				value
 			][
-				insert/only tail last stk :value
+				either head [
+					insert/only last stk :value
+				][
+					insert/only tail last stk :value
+				]
 			]
 		]
 		
@@ -501,8 +540,8 @@ lexer: context [
 		new
 	]
 	
-	decode-UTF8-char: func [value][
-		if char? value [return encode-char to integer! value]
+	decode-UTF8-char: func [value /redbin][
+		if all [not redbin char? value][return encode-char to integer! value]
 		
 		value: switch/default length? value [
 			1 [value]
@@ -527,14 +566,16 @@ lexer: context [
 			]
 		][
 			throw-error/with "Unsupported or invalid UTF-8 encoding"
-		]	
+		]
 		
-		encode-char to integer! value				;-- special encoding for Unicode char!
+		either redbin [value][
+			encode-char to integer! value				;-- special encoding for Unicode char!
+		]
 	]
 	
 	decode-UTF8-string: func [str [string!] /local new s e][
 		new: make string! length? str
-		parse str [
+		parse/all str [
 			some [
 				s: UTF8-char e: (
 					append new debase/base skip decode-UTF8-char as-binary copy/part s e 7 16
@@ -556,8 +597,8 @@ lexer: context [
 		switch/default type [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
-				if s = "-0.0" [s: "0-"]					;-- reencoded for consistency
-				s: to issue! join "." s
+				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
+				s: to issue! either #"%" = last s [s][join "." s]
 				if neg? [append s #"-"]
 			]
 		][
@@ -584,16 +625,18 @@ lexer: context [
 		new
 	]
 	
-	load-binary: func [s [string!] e [string!] /local new byte][
-		new: make binary! (offset? s e) / 2			;-- allocated size above final size
+	load-binary: func [s [string!] e [string!] base [integer!] /local new str][
+		new: make string! offset? s e				;-- allocated size above final size
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa-char (insert tail new debase/base byte 16)
+				copy str some base64-char (insert tail new str)
 				| ws | comment-rule
 				| #"}" end skip
 			]
 		]
+		new: debase/base new base
+		if none? new [throw-error]
 		new
 	]
 

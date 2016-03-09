@@ -3,10 +3,10 @@ Red/System [
 	Author: "Bruno Anselme"
 	EMail:  "be.red@free.fr"
 	File:   %call.reds
-	Rights: "Copyright (c) 2014 Bruno Anselme"
+	Rights: "Copyright (c) 2014-2015 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Needs: {
 		Red/System >= 0.4.1
@@ -81,6 +81,8 @@ system-call: context [
 		buffer       [byte-ptr!]
 		newsize      [integer!]
 		return:      [byte-ptr!]
+		/local
+			tmp [binary!]
 	][
 		tmp: resize buffer newsize						;-- Resize output buffer to new size
 		either tmp = null [								;-- reallocation failed, uses current output buffer

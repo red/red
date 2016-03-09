@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %common.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -54,7 +54,7 @@ Red/System [
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
 
-#define CATCH_ALL		-1
+#define CATCH_ALL_EXCEPTIONS -1
 
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
@@ -87,30 +87,12 @@ typed-float!: alias struct! [
 	value	 [float!]
 ]
 
-#include %system.reds
-
-;-------------------------------------------
-;-- Convert a type ID to a c-string!
-;-------------------------------------------
-form-type: func [
-	type 	[integer!]				  		;-- type ID
-	return: [c-string!]						;-- type representation as c-string
-][
-	switch type [
-		type-integer!   ["integer!"]
-		type-c-string!  ["c-string!"]
-		type-logic! 	["logic!"]
-		type-byte! 	    ["byte!"]
-		type-float32!   ["float32!"]
-		type-float! 	["float!"]
-		type-byte-ptr!  ["pointer! [byte!]"]
-		type-int-ptr!   ["pointer! [integer!]"]
-		type-struct!    ["struct!"]
-		type-function!  ["function!"]
-		default			[either alias? type ["alias"]["invalid type"]]
-	]
+re-throw: func [/local id [integer!]][
+	id: system/thrown						;-- system/* cannot be passed as argument for now
+	throw id								;-- let the exception pass through
 ]
 
+#include %system.reds
 #include %lib-names.reds
 
 #either use-natives? = no [					;-- C bindings or native counterparts
@@ -136,10 +118,9 @@ form-type: func [
 
 
 #if type = 'exe [
-	#switch target [
+	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
-												;-- and overflow raise exceptions.
+			system/fpu/control-word: 027Fh
 			system/fpu/update
 		]
 		ARM [
@@ -163,6 +144,25 @@ form-type: func [
 
 	#define RED_ERR_VMEM_RELEASE_FAILED		96
 	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+	
+	#if target = 'ARM [
+		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
+			code [integer!]
+			/local address frame top
+		][
+			top: system/stack/frame			;-- skip the ***-on-div-error stack frame 
+			frame: as int-ptr! top/value
+			top: top + 1
+			address: as int-ptr! top/value
+			top: frame + 2
+		
+			system/debug: declare __stack!	;-- allocate a __stack! struct
+			system/debug/frame: frame
+			system/debug/top: top
+
+			***-on-quit code as-integer address
+		]
+	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
@@ -200,8 +200,8 @@ form-type: func [
 				24	["illegal addressing mode"]
 				25	["illegal trap"]
 				26	["coprocessor error"]
-				27	["non-existant physical address"]
-				28	["object specific hardware error"]		
+				27	["non-existent physical address"]
+				28	["object specific hardware error"]
 				29	["hardware memory error consumed AR"]
 				30	["hardware memory error consumed AO"]
 				31	["privileged register"]
@@ -223,7 +223,8 @@ form-type: func [
 			print msg
 
 			#either debug? = yes [
-				__print-debug-line as byte-ptr! address
+				__print-debug-line  as byte-ptr! address
+				__print-debug-stack as byte-ptr! address
 			][
 				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]
@@ -236,7 +237,7 @@ form-type: func [
 	]
 	
 	***-uncaught-exception: does [
-		either system/thrown = 0BADCAFEh [	;-- RED_ERROR exception value
+		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 0					;-- Red error, normal exit
 		][
 			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it
@@ -246,7 +247,9 @@ form-type: func [
 
 #if type = 'exe [
 	push system/stack/frame					;-- save previous frame pointer
-	system/stack/frame: system/stack/top	;-- @@ reposition frame pointer just after the catch flag
+	push 0									;-- exception return address slot
+	push 0									;-- exception threshold
+	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
-push CATCH_ALL								;-- exceptions root barrier
+push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)

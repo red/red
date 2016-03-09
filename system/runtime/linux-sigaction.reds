@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %linux-sigaction.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -135,5 +135,19 @@ siginfo!: alias struct! [
 	#switch target [
 		IA-32 [ctx/eip]
 		ARM	  [ctx/arm_pc]
+	]
+]
+
+#define UCTX_GET_STACK_TOP(ctx) [
+	#switch target [
+		IA-32 [ctx/esp]
+		ARM	  [ctx/arm_sp]
+	]
+]
+
+#define UCTX_GET_STACK_FRAME(ctx) [
+	#switch target [
+		IA-32 [ctx/ebp]
+		ARM	  [ctx/arm_fp]
 	]
 ]

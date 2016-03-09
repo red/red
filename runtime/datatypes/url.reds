@@ -3,15 +3,23 @@ Red/System [
 	Author:  "Xie Qingtian"
 	File: 	 %url.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014 Xie Qingtian. All rights reserved."
+	Rights:  "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
 url: context [
 	verbose: 0
+
+	rs-load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		return:  [red-string!]
+	][
+		load-in src size root
+	]
 
 	load-in: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
@@ -33,7 +41,7 @@ url: context [
 		size	 [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root
+		load-in src size null
 	]
 
 	push: func [
@@ -91,13 +99,13 @@ url: context [
 
 		s: GET_BUFFER(url)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (url/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (url/head << (log-b unit))
 		head: p
 
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
@@ -111,22 +119,94 @@ url: context [
 			p: p + unit
 		]
 
-		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
+		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
-	copy: func [
-		url    [red-url!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "url/copy"]]
+		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
+			
+		switch type/value [
+			TYPE_FILE
+			TYPE_STRING [
+				set-type copy-cell as cell! spec as cell! type type/value
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		as red-value! type
+	]
 
-		url: as red-url! string/copy as red-string! url new arg deep? types
-		url/header: TYPE_URL
-		as red-series! url
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+		/local
+			blk		[red-block!]
+			method	[red-word!]
+			header	[red-block!]
+			action	[integer!]
+			sym		[integer!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+
+		either TYPE_OF(data) = TYPE_BLOCK [
+			blk: as red-block! data
+			method: as red-word! block/rs-head blk
+			sym: symbol/resolve method/symbol
+			action: case [
+				sym = words/get  [HTTP_GET]
+				sym = words/put  [HTTP_PUT]
+				sym = words/post [HTTP_POST]
+				true [--NOT_IMPLEMENTED-- 0]
+			]
+			header: as red-block! method + 1
+			data: as red-value! method + 2
+		][
+			header: null
+			action: HTTP_POST
+		]
+		
+		simple-io/request-http action as red-url! dest header data binary? lines? info?
 	]
 
 	init: does [
@@ -136,9 +216,9 @@ url: context [
 			"url!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -167,7 +247,7 @@ url: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
@@ -177,6 +257,7 @@ url: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -191,14 +272,14 @@ url: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

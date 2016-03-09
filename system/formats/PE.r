@@ -3,12 +3,32 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %PE.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 context [
-
+	manifest-template: {
+		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+			<dependency>
+				<dependentAssembly>
+					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
+				</dependentAssembly>
+			</dependency>
+			<trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+				<security>
+					<requestedPrivileges>
+						<requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+					</requestedPrivileges>
+				</security>
+			</trustInfo>
+			<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+				<application>
+					<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"></supportedOS>
+				</application>
+			</compatibility>
+		</assembly>
+	}
 	if all [
 		system/version/4 = 3
 		find system/components 'Library 
@@ -137,7 +157,7 @@ context [
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
-			reloc				#{52000040} ;-- [read shared discardable initialized]
+			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
 			code				#{60000020}	;-- [read code execute]
@@ -164,6 +184,34 @@ context [
 			no-bind				#{0800}		;-- do not bind the image
 			wdm-driver			#{2000}		;-- a wdm driver
 			TS-aware			#{8000}		;-- Terminal Server aware
+		]
+		resource-type [
+			cursor				1
+			bitmap				2
+			icon				3
+			menu				4
+			dialog				5
+			string				6
+			font-dir			7
+			font				8
+			accelerator			9
+			rc-data				10
+			message-table		11
+			group-cursor		12
+			group-icon			14
+			version				16
+			manifest			24
+		]
+		resource-version-info [
+			comments			"Comments"
+			notes				"Comments"
+			company				"CompanyName"
+			title				"FileDescription"
+			version				"FileVersion"
+			rights				"LegalCopyright"
+			trademarks			"LegalTrademarks"
+			Author				"PrivateBuild"
+			ProductName			"ProductName"
 		]
 	]
 
@@ -281,7 +329,56 @@ context [
 		name-ptr-rva		[integer!]
 		ordinals-rva		[integer!]
 	] none
-	
+
+	resource-directory: make-struct [
+		character			[integer!]
+		timestamp			[integer!]
+		major-version		[short]
+		minor-verion		[short]
+		name-entry-nb		[short]
+		id-entry-nb			[short]
+	] none
+
+	resource-directory-entry: make-struct [
+		name				[integer!]
+		offset				[integer!]
+	] none
+
+	resource-data-entry: make-struct [
+		offset				[integer!]
+		size				[integer!]
+		code-page			[integer!]
+		reserved			[integer!]
+	] none
+
+	group-icon-directory: make-struct [
+		reserved			[short]
+		type				[short]
+		count				[short]
+	] none
+
+	vs-version-info: make-struct [
+		length				[short]
+		value-length		[short]
+		type				[short]
+	] none
+
+	vs-fixed-fileinfo: make-struct [
+		signature			[integer!]
+		struct-version		[integer!]
+		file-version-ms		[integer!]
+		file-version-ls		[integer!]
+		product-version-ms	[integer!]
+		product-version-ls	[integer!]
+		flags-mask			[integer!]
+		flags				[integer!]
+		OS					[integer!]
+		type				[integer!]
+		subtype				[integer!]
+		date-ms				[integer!]
+		date-ls				[integer!]
+	] none
+
 	pointer: make-struct [
 		value [integer!]					;-- 32/64-bit, watch out for endianess!!
 	] none
@@ -522,7 +619,7 @@ context [
 		block: 0
 		
 		open-block: [
-			header: buffer
+			header: tail buffer
 			append buffer #{0000000000000000}			;-- reserve 64-bit for the header
 		]
 		close-block: [
@@ -534,8 +631,9 @@ context [
 		foreach offset refs [
 			offset: offset - 1
 			if offset - block > _4K [
-				do close-block
 				pad4 buffer
+				do close-block
+				do open-block
 				base: base + _4K
 				block: block + _4K
 			]
@@ -590,13 +688,24 @@ context [
 		append job/buffer form-struct fh
 	]
 
+	initdata-size?: func [sections [block!] /local n flag][
+		n: 0
+		foreach [name spec] sections [
+			flag: select defs/s-type name
+			unless zero? to integer! flag and #{00000040} [
+				n: n + (length? spec/2) + (pad-size? spec/2)
+			]
+		]
+		n
+	]
+
 	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
 		flags: to integer! defs/dll-flags/nx-compat
 		case/all [
-			job/PIC? 		[flags: flags or to integer! defs/dll-flags/dynamic-base]
+			job/type = 'dll	[flags: flags or to integer! defs/dll-flags/dynamic-base]
 			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		]
 		
@@ -621,7 +730,7 @@ context [
 		oh/major-link-version:  linker/version/1
 		oh/minor-link-version:	linker/version/2
 		oh/code-size:			length? job/sections/code/2
-		oh/initdata-size:		length? job/sections/data/2
+		oh/initdata-size:		initdata-size? job/sections
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
 		oh/code-base:			code-base
@@ -657,7 +766,11 @@ context [
 		if find [dll drv] job/type [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
-		]	
+		]
+		if find job/sections 'rsrc [
+			oh/rsrc-addr: 		named-sect-addr? job 'rsrc
+			oh/rsrc-size:		length? job/sections/rsrc/2
+		]
 		append job/buffer form-struct oh
 	]
 
@@ -668,14 +781,295 @@ context [
 		sh/virtual-address:	section-addr?/memory job name
 		sh/raw-data-size: 	file-align * round/ceiling (length? spec/2) / file-align
 		sh/raw-data-ptr:	section-addr?/file job name
-		sh/relocations-ptr:	0							;-- image or obj with no relocations
+		sh/relocations-ptr:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-ptr:	0
-		sh/relocations-nb:	0							;-- zero for executable images
+		sh/relocations-nb:	0							;-- @@ relevant only for OBJ files
 		sh/line-num-nb:		0
 		sh/flags:			to integer! select defs/s-type name		
 
 		change s: form-struct sh append uppercase form name null	
 		change spec s	
+	]
+
+	icon-number?: func [icons [block!] /local data num][
+		num: 0
+		foreach icon icons [
+			data: read-binary-cache icon
+			num: num + to-integer reverse copy/part skip data 4 2
+		]
+		num
+	]
+
+	build-res-directory: func [
+		resource [block!]
+		/local out dir entry nb sz dir-mask dir-sz entry-sz
+	][
+		dir-mask: to-integer #{80000000}
+		dir-sz: 16
+		entry-sz: 8
+		out: make binary! 4096
+		dir: make-struct resource-directory none
+		entry: make-struct resource-directory-entry none
+
+		nb: (length? resource) / 2
+		sz: dir-sz + (nb * entry-sz)
+
+		dir/id-entry-nb: nb
+		append out form-struct dir
+
+		foreach [name info] resource [					;-- root level - type
+			entry/name: select defs/resource-type name
+			entry/offset: sz or dir-mask
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			sz: dir-sz + (nb * entry-sz) + sz
+			append out form-struct entry
+		]
+
+		foreach [name info] resource [					;-- second level - name
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			dir/id-entry-nb: nb
+			append out form-struct dir
+			for n 1 nb 1 [
+				entry/name: n
+				entry/offset: sz or dir-mask
+				append out form-struct entry
+				sz: dir-sz + entry-sz + sz
+			]
+		]
+
+		foreach [name info] resource [					;-- third level - language
+			nb: case [
+				name = 'icon [icon-number? info]
+				name = 'group-icon [length? info]
+				true [1]
+			]
+			dir/id-entry-nb: 1
+			for n 1 nb 1 [
+				append out form-struct dir
+				entry/name: 1033						;-- english default
+				entry/offset: sz
+				append out form-struct entry
+				sz: sz + 16								;-- res-data-entry size: 16
+			]
+		]
+		reduce [out sz]
+	]
+
+	build-res-icon: func [
+		out		[binary!]
+		buf		[binary!]
+		icons	[block!]
+		base	[integer!]
+		/local data p entry nb img-off img-sz
+	][
+		entry: make-struct resource-data-entry none
+		foreach icon icons [
+			data: read-binary-cache icon
+			nb: to-integer reverse copy/part skip data 4 2
+			p: skip data 6
+			for i 1 nb 1 [
+				entry/offset: base + length? buf
+				img-sz: to-integer reverse copy/part skip p 8 4
+				img-off: to-integer reverse copy/part skip p 12 4
+				p: skip p 16
+				insert/part tail buf skip data img-off img-sz
+				entry/size: img-sz
+				append out form-struct entry
+			]
+		]
+	]
+
+	build-res-group-icon: func [
+		out		[binary!]
+		buf		[binary!]
+		icons	[block!]
+		base	[integer!]
+		/local data p entry nb icon-dir n data-buf
+	][
+		entry: make-struct resource-data-entry none
+		icon-dir: make-struct group-icon-directory none
+		n: 1
+		foreach icon icons [
+			entry/offset: base + length? buf
+			data-buf: tail buf
+
+			data: read-binary-cache icon
+			nb: to-integer reverse copy/part skip data 4 2
+
+			icon-dir/type: 1
+			icon-dir/count: nb
+			append buf form-struct icon-dir
+
+			p: skip data 6
+			for i 1 nb 1 [
+				insert/part tail buf p 14
+				change skip tail buf -2 to-bin16 n
+				n: n + 1
+				p: skip p 16
+			]
+
+			entry/size: length? data-buf
+			append out form-struct entry
+		]
+	]
+
+	build-res-string: func [buf [binary!] key [string!] value [string!] /local str][
+		str: make-struct vs-version-info none
+		str/value-length: 1 + length? value					;-- added NUL byte
+		str/type: 1
+		append buf form-struct str
+		append buf reduce [utf8-to-utf16 key #{0000}]
+		pad4 buf
+		append buf reduce [utf8-to-utf16 value #{0000}]
+		change buf to-bin16 length? buf
+		pad4 buf
+	]
+
+	build-res-str-table: func [buf [binary!] info [block!] /local table value][
+		table: make-struct vs-version-info none
+		table/type: 1
+		append buf form-struct table
+		append buf #{300034003000390030003400620030000000}	;-- hard-coded language/codepage
+		pad4 buf
+
+		foreach [key key-str] defs/resource-version-info [
+			if value: select info key [
+				build-res-string tail buf key-str to string! value
+			]
+		]
+		change buf to-bin16 length? buf
+	]
+
+	build-res-str-info: func [buf [binary!] info [block!] /local str-info][
+		str-info: make-struct vs-version-info none
+		str-info/type: 1
+		append buf form-struct str-info
+		append buf utf8-to-utf16 "StringFileInfo^@"
+		pad4 buf
+
+		build-res-str-table tail buf info
+		change buf to-bin16 length? buf
+	]
+
+	build-res-var: func [buf [binary!] info [block!] /local var][
+		var: make-struct vs-version-info none
+		var/value-length: 4
+		var/type: 0
+		append buf form-struct var
+		append buf utf8-to-utf16 "Translation^@"
+		pad4 buf
+
+		append buf #{0904B004}
+		change buf to-bin16 length? buf
+	]
+
+	build-res-var-info: func [buf [binary!] info [block!] /local var-info][
+		var-info: make-struct vs-version-info none
+		var-info/type: 1
+		append buf form-struct var-info
+		append buf utf8-to-utf16 "VarFileInfo^@"
+		pad4 buf
+
+		build-res-var tail buf info
+		change buf to-bin16 length? buf
+	]
+
+	build-res-file-info: func [info [block!] type [word!] /local f ver][
+		either ver: select info 'version [
+			ver: 0.0.0.0 or to tuple! to string! ver
+		][
+			ver: 0.0.0.0
+		]
+		
+		f: make-struct vs-fixed-fileinfo none
+		f/signature:			to-integer #{FEEF04BD}
+		f/struct-version:		to-integer #{00010000}
+		f/file-version-ms: 		ver/2 or shift/left ver/1 16
+		f/file-version-ls: 		ver/4 or shift/left ver/3 16
+		f/product-version-ms:	ver/2 or shift/left ver/1 16
+		f/product-version-ls:	ver/4 or shift/left ver/3 16
+		f/OS: 					to-integer #{00040004}	;-- VOS_NT_WINDOWS32
+		f/type:					switch/default type [
+									dll	[2]
+									drv [3]
+								][1]					;-- exe
+		form-struct f
+	]
+
+	build-res-version: func [
+		out		[binary!]
+		buf		[binary!]
+		info	[block!]
+		base	[integer!]
+		type	[word!]
+		/local entry ver-info file-info data-buf
+	][
+		entry: make-struct resource-data-entry none
+		entry/offset: base + length? buf
+		data-buf: tail buf
+
+		ver-info: make-struct vs-version-info none
+		file-info: make-struct vs-fixed-fileinfo none
+		
+		ver-info/value-length: length? form-struct file-info
+		ver-info/type: 0
+		append buf form-struct ver-info
+		append buf utf8-to-utf16 "VS_VERSION_INFO^@"
+		pad4 buf
+
+		append buf build-res-file-info info type
+		pad4 buf
+
+		build-res-str-info tail buf info
+		build-res-var-info tail buf info
+
+		entry/size: length? data-buf
+		change data-buf to-bin16 length? data-buf
+		append out form-struct entry
+	]
+
+	build-res-manifest: func [
+		out		[binary!]
+		buf		[binary!]
+		info	[string! none!]
+		base	[integer!]
+		/local entry data-buf
+	][
+		entry: make-struct resource-data-entry none
+		entry/offset: base + length? buf
+		data-buf: tail buf
+
+		append buf trim/with either info [info][manifest-template] "^/^-"
+		pad4 buf
+
+		entry/size: length? data-buf
+		append out form-struct entry
+	]
+
+	build-resource: func [job [object!] /local resource out buf dir offset][
+		resource: job/sections/rsrc
+		set [out offset] build-res-directory resource/3
+		offset: offset + section-addr?/memory job 'rsrc	;-- virtual address offset
+		buf: make binary! 4096
+
+		foreach [name info] resource/3 [
+			switch name [
+				icon		[build-res-icon out buf info offset]
+				group-icon	[build-res-group-icon out buf info offset]
+				version		[build-res-version out buf info offset job/type]
+				manifest	[build-res-manifest out buf info offset]
+			]
+			pad4 buf
+		]
+		change next resource append out buf
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
@@ -698,12 +1092,15 @@ context [
 
 		if job/debug? [
 			code-ptr: entry-point-address? job
-			linker/build-debug-lines job code-ptr pointer
+			linker/build-debug-lines job code-ptr
+			linker/build-debug-func-names job code-ptr
 		]
 		
 		build-import job								;-- populate import section buffer
-		
+
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
+
+		if find job/sections 'rsrc	[build-resource job]
 		
 		if find [dll drv] job/type [build-reloc job]
 

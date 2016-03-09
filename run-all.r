@@ -2,16 +2,17 @@ REBOL [
 	Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.2.1
+	Version: 0.3.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 ;; function to find and run-tests
 run-all-script: func [
 	dir [file!]
+	file [file!]
 ][
 	qt/tests-dir: system/script/path/:dir
-  	foreach line read/lines dir/run-all.r [
+  	foreach line read/lines dir/:file [
   		if any [
 			find line "===start-group"
   	  		find line "--run-"
@@ -22,17 +23,25 @@ run-all-script: func [
 ]
 
 batch-mode: false
+each-mode: false
 binary?: false
-if system/script/args  [
+args: any [system/script/args system/options/args]
+if args  [
 	;; should we run non-interactively?
 	batch-mode: find system/script/args "--batch"
+	
+	;; should we run each file individually?
+	each-mode: find system/script/args "--each"
 
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
 	if find system/script/args "--binary" [
 		binary?: true
 		bin-compiler: select args "--binary"
-		if bin-compiler = "--batch" [
+		if any [
+			bin-compiler = "--batch"
+			bin-complier = "--each"
+		][
 			bin-compiler: none								;; use default
 		]
 		if bin-compiler [						
@@ -58,35 +67,48 @@ system/options/quiet: true
 store-current-dir: what-dir
 
 do %quick-test/quick-test.r
+qt/tests-dir: clean-path %/tests/
+
 if binary? [
 	qt/binary?: binary?
 	if bin-compiler [qt/bin-compiler: bin-compiler]
 ]
 
-;; run the tests
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL " system/version]
-
-start-time: now/precise
-
-***start-run-quiet*** "Complete Red Test Suite"
 qt/tests-dir: clean-path %system/tests/
 do %system/tests/source/units/make-red-system-auto-tests.r
+
 qt/tests-dir: clean-path %tests/
-do %tests/source/units/make-red-auto-tests.r
-do %tests/source/units/make-interpreter-auto-tests.r
+do %tests/source/units/run-all-init.r
+
+;; run the tests
+print ["Quick-Test v" qt/version]
+print ["REBOL " system/version]
+start-time: now/precise
+print ["This test started at" start-time]
+
+***start-run-quiet*** "Complete Red Test Suite"
 qt/script-header: "Red []"
-run-all-script %tests/
+do %tests/source/units/run-pre-extra-tests.r
+either each-mode [
+    do %tests/source/units/auto-tests/run-each-comp.r
+    do %tests/source/units/auto-tests/run-each-interp.r
+][
+    --run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
+    --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
+    --run-test-file-quiet %source/units/auto-tests/run-all-interp.red    
+]
+do %tests/source/units/run-post-extra-tests.r
+
 qt/script-header: "Red/System []"
-qt/tests-dir: clean-path %system/tests/
-run-all-script %system/tests/
+qt/tests-dir: clean-path %system/tests/ 
+run-all-script %system/tests/ %run-all.r
 
 ***end-run-quiet***
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
+print ["The test finished at" end-time]
 system/options/quiet: store-quiet-mode
-change-dir store-current-dir
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
 ][
