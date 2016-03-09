@@ -501,13 +501,14 @@ what-dir: func [/local path][
 
 change-dir: func [
 	"Changes the active directory path"
-	dir [file!]
+	dir [file!]	"New active directory of relative path to the new one"
 ][
+	if slash <> first dir [dir: append copy system/options/path clean-path dir]
 	system/options/path: dir
 ]
 
 list-dir: function [
-	"Displays a list of files and folders from current working path"
+	"Displays a list of files and directories from current active directory"
 	/col				"Forces the display in a given number of columns"
 		n [integer!]	"Number of columns"
 ][
