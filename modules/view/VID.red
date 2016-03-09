@@ -213,6 +213,7 @@ system/view/VID: context [
 			user-opts [block!]	"Optional features in [name: value] format"
 		/flags
 			flgs [block! word!]	"One or more window flags"
+		/only					"Returns only the pane block"
 		/parent
 			panel	  [object!]
 			divides   [integer! none!]
@@ -338,8 +339,7 @@ system/view/VID: context [
 			spec: next spec
 		]
 		either block? panel/pane [append panel/pane list][
-			panel/pane: list
-			modify panel/pane 'owned none				;@@ ??
+			unless only [panel/pane: list]
 		]
 		either size [panel/size: size][
 			if pane-size <> 0x0 [panel/size: pane-size]
@@ -348,6 +348,6 @@ system/view/VID: context [
 		if options [set panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
-		panel
+		either only [list][panel]
 	]
 ]

@@ -918,6 +918,10 @@ OS-make-view: func [
 	if any [win8+? not alpha?][BringWindowToTop handle]
 	set-font handle face values
 
+	;-- store the face value in the extra space of the window struct
+	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
+	store-face-to-hWnd handle face
+
 	;-- extra initialization
 	case [
 		sym = button	[init-button handle values]
@@ -990,10 +994,7 @@ OS-make-view: func [
 		sym = window [init-window handle offset size bits]
 		true [0]
 	]
-	
-	;-- store the face value in the extra space of the window struct
-	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
-	store-face-to-hWnd handle face
+
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	stack/unwind
 	as-integer handle
@@ -1009,7 +1010,8 @@ change-size: func [
 ][
 	cx: 0
 	cy: 0
-	window-border-info? as handle! hWnd null null :cx :cy
+	if type = window [window-border-info? as handle! hWnd null null :cx :cy]
+
 	SetWindowPos 
 		as handle! hWnd
 		as handle! 0
