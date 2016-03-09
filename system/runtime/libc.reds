@@ -37,6 +37,12 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
+		compare-memory: "memcmp" [
+			ptr1		[byte-ptr!]
+			ptr2		[byte-ptr!]
+			size		[integer!]
+			return:		[integer!]
+		]
 		length?:	 "strlen" [
 			buffer		[c-string!]
 			return:		[integer!]

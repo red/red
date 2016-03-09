@@ -269,7 +269,7 @@ copy: make action! [[
 		"Returns a copy of a non-scalar value"
 		value	 [series! any-object! bitset! map!]
 		/part	 "Limit the length of the result"
-			length [number! series!]
+			length [number! series! pair!]
 		/deep	 "Copy nested values"
 		/types	 "Copy only specific types of non-scalar values"
 			kind [datatype!]

@@ -109,6 +109,21 @@ OS-image: context [
 			]
 		]
 		"gdiplus.dll" stdcall [
+			GdipCloneImage: "GdipCloneImage" [
+				image		[integer!]
+				new-image	[int-ptr!]
+				return:		[integer!]
+			]
+			GdipCloneBitmapAreaI: "GdipCloneBitmapAreaI" [
+				x			[integer!]
+				y			[integer!]
+				width		[integer!]
+				height		[integer!]
+				format		[integer!]
+				src			[integer!]
+				dst			[int-ptr!]
+				return:		[integer!]
+			]
 			GdipCreateBitmapFromFile: "GdipCreateBitmapFromFile" [
 				filename	[c-string!]
 				image		[GpBitmap!]
@@ -337,6 +352,22 @@ OS-image: context [
 		bitmap
 	]
 
+	copy: func [
+		dst		[integer!]
+		src		[integer!]
+		bytes	[integer!]
+		offset	[integer!]
+		/local
+			bmp-src [BitmapData!]
+			bmp-dst [BitmapData!]
+	][
+		bmp-src: as BitmapData! lock-bitmap src no
+		bmp-dst: as BitmapData! lock-bitmap dst yes
+		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
+		unlock-bitmap src as-integer bmp-src
+		unlock-bitmap dst as-integer bmp-dst
+	]
+
 	load-image: func [
 		filename	[c-string!]				;-- UTF-16 string
 		return:		[integer!]
@@ -347,10 +378,6 @@ OS-image: context [
 			format	[integer!]
 			w		[integer!]
 			h		[integer!]
-			src		[byte-ptr!]
-			dst		[byte-ptr!]
-			bmp-src [BitmapData!]
-			bmp-dst [BitmapData!]
 	][
 		handle: 0
 		res: GdipCreateBitmapFromFile filename :handle
@@ -363,13 +390,7 @@ OS-image: context [
 		h: height? handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
-		bmp-src: as BitmapData! lock-bitmap handle no
-		src: bmp-src/scan0
-		bmp-dst: as BitmapData! lock-bitmap bitmap yes
-		dst: bmp-dst/scan0
-		copy-memory dst src w * h * 4
-		unlock-bitmap handle as-integer bmp-src
-		unlock-bitmap bitmap as-integer bmp-dst
+		copy bitmap handle w * h * 4 0
 
 		GdipDisposeImage handle 
 		bitmap
@@ -520,5 +541,64 @@ OS-image: context [
 		stream/Release IStm/ptr
 		storage/Release ISto/ptr
 		bin
+	]
+
+	clone: func [
+		src		[red-image!]
+		dst		[red-image!]
+		part	[integer!]
+		size	[red-pair!]
+		part?	[logic!]
+		return: [red-image!]
+		/local
+			x		[integer!]
+			y		[integer!]
+			w		[integer!]
+			h		[integer!]
+			offset	[integer!]
+			handle	[integer!]
+			width	[integer!]
+			height	[integer!]
+			bmp		[integer!]
+			format	[integer!]
+	][
+		width: IMAGE_WIDTH(src/size)
+		height: IMAGE_WIDTH(src/size)
+		offset: src/head
+		x: offset % width
+		y: offset / width
+		handle: as-integer src/node
+		bmp: 0
+
+		either all [zero? offset not part?][
+			GdipCloneImage handle :bmp
+			dst/size: src/size
+		][
+			format: 0
+			GdipGetImagePixelFormat handle :format
+			either all [part? TYPE_OF(size) = TYPE_PAIR][
+				w: width - x
+				h: height - y
+				if size/x < w [w: size/x]
+				if size/y < h [h: size/y]
+				GdipCloneBitmapAreaI x y w h format handle :bmp
+			][
+				either part < width [h: 1 w: part][
+					h: part / width
+					w: width
+				]
+				if zero? part [w: 1]
+				GdipCreateBitmapFromScan0 w h 0 format null :bmp
+				either zero? part [w: 0 h: 0][
+					copy bmp handle w * h * 4 offset * 4
+				]
+			]
+			dst/size: h << 16 or w
+		]
+
+		dst/header: TYPE_IMAGE
+		dst/head: 0
+		dst/node: as node! bmp
+		dst
 	]
 ]
