@@ -516,7 +516,7 @@ list-dir: function [
 	max-sz: either n [
 		system/console/limit / n - n					;-- account for n extra spaces
 	][
-		n: system/console/limit / 22					;-- account for n extra spaces
+		n: max 1 system/console/limit / 22					;-- account for n extra spaces
 		22 - n
 	]
 
