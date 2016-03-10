@@ -528,7 +528,7 @@ list-dir: function [
 			prin tab
 			prin pad mold name max-sz
 			prin " "
-			if tail? list: next list [exit]
+			if tail? list: next list [exit]				;@@ using [break] corrupts stack!!
 		]
 		prin lf
 	]
@@ -539,7 +539,7 @@ to-image: func [value][
 		binary? value [
 			;@@ TBD
 		]
-		all [									;-- face!
+		all [											;-- face!
 			system/view
 			object? value
 			do [find words-of value words-of face!]
