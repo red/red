@@ -420,8 +420,7 @@ actions: context [
 			op <> COMP_STRICT_EQUAL
 			op <> COMP_NOT_EQUAL
 		][
-			--NOT_IMPLEMENTED--
-			value
+			fire [TO_ERROR(script invalid-compare) value1 value2]
 		]
 		switch op [
 			COMP_EQUAL
