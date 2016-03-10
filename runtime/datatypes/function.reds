@@ -261,7 +261,7 @@ _function: context [
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
 			base: base + 2
 		]
-		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos + 1]]
 
 		value: pos + 1
 		
