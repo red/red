@@ -58,6 +58,7 @@ write %build/bin/sources.r set-cache [
 		%natives.reds
 		%parse.reds
 		%random.reds
+		%crypto.reds
 		%red.reds
 		%redbin.reds
 		%sort.reds

@@ -222,6 +222,7 @@ Red/System [
 	NAT_REQUEST_FILE
 	NAT_WAIT
 	NAT_REQUEST_DIR
+	NAT_CHECKSUM
 ]
 
 #enum math-op! [

@@ -1943,6 +1943,68 @@ natives: context [
 		platform/wait time
 	]
 
+	checksum*: func [
+		check?		[logic!]
+		_tcp		[integer!]
+		_hash		[integer!]
+		_method		[integer!]
+		_key		[integer!]
+		/local
+			arg		[red-value!]
+			str		[red-string!]
+			bin		[red-binary!]
+			method	[red-word!]
+			key		[red-string!]
+			data	[byte-ptr!]
+			b		[byte-ptr!]
+			len		[integer!]
+			type	[integer!]
+	][
+		#typecheck [checksum _tcp _hash _method _key]
+		arg: stack/arguments
+		len: -1
+		switch TYPE_OF(arg) [
+			TYPE_STRING [
+				str: as red-string! arg
+				data: as byte-ptr! unicode/to-utf8 str :len
+			]
+			default [
+				print-line "** Script Error: checksum expected data argument of type: string! binary! file!"
+			]
+		]
+
+		case [
+			_tcp >= 0 []
+			_hash >= 0 []
+			any [_method >= 0 _key >= 0] [
+				method: as red-word! arg + _method
+				type: symbol/resolve method/symbol
+				case [
+					type = crypto/_md5 [
+						b: crypto/MD5 data len
+						len: 16
+					]
+					type = crypto/_sha1 [
+						b: crypto/SHA1 data len
+						len: 20
+					]
+					type = crypto/_crc32 [
+						integer/box crypto/CRC32 data len
+						exit
+					]
+					true [
+						print-line "** Script error: invalid argument"
+						exit
+					]
+				]
+				stack/set-last as red-value! binary/load b len
+			]
+			true [
+				integer/box crypto/CRC32 data len
+			]
+		]
+	]
+
 	;--- Natives helper functions ---
 
 	argument-as-float: func [
@@ -2336,6 +2398,7 @@ natives: context [
 			:request-file*
 			:wait*
 			:request-dir*
+			:checksum*
 		]
 	]
 
