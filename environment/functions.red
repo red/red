@@ -61,10 +61,10 @@ empty?: func [
 
 probe: func [
 	"Returns a value after printing its molded form"
-	value
+	value [any-type!]
 ][
-	print mold value 
-	value
+	print mold :value 
+	:value
 ]
 
 quote: func [
