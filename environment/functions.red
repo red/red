@@ -528,7 +528,7 @@ list-dir: function [
 			prin tab
 			prin pad mold name max-sz
 			prin " "
-			if tail? list: next list [break]
+			list: next list
 		]
 		prin lf
 	]
