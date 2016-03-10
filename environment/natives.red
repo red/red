@@ -741,3 +741,18 @@ wait: make native! [[
 	]
 	#get-definition NAT_WAIT
 ]
+
+checksum: make native! [[
+		"Computes a checksum, CRC, or hash."
+		data	[binary! string! file!]
+		/tcp "Returns an Internet TCP 16-bit checksum"
+		/hash "Returns a hash value"
+			size [integer!] "Size of the hash table"
+		/method "Method to use"
+			word [word!] "Methods: SHA1 MD5 CRC32"
+		/key "Returns keyed HMAC value"
+			key-value [any-string!] "Key to use"
+		return: [integer!]
+	]
+	#get-definition NAT_CHECKSUM
+]

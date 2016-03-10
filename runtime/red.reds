@@ -107,6 +107,7 @@ red: context [
 	#include %natives.reds
 	#include %parse.reds
 	#include %random.reds
+	#include %crypto.reds
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds							;-- temporary file IO support
@@ -192,6 +193,7 @@ red: context [
 		parser/init
 		_random/init
 		ownership/init
+		crypto/init
 		
 		stack/init
 		redbin/boot-load
