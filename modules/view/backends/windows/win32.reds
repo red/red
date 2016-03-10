@@ -860,6 +860,10 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		IsWindowVisible: "IsWindowVisible" [
+			hWnd		[handle!]
+			return:		[logic!]
+		]
 		SetTimer: "SetTimer" [
 			hWnd		[handle!]
 			nIDEvent	[integer!]

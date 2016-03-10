@@ -943,6 +943,9 @@ OS-make-view: func [
 					SetWindowLong handle wc-offset - 8 pt/y
 				]
 				update-base handle as handle! parent pt values
+				if all [show?/value IsWindowVisible as handle! parent][
+					ShowWindow handle SW_SHOWNA
+				]
 			]
 		]
 		sym = tab-panel [
@@ -1120,7 +1123,11 @@ change-visible: func [
 	/local
 		value [integer!]
 ][
-	value: either show? [SW_SHOW][SW_HIDE]
+	value: either show? [
+		either type = base [SW_SHOWNA][SW_SHOW]
+	][
+		SW_HIDE
+	]
 	ShowWindow as handle! hWnd value
 	unless win8+? [
 		update-layered-window as handle! hWnd null null null -1
