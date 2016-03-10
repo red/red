@@ -255,7 +255,7 @@ unicode: context [
 					b1 < E0h [							; start of two-byte sequence
 						if cnt/value < 2 [return -1]
 						b2: as-integer src/2
-						if all [
+						either all [
 							b2 >= 80h b2 < C0h
 						][
 							cp:	(b1 - C0h << 6) or
@@ -266,6 +266,9 @@ unicode: context [
 ;							][
 								cnt/value: 2
 ;							]
+						][
+							cp: b1
+							cnt/value: 1				; if there is a unrecognized unicode char, just move on
 						]
 					]
 					b1 < F0h [							; start of three-byte sequence
@@ -310,10 +313,12 @@ unicode: context [
 						]
 					]
 					true [
-						fire [
-							TO_ERROR(access invalid-utf8)
-							binary/load as byte-ptr! src 4
-						]
+						;fire [
+						;	TO_ERROR(access invalid-utf8)
+						;	binary/load as byte-ptr! src 4
+						;]
+						cp: b1
+						cnt/value: 1
 					]
 				]
 			]
