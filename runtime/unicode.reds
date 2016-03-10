@@ -22,6 +22,7 @@ unicode: context [
 	verbose: 0
 
 	#define U_REPLACEMENT 	FFFDh
+	#define NOT_A_CHARACTER FFFEh
 	;	choose one of the following options
 	;	FFFDh			; U+FFFD = replacement character
 	;	1Ah				; U+001A = control SUB (substitute)
@@ -232,7 +233,7 @@ unicode: context [
 	decode-utf8-char: func [
 		src		[c-string!]
 		cnt		[int-ptr!]								;-- pointer to size of next char in bytes
-		return: [integer!]
+		return: [integer!]								;-- return -1 to indicate the string is incomplete, which is not an error
 		/local
 			b1  [integer!]								;-- up to four bytes in a UTF-8 sequence		
 			b2  [integer!]								;-- for computing purposes they are of integer! type
@@ -246,11 +247,11 @@ unicode: context [
 			cp: b1										; and we are done
 			cnt/value: 1
 		][
-			cp: U_REPLACEMENT
+			cp: NOT_A_CHARACTER
 			; assume error by default - this simplifies code greatly
 			; cp is now only set if a correct sequence has been decoded
 
-			unless b1 < C0h [							; 80h - BFh may not start a sequence
+			if b1 > BFh [								; 80h - BFh may not start a sequence
 				case  [
 					b1 < E0h [							; start of two-byte sequence
 						if cnt/value < 2 [return -1]
@@ -279,11 +280,14 @@ unicode: context [
 							cp:	(b1 - E0h << 12) or
 								(b2 - 80h <<  6) or
 								(b3 - 80h)
-							if all [
-								any [cp < DC00h cp > DCFFh]
-;								cp > 7FFh				; optional test for overlong
-							][
+							;either all [
+							;	any [cp < DC00h cp > DCFFh]
+							;	cp > 7FFh				; optional test for overlong
+							;][
+							either any [cp < DC00h cp > DCFFh][
 								cnt/value: 3
+							][
+								cp: NOT_A_CHARACTER
 							]
 						]
 					]
@@ -301,23 +305,27 @@ unicode: context [
 								(b2 - 80h << 12) or
 								(b3 - 80h <<  6) or
 								(b4 - 80h)
-							if all [
-								cp <= 0010FFFFh
-;								cp > FFFFh				; optional test for overlong
-							][
+							;either all [
+							;	cp <= 0010FFFFh
+							;	cp > FFFFh				; optional test for overlong
+							;][
+							either cp <= 0010FFFFh [
 								cnt/value: 4
+							][
+								cp: NOT_A_CHARACTER
 							]
 						]
 					]
-					true [
-						fire [
-							TO_ERROR(access invalid-utf8)
-							binary/load as byte-ptr! src 4
-						]
-					]
+					true [0]
 				]
 			]
-		]	
+		]
+		if cp = NOT_A_CHARACTER [
+			fire [
+				TO_ERROR(access invalid-utf8)
+				binary/load as byte-ptr! src 4
+			]
+		]
 		cp
 	]
 
