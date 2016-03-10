@@ -647,6 +647,9 @@ block: context [
 		][
 			either set? [
 				element: find parent element null no case? no null null no no no no
+				if TYPE_OF(element) = TYPE_NONE [
+					fire [TO_ERROR(script bad-path-set) path element]
+				]
 				actions/poke as red-series! element 2 value null
 				value
 			][
