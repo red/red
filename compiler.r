@@ -1040,6 +1040,17 @@ red: context [
 		]
 	]
 	
+	find-function: func [name [word!] original [any-word!] /local entry bound?][
+		all [
+			entry: find functions name
+			any [
+				all [not bound?: local-bound? original head? functions]	;-- global case
+				all [bound? not head? functions]		;-- local case
+			]
+			entry
+		]
+	]
+	
 	check-invalid-exit: func [name [word!]][
 		if empty? locals-stack [
 			pc: back pc
@@ -1048,7 +1059,7 @@ red: context [
 	]
 	
 	check-redefined: func [name [word!] original [any-word!] /only /local pos entry][
-		if all [pos: find functions name not only][
+		if all [not only pos: find-function name original][
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if all [
@@ -2857,7 +2868,7 @@ red: context [
 						not set? not get?
 						all [
 							alter: get-prefix-func value
-							entry: find functions alter
+							entry: find-function alter value
 							name: alter
 						]
 					][
@@ -3234,7 +3245,7 @@ red: context [
 	comp-set-word: func [
 		/native
 		/local 
-			name value ctx original obj bound? deep? inherit? proto
+			name value ctx original obj obj-bound? deep? inherit? proto
 			defer mark start take-frame preset?
 	][
 		name: original: pc/1
@@ -3251,7 +3262,7 @@ red: context [
 			throw-error ["attempt to redefine a keyword:" name]
 		]
 		
-		bound?: all [
+		obj-bound?: all [
 			rebol-gctx <> obj: bind? original
 			not find shadow-funcs obj
 		]
@@ -3279,7 +3290,7 @@ red: context [
 			pc: back pc
 			comp-expression								;-- fetch a value
 		][
-			unless bound? [
+			unless obj-bound? [
 				emit-push-word name	original 			;-- push set-word
 			]
 		]
@@ -3307,7 +3318,7 @@ red: context [
 			][]
 			'else [
 				if start [emit start]
-				unless bound? [check-redefined name original]
+				unless obj-bound? [check-redefined name original]
 				check-cloned-function name
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
@@ -3322,7 +3333,7 @@ red: context [
 		either native [
 			emit-native/with 'set [-1 -1 -1 -1]			;@@ refinement not handled yet
 		][
-			either all [bound? ctx: select objects obj][
+			either all [obj-bound? ctx: select objects obj][
 				emit 'word/set-in
 				emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 				emit get-word-index/with name ctx
