@@ -136,12 +136,7 @@ system/view/VID: context [
 						tuple!	 [unless opts/color [opts/color: value]]
 						string!	 [unless opts/text  [opts/text:  value]]
 						percent! [unless opts/data  [opts/data:  value]]
-						image!	 [
-							unless opts/image [
-								opts/image: value
-								unless opts/size [opts/size: value/size]
-							]
-						]
+						image!	 [unless opts/image [opts/image: value]]
 						integer! [
 							unless opts/size [
 								either find [panel group-box] face/type [
@@ -178,6 +173,8 @@ system/view/VID: context [
 		]
 		unless opt? [spec: back spec]
 
+		if all [opts/image not opts/size][opts/size: opts/image/size]
+		
 		if font: opts/font [
 			foreach [field value] default-font [
 				if none? font/:field [font/:field: value]
