@@ -315,9 +315,8 @@ _hashtable: context [
 			end: s/tail
 			if type = HASH_TABLE_HASH [
 				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
-				i: (as-integer (end - s/offset)) >> 4 - blk/head
 				ss: as series! h/indexes/value
-				ss/tail: as cell! (as int-ptr! ss/tail) + i
+				ss/tail: as cell! (as byte-ptr! ss/offset) + ss/size
 			]
 			put-all node blk/head skip
 		]
@@ -695,7 +694,7 @@ _hashtable: context [
 			s: as series! h/indexes/value
 			if s/size >> 2 = idx [
 				s: expand-series-filled s s/size << 1 #"^(FF)"
-				s/tail: s/tail + (s/size << 4)
+				s/tail: as cell! (as byte-ptr! s/offset) + s/size
 			]
 			indexes: as int-ptr! s/offset
 			idx: idx + 1

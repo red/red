@@ -1284,7 +1284,7 @@ block: context [
 			s: GET_BUFFER(blk)
 			assert s/offset + blk/head <= s/tail
 
-			if hash? [_hashtable/refresh table slots blk/head]
+			if all [not tail? hash?][_hashtable/refresh table slots blk/head]
 		]
 		as red-value! blk
 	]
