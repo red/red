@@ -250,7 +250,7 @@ unicode: context [
 			; assume error by default - this simplifies code greatly
 			; cp is now only set if a correct sequence has been decoded
 
-			unless b1 < C0h [							; 80h - BFh may not start a sequence
+			either b1 > BFh [							; 80h - BFh may not start a sequence
 				case  [
 					b1 < E0h [							; start of two-byte sequence
 						if cnt/value < 2 [return -1]
@@ -316,8 +316,13 @@ unicode: context [
 						]
 					]
 				]
+			][
+				fire [
+					TO_ERROR(access invalid-utf8)
+					binary/load as byte-ptr! src 4
+				]
 			]
-		]	
+		]
 		cp
 	]
 
