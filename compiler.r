@@ -279,7 +279,7 @@ red: context [
 		all [issue? value #"%" = last value]
 	]
 	
-	map-value?: func [value][value = #!map!]
+	map-value?: func [value][all [block? value value/1 = #!map!]]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -1490,12 +1490,14 @@ red: context [
 			]
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
+		map?: map-value? :value
+		
 		either any [
 			char?: unicode-char? value
 			special?: float-special? value
 			percent?: percent-value? value
-			map?: map-value? :value
 			scalar? :value
+			map?
 		][
 			case [
 				char? [
@@ -1515,8 +1517,6 @@ red: context [
 					insert-lf -3
 				]
 				map? [
-					value: first pc: next pc
-					insert value #!map!
 					emit compose [map/push as red-hash! get-root (redbin/emit-block value)]
 					insert-lf -3
 				]
@@ -3866,9 +3866,8 @@ red: context [
 					unicode-char?  pc/1
 					float-special? pc/1
 					percent-value? pc/1
-					map-value?	   pc/1
 				][
-					comp-literal						;-- special encoding for Unicode char!
+					comp-literal						;-- issue! used for special encoding
 				][
 					unless comp-directive [comp-literal]
 				]

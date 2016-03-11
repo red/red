@@ -359,6 +359,7 @@ context [
 				]
 			]
 		]
+		if type = 'map [insert blk #!map!]
 		unless sub [index: index + 1]
 		index - 1										;-- return the block index
 	]
