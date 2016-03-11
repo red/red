@@ -23,8 +23,8 @@ also: func [
 ]
 
 attempt: func [
-	"Tries to evaluate and returns result or NONE on error"
-	value
+	"Tries to evaluate a block and returns result or NONE on error"
+	value [block!]
 ][
 	unless error? set/any 'value try :value [get/any 'value]
 ]
