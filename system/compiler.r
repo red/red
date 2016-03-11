@@ -2213,6 +2213,9 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
+			if 'while-cond = last loop-stack [
+				throw-error "BREAK cannot be used in WHILE condition block"
+			]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
 			none
@@ -2220,6 +2223,9 @@ system-dialect: make-profilable context [
 		
 		comp-continue: does [
 			if empty? loop-stack [throw-error "CONTINUE used with no loop"]
+			if 'while-cond = last loop-stack [
+				throw-error "CONTINUE cannot be used in WHILE condition block"
+			]
 			emitter/target/emit-jump-point last either 'until = last loop-stack [
 				emitter/cont-back						;-- jump at the beginning for UNTIL iterator,
 			][											;-- as the looping condition cannot be guessed.
@@ -2278,8 +2284,10 @@ system-dialect: make-profilable context [
 			check-body pc/2								;-- check body block
 			emitter/init-loop-jumps
 			
-			push-loop 'while
+			push-loop 'while-cond
 			set [expr cond]   comp-block-chunked/test 'while	;-- Condition block
+			pop-loop
+			push-loop 'while
 			set [unused body] comp-block-chunked		;-- Body block
 			pop-loop
 			

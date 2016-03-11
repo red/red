@@ -501,17 +501,20 @@ red: context [
 	
 	build-exception-handler: has [body][
 		body: make block! 8
-		either empty? intersect iterators expr-stack [
-			append body [
-				0					[0]
-				RED_THROWN_BREAK
-				RED_THROWN_CONTINUE [re-throw]
-			]
-		][
-			append body [
-				0					[0]
-				RED_THROWN_BREAK    [break]
-				RED_THROWN_CONTINUE [continue]
+		append body [
+			0					[0]
+		]
+		unless find expr-stack 'while-cond [
+			either empty? intersect iterators expr-stack [
+				append body [
+					RED_THROWN_BREAK
+					RED_THROWN_CONTINUE [re-throw]
+				]
+			][
+				append body [
+					RED_THROWN_BREAK    [break]
+					RED_THROWN_CONTINUE [continue]
+				]
 			]
 		]
 		append body [
@@ -2093,10 +2096,12 @@ red: context [
 		emit [
 			while
 		]
-		push-call 'while
+		push-call 'while-cond
 		comp-sub-block 'while-condition					;-- compile condition
 		append/only last output 'logic/true?
 		new-line back tail last output on
+		pop-call
+		push-call 'while
 		comp-sub-block 'while-body						;-- compile body
 		pop-call
 		emit-close-frame
