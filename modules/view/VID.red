@@ -288,7 +288,7 @@ system/view/VID: context [
 				][
 					throw-error spec
 				]
-				face: make face! style/template
+				face: make face! copy/deep style/template
 				clear reactors
 				spec: fetch-options face opts style spec
 				
