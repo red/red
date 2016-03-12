@@ -206,18 +206,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value1	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! binary! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_XOR~
 ]
