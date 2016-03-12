@@ -121,7 +121,7 @@ Other useful functions:
 			any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
 		][
 			prin ["^/USAGE:^/" tab ]
-			unless op? :func [prin func-name prin " "]
+			unless op? :fun [prin func-name prin " "]
 
 			parse spec-of :fun [
 				start: [									;-- 1st pass
@@ -129,8 +129,8 @@ Other useful functions:
 					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin mold w])]
 					any [
 						/local to end
-						| set w [word! | lit-word! | get-word!] (prin [" " w])
-						| set w refinement! (prin [" " mold w])
+						| set w [word! | lit-word! | get-word!] (prin " " prin w)
+						| set w refinement! (prin " " prin mold w)
 						| skip
 					]
 				]
