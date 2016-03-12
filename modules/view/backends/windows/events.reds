@@ -1041,6 +1041,9 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_LBUTTONDBLCLK [
+			menu-origin: null							;-- reset if user clicks on menu bar
+			menu-ctx: null
+			make-event msg 0 EVT_LEFT_DOWN
 			make-event msg 0 EVT_DBL_CLICK
 			EVT_DISPATCH
 		]
