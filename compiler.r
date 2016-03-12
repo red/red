@@ -2244,8 +2244,8 @@ red: context [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		emit 'break
-		insert-lf -1
+		emit [stack/unroll-loop break]
+		insert-lf -2
 	]
 	
 	comp-continue: does [

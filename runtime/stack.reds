@@ -286,6 +286,12 @@ stack: context [										;-- call stack
 		top: arguments
 	]
 	
+	unroll-loop: does [
+		#if debug? = yes [if verbose > 0 [print-line "stack/unroll-loop"]]
+
+		unroll-frames FRAME_LOOP
+	]
+	
 	adjust: does [
 		top: top - 1
 		copy-cell top top - 1
