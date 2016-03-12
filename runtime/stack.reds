@@ -254,7 +254,8 @@ stack: context [										;-- call stack
 	]
 	
 	unroll-frames: func [
-		flags [integer!]
+		flags  [integer!]
+		inner? [logic!]									;-- YES: stay in inner frame
 		/local
 			type [integer!]
 	][
@@ -268,8 +269,9 @@ stack: context [										;-- call stack
 				type = FRAME_TRY_ALL
 			]
 		]
+		if inner? [ctop: ctop + 1]
 		STACK_SET_FRAME
-		ctop: ctop + 1									;-- ctop points past the current call frame
+		unless inner? [ctop: ctop + 1]					;-- ctop points past the current call frame
 	]
 
 	unroll: func [
@@ -280,16 +282,15 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
 
 		last: arguments
-		unroll-frames flags
+		unroll-frames flags no
 		copy-cell last ctop/prev
 		arguments: ctop/prev
 		top: arguments
 	]
 	
-	unroll-loop: does [
+	unroll-loop: func [inner? [logic!]][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll-loop"]]
-
-		unroll-frames FRAME_LOOP
+		unroll-frames FRAME_LOOP inner?
 	]
 	
 	adjust: does [
@@ -362,7 +363,7 @@ stack: context [										;-- call stack
 		flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
 		
 		extra: top
-		unroll-frames flags
+		unroll-frames flags no
 		
 		ctop: ctop - 1
 		assert ctop >= cbottom

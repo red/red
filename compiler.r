@@ -2244,7 +2244,7 @@ red: context [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		emit [stack/unroll-loop break]
+		emit [stack/unroll-loop no break]
 		insert-lf -2
 	]
 	
@@ -2253,7 +2253,7 @@ red: context [
 			pc: back pc
 			throw-error "CONTINUE used with no loop"
 		]
-		emit 'continue
+		emit [stack/unroll-loop yes continue]
 		insert-lf -1
 	]
 	
