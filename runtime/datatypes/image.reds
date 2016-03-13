@@ -170,9 +170,9 @@ image: context [
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
-		y: 0
+		x: img/head % w
+		y: img/head / w
 		while [y < h][
-			x: 0
 			while [x < w][
 				pos: stride >> 2 * y + x + 1
 				pixel: data/pos
@@ -187,6 +187,7 @@ image: context [
 				]
 				x: x + 1
 			]
+			x: 0
 			y: y + 1
 		]
 		OS-image/unlock-bitmap as-integer img/node bitmap
@@ -203,6 +204,7 @@ image: context [
 			y		[integer!]
 			w		[integer!]
 			h		[integer!]
+			offset	[integer!]
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
@@ -225,13 +227,14 @@ image: context [
 			p: as byte-ptr! s/offset
 		]
 
+		offset: img/head
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node yes
 		data: OS-image/get-data bitmap :stride
-		y: 0
+		x: offset % w
+		y: offset / w
 		either type = TYPE_BINARY [
 			while [y < h][
-				x: 0
 				while [x < w][
 					pos: stride >> 2 * y + x + 1
 					pixel: data/pos
@@ -248,6 +251,7 @@ image: context [
 					data/pos: pixel
 					x: x + 1
 				]
+				x: 0
 				y: y + 1
 			]
 		][
@@ -263,7 +267,6 @@ image: context [
 				color >> 16 or (color and FF00h) or (color and FFh << 16)
 			]
 			while [y < h][
-				x: 0
 				while [x < w][
 					pos: stride >> 2 * y + x + 1
 					pixel: data/pos
@@ -275,6 +278,7 @@ image: context [
 					data/pos: pixel
 					x: x + 1
 				]
+				x: 0
 				y: y + 1
 			]
 		]
@@ -381,6 +385,7 @@ image: context [
 		/local
 			height	[integer!]
 			width	[integer!]
+			offset	[integer!]
 			alpha?	[logic!]
 			formed	[c-string!]
 			pixel	[integer!]
@@ -416,13 +421,14 @@ image: context [
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
-		data: data + img/head
-		y: 0
+		offset: img/head
+		stride: stride / 4
+		x: offset % width
+		y: offset / width
 		count: 0
 		while [y < height][
-			x: 0
 			while [x < width][
-				pos: stride >> 2 * y + x + 1
+				pos: stride * y + x + 1
 				pixel: data/pos
 				string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
 				string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
@@ -437,6 +443,7 @@ image: context [
 				if pixel >>> 24 <> 255 [alpha?: yes]
 				x: x + 1
 			]
+			x: 0
 			y: y + 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
@@ -445,12 +452,12 @@ image: context [
 			string/append-char GET_BUFFER(buffer) as-integer space
 			string/concatenate-literal buffer "#{^/"
 			part: part - 5
-			y: 0
+			x: offset % width
+			y: offset / width
 			count: 0
 			while [y < height][
-				x: 0
 				while [x < width][
-					pos: stride >> 2 * y + x + 1
+					pos: stride * y + x + 1
 					pixel: data/pos
 					string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
 					count: count + 1
@@ -462,6 +469,7 @@ image: context [
 					]
 					x: x + 1
 				]
+				x: 0
 				y: y + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
@@ -722,6 +730,34 @@ image: context [
 		img
 	]
 
+	tail?: func [
+		return:	  [red-value!]
+		/local
+			img	  [red-image!]
+			state [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/tail?"]]
+
+		img:   as red-image! stack/arguments
+		state: as red-logic! img
+
+		state/header: TYPE_LOGIC
+		state/value:  IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head 
+		as red-value! state
+	]
+
+	tail: func [
+		return:	[red-image!]
+		/local
+			img	[red-image!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/tail"]]
+
+		img: as red-image! stack/arguments
+		img/head: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		img
+	]
+
 	copy: func [
 		img	    	[red-image!]
 		new			[red-image!]
@@ -829,8 +865,8 @@ image: context [
 			null			;sort
 			:skip
 			null			;swap
-			null			;tail
-			null			;tail?
+			:tail
+			:tail?
 			null			;take
 			null			;trim
 			;-- I/O actions --
