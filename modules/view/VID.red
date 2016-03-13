@@ -125,6 +125,9 @@ system/view/VID: context [
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
 				| 'react	  (append reactors reduce [face fetch-argument block! spec: next spec])
+				| 'loose	  (value: [drag-on: 'down] either block? opts/options [append opts/options value][opts/options: value])
+				| 'all-over   (set-flag opts 'flags 'all-over)
+				| 'hidden	  (opts/visible?: no)
 				] to end
 			]
 			unless match? [
@@ -177,7 +180,7 @@ system/view/VID: context [
 		
 		if font: opts/font [
 			foreach [field value] default-font [
-				if none? font/:field [font/:field: value]
+				if none? font/:field [font/:field: value] ;-- explicit test for none! value
 			]
 		]
 		set/some face opts
@@ -229,7 +232,7 @@ system/view/VID: context [
 		cursor:	origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
-			type: offset: size: text: color: image: font: para: data:
+			type: offset: size: text: color: visible?: image: font: flags: options: para: data:
 			extra: actors: draw: none
 		]
 		

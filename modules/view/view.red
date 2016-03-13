@@ -17,6 +17,19 @@ Red [
 
 event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
+set-flag: function [
+	face  [object!]
+	facet [word!]
+	value [any-type!]
+][
+	either flags: face/:facet [
+		if word? flags [flags: reduce [flags]]
+		either block? flags [append flags value][set in face facet value]
+	][
+		set in face facet value
+	]
+]
+
 find-flag?: routine [
 	facet	[any-type!]
 	flag 	[word!]
