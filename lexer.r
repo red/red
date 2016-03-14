@@ -83,7 +83,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]();x}
+	integer-end:	charset {^{"[]();xX}
 	path-end:		charset {^{"[]();}
 	stop: 		    none
 
@@ -257,7 +257,7 @@ lexer: context [
 			sticky-word-rule
 			(value: load-number copy/part s e)
 			opt [
-				#"x" (
+				[#"x" | #"X"] (
 					type: pair!
 					value2: to pair! reduce [value 0]
 				)

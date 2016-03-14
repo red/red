@@ -42,7 +42,7 @@ logic: context [
 	top-true?: func [
 		return:  [logic!]
 	][
-		not top-false?										;-- true if not none or false
+		not top-false?									;-- true if not none or false
 	]
 
 	top-false?: func [
@@ -54,7 +54,7 @@ logic: context [
 		arg: as red-logic! stack/top - 1
 		type: TYPE_OF(arg)
 
-		any [											;-- true if not none or false
+		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]
@@ -62,10 +62,20 @@ logic: context [
 		
 	true?: func [
 		return:  [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
 		
-		not false?										;-- true if not none or false
+		arg: as red-logic! stack/arguments
+		type: TYPE_OF(arg)
+		if type = TYPE_UNSET [fire [TO_ERROR(script no-return)]]
+		
+		not any [										;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]
 	]
 	
 	false?: func [
@@ -79,7 +89,7 @@ logic: context [
 		arg: as red-logic! stack/arguments
 		type: TYPE_OF(arg)
 		
-		any [											;-- true if not none or false
+		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]

@@ -734,10 +734,10 @@ request-dir: make native! [[
 ]
 
 wait: make native! [[
-		"Waits for a duration, port, or both"
+		"Waits for a duration in seconds"
 		value [number! block! none!]
 		/all "Returns all in a block"
-		/only "Only check for ports given in the block to this function"
+		;/only "Only check for ports given in the block to this function"
 	]
 	#get-definition NAT_WAIT
 ]

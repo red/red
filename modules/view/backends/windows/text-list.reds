@@ -31,10 +31,11 @@ init-text-list: func [
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
 		while [str < tail][
-			c-str: unicode/to-utf16 str
-			value: string/rs-length? str
-			if len < value [len: value str-saved: c-str]
 			if TYPE_OF(str) = TYPE_STRING [
+				c-str: unicode/to-utf16 str
+				value: string/rs-length? str
+				if len < value [len: value str-saved: c-str]
+				
 				SendMessage 
 					hWnd
 					LB_ADDSTRING

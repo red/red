@@ -28,7 +28,6 @@ float-test.red
 same-test.red
 words-of-test.red
 case-folding-test.red
-loop-test.red
 throw-test.red
 vector-test.red
 map-test.red

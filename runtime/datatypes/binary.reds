@@ -696,22 +696,77 @@ binary: context [
 
 	do-math: func [
 		type		[math-op!]
-		return:		[red-value!]
+		return:		[red-binary!]
+		/local
+			left	[red-binary!]
+			right	[red-binary!]
+			s1		[series!]
+			s2		[series!]
+			len		[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			i		[integer!]
+			node	[node!]
+			buffer	[series!]
+			p		[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
 	][
-		stack/arguments
+		left: as red-binary! stack/arguments
+		right: left + 1
+
+		if TYPE_OF(right) <> TYPE_BINARY [
+			fire [TO_ERROR(script invalid-arg) right]
+		]
+
+		s1: GET_BUFFER(left)
+		s2: GET_BUFFER(right)
+		p1: (as byte-ptr! s1/offset) + left/head
+		p2: (as byte-ptr! s2/offset) + right/head
+		len1: as-integer (as byte-ptr! s1/tail) - p1
+		len2: as-integer (as byte-ptr! s2/tail) - p2
+		either len1 < len2 [len: len2][
+			len: len1 len1: len2
+			p: p1 p1: p2 p2: p
+		]
+
+		node: alloc-bytes len
+		buffer: as series! node/value
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + len
+
+		i: 0
+		p: as byte-ptr! buffer/offset
+		while [i < len1][
+			i: i + 1
+			p/i: switch type [
+				OP_AND [p1/i and p2/i]
+				OP_OR  [p1/i or p2/i]
+				OP_XOR [p1/i xor p2/i]
+			]
+		]
+		if i < len [
+			switch type [
+				OP_AND [fill p + i p + len null]
+				OP_OR
+				OP_XOR [copy-memory p + i p2 + i len - i]
+			]
+		]
+		left/node: node
+		left/head: 0
+		left
 	]
 
-	and~: func [return: [red-value!]][
+	and~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/and~"]]
 		do-math OP_AND
 	]
 
-	or~: func [return: [red-value!]][
+	or~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/or~"]]
 		do-math OP_OR
 	]
 
-	xor~: func [return: [red-value!]][
+	xor~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/xor~"]]
 		do-math OP_XOR
 	]

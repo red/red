@@ -279,7 +279,7 @@ red: context [
 		all [issue? value #"%" = last value]
 	]
 	
-	map-value?: func [value][value = #!map!]
+	map-value?: func [value][all [block? value value/1 = #!map!]]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -501,17 +501,20 @@ red: context [
 	
 	build-exception-handler: has [body][
 		body: make block! 8
-		either empty? intersect iterators expr-stack [
-			append body [
-				0					[0]
-				RED_THROWN_BREAK
-				RED_THROWN_CONTINUE [re-throw]
-			]
-		][
-			append body [
-				0					[0]
-				RED_THROWN_BREAK    [break]
-				RED_THROWN_CONTINUE [continue]
+		append body [
+			0					[0]
+		]
+		unless find expr-stack 'while-cond [
+			either empty? intersect iterators expr-stack [
+				append body [
+					RED_THROWN_BREAK
+					RED_THROWN_CONTINUE [re-throw]
+				]
+			][
+				append body [
+					RED_THROWN_BREAK    [break]
+					RED_THROWN_CONTINUE [continue]
+				]
 			]
 		]
 		append body [
@@ -1487,12 +1490,14 @@ red: context [
 			]
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
+		map?: map-value? :value
+		
 		either any [
 			char?: unicode-char? value
 			special?: float-special? value
 			percent?: percent-value? value
-			map?: map-value? :value
 			scalar? :value
+			map?
 		][
 			case [
 				char? [
@@ -1512,8 +1517,6 @@ red: context [
 					insert-lf -3
 				]
 				map? [
-					value: first pc: next pc
-					insert value #!map!
 					emit compose [map/push as red-hash! get-root (redbin/emit-block value)]
 					insert-lf -3
 				]
@@ -2093,10 +2096,12 @@ red: context [
 		emit [
 			while
 		]
-		push-call 'while
+		push-call 'while-cond
 		comp-sub-block 'while-condition					;-- compile condition
 		append/only last output 'logic/true?
 		new-line back tail last output on
+		pop-call
+		push-call 'while
 		comp-sub-block 'while-body						;-- compile body
 		pop-call
 		emit-close-frame
@@ -2239,8 +2244,8 @@ red: context [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		emit 'break
-		insert-lf -1
+		emit [stack/unroll-loop no break]
+		insert-lf -2
 	]
 	
 	comp-continue: does [
@@ -2248,7 +2253,7 @@ red: context [
 			pc: back pc
 			throw-error "CONTINUE used with no loop"
 		]
-		emit 'continue
+		emit [stack/unroll-loop yes continue]
 		insert-lf -1
 	]
 	
@@ -3861,9 +3866,8 @@ red: context [
 					unicode-char?  pc/1
 					float-special? pc/1
 					percent-value? pc/1
-					map-value?	   pc/1
 				][
-					comp-literal						;-- special encoding for Unicode char!
+					comp-literal						;-- issue! used for special encoding
 				][
 					unless comp-directive [comp-literal]
 				]

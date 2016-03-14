@@ -747,6 +747,7 @@ WndProc: func [
 		offset [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
+		w-type [red-word!]
 ][
 	switch msg [
 		WM_NCCREATE [
@@ -754,7 +755,11 @@ WndProc: func [
 			store-face-to-hWnd hWnd as red-object! p-int/value
 		]
 		WM_WINDOWPOSCHANGED [
-			unless win8+? [
+			w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
+			if all [
+				window = symbol/resolve w-type/symbol
+				not win8+?
+			][
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
@@ -1036,6 +1041,9 @@ process: func [
 			EVT_DISPATCH
 		]
 		WM_LBUTTONDBLCLK [
+			menu-origin: null							;-- reset if user clicks on menu bar
+			menu-ctx: null
+			make-event msg 0 EVT_LEFT_DOWN
 			make-event msg 0 EVT_DBL_CLICK
 			EVT_DISPATCH
 		]

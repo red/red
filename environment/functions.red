@@ -23,8 +23,8 @@ also: func [
 ]
 
 attempt: func [
-	"Tries to evaluate and returns result or NONE on error"
-	value
+	"Tries to evaluate a block and returns result or NONE on error"
+	value [block!]
 ][
 	unless error? set/any 'value try :value [get/any 'value]
 ]
@@ -528,7 +528,7 @@ list-dir: function [
 			prin tab
 			prin pad mold name max-sz
 			prin " "
-			if tail? list: next list [exit]				;@@ using [break] corrupts stack!!
+			if tail? list: next list [exit]
 		]
 		prin lf
 	]
