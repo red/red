@@ -252,7 +252,7 @@ OS-hide-caret: func [vt [terminal!]][
 
 OS-update-caret: func [vt [terminal!]][
 	SetCaretPos vt/caret-x * vt/char-w + vt/pad-left vt/caret-y * vt/char-h
-	unless vt/caret? [ShowCaret vt/hwnd vt/caret?: yes]
+	if all [vt/input? not vt/caret?][ShowCaret vt/hwnd vt/caret?: yes]
 ]
 
 OS-refresh: func [
@@ -408,6 +408,7 @@ ConsoleWndProc: func [
 		]
 		WM_SETFOCUS [
 			CreateCaret hWnd null 1 vt/char-h
+			vt/caret?: no
 			if vt/input? [update-caret vt]
 			return 0
 		]

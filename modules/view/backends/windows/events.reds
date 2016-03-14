@@ -774,6 +774,7 @@ WndProc: func [
 			if all [
 				TYPE_OF(state) = TYPE_BLOCK			;-- already created the window
 				current-msg <> null
+				wParam <> SIZE_MINIMIZED
 			][
 				type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
 				update-pair-facet hWnd type lParam
