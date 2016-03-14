@@ -11,7 +11,7 @@ Red [
 ]
 
 system/view/VID: context [
-	#include %styles.red
+	styles: #include %styles.red
 	
 	reactors: make block! 20
 	

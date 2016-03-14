@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-styles: #(
+#(
 	window: [
 		default-actor: on-down
 		template: [type: 'window]
