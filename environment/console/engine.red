@@ -84,7 +84,7 @@ system/console: context [
 		buffer	[string!]
 		return: [block!]
 	][
-		count: copy [0 0]
+		count: copy [0 0 0]								;-- [squared curly parens]
 		escaped: [#"^^" skip]
 		
 		parse buffer [
@@ -93,6 +93,8 @@ system/console: context [
 				| #";" thru lf
 				| #"[" (count/1: count/1 + 1)
 				| #"]" (count/1: count/1 - 1)
+				| #"(" (count/3: count/3 + 1)
+				| #")" (count/3: count/3 - 1)
 				| dbl-quote any [escaped | dbl-quote break | skip]
 				| #"{" (count/2: count/2 + 1)
 				  any [escaped | #"}" (count/2: count/2 - 1) break | skip]
@@ -123,6 +125,7 @@ system/console: context [
 			mode: case [
 				cnt/1 > 0 ['block]
 				cnt/2 > 0 ['string]
+				cnt/3 > 0 ['paren]
 				'else 	  [
 					do eval
 					'mono
@@ -131,6 +134,7 @@ system/console: context [
 			cue: switch mode [
 				block  ["[    "]
 				string ["{    "]
+				paren  ["(    "]
 				mono   [none]
 			]
 		]
@@ -172,7 +176,8 @@ system/console: context [
 				switch mode [
 					block  [if cnt/1 <= 0 [do switch-mode]]
 					string [if cnt/2 <= 0 [do switch-mode]]
-					mono   [do either any [cnt/1 > 0 cnt/2 > 0][switch-mode][eval]]
+					paren  [if cnt/3 <= 0 [do switch-mode]]
+					mono   [do either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][eval]]
 				]
 			]
 		]
