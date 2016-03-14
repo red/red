@@ -538,7 +538,11 @@ natives: context [
 				object/reflect as red-object! value words/values
 			]
 			default [
-				stack/set-last _context/get as red-word! stack/arguments
+				value: _context/get as red-word! stack/arguments
+				if all [any? = -1 TYPE_OF(value) = TYPE_UNSET][
+					fire [TO_ERROR(script no-value) stack/arguments]
+				]
+				stack/set-last value
 			]
 		]
 	]
