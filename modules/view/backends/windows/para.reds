@@ -12,7 +12,7 @@ Red/System [
 
 update-para: func [
 	face	[red-object!]
-	flags	[integer!]
+	fields	[integer!]
 	/local
 		para   [red-object!]
 		type   [red-word!]
@@ -45,7 +45,7 @@ update-para: func [
 			sym = area
 			sym = text
 		][
-			mask: not 00004003h
+			mask: not 000040C3h
 		]
 		true [0]
 	]
@@ -92,7 +92,7 @@ get-para-flags: func [
 	
 	wrap?:	any [
 		TYPE_OF(bool) = TYPE_NONE
-		all [TYPE_OF(bool) = TYPE_LOGIC not bool/value]
+		all [TYPE_OF(bool) = TYPE_LOGIC bool/value]
 	]
 	
 	left:	 0
@@ -140,8 +140,12 @@ get-para-flags: func [
 			right:  0002h								;-- ES_RIGHT / SS_RIGHT
 			default: left
 			
-			if all [not wrap? type = text][
-				flags: 00004000h						;-- SS_ENDELLIPSIS
+			unless wrap? [
+				flags: either type = text [
+					00004000h							;-- SS_ENDELLIPSIS
+				][
+					00C0h								;-- ES_AUTOHSCROLL or ES_AUTOVSCROLL
+				]
 			]
 		]
 		true [0]

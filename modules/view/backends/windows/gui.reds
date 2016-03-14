@@ -741,6 +741,7 @@ OS-make-view: func [
 		vertical? [logic!]
 		panel?	  [logic!]
 		alpha?	  [logic!]
+		para?	  [logic!]
 		pt		  [tagPOINT]
 ][
 	stack/mark-func words/_body
@@ -765,12 +766,11 @@ OS-make-view: func [
 	sym: 	  symbol/resolve type/symbol
 	panel?:	  no
 	alpha?:   no
+	para?:	  TYPE_OF(para) = TYPE_OBJECT
+	
 
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
-	
-	if TYPE_OF(para) = TYPE_OBJECT [
-		flags: flags or get-para-flags sym para
-	]
+	if para? [flags: flags or get-para-flags sym para]
 
 	case [
 		sym = button [
@@ -798,12 +798,13 @@ OS-make-view: func [
 		]
 		sym = field [
 			class: #u16 "RedField"
-			flags: flags or ES_LEFT or ES_AUTOHSCROLL
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
 		sym = area [
 			class: #u16 "RedField"
-			flags: flags or ES_LEFT or ES_AUTOVSCROLL or ES_AUTOHSCROLL or ES_MULTILINE
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_AUTOVSCROLL]
+			flags: flags or ES_MULTILINE
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
 		sym = text [
