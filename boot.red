@@ -27,3 +27,6 @@ Red [
 #include %environment/codecs/gif.red
 
 extract-boot-args
+
+;-- temporary code --
+if system/platform <> 'Windows [unset [event! image!]]
