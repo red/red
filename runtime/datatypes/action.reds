@@ -29,24 +29,29 @@ action: context [
 	make: func [
 		proto	   [red-value!]
 		spec   	   [red-block!]
-		return:    [red-action!]							;-- return action cell pointer
+		return:    [red-action!]						;-- return action cell pointer
 		/local
+			list   [red-block!]
 			action [red-action!]
 			s	   [series!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
 		
-		assert TYPE_OF(spec) = TYPE_BLOCK
+		if TYPE_OF(spec) <> TYPE_BLOCK [throw-make proto spec]
 		s: GET_BUFFER(spec)
-		spec: as red-block! s/offset
+		list: as red-block! s/offset
+		if list + list/head + 2 <> s/tail [throw-make proto spec]
 		
 		action: as red-action! stack/push*
 		action/header:	TYPE_ACTION						;-- implicit reset of all header flags
-		action/spec:    spec/node						; @@ copy spec block if not at head
+		action/spec:    list/node						; @@ copy spec block if not at head
 		action/args: 	null
-			
-		index: integer/get s/offset + 1					;-- action IDs are one-based
+		
+		list: list + 1
+		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
+		index: integer/get as red-value! list			;-- action IDs are one-based
+		if any [index < 1 index > ACTIONS_NB][throw-make proto spec]
 		action/code: actions/table/index
 		
 		action

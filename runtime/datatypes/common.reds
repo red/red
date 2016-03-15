@@ -148,6 +148,13 @@ fire: func [
 	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
 ]
 
+throw-make: func [
+	proto [red-value!]
+	spec  [red-block!]
+][
+	fire [TO_ERROR(script bad-make-arg) proto spec]
+]
+
 type-check-opt: func [									;-- used by #typecheck
 	ref		 [integer!]
 	expected [red-typeset!]

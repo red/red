@@ -58,6 +58,7 @@ op: context [
 			TYPE_BLOCK [
 				s: GET_BUFFER(spec)
 				blk: as red-block! s/offset
+				if blk + blk/head + 2 <> s/tail [throw-make proto spec]
 				blk/node
 			]
 			TYPE_ACTION

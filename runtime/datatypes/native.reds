@@ -142,22 +142,27 @@ native: context [
 		spec	   [red-block!]
 		return:    [red-native!]						;-- return native cell pointer
 		/local
+			list   [red-block!]
 			native [red-native!]
 			s	   [series!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
 		
-		assert TYPE_OF(spec) = TYPE_BLOCK
+		if TYPE_OF(spec) <> TYPE_BLOCK [throw-make proto spec]
 		s: GET_BUFFER(spec)
-		spec: as red-block! s/offset
+		list: as red-block! s/offset
+		if list + list/head + 2 <> s/tail [throw-make proto spec]
 
 		native: as red-native! stack/push*
 		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
-		native/spec:    spec/node						; @@ copy spec block if not at head
+		native/spec:	list/node						; @@ copy spec block if not at head
 		native/args:	null
 		
-		index: integer/get s/offset + 1
+		list: list + 1
+		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
+		index: integer/get as red-value! list
+		if any [index < 1 index > NATIVES_NB][throw-make proto spec]
 		native/code: natives/table/index
 		native
 	]
