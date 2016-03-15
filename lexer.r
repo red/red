@@ -418,6 +418,7 @@ lexer: context [
 			| escaped-rule    (stack/push value)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| binary-rule	  (stack/push load-binary s e base)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| word-rule		  (stack/push to type value)
@@ -430,7 +431,6 @@ lexer: context [
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| binary-rule	  (stack/push load-binary s e base)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 		]

@@ -510,7 +510,7 @@ system/lexer: context [
 			(base: 16)
 		]
 
-		base-64-rule: [						;@@ correct me!
+		base-64-rule: [
 			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
 			(base: 64)
 		]
@@ -744,6 +744,7 @@ system/lexer: context [
 				| escaped-rule		(store stack value)
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
+				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
 				| word-rule
@@ -755,7 +756,6 @@ system/lexer: context [
 				| block-rule
 				| paren-rule
 				| string-rule		(store stack do make-string)
-				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| map-rule
 				| issue-rule
 			]
