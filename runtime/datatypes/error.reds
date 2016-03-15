@@ -119,9 +119,10 @@ error: context [
 		obj		[red-object!]
 		return: [red-block!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			type  [integer!]
+			value  [red-value!]
+			tail   [red-value!]
+			buffer [red-string!]
+			type   [integer!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -132,9 +133,10 @@ error: context [
 				type = TYPE_WORD
 				type = TYPE_GET_WORD
 			][
-				copy-cell 
-					object/rs-select obj value
-					value
+				buffer: string/rs-make-at stack/push* 16
+				actions/mold object/rs-select obj value buffer no no yes null 0 0
+				copy-cell as red-value! buffer value
+				stack/pop 1
 			]
 			value: value + 1
 		]
