@@ -502,12 +502,12 @@ object: context [
 		cycles/push obj/ctx
 
 		while [sym < s-tail][
-			if indent? [part: do-indent buffer tabs part]
-			
 			w: as red-word! sym
 			id: symbol/resolve w/symbol
 			
 			if any [all [id <> evt1 id <> evt2] all?][
+				if indent? [part: do-indent buffer tabs part]
+				
 				part: word/mold as red-word! sym buffer no no flat? arg part tabs
 				string/concatenate-literal buffer ": "
 				part: part - 2
