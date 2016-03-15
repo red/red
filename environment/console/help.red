@@ -46,11 +46,11 @@ Other useful functions:
 			type: get :word
 			found?: no
 			foreach w sort words-of system/words [
-				if type = type? get w [
+				if type = type? get/any w [
 					found?: yes
 					case [
-						any [function? get w native? get w action? get w op? get w routine? get w][
-							prin [tab w]
+						any-function? get/any w [
+							prin [tab pad form w 15]
 							spec: spec-of get w
 
 							either any [
@@ -62,11 +62,11 @@ Other useful functions:
 								prin lf
 							]
 						]
-						datatype? get w [
-							print [tab :w]
+						datatype? get/any w [
+							print [tab pad form :w 15]
 						]
 						'else [
-							print [tab :w "^-: " mold get w]
+							print [tab pad form :w 15 ": " mold get/any w]
 						]
 					]
 				]
@@ -76,7 +76,7 @@ Other useful functions:
 		]
 		string? :word [
 			foreach w sort words-of system/words [
-				if any [function? get w native? get w action? get w op? get w routine? get w][
+				if any-function? get/any :w [
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
 						prin [tab w]
@@ -118,7 +118,7 @@ Other useful functions:
 		all [
 			any [word? func-name path? func-name]
 			fun: get func-name
-			any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
+			any-function? :fun
 		][
 			prin ["^/USAGE:^/" tab ]
 			unless op? :fun [prin func-name prin " "]
@@ -126,7 +126,11 @@ Other useful functions:
 			parse spec-of :fun [
 				start: [									;-- 1st pass
 					any [block! | string! ]
-					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin mold w])]
+					opt [
+						set w [word! | lit-word! | get-word!] (
+							either op? :fun [prin [mold w func-name]][prin mold w]
+						)
+					]
 					any [
 						/local to end
 						| set w [word! | lit-word! | get-word!] (prin " " prin w)
@@ -137,7 +141,13 @@ Other useful functions:
 
 				:start										;-- 2nd pass
 				opt [set attributes block! (prin ["^/^/ATTRIBUTES:^/" tab mold attributes])]
-				opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot lf tab func-name "is of type:" mold type? :fun])]
+				opt [set info string! (
+					print [
+						"^/^/DESCRIPTION:^/" tab
+						append form info dot lf tab
+						func-name "is of type:" mold type? :fun
+					]
+				)]
 
 				(print "^/ARGUMENTS:")
 				any [argument-rule]; (prin lf)]
@@ -211,8 +221,8 @@ a-an: function [s [string!]][
 ]
 
 what: function ["Lists all functions"][
-	foreach w words-of system/words [
-		if any [function? get w native? get w action? get w op? get w routine? get w][
+	foreach w sort words-of system/words [
+		if any-function? get/any :w [
 			prin pad form w 15
 			spec: spec-of get w
 			
@@ -233,10 +243,10 @@ source: function [
 	"Print the source of a function"
 	'func-name [any-word!] "The name of the function"
 ][
-	print either function? get func-name [
+	print either function? get/any func-name [
 		[append mold func-name #":" mold get func-name]
 	][
-		type: mold type? get func-name
+		type: mold type? get/any func-name
 		["Sorry," func-name "is" a-an type type "so no source is available"]
 	]
 ]
