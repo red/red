@@ -2008,6 +2008,31 @@ natives: context [
 			]
 		]
 	]
+	
+	unset*: func [
+		check?	[logic!]
+		/local
+			blk  [red-block!]
+			word [red-word!]
+			tail [red-word!]
+	][
+		#typecheck [unset]
+		word: as red-word! stack/arguments
+		
+		either TYPE_OF(word) = TYPE_WORD [
+			_context/set word unset-value
+		][
+			blk: as red-block! word
+			word: as red-word! block/rs-head blk
+			tail: as red-word! block/rs-tail blk
+			
+			while [word < tail][
+				_context/set word unset-value
+				word: word + 1
+			]
+		]
+		unset/push-last
+	]
 
 	;--- Natives helper functions ---
 
@@ -2403,6 +2428,7 @@ natives: context [
 			:wait*
 			:request-dir*
 			:checksum*
+			:unset*
 		]
 	]
 

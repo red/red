@@ -743,16 +743,23 @@ wait: make native! [[
 ]
 
 checksum: make native! [[
-		"Computes a checksum, CRC, or hash."
-		data	[binary! string! file!]
-		/tcp "Returns an Internet TCP 16-bit checksum"
-		/hash "Returns a hash value"
+		"Computes a checksum, CRC, or hash"
+		data 	[binary! string! file!]
+		/tcp 				"Returns an Internet TCP 16-bit checksum"
+		/hash 				"Returns a hash value"
 			size [integer!] "Size of the hash table"
-		/method "Method to use"
-			word [word!] "Methods: SHA1 MD5 CRC32"
-		/key "Returns keyed HMAC value"
+		/method				"Method to use"
+			word [word!]	"Methods: SHA1 MD5 CRC32"
+		/key				"Returns keyed HMAC value"
 			key-value [any-string!] "Key to use"
-		return: [integer!]
+		return: [integer! binary!]
 	]
 	#get-definition NAT_CHECKSUM
+]
+
+unset: make native! [[
+		"Unsets the value of a word in its current context"
+		word [word! block!]  "Word or block of words"
+	]
+	#get-definition NAT_UNSET
 ]
