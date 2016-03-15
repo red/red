@@ -510,6 +510,7 @@ bitset: context [
 			size [integer!]
 			int	 [red-integer!]
 			blk	 [red-block!]
+			bin  [red-binary!]
 			w	 [red-word!]
 			s	 [series!]
 			op	 [integer!]
@@ -521,44 +522,55 @@ bitset: context [
 		bits: as red-bitset! stack/push*
 		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
 
-		either TYPE_OF(spec) = TYPE_INTEGER [
-			int: as red-integer! spec
-			size: int/value
-			if size <= 0 [
-				fire [
-					TO_ERROR(script out-of-range)
-					int
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				size: int/value
+				if size <= 0 [
+					fire [
+						TO_ERROR(script out-of-range)
+						int
+					]
 				]
-			]
-			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
-			size: size >> 3								;-- convert to bytes
-			bits/node: alloc-bytes-filled size null-byte
-			
-			s: GET_BUFFER(bits)
-			s/tail: as cell! ((as byte-ptr! s/offset) + size)
-		][
-			not?: no
-			
-			if TYPE_OF(spec) = TYPE_BLOCK [
-				blk: as red-block! spec
-				w: as red-word! block/rs-head blk
-				not?: all [
-					TYPE_OF(w) = TYPE_WORD
-					w/symbol = words/not*
-				]
-				if not? [blk/head: blk/head + 1]		;-- skip NOT
-			]
-			byte: either not? [#"^(FF)"][null-byte]
-			op: either not? [OP_CLEAR][OP_SET]
-			
-			size: process spec null OP_MAX no			;-- 1st pass: determine size
-			bits/node: alloc-bytes-filled size byte
-			if not? [
+				size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
+				size: size >> 3								;-- convert to bytes
+				bits/node: alloc-bytes-filled size null-byte
+				
 				s: GET_BUFFER(bits)
-				s/flags: s/flags or flag-bitset-not
+				s/tail: as cell! ((as byte-ptr! s/offset) + size)
 			]
-			process spec bits op no						;-- 2nd pass: set bits
-			if not? [blk/head: blk/head - 1]			;-- restore series argument head		
+			TYPE_BINARY [
+				bin: as red-binary! spec
+				size: binary/rs-length? bin
+				bits/node: alloc-bytes size
+				s: GET_BUFFER(bits)
+				s/tail: as cell! ((as byte-ptr! s/offset) + size)
+				copy-memory as byte-ptr! s/offset binary/rs-head bin size
+			]
+			default [
+				not?: no
+				
+				if TYPE_OF(spec) = TYPE_BLOCK [
+					blk: as red-block! spec
+					w: as red-word! block/rs-head blk
+					not?: all [
+						TYPE_OF(w) = TYPE_WORD
+						w/symbol = words/not*
+					]
+					if not? [blk/head: blk/head + 1]		;-- skip NOT
+				]
+				byte: either not? [#"^(FF)"][null-byte]
+				op: either not? [OP_CLEAR][OP_SET]
+				
+				size: process spec null OP_MAX no			;-- 1st pass: determine size
+				bits/node: alloc-bytes-filled size byte
+				if not? [
+					s: GET_BUFFER(bits)
+					s/flags: s/flags or flag-bitset-not
+				]
+				process spec bits op no						;-- 2nd pass: set bits
+				if not? [blk/head: blk/head - 1]			;-- restore series argument head
+			]
 		]
 		bits
 	]
