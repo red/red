@@ -26,6 +26,8 @@ Red [
 #include %environment/codecs/bmp.red
 #include %environment/codecs/gif.red
 
+#register-intrinsics
+
 extract-boot-args
 
 ;-- temporary code --

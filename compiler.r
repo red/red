@@ -3816,6 +3816,13 @@ red: context [
 				comp-expression
 				true
 			]
+			#register-intrinsics [						;-- internal boot-level directive
+				if booting? [
+					pc: next pc
+					make-keywords						;-- register intrinsics functions
+				]
+				booting?
+			]
 		]
 	]
 	
@@ -4079,7 +4086,6 @@ red: context [
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
-		make-keywords									;-- register intrinsics functions
 		booting?: no
 		
 		foreach module needed [
