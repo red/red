@@ -2777,7 +2777,7 @@ red: context [
 		emit [stack/pop 1]
 	]
 	
-	comp-set: has [name call case? only? some?][
+	comp-set: has [name call any? case? only? some?][
 		either lit-word? pc/1 [
 			name: to word! pc/1
 			either local-bound? pc/1 [
@@ -2795,18 +2795,18 @@ red: context [
 				]
 			]
 			call: pc/-1
-			foreach [flag opt][case? case only? only some? some][
+			foreach [flag opt][any? any case? case only? only some? some][
 				set flag pick [0 -1] to logic! all [path? call find call opt]
 			]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
-			emit-native/with 'set reduce [-1 case? only? some?]
+			emit-native/with 'set reduce [any? case? only? some?]
 			emit-close-frame
 		]
 	]
 	
-	comp-get: has [symbol original call case?][
+	comp-get: has [symbol original call any? case?][
 		either lit-word? original: pc/1 [
 			add-symbol symbol: to word! original
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
@@ -2818,9 +2818,10 @@ red: context [
 		][
 			call: pc/-1
 			case?: to logic! all [path? call find call 'case]
+			any?:  to logic! all [path? call find call 'any]
 			emit-open-frame 'get
 			comp-substitute-expression
-			emit-native/with 'get reduce [-1 pick [0 -1] case?]
+			emit-native/with 'get reduce [pick [0 -1] any? pick [0 -1] case?]
 			emit-close-frame
 		]
 	]
