@@ -2020,6 +2020,10 @@ system-dialect: make-profilable context [
 						reduce [not invert?]
 					][expr] 
 				]
+				set-word? expr [
+					pc: find/reverse pc set-word!
+					throw-error "assignment not supported in conditional expression"
+				]
 				'else [expr]
 			]
 		]
