@@ -13,7 +13,7 @@ Red [
 #(
 	window: [
 		default-actor: on-down
-		template: [type: 'window]
+		template: [type: 'window size: 100x100]
 	]
 	base: [
 		default-actor: on-down
