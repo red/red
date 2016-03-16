@@ -82,3 +82,28 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 		fire [TO_ERROR(access cannot-open) dir]
 	]
 ]
+
+as-color: routine [
+	r [integer!]
+	g [integer!]
+	b [integer!]
+	/local
+		arr1 [integer!]
+][
+	arr1: (b << 16) or (g << 8) or r
+	stack/set-last as red-value! tuple/push 3 arr1 0 0
+]
+
+as-ipv4: routine [
+	a [integer!]
+	b [integer!]
+	c [integer!]
+	d [integer!]
+	/local
+		arr1 [integer!]
+][
+	arr1: (d << 24) or (c << 16) or (b << 8) or a
+	stack/set-last as red-value! tuple/push 4 arr1 0 0
+]
+
+as-rgba: :as-ipv4
