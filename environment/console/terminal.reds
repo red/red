@@ -496,7 +496,7 @@ terminal: context [
 	][
 		input: vt/in
 		out: vt/out
-		len: either vt/edit-pos = out/last [string/rs-abs-length? input][0]
+		len: string/rs-abs-length? input
 
 		select?: delete-selection vt
 		head: vt/cursor
@@ -1060,6 +1060,7 @@ terminal: context [
 	][
 		out: vt/out
 		if all [
+			vt/edit-pos = out/last
 			any [
 				vt/s-head = out/last
 				out/s-tail = out/last
