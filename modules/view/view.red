@@ -661,6 +661,7 @@ center-face: function [
 	face [object!]		 "Face to center"
 	/with				 "Provide a reference face for centering instead of parent face"
 		parent [object!] "Reference face"
+	return: [object!]	 "Returns the centered face"
 ][
 	unless parent [
 		parent: either face/type = 'window [
@@ -674,6 +675,7 @@ center-face: function [
 	][
 		print "CENTER-FACE: face has no parent!"		;-- temporary check
 	]
+	face
 ]
 
 dump-face: function [
