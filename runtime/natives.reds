@@ -1274,7 +1274,7 @@ natives: context [
 			p: p + unit
 			if all [
 				cp = as-integer #"%"
-				p + (unit << 1) < tail					;-- must be %xx
+				p + unit < tail							;-- must be %xx
 			][
 				p: string/decode-utf8-hex p unit :cp false
 			]
