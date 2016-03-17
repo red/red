@@ -107,7 +107,7 @@ system/view/VID: context [
 		]
 	]
 	
-	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] return: [block!]][
+	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] css [block!] return: [block!]][
 		set opts none
 		opt?: yes
 		divides: none
@@ -157,14 +157,14 @@ system/view/VID: context [
 						]
 						block!	 [
 							switch/default face/type [
-								panel	  [layout/parent value face divides]
-								group-box [layout/parent value face divides]
+								panel	  [layout/parent/styles value face divides css]
+								group-box [layout/parent/styles value face divides css]
 								tab-panel [
 									face/pane: make block! (length? value) / 2
 									opts/data: extract value 2
 									max-sz: 0x0
 									foreach p extract next value 2 [
-										layout/parent reduce ['panel copy p] face divides
+										layout/parent/styles reduce ['panel copy p] face divides css
 										p: last face/pane
 										if p/size/x > max-sz/x [max-sz/x: p/size/x]
 										if p/size/y > max-sz/y [max-sz/y: p/size/y]
@@ -223,11 +223,13 @@ system/view/VID: context [
 		/parent
 			panel	  [object!]
 			divides   [integer! none!]
+		/styles					"Use an existing styles list"
+			css		  [block!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
 	][
 		background!:  make typeset! [image! file! tuple! word!]
 		list:		  make block! 4						;-- panel's pane block
-		local-styles: make block! 2						;-- panel-local styles definitions
+		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
 		size:		  none								;-- user-set panel's size
@@ -248,7 +250,7 @@ system/view/VID: context [
 			max-sz: 0
 		]
 		
-		unless panel [panel: make face! styles/window/template]
+		unless panel [panel: make face! system/view/VID/styles/window/template] ;-- absolute path to avoid clashing with /styles
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -292,21 +294,25 @@ system/view/VID: context [
 					]
 				]
 				unless style: any [
-					select styles value
 					select local-styles value
+					select system/view/VID/styles value
 				][
 					throw-error spec
 				]
 				face: make face! copy/deep style/template
 				clear reactors
-				spec: fetch-options face opts style spec
+				spec: fetch-options face opts style spec local-styles
 				
 				either styling? [
+					if same? css local-styles [local-styles: copy css]
+					name: to word! form name
 					value: copy style
 					parse value/template: body-of face [
 						some [remove [set-word! [none! | function!]] | skip]
 					]
-					reduce/into [to word! form name value] tail local-styles
+					either pos: find local-styles name [pos/2: value][ 
+						reduce/into [name value] tail local-styles
+					]
 					styling?: off
 				][
 					;-- update cursor position --
