@@ -41,10 +41,12 @@ system/view/VID: context [
 			saved: face/text
 			min-sz: 0x0
 			foreach txt data [
-				face/text: txt
-				size: size-text face
-				if size/x > min-sz/x [min-sz/x: size/x]
-				if size/y > min-sz/y [min-sz/y: size/y]
+				if string? txt [
+					face/text: txt
+					size: size-text face
+					if size/x > min-sz/x [min-sz/x: size/x]
+					if size/y > min-sz/y [min-sz/y: size/y]
+				]
 			]
 			face/text: saved
 			if all [saved face/type <> 'drop-list][
@@ -85,7 +87,10 @@ system/view/VID: context [
 	]
 	
 	fetch-argument: function [expected [datatype! typeset!] spec [block!]][
-		either expected = type: type? value: spec/1 [
+		either any [
+			expected = type: type? value: spec/1
+			all [typeset? expected find expected type]
+		][
 			value
 		][
 			if all [
