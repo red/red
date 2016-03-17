@@ -46,13 +46,13 @@ system/view/VID: context [
 				if size/x > min-sz/x [min-sz/x: size/x]
 				if size/y > min-sz/y [min-sz/y: size/y]
 			]
-			if face/type <> 'drop-list [
-				face/text: saved
+			face/text: saved
+			if all [saved face/type <> 'drop-list][
 				size: size-text face
 				if size/x > min-sz/x [min-sz/x: size/x]
 				if size/y > min-sz/y [min-sz/y: size/y]
 			]
-			min-sz
+			min-sz + 24x0								;@@ hardcoded offset for scrollbar
 		][
 			size-text face
 		]
@@ -188,7 +188,7 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [not opts/size opts/text min-size: calc-size face][
+		if all [not opts/size any [opts/text opts/data] min-size: calc-size face][
 			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
 			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
 		]

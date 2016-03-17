@@ -105,10 +105,15 @@ update-list-hbar: func [
 	/local
 		csize [tagSIZE]
 		dc	  [handle!]
+		hFont [handle!]
+		saved [handle!]
 ][
 	csize: declare tagSIZE
 	dc: GetDC hWnd
+	hFont: SendMessage hWnd WM_GETFONT 0 0
+	if hFont <> null [saved: SelectObject dc hFont]
 	GetTextExtentPoint32 dc str len csize
+	if hFont <> null [SelectObject dc saved]
 	ReleaseDC dc
 	SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
 ]
