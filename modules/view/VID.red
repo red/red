@@ -106,6 +106,7 @@ system/view/VID: context [
 		set opts none
 		opt?: yes
 		divides: none
+		obj-spec!: make typeset! [block! object!]
 		
 		;-- process style options --
 		until [
@@ -117,8 +118,8 @@ system/view/VID: context [
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
 				| 'data		  (opts/data: fetch-value spec: next spec)
 				| 'draw		  (opts/draw: fetch-argument block! spec: next spec)
-				| 'font		  (opts/font: make any [opts/font font!] fetch-argument block! spec: next spec)
-				| 'para		  (opts/para: make any [opts/para para!] fetch-argument block! spec: next spec)
+				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec: next spec)
+				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec: next spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
@@ -187,7 +188,7 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [not face/size opts/text min-size: calc-size face][
+		if all [not opts/size opts/text min-size: calc-size face][
 			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
 			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
 		]
