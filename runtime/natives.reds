@@ -1669,7 +1669,7 @@ natives: context [
 			id	   [integer!]
 			result [integer!]
 	][
-		#typecheck try
+		#typecheck [try _all]
 		arg: stack/arguments
 		system/thrown: 0								;@@ To be removed
 		cframe: stack/get-ctop							;-- save the current call frame pointer
@@ -1922,14 +1922,14 @@ natives: context [
 	wait*: func [
 		check?	[logic!]
 		all?	[integer!]
-		only?	[integer!]
+		;only?	[integer!]
 		/local
 			val		[red-float!]
 			int		[red-integer!]
 			time	[integer!]
 			ftime	[float!]
 	][
-		#typecheck [wait all? only?]
+		#typecheck [wait all?] ;only?]
 		val: as red-float! stack/arguments
 		switch TYPE_OF(val) [
 			TYPE_INTEGER [
