@@ -491,7 +491,7 @@ to-red-file: func [
 	dst
 ]
 
-dir?: func [file [file!]][#"/" = last file]
+dir?: func [file [file! url!]][#"/" = last file]
 
 what-dir: func [/local path][
 	path: to-red-file get-current-dir
