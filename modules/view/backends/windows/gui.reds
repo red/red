@@ -726,7 +726,7 @@ OS-make-view: func [
 		img		  [red-image!]
 		menu	  [red-block!]
 		show?	  [red-logic!]
-		open?	  [red-logic!]
+		enable?	  [red-logic!]
 		selected  [red-integer!]
 		para	  [red-object!]
 		flags	  [integer!]
@@ -755,7 +755,7 @@ OS-make-view: func [
 	offset:   as red-pair!		values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
-	open?:	  as red-logic!		values + FACE_OBJ_ENABLE?
+	enable?:  as red-logic!		values + FACE_OBJ_ENABLE?
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU
@@ -773,6 +773,10 @@ OS-make-view: func [
 
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
 	if para? [flags: flags or get-para-flags sym para]
+	
+	if all [TYPE_OF(enable?) = TYPE_LOGIC not enable?/value][
+		flags: flags or WS_DISABLED
+	]
 
 	case [
 		sym = button [
@@ -1119,6 +1123,16 @@ change-text: func [
 	]
 ]
 
+change-enabled: func [
+	hWnd   [handle!]
+	values [red-value!]
+	/local
+		bool [red-logic!]
+][
+	bool: as red-logic! values + FACE_OBJ_ENABLE?
+	EnableWindow hWnd bool/value
+]
+
 change-visible: func [
 	hWnd  [integer!]
 	show? [logic!]
@@ -1422,8 +1436,7 @@ OS-update-view: func [
 		change-data	as handle! hWnd values
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
-		bool: as red-logic! values + FACE_OBJ_ENABLE?
-		EnableWindow as handle! hWnd bool/value
+		change-enabled as handle! hWnd values
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?
