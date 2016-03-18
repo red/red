@@ -134,6 +134,7 @@ system/view/VID: context [
 				| 'loose	  (value: [drag-on: 'down] either block? opts/options [append opts/options value][opts/options: value])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
+				| 'disabled	  (opts/enable?: no)
 				] to end
 			]
 			unless match? [
@@ -240,8 +241,8 @@ system/view/VID: context [
 		cursor:	origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
-			type: offset: size: text: color: visible?: image: font: flags: options: para: data:
-			extra: actors: draw: none
+			type: offset: size: text: color: enable?: visible?: image: font: flags:
+			options: para: data: extra: actors: draw: none
 		]
 		
 		reset: [
