@@ -186,6 +186,7 @@ Red/System [
 #define WS_MINIMIZE			20000000h
 #define WS_POPUP		 	80000000h
 #define WS_EX_TOOLWINDOW	00000080h
+#define WS_DISABLED         08000000h
 
 #define SIF_RANGE			0001h
 #define SIF_PAGE			0002h
