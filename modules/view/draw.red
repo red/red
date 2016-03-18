@@ -232,7 +232,7 @@ Red/System [
 									closed?: closed = symbol/resolve word/symbol
 									cmd: cmd - 1
 								]
-								if start + 2 > cmd [throw-draw-error cmds cmd + 1 catch?]
+								if start + 1 > cmd [throw-draw-error cmds cmd + 1 catch?]
 								OS-draw-spline DC as red-pair! start as red-pair! cmd closed?
 							]
 							sym = line-join	[
