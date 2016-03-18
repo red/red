@@ -370,6 +370,8 @@ window-border-info?: func [
 	win:	declare RECT_STRUCT	
 
 	GetClientRect handle client
+	if zero? client/right [exit]
+
 	GetWindowRect handle win
 	if x <> null [
 		pt: screen-to-client handle win/left win/top

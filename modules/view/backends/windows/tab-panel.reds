@@ -247,6 +247,7 @@ set-tab: func [
 		obj	   [red-object!]
 		hWnd   [handle!]
 		len	   [integer!]
+		bool   [red-logic!]
 ][
 	pane: as red-block! facets + FACE_OBJ_PANE
 
@@ -258,6 +259,8 @@ set-tab: func [
 		if idx <= len [
 			obj: as red-object! panels + idx
 			if TYPE_OF(obj) = TYPE_OBJECT [
+				bool: as red-logic! get-node-facet obj/ctx FACE_OBJ_VISIBLE?
+				bool/value: true
 				hWnd: get-face-handle obj
 				show-tab hWnd SW_SHOW
 				BringWindowToTop hWnd
@@ -271,6 +274,8 @@ set-tab: func [
 		][
 			obj: as red-object! panels + old/value - 1
 			if TYPE_OF(obj) = TYPE_OBJECT [
+				bool: as red-logic! get-node-facet obj/ctx FACE_OBJ_VISIBLE?
+				bool/value: false
 				show-tab get-face-handle obj SW_HIDE
 			]
 		]
