@@ -51,5 +51,23 @@ view [
 	drop-list data ["one" 4 "two" 5 "three" 6 "four" 7] 
 	drop-down data ["one" "two" "three" "four"]
 	
+	return
+	
+	style but1:  button
+	style txt1:  text 30
+	style base1: base 10x10
+	
+	but1 "1" txt1 "1" base1 "1"
+	return
+	group-box [
+		style but1:  but1 font-color red
+		style txt1:  txt1 red center
+		style base1: base1 red
+		
+		but1 "1" txt1 "1" base1 "1"
+	] return
+	but1 "1" txt1 "1" base1 "1"
+	
+	
 	do [append list/data "five"]
 ]
