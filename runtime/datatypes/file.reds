@@ -266,6 +266,7 @@ file: context [
 		seek	[red-value!]
 		binary? [logic!]
 		lines?	[logic!]
+		info?	[logic!]
 		as-arg	[red-value!]
 		return:	[red-value!]
 	][

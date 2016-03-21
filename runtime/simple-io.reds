@@ -834,25 +834,25 @@ simple-io: context [
 		/local
 			len  [integer!]
 			pos  [integer!]
-			cp1  [byte!]
-			cp2  [byte!]
-			cp3  [byte!]
+			cp1  [integer!]
+			cp2  [integer!]
+			cp3  [integer!]
 	][
 		len: string/rs-length? as red-string! filename
 		if zero? len [return false]
 		pos: filename/head + len - 1
-		cp1: as byte! string/rs-abs-at as red-string! filename pos
-		cp2: as byte! either len > 1 [string/rs-abs-at as red-string! filename pos - 1][0]
-		cp3: as byte! either len > 2 [string/rs-abs-at as red-string! filename pos - 2][0]
+		cp1: string/rs-abs-at as red-string! filename pos
+		cp2: either len > 1 [string/rs-abs-at as red-string! filename pos - 1][0]
+		cp3: either len > 2 [string/rs-abs-at as red-string! filename pos - 2][0]
 
 		either any [
-			cp1 = #"/"
-			cp1 = #"\"
+			cp1 = 47		;-- #"/"
+			cp1 = 92 		;-- #"\"
 			all [
-				cp1 = #"."
+				cp1 = 46	;-- #"."
 				any [
-					len = 1 cp2 = #"/" cp2 = #"\"
-					all [cp2 = #"." any [cp3 = #"/" cp3 = #"\" len = 2]]
+					len = 1 cp2 = 47 cp2 = 92
+					all [cp2 = 46 any [cp3 = 47 cp3 = 92 len = 2]]
 				]
 			]
 		][true][false]
