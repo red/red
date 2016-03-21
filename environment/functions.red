@@ -501,8 +501,9 @@ what-dir: func [/local path][
 
 change-dir: func [
 	"Changes the active directory path"
-	dir [file!]	"New active directory of relative path to the new one"
+	:dir [file! word! path!] "New active directory of relative path to the new one"
 ][
+	unless file? dir [dir: to file! mold dir]
 	if slash <> first dir [dir: clean-path append copy system/options/path dir]
 	unless dir? dir [dir: append copy dir slash]
 	system/options/path: dir
