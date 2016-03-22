@@ -493,30 +493,44 @@ to-red-file: func [
 
 dir?: func [file [file! url!]][#"/" = last file]
 
+normalize-dir: function [
+	dir [file! word! path!]
+][
+	unless file? dir [dir: to file! mold dir]
+	if slash <> first dir [dir: clean-path append copy system/options/path dir]
+	unless dir? dir [dir: append copy dir slash]
+	dir
+]
+
 what-dir: func [/local path][
 	path: to-red-file get-current-dir
 	unless dir? path [append path #"/"]
 	path
 ]
 
-change-dir: func [
+change-dir: function [
 	"Changes the active directory path"
-	dir [file!]	"New active directory of relative path to the new one"
+	:dir [file! word! path!] "New active directory of relative path to the new one"
 ][
-	if slash <> first dir [dir: clean-path append copy system/options/path dir]
-	system/options/path: dir
+	system/options/path: normalize-dir dir
 ]
 
 list-dir: function [
-	"Displays a list of files and directories from current active directory"
-	/col				"Forces the display in a given number of columns"
-		n [integer!]	"Number of columns"
+	"Displays a list of files and directories from given folder or current one"
+	'dir [any-type!] "Folder to list"
+	/col					 "Forces the display in a given number of columns"
+		n [integer!]		 "Number of columns"
 ][
-	list: read %.
+	unless value? 'dir [dir: %.]
+	
+	unless find [file! word! path!] type?/word :dir [
+		cause-error 'script 'expect-arg reduce ['list-dir type? :dir 'dir]
+	]
+	list: read normalize-dir dir
 	max-sz: either n [
 		system/console/limit / n - n					;-- account for n extra spaces
 	][
-		n: max 1 system/console/limit / 22					;-- account for n extra spaces
+		n: max 1 system/console/limit / 22				;-- account for n extra spaces
 		22 - n
 	]
 
@@ -526,7 +540,7 @@ list-dir: function [
 				name: append copy/part name max-sz - 4 "..."
 			]
 			prin tab
-			prin pad mold name max-sz
+			prin pad form name max-sz
 			prin " "
 			if tail? list: next list [exit]
 		]

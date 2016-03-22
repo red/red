@@ -215,7 +215,7 @@ system/console: context [
 
 ;-- Console-oriented function definitions
 
-ll:   does [list-dir/col 1]
+ll:   func ['dir [any-type!]][list-dir/col :dir 1]
 pwd:  does [prin mold system/options/path]
 halt: does [throw/name 'halt-request 'console]
 
