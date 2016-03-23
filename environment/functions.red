@@ -512,14 +512,15 @@ change-dir: function [
 	"Changes the active directory path"
 	:dir [file! word! path!] "New active directory of relative path to the new one"
 ][
-	system/options/path: normalize-dir dir
+	unless exists? dir: normalize-dir dir [cause-error 'access 'cannot-open [dir]]
+	system/options/path: dir
 ]
 
 list-dir: function [
 	"Displays a list of files and directories from given folder or current one"
 	'dir [any-type!] "Folder to list"
-	/col					 "Forces the display in a given number of columns"
-		n [integer!]		 "Number of columns"
+	/col			 "Forces the display in a given number of columns"
+		n [integer!] "Number of columns"
 ][
 	unless value? 'dir [dir: %.]
 	
