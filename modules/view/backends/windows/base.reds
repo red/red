@@ -34,25 +34,26 @@ render-base: func [
 	GetClientRect hWnd rc
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipCreateFromHDC hDC :graphic
-		GdipDrawImageRectI
+		if zero? GdipDrawImageRectI
 			graphic
 			as-integer img/node
 			0 0
-			rc/right - rc/left rc/bottom - rc/top
+			rc/right - rc/left rc/bottom - rc/top [res: true]
 		GdipDeleteGraphics graphic
 	]
 
 	type: symbol/resolve w/symbol
 	if all [group-box <> type window <> type] [
-		render-text values hDC rc
+		res: render-text values hDC rc
 	]
 	res
 ]
 
 render-text: func [
-	values [red-value!]
-	hDC	   [handle!]
-	rc	   [RECT_STRUCT]
+	values	[red-value!]
+	hDC		[handle!]
+	rc		[RECT_STRUCT]
+	return: [logic!]
 	/local
 		text	[red-string!]
 		font	[red-object!]
@@ -63,7 +64,9 @@ render-text: func [
 		hFont	[handle!]
 		old		[integer!]
 		flags	[integer!]
+		res		[logic!]
 ][
+	res: false
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
@@ -96,9 +99,10 @@ render-text: func [
 			flags or DT_CENTER or DT_VCENTER
 		]
 		old: SetBkMode hDC 1
-		DrawText hDC unicode/to-utf16 text -1 rc flags
+		res: 0 <> DrawText hDC unicode/to-utf16 text -1 rc flags
 		SetBkMode hDC old
 	]
+	res
 ]
 
 clip-layered-window: func [
