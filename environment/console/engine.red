@@ -190,7 +190,7 @@ system/console: context [
 				"Type HELP for starting information." lf
 			]
 		]
-		forever [eval-command ask any [cue prompt]]
+		forever [eval-command ask any [cue do [prompt]]]
 	]
 
 	launch: function [][
