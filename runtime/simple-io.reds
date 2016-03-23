@@ -116,6 +116,10 @@ simple-io: context [
 
 		#import [
 			"kernel32.dll" stdcall [
+				GetFileAttributesW: "GetFileAttributesW" [
+					path		[c-string!]
+					return:		[integer!]
+				]
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
 					filename	[c-string!]
 					access		[integer!]
@@ -548,6 +552,11 @@ simple-io: context [
 
 		#import [
 			LIBC-file cdecl [
+				_access: "access" [
+					filename	[c-string!]
+					mode		[integer!]
+					return:		[integer!]
+				]
 				_open:	"open" [
 					filename	[c-string!]
 					flags		[integer!]
@@ -683,7 +692,21 @@ simple-io: context [
 			]
 		]
 	]
-	
+
+	file-exists?: func [
+		path	[c-string!]
+		return: [logic!]
+		/local
+			res  [integer!]
+	][
+		#either OS = 'Windows [
+			res: GetFileAttributesW path
+		][
+			res: _access path 0				;-- F_OK: 0
+		]
+		either res = -1 [false][true]
+	]
+
 	read-buffer: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
