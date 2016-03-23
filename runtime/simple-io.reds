@@ -696,15 +696,12 @@ simple-io: context [
 	file-exists?: func [
 		path	[c-string!]
 		return: [logic!]
-		/local
-			res  [integer!]
 	][
 		#either OS = 'Windows [
-			res: GetFileAttributesW path
+			-1 <> GetFileAttributesW path
 		][
-			res: _access path 0				;-- F_OK: 0
+			-1 <> _access path 0				;-- F_OK: 0
 		]
-		either res = -1 [false][true]
 	]
 
 	read-buffer: func [
