@@ -126,9 +126,11 @@ unicode: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			if all [convert? cp = as-integer lf][
-				buf/1: cr
-				buf: buf + 1
+			#if OS = 'Windows [
+				if all [convert? cp = as-integer lf][
+					buf/1: cr
+					buf: buf + 1
+				]
 			]
 			buf: buf + cp-to-utf8 cp buf
 			p: p + unit
