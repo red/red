@@ -357,8 +357,14 @@ system/view/VID: context [
 		either size [panel/size: size][
 			if pane-size <> 0x0 [panel/size: pane-size]
 		]
+		if image: panel/image [
+			x: image/size/x
+			y: image/size/y
+			if panel/size/x < x [panel/size/x: x]
+			if panel/size/y < y [panel/size/y: y]
+		]
 		
-		if options [set panel make object! user-opts]
+		if options [set/some panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
 		either only [list][panel]
