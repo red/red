@@ -175,7 +175,7 @@ zlib: context [
 		]
 		until [
 			bytes-read: gzread zfile buffer (CHUNK - 1)
-			_write-array (as handle! buffer) bytes-read 1 file
+			_write-array (as opaque! buffer) bytes-read 1 file
 			0 <> (gzeof zfile)
 		]
 		close-file file
@@ -211,7 +211,7 @@ zlib: context [
 			return Z_ERRNO
 		]
 		until [
-			bytes-read: read-array (as handle! buffer) 1 CHUNK file
+			bytes-read: read-array (as opaque! buffer) 1 CHUNK file
 			gzwrite zfile buffer bytes-read
 			file-tail? file
 		]
