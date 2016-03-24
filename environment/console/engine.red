@@ -190,7 +190,13 @@ system/console: context [
 				"Type HELP for starting information." lf
 			]
 		]
-		forever [eval-command ask any [cue do [prompt]]]
+		forever [
+			eval-command ask any [
+				cue
+				all [string? p: do [prompt] p]
+				form p
+			]
+		]
 	]
 
 	launch: function [][
