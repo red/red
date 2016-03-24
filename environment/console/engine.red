@@ -193,8 +193,8 @@ system/console: context [
 		forever [
 			eval-command ask any [
 				cue
-				all [string? p: do [prompt] p]
-				form p
+				all [string? set/any 'p do [prompt] :p]
+				form :p
 			]
 		]
 	]
