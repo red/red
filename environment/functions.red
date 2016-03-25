@@ -571,12 +571,25 @@ within?: func [
 	size	[pair!] "Size of area"
 	return: [logic!]
 ][
-	all [
+	make logic! all [
 		point/x >= offset/x
 		point/y >= offset/y
 		point/x < (offset/x + size/x)
 		point/y < (offset/y + size/y)
 	]
+]
+
+overlap?: function [
+	"Return TRUE if the two faces bounding boxes are overlapping"
+	A		[object!] "First face"
+	B		[object!] "Second face"
+	return: [logic!]  "TRUE if overlapping"
+][
+	A1: A/offset
+	B1: B/offset
+	A2: A1 + A/size
+	B2: B1 + B/size
+	make logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
 ]
 
 extract: function [
