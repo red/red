@@ -13,9 +13,8 @@ Red [
 system/lexer: context [
 
 	throw-error: function [spec [block!] /missing][
-		spec: reduce spec
 		src: back tail spec
-		src/1: mold/flat/part src/1 40
+		src/1: mold/flat/part get/any src/1 40
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
