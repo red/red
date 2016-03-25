@@ -183,7 +183,7 @@ system/console: context [
 		]
 	]
 
-	run: function [/no-banner][
+	run: function [/no-banner /local p][
 		unless no-banner [
 			print [
 				"--== Red" system/version "==--" lf
