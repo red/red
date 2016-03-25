@@ -46,7 +46,7 @@ Other useful functions:
 			type: get :word
 			found?: no
 			foreach w sort words-of system/words [
-				if type = type? get/any w [
+				if all [word? w type = type? get/any w][
 					found?: yes
 					case [
 						any-function? get/any w [
@@ -76,7 +76,7 @@ Other useful functions:
 		]
 		string? :word [
 			foreach w sort words-of system/words [
-				if any-function? get/any :w [
+				if all [word? w any-function? get/any :w][
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
 						prin [tab w]
@@ -222,7 +222,7 @@ a-an: function [s [string!]][
 
 what: function ["Lists all functions"][
 	foreach w sort words-of system/words [
-		if any-function? get/any :w [
+		if all [word? w any-function? get/any :w][
 			prin pad form w 15
 			spec: spec-of get w
 			
