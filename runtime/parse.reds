@@ -1275,7 +1275,9 @@ parser: context [
 						sym = words/pipe [				;-- |
 							if cmd = tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_pipe]]
 							cmd: tail
-							state: ST_POP_BLOCK
+							s: GET_BUFFER(rules)
+							value: s/tail - 1
+							state: either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 						]
 						sym = words/skip [				;-- SKIP
 							PARSE_CHECK_INPUT_EMPTY?
