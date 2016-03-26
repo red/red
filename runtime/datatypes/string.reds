@@ -1401,6 +1401,7 @@ string: context [
 			limit	[byte-ptr!]
 			part?	[logic!]
 			op		[integer!]
+			type	[integer!]
 			found?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
@@ -1422,6 +1423,7 @@ string: context [
 
 		step: 1
 		part?: no
+		type: TYPE_OF(str)
 
 		;-- Options processing --
 		
@@ -1442,7 +1444,7 @@ string: context [
 			][
 				str2: as red-string! part
 				unless all [
-					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					TYPE_OF(str2) = type				;-- handles ANY-STRING!
 					str2/node = str/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
@@ -1471,7 +1473,11 @@ string: context [
 			]
 		]
 
-		case?: either TYPE_OF(str) = TYPE_STRING [not case?][no]			;-- inverted case? meaning
+		case?: either any [ 							;-- inverted case? meaning
+			type = TYPE_STRING							;@@ use ANY_STRING?
+			type = TYPE_FILE
+			type = TYPE_URL
+		][not case?][no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
