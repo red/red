@@ -87,6 +87,7 @@ Cross-compilation targets:
 
     MSDOS        : Windows, x86, console (+ GUI) applications
     Windows      : Windows, x86, GUI applications
+    WindowsXP    : Windows, x86, GUI applications, no touch API
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv5, armhf (hard-float)
