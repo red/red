@@ -58,14 +58,16 @@ red-complete-path: func [
 
 red-complete-file: func [
 	str [string!]
-	/local file result path word f files
+	/local file result path word f files replace?
 ][
 	result: make block! 4
 	file: to file! next str
+	replace?: no
 
 	either word: find/last/tail str #"/" [
 		path: to file! copy/part next str word
 		unless exists? path [return result]
+		replace?: yes
 	][
 		path: %./
 		word: file
@@ -78,7 +80,7 @@ red-complete-file: func [
 		]
 	]
 	if 1 = length? result [
-		poke result 1 append copy/part str word result/1
+		poke result 1 append copy/part str either replace? [word][1] result/1
 	]
 	result
 ]
