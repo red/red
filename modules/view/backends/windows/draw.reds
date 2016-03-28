@@ -305,6 +305,7 @@ OS-draw-anti-alias: func [
 		GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
 		GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
 	][
+		GDI+?: no
 		if modes/on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
 		GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
 		GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
@@ -399,11 +400,11 @@ gdiplus-roundrect-path: func [
 	angle90: as float32! 90.0
 	GdipResetPath path
 	GdipAddPathArcI path x y diameter diameter as float32! 180.0 angle90
-	x: x + (width - diameter - 1)
+	x: x + (width - diameter)
 	GdipAddPathArcI path x y diameter diameter as float32! 270.0 angle90
-	y: y + (height - diameter - 1)
+	y: y + (height - diameter)
 	GdipAddPathArcI path x y diameter diameter as float32! 0.0 angle90
-	x: x - (width - diameter - 1)
+	x: x - (width - diameter)
 	GdipAddPathArcI path x y diameter diameter angle90 angle90
 	GdipClosePathFigure path
 ]
@@ -450,7 +451,7 @@ OS-draw-box: func [
 				rad
 				modes/brush?
 		][
-			RoundRect dc upper/x upper/y lower/x lower/y rad rad
+			RoundRect dc upper/x upper/y lower/x + 1 lower/y + 1 rad rad
 		]
 	][
 		either GDI+? [
@@ -460,18 +461,18 @@ OS-draw-box: func [
 					modes/gp-brush
 					upper/x
 					upper/y
-					lower/x - upper/x - 1
-					lower/y - upper/y - 1
+					lower/x - upper/x
+					lower/y - upper/y
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				modes/gp-pen
 				upper/x
 				upper/y
-				lower/x - upper/x - 1
-				lower/y - upper/y - 1
+				lower/x - upper/x
+				lower/y - upper/y
 		][
-			Rectangle dc upper/x upper/y lower/x lower/y
+			Rectangle dc upper/x upper/y lower/x + 1 lower/y + 1
 		]
 	]
 ]
@@ -755,8 +756,8 @@ OS-draw-arc: func [
 				GdipFillPieI
 					modes/graphics
 					modes/gp-brush
-					center/x - rad-x - 1
-					center/y - rad-y - 1
+					center/x - rad-x
+					center/y - rad-y
 					rad-x << 1
 					rad-y << 1
 					as float32! angle-begin
@@ -765,8 +766,8 @@ OS-draw-arc: func [
 			GdipDrawPieI
 				modes/graphics
 				modes/gp-pen
-				center/x - rad-x - 1
-				center/y - rad-y - 1
+				center/x - rad-x
+				center/y - rad-y
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
@@ -775,8 +776,8 @@ OS-draw-arc: func [
 			GdipDrawArcI
 				modes/graphics
 				modes/gp-pen
-				center/x - rad-x - 1
-				center/y - rad-y - 1
+				center/x - rad-x
+				center/y - rad-y
 				rad-x << 1
 				rad-y << 1
 				as float32! angle-begin
@@ -819,8 +820,8 @@ OS-draw-arc: func [
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				center/x + rad-x + 1
+				center/y + rad-y + 1
 				start-x
 				start-y
 				end-x
@@ -830,8 +831,8 @@ OS-draw-arc: func [
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x
-				center/y + rad-y
+				center/x + rad-x + 1
+				center/y + rad-y + 1
 				start-x
 				start-y
 				end-x
