@@ -45,6 +45,7 @@ context [
 			]
 			on-resizing: func [face [object!] event [event!]][
 				console/size: event/offset
+				unless system/view/auto-sync? [show face]
 			]
 		]
 		pane: reduce [console]
