@@ -120,6 +120,12 @@ Running the Red REPL
         red>> inc 123
         == 124
 
+  
+Notes:
+
+- On Windows, the REPL runs by default in GUI mode. To run it in the command line, invoke the red binary as `red --cli`.
+- Wine has some [issues](https://github.com/red/red/issues/1618) with the GUI-Console. Install the `Consolas` font to fix the problem.
+
 
 Running Red from the sources
 ------------------------
