@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-complete-from-path: func [
+red-complete-path: func [
 	str [string!]
 	/local s result word w1 ptr words first? sys-word w
 ][
@@ -56,6 +56,35 @@ complete-from-path: func [
 	result
 ]
 
+red-complete-file: func [
+	str [string!]
+	/local file result path word f files replace?
+][
+	result: make block! 4
+	file: to file! next str
+	replace?: no
+
+	either word: find/last/tail str #"/" [
+		path: to file! copy/part next str word
+		unless exists? path [return result]
+		replace?: yes
+	][
+		path: %./
+		word: file
+	]
+
+	files: read path
+	foreach f files [
+		if any [empty? word find/match f word] [
+			append result f
+		]
+	]
+	if 1 = length? result [
+		poke result 1 append copy/part str either replace? [word][1] result/1
+	]
+	result
+]
+
 default-input-completer: func [
 	str  [string!]
 	/local word ptr result sys-word delim? len insert? start end delimiters d w
@@ -74,18 +103,27 @@ default-input-completer: func [
 	either head? ptr [start: str][start: ptr delim?: yes]
 	word: copy/part start end
 	unless empty? word [
-		either all [
-			#"/" <> word/1
-			ptr: find word #"/"
-			#" " <> pick ptr -1
-		][
-			result: complete-from-path word
-		][
-			foreach w words-of system/words [
-				if value? w [
-					sys-word: mold w
-					if find/match sys-word word [
-						append result sys-word
+		case [
+			all [
+				#"%" = word/1
+				1 < length? word
+			][
+				result: red-complete-file word
+			]
+			all [
+				#"/" <> word/1
+				ptr: find word #"/"
+				#" " <> pick ptr -1
+			][
+				result: red-complete-path word
+			]
+			true [
+				foreach w words-of system/words [
+					if value? w [
+						sys-word: mold w
+						if find/match sys-word word [
+							append result sys-word
+						]
 					]
 				]
 			]

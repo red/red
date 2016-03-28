@@ -388,8 +388,25 @@ unless system/console [
 							refresh
 						]
 					]
-					KEY_CTRL_C
+					KEY_CTRL_K [
+						unless string/rs-tail? line [
+							string/remove-part line line/head string/rs-length? line
+							refresh
+						]
+					]
 					KEY_CTRL_D [
+						either string/rs-tail? line [
+							if zero? line/head [
+								string/rs-reset line
+								string/append-char GET_BUFFER(line) as-integer #"q"
+								exit
+							]
+						][
+							string/remove-char line line/head
+							refresh
+						]
+					]
+					KEY_CTRL_C [
 						string/rs-reset line
 						string/append-char GET_BUFFER(line) as-integer #"q"
 						exit

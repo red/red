@@ -324,7 +324,7 @@ index?: make action! [[
 ]
 
 insert: make action! [[
-		"Inserts value(s) at series index; returns series head"
+		"Inserts value(s) at series index; returns series past the insertion"
 		series	   [series! bitset! map!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
