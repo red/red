@@ -1,9 +1,12 @@
 
 Usage: red [options] [file]
 
-[file]: any Red or Red/System source file. If no file and no option is provided, the interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
+[file]: any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
 [options]:
+    --cli                          : Run the command-line REPL instead of the
+                                     graphical console.
+
     -c, --compile                  : Generate an executable in the working
                                      folder.
 

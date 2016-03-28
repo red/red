@@ -49,11 +49,14 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 
 **[file]**
 
-Any Red or Red/System source file. If no file and no option is provided, the REPL will be launched. If a file with no option is provided, the file will be simply run by the interpreter (*it is expected to be a Red script with no Red/System code*).
+Any Red or Red/System source file. If no file and no option is provided, the graphical console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (*it is expected to be a Red script with no Red/System code*).
 
 **[options]**
 
-    -c, --compile                  : Forces generation of an executable in 
+    --cli                          : Run the command-line REPL instead of the
+                                     graphical console.
+
+    -c, --compile                  : Forces generation of an executable in
                                      the working folder.
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
