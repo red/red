@@ -75,7 +75,10 @@ get-event-offset: func [
 		offset [red-pair!]
 		value  [integer!]
 		msg    [tagMSG]
+		pt	   [tagPOINT]
 		gi	   [GESTUREINFO]
+		x	   [integer!]
+		y	   [integer!]
 ][
 	case [
 		any [
@@ -90,9 +93,23 @@ get-event-offset: func [
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 			value: msg/lParam
-
-			offset/x: WIN32_LOWORD(value)
-			offset/y: WIN32_HIWORD(value)
+			
+			either evt/flags and EVT_FLAG_AWAY <> 0 [
+				msg: as tagMSG evt/msg
+				pt: declare tagPOINT
+				pt/x: WIN32_LOWORD(value)
+				pt/y: WIN32_HIWORD(value)
+				ClientToScreen get-child-from-xy msg/hWnd pt/x pt/y pt
+				x: pt/x
+				y: pt/y
+				pt: get-window-pos msg/hWnd
+				ClientToScreen msg/hWnd pt
+				offset/x: x - pt/x
+				offset/y: y - pt/y
+			][
+				offset/x: WIN32_LOWORD(value)
+				offset/y: WIN32_HIWORD(value)
+			]
 			as red-value! offset
 		]
 		any [

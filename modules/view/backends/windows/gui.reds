@@ -168,6 +168,19 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
+get-window-pos: func [
+	hWnd	[handle!]
+	return:	[tagPOINT]
+	/local
+		pt [tagPOINT]
+][
+	pt: declare tagPOINT
+	pt/x: 0
+	pt/y: 0
+	MapWindowPoints hWnd GetParent hWnd pt 1
+	pt
+]
+
 get-child-from-xy: func [
 	parent	[handle!]
 	x		[integer!]
