@@ -383,6 +383,7 @@ Red/System [
 #define BK_OPAQUE			2
 
 #define NULL_BRUSH          5
+#define NULL_PEN			8
 #define DC_BRUSH			18
 #define DC_PEN              19
 
@@ -430,6 +431,9 @@ Red/System [
 #define GDIPLUS_UNIT_INCH			4
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
+
+#define GDIPLUS_MATRIXORDERPREPEND	0
+#define GDIPLUS_MATRIXORDERAPPEND	1
 
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
@@ -1612,6 +1616,53 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipSetPenBrushFill: "GdipSetPenBrushFill" [
+			pen			[integer!]
+			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipScaleLineTransform: "GdipScaleLineTransform" [
+			brush		[integer!]
+			sx			[float32!]
+			sy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipRotateLineTransform: "GdipRotateLineTransform" [
+			brush		[integer!]
+			angle		[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipCreateTexture: "GdipCreateTexture" [
+			image		[integer!]
+			wrapmode	[integer!]
+			texture		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDrawImagePointsI: "GdipDrawImagePointsI" [
+			graphics	[integer!]
+			image		[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipSetLinePresetBlend: "GdipSetLinePresetBlend" [
+			brush		[integer!]
+			colors		[int-ptr!]
+			positions	[pointer! [float32!]]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateLineBrushI: "GdipCreateLineBrushI" [
+			pt1			[tagPOINT]
+			pt2			[tagPOINT]
+			color1		[integer!]
+			color2		[integer!]
+			wrap		[integer!]
+			brush		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipDeleteStringFormat: "GdipDeleteStringFormat" [
 			format		[integer!]
 			return:		[integer!]
