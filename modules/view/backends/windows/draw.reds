@@ -241,7 +241,6 @@ draw-begin: func [
 	]
 	modes/graphics:	graphics
 	OS-draw-anti-alias dc yes
-	update-modes dc
 	update-gdiplus-font dc
 	dc
 ]
@@ -317,6 +316,7 @@ OS-draw-anti-alias: func [
 		GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
 		GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
 	]
+	update-modes dc
 ]
 
 OS-draw-line: func [
@@ -993,22 +993,30 @@ OS-draw-grad-pen: func [
 	type		[integer!]
 	mode		[integer!]
 	offset		[red-pair!]
-	clr-blk		[red-block!]
+	count		[integer!]					;-- number of the colors
+	brush?		[logic!]
 	/local
 		x		[integer!]
 		y		[integer!]
 		start	[integer!]
 		stop	[integer!]
 		brush	[integer!]
+		angle	[float32!]
+		sx		[float32!]
+		sy		[float32!]
 		int		[red-integer!]
+		f		[red-float!]
 		head	[red-value!]
+		next	[red-value!]
 		clr		[red-tuple!]
 		pt		[tagPOINT]
 		color	[int-ptr!]
 		pos		[pointer! [float32!]]
-		count	[integer!]
+		n		[integer!]
 		delta	[float!]
 		p		[float!]
+		rotate? [logic!]
+		scale?	[logic!]
 ][
 	x: offset/x
 	y: offset/y
@@ -1018,16 +1026,37 @@ OS-draw-grad-pen: func [
 	int: int + 1
 	stop: int/value
 
+	n: 0
+	rotate?: no
+	scale?: no
+	sy: as float32! 1.0
+	until [					;-- fetch angle, scale-x and scale-y (optional)
+		int: int + 1
+		switch TYPE_OF(int) [
+			TYPE_INTEGER	[p: integer/to-float int/value]
+			TYPE_FLOAT		[f: as red-float! int p: f/value]
+			default			[break]
+		]
+		switch n [
+			0	[angle: as float32! p rotate?: yes]
+			1	[sx: as float32! p scale?: yes]
+			2	[sy: as float32! p scale?: yes]
+		]
+		n: n + 1
+		n = 3
+	]
+
 	pt: edges
 	color: colors
 	pos: colors-pos
-	head: block/rs-head clr-blk
-	count: block/rs-length? clr-blk
 	delta: 1.0 / integer/to-float count - 1
 	p: 0.0
+	head: as red-value! int
 	loop count [
 		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
 		color/value: to-gdiplus-color clr/array1
+		next: head + 1 
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
 		p: p + delta
 		head: head + 1
@@ -1046,11 +1075,18 @@ OS-draw-grad-pen: func [
 			pt/y: y
 			GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
 			GdipSetLinePresetBlend brush colors colors-pos count
+			if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
+			if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
 		]
 		type = radial [0]
 		true [0]
 	]
-	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
-	modes/brush?: yes
-	modes/gp-brush: brush
+
+	either brush? [
+		unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
+		modes/brush?: yes
+		modes/gp-brush: brush
+	][
+		GdipSetPenBrushFill modes/gp-pen brush
+	]
 ]

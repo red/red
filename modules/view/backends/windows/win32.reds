@@ -432,6 +432,9 @@ Red/System [
 #define GDIPLUS_FILLMODE_ALTERNATE	0
 #define GDIPLUS_FILLMODE_WINDING	1
 
+#define GDIPLUS_MATRIXORDERPREPEND	0
+#define GDIPLUS_MATRIXORDERAPPEND	1
+
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
 
@@ -1613,6 +1616,24 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipSetPenBrushFill: "GdipSetPenBrushFill" [
+			pen			[integer!]
+			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipScaleLineTransform: "GdipScaleLineTransform" [
+			brush		[integer!]
+			sx			[float32!]
+			sy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipRotateLineTransform: "GdipRotateLineTransform" [
+			brush		[integer!]
+			angle		[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
 		GdipCreateTexture: "GdipCreateTexture" [
 			image		[integer!]
 			wrapmode	[integer!]

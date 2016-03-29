@@ -124,9 +124,11 @@ Red/System [
 				blk		[red-block!]
 				color	[red-tuple!]
 				sym		[integer!]
+				mode	[integer!]
 				rgb		[integer!]
 				alpha?	[integer!]
 				count	[integer!]
+				type	[integer!]
 				off?	[logic!]
 				pair?	[logic!]
 				border?	[logic!]
@@ -144,32 +146,14 @@ Red/System [
 						start: cmd + 1
 
 						case [
-							sym = pen [
-								DRAW_FETCH_TUPLE
-								OS-draw-pen DC rgb as logic! alpha?
-							]
-							sym = box [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
-								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
-								OS-draw-box DC as red-pair! start as red-pair! cmd
-							]
-							sym = line [
-								DRAW_FETCH_SOME_PAIR
-								if start = cmd [throw-draw-error cmds cmd catch?]
-								OS-draw-line DC as red-pair! start as red-pair! cmd
-							]
-							sym = line-width [
-								DRAW_FETCH_VALUE(TYPE_INTEGER)
-								OS-draw-line-width DC as red-integer! start
-							]
-							sym = fill-pen [
+							any [sym = pen sym = fill-pen][
 								off?: no
 								grad?: no
 								if TYPE_OF(start) = TYPE_WORD [
 									word: as red-word! start
-									sym: symbol/resolve word/symbol
-									off?: _off = sym
-									grad?: any [sym = linear sym = radial]
+									mode: symbol/resolve word/symbol
+									off?: _off = mode
+									grad?: any [mode = linear mode = radial]
 								]
 								either grad? [								;-- gradient pen
 									cmd: cmd + 1
@@ -185,31 +169,50 @@ Red/System [
 										DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
 										if pos <> cmd [break]
 									]
-									DRAW_FETCH_VALUE(TYPE_BLOCK)			;-- block of colors
-									start: cmd								;-- save current cmd
-									cmd: block/rs-head as red-block! start
-									count: block/rs-length? as red-block! start
-									either count < 2 [
-										throw-draw-error cmds start catch?
+									count: 0
+									off?: no
+									start: cmd
+									while [
+										cmd: cmd + 1
+										cmd < tail
 									][
-										loop count [
-											value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
-											if TYPE_OF(value) <> TYPE_TUPLE [throw-draw-error cmds start catch?]
-											cmd: cmd + 1
-										]
+										value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+										type: TYPE_OF(value)
+										if type = TYPE_TUPLE [count: count + 1]
+										unless any [type = TYPE_TUPLE type = TYPE_FLOAT][break]
 									]
-									cmd: start
-									sym: either null? pattern [-1][symbol/resolve pattern/symbol]
+									if count < 2 [throw-draw-error cmds start catch?]
+									mode: either null? pattern [-1][symbol/resolve pattern/symbol]
 									OS-draw-grad-pen
 										DC
 										symbol/resolve word/symbol
-										sym
+										mode
 										point
-										as red-block! cmd
+										count
+										sym = fill-pen
+									cmd: cmd - 1
 								][
 									either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
-									OS-draw-fill-pen DC rgb off? as logic! alpha?
+									either sym = pen [
+										OS-draw-pen DC rgb as logic! alpha?
+									][
+										OS-draw-fill-pen DC rgb off? as logic! alpha?
+									]
 								]
+							]
+							sym = box [
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+								OS-draw-box DC as red-pair! start as red-pair! cmd
+							]
+							sym = line [
+								DRAW_FETCH_SOME_PAIR
+								if start = cmd [throw-draw-error cmds cmd catch?]
+								OS-draw-line DC as red-pair! start as red-pair! cmd
+							]
+							sym = line-width [
+								DRAW_FETCH_VALUE(TYPE_INTEGER)
+								OS-draw-line-width DC as red-integer! start
 							]
 							sym = triangle [
 								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
