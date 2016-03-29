@@ -35,8 +35,12 @@ modes: declare struct! [
 
 paint: declare tagPAINTSTRUCT
 
-max-edges: 1000												;-- max number of edges for a polygone
+
+max-colors: 256												;-- max number of colors for gradient
+max-edges:  1000											;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
+colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
+colors-pos: as pointer! [float32!] colors + max-colors
 
 anti-alias?: no
 GDI+?: no
@@ -142,7 +146,7 @@ update-pen: func [
 update-modes: func [
 	dc [handle!]
 	/local
-		handle	[integer!]
+		handle	[handle!]
 		type	[integer!]
 ][
 	either GDI+? [
@@ -156,11 +160,13 @@ update-modes: func [
 
 		unless null? modes/brush [DeleteObject modes/brush]
 		modes/brush: either modes/brush? [
-			CreateSolidBrush modes/brush-color
+			handle: CreateSolidBrush modes/brush-color
+			handle
 		][
-			GetStockObject NULL_BRUSH
+			handle: GetStockObject NULL_BRUSH
+			null
 		]
-		SelectObject dc modes/brush
+		SelectObject dc handle
 	]
 ]
 
@@ -226,6 +232,7 @@ draw-begin: func [
 
 		SetArcDirection dc AD_CLOCKWISE
 		SetBkMode dc BK_TRANSPARENT
+		SelectObject dc GetStockObject NULL_BRUSH
 
 		render-base hWnd dc
 
@@ -947,6 +954,7 @@ OS-draw-image: func [
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		pts		[tagPOINT]
 ][
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
@@ -954,9 +962,20 @@ OS-draw-image: func [
 			width:  IMAGE_WIDTH(image/size)
 			height: IMAGE_HEIGHT(image/size)
 		]
-		start + 1 = end [
+		start + 1 = end [					;-- two control points
 			width: end/x - x
 			height: end/y - y
+		]
+		start + 2 = end [					;-- three control points
+			pts: edges
+			loop 3 [
+				pts/x: start/x
+				pts/y: start/y
+				pts: pts + 1
+				start: start + 1
+			]
+			GdipDrawImagePointsI modes/graphics as-integer image/node edges 3
+			exit
 		]
 		true [0]							;@@ TBD four control points
 	]
@@ -967,4 +986,71 @@ OS-draw-image: func [
 		0 0 IMAGE_WIDTH(image/size) IMAGE_HEIGHT(image/size)
 		GDIPLUS_UNIT_PIXEL
 		0 0 0
+]
+
+OS-draw-grad-pen: func [
+	dc			[handle!]
+	type		[integer!]
+	mode		[integer!]
+	offset		[red-pair!]
+	clr-blk		[red-block!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		start	[integer!]
+		stop	[integer!]
+		brush	[integer!]
+		int		[red-integer!]
+		head	[red-value!]
+		clr		[red-tuple!]
+		pt		[tagPOINT]
+		color	[int-ptr!]
+		pos		[pointer! [float32!]]
+		count	[integer!]
+		delta	[float!]
+		p		[float!]
+][
+	x: offset/x
+	y: offset/y
+
+	int: as red-integer! offset + 1
+	start: int/value
+	int: int + 1
+	stop: int/value
+
+	pt: edges
+	color: colors
+	pos: colors-pos
+	head: block/rs-head clr-blk
+	count: block/rs-length? clr-blk
+	delta: 1.0 / integer/to-float count - 1
+	p: 0.0
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		color/value: to-gdiplus-color clr/array1
+		pos/value: as float32! p
+		p: p + delta
+		head: head + 1
+		color: color + 1
+		pos: pos + 1
+	]
+	pos: pos - 1
+	pos/value: as float32! 1.0
+	brush: 0
+	case [
+		type = linear [
+			pt/x: x + start
+			pt/y: y
+			pt: pt + 1
+			pt/x: x + stop
+			pt/y: y
+			GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
+			GdipSetLinePresetBlend brush colors colors-pos count
+		]
+		type = radial [0]
+		true [0]
+	]
+	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
+	modes/brush?: yes
+	modes/gp-brush: brush
 ]

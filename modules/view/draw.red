@@ -41,6 +41,8 @@ Red/System [
 		border:			symbol/make "border"
 		repeat:			symbol/make "repeat"
 		reflect:		symbol/make "reflect"
+		linear:			symbol/make "linear"
+		radial:			symbol/make "radial"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -124,10 +126,12 @@ Red/System [
 				sym		[integer!]
 				rgb		[integer!]
 				alpha?	[integer!]
+				count	[integer!]
 				off?	[logic!]
 				pair?	[logic!]
 				border?	[logic!]
 				closed? [logic!]
+				grad?	[logic!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
@@ -160,12 +164,52 @@ Red/System [
 							]
 							sym = fill-pen [
 								off?: no
+								grad?: no
 								if TYPE_OF(start) = TYPE_WORD [
 									word: as red-word! start
-									off?: _off = symbol/resolve word/symbol
+									sym: symbol/resolve word/symbol
+									off?: _off = sym
+									grad?: any [sym = linear sym = radial]
 								]
-								either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
-								OS-draw-fill-pen DC rgb off? as logic! alpha?
+								either grad? [								;-- gradient pen
+									cmd: cmd + 1
+									DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- grad mode (optional)
+									pattern: either pos = cmd [as red-word! cmd][null]
+
+									DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
+									point: as red-pair! cmd
+									loop 2 [								;-- start and stop
+										DRAW_FETCH_VALUE(TYPE_INTEGER)
+									]
+									loop 3 [								;-- angle, scale-x and scale-y (optional)
+										DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
+										if pos <> cmd [break]
+									]
+									DRAW_FETCH_VALUE(TYPE_BLOCK)			;-- block of colors
+									start: cmd								;-- save current cmd
+									cmd: block/rs-head as red-block! start
+									count: block/rs-length? as red-block! start
+									either count < 2 [
+										throw-draw-error cmds start catch?
+									][
+										loop count [
+											value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+											if TYPE_OF(value) <> TYPE_TUPLE [throw-draw-error cmds start catch?]
+											cmd: cmd + 1
+										]
+									]
+									cmd: start
+									sym: either null? pattern [-1][symbol/resolve pattern/symbol]
+									OS-draw-grad-pen
+										DC
+										symbol/resolve word/symbol
+										sym
+										point
+										as red-block! cmd
+								][
+									either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
+									OS-draw-fill-pen DC rgb off? as logic! alpha?
+								]
 							]
 							sym = triangle [
 								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]

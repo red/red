@@ -383,6 +383,7 @@ Red/System [
 #define BK_OPAQUE			2
 
 #define NULL_BRUSH          5
+#define NULL_PEN			8
 #define DC_BRUSH			18
 #define DC_PEN              19
 
@@ -1612,6 +1613,35 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateTexture: "GdipCreateTexture" [
+			image		[integer!]
+			wrapmode	[integer!]
+			texture		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDrawImagePointsI: "GdipDrawImagePointsI" [
+			graphics	[integer!]
+			image		[integer!]
+			points		[tagPOINT]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipSetLinePresetBlend: "GdipSetLinePresetBlend" [
+			brush		[integer!]
+			colors		[int-ptr!]
+			positions	[pointer! [float32!]]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateLineBrushI: "GdipCreateLineBrushI" [
+			pt1			[tagPOINT]
+			pt2			[tagPOINT]
+			color1		[integer!]
+			color2		[integer!]
+			wrap		[integer!]
+			brush		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipDeleteStringFormat: "GdipDeleteStringFormat" [
 			format		[integer!]
 			return:		[integer!]
