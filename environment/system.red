@@ -287,7 +287,12 @@ system: context [
 		]
 
 		on-change*: func [word old new][
-			if word = 'path [set-current-dir new]
+			if word = 'path [
+				either file? :new [set-current-dir new][
+					set word old
+					cause-error 'script 'invalid-type reduce [type? :new]
+				]
+			]
 		]
 
 		on-deep-change*: function [owner word target action new index part][
