@@ -4270,7 +4270,10 @@ red: context [
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
 		case [
-			list: select header first [Needs:][
+			all [
+				list: select header first [Needs:]
+				find [word! lit-word! block!] type?/word list	;-- do not process other types
+			][
 				unless block? list [list: reduce [list]]
 				mods: make block! 2
 				
