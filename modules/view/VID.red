@@ -208,7 +208,7 @@ system/view/VID: context [
 		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
 			'func [face [object!] event [event! none!]]
-			body
+			copy/deep body
 		]
 	]
 	
