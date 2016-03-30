@@ -1674,11 +1674,6 @@ DwmIsCompositionEnabled!: alias function! [
 			matrixorder	[integer!]
 			return:		[integer!]
 		]
-		GdipSetPenBrushFill: "GdipSetPenBrushFill" [
-			pen			[integer!]
-			brush		[integer!]
-			return:		[integer!]
-		]
 		GdipScaleLineTransform: "GdipScaleLineTransform" [
 			brush		[integer!]
 			sx			[float32!]
@@ -2011,6 +2006,21 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipSetPenEndCap: "GdipSetPenEndCap" [
 			pen			[integer!]
 			style		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPenColor: "GdipSetPenColor" [
+			pen			[integer!]
+			color		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPenWidth: "GdipSetPenWidth" [
+			pen			[integer!]
+			width		[float32!]
+			return:		[integer!]
+		]
+		GdipSetPenBrushFill: "GdipSetPenBrushFill" [
+			pen			[integer!]
+			brush		[integer!]
 			return:		[integer!]
 		]
 		GdipDrawImageRectRectI: "GdipDrawImageRectRectI" [

@@ -212,7 +212,7 @@ Red/System [
 								][
 									either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
 									either sym = pen [
-										OS-draw-pen DC rgb as logic! alpha?
+										OS-draw-pen DC rgb off? as logic! alpha?
 									][
 										OS-draw-fill-pen DC rgb off? as logic! alpha?
 									]
