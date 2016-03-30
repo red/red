@@ -1616,6 +1616,64 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipSetPathGradientWrapMode: "GdipSetPathGradientWrapMode" [
+			brush		[integer!]
+			wrapmode	[integer!]
+			return:		[integer!]
+		]
+		GdipCreatePathGradientFromPath: "GdipCreatePathGradientFromPath" [
+			path		[integer!]
+			brush		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipCreatePathGradientI: "GdipCreatePathGradientI" [
+			points		[tagPOINT]
+			count		[integer!]
+			wrapmode	[integer!]
+			brush		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSetPathGradientCenterColor: "GdipSetPathGradientCenterColor" [
+			brush		[integer!]
+			color		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPathGradientSurroundColorsWithCount: "GdipSetPathGradientSurroundColorsWithCount" [
+			brush		[integer!]
+			colors		[int-ptr!]
+			count		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSetPathGradientPath: "GdipSetPathGradientPath" [
+			brush		[integer!]
+			path		[integer!]
+			return:		[integer!]
+		]
+		GdipSetPathGradientCenterPointI: "GdipSetPathGradientCenterPointI" [
+			brush		[integer!]
+			point		[tagPOINT]
+			return:		[integer!]
+		]
+		GdipSetPathGradientPresetBlend: "GdipSetPathGradientPresetBlend" [
+			brush		[integer!]
+			colors		[int-ptr!]
+			positions	[pointer! [float32!]]
+			count		[integer!]
+			return:		[integer!]
+		]
+		GdipScalePathGradientTransform: "GdipScalePathGradientTransform" [
+			brush		[integer!]
+			sx			[float32!]
+			sy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipRotatePathGradientTransform: "GdipRotatePathGradientTransform" [
+			brush		[integer!]
+			angle		[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
 		GdipSetPenBrushFill: "GdipSetPenBrushFill" [
 			pen			[integer!]
 			brush		[integer!]
@@ -1840,6 +1898,22 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		GdipClosePathFigure: "GdipClosePathFigure" [
 			path		[integer!]
+			return:		[integer!]
+		]
+		GdipAddPathRectangleI: "GdipAddPathRectangleI" [
+			path		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipAddPathEllipseI: "GdipAddPathEllipseI" [
+			path		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
 			return:		[integer!]
 		]
 		GdipAddPathArcI: "GdipAddPathArcI" [

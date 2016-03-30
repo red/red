@@ -1066,22 +1066,31 @@ OS-draw-grad-pen: func [
 	pos: pos - 1
 	pos/value: as float32! 1.0
 	brush: 0
-	case [
-		type = linear [
-			pt/x: x + start
-			pt/y: y
-			pt: pt + 1
-			pt/x: x + stop
-			pt/y: y
-			GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
-			GdipSetLinePresetBlend brush colors colors-pos count
-			if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
-			if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+	either type = linear [
+		pt/x: x + start
+		pt/y: y
+		pt: pt + 1
+		pt/x: x + stop
+		pt/y: y
+		GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
+		GdipSetLinePresetBlend brush colors colors-pos count
+		if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
+		if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+	][
+		GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :brush
+		n: stop - start
+		stop: n * 2
+		case [
+			type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
+			type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
 		]
-		type = radial [0]
-		true [0]
+		GdipCreatePathGradientFromPath brush :brush
+		GdipSetPathGradientCenterColor brush colors/value
+		reverse-int-array colors count
+		GdipSetPathGradientPresetBlend brush colors colors-pos count
 	]
 
+	GDI+?: yes
 	either brush? [
 		unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
 		modes/brush?: yes

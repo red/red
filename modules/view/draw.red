@@ -43,6 +43,7 @@ Red/System [
 		reflect:		symbol/make "reflect"
 		linear:			symbol/make "linear"
 		radial:			symbol/make "radial"
+		diamond:		symbol/make "diamond"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -76,7 +77,24 @@ Red/System [
 			][1]
 			color
 		]
-		
+
+		reverse-int-array: func [
+			array	[int-ptr!]
+			count	[integer!]
+			/local
+				tail [int-ptr!]
+				val  [integer!]
+		][
+			tail: array + count - 1
+			while [array < tail][
+				val: array/value
+				array/value: tail/value
+				tail/value: val
+				array: array + 1
+				tail: tail - 1
+			]
+		]
+
 		#define DRAW_FETCH_VALUE(type) [
 			cmd: cmd + 1
 			if any [cmd >= tail TYPE_OF(cmd) <> type][
@@ -153,7 +171,7 @@ Red/System [
 									word: as red-word! start
 									mode: symbol/resolve word/symbol
 									off?: _off = mode
-									grad?: any [mode = linear mode = radial]
+									grad?: any [mode = linear mode = radial mode = diamond]
 								]
 								either grad? [								;-- gradient pen
 									cmd: cmd + 1
