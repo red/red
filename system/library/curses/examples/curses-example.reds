@@ -62,7 +62,7 @@ with curses [
 	]
 	;-------------------------------------
 	init-color-pairs: func [							;--  Initialise 64 color-pairs with 8 basic colors
-		/local id
+		/local id colb colf
 	][
 		colb: COLOR_BLACK
 		colf: COLOR_BLACK

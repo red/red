@@ -973,6 +973,8 @@ curses: context [
 
 	with curses [
 
+		stdscr: 0        ; stdscr must be defined globally
+
 		getyx: function [
 			wid      [window!]
 			row      [int-ptr!]
@@ -1083,7 +1085,7 @@ curses: context [
 
 		init-screen: func [
 			return:   [window!]
-			/local src
+			/local scr
 		][
 			scr: initscr
 			raw
@@ -1097,7 +1099,7 @@ curses: context [
 
 		init-console: func [
 			return:   [window!]
-			/local src
+			/local scr
 		][
 			scr: initscr
 			keypad scr true  							;-- return Fkeys

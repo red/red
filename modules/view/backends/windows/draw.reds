@@ -23,9 +23,11 @@ modes: declare struct! [
 	bitmap			[handle!]
 	graphics		[integer!]								;-- gdiplus graphics
 	gp-pen			[integer!]								;-- gdiplus pen
+	gp-pen-saved	[integer!]
 	gp-brush		[integer!]								;-- gdiplus brush
 	gp-font			[integer!]								;-- gdiplus font
 	gp-font-brush	[integer!]
+	pen?			[logic!]
 	brush?			[logic!]
 	on-image?		[logic!]								;-- drawing on image?
 	alpha-pen?		[logic!]
@@ -70,21 +72,25 @@ update-gdiplus-modes: func [
 	/local
 		handle [integer!]
 ][
-	unless zero? modes/gp-pen [GdipDeletePen modes/gp-pen]
-	handle: 0
-	GdipCreatePen1
-		to-gdiplus-color modes/pen-color
-		as float32! integer/to-float modes/pen-width
-		GDIPLUS_UNIT_WORLD
-		:handle
-	modes/gp-pen: handle
+	either modes/pen? [
+		either zero? modes/gp-pen-saved [
+			handle: modes/gp-pen
+			GdipSetPenColor handle to-gdiplus-color modes/pen-color
+			GdipSetPenWidth handle as float32! integer/to-float modes/pen-width
+			if modes/pen-join <> -1 [
+				OS-draw-line-join dc modes/pen-join
+			]
 
-	if modes/pen-join <> -1 [
-		OS-draw-line-join dc modes/pen-join
-	]
-
-	if modes/pen-cap <> -1 [
-		OS-draw-line-cap dc modes/pen-cap
+			if modes/pen-cap <> -1 [
+				OS-draw-line-cap dc modes/pen-cap
+			]
+		][
+			modes/gp-pen: modes/gp-pen-saved
+			modes/gp-pen-saved: 0
+		]
+	][
+		modes/gp-pen-saved: modes/gp-pen
+		modes/gp-pen: 0
 	]
 
 	handle: 0
@@ -100,63 +106,66 @@ update-gdiplus-modes: func [
 
 update-pen: func [
 	dc		[handle!]
-	type	[integer!]
 	/local
-		style [integer!]
 		mode  [integer!]
+		cap   [integer!]
+		join  [integer!]
+		pen   [handle!]
 		brush [tagLOGBRUSH]
 ][
 	mode: 0
 	unless null? modes/pen [DeleteObject modes/pen]
-	either type < PEN_LINE_CAP [
-		modes/pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+	either modes/pen? [
+		cap: modes/pen-cap
+		join: modes/pen-join
+		modes/pen: either all [join = -1 cap = -1] [
+			pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+			pen
+		][
+			if join <> -1 [
+				mode: case [
+					join = miter		[PS_JOIN_MITER]
+					join = miter-bevel [PS_JOIN_MITER]
+					join = _round		[PS_JOIN_ROUND]
+					join = bevel		[PS_JOIN_BEVEL]
+					true				[PS_JOIN_MITER]
+				]
+			]
+			if cap <> -1 [
+				mode: mode or case [
+					cap = flat		[PS_ENDCAP_FLAT]
+					cap = square		[PS_ENDCAP_SQUARE]
+					cap = _round		[PS_ENDCAP_ROUND]
+					true				[PS_ENDCAP_FLAT]
+				]
+			]
+			brush: declare tagLOGBRUSH
+			brush/lbStyle: BS_SOLID
+			brush/lbColor: modes/pen-color
+			pen: ExtCreatePen
+				PS_GEOMETRIC or modes/pen-style or mode
+				modes/pen-width
+				brush
+				0
+				null
+			pen
+		]
 	][
-		if modes/pen-join <> -1 [
-			style: modes/pen-join
-			mode: case [
-				style = miter		[PS_JOIN_MITER]
-				style = miter-bevel [PS_JOIN_MITER]
-				style = _round		[PS_JOIN_ROUND]
-				style = bevel		[PS_JOIN_BEVEL]
-				true				[PS_JOIN_MITER]
-			]
-		]
-		if modes/pen-cap <> -1 [
-			style: modes/pen-cap
-			mode: mode or case [
-				style = flat		[PS_ENDCAP_FLAT]
-				style = square		[PS_ENDCAP_SQUARE]
-				style = _round		[PS_ENDCAP_ROUND]
-				true				[PS_ENDCAP_FLAT]
-			]
-		]
-		brush: declare tagLOGBRUSH
-		brush/lbStyle: BS_SOLID
-		brush/lbColor: modes/pen-color
-		modes/pen: ExtCreatePen
-			PS_GEOMETRIC or modes/pen-style or mode
-			modes/pen-width
-			brush
-			0
-			null
+		pen: GetStockObject NULL_PEN
+		modes/pen: null
 	]
-	SelectObject dc modes/pen
+	SelectObject dc pen
 ]
 
 update-modes: func [
 	dc [handle!]
 	/local
 		handle	[handle!]
-		type	[integer!]
 ][
 	either GDI+? [
 		update-gdiplus-modes dc
 	][
-		type: either all [
-			modes/pen-join = -1
-			modes/pen-cap = -1
-		][PEN_COLOR][PEN_LINE_CAP]
-		update-pen dc type
+		update-pen dc
 
 		unless null? modes/brush [DeleteObject modes/brush]
 		modes/brush: either modes/brush? [
@@ -196,9 +205,11 @@ draw-begin: func [
 	modes/font-color:	-1
 	modes/gp-brush:		0
 	modes/gp-pen:		0
+	modes/gp-pen-saved: 0
 	modes/gp-font:		0
 	modes/gp-font-brush: 0
 	modes/on-image?:	no
+	modes/pen?:			yes
 	modes/brush?:		no
 	modes/alpha-pen?:	no
 	modes/alpha-brush?:	no
@@ -240,6 +251,12 @@ draw-begin: func [
 		GdipCreateFromHDC dc :graphics	
 	]
 	modes/graphics:	graphics
+	GdipCreatePen1
+		to-gdiplus-color modes/pen-color
+		as float32! integer/to-float modes/pen-width
+		GDIPLUS_UNIT_PIXEL
+		:graphics
+	modes/gp-pen: graphics
 	OS-draw-anti-alias dc yes
 	update-gdiplus-font dc
 	dc
@@ -343,7 +360,6 @@ OS-draw-line: func [
 	either GDI+? [
 		res: GdipDrawLinesI modes/graphics modes/gp-pen edges nb
 	][
-		if null? modes/pen [OS-draw-pen dc modes/pen-color no]
 		Polyline dc edges nb
 	]
 ]
@@ -351,10 +367,13 @@ OS-draw-line: func [
 OS-draw-pen: func [
 	dc	   [handle!]
 	color  [integer!]									;-- 00bbggrr format
+	off?	[logic!]
 	alpha? [logic!]
 ][
 	modes/alpha-pen?: alpha?
 	GDI+?: any [alpha? anti-alias? modes/alpha-brush?]
+
+	modes/pen?: not off?
 	either modes/pen-color <> color [
 		modes/pen-color: color
 		update-modes dc
@@ -627,18 +646,18 @@ do-draw-ellipse: func [
 				modes/gp-brush
 				x
 				y
-				width - 1
-				height - 1
+				width
+				height
 		]
 		GdipDrawEllipseI
 			modes/graphics
 			modes/gp-pen
 			x
 			y
-			width - 1
-			height - 1
+			width
+			height
 	][	
-		Ellipse dc x y x + width y + height
+		Ellipse dc x y x + width + 1 y + height + 1
 	]
 ]
 
@@ -1066,22 +1085,31 @@ OS-draw-grad-pen: func [
 	pos: pos - 1
 	pos/value: as float32! 1.0
 	brush: 0
-	case [
-		type = linear [
-			pt/x: x + start
-			pt/y: y
-			pt: pt + 1
-			pt/x: x + stop
-			pt/y: y
-			GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
-			GdipSetLinePresetBlend brush colors colors-pos count
-			if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
-			if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+	either type = linear [
+		pt/x: x + start
+		pt/y: y
+		pt: pt + 1
+		pt/x: x + stop
+		pt/y: y
+		GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
+		GdipSetLinePresetBlend brush colors colors-pos count
+		if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
+		if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+	][
+		GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :brush
+		n: stop - start
+		stop: n * 2
+		case [
+			type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
+			type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
 		]
-		type = radial [0]
-		true [0]
+		GdipCreatePathGradientFromPath brush :brush
+		GdipSetPathGradientCenterColor brush colors/value
+		reverse-int-array colors count
+		GdipSetPathGradientPresetBlend brush colors colors-pos count
 	]
 
+	GDI+?: yes
 	either brush? [
 		unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
 		modes/brush?: yes
