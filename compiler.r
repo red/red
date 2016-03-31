@@ -437,7 +437,7 @@ red: context [
 			find shadow-funcs obj
 		][
 			either get? [
-				append blk decorate-symbol name			;-- local word, point to value slot
+				append blk decorate-symbol/no-alias name ;-- local word, point to value slot
 			][
 				append blk [as cell!]
 				append/only blk prefix-exec name		;-- force global word
@@ -723,8 +723,8 @@ red: context [
 		append to path! 'exec name
 	]
 	
-	decorate-symbol: func [name [word!] /local pos][
-		if pos: find/case/skip aliases name 2 [name: pos/2]
+	decorate-symbol: func [name [word!] /no-alias /local pos][
+		if all [not no-alias pos: find/case/skip aliases name 2][name: pos/2]
 		to word! join "~" clean-lf-flag name
 	]
 	
@@ -2262,7 +2262,7 @@ red: context [
 		/local init locals blk args?
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
-		forall symbols [symbols/1: decorate-symbol symbols/1]
+		forall symbols [symbols/1: decorate-symbol/no-alias symbols/1]
 		locals: append copy [/local ctx saved] symbols
 		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
 		emit reduce [to set-word! decorate-func/strict name 'func blk]
