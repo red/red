@@ -525,7 +525,8 @@ redc: context [
 			print [
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
-				"...output file      :" to-local-file result/4 lf
+				"...output file      :" to-local-file result/4 
+				"...completed at     :" result/5 lf
 			]
 		]
 		unless Windows? [print ""]						;-- extra LF for more readable output
