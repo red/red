@@ -38,18 +38,15 @@ system/view/VID: context [
 			not empty? data 
 			find [text-list drop-list drop-down] face/type
 		][
-			saved: face/text
 			min-sz: 0x0
 			foreach txt data [
 				if string? txt [
-					face/text: txt
-					size: size-text face
+					size: size-text/with face txt
 					if size/x > min-sz/x [min-sz/x: size/x]
 					if size/y > min-sz/y [min-sz/y: size/y]
 				]
 			]
-			face/text: saved
-			if all [saved face/type <> 'drop-list][
+			if all [face/text face/type <> 'drop-list][
 				size: size-text face
 				if size/x > min-sz/x [min-sz/x: size/x]
 				if size/y > min-sz/y [min-sz/y: size/y]
