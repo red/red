@@ -401,9 +401,9 @@ system/view/platform: context [
 		SET_RETURN(pair)
 	]
 	
-	set 'size-text routine [
-		"Returns the area size of the text in a face"
-		face [object!]	"Face containing the text to size"
+	size-text: routine [
+		face  [object!]
+		value
 		/local
 			values [red-value!]
 			text   [red-string!]
@@ -414,7 +414,11 @@ system/view/platform: context [
 	][
 		;@@ check if object is a face?
 		values: object/get-values face
-		text: as red-string! values + gui/FACE_OBJ_TEXT
+		switch TYPE_OF(value) [
+			TYPE_STRING [text: as red-string! value]
+			TYPE_NONE   [text: as red-string! values + gui/FACE_OBJ_TEXT]
+			default     [fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]]
+		]
 		if TYPE_OF(text) <> TYPE_STRING [
 			SET_RETURN(none-value)
 			exit

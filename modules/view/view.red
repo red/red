@@ -17,6 +17,16 @@ Red [
 
 event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
+size-text: function [
+	"Returns the area size of the text in a face"
+	face	 [object!]		"Face containing the text to size"
+	/with 					"Provide a text string instead of face/text"
+		text [string!]		"Text to measure"
+	return:  [pair! none!]	"Return the text's size or NONE if failed"
+][
+	system/view/platform/size-text face text
+]
+
 set-flag: function [
 	face  [object!]
 	facet [word!]
