@@ -1049,8 +1049,10 @@ OS-draw-grad-pen: func [
 	rotate?: no
 	scale?: no
 	sy: as float32! 1.0
-	until [					;-- fetch angle, scale-x and scale-y (optional)
+	while [
 		int: int + 1
+		n < 3
+	][								;-- fetch angle, scale-x and scale-y (optional)
 		switch TYPE_OF(int) [
 			TYPE_INTEGER	[p: integer/to-float int/value]
 			TYPE_FLOAT		[f: as red-float! int p: f/value]
@@ -1062,7 +1064,6 @@ OS-draw-grad-pen: func [
 			2	[sy: as float32! p scale?: yes]
 		]
 		n: n + 1
-		n = 3
 	]
 
 	pt: edges
@@ -1107,6 +1108,8 @@ OS-draw-grad-pen: func [
 		GdipSetPathGradientCenterColor brush colors/value
 		reverse-int-array colors count
 		GdipSetPathGradientPresetBlend brush colors colors-pos count
+		if rotate? [GdipRotatePathGradientTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
+		if scale? [GdipScalePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
 	]
 
 	GDI+?: yes
