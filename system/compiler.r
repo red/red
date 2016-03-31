@@ -3571,6 +3571,7 @@ system-dialect: make-profilable context [
 			link-time
 			any [all [job/buffer length? job/buffer] 0]
 			output
+			completed-date-time
 		]
 	]
 ]
