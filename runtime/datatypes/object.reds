@@ -31,6 +31,22 @@ object: context [
 		]
 	]
 	
+	check-word: func [
+		value [red-value!]
+		/local
+			type [integer!]
+	][
+		type: TYPE_OF(value)
+		unless any [									;@@ replace with ANY_WORD?
+			type = TYPE_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+		][
+			fire [TO_ERROR(script invalid-type) datatype/push type]
+		]
+	]
+	
 	rs-find: func [
 		obj		 [red-object!]
 		value	 [red-value!]
@@ -1255,6 +1271,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
 		
+		check-word value
 		id: rs-find obj value
 		as red-value! either id = -1 [none-value][true-value]
 	]
@@ -1274,6 +1291,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
+		check-word value
 		rs-select obj value
 	]
 	
