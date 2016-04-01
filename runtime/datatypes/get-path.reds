@@ -30,7 +30,7 @@ get-path: context [
 	]
 	
 	push: func [
-		p [red-get-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/push"]]
 

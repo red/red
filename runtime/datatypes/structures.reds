@@ -48,21 +48,21 @@ red-series!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- series's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- datatype-specific extra value
 ]
 
 red-block!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- block's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (reserved for block-derivative types)
 ]
 
 red-paren!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- paren's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-path!: alias struct! [
@@ -76,21 +76,21 @@ red-lit-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-set-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-get-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-string!: alias struct! [

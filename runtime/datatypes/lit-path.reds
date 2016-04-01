@@ -30,7 +30,7 @@ lit-path: context [
 	]
 	
 	push: func [
-		p [red-lit-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-path/push"]]
 

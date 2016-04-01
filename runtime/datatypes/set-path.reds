@@ -30,7 +30,7 @@ set-path: context [
 	]
 	
 	push: func [
-		p [red-set-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/push"]]
 

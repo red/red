@@ -415,7 +415,7 @@ _series: context [
 				]
 				TYPE_BINARY [binary/set-value pos data]
 				TYPE_VECTOR [
-					if TYPE_OF(data) <> ser/_pad [
+					if TYPE_OF(data) <> ser/extra [
 						fire [TO_ERROR(script invalid-arg) data]
 					]
 					vector/set-value pos data unit
@@ -628,7 +628,7 @@ _series: context [
 
 		ser2: as red-series! stack/push*
 		ser2/header: TYPE_OF(ser)
-		ser2/_pad:  either TYPE_OF(ser) = TYPE_VECTOR [ser/_pad][0] ;@@ to be improved
+		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
 		ser2/node:  node
 		ser2/head:  0
 		
@@ -769,7 +769,7 @@ _series: context [
 		new/header: type
 		new/node:   node
 		new/head:   0
-		new/_pad:   either TYPE_OF(ser) = TYPE_VECTOR [ser/_pad][0]	;@@ to be improved
+		new/extra:  either type = TYPE_VECTOR [ser/extra][0]
 
 		as red-series! new
 	]
