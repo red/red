@@ -161,24 +161,22 @@ system/console: context [
 			]
 			clear buffer
 		]
-	
-		unless tail? line [
-			either all [not empty? line escape = last line][
-				cue: none
-				clear buffer
-				mode: 'mono							;-- force exit from multiline mode
-				print "(escape)"
-			][
-				append buffer line
-				cnt: count-delimiters buffer
-				append buffer lf					;-- needed for multiline modes
 
-				switch mode [
-					block  [if cnt/1 <= 0 [do switch-mode]]
-					string [if cnt/2 <= 0 [do switch-mode]]
-					paren  [if cnt/3 <= 0 [do switch-mode]]
-					mono   [do either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][eval]]
-				]
+		either all [not empty? line escape = last line][
+			cue: none
+			clear buffer
+			mode: 'mono							;-- force exit from multiline mode
+			print "(escape)"
+		][
+			append line lf
+			append buffer line
+			cnt: count-delimiters buffer
+
+			switch mode [
+				block  [if cnt/1 <= 0 [do switch-mode]]
+				string [if cnt/2 <= 0 [do switch-mode]]
+				paren  [if cnt/3 <= 0 [do switch-mode]]
+				mono   [do either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][eval]]
 			]
 		]
 	]
