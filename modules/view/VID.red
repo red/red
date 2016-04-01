@@ -297,6 +297,7 @@ system/view/VID: context [
 				][
 					throw-error spec
 				]
+				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
 				clear reactors
 				spec: fetch-options face opts style spec local-styles
