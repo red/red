@@ -505,7 +505,8 @@ comment {                                       ################################
         --assert none = ff8-f 
         
 if system/state/interpreted? [                          ;-- not yet supported by compiler 
-    --test-- "funfun9"
+    do [
+    	--test-- "funfun9"
         ff9-f: function [] [
             a: 1
             b: function [] [c: 2]
@@ -513,9 +514,11 @@ if system/state/interpreted? [                          ;-- not yet supported by
             c
         ]   
         --assert none = ff9-f 
+    ]
 ]
 
 if system/state/interpreted? [                          ;-- not yet supported by compiler         
+	do [
      --test-- "funfun10"
         ff10-i: 1
         ff10-f: function [] [
@@ -525,9 +528,11 @@ if system/state/interpreted? [                          ;-- not yet supported by
             ff10-i
         ]   
         --assert none = ff10-f 
+    ]
 ]
 
 if system/state/interpreted? [                          ;-- not yet supported by compiler         
+    do [
     --test-- "funfun11"
         ff11-i: 1
         ff11-f: function [] [
@@ -536,6 +541,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert none = ff11-f
         --assert 1 = ff11-i
+    ]
 ]        
  
     --test-- "funfun12"
@@ -582,7 +588,8 @@ if system/state/interpreted? [                          ;-- not yet supported by
         --assert 1 = ff15-i     
                                                     ####################################}
                                                     
-if system/state/interpreted? [                      ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
     --test-- "funfun16"
         ff16-f: function [] [
             f2: func [i] [i: 1]
@@ -590,9 +597,11 @@ if system/state/interpreted? [                      ;-- not yet supported by com
             i
         ]
         --assert none = ff16-f
+    ]
 ]       
 
-if system/state/interpreted? [                      ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
     --test-- "funfun17"
         ff17-i: 10
         ff17-f: function [] [
@@ -601,6 +610,7 @@ if system/state/interpreted? [                      ;-- not yet supported by com
             ff17-i
         ]
         --assert none = ff17-f
+    ]
 ]
                                         
 ===end-group===
