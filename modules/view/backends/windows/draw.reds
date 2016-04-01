@@ -285,7 +285,10 @@ draw-end: func [
 
 	unless any [on-graphic? zero? modes/graphics][GdipDeleteGraphics modes/graphics]
 	unless zero? modes/gp-pen	[GdipDeletePen modes/gp-pen]
+	unless zero? modes/gp-pen-saved	[GdipDeletePen modes/gp-pen-saved]
 	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
+	unless zero? modes/gp-font-brush [GdipDeleteBrush modes/gp-font-brush]
+	unless zero? modes/gp-font	[GdipDeleteFont modes/gp-font]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
@@ -1104,7 +1107,9 @@ OS-draw-grad-pen: func [
 			type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
 			type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
 		]
-		GdipCreatePathGradientFromPath brush :brush
+		n: brush
+		GdipCreatePathGradientFromPath n :brush
+		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush colors/value
 		reverse-int-array colors count
 		GdipSetPathGradientPresetBlend brush colors colors-pos count
