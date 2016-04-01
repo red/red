@@ -523,8 +523,8 @@ redc: context [
 
 		if result/2 [
 			print [
-				"...linking time     :" format-time result/2 "ms ...completed at     :" result/5 "^/"
-				"...output file size :" result/3 "bytes^/"
+				"...linking time     :" format-time result/2 "ms^/"
+				"...output file size :" result/3 "bytes ...output file saved :" result/5 "^/"
 				"...output file      :" to-local-file result/4 lf
 			]
 		]
