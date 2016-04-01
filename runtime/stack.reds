@@ -356,29 +356,28 @@ stack: context [										;-- call stack
 			flags [integer!]
 			all?  [logic!]
 	][
-		error/set-where err as red-value! get-call
-		set-stack err
+		if ctop > cbottom [
+			error/set-where err as red-value! get-call
+			set-stack err
 		
-		all?: (error/get-type err) = words/errors/throw/symbol
-		flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-		
-		extra: top
-		unroll-frames flags no
-		
-		ctop: ctop - 1
-		assert ctop >= cbottom
-		top: extra
-		
+			all?: (error/get-type err) = words/errors/throw/symbol
+			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
+
+			extra: top
+			unroll-frames flags no
+
+			ctop: ctop - 1
+			assert ctop >= cbottom
+			top: extra
+		]
 		if all [
 			ctop = cbottom 
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY)
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
 		][
-			saved: arguments
-			arguments: extra							;-- use the top stack frame @@ overflows!
 			set-last as red-value! err
 			natives/print* no
-			arguments: saved
+			quit -2
 		]
 		stack/push as red-value! err
 		throw RED_THROWN_ERROR
