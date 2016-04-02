@@ -24,7 +24,12 @@ ask: routine [
 	question [string!]
 	return:  [string!]
 ][
-	as red-string! stack/set-last as cell! terminal/ask question
+	as red-string! _series/copy
+		as red-series! terminal/ask question
+		as red-series! stack/arguments
+		null
+		yes
+		null
 ]
 
 input: does [ask ""]
