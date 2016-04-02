@@ -111,24 +111,24 @@ lexer: context [
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
-		| #{C2} [
-			#{85}									;-- U+0085 (Newline)
-			| #{A0}									;-- U+00A0 (No-break space)
-		]
-		| #{E1} [
-			#{9A80}									;-- U+1680 (Ogham space mark)
-			| #{A08E}								;-- U+180E (Mongolian vowel separator)
-		]
-		| #{E2} [
-			#{80} [
-				ws-U+2k								;-- U+2000-U+200A range
-				| #{A8}								;-- U+2028 (Line separator)
-				| #{A9}								;-- U+2029 (Paragraph separator)
-				| #{AF}								;-- U+202F (Narrow no-break space)
-			]
-			| #{819F}								;-- U+205F (Medium mathematical space)
-		]
-		| #{E38080}									;-- U+3000 (Ideographic space)
+		;| #{C2} [
+		;	#{85}									;-- U+0085 (Newline)
+		;	| #{A0}									;-- U+00A0 (No-break space)
+		;]
+		;| #{E1} [
+		;	#{9A80}									;-- U+1680 (Ogham space mark)
+		;	| #{A08E}								;-- U+180E (Mongolian vowel separator)
+		;]
+		;| #{E2} [
+		;	#{80} [
+		;		ws-U+2k								;-- U+2000-U+200A range
+		;		| #{A8}								;-- U+2028 (Line separator)
+		;		| #{A9}								;-- U+2029 (Paragraph separator)
+		;		| #{AF}								;-- U+202F (Narrow no-break space)
+		;	]
+		;	| #{819F}								;-- U+205F (Medium mathematical space)
+		;]
+		;| #{E38080}									;-- U+3000 (Ideographic space)
 	]
 	
 	newline-char: [

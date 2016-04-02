@@ -328,17 +328,17 @@ system/lexer: context [
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
 
-		append/only stack any [dst make block! 4]
+		append/only stack any [dst make block! 200]
 
 		make-string: [
-			new: make type (index? e) - index? s
-			parse/case copy/part s e [					;@@ add /part option to parse!
+			new: make type len: (index? e) - index? s
+			parse/case/part s [
 				any [
 					escaped-char (append new value)
 					| #"^^"								;-- trash single caret chars
 					| set c skip (append new c)
 				]
-			]
+			] len
 			new
 		]
 
@@ -405,16 +405,16 @@ system/lexer: context [
 				]
 			)
 			| ws-ASCII									;-- only the common whitespaces are matched
-			| #"^(0085)"								;-- U+0085 (Newline)
-			| #"^(00A0)"								;-- U+00A0 (No-break space)
-			| #"^(1680)"								;-- U+1680 (Ogham space mark)
-			| #"^(180E)"								;-- U+180E (Mongolian vowel separator)
-			| ws-U+2k									;-- U+2000-U+200A range
-			| #"^(2028)"								;-- U+2028 (Line separator)
-			| #"^(2029)"								;-- U+2029 (Paragraph separator)
-			| #"^(202F)"								;-- U+202F (Narrow no-break space)
-			| #"^(205F)"								;-- U+205F (Medium mathematical space)
-			| #"^(3000)"								;-- U+3000 (Ideographic space)
+			;| #"^(0085)"								;-- U+0085 (Newline)
+			;| #"^(00A0)"								;-- U+00A0 (No-break space)
+			;| #"^(1680)"								;-- U+1680 (Ogham space mark)
+			;| #"^(180E)"								;-- U+180E (Mongolian vowel separator)
+			;| ws-U+2k									;-- U+2000-U+200A range
+			;| #"^(2028)"								;-- U+2028 (Line separator)
+			;| #"^(2029)"								;-- U+2029 (Paragraph separator)
+			;| #"^(202F)"								;-- U+202F (Narrow no-break space)
+			;| #"^(205F)"								;-- U+205F (Medium mathematical space)
+			;| #"^(3000)"								;-- U+3000 (Ideographic space)
 		]
 
 		newline-char: [
@@ -672,7 +672,7 @@ system/lexer: context [
 		]
 		
 		map-rule: [
-			"#(" (append/only stack make block! 4)
+			"#(" (append/only stack make block! 100)
 			any-value
 			#")" (
 				value: back tail stack
@@ -682,7 +682,7 @@ system/lexer: context [
 		]
 
 		block-rule: [
-			#"[" (append/only stack make block! 4)
+			#"[" (append/only stack make block! 100)
 			any-value
 			#"]" (pop stack)
 		]
@@ -739,8 +739,9 @@ system/lexer: context [
 
 		literal-value: [
 			pos: (e: none) s: [
-				comment-rule
-				| escaped-rule		(store stack value)
+				 string-rule		(store stack do make-string)
+				| block-rule
+				| comment-rule
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
 				| binary-rule		if (value: make-binary s e base) (store stack value)
@@ -752,15 +753,14 @@ system/lexer: context [
 				| refinement-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
-				| block-rule
-				| paren-rule
-				| string-rule		(store stack do make-string)
 				| map-rule
+				| paren-rule
+				| escaped-rule		(store stack value)
 				| issue-rule
 			]
 		]
 
-		any-value: [pos: any [literal-value | ws]]
+		any-value: [pos: any [some ws | literal-value]]
 
 		red-rules: [any-value opt wrong-delimiters]
 

@@ -308,8 +308,8 @@ load: function [
 			]
 		]
 	]
+	unless out [out: make block! 100]
 	
-	unless out [out: make block! 4]
 	switch/default type?/word source [
 		file!	[
 			suffix: suffix? source
