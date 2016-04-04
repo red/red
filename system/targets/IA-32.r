@@ -86,6 +86,69 @@ make-profilable make target-class [
 		data
 	]
 	
+	emit-variable: func [
+		name  [word! object!] 
+		gcode [binary! block! none!]				;-- global opcodes
+		pcode [binary! block! none!]				;-- PIC opcodes
+		lcode [binary! block!] 						;-- local opcodes
+		/local offset byte code spec
+	][
+		if object? name [name: compiler/unbox name]
+
+		case [
+			offset: select emitter/stack name [
+				offset: stack-encode offset 			;-- local variable case
+				if 4 = length? offset [
+					lcode: copy/deep lcode
+					code: either block? lcode [first back find lcode 'offset][lcode]
+					change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
+				]
+				either block? lcode [
+					emit reduce bind lcode 'offset
+				][
+					emit lcode
+					emit offset
+				]
+			]
+			PIC? [										;-- global variable case (PIC version)
+				either block? pcode [
+					foreach code reduce pcode [
+						either code = 'address [
+							emit-reloc-addr emitter/symbols/:name
+						][
+							emit code
+						]
+					]
+				][
+					emit pcode
+					emit-reloc-addr emitter/symbols/:name
+				]
+			]
+			'global [									;-- global variable case
+				spec: emitter/symbols/:name
+				either spec/1 = 'import-var [
+						emit #{8B1D}					;-- MOV ebx, [<import>]
+						emit-reloc-addr spec
+						emit pcode
+						emit #{00000000}
+				][
+					either block? gcode [
+						foreach code reduce gcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit gcode
+						emit-reloc-addr spec
+					]
+				]
+			]
+		]
+	]
+	
 	emit-float: func [arg opcode [binary!]][
 		emit either any [
 			arg == 4
@@ -679,9 +742,9 @@ make-profilable make target-class [
 						emit #{8D83}				;-- LEA eax, [ebx+disp]	; PIC
 						emit-reloc-addr value
 						emit-variable name
-						#{A3}						;-- MOV [name], eax		; global
-						#{8983}						;-- MOV [ebx+disp], eax	; PIC
-						#{8945}						;-- MOV [ebp+n], eax	; local
+							#{A3}					;-- MOV [name], eax		; global
+							#{8983}					;-- MOV [ebx+disp], eax	; PIC
+							#{8945}					;-- MOV [ebp+n], eax	; local
 					][
 						do store-dword
 						emit-reloc-addr value

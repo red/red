@@ -496,7 +496,7 @@ context [
 		hints:		make binary! 2048					;-- hints/names temporary buffer
 		ptr: 		(section-addr?/memory job 'import)
 					+ (1 + len * length? form-struct import-directory)	;-- point to end of directory table
-
+?? spec
 		foreach [name list] spec/3 [					;-- collecting DLL names in buffer
 			append IDTs idt: make-struct import-directory none
 			idt/name-rva: ptr + length? buffer

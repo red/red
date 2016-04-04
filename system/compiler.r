@@ -1483,9 +1483,10 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
+			err: ["invalid import specification at:" pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
@@ -1510,21 +1511,28 @@ system-dialect: make-profilable context [
 							)
 							pos: set id   string!
 							pos: set spec block!    (
-								check-specs/extend name spec
-								clear-docstrings spec
-								specs: copy specs
-								specs/1: name
-								add-function 'import specs cc
-								reloc: all [funcs: select imports lib select funcs id]
-								unless reloc [repend list [id reloc: make block! 1]]
-								emitter/import-function name reloc
+								either all [1 = length? spec not block? spec/1][
+									unless parse spec type-syntax [throw-error err]
+									either ns-path [add-ns-symbol specs/1][
+										add-symbol to word! specs/1 none spec
+									]
+									repend list [id reloc: make block! 1]
+									emitter/import/var name reloc
+								][
+									check-specs/extend name spec
+									clear-docstrings spec
+									specs: copy specs
+									specs/1: name
+									add-function 'import specs cc
+									reloc: all [funcs: select imports lib select funcs id]
+									unless reloc [repend list [id reloc: make block! 1]]
+									emitter/import name reloc
+								]
 							)
 						]
 					](if new? [repend imports [lib list]])
 				]
-			][
-				throw-error ["invalid import specification at:" pos]
-			]		
+			][throw-error err]
 		]
 		
 		process-syscall: func [defs [block!] /local name id spec pos][

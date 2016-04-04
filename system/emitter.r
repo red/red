@@ -629,8 +629,9 @@ emitter: make-profilable context [
 		target/emit-epilog name locals args-sz locals-sz
 	]
 	
-	import-function: func [name [word!] reloc [block!]][
-		repend symbols [name reduce ['import none reloc]]
+	import: func [name [word!] reloc [block!] /var /local type][
+		type: pick [import-var import] to logic! var
+		repend symbols [name reduce [type none reloc]]
 	]
 	
 	add-native: func [name [word!] /local spec][
