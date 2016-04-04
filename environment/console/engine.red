@@ -201,16 +201,20 @@ system/console: context [
 
 	launch: function [][
 		either script: read-argument [
-			either not all [
-				script: attempt [load script]
-				script: find script 'Red
-				block? script/2 
+			either error? script: try-do [load script][
+				print :script
 			][
-				print "*** Error: not a Red program!"
-				;quit/return -2
-			][
-				set/any 'result try-do skip script 2
-				if error? :result [print result]
+				either not all [
+					block? script
+					script: find script 'Red
+					block? script/2 
+				][
+					print "*** Error: not a Red program!"
+					;quit/return -2
+				][
+					set/any 'result try-do skip script 2
+					if error? :result [print result]
+				]
 			]
 			if any [catch? gui?][run/no-banner]
 		][
