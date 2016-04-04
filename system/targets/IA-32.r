@@ -97,7 +97,7 @@ make-profilable make target-class [
 
 		case [
 			offset: select emitter/stack name [
-				offset: stack-encode offset 			;-- local variable case
+				offset: stack-encode offset 		;-- local variable case
 				if 4 = length? offset [
 					lcode: copy/deep lcode
 					code: either block? lcode [first back find lcode 'offset][lcode]
@@ -110,27 +110,39 @@ make-profilable make target-class [
 					emit offset
 				]
 			]
-			PIC? [										;-- global variable case (PIC version)
-				either block? pcode [
-					foreach code reduce pcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
+			PIC? [									;-- global variable case (PIC version)
+				spec: emitter/symbols/:name
+				either all [
+					spec/1 = 'import-var 
+					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
 				][
-					emit pcode
-					emit-reloc-addr emitter/symbols/:name
+					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
+					emit-reloc-addr spec
+					emit (#{FF7E} and copy pcode) or #{0004} ;-- [ebx+<disp>] => [esi]
+				][
+					either block? pcode [
+						foreach code reduce pcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit pcode
+						emit-reloc-addr spec
+					]
 				]
 			]
-			'global [									;-- global variable case
+			'global [								;-- global variable case
 				spec: emitter/symbols/:name
-				either spec/1 = 'import-var [
-						emit #{8B1D}					;-- MOV ebx, [<import>]
-						emit-reloc-addr spec
-						emit pcode
-						emit #{00000000}
+				either all [
+					spec/1 = 'import-var 
+					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
+				][
+					emit #{8B1D}					;-- MOV ebx, [<import>]
+					emit-reloc-addr spec
+					emit #{FF7F} and copy pcode		;-- [ebx+<disp>] => [ebx]
 				][
 					either block? gcode [
 						foreach code reduce gcode [

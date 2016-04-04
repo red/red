@@ -74,6 +74,7 @@ foo: func [
 	a		[integer!]
 	return: [integer!]
 ][
+	?? i
 	a + 1
 ]
 

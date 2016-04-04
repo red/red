@@ -829,7 +829,7 @@ context [
 			foreach [meta symbol] reverse copy job/symbols [
 				catch [
 					case [
-						find [import native-ref] meta/1 [
+						find [import import-var native-ref] meta/1 [
 							throw 'continue
 						]
 						'global = meta/1 [
