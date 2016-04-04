@@ -732,6 +732,27 @@ split-path: func [
 	reduce [dir pos]
 ]
 
+change: func [
+	"Changes a value in a series and returns the series after the change."
+	series [series!] "Series at point to change"
+	value [any-type!] "The new value"
+	/part "Limits the amount to change to a given length or position."
+		range [number! series!]
+	/only "Changes a series as a series."
+	/dup "Duplicates the change a specified number of times."
+		count [number!]
+][
+	either any-string? :value [
+		unless any-string? series [only: true]
+	][
+		if any-string? series [value: append copy "" :value]
+	]
+	if only [value: reduce [:value]]
+	unless part [range: either series? :value [length? value][1]]
+	unless dup [count: 1]
+	insert/dup remove/part series range :value count
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------

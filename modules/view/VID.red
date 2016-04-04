@@ -91,7 +91,7 @@ system/view/VID: context [
 			value
 		][
 			if all [
-				type = word!
+				any [type = word! type = path!]
 				value: get value
 				any [
 					all [datatype? expected expected = type? value]
