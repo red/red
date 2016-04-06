@@ -1415,7 +1415,7 @@ simple-io: context [
 					]
 					hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
 				][
-					fire [TO_ERROR(access no-connect) url]
+					return res
 				]
 
 				if hr >= 0 [
@@ -1459,13 +1459,13 @@ simple-io: context [
 						SafeArrayUnaccessData array
 					]
 					if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
+					if info? [
+						block/rs-append blk res
+						res: as red-value! blk
+					]
 				]
 
 				if http <> null [http/Release IH/ptr]
-				if info? [
-					block/rs-append blk res
-					res: as red-value! blk
-				]
 				res
 			]
 		]
@@ -1702,7 +1702,7 @@ simple-io: context [
 				CFRelease raw-url
 				CFRelease escaped-url
 
-				if zero? req [fire [TO_ERROR(access no-connect) url]]
+				if zero? req [return as red-value! none-value]
 
 				if any [method = HTTP_POST method = HTTP_PUT][
 					datalen: -1
@@ -1735,7 +1735,7 @@ simple-io: context [
 				]
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
-				if zero? stream [fire [TO_ERROR(access no-connect) url]]
+				if zero? stream [return none-value]
 
 				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
 				CFReadStreamOpen stream
