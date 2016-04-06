@@ -26,9 +26,9 @@ Red/System [
 #define PixelFormatUndefined		0
 #define PixelFormatDontCare			0
 
-#define PixelFormat32bppARGB		[10 or (32 << 8) or PixelFormatAlpha or PixelFormatGDI or PixelFormatCanonical]
-#define PixelFormat32bppPARGB		[11 or (32 << 8) or PixelFormatAlpha or PixelFormatPAlpha or PixelFormatGDI]
-#define PixelFormat32bppCMYK		[15 or (32 << 8)]
+#define PixelFormat32bppARGB		2498570   ;-- [10 or (32 << 8) or PixelFormatAlpha or PixelFormatGDI or PixelFormatCanonical]
+#define PixelFormat32bppPARGB		925707    ;-- [11 or (32 << 8) or PixelFormatAlpha or PixelFormatPAlpha or PixelFormatGDI]
+#define PixelFormat32bppCMYK		8207	  ;-- [15 or (32 << 8)]
 #define PixelFormatMax				16
 
 ;-- PixelFormat
@@ -222,6 +222,22 @@ OS-image: context [
 				image		[integer!]
 				return:		[integer!]
 			]
+			GdipGetImagePaletteSize: "GdipGetImagePaletteSize" [
+				image		[integer!]
+				size		[int-ptr!]
+				return:		[integer!]
+			]
+			GdipGetImagePalette: "GdipGetImagePalette" [
+				image		[integer!]
+				palette		[byte-ptr!]
+				size		[integer!]
+				return:		[integer!]
+			]
+			GdipSetImagePalette: "GdipSetImagePalette" [
+				image		[integer!]
+				palette		[byte-ptr!]
+				return:		[integer!]
+			]
 		]
 	]
 
@@ -249,6 +265,7 @@ OS-image: context [
 
 	lock-bitmap: func [
 		handle		[integer!]
+		pixelformat [integer!]
 		write?		[logic!]
 		return:		[integer!]
 		/local
@@ -264,7 +281,7 @@ OS-image: context [
 		rect/right: width? handle
 		rect/bottom: height? handle
 		mode: either write? [ImageLockModeWrite][ImageLockModeRead]
-		res: GdipBitmapLockBits handle rect mode PixelFormat32bppARGB data
+		res: GdipBitmapLockBits handle rect mode pixelformat data
 		either zero? res [as-integer data][0]
 	]
 
@@ -357,15 +374,29 @@ OS-image: context [
 		src		[integer!]
 		bytes	[integer!]
 		offset	[integer!]
+		format	[integer!]
 		/local
 			bmp-src [BitmapData!]
 			bmp-dst [BitmapData!]
+			palette [byte-ptr!]
+			bits	[integer!]
 	][
-		bmp-src: as BitmapData! lock-bitmap src no
-		bmp-dst: as BitmapData! lock-bitmap dst yes
-		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
+		bits: format >> 8 and FFh 					;--number of bit per pixel
+
+		bmp-src: as BitmapData! lock-bitmap src format no
+		bmp-dst: as BitmapData! lock-bitmap dst format yes
+		copy-memory bmp-dst/scan0 bmp-src/scan0 + (offset * bits / 8) bytes * bits / 8
 		unlock-bitmap src as-integer bmp-src
 		unlock-bitmap dst as-integer bmp-dst
+
+		if format and PixelFormatIndexed <> 0 [		;-- indexed image, need to set palette
+			bytes: 0
+			GdipGetImagePaletteSize src :bytes
+			palette: allocate bytes
+			GdipGetImagePalette src palette bytes
+			GdipSetImagePalette dst palette
+			free palette
+		]
 	]
 
 	load-image: func [
@@ -390,7 +421,7 @@ OS-image: context [
 		h: height? handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
-		copy bitmap handle w * h * 4 0
+		copy bitmap handle w * h 0 format
 
 		GdipDisposeImage handle 
 		bitmap
@@ -417,7 +448,7 @@ OS-image: context [
 	][
 		bitmap: 0
 		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
-		data: as BitmapData! lock-bitmap bitmap yes
+		data: as BitmapData! lock-bitmap bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
 
 		y: 0
@@ -590,7 +621,7 @@ OS-image: context [
 				if zero? part [w: 1]
 				GdipCreateBitmapFromScan0 w h 0 format null :bmp
 				either zero? part [w: 0 h: 0][
-					copy bmp handle w * h * 4 offset * 4
+					copy bmp handle w * h offset format
 				]
 			]
 			dst/size: h << 16 or w
