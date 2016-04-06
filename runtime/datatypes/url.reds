@@ -159,7 +159,9 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		part: simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+		part
 	]
 
 	write: func [
@@ -206,7 +208,9 @@ url: context [
 			action: HTTP_POST
 		]
 		
-		simple-io/request-http action as red-url! dest header data binary? lines? info?
+		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+		part
 	]
 
 	init: does [
