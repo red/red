@@ -26,6 +26,7 @@ REBOL [
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;	debug?:			 yes | no					;-- yes => emit debug information into binary
 ;;	debug-safe?:	 yes | no					;-- yes => try to avoid over-crashing on runtime debug reports
+;;	dev-mode?:		 yes | no					;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
 ;;  red-tracing?:	yes							;-- no => do not compile tracing code

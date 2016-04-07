@@ -48,6 +48,7 @@ system-dialect: make-profilable context [
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		no							;-- try to avoid over-crashing on runtime debug reports
+		dev-mode?:		 	yes							;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -2664,7 +2665,10 @@ system-dialect: make-profilable context [
 					]
 					unless check [comp-func-args name entry]
 				]
-				'else [throw-error ["undefined symbol:" mold name]]
+				'else [
+probe new-line/all/skip to-block compiler/globals yes 2 nl			
+				
+				throw-error ["undefined symbol:" mold name]]
 			]
 		]
 		
@@ -3256,6 +3260,9 @@ system-dialect: make-profilable context [
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
+			
+			libRed/make-exports functions exports
+			
 			if job/type = 'dll [
 				if empty? exports [
 					throw-error "missing #export directive for library production"
@@ -3536,7 +3543,7 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
-libRed/extract compiler/functions
+		
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols

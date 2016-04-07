@@ -379,6 +379,8 @@ redc: context [
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
+				| "--dev"					(opts/dev-mode?: yes)
+				| "--release"				(opts/dev-mode?: no)
 				| "--cli"					(gui?: no)
 				| "--catch"								;-- just pass-thru
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)

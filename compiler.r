@@ -46,6 +46,7 @@ red: context [
 		'block	   make hash! 1000
 		'string	   make hash! 1000
 		'context   make hash! 1000
+		'typeset   make hash! 100
 	]
 	 
 	pc: 		   none
@@ -735,7 +736,7 @@ red: context [
 	
 	decorate-series-var: func [name [word!] /local new list][
 		new: to word! join name get-counter
-		list: select lit-vars select [blk block str string ctx context] name
+		list: select lit-vars select [blk block str string ctx context ts typeset] name
 		if all [list not find list new][append list new]
 		new
 	]
@@ -4133,11 +4134,11 @@ red: context [
 		set [user main] comp-source code
 		
 		defs: make block! 10'000
-		
 		foreach [type cast][
 			block	red-block!
 			string	red-string!
 			context node!
+			typeset	red-typeset!
 		][
 			foreach name lit-vars/:type [
 				repend defs [to set-word! name 'as cast 0]
@@ -4149,6 +4150,7 @@ red: context [
 			new-line skip tail defs -4 on
 		]
 		append defs [
+			obj: as red-object! 0
 			------------| "Declarations"
 		]
 		append defs declarations
@@ -4313,6 +4315,7 @@ red: context [
 		clear lit-vars/block
 		clear lit-vars/string
 		clear lit-vars/context
+		clear lit-vars/typeset
 		clear types-cache
 		clear shadow-funcs
 		clear native-ts
