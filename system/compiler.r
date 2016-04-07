@@ -18,6 +18,7 @@ do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
+do-cache %system/utils/libRed.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
@@ -3535,7 +3536,7 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
-
+libRed/extract compiler/functions
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
