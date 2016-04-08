@@ -410,7 +410,7 @@ system/view/platform: context [
 			pair   [red-pair!]
 			font   [red-object!]
 			state  [red-block!]
-			hFont  [handle!]
+			hFont  [int-ptr!]							;-- handle!
 	][
 		;@@ check if object is a face?
 		values: object/get-values face

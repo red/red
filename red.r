@@ -353,6 +353,20 @@ redc: context [
 		]
 		quit/return 0
 	]
+	
+	build-libRed: func [opts [object!] /local script result file][
+		file: %libRed
+		opts: make opts [
+			build-basename: file
+			type: 'dll
+		]
+		script: next [Red [Needs: 'View]]					;-- empty script for the lib
+?? opts
+		result: red/compile script opts
+		unless encap? [change-dir %system/]
+		system-dialect/compile/options/loaded file opts result
+		unless encap? [change-dir %../]
+	]
 
 	parse-options: func [
 		args [string! none!]
@@ -496,6 +510,7 @@ redc: context [
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
+			;if opts/dev-mode? [build-libRed opts]
 
 			fail-try "Red Compiler" [
 				result: red/compile src opts

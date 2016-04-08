@@ -2665,10 +2665,7 @@ system-dialect: make-profilable context [
 					]
 					unless check [comp-func-args name entry]
 				]
-				'else [
-probe new-line/all/skip to-block compiler/globals yes 2 nl			
-				
-				throw-error ["undefined symbol:" mold name]]
+				'else [throw-error ["undefined symbol:" mold name]]
 			]
 		]
 		

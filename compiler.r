@@ -4030,6 +4030,22 @@ red: context [
 		]
 	]
 	
+	externalize-contexts: func [src [block!] /local ext pos mark rule][
+		ext: make block! 3
+		parse src rule: [
+			some [
+				pos: set-word! 'context block! (
+					append ext copy/part pos 3
+					mark: remove/part pos 3
+				) :mark
+				| string! | paren! | path!
+				| into rule
+				| skip
+			]
+		]
+		ext
+	]
+	
 	comp-bodies: does [
 		obj-stack: to path! 'func-objs
 		
@@ -4112,7 +4128,7 @@ red: context [
 		reduce [user main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main defs pos][
+	comp-as-lib: func [code [block!] /local user main defs pos ext-ctx][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -4149,6 +4165,8 @@ red: context [
 			repend defs [to set-word! spec/1 'as 'red-word! 0]
 			new-line skip tail defs -4 on
 		]
+		ext-ctx: externalize-contexts main
+		
 		append defs [
 			obj: as red-object! 0
 			------------| "Declarations"
@@ -4160,6 +4178,8 @@ red: context [
 		]
 		append defs output
 ;		if verbose = 2 [probe pos]
+?? ext-ctx
+		unless empty? ext-ctx [append defs ext-ctx]
 		
 		script: make block! 10'000
 		append script [
@@ -4333,19 +4353,21 @@ red: context [
 		verbose: opts/verbosity
 		job: opts
 		clean-up
-		main-path: first split-path file
+		main-path: first split-path any [all [block? file system/options/path] file]
 		no-global?: job/type = 'dll
 		resources: make block! 8
 
 		time: dt [
 			src: load-source file
+?? src			
 			job/red-pass?: yes
 			process-config src/1 job
 			process-needs src/1 next src
-			system-dialect/collect-resources src/1 resources file
+			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
+save %out.r output
 		reduce [output time redbin/buffer resources]
 	]
 ]
