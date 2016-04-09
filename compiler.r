@@ -4030,22 +4030,6 @@ red: context [
 		]
 	]
 	
-	externalize-contexts: func [src [block!] /local ext pos mark rule][
-		ext: make block! 3
-		parse src rule: [
-			some [
-				pos: set-word! 'context block! (
-					append ext copy/part pos 3
-					mark: remove/part pos 3
-				) :mark
-				| string! | paren! | path!
-				| into rule
-				| skip
-			]
-		]
-		ext
-	]
-	
 	comp-bodies: does [
 		obj-stack: to path! 'func-objs
 		
@@ -4096,7 +4080,7 @@ red: context [
 		redbin/finish pick [[compress] []] to logic! redc/load-lib?
 	]
 	
-	comp-source: func [code [block!] /local user main saved][
+	comp-source: func [code [block!] /local user main saved mods][
 		output: make block! 10000
 		comp-init
 		
@@ -4106,6 +4090,7 @@ red: context [
 		comp-block
 		booting?: no
 		
+		mods: tail output
 		foreach module needed [
 			saved: if script-path [copy script-path]
 			script-path: first split-path module
@@ -4125,10 +4110,10 @@ red: context [
 		comp-bodies										;-- compile deferred functions
 		comp-finish
 		
-		reduce [user main]
+		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main defs pos ext-ctx][
+	comp-as-lib: func [code [block!] /local user mods main mark defs pos ext-ctx][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -4147,8 +4132,10 @@ red: context [
 			]
 		]
 		
-		set [user main] comp-source code
-		
+		set [user mark main] comp-source code
+		mods: copy/part mark user
+		remove/part mark user
+
 		defs: make block! 10'000
 		foreach [type cast][
 			block	red-block!
@@ -4165,7 +4152,6 @@ red: context [
 			repend defs [to set-word! spec/1 'as 'red-word! 0]
 			new-line skip tail defs -4 on
 		]
-		ext-ctx: externalize-contexts main
 		
 		append defs [
 			obj: as red-object! 0
@@ -4178,8 +4164,8 @@ red: context [
 		]
 		append defs output
 ;		if verbose = 2 [probe pos]
-?? ext-ctx
-		unless empty? ext-ctx [append defs ext-ctx]
+
+		append defs mods
 		
 		script: make block! 10'000
 		append script [
@@ -4209,7 +4195,7 @@ red: context [
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user main][
+	comp-as-exe: func [code [block!] /local out user mods main][
 		out: copy/deep [
 			Red/System [origin: 'Red]
 
@@ -4220,7 +4206,7 @@ red: context [
 			]
 		]
 		
-		set [user main] comp-source code
+		set [user mods main] comp-source code
 		
 		;-- assemble all parts together in right order
 		script: make block! 100'000
