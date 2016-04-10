@@ -95,5 +95,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "/next"
+		
+	--test-- "next1"
+		--assert [1 " 2 3"] = system/lexer/transcode "1 2 3" make block! 2
+
+===end-group===
 
 ~~~end-file~~~
