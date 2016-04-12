@@ -83,8 +83,8 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 	]
 ]
 
-exists?: routine [path [file!]][
-	logic/box simple-io/file-exists? file/to-OS-path path
+exists?: routine [path [file!] return: [logic!]][
+	simple-io/file-exists? file/to-OS-path path
 ]
 
 as-color: routine [
