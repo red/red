@@ -714,7 +714,7 @@ _hashtable: context [
 		return:  [red-value!]
 		/local
 			s h i flags last mask step keys hash ii sh blk
-			idx last-idx op find? reverse-head k type
+			idx last-idx op find? reverse-head k type key-type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
@@ -722,11 +722,12 @@ _hashtable: context [
 		assert h/n-buckets > 0
 
 		type: h/type
+		key-type: TYPE_OF(key)
 		if all [
 			type = HASH_TABLE_MAP
-			word/any-word? TYPE_OF(key)
+			word/any-word? key-type
 		][
-			set-type key TYPE_SET_WORD			;-- map, convert any-word! to set-word!
+			key-type: TYPE_SET_WORD						;-- map, convert any-word! to set-word!
 		]
 
 		s: as series! h/blk/value
@@ -755,7 +756,7 @@ _hashtable: context [
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
 					type = HASH_TABLE_HASH
-					TYPE_OF(k) <> TYPE_OF(key)
+					TYPE_OF(k) <> key-type
 					not actions/compare k key op
 				]
 			]
@@ -765,7 +766,7 @@ _hashtable: context [
 				k: blk + idx
 				if all [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
-					TYPE_OF(k) = TYPE_OF(key)
+					TYPE_OF(k) = key-type
 					actions/compare k key op
 					idx - head // skip = 0
 				][
