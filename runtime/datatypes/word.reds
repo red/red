@@ -12,10 +12,7 @@ Red/System [
 
 #define CHECK_UNSET(value word) [
 	if TYPE_OF(value) = TYPE_UNSET [
-		fire [
-			TO_ERROR(script no-value)
-			word
-		]
+		fire [TO_ERROR(script need-value) word]
 	]
 ]
 
@@ -249,7 +246,9 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
 		value: copy-cell _context/get word stack/push*
-		CHECK_UNSET(value word)
+		if TYPE_OF(value) = TYPE_UNSET [
+			fire [TO_ERROR(script no-value) word]
+		]
 		value
 	]
 
