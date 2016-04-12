@@ -361,7 +361,6 @@ Red/System [
 					]
 					TYPE_BLOCK [
 						parse-draw as red-block! cmd DC catch?
-						cmd: cmd + 1
 					]
 					default [throw-draw-error cmds cmd catch?]
 				]

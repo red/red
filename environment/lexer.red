@@ -406,7 +406,7 @@ system/lexer: context [
 			)
 			| ws-ASCII									;-- only the common whitespaces are matched
 			;| #"^(0085)"								;-- U+0085 (Newline)
-			;| #"^(00A0)"								;-- U+00A0 (No-break space)
+			| #"^(00A0)"								;-- U+00A0 (No-break space)
 			;| #"^(1680)"								;-- U+1680 (Ogham space mark)
 			;| #"^(180E)"								;-- U+180E (Mongolian vowel separator)
 			;| ws-U+2k									;-- U+2000-U+200A range

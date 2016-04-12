@@ -447,10 +447,11 @@ block: context [
 			size2  [integer!]
 			type1  [integer!]
 			type2  [integer!]
-			end	   [red-value!]
 			value1 [red-value!]
 			value2 [red-value!]
 			res	   [integer!]
+			n	   [integer!]
+			len	   [integer!]
 	][
 		if all [
 			blk1/node = blk2/node
@@ -473,8 +474,9 @@ block: context [
 
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
-		end: s1/tail											;-- only one "end" is needed
-		
+		len: either size1 < size2 [size1][size2]
+		n: 0
+
 		cycles/push blk1/node
 		
 		until [
@@ -499,12 +501,14 @@ block: context [
 				cycles/pop
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
+			n: n + 1
 			any [
 				res <> 0
-				value1 >= end
+				n = len
 			]
 		]
 		cycles/pop
+		if zero? res [res: SIGN_COMPARE_RESULT(size1 size2)]
 		res
 	]
 

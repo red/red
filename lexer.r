@@ -111,10 +111,10 @@ lexer: context [
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
-		;| #{C2} [
-		;	#{85}									;-- U+0085 (Newline)
-		;	| #{A0}									;-- U+00A0 (No-break space)
-		;]
+		| #{C2} [
+			#{85}									;-- U+0085 (Newline)
+			| #{A0}									;-- U+00A0 (No-break space)
+		]
 		;| #{E1} [
 		;	#{9A80}									;-- U+1680 (Ogham space mark)
 		;	| #{A08E}								;-- U+180E (Mongolian vowel separator)
