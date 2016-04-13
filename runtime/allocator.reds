@@ -672,7 +672,7 @@ set-flag: func [
 	/local series
 ][
 	series: as series-buffer! node/value
-	series/flags: (series/flags and not flags) or flags	;-- reset flags bits, then apply flags
+	series/flags: series/flags or flags	;-- apply flags
 ]
 
 ;-------------------------------------------
