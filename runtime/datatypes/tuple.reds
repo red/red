@@ -411,7 +411,7 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 			null
 		][
-			as red-value! integer/box as-integer value/index
+			as red-value! integer/push as-integer value/index
 		]
 	]
 

@@ -88,7 +88,7 @@ encap-fs: context [
 		set 'exists?-cache :exists?
 		set 'set-cache-base none
 		set 'do-cache func [file][do load file]
-		set 'load-cache set 'load-cache-binary: :load
+		set 'load-cache set 'load-cache-binary :load
 		set 'read-cache :read
 		set 'read-binary-cache func [file [file!]][read/binary file]
 	]
