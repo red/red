@@ -311,23 +311,24 @@ system/lexer: context [
 	]
 
 	new-line: routine [
-		blk [block!]
-		set? [logic!]
+    	"Sets or clears the new-line marker within a block."
+		blk [block!] "Position in block to change marker"
+		set? [logic!] "Set TRUE for newline"
 		/local
 			s		[series!]
 			cell	[red-value!]
 	][
 		s: GET_BUFFER(blk)
 		cell: s/offset + blk/head
-		if cell < s/tail [		 ;-- if not tail? blk
+		if cell < s/tail [
 			either set? [
-				cell/header: cell/header or 40000000h ;-- set new-line flag
+				cell/header: cell/header or 40000000h
 			][
-				cell/header: cell/header and not 40000000h ;-- unset
+				cell/header: cell/header and not 40000000h
 			]
 		]
 	]
-
+	
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
@@ -768,9 +769,9 @@ system/lexer: context [
 				| comment-rule		(old-line: line)
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
-				| binary-rule		if (value: make-binary s e base) (store stack value)
-				| integer-rule		if (value) (store stack value)
-				| float-rule		if (value: make-float s e type) (store stack value)
+				| binary-rule		if (value: make-binary s e base) (store stack value )
+				| integer-rule		if (value) (store stack value )
+				| float-rule		if (value: make-float s e type) (store stack value )
 				| word-rule
 				| lit-word-rule
 				| get-word-rule
@@ -788,7 +789,7 @@ system/lexer: context [
 			pos: any [
 				some ws | literal-value (
 					if line > old-line [
-						old-line: line
+						old-line: line 
 						new-line back tail last stack on
 					]
 				)
