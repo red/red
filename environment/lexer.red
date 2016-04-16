@@ -766,29 +766,34 @@ system/lexer: context [
 				 string-rule		(store stack do make-string)
 				| block-rule		(old-line: line)
 				| comment-rule		(old-line: line)
-				| tuple-rule		(store stack make-tuple s e )
-				| hexa-rule			(store stack make-hexa s e )
-				| binary-rule		if (value: make-binary s e base) (store stack value )
-				| integer-rule		if (value) (store stack value )
-				| float-rule		if (value: make-float s e type) (store stack value )
-				| word-rule			
-				| lit-word-rule		
-				| get-word-rule		
-				| refinement-rule	
+				| tuple-rule		(store stack make-tuple s e)
+				| hexa-rule			(store stack make-hexa s e)
+				| binary-rule		if (value: make-binary s e base) (store stack value)
+				| integer-rule		if (value) (store stack value)
+				| float-rule		if (value: make-float s e type) (store stack value)
+				| word-rule
+				| lit-word-rule
+				| get-word-rule
+				| refinement-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
 				| map-rule			(old-line: line)
 				| paren-rule		(old-line: line)
 				| escaped-rule		(store stack value)
-				| issue-rule		
+				| issue-rule
 			]
 		]
 
-		any-value: [pos: any [some ws 
-			| literal-value (
-				if line > old-line [old-line: line new-line back tail last stack on]
-			)
-		]]
+		any-value: [
+			pos: any [
+				some ws | literal-value (
+					if line > old-line [
+						old-line: line
+						new-line back tail last stack on
+					]
+				)
+			]
+		]
 
 		red-rules: [any-value opt wrong-delimiters]
 
