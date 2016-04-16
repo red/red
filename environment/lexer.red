@@ -310,6 +310,24 @@ system/lexer: context [
 		]
 	]
 
+	new-line: routine [
+		blk [block!]
+		set? [logic!]
+		/local
+			s		[series!]
+			cell	[red-value!]
+	][
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		if cell < s/tail [		 ;-- if not tail? blk
+			either set? [
+				cell/header: cell/header or 40000000h ;-- set new-line flag
+			][
+				cell/header: cell/header and not 40000000h ;-- unset
+			]
+		]
+	]
+
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
@@ -326,7 +344,7 @@ system/lexer: context [
 		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
-		line: 	1
+		old-line: line: 1
 
 		append/only stack any [dst make block! 200]
 
@@ -682,13 +700,19 @@ system/lexer: context [
 		]
 
 		block-rule: [
-			#"[" (append/only stack make block! 100)
+			#"[" (
+				append/only stack make block! 100 
+				if line > old-line [old-line: line new-line back tail stack on]
+			)
 			any-value
 			#"]" (pop stack)
 		]
 
 		paren-rule: [
-			#"(" (append/only stack make paren! 4)
+			#"(" (
+				append/only stack make paren! 4 
+				if line > old-line [old-line: line new-line back tail stack on]
+			)
 			any-value 
 			#")" (pop stack)
 		]
@@ -740,27 +764,31 @@ system/lexer: context [
 		literal-value: [
 			pos: (e: none) s: [
 				 string-rule		(store stack do make-string)
-				| block-rule
-				| comment-rule
-				| tuple-rule		(store stack make-tuple s e)
-				| hexa-rule			(store stack make-hexa s e)
-				| binary-rule		if (value: make-binary s e base) (store stack value)
-				| integer-rule		if (value) (store stack value)
-				| float-rule		if (value: make-float s e type) (store stack value)
-				| word-rule
-				| lit-word-rule
-				| get-word-rule
-				| refinement-rule
+				| block-rule		(old-line: line)
+				| comment-rule		(old-line: line)
+				| tuple-rule		(store stack make-tuple s e )
+				| hexa-rule			(store stack make-hexa s e )
+				| binary-rule		if (value: make-binary s e base) (store stack value )
+				| integer-rule		if (value) (store stack value )
+				| float-rule		if (value: make-float s e type) (store stack value )
+				| word-rule			
+				| lit-word-rule		
+				| get-word-rule		
+				| refinement-rule	
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
-				| map-rule
-				| paren-rule
+				| map-rule			(old-line: line)
+				| paren-rule		(old-line: line)
 				| escaped-rule		(store stack value)
-				| issue-rule
+				| issue-rule		
 			]
 		]
 
-		any-value: [pos: any [some ws | literal-value]]
+		any-value: [pos: any [some ws 
+			| literal-value (
+				if line > old-line [old-line: line new-line back tail last stack on]
+			)
+		]]
 
 		red-rules: [any-value opt wrong-delimiters]
 
