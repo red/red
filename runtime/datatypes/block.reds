@@ -401,12 +401,14 @@ block: context [
 			head  [red-value!]
 			tail  [red-value!]
 			value [red-value!]
+			lf?	  [logic!]	;-- newline detected?
 	][
 		s: GET_BUFFER(blk)
 		head:  s/offset + blk/head
 		value: head
 		tail:  s/tail
 		
+		lf?: off
 		cycles/push blk/node
 		
 		while [value < tail][
@@ -416,6 +418,17 @@ block: context [
 			]
 			depth: depth + 1
 			unless cycles/detect? value buffer :part yes [
+				unless flat? [
+					if value/header and 40000000h <> 0 [ ;-- new-line marker
+						unless lf? [lf?: on indent: indent + 1]
+						string/append-char GET_BUFFER(buffer) as-integer lf
+						part: part - 1
+						loop indent [
+							string/concatenate-literal buffer "    "
+							part: part - 4
+						]
+					]
+				]
 				part: actions/mold value buffer only? all? flat? arg part indent
 			]
 			if positive? depth [
@@ -431,6 +444,14 @@ block: context [
 		if value <> head [								;-- test if not empty block
 			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
 			part: part + 1
+		]
+		if lf? [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+			loop indent - 1 [
+				string/concatenate-literal buffer "    "
+				part: part - 4
+			]
 		]
 		part
 	]
@@ -1278,7 +1299,6 @@ block: context [
 				][
 					copy-cell value head
 					if hash? [_hashtable/put table head]
-					head: head + 1
 				]
 			]
 			cnt: cnt - 1

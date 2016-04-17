@@ -60,6 +60,7 @@ pair: context [
 		parent 	[red-block!]
 		x 		[integer!]
 		y 		[integer!]
+		return: [red-pair!]
 		/local
 			pair [red-pair!]
 	][
@@ -69,6 +70,7 @@ pair: context [
 		pair/header: TYPE_PAIR
 		pair/x: x
 		pair/y: y
+		pair
 	]
 	
 	push: func [
