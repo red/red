@@ -312,19 +312,24 @@ system/lexer: context [
 
 	new-line: routine [
     	"Sets or clears the new-line marker within a block."
-		blk [block!] "Position in block to change marker"
+		blk  [series!] "Position in serie to change marker"
 		set? [logic!] "Set TRUE for newline"
+		all?  [logic!] "apply to all serie"
 		/local
 			s		[series!]
 			cell	[red-value!]
 	][
-		s: GET_BUFFER(blk)
-		cell: s/offset + blk/head
-		if cell < s/tail [
-			either set? [
-				cell/header: cell/header or 40000000h
-			][
-				cell/header: cell/header and not 40000000h
+		if any [TYPE_OF(blk) = TYPE_BLOCK TYPE_OF(blk) = TYPE_PAREN][
+			s: GET_BUFFER(blk)
+			cell: s/offset + blk/head
+			while [cell < s/tail][
+				either set? [
+					cell/header: cell/header or 40000000h
+				][
+					cell/header: cell/header and not 40000000h
+				]
+				unless all? [break]
+				cell: cell + 1
 			]
 		]
 	]
@@ -703,7 +708,7 @@ system/lexer: context [
 		block-rule: [
 			#"[" (
 				append/only stack make block! 100 
-				if line > old-line [old-line: line new-line back tail stack on]
+				if line > old-line [old-line: line new-line back tail stack on off]
 			)
 			any-value
 			#"]" (pop stack)
@@ -712,7 +717,7 @@ system/lexer: context [
 		paren-rule: [
 			#"(" (
 				append/only stack make paren! 4 
-				if line > old-line [old-line: line new-line back tail stack on]
+				if line > old-line [old-line: line new-line back tail stack on off]
 			)
 			any-value 
 			#")" (pop stack)
@@ -790,7 +795,7 @@ system/lexer: context [
 				some ws | literal-value (
 					if line > old-line [
 						old-line: line 
-						new-line back tail last stack on
+						new-line back tail last stack on off
 					]
 				)
 			]
