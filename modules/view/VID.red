@@ -132,6 +132,7 @@ system/view/VID: context [
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enable?: no)
+				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]
 			unless match? [
