@@ -33,27 +33,35 @@ system/view/VID: context [
 	]
 	
 	calc-size: function [face [object!]][
-		either all [
-			block? data: face/data
-			not empty? data 
-			find [text-list drop-list drop-down] face/type
-		][
-			min-sz: 0x0
-			foreach txt data [
-				if string? txt [
-					size: size-text/with face txt
+		case [
+			all [
+				block? data: face/data
+				not empty? data 
+				find [text-list drop-list drop-down] face/type
+			][
+				min-sz: 0x0
+				foreach txt data [
+					if string? txt [
+						size: size-text/with face txt
+						if size/x > min-sz/x [min-sz/x: size/x]
+						if size/y > min-sz/y [min-sz/y: size/y]
+					]
+				]
+				if all [face/text face/type <> 'drop-list][
+					size: size-text face
 					if size/x > min-sz/x [min-sz/x: size/x]
 					if size/y > min-sz/y [min-sz/y: size/y]
 				]
+				min-sz + 24x0							;@@ hardcoded offset for scrollbar
 			]
-			if all [face/text face/type <> 'drop-list][
-				size: size-text face
-				if size/x > min-sz/x [min-sz/x: size/x]
-				if size/y > min-sz/y [min-sz/y: size/y]
+			all [face/type = 'area string? face/text not empty? face/text][
+				len: 0
+				parse mark: face/text [
+					any [s: to [CR | end] e: (if len < new: offset? s e [len: new mark: s]) opt LF skip]
+				]
+				size-text/with face copy/part mark len
 			]
-			min-sz + 24x0								;@@ hardcoded offset for scrollbar
-		][
-			either face/text [size-text face][size-text/with face "X"]
+			'else [either face/text [size-text face][size-text/with face "X"]]
 		]
 	]
 	
