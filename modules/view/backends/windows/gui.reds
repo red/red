@@ -1074,13 +1074,14 @@ change-offset: func [
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	pt: declare red-pair!
 	handle: as handle! hWnd
-	layer?: no
 	if type = base [
-		values: get-face-values handle
 		style: GetWindowLong handle GWL_EXSTYLE
-		either style and WS_EX_LAYERED > 0 [
-			layer?: yes
-			size: as red-pair! values + FACE_OBJ_SIZE
+		layer?: style and WS_EX_LAYERED > 0
+
+		values: get-face-values handle
+		size: as red-pair! values + FACE_OBJ_SIZE
+		process-layered-region handle size pos as red-block! values + FACE_OBJ_PANE pos null layer?
+		either layer? [
 			owner: as handle! GetWindowLong handle wc-offset - 16
 			child: as handle! GetWindowLong handle wc-offset - 20
 			unless win8+? [
@@ -1113,7 +1114,6 @@ change-offset: func [
 			update-layered-window handle null offset null -1
 			SetWindowLong handle wc-offset - 12 pos/y << 16 or (pos/x and FFFFh)
 		]
-		process-layered-region handle size pos as red-block! values + FACE_OBJ_PANE pos null layer?
 	]
 	SetWindowPos 
 		handle
