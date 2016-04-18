@@ -153,20 +153,19 @@ process-layered-region: func [
 		face  [red-object!]
 		tail  [red-object!]
 ][
-	if null? rect [
+	x: origin/x
+	y: origin/y
+	either null? rect [
 		rect: declare RECT_STRUCT
 		owner: as handle! GetWindowLong hWnd wc-offset - 16
 		assert owner <> null
 		GetClientRect owner rect
+	][
+		x: x + pos/x
+		y: y + pos/y
 	]
 
 	if layer? [
-		x: origin/x
-		y: origin/y
-		if rect <> null [
-			x: x + pos/x
-			y: y + pos/y
-		]
 		either negative? x [
 			x: either x + size/x < 0 [size/x][0 - x]
 			w: size/x
@@ -443,6 +442,8 @@ update-base-text: func [
 		rect	[RECT_STRUCT_FLOAT32]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
+
+	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
 	hBrush: 0
