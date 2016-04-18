@@ -170,6 +170,14 @@ alter: func [
 	not none? unless remove find series :value [append series :value]
 ]
 
+offset?: func [
+	"Returns the offset between two series positions"
+	series1 [series!]
+	series2 [series!]
+][
+	subtract index? series2 index? series1
+]
+
 replace: func [
 	series [series!]
 	pattern
