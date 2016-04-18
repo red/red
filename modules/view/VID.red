@@ -53,7 +53,7 @@ system/view/VID: context [
 			]
 			min-sz + 24x0								;@@ hardcoded offset for scrollbar
 		][
-			size-text face
+			either face/text [size-text face][size-text/with face "X"]
 		]
 	]
 	
@@ -108,6 +108,7 @@ system/view/VID: context [
 		set opts none
 		opt?: yes
 		divides: none
+		calc-y?: no
 		obj-spec!: make typeset! [block! object!]
 		
 		;-- process style options --
@@ -151,6 +152,7 @@ system/view/VID: context [
 									divides: value
 								][
 									opts/size: as-pair value face/size/y
+									calc-y?: yes		;-- force size/y calculation
 								]
 							]
 						]
@@ -192,8 +194,8 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [not opts/size any [opts/text opts/data] min-size: calc-size face][
-			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
+		if all [any [calc-y? not opts/size] any [calc-y? opts/text opts/data] min-size: calc-size face][
+			if all [not calc-y? face/size/x < min-size/x][face/size/x: min-size/x + 10]	;@@ hardcoded margins
 			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
 		]
 		spec
