@@ -286,7 +286,7 @@ same?: make native! [[
 ]
 
 not: make native! [[
-		"Returns the negation (logical complement) of a value"
+		"Returns the boolean complement of a value"
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
