@@ -863,7 +863,7 @@ parser: context [
 									]
 								][
 									type: TYPE_OF(input)
-									end?: either any [	;TBD: replace with ANY_STRING?
+									either any [	;TBD: replace with ANY_STRING?
 										type = TYPE_STRING
 										type = TYPE_FILE
 										type = TYPE_URL
