@@ -758,7 +758,7 @@ insert-event-func [
 						aux-up	aux-down
 					] type [
 						do-actor face event 'drop
-						face/state/4: none
+						if face/state [face/state/4: none]
 					]
 				]
 			]
