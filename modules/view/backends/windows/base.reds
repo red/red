@@ -43,8 +43,12 @@ render-base: func [
 	]
 
 	type: symbol/resolve w/symbol
-	if all [group-box <> type window <> type] [
-		res: render-text values hDC rc
+	if all [
+		group-box <> type
+		window <> type
+		render-text values hDC rc
+	][
+		res: true
 	]
 	res
 ]
