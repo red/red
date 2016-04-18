@@ -949,12 +949,11 @@ OS-make-view: func [
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[
 			SetWindowLong handle wc-offset - 4 0
+			SetWindowLong handle wc-offset - 16 parent
 			SetWindowLong handle wc-offset - 20 0
-			if alpha? [
+			either alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
-					SetWindowLong handle wc-offset - 16 parent
-					process-layered-region handle size offset
 					pt: declare tagPOINT
 					pt/x: offset/x
 					pt/y: offset/y
@@ -966,6 +965,9 @@ OS-make-view: func [
 				if all [show?/value IsWindowVisible as handle! parent][
 					ShowWindow handle SW_SHOWNA
 				]
+				;@@ clip base and its children: process-layered-region
+			][
+				SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
 			]
 		]
 		sym = tab-panel [
@@ -1062,21 +1064,26 @@ change-offset: func [
 		size  [red-pair!]
 		flags [integer!]
 		style [integer!]
+		param [integer!]
 		pt    [red-pair!]
 		offset [tagPOINT]
 		handle [handle!]
+		values [red-value!]
+		layer? [logic!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	pt: declare red-pair!
 	handle: as handle! hWnd
+	layer?: no
 	if type = base [
+		values: get-face-values handle
 		style: GetWindowLong handle GWL_EXSTYLE
-		if style and WS_EX_LAYERED > 0 [
-			size: as red-pair! (get-face-values handle) + FACE_OBJ_SIZE
+		either style and WS_EX_LAYERED > 0 [
+			layer?: yes
+			size: as red-pair! values + FACE_OBJ_SIZE
 			owner: as handle! GetWindowLong handle wc-offset - 16
 			child: as handle! GetWindowLong handle wc-offset - 20
 			unless win8+? [
-				process-layered-region handle size pos
 				flags: flags or SWP_NOACTIVATE
 				pt/x: pos/x
 				pt/y: pos/y
@@ -1098,7 +1105,15 @@ change-offset: func [
 						flags
 				]
 			]
+		][
+			param: GetWindowLong handle wc-offset - 12
+			offset: as tagPOINT pt
+			offset/x: pos/x - WIN32_LOWORD(param)
+			offset/y: pos/y - WIN32_HIWORD(param)
+			update-layered-window handle null offset null -1
+			SetWindowLong handle wc-offset - 12 pos/y << 16 or (pos/x and FFFFh)
 		]
+		process-layered-region handle size pos as red-block! values + FACE_OBJ_PANE pos null layer?
 	]
 	SetWindowPos 
 		handle
