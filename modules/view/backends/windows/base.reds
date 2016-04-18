@@ -138,39 +138,72 @@ process-layered-region: func [
 	hWnd	[handle!]
 	size	[red-pair!]
 	pos		[red-pair!]
+	pane	[red-block!]
+	origin	[red-pair!]
+	rect	[RECT_STRUCT]
+	layer?	[logic!]
 	/local
 		x	  [integer!]
 		y	  [integer!]
 		w	  [integer!]
 		h	  [integer!]
 		owner [handle!]
-		offset [red-pair!]
-		rect  [RECT_STRUCT]
+		type  [red-word!]
+		value [red-value!]
+		face  [red-object!]
+		tail  [red-object!]
 ][
-	rect: declare RECT_STRUCT
-	owner: as handle! GetWindowLong hWnd wc-offset - 16
-	assert owner <> null
+	if null? rect [
+		rect: declare RECT_STRUCT
+		owner: as handle! GetWindowLong hWnd wc-offset - 16
+		assert owner <> null
+		GetClientRect owner rect
+	]
 
-	GetClientRect owner rect
-	x: pos/x
-	either negative? x [
-		x: either x + size/x < 0 [size/x][0 - x]
-		w: size/x
-	][
-		w: x + size/x - rect/right
-		w: either positive? w [size/x - w][size/x]
-		x: 0
+	if layer? [
+		x: origin/x
+		y: origin/y
+		if rect <> null [
+			x: x + pos/x
+			y: y + pos/y
+		]
+		either negative? x [
+			x: either x + size/x < 0 [size/x][0 - x]
+			w: size/x
+		][
+			w: x + size/x - rect/right
+			w: either positive? w [size/x - w][size/x]
+			x: 0
+		]
+		either negative? y [
+			y: either y + size/y < 0 [size/y][0 - y]
+			h: size/y
+		][
+			h: y + size/y - rect/bottom
+			h: either positive? h [size/y - h][size/y]
+			y: 0
+		]
+		clip-layered-window hWnd size x y w h
 	]
-	y: pos/y
-	either negative? y [
-		y: either y + size/y < 0 [size/y][0 - y]
-		h: size/y
-	][
-		h: y + size/y - rect/bottom
-		h: either positive? h [size/y - h][size/y]
-		y: 0
+
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			hWnd: get-face-handle face
+			value: get-face-values hWnd
+			size: as red-pair! value + FACE_OBJ_SIZE
+			pos: as red-pair! value + FACE_OBJ_OFFSET
+			pane: as red-block! value + FACE_OBJ_PANE
+			type: as red-word! value + FACE_OBJ_TYPE
+			layer?: all [
+				base = symbol/resolve type/symbol
+				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
+			]
+			process-layered-region hWnd size pos pane origin rect layer?
+			face: face + 1
+		]
 	]
-	clip-layered-window hWnd size x y w h
 ]
 
 update-layered-window: func [
