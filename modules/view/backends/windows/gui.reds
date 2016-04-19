@@ -321,7 +321,10 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: no
+	win8+?: all [
+		version-info/dwMajorVersion >= 6
+		version-info/dwMinorVersion >= 2
+	]
 
 	ver: as red-tuple! #get system/view/platform/version
 
@@ -1045,6 +1048,7 @@ change-size: func [
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
 
 	if all [
+		not win8+?
 		type = base
 		0 <> (WS_EX_LAYERED and GetWindowLong as handle! hWnd GWL_EXSTYLE)
 	][
@@ -1074,7 +1078,7 @@ change-offset: func [
 	flags: SWP_NOSIZE or SWP_NOZORDER
 	pt: declare red-pair!
 	handle: as handle! hWnd
-	if type = base [
+	if all [not win8+? type = base][
 		style: GetWindowLong handle GWL_EXSTYLE
 		layer?: style and WS_EX_LAYERED > 0
 
@@ -1084,27 +1088,26 @@ change-offset: func [
 		either layer? [
 			owner: as handle! GetWindowLong handle wc-offset - 16
 			child: as handle! GetWindowLong handle wc-offset - 20
-			unless win8+? [
-				flags: flags or SWP_NOACTIVATE
-				pt/x: pos/x
-				pt/y: pos/y
-				ClientToScreen owner (as tagPOINT pt) + 1
-				offset: as tagPOINT pt
-				offset/x: pt/x - GetWindowLong handle wc-offset - 4
-				offset/y: pt/y - GetWindowLong handle wc-offset - 8
-				pos: pt
-				SetWindowLong handle wc-offset - 4 pos/x
-				SetWindowLong handle wc-offset - 8 pos/y
-				update-layered-window handle null offset null -1
 
-				if child <> null [
-					SetWindowPos
-						child
-						as handle! 0
-						pos/x pos/y
-						0 0
-						flags
-				]
+			flags: flags or SWP_NOACTIVATE
+			pt/x: pos/x
+			pt/y: pos/y
+			ClientToScreen owner (as tagPOINT pt) + 1
+			offset: as tagPOINT pt
+			offset/x: pt/x - GetWindowLong handle wc-offset - 4
+			offset/y: pt/y - GetWindowLong handle wc-offset - 8
+			pos: pt
+			SetWindowLong handle wc-offset - 4 pos/x
+			SetWindowLong handle wc-offset - 8 pos/y
+			update-layered-window handle null offset null -1
+
+			if child <> null [
+				SetWindowPos
+					child
+					as handle! 0
+					pos/x pos/y
+					0 0
+					flags
 			]
 		][
 			param: GetWindowLong handle wc-offset - 12
