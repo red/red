@@ -22,7 +22,7 @@ parser: context [
 		in: as input! ALLOC_TAIL(rules)
 		in/header: TYPE_POINT
 		in/node:   input/node
-		;in/size:   einput/head
+		;in/size:  input/head
 	]
 	
 	#define PARSE_PUSH_POSITIONS [
@@ -863,7 +863,7 @@ parser: context [
 									]
 								][
 									type: TYPE_OF(input)
-									either any [	;TBD: replace with ANY_STRING?
+									match?: either any [	;TBD: replace with ANY_STRING?
 										type = TYPE_STRING
 										type = TYPE_FILE
 										type = TYPE_URL
@@ -872,9 +872,9 @@ parser: context [
 									][
 										block/rs-next input
 									]
-									if positive? part [end?: input/head >= part or end?]
+									if positive? part [match?: input/head >= part or match?]
 									
-									either end? [
+									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument
 										match?: all [
 											TYPE_OF(w) = TYPE_WORD 
