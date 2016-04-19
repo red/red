@@ -310,7 +310,6 @@ system/view/VID: context [
 				]
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
-				clear reactors
 				spec: fetch-options face opts style spec local-styles
 				
 				either styling? [
@@ -356,10 +355,11 @@ system/view/VID: context [
 					if box/x > pane-size/x [pane-size/x: box/x]
 					if box/y > pane-size/y [pane-size/y: box/y]
 				]
-				process-reactors						;-- Needs to be after [set name face]
 			]
 			spec: next spec
 		]
+		process-reactors						;-- Needs to be after [set name face]
+		
 		either block? panel/pane [append panel/pane list][
 			unless only [panel/pane: list]
 		]
