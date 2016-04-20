@@ -489,7 +489,7 @@ interpreter: context [
 		parent: _context/get as red-word! head
 		
 		switch TYPE_OF(parent) [
-			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
@@ -501,6 +501,7 @@ interpreter: context [
 			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
 			default	   [0]
 		]
+		object/path-parent/header: TYPE_NONE				;-- disables owner checking
 				
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
@@ -508,7 +509,7 @@ interpreter: context [
 			value: either any [
 				TYPE_OF(item) = TYPE_GET_WORD 
 				all [
-					parent = head
+					parent = head						;@@ never true!!
 					TYPE_OF(item) = TYPE_WORD
 					TYPE_OF(parent) <> TYPE_OBJECT
 				]
