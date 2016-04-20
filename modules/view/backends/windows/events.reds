@@ -772,17 +772,16 @@ WndProc: func [
 			store-face-to-hWnd hWnd as red-object! p-int/value
 		]
 		WM_WINDOWPOSCHANGED [
-			w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
-			if all [
-				window = symbol/resolve w-type/symbol
-				not win8+?
-			][
-				winpos: as tagWINDOWPOS lParam
-				pt: screen-to-client hWnd winpos/x winpos/y
-				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
-				update-layered-window hWnd null pt winpos -1
+			unless win8+? [
+				w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
+				if window = symbol/resolve w-type/symbol [
+					winpos: as tagWINDOWPOS lParam
+					pt: screen-to-client hWnd winpos/x winpos/y
+					offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
+					pt/x: winpos/x - offset/x - pt/x
+					pt/y: winpos/y - offset/y - pt/y
+					update-layered-window hWnd null pt winpos -1
+				]
 			]
 		]
 		WM_MOVE
