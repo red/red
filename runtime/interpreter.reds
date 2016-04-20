@@ -501,19 +501,12 @@ interpreter: context [
 			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
 			default	   [0]
 		]
-		object/path-parent/header: TYPE_NONE				;-- disables owner checking
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 				
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either any [
-				TYPE_OF(item) = TYPE_GET_WORD 
-				all [
-					parent = head						;@@ never true!!
-					TYPE_OF(item) = TYPE_WORD
-					TYPE_OF(parent) <> TYPE_OBJECT
-				]
-			][
+			value: either TYPE_OF(item) = TYPE_GET_WORD [
 				_context/get as red-word! item
 			][
 				item
