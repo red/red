@@ -811,18 +811,17 @@ interpreter: context [
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
-		if value = tail [
-			arg: stack/arguments
-			arg/header: TYPE_UNSET
-			exit
-		]
 
 		stack/mark-eval words/_body						;-- outer stack frame
-		
-		while [value < tail][
-			#if debug? = yes [if verbose > 0 [log "root loop..."]]
-			value: eval-expression value tail no no
-			if value + 1 < tail [stack/reset]
+		either value = tail [
+			arg: stack/arguments
+			arg/header: TYPE_UNSET
+		][
+			while [value < tail][
+				#if debug? = yes [if verbose > 0 [log "root loop..."]]
+				value: eval-expression value tail no no
+				if value + 1 < tail [stack/reset]
+			]
 		]
 		either chain? [stack/unwind-last][stack/unwind]
 	]
