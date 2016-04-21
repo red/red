@@ -533,7 +533,7 @@ list-dir: function [
 	unless value? 'dir [dir: %.]
 	
 	unless find [file! word! path!] type?/word :dir [
-		cause-error 'script 'expect-arg reduce ['list-dir type? :dir 'dir]
+		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
 	]
 	list: read normalize-dir dir
 	max-sz: either n [
