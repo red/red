@@ -855,6 +855,7 @@ image: context [
 			INHERIT_ACTION	;index?
 			null			;insert
 			null			;length?
+			null			;move
 			:next
 			:pick
 			:poke

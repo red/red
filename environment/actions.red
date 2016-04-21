@@ -345,6 +345,16 @@ length?: make action! [[
 	#get-definition ACT_LENGTH?
 ]
 
+move: make action! [[
+		"Moves one or more elements from one series to another position or series"
+		origin	   [series!]
+		target	   [series!]
+		/part "Limit the number of values inserted"
+			length [integer!]
+		return:    [series!]
+	]
+	#get-definition ACT_MOVE
+]
 
 next: make action! [[
 		"Returns a series at the next index"

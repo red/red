@@ -353,6 +353,70 @@ _series: context [
 	]
 
 	;--- Modifying actions ---
+	
+	move: func [
+		origin   [red-series!]
+		target   [red-series!]
+		part-arg [red-value!]
+		return:	 [red-value!]
+		/local
+			s	  [series!]
+			part  [integer!]
+			items [integer!]
+			unit  [integer!]
+			size  [integer!]
+			src   [byte-ptr!]
+			tail  [byte-ptr!]
+			dst   [byte-ptr!]
+			end	  [byte-ptr!]
+			temp  [byte-ptr!]
+			int	  [red-integer!]
+	][
+		s:    GET_BUFFER(origin)
+		unit: GET_UNIT(s)
+		src: (as byte-ptr! s/offset) + (origin/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		if src = tail [return as red-value! target]
+		
+		part: unit
+		items: 1
+
+		if OPTION?(part-arg) [
+			int: as red-integer! part-arg
+			part: int/value
+			if part <= 0 [return as red-value! target]	;-- early exit if negative /part index
+			items: part
+			part: part << (log-b unit)
+		]
+		ownership/check as red-value! target words/_move null target/head items
+		
+		either origin/node = target/node [				;-- same series case
+			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
+			if src = dst [return as red-value! target]	;-- early exit if no move is required
+			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
+
+			temp: as byte-ptr! alloc-bytes part			;@@ suboptimal for unit < 16
+			move-memory	temp src part
+			either dst > src [							;-- slide in-between elements
+				end: src + part
+				size: as-integer dst - end
+				either dst = tail [
+					copy-memory src end size
+					dst: dst - part						;-- point to beginning of last slot
+				][
+					copy-memory src end size + unit		;-- extend size to include target slot
+				]
+			][
+				copy-memory dst + part dst as-integer src - dst 
+			]
+			move-memory dst temp part
+			free temp
+		][
+			0
+		]
+		ownership/check as red-value! target words/_moved null target/head 0
+		as red-value! target
+	]
 
 	clear: func [
 		ser		[red-series!]
@@ -849,6 +913,7 @@ _series: context [
 			:index?
 			null			;insert
 			:length?
+			:move
 			:next
 			:pick
 			:poke

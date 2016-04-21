@@ -920,6 +920,7 @@ bitset: context [
 			null			;index?
 			:insert
 			:length?
+			null			;move
 			null			;next
 			:pick
 			:poke

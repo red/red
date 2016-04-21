@@ -401,6 +401,7 @@ pair: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			:pick
 			null			;poke

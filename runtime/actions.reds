@@ -1054,6 +1054,36 @@ actions: context [
 		action-length? value
 	]
 	
+	move*: func [
+		part	[integer!]
+		return:	[red-value!]
+	][
+		move
+			as red-series!  stack/arguments
+			as red-series!  stack/arguments + 1
+			as red-integer! stack/arguments + part
+	]
+	
+	move: func [
+		origin  [red-series!]
+		target  [red-series!]
+		part	[red-integer!]
+		return:	[red-value!]
+		/local
+			action-move
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/move"]]
+
+		action-move: as function! [
+			origin  [red-series!]
+			target  [red-series!]
+			part	[red-integer!]
+			return:	[red-value!]						;-- next value from series
+		] get-action-ptr as red-value! origin ACT_MOVE
+		
+		action-move origin target part
+	]
+	
 	next*: func [
 		return:	[red-value!]
 		/local
@@ -1630,6 +1660,7 @@ actions: context [
 			:index?*
 			:insert*
 			:length?*
+			:move*
 			:next*
 			:pick*
 			:poke*

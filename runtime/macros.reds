@@ -107,6 +107,7 @@ Red/System [
 	ACT_INDEX?
 	ACT_INSERT
 	ACT_LENGTH?
+	ACT_MOVE
 	ACT_NEXT
 	ACT_PICK
 	ACT_POKE
@@ -267,7 +268,7 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		61							;-- number of actions (exact number)
+#define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [

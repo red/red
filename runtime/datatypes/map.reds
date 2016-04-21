@@ -600,6 +600,7 @@ map: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

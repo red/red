@@ -1633,6 +1633,7 @@ block: context [
 			INHERIT_ACTION	;index?
 			:insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
