@@ -189,11 +189,11 @@ lexer: context [
 	]
 	
 	get-word-rule: [
-		s: #":" (type: get-word!) begin-symbol-rule [
+		#":" s: (type: get-word!) begin-symbol-rule [
 			path-rule (stack/pop path!)		;-- has get-path! syntax
-			| (
+			| e: (
 				type: get-word!
-				value: copy/part next s e				;-- word matched
+				value: copy/part s e				;-- word matched
 			)
 		]
 	]
