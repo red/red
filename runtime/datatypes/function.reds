@@ -441,7 +441,7 @@ _function: context [
 		blk	   [red-block!]
 		list   [red-block!]
 		ignore [red-block!]
-		/local		
+		/local
 			slot  [red-value!]
 			tail  [red-value!]
 	][
@@ -449,12 +449,13 @@ _function: context [
 		tail: block/rs-tail blk
 		
 		while [slot < tail][
-			assert any [								;-- replace with ANY_WORD?
+			if any [								;-- replace with ANY_WORD?
 				TYPE_OF(slot) = TYPE_WORD
 				TYPE_OF(slot) = TYPE_GET_WORD
 				TYPE_OF(slot) = TYPE_LIT_WORD
+			][
+				collect-word slot list ignore
 			]
-			collect-word slot list ignore
 			slot: slot + 1
 		]
 	]
@@ -467,8 +468,9 @@ _function: context [
 			value [red-value!]
 			tail  [red-value!]
 			w	  [red-word!]
-			many? [logic!]
 			slot  [red-value!]
+			type  [integer!]
+			many? [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -491,10 +493,13 @@ _function: context [
 					][
 						if value + 1 < tail [
 							slot: value + 1
-							either all [many? TYPE_OF(slot) = TYPE_BLOCK][
+							type: TYPE_OF(slot)
+							either all [many? type = TYPE_BLOCK][
 								collect-many-words as red-block! slot list ignore
 							][
-								collect-word slot list ignore
+								if any [type = TYPE_WORD type = TYPE_SET_WORD][
+									collect-word slot list ignore
+								]
 							]
 						]
 					]
