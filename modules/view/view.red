@@ -132,7 +132,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 					if owner/type <> 'screen [
 						if all [
 							find [tab-panel window panel] owner/type
-							not find [cleared removed taken] action 
+							not find [cleared removed taken move moved] action 
 						][
 							nb: part
 							faces: skip head target index	;-- zero-based absolute index

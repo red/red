@@ -388,7 +388,7 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
-		ownership/check as red-value! target words/_move null target/head items
+		ownership/check as red-value! target words/_move null origin/head items
 		
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
@@ -414,7 +414,7 @@ _series: context [
 		][
 			0
 		]
-		ownership/check as red-value! target words/_moved null target/head 0
+		ownership/check as red-value! target words/_moved null target/head items
 		as red-value! target
 	]
 
