@@ -619,7 +619,7 @@ _hashtable: context [
 				TYPE_SET_WORD
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT
-				TYPE_ISSUE	[set-type key TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
+				TYPE_ISSUE	[key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
 				TYPE_STRING
 				TYPE_FILE
 				TYPE_URL	[_series/copy as red-series! key as red-series! key null yes null]
@@ -713,8 +713,8 @@ _hashtable: context [
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
-			s h i flags last mask step keys hash ii sh blk
-			idx last-idx op find? reverse-head k type key-type
+			s h i flags last mask step keys hash ii sh blk set-header?
+			idx last-idx op find? reverse-head k type key-type saved-type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
@@ -723,11 +723,11 @@ _hashtable: context [
 
 		type: h/type
 		key-type: TYPE_OF(key)
-		if all [
-			type = HASH_TABLE_MAP
-			word/any-word? key-type
-		][
-			key-type: TYPE_SET_WORD						;-- map, convert any-word! to set-word!
+		set-header?: all [type = HASH_TABLE_MAP word/any-word? key-type]
+		if set-header? [
+			saved-type: key-type
+			key-type: TYPE_SET_WORD
+			key/header: TYPE_SET_WORD	;-- set the header here for actions/compare, restore back later
 		]
 
 		s: as series! h/blk/value
@@ -792,10 +792,12 @@ _hashtable: context [
 			i: i + 1
 			step: step + 1
 			if i = last [
+				if set-header? [key/header: saved-type]
 				return either find? [blk + last-idx][null]
 			]
 		]
 
+		if set-header? [key/header: saved-type]
 		if find? [return blk + last-idx]
 		either _BUCKET_IS_EITHER(flags ii sh) [null][blk + keys/i]
 	]
@@ -811,7 +813,7 @@ _hashtable: context [
 
 		either h/indexes = null [				;-- map!
 			key: key + 1
-			set-type key TYPE_NONE
+			key/header: TYPE_NONE
 		][										;-- hash!
 			unless hash-value? key [exit]
 			s: as series! h/flags/value
