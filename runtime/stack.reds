@@ -398,6 +398,7 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
+			ctop: ctop - 1
 			if any [
 				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
 				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
@@ -405,7 +406,6 @@ stack: context [										;-- call stack
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
-			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
