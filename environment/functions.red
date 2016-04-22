@@ -122,6 +122,7 @@ url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!	
 vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
+any-list?:		func ["Returns true if the value is any type of list"	  value [any-type!]][find any-list! 	type? :value]
 any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]
 any-function?:	func ["Returns true if the value is any type of function" value [any-type!]][find any-function! type? :value]
 any-object?:	func ["Returns true if the value is any type of object"	  value [any-type!]][find any-object!	type? :value]
