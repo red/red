@@ -361,9 +361,11 @@ _series: context [
 		return:	 [red-value!]
 		/local
 			s	  [series!]
+			s2	  [series!]
 			part  [integer!]
 			items [integer!]
 			unit  [integer!]
+			unit2 [integer!]
 			size  [integer!]
 			src   [byte-ptr!]
 			tail  [byte-ptr!]
@@ -396,23 +398,47 @@ _series: context [
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 
 			temp: as byte-ptr! alloc-bytes part			;@@ suboptimal for unit < 16
-			move-memory	temp src part
+			copy-memory	temp src part
 			either dst > src [							;-- slide in-between elements
 				end: src + part
 				size: as-integer dst - end
 				either dst = tail [
-					copy-memory src end size
+					move-memory src end size
 					dst: dst - part						;-- point to beginning of last slot
 				][
-					copy-memory src end size + unit		;-- extend size to include target slot
+					move-memory src end size + unit		;-- extend size to include target slot
 				]
 			][
-				copy-memory dst + part dst as-integer src - dst 
+				move-memory dst + part dst as-integer src - dst 
 			]
-			move-memory dst temp part
+			copy-memory dst temp part
 			free temp
-		][
-			0
+		][												;-- different series case
+			s2:    GET_BUFFER(target)
+			unit2: GET_UNIT(s2)
+			if unit <> unit2 [
+				;if any [
+				;	TYPE_OF(origin) = TYPE_BINARY
+				;	TYPE_OF(target) = TYPE_BINARY
+				;][
+				;	fire [TO_ERROR() ...]
+				;]
+				;return string/rs-move as red-string! origin as red-string! target part
+				0
+			]
+			;-- make enough space in target
+			size: as-integer (as byte-ptr! s2/tail) + part - as byte-ptr! s2/offset
+			if size > s2/size [s2: expand-series s2 size * 2]
+			dst: (as byte-ptr! s2/offset) + (target/head << (log-b unit))
+			;-- slide target series to right from insertion position
+			move-memory dst + part dst as-integer (as byte-ptr! s2/tail) - dst
+			s2/tail: as cell! (as byte-ptr! s2/tail) + part
+			;-- copy elements from source to target
+			copy-memory dst src part
+			;-- collapse source series over copied elements
+			move-memory src src + part as-integer tail - (src + part)
+			s/tail: as cell! tail - part
+			;TBD: add hash support
 		]
 		ownership/check as red-value! target words/_moved null target/head items
 		as red-value! target
