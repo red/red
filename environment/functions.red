@@ -186,11 +186,11 @@ replace: func [
 	/all
 	/local pos len
 ][
-	len: either series? :pattern [length? pattern][1]
+	len: either any-list? :pattern [length? pattern][1]
 	
 	either all [
 		pos: series
-		either series? :pattern [
+		either any-list? :pattern [
 			while [pos: find pos pattern][
 				remove/part pos len
 				pos: insert pos value
