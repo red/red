@@ -179,27 +179,31 @@ offset?: func [
 	subtract index? series2 index? series1
 ]
 
-replace: func [
+replace: function [
 	series [series!]
 	pattern
 	value
 	/all
-	/local pos len
 ][
-	len: either any-list? :pattern [length? pattern][1]
+	many?: (series? :pattern) and (
+		   (any-string? series)
+		or (binary? series)
+		or ((any-list? series) and any-list? :pattern)
+	) 
+	len: either many? [length? pattern][1]
 	
 	either all [
 		pos: series
-		either any-list? :pattern [
+		either many? [
 			while [pos: find pos pattern][
 				remove/part pos len
 				pos: insert pos value
 			]
 		][
-			while [pos: find pos pattern][pos/1: value]
+			while [pos: find pos :pattern][pos/1: value]
 		]
 	][
-		if pos: find series pattern [
+		if pos: find series :pattern [
 			remove/part pos len
 			insert pos value
 		]
