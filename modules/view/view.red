@@ -98,57 +98,71 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			state/2: state/2 or (1 << ((index? in owner word) - 1))
 			
 			either word = 'pane [
-				either find [remove clear take] action [
-					either owner/type = 'screen [
+				case [
+					action = 'moved [
+						nb: part
+						faces: skip head target index	;-- zero-based absolute index				
 						until [
-							face: target/1
-							if face/type = 'window [
-								modal?: find-flag? face/flags 'modal
-								system/view/platform/destroy-view face face/state/4
-								
-								if all [modal? not empty? head target][
-									pane: target
-									until [
-										pane: back pane
-										pane/1/enable?: yes
-										unless system/view/auto-sync? [show pane/1]
-										any [head? pane find-flag? pane/1/flags 'modal]
+							faces/1/parent: owner
+							faces: next faces
+							zero? nb: nb - 1
+						]
+						;unless forced? [show owner]
+						system/view/platform/on-change-facet owner word target action new index part
+					]
+					find [remove clear take] action [
+						either owner/type = 'screen [
+							until [
+								face: target/1
+								if face/type = 'window [
+									modal?: find-flag? face/flags 'modal
+									system/view/platform/destroy-view face face/state/4
+
+									if all [modal? not empty? head target][
+										pane: target
+										until [
+											pane: back pane
+											pane/1/enable?: yes
+											unless system/view/auto-sync? [show pane/1]
+											any [head? pane find-flag? pane/1/flags 'modal]
+										]
 									]
 								]
+								target: next target
+								zero? part: part - 1
 							]
-							target: next target
-							zero? part: part - 1
-						]
-					][
-						until [
-							face: target/1
-							face/parent: none
-							system/view/platform/destroy-view face no
-							target: next target
-							zero? part: part - 1
+						][
+							until [
+								face: target/1
+								face/parent: none
+								system/view/platform/destroy-view face no
+								target: next target
+								zero? part: part - 1
+							]
 						]
 					]
-				][
-					if owner/type <> 'screen [
-						if all [
-							find [tab-panel window panel] owner/type
-							not find [cleared removed taken move moved] action 
-						][
-							nb: part
-							faces: skip head target index	;-- zero-based absolute index
-							until [
-								face: faces/1
-								if owner/type = 'tab-panel [
-									face/visible?: no
-									face/parent: owner
+					'else [
+						if owner/type <> 'screen [
+							if all [
+								find [tab-panel window panel] owner/type
+								not find [cleared removed taken move moved] action 
+							][
+								nb: part
+								faces: skip head target index	;-- zero-based absolute index
+								until [
+									face: faces/1
+									if owner/type = 'tab-panel [
+										face/visible?: no
+										face/parent: owner
+									]
+									show/with face owner
+									faces: next faces
+									zero? nb: nb - 1
 								]
-								show/with face owner
-								faces: next faces
-								zero? nb: nb - 1
 							]
+							unless forced? [show owner]
+							system/view/platform/on-change-facet owner word target action new index part
 						]
-						unless forced? [show owner]
-						system/view/platform/on-change-facet owner word target action new index part
 					]
 				]
 			][

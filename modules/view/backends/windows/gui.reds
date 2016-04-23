@@ -1321,19 +1321,12 @@ change-parent: func [
 	values: get-node-facet face/ctx 0
 	bool: as red-logic! values + FACE_OBJ_VISIBLE?
 	type: as red-word! values + FACE_OBJ_TYPE
-	if all [
-		base = symbol/resolve type/symbol
-		bool/value
-	][
-		ShowWindow hWnd SW_SHOWNA
-		exit
-	]
 
 	tab-panel?: no
 	type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
 
 	if parent <> null [
-		assert TYPE_OF(parent) = TYPE_OBJECT		
+		assert TYPE_OF(parent) = TYPE_OBJECT
 		tab-panel?: tab-panel = symbol/resolve type/symbol
 	]
 	unless tab-panel? [bool/value: parent <> null]
@@ -1345,7 +1338,15 @@ change-parent: func [
 		if tab-panel? [exit]
 		SetParent hWnd get-face-handle parent
 	]
-	OS-show-window as-integer hWnd
+	either all [
+		base = symbol/resolve type/symbol
+		bool/value
+		not detached? hWnd
+	][
+		ShowWindow hWnd SW_SHOWNA
+	][
+		OS-show-window as-integer hWnd
+	]
 ]
 
 update-z-order: func [
@@ -1584,6 +1585,7 @@ OS-update-facet: func [
 					sym = words/_insert/symbol
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
+					sym = words/_moved/symbol
 				][
 					change-faces-parent as red-block! value face new index part
 				]

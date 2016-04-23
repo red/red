@@ -10,6 +10,13 @@ Red/System [
 	}
 ]
 
+detached?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0
+]
+
 render-base: func [
 	hWnd	[handle!]
 	hDC		[handle!]
