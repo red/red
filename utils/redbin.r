@@ -23,6 +23,7 @@ context [
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
 	decoded: 	make string! 10'000
+	lf-flag:	shift/left 1 31		;-- header's new-line flag
 	
 	profile: func [blk /local pos][
 		foreach item blk [
@@ -83,8 +84,8 @@ context [
 	
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
 	
-	emit-type: func [type [word!] /unit n [integer!]][
-		emit select extracts/definitions type
+	emit-type: func [type [word!] lf? /unit n [integer!]][
+		emit extracts/definitions/:type or either lf? [lf-flag][0]
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
@@ -99,32 +100,32 @@ context [
 		]
 	]
 	
-	emit-unset: does [emit-type 'TYPE_UNSET]
+	emit-unset: does [emit-type 'TYPE_UNSET off]
 
-	emit-none: does [emit-type 'TYPE_NONE]
+	emit-none: func [lf?][emit-type 'TYPE_NONE lf?]
 	
-	emit-datatype: func [type [datatype! word!]][
+	emit-datatype: func [type [datatype! word!] lf?][
 		unless word? type [type: to word! mold type]
-		emit-type 'TYPE_DATATYPE
+		emit-type 'TYPE_DATATYPE lf?
 		emit extracts/definitions/:type
 	]
 	
-	emit-logic: func [value [logic!]][
-		emit-type 'TYPE_LOGIC
+	emit-logic: func [value [logic!] lf?][
+		emit-type 'TYPE_LOGIC lf?
 		emit to integer! value
 	]
 	
-	emit-float: func [value [decimal!] /local bin][
+	emit-float: func [value [decimal!] lf? /local bin][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT
+		emit-type 'TYPE_FLOAT lf?
 		bin: IEEE-754/to-binary64 value
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
 	
-	emit-fp-special: func [value [issue!]][
+	emit-fp-special: func [value [issue!] lf?][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT
+		emit-type 'TYPE_FLOAT lf?
 		switch next value [
 			#INF  [emit to integer! #{7FF00000} emit 0]
 			#INF- [emit to integer! #{FFF00000} emit 0]
@@ -133,36 +134,39 @@ context [
 		]
 	]
 
-	emit-percent: func [value [issue!] /local bin][
+	emit-percent: func [value [issue!] lf? /local bin][
 		pad buffer 8
-		emit-type 'TYPE_PERCENT
+		emit-type 'TYPE_PERCENT lf?
 		value: to decimal! to string! copy/part value back tail value
 		bin: IEEE-754/to-binary64 value / 100.0
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
 
-	emit-char: func [value [integer!]][
-		emit-type 'TYPE_CHAR
+	emit-char: func [value [integer!] lf?][
+		emit-type 'TYPE_CHAR lf?
 		emit value
 	]
 	
-	emit-integer: func [value [integer!]][
-		emit-type 'TYPE_INTEGER
+	emit-integer: func [value [integer!] lf?][
+		emit-type 'TYPE_INTEGER lf?
 		emit value
 	]
 
-	emit-pair: func [value [pair!]][
-		emit-type 'TYPE_PAIR
+	emit-pair: func [value [pair!] lf?][
+		emit-type 'TYPE_PAIR lf?
 		emit value/x
 		emit value/y
 	]
 
-	emit-tuple: func [value [tuple!] /local bin size n][
+	emit-tuple: func [value [tuple!] lf? /local bin size n header][
 		bin: make binary! 12
 		bin: insert/dup bin null 3
 		size: length? value
-		emit extracts/definitions/TYPE_TUPLE or shift/left size 8 ;-- header
+		header: extracts/definitions/TYPE_TUPLE or shift/left size 8
+		if lf? [header: header or lf-flag]
+		
+		emit header
 		n: 0
 		until [
 			n: n + 1
@@ -176,18 +180,18 @@ context [
 	]
 
 	emit-op: func [spec [any-word!]][
-		emit-type 'TYPE_OP
+		emit-type 'TYPE_OP off
 		emit-symbol spec
 	]
 	
 	emit-native: func [id [word!] spec [block!] /action][
-		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action
+		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action off
 		emit extracts/definitions/:id
-		emit-block/sub spec
+		emit-block/sub spec off
 	]
 	
-	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] /root][
-		emit-type 'TYPE_TYPESET
+	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] lf? /root][
+		emit-type 'TYPE_TYPESET lf?
 		emit v1
 		emit v2
 		emit v3
@@ -199,7 +203,7 @@ context [
 		index - 1
 	]
 
-	emit-string: func [str [any-string!] /root /local type unit][
+	emit-string: func [str [any-string!] lf? /root /local type unit header][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
@@ -208,7 +212,10 @@ context [
 		] type?/word str
 
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
-		emit extracts/definitions/:type or shift/left unit 8 ;-- header
+		header: extracts/definitions/:type or shift/left unit 8
+		if lf? [header: header or lf-flag]
+
+		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
 		append buffer str
@@ -221,8 +228,8 @@ context [
 		index - 1
 	]
 	
-	emit-issue: func [value [issue!]][
-		emit-type 'TYPE_ISSUE
+	emit-issue: func [value [issue!] lf?][
+		emit-type 'TYPE_ISSUE lf?
 		emit-symbol to word! form value
 	]
 	
@@ -240,7 +247,7 @@ context [
 	]
 	
 	emit-word: func [
-		word ctx [word! none!] ctx-idx [integer! none!] /root /set?
+		word ctx [word! none!] ctx-idx [integer! none!] lf? /root /set?
 		/local type idx header
 	][
 		type: select [
@@ -253,6 +260,7 @@ context [
 		
 		header: extracts/definitions/:type
 		if set? [header: header or shift/left 1 27]
+		if lf? [header: header or lf-flag]
 		emit header
 		emit-symbol word
 		idx: emit-ctx-info word ctx
@@ -264,7 +272,7 @@ context [
 	]
 	
 	emit-block: func [
-		blk [any-block!] /with main-ctx [word!] /sub
+		blk [any-block!] lf? /with main-ctx [word!] /sub
 		/local type item binding ctx idx emit?
 	][
 		if profile? [profile blk]
@@ -288,7 +296,7 @@ context [
 			set-path!	TYPE_SET_PATH
 			get-path	TYPE_GET_PATH
 			map			TYPE_MAP
-		] type
+		] type lf?
 		
 		preprocess-directives blk
 		unless type = 'map [emit (index? blk) - 1]		;-- head field
@@ -298,17 +306,19 @@ context [
 		]
 		
 		forall blk [
+			lf?: if block? blk [new-line? blk]
+			;if lf? [?? blk halt]
 			item: blk/1
 			either any-block? :item [
 				either with [
-					emit-block/sub/with :item main-ctx 
+					emit-block/sub/with :item lf? main-ctx 
 				][
-					emit-block/sub :item
+					emit-block/sub :item lf?
 				]
 			][
 				emit?: case [
 					unicode-char? :item [
-						emit-char to integer! next item
+						emit-char to integer! next item lf?
 						no
 					]
 					any-word? :item [
@@ -324,11 +334,11 @@ context [
 						yes
 					]
 					percent-value? :item [
-						emit-percent item
+						emit-percent item lf?
 						no
 					]
 					float-special? :item [
-						emit-fp-special item
+						emit-fp-special item lf?
 						no
 					]
 					'else [yes]
@@ -340,20 +350,20 @@ context [
 						set-word!
 						lit-word!
 						refinement!
-						get-word! [emit-word :item ctx idx]
+						get-word! [emit-word :item ctx idx lf?]
 						file!
 						url!
 						string!
-						binary!   [emit-string item]
-						issue!	  [emit-issue item]
-						integer!  [emit-integer item]
-						decimal!  [emit-float item]
-						char!	  [emit-char to integer! item]
-						pair!	  [emit-pair item]
-						tuple!	  [emit-tuple item]
-						datatype! [emit-datatype item]
-						logic!	  [emit-logic item]
-						none! 	  [emit-none]
+						binary!   [emit-string item lf?]
+						issue!	  [emit-issue item lf?]
+						integer!  [emit-integer item lf?]
+						decimal!  [emit-float item lf?]
+						char!	  [emit-char to integer! item lf?]
+						pair!	  [emit-pair item lf?]
+						tuple!	  [emit-tuple item lf?]
+						datatype! [emit-datatype item lf?]
+						logic!	  [emit-logic item lf?]
+						none! 	  [emit-none lf?]
 						unset! 	  [emit-unset]
 					]
 				]
