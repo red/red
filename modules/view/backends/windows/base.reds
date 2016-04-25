@@ -10,6 +10,13 @@ Red/System [
 	}
 ]
 
+layered-win?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+]
+
 detached?: func [
 	hWnd	[handle!]
 	return: [logic!]

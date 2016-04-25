@@ -190,7 +190,14 @@ get-child-from-xy: func [
 		hWnd [handle!]
 ][
 	hWnd: RealChildWindowFromPoint parent x y
-	either null? hWnd [parent][hWnd]
+	either any [
+		null? hWnd
+		all [
+			win8+?
+			layered-win? hWnd
+			hWnd <> WindowFromPoint x y
+		]
+	][parent][hWnd]
 ]
 
 get-gesture-info: func [
