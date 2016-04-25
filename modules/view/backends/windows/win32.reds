@@ -35,6 +35,9 @@ Red/System [
 
 #define GW_OWNER				4
 
+#define CWP_SKIPINVISIBLE		1
+#define CWP_SKIPTRANSPARENT		4
+
 ;-- DrawText() Format Flags
 
 #define DT_CENTER				0001h
@@ -1100,6 +1103,13 @@ DwmIsCompositionEnabled!: alias function! [
 			hwndParent	[handle!]
 			x			[integer!]
 			y			[integer!]
+			return:		[handle!]
+		]
+		ChildWindowFromPointEx: "ChildWindowFromPointEx" [
+			hwndParent	[handle!]
+			x			[integer!]
+			y			[integer!]
+			flags		[integer!]
 			return:		[handle!]
 		]
 		DefWindowProc: "DefWindowProcW" [

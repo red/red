@@ -189,15 +189,8 @@ get-child-from-xy: func [
 	/local
 		hWnd [handle!]
 ][
-	hWnd: RealChildWindowFromPoint parent x y
-	either any [
-		null? hWnd
-		all [
-			win8+?
-			layered-win? hWnd
-			hWnd <> WindowFromPoint x y
-		]
-	][parent][hWnd]
+	hWnd: ChildWindowFromPointEx parent x y CWP_SKIPINVISIBLE or CWP_SKIPTRANSPARENT
+	either null? hWnd [parent][hWnd]
 ]
 
 get-gesture-info: func [
