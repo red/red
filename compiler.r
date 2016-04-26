@@ -750,7 +750,7 @@ red: context [
 		reduce [var set-var]
 	]
 	
-	add-symbol: func [name [word!] /local sym id alias][
+	add-symbol: func [name [word!] /with original /local sym id alias][
 		unless find/case symbols name [
 			if find symbols name [
 				if find/case/skip aliases name 2 [exit]
@@ -761,7 +761,7 @@ red: context [
 			id: 1 + ((length? symbols) / 2)
 			repend symbols [name reduce [sym id]]
 			repend sym-table [
-				to set-word! sym 'word/load mold name
+				to set-word! sym 'word/load mold any [original name]
 			]
 			new-line skip tail sym-table -3 on
 		]
@@ -2424,7 +2424,7 @@ red: context [
 					src-name: get-prefix-func src-name
 				]
 				name: check-func-name src-name
-				add-symbol word: to word! clean-lf-flag name
+				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
 				unless any [
 					local-word? name
 					1 < length? obj-stack
