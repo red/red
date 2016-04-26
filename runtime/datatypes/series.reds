@@ -390,19 +390,20 @@ _series: context [
 			items: part
 			part: part << (log-b unit)
 		]
-		ownership/check as red-value! target words/_move null origin/head items
 		
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
-
-			temp: as byte-ptr! alloc-bytes part			;@@ suboptimal for unit < 16
+			ownership/check as red-value! target words/_move null origin/head items
+			
+			temp: as byte-ptr! allocate part			;@@ suboptimal for unit < 16
 			copy-memory	temp src part
 			either dst > src [							;-- slide in-between elements
 				end: src + part
 				size: as-integer dst - end
 				either dst = tail [
+
 					move-memory src end size
 					dst: dst - part						;-- point to beginning of last slot
 				][
@@ -414,6 +415,8 @@ _series: context [
 			copy-memory dst temp part
 			free temp
 		][												;-- different series case
+			ownership/check as red-value! target words/_move null origin/head items
+			
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
 			if unit <> unit2 [
@@ -430,11 +433,14 @@ _series: context [
 			size: as-integer (as byte-ptr! s2/tail) + part - as byte-ptr! s2/offset
 			if size > s2/size [s2: expand-series s2 size * 2]
 			dst: (as byte-ptr! s2/offset) + (target/head << (log-b unit))
+			
 			;-- slide target series to right from insertion position
 			move-memory dst + part dst as-integer (as byte-ptr! s2/tail) - dst
 			s2/tail: as cell! (as byte-ptr! s2/tail) + part
+			
 			;-- copy elements from source to target
 			copy-memory dst src part
+			
 			;-- collapse source series over copied elements
 			move-memory src src + part as-integer tail - (src + part)
 			s/tail: as cell! tail - part
