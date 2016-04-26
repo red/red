@@ -443,10 +443,9 @@ pad: func [
 	/with c	[char!]			"Pad with char"
 	return:	[string!]		"Modified input string at head"
 ][
-	c: either with [c] [#" "]
 	head insert/dup
 		any [all [left str] tail str]
-		c
+		any [c #" "]
 		(n - length? str)
 ]
 
