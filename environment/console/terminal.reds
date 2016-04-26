@@ -516,8 +516,10 @@ terminal: context [
 				string/remove-char input head
 			]
 		][
-			insert-into-line input head cp
-			head: head + 1
+			if cp <> -1 [
+				insert-into-line input head cp
+				head: head + 1
+			]
 		]
 		vt/cursor: head
 
@@ -601,6 +603,28 @@ terminal: context [
 		vt/char-h: char-y
 	]
 
+	reset-vt: func [vt [terminal!] /local out][
+		out: vt/out
+		out/tail: 1
+		out/head: 1
+		out/last: 1
+		out/lines/offset: 0
+		out/lines/nlines: 0
+		out/nlines: 1
+		out/h-idx: 0
+		out/s-head: -1
+		vt/pos: 1
+		vt/top: 1
+		vt/top-offset: 0
+		vt/nlines: 0
+		vt/scroll: 0
+		vt/select?: no
+		vt/select-all?: no
+		vt/s-mode?: no
+		vt/s-end?: no
+		vt/edit-head: -1
+	]
+
 	init: func [
 		vt		[terminal!]
 		win-x	[integer!]
@@ -612,16 +636,8 @@ terminal: context [
 	][
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 4000
-		out/tail: 1
-		out/head: 1
-		out/last: 1
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/lines/offset: 0
-		out/lines/nlines: 0
 		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 4000
-		out/nlines: 1
-		out/h-idx: 0
-		out/s-head: -1
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -638,22 +654,13 @@ terminal: context [
 		vt/history-beg: 1
 		vt/history-end: 1
 		vt/history-cnt: 0
-		vt/pos: 1
-		vt/top: 1
-		vt/top-offset: 0
-		vt/nlines: 0
-		vt/scroll: 0
 		vt/caret?: no
-		vt/select?: no
-		vt/select-all?: no
 		vt/ask?: no
 		vt/input?: no
-		vt/s-mode?: no
-		vt/s-end?: no
-		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
 		vt/prompt-len: string/rs-length? vt/prompt
 
+		reset-vt vt
 		OS-init vt
 	]
 
@@ -1260,6 +1267,10 @@ terminal: context [
 				select-edit vt RS_KEY_END
 			]
 			RS_KEY_CTRL_DELETE [0]
+			RS_KEY_CTRL_K [
+				reset-vt vt
+				emit-char vt -1 no
+			]
 			default [
 				if cp < 32 [exit]
 				emit-char vt cp no
