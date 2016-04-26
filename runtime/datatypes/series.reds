@@ -367,6 +367,7 @@ _series: context [
 			unit  [integer!]
 			unit2 [integer!]
 			size  [integer!]
+			index [integer!]
 			src   [byte-ptr!]
 			tail  [byte-ptr!]
 			dst   [byte-ptr!]
@@ -414,6 +415,7 @@ _series: context [
 			]
 			copy-memory dst temp part
 			free temp
+			index: target/head - items
 		][												;-- different series case
 			ownership/check as red-value! target words/_move null origin/head items
 			
@@ -445,8 +447,9 @@ _series: context [
 			move-memory src src + part as-integer tail - (src + part)
 			s/tail: as cell! tail - part
 			;TBD: add hash support
+			index: target/head
 		]
-		ownership/check as red-value! target words/_moved null target/head items
+		ownership/check as red-value! target words/_moved null index items
 		as red-value! target
 	]
 
