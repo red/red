@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 14/02/2013
-	Revision: 40
+	Date: 09/03/2016
+	Revision: 46
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -55,7 +55,7 @@ Block of code delimiters: square brackets
  
 Path separator: slash (denotes a hierarchical relation)
 
- s: struct [i [integer!] b [byte!]]
+ s: declare struct! [i [integer!] b [byte!]]
  s/i: 123
  s/b: #"A"
 
@@ -128,7 +128,7 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
+Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such a feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
 
 /note
 
@@ -142,7 +142,7 @@ Just use the variable name without any decoration to get its value or to pass it
 will output:
  hello
  
----Variable's type
+---Typing
 
 Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Function local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
@@ -280,7 +280,7 @@ Examples:
  -1E3
  +1.23456E-265
  
-A maximum of 16 digits are accepted for literal float! values, if more are specified, they will be dropped.
+A maximum of 16 digits are accepted for literal float! values. If more are specified, they will be dropped.
  
 <i>For more information on double precision floating point numbers, see <a href="http://en.wikipedia.org/wiki/Double-precision_floating-point_format">Wikipedia</a></i>.
 
@@ -304,7 +304,7 @@ The modulo (//) and remainder (%) operators give the same results when used on f
 
 ---Float32!
 
-The float32! datatype represents an IEEE-754 single precision floating point number. Float! memory size is 32-bit.
+The float32! datatype represents an IEEE-754 single precision floating point number. Float32! memory size is 32-bit.
 
 \note Float32! purpose
 The reason for having a single precision floating point type is for making the interfacing with popular libraries straightforward. For pure Red/System programs, <b>float!</b> should be the default choice.
@@ -313,7 +313,7 @@ The reason for having a single precision floating point type is for making the i
 
 +++Syntax
 
-There is no literal form for float32! datatype values. To load a float32! constant, the method consist in providing a float! literal and prefix it with a type casting to float32!.
+There is no literal form for float32! datatype values. To load a float32! constant, the method consists of providing a float! literal and prefixing it with a type casting to float32!.
 
 Example:
 
@@ -387,7 +387,7 @@ Literal c-strings are defined using double quotes delimiters or a pair of matchi
  }
 
 \note C-string null byte ending
-You don't have to add a null byte to literal c-strings, it is added automatically during compilation.
+You don't have to add a null byte to literal c-strings. It is added automatically during compilation.
 
 /note
 
@@ -416,7 +416,7 @@ Syntax
 
 Example
 
- s: "hello"								;-- let's suppose s points to address 4000000h
+ s: "hello"								;-- let's suppose s points to address 40000000h
 
  s: s + 1								;-- now s points to address 40000001h
  print s                				;-- "ello" would be printed
@@ -446,9 +446,9 @@ Examples:
  
 \note Important notes
 
-*In contrary to the C language, indexes in Red/System are <b>one-based</b>.
+*In contrast to the C language, indexes in Red/System are <b>one-based</b>.
 
-*The behaviour of path with an index out of bounds is not yet defined. (It is better to avoid it)
+*The behaviour of path with an index out of bounds is not yet defined. It is better to avoid it.
 
 /note
 
@@ -550,7 +550,7 @@ From last example, that would give:
  
 +++Struct arithmetic
 
-It is possible to apply some simple math operations on struct variables like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
+It is possible to apply some simple math operations on struct variables, like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
 
 Syntax
 
@@ -562,7 +562,7 @@ Syntax
 
 Examples
 
- p: declare struct! [					;-- let suppose p = 4000000h
+ p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
 	b [pointer! [integer!]]
  ]										;-- struct memory size would be 8 bytes
@@ -622,7 +622,7 @@ Struct usage example:
 
 ---Pointer!
 
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
+The purpose of the pointer datatype is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
 
 Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer is meant to point to a stream of byte without a specified bound, while c-string! references an array of bytes terminated by a null byte.
 
@@ -703,7 +703,7 @@ Example of inferred pointer variable type:
 
 +++Dereferencing
 
-Dereferencing a pointer is the operation allowing to access the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
+Dereferencing a pointer is the operation allowing access to the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
 
  <pointer>/value						;-- read access
  <pointer>/value: <value>				;-- write access
@@ -725,17 +725,17 @@ Usage example
 
 +++Pointer arithmetic
 
-It is possible to apply some simple math operations on pointers like additions and subtractions (as in C). A pointer address will be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+It is possible to apply some simple math operations on pointers, like additions and subtractions (as in C). A pointer address will be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
  p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
  
  q: declare pointer! [byte!]			;-- pointed value memory size is 1 byte
  
- q: as [pointer! [byte!]] 4000000h
+ q: as [pointer! [byte!]] 40000000h
  q: q + 1								;-- p points now to 40000001h
  q: q + 1								;-- p points now to 40000002h
  
@@ -761,7 +761,7 @@ Examples:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  a: p/1									;-- reads an integer! from 40000000h
  p/2: a									;-- writes the integer! to 40000004h
  
@@ -769,11 +769,42 @@ Integer variable can also be used as index:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  c: 2
  p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
+
++++Literal arrays
+
+A pointer can also point to a one-dimensional array of values literally specified.
+
+<b>Syntax</b>
+
+ <variable>: [<items>]
+
+ <variable> : a pointer of same type as the array items.
+ <items>    : is a non-empty list of integer!, byte!, float! literal values.
+ 
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit word just preceding the beginning of the array.
+
+Examples:
+
+ list: [123 456 789]
+ probe list/0							;-- outputs 3
+ probe list/2							;-- outputs 456
+
+ s: [#"h" #"e" #"l" #"l" #"o"]
+ sz: as int-ptr! s
+ probe sz/0								;-- outputs 5
+ probe s/5								;-- outputs o
+ 
+<u>Note</u>: In this last example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+
+\note Write access to arrays
+Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future array! first-class datatype.
+
+/note
 
 +++Null value
 
@@ -806,29 +837,29 @@ Examples:
 
 There is no specific support in Red/System for C-like void pointers. The official way is to use a pointer! [byte!] type to represent C void* pointers.
 
-For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and type cast to the target type.
+For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and converted using type casting to the target type.
 
 Example:
 
  p-buffer!: alias struct! [buffer [c-string!]]
 
- get-hello: function [
- 	s [p-buffer]
- 	return: [p-buffer]					;-- returns a pointer to a c-string
+ set-hello: function [
+ 	s [p-buffer!]
  ][
  	s/buffer: "hello"
  	s									;-- equivalent to C's char **
  ]
- 
+
  foo: func [
  	/local
- 		c [pointer! [integer!]]
- 		s [c-string!]
+ 		c [p-buffer!]
  ][
- 	c: get-hello
- 	s: as c-string! c/value
- 	print s
+ 	c: declare p-buffer!
+ 	set-hello c
+ 	print c/buffer
  ]
+
+ foo									;-- call foo function
 would print
  hello
     
@@ -940,7 +971,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>byte!</th>
 <td class="warn">WARNING</td>
-<td class="allow">to byte! &sup1;</td>
+<td class="allow">as byte! &sup1;</td>
 <td class="allow">true<span class="arrow">&raquo;</span>#"^(01)"<br>false<span class="arrow">&raquo;</span>#"^(00)"</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -951,12 +982,12 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 </tr><tr>
 
 <th>integer!</th>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
 <td class="warn">WARNING</td>
 <td class="allow">true<span class="arrow">&raquo;</span>1<br>false<span class="arrow">&raquo;</span>0</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
 <td class="deny">ERROR</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
@@ -976,11 +1007,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>c-string!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">to c-string!</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -988,11 +1019,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>pointer!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="warn">WARNING</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1000,10 +1031,10 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>struct!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
+<td class="allow">as struct!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1051,6 +1082,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 
+<b>as</b> : indicates that data is left untouched, only the type label is changed.<br>
+<b>to</b> : indicates that a possible data modification can occur.<br>
 
 ===Expressions
 
@@ -1176,6 +1209,13 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  
 Doc-strings are just optional documentation that can be processed by any external tool, they have no runtime effect.
 
+\note Func vs Function
+
+Currently, <b>function</b> is a synonym for <b>func</b> in Red/System. In future, however, the behaviour of <b>function</b> in Red/System may be changed to match the behaviour of <b>function</b> in Red (i.e. all set-words are assumed locals).
+Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where its use would be affected by such a change.
+
+/note
+
 <b>Examples</b>
 
  hello: func [][print "hello"]			;-- no arguments, no locals, no return value
@@ -1201,7 +1241,7 @@ Doc-strings are just optional documentation that can be processed by any externa
  
 \note Arguments passing
 
-In current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
+In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
 
 /note
 
@@ -1480,7 +1520,7 @@ It is also possible to pipe several function calls together:
  
 ---Function pointer
 
-It is possible to obtain a function address to pass it, for example, as argument to external calls with callbacks.
+It is possible to obtain a function address to pass it, for example, as an argument to external calls with callbacks.
 
 <b>Syntax</b>
 
@@ -1495,7 +1535,7 @@ Example:
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
 
-A function pointer can be assigned to a variable for later use or dereferencing. Such variable cannot be passed as argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
+A function pointer can be assigned to a variable for later use or dereferencing. Such a variable cannot be passed as an argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
 
 <u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
 
@@ -1544,7 +1584,7 @@ Alternatively, you can dereference a function! pointer stored as a struct member
 
 ---Premature exiting
 
-Exiting at function's end is not always desirable. Sometimes, conditional premature exiting from the function is required. This can be done using EXIT or RETURN special keywords.
+Exiting at a function's end is not always desirable. Sometimes, conditional premature exiting from the function is required. This can be done using EXIT or RETURN special keywords.
 
 +++Exit
 
@@ -1569,99 +1609,6 @@ Immediately quits the function and returns a value.
  	"ok"								;-- return "ok" if a <> 0
  ]
 
----Exceptions
-
-Exit and Return are sometimes not enough when it is needed to interrupt current execution and go back through several parent calls before resuming execution. Exceptions are solving such case by providing a way to resume execution from a parent caller anywhere in the calling hierarchy, up to global code level.
-
-+++Throwing an exception
-
-Raising a new exception is done by calling the <b>throw</b> function followed by an integer value used as the exception ID.
-
-<b>Syntax</b>
-
- throw <id>
-
- <id> : integer value used as exception ID
- 
-<b>Throw</b> will produce an exception that will move up through the parent calls until one with a <b>catch</b> attribute is found. If no such attribute is found, the exception will stop once global code is reached and resume execution from there.
-
-<u>Note</u>: if <b>throw</b> is used from a function that has the <b>catch</b> attribute, the exception will still be raised and go through parent calls. Only a parent call with a <b>catch</b> attribute can stop it. This way, when a function catches an exception, it can re-<b>throw</b> it if required.
-
-Example:
-
- baz: does [
- 	print " "
- 	throw 123
- 	print "<hidden>"
- ]
- bar: does [
- 	print "hello"
- 	baz
- 	print "<hidden>"
- ]
- foo: func [[catch]][
- 	bar
- 	print "world"
- ]
-
- foo
-will output:
- hello world
- 
-\note No callbacks support
-The exception mechanism does not work across external calls, so a callback function must not use <b>throw</b>, else a crash will be the likely outcome.
-
-/note
-
-+++Reading exception value
-
-The integer argument passed to <b>throw</b> is propagated with the exception, it can be read using a system access path: <b>system/thrown</b>
-
-<b>Syntax</b>
-
- system/thrown							;-- read access (returns an integer)
- system/thrown: <id>					;-- write access
-
- <id>  : integer value
- 
-The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
- 
-<b>Examples</b>
-
- foo									;-- taken from previous example
- print system/thrown
-will output:
- 123
- 
-A dispatching use case would look like this:
-
- foo: does [throw 10]
- bar: does [throw 20]
- baz: does [throw 30]
-
- dispatch: func [[catch] n [integer!]][
- 	system/thrown: 0					;-- this is only useful if no exception occurs
-
- 	switch n [
- 		1 [foo]
- 		2 [bar]
- 		3 [baz]
- 		default [
- 			print-line "do nothing"
- 		]
- 	]
- 	switch system/thrown [
- 		0  [print "no exception occured"]
- 		10 [print "foo"]
- 		20 [print "bar"]
- 		30 [print "baz"]
- 	]
- ]
-
- dispatch 2
-will output:
-	bar
-
 ===Scoping
 
 In Red/System, variables are statically scoped. The place in source code where a variable is declared determines its scope. 
@@ -1680,7 +1627,7 @@ Example:
 
 ---Functions Contexts
 
-Each defined function has its own local context. Variables declared in function's definition block are locally scoped and can't be accessed outside of the function's body. On the other hand, global variable can be referenced and modified from functions. If a local variable has the same name as a global one, the local one will take precedence in function's body. The value of the homonym global variable won't be affected by local redefinitions in functions contexts.
+Each defined function has its own local context. Variables declared in a function's definition block are locally scoped and can't be accessed outside of the function's body. On the other hand, global variable can be referenced and modified from functions. If a local variable has the same name as a global one, the local one will take precedence in function's body. The value of the homonym global variable won't be affected by local redefinitions in functions contexts.
 
 Example:
 
@@ -1869,7 +1816,7 @@ The following math operations apply on integer or float values. When the operati
 
  value1 % value2
  
-Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
  
 <b>Modulo</b>: //
 
@@ -1971,13 +1918,13 @@ where
 
 *= and <> can also be used to compare logic! values.
 
-*For c-string!, pointer! and struct! comparisons are done on references, not on the value pointed at.
+*For c-string!, pointer! and struct!, comparisons are done on references, not on the value pointed at.
 
 ===Control flow functions
 
 ---if
 
-Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
+Execute a block of code if a given condition is true. IF does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -2028,10 +1975,35 @@ An alternative way to write it (allowed because all code paths return a value of
  ]
  
  prin ["a is " msg lf]
+ 
+---loop
+
+Loop over a block of code, decrementing a counter down to zero. LOOP does not return any value, so it cannot be used in an expression.
+
+<b>Syntax</b>
+
+ loop <counter> [<code>]
+
+ <counter> : a valid expression returning a positive integer value
+ <code>	   : code to execute while the condition is not met
+
+<b>Examples</b>
+
+ loop 3 [print "o"]
+will output:
+
+ ooo
+
+ a: 2
+ b: 3
+ loop a + b [print "o"]
+will output:
+
+ ooooo
 
 ---until
 
-Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
+Loop over a block of code until the condition at the end of the block, is met. UNTIL does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -2040,10 +2012,10 @@ Loop over a block of code until the condition at end of block, is met. UNTIL doe
  	<condition>
  ]
 
- <code>		 : code to execute while the condition is met
+ <code>		 : code to execute while the condition is not met
  <condition> : a conditional expression
 
-<u>Note</u>: The loop will always be executed at least once, even if the condition is not met from the beginning.
+<u>Note</u>: The loop will always be executed at least once, even if the condition is met from the beginning.
 
 <b>Example</b>
 
@@ -2059,7 +2031,7 @@ will output:
 
 ---while
 
-While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
+While a given condition is met, execute a block of code. WHILE does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -2080,6 +2052,48 @@ While a given condition is met, execute a block of code. WHILE does not return a
 will output:
 
  ooooo
+ 
+---break
+
+BREAK allows to break out of the nearest enclosing loop at once and resume execution after the loop.
+
+<b>Syntax</b>
+
+ break
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	break
+ 	c: c - 1
+ 	c = 0
+ ]
+will output:
+
+ o
+
+---continue
+
+CONTINUE skips the remaining part of a body loop and resume execution at next loop iteration.
+
+<b>Syntax</b>
+
+ continue
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	c: c - 1
+	either c > 3 [continue][break]
+ 	c = 0
+ ]
+will output:
+
+ oo
 
 ---any
 
@@ -2206,7 +2220,166 @@ Example using multiple values for matching:
  ]
 will output:
  odd
+ 
+===Exceptions
 
+Exit and Return are sometimes not enough when it is needed to interrupt current execution and go back through several parent calls before resuming execution. Exceptions are solving such case by providing a way to resume execution from a parent caller anywhere in the calling hierarchy, up to global code level.
+
+---Throw
+
+Raising a new exception is done by calling the <b>throw</b> function followed by an integer value used as the exception ID.
+
+<b>Syntax</b>
+
+ throw <id>
+
+ <id> : integer value used as exception ID
+ 
+<b>Throw</b> will produce an exception that will move up through the parent calls until:
+
+* a <b>catch</b> statement is encountered and the exception filter value is greater or equal than the exception ID value.
+
+* a function with a <b>[catch]</b> attribute is found. 
+
+If no <b>catch</b> is encountered, the exception, once reaching global code level, with exit the program with a <u>runtime error</u>.
+
+<u>Note</u>: if <b>throw</b> is used from a function that has the <b>catch</b> attribute, the exception will still be raised and go through parent calls. This way, when a function with a <b>[catch]</b> attribute catches an exception, it can re-<b>throw</b> it if required.
+
+\note No callbacks support
+The exception mechanism does not work across external calls, so a callback function must not use <b>throw</b>, else a crash will be the likely outcome. Nested exceptions are still possible as long as they are caught before the callback function returns.
+
+/note
+
+---Catch
+
+There are two ways to catch exceptions created using <b>throw</b>.
+
++++Catch statement
+
+<b>Syntax</b>
+
+ catch <filter> [<body>]
+
+ <filter> : integer value used to filter exceptions.
+ <body>   : arbitrary body of code to which this catch applies to.
+ 
+An exception occuring in &lt;body&gt; block (including deeply nested ones that were uncaught) will be caught only if its ID value is less or equal than the &lt;filter&gt; value. Once an exception is being caught, the execution resumes after the <b>catch</b> body block.
+
+<u>Note</u>: Once an exception is caught by <b>catch</b>, the exception value can be retrieved using <b>system/thrown</b>.
+
+Example in global context:
+
+ catch 123 [
+     print "hello"
+     throw 10
+     print "<hidden>"
+ ]
+ print " world"
+will output:
+ hello world
+
+Example using a nested exception:
+
+ bar: does [
+ 	print "hello"
+ 	throw 123
+ 	print "<hidden>"
+ ]
+
+ foo: does [
+ 	catch 5 [bar]						;-- exception 123 not catchable
+ 	print "<hidden>"
+ ]
+
+ catch 1000 [foo]						;-- exception will be caught here
+will output:
+ hello
+ 
++++Catch attribute
+
+<b>Syntax</b>
+
+ func [[catch]...][...]
+
+A <b>[catch]</b> attribute will make the function catch all exceptions and resume at the next instruction. This attribute cannot be used in conjunction with other function attributes.
+
+\note Implementation note
+The internal threshold value for the [catch] attribute is set to FFFFFFFEh. The FFFFFFFFh value is defined as the CATCH_ALL macro and reserved for the internal catching sub-system at root level.
+
+/note
+
+Example:
+
+ baz: does [
+ 	print " "
+ 	throw 123
+ 	print "<hidden>"					;-- never executed
+ ]
+ bar: does [
+ 	print "hello"
+ 	baz
+ 	print "<hidden>"					;-- never executed
+ ]
+ foo: func [[catch]][
+ 	bar
+ 	print "world"						;-- execution resumes there
+ ]
+
+ foo
+will output:
+ hello world
+ 
+
+---Exception value
+
+The integer argument passed to <b>throw</b> is propagated with the exception, it can be read using a system access path: <b>system/thrown</b>
+
+<b>Syntax</b>
+
+ system/thrown							;-- read access (returns an integer)
+ system/thrown: <id>					;-- write access
+
+ <id> : integer value
+ 
+The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
+ 
+<b>Examples</b>
+
+ foo									;-- taken from previous example
+ print system/thrown
+will output:
+ 123
+ 
+A dispatching use case would look like this:
+
+ foo: does [throw 10]
+ bar: does [throw 20]
+ baz: does [throw 30]
+
+ dispatch: func [[catch] n [integer!]][
+ 	system/thrown: 0					;-- this is only useful if no exception occurs
+
+ 	switch n [
+ 		1 [foo]
+ 		2 [bar]
+ 		3 [baz]
+ 		default [
+ 			print-line "do nothing"
+ 		]
+ 	]
+ 	switch system/thrown [
+ 		0  [print "no exception occured"]
+ 		10 [print "foo"]
+ 		20 [print "bar"]
+ 		30 [print "baz"]
+ 	]
+ ]
+
+ dispatch 2
+will output:
+	bar
+	
+	
 ===Stack functions
 
 ---push
@@ -2422,10 +2595,260 @@ Retrieve the CPU program counter value.
 	
  system/pc
 
-\note IA-32 target
-This access path will return the value of the EIP register.
+\note Platform-specific results
+IA-32 target returns the value of the EIP register.
+
+ARM target returns the value of the PC (r15) register.
 
 /note
+
+---cpu
+
+Set or retrieve any of the CPU's registers value.
+
+<b>Syntax</b>
+
+Reading a register:
+
+ system/cpu/<register>
+
+ return: a value of type integer!.
+
+Setting a register:
+
+	system/cpu/<register>: <value>
+
+where:
+ <register>: valid name of a CPU register (platform-dependent)
+ <value>   : an integer! value
+
+\note Register names
+Currently supported names are: 
+
+*<b>IA-32</b>: eax, ecx, edx, ebx, esp, ebp, esi, edi
+
+*<b>ARM</b>: r0 to r15
+
+Support for accessing more registers (like status registers) will be added in the future.
+
+/note
+
+
+---fpu/type
+
+Returns a unique ID for the currently used FPU.
+
+<b>Syntax</b>
+
+ system/fpu/type
+ 
+Possible returned values are currently:
+
+*FPU_TYPE_X87: for x87 FPU.
+
+*FPU_TYPE_SSE: for SSE unit on Intel.
+
+*FPU_TYPE_VFP: for ARM VFP unit.
+
+
+---fpu/option
+
++++fpu/option/rounding
+
+Set or retrieve the FPU rounding mode. The possible standard modes are:
+
+*Nearest: (even) rounded result is the closest to the infinitely precise result
+
+*Down: (toward -INF) rounded result is the closest to but no greater than the infinitely precise result
+
+*Up: (toward +INF) rounded result is the closest to but no less than the infinitely precise result
+
+*Zero: (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
+
+
+<b>Syntax</b>
+
+Reading a register:
+
+	system/fpu/option/rounding
+
+will return one of the following values:
+
+<b>Intel</b>:
+
+*FPU_X87_ROUNDING_NEAREST
+
+*FPU_X87_ROUNDING_DOWN	
+
+*FPU_X87_ROUNDING_UP		
+
+*FPU_X87_ROUNDING_ZERO	
+
+<b>ARM</b>:
+
+*FPU_VFP_ROUNDING_NEAREST
+
+*FPU_VFP_ROUNDING_DOWN
+
+*FPU_VFP_ROUNDING_UP			
+
+*FPU_VFP_ROUNDING_ZERO
+
+Setting a register:
+	system/fpu/option/rounding: <value>
+
+where:
+	<value>: is one of the valid values listed above.
+
+
++++fpu/option/precision
+
+<i><b>(Intel only)</b></i>
+
+Set or retrieve the FPU precision size. 
+
+<b>Syntax</b>
+
+Reading a register:
+
+	system/fpu/option/precision
+
+will return one of the following values:
+
+*FPU_X87_PRECISION_SINGLE		&nbsp;&nbsp;&nbsp;&nbsp;<i>(32-bit float, 24-bit mantissa)</i>
+
+*FPU_X87_PRECISION_DOUBLE		&nbsp;&nbsp;&nbsp;&nbsp;<i>(64-bit float, 53-bit mantissa)</i>
+
+*FPU_X87_PRECISION_DOUBLE_EXT 	&nbsp;&nbsp;&nbsp;&nbsp;<i>(80-bit float, 64-bit mantissa)</i>
+
+Setting a register:
+	system/fpu/option/precision: <value>
+
+where:
+	<value>: is one of the valid values listed above.
+
+
++++fpu/option/flush-to-zero
+
+<i><b>(ARM only)</b></i>
+
+Enable or disable the Flush-to-zero mode. See ARM <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0274h/Babffifj.html">documentation</a> for more info.
+
+Testing if flush mode is enabled:
+
+	system/fpu/option/flush-to-zero
+
+	return: true (if mode is enable) | false 
+
+Enabling or disabling the flush mode:
+	system/fpu/option/flush-to-zero: true | false
+
++++fpu/option/NaN-mode
+
+<i><b>(ARM only)</b></i>
+
+Enable or disable the default NaN mode. See ARM <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0274h/Babffifj.html">documentation</a> for more info.
+
+Testing if default mode is enabled:
+
+	system/fpu/option/NaN-mode
+
+	return: true (if mode is enable) | false 
+
+Enabling or disabling the default mode:
+	system/fpu/option/NaN-mode: true | false
+
+
+---fpu/mask
+
+Set the FPU exception masks. The following exceptions are available:
+
+*precision
+
+*underflow
+
+*overflow
+
+*zero-divide
+
+*denormal
+
+*invalid-op
+
+<b>Syntax</b>
+
+Reading an exception mask state:
+
+ system/fpu/mask/<exception>
+
+ return: true (exception is masked) | false
+
+Masking or unmasking an exception:
+
+ system/fpu/mask/<exception>: <value>
+
+where:
+ <exception> : is one of the above exception name
+ <value>     : an integer! value
+
+
+---fpu/control-word
+
+Set or retrieve the full FPU control register.
+
+<b>Syntax</b>
+
+Reading the control value:
+
+ system/fpu/control-word
+
+ return: a value of type integer!.
+
+Setting a register:
+
+	system/fpu/control-word: <value>
+
+where:
+ <value> : an integer! value
+
+\note Warning for ARM backend
+Setting the control-word on ARM can have side-effects, as the same register is used for status flags.
+
+/note
+
+---fpu/epsilon
+
+<i>Not implemented yet.</i>
+
+---fpu/update
+
+Effectively update the FPU with the last options set.
+
+<b>Syntax</b>
+
+ system/fpu/update
+ 
+All the changes to the FPU are pending until this command is sent.
+
+\note ARM backend
+On ARM backend, the changes are immediate and this command does nothing, but it is still useful for writing platform-independent code. This will be changed in the future to allow staging options and this command will be then enabled.
+
+/note
+ 
+
+---fpu/init
+
+Initialize the FPU.
+
+<b>Syntax</b>
+
+ system/fpu/init
+
+\note Intel-only
+Only needed for Intel platforms, does nothing on ARM (for now).
+
+/note
+ 
 
 ---alias
 
@@ -2547,7 +2970,7 @@ The following example is Windows-specific.
  			size 	[integer!]
  			return: [c-string!]
  		]
- 		free: "free" [
+ 		release: "free" [
  			block	[c-string!]
  		]
  	]
@@ -2561,7 +2984,7 @@ The following example is Windows-specific.
  get-env "windir" buf  max-size
 
  print buf
- free buf
+ release buf
  
 would output:
 
@@ -2940,7 +3363,7 @@ Once the Red function returns, the normal execution of Red/System code continues
 
  Red []
 
- inc: func [n][n + 1]
+ inc: func [n [integer!]][n + 1]
 
  #system [
  	#call [inc 123]
@@ -2961,7 +3384,7 @@ The <b>#call</b> directive needs to be processed by the Red compiler, so it cann
 
 ---#export
 
-When generating shared library, the Red/System toolchain needs to know which identifiers will be exposed to third-party users of the library. This is achieved using the <b>#export</b> compiler directive.
+When generating a shared library, the Red/System toolchain needs to know which identifiers will be exposed to third-party users of the library. This is achieved using the <b>#export</b> compiler directive.
 
 <b>Syntax</b>
 
@@ -2972,6 +3395,19 @@ When generating shared library, the Red/System toolchain needs to know which ide
  <cconv>   : optional calling convention word (stdcall or cdecl)
     
 One or several #export directives can be used in the same Red/System library code.
+
+---#u16
+
+Converts a literal string to UTF-16LE format. The string is stored in memory in that new format with a terminal UTF-16 NUL character.
+
+<b>Syntax</b>
+
+ #u16 <string>
+
+ <string> : a literal c-string!
+ 
+Only literal strings can be statically processed by this directive.
+
     
 ===Source code organization
 
@@ -3071,7 +3507,7 @@ can be processed without issues.
 
 You can use global code in your shared library program, but this is not recommended, as it might be unsupported in the future. All your code should be in functions.
 
-<u>Note</u>: All shared library programs needs to export at least one symbol using the <b>#export</b> directive or a compilation error will occur.
+<u>Note</u>: All shared library programs need to export at least one symbol using the <b>#export</b> directive or a compilation error will occur.
 
 A shared library might implement one or several of the callbacks below:
 
@@ -3104,18 +3540,6 @@ The specifications for these callbacks are system-specific:
 
  on-load:   func [][...]
  on-unload: func [][...]
- 
-\note ELF unfinished shared library support
-On OS that require ELF format, like Linux, the callbacks will not be automatically called, so until this part gets implemented, you need to use a special version for <b>on-load</b>:
-
- on-load: func [][
- 	#if format = 'ELF [***-dll-entry-point]
- 	...
- ]
- 
-<b>On-unload</b> will not be called.
-
-/note
 
 ---Driver program (experimental)
 
@@ -3164,10 +3588,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     >>			>=		    >>>
     ??			alias 		all
     and   		any			as
-    assert		case		comment
-    context		declare     either
-    exit		false		func
-    function	if			not
+    assert		break		case
+    comment		context		continue
+    declare		either		exit
+    false		func		function
+    if			loop		not
     null		or			pop
     push		return		size?
     switch		throw		true
@@ -3243,6 +3668,8 @@ will output:
 *<strike>Infer functions return value datatype</strike>
 
 *Accept an integer parameter for [catch] attribute to set manually the catching level (to avoid manual exception re-throwing).
+
+*Distinguish the behaviour of <b>function</b> from <b>func</b> to assume all set-words are locals (as in Red).
  
 ---New datatypes
 
@@ -3293,9 +3720,56 @@ will output:
 
 ===Document History
 
+*<b>09/03/2016 - revision 46</b>
+
+*>Added #u16 directive description.
+
+
+*<b>12/05/2015 - revision 45</b>
+
+*>Added BREAK and CONTINUE descriptions.
+
+*>Added LOOP description.
+
+*>Updated keywords section.
+
+
+
+*<b>13/03/2015 - revision 44</b>
+
+*>Move exceptions description to its own separate section and upgraded it with the new CATCH statement description.
+
+*>Fixed C void pointer bad code example
+
+
+*<b>13/10/2014 - revision 43</b>
+
+*>Added notes about the possible future distinction between <b>function</b> and <b>func</b>. 
+
+*>Fixed 2 misleading statements about whether or not the condition is met in <b>until</b>.
+
+*>Minor grammar cleanups.
+
+
+
+*<b>29/07/2014 - revision 42</b>
+
+*>Removed the note about ELF backend not calling on-load/on-unload.
+
+*>Added system/cpu et system/fpu sections.
+
+
+*<b>26/04/2014 - revision 41</b>
+
+*>Added literal arrays section.
+
+*>Type matrix adjustments on AS/TO meaning
+
+
 *<b>14/02/2014 - revision 40</b>
 
 *>Function! to function! type casting now allowed.
+
 
 *<b>09/08/2013 - revision 39</b>
 

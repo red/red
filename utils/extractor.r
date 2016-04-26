@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %extractor.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Notes: {
 		These utility functions extract types ID and function definitions from Red
 		runtime source code and make it available to the compiler, before the Red runtime
@@ -40,4 +40,7 @@ context [
 	extract-defs 'natives!
 	
 	data: none
+	
+	set 'typeset! block!								;-- fake a convenient definition
+	scalars: make object! copy skip load-cache %environment/scalars.red 2
 ]

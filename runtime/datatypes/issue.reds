@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %issue.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
@@ -70,7 +70,7 @@ issue: context [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "issue/compare"]]
 
@@ -93,7 +93,7 @@ issue: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -126,9 +126,11 @@ issue: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

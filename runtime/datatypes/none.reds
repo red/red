@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %none.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -15,13 +15,13 @@ none-value: declare red-value!							;-- preallocate none! value
 none: context [
 	verbose: 0
 	
-	rs-push: func [
-		blk		[red-block!]
+	make-in: func [
+		parent	[red-block!]
 		return:	[red-value!]							;-- return cell pointer
 		/local
 			cell 	[red-none!]
 	][
-		cell: as red-none! ALLOC_TAIL(blk)
+		cell: as red-none! ALLOC_TAIL(parent)
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]
@@ -99,46 +99,93 @@ none: context [
 		arg1      [red-none!]							;-- first operand
 		arg2	  [red-none!]							;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			type  [integer!]
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/compare"]]
 
 		type: TYPE_OF(arg2)
+		if type <> TYPE_NONE [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
-			COMP_STRICT_EQUAL [res: type =  TYPE_NONE]
-			COMP_NOT_EQUAL	  [res: type <> TYPE_NONE]
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL [res: as-integer type <> TYPE_NONE]
+			COMP_SORT
+			COMP_CASE_SORT [res: 0]
 			default [
-				print-line ["Error: cannot use: " op " comparison on none! value"]
+				res: -2
 			]
 		]
 		res
 	]
 	
-	clear:	 does []									;-- arguments can be safely omitted
-	find:    does []
+	clear: func [
+		none	[red-none!]
+		return:	[red-value!]
+ 	][
+		push-last
+	]
+	
+	find: func [
+		none		[red-none!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]
+		with-arg	[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
+	][
+		push-last
+	]
 	
 	length?: func [
-		value	[red-none!]
+		none	[red-none!]
 		return: [integer!]
 	][
 		-1
 	]
 	
-	remove:  func [
-		series	[red-series!]
+	remove: func [
+		none	[red-none!]
 		part	[red-value!]
-		return:	[integer!]
+		return:	[red-value!]
 	][
 		push-last
-		0
 	]
 	
-	select:  does []
-	take:	 does []
+	select: func [
+		blk		 [red-block!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:	 [red-value!]
+	][
+		push-last
+	]
+
+	take: func [
+		value	 [red-value!]
+		part-arg [red-value!]
+		deep?	 [logic!]
+		last?	 [logic!]
+		return:  [red-value!]
+	][
+		push-last
+	]
 
 	init: does [
 		none-value/header: TYPE_NONE
@@ -154,7 +201,7 @@ none: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -187,9 +234,11 @@ none: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			:remove
 			null			;reverse
 			:select

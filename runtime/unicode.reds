@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic, Rudolf W. Meijer"
 	File: 	 %unicode.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -22,6 +22,7 @@ unicode: context [
 	verbose: 0
 
 	#define U_REPLACEMENT 	FFFDh
+	#define NOT_A_CHARACTER FFFEh
 	;	choose one of the following options
 	;	FFFDh			; U+FFFD = replacement character
 	;	1Ah				; U+001A = control SUB (substitute)
@@ -30,11 +31,70 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
-	
-	
+
+	utf8-char-size?: func [
+		byte-1st	[integer!]
+		return:		[integer!]
+	][
+		;@@ In function unicode/decode-utf8-char
+		;@@ just support up to four bytes in a UTF-8 sequence
+		;if byte-1st and FCh = FCh [return 6]
+		;if byte-1st and F8h = F8h [return 5]
+		if byte-1st and F0h = F0h [return 4]
+		if byte-1st and E0h = E0h [return 3]
+		if byte-1st and C0h = C0h [return 2]
+		0
+	]
+
+	cp-to-utf8: func [
+		cp		[integer!]
+		buf		[byte-ptr!]
+		return: [integer!]
+	][
+		case [
+			cp <= 7Fh [
+				buf/1: as-byte cp
+				1
+			]
+			cp <= 07FFh [
+				buf/1: as-byte cp >> 6 or C0h
+				buf/2: as-byte cp and 3Fh or 80h
+				2
+			]
+			cp < 0000FFFFh [
+				buf/1: as-byte cp >> 12 or E0h
+				buf/2: as-byte cp >> 6 and 3Fh or 80h
+				buf/3: as-byte cp	   and 3Fh or 80h
+				3
+			]
+			cp < 0010FFFFh [
+				buf/1: as-byte cp >> 18 or F0h
+				buf/2: as-byte cp >> 12 and 3Fh or 80h
+				buf/3: as-byte cp >> 6  and 3Fh or 80h
+				buf/4: as-byte cp 		and 3Fh or 80h
+				4
+			]
+			true [
+				print "*** Error: to-utf8 codepoint overflow"
+				halt
+				0
+			]
+		]
+	]
+
 	to-utf8: func [
-		str		[red-string!]
-		return: [c-string!]
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		return:  [c-string!]
+	][
+		io-to-utf8 str len no
+	]
+
+	io-to-utf8: func [
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		convert? [logic!]			;-- convert line terminators to OS specific
+		return:  [c-string!]
 		/local
 			s	 [series!]
 			node [node!]
@@ -44,15 +104,21 @@ unicode: context [
 			tail [byte-ptr!]
 			unit [integer!]
 			cp	 [integer!]
+			part [integer!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		node: alloc-bytes unit * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
+
+		part: string/rs-length? str
+		unless len/value = -1 [
+			if len/value < part [part: len/value]
+		]
+		node: alloc-bytes unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
 		s: 	  as series! node/value
 		buf:  as byte-ptr! s/offset
 		
 		p:	  string/rs-head str
-		tail: string/rs-tail str
+		tail: p + (part << (unit >> 1))
 		
 		while [p < tail][
 			cp: switch unit [
@@ -60,37 +126,18 @@ unicode: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			case [
-				cp <= 7Fh [
-					buf/1: as-byte cp
+			#if OS = 'Windows [
+				if all [convert? cp = as-integer lf][
+					buf/1: cr
 					buf: buf + 1
 				]
-				cp <= 07FFh [
-					buf/1: as-byte cp >> 6 or C0h
-					buf/2: as-byte cp and 3Fh or 80h
-					buf: buf + 2
-				]
-				cp < 0000FFFFh [
-					buf/1: as-byte cp >> 12 or E0h
-					buf/2: as-byte cp >> 6 and 3Fh or 80h
-					buf/3: as-byte cp	   and 3Fh or 80h
-					buf: buf + 3
-				]
-				cp < 0010FFFFh [
-					buf/1: as-byte cp >> 18 or F0h
-					buf/2: as-byte cp >> 12 and 3Fh or 80h
-					buf/3: as-byte cp >> 6  and 3Fh or 80h
-					buf/4: as-byte cp 		and 3Fh or 80h
-					buf: buf + 4
-				]
-				true [
-					print "*** Error: to-utf8 codepoint overflow"
-					halt
-				]
 			]
+			buf: buf + cp-to-utf8 cp buf
 			p: p + unit
 		]
-		string/add-terminal-NUL p unit
+		buf/1: null-byte
+
+		len/value: as-integer buf - (as byte-ptr! s/offset)
 		as-c-string s/offset
 	]
 	
@@ -105,13 +152,14 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
-		used: as-integer s/tail - s/offset	
-		if used * 2 >= s/size [							;-- ensure we have enough space
-			s: expand-series s (used + 1) * 2			;-- reserve one more for edge cases
+		used: as-integer s/tail - s/offset
+		used: used << 1 
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  (as byte-ptr! s/offset) + (used * 2)
+		dst:  (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 		
 		while [src > base][								;-- in-place conversion
@@ -135,13 +183,14 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS4"]]
 
-		used: as-integer s/tail - s/offset	
-		if used * 4 >= s/size [							;-- ensure we have enough space
-			s: expand-series s (used + 1) * 4			;-- reserve one more for edge cases
+		used: as-integer s/tail - s/offset
+		used: used << 2
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 4					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 4)
+		dst:  as int-ptr! (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 
 		while [src > base][								;-- in-place conversion
@@ -165,12 +214,13 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
 
 		used: as-integer s/tail - s/offset	
-		if used * 2 >= s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2 + 1
+		used: used << 1
+		if used > s/size [								;-- ensure we have enough space
+			s: expand-series s used + 4
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
-		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 2)
+		dst:  as int-ptr! (as byte-ptr! s/offset) + used
 		s/tail: as cell! dst							;-- adjust to new tail
 
 		while [src > base][								;-- in-place conversion
@@ -185,7 +235,7 @@ unicode: context [
 	decode-utf8-char: func [
 		src		[c-string!]
 		cnt		[int-ptr!]								;-- pointer to size of next char in bytes
-		return: [integer!]
+		return: [integer!]								;-- return -1 to indicate the string is incomplete, which is not an error
 		/local
 			b1  [integer!]								;-- up to four bytes in a UTF-8 sequence		
 			b2  [integer!]								;-- for computing purposes they are of integer! type
@@ -199,11 +249,11 @@ unicode: context [
 			cp: b1										; and we are done
 			cnt/value: 1
 		][
-			cp: U_REPLACEMENT
+			cp: NOT_A_CHARACTER
 			; assume error by default - this simplifies code greatly
 			; cp is now only set if a correct sequence has been decoded
 
-			unless b1 < C0h [							; 80h - BFh may not start a sequence
+			if b1 > BFh [								; 80h - BFh may not start a sequence
 				case  [
 					b1 < E0h [							; start of two-byte sequence
 						if cnt/value < 2 [return -1]
@@ -232,11 +282,14 @@ unicode: context [
 							cp:	(b1 - E0h << 12) or
 								(b2 - 80h <<  6) or
 								(b3 - 80h)
-							if all [
-								any [cp < DC00h cp > DCFFh]
-;								cp > 7FFh				; optional test for overlong
-							][
+							;either all [
+							;	any [cp < DC00h cp > DCFFh]
+							;	cp > 7FFh				; optional test for overlong
+							;][
+							either any [cp < DC00h cp > DCFFh][
 								cnt/value: 3
+							][
+								cp: NOT_A_CHARACTER
 							]
 						]
 					]
@@ -254,28 +307,36 @@ unicode: context [
 								(b2 - 80h << 12) or
 								(b3 - 80h <<  6) or
 								(b4 - 80h)
-							if all [
-								cp <= 0010FFFFh
-;								cp > FFFFh				; optional test for overlong
-							][
+							;either all [
+							;	cp <= 0010FFFFh
+							;	cp > FFFFh				; optional test for overlong
+							;][
+							either cp <= 0010FFFFh [
 								cnt/value: 4
+							][
+								cp: NOT_A_CHARACTER
 							]
 						]
 					]
-;					true [
-;						error case						;@@ throw an error! value
-;					]
+					true [0]
 				]
 			]
-		]	
+		]
+		if cp = NOT_A_CHARACTER [
+			fire [
+				TO_ERROR(access invalid-utf8)
+				binary/load as byte-ptr! src 4
+			]
+		]
 		cp
 	]
 
 	load-utf8-buffer: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
-		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		dst		   [series!]							;-- optional output string! series
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of buffer
+		convert?   [logic!]								;-- convert all line terminators to standard
 		return:	   [node!]
 		/local
 			node   [node!]
@@ -290,18 +351,19 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8-buffer"]]
 
-		assert positive? size 
-		
+		assert not negative? size 
+
+		used: either zero? size [1][size]
 		either null? dst [								;-- test if output buffer is provided
-			node: alloc-series size 1 0
+			node: alloc-series used 1 0
 			s: as series! node/value
 			unit:  Latin1								;-- start with 1 byte/codepoint
 		][
 			node: dst/node
 			s: dst
 			unit: GET_UNIT(s)
-			if s/size / unit < size [
-				s: expand-series s size * unit
+			if s/size / unit < used [
+				s: expand-series s used * unit
 			]
 		]
 		
@@ -310,8 +372,13 @@ unicode: context [
 		end:   buf1 + s/size
 		count: size
 
-		if size = 1 [return node]						;-- terminal NUL accounted
+		if zero? size [return node]
 		;assert not zero? as-integer src/1				;@@ ensure input string not empty
+		
+		if all [src/1 = #"^(EF)" src/2 = #"^(BB)" src/3 = #"^(BF)"][ ;-- skip BOM if present
+			src: src + 3
+			count: count - 3
+		]
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
 		;-- (res/value replaced by cp, 'u renamed to 'src)
@@ -329,7 +396,15 @@ unicode: context [
 				remain/value: count						;-- return the number of unprocessed bytes
 				return node
 			]
-			
+
+			if all [convert? cp = as-integer cr] [					;-- convert CRLF/CR to LF
+				if all [count - used > 0 src/2 = lf] [
+					count: count - used
+					src: src + used
+					continue
+				]
+				cp: as-integer lf
+			]
 			switch unit [
 				Latin1 [
 					case [
@@ -394,18 +469,13 @@ unicode: context [
 					buf4: buf4 + 1
 				]
 			]
-			
 			count: count - used
 			src: src + used
 			zero? count
 		] 												;-- end until
 		
-		s/tail: as cell! switch unit [					;-- position s/tail just before the NUL character
-			Latin1 [buf1 - 1]
-			UCS-2  [buf1 - 2]
-			UCS-4  [buf4 - 1]
-		]
-		assert s/size - GET_UNIT(s) >= as-integer (s/tail - s/offset) ;-- tail points before NUL
+		s/tail: as cell! either unit = UCS-4 [buf4][buf1]
+		assert s/size >= as-integer (s/tail - s/offset)
 		
 		node
 	]
@@ -417,15 +487,15 @@ unicode: context [
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of input buffer
 		return:	   [node!]
 	][
-		load-utf8-buffer src size GET_BUFFER(output) remain
+		load-utf8-buffer src size GET_BUFFER(output) remain no
 	]
 
 	load-utf8: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
-		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		return:	   [node!]
 	][
-		load-utf8-buffer src size null null
+		load-utf8-buffer src size null null no
 	]
 	
 	scan-utf16: func [									;-- detect codepoint max storage size
@@ -439,7 +509,7 @@ unicode: context [
 		unit: 1
 		src: src + 1
 		while [size > 0][
-			c: src/1
+			c: src/1									;-- UTF-16LE, high byte in 2nd position
 			if all [#"^(D8)" <= c c <= #"^(DF)"][return 4]	;-- max
 			if c <> null-byte [unit: 2]
 			src: src + 2
@@ -450,7 +520,8 @@ unicode: context [
 	
 	load-utf16: func [ 
 		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
-		size	[integer!]							;-- size of src in codepoints (including terminal NUL)
+		size	[integer!]							;-- size of src in codepoints (excluding terminal NUL)
+		str		[red-string!]						;-- optional destination string
 		return:	[node!]
 		/local
 			unit [encoding!]
@@ -461,12 +532,27 @@ unicode: context [
 			cnt  [integer!]
 			c	 [integer!]
 			cp	 [integer!]
+			len	 [integer!]
 	][
+		if null? src [
+			assert not null? str
+			src: str/cache							;-- import UTF-16 string from cache
+		]
 		unit: scan-utf16 src size
-		node: alloc-series size unit 0
-		s:	  as series! node/value
-		p:	  as byte-ptr! s/offset
-		cnt:  size
+		
+		either null? str [
+			node: alloc-series size unit 0
+			s: as series! node/value
+		][
+			node: str/node
+			s: GET_BUFFER(str)
+			len: size << (unit >> 1)
+			if len > s/size [s: expand-series s len]
+			s/flags: s/flags and flag-unit-mask or unit
+		]
+		s/flags: s/flags or flag-UTF16-cache
+		p: as byte-ptr! s/offset
+		cnt: size
 
 		switch unit [
 			Latin1 [
@@ -507,7 +593,115 @@ unicode: context [
 				]
 			]
 		]
-		s/tail: as cell! (as byte-ptr! s/offset) + (size - 1 * unit)
+		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
 		node
 	]
+
+	to-utf16: func [
+		str		[red-string!]
+		return:	[c-string!]
+		/local
+			len [integer!]
+	][
+		len: -1
+		to-utf16-len str :len
+	]
+
+	to-utf16-len: func [
+		str		[red-string!]
+		len		[int-ptr!]					;-- len/value = -1 convert all chars
+		return: [c-string!]
+		/local
+			s	 [series!]
+			s2	 [series!]
+			node [node!]
+			src  [byte-ptr!]
+			dst  [byte-ptr!]
+			tail [byte-ptr!]
+			part [integer!]
+			size [integer!]
+			unit [integer!]
+			cp	 [integer!]
+			p4	 [int-ptr!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		size: string/rs-length? str
+		if all [len/value <> -1 len/value < size][size: len/value]
+		part: size
+		size: size << 1 + 2								;-- including terminal-NUL
+
+		get-cache str size
+		
+		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: src + (part << (unit >> 1))
+		dst:  as byte-ptr! str/cache
+
+		switch unit [
+			Latin1 [
+				while [src < tail][						;-- in-place conversion
+					dst/1: src/1
+					dst/2: null-byte
+					src: src + 1
+					dst: dst + 2
+				]
+			]
+			UCS-2 [
+				unit: as-integer tail - src
+				copy-memory dst src unit
+				dst: dst + unit
+			]
+			UCS-4 [
+				while [src < tail][
+					p4: as int-ptr! src
+					cp: p4/value
+					case [
+						cp < 00010000h [
+							dst/1: as-byte cp
+							dst/2: as-byte cp >> 8
+							dst: dst + 2
+						]
+						cp < 00110000h [
+							cp: cp - 00010000h
+							unit: cp >> 10 or D800h
+							dst/1: as-byte unit
+							dst/2: as-byte unit >> 8
+							unit: cp and 03FFh or DC00h
+							dst/3: as-byte unit
+							dst/4: as-byte unit >> 8
+							p4: as int-ptr! dst
+							dst: dst + 4
+							len/value: len/value + 1
+						]
+						true [print "Error: to-utf16 codepoint overflow" return null]
+					]
+					src: src + 4
+				]
+			]
+		]
+		dst/1: null-byte
+		dst/2: null-byte
+		str/cache
+	]
+	
+	get-cache: func [
+		str		[red-string!]
+		size	[integer!]								;-- desired cache size in bytes
+		return: [c-string!]
+		/local
+			node [node!]
+			s	 [series!]
+	][
+		either null? str/cache [
+			node: alloc-bytes size
+			s: as series! node/value
+			str/cache: as-c-string s/offset
+		][
+			s: (as series! str/cache) - 1
+			if s/size < size [s: expand-series s size]
+			str/cache: as-c-string s + 1
+		]
+		str/cache
+	]
+	
 ]

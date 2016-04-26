@@ -3,12 +3,14 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %win32.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
+
+#include %COM.reds
 
 #define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
@@ -20,28 +22,57 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
+#define GENERIC_WRITE		40000000h
+#define GENERIC_READ 		80000000h
+#define FILE_SHARE_READ		00000001h
+#define FILE_SHARE_WRITE	00000002h
+#define OPEN_EXISTING		00000003h
+
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
+#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
+#define FORMAT_MESSAGE_FROM_STRING        00000400h
+#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
+#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
+
+#define WEOF				FFFFh
 
 platform: context [
-	
+
 	#enum file-descriptors! [
 		fd-stdout: 1									;@@ hardcoded, safe?
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
+	GdiplusStartupInput!: alias struct! [
+		GdiplusVersion				[integer!]
+		DebugEventCallback			[integer!]
+		SuppressBackgroundThread	[integer!]
+		SuppressExternalCodecs		[integer!]
+	]
+
+	gdiplus-token: 0
 	page-size: 4096
 
 	#import [
 		LIBC-file cdecl [
-			putwchar: "putwchar" [
-				wchar		[integer!]					;-- wchar is 16-bit on Windows
-			]
+			;putwchar: "putwchar" [
+			;	wchar		[integer!]					;-- wchar is 16-bit on Windows
+			;]
 			wprintf: "wprintf" [
 				[variadic]
 				return: 	[integer!]
 			]
+			fflush: "fflush" [
+				fd			[integer!]
+				return:		[integer!]
+			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
+				return:		[integer!]
+			]
+			_get_osfhandle: "_get_osfhandle" [
+				fd			[integer!]
 				return:		[integer!]
 			]
 			;_open_osfhandle: "_open_osfhandle" [
@@ -63,7 +94,82 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			WriteConsole: 	 "WriteConsoleW" [
+				consoleOutput	[integer!]
+				buffer			[byte-ptr!]
+				charsToWrite	[integer!]
+				numberOfChars	[int-ptr!]
+				_reserved		[int-ptr!]
+				return:			[integer!]
+			]
+			WriteFile: "WriteFile" [
+				handle			[integer!]
+				buffer			[c-string!]
+				len				[integer!]
+				written			[int-ptr!]
+				overlapped		[integer!]
+				return:			[integer!]
+			]
+			GetConsoleMode:	"GetConsoleMode" [
+				handle			[integer!]
+				mode			[int-ptr!]
+				return:			[integer!]
+			]
+			GetCurrentDirectory: "GetCurrentDirectoryW" [
+				buf-len			[integer!]
+				buffer			[byte-ptr!]
+				return:			[integer!]
+			]
+			SetCurrentDirectory: "SetCurrentDirectoryW" [
+				lpPathName		[c-string!]
+				return:			[logic!]
+			]
+			GetCommandLine: "GetCommandLineW" [
+				return:			[byte-ptr!]
+			]
+			FormatMessage: "FormatMessageW" [
+				dwFlags			[integer!]
+				lpSource		[byte-ptr!]
+				dwMessageId		[integer!]
+				dwLanguageId	[integer!]
+				lpBuffer		[int-ptr!]
+				nSize			[integer!]
+				Argument		[integer!]
+				return:			[integer!]
+			]
+			LocalFree: "LocalFree" [
+				hMem			[integer!]
+				return:			[integer!]
+			]
+			Sleep: "Sleep" [
+				dwMilliseconds	[integer!]
+			]
+			lstrlen: "lstrlenW" [
+				str			[byte-ptr!]
+				return:		[integer!]
+			]
 		]
+		"gdiplus.dll" stdcall [
+			GdiplusStartup: "GdiplusStartup" [
+				token		[int-ptr!]
+				input		[integer!]
+				output		[integer!]
+				return:		[integer!]
+			]
+			GdiplusShutdown: "GdiplusShutdown" [
+				token		[integer!]
+			]
+		]
+	]
+
+	#either sub-system = 'gui [
+		#either gui-console? = yes [
+			#include %win32-gui.reds
+		][
+			#include %win32-cli.reds
+		]
+	][
+		#include %win32-cli.reds
 	]
 
 	;-------------------------------------------
@@ -77,7 +183,7 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc 
+		ptr: VirtualAlloc
 			null
 			size
 			VA_COMMIT_RESERVE
@@ -99,130 +205,52 @@ platform: context [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
 		]
 	]
-	
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
+
+	init-gdiplus: func [/local startup-input res][
+		startup-input: declare GdiplusStartupInput!
+		startup-input/GdiplusVersion: 1
+		startup-input/DebugEventCallback: 0
+		startup-input/SuppressBackgroundThread: 0
+		startup-input/SuppressExternalCodecs: 0
+		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
+	]
+
+	shutdown-gdiplus: does [
+		GdiplusShutdown gdiplus-token 
+	]
+
+	get-current-dir: func [
+		len		[int-ptr!]
+		return: [c-string!]
 		/local
-			cp [integer!]								;-- codepoint
+			size [integer!]
+			path [byte-ptr!]
 	][
-		assert str <> null
-		
-		while [cp: str/value not zero? cp][			
-			either str/value > FFFFh [
-				cp: cp - 00010000h						;-- encode surrogate pair
-				putwchar cp >> 10 + D800h				;-- emit lead
-				putwchar cp and 03FFh + DC00h			;-- emit trail
-			][
-				putwchar cp								;-- UCS-2 codepoint
-			]
-			str: str + 1
-		]
-	]
-		
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-line-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-		print-UCS4 str									;@@ throw an error on failure
-		putwchar 10										;-- newline
-	]
-	
-	;-------------------------------------------
-	;-- Print a UCS-2 string to console
-	;-------------------------------------------
-	print-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
-	][
-		assert str <> null
-		wprintf str										;@@ throw an error on failure
+		size: GetCurrentDirectory 0 null				;-- include NUL terminator
+		path: allocate size << 1
+		GetCurrentDirectory size path
+		len/value: size - 1
+		as c-string! path
 	]
 
-	;-------------------------------------------
-	;-- Print a UCS-2 string with newline to console
-	;-------------------------------------------
-	print-line-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+	wait: func [time [integer!]][Sleep time]
+
+	set-current-dir: func [
+		path	[c-string!]
+		return: [logic!]
 	][
-		assert str <> null
-		wprintf str										;@@ throw an error on failure
-		putwchar 10										;-- newline
-	]
-	
-	;-------------------------------------------
-	;-- Print a Latin-1 string to console
-	;-------------------------------------------
-	print-Latin1: func [
-		str 	[c-string!]								;-- zero-terminated Latin-1 string
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-
-		while [cp: as-integer str/1 not zero? cp][
-			putwchar cp
-			str: str + 1
-		]
-	]
-	
-	;-------------------------------------------
-	;-- Print a Latin-1 string with newline to console
-	;-------------------------------------------
-	print-line-Latin1: func [
-		str [c-string!]									;-- zero-terminated Latin-1 string
-	][
-		assert str <> null
-		print-Latin1 str
-		putwchar 10										;-- newline
-	]
-	
-	;-------------------------------------------
-	;-- Red/System Unicode replacement printing functions
-	;-------------------------------------------
-	
-	prin: func [s [c-string!] return: [c-string!] /local p][
-		p: s
-		while [p/1 <> null-byte][
-			putwchar as-integer p/1
-			p: p + 1
-		]
-		s
+		SetCurrentDirectory path
 	]
 
-	prin-int: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
-		i
-	]
-
-	prin-hex: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
-		i
-	]
-
-	prin-float: func [f [float!] return: [float!]][
-		wprintf ["^(00)%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
-		f
-	]
-
-	prin-float32: func [f [float32!] return: [float32!]][
-		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
-		f
-	]
-	
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: does [
+		init-gdiplus
 		#if unicode? = yes [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
 		]
+		CoInitializeEx 0 COINIT_APARTMENTTHREADED
 	]
 ]

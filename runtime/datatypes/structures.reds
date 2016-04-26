@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %structures.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 	Note: {
 		Putting all aliases in this file for early inclusion in %red.reds solves
@@ -48,49 +48,49 @@ red-series!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- series's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- datatype-specific extra value
 ]
 
 red-block!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- block's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (reserved for block-derivative types)
 ]
 
 red-paren!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- paren's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	args	[node!]									;-- cache for function+refinements args block
 ]
 
 red-lit-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-set-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-get-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-string!: alias struct! [
@@ -101,6 +101,13 @@ red-string!: alias struct! [
 ]
 
 red-file!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
+red-url!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
@@ -135,6 +142,19 @@ red-integer!: alias struct! [
 	_pad	[integer!]	
 ]
 
+red-float!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float!]								;-- 64-bit float value
+]
+
+red-float32!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float32!]								;-- 32-bit float value
+	_pad	[integer!]
+]
+
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of symbols ID
@@ -145,8 +165,8 @@ red-context!: alias struct! [
 red-object!: alias struct! [
 	header 	[integer!]								;-- cell header
 	ctx		[node!]									;-- context reference
-	_pad1	[integer!]
-	_pad2	[integer!]
+	class	[integer!]								;-- class ID
+	on-set	[node!]									;-- on-set callback info
 ]
 
 red-word!: alias struct! [
@@ -177,23 +197,30 @@ red-point!: alias struct! [
 	z		[integer!]								;-- stores an integer! or float32! value
 ]
 
+red-pair!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	x		[integer!]								;-- 32-bit signed integer or float32!
+	y		[integer!]								;-- 32-bit signed integer or float32!
+]
+
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- action cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments (including optional ones)
 	spec	[node!]									;-- action spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-native!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- native cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments (including optional ones)
 	spec	[node!]									;-- native spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- op cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments
 	spec	[node!]									;-- op spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
@@ -204,16 +231,69 @@ red-function!: alias struct! [
 	spec	[node!]									;-- native spec block buffer reference
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
-	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference
+	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
+	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
+	;	obj		 [red-context!]						;--		context! pointer for methods
 ]
 
 red-routine!: alias struct! [
-	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- routine cleaned-up spec block reference
-	spec	[node!]									;-- routine spec block buffer reference	
-	more	[node!]									;-- additional members storage block:
+	header   [integer!]								;-- cell header
+	ret-type [integer!]								;-- return type (-1 if no return: in spec block)
+	spec	 [node!]								;-- routine spec block buffer reference	
+	more	 [node!]								;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
-	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
+	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	compiled body (binary!)
+	;	fun		 [red-routine!]						;--		(optional) copy of parent routine! value (used by op!)
+]
+
+red-typeset!: alias struct! [
+	header  [integer!]								;-- cell header
+	array1  [integer!]
+	array2  [integer!]
+	array3  [integer!]
+]
+
+red-tuple!: alias struct! [
+	header  [integer!]								;-- cell header
+	array1  [integer!]
+	array2  [integer!]
+	array3  [integer!]
+]
+
+red-vector!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- vector's head index (zero-based)
+	node	[node!]									;-- vector's buffer
+	type	[integer!]								;-- vector elements datatype
+]
+
+red-hash!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- block's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	table	[node!]									;-- additional members of hash table
+	;	size		[integer!]						;-- 	size of keys
+	;	indexes		[node!]							;-- 	optimized: use to refresh hashtable when insert and remove
+	;	flags		[node!]
+	;	keys		[node!]
+	;	blk			[node!]
+	;	n-occupied	[integer!]
+	;	n-buckets	[integer!]
+	;	upper-bound	[integer!]
+]
+
+red-event!: alias struct! [
+	header	[integer!]								;-- cell header
+	type	[integer!]								;-- symbol ID
+	msg		[byte-ptr!]								;-- low-level OS-specific structure
+	flags	[integer!]								;-- bit array
+]
+
+red-image!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- series's head index (zero-based)
+	node	[node!]									;-- internal buffer or platform-specific handle
+	size	[integer!]								;-- pair of size
 ]

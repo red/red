@@ -3,14 +3,14 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %target-class.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
-	branch-offset-size: none		   							   ; TBD: document once stabilized
+	branch-offset-size: locals-offset: none						   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
@@ -30,10 +30,12 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: none
+	emit-throw:	on-init: emit-alt-last: emit-log-b: none
 	
 	comparison-op: [= <> < > <= >=]
-	math-op:	   [+ - * / // ///]
+	math-op:	   compose [+ - * / // (to-word "%")]
+	mod-rem-op:    compose [// (to-word "%")]
+	mod-rem-func:  compose [// mod (to-word "%") rem]
 	bitwise-op:	   [and or xor]
 	bitshift-op:   [>> << -**]
 	
@@ -92,7 +94,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] 
+		name  [word! object!] 
 		gcode [binary! block! none!]				;-- global opcodes
 		pcode [binary! block! none!]				;-- PIC opcodes
 		lcode [binary! block!] 						;-- local opcodes
@@ -210,7 +212,7 @@ target-class: context [
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
-			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			arg: either object? args/:c [compiler/cast args/:c][args/:c]
 			set op either arg = <last> [
 				 'reg								;-- value in accumulator
 			][
@@ -231,25 +233,33 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
 		spec: any [select emitter/symbols name next fspec]
 		type: either fspec/2 = 'routine [fspec/2][first spec]
+		attribs: compiler/get-attributes fspec/4
 
 		switch type [
 			syscall [
-				emit-call-syscall args fspec
+				emit-call-syscall args fspec attribs
 			]
 			import [
-				emit-call-import args fspec spec
+				emit-call-import args fspec spec attribs
 			]
 			native [
-				emit-call-native args fspec spec
+				switch/default name [
+					log-b [								;@@ needs a new function type...
+						emit-pop
+						emit-log-b compiler/last-type/1
+					]
+				][
+					emit-call-native args fspec spec attribs
+				]
 			]
 			routine [
-				emit-call-native/routine args fspec spec name
+				emit-call-native/routine args fspec spec attribs name
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
@@ -258,8 +268,13 @@ target-class: context [
 					push  [emit-push args/1]
 					pop	  [emit-pop]
 					throw [
+						compiler/check-throw
 						compiler/last-type: [integer!]
-						emit-throw args/1
+						either compiler/catch-attribut? [
+							emit-throw args/1
+						][
+							emit-throw/thru args/1
+						]
 					]
 				] name
 				if name = 'not [res: compiler/get-type args/1]
@@ -277,7 +292,7 @@ target-class: context [
 				
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
-						all [not sub? block? args/1 compiler/last-type]
+						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]
 				]

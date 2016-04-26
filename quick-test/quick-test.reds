@@ -4,8 +4,8 @@ Red/System [
 	File: 	 %quick-test.reds
 	Version: 0.4.2
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; allocate string memory
@@ -184,7 +184,7 @@ qt-init-file: func [] [
 ]
 
 ~~~end-file~~~: func [] [
-  print [lf "~~~finished test~~~ " qt-file-name lf]
+  print ["~~~finished test~~~ " qt-file-name lf]
   qt-print-totals qt-file/tests
                   qt-file/asserts
                   qt-file/passes 

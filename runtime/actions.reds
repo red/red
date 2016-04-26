@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %actions.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -36,6 +36,30 @@ actions: context [
 		assert index = (ACTIONS_NB + 1)
 	]
 	
+	get-action-ptr-path: func [
+		value	[red-value!]							;-- any-type! value
+		action	[integer!]								;-- action ID
+		path	[red-value!]
+		return: [integer!]								;-- action pointer (datatype-dependent)
+		/local
+			type  [integer!]							;-- datatype ID
+			index [integer!]
+	][
+		type:  TYPE_OF(value)
+		index: type << 8 + action
+		index: action-table/index						;-- lookup action function pointer
+
+		if zero? index [
+			if null? path [path: none-value]
+			fire [
+				TO_ERROR(script bad-path-type)
+				path
+				datatype/push type
+			]
+		]
+		index
+	]
+	
 	get-action-ptr-from: func [
 		type	[integer!]								;-- datatype ID
 		action	[integer!]								;-- action ID
@@ -46,13 +70,7 @@ actions: context [
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
-		if zero? index [
-			print-line [
-				"^/*** Script error: action " action
-				" not defined for type: " type
-			]
-			halt
-		]
+		if zero? index [ERR_EXPECT_ARGUMENT(type 0)]
 		index
 	]
 	
@@ -128,8 +146,41 @@ actions: context [
 		action-make proto spec
 	]
 
-	random*: func [][]
-	
+	random*: func [
+		seed	[integer!]
+		secure	[integer!]
+		only	[integer!]
+		return:	[red-value!]
+	][
+		random
+			as red-value! stack/arguments
+			as logic! seed + 1
+			as logic! secure + 1
+			as logic! only + 1
+	]
+
+	random: func [
+		value   [red-value!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?	[logic!]
+		return: [red-value!]
+		/local
+			action-random
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/random"]]
+
+		action-random: as function! [
+			value	[red-value!]
+			seed?	[logic!]
+			secure? [logic!]
+			only?	[logic!]
+			return: [red-value!]
+		] get-action-ptr value ACT_RANDOM
+
+		action-random value seed? secure? only?
+	]
+
 	reflect*: func [
 		return: [red-block!]
 	][
@@ -151,8 +202,30 @@ actions: context [
 			
 		action-reflect value field/symbol
 	]
-	
-	to*: func [][]
+
+	to*: func [
+		return: [red-value!]
+	][
+		to as red-datatype! stack/arguments stack/arguments + 1
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			action-to
+	][
+		if TYPE_OF(spec) = type/value [return stack/set-last spec]
+
+		action-to: as function! [
+			type	[red-datatype!]
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr-from TYPE_OF(spec) ACT_TO
+
+		action-to type spec
+	]
 
 	form*: func [
 		part	   [integer!]
@@ -267,13 +340,32 @@ actions: context [
 		action-mold value buffer only? all? flat? arg part indent
 	]
 	
-	eval-path: func [
-		parent	[red-value!]
-		element	[red-value!]
+	eval-path*: func [
 		set?	[logic!]
 		return:	[red-value!]
 		/local
-			value		[red-value!]
+			value [red-value!]
+	][
+		value: either set? [stack/arguments + 2][null]
+		value: stack/set-last eval-path 
+			stack/arguments
+			stack/arguments + 1
+			value
+			null
+			no
+		
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
+		value
+	]
+	
+	eval-path: func [
+		parent	[red-value!]
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-path!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
 			action-path
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/eval-path"]]
@@ -281,36 +373,145 @@ actions: context [
 		action-path: as function! [
 			parent	[red-value!]
 			element	[red-value!]
-			set?	[logic!]
+			value	[red-value!]
+			path	[red-value!]
+			case?	[logic!]
 			return:	[red-value!]
-		] get-action-ptr parent ACT_EVALPATH
+		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		action-path parent element set?
+		action-path parent element value as red-value! path case?
 	]
 	
 	set-path*: func [][]
 	
+	compare*: func [
+		op		[comparison-op!]
+		return: [red-logic!]
+		/local
+			result [red-logic!]
+	][
+		result: as red-logic! stack/arguments
+		result/value: compare stack/arguments stack/arguments + 1 op
+		result/header: TYPE_LOGIC
+		result
+	]	
+	
 	compare: func [
 		value1  [red-value!]
 		value2  [red-value!]
-		op	    [integer!]
+		op	    [comparison-op!]
 		return: [logic!]
 		/local
-			action-compare
+			action-compare value res
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
-		
+
 		action-compare: as function! [
 			value1  [red-value!]						;-- first operand
 			value2  [red-value!]						;-- second operand
 			op	    [integer!]							;-- type of comparison
-			return: [logic!]
+			return: [integer!]
 		] get-action-ptr value1 ACT_COMPARE
 		
-		action-compare value1 value2 op
+		value: action-compare value1 value2 op
+		if all [
+			value = -2
+			op <> COMP_EQUAL
+			op <> COMP_STRICT_EQUAL
+			op <> COMP_NOT_EQUAL
+		][
+			fire [TO_ERROR(script invalid-compare) value1 value2]
+		]
+		switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL 	[res: value =  0]
+			COMP_NOT_EQUAL 		[res: value <> 0]
+			COMP_LESSER			[res: value <  0]
+			COMP_LESSER_EQUAL	[res: value <= 0]
+			COMP_GREATER		[res: value >  0]
+			COMP_GREATER_EQUAL	[res: value >= 0]
+		]
+		res
+	]
+
+	compare-value: func [								;-- Compare function return integer!
+		value1  [red-value!]
+		value2  [red-value!]
+		op		[comparison-op!]
+		return: [integer!]
+		/local
+			action-compare res
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/compare-value"]]
+
+		action-compare: as function! [
+			value1  [red-value!]						;-- first operand
+			value2  [red-value!]						;-- second operand
+			op	    [integer!]							;-- type of comparison
+			return: [integer!]
+		] get-action-ptr value1 ACT_COMPARE
+
+		switch TYPE_OF(value1) [
+			TYPE_LOGIC	 [res: value1/data1 - value2/data1]
+			TYPE_NATIVE
+			TYPE_ACTION
+			TYPE_FUNCTION
+			TYPE_OP
+			TYPE_ROUTINE [res: SIGN_COMPARE_RESULT(value1/data3 value2/data3)]
+			TYPE_NONE
+			TYPE_UNSET	 [res: 0]
+			default		 [res: action-compare value1 value2 op]
+		]
+		res
 	]
 	
-	absolute*: func [][]
+	modify*: func [
+		case?	[integer!]
+		return:	[red-value!]
+	][	
+		modify
+			stack/arguments
+			stack/arguments + 1
+			stack/arguments + 2
+			case? <> -1
+
+		stack/set-last stack/arguments
+	]
+
+
+	modify: func [
+		target	[red-value!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		/local
+			action-modify
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/modify"]]
+
+		action-modify: as function! [
+			target	[red-value!]
+			field	[red-value!]
+			value	[red-value!]
+			case?	[logic!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr target ACT_MODIFY
+
+		action-modify target field value case?
+	]
+	
+	absolute*: func [
+		return:	[red-value!]
+		/local
+			action-absolute
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/absolute"]]
+
+		action-absolute: as function! [
+			return:	[red-value!]						;-- absoluted value
+		] get-action-ptr* ACT_ABSOLUTE
+		action-absolute
+	]
 	
 	add*: func [
 		return:	[red-value!]
@@ -373,12 +574,87 @@ actions: context [
 		] get-action-ptr value ACT_NEGATE
 		
 		action-negate value
-	]	
-	
-	power*: func [][]
-	remainder*: func [][]
-	round*: func [][]
-	
+	]
+
+	power*: func [
+		return:	[red-value!]
+		/local
+			action-power
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/power"]]
+
+		action-power: as function! [
+			return:	[red-value!]						;-- addition resulting value
+		] get-action-ptr* ACT_POWER
+		action-power
+	]
+
+	remainder*: func [
+		return:	  [red-value!]
+		/local
+			action-remainder
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remainder"]]
+
+		action-remainder: as function! [
+			return:	  [red-value!]
+		] get-action-ptr* ACT_REMAINDER
+		action-remainder
+	]
+
+	round*: func [
+		_to		  [integer!]
+		even	  [integer!]
+		down	  [integer!]
+		half-down [integer!]
+		floor	  [integer!]
+		ceil	  [integer!]
+		half-ceil [integer!]
+		/local
+			scale [red-value!]
+	][
+		scale: stack/arguments + _to
+		round
+			stack/arguments
+			scale
+			as logic! even	+ 1
+			as logic! down	+ 1
+			as logic! half-down + 1
+			as logic! floor + 1
+			as logic! ceil  + 1
+			as logic! half-ceil + 1
+	]
+
+	round: func [
+		value		[red-value!]
+		scale		[red-value!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			action-round
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/round"]]
+
+		action-round: as function! [
+			value		[red-value!]
+			scale		[red-value!]
+			_even?		[logic!]
+			down?		[logic!]
+			half-down?	[logic!]
+			floor?		[logic!]
+			ceil?		[logic!]
+			half-ceil?	[logic!]
+			return:		[red-value!]
+		] get-action-ptr value ACT_ROUND
+
+		action-round value scale _even? down? half-down? floor? ceil? half-ceil?
+	]
+
 	subtract*: func [
 		return:	[red-value!]
 		/local
@@ -436,7 +712,18 @@ actions: context [
 		action-odd? value
 	]
 	
-	and~*: func [][]
+	and~*: func [
+		return:	[red-value!]
+		/local
+			action-and~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/and~"]]
+
+		action-and~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_AND~
+		action-and~
+	]
 	
 	complement*: does [
 		stack/set-last complement stack/arguments
@@ -455,10 +742,33 @@ actions: context [
 		
 		action-complement value
 	]
-	
-	or~*: func [][]
-	xor~*: func [][]
-	
+
+	or~*: func [
+		return:	[red-value!]
+		/local
+			action-or~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/or~"]]
+
+		action-or~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_OR~
+		action-or~
+	]
+
+	xor~*: func [
+		return:	[red-value!]
+		/local
+			action-xor~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/xor~"]]
+
+		action-xor~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_XOR~
+		action-xor~
+	]
+
 	append*: func [
 		part  [integer!]
 		only  [integer!]
@@ -562,8 +872,7 @@ actions: context [
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_COPY
 					
-		action-copy series new part deep? types
-		new
+		as red-value! action-copy series new part deep? types
 	]
 	
 	find*: func [
@@ -722,7 +1031,9 @@ actions: context [
 
 		int: as red-integer! stack/arguments
 		value: length? stack/arguments					;-- must be set before slot is modified
-		unless value = -1 [
+		either value = -1 [
+			none/push-last
+		][
 			int/value:  value
 			int/header: TYPE_INTEGER
 		]
@@ -741,6 +1052,36 @@ actions: context [
 		] get-action-ptr value ACT_LENGTH?
 		
 		action-length? value
+	]
+	
+	move*: func [
+		part	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last move
+			as red-series!  stack/arguments
+			as red-series!  stack/arguments + 1
+			as red-integer! stack/arguments + part
+	]
+	
+	move: func [
+		origin  [red-series!]
+		target  [red-series!]
+		part	[red-integer!]
+		return:	[red-value!]
+		/local
+			action-move
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/move"]]
+
+		action-move: as function! [
+			origin  [red-series!]
+			target  [red-series!]
+			part	[red-integer!]
+			return:	[red-value!]						;-- next value from series
+		] get-action-ptr as red-value! origin ACT_MOVE
+		
+		action-move origin target part
 	]
 	
 	next*: func [
@@ -794,7 +1135,7 @@ actions: context [
 			stack/arguments + 2
 			stack/arguments + 1
 		
-		stack/set-last stack/arguments
+		stack/set-last stack/arguments + 2				;@@ inline that above
 	]
 
 
@@ -813,10 +1154,42 @@ actions: context [
 			index	[integer!]
 			data	[red-value!]
 			boxed	[red-value!]
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- data argument passed as result
 		] get-action-ptr as red-value! series ACT_POKE
 		
 		action-poke series index data boxed
+	]
+	
+	put*: func [
+		case? [integer!]
+	][	
+		stack/set-last put
+			stack/arguments
+			stack/arguments + 1
+			stack/arguments + 2
+			case? <> -1
+	]
+
+	put: func [
+		series	[red-value!]
+		key		[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			action-put
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/put"]]
+
+		action-put: as function! [
+			series	[red-value!]
+			key		[red-value!]
+			value	[red-value!]
+			case?	[logic!]
+			return:	[red-value!]						;-- value argument passed as result
+		] get-action-ptr as red-value! series ACT_PUT
+
+		action-put series key value case?
 	]
 	
 	remove*: func [
@@ -844,8 +1217,32 @@ actions: context [
 		
 		action-remove series part
 	]
-	
-	reverse*: func [][]
+
+	reverse*: func [
+		part [integer!]
+	][
+		reverse
+			as red-series! stack/arguments
+			stack/arguments + part
+	]
+
+	reverse: func [
+		series  [red-series!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			action-reverse
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/reverse"]]
+
+		action-reverse: as function! [
+			series	[red-series!]
+			part	[red-value!]
+			return:	[red-value!]
+		] get-action-ptr as red-value! series ACT_REVERSE
+
+		action-reverse series part
+	]
 	
 	select*: func [
 		part	 [integer!]
@@ -905,8 +1302,57 @@ actions: context [
 		action-select series value part only? case? any? with-arg skip last? reverse?
 	]
 	
-	sort*: func [][]
-	
+	sort*: func [
+		case-arg [integer!]
+		skip-arg [integer!]
+		compare  [integer!]
+		part	 [integer!]
+		all-arg  [integer!]
+		reverse	 [integer!]
+		stable	 [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		stack/set-last sort
+			as red-series!   stack/arguments
+			as logic!		 case-arg + 1
+			as red-integer!  stack/arguments + skip-arg
+			as red-function! stack/arguments + compare
+			stack/arguments + part
+			as logic! all-arg + 1
+			as logic! reverse + 1
+			as logic! stable + 1
+	]
+
+	sort: func [
+		series   [red-series!]
+		case?    [logic!]
+		skip	 [red-integer!]
+		compare	 [red-function!]
+		part	 [red-value!]
+		all?	 [logic!]
+		reverse? [logic!]
+		stable?  [logic!]
+		return:  [red-value!]
+		/local
+			action-sort
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/sort"]]
+
+		action-sort: as function! [
+			series   [red-series!]
+			case?    [logic!]
+			skip	 [red-integer!]
+			compare	 [red-function!]
+			part	 [red-value!]
+			all?	 [logic!]
+			reverse? [logic!]
+			stable?  [logic!]
+			return:  [red-value!]
+		] get-action-ptr as red-value! series ACT_SORT
+
+		action-sort series case? skip compare part all? reverse? stable?
+	]
+
 	skip*: func [
 		return:	[red-value!]
 		/local
@@ -920,7 +1366,31 @@ actions: context [
 		action-skip
 	]
 	
-	swap*: func [][]
+	swap*: func [
+		return: [red-series!]
+	][
+		swap
+			as red-series! stack/arguments
+			as red-series! stack/arguments + 1
+	]
+
+	swap: func [
+		series1 [red-series!]
+		series2	[red-series!]
+		return:	[red-series!]
+		/local
+			action-swap
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/swap"]]
+
+		action-swap: as function! [
+			series1	[red-series!]
+			series2	[red-series!]
+			return:	[red-series!]
+		] get-action-ptr as red-value! series1 ACT_SWAP
+
+		action-swap series1 series2
+	]
 	
 	tail*: func [
 		return:	[red-value!]
@@ -948,20 +1418,202 @@ actions: context [
 		action-tail?
 	]
 
-	
-	take*: func [][]
-	trim*: func [][]
+	take*: func [
+		part	[integer!]
+		deep	[integer!]
+		last	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last take
+			as red-series! stack/arguments
+			stack/arguments + part
+			as logic! deep + 1
+			as logic! last + 1
+	]
+
+	take: func [
+		series  [red-series!]
+		part	[red-value!]
+		deep?	[logic!]
+		last?	[logic!]
+		return:	[red-value!]
+		/local
+			action-take
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/take"]]
+
+		action-take: as function! [
+			series  [red-series!]
+			part	[red-value!]
+			deep?	[logic!]
+			last?	[logic!]
+			return: [red-value!]
+		] get-action-ptr as red-value! series ACT_TAKE
+
+		action-take series part deep? last?
+	]
+
+	trim*: func [
+		head	[integer!]
+		tail	[integer!]
+		auto	[integer!]
+		lines	[integer!]
+		_all	[integer!]
+		with-arg [integer!]
+		return:	[red-series!]
+	][
+		trim
+			as red-series! stack/arguments
+			as logic! head  + 1
+			as logic! tail  + 1
+			as logic! auto  + 1
+			as logic! lines + 1
+			as logic! _all  + 1
+			stack/arguments + with-arg
+	]
+
+	trim: func [
+		series  [red-series!]
+		head?	[logic!]
+		tail?	[logic!]
+		auto?	[logic!]
+		lines?	[logic!]
+		all?	[logic!]
+		with-arg [red-value!]
+		return:	[red-series!]
+		/local
+			action-trim
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/trim"]]
+
+		action-trim: as function! [
+			series  [red-series!]
+			head?	[logic!]
+			tail?	[logic!]
+			auto?	[logic!]
+			lines?	[logic!]
+			all?	[logic!]
+			with-arg [red-value!]
+			return:	[red-series!]
+		] get-action-ptr as red-value! series ACT_TRIM
+
+		action-trim series head? tail? auto? lines? all? with-arg
+	]
+
 	create*: func [][]
 	close*: func [][]
 	delete*: func [][]
-	modify*: func [][]
 	open*: func [][]
 	open?*: func [][]
 	query*: func [][]
-	read*: func [][]
+
+	read*: func [
+		part	[integer!]
+		seek	[integer!]
+		binary? [integer!]
+		lines?	[integer!]
+		info?	[integer!]
+		as-arg	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last read
+			stack/arguments
+			stack/arguments + part
+			stack/arguments + seek
+			binary? <> -1
+			lines? <> -1
+			info? <> -1
+			stack/arguments + as-arg
+	]
+
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		as-arg	[red-value!]
+		return: [red-value!]
+		/local
+			action-read
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/read"]]
+
+		action-read: as function! [
+			src		[red-value!]
+			part	[red-value!]
+			seek	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			as-arg	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr src ACT_READ
+
+		action-read src part seek binary? lines? info? as-arg
+	]
+
 	rename*: func [][]
 	update*: func [][]
-	write*: func [][]
+
+	write*: func [
+		binary? [integer!]
+		lines?	[integer!]
+		info?	[integer!]
+		append? [integer!]
+		part	[integer!]
+		seek	[integer!]
+		allow	[integer!]
+		as-arg	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last write
+			stack/arguments
+			stack/arguments + 1
+			binary? <> -1
+			lines? <> -1
+			info? <> -1
+			append? <> -1
+			stack/arguments + part
+			stack/arguments + seek
+			stack/arguments + allow
+			stack/arguments + as-arg
+	]
+
+	write: func [
+		src		[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return: [red-value!]
+		/local
+			action-write
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/write"]]
+
+		action-write: as function! [
+			src		[red-value!]
+			data	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			info?	[logic!]
+			append? [logic!]
+			part	[red-value!]
+			seek	[red-value!]
+			allow	[red-value!]
+			as-arg	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr src ACT_WRITE
+
+		action-write src data binary? lines? info? append? part seek allow as-arg
+	]
 	
 	
 	init: does [
@@ -970,31 +1622,31 @@ actions: context [
 		register [
 			;-- General actions --
 			:make*
-			null			;random
+			:random*
 			:reflect*
-			null			;to
+			:to*
 			:form*
 			:mold*
-			:eval-path
+			:eval-path*
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute*
 			:add*
 			:divide*
 			:multiply*
 			:negate*
-			null			;power
-			null			;remainder
-			null			;round
+			:power*
+			:remainder*
+			:round*
 			:subtract*
 			:even?*
 			:odd?*
 			;-- Bitwise actions --
-			null			;and~
+			:and~*
 			:complement*
-			null			;or~
-			null			;xor~
+			:or~*
+			:xor~*
 			;-- Series actions --
 			:append*
 			:at*
@@ -1008,31 +1660,33 @@ actions: context [
 			:index?*
 			:insert*
 			:length?*
+			:move*
 			:next*
 			:pick*
 			:poke*
+			:put*
 			:remove*
-			null			;reverse
+			:reverse*
 			:select*
-			null			;sort
+			:sort*
 			:skip*
-			null			;swap
+			:swap*
 			:tail*
 			:tail?*
-			null			;take
-			null			;trim
+			:take*
+			:trim*
 			;-- I/O actions --
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			:modify*
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read*
 			null			;rename
 			null			;update
-			null			;write
+			:write*
 		]
 	]
 ]

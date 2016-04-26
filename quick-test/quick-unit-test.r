@@ -4,8 +4,8 @@ REBOL [
 	File: 	 %quick-unit-test.r
 	Version: 0.2.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 qut: make object! [
@@ -121,7 +121,7 @@ qut: make object! [
   ]
   
   end-file: func [] [
-    test-prin [lf "~~~finished test~~~ " file-name lf]
+    test-prin ["~~~finished test~~~ " file-name lf]
     print-totals file
     test-prin lf
     

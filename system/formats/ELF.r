@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Andreas Bolka, Nenad Rakocevic"
 	File:	 %ELF.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Andreas Bolka, Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Andreas Bolka, Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; NOTE: all "offsets" are offsets into the file (as stored on disk),
@@ -60,6 +60,11 @@ context [
 		sht-rel			9			;; relocations (w/o addends)
 		sht-dynsym		11			;; symbol table (dynamic linking)
 
+		;; Processor-specific section type
+		sht-arm-exidx			1879048193		;; ARM unwind section
+		sht-arm-preemption		1879048194		;; Preempton details
+		sht-arm-attributes		1879048195		;; ARM attributes section
+
 		shf-write		1			;; dynamically writable section
 		shf-alloc		2			;; dynamically allocated section
 		shf-execinstr	4			;; dynamically executable section
@@ -94,6 +99,59 @@ context [
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
 		stabs-n-so		100			;; source file name
+
+		arm [
+			attributes [
+				cpu-raw-name			#{04}
+				cpu-name				#{05}
+				cpu-arch				#{06}
+				cpu-arch-profile		#{07}
+				arm-isa-use				#{08}
+				thumb-isa-use			#{09}
+				fp-arch					#{0A}
+				wmmx-arch				#{0B}
+				advanced-simd-arch		#{0C}
+				abi-pcs-wchar_t			#{12}
+				abi-fp-rounding			#{13}
+				abi-fp-denormal			#{14}
+				abi-fp-exceptions		#{15}
+				abi-fp-user-exceptions	#{16}
+				abi-fp-number-model		#{17}
+				abi-align-needed		#{18}
+				abi-align-preserved		#{19}
+				abi-enum-size			#{1A}
+				abi-hardfp-use			#{1B}
+				abi-vfp-args			#{1C}
+				abi-wmmx-args			#{1D}
+				div-use					#{2C}
+			]
+
+			cpu-arch [
+				pre-v4				#{00}
+				v4					#{01}			;; e.g. SA110
+				v4T					#{02}           ;; e.g. ARM7TDMI
+				v5T					#{03}           ;; e.g. ARM9TDMI
+				v5TE				#{04}           ;; e.g. ARM946E_S
+				v5TEJ				#{05}           ;; e.g. ARM926EJ_S
+				v6					#{06}           ;; e.g. ARM1136J_S
+				v6KZ				#{07}           ;; e.g. ARM1176JZ_S
+				v6T2				#{08}           ;; e.g. ARM1156T2F_S
+				v6K					#{09}           ;; e.g. ARM1136J_S
+				v7					#{0A}          ;; e.g. Cortex A8, Cortex M3
+				v6-M				#{0B}          ;; e.g. Cortex M1
+				v6S-M				#{0C}          ;; v6_M with the System extensions
+				v7E-M				#{0D}          ;; v7_M with DSP extensions
+				v8					#{0E}          ;; v8, AArch32
+			]
+
+			cpu-arch-profile [
+				not-applicable		#{00}		;; pre v7, or cross-profile code
+				application			#{41}       ;; 'A' (e.g. for Cortex A8)
+				realtime			#{52}       ;; 'R' (e.g. for Cortex R4)
+				micro-controller	#{4D}       ;; 'M' (e.g. for Cortex M3)
+				system				#{53}       ;; 'S' Application or real-time profile
+			]
+		]
 	]
 
 	;; ELF Structures
@@ -106,7 +164,7 @@ context [
 		ident-class		[char!]		;; file class
 		ident-data		[char!]		;; data encoding
 		ident-version	[char!]		;; file version
-		ident-pad0		[char!]
+		ident-osabi		[char!]
 		ident-pad1		[integer!]
 		ident-pad2		[integer!]
 		type			[short]
@@ -211,6 +269,7 @@ context [
 		section ".stabstr"			[strtab		[]					byte]
 
 		section ".shstrtab"			[strtab	  	[]					byte]
+		section ".ARM.attributes"	[arm-attributes []				byte]
 		struct "shdr"
 	]
 
@@ -237,6 +296,10 @@ context [
 
 		structure: copy default-structure
 
+		if job/target <> 'ARM [
+			remove-elements structure [".ARM.attributes"]
+		]
+
 		if empty? dynamic-linker [
 			remove-elements structure [".interp"]
 		]
@@ -262,7 +325,9 @@ context [
 
 		data-size: size-of job/sections/data/2
 		if job/debug? [
-			data-size: data-size + linker/get-debug-lines-size job
+			data-size: data-size 
+				+ (linker/get-debug-lines-size job)
+				+  linker/get-debug-funcs-size job
 		]
 		if zero? data-size [
 			remove-elements structure [".data"]
@@ -299,6 +364,7 @@ context [
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
+			".ARM.attributes" data (build-arm-attributes job/ABI)
 		]
 
 		layout: layout-binary structure commands
@@ -356,10 +422,8 @@ context [
 
 		set-data ".data" [
 			if job/debug? [
-				linker/build-debug-lines
-					job
-					get-address ".text"
-					machine-word
+				linker/build-debug-lines job get-address ".text"
+				linker/build-debug-func-names job get-address ".text"
 			]
 			job/sections/data/2
 		]
@@ -460,6 +524,11 @@ context [
 
 		;; Target-specific header fields.
 
+		eh/ident-osabi: switch/default target-os [
+			FreeBSD      [9]
+			Linux        [3]
+		]	             [0]
+
 		eh/type: select reduce [
 			'exe defs/et-exec
 			'dll defs/et-dyn
@@ -471,7 +540,7 @@ context [
 			]
 			arm		[
 				eh/machine: defs/em-arm
-				eh/flags: to-integer #{04000000} ;; EABI v4
+				eh/flags: to-integer #{05000002} ;; EABI v5
 			]
 		]
 
@@ -692,6 +761,45 @@ context [
 		]
 	]
 
+	build-arm-attributes: func [
+		ABI			[word! none!]
+		/local section sub-section attributes attrs
+	][
+		attrs: defs/arm/attributes
+		attributes: rejoin [
+			attrs/cpu-arch				defs/arm/cpu-arch/v5T
+			attrs/arm-isa-use			#{01}			;; yes
+			attrs/abi-pcs-wchar_t		#{04}			;; 4 bytes
+			attrs/abi-fp-denormal		#{01}			;; needed
+			attrs/abi-fp-exceptions		#{01}			;; needed
+			attrs/abi-fp-number-model	#{03}			;; IEEE-754
+			attrs/abi-align-needed		#{01}			;; 8-byte
+			attrs/abi-align-preserved	#{01}			;; 8-byte, except leaf SP
+			attrs/abi-enum-size			#{02}			;; at least 32 bits
+			attrs/div-use				#{01}			;; not allowed
+		]
+		if ABI = 'hard-float [
+			append attributes rejoin [
+				attrs/abi-hardfp-use	#{03}
+				attrs/abi-vfp-args		#{01}
+			]
+		]
+		sub-section: rejoin [
+			#{01}					;; file tag
+			to-bin32 5 + length? attributes
+			attributes
+		]
+		section: rejoin [
+			to-binary "aeabi^@"		;; vendor-name
+			sub-section
+		]
+		rejoin [
+			#{41}					;; version A
+			to-bin32 4 + length? section
+			section
+		]
+	]
+
 	;; -- Job helpers --
 
 	collect-import-names: func [job [object!] /local libraries symbols] [
@@ -713,7 +821,7 @@ context [
 		job [object!]
 		/local current-tail code-tail data-tail symbol-offset symbol-size
 	] [
-		if job/type <> 'dll [return make block! 0]
+		if  not find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2

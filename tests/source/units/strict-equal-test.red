@@ -3,12 +3,12 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 strict-equal-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
-~~~start-file~~~ "same"
+~~~start-file~~~ "strict-equal"
 ===start-group=== "same-datatype"
 	--test-- "same-datatype-1"		--assert 0 == 0
 	--test-- "same-datatype-2"		--assert 1 == 1

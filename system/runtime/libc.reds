@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %lib-C.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -37,6 +37,12 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
+		compare-memory: "memcmp" [
+			ptr1		[byte-ptr!]
+			ptr2		[byte-ptr!]
+			size		[integer!]
+			return:		[integer!]
+		]
 		length?:	 "strlen" [
 			buffer		[c-string!]
 			return:		[integer!]
@@ -47,17 +53,93 @@ Red/System [
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]
-		printf: 	 "printf" [[variadic]]
+		printf: 	 "printf"  [[variadic]]
+		
+		sprintf:	 "sprintf" [[variadic]]
+		
+		strtod:		 "strtod"  [
+			str			[byte-ptr!]
+			endptr		[byte-ptr!]
+			return:		[float!]
+		]
+	]
+
+	LIBM-file cdecl [
+		ceil:		 "ceil" [
+			d			[float!]
+			return:		[float!]
+		]
+		floor:		 "floor" [
+			d			[float!]
+			return:		[float!]
+		]
+		pow: 		 "pow" [
+			base		[float!]
+			exponent	[float!]
+			return:		[float!]
+		]
+		sin:		 "sin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		cos:		 "cos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		tan:		 "tan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		asin:		 "asin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		acos:		 "acos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		atan:		 "atan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		atan2:       "atan2" [
+			y           [float!]
+			x           [float!]
+			return:		[float!]
+		]
+		ldexp:		"ldexp" [
+			value		[float!]
+			exponent	[integer!]
+			return:		[float!]
+		]
+		frexp:		"frexp" [
+			x			[float!]
+			exponent	[int-ptr!]
+			return:		[float!]
+		]
+		log10:		"log10" [
+			value		[float!]
+			return:		[float!]
+		]
+		log:		"log" [
+			value		[float!]
+			return:		[float!]
+		]
+		sqrt:		"sqrt" [
+			value		[float!]
+			return:		[float!]
+		]
 	]
 ]
 
 #either unicode? = yes [
 
-	#define prin			[red/platform/prin]
-	#define prin-int		[red/platform/prin-int]
-	#define prin-hex		[red/platform/prin-hex]
-	#define prin-float		[red/platform/prin-float]
-	#define prin-float32	[red/platform/prin-float32]
+	#define prin			[red/platform/prin*]
+	#define prin-int		[red/platform/prin-int*]
+	#define prin-hex		[red/platform/prin-hex*]
+	#define prin-2hex		[red/platform/prin-2hex*]
+	#define prin-float		[red/platform/prin-float*]
+	#define prin-float32	[red/platform/prin-float32*]
 	
 ][
 	prin: func [s [c-string!] return: [c-string!] /local p][
@@ -73,6 +155,11 @@ Red/System [
 		printf ["%i" i]
 		i
 	]
+	
+	prin-2hex: func [i [integer!] return: [integer!]][
+		printf ["%02X" i]
+		i
+	]
 
 	prin-hex: func [i [integer!] return: [integer!]][
 		printf ["%08X" i]
@@ -80,12 +167,21 @@ Red/System [
 	]
 
 	prin-float: func [f [float!] return: [float!]][
-		printf ["%.14g" f]
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.16g" f]
+		]
 		f
 	]
 
-	prin-float32: func [f [float32!] return: [float32!]][
-		printf ["%.7g" as-float f]
-		f
+	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!]][
+		f: as float! f32
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.7g" f]
+		]
+		f32
 	]
 ]

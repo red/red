@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %set-word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -105,12 +105,15 @@ set-word: context [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/compare"]]
 
 		either op = COMP_STRICT_EQUAL [
-			all [TYPE_OF(arg2) = TYPE_SET_WORD arg1/symbol = arg2/symbol]
+			as-integer any [
+				TYPE_OF(arg2) <> TYPE_SET_WORD
+				arg1/symbol <> arg2/symbol
+			]
 		][
 			word/compare arg1 arg2 op
 		]
@@ -128,7 +131,7 @@ set-word: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -161,9 +164,11 @@ set-word: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %start.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -17,14 +17,56 @@ __stack!: alias struct! [
 	frame	[pointer! [integer!]]
 ]
 
+__cpu!: alias struct! [
+	edx     [integer!]
+]
+
 system: declare struct! [							;-- trimmed down temporary system definition
 	stack		[__stack!]							;-- stack virtual access
+	cpu         [__cpu!]                            ;-- cpu virtual access
 ]
 
 
 #switch OS [
 	Windows []										;-- nothing to do, initialization occurs in DLL init entry point
 	MacOSX  []										;-- nothing to do @@
+	FreeBSD [
+		#import [ LIBC-file cdecl [
+			***__atexit: "atexit" [fun [pointer! [byte!]]]
+			***__exit: "exit" [code [integer!]]]
+		]
+
+		;; The dynamic linker passes a routine for calling destructors in linked libraries
+		;; in the edx cpu register. We use the pointer! [byte!] type since function pointer
+		;; variables can't be passed to a function.
+		***__rtld_cleanup: as pointer! [byte!] system/cpu/edx
+
+		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
+		;; mark the outermost frame.
+		system/stack/frame: as pointer! [integer!] 0
+
+		;; Extract arguments from the call stack (which was setup by the kernel).
+		***__argc: pop
+		***__argv: system/stack/top
+
+		;; Align the stack to a 128-bit boundary, to prevent misaligned access penalities.
+		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+
+		;; Register the clean up routine.
+		***__atexit ***__rtld_cleanup
+
+		;; We need to take care of exiting the program ourselves, there's nowhere to
+		;; return to.
+		***__redprog: as function! [] :***_start
+		***__redprog
+		***__exit 0
+
+		;; The FreeBSD libc expects these symbols to be present. They're usually provided by %crt1.o.
+		environ: as struct! [item [c-string!]] 0
+		__progname: as c-string! 0
+		#export [environ __progname]
+	]
+
 	Syllable [
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [

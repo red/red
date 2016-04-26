@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %logic.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -42,7 +42,7 @@ logic: context [
 	top-true?: func [
 		return:  [logic!]
 	][
-		not top-false?										;-- true if not none or false
+		not top-false?									;-- true if not none or false
 	]
 
 	top-false?: func [
@@ -54,7 +54,7 @@ logic: context [
 		arg: as red-logic! stack/top - 1
 		type: TYPE_OF(arg)
 
-		any [											;-- true if not none or false
+		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]
@@ -62,10 +62,20 @@ logic: context [
 		
 	true?: func [
 		return:  [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
 		
-		not false?										;-- true if not none or false
+		arg: as red-logic! stack/arguments
+		type: TYPE_OF(arg)
+		if type = TYPE_UNSET [fire [TO_ERROR(script no-return)]]
+		
+		not any [										;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]
 	]
 	
 	false?: func [
@@ -79,10 +89,25 @@ logic: context [
 		arg: as red-logic! stack/arguments
 		type: TYPE_OF(arg)
 		
-		any [											;-- true if not none or false
+		any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]
+	]
+	
+	make-in: func [
+		parent	 [red-block!]
+		value 	 [logic!]
+		return:	 [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/make-in"]]
+
+		cell: as red-logic! ALLOC_TAIL(parent)
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		cell/value: value
+		cell
 	]
 	
 	push: func [
@@ -101,47 +126,56 @@ logic: context [
 	
 	;-- Actions -- 
 
-	make*: func [
-		return:	 [red-value!]							;-- return cell pointer
-		/local
-			cell [red-logic!]
-			args [red-value!]
-			id	 [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
-
-		args: stack/arguments
-		cell: as red-logic! args
-		id: as red-integer! args + 1
-		
-		assert TYPE_OF(cell) = TYPE_DATATYPE
-		assert TYPE_OF(id)   = TYPE_INTEGER
-		
-		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
-		cell/value: id/value <> 0
-		as red-value! cell
-	]
-	
 	make: func [
 		proto	 [red-value!]	
 		spec	 [red-value!]
 		return:	 [red-logic!]							;-- return cell pointer
 		/local
-			cell [red-logic!]
-			args [red-value!]
-			id	 [red-integer!]
+			bool  [red-logic!]
+			int	  [red-integer!]
+			value [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
 
-		assert TYPE_OF(spec) = TYPE_INTEGER
-		id: as red-integer! spec
-	
-		cell: as red-logic! stack/push*
-		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
-		cell/value: id/value <> 0
-		cell
+		value: switch TYPE_OF(spec) [
+			TYPE_NONE  [no]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				bool/value
+			]
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				int/value <> 0
+			]
+			default [yes]
+		]
+		
+		bool: as red-logic! stack/push*
+		bool/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		bool/value:  value
+		bool
 	]
-	
+
+	random: func [
+		logic	[red-logic!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-logic!]
+		/local
+			res	 [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/random"]]
+
+		either seed? [
+			_random/srand as-integer logic/value
+			logic/header: TYPE_UNSET
+		][
+			logic/value: _random/rand % 2 <> 0
+		]
+		logic
+	]
+
 	form: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
@@ -175,20 +209,23 @@ logic: context [
 		arg1      [red-logic!]							;-- first operand
 		arg2	  [red-logic!]							;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			type  [integer!]
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/compare"]]
 
 		type: TYPE_OF(arg2)
+		if type <> TYPE_LOGIC [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
-			COMP_STRICT_EQUAL [res: all [type = TYPE_LOGIC  arg1/value = arg2/value]]
-			COMP_NOT_EQUAL	  [res: any [type <> TYPE_LOGIC arg1/value <> arg2/value]]
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL
+			COMP_SORT
+			COMP_CASE_SORT [res: (as-integer arg1/value) - (as-integer arg2/value)]
 			default [
-				print-line ["Error: cannot use: " op " comparison on logic! value"]
+				res: -2
 			]
 		]
 		res
@@ -201,7 +238,42 @@ logic: context [
 		bool/value: not bool/value
 		as red-value! bool
 	]
-	
+
+	do-bitwise: func [
+		type	  [integer!]
+		return:	  [red-logic!]
+		/local
+			left  [red-logic!]
+			right [red-logic!]
+	][
+		left: as red-logic! stack/arguments
+		right: left + 1
+		if TYPE_OF(right) <> TYPE_LOGIC [
+			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2)
+		]
+		left/value: switch type [
+			OP_AND [left/value and right/value]
+			OP_OR  [left/value or right/value]
+			OP_XOR [left/value xor right/value]
+		]
+		left
+	]
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/and~"]]
+		as red-value! do-bitwise OP_AND
+	]
+
+	or~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/or~"]]
+		as red-value! do-bitwise OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/xor~"]]
+		as red-value! do-bitwise OP_XOR
+	]
+
 	init: does [
 		true-value/header:  TYPE_LOGIC
 		true-value/value: 	yes
@@ -215,12 +287,12 @@ logic: context [
 			"logic!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -236,10 +308,10 @@ logic: context [
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
@@ -253,9 +325,11 @@ logic: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

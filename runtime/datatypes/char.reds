@@ -3,31 +3,59 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %char.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
 char: context [
 	verbose: 0
 	
-	load-in: func [
-		value [integer!]
-		blk	  [red-block!]
+	do-math: func [
+		op		[math-op!]
+		return: [red-value!]
+		/local
+			right [red-float!]
+			char  [red-char!]
+	][
+		right: as red-float! stack/arguments + 1
+		if TYPE_OF(right) = TYPE_FLOAT [
+			char: as red-char! right
+			char/header: TYPE_CHAR
+			char/value: float/to-integer right/value
+		]
+		char: as red-char! integer/do-math op
+		char/header: TYPE_CHAR
+		
+		if any [
+			char/value > 0010FFFFh
+			negative? char/value
+		][
+			fire [TO_ERROR(math overflow)]
+		]
+		as red-value! char
+	]
+	
+	make-in: func [
+		parent	[red-block!]
+		value	[integer!]
+		return: [red-char!]
 		/local
 			cell [red-char!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "char/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "char/make-in"]]
 
-		cell: as red-char! ALLOC_TAIL(blk)
+		cell: as red-char! ALLOC_TAIL(parent)
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 
 	push: func [
 		value	 [integer!]
+		return:	 [red-char!]
 		/local
 			cell [red-char!]
 	][
@@ -35,6 +63,7 @@ char: context [
 		cell: as red-char! stack/push*
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 	
 	;-- Actions --
@@ -90,7 +119,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
 
 		string/concatenate-literal buffer {#"}
-		string/append-escaped-char buffer c/value
+		string/append-escaped-char buffer c/value string/ESC_CHAR all?
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 4
 	]
@@ -99,16 +128,18 @@ char: context [
 		value1    	[red-char!]							;-- first operand
 		value2    	[red-char!]							;-- second operand
 		op	      	[integer!]							;-- type of comparison
-		return:   	[logic!]
+		return:		[integer!]
 		/local
 			integer [red-integer!]
 			left  	[integer!]
 			right 	[integer!]
-			res	  	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/compare"]]
 
-		left: value1/value
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value2) <> TYPE_CHAR
+		][return 1]
 
 		switch TYPE_OF(value2) [
 			TYPE_INTEGER [
@@ -120,75 +151,63 @@ char: context [
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
-		switch op [
-			COMP_EQUAL 			[res: left = right]
-			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_CHAR left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
-		]
-		res
+		left: value1/value
+		SIGN_COMPARE_RESULT(left right)
 	]
 
-	add: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/add"]]
-		char: as red-char! integer/do-math OP_ADD
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_ADD 
 	]
 
-	divide: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	divide: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/divide"]]
-		char: as red-char! integer/do-math OP_DIV
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_DIV
 	]
 
-	multiply: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	multiply: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/multiply"]]
-		char: as red-char! integer/do-math OP_MUL
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_MUL
 	]
 
-	subtract: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/remainder"]]
+		do-math OP_REM
+	]
+
+	subtract: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
-		char: as red-char! integer/do-math OP_SUB
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_SUB
+	]
+
+	and~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/and~"]]
+		do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/or~"]]
+		do-math OP_OR
+	]
+
+	xor~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/xor~"]]
+		do-math OP_XOR
 	]
 
 	init: does [
 		datatype/register [
 			TYPE_CHAR
-			TYPE_VALUE
+			TYPE_INTEGER
 			"char!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -198,16 +217,16 @@ char: context [
 			:multiply
 			null			;negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			INHERIT_ACTION
+			INHERIT_ACTION
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
@@ -221,9 +240,11 @@ char: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

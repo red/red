@@ -4,8 +4,8 @@ REBOL [
 	File: 	 %quick-test.r
 	Version: 0.12.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
@@ -39,6 +39,15 @@ qt: make object! [
   
   ;; switch for binary compiler usage
   binary?: false
+
+  ;; check if call-show? is enabled for call
+  either any [
+  		not value? 'call-show?
+  		equal? call-show? 'wait
+  	] [call-show?: 'wait] [call-show?: 'show]
+  call*: to path! 'call
+  append call* :call-show?
+  append call* 'output
   
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
@@ -64,9 +73,9 @@ qt: make object! [
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
     windows-os?
-    system/version/3 = 8              
+    system/version/3 = 8
   ][
-		do %call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 	]
 	
@@ -151,7 +160,7 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  	compile: func [
+  compile: func [
   		src [file!]
   		/bin
   		/lib
@@ -190,7 +199,7 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
-
+ 
     ;; compose and write compilation script
     either binary? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
@@ -207,7 +216,7 @@ qt: make object! [
     		]  		
     	]
     	comp-output: make string! 1024
-    	call/wait/output cmd comp-output
+    	do call* cmd comp-output
     ][
     	comp: mold compose/deep [
     	  REBOL []
@@ -228,7 +237,7 @@ qt: make object! [
 
     	;; compose command line and call it
     	cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    	call/wait/output cmd make string! 1024	;; redirect output to anonymous
+    	do call* cmd make string! 1024	;; redirect output to anonymous
     											;; buffer
     ]
     
@@ -238,6 +247,7 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
+    recycle
     either compile-ok? [
       exe
     ][
@@ -284,7 +294,6 @@ qt: make object! [
     /local
     	dll
   ][
-  	  print ["lib-src" lib-src]
     ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
@@ -346,8 +355,9 @@ qt: make object! [
     exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
-    call/output/wait exec output
+    do call* exec output
     if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    recycle
     if all [
       source-file?
       not pgm
@@ -372,7 +382,7 @@ qt: make object! [
   ][
     source-file?: false
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/wait cmd
+    do call* cmd make string! 1024
   ]
   
   run-unit-test-quiet: func [
@@ -387,7 +397,7 @@ qt: make object! [
     prin [ "running " test-name #"^(0D)"]
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/output/wait cmd output
+    do call* cmd output
     if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output
@@ -405,7 +415,7 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    if error? try [do script] [_signify-error]
+    if error? try [do script] [_signify-failure]
   ]
   
   run-script-quiet: func [
@@ -425,8 +435,9 @@ qt: make object! [
   	src [file!]
   ][
     file/reset
-    file/title: find/last/tail to string! src "/"
+    unless file/title: find/last/tail to string! src "/" [file/title: src]
     replace file/title "-test.reds" ""
+    replace file/title "-test.red" ""
     compile-run-print src
     add-to-run-totals
   ]
@@ -501,7 +512,7 @@ qt: make object! [
       ][
     _start test-run "" title
     prin newline
-    write log-file rejoin ["***Starting***" title newline]
+    write log-file rejoin ["***Starting*** " title newline]
   ]
   
   start-file: func [
@@ -618,7 +629,7 @@ qt: make object! [
   
   make-if-needed?: func [
     {This function is used by the Red run-all scripts to build the auto files
-     when necessary. It is not } 
+     when necessary.} 
     auto-test-file [file!]
     make-file [file!]
     /lib-test

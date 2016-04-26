@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %syllable.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
@@ -62,6 +62,7 @@ platform: context [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr flags
 	][
+		size: round-to-next size 16
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		flags: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 		flags: flags or MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS

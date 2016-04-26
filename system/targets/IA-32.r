@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %IA-32.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 make-profilable make target-class [
@@ -17,6 +17,7 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
+	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -66,8 +67,9 @@ make-profilable make target-class [
 			not runtime?
 			compiler/job/need-main?
 		][
-			emit-pop								;-- pop zero padding
-			emit-pop								;-- pop CATCH_ALL barrier
+			emit #{89EC}							;-- MOV esp, ebp
+			emit-pop								;-- pop exceptions threshold slot
+			emit-pop								;-- pop exceptions address slot
 			emit #{5D}								;-- POP ebp
 			args: switch/default compiler/job/OS [
 				Syllable [6]
@@ -312,10 +314,22 @@ make-profilable make target-class [
 			]
 			;cword []								;-- control word is already in eax
 		]
-		unless any [type cword][
+		unless any [type cword][					;-- align result on right side
 			emit #{C1E8}							;-- SHR eax, <bit>
 			emit to-bin8 bit
 		]
+	]
+	
+	emit-access-register: func [reg [word!] set? [logic!] value /local opcode][
+		if verbose >= 3 [print [">>>emitting ACCESS-REGISTER" mold value]]
+		if all [set? not tag? value][emit-load value]
+		
+		unless reg = 'eax [
+			opcode: #"^(C0)"
+			reg: (index? find [eax ecx edx ebx esp ebp esi edi] reg) - 1
+			unless set? [reg: shift/left reg 3]
+			emit join #{89} opcode or reg			;-- MOV <reg>, eax	; set
+		]											;-- MOV eax, <reg>	; get
 	]
 	
 	emit-fpu-set: func [
@@ -421,7 +435,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
-		
+
+	emit-log-b: func [type][
+		if type = 'byte! [emit #{25FF000000}]		;-- AND eax, 0xFF
+		emit #{0FBDC0}								;-- BSR eax, eax
+	]
+
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		
@@ -881,13 +900,27 @@ make-profilable make target-class [
 		]
 	]
 	
-	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
-		change at code-buf ptr to-bin32 exit-point - ptr - branch-offset-size
+	emit-start-loop: does [
+		emit #{50}									;-- PUSH eax
 	]
 	
-	emit-exit: does [
+	emit-end-loop: does [
+		emit #{58} 									;-- POP eax
+		emit #{83E801}								;-- SUB eax, 1
+	]
+	
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
+		change at buffer offset to-bin32 negate offset + 4 - 1
+	]
+	
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
+		change at buffer ptr to-bin32 exit-point - ptr - branch-offset-size
+	]
+	
+	emit-jump-point: func [type [block!]][
+		if verbose >= 3 [print ">>>emitting jump point"]
 		emit #{E9}									;-- JMP imm32
-		emit-reloc-addr compose/only [- - (emitter/exits)]
+		emit-reloc-addr compose/only [- - (type)]
 	]
 
 	emit-branch: func [
@@ -1148,8 +1181,8 @@ make-profilable make target-class [
 		/local mod? scale c type arg2 op-poly
 	][
 		;-- eax = a, edx = b
-		if find [// ///] name [						;-- work around unaccepted '// and '///
-			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+		if find mod-rem-op name [					;-- work around unaccepted '// and '%
+			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		arg2: compiler/unbox args/2
@@ -1394,6 +1427,7 @@ make-profilable make target-class [
 	]
 	
 	emit-float-trash-last: does [
+		if verbose >= 3 [print ">>>cleaning FPU stack base"]
 		emit #{DDD8}								;-- FSTP st0
 	]
 	
@@ -1428,8 +1462,8 @@ make-profilable make target-class [
 			compiler/throw-error "unsupported operation with float numbers"
 		]
 		
-		if find [// ///] name [						;-- work around unaccepted '// and '///
-			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+		if find mod-rem-op name [					;-- work around unaccepted '// and '%
+			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		set-width args/1
@@ -1594,7 +1628,7 @@ make-profilable make target-class [
 		]
 	]
 		
-	emit-call-syscall: func [args [block!] fspec [block!]][
+	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!]][
 		switch compiler/job/syscall [
 			BSD [									; http://www.freebsd.org/doc/en/books/developers-handbook/book.html#X86-SYSTEM-CALLS
 				emit #{83EC04}						;-- SUB esp, 4		; extra entry (BSD convention)			
@@ -1639,7 +1673,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
+	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!]][
 		either compiler/job/OS = 'MacOSX [
 			either PIC? [
 				emit #{8D83}						;-- LEA eax, [ebx+disp]	; PIC
@@ -1656,7 +1690,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!] /local total][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /routine name [word!] /local total][
 		either routine [
 			either 'local = last fspec [
 				name: pick tail fspec -2
@@ -1715,20 +1749,54 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-throw: func [value [integer! word!]][
+	emit-throw: func [value [integer! word!] /thru][
 		emit-load value
-		
+		if verbose >= 3 [print [">>>emitting THROW" value]]
+
+		if thru [emit #{EB01}]						;--			JMP _1st
 		emit #{C9}									;-- _loop:	LEAVE
-		emit #{5F}									;-- 		POP edi		; read return address
-		emit #{3945FC}								;--			CMP [ebp-4], eax ; compare with catch flag
-		emit #{72F9}								;-- 		JB _loop
+		emit #{3945FC}								;--	_1st:	CMP [ebp-4], eax ; compare with catch flag
+		emit #{72FA}								;-- 		JB _loop
 		emit #{89C2}								;--			MOV edx, eax
 		emitter/access-path to set-path! 'system/thrown <last>
 		
+		emit #{8B7DF8}								;--			MOV edi, [ebp-8]
+		emit #{83FF00}								;--			CMP edi, 0
+		emit #{7402}								;--			JZ _next
+		emit #{FFE7}								;--			JMP edi		; resume in caller
+		emit #{5F}									;-- _next:	POP edi		; read return address
 		emit #{83FF00}								;--			CMP edi, 0
 		emit #{7402}								;--			JZ _end
 		emit #{FFE7}								;--			JMP edi		; resume in caller
 													;-- _end:
+	]
+	
+	emit-open-catch: func [body-size [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH prolog"]
+		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
+		emit #{FF75F8}						 		;--	PUSH [ebp-8]		; save old catch address
+		emit #{8945FC}								;-- MOV  [ebp-4], eax	; rewrite the catch ID
+		emit #{E800000000}							;-- CALL next			; push eip on stack
+		emit #{58}									;-- POP eax
+		emit #{05}							 		;--	ADD eax, <offset>
+		emit to-bin32 body-size + 9					;-- account for catch-frame opcodes after `CALL next`
+		emit #{8945F8}							 	;--	MOV [ebp-8], eax
+		23											;-- return size of (catch-frame + extra) opcodes
+	]
+	
+	emit-close-catch: func [offset [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH epilog"]
+		offset: offset + 8							;-- account for the 2 catch slots on stack
+		either offset > 127 [
+			emit #{89EC}							;-- MOV esp, ebp
+			emit #{81EC}							;-- SUB esp, locals-size	; 32-bit
+			emit to-bin32 offset
+		][
+			emit #{8D65}							;-- LEA esp, [ebp-locals]
+			emit to-char 256 - offset
+		]
+		emit #{8F45F8}								;-- POP [ebp-8]
+		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
@@ -1740,7 +1808,10 @@ make-profilable make target-class [
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
 
-		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
+		emit-push pick [-2 0] to logic! all [		;-- push catch ID
+			attribs find attribs 'catch
+		]
+		emit-push 0									;-- reserve slot for catch resume address
 
 		unless zero? locals-size [
 			locals-size: round/to/ceiling locals-size 4

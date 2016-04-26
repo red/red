@@ -3,8 +3,8 @@ Rebol [
 	Author:  "Peter W A Wood"
 	File: 	 %byte-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ;; setup
@@ -179,23 +179,51 @@ do %../../../lexer.r
 	    1: 1
 	  }
 	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid word! value"
+	--assert-printed? "*** Syntax Error: Invalid integer! value"
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
 	  
-	--test-- "lexer-22"
-	  src: {
-	    Red/System[]
-	    a: 1
-	  }
-	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid Red program"
-	--assert-printed? "*** line: 1"
-	--assert-printed?  "*** at: {/System[]"
+	;--test-- "lexer-22"
+	;  src: {
+	;    Red/System[]
+	;    a: 1
+	;  }
+	;  lexer/process src
+	;--assert-printed? "*** Syntax Error: Invalid Red program"
+	;--assert-printed? "*** line: 1"
+	;--assert-printed?  "*** at: {/System[]"
 	
 	--test-- "lexer-23"
 	  src: {Red [] #"^^/"}
 	--assert "[[] #'0000000A]" = mold lexer/process src
+
+	--test-- "lexer-30"
+	src: {Red [] 123.0}
+	--assert "123.0" = mold second lexer/process src
+
+	--test-- "lexer-31"
+	src: {Red [] 1.123}
+	--assert "1.123" = mold second lexer/process src
+
+	--test-- "lexer-32"
+	src: {Red [] .123}
+	--assert "0.123" = mold second lexer/process src
+
+	--test-- "lexer-33"
+	src: {Red [] 1E2}
+	--assert "100.0" = mold second lexer/process src
+
+	--test-- "lexer-34"
+	src: {Red [] 1.2E3}
+	--assert "1200.0" = mold second lexer/process src
+
+	--test-- "lexer-35"
+	src: {Red [] .1E2}
+	--assert "10.0" = mold second lexer/process src
+
+	--test-- "lexer-36"
+	src: {Red [] .123E2}
+	--assert "12.3" = mold second lexer/process src
 	  
 ===end-group===
 	

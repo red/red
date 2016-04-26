@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %system.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -21,9 +21,14 @@ Red/System [
 #define FPU_X87_ROUNDING_UP			 2		;-- (toward +INF) rounded result is the closest to but no less than the infinitely precise result
 #define FPU_X87_ROUNDING_ZERO		 3		;-- (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
 
+#define FPU_VFP_ROUNDING_NEAREST	 0		;-- (even) rounded result is the closest to the infinitely precise result
+#define FPU_VFP_ROUNDING_UP			 1		;-- (toward +INF) rounded result is the closest to but no less than the infinitely precise result
+#define FPU_VFP_ROUNDING_DOWN		 2		;-- (toward -INF) rounded result is the closest to but no greater than the infinitely precise result
+#define FPU_VFP_ROUNDING_ZERO		 3		;-- (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
+
 ;-- FPU values for system/fpu/option/precision
 #define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
-#define FPU_X87_PRECISION_DOUBLE	 1		;-- 64-bit float, 53-bit mantissa
+#define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
 __stack!: alias struct! [
@@ -32,17 +37,17 @@ __stack!: alias struct! [
 	align	[int-ptr!]
 ]
 
+FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
+	precision	[logic!]
+	underflow	[logic!]
+	overflow	[logic!]
+	zero-divide [logic!]
+	denormal	[logic!]
+	invalid-op  [logic!]
+]
+
 #switch target [
 	IA-32 [
-		x87-mask!: alias struct! [			;-- x87 exception mask (true => disable exception)
-			precision	[logic!]
-			underflow	[logic!]
-			overflow	[logic!]
-			zero-divide [logic!]
-			denormal	[logic!]
-			invalid-op  [logic!]
-		]
-	
 		x87-option!: alias struct! [
 			rounding	[integer!]
 			precision	[integer!]
@@ -51,17 +56,60 @@ __stack!: alias struct! [
 		__fpu-struct!: alias struct! [
 			type		 [integer!]
 			option		 [x87-option!]
-			mask		 [x87-mask!]
+			mask		 [FPU-exceptions-mask!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
 			update		 [integer!]			;-- action simulated using a read-only member
 			init		 [integer!]			;-- action simulated using a read-only member
 		]
-	]
-	ARM [
-		__fpu-struct!: alias struct! [
-			type		 [integer!]			;-- only type for now...
+		
+		__cpu-struct!: alias struct! [
+			eax			[integer!]
+			ebx			[integer!]
+			ecx			[integer!]
+			edx			[integer!]
+			esp			[integer!]
+			ebp			[integer!]
+			esi			[integer!]
+			edi			[integer!]
 		]
+	]
+	ARM [	
+		VFP-option!: alias struct! [
+			rounding		[integer!]
+			flush-to-zero	[logic!]
+			NaN-mode		[logic!]
+		]
+		
+		__fpu-struct!: alias struct! [
+			type		 [integer!]
+			option		 [VFP-option!]
+			mask		 [FPU-exceptions-mask!]
+			control-word [integer!]			;-- direct access to whole control word
+			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
+			update		 [integer!]			;-- action simulated using a read-only member
+			init		 [integer!]			;-- action simulated using a read-only member
+		]
+		
+		__cpu-struct!: alias struct! [
+			r0			[integer!]
+			r1			[integer!]
+			r2			[integer!]
+			r3			[integer!]
+			r4			[integer!]
+			r5			[integer!]
+			r6			[integer!]
+			r7			[integer!]
+			r8			[integer!]
+			r9			[integer!]
+			r10			[integer!]
+			r11			[integer!]
+			r12			[integer!]
+			r13			[integer!]
+			r14			[integer!]
+			r15			[integer!]
+		]
+
 	]
 ]
 
@@ -71,17 +119,11 @@ system: declare struct! [					;-- store runtime accessible system values
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 	stack		[__stack!]					;-- stack virtual access
 	pc			[byte-ptr!]					;-- CPU program counter value
-	;cpu		[__cpu-struct!]				;-- reserved for later use
+	cpu			[__cpu-struct!]				;-- CPU registers
 	fpu			[__fpu-struct!]				;-- FPU settings
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)
 	thrown		[integer!]					;-- last THROWn value
-]
-
-#if type = 'exe [
-	#if target = 'IA-32 [
-		system/fpu/control-word: 0322h		;-- default control word: division by zero, 
-											;-- underflow and overflow raise exceptions.
-		system/fpu/update
-	]
+	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
+	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 ]

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %red.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -20,23 +20,45 @@ red: context [
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
 		MacOSX	 [#include %platform/darwin.reds]
+		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
 	
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
+	#include %crush.reds
 	
 	;-- Datatypes --
 	
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
+	#include %case-folding.reds
+	#include %sort.reds
+	#include %hashtable.reds
+	#include %ownership.reds
+	
+	;--------------------------------------------
+	;-- Import OS dependent image functions
+	;-- load-image: func [								;-- return handle
+	;-- 	filename [c-string!]
+	;-- 	return:  [integer!]
+	;-- ]
+	;--------------------------------------------
+	#switch OS [
+		Windows  [#include %platform/image-gdiplus.reds]
+		Syllable []
+		MacOSX	 []
+		FreeBSD  []
+		#default []
+	]
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
 	#include %datatypes/logic.reds
+	#include %datatypes/series.reds
 	#include %datatypes/block.reds
 	#include %datatypes/string.reds
 	#include %datatypes/integer.reds
@@ -60,9 +82,21 @@ red: context [
 	#include %datatypes/paren.reds
 	#include %datatypes/issue.reds
 	#include %datatypes/file.reds
+	#include %datatypes/url.reds
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
+	#include %datatypes/float.reds
+	#include %datatypes/typeset.reds
+	#include %datatypes/error.reds
+	#include %datatypes/vector.reds
+	#include %datatypes/map.reds
+	#include %datatypes/hash.reds
+	#include %datatypes/pair.reds
+	#include %datatypes/percent.reds
+	#include %datatypes/tuple.reds
+	#include %datatypes/binary.reds
+	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	
 	;-- Debugging helpers --
 	
@@ -72,16 +106,19 @@ red: context [
 	#include %actions.reds
 	#include %natives.reds
 	#include %parse.reds
+	#include %random.reds
+	#include %crypto.reds
 	#include %stack.reds
 	#include %interpreter.reds
-	#if OS <> 'Android [
-		#include %simple-io.reds						;-- temporary file IO support
-	]
+	#include %simple-io.reds							;-- temporary file IO support
+	#include %redbin.reds
+	#include %utils.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block
 	symbols: 	declare red-block! 						;-- symbols table
 	global-ctx: declare node!							;-- global context
+	verbosity:  0
 
 	;-- Booting... --
 	
@@ -96,8 +133,10 @@ red: context [
 		unset/init
 		none/init
 		logic/init
+		_series/init
 		block/init
 		string/init
+		binary/init
 		integer/init
 		symbol/init
 		_context/init
@@ -119,35 +158,54 @@ red: context [
 		paren/init
 		issue/init
 		file/init
+		url/init
 		object/init
 		bitset/init
 		point/init
+		float/init
+		typeset/init
+		error/init
+		vector/init
+		map/init
+		hash/init
+		pair/init
+		percent/init
+		tuple/init
+		#if OS = 'Windows [image/init]					;-- temporary
 		
 		actions/init
 		
 		;-- initialize memory before anything else
-		alloc-node-frame nodes-per-frame				;-- 5k nodes
-		alloc-series-frame								;-- first frame of 512KB
+		alloc-node-frame nodes-per-frame				;-- 10k nodes
+		alloc-series-frame								;-- first frame of 1MB
 
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
+
+		case-folding/init
+		symbol/table: _hashtable/init 1000 symbols HASH_TABLE_SYMBOL 1
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
 		parser/init
+		_random/init
+		ownership/init
+		crypto/init
 		
 		stack/init
+		redbin/boot-load
 		
 		#if debug? = yes [
-			verbosity: 0
 			datatype/verbose:	verbosity
 			unset/verbose:		verbosity
 			none/verbose:		verbosity
 			logic/verbose:		verbosity
+			_series/verbose:	verbosity
 			block/verbose:		verbosity
+			binary/verbose:		verbosity
 			string/verbose:		verbosity
 			integer/verbose:	verbosity
 			symbol/verbose:		verbosity
@@ -165,8 +223,20 @@ red: context [
 			paren/verbose:		verbosity
 			issue/verbose:		verbosity
 			file/verbose:		verbosity
+			url/verbose:		verbosity
 			object/verbose:		verbosity
 			bitset/verbose:		verbosity
+			float/verbose:		verbosity
+			typeset/verbose:	verbosity
+			error/verbose:		verbosity
+			vector/verbose:		verbosity
+			map/verbose:		verbosity
+			hash/verbose:		verbosity
+			point/verbose:		verbosity
+			pair/verbose:		verbosity
+			percent/verbose:	verbosity
+			tuple/verbose:		verbosity
+			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

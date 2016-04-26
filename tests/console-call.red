@@ -1,12 +1,12 @@
 Red [
 	Title:	"Red console"
-	Author: ["Nenad Rakocevic" "Kaj de Vos" "Bruno Anselme"]
-	File: 	%console-call.red
+	Author: ["Nenad Rakocevic" "Kaj de Vos"]
+	File: 	%console.red
 	Tabs: 	4
-	Rights: "Copyright (C) 2012-2013 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: 	 "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleW" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -32,8 +32,8 @@ Red [
 				]
 			]
 		]
-		line-buffer-size: 16 * 1024
-		line-buffer: allocate line-buffer-size
+		line-buffer-size: 15 * 1024
+		line-buffer: allocate line-buffer-size * 2 + 1
 	][
 		#switch OS [
 			MacOSX [
@@ -46,7 +46,7 @@ Red [
 		]
 		#import [
 			ReadLine-library cdecl [
-				read-line: "readline" [  ; Read a line from the console.
+				cons-read-line: "readline" [  ; Read a line from the console.
 					prompt			[c-string!]
 					return:			[c-string!]
 				]
@@ -84,9 +84,6 @@ Red [
 
 #include %../system/library/call/call.red
 prin "-=== Call added to Red console ===-"
-if system/platform = 'Windows [
-  prin "^/ -== Limited Windows support, launch only GUI apps ==-"
-]
 #include %help.red
 
 read-argument: routine [
@@ -99,7 +96,7 @@ read-argument: routine [
 		exit
 	]
 	args: system/args-list + 1							;-- skip binary filename
-	str: simple-io/read-txt args/item
+	str: as red-string! simple-io/read-file args/item no no no
 	SET_RETURN(str)
 ]
 
@@ -122,23 +119,23 @@ init-console: routine [
 input: routine [
 	prompt [string!]
 	/local
-		len ret str buffer line
+		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
 		len: 0
 		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
-		len: len - 1									;-- move at beginning of CRLF sequence
-		line-buffer/len: null-byte						;-- overwrite CR with NUL
-		str: string/load as c-string! line-buffer len
+		pos: (len * 2) - 3								;-- position at lower 8bits of CR character
+		line-buffer/pos: null-byte						;-- overwrite CR with NUL
+		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as c-string! string/rs-head prompt
+		line: cons-read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
 
-		str: string/load line  1 + length? line
+		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
 	]
 	SET_RETURN(str)
@@ -158,9 +155,10 @@ count-delimiters: function [
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
-					#";"  [if zero? list/2 [in-comment?: yes]]
+					#";"  [if all [zero? list/2 not in-string?][in-comment?: yes]]
 					#"["  [unless in-string? [list/1: list/1 + 1]]
 					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"^"" [if zero? list/2 [in-string?: not in-string?]]
 					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
 					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
@@ -238,12 +236,11 @@ if script: read-argument [
 	]
 	quit
 ]
-
 init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only ASCII input supported)
+Type HELP for starting information.
 }
 
 do-console

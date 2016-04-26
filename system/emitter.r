@@ -3,19 +3,22 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %emitter.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 do-cache %system/targets/target-class.r
 
 emitter: make-profilable context [
-	code-buf: make binary! 100'000
-	data-buf: make binary! 100'000
-	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
-	stack: 	  make hash! 40				;-- [name offset ...]
-	exits:	  make block! 1				;-- [offset ...]	(funcs exits points)
-	verbose:  0							;-- logs verbosity level
+	code-buf:  make binary! 100'000
+	data-buf:  make binary! 100'000
+	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
+	stack: 	   make hash! 40			;-- [name offset ...]
+	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
+	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
 	compiler: none						;-- just a short-cut
@@ -92,16 +95,10 @@ emitter: make-profilable context [
 
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
-			remove-each ptr b/2 [						;-- attempt at fixing R2 memory corruptions
-				any [none? ptr not block? ptr not integer? ptr/1]
-			]
-			foreach ptr b/2 [
-				if all [ptr integer? ptr/1][			;-- workaround past-end blocks
-					ptr/1: ptr/1 + bytes				;-- adjust relocs
-				]
-			]
+
+			foreach ptr b/2 [ptr/1: ptr/1 + bytes]		;-- adjust relocs
 			append a/1 b/1
-			append a/2 b/2		
+			append a/2 b/2
 			a
 		]
 	]
@@ -116,12 +113,8 @@ emitter: make-profilable context [
 	][
 		case [
 			over [
-				size: target/emit-branch chunk/1 cond offset			
-				foreach ptr chunk/2 [
-					if all [ptr integer? ptr/1][		;-- workaround past-end blocks
-						ptr/1: ptr/1 + size				;-- adjust relocs
-					]
-				]
+				size: target/emit-branch chunk/1 cond offset
+				foreach ptr chunk/2 [ptr/1: ptr/1 + size]	;-- adjust relocs
 				size
 			]
 			back [
@@ -137,11 +130,10 @@ emitter: make-profilable context [
 
 	merge: func [chunk [block!]][
 		either empty? chunks/queue [
-			append code-buf chunk/1			
+			append code-buf chunk/1
 		][
-			clear at code-buf chunk/3
 			append code-buf chunk/1						;-- replace obsolete buffer
-			append second last chunks/queue chunk/2		
+			append second last chunks/queue chunk/2
 		]
 	]
 	
@@ -209,7 +201,7 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float!64] type][
+		if all [value = <last> not find [float! float64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -283,6 +275,19 @@ emitter: make-profilable context [
 					store-global value type none
 				]
 			]
+			array! [
+				type: first compiler/get-type value/1
+				store-global length? value 'integer! none	;-- store array size first
+				if any [type = 'float! type = 'float64!] [pad-data-buf 8]
+				ptr: tail data-buf							;-- ensure array pointer skips size info
+				foreach item value [store-global item type none]
+			]
+			binary! [
+				pad-data-buf 8								;-- forces 64-bit alignment
+				ptr: tail data-buf
+				append ptr value
+				pad-data-buf target/ptr-size
+			]
 		][
 			compiler/throw-error ["store-global unexpected type:" type]
 		]
@@ -328,7 +333,10 @@ emitter: make-profilable context [
 				saved: name
 				name: none								;-- anonymous data storing
 			]
-			if any [not new-global? string? value paren? value][
+			if all [paren? value not word? value/1][
+				type: [array!]
+			]
+			if any [not new-global?	string? value paren? value][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: either compiler/job/PIC? [
 					store-value name value type			;-- store new value in data buffer
@@ -336,9 +344,11 @@ emitter: make-profilable context [
 					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				]
 			]
-			if all [new-global? spec compiler/job/PIC? not libc-init?][
+			if all [compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
-				target/emit-store saved value n-spec	;-- store it in pointer variable
+				if new-global? spec [
+					target/emit-store saved value n-spec ;-- store it in pointer variable
+				]
 			]
 			if n-spec [spec: n-spec]
 		][
@@ -406,6 +416,9 @@ emitter: make-profilable context [
 						compiler/throw-error "cannot modify system/pc"
 					]
 					target/emit-get-pc
+				]
+				cpu [
+					target/emit-access-register path/3 set? value
 				]
 				fpu [
 					if 2 = length? path [
@@ -529,11 +542,15 @@ emitter: make-profilable context [
 		either word? type [
 			datatypes/:type
 		][
-			switch/default type/1 [
-				c-string! [reduce ['+ 1 reduce ['length? value]]]
-				struct!   [member-offset? type/2 none]
+			either 'array! = first head type [
+				second head type
 			][
-				select datatypes type/1
+				switch/default type/1 [
+					c-string! [reduce ['+ 1 reduce ['length? value]]]
+					struct!   [member-offset? type/2 none]
+				][
+					select datatypes type/1
+				]
 			]
 		]
 	]
@@ -548,11 +565,29 @@ emitter: make-profilable context [
 		size
 	]
 	
+	init-loop-jumps: does [
+		append/only breaks	  make block! 1
+		append/only cont-next make block! 1
+		append/only cont-back make block! 1
+	]
+	
+	resolve-loop-jumps: func [chunk [block!] type [word!] /local list end len buffer][
+		list: emitter/:type
+		buffer: chunk/1
+		len: (last chunk) - 1
+		
+		either type = 'cont-back [
+			foreach ptr last list [target/patch-jump-back buffer ptr - len]
+		][
+			end: index? tail buffer
+			foreach ptr last list [target/patch-jump-point buffer ptr - len end]
+		]
+		remove back tail list
+	]
+	
 	resolve-exit-points: has [end][
 		end: tail-ptr
-		foreach ptr exits [
-			target/patch-exit-call code-buf ptr end
-		]
+		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][
@@ -568,7 +603,7 @@ emitter: make-profilable context [
 		args-sz: arguments-size?/push locals
 		
 		locals-sz: 0
-		if pos: find locals /local [		
+		if pos: find locals /local [
 			while [not tail? pos: next pos][
 				var: pos/1
 				either block? pos/2 [
@@ -576,8 +611,11 @@ emitter: make-profilable context [
 					pos: next pos
 				][
 					sz: target/stack-slot-max			;-- type to be inferred
-				]				
-				repend stack [var (locals-sz: locals-sz - sz) - 4]	;-- store stack offsets
+				]
+				repend stack [
+					var
+					(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
+				]
 			]
 			locals-sz: abs locals-sz
 		]

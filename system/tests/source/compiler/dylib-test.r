@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %dylib-test.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 change-dir %../
@@ -16,6 +16,7 @@ change-dir %../
 		dll-target: switch/default fourth system/version [
 			2 ["Darwin"]
 			3 ["Windows"]
+			7 ["FreeBSD"]
 		][
 			"Linux"
 		]

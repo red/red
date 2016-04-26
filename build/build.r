@@ -3,17 +3,35 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %build.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 Windows?: system/version/4 = 3
+
+;-- Check Rebol SDK setup
+unless exists? %encap-paths.r [
+	write  %encap-paths.r read  %encap-paths.r.sample
+	print "--------------------------------------------------"
+	print "  Build setup Error!"
+	print ""
+	print "  Rebol SDK paths are not yet setup for building"
+	print ["  unable to find file: " to-local-file clean-path %encap-paths.r ]
+	print ""
+	print "  Created a new %encap-paths.r file..."
+	print "  Edit this file and change the paths to your system's configuration"
+	print "---------------------------------------------"
+	print ""
+	ask "to continue build (after you've edited file) ... ^/ press enter ..."
+	
+]
 
 ;-- Parameters
 encapper: 		%enpro
 bin:			%bin/
 cache-file:		%bin/sources.r
 red: 			%red
+ts-file:		%timestamp.r
 
 either Windows? [
 	append red %.exe
@@ -43,6 +61,9 @@ unless exists? %bin/ [
 log "Combining all source files together..."
 do %includes.r
 
+;-- Generating the temporary timestamp file
+write ts-file mold now
+
 ;-- Encapping the Rebol interpreter with Red sources
 log "Encapping..."
 call/wait reform [encapper "precap.r -o" bin/:red]
@@ -57,6 +78,7 @@ if Windows? [
 ]
 
 ;-- Remove temporary files
+attempt [delete ts-file]
 attempt [delete cache-file]
 
 log join "File output: build/bin/" form red

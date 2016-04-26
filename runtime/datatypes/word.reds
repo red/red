@@ -3,16 +3,16 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-#define CHECK_UNSET(value) [
+#define CHECK_UNSET(value word) [
 	if TYPE_OF(value) = TYPE_UNSET [
-		print-line "*** Error: word has no value!"
+		fire [TO_ERROR(script need-value) word]
 	]
 ]
 
@@ -34,19 +34,41 @@ word: context [
 		_context/add-global symbol/make str
 	]
 	
-	push-in: func [
-		id    	[integer!]								;-- symbol ID
-		blk		[red-block!]
+	make-at: func [
+		id		[integer!]								;-- symbol ID
+		pos		[red-value!]
 		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		cell: as red-word! ALLOC_TAIL(blk)
+		cell: as red-word! pos
 		cell/header: TYPE_WORD							;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
 		cell/index:  _context/add TO_CTX(global-ctx) cell
 		cell
+	]
+	
+	box: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/arguments
+	]
+	
+	push-in: func [
+		id		[integer!]								;-- symbol ID
+		blk		[red-block!]
+		return:	[red-word!]
+	][
+		make-at id ALLOC_TAIL(blk)
+	]
+	
+	push*: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/push*
 	]
 	
 	push: func [
@@ -66,15 +88,79 @@ word: context [
 		node	[node!]
 		index	[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+
+		push from node index
+	]
+	
+	from: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-word!]
 		/local
 			ctx	[red-context!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
 		
 		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
-		push as red-word! s/offset + index
+		as red-word! s/offset + index
+	]
+	
+	at: func [
+		node	[node!]
+		sym		[integer!]
+		return: [red-word!]
+		/local
+			ctx	[red-context!]
+			idx [integer!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/at"]]
+
+		ctx: TO_CTX(node)
+		idx: _context/find-word ctx sym no
+		s: as series! ctx/symbols/value
+		as red-word! s/offset + idx
+	]
+	
+	get-in: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	[red-context!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-in"]]
+
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		s/offset + index
+	]
+	
+	get-local: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	  [red-context!]
+			value [red-value!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
+
+		ctx: TO_CTX(node)
+		
+		value: either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + index
+		][
+			s: as series! ctx/values/value
+			s/offset + index
+		]
+		stack/push value
 	]
 	
 	get-buffer: func [
@@ -91,9 +177,42 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/set"]]
 		
 		value: stack/arguments + 1
-		CHECK_UNSET(value)
+		CHECK_UNSET(value stack/arguments)
 		_context/set as red-word! stack/arguments value
 		stack/set-last value
+	]
+
+	replace: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
+	set-in: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
+		
+		value: stack/arguments
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		copy-cell value values/offset + index
+		value
 	]
 	
 	set-local: func [
@@ -102,8 +221,10 @@ word: context [
 		/local
 			value [red-value!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-local"]]
+		
 		value: stack/arguments
-		CHECK_UNSET(value)
+		CHECK_UNSET(value slot)
 		copy-cell value slot
 	]
 	
@@ -125,13 +246,25 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
 		value: copy-cell _context/get word stack/push*
-		CHECK_UNSET(value)
-		if TYPE_OF(value) = TYPE_LIT_WORD [
-			value/header: TYPE_WORD						;-- cast lit-word! to word!
+		if TYPE_OF(value) = TYPE_UNSET [
+			fire [TO_ERROR(script no-value) word]
 		]
 		value
 	]
-	
+
+	to-string: func [
+		w		[red-word!]
+		return: [red-string!]
+		/local
+			s	[series!]
+			str [red-string!]
+	][
+		s: GET_BUFFER(symbols)
+		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/head: 0
+		str
+	]
+
 	;-- Actions --
 	
 	form: func [
@@ -141,17 +274,19 @@ word: context [
 		part 	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
+			s		[series!]
+			str		[red-string!]
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
 		
 		s: GET_BUFFER(symbols)
-		
-		string/form 
-			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
-			buffer
-			arg
-			part
+		str: as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are partial overlapping
+		saved: str/head
+		str/head: 0
+		part: string/form str buffer arg part
+		str/head: saved
+		part
 	]
 	
 	mold: func [
@@ -169,47 +304,75 @@ word: context [
 
 		form w buffer arg part
 	]
+
+	any-word?: func [									;@@ discard it when ANY_WORD? available
+		type	[integer!]
+		return: [logic!]
+	][
+		any [
+			type = TYPE_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_REFINEMENT
+			type = TYPE_ISSUE
+		]
+	]
 	
 	compare: func [
 		arg1	 [red-word!]							;-- first operand
 		arg2	 [red-word!]							;-- second operand
 		op		 [integer!]								;-- type of comparison
-		return:	 [logic!]
+		return:	 [integer!]
 		/local
+			s	 [series!]
 			type [integer!]
-			res	 [logic!]
+			res	 [integer!]
+			str1 [red-string!]
+			str2 [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
-
 		type: TYPE_OF(arg2)
+		unless any-word? type [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
 		switch op [
-			COMP_EQUAL [
-				res: all [
-					any [								;@@ replace by ANY_WORD? when available
-						type = TYPE_WORD
-						type = TYPE_GET_WORD
-						type = TYPE_SET_WORD
-						type = TYPE_LIT_WORD
-						type = TYPE_REFINEMENT
-						type = TYPE_ISSUE
-					]
-					EQUAL_WORDS?(arg1 arg2)
-				]
+			COMP_EQUAL
+			COMP_NOT_EQUAL [
+				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
 			COMP_STRICT_EQUAL [
-				res: all [
-					type = TYPE_WORD
-					arg1/symbol = arg2/symbol
+				res: as-integer any [
+					type <> TYPE_WORD
+					arg1/symbol <> arg2/symbol
 				]
 			]
-			COMP_NOT_EQUAL [
-				res: not compare arg1 arg2 COMP_EQUAL
-			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on any-word! value"]
+				s: GET_BUFFER(symbols)
+				str1: as red-string! s/offset + arg1/symbol - 1
+				str2: as red-string! s/offset + arg2/symbol - 1
+				res: string/equal? str1 str2 op no
 			]
 		]
 		res
+	]
+	
+	index?: func [
+		return: [red-value!]
+		/local
+			w	  [red-word!]
+			int	  [red-integer!]
+			index [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/index?"]]
+
+		w: as red-word! stack/arguments
+		int: as red-integer! w
+		index: w/index
+	
+		either index = -1 [int/header: TYPE_NONE][
+			int/header: TYPE_INTEGER
+			int/value:  index + 1						;-- return a 1-based value
+		]
+		as red-value! int
 	]
 
 	init: does [
@@ -224,7 +387,7 @@ word: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -254,12 +417,14 @@ word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			:index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

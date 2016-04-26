@@ -3,10 +3,12 @@ REBOL [
 	Author:  "Nenad Rakocevic, Andreas Bolka"
 	File: 	 %rsc.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic, Andreas Bolka. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
-	Usage:   {
-		do/args %rsc.r "[-v <integer!>] path/source.reds"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic, Andreas Bolka. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
+	Note:   {
+		THIS SCRIPT HAS BEEN DEPRECATED, use %red.r to compile Red/System scripts.
+		This wrapper script is been kept in the repo in case we need to integrate 
+		only the Red/System compiler in another Rebol app.
 	}
 ]
 

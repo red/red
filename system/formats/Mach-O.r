@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File:	 %Mach-O.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; Reference doc: http://developer.apple.com/library/mac/#documentation/DeveloperTools/Conceptual/MachORuntime/Reference/reference.html
@@ -368,7 +368,8 @@ context [
 	]
 	
 	process-debug-info: func [job [object!]][
-		linker/build-debug-lines job get-section-addr '__text pointer
+		linker/build-debug-lines job get-section-addr '__text
+		linker/build-debug-func-names job get-section-addr '__text
 	]
 	
 	prepare-headers: func [

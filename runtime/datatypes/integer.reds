@@ -3,15 +3,26 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %integer.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
 integer: context [
 	verbose: 0
+
+	abs: func [
+		value	[integer!]
+		return: [integer!]
+	][
+		if value = -2147483648 [
+			fire [TO_ERROR(math overflow)]
+		]
+		if negative? value [value: 0 - value]
+		value
+	]
 
 	get*: func [										;-- unboxing integer value from stack
 		return: [integer!]
@@ -82,19 +93,55 @@ integer: context [
 		if n [s/c: #"-" c: c - 1]
 		s + c
 	]
-	
-	do-math: func [
-		type	  [integer!]
-		return:	  [red-integer!]
-		/local
-			left  [red-integer!]
-			right [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 
+	do-math-op: func [
+		left		[integer!]
+		right		[integer!]
+		type		[math-op!]
+		return:		[integer!]
+	][
+		switch type [
+			OP_ADD [left + right]
+			OP_SUB [left - right]
+			OP_MUL [left * right]
+			OP_AND [left and right]
+			OP_OR  [left or right]
+			OP_XOR [left xor right]
+			OP_REM [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left % right
+				]
+			]
+			OP_DIV [
+				either zero? right [
+					fire [TO_ERROR(math zero-divide)]
+					0								;-- pass the compiler's type-checking
+				][
+					left / right
+				]
+			]
+		]
+	]
+
+	do-math: func [
+		type		[math-op!]
+		return:		[red-value!]
+		/local
+			left	[red-integer!]
+			right	[red-integer!]
+			pair	[red-pair!]
+			value	[integer!]
+			size	[integer!]
+			n		[integer!]
+			v		[integer!]
+			tp		[byte-ptr!]
+	][
 		left: as red-integer! stack/arguments
 		right: left + 1
-		
+
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
@@ -102,28 +149,83 @@ integer: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_FLOAT
+			TYPE_OF(right) = TYPE_PERCENT
+			TYPE_OF(right) = TYPE_PAIR
+			TYPE_OF(right) = TYPE_TUPLE
 		]
-		
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
+
+		switch TYPE_OF(right) [
+			TYPE_INTEGER TYPE_CHAR [
+				left/value: do-math-op left/value right/value type
+			]
+			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
+			TYPE_PAIR  [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				pair: as red-pair! left
+				switch type [
+					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
+					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
+					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
+					]
+				]
+			]
+			TYPE_TUPLE [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				tp: (as byte-ptr! left) + 4
+				size: as-integer tp/1
+				n: 0
+				until [
+					n: n + 1
+					v: as-integer tp/n
+					switch type [
+						OP_ADD [v: v + value]
+						OP_MUL [v: v * value]
+						OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+							ERR_EXPECT_ARGUMENT(TYPE_PERCENT 1)
+						]
+					]
+					either v > 255 [v: 255][if negative? v [v: 0]]
+					tp/n: as byte! v
+					n = size
+				]
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+			]
 		]
-		left
+		as red-value! left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
-		value 	[integer!]
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-integer!]
 		/local
 			int [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
-		
-		int: as red-integer! ALLOC_TAIL(blk)
+		int: as red-integer! slot
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
+	]
+
+	make-in: func [
+		parent 	[red-block!]
+		value 	[integer!]
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/make-in"]]
+		
+		int: as red-integer! ALLOC_TAIL(parent)
+		int/header: TYPE_INTEGER
+		int/value: value
+		int
 	]
 	
 	push: func [
@@ -138,6 +240,21 @@ integer: context [
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
+	]
+
+	to-float: func [
+		i		[integer!]
+		return: [float!]
+		/local
+			f	[float!]
+			d	[int-ptr!]
+	][
+		;-- Based on this method: http://stackoverflow.com/a/429812/494472
+		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
+		f: 6755399441055744.0
+		d: as int-ptr! :f
+		d/value: i or d/value
+		either i < 0 [f - 6755403736023040.0][f - 6755399441055744.0]
 	]
 
 	;-- Actions --
@@ -159,7 +276,64 @@ integer: context [
 			]
 		]
 	]
-	
+
+	random: func [
+		int		[red-integer!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			n	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/random"]]
+
+		either seed? [
+			_random/srand int/value
+			int/header: TYPE_UNSET
+		][
+			unless zero? int/value [
+				n: _random/rand % int/value + 1
+				int/value: either negative? int/value [0 - n][n]
+			]
+		]
+		as red-value! int
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
+		/local
+			int [red-integer!]
+			f	[red-float!]
+			buf [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
+			
+		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: spec/value
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				f: as red-float! type
+				f/header: type/value
+				f/value: to-float spec/value
+			]
+			TYPE_STRING [
+				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
+				string/concatenate-literal buf form-signed spec/value
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]
@@ -196,14 +370,20 @@ integer: context [
 		value1    [red-integer!]						;-- first operand
 		value2    [red-integer!]						;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			char  [red-char!]
+			f	  [red-float!]
 			left  [integer!]
 			right [integer!] 
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
+
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value2) <> TYPE_INTEGER
+		][return 1]
 		
 		left: value1/value
 		
@@ -215,18 +395,17 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
+			TYPE_FLOAT [
+				f: as red-float! value1
+				left: value1/value
+				f/value: to-float left
+				res: float/compare f as red-float! value2 op
+				value1/value: left
+				return res
+			]
 			default [RETURN_COMPARE_OTHER]
 		]
-		switch op [
-			COMP_EQUAL 			[res: left = right]
-			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_INTEGER left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
-		]
-		res
+		SIGN_COMPARE_RESULT(left right)
 	]
 	
 	complement: func [
@@ -236,7 +415,24 @@ integer: context [
 		int/value: not int/value
 		as red-value! int
 	]
-	
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/remainder"]]
+		as red-value! do-math OP_REM
+	]
+
+	absolute: func [
+		return: [red-integer!]
+		/local
+			int	[red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		
+		int: as red-integer! stack/arguments
+		int/value: abs int/value
+		int
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -256,7 +452,22 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
 	]
-	
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/xor~"]]
+		as red-value! do-math OP_XOR
+	]
+
 	negate: func [
 		return: [red-integer!]
 		/local
@@ -265,6 +476,45 @@ integer: context [
 		int: as red-integer! stack/arguments
 		int/value: 0 - int/value
 		int 											;-- re-use argument slot for return value
+	]
+
+	int-power: func [
+		base	[integer!]
+		exp		[integer!]
+		return: [integer!]
+		/local
+			res  [integer!]
+	][
+		res: 1
+		while [exp <> 0][
+			if as logic! exp and 1 [res: res * base]
+			exp: exp >> 1
+			base: base * base
+		]
+		res
+	]
+
+	power: func [
+		return:	 [red-value!]
+		/local
+			base [red-integer!]
+			exp  [red-integer!]
+			f	 [red-float!]
+	][
+		base: as red-integer! stack/arguments
+		exp: base + 1
+		either any [
+			TYPE_OF(exp) = TYPE_FLOAT
+			negative? exp/value
+		][
+			f: as red-float! base
+			f/value: to-float base/value
+			f/header: TYPE_FLOAT
+			float/power
+		][
+			base/value: int-power base/value exp/value
+		]
+		as red-value! base
 	]
 	
 	even?: func [
@@ -280,7 +530,91 @@ integer: context [
 	][
 		as-logic int/value and 1
 	]
-	
+
+	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+
+	#define INT_FLOOR [
+		either m < 0 [
+			fire [TO_ERROR(math overflow)]
+		][
+			int/value: either num > 0 [n - r][0 - m]
+		]
+	]
+
+	#define INT_CEIL [
+		either m < 0 [
+			fire [TO_ERROR(math overflow)]
+		][
+			int/value: either num < 0 [r - n][m]
+		]
+	]
+
+	#define INT_AWAY [
+		either m < 0 [
+			fire [TO_ERROR(math overflow)]
+		][
+			int/value: either num > 0 [m][0 - m]
+		]
+	]
+
+	round: func [
+		value		[red-value!]
+		scale		[red-integer!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			f		[red-float!]
+			num		[integer!]
+			sc		[integer!]
+			s		[integer!]
+			n		[integer!]
+			m		[integer!]
+			r		[integer!]
+	][
+		int: as red-integer! value
+		num: int/value
+		if num = 80000000h [return value]
+		sc: 1
+		if OPTION?(scale) [
+			if TYPE_OF(scale) = TYPE_FLOAT [
+				f: as red-float! value
+				f/value: to-float num
+				f/header: TYPE_FLOAT
+				return float/round value as red-float! scale _even? down? half-down? floor? ceil? half-ceil?
+			]
+			sc: abs scale/value
+		]
+
+		if zero? sc [
+			fire [TO_ERROR(math overflow)]
+		]
+
+		n: abs num
+		r: n % sc
+		if zero? r [return value]
+
+		s: sc - r
+		m: n + s
+		case [
+			down?		[INT_TRUNC]
+			floor?		[INT_FLOOR]
+			ceil?		[INT_CEIL ]
+			r < s		[INT_TRUNC]
+			r > s		[INT_AWAY ]
+			_even?		[either zero? (n / sc and 1) [INT_TRUNC][INT_AWAY]]
+			half-down?	[INT_TRUNC]
+			half-ceil?	[INT_CEIL ]
+			true		[INT_AWAY ]
+		]
+		value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -288,31 +622,31 @@ integer: context [
 			"integer!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
 			:negate
-			null			;power
-			null			;remainder
-			null			;round
+			:power
+			:remainder
+			:round
 			:subtract
 			:even?
 			:odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
@@ -326,9 +660,11 @@ integer: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

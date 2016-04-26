@@ -7,7 +7,12 @@ REBOL [
 ]
 
 ;; should we run non-interactively?
-batch-mode: all [system/options/args find system/options/args "--batch"]
+each-mode: batch-mode: no
+
+if args: any [system/script/args system/options/args][
+	batch-mode: find args "--batch"
+	each-mode:  find args "--each"
+]
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
@@ -16,123 +21,33 @@ system/options/quiet: true
 do %../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
-;; set the default script header
-qt/script-header: "Red []"
-
-;; make auto files if needed
-;; do not split these statements over two lines
-make-dir %source/units/auto-tests
-qt/make-if-needed? %source/units/auto-tests/integer-auto-test.red %source/units/make-integer-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/infix-equal-auto-test.red %source/units/make-equal-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/infix-not-equal-auto-test.red %source/units/make-not-equal-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/lesser-auto-test.red %source/units/make-lesser-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/greater-auto-test.red %source/units/make-greater-auto-test.r
-do %source/units/make-interpreter-auto-test.r  ;; checks and builds tests 
-                                               ;; if necessary
+do %source/units/run-all-init.r
 
 ;; run the tests
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL " system/version]
-
+print ["Quick-Test v" qt/version]
+print ["REBOL " system/version]
 start-time: now/precise
+print ["This test started at" start-time]
+
+qt/script-header: "Red []"
 
 --setup-temp-files
 
 ***start-run-quiet*** "Red Test Suite"
 
-===start-group=== "Red compiler unit tests"
-	--run-unit-test-quiet %source/compiler/lexer-test.r
-===end-group===
+do %source/units/run-pre-extra-tests.r
 
-===start-group=== "Red/System runtime tests"
-  	--run-test-file-quiet %source/runtime/tools-test.reds
-  	--run-test-file-quiet %source/runtime/unicode-test.reds
+===start-group=== "Main Red Tests"
+    either each-mode [
+    	do %source/units/auto-tests/run-each-comp.r
+        do %source/units/auto-tests/run-each-interp.r
+    ][
+        --run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
+        --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
+        --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
+    ]
 ===end-group===
-
-===start-group=== "Red Compiler tests"
-  	--run-script-quiet %source/compiler/print-test.r
-  	--run-script-quiet %source/compiler/regression-tests.r
-  	--run-script-quiet %source/compiler/run-time-error-test.r
-  	--run-script-quiet %source/compiler/compile-error-test.r
-===end-group===
-
-===start-group=== "Red Units tests"
-  	--run-test-file-quiet %source/units/logic-test.red
-  	--run-test-file-quiet %source/units/conditional-test.red
-  	--run-test-file-quiet %source/units/series-test.red
-  	--run-test-file-quiet %source/units/path-test.red
-  	--run-test-file-quiet %source/units/serialization-test.red
-  	--run-test-file-quiet %source/units/function-test.red
-  	--run-test-file-quiet %source/units/loop-test.red
-  	--run-test-file-quiet %source/units/type-test.red
-  	--run-test-file-quiet %source/units/find-test.red
-  	--run-test-file-quiet %source/units/select-test.red
-  	--run-test-file-quiet %source/units/binding-test.red
-  	--run-test-file-quiet %source/units/evaluation-test.red
-  	--run-test-file-quiet %source/units/load-test.red
-  	--run-test-file-quiet %source/units/switch-test.red
-  	--run-test-file-quiet %source/units/case-test.red
-  	--run-test-file-quiet %source/units/routine-test.red
-  	--run-test-file-quiet %source/units/append-test.red
-  	--run-test-file-quiet %source/units/insert-test.red
-  	--run-test-file-quiet %source/units/make-test.red
-  	--run-test-file-quiet %source/units/system-test.red
-  	--run-test-file-quiet %source/units/parse-test.red
-  	--run-test-file-quiet %source/units/bitset-test.red
-  	;;--run-test-file-quiet  %source/units/same-test.red   ;; space added so not include in run-all.r
-  	--run-test-file-quiet %source/units/strict-equal-test.red
-===end-group===
-
-===start-group=== "Auto-tests"
-  	--run-test-file-quiet %source/units/auto-tests/integer-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-not-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/not-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-lesser-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/lesser-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-lesser-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/lesser-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-greater-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/greater-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/infix-greater-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/greater-equal-auto-test.red
-===end-group===
-
-===start-group=== "Interpreter Auto-tests"
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-binding-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-case-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-conditional-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-evaluation-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-find-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-function-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-load-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-logic-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-loop-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-select-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-serialization-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-series-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-type-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-switch-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-append-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-insert-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-system-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-parse-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-bitset-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
-  	;;--run-test-file-quiet  %source/units/auto-tests/interp-same-test.red ;; space added so not include in run-all.r 
-  	--run-test-file-quiet %source/units/auto-tests/interp-greater-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-inf-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-strict-equal-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-inf-greater-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-inf-lesser-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-inf-lesser-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-inf-not-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-integer-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-lesser-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-lesser-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-not-equal-auto-test.red
-===end-group===
+do %source/units/run-post-extra-tests.r
 
 ***end-run-quiet***
 
@@ -140,6 +55,7 @@ start-time: now/precise
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
+print ["The test finished at" end-time]
 system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]

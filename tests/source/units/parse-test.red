@@ -1,10 +1,10 @@
-Red [
+fRed [
 	Title:	"Red PARSE test script"
 	Author:	"Nenad Rakocevic"
 	File:	%parse-test.reds
 	Tabs:	4
-	Rights:	"Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:	"Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -34,6 +34,11 @@ Red [
 	--test-- "blk-17"	--assert not parse	[a 123]		['a char!]
 	--test-- "blk-18"	--assert parse		[a 123]		[['a][integer!]]
 	--test-- "blk-19"	--assert not parse	[a 123]		['a [char!]]
+
+	--test-- "blk-19-1"	--assert parse		[123]		[number!]
+	--test-- "blk-19-2"	--assert not parse	[123]		[any-string!]
+	--test-- "blk-19-3"	--assert parse		[123]		[[number!]]
+	--test-- "blk-19-4"	--assert not parse	[123]		[[any-string!]]	
 	
 	--test-- "blk-20"
 		res: 0	
@@ -441,18 +446,30 @@ Red [
 	--test-- "blk-ext50"
 		a: []
 		--assert parse [1] [collect into a [keep skip]]
-		--assert a = []
+		--assert a = [1]
 		--assert [1] = head a
 
 	--test-- "blk-ext51"
 		list: next [1 2 3]
 		--assert parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
-		--assert list = [2 3]
+		--assert list = [a b c 2 3]
 		--assert [1 a b c 2 3] = head list
 
 	--test-- "blk-ext52"
 		res: parse [a b b b] [collect [skip keep some 'b]]
 		--assert res = [[b b b]]
+
+	--test-- "blk-ext53"
+		a: []
+		--assert parse [1] [collect after a [keep skip]]
+		--assert a = []
+		--assert [1] = head a
+
+	--test-- "blk-ext54"
+		list: next [1 2 3]
+		--assert parse [a 4 b 5 c] [collect after list [some [keep word! | skip]]]
+		--assert list = [2 3]
+		--assert [1 a b c 2 3] = head list
 		
 ===end-group===
 
@@ -513,7 +530,9 @@ Red [
 ===end-group===
 
 ===start-group=== "block-modify"
-	--test-- "blk-rem1"	--assert parse		[]			[remove]
+	;; test commented out, as it legitimately produces an error now
+	;;--test-- "blk-rem1" --assert parse	[]			[remove]
+
 	--test-- "blk-rem2"	--assert not parse	[]			[remove skip]
 
 	--test-- "blk-rem3"	
@@ -649,9 +668,107 @@ Red [
 	--test-- "blk-m124"	--assert parse		[a]			[while 'b skip]
 	--test-- "blk-m125"	--assert parse		[a b a b]	[while ['b | 'a]]
 
-	--test-- "blk-m130"	--assert parse		[]			[ahead]
+	;; test commented out, as it legitimately produces an error now
+	;;--test-- "blk-m130"	--assert parse	[]			[ahead]
 	--test-- "blk-m131"	--assert parse		[a]			[ahead 'a 'a]
 	--test-- "blk-m132"	--assert parse		[1]			[ahead [block! | integer!] skip]
+
+===end-group===
+
+===start-group=== "block-part"
+	input: [h 5 #"l" "l" o]
+	input2: [a a a b b]
+
+	--test-- "blk-part-1"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 2
+		--assert none? v
+
+	--test-- "blk-part-2"
+		v: none
+		--assert parse/part input [copy v 3 skip] 3
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-3"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-4"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-5"
+		v: none
+		--assert parse/part next input [copy v 3 skip] 3
+		--assert v = [5 #"l" "l"]
+
+	--test-- "blk-part-6"
+		v: none
+		--assert not parse/part input [copy v to 'o skip] 3
+		--assert none? v
+
+	--test-- "blk-part-7"
+		v: none
+		--assert parse/part input [copy v to 'o skip] 5
+		--assert v = [h 5 #"l" "l"]
+
+	--test-- "blk-part-8"
+		v: none
+		--assert not parse/part input2 [copy v 3 'a] 2
+		--assert none? v
+
+	--test-- "blk-part-9"
+		v: none
+		--assert parse/part input2 [copy v 3 'a] 3
+		--assert v = [a a a]
+
+
+	--test-- "blk-part-10"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 2
+		--assert none? v
+
+	--test-- "blk-part-21"
+		v: none
+		--assert parse/part input [copy v 3 skip] skip input 3
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-22"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-23"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] skip input 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-24"
+		v: none
+		--assert parse/part next input [copy v 3 skip] skip input 4
+		--assert v = [5 #"l" "l"]
+
+	--test-- "blk-part-25"
+		v: none
+		--assert not parse/part input [copy v to 'o skip] skip input 3
+		--assert none? v
+
+	--test-- "blk-part-26"
+		v: none
+		--assert parse/part input [copy v to 'o skip] skip input 5
+		--assert v = [h 5 #"l" "l"]
+
+	--test-- "blk-part-27"
+		v: none
+		--assert not parse/part input2 [copy v 3 'a] skip input2 2
+		--assert none? v
+
+	--test-- "blk-part-28"
+		v: none
+		--assert parse/part input2 [copy v 3 'a] skip input2 3
+		--assert v = [a a a]
 
 ===end-group===
 
@@ -671,13 +788,13 @@ Red [
 	--test-- "#566"
 		b: next [0 9]
 		--assert parse [1 [2]] [collect into b [keep integer! keep block!]]
-		--assert b = [9]
+		--assert b = [1 [2] 9]
 		--assert [0 1 [2] 9] = head b
 
 	--test-- "#565"
 		b: []
 		--assert parse [1] [collect into b [collect [keep integer!]]]
-		--assert b = []
+		--assert b = [[1]]
 		--assert [[1]] = head b
 
 ===end-group===
@@ -1078,7 +1195,7 @@ Red [
 	--test-- "str-ext50"
 		a: []
 		--assert parse "1" [collect into a [keep skip]]
-		--assert a = []
+		--assert a = [#"1"]
 		--assert [#"1"] = head a
 
 	--test-- "str-ext51"
@@ -1089,6 +1206,12 @@ Red [
 		alpha: charset [#"a" - #"z"]
 		res: parse "abc|def" [collect [any [keep some alpha | skip]]]
 		--assert res = ["abc" "def"]
+		
+	--test-- "str-ext53 - issue #1093"
+		se53-copied: copy ""
+		--assert parse "abcde" ["xyz" | copy s to end (se53-copied: :s)]
+		--assert "abcde" = se53-copied
+
 		
 ===end-group===
 
@@ -1248,7 +1371,8 @@ Red [
 	ws: charset " ^- ^/^M"
 	not-ws: complement ws
 
-	--test-- "str-rem1"		--assert parse			""			[remove]
+	;; test commented out, as it legitimately produces an error now
+	;;--test-- "str-rem1"	--assert parse			""			[remove]
 	--test-- "str-rem2"		--assert not parse		""			[remove skip]
 
 	--test-- "str-rem3"	
@@ -1381,12 +1505,130 @@ Red [
 	--test-- "str-m124"	--assert parse		"a"			[while #"b" skip]
 	--test-- "str-m125"	--assert parse		"abab"		[while [#"b" | #"a"]]
 
-	--test-- "str-m130"	--assert parse		""			[ahead]
+	;; test commented out, as it legitimately produces an error now
+	;; --test-- "str-m130"	--assert parse		""			[ahead]
 	--test-- "str-m131"	--assert parse		"a"			[ahead #"a" #"a"]
 	--test-- "str-m132"	--assert parse		"1"			[ahead [#"a" | #"1"] skip]
 
 ===end-group===
 
+===start-group=== "string-part"
+	input: "hello"
+	input2: "aaabb"
+	letters: charset [#"a" - #"o"]
+
+	--test-- "str-part-1"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 2
+		--assert none? v
+
+	--test-- "str-part-2"
+		v: none
+		--assert parse/part input [copy v 3 skip] 3
+		--assert v = "hel"
+
+	--test-- "str-part-3"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 4
+		--assert v = "hel"
+
+	--test-- "str-part-4"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] 4
+		--assert v = "hel"
+
+	--test-- "str-part-5"
+		v: none
+		--assert parse/part next input [copy v 3 skip] 3
+		--assert v = "ell"
+
+	--test-- "str-part-6"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] 3
+		--assert none? v
+
+	--test-- "str-part-7"
+		v: none
+		--assert parse/part input [copy v to #"o" skip] 5
+		--assert v = "hell"
+
+	--test-- "str-part-8"
+		v: none
+		--assert not parse/part input [copy v 3 letters] 2
+		--assert none? v
+
+	--test-- "str-part-9"
+		v: none
+		--assert parse/part input [copy v 3 letters] 3
+		--assert v = "hel"
+
+	--test-- "str-part-10"
+		v: none
+		--assert not parse/part input2 [copy v 3 #"a"] 2
+		--assert none? v
+
+	--test-- "str-part-11"
+		v: none
+		--assert parse/part input2 [copy v 3 #"a"] 3
+		--assert v = "aaa"
+
+
+	--test-- "str-part-20"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 2
+		--assert none? v
+
+	--test-- "str-part-21"
+		v: none
+		--assert parse/part input [copy v 3 skip] skip input 3
+		--assert v = "hel"
+
+	--test-- "str-part-22"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 4
+		--assert v = "hel"
+
+	--test-- "str-part-23"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] skip input 4
+		--assert v = "hel"
+
+	--test-- "str-part-24"
+		v: none
+		--assert parse/part next input [copy v 3 skip] skip input 4
+		--assert v = "ell"
+
+	--test-- "str-part-25"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] skip input 3
+		--assert none? v
+
+	--test-- "str-part-26"
+		v: none
+		--assert parse/part input [copy v to #"o" skip] skip input 5
+		--assert v = "hell"
+
+	--test-- "str-part-27"
+		v: none
+		--assert not parse/part input [copy v 3 letters] skip input 2
+		--assert none? v
+
+	--test-- "str-part-28"
+		v: none
+		--assert parse/part input [copy v 3 letters] skip input 3
+		--assert v = "hel"
+
+	--test-- "str-part-29"
+		v: none
+		--assert not parse/part input2 [copy v 3 #"a"] skip input2 2
+		--assert none? v
+
+	--test-- "str-part-30"
+		v: none
+		--assert parse/part input2 [copy v 3 #"a"] skip input2 3
+		--assert v = "aaa"
+
+===end-group===
 
 ===start-group=== "string-complex"
 
@@ -1465,7 +1707,7 @@ Red [
 		--assert not parse 	"aabbc"		nanbnc
 
 	--test-- "str-cplx5"
-		split: function [series [string!] dlm [string!] /local value][
+		split: function [series [string!] dlm [string! char!] /local value][
 		  rule: complement charset dlm
 		  parse series [collect [any [keep copy value some rule | skip]]]
 		]
@@ -1528,6 +1770,11 @@ Red [
 		--assert parse "catcatcat" [3 "cat"]
 		--assert parse "catcatcatcat" [4 "cat"]
 		
+	--test-- "#748"
+		txt: "Hello world"
+		parse txt [ while any [ remove "l" | skip ] ]
+		--assert txt = "Heo word"
+		--assert 8 = length? txt
 
 ===end-group===
     

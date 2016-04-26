@@ -4,8 +4,8 @@ REBOL [
 	File: 	 %make-integer-auto-test.r
 	Version: 0.1.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ;; initialisations 
@@ -30,6 +30,13 @@ test-values: [
         65536
 ]
 
+prefix-test-values: [
+	0                   			
+	-2147483648                   	; min
+	2147483647                   	; max
+	1	
+]
+
 
 ;; create blocks of operators to be applied
 test-binary-ops: [
@@ -37,7 +44,7 @@ test-binary-ops: [
   -
   *
   /
-  ;//
+  //
   ;or
   ;xor
   ;and
@@ -45,8 +52,22 @@ test-binary-ops: [
 
 test-no-zeroes: [         ;; zero not allowed as operand2
   / 
-  ;//
+  //
 ]
+
+test-prefix-ops: [
+  add
+  subtract
+  multiply
+  divide
+  remainder
+]
+
+test-prefix-no-zeroes-ops: [
+	divide
+	remainder
+]
+
 
 test-comparison-ops: [
   =
@@ -180,6 +201,45 @@ append tests "integer-auto-test-func^(0a)"
 write/append file-out tests
 tests: copy ""
 
+;; prefix binary operator tests - in global context
+foreach op test-prefix-ops [
+  foreach operand1 prefix-test-values [
+    foreach operand2 prefix-test-values [
+      ;; only write a test if REBOL produces a result
+      if attempt [expected: do reduce [op operand1 operand2]][
+        
+        ;; don't write tests for certain ops with zero second operand
+        if not all [
+          operand2 = 0
+          find test-prefix-no-zeroes-ops op 
+        ][
+          expected: to-integer expected
+          
+          ;; test with literal values
+          test-number: test-number + 1
+          append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
+          append tests "  --assert "
+          append tests reform [expected " = (" op operand1 operand2 ")^(0A)"]
+          
+          ;; test with variables
+          test-number: test-number + 1
+          append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
+          append tests join "      i: " [operand1 "^(0A)"]
+          append tests join "      j: " [operand2 "^(0A)"]
+          append tests rejoin ["      k: " op " i j^(0A)"]
+          append tests "  --assert "
+          append tests reform [expected " = k ^(0A)"]
+          
+          ;; write tests to file
+          write/append file-out tests
+          tests: copy ""
+        ]
+      ]
+      recycle
+    ]
+  ]
+]
+
 
 ;; comparison tests
 foreach op test-comparison-ops [
@@ -202,7 +262,6 @@ foreach op test-comparison-ops [
     ]
   ]
 ]
-
 
 ;; write file epilog
 append tests "^(0A)===end-group===^(0A)^(0A)"

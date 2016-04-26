@@ -3,11 +3,20 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug-tools.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
+]
+
+print-symbol: func [
+	word [red-word!]
+	/local
+		sym [red-symbol!]
+][
+	sym: symbol/get word/symbol
+	print sym/cache
 ]
 
 ;-------------------------------------------
@@ -29,9 +38,9 @@ memory-info: func [
 		if verbose >= 2 [
 			free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 			list: block/make-in nodes 8
-			integer/load-in list n-frame/nodes - free-nodes
-			integer/load-in list free-nodes
-			integer/load-in list n-frame/nodes
+			integer/make-in list n-frame/nodes - free-nodes
+			integer/make-in list free-nodes
+			integer/make-in list n-frame/nodes
 		]
 		n-frame: n-frame/next
 	]
@@ -44,9 +53,9 @@ memory-info: func [
 		if verbose >= 2 [
 			base: (as byte-ptr! s-frame) + size? series-frame!
 			list: block/make-in series 8
-			integer/load-in list as-integer s-frame/tail - as byte-ptr! s-frame/heap
-			integer/load-in list as-integer (as byte-ptr! s-frame/heap) - base
-			integer/load-in list  as-integer s-frame/tail - base
+			integer/make-in list as-integer s-frame/tail - as byte-ptr! s-frame/heap
+			integer/make-in list as-integer (as byte-ptr! s-frame/heap) - base
+			integer/make-in list  as-integer s-frame/tail - base
 		]
 		s-frame: s-frame/next
 	]
@@ -57,7 +66,7 @@ memory-info: func [
 
 	while [b-frame <> null][
 		if verbose >= 2 [
-			integer/load-in bigs b-frame/size
+			integer/make-in bigs b-frame/size
 		]
 		b-frame: b-frame/next
 	]

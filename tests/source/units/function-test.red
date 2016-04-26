@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %function-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -77,9 +77,9 @@ Red [
 	--test-- "fun-11"
 		non-evaluated: func ['param] [param]
 		res: first [(1 + 2)]
-		--assert quote (1 + 2) = res
-		--assert non-evaluated (quote (1 + 2)) = res
-		--assert non-evaluated quote (1 + 2) = 3
+		--assert res = quote (1 + 2)
+		--assert res = non-evaluated (quote (1 + 2))
+		--assert 'quote = non-evaluated quote (1 + 2)
 
 ===end-group===
 
@@ -139,7 +139,7 @@ Red [
 		ret5: does [return either false [12][34]]
 		--assert 34 = ret5
 		
-	--test-- "fun-ret-6"
+	--test-- "fun-ret-6"								;-- issue #770
 		ret6: func [i [integer!]][
 			until [
 				if true [
@@ -155,7 +155,67 @@ Red [
 		]
 		--assert 0 = ret6 0
 		--assert 2 = ret6 1
+
+	--test-- "fun-ret-7"
+		f: function [][
+			blk: [1 2 3 4 5]
+			foreach i blk [
+				case [
+					i > 1 [return i]
+				]
+			]
+		]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-8"
+		f: function [][
+		    case [
+		        2 > 1 [return true]
+		    ]
+		]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-9"
+		f: function [][if true [return true]]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-10"
+		g: function [][if true [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-10"
+		f: function [][true]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-11"
+		f: function [][if true [return true]]
+		g: function [][if (f) [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-12"
+		f: function [][if true [return true] ]
+		g: function [][if not not f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-13"
+		f: function [][if true [return 'X]]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-14"								;-- issue #778
+	 	--assert 1 = do load "f: func [][return 1] t: f"
 		
+	--test-- "fun-ret-15"								;-- issue #1169
+		f: does [parse "1" [(return 123)]]
+		--assert f = 123
+
+	--test-- "fun-ret-16"
+		f: does [do [return 124]]
+		--assert f = 124
 
 ===end-group===
 
@@ -178,13 +238,13 @@ Red [
 	--test-- "fun-ref-2"
 		blk: clean-strings spec-of :append	
 		--assert blk = [
-			series [series!] value [any-type!] /part length [number! series!]
-			/only /dup count [number!] return: [series!]
+			series [series! bitset! map!] value [any-type!] /part length [number! series!]
+			/only /dup count [number!] return: [series! bitset! map!]
 		]
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block!] value [any-type!] /any return: [any-type!]]
+		--assert blk = [word [any-word! block! object! path! map!] value [any-type!] /any /case /only /some return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<
@@ -289,6 +349,346 @@ Red [
   	;--assert unset! = type? get 'ri9-i		;-- temporary disabled to avoid the hardcoded error msg
   	;--assert unset! = type? get 'ri9-j
 
+===end-group===
+
+
+===start-group=== "Infix operators creation"
+	--test-- "infix-1"
+		infix: function [a b][a * 10 + b]
+		***: make op! :infix
+		--assert 7 *** 3 = 73
+
+;; Test commented as routine declaration cannot be handled in a code block anymore...
+;;
+;	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
+;		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
+;
+;		--test-- "infix-2"
+;			*+*: make op! :infix2
+;			--assert 5 *+* 6 = 106
+;
+;		--test-- "infix-3"
+;			--assert 5 *+* 6 *** 7 = 1067
+;	]
+
+===end-group===
+
+===start-group=== "Scope of Varibles"
+
+	--test-- "scope1 issue #825"
+		s1-text: "abcde"
+		s1-f: function [/extern s1-text] [
+			s1-text
+		]
+		--assert s1-f = "abcde"
+		
+	--test-- "scope2 issue #825"
+		s2-f: function [/extern s2-text] [
+			s2-text
+		]
+		s2-text: "abcde"
+		--assert s2-f = "abcde"
+		
+	--test-- "scope3 issue #825"
+		s3-text: "abcde"
+		s3-f: func [/local s3-text] [
+			s3-text: "12345"	
+		]
+
+	--test-- "scope4 issue #825"
+		s4-text: "abcde"
+		s4-f: function [extern s4-text] [
+			if extern [s4-text: "12345"]
+			s4-text
+		]
+		--assert "12345" = s4-f true "00000"
+		
+	--test-- "scope5 issue #825"
+		s5-text: "abcde"
+		s5-f: func[/extern s5-text] [
+			either extern [
+				s5-text	
+			][
+				"00000"
+			]
+		]
+		--assert "12345" = s5-f/extern "12345"
+		
+	--test-- "scope6 issue #825"
+		s6-text: "abcde"
+		s6-f: func [local s6-text] [
+			s6-text
+		]
+		--assert "12345" = s6-f "filler" "12345"
+		
+	--test-- "scope7 issue #825"
+		s7-text: "abcde"
+		s7-f: function [local s7-text] [
+			s7-text
+		]
+		--assert "12345" = s7-f "filler" "12345"
+
+===end-group===
+
+===start-group=== "functionfunction"
+comment {                                       ####################################
+    --test-- "funfun1"
+        ff1-i: 1
+        ff1-f: function [][ff1-i: 2 f: func[][ff1-i] f]
+        --assert 2 = ff1-f
+                                                #################################### }
+                                                
+    --test-- "funfun2"
+        ff2-i: 1
+        ff2-f: function [][ff2-i: 2 ff2-i]
+        ff2-r: ff2-f
+        --assert 1 = ff2-i
+        --assert 2 = ff2-r
+        
+    --test-- "funfun3"
+        ff3-i: 1
+        ff3-f: function [][
+            ff3-i: 2
+            o: make object! [
+                ff3-i: 3
+            ]
+            o/ff3-i
+        ]
+        --assert 3 = ff3-f
+        
+    --test-- "funfun4"
+        ff4-i: 1
+        ff4-f: function [][
+            ff4-i: 2
+            o: make object! [
+                ff4-i: 3
+            ]
+            ff4-i
+        ]
+        --assert 2 = ff4-f
+            
+    --test-- "funfun5 #964"
+        ff5-f: function [] [
+            either true [
+                ff5-x
+             ][
+                ff5-x: 0
+            ]
+        ]
+        --assert none = ff5-f
+                             
+    --test-- "funfun6 #964"
+        ff6-f: function [] [
+            either false [
+                ff6-x
+             ][
+                ff6-x: 0
+            ]
+        ]
+        --assert 0 = ff6-f
+        
+    --test-- "funfun7"
+        ff7-f: function [] [
+            a: 1
+            b: make object! [c: 2]
+            c
+        ]   
+        --assert none = ff7-f 
+        
+     --test-- "funfun8"
+        ff8-i: 1
+        ff8-f: function [] [
+            a: 1
+            b: make object! [ff8-i: 2]
+            ff8-i
+        ]   
+        --assert none = ff8-f 
+        
+if system/state/interpreted? [                          ;-- not yet supported by compiler 
+    do [
+    	--test-- "funfun9"
+        ff9-f: function [] [
+            a: 1
+            b: function [] [c: 2]
+            b
+            c
+        ]   
+        --assert none = ff9-f 
+    ]
+]
+
+if system/state/interpreted? [                          ;-- not yet supported by compiler         
+	do [
+     --test-- "funfun10"
+        ff10-i: 1
+        ff10-f: function [] [
+            a: 
+            b: function [] [ff10-i: 2]
+            b
+            ff10-i
+        ]   
+        --assert none = ff10-f 
+    ]
+]
+
+if system/state/interpreted? [                          ;-- not yet supported by compiler         
+    do [
+    --test-- "funfun11"
+        ff11-i: 1
+        ff11-f: function [] [
+            ff: func [/local ff11-i][ff11-i: 2]
+            ff11-i
+        ]
+        --assert none = ff11-f
+        --assert 1 = ff11-i
+    ]
+]        
+ 
+    --test-- "funfun12"
+        ff12-i: 1
+        ff12-f: function [] [
+            ff: make object! [ff12-i: 2]
+            ff12-i
+        ]
+        --assert none = ff12-f
+        --assert 1 = ff12-i
+ comment {                                          ####################################       
+    --test-- "funfun13"
+        ff13-i: 1
+        ff13-f: function [/extern ff13-i] [
+            ff: func [/local ff13-i][ff13-i: 2]
+            ff13-i: 3
+        ]
+        --assert 3 = ff13-f
+        --assert 3 = ff13-i
+                                                    ####################################}      
+    --test-- "funfun14"
+        ff14-i: 1
+        ff14-f: function [/extern ff14-i] [
+            ff: make object! [ff14-i: 2]
+            ff14-i: 3
+        ]
+        --assert 3 = ff14-f
+        --assert 3 = ff14-i
+ comment {                                          ####################################       
+    --test-- "funfun15"
+        ff15-i: 1
+        ff15-f: func [
+            /local ff15-i
+        ][
+            ff15-i: 2
+            ff: function [
+                /extern ff15-i
+            ][
+                ff15-i
+            ]
+            ff
+        ]
+        --assert 2 = ff15-f
+        --assert 1 = ff15-i     
+                                                    ####################################}
+                                                    
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
+    --test-- "funfun16"
+        ff16-f: function [] [
+            f2: func [i] [i: 1]
+            f2 i
+            i
+        ]
+        --assert none = ff16-f
+    ]
+]       
+
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
+    --test-- "funfun17"
+        ff17-i: 10
+        ff17-f: function [] [
+            f2: func [ff17-i] [ff17-i: 1]
+            f2 ff17-i
+            ff17-i
+        ]
+        --assert none = ff17-f
+    ]
+]
+                                        
+===end-group===
+
+===start-group=== "functions with objects"
+comment {                                          #################################### 
+    --test-- "fwo1 - #965"
+        fwo1-f: func [
+            o object!
+        ][
+          append o/a o/b  
+        ]
+        fwo1-o: make object! [ 
+            a: "hello"
+            b: " world"
+        ]
+        --assert "hello world" = fwo1-f
+                                                    ####################################} 
+===end-group===
+
+===start-group=== "function with lit-arg"
+    fwla-f: func ['x][:x]
+        
+    --test-- "fwla1"
+        --assert 10 = fwla-f 10
+    
+    --test-- "fwla2"
+        --assert 50 = fwla-f (20 + 30)
+        
+    --test-- "fwla3"
+        fwla3-i: 40
+        --assert 40 = fwla-f :fwla3-i 
+        
+    --test-- "fwla4"
+        fwla4-o: make object! [i: 50]
+        --assert 50 = fwla-f :fwla4-o/i
+
+    --test-- "fwla5"
+        --assert (first ['fwla4-o/i]) = fwla-f 'fwla4-o/i
+
+    --test-- "fwla6"
+        --assert (first [fwla4-o/i:]) = fwla-f fwla4-o/i:
+
+    --test-- "fwla7"
+        --assert (first [fwla4-o/i]) = fwla-f fwla4-o/i
+===end-group===
+
+===start-group=== "function with get-arg"
+        fwga-f: func [:x][:x]
+        
+    --test-- "fwga1"
+        --assert 10 = fwga-f 10
+    
+    --test-- "fwga2"
+        --assert (first [(20 + 30)]) = fwga-f (20 + 30)
+        
+    --test-- "fwga3"
+        fwga3-i: 40
+        --assert (first [:fwga3-i]) = fwga-f :fwga3-i 
+        
+    --test-- "fwga4"
+        fwga4-o: make object! [i: 50]
+        --assert (first [:fwga4-o/i]) = fwga-f :fwga4-o/i
+        
+    --test-- "fwga5"
+        fwga5-i: 10
+        fwga5-f: func[:x][set x 1 + get x]
+        --assert 11 = fwga5-f fwga5-i
+        --assert 11 = fwga5-i
+
+    --test-- "fwga6"
+        --assert (first [fwga4-o/i]) = fwga-f fwga4-o/i
+
+    --test-- "fwga7"
+        --assert (first ['fwga4-o/i]) = fwga-f 'fwga4-o/i
+
+    --test-- "fwga8"
+        --assert (first [fwga4-o/i:]) = fwga-f fwga4-o/i:
 ===end-group===
 
 ~~~end-file~~~

@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %switch-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015, Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -21,7 +21,7 @@ Red [
 			1	[sb1-j: 1]
 			2	[sb1-j: 2]
 		]
-	--assert sb1-j = 1
+        --assert sb1-j = 1
 	
 	--test-- "switch-basic-2"
 		sb2-i: "Nenad"
@@ -31,7 +31,7 @@ Red [
 			"Nenad"		[sb2-j: "Red"]
 			"Peter"		[sb2-j: "Peter"]
 		]
-	--assert sb2-j = "Red"
+	    --assert sb2-j = "Red"
 	
 	--test-- "switch-basic-3"
 		sb3-i: "Χαῖρε, κόσμε"
@@ -42,7 +42,7 @@ Red [
 			"Peter"				[sb3-j: "Peter"]
 			"Χαῖρε, κόσμε"		[sb3-j: "Zorba"]
 		]
-	--assert sb3-j = "Zorba"
+	    --assert sb3-j = "Zorba"
 	
 	--test-- "switch-basic-4"
 		sb4-i: "Zorba"
@@ -53,7 +53,7 @@ Red [
 			"Peter"				[sb4-j: "Peter"]
 			"Zorba"				[sb4-j: "Χαῖρε, κόσμε"]
 		]
-	--assert sb4-j = "Χαῖρε, κόσμε"
+	    --assert sb4-j = "Χαῖρε, κόσμε"
 	
 	--test-- "switch-basic-5"
 		sb5-i: "abcde^(010000)"
@@ -65,7 +65,7 @@ Red [
 			"Zorba"				[sb5-j: "Χαῖρε, κόσμε"]
 			"abcde^(010000)"	[sb5-j: "boron"]
 		]
-	--assert sb5-j = "boron"
+	    --assert sb5-j = "boron"
 	
 	--test-- "switch-basic-6"
 		sb6-i: #"^(010000)"
@@ -77,7 +77,7 @@ Red [
 			#"d"				[sb6-j: "Χαῖρε, κόσμε"]
 			#"^(010000)"		[sb6-j: "boron"]
 		]
-	--assert sb6-j = "boron"
+    	--assert sb6-j = "boron"
 	
 	--test-- "switch-basic-7"
 		sb7-i: [a b c]
@@ -87,7 +87,7 @@ Red [
 			[a b c]				[sb7-j: "Red"]
 			[b c a]				[sb7-j: "Peter"]
 		]
-	--assert sb7-j = "Red"
+	    --assert sb7-j = "Red"
 	
 	--test-- "switch-basic-8"
 		sb8-i: %Nenad
@@ -97,7 +97,7 @@ Red [
 			%Nenad		[sb8-j: "Red"]
 			%Peter		[sb8-j: "Peter"]
 		]
-	--assert sb8-j = "Red"
+		--assert sb8-j = "Red"
 	
 	--test-- "switch-basic-9"
 		sb9-i: #Nenad
@@ -107,7 +107,7 @@ Red [
 			#Nenad		[sb9-j: "Red"]
 			#Peter		[sb9-j: "Peter"]
 		]
-	--assert sb9-j = "Red"
+        --assert sb9-j = "Red"
 	
 	--test-- "switch-basic-10"
 		sb10-i: true
@@ -117,7 +117,7 @@ Red [
 			#[true]		[sb10-j: "Red"]
 			#[true]		[sb10-j: "Peter"]
 		]
-	--assert sb10-j = "Red"
+        --assert sb10-j = "Red"
 	
 	--test-- "switch-basic-11"
 		sb11-i: first [(1 2 3)]
@@ -127,7 +127,7 @@ Red [
 			(1 2 3)		[sb11-j: "Red"]
 			(2 3 1)		[sb11-j: "Peter"]
 		]
-	--assert sb11-j = "Red"
+        --assert sb11-j = "Red"
 	
 	--test-- "switch-basic-12"
 		sb12-i: [2]
@@ -137,7 +137,7 @@ Red [
 			[2]				[sb12-j: "Red"]
 			[3]				[sb12-j: "Peter"]
 		]
-	--assert sb12-j = "Red"
+        --assert sb12-j = "Red"
 	
 	--test-- "switch-basic-13"
 		sb13-i: first [(2)]
@@ -147,7 +147,7 @@ Red [
 			(2)		[sb13-j: "Red"]
 			(3)		[sb13-j: "Peter"]
 		]
-	--assert sb13-j = "Red"
+        --assert sb13-j = "Red"
 	
 	--test-- "switch-basic-14"
 		sb14-i: [2]
@@ -157,7 +157,7 @@ Red [
 			2		[sb14-j: "Red"]
 			3		[sb14-j: "Peter"]
 		]
-	--assert sb14-j = "Red"
+        --assert sb14-j = "Red"
 	
 ===end-group===
 
@@ -175,7 +175,7 @@ Red [
 				1	[sb-j: 1]
 				2	[sb-j: 2]
 			]
-		--assert sb-j = 1
+		    --assert sb-j = 1
 		--test-- "switch-basic-local-2"
 			sb-i: "Nenad"
 			sb-j: "REBOL"
@@ -184,13 +184,12 @@ Red [
 				"Nenad"		[sb-j: "Red"]
 				"Peter"		[sb-j: "Peter"]
 			]
-		--assert sb-j = "Red"
+		    --assert sb-j = "Red"
 	]
 	switch-fun
-	
 	--test-- "switch-basic-local-global-1"
-	--assert sb-i = "Hello"
-	--assert sb-j = "World"
+	    --assert sb-i = "Hello"
+	    --assert sb-j = "World"
 	
 ===end-group===
 
@@ -205,7 +204,7 @@ Red [
 		][
 			sd1-j: 0
 		]
-	--assert sd1-j = 2
+	    --assert sd1-j = 2
 	
 	--test-- "switch-default-2"
 		sd2-i: 999
@@ -216,7 +215,7 @@ Red [
 		][
 			sd2-j: 0
 		]
-	--assert sd2-j = 0
+	    --assert sd2-j = 0
 	
 	--test-- "switch-default-3"
 		sd3-i: "hello"
@@ -227,7 +226,7 @@ Red [
 		][
 			sd3-j: 0
 		]
-	--assert sd3-j = 0
+	    --assert sd3-j = 0
 
 ===end-group===
 
@@ -238,15 +237,27 @@ Red [
 ;		sa1-i: 1
 ;		sa1-j: 0
 ;		switch/all sa1-i [
-;			0	[sa1-j: sa1j + 1]
-;			1	[sa1-j: sa1j + 2]
-;			2	[sa1-j: sa1j + 4]
+;			0	[sa1-j: sa1-j + 1]
+;			1	[sa1-j: sa1-j + 2]
+;			2	[sa1-j: sa1-j + 4]
 ;		]
-;	--assert sa1-j = 6 
+;	    --assert sa1-j = 6 
 ;	Following assert to highlight switch/all not yet implemented
 ;	}
-;	--assert false
 ;===end-group===
+
+===start-group=== "switch-multi"		;; not sure if it will be implemented. 
+
+    --test-- "switch-multi-1"
+        sm1-i: 2
+        sm1-j: 0
+        switch sm1-i [
+            1 2	[sm1-j: 1]
+        ]
+        ; Following assert needs to be activated when support for multiple values gets implemented
+        ;--assert sm1-j = 1
+        
+===end-group===
 
 ~~~end-file~~~
 

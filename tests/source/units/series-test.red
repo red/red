@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %series-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -15,186 +15,239 @@ Red [
 
 	--test-- "series-fstff-1"
 	  sf1-ser:  [1 2 3 4 5]
-	--assert 1 = first sf1-ser
-	--assert 2 = second sf1-ser
-	--assert 3 = third sf1-ser
-	--assert 4 = fourth sf1-ser
-	--assert 5 = fifth sf1-ser
-	--assert 5 = last sf1-ser
+		--assert 1 = first sf1-ser
+		--assert 2 = second sf1-ser
+		--assert 3 = third sf1-ser
+		--assert 4 = fourth sf1-ser
+		--assert 5 = fifth sf1-ser
+		--assert 5 = last sf1-ser
 
 	--test-- "series-fstff-2"
 	  sf2-ser:  [1 2 3 4 5]
-	--assert 2 = first next sf2-ser
+	  --assert 2 = first next sf2-ser
 	
 	--test-- "series-fstff-3"
 	  sf3-ser:  "12345"
-	--assert 49 = first sf3-ser
-	--assert 53 = last sf3-ser
+	  --assert 49 = first sf3-ser
+	  --assert 53 = last sf3-ser
 	
 	--test-- "series-fstff-4"
 	  sf4-ser:  [1 2 3 4 5]
-	--assert none = fifth next sf4-ser
+	  --assert none = fifth next sf4-ser
 	
 	--test-- "series-fstff-5"
 	  sf5-ser:  "12345"
-	--assert 53 = fifth sf5-ser
+	  --assert 53 = fifth sf5-ser
 	
 	--test-- "series-fstff-6"
-	;;  stf6-ser: #{000102}
-	;;--assert 0 = first stf6-ser
+	  stf6-ser: #{000102}
+		--assert 0 = first stf6-ser
+		--assert 1 = second stf6-ser
+		--assert 2 = last stf6-ser
 	
 	--test-- "series-fstff-7"
-	--assert 'a = first [a b c d]
+		--assert 'a = first [a b c d]
 	
 	--test-- "series-fstff-8"
-	--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
+		--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
 	
 	--test-- "series-fstff-9"
-	--assert #"^(00)" = first "^(00)"
+		--assert #"^(00)" = first "^(00)"
 	
 	--test-- "series-fstff-10"
-	--assert #"^(00)" = first "^(00)a" 
+		--assert #"^(00)" = first "^(00)a" 
 	  
 	--test-- "series-fstff-11"
-	--assert #"^(00)" = second "a^(00)"
+		--assert #"^(00)" = second "a^(00)"
 	
 	--test-- "series-fstff-12"
-	--assert #"^(00)" = second "a^(00)b"
+		--assert #"^(00)" = second "a^(00)b"
+
+	--test-- "series-fstff-13"
+		sf6-ser: make hash! [a b]
+		--assert 'a = first sf6-ser
+		--assert 'b = last sf6-ser
+
+	--test-- "series-fstff-14"
+		sf7-ser: make hash! [1 2 3]
+		--assert 2 = first next sf7-ser
+		--assert none = fifth next sf7-ser
 	
 ===end-group===
 
 ===start-group=== "next"
   --test-- "series-next-1"
-  --assert 2 = first next [1 2 3 4 5]
+  	--assert 2 = first next [1 2 3 4 5]
   --test-- "series-next-2"
-  --assert 3 = first next next [1 2 3 4 5]
+  	--assert 3 = first next next [1 2 3 4 5]
   --test-- "series-next-3"
-  --assert 4 = first next next next [1 2 3 4 5]
+  	--assert 4 = first next next next [1 2 3 4 5]
   --test-- "series-next-4"
-  --assert 5 = first next next next next [1 2 3 4 5]
+  	--assert 5 = first next next next next [1 2 3 4 5]
   --test-- "series-next-5"
-  --assert none = first next next next next next [1 2 3 4 5]
+  	--assert none = first next next next next next [1 2 3 4 5]
   --test-- "series-next-6"
-  --assert 50 = first next "12345"
+ 	 --assert 50 = first next "12345"
   --test-- "series-next-7"
-  --assert 51 = first next next "12345"
+ 	 --assert 51 = first next next "12345"
   --test-- "series-next-8"
-  --assert 52 = first next next next "12345"
+	  --assert 52 = first next next next "12345"
   --test-- "series-next-9"
-  --assert 53 = first next next next next "12345"
+	  --assert 53 = first next next next next "12345"
   --test-- "series-next-10"
-  --assert none = first next next next next next "12345"
+ 	 --assert none = first next next next next next "12345"
   --test-- "series-next-11"
-  --assert #"^(00)" = first next "a^(00)"
+  	--assert #"^(00)" = first next "a^(00)"
   --test-- "series-next-12"
-  --assert #"^(00)" = first next "a^(00)b" 
+ 	 --assert #"^(00)" = first next "a^(00)b" 
+  --test-- "series-next-13"
+ 	 --assert 1 = first next #{000102} 
 ===end-group===
 
 ===start-group=== "back"
   --test-- "series-back-1"
-  --assert 1 = first back next [1 2 3 4 5]
+  	--assert 1 = first back next [1 2 3 4 5]
   --test-- "series-back-2"
-  --assert 1 = first back back next next [1 2 3 4 5]
+  	--assert 1 = first back back next next [1 2 3 4 5]
   --test-- "series-back-3"
-  --assert 1 = first back back back next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back next next next [1 2 3 4 5]
   --test-- "series-back-4"
-  --assert 1 = first back back back back next next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back back next next next next [1 2 3 4 5]
   --test-- "series-back-5"
-  --assert 1 = first back back back back back next next next next next [1 2 3 4 5]
+ 	 --assert 1 = first back back back back back next next next next next [1 2 3 4 5]
   --test-- "series-back-6"
-  --assert 49 = first back next "12345"
+ 	 --assert 49 = first back next "12345"
   --test-- "series-back-7"
-  --assert 50 = first back next next "12345"
+ 	 --assert 50 = first back next next "12345"
   --test-- "series-back-8"
-  --assert 51 = first back next next next "12345"
+ 	 --assert 51 = first back next next next "12345"
   --test-- "series-back-9"
-  --assert 52 = first back next next next next "12345"
+ 	 --assert 52 = first back next next next next "12345"
   --test-- "series-back-10"
-  --assert 53 = first back next next next next next "12345"
+  	--assert 53 = first back next next next next next "12345"
   --test-- "series-back-11"
-  --assert 49 = first back "12345"
+  	--assert 49 = first back "12345"
+  --test-- "series-back-12"
+  	--assert 1 = first back next make hash! [1 2 3 4 5]
+  --test-- "series-back-13"
+ 	 --assert 1 = first back next next #{00010203}
 ===end-group===
 
 ===start-group=== "tail"
   --test-- "series-tail-1"
-  --assert 5 = first back tail [1 2 3 4 5]
+  	--assert 5 = first back tail [1 2 3 4 5]
   --test-- "seried-tail-2" 
-  --assert none = pick tail [1 2 3 4 5] 1
+  	--assert none = pick tail [1 2 3 4 5] 1
+  --test-- "series-tail-3"
+  	hs-ser-1: make hash! [1 2 3 4 5]
+  	--assert 5 = first back tail hs-ser-1
+  --test-- "seried-tail-4"
+  	hs-ser-2: make hash! [1 2 3 4 5]
+  	--assert none = pick tail hs-ser-2 1
+  --test-- "series-tail-5"
+  	--assert #{02} = back tail #{0102}
 ===end-group===
 
 ===start-group=== "pick"
 
   --test-- "series-pick-1"
-  --assert none = pick "" 1
+  	--assert none = pick "" 1
   
   --test-- "series-pick-2"
-  --assert none = pick "" 0
+  	--assert none = pick "" 0
   
   --test-- "series-pick-3"
-  --assert none = pick "" 2
+ 	 --assert none = pick "" 2
   
   --test-- "series-pick-4"
-  --assert 49 = pick "12345" 1
+ 	 --assert 49 = pick "12345" 1
   
   --test-- "series-pick-5"
-  --assert 53 = pick "12345" 5
+ 	 --assert 53 = pick "12345" 5
   
   --test-- "series-pick-6"
-  --assert 1 = pick [1 2 3 4 5] 1
+	  --assert 1 = pick [1 2 3 4 5] 1
   
   --test-- "series-pick-7"
-  --assert 2 = pick [1 2 3 4 5] 2
+	  --assert 2 = pick [1 2 3 4 5] 2
   
   --test-- "series-pick-8"
-  --assert 4 = pick [1 2 3 4 5] 4
+ 	 --assert 4 = pick [1 2 3 4 5] 4
   
   --test-- "series-pick-9"
-  --assert 5 = pick [1 2 3 4 5] 5
+ 	 --assert 5 = pick [1 2 3 4 5] 5
   
   --test-- "series-pick-10"
-  --assert 2 = pick next next next [1 2 3 4 5] -2
+	  --assert 2 = pick next next next [1 2 3 4 5] -2
   
   --test-- "series-pick-11"
-  --assert 3 = pick next next next [1 2 3 4 5] -1
+ 	 --assert 3 = pick next next next [1 2 3 4 5] -1
   
   --test-- "series-pick-12"
-  --assert none = pick next next next [1 2 3 4 5] 0
+ 	 --assert none = pick next next next [1 2 3 4 5] 0
   
   --test-- "series-pick-13"
-  --assert none = pick "12345" -1
+ 	 --assert none = pick "12345" -1
   
   --test-- "series-pick-14"
     sp14-i: 1
-  --assert 1 = pick [1 2 3 4 5] sp14-i
+    --assert 1 = pick [1 2 3 4 5] sp14-i
   
   --test-- "series-pick-15"
     sp15-i: 4
-  --assert 4 = pick [1 2 3 4 5] sp15-i
+    --assert 4 = pick [1 2 3 4 5] sp15-i
   
   --test-- "series-pick-16"
     sp16-i: -2
-  --assert 2 = pick next next next [1 2 3 4 5] sp16-i
+    --assert 2 = pick next next next [1 2 3 4 5] sp16-i
   
   --test-- "series-pick-17"
     sp17-i: 0
-  --assert none = pick next next next [1 2 3 4 5] sp17-i
+    --assert none = pick next next next [1 2 3 4 5] sp17-i
   
   --test-- "series-pick-18"
     sp18-i: -1
-  --assert none = pick "12345" sp18-i
+    --assert none = pick "12345" sp18-i
   
+  --test-- "series-pick-19"
+  	--assert 5 = pick make hash! [1 2 3 4 5] 5
   
+  --test-- "series-pick-20"
+  	--assert 2 = pick next next next make hash! [1 2 3 4 5] -2
+  
+  --test-- "series-pick-21"
+  	--assert  2 = pick #{0102} 2
+
+  --test-- "series-pick-22"
+  	--assert  1 = pick tail #{0102} -2
+  
+  --test-- "series-pick-23"
+  	sp23-b: [4 7 9 [11] test /ref 'red]
+  	--assert 7 = pick sp23-b 2
+  	
+  --test-- "series-pick-24"
+  	sp24-b: [4 7 9 [11] test /ref 'red]
+  	--assert 11 = pick pick sp24-b 4 1
+ 
+  --test-- "series-pick-25"
+  	sp25-b: [4 7 9 [11] test /ref 'red]
+  	--assert /ref = pick sp25-b 6
+  	
+  --test-- "series-pick-26"
+  	sp26-b: [4 7 9 [11] test /ref 'red]
+  	--assert 'red = pick sp26-b 7
+  	
 ===end-group===
 
 ===start-group=== "select"
-  --test-- "series-select-1"
-  --assert 2 = select [1 2 3 4 5] 1
-  --test-- "series-select-2"
-  --assert 5 = select [1 2 3 4 5] 4
-  --test-- "series-select-3"
-  --assert none = select [1 2 3 4 5] 0
-  --test-- "series-select-4"
-  --assert none = select [1 2 3 4 5] 5
+	--test-- "series-select-1"
+		--assert 2 = select [1 2 3 4 5] 1
+	--test-- "series-select-2"
+		--assert 5 = select [1 2 3 4 5] 4
+	--test-- "series-select-3"
+		--assert none = select [1 2 3 4 5] 0
+	--test-- "series-select-4"
+		--assert none = select [1 2 3 4 5] 5
   
 	--test-- "series-select-5"
 		a: [2 3 5 test #"A" a/b 5 "tesT"]
@@ -219,7 +272,49 @@ Red [
 
 	--test-- "series-select-10"
 		--assert none? select s #"!"
-  
+
+  --test-- "series-select-11"
+  --assert none = select #{0102} 2
+
+  --test-- "series-select-12"
+  --assert 2 = select #{0102} 1
+
+  --test-- "series-select-13"
+  --assert 2 = select #{0102} #{01}
+
+  --test-- "series-select-14"
+  --assert 3 = select #{010203} #{0102}
+
+  --test-- "series-select-15"
+  --assert 4 = select/skip #{01030304} #{03} 2
+
+	--test-- "series-select-16"
+		--assert 5 = select make hash! [1 2 3 4 5] 4
+
+	--test-- "series-select-17"
+		hs-sel-1: make hash! [2 3 5 test #"A" a/b 5 "tesT"]
+		--assert #"A" = select hs-sel-1 'test
+		
+	--test-- "series-select-18"
+		list: make hash! [a 1 b 2 c 3]
+		--assert 2 = list/b
+
+	--test-- "series-select-19"
+		--assert 'test = select/skip hs-sel-1 5 2
+
+	--test-- "series-select-20"
+		hs-select-1: make hash! [aBc 1 abc 2 ABc 3]
+		--assert 1 = select hs-select-1 'abc
+		--assert 2 = select/case hs-select-1 'abc
+	
+	--test-- "series-select-21"
+		ss21-h: make hash! [1x2 0 3x4 1]
+		--assert 0 = select ss21-h 1x2
+		
+	--test-- "series-select-22"
+		ss21-b: [1x2 0 3x4 1]
+		--assert 0 = select ss21-b 1x2
+		
 ===end-group===
 
 ===start-group=== "append"
@@ -276,7 +371,33 @@ Red [
 	append/part/dup str "456" 3 2 
 	--assert str = "12456456"
 
-	
+  --test-- "series-append-18"
+  --assert 4 = last append #{010203} #{04}
+  --test-- "series-append-19"
+  --assert #{01020304} = append #{01} [#{02} #{0304}]
+  --test-- "series-append-20"
+  --assert #{0161} = append #{01} "a"
+  --test-- "series-append-21"
+  --assert #{C3A9} = append #{} #"é"
+  --test-- "series-append-22"
+  --assert #{C3A9} = append #{} "é"
+  --test-- "series-append-23"
+  --assert #{01020102} = append/part/dup #{} #{010203} 2 2
+  --test-- "series-append-24"
+  hs-append-1: make hash! [a 1 b 2]
+  --assert 6 = last append hs-append-1 [c 6]
+  --assert 6 = select hs-append-1 'c
+
+  --test-- "series-append-25"
+  --assert "a#{6263}" = append "a" #{6263}
+  --assert #{6162} = append #{} "ab"
+
+  --test-- "series-append-26"
+  --assert #{6162} = append/part #{} #{616263} 2
+  --assert #{6162} = append/part #{} "abc" 2
+  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A96263} = append #{} "ébc"
+
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -299,6 +420,12 @@ Red [
   --test-- "series-equal-5"
     se5-b: ["abcde"]
   --assert se5-b = ["abcde"]
+
+  --test-- "series-equal-6"
+  --assert #{} = #{}
+
+  --test-- "series-equal-7"
+  --assert #{01} = next #{0001}
   
 ===end-group===
 
@@ -534,6 +661,89 @@ Red [
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
+
+	--test-- "series-find-76"  
+		hs-fd-1: make hash! [2 3 5 test #"A" a/b 5 "tesT"]
+		append hs-fd-1 datatype!
+		--assert 3 = index? find hs-fd-1 5
+	
+	--test-- "series-find-77"
+		--assert 8 = index? find hs-fd-1 "test"
+
+	--test-- "series-find-78"
+		--assert none? find hs-fd-1 99
+
+	--test-- "series-find-79"
+		--assert none? find/skip hs-fd-1 'test 2
+		
+	--test-- "series-find-80"
+		--assert 4 = index? find/skip hs-fd-1 'test 3
+
+	--test-- "series-find-81"
+		--assert 7 = index? find/last hs-fd-1 5
+		
+	--test-- "series-find-82"
+		--assert 2 = index? find/reverse skip hs-fd-1 4 3
+
+	--test-- "series-find-83"
+		--assert 8 = index? find skip hs-fd-1 3 "test"
+		
+	--test-- "series-find-84"
+		--assert none? find/last/part hs-fd-1 3 1
+
+	--test-- "series-find-85"
+		--assert 2 = index? find/last/part hs-fd-1 3 2
+
+	--test-- "series-find-86"
+		--assert none? find/part hs-fd-1 'test 3
+
+	--test-- "series-find-87"
+		--assert 4 = index? find/part hs-fd-1 'test 4
+
+	--test-- "series-find-88"
+		--assert 2 = index? find hs-fd-1 [3 5]
+		
+	--test-- "series-find-89"
+		--assert 3 = index? find hs-fd-1 [5 'test]
+	
+	--test-- "series-find-90"
+		--assert none? find hs-fd-1 'a/b
+	
+	--test-- "series-find-91"
+		--assert 6 = index? find/only hs-fd-1 'a/b
+
+	--test-- "series-find-92"
+		--assert 2 = index? find/match hs-fd-1 2
+
+	--test-- "series-find-93"
+		--assert none? find/match hs-fd-1 3
+
+	--test-- "series-find-94"
+		--assert 4 = index? find/match hs-fd-1 [2 3 5]
+
+	--test-- "series-find-95"
+		--assert none? find/match next hs-fd-1 [2 3 5]
+		
+	--test-- "series-find-96"
+		--assert 4 = index? find/tail hs-fd-1 5
+
+	--test-- "series-find-97"
+		--assert 2 = index? find #{010203} #{02}
+	--test-- "series-find-98"
+		--assert 2 = index? find #{61626342} #"b"
+	--test-- "series-find-99"
+		--assert 4 = index? find/case #{61626342} #"B"
+	--test-- "series-find-100"
+		--assert 3 = index? find/tail #{61626342} #"b"
+	--test-- "series-find-101"
+		--assert 4 = index? find/reverse tail #{42626342} #{42}
+		
+	--test-- "series-find-102"
+		--assert [3x4 1] = find [1x2 0 3x4 1] 3x4
+	
+	--test-- "series-find-103"
+		--assert equal? make hash! [3x4 1] find make hash! [1x2 0 3x4 1] 3x4
+
 		
 ===end-group===
 
@@ -569,7 +779,32 @@ Red [
 	--test-- "remove-blk-7"
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
-		
+
+	--test-- "remove-hash-1"
+		hs-remove-1: make hash! [a 2 3]
+		--assert (make hash! [2 3]) = remove hs-remove-1
+		--assert none? hs-remove-1/a
+
+	--test-- "remove-hash-2"
+		hs-remove-1: make hash! [a 2 3]
+		remove next hs-remove-1
+		--assert 3 = hs-remove-1/a
+
+	--test-- "remove-hash-3"
+		--assert tail? head remove make hash! []
+
+	--test-- "remove-hash-4"
+		hs-remove-1: make hash! [a b c 2]
+		remove/part hs-remove-1 2
+		--assert 2 = hs-remove-1/c
+
+	--test-- "remove-hash-5"
+		hs-remove-1: make hash! [a b c 2]
+		remove/part next hs-remove-1 2
+		--assert 2 = hs-remove-1/a
+		--assert none? hs-remove-1/b
+		--assert none? hs-remove-1/c
+
 	--test-- "remove-str-1"
 		a: "123"
 		--assert "23" = remove a
@@ -600,6 +835,21 @@ Red [
 	--test-- "remove-str-7"
 		a: "123"
 		--assert "123" = remove/part a 0
+	
+	--test-- "remove-str-8"
+		a: "str123"
+		--assert "" = remove back tail a
+		--assert "str12" = head a
+
+	--test-- "remove-bin-1"
+		b: #{00010203}
+		--assert #{010203} = remove b
+	--test-- "remove-bin-2"
+		--assert #{0203} = remove next #{00010203}
+	--test-- "remove-bin-3"
+		--assert #{000203} = head remove next #{00010203}
+	--test-- "remove-bin-4"
+		--assert #{0003} = head remove/part next #{00010203} 2
 
 ===end-group===
 
@@ -644,7 +894,17 @@ Red [
 		c9-b: "^(2710)123"
 		c9-b:  next c9-b
 		--assert "^(2710)" = head clear c9-b
-	
+
+	--test-- "clear-10"
+		c1-h: make hash! [a 1 b 2 c 3 d 4 5]
+		clear skip c1-h 4
+		--assert 2 = c1-h/b
+		--assert none? c1-h/c
+
+	--test-- "clear-11"
+		--assert empty? clear #{0102}
+	--test-- "clear-12"
+		--assert #{01} = head clear next #{010203}
 ===end-group===
 
 ===start-group=== "at"
@@ -672,6 +932,21 @@ Red [
 		--assert [e] = at [a b c d e] 5
 		--assert [] = at [a b c d e] 6
 		--assert [] = at [a b c d e] 1028
+
+	--test-- "at-4"
+		hs-at-1: make hash! [a b c d e]
+		--assert (next hs-at-1) = at hs-at-1 2
+		--assert hs-at-1 = at hs-at-1 1
+		--assert hs-at-1 = at hs-at-1 0
+		--assert hs-at-1 = at hs-at-1 -1
+		--assert (make hash! [e]) = at hs-at-1 5
+		
+	--test-- "at-5"
+		--assert #{0203} = at #{010203} 2
+		--assert #{} = at #{010203} 4
+		--assert #{} = at #{010203} 1028
+		--assert #{010203} = at #{010203} -3
+		--assert #{03} = at tail #{010203} -1
 	
 ===end-group===
 
@@ -681,9 +956,496 @@ Red [
 		code: [print "Hello"]
 		--assert 'print = first replace code "Hello" "Cheers"
 		--assert "Cheers" = second code
+	--test-- "replace-str"
+		--assert "Xbab" = replace "abab" #"a" #"X"
+		--assert "XbXb" = replace/all "abab" #"a" #"X"
+		--assert "Xab" = replace "abab" "ab" "X"
+
+	--test-- "replace-bin"
+		--assert #{FF0201} = replace #{010201} #{01} #{FF}
+		--assert #{FF02FF} = replace/all #{010201} #{01} #{FF}
+		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
+		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
+
+===end-group===
+
+===start-group=== "max/min"			;-- have some overlap with lesser tests
+
+	--test-- "max1"
+		--assert "abe"  = max "abc" "abe"
+		--assert "abcd" = max "abc" "abcd"
+
+	--test-- "min1"
+		--assert ""		= min "" 	"abcdef"
+		--assert "abc"	= min "abc" "abcd"
+
+	--test-- "max2"					;@@ need to add tests for word!, path!
+		blk1: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 2)]
+		blk2: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 3)]
+		--assert blk2 = max blk1 blk2
+		blk1: next blk1
+		--assert blk2 = max blk1 blk2
+
+	--test-- "max-bin"
+		--assert #{0203} = max #{0102} #{0203}
+		--assert #{01020304} = max #{01020304} #{010203}
+
+	--test-- "min-bin"
+		--assert #{0102} = min #{0102} #{0203}
+		--assert #{010203} = min #{01020304} #{010203}
+
+===end-group===
+
+===start-group=== "reverse"
+
+	--test-- "reverse-str-1"			;-- 4 bytes code point
+		--assert "dc𠃌21ba" = reverse "ab12𠃌cd"	;--  = #"^(E818)"
+                                                    	;-- 𠃌 = #"^(200CC)"
+	--test-- "reverse-str-2"			;-- 2 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-3"			;-- 1 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-4"
+		--assert "1ba2𠃌cd" = reverse/part "ab12𠃌cd" 4
+
+	--test-- "reverse-str-5"
+		s: "abcdef"
+		p: next next next s
+		--assert "cbadef" = reverse/part s p
+
+	--test-- "reverse-file-1"			;-- inherit from string!
+		--assert %321cba = reverse/part %abc123 6
+
+	--test-- "reverse-blk-1"
+		--assert [a b c d] = reverse [d c b a]
+
+	--test-- "reverse-blk-2"
+		--assert [c b [a] d] = reverse/part [[a] b c d] 3
+
+	--test-- "reverse-blk-3"
+		blk: [1 [2] a b c ]
+		p: next next next blk
+		--assert [a [2] 1 b c] = reverse/part blk p
+
+	--test-- "reverse-path-1"			;-- inherit from block!
+		p1: first [ab/cd/ef]
+		p2: first [ef/cd/ab]
+		--assert p2 = reverse p1
+
+	--test-- "reverse-hash-1"
+		hash: make hash! [d c b a]
+		--assert (make hash! [a b c d]) = reverse hash
+		--assert 'c = hash/b
+
+	--test-- "reverse-hash-2"
+		hash: make hash! [[a] b c d]
+		reverse/part hash 3
+		--assert [a] = hash/b
+		
+	--test-- "reverse-bin"
+		--assert #{0201} = reverse #{0102}
+		--assert #{020103} = reverse/part #{010203} 2
+		--assert #{010302} = head reverse next #{010203}
+
+===end-group===
+
+===start-group=== "take"
+
+	--test-- "take-blk-1"
+		a: [1 2 3]
+		--assert 1 = take a
+		--assert [2 3] = a
+
+	--test-- "take-blk-2"
+		a: [1 2 3]
+		--assert 3 = take/last a
+		--assert [1 2] = a
+
+	--test-- "take-blk-3"
+		a: [1 2 3]
+		--assert 2 = take next a
+		--assert [1 3] = a
+
+	--test-- "take-blk-4"
+		--assert none = take []
+
+	--test-- "take-blk-5"
+		a: [1 2 3]
+		--assert [1 2] = take/part a 2
+		--assert [3] = a
+
+	--test-- "take-blk-6"
+		a: [1 2 3]
+		--assert 1 = take/part a next a
+		--assert [2 3] = a
+
+	--test-- "take-blk-7"
+		a: [1 2 3]
+		--assert [2 3] = take/part/last a next a
+		--assert [1] = a
+
+	--test-- "take-blk-8"
+		a: [1 2 3]
+		--assert [] = take/part a 0
+		--assert [1 2 3] = a
+
+	--test-- "take-blk-9"
+		b: "abc"
+		a: reduce [b 2 3]
+		--assert b = c: take/deep a
+		--assert b <> remove c
+
+	--test-- "take-blk-5"
+		a: [1 2 3]
+		--assert [1 2 3] = take/part a 22
+		--assert [] = a
+
+	--test-- "take-str-1"
+		a: "123"
+		--assert #"1" = take a
+		--assert "23" = a
+
+	--test-- "take-str-2"
+		a: "123"
+		--assert #"3" = take/last a
+		--assert "12" = a
+
+	--test-- "take-str-3"
+		a: "123"
+		--assert #"2" = take next a
+		--assert "13" = a
+
+	--test-- "take-str-4"
+		--assert none = take ""
+
+	--test-- "take-str-5"
+		a: "123"
+		--assert "12" = take/part a 2
+		--assert "3" = a
+
+	--test-- "take-str-6"
+		a: "123"
+		--assert "23" = take/part/last a 2
+		--assert "1" = a
+
+	--test-- "take-str-7"
+		a: "123"
+		--assert "" = take/part a a
+		--assert "123" = a
+
+	--test-- "take-str-8"
+		a: "123"
+		--assert "1"= take/part a next a
+		--assert "23" = a
+
+	--test-- "take-str-9"
+		a: "123"
+		--assert "23" = take/part/last a next a
+		--assert "1"  = a
+
+	--test-- "take-str-10"
+		a: "123"
+		--assert "123" = take/part a 22
+		--assert "" = a
+
+	--test-- "take-hash-1"
+		h: make hash! [1 2 3]
+		--assert 1 = take h
+		--assert none? select h 1
+		--assert 3 = select h 2
+
+	--test-- "take-hash-2"
+		h: make hash! [1 2 3]
+		--assert 3 = take/last h
+		--assert none? select h 2
+
+	--test-- "take-hash-3"
+		h: make hash! [1 2 3]
+		--assert 2 = take next h
+		--assert 3 = select h 1
+
+	--test-- "take-bin-1"
+		b: #{0102}
+		--assert 1 = take b
+		--assert #{02} = b
+
+	--test-- "take-bin-2"
+		b: #{010203}
+		--assert 3 = take/last b
+		--assert #{0102} = b
+
+	--test-- "take-bin-3"
+		b: #{010203}
+		--assert 2 = take next b
+		--assert #{0103} = b
+
+	--test-- "take-bin-4"
+		--assert none = take #{}
+
+	--test-- "take-bin-5"
+		b: #{010203}
+		--assert #{0102} = take/part b 2
+		--assert #{03} = b
+
+	--test-- "take-bin-6"
+		b: #{010203}
+		--assert #{0203} = take/part/last b 2
+		--assert #{01} = b
+
+	--test-- "take-bin-7"
+		b: #{010203}
+		--assert #{} = take/part b b
+		--assert #{010203} = b
+
+	--test-- "take-bin-8"
+		b: #{010203}
+		--assert #{01} = take/part b next b
+		--assert #{0203} = b
+
+	--test-- "take-bin-9"
+		b: #{010203}
+		--assert #{0203} = take/part/last b next b
+		--assert #{01} = b
+
+===end-group===
+
+===start-group=== "swap"
+
+	--test-- "swap-str-1"			;-- 4 bytes code point
+		a: "1234"
+		b: "𠃌"						;-- 𠃌 = #"^(200CC)"
+		--assert "𠃌234" = swap a b
+		--assert "𠃌234" = a
+		--assert "1"	 = b
+
+	--test-- "swap-str-2"			;-- 2 bytes code point
+		a: "1234"
+		b: "ab"					;--  = #"^(E818)"
+		--assert "234" = swap a next b
+		--assert "234" = a
+		--assert "a1b"	 = b
+
+	--test-- "swap-str-3"			;-- 1 bytes code point
+		--assert "a234" = swap "1234" "abc"
+
+	--test-- "swap-str-4"
+		--assert "123" = swap "123" ""
+
+	--test-- "swap-blk-1"
+		a: [1 2]
+		b: [a b]
+		--assert [a 2] = swap a b
+		--assert [a 2] = a
+		--assert [1 b] = b
+
+	--test-- "swap-blk-2"
+		a: [1 2]
+		b: [a b]
+		--assert [a]   = swap next a b
+		--assert [1 a] = a
+		--assert [2 b] = b
+
+	--test-- "swap-blk-3"
+		--assert [1 a] = swap [1 a] []
+
+	--test-- "swap-hash-1"
+		a: make hash! [1 2]
+		b: make hash! [a b]
+		swap a b
+		--assert 2 = a/a
+		--assert 'b = select b 1
+
+	--test-- "swap-bin"
+		a: #{0102}
+		b: #{0304}					;-- 𠃌 = #"^(200CC)"
+		--assert #{0302} = swap a b
+		--assert #{0302} = a
+		--assert #{0104} = b
+		--assert #{0104} = swap b #{}
+
+===end-group===
+
+===start-group=== "trim"
+
+	str: " ^(A0) ^-a b  ^- c  ^(2000) "
+	mstr: {   a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/}
+
+	--test-- "trim-str-1"
+		--assert "a b  ^- c" = trim copy str
+
+	--test-- "trim-str-2"
+		--assert "a ^-1^/ab2^/ac3^/" = trim copy mstr
+
+	--test-- "trim-str-3"
+		--assert "a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/" = trim/head copy mstr
+
+	--test-- "trim-str-4"
+		--assert "   a ^-1^/    ab2^-  ^/  ac3" = trim/tail copy mstr
+
+	--test-- "trim-str-5"
+		--assert "a ^-1^/    ab2^-  ^/  ac3" = trim/head/tail copy mstr
+
+	--test-- "trim-str-6"
+		--assert "a 1 ab2 ac3" = trim/lines copy mstr
+
+	--test-- "trim-str-7"
+		--assert "a1ab2ac3" = trim/all copy mstr
+
+	--test-- "trim-str-8"
+		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
+
+	--test-- "trim-str-9"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
+
+	--test-- "trim-block-1"
+		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+
+===end-group===
+
+===start-group=== "sort"
+
+	--test-- "sort-str-1"			;-- 4 bytes code point
+		a: "g4C28c𠃌9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi𠃌" = sort a
+
+	--test-- "sort-str-2"			;-- 2 bytes code point
+		a: "g4C28c大9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi大" = sort a
+
+	--test-- "sort-str-3"			;-- 1 bytes code point
+		a: "g4C28c9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi" = sort a
+		--assert "0123456789ABCDEFGHIabcdefghi" = sort/case a
+		--assert "ihgfedcbaIHGFEDCBA9876543210" = sort/case/reverse a
+
+	--test-- "sort-str-4"
+		a: "4gh2ab1cd3ef"
+		--assert "1cd2ab3ef4gh" = sort/skip a 3
+		--assert "12abcd3ef4gh" = sort/part a 6
+		--assert "34efgh" = sort/part skip a 6 tail a
+
+	--test-- "sort-blk-1"
+		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
+		--assert ["Curly" "Larry" "Mo" -24 0 42 321.3 321.8 799 ab2 bb1 bc] = sort a
+		--assert [bc bb1 ab2 799 321.8 321.3 42 0 -24 "Mo" "Larry" "Curly"] = sort/reverse a
+
+	--test-- "sort-blk-2"
+		a: ["Larry" 45 "Curly" 50 "Mo" 42]
+		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip a 2
+		--assert ["Curly" "Larry" 45 50 "Mo" 42] = sort/part a 4
+		--assert ["Mo" 42 45 50] = sort/part skip a 2 tail a
+
+	--test-- "sort-blk-3"
+		a: ["Larry" 45 "Curly" 50 "Mo" 42]
+		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 2
+		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 func [a b][a > b]
+		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip/compare/all a 2 func [a b][a/2 > b/2]
+
+	--test-- "sort-blk-4"
+		o1: context [a: 2 i: "a"]
+		o2: context [a: 1 i: "b"]
+		o3: context [a: 1 i: "c"]
+		o4: context [a: 1 i: "d"]
+		o5: context [a: 1 i: "e"]
+		o6: context [a: 1 i: "f"]
+		o7: context [a: 3 i: "g"]
+		o8: context [a: 3 i: "h"]
+		a: reduce [o1 o2 o3 o8 o4 o5 o6 o7]
+		res: reduce [o2 o3 o4 o5 o6 o1 o8 o7]
+		--assert res = sort/compare/stable a func [a b][a/a - b/a]
+===end-group===
+
+===start-group=== "path access"	
+
+	--test-- "path-blk-1 : issue #939"
+		pb1-b: [#"x" #"y"]
+		--assert #"y" = pb1-b/(#"x")
+		
+	--test-- "path-blk-2"
+		pb2-b: [#"x" #"y"]
+		pb2-c: #"x"
+		--assert #"y" = pb2-b/:pb2-c
+		
+	--test-- "path-str-1"
+		pb1-s: "xy"
+		--assert #"y" = pb1-s/(#"x")
+		
+	--test-- "path-str-2"
+		ps2-s: "xy"
+		ps2-c: #"x"
+		--assert #"y" = ps2-s/:ps2-c
+	
+	--test-- "path-str-3"
+		ps3-s: "xy"
+		ps3-ss: "x"
+		--assert #"y" = ps3-s/:ps3-ss
 		
 ===end-group===
 
+===start-group=== "set operations"	
+
+	--test-- "set-op-blk"
+		a: [1 3 2 4]
+		b: [3 4 5 4 6]
+		--assert [3 4 5 6]		= unique b
+		--assert [1 3 2 4 5 6]	= union a b
+		--assert [3 4]			= intersect a b
+		--assert [1 2 5 6]		= difference a b
+		--assert [1 2]			= exclude a b
+		--assert [5 6]			= exclude b a
+
+	--test-- "set-op-str"
+		a: "CBAD"
+		b: "EDCCF"
+		--assert "EDCF"		= unique b
+		--assert "CBADEF"	= union a b
+		--assert "CD"		= intersect a b
+		--assert "BAEF"		= difference a b
+		--assert "BA"		= exclude a b
+		--assert "EF"		= exclude b a
+
+	--test-- "set-op-bitset"
+		a: make bitset! [1 2 3 4]
+		b: make bitset! [4 5 23]
+		--assert "make bitset! #{7C0001}" = mold union a b
+		--assert "make bitset! #{080000}" = mold intersect a b
+		--assert "make bitset! #{740001}" = mold difference a b
+		--assert "make bitset! #{700000}" = mold exclude a b
+		--assert "make bitset! #{040001}" = mold exclude b a
+
+	--test-- "series-union-1"
+		su1-a: ["a" "A" "b" "B"]
+		su1-b: ["b" "B" "e" "E"]
+		--assert ["a" "b" "e"] = sort union su1-a su1-b
+		
+	--test-- "series-union-2"
+		su2-a: ["a" "A" "b" "B"]
+		su2-b: ["b" "B" "e" "E"]
+		--assert ["a""A" "b" "B" "e" "E"] = sort union/case su2-a su2-b
+
+	--test-- "series-union-3"
+		su3-a: ["a" "A" "b" "B"]
+		su3-b: ["b" "B" "e" "E"]
+		su3-c: union/skip su3-a su3-b 2
+		--assert ["a" "A" "b" "B" "e" "E"] = sort/skip su3-c 2
+  
+===end-group===
+
+===start-group=== "series-unicode"
+
+	--test-- "suc1"
+		;--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+		;				read %tests/fixtures/chinese-characters.txt
+						
+	--test-- "suc2"
+		;--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+		;				read/lines %tests/fixtures/chinese-characters.txt
+===end-group===
 
 ~~~end-file~~~
 

@@ -2,8 +2,8 @@ Red/System [
 	Title:   "Red/System shared library sample script"
 	Author:  "Nenad Rakocevic"
 	File: 	 %shared-lib.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Note: {
 		Compile this script from red-system folder with:
 		

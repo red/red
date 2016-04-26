@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %get-path.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -30,7 +30,7 @@ get-path: context [
 	]
 	
 	push: func [
-		p [red-get-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/push"]]
 
@@ -65,7 +65,7 @@ get-path: context [
 		#if debug? = yes [if verbose > 0 [print-line "get-path/form"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		path/form p buffer arg part - 1
+		path/form as red-path! p buffer arg part - 1
 	]
 	
 	mold: func [
@@ -81,34 +81,20 @@ get-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/mold"]]
 
-		form p buffer arg part
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
 	compare: func [
 		value1	   [red-block!]							;-- first operand
 		value2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/compare"]]
 
 		if TYPE_OF(value2) <> TYPE_GET_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each value1 value2 op
-	]
-	
-	copy: func [
-		path    [red-path!]
-		new		[red-get-path!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/copy"]]
-		
-		path: as red-path! block/copy as red-block! path as red-get-path! new arg deep? types
-		path/header: TYPE_GET_PATH
-		as red-series! path
 	]
 	
 	init: does [
@@ -119,7 +105,7 @@ get-path: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
@@ -149,31 +135,33 @@ get-path: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
-			null			;reverse
+			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip
-			null			;swap
+			INHERIT_ACTION	;swap
 			INHERIT_ACTION	;tail
 			INHERIT_ACTION	;tail?
-			null			;take
+			INHERIT_ACTION	;take
 			null			;trim
 			;-- I/O actions --
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

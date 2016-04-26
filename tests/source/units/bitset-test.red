@@ -3,8 +3,8 @@
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %bitset-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -175,7 +175,74 @@
 		u: "make bitset! #{000000000000FFC0000000007FFFFFE0}"
 		--assert u = mold union c1 c2
 		--assert u = mold union c2 c1
+
+	--test-- "u-2"
+		nd: charset [not #"0" - #"9"]
+		zero: charset #"0"
+		nd-zero: union nd zero
+		--assert not find nd #"0"
+		--assert not find nd #"1"
+		--assert find nd #"B"
+		--assert find nd #"}"
+
+	--test-- "u-3"
+		--assert find zero #"0"
+		--assert not find zero #"1"
+		--assert not find zero #"B"
+		--assert not find zero #"}"
+
+	--test-- "u-4"
+		--assert find nd-zero #"0"
+		--assert not find nd-zero #"1"
+		--assert find nd-zero #"B"
+		--assert find nd-zero #"}"
 	
+===end-group===
+
+===start-group=== "and"
+
+	--test-- "and-1"
+		c1: charset "b"
+		c2: charset "1"
+		u: "make bitset! #{00000000000000}"
+		--assert u = mold c1 and c2
+		--assert u = mold c2 and c1
+
+	--test-- "and-2"
+		c1: charset "b"
+		c2: charset "1"
+		c3: complement c1
+		u: "make bitset! [not #{FFFFFFFFFFFFBF}]"
+		--assert u = mold c3 and c2
+		--assert u = mold c2 and c3
+		u: "make bitset! [not #{FFFFFFFFFFFFFFFFFFFFFFFFFF}]"
+		--assert u = mold c1 and c3
+		c4: complement c2
+		--assert "make bitset! #{FFFFFFFFFFFFBF}" = mold c3 and c4
+
+===end-group===
+
+===start-group=== "xor"
+
+	--test-- "xor-1"
+		c1: charset "b"
+		c2: charset "1"
+		u: "make bitset! #{00000000000040000000000020}"
+		--assert u = mold c1 xor c2
+		--assert u = mold c2 xor c1
+
+	--test-- "xor-2"
+		c1: charset "b"
+		c2: charset "1"
+		c3: complement c1
+		u: "make bitset! [not #{00000000000040000000000020}]"
+		--assert u = mold c3 xor c2
+		--assert u = mold c2 xor c3
+		u: "make bitset! [not #{00000000000000000000000000}]"
+		--assert u = mold c1 xor c3
+		c4: complement c2
+		--assert "make bitset! #{00000000000040FFFFFFFFFFDF}" = mold c3 xor c4
+
 ===end-group===
 
 ===start-group=== "complemented"
@@ -186,15 +253,17 @@
 	--test-- "comp-4"	--assert "make bitset! [not #{000000000000FFC0}]" = mold charset [not "0123456789"]
 	--test-- "comp-5"	--assert "make bitset! [not #{F0}]" = mold charset [not 0 1 2 3]
 
-	--test-- "comp-5"
+	--test-- "comp-6"
 		bs: make bitset! 1
+		--assert false = complement? bs
 		--assert "make bitset! #{00}" = mold bs
 		--assert 8 = length? bs
 		bs: complement bs
+		--assert true = complement? bs
 		--assert 8 = length? bs
 		--assert "make bitset! [not #{00}]" = mold bs
 
-	--test-- "comp-6"
+	--test-- "comp-7"
 		bs: charset [not "hello123" #"a" - #"z"]
 		--assert 128 = length? bs
 		--assert "make bitset! [not #{0000000000007000000000007FFFFFE0}]" = mold bs
@@ -202,7 +271,7 @@
 		--assert 128 = length? bs
 		--assert "make bitset! [not #{00000000000000000000000000000000}]" = mold bs
 
-	--test-- "comp-7"
+	--test-- "comp-8"
 		bs: complement charset " "
 		--assert 40 = length? bs
 		--assert bs/31 = true
@@ -210,21 +279,21 @@
 		--assert bs/33 = true
 		--assert bs/200 = true
 
-	--test-- "comp-8"
+	--test-- "comp-9"
 		bs/32: true
 		--assert bs/32 = true
 		--assert "make bitset! [not #{0000000000}]" = mold bs
 
-	--test-- "comp-9"
+	--test-- "comp-10"
 		poke bs #" " none
 		--assert bs/32 = false
 		--assert "make bitset! [not #{0000000080}]" = mold bs
 
-	--test-- "comp-10"
+	--test-- "comp-11"
 		clear bs
 		--assert "make bitset! [not #{0000000000}]" = mold bs
 
-	--test-- "comp-11"
+	--test-- "comp-12"
 		poke bs [32 - 40] none
 		--assert "make bitset! [not #{00000000FF80}]" = mold bs
 		poke bs [32 - 40] true
