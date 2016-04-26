@@ -10,6 +10,30 @@ Red/System [
 	}
 ]
 
+position-base: func [
+	base	[handle!]
+	parent	[handle!]
+	offset	[red-pair!]
+	return: [tagPOINT]
+	/local
+		pt	[tagPOINT]
+][
+	pt: declare tagPOINT
+	pt/x: offset/x
+	pt/y: offset/y
+	ClientToScreen parent pt		;-- convert client offset to screen offset
+	SetWindowLong base wc-offset - 4 pt/x
+	SetWindowLong base wc-offset - 8 pt/y
+	pt
+]
+
+layered-win?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+]
+
 detached?: func [
 	hWnd	[handle!]
 	return: [logic!]
