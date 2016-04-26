@@ -1058,7 +1058,7 @@ actions: context [
 		part	[integer!]
 		return:	[red-value!]
 	][
-		move
+		stack/set-last move
 			as red-series!  stack/arguments
 			as red-series!  stack/arguments + 1
 			as red-integer! stack/arguments + part
