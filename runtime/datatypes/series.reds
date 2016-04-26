@@ -397,7 +397,7 @@ _series: context [
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target words/_move null origin/head items
 			
-			temp: as byte-ptr! allocate part			;@@ suboptimal for unit < 16
+			temp: allocate part							;@@ suboptimal for unit < 16
 			copy-memory	temp src part
 			either dst > src [							;-- slide in-between elements
 				end: src + part
