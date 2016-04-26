@@ -436,10 +436,10 @@ cause-error: function [
 ]
 
 pad: func [
-	"Align a string to a given size prepending whitespaces"
+	"Pad a string on right side with spaces"
 	str [string!]		"String to pad"
-	n	[integer!]		"Size (in characters) to align to"
-	/left				"Align the string to the left side"
+	n	[integer!]		"Total size (in characters) of the new string"
+	/left				"Pad the string on left side"
 	return: [string!]	"Modified input string at head"
 ][
 	head insert/dup
