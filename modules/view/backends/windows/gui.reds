@@ -957,12 +957,7 @@ OS-make-view: func [
 			either alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
-					pt: declare tagPOINT
-					pt/x: offset/x
-					pt/y: offset/y
-					ClientToScreen as handle! parent pt		;-- convert client offset to screen offset
-					SetWindowLong handle wc-offset - 4 pt/x
-					SetWindowLong handle wc-offset - 8 pt/y
+					pt: position-base handle as handle! parent offset
 				]
 				update-base handle as handle! parent pt values
 				if all [show?/value IsWindowVisible as handle! parent][
@@ -1311,42 +1306,55 @@ change-parent: func [
 	parent [red-object!]
 	/local
 		hWnd		[handle!]
+		handle		[handle!]
 		bool		[red-logic!]
 		type		[red-word!]
 		values		[red-value!]
-		offset		[red-pair!]
+		pt			[tagPOINT]
+		x			[integer!]
+		y			[integer!]
+		sym			[integer!]
 		tab-panel?	[logic!]
 ][
 	hWnd: get-face-handle face
 	values: get-node-facet face/ctx 0
 	bool: as red-logic! values + FACE_OBJ_VISIBLE?
 	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
 
 	tab-panel?: no
-	type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
-
 	if parent <> null [
 		assert TYPE_OF(parent) = TYPE_OBJECT
+		type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
 		tab-panel?: tab-panel = symbol/resolve type/symbol
 	]
 	unless tab-panel? [bool/value: parent <> null]
-	
+
 	either null? parent [
-		change-visible as-integer hWnd no symbol/resolve type/symbol
+		change-visible as-integer hWnd no sym
 		SetParent hWnd null
 	][
 		if tab-panel? [exit]
-		SetParent hWnd get-face-handle parent
+		handle: get-face-handle parent
+		either all [
+			not win8+?
+			base = sym
+			layered-win? hWnd
+		][
+			SetWindowLong hWnd wc-offset - 16 as-integer handle
+			x: GetWindowLong hWnd wc-offset - 4
+			y: GetWindowLong hWnd wc-offset - 8
+			pt: position-base hWnd handle as red-pair! values + FACE_OBJ_OFFSET
+			SetWindowPos hWnd null pt/x pt/y 0 0 SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
+			pt/x: pt/x - x
+			pt/y: pt/y - y
+			update-layered-window hWnd null pt null -1
+			exit
+		][
+			SetParent hWnd handle
+		]
 	]
-	either all [
-		base = symbol/resolve type/symbol
-		bool/value
-		not detached? hWnd
-	][
-		ShowWindow hWnd SW_SHOWNA
-	][
-		OS-show-window as-integer hWnd
-	]
+	OS-show-window as-integer hWnd
 ]
 
 update-z-order: func [
