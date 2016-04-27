@@ -368,6 +368,8 @@ _series: context [
 			unit2 [integer!]
 			size  [integer!]
 			index [integer!]
+			type1 [integer!]
+			type2 [integer!]
 			src   [byte-ptr!]
 			tail  [byte-ptr!]
 			dst   [byte-ptr!]
@@ -422,14 +424,18 @@ _series: context [
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
 			if unit <> unit2 [
-				;if any [
-				;	TYPE_OF(origin) = TYPE_BINARY
-				;	TYPE_OF(target) = TYPE_BINARY
-				;][
-				;	fire [TO_ERROR() ...]
-				;]
-				;return string/rs-move as red-string! origin as red-string! target part
-				0
+				type1: TYPE_OF(origin)
+				type2: TYPE_OF(target)
+				if any [
+					type1 = TYPE_BINARY
+					type1 = TYPE_VECTOR
+					type2 = TYPE_BINARY
+					type2 = TYPE_VECTOR
+				][
+					fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
+				]
+				string/move-chars as red-string! origin as red-string! target part
+				return as red-value! target
 			]
 			;-- make enough space in target
 			size: as-integer (as byte-ptr! s2/tail) + part - as byte-ptr! s2/offset

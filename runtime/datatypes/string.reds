@@ -562,6 +562,36 @@ string: context [
 		s
 	]
 	
+	move-chars: func [
+		str1 [red-string!]
+		str2 [red-string!]
+		part [integer!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			p		[byte-ptr!]
+			tail	[byte-ptr!]
+			offset	[integer!]
+			unit	[integer!]
+	][
+		s1:	  GET_BUFFER(str1)
+		s2:	  GET_BUFFER(str2)
+		unit: GET_UNIT(s1)
+		
+		p: (as byte-ptr! s1/offset) + (str1/head << (log-b unit))
+		offset: str2/head
+		tail: p + part
+		
+		while [p < tail][
+			insert-char s2 offset get-char p unit
+			offset: offset + 1
+			p: p + unit
+		]
+		
+		offset: offset - str2/head
+		if positive? offset [remove-part str1 str1/head offset]
+	]
+	
 	equal?: func [
 		str1	  [red-string!]							;-- first operand
 		str2	  [red-string!]							;-- second operand
