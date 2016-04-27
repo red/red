@@ -837,7 +837,7 @@ binary: context [
 			INHERIT_ACTION	;index?
 			:insert
 			INHERIT_ACTION	;length?
-			null			;move
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
