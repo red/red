@@ -51,6 +51,23 @@ push-face: func [
 	make-at handle as red-object! stack/push*
 ]
 
+get-event-window: func [
+	evt		[red-event!]
+	return: [red-value!]
+	/local
+		handle [handle!]
+		face   [red-object!]
+		msg    [tagMSG]
+][
+	msg: as tagMSG evt/msg
+	handle: get-widget-handle msg
+	as red-value! either handle = as handle! -1 [		;-- filter out unwanted events
+		none-value
+	][
+		push-face GetAncestor handle 2					;-- GA_ROOT
+	]
+]
+
 get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
