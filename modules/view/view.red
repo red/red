@@ -783,7 +783,16 @@ insert-event-func [
 
 ;-- Debug info handler --
 insert-event-func [
-	if system/view/debug? [
+	if all [
+		system/view/debug?
+		not all [
+			value? 'gui-console-ctx
+			any [
+				event/face = gui-console-ctx/console
+				event/face = gui-console-ctx/win
+			]
+		]
+	][
 		print [
 			"event> type:"	event/type
 			"offset:"		event/offset
