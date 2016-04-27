@@ -172,7 +172,7 @@ Red [
 
 ===end-group===
 
-===start-group=== "different blocks"
+===start-group=== "different strings"
 
 	--test-- "mv-str-diff-1"
 		str1: "abc"
@@ -222,6 +222,59 @@ Red [
 		move/part str1 tail str2 3
 		--assert str1 = ""
 		--assert str2 = "abc"
+
+===end-group===
+
+===start-group=== "different encodings"
+
+	--test-- "mv-str-unit-1"
+		str1: "abc"
+		str2: "一二三"
+		move str1 str2
+		--assert str1 = "bc"
+		--assert str2 = "a一二三"
+
+	--test-- "mv-str-unit-2"
+		str1: "abc"
+		str2: "一二三"
+		move at str1 2 at str2 2
+		--assert str1 = "ac"
+		--assert str2 = "一b二三"
+
+	--test-- "mv-str-unit-3"
+		str1: "abc"
+		str2: "一二三"
+		move str1 tail str2
+		--assert str1 = "bc"
+		--assert str2 = "一二三a"
+
+	--test-- "mv-str-unit-4"
+		str1: "abc"
+		str2: "一二三"
+		move/part str1 str2 2
+		--assert str1 = "c"
+		--assert str2 = "ab一二三"
+
+	--test-- "mv-str-unit-5"
+		str1: "abc"
+		str2: "一二三"
+		move/part at str1 2 at str2 2 2
+		--assert str1 = "a"
+		--assert str2 = "一bc二三"
+
+	--test-- "mv-str-unit-6"
+		str1: "abc"
+		str2: "一二三"
+		move/part str1 tail str2 2
+		--assert str1 = "c"
+		--assert str2 = "一二三ab"
+
+	--test-- "mv-str-unit-7"
+		str1: "一二三"
+		str2: ""
+		move/part str1 tail str2 3
+		--assert str1 = ""
+		--assert str2 = "一二三"
 
 ===end-group===
 
