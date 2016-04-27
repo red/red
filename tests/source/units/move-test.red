@@ -118,4 +118,111 @@ Red [
 
 ===end-group===
 
+===start-group=== "same strings"
+
+	--test-- "mv-str-1"
+		str: "abcde"
+		move str at str 1
+		--assert str = "abcde"
+
+	--test-- "mv-str-2"
+		str: "abcde"
+		move str at str 2
+		--assert str = "bacde"
+
+	--test-- "mv-str-3"
+		str: "abcde"
+		move str at str 3
+		--assert str = "bcade"
+
+	--test-- "mv-str-4"
+		str: "abcde"
+		move str at str 4
+		--assert str = "bcdae"
+
+	--test-- "mv-str-5"
+		str: "abcde"
+		move str at str 5
+		--assert str = "bcdea"
+
+	--test-- "mv-str-6"
+		str: "abcde"
+		move str at str 6
+		--assert str = "bcdea"
+
+	--test-- "mv-str-7"
+		str: "abcde"
+		move str tail str
+		--assert str = "bcdea"
+
+	--test-- "mv-str-8"
+		str: "abcde"
+		move back tail str str
+		--assert str = "eabcd"
+
+	--test-- "mv-str-9"
+		str: "abcde"
+		move back back tail str at str 2
+		--assert str = "adbce"
+
+	--test-- "mv-str-10"
+		str: "abcde"
+		move/part str tail str 2
+		--assert str = "cdeab"
+
+===end-group===
+
+===start-group=== "different blocks"
+
+	--test-- "mv-str-diff-1"
+		str1: "abc"
+		str2: "def"
+		move str1 str2
+		--assert str1 = "bc"
+		--assert str2 = "adef"
+
+	--test-- "mv-str-diff-2"
+		str1: "abc"
+		str2: "def"
+		move at str1 2 at str2 2
+		--assert str1 = "ac"
+		--assert str2 = "dbef"
+
+	--test-- "mv-str-diff-3"
+		str1: "abc"
+		str2: "def"
+		move str1 tail str2
+		--assert str1 = "bc"
+		--assert str2 = "defa"
+
+	--test-- "mv-str-diff-4"
+		str1: "abc"
+		str2: "def"
+		move/part str1 str2 2
+		--assert str1 = "c"
+		--assert str2 = "abdef"
+
+	--test-- "mv-str-diff-5"
+		str1: "abc"
+		str2: "def"
+		move/part at str1 2 at str2 2 2
+		--assert str1 = "a"
+		--assert str2 = "dbcef"
+
+	--test-- "mv-str-diff-6"
+		str1: "abc"
+		str2: "def"
+		move/part str1 tail str2 2
+		--assert str1 = "c"
+		--assert str2 = "defab"
+
+	--test-- "mv-str-diff-7"
+		str1: "abc"
+		str2: ""
+		move/part str1 tail str2 3
+		--assert str1 = ""
+		--assert str2 = "abc"
+
+===end-group===
+
 ~~~end-file~~~
