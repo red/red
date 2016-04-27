@@ -406,7 +406,6 @@ _series: context [
 				end: src + part
 				size: as-integer dst - end
 				either dst = tail [
-
 					move-memory src end size
 					dst: dst - part						;-- point to beginning of last slot
 				][
