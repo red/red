@@ -13,6 +13,7 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	
+	focal-face: none
 	reactors: make block! 20
 	
 	default-font: [name "Tahoma" size 9 color 'black]
@@ -112,12 +113,17 @@ system/view/VID: context [
 		]
 	]
 	
-	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] css [block!] return: [block!]][
-		set opts none
-		opt?: yes
+	fetch-options: function [
+		face [object!] opts [object!] style [block!] spec [block!] css [block!]
+		/extern focal-face
+		return: [block!]
+	][
+		opt?: 	 yes
 		divides: none
 		calc-y?: no
+		
 		obj-spec!: make typeset! [block! object!]
+		set opts none
 		
 		;-- process style options --
 		until [
@@ -133,6 +139,7 @@ system/view/VID: context [
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec: next spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
+				| 'focus	  (focal-face: face)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
@@ -235,6 +242,7 @@ system/view/VID: context [
 		/styles					"Use an existing styles list"
 			css		  [block!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
+		/extern focal-face
 	][
 		background!:  make typeset! [image! file! tuple! word!]
 		list:		  make block! 4						;-- panel's pane block
@@ -259,7 +267,10 @@ system/view/VID: context [
 			max-sz: 0
 		]
 		
-		unless panel [panel: make face! system/view/VID/styles/window/template] ;-- absolute path to avoid clashing with /styles
+		unless panel [
+			focal-face: none
+			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
+		]
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -372,6 +383,8 @@ system/view/VID: context [
 			if panel/size/x < x [panel/size/x: x]
 			if panel/size/y < y [panel/size/y: y]
 		]
+
+		if all [focal-face not parent][panel/selected: focal-face]
 		
 		if options [set/some panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
