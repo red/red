@@ -691,9 +691,9 @@ interpreter: context [
 			TYPE_GET_WORD [
 				value: _context/get as red-word! pc
 				either sub? [
-					stack/push value
+					stack/push value					;-- nested expression: push value
 				][
-					stack/set-last value
+					stack/set-last value				;-- root expression: return value
 				]
 				pc: pc + 1
 			]
