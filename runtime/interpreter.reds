@@ -689,7 +689,12 @@ interpreter: context [
 				pc: eval-path value pc end yes no sub? no
 			]
 			TYPE_GET_WORD [
-				copy-cell _context/get as red-word! pc stack/push*
+				value: _context/get as red-word! pc
+				either sub? [
+					stack/push value
+				][
+					stack/set-last value
+				]
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
