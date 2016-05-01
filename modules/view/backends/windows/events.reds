@@ -487,6 +487,7 @@ process-command-event: func [
 		values [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
+		saved  [handle!]
 ][
 	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
@@ -530,8 +531,10 @@ process-command-event: func [
 		]
 		EN_KILLFOCUS
 		CBN_KILLFOCUS [
+			saved: current-msg/hWnd
 			current-msg/hWnd: as handle! lParam
 			make-event current-msg 0 EVT_UNFOCUS
+			current-msg/hWnd: saved
 		]
 		CBN_SELCHANGE [
 			current-msg/hWnd: as handle! lParam			;-- force ListBox or Combobox handle
