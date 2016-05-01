@@ -18,6 +18,7 @@ Red/System [
 #define REDBIN_STACK_MASK			20000000h
 #define REDBIN_SELF_MASK			10000000h
 #define REDBIN_SET_MASK				08000000h
+#define NEWLINE-FLAG(header)	(header and 80000000h >> 1)
 
 redbin: context [
 	verbose: 0
@@ -179,7 +180,7 @@ redbin: context [
 	][
 		sym: table + data/2
 		w: as red-word! ALLOC_TAIL(parent)
-		w/header: TYPE_ISSUE
+		w/header: TYPE_ISSUE or NEWLINE-FLAG(data/1)
 		w/symbol: sym/1
 		data + 2
 	]
@@ -201,7 +202,7 @@ redbin: context [
 	][
 		sym: table + data/2								;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
-		new/header: data/1 and FFh
+		new/header: data/1 and FFh or NEWLINE-FLAG(data/1)
 		new/symbol: sym/1
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		
@@ -245,7 +246,7 @@ redbin: context [
 		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
-		str/header: header and FFh					;-- implicit reset of all header flags
+		str/header: header and FFh	or NEWLINE-FLAG(header)	;-- implicit reset of all header flags
 		str/head: 	data/2
 		str/node: 	alloc-bytes size
 		
@@ -279,7 +280,7 @@ redbin: context [
 		
 		blk: block/make-in parent sz
 		blk/head: data/2
-		blk/header: data/1 and FFh
+		blk/header: data/1 and FFh or NEWLINE-FLAG(data/1)
 		data: data + 3
 		
 		while [size > 0][
@@ -297,19 +298,25 @@ redbin: context [
 	][
 		size: data/1 >>> 8 and FFh
 		tuple: as red-tuple! ALLOC_TAIL(parent)
-		tuple/header: TYPE_TUPLE or (size << 19)
+		tuple/header: TYPE_TUPLE or (size << 19) or NEWLINE-FLAG(data/1)
 		tuple/array1: data/2
 		tuple/array2: data/3
 		tuple/array3: data/4
 		data + 4
 	]
 
+#define CHECK-NEWLINE	[
+	if data/1 and 80000000h <> 0 [
+		cell/header: cell/header or 40000000h
+	]
+]
+
 	decode-value: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local type
+		/local type cell
 	][
 		type: data/1 and FFh
 		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
@@ -325,7 +332,8 @@ redbin: context [
 			TYPE_URL
 			TYPE_BINARY		[decode-string data parent]
 			TYPE_INTEGER	[
-				integer/make-in parent data/2
+				cell: as cell! integer/make-in parent data/2
+				;CHECK-NEWLINE
 				data + 2
 			]
 			TYPE_PATH
@@ -337,27 +345,33 @@ redbin: context [
 			TYPE_CONTEXT	[decode-context data table parent]
 			TYPE_ISSUE		[decode-issue data table parent]
 			TYPE_TYPESET	[
-				typeset/make-in parent data/2 data/3 data/4
+				cell: as cell! typeset/make-in parent data/2 data/3 data/4
+				;CHECK-NEWLINE
 				data + 4
 			]
 			TYPE_FLOAT	[
-				float/make-in parent data/2 data/3
+				cell: as cell! float/make-in parent data/2 data/3
+				;CHECK-NEWLINE
 				data + 3
 			]
 			TYPE_PERCENT [
-				percent/make-in parent data/2 data/3
+				cell: as cell! percent/make-in parent data/2 data/3
+				CHECK-NEWLINE
 				data + 3
 			]
 			TYPE_CHAR		[
-				char/make-in parent data/2
+				cell: as cell! char/make-in parent data/2
+				;CHECK-NEWLINE
 				data + 2
 			]
 			TYPE_DATATYPE	[
-				datatype/make-in parent data/2
+				cell: as cell! datatype/make-in parent data/2
+				;CHECK-NEWLINE
 				data + 2
 			]
 			TYPE_PAIR	[
-				pair/make-in parent data/2 data/3
+				cell: as cell! pair/make-in parent data/2 data/3
+				;CHECK-NEWLINE
 				data + 3
 			]
 			TYPE_UNSET		[
@@ -365,11 +379,13 @@ redbin: context [
 				data + 1
 			]
 			TYPE_NONE		[
-				none/make-in parent
+				cell: as cell! none/make-in parent
+				;CHECK-NEWLINE
 				data + 1
 			]
 			TYPE_LOGIC		[
-				logic/make-in parent as logic! data/2
+				cell: as cell! logic/make-in parent as logic! data/2
+				;CHECK-NEWLINE
 				data + 2
 			]
 			TYPE_MAP		[decode-map data table parent]
@@ -388,6 +404,11 @@ redbin: context [
 			TYPE_VECTOR
 			REDBIN_REFERENCE [
 				--NOT_IMPLEMENTED--
+				data
+			]
+			default [
+				print ["Redbin format invalide, header=" data/1 lf] 
+				halt
 				data
 			]
 		]
