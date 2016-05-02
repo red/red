@@ -401,7 +401,7 @@ block: context [
 			head  [red-value!]
 			tail  [red-value!]
 			value [red-value!]
-			lf?	  [logic!]	;-- newline detected?
+			lf?	  [logic!]
 	][
 		s: GET_BUFFER(blk)
 		head:  s/offset + blk/head
@@ -419,14 +419,11 @@ block: context [
 			depth: depth + 1
 			unless cycles/detect? value buffer :part yes [
 				unless flat? [
-					if value/header and 40000000h <> 0 [ ;-- new-line marker
+					if value/header and flag-new-line <> 0 [ ;-- new-line marker
 						unless lf? [lf?: on indent: indent + 1]
 						string/append-char GET_BUFFER(buffer) as-integer lf
-						part: part - 1
-						loop indent [
-							string/concatenate-literal buffer "    "
-							part: part - 4
-						]
+						loop indent [string/concatenate-literal buffer "    "]
+						part: part - (indent * 4 + 1) 		;-- account for lf
 					]
 				]
 				part: actions/mold value buffer only? all? flat? arg part indent
@@ -447,11 +444,8 @@ block: context [
 		]
 		if lf? [
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
-			loop indent - 1 [
-				string/concatenate-literal buffer "    "
-				part: part - 4
-			]
+			loop indent [string/concatenate-literal buffer "    "]
+			part: part - (indent * 4 + 1) 		;-- account for lf
 		]
 		part
 	]

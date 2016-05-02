@@ -7,6 +7,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;-- Path NEW-LINE native to accept paren! --
+append third third :new-line paren!
+
 lexer: context [
 	verbose: 0
 	
@@ -20,6 +23,7 @@ lexer: context [
 	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
+	series: none									;-- temporary hold last stack series
 	value:	none									;-- new value
 	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
@@ -108,7 +112,9 @@ lexer: context [
 		pos: #"^/" (
 			if count? [
 				line: line + 1 
-				append/only lines to block! stack/tail?
+				;append/only lines stack/tail?
+				;new-line stack/tail? yes
+				stack/nl?: yes
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
@@ -160,7 +166,7 @@ lexer: context [
 	
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
-			stack/allocate
+			stack/allocate block! 4
 			stack/push to type copy/part s e		;-- push 1st path element
 		)
 		some [
@@ -168,13 +174,21 @@ lexer: context [
 			s: [
 				integer-number-rule
 				| begin-symbol-rule			(type: word!)
-				| paren-rule				(type: paren!)
+				| paren-rule 				(type: paren!)
 				| #":" s: begin-symbol-rule	(type: get-word!)
 				;@@ add more datatypes here
-			] (unless type = paren! [stack/push to type copy/part s e])
-		] (type: path!)
+			] (
+				stack/push either type = paren! [	;-- append path element
+					value
+				][
+					to type copy/part s e
+				]
+				type: path!
+			)
+		]
 		opt [#":" (type: set-path!)]
-		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters
+		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters				
+		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
@@ -182,16 +196,18 @@ lexer: context [
 		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
-			| path-rule (stack/pop type)
+			| path-rule 							;-- path matched
 			| (value: copy/part s e)				;-- word matched
 			  opt [#":" (type: set-word!)]
 		] 
 	]
 	
 	get-word-rule: [
-		#":" s: (type: get-word!) begin-symbol-rule [
-			path-rule (stack/pop path!)		;-- has get-path! syntax
-			| e: (
+		#":" (type: get-word!) s: begin-symbol-rule [
+			path-rule (
+				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
+			)
+			| (
 				type: get-word!
 				value: copy/part s e				;-- word matched
 			)
@@ -200,12 +216,19 @@ lexer: context [
 	
 	lit-word-rule: [
 		#"'" (type: word!) s: begin-symbol-rule [
-			path-rule (stack/pop lit-path!)
+			path-rule (type: lit-path!)				;-- path matched
 			| (
 				type: lit-word!
 				value: copy/part s e				;-- word matched
 			)
 		][s: #":" :s (throw-error) | none]
+	]
+	
+	map-rule: [
+		"#(" (stack/allocate block! 10) any-value #")" (
+			stack/push/head #!map!
+			value: stack/pop block!
+		)
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
@@ -271,18 +294,9 @@ lexer: context [
 		sticky-word-rule
 	]
 		
-	block-rule: [
-		#"[" (stack/allocate) any-value #"]" (stack/pop block!)
-	]
+	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule:	[
-		#"(" (stack/allocate) any-value #")" (stack/pop paren!)
-	]
-
-	map-rule: [
-		"#(" (stack/allocate) any-value #")"
-		(stack/set-prefix #!map! stack/pop block!)
-	]
+	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -414,35 +428,26 @@ lexer: context [
 			| binary-rule	  (stack/push load-binary s e base)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
-			| word-rule		  (if value [stack/push to type value])
-			| lit-word-rule	  (if value [stack/push to type value])
-			| get-word-rule	  (if value [stack/push to type value])
+			| word-rule		  (stack/push to type value)
+			| lit-word-rule	  (stack/push to type value)
+			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
-			| block-rule
-			| paren-rule
+			| block-rule	  (stack/push value)
+			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| map-rule
+			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 		]
 	]
 	
-	any-value: [pos: any [
-		literal-value (
-			all [
-				line > old-line
-				old-line: line 
-				new-line back tail last stack/stk on
-			] 
-		)
-		| ws
-	]]
+	any-value: [pos: any [literal-value | ws]]
 
 	header: [
 		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
-		any-ws block-rule
+		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
 
@@ -457,40 +462,48 @@ lexer: context [
 	
 	stack: context [
 		stk: []
-
-		set-prefix: func [value][
-			insert/only last stk :value
+		nl?: no
+		
+		allocate: func [type [datatype!] size [integer!] /local new pos][
+			pos: insert/only tail stk new: make type size
+			;if nl? [new-line back tail pos yes nl?: no]
+			new
 		]
 		
-		push: func [value][
-			insert/only tail last stk :value
-		]
-
-		pop: func [
-			;-- following a call to stack/allocate
-			;-- preserve newline mark
-			type [datatype!]
-			/local stk nl?
-		][
-			value: none
-			old-line: line
-			nl?: new-line? stk: back tail stack/stk
-			new-line 
-				back insert/only tail pick stk -1 
-					either block! = type [first stk][to type first stk]
-				nl? 
-			clear stk 
-		]
-
-		allocate: does [
-			first new-line 
-				back insert/only 
-					tail stk 
-					make block! 10 
-				to logic! all [line > old-line old-line: line]
+		push: func [value /head][
+			;either any [value = block! value = paren! value = path!][
+			;	if value = path! [value: block!]
+			;	insert/only tail stk value: make value 1
+			;	value
+			;][
+			;if line > old-line [
+			;	old-line: line 
+			;	nl?: on
+				;if any [block? :value paren? :value][
+				;new-line :value on nl?: off
+				;]
+			;]
+			either head [
+				value: insert/only last stk :value
+			][
+				value: insert/only tail last stk :value
+				if nl? [new-line back tail value yes nl?: no]
+			]
+			;]
+			;if nl? [new-line back value on]
+			value
 		]
 		
-		tail?: does [tail last stk] ;-- ???
+		pop: func [type [datatype!]][
+			if any [type = path! type = set-path!][type: block!]
+			
+			if type <> type? last stk [
+				throw-error/with ["invalid" mold type "closing delimiter"]
+			]
+			also last stk remove back tail stk
+		]
+		
+		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
 	
@@ -507,7 +520,7 @@ lexer: context [
 		either encap? [quit][halt]
 	]
 
-	add-line-markers: func [blk [block!]][	
+	add-line-markers: func [blk [block!]][
 		foreach pos lines [new-line pos yes]
 		clear lines
 	]
@@ -659,11 +672,11 @@ lexer: context [
 		old-line: line: 1
 		count?: yes
 		
-		blk: stack/allocate						;-- root block
+		blk: stack/allocate block! 100				;-- root block
 
 		unless parse/all/case src program [throw-error]
 		
-		add-line-markers blk
+		;add-line-markers blk
 		stack/reset
 		blk
 	]

@@ -311,26 +311,17 @@ system/lexer: context [
 	]
 
 	new-line: routine [
-    	"Sets or clears the new-line marker within a block."
-		blk  [series!] "Position in serie to change marker"
-		set? [logic!] "Set TRUE for newline"
-		all?  [logic!] "apply to all serie"
+		blk [block!]
 		/local
-			s		[series!]
-			cell	[red-value!]
+			s	 [series!]
+			cell [red-value!]
 	][
-		if any [TYPE_OF(blk) = TYPE_BLOCK TYPE_OF(blk) = TYPE_PAREN][
-			s: GET_BUFFER(blk)
-			cell: s/offset + blk/head
-			while [cell < s/tail][
-				either set? [
-					cell/header: cell/header or 40000000h
-				][
-					cell/header: cell/header and not 40000000h
-				]
-				unless all? [break]
-				cell: cell + 1
-			]
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		
+		while [cell < s/tail][
+			cell/header: cell/header or flag-new-line
+			cell: cell + 1
 		]
 	]
 	
@@ -702,25 +693,32 @@ system/lexer: context [
 				value: back tail stack
 				value/1: make map! value/1
 				pop stack
+				old-line: line
 			)
 		]
 
 		block-rule: [
 			#"[" (
-				append/only stack make block! 100 
-				if line > old-line [old-line: line new-line back tail stack on off]
+				append/only stack make block! 100
+				if line > old-line [old-line: line new-line back tail stack]
 			)
 			any-value
-			#"]" (pop stack)
+			#"]" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		paren-rule: [
 			#"(" (
-				append/only stack make paren! 4 
-				if line > old-line [old-line: line new-line back tail stack on off]
+				append/only stack make paren! 4
+				if line > old-line [old-line: line new-line back tail stack]
 			)
 			any-value 
-			#")" (pop stack)
+			#")" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		escaped-rule: [
@@ -757,7 +755,7 @@ system/lexer: context [
 			] pos: any ws #"]"
 		]
 
-		comment-rule: [#";" [to lf | to end]]
+		comment-rule: [#";" [to lf | to end] (old-line: line)]
 
 		wrong-delimiters: [
 			pos: [
@@ -770,36 +768,32 @@ system/lexer: context [
 		literal-value: [
 			pos: (e: none) s: [
 				 string-rule		(store stack do make-string)
-				| block-rule		(old-line: line)
-				| comment-rule		(old-line: line)
+				| block-rule
+				| comment-rule
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
-				| binary-rule		if (value: make-binary s e base) (store stack value )
-				| integer-rule		if (value) (store stack value )
-				| float-rule		if (value: make-float s e type) (store stack value )
+				| binary-rule		if (value: make-binary s e base) (store stack value)
+				| integer-rule		if (value) (store stack value)
+				| float-rule		if (value: make-float s e type) (store stack value)
 				| word-rule
 				| lit-word-rule
 				| get-word-rule
 				| refinement-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
-				| map-rule			(old-line: line)
-				| paren-rule		(old-line: line)
+				| map-rule
+				| paren-rule
 				| escaped-rule		(store stack value)
 				| issue-rule
-			]
+			](
+				if line > old-line [
+					old-line: line 
+					new-line back tail last stack
+				]
+			)
 		]
 
-		any-value: [
-			pos: any [
-				some ws | literal-value (
-					if line > old-line [
-						old-line: line 
-						new-line back tail last stack on off
-					]
-				)
-			]
-		]
+		any-value: [pos: any [some ws | literal-value]]
 
 		red-rules: [any-value opt wrong-delimiters]
 

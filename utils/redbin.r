@@ -7,6 +7,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;-- extend NEW-LINE? to accept paren!
+append third third :new-line? paren!
+
 context [
 	header:		make binary! 10'000
 	buffer:		make binary! 200'000
@@ -23,8 +26,9 @@ context [
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
 	decoded: 	make string! 10'000
-	lf-flag:	shift/left 1 31		;-- header's new-line flag
-	
+	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
+	nl?:		no
+
 	profile: func [blk /local pos][
 		foreach item blk [
 			unless pos: find/skip stats type? :item 2 [
@@ -84,8 +88,8 @@ context [
 	
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
 	
-	emit-type: func [type [word!] lf? /unit n [integer!]][
-		emit extracts/definitions/:type or either lf? [lf-flag][0]
+	emit-type: func [type [word!] /unit n [integer!]][
+		emit extracts/definitions/:type or either nl? [nl-flag][0]
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
@@ -100,32 +104,32 @@ context [
 		]
 	]
 	
-	emit-unset: does [emit-type 'TYPE_UNSET off]
+	emit-unset: does [emit-type 'TYPE_UNSET]
 
-	emit-none: func [lf?][emit-type 'TYPE_NONE lf?]
+	emit-none: does [emit-type 'TYPE_NONE]
 	
-	emit-datatype: func [type [datatype! word!] lf?][
+	emit-datatype: func [type [datatype! word!]][
 		unless word? type [type: to word! mold type]
-		emit-type 'TYPE_DATATYPE lf?
+		emit-type 'TYPE_DATATYPE
 		emit extracts/definitions/:type
 	]
 	
-	emit-logic: func [value [logic!] lf?][
-		emit-type 'TYPE_LOGIC lf?
+	emit-logic: func [value [logic!]][
+		emit-type 'TYPE_LOGIC
 		emit to integer! value
 	]
 	
-	emit-float: func [value [decimal!] lf? /local bin][
+	emit-float: func [value [decimal!] /local bin][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT lf?
+		emit-type 'TYPE_FLOAT
 		bin: IEEE-754/to-binary64 value
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
 	
-	emit-fp-special: func [value [issue!] lf?][
+	emit-fp-special: func [value [issue!]][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT lf?
+		emit-type 'TYPE_FLOAT
 		switch next value [
 			#INF  [emit to integer! #{7FF00000} emit 0]
 			#INF- [emit to integer! #{FFF00000} emit 0]
@@ -134,37 +138,37 @@ context [
 		]
 	]
 
-	emit-percent: func [value [issue!] lf? /local bin][
+	emit-percent: func [value [issue!] /local bin][
 		pad buffer 8
-		emit-type 'TYPE_PERCENT lf?
+		emit-type 'TYPE_PERCENT
 		value: to decimal! to string! copy/part value back tail value
 		bin: IEEE-754/to-binary64 value / 100.0
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
 	]
 
-	emit-char: func [value [integer!] lf?][
-		emit-type 'TYPE_CHAR lf?
+	emit-char: func [value [integer!]][
+		emit-type 'TYPE_CHAR
 		emit value
 	]
 	
-	emit-integer: func [value [integer!] lf?][
-		emit-type 'TYPE_INTEGER lf?
+	emit-integer: func [value [integer!]][
+		emit-type 'TYPE_INTEGER
 		emit value
 	]
 
-	emit-pair: func [value [pair!] lf?][
-		emit-type 'TYPE_PAIR lf?
+	emit-pair: func [value [pair!]][
+		emit-type 'TYPE_PAIR
 		emit value/x
 		emit value/y
 	]
 
-	emit-tuple: func [value [tuple!] lf? /local bin size n header][
+	emit-tuple: func [value [tuple!] /local bin size n header][
 		bin: make binary! 12
 		bin: insert/dup bin null 3
 		size: length? value
 		header: extracts/definitions/TYPE_TUPLE or shift/left size 8
-		if lf? [header: header or lf-flag]
+		if nl? [header: header or nl-flag]
 		
 		emit header
 		n: 0
@@ -180,18 +184,18 @@ context [
 	]
 
 	emit-op: func [spec [any-word!]][
-		emit-type 'TYPE_OP off
+		emit-type 'TYPE_OP
 		emit-symbol spec
 	]
 	
 	emit-native: func [id [word!] spec [block!] /action][
-		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action off
+		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action
 		emit extracts/definitions/:id
-		emit-block/sub spec off
+		emit-block/sub spec
 	]
 	
-	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] lf? /root][
-		emit-type 'TYPE_TYPESET lf?
+	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] /root][
+		emit-type 'TYPE_TYPESET
 		emit v1
 		emit v2
 		emit v3
@@ -203,7 +207,7 @@ context [
 		index - 1
 	]
 
-	emit-string: func [str [any-string!] lf? /root /local type unit header][
+	emit-string: func [str [any-string!] /root /local type unit header][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
@@ -213,7 +217,7 @@ context [
 
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
 		header: extracts/definitions/:type or shift/left unit 8
-		if lf? [header: header or lf-flag]
+		if nl? [header: header or nl-flag]
 
 		emit header
 		emit (index? str) - 1								 ;-- head
@@ -228,8 +232,8 @@ context [
 		index - 1
 	]
 	
-	emit-issue: func [value [issue!] lf?][
-		emit-type 'TYPE_ISSUE lf?
+	emit-issue: func [value [issue!]][
+		emit-type 'TYPE_ISSUE
 		emit-symbol to word! form value
 	]
 	
@@ -247,7 +251,7 @@ context [
 	]
 	
 	emit-word: func [
-		word ctx [word! none!] ctx-idx [integer! none!] lf? /root /set?
+		word ctx [word! none!] ctx-idx [integer! none!] /root /set?
 		/local type idx header
 	][
 		type: select [
@@ -260,7 +264,7 @@ context [
 		
 		header: extracts/definitions/:type
 		if set? [header: header or shift/left 1 27]
-		if lf? [header: header or lf-flag]
+		if nl? [header: header or nl-flag]
 		emit header
 		emit-symbol word
 		idx: emit-ctx-info word ctx
@@ -272,8 +276,8 @@ context [
 	]
 	
 	emit-block: func [
-		blk [any-block!] lf? /with main-ctx [word!] /sub
-		/local type item binding ctx idx emit?
+		blk [any-block!] /with main-ctx [word!] /sub
+		/local type item binding ctx idx emit? multi-line?
 	][
 		if profile? [profile blk]
 		
@@ -296,7 +300,7 @@ context [
 			set-path!	TYPE_SET_PATH
 			get-path	TYPE_GET_PATH
 			map			TYPE_MAP
-		] type lf?
+		] type
 		
 		preprocess-directives blk
 		unless type = 'map [emit (index? blk) - 1]		;-- head field
@@ -304,21 +308,22 @@ context [
 		if all [not sub debug?][
 			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
 		]
-		
+		nl?: no
+		multi-line?: any [block? blk paren? blk]
+
 		forall blk [
-			lf?: if block? blk [new-line? blk]
-			;if lf? [?? blk halt]
+			if multi-line? [nl?: new-line? blk]
 			item: blk/1
 			either any-block? :item [
 				either with [
-					emit-block/sub/with :item lf? main-ctx 
+					emit-block/sub/with :item main-ctx 
 				][
-					emit-block/sub :item lf?
+					emit-block/sub :item
 				]
 			][
 				emit?: case [
 					unicode-char? :item [
-						emit-char to integer! next item lf?
+						emit-char to integer! next item
 						no
 					]
 					any-word? :item [
@@ -334,11 +339,11 @@ context [
 						yes
 					]
 					percent-value? :item [
-						emit-percent item lf?
+						emit-percent item
 						no
 					]
 					float-special? :item [
-						emit-fp-special item lf?
+						emit-fp-special item
 						no
 					]
 					'else [yes]
@@ -350,25 +355,26 @@ context [
 						set-word!
 						lit-word!
 						refinement!
-						get-word! [emit-word :item ctx idx lf?]
+						get-word! [emit-word :item ctx idx]
 						file!
 						url!
 						string!
-						binary!   [emit-string item lf?]
-						issue!	  [emit-issue item lf?]
-						integer!  [emit-integer item lf?]
-						decimal!  [emit-float item lf?]
-						char!	  [emit-char to integer! item lf?]
-						pair!	  [emit-pair item lf?]
-						tuple!	  [emit-tuple item lf?]
-						datatype! [emit-datatype item lf?]
-						logic!	  [emit-logic item lf?]
-						none! 	  [emit-none lf?]
+						binary!   [emit-string item]
+						issue!	  [emit-issue item]
+						integer!  [emit-integer item]
+						decimal!  [emit-float item]
+						char!	  [emit-char to integer! item]
+						pair!	  [emit-pair item]
+						tuple!	  [emit-tuple item]
+						datatype! [emit-datatype item]
+						logic!	  [emit-logic item]
+						none! 	  [emit-none]
 						unset! 	  [emit-unset]
 					]
 				]
 			]
 		]
+		nl?: no
 		if type = 'map [insert blk #!map!]
 		unless sub [index: index + 1]
 		index - 1										;-- return the block index

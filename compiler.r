@@ -635,7 +635,7 @@ red: context [
 			]
 			forall ts [ts/1: to integer! to-bin32 ts/1]	;-- convert to little-endian values
 			
-			idx: redbin/emit-typeset/root ts/1 ts/2 ts/3 off
+			idx: redbin/emit-typeset/root ts/1 ts/2 ts/3
 			redirect-to literals [
 				name: decorate-series-var 'ts
 				emit compose [(to set-word! name) as red-typeset! get-root (idx)]
@@ -1359,7 +1359,7 @@ red: context [
 			container-obj?
 		]
 		path: first paths-stack
-		blk-idx: redbin/emit-block path off
+		blk-idx: redbin/emit-block path
 		
 		if frame?: all [
 			not emit-path-func body octx cnt: get-counter
@@ -1484,9 +1484,9 @@ red: context [
 		make-block: [
 			value: to block! value
 			either empty? ctx-stack [
-				redbin/emit-block value off
+				redbin/emit-block value
 			][
-				redbin/emit-block/with value off last ctx-stack
+				redbin/emit-block/with value last ctx-stack
 			]
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
@@ -1517,7 +1517,7 @@ red: context [
 					insert-lf -3
 				]
 				map? [
-					emit compose [map/push as red-hash! get-root (redbin/emit-block value off)]
+					emit compose [map/push as red-hash! get-root (redbin/emit-block value)]
 					insert-lf -3
 				]
 				decimal? :value [
@@ -1612,13 +1612,13 @@ red: context [
 					insert-lf -3
 				]
 				string!	file! url! [
-					idx: redbin/emit-string/root value off
+					idx: redbin/emit-string/root value
 					emit to path! reduce [to word! form type? value 'push]
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
 				]
 				binary!	[
-					idx: redbin/emit-string/root value off
+					idx: redbin/emit-string/root value
 					emit 'binary/push
 					emit compose [as red-binary! get-root (idx)]
 					insert-lf -5
@@ -2180,9 +2180,9 @@ red: context [
 				add-global word
 			]
 			idx: either ctx: find-contexts to word! blk/1 [
-				redbin/emit-block/with blk off ctx 
+				redbin/emit-block/with blk ctx
 			][
-				redbin/emit-block blk off
+				redbin/emit-block blk
 			]
 		][
 			add-symbol word: pc/1
@@ -2450,7 +2450,7 @@ red: context [
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
 		ctx-idx: redbin/emit-context/root ctx symbols yes no
-		spec-idx: redbin/emit-block spec off
+		spec-idx: redbin/emit-block spec
 		redirect-to literals [
 			emit compose [
 				(to set-word! ctx) get-root-node (ctx-idx) ;-- build context with value on stack
@@ -2468,7 +2468,7 @@ red: context [
 		bind-function body shadow
 		
 		body-code: either job/red-store-bodies? [
-			body-idx: redbin/emit-block body off
+			body-idx: redbin/emit-block body
 			reduce ['get-root body-idx]
 		][
 			[null]
@@ -2523,9 +2523,9 @@ red: context [
 			process-routine-calls body ctx/1 spec select-object ctx/1
 		]
 		clear find spec*: copy spec /local
-		spec-idx: redbin/emit-block spec* off
+		spec-idx: redbin/emit-block spec*
 		body-idx: either job/red-store-bodies? [
-			reduce [redbin/emit-block body off]
+			reduce [redbin/emit-block body]
 		][
 			-1
 		]
@@ -2613,7 +2613,7 @@ red: context [
 				to block! skip (cnt: cnt + 1)
 			]
 		]
-		idx: redbin/emit-block list off
+		idx: redbin/emit-block list
 		
 		emit-open-frame 'select							;-- SWITCH lookup frame
 		emit compose [block/push get-root (idx)]
@@ -3203,8 +3203,8 @@ red: context [
 		switch/default pc/2 [
 			datatype! [
 				either pc/3 = #get-definition [
-					redbin/emit-word/set? name none none off
-					redbin/emit-datatype pc/4 off
+					redbin/emit-word/set? name none none
+					redbin/emit-datatype pc/4
 					pc: skip pc 4
 					yes
 				][
@@ -3214,7 +3214,7 @@ red: context [
 			action!
 			native! [
 				either pc/3/2 = #get-definition [
-					redbin/emit-word/set? name none none off
+					redbin/emit-word/set? name none none
 					either pc/2 = 'action! [
 						redbin/emit-native/action pc/3/3 pc/3/1
 					][
