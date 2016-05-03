@@ -2394,8 +2394,11 @@ red: context [
 			]
 		]
 		unless empty? words [
+			pos: tail spec
 			unless find spec /local [append spec /local]
 			append spec words
+			new-line pos yes
+			new-line/all next pos no
 		]
 	]
 	

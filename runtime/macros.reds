@@ -225,6 +225,8 @@ Red/System [
 	NAT_REQUEST_DIR
 	NAT_CHECKSUM
 	NAT_UNSET
+	NAT_NEW_LINE
+	NAT_NEW_LINE?
 ]
 
 #enum math-op! [

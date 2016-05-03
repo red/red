@@ -23,7 +23,9 @@ context [
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
 	decoded: 	make string! 10'000
-	
+	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
+	nl?:		no
+
 	profile: func [blk /local pos][
 		foreach item blk [
 			unless pos: find/skip stats type? :item 2 [
@@ -84,7 +86,7 @@ context [
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
 	
 	emit-type: func [type [word!] /unit n [integer!]][
-		emit select extracts/definitions type
+		emit extracts/definitions/:type or either nl? [nl-flag][0]
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
@@ -158,11 +160,14 @@ context [
 		emit value/y
 	]
 
-	emit-tuple: func [value [tuple!] /local bin size n][
+	emit-tuple: func [value [tuple!] /local bin size n header][
 		bin: make binary! 12
 		bin: insert/dup bin null 3
 		size: length? value
-		emit extracts/definitions/TYPE_TUPLE or shift/left size 8 ;-- header
+		header: extracts/definitions/TYPE_TUPLE or shift/left size 8
+		if nl? [header: header or nl-flag]
+		
+		emit header
 		n: 0
 		until [
 			n: n + 1
@@ -199,7 +204,7 @@ context [
 		index - 1
 	]
 
-	emit-string: func [str [any-string!] /root /local type unit][
+	emit-string: func [str [any-string!] /root /local type unit header][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
@@ -208,7 +213,10 @@ context [
 		] type?/word str
 
 		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
-		emit extracts/definitions/:type or shift/left unit 8 ;-- header
+		header: extracts/definitions/:type or shift/left unit 8
+		if nl? [header: header or nl-flag]
+
+		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
 		append buffer str
@@ -253,6 +261,7 @@ context [
 		
 		header: extracts/definitions/:type
 		if set? [header: header or shift/left 1 27]
+		if nl? [header: header or nl-flag]
 		emit header
 		emit-symbol word
 		idx: emit-ctx-info word ctx
@@ -265,7 +274,7 @@ context [
 	
 	emit-block: func [
 		blk [any-block!] /with main-ctx [word!] /sub
-		/local type item binding ctx idx emit?
+		/local type item binding ctx idx emit? multi-line?
 	][
 		if profile? [profile blk]
 		
@@ -296,8 +305,11 @@ context [
 		if all [not sub debug?][
 			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
 		]
-		
+		nl?: no
+		multi-line?: any [block? blk paren? blk]
+
 		forall blk [
+			if multi-line? [nl?: new-line? blk]
 			item: blk/1
 			either any-block? :item [
 				either with [
@@ -359,6 +371,7 @@ context [
 				]
 			]
 		]
+		nl?: no
 		if type = 'map [insert blk #!map!]
 		unless sub [index: index + 1]
 		index - 1										;-- return the block index

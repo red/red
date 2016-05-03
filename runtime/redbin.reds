@@ -52,6 +52,7 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			cell  [red-native!]
@@ -73,9 +74,10 @@ redbin: context [
 				as red-value! cell
 		][
 			spec: as red-block! block/rs-tail parent
-			data: decode-block data table parent
+			data: decode-block data table parent off
 
 			cell/header: type								;-- implicit reset of all header flags
+			if nl? [cell/header: cell/header or flag-new-line]
 			cell/spec:	 spec/node
 			cell/args:	 null
 			either type = TYPE_ACTION [
@@ -91,9 +93,11 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
+			cell [cell!]
 			size [integer!]
 			sz   [integer!]
 	][
@@ -108,7 +112,8 @@ redbin: context [
 			data: decode-value data table blk
 			size: size - 1
 		]
-		map/make-at as red-value! blk blk sz
+		cell: as cell! map/make-at as red-value! blk blk sz
+		if nl? [cell/header: cell/header or flag-new-line]
 		data
 	]
 	
@@ -172,6 +177,7 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			w	[red-word!]
@@ -180,6 +186,7 @@ redbin: context [
 		sym: table + data/2
 		w: as red-word! ALLOC_TAIL(parent)
 		w/header: TYPE_ISSUE
+		if nl? [w/header: w/header or flag-new-line]
 		w/symbol: sym/1
 		data + 2
 	]
@@ -188,6 +195,7 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			new	   [red-word!]
@@ -202,6 +210,7 @@ redbin: context [
 		sym: table + data/2								;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
 		new/header: data/1 and FFh
+		if nl? [new/header: new/header or flag-new-line]
 		new/symbol: sym/1
 		set?: data/1 and REDBIN_SET_MASK <> 0
 		
@@ -229,7 +238,7 @@ redbin: context [
 			_context/set new block/rs-abs-at root offset
 			s: GET_BUFFER(parent)
 			offset: offset - 1
-			s/tail: s/offset + offset				;-- drop unwanted values in parent
+			s/tail: s/offset + offset					;-- drop unwanted values in parent
 		]
 		data
 	]
@@ -237,6 +246,7 @@ redbin: context [
 	decode-string: func [
 		data	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local str header unit size s
 	][
@@ -245,7 +255,8 @@ redbin: context [
 		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
-		str/header: header and FFh					;-- implicit reset of all header flags
+		str/header: header and FFh						;-- implicit reset of all header flags
+		if nl? [str/header: str/header or flag-new-line]
 		str/head: 	data/2
 		str/node: 	alloc-bytes size
 		
@@ -266,6 +277,7 @@ redbin: context [
 		data	[int-ptr!]
 		table	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
 		/local
 			blk  [red-block!]
@@ -280,6 +292,7 @@ redbin: context [
 		blk: block/make-in parent sz
 		blk/head: data/2
 		blk/header: data/1 and FFh
+		if nl? [blk/header: blk/header or flag-new-line]
 		data: data + 3
 		
 		while [size > 0][
@@ -292,12 +305,16 @@ redbin: context [
 	decode-tuple: func [
 		data	[int-ptr!]
 		parent	[red-block!]
+		nl?		[logic!]
 		return: [int-ptr!]
-		/local tuple size
+		/local
+			tuple [red-tuple!]
+			size  [integer!]
 	][
 		size: data/1 >>> 8 and FFh
 		tuple: as red-tuple! ALLOC_TAIL(parent)
 		tuple/header: TYPE_TUPLE or (size << 19)
+		if nl? [tuple/header: tuple/header or flag-new-line]
 		tuple/array1: data/2
 		tuple/array2: data/3
 		tuple/array3: data/4
@@ -309,23 +326,28 @@ redbin: context [
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local type
+		/local 
+			type [integer!]
+			cell [cell!]
+			nl?	 [logic!]
 	][
 		type: data/1 and FFh
+		nl?:  data/1 and 80000000h <> 0
 		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
 		
-		switch type [
+		cell: null
+		data: switch type [
 			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_GET_WORD
-			TYPE_REFINEMENT [decode-word data table parent]
+			TYPE_REFINEMENT [decode-word data table parent nl?]
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
-			TYPE_BINARY		[decode-string data parent]
+			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[
-				integer/make-in parent data/2
+				cell: as cell! integer/make-in parent data/2
 				data + 2
 			]
 			TYPE_PATH
@@ -333,50 +355,50 @@ redbin: context [
 			TYPE_SET_PATH
 			TYPE_GET_PATH
 			TYPE_BLOCK
-			TYPE_PAREN		[decode-block data table parent]
+			TYPE_PAREN		[decode-block data table parent nl?]
 			TYPE_CONTEXT	[decode-context data table parent]
-			TYPE_ISSUE		[decode-issue data table parent]
+			TYPE_ISSUE		[decode-issue data table parent nl?]
 			TYPE_TYPESET	[
-				typeset/make-in parent data/2 data/3 data/4
+				cell: as cell! typeset/make-in parent data/2 data/3 data/4
 				data + 4
 			]
 			TYPE_FLOAT	[
-				float/make-in parent data/2 data/3
+				cell: as cell! float/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_PERCENT [
-				percent/make-in parent data/2 data/3
+				cell: as cell! percent/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_CHAR		[
-				char/make-in parent data/2
+				cell: as cell! char/make-in parent data/2
 				data + 2
 			]
 			TYPE_DATATYPE	[
-				datatype/make-in parent data/2
+				cell: as cell! datatype/make-in parent data/2
 				data + 2
 			]
 			TYPE_PAIR	[
-				pair/make-in parent data/2 data/3
+				cell: as cell! pair/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_UNSET		[
-				unset/make-in parent
+				cell: as cell! unset/make-in parent
 				data + 1
 			]
 			TYPE_NONE		[
-				none/make-in parent
+				cell: as cell! none/make-in parent
 				data + 1
 			]
 			TYPE_LOGIC		[
-				logic/make-in parent as logic! data/2
+				cell: as cell! logic/make-in parent as logic! data/2
 				data + 2
 			]
-			TYPE_MAP		[decode-map data table parent]
+			TYPE_MAP		[decode-map data table parent nl?]
 			TYPE_NATIVE
 			TYPE_ACTION
-			TYPE_OP			[decode-native data table parent]
-			TYPE_TUPLE		[decode-tuple data parent]
+			TYPE_OP			[decode-native data table parent nl?]
+			TYPE_TUPLE		[decode-tuple data parent nl?]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
@@ -391,6 +413,8 @@ redbin: context [
 				data
 			]
 		]
+		if all [nl? cell <> null][cell/header: cell/header or flag-new-line]
+		data
 	]
 
 	decode: func [

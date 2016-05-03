@@ -763,3 +763,23 @@ unset: make native! [[
 	]
 	#get-definition NAT_UNSET
 ]
+
+new-line: make native! [[
+		"Sets or clears the new-line marker within a block or paren"
+		position [block! paren!] "Position to change marker (modified)"
+		value					 "Set TRUE for newline"
+		/all					 "Set/clear marker to end of series"
+		/skip					 "Set/clear marker periodically to the end of the series"
+		size 	 [integer!]
+		return:  [block! paren!]
+	]
+	#get-definition NAT_NEW_LINE
+]
+
+new-line?: make native! [[
+		"Returns the state of the new-line marker within a block or paren"
+		position [block! paren!] "Position to change marker"
+		return:  [block! paren!]
+	]
+	#get-definition NAT_NEW_LINE?
+]

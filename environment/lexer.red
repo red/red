@@ -310,6 +310,21 @@ system/lexer: context [
 		]
 	]
 
+	new-line: routine [
+		blk [block!]
+		/local
+			s	 [series!]
+			cell [red-value!]
+	][
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		
+		while [cell < s/tail][
+			cell/header: cell/header or flag-new-line
+			cell: cell + 1
+		]
+	]
+	
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
@@ -326,7 +341,7 @@ system/lexer: context [
 		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
-		line: 	1
+		old-line: line: 1
 
 		append/only stack any [dst make block! 200]
 
@@ -678,19 +693,32 @@ system/lexer: context [
 				value: back tail stack
 				value/1: make map! value/1
 				pop stack
+				old-line: line
 			)
 		]
 
 		block-rule: [
-			#"[" (append/only stack make block! 100)
+			#"[" (
+				append/only stack make block! 100
+				if line > old-line [old-line: line new-line back tail stack]
+			)
 			any-value
-			#"]" (pop stack)
+			#"]" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		paren-rule: [
-			#"(" (append/only stack make paren! 4)
+			#"(" (
+				append/only stack make paren! 4
+				if line > old-line [old-line: line new-line back tail stack]
+			)
 			any-value 
-			#")" (pop stack)
+			#")" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		escaped-rule: [
@@ -727,7 +755,7 @@ system/lexer: context [
 			] pos: any ws #"]"
 		]
 
-		comment-rule: [#";" [to lf | to end]]
+		comment-rule: [#";" [to lf | to end] (old-line: line)]
 
 		wrong-delimiters: [
 			pos: [
@@ -757,7 +785,12 @@ system/lexer: context [
 				| paren-rule
 				| escaped-rule		(store stack value)
 				| issue-rule
-			]
+			](
+				if line > old-line [
+					old-line: line 
+					new-line back tail last stack
+				]
+			)
 		]
 
 		any-value: [pos: any [some ws | literal-value]]
