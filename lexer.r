@@ -466,31 +466,18 @@ lexer: context [
 		
 		allocate: func [type [datatype!] size [integer!] /local new pos][
 			pos: insert/only tail stk new: make type size
-			;if nl? [new-line back tail pos yes nl?: no]
+			nl?: no
 			new
 		]
 		
-		push: func [value /head][
-			;either any [value = block! value = paren! value = path!][
-			;	if value = path! [value: block!]
-			;	insert/only tail stk value: make value 1
-			;	value
-			;][
-			;if line > old-line [
-			;	old-line: line 
-			;	nl?: on
-				;if any [block? :value paren? :value][
-				;new-line :value on nl?: off
-				;]
-			;]
+		push: func [value /head /local valid?][
 			either head [
 				value: insert/only last stk :value
 			][
+				valid?: not any [block? :value paren? :value]
 				value: insert/only tail last stk :value
-				if nl? [new-line back tail value yes nl?: no]
+				if all [nl? valid?][new-line back tail value yes nl?: no]
 			]
-			;]
-			;if nl? [new-line back value on]
 			value
 		]
 		

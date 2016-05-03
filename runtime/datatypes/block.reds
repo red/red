@@ -443,6 +443,7 @@ block: context [
 			part: part + 1
 		]
 		if lf? [
+			indent: indent - 1
 			string/append-char GET_BUFFER(buffer) as-integer lf
 			loop indent [string/concatenate-literal buffer "    "]
 			part: part - (indent * 4 + 1) 		;-- account for lf
