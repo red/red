@@ -634,7 +634,7 @@ react: function [
 		parse spec rule: [
 			any [
 				item: [path! | lit-path! | get-path!] (
-					if unset? get/any item: item/1 [
+					if unset? attempt [get/any item: item/1][
 						cause-error 'script 'no-value [item]
 					]
 					obj: none
