@@ -2324,9 +2324,12 @@ red: context [
 	
 	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
 		if pos: find spec /extern [
-			either end: find next pos refinement! [
+			either end: any [
+				find next pos refinement!
+				find next pos set-word!
+			][
 				ignore: copy/part next pos end
-				remove/part spec pos end
+				remove/part pos end
 			][
 				ignore: copy next pos
 				clear pos
