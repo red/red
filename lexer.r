@@ -7,8 +7,10 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-;-- Path NEW-LINE native to accept paren! --
+;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
 append third third :new-line paren!
+append third third :new-line? paren!
+
 
 lexer: context [
 	verbose: 0
@@ -226,7 +228,7 @@ lexer: context [
 	
 	map-rule: [
 		"#(" (stack/allocate block! 10) any-value #")" (
-			stack/push/head #!map!
+			stack/prefix #!map!
 			value: stack/pop block!
 		)
 	]
@@ -466,31 +468,32 @@ lexer: context [
 		
 		allocate: func [type [datatype!] size [integer!] /local new pos][
 			pos: insert/only tail stk new: make type size
-			nl?: no
+			if nl? [new-line back pos yes nl?: no]
 			new
 		]
 		
-		push: func [value /head /local valid?][
-			either head [
-				value: insert/only last stk :value
-			][
-				valid?: not any [block? :value paren? :value]
-				value: insert/only tail last stk :value
-				if all [nl? valid?][new-line back tail value yes nl?: no]
-			]
+		prefix: func [value][insert/only last stk :value]
+		
+		push: func [value][
+			value: insert/only tail last stk :value
+			if nl? [new-line back value yes nl?: no]
 			value
 		]
 		
-		pop: func [type [datatype!]][
-			if any [type = path! type = set-path!][type: block!]
+		pop: func [type [datatype!] /local pos][
+			pos: back tail stk
+			nl?: new-line? pos
 			
-			if type <> type? last stk [
-				throw-error/with ["invalid" mold type "closing delimiter"]
+			either any [type = path! type = set-path!][
+				change/only pos to type pos/1
+			][
+				if type <> type? pos/1 [
+					throw-error/with ["invalid" mold type "closing delimiter"]
+				]
 			]
-			also last stk remove back tail stk
+			also pos/1 remove pos
 		]
 		
-		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
 	

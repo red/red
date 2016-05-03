@@ -7,9 +7,6 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-;-- extend NEW-LINE? to accept paren!
-append third third :new-line? paren!
-
 context [
 	header:		make binary! 10'000
 	buffer:		make binary! 200'000
