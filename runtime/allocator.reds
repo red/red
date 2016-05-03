@@ -34,6 +34,7 @@ Red/System [
 #define flag-native-op		00010000h		;-- operator is made from a native! function
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
+#define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
 #define flag-self-mask		01000000h		;-- mask for self? flag
 #define body-flag			00800000h		;-- flag for op! body node
