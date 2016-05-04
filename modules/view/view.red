@@ -476,7 +476,12 @@ system/view: context [
 #include %draw.red
 #include %VID.red
 
-do-events: function [/no-wait return: [logic!] /local result][
+do-events: function [
+	"Launch the event loop, blocks until all windows are closed"
+	/no-wait			   "Process an event in the queue and returns at once"
+	return: [logic! word!] "Returned value from last event"
+	/local result
+][
 	win: last system/view/screens/1/pane
 	win/state/4: not no-wait							;-- mark the window from which the event loop starts
 	set/any 'result system/view/platform/do-event-loop no-wait
