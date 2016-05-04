@@ -437,14 +437,15 @@ cause-error: function [
 
 pad: func [
 	"Pad a string on right side with spaces"
-	str [string!]		"String to pad"
-	n	[integer!]		"Total size (in characters) of the new string"
-	/left				"Pad the string on left side"
-	return: [string!]	"Modified input string at head"
+	str		[string!]		"String to pad"
+	n		[integer!]		"Total size (in characters) of the new string"
+	/left					"Pad the string on left side"
+	/with c	[char!]			"Pad with char"
+	return:	[string!]		"Modified input string at head"
 ][
 	head insert/dup
 		any [all [left str] tail str]
-		#" "
+		any [c #" "]
 		(n - length? str)
 ]
 
