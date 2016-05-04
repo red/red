@@ -493,10 +493,10 @@ float: context [
 		m: as int-ptr! :value
 		n: m + 1
 		either n/value and 7FF00000h = 7FF00000h [		;-- the exponent bits are all ones
-			either any [								;-- the fraction bits are not entirely zeros
+			any [										;-- the fraction bits are not entirely zeros
 				m/value <> 0
 				n/value and 000FFFFFh <> 0
-			] [true][false]
+			]
 		][false]
 	]
 

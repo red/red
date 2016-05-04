@@ -163,7 +163,7 @@ paste-from-clipboard: func [
 	]
 	CloseClipboard
 	clipboard: null
-	either cp = 13 [true][false]
+	cp = 13
 ]
 
 popup-menu: func [
