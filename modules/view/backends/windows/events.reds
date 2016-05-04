@@ -498,7 +498,7 @@ process-command-event: func [
 	]
 
 	child: as handle! lParam
-	saved: current-msg/hWnd
+	unless null? current-msg [saved: current-msg/hWnd]
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
@@ -563,7 +563,7 @@ process-command-event: func [
 		]
 		default [0]
 	]
-	current-msg/hWnd: saved
+	unless null? current-msg [current-msg/hWnd: saved]
 ]
 
 paint-background: func [
