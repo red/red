@@ -1396,8 +1396,8 @@ fRed [
 		--assert str = " world"
 
 	--test-- "str-rem7"
-		--assert not parse s: " t e s t " [any [remove ws | skip]]
-		--assert s = "t e s t "
+		--assert parse s: " t e s t " [any [remove ws | skip]]
+		--assert s = "test"
 
 	--test-- "str-rem8"
 		--assert parse s: " t e s t " [while [remove ws | skip]]

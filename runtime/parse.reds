@@ -30,15 +30,15 @@ parser: context [
 		p/header: TYPE_POINT
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
-		p/sub:	  0												;-- default value for sub-rule type
+		p/sub:	  len												;-- default value for sub-rule type
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
-		type: TYPE_OF(input)
+		type-i: TYPE_OF(input)
 		word: either any [								;TBD: replace with ANY_STRING?
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
+			type-i = TYPE_STRING
+			type-i = TYPE_FILE
+			type-i = TYPE_URL
 		][
 			string/rs-length? as red-string! input
 		][
@@ -477,6 +477,7 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
+			type-i [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -689,12 +690,14 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
+			type-i	 [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
 			max		 [integer!]
 			s		 [series!]
 			cnt		 [integer!]
+			len		 [integer!]
 			offset	 [integer!]
 			cnt-col	 [integer!]
 			upper?	 [logic!]
@@ -737,6 +740,7 @@ parser: context [
 					check-limits series rules
 					
 					#either debug? = yes [PARSE_PUSH_INPUTPOS][none/make-in rules]
+					PARSE_SET_INPUT_LENGTH(len)
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
 					if all [value <> null value <> rule][
@@ -791,6 +795,7 @@ parser: context [
 						t/max:	  max
 						t/state:  1
 					]
+					PARSE_SET_INPUT_LENGTH(len)
 					PARSE_PUSH_POSITIONS
 					int: as red-integer! ALLOC_TAIL(rules)
 					int/header: TYPE_INTEGER
@@ -823,12 +828,18 @@ parser: context [
 								if all [match? t/max <> R_NONE][ ;-- if rule matched and an upper bound exists,
 									loop?: cnt < t/max			 ;-- but not reached yet, loop again
 								]
+								if all [						 ;-- try to avoid some infinite loops
+									int/value <> R_WHILE
+									input/head = p/input		 ;-- if no input was consumed (except for WHILE)
+								][
+									PARSE_SET_INPUT_LENGTH(len)
+									if len >= p/sub [			 ;-- and if no input was forward-consumed (remove)
+										loop?: no
+										break?: no
+									]
+								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									all [						 ;-- try to avoid some infinite loops
-										int/value <> R_WHILE
-										input/head = p/input	 ;-- if no input was consumed (except for WHILE)
-									]
 									all [end? int/value = R_WHILE] ;-- don't loop on WHILE if no more input
 								][
 									loop?: no
