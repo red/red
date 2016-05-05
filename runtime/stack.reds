@@ -117,8 +117,8 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
 		if ctop = c-end [
-			print-line ["^/*** Error: call stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
@@ -555,8 +555,8 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			print-line ["^/*** Error: arguments stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
 	]
