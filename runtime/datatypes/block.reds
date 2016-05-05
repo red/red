@@ -1248,6 +1248,9 @@ block: context [
 		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
 		
 		s: GET_BUFFER(blk)
+		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
+			blk/head: (as-integer s/tail - s/offset) >> size? cell!
+		]
 		head?: zero? blk/head
 		tail?: any [(s/offset + blk/head = s/tail) append?]
 		slots: part * cnt
