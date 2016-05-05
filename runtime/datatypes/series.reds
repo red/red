@@ -39,7 +39,7 @@ _series: context [
 			index  [red-integer!]
 			s	   [series!]
 			offset [integer!]
-			max	   [integer!]
+			width  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/get-position"]]
 
@@ -53,9 +53,8 @@ _series: context [
 		if all [base = 1 index/value <= 0][base: base - 1]
 		offset: ser/head + index/value - base			;-- index is one-based
 		if negative? offset [offset: 0]
-		max: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
-		if offset > max [offset: max]
-
+		width: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		if offset > width [offset: width]
 		offset
 	]
 
@@ -66,11 +65,13 @@ _series: context [
 		/local
 			s	   [series!]
 			offset [integer!]
+			width  [integer!]
 	][
 		s: GET_BUFFER(ser)
 		offset: either absolute? [0][ser/head]
 		if negative? offset [offset: 0]					;-- @@ beware of symbol/index leaking here...
-		(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) - offset
+		width: (as-integer s/tail - s/offset) >> (log-b GET_UNIT(s))
+		either offset > width [ser/head: width 0][width - offset] ;-- past-end index adjustment
 	]
 
 	;-- Actions --

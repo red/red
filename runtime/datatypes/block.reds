@@ -22,8 +22,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
-		assert (as-integer (s/tail - s/offset)) >> 4 - blk/head >= 0
-		(as-integer (s/tail - s/offset)) >> 4 - blk/head
+		(as-integer (s/tail - s/offset)) >> 4 - blk/head ;-- warning: can be negative for past-end indexes!
 	]
 	
 	rs-next: func [

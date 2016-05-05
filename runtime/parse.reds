@@ -1139,7 +1139,9 @@ parser: context [
 							PARSE_TRACE(_paren)
 							cmd: (block/rs-head rule) + offset	;-- refresh rule pointers,							
 							tail: block/rs-tail rule			;-- in case the block was changed						
-							if cmd >= tail [cmd: tail - 1]	;-- avoid a "past end" state
+							if cmd >= tail [cmd: tail - 1]		;-- avoid a "past end" state						
+							PARSE_SET_INPUT_LENGTH(len)
+							if negative? len [input/head: input/head + len]
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
