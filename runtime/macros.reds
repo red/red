@@ -273,7 +273,7 @@ Red/System [
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
-#either debug? = yes [
+#either verbosity >= 1 [
 	#define ------------| 	print-line
 ][
 	#define ------------| 	comment
