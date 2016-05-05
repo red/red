@@ -19,7 +19,7 @@ system/view/VID: context [
 	default-font: [name "Tahoma" size 9 color 'black]
 	
 	throw-error: func [spec [block!]][
-		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
+		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
 	]
 	
 	react-ctx: context [face: none]
@@ -300,7 +300,7 @@ system/view/VID: context [
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
 				do		[do-safe bind fetch-argument block! spec: next spec panel]
-				return	[do reset]
+				return	[either divides [throw-error spec][do reset]]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
