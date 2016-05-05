@@ -1410,13 +1410,14 @@ parser: context [
 							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
 							
 							value: cmd
-							if TYPE_OF(value) = TYPE_PAREN [
+							pop?: TYPE_OF(value) = TYPE_PAREN
+							if pop? [
 								eval value
 								value: stack/top - 1
 								PARSE_TRACE(_paren)
 							]
 							actions/insert input value null max = 1 null no
-							if TYPE_OF(value) = TYPE_PAREN [stack/pop 1]
+							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
 						]
 						sym = words/end [				;-- END
