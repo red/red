@@ -311,11 +311,17 @@ system/lexer: context [
 	]
 
 	new-line: routine [
-		blk [block!]
+		series [any-type!]
 		/local
+			blk  [red-block!]
 			s	 [series!]
 			cell [red-value!]
 	][
+		assert any [
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+		]
+		blk: as red-block! series
 		s: GET_BUFFER(blk)
 		cell: s/offset + blk/head
 		
