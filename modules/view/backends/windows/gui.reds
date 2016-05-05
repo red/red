@@ -1270,6 +1270,14 @@ change-data: func [
 		type = tab-panel [
 			set-tabs hWnd get-face-values hWnd
 		]
+		type = text-list [
+			if TYPE_OF(data) = TYPE_BLOCK [
+				init-text-list 
+					hWnd
+					as red-block! data
+					as red-integer! values + FACE_OBJ_SELECTED
+			]
+		]
 		any [type = drop-list type = drop-down][
 			str: as red-string! values + FACE_OBJ_TEXT
 			caption: either TYPE_OF(str) = TYPE_STRING [
