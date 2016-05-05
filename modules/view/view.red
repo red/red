@@ -155,6 +155,9 @@ on-face-deep-change*: function [owner word target action new index part state fo
 										face/visible?: no
 										face/parent: owner
 									]
+									if all [owner/type = 'window face/type = 'window][
+										cause-error 'script 'bad-window []
+									]
 									show/with face owner
 									faces: next faces
 									zero? nb: nb - 1
@@ -281,6 +284,9 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
+				if all [type = 'window object? face face/type = 'window][
+					cause-error 'script 'bad-window []
+				]
 				same-pane?: all [block? old block? new same? head old head new]
 				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
 				if all [not same-pane? block? old not empty? old][clear head old]	;-- destroy old faces

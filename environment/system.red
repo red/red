@@ -137,6 +137,7 @@ system: context [
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
 				not-window:			"VIEW - expected a window root face"
+				bad-window:			"VIEW - a window face cannot be nested in another window"
 				not-linked:			"VIEW - face not linked to a window"
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
