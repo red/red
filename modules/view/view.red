@@ -284,7 +284,7 @@ face!: object [				;-- keep in sync with facet! enum
 		]
 		if word <> 'state [
 			if word = 'pane [
-				if all [type = 'window object? face face/type = 'window][
+				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
 				same-pane?: all [block? old block? new same? head old head new]
