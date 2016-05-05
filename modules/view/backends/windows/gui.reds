@@ -612,7 +612,7 @@ get-slider-pos: func [
 		values	[red-value!]
 		size	[red-pair!]
 		pos		[red-float!]
-		int		[integer!]
+		amount	[integer!]
 		divisor [integer!]
 ][
 	values: get-facets msg
@@ -625,10 +625,10 @@ get-slider-pos: func [
 	][
 		percent/rs-make-at as red-value! pos 0.0
 	]
-	int: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+	amount: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
 	divisor: size/x
-	if size/y > size/x [divisor: size/y int: divisor - int]
-	pos/value: (integer/to-float int) / (integer/to-float divisor)
+	if size/y > size/x [divisor: size/y amount: divisor - amount]
+	pos/value: (integer/to-float amount) / (integer/to-float divisor)
 ]
 
 get-screen-size: func [
@@ -1030,6 +1030,8 @@ change-size: func [
 	/local
 		cx	[integer!]
 		cy	[integer!]
+		max [integer!]
+		msg [integer!]
 ][
 	cx: 0
 	cy: 0
@@ -1051,6 +1053,12 @@ change-size: func [
 		if hWnd <> 0 [change-size hWnd size -1]
 	]
 	if type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_SIZE]
+	
+	if any [type = progress type = slider][
+		max: either size/x > size/y [size/x][size/y]
+		msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
+		SendMessage as handle! hWnd msg 0 max			;-- do not force a redraw
+	]
 ]
 
 change-offset: func [

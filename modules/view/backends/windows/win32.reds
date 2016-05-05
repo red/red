@@ -47,7 +47,9 @@ Red/System [
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
 #define TBM_SETRANGE		0406h
+#define TBM_SETRANGEMAX		0408h
 
+#define PBM_SETRANGE		0401h
 #define PBM_SETPOS			0402h
 
 #define TPM_RETURNCMD		0100h
