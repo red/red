@@ -825,8 +825,8 @@ OS-make-view: func [
 		]
 		sym = area [
 			class: #u16 "RedField"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or ES_AUTOVSCROLL]
-			flags: flags or ES_MULTILINE
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
 		sym = text [
