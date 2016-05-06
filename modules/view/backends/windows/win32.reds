@@ -43,6 +43,8 @@ Red/System [
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
 #define DT_SINGLELINE			0020h
+#define DT_EXPANDTABS			0040h
+#define DT_CALCRECT				0400h
 
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
@@ -1061,6 +1063,12 @@ DwmIsCompositionEnabled!: alias function! [
 			nBar		[integer!]
 			lpsi		[tagSCROLLINFO]
 			return:		[integer!]
+		]
+		ShowScrollBar: "ShowScrollBar" [
+			hWnd		[handle!]
+			wBar		[integer!]
+			bShow		[logic!]
+			return:		[logic!]
 		]
 		ShowWindow: "ShowWindow" [
 			hWnd		[handle!]

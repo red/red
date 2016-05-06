@@ -236,6 +236,42 @@ get-text-size: func [
 	size
 ]
 
+update-scrollbars: func [
+	hWnd [handle!]
+	/local
+		values	[red-value!]
+		str		[red-string!]
+		font	[red-object!]
+		hFont	[handle!]
+		saved	[handle!]
+		rc		[RECT_STRUCT]
+		new		[RECT_STRUCT]
+][
+	rc:  declare RECT_STRUCT
+	new: declare RECT_STRUCT
+	values: get-face-values hWnd
+	str: as red-string! values + FACE_OBJ_TEXT
+	
+	either TYPE_OF(str) = TYPE_STRING [
+		font: as red-object! values + FACE_OBJ_FONT
+		hFont: either TYPE_OF(font) = TYPE_OBJECT [
+			get-font-handle font
+		][
+			GetStockObject DEFAULT_GUI_FONT
+		]
+		saved: SelectObject hScreen hFont
+		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
+		SelectObject hScreen saved
+		GetClientRect hWnd rc
+		
+		ShowScrollBar hWnd 0 new/right  >= rc/right		;-- SB_HORZ
+		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
+	][
+		ShowScrollBar hWnd 0 no							;-- SB_HORZ
+		ShowScrollBar hWnd 1 no							;-- SB_VERT
+	]
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -825,7 +861,7 @@ OS-make-view: func [
 		sym = area [
 			class: #u16 "RedField"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
 		sym = text [
@@ -1013,6 +1049,7 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
+		sym = area	 [update-scrollbars handle]
 		sym = window [init-window handle offset size bits]
 		true [0]
 	]
@@ -1051,12 +1088,15 @@ change-size: func [
 		hWnd: GetWindowLong as handle! hWnd wc-offset - 20
 		if hWnd <> 0 [change-size hWnd size -1]
 	]
-	if type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_SIZE]
-	
-	if any [type = progress type = slider][
-		max: either size/x > size/y [size/x][size/y]
-		msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
-		SendMessage as handle! hWnd msg 0 max			;-- do not force a redraw
+	case [
+		any [type = slider type = progress][
+			max: either size/x > size/y [size/x][size/y]
+			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
+			SendMessage as handle! hWnd msg 0 max			;-- do not force a redraw
+		]
+		type = area		 [update-scrollbars as handle! hWnd]
+		type = tab-panel [update-tab-contents as handle! hWnd FACE_OBJ_SIZE]
+		true	  		 [0]
 	]
 ]
 
@@ -1153,6 +1193,7 @@ change-text: func [
 			hWnd: GetWindowLong as handle! hWnd wc-offset - 4
 		]
 		SetWindowText as handle! hWnd text
+		if type = area [update-scrollbars as handle! hWnd]
 	]
 ]
 
