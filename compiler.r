@@ -406,6 +406,7 @@ red: context [
 			][
 				emit 'stack/push						;-- local word
 			]
+			emit decorate-symbol/no-alias name
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			emit case [									;-- global word
@@ -421,8 +422,8 @@ red: context [
 					exit
 				]
 			]
+			emit decorate-symbol name
 		]
-		emit decorate-symbol name
 		insert-lf -2
 	]
 	
