@@ -1429,7 +1429,7 @@ terminal: context [
 							data/head: offset
 							len: len - cnt
 							offset: offset + cnt
-							c-str: unicode/to-utf16-len data :cnt
+							c-str: unicode/to-utf16-len data :cnt no
 							OS-draw-text c-str cnt 0 y win-w char-h
 							y: y + char-h
 						]

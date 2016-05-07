@@ -1345,7 +1345,7 @@ simple-io: context [
 					len		[integer!]
 			][
 				res: as red-value! none-value
-				len: 0
+				len: -1
 				buf-ptr: 0
 				clsid: declare tagGUID
 				async: declare tagVARIANT
@@ -1367,7 +1367,7 @@ simple-io: context [
 					HTTP_POST [
 						action: #u16 "POST"
 						body/data1: VT_BSTR
-						bstr-d: SysAllocString unicode/to-utf16 as red-string! data
+						bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
 						body/data3: as-integer bstr-d
 					]
 					default [--NOT_IMPLEMENTED--]
