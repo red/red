@@ -614,7 +614,7 @@ get-text: func [
 		][
 			SendMessage msg/hWnd CB_GETLBTEXT idx as-integer out
 		]
-		unicode/load-utf16 null size str
+		unicode/load-utf16 null size str yes
 		
 		face: push-face msg/hWnd
 		if TYPE_OF(face) = TYPE_OBJECT [
@@ -1183,7 +1183,7 @@ change-text: func [
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
-		TYPE_STRING [text: unicode/to-utf16 str]
+		TYPE_STRING [text: unicode/to-utf16 str yes]
 		TYPE_NONE	[text: #u16 "^@"]
 		default		[0]									;@@ Auto-convert?
 	]

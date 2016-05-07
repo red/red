@@ -916,7 +916,7 @@ string: context [
 		str/cache:	null
 		switch encoding [
 			UTF-8	 [str/node: unicode/load-utf8 src size]
-			UTF-16LE [str/node: unicode/load-utf16 src size null]
+			UTF-16LE [str/node: unicode/load-utf16 src size null no]
 			default	 [
 				print "*** Loading Error: input encoding unsupported"
 				halt
