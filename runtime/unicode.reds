@@ -397,7 +397,7 @@ unicode: context [
 				return node
 			]
 
-			if all [convert? cp = as-integer cr] [					;-- convert CRLF/CR to LF
+			if all [convert? cp = as-integer cr] [		;-- convert CRLF/CR to LF
 				if all [count - used > 0 src/2 = lf] [
 					count: count - used
 					src: src + used
@@ -519,10 +519,10 @@ unicode: context [
 	]
 	
 	load-utf16: func [ 
-		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
-		size	[integer!]							;-- size of src in codepoints (excluding terminal NUL)
-		str		[red-string!]						;-- optional destination string
-		cr?		[logic!]							;-- yes => remove CR in CRLF sequences
+		src		[c-string!]								;-- UTF-16LE input buffer (zero-terminated)
+		size	[integer!]								;-- size of src in codepoints (excluding terminal NUL)
+		str		[red-string!]							;-- optional destination string
+		cr?		[logic!]								;-- yes => remove CR in CRLF sequences
 		return:	[node!]
 		/local
 			unit [encoding!]
@@ -537,7 +537,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: str/cache							;-- import UTF-16 string from cache
+			src: str/cache								;-- import UTF-16 string from cache
 		]
 		unit: scan-utf16 src size
 		
