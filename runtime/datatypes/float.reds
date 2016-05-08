@@ -230,7 +230,7 @@ float: context [
 			OP_SUB [left - right]
 			OP_MUL [left * right]
 			OP_DIV [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
@@ -238,7 +238,7 @@ float: context [
 				]
 			]
 			OP_REM [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
