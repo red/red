@@ -13,8 +13,9 @@ Red [
 system/lexer: context [
 
 	throw-error: function [spec [block!] /missing][
+		spec: reduce spec
 		src: back tail spec
-		src/1: mold/flat/part get/any src/1 40
+		src/1: mold/flat/part src/1 40
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
@@ -521,24 +522,31 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 
 		base-2-rule: [
-			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
-			(base: 2)
+			"2#{" (type: binary!) [
+				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -3])
+			] (base: 2)
 		]
 
 		base-16-rule: [
-			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
-			(base: 16)
+			opt "16" "#{" (type: binary!) [
+				s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -2])
+			] (base: 16)
 		]
 
 		base-64-rule: [
-			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
-			(base: 64)
+			"64#{" (type: binary!) [
+				s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -4])
+			](
+				cnt: offset? s e
+				if all [0 < cnt cnt < 4][throw-error [binary! skip s -4]]
+				base: 64
+			)
 		]
 
-		binary-rule: [
-			(type: binary!)
-			base-16-rule | base-2-rule | base-64-rule
-		]
+		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
 
 		file-rule: [
 			#"%" [

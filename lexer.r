@@ -365,24 +365,34 @@ lexer: context [
 	string-rule: [line-string | multiline-string]
 
 	base-2-rule: [
-		"2#{" (type: binary!)
-		s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
-		e: #"}" (base: 2)
+		"2#{" (type: binary!) [
+			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			e: #"}" (base: 2)
+			| (pos: skip s -3 throw-error)
+		]
 	]
 	
 	base-16-rule: [
-		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}" (base: 16)
+		opt "16" "#{" (type: binary!) [
+			s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+			e: #"}" (base: 16)
+			| (pos: skip s -2 throw-error)
+		]
 	]
 
 	base-64-rule: [
-		"64#{" (type: binary!)
-		s: any [counted-newline | base64-char | ws-no-count | comment-rule]
-		e: #"}" (base: 64)
+		"64#{" (type: binary!) [
+			s: any [counted-newline | base64-char | ws-no-count | comment-rule]
+			e: #"}" (
+				cnt: offset? s e
+				if all [0 < cnt cnt < 4][pos: skip s -4 throw-error]
+				base: 64
+			)
+			| (pos: skip s -4 throw-error)
+		]
 	]
 
-	binary-rule: [[base-16-rule | base-2-rule | base-64-rule] (old-line: line)]
+	binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 	file-rule: [
 		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
