@@ -1470,7 +1470,7 @@ terminal: context [
 			MacOSX   []
 			FreeBSD  []
 			Syllable []
-			#default []										;-- Linux
+			#default []									;-- Linux
 		]
 	]
 
@@ -1484,7 +1484,9 @@ terminal: context [
 		vt/input?: yes
 		set-prompt vt question
 		refresh vt
-		unless paste-from-clipboard vt yes [
+		either paste-from-clipboard vt yes [
+			loop 3 [gui/do-events yes]					;-- make console respontive
+		][
 			vt/ask?: yes
 			update-caret vt
 			stack/mark-func words/_body
