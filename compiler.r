@@ -1256,7 +1256,9 @@ red: context [
 		if set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
-				emit [stack/push stack/arguments - 1]	;-- get arguments just below the stack record
+				emit [									;-- get arguments just below the stack record
+					if stack/arguments > stack/bottom [stack/push stack/arguments - 1]
+				]
 				insert-lf -4
 			][
 				comp-expression							;-- fetch assigned value (normal case)
