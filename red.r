@@ -464,7 +464,7 @@ redc: context [
 			src: clean-path join base-path src			;-- add working dir path
 		]
 		unless exists? src [
-			fail ["Cannot access source file:" src]
+			fail ["Cannot access source file:" to-local-file src]
 		]
 
 		add-legacy-flags opts
@@ -481,7 +481,7 @@ redc: context [
 		if all [prefix: opts/build-prefix find prefix %/] [
 			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" build-dir]
+				fail ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
 
