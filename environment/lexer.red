@@ -549,8 +549,9 @@ system/lexer: context [
 		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
 
 		file-rule: [
-			#"%" [
-				line-string (process: make-string type: file!)
+			s: #"%" [
+				#"{" (throw-error [file! s])
+				| line-string (process: make-string type: file!)
 				| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
 				  (process: make-file type: file!)
 			]

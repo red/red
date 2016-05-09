@@ -395,8 +395,9 @@ lexer: context [
 	binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 	file-rule: [
-		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
-			#"^"" s: any UTF8-filtered-char e: #"^""
+		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
+			#"{" (throw-error)
+			| #"^"" s: any UTF8-filtered-char e: #"^""
 			| s: any UTF8-filtered-char e:
 		]
 	]
