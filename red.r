@@ -488,7 +488,7 @@ redc: context [
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
-			"Compiling" src "..."
+			"Compiling" to-local-file src "..."
 		]
 
 		unless rs? [
