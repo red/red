@@ -90,7 +90,7 @@ system/console: context [
 		parse buffer [
 			any [
 				escaped
-				| #";" thru lf
+				| remove [#";" [thru lf | to end]]
 				| #"[" (count/1: count/1 + 1)
 				| #"]" (count/1: count/1 - 1)
 				| #"(" (count/3: count/3 + 1)
