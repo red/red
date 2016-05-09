@@ -16,7 +16,13 @@ string: context [
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
 	#define MAX_URL_CHARS 		7Fh
-	
+
+	#enum modification-type! [
+		TYPE_APPEND
+		TYPE_INSERT
+		TYPE_OVERWRITE
+	]
+
 	#enum escape-type! [
 		ESC_CHAR: FDh
 		ESC_URL:  FEh
@@ -447,7 +453,39 @@ string: context [
 		]
 		s										;-- refresh s address
 	]
-	
+
+	overwrite-char: func [
+		s		[series!]
+		offset	[integer!]
+		cp		[integer!]
+		return: [series!]
+		/local
+			p	 [byte-ptr!]
+			unit [integer!]
+	][
+		switch GET_UNIT(s) [
+			Latin1 [
+				case [
+					cp <= FFh 	[0]
+					cp <= FFFFh [s: unicode/Latin1-to-UCS2 s]
+					true 		[s: unicode/Latin1-to-UCS4 s]
+				]
+			]
+			UCS-2 [if cp > FFFFh [s: unicode/UCS2-to-UCS4 s]]
+			UCS-4 [0]
+		]
+		unit: GET_UNIT(s)
+		
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
+		poke-char s p cp
+		if p > as byte-ptr! s/tail [s/tail: as cell! p]
+		s
+	]
+
 	insert-char: func [
 		s		[series!]
 		offset	[integer!]								;-- offset from head in codepoints
@@ -756,14 +794,14 @@ string: context [
 			]
 		]
 	]
-	
-	concatenate: func [									;-- append str2 to str1
-		str1	  [red-string!]							;-- string! to extend
-		str2	  [red-string!]							;-- string! to append to str1
-		part	  [integer!]							;-- str2 characters to append, -1 means all
-		offset	  [integer!]							;-- offset from head in codepoints
-		keep?	  [logic!]								;-- do not change str2 encoding
-		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
+
+	modify: func [
+		str1		[red-string!]						;-- string! to modify
+		str2		[red-string!]						;-- string! to modify to str1
+		part		[integer!]							;-- str2 characters to overwrite, -1 means all
+		offset		[integer!]							;-- offset from head in codepoints
+		keep?		[logic!]							;-- do not change str2 encoding
+		type		[integer!]							;-- type of modification: append,insert and overwrite
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -771,6 +809,7 @@ string: context [
 			unit2 [integer!]
 			size  [integer!]
 			size2 [integer!]
+			tail  [byte-ptr!]
 			p	  [byte-ptr!]
 			p2	  [byte-ptr!]
 			p4	  [int-ptr!]
@@ -828,17 +867,18 @@ string: context [
 			part: part << (log-b unit2)
 			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
 		]
-		if insert? [
+		if type = TYPE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size2
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
 
-		p: either insert? [
-			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
+		tail: as byte-ptr! s1/tail
+		p: either type = TYPE_APPEND [
+			tail
 		][
-			as byte-ptr! s1/tail
+			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
 		]
 		either all [keep? diff?][
 			p2: (as byte-ptr! s2/offset) + h2
@@ -849,10 +889,10 @@ string: context [
 					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
 					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
-				s1: either insert? [
-					poke-char s1 p cp
-				][
+				s1: either type = TYPE_APPEND [
 					append-char s1 cp
+				][
+					poke-char s1 p cp
 				]
 				p: p + unit1
 				p2: p2 + unit2
@@ -861,11 +901,32 @@ string: context [
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
 			p: p + size2
 		]
-		if insert? [p: (as byte-ptr! s1/tail) + size2] 
-		
+		if type = TYPE_INSERT [p: tail + size2] 
+		if all [type = TYPE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]
+
+	overwrite: func [									;-- overwrite str2 to str1
+		str1	  [red-string!]							;-- string! to overwrite
+		str2	  [red-string!]							;-- string! to overwrite to str1
+		part	  [integer!]							;-- str2 characters to overwrite, -1 means all
+		offset	  [integer!]							;-- offset from head in codepoints
+		keep?	  [logic!]								;-- do not change str2 encoding
+	][
+		modify str1 str2 part offset keep? TYPE_OVERWRITE
+	]
 	
+	concatenate: func [									;-- append str2 to str1
+		str1	  [red-string!]							;-- string! to extend
+		str2	  [red-string!]							;-- string! to append to str1
+		part	  [integer!]							;-- str2 characters to append, -1 means all
+		offset	  [integer!]							;-- offset from head in codepoints
+		keep?	  [logic!]								;-- do not change str2 encoding
+		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
+	][
+		modify str1 str2 part offset keep? as-integer insert?
+	]
+
 	concatenate-literal: func [
 		str		  [red-string!]
 		p		  [c-string!]							;-- Red/System literal string
@@ -2230,6 +2291,73 @@ string: context [
 		as red-series! str
 	]
 
+	change-range: func [
+		str		[red-string!]
+		cell	[red-value!]
+		limit	[red-value!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			s			[series!]
+			part?		[logic!]
+			added		[integer!]
+			src			[byte-ptr!]
+			tail		[byte-ptr!]
+			unit		[integer!]
+			type		[integer!]
+			char		[red-char!]
+			form-buf	[red-string!]
+			form-slot	[red-value!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		part?: part >= 0
+		tail: as byte-ptr! s/tail
+		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		if part? [
+			added: part << (log-b unit)
+			move-memory src src + added (as-integer tail - src) - added
+			s/tail: as cell! tail - added
+		]
+
+		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		added: 0
+
+		while [cell < limit][
+			type: TYPE_OF(cell)
+			either type = TYPE_CHAR [
+				char: as red-char! cell
+				either part? [				;-- /part will insert extra elements
+					s: insert-char s str/head + added char/value
+				][
+					s: overwrite-char s str/head + added char/value
+				]
+				added: added + 1
+			][
+				either any [
+					type = TYPE_STRING				;@@ replace with ANY_STRING?
+					type = TYPE_FILE 
+					type = TYPE_URL
+				][
+					form-buf: as red-string! cell
+				][
+					;TBD: free previous form-buf node and series buffer
+					form-buf: string/rs-make-at form-slot 16
+					actions/form cell form-buf null 0
+				]
+				either part? [
+					concatenate str form-buf -1 added yes yes
+				][
+					overwrite str form-buf -1 added yes
+				]
+				added: added + rs-length? form-buf
+			]
+			cell: cell + 1
+		]
+		stack/pop 1							;-- pop the FORM slot
+		added
+	]
+
 	do-set-op: func [
 		case?	 [logic!]
 		skip-arg [red-integer!]
@@ -2355,7 +2483,7 @@ string: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			:find

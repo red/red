@@ -255,7 +255,18 @@ back: make action! [[
 	#get-definition ACT_BACK
 ]
 
-;change
+change: make action! [[
+		"Changes a value in a series and returns the series after the change."
+		series [series!] "Series at point to change"
+		value [any-type!] "The new value"
+		/part "Limits the amount to change to a given length or position."
+			range [number! series!]
+		/only "Changes a series as a series."
+		/dup "Duplicates the change a specified number of times."
+			count [number!]
+	]
+	#get-definition ACT_CHANGE
+]
 
 clear: make action! [[
 		"Removes series values from current index to tail; returns new tail"

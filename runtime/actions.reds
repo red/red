@@ -809,9 +809,45 @@ actions: context [
 		] get-action-ptr* ACT_BACK
 		action-back
 	]
-	
-	change*: func [][]
-	
+
+	change*: func [
+		part	[integer!]
+		only	[integer!]
+		dup		[integer!]
+		return: [red-series!]
+	][
+		change
+			as red-series! stack/arguments
+			stack/arguments + 1
+			stack/arguments + part
+			as logic! only + 1
+			stack/arguments + dup
+	]
+
+	change: func [
+		series	[red-series!]
+		value	[red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		return: [red-series!]
+		/local
+			action-change
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/change"]]
+
+		action-change: as function! [
+			series	[red-series!]
+			value	[red-value!]
+			part	[red-value!]
+			only?	[logic!]
+			dup		[red-value!]
+			return: [red-series!]
+		] get-action-ptr as red-value! series ACT_CHANGE
+
+		action-change series value part only? dup
+	]
+
 	clear*: func [
 		return:	[red-value!]
 		/local
@@ -1651,7 +1687,7 @@ actions: context [
 			:append*
 			:at*
 			:back*
-			null			;change
+			:change*
 			:clear*
 			:copy*
 			:find*

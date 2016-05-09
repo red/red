@@ -458,6 +458,181 @@ _series: context [
 		ownership/check as red-value! target words/_moved null index items
 		as red-value! target
 	]
+	
+	change: func [
+		ser		 [red-series!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg  [red-value!]
+		return:	 [red-series!]
+		/local
+			s		[series!]
+			s2		[series!]
+			part	[integer!]
+			items	[integer!]
+			unit	[integer!]
+			size	[integer!]
+			type	[integer!]
+			head	[integer!]
+			src		[byte-ptr!]
+			tail	[byte-ptr!]
+			p		[byte-ptr!]
+			cell	[red-value!]
+			limit	[red-value!]
+			int		[red-integer!]
+			ser2	[red-series!]
+			values? [logic!]
+			neg?	[logic!]
+			part?	[logic!]
+			blk?	[logic!]
+			saved	[integer!]
+			added	[integer!]
+			n		[integer!]
+			cnt		[integer!]
+	][
+		cnt: 0
+		if OPTION?(dup-arg) [
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if cnt < 1 [return ser]
+		]
+
+		neg?: no
+		s:    GET_BUFFER(ser)
+		unit: GET_UNIT(s)
+		head: ser/head
+		saved: head
+		size: (as-integer s/tail - s/offset) >> (log-b unit)
+
+		type: TYPE_OF(ser)
+		blk?: any [
+			type = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
+			type = TYPE_PATH				;@@ replace it with: typeset/any-block?
+			type = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
+			type = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
+			type = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
+			type = TYPE_PAREN				;@@ replace it with: typeset/any-block?
+			type = TYPE_HASH				;@@ replace it with: typeset/any-block?	
+		]
+
+		values?: either all [only? blk?][no][
+			n: TYPE_OF(value)
+			any [
+				n = TYPE_BLOCK					;@@ replace it with: typeset/any-block?
+				n = TYPE_PATH					;@@ replace it with: typeset/any-block?
+				n = TYPE_GET_PATH				;@@ replace it with: typeset/any-block?
+				n = TYPE_SET_PATH				;@@ replace it with: typeset/any-block?
+				n = TYPE_LIT_PATH				;@@ replace it with: typeset/any-block?
+				n = TYPE_PAREN					;@@ replace it with: typeset/any-block?
+				n = TYPE_HASH					;@@ replace it with: typeset/any-block?	
+			]
+		]
+
+		items: either values? [
+			ser2: as red-series! value
+			s2: GET_BUFFER(ser2)
+			cell:  s2/offset + ser2/head
+			block/rs-length? ser2
+		][
+			cell:  value
+			1
+		]
+		limit: cell + items
+
+		part: items
+		part?: OPTION?(part-arg)
+		either part? [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				ser2: as red-series! part-arg
+				unless all [
+					TYPE_OF(ser2) = TYPE_OF(ser)	;-- handles ANY-STRING!
+					ser2/node = ser/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
+				]
+				ser2/head - head
+			]
+			if negative? part [
+				part: 0 - part
+				either part > head [part: head head: 0][head: head - part]
+				ser/head: head
+				neg?: yes
+			]
+			size: size - head
+			if part > size [part: size]
+		][size: size - head]
+
+		ownership/check as red-value! ser words/_change null head part
+
+		either blk? [
+			added: either part? [items - part][items - size]
+			n: as-integer s/tail + added - s/offset
+			if n > s/size [s: expand-series s n * 2]
+
+			value: s/offset + head
+			either part? [
+				size: either neg? [size + part][size - part]
+				move-memory
+					as byte-ptr! value + items
+					as byte-ptr! value + part
+					size * size? cell!
+				s/tail: s/tail + added
+			][
+				if added > 0 [s/tail: s/tail + added]
+			]
+			copy-memory as byte-ptr! value as byte-ptr! cell items * size? cell!
+		][
+			switch type [
+				TYPE_BINARY [0]
+				TYPE_VECTOR [0]
+				default [					;-- ANY-STRING!
+					unless part? [part: -1]
+					items: string/change-range as red-string! ser cell limit part
+				]
+			]
+		]
+
+		if cnt > 1 [						;-- /dup
+			s: GET_BUFFER(ser)
+			unit: GET_UNIT(s)
+			unit: log-b unit
+			src: (as byte-ptr! s/offset) + (head << unit)
+			tail: as byte-ptr! s/tail
+			
+			added: items << unit
+			n: added * cnt
+			n: either part? [n - added][as-integer src + n - tail]
+			size: (as-integer tail - as byte-ptr! s/offset) + n
+			if size > s/size [
+				s: expand-series s size * 2
+				src: (as byte-ptr! s/offset) + (head << unit)
+				tail: as byte-ptr! s/tail
+			]
+
+			src: src + added
+			if part? [
+				move-memory src + n src as-integer tail - src
+			]
+			if n > 0 [s/tail: as cell! tail + n]
+
+			items: items * cnt
+			p: src
+			src: src - added
+			until [
+				copy-memory p src added
+				p: p + added
+				cnt: cnt - 1
+				cnt = 1
+			]
+		]
+		ser/head: head + items
+		ownership/check as red-value! ser words/_changed null head items
+		ser
+	]
 
 	clear: func [
 		ser		[red-series!]
@@ -945,7 +1120,7 @@ _series: context [
 			null			;append
 			:at
 			:back
-			null			;change
+			:change
 			:clear
 			:copy
 			null			;find

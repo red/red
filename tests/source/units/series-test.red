@@ -1436,6 +1436,160 @@ Red [
   
 ===end-group===
 
+===start-group=== "change"
+	--test-- "change-blk-1"
+		blk: [1 2 3]
+		blk1: change blk 6
+		--assert [2 3] = blk1
+		--assert 6 = first blk
+	--test-- "change-blk-2"
+		blk2: change blk1 [a b]
+		--assert empty? blk2
+		--assert 'a = first blk1
+	--test-- "change-blk-3"
+		blk3: change blk1 [9 8 7 6 5 4 3]
+		--assert empty? blk3
+		--assert 8 = length? blk
+
+	--test-- "change-str-1"
+		str: "abcde"
+		str1: change str 30
+		--assert "cde" = str1
+		--assert #"3" = first str
+	--test-- "change-str-2"
+		str2: change str1 "123"
+		--assert empty? str2
+		--assert #"1" = first str1
+	--test-- "change-str-3"
+		str3: change str1 "abcdef"
+		--assert empty? str3
+		--assert 8 = length? str
+	--test-- "change-str-4"
+		str4: change str "^(2710)"
+		--assert "0abcdef" = str4
+		--assert #"^(2710)" = first str
+		--assert 8 = length? str
+	--test-- "change-str-5"
+		str4: change str #"变"
+		--assert "0abcdef" = str4
+		--assert #"变" = first str
+		--assert 8 = length? str
+	--test-- "change-str-6"
+		str: change "1234" [a b]
+		--assert "34" = str
+		--assert "ab34" = head str
+	;--test-- "change-bin-1"
+	;--test-- "change-vec-1"
+	;--test-- "change-hash-1"
+===end-group===
+
+===start-group=== "change/only"
+
+	--test-- "change/only-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/only blk [a b]
+		--assert [2 3 4] = blk1
+		--assert [[a b] 2 3 4] = blk
+	
+	--test-- "change/only-str-1"
+		str: "1234"
+		str1: change/only str [a b]
+		--assert "34" = str1
+		--assert "ab34" = str
+
+===end-group===
+
+===start-group=== "change/dup"
+
+	--test-- "change/dup-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/dup blk #"o" 3
+		--assert [4] = blk1
+		--assert [#"o" #"o" #"o" 4] = blk
+	
+	--test-- "change/dup-blk-2"
+		blk2: change/dup blk1 'a 0
+		--assert blk2 = blk1
+		blk3: change/dup blk1 'b -1
+		--assert blk3 = blk1
+	
+	--test-- "change/dup-blk-3"
+		blk3: change/dup blk [a b] 4
+		--assert 8 = length? blk
+		--assert 'b = last blk
+		--assert empty? blk3
+	
+	--test-- "change/dup-str-1"
+		str: "1234"
+		str1: change/dup str #"x" 3
+		--assert "4" = str1
+		--assert "xxx4" = str
+
+	--test-- "change/dup-str-2"
+		str2: change/dup str "ab" 4
+		--assert 8 = length? str
+		--assert #"b" = last str
+		--assert empty? str2
+
+	;--test-- "change/dup-bin-1"
+	;--test-- "change/dup-vec-1"
+	;--test-- "change/dup-hash-1"
+===end-group===
+
+===start-group=== "change/part"
+
+	--test-- "change/part-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/part blk #"o" 3
+		--assert [4] = blk1
+		--assert [#"o" 4] = blk
+	
+	--test-- "change/part-blk-2"
+		blk2: change/part blk [a b c] 1
+		--assert [4] = blk2
+		--assert [a b c 4] = blk
+
+	--test-- "change/part-blk-3"
+		val: first blk2
+		blk3: change/part blk2 [z] -2
+		--assert val = first blk3
+		--assert [a z 4] = blk
+
+	--test-- "change/part-blk-4"
+		val: first blk
+		blk3: change/part blk [x y] 0
+		--assert val = first blk3
+		--assert 5 = length? blk
+		--assert 'x = first blk
+
+	--test-- "change/part-str-1"
+		str: "1234"
+		str1: change/part str #"x" 3
+		--assert "4" = str1
+		--assert "x4" = str
+
+	--test-- "change/part-str-2"
+		str2: change/part str "abc" 1
+		--assert "abc4" = str
+		--assert "4" = str2
+
+	--test-- "change/part-str-3"
+		val: first str2
+		str3: change/part str2 #"z" -2
+		--assert val = first str3
+		--assert "az4" = str
+
+	--test-- "change/part-str-4"
+		val: first str
+		str3: change/part str [x y] 0
+		--assert val = first str3
+		--assert 5 = length? str
+		--assert #"x" = first str
+	;--test-- "change/part-bin-1"
+	;--test-- "change/part-vec-1"
+	;--test-- "change/part-hash-1"
+===end-group===
+
 ===start-group=== "series-unicode"
 
 	--test-- "suc1"
