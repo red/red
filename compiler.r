@@ -2411,7 +2411,22 @@ red: context [
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx pos octx
 			src-name original global? path obj fpath shadow defer ctx-idx body-code
+			alter entry mark
 	][
+		unless all [block? pc/2 any [does block? pc/3]][ ;-- fallback if no literal spec & body blocks
+			word: pc/1
+			all [
+				alter: get-prefix-func word
+				entry: find-function alter word
+				name: alter
+			]
+			pc: next pc
+			mark: tail output
+			comp-call/thru word entry/2
+			defer: copy mark
+			clear mark
+			return defer
+		]
 		original: pc/-1
 		case [
 			set-path? original [
@@ -3088,7 +3103,7 @@ red: context [
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
 			args option stop?
 	][
-		either spec/1 = 'intrinsic! [
+		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
@@ -3182,6 +3197,7 @@ red: context [
 			]
 			
 			switch spec/1 [
+				intrinsic!								;-- fallback to native case
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
