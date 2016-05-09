@@ -69,6 +69,7 @@ unless system/console [
 			#include %POSIX.reds
 		]
 
+		console?:	yes
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
@@ -280,7 +281,7 @@ unless system/console [
 			set-cursor-pos line offset bytes
 		]
 
-		edit: func [
+		console-edit: func [
 			prompt-str [red-string!]
 			/local
 				line   [red-string!]
@@ -437,7 +438,37 @@ unless system/console [
 			]
 			line/head: 0
 		]
-		
+
+		stdin-readline: func [
+			/local
+				c	 [integer!]
+				s	 [series!]
+		][
+			s: GET_BUFFER(input-line)
+			while [true][
+				#either OS = 'Windows [
+					c: stdin-read
+				][
+					c: fd-read
+				]
+				either any [c = -1 c = as-integer lf][exit][
+					s: string/append-char s c
+				]
+			]
+		]
+
+		edit: func [
+			prompt-str [red-string!]
+		][
+			either console? [
+				console-edit prompt-str
+				restore
+				print-line ""
+			][
+				stdin-readline
+			]
+		]
+
 		setup: func [
 			line [red-string!]
 			hist [red-block!]
@@ -456,8 +487,6 @@ _set-buffer-history: routine [line [string!] hist [block!]][
 
 _read-input: routine [prompt [string!]][
 	terminal/edit prompt
-	terminal/restore
-	print-line ""
 ]
 
 ask: function [
