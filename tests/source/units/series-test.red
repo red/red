@@ -1478,8 +1478,42 @@ Red [
 		str: change "1234" [a b]
 		--assert "34" = str
 		--assert "ab34" = head str
-	;--test-- "change-bin-1"
-	;--test-- "change-vec-1"
+
+	--test-- "change-bin-1"
+		bin: #{12345678}
+		bin1: change bin 30
+		--assert #{345678} = bin1
+		--assert 30 = first bin
+	--test-- "change-bin-2"
+		bin2: change bin1 "123"
+		--assert empty? bin2
+		--assert 49 = first bin1
+	--test-- "change-bin-3"
+		bin2: change bin1 #{ABCD}
+		--assert #{33} = bin2
+		--assert #{ABCD33} = bin1
+	--test-- "change-bin-4"
+		bin4: change bin #"^(2710)"
+		--assert #{33} = bin4
+		--assert #{E29C9033} = bin
+	--test-- "change-bin-5"
+		bin: change bin [a b]
+		--assert #{9033} = bin
+		--assert #{61629033} = head bin
+
+	--test-- "change-vec-1"
+		vec: make vector! [1 2 3 4]
+		vec2: change vec 30
+		--assert vec2 = make vector! [2 3 4]
+		--assert 30 = first vec
+	--test-- "change-vec-2"
+		vec3: change vec2 [31 32 33]
+		--assert empty? vec3
+		--assert vec = make vector! [30 31 32 33]
+	--test-- "change-vec-3"
+		vec4: change vec3 [34 35 36 37]
+		--assert empty? vec4
+		--assert 8 = length? vec
 	;--test-- "change-hash-1"
 ===end-group===
 
@@ -1497,6 +1531,17 @@ Red [
 		--assert "34" = str1
 		--assert "ab34" = str
 
+	--test-- "change/only-bin-1"
+		bin: #{1234}
+		bin1: change/only bin [a b]
+		--assert empty? bin1
+		--assert #{6162} = bin
+
+	--test-- "change/only-vec-1"
+		vec: make vector! [1.0 2.0 3.0 4.0]
+		vec1: change/only vec [11.0 12.0]
+		--assert vec1 = make vector! [3.0 4.0]
+		--assert 11.0 = first vec
 ===end-group===
 
 ===start-group=== "change/dup"
@@ -1531,8 +1576,23 @@ Red [
 		--assert #"b" = last str
 		--assert empty? str2
 
-	;--test-- "change/dup-bin-1"
-	;--test-- "change/dup-vec-1"
+	--test-- "change/dup-bin-1"
+		bin: #{12345678}
+		bin1: change/dup bin #"x" 3
+		--assert #{78} = bin1
+		--assert #{78787878} = bin
+
+	--test-- "change/dup-bin-2"
+		bin2: change/dup bin #{ABCD} 4
+		--assert 8 = length? bin
+		--assert 205 = last bin
+		--assert empty? bin2
+
+	--test-- "change/dup-vec-1"
+		vec: make vector! [1 2 3 4]
+		vec1: change/dup vec 5 3
+		--assert vec1 = make vector! [4]
+		--assert vec = make vector! [5 5 5 4]
 	;--test-- "change/dup-hash-1"
 ===end-group===
 
@@ -1585,7 +1645,30 @@ Red [
 		--assert val = first str3
 		--assert 5 = length? str
 		--assert #"x" = first str
-	;--test-- "change/part-bin-1"
+
+	--test-- "change/part-bin-1"
+		bin: #{12345678}
+		bin1: change/part bin #"x" 3
+		--assert #{78} = bin1
+		--assert #{7878} = bin
+
+	--test-- "change/part-bin-2"
+		bin2: change/part bin "abc" 1
+		--assert #{78} = bin2 
+		--assert #{61626378} = bin
+
+	--test-- "change/part-bin-3"
+		val: first bin2
+		bin3: change/part bin2 #"z" -2
+		--assert val = first bin3
+		--assert #{617A78} = bin
+
+	--test-- "change/part-bin-4"
+		val: first bin
+		bin3: change/part bin [x y] 0
+		--assert val = first bin3
+		--assert 5 = length? bin
+		--assert 120 = first bin
 	;--test-- "change/part-vec-1"
 	;--test-- "change/part-hash-1"
 ===end-group===
