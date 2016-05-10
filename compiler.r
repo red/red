@@ -469,8 +469,9 @@ red: context [
 		blk
 	]
 
-	emit-open-frame: func [name [word!] /local type][
-		unless find symbols name [add-symbol name]
+	emit-open-frame: func [name [word!] /local symbol type][
+		symbol: either name = 'try-all ['try][name]
+		unless find symbols symbol [add-symbol symbol]
 		emit case [
 			'function! = all [
 				type: find functions name
@@ -478,10 +479,11 @@ red: context [
 			]['stack/mark-func]
 			find iterators name ['stack/mark-loop]
 			name = 'try			['stack/mark-try]
+			name = 'try-all		['stack/mark-try-all]
 			name = 'catch		['stack/mark-catch]
 			'else				['stack/mark-native]
 		]
-		emit prefix-exec name
+		emit prefix-exec symbol
 		insert-lf -2
 	]
 	
@@ -1917,8 +1919,8 @@ red: context [
 		]												;-- return object deferred block
 	]
 	
-	comp-try: has [all? mark body][
-		all?: path? pc/-1
+	comp-try: has [all? mark body call][
+		call: pick [try-all try] to logic! all?: path? pc/-1
 		
 		either block? pc/1 [
 			emit [catch RED_THROWN_ERROR]
@@ -1926,7 +1928,7 @@ red: context [
 			body: comp-sub-block 'try
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
-			emit-open-frame 'try
+			emit-open-frame call
 			insert body mark
 			clear mark
 			unless all? [
@@ -1936,19 +1938,24 @@ red: context [
 			append body [
 				stack/unwind
 			]
-			if all? [
-				emit [
-					if system/thrown = RED_THROWN_ERROR [
+			emit either all? [
+				[
+					stack/adjust-post-try
+				]
+			][
+				[
+					either system/thrown = RED_THROWN_ERROR [
 						natives/handle-thrown-error
+					][
+						stack/adjust-post-try
 					]
 				]
 			]
 			emit [
-				stack/adjust-post-try
 				system/thrown: 0
 			]
 		][
-			emit-open-frame 'try						;-- fallback option
+			emit-open-frame call						;-- fallback option
 			comp-expression
 			unless all? [
 				emit 'switch
