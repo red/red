@@ -978,7 +978,7 @@ terminal: context [
 			s [series!]
 	][
 		n: string/rs-length? str
-		if any [len > n len = -1][?? n len: n]
+		if any [len > n len = -1][len: n]
 		s: GET_BUFFER(str)
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
 	]
