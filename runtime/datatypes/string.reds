@@ -482,7 +482,7 @@ string: context [
 
 		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 		poke-char s p cp
-		if p > as byte-ptr! s/tail [s/tail: as cell! p]
+		if p >= as byte-ptr! s/tail [s/tail: as cell! p + unit]
 		s
 	]
 
@@ -2295,31 +2295,17 @@ string: context [
 		str		[red-string!]
 		cell	[red-value!]
 		limit	[red-value!]
-		part	[integer!]
+		part?	[logic!]
 		return: [integer!]
 		/local
 			s			[series!]
-			part?		[logic!]
 			added		[integer!]
-			src			[byte-ptr!]
-			tail		[byte-ptr!]
-			unit		[integer!]
 			type		[integer!]
 			char		[red-char!]
 			form-buf	[red-string!]
 			form-slot	[red-value!]
 	][
 		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		part?: part >= 0
-		tail: as byte-ptr! s/tail
-		src: (as byte-ptr! s/offset) + (str/head << (log-b unit))
-		if part? [
-			added: part << (log-b unit)
-			move-memory src src + added (as-integer tail - src) - added
-			s/tail: as cell! tail - added
-		]
-
 		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
 		added: 0
 

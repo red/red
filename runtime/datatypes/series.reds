@@ -519,13 +519,13 @@ _series: context [
 		values?: either all [only? blk?][no][
 			n: TYPE_OF(value)
 			any [
-				n = TYPE_BLOCK					;@@ replace it with: typeset/any-block?
-				n = TYPE_PATH					;@@ replace it with: typeset/any-block?
-				n = TYPE_GET_PATH				;@@ replace it with: typeset/any-block?
-				n = TYPE_SET_PATH				;@@ replace it with: typeset/any-block?
-				n = TYPE_LIT_PATH				;@@ replace it with: typeset/any-block?
-				n = TYPE_PAREN					;@@ replace it with: typeset/any-block?
-				n = TYPE_HASH					;@@ replace it with: typeset/any-block?	
+				n = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
+				n = TYPE_PATH				;@@ replace it with: typeset/any-block?
+				n = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
+				n = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
+				n = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
+				n = TYPE_PAREN				;@@ replace it with: typeset/any-block?
+				n = TYPE_HASH				;@@ replace it with: typeset/any-block?	
 			]
 		]
 
@@ -586,12 +586,22 @@ _series: context [
 			]
 			copy-memory as byte-ptr! value as byte-ptr! cell items * size? cell!
 		][
-			switch type [
-				TYPE_BINARY [0]
-				TYPE_VECTOR [0]
+			tail: as byte-ptr! s/tail
+			src: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+			if part? [
+				added: part << (log-b unit)
+				move-memory src src + added (as-integer tail - src) - added
+				s/tail: as cell! tail - added
+			]
+			items: switch type [
+				TYPE_BINARY [
+					binary/change-range as red-binary! ser cell limit part?
+				]
+				TYPE_VECTOR [
+					vector/change-range as red-vector! ser cell limit part?
+				]
 				default [					;-- ANY-STRING!
-					unless part? [part: -1]
-					items: string/change-range as red-string! ser cell limit part
+					string/change-range as red-string! ser cell limit part?
 				]
 			]
 		]
