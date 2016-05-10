@@ -151,6 +151,29 @@ binary: context [
 		p
 	]
 
+	rs-overwrite: func [
+		bin		[red-binary!]
+		offset	[integer!]								;-- offset from head in elements
+		data	[byte-ptr!]
+		part	[integer!]								;-- limit to given length of value
+		return: [byte-ptr!]
+		/local
+			s	  [series!]
+			p	  [byte-ptr!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/offset) + bin/head + offset
+		if (p + part > ((as byte-ptr! s + 1) + s/size)) [
+			s: expand-series s 0
+			p: (as byte-ptr! s/offset) + bin/head + offset
+		]
+
+		copy-memory p data part
+
+		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
+		p
+	]
+
 	set-value: func [
 		p		[byte-ptr!]
 		value	[red-value!]
@@ -694,6 +717,77 @@ binary: context [
 		as red-value! bin
 	]
 
+	change-range: func [
+		bin		[red-binary!]
+		cell	[red-value!]
+		limit	[red-value!]
+		part?	[logic!]
+		return: [integer!]
+		/local
+			added		[integer!]
+			bytes		[integer!]
+			int-value	[integer!]
+			src			[byte-ptr!]
+			type		[integer!]
+			char		[red-char!]
+			int			[red-integer!]
+			form-buf	[red-string!]
+			form-slot	[red-value!]
+	][
+		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		added: 0
+		bytes: 0
+
+		while [cell < limit][
+			type: TYPE_OF(cell)
+			switch type [
+				TYPE_BINARY [
+					src: rs-head as red-binary! cell
+					bytes: rs-length? as red-binary! cell
+				]
+				TYPE_CHAR [
+					char: as red-char! cell
+					src: as byte-ptr! "0000"
+					bytes: unicode/cp-to-utf8 char/value src
+				]
+				TYPE_INTEGER [
+					int: as red-integer! cell		
+						either int/value <= FFh [
+							int-value: int/value
+							src: as byte-ptr! :int-value
+							bytes: 1
+						][
+							fire [TO_ERROR(script out-of-range) cell]
+						]
+				]
+				default [
+					either any [
+						type = TYPE_STRING				;@@ replace with ANY_STRING?
+						type = TYPE_FILE 
+						type = TYPE_URL
+					][
+						form-buf: as red-string! cell
+					][
+						;TBD: free previous form-buf node and series buffer
+						form-buf: string/rs-make-at form-slot 16
+						actions/form cell form-buf null 0
+					]
+					bytes: -1
+					src: as byte-ptr! unicode/to-utf8 form-buf :bytes
+				]
+			]
+			either part? [
+				rs-insert bin added src bytes
+			][
+				rs-overwrite bin added src bytes
+			]
+			added: added + bytes
+			cell: cell + 1
+		]
+		stack/pop 1							;-- pop the FORM slot
+		added
+	]
+
 	do-math: func [
 		type		[math-op!]
 		return:		[red-binary!]
@@ -828,7 +922,7 @@ binary: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find

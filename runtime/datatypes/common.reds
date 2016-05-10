@@ -479,6 +479,7 @@ words: context [
 	
 	;-- modifying actions
 	_change:		as red-word! 0
+	_changed:		as red-word! 0
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
@@ -643,6 +644,7 @@ words: context [
 		
 		;-- modifying actions
 		_change:		word/load "change"
+		_changed:		word/load "changed"
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
