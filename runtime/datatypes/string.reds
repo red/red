@@ -930,6 +930,7 @@ string: context [
 	concatenate-literal: func [
 		str		  [red-string!]
 		p		  [c-string!]							;-- Red/System literal string
+		return:   [series!]
 		/local
 			s	  [series!]
 	][
@@ -941,6 +942,7 @@ string: context [
 			p: p + 1
 			p/1 = null-byte
 		]
+		s
 	]
 	
 	concatenate-literal-part: func [

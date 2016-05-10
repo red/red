@@ -341,7 +341,7 @@ terminal: context [
 				p: p + unit
 
 				either cp = 9 [
-					string/concatenate-literal data "    "
+					buf: string/concatenate-literal data "    "
 				][
 					buf: string/append-char buf cp
 				]
@@ -974,9 +974,11 @@ terminal: context [
 		str [red-string!]
 		len [integer!]
 		/local
+			n [integer!]
 			s [series!]
 	][
-		if len = -1 [len: string/rs-length? str]
+		n: string/rs-length? str
+		if any [len > n len = -1][?? n len: n]
 		s: GET_BUFFER(str)
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
 	]
