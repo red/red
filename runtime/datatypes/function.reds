@@ -524,6 +524,7 @@ _function: context [
 			extern	[red-block!]
 			value	[red-value!]
 			tail	[red-value!]
+			word	[red-word!]
 			s		[series!]
 			extern? [logic!]
 	][
@@ -543,6 +544,22 @@ _function: context [
 			extern?: TYPE_OF(value) = TYPE_REFINEMENT	;-- ensure it is not another word type
 			if extern? [
 				s: GET_BUFFER(spec)
+				value: s/offset + extern/head + 1
+				while [all [value < s/tail TYPE_OF(value) = TYPE_WORD]][ ;-- search for end of externs
+					value: value + 1
+				]
+				if all [value < s/tail TYPE_OF(value) = TYPE_REFINEMENT][
+					word: as red-word! value
+					if refinements/local/symbol = symbol/resolve word/symbol [
+						value: value + 1
+						while [value < s/tail][			;-- collect explicit locals
+							if TYPE_OF(value) = TYPE_WORD [
+								block/rs-append list value
+							]
+							value: value + 1
+						]
+					]
+				]
 				s/tail: s/offset + extern/head			;-- cut /extern and extern words out			
 			]
 		]
