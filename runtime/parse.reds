@@ -926,8 +926,13 @@ parser: context [
 										TYPE_OF(blk) = TYPE_BLOCK
 									]
 									into?: TYPE_OF(blk) = TYPE_GET_WORD
-									if into? [blk: as red-block! _context/get as red-word! blk]
-									
+									if into? [
+										blk: as red-block! _context/get as red-word! blk
+										type: TYPE_OF(blk)
+										unless ANY_SERIES?(type) [
+											PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+										]
+									]
 									value: stack/top	;-- refer last value from paren expression
 									if int/value = R_KEEP [
 										w: as red-word! s/tail

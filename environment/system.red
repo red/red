@@ -131,8 +131,9 @@ system: context [
 				parse-block:		["PARSE - input must be of any-block! type:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
-				parse-stack:		["PARSE - stack limit reached"]
+				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
