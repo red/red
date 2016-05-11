@@ -3430,7 +3430,10 @@ red: context [
 						entry: find functions alter
 						name: alter
 					]
-					entry: find functions name
+					all [
+						rebol-gctx = bind? original
+						entry: find functions name
+					]
 				]
 			][
 				if alter: select-ssa name [entry: find functions alter]
