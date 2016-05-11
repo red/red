@@ -1513,6 +1513,9 @@ parser: context [
 						]
 						true [
 							value: _context/get w
+							if TYPE_OF(value) = TYPE_UNSET [
+								PARSE_ERROR [TO_ERROR(script parse-rule) w]
+							]
 							state: either rule? [ST_MATCH_RULE][ST_DO_ACTION] ;-- enable fast loops for word argument
 						]
 					]
