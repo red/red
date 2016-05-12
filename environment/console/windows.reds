@@ -148,6 +148,11 @@ paste-from-clipboard: func [
 						p: p + 2
 					]
 					if cp = 10 [cp: 13]
+					if all [D800h <= cp cp <= DF00h][		;-- USC-4
+						cp: cp and 03FFh << 10				;-- lead surrogate decoding
+						p: p + 2
+						cp: (as-integer p/2) << 8 + p/1 and 03FFh or cp + 00010000h
+					]
 					edit vt cp
 				]
 				p: p + 2
