@@ -115,10 +115,10 @@ Red [
 ===end-group===
 
 ===start-group=== "with other datatypes"
-	--test-- "tuple1" --assert 3.12.24 = 3 * 1.4.8
-	--test-- "tuple2" --assert 4.7.11 = 3 + 1.4.8
-	--test-- "pair1"  --assert 5x6 = 3 + 2x3
-	--test-- "pair1"  --assert 6x9 = 3 * 2x3
+	--test-- "tuple1" --assert 3 * 1.4.8 = 3.12.24
+	--test-- "tuple2" --assert 3 + 1.4.8 = 4.7.11
+	--test-- "pair1"  --assert 3 + 2x3 = 5x6
+	--test-- "pair1"  --assert 3 * 2x3 = 6x9
 ===end-group===
 
 ~~~end-file~~~
