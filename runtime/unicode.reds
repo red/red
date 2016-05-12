@@ -603,7 +603,7 @@ unicode: context [
 							print "*** Input Error: invalid UTF-16LE codepoint"
 							halt 
 						]
-						p4/value: c << 8 + src/1 and 03FFh or cp  ;-- trail surrogate decoding
+						p4/value: c << 8 + src/1 and 03FFh or cp + 00010000h  ;-- trail surrogate decoding
 						p4: p4 + 1
 					][
 						either all [cr? src/1 = #"^M" c = 0][
@@ -620,6 +620,33 @@ unicode: context [
 		]
 		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
 		node
+	]
+
+	cp-to-utf16: func [
+		cp		[integer!]
+		buf		[byte-ptr!]
+		return: [integer!]
+		/local
+			unit [integer!]
+	][
+		case [
+			cp < 00010000h [
+				buf/1: as-byte cp
+				buf/2: as-byte cp >> 8
+				1
+			]
+			cp < 00110000h [
+				cp: cp - 00010000h
+				unit: cp >> 10 or D800h
+				buf/1: as-byte unit
+				buf/2: as-byte unit >> 8
+				unit: cp and 03FFh or DC00h
+				buf/3: as-byte unit
+				buf/4: as-byte unit >> 8
+				2
+			]
+			true [print "Error: to-utf16 codepoint overflow" 0]
+		]
 	]
 
 	to-utf16: func [									;-- LF to CRLF conversion implied

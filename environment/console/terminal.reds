@@ -1316,6 +1316,7 @@ terminal: context [
 			x		[integer!]
 			w		[integer!]
 			s		[series!]
+			n		[integer!]
 			unit	[integer!]
 			cp		[integer!]
 			char-h	[integer!]
@@ -1351,7 +1352,10 @@ terminal: context [
 				x: 0
 				y: y + char-h
 			]
-			OS-draw-text str 1 x y w char-h
+			n: either cp < 00010000h [1][
+				unicode/cp-to-utf16 cp as byte-ptr! str
+			]
+			OS-draw-text str n x y w char-h
 			x: x + w
 		]
 		unless vt/select-all? [set-normal-color vt]
