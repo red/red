@@ -1514,7 +1514,16 @@ Red [
 		vec4: change vec3 [34 35 36 37]
 		--assert empty? vec4
 		--assert 8 = length? vec
-	;--test-- "change-hash-1"
+
+	--test-- "change-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		hs2: change hs [x y z]
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
+	--test-- "change-hash-2"
+		change hs2 [a b c d e f]
+		--assert 'y = select hs 'x
+		--assert 'f  = select hs 'e
 ===end-group===
 
 ===start-group=== "change/only"
@@ -1593,7 +1602,12 @@ Red [
 		vec1: change/dup vec 5 3
 		--assert vec1 = make vector! [4]
 		--assert vec = make vector! [5 5 5 4]
-	;--test-- "change/dup-hash-1"
+
+	--test-- "change/dup-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		change/dup hs [x y] 2
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
 ===end-group===
 
 ===start-group=== "change/part"
@@ -1670,7 +1684,17 @@ Red [
 		--assert 5 = length? bin
 		--assert 120 = first bin
 	;--test-- "change/part-vec-1"
-	;--test-- "change/part-hash-1"
+
+	--test-- "change/part-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		change/part hs [x y] 4
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
+	--test-- "change/part-hash-2"
+		change/part hs [n m o p] 1
+		--assert none = select hs 'x
+		--assert 'y = select hs 'p
+		--assert 3  = select hs 2
 ===end-group===
 
 ===start-group=== "series-unicode"

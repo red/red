@@ -110,7 +110,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						;unless forced? [show owner]
 						system/view/platform/on-change-facet owner word target action new index part
 					]
-					find [remove clear take] action [
+					find [remove clear take change] action [
 						either owner/type = 'screen [
 							until [
 								face: target/1
@@ -145,7 +145,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 						if owner/type <> 'screen [
 							if all [
 								find [tab-panel window panel] owner/type
-								not find [cleared removed taken move moved] action 
+								not find [cleared removed taken move] action 
 							][
 								nb: part
 								faces: skip head target index	;-- zero-based absolute index

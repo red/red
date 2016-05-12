@@ -188,7 +188,7 @@ hash: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			:clear
 			:copy
 			INHERIT_ACTION	;find

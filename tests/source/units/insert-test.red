@@ -71,6 +71,12 @@ Red [
 		str: "12"
 		insert/part/dup str "456" 3 2 
 	--assert str = "45645612"
+
+	--test-- "insert-18"
+		hash: make hash! [a b c 1 2 3]
+		insert hash [x y]
+	--assert 'y = select hash 'x
+	--assert 2  = select hash 1
 ===end-group===
 
 ===start-group=== "insert/dup"
@@ -99,6 +105,11 @@ Red [
 	--assert 11 = length? id4-s
 	--assert "           " = id4-s
 
+	--test-- "insert/dup5"
+		hash: make hash! [a b c 1 2 3]
+		insert/dup hash [x y] 2
+	--assert 'y = select hash 'x
+	--assert 2  = select hash 1
 ===end-group===
 
 ===start-group=== "insert not at head"
@@ -177,7 +188,13 @@ Red [
 		inah15-s: copy "1234^(2345)"
 		insert next next inah15-s #"^(010000)" 
 	--assert "12^(10000)34^(02345)" = head inah15-s
-	
+
+	--test-- "insert/insert-not-at-head16"
+		hash: make hash! [a b c 1 2 3]
+		insert skip hash 3 [x y]
+	--assert 'b = select hash 'a
+	--assert 'y = select hash 'x
+	--assert 2  = select hash 1	
 ===end-group===
 
 ===start-group=== "insert at tail"
@@ -256,7 +273,13 @@ Red [
 		inat15-s: copy "1234^(2345)"
 		insert tail inat15-s #"^(010000)" 
 	--assert "1234^(02345)^(10000)" = head inat15-s
-	
+
+	--test-- "insert/insert-not-at-head16"
+		hash: make hash! [a b c 1 2 3]
+		insert skip hash 3 [x y]
+	--assert 'b = select hash 'a
+	--assert 'y = select hash 'x
+	--assert 2  = select hash 1	
 ===end-group===
 
 ===start-group=== "insert reported issues"

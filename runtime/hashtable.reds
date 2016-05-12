@@ -296,7 +296,7 @@ _hashtable: context [
 		h/type: type
 		if type = HASH_TABLE_INTEGER [h/indexes: as node! vsize << 4 + 4]
 
-		if size < 3 [size: 3]
+		if size < 32 [size: 32]
 		fsize: integer/to-float size
 		f-buckets: fsize / _HT_HASH_UPPER
 		skip: either type = HASH_TABLE_MAP [2][1]
@@ -822,7 +822,7 @@ _hashtable: context [
 			i: (as-integer key - s/offset) >> 4 + 1
 			s: as series! h/indexes/value
 			indexes: as int-ptr! s/offset
-			i: indexes/i
+			i: indexes/i - 1
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
 		]
@@ -848,7 +848,7 @@ _hashtable: context [
 		new
 	]
 
-	clear: func [
+	clear: func [								;-- only for clear hash! datatype
 		node	[node!]
 		head	[integer!]
 		size	[integer!]
@@ -858,20 +858,18 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 
-		h/n-occupied: h/n-occupied - size
+		;h/n-occupied: h/n-occupied - size		;-- enable it when we have shrink
 		h/size: h/size - size
 		s: as series! h/flags/value
 		flags: as int-ptr! s/offset
 		s: as series! h/indexes/value
 		indexes: (as int-ptr! s/offset) + head
 		until [
-			i: indexes/value
-			if i <> -1 [
-				i: i - 1
-				_HT_CAL_FLAG_INDEX(i ii sh)
-				_BUCKET_SET_DEL_TRUE(flags ii sh)
-				indexes/value: -1
-			]
+			i: indexes/value - 1
+			assert i >= 0
+
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			_BUCKET_SET_DEL_TRUE(flags ii sh)
 			indexes: indexes + 1
 			size: size - 1
 			zero? size
@@ -894,7 +892,9 @@ _hashtable: context [
 		node	[node!]
 		offset	[integer!]
 		head	[integer!]
-		/local s h indexes i end keys index part flags ii sh
+		size	[integer!]
+		change? [logic!]					;-- deleted or inserted items
+		/local s h indexes i n keys index part flags ii sh
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -903,42 +903,44 @@ _hashtable: context [
 
 		s: as series! h/indexes/value
 		indexes: as int-ptr! s/offset
-		end: as int-ptr! s/tail
-		if indexes = end [exit]
+
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
-		ii: head						;-- save head
+		ii: head							;-- save head
 
-		while [
+		n: size
+		while [n > 0][
 			index: indexes + head
-			index < end
-		][
 			i: index/value
-			unless i = -1 [keys/i: keys/i + offset]
+			keys/i: keys/i + offset
 			head: head + 1
+			n: n - 1
 		]
 
-		if negative? offset [			;-- need to delete some entries
-			head: ii					;-- restore head
-			part: offset
-			s: as series! h/flags/value
-			flags: as int-ptr! s/offset
-			while [negative? part][
-				index: indexes + head + part
-				i: index/value - 1
-				_HT_CAL_FLAG_INDEX(i ii sh)
-				_BUCKET_SET_DEL_TRUE(flags ii sh)
-				h/size: h/size - 1
-				part: part + 1
+		if change? [
+			either negative? offset [		;-- need to delete some entries
+				head: ii					;-- restore head
+				part: offset
+				s: as series! h/flags/value
+				flags: as int-ptr! s/offset
+				while [negative? part][
+					index: indexes + head + part
+					i: index/value - 1
+					_HT_CAL_FLAG_INDEX(i ii sh)
+					_BUCKET_SET_DEL_TRUE(flags ii sh)
+					h/size: h/size - 1
+					part: part + 1
+				]
+			][								;-- may need to expand indexes
+				if size + head << 2 > s/size [
+					s: expand-series-filled s s/size << 1 #"^(FF)"
+					s/tail: as cell! (as byte-ptr! s/offset) + s/size
+				]
 			]
-			if indexes + head < end [
-				move-memory
-					as byte-ptr! (indexes + head + offset)
-					as byte-ptr! indexes + head
-					as-integer end - (indexes + head + 1)
-			]
-			s: as series! h/indexes/value
-			s/tail: as red-value! end + offset
+			move-memory
+				as byte-ptr! (indexes + head + offset)
+				as byte-ptr! indexes + head
+				size * 4
 		]
 	]
 ]
