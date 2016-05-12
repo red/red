@@ -274,9 +274,9 @@ Red [
 		insert tail inat15-s #"^(010000)" 
 	--assert "1234^(02345)^(10000)" = head inat15-s
 
-	--test-- "insert-at-tail16"
+	--test-- "insert/insert-not-at-head16"
 		hash: make hash! [a b c 1 2 3]
-		insert tail hash [x y]
+		insert skip hash 3 [x y]
 	--assert 'b = select hash 'a
 	--assert 'y = select hash 'x
 	--assert 2  = select hash 1	

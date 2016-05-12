@@ -176,7 +176,7 @@ integer: context [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
 				tp: (as byte-ptr! left) + 4
-				size: as-integer tp/1
+				size: TUPLE_SIZE?(right)
 				n: 0
 				until [
 					n: n + 1

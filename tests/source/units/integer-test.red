@@ -114,4 +114,11 @@ Red [
 	--test-- "round14" --assert -24 = round/half-ceiling/to -23 3
 ===end-group===
 
+===start-group=== "with other datatypes"
+	--test-- "tuple1" --assert 3.12.24 = 3 * 1.4.8
+	--test-- "tuple2" --assert 4.7.11 = 3 + 1.4.8
+	--test-- "pair1"  --assert 5x6 = 3 + 2x3
+	--test-- "pair1"  --assert 6x9 = 3 * 2x3
+===end-group===
+
 ~~~end-file~~~
