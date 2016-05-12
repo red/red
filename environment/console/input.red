@@ -418,6 +418,12 @@ unless system/console [
 					]
 					default [
 						if c > 31 [
+							#if OS = 'Windows [						;-- optimize for Windows
+								if all [D800h <= c c <= DF00h][		;-- USC-4
+									c: c and 03FFh << 10			;-- lead surrogate decoding
+									c: (03FFh and fd-read) or c + 00010000h
+								]
+							]
 							either string/rs-tail? line [
 								string/append-char GET_BUFFER(line) c
 								#if OS = 'Windows [					;-- optimize for Windows
