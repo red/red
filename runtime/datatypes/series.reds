@@ -377,6 +377,7 @@ _series: context [
 			end	  [byte-ptr!]
 			temp  [byte-ptr!]
 			int	  [red-integer!]
+			hash  [red-hash!]
 	][
 		s:    GET_BUFFER(origin)
 		unit: GET_UNIT(s)
@@ -482,6 +483,8 @@ _series: context [
 			limit	[red-value!]
 			int		[red-integer!]
 			ser2	[red-series!]
+			hash	[red-hash!]
+			table	[node!]
 			values? [logic!]
 			neg?	[logic!]
 			part?	[logic!]
@@ -491,7 +494,7 @@ _series: context [
 			n		[integer!]
 			cnt		[integer!]
 	][
-		cnt: 0
+		cnt: 1
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
@@ -585,6 +588,20 @@ _series: context [
 				if added > 0 [s/tail: s/tail + added]
 			]
 			copy-memory as byte-ptr! value as byte-ptr! cell items * size? cell!
+
+			if type = TYPE_HASH [
+				n: items * cnt
+				added: either part? [n - part][n - size]
+				hash: as red-hash! ser
+				table: hash/table
+				either part? [
+					_hashtable/refresh table added head + part size yes
+					n: either added < 0 [part + added][part]
+				][
+					if n > size [n: size]
+				]
+				_hashtable/clear table head n
+			]
 		][
 			tail: as byte-ptr! s/tail
 			src: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
@@ -637,6 +654,13 @@ _series: context [
 				p: p + added
 				cnt: cnt - 1
 				cnt = 1
+			]
+		]
+		if type = TYPE_HASH [
+			cell: s/offset + head
+			loop items [
+				_hashtable/put table cell
+				cell: cell + 1
 			]
 		]
 		ser/head: head + items
@@ -777,9 +801,10 @@ _series: context [
 			s/tail: as red-value! tail - part
 
 			if TYPE_OF(ser) = TYPE_HASH [
-				part: part >> (log-b unit)
+				items: as-integer tail - (head + part)
+				part: part >> 4
 				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part ser/head + part
+				_hashtable/refresh hash/table 0 - part ser/head + part items >> 4 yes
 			]
 		][
 			s/tail: as red-value! head
@@ -945,9 +970,9 @@ _series: context [
 				s/tail: as cell! tail - bytes
 			]
 			if TYPE_OF(ser) = TYPE_HASH [
-				size: either last? [size - 1][ser/head + part]
+				unit: either last? [size][ser/head + part]
 				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part size
+				_hashtable/refresh hash/table 0 - part unit size - unit yes
 				hash: as red-hash! ser2
 				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
 			]

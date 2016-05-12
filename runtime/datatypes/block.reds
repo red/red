@@ -1180,13 +1180,13 @@ block: context [
 			cell	[red-value!]
 			limit	[red-value!]
 			head	[red-value!]
-			key		[red-value!]
 			hash	[red-hash!]
 			table	[node!]
 			int		[red-integer!]
 			p		[int-ptr!]
 			b		[red-block!]
 			s		[series!]
+			h		[integer!]
 			cnt		[integer!]
 			part	[integer!]
 			size	[integer!]
@@ -1250,20 +1250,24 @@ block: context [
 		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
 			blk/head: (as-integer s/tail - s/offset) >> size? cell!
 		]
-		head?: zero? blk/head
-		tail?: any [(s/offset + blk/head = s/tail) append?]
+		h: blk/head
+		head?: zero? h
+		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
-		index: either append? [(as-integer s/tail - s/offset) >> 4][blk/head]
+		index: either append? [(as-integer s/tail - s/offset) >> 4][h]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size * 2]
-			head: s/offset + blk/head
+			head: s/offset + h
 			move-memory									;-- make space
 				as byte-ptr! head + slots
 				as byte-ptr! head
 				as-integer s/tail - head
-			
+
+			if hash? [
+				_hashtable/refresh table slots h (as-integer s/tail - head) >> 4 yes
+			]
 			s/tail: s/tail + slots
 		]
 
@@ -1275,39 +1279,41 @@ block: context [
 
 				either tail? [
 					while [cell < limit][				;-- multiple values case
-						key: copy-cell cell ALLOC_TAIL(blk)
+						copy-cell cell ALLOC_TAIL(blk)
 						cell: cell + 1
-						key: key - 1
-						if hash? [_hashtable/put table key]
 					]
 				][
 					while [cell < limit][				;-- multiple values case
 						copy-cell cell head
-						if hash? [_hashtable/put table head]
 						head: head + 1
 						cell: cell + 1
 					]
 				]
 			][											;-- single value case
 				either tail? [
-					key: copy-cell value ALLOC_TAIL(blk)
-					key: key - 1
-					if hash? [_hashtable/put table key]
+					copy-cell value ALLOC_TAIL(blk)
 				][
 					copy-cell value head
-					if hash? [_hashtable/put table head]
 				]
 			]
 			cnt: cnt - 1
 		]
+
+		if hash? [
+			s: GET_BUFFER(blk)
+			cell: either tail? [s/tail - slots][s/offset + h]
+			loop slots [
+				_hashtable/put table cell
+				cell: cell + 1
+			]
+		]
+
 		ownership/check as red-value! blk words/_insert value index part
-		
+
 		either append? [blk/head: 0][
-			blk/head: blk/head + slots
+			blk/head: h + slots
 			s: GET_BUFFER(blk)
 			assert s/offset + blk/head <= s/tail
-
-			if all [not tail? hash?][_hashtable/refresh table slots blk/head]
 		]
 		as red-value! blk
 	]
