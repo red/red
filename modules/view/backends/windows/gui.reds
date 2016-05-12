@@ -1644,6 +1644,7 @@ OS-update-facet: func [
 					sym = words/_poke/symbol			;@@ unbind old value
 					sym = words/_put/symbol				;@@ unbind old value
 					sym = words/_moved/symbol
+					sym = words/_changed/symbol
 				][
 					change-faces-parent as red-block! value face new index part
 				]

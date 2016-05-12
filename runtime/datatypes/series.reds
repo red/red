@@ -569,9 +569,11 @@ _series: context [
 			if part > size [part: size]
 		][size: size - head]
 
-		ownership/check as red-value! ser words/_change null head part
-
 		either blk? [
+			n: either part? [part][items * cnt]
+			if n > size [n: size]
+			ownership/check as red-value! ser words/_change null head n
+
 			added: either part? [items - part][items - size]
 			n: as-integer s/tail + added - s/offset
 			if n > s/size [s: expand-series s n * 2]
