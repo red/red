@@ -652,7 +652,10 @@ collect: function [
 	keep: func [v /only][either only [append/only collected v][append collected v]]
 	
 	unless collected [collected: make block! 16]
-	do bind body 'collected
+	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
+		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | into rule | skip]
+	]
+	do body
 	either into [collected][head collected]
 ]
 
