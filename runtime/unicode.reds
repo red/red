@@ -517,6 +517,34 @@ unicode: context [
 		]
 		unit
 	]
+
+	count-extras: func [								;-- count LF and extra bytes for cp > 00010000h
+		p 		[byte-ptr!]
+		tail 	[byte-ptr!]
+		unit	[integer!]
+		return: [integer!]
+		/local
+			p4	  [int-ptr!]
+			extra [integer!]
+			cp	  [integer!]
+	][
+		extra: 0
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if any [
+				cp = as-integer LF						;-- account for extra CR
+				cp > 00010000h							;-- account for surrrogate pair
+			][
+				extra: extra + 2
+			]
+			p: p + unit
+		]
+		extra
+	]
 	
 	load-utf16: func [ 
 		src		[c-string!]								;-- UTF-16LE input buffer (zero-terminated)
@@ -683,11 +711,11 @@ unicode: context [
 		if all [len/value <> -1 len/value < size][size: len/value]
 		part: size
 		size: size << 1 + 2								;-- including terminal-NUL
-
-		get-cache str size
 		
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
+
+		get-cache str size + count-extras src tail unit
 		dst:  as byte-ptr! str/cache
 
 		switch unit [
@@ -758,6 +786,11 @@ unicode: context [
 		]
 		dst/1: null-byte
 		dst/2: null-byte
+		
+		#if debug? = yes [
+			s: (as series! str/cache) - 1
+			assert (as byte-ptr! str/cache) + s/size > dst	;-- detect buffer overflow
+		]
 		str/cache
 	]
 	
