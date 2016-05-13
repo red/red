@@ -651,7 +651,8 @@ react: function [
 		parse spec rule: [
 			any [
 				item: [path! | lit-path! | get-path!] (
-					if unset? attempt [get/any item: item/1][
+					saved: item/1
+					if unset? attempt [get/any item: saved][
 						cause-error 'script 'no-value [item]
 					]
 					obj: none
@@ -681,6 +682,7 @@ react: function [
 						append system/view/reactors reduce [obj item/:part spec ctx]
 						unless find collected obj [keep obj]
 					]
+					parse saved rule
 				)
 				| set-path! | any-string!
 				| into rule
