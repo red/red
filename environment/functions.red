@@ -130,6 +130,7 @@ any-path?:		func ["Returns true if the value is any type of path"	  value [any-t
 any-string?:	func ["Returns true if the value is any type of string"	  value [any-type!]][find any-string!	type? :value]
 any-word?:		func ["Returns true if the value is any type of word"	  value [any-type!]][find any-word!		type? :value]
 series?:		func ["Returns true if the value is any type of series"	  value [any-type!]][find series!		type? :value]
+number?:		func ["Returns true if the value is any type of number"	  value [any-type!]][find number!		type? :value]
 
 spec-of: func [
 	"Returns the spec of a value that supports reflection"
