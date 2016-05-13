@@ -238,11 +238,9 @@ get-window-size: func [
 	0
 ]
 
-emit-red-char: func [cp [integer!] /local b][
-	b: as byte-ptr! :cp
-	pbuffer/1: b/1
-	pbuffer/2: b/2
-	pbuffer: pbuffer + 2
+emit-red-char: func [cp [integer!] /local n][
+	n: 2 * unicode/cp-to-utf16 cp pbuffer
+	pbuffer: pbuffer + n
 ]
 
 reset-cursor-pos: does [

@@ -625,7 +625,7 @@ unicode: context [
 	cp-to-utf16: func [
 		cp		[integer!]
 		buf		[byte-ptr!]
-		return: [integer!]
+		return: [integer!]				;-- return number of utf16 codepoint
 		/local
 			unit [integer!]
 	][

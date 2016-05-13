@@ -223,7 +223,7 @@ unless system/console [
 					all [offset < tail cnt < size]
 				][
 					cp: string/get-char offset unit
-					w: wcwidth? cp
+					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [
 						1  [cnt + 1]
 						2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
