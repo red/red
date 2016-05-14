@@ -409,10 +409,11 @@ _series: context [
 				size: as-integer dst - end
 				either dst = tail [
 					move-memory src end size
-					dst: dst - part						;-- point to beginning of last slot
 				][
 					move-memory src end size + unit		;-- extend size to include target slot
+					dst: dst + unit						;-- ensure insertion is done past the provided index
 				]
+				dst: dst - part							;-- adjust dst after moving items
 			][
 				move-memory dst + part dst as-integer src - dst 
 			]
