@@ -525,7 +525,7 @@ what-dir: func [/local path][
 
 change-dir: function [
 	"Changes the active directory path"
-	:dir [file! word! path!] "New active directory of relative path to the new one"
+	dir [file! word! path!] "New active directory of relative path to the new one"
 ][
 	unless exists? dir: normalize-dir dir [cause-error 'access 'cannot-open [dir]]
 	system/options/path: dir

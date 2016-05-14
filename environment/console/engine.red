@@ -232,7 +232,13 @@ ll:   func ['dir [any-type!]][list-dir/col :dir 1]
 pwd:  does [prin mold system/options/path]
 halt: does [throw/name 'halt-request 'console]
 
-cd:		:change-dir
+cd:	function [
+	"Changes the active directory path"
+	:dir [file! word! path!] "New active directory of relative path to the new one"
+][
+	change-dir :dir
+]
+
 ls: 	:list-dir
 dir:	:ls
 q: 		:quit
