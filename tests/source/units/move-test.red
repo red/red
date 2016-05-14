@@ -63,6 +63,11 @@ Red [
 		move/part list tail list 2
 		--assert list = [c d e a b]
 
+	--test-- "issue-1905"
+		list: [a b c d e f g]
+		move/part list skip list 3 2
+		--assert list = [c d a b e f g]
+
 ===end-group===
 
 ===start-group=== "different blocks"
@@ -169,6 +174,12 @@ Red [
 		str: "abcde"
 		move/part str tail str 2
 		--assert str = "cdeab"
+
+	--test-- "issue-1905-str"
+		str: "abcdefg"
+		move/part str skip str 3 2
+		--assert str = "cdabefg"
+
 
 ===end-group===
 
