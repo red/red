@@ -281,6 +281,7 @@ Red/System [
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
+#define GET_TUPLE_ARRAY(tp) [(as byte-ptr! tp) + 4]
 #define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
