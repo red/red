@@ -760,6 +760,10 @@ binary: context [
 							fire [TO_ERROR(script out-of-range) cell]
 						]
 				]
+				TYPE_TUPLE [
+					bytes: TUPLE_SIZE?(cell)
+					src: GET_TUPLE_ARRAY(cell)
+				]
 				default [
 					either any [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
