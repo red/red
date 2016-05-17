@@ -378,6 +378,7 @@ _series: context [
 			temp  [byte-ptr!]
 			int	  [red-integer!]
 			hash  [red-hash!]
+			cell  [red-value!]
 	][
 		s:    GET_BUFFER(origin)
 		unit: GET_UNIT(s)
@@ -396,12 +397,13 @@ _series: context [
 			part: part << (log-b unit)
 		]
 		
+		type1: TYPE_OF(origin)
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target words/_move null origin/head items
-			
+
 			temp: allocate part							;@@ suboptimal for unit < 16
 			copy-memory	temp src part
 			either dst > src [							;-- slide in-between elements
@@ -419,15 +421,20 @@ _series: context [
 			]
 			copy-memory dst temp part
 			free temp
+
+			if type1 = TYPE_HASH [
+				hash: as red-hash! origin
+				_hashtable/move hash/table target/head origin/head items
+			]
+
 			index: target/head - items
 		][												;-- different series case
 			ownership/check as red-value! target words/_move null origin/head items
 			
+			type2: TYPE_OF(target)
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
 			if unit <> unit2 [
-				type1: TYPE_OF(origin)
-				type2: TYPE_OF(target)
 				if any [
 					type1 = TYPE_BINARY
 					type1 = TYPE_VECTOR
@@ -454,7 +461,22 @@ _series: context [
 			;-- collapse source series over copied elements
 			move-memory src src + part as-integer tail - (src + part)
 			s/tail: as cell! tail - part
-			;TBD: add hash support
+
+			if type1 = TYPE_HASH [
+				hash: as red-hash! origin
+				part: (as-integer s/tail - s/offset) >> 4 - hash/head
+				_hashtable/refresh hash/table 0 - items hash/head + items part yes
+			]
+			if type2 = TYPE_HASH [
+				hash: as red-hash! target
+				part: (as-integer s2/tail - dst) >> 4 - items - hash/head
+				_hashtable/refresh hash/table items hash/head part yes
+				cell: as red-value! dst
+				loop items [
+					_hashtable/put hash/table cell
+					cell: cell + 1
+				]
+			]
 			index: target/head
 		]
 		ownership/check as red-value! target words/_moved null index items

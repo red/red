@@ -63,6 +63,19 @@ Red [
 		move/part list tail list 2
 		--assert list = [c d e a b]
 
+	--test-- "move-11"
+		hash: make hash! [a b c d e f g 1 2 3]
+		hash2: skip hash 6
+		move hash hash2
+		move/part hash hash2 3
+		move/part hash2 hash 2
+		--assert 1 = hash/d
+		--assert 'e = select hash 1
+		--assert 'f = hash/e
+		--assert 'c = hash/b
+		--assert 2 = hash/c
+		--assert 3 = select hash 2
+
 	--test-- "issue-1905"
 		list: [a b c d e f g]
 		move/part list skip list 3 2
@@ -121,6 +134,22 @@ Red [
 		--assert list1 = []
 		--assert list2 = [a b c]
 
+	--test-- "move-diff-8"
+		hash1: make hash! [a b c d e f g 1 2 3]
+		hash2: make hash! [x y z 7 8 9]
+		move hash1 hash2
+		move/part hash1 hash2 3
+		move/part skip hash2 3 hash1 3
+		move/part skip hash1 3 skip hash2 2 3
+		--assert 'x = hash1/a
+		--assert 1 = hash1/y
+		--assert 'y = hash1/x
+		--assert 2 = select hash1 1
+		--assert 'c = hash2/b
+		--assert 'e = hash2/c
+		--assert 'g = hash2/f
+		--assert 7 = hash2/z
+		--assert 8 = select hash2 7
 ===end-group===
 
 ===start-group=== "same strings"

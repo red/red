@@ -918,8 +918,8 @@ _hashtable: context [
 		]
 
 		if change? [
+			head: ii						;-- restore head
 			either negative? offset [		;-- need to delete some entries
-				head: ii					;-- restore head
 				part: offset
 				s: as series! h/flags/value
 				flags: as int-ptr! s/offset
@@ -942,5 +942,45 @@ _hashtable: context [
 				as byte-ptr! indexes + head
 				size * 4
 		]
+	]
+
+	move: func [
+		node	[node!]
+		dst		[integer!]
+		src		[integer!]
+		items	[integer!]
+		/local s h indexes index part head temp
+	][
+		if all [src <= dst dst < (src + items)][exit]
+
+		s: as series! node/value
+		h: as hashtable! s/offset
+		s: as series! h/indexes/value
+		indexes: as int-ptr! s/offset
+
+		part: dst - src
+		if part > 0 [part: part - (items - 1)]
+		refresh node part src items no
+
+		either negative? part [
+			part: 0 - part
+			index: items
+			head: dst
+		][
+			index: 0 - items
+			head: src + items
+		]
+		refresh node index head part no
+
+		if dst > src [dst: dst - items + 1]
+		items: items * 4
+		temp: allocate items
+		copy-memory temp as byte-ptr! indexes + src items
+		move-memory
+			as byte-ptr! (indexes + head + index)
+			as byte-ptr! indexes + head
+			part * 4
+		copy-memory as byte-ptr! indexes + dst temp items
+		free temp
 	]
 ]
