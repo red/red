@@ -1330,6 +1330,46 @@ natives: context [
 		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
 	]
 
+	enbase*: func [
+		check?   [logic!]
+		base-arg [integer!]
+		/local
+			data [red-string!]
+			int  [red-integer!]
+			base [integer!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-binary!]
+	][
+		#typecheck [enbase base-arg]
+		data: as red-string! stack/arguments
+		base: either positive? base-arg [
+			int: as red-integer! data + 1
+			int/value
+		][64]
+
+		p: either TYPE_OF(data) = TYPE_STRING [
+			len: -1
+			as byte-ptr! unicode/to-utf8 data :len
+		][
+			len: binary/rs-length? as red-binary! data
+			binary/rs-head as red-binary! data
+		]
+
+		ret: as red-binary! data
+		ret/head: 0
+		ret/header: TYPE_STRING
+		ret/node: switch base [
+			64 [binary/encode-64 p len]
+			16 [binary/encode-16 p len]
+			2  [binary/encode-2  p len]
+			default [fire [TO_ERROR(script invalid-arg) int] null]
+		]
+		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+	]
+
 	negative?*: func [
 		check?  [logic!]
 		return:	[red-logic!]
@@ -2498,6 +2538,7 @@ natives: context [
 			:unset*
 			:new-line*
 			:new-line?*
+			:enbase*
 		]
 	]
 

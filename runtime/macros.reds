@@ -227,6 +227,7 @@ Red/System [
 	NAT_UNSET
 	NAT_NEW_LINE
 	NAT_NEW_LINE?
+	NAT_ENBASE
 ]
 
 #enum math-op! [
