@@ -579,10 +579,6 @@ natives: context [
 				object/set-many as red-object! w value only? some?
 				stack/set-last value
 			]
-			TYPE_MAP [
-				map/set-many as red-hash! w as red-block! value only? some?
-				stack/set-last value
-			]
 			TYPE_BLOCK [
 				blk: as red-block! w
 				set-many blk value block/rs-length? blk only? some?
@@ -2175,6 +2171,8 @@ natives: context [
 		s: GET_BUFFER(series)
 		either any [									;@@ replace with any-block?
 			type = TYPE_BLOCK
+			type = TYPE_MAP
+			type = TYPE_HASH
 			type = TYPE_PAREN
 			type = TYPE_PATH
 			type = TYPE_GET_PATH
@@ -2289,6 +2287,12 @@ natives: context [
 					][
 						--NOT_IMPLEMENTED--
 					]
+				]
+				TYPE_MAP [
+					if size % 2 <> 0 [
+						fire [TO_ERROR(script invalid-arg) blk]
+					]
+					map/set-many blk as red-hash! series size
 				]
 				default [
 					set-many blk as red-value! series size no no
