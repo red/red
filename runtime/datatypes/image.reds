@@ -168,7 +168,7 @@ image: context [
 		p: as byte-ptr! s/offset
 
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node PixelFormat32bppARGB no
+		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		x: img/head % w
 		y: img/head / w
@@ -229,7 +229,7 @@ image: context [
 
 		offset: img/head
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node PixelFormat32bppARGB yes
+		bitmap: OS-image/lock-bitmap as-integer img/node yes
 		data: OS-image/get-data bitmap :stride
 		x: offset % w
 		y: offset / w
@@ -419,7 +419,7 @@ image: context [
 		part: part - 5
 
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node PixelFormat32bppARGB no
+		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		offset: img/head
 		stride: stride / 4
@@ -671,8 +671,8 @@ image: context [
 					res: 1
 				][
 					type: 0
-					bmp1: OS-image/lock-bitmap as-integer arg1/node PixelFormat32bppARGB no
-					bmp2: OS-image/lock-bitmap as-integer arg2/node PixelFormat32bppARGB no
+					bmp1: OS-image/lock-bitmap as-integer arg1/node no
+					bmp2: OS-image/lock-bitmap as-integer arg2/node no
 					res: compare-memory
 						as byte-ptr! OS-image/get-data bmp1 :type
 						as byte-ptr! OS-image/get-data bmp2 :type
