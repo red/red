@@ -59,56 +59,59 @@ copy-to-clipboard: func [
 	/local
 		out		[ring-buffer!]
 		data	[red-string!]
-		format	[integer!]
-		head	[integer!]
 		node	[line-node!]
-		start	[byte-ptr!]
-		end		[byte-ptr!]
+		start	[integer!]
+		end		[integer!]
+		unit	[integer!]
 		size	[integer!]
+		len		[integer!]
 		s		[series!]
 		hMem	[handle!]
 		p		[byte-ptr!]
+		p1		[byte-ptr!]
 ][
 	out: vt/out
 	data: out/data
-	head: out/s-head
-	if head = -1 [exit]
+	start: out/s-head
+	if start = -1 [exit]
 	if any [
-		head = -1
+		start = -1
 		not OpenClipboard vt/hwnd
 	][exit]
 
-	node: out/lines + head - 1
-	data/head: node/offset + out/s-h-idx
-	start: string/rs-head data
+	node: out/lines + start - 1
+	start: node/offset + out/s-h-idx
 	node: out/lines + out/s-tail - 1
-	data/head: node/offset + out/s-t-idx
-	end: string/rs-head data
-	data/head: 0
+	end: node/offset + out/s-t-idx
 
+	len: string/rs-length? data
 	s: GET_BUFFER(data)
-	either start <= end [
-		size: as-integer end - start
-	][
-		size: as-integer end - as byte-ptr! s/offset
-		size: size + as-integer (as byte-ptr! s/tail) - start
-	]
+	unit: GET_UNIT(s)
+	size: either start <= end [end - start][len - start + end]
+
 	EmptyClipboard
-	hMem: GlobalAlloc 42h size + 2			;-- added null terminator
+	if unit <> UCS-2 [unit: unit * 2]				;-- make enough space for Latin1 and UCS-4
+	hMem: GlobalAlloc 42h size * unit + 2			;-- added null terminator
 	if null? hMem [CloseClipboard exit]
 	p: GlobalLock hMem
 	either start <= end [
-		copy-memory p start size
+		data/head: start
+		p1: as byte-ptr! unicode/to-utf16-len data :size yes
+		copy-memory p p1 size * 2
 	][
-		size: as-integer (as byte-ptr! s/tail) - start
-		copy-memory p start size
-		p: p + size
-		copy-memory p as byte-ptr! s/offset as-integer end - as byte-ptr! s/offset
+		len: len - start
+		data/head: start
+		p1: as byte-ptr! unicode/to-utf16-len data :len yes
+		copy-memory p p1 len * 2
+		p: p + (len * 2)
+		data/head: 0
+		p1: as byte-ptr! unicode/to-utf16-len data :end yes
+		copy-memory p p1 end * 2
 	]
+	data/head: 0
 	GlobalUnlock hMem
 
-	format: either GET_UNIT(s) = UCS-2 [CF_UNICODETEXT][CF_TEXT]
-	SetClipboardData format hMem
+	SetClipboardData CF_UNICODETEXT hMem
 	CloseClipboard
 ]
 
