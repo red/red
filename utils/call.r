@@ -87,12 +87,12 @@ context [
 	
 	GetEnvironmentStrings: make routine! [
 		return: [integer!]
-	] kernel32.dll "GetEnvironmentStringsW"
+	] kernel32 "GetEnvironmentStringsW"
 	
 	FreeEnvironmentStrings: make routine! [
 		lpszEnvironmentBlock [integer!]
 		return: [integer!]
-	] kernel32.dll "FreeEnvironmentStringsW"
+	] kernel32 "FreeEnvironmentStringsW"
 	
 	CREATE_UNICODE_ENVIRONMENT: to-integer #{00000400}
 	
