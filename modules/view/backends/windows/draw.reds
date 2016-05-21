@@ -54,6 +54,9 @@ update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
 			modes/gp-font-brush: 0
 		]
 		modes/font-color: color
+		;-- work around for drawing text on transparent background
+		;-- http://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
+		if color >>> 24 = 0 [color: 1 << 24 or color]
 		brush: 0
 		GdipCreateSolidFill to-gdiplus-color color :brush
 		modes/gp-font-brush: brush
