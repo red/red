@@ -60,10 +60,28 @@ quit-return: routine [
 	quit status
 ]
 
-;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
-shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]
-shift-logical: routine [data [integer!] bits [integer!]][natives/shift* no -1 1]
+;-- The following definitions are used to create op! corresponding operators
+shift-right: routine [
+	"Perform a right (decreasing) signed bit shift operation"
+	data [integer!]
+	bits [integer!]
+][
+	natives/shift* no -1 -1
+]
+shift-left: routine [
+	"Perform a left (increasing) signed bit shift operation"
+	data [integer!]
+	bits [integer!]
+][
+	natives/shift* no 1 -1
+]
+shift-logical: routine [
+	"Perform a right (decreasing) logical/unsigned bit shift operation"
+	data [integer!]
+	bits [integer!]
+][
+	natives/shift* no -1 1
+]
 
 ;-- Helping routine for console, returns true if last output character was a LF
 last-lf?: routine [/local bool [red-logic!]][
