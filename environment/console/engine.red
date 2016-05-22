@@ -108,7 +108,7 @@ system/console: context [
 	
 	try-do: func [code /local result return: [any-type!]][
 		set/any 'result try/all [
-			either 'halt-request = catch/name [set/any 'result do code] 'console [
+			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
 			][
 				:result
@@ -121,49 +121,46 @@ system/console: context [
 	buffer: make string! 10000
 	cue:    none
 	mode:   'mono
-
-	eval-command: function [line [string!] /extern cue mode][
-		switch-mode: [
-			mode: case [
-				cnt/1 > 0 ['block]
-				cnt/2 > 0 ['string]
-				cnt/3 > 0 ['paren]
-				'else 	  [
-					do eval
-					'mono
-				]
-			]
-			cue: switch mode [
-				block  ["[    "]
-				string ["{    "]
-				paren  ["(    "]
-				mono   [none]
-			]
-		]
-
-		eval: [
-			if error? code: try [load/all buffer][print code]
-			
-			unless any [error? code tail? code][
-				set/any 'result try-do code
-				
-				case [
-					error? :result [
-						print result
-					]
-					not unset? :result [
-						if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
-							clear back tail result
-							append result "..."
-						]
-						print ["==" result]
-					]
-				]
-				unless last-lf? [prin lf]
-			]
-			clear buffer
-		]
 	
+	switch-mode: does [
+		mode: case [
+			cnt/1 > 0 ['block]
+			cnt/2 > 0 ['string]
+			cnt/3 > 0 ['paren]
+			'else 	  [do-command 'mono]
+		]
+		cue: switch mode [
+			block  ["[    "]
+			string ["{    "]
+			paren  ["(    "]
+			mono   [none]
+		]
+	]
+
+	do-command: function [][
+		if error? code: try [load/all buffer][print code]
+
+		unless any [error? code tail? code][
+			set/any 'result try-do code
+			
+			case [
+				error? :result [
+					print result
+				]
+				not unset? :result [
+					if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
+						clear back tail result
+						append result "..."
+					]
+					print ["==" result]
+				]
+			]
+			unless last-lf? [prin lf]
+		]
+		clear buffer
+	]
+	
+	eval-command: function [line [string!] /extern cue mode][
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
 				cue: none
@@ -177,10 +174,10 @@ system/console: context [
 				append buffer lf					;-- needed for multiline modes
 
 				switch mode [
-					block  [if cnt/1 <= 0 [do switch-mode]]
-					string [if cnt/2 <= 0 [do switch-mode]]
-					paren  [if cnt/3 <= 0 [do switch-mode]]
-					mono   [do either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][eval]]
+					block  [if cnt/1 <= 0 [switch-mode]]
+					string [if cnt/2 <= 0 [switch-mode]]
+					paren  [if cnt/3 <= 0 [switch-mode]]
+					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][do-command]]
 				]
 			]
 		]
