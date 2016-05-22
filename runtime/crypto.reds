@@ -15,17 +15,26 @@ crypto: context [
 	_md5:	0
 	_sha1:	0
 	_crc32: 0
+	_sha256:	0
+	_sha384:	0
+	_sha512:	0
 
 	init: does [
 		_md5:	symbol/make "md5"
 		_sha1:	symbol/make "sha1"
 		_crc32: symbol/make "crc32"
+		_sha256:	symbol/make "sha256"
+		_sha384:	symbol/make "sha384"
+		_sha512:	symbol/make "sha512"
 	]
 
 	#enum crypto-algorithm! [
 		ALG_CRC32
 		ALG_MD5
 		ALG_SHA1
+		ALG_SHA256
+		ALG_SHA384
+		ALG_SHA512
 	]
 
 	crc32-table: declare int-ptr!
@@ -93,6 +102,30 @@ crypto: context [
 		get-digest data len ALG_SHA1
 	]
 
+	SHA256: func [
+		data	[byte-ptr!]
+		len		[integer!]
+		return:	[byte-ptr!]
+	][
+		get-digest data len ALG_SHA256
+	]
+
+	SHA384: func [
+		data	[byte-ptr!]
+		len		[integer!]
+		return:	[byte-ptr!]
+	][
+		get-digest data len ALG_SHA384
+	]
+
+	SHA512: func [
+		data	[byte-ptr!]
+		len		[integer!]
+		return:	[byte-ptr!]
+	][
+		get-digest data len ALG_SHA512
+	]
+
 #switch OS [
 	Windows [
 		#import [
@@ -140,12 +173,16 @@ crypto: context [
 			]
 		]
 
-		#define PROV_RSA_FULL 			1
-		#define CRYPT_VERIFYCONTEXT     F0000000h
+		;#define PROV_RSA_FULL 			1                       ;-- Doesn't provide beyond SHA1
+		#define PROV_RSA_AES            24
+		#define CRYPT_VERIFYCONTEXT     F0000000h				;-- Says we're using ephemeral, not stored, keys
 		#define HP_HASHVAL              0002h  					;-- Get hash value
 		#define CALG_MD5				00008003h
 		#define CALG_SHA1				00008004h
-
+		#define CALG_SHA_256	        0000800Ch
+		#define CALG_SHA_384	        0000800Dh
+		#define CALG_SHA_512	        0000800Eh
+		
 		get-digest: func [
 			data	[byte-ptr!]
 			len		[integer!]
@@ -153,15 +190,22 @@ crypto: context [
 			return:	[byte-ptr!]
 			/local
 				provider [integer!]
-				handle [integer!]
+				handle	[integer!]
 				hash	[byte-ptr!]
 				size	[integer!]
 		][
-			hash: as byte-ptr! "0000000000000000000"
+		    ; The hash buffer needs to be big enough to hold the longest result.
+			hash: as byte-ptr! "0000000000000000000000000000000000000000000000000000000000000000"
 			provider: 0
 			handle: 0
-			size: either type = ALG_MD5 [type: CALG_MD5 16][type: CALG_SHA1 20]
-			CryptAcquireContext :provider null null PROV_RSA_FULL CRYPT_VERIFYCONTEXT
+			switch type [
+				ALG_MD5     [type: CALG_MD5      size: 16]
+				ALG_SHA1    [type: CALG_SHA1     size: 20]
+				ALG_SHA256  [type: CALG_SHA_256  size: 32]
+				ALG_SHA384  [type: CALG_SHA_384  size: 48]
+				ALG_SHA512  [type: CALG_SHA_512  size: 64]
+            ]
+			CryptAcquireContext :provider null null PROV_RSA_AES CRYPT_VERIFYCONTEXT
 			CryptCreateHash provider type null 0 :handle
 			CryptHashData handle data len 0
 			CryptGetHashParam handle HP_HASHVAL hash :size 0
