@@ -52,11 +52,7 @@ empty?: func [
 ][
 	prin mold :value
 	prin ": "
-	either value? :value [
-		probe get/any :value
-	][
-		print "unset!"
-	]
+	print either value? :value [mold get/any :value]["unset!"]
 ]
 
 probe: func [
