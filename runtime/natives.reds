@@ -305,6 +305,7 @@ natives: context [
 			body   [red-block!]
 			saved  [red-value!]
 			series [red-series!]
+			break? [logic!]
 	][
 		#typecheck forall
 		w:    as red-word!  stack/arguments
@@ -312,13 +313,14 @@ natives: context [
 		
 		saved: word/get w							;-- save series (for resetting on end)
 		w: word/push w								;-- word argument
+		break?: no
 		
 		stack/mark-loop words/_body
 		while [loop? as red-series! _context/get w][
 			stack/reset
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
-				RED_THROWN_BREAK	[system/thrown: 0 break]
+				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
 				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
 				0 [
 					series: as red-series! _context/get w
@@ -328,7 +330,7 @@ natives: context [
 			]
 		]
 		stack/unwind-last
-		_context/set w saved
+		unless break? [_context/set w saved]
 	]
 	
 	func*: func [check? [logic!]][
@@ -2419,6 +2421,16 @@ natives: context [
 		assert TYPE_OF(word) = TYPE_WORD
 
 		_context/set word as red-value! series			;-- reset series to its initial offset
+	]
+	
+	forall-end-adjust: func [
+		/local
+			changed	[red-series!]
+			series	[red-series!]
+	][
+		changed: as red-series! _context/get as red-word! stack/arguments - 1
+		series: as red-series! stack/arguments - 2
+		series/head: changed/head
 	]
 	
 	repeat-init*: func [

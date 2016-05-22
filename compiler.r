@@ -2249,13 +2249,17 @@ red: context [
 		]
 	]
 	
-	comp-break: does [
+	comp-break: has [inner?][
 		if empty? intersect iterators expr-stack [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		emit [stack/unroll-loop no break]
-		insert-lf -2
+		if inner?: 'forall = last intersect expr-stack iterators [
+			emit 'natives/forall-end-adjust
+			insert-lf -1
+		]
+		emit compose [stack/unroll-loop (to word! form inner?) break]
+		insert-lf -3
 	]
 	
 	comp-continue: does [
