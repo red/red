@@ -194,7 +194,7 @@ crypto: context [
 				hash	[byte-ptr!]
 				size	[integer!]
 		][
-		    ; The hash buffer needs to be big enough to hold the longest result.
+			; The hash buffer needs to be big enough to hold the longest result.
 			hash: as byte-ptr! "0000000000000000000000000000000000000000000000000000000000000000"
 			provider: 0
 			handle: 0
@@ -204,7 +204,7 @@ crypto: context [
 				ALG_SHA256  [type: CALG_SHA_256  size: 32]
 				ALG_SHA384  [type: CALG_SHA_384  size: 48]
 				ALG_SHA512  [type: CALG_SHA_512  size: 64]
-            ]
+			]
 			CryptAcquireContext :provider null null PROV_RSA_AES CRYPT_VERIFYCONTEXT
 			CryptCreateHash provider type null 0 :handle
 			CryptHashData handle data len 0
