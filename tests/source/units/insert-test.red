@@ -71,12 +71,19 @@ Red [
 		str: "12"
 		insert/part/dup str "456" 3 2 
 	--assert str = "45645612"
-
 	--test-- "insert-18"
 		hash: make hash! [a b c 1 2 3]
 		insert hash [x y]
 	--assert 'y = select hash 'x
 	--assert 2  = select hash 1
+	--test-- "insert-19"
+		b: next a: [1 2 3]
+		insert/part c: [] a b
+	--assert [1] = c
+	--test-- "insert-20"
+		b: next a: "123"
+		insert/part c: "" a b
+	--assert "1" = c
 ===end-group===
 
 ===start-group=== "insert/dup"

@@ -744,13 +744,14 @@ binary: context [
 				int/value
 			][
 				sp: as red-binary! part-arg
+				src: as red-block! value
 				unless all [
-					TYPE_OF(sp) = TYPE_BINARY
-					sp/node = bin/node
+					TYPE_OF(sp) = TYPE_OF(src)
+					sp/node = src/node
 				][
-					fire [TO_ERROR(script invalid-part) part-arg]
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head + 1								;-- /head is 0-based
+				sp/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [

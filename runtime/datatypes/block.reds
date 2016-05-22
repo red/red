@@ -1213,11 +1213,14 @@ block: context [
 				int/value
 			][
 				b: as red-block! part-arg
-				assert all [
-					TYPE_OF(b) = TYPE_BLOCK
-					b/node = blk/node
+				src: as red-block! value
+				unless all [
+					TYPE_OF(b) = TYPE_OF(src)
+					b/node = src/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				b/head + 1								;-- /head is 0-based
+				b/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [

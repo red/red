@@ -1914,13 +1914,14 @@ string: context [
 				int/value
 			][
 				sp: as red-string! part-arg
-				assert all [
-					TYPE_OF(sp) = TYPE_STRING			;@@ replace by ANY_STRING?
-					TYPE_OF(sp) = TYPE_FILE
-					TYPE_OF(sp) = TYPE_URL
-					sp/node = str/node
+				form-buf: as red-string! value
+				unless all [
+					TYPE_OF(sp) = TYPE_OF(form-buf)
+					sp/node = form-buf/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head + 1								;-- /head is 0-based
+				sp/head - form-buf/head
 			]
 		]
 		if OPTION?(dup-arg) [
