@@ -122,7 +122,7 @@ system/console: context [
 	cue:    none
 	mode:   'mono
 	
-	switch-mode: does [
+	switch-mode: func [cnt][
 		mode: case [
 			cnt/1 > 0 ['block]
 			cnt/2 > 0 ['string]
@@ -174,10 +174,10 @@ system/console: context [
 				append buffer lf					;-- needed for multiline modes
 
 				switch mode [
-					block  [if cnt/1 <= 0 [switch-mode]]
-					string [if cnt/2 <= 0 [switch-mode]]
-					paren  [if cnt/3 <= 0 [switch-mode]]
-					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode][do-command]]
+					block  [if cnt/1 <= 0 [switch-mode cnt]]
+					string [if cnt/2 <= 0 [switch-mode cnt]]
+					paren  [if cnt/3 <= 0 [switch-mode cnt]]
+					mono   [either any [cnt/1 > 0 cnt/2 > 0 cnt/3 > 0][switch-mode cnt][do-command]]
 				]
 			]
 		]

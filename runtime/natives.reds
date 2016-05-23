@@ -2043,6 +2043,18 @@ natives: context [
 						b: crypto/SHA1 data len
 						len: 20
 					]
+					type = crypto/_sha256 [
+						b: crypto/SHA256 data len
+						len: 32
+					]
+					type = crypto/_sha384 [
+						b: crypto/SHA384 data len
+						len: 48
+					]
+					type = crypto/_sha512 [
+						b: crypto/SHA512 data len
+						len: 64
+					]
 					type = crypto/_crc32 [
 						integer/box crypto/CRC32 data len
 						exit

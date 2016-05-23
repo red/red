@@ -752,13 +752,13 @@ wait: make native! [[
 ]
 
 checksum: make native! [[
-		"Computes a checksum, CRC, or hash"
+		"Computes a checksum, CRC, or hash. Default is CRC32."
 		data 	[binary! string! file!]
 		/tcp 				"Returns an Internet TCP 16-bit checksum"
 		/hash 				"Returns a hash value"
 			size [integer!] "Size of the hash table"
 		/method				"Method to use"
-			word [word!]	"Methods: SHA1 MD5 CRC32"
+			word [word!]	"Methods: CRC32 MD5 SHA1 SHA256 SHA384 SHA512"
 		/key				"Returns keyed HMAC value"
 			key-value [any-string!] "Key to use"
 		return: [integer! binary!]
