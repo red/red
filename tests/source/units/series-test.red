@@ -1078,7 +1078,7 @@ Red [
 
 	--test-- "take-blk-6"
 		a: [1 2 3]
-		--assert 1 = take/part a next a
+		--assert [1] = take/part a next a
 		--assert [2 3] = a
 
 	--test-- "take-blk-7"
