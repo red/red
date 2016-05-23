@@ -364,6 +364,7 @@ _series: context [
 			s	  [series!]
 			s2	  [series!]
 			part  [integer!]
+			limit [integer!]
 			items [integer!]
 			unit  [integer!]
 			unit2 [integer!]
@@ -394,6 +395,8 @@ _series: context [
 			part: int/value
 			if part <= 0 [return as red-value! target]	;-- early exit if negative /part index
 			items: part
+			limit: (as-integer tail - src) >> log-b unit
+			if part > limit [part: limit]
 			part: part << (log-b unit)
 		]
 		
