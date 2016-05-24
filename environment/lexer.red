@@ -367,6 +367,7 @@ system/lexer: context [
 		make-file: [
 			new: make type (index? e) - index? s
 			append new dehex copy/part s e
+			replace/all new #"\" #"/"					;@@ use parse/change instead
 			new
 		]
 

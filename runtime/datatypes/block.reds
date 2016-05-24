@@ -1355,7 +1355,10 @@ block: context [
 			]
 		]
 
-		if 1 = _series/get-length blk yes [								;-- flatten block
+		if all [									;-- flatten block
+			not OPTION?(part-arg)
+			1 = _series/get-length blk yes
+		][
 			copy-cell as cell! s/offset as cell! blk
 		]
 		ownership/check as red-value! blk words/_taken null blk/head 0

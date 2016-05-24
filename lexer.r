@@ -666,7 +666,7 @@ lexer: context [
 	]
 
 	load-file: func [s [string!]][
-		to file! dehex s
+		to file! replace/all dehex s #"\" #"/"
 	]
 	
 	process: func [src [string! binary!] /local blk][
