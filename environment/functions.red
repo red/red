@@ -182,11 +182,11 @@ replace: function [
 	value
 	/all
 ][
-	many?: (series? :pattern) and (
-		   (any-string? series)
-		or (binary? series)
-		or ((any-list? series) and any-list? :pattern)
-	) 
+	many?: any [
+		system/words/all [series? :pattern any-string? series]
+		binary? series
+		system/words/all [any-list? series any-list? :pattern]
+	]
 	len: either many? [length? pattern][1]
 	
 	either all [
