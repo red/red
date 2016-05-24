@@ -120,21 +120,23 @@ parser: context [
 	]
 	
 	#enum rule-flags! [									;-- negative values to not collide with t/state counter
-		R_NONE:		  -1
-		R_TO:		  -2
-		R_THRU:		  -3
-		R_COPY:		  -4
-		R_SET:		  -5
-		R_NOT:		  -6
-		R_INTO:		  -7
-		R_THEN:		  -8
-		R_REMOVE:	  -9
-		R_INSERT:	  -10
-		R_WHILE:	  -11
-		R_COLLECT:	  -12
-		R_KEEP:		  -13
-		R_KEEP_PAREN: -14
-		R_AHEAD:	  -15
+		R_NONE:			-1
+		R_TO:			-2
+		R_THRU:			-3
+		R_COPY:			-4
+		R_SET:			-5
+		R_NOT:			-6
+		R_INTO:			-7
+		R_THEN:			-8
+		R_REMOVE:		-9
+		R_INSERT:		-10
+		R_WHILE:		-11
+		R_COLLECT:		-12
+		R_KEEP:			-13
+		R_KEEP_PAREN:	-14
+		R_AHEAD:		-15
+		R_CHANGE:		-16
+		R_CHANGE_ONLY:	-17
 	]
 	
 	triple!: alias struct! [
@@ -710,6 +712,7 @@ parser: context [
 			rule?	 [logic!]
 			collect? [logic!]
 			into?	 [logic!]
+			only?	 [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -970,6 +973,29 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									actions/remove input base
+								]
+							]
+							R_CHANGE
+							R_CHANGE_ONLY [
+								cmd: cmd + 1
+								if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_change]]
+								if match? [
+									switch TYPE_OF(cmd) [
+										TYPE_PAREN [
+											eval cmd
+											value: stack/top - 1
+											PARSE_TRACE(_paren)
+										]
+										TYPE_WORD [value: _context/get as red-word! cmd]
+										default	  [value: cmd]
+									]
+									only?: int/value = R_CHANGE_ONLY
+									int/value: input/head - p/input
+									input/head: p/input
+									assert int/value >= 0
+									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
+									new: as red-series! actions/change input value base only? null
+									input/head: new/head
 								]
 							]
 							R_AHEAD [
@@ -1426,6 +1452,20 @@ parser: context [
 							actions/insert input value null max = 1 null no
 							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
+						]
+						sym = words/_change/symbol [	;-- CHANGE
+							w: as red-word! cmd + 1
+							max: as-integer all [
+								(as red-value! w) < tail
+								TYPE_OF(w) = TYPE_WORD
+								words/only = symbol/resolve w/symbol
+							]
+							cmd: cmd + max
+							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_change]]
+							
+							min:   R_NONE
+							type:  either max = 1 [R_CHANGE_ONLY][R_CHANGE]
+							state: ST_PUSH_RULE
 						]
 						sym = words/end [				;-- END
 							PARSE_CHECK_INPUT_EMPTY?
