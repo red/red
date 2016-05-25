@@ -589,6 +589,30 @@ fRed [
 		--assert parse blk: [1 2 3][change only [some integer!] (reduce [1 + 2])]
 		--assert blk = [[3]]
 
+	--test-- "blk-chg11"
+		--assert parse blk: [1][b: integer! change b 'a]
+		--assert blk = [a]
+
+	--test-- "blk-chg12"
+		--assert parse blk: [1 2 3][b: some integer! change b 'a]
+		--assert blk = [a]
+
+	--test-- "blk-chg13"
+		--assert parse blk: [1 a 2 b 3][some [b: word! change b dot | integer!]]
+		--assert blk = [1 #"." 2 #"." 3]
+
+	--test-- "blk-chg14"
+		--assert parse blk: [1 2 3][b: some integer! change b (99)]
+		--assert blk = [99]
+
+	--test-- "blk-chg15"
+		--assert parse blk: [1 2 3][b: some integer! change only b [a]]
+		--assert blk = [[a]]
+
+	--test-- "blk-chg16"
+		--assert parse blk: [1 2 3][b: some integer! change only b (reduce [1 + 2])]
+		--assert blk = [[3]]
+
 
 ===end-group===
 
@@ -1473,6 +1497,31 @@ fRed [
 
 	--test-- "str-chg6"
 		--assert parse str: "12abc34" [some [to alpha change [some alpha] "zzzz"] 2 skip]
+		--assert str = "12zzzz34"
+
+	--test-- "str-chg11"
+		--assert parse str: "1" [b: skip change b #"a"]
+		--assert str = "a"
+
+	--test-- "str-chg12"
+		--assert parse str: "123" [b: 3 skip change b #"a"]
+		--assert str = "a"
+
+	--test-- "str-chg13"
+		alpha: charset [#"a" - #"z"]
+		--assert parse str: "1a2b3" [some [b: alpha change b dot | skip]]
+		--assert str = "1.2.3"
+
+	--test-- "str-chg14"
+		--assert parse str: "123" [b: 3 skip change b (99)]
+		--assert str = "99"
+
+	--test-- "str-chg15"
+		--assert parse str: "test" [some [b: #"t" change b #"o" | skip]]
+		--assert str = "oeso"
+
+	--test-- "str-chg16"
+		--assert parse str: "12abc34" [some [to alpha b: some alpha change b "zzzz"] 2 skip]
 		--assert str = "12zzzz34"
 
 ===end-group===
