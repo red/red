@@ -713,6 +713,7 @@ parser: context [
 			collect? [logic!]
 			into?	 [logic!]
 			only?	 [logic!]
+			done?	 [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -1198,7 +1199,9 @@ parser: context [
 					if cmd < tail [cmd: cmd + 1]
 					
 					state: either cmd = tail [
-						ST_POP_BLOCK
+						s: GET_BUFFER(rules)
+						value: s/tail - 1
+						either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 					][
 						PARSE_TRACE(_fetch)
 						value: cmd
@@ -1363,9 +1366,23 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/remove [			;-- REMOVE
-							min:   R_NONE
-							type:  R_REMOVE
-							state: ST_PUSH_RULE
+							done?: no
+							value: cmd + 1
+							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+								new: as red-series! _context/get as red-word! value
+								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
+									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
+									input/head: new/head
+									actions/remove input base ;-- REMOVE position
+									cmd: value
+									done?: yes
+								]
+							]
+							state: either done? [ST_CHECK_PENDING][
+								min:   R_NONE			;-- REMOVE rule
+								type:  R_REMOVE
+								ST_PUSH_RULE
+							]
 						]
 						sym = words/break* [			;-- BREAK
 							match?: yes
@@ -1461,11 +1478,35 @@ parser: context [
 								words/only = symbol/resolve w/symbol
 							]
 							cmd: cmd + max
-							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_change]]
+							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
 							
-							min:   R_NONE
-							type:  either max = 1 [R_CHANGE_ONLY][R_CHANGE]
-							state: ST_PUSH_RULE
+							done?: no
+							value: cmd + 1
+							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+								new: as red-series! _context/get as red-word! value
+								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
+									cmd: value + 1		;-- CHANGE position
+									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
+									switch TYPE_OF(cmd) [
+										TYPE_PAREN [
+											eval cmd
+											value: stack/top - 1
+											PARSE_TRACE(_paren)
+										]
+										TYPE_WORD [value: _context/get as red-word! cmd]
+										default	  [value: cmd]
+									]
+									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
+									input/head: new/head
+									actions/change input value base as-logic max null
+									done?: yes
+								]
+							]
+							state: either done? [ST_CHECK_PENDING][
+								min:   R_NONE			;-- CHANGE rule
+								type:  either max = 1 [R_CHANGE_ONLY][R_CHANGE]
+								ST_PUSH_RULE
+							]
 						]
 						sym = words/end [				;-- END
 							PARSE_CHECK_INPUT_EMPTY?
