@@ -386,8 +386,9 @@ OS-draw-pen: func [
 	][
 		unless GDI+? [update-modes dc]
 	]
-	if all [GDI+? not modes/font-color?][
-		update-gdiplus-font-color color
+	unless modes/font-color? [
+		if GDI+? [update-gdiplus-font-color color]
+		unless modes/on-image? [SetTextColor dc color]
 	]
 ]
 
