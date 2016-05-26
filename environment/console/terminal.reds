@@ -635,9 +635,9 @@ terminal: context [
 			out		[ring-buffer!]
 	][
 		out: as ring-buffer! allocate size? ring-buffer!
-		out/max: 4000
+		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 4000
+		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
