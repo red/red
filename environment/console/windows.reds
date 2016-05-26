@@ -174,34 +174,6 @@ paste-from-clipboard: func [
 	cp = 13
 ]
 
-popup-menu: func [
-	vt		[terminal!]
-	x		[integer!]
-	y		[integer!]
-	/local
-		menu	[handle!]
-		cmd		[integer!]
-		select?	[logic!]
-		paste?	[logic!]
-		flag	[integer!]
-][
-	menu: CreatePopupMenu
-	select?: any [vt/select-all? vt/out/s-head <> -1]
-	paste?: any [
-		IsClipboardFormatAvailable CF_TEXT
-		IsClipboardFormatAvailable CF_UNICODETEXT
-	]
-	flag: either select? [0][3]
-	AppendMenu menu flag WM_COPY #u16 "Copy^-Ctrl+C"
-	flag: either paste? [0][3]
-	AppendMenu menu flag WM_PASTE #u16 "Paste^-Ctrl+V"
-	AppendMenu menu 0800h 0 null
-	AppendMenu menu flag VT_MSG_SELALL #u16 "Select All^-Ctrl+A"
-
-	cmd: TrackPopupMenuEx menu TPM_RETURNCMD x y vt/hwnd null
-	unless zero? cmd [PostMessage vt/hwnd cmd 0 0]
-]
-
 set-font: func [
 	vt		[terminal!]
 	/local
@@ -519,9 +491,6 @@ ConsoleWndProc: func [
 			close vt
 			quit 0
 		]
-		WM_CONTEXTMENU [
-			popup-menu vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-		]
 		WM_COPY [copy-to-clipboard vt]
 		WM_PASTE [paste-from-clipboard vt no]
 		WM_CLEAR [0]
@@ -532,6 +501,18 @@ ConsoleWndProc: func [
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
+]
+
+copy-text: func [face [red-object!]][
+	SendMessage get-face-handle face WM_COPY 0 0
+]
+
+paste-text: func [face [red-object!]][
+	SendMessage get-face-handle face WM_PASTE 0 0
+]
+
+select-text: func [face [red-object!]][
+	SendMessage get-face-handle face VT_MSG_SELALL 0 0
 ]
 
 wcex: declare WNDCLASSEX

@@ -38,11 +38,29 @@ ask: routine [
 input: does [ask ""]
 
 gui-console-ctx: context [
+	copy-text:   routine [face [object!]][terminal/copy-text   face]
+	paste-text:  routine [face [object!]][terminal/paste-text  face]
+	select-text: routine [face [object!]][terminal/select-text face]
+
 	font-name: pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
 	console: make face! [
 		type: 'console size: 640x400
 		font: make font! [name: font-name size: 11]
+		menu: [
+			"Copy^-Ctrl+C"		 copy
+			"Paste^-Ctrl+V"		 paste
+			"Select All^-Ctrl+A" select-all
+		]
+		actors: object [
+			on-menu: func [face [object!] event [event!]][
+				switch event/picked [
+					copy		[copy-text   face]
+					paste		[paste-text  face]
+					select-all	[select-text face]
+				]
+			]
+		]
 	]
 
 	win: make face! [
