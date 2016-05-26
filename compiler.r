@@ -1919,24 +1919,31 @@ red: context [
 		]												;-- return object deferred block
 	]
 	
-	comp-try: has [all? mark body call][
+	comp-try: has [all? mark body call handlers][
 		call: pick [try-all try] to logic! all?: path? pc/-1
 		
+		emit-open-frame 'body
 		either block? pc/1 [
+			emit-open-frame call
 			emit [catch RED_THROWN_ERROR]
 			insert-lf -2
 			body: comp-sub-block 'try
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
-			emit-open-frame call
 			insert body mark
 			clear mark
-			unless all? [
-				append body [switch system/thrown]
-				append body build-exception-handler
-			]
 			append body [
 				stack/unwind
+			]
+			unless all? [
+				emit [switch system/thrown]
+				handlers: build-exception-handler
+				insert handlers/1 [
+					RED_THROWN_ERROR  [
+						natives/handle-thrown-error
+					]
+				]
+				emit handlers
 			]
 			emit either all? [
 				[
@@ -1944,11 +1951,7 @@ red: context [
 				]
 			][
 				[
-					either system/thrown = RED_THROWN_ERROR [
-						natives/handle-thrown-error
-					][
-						stack/adjust-post-try
-					]
+					if system/thrown <> RED_THROWN_ERROR [stack/adjust-post-try]
 				]
 			]
 			emit [
@@ -1966,6 +1969,7 @@ red: context [
 			unless all? [emit build-exception-handler]
 			emit-close-frame
 		]
+		emit-close-frame
 	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
