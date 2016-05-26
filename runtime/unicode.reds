@@ -725,6 +725,7 @@ unicode: context [
 						dst/1: #"^M"
 						dst/2: null-byte
 						dst: dst + 2
+						part: part + 1
 					]
 					dst/1: src/1
 					dst/2: null-byte
@@ -739,6 +740,7 @@ unicode: context [
 							dst/1: #"^M"
 							dst/2: null-byte
 							dst: dst + 2
+							part: part + 1
 						]
 						dst/1: src/1
 						dst/2: src/2
@@ -757,10 +759,11 @@ unicode: context [
 					cp: p4/value
 					case [
 						cp < 00010000h [
-							if cp = 10 [				;-- check for LF
+							if all [cr? cp = 10][		;-- check for LF
 								dst/1: #"^M"
 								dst/2: null-byte
 								dst: dst + 2
+								part: part + 1
 							]
 							dst/1: as-byte cp
 							dst/2: as-byte cp >> 8
@@ -776,7 +779,7 @@ unicode: context [
 							dst/4: as-byte unit >> 8
 							p4: as int-ptr! dst
 							dst: dst + 4
-							len/value: len/value + 1
+							part: part + 1
 						]
 						true [print "Error: to-utf16 codepoint overflow" return null]
 					]
@@ -786,6 +789,7 @@ unicode: context [
 		]
 		dst/1: null-byte
 		dst/2: null-byte
+		len/value: part
 		
 		#if debug? = yes [
 			s: (as series! str/cache) - 1

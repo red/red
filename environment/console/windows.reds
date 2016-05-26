@@ -91,7 +91,7 @@ copy-to-clipboard: func [
 
 	EmptyClipboard
 	if unit <> UCS-2 [unit: unit * 2]				;-- make enough space for Latin1 and UCS-4
-	hMem: GlobalAlloc 42h size * unit + 2			;-- added null terminator
+	hMem: GlobalAlloc 42h size * unit * 2
 	if null? hMem [CloseClipboard exit]
 	p: GlobalLock hMem
 	either start <= end [
