@@ -987,7 +987,12 @@ parser: context [
 											value: stack/top - 1
 											PARSE_TRACE(_paren)
 										]
-										TYPE_WORD [value: _context/get as red-word! cmd]
+										TYPE_WORD [
+											value: _context/get as red-word! cmd
+											if TYPE_OF(value) = TYPE_UNSET [
+												PARSE_ERROR [TO_ERROR(script no-value) cmd]
+											]
+										]
 										default	  [value: cmd]
 									]
 									only?: int/value = R_CHANGE_ONLY
@@ -1493,7 +1498,12 @@ parser: context [
 											value: stack/top - 1
 											PARSE_TRACE(_paren)
 										]
-										TYPE_WORD [value: _context/get as red-word! cmd]
+										TYPE_WORD [
+											value: _context/get as red-word! cmd
+											if TYPE_OF(value) = TYPE_UNSET [
+												PARSE_ERROR [TO_ERROR(script no-value) cmd]
+											]
+										]
 										default	  [value: cmd]
 									]
 									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
