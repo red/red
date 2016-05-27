@@ -999,7 +999,7 @@ OS-make-view: func [
 					ShowWindow handle SW_SHOWNA
 				]
 				unless win8+? [
-					process-layered-region handle size offset as red-block! values + FACE_OBJ_PANE offset null yes
+					process-layered-region handle size offset null offset null yes
 				]
 			][
 				SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)

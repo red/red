@@ -220,7 +220,10 @@ process-layered-region: func [
 		clip-layered-window hWnd size x y w h
 	]
 
-	if TYPE_OF(pane) = TYPE_BLOCK [
+	if all [
+		pane <> null
+		TYPE_OF(pane) = TYPE_BLOCK
+	][
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
