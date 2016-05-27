@@ -13,10 +13,12 @@ Red [
 system/lexer: context [
 
 	throw-error: function [spec [block!] /missing][
+		type: spec/1									;-- preserve lit-words from double reduction
 		spec: reduce spec
 		src: back tail spec
-		src/1: mold/flat/part src/1 40
+		src/1: either string? src/1 [form/part trim/all src/1 40][mold/flat/part src/1 40]
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
+		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
 
