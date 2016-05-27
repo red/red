@@ -59,6 +59,7 @@ copy-to-clipboard: func [
 	/local
 		out		[ring-buffer!]
 		data	[red-string!]
+		tail	[red-value!]
 		node	[line-node!]
 		start	[integer!]
 		end		[integer!]
@@ -73,7 +74,6 @@ copy-to-clipboard: func [
 	out: vt/out
 	data: out/data
 	start: out/s-head
-	if start = -1 [exit]
 	if any [
 		start = -1
 		not OpenClipboard vt/hwnd
@@ -84,8 +84,12 @@ copy-to-clipboard: func [
 	node: out/lines + out/s-tail - 1
 	end: node/offset + out/s-t-idx
 
-	len: string/rs-length? data
 	s: GET_BUFFER(data)
+	if out/full? [
+		tail: s/tail
+		s/tail: out/end
+	]
+	len: string/rs-length? data
 	unit: GET_UNIT(s)
 	size: either start <= end [end - start][len - start + end]
 
@@ -109,6 +113,7 @@ copy-to-clipboard: func [
 		copy-memory p p1 end * 2
 	]
 	data/head: 0
+	if out/full? [s/tail: tail]
 	GlobalUnlock hMem
 
 	SetClipboardData CF_UNICODETEXT hMem
