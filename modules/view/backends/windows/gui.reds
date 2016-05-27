@@ -1269,6 +1269,7 @@ change-selection: func [
 				default [0]
 			]
 		]
+		true [0]										;-- default, do nothing
 	]
 ]
 
