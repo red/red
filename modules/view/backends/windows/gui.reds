@@ -998,7 +998,9 @@ OS-make-view: func [
 				if all [show?/value IsWindowVisible as handle! parent][
 					ShowWindow handle SW_SHOWNA
 				]
-				;@@ clip base and its children: process-layered-region
+				unless win8+? [
+					process-layered-region handle size offset as red-block! values + FACE_OBJ_PANE offset null yes
+				]
 			][
 				SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
 			]
