@@ -313,5 +313,11 @@ Red [
 		--assert "78" = find/last/tail "123456378" "3"
 ===end-group===
 
-~~~end-file~~~
+===start-group=== "find datatype!"
+	--test-- "find datatype! -1"
+		--assert [1] = find [a 1] integer!
+	--test-- "find datatype! -2"
+		--assert none = find [a] integer!
+===end-group===
 
+~~~end-file~~~
