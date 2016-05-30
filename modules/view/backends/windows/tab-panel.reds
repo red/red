@@ -217,7 +217,7 @@ update-tab-contents: func [
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
 							change-size
-								as-integer hWnd
+								hWnd
 								as red-pair! values + FACE_OBJ_SIZE panel
 						][
 							pos: as red-pair! values + FACE_OBJ_OFFSET

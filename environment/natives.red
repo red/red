@@ -11,7 +11,7 @@ Red [
 ]
 
 if: make native! [[
-		"If condition is true, evaluate block; else return NONE"
+		"If conditional expression is TRUE, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -19,7 +19,7 @@ if: make native! [[
 ]
 
 unless: make native! [[
-		"If condition is not true, evaluate block; else return NONE"
+		"If conditional expression is not TRUE, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -27,7 +27,7 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If condition is true, eval true-block; else eval false-blk"
+		"If conditional expression is true, eval true-block; else eval false-blk"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
@@ -50,15 +50,15 @@ all: make native! [[
 ]
 
 while: make native! [[
-		"Evaluates body as long as condition is true"
-		cond [block!]
-		body [block!]
+		"Evaluates body as long as condition block returns TRUE"
+		cond [block!]	"Condition block to evaluate on each iteration"
+		body [block!]	"Block to evaluate on each iteration"
 	]
 	#get-definition NAT_WHILE
 ]
 	
 until: make native! [[
-		"Evaluates body until it is true"
+		"Evaluates body until it is TRUE"
 		body [block!]
 	]
 	#get-definition NAT_UNTIL
@@ -222,7 +222,7 @@ prin: make native! [[
 ]
 
 equal?: make native! [[
-		"Returns true if two values are equal"
+		"Returns TRUE if two values are equal"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -230,7 +230,7 @@ equal?: make native! [[
 ]
 
 not-equal?: make native! [[
-		"Returns true if two values are not equal"
+		"Returns TRUE if two values are not equal"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -238,7 +238,7 @@ not-equal?: make native! [[
 ]
 
 strict-equal?: make native! [[
-		"Returns true if two values are equal, and also the same datatype"
+		"Returns TRUE if two values are equal, and also the same datatype"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -246,7 +246,7 @@ strict-equal?: make native! [[
 ]
 
 lesser?: make native! [[
-		"Returns true if the first value is less than the second"
+		"Returns TRUE if the first value is less than the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -254,7 +254,7 @@ lesser?: make native! [[
 ]
 
 greater?: make native! [[
-		"Returns true if the first value is greater than the second"
+		"Returns TRUE if the first value is greater than the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -262,7 +262,7 @@ greater?: make native! [[
 ]
 
 lesser-or-equal?: make native! [[
-		"Returns true if the first value is less than or equal to the second"
+		"Returns TRUE if the first value is less than or equal to the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -270,7 +270,7 @@ lesser-or-equal?: make native! [[
 ]
 
 greater-or-equal?: make native! [[
-		"Returns true if the first value is greater than or equal to the second"
+		"Returns TRUE if the first value is greater than or equal to the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -278,7 +278,7 @@ greater-or-equal?: make native! [[
 ]
 
 same?: make native! [[
-		"Returns true if two values have the same identity"
+		"Returns TRUE if two values have the same identity"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -286,7 +286,7 @@ same?: make native! [[
 ]
 
 not: make native! [[
-		"Returns the negation (logical complement) of a value"
+		"Returns the boolean complement of a value"
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
@@ -406,7 +406,7 @@ exclude: make native! [[
 ]
 
 complement?: make native! [[
-		"Returns true if the bitset is complemented"
+		"Returns TRUE if the bitset is complemented"
 		bits [bitset!]
 	]
 	#get-definition NAT_COMPLEMENT?
@@ -696,6 +696,15 @@ debase: make native! [[
 	#get-definition NAT_DEBASE
 ]
 
+enbase: make native! [[
+		"Encodes a string into a binary-coded string (BASE-64 default)"
+		value [binary! string!] "If string, will be UTF8 encoded"
+		/base "Binary base to use"
+			base-value [integer!] "The base to convert from: 64, 16, or 2"
+	]
+	#get-definition NAT_ENBASE
+]
+
 to-local-file: make native! [[
 		"Converts a Red file path to the local system file path"
 		path  [file! string!]
@@ -743,13 +752,13 @@ wait: make native! [[
 ]
 
 checksum: make native! [[
-		"Computes a checksum, CRC, or hash"
+		"Computes a checksum, CRC, or hash. Default is CRC32."
 		data 	[binary! string! file!]
 		/tcp 				"Returns an Internet TCP 16-bit checksum"
 		/hash 				"Returns a hash value"
 			size [integer!] "Size of the hash table"
 		/method				"Method to use"
-			word [word!]	"Methods: SHA1 MD5 CRC32"
+			word [word!]	"Methods: CRC32 MD5 SHA1 SHA256 SHA384 SHA512"
 		/key				"Returns keyed HMAC value"
 			key-value [any-string!] "Key to use"
 		return: [integer! binary!]
@@ -762,4 +771,24 @@ unset: make native! [[
 		word [word! block!]  "Word or block of words"
 	]
 	#get-definition NAT_UNSET
+]
+
+new-line: make native! [[
+		"Sets or clears the new-line marker within a block or paren"
+		position [block! paren!] "Position to change marker (modified)"
+		value					 "Set TRUE for newline"
+		/all					 "Set/clear marker to end of series"
+		/skip					 "Set/clear marker periodically to the end of the series"
+		size 	 [integer!]
+		return:  [block! paren!]
+	]
+	#get-definition NAT_NEW_LINE
+]
+
+new-line?: make native! [[
+		"Returns the state of the new-line marker within a block or paren"
+		position [block! paren!] "Position to change marker"
+		return:  [block! paren!]
+	]
+	#get-definition NAT_NEW_LINE?
 ]

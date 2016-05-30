@@ -110,7 +110,7 @@ event: context [
 			case [
 				sym = words/type	  [gui/get-event-type evt]
 				sym = words/face	  [gui/get-event-face evt]
-				;sym = words/window	  [gui/get-event-window evt]
+				sym = words/window	  [gui/get-event-window evt]
 				sym = words/offset	  [gui/get-event-offset evt]
 				sym = words/key		  [gui/get-event-key evt]
 				sym = words/picked	  [gui/get-event-picked evt]
@@ -173,6 +173,7 @@ event: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

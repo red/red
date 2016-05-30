@@ -22,7 +22,7 @@ parser: context [
 		in: as input! ALLOC_TAIL(rules)
 		in/header: TYPE_POINT
 		in/node:   input/node
-		;in/size:   einput/head
+		;in/size:  input/head
 	]
 	
 	#define PARSE_PUSH_POSITIONS [
@@ -30,15 +30,15 @@ parser: context [
 		p/header: TYPE_POINT
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
-		p/sub:	  0												;-- default value for sub-rule type
+		p/sub:	  len												;-- default value for sub-rule type
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
-		type: TYPE_OF(input)
+		type-i: TYPE_OF(input)
 		word: either any [								;TBD: replace with ANY_STRING?
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
+			type-i = TYPE_STRING
+			type-i = TYPE_FILE
+			type-i = TYPE_URL
 		][
 			string/rs-length? as red-string! input
 		][
@@ -120,21 +120,23 @@ parser: context [
 	]
 	
 	#enum rule-flags! [									;-- negative values to not collide with t/state counter
-		R_NONE:		  -1
-		R_TO:		  -2
-		R_THRU:		  -3
-		R_COPY:		  -4
-		R_SET:		  -5
-		R_NOT:		  -6
-		R_INTO:		  -7
-		R_THEN:		  -8
-		R_REMOVE:	  -9
-		R_INSERT:	  -10
-		R_WHILE:	  -11
-		R_COLLECT:	  -12
-		R_KEEP:		  -13
-		R_KEEP_PAREN: -14
-		R_AHEAD:	  -15
+		R_NONE:			-1
+		R_TO:			-2
+		R_THRU:			-3
+		R_COPY:			-4
+		R_SET:			-5
+		R_NOT:			-6
+		R_INTO:			-7
+		R_THEN:			-8
+		R_REMOVE:		-9
+		R_INSERT:		-10
+		R_WHILE:		-11
+		R_COLLECT:		-12
+		R_KEEP:			-13
+		R_KEEP_PAREN:	-14
+		R_AHEAD:		-15
+		R_CHANGE:		-16
+		R_CHANGE_ONLY:	-17
 	]
 	
 	triple!: alias struct! [
@@ -477,6 +479,7 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
+			type-i [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -689,12 +692,14 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
+			type-i	 [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
 			max		 [integer!]
 			s		 [series!]
 			cnt		 [integer!]
+			len		 [integer!]
 			offset	 [integer!]
 			cnt-col	 [integer!]
 			upper?	 [logic!]
@@ -707,6 +712,8 @@ parser: context [
 			rule?	 [logic!]
 			collect? [logic!]
 			into?	 [logic!]
+			only?	 [logic!]
+			done?	 [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -737,6 +744,7 @@ parser: context [
 					check-limits series rules
 					
 					#either debug? = yes [PARSE_PUSH_INPUTPOS][none/make-in rules]
+					PARSE_SET_INPUT_LENGTH(len)
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
 					if all [value <> null value <> rule][
@@ -791,6 +799,7 @@ parser: context [
 						t/max:	  max
 						t/state:  1
 					]
+					PARSE_SET_INPUT_LENGTH(len)
 					PARSE_PUSH_POSITIONS
 					int: as red-integer! ALLOC_TAIL(rules)
 					int/header: TYPE_INTEGER
@@ -823,12 +832,18 @@ parser: context [
 								if all [match? t/max <> R_NONE][ ;-- if rule matched and an upper bound exists,
 									loop?: cnt < t/max			 ;-- but not reached yet, loop again
 								]
+								if all [						 ;-- try to avoid some infinite loops
+									int/value <> R_WHILE
+									input/head = p/input		 ;-- if no input was consumed (except for WHILE)
+								][
+									PARSE_SET_INPUT_LENGTH(len)
+									if len >= p/sub [			 ;-- and if no input was forward-consumed (remove)
+										loop?: no
+										break?: no
+									]
+								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									all [						 ;-- try to avoid some infinite loops
-										int/value <> R_WHILE
-										input/head = p/input	 ;-- if no input was consumed (except for WHILE)
-									]
 									all [end? int/value = R_WHILE] ;-- don't loop on WHILE if no more input
 								][
 									loop?: no
@@ -863,7 +878,7 @@ parser: context [
 									]
 								][
 									type: TYPE_OF(input)
-									end?: either any [	;TBD: replace with ANY_STRING?
+									match?: either any [	;TBD: replace with ANY_STRING?
 										type = TYPE_STRING
 										type = TYPE_FILE
 										type = TYPE_URL
@@ -872,9 +887,9 @@ parser: context [
 									][
 										block/rs-next input
 									]
-									if positive? part [end?: input/head >= part or end?]
+									if positive? part [match?: input/head >= part or match?]
 									
-									either end? [
+									either match? [
 										w: as red-word! (block/rs-head rule) + p/rule + 1 ;-- TO/THRU argument
 										match?: all [
 											TYPE_OF(w) = TYPE_WORD 
@@ -915,8 +930,13 @@ parser: context [
 										TYPE_OF(blk) = TYPE_BLOCK
 									]
 									into?: TYPE_OF(blk) = TYPE_GET_WORD
-									if into? [blk: as red-block! _context/get as red-word! blk]
-									
+									if into? [
+										blk: as red-block! _context/get as red-word! blk
+										type: TYPE_OF(blk)
+										unless ANY_SERIES?(type) [
+											PARSE_ERROR [TO_ERROR(script parse-into-bad)]
+										]
+									]
 									value: stack/top	;-- refer last value from paren expression
 									if int/value = R_KEEP [
 										w: as red-word! s/tail
@@ -954,6 +974,34 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									actions/remove input base
+								]
+							]
+							R_CHANGE
+							R_CHANGE_ONLY [
+								cmd: cmd + 1
+								if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_change]]
+								if match? [
+									switch TYPE_OF(cmd) [
+										TYPE_PAREN [
+											eval cmd
+											value: stack/top - 1
+											PARSE_TRACE(_paren)
+										]
+										TYPE_WORD [
+											value: _context/get as red-word! cmd
+											if TYPE_OF(value) = TYPE_UNSET [
+												PARSE_ERROR [TO_ERROR(script no-value) cmd]
+											]
+										]
+										default	  [value: cmd]
+									]
+									only?: int/value = R_CHANGE_ONLY
+									int/value: input/head - p/input
+									input/head: p/input
+									assert int/value >= 0
+									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
+									new: as red-series! actions/change input value base only? null
+									input/head: new/head
 								]
 							]
 							R_AHEAD [
@@ -1128,7 +1176,9 @@ parser: context [
 							PARSE_TRACE(_paren)
 							cmd: (block/rs-head rule) + offset	;-- refresh rule pointers,							
 							tail: block/rs-tail rule			;-- in case the block was changed						
-							if cmd >= tail [cmd: tail - 1]	;-- avoid a "past end" state
+							if cmd >= tail [cmd: tail - 1]		;-- avoid a "past end" state						
+							PARSE_SET_INPUT_LENGTH(len)
+							if negative? len [input/head: input/head + len]
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
@@ -1154,7 +1204,9 @@ parser: context [
 					if cmd < tail [cmd: cmd + 1]
 					
 					state: either cmd = tail [
-						ST_POP_BLOCK
+						s: GET_BUFFER(rules)
+						value: s/tail - 1
+						either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 					][
 						PARSE_TRACE(_fetch)
 						value: cmd
@@ -1319,9 +1371,23 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/remove [			;-- REMOVE
-							min:   R_NONE
-							type:  R_REMOVE
-							state: ST_PUSH_RULE
+							done?: no
+							value: cmd + 1
+							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+								new: as red-series! _context/get as red-word! value
+								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
+									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
+									input/head: new/head
+									actions/remove input base ;-- REMOVE position
+									cmd: value
+									done?: yes
+								]
+							]
+							state: either done? [ST_CHECK_PENDING][
+								min:   R_NONE			;-- REMOVE rule
+								type:  R_REMOVE
+								ST_PUSH_RULE
+							]
 						]
 						sym = words/break* [			;-- BREAK
 							match?: yes
@@ -1399,14 +1465,58 @@ parser: context [
 							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
 							
 							value: cmd
-							if TYPE_OF(value) = TYPE_PAREN [
+							pop?: TYPE_OF(value) = TYPE_PAREN
+							if pop? [
 								eval value
 								value: stack/top - 1
 								PARSE_TRACE(_paren)
 							]
 							actions/insert input value null max = 1 null no
-							if TYPE_OF(value) = TYPE_PAREN [stack/pop 1]
+							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
+						]
+						sym = words/_change/symbol [	;-- CHANGE
+							w: as red-word! cmd + 1
+							max: as-integer all [
+								(as red-value! w) < tail
+								TYPE_OF(w) = TYPE_WORD
+								words/only = symbol/resolve w/symbol
+							]
+							cmd: cmd + max
+							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
+							
+							done?: no
+							value: cmd + 1
+							if all [value < tail TYPE_OF(value) = TYPE_WORD][
+								new: as red-series! _context/get as red-word! value
+								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
+									cmd: value + 1		;-- CHANGE position
+									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
+									switch TYPE_OF(cmd) [
+										TYPE_PAREN [
+											eval cmd
+											value: stack/top - 1
+											PARSE_TRACE(_paren)
+										]
+										TYPE_WORD [
+											value: _context/get as red-word! cmd
+											if TYPE_OF(value) = TYPE_UNSET [
+												PARSE_ERROR [TO_ERROR(script no-value) cmd]
+											]
+										]
+										default	  [value: cmd]
+									]
+									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
+									input/head: new/head
+									actions/change input value base as-logic max null
+									done?: yes
+								]
+							]
+							state: either done? [ST_CHECK_PENDING][
+								min:   R_NONE			;-- CHANGE rule
+								type:  either max = 1 [R_CHANGE_ONLY][R_CHANGE]
+								ST_PUSH_RULE
+							]
 						]
 						sym = words/end [				;-- END
 							PARSE_CHECK_INPUT_EMPTY?
@@ -1499,6 +1609,9 @@ parser: context [
 						]
 						true [
 							value: _context/get w
+							if TYPE_OF(value) = TYPE_UNSET [
+								PARSE_ERROR [TO_ERROR(script parse-rule) w]
+							]
 							state: either rule? [ST_MATCH_RULE][ST_DO_ACTION] ;-- enable fast loops for word argument
 						]
 					]

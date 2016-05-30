@@ -131,15 +131,53 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 			info 			[integer!]
 			return: 		[integer!]
 		]
+		GetConsoleWindow: "GetConsoleWindow" [
+			return:			[int-ptr!]
+		]
 	]
 ]
 
 input-rec: declare input-record!
 base-y:	 	 0
 saved-con:	 0
+utf-char: as byte-ptr! 0
 
 #define FIRST_WORD(int) (int and FFFFh)
 #define SECOND_WORD(int) (int >>> 16)
+
+stdin-read: func [
+	return:		[integer!]
+	/local
+		i		[integer!]
+		c		[integer!]
+		len		[integer!]
+		read-sz [integer!]
+][
+	read-sz: 0
+	if zero? simple-io/ReadFile stdin utf-char 1 :read-sz null [return -1]
+
+	c: as-integer utf-char/1
+	case [
+		c and 80h = 0	[len: 1]
+		c and E0h = C0h [len: 2]
+		c and F0h = E0h [len: 3]
+		c and F8h = F0h [len: 4]
+	]
+	if any [len < 1 len > 4][return -1]
+
+	i: 1
+	while [i < len][
+		if all [
+			len >= (i + 1)
+			zero? simple-io/ReadFile stdin utf-char + i 1 :read-sz null
+		][
+			return -1
+		]
+		i: i + 1
+	]
+	c: unicode/decode-utf8-char as-c-string utf-char :len
+	c
+]
 
 fd-read: func [
 	return: 	[integer!]
@@ -200,11 +238,9 @@ get-window-size: func [
 	0
 ]
 
-emit-red-char: func [cp [integer!] /local b][
-	b: as byte-ptr! :cp
-	pbuffer/1: b/1
-	pbuffer/2: b/2
-	pbuffer: pbuffer + 2
+emit-red-char: func [cp [integer!] /local n][
+	n: 2 * unicode/cp-to-utf16 cp pbuffer
+	pbuffer: pbuffer + n
 ]
 
 reset-cursor-pos: does [
@@ -260,11 +296,20 @@ init: func [
 	/local
 		mode	[integer!]
 ][
-	GetConsoleMode stdin :saved-con
-	mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
-	mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text
-	SetConsoleMode stdin mode
-	buffer: allocate buf-size
+	console?: null <> GetConsoleWindow
+
+	either console? [
+		GetConsoleMode stdin :saved-con
+		mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
+		mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text
+		SetConsoleMode stdin mode
+		buffer: allocate buf-size
+	][
+		utf-char: allocate 10
+	]
 ]
 
-restore: does [SetConsoleMode stdin saved-con free buffer]
+restore: does [
+	SetConsoleMode stdin saved-con free buffer
+	unless console? [free utf-char]
+]

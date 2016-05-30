@@ -52,11 +52,7 @@ empty?: func [
 ][
 	prin mold :value
 	prin ": "
-	either value? :value [
-		probe get/any :value
-	][
-		print "unset!"
-	]
+	print either value? :value [mold get/any :value]["unset!"]
 ]
 
 probe: func [
@@ -122,6 +118,7 @@ url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!	
 vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
+any-list?:		func ["Returns true if the value is any type of list"	  value [any-type!]][find any-list! 	type? :value]
 any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]
 any-function?:	func ["Returns true if the value is any type of function" value [any-type!]][find any-function! type? :value]
 any-object?:	func ["Returns true if the value is any type of object"	  value [any-type!]][find any-object!	type? :value]
@@ -129,6 +126,7 @@ any-path?:		func ["Returns true if the value is any type of path"	  value [any-t
 any-string?:	func ["Returns true if the value is any type of string"	  value [any-type!]][find any-string!	type? :value]
 any-word?:		func ["Returns true if the value is any type of word"	  value [any-type!]][find any-word!		type? :value]
 series?:		func ["Returns true if the value is any type of series"	  value [any-type!]][find series!		type? :value]
+number?:		func ["Returns true if the value is any type of number"	  value [any-type!]][find number!		type? :value]
 
 spec-of: func [
 	"Returns the spec of a value that supports reflection"
@@ -170,27 +168,52 @@ alter: func [
 	not none? unless remove find series :value [append series :value]
 ]
 
-replace: func [
+offset?: func [
+	"Returns the offset between two series positions"
+	series1 [series!]
+	series2 [series!]
+][
+	subtract index? series2 index? series1
+]
+
+repend: func [
+	"Appends a reduced value to a series and returns the series head"
+	series [series!]
+	value
+	/only "Appends a block value as a block"
+][
+	head either only [
+		insert/only tail series reduce :value
+	][
+		reduce/into :value tail series					;-- avoids wasting an intermediary block
+	]
+]
+
+replace: function [
 	series [series!]
 	pattern
 	value
 	/all
-	/local pos len
 ][
-	len: either series? :pattern [length? pattern][1]
+	many?: any [
+		system/words/all [series? :pattern any-string? series]
+		binary? series
+		system/words/all [any-list? series any-list? :pattern]
+	]
+	len: either many? [length? pattern][1]
 	
 	either all [
 		pos: series
-		either series? :pattern [
+		either many? [
 			while [pos: find pos pattern][
 				remove/part pos len
 				pos: insert pos value
 			]
 		][
-			while [pos: find pos pattern][pos/1: value]
+			while [pos: find pos :pattern][pos/1: value]
 		]
 	][
-		if pos: find series pattern [
+		if pos: find series :pattern [
 			remove/part pos len
 			insert pos value
 		]
@@ -423,15 +446,16 @@ cause-error: function [
 ]
 
 pad: func [
-	"Align a string to a given size prepending whitespaces"
-	str [string!]		"String to pad"
-	n	[integer!]		"Size (in characters) to align to"
-	/left				"Align the string to the left side"
-	return: [string!]	"Modified input string at head"
+	"Pad a string on right side with spaces"
+	str		[string!]		"String to pad"
+	n		[integer!]		"Total size (in characters) of the new string"
+	/left					"Pad the string on left side"
+	/with c	[char!]			"Pad with char"
+	return:	[string!]		"Modified input string at head"
 ][
 	head insert/dup
 		any [all [left str] tail str]
-		#" "
+		any [c #" "]
 		(n - length? str)
 ]
 
@@ -510,7 +534,7 @@ what-dir: func [/local path][
 
 change-dir: function [
 	"Changes the active directory path"
-	:dir [file! word! path!] "New active directory of relative path to the new one"
+	dir [file! word! path!] "New active directory of relative path to the new one"
 ][
 	unless exists? dir: normalize-dir dir [cause-error 'access 'cannot-open [dir]]
 	system/options/path: dir
@@ -525,7 +549,7 @@ list-dir: function [
 	unless value? 'dir [dir: %.]
 	
 	unless find [file! word! path!] type?/word :dir [
-		cause-error 'script 'expect-arg reduce ['list-dir type? :dir 'dir]
+		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
 	]
 	list: read normalize-dir dir
 	max-sz: either n [
@@ -638,7 +662,10 @@ collect: function [
 	keep: func [v /only][either only [append/only collected v][append collected v]]
 	
 	unless collected [collected: make block! 16]
-	do bind body 'collected
+	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
+		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | into rule | skip]
+	]
+	do body
 	either into [collected][head collected]
 ]
 
@@ -730,27 +757,6 @@ split-path: func [
 		)
 	]
 	reduce [dir pos]
-]
-
-change: func [
-	"Changes a value in a series and returns the series after the change."
-	series [series!] "Series at point to change"
-	value [any-type!] "The new value"
-	/part "Limits the amount to change to a given length or position."
-		range [number! series!]
-	/only "Changes a series as a series."
-	/dup "Duplicates the change a specified number of times."
-		count [number!]
-][
-	either any-string? :value [
-		unless any-string? series [only: true]
-	][
-		if any-string? series [value: append copy "" :value]
-	]
-	if only [value: reduce [:value]]
-	unless part [range: either series? :value [length? value][1]]
-	unless dup [count: 1]
-	insert/dup remove/part series range :value count
 ]
 
 ;------------------------------------------

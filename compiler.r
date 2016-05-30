@@ -406,6 +406,7 @@ red: context [
 			][
 				emit 'stack/push						;-- local word
 			]
+			emit decorate-symbol/no-alias name
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			emit case [									;-- global word
@@ -421,8 +422,8 @@ red: context [
 					exit
 				]
 			]
+			emit decorate-symbol name
 		]
-		emit decorate-symbol name
 		insert-lf -2
 	]
 	
@@ -468,8 +469,9 @@ red: context [
 		blk
 	]
 
-	emit-open-frame: func [name [word!] /local type][
-		unless find symbols name [add-symbol name]
+	emit-open-frame: func [name [word!] /local symbol type][
+		symbol: either name = 'try-all ['try][name]
+		unless find symbols symbol [add-symbol symbol]
 		emit case [
 			'function! = all [
 				type: find functions name
@@ -477,10 +479,11 @@ red: context [
 			]['stack/mark-func]
 			find iterators name ['stack/mark-loop]
 			name = 'try			['stack/mark-try]
+			name = 'try-all		['stack/mark-try-all]
 			name = 'catch		['stack/mark-catch]
 			'else				['stack/mark-native]
 		]
-		emit prefix-exec name
+		emit prefix-exec symbol
 		insert-lf -2
 	]
 	
@@ -750,7 +753,7 @@ red: context [
 		reduce [var set-var]
 	]
 	
-	add-symbol: func [name [word!] /local sym id alias][
+	add-symbol: func [name [word!] /with original /local sym id alias][
 		unless find/case symbols name [
 			if find symbols name [
 				if find/case/skip aliases name 2 [exit]
@@ -761,7 +764,7 @@ red: context [
 			id: 1 + ((length? symbols) / 2)
 			repend symbols [name reduce [sym id]]
 			repend sym-table [
-				to set-word! sym 'word/load mold name
+				to set-word! sym 'word/load mold any [original name]
 			]
 			new-line skip tail sym-table -3 on
 		]
@@ -1255,7 +1258,9 @@ red: context [
 		if set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
-				emit [stack/push stack/arguments - 1]	;-- get arguments just below the stack record
+				emit [									;-- get arguments just below the stack record
+					if stack/arguments > stack/bottom [stack/push stack/arguments - 1]
+				]
 				insert-lf -4
 			][
 				comp-expression							;-- fetch assigned value (normal case)
@@ -1914,38 +1919,46 @@ red: context [
 		]												;-- return object deferred block
 	]
 	
-	comp-try: has [all? mark body][
-		all?: path? pc/-1
+	comp-try: has [all? mark body call handlers][
+		call: pick [try-all try] to logic! all?: path? pc/-1
 		
+		emit-open-frame 'body
 		either block? pc/1 [
+			emit-open-frame call
 			emit [catch RED_THROWN_ERROR]
 			insert-lf -2
 			body: comp-sub-block 'try
 			if body/1 = 'stack/reset [remove body]
 			mark: tail output
-			emit-open-frame 'try
 			insert body mark
 			clear mark
-			unless all? [
-				append body [switch system/thrown]
-				append body build-exception-handler
-			]
 			append body [
 				stack/unwind
 			]
-			if all? [
-				emit [
-					if system/thrown = RED_THROWN_ERROR [
+			unless all? [
+				emit [switch system/thrown]
+				handlers: build-exception-handler
+				insert handlers/1 [
+					RED_THROWN_ERROR  [
 						natives/handle-thrown-error
 					]
 				]
+				emit handlers
+			]
+			emit either all? [
+				[
+					stack/adjust-post-try
+				]
+			][
+				[
+					if system/thrown <> RED_THROWN_ERROR [stack/adjust-post-try]
+				]
 			]
 			emit [
-				stack/adjust-post-try
 				system/thrown: 0
 			]
 		][
-			emit-open-frame 'try						;-- fallback option
+			emit-open-frame call						;-- fallback option
 			comp-expression
 			unless all? [
 				emit 'switch
@@ -1956,6 +1969,7 @@ red: context [
 			unless all? [emit build-exception-handler]
 			emit-close-frame
 		]
+		emit-close-frame
 	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
@@ -2239,13 +2253,17 @@ red: context [
 		]
 	]
 	
-	comp-break: does [
+	comp-break: has [inner?][
 		if empty? intersect iterators expr-stack [
 			pc: back pc
 			throw-error "BREAK used with no loop"
 		]
-		emit [stack/unroll-loop no break]
-		insert-lf -2
+		if inner?: 'forall = last intersect expr-stack iterators [
+			emit 'natives/forall-end-adjust
+			insert-lf -1
+		]
+		emit compose [stack/unroll-loop (to word! form inner?) break]
+		insert-lf -3
 	]
 	
 	comp-continue: does [
@@ -2324,9 +2342,12 @@ red: context [
 	
 	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
 		if pos: find spec /extern [
-			either end: find next pos refinement! [
+			either end: any [
+				find next pos refinement!
+				find next pos set-word!
+			][
 				ignore: copy/part next pos end
-				remove/part spec pos end
+				remove/part pos end
 			][
 				ignore: copy next pos
 				clear pos
@@ -2394,8 +2415,11 @@ red: context [
 			]
 		]
 		unless empty? words [
+			pos: tail spec
 			unless find spec /local [append spec /local]
 			append spec words
+			new-line pos yes
+			new-line/all next pos no
 		]
 	]
 	
@@ -2404,7 +2428,22 @@ red: context [
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx pos octx
 			src-name original global? path obj fpath shadow defer ctx-idx body-code
+			alter entry mark
 	][
+		unless all [block? pc/2 any [does block? pc/3]][ ;-- fallback if no literal spec & body blocks
+			word: pc/1
+			all [
+				alter: get-prefix-func word
+				entry: find-function alter word
+				name: alter
+			]
+			pc: next pc
+			mark: tail output
+			comp-call/thru word entry/2
+			defer: copy mark
+			clear mark
+			return defer
+		]
 		original: pc/-1
 		case [
 			set-path? original [
@@ -2424,7 +2463,7 @@ red: context [
 					src-name: get-prefix-func src-name
 				]
 				name: check-func-name src-name
-				add-symbol word: to word! clean-lf-flag name
+				add-symbol/with word: to word! clean-lf-flag name to word! clean-lf-flag original
 				unless any [
 					local-word? name
 					1 < length? obj-stack
@@ -3081,7 +3120,7 @@ red: context [
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
 			args option stop?
 	][
-		either spec/1 = 'intrinsic! [
+		either all [not thru spec/1 = 'intrinsic!][
 			switch any [all [path? call call/1] call] keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
@@ -3175,6 +3214,7 @@ red: context [
 			]
 			
 			switch spec/1 [
+				intrinsic!								;-- fallback to native case
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
@@ -3398,7 +3438,10 @@ red: context [
 						entry: find functions alter
 						name: alter
 					]
-					entry: find functions name
+					all [
+						rebol-gctx = bind? original
+						entry: find functions name
+					]
 				]
 			][
 				if alter: select-ssa name [entry: find functions alter]
@@ -4256,7 +4299,7 @@ red: context [
 		]
 		either file? file [
 			unless hidden [script-name: file]
-			src: lexer/process read-binary-cache file
+			src: lexer/process read-cache file
 		][
 			unless hidden [script-name: 'memory]
 			src: file

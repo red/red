@@ -35,16 +35,23 @@ Red/System [
 
 #define GW_OWNER				4
 
+#define CWP_SKIPINVISIBLE		1
+#define CWP_SKIPTRANSPARENT		4
+
 ;-- DrawText() Format Flags
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
 #define DT_SINGLELINE			0020h
+#define DT_EXPANDTABS			0040h
+#define DT_CALCRECT				0400h
 
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
 #define TBM_SETRANGE		0406h
+#define TBM_SETRANGEMAX		0408h
 
+#define PBM_SETRANGE		0401h
 #define PBM_SETPOS			0402h
 
 #define TPM_RETURNCMD		0100h
@@ -1057,6 +1064,12 @@ DwmIsCompositionEnabled!: alias function! [
 			lpsi		[tagSCROLLINFO]
 			return:		[integer!]
 		]
+		ShowScrollBar: "ShowScrollBar" [
+			hWnd		[handle!]
+			wBar		[integer!]
+			bShow		[logic!]
+			return:		[logic!]
+		]
 		ShowWindow: "ShowWindow" [
 			hWnd		[handle!]
 			nCmdShow	[integer!]
@@ -1100,6 +1113,13 @@ DwmIsCompositionEnabled!: alias function! [
 			hwndParent	[handle!]
 			x			[integer!]
 			y			[integer!]
+			return:		[handle!]
+		]
+		ChildWindowFromPointEx: "ChildWindowFromPointEx" [
+			hwndParent	[handle!]
+			x			[integer!]
+			y			[integer!]
+			flags		[integer!]
 			return:		[handle!]
 		]
 		DefWindowProc: "DefWindowProcW" [

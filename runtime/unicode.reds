@@ -397,7 +397,7 @@ unicode: context [
 				return node
 			]
 
-			if all [convert? cp = as-integer cr] [					;-- convert CRLF/CR to LF
+			if all [convert? cp = as-integer cr] [		;-- convert CRLF/CR to LF
 				if all [count - used > 0 src/2 = lf] [
 					count: count - used
 					src: src + used
@@ -517,11 +517,40 @@ unicode: context [
 		]
 		unit
 	]
+
+	count-extras: func [								;-- count LF and extra bytes for cp > 00010000h
+		p 		[byte-ptr!]
+		tail 	[byte-ptr!]
+		unit	[integer!]
+		return: [integer!]
+		/local
+			p4	  [int-ptr!]
+			extra [integer!]
+			cp	  [integer!]
+	][
+		extra: 0
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if any [
+				cp = as-integer LF						;-- account for extra CR
+				cp > 00010000h							;-- account for surrrogate pair
+			][
+				extra: extra + 2
+			]
+			p: p + unit
+		]
+		extra
+	]
 	
 	load-utf16: func [ 
-		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
-		size	[integer!]							;-- size of src in codepoints (excluding terminal NUL)
-		str		[red-string!]						;-- optional destination string
+		src		[c-string!]								;-- UTF-16LE input buffer (zero-terminated)
+		size	[integer!]								;-- size of src in codepoints (excluding terminal NUL)
+		str		[red-string!]							;-- optional destination string
+		cr?		[logic!]								;-- yes => remove CR in CRLF sequences
 		return:	[node!]
 		/local
 			unit [encoding!]
@@ -536,7 +565,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: str/cache							;-- import UTF-16 string from cache
+			src: str/cache								;-- import UTF-16 string from cache
 		]
 		unit: scan-utf16 src size
 		
@@ -557,21 +586,40 @@ unicode: context [
 		switch unit [
 			Latin1 [
 				while [cnt > 0][
-					p/value: src/1
-					p: p + 1
+					either all [cr? src/1 = #"^M" src/2 = null-byte][
+						size: size - 1
+					][
+						p/value: src/1
+						p: p + 1
+					]
 					src: src + 2
 					cnt: cnt - 1
 				]
 			]
 			UCS-2 [
-				copy-memory p as byte-ptr! src size * 2
+				either cr? [
+					while [cnt > 0][
+						either all [src/1 = #"^M" src/2 = null-byte][
+							size: size - 1
+						][
+							p/value: src/1
+							p: p + 1
+							p/value: null-byte
+							p: p + 1
+						]
+						src: src + 2
+						cnt: cnt - 1
+					]
+				][
+					copy-memory p as byte-ptr! src size * 2
+				]
 			]
 			UCS-4 [
 				p4: as int-ptr! p
 				while [cnt > 0][
 					c: as-integer src/2
 					either all [D8h <= c c <= DBh][
-						cp: c << 8 + src/1 and 03FFh << 10	;-- lead surrogate deocoding
+						cp: c << 8 + src/1 and 03FFh << 10	;-- lead surrogate decoding
 						
 						src: src + 2
 						cnt: cnt - 1
@@ -583,11 +631,16 @@ unicode: context [
 							print "*** Input Error: invalid UTF-16LE codepoint"
 							halt 
 						]
-						p4/value: c << 8 + src/1 and 03FFh or cp  ;-- trail surrogate deocoding
+						p4/value: c << 8 + src/1 and 03FFh or cp + 00010000h  ;-- trail surrogate decoding
+						p4: p4 + 1
 					][
-						p4/value: c << 8 + src/1
+						either all [cr? src/1 = #"^M" c = 0][
+							size: size - 1
+						][
+							p4/value: c << 8 + src/1
+							p4: p4 + 1
+						]
 					]
-					p4: p4 + 1
 					src: src + 2
 					cnt: cnt - 1
 				]
@@ -597,19 +650,47 @@ unicode: context [
 		node
 	]
 
-	to-utf16: func [
+	cp-to-utf16: func [
+		cp		[integer!]
+		buf		[byte-ptr!]
+		return: [integer!]				;-- return number of utf16 codepoint
+		/local
+			unit [integer!]
+	][
+		case [
+			cp < 00010000h [
+				buf/1: as-byte cp
+				buf/2: as-byte cp >> 8
+				1
+			]
+			cp < 00110000h [
+				cp: cp - 00010000h
+				unit: cp >> 10 or D800h
+				buf/1: as-byte unit
+				buf/2: as-byte unit >> 8
+				unit: cp and 03FFh or DC00h
+				buf/3: as-byte unit
+				buf/4: as-byte unit >> 8
+				2
+			]
+			true [print "Error: to-utf16 codepoint overflow" 0]
+		]
+	]
+
+	to-utf16: func [									;-- LF to CRLF conversion implied
 		str		[red-string!]
 		return:	[c-string!]
 		/local
 			len [integer!]
 	][
 		len: -1
-		to-utf16-len str :len
+		to-utf16-len str :len yes
 	]
 
 	to-utf16-len: func [
 		str		[red-string!]
-		len		[int-ptr!]					;-- len/value = -1 convert all chars
+		len		[int-ptr!]								;-- len/value = -1 convert all chars
+		cr?		[logic!]								;-- yes => convert LF to CRLF
 		return: [c-string!]
 		/local
 			s	 [series!]
@@ -630,16 +711,22 @@ unicode: context [
 		if all [len/value <> -1 len/value < size][size: len/value]
 		part: size
 		size: size << 1 + 2								;-- including terminal-NUL
-
-		get-cache str size
 		
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
+
+		get-cache str size + count-extras src tail unit
 		dst:  as byte-ptr! str/cache
 
 		switch unit [
 			Latin1 [
 				while [src < tail][						;-- in-place conversion
+					if all [cr? src/1 = #"^/"][
+						dst/1: #"^M"
+						dst/2: null-byte
+						dst: dst + 2
+						part: part + 1
+					]
 					dst/1: src/1
 					dst/2: null-byte
 					src: src + 1
@@ -647,9 +734,24 @@ unicode: context [
 				]
 			]
 			UCS-2 [
-				unit: as-integer tail - src
-				copy-memory dst src unit
-				dst: dst + unit
+				either cr? [
+					while [src < tail][					;-- in-place conversion
+						if all [src/1 = #"^/" src/2 = null-byte][
+							dst/1: #"^M"
+							dst/2: null-byte
+							dst: dst + 2
+							part: part + 1
+						]
+						dst/1: src/1
+						dst/2: src/2
+						src: src + 2
+						dst: dst + 2
+					]
+				][
+					unit: as-integer tail - src
+					copy-memory dst src unit
+					dst: dst + unit
+				]
 			]
 			UCS-4 [
 				while [src < tail][
@@ -657,6 +759,12 @@ unicode: context [
 					cp: p4/value
 					case [
 						cp < 00010000h [
+							if all [cr? cp = 10][		;-- check for LF
+								dst/1: #"^M"
+								dst/2: null-byte
+								dst: dst + 2
+								part: part + 1
+							]
 							dst/1: as-byte cp
 							dst/2: as-byte cp >> 8
 							dst: dst + 2
@@ -671,7 +779,7 @@ unicode: context [
 							dst/4: as-byte unit >> 8
 							p4: as int-ptr! dst
 							dst: dst + 4
-							len/value: len/value + 1
+							part: part + 1
 						]
 						true [print "Error: to-utf16 codepoint overflow" return null]
 					]
@@ -681,6 +789,12 @@ unicode: context [
 		]
 		dst/1: null-byte
 		dst/2: null-byte
+		len/value: part
+		
+		#if debug? = yes [
+			s: (as series! str/cache) - 1
+			assert (as byte-ptr! str/cache) + s/size > dst	;-- detect buffer overflow
+		]
 		str/cache
 	]
 	

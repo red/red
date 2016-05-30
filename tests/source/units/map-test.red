@@ -184,4 +184,28 @@ Red [
 
 ===end-group===
 
+===start-group=== "issues"
+
+	--test-- "issue-1835"
+		m: make map! [a 1 A 2]
+		--assert 2 = select/case m 'A
+		--assert 1 = select/case m 'a
+
+		--assert #(a: 2) = make map! [a: 1 a  2]
+		--assert #(a: 2) = make map! [a  1 a: 2]
+
+		m: make map! [a 1 A 2 a: 3 :a 4]
+		--assert 4 = select m 'a
+		--assert 4 = select m first [:a]
+		--assert 4 = select/case m first [:a]
+		--assert 4 = select/case m first [a:]
+		--assert 2 = select/case m first [A]
+		--assert 2 = select/case m 'A
+
+	--test-- "issue-1834"
+	--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
+
+
+===end-group===
+
 ~~~end-file~~~

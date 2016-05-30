@@ -243,6 +243,7 @@ interpreter: context [
 			type	[integer!]
 			pos		[byte-ptr!]
 			bits	[byte-ptr!]
+			native? [logic!]
 			set?	[logic!]
 			args	[node!]
 			node	[node!]
@@ -253,46 +254,48 @@ interpreter: context [
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
 		fun: null
-		
-		either op/header and body-flag <> 0 [
+		native?: op/header and flag-native-op <> 0
+
+		if all [
+			not native?
+			op/header and body-flag <> 0
+		][
 			node: as node! op/code
 			s: as series! node/value
 			more: s/offset
 			fun: as red-function! more + 3
-			
+
 			s: as series! fun/more/value
 			blk: as red-block! s/offset + 1
-			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
-		][
-			args: op/args
-		]
-		if null? args [
-			args: _function/preprocess-spec as red-native! op
+			args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
 
-			either fun <> null [
-				blk/header: TYPE_BLOCK
-				blk/head:	0
-				blk/node:	args
-			][
-				op/args: args
+			if null? args [
+				args: _function/preprocess-spec as red-native! op
+				either fun <> null [
+					blk/header: TYPE_BLOCK
+					blk/head:	0
+					blk/node:	args
+				][
+					op/args: args
+				]
 			]
+
+			s: as series! args/value
+			slot: s/offset + 1
+			bits: (as byte-ptr! slot) + 4
+			arg:  stack/arguments
+			type: TYPE_OF(arg)
+			BS_TEST_BIT(bits type set?)
+			unless set? [ERR_EXPECT_ARGUMENT(type 0)]
+
+			slot: slot + 2
+			bits: (as byte-ptr! slot) + 4
+			arg:  arg + 1
+			type: TYPE_OF(arg)
+			BS_TEST_BIT(bits type set?)
+			unless set? [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 		
-		s: as series! args/value
-		slot: s/offset + 1
-		bits: (as byte-ptr! slot) + 4
-		arg:  stack/arguments
-		type: TYPE_OF(arg)
-		BS_TEST_BIT(bits type set?)
-		unless set? [ERR_EXPECT_ARGUMENT(type 0)]
-		
-		slot: slot + 2
-		bits: (as byte-ptr! slot) + 4
-		arg:  arg + 1
-		type: TYPE_OF(arg)
-		BS_TEST_BIT(bits type set?)
-		unless set? [ERR_EXPECT_ARGUMENT(type 1)]
-
 		either fun <> null [
 			either TYPE_OF(fun) = TYPE_ROUTINE [
 				exec-routine as red-routine! fun
@@ -301,7 +304,7 @@ interpreter: context [
 				eval-function fun as red-block! more
 			]
 		][
-			if op/header and flag-native-op <> 0 [push yes]	;-- type-checking for natives.
+			if native? [push yes]						;-- type-checking for natives.
 			call-op: as function! [] op/code
 			call-op
 			0											;-- @@ to make compiler happy!
@@ -489,7 +492,7 @@ interpreter: context [
 		parent: _context/get as red-word! head
 		
 		switch TYPE_OF(parent) [
-			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
@@ -501,18 +504,12 @@ interpreter: context [
 			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
 			default	   [0]
 		]
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 				
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either any [
-				TYPE_OF(item) = TYPE_GET_WORD 
-				all [
-					parent = head
-					TYPE_OF(item) = TYPE_WORD
-					TYPE_OF(parent) <> TYPE_OBJECT
-				]
-			][
+			value: either TYPE_OF(item) = TYPE_GET_WORD [
 				_context/get as red-word! item
 			][
 				item
@@ -692,7 +689,12 @@ interpreter: context [
 				pc: eval-path value pc end yes no sub? no
 			]
 			TYPE_GET_WORD [
-				copy-cell _context/get as red-word! pc stack/push*
+				value: _context/get as red-word! pc
+				either sub? [
+					stack/push value					;-- nested expression: push value
+				][
+					stack/set-last value				;-- root expression: return value
+				]
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
@@ -817,18 +819,17 @@ interpreter: context [
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
-		if value = tail [
-			arg: stack/arguments
-			arg/header: TYPE_UNSET
-			exit
-		]
 
 		stack/mark-eval words/_body						;-- outer stack frame
-		
-		while [value < tail][
-			#if debug? = yes [if verbose > 0 [log "root loop..."]]
-			value: eval-expression value tail no no
-			if value + 1 < tail [stack/reset]
+		either value = tail [
+			arg: stack/arguments
+			arg/header: TYPE_UNSET
+		][
+			while [value < tail][
+				#if debug? = yes [if verbose > 0 [log "root loop..."]]
+				value: eval-expression value tail no no
+				if value + 1 < tail [stack/reset]
+			]
 		]
 		either chain? [stack/unwind-last][stack/unwind]
 	]

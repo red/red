@@ -51,6 +51,23 @@ push-face: func [
 	make-at handle as red-object! stack/push*
 ]
 
+get-event-window: func [
+	evt		[red-event!]
+	return: [red-value!]
+	/local
+		handle [handle!]
+		face   [red-object!]
+		msg    [tagMSG]
+][
+	msg: as tagMSG evt/msg
+	handle: get-widget-handle msg
+	as red-value! either handle = as handle! -1 [		;-- filter out unwanted events
+		none-value
+	][
+		push-face GetAncestor handle 2					;-- GA_ROOT
+	]
+]
+
 get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -470,6 +487,8 @@ process-command-event: func [
 		values [red-value!]
 		idx	   [integer!]
 		res	   [integer!]
+		saved  [handle!]
+		child  [handle!]
 ][
 	if all [zero? lParam wParam < 1000][				;-- heuristic to detect a menu selection (--)'
 		unless null? menu-handle [
@@ -477,6 +496,9 @@ process-command-event: func [
 			exit
 		]
 	]
+
+	child: as handle! lParam
+	unless null? current-msg [saved: current-msg/hWnd]
 	switch WIN32_HIWORD(wParam) [
 		BN_CLICKED [
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
@@ -485,17 +507,19 @@ process-command-event: func [
 				type/symbol = check
 				type/symbol = radio
 			][
-				current-msg/hWnd: as handle! lParam		;-- force child handle
+				current-msg/hWnd: child					;-- force child handle
 				if get-logic-state current-msg [
 					make-event current-msg 0 EVT_CHANGE
 				]
 			]
 		]
-		EN_CHANGE [										  ;-- sent also by CreateWindow
-			unless any [null? current-msg no-face? hWnd][ ;-- ignore CreateWindow-time events
-				unless no-face? as handle! lParam [		  ;-- ignore CreateWindow-time events (fixes #1596)
-					current-msg/hWnd: as handle! lParam	  ;-- force Edit handle
+		EN_CHANGE [											;-- sent also by CreateWindow
+			unless any [null? current-msg no-face? hWnd][	;-- ignore CreateWindow-time events
+				unless no-face? child [		  				;-- ignore CreateWindow-time events (fixes #1596)
+					current-msg/hWnd: child	  				;-- force Edit handle
 					make-event current-msg -1 EVT_CHANGE
+					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+					if type/symbol = area [update-scrollbars child]
 				]
 			]
 			0
@@ -505,22 +529,22 @@ process-command-event: func [
 			values: get-face-values hWnd
 			if values <> null [
 				make-at 
-					as handle! lParam
+					child
 					as red-object! values + FACE_OBJ_SELECTED
 			]
-			current-msg/hWnd: as handle! lParam
+			current-msg/hWnd: child
 			make-event current-msg 0 EVT_FOCUS
 		]
 		EN_KILLFOCUS
 		CBN_KILLFOCUS [
-			current-msg/hWnd: as handle! lParam
+			current-msg/hWnd: child
 			make-event current-msg 0 EVT_UNFOCUS
 		]
 		CBN_SELCHANGE [
-			current-msg/hWnd: as handle! lParam			;-- force ListBox or Combobox handle
+			current-msg/hWnd: child			;-- force ListBox or Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
-			idx: as-integer SendMessage as handle! lParam res 0 0
+			idx: as-integer SendMessage child res 0 0
 			res: make-event current-msg idx EVT_SELECT
 			get-selected current-msg idx + 1
 			if res = EVT_DISPATCH [
@@ -528,7 +552,7 @@ process-command-event: func [
 			]
 		]
 		CBN_EDITCHANGE [
-			current-msg/hWnd: as handle! lParam			;-- force Combobox handle
+			current-msg/hWnd: child			;-- force Combobox handle
 			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 			unless type/symbol = text-list [
 				make-event current-msg -1 EVT_CHANGE
@@ -536,11 +560,12 @@ process-command-event: func [
 		]
 		STN_CLICKED [
 			init-current-msg
-			current-msg/hWnd: as handle! lParam
+			current-msg/hWnd: child
 			make-event current-msg 0 EVT_LEFT_DOWN
 		]
 		default [0]
 	]
+	unless null? current-msg [current-msg/hWnd: saved]
 ]
 
 paint-background: func [
@@ -772,17 +797,16 @@ WndProc: func [
 			store-face-to-hWnd hWnd as red-object! p-int/value
 		]
 		WM_WINDOWPOSCHANGED [
-			w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
-			if all [
-				window = symbol/resolve w-type/symbol
-				not win8+?
-			][
-				winpos: as tagWINDOWPOS lParam
-				pt: screen-to-client hWnd winpos/x winpos/y
-				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
-				update-layered-window hWnd null pt winpos -1
+			unless win8+? [
+				w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
+				if window = symbol/resolve w-type/symbol [
+					winpos: as tagWINDOWPOS lParam
+					pt: screen-to-client hWnd winpos/x winpos/y
+					offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
+					pt/x: winpos/x - offset/x - pt/x
+					pt/y: winpos/y - offset/y - pt/y
+					update-layered-window hWnd null pt winpos -1
+				]
 			]
 		]
 		WM_MOVE

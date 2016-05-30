@@ -13,9 +13,12 @@ Red [
 system/lexer: context [
 
 	throw-error: function [spec [block!] /missing][
+		type: spec/1									;-- preserve lit-words from double reduction
+		spec: reduce spec
 		src: back tail spec
-		src/1: mold/flat/part get/any src/1 40
+		src/1: either string? src/1 [form/part trim/all src/1 40][mold/flat/part src/1 40]
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
+		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
 
@@ -310,6 +313,27 @@ system/lexer: context [
 		]
 	]
 
+	new-line: routine [
+		series [any-type!]
+		/local
+			blk  [red-block!]
+			s	 [series!]
+			cell [red-value!]
+	][
+		assert any [
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+		]
+		blk: as red-block! series
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		
+		while [cell < s/tail][
+			cell/header: cell/header or flag-new-line
+			cell: cell + 1
+		]
+	]
+	
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
@@ -326,7 +350,7 @@ system/lexer: context [
 		cs:		[- - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
-		line: 	1
+		old-line: line: 1
 
 		append/only stack any [dst make block! 200]
 
@@ -345,6 +369,7 @@ system/lexer: context [
 		make-file: [
 			new: make type (index? e) - index? s
 			append new dehex copy/part s e
+			parse new [any [s: #"\" change s #"/" | skip]]
 			new
 		]
 
@@ -500,28 +525,36 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 
 		base-2-rule: [
-			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
-			(base: 2)
+			"2#{" (type: binary!) [
+				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -3])
+			] (base: 2)
 		]
 
 		base-16-rule: [
-			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
-			(base: 16)
+			opt "16" "#{" (type: binary!) [
+				s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -2])
+			] (base: 16)
 		]
 
 		base-64-rule: [
-			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
-			(base: 64)
+			"64#{" (type: binary!) [
+				s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"
+				| (throw-error [binary! skip s -4])
+			](
+				cnt: offset? s e
+				if all [0 < cnt cnt < 4][throw-error [binary! skip s -4]]
+				base: 64
+			)
 		]
 
-		binary-rule: [
-			(type: binary!)
-			base-16-rule | base-2-rule | base-64-rule
-		]
+		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
 
 		file-rule: [
-			#"%" [
-				line-string (process: make-string type: file!)
+			s: #"%" [
+				#"{" (throw-error [file! s])
+				| line-string (process: make-string type: file!)
 				| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
 				  (process: make-file type: file!)
 			]
@@ -678,19 +711,32 @@ system/lexer: context [
 				value: back tail stack
 				value/1: make map! value/1
 				pop stack
+				old-line: line
 			)
 		]
 
 		block-rule: [
-			#"[" (append/only stack make block! 100)
+			#"[" (
+				append/only stack make block! 100
+				if line > old-line [old-line: line new-line back tail stack]
+			)
 			any-value
-			#"]" (pop stack)
+			#"]" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		paren-rule: [
-			#"(" (append/only stack make paren! 4)
+			#"(" (
+				append/only stack make paren! 4
+				if line > old-line [old-line: line new-line back tail stack]
+			)
 			any-value 
-			#")" (pop stack)
+			#")" (
+				pop stack
+				old-line: line
+			)
 		]
 
 		escaped-rule: [
@@ -727,7 +773,7 @@ system/lexer: context [
 			] pos: any ws #"]"
 		]
 
-		comment-rule: [#";" [to lf | to end]]
+		comment-rule: [#";" [to lf | to end] (old-line: line)]
 
 		wrong-delimiters: [
 			pos: [
@@ -757,7 +803,12 @@ system/lexer: context [
 				| paren-rule
 				| escaped-rule		(store stack value)
 				| issue-rule
-			]
+			](
+				if line > old-line [
+					old-line: line 
+					new-line back tail last stack
+				]
+			)
 		]
 
 		any-value: [pos: any [some ws | literal-value]]

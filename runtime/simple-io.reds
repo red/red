@@ -865,7 +865,7 @@ simple-io: context [
 		cp2: either len > 1 [string/rs-abs-at as red-string! filename pos - 1][0]
 		cp3: either len > 2 [string/rs-abs-at as red-string! filename pos - 2][0]
 
-		either any [
+		any [
 			cp1 = 47		;-- #"/"
 			cp1 = 92 		;-- #"\"
 			all [
@@ -875,7 +875,7 @@ simple-io: context [
 					all [cp2 = 46 any [cp3 = 47 cp3 = 92 len = 2]]
 				]
 			]
-		][true][false]
+		]
 	]
 
 	read-dir: func [
@@ -1345,7 +1345,7 @@ simple-io: context [
 					len		[integer!]
 			][
 				res: as red-value! none-value
-				len: 0
+				len: -1
 				buf-ptr: 0
 				clsid: declare tagGUID
 				async: declare tagVARIANT
@@ -1367,7 +1367,7 @@ simple-io: context [
 					HTTP_POST [
 						action: #u16 "POST"
 						body/data1: VT_BSTR
-						bstr-d: SysAllocString unicode/to-utf16 as red-string! data
+						bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
 						body/data3: as-integer bstr-d
 					]
 					default [--NOT_IMPLEMENTED--]

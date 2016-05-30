@@ -59,56 +59,64 @@ copy-to-clipboard: func [
 	/local
 		out		[ring-buffer!]
 		data	[red-string!]
-		format	[integer!]
-		head	[integer!]
+		tail	[red-value!]
 		node	[line-node!]
-		start	[byte-ptr!]
-		end		[byte-ptr!]
+		start	[integer!]
+		end		[integer!]
+		unit	[integer!]
 		size	[integer!]
+		len		[integer!]
 		s		[series!]
 		hMem	[handle!]
 		p		[byte-ptr!]
+		p1		[byte-ptr!]
 ][
 	out: vt/out
 	data: out/data
-	head: out/s-head
-	if head = -1 [exit]
+	start: out/s-head
 	if any [
-		head = -1
+		start = -1
 		not OpenClipboard vt/hwnd
 	][exit]
 
-	node: out/lines + head - 1
-	data/head: node/offset + out/s-h-idx
-	start: string/rs-head data
+	node: out/lines + start - 1
+	start: node/offset + out/s-h-idx
 	node: out/lines + out/s-tail - 1
-	data/head: node/offset + out/s-t-idx
-	end: string/rs-head data
-	data/head: 0
+	end: node/offset + out/s-t-idx
 
 	s: GET_BUFFER(data)
-	either start <= end [
-		size: as-integer end - start
-	][
-		size: as-integer end - as byte-ptr! s/offset
-		size: size + as-integer (as byte-ptr! s/tail) - start
+	if out/full? [
+		tail: s/tail
+		s/tail: out/end
 	]
+	len: string/rs-length? data
+	unit: GET_UNIT(s)
+	size: either start <= end [end - start][len - start + end]
+
 	EmptyClipboard
-	hMem: GlobalAlloc 42h size + 2			;-- added null terminator
+	if unit <> UCS-2 [unit: unit * 2]				;-- make enough space for Latin1 and UCS-4
+	hMem: GlobalAlloc 42h size * unit * 2
 	if null? hMem [CloseClipboard exit]
 	p: GlobalLock hMem
 	either start <= end [
-		copy-memory p start size
+		data/head: start
+		p1: as byte-ptr! unicode/to-utf16-len data :size yes
+		copy-memory p p1 size * 2
 	][
-		size: as-integer (as byte-ptr! s/tail) - start
-		copy-memory p start size
-		p: p + size
-		copy-memory p as byte-ptr! s/offset as-integer end - as byte-ptr! s/offset
+		len: len - start
+		data/head: start
+		p1: as byte-ptr! unicode/to-utf16-len data :len yes
+		copy-memory p p1 len * 2
+		p: p + (len * 2)
+		data/head: 0
+		p1: as byte-ptr! unicode/to-utf16-len data :end yes
+		copy-memory p p1 end * 2
 	]
+	data/head: 0
+	if out/full? [s/tail: tail]
 	GlobalUnlock hMem
 
-	format: either GET_UNIT(s) = UCS-2 [CF_UNICODETEXT][CF_TEXT]
-	SetClipboardData format hMem
+	SetClipboardData CF_UNICODETEXT hMem
 	CloseClipboard
 ]
 
@@ -148,6 +156,11 @@ paste-from-clipboard: func [
 						p: p + 2
 					]
 					if cp = 10 [cp: 13]
+					if all [D800h <= cp cp <= DF00h][		;-- USC-4
+						cp: cp and 03FFh << 10				;-- lead surrogate decoding
+						p: p + 2
+						cp: (as-integer p/2) << 8 + p/1 and 03FFh or cp + 00010000h
+					]
 					edit vt cp
 				]
 				p: p + 2
@@ -163,35 +176,7 @@ paste-from-clipboard: func [
 	]
 	CloseClipboard
 	clipboard: null
-	either cp = 13 [true][false]
-]
-
-popup-menu: func [
-	vt		[terminal!]
-	x		[integer!]
-	y		[integer!]
-	/local
-		menu	[handle!]
-		cmd		[integer!]
-		select?	[logic!]
-		paste?	[logic!]
-		flag	[integer!]
-][
-	menu: CreatePopupMenu
-	select?: any [vt/select-all? vt/out/s-head <> -1]
-	paste?: any [
-		IsClipboardFormatAvailable CF_TEXT
-		IsClipboardFormatAvailable CF_UNICODETEXT
-	]
-	flag: either select? [0][3]
-	AppendMenu menu flag WM_COPY #u16 "Copy^-Ctrl+C"
-	flag: either paste? [0][3]
-	AppendMenu menu flag WM_PASTE #u16 "Paste^-Ctrl+V"
-	AppendMenu menu 0800h 0 null
-	AppendMenu menu flag VT_MSG_SELALL #u16 "Select All^-Ctrl+A"
-
-	cmd: TrackPopupMenuEx menu TPM_RETURNCMD x y vt/hwnd null
-	unless zero? cmd [PostMessage vt/hwnd cmd 0 0]
+	cp = 13
 ]
 
 set-font: func [
@@ -511,9 +496,6 @@ ConsoleWndProc: func [
 			close vt
 			quit 0
 		]
-		WM_CONTEXTMENU [
-			popup-menu vt WIN32_LOWORD(lParam) WIN32_HIWORD(lParam)
-		]
 		WM_COPY [copy-to-clipboard vt]
 		WM_PASTE [paste-from-clipboard vt no]
 		WM_CLEAR [0]
@@ -524,6 +506,18 @@ ConsoleWndProc: func [
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
+]
+
+copy-text: func [face [red-object!]][
+	SendMessage get-face-handle face WM_COPY 0 0
+]
+
+paste-text: func [face [red-object!]][
+	SendMessage get-face-handle face WM_PASTE 0 0
+]
+
+select-text: func [face [red-object!]][
+	SendMessage get-face-handle face VT_MSG_SELALL 0 0
 ]
 
 wcex: declare WNDCLASSEX

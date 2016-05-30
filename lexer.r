@@ -7,9 +7,15 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
+append first find third :new-line  block! paren!
+append first find third :new-line? block! paren!
+
+
 lexer: context [
 	verbose: 0
 	
+	old-line: none
 	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
@@ -19,6 +25,7 @@ lexer: context [
 	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
+	series: none									;-- temporary hold last stack series
 	value:	none									;-- new value
 	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
@@ -107,7 +114,9 @@ lexer: context [
 		pos: #"^/" (
 			if count? [
 				line: line + 1 
-				append/only lines to block! stack/tail?
+				;append/only lines stack/tail?
+				;new-line stack/tail? yes
+				stack/nl?: yes
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
@@ -159,7 +168,7 @@ lexer: context [
 	
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
-			stack/push path!
+			stack/allocate block! 4
 			stack/push to type copy/part s e		;-- push 1st path element
 		)
 		some [
@@ -218,8 +227,8 @@ lexer: context [
 	]
 	
 	map-rule: [
-		"#(" (stack/push block!) any-value #")" (
-			stack/push/head #!map!
+		"#(" (stack/allocate block! 10) any-value #")" (
+			stack/prefix #!map!
 			value: stack/pop block!
 		)
 	]
@@ -287,9 +296,9 @@ lexer: context [
 		sticky-word-rule
 	]
 		
-	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
+	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/push paren!) any-value	#")" (value: stack/pop paren!)]
+	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -348,7 +357,7 @@ lexer: context [
 				| UTF8-char
 			] fail?
 		]
-		#"}"
+		#"}" (old-line: line)
 	]
 	
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
@@ -356,28 +365,39 @@ lexer: context [
 	string-rule: [line-string | multiline-string]
 
 	base-2-rule: [
-		"2#{" (type: binary!)
-		s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
-		e: #"}" (base: 2)
+		"2#{" (type: binary!) [
+			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			e: #"}" (base: 2)
+			| (pos: skip s -3 throw-error)
+		]
 	]
 	
 	base-16-rule: [
-		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}" (base: 16)
+		opt "16" "#{" (type: binary!) [
+			s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+			e: #"}" (base: 16)
+			| (pos: skip s -2 throw-error)
+		]
 	]
 
 	base-64-rule: [
-		"64#{" (type: binary!)
-		s: any [counted-newline | base64-char | ws-no-count | comment-rule]
-		e: #"}" (base: 64)
+		"64#{" (type: binary!) [
+			s: any [counted-newline | base64-char | ws-no-count | comment-rule]
+			e: #"}" (
+				cnt: offset? s e
+				if all [0 < cnt cnt < 4][pos: skip s -4 throw-error]
+				base: 64
+			)
+			| (pos: skip s -4 throw-error)
+		]
 	]
 
-	binary-rule: [base-16-rule | base-2-rule | base-64-rule]
+	binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
 
 	file-rule: [
-		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
-			#"^"" s: any UTF8-filtered-char e: #"^""
+		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
+			#"{" (throw-error)
+			| #"^"" s: any UTF8-filtered-char e: #"^""
 			| s: any UTF8-filtered-char e:
 		]
 	]
@@ -455,31 +475,36 @@ lexer: context [
 	
 	stack: context [
 		stk: []
+		nl?: no
 		
-		push: func [value /head][
-			either any [value = block! value = paren! value = path!][
-				if value = path! [value: block!]
-				insert/only tail stk value: make value 1
-				value
+		allocate: func [type [datatype!] size [integer!] /local new pos][
+			pos: insert/only tail stk new: make type size
+			if nl? [new-line back pos yes nl?: no]
+			new
+		]
+		
+		prefix: func [value][insert/only last stk :value]
+		
+		push: func [value][
+			value: insert/only tail last stk :value
+			if nl? [new-line back value yes nl?: no]
+			value
+		]
+		
+		pop: func [type [datatype!] /local pos][
+			pos: back tail stk
+			nl?: new-line? pos
+			
+			either any [type = path! type = set-path!][
+				change/only pos to type pos/1
 			][
-				either head [
-					insert/only last stk :value
-				][
-					insert/only tail last stk :value
+				if type <> type? pos/1 [
+					throw-error/with ["invalid" mold type "closing delimiter"]
 				]
 			]
+			also pos/1 remove pos
 		]
 		
-		pop: func [type [datatype!]][
-			if any [type = path! type = set-path!][type: block!]
-			
-			if type <> type? last stk [
-				throw-error/with ["invalid" mold type "closing delimiter"]
-			]
-			also last stk remove back tail stk
-		]
-		
-		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
 	
@@ -496,7 +521,7 @@ lexer: context [
 		either encap? [quit][halt]
 	]
 
-	add-line-markers: func [blk [block!]][	
+	add-line-markers: func [blk [block!]][
 		foreach pos lines [new-line pos yes]
 		clear lines
 	]
@@ -641,18 +666,18 @@ lexer: context [
 	]
 
 	load-file: func [s [string!]][
-		to file! dehex s
+		to file! replace/all dehex s #"\" #"/"
 	]
 	
 	process: func [src [string! binary!] /local blk][
-		line: 1
+		old-line: line: 1
 		count?: yes
 		
-		blk: stack/push block!						;-- root block
+		blk: stack/allocate block! 100				;-- root block
 
 		unless parse/all/case src program [throw-error]
 		
-		add-line-markers blk
+		;add-line-markers blk
 		stack/reset
 		blk
 	]

@@ -230,7 +230,7 @@ float: context [
 			OP_SUB [left - right]
 			OP_MUL [left * right]
 			OP_DIV [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
@@ -238,7 +238,7 @@ float: context [
 				]
 			]
 			OP_REM [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
@@ -493,10 +493,10 @@ float: context [
 		m: as int-ptr! :value
 		n: m + 1
 		either n/value and 7FF00000h = 7FF00000h [		;-- the exponent bits are all ones
-			either any [								;-- the fraction bits are not entirely zeros
+			any [										;-- the fraction bits are not entirely zeros
 				m/value <> 0
 				n/value and 000FFFFFh <> 0
-			] [true][false]
+			]
 		][false]
 	]
 
@@ -829,6 +829,7 @@ float: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

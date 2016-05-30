@@ -69,6 +69,7 @@ unless system/console [
 			#include %POSIX.reds
 		]
 
+		console?:	yes
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
@@ -222,7 +223,7 @@ unless system/console [
 					all [offset < tail cnt < size]
 				][
 					cp: string/get-char offset unit
-					w: wcwidth? cp
+					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [
 						1  [cnt + 1]
 						2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
@@ -280,7 +281,7 @@ unless system/console [
 			set-cursor-pos line offset bytes
 		]
 
-		edit: func [
+		console-edit: func [
 			prompt-str [red-string!]
 			/local
 				line   [red-string!]
@@ -417,6 +418,12 @@ unless system/console [
 					]
 					default [
 						if c > 31 [
+							#if OS = 'Windows [						;-- optimize for Windows
+								if all [D800h <= c c <= DF00h][		;-- USC-4
+									c: c and 03FFh << 10			;-- lead surrogate decoding
+									c: (03FFh and fd-read) or c + 00010000h
+								]
+							]
 							either string/rs-tail? line [
 								string/append-char GET_BUFFER(line) c
 								#if OS = 'Windows [					;-- optimize for Windows
@@ -437,7 +444,37 @@ unless system/console [
 			]
 			line/head: 0
 		]
-		
+
+		stdin-readline: func [
+			/local
+				c	 [integer!]
+				s	 [series!]
+		][
+			s: GET_BUFFER(input-line)
+			while [true][
+				#either OS = 'Windows [
+					c: stdin-read
+				][
+					c: fd-read
+				]
+				either any [c = -1 c = as-integer lf][exit][
+					s: string/append-char s c
+				]
+			]
+		]
+
+		edit: func [
+			prompt-str [red-string!]
+		][
+			either console? [
+				console-edit prompt-str
+				restore
+				print-line ""
+			][
+				stdin-readline
+			]
+		]
+
 		setup: func [
 			line [red-string!]
 			hist [red-block!]
@@ -456,8 +493,6 @@ _set-buffer-history: routine [line [string!] hist [block!]][
 
 _read-input: routine [prompt [string!]][
 	terminal/edit prompt
-	terminal/restore
-	print-line ""
 ]
 
 ask: function [

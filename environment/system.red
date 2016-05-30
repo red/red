@@ -117,6 +117,7 @@ system: context [
                 bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
+				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -130,12 +131,14 @@ system: context [
 				parse-block:		["PARSE - input must be of any-block! type:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
 				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
-				parse-stack:		["PARSE - stack limit reached"]
+				parse-stack:		"PARSE - stack limit reached"
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
 				invalid-data-facet: ["invalid DATA facet content" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
 				not-window:			"VIEW - expected a window root face"
+				bad-window:			"VIEW - a window face cannot be nested in another window"
 				not-linked:			"VIEW - face not linked to a window"
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]

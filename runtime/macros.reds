@@ -107,6 +107,7 @@ Red/System [
 	ACT_INDEX?
 	ACT_INSERT
 	ACT_LENGTH?
+	ACT_MOVE
 	ACT_NEXT
 	ACT_PICK
 	ACT_POKE
@@ -224,6 +225,9 @@ Red/System [
 	NAT_REQUEST_DIR
 	NAT_CHECKSUM
 	NAT_UNSET
+	NAT_NEW_LINE
+	NAT_NEW_LINE?
+	NAT_ENBASE
 ]
 
 #enum math-op! [
@@ -267,10 +271,10 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		61							;-- number of actions (exact number)
+#define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
-#either debug? = yes [
+#either verbosity >= 1 [
 	#define ------------| 	print-line
 ][
 	#define ------------| 	comment
@@ -278,6 +282,7 @@ Red/System [
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
+#define GET_TUPLE_ARRAY(tp) [(as byte-ptr! tp) + 4]
 #define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)

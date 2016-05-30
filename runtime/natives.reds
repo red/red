@@ -305,6 +305,7 @@ natives: context [
 			body   [red-block!]
 			saved  [red-value!]
 			series [red-series!]
+			break? [logic!]
 	][
 		#typecheck forall
 		w:    as red-word!  stack/arguments
@@ -312,13 +313,14 @@ natives: context [
 		
 		saved: word/get w							;-- save series (for resetting on end)
 		w: word/push w								;-- word argument
+		break?: no
 		
 		stack/mark-loop words/_body
 		while [loop? as red-series! _context/get w][
 			stack/reset
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
-				RED_THROWN_BREAK	[system/thrown: 0 break]
+				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
 				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
 				0 [
 					series: as red-series! _context/get w
@@ -328,7 +330,7 @@ natives: context [
 			]
 		]
 		stack/unwind-last
-		_context/set w saved
+		unless break? [_context/set w saved]
 	]
 	
 	func*: func [check? [logic!]][
@@ -1001,8 +1003,10 @@ natives: context [
 			value [red-value!]
 			ref	  [red-value!]
 			fun	  [red-function!]
+			obj	  [node!]
 			word  [red-word!]
 			ctx	  [node!]
+			self? [logic!]
 	][
 		#typecheck [bind copy]
 		value: stack/arguments
@@ -1020,15 +1024,22 @@ natives: context [
 		]
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
+			obj: either TYPE_OF(ref) = TYPE_OBJECT [
+				self?: yes
+				object/save-self-object as red-object! ref
+			][
+				self?: no
+				null
+			]
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) null no
+				_context/bind as red-block! value TO_CTX(ctx) obj self?
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes no
 						TO_CTX(ctx)
-						null
-						no
+						obj
+						self?
 			]
 		][
 			word: as red-word! value
@@ -1316,6 +1327,46 @@ natives: context [
 			16 [binary/decode-16 p len unit]
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
+			default [fire [TO_ERROR(script invalid-arg) int] null]
+		]
+		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+	]
+
+	enbase*: func [
+		check?   [logic!]
+		base-arg [integer!]
+		/local
+			data [red-string!]
+			int  [red-integer!]
+			base [integer!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-binary!]
+	][
+		#typecheck [enbase base-arg]
+		data: as red-string! stack/arguments
+		base: either positive? base-arg [
+			int: as red-integer! data + 1
+			int/value
+		][64]
+
+		p: either TYPE_OF(data) = TYPE_STRING [
+			len: -1
+			as byte-ptr! unicode/to-utf8 data :len
+		][
+			len: binary/rs-length? as red-binary! data
+			binary/rs-head as red-binary! data
+		]
+
+		ret: as red-binary! data
+		ret/head: 0
+		ret/header: TYPE_STRING
+		ret/node: switch base [
+			64 [binary/encode-64 p len]
+			16 [binary/encode-16 p len]
+			2  [binary/encode-2  p len]
 			default [fire [TO_ERROR(script invalid-arg) int] null]
 		]
 		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
@@ -1992,6 +2043,18 @@ natives: context [
 						b: crypto/SHA1 data len
 						len: 20
 					]
+					type = crypto/_sha256 [
+						b: crypto/SHA256 data len
+						len: 32
+					]
+					type = crypto/_sha384 [
+						b: crypto/SHA384 data len
+						len: 48
+					]
+					type = crypto/_sha512 [
+						b: crypto/SHA512 data len
+						len: 64
+					]
 					type = crypto/_crc32 [
 						integer/box crypto/CRC32 data len
 						exit
@@ -2032,6 +2095,64 @@ natives: context [
 			]
 		]
 		unset/push-last
+	]
+	
+	new-line*: func [
+		check? [logic!]
+		_all   [integer!]
+		skip   [integer!]
+		/local
+			cell [cell!]
+			tail [cell!]
+			blk  [red-block!]
+			int	 [red-integer!]
+			bool [red-logic!]
+			s	 [series!]
+			step [integer!]
+			nl?  [logic!]
+	][
+		#typecheck [new-line _all skip]
+		blk: as red-block! stack/arguments
+		bool: as red-logic! blk + 1
+		nl?: bool/value
+		
+		s: GET_BUFFER(blk)
+		cell: s/offset + blk/head
+		
+		either _all <> -1 [
+			step: 1
+			if skip <> -1 [
+				int: as red-integer! blk + skip
+				unless negative? step [step: int/value]
+			]
+			tail: s/tail
+			while [cell < tail][
+				cell/header: either nl? [
+					cell/header or flag-new-line
+				][
+					cell/header and flag-nl-mask
+				]
+				cell: cell + step
+			]
+		][
+			cell/header: either nl? [
+				cell/header or flag-new-line
+			][
+				cell/header and flag-nl-mask
+			]
+		]
+	]
+	
+	new-line?*: func [
+		check? [logic!]
+		/local
+			bool [red-logic!]
+			cell [cell!]
+	][
+		cell: block/rs-head as red-block! stack/arguments
+		bool: as red-logic! stack/arguments
+		bool/header: TYPE_LOGIC
+		bool/value: cell/header and flag-nl-mask <> 0
 	]
 
 	;--- Natives helper functions ---
@@ -2314,6 +2435,16 @@ natives: context [
 		_context/set word as red-value! series			;-- reset series to its initial offset
 	]
 	
+	forall-end-adjust: func [
+		/local
+			changed	[red-series!]
+			series	[red-series!]
+	][
+		changed: as red-series! _context/get as red-word! stack/arguments - 1
+		series: as red-series! stack/arguments - 2
+		series/head: changed/head
+	]
+	
 	repeat-init*: func [
 		cell  	[red-value!]
 		return: [integer!]
@@ -2429,6 +2560,9 @@ natives: context [
 			:request-dir*
 			:checksum*
 			:unset*
+			:new-line*
+			:new-line?*
+			:enbase*
 		]
 	]
 

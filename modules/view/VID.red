@@ -13,12 +13,13 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	
+	focal-face: none
 	reactors: make block! 20
 	
 	default-font: [name "Tahoma" size 9 color 'black]
 	
 	throw-error: func [spec [block!]][
-		cause-error 'script 'vid-invalid-syntax [mold copy/part spec 3]
+		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
 	]
 	
 	react-ctx: context [face: none]
@@ -33,27 +34,35 @@ system/view/VID: context [
 	]
 	
 	calc-size: function [face [object!]][
-		either all [
-			block? data: face/data
-			not empty? data 
-			find [text-list drop-list drop-down] face/type
-		][
-			min-sz: 0x0
-			foreach txt data [
-				if string? txt [
-					size: size-text/with face txt
+		case [
+			all [
+				block? data: face/data
+				not empty? data 
+				find [text-list drop-list drop-down] face/type
+			][
+				min-sz: 0x0
+				foreach txt data [
+					if string? txt [
+						size: size-text/with face txt
+						if size/x > min-sz/x [min-sz/x: size/x]
+						if size/y > min-sz/y [min-sz/y: size/y]
+					]
+				]
+				if all [face/text face/type <> 'drop-list][
+					size: size-text face
 					if size/x > min-sz/x [min-sz/x: size/x]
 					if size/y > min-sz/y [min-sz/y: size/y]
 				]
+				min-sz + 24x0							;@@ hardcoded offset for scrollbar
 			]
-			if all [face/text face/type <> 'drop-list][
-				size: size-text face
-				if size/x > min-sz/x [min-sz/x: size/x]
-				if size/y > min-sz/y [min-sz/y: size/y]
+			all [face/type = 'area string? face/text not empty? face/text][
+				len: 0
+				parse mark: face/text [
+					any [s: to [CR | end] e: (if len < new: offset? s e [len: new mark: s]) opt LF skip]
+				]
+				size-text/with face copy/part mark len
 			]
-			min-sz + 24x0								;@@ hardcoded offset for scrollbar
-		][
-			size-text face
+			'else [either face/text [size-text face][size-text/with face "X"]]
 		]
 	]
 	
@@ -104,11 +113,17 @@ system/view/VID: context [
 		]
 	]
 	
-	fetch-options: function [face [object!] opts [object!] style [block!] spec [block!] css [block!] return: [block!]][
-		set opts none
-		opt?: yes
+	fetch-options: function [
+		face [object!] opts [object!] style [block!] spec [block!] css [block!]
+		/extern focal-face
+		return: [block!]
+	][
+		opt?: 	 yes
 		divides: none
+		calc-y?: no
+		
 		obj-spec!: make typeset! [block! object!]
+		set opts none
 		
 		;-- process style options --
 		until [
@@ -124,6 +139,7 @@ system/view/VID: context [
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec: next spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
+				| 'focus	  (focal-face: face)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec: next spec)
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec: next spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec: next spec)
@@ -132,11 +148,13 @@ system/view/VID: context [
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enable?: no)
+				| 'select	  (opts/selected: fetch-argument integer! spec: next spec)
+				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]
 			unless match? [
 				either all [word? value find/skip next system/view/evt-names value 2][
-					make-actor opts value spec/2 spec spec: next spec
+					spec: make-actor opts value next spec
 				][
 					opt?: switch/default type?/word value: pre-load value [
 						pair!	 [unless opts/size  [opts/size:  value]]
@@ -150,6 +168,7 @@ system/view/VID: context [
 									divides: value
 								][
 									opts/size: as-pair value face/size/y
+									calc-y?: yes		;-- force size/y calculation
 								]
 							]
 						]
@@ -169,7 +188,7 @@ system/view/VID: context [
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
-							][make-actor opts style/default-actor spec/1 spec]
+							][spec: make-actor opts style/default-actor spec]
 							yes
 						]
 						char!	 [yes]
@@ -191,22 +210,30 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [not opts/size any [opts/text opts/data] min-size: calc-size face][
-			if face/size/x < min-size/x [face/size/x: min-size/x + 10]	;@@ hardcoded margins
+		if all [any [calc-y? not opts/size] any [calc-y? opts/text opts/data] min-size: calc-size face][
+			if all [not calc-y? face/size/x < min-size/x][face/size/x: min-size/x + 10]	;@@ hardcoded margins
 			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
 		]
 		spec
 	]
 	
-	make-actor: function [obj [object!] name [word!] body spec [block!]][
+	make-actor: function [obj [object!] name [word!] spec [block!]][
+		body: spec/1
 		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
+		s: copy/deep [face [object!] event [event! none!]]
+		if block? spec/2 [
+			unless parse spec/2 [any word!][throw-error spec]
+			append s /extern
+			append s spec/2
+			spec: next spec
+		]
 		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
-			'func [face [object!] event [event! none!]]
-			copy/deep body
+			'function s copy/deep body
 		]
+		spec
 	]
 	
 	set 'layout function [
@@ -224,6 +251,7 @@ system/view/VID: context [
 		/styles					"Use an existing styles list"
 			css		  [block!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
+		/extern focal-face
 	][
 		background!:  make typeset! [image! file! tuple! word!]
 		list:		  make block! 4						;-- panel's pane block
@@ -238,8 +266,8 @@ system/view/VID: context [
 		cursor:	origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
-			type: offset: size: text: color: enable?: visible?: image: font: flags:
-			options: para: data: extra: actors: draw: none
+			type: offset: size: text: color: enable?: visible?: selected: image: 
+			font: flags: options: para: data: extra: actors: draw: none
 		]
 		
 		reset: [
@@ -248,7 +276,10 @@ system/view/VID: context [
 			max-sz: 0
 		]
 		
-		unless panel [panel: make face! system/view/VID/styles/window/template] ;-- absolute path to avoid clashing with /styles
+		unless panel [
+			focal-face: none
+			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
+		]
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -277,8 +308,8 @@ system/view/VID: context [
 				origin	[origin: cursor: fetch-argument pair! spec: next spec]
 				at		[at-offset: fetch-argument pair! spec: next spec]
 				pad		[cursor: cursor + fetch-argument pair! spec: next spec]
-				do		[do-safe fetch-argument block! spec: next spec]
-				return	[do reset]
+				do		[do-safe bind fetch-argument block! spec: next spec panel]
+				return	[either divides [throw-error spec][do reset]]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
@@ -299,7 +330,6 @@ system/view/VID: context [
 				]
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
-				clear reactors
 				spec: fetch-options face opts style spec local-styles
 				
 				either styling? [
@@ -345,10 +375,11 @@ system/view/VID: context [
 					if box/x > pane-size/x [pane-size/x: box/x]
 					if box/y > pane-size/y [pane-size/y: box/y]
 				]
-				process-reactors						;-- Needs to be after [set name face]
 			]
 			spec: next spec
 		]
+		process-reactors						;-- Needs to be after [set name face]
+		
 		either block? panel/pane [append panel/pane list][
 			unless only [panel/pane: list]
 		]
@@ -361,6 +392,8 @@ system/view/VID: context [
 			if panel/size/x < x [panel/size/x: x]
 			if panel/size/y < y [panel/size/y: y]
 		]
+
+		if all [focal-face not parent][panel/selected: focal-face]
 		
 		if options [set/some panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]

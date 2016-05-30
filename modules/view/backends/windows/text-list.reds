@@ -22,6 +22,8 @@ init-text-list: func [
 		len		  [integer!]
 		value	  [integer!]
 ][
+	SendMessage hWnd LB_RESETCONTENT 0 0
+	
 	len: 0
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK

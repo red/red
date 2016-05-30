@@ -17,6 +17,7 @@ char-test.red
 routine-test.red
 append-test.red
 insert-test.red
+move-test.red
 make-test.red
 system-test.red
 parse-test.red

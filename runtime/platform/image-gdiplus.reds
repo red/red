@@ -263,7 +263,7 @@ OS-image: context [
 		height
 	]
 
-	lock-bitmap: func [
+	lock-bitmap-fmt: func [
 		handle		[integer!]
 		pixelformat [integer!]
 		write?		[logic!]
@@ -284,6 +284,14 @@ OS-image: context [
 		res: GdipBitmapLockBits handle rect mode pixelformat data
 		either zero? res [as-integer data][0]
 	]
+
+	lock-bitmap: func [
+		handle		[integer!]
+		write?		[logic!]
+		return:		[integer!]
+	][
+		lock-bitmap-fmt handle PixelFormat32bppARGB write?
+	]	
 
 	unlock-bitmap: func [
 		handle		[integer!]
@@ -327,7 +335,6 @@ OS-image: context [
 		return:		[integer!]
 		/local
 			width	[integer!]
-			arbg	[integer!]
 	][
 		width: width? bitmap
 		GdipBitmapSetPixel bitmap index % width index / width color
@@ -383,8 +390,8 @@ OS-image: context [
 	][
 		bits: format >> 8 and FFh 					;--number of bit per pixel
 
-		bmp-src: as BitmapData! lock-bitmap src format no
-		bmp-dst: as BitmapData! lock-bitmap dst format yes
+		bmp-src: as BitmapData! lock-bitmap-fmt src format no
+		bmp-dst: as BitmapData! lock-bitmap-fmt dst format yes
 		copy-memory bmp-dst/scan0 bmp-src/scan0 + (offset * bits / 8) bytes * bits / 8
 		unlock-bitmap src as-integer bmp-src
 		unlock-bitmap dst as-integer bmp-dst
@@ -448,7 +455,7 @@ OS-image: context [
 	][
 		bitmap: 0
 		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
-		data: as BitmapData! lock-bitmap bitmap PixelFormat32bppARGB yes
+		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
 
 		y: 0

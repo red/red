@@ -46,6 +46,8 @@ stack: context [										;-- call stack
 	body-symbol:	0									;-- symbol ID
 	anon-symbol:	0									;-- symbol ID
 	
+	where-ctop:		as call-frame!	0					;-- saved call stack position for "Where:" error field
+	
 	#define MARK_STACK(type) [
 		func [fun [red-word!]][mark fun type]
 	]
@@ -117,8 +119,8 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
 		if ctop = c-end [
-			print-line ["^/*** Error: call stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
@@ -187,7 +189,7 @@ stack: context [										;-- call stack
 			p	[call-frame!]
 			sym [integer!]
 	][
-		p: ctop
+		p: either where-ctop = null [ctop][where-ctop]
 		until [
 			p: p - 1
 			sym: p/header >> 8 and FFFFh
@@ -196,6 +198,7 @@ stack: context [										;-- call stack
 				p < cbottom
 			]
 		]
+		where-ctop: null
 		word/at p/ctx sym
 	]
 	
@@ -398,6 +401,7 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
+			ctop: ctop - 1
 			if any [
 				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
 				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
@@ -405,7 +409,6 @@ stack: context [										;-- call stack
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
-			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
@@ -486,7 +489,9 @@ stack: context [										;-- call stack
 		save-top:  top
 		save-ctop: ctop
 		
-		;-- unwind the stack and determine the outcome of a break/continue exception
+		if where-ctop = null [where-ctop: ctop]
+		
+		;-- unwind the stack and determine the outcome of a throw exception
 		until [
 			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
@@ -555,8 +560,8 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			print-line ["^/*** Error: arguments stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
 	]

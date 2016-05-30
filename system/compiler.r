@@ -1164,7 +1164,10 @@ system-dialect: make-profilable context [
 						string! opt [into attribs]		;-- can be specified in any order
 						| into attribs opt string!
 					]
-					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
+					pos: copy args any [
+						pos: 'return (throw-error ["Cannot use `return` as argument name at:" mold pos])
+						| word! into type-def opt string!	;-- arguments definition
+					]
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def

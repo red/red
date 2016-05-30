@@ -479,6 +479,7 @@ words: context [
 	
 	;-- modifying actions
 	_change:		as red-word! 0
+	_changed:		as red-word! 0
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
@@ -493,6 +494,8 @@ words: context [
 	_swap:			as red-word! 0
 	_take:			as red-word! 0
 	_taken:			as red-word! 0
+	_move:			as red-word! 0
+	_moved:			as red-word! 0
 	_trim:			as red-word! 0
 
 	;-- modifying natives
@@ -641,10 +644,13 @@ words: context [
 		
 		;-- modifying actions
 		_change:		word/load "change"
+		_changed:		word/load "changed"
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
 		_insert:		word/load "insert"
+		_move:			word/load "move"
+		_moved:			word/load "moved"
 		_poke:			word/load "poke"
 		_put:			word/load "put"
 		;_remove:		word/load "remove"
