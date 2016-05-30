@@ -176,6 +176,19 @@ offset?: func [
 	subtract index? series2 index? series1
 ]
 
+repend: func [
+	"Appends a reduced value to a series and returns the series head"
+	series [series!]
+	value
+	/only "Appends a block value as a block"
+][
+	head either only [
+		insert/only tail series reduce :value
+	][
+		reduce/into :value tail series					;-- avoids wasting an intermediary block
+	]
+]
+
 replace: function [
 	series [series!]
 	pattern
