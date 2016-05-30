@@ -339,6 +339,7 @@ system/lexer: context [
 		dst	[block! none!]
 		/part	
 			length [integer! string!]
+		/next "Load the next value only. Return block with value and new position"
 		return: [block!]
 		/local
 			new s e c hex pos value cnt type process path
@@ -651,7 +652,7 @@ system/lexer: context [
 			slash [
 				some slash (type: word!) e:				;--  ///... case
 				| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
-				| symbol-rule (type: refinement! s: next s)
+				| symbol-rule (type: refinement! s: skip s 1) ;-- don't use next in place of skip
 			]
 			(to-word stack copy/part s e type)
 		]
@@ -818,7 +819,12 @@ system/lexer: context [
 		unless either part [
 			parse/case/part src red-rules length
 		][
-			parse/case src red-rules
+			either next [
+				parse/case src [any ws literal-value pos:]
+				append/only stack/1 pos
+			][
+				parse/case src red-rules
+			]	
 		][
 			throw-error ['value pos]
 		]
