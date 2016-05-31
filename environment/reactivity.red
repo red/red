@@ -41,15 +41,15 @@ system/reactivity: context [
 		get/any 'result
 	]
 	
-	check: function [face [object!] /only facet [word!]][
+	check: function [reactor [object!] /only field [word!]][
 		unless empty? pos: relations [
-			while [pos: find/skip pos face 4][
+			while [pos: find/skip pos reactor 4][
 				if all [
-					any [not only pos/2 = facet]
-					not find stack reaction: pos/3
+					any [not only pos/2 = field]
+					not find/same stack reaction: pos/3
 				][
-					append/only stack reaction
-					do-safe reaction
+					append/only stack :reaction
+					do-safe any [all [block? :reaction reaction] pos/4]
 					take/last stack
 				]
 				pos: skip pos 4
@@ -57,7 +57,7 @@ system/reactivity: context [
 		]
 	]
 	
-	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
+	set 'clear-relations function ["Removes all reactive relations"][clear relations]
 	
 	set 'react function [
 		"Defines a new reactive relation between two or more objects"
@@ -77,12 +77,18 @@ system/reactivity: context [
 					collect some [keep word! | [refinement! | set-word!] break | skip]
 				]
 				;if 2 <= length objs [cause-error...]
+				target: reduce target
+				;if (length? target) <> length? objs [cause-error ...]
+				;unless parse target [some object!][cause-error ...]
+				insert target :reaction
 				
 				parse body-of :reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
-							if find objs item/1 [
-								repend relations [obj copy/part item 2 reaction ctx]
+							item: item/1
+							if pos: find objs item/1 [
+								obj: pick target 1 + index? pos
+								repend relations [obj item/2 :reaction target]
 							]
 						)
 						| set-path! | any-string!
