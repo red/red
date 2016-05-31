@@ -2010,11 +2010,13 @@ natives: context [
 			str		[red-string!]
 			bin		[red-binary!]
 			method	[red-word!]
-			key		[red-string!]
+			key		[byte-ptr!]
 			data	[byte-ptr!]
 			b		[byte-ptr!]
 			len		[integer!]
 			type	[integer!]
+			key-len [integer!]
+			hash-size [red-integer!]
 	][
 		#typecheck [checksum _tcp _hash _method _key]
 		arg: stack/arguments
@@ -2022,47 +2024,49 @@ natives: context [
 		switch TYPE_OF(arg) [
 			TYPE_STRING [
 				str: as red-string! arg
+				;-- Passing len of -1 tells to-utf8 to convert all chars,
+				;	and it mods len to hold the length of the UTF8 result.
 				data: as byte-ptr! unicode/to-utf8 str :len
 			]
 			default [
-				print-line "** Script Error: checksum expected data argument of type: string! binary! file!"
+				fire [TO_ERROR(script invalid-arg) data]
 			]
 		]
 
 		case [
-			_tcp >= 0 []
-			_hash >= 0 []
+			_tcp >= 0 [
+				integer/box crypto/CRC_IP data len
+			]
+			_hash >= 0 [
+				hash-size: as red-integer! arg + _hash
+				integer/box crypto/HASH_STRING data len hash-size/value
+			]
 			any [_method >= 0 _key >= 0] [
 				method: as red-word! arg + _method
 				type: symbol/resolve method/symbol
+				if not crypto/known-method? type [
+					fire [TO_ERROR(script invalid-arg) method]
+				]
+				b: either _key >= 0 [
+					key-len: -1							;-- Tell to-utf8 to decode everything
+					key: as byte-ptr! unicode/to-utf8 as red-string! arg + _key :key-len
+					;-- Now key-len contains the decoded key length
+					crypto/calc-hmac type data len key key-len
+				][
+					crypto/calc-hash type data len
+				]
+				;!! len is reused here, being set to the expected result size of
+				;	the hash call. So you can't set it before making that call.
 				case [
-					type = crypto/_md5 [
-						b: crypto/MD5 data len
-						len: 16
-					]
-					type = crypto/_sha1 [
-						b: crypto/SHA1 data len
-						len: 20
-					]
-					type = crypto/_sha256 [
-						b: crypto/SHA256 data len
-						len: 32
-					]
-					type = crypto/_sha384 [
-						b: crypto/SHA384 data len
-						len: 48
-					]
-					type = crypto/_sha512 [
-						b: crypto/SHA512 data len
-						len: 64
-					]
-					type = crypto/_crc32 [
-						integer/box crypto/CRC32 data len
-						exit
-					]
+					type = crypto/_md5    	[len: 16]
+					type = crypto/_sha1   	[len: 20]
+					type = crypto/_sha256 	[len: 32]
+					type = crypto/_sha384 	[len: 48]
+					type = crypto/_sha512 	[len: 64]
+					type = crypto/_crc32	[integer/box as integer! b	exit]
+					type = crypto/_tcp		[integer/box as integer! b  exit]
 					true [
-						print-line "** Script error: invalid argument"
-						exit
+						fire [TO_ERROR(script invalid-arg) method]
 					]
 				]
 				stack/set-last as red-value! binary/load b len
