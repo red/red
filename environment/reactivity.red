@@ -65,10 +65,10 @@ system/reactivity: context [
 		/link							"Link objects together using a reactive relation"
 			target	[block!]			"Target objects to link together"
 		/unlink							"Removes an existing reactive relation"
-			src		[word! object! block!]
+			src		[word! object! block!] "'all word, or a reactor or a list of reactors"
 		/with							"Specifies an optional face object (internal use)"
-			ctx		[object! none!]		"Optional face context"
-		return:		[block!]			"List of faces causing a reaction"
+			ctx		[object! none!]		"Optional context for VID faces"
+		return:		[block! function! none!] "Reactive relation or NONE if unlinking failed"
 	][
 		case [
 			link [
@@ -99,13 +99,15 @@ system/reactivity: context [
 			]
 			unlink [
 				pos: relations
+				found?: no
 				while [pos: find/same pos :reaction][
 					obj: pos/-2
 					if any [src = 'all src = obj all [block? src find src obj]][
 						pos: remove/part skip pos -2 4
+						found?: yes
 					]
 				]
-				set/any 'reaction ()					;-- returns unset value
+				unless found? [reaction: none]			;-- returns NONE if no relation was removed
 			]
 			'else [
 				parse reaction rule: [
