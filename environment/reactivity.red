@@ -49,7 +49,7 @@ system/reactivity: context [
 	
 	check: function [reactor [object!] /only field [word!]][
 		unless empty? pos: relations [
-			while [pos: find/skip pos reactor 4][
+			while [pos: find/same/skip pos reactor 4][
 				if all [
 					any [not only pos/2 = field]
 					not find/same stack reaction: pos/3
@@ -114,7 +114,7 @@ system/reactivity: context [
 				found?: no
 				while [pos: find/same pos :reaction][
 					obj: pos/-2
-					if any [src = 'all src = obj all [block? src find src obj]][
+					if any [src = 'all src = obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
 						found?: yes
 					]
