@@ -99,12 +99,13 @@ system/reactivity: context [
 			]
 			unlink [
 				pos: relations
-				while [pos: find pos :reaction][
+				while [pos: find/same pos :reaction][
 					obj: pos/-2
 					if any [src = 'all src = obj all [block? src find src obj]][
 						pos: remove/part skip pos -2 4
 					]
 				]
+				set/any 'reaction ()					;-- returns unset value
 			]
 			'else [
 				parse reaction rule: [
