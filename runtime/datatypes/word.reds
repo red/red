@@ -339,9 +339,10 @@ word: context [
 			COMP_NOT_EQUAL [
 				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
+			COMP_SAME
 			COMP_STRICT_EQUAL [
 				res: as-integer any [
-					type <> TYPE_WORD
+					type <> TYPE_OF(arg1)
 					arg1/symbol <> arg2/symbol
 				]
 			]

@@ -297,6 +297,7 @@ find: make action! [[
 			length [number! series!]
 		/only "Treat a series search value as a single value"
 		/case "Perform a case-sensitive search"
+		/same {Use "same?" as comparator}
 		/any  "TBD: Use * and ? wildcards in string searches"
 		/with "TBD: Use custom wildcards in place of * and ?"
 			wild [string!]
@@ -433,6 +434,7 @@ select: make action! [[
 			length [number! series!]
 		/only "Treat a series search value as a single value"
 		/case "Perform a case-sensitive search"
+		/same {Use "same?" as comparator}
 		/any  "TBD: Use * and ? wildcards in string searches"
 		/with "TBD: Use custom wildcards in place of * and ?"
 			wild [string!]

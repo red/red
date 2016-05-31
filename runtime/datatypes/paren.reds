@@ -73,18 +73,6 @@ paren: context [
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
 	]
-	
-	compare: func [
-		value1	   [red-paren!]							;-- first operand
-		value2	   [red-paren!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_PAREN [RETURN_COMPARE_OTHER]
-		block/compare-each as red-block! value1 as red-block! value2 op
-	]
 
 	init: does [
 		datatype/register [
@@ -100,7 +88,7 @@ paren: context [
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

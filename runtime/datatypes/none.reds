@@ -109,9 +109,10 @@ none: context [
 		type: TYPE_OF(arg2)
 		if type <> TYPE_NONE [RETURN_COMPARE_OTHER]
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_SAME 
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL [res: as-integer type <> TYPE_NONE]
+			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [res: 0]
 			default [
@@ -134,6 +135,7 @@ none: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]

@@ -467,10 +467,15 @@ block: context [
 			res	   [integer!]
 			n	   [integer!]
 			len	   [integer!]
+			same?  [logic!]
 	][
-		if all [
+		same?: all [
 			blk1/node = blk2/node
 			blk1/head = blk2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
@@ -666,7 +671,7 @@ block: context [
 			]
 		][
 			either set? [
-				element: find parent element null no case? no null null no no no no
+				element: find parent element null no case? no no null null no no no no
 				if TYPE_OF(element) = TYPE_NONE [
 					fire [TO_ERROR(script bad-path-set) path element]
 				]
@@ -679,7 +684,7 @@ block: context [
 				][
 					select-word parent as red-word! element case?
 				][
-					value: select parent element null yes case? no null null no no
+					value: select parent element null yes case? no no null null no no
 					stack/pop 1							;-- remove FIND result from stack
 					value
 				]
@@ -695,6 +700,7 @@ block: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?	 	[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -777,7 +783,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: ANY_BLOCK?(type)
+		any-blk?: either all [same? hash?][no][ANY_BLOCK?(type)]
 
 		either any [
 			match?
@@ -816,6 +822,7 @@ block: context [
 				]
 			]
 			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
+			if same? [op: COMP_SAME]
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
 			type: either type = TYPE_DATATYPE [
@@ -888,6 +895,7 @@ block: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -902,7 +910,7 @@ block: context [
 			type   [integer!]
 			offset [integer!]
 	][
-		result: find blk value part only? case? any? with-arg skip last? reverse? no no
+		result: find blk value part only? case? same? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
