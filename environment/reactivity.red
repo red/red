@@ -68,7 +68,7 @@ system/reactivity: context [
 			src		[word! object! block!] "'all word, or a reactor or a list of reactors"
 		/with							"Specifies an optional face object (internal use)"
 			ctx		[object! none!]		"Optional context for VID faces"
-		return:		[block! function! none!] "Reactive relation or NONE if unlinking failed"
+		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
 	][
 		case [
 			link [
@@ -82,6 +82,7 @@ system/reactivity: context [
 				;unless parse target [some object!][cause-error ...]
 				insert target :reaction
 				
+				found?: no
 				parse body-of :reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
@@ -89,6 +90,7 @@ system/reactivity: context [
 							if pos: find objs item/1 [
 								obj: pick target 1 + index? pos
 								repend relations [obj item/2 :reaction target]
+								found?: yes
 							]
 						)
 						| set-path! | any-string!
@@ -96,6 +98,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				unless found? [reaction: none]			;-- returns NONE if no relation was created
 			]
 			unlink [
 				pos: relations
@@ -110,6 +113,7 @@ system/reactivity: context [
 				unless found? [reaction: none]			;-- returns NONE if no relation was removed
 			]
 			'else [
+				found?: no
 				parse reaction rule: [
 					any [
 						item: [path! | lit-path! | get-path!] (
@@ -141,6 +145,7 @@ system/reactivity: context [
 							][
 								part: part + 1
 								repend relations [obj item/:part reaction ctx]
+								found?: yes
 							]
 							parse saved rule
 						)
@@ -149,6 +154,7 @@ system/reactivity: context [
 						| skip
 					]
 				]
+				unless found? [reaction: none]			;-- returns NONE if no relation was created
 			]
 		]
 		:reaction
