@@ -72,6 +72,7 @@ system/reactivity: context [
 			target	[block!]			"Target objects to link together"
 		/unlink							"Removes an existing reactive relation"
 			src		[word! object! block!] "'all word, or a reactor or a list of reactors"
+		/later							"Run the reaction on next change instead of now"
 		/with							"Specifies an optional face object (internal use)"
 			ctx		[object! none!]		"Optional context for VID faces"
 		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
@@ -98,6 +99,7 @@ system/reactivity: context [
 							if pos: find objs item/1 [
 								obj: pick target 1 + index? pos
 								repend relations [obj item/2 :reaction target]
+								unless later [do-safe target]
 								found?: yes
 							]
 						)
@@ -153,6 +155,7 @@ system/reactivity: context [
 							][
 								part: part + 1
 								repend relations [obj item/:part reaction ctx]
+								unless later [do-safe reaction]
 								found?: yes
 							]
 							parse saved rule
