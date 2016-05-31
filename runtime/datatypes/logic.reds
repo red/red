@@ -220,6 +220,7 @@ logic: context [
 		if type <> TYPE_LOGIC [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT

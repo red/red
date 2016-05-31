@@ -85,18 +85,6 @@ get-path: context [
 		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_GET_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_GET_PATH
@@ -111,7 +99,7 @@ get-path: context [
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

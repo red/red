@@ -86,18 +86,6 @@ set-path: context [
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		part - 1
 	]
-	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_SET_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
 
 	init: does [
 		datatype/register [
@@ -113,7 +101,7 @@ set-path: context [
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

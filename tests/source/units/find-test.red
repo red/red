@@ -112,6 +112,21 @@ Red [
 		--assert none = find/case "è" "E"
 ===end-group===
 
+===start-group=== "find/same"
+	--test-- "find/same-1"
+		--assert "Abcde" = find/same "aAbcde" "A"
+	--test-- "find/same-2"
+		obj1: context [a: 1 b: 2]
+		obj2: context [a: 1 b: 2]
+		blk: reduce [1 obj1 2 obj2 3]
+		res: skip blk 3
+		--assert res = find/same blk obj2
+	--test-- "find/same-3"
+		hs: make hash! blk
+		res: skip hs 3
+		--assert res = find/same hs obj2
+===end-group===
+
 ===start-group=== "find/any"      ; not yet implemented
 	--test-- "find/any-1"
 		;--assert "12345" = find/any "12345" "*"
