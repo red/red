@@ -662,14 +662,19 @@ binary: context [
 			p1		[byte-ptr!]
 			p2		[byte-ptr!]
 			end		[byte-ptr!]
+			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
 		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
 
-		if all [
+		same?: all [
 			bin1/node = bin2/node
 			bin1/head = bin2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 

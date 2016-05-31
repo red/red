@@ -163,34 +163,6 @@ _hashtable: context [
 		n + 1
 	]
 
-	hash-value?: func [
-		key		[red-value!]
-		return:	[logic!]
-	][
-		switch TYPE_OF(key) [
-			TYPE_WORD
-			TYPE_SYMBOL
-			TYPE_STRING
-			TYPE_INTEGER
-			TYPE_FILE
-			TYPE_URL
-			TYPE_CHAR
-			TYPE_FLOAT
-			TYPE_SET_WORD
-			TYPE_LIT_WORD
-			TYPE_GET_WORD
-			TYPE_REFINEMENT
-			TYPE_ISSUE
-			TYPE_POINT
-			TYPE_DATATYPE
-			TYPE_PAIR
-			TYPE_PERCENT
-			TYPE_BINARY
-			TYPE_TUPLE [true]
-			default    [false]
-		]
-	]
-
 	hash-value: func [
 		key		[red-value!]
 		case?	[logic!]
@@ -234,12 +206,10 @@ _hashtable: context [
 			TYPE_TUPLE [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
+			TYPE_OBJECT [key/data2]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
-			TYPE_ACTION
-			TYPE_NATIVE
-			TYPE_OP [key/data3]
-			default [0]
+			default [key/data3]
 		]
 	]
 
@@ -596,10 +566,6 @@ _hashtable: context [
 		s: as series! node/value
 		h: as hashtable! s/offset
 		type: h/type
-		if all [
-			type <> HASH_TABLE_SYMBOL
-			not hash-value? key
-		][return null]
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			idx: either h/n-buckets > (h/size << 1) [-1][1]
@@ -815,7 +781,6 @@ _hashtable: context [
 			key: key + 1
 			key/header: TYPE_NONE
 		][										;-- hash!
-			unless hash-value? key [exit]
 			s: as series! h/flags/value
 			flags: as int-ptr! s/offset
 			s: as series! h/blk/value

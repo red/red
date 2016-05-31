@@ -1105,6 +1105,7 @@ object: context [
 
 		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
 
+		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
 		if all [
 			obj1/ctx = obj2/ctx
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
@@ -1262,6 +1263,7 @@ object: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -1286,6 +1288,7 @@ object: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]

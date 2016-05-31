@@ -258,6 +258,7 @@ Red/System [
 	COMP_GREATER_EQUAL
 	COMP_SORT
 	COMP_CASE_SORT
+	COMP_SAME
 ]
 
 #enum exceptions! [

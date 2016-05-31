@@ -417,6 +417,7 @@ actions: context [
 		if all [
 			value = -2
 			op <> COMP_EQUAL
+			op <> COMP_SAME
 			op <> COMP_STRICT_EQUAL
 			op <> COMP_NOT_EQUAL
 		][
@@ -424,6 +425,7 @@ actions: context [
 		]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL 	[res: value =  0]
 			COMP_NOT_EQUAL 		[res: value <> 0]
 			COMP_LESSER			[res: value <  0]
@@ -915,6 +917,7 @@ actions: context [
 		part	 [integer!]
 		only	 [integer!]
 		case-arg [integer!]
+		same-arg [integer!]
 		any-arg  [integer!]
 		with-arg [integer!]
 		skip	 [integer!]
@@ -930,6 +933,7 @@ actions: context [
 			stack/arguments + part
 			as logic! only + 1
 			as logic! case-arg + 1
+			as logic! same-arg + 1
 			as logic! any-arg + 1
 			as red-string!  stack/arguments + with-arg
 			as red-integer! stack/arguments + skip
@@ -945,6 +949,7 @@ actions: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -964,6 +969,7 @@ actions: context [
 			part	 [red-value!]
 			only?	 [logic!]
 			case?	 [logic!]
+			same?	 [logic!]
 			any?	 [logic!]
 			with-arg [red-string!]
 			skip	 [red-integer!]
@@ -974,7 +980,7 @@ actions: context [
 			return:  [red-value!]
 		] get-action-ptr as red-value! series ACT_FIND
 			
-		action-find series value part only? case? any? with-arg skip last? reverse? tail? match?
+		action-find series value part only? case? same? any? with-arg skip last? reverse? tail? match?
 	]
 	
 	head*: func [
@@ -1284,6 +1290,7 @@ actions: context [
 		part	 [integer!]
 		only	 [integer!]
 		case-arg [integer!]
+		same-arg [integer!]
 		any-arg  [integer!]
 		with-arg [integer!]
 		skip	 [integer!]
@@ -1297,6 +1304,7 @@ actions: context [
 			stack/arguments + part
 			as logic! only + 1
 			as logic! case-arg + 1
+			as logic! same-arg + 1
 			as logic! any-arg + 1
 			as red-string!  stack/arguments + with-arg
 			as red-integer! stack/arguments + skip
@@ -1310,6 +1318,7 @@ actions: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -1327,6 +1336,7 @@ actions: context [
 			part	 [red-value!]
 			only?	 [logic!]
 			case?	 [logic!]
+			same?	 [logic!]
 			any?	 [logic!]
 			with-arg [red-string!]
 			skip	 [red-integer!]
@@ -1335,7 +1345,7 @@ actions: context [
 			return:  [red-value!]
 		] get-action-ptr as red-value! series ACT_SELECT
 
-		action-select series value part only? case? any? with-arg skip last? reverse?
+		action-select series value part only? case? same? any? with-arg skip last? reverse?
 	]
 	
 	sort*: func [

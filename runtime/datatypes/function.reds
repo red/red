@@ -428,7 +428,7 @@ _function: context [
 		word: stack/push value
 		word/header: TYPE_WORD							;-- convert the set-word! into a word!
 
-		result: block/find ignore word null no no no null null no no no no
+		result: block/find ignore word null no no no no null null no no no no
 
 		if TYPE_OF(result) = TYPE_NONE [
 			block/rs-append list word
@@ -535,7 +535,7 @@ _function: context [
 		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
-		extern: as red-block! block/find spec value null no no no null null no no no no
+		extern: as red-block! block/find spec value null no no no no null null no no no no
 		extern?: no
 
 		if TYPE_OF(extern) = TYPE_BLOCK [
@@ -808,6 +808,7 @@ _function: context [
 		if type <> TYPE_FUNCTION [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT

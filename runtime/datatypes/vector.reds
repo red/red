@@ -798,15 +798,20 @@ vector: context [
 			p2		[byte-ptr!]
 			f1		[float!]
 			f2		[float!]
+			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
 		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
 		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
 
-		if all [
+		same?: all [
 			vec1/node = vec2/node
 			vec1/head = vec2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 		

@@ -652,10 +652,15 @@ string: context [
 			c1	  [integer!]
 			c2	  [integer!]
 			lax?  [logic!]
+			same? [logic!]
 	][
-		if all [
+		same?: all [
 			str1/node = str2/node
 			str1/head = str2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
@@ -1317,11 +1322,11 @@ string: context [
 			]
 			default [
 				either set? [
-					element: find parent element null no no no null null no no no no
+					element: find parent element null no no no no null null no no no no
 					actions/poke as red-series! element 2 value null
 					value
 				][
-					select parent element null no no no null null no no
+					select parent element null no no no no null null no no
 				]
 			]
 		]
@@ -1463,6 +1468,7 @@ string: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]							;@@ not implemented
 		with-arg	[red-string!]						;@@ not implemented
 		skip		[red-integer!]
@@ -1571,6 +1577,7 @@ string: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 		][not case?][no]
+		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
@@ -1725,6 +1732,7 @@ string: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -1741,7 +1749,7 @@ string: context [
 			offset [integer!]
 			unit   [integer!]
 	][
-		result: find str value part only? case? any? with-arg skip last? reverse? no no
+		result: find str value part only? case? same? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [

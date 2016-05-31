@@ -323,6 +323,7 @@ map: context [
 		if type <> TYPE_MAP [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -462,6 +463,7 @@ map: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -475,6 +477,7 @@ map: context [
 			key   [red-value!]
 			val   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		val: key + 1
@@ -489,6 +492,7 @@ map: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -499,6 +503,7 @@ map: context [
 			table [node!]
 			key   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		either key = null [none-value][key + 1]

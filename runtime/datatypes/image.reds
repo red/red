@@ -648,15 +648,26 @@ image: context [
 		op		[integer!]									;-- type of comparison
 		return:	[integer!]
 		/local
-			type [integer!]
-			res  [integer!]
-			bmp1 [integer!]
-			bmp2 [integer!]
+			type  [integer!]
+			res   [integer!]
+			bmp1  [integer!]
+			bmp2  [integer!]
+			same? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/compare"]]
 
 		type: TYPE_OF(arg2)
 		if type <> TYPE_IMAGE [RETURN_COMPARE_OTHER]
+
+		same?: all [
+			arg1/node = arg2/node
+			arg1/head = arg2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
 
 		switch op [
 			COMP_EQUAL
