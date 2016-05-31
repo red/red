@@ -324,4 +324,5 @@ system: context [
 	lexer:		none
 	console:	none
 	view:		none
+	reactivity: none
 ]

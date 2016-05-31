@@ -28,6 +28,8 @@ Red [
 
 #register-intrinsics
 
+#include %environment/reactivity.red					;-- requires SET intrinsic
+
 extract-boot-args
 
 ;-- temporary code --
