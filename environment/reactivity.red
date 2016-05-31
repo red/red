@@ -28,6 +28,12 @@ reactor!: context [
 	]
 ]
 
+deep-reactor!: make reactor! [
+	on-deep-change*: function [owner word target action new index part][
+		system/reactivity/check/only owner word
+	]
+]
+
 system/reactivity: context [
 	relations:	make block! 1000		;@@ change it to hash! once stable
 	stack:		make block! 100			;@@ change it to hash! once stable ???
