@@ -67,7 +67,7 @@ crypto: context [
 
 
 	alg-from-symbol: func [
-		"Return the aglorithm ID for a given symbol."
+		"Return the algorithm ID for a given symbol."
 		sym		[integer!]
 		return: [integer!]
 	][
@@ -321,9 +321,11 @@ crypto: context [
 					return:		[integer!]
 				]
 			]
-			"kernel32.dll" stdcall [
-				GetLastError: "GetLastError" [
-					return:		[integer!]
+			#if debug? = yes [
+				"kernel32.dll" stdcall [
+					GetLastError: "GetLastError" [
+						return:		[integer!]
+					]
 				]
 			]
 		]

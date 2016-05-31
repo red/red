@@ -2029,7 +2029,6 @@ natives: context [
 				data: as byte-ptr! unicode/to-utf8 str :len
 			]
 			default [
-				;print-line "** Script Error: checksum expected data argument of type: string! binary! file!"
 				fire [TO_ERROR(script invalid-arg) data]
 			]
 		]
@@ -2047,7 +2046,6 @@ natives: context [
 				type: symbol/resolve method/symbol
 				if not crypto/known-method? type [
 					fire [TO_ERROR(script invalid-arg) method]
-					exit
 				]
 				b: either _key >= 0 [
 					key-len: -1							;-- Tell to-utf8 to decode everything
@@ -2069,7 +2067,6 @@ natives: context [
 					type = crypto/_tcp		[integer/box as integer! b  exit]
 					true [
 						fire [TO_ERROR(script invalid-arg) method]
-						exit
 					]
 				]
 				stack/set-last as red-value! binary/load b len
