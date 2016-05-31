@@ -142,7 +142,7 @@ system: context [
 				not-linked:			"VIEW - face not linked to a window"
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
-				react-bad-link:		"REACT - /LINK option requires a function! as argument"
+				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive function has not enough arguments"
 				react-no-match:		"REACT - target arguments number mismatches with reactive function"
 				react-bad-obj:		"REACT - target can only contain object values"

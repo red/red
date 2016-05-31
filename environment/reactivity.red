@@ -79,7 +79,7 @@ system/reactivity: context [
 	][
 		case [
 			link [
-				unless function? :reaction [cause-error 'script 'react-bad-link []]
+				unless function? :reaction [cause-error 'script 'react-bad-func []]
 				objs: parse spec-of :reaction [
 					collect some [keep word! | [refinement! | set-word!] break | skip]
 				]
@@ -108,7 +108,6 @@ system/reactivity: context [
 						| skip
 					]
 				]
-				unless found? [reaction: none]			;-- returns NONE if no relation was created
 			]
 			unlink [
 				pos: relations
@@ -120,7 +119,6 @@ system/reactivity: context [
 						found?: yes
 					]
 				]
-				unless found? [reaction: none]			;-- returns NONE if no relation was removed
 			]
 			'else [
 				found?: no
@@ -165,10 +163,9 @@ system/reactivity: context [
 						| skip
 					]
 				]
-				unless found? [reaction: none]			;-- returns NONE if no relation was created
 			]
 		]
-		:reaction
+		either found? [:reaction][none]					;-- returns NONE if no relation was processed
 	]
 ]
 
