@@ -72,14 +72,16 @@ system/reactivity: context [
 	][
 		case [
 			link [
-				;unless function? :reaction [cause-error...]
+				unless function? :reaction [cause-error 'script 'react-bad-link []]
 				objs: parse spec-of :reaction [
 					collect some [keep word! | [refinement! | set-word!] break | skip]
 				]
-				;if 2 <= length objs [cause-error...]
+				if 2 > length? objs [cause-error 'script 'react-not-enough []]
 				target: reduce target
-				;if (length? target) <> length? objs [cause-error ...]
-				;unless parse target [some object!][cause-error ...]
+				
+				if (length? target) <> length? objs [cause-error 'script 'react-no-match []]
+				unless parse target [some object!][cause-error 'script 'react-bad-obj []]
+				
 				insert target :reaction
 				
 				found?: no
