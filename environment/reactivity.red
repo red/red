@@ -110,6 +110,7 @@ system/reactivity: context [
 				]
 			]
 			unlink [
+				if block? src [src: reduce src]
 				pos: relations
 				found?: no
 				while [pos: find/same pos :reaction][
