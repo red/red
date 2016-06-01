@@ -12,7 +12,6 @@ Red [
 
 ~~~start-file~~~ "lexer"
 
-
 ===start-group=== "system/lexer/transcode with none"
 
 	--test-- "trans1"
@@ -36,13 +35,15 @@ Red [
 		--assert [2147483647] = system/lexer/transcode {2147483647} none
 	--test-- "litval-integer9" 
 		--assert [-2147483648] = system/lexer/transcode {-2147483648} none
-	--test-- "litval-integer10" ;--assert [01h] = system/lexer/transcode {01h} none
-								--assert false
-	--test-- "litval-integer11" ;--assert [00h] = system/lexer/transcode {00h} none
-								--assert false	
+	--test-- "litval-integer10" 
+		--assert [1] = system/lexer/transcode {01h} none
+	--test-- "litval-integer11" 
+		--assert [0] = system/lexer/transcode {00h} none
+	--test-- "litval-integer12"
+		--assert [2147483647] = system/lexer/transcode "7FFFFFFFh" none
+	--test-- "litval-integer13"
+		--assert [-1] = system/lexer/transcode "FFFFFFFFh" none
 ===end-group===
-
-
 
 ===start-group=== "literal values - word"
 		
@@ -95,5 +96,19 @@ Red [
 
 ===end-group===
 
+===start-group=== "map"
+	
+	--test-- "map1"
+		do system/lexer/transcode {
+			m: #(
+				a: 1
+				b: 2
+			)
+		} none
+		--assert m/a = 1
+		--assert m/b = 2
+        unset 'm
+
+===end-group===
 
 ~~~end-file~~~
