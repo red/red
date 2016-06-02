@@ -3305,7 +3305,8 @@ red: context [
 		]
 		
 		if infix? pc [
-			throw-error "invalid use of set-word as operand"
+			emit-push-word original original
+			exit
 		]
 		if all [not booting? find intrinsics name][
 			throw-error ["attempt to redefine a keyword:" name]

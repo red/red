@@ -667,17 +667,22 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_SET_WORD [
-				stack/mark-interp-native as red-word! pc ;@@ ~set
-				word/push as red-word! pc
-				pc: pc + 1
-				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-				pc: eval-expression pc end no yes
-				word/set
-				either sub? [stack/unwind][stack/unwind-last]
-				#if debug? = yes [
-					if verbose > 0 [
-						value: stack/arguments
-						print-line ["eval: set-word return type: " TYPE_OF(value)]
+				either infix? [
+					either sub? [stack/push pc][stack/set-last pc]
+					pc: pc + 1
+				][
+					stack/mark-interp-native as red-word! pc ;@@ ~set
+					word/push as red-word! pc
+					pc: pc + 1
+					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
+					pc: eval-expression pc end no yes
+					word/set
+					either sub? [stack/unwind][stack/unwind-last]
+					#if debug? = yes [
+						if verbose > 0 [
+							value: stack/arguments
+							print-line ["eval: set-word return type: " TYPE_OF(value)]
+						]
 					]
 				]
 			]
