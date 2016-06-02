@@ -86,7 +86,7 @@ system/reactivity: context [
 			list: words-of obj
 			remove find list 'on-change*
 			remove find list 'on-deep-change*
-			print mold/part list limit
+			print mold/part list limit - 5
 			prin "   Field: "
 			print form field
 			prin "  Action: "
