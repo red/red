@@ -55,7 +55,11 @@ system/reactivity: context [
 					not find/same stack reaction: pos/3
 				][
 					append/only stack :reaction
-					do-safe any [all [block? :reaction reaction] pos/4]
+					either set-word? pos/4 [
+						set/any pos/4 do-safe :reaction
+					][
+						do-safe any [all [block? :reaction reaction] pos/4]
+					]
 					take/last stack
 				]
 				pos: skip pos 4
@@ -64,6 +68,57 @@ system/reactivity: context [
 	]
 	
 	set 'clear-relations function ["Removes all reactive relations"][clear relations]
+	
+	set 'dump-relations function [
+		"Output all the current reactive relations for debugging purpose"
+	][
+		limit: any [all [system/console system/console/limit] 72] - 10
+		count: 0
+		
+		foreach [obj field reaction target] relations [
+			prin count: count + 1
+			prin ":^/"
+			prin "  Source: "
+			print mold/flat words-of obj 
+			prin "  Field : "
+			print form field
+			prin "  Action: "
+			print mold/flat :reaction
+			prin "  Target: "
+			print replace/all mold/flat any [all [block? target next target] '-] "make object!" "object"
+		]
+	]
+	
+	is~: function [
+		'field	 [set-word!]
+		reaction [block!]
+	][
+		if same? system/words obj: context? field [
+			;cause-error
+		]
+		words: words-of obj
+		foreach value reaction [
+			if all [any-word? value find words value][
+				repend relations [obj value reaction field]
+			]
+		]
+		set field do-safe reaction
+	]
+	
+	do [set 'is make op! :is~]							;@@ cannot compile it yet
+	
+	set 'react? function [
+		"Returns TRUE if an object's field is a reactive source"
+		reactor	[object!]	"Object to check"
+		field	[word!]		"Field to check"
+		return: [logic!]
+	][
+		pos: relations
+		while [pos: find/same/skip pos reactor 4][
+			if pos/2 = field [return yes]
+		]
+		no
+	]
 	
 	set 'react function [
 		"Defines a new reactive relation between two or more objects"
