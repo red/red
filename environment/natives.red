@@ -792,3 +792,11 @@ new-line?: make native! [[
 	]
 	#get-definition NAT_NEW_LINE?
 ]
+
+context?: make native! [[
+		"Returns the context in which a word is bound"
+		word	[any-word!]		"Word to check"
+		return: [object! function! none!]
+	]
+	#get-definition NAT_CONTEXT?
+]
