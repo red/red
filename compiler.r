@@ -1548,10 +1548,9 @@ red: context [
 					emit to-integer copy/part head bin 4
 					insert-lf -5
 				]
-				find [refinement! issue! lit-word!] type?/word :value [
+				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					type: to word! form type? :value
-					if all [lit-word? :value not inactive][type: 'word]
 					
 					either all [not issue? :value local-word? w][
 						emit append to path! type 'push-local
@@ -1569,8 +1568,12 @@ red: context [
 					insert-lf -1
 				]
 				any-word? :value [
-					add-symbol to word! :value
-					emit-push-word :value :value
+					add-symbol name: to word! :value
+					either all [lit-word? :value not inactive][
+						emit-push-word :name :value
+					][
+						emit-push-word :value :value
+					]
 				]
 				pair? :value [
 					emit 'pair/push
