@@ -106,11 +106,12 @@ system/reactivity: context [
 	]
 	
 	is~: function [
-		'field	 [set-word!]
-		reaction [block!]
+		"Defines a local reactive relations inside a reactor"
+		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
+		reaction [block!]		"Reactive relation with other words in the reactor"
 	][
 		if same? system/words obj: context? field [
-			;cause-error
+			cause-error 'script 'react-gctx [field]
 		]
 		words: words-of obj
 		foreach value reaction [

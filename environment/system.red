@@ -156,6 +156,7 @@ system: context [
 				react-not-enough:	"REACT - reactive function has not enough arguments"
 				react-no-match:		"REACT - target arguments number mismatches with reactive function"
 				react-bad-obj:		"REACT - target can only contain object values"
+				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 			]
 			math: object [
 				code:				400
