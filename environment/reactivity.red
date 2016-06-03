@@ -125,17 +125,17 @@ system/reactivity: context [
 	set 'is make op! :is~
 	
 	set 'react? function [
-		"Returns TRUE if an object's field is a reactive source"
+		"Returns a reactive relation if an object's field is a reactive source"
 		reactor	[object!]	"Object to check"
 		field	[word!]		"Field to check"
-		return: [logic!]
+		return: [block! function! none!] "Reaction or NONE"
 	][
 		pos: relations
 		while [pos: find/same/skip pos reactor 4][
-			if pos/2 = field [return yes]
+			if pos/2 = field [return pos/3]
 			pos: skip pos 4
 		]
-		no
+		none
 	]
 	
 	set 'react function [
