@@ -146,6 +146,7 @@ re-throw: func [/local id [integer!]][
 	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
 	
 	__set-stack-on-crash: func [
+		return: [int-ptr!]
 		/local address frame top
 	][
 		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame 
@@ -157,13 +158,16 @@ re-throw: func [/local id [integer!]][
 		system/debug: declare __stack!		;-- allocate a __stack! struct
 		system/debug/frame: frame
 		system/debug/top: top
+		address
 	]
 	
 	#if target = 'ARM [
 		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
 			code [integer!]
+			/local
+				address [int-ptr!]
 		][
-			__set-stack-on-crash
+			address: __set-stack-on-crash
 			***-on-quit code as-integer address
 		]
 	]
