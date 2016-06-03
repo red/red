@@ -132,6 +132,7 @@ system/reactivity: context [
 		pos: relations
 		while [pos: find/same/skip pos reactor 4][
 			if pos/2 = field [return yes]
+			pos: skip pos 4
 		]
 		no
 	]
