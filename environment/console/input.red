@@ -17,7 +17,8 @@ Red [
 ;;@@ Temporary patch to allow inclusion in user code.
 unless system/console [
 	system/console: context [
-        history: make block! 200
+		history: make block! 200
+		limit: 72
 	]
 ]
 ;; End patch
