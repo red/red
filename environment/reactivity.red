@@ -105,7 +105,7 @@ system/reactivity: context [
 		set field do-safe reaction
 	]
 	
-	do [set 'is make op! :is~]							;@@ cannot compile it yet
+	set 'is make op! :is~
 	
 	set 'react? function [
 		"Returns TRUE if an object's field is a reactive source"
