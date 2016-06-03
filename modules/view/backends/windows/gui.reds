@@ -952,7 +952,7 @@ OS-make-view: func [
 
 	if all [
 		parent <> 0
-		sym <> base
+		not alpha?
 	][
 		parent: as-integer evolve-base-face as handle! parent
 	]
