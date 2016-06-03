@@ -46,7 +46,7 @@ system-dialect: make-profilable context [
 		runtime?:			yes							;-- include Red/System runtime
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
-		debug-safe?:		no							;-- try to avoid over-crashing on runtime debug reports
+		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address

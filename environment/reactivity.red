@@ -34,6 +34,10 @@ deep-reactor!: make reactor! [
 	]
 ]
 
+;reactor:	  function [spec [block!]][make reactor! spec]
+;deep-reactor: function [spec [block!]][make deep-reactor! spec]
+
+
 system/reactivity: context [
 	relations:	make block! 1000		;@@ change it to hash! once stable
 	stack:		make block! 100			;@@ change it to hash! once stable ???
@@ -77,16 +81,28 @@ system/reactivity: context [
 		
 		foreach [obj field reaction target] relations [
 			prin count: count + 1
-			prin ":^/"
-			prin "  Source: "
-			print mold/flat words-of obj 
-			prin "  Field : "
+			prin ":---^/"
+			prin "  Source: object "
+			list: words-of obj
+			remove find list 'on-change*
+			remove find list 'on-deep-change*
+			print mold/part list limit - 5
+			prin "   Field: "
 			print form field
 			prin "  Action: "
-			print mold/flat :reaction
-			prin "  Target: "
-			print replace/all mold/flat any [all [block? target next target] '-] "make object!" "object"
+			print mold/flat/part :reaction limit
+			case [
+				block? target [
+					prin "    Args: "
+					print copy/part replace/all mold/flat next target "make object!" "object" limit
+				]
+				set-word? target [
+					prin "  Target: "
+					print form target
+				]
+			]
 		]
+		()												;-- avoids returning anything in the console
 	]
 	
 	is~: function [
@@ -116,6 +132,7 @@ system/reactivity: context [
 		pos: relations
 		while [pos: find/same/skip pos reactor 4][
 			if pos/2 = field [return yes]
+			pos: skip pos 4
 		]
 		no
 	]
