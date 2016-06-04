@@ -764,8 +764,10 @@ insert-event-func [
 		face: event/face
 		type: event/type
 		either type = drag-evt [
-			unless find-flag? flags: face/flags 'all-over [
-				either block? flags [append flags 'all-over][face/flags: 'all-over]
+			face/flags: any [
+				all [not block? flags: face/flags :flags reduce [:flags 'all-over]] 
+				all [flags append flags 'all-over]
+				'all-over
 			]
 			do-actor face event 'drag-start
 			face/state/4: event/offset
@@ -792,6 +794,11 @@ insert-event-func [
 					] type [
 						do-actor face event 'drop
 						if face/state [face/state/4: none]
+						face/flags: all [
+							block? flags: face/flags
+							remove find flags 'all-over
+							flags
+						]
 					]
 				]
 			]
