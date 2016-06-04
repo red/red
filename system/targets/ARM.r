@@ -1134,7 +1134,7 @@ make-profilable make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type offset spec
+		/local type offset spec original
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
@@ -1184,16 +1184,40 @@ make-profilable make target-class [
 				]
 			]
 			get-word! [
-				either offset: select emitter/stack to word! value [
-					emit-i32 either negative? offset [
-						#{e24b00}					;-- SUB r0, fp, n
-					][
-						#{e28b00}					;-- ADD r0, fp, n
+				value: to word! original: value
+				either any [
+					all [
+						spec: select compiler/functions value
+						spec/2 = 'routine
 					]
-					emit-i32 to-bin8 abs offset
+					all [
+						select emitter/stack value
+						'function! = first compiler/get-type value
+					]
 				][
-					pools/collect/spec 0 value
-					if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					either alt [
+						emit-variable-poly/alt value
+							#{e5911000}				;-- LDR r1, [r1]		; global
+							#{e7911009}				;-- LDR r1, [r1, sb]	; PIC
+							#{e59b1000}				;-- LDR r1, [fp, #[-]n]	; local
+					][
+						emit-variable-poly value
+							#{e5900000} 			;-- LDR r0, [r0]		; global
+							#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
+							#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
+					]
+				][
+					either offset: select emitter/stack value [
+						emit-i32 either negative? offset [
+							#{e24b00}					;-- SUB r0, fp, n
+						][
+							#{e28b00}					;-- ADD r0, fp, n
+						]
+						emit-i32 to-bin8 abs offset
+					][
+						pools/collect/spec 0 original
+						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					]
 				]
 			]
 			string! [
