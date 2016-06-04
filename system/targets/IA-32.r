@@ -570,7 +570,10 @@ make-profilable make target-class [
 						spec: select compiler/functions value
 						spec/2 = 'routine
 					]
-					'function! = first compiler/get-type value
+					all [
+						select emitter/stack value
+						'function! = first compiler/get-type value
+					]
 				][
 					either alt [
 						emit-variable value
