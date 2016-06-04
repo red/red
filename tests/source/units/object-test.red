@@ -100,6 +100,15 @@ Red [
 		blk: [a: 99]
 		obj12: object blk
 		--assert obj12/a = 99
+	
+	--test-- "basic-13"
+		b13-a: 0
+		b13-o: make object! [
+			b13-a: 0
+		]
+		set in b13-o 'b13-a 1
+		--assert 0 == b13-a
+		--assert 1 == b13-o/b13-a
 
 ===end-group===
 
