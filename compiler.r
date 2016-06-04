@@ -66,6 +66,7 @@ red: context [
 	booting?:	   none									;-- YES: compiling boot script
 	no-global?:	   no									;-- YES: put global code in a function
 	nl: 		   newline
+	set 'float!	   'float								;-- type name not defined in Rebol
  
 	unboxed-set:   [integer! char! float! float32! logic!]
 	block-set:	   [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
