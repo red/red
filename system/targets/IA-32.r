@@ -565,10 +565,12 @@ make-profilable make target-class [
 			]
 			get-word! [
 				value: to word! value
-				
-				either all [
-					spec: select compiler/functions value
-					spec/2 = 'routine
+				either any [
+					all [
+						spec: select compiler/functions value
+						spec/2 = 'routine
+					]
+					'function! = first compiler/get-type value
 				][
 					either alt [
 						emit-variable value
@@ -587,7 +589,7 @@ make-profilable make target-class [
 							#{8D55}					;-- LEA edx, [ebp+n]	; local
 							#{8D45}					;-- LEA eax, [ebp+n]	; local
 						] alt
-						emit stack-encode offset	;-- n
+						emit stack-encode offset	;-- n		;@@ limited to 8-bit!
 					][
 						either PIC? [
 							emit pick [
@@ -1025,9 +1027,16 @@ make-profilable make target-class [
 			get-word! [
 				value: to word! value
 				either offset: select emitter/stack value [
-					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
-					emit stack-encode offset		;-- n
-					emit #{50}						;-- PUSH eax
+					either 'function! = first compiler/get-type value [
+						emit-variable value
+							none
+							none
+							#{FF75}					;-- PUSH [ebp+n]		; local
+					][
+						emit #{8D45}				;-- LEA eax, [ebp+n]	; local
+						emit stack-encode offset	;-- n					;@@ limited to 8-bit!
+						emit #{50}					;-- PUSH eax
+					]
 				][
 					either PIC? [
 						emit #{8D83}				;-- LEA eax, [ebx+disp]	; PIC
