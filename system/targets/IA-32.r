@@ -588,11 +588,12 @@ make-profilable make target-class [
 					]
 				][
 					either offset: select emitter/stack value [
-						emit pick [
+						offset: stack-encode offset	;-- n
+						emit adjust-disp32 pick [
 							#{8D55}					;-- LEA edx, [ebp+n]	; local
 							#{8D45}					;-- LEA eax, [ebp+n]	; local
-						] alt
-						emit stack-encode offset	;-- n		;@@ limited to 8-bit!
+						] alt offset
+						emit offset
 					][
 						either PIC? [
 							emit pick [
@@ -1036,8 +1037,10 @@ make-profilable make target-class [
 							none
 							#{FF75}					;-- PUSH [ebp+n]		; local
 					][
-						emit #{8D45}				;-- LEA eax, [ebp+n]	; local
-						emit stack-encode offset	;-- n					;@@ limited to 8-bit!
+						emit-variable value
+							none
+							none
+							#{8D45}					;-- LEA eax, [ebp+n]	; local
 						emit #{50}					;-- PUSH eax
 					]
 				][
