@@ -298,7 +298,10 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
-			if type = 'field [data: attempt/safer [load text]]
+			if type = 'field [
+				if word = 'text [data: all [not empty? text attempt/safer [load text]]]
+				if word = 'data [text: either data [form data][clear text] word: 'text]	;-- force text refresh
+			]
 
 			check-reactions self word
 			
@@ -868,14 +871,13 @@ insert-event-func [
 	none
 ]
 
+;-- Field's data facet syncing handler
 insert-event-func [
 	if all [
 		event/type = 'change
 		event/face/type = 'field
 	][
 		face: event/face
-		print "before"
-		set-quiet in face 'data attempt/safer [load copy face/text]
-		print "after"
+		set-quiet in face 'data all [not empty? face/text attempt/safer [load copy face/text]]
 	]
 ]
