@@ -472,9 +472,9 @@ modulo: func [
 	/local r
 ][
 	b: absolute b
-    all [0 > r: a % b r: r + b]
+    if r: a % b < 0 [r: r + b]
     a: absolute a
-    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
+    either all [a + r = (a + b) 0 < r + r - b][r - b][r]
 ]
 
 eval-set-path: func [value1][]
