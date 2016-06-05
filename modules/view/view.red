@@ -878,6 +878,6 @@ insert-event-func [
 		event/face/type = 'field
 	][
 		face: event/face
-		set-quiet in face 'data all [not empty? face/text attempt/safer [load copy face/text]]
+		set-quiet in face 'data all [not empty? face/text attempt/safer [load face/text]]
 	]
 ]
