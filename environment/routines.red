@@ -60,6 +60,14 @@ quit-return: routine [
 	quit status
 ]
 
+set-quiet: routine [
+	"Set an object's field to a value without triggering object's events"
+	word  [word!]
+	value [any-type!]
+][
+	_context/set word stack/arguments + 1
+]
+
 ;-- Following definitions are used to create op! corresponding operators
 shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
 shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]

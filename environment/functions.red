@@ -25,8 +25,13 @@ also: func [
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
 	value [block!]
+	/safer
 ][
-	unless error? set/any 'value try :value [get/any 'value]
+	either safer [
+		unless error? set/any 'value try/all :value [get/any 'value]
+	][
+		unless error? set/any 'value try :value [get/any 'value]
+	]
 ]
 
 comment: func [value][]

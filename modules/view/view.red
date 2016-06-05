@@ -296,8 +296,9 @@ face!: object [				;-- keep in sync with facet! enum
 			unless any [same-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]
 			]
-			if word = 'font [link-sub-to-parent self 'font old new]
-			if word = 'para [link-sub-to-parent self 'para old new]
+			if word = 'font  [link-sub-to-parent self 'font old new]
+			if word = 'para  [link-sub-to-parent self 'para old new]
+			if type = 'field [data: attempt/safer [load text]]
 
 			check-reactions self word
 			
@@ -865,4 +866,16 @@ insert-event-func [
 		if facet [check-reactions face facet]
 	]
 	none
+]
+
+insert-event-func [
+	if all [
+		event/type = 'change
+		event/face/type = 'field
+	][
+		face: event/face
+		print "before"
+		set-quiet in face 'data attempt/safer [load copy face/text]
+		print "after"
+	]
 ]

@@ -196,7 +196,7 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			switch TYPE_OF(arg) [
+			switch TYPE_OF(arg) [						;@@ always unbox regardless of the spec block
 				TYPE_LOGIC	 [push logic/get arg]
 				TYPE_INTEGER [push integer/get arg]
 				default		 [push arg]
