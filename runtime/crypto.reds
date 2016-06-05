@@ -139,7 +139,7 @@ crypto: context [
 		]
 
 		;-- Add left-over byte, if any
-		if len > 0 [sum: sum + data/value]
+		if len > 0 [sum: sum + (as-integer data/value)]
 
 		;-- Fold 32-bit sum to 16 bits
 		sum: (sum >> 16) + (sum and FFFFh)		;-- Add high-16 to low-16
@@ -195,7 +195,10 @@ crypto: context [
 			ihash		[byte-ptr!]					;-- hash of ipad+data
 			ohash		[byte-ptr!]					;-- hash of opad+ihash
 	][
-		block-size: 64								;-- 64 works for MD5 and SHA1-512
+		block-size: switch type [
+			ALG_SHA384 ALG_SHA512 [128]
+			default [64]
+		]
 		hash-len: alg-hash-size type
 
 		hkey-data: null
