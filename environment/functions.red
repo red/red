@@ -329,6 +329,9 @@ load: function [
 				]
 			]
 			string? length [
+				if 1 < index? source [
+					source: remove/part head source (index? source) - 1
+				]
 				either none? loc: find source length [
 					return make block! 1
 				][
