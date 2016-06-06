@@ -686,7 +686,13 @@ _function: context [
 		fun/more:	 alloc-cells 5
 		
 		more: as series! fun/more/value
-		value: either null? body [none-value][as red-value! body]
+		either null? body [
+			value: none-value
+		][
+			body: block/clone body yes yes
+			stack/pop 1
+			value: as red-value! body
+		]
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		args: as red-block! alloc-tail more
