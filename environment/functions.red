@@ -310,7 +310,7 @@ load: function [
 	/as   "Specify the type of data; use NONE to load as code"
 		type [word! none!] "E.g. json, html, jpeg, png, etc"
 ][
-    source: copy insource
+	source: copy insource
 	if as [
 		if word? type [
 			either codec: select system/codecs type [
