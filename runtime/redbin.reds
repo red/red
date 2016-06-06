@@ -135,6 +135,7 @@ redbin: context [
 			slots	[integer!]
 			new		[node!]
 			symbols	[node!]
+			s		[series!]
 			i		[integer!]
 	][
 		header:  data/1
@@ -151,6 +152,9 @@ redbin: context [
 		obj/ctx:	new
 		obj/class:	-1
 		obj/on-set: null
+		
+		s: as series! new/value
+		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		
 		ctx: TO_CTX(new)
 		symbols: ctx/symbols

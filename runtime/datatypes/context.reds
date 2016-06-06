@@ -320,11 +320,12 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
-		node: alloc-cells 1
+		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
 		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 		cell/self: node
+		alloc-tail as series! node/value				;-- allocate a slot for obj/func back-reference
 		
 		if self? [cell/header: cell/header or flag-self-mask]
 

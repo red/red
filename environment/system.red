@@ -15,11 +15,21 @@ system: context [
 	build:	 #build-date
 		
 	words: #system [
-		obj: as red-object! stack/push*
-		obj/header: TYPE_OBJECT
-		obj/ctx:	global-ctx
-		obj/class:	-1
-		obj/on-set:	null
+		__make-sys-object: func [
+			/local
+				obj [red-object!]
+				s	[series!]
+		][
+			obj: as red-object! stack/push*
+			obj/header: TYPE_OBJECT
+			obj/ctx:	global-ctx
+			obj/class:	-1
+			obj/on-set:	null
+			
+			s: as series! global-ctx/value
+			copy-cell as red-value! obj s/offset + 1		;-- set back-reference
+		]
+		__make-sys-object
 	]
 	
 	platform: func ["Return a word identifying the operating system"][
@@ -142,6 +152,11 @@ system: context [
 				not-linked:			"VIEW - face not linked to a window"
 				not-event-type:		["VIEW - not a valid event type" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				react-bad-func:		"REACT - /LINK option requires a function! as argument"
+				react-not-enough:	"REACT - reactive function has not enough arguments"
+				react-no-match:		"REACT - target arguments number mismatches with reactive function"
+				react-bad-obj:		"REACT - target can only contain object values"
+				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 			]
 			math: object [
 				code:				400
@@ -324,4 +339,5 @@ system: context [
 	lexer:		none
 	console:	none
 	view:		none
+	reactivity: none
 ]
