@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series! map!]
+		series [series!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -791,4 +791,12 @@ new-line?: make native! [[
 		return:  [block! paren!]
 	]
 	#get-definition NAT_NEW_LINE?
+]
+
+context?: make native! [[
+		"Returns the context in which a word is bound"
+		word	[any-word!]		"Word to check"
+		return: [object! function! none!]
+	]
+	#get-definition NAT_CONTEXT?
 ]

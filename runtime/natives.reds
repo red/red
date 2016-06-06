@@ -2084,7 +2084,7 @@ natives: context [
 			word [red-word!]
 			tail [red-word!]
 	][
-		#typecheck [unset]
+		#typecheck unset
 		word: as red-word! stack/arguments
 		
 		either TYPE_OF(word) = TYPE_WORD [
@@ -2154,10 +2154,25 @@ natives: context [
 			bool [red-logic!]
 			cell [cell!]
 	][
+		#typecheck new-line?
 		cell: block/rs-head as red-block! stack/arguments
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
 		bool/value: cell/header and flag-nl-mask <> 0
+	]
+	
+	context?*: func [
+		check? [logic!]
+		/local
+			word [red-word!]
+			ctx	 [red-context!]
+			node [node!]
+			s	 [series!]
+	][
+		#typecheck context?
+		word: as red-word! stack/arguments
+		s: as series! word/ctx/value
+		stack/set-last s/offset + 1						;-- return back-reference
 	]
 
 	;--- Natives helper functions ---
@@ -2568,6 +2583,7 @@ natives: context [
 			:new-line*
 			:new-line?*
 			:enbase*
+			:context?*
 		]
 	]
 
