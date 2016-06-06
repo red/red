@@ -323,10 +323,20 @@ load: function [
 
 	if part [
 		case [
-			zero? length [return make block! 1]
-			string? length [
-				if (index? length) = index? source [
+			integer? length [
+				if zero? length [
 					return make block! 1
+				]
+			]
+			string? length [
+				either none? loc: find source length [
+					return make block! 1
+				][
+					length: index? loc
+					length: length - 1
+					if zero? length [
+						return make block! 1
+					]
 				]
 			]
 		]
