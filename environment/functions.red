@@ -300,7 +300,7 @@ suffix?: function [
 
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
-	insource [file! url! string! binary!]
+	source [file! url! string! binary!]
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
 	/part
@@ -310,7 +310,6 @@ load: function [
 	/as   "Specify the type of data; use NONE to load as code"
 		type [word! none!] "E.g. json, html, jpeg, png, etc"
 ][
-	source: copy insource
 	if as [
 		if word? type [
 			either codec: select system/codecs type [
@@ -331,7 +330,8 @@ load: function [
 			]
 			string? length [
 				if 1 < index? source [
-					source: remove/part head source (index? insource) - 1
+					source-copy: copy source
+					source: remove/part head source-copy (index? source-copy) - 1
 				]
 				either none? loc: find source length [
 					return make block! 1
@@ -375,6 +375,7 @@ load: function [
 
 	either part [
 		system/lexer/transcode/part source out length
+		source: source-copy
 	][
 		system/lexer/transcode source out
 	]
