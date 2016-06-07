@@ -236,7 +236,7 @@ crypto: context [
 		free ipad
 		free opad
 		free idata
-		free odata			
+		free odata
 		free ihash
 
 		ohash			;?? Who frees this?
@@ -340,7 +340,7 @@ crypto: context [
 			data	[byte-ptr!]
 			len		[integer!]
 			type	[crypto-algorithm!]
-			return:	[byte-ptr!]
+			return:	[byte-ptr!]							;-- caller should free it
 			/local
 				provider [integer!]
 				handle	[integer!]
@@ -348,7 +348,7 @@ crypto: context [
 				size	[integer!]
 		][
 			; The hash buffer needs to be big enough to hold the longest result.
-			hash: as byte-ptr! "0000000000000000000000000000000000000000000000000000000000000000"
+			hash: allocate 64							;-- caller should free it
 			provider: 0
 			handle: 0
 			size: alg-digest-size type
@@ -418,14 +418,14 @@ crypto: context [
 		;    __u8    salg_type[14];				;-- offset: 2
 		;    __u32   salg_feat;					;-- offset: 16
 		;    __u32   salg_mask;
-		;    __u8    salg_name[64];				;-- offset: 24
+		;    __u8    salg_name[64];				;-- offset: 24  See /proc/crypto and search for "name"
 		;};
 
-		get-digest: func [
+		get-digest: func [						;@@ use LIBCRYPTO if possible, a bit heavy to use kernel crypto here
 			data		[byte-ptr!]
 			len			[integer!]
 			type		[integer!]
-			return:		[byte-ptr!]
+			return:		[byte-ptr!]				;-- caller should free it
 			/local
 				fd		[integer!]
 				opfd	[integer!]
@@ -434,24 +434,29 @@ crypto: context [
 				hash	[byte-ptr!]
 				size	[integer!]
 		][
-			hash: as byte-ptr! "0000000000000000000"
+			; The hash buffer needs to be big enough to hold the longest result.
+			hash: allocate 64					;-- caller should free it
 			sa: allocate 88
 			set-memory sa #"^@" 88
 			sa/1: as-byte AF_ALG
 			copy-memory sa + 2 as byte-ptr! "hash" 4
-			either type = ALG_MD5 [
-				alg: "md5"
-				size: 16
-			][
-				alg: "sha1"
-				size: 20
+			alg: switch type [							;-- Convert type from enum to alg name
+				ALG_MD5     ["md5"]
+				ALG_SHA1    ["sha1"]
+				ALG_SHA256  ["sha256"]
+				ALG_SHA384  ["sha384"]
+				ALG_SHA512  ["sha512"]
+				default [
+					fire [TO_ERROR(script invalid-arg) type]
+					""	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+				]
 			]
-			copy-memory sa + 24 as byte-ptr! alg 4
+			copy-memory sa + 24 as byte-ptr! alg length? alg
 			fd: socket AF_ALG SOCK_SEQPACKET 0
 			sock-bind fd sa 88
 			opfd: accept fd null null
 			write opfd as c-string! data len
-			read opfd hash size
+			read opfd hash alg-digest-size type
 			close opfd
 			close fd
 			free sa
@@ -485,6 +490,24 @@ crypto: context [
 					output	[byte-ptr!]
 					return: [byte-ptr!]
 				]
+				compute-sha256: "SHA256" [
+					data	[byte-ptr!]
+					len		[integer!]
+					output	[byte-ptr!]
+					return: [byte-ptr!]
+				]
+				compute-sha384: "SHA384" [
+					data	[byte-ptr!]
+					len		[integer!]
+					output	[byte-ptr!]
+					return: [byte-ptr!]
+				]
+				compute-sha512: "SHA512" [
+					data	[byte-ptr!]
+					len		[integer!]
+					output	[byte-ptr!]
+					return: [byte-ptr!]
+				]
 			]
 		]
 
@@ -500,7 +523,7 @@ crypto: context [
 			data		[byte-ptr!]
 			len			[integer!]
 			type		[integer!]
-			return:		[byte-ptr!]
+			return:		[byte-ptr!]						;-- caller should free it
 			/local
 				fd		[integer!]
 				opfd	[integer!]
@@ -509,11 +532,17 @@ crypto: context [
 				hash	[byte-ptr!]
 				size	[integer!]
 		][
-			hash: as byte-ptr! "0000000000000000000"
-			either type = ALG_MD5 [
-				compute-md5 data len hash
-			][
-				compute-sha1 data len hash
+			hash: allocate 64							;-- caller should free it
+			switch type [
+				ALG_MD5     [compute-md5 data len hash]
+				ALG_SHA1    [compute-sha1 data len hash]
+				ALG_SHA256  [compute-sha256 data len hash]
+				ALG_SHA384  [compute-sha384 data len hash]
+				ALG_SHA512  [compute-sha512 data len hash]
+				default [
+					fire [TO_ERROR(script invalid-arg) type]
+					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+				]
 			]
 			hash
 		]
