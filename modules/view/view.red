@@ -89,7 +89,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			tab "forced?    :" forced?
 		]
 	]
-	if all [state word <> 'state][
+	if all [state word <> 'state word <> 'extra][
 		either any [
 			forced?
 			system/view/auto-sync?
@@ -264,7 +264,7 @@ face!: object [				;-- keep in sync with facet! enum
 				tab "new  :" type? new
 			]
 		]
-		if word <> 'state [
+		if all [word <> 'state word <> 'extra][
 			if word = 'pane [
 				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -281,11 +281,20 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
 			if type = 'field [
-				if word = 'text [data: all [not empty? text attempt/safer [load text]]]
-				if word = 'data [text: either data [form data][clear text] word: 'text]	;-- force text refresh
+				if 'text = word [data: all [not empty? text attempt/safer [load text]]]
+				if 'data = saved: word [
+					either data [
+						modify text 'owned none
+						text: form data
+						modify text 'owned reduce [self 'text]
+					][
+						clear text
+					]
+					word: 'text							;-- force text refresh
+				]
 			]
 
-			system/reactivity/check/only self word
+			system/reactivity/check/only self any [saved word]
 			
 			if state [
 				;if word = 'type [cause-error 'script 'locked-word [type]]
@@ -773,7 +782,7 @@ insert-event-func [
 
 ;-- Reactors support handler --
 insert-event-func [
-	if event/type = 'change [
+	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
 			slider		['data]
@@ -795,10 +804,11 @@ insert-event-func [
 ;-- Field's data facet syncing handler
 insert-event-func [
 	if all [
-		event/type = 'change
+		find [change] event/type
 		event/face/type = 'field
 	][
 		face: event/face
 		set-quiet in face 'data all [not empty? face/text attempt/safer [load face/text]]
+		system/reactivity/check/only face 'data
 	]
 ]

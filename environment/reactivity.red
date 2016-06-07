@@ -186,7 +186,7 @@ system/reactivity: context [
 				if block? src [src: reduce src]
 				pos: relations
 				found?: no
-				while [pos: find/same pos :reaction][
+				while [pos: find/same/only pos :reaction][
 					obj: pos/-2
 					if any [src = 'all src = obj all [block? src find/same src obj]][
 						pos: remove/part skip pos -2 4
