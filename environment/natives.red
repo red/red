@@ -752,15 +752,11 @@ wait: make native! [[
 ]
 
 checksum: make native! [[
-		"Computes a checksum, CRC, or hash. Default is CRC32."
+		"Computes a checksum, CRC, hash, or HMAC."
 		data 	[binary! string! file!]
-		/tcp 				"Returns an Internet TCP 16-bit checksum"
-		/hash 				"Returns a hash value"
-			size [integer!] "Size of the hash table"
-		/method				"Method to use"
-			word [word!]	"Methods: CRC32 MD5 SHA1 SHA256 SHA384 SHA512"
-		/key				"Returns keyed HMAC value"
-			key-value [any-string!] "Key to use"
+		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
+		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
+			spec [any-string! integer!] "String for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]
 	#get-definition NAT_CHECKSUM

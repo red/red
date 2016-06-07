@@ -19,7 +19,8 @@ crypto: context [
 	_sha256:	0
 	_sha384:	0
 	_sha512:	0
-
+	_hash:		0
+	
 	init: does [
 		_tcp:		symbol/make "tcp"
 		_md5:		symbol/make "md5"
@@ -28,6 +29,7 @@ crypto: context [
 		_sha256:	symbol/make "sha256"
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
+		_hash:		symbol/make "hash"
 	]
 
 	#enum crypto-algorithm! [
@@ -38,6 +40,7 @@ crypto: context [
 		ALG_SHA256
 		ALG_SHA384
 		ALG_SHA512
+		ALG_HASH
 	]
 
 	crc32-table: declare int-ptr!
@@ -66,6 +69,21 @@ crypto: context [
 	]
 
 
+	alg-digest-size: func [
+		"Return the size of a digest result for a given algorithm."
+		type	[integer!]
+		return:	[integer!]
+	][
+		switch type [
+			ALG_MD5		[16]
+			ALG_SHA1    [20]
+			ALG_SHA256  [32]
+			ALG_SHA384  [48]
+			ALG_SHA512  [64]
+			default		[ 0]
+		]
+	]
+	
 	alg-from-symbol: func [
 		"Return the algorithm ID for a given symbol."
 		sym		[integer!]
@@ -82,22 +100,8 @@ crypto: context [
 		]	
 	]
 	
-	alg-hash-size: func [
-		"Return the size of a hash result for a given algorithm."
-		type	[integer!]
-		return:	[integer!]
-	][
-		switch type [
-			ALG_MD5		[16]
-			ALG_SHA1    [20]
-			ALG_SHA256  [32]
-			ALG_SHA384  [48]
-			ALG_SHA512  [64]
-			default		[ 0]
-		]
-	]
-	
 	CRC32: func [
+		"Calculate the CRC32b value for the input data."
 		data	[byte-ptr!]
 		len		[integer!]
 		return:	[integer!]
@@ -147,36 +151,24 @@ crypto: context [
 		FFFFh and not sum						;-- 1's complement, then truncate
 	]
 
-	calc-hash: func [
-		alg-sym		[integer!]	"Algorithm symbol value"
-		data		[byte-ptr!]
-		len			[integer!]
-		return:		[byte-ptr!]
-	][
-		case [
-			alg-sym = _crc32 [as byte-ptr! CRC32 data len]
-			alg-sym = _tcp   [as byte-ptr! CRC_IP data len]
-			true [get-digest data len alg-from-symbol alg-sym]
-		]
-	]
-
-	calc-hmac: func [
-		alg-sym		[integer!]	"Algorithm symbol value"
+	get-hmac: func [
 		data		[byte-ptr!]
 		len			[integer!]
 		key-data	[byte-ptr!]
 		key-len		[integer!]
+		alg-sym		[integer!]	"Algorithm symbol value. e.g., _crc32"
 		return:		[byte-ptr!]
 	][
-		either any [alg-sym = _crc32  alg-sym = _tcp][
+		either any [alg-sym = _crc32  alg-sym = _tcp  alg-sym = _hash][
 			print-line "The selected algorithm doesn't support HMAC calculation"
 			return as byte-ptr! ""
 		][
-			get-hmac  data len  key-data key-len  alg-from-symbol alg-sym
+			calc-hmac  data len  key-data key-len  alg-from-symbol alg-sym
 		]
 	]
 
-	get-hmac: func [
+	; https://www.ietf.org/rfc/rfc4868.txt
+	calc-hmac: func [
 		data		[byte-ptr!]						;-- message
 		len			[integer!]					
 		key-data	[byte-ptr!]						;-- key/password
@@ -199,7 +191,7 @@ crypto: context [
 			ALG_SHA384 ALG_SHA512 [128]
 			default [64]
 		]
-		hash-len: alg-hash-size type
+		hash-len: alg-digest-size type
 
 		hkey-data: null
 		if key-len > block-size [					;-- Keys longer than block size get digested
@@ -276,6 +268,7 @@ crypto: context [
 			sym = _sha256
 			sym = _sha384
 			sym = _sha512
+			sym = _hash
 		]
 	]
 	
@@ -346,7 +339,7 @@ crypto: context [
 		get-digest: func [
 			data	[byte-ptr!]
 			len		[integer!]
-			type	[integer!]
+			type	[crypto-algorithm!]
 			return:	[byte-ptr!]
 			/local
 				provider [integer!]
@@ -358,13 +351,17 @@ crypto: context [
 			hash: as byte-ptr! "0000000000000000000000000000000000000000000000000000000000000000"
 			provider: 0
 			handle: 0
-			size: alg-hash-size type
+			size: alg-digest-size type
 			type: switch type [							;-- Convert type from enum to Windows code
 				ALG_MD5     [CALG_MD5]
 				ALG_SHA1    [CALG_SHA1]
 				ALG_SHA256  [CALG_SHA_256]
 				ALG_SHA384  [CALG_SHA_384]
 				ALG_SHA512  [CALG_SHA_512]
+				default [
+					fire [TO_ERROR(script invalid-arg) type]
+					0	;-- Either need to leave out this default or make the compiler happy by not changing type's datatype.
+				]
 			]
 			
 			CryptAcquireContext :provider null null PROV_RSA_AES CRYPT_VERIFYCONTEXT

@@ -2001,24 +2001,21 @@ natives: context [
 
 	checksum*: func [
 		check?		[logic!]
-		_tcp		[integer!]
-		_hash		[integer!]
-		_method		[integer!]
-		_key		[integer!]
+		_with		[integer!]
 		/local
 			arg		[red-value!]
 			str		[red-string!]
-			bin		[red-binary!]
 			method	[red-word!]
-			key		[byte-ptr!]
-			data	[byte-ptr!]
-			b		[byte-ptr!]
-			len		[integer!]
 			type	[integer!]
+			data	[byte-ptr!]
+			len		[integer!]
+			spec	[red-value!]
+			key		[byte-ptr!]
 			key-len [integer!]
 			hash-size [red-integer!]
+			b		[byte-ptr!]
 	][
-		#typecheck [checksum _tcp _hash _method _key]
+		#typecheck [checksum _with]
 		arg: stack/arguments
 		len: -1
 		switch TYPE_OF(arg) [
@@ -2027,52 +2024,70 @@ natives: context [
 				;-- Passing len of -1 tells to-utf8 to convert all chars,
 				;	and it mods len to hold the length of the UTF8 result.
 				data: as byte-ptr! unicode/to-utf8 str :len
+				;-- len now contains the decoded data length.
 			]
 			default [
 				fire [TO_ERROR(script invalid-arg) data]
 			]
 		]
 
-		case [
-			_tcp >= 0 [
-				integer/box crypto/CRC_IP data len
-			]
-			_hash >= 0 [
-				hash-size: as red-integer! arg + _hash
-				integer/box crypto/HASH_STRING data len hash-size/value
-			]
-			any [_method >= 0 _key >= 0] [
-				method: as red-word! arg + _method
-				type: symbol/resolve method/symbol
-				if not crypto/known-method? type [
-					fire [TO_ERROR(script invalid-arg) method]
-				]
-				b: either _key >= 0 [
+		method: as red-word! arg + 1
+		type: symbol/resolve method/symbol
+
+		if not crypto/known-method? type [
+			fire [TO_ERROR(script invalid-arg) method]
+		]
+
+		;-- Trying to use /with in combination with TCP or CRC32 is an error.
+		if all [
+			_with >= 0
+			any [type = crypto/_crc32  type = crypto/_tcp]
+		][
+			ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+		]
+		
+		;-- TCP and CRC32 ignore [/with spec] entirely. For these methods
+		;	we process them and exit. No other dispatching needed.
+		if type = crypto/_crc32 [integer/box crypto/CRC32 data len   exit]
+		if type = crypto/_tcp   [integer/box crypto/CRC_IP data len  exit]
+
+		
+		either _with >= 0 [								;-- /with was used
+			spec: arg + _with
+			switch TYPE_OF(spec) [
+				TYPE_STRING [
+					if type = crypto/_hash [
+						;-- /with 'spec arg for 'hash method must be an integer.
+						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
+					]
+					;-- If we get here, the method returns an HMAC (MD5 or SHA*). 
 					key-len: -1							;-- Tell to-utf8 to decode everything
-					key: as byte-ptr! unicode/to-utf8 as red-string! arg + _key :key-len
-					;-- Now key-len contains the decoded key length
-					crypto/calc-hmac type data len key key-len
-				][
-					crypto/calc-hash type data len
+					key: as byte-ptr! unicode/to-utf8 as red-string! arg + _with :key-len
+					;-- key-len now contains the decoded key length
+					b: crypto/get-hmac data len key key-len type
+					;!! len is reused here, set to the expected digest size.
+					;!! You can't set it before calling get-hmac.
+					len: crypto/alg-digest-size crypto/alg-from-symbol type
+					stack/set-last as red-value! binary/load b len
 				]
+				TYPE_INTEGER [
+					hash-size: as red-integer! arg + _with
+					integer/box crypto/HASH_STRING data len hash-size/value
+				]
+				default [
+					fire [TO_ERROR(script invalid-arg) spec]
+				]
+			]
+		][												;-- /with was not used
+			either type = crypto/_hash [
+				ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
+			][
+				;-- If we get here, the method returns a digest (MD5 or SHA*). 
+				b: crypto/get-digest data len crypto/alg-from-symbol type
 				;!! len is reused here, being set to the expected result size of
 				;	the hash call. So you can't set it before making that call.
-				case [
-					type = crypto/_md5    	[len: 16]
-					type = crypto/_sha1   	[len: 20]
-					type = crypto/_sha256 	[len: 32]
-					type = crypto/_sha384 	[len: 48]
-					type = crypto/_sha512 	[len: 64]
-					type = crypto/_crc32	[integer/box as integer! b	exit]
-					type = crypto/_tcp		[integer/box as integer! b  exit]
-					true [
-						fire [TO_ERROR(script invalid-arg) method]
-					]
-				]
+				len: crypto/alg-digest-size crypto/alg-from-symbol type
 				stack/set-last as red-value! binary/load b len
-			]
-			true [
-				integer/box crypto/CRC32 data len
 			]
 		]
 	]
