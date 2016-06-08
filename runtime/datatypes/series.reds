@@ -1129,8 +1129,6 @@ _series: context [
 			sym	 [integer!]
 	][
 		sym: symbol/resolve field/symbol
-probe "modify"
-probe TYPE_OF(value)
 		case [
 			sym = words/owned [
 				if TYPE_OF(value) = TYPE_NONE [
