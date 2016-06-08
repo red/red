@@ -1098,6 +1098,7 @@ _series: context [
 		node:	alloc-bytes part
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
+		buffer/flags: buffer/flags and not flag-series-owned
 
 		unless zero? part [
 			offset: offset << (log-b unit)
@@ -1128,6 +1129,8 @@ _series: context [
 			sym	 [integer!]
 	][
 		sym: symbol/resolve field/symbol
+probe "modify"
+probe TYPE_OF(value)
 		case [
 			sym = words/owned [
 				if TYPE_OF(value) = TYPE_NONE [
