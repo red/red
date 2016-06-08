@@ -26,6 +26,7 @@ comma:		 #","
 dbl-quote:	 #"^""
 
 pi: 3.141592653589793
+tau: 6.283185307179586
 
 Rebol: false											;-- makes loading Rebol scripts easier
 
