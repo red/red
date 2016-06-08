@@ -170,6 +170,12 @@ on-face-deep-change*: function [owner word target action new index part state fo
 				]
 			][
 				if owner/type <> 'screen [
+					if all [owner/type = 'field word = 'text][
+						set-quiet in owner 'data any [
+							all [not empty? owner/text attempt/safer [load owner/text]]
+							all [owner/options owner/options/default]
+						]
+					]
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
@@ -281,15 +287,22 @@ face!: object [				;-- keep in sync with facet! enum
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
 			if type = 'field [
-				if 'text = word [data: all [not empty? text attempt/safer [load text]]]
-				if 'data = saved: word [
+				if word = 'text [
+					set-quiet 'data any [
+						all [not empty? new attempt/safer [load new]]
+						all [options options/default]
+					]
+
+				]
+				if 'data = word [
 					either data [
 						modify text 'owned none
-						text: form data
+						set-quiet 'text form data
 						modify text 'owned reduce [self 'text]
 					][
 						clear text
 					]
+					saved: 'data
 					word: 'text							;-- force text refresh
 				]
 			]
@@ -808,7 +821,10 @@ insert-event-func [
 		event/face/type = 'field
 	][
 		face: event/face
-		set-quiet in face 'data all [not empty? face/text attempt/safer [load face/text]]
+		set-quiet in face 'data probe any [
+			all [not empty? face/text attempt/safer [load face/text]]
+			all [face/options face/options/default]
+		]
 		system/reactivity/check/only face 'data
 	]
 ]
