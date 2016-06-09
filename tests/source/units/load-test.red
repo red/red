@@ -41,8 +41,11 @@ Red [
 	--test-- "load-p2" --assert 12   = load/part src 2
 	--test-- "load-p3" --assert 1    = load/part src 1
 	--test-- "load-p4" --assert []   = load/part src 0
-	--test-- "load-p4" --assert 'abc = load/part skip src 3 3
-
+	--test-- "load-p5" --assert []   = load/part src "11"
+	--test-- "load-p6" --assert []   = load/part src "123"
+	--test-- "load-p7" --assert 'abc = load/part skip src 3 3
+	--test-- "load-p8" --assert 'abc = load/part skip src 3 "789"
+	
 ===end-group===
  
 ===start-group=== "LOAD floats test"

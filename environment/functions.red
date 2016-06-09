@@ -323,10 +323,24 @@ load: function [
 
 	if part [
 		case [
-			zero? length [return make block! 1]
-			string? length [
-				if (index? length) = index? source [
+			integer? length [
+				if zero? length [
 					return make block! 1
+				]
+			]
+			string? length [
+				if 1 < index? source [
+					source-copy: copy source
+					source: remove/part head source-copy (index? source-copy) - 1
+				]
+				either none? loc: find source length [
+					return make block! 1
+				][
+					length: index? loc
+					length: length - 1
+					if zero? length [
+						return make block! 1
+					]
 				]
 			]
 		]
@@ -361,6 +375,7 @@ load: function [
 
 	either part [
 		system/lexer/transcode/part source out length
+		source: source-copy
 	][
 		system/lexer/transcode source out
 	]
