@@ -560,7 +560,7 @@ show: function [
 				cause-error 'script 'not-linked []
 			]
 			if any [series? face/extra object? face/extra][
-				modify face/extra 'owned none			;@@ TBD: unflag object's fiels (ownership)
+				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
 			]
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
