@@ -1329,12 +1329,26 @@ object: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			sym [integer!]
+			sym  [integer!]
+			args [red-value!]
 	][
 		sym: symbol/resolve field/symbol
 		case [
 			sym = words/owner [
 				ownership/set-owner as red-value! obj obj null
+			]
+			sym = words/owned [
+				if TYPE_OF(value) = TYPE_NONE [
+					ownership/unbind as red-value! obj
+				]
+				if TYPE_OF(value) = TYPE_BLOCK [
+					args: block/rs-head as red-block! value
+					assert TYPE_OF(args) = TYPE_OBJECT	;@@ raise error on invalid block
+					ownership/set-owner 
+						as red-value! obj
+						as red-object! args
+						as red-word! args + 1
+				]
 			]
 			true [0]
 		]
