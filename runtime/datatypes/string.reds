@@ -800,7 +800,7 @@ string: context [
 		]
 	]
 
-	modify: func [
+	alter: func [
 		str1		[red-string!]						;-- string! to modify
 		str2		[red-string!]						;-- string! to modify to str1
 		part		[integer!]							;-- str2 characters to overwrite, -1 means all
@@ -918,7 +918,7 @@ string: context [
 		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 	][
-		modify str1 str2 part offset keep? TYPE_OVERWRITE
+		alter str1 str2 part offset keep? TYPE_OVERWRITE
 	]
 	
 	concatenate: func [									;-- append str2 to str1
@@ -929,7 +929,7 @@ string: context [
 		keep?	  [logic!]								;-- do not change str2 encoding
 		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
 	][
-		modify str1 str2 part offset keep? as-integer insert?
+		alter str1 str2 part offset keep? as-integer insert?
 	]
 
 	concatenate-literal: func [
