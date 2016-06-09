@@ -41,4 +41,21 @@ Red [
 		
 ===end-group=== 
 
+===start-group=== "do object"
+
+	--test-- "do-object-1"
+		do1-blk: load {
+			o: make object! [
+				oo: make object! [
+					ooo: make object! [
+						a: 1
+					]
+				]
+			]
+		}
+		do do1-blk
+		--assert 1 == o/oo/ooo/a
+
+===end-group===
+
 ~~~end-file~~~

@@ -198,13 +198,30 @@ Red [
 					]
 				]
 			]
-			--assert 4 == length? lo2-blk
-			--assert 4 == length? fourth l02-blk
-			--assert 4 == length? fourth fourth lo2-blk
-			--assert 2 == length? fourth fourth fourth lo2-blk
-			do lo2-blk
-			--assert 1 == o/oo/ooo/a
 		}
+		--assert 4 == length? lo2-blk
+		--assert 4 == length? fourth lo2-blk
+		--assert 4 == length? fourth fourth lo2-blk
+		--assert 2 == length? fourth fourth fourth lo2-blk
+		--assert strict-equal?
+			first [o:]
+			first lo2-blk
+		--assert 'make == second lo2-blk
+		--assert 'object! == third lo2-blk
+		--assert strict-equal?
+			first [oo:]
+			first fourth lo2-blk
+		--assert 'make == second fourth lo2-blk
+		--assert 'object! == third fourth lo2-blk
+		--assert strict-equal?
+			first [ooo:]
+			first fourth fourth lo2-blk
+		--assert 'make == second fourth fourth lo2-blk
+		--assert 'object! == third fourth fourth lo2-blk
+		--assert strict-equal?
+			first [a:]
+			first fourth fourth fourth lo2-blk
+		--assert 1 == second fourth fourth fourth lo2-blk
 
 ===end-group===
 
