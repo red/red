@@ -292,7 +292,6 @@ face!: object [				;-- keep in sync with facet! enum
 						all [not empty? new attempt/safer [load new]]
 						all [options options/default]
 					]
-
 				]
 				if 'data = word [
 					either data [
@@ -559,6 +558,9 @@ show: function [
 		if face/type <> 'screen [
 			if all [not parent not object? face/parent face/type <> 'window][
 				cause-error 'script 'not-linked []
+			]
+			if any [series? face/extra object? face/extra][
+				modify face/extra 'owned none			;@@ TBD: unflag object's fiels (ownership)
 			]
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
