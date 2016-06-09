@@ -188,6 +188,23 @@ Red [
 		--assert 'func == pick fourth lo1-blk 12
 		--assert [] == pick fourth lo1-blk 13
 		--assert [1] == pick fourth lo1-blk 14
+		
+	--test-- "load-object-2"
+		lo2-blk: load {
+			o: make object! [
+				oo: make object! [
+					ooo: make object! [
+						a: 1
+					]
+				]
+			]
+			--assert 4 == length? lo2-blk
+			--assert 4 == length? fourth l02-blk
+			--assert 4 == length? fourth fourth lo2-blk
+			--assert 2 == length? fourth fourth fourth lo2-blk
+			do lo2-blk
+			--assert 1 == o/oo/ooo/a
+		}
 
 ===end-group===
 
