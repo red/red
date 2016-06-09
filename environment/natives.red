@@ -788,3 +788,21 @@ new-line?: make native! [[
 	]
 	#get-definition NAT_NEW_LINE?
 ]
+
+detab: make native! [[
+		"Converts tabs in a string to spaces. (tab size 4)"
+		string		[any-string! char!]
+		/size "Specifies the number of spaces per tab"
+			value [integer!]
+	]
+	#get-definition NAT_DETAB
+]
+
+entab: make native! [[
+		"Converts leading spaces in a string to tabs. (tab size 4)"
+		string		[any-string! char!]
+		/size "Specifies the number of spaces per tab"
+			value [integer!]
+	]
+	#get-definition NAT_ENTAB
+]
