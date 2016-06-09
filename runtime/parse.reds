@@ -18,6 +18,15 @@ parser: context [
 	
 	#define PARSE_MAX_DEPTH		10'000
 	
+	#define PARSE_SAVE_SERIES [							;-- protect series stack from recursive calls
+		len: block/rs-length? series
+		series/head: series/head + len
+	]
+	
+	#define PARSE_RESTORE_SERIES [
+		series/head: series/head - len
+	]
+	
 	#define PARSE_PUSH_INPUTPOS  [
 		in: as input! ALLOC_TAIL(rules)
 		in/header: TYPE_POINT
@@ -656,13 +665,10 @@ parser: context [
 	]
 	
 	eval: func [code [red-value!] /local len [integer!]][
-		len: block/rs-length? series
-		series/head: series/head + len
-		
+		PARSE_SAVE_SERIES
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		if system/thrown <> 0 [reset re-throw]
-		
-		series/head: series/head - len
+		PARSE_RESTORE_SERIES
 	]
 
 	process: func [
@@ -973,7 +979,9 @@ parser: context [
 									input/head: p/input
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
+									PARSE_SAVE_SERIES
 									actions/remove input base
+									PARSE_RESTORE_SERIES
 								]
 							]
 							R_CHANGE
@@ -1000,7 +1008,9 @@ parser: context [
 									input/head: p/input
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
+									PARSE_SAVE_SERIES
 									new: as red-series! actions/change input value base only? null
+									PARSE_RESTORE_SERIES
 									input/head: new/head
 								]
 							]
@@ -1378,7 +1388,9 @@ parser: context [
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
 									input/head: new/head
+									PARSE_SAVE_SERIES
 									actions/remove input base ;-- REMOVE position
+									PARSE_RESTORE_SERIES
 									cmd: value
 									done?: yes
 								]
@@ -1471,7 +1483,9 @@ parser: context [
 								value: stack/top - 1
 								PARSE_TRACE(_paren)
 							]
+							PARSE_SAVE_SERIES
 							actions/insert input value null max = 1 null no
+							PARSE_RESTORE_SERIES
 							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
 						]
@@ -1508,7 +1522,9 @@ parser: context [
 									]
 									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
 									input/head: new/head
+									PARSE_SAVE_SERIES
 									actions/change input value base as-logic max null
+									PARSE_RESTORE_SERIES
 									done?: yes
 								]
 							]
