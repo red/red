@@ -296,7 +296,7 @@ face!: object [				;-- keep in sync with facet! enum
 				if 'data = word [
 					either data [
 						modify text 'owned none
-						set-quiet 'text form data
+						set-quiet 'text form data		;@@ use form/into (avoids rebinding)
 						modify text 'owned reduce [self 'text]
 					][
 						clear text
@@ -823,7 +823,7 @@ insert-event-func [
 		event/face/type = 'field
 	][
 		face: event/face
-		set-quiet in face 'data probe any [
+		set-quiet in face 'data any [
 			all [not empty? face/text attempt/safer [load face/text]]
 			all [face/options face/options/default]
 		]
