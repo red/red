@@ -25,8 +25,13 @@ also: func [
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
 	value [block!]
+	/safer
 ][
-	unless error? set/any 'value try :value [get/any 'value]
+	either safer [
+		unless error? set/any 'value try/all :value [get/any 'value]
+	][
+		unless error? set/any 'value try :value [get/any 'value]
+	]
 ]
 
 comment: func [value][]
@@ -467,9 +472,9 @@ modulo: func [
 	/local r
 ][
 	b: absolute b
-    all [0 > r: a % b r: r + b]
-    a: absolute a
-    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
+	if (r: a % b) < 0 [r: r + b]
+	a: absolute a
+	either all [a + r = (a + b) 0 < r + r - b][r - b][r]
 ]
 
 eval-set-path: func [value1][]

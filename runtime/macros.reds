@@ -228,6 +228,7 @@ Red/System [
 	NAT_NEW_LINE
 	NAT_NEW_LINE?
 	NAT_ENBASE
+	NAT_CONTEXT?
 ]
 
 #enum math-op! [

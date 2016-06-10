@@ -1233,17 +1233,24 @@ red: context [
 		repend functions [name reduce [any [kind 'function!] arity spec refs]]
 	]
 	
-	fetch-functions: func [pos [block!] /local name type spec refs arity nat?][
+	fetch-functions: func [pos [block!] /local name type spec refs arity nat? proto entry][
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
 			action! [append actions name]
-			op!     [repend op-actions [name to word! pos/4]]
+			op!     [repend op-actions [name proto: get-prefix-func to word! pos/4]]
 		]
 		spec: either pos/3 = 'op! [
-			third select functions to word! pos/4
+			either entry: find functions proto [
+				if all [proto <> to word! pos/4 1 < length? obj-stack][
+					append entry/2 select objects do obj-stack	;-- append context name if method
+				]
+				entry/2/3
+			][
+				throw-error ["Cannot MAKE OP! from unknown function:" mold pos/4]
+			]
 		][
 			clean-lf-deep pos/4/1
 		]
@@ -1549,10 +1556,9 @@ red: context [
 					emit to-integer copy/part head bin 4
 					insert-lf -5
 				]
-				find [refinement! issue! lit-word!] type?/word :value [
+				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					type: to word! form type? :value
-					if all [lit-word? :value not inactive][type: 'word]
 					
 					either all [not issue? :value local-word? w][
 						emit append to path! type 'push-local
@@ -1570,8 +1576,12 @@ red: context [
 					insert-lf -1
 				]
 				any-word? :value [
-					add-symbol to word! :value
-					emit-push-word :value :value
+					add-symbol name: to word! :value
+					either all [lit-word? :value not inactive][
+						emit-push-word :name :value
+					][
+						emit-push-word :value :value
+					]
 				]
 				pair? :value [
 					emit 'pair/push
@@ -3303,7 +3313,8 @@ red: context [
 		]
 		
 		if infix? pc [
-			throw-error "invalid use of set-word as operand"
+			emit-push-word original original
+			exit
 		]
 		if all [not booting? find intrinsics name][
 			throw-error ["attempt to redefine a keyword:" name]
@@ -3528,7 +3539,10 @@ red: context [
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
-					function! [emit decorate-func name insert-lf -1]
+					function! [
+						emit decorate-func name
+						insert-lf either spec/5 [emit spec/5 -2][-1]
+					]
 					routine!  [emit-routine name spec/3]
 				][
 					emit make-func-prefix name

@@ -196,7 +196,7 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			switch TYPE_OF(arg) [
+			switch TYPE_OF(arg) [						;@@ always unbox regardless of the spec block
 				TYPE_LOGIC	 [push logic/get arg]
 				TYPE_INTEGER [push integer/get arg]
 				default		 [push arg]
@@ -643,6 +643,8 @@ interpreter: context [
 			left   [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
+			s-arg  [red-value!]
+			s-top  [red-value!]
 			sym	   [integer!]
 			infix? [logic!]
 	][
@@ -667,17 +669,22 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_SET_WORD [
-				stack/mark-interp-native as red-word! pc ;@@ ~set
-				word/push as red-word! pc
-				pc: pc + 1
-				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-				pc: eval-expression pc end no yes
-				word/set
-				either sub? [stack/unwind][stack/unwind-last]
-				#if debug? = yes [
-					if verbose > 0 [
-						value: stack/arguments
-						print-line ["eval: set-word return type: " TYPE_OF(value)]
+				either infix? [
+					either sub? [stack/push pc][stack/set-last pc]
+					pc: pc + 1
+				][
+					stack/mark-interp-native as red-word! pc ;@@ ~set
+					word/push as red-word! pc
+					pc: pc + 1
+					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
+					pc: eval-expression pc end no yes
+					word/set
+					either sub? [stack/unwind][stack/unwind-last]
+					#if debug? = yes [
+						if verbose > 0 [
+							value: stack/arguments
+							print-line ["eval: set-word return type: " TYPE_OF(value)]
+						]
 					]
 				]
 			]
@@ -686,7 +693,11 @@ interpreter: context [
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
+				s-arg: stack/arguments
+				s-top: stack/top
 				pc: eval-path value pc end yes no sub? no
+				stack/arguments: s-arg					;-- restores the stack
+				stack/top: s-top
 			]
 			TYPE_GET_WORD [
 				value: _context/get as red-word! pc

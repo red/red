@@ -21,12 +21,14 @@ Red [
 #include %environment/lexer.red
 #include %environment/operators.red
 
+#register-intrinsics
+
 #include %environment/codecs/png.red
 #include %environment/codecs/jpeg.red
 #include %environment/codecs/bmp.red
 #include %environment/codecs/gif.red
 
-#register-intrinsics
+#include %environment/reactivity.red					;-- requires SET intrinsic
 
 extract-boot-args
 

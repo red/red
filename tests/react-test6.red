@@ -15,9 +15,9 @@ view [
 		react [f/font/name: pick face/data any [face/selected 3]]
 		return
 		
-	text "Font size:" s: field "15" react [f/font/size: load s/text]
-	button "+" bold 24x24 [s/text: form (load s/text) + 1]
-	button "-" bold 24x24 [s/text: form max 1 (load s/text) - 1]
+	text "Font size:" s: field "15" react [f/font/size: s/data]
+	button "+" bold 24x24 [s/data: s/data + 1]
+	button "-" bold 24x24 [s/data: max 1 s/data - 1]
 	return
 ]
 

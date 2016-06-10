@@ -13,14 +13,15 @@ Red/System [
 ownership: context [
 
 	size:	1000
-	table:	declare node!
+	table:	as node! 0
 
 	unbind: func [
 		value [red-value!]
 		/local
-			owner  [red-object!]
+			obj    [red-object!]
 			series [red-series!]
 			tail   [red-value!]
+			ctx	   [red-context!]
 			node   [node!]
 			type   [integer!]
 			s	   [series!]
@@ -28,22 +29,11 @@ ownership: context [
 		type: TYPE_OF(value)
 		case [
 			type = TYPE_OBJECT [
-				owner: as red-object! value
-				_hashtable/delete-key table as-integer owner/ctx
-				;@@ free object's fields and unflag it
-			]
-			ANY_SERIES?(type) [
-				series: as red-series! value
-				either type = TYPE_IMAGE [
-					series/header: series/header and not flag-owned
-				][
-					s: GET_BUFFER(series)
-					s/flags: s/flags and not flag-series-owned
-				]
-				_hashtable/delete-key table as-integer series/node
-				
-				if ANY_BLOCK?(type) [
-					value: s/offset + series/head
+				obj: as red-object! value
+				ctx: GET_CTX(obj)
+				if ctx/header and flag-owner = 0 [		;-- stop if another owner is met
+					s: as series! ctx/values/value
+					value: s/offset
 					tail:  s/tail
 
 					while [value < tail][
@@ -52,7 +42,32 @@ ownership: context [
 					]
 				]
 			]
-			true [assert false]
+			ANY_SERIES?(type) [
+				series: as red-series! value
+				node: series/node
+				
+				either type = TYPE_IMAGE [
+					series/header: series/header and not flag-owned
+				][
+					s: GET_BUFFER(series)
+					s/flags: s/flags and not flag-series-owned
+				]
+				value: _hashtable/get-value table as-integer node
+				unless null? value [
+					_hashtable/delete-key table as-integer node
+
+					if ANY_BLOCK?(type) [
+						value: s/offset + series/head
+						tail:  s/tail
+
+						while [value < tail][
+							unbind value
+							value: value + 1
+						]
+					]
+				]
+			]
+			true [0]
 		]
 	]
 	
