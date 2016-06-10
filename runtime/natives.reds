@@ -2026,6 +2026,10 @@ natives: context [
 				data: as byte-ptr! unicode/to-utf8 str :len
 				;-- len now contains the decoded data length.
 			]
+			TYPE_BINARY [
+				data: binary/rs-head as red-binary! arg
+				len: binary/rs-length? as red-binary! arg
+			]
 			default [
 				fire [TO_ERROR(script invalid-arg) data]
 			]
@@ -2055,14 +2059,19 @@ natives: context [
 		either _with >= 0 [								;-- /with was used
 			spec: arg + _with
 			switch TYPE_OF(spec) [
-				TYPE_STRING [
+				TYPE_STRING TYPE_BINARY [
 					if type = crypto/_hash [
 						;-- /with 'spec arg for 'hash method must be an integer.
 						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
 					]
-					;-- If we get here, the method returns an HMAC (MD5 or SHA*). 
-					key-len: -1							;-- Tell to-utf8 to decode everything
-					key: as byte-ptr! unicode/to-utf8 as red-string! arg + _with :key-len
+					;-- If we get here, the method returns an HMAC (MD5 or SHA*).
+					either TYPE_OF(spec) = TYPE_STRING [
+						key-len: -1							;-- Tell to-utf8 to decode everything
+						key: as byte-ptr! unicode/to-utf8 as red-string! arg + _with :key-len
+					][
+						key-len: binary/rs-length? as red-binary! arg + _with
+						key: binary/rs-head as red-binary! arg + _with
+					]
 					;-- key-len now contains the decoded key length
 					b: crypto/get-hmac data len key key-len type
 					;!! len is reused here, set to the expected digest size.
@@ -2070,6 +2079,35 @@ natives: context [
 					len: crypto/alg-digest-size crypto/alg-from-symbol type
 					stack/set-last as red-value! binary/load b len
 				]
+;				TYPE_STRING [
+;					if type = crypto/_hash [
+;						;-- /with 'spec arg for 'hash method must be an integer.
+;						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
+;					]
+;					;-- If we get here, the method returns an HMAC (MD5 or SHA*). 
+;					key-len: -1							;-- Tell to-utf8 to decode everything
+;					key: as byte-ptr! unicode/to-utf8 as red-string! arg + _with :key-len
+;					;-- key-len now contains the decoded key length
+;					b: crypto/get-hmac data len key key-len type
+;					;!! len is reused here, set to the expected digest size.
+;					;!! You can't set it before calling get-hmac.
+;					len: crypto/alg-digest-size crypto/alg-from-symbol type
+;					stack/set-last as red-value! binary/load b len
+;				]
+;				TYPE_BINARY [
+;					if type = crypto/_hash [
+;						;-- /with 'spec arg for 'hash method must be an integer.
+;						ERR_INVALID_REFINEMENT_ARG((refinement/load "with") spec)
+;					]
+;					;-- If we get here, the method returns an HMAC (MD5 or SHA*). 
+;					key: binary/rs-head as red-binary! arg + _with
+;					key-len: binary/rs-length? as red-binary! arg + _with
+;					b: crypto/get-hmac data len key key-len type
+;					;!! len is reused here, set to the expected digest size.
+;					;!! You can't set it before calling get-hmac.
+;					len: crypto/alg-digest-size crypto/alg-from-symbol type
+;					stack/set-last as red-value! binary/load b len
+;				]
 				TYPE_INTEGER [
 					hash-size: as red-integer! arg + _with
 					integer/box crypto/HASH_STRING data len hash-size/value
