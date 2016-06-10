@@ -25,6 +25,7 @@ write %build/bin/sources.r set-cache [
 		%lexer.red
 		%natives.red
 		%operators.red
+		%reactivity.red
 		%routines.red
 		%scalars.red
 		%system.red
