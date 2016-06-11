@@ -160,6 +160,8 @@ do: make native! [[
 		value [any-type!]
 		/args "If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
+		/next "Do next expression only, return it, update block word"
+			position [word!] "Word updated with new block position"
 	]
 	#get-definition NAT_DO
 ]

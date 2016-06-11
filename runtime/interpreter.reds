@@ -807,6 +807,28 @@ interpreter: context [
 		]
 		pc
 	]
+	
+	eval-single: func [
+		value	[red-value!]
+		return: [integer!]								;-- return index of next expression
+		/local
+			blk	 [red-block!]
+			s	 [series!]
+			node [node!]
+	][
+		blk: as red-block! value
+		s: GET_BUFFER(blk)
+		if s/offset + blk/head = s/tail [
+			unset/push-last
+			return blk/head
+		]
+		node: blk/node									;-- save node pointer as slot will be overwritten
+		value: eval-next s/offset + blk/head s/tail no
+		
+		s: as series! node/value						;-- refresh buffer pointer
+		assert all [s/offset <= value value <= s/tail]
+		(as-integer value - s/offset) >> 4
+	]
 
 	eval-next: func [
 		value	[red-value!]

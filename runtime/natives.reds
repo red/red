@@ -16,6 +16,14 @@ Red/System [
 	exit
 ]
 
+#define DO_EVAL_BLOCK [
+	either negative? next [
+		interpreter/eval as red-block! arg yes
+	][
+		blk/head: interpreter/eval-single arg
+	]
+]
+
 natives: context [
 	verbose:  0
 	lf?: 	  no										;-- used to print or not an ending newline
@@ -458,6 +466,7 @@ natives: context [
 	do*: func [
 		check?  [logic!]
 		args 	[integer!]
+		next	[integer!]
 		return: [integer!]
 		/local
 			cframe [byte-ptr!]
@@ -465,9 +474,11 @@ natives: context [
 			do-arg [red-value!]
 			str	   [red-string!]
 			out    [red-string!]
+			slot   [red-value!]
+			blk	   [red-block!]
 			len	   [integer!]
 	][
-		#typecheck [do args]
+		#typecheck [do args next]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
@@ -475,25 +486,27 @@ natives: context [
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
+		if next > 0 [
+			slot: _context/get as red-word! stack/arguments + next
+			blk: as red-block! copy-cell arg slot
+		]
 		
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
-				TYPE_BLOCK [
-					interpreter/eval as red-block! arg yes
-				]
-				TYPE_PATH [
+				TYPE_BLOCK [DO_EVAL_BLOCK]
+				TYPE_PATH  [
 					interpreter/eval-path arg arg arg + 1 no no no no
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
 					str: as red-string! arg
 					#call [system/lexer/transcode str none]
-					interpreter/eval as red-block! arg yes
+					DO_EVAL_BLOCK
 				]
 				TYPE_FILE [
 					str: as red-string! simple-io/read as red-file! arg no no
 					#call [system/lexer/transcode str none]
-					interpreter/eval as red-block! arg yes
+					DO_EVAL_BLOCK
 				]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
