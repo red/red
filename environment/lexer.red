@@ -337,6 +337,7 @@ system/lexer: context [
 	transcode: function [
 		src	[string!]
 		dst	[block! none!]
+		/one
 		/part	
 			length [integer! string!]
 		return: [block!]
@@ -811,17 +812,17 @@ system/lexer: context [
 			)
 		]
 
+		one-value: [opt [any ws pos: literal-value] opt wrong-delimiters pos: to end]
 		any-value: [pos: any [some ws | literal-value]]
-
 		red-rules: [any-value opt wrong-delimiters]
 
 		unless either part [
 			parse/case/part src red-rules length
 		][
-			parse/case src red-rules
+			parse/case src either one [one-value][red-rules]
 		][
 			throw-error ['value pos]
 		]
-		stack/1
+		either one [pos][stack/1]
 	]
 ]
