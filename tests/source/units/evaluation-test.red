@@ -40,6 +40,17 @@ Red [
 		
 	--test-- "do-9"
 		--assert word! = do [type? first [a]]
+
+	--test-- "do/next-1"
+		code: [3 4 + 5 length? mold 8 + 9 append copy "hel" form 'lo]
+		--assert 3 		 = do/next code 'code
+		--assert 9 		 = do/next code 'code
+		--assert 2 		 = do/next code 'code
+		--assert "hello" = do/next code 'code
+		--assert unset? do/next code 'code
+		--assert unset? do/next code 'code
+		--assert tail? code
+		--assert (head code) = [3 4 + 5 length? mold 8 + 9 append copy "hel" form 'lo]
 		
 ===end-group===
 
