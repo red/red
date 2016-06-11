@@ -225,4 +225,27 @@ Red [
 
 ===end-group===
 
+===start-group=== "load next tests"
+
+	--test-- "load-next-1"
+		s: "123 []hello"
+		--assert 123 	== load/next s 's
+		--assert [] 	== load/next s 's
+		--assert 'hello == load/next s 's
+		--assert [] 	== load/next s 's
+		--assert [] 	== load/next s 's
+		--assert (head s) == "123 []hello"
+
+	--test-- "load-next-2"
+		s: "{}()[]"
+		--assert "" 			 == load/next s 's
+		--assert (make paren! 0) == load/next s 's
+		--assert [] 			 == load/next s 's
+
+	--test-- "load-next-3"
+		s: "^-{}^/(^/)^M[^-]"
+		--assert "" 			 == load/next s 's
+		--assert (make paren! 0) == load/next s 's
+		--assert [] 			 == load/next s 's
+
 ~~~end-file~~~
