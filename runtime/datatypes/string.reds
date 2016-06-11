@@ -1488,6 +1488,7 @@ string: context [
 			int		[red-integer!]
 			char	[red-char!]
 			str2	[red-string!]
+			bits	[red-bitset!]
 			unit	[encoding!]
 			unit2	[encoding!]
 			head2	[integer!]
@@ -1497,8 +1498,13 @@ string: context [
 			c1		[integer!]
 			c2		[integer!]
 			step	[integer!]
+			sbits	[series!]
+			pbits	[byte-ptr!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
 			limit	[byte-ptr!]
 			part?	[logic!]
+			bs?		[logic!]
+			not?	[logic!]
 			op		[integer!]
 			type	[integer!]
 			found?	[logic!]
@@ -1581,6 +1587,7 @@ string: context [
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
+		bs?: no
 		
 		;-- Value argument processing --
 		
@@ -1589,8 +1596,16 @@ string: context [
 				char: as red-char! value
 				c2: char/value
 				if case? [
-					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+					c2: case-folding/folding-case c2 yes ;-- uppercase c2
 				]
+			]
+			TYPE_BITSET [
+				bits:  as red-bitset! value
+				sbits: GET_BUFFER(bits)
+				not?:  FLAG_NOT?(sbits)
+				pbits: as byte-ptr! sbits/offset
+				bs?:   yes
+				case?: no
 			]
 			TYPE_STRING
 			TYPE_FILE
@@ -1637,8 +1652,12 @@ string: context [
 				if case? [
 					c1: case-folding/folding-case c1 yes	;-- uppercase c1
 				]
-				found?: c1 = c2
-				
+				either bs? [
+					BS_TEST_BIT(pbits c1 found?)
+					if not? [found?: not found?]
+				][
+					found?: c1 = c2
+				]
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
 					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
