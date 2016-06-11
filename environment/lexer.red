@@ -812,7 +812,7 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [opt [any ws pos: literal-value] opt wrong-delimiters pos: to end]
+		one-value: [any ws pos: opt literal-value pos: to end]
 		any-value: [pos: any [some ws | literal-value]]
 		red-rules: [any-value opt wrong-delimiters]
 
