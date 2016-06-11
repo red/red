@@ -256,7 +256,7 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		not?: FLAG_NOT?(s)
-		pbits: rs-head bits
+		pbits: as byte-ptr! s/offset
 		
 		switch op [
 			OP_SET [
@@ -381,7 +381,7 @@ bitset: context [
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
 					not?: FLAG_NOT?(s)
-					pbits: rs-head bits
+					pbits: as byte-ptr! s/offset
 					
 					switch op [
 						OP_SET [
