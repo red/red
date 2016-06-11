@@ -758,7 +758,7 @@ checksum: make native! [[
 		data 	[binary! string! file!]
 		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
 		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
-			spec [any-string! integer!] "String for MD5/SHA* HMAC key, integer for hash table size"
+			spec [any-string! binary! integer!] "String for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]
 	#get-definition NAT_CHECKSUM
