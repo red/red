@@ -341,6 +341,66 @@ natives: context [
 		unless break? [_context/set w saved]
 	]
 	
+	remove-each*: func [
+		check? [logic!]
+		/local
+			value [red-value!]
+			body  [red-block!]
+			bool  [red-logic!]
+			series [red-series!]
+			pos	  [red-series!]
+			arg   [red-value!]
+			size  [integer!]
+	][
+		#typecheck remove-each
+		value: stack/arguments
+		body: as red-block! stack/arguments + 2
+
+		series: as red-series! stack/push stack/arguments + 1	;-- copy arguments to stack top in reverse order
+		stack/push value								;-- (required by foreach-next)
+
+		stack/mark-loop words/_body
+		stack/set-last unset-value
+
+		either TYPE_OF(value) = TYPE_BLOCK [
+			size: block/rs-length? as red-block! value
+
+			while [foreach-next-block size][			;-- foreach [..]
+				stack/reset
+				catch RED_THROWN_BREAK	[interpreter/eval body no]
+				switch system/thrown [
+					RED_THROWN_BREAK	[system/thrown: 0 break]
+					RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+					0 					[0]
+					default				[re-throw]
+				]
+			]
+		][
+			while [foreach-next][						;-- foreach <word!>
+				stack/reset
+				catch RED_THROWN_BREAK	[interpreter/eval body no]
+				switch system/thrown [
+					RED_THROWN_BREAK	[system/thrown: 0 break]
+					RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+					0 					[0]
+					default				[re-throw]
+				]
+				arg: stack/arguments
+				bool: as red-logic! arg
+
+				unless any [
+					TYPE_OF(arg) = TYPE_NONE
+					all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
+				][
+					series/head: series/head - 1
+					pos: as red-series! actions/remove series null
+					series/head: pos/head
+				]
+			]
+		]
+		stack/unwind-last
+	]
+	
 	func*: func [check? [logic!]][
 		#typecheck func
 		_function/validate as red-block! stack/arguments
@@ -2544,6 +2604,7 @@ natives: context [
 			:forever*
 			:foreach*
 			:forall*
+			:remove-each*
 			:func*
 			:function*
 			:does*
