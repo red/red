@@ -239,7 +239,7 @@ crypto: context [
 		free odata
 		free ihash
 
-		ohash			;?? Who frees this?
+		ohash												;-- Caller MUST free this
 	]
 
 	HASH_STRING: func [

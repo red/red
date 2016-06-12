@@ -2091,6 +2091,7 @@ natives: context [
 					;!! You can't set it before calling get-hmac.
 					len: crypto/alg-digest-size crypto/alg-from-symbol type
 					stack/set-last as red-value! binary/load b len
+					free b
 				]
 				TYPE_INTEGER [
 					hash-size: as red-integer! arg + _with
@@ -2110,6 +2111,7 @@ natives: context [
 				;	the hash call. So you can't set it before making that call.
 				len: crypto/alg-digest-size crypto/alg-from-symbol type
 				stack/set-last as red-value! binary/load b len
+				free b
 			]
 		]
 	]
