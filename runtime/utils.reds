@@ -29,7 +29,6 @@ Red/System [
 			p		[c-string!]
 			blk		[red-block!]
 			len		[integer!]
-			c1		[byte!]
 	][
 		env: platform/GetEnvironmentStrings
 		blk: null
@@ -40,15 +39,14 @@ Red/System [
 			str: env
 			p: str
 			while [true][
-				c1: str/1
-				if all [
-					len <> 0
-					any [c1 = #"=" c1 = #"^@"]
-					str/2 = #"^@"
-				][
+				if all [len <> 0 str/1 = #"=" str/2 = #"^@"][
 					string/load-in p len blk UTF-16LE
 					p: str + 2
-					if all [c1 = #"^@" p/1 = #"^@" p/2 = #"^@"][break]
+					len: platform/lstrlen as byte-ptr! p
+					string/load-in p len blk UTF-16LE
+					str: p + (len * 2)
+					if all [str/3 = #"^@" str/4 = #"^@"][break]
+					p: str + 2
 					len: -1
 				]
 				str: str + 2
