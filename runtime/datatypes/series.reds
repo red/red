@@ -778,7 +778,7 @@ _series: context [
 
 	remove: func [
 		ser	 	 [red-series!]
-		part-arg [red-value!]
+		part-arg [red-value!]							;-- null if no /part
 		return:	 [red-series!]
 		/local
 			s		[series!]
@@ -801,7 +801,7 @@ _series: context [
 		part: unit
 		items: 1
 
-		if OPTION?(part-arg) [
+		if part-arg <> null [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
