@@ -341,6 +341,48 @@ natives: context [
 		unless break? [_context/set w saved]
 	]
 	
+	remove-each*: func [
+		check? [logic!]
+		/local
+			value  [red-value!]
+			body   [red-block!]
+			series [red-series!]
+			part   [red-integer!]
+			size   [integer!]
+			multi? [logic!]
+	][
+		#typecheck remove-each
+		value: stack/arguments
+		body: as red-block! stack/arguments + 2
+
+		part: as red-integer! integer/push 0			;-- store number of words to set
+		series: as red-series! stack/push stack/arguments + 1	;-- copy arguments to stack top in reverse order
+		stack/push value								;-- (required by foreach-next)
+
+		stack/mark-loop words/_body
+		multi?: TYPE_OF(value) = TYPE_BLOCK
+		
+		either multi? [
+			size: block/rs-length? as red-block! value
+			part/value: size
+		][
+			size: 1
+		]
+		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
+			stack/reset
+			catch RED_THROWN_BREAK	[interpreter/eval body no]
+			switch system/thrown [
+				RED_THROWN_BREAK	[system/thrown: 0 break]
+				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+				0 					[0]
+				default				[re-throw]
+			]
+			remove-each-next size
+		]
+		stack/set-last unset-value
+		stack/unwind-last
+	]
+	
 	func*: func [check? [logic!]][
 		#typecheck func
 		_function/validate as red-block! stack/arguments
@@ -2434,6 +2476,54 @@ natives: context [
 			i: i + 1
 		]
 	]
+	
+	remove-each-init: func [/local part [red-integer!]][
+		part: as red-integer! stack/arguments - 3
+		assert TYPE_OF(part) = TYPE_INTEGER
+		part/value: block/rs-length? as red-block! stack/arguments - 1
+	]
+
+	remove-each-next: func [
+		size  [integer!]								;-- nb of elements to remove
+		/local
+			arg		[red-value!]
+			bool	[red-logic!]
+			series	[red-series!]
+			pos		[red-series!]
+			part	[red-value!]
+	][
+		arg: stack/arguments
+		bool: as red-logic! arg
+		series: as red-series! arg - 2
+		part: either size = 1 [null][arg - 3]
+		
+		assert any [									;@@ replace with any-block?/any-string? check
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_HASH
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
+			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
+			TYPE_OF(series) = TYPE_VECTOR
+			TYPE_OF(series) = TYPE_BINARY
+			TYPE_OF(series) = TYPE_MAP
+			TYPE_OF(series) = TYPE_IMAGE
+		]
+
+		unless any [
+			TYPE_OF(arg) = TYPE_NONE
+			all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
+		][
+			series/head: series/head - size
+			assert series/head >= 0
+			pos: as red-series! actions/remove series as red-value! part
+			series/head: pos/head
+		]
+	]
 
 	foreach-next-block: func [
 		size	[integer!]								;-- number of words in the block
@@ -2626,6 +2716,7 @@ natives: context [
 			:forever*
 			:foreach*
 			:forall*
+			:remove-each*
 			:func*
 			:function*
 			:does*

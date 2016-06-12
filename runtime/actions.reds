@@ -1236,10 +1236,11 @@ actions: context [
 	
 	remove*: func [
 		part [integer!]
-	][	
-		remove
-			as red-series! stack/arguments
-			stack/arguments + part
+		/local
+			part-arg [red-value!]
+	][
+		part-arg: either part < 0 [null][stack/arguments + part]
+		remove as red-series! stack/arguments part-arg
 	]
 	
 	remove: func [

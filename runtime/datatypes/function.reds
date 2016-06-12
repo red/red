@@ -484,7 +484,7 @@ _function: context [
 					w: as red-word! value
 					many?: any [
 						EQUAL_SYMBOLS?(w/symbol words/foreach)
-						;EQUAL_SYMBOLS?(w/symbol words/remove-each)
+						EQUAL_SYMBOLS?(w/symbol words/remove-each)
 						;EQUAL_SYMBOLS?(w/symbol words/map-each)
 					]
 					if any [

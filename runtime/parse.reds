@@ -978,9 +978,8 @@ parser: context [
 									int/value: input/head - p/input
 									input/head: p/input
 									assert int/value >= 0
-									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
-									actions/remove input base
+									actions/remove input as red-value! int
 									PARSE_RESTORE_SERIES
 								]
 							]
@@ -1386,7 +1385,7 @@ parser: context [
 							if all [value < tail TYPE_OF(value) = TYPE_WORD][
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
-									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
+									copy-cell as red-value! input base
 									input/head: new/head
 									PARSE_SAVE_SERIES
 									actions/remove input base ;-- REMOVE position
