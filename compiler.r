@@ -85,13 +85,14 @@ red: context [
 		forever foreach forall func function does has
 		exit return switch case routine set get reduce
 		context object construct try break continue
+		remove-each
 	]
 	
 	logic-words:  [true false yes no on off]
 	
-	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
+	word-iterators: [repeat foreach forall remove-each]	;-- only the ones using word(s) as counter(s)
 	
-	iterators: [loop until while repeat foreach forall forever]
+	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
 		View		%modules/view/view.red
@@ -2262,6 +2263,55 @@ red: context [
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+	]
+	
+	comp-remove-each: has [word blk cond ctx idx][
+		either block? pc/1 [
+			;TBD: raise error if not a block of words only
+			foreach word blk: pc/1 [
+				add-symbol word
+				add-global word
+			]
+			idx: either ctx: find-contexts to word! blk/1 [
+				redbin/emit-block/with blk ctx
+			][
+				redbin/emit-block blk
+			]
+		][
+			add-symbol word: pc/1
+			add-global word
+		]
+		pc: next pc
+
+		emit [integer/push 0]							;-- store number of words to set
+		insert-lf -2
+		comp-expression/close-path						;-- compile series argument
+		;TBD: check if result is any-series!
+
+		either blk [
+			cond: compose [natives/foreach-next-block (length? blk)]
+			emit compose [block/push get-root (idx)]		;-- block argument
+		][
+			cond: compose [natives/foreach-next]
+			emit-push-word word	word					;-- word argument
+		]
+		insert-lf -2
+
+		emit-open-frame 'remove-each
+		if blk [
+			emit 'natives/remove-each-init
+			insert-lf -1
+		]
+		emit compose/deep [
+			while [(cond)]
+		]
+		push-call 'remove-each
+		comp-sub-block 'remove-each-body				;-- compile body
+		append last output compose [
+			natives/remove-each-next (either blk [length? blk][1])
+		]
+		pop-call
+		emit-close-frame
 	]
 	
 	comp-break: has [inner?][

@@ -346,10 +346,7 @@ natives: context [
 		/local
 			value  [red-value!]
 			body   [red-block!]
-			bool   [red-logic!]
 			series [red-series!]
-			pos	   [red-series!]
-			arg    [red-value!]
 			part   [red-integer!]
 			size   [integer!]
 			multi? [logic!]
@@ -370,7 +367,6 @@ natives: context [
 			part/value: size
 		][
 			size: 1
-			part: null
 		]
 		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
 			stack/reset
@@ -381,18 +377,7 @@ natives: context [
 				0 					[0]
 				default				[re-throw]
 			]
-			arg: stack/arguments
-			bool: as red-logic! arg
-
-			unless any [
-				TYPE_OF(arg) = TYPE_NONE
-				all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
-			][
-				series/head: series/head - size
-				assert series/head >= 0
-				pos: as red-series! actions/remove series as red-value! part
-				series/head: pos/head
-			]
+			remove-each-next size
 		]
 		stack/set-last unset-value
 		stack/unwind-last
@@ -2407,6 +2392,54 @@ natives: context [
 		while [i <= size][
 			_context/set (as red-word! _series/pick as red-series! words i null) _series/pick as red-series! str i null
 			i: i + 1
+		]
+	]
+	
+	remove-each-init: func [/local part [red-integer!]][
+		part: as red-integer! stack/arguments - 3
+		assert TYPE_OF(part) = TYPE_INTEGER
+		part/value: block/rs-length? as red-block! stack/arguments - 1
+	]
+
+	remove-each-next: func [
+		size  [integer!]								;-- nb of elements to remove
+		/local
+			arg		[red-value!]
+			bool	[red-logic!]
+			series	[red-series!]
+			pos		[red-series!]
+			part	[red-value!]
+	][
+		arg: stack/arguments
+		bool: as red-logic! arg
+		series: as red-series! arg - 2
+		part: either size = 1 [null][arg - 3]
+		
+		assert any [									;@@ replace with any-block?/any-string? check
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_HASH
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
+			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
+			TYPE_OF(series) = TYPE_VECTOR
+			TYPE_OF(series) = TYPE_BINARY
+			TYPE_OF(series) = TYPE_MAP
+			TYPE_OF(series) = TYPE_IMAGE
+		]
+
+		unless any [
+			TYPE_OF(arg) = TYPE_NONE
+			all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
+		][
+			series/head: series/head - size
+			assert series/head >= 0
+			pos: as red-series! actions/remove series as red-value! part
+			series/head: pos/head
 		]
 	]
 
