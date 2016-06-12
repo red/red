@@ -579,6 +579,11 @@ simple-io: context [
 					file		[integer!]
 					return:		[integer!]
 				]
+				lseek: "lseek" [
+					file		[integer!]
+					offset		[integer!]
+					whence		[integer!]
+				]
 				opendir: "opendir" [
 					filename	[c-string!]
 					return:		[integer!]
@@ -704,6 +709,17 @@ simple-io: context [
 		]
 	]
 
+	seek-file: func [
+		file	[integer!]
+		offset	[integer!]
+	][
+		#either OS = 'Windows [
+			SetFilePointer file offset null SET_FILE_BEGIN
+		][
+			lseek file offset 0					;-- SEEK_SET
+		]
+	]
+
 	read-buffer: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
@@ -764,6 +780,8 @@ simple-io: context [
 
 	read-file: func [
 		filename [c-string!]
+		part	 [integer!]
+		offset	 [integer!]
 		binary?	 [logic!]
 		lines?	 [logic!]
 		unicode? [logic!]
@@ -789,7 +807,14 @@ simple-io: context [
 		if size <= 0 [
 			print-line "*** Warning: empty file"
 		]
-		
+
+		if offset > 0 [
+			seek-file file offset
+			size: size - offset
+		]
+		if part > 0 [
+			if part < size [size: part]
+		]
 		buffer: allocate size
 		len: read-buffer file buffer size
 		close-file file
@@ -1004,17 +1029,32 @@ simple-io: context [
 
 	read: func [
 		filename [red-file!]
+		part	 [red-value!]
+		seek	 [red-value!]
 		binary?	 [logic!]
 		lines?	 [logic!]
 		return:	 [red-value!]
 		/local
-			data [red-value!]
+			data	[red-value!]
+			int		[red-integer!]
+			size	[integer!]
+			offset	[integer!]
 	][
 		if dir? filename [
 			return as red-value! read-dir filename
 		]
 
-		data: read-file file/to-OS-path filename binary? lines? yes
+		size: -1
+		offset: -1
+		if OPTION?(part) [
+			int: as red-integer! part
+			size: int/value
+		]
+		if OPTION?(seek) [
+			int: as red-integer! seek
+			offset: int/value
+		]
+		data: read-file file/to-OS-path filename size offset binary? lines? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
 		]

@@ -270,14 +270,8 @@ file: context [
 		as-arg	[red-value!]
 		return:	[red-value!]
 	][
-		if any [
-			OPTION?(part)
-			OPTION?(seek)
-			OPTION?(as-arg)
-		][
-			--NOT_IMPLEMENTED--
-		]
-		simple-io/read as red-file! src binary? lines?
+		if OPTION?(as-arg) [--NOT_IMPLEMENTED--]
+		simple-io/read as red-file! src part seek binary? lines?
 	]
 
 	write: func [

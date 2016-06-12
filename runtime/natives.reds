@@ -504,7 +504,7 @@ natives: context [
 					DO_EVAL_BLOCK
 				]
 				TYPE_FILE [
-					str: as red-string! simple-io/read as red-file! arg no no
+					str: as red-string! simple-io/read as red-file! arg null null no no
 					#call [system/lexer/transcode str none none]
 					DO_EVAL_BLOCK
 				]

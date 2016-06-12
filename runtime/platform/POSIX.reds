@@ -282,9 +282,9 @@ set-env: func [
 	return: [logic!]			;-- true for success
 ][
 	either value <> null [
-		either -1 = setenv name value 1 [false][true]
+		-1 <> setenv name value 1
 	][
-		either -1 = unsetenv name [false][true]
+		-1 <> unsetenv name
 	]
 ]
 
