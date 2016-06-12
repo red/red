@@ -302,7 +302,8 @@ Red/System [
 		--assert (fcfoo 5.0) - fcptr/a = 2.0			;-- reg(block!)/reg(path!)
 	
 	--test-- "fc-12"
-		--assert fcptr/a - (fcfoo 5.0) = 2.0			;-- reg(path!)/reg(block!)
+		; issue #1999
+		;--assert fcptr/a - (fcfoo 5.0) = -2.0			;-- reg(path!)/reg(block!)
 	
 ===end-group===
 
