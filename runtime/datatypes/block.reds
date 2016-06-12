@@ -947,13 +947,23 @@ block: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			s	   [series!]
-			p	   [red-value!]
-			result [red-block!]
+			slot  [red-value!]
+			s	  [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
-
-		eval-path blk field value as red-value! none-value case?
+		
+		blk: as red-block! find blk field null no case? no no null null no no no no
+		
+		either TYPE_OF(blk) = TYPE_NONE [
+			copy-cell field ALLOC_TAIL(blk)
+			copy-cell value ALLOC_TAIL(blk)
+		][
+			s: GET_BUFFER(blk)
+			slot: s/offset + blk/head + 1
+			if slot >= s/tail [slot: alloc-tail s]
+			copy-cell value slot
+		]
+		value
 	]
 
 	compare-value: func [								;-- Compare function return integer!
