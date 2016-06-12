@@ -297,3 +297,9 @@ red-image!: alias struct! [
 	node	[node!]									;-- internal buffer or platform-specific handle
 	size	[integer!]								;-- pair of size
 ]
+
+red-date!: alias struct! [
+	header 	[integer!]								;-- cell header
+	date	[integer!]								;-- year:19 (signed), month:4, day:5, TZ:5 (signed) 
+	time	[float!]								;-- 64-bit float
+]
