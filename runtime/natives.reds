@@ -2214,6 +2214,86 @@ natives: context [
 		stack/set-last s/offset + 1						;-- return back-reference
 	]
 
+	set-env*: func [
+		check?	[logic!]
+		/local
+			name	[red-string!]
+			value	[red-string!]
+			type	[integer!]
+			cname	[c-string!]
+			cvalue	[c-string!]
+			len		[integer!]
+			s		[series!]
+			w		[red-word!]
+	][
+		#typecheck set-env
+		name: as red-string! stack/arguments
+		value: name + 1
+
+		type: TYPE_OF(name)
+		unless any [						;-- any-word!
+			type = TYPE_STRING				;@@ replace with ANY_STRING?
+			type = TYPE_FILE 
+			type = TYPE_URL
+		][
+			w: as red-word! name
+			s: GET_BUFFER(symbols)
+			name: as red-string! s/offset + w/symbol - 1
+		]
+		PLATFORM_TO_CSTR(cname name len)
+		either TYPE_OF(value) = TYPE_NONE [
+			cvalue: null
+		][
+			PLATFORM_TO_CSTR(cvalue value len)
+		]
+		platform/set-env cname cvalue
+		stack/set-last as red-value! value
+	]
+
+	get-env*: func [
+		check?	[logic!]
+		/local
+			name	[red-string!]
+			cstr	[c-string!]
+			type	[integer!]
+			s		[series!]
+			w		[red-word!]
+			buffer	[c-string!]
+			len		[integer!]
+	][
+		#typecheck get-env
+		name: as red-string! stack/arguments
+		type: TYPE_OF(name)
+		unless any [						;-- any-word!
+			type = TYPE_STRING				;@@ replace with ANY_STRING?
+			type = TYPE_FILE 
+			type = TYPE_URL
+		][
+			w: as red-word! name
+			s: GET_BUFFER(symbols)
+			name: as red-string! s/offset + w/symbol - 1
+		]
+		PLATFORM_TO_CSTR(cstr name len)
+		
+		len: platform/get-env cstr null 0
+		either len > 0 [
+			buffer: as c-string! allocate #either OS = 'Windows [len * 2][len]
+			platform/get-env cstr buffer len
+			PLATFORM_LOAD_STR(name buffer (len - 1))
+			free as byte-ptr! buffer
+			stack/set-last as red-value! name	
+		][
+			name/header: TYPE_NONE
+		]
+	]
+
+	list-env*: func [
+		check?	[logic!]
+	][
+		#typecheck list-env
+		list-env
+	]
+
 	;--- Natives helper functions ---
 
 	argument-as-float: func [
@@ -2623,6 +2703,9 @@ natives: context [
 			:new-line?*
 			:enbase*
 			:context?*
+			:set-env*
+			:get-env*
+			:list-env*
 		]
 	]
 

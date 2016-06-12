@@ -798,3 +798,26 @@ context?: make native! [[
 	]
 	#get-definition NAT_CONTEXT?
 ]
+
+set-env: make native! [[
+		"Sets the value of an operating system environment variable (for current process)"
+		var   [any-string! any-word!] "Variable to set"
+		value [string! none!] "Value to set, or NONE to unset it"
+	]
+	#get-definition NAT_SET_ENV
+]
+
+get-env: make native! [[
+		"Returns the value of an OS environment variable (for current process)"
+		var		[any-string! any-word!] "Variable to set"
+		return: [string! none!]
+	]
+	#get-definition NAT_GET_ENV
+]
+
+list-env: make native! [[
+		"Returns a map of OS environment variables (for current process)"
+		return: [map!]
+	]
+	#get-definition NAT_LIST_ENV
+]

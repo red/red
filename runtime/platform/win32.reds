@@ -127,6 +127,24 @@ platform: context [
 			GetCommandLine: "GetCommandLineW" [
 				return:			[byte-ptr!]
 			]
+			GetEnvironmentStrings: "GetEnvironmentStringsW" [
+				return:		[c-string!]
+			]
+			GetEnvironmentVariable: "GetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				valsize		[integer!]
+				return:		[integer!]
+			]
+			SetEnvironmentVariable: "SetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				return:		[logic!]
+			]
+			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
+				env			[c-string!]
+				return:		[logic!]
+			]
 			FormatMessage: "FormatMessageW" [
 				dwFlags			[integer!]
 				lpSource		[byte-ptr!]
@@ -240,6 +258,25 @@ platform: context [
 		return: [logic!]
 	][
 		SetCurrentDirectory path
+	]
+
+	set-env: func [
+		name	[c-string!]
+		value	[c-string!]
+		return: [logic!]			;-- true for success
+	][
+		SetEnvironmentVariable name value
+	]
+
+	get-env: func [
+		;; Returns size of retrieved value for success or zero if missing
+		;; If return size is greater than valsize then value contents are undefined
+		name	[c-string!]
+		value	[c-string!]
+		valsize [integer!]			;-- includes null terminator
+		return: [integer!]
+	][
+		GetEnvironmentVariable name value valsize
 	]
 
 	;-------------------------------------------

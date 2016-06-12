@@ -194,10 +194,11 @@ _hashtable: context [
 				hash-string sym case?
 			]
 			TYPE_BINARY [
-				s: GET_BUFFER(symbols)
+				sym: as red-string! key
+				s: GET_BUFFER(sym)
 				murmur3-x86-32
-					(as byte-ptr! s/offset) + key/data1
-					(as-integer s/tail - s/offset) - key/data1
+					(as byte-ptr! s/offset) + sym/head
+					(as-integer s/tail - s/offset) - sym/head
 			]
 			TYPE_POINT
 			TYPE_TYPESET [

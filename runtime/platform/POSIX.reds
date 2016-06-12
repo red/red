@@ -16,6 +16,8 @@ Red/System [
 
 #define RTLD_LAZY	1
 
+environ: as int-ptr! 0
+
 #import [
 	LIBC-file cdecl [
 		wprintf: "wprintf" [
@@ -32,6 +34,11 @@ Red/System [
 			flags		[integer!]
 			return:		[integer!]
 		]
+		dlsym: "dlsym" [
+			handle		[integer!]
+			symbol		[c-string!]
+			return:		[int-ptr!]
+		]
 		getcwd: "getcwd" [
 			buf		[byte-ptr!]
 			size	[integer!]
@@ -44,6 +51,20 @@ Red/System [
 		usleep: "usleep" [
 			microseconds [integer!]
 			return: 	 [integer!]
+		]
+		getenv: "getenv" [
+			name		[c-string!]
+			return:		[c-string!]
+		]
+		setenv: "setenv" [
+			name		[c-string!]
+			val			[c-string!]
+			overwrite	[integer!]
+			return:		[integer!]
+		]
+		unsetenv: "unsetenv" [
+			name		[c-string!]
+			return:		[integer!]
 		]
 	]
 ]
@@ -253,4 +274,38 @@ set-current-dir: func [
 	return: [logic!]
 ][
 	zero? chdir path
+]
+
+set-env: func [
+	name	[c-string!]
+	value	[c-string!]
+	return: [logic!]			;-- true for success
+][
+	either value <> null [
+		either -1 = setenv name value 1 [false][true]
+	][
+		either -1 = unsetenv name [false][true]
+	]
+]
+
+get-env: func [
+	;; Returns size of retrieved value for success or zero if missing
+	;; If return size is greater than valsize then value contents are undefined
+	name	[c-string!]
+	value	[c-string!]
+	valsize [integer!]			;-- includes null terminator
+	return: [integer!]
+	/local
+		val [c-string!]
+		len [integer!]
+][
+	val: getenv name
+	if null? val [return 0]
+
+	len: length? val
+	if zero? len [return -1]
+
+	if len + 1 > valsize [return len + 1]
+	copy-memory as byte-ptr! value as byte-ptr! val len
+	len
 ]
