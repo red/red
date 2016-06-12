@@ -344,60 +344,57 @@ natives: context [
 	remove-each*: func [
 		check? [logic!]
 		/local
-			value [red-value!]
-			body  [red-block!]
-			bool  [red-logic!]
+			value  [red-value!]
+			body   [red-block!]
+			bool   [red-logic!]
 			series [red-series!]
-			pos	  [red-series!]
-			arg   [red-value!]
-			size  [integer!]
+			pos	   [red-series!]
+			arg    [red-value!]
+			part   [red-integer!]
+			size   [integer!]
+			multi? [logic!]
 	][
 		#typecheck remove-each
 		value: stack/arguments
 		body: as red-block! stack/arguments + 2
 
+		part: as red-integer! integer/push 0			;-- store number of words to set
 		series: as red-series! stack/push stack/arguments + 1	;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 
 		stack/mark-loop words/_body
-		stack/set-last unset-value
-
-		either TYPE_OF(value) = TYPE_BLOCK [
+		multi?: TYPE_OF(value) = TYPE_BLOCK
+		
+		either multi? [
 			size: block/rs-length? as red-block! value
-
-			while [foreach-next-block size][			;-- foreach [..]
-				stack/reset
-				catch RED_THROWN_BREAK	[interpreter/eval body no]
-				switch system/thrown [
-					RED_THROWN_BREAK	[system/thrown: 0 break]
-					RED_THROWN_CONTINUE	[system/thrown: 0 continue]
-					0 					[0]
-					default				[re-throw]
-				]
-			]
+			part/value: size
 		][
-			while [foreach-next][						;-- foreach <word!>
-				stack/reset
-				catch RED_THROWN_BREAK	[interpreter/eval body no]
-				switch system/thrown [
-					RED_THROWN_BREAK	[system/thrown: 0 break]
-					RED_THROWN_CONTINUE	[system/thrown: 0 continue]
-					0 					[0]
-					default				[re-throw]
-				]
-				arg: stack/arguments
-				bool: as red-logic! arg
+			size: 1
+			part: null
+		]
+		while [either multi? [foreach-next-block size][foreach-next]][	;-- each [...] / each <word!>
+			stack/reset
+			catch RED_THROWN_BREAK	[interpreter/eval body no]
+			switch system/thrown [
+				RED_THROWN_BREAK	[system/thrown: 0 break]
+				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+				0 					[0]
+				default				[re-throw]
+			]
+			arg: stack/arguments
+			bool: as red-logic! arg
 
-				unless any [
-					TYPE_OF(arg) = TYPE_NONE
-					all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
-				][
-					series/head: series/head - 1
-					pos: as red-series! actions/remove series null
-					series/head: pos/head
-				]
+			unless any [
+				TYPE_OF(arg) = TYPE_NONE
+				all [TYPE_OF(arg) = TYPE_LOGIC not bool/value]
+			][
+				series/head: series/head - size
+				assert series/head >= 0
+				pos: as red-series! actions/remove series as red-value! part
+				series/head: pos/head
 			]
 		]
+		stack/set-last unset-value
 		stack/unwind-last
 	]
 	
