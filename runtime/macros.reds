@@ -229,6 +229,9 @@ Red/System [
 	NAT_NEW_LINE?
 	NAT_ENBASE
 	NAT_CONTEXT?
+	NAT_SET_ENV
+	NAT_GET_ENV
+	NAT_LIST_ENV
 ]
 
 #enum math-op! [
@@ -299,6 +302,23 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+
+#define PLATFORM_TO_CSTR(cstr str len) [
+	#either OS = 'Windows [
+		cstr: unicode/to-utf16 str
+	][
+		len: -1
+		cstr: unicode/to-utf8 str :len
+	]
+]
+
+#define PLATFORM_LOAD_STR(str cstr len) [
+	#either OS = 'Windows [
+		str: string/load cstr len UTF-16LE
+	][
+		str: string/load cstr len UTF-8
+	]
+]
 
 #define WHITE_CHAR?(char)	[
 	any [
