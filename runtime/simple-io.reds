@@ -781,7 +781,7 @@ simple-io: context [
 	read-file: func [
 		filename [c-string!]
 		part	 [integer!]
-		seek	 [integer!]
+		offset	 [integer!]
 		binary?	 [logic!]
 		lines?	 [logic!]
 		unicode? [logic!]
@@ -808,9 +808,9 @@ simple-io: context [
 			print-line "*** Warning: empty file"
 		]
 
-		if seek > 0 [
-			seek-file file seek
-			size: size - seek
+		if offset > 0 [
+			seek-file file offset
+			size: size - offset
 		]
 		if part > 0 [
 			if part < size [size: part]
@@ -1044,6 +1044,8 @@ simple-io: context [
 			return as red-value! read-dir filename
 		]
 
+		size: -1
+		offset: -1
 		if OPTION?(part) [
 			int: as red-integer! part
 			size: int/value
