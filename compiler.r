@@ -254,6 +254,7 @@ red: context [
 			get-word!
 			set-word!
 			pair!
+			time!
 		] type?/word :expr
 	]
 	
@@ -1588,6 +1589,11 @@ red: context [
 					emit 'pair/push
 					emit reduce [value/1 value/2]
 					insert-lf -3
+				]
+				time? :value [
+					emit 'time/push
+					emit (to decimal! value) * 1E9
+					insert-lf -2
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]

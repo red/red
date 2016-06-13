@@ -737,7 +737,7 @@ system/lexer: context [
 				[#"x" | #"X"] s: integer-number-rule
 				(value: as-pair value make-number s e type)
 			  ]
-			  opt [#":" time-rule]
+			  opt [#":" [time-rule | (throw-error [type s])]]
 		]
 
 		float-special: [

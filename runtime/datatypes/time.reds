@@ -22,6 +22,24 @@ time: context [
 	#define GET_MINUTES(time) (floor time / oneE9 // 3600.0 / 60.0)
 	#define GET_SECONDS(time) (time / oneE9 // 60.0)
 	
+	
+	make-in: func [
+		parent	[red-block!]
+		high	[integer!]
+		low		[integer!]
+		return: [red-time!]
+		/local
+			cell [cell!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
+
+		cell: ALLOC_TAIL(parent)
+		cell/header: TYPE_TIME
+		cell/data2: low
+		cell/data3: high
+		as red-time! cell
+	]
+	
 	make-at: func [
 		time	[float!]								;-- in nanoseconds
 		cell	[red-value!]

@@ -374,6 +374,10 @@ redbin: context [
 				cell: as cell! percent/make-in parent data/2 data/3
 				data + 3
 			]
+			TYPE_TIME	[
+				cell: as cell! time/make-in parent data/2 data/3
+				data + 3
+			]
 			TYPE_CHAR		[
 				cell: as cell! char/make-in parent data/2
 				data + 2
