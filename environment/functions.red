@@ -406,8 +406,11 @@ save: function [
 			]
 		]
 		unless find-encoder? [
-			data: either all [mold/all/only :value][mold/only :value]
-			append data newline
+			data: either all [
+				append mold/all/only :value newline
+			][
+				trim mold/only :value
+			]
 			case/all [
 				not binary? data [data: to binary! data]
 				length [
@@ -422,7 +425,7 @@ save: function [
 					foreach [k v] header-data [
 						append header-str reduce [#"^-" mold k #" " mold v newline]
 					]
-					append header-str "]^/"
+					append header-str "]^/^/"
 					insert data header-str
 				]
 			]

@@ -38,14 +38,58 @@ ask: routine [
 input: does [ask ""]
 
 gui-console-ctx: context [
+	cfg-path:	 none
+	cfg:		 none
+	
 	copy-text:   routine [face [object!]][terminal/copy-text   face]
 	paste-text:  routine [face [object!]][terminal/paste-text  face]
 	select-text: routine [face [object!]][terminal/select-text face]
 
+	set-buffer-lines: routine [n [integer!]][terminal/set-buffer-lines n]
+	set-font-color: routine [color [tuple!]][terminal/set-font-color color/array1]
+	set-background: routine [color [tuple!]][terminal/set-background color/array1]
+
+	init: does [
+		system/view/auto-sync?: no
+		cfg-path: append to-red-file get-env "ALLUSERSPROFILE" %/Red/console-cfg.red
+		cfg: either exists? cfg-path [skip load cfg-path 2][
+			compose [
+				win-pos:		(win/offset)
+				win-size:		(win/size)
+
+				font-name:		"Consolas"
+				font-size:		11
+				font-color:		0.0.0
+				background:		252.252.252
+
+				buffer-lines:	10000
+			]
+		]
+		apply-cfg
+		win/selected: console
+		system/view/auto-sync?: yes
+		win/visible?: yes
+	]
+
+	apply-cfg: does [
+		win/offset:		 cfg/win-pos
+		win/size:		 cfg/win-size
+		console/font:	 make font! [name: cfg/font-name size: cfg/font-size]
+		set-font-color	 cfg/font-color
+		set-background	 cfg/background
+		set-buffer-lines cfg/buffer-lines
+	]
+
+	save-cfg: does [
+		cfg/win-pos:  win/offset
+		cfg/win-size: win/size
+		save/header cfg-path cfg [Purpose: "Red GUI Console Configuration File"]
+	]
+
 	font-name: pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
 	console: make face! [
-		type: 'console size: 640x400
+		type: 'console offset: 0x0 size: 640x400
 		font: make font! [name: font-name size: 11]
 		menu: [
 			"Copy^-Ctrl+C"		 copy
@@ -64,9 +108,11 @@ gui-console-ctx: context [
 	]
 
 	win: make face! [
-		type: 'window text: "Red Console" size: 640x400 selected: console
+		type: 'window offset: 640x400 size: 640x400 visible?: no
+		text: "Red Console"
 		actors: object [
 			on-close: func [face [object!] event [event!]][
+				save-cfg
 				unview/all
 			]
 			on-resizing: func [face [object!] event [event!]][
@@ -79,6 +125,8 @@ gui-console-ctx: context [
 	
 	launch: does [
 		view/flags/no-wait win [resize]
+		init
+
 		svs: system/view/screens/1
 		svs/pane: next svs/pane
 

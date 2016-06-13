@@ -429,8 +429,10 @@ window-border-info?: func [
 		x/value: pt/x
 		y/value: pt/y
 	]
-	width/value: (win/right - win/left) - client/right
-	height/value: (win/bottom - win/top) - client/bottom
+	if width <> null [
+		width/value: (win/right - win/left) - client/right
+		height/value: (win/bottom - win/top) - client/bottom
+	]
 ]
 
 init-window: func [										;-- post-creation settings
@@ -1107,19 +1109,25 @@ change-offset: func [
 	pos  [red-pair!]
 	type [integer!]
 	/local
-		owner [handle!]
-		child [handle!]
-		size  [red-pair!]
-		flags [integer!]
-		style [integer!]
-		param [integer!]
-		pt    [red-pair!]
-		offset [tagPOINT]
-		values [red-value!]
-		layer? [logic!]
+		owner	[handle!]
+		child	[handle!]
+		size	[red-pair!]
+		flags	[integer!]
+		style	[integer!]
+		param	[integer!]
+		pt		[red-pair!]
+		offset	[tagPOINT]
+		values	[red-value!]
+		layer?	[logic!]
+		x		[integer!]
+		y		[integer!]	
 ][
-	flags: SWP_NOSIZE or SWP_NOZORDER
+	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	pt: declare red-pair!
+
+	x: 0
+	y: 0
+	if type = window [window-border-info? hWnd :x :y null null]
 
 	if all [not win8+? type = base][
 		style: GetWindowLong hWnd GWL_EXSTYLE
@@ -1132,7 +1140,6 @@ change-offset: func [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
 
-			flags: flags or SWP_NOACTIVATE
 			pt/x: pos/x
 			pt/y: pos/y
 			ClientToScreen owner (as tagPOINT pt) + 1
@@ -1164,7 +1171,7 @@ change-offset: func [
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		pos/x pos/y
+		pos/x + x pos/y + y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]

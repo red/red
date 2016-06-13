@@ -339,6 +339,7 @@ ConsoleWndProc: func [
 			rc/bottom: vt/win-h
 			rc/left: 0
 			rc/right: pad-left
+			SetBkColor hdc vt/bg-color
 			ExtTextOut hdc 0 0 ETO_OPAQUE rc null 0 null
 			paint vt
 			EndPaint hWnd ps

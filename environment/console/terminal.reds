@@ -12,6 +12,16 @@ Red/System [
 
 terminal: context [
 
+	#import [
+		LIBC-file cdecl [
+			realloc: "realloc" [						"Resize and return allocated memory."
+				memory			[byte-ptr!]
+				size			[integer!]
+				return:			[byte-ptr!]
+			]
+		]
+	]
+
 	#define RS_KEY_UNSET		 -1
 	#define RS_KEY_NONE			  0
 	#define RS_KEY_UP			-20
@@ -1533,6 +1543,26 @@ terminal: context [
 			Syllable []
 			#default []									;-- Linux
 		]
+	]
+
+	set-buffer-lines: func [n [integer!] /local vt out][
+		vt: as terminal! v-terminal
+		out: vt/out
+		out/max: n
+		out/lines: as line-node! realloc as byte-ptr! out/lines out/max * size? line-node!
+		edit vt RS_KEY_CTRL_K							;-- clear screen
+	]
+
+	set-font-color: func [color [integer!] /local vt][
+		vt: as terminal! v-terminal
+		vt/font-color: color
+		refresh vt
+	]
+
+	set-background: func [color [integer!] /local vt][
+		vt: as terminal! v-terminal
+		vt/bg-color: color
+		refresh vt
 	]
 
 	ask: func [

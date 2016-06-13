@@ -213,7 +213,7 @@ update-tab-contents: func [
 				while [obj < tail][
 					if TYPE_OF(obj) = TYPE_OBJECT [
 						hWnd: get-face-handle obj
-						values: get-face-values hWnd
+						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
 							change-size
