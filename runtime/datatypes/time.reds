@@ -13,14 +13,79 @@ Red/System [
 time: context [
 	verbose: 0
 	
-	push: func [
+	nano: 1E-9
 	
+	make-at: func [
+		time	[float!]								;-- in nanoseconds
+		cell	[red-value!]
+		return: [red-time!]
+		/local
+			t [red-time!]
+	][
+		t: as red-time! cell
+		t/header: TYPE_TIME
+		t/time:   time
+		t
+	]
+	
+	box: func [
+		time	[float!]								;-- in nanoseconds
+		return: [red-time!]
+	][
+		make-at time stack/arguments
+	]
+	
+	push: func [
+		time	[float!]								;-- in nanoseconds
+		return: [red-time!]
+		/local
+			t [red-time!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/push"]]
+		
+		make-at time stack/push*
 	]
 	
 	;-- Actions --
 	
+	mold: func [
+		t		[red-time!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part 	[integer!]
+		indent	[integer!]
+		return: [integer!]
+		/local
+			formed [c-string!]
+			sec	   [float!]
+			rem	   [float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/mold"]]
+		
+		sec: t/time * nano
+		rem: sec // 3600.0
+		
+		formed: integer/form-signed float/to-integer sec / 3600.0
+		string/concatenate-literal buffer formed
+		part: part - length? formed						;@@ optimize by removing length?
+
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+
+		formed: integer/form-signed float/to-integer rem / 60.0
+		string/concatenate-literal buffer formed
+		part - 1 - length? formed						;@@ optimize by removing length?
+		
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		
+		formed: float/form-float rem // 60.0 float/FORM_FLOAT_64
+		string/concatenate-literal buffer formed
+		part - 1 - length? formed						;@@ optimize by removing length?
+		
+		part
+	]
 	
 	init: does [
 		datatype/register [
@@ -33,7 +98,7 @@ time: context [
 			null			;reflect
 			null			;to
 			null			;form
-			null			;mold
+			:mold
 			null			;eval-path
 			null			;set-path
 			null			;compare

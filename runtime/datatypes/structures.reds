@@ -303,3 +303,9 @@ red-date!: alias struct! [
 	date	[integer!]								;-- year:19 (signed), month:4, day:5, TZ:5 (signed) 
 	time	[float!]								;-- 64-bit float
 ]
+
+red-time!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- for compatibility with date!
+	time	[float!]								;-- 64-bit float
+]

@@ -21,6 +21,51 @@ system/lexer: context [
 		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
 	]
+	
+	make-hm: routine [h [integer!] m [integer!]][
+		time/box (integer/to-float h) * 3600.0
+			+ ((integer/to-float m) * 60.0)
+			/ time/nano
+	]
+	
+	make-msf: routine [m [integer!] s [float!]][
+		time/box ((integer/to-float m) * 60.0) + s / time/nano
+	]
+	
+	make-hms: routine [h [integer!] m [integer!] s [integer!]][
+		time/box (integer/to-float h) * 3600.0
+			+ ((integer/to-float m) * 60.0)
+			+ (integer/to-float s)
+			/ time/nano
+	]
+	
+	make-hmsf: routine [h [integer!] m [integer!] s [float!]][
+		time/box (integer/to-float h) * 3600.0
+			+ ((integer/to-float m) * 60.0)
+			+ s / time/nano
+	]
+	
+	make-time: func [
+		hours	[integer! none!]
+		mins	[integer!]
+		secs	[integer! float! none!]
+		return: [time!]
+	][
+		case [
+			all [hours secs][
+				either float? secs [
+					make-hmsf hours mins secs
+				][
+					make-hms hours mins secs
+				]
+			]
+			hours [make-hm hours mins]
+			'else [
+				unless float? secs []					;@@ TBD: error
+				make-msf mins secs
+			]
+		]
+	]
 
 	make-binary: routine [
 		start  [string!]
@@ -390,7 +435,7 @@ system/lexer: context [
 				#"^(00)" - #"^(08)"						;-- (exclude TAB)
 				#"^(0A)" - #"^(1F)"
 			]
-			cs/13: charset {^{"[]();xX}					;-- integer-end
+			cs/13: charset {^{"[]();:xX}				;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 			cs/16: charset [ 							;-- Control characters
@@ -662,11 +707,20 @@ system/lexer: context [
 		]
 		hexa-rule: [2 8 hexa e: #"h"]
 
-		tuple-value-rule: [
-			byte 2 11 [dot byte] e: (type: tuple!)
-		]
+		tuple-value-rule: [byte 2 11 [dot byte] e: (type: tuple!)]
 
 		tuple-rule: [tuple-value-rule sticky-word-rule]
+		
+		time-rule: [
+			s: integer-number-rule [
+				float-number-rule (value: make-time none value make-number s e type) ;-- mm:ss.dd
+				| (value2: make-number s e type) [
+					#":" s: integer-number-rule opt float-number-rule
+					  (value: make-time value value2 make-number s e type)			 ;-- hh:mm:ss[.dd]
+					| (value: make-time value value2 none)							 ;-- hh:mm
+				]
+			] (type: time!)
+		]
 
 		integer-number-rule: [
 			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
@@ -683,6 +737,7 @@ system/lexer: context [
 				[#"x" | #"X"] s: integer-number-rule
 				(value: as-pair value make-number s e type)
 			  ]
+			  opt [#":" time-rule]
 		]
 
 		float-special: [
