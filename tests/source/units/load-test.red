@@ -62,9 +62,10 @@ Red [
 	--test-- "load-42"	--assert "-9.3e-9"		= mold load "-93E-10"
 	--test-- "load-43"	--assert "0.0"			= mold load "2183167012312112312312.23538020374420446192e-370"
 	--test-- "load-44"	--assert 1.3			== load "1,3"
-	;--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
-	;--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
-
+comment { #2009
+	--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
+	--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
+}
 ===end-group===
 
 ===start-group=== "Load integer tests"
