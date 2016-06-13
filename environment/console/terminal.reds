@@ -955,7 +955,7 @@ terminal: context [
 		]
 
 		out: vt/out
-		out: either all [out/full? zero? out/count][out][null]
+		out: either out/full? [out][null]
 		cut-red-string vt/out/data len out
 		emit-string vt input yes yes
 		input/head: vt/prompt-len
