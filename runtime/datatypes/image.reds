@@ -163,6 +163,8 @@ image: context [
 		h: IMAGE_HEIGHT(img/size)
 		sz: either alpha? [w * h][w * h * 3]
 		bin: binary/make-at stack/push* sz
+		if zero? sz [return bin]
+
 		s: GET_BUFFER(bin)
 		s/tail: as cell! (as byte-ptr! s/tail) + sz
 		p: as byte-ptr! s/offset
@@ -219,6 +221,8 @@ image: context [
 	][
 		w: IMAGE_WIDTH(img/size)
 		h: IMAGE_HEIGHT(img/size)
+
+		if w * h = 0 [return bin]
 
 		type: TYPE_OF(bin)
 
@@ -414,9 +418,14 @@ image: context [
 		string/concatenate-literal buffer formed
 		part: part - length? formed
 
+		if null? img/node [							;-- empty image
+			string/concatenate-literal buffer " #{}]"
+			return part - 5
+		]
+
 		string/append-char GET_BUFFER(buffer) as-integer space
 		string/concatenate-literal buffer "#{^/"
-		part: part - 5
+		part: part - 4
 
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
@@ -451,7 +460,7 @@ image: context [
 		if alpha? [
 			string/append-char GET_BUFFER(buffer) as-integer space
 			string/concatenate-literal buffer "#{^/"
-			part: part - 5
+			part: part - 4
 			x: offset % width
 			y: offset / width
 			count: 0

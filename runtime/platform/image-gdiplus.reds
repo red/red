@@ -453,6 +453,7 @@ OS-image: context [
 			bitmap	[integer!]
 			pos		[integer!]
 	][
+		if any [zero? width zero? height][return null]
 		bitmap: 0
 		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
 		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
@@ -600,38 +601,42 @@ OS-image: context [
 			bmp		[integer!]
 			format	[integer!]
 	][
-		width: IMAGE_WIDTH(src/size)
-		height: IMAGE_WIDTH(src/size)
-		offset: src/head
-		x: offset % width
-		y: offset / width
-		handle: as-integer src/node
 		bmp: 0
+		dst/size: 0
 
-		either all [zero? offset not part?][
-			GdipCloneImage handle :bmp
-			dst/size: src/size
-		][
-			format: 0
-			GdipGetImagePixelFormat handle :format
-			either all [part? TYPE_OF(size) = TYPE_PAIR][
-				w: width - x
-				h: height - y
-				if size/x < w [w: size/x]
-				if size/y < h [h: size/y]
-				GdipCloneBitmapAreaI x y w h format handle :bmp
+		if part <> 0 [
+			width: IMAGE_WIDTH(src/size)
+			height: IMAGE_WIDTH(src/size)
+			offset: src/head
+			x: offset % width
+			y: offset / width
+			handle: as-integer src/node
+
+			either all [zero? offset not part?][
+				GdipCloneImage handle :bmp
+				dst/size: src/size
 			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
+				format: 0
+				GdipGetImagePixelFormat handle :format
+				either all [part? TYPE_OF(size) = TYPE_PAIR][
+					w: width - x
+					h: height - y
+					if size/x < w [w: size/x]
+					if size/y < h [h: size/y]
+					GdipCloneBitmapAreaI x y w h format handle :bmp
+				][
+					either part < width [h: 1 w: part][
+						h: part / width
+						w: width
+					]
+					if zero? part [w: 1]
+					GdipCreateBitmapFromScan0 w h 0 format null :bmp
+					either zero? part [w: 0 h: 0][
+						copy bmp handle w * h offset format
+					]
 				]
-				if zero? part [w: 1]
-				GdipCreateBitmapFromScan0 w h 0 format null :bmp
-				either zero? part [w: 0 h: 0][
-					copy bmp handle w * h offset format
-				]
+				dst/size: h << 16 or w
 			]
-			dst/size: h << 16 or w
 		]
 
 		dst/header: TYPE_IMAGE
