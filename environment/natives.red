@@ -818,7 +818,7 @@ set-env: make native! [[
 
 get-env: make native! [[
 		"Returns the value of an OS environment variable (for current process)"
-		var		[any-string! any-word!] "Variable to set"
+		var		[any-string! any-word!] "Variable to get"
 		return: [string! none!]
 	]
 	#get-definition NAT_GET_ENV
