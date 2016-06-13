@@ -247,7 +247,7 @@ time: context [
 	init: does [
 		datatype/register [
 			TYPE_TIME
-			TYPE_VALUE
+			TYPE_FLOAT
 			"time!"
 			;-- General actions --
 			:make
@@ -258,17 +258,17 @@ time: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
-			null			;absolute
-			null			;add
-			null			;divide
-			null			;multiply
-			null			;negate
-			null			;power
-			null			;remainder
-			null			;round
-			null			;subtract
+			INHERIT_ACTION	;absolute
+			INHERIT_ACTION	;add
+			INHERIT_ACTION	;divide
+			INHERIT_ACTION	;multiply
+			INHERIT_ACTION	;negate
+			INHERIT_ACTION	;power
+			INHERIT_ACTION	;remainder
+			INHERIT_ACTION	;round
+			INHERIT_ACTION	;subtract
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --

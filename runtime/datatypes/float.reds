@@ -261,6 +261,8 @@ float: context [
 			type1 [integer!]
 			type2 [integer!]
 			int   [red-integer!]
+			op1	  [float!]
+			op2	  [float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
@@ -274,6 +276,7 @@ float: context [
 			type1 = TYPE_INTEGER
 			type1 = TYPE_FLOAT
 			type1 = TYPE_PERCENT
+			type1 = TYPE_TIME
 		]
 
 		if type2 = TYPE_TUPLE [
@@ -285,6 +288,7 @@ float: context [
 			type2 = TYPE_CHAR
 			type2 = TYPE_FLOAT
 			type2 = TYPE_PERCENT
+			type2 = TYPE_TIME
 		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
 
 		if type1 = TYPE_INTEGER [
@@ -306,8 +310,16 @@ float: context [
 		][
 			left/header: TYPE_FLOAT
 		]
+		
+		op1: left/value
+		op2: right/value
+		
+		if type1 = TYPE_TIME [op1: op1 * time/nano]
+		if type2 = TYPE_TIME [op2: op2 * time/nano]
 
-		left/value: do-math-op left/value right/value type
+		left/value: do-math-op op1 op2 type
+		
+		if type1 = TYPE_TIME [left/value: left/value * time/oneE9]
 		left
 	]
 
