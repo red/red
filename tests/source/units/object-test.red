@@ -1886,12 +1886,12 @@ Red [
 			--assert 'b = in ino1/o/o/o 'b
 			--assert 'f = in ino1/o/o/o 'f
 			--assert 's = in ino1/o/o/o 's
-comment { ######################################################################		
+		
 		--test-- "loc-in5"
 			in5-f: func[] [make object! [a: 1]]
-			--assert 1 = get in in5-f 'a	
-		######################################################################## }
-
+			if system/state/interpreted? [
+				--assert 1 = get in in5-f 'a	
+			]
 	]
 
 	local-obj-fun
@@ -2109,9 +2109,7 @@ comment { ######################################################################
 		ocs4-o: make object! [a: 1]
 		--assert 'A = in ocs4-o 'A
 		--assert 'a = in ocs4-o 'A
-		;; the following assertions are commented out as in ocs4-o 'A returns 'A not 'a
-		;--assert 'a == in ocs4-o 'A
-		;--assert not ('A == in ocs4-o 'A)
+		--assert 'A == in ocs4-o 'A
 
 ===end-group===
 
