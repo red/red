@@ -1367,6 +1367,7 @@ change-rate: func [
 	/local
 		int [red-integer!]
 		tm  [red-time!]
+		t												;@@ workaround R/S bug
 ][
 	switch TYPE_OF(rate) [
 		TYPE_INTEGER [
@@ -1379,7 +1380,8 @@ change-rate: func [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
 			KillTimer hWnd null
-			SetTimer hWnd null float/to-integer tm/time * 1E6 :TimerProc
+			t: tm/time
+			SetTimer hWnd null float/to-integer t / 1E6 :TimerProc
 		]
 		TYPE_NONE [KillTimer hWnd null]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
