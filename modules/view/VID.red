@@ -123,6 +123,7 @@ system/view/VID: context [
 		calc-y?: no
 		
 		obj-spec!: make typeset! [block! object!]
+		rate!: make typeset! [integer! time!]
 		set opts none
 		
 		;-- process style options --
@@ -149,6 +150,7 @@ system/view/VID: context [
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enable?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec: next spec)
+				| 'rate		  (opts/rate: fetch-argument rate! spec: next spec)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]
@@ -267,7 +269,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
-			font: flags: options: para: data: extra: actors: draw: none
+			rate: font: flags: options: para: data: extra: actors: draw: none
 		]
 		
 		reset: [
