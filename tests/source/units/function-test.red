@@ -541,7 +541,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         --assert 1 = ff11-i
     ]
 ]        
- 
+comment { 
     --test-- "funfun12"
         ff12-i: 1
         ff12-f: function [] [
@@ -584,7 +584,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 2 = ff15-f
         --assert 1 = ff15-i     
-
+}
                                                     
 if system/state/interpreted? [                      ;-- not yet supported by compiler
 	do [
