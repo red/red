@@ -86,43 +86,43 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! pair!]
-		return:  [number! pair!]
+		value	 [number! pair! time!]
+		return:  [number! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair! tuple! vector!] "The dividend (numerator)"
-		value2	 [number! char! pair! tuple! vector!] "The divisor (denominator)"
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2	 [number! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! bitset! pair!]
-		return:  [number! bitset! pair!]
+		number 	 [number! bitset! pair! time!]
+		return:  [number! bitset! pair! time!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -138,16 +138,16 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair! tuple! vector!]
-		value2 	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1 	 [number! char! pair! tuple! vector! time!]
+		value2 	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number!]
+		n		[number! time!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
@@ -162,9 +162,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_SUBTRACT
 ]

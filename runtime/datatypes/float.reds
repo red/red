@@ -608,6 +608,7 @@ float: context [
 				int: as red-integer! value2
 				right: integer/to-float int/value
 			]
+			TYPE_TIME
 			TYPE_PERCENT
 			TYPE_FLOAT [right: value2/value]
 			default [RETURN_COMPARE_OTHER]
