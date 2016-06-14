@@ -16,7 +16,7 @@ system/lexer: context [
 		type: spec/1									;-- preserve lit-words from double reduction
 		spec: reduce spec
 		src: back tail spec
-		src/1: either string? src/1 [form/part trim/all copy src/1 40][mold/flat/part src/1 40]
+		src/1: either string? src/1 [form/part trim/with copy src/1 40 lf][mold/flat/part src/1 40]
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
 		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
@@ -737,7 +737,7 @@ system/lexer: context [
 				[#"x" | #"X"] s: integer-number-rule
 				(value: as-pair value make-number s e type)
 			  ]
-			  opt [#":" [time-rule | (throw-error [type s])]]
+			  opt [#":" [time-rule | (throw-error [type pos])]]
 		]
 
 		float-special: [

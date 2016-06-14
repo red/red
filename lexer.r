@@ -282,7 +282,7 @@ lexer: context [
 				s: integer-number-rule
 				(value2/2: load-number copy/part s e value: value2)
 			]
-			opt [#":" [time-rule | (pos: s throw-error)]]
+			opt [#":" [time-rule | (throw-error)]]
 	]
 
 	decimal-special: [
