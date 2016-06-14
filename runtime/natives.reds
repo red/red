@@ -2336,6 +2336,29 @@ natives: context [
 		list-env
 	]
 
+	now*: func [
+		check?	[logic!]
+		year	[integer!]
+		month	[integer!]
+		day		[integer!]
+		time	[integer!]
+		zone	[integer!]
+		date	[integer!]
+		weekday	[integer!]
+		yearday	[integer!]
+		precise	[integer!]
+		utc		[integer!]
+		/local
+			dt	[red-date!]
+	][
+		#typecheck [now year month day time zone date weekday yearday precise utc]
+		if time = -1 [--NOT_IMPLEMENTED--]
+
+		dt: as red-date! stack/arguments
+		dt/header: TYPE_TIME
+		dt/time: platform/get-time utc >= 0 precise >= 0
+	]
+
 	;--- Natives helper functions ---
 
 	argument-as-float: func [
@@ -2797,6 +2820,7 @@ natives: context [
 			:set-env*
 			:get-env*
 			:list-env*
+			:now*
 		]
 	]
 
