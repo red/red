@@ -155,9 +155,9 @@ time: context [
 		
 		formed: float/form-float GET_SECONDS(time) float/FORM_FLOAT_64
 		len: length? formed								;@@ optimize by removing length?
-		if len = 1 [
+		if formed/2 = #"." [
 			string/append-char GET_BUFFER(buffer) as-integer #"0"
-			len: 2
+			len: len + 1
 		]
 		string/concatenate-literal buffer formed
 		part - 1 - len
