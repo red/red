@@ -791,11 +791,9 @@ WndProc: func [
 		winpos [tagWINDOWPOS]
 		w-type [red-word!]
 ][
-	either msg <> WM_NCCREATE [
+	type: either no-face? hWnd [panel][
 		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
-		type: symbol/resolve w-type/symbol
-	][
-		type: window
+		symbol/resolve w-type/symbol
 	]
 	switch msg [
 		WM_NCCREATE [
