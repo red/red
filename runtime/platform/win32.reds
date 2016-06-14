@@ -50,6 +50,13 @@ platform: context [
 		SuppressExternalCodecs		[integer!]
 	]
 
+	tagSYSTEMTIME: alias struct! [
+		year-month	[integer!]
+		week-day	[integer!]
+		hour-minute	[integer!]
+		second		[integer!]
+	]
+
 	gdiplus-token: 0
 	page-size: 4096
 
@@ -154,6 +161,12 @@ platform: context [
 				nSize			[integer!]
 				Argument		[integer!]
 				return:			[integer!]
+			]
+			GetSystemTime: "GetSystemTime" [
+				time			[tagSYSTEMTIME]
+			]
+			GetLocalTime: "GetLocalTime" [
+				time			[tagSYSTEMTIME]
 			]
 			LocalFree: "LocalFree" [
 				hMem			[integer!]
@@ -277,6 +290,28 @@ platform: context [
 		return: [integer!]
 	][
 		GetEnvironmentVariable name value valsize
+	]
+
+	get-time: func [
+		utc?	 [logic!]
+		precise? [logic!]
+		return:  [float!]
+		/local
+			time	[tagSYSTEMTIME]
+			h		[integer!]
+			m		[integer!]
+			sec		[integer!]
+			milli	[integer!]
+			t		[float!]
+	][
+		time: declare tagSYSTEMTIME
+		either utc? [GetSystemTime time][GetLocalTime time]
+		h: time/hour-minute and FFFFh
+		m: time/hour-minute >>> 16
+		sec: time/second and FFFFh
+		milli: either precise? [time/second >>> 16][0]
+		t: integer/to-float h * 3600 + (m * 60) + sec * 1000 + milli
+		t * 1000000.0				;-- nano second
 	]
 
 	;-------------------------------------------

@@ -830,3 +830,20 @@ list-env: make native! [[
 	]
 	#get-definition NAT_LIST_ENV
 ]
+
+now: make native! [[
+		"Returns date and time"
+		/year		"Returns year only"
+		/month		"Returns month only"
+		/day		"Returns day of the month only"
+		/time		"Returns time only"
+		/zone		"Returns time zone offset from UCT (GMT) only"
+		/date		"Returns date only"
+		/weekday	"Returns day of the week as integer (Monday is day 1)"
+		/yearday	"Returns day of the year (Julian)"
+		/precise	"High precision time"
+		/utc		"Universal time (no zone)"
+		return: [time!]					;@@ add date! when we have it
+	]
+	#get-definition NAT_NOW
+]

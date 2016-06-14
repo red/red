@@ -234,6 +234,7 @@ Red/System [
 	NAT_SET_ENV
 	NAT_GET_ENV
 	NAT_LIST_ENV
+	NAT_NOW
 ]
 
 #enum math-op! [
