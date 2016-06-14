@@ -526,7 +526,12 @@ trim: make action! [[
 
 ;-- I/O actions --
 
-;create
+create: make action! [[
+		"Send port a create request"
+		port	[file!]
+	]
+	#get-definition ACT_CREATE
+]
 ;close
 ;delete
 ;open

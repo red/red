@@ -1547,7 +1547,20 @@ actions: context [
 		action-trim series head? tail? auto? lines? all? with-arg
 	]
 
-	create*: func [][]
+	create*: func [][create stack/arguments]
+
+	create: func [
+		src [red-value!]
+		/local
+			action-create
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/create"]]
+
+		action-create: as function! [src [red-value!]] get-action-ptr src ACT_CREATE
+		action-create src
+		src/header: TYPE_UNSET				;-- set return value to unset!
+	]
+
 	close*: func [][]
 	delete*: func [][]
 	open*: func [][]
@@ -1723,7 +1736,7 @@ actions: context [
 			:take*
 			:trim*
 			;-- I/O actions --
-			null			;create
+			:create*
 			null			;close
 			null			;delete
 			:modify*

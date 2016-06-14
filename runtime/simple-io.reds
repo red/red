@@ -140,6 +140,11 @@ simple-io: context [
 					template	[int-ptr!]
 					return:		[integer!]
 				]
+				CreateDirectory: "CreateDirectoryW" [
+					pathname	[c-string!]
+					sa			[int-ptr!]
+					return:		[logic!]
+				]
 				ReadFile:	"ReadFile" [
 					file		[integer!]
 					buffer		[byte-ptr!]
@@ -177,7 +182,7 @@ simple-io: context [
 				]
 				CloseHandle:	"CloseHandle" [
 					obj			[integer!]
-					return:		[integer!]
+					return:		[logic!]
 				]
 				SetFilePointer: "SetFilePointer" [
 					file		[integer!]
@@ -584,6 +589,10 @@ simple-io: context [
 					offset		[integer!]
 					whence		[integer!]
 				]
+				mkdir: "mkdir" [
+					pathname	[c-string!]
+					return:		[integer!]
+				]
 				opendir: "opendir" [
 					filename	[c-string!]
 					return:		[integer!]
@@ -613,6 +622,17 @@ simple-io: context [
 					return:		[c-string!]
 				]
 			]
+		]
+	]
+
+	make-dir: func [
+		path	[c-string!]
+		return: [logic!]
+	][
+		#either OS = 'Windows [
+			CreateDirectory path null
+		][
+			zero? mkdir path 511			;-- 0777
 		]
 	]
 	
@@ -741,12 +761,12 @@ simple-io: context [
 	
 	close-file: func [
 		file	[integer!]
-		return:	[integer!]
+		return:	[logic!]
 	][
 		#either OS = 'Windows [
 			CloseHandle file
 		][
-			_close file
+			zero? _close file
 		]
 	]
 
@@ -1024,6 +1044,22 @@ simple-io: context [
 			]
 			closedir handle
 			blk
+		]
+	]
+
+	create: func [
+		pathname [red-file!]
+		return:  [logic!]
+		/local
+			lpath	[c-string!]
+			handle	[integer!]
+	][
+		lpath: file/to-OS-path pathname
+		either dir? pathname [
+			make-dir lpath
+		][
+			handle: open-file lpath RIO_NEW yes
+			either handle > 0 [close-file handle][false]
 		]
 	]
 
