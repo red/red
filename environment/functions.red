@@ -116,6 +116,7 @@ routine?:	 func ["Returns true if the value is this type" value [any-type!]] [ro
 set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [set-path!	= type? :value]
 set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
+time?:		 func ["Returns true if the value is this type" value [any-type!]] [time!		= type? :value]
 typeset?:	 func ["Returns true if the value is this type" value [any-type!]] [typeset!	= type? :value]
 tuple?:		 func ["Returns true if the value is this type" value [any-type!]] [tuple!		= type? :value]
 unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
