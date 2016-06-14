@@ -501,7 +501,12 @@ emitter: make-profilable context [
 		if all [not with system-path? path value][exit]
 
 		either 2 = length? path [
-			type: first compiler/resolve-type/with path/1 parent
+			type: first either parent [
+				compiler/resolve-type/with path/1 parent
+			][
+				compiler/resolve-type path/1
+			]
+			
 			if all [type = 'struct! parent][
 				parent: resolve-path-head path parent
 			]

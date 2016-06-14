@@ -1577,7 +1577,7 @@ make-profilable make target-class [
 		
 		reversed?: to logic! any [
 			all [b = 'reg any [all [a = 'ref block? right] all [a = 'imm block? right]]]
-			all [a = 'reg any [all [b = 'ref path? left] all [b = 'imm path? left]]]
+			all [a = 'reg b = 'ref path? left]
 		]
 		
 		case [
