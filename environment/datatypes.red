@@ -56,6 +56,7 @@ percent!:		make datatype! #get-definition TYPE_PERCENT
 tuple!:			make datatype! #get-definition TYPE_TUPLE
 event!:			make datatype! #get-definition TYPE_EVENT
 image!:			make datatype! #get-definition TYPE_IMAGE
+time!:			make datatype! #get-definition TYPE_TIME
 
 none:  			make none! 0
 true:  			make logic! 1

@@ -439,6 +439,10 @@ words: context [
 	size:			-1
 	rgb:			-1
 	alpha:			-1
+	
+	hour:			-1
+	minute:			-1
+	second:			-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -615,6 +619,10 @@ words: context [
 		size:			symbol/make "size"
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
+		
+		hour:			symbol/make "hour"
+		minute:			symbol/make "minute"
+		second:			symbol/make "second"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

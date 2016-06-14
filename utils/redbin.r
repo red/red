@@ -116,9 +116,9 @@ context [
 		emit to integer! value
 	]
 	
-	emit-float: func [value [decimal!] /local bin][
+	emit-float: func [value [decimal!] /with type /local bin][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT
+		emit-type any [type 'TYPE_FLOAT]
 		bin: IEEE-754/to-binary64 value
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
@@ -142,6 +142,10 @@ context [
 		bin: IEEE-754/to-binary64 value / 100.0
 		emit to integer! copy/part bin 4
 		emit to integer! skip bin 4
+	]
+	
+	emit-time: func [value [time!]][
+		emit-float/with (to decimal! value) * 1E9 'TYPE_TIME
 	]
 
 	emit-char: func [value [integer!]][
@@ -365,6 +369,7 @@ context [
 						tuple!	  [emit-tuple item]
 						datatype! [emit-datatype item]
 						logic!	  [emit-logic item]
+						time!	  [emit-time item]
 						none! 	  [emit-none]
 						unset! 	  [emit-unset]
 					]

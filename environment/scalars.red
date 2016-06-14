@@ -34,7 +34,7 @@ Rebol: false											;-- makes loading Rebol scripts easier
 
 internal!:		make typeset! [unset! event!]
 number!:		make typeset! [integer! float! percent!]
-scalar!:		union number! make typeset! [char! pair! tuple!]
+scalar!:		union number! make typeset! [char! pair! tuple! time!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]
 any-list!:		make typeset! [block! paren! hash!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]

@@ -90,7 +90,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]();xX}
+	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
 	stop: 		    none
 
@@ -113,9 +113,7 @@ lexer: context [
 	ws: [
 		pos: #"^/" (
 			if count? [
-				line: line + 1 
-				;append/only lines stack/tail?
-				;new-line stack/tail? yes
+				line: line + 1
 				stack/nl?: yes
 			]
 		)
@@ -251,6 +249,17 @@ lexer: context [
 	]
 
 	tuple-rule: [tuple-value-rule sticky-word-rule]
+	
+	time-rule: [
+		s: integer-number-rule [
+			decimal-number-rule (value: as-time 0 value load-number copy/part s e) ;-- mm:ss.dd
+			| (value2: load-number copy/part s e) [
+				#":" s: integer-number-rule opt decimal-number-rule
+				  (value: as-time value value2 load-number copy/part s e)	;-- hh:mm:ss[.dd]
+				| (value: as-time value value2 0)							;-- hh:mm
+			]
+		] (type: time!)
+	]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -273,6 +282,7 @@ lexer: context [
 				s: integer-number-rule
 				(value2/2: load-number copy/part s e value: value2)
 			]
+			opt [#":" [time-rule | (pos: s throw-error)]]
 	]
 
 	decimal-special: [
@@ -521,10 +531,6 @@ lexer: context [
 		either encap? [quit][halt]
 	]
 
-	add-line-markers: func [blk [block!]][
-		foreach pos lines [new-line pos yes]
-		clear lines
-	]
 	
 	pad-head: func [s [string!]][
 		head insert/dup s #"0" 8 - length? s
@@ -617,6 +623,10 @@ lexer: context [
 	decode-hexa: func [s [string!]][
 		to integer! debase/base s 16
 	]
+	
+	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
+		to time! reduce [h m s]
+	]
 
 	load-number: func [s [string!]][
 		switch/default type [
@@ -672,12 +682,9 @@ lexer: context [
 	process: func [src [string! binary!] /local blk][
 		old-line: line: 1
 		count?: yes
-		
 		blk: stack/allocate block! 100				;-- root block
-
-		unless parse/all/case src program [throw-error]
 		
-		;add-line-markers blk
+		unless parse/all/case src program [throw-error]
 		stack/reset
 		blk
 	]

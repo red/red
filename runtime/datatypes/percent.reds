@@ -104,7 +104,7 @@ percent: context [
 			int	 [red-integer!]
 			fl	 [red-float!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_PERCENT [

@@ -112,6 +112,7 @@ write %build/bin/sources.r set-cache [
 			%string.reds
 			%structures.reds
 			%symbol.reds
+			%time.reds
 			%typeset.reds
 			%tuple.reds
 			%unset.reds
