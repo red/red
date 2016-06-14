@@ -151,6 +151,7 @@ system: context [
 				bad-window:			"VIEW - a window face cannot be nested in another window"
 				not-linked:			"VIEW - face not linked to a window"
 				not-event-type:		["VIEW - not a valid event type" :arg1]
+				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive function has not enough arguments"

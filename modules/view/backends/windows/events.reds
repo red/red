@@ -766,6 +766,16 @@ set-window-info: func [
 	ret?
 ]
 
+TimerProc: func [
+	hWnd   [handle!]
+	msg	   [integer!]
+	id	   [int-ptr!]
+	dwTime [integer!]
+][
+	current-msg/hWnd: hWnd
+	make-event current-msg 0 EVT_TIME
+]
+
 WndProc: func [
 	hWnd	[handle!]
 	msg		[integer!]

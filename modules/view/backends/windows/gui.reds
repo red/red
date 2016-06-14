@@ -10,6 +10,24 @@ Red/System [
 	}
 ]
 
+;; ===== Extra slots usage in Window structs =====
+;;
+;;		-60 :							<- TOP
+;;		-20 : evolved-base-layered: child handle
+;;		-16 : base-layered: owner handle
+;;		-12 : base-layered: clipped? flags
+;;		 -8  : base-layered: screen pos Y
+;;		 -4  : camera (camera!)
+;;				console (terminal!)
+;;				base: bitmap cache | base-layered: screen pos X
+;;				draw (old-dc)
+;;				group-box (frame hWnd)
+;;		  0   : |
+;;		  4   : |__ face!
+;;		  8   : |
+;;		  12  : |
+;;		  16  : FACE_OBJ_FLAGS        <- BOTTOM
+
 #include %win32.reds
 #include %classes.reds
 #include %events.reds
@@ -782,6 +800,7 @@ OS-make-view: func [
 		enable?	  [red-logic!]
 		selected  [red-integer!]
 		para	  [red-object!]
+		rate	  [red-value!]
 		flags	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
@@ -814,6 +833,7 @@ OS-make-view: func [
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
+	rate:	  					values + FACE_OBJ_RATE
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
@@ -1057,6 +1077,7 @@ OS-make-view: func [
 		sym = window [init-window handle offset size bits]
 		true [0]
 	]
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle rate]
 
 	SetWindowLong handle wc-offset + 16 get-flags as red-block! values + FACE_OBJ_FLAGS
 	stack/unwind
@@ -1340,6 +1361,31 @@ change-data: func [
 	]
 ]
 
+change-rate: func [
+	hWnd [handle!]
+	rate [red-value!]
+	/local
+		int [red-integer!]
+		tm  [red-time!]
+][
+	switch TYPE_OF(rate) [
+		TYPE_INTEGER [
+			int: as red-integer! rate
+			if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+			KillTimer hWnd null
+			SetTimer hWnd null 1000 / int/value :TimerProc
+		]
+		TYPE_TIME [
+			tm: as red-time! rate
+			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+			KillTimer hWnd null
+			SetTimer hWnd null float/to-integer tm/time * 1E6 :TimerProc
+		]
+		TYPE_NONE [KillTimer hWnd null]
+		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
+	]
+]
+
 change-faces-parent: func [
 	pane   [red-block!]
 	parent [red-object!]
@@ -1569,6 +1615,9 @@ OS-update-view: func [
 				null
 		]
 	]
+	if flags and FACET_FLAG_RATE <> 0 [
+		change-rate hWnd values + FACE_OBJ_RATE
+	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		set-font hWnd face values
 		InvalidateRect hWnd null 1
@@ -1598,6 +1647,7 @@ OS-destroy-view: func [
 		handle [handle!]
 		values [red-value!]
 		obj	   [red-object!]
+		rate   [red-value!]
 		flags  [integer!]
 ][
 	handle: get-face-handle face
@@ -1606,6 +1656,8 @@ OS-destroy-view: func [
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		SetActiveWindow GetWindow handle GW_OWNER
 	]
+	rate: values + FACE_OBJ_RATE
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
 
 	free-handles handle
 

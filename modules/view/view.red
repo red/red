@@ -229,7 +229,7 @@ update-font-faces: function [parent [block! none!]][
 		foreach f parent [
 			if f/state [
 				system/reactivity/check/only f 'font
-				f/state/2: f/state/2 or 00040000h		;-- (1 << ((index? in f 'font) - 1))
+				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
 				show f
 			]
 		]
@@ -253,7 +253,7 @@ face!: object [				;-- keep in sync with facet! enum
 	parent:		none
 	pane:		none
 	state:		none		;-- [handle [integer! none!] change-array [integer!] deferred [block! none!] drag-offset [pair! none!]]
-	;rate:		none		;@@ to be considered
+	rate:		none
 	edge:		none
 	para:		none
 	font:		none
@@ -412,6 +412,7 @@ system/view: context [
 	
 	evt-names: make hash! [
 		detect			on-detect
+		time			on-time
 		down			on-down
 		up				on-up
 		mid-down		on-mid-down
