@@ -92,7 +92,11 @@ tm!: alias struct! [
 			return: [integer!]			;-- 0: success -1: failure
 		]
 		gmtime: "gmtime" [
-			tv_sec	[integer!]
+			tv_sec	[int-ptr!]
+			return: [tm!]
+		]
+		localtime: "localtime" [
+			tv_sec	[int-ptr!]
 			return: [tm!]
 		]
 	]
@@ -346,18 +350,14 @@ get-time: func [
 	/local
 		time	[timeval!]
 		tm		[tm!]
-		sec		[integer!]
-		milli	[integer!]
+		micro	[float!]
 		t		[float!]
 ][
 	time: declare timeval!
 	gettimeofday time 0
-	sec: time/tv_sec
-	if utc? [
-		tm: gmtime sec
-		sec: tm/hour * 3600 + (tm/min * 60) + tm/sec
-	]
-	milli: either precise? [time/tv_usec][0]
-	t: integer/to-float sec * 1000 + milli
-	t * 1E6				;-- nano second
+	tm: either utc? [gmtime as int-ptr! time][localtime as int-ptr! time]
+	micro: 0.0
+	if precise? [micro: integer/to-float time/tv_usec]
+	t: integer/to-float tm/hour * 3600 + (tm/min * 60) + tm/sec * 1000
+	t * 1E3 + micro * 1E3			;-- nano second
 ]

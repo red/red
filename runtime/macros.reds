@@ -54,8 +54,8 @@ Red/System [
 	TYPE_MAP											;-- 28		40
 	TYPE_BINARY											;-- 29		41
 	TYPE_SERIES											;-- 2A		42
-	TYPE_IMAGE											;-- 2B		43
-	TYPE_TIME											;-- 2C		44
+	TYPE_TIME											;-- 2B		43
+	TYPE_IMAGE											;-- 2C		44
 	TYPE_EVENT											;-- 2D		45
 	TYPE_CLOSURE
 	TYPE_PORT
