@@ -260,6 +260,15 @@ file: context [
 	]
 
 	;-- I/O actions
+
+	create: func [
+		port	[red-file!]
+	][
+		unless simple-io/create port [
+			fire [TO_ERROR(access cannot-open) port]
+		]
+	]
+
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
@@ -359,7 +368,7 @@ file: context [
 			INHERIT_ACTION	;take
 			null			;trim
 			;-- I/O actions --
-			null			;create
+			:create
 			null			;close
 			null			;delete
 			INHERIT_ACTION	;modify
