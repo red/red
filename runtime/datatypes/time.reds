@@ -292,7 +292,7 @@ time: context [
 			:divide
 			:multiply
 			INHERIT_ACTION	;negate
-			INHERIT_ACTION	;power
+			null			;power
 			INHERIT_ACTION	;remainder
 			INHERIT_ACTION	;round
 			INHERIT_ACTION	;subtract
