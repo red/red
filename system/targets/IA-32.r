@@ -867,7 +867,7 @@ make-profilable make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset type2
+		/local idx offset type2 spec
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
@@ -876,7 +876,9 @@ make-profilable make target-class [
 			emit-load value
 			unless all [
 				type = 'struct!
-				type2: select any [parent second compiler/resolve-type path/1] path/2
+				word? path/2
+				spec: any [parent second compiler/resolve-type path/1]
+				type2: select spec path/2
 				compiler/any-float? type2
 			][emit #{92}]							;-- XCHG eax, edx			; save value/restore address
 		]
