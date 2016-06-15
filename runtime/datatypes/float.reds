@@ -263,6 +263,8 @@ float: context [
 			int   [red-integer!]
 			op1	  [float!]
 			op2	  [float!]
+			t1?	  [logic!]
+			t2?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
@@ -314,12 +316,18 @@ float: context [
 		op1: left/value
 		op2: right/value
 		
-		if type1 = TYPE_TIME [op1: op1 * time/nano]
-		if type2 = TYPE_TIME [op2: op2 * time/nano]
+		t1?: all [type1 = TYPE_TIME type2 <> TYPE_TIME]
+		t2?: all [type1 <> TYPE_TIME type2 = TYPE_TIME]
+		
+		if t1? [op1: op1 * time/nano]
+		if t2? [op2: op2 * time/nano]
 
 		left/value: do-math-op op1 op2 type
 		
-		if type1 = TYPE_TIME [left/value: left/value * time/oneE9]
+		if any [t1? t2?][
+			left/header: TYPE_TIME
+			left/value: left/value * time/oneE9
+		]
 		left
 	]
 
