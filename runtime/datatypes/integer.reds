@@ -153,13 +153,14 @@ integer: context [
 			TYPE_OF(right) = TYPE_PERCENT
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
+			TYPE_OF(right) = TYPE_TIME
 		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
 				left/value: do-math-op left/value right/value type
 			]
-			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
+			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
 			TYPE_PAIR  [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
