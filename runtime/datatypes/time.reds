@@ -271,6 +271,23 @@ time: context [
 		as red-value! float/do-math OP_MUL
 	]
 	
+	round: func [
+		tm			[red-time!]
+		scale		[red-float!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+	][
+		tm/time: tm/time * nano
+		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
+		tm/time: tm/time * oneE9
+		as red-value! tm
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_TIME
@@ -294,7 +311,7 @@ time: context [
 			INHERIT_ACTION	;negate
 			null			;power
 			INHERIT_ACTION	;remainder
-			INHERIT_ACTION	;round
+			:round
 			INHERIT_ACTION	;subtract
 			null			;even?
 			null			;odd?
