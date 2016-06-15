@@ -624,6 +624,10 @@ natives: context [
 		only?: _only? <> -1
 		some?: _some? <> -1
 		
+		if all [any? = -1 TYPE_OF(value) = TYPE_UNSET][
+			fire [TO_ERROR(script need-value) w]
+		]
+		
 		switch TYPE_OF(w) [
 			TYPE_PATH
 			TYPE_GET_PATH
@@ -646,9 +650,7 @@ natives: context [
 				set-many blk value block/rs-length? blk only? some?
 				stack/set-last value
 			]
-			default [
-				stack/set-last _context/set w value
-			]
+			default [stack/set-last _context/set w value]
 		]
 	]
 

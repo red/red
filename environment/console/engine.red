@@ -199,7 +199,7 @@ system/console: context [
 		]
 	]
 
-	launch: function [][
+	launch: function [/local result][
 		either script: read-argument [
 			either error? script: try-do [load script][
 				print :script

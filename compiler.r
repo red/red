@@ -2883,8 +2883,8 @@ red: context [
 		emit [stack/pop 1]
 	]
 	
-	comp-set: has [name call any? case? only? some?][
-		either lit-word? pc/1 [
+	comp-set: has [name call any? case? only? some? w][
+		either all [lit-word? pc/1 not path? pc/-1][
 			name: to word! pc/1
 			either local-bound? pc/1 [
 				pc: next pc
@@ -2893,10 +2893,15 @@ red: context [
 				comp-set-word/native
 			]
 		][
-			if block? pc/1 [							;-- if words are literals, register them
+			either block? pc/1 [						;-- if words are literals, register them
 				foreach w pc/1 [
 					unless any-word? w [throw-error ["Invalid argument to SET:" mold pc/1]]
 					add-symbol w: to word! w
+					unless local-word? w [add-global w]	;-- register it as global
+				]
+			][
+				if lit-word? pc/1 [
+					add-symbol w: to word! pc/1
 					unless local-word? w [add-global w]	;-- register it as global
 				]
 			]
