@@ -501,8 +501,8 @@ red: context [
 	]
 	
 	emit-dyn-check: does [
-		emit 'stack/check-call
-		insert-lf -1
+		;emit 'stack/check-call
+		;insert-lf -1
 	]
 	
 	build-exception-handler: has [body][
