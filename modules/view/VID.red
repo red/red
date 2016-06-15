@@ -386,7 +386,7 @@ system/view/VID: context [
 			unless only [panel/pane: list]
 		]
 		either size [panel/size: size][
-			if pane-size <> 0x0 [panel/size: pane-size]
+			if pane-size <> 0x0 [panel/size: pane-size - spacing + origin]
 		]
 		if image: panel/image [
 			x: image/size/x
