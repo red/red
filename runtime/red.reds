@@ -116,9 +116,9 @@ red: context [
 	#include %utils.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
-	root:	 	declare red-block!						;-- root block
-	symbols: 	declare red-block! 						;-- symbols table
-	global-ctx: declare node!							;-- global context
+	root:	 	as red-block! 0							;-- root block
+	symbols: 	as red-block! 0 						;-- symbols table
+	global-ctx: as node! 0								;-- global context
 	verbosity:  0
 
 	;-- Booting... --

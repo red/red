@@ -20,8 +20,8 @@ names!: alias struct! [
 	word	[red-word!]								;-- datatype name as word! value
 ]
 
-name-table:   declare names! 						;-- datatype names table
-action-table: declare int-ptr!						;-- actions jump table
+name-table:	  as names! 0	 						;-- datatype names table
+action-table: as int-ptr! 0							;-- actions jump table
 
 
 set-type: func [										;@@ convert to macro?
