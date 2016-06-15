@@ -550,6 +550,30 @@ simple-io: context [
 
 		]
 
+		#either OS = 'MacOSX [
+			#import [
+				LIBC-file cdecl [
+					lseek: "lseek" [
+						file		[integer!]
+						offset-lo	[integer!]
+						offset-hi	[integer!]
+						whence		[integer!]
+						return:		[integer!]
+					]
+				]
+			]
+		][
+			#import [
+				LIBC-file cdecl [
+					lseek: "lseek" [
+						file		[integer!]
+						offset		[integer!]
+						whence		[integer!]
+						return:		[integer!]
+					]
+				]
+			]
+		]
 		#import [
 			LIBC-file cdecl [
 				_access: "access" [
@@ -578,11 +602,6 @@ simple-io: context [
 				_close:	"close" [
 					file		[integer!]
 					return:		[integer!]
-				]
-				lseek: "lseek" [
-					file		[integer!]
-					offset		[integer!]
-					whence		[integer!]
 				]
 				opendir: "opendir" [
 					filename	[c-string!]
@@ -713,10 +732,16 @@ simple-io: context [
 		file	[integer!]
 		offset	[integer!]
 	][
-		#either OS = 'Windows [
-			SetFilePointer file offset null SET_FILE_BEGIN
-		][
-			lseek file offset 0					;-- SEEK_SET
+		#case [
+			OS = 'Windows [
+				SetFilePointer file offset null SET_FILE_BEGIN
+			]
+			OS = 'MacOSX [
+				lseek file offset 0 0				;@@ offset is 64bit
+			]
+			true [
+				lseek file offset 0					;-- SEEK_SET
+			]
 		]
 	]
 
