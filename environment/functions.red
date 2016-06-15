@@ -472,9 +472,9 @@ pad: func [
 
 modulo: func [
 	"Compute a nonnegative remainder of A divided by B"
-	a		[number! char! pair! tuple! vector!]
-	b		[number! char! pair! tuple! vector!]
-	return: [number! char! pair! tuple! vector!]
+	a		[number! char! pair! tuple! vector! time!]
+	b		[number! char! pair! tuple! vector! time!]
+	return: [number! char! pair! tuple! vector! time!]
 	/local r
 ][
 	b: absolute b
