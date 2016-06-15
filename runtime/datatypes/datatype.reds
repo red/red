@@ -58,6 +58,9 @@ datatype: context [
 		name: name-table + type
 		name/buffer: as c-string! list/value			;-- store datatype string name
 		name/size: (length? name/buffer) - 1			;-- store string size (not counting terminal `!`)
+		if root <> null [								;-- checks if all datatypes have been loaded
+			name/word: word/load name/buffer
+		]
 		list: list + 1
 		count: count - 3								;-- skip the "header" data
 		
