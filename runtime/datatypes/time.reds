@@ -244,6 +244,33 @@ time: context [
 		]
 	]
 	
+	divide: func [
+		return: [red-value!]
+		/local
+			slot  [red-value!]
+			time? [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/divide"]]
+		slot: stack/arguments + 1
+		time?: TYPE_OF(slot) = TYPE_TIME
+		slot: as red-value! float/do-math OP_DIV
+		if time? [slot/header: TYPE_FLOAT]
+		slot
+	]
+	
+	multiply: func [
+		return:	[red-value!]
+		/local
+			slot [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/multiply"]]
+		slot: stack/arguments + 1
+		if TYPE_OF(slot) = TYPE_TIME [
+			fire [TO_ERROR(script not-related) words/_multiply datatype/push TYPE_TIME]
+		]
+		as red-value! float/do-math OP_MUL
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_TIME
@@ -262,8 +289,8 @@ time: context [
 			;-- Scalar actions --
 			INHERIT_ACTION	;absolute
 			INHERIT_ACTION	;add
-			INHERIT_ACTION	;divide
-			INHERIT_ACTION	;multiply
+			:divide
+			:multiply
 			INHERIT_ACTION	;negate
 			INHERIT_ACTION	;power
 			INHERIT_ACTION	;remainder
