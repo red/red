@@ -140,7 +140,7 @@ paste-from-clipboard: func [
 	]
 
 	if hMem <> null [
-		unless continue? [p: GlobalLock hMem]
+		unless continue? [p: GlobalLock hMem CloseClipboard]
 		if p <> null [
 			while [
 				cp: (as-integer p/2) << 8 + p/1
@@ -174,7 +174,6 @@ paste-from-clipboard: func [
 			GlobalUnlock hMem
 		]
 	]
-	CloseClipboard
 	clipboard: null
 	cp = 13
 ]
