@@ -530,8 +530,8 @@ fRed [
 ===end-group===
 
 ===start-group=== "block-modify"
-	;; test commented out, as it legitimately produces an error now
-	;;--test-- "blk-rem1" --assert parse	[]			[remove]
+	
+	--test-- "blk-rem1" --assert error? try [parse [] [remove]]
 
 	--test-- "blk-rem2"	--assert not parse	[]			[remove skip]
 
@@ -717,8 +717,7 @@ fRed [
 	--test-- "blk-m124"	--assert parse		[a]			[while 'b skip]
 	--test-- "blk-m125"	--assert parse		[a b a b]	[while ['b | 'a]]
 
-	;; test commented out, as it legitimately produces an error now
-	;;--test-- "blk-m130"	--assert parse	[]			[ahead]
+	--test-- "blk-m130"	--assert error? try [parse [] [ahead]]
 	--test-- "blk-m131"	--assert parse		[a]			[ahead 'a 'a]
 	--test-- "blk-m132"	--assert parse		[1]			[ahead [block! | integer!] skip]
 
@@ -1420,8 +1419,7 @@ fRed [
 	ws: charset " ^- ^/^M"
 	not-ws: complement ws
 
-	;; test commented out, as it legitimately produces an error now
-	;;--test-- "str-rem1"	--assert parse			""			[remove]
+	--test-- "str-rem1"	--assert error? try [parse "" [remove]]
 	--test-- "str-rem2"		--assert not parse		""			[remove skip]
 
 	--test-- "str-rem3"	
@@ -1604,8 +1602,7 @@ fRed [
 	--test-- "str-m124"	--assert parse		"a"			[while #"b" skip]
 	--test-- "str-m125"	--assert parse		"abab"		[while [#"b" | #"a"]]
 
-	;; test commented out, as it legitimately produces an error now
-	;; --test-- "str-m130"	--assert parse		""			[ahead]
+	--test-- "str-m130"	--assert error? try [parse "" [ahead]]
 	--test-- "str-m131"	--assert parse		"a"			[ahead #"a" #"a"]
 	--test-- "str-m132"	--assert parse		"1"			[ahead [#"a" | #"1"] skip]
 
