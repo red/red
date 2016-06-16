@@ -49,15 +49,17 @@ gui-console-ctx: context [
 	set-font-color: routine [color [tuple!]][terminal/set-font-color color/array1]
 	set-background: routine [color [tuple!]][terminal/set-background color/array1]
 
-	init: does [
+	init: func [/local cfg-dir][
 		system/view/auto-sync?: no
-		cfg-path: append to-red-file get-env "ALLUSERSPROFILE" %/Red/console-cfg.red
+		cfg-dir: append to-red-file get-env "ALLUSERSPROFILE" %/Red/
+		unless exists? cfg-dir [make-dir cfg-dir]
+		cfg-path: append cfg-dir %console-cfg.red
 		cfg: either exists? cfg-path [skip load cfg-path 2][
 			compose [
 				win-pos:		(win/offset)
 				win-size:		(win/size)
 
-				font-name:		"Consolas"
+				font-name:		(font-name)
 				font-size:		11
 				font-color:		0.0.0
 				background:		252.252.252
@@ -90,7 +92,6 @@ gui-console-ctx: context [
 
 	console: make face! [
 		type: 'console offset: 0x0 size: 640x400
-		font: make font! [name: font-name size: 11]
 		menu: [
 			"Copy^-Ctrl+C"		 copy
 			"Paste^-Ctrl+V"		 paste
