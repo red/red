@@ -1104,7 +1104,7 @@ process: func [
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 			make-event msg 0 EVT_DBL_CLICK
-			EVT_DISPATCH
+			EVT_NO_DISPATCH
 		]
 		;WM_DESTROY []
 		default			[EVT_DISPATCH]
