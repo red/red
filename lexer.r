@@ -625,6 +625,7 @@ lexer: context [
 	]
 	
 	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
+		if any [m < 0 all [s s < 0]][type: time! throw-error]
 		to time! reduce [h m s]
 	]
 

@@ -16,7 +16,11 @@ system/lexer: context [
 		type: spec/1									;-- preserve lit-words from double reduction
 		spec: reduce spec
 		src: back tail spec
-		src/1: either string? src/1 [form/part trim/with copy src/1 40 lf][mold/flat/part src/1 40]
+		src/1: trim/tail either string? src/1 [
+			form/part trim/with copy src/1 40 lf
+		][
+			mold/flat/part src/1 40
+		]
 		if "^^/" = copy/part pos: skip tail src/1 -3 2 [remove/part pos 2]
 		spec/1: type
 		cause-error 'syntax any [all [missing 'missing] 'invalid] spec
@@ -45,13 +49,17 @@ system/lexer: context [
 			+ s / time/nano
 	]
 	
-	make-time: func [
+	make-time: function [
+		pos		[string!]
 		hours	[integer! none!]
 		mins	[integer!]
 		secs	[integer! float! none!]
 		return: [time!]
 	][
-		case [
+		if any [mins < 0 all [secs secs < 0]][throw-error [time! pos]]
+		if all [hours hours < 0][hours: absolute hours neg?: yes]
+		
+		time: case [
 			all [hours secs][
 				either float? secs [
 					make-hmsf hours mins secs
@@ -65,6 +73,7 @@ system/lexer: context [
 				make-msf mins secs
 			]
 		]
+		either neg? [negate time][time]
 	]
 
 	make-binary: routine [
@@ -713,11 +722,11 @@ system/lexer: context [
 		
 		time-rule: [
 			s: integer-number-rule [
-				float-number-rule (value: make-time none value make-number s e type) ;-- mm:ss.dd
+				float-number-rule (value: make-time pos none value make-number s e type) ;-- mm:ss.dd
 				| (value2: make-number s e type) [
 					#":" s: integer-number-rule opt float-number-rule
-					  (value: make-time value value2 make-number s e type)			 ;-- hh:mm:ss[.dd]
-					| (value: make-time value value2 none)							 ;-- hh:mm
+					  (value: make-time pos value value2 make-number s e type)			;-- hh:mm:ss[.dd]
+					| (value: make-time pos value value2 none)							;-- hh:mm
 				]
 			] (type: time!)
 		]

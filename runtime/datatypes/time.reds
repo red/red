@@ -135,6 +135,10 @@ time: context [
 		#if debug? = yes [if verbose > 0 [print-line "time/mold"]]
 		
 		time: t/time
+		if time < 0.0 [
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+			time: float/abs time
+		]
 		
 		formed: integer/form-signed float/to-integer GET_HOURS(time)
 		string/concatenate-literal buffer formed
