@@ -326,7 +326,7 @@ parser: context [
 							return adjust-input-index input pos* 1 ((as-integer p - phead) >> (log-b unit))
 						]
 						p: p + unit
-						p = ptail
+						p >= ptail
 					]
 				]
 				TYPE_STRING
