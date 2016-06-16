@@ -604,6 +604,7 @@ _function: context [
 			value  [red-value!]
 			end	   [red-value!]
 			next   [red-value!]
+			next2  [red-value!]
 			block? [logic!]
 	][
 		value: block/rs-head spec
@@ -614,8 +615,11 @@ _function: context [
 				TYPE_WORD
 				TYPE_GET_WORD [
 					next: value + 1
-					if TYPE_OF(next) = TYPE_STRING [
-						fire [TO_ERROR(script bad-func-def)	next]
+					if all [next < end TYPE_OF(next) = TYPE_STRING][
+						next2: next + 1
+						if all [next2 < end TYPE_OF(next2) = TYPE_BLOCK][
+							fire [TO_ERROR(script bad-func-def)	spec]
+						]
 					]
 					block?: all [
 						next < end
