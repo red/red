@@ -161,17 +161,18 @@ system/console: context [
 	]
 	
 	eval-command: function [line [string!] /extern cue mode][
+		if mode = 'mono [change/dup count 0 3]			;-- reset delimiter counters to zero
+		
 		if any [not tail? line mode <> 'mono][
 			either all [not empty? line escape = last line][
 				cue: none
 				clear buffer
-				change/dup count 0 3				;-- reset delimiter counters to zero
-				mode: 'mono							;-- force exit from multiline mode
+				mode: 'mono								;-- force exit from multiline mode
 				print "(escape)"
 			][
 				cnt: count-delimiters line
 				append buffer line
-				append buffer lf					;-- needed for multiline modes
+				append buffer lf						;-- needed for multiline modes
 
 				switch mode [
 					block  [if cnt/1 <= 0 [switch-mode cnt]]
