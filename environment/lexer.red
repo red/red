@@ -697,7 +697,7 @@ system/lexer: context [
 
 		issue-rule: [
 			#"#" (type: issue!) s: symbol-rule (
-				if (index? s) = index? e [throw-error [mold type skip s -4]]
+				if (index? s) = index? e [throw-error [type skip s -4]]
 				to-word stack copy/part s e type
 			)
 		]
