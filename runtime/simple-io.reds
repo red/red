@@ -610,6 +610,7 @@ simple-io: context [
 				]
 				mkdir: "mkdir" [
 					pathname	[c-string!]
+					mode		[integer!]
 					return:		[integer!]
 				]
 				opendir: "opendir" [
