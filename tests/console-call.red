@@ -96,7 +96,7 @@ read-argument: routine [
 		exit
 	]
 	args: system/args-list + 1							;-- skip binary filename
-	str: as red-string! simple-io/read-file args/item no no no
+	str: as red-string! simple-io/read-file args/item -1 -1 no no no
 	SET_RETURN(str)
 ]
 

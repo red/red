@@ -584,6 +584,47 @@ list-dir: function [
 	]
 ]
 
+make-dir: function [
+	"Creates the specified directory. No error if already exists"
+	path [file!]
+	/deep "Create subdirectories too"
+][
+	if empty? path [return path]
+	if slash <> last path [path: dirize path]
+	if exists? path [
+		if dir? path [return path]
+		cause-error 'access 'cannot-open path
+	]
+	if any [not deep url? path] [
+		create-dir path
+		return path
+	]
+	path: copy path
+	dirs: copy []
+	while [
+		all [
+			not empty? path
+			not exists? path
+			remove back tail path
+		]
+	][
+		end: any [find/last/tail path slash path]
+		insert dirs copy end
+		clear end
+	]
+	created: copy []
+	foreach dir dirs [
+		path: either empty? path [dir] [path/:dir]
+		append path slash
+		if error? try [make-dir path] [
+			foreach dir created [attempt [delete dir]]
+			cause-error 'access 'cannot-open path
+		]
+		insert created path
+	]
+	path
+]
+
 to-image: func [value][
 	case [
 		binary? value [

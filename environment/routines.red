@@ -91,6 +91,10 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 	]
 ]
 
+create-dir: routine [path [file!]][			;@@ temporary, user should use `make-dir`
+	simple-io/make-dir file/to-OS-path path
+]
+
 exists?: routine [path [file!] return: [logic!]][
 	simple-io/file-exists? file/to-OS-path path
 ]
