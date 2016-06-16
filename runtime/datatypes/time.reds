@@ -153,7 +153,7 @@ time: context [
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		
-		formed: float/form-float GET_SECONDS(time) float/FORM_FLOAT_64
+		formed: float/form-float GET_SECONDS(time) float/FORM_TIME
 		len: length? formed								;@@ optimize by removing length?
 		if formed/2 = #"." [
 			string/append-char GET_BUFFER(buffer) as-integer #"0"
