@@ -19,6 +19,7 @@ float: context [
 		FORM_FLOAT_32
 		FORM_FLOAT_64
 		FORM_PERCENT
+		FORM_TIME
 	]
 
 	pretty-print?: true
@@ -125,14 +126,22 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		either type = FORM_FLOAT_32 [
-			s/8: #"0"
-			s/9: #"0"
-			sprintf [s "%.7g" f]
-		][
-			s/17: #"0"
-			s/18: #"0"
-			sprintf [s "%.16g" f]
+		case [
+			type = FORM_FLOAT_32 [
+				s/8: #"0"
+				s/9: #"0"
+				sprintf [s "%.7g" f]
+			]
+			type = FORM_TIME [									;-- nanosecond precision
+				s/10: #"0"
+				s/11: #"0"
+				sprintf [s "%.9g" f]
+			]
+			true [
+				s/17: #"0"
+				s/18: #"0"
+				sprintf [s "%.16g" f]
+			]
 		]
 
 		p:  null
@@ -180,11 +189,12 @@ float: context [
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
-						either type = FORM_FLOAT_32 [
-							sprintf [s0 "%.5g" f]
-						][
-							sprintf [s0 "%.14g" f]
+						s: case [
+							type = FORM_FLOAT_32 ["%.5g"]
+							type = FORM_TIME	 ["%.7g"]
+							true				 ["%.14g"]
 						]
+						sprintf [s0 s f]
 						s: s0
 					]
 				]
@@ -205,7 +215,7 @@ float: context [
 			s/1: #"%"
 			s/2: #"^@"
 		][
-			unless dot? [										;-- added tailing ".0"
+			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
 				either p = null [
 					p: s
 				][
