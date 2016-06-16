@@ -732,19 +732,13 @@ flip-exe-flag: function [
 	write/binary file buffer
 ]
 
-split: func [
-    {Break a string series into pieces using the provided delimiters} 
-    series [any-string!] dlm [string! char!  bitset!]  /local s  num
-] [
-    either string? dlm [num: length? dlm] [num: 1]
-    collect [
-        parse series [
-            any [[copy s to dlm num skip (keep s)] | [copy s to end (keep s) skip] ]
-        ]
-    ]
+split: function [
+	"Break a string series into pieces using the provided delimiters"
+	series [any-string!] dlm [string! char! bitset!] /local s
+][
+	num: either string? dlm [length? dlm][1]
+	parse series [collect any [copy s [to dlm | to end] keep (s) num skip]]
 ]
-
-
 
 dirize: func [
 	"Returns a copy of the path turned into a directory"
