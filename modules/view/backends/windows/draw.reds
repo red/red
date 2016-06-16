@@ -1037,7 +1037,9 @@ OS-draw-grad-pen: func [
 		clr		[red-tuple!]
 		pt		[tagPOINT]
 		color	[int-ptr!]
+		last-c	[int-ptr!]
 		pos		[pointer! [float32!]]
+		last-p	[pointer! [float32!]]
 		n		[integer!]
 		delta	[float!]
 		p		[float!]
@@ -1074,8 +1076,8 @@ OS-draw-grad-pen: func [
 	]
 
 	pt: edges
-	color: colors
-	pos: colors-pos
+	color: colors + 1
+	pos: colors-pos + 1
 	delta: 1.0 / integer/to-float count - 1
 	p: 0.0
 	head: as red-value! int
@@ -1085,13 +1087,29 @@ OS-draw-grad-pen: func [
 		next: head + 1 
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
 		pos/value: as float32! p
-		p: p + delta
+		if next <> head [p: p + delta]
 		head: head + 1
 		color: color + 1
 		pos: pos + 1
 	]
-	pos: pos - 1
-	pos/value: as float32! 1.0
+
+	last-p: pos - 1
+	last-c: color - 1
+	pos: pos - count
+	color: color - count
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 0.0
+		colors/value: color/value
+		color: colors
+		pos: colors-pos
+		count: count + 1
+	]
+	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+		last-c/2: last-c/value
+		last-p/2: as float32! 1.0
+		count: count + 1
+	]
+
 	brush: 0
 	either type = linear [
 		pt/x: x + start
@@ -1099,8 +1117,8 @@ OS-draw-grad-pen: func [
 		pt: pt + 1
 		pt/x: x + stop
 		pt/y: y
-		GdipCreateLineBrushI edges pt colors/1 colors/count 0 :brush
-		GdipSetLinePresetBlend brush colors colors-pos count
+		GdipCreateLineBrushI edges pt color/1 color/count 0 :brush
+		GdipSetLinePresetBlend brush color pos count
 		if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
 		if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
 	][
@@ -1114,9 +1132,9 @@ OS-draw-grad-pen: func [
 		n: brush
 		GdipCreatePathGradientFromPath n :brush
 		GdipDeletePath n
-		GdipSetPathGradientCenterColor brush colors/value
-		reverse-int-array colors count
-		GdipSetPathGradientPresetBlend brush colors colors-pos count
+		GdipSetPathGradientCenterColor brush color/value
+		reverse-int-array color count
+		GdipSetPathGradientPresetBlend brush color pos count
 		if rotate? [GdipRotatePathGradientTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
 		if scale? [GdipScalePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
 	]
