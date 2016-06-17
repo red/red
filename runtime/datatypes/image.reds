@@ -342,6 +342,14 @@ image: context [
 		img/header: TYPE_IMAGE
 		img/head: 0
 
+		if all [
+			TYPE_OF(proto) = TYPE_IMAGE
+			TYPE_OF(spec) = TYPE_BLOCK
+			zero? block/rs-length? as red-block! spec
+		][
+			return copy as red-image! proto img null yes null
+		]
+
 		rgb:   null
 		alpha: null
 		color: null
