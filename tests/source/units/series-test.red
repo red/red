@@ -1699,14 +1699,13 @@ Red [
 
 ===start-group=== "series-unicode"
 
-	--test-- "suc1"
-		;--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-		;				read %tests/fixtures/chinese-characters.txt
+	;--test-- "suc1"
+	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+	;					read %tests/fixtures/chinese-characters.txt
 						
-	--test-- "suc2"
-		;--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-		;				read/lines %tests/fixtures/chinese-characters.txt
+	;--test-- "suc2"
+	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+	;					read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
 ~~~end-file~~~
-
