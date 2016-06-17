@@ -300,12 +300,15 @@ map: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
+		/local
+			prev [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
 		string/concatenate-literal buffer "#("
-		part: serialize map buffer only? all? flat? arg part - 2 yes indent + 1 yes
-		if indent > 0 [part: object/do-indent buffer indent part]
+		prev: part - 2
+		part: serialize map buffer only? all? flat? arg prev yes indent + 1 yes
+		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
 	]
