@@ -1636,6 +1636,46 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateMatrix: "GdipCreateMatrix" [
+			matrix		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDeleteMatrix: "GdipDeleteMatrix" [
+			matrix		[integer!]
+			return:		[integer!]
+		]
+		GdipRotateMatrix: "GdipRotateMatrix" [
+			matrix		[integer!]
+			angle		[float32!]
+			matrixorder [integer!]
+			return:		[integer!]
+		]
+		GdipTranslateMatrix: "GdipTranslateMatrix" [
+			matrix		[integer!]
+			dx			[float32!]
+			dy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipScaleMatrix: "GdipScaleMatrix" [
+			matrix		[integer!]
+			sx			[float32!]
+			sy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipTransformPath: "GdipTransformPath" [
+			path		[integer!]
+			matrix		[integer!]
+			return:		[integer!]
+		]
+		GdipTranslatePathGradientTransform: "GdipTranslatePathGradientTransform" [
+			matrix		[integer!]
+			dx			[float32!]
+			dy			[float32!]
+			matrixorder	[integer!]
+			return:		[integer!]
+		]
 		GdipSetPathGradientWrapMode: "GdipSetPathGradientWrapMode" [
 			brush		[integer!]
 			wrapmode	[integer!]
@@ -1674,24 +1714,16 @@ DwmIsCompositionEnabled!: alias function! [
 			point		[tagPOINT]
 			return:		[integer!]
 		]
+		GdipGetPathGradientCenterPointI: "GdipGetPathGradientCenterPointI" [
+			brush		[integer!]
+			point		[tagPOINT]
+			return:		[integer!]
+		]
 		GdipSetPathGradientPresetBlend: "GdipSetPathGradientPresetBlend" [
 			brush		[integer!]
 			colors		[int-ptr!]
 			positions	[pointer! [float32!]]
 			count		[integer!]
-			return:		[integer!]
-		]
-		GdipScalePathGradientTransform: "GdipScalePathGradientTransform" [
-			brush		[integer!]
-			sx			[float32!]
-			sy			[float32!]
-			matrixorder	[integer!]
-			return:		[integer!]
-		]
-		GdipRotatePathGradientTransform: "GdipRotatePathGradientTransform" [
-			brush		[integer!]
-			angle		[float32!]
-			matrixorder	[integer!]
 			return:		[integer!]
 		]
 		GdipScaleLineTransform: "GdipScaleLineTransform" [
