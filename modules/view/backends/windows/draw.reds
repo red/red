@@ -402,7 +402,10 @@ OS-draw-fill-pen: func [
 	GDI+?: any [alpha? anti-alias? modes/alpha-pen?]
 
 	modes/brush?: not off?
-	either modes/brush-color <> color [
+	either any [
+		modes/brush-color <> color
+		modes/gp-pen <> 0								;-- always update brush in gdi+ mode
+	][
 		modes/brush-color: color
 		update-modes dc
 	][
@@ -1129,14 +1132,28 @@ OS-draw-grad-pen: func [
 			type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
 			type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
 		]
+
+		GdipCreateMatrix :n
+		if rotate? [GdipRotateMatrix n angle GDIPLUS_MATRIXORDERPREPEND]
+		if scale?  [GdipScaleMatrix n sx sy GDIPLUS_MATRIXORDERPREPEND]
+		if any [rotate? scale?][				;@@ transform path will move it
+			GdipTransformPath brush n
+			GdipDeleteMatrix n
+		]
+
 		n: brush
 		GdipCreatePathGradientFromPath n :brush
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
 		reverse-int-array color count
 		GdipSetPathGradientPresetBlend brush color pos count
-		if rotate? [GdipRotatePathGradientTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
-		if scale? [GdipScalePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+
+		if any [rotate? scale?][				;@@ move the shape back to the right position
+			GdipGetPathGradientCenterPointI brush pt
+			sx: as float32! integer/to-float x - pt/x
+			sy: as float32! integer/to-float y - pt/y
+			GdipTranslatePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND
+		]
 	]
 
 	GDI+?: yes
