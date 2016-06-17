@@ -295,7 +295,7 @@ face!: object [				;-- keep in sync with facet! enum
 				]
 				if 'data = word [
 					either data [
-						modify text 'owned none
+						if string? text [modify text 'owned none]
 						set-quiet 'text form data		;@@ use form/into (avoids rebinding)
 						modify text 'owned reduce [self 'text]
 					][
