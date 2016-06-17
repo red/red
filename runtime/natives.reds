@@ -615,6 +615,7 @@ natives: context [
 			w	  [red-word!]
 			value [red-value!]
 			blk	  [red-block!]
+			type  [integer!]
 			only? [logic!]
 			some? [logic!]
 	][
@@ -642,6 +643,10 @@ natives: context [
 				stack/set-last value
 			]
 			TYPE_MAP [
+				type: TYPE_OF(value)
+				unless any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH][
+					fire [TO_ERROR(script invalid-type) datatype/push type]
+				]
 				map/set-many as red-hash! w as red-block! value only? some?
 				stack/set-last value
 			]
