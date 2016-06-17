@@ -328,7 +328,7 @@ Red/System [
 		--assert (fcfoo as float32! 5.0) - fcptr/a = as float32! 2.0			;-- reg(block!)/reg(path!)
 	
 	--test-- "fc-12"
-		--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! 2.0			;-- reg(path!)/reg(block!)
+		--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! -2.0			;-- reg(path!)/reg(block!)
 
 ===end-group===
 
