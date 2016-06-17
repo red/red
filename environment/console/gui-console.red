@@ -82,8 +82,11 @@ gui-console-ctx: context [
 		set-buffer-lines cfg/buffer-lines
 	]
 
-	save-cfg: does [
-		cfg/win-pos:  win/offset
+	save-cfg: function [
+		offset: win/offset					;-- offset could be negative in some cases
+		if offset/x < 0 [offset/x: 0]
+		if offset/y < 0 [offset/y: 0]
+		cfg/win-pos:  offset
 		cfg/win-size: win/size
 		save/header cfg-path cfg [Purpose: "Red GUI Console Configuration File"]
 	]
