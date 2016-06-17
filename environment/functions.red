@@ -553,7 +553,7 @@ change-dir: function [
 
 list-dir: function [
 	"Displays a list of files and directories from given folder or current one"
-	'dir [any-type!] "Folder to list"
+	dir [any-type!]  "Folder to list"
 	/col			 "Forces the display in a given number of columns"
 		n [integer!] "Number of columns"
 ][
