@@ -122,8 +122,12 @@ word: context [
 
 		ctx: TO_CTX(node)
 		idx: _context/find-word ctx sym no
-		s: as series! ctx/symbols/value
-		as red-word! s/offset + idx
+		either idx < 0 [
+			_context/add-global sym
+		][
+			s: as series! ctx/symbols/value
+			as red-word! s/offset + idx
+		]
 	]
 	
 	get-in: func [
