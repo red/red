@@ -82,7 +82,7 @@ gui-console-ctx: context [
 		set-buffer-lines cfg/buffer-lines
 	]
 
-	save-cfg: function [
+	save-cfg: function [][
 		offset: win/offset					;-- offset could be negative in some cases
 		if offset/x < 0 [offset/x: 0]
 		if offset/y < 0 [offset/y: 0]
