@@ -1179,7 +1179,7 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			all [all? cp > 7Fh][
+			any [cp = 1Eh all [all? cp > 7Fh]][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp yes
