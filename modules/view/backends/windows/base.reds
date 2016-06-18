@@ -257,11 +257,9 @@ update-layered-window: func [
 		bool	[red-logic!]
 		face	[red-object!]
 		tail	[red-object!]
-		pos		[red-pair!]
 		size	[red-pair!]
 		pt		[tagPOINT]
 		rect	[RECT_STRUCT]
-		style	[integer!]
 		border	[integer!]
 		width	[integer!]
 		height	[integer!]
@@ -393,9 +391,6 @@ BaseWndProc: func [
 	/local
 		flags	[integer!]
 		draw	[red-block!]
-		pt		[tagPOINT]
-		offset	[red-pair!]
-		winpos	[tagWINDOWPOS]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -431,9 +426,6 @@ update-base-image: func [
 	img			[red-image!]
 	width		[integer!]
 	height		[integer!]
-	/local
-		str  [red-string!]
-		tail [red-string!]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipDrawImageRectI graphic as-integer img/node 0 0 width height

@@ -30,7 +30,6 @@ native: context [
 			ref		  [red-refinement!]
 			blk		  [red-value!]
 			vec		  [red-vector!]
-			bool	  [red-logic!]
 			s		  [series!]
 			ref-array [int-ptr!]
 			saved	  [node!]

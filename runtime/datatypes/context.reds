@@ -243,7 +243,6 @@ _context: context [
 		return:	   [red-value!]
 		/local
 			values [series!]
-			sym	   [red-symbol!]
 			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
@@ -421,7 +420,6 @@ _context: context [
 			value [red-value!]
 			end	  [red-value!]
 			w	  [red-word!]
-			type  [integer!]
 	][
 		value: block/rs-head body
 		end:   block/rs-tail body
@@ -484,7 +482,6 @@ _context: context [
 			cell [red-value!]
 			tail [red-value!]
 			base [red-value!]
-			word [red-word!]
 			s	 [series!]	
 	][
 		s: GET_BUFFER(spec)

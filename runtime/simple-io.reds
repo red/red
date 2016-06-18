@@ -1767,8 +1767,6 @@ simple-io: context [
 					bin			[red-binary!]
 					stream		[integer!]
 					response	[integer!]
-					keys		[int-ptr!]
-					vals		[int-ptr!]
 					blk			[red-block!]
 			][
 				switch method [

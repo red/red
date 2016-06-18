@@ -376,8 +376,6 @@ block: context [
 	push-only*: func [
 		size	[integer!]
 		return: [red-block!]
-		/local
-			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
@@ -539,7 +537,6 @@ block: context [
 		spec	 [red-value!]
 		return:	 [red-block!]
 		/local
-			blk  [red-block!]
 			size [integer!]
 			int	 [red-integer!]
 	][
@@ -715,7 +712,6 @@ block: context [
 			slot	[red-value!]
 			slot2	[red-value!]
 			end		[red-value!]
-			end2	[red-value!]
 			result	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
@@ -795,7 +791,6 @@ block: context [
 					b: as red-block! value
 					s2: GET_BUFFER(b)
 					value: s2/offset + b/head
-					end2: s2/tail
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
@@ -1086,7 +1081,6 @@ block: context [
 			step	[integer!]
 			int		[red-integer!]
 			blk2	[red-block!]
-			fun		[red-function!]
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
@@ -1200,7 +1194,6 @@ block: context [
 			hash	[red-hash!]
 			table	[node!]
 			int		[red-integer!]
-			p		[int-ptr!]
 			b		[red-block!]
 			s		[series!]
 			h		[integer!]
@@ -1210,7 +1203,6 @@ block: context [
 			slots	[integer!]
 			index	[integer!]
 			values?	[logic!]
-			head?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
 	][
@@ -1271,7 +1263,6 @@ block: context [
 			blk/head: (as-integer s/tail - s/offset) >> size? cell!
 		]
 		h: blk/head
-		head?: zero? h
 		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
 		index: either append? [(as-integer s/tail - s/offset) >> 4][h]

@@ -137,8 +137,6 @@ stack: context [										;-- call stack
 
 	reset: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
@@ -148,8 +146,6 @@ stack: context [										;-- call stack
 	
 	keep: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
@@ -355,7 +351,6 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			saved [red-value!]
 			flags [integer!]
 			all?  [logic!]
 	][
@@ -393,7 +388,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -421,7 +415,6 @@ stack: context [										;-- call stack
 			either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either all [return? not cont?][set-last result][unset/push-last]
@@ -439,7 +432,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -464,7 +456,6 @@ stack: context [										;-- call stack
 			fire [TO_ERROR(throw return)]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either return? [
@@ -483,7 +474,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -510,7 +500,6 @@ stack: context [										;-- call stack
 			fire [TO_ERROR(throw throw) result]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			push result

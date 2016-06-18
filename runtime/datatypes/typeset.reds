@@ -278,9 +278,7 @@ typeset: context [
 			array	[byte-ptr!]
 			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
 			name	[names!]
-			value	[integer!]
 			id		[integer!]
-			base	[integer!]
 			cnt		[integer!]
 			s		[series!]
 			part?	[logic!]

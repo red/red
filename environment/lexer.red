@@ -219,7 +219,6 @@ system/lexer: context [
 			tail [byte-ptr!]
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
-			byte [byte!]
 			f	 [float!]
 	][
 		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
@@ -243,7 +242,6 @@ system/lexer: context [
 			p: p + unit
 			p = tail
 		]
-		byte: cur/1										;-- store last byte
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
 		f: string/to-float s0
 		if len > 31 [free s0]
@@ -396,7 +394,7 @@ system/lexer: context [
 			length [integer! string!]
 		return: [block!]
 		/local
-			new s e c hex pos value cnt type process path
+			new s e c pos value cnt type process path
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char

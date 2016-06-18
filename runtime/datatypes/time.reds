@@ -63,8 +63,6 @@ time: context [
 	push: func [
 		time	[float!]								;-- in nanoseconds
 		return: [red-time!]
-		/local
-			t [red-time!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/push"]]
 		

@@ -214,7 +214,6 @@ object: context [
 		obj		[red-object!]
 		return: [node!]
 		/local
-			int	 [red-integer!]
 			node [node!]
 			s	 [series!]
 	][

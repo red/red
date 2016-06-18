@@ -154,9 +154,7 @@ unless system/console [
 		]
 
 		add-history: func [
-			str			[red-string!]
-			/local
-				saved	[integer!]
+			str	[red-string!]
 		][
 			str/head: 0
 			unless zero? string/rs-length? str [

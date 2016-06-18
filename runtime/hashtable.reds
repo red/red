@@ -47,7 +47,7 @@ hash-string: func [
 	str		[red-string!]
 	case?	[logic!]
 	return: [integer!]
-	/local series s unit p p4 k1 h1 tail len head
+	/local s unit p p4 k1 h1 tail len head
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
@@ -218,7 +218,7 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		skip	[integer!]
-		/local s h i end value key val
+		/local s h i end value key
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -259,7 +259,7 @@ _hashtable: context [
 		type	[integer!]
 		vsize	[integer!]
 		return: [node!]
-		/local node s ss h f-buckets fsize i value skip end
+		/local node s ss h f-buckets fsize value skip
 	][
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
@@ -282,8 +282,6 @@ _hashtable: context [
 		][
 			h/blk: blk/node
 
-			s: GET_BUFFER(blk)
-			end: s/tail
 			if type = HASH_TABLE_HASH [
 				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
 				ss: as series! h/indexes/value
@@ -298,7 +296,7 @@ _hashtable: context [
 		node			[node!]
 		new-buckets		[integer!]
 		/local
-			s h x k v i j site last mask step keys vals hash n-buckets blk
+			s h k i j mask step keys hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
 			int? int-key
 	][
@@ -681,7 +679,7 @@ _hashtable: context [
 		return:  [red-value!]
 		/local
 			s h i flags last mask step keys hash ii sh blk set-header?
-			idx last-idx op find? reverse-head k type key-type saved-type
+			idx last-idx op find? k type key-type saved-type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
@@ -818,7 +816,7 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		size	[integer!]
-		/local s h flags n i ii sh indexes
+		/local s h flags i ii sh indexes
 	][
 		if zero? size [exit]
 		s: as series! node/value

@@ -349,7 +349,6 @@ OS-draw-line: func [
 	/local
 		pt		[tagPOINT]
 		nb		[integer!]
-		res		[integer!]
 		pair	[red-pair!]
 ][
 	pt: edges
@@ -364,7 +363,7 @@ OS-draw-line: func [
 		pair: pair + 1	
 	]
 	either GDI+? [
-		res: GdipDrawLinesI modes/graphics modes/gp-pen edges nb
+		GdipDrawLinesI modes/graphics modes/gp-pen edges nb
 	][
 		Polyline dc edges nb
 	]
@@ -454,10 +453,9 @@ gdiplus-draw-roundbox: func [
 	fill?	[logic!]
 	/local
 		path	[integer!]
-		res		[integer!]
 ][
 	path: 0
-	res: GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
+	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
 	if fill? [
 		GdipFillPath modes/graphics modes/gp-brush path

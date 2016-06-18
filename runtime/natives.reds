@@ -38,11 +38,7 @@ natives: context [
 		[variadic]
 		count	   [integer!]
 		list	   [int-ptr!]
-		/local
-			offset [integer!]
 	][
-		offset: 0
-		
 		until [
 			table/top: list/value
 			top: top + 1
@@ -206,7 +202,6 @@ natives: context [
 			w	   [red-word!]
 			body   [red-block!]
 			count  [red-integer!]
-			cnt	   [integer!]
 			i	   [integer!]
 	][
 		#typecheck repeat
@@ -346,7 +341,6 @@ natives: context [
 		/local
 			value  [red-value!]
 			body   [red-block!]
-			series [red-series!]
 			part   [red-integer!]
 			size   [integer!]
 			multi? [logic!]
@@ -356,7 +350,7 @@ natives: context [
 		body: as red-block! stack/arguments + 2
 
 		part: as red-integer! integer/push 0			;-- store number of words to set
-		series: as red-series! stack/push stack/arguments + 1	;-- copy arguments to stack top in reverse order
+		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 
 		stack/mark-loop words/_body
@@ -515,10 +509,8 @@ natives: context [
 			arg	   [red-value!]
 			do-arg [red-value!]
 			str	   [red-string!]
-			out    [red-string!]
 			slot   [red-value!]
 			blk	   [red-block!]
-			len	   [integer!]
 	][
 		#typecheck [do args next]
 		arg: stack/arguments
@@ -787,7 +779,6 @@ natives: context [
 		arg2    [red-value!]
 		return:	[logic!]
 		/local
-			result [red-logic!]
 			type   [integer!]
 			res    [logic!]
 	][
@@ -1402,10 +1393,8 @@ natives: context [
 			data [red-string!]
 			int  [red-integer!]
 			base [integer!]
-			s	 [series!]
 			p	 [byte-ptr!]
 			len  [integer!]
-			unit [integer!]
 			ret  [red-binary!]
 	][
 		#typecheck [enbase base-arg]
@@ -1604,8 +1593,6 @@ natives: context [
 	arcsine*: func [
 		check?  [logic!]
 		radians [integer!]
-		/local
-			f	[red-float!]
 	][
 		#typecheck [arcsine radians]
 		arc-trans radians TYPE_SINE
@@ -1614,8 +1601,6 @@ natives: context [
 	arccosine*: func [
 		check?  [logic!]
 		radians [integer!]
-		/local
-			f	[red-float!]
 	][
 		#typecheck [arccosine radians]
 		arc-trans radians TYPE_COSINE
@@ -1624,8 +1609,6 @@ natives: context [
 	arctangent*: func [
 		check?  [logic!]
 		radians [integer!]
-		/local
-			f	[red-float!]
 	][
 		#typecheck [arctangent radians]
 		arc-trans radians TYPE_TANGENT
@@ -1779,8 +1762,6 @@ natives: context [
 		/local
 			arg	   [red-value!]
 			cframe [byte-ptr!]
-			err	   [red-object!]
-			id	   [integer!]
 			result [integer!]
 	][
 		#typecheck [try _all]
@@ -1915,18 +1896,14 @@ natives: context [
 			t-name [red-word!]
 			word   [red-word!]
 			tail   [red-word!]
-			id	   [integer!]
 			found? [logic!]
 	][
 		#typecheck [catch name]
 		found?: no
-		id:		0
-		arg:	stack/arguments
+		arg: stack/arguments
 		
-		if name <> -1 [
-			c-name: as red-word! arg + name
-			id: c-name/symbol
-		]
+		if name <> -1 [c-name: as red-word! arg + name]
+		
 		stack/mark-catch words/_body
 		catch RED_THROWN_THROW [interpreter/eval as red-block! arg yes]
 		t-name: as red-word! stack/arguments + 1
@@ -2253,8 +2230,6 @@ natives: context [
 		check? [logic!]
 		/local
 			word [red-word!]
-			ctx	 [red-context!]
-			node [node!]
 			s	 [series!]
 	][
 		#typecheck context?
@@ -2497,7 +2472,6 @@ natives: context [
 		str	  [red-string!]
 		size  [integer!]
 		/local
-			v [red-value!]
 			i [integer!]
 	][
 		i: 1

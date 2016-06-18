@@ -47,7 +47,6 @@ bitset: context [
 		/local
 			s	 [series!]
 			p	 [byte-ptr!]
-			not? [logic!]
 			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
@@ -835,7 +834,6 @@ bitset: context [
 			type  [integer!]
 			op	  [integer!]
 			s	  [series!]
-			not?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/poke"]]
 		
@@ -843,7 +841,6 @@ bitset: context [
 		bool: as red-logic! data
 		int:  as red-integer! data
 		s:	  GET_BUFFER(bits)
-		not?: FLAG_NOT?(s)
 		
 		op: either any [
 			type = TYPE_NONE

@@ -63,8 +63,6 @@ binary: context [
 	rs-next: func [
 		bin 	[red-binary!]
 		return: [logic!]
-		/local
-			s [series!]
 	][
 		_series/rs-skip as red-series! bin 1
 	]
@@ -371,7 +369,6 @@ binary: context [
 			c	 [integer!]
 			val  [integer!]
 			accum [integer!]
-			count [integer!]
 			flip [integer!]
 			node [node!]
 			bin	 [byte-ptr!]
@@ -380,7 +377,6 @@ binary: context [
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
 		accum: 0
-		count: 0
 		flip: 0
 		until [
 			c: string/get-char p unit
@@ -597,7 +593,6 @@ binary: context [
 		spec	[red-binary!]
 		return: [red-value!]
 		/local
-			str [red-string!]
 			ret [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
@@ -605,8 +600,8 @@ binary: context [
 		switch type/value [
 			TYPE_STRING [
 				spec/node: unicode/load-utf8
-							as c-string! binary/rs-head spec
-							binary/rs-length? spec
+					as c-string! binary/rs-head spec
+					binary/rs-length? spec
 				spec/header: TYPE_STRING
 				ret: as red-value! spec
 			]
@@ -639,10 +634,6 @@ binary: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
-		/local
-			formed [c-string!]
-			s	   [series!]
-			unit   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/mold"]]
 		

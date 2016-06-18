@@ -63,8 +63,6 @@ action: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/form"]]
 

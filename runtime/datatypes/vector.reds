@@ -785,7 +785,6 @@ vector: context [
 		/local
 			s1		[series!]
 			s2		[series!]
-			unit	[integer!]
 			unit1	[integer!]
 			unit2	[integer!]
 			type	[integer!]
@@ -892,16 +891,13 @@ vector: context [
 			cell	  [red-value!]
 			limit	  [red-value!]
 			int		  [red-integer!]
-			char	  [red-char!]
 			sp		  [red-vector!]
 			s		  [series!]
 			s2		  [series!]
 			dup-n	  [integer!]
 			cnt		  [integer!]
 			part	  [integer!]
-			len		  [integer!]
 			added	  [integer!]
-			vec-type  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
@@ -909,7 +905,6 @@ vector: context [
 		dup-n: 1
 		cnt:   1
 		part: -1
-		vec-type: vec/type
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [

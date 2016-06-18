@@ -307,7 +307,6 @@ OS-image: context [
 		return:		[int-ptr!]
 		/local
 			bitmap	[BitmapData!]
-			buf		[int-ptr!]
 	][
 		bitmap: as BitmapData! handle
 		stride/value: bitmap/stride
@@ -503,7 +502,6 @@ OS-image: context [
 		/local
 			hMem [integer!]
 			p	 [byte-ptr!]
-			hr	 [integer!]
 			s	 [integer!]
 			bmp  [integer!]
 	][
@@ -514,7 +512,7 @@ OS-image: context [
 
 		s: 0
 		bmp: 0
-		hr: CreateStreamOnHGlobal hMem true :s
+		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
 		bmp
 	]

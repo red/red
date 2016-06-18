@@ -789,12 +789,9 @@ OS-make-view: func [
 		values	  [red-value!]
 		type	  [red-word!]
 		str		  [red-string!]
-		tail	  [red-string!]
 		offset	  [red-pair!]
 		size	  [red-pair!]
 		data	  [red-block!]
-		int		  [red-integer!]
-		img		  [red-image!]
 		menu	  [red-block!]
 		show?	  [red-logic!]
 		enable?	  [red-logic!]
@@ -829,7 +826,6 @@ OS-make-view: func [
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
 	enable?:  as red-logic!		values + FACE_OBJ_ENABLE?
 	data:	  as red-block!		values + FACE_OBJ_DATA
-	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
@@ -1267,9 +1263,7 @@ change-selection: func [
 	int	   [red-integer!]								;-- can be also none! | object!
 	values [red-value!]
 	/local
-		face   [red-object!]
 		type   [red-word!]
-		handle [handle!]
 		sym	   [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -1560,7 +1554,6 @@ OS-update-view: func [
 		values	[red-value!]
 		state	[red-block!]
 		menu	[red-block!]
-		draw	[red-block!]
 		word	[red-word!]
 		int		[red-integer!]
 		int2	[red-integer!]
@@ -1700,7 +1693,6 @@ OS-update-facet: func [
 		word [red-word!]
 		sym	 [integer!]
 		type [integer!]
-		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
 	
@@ -1775,7 +1767,6 @@ OS-to-image: func [
 		bitmap	[integer!]
 		img		[red-image!]
 		word	[red-word!]
-		type	[integer!]
 		size	[red-pair!]
 		screen? [logic!]
 ][

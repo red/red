@@ -321,9 +321,6 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			s	 [c-string!]
 			size [integer!]
 	][

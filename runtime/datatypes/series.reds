@@ -515,7 +515,6 @@ _series: context [
 			neg?	[logic!]
 			part?	[logic!]
 			blk?	[logic!]
-			saved	[integer!]
 			added	[integer!]
 			n		[integer!]
 			cnt		[integer!]
@@ -531,7 +530,6 @@ _series: context [
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		head: ser/head
-		saved: head
 		size: (as-integer s/tail - s/offset) >> (log-b unit)
 
 		type: TYPE_OF(ser)

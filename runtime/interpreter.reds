@@ -645,7 +645,6 @@ interpreter: context [
 			op	   [red-value!]
 			s-arg  [red-value!]
 			s-top  [red-value!]
-			sym	   [integer!]
 			infix? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]

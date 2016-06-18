@@ -520,10 +520,8 @@ terminal: context [
 		return: [logic!]
 		/local
 			input	[red-string!]
-			node	[line-node!]
 			out		[ring-buffer!]
 			out2	[ring-buffer!]
-			pos		[integer!]
 			head	[integer!]
 			len		[integer!]
 			w		[integer!]
@@ -940,7 +938,6 @@ terminal: context [
 			beg		[integer!]
 			end		[integer!]
 			out		[ring-buffer!]
-			s		[series!]
 	][
 		hist: refresh-history vt
 		idx: vt/history-pos
@@ -1148,11 +1145,9 @@ terminal: context [
 	check-selection: func [
 		vt		[terminal!]
 		/local
-			out		[ring-buffer!]
-			input	[red-string!]
+			out	[ring-buffer!]
 	][
 		out: vt/out
-		input: vt/in
 		if all [
 			out/s-head <> -1
 			out/s-tail = out/last
@@ -1223,7 +1218,6 @@ terminal: context [
 			out		[ring-buffer!]
 			input	[red-string!]
 			cursor	[integer!]
-			cue		[red-string!]
 	][
 		unless vt/input? [exit]
 

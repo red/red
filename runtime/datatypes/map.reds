@@ -100,9 +100,7 @@ map: context [
 			cell	[red-value!]
 			tail	[red-value!]
 			value	[red-value!]
-			int		[red-integer!]
 			s		[series!]
-			cnt		[integer!]
 			size	[integer!]
 			table	[node!]
 			key		[red-value!]
@@ -186,7 +184,6 @@ map: context [
 		spec		[red-value!]
 		return:		[red-hash!]
 		/local
-			map		[red-hash!]
 			size	[integer!]
 			int		[red-integer!]
 			blk		[red-block!]

@@ -525,12 +525,7 @@ crypto: context [
 			type		[integer!]
 			return:		[byte-ptr!]						;-- caller should free it
 			/local
-				fd		[integer!]
-				opfd	[integer!]
-				sa		[byte-ptr!]
-				alg		[c-string!]
 				hash	[byte-ptr!]
-				size	[integer!]
 		][
 			hash: allocate 64							;-- caller should free it
 			switch type [

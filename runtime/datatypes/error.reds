@@ -151,8 +151,6 @@ error: context [
 		return:	 [red-object!]
 		/local
 			new		[red-object!]
-			obj		[red-object!]
-			series	[red-series!]
 			errors	[red-object!]
 			base	[red-value!]
 			value	[red-value!]
@@ -173,7 +171,6 @@ error: context [
 			no
 			null
 		
-		series: as red-series! spec
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
 		new/class:  0
 		new/on-set: null

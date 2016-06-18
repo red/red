@@ -76,7 +76,6 @@ hash: context [
 		hash	[red-hash!]
 		return:	[red-value!]
 		/local
-			s	[series!]
 			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/clear"]]

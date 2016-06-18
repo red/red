@@ -152,7 +152,7 @@ memory-info: func [
 	;-------------------------------------------
 	list-series-buffers: func [
 		frame	[series-frame!]
-		/local series alt? size block count head tail
+		/local series size count head tail
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!

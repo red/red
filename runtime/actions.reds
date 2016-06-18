@@ -20,10 +20,8 @@ actions: context [
 		count	[integer!]
 		list	[int-ptr!]
 		/local
-			offset [integer!]
 			index  [integer!]
 	][
-		offset: 0
 		index:  1
 		
 		until [
@@ -125,7 +123,6 @@ actions: context [
 		return:	 [red-value!]
 		/local
 			dt	 [red-datatype!]
-			int  [red-integer!]
 			type [integer!]
 			action-make
 	][
@@ -852,8 +849,6 @@ actions: context [
 
 	clear*: func [
 		return:	[red-value!]
-		/local
-			action-clear
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
 		clear stack/arguments

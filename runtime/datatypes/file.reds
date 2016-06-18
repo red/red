@@ -47,7 +47,7 @@ file: context [
 		s: GET_BUFFER(src)
 		if zero? len [len: 1]
 		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
-		file/to-local-path src str no
+		to-local-path src str no
 
 		#either OS = 'Windows [
 			ret: unicode/to-utf16 str
@@ -85,8 +85,6 @@ file: context [
 			s	 [series!]
 			p	 [byte-ptr!]
 			end  [byte-ptr!]
-			dir  [c-string!]
-			len  [integer!]
 			unit [integer!]
 			c	 [integer!]
 			d	 [integer!]
@@ -181,11 +179,6 @@ file: context [
 		return: [red-value!]
 		/local
 			t	[integer!]
-			f	[red-float!]
-			int [red-integer!]
-			blk [red-block!]
-			ret [red-value!]
-			bin [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
 

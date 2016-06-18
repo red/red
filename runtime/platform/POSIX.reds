@@ -151,8 +151,6 @@ print-UCS4: func [
 print-line-UCS4: func [
 	str    [int-ptr!]									;-- UCS-4 string
 	size   [integer!]
-	/local
-		cp [integer!]									;-- codepoint
 ][
 	assert str <> null
 

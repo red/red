@@ -26,7 +26,6 @@ image: context [
 		img		[red-image!]
 		size	[integer!]
 		/local
-			v [red-value!]
 			i [integer!]
 	][
 		i: 1
@@ -82,8 +81,6 @@ image: context [
 	load-binary: func [
 		data	[red-binary!]
 		return: [red-image!]
-		/local
-			img [red-image!]
 	][
 		either known-image? data [
 			init-image
@@ -106,8 +103,6 @@ image: context [
 		return:	[red-image!]
 		/local
 			img   [red-image!]
-			str   [red-string!]
-			len   [integer!]
 			hr    [integer!]
 	][
 		hr: OS-image/load-image file/to-OS-path src
@@ -297,7 +292,6 @@ image: context [
 		/local
 			img		[red-image!]
 			index	[red-integer!]
-			s		[series!]
 			offset	[integer!]
 			max		[integer!]
 			idx		[integer!]

@@ -382,8 +382,6 @@ tuple: context [
 	length?: func [
 		tp		[red-tuple!]
 		return: [integer!]
-		/local
-			value  [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
@@ -467,7 +465,6 @@ tuple: context [
 			tmp  [byte!]
 			size [integer!]
 			n	 [integer!]
-			m	 [integer!]
 			tp   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]

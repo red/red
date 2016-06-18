@@ -430,7 +430,6 @@ float: context [
 		only?   [logic!]
 		return: [red-float!]
 		/local
-			t	[float!]
 			s	[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]

@@ -116,7 +116,6 @@ build-preview-graph: func [
 		filter	[this!]
 		IVM		[interface!]
 		graph	[IGraphBuilder]
-		mc		[IMediaControl]
 		builder [ICaptureGraphBuilder2]
 		video	[IVideoWindow]
 		hr		[integer!]

@@ -193,7 +193,6 @@ ownership: context [
 		/local
 			node   [node!]
 			slot   [red-value!]
-			parent [red-value!]
 			owner  [red-object!]
 			series [red-series!]
 			word   [red-word!]
@@ -216,7 +215,6 @@ ownership: context [
 		slot: _hashtable/get-value table as-integer node
 		
 		unless null? slot [
-			parent: slot
 			owner:  as red-object! slot + 1
 			word:	as red-word! slot + 2
 			object/fire-on-deep owner word value action new index part 

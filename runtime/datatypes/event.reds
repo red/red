@@ -37,8 +37,6 @@ event: context [
 		arg		[red-value!]
 		part 	[integer!]
 		return: [integer!]
-		/local
-			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/form"]]
 		

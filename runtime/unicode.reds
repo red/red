@@ -694,8 +694,6 @@ unicode: context [
 		return: [c-string!]
 		/local
 			s	 [series!]
-			s2	 [series!]
-			node [node!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]

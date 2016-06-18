@@ -162,8 +162,6 @@ logic: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-logic!]
-		/local
-			res	 [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/random"]]
 

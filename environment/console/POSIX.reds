@@ -211,7 +211,6 @@ fd-read: func [
 		c	[integer!]
 		len [integer!]
 		i	[integer!]
-		p	[byte-ptr!]
 ][
 	if 1 <> read stdin as byte-ptr! utf-char 1 [return -1]
 	c: as-integer utf-char/1
@@ -233,8 +232,7 @@ fd-read: func [
 		]
 		i: i + 1
 	]
-	c: unicode/decode-utf8-char utf-char :len
-	c
+	unicode/decode-utf8-char utf-char :len
 ]
 
 check-special: func [

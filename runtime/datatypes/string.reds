@@ -232,9 +232,6 @@ string: context [
 		str 	[red-string!]
 		len		[integer!]
 		return: [logic!]
-		/local
-			s	   [series!]
-			offset [integer!]
 	][
 		_series/rs-skip as red-series! str len
 	]
@@ -1505,7 +1502,6 @@ string: context [
 			part?	[logic!]
 			bs?		[logic!]
 			not?	[logic!]
-			op		[integer!]
 			type	[integer!]
 			found?	[logic!]
 	][

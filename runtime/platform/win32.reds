@@ -237,13 +237,13 @@ platform: context [
 		]
 	]
 
-	init-gdiplus: func [/local startup-input res][
+	init-gdiplus: func [/local startup-input][
 		startup-input: declare GdiplusStartupInput!
 		startup-input/GdiplusVersion: 1
 		startup-input/DebugEventCallback: 0
 		startup-input/SuppressBackgroundThread: 0
 		startup-input/SuppressExternalCodecs: 0
-		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
+		GdiplusStartup :gdiplus-token as-integer startup-input 0
 	]
 
 	shutdown-gdiplus: does [

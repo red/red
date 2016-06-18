@@ -56,7 +56,6 @@ get-event-window: func [
 	return: [red-value!]
 	/local
 		handle [handle!]
-		face   [red-object!]
 		msg    [tagMSG]
 ][
 	msg: as tagMSG evt/msg
@@ -73,7 +72,6 @@ get-event-face: func [
 	return: [red-value!]
 	/local
 		handle [handle!]
-		face   [red-object!]
 		msg    [tagMSG]
 ][
 	msg: as tagMSG evt/msg
@@ -789,7 +787,6 @@ WndProc: func [
 		pos	   [integer!]
 		handle [handle!]
 		font   [red-object!]
-		face   [red-object!]
 		draw   [red-block!]
 		state  [red-block!]
 		brush  [handle!]
@@ -1117,7 +1114,6 @@ do-events: func [
 	/local
 		msg	  [tagMSG]
 		state [integer!]
-		res	  [integer!]
 		msg?  [logic!]
 ][
 	msg: declare tagMSG
