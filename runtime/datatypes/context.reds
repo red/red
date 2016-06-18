@@ -66,6 +66,16 @@ _context: context [
 	add-global: func [
 		sym		[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
+		
+		add-global-word sym no
+	]
+	
+	add-global-word: func [
+		sym		[integer!]
+		case?	[logic!]
+		return: [red-word!]
 		/local
 			ctx	  [red-context!]
 			word  [red-word!]
@@ -73,13 +83,18 @@ _context: context [
 			s  	  [series!]
 			id	  [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
-
 		ctx: TO_CTX(global-ctx)
-		id: find-word ctx sym no
+		id: find-word ctx sym case?
 		s: as series! ctx/symbols/value
 		
-		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
+		if id <> -1 [
+			word: as red-word! s/offset + id	;-- word already defined in global context
+			if all [case? word/symbol <> sym][
+				word: as red-word! copy-cell as red-value! word ALLOC_TAIL(root)
+				word/symbol: sym
+			]
+			return word
+		]
 		
 		s: as series! ctx/symbols/value
 		word: as red-word! alloc-tail s
