@@ -404,7 +404,7 @@ OS-draw-fill-pen: func [
 	modes/brush?: not off?
 	either any [
 		modes/brush-color <> color
-		modes/gp-pen <> 0								;-- always update brush in gdi+ mode
+		modes/gp-brush <> 0								;-- always update brush in gdi+ mode
 	][
 		modes/brush-color: color
 		update-modes dc
@@ -471,9 +471,14 @@ OS-draw-box: func [
 	upper [red-pair!]
 	lower [red-pair!]
 	/local
+		t	   [integer!]
 		radius [red-integer!]
 		rad	   [integer!]
 ][
+	if GDI+? [
+		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+	]
 	either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
 		lower:  lower - 1
