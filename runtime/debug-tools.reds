@@ -86,7 +86,7 @@ memory-info: func [
 		val-table: ctx/values
 		
 		s: as series! sym-table/value
-		len: (as-integer s/tail - s/offset) >> 4
+		len: (as-integer s/tail - s/offset) >> 4 + 1
 		symbol: s/offset
 		
 		s: as series! val-table/value
