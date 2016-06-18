@@ -289,6 +289,7 @@ Red/System [
 #define WM_ENTERMENULOOP	0211h
 #define WM_SIZING			0214h
 #define WM_MOVING			0216h
+#define WM_ENTERSIZEMOVE	0231h
 #define WM_EXITSIZEMOVE		0232h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
