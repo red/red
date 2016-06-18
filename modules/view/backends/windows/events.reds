@@ -832,7 +832,10 @@ WndProc: func [
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
 
-					if all [msg = WM_SIZE wParam = SIZE_MAXIMIZED][
+					if all [
+						msg = WM_SIZE
+						any [zero? win-state wParam = SIZE_MAXIMIZED]
+					][
 						make-event current-msg 0 EVT_SIZE
 					]
 					return 0
@@ -857,8 +860,12 @@ WndProc: func [
 			;]
 			;return 1									;-- TRUE
 		;]
+		WM_ENTERSIZEMOVE [
+			if type = window [win-state: 1]
+		]
 		WM_EXITSIZEMOVE [
 			if type = window [
+				win-state: 0
 				type: either modal-loop-type = EVT_MOVING [EVT_MOVE][EVT_SIZE]
 				make-event current-msg 0 type
 				return 0
@@ -1101,7 +1108,7 @@ process: func [
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 			make-event msg 0 EVT_DBL_CLICK
-			EVT_NO_DISPATCH
+			EVT_DISPATCH
 		]
 		;WM_DESTROY []
 		default			[EVT_DISPATCH]
