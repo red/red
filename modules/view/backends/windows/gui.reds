@@ -1311,6 +1311,9 @@ change-data: func [
 		word 	[red-word!]
 		f		[red-float!]
 		str		[red-string!]
+		size	[red-pair!]
+		range	[integer!]
+		flt		[float!]
 		caption [c-string!]
 		type	[integer!]
 ][
@@ -1319,6 +1322,17 @@ change-data: func [
 	type: word/symbol
 	
 	case [
+		all [
+			type = slider
+			TYPE_OF(data) = TYPE_PERCENT
+		][
+			f: as red-float! data
+			size: as red-pair! values + FACE_OBJ_SIZE
+			flt: f/value
+			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
+			flt: flt * integer/to-float range
+			SendMessage hWnd TBM_SETPOS 1 float/to-integer flt
+		]
 		all [
 			type = progress
 			TYPE_OF(data) = TYPE_PERCENT
