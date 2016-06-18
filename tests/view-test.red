@@ -869,5 +869,5 @@ append win/pane make face! [
 ]
 
 dump-face win
-view win
+view/flags win [resize]
 system/view/debug?: no

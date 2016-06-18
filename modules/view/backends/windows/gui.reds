@@ -55,6 +55,7 @@ current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
 win8+?:			no
+win-state:		0
 
 log-pixels-x:	0
 log-pixels-y:	0
