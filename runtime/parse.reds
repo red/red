@@ -43,33 +43,14 @@ parser: context [
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
-		type-i: TYPE_OF(input)
-		word: either any [								;TBD: replace with ANY_STRING?
-			type-i = TYPE_STRING
-			type-i = TYPE_FILE
-			type-i = TYPE_URL
-		][
-			string/rs-length? as red-string! input
-		][
-			block/rs-length? input
-		]
+		word: _series/get-length as red-series! input no
 	]
 	
 	#define PARSE_CHECK_INPUT_EMPTY? [
-		type: TYPE_OF(input)
-		end?: either any [								;TBD: replace with ANY_STRING?
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-		][
-			any [
-				string/rs-tail? as red-string! input
-				all [positive? part input/head >= part]
-			]
-		][
-			block/rs-tail? input
+		end?: any [
+			_series/rs-tail? as red-series! input
+			all [positive? part input/head >= part]
 		]
-		if positive? part [end?: input/head >= part or end?]
 	]
 	
 	#define PARSE_COPY_INPUT(slot) [
@@ -83,17 +64,20 @@ parser: context [
 	
 	#define PARSE_PICK_INPUT [
 		value: base
-		type: TYPE_OF(input)
-		either any [									;TBD: replace with ANY_STRING
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-		][
-			char: as red-char! base
-			char/header: TYPE_CHAR
-			char/value: string/rs-abs-at as red-string! input p/input
-		][
-			value: block/rs-abs-at input p/input
+		switch TYPE_OF(input) [
+			TYPE_BINARY [
+				int: as red-integer! base
+				int/header: TYPE_INTEGER
+				int/value: binary/rs-abs-at as red-binary! input p/input
+			]
+			TYPE_STRING 								;TBD: replace with ANY_STRING
+			TYPE_FILE
+			TYPE_URL [
+				char: as red-char! base
+				char/header: TYPE_CHAR
+				char/value: string/rs-abs-at as red-string! input p/input
+			]
+			default [value: block/rs-abs-at input p/input]
 		]
 	]
 	
@@ -488,7 +472,6 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
-			type-i [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -698,7 +681,6 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
-			type-i	 [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]

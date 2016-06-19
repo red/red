@@ -12,6 +12,18 @@ Red/System [
 
 _series: context [
 	verbose: 0
+	
+	rs-tail?: func [
+		ser		[red-series!]
+		return: [logic!]
+		/local
+			s	   [series!]
+			offset [integer!]
+	][
+		s: GET_BUFFER(ser)
+		offset: ser/head << (log-b GET_UNIT(s))
+		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
+	]
 
 	rs-skip: func [
 		ser 	[red-series!]

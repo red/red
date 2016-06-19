@@ -96,6 +96,20 @@ binary: context [
 		s: GET_BUFFER(bin)
 		(as byte-ptr! s/offset) + bin/head >= as byte-ptr! s/tail
 	]
+	
+	rs-abs-at: func [
+		bin	    [red-binary!]
+		pos  	[integer!]
+		return:	[integer!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/offset) + pos
+		assert p < as byte-ptr! s/tail
+		as-integer p/value
+	]
 
 	rs-clear: func [
 		bin [red-binary!]
