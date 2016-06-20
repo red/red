@@ -245,7 +245,15 @@ binary: context [
 			p1: p1 + 1
 			p2: p2 + 1
 		]
-		if p2 <> end [len1: as-integer p1/1 len2: as-integer p2/1]
+		either p2 = end [
+			if match? [
+				len1: as-integer p1/0
+				len2: as-integer p2/0
+			]
+		][
+			len1: as-integer p1/1
+			len2: as-integer p2/1
+		]
 		SIGN_COMPARE_RESULT(len1 len2)
 	]
 	
@@ -290,7 +298,8 @@ binary: context [
 			]
 			TYPE_CHAR [
 				char: as red-char! value
-				char/value = rs-abs-at bin bin/head
+				res?: char/value = rs-abs-at bin bin/head
+				res?
 			]
 			default [no]
 		]

@@ -261,6 +261,7 @@ parser: context [
 			size   [integer!]
 			unit   [integer!]
 			type   [integer!]
+			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			match? [logic!]
@@ -316,16 +317,23 @@ parser: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_BINARY [
+					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+						PARSE_ERROR [TO_ERROR(script parse-rule) token]
+					]
 					size: string/rs-length? as red-string! token
 					if (string/rs-length? as red-string! input) < size [return no]
 					
 					phead: as byte-ptr! s/offset
 					unit:  log-b unit
+					type:  TYPE_OF(token)
 					
 					until [
-						if zero? string/equal? as red-string! input as red-string! token comp-op yes [
-							return adjust-input-index input pos* size 0
+						res: either type = TYPE_BINARY [
+							binary/equal? as red-binary! input as red-binary! token comp-op yes
+						][
+							string/equal? as red-string! input as red-string! token comp-op yes
 						]
+						if zero? res [return adjust-input-index input pos* size 0]
 						input/head: input/head + 1
 						phead + (input/head + size << unit) > ptail
 					]
@@ -486,13 +494,18 @@ parser: context [
 			type = TYPE_STRING
 			type = TYPE_FILE
 			type = TYPE_URL
+			type = TYPE_BINARY
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
-				until [										;-- ANY-STRING input matching
-					match?: string/match? as red-string! input token comp-op
+				until [									;-- ANY-STRING input matching
+					match?: either type = TYPE_BINARY [
+						binary/match? as red-binary! input token comp-op
+					][
+						string/match? as red-string! input token comp-op
+					]
 					end?: any [
 						all [match? advance as red-string! input token]	;-- consume matched input
 						all [positive? part input/head >= part]
@@ -1203,11 +1216,11 @@ parser: context [
 					][
 						end?: switch type [
 							TYPE_BINARY [
-								either TYPE_OF(value) = TYPE_BITSET [
-									match?: binary/match-bitset? as red-binary! input as red-bitset! value
+								match?: either TYPE_OF(value) = TYPE_BITSET [
+									binary/match-bitset? as red-binary! input as red-bitset! value
 								][
-									match?: binary/match? as red-binary! input value comp-op
-								]							
+									binary/match? as red-binary! input value comp-op
+								]
 								all [match? advance as red-string! input value]	;-- consume matched input
 							]
 							TYPE_STRING
@@ -1224,7 +1237,7 @@ parser: context [
 								match?: actions/compare block/rs-head input value comp-op
 								all [match? block/rs-next input] ;-- consume matched input
 							]
-						]				
+						]
 						if positive? part [end?: input/head >= part or end?]
 					]
 					PARSE_TRACE(_match)
@@ -1607,7 +1620,7 @@ parser: context [
 					if match? [match?: cmd = tail]
 					
 					PARSE_SET_INPUT_LENGTH(cnt)
-					if positive? part [cnt: part - input/head]
+					if all [positive? part cnt > 0][cnt: part - input/head]
 					if all [
 						cnt > 0
 						1 = block/rs-length? series
