@@ -2947,6 +2947,10 @@ system-dialect: make-profilable context [
 							#test <> pick tail expr-call-stack -2
 							4 <= length? expr-call-stack
 						]
+						all [
+							find [switch case] pick tail expr-call-stack -2
+							find comparison-op expr/1
+						]
 					]
 					last-type/1 = 'logic!				;-- function's return type is logic!
 				][
@@ -3128,19 +3132,6 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		post-process-switch: func [body [block!] /local pos offset chunk][
-			if all [									;-- heuristics to identify tail SWITCH returning a logic!
-				last-type/1 = 'logic!
-				block? pick tail body -1
-				pos: find/reverse tail body 'switch
-				tail? find/tail pos block!
-			][
-				set [offset chunk] emitter/chunks/make-boolean	;-- emit ending FALSE/TRUE block
-				emitter/branch/over/adjust chunk offset/1
-				emitter/merge chunk
-			]
-		]
-		
 		comp-func-body: func [
 			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
@@ -3161,7 +3152,6 @@ system-dialect: make-profilable context [
 					emitter/target/emit-casting expr no	;-- insert runtime type casting when required
 					last-type: expr/type
 				]
-				post-process-switch body
 			]
 			emitter/leave name locals args-sz local-sz	;-- build function epilog
 			remove-func-pointers
