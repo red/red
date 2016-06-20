@@ -600,8 +600,6 @@ OS-image: context [
 			format	[integer!]
 	][
 		bmp: 0
-		dst/size: 0
-
 		if part <> 0 [
 			width: IMAGE_WIDTH(src/size)
 			height: IMAGE_WIDTH(src/size)
