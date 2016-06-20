@@ -1137,7 +1137,8 @@ OS-draw-grad-pen: func [
 		GdipCreateMatrix :n
 		if rotate? [GdipRotateMatrix n angle GDIPLUS_MATRIXORDERPREPEND]
 		if scale?  [GdipScaleMatrix n sx sy GDIPLUS_MATRIXORDERPREPEND]
-		if any [rotate? scale?][				;@@ transform path will move it
+		scale?: any [rotate? scale?]
+		if scale? [							;@@ transform path will move it
 			GdipTransformPath brush n
 			GdipDeleteMatrix n
 		]
@@ -1149,7 +1150,10 @@ OS-draw-grad-pen: func [
 		reverse-int-array color count
 		GdipSetPathGradientPresetBlend brush color pos count
 
-		if all [type = diamond rotate?][		;@@ move the shape back to the right position
+		if any [							;@@ move the shape back to the right position
+			all [type = radial scale?]
+			all [type = diamond rotate?]
+		][
 			GdipGetPathGradientCenterPointI brush pt
 			sx: as float32! integer/to-float x - pt/x
 			sy: as float32! integer/to-float y - pt/y

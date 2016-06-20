@@ -602,7 +602,7 @@ OS-image: context [
 		bmp: 0
 		if part <> 0 [
 			width: IMAGE_WIDTH(src/size)
-			height: IMAGE_WIDTH(src/size)
+			height: IMAGE_HEIGHT(src/size)
 			offset: src/head
 			x: offset % width
 			y: offset / width
