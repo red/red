@@ -1873,6 +1873,836 @@ fRed [
 		--assert 8 = length? txt
 
 ===end-group===
+
+===start-group=== "binary"
+
+	--test-- "bin-1" 	--assert parse		#{}			[]
+	--test-- "bin-2" 	--assert parse		#{0A}		[#{0A}]
+	--test-- "bin-3" 	--assert parse		#{0A}		[#"^(0A)"]
+	--test-- "bin-4" 	--assert not parse	#{0A}		[#{0B}]
+	--test-- "bin-5" 	--assert parse		#{0A0B}		[#{0A} #{0B}]
+	--test-- "bin-6" 	--assert parse		#{0A0B}		[#{0A0B}]
+	--test-- "bin-7" 	--assert parse		#{0A}		[[#{0A}]]
+	--test-- "bin-8" 	--assert parse		#{0A0B}		[[#{0A}] #{0B}]
+	--test-- "bin-9" 	--assert parse		#{0A0B}		[#{0A} [#{0B}]]
+	--test-- "bin-10"	--assert parse		#{0A0B}		[[#{0A}][#{0B}]]
+
+	--test-- "bin-11"	--assert parse		#{0A}		[#{0B} | #{0A}]
+	--test-- "bin-12"	--assert not parse	#{0A0B}		[#{0B} | #{0A}]
+	--test-- "bin-13"	--assert parse		#{0A}		[[#{0B} | #{0A}]]
+	--test-- "bin-14"	--assert not parse	#{0A0B}		[[#{0B} | #{0A}]]
+	--test-- "bin-15"	--assert parse		#{0A0B}		[[#{0A} | #{0B}][#{0B} | #{0A}]]
+		
+	
+	--test-- "bin-20"
+		res: 0	
+		--assert parse #{} [(res: 1)]
+		--assert res = 1
+		
+	--test-- "bin-21"
+		res: 0	
+		--assert parse #{0A} [#{0A} (res: 1)]
+		--assert res = 1
+		
+	--test-- "bin-22"
+		res: 0	
+		--assert not parse #{0A} [#{0B} (res: 1)]
+		--assert res = 0
+		
+	--test-- "bin-23"
+		res: 0	
+		--assert parse #{} [[(res: 1)]]
+		--assert res = 1
+
+	--test-- "bin-24"
+		res: 0	
+		--assert parse #{0A} [[#{0A} (res: 1)]]
+		--assert res = 1
+
+	--test-- "bin-25"
+		res: 0	
+		--assert not parse #{0A} [[#{0B} (res: 1)]]
+		--assert res = 0
+		
+	--test-- "bin-26"
+		res: 0	
+		--assert parse #{0A0B} [#{0A} (res: 1) [#"^(0C)" (res: 2) | #{0B} (res: 3)]]
+		--assert res = 3
+		
+	--test-- "bin-27"
+		res: 0	
+		--assert not parse #{0A0B} [#{0A} (res: 1) [#{0C} (res: 2) | #{0D} (res: 3)]]
+		--assert res = 1
+
+	--test-- "bin-28"	--assert not parse		#{0A0A}		[1 [#{0A}]]
+	--test-- "bin-29"	--assert parse			#{0A0A}		[2 [#{0A}]]
+	--test-- "bin-30"	--assert not parse		#{0A0A}		[3 [#{0A}]]
+	--test-- "bin-31"	--assert not parse		#{0A0A}		[1 1 [#{0A}]]
+	--test-- "bin-32"	--assert parse			#{0A0A}		[1 2 [#{0A}]]
+	--test-- "bin-33"	--assert parse			#{0A0A}		[2 2 [#{0A}]]
+	--test-- "bin-34"	--assert parse			#{0A0A}		[2 3 [#{0A}]]
+	--test-- "bin-35"	--assert not parse		#{0A0A}		[3 4 [#{0A}]]
+   
+	--test-- "bin-36"	--assert not parse		#{0A0A}		[1 #{0A}]
+	--test-- "bin-37"	--assert parse			#{0A0A}		[2 #{0A}]
+	--test-- "bin-38"	--assert not parse		#{0A0A}		[3 #{0A}]
+	--test-- "bin-39"	--assert not parse		#{0A0A}		[1 1 #{0A}]
+	--test-- "bin-40"	--assert parse			#{0A0A}		[1 2 #{0A}]
+	--test-- "bin-41"	--assert parse			#{0A0A}		[2 2 #{0A}]
+	--test-- "bin-42"	--assert parse			#{0A0A}		[2 3 #{0A}]
+	--test-- "bin-43"	--assert not parse		#{0A0A}		[3 4 #{0A}]
+
+	--test-- "bin-44"	--assert not parse		#{0A0A}		[1 skip]
+	--test-- "bin-45"	--assert parse			#{0A0A}		[2 skip]
+	--test-- "bin-46"	--assert not parse		#{0A0A}		[3 skip]
+	--test-- "bin-47"	--assert not parse		#{0A0A}		[1 1 skip]
+	--test-- "bin-48"	--assert parse			#{0A0A}		[1 2 skip]
+	--test-- "bin-49"	--assert parse			#{0A0A}		[2 2 skip]
+	--test-- "bin-50"	--assert parse			#{0A0A}		[2 3 skip]
+	--test-- "bin-51"	--assert not parse		#{0A0A}		[3 4 skip]
+   
+	--test-- "bin-52"	--assert parse			#{0A}		[skip]
+	--test-- "bin-53"	--assert parse			#{0A0B}		[skip skip]
+	--test-- "bin-54"	--assert parse			#{0A0B}		[skip [skip]]
+	--test-- "bin-55"	--assert parse			#{0A0B}		[[skip] [skip]]
+   
+	--test-- "bin-56"	--assert parse			#{0A0A}		[some [#{0A}]]
+	--test-- "bin-57"	--assert not parse		#{0A0A}		[some [#{0A}] #{0B}]
+	
+	--test-- "bin-58"	--assert parse			#{0A0A0B0A0B0B0B0A} [some [skip]]
+	--test-- "bin-59"	--assert parse			#{0A0A0B0A0B0B0B0A} [some [#{0A} | #{0B}]]
+	--test-- "bin-60"	--assert not parse		#{0A0A0B0A0B0B0B0A} [some [#{0A} | #"^(0C)"]]
+   
+	--test-- "bin-61"	--assert parse			#{0A0A}		[any [#{0A}]]
+	--test-- "bin-62"	--assert parse			#{0A0A}		[some [#{0A}] any [#{0B}]]
+	--test-- "bin-63"	--assert parse			#{0A0A0B0B}	[2 #{0A} 2 #{0B}]
+	--test-- "bin-64"	--assert not parse		#{0A0A0B0B}	[2 #{0A} 3 #{0B}]
+	--test-- "bin-65"	--assert parse			#{0A0A0B0B}	[some #{0A} some #{0B}]
+	--test-- "bin-66"	--assert not parse		#{0A0A0B0B}	[some #{0A} some #"^(0C)"]
+
+	--test-- "bin-67"
+		p: none
+		--assert parse #{} [p:]
+		--assert tail? p
+	
+	--test-- "bin-68"
+		p: none
+		--assert parse #{} [[[p:]]]
+		--assert tail? p
+
+		
+	--test-- "bin-69"
+		p: none
+		--assert parse #{0A} [p: #{0A}]
+		--assert p = #{0A}
+		
+	--test-- "bin-70"
+		p: none
+		--assert parse #{0A} [#{0A} p:]
+		--assert tail? p
+		
+	--test-- "bin-71"
+		p: none
+		--assert parse #{0A} [#{0A} [p:]]
+		--assert tail? p
+		
+	--test-- "bin-72"
+		p: none
+		--assert not parse #{0A0B} [#{0A} p:]
+		--assert p = #{0B}
+	
+	--test-- "bin-73"
+		p: none
+		--assert parse #{0A0B} [#{0A} [p:][#{0B} | #"^(0C)"]]
+		--assert p = #{0B}
+		
+	--test-- "bin-74"
+		p: none
+		--assert parse #{0A0A0A0B0B} [3 #{0A} p: 2 #{0B} :p [2 #{0B}]]
+		--assert p = #{0B0B}
+	
+	--test-- "bin-75"
+	--assert parse #{0B0A0A0A0C} [skip some [#{0A}] #"^(0C)"]
+	
+===end-group===
+
+===start-group=== "binary-end"
+
+	--test-- "bin-end-1" --assert parse 		#{0A} 	 [#{0A} end]
+	--test-- "bin-end-2" --assert not parse 	#{0A0B}  [#{0A} end]
+	--test-- "bin-end-3" --assert parse 		#{0A} 	 [skip end]
+	--test-- "bin-end-4" --assert not parse 	#{0A0B}	 [skip end]
+	--test-- "bin-end-5" --assert parse 		#{}		 [end]
+	
+	--test-- "bin-end-6"
+		be6: 0
+		--assert parse #{} [end (be6: 1)]
+		--assert be6 = 1
+
+===end-group===
+
+===start-group=== "binary-words"
+	
+	wa: [#{0A}]
+	wb: [#{0B}]
+	wca: #{0A}
+	wcb: #{0B}
+	wra: [wa]
+	wrb: [wb]
+	wh: #{88031100}
+	wrab: [#{0A} | #{0B}]
+	wrba: [#{0B} | #{0A}]
+	
+	--test-- "bin-w1" 	--assert parse 		#{0A}		[wa]
+	--test-- "bin-w2" 	--assert not parse 	#{0A}		[wb]
+	--test-- "bin-w3" 	--assert parse 		#{0A0B}		[wa wb]
+	--test-- "bin-w5" 	--assert parse 		#{0A}		[wra]
+	--test-- "bin-w6" 	--assert parse 		#{0A0B}		[wra #{0B}]
+	--test-- "bin-w7" 	--assert parse 		#{0A0B}		[#{0A} wrb]
+	--test-- "bin-w8" 	--assert parse 		#{0A0B}		[wra wrb]
+	--test-- "bin-w9" 	--assert parse 		#{88031100}	[wh]
+
+	--test-- "bin-w10"	--assert parse 		#{0A} 		[wcb | wca]
+	--test-- "bin-w11"	--assert not parse 	#{0A0B}		[wb | wa]
+	--test-- "bin-w12"	--assert parse 		#{0A}		[[wcb | wca]]
+	--test-- "bin-w13"	--assert not parse 	#{0A0B}		[wrba]
+	--test-- "bin-w14"	--assert parse 		#{0A0B}		[wrab wrba]
+	
+	--test-- "bin-w19"
+		res: 0	
+		--assert parse #{0A} [wa (res: 1)]
+		--assert res = 1
+		
+	--test-- "bin-w20"
+		res: 0	
+		--assert not parse #{0A} [wb (res: 1)]
+		--assert res = 0
+		
+	--test-- "bin-w21"
+		res: 0	
+		wres: [(res: 1)]
+		--assert parse #{} [wres]
+		--assert res = 1
+
+	--test-- "bin-w22"
+		res: 0
+		wres: [#{0A} (res: 1)]
+		--assert parse #{0A} [wres]
+		--assert res = 1
+
+	--test-- "bin-w23"
+		res: 0
+		wres: [#{0B} (res: 1)]
+		--assert not parse #{0A} [wres]
+		--assert res = 0
+
+===end-group===
+
+===start-group=== "binary-extraction"
+
+	wa: [#{0A}]
+	--test-- "bin-ext1" 
+		res: 0
+		--assert parse #{0A} [copy res skip]
+		--assert res = #{0A}
+	
+	--test-- "bin-ext2" 
+		res: 0
+		--assert parse #{0A} [copy res #{0A}]
+		--assert res = #{0A}
+		
+	--test-- "bin-ext4" 
+		res:  0
+		res2: 0
+		--assert parse #{0A} [copy res copy res2 #{0A}]
+		--assert res  = #{0A}
+		--assert res2 = #{0A}
+		
+	--test-- "bin-ext5" 
+		res: 0
+		--assert parse #{0A0A} [copy res 2 #{0A}]
+		--assert res = #{0A0A}
+
+	--test-- "bin-ext6" 
+		res: 0
+		--assert not parse #{0A0A} [copy res 3 #{0A}]
+		--assert res = 0
+		
+	--test-- "bin-ext7" 
+		res: 0
+		--assert parse #{0A} [copy res [#{0A}]]
+		--assert res = #{0A}
+
+	--test-- "bin-ext8" 
+		res: 0
+		--assert parse #{0A} [copy res wa]
+		--assert res = #{0A}
+	
+	--test-- "bin-ext9" 
+		res: 0
+		--assert parse #{0A0A} [copy res 2 wa]
+		--assert res = #{0A0A}
+	
+	--test-- "bin-ext10" 
+		res: 0
+		--assert parse #{0A0A0B} [skip copy res #{0A} skip]
+		--assert res = #{0A}
+ 
+	--test-- "bin-ext11" 
+		res: 0
+		--assert parse #{0A0A0B} [skip copy res [#{0A} | #{0B}] skip]
+		--assert res = #{0A}
+		
+	--test-- "bin-ext12" 
+		res: 0
+		--assert not parse #{0A} [copy res [#"^(0C)" | #{0B}]]
+		--assert res = 0
+		
+	--test-- "bin-ext13" 
+		res: 0
+		--assert parse #{0A} [set res skip]
+		--assert res = 10
+
+	--test-- "bin-ext14" 
+		res: 0
+		--assert parse #{0A} [set res #{0A}]
+		--assert res = 10
+
+	--test-- "bin-ext16" 
+		res:  0
+		res2: 0
+		--assert parse #{0A} [set res set res2 #{0A}]
+		--assert res  = 10
+		--assert res2 = 10
+
+	--test-- "bin-ext17" 
+		res: 0
+		--assert parse #{0A0A} [set res 2 #{0A}]
+		--assert res = 10
+
+	--test-- "bin-ext18" 
+		res: 0
+		--assert not parse #{0A0A} [set res 3 #{0A}]
+		--assert res = 0
+
+	--test-- "bin-ext19" 
+		res: 0
+		--assert parse #{0A} [set res [#{0A}]]
+		--assert res = 10
+
+	--test-- "bin-ext20" 
+		res: 0
+		--assert parse #{0A} [set res wa]
+		--assert res = 10
+
+	--test-- "bin-ext21" 
+		res: 0
+		--assert parse #{0A0A} [set res 2 wa]
+		--assert res = 10
+
+	--test-- "bin-ext22" 
+		res: 0
+		--assert parse #{0A0A0B} [skip set res #{0A} skip]
+		--assert res = 10
+
+	--test-- "bin-ext23" 
+		res: 0
+		--assert parse #{0A0A0B} [skip set res [#{0A} | #{0B}] skip]
+		--assert res = 10
+
+	--test-- "bin-ext24" 
+		res: 0
+		--assert not parse #{0A} [set res [#"^(0C)" | #{0B}]]
+		--assert res = 0
+		
+	--test-- "bin-ext25" 
+		res: 0
+		--assert parse #{0B0A0A0A0C} [skip set res some #{0A} #"^(0C)"]
+		--assert res = 10
+
+	--test-- "bin-ext26" 
+		res: 0
+		--assert parse #{0B0A0A0A0C} [skip set res some wa #"^(0C)"]
+		--assert res = 10
+
+	--test-- "bin-ext40"
+		res: parse #{} [collect []]
+		--assert res = []
+
+	--test-- "bin-ext41"
+		res: parse #{01} [collect []]
+		--assert res = []
+
+	--test-- "bin-ext42"
+		res: parse #{01} [collect [keep skip]]
+		--assert res = [1]
+
+	--test-- "bin-ext43"
+		digit: charset [0 - 9]
+		res: parse #{010203} [collect [some [keep digit]]]
+		--assert res = [1 2 3]
+
+	--test-- "bin-ext44"
+		res: parse #{010203} [collect [some [keep [copy v digit if (even? first v)] | skip]]]
+		--assert res = [2]
+
+	--test-- "bin-ext45"
+		res: parse #{010203} [collect [some [copy d digit keep (1 + first d)]]]
+		--assert res = [2 3 4]
+
+	--test-- "bin-ext46"
+		a: none
+		--assert parse #{} [collect set a []]
+		--assert a = []
+
+	--test-- "bin-ext47"
+		a: none
+		--assert parse #{01} [collect set a [keep skip]]
+		--assert a = [1]
+
+	--test-- "bin-ext49"
+		a: []
+		--assert parse #{} [collect into a []]
+		--assert a = []
+
+	--test-- "bin-ext50"
+		a: []
+		--assert parse #{01} [collect into a [keep skip]]
+		--assert a = [1]
+		--assert [1] = head a
+
+	--test-- "bin-ext51"
+		res: parse #{0A0A0B0B0B} [collect [keep some #{0A} keep some #{0B}]]
+		--assert res = [#{0A0A} #{0B0B0B}]
+
+	--test-- "bin-ext52"
+		digit: charset [0 - 9]
+		res: parse #{01020311040506} [collect [any [keep some digit | skip]]]
+		--assert res = [#{010203} #{040506}]
+		
+	--test-- "bin-ext53 - issue #1093"
+		se53-copied: copy #{}
+		--assert parse #{0102030405} [#{AABBCC} | copy s to end (se53-copied: :s)]
+		--assert #{0102030405} = se53-copied
+
+		
+===end-group===
+
+===start-group=== "binary-skipping"
+
+	bin: #{0BAD00CAFE00BABE00DEADBEEF00}
+	wa: [#{0A}]
+	
+	--test-- "bin-sk1" 	--assert parse		#{}			[to end]
+	--test-- "bin-sk2" 	--assert parse		#{}			[thru end]
+	--test-- "bin-sk3" 	--assert parse		#{0A}		[to end]
+	--test-- "bin-sk4" 	--assert not parse	#{0A}		[to #{0A}]
+	--test-- "bin-sk5" 	--assert not parse	#{0A}		[to #{0A} end]
+	--test-- "bin-sk6" 	--assert parse		#{0A}		[to #{0A} skip]
+	--test-- "bin-sk7" 	--assert parse		#{0A}		[thru #{0A}]
+	--test-- "bin-sk8" 	--assert parse		#{0A}		[thru #{0A} end]
+	--test-- "bin-sk9" 	--assert not parse	#{0A}		[thru #{0A}skip]
+	--test-- "bin-sk10"	--assert parse		#{0A0B}		[to #{0A} 2 skip]
+	--test-- "bin-sk11"	--assert parse		#{0A0B}		[thru #{0A} skip]
+	--test-- "bin-sk12"	--assert parse		#{0A0A0A0B}	[to #{0A} to end]
+	--test-- "bin-sk13"	--assert parse		#{0A0A0B0A}	[skip thru #{0A} 2 skip]
+	
+	--test-- "bin-sk14"	--assert not parse	#{0A}		[to [#{0A}]]
+	--test-- "bin-sk15"	--assert not parse	#{0A}		[to [#{0A}] end]
+	--test-- "bin-sk16"	--assert parse		#{0A}		[to [#{0A}] skip]
+	--test-- "bin-sk17"	--assert parse		#{0A}		[thru [#{0A}]]
+	--test-- "bin-sk18"	--assert parse		#{0A}		[thru [#{0A}] end]
+	--test-- "bin-sk19"	--assert not parse	#{0A}		[thru [#{0A}] skip]
+	--test-- "bin-sk20"	--assert parse		#{0A0B}		[to [#{0A}] 2 skip]
+	--test-- "bin-sk21"	--assert parse		#{0A0B}		[thru [#{0A}] skip]
+	--test-- "bin-sk22"	--assert parse		#{0A0A0A0B}	[to [#{0A}] to end]
+	--test-- "bin-sk23"	--assert parse		#{0A0A0B0A}	[skip thru [#{0A}] 2 skip]
+	
+	--test-- "bin-sk24"	--assert parse		#{99990A0B0C} [to [#"^(0C)" | #{0B} | #{0A}] 3 skip]
+	--test-- "bin-sk25"	--assert parse		#{99990A0B0C} [to [#{0A} | #{0B} | #"^(0C)"] 3 skip]
+
+	--test-- "bin-sk26"	--assert parse		#{99990A0B0C} [thru [#"^(0C)" | #{0B} | #{0A}] 2 skip]
+	--test-- "bin-sk27"	--assert parse		#{99990A0B0C} [thru [#{0A} | #{0B} | #"^(0C)"] 2 skip]
+	--test-- "bin-sk28"	--assert parse		#{0B0B0A0A0A0C}	[thru 3 #{0A} #"^(0C)"]
+	--test-- "bin-sk29"	--assert parse		#{0B0B0A0A0A0C}	[thru 3 #{0A} #{0C}]
+	--test-- "bin-sk30"	--assert parse		#{0B0B0A0A0A0C}	[thru 3 wa #"^(0C)"]
+	--test-- "bin-sk31"	--assert parse		#{0B0B0A0A0A0C}	[thru [3 #{0A}] #{0C}]
+	--test-- "bin-sk32"	--assert parse		#{0B0B0A0A0A0C}	[thru some #{0A} #{0C}]
+	--test-- "bin-sk33"	--assert parse		#{0B0B0A0A0A0C}	[thru [some #{0A}] #{0C}]
+	--test-- "bin-sk34"	--assert parse		#{0B0B0A0A0A0C}	[thru [some #"x" | #{0A0A0A}] #{0C}]
+	
+	--test-- "bin-sk35"	--assert parse 		bin 		[thru #{DEADBEEF} skip]
+
+	--test-- "bin-sk36"
+		res: 0
+		--assert parse bin [thru #{CAFE} skip copy res to #"^(00)" to end]
+		--assert res = #{BABE}
+
+	--test-- "bin-sk37"
+		res: 0
+		--assert parse bin [thru #{BABE} res: to end]
+		--assert 9 = index? res 
+
+	--test-- "bin-sk38" --assert not parse	#{}			[to #{0A}]
+	--test-- "bin-sk39" --assert not parse	#{}			[to #"^(0A)"]
+	--test-- "bin-sk40" --assert not parse	#{}			[to [#{0A}]]
+	--test-- "bin-sk41" --assert not parse	#{}			[to [#"^(0A)"]]
+
+	
+===end-group===
+
+===start-group=== "binary-bitsets"
+	
+	bs:	   charset [16 - 31 #"^(0A)" - #"^(0F)"]
+	wbs: [bs]
+	wbs2: reduce wbs
+	--test-- "bin-bs1" 		--assert parse 			#{0A0B0C} [some bs]
+	--test-- "bin-bs2" 		--assert not parse 		#{010203} [some bs]
+	--test-- "bin-bs4" 		--assert parse 			#{0A0B0C} [some [bs]]
+	--test-- "bin-bs5" 		--assert not parse 		#{010203} [some [bs]]
+	--test-- "bin-bs6" 		--assert parse 			#{0A0B0C} [some wbs]
+	--test-- "bin-bs7" 		--assert not parse 		#{010203} [some wbs]
+	--test-- "bin-bs8" 		--assert parse 			#{0A0B0C} [some wbs2]
+	--test-- "bin-bs9" 		--assert not parse 		#{010203} [some wbs2]
+
+	--test-- "bin-bs10" 	--assert parse 			#{0A0B0C} [bs bs bs]
+	--test-- "bin-bs11" 	--assert not parse 		#{010203} [bs bs bs]
+	--test-- "bin-bs12" 	--assert parse 			#{0A0B0C} [[bs] [bs] [bs]]
+	--test-- "bin-bs13" 	--assert not parse 		#{010203} [[bs] [bs] [bs]]
+	--test-- "bin-bs14" 	--assert parse 			#{0A0B0C} [wbs wbs wbs]
+	--test-- "bin-bs15" 	--assert not parse 		#{010203} [wbs wbs wbs]
+	--test-- "bin-bs16" 	--assert parse 			#{0A0B0C} [wbs2 wbs2 wbs2]
+	--test-- "bin-bs17" 	--assert not parse 		#{010203} [wbs2 wbs2 wbs2]
+
+
+	bs: charset [not 1 - 3 #"^(0A)" - #"^(0F)"]
+	wbs: [bs]
+	wbs2: reduce wbs
+	--test-- "bin-bs20" 	--assert not parse 		#{0A0B0C} [some bs]
+	--test-- "bin-bs22" 	--assert not parse 		#{010203} [some bs]
+	--test-- "bin-bs23"		--assert parse 			#{070809} [some bs]
+	--test-- "bin-bs24" 	--assert not parse 		#{0A0B0C} [bs bs bs]
+	--test-- "bin-bs26" 	--assert not parse 		#{010203} [bs bs bs]
+	--test-- "bin-bs27" 	--assert parse 			#{070809} [bs bs bs]
+
+
+	--test-- "bin-bs30"
+		digit: charset [0 - 9]
+		--assert parse #{0BADCAFE010203} [to digit p: 3 skip]
+		--assert p = #{010203}
+
+
+===end-group===
+
+===start-group=== "binary-modify"
+	ws: charset " ^- ^/^M^(00)"
+	not-ws: complement ws
+
+	--test-- "bin-rem1"	--assert error? try [parse #{} [remove]]
+	--test-- "bin-rem2"	--assert not parse		#{}	   [remove skip]
+
+	--test-- "bin-rem3"	
+		bin: #{0A}
+		--assert parse bin [remove skip]
+		--assert bin = #{}
+
+	--test-- "bin-rem4"	
+		bin: #{0A0B0A}
+		--assert parse bin [some [#{0A} | remove #{0B}]]
+		--assert bin = #{0A0A}
+
+	--test-- "bin-rem5"	
+		bin: #{DEAD00BEEF}
+		--assert parse bin [remove thru ws #{BEEF}]
+		--assert bin = #{BEEF}
+
+	--test-- "bin-rem6"	
+		bin: #{DEAD00BEEF}
+		--assert parse bin [remove #{DEAD} skip #{BEEF}]
+		--assert bin = #{00BEEF}
+
+	--test-- "bin-rem7"
+		--assert parse s: #{00DE00AD00} [any [remove ws | skip]]
+		--assert s = #{DEAD}
+
+	--test-- "bin-rem8"
+		--assert parse s: #{00DE00AD00} [while [remove ws | skip]]
+		--assert s = #{DEAD}
+
+	--test-- "bin-rem9"
+		bin: #{DEAD0001020300BEEF}
+		digit: charset [1 - 9]
+		--assert parse bin [any [remove [some digit #"^(00)"] | skip]]
+		--assert bin = #{DEAD00BEEF}
+
+	--test-- "bin-ins1"	
+		--assert parse bin: #{} [insert #"^(01)"]
+		--assert bin = #{01}
+
+	--test-- "bin-ins2"	
+		--assert parse bin: #{0A0A} [skip insert #{0B} skip]
+		--assert bin = #{0A0B0A}
+
+	--test-- "bin-ins3"	
+		--assert parse bin: #{} [p: insert #{0A} :p remove #{0A}]
+		--assert bin = #{}
+
+	--test-- "bin-ins4"
+		--assert parse bin: #{DEADBEEF} [some [skip p: insert #"^(00)"] :p remove skip]
+		--assert bin = #{DE00AD00BE00EF}
+
+	--test-- "bin-chg1"
+		--assert parse bin: #{01} [change skip #{0A}]
+		--assert bin = #{0A}
+
+	--test-- "bin-chg2"
+		--assert parse bin: #{010203} [change [3 skip] #{0A}]
+		--assert bin = #{0A}
+
+	--test-- "bin-chg3"
+		digit: charset [1 - 9]
+		--assert parse bin: #{010a020b03} [some [change digit #{00} | skip]]
+		--assert bin = #{000a000b00}
+
+	--test-- "bin-chg4"
+		--assert parse bin: #{010203} [change 3 skip (99)]
+		--assert bin = #{63}
+
+	--test-- "bin-chg5"
+		--assert parse bin: #{BEADBEEF} [some [change #{BE} #{DE} | skip]]
+		--assert bin = #{DEADDEEF}
+
+	--test-- "bin-chg6"
+		--assert parse bin: #{0a0b0c03040d0e} [some [to digit change [some digit] #{BEEF}] 2 skip]
+		--assert bin = #{0a0b0cBEEF0d0e}
+
+	--test-- "bin-chg11"
+		--assert parse bin: #{01} [b: skip change b #{0A}]
+		--assert bin = #{0A}
+
+	--test-- "bin-chg12"
+		--assert parse bin: #{010203} [b: 3 skip change b #{0A}]
+		--assert bin = #{0A}
+
+	--test-- "bin-chg13"
+		digit: charset [1 - 9]
+		--assert parse bin: #{010a020b03} [some [b: digit change b #{00} | skip]]
+		--assert bin = #{000a000b00}
+
+	--test-- "bin-chg14"
+		--assert parse bin: #{010203} [b: 3 skip change b (99)]
+		--assert bin = #{63}
+
+	--test-- "bin-chg15"
+		--assert parse bin: #{BEADBEEF} [some [b: #{BE} change b #{DE} | skip]]
+		--assert bin = #{DEADDEEF}
+
+	--test-- "bin-chg16"
+		--assert parse bin: #{0a0b0c03040d0e} [some [to digit b: some digit change b #{BEEF}] 2 skip]
+		--assert bin = #{0a0b0cBEEF0d0e}
+
+===end-group===
+
+===start-group=== "binary-misc"
+
+	wa: [#{0A}]
+	wb: [#{0B}]
+	--test-- "bin-m1"	--assert parse 		#{}			[break]
+	--test-- "bin-m2"	--assert not parse 	#{0A}		[break]
+	--test-- "bin-m3"	--assert parse 		#{0A}		[[break #{0B}] #{0A}]
+	--test-- "bin-m4"	--assert parse 		#{0A}		[[#{0B} | break] #{0A}]
+	--test-- "bin-m5"	--assert parse 		#{0A0A}		[some [#{0B} | break] 2 #{0A}]
+	--test-- "bin-m6"	--assert parse 		#{0A0A}		[some [#{0B} | [break]] 2 #{0A}]
+	--test-- "bin-m7"	--assert not parse 	#{0A0A}		[some [#{0B} | 2 [#"^(0C)" | break]] 2 #{0A}]
+
+	--test-- "bin-m20"	--assert not parse 	#{}			[fail]
+	--test-- "bin-m21"	--assert not parse 	#{0A}		[#{0A} fail]
+	--test-- "bin-m22"	--assert not parse 	#{0A}		[[fail]]
+	--test-- "bin-m23"	--assert not parse 	#{0A}		[fail | fail]
+	--test-- "bin-m24"	--assert not parse 	#{0A}		[[fail | fail]]
+	--test-- "bin-m25"	--assert not parse 	#{0A}		[#{0B} | fail]
+
+	--test-- "bin-m30"	--assert not parse 	#{}			[not end]
+	--test-- "bin-m31"	--assert parse 		#{0A}		[not #{0B} #{0A}]
+	--test-- "bin-m32"	--assert not parse 	#{0A}		[not skip]
+	--test-- "bin-m33"	--assert not parse 	#{0A}		[not skip skip]
+	--test-- "bin-m34"	--assert parse 		#{0A}		[not [#{0B}] #{0A}]
+	--test-- "bin-m35"	--assert parse 		#{0A}		[not wb #{0A}]
+	--test-- "bin-m36"	--assert not parse 	#{0A0A}		[not [#{0A} #{0A}] to end]
+	--test-- "bin-m37"	--assert parse 		#{0A0A}		[not [some #{0B}] to end]
+	--test-- "bin-m38"	--assert parse 		#{0A0A}		[some [#"^(0C)" | not #{0B}] 2 skip]
+
+	--test-- "bin-m50"	--assert not parse 	#{}			[reject]
+	--test-- "bin-m51"	--assert not parse 	#{0A}		[reject #{0A}]
+	--test-- "bin-m52"	--assert not parse 	#{0A}		[reject wa]
+	--test-- "bin-m53"	--assert not parse 	#{0A}		[[reject] #{0A}]
+	--test-- "bin-m54"	--assert parse 		#{0A}		[[reject #{0B}] | #{0A}]
+	--test-- "bin-m55"	--assert not parse 	#{0A}		[[#{0B} | reject] #{0A}]
+	--test-- "bin-m56"	--assert parse 		#{0A}		[[#{0B} | reject] | #{0A}]
+	--test-- "bin-m57"	--assert parse 		#{0A0A}		[some reject | 2 #{0A}]
+	--test-- "bin-m58"	--assert parse 		#{0A0A}		[some [reject] | 2 #{0A}]
+	
+	--test-- "bin-m60"	--assert parse 		#{}			[none]
+	--test-- "bin-m61"	--assert parse 		#{0A}		[skip none]
+	--test-- "bin-m62"	--assert parse 		#{0A}		[none skip none]
+	--test-- "bin-m63"	--assert parse 		#{0A}		[#{0A} none]
+	--test-- "bin-m64"	--assert parse 		#{0A}		[none #{0A} none]
+	--test-- "bin-m65"	--assert parse 		#{0A}		[wa none]
+	--test-- "bin-m66"	--assert parse 		#{0A}		[none wa none]
+	--test-- "bin-m67"	--assert parse 		#{0A}		[[#{0B} | none] #{0A}]
+	--test-- "bin-m68"	--assert parse 		#{0A}		[[#{0B} | [none]] #{0A}]
+	--test-- "bin-m69"	--assert parse 		#{0A}		[[[#{0B} | [none]]] #{0A}]
+
+	--test-- "bin-m80"	--assert parse 		#{}			[opt none]
+	--test-- "bin-m81"	--assert parse 		#{}			[opt #{0A}]
+	--test-- "bin-m82"	--assert parse 		#{0A}		[opt #{0A}]
+	--test-- "bin-m83"	--assert parse 		#{0A}		[opt #{0B} #{0A}]
+	--test-- "bin-m84"	--assert parse 		#{0A}		[opt [#{0A}]]
+	--test-- "bin-m85"	--assert parse 		#{0A}		[opt wa]
+	--test-- "bin-m86"	--assert parse 		#{0A}		[opt skip]
+	--test-- "bin-m87"	--assert parse 		#{0A0B0C}	[skip opt #{0B} skip]
+
+	--test-- "bin-m90"	--assert not parse	#{}			[then skip]
+	--test-- "blk-m91"	--assert parse		#{}			[then skip | end]
+	--test-- "bin-m92"	--assert parse		#{0A}		[then #{0A} | #{0B}]
+	--test-- "bin-m93"	--assert not parse	#{0c}		[then #{0A} | #{0B}]
+	--test-- "bin-m94"	--assert parse		#{0B}		[then #{0A} | #{0B}]
+	--test-- "bin-m95"	--assert parse		#{0F0a}		[#"^(0F)" then #{0A} | #{0B}]
+
+	x: none
+	--test-- "bin-m100"	--assert parse		#{020406}	[any [copy x skip if (even? first x)]]
+	--test-- "bin-m101"	--assert not parse	#{01}		[copy x skip if (even? first x)]
+	--test-- "bin-m102"	--assert not parse	#{0105}		[some [copy x skip if (even? first x)]]
+
+	--test-- "bin-m120"	--assert parse		#{}			[while #{0A}]
+	--test-- "bin-m121"	--assert parse		#{}			[while #{0B}]
+	--test-- "bin-m122"	--assert parse		#{0A}		[while #{0A}]
+	--test-- "bin-m123"	--assert not parse	#{0A}		[while #{0B}]
+	--test-- "bin-m124"	--assert parse		#{0A}		[while #{0B} skip]
+	--test-- "bin-m125"	--assert parse		#{0A0B0A0B}	[while [#{0B} | #{0A}]]
+
+	--test-- "bin-m130"	--assert error? try [parse #{} [ahead]]
+	--test-- "bin-m131"	--assert parse		#{0A}		[ahead #{0A} #{0A}]
+	--test-- "bin-m132"	--assert parse		#{01}		[ahead [#{0A} | #"^(01)"] skip]
+
+===end-group===
+
+===start-group=== "binary-part"
+	input: #{DEADBEEF}
+	input2: #{0a0a0a0b0b}
+	letters: charset [#"^(AD)" - #"^(DE)"]
+
+	--test-- "bin-part-1"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 2
+		--assert none? v
+
+	--test-- "bin-part-2"
+		v: none
+		--assert parse/part input [copy v 3 skip] 3
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-3"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 4
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-4"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] 4
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-5"
+		v: none
+		--assert parse/part next input [copy v 3 skip] 3
+		--assert v = #{ADBEEF}
+
+	--test-- "bin-part-6"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] 3
+		--assert none? v
+
+	--test-- "bin-part-7"
+		v: none
+		--assert parse/part input [copy v to #{EF} skip] 5
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-8"
+		v: none
+		--assert not parse/part input [copy v 3 letters] 2
+		--assert none? v
+
+	--test-- "bin-part-9"
+		v: none
+		--assert parse/part input [copy v 3 letters] 3
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-10"
+		v: none
+		--assert not parse/part input2 [copy v 3 #{0A}] 2
+		--assert none? v
+
+	--test-- "bin-part-11"
+		v: none
+		--assert parse/part input2 [copy v 3 #{0A}] 3
+		--assert v = #{0a0a0a}
+
+	--test-- "bin-part-20"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 2
+		--assert none? v
+
+	--test-- "bin-part-21"
+		v: none
+		--assert parse/part input [copy v 3 skip] skip input 3
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-22"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 4
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-23"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] skip input 4
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-24"
+		v: none
+		--assert parse/part next input [copy v 3 skip] skip input 4
+		--assert v = #{ADBEEF}
+
+	--test-- "bin-part-25"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] skip input 3
+		--assert none? v
+
+	--test-- "bin-part-26"
+		v: none
+		--assert parse/part input [copy v to #{EF} skip] skip input 5
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-27"
+		v: none
+		--assert not parse/part input [copy v 3 letters] skip input 2
+		--assert none? v
+
+	--test-- "bin-part-28"
+		v: none
+		--assert parse/part input [copy v 3 letters] skip input 3
+		--assert v = #{DEADBE}
+
+	--test-- "bin-part-29"
+		v: none
+		--assert not parse/part input2 [copy v 3 #{0A}] skip input2 2
+		--assert none? v
+
+	--test-- "bin-part-30"
+		v: none
+		--assert parse/part input2 [copy v 3 #{0A}] skip input2 3
+		--assert v = #{0a0a0a}
+
+===end-group===
     
 ~~~end-file~~~
 
