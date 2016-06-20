@@ -1072,9 +1072,9 @@ OS-draw-grad-pen: func [
 			default			[break]
 		]
 		switch n [
-			0	[angle: as float32! p rotate?: yes]
-			1	[sx: as float32! p scale?: yes]
-			2	[sy: as float32! p scale?: yes]
+			0	[if p <> 0.0 [angle: as float32! p rotate?: yes]]
+			1	[if p <> 1.0 [sx: as float32! p scale?: yes]]
+			2	[if p <> 1.0 [sy: as float32! p scale?: yes]]
 		]
 		n: n + 1
 	]
@@ -1149,7 +1149,7 @@ OS-draw-grad-pen: func [
 		reverse-int-array color count
 		GdipSetPathGradientPresetBlend brush color pos count
 
-		if any [rotate? scale?][				;@@ move the shape back to the right position
+		if all [type = diamond rotate?][		;@@ move the shape back to the right position
 			GdipGetPathGradientCenterPointI brush pt
 			sx: as float32! integer/to-float x - pt/x
 			sy: as float32! integer/to-float y - pt/y
