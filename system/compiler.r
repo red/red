@@ -2947,6 +2947,10 @@ system-dialect: make-profilable context [
 							#test <> pick tail expr-call-stack -2
 							4 <= length? expr-call-stack
 						]
+						all [
+							find [switch case] pick tail expr-call-stack -2
+							find comparison-op expr/1
+						]
 					]
 					last-type/1 = 'logic!				;-- function's return type is logic!
 				][
