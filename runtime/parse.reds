@@ -43,33 +43,14 @@ parser: context [
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
-		type-i: TYPE_OF(input)
-		word: either any [								;TBD: replace with ANY_STRING?
-			type-i = TYPE_STRING
-			type-i = TYPE_FILE
-			type-i = TYPE_URL
-		][
-			string/rs-length? as red-string! input
-		][
-			block/rs-length? input
-		]
+		word: _series/get-length as red-series! input no
 	]
 	
 	#define PARSE_CHECK_INPUT_EMPTY? [
-		type: TYPE_OF(input)
-		end?: either any [								;TBD: replace with ANY_STRING?
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-		][
-			any [
-				string/rs-tail? as red-string! input
-				all [positive? part input/head >= part]
-			]
-		][
-			block/rs-tail? input
+		end?: any [
+			_series/rs-tail? as red-series! input
+			all [positive? part input/head >= part]
 		]
-		if positive? part [end?: input/head >= part or end?]
 	]
 	
 	#define PARSE_COPY_INPUT(slot) [
@@ -83,17 +64,20 @@ parser: context [
 	
 	#define PARSE_PICK_INPUT [
 		value: base
-		type: TYPE_OF(input)
-		either any [									;TBD: replace with ANY_STRING
-			type = TYPE_STRING
-			type = TYPE_FILE
-			type = TYPE_URL
-		][
-			char: as red-char! base
-			char/header: TYPE_CHAR
-			char/value: string/rs-abs-at as red-string! input p/input
-		][
-			value: block/rs-abs-at input p/input
+		switch TYPE_OF(input) [
+			TYPE_BINARY [
+				int: as red-integer! base
+				int/header: TYPE_INTEGER
+				int/value: binary/rs-abs-at as red-binary! input p/input
+			]
+			TYPE_STRING 								;TBD: replace with ANY_STRING
+			TYPE_FILE
+			TYPE_URL [
+				char: as red-char! base
+				char/header: TYPE_CHAR
+				char/value: string/rs-abs-at as red-string! input p/input
+			]
+			default [value: block/rs-abs-at input p/input]
 		]
 	]
 	
@@ -196,21 +180,20 @@ parser: context [
 		value	[red-value!]							;-- char! or string! value
 		return:	[logic!]
 		/local
-			end? [logic!]
 			type [integer!]
+			len	 [integer!]
 	][
 		type: TYPE_OF(value)
-		end?: either any [type = TYPE_CHAR type = TYPE_BITSET][
-			string/rs-next str
-		][
+		len: either any [type = TYPE_CHAR type = TYPE_BITSET][1][
 			assert any [
-				TYPE_OF(value) = TYPE_STRING
-				TYPE_OF(value) = TYPE_FILE
-				TYPE_OF(value) = TYPE_URL
+				type = TYPE_STRING
+				type = TYPE_FILE
+				type = TYPE_URL
+				type = TYPE_BINARY
 			]
-			string/rs-skip str string/rs-length? as red-string! value
+			string/rs-length? as red-string! value
 		]
-		end?
+		_series/rs-skip as red-series! str len
 	]
 	
 	find-altern: func [									;-- search for next '| symbol
@@ -278,6 +261,7 @@ parser: context [
 			size   [integer!]
 			unit   [integer!]
 			type   [integer!]
+			res	   [integer!]
 			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			match? [logic!]
@@ -333,16 +317,23 @@ parser: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_BINARY [
+					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
+						PARSE_ERROR [TO_ERROR(script parse-rule) token]
+					]
 					size: string/rs-length? as red-string! token
 					if (string/rs-length? as red-string! input) < size [return no]
 					
 					phead: as byte-ptr! s/offset
 					unit:  log-b unit
+					type:  TYPE_OF(token)
 					
 					until [
-						if zero? string/equal? as red-string! input as red-string! token comp-op yes [
-							return adjust-input-index input pos* size 0
+						res: either type = TYPE_BINARY [
+							binary/equal? as red-binary! input as red-binary! token comp-op yes
+						][
+							string/equal? as red-string! input as red-string! token comp-op yes
 						]
+						if zero? res [return adjust-input-index input pos* size 0]
 						input/head: input/head + 1
 						phead + (input/head + size << unit) > ptail
 					]
@@ -488,7 +479,6 @@ parser: context [
 			len	   [integer!]
 			cnt	   [integer!]
 			type   [integer!]
-			type-i [integer!]
 			match? [logic!]
 			end?   [logic!]
 			s	   [series!]
@@ -504,13 +494,18 @@ parser: context [
 			type = TYPE_STRING
 			type = TYPE_FILE
 			type = TYPE_URL
+			type = TYPE_BINARY
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
 				match?: loop-bitset input as red-bitset! token min max counter part
 				cnt: counter/value
 			][
-				until [										;-- ANY-STRING input matching
-					match?: string/match? as red-string! input token comp-op
+				until [									;-- ANY-STRING input matching
+					match?: either type = TYPE_BINARY [
+						binary/match? as red-binary! input token comp-op
+					][
+						string/match? as red-string! input token comp-op
+					]
 					end?: any [
 						all [match? advance as red-string! input token]	;-- consume matched input
 						all [positive? part input/head >= part]
@@ -698,7 +693,6 @@ parser: context [
 			state	 [states!]
 			pos		 [byte-ptr!]						;-- required by BS_TEST_BIT_ALT()
 			type	 [integer!]
-			type-i	 [integer!]
 			dt-type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
@@ -883,16 +877,7 @@ parser: context [
 										end?: no
 									]
 								][
-									type: TYPE_OF(input)
-									match?: either any [	;TBD: replace with ANY_STRING?
-										type = TYPE_STRING
-										type = TYPE_FILE
-										type = TYPE_URL
-									][
-										string/rs-next as red-string! input
-									][
-										block/rs-next input
-									]
+									match?: _series/rs-skip as red-series! input 1
 									if positive? part [match?: input/head >= part or match?]
 									
 									either match? [
@@ -959,14 +944,12 @@ parser: context [
 										]
 									]
 									either into? [
-										either any [					;@@ replace with ANY_STRING?
-											TYPE_OF(blk) = TYPE_STRING
-											TYPE_OF(blk) = TYPE_FILE
-											TYPE_OF(blk) = TYPE_URL
-										][
-											string/insert as red-string! blk value null yes null no
-										][
-											block/insert blk value null yes null no
+										switch TYPE_OF(blk) [
+											TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
+											TYPE_STRING
+											TYPE_FILE
+											TYPE_URL [string/insert as red-string! blk value null yes null no]
+											default  [block/insert blk value null yes null no]
 										]
 									][
 										block/rs-append blk value
@@ -1118,6 +1101,7 @@ parser: context [
 								type = TYPE_STRING
 								type = TYPE_FILE
 								type = TYPE_URL
+								type = TYPE_BINARY
 							][
 								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
 							]
@@ -1196,16 +1180,7 @@ parser: context [
 					]
 				]
 				ST_NEXT_INPUT [
-					type: TYPE_OF(input)
-					end?: either any [					;TBD: replace with ANY_STRING
-						type = TYPE_STRING
-						type = TYPE_FILE
-						type = TYPE_URL
-					][
-						string/rs-next as red-string! input
-					][
-						block/rs-next input
-					]
+					end?: _series/rs-skip as red-series! input 1
 					if positive? part [end?: input/head >= part or end?]
 					state: ST_CHECK_PENDING
 				]
@@ -1239,20 +1214,29 @@ parser: context [
 							zero? string/rs-length? as red-string! value
 						]
 					][
-						end?: either any [				;TBD: replace with ANY_STRING?
-							type = TYPE_STRING
-							type = TYPE_FILE
-							type = TYPE_URL
-						][
-							match?: either TYPE_OF(value) = TYPE_BITSET [
-								string/match-bitset? as red-string! input as red-bitset! value
-							][
-								string/match? as red-string! input value comp-op
+						end?: switch type [
+							TYPE_BINARY [
+								match?: either TYPE_OF(value) = TYPE_BITSET [
+									binary/match-bitset? as red-binary! input as red-bitset! value
+								][
+									binary/match? as red-binary! input value comp-op
+								]
+								all [match? advance as red-string! input value]	;-- consume matched input
 							]
-							all [match? advance as red-string! input value]	;-- consume matched input
-						][
-							match?: actions/compare block/rs-head input value comp-op
-							all [match? block/rs-next input]				;-- consume matched input
+							TYPE_STRING
+							TYPE_FILE
+							TYPE_URL [
+								match?: either TYPE_OF(value) = TYPE_BITSET [
+									string/match-bitset? as red-string! input as red-bitset! value
+								][
+									string/match? as red-string! input value comp-op
+								]
+								all [match? advance as red-string! input value]	;-- consume matched input
+							]
+							default [
+								match?: actions/compare block/rs-head input value comp-op
+								all [match? block/rs-next input] ;-- consume matched input
+							]
 						]
 						if positive? part [end?: input/head >= part or end?]
 					]
@@ -1636,7 +1620,7 @@ parser: context [
 					if match? [match?: cmd = tail]
 					
 					PARSE_SET_INPUT_LENGTH(cnt)
-					if positive? part [cnt: part - input/head]
+					if all [positive? part cnt > 0][cnt: part - input/head]
 					if all [
 						cnt > 0
 						1 = block/rs-length? series

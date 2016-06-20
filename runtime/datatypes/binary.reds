@@ -96,6 +96,20 @@ binary: context [
 		s: GET_BUFFER(bin)
 		(as byte-ptr! s/offset) + bin/head >= as byte-ptr! s/tail
 	]
+	
+	rs-abs-at: func [
+		bin	    [red-binary!]
+		pos  	[integer!]
+		return:	[integer!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/offset) + pos
+		assert p < as byte-ptr! s/tail
+		as-integer p/value
+	]
 
 	rs-clear: func [
 		bin [red-binary!]
@@ -170,6 +184,125 @@ binary: context [
 
 		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
 		p
+	]
+	
+	equal?: func [
+		bin1	[red-binary!]
+		bin2	[red-binary!]
+		op		[integer!]
+		match?	[logic!]								;-- match bin2 within bin1 (sizes matter less)
+		return:	[integer!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			len1	[integer!]
+			len2	[integer!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			end		[byte-ptr!]
+			same?	[logic!]
+	][
+		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
+
+		same?: all [
+			bin1/node = bin2/node
+			bin1/head = bin2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
+		s1: GET_BUFFER(bin1)
+		s2: GET_BUFFER(bin2)
+		len1: rs-length? bin1
+		len2: rs-length? bin2
+		end: as byte-ptr! s2/tail
+
+		either match? [
+			if zero? len2 [
+				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
+			]
+		][
+			either len1 <> len2 [							;-- shortcut exit for different sizes
+				if any [
+					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				][return 1]
+
+				if len2 > len1 [
+					end: end - (len2 - len1)
+				]
+			][
+				if zero? len1 [return 0]					;-- shortcut exit for empty binary!
+			]
+		]
+
+		p1: (as byte-ptr! s1/offset) + bin1/head
+		p2: (as byte-ptr! s2/offset) + bin2/head
+
+		while [all [p2 < end p1/1 = p2/1]][
+			p1: p1 + 1
+			p2: p2 + 1
+		]
+		either p2 = end [
+			if match? [
+				len1: as-integer p1/0
+				len2: as-integer p2/0
+			]
+		][
+			len1: as-integer p1/1
+			len2: as-integer p2/1
+		]
+		SIGN_COMPARE_RESULT(len1 len2)
+	]
+	
+	match-bitset?: func [
+		bin		[red-binary!]
+		bits	[red-bitset!]
+		return:	[logic!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]							;-- required by BS_TEST_BIT
+			byte   [integer!]
+			size   [integer!]
+			not?   [logic!]
+			match? [logic!]
+	][
+		byte: rs-abs-at bin bin/head
+		s:	  GET_BUFFER(bits)
+		not?: FLAG_NOT?(s)
+		size: s/size << 3
+
+		either size < byte [not?][						;-- virtual bit
+			p: bitset/rs-head bits
+			BS_TEST_BIT(p byte match?)
+			match?
+		]
+	]
+	
+	match?: func [
+		bin		[red-binary!]
+		value	[red-value!]							;-- char! value
+		op		[integer!]
+		return:	[logic!]
+		/local
+			char [red-char!]
+			res? [logic!]
+	][
+		switch TYPE_OF(value) [
+			TYPE_BINARY [
+				res?: 0 = equal? bin as red-binary! value op yes		
+				res?									;@@ workaround #2048			
+			]
+			TYPE_CHAR [
+				char: as red-char! value
+				res?: char/value = rs-abs-at bin bin/head
+				res?
+			]
+			default [no]
+		]
 	]
 
 	set-value: func [
@@ -645,57 +778,10 @@ binary: context [
 		bin2	[red-binary!]
 		op		[integer!]
 		return:	[integer!]
-		/local
-			s1		[series!]
-			s2		[series!]
-			len1	[integer!]
-			len2	[integer!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
-			end		[byte-ptr!]
-			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
-		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
-
-		same?: all [
-			bin1/node = bin2/node
-			bin1/head = bin2/head
-		]
-		if op = COMP_SAME [return either same? [0][-1]]
-		if all [
-			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
-		][return 0]
-
-		s1: GET_BUFFER(bin1)
-		s2: GET_BUFFER(bin2)
-		len1: rs-length? bin1
-		len2: rs-length? bin2
-		end: as byte-ptr! s2/tail
-
-		either len1 <> len2 [							;-- shortcut exit for different sizes
-			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
-			][return 1]
-
-			if len2 > len1 [
-				end: end - (len2 - len1)
-			]
-		][
-			if zero? len1 [return 0]					;-- shortcut exit for empty binary!
-		]
-
-		p1: (as byte-ptr! s1/offset) + bin1/head
-		p2: (as byte-ptr! s2/offset) + bin2/head
-
-		while [all [p2 < end p1/1 = p2/1]][
-			p1: p1 + 1
-			p2: p2 + 1
-		]
-		if p2 <> end [len1: as-integer p1/1 len2: as-integer p2/1]
-		SIGN_COMPARE_RESULT(len1 len2)
+		equal? bin1 bin2 op no
 	]
 
 	;--- Modifying actions ---
