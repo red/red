@@ -364,7 +364,7 @@ load: function [
 			][return none]
 			source: to string! source/3
 		]
-		binary! [source: to string! source]					;-- UTF-8 encoding
+		binary! [source: to string! source]				;-- For text: UTF-8 encoding TBD: load image in binary form
 	][source]
 
 	case [

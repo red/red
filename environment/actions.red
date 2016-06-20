@@ -241,7 +241,7 @@ append: make action! [[
 at: make action! [[
 		"Returns a series at a given index"
 		series	 [series!]
-		index 	 [integer!]
+		index 	 [integer! pair!]
 		return:  [series!]
 	]
 	#get-definition ACT_AT
@@ -468,7 +468,7 @@ sort: make action! [[
 skip: make action! [[
 		"Returns the series relative to the current index"
 		series	 [series!]
-		offset 	 [integer!]
+		offset 	 [integer! pair!]
 		return:  [series!]
 	]
 	#get-definition ACT_SKIP

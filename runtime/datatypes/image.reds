@@ -21,6 +21,22 @@ Red/System [
 image: context [
 	verbose: 0
 
+	rs-pick: func [
+		img		[red-image!]
+		offset	[integer!]
+		return: [red-tuple!]
+		/local
+			pixel	[integer!]
+	][
+		pixel: OS-image/get-pixel as-integer img/node offset
+		tuple/rs-make [
+			pixel and 00FF0000h >> 16
+			pixel and FF00h >> 8
+			pixel and FFh
+			255 - (pixel >>> 24)
+		]
+	]
+
 	set-many: func [
 		words	[red-block!]
 		img		[red-image!]
@@ -30,7 +46,7 @@ image: context [
 	][
 		i: 1
 		while [i <= size][
-			_context/set (as red-word! _series/pick as red-series! words i null) image/pick img i null
+			_context/set (as red-word! _series/pick as red-series! words i null) as red-value! rs-pick img i
 			i: i + 1
 		]
 	]
@@ -287,31 +303,40 @@ image: context [
 	]
 
 	get-position: func [
+		img			[red-image!]
+		index		[red-integer!]
 		base		[integer!]
+		out-range	[int-ptr!]
 		return:		[integer!]
 		/local
-			img		[red-image!]
-			index	[red-integer!]
+			pair	[red-pair!]
 			offset	[integer!]
 			max		[integer!]
 			idx		[integer!]
+			w		[integer!]
+			x		[integer!]
+			y		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
-		
-		img: as red-image! stack/arguments
-		index: as red-integer! img + 1
 
+		w: IMAGE_WIDTH(img/size)
 		either TYPE_OF(index) = TYPE_INTEGER [
 			idx: index/value
-			if all [base = 1 idx <= 0][base: base - 1]
-		][
-			--NOT_IMPLEMENTED--
+		][											;-- pair!
+			pair: as red-pair! index
+			x: pair/x
+			y: pair/y
+
+			if all [base = 1 y > 0][y: y - 1]
+			idx: y * w + x
 		]
 
+		if all [base = 1 idx <= 0][base: base - 1]
 		offset: img/head + idx - base
-		if negative? offset [offset: 0]
-		max: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
-		if offset > max [offset: max]
+		if negative? offset [offset: 0 idx: 0]
+		max: w * IMAGE_HEIGHT(img/size)
+		if offset > max [offset: max idx: 0]
+		if all [out-range <> null zero? idx][out-range/value: 1]
 		offset
 	]
 
@@ -526,33 +551,14 @@ image: context [
 		boxed	[red-value!]
 		return:	[red-value!]
 		/local
-			width	[integer!]
-			height	[integer!]
-			offset	[integer!]
-			pixel	[integer!]
+			out-range [integer!]
+			offset	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/pick"]]
 
-		width: IMAGE_WIDTH(img/size)
-		height: IMAGE_HEIGHT(img/size)
-		offset: img/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-
-		either any [
-			zero? index
-			offset < 0
-			offset >= (width * height)
-		][
-			none-value
-		][
-			pixel: OS-image/get-pixel as-integer img/node offset
-			as red-value! tuple/rs-make [
-				pixel and 00FF0000h >> 16
-				pixel and FF00h >> 8
-				pixel and FFh
-				255 - (pixel >>> 24)
-			]
-		]
+		out-range: 0
+		offset: get-position img as red-integer! boxed 1 :out-range
+		as red-value! either out-range = 1 [none-value][rs-pick img offset]
 	]
 
 	poke: func [
@@ -562,6 +568,7 @@ image: context [
 		boxed	[red-value!]
 		return:	[red-value!]
 		/local
+			out-range [integer!]
 			color	[red-tuple!]
 			offset	[integer!]
 			p		[byte-ptr!]
@@ -572,14 +579,9 @@ image: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/poke"]]
 
-		offset: img/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-
-		either any [
-			zero? index
-			offset < 0
-			offset >= (IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size))
-		][
+		out-range: 0
+		offset: get-position img as red-integer! boxed 1 :out-range
+		either out-range = 1 [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
 			color: as red-tuple! data
@@ -602,7 +604,6 @@ image: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			int	 [red-integer!]
 			set? [logic!]
 			w	 [red-word!]
 			sym  [integer!]
@@ -611,12 +612,12 @@ image: context [
 
 		set?: value <> null
 		switch TYPE_OF(element) [
-			TYPE_INTEGER [
-				int: as red-integer! element
+			TYPE_INTEGER
+			TYPE_PAIR [
 				either set? [
-					poke parent int/value value element
+					poke parent -1 value element
 				][
-					pick parent int/value element
+					pick parent -1 element
 				]
 			]
 			TYPE_WORD [
@@ -720,7 +721,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/at"]]
 
 		img: as red-image! stack/arguments
-		img/head: get-position 1
+		img/head: get-position img as red-integer! img + 1 1 null
 		img
 	]
 
@@ -748,7 +749,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/skip"]]
 
 		img: as red-image! stack/arguments
-		img/head: get-position 0
+		img/head: get-position img as red-integer! img + 1 0 null
 		img
 	]
 
