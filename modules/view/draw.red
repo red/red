@@ -184,8 +184,14 @@ Red/System [
 										DRAW_FETCH_VALUE(TYPE_INTEGER)
 									]
 									loop 3 [								;-- angle, scale-x and scale-y (optional)
-										DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
-										if pos <> cmd [break]
+										pos: cmd + 1
+										if pos < tail [
+											type: TYPE_OF(pos)
+											either any [
+												type = TYPE_INTEGER
+												type = TYPE_FLOAT
+											][cmd: pos][break]
+										]
 									]
 									count: 0
 									off?: no
