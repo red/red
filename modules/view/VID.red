@@ -156,7 +156,7 @@ system/view/VID: context [
 			]
 			unless match? [
 				either all [word? value find/skip next system/view/evt-names value 2][
-					spec: make-actor opts value next spec
+					make-actor opts value spec/2 spec spec: next spec
 				][
 					opt?: switch/default type?/word value: pre-load value [
 						pair!	 [unless opts/size  [opts/size:  value]]
@@ -190,7 +190,7 @@ system/view/VID: context [
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
-							][spec: make-actor opts style/default-actor spec]
+							][make-actor opts style/default-actor spec/1 spec]
 							yes
 						]
 						char!	 [yes]
@@ -219,23 +219,15 @@ system/view/VID: context [
 		spec
 	]
 	
-	make-actor: function [obj [object!] name [word!] spec [block!]][
-		body: spec/1
+	make-actor: function [obj [object!] name [word!] body spec [block!]][
 		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
-		s: copy/deep [face [object!] event [event! none!]]
-		if block? spec/2 [
-			unless parse spec/2 [any word!][throw-error spec]
-			append s /extern
-			append s spec/2
-			spec: next spec
-		]
 		append obj/actors reduce [
 			load append form name #":"	;@@ to set-word!
-			'function s copy/deep body
+			'func [face [object!] event [event! none!]]
+			copy/deep body
 		]
-		spec
 	]
 	
 	set 'layout function [
