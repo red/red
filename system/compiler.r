@@ -1978,7 +1978,7 @@ system-dialect: make-profilable context [
 			none
 		]
 
-		comp-block-chunked: func [/only /test name [word!] /local expr][
+		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
 				fetch-expression/final					;-- returns first expression
@@ -1988,6 +1988,15 @@ system-dialect: make-profilable context [
 			if test [
 				check-conditional name expr				;-- verify conditional expression
 				expr: process-logic-encoding expr no
+			]
+			if bool [
+				if all [
+					block? expr
+					find comparison-op expr/1
+					last-type/1 = 'logic!
+				][
+					emitter/logic-to-integer expr/1
+				]
 			]
 			reduce [
 				expr 
@@ -2106,7 +2115,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked
+					append/only list body: comp-block-chunked/bool
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find expr-call-stack #body
@@ -2156,8 +2165,8 @@ system-dialect: make-profilable context [
 					(repend values [value none])		;-- [value body-offset ...]
 					pos: block! (
 						fetch-into pos [				;-- compile action body
-							body: comp-block-chunked
-							append/only list body/2		
+							body: comp-block-chunked/bool
+							append/only list body/2
 							append/only types resolve-expr-type/quiet body/1
 						]
 					)
@@ -2165,7 +2174,7 @@ system-dialect: make-profilable context [
 				opt [
 					'default pos: block! (
 						fetch-into pos [				;-- compile default body
-							default: comp-block-chunked
+							default: comp-block-chunked/bool
 							append/only types resolve-expr-type/quiet default/1
 						]
 					)
@@ -2946,10 +2955,6 @@ system-dialect: make-profilable context [
 							'case = pick tail expr-call-stack -3
 							#test <> pick tail expr-call-stack -2
 							4 <= length? expr-call-stack
-						]
-						all [
-							find [switch case] pick tail expr-call-stack -2
-							find comparison-op expr/1
 						]
 					]
 					last-type/1 = 'logic!				;-- function's return type is logic!

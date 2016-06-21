@@ -289,17 +289,14 @@ binary: context [
 		return:	[logic!]
 		/local
 			char [red-char!]
-			res? [logic!]
 	][
 		switch TYPE_OF(value) [
 			TYPE_BINARY [
-				res?: 0 = equal? bin as red-binary! value op yes		
-				res?									;@@ workaround #2048			
+				0 = equal? bin as red-binary! value op yes
 			]
 			TYPE_CHAR [
 				char: as red-char! value
-				res?: char/value = rs-abs-at bin bin/head
-				res?
+				char/value = rs-abs-at bin bin/head
 			]
 			default [no]
 		]
