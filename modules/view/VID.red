@@ -71,6 +71,15 @@ system/view/VID: context [
 		if find [file! url!] type?/word value [value: load value]
 		value
 	]
+	
+	add-option: function [opts [object!] spec [block!]][
+		either block? opts/options [
+			foreach [field value] spec [put opts/options field value]
+		][
+			opts/options: copy spec
+		]
+		last spec
+	]
 
 	add-flag: function [obj [object!] facet [word!] field [word!] flag return: [logic!]][
 		unless obj/:facet [
@@ -145,12 +154,13 @@ system/view/VID: context [
 				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'react	  (append reactors reduce [face fetch-argument block! spec])
-				| 'loose	  (value: [drag-on: 'down] either block? opts/options [append opts/options value][opts/options: value])
+				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
 				| 'disabled	  (opts/enable?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
+				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]
