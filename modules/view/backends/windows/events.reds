@@ -826,7 +826,13 @@ WndProc: func [
 					TYPE_OF(state) = TYPE_BLOCK			;-- already created the window
 					wParam <> SIZE_MINIMIZED
 				][
-					type: either msg = WM_MOVE [FACE_OBJ_OFFSET][FACE_OBJ_SIZE]
+					type: either msg = WM_MOVE [
+						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
+							WIN32_HIWORD(lParam) < -9999
+							WIN32_LOWORD(lParam) < -9999
+						][return 0]
+						FACE_OBJ_OFFSET
+					][FACE_OBJ_SIZE]
 					update-pair-facet hWnd type lParam
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/lParam: lParam
@@ -986,10 +992,8 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			if type = window [
-				handle: current-msg/hWnd
-				SetFocus current-msg/hWnd					;-- force focus on the closing window,
-				current-msg/hWnd: handle					;-- prevents late unfocus event generation.
-				
+				SetFocus hWnd									;-- force focus on the closing window,
+				current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
 				res: make-event current-msg 0 EVT_CLOSE
 				if res  = EVT_DISPATCH [return 0]				;-- continue
 				;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
