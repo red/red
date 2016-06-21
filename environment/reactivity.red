@@ -43,9 +43,11 @@ system/reactivity: context [
 	stack:		make block! 100			;@@ change it to hash! once stable ???
 	debug?: 	no
 	
-	do-safe: func [code [block!] /local result][
+	do-safe: function [code [block!]][
 		if error? set/any 'result try/all code [
-			print :result								;@@ improve error reporting
+			print :result
+			prin "*** Near: "
+			probe code
 			result: none
 		]
 		get/any 'result
