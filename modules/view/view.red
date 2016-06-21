@@ -170,7 +170,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 				]
 			][
 				if owner/type <> 'screen [
-					if all [owner/type = 'field word = 'text][
+					if all [find [field text] owner/type word = 'text][
 						set-quiet in owner 'data any [
 							all [not empty? owner/text attempt/safer [load owner/text]]
 							all [owner/options owner/options/default]
@@ -286,7 +286,7 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
-			if type = 'field [
+			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
 						all [not empty? new attempt/safer [load new]]
