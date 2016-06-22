@@ -233,10 +233,12 @@ system/view/VID: context [
 		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
-		append obj/actors reduce [
-			load append form name #":"	;@@ to set-word!
-			'func [face [object!] event [event! none!]]
-			copy/deep body
+		append obj/actors load append form name #":"	;@@ to set-word!
+		append obj/actors either get-word? body [body][
+			reduce [
+				'func [face [object!] event [event! none!]]
+				copy/deep body
+			]
 		]
 	]
 	
