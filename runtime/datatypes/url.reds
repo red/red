@@ -141,6 +141,29 @@ url: context [
 		as red-value! type
 	]
 
+	eval-path: func [
+		parent	[red-string!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			s	[series!] 
+			new [red-string!]
+	][
+		either value <> null [							;-- set-path
+			fire [TO_ERROR(script bad-path-set) path element]
+		][
+			s: GET_BUFFER(parent)
+			new: string/make-at stack/push* 16 + string/rs-length? parent GET_UNIT(s)
+			actions/form element new null 0
+			string/concatenate new parent -1 0 yes yes
+			set-type as red-value! new TYPE_OF(parent)
+		]
+		as red-value! new
+	]
+
 	;-- I/O actions
 	read: func [
 		src		[red-value!]
@@ -225,7 +248,7 @@ url: context [
 			:to
 			INHERIT_ACTION	;form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
