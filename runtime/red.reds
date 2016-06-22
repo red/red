@@ -158,8 +158,8 @@ red: context [
 		routine/init
 		paren/init
 		issue/init
-		file/init
 		url/init
+		file/init										;-- file! inherits from url!
 		object/init
 		bitset/init
 		point/init

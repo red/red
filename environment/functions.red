@@ -497,14 +497,14 @@ to-red-file: func [
 	i: 1
 	either system/platform = 'Windows [
 		until [
-			c: path/(i)
+			c: pick path i
 			i: i + 1
 			case [
 				c = #":" [
 					if any [colon? slash?] [return dst]
 					colon?: yes
 					if i <= len [
-						c: path/(i)
+						c: pick path i
 						if any [c = #"\" c = #"/"][i: i + 1]	;-- skip / in foo:/file
 					]
 					c: #"/"

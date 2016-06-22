@@ -294,7 +294,7 @@ file: context [
 	init: does [
 		datatype/register [
 			TYPE_FILE
-			TYPE_STRING
+			TYPE_URL
 			"file!"
 			;-- General actions --
 			:make
