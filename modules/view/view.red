@@ -700,7 +700,7 @@ remove-event-func: function [
 	"Remove an event function previously added"
 	fun [function!]
 ][
-	remove find system/view/handlers :fun
+	remove find/same system/view/handlers :fun
 ]
 
 ;=== Global handlers ===
