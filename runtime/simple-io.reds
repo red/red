@@ -839,6 +839,7 @@ simple-io: context [
 			val		[red-value!]
 			str		[red-string!]
 			len		[integer!]
+			type	[integer!]
 	][
 		unless unicode? [		;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
@@ -851,7 +852,12 @@ simple-io: context [
 		size: file-size? file
 
 		if size <= 0 [
-			print-line "*** Warning: empty file"
+			close-file file
+			val: stack/push*
+			string/rs-make-at val 1
+			type: either binary? [TYPE_BINARY][TYPE_STRING]
+			set-type val type
+			return val
 		]
 
 		if offset > 0 [
