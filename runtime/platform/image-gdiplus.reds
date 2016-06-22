@@ -547,7 +547,7 @@ OS-image: context [
 		IStm: declare interface!
 		stat: declare tagSTATSTG
 		hr: StgCreateDocfile
-			#u16 "CompoundFile.cmp"
+			null
 			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
 			0
 			ISto
