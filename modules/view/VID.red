@@ -203,7 +203,8 @@ system/view/VID: context [
 							][make-actor opts style/default-actor spec/1 spec]
 							yes
 						]
-						char!	 [yes]
+						get-word! [make-actor opts style/default-actor spec/1 spec]
+						char!	  [yes]
 					][no]
 				]
 			]
