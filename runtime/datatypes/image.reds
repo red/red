@@ -20,13 +20,33 @@ Red/System [
 
 image: context [
 	verbose: 0
-
+	
+	acquire-buffer: func [
+		img		[red-image!]
+		bitmap	[int-ptr!]
+		return: [int-ptr!]
+		/local
+			stride	[integer!]
+			data	[int-ptr!]
+	][
+		stride: 0
+		bitmap/value: OS-image/lock-bitmap as-integer img/node no
+		OS-image/get-data bitmap/value :stride
+	]
+	
+	release-buffer: func [
+		img		[red-image!]
+		bitmap	[integer!]
+	][
+		OS-image/unlock-bitmap as-integer img/node bitmap
+	]
+	
 	rs-pick: func [
 		img		[red-image!]
 		offset	[integer!]
 		return: [red-tuple!]
 		/local
-			pixel	[integer!]
+			pixel [integer!]
 	][
 		pixel: OS-image/get-pixel as-integer img/node offset
 		tuple/rs-make [
