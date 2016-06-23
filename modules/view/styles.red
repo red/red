@@ -54,6 +54,7 @@ Red [
 	image: [
 		default-actor: on-down
 		template: [type: 'base size: 100x100]
+		init: [image: make image! size]
 	]
 	camera: [
 		default-actor: on-down

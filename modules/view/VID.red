@@ -338,6 +338,7 @@ system/view/VID: context [
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
 				spec: fetch-options face opts style spec local-styles
+				if style/init [do bind style/init face]
 				
 				either styling? [
 					if same? css local-styles [local-styles: copy css]
