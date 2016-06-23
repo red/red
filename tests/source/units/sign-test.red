@@ -9,17 +9,6 @@ Red [
 
 #include %../../../quick-test/quick-test.red
 
-sign?: func [
-	"Returns sign of N as 1, 0, or -1 (to use as a multiplier)."
-	n [number! time!]
-][
-	case [
-		n > 0 [1]
-		n < 0 [-1]
-		n = 0 [0]
-	]
-]
-
 ~~~start-file~~~ "sign?"
 
 ===start-group=== "sign? - fixed values"
