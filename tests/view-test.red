@@ -714,7 +714,7 @@ win/pane: reduce [
 			ellipse 240x20 20x40
 			
 			fill-pen red
-			circle 250x150 50
+			circle 250x150 49.5
 			pen gray
 			fill-pen white
 			circle 250x150 40
