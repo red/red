@@ -1539,7 +1539,7 @@ red: context [
 					insert-lf -3
 				]
 				tuple? [
-					bin: tail reverse load rejoin ["#{" form next value #"}"]
+					bin: tail reverse debase/base next value 16
 					emit 'tuple/push
 					emit length? head bin
 					emit to integer! skip bin -4

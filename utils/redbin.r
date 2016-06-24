@@ -165,7 +165,7 @@ context [
 	]
 
 	emit-tuple: func [value [issue!] /local bin header][
-		bin: tail reverse load rejoin ["#{" form next value #"}"]
+		bin: tail reverse debase/base next value 16
 		header: extracts/definitions/TYPE_TUPLE or shift/left length? head bin 8
 		if nl? [header: header or nl-flag]
 		emit header
