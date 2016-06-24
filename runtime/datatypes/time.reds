@@ -22,6 +22,21 @@ time: context [
 	#define GET_MINUTES(time) (floor time / oneE9 // 3600.0 / 60.0)
 	#define GET_SECONDS(time) (time / oneE9 // 60.0)
 	
+	push-field: func [
+		tm		[red-time!]
+		field	[integer!]
+		return: [red-value!]
+		/local
+			t [float!]
+	][
+		t: tm/time
+		as red-value! switch field [
+			1 [integer/push float/to-integer GET_HOURS(t)]
+			2 [integer/push float/to-integer GET_MINUTES(t)]
+			3 [float/push GET_SECONDS(t)]
+			default [assert false]
+		]
+	]
 	
 	make-in: func [
 		parent	[red-block!]
@@ -235,12 +250,7 @@ time: context [
 			]
 			value
 		][
-			value: as red-value! switch field [
-				1 [integer/push float/to-integer GET_HOURS(time)]
-				2 [integer/push float/to-integer GET_MINUTES(time)]
-				3 [float/push GET_SECONDS(time)]
-				default [assert false]
-			]
+			value: push-field t field
 			stack/pop 1									;-- avoids moving stack up
 			value
 		]
@@ -290,6 +300,18 @@ time: context [
 		as red-value! tm
 	]
 	
+	pick: func [
+		tm		[red-time!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/pick"]]
+
+		if all [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
+		push-field tm index
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_TIME
@@ -337,7 +359,7 @@ time: context [
 			null			;length?
 			null			;move
 			null			;next
-			null			;pick
+			:pick
 			null			;poke
 			null			;put
 			null			;remove

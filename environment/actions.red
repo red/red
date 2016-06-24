@@ -378,8 +378,8 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple!]
-		index 	 [scalar! any-string! any-word! block! logic!]
+		series	 [series! bitset! pair! tuple! time!]
+		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK

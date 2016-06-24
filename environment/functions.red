@@ -74,9 +74,9 @@ quote: func [
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! tuple! pair!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! tuple! pair!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! tuple!]] [pick s 3]
+first:	func ["Returns the first value in a series"  s [series! tuple! pair! time!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! tuple! pair! time!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! tuple! time!]] [pick s 3]
 fourth:	func ["Returns the fourth value in a series" s [series! tuple!]] [pick s 4]
 fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 5]
 
