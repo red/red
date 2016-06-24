@@ -198,3 +198,68 @@ update-font: func [
 		default [0]
 	]
 ]
+
+OS-request-font: func [
+	font	[red-object!]
+	mono?	[logic!]
+	return: [red-object!]
+	/local
+		values	[red-value!]
+		str		[red-string!]
+		style	[red-block!]
+		cf		[tagCHOOSEFONT]
+		logfont [tagLOGFONT]
+		size	[integer!]
+		name	[c-string!]
+		bold?	[logic!]
+][
+	size: size? tagCHOOSEFONT
+	cf: as tagCHOOSEFONT allocate size
+	logfont: as tagLOGFONT allocate 92
+	zero-memory as byte-ptr! cf size
+	zero-memory as byte-ptr! logfont 92
+
+	name: as c-string! (as byte-ptr! logfont) + 28
+	copy-memory as byte-ptr! name as byte-ptr! #u16 "Courier New" 22
+	logfont/lfHeight: -11 * log-pixels-y / 72
+	logfont/lfCharSet: #"^(01)"							;-- default
+
+	cf/lStructSize: size
+	cf/hwndOwner: GetForegroundWindow
+	cf/lpLogFont: logfont
+	cf/Flags: 01000043h									;-- CF_INITTOLOGFONTSTRUCT or CF_BOTH or CF_NOVERTFONTS
+	if mono? [cf/Flags: 4000h or cf/Flags]				;-- CF_FIXEDPITCHONLY
+
+	either ChooseFont cf [
+		size: platform/lstrlen as byte-ptr! name
+		values: object/get-values font
+		str: as red-string! values + FONT_OBJ_NAME
+		str/header:	TYPE_STRING							;-- implicit reset of all header flags
+		str/head:	0
+		str/cache:	null
+		str/node:	unicode/load-utf16 name size null no
+		integer/make-at values + FONT_OBJ_SIZE cf/iPointSize / 10
+
+		style: as red-block! values + FONT_OBJ_STYLE
+		bold?: no
+		if logfont/lfWeight = 700 [
+			word/make-at _bold as red-value! style
+			bold?: yes
+		]
+		if logfont/lfItalic <> #"^@" [
+			either bold? [
+				block/make-at style 4
+				word/push-in _bold style
+				word/push-in _italic style
+			][
+				word/make-at _italic as red-value! style
+			]
+		]
+	][
+		font/header: TYPE_NONE
+	]
+
+	free as byte-ptr! cf
+	free as byte-ptr! logfont
+	font
+]
