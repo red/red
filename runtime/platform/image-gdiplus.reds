@@ -445,49 +445,37 @@ OS-image: context [
 			r		[integer!]
 			b		[integer!]
 			g		[integer!]
-			x		[integer!]
-			y		[integer!]
 			data	[BitmapData!]
 			scan0	[int-ptr!]
 			bitmap	[integer!]
-			pos		[integer!]
+			end		[int-ptr!]
 	][
 		if any [zero? width zero? height][return null]
 		bitmap: 0
 		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
 		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
+		end: scan0 + (width * height)
 
-		y: 0
 		either null? color [
-			while [y < height][
-				x: 0
-				while [x < width][
-					pos: data/stride >> 2 * y + x + 1
-					either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
-					either null? rgb [r: 255 g: 255 b: 255][
-						r: as-integer rgb/1
-						g: as-integer rgb/2
-						b: as-integer rgb/3
-						rgb: rgb + 3
-					]
-					scan0/pos: r << 16 or (g << 8) or b or (a << 24)
-					x: x + 1
+			while [scan0 < end][
+				either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
+				either null? rgb [r: 255 g: 255 b: 255][
+					r: as-integer rgb/1
+					g: as-integer rgb/2
+					b: as-integer rgb/3
+					rgb: rgb + 3
 				]
-				y: y + 1
+				scan0/value: r << 16 or (g << 8) or b or (a << 24)
+				scan0: scan0 + 1
 			]
 		][
 			r: color/array1
 			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
 			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
-			while [y < height][
-				x: 0
-				while [x < width][
-					pos: data/stride >> 2 * y + x + 1
-					scan0/pos: r
-					x: x + 1
-				]
-				y: y + 1
+			while [scan0 < end][
+				scan0/value: r
+				scan0: scan0 + 1
 			]
 		]
 

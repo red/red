@@ -436,6 +436,7 @@ words: context [
 	size:			-1
 	rgb:			-1
 	alpha:			-1
+	argb:			-1
 	
 	hour:			-1
 	minute:			-1
@@ -618,6 +619,7 @@ words: context [
 		size:			symbol/make "size"
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
+		argb:			symbol/make "argb"
 		
 		hour:			symbol/make "hour"
 		minute:			symbol/make "minute"

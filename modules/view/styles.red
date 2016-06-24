@@ -54,7 +54,7 @@ Red [
 	image: [
 		default-actor: on-down
 		template: [type: 'base size: 100x100]
-		init: [face/image: make image! face/size]
+		init: [unless face/image [face/image: make image! face/size]]
 	]
 	camera: [
 		default-actor: on-down

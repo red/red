@@ -20,7 +20,13 @@ Red/System [
 
 image: context [
 	verbose: 0
-	
+
+	#enum extract-type! [
+		EXTRACT_ALPHA
+		EXTRACT_RGB
+		EXTRACT_ARGB
+	]
+
 	acquire-buffer: func [
 		img		[red-image!]
 		bitmap	[int-ptr!]
@@ -30,7 +36,7 @@ image: context [
 			data	[int-ptr!]
 	][
 		stride: 0
-		bitmap/value: OS-image/lock-bitmap as-integer img/node no
+		bitmap/value: OS-image/lock-bitmap as-integer img/node yes
 		OS-image/get-data bitmap/value :stride
 	]
 	
@@ -173,43 +179,44 @@ image: context [
 
 	extract-data: func [
 		img		[red-image!]
-		alpha?	[logic!]
+		type	[integer!]
 		return: [red-binary!]
 		/local
-			x		[integer!]
-			y		[integer!]
-			w		[integer!]
-			h		[integer!]
 			sz		[integer!]
+			bytes	[integer!]
 			bin		[red-binary!]
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
 			bitmap	[integer!]
-			pos		[integer!]
+			i		[integer!]
 			pixel	[integer!]
 			data	[int-ptr!]
 	][
-		w: IMAGE_WIDTH(img/size)
-		h: IMAGE_HEIGHT(img/size)
-		sz: either alpha? [w * h][w * h * 3]
-		bin: binary/make-at stack/push* sz
+		sz: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		bytes: case [
+			type = EXTRACT_ALPHA [sz]
+			type = EXTRACT_RGB	 [sz * 3]
+			true				 [sz * 4]
+		]
+		bin: binary/make-at stack/push* bytes
 		if zero? sz [return bin]
 
 		s: GET_BUFFER(bin)
-		s/tail: as cell! (as byte-ptr! s/tail) + sz
+		s/tail: as cell! (as byte-ptr! s/tail) + bytes
 		p: as byte-ptr! s/offset
 
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
-		x: img/head % w
-		y: img/head / w
-		while [y < h][
-			while [x < w][
-				pos: stride >> 2 * y + x + 1
-				pixel: data/pos
-				either alpha? [
+
+		either type = EXTRACT_ARGB [
+			copy-memory p as byte-ptr! data bytes
+		][
+			i: 1
+			while [i <= sz][
+				pixel: data/i
+				either type = EXTRACT_ALPHA [
 					p/1: as-byte 255 - (pixel >>> 24)
 					p: p + 1
 				][
@@ -218,10 +225,8 @@ image: context [
 					p/3: as-byte pixel and FFh
 					p: p + 3
 				]
-				x: x + 1
+				i: i + 1
 			]
-			x: 0
-			y: y + 1
 		]
 		OS-image/unlock-bitmap as-integer img/node bitmap
 		bin
@@ -230,50 +235,43 @@ image: context [
 	set-data: func [
 		img		[red-image!]
 		bin		[red-binary!]
-		alpha?	[logic!]
+		method	[integer!]
 		return: [red-binary!]
 		/local
-			x		[integer!]
-			y		[integer!]
-			w		[integer!]
-			h		[integer!]
 			offset	[integer!]
+			sz		[integer!]
 			s		[series!]
 			p		[byte-ptr!]
 			stride	[integer!]
 			bitmap	[integer!]
-			pos		[integer!]
 			pixel	[integer!]
 			tp		[red-tuple!]
 			int		[red-integer!]
 			color	[integer!]
 			data	[int-ptr!]
+			end		[int-ptr!]
 			type	[integer!]
+			mask	[integer!]
 	][
-		w: IMAGE_WIDTH(img/size)
-		h: IMAGE_HEIGHT(img/size)
-
-		if w * h = 0 [return bin]
-
-		type: TYPE_OF(bin)
-
-		if type = TYPE_BINARY [
-			s: GET_BUFFER(bin)
-			p: as byte-ptr! s/offset
-		]
+		sz: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		if zero? sz [return bin]
 
 		offset: img/head
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node yes
 		data: OS-image/get-data bitmap :stride
-		x: offset % w
-		y: offset / w
+		end: data + sz
+
+		type: TYPE_OF(bin)
 		either type = TYPE_BINARY [
-			while [y < h][
-				while [x < w][
-					pos: stride >> 2 * y + x + 1
-					pixel: data/pos
-					either alpha? [
+			s: GET_BUFFER(bin)
+			p: as byte-ptr! s/offset
+			either method = EXTRACT_ARGB [
+				copy-memory as byte-ptr! data p sz * 4
+			][
+				while [data < end][
+					pixel: data/value
+					either method = EXTRACT_ALPHA [
 						pixel: pixel and 00FFFFFFh or ((255 - as-integer p/1) << 24)
 						p: p + 1
 					][
@@ -283,38 +281,40 @@ image: context [
 								or (as-integer p/3)
 						p: p + 3
 					]
-					data/pos: pixel
-					x: x + 1
+					data/value: pixel
+					data: data + 1
 				]
-				x: 0
-				y: y + 1
 			]
 		][
 			either type = TYPE_TUPLE [
 				tp: as red-tuple! bin
 				color: tp/array1
+				if TUPLE_SIZE?(tp) = 3 [color: color and 00FFFFFFh]
 			][
 				int: as red-integer! bin
 				color: int/value
 			]
-			color: either alpha? [255 - color << 24][
-				color: color and 00FFFFFFh
-				color >> 16 or (color and FF00h) or (color and FFh << 16)
-			]
-			while [y < h][
-				while [x < w][
-					pos: stride >> 2 * y + x + 1
-					pixel: data/pos
-					pixel: either alpha? [
-						pixel and 00FFFFFFh or color
-					][
-						pixel and FF000000h or color
-					]
-					data/pos: pixel
-					x: x + 1
+			either method = EXTRACT_ARGB [
+				mask: 255 - (color >>> 24) << 24
+				color: color >> 16 and FFh or (color and FF00h) or (color and FFh << 16) or mask
+				until [
+					data/value: color
+					data: data + 1
+					data = end
 				]
-				x: 0
-				y: y + 1
+			][
+				color: either method = EXTRACT_RGB [
+					mask: FF000000h
+					color: color and 00FFFFFFh
+					color >> 16 or (color and FF00h) or (color and FFh << 16)
+				][
+					mask: 00FFFFFFh
+					255 - color << 24
+				]
+				while [data < end][
+					data/value: data/value and mask or color
+					data: data + 1
+				]
 			]
 		]
 		OS-image/unlock-bitmap as-integer img/node bitmap
@@ -440,13 +440,11 @@ image: context [
 			alpha?	[logic!]
 			formed	[c-string!]
 			pixel	[integer!]
-			x		[integer!]
-			y		[integer!]
 			count	[integer!]
 			bitmap	[integer!]
 			data	[int-ptr!]
 			stride	[integer!]
-			pos		[integer!]
+			end		[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/serialize"]]
 
@@ -477,56 +475,44 @@ image: context [
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
+		end: data + (width * height)
+		
 		offset: img/head
-		stride: stride / 4
-		x: offset % width
-		y: offset / width
 		count: 0
-		while [y < height][
-			while [x < width][
-				pos: stride * y + x + 1
-				pixel: data/pos
-				string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
-				string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
-				string/concatenate-literal buffer string/byte-to-hex pixel and FFh
-				count: count + 1
-				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
-				part: part - 6
-				if all [OPTION?(arg) part <= 0][
-					OS-image/unlock-bitmap as-integer img/node bitmap
-					return part
-				]
-				if pixel >>> 24 <> 255 [alpha?: yes]
-				x: x + 1
+		while [data < end][
+			pixel: data/value
+			string/concatenate-literal buffer string/byte-to-hex pixel and 00FF0000h >> 16
+			string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
+			string/concatenate-literal buffer string/byte-to-hex pixel and FFh
+			count: count + 1
+			if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+			part: part - 6
+			if all [OPTION?(arg) part <= 0][
+				OS-image/unlock-bitmap as-integer img/node bitmap
+				return part
 			]
-			x: 0
-			y: y + 1
+			if pixel >>> 24 <> 255 [alpha?: yes]
+			data: data + 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 
 		if alpha? [
+			data: data - (width * height)
 			string/append-char GET_BUFFER(buffer) as-integer space
 			string/concatenate-literal buffer "#{^/"
 			part: part - 4
-			x: offset % width
-			y: offset / width
 			count: 0
-			while [y < height][
-				while [x < width][
-					pos: stride * y + x + 1
-					pixel: data/pos
-					string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
-					count: count + 1
-					if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
-					part: part - 2
-					if all [OPTION?(arg) part <= 0][
-						OS-image/unlock-bitmap as-integer img/node bitmap
-						return part
-					]
-					x: x + 1
+			while [data < end][
+				pixel: data/value
+				string/concatenate-literal buffer string/byte-to-hex 255 - (pixel >>> 24)
+				count: count + 1
+				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+				part: part - 2
+				if all [OPTION?(arg) part <= 0][
+					OS-image/unlock-bitmap as-integer img/node bitmap
+					return part
 				]
-				x: 0
-				y: y + 1
+				data: data + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
@@ -647,18 +633,25 @@ image: context [
 					sym = words/size [
 						pair/push IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
 					]
+					sym = words/argb [
+						either set? [
+							set-data parent as red-binary! value EXTRACT_ARGB
+						][
+							extract-data parent EXTRACT_ARGB
+						]
+					]
 					sym = words/rgb [
 						either set? [
-							set-data parent as red-binary! value no
+							set-data parent as red-binary! value EXTRACT_RGB
 						][
-							extract-data parent no
+							extract-data parent EXTRACT_RGB
 						]
 					]
 					sym = words/alpha [
 						either set? [
-							set-data parent as red-binary! value yes
+							set-data parent as red-binary! value EXTRACT_ALPHA
 						][
-							extract-data parent yes
+							extract-data parent EXTRACT_ALPHA
 						]
 					]
 					true [
