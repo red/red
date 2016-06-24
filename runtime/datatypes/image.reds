@@ -41,10 +41,14 @@ image: context [
 	]
 	
 	release-buffer: func [
-		img		[red-image!]
-		bitmap	[integer!]
+		img		  [red-image!]
+		bitmap	  [integer!]
+		modified? [logic!]
 	][
 		OS-image/unlock-bitmap as-integer img/node bitmap
+		if modified? [
+			ownership/check as red-value! img words/_poke as red-value! img -1 -1
+		]
 	]
 	
 	rs-pick: func [
