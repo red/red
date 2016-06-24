@@ -679,16 +679,37 @@ OS-draw-circle: func [
 	/local
 		rad-x [integer!]
 		rad-y [integer!]
+		w	  [integer!]
+		h	  [integer!]
+		f	  [red-float!]
 ][
-	either center + 1 = radius [						;-- center, radius
-		rad-x: radius/value
-		rad-y: rad-x
+	either TYPE_OF(radius) = TYPE_INTEGER [
+		either center + 1 = radius [					;-- center, radius
+			rad-x: radius/value
+			rad-y: rad-x
+		][
+			rad-y: radius/value							;-- center, radius-x, radius-y
+			radius: radius - 1
+			rad-x: radius/value
+		]
+		w: rad-x * 2
+		h: rad-y * 2
 	][
-		rad-y: radius/value								;-- center, radius-x, radius-y
-		radius: radius - 1
-		rad-x: radius/value
+		f: as red-float! radius
+		either center + 1 = radius [
+			rad-x: float/to-integer f/value + 0.75
+			rad-y: rad-x
+			w: float/to-integer f/value * 2.0
+			h: w
+		][
+			rad-y: float/to-integer f/value + 0.75
+			h: float/to-integer f/value * 2.0
+			f: f - 1
+			rad-x: float/to-integer f/value + 0.75
+			w: float/to-integer f/value * 2.0
+		]
 	]
-	do-draw-ellipse dc center/x - rad-x center/y - rad-y rad-x * 2 rad-y * 2
+	do-draw-ellipse dc center/x - rad-x center/y - rad-y w h
 ]
 
 OS-draw-ellipse: func [
