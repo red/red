@@ -703,6 +703,13 @@ remove-event-func: function [
 	remove find/same system/view/handlers :fun
 ]
 
+request-font: function [
+	"Requests a font object"
+	/mono			"Show monospaced font only"
+][
+	system/view/platform/request-font make font! [] mono
+]
+
 ;=== Global handlers ===
 
 ;-- Dragging face handler --

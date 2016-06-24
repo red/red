@@ -496,6 +496,10 @@ system/view/platform: context [
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
 	]
+
+	request-font: routine [font [object!] mono? [logic!]][
+		gui/OS-request-font font mono?
+	]
 	
 	init: has [svs][
 		#system [gui/init]

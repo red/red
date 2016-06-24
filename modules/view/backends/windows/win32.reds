@@ -809,6 +809,41 @@ RECT_STRUCT_FLOAT32: alias struct! [
 	height		[float32!]
 ]
 
+tagLOGFONT: alias struct! [								;-- 92 bytes
+	lfHeight				[integer!]
+	lfWidth					[integer!]
+	lfEscapement			[integer!]
+	lfOrientation			[integer!]
+	lfWeight				[integer!]
+	lfItalic				[byte!]
+	lfUnderline				[byte!]
+	lfStrikeOut				[byte!]
+	lfCharSet				[byte!]
+	lfOutPrecision			[byte!]
+	lfClipPrecision			[byte!]
+	lfQuality				[byte!]
+	lfPitchAndFamily		[byte!]
+	lfFaceName				[integer!]					;@@ 64 bytes offset: 28
+]
+
+tagCHOOSEFONT: alias struct! [
+	lStructSize		[integer!]
+	hwndOwner		[int-ptr!]
+	hDC				[integer!]
+	lpLogFont		[tagLOGFONT]
+	iPointSize		[integer!]
+	Flags			[integer!]
+	rgbColors		[integer!]
+	lCustData		[integer!]
+	lpfnHook		[integer!]
+	lpTemplateName	[c-string!]
+	hInstance		[integer!]
+	lpszStyle		[c-string!]
+	nFontType		[integer!]							;-- WORD
+	nSizeMin		[integer!]
+	nSizeMax		[integer!]
+]
+
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
@@ -873,6 +908,9 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetForegroundWindow: "GetForegroundWindow" [
+			return:		[handle!]
+		]
 		IsWindowVisible: "IsWindowVisible" [
 			hWnd		[handle!]
 			return:		[logic!]
@@ -1636,6 +1674,12 @@ DwmIsCompositionEnabled!: alias function! [
 			return: 			[handle!]
 		]
 	]
+	"comdlg32.dll" stdcall [
+		ChooseFont: "ChooseFontW" [
+			lpcf		[tagCHOOSEFONT]
+			return:		[logic!]
+		]
+	]
 	"gdiplus.dll" stdcall [
 		GdipCreateMatrix: "GdipCreateMatrix" [
 			matrix		[int-ptr!]
@@ -2176,4 +2220,11 @@ DwmIsCompositionEnabled!: alias function! [
 			]
 		]
 	]
+]
+
+zero-memory: func [
+	dest	[byte-ptr!]
+	size	[integer!]
+][
+	loop size [dest/value: #"^@" dest: dest + 1]
 ]
