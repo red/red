@@ -245,7 +245,7 @@ lexer: context [
 
 	tuple-value-rule: [
 		(type: tuple!)
-		byte dot byte 1 8 [dot byte] e:
+		byte dot byte 1 12 [dot byte] e:
 	]
 
 	tuple-rule: [tuple-value-rule sticky-word-rule]
@@ -446,7 +446,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
+			| tuple-rule	  (stack/push load-tuple	 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| binary-rule	  (stack/push load-binary s e base)
 			| integer-rule	  (stack/push value)
@@ -627,6 +627,13 @@ lexer: context [
 	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
 		if any [m < 0 all [s s < 0]][type: time! throw-error]
 		to time! reduce [h m s]
+	]
+	
+	load-tuple: func [s [string!] /local new byte p e][
+		new: join make issue! 1 + length? s #"~"
+		byte: [p: 1 3 digit e: (append new skip to-hex load copy/part p e 6)]
+		unless parse s [byte 2 11 [dot byte]][throw-error]
+		new
 	]
 
 	load-number: func [s [string!]][

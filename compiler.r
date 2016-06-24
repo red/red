@@ -245,7 +245,6 @@ red: context [
 			datatype!
 			char!
 			integer!
-			tuple!
 			decimal!
 			refinement!
 			issue!
@@ -270,17 +269,10 @@ red: context [
 		all [not empty? locals-stack find last locals-stack name]
 	]
 	
-	unicode-char?: func [value][
-		all [issue? value value/1 = #"'"]
-	]
-	
-	float-special?: func [value][
-		all [issue? value value/1 = #"."]
-	]
-
-	percent-value?: func [value][
-		all [issue? value #"%" = last value]
-	]
+	unicode-char?:  func [value][value/1 = #"'"]
+	float-special?: func [value][value/1 = #"."]
+	tuple-value?:	func [value][value/1 = #"~"]
+	percent-value?: func [value][#"%" = last value]
 	
 	map-value?: func [value][all [block? value value/1 = #!map!]]
 	
@@ -1494,7 +1486,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? name w make-block type idx
+		/local value char? special? percent? map? tuple? name w make-block type idx
 	][
 		make-block: [
 			value: to block! value
@@ -1508,9 +1500,15 @@ red: context [
 		map?: map-value? :value
 		
 		either any [
-			char?: unicode-char? value
-			special?: float-special? value
-			percent?: percent-value? value
+			all [
+				issue? :value
+				any [
+					char?:	  unicode-char? value
+					special?: float-special? value
+					percent?: percent-value? value
+					tuple?:	  tuple-value? value
+				]
+			]
 			scalar? :value
 			map?
 		][
@@ -1540,22 +1538,13 @@ red: context [
 					emit-float value
 					insert-lf -3
 				]
-				tuple? :value [
-					bin: make binary! 12
-					bin: insert/dup bin null 3
-					size: length? value
-					n: 0
-					until [
-						n: n + 1
-						insert bin to-bin8 value/:n
-						n = size
-					]
-					bin: tail bin
+				tuple? [
+					bin: tail reverse load rejoin ["#{" form next value #"}"]
 					emit 'tuple/push
-					emit size
-					emit to-integer skip bin -4
-					emit to-integer copy/part skip bin -8 4
-					emit to-integer copy/part head bin 4
+					emit length? head bin
+					emit to integer! skip bin -4
+					emit to integer! copy/part skip bin -8 4
+					emit to integer! copy/part head bin 4
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
@@ -3989,10 +3978,13 @@ red: context [
 		
 		switch/default type?/word pc/1 [
 			issue!		[
-				either any [
-					unicode-char?  pc/1
-					float-special? pc/1
-					percent-value? pc/1
+				either all [
+					issue? pc/1
+					any [
+						unicode-char?  pc/1
+						float-special? pc/1
+						percent-value? pc/1
+					]
 				][
 					comp-literal						;-- issue! used for special encoding
 				][
