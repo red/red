@@ -272,7 +272,7 @@ context [
 		emit any [ctx-idx idx]
 		if root [
 			if debug? [print [index ": word :" mold word]]
-			index: index + 1
+			unless set? [index: index + 1]
 		]
 	]
 	

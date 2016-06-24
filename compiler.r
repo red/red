@@ -3315,7 +3315,7 @@ red: context [
 		switch/default pc/2 [
 			datatype! [
 				either pc/3 = #get-definition [
-					redbin/emit-word/set? name none none
+					redbin/emit-word/root/set? name none none
 					redbin/emit-datatype pc/4
 					pc: skip pc 4
 					yes
@@ -3326,7 +3326,7 @@ red: context [
 			action!
 			native! [
 				either pc/3/2 = #get-definition [
-					redbin/emit-word/set? name none none
+					redbin/emit-word/root/set? name none none
 					either pc/2 = 'action! [
 						redbin/emit-native/action pc/3/3 pc/3/1
 					][
@@ -3343,7 +3343,7 @@ red: context [
 				;entry: select functions to word! pc/3
 				;either find [action! native!] entry/1 [
 				;	name: to set-word! pc/3
-				;	redbin/emit-word/set? name none none
+				;	redbin/emit-word/root/set? name none none
 				;	redbin/emit-op name
 				;	fetch-functions back pc
 				;	pc: skip pc 3
