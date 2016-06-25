@@ -88,10 +88,38 @@ gui-console-ctx: context [
 		if offset/y < 0 [offset/y: 0]
 		cfg/win-pos:  offset
 		cfg/win-size: win/size
+		cfg/font-name: console/font/name
+		cfg/font-size: console/font/size
 		save/header cfg-path cfg [Purpose: "Red GUI Console Configuration File"]
 	]
 
+	show-cfg-dialog: does [
+		cfg-buffers/data: cfg/buffer-lines
+		cfg-forecolor/data: cfg/font-color
+		cfg-backcolor/data: cfg/background
+		view/flags cfg-dialog [modal]
+	]
+
 	font-name: pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
+
+	cfg-dialog: layout [
+		text "Buffer Lines:" cfg-buffers:	field return
+		text "ForeColor:"	 cfg-forecolor: field return
+		text "BackColor:"	 cfg-backcolor: field return
+		button "OK" [
+			if cfg/buffer-lines <> cfg-buffers/data [
+				cfg/buffer-lines: cfg-buffers/data
+				set-buffer-lines cfg/buffer-lines
+			]
+			cfg/font-color:   cfg-forecolor/data
+			cfg/background:   cfg-backcolor/data
+			set-font-color    cfg-forecolor/data
+			set-background    cfg-backcolor/data
+			unview
+			win/selected: console
+		]
+		button "Cancel" [unview win/selected: console]
+	]
 
 	console: make face! [
 		type: 'console offset: 0x0 size: 640x400
@@ -114,10 +142,26 @@ gui-console-ctx: context [
 	win: make face! [
 		type: 'window offset: 640x400 size: 640x400 visible?: no
 		text: "Red Console"
+		menu: [
+			"File" [
+				"Exit"				exit-console
+			]
+			"Options" [
+				"Choose Font..."	choose-font
+				"Settings..."		settings
+			]
+		]
 		actors: object [
+			on-menu: func [face [object!] event [event!]][
+				switch event/picked [
+					exit-console	[self/on-close face event]
+					choose-font		[if font: request-font [console/font: font]]
+					settings		[show-cfg-dialog]
+				]
+			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
-				unview/all
+				clear head system/view/screens/1/pane
 			]
 			on-resizing: func [face [object!] event [event!]][
 				console/size: event/offset
