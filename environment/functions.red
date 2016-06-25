@@ -808,6 +808,16 @@ split-path: func [
 	reduce [dir pos]
 ]
 
+do-file: func [file [file!] /local saved code new-path][
+	saved: system/options/path
+	code: load file
+	new-path: first split-path clean-path file
+	change-dir new-path
+	code: do code
+	change-dir saved
+	code
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
