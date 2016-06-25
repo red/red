@@ -304,6 +304,7 @@ string: context [
 	rs-find-char: func [
 		str		[red-string!]
 		cp		[integer!]
+		skip	[integer!]
 		case?	[logic!]				;-- case sensitive?
 		return: [logic!]
 		/local
@@ -315,6 +316,7 @@ string: context [
 	][
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
+		skip: unit * skip
 		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		while [head < tail][
@@ -324,7 +326,7 @@ string: context [
 				cp: case-folding/folding-case cp yes	;-- uppercase cp
 			]
 			if c1 = cp [return true]
-			head: head + unit
+			head: head + skip
 		]
 		false
 	]
@@ -2393,6 +2395,7 @@ string: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
+			append?	[logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -2412,7 +2415,7 @@ string: context [
 		ser1: as red-series! stack/arguments
 		ser2: ser1 + 1
 		len: _series/get-length ser1 no
-		len: len + either op = OP_UNION [_series/get-length ser2 no][0]
+		if op = OP_UNION [len: len + _series/get-length ser2 no]
 		new: as red-series! string/rs-make-at stack/push* len
 		s2: GET_BUFFER(new)
 		n: 2
@@ -2424,15 +2427,17 @@ string: context [
 			tail: as byte-ptr! s/tail
 
 			while [head < tail] [			;-- iterate over first series
+				append?: no
 				cp: string/get-char head unit
 				if check? [
-					find?: string/rs-find-char as red-string! ser2 cp case?
+					find?: string/rs-find-char as red-string! ser2 cp step case?
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					not string/rs-find-char as red-string! new cp case?
+					not string/rs-find-char as red-string! new cp step case?
 				][
+					append?: yes
 					s2: string/append-char s2 cp
 				]
 
@@ -2442,7 +2447,7 @@ string: context [
 					all [head < tail i < step]
 				][
 					i: i + 1
-					s2: string/append-char s2 string/get-char head unit
+					if append? [s2: string/append-char s2 string/get-char head unit]
 				]
 			]
 

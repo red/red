@@ -1526,7 +1526,7 @@ block: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
-			skip?	[logic!]
+			append?	[logic!]
 			blk?	[logic!]
 			hash?	[logic!]
 	][
@@ -1548,7 +1548,7 @@ block: context [
 		blk1: as red-block! stack/arguments
 		blk2: blk1 + 1
 		len: rs-length? blk1
-		len: len + either op = OP_UNION [rs-length? blk2][0]
+		if op = OP_UNION [len: len + rs-length? blk2]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2
@@ -1577,16 +1577,16 @@ block: context [
 			]
 
 			while [value < tail] [			;-- iterate over first series
-				skip?: yes
+				append?: no
 				if check? [
-					find?: null <> _hashtable/get hash value 0 1 case? no no
+					find?: null <> _hashtable/get hash value 0 step case? no no
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					null = _hashtable/get table value 0 1 case? no no
+					null = _hashtable/get table value 0 step case? no no
 				][
-					skip?: no
+					append?: yes
 					_hashtable/put table rs-append new value
 				]
 
@@ -1596,7 +1596,7 @@ block: context [
 					all [value < tail i < step]
 				][
 					i: i + 1
-					unless skip? [
+					if append? [
 						key: rs-append new value
 						if hash? [_hashtable/put table key]
 					]
