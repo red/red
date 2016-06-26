@@ -18,26 +18,26 @@ Red [
 		--assert equal? tb1-t/hour 1
 		--assert equal? tb1-t/minute 1
 		--assert equal? tb1-t/second 1
-		;--assert equal? first tb1-t 1
-		;--assert equal? second tb1-t 1
-		;--assert equal? third tb1-t 1
+		--assert equal? first tb1-t 1
+		--assert equal? second tb1-t 1
+		--assert equal? third tb1-t 1
 		--assert equal? tb1-t 1:1:1
-		;--assert equal? pick tb1-t 1 1
-		;--assert equal? pick tb1-t 2 1
-		;--assert equal? pick tb1-t 3 1
+		--assert equal? pick tb1-t 1 1
+		--assert equal? pick tb1-t 2 1
+		--assert equal? pick tb1-t 3 1
 		
 	--test-- "tb-2"
 		tb2-t: 0:0:0
 		--assert equal? tb2-t/hour 0
 		--assert equal? tb2-t/minute 0
 		--assert equal? tb2-t/second 0
-		;--assert equal? first tb2-t 0
-		;--assert equal? second tb2-t 0
-		;--assert equal? third tb2-t 0
+		--assert equal? first tb2-t 0
+		--assert equal? second tb2-t 0
+		--assert equal? third tb2-t 0
 		--assert equal? tb2-t 0:0:0
-		;--assert equal? pick tb2-t 1 0
-		;--assert equal? pick tb2-t 2 0
-		;--assert equal? pick tb2-t 3 0
+		--assert equal? pick tb2-t 1 0
+		--assert equal? pick tb2-t 2 0
+		--assert equal? pick tb2-t 3 0
 		
 	; Max empirical value
 	--test-- "tb-3"
@@ -45,26 +45,26 @@ Red [
 		--assert equal? tb3-t/hour 2147483645
 		--assert equal? tb3-t/minute 59
 		--assert equal? tb3-t/second 59
-		;--assert equal? first tb3-t 2147483645
-		;--assert equal? second tb3-t 59
-		;--assert equal? third tb2-t 59
+		--assert equal? first tb3-t 2147483645
+		--assert equal? second tb3-t 59
+		--assert equal? third tb3-t 59
 		--assert equal? tb3-t 2147483644:58:58 + 1:1:1
-		;--assert equal? pick tb3-t 1 2147483645
-		;--assert equal? pick tb3-t 2 59
-		;--assert equal? pick tb2-t 3 59
+		--assert equal? pick tb3-t 1 2147483645
+		--assert equal? pick tb3-t 2 59
+		--assert equal? pick tb3-t 3 59
 		
 	--test-- "tb-4"
 		tb4-t: -1:-0:-0
 		--assert equal? tb4-t/hour -1
 		--assert equal? tb4-t/minute 0
 		--assert equal? tb4-t/second 0
-		;--assert equal? first tb4-t -1
-		;--assert equal? second tb4-t 0
-		;--assert equal? third tb4-t 0
+		--assert equal? first tb4-t -1
+		--assert equal? second tb4-t 0
+		--assert equal? third tb4-t 0
 		--assert equal? tb4-t -1:0:0
-		;--assert equal? pick tb4-t 1 0
-		;--assert equal? pick tb4-t 2 0
-		;--assert equal? pick tb4-t 3 0
+		--assert equal? pick tb4-t 1 0
+		--assert equal? pick tb4-t 2 0
+		--assert equal? pick tb4-t 3 0
 
 		;red>> 2147483647:00
 		;== 2147483646:00:00.0
