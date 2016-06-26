@@ -666,6 +666,7 @@ center-face: function [
 	]
 	either parent [
 		face/offset: parent/size - face/size / 2
+		if face/type = 'window [face/offset: face/offset + parent/offset]
 	][
 		print "CENTER-FACE: face has no parent!"		;-- temporary check
 	]
