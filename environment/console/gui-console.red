@@ -110,19 +110,20 @@ gui-console-ctx: context [
 	
 	display-about: function [][
 		lay: layout/tight [
-			size 360x300
+			size 360x320
 			backdrop 58.58.60
 			style txt: text 360 center 58.58.60 font-color white
+			style small: txt font [size: 7 color: white]
 			below
 			pad 0x15
 			txt bold "Red Programming Language" font [size: 14 color: white]
 			ver: txt font [size: 8 color: white]
 			at 155x120 image fstk-logo
-			at 60x160 txt 250x50 "Copyright 2016 - Fullstack Technologies"
-				font [size: 7 color: white]
-			at 0x200 txt "http://red-lang.org"
-			at 0x230 txt "http://github.com/red/red"
-			at 154x270 button "Ok" [unview win/selected: console]
+			at 0x160 small 360x20 "Copyright 2011-2016 - Fullstack Technologies"
+			at 0x180 small 360x20 "and contributors."
+			at 0x230 txt "http://red-lang.org"
+			at 0x260 txt "http://github.com/red/red"
+			at 154x310 button "Ok" [unview win/selected: console]
 			do [ver/text: form reduce [system/version #"-" system/build]]
 		]
 		center-face/with lay win
