@@ -537,11 +537,7 @@ natives: context [
 					#call [system/lexer/transcode str none none]
 					DO_EVAL_BLOCK
 				]
-				TYPE_FILE [
-					str: as red-string! simple-io/read as red-file! arg null null no no
-					#call [system/lexer/transcode str none none]
-					DO_EVAL_BLOCK
-				]
+				TYPE_FILE [#call [do-file as red-file! arg]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
