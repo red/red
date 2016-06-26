@@ -813,9 +813,9 @@ do-file: func [file [file!] /local saved code new-path][
 	code: load file
 	new-path: first split-path clean-path file
 	change-dir new-path
-	code: do code
+	set/any 'code do code
 	change-dir saved
-	code
+	:code
 ]
 
 ;------------------------------------------
