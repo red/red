@@ -51,7 +51,7 @@ Red [
 		--assert equal? tb3-t 2147483644:58:58 + 1:1:1
 		--assert equal? pick tb3-t 1 2147483645
 		--assert equal? pick tb3-t 2 59
-		--assert equal? pick tb4-t 3 59
+		--assert equal? pick tb3-t 3 59
 		
 	--test-- "tb-4"
 		tb4-t: -1:-0:-0
