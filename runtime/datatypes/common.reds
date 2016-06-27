@@ -515,6 +515,7 @@ words: context [
 	_name:			as red-word! 0
 	
 	_multiply:		as red-word! 0
+	_browse:		as red-word! 0
 	
 	errors: context [
 		throw:		as red-word! 0
@@ -697,6 +698,7 @@ words: context [
 		_name:			word/load "name"
 		
 		_multiply:		word/load "multiply"
+		_browse:		word/load "browse"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

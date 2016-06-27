@@ -191,6 +191,17 @@ platform: context [
 				token		[integer!]
 			]
 		]
+		"shell32.dll" stdcall [
+			ShellExecute: "ShellExecuteW" [
+				hwnd		 [integer!]
+				lpOperation	 [c-string!]
+				lpFile		 [c-string!]
+				lpParameters [integer!]
+				lpDirectory	 [integer!]
+				nShowCmd	 [integer!]
+				return:		 [integer!]
+			]
+		]
 	]
 
 	#either sub-system = 'gui [
