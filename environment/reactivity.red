@@ -116,11 +116,17 @@ system/reactivity: context [
 			cause-error 'script 'react-gctx [field]
 		]
 		words: words-of obj
-		foreach value reaction [
-			if all [any-word? value find words value][
-				repend relations [obj value reaction field]
+		parse reaction rule: [
+			any [
+				item: word! (
+					if find words item/1 [repend relations [obj item/1 reaction field]]
+				)
+				| set-path! | any-string!
+				| into rule
+				| skip
 			]
 		]
+		react/with reaction field
 		set field do-safe reaction
 	]
 	
@@ -149,7 +155,7 @@ system/reactivity: context [
 			src		[word! object! block!] "'all word, or a reactor or a list of reactors"
 		/later							"Run the reaction on next change instead of now"
 		/with							"Specifies an optional face object (internal use)"
-			ctx		[object! none!]		"Optional context for VID faces"
+			ctx		[object! set-word! none!] "Optional context for VID faces or target set-word"
 		return:		[block! function! none!] "The reactive relation or NONE if no relation was processed"
 	][
 		case [
