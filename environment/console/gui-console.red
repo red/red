@@ -113,12 +113,12 @@ gui-console-ctx: context [
 			size 360x320
 			backdrop 58.58.60
 			style txt: text 360 center 58.58.60 font-color white
-			style small: txt font [size: 7 color: white]
+			style small: txt font [size: 8 color: white]
 			below
 			pad 0x15
-			txt bold "Red Programming Language" font [size: 14 color: white]
+			txt bold "Red Programming Language" font [size: 15 color: white]
 			ver: txt font [size: 8 color: white]
-			at 155x120 image fstk-logo
+			at 155x110 image fstk-logo
 			at 0x160 small 360x20 "Copyright 2011-2016 - Fullstack Technologies"
 			at 0x180 small 360x20 "and contributors."
 			at 0x230 txt "http://red-lang.org"
