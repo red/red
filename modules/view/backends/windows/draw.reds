@@ -27,6 +27,7 @@ modes: declare struct! [
 	gp-brush		[integer!]								;-- gdiplus brush
 	gp-font			[integer!]								;-- gdiplus font
 	gp-font-brush	[integer!]
+	image-attr		[integer!]								;-- gdiplus image attributes
 	pen?			[logic!]
 	brush?			[logic!]
 	on-image?		[logic!]								;-- drawing on image?
@@ -197,27 +198,28 @@ draw-begin: func [
 		hBackDC  [handle!]
 		graphics [integer!]
 ][
-	modes/pen:			null
-	modes/brush:		null
-	modes/pen-width:	1
-	modes/pen-style:	PS_SOLID
-	modes/pen-color:	0						;-- default: black
-	modes/pen-join:		-1
-	modes/pen-cap:		-1
-	modes/brush-color:	-1
-	modes/font-color:	-1
-	modes/gp-brush:		0
-	modes/gp-pen:		0
-	modes/gp-pen-saved: 0
-	modes/gp-font:		0
-	modes/gp-font-brush: 0
-	modes/on-image?:	no
-	modes/pen?:			yes
-	modes/brush?:		no
-	modes/alpha-pen?:	no
-	modes/alpha-brush?:	no
-	modes/font-color?:	no
-	dc:					null
+	modes/pen:				null
+	modes/brush:			null
+	modes/pen-width:		1
+	modes/pen-style:		PS_SOLID
+	modes/pen-color:		0						;-- default: black
+	modes/pen-join:			-1
+	modes/pen-cap:			-1
+	modes/brush-color:		-1
+	modes/font-color:		-1
+	modes/gp-brush:			0
+	modes/gp-pen:			0
+	modes/gp-pen-saved:		0
+	modes/gp-font:			0
+	modes/gp-font-brush:	0
+	modes/image-attr:		0
+	modes/on-image?:		no
+	modes/pen?:				yes
+	modes/brush?:			no
+	modes/alpha-pen?:		no
+	modes/alpha-brush?:		no
+	modes/font-color?:		no
+	dc:						null
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
@@ -292,6 +294,7 @@ draw-end: func [
 	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
 	unless zero? modes/gp-font-brush [GdipDeleteBrush modes/gp-font-brush]
 	unless zero? modes/gp-font	[GdipDeleteFont modes/gp-font]
+	unless zero? modes/image-attr [GdipDisposeImageAttributes modes/image-attr]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
@@ -1005,13 +1008,26 @@ OS-draw-image: func [
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		w		[integer!]
+		h		[integer!]
+		attr	[integer!]
+		color	[integer!]
 		pts		[tagPOINT]
 ][
+	attr: 0
+	if key-color <> null [
+		attr: modes/image-attr
+		if zero? attr [GdipCreateImageAttributes :attr]
+		color: to-gdiplus-color key-color/array1
+		GdipSetImageAttributesColorKeys attr 0 true color color
+	]
+	w: IMAGE_WIDTH(image/size)
+	h: IMAGE_HEIGHT(image/size)
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
-			width:  IMAGE_WIDTH(image/size)
-			height: IMAGE_HEIGHT(image/size)
+			width:  w
+			height: h
 		]
 		start + 1 = end [					;-- two control points
 			width: end/x - x
@@ -1025,18 +1041,17 @@ OS-draw-image: func [
 				pts: pts + 1
 				start: start + 1
 			]
-			GdipDrawImagePointsI modes/graphics as-integer image/node edges 3
+			GdipDrawImagePointsRectI
+				modes/graphics as-integer image/node edges 3
+				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
 			exit
 		]
 		true [0]							;@@ TBD four control points
 	]
 	GdipDrawImageRectRectI
-		modes/graphics
-		as-integer image/node
-		x y width height
-		0 0 IMAGE_WIDTH(image/size) IMAGE_HEIGHT(image/size)
-		GDIPLUS_UNIT_PIXEL
-		0 0 0
+		modes/graphics as-integer image/node
+		x y width height 0 0 w h
+		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
 OS-draw-grad-pen: func [
