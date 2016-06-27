@@ -73,9 +73,9 @@ system/reactivity: context [
 		]
 	]
 	
-	set 'clear-relations function ["Removes all reactive relations"][clear relations]
+	set 'clear-reactions function ["Removes all reactive relations"][clear relations]
 	
-	set 'dump-relations function [
+	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
 	][
 		limit: any [all [system/console system/console/limit] 72] - 10
@@ -144,7 +144,7 @@ system/reactivity: context [
 		"Defines a new reactive relation between two or more objects"
 		reaction	[block! function!]	"Reactive relation"
 		/link							"Link objects together using a reactive relation"
-			target	[block!]			"Target objects to link together"
+			objects	[block!]			"Objects to link together"
 		/unlink							"Removes an existing reactive relation"
 			src		[word! object! block!] "'all word, or a reactor or a list of reactors"
 		/later							"Run the reaction on next change instead of now"
@@ -159,12 +159,12 @@ system/reactivity: context [
 					collect some [keep word! | [refinement! | set-word!] break | skip]
 				]
 				if 2 > length? objs [cause-error 'script 'react-not-enough []]
-				target: reduce target
+				objects: reduce objects
 				
-				if (length? target) <> length? objs [cause-error 'script 'react-no-match []]
-				unless parse target [some object!][cause-error 'script 'react-bad-obj []]
+				if (length? objects) <> length? objs [cause-error 'script 'react-no-match []]
+				unless parse objects [some object!][cause-error 'script 'react-bad-obj []]
 				
-				insert target :reaction
+				insert objects :reaction
 				
 				found?: no
 				parse body-of :reaction rule: [
@@ -172,9 +172,9 @@ system/reactivity: context [
 						item: [path! | lit-path! | get-path!] (
 							item: item/1
 							if pos: find objs item/1 [
-								obj: pick target 1 + index? pos
-								repend relations [obj item/2 :reaction target]
-								unless later [do-safe target]
+								obj: pick objects 1 + index? pos
+								repend relations [obj item/2 :reaction objects]
+								unless later [do-safe objects]
 								found?: yes
 							]
 						)
