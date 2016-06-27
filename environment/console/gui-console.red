@@ -150,33 +150,33 @@ gui-console-ctx: context [
 		save/header cfg-path cfg [Purpose: "Red GUI Console Configuration File"]
 	]
 
-	show-cfg-dialog: does [
+	show-cfg-dialog: function [][
+		lay: layout [
+			text "Buffer Lines:" cfg-buffers:	field return
+			text "ForeColor:"	 cfg-forecolor: field return
+			text "BackColor:"	 cfg-backcolor: field return
+			button "OK" [
+				if cfg/buffer-lines <> cfg-buffers/data [
+					cfg/buffer-lines: cfg-buffers/data
+					set-buffer-lines cfg/buffer-lines
+				]
+				cfg/font-color:   cfg-forecolor/data
+				cfg/background:   cfg-backcolor/data
+				set-font-color    cfg-forecolor/data
+				set-background    cfg-backcolor/data
+				unview
+				win/selected: console
+			]
+			button "Cancel" [unview win/selected: console]
+		]
 		cfg-buffers/data: cfg/buffer-lines
 		cfg-forecolor/data: cfg/font-color
 		cfg-backcolor/data: cfg/background
-		view/flags cfg-dialog [modal]
+		center-face/with lay win
+		view/flags lay [modal]
 	]
 
 	font-name: pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
-
-	cfg-dialog: layout [
-		text "Buffer Lines:" cfg-buffers:	field return
-		text "ForeColor:"	 cfg-forecolor: field return
-		text "BackColor:"	 cfg-backcolor: field return
-		button "OK" [
-			if cfg/buffer-lines <> cfg-buffers/data [
-				cfg/buffer-lines: cfg-buffers/data
-				set-buffer-lines cfg/buffer-lines
-			]
-			cfg/font-color:   cfg-forecolor/data
-			cfg/background:   cfg-backcolor/data
-			set-font-color    cfg-forecolor/data
-			set-background    cfg-backcolor/data
-			unview
-			win/selected: console
-		]
-		button "Cancel" [unview win/selected: console]
-	]
 
 	console: make face! [
 		type: 'console offset: 0x0 size: 640x400
@@ -215,7 +215,7 @@ gui-console-ctx: context [
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
-					choose-font		[if font: request-font [console/font: font]]
+					choose-font		[if font: request-font/mono [console/font: font]]
 					settings		[show-cfg-dialog]
 				]
 			]
