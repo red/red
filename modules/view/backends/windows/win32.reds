@@ -1681,6 +1681,22 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateImageAttributes: "GdipCreateImageAttributes" [
+			attr		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipDisposeImageAttributes: "GdipDisposeImageAttributes" [
+			attr		[integer!]
+			return:		[integer!]
+		]
+		GdipSetImageAttributesColorKeys: "GdipSetImageAttributesColorKeys" [
+			attr		[integer!]
+			type		[integer!]
+			enable?		[logic!]
+			colorLow	[integer!]
+			colorHigh	[integer!]
+			return:		[integer!]
+		]
 		GdipCreateMatrix: "GdipCreateMatrix" [
 			matrix		[int-ptr!]
 			return:		[integer!]
@@ -1790,11 +1806,19 @@ DwmIsCompositionEnabled!: alias function! [
 			texture		[int-ptr!]
 			return:		[integer!]
 		]
-		GdipDrawImagePointsI: "GdipDrawImagePointsI" [
+		GdipDrawImagePointsRectI: "GdipDrawImagePointsRectI" [
 			graphics	[integer!]
 			image		[integer!]
 			points		[tagPOINT]
 			count		[integer!]
+			srcx		[integer!]
+			srcy		[integer!]
+			srcwidth	[integer!]
+			srcheight	[integer!]
+			srcUnit		[integer!]
+			attribute	[integer!]
+			callback	[integer!]
+			data		[integer!]
 			return:		[integer!]
 		]
 		GdipSetLinePresetBlend: "GdipSetLinePresetBlend" [
