@@ -179,7 +179,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 					system/view/platform/on-change-facet owner word target action new index part
 				]
 			]
-			;check-reactions owner word
+			system/reactivity/check/only owner word
 		][
 			if any [								;-- drop multiple changes on same facet
 				none? state/3
