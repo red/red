@@ -112,14 +112,11 @@ system/reactivity: context [
 	]
 	
 	is~: function [
-		"Defines a local reactive relations inside a reactor"
+		"Defines a reactive relation which result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
-		reaction [block!]		"Reactive relation with other words in the reactor"
+		reaction [block!]		"Reactive relation"
 	][
-		if same? system/words obj: context? field [
-			cause-error 'script 'react-gctx [field]
-		]
-		words: words-of obj
+		words: words-of obj: context? field
 		parse reaction rule: [
 			any [
 				item: word! (
