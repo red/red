@@ -58,15 +58,19 @@ system/reactivity: context [
 			while [pos: find/same/skip pos reactor 4][
 				if all [
 					any [not only pos/2 = field]
-					not find/same stack reaction: pos/3
+					not all [
+						p: find/same stack reaction: pos/3
+						same? p/2 reactor
+					]
 				][
 					append/only stack :reaction
+					append stack reactor
 					either set-word? pos/4 [
 						set/any pos/4 do-safe :reaction
 					][
 						do-safe any [all [block? :reaction reaction] pos/4]
 					]
-					take/last stack
+					clear back back tail stack
 				]
 				pos: skip pos 4
 			]
