@@ -402,19 +402,19 @@ object: context [
 		ctx: GET_CTX(owner) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		assert TYPE_OF(fun) = TYPE_FUNCTION
-
-		stack/mark-func words/_on-deep-change*
-		stack/push as red-value! owner
-		stack/push as red-value! word
-		stack/push target
-		stack/push as red-value! action
-		stack/push new
-		integer/push pos
-		integer/push nb
-		if positive? count [_function/init-locals count]
-		_function/call fun owner/ctx
-		stack/unwind
+		if TYPE_OF(fun) = TYPE_FUNCTION [
+			stack/mark-func words/_on-deep-change*
+			stack/push as red-value! owner
+			stack/push as red-value! word
+			stack/push target
+			stack/push as red-value! action
+			stack/push new
+			integer/push pos
+			integer/push nb
+			if positive? count [_function/init-locals count]
+			_function/call fun owner/ctx
+			stack/unwind
+		]
 	]
 	
 	unchanged?: func [
