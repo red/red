@@ -798,7 +798,7 @@ WndProc: func [
 		winpos [tagWINDOWPOS]
 		w-type [red-word!]
 ][
-	type: either no-face? hWnd [panel][
+	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 		symbol/resolve w-type/symbol
 	]
@@ -822,10 +822,7 @@ WndProc: func [
 			if type = window [
 				if null? current-msg [init-current-msg]
 				state: (as red-block! get-face-values hWnd) + FACE_OBJ_STATE
-				if all [
-					TYPE_OF(state) = TYPE_BLOCK			;-- already created the window
-					wParam <> SIZE_MINIMIZED
-				][
+				if wParam <> SIZE_MINIMIZED [
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
 							WIN32_HIWORD(lParam) < -9999
@@ -987,7 +984,7 @@ WndProc: func [
 			]
 			return 0
 		]
-		WM_GETMINMAXINFO [
+		WM_GETMINMAXINFO [								;@@ send before WM_NCCREATE
 			if all [type = window set-window-info hWnd lParam][return 0]
 		]
 		WM_CLOSE [
