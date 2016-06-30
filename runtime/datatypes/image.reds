@@ -460,12 +460,12 @@ image: context [
 		part: part - 13
 		formed: integer/form-signed width
 		string/concatenate-literal buffer formed
-		part: part - length? formed
+		part: part - system/words/length? formed
 
 		string/append-char GET_BUFFER(buffer) as-integer #"x"
 		formed: integer/form-signed height
 		string/concatenate-literal buffer formed
-		part: part - length? formed
+		part: part - system/words/length? formed
 
 		if null? img/node [							;-- empty image
 			string/concatenate-literal buffer " #{}]"
@@ -551,6 +551,15 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/mold"]]
 
 		serialize img buffer only? all? flat? arg part yes
+	]
+
+	length?: func [
+		img		[red-image!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "image/length?"]]
+
+		IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
 	]
 
 	;--- Reading actions ---
@@ -894,7 +903,7 @@ image: context [
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
 			null			;insert
-			null			;length?
+			:length?
 			null			;move
 			:next
 			:pick

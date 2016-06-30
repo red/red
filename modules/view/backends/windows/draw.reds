@@ -22,6 +22,7 @@ modes: declare struct! [
 	font-color		[integer!]
 	bitmap			[handle!]
 	graphics		[integer!]								;-- gdiplus graphics
+	gp-state		[integer!]
 	gp-pen			[integer!]								;-- gdiplus pen
 	gp-pen-saved	[integer!]
 	gp-brush		[integer!]								;-- gdiplus brush
@@ -37,8 +38,6 @@ modes: declare struct! [
 ]
 
 paint: declare tagPAINTSTRUCT
-
-
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
@@ -1205,4 +1204,104 @@ OS-draw-grad-pen: func [
 	][
 		GdipSetPenBrushFill modes/gp-pen brush
 	]
+]
+
+OS-matrix-rotate: func [
+	angle	[red-integer!]
+	center	[red-pair!]
+][
+	GDI+?: yes
+	if angle <> as red-integer! center [OS-matrix-translate 0 - center/x 0 - center/y]
+	GdipRotateWorldTransform modes/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
+	if angle <> as red-integer! center [OS-matrix-translate center/x center/y]
+]
+
+OS-matrix-scale: func [
+	sx		[red-integer!]
+	sy		[red-integer!]
+][
+	GDI+?: yes
+	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy GDIPLUS_MATRIXORDERAPPEND
+]
+
+OS-matrix-translate: func [
+	x	[integer!]
+	y	[integer!]
+][
+	GDI+?: yes
+	GdipTranslateWorldTransform
+		modes/graphics
+		as float32! integer/to-float x
+		as float32! integer/to-float y
+		GDIPLUS_MATRIXORDERAPPEND
+]
+
+OS-matrix-skew: func [
+	sx		[red-integer!]
+	sy		[red-integer!]
+	/local
+		m	[integer!]
+		x	[float32!]
+		y	[float32!]
+		u	[float32!]
+		z	[float32!]
+][
+	m: 0
+	u: as float32! 1.0
+	z: as float32! 0.0
+	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
+	GdipCreateMatrix2 u y x u z z :m
+	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipDeleteMatrix m
+]
+
+OS-matrix-transform: func [
+	rotate		[red-integer!]
+	scale		[red-integer!]
+	translate	[red-pair!]
+	/local
+		center	[red-pair!]
+][
+	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
+	OS-matrix-rotate rotate center
+	OS-matrix-scale scale scale + 1
+	OS-matrix-translate translate/x translate/y
+]
+
+OS-matrix-push: func [/local state [integer!]][
+	state: 0
+	GdipSaveGraphics modes/graphics :state
+	modes/gp-state: state
+]
+
+OS-matrix-pop: func [][GdipRestoreGraphics modes/graphics modes/gp-state]
+
+OS-matrix-reset: func [][GdipResetWorldTransform modes/graphics]
+
+OS-matrix-invert: func [/local m [integer!]][
+	m: 0
+	GdipGetWorldTransform modes/graphics :m
+	GdipInvertMatrix m
+	GdipSetWorldTransform modes/graphics m
+]
+
+OS-matrix-set: func [
+	blk		[red-block!]
+	/local
+		m	[integer!]
+		val [red-integer!]
+][
+	m: 0
+	val: as red-integer! block/rs-head blk
+	GdipCreateMatrix2
+		get-float32 val
+		get-float32 val + 1
+		get-float32 val + 2
+		get-float32 val + 3
+		get-float32 val + 4
+		get-float32 val + 5
+		:m
+	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipDeleteMatrix m
 ]
