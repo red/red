@@ -607,12 +607,12 @@ natives: context [
 			obj	   [red-object!]
 			ctx	   [red-context!]
 			old	   [red-value!]
+			slot   [red-value!]
 			type   [integer!]
 			s	   [series!]
 			node   [node!]
 			only?  [logic!]
 			some?  [logic!]
-			event? [logic!]
 	][
 		#typecheck [set any? case? _only? _some?]
 		w: as red-word! stack/arguments
@@ -655,12 +655,16 @@ natives: context [
 				ctx: TO_CTX(node)
 				s: as series! ctx/self/value
 				obj: as red-object! s/offset + 1
-				event?: all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null]
 				
-				if event? [old: _context/get w]
-				res: _context/set w value
-				if event? [object/fire-on-set obj w old value]
-				stack/set-last res
+				either all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
+					slot: _context/get w
+					old: stack/push slot
+					copy-cell value slot
+					object/fire-on-set obj w old value
+				][
+					_context/set w value
+				]
+				stack/set-last value
 			]
 		]
 	]

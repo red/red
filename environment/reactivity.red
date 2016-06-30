@@ -20,9 +20,9 @@ reactor!: context [
 				tab "new  :" type? new
 			]
 		]
-		unless all [block? old block? new same? head old head new][
-			if any [series? old object? old][modify old 'owned none]
-			if any [series? new object? new][modify new 'owned reduce [self word]]
+		unless all [block? :old block? :new same? head :old head :new][
+			if any [series? :old object? :old][modify old 'owned none]
+			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 		]
 		system/reactivity/check/only self word
 	]
