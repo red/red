@@ -53,7 +53,7 @@ system/reactivity: context [
 		get/any 'result
 	]
 	
-	on-stack?: function [reactor [object!] reaction [block! function!] field [word!]][
+	on-stack?: function [reactor [object!] reaction [block! function!] field [word! set-word!]][
 		p: stack
 		while [p: find/same/skip p reaction 2][
 			if same? p/2 reactor [return yes]
@@ -62,7 +62,7 @@ system/reactivity: context [
 		no
 	]
 	
-	check: function [reactor [object!] /only field [word!]][
+	check: function [reactor [object!] /only field [word! set-word!]][
 		unless empty? pos: relations [
 			while [pos: find/same/skip pos reactor 4][
 				reaction: pos/3

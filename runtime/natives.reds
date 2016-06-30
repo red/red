@@ -600,12 +600,19 @@ natives: context [
 		_only? [integer!]
 		_some? [integer!]
 		/local
-			w	  [red-word!]
-			value [red-value!]
-			blk	  [red-block!]
-			type  [integer!]
-			only? [logic!]
-			some? [logic!]
+			w	   [red-word!]
+			value  [red-value!]
+			res	   [red-value!]
+			blk	   [red-block!]
+			obj	   [red-object!]
+			ctx	   [red-context!]
+			old	   [red-value!]
+			type   [integer!]
+			s	   [series!]
+			node   [node!]
+			only?  [logic!]
+			some?  [logic!]
+			event? [logic!]
 	][
 		#typecheck [set any? case? _only? _some?]
 		w: as red-word! stack/arguments
@@ -643,7 +650,18 @@ natives: context [
 				set-many blk value block/rs-length? blk only? some?
 				stack/set-last value
 			]
-			default [stack/set-last _context/set w value]
+			default [
+				node: w/ctx
+				ctx: TO_CTX(node)
+				s: as series! ctx/self/value
+				obj: as red-object! s/offset + 1
+				event?: all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null]
+				
+				if event? [old: _context/get w]
+				res: _context/set w value
+				if event? [object/fire-on-set obj w old value]
+				stack/set-last res
+			]
 		]
 	]
 
