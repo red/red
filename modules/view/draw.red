@@ -29,7 +29,16 @@ Red/System [
 		spline:			symbol/make "spline"
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
-		
+		matrix:			symbol/make "matrix"
+		invert-matrix:	symbol/make "invert-matrix"
+		reset-matrix:	symbol/make "reset-matrix"
+		push:			symbol/make "push"
+		rotate:			symbol/make "rotate"
+		scale:			symbol/make "scale"
+		translate:		symbol/make "translate"
+		skew:			symbol/make "skew"
+		transform:		symbol/make "transform"
+
 		_off:			symbol/make "off"
 		closed:			symbol/make "closed"
 		miter:			symbol/make "miter"
@@ -76,6 +85,38 @@ Red/System [
 				0
 			][1]
 			color
+		]
+
+		get-float: func [
+			int		[red-integer!]
+			return: [float!]
+			/local
+				f	[red-float!]
+				v	[float!]
+		][
+			either TYPE_OF(int) = TYPE_INTEGER [
+				v: integer/to-float int/value
+			][
+				f: as red-float! int
+				v: f/value
+			]
+			v
+		]
+
+		get-float32: func [
+			int		[red-integer!]
+			return: [float32!]
+			/local
+				f	[red-float!]
+				v	[float32!]
+		][
+			either TYPE_OF(int) = TYPE_INTEGER [
+				v: as float32! integer/to-float int/value
+			][
+				f: as red-float! int
+				v: as float32! f/value
+			]
+			v
 		]
 
 		reverse-int-array: func [
@@ -374,6 +415,48 @@ Red/System [
 								]
 								OS-draw-image DC as red-image! start point end color border? pattern
 							]
+							sym = rotate [
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								OS-matrix-rotate as red-integer! start as red-pair! cmd
+							]
+							sym = scale [
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								OS-matrix-scale as red-integer! start as red-integer! cmd
+							]
+							sym = translate [
+								DRAW_FETCH_VALUE(TYPE_PAIR)
+								point: as red-pair! start
+								OS-matrix-translate point/x point/y
+							]
+							sym = skew [
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								OS-matrix-skew as red-integer! start as red-integer! cmd
+							]
+							sym = transform [
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								value: cmd + 1
+								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
+								DRAW_FETCH_VALUE(TYPE_PAIR)
+								OS-matrix-transform
+									as red-integer! start
+									as red-integer! value
+									as red-pair! cmd
+							]
+							sym = push [
+								DRAW_FETCH_VALUE(TYPE_BLOCK)
+								OS-matrix-push
+								parse-draw as red-block! start DC catch?
+								OS-matrix-pop
+							]
+							sym = matrix [
+								DRAW_FETCH_VALUE(TYPE_BLOCK)
+								OS-matrix-set as red-block! start
+							]
+							sym = reset-matrix  [OS-matrix-reset]
+							sym = invert-matrix [OS-matrix-invert]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]
