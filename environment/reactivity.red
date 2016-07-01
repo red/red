@@ -55,8 +55,8 @@ system/reactivity: context [
 	
 	on-stack?: function [reactor [object!] reaction [block! function!] field [word! set-word!]][
 		p: stack
-		while [p: find/same/skip p reaction 2][
-			if same? p/2 reactor [return yes]
+		while [p: find/same/skip p reactor 2][
+			if same? p/2 reaction [return yes]
 			p: skip p 2
 		]
 		no
@@ -71,8 +71,8 @@ system/reactivity: context [
 					any [not only pos/2 = field]
 					any [empty? stack not on-stack? reactor reaction field]
 				][
-					append/only stack :reaction
 					append stack reactor
+					append/only stack :reaction
 					either set-word? pos/4 [
 						set/any pos/4 do-safe :reaction
 					][
