@@ -70,32 +70,12 @@ update-gdiplus-font: func [dc [handle!] /local font [integer!]][
 	modes/gp-font: font
 ]
 
-update-gdiplus-modes: func [
-	dc [handle!]
-	/local
-		handle [integer!]
-][
-	either modes/pen? [
-		either zero? modes/gp-pen-saved [
-			handle: modes/gp-pen
-			GdipSetPenColor handle to-gdiplus-color modes/pen-color
-			GdipSetPenWidth handle as float32! integer/to-float modes/pen-width
-			if modes/pen-join <> -1 [
-				OS-draw-line-join dc modes/pen-join
-			]
+update-gdiplus-modes: func [][
+	update-gdiplus-pen
+	update-gdiplus-brush
+]
 
-			if modes/pen-cap <> -1 [
-				OS-draw-line-cap dc modes/pen-cap
-			]
-		][
-			modes/gp-pen: modes/gp-pen-saved
-			modes/gp-pen-saved: 0
-		]
-	][
-		modes/gp-pen-saved: modes/gp-pen
-		modes/gp-pen: 0
-	]
-
+update-gdiplus-brush: func [/local handle [integer!]][
 	handle: 0
 	unless zero? modes/gp-brush [
 		GdipDeleteBrush modes/gp-brush
@@ -105,6 +85,41 @@ update-gdiplus-modes: func [
 		GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
 		modes/gp-brush: handle
 	]
+]
+
+update-gdiplus-pen: func [/local handle [integer!]][
+	either modes/pen? [
+		either zero? modes/gp-pen-saved [
+			handle: modes/gp-pen
+			GdipSetPenColor handle to-gdiplus-color modes/pen-color
+			GdipSetPenWidth handle as float32! integer/to-float modes/pen-width
+			if modes/pen-join <> -1 [
+				OS-draw-line-join null modes/pen-join
+			]
+
+			if modes/pen-cap <> -1 [
+				OS-draw-line-cap null modes/pen-cap
+			]
+		][
+			modes/gp-pen: modes/gp-pen-saved
+			modes/gp-pen-saved: 0
+		]
+	][
+		modes/gp-pen-saved: modes/gp-pen
+		modes/gp-pen: 0
+	]
+]
+
+update-brush: func [dc [handle!] /local handle [handle!]][
+	unless null? modes/brush [DeleteObject modes/brush]
+	modes/brush: either modes/brush? [
+		handle: CreateSolidBrush modes/brush-color
+		handle
+	][
+		handle: GetStockObject NULL_BRUSH
+		null
+	]
+	SelectObject dc handle
 ]
 
 update-pen: func [
@@ -162,23 +177,12 @@ update-pen: func [
 
 update-modes: func [
 	dc [handle!]
-	/local
-		handle	[handle!]
 ][
 	either GDI+? [
-		update-gdiplus-modes dc
+		update-gdiplus-modes
 	][
 		update-pen dc
-
-		unless null? modes/brush [DeleteObject modes/brush]
-		modes/brush: either modes/brush? [
-			handle: CreateSolidBrush modes/brush-color
-			handle
-		][
-			handle: GetStockObject NULL_BRUSH
-			null
-		]
-		SelectObject dc handle
+		update-brush dc
 	]
 ]
 
@@ -377,16 +381,17 @@ OS-draw-pen: func [
 	off?	[logic!]
 	alpha? [logic!]
 ][
+	if all [off? modes/pen? <> off?][exit]
+
 	modes/alpha-pen?: alpha?
 	GDI+?: any [alpha? anti-alias? modes/alpha-brush?]
 
-	modes/pen?: not off?
-	either modes/pen-color <> color [
+	if any [modes/pen-color <> color modes/pen? = off?][
+		modes/pen?: not off?
 		modes/pen-color: color
-		update-modes dc
-	][
-		unless GDI+? [update-modes dc]
+		either GDI+? [update-gdiplus-pen][update-pen dc]
 	]
+
 	unless modes/font-color? [
 		if GDI+? [update-gdiplus-font-color color]
 		unless modes/on-image? [SetTextColor dc color]
@@ -399,18 +404,15 @@ OS-draw-fill-pen: func [
 	off?   [logic!]
 	alpha? [logic!]
 ][
+	if all [off? modes/brush? <> off?][exit]
+
 	modes/alpha-brush?: alpha?
 	GDI+?: any [alpha? anti-alias? modes/alpha-pen?]
 
-	modes/brush?: not off?
-	either any [
-		modes/brush-color <> color
-		modes/gp-brush <> 0								;-- always update brush in gdi+ mode
-	][
+	if any [modes/brush-color <> color modes/brush? = off?][
+		modes/brush?: not off?
 		modes/brush-color: color
-		update-modes dc
-	][
-		unless GDI+? [update-modes dc]
+		either GDI+? [update-gdiplus-brush][update-brush dc]
 	]
 ]
 
@@ -628,7 +630,7 @@ OS-draw-spline: func [
 	]
 	;if nb = max-edges [fire error]
 
-	unless GDI+? [update-gdiplus-modes dc]					;-- force to use GDI+
+	unless GDI+? [update-gdiplus-modes]					;-- force to use GDI+
 
 	if modes/brush? [
 		GdipFillClosedCurveI
