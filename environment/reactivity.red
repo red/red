@@ -41,6 +41,7 @@ deep-reactor!: make reactor! [
 system/reactivity: context [
 	relations:	make block! 1000		;@@ change it to hash! once stable
 	stack:		make block! 100			;@@ change it to hash! once stable ???
+	queue:		make block! 100
 	debug?: 	no
 	
 	do-safe: function [code [block!]][
@@ -51,6 +52,17 @@ system/reactivity: context [
 			result: none
 		]
 		get/any 'result
+	]
+	
+	eval-reaction: function [reactor [object!] reaction [block! function!] target][
+		append stack reactor
+		append/only stack :reaction
+		either set-word? target [
+			set/any target do-safe :reaction
+		][
+			do-safe any [all [block? :reaction reaction] target]
+		]
+		clear back back tail stack
 	]
 	
 	on-stack?: function [reactor [object!] reaction [block! function!] field [word! set-word!]][
@@ -69,16 +81,24 @@ system/reactivity: context [
 				
 				if all [
 					any [not only pos/2 = field]
-					any [empty? stack not on-stack? reactor reaction field]
+					any [empty? stack not on-stack? reactor :reaction field]
 				][
-					append stack reactor
-					append/only stack :reaction
-					either set-word? pos/4 [
-						set/any pos/4 do-safe :reaction
+					either empty? stack [
+						eval-reaction reactor :reaction pos/4
+						
+						unless empty? queue [
+							q: tail queue
+							while [not head? q][
+								q: skip q -3
+								eval-reaction q/1 q/2 q/3
+								q: tail remove/part q 3	;-- new reactions could have been queued
+							]
+						]
 					][
-						do-safe any [all [block? :reaction reaction] pos/4]
+						append queue reactor
+						append/only queue :reaction
+						append/only queue pos/4
 					]
-					clear back back tail stack
 				]
 				pos: skip pos 4
 			]
