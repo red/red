@@ -165,18 +165,21 @@ system/reactivity: context [
 		"Returns a reactive relation if an object's field is a reactive source"
 		reactor	[object!]	"Object to check"
 		field	[word!]		"Field to check"
-		/type				"Returns 'source or 'target instead of reaction"
+		/target				"Check if it's a target instead of a source"
 		return: [block! function! word! none!] "Returns reaction, type or NONE"
 	][
-		pos: relations
-		while [pos: find/same/skip pos reactor 4][
-			if pos/2 = field [return either type ['source][pos/3]]
-			pos: skip pos 4
-		]
-		pos: skip relations 3
-		while [pos: find/skip pos field 4][
-			if reactor = context? pos/1 [return either type ['target][pos/-1]]
-			pos: skip pos 4
+		either target [
+			pos: skip relations 3
+			while [pos: find/skip pos field 4][
+				if reactor = context? pos/1 [return pos/-1]
+				pos: skip pos 4
+			]
+		][
+			pos: relations
+			while [pos: find/same/skip pos reactor 4][
+				if pos/2 = field [return pos/3]
+				pos: skip pos 4
+			]
 		]
 		none
 	]
