@@ -34,6 +34,7 @@ vector-test.red
 map-test.red
 pair-test.red
 checksum-test.red
+reactivity-test.red
 auto-tests/integer-auto-test.red
 auto-tests/float-auto-test.red
 auto-tests/infix-equal-auto-test.red
