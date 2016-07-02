@@ -1,5 +1,6 @@
 [![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![Travis build](https://travis-ci.org/red/red.svg?branch=master)
+[![Build status](https://ci.appveyor.com/api/projects/status/2msxaeew2ri21gm6/branch/master?svg=true)](https://ci.appveyor.com/project/qtxie/red/branch/master)
 
 Red Programming Language
 ------------------------
