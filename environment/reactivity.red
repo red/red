@@ -155,7 +155,7 @@ system/reactivity: context [
 				| skip
 			]
 		]
-		react/with reaction field
+		react/later/with reaction field
 		set field do-safe reaction
 	]
 	
