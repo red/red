@@ -1,0 +1,27 @@
+version: 1.0.{build}
+branches:
+  only:
+  - master
+install:
+- ps: >-
+    ## Download Rebol v276
+
+    $url = "http://static.red-lang.org/build/rebview.exe"
+
+    $output = "c:\projects\red\rebview.exe"
+
+    (New-Object System.Net.WebClient).DownloadFile($url, $output)
+build_script:
+- cmd: >-
+    c:\projects\red\rebview.exe -qws tests\run-all.r --batch
+
+    c:\projects\red\rebview.exe -qws system\tests\run-all.r --batch
+test: off
+deploy: off
+notifications:
+- provider: Email
+  to:
+  - nr@red-lang.org,qt@red-lang.com
+  on_build_success: false
+  on_build_failure: false
+  on_build_status_changed: true
