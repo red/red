@@ -617,20 +617,32 @@ alloc-cells: func [
 ]
 
 ;-------------------------------------------
-;-- Wrapper on alloc-cells for easy cells allocation with cleared buffer
+;-- Wrapper on alloc-cells for easy unset cells allocation
 ;-------------------------------------------
-alloc-cleared-cells: func [
+alloc-unset-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		node [node!]
 		s	 [series!]
+		p	 [int-ptr!]
+		end	 [int-ptr!]
 ][
 	node: alloc-series size 16 0
 	s: as series! node/value
-	zerofill
-		as int-ptr! s/offset
-		as int-ptr! ((as byte-ptr! s/offset) + s/size)
+	p: as int-ptr! s/offset
+	end: as int-ptr! ((as byte-ptr! s/offset) + s/size)
+	
+	assert p < end
+	assert (as-integer end) and 3 = 0		;-- end should be a multiple of 4
+	until [
+		p/value: TYPE_UNSET
+		p/2: 0
+		p/3: 0
+		p/4: 0
+		p: p + 4
+		p = end
+	]
 	node
 ]
 
