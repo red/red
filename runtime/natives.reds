@@ -1492,6 +1492,40 @@ natives: context [
 		res
 	]
 
+	sign?: func [
+		check?  [logic!]
+		return: [red-integer!]
+		/local
+			i   [red-integer!]
+			f	[red-float!]
+			res [red-value!]
+			ret [integer!]
+	][
+		#typecheck -sign?-								;-- `sign?` would be replaced by lexer
+		res: stack/arguments
+		ret: 0
+		switch TYPE_OF(res) [							;@@ Add money! pair! 
+			TYPE_INTEGER [
+				i: as red-integer! stack/arguments
+				ret: case [
+					i/value > 0 [ 1]
+					i/value < 0 [-1]
+					i/value = 0 [ 0]
+				]
+			]
+			TYPE_FLOAT TYPE_TIME [
+				f: as red-float! stack/arguments
+				ret: case [
+					f/value > 0.0 [ 1]
+					f/value < 0.0 [-1]
+					f/value = 0.0 [ 0]
+				]
+			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
+		]
+		integer/box ret
+	]
+
 	max*: func [
 		check? [logic!]
 		/local
@@ -2820,6 +2854,7 @@ natives: context [
 			:get-env*
 			:list-env*
 			:now*
+			:sign?
 		]
 	]
 
