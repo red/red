@@ -1492,7 +1492,7 @@ natives: context [
 		res
 	]
 
-	sign?: func [
+	sign?*: func [
 		check?  [logic!]
 		return: [red-integer!]
 		/local
@@ -1501,7 +1501,7 @@ natives: context [
 			res [red-value!]
 			ret [integer!]
 	][
-		#typecheck -sign?-								;-- `sign?` would be replaced by lexer
+		#typecheck sign?
 		res: stack/arguments
 		ret: 0
 		switch TYPE_OF(res) [							;@@ Add money! pair! 
@@ -2854,7 +2854,7 @@ natives: context [
 			:get-env*
 			:list-env*
 			:now*
-			:sign?
+			:sign?*
 		]
 	]
 
