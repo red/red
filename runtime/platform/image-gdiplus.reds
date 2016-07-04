@@ -52,12 +52,6 @@ Red/System [
 
 OS-image: context [
 
-	#enum ImageLockMode! [
-		ImageLockModeRead:			1
-		ImageLockModeWrite:			2
-		ImageLockModeUserInputBuf:	4
-	]
-
 	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
 	CLSID_JPEG_ENCODER: [557CF401h 11D31A04h 0000739Ah 2EF31EF8h]
 	CLSID_GIF_ENCODER:  [557CF402h 11D31A04h 0000739Ah 2EF31EF8h]
@@ -269,19 +263,13 @@ OS-image: context [
 		write?		[logic!]
 		return:		[integer!]
 		/local
-			rect	[RECT!]
 			data	[BitmapData!]
 			mode	[integer!]
 			res		[integer!]
 	][
-		rect: declare RECT!
 		data: as BitmapData! allocate size? BitmapData!
-		rect/left: 0
-		rect/top: 0
-		rect/right: width? handle
-		rect/bottom: height? handle
-		mode: either write? [ImageLockModeWrite][ImageLockModeRead]
-		res: GdipBitmapLockBits handle rect mode pixelformat data
+		mode: either write? [3][1]
+		res: GdipBitmapLockBits handle null mode pixelformat data
 		either zero? res [as-integer data][0]
 	]
 
