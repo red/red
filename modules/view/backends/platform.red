@@ -473,6 +473,10 @@ system/view/platform: context [
 		gui/OS-update-view face
 		SET_RETURN(none-value)
 	]
+
+	refresh-window: routine [hwnd [integer!]][
+		gui/OS-refresh-window hwnd
+	]
 	
 	show-window: routine [id [integer!]][
 		gui/OS-show-window id
