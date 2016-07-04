@@ -1320,6 +1320,13 @@ terminal: context [
 			]
 			RS_KEY_CTRL_DELETE [0]
 			RS_KEY_CTRL_K [
+				until [
+					vt/cursor: vt/cursor + 1
+					not emit-char vt cp yes
+				]
+				vt/cursor: vt/cursor - 1
+			]
+			RS_KEY_CTRL_L [
 				reset-vt vt
 				emit-char vt -1 no
 			]
