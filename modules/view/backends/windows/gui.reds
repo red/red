@@ -766,6 +766,8 @@ evolve-base-face: func [
 	hWnd
 ]
 
+OS-refresh-window: func [hWnd [integer!]][UpdateWindow as handle! hWnd]
+
 OS-show-window: func [
 	hWnd [integer!]
 	/local
