@@ -154,7 +154,7 @@ system: context [
 				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
-				react-not-enough:	"REACT - reactive function has not enough arguments"
+				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
