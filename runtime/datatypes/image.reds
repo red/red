@@ -576,7 +576,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/pick"]]
 
 		out-range: 0
-		offset: get-position img as red-integer! boxed 1 :out-range
+		offset: either null? boxed [index - 1][get-position img as red-integer! boxed 1 :out-range]
 		as red-value! either out-range = 1 [none-value][rs-pick img offset]
 	]
 
@@ -761,7 +761,7 @@ image: context [
 
 		img: as red-image! stack/arguments
 		offset: img/head + 1
-		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) >= offset  [
+		if IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > offset  [
 			img/head: offset
 		]
 		img
