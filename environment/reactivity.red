@@ -16,8 +16,8 @@ reactor!: context [
 			print [
 				"-- on-change event --" lf
 				tab "word :" word		lf
-				tab "old  :" type? old	lf
-				tab "new  :" type? new
+				tab "old  :" type? :old	lf
+				tab "new  :" type? :new
 			]
 		]
 		unless all [block? :old block? :new same? head :old head :new][
@@ -65,7 +65,7 @@ system/reactivity: context [
 		clear back back tail stack
 	]
 	
-	on-stack?: function [reactor [object!] reaction [block! function!] field [word! set-word!]][
+	on-stack?: function [reactor [object!] reaction [block! function!]][
 		p: stack
 		while [p: find/same/skip p reactor 2][
 			if same? p/2 reaction [return yes]
@@ -81,7 +81,7 @@ system/reactivity: context [
 				
 				if all [
 					any [not only pos/2 = field]
-					any [empty? stack not on-stack? reactor :reaction field]
+					any [empty? stack not on-stack? reactor :reaction]
 				][
 					either empty? stack [
 						eval-reaction reactor :reaction pos/4
@@ -156,7 +156,7 @@ system/reactivity: context [
 			]
 		]
 		react/later/with reaction field
-		set field do-safe reaction
+		set field either block? reaction/1 [do reaction/1][do-safe reaction]
 	]
 	
 	set 'is make op! :is~
