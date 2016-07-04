@@ -672,7 +672,10 @@ simple-io: context [
 				access: OPEN_EXISTING
 			][
 				modes: GENERIC_WRITE
-				either mode and RIO_APPEND <> 0 [
+				either any [
+					mode and RIO_APPEND <> 0
+					mode and RIO_SEEK <> 0
+				][
 					access: OPEN_ALWAYS
 				][
 					access: CREATE_ALWAYS
@@ -706,7 +709,7 @@ simple-io: context [
 				modes: either mode and RIO_APPEND <> 0 [
 					modes or O_APPEND
 				][
-					modes or O_TRUNC
+					if mode and RIO_SEEK = 0 [modes or O_TRUNC]
 				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
@@ -766,7 +769,7 @@ simple-io: context [
 		]
 	]
 
-	read-buffer: func [
+	read-data: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
 		size	[integer!]
@@ -784,7 +787,26 @@ simple-io: context [
 		]
 		res
 	]
-	
+
+	write-data: func [
+		file	[integer!]
+		data	[byte-ptr!]
+		size	[integer!]
+		return:	[integer!]
+		/local
+			len [integer!]
+			ret	[integer!]
+	][
+		#either OS = 'Windows [
+			len: 0
+			ret: WriteFile file data size :len null
+			ret: either zero? ret [-1][1]
+		][
+			ret: _write file data size
+		]
+		ret
+	]
+
 	close-file: func [
 		file	[integer!]
 		return:	[logic!]
@@ -868,7 +890,7 @@ simple-io: context [
 			if part < size [size: part]
 		]
 		buffer: allocate size
-		len: read-buffer file buffer size
+		len: read-data file buffer size
 		close-file file
 
 		if negative? len [return none-value]
@@ -893,6 +915,7 @@ simple-io: context [
 		filename [c-string!]
 		data	 [byte-ptr!]
 		size	 [integer!]
+		offset	 [integer!]
 		binary?	 [logic!]
 		append?  [logic!]
 		unicode? [logic!]
@@ -910,17 +933,13 @@ simple-io: context [
 		]
 		mode: RIO_WRITE
 		if append? [mode: mode or RIO_APPEND]
+		if offset > 0 [mode: mode or RIO_SEEK]
 		file: open-file filename mode unicode?
 		if file < 0 [return file]
 
-		#either OS = 'Windows [
-			len: 0
-			if append? [SetFilePointer file 0 null SET_FILE_END]
-			ret: WriteFile file data size :len null
-			ret: either zero? ret [-1][1]
-		][
-			ret: _write file data size
-		]
+		if offset > 0 [seek-file file offset]
+		#if OS = 'Windows [if append? [SetFilePointer file 0 null SET_FILE_END]]
+		ret: write-data file data size
 		close-file file
 		ret
 	]
@@ -1117,6 +1136,7 @@ simple-io: context [
 		filename [red-file!]
 		data	 [red-value!]
 		part	 [red-value!]
+		seek	 [red-value!]
 		binary?	 [logic!]
 		append?  [logic!]
 		return:  [integer!]
@@ -1127,7 +1147,9 @@ simple-io: context [
 			int  	[red-integer!]
 			limit	[integer!]
 			type	[integer!]
+			offset	[integer!]
 	][
+		offset: -1
 		limit: -1
 		if OPTION?(part) [
 			either TYPE_OF(part) = TYPE_INTEGER [
@@ -1152,7 +1174,11 @@ simple-io: context [
 			]
 			true [ERR_EXPECT_ARGUMENT(type 1)]
 		]
-		type: write-file file/to-OS-path filename buf len binary? append? yes
+		if OPTION?(seek) [
+			int: as red-integer! seek
+			offset: int/value
+		]
+		type: write-file file/to-OS-path filename buf len offset binary? append? yes
 		if negative? type [
 			fire [TO_ERROR(access cannot-open) filename]
 		]

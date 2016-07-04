@@ -281,13 +281,12 @@ file: context [
 		return:	[red-value!]
 	][
 		if any [
-			OPTION?(seek)
 			OPTION?(allow)
 			OPTION?(as-arg)
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/write as red-file! dest data part binary? append?
+		simple-io/write as red-file! dest data part seek binary? append?
 		as red-value! unset-value
 	]
 
