@@ -155,7 +155,7 @@ system: context [
 				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
 				react-bad-func:		"REACT - /LINK option requires a function! as argument"
 				react-not-enough:	"REACT - reactive function has not enough arguments"
-				react-no-match:		"REACT - target arguments number mismatches with reactive function"
+				react-no-match:		"REACT - objects block length must match reaction function arg count"
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 			]
