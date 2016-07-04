@@ -706,10 +706,10 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
-				modes: either mode and RIO_APPEND <> 0 [
-					modes or O_APPEND
+				either mode and RIO_APPEND <> 0 [
+					modes: modes or O_APPEND
 				][
-					if mode and RIO_SEEK = 0 [modes or O_TRUNC]
+					if mode and RIO_SEEK = 0 [modes: modes or O_TRUNC]
 				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
