@@ -702,6 +702,8 @@ parser: context [
 			len		 [integer!]
 			offset	 [integer!]
 			cnt-col	 [integer!]
+			saved	 [integer!]
+			before   [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -1456,18 +1458,47 @@ parser: context [
 								TYPE_OF(w) = TYPE_WORD
 								words/only = symbol/resolve w/symbol
 							]
-							cmd: cmd + max + 1
-							if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
+							cmd: cmd + max
+							value: cmd + 1
+							if value >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
 							
-							value: cmd
-							pop?: TYPE_OF(value) = TYPE_PAREN
-							if pop? [
-								eval value
-								value: stack/top - 1
-								PARSE_TRACE(_paren)
+							saved: input/head
+							either TYPE_OF(value) = TYPE_WORD [
+								new: as red-series! _context/get as red-word! value
+								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
+									cmd: value + 1		;-- INSERT position
+									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_insert]]
+									pop?: no
+									switch TYPE_OF(cmd) [
+										TYPE_PAREN [
+											eval cmd
+											value: stack/top - 1
+											PARSE_TRACE(_paren)
+											pop?: yes
+										]
+										TYPE_WORD [
+											value: _context/get as red-word! cmd
+											if TYPE_OF(value) = TYPE_UNSET [
+												PARSE_ERROR [TO_ERROR(script no-value) cmd]
+											]
+										]
+										default	  [value: cmd]
+									]
+									input/head: new/head
+								]
+							][
+								cmd: value
+								pop?: TYPE_OF(value) = TYPE_PAREN
+								if pop? [
+									eval value
+									value: stack/top - 1
+									PARSE_TRACE(_paren)
+								]
 							]
 							PARSE_SAVE_SERIES
-							actions/insert input value null max = 1 null no
+							before: input/head
+							actions/insert input value null as-logic max null no
+							input/head: saved + (input/head - before)
 							PARSE_RESTORE_SERIES
 							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
