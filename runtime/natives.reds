@@ -2192,6 +2192,7 @@ natives: context [
 				free b
 			]
 		]
+		ownership/check as red-value! str words/_checksum null str/head len
 	]
 	
 	unset*: func [

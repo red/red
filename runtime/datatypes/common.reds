@@ -503,6 +503,7 @@ words: context [
 	;-- modifying natives
 	_uppercase:		as red-word! 0
 	_lowercase:		as red-word! 0
+	_checksum:		as red-word! 0
 	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
@@ -676,6 +677,7 @@ words: context [
 		;-- modifying natives
 		_uppercase:		word/load "uppercase"
 		_lowercase:		word/load "lowercase"
+		_checksum:		word/load "checksum"
 		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
