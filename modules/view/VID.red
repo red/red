@@ -22,14 +22,15 @@ system/view/VID: context [
 		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
 	]
 	
-	react-ctx: context [face: none]
-	
 	process-reactors: function [][
 		foreach [f blk] reactors [
-			bind blk ctx: make react-ctx [face: f]
-			react/with blk ctx
+			either f [
+				bind blk ctx: context [face: f]
+				react/with blk ctx
+			][
+				react blk
+			]
 		]
-		react-ctx/face: none
 		clear reactors
 	]
 	
@@ -317,6 +318,7 @@ system/view/VID: context [
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]
+				react	[repend reactors [none fetch-argument block! spec]]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
