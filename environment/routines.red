@@ -135,3 +135,8 @@ as-ipv4: routine [
 ]
 
 as-rgba: :as-ipv4
+
+;-- Temporary definition --
+to-paren: routine [blk [series!]][
+	if TYPE_OF(blk) = TYPE_BLOCK [blk/header: TYPE_PAREN]
+]

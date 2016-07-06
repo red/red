@@ -24,7 +24,6 @@ crlf:		 "^M^/"
 dot:		 #"."
 comma:		 #","
 dbl-quote:	 #"^""
-slash-word:	 #load lit-word! "/"						;-- useful for Parse rules
 
 pi: 3.141592653589793
 

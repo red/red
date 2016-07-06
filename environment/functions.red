@@ -242,12 +242,12 @@ math: function [
 	body [block!] "Block to evaluate"
 	/safe		  "Returns NONE on error"
 ][
-	parse body rule: [
+	parse body: copy/deep body rule: [
 		any [
-			pos: ['* (op: 'multiply) | quote slash-word (op: 'divide)] (
-				remove pos
-				insert back pos op
-			)
+			pos: ['* (op: 'multiply) | quote / (op: 'divide)] (
+				end: skip pos: back pos 3
+				pos: change/only/part pos to-paren copy/part pos end end
+			) :pos
 			| into rule
 			| skip
 		]
