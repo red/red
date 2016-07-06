@@ -237,6 +237,24 @@ zero?: func [
 	]
 ]
 
+math: function [
+	"Evaluates a block using math precedence rules, returning the last result"
+	body [block!] "Block to evaluate"
+	/safe		  "Returns NONE on error"
+][
+	parse body rule: [
+		any [
+			pos: ['* (op: 'multiply) | quote slash-word (op: 'divide)] (
+				remove pos
+				insert back pos op
+			)
+			| into rule
+			| skip
+		]
+	]
+	either safe [attempt body][do body]
+]
+
 charset: func [
 	spec [block! integer! char! string!]
 ][
