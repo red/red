@@ -933,7 +933,7 @@ simple-io: context [
 		]
 		mode: RIO_WRITE
 		if append? [mode: mode or RIO_APPEND]
-		if offset > 0 [mode: mode or RIO_SEEK]
+		if offset >= 0 [mode: mode or RIO_SEEK]
 		file: open-file filename mode unicode?
 		if file < 0 [return file]
 
