@@ -366,20 +366,29 @@ OS-image: context [
 	copy: func [
 		dst		[integer!]
 		src		[integer!]
-		bytes	[integer!]
+		pixels	[integer!]
+		lines	[integer!]
 		offset	[integer!]
 		format	[integer!]
 		/local
 			bmp-src [BitmapData!]
 			bmp-dst [BitmapData!]
 			palette [byte-ptr!]
-			bits	[integer!]
+			bytes	[integer!]
+			pbytes	[integer!]
+			stride	[integer!]
+			w		[integer!]
 	][
-		bits: format >> 8 and FFh 					;--number of bit per pixel
+		pbytes: format >> 8 and FFh / 8				;--number of bytes per pixel
 
 		bmp-src: as BitmapData! lock-bitmap-fmt src format no
 		bmp-dst: as BitmapData! lock-bitmap-fmt dst format yes
-		copy-memory bmp-dst/scan0 bmp-src/scan0 + (offset * bits / 8) bytes * bits / 8
+		stride: bmp-src/stride
+		w: bmp-src/width
+		bytes: stride * lines
+		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
+		offset: offset / w * stride + (offset % w * pbytes)
+		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
 		unlock-bitmap src as-integer bmp-src
 		unlock-bitmap dst as-integer bmp-dst
 
@@ -415,7 +424,7 @@ OS-image: context [
 		h: height? handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
-		copy bitmap handle w * h 0 format
+		copy bitmap handle 0 h 0 format
 
 		GdipDisposeImage handle 
 		bitmap
@@ -597,14 +606,14 @@ OS-image: context [
 					if size/y < h [h: size/y]
 					GdipCloneBitmapAreaI x y w h format handle :bmp
 				][
-					either part < width [h: 1 w: part][
+					either part < width [h: 0 w: part][
 						h: part / width
-						w: width
+						w: part % width
 					]
 					if zero? part [w: 1]
 					GdipCreateBitmapFromScan0 w h 0 format null :bmp
 					either zero? part [w: 0 h: 0][
-						copy bmp handle w * h offset format
+						copy bmp handle w h offset format
 					]
 				]
 				dst/size: h << 16 or w
