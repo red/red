@@ -370,6 +370,9 @@ simple-io: context [
 					st_blksize	[integer!]
 					st_flags	[integer!]
 					st_gen		[integer!]
+					st_lspare	[integer!]
+					st_qspare_1 [integer!]
+					st_qspare_2 [integer!]
 				]
 				;;-- #if __DARWIN_64_BIT_INO_T
 				;#define DIRENT_NAME_OFFSET	21
