@@ -836,6 +836,17 @@ do-file: func [file [file!] /local saved code new-path][
 	:code
 ]
 
+;--- Temporary definition, use at your own risks! ---
+rejoin: function [
+	"Reduces and joins a block of values."
+	block [block!] "Values to reduce and join"
+][
+	if empty? block: reduce block [return block]
+	append either series? first block [copy first block] [
+		form first block
+	] next block
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
