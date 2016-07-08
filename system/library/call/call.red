@@ -14,7 +14,7 @@ Red [
 	}
 ]
 
-#system-global [ #include %call.reds ]
+#system [ #include %call.reds ]
 
 ; Routines definitions
 redsys-call: routine [ "Set IO buffers if needed, execute call"
@@ -22,132 +22,81 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	waitend    [logic!]   "Wait for end of child process"
 	console    [logic!]   "Runs command with I/O redirected to console"
 	shell      [logic!]   "Forces command to be run from shell"
-	redirin    [logic!]   "Input redirection"
 	in-str     [string!]  "Input data"
-	redirout   [logic!]   "Output redirection"
-	redirerr   [logic!]   "Error redirection"
+	redirout   [string!]  "Output redirection"
+	redirerr   [string!]  "Error redirection"
 	return:    [integer!]
 	/local
-	inp out err s
+		pid		[integer!]
+		inp		[p-buffer!]
+		out		[p-buffer!]
+		err		[p-buffer!]
+		pad1	[float!]
+		pad2	[float!]
+		pad3	[float!]
+		len		[integer!]
+		cstr	[c-string!]
 ][
-	either redirin [
-		inp: declare p-buffer!
-		inp/buffer: string/rs-head in-str
-		s: GET_BUFFER(in-str)
-		inp/count:  GET_UNIT(s) * string/rs-length? in-str
-		#if OS = 'Windows [ system-call/to-ascii inp ]
-	][
-		inp: null
+	pad1: 0.0
+	pad2: pad1
+	pad3: pad1
+	inp: null
+	out: null
+	err: null
+
+	if TYPE_OF(in-str) = TYPE_STRING [
+		PLATFORM_TO_CSTR(cstr in-str len)
+		inp: as p-buffer! :pad1					;@@ a trick as we cannot declear struct on stack
+		inp/buffer: as byte-ptr! cstr
+		inp/count: len
 	]
-	either redirout [
-		out:  declare p-buffer!
+	if TYPE_OF(redirout) <> TYPE_NONE [
+		out: as p-buffer! :pad2
 		out/buffer: null
 		out/count:  0
-	][
-		out: null
 	]
-	either redirerr [
-		err:  declare p-buffer!
+	if TYPE_OF(redirerr) <> TYPE_NONE [
+		err: as p-buffer! :pad3
 		err/buffer: null
 		err/count:  0
-	][
-		err: null
 	]
-	system-call/call (as-c-string string/rs-head cmd) waitend console shell inp out err
-]
 
-get-out: routine [ "Returns redirected stdout"
-	/local
-		sout   [red-string!]
-		str    [c-string!]
-		result [integer!]
-][
-	with system-call [
-		#either OS = 'Windows [
-			result: IS_TEXT_UNICODE_UNICODE_MASK
-			is-text-unicode outputs/out/buffer outputs/out/count :result
-			either result = 0 [
-				to-ascii outputs/out
-				sout: string/load as-c-string outputs/out/buffer outputs/out/count UTF-8
-			][
-				sout: string/load as-c-string outputs/out/buffer (outputs/out/count / 2) UTF-16LE
-			]
-		][
-			sout: string/load as-c-string outputs/out/buffer outputs/out/count UTF-8
-		]
-		free outputs/out/buffer
-		SET_RETURN(sout)
+	PLATFORM_TO_CSTR(cstr cmd len)
+	pid: system-call/call cstr waitend console shell inp out err
+
+	if out <> null [
+		system-call/insert-string redirout out shell
+		free out/buffer
 	]
-]
-
-get-err: routine [ "Returns redirected stderr"
-	/local
-		serr	[red-string!]
-		result	[integer!]
-][
-	with system-call [
-		#either OS = 'Windows [
-			result: IS_TEXT_UNICODE_UNICODE_MASK
-			is-text-unicode outputs/err/buffer outputs/err/count :result
-			either result = 0 [
-				to-ascii outputs/err
-				serr: string/load as-c-string outputs/err/buffer outputs/err/count UTF-8
-			][
-				serr: string/load as-c-string outputs/err/buffer (outputs/err/count / 2) UTF-16LE
-			]
-		][
-			serr: string/load as-c-string outputs/err/buffer outputs/err/count UTF-8
-		]
-		free outputs/err/buffer
-		SET_RETURN(serr)
+	if err <> null [
+		system-call/insert-string redirerr err shell
+		free err/buffer
 	]
+	pid
 ]
 
-print-to-stderr: routine [ "Call to low level print to stderr"
-	mesg	[string!]
-][
-	system-call/print-error [ as-c-string string/rs-head mesg ]
-]
-
-print-error: func [
-	mesg			[string! block!]	"A shell command, an executable file or a block"
-][
-	if block? mesg [ mesg: form mesg ]
-	print-to-stderr mesg
+arg-to-string: func [arg][
+	case [
+		block? arg [form arg]
+		file?  arg [to-local-file arg]
+		true	   [arg]
+	]
 ]
 
 call: func [ "Executes a shell command to run another process."
-	cmd			[string! block!]	"A shell command, an executable file or a block"
-	/wait							"Runs command and waits for exit"
-	/console						"Runs command with I/O redirected to console"
-	/shell							"Forces command to be run from shell"
-	/input	in	[string! block!]	"Redirects in to stdin"
-	/output	out	[string! block!]	"Redirects stdout to out"
-	/error	err	[string! block!]	"Redirects stderr to err"
-	return:		[integer!]			"0 if success, -1 if error, or a process ID"
-	/local
-		pid		[integer!]
-		str		[string!]
-		do-in do-out do-err
+	cmd			[string! file! block!]	"A shell command, an executable file or a block"
+	/wait								"Runs command and waits for exit"
+;;	/console							"Runs command with I/O redirected to console"
+	/shell								"Forces command to be run from shell"
+	/input	in	[string! file! block!]	"Redirects in to stdin"
+	/output	out	[any-string! binary!]	"Redirects stdout to out"
+	/error	err	[any-string! binary!]	"Redirects stderr to err"
+	return:		[integer!]				"0 if success, -1 if error, or a process ID"
 ][
-	pid: 0
-	if block? cmd [ cmd: form cmd ]
-	either input  [
-		if block? in [ in: form in ]
-		str: in
-	][
-		str: ""
-	]
-	pid: redsys-call cmd wait console shell input str output error
-	if output [
-		str: get-out
-		parse str [ while [ ahead crlf remove cr | skip ] ]
-		out: head insert out str
-	]
-	if error [
-		str: get-err
-		parse str [ while [ ahead crlf remove cr | skip ] ]
-		err: head insert err str
-	]
-	pid
+	if empty? cmd [return 0]
+
+	cmd: arg-to-string cmd
+	if input [in: arg-to-string in]
+
+	redsys-call cmd wait no shell in out err
 ]

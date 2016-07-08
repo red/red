@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#if target = 'IA-32 [
-	system/fpu/mask/overflow: on
-	system/fpu/mask/underflow: on
-	system/fpu/mask/zero-divide: on
-	system/fpu/mask/invalid-op: on
-	system/fpu/update
-]
-
 #if OS <> 'Windows [
 	; Wordexp enums
 	#enum wrde-flag [

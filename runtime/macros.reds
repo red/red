@@ -307,11 +307,12 @@ Red/System [
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
 
-#define PLATFORM_TO_CSTR(cstr str len) [
+#define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
+	len: -1
 	#either OS = 'Windows [
-		cstr: unicode/to-utf16 str
+		cstr: unicode/to-utf16-len str :len yes
+		len: len * 2
 	][
-		len: -1
 		cstr: unicode/to-utf8 str :len
 	]
 ]

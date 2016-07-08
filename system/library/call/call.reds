@@ -10,7 +10,6 @@ Red/System [
 	}
 	Needs: {
 		Red/System >= 0.4.1
-		%ansi.reds
 		%linux.reds
 		%windows.reds
 	}
@@ -24,8 +23,6 @@ Red/System [
 	}
 ]
 
-#include %../ansi.reds
-;#include %../../../../Kaj/C-library/ANSI.reds		;-- Tests with Kaj's ansi binding
 #switch OS [
 	Windows   [ #include %../windows.reds ]
 	#default  [ #include %../linux.reds  ]
@@ -38,86 +35,120 @@ p-buffer!: alias struct! [								;-- Data buffer struct, pointer and bytes coun
 	buffer [byte-ptr!]
 ]
 
-f-desc!: alias struct! [								;-- Files descriptors for posix pipe
-	reading  [integer!]
-	writing  [integer!]
-]
-
 system-call: context [
-	error-pipe:			"Error Red/System call : pipe creation failed : "
-	error-dup2:			"Error Red/System call : calling dup2 : "
-	error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
-	outputs: declare struct! [							;-- Global var to store outputs values before setting call /output and /error refinements
-		out			[p-buffer!]
-		err			[p-buffer!]
+
+	#import [
+		LIBC-file cdecl [
+			realloc: "realloc" [				"Resize and return allocated memory."
+				memory			[byte-ptr!]
+				size			[integer!]
+				return:			[byte-ptr!]
+			]
+			strstr: "strstr" [					"Search for sub-string."
+				string			[c-string!]
+				substring		[c-string!]
+				return:			[c-string!]
+			]
+			strcpy: "strcpy" [					"Copy string including tail marker, return target."
+				target			[c-string!]
+				source			[c-string!]
+				return:			[c-string!]
+			]
+		]
 	]
 
-	free-str-array: func [ "Free str-array! created by word-expand"
-		args [str-array!]
-		/local n
-	][
-		n: 0
-		while [ args/item <> null ][
-			free as byte-ptr! args/item
-			args: args + 1
-			n: n + 1
+	#either debug? = yes [
+		error-pipe:			"Error Red/System call : pipe creation failed : "
+		error-dup2:			"Error Red/System call : calling dup2 : "
+		error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
+		__red-call-print-error: func [ "Format and print on stderr"
+			[typed]
+			count [integer!] list [typed-value!]
+			/local
+				str		[c-string!]
+				len		[integer!]
+		][
+			str: make-c-string 1000
+			set-memory as byte-ptr! str null-byte 1000
+			until [
+				switch list/type [
+					type-c-string! [ sprintf [ (str + length? str) "%s" list/value ] ]
+					type-integer!  [ sprintf [ (str + length? str) "%d" list/value ] ]
+					type-logic!    [ sprintf [ (str + length? str) "%s" either as logic! list/value [ "true" ][ "false" ] ] ]
+					default        [ sprintf [ (str + length? str) "%08Xh" list/value ] ]	;-- print as an hex value
+				]
+				list: list + 1
+				count: count - 1
+				zero? count
+			]
+			len: length? str
+			len: len + 1
+			str/len: #"^/"
+			#switch OS [									;-- Write to stderr, no error check
+				Windows  [ io-write get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
+				#default [ io-write stderr as byte-ptr! str len ]
+			]
+			free as byte-ptr! str
 		]
-		args: args  - n
-		free as byte-ptr! args
-	]
-	to-ascii: func [
-		buf      [p-buffer!]
-		/local pos
 	][
-		if any [ (buf = null) ( buf/count = 0) ] [ exit ]
-		pos: 0
-		until [
-			if buf/buffer/pos > #"^(7F)" [ buf/buffer/pos: #" " ]
-			pos: pos + 1
-			pos > buf/count
+		#define __red-call-print-error [comment]
+	]
+
+	f-desc!: alias struct! [								;-- Files descriptors for posix pipe
+		reading  [integer!]
+		writing  [integer!]
+	]
+
+	insert-string: func [
+		str		[red-string!]
+		data	[p-buffer!]
+		shell?	[logic!]
+		/local
+			temp	[byte-ptr!]
+			buffer	[byte-ptr!]
+			len		[integer!]
+			count	[integer!]
+			sout	[red-string!]
+	][
+		if zero? data/count [exit]
+
+		either TYPE_OF(str) = TYPE_BINARY [
+			binary/rs-insert as red-binary! str 0 data/buffer data/count
+		][
+			#either OS = 'Windows [
+				buffer: data/buffer
+				count: data/count
+				either shell? [
+					len: 0
+					len: MultiByteToWideChar 1 0 buffer count null 0		;-- CP_OEMCP
+					if len <= 0 [0]											;TBD free resource and throw error
+					temp: allocate len * 2
+					MultiByteToWideChar 1 0 buffer count temp len
+					sout: string/load as-c-string temp len UTF-16LE
+					free temp
+				][
+					sout: string/load as-c-string buffer count UTF-8
+				]
+			][
+				sout: string/load as-c-string data/buffer data/count UTF-8
+			]
+			string/concatenate str sout -1 0 yes yes
 		]
 	]
+
 	resize-buffer: func [   "Reallocate buffer, error check"
 		buffer       [byte-ptr!]
 		newsize      [integer!]
 		return:      [byte-ptr!]
 		/local
-			tmp [binary!]
+			tmp [byte-ptr!]
 	][
-		tmp: resize buffer newsize						;-- Resize output buffer to new size
+		tmp: realloc buffer newsize						;-- Resize output buffer to new size
 		either tmp = null [								;-- reallocation failed, uses current output buffer
-			print-error [ "Red/System resize-buffer : Memory allocation failed." ]
+			__red-call-print-error [ "Red/System resize-buffer : Memory allocation failed." ]
 			halt
 		][ buffer: tmp ]
 		return buffer
-	]
-	print-error: func [ "Format and print on stderr"
-		[typed]
-		count [integer!] list [typed-value!]
-		/local
-			str		[c-string!]
-			len		[integer!]
-	][
-		str: make-c-string 1000
-		set-memory as byte-ptr! str null-byte 1000
-		until [
-			switch list/type [
-				type-c-string! [ format-any [ (str + length? str) "%s" list/value ] ]
-				type-integer!  [ format-any [ (str + length? str) "%d" list/value ] ]
-				type-logic!    [ format-any [ (str + length? str) "%s" either as logic! list/value [ "true" ][ "false" ] ] ]
-				default        [ format-any [ (str + length? str) "%08Xh" list/value ] ]	;-- print as an hex value
-			]
-			list: list + 1
-			count: count - 1
-			zero? count
-		]
-		append-string str "^/"
-		len: length? str
-		#switch OS [									;-- Write to stderr, no error check
-			Windows  [ io-write get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
-			#default [ io-write stderr as byte-ptr! str len ]
-		]
-		free as byte-ptr! str
 	]
 
 	#switch OS [
@@ -146,9 +177,9 @@ system-call: context [
 		] ; read-from-pipe
 		call: func [ "Executes a DOS command to run another process."
 			cmd           [c-string!]  "The shell command"
-			waitend       [logic!]     "Wait for end of command, implicit if any buffer is set"
-			console       [logic!]     "Redirect outputs to console"
-			shell		[logic!]       "Forces command to be run from shell"
+			waitend?      [logic!]     "Wait for end of command, implicit if any buffer is set"
+			console?      [logic!]     "Redirect outputs to console"
+			shell?        [logic!]     "Forces command to be run from shell"
 			in-buf        [p-buffer!]  "Input data buffer or null"
 			out-buf       [p-buffer!]  "Output data buffer or null"
 			err-buf       [p-buffer!]  "Error data buffer or null"
@@ -170,7 +201,7 @@ system-call: context [
 			p-inf: declare process-info!
 			sa: declare security-attributes!
 			sa/nLength: size? sa
-			sa/lpSecurityDescriptor: null
+			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
 			out-read:  0								;-- Pipes
 			out-write: 0
@@ -184,14 +215,14 @@ system-call: context [
 			s-inf/hStdInput:  get-std-handle STD_INPUT_HANDLE
 			s-inf/hStdOutput: get-std-handle STD_OUTPUT_HANDLE
 			s-inf/hStdError:  get-std-handle STD_ERROR_HANDLE
-			dev-null: create-file "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
+			dev-null: create-file #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
 			if in-buf <> null [
 				if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
-					print-error [ error-pipe "stdin" ]
+					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
 				if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
-					print-error [ error-sethandle "stdin" ]
+					__red-call-print-error [ error-sethandle "stdin" ]
 					return -1
 				]
 				s-inf/hStdInput: in-read
@@ -200,16 +231,16 @@ system-call: context [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
-					print-error [ error-pipe "stdout" ]
+					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
 				if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
-					print-error [ error-sethandle "stdout" ]
+					__red-call-print-error [ error-sethandle "stdout" ]
 					return -1
 				]
 				s-inf/hStdOutput: out-write
 			][
-				if not console [						;-- output must be redirected to "nul" or process returns an error code
+				if not console? [						;-- output must be redirected to "nul" or process returns an error code
 					s-inf/hStdOutput: dev-null
 				]
 			]
@@ -217,40 +248,45 @@ system-call: context [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
-					print-error [ error-pipe "stderr" ]
+					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
 				if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
-					print-error [ error-sethandle "stderr" ]
+					__red-call-print-error [ error-sethandle "stderr" ]
 					return -1
 				]
 				s-inf/hStdError: err-write
 			][
-				if not console [
+				if not console? [
 					s-inf/hStdError: dev-null
 				]
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
-				waitend: true
+				waitend?: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-			if not console [
+			if not console? [
 				if in-buf  = null [ s-inf/hStdInput:  0 ]
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
 
 			sa/bInheritHandle: inherit
-			cmdstr: make-c-string (20 + length? cmd)
-			copy-string "cmd /u /c " cmdstr		;-- Run command thru cmd.exe
-			cmdstr: append-string cmdstr cmd
+			either shell? [
+				len: (1 + lstrlen cmd) * 2
+				cmdstr: make-c-string (14 + len)
+				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
+				copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+			][
+				cmdstr: cmd
+			]
 			if not create-process null cmdstr null null inherit 0 null null s-inf p-inf [
-				print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error ]
-				free as byte-ptr! cmdstr
+				__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error ]
+				if shell? [free as byte-ptr! cmdstr]
 				return -1
 			]
-			free as byte-ptr! cmdstr
+			if shell? [free as byte-ptr! cmdstr]
 
 			pid: 0
 			if in-buf <> null [
@@ -258,7 +294,7 @@ system-call: context [
 				len: in-buf/count
 				success: io-write in-write in-buf/buffer len :len null
 				if not success [
-					print-error [ "Error Red/System call : write into pipe failed : " get-last-error ]
+					__red-call-print-error [ "Error Red/System call : write into pipe failed : " get-last-error ]
 				]
 				close-handle in-write
 			]
@@ -272,7 +308,7 @@ system-call: context [
 				read-from-pipe err-read err-buf
 				close-handle err-read
 			]
-			either waitend [
+			either waitend? [
 				wait-for-single-object p-inf/hProcess INFINITE
 				get-exit-code-process p-inf/hProcess :pid
 			][
@@ -281,8 +317,6 @@ system-call: context [
 			close-handle p-inf/hProcess
 			close-handle p-inf/hThread
 			close-handle dev-null
-			outputs/out: out-buf						;-- Store values in global var
-			outputs/err: err-buf
 			return pid
 		] ; call
 	] ; Windows
@@ -290,9 +324,9 @@ system-call: context [
 		;-- Shell detection
 		shell-name: declare c-string!
 		until [
-			if null <> find-string system/env-vars/item "SHELL=" [
+			if null <> strstr system/env-vars/item "SHELL=" [
 				shell-name: make-c-string length? system/env-vars/item
-				copy-string (system/env-vars/item + 6) shell-name
+				strcpy shell-name (system/env-vars/item + 6)
 			]
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
@@ -302,7 +336,7 @@ system-call: context [
 			data      [p-buffer!]
 			/local len size total
 		][
-			io-close fd/writing                            ;-- close unused pipe end
+			io-close fd/writing                         ;-- close unused pipe end
 			size: READ-BUFFER-SIZE                      ;-- initial buffer size and grow step
 			total: 0
 			until [
@@ -322,9 +356,9 @@ system-call: context [
 		] ; read-from-pipe
 		call: func [                   "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
-			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
-			console		[logic!]       "Redirect outputs to console"
-			shell		[logic!]       "Forces command to be run from shell"
+			waitend?	[logic!]       "Wait for end of command, implicit if any buffer is set"
+			console?	[logic!]       "Redirect outputs to console"
+			shell?		[logic!]       "Forces command to be run from shell"
 			in-buf		[p-buffer!]    "Input data buffer or null"
 			out-buf		[p-buffer!]    "Output data buffer or null "
 			err-buf		[p-buffer!]    "Error data buffer or null"
@@ -334,7 +368,7 @@ system-call: context [
 			if in-buf <> null [
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
-					print-error [ error-pipe "stdin" ]
+					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
 			]
@@ -343,7 +377,7 @@ system-call: context [
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-out: declare f-desc!
 				if (pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
-					print-error [ error-pipe "stdout" ]
+					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
 			]
@@ -352,7 +386,7 @@ system-call: context [
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-err: declare f-desc!
 				if (pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
-					print-error [ error-pipe "stderr" ]
+					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
 			]
@@ -362,37 +396,37 @@ system-call: context [
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					io-close fd-in/writing
 					err: dup2 fd-in/reading stdin
-					if err = -1 [ print-error [ error-dup2 "stdin" ]	 quit -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]	 return -1 ]
 					io-close fd-in/reading
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
 					io-close fd-out/reading
 					err: dup2 fd-out/writing stdout
-					if err = -1 [ print-error [ error-dup2 "stdout" ]	 quit -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]	 return -1 ]
 					io-close fd-out/writing
 				][
-					if not console [					;-- redirect stdout to /dev/null.
+					if not console? [					;-- redirect stdout to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
 						err: dup2 dev-null stdout
-						if err = -1 [ print-error [ error-dup2 "stdout to null" ]	 quit -1 ]
+						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]	 return -1 ]
 						io-close dev-null
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
 					io-close fd-err/reading
 					err: dup2 fd-err/writing stderr
-					if err = -1 [ print-error [ error-dup2 "stderr" ]	 quit -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]	 return -1 ]
 					io-close fd-err/writing
 				][
-					if not console [					;-- redirect stderr to /dev/null.
+					if not console? [					;-- redirect stderr to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
 						err: dup2 dev-null stderr
-						if err = -1 [ print-error [ error-dup2 "stderr to null" ]	 quit -1 ]
+						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]	 return -1 ]
 						io-close dev-null
 					]
 				]
-				if all [(in-buf = null) (not console)] [ io-close stdin ]	;-- no redirection, stdin closed
-				either shell [
+				if all [(in-buf = null) (not console?)] [ io-close stdin ]	;-- no redirection, stdin closed
+				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
 					args/item: "-c"			args: args + 1
@@ -400,30 +434,29 @@ system-call: context [
 					args/item: null
 					args: args - 3						;-- reset args pointer
 					execvp shell-name args				;-- Process is launched here, execvp with str-array parameters
-					print-error [ "Error Red/System call while calling execvp : " shell-name " -c " cmd ]	  ;-- Should never occur
-					quit -1
+					__red-call-print-error [ "Error Red/System call while calling execvp : " shell-name " -c " cmd ]	  ;-- Should never occur
+					return -1
 
 				][
 					wexp: declare wordexp-type!				;-- Create wordexp struct
 					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [						;-- Parsing ok
 						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
-						print-error [ "Error Red/System call while calling execvp : " cmd ]	  ;-- Occurs if command doesn't exist. Should be printed to stderr
-						quit -1
+						__red-call-print-error [ "Error Red/System call while calling execvp : " cmd ]	  ;-- Occurs if command doesn't exist. Should be printed to stderr
+						return -1
 					][										;-- Parsing nok
-						print-error [ "Error Red/System call, wordexp parsing command : " cmd ]
+						__red-call-print-error [ "Error Red/System call, wordexp parsing command : " cmd ]
 
 						switch status [
-							WRDE_NOSPACE [ print-error [ "Attempt to allocate memory failed" ]	 ]
-							WRDE_BADCHAR [ print-error [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" ]	 ]
-							WRDE_BADVAL  [ print-error [ "Reference to undefined shell variable" ]	 ]
-							WRDE_CMDSUB  [ print-error [ "Command substitution requested" ]	 ]
-							WRDE_SYNTAX  [ print-error [ "Shell syntax error, such as unbalanced parentheses or unterminated string" ]	 ]
+							WRDE_NOSPACE [ __red-call-print-error [ "Attempt to allocate memory failed" ]	 ]
+							WRDE_BADCHAR [ __red-call-print-error [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" ]	 ]
+							WRDE_BADVAL  [ __red-call-print-error [ "Reference to undefined shell variable" ]	 ]
+							WRDE_CMDSUB  [ __red-call-print-error [ "Command substitution requested" ]	 ]
+							WRDE_SYNTAX  [ __red-call-print-error [ "Shell syntax error, such as unbalanced parentheses or unterminated string" ]	 ]
 						]
-						if in-buf  <> null [ free in-buf/buffer  ]	;-- free allocated buffers before exit
 						if out-buf <> null [ free out-buf/buffer ]
 						if err-buf <> null [ free err-buf/buffer ]
-						quit -1
+						return -1
 					]
 				]
 			][											;-- Parent process
@@ -431,17 +464,17 @@ system-call: context [
 					io-close fd-in/reading
 					io-write fd-in/writing in-buf/buffer in-buf/count
 					io-close fd-in/writing
-					waitend: true
+					waitend?: true
 				]
 				if out-buf <> null [
 					read-from-pipe fd-out out-buf		;-- read output buffer from child process' stdout
-					waitend: true
+					waitend?: true
 				]
 				if err-buf <> null [					;-- read error buffer from child process' stderr
 					read-from-pipe fd-err err-buf
-					waitend: true
+					waitend?: true
 				]
-				if waitend [
+				if waitend? [
 					status: 0
 					waitpid pid :status 0				;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low  byte contains stop code
@@ -450,8 +483,6 @@ system-call: context [
 						pid: status >> 8				;-- High byte contains exit code
 					]
 				]
-				outputs/out: out-buf					;-- Store values in global var
-				outputs/err: err-buf
 			] ; either pid
 			return pid
 		] ; call
