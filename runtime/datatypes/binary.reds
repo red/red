@@ -144,19 +144,18 @@ binary: context [
 		/local
 			s	  [series!]
 			p	  [byte-ptr!]
+			size  [integer!]
 	][
 		s: GET_BUFFER(bin)
 
-		if ((as byte-ptr! s/tail) + part > ((as byte-ptr! s + 1) + s/size)) [
-			s: expand-series s 0
-		]
-		p: (as byte-ptr! s/offset) + bin/head + offset
+		size: part + (as-integer s/tail - s/offset)
+		if size > s/size [s: expand-series s s/size * 2 + part]
 
+		p: (as byte-ptr! s/offset) + bin/head + offset
 		move-memory										;-- make space
 			p + part
 			p
 			as-integer (as byte-ptr! s/tail) - p
-
 		s/tail: as cell! (as byte-ptr! s/tail) + part
 
 		copy-memory p data part
@@ -172,11 +171,14 @@ binary: context [
 		/local
 			s	  [series!]
 			p	  [byte-ptr!]
+			added [integer!]
 	][
 		s: GET_BUFFER(bin)
 		p: (as byte-ptr! s/offset) + bin/head + offset
-		if (p + part > ((as byte-ptr! s + 1) + s/size)) [
-			s: expand-series s 0
+
+		added: as-integer p + part - ((as byte-ptr! s + 1) + s/size)
+		if added > 0 [
+			s: expand-series s s/size * 2 + added
 			p: (as byte-ptr! s/offset) + bin/head + offset
 		]
 
