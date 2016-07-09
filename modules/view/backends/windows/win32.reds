@@ -1419,6 +1419,12 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		GetTextFace: 	"GetTextFaceW" [
+			hdc			[handle!]
+			nCount		[integer!]
+			lpFaceName	[byte-ptr!]
+			return:		[integer!]
+		]
 		GetCharWidth32: "GetCharWidth32W" [
 			hdc			[handle!]
 			iFirst		[integer!]
