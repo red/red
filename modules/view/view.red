@@ -327,7 +327,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 	style:		 none
 	angle:		 0
 	color:		 none
-	anti-alias?: none
+	anti-alias?: yes
 	shadow:		 none
 	state:		 none
 	parent:		 none
@@ -403,6 +403,13 @@ system/view: context [
 		screen-size: 	none
 		dpi:			none
 		;scaling:		1x1
+	]
+	
+	fonts: object [
+		system:
+		fixed:
+		sans-serif:
+		serif:			none
 	]
 
 	platform: none	
