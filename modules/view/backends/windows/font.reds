@@ -63,7 +63,11 @@ make-font: func [
 	]
 	
 	str: as red-string! values + FONT_OBJ_NAME
-	name: either TYPE_OF(str) = TYPE_STRING [unicode/to-utf16 str][null]
+	name: either TYPE_OF(str) = TYPE_STRING [
+		len: string/rs-length? str
+		if len > 31 [len: 31]
+		unicode/to-utf16-len str :len yes
+	][null]
 	
 	style: as red-word! values + FONT_OBJ_STYLE
 	len: switch TYPE_OF(style) [
