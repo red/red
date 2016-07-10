@@ -137,7 +137,7 @@ gui-console-ctx: context [
 	apply-cfg: does [
 		win/offset:		 cfg/win-pos
 		win/size:		 cfg/win-size
-		console/font:	 make font! [name: cfg/font-name size: cfg/font-size]
+		console/font:	 make font! [name: cfg/font-name size: cfg/font-size anti-alias?: no]
 		set-font-color	 cfg/font-color
 		set-background	 cfg/background
 		set-buffer-lines cfg/buffer-lines
