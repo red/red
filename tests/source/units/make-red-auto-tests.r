@@ -28,5 +28,7 @@ qt/make-if-needed?  %source/units/auto-tests/float-auto-test.red
                     %source/units/make-float-auto-test.r
 qt/make-if-needed?  %source/units/auto-tests/strict-equal-auto-test.red 
                     %source/units/make-strict-equal-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/same-auto-test.red 
+qt/make-if-needed?  %source/units/auto-tests/same-auto-test.red
                     %source/units/make-same-auto-test.r
+qt/make-if-needed?  %source/units/auto-tests/lexer-auto-test.red 
+                    %source/units/make-lexer-auto-tests.r

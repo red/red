@@ -52,3 +52,4 @@ auto-tests/greater-equal-auto-test.red
 auto-tests/strict-equal-auto-test.red
 auto-tests/infix-strict-equal-auto-test.red
 auto-tests/same-auto-test.red
+auto-tests/lexer-auto-test.red

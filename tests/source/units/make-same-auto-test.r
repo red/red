@@ -102,10 +102,9 @@ start-group: func [
   add-test-text join {===start-group=== "} [title {"}]
 ]
   
-
 ;; processing 
 prefix-src: copy test-src
-replace prefix-src {***MAKELENGTH***} length? read %make-equal-auto-test.r
+replace prefix-src {***MAKELENGTH***} length? read %make-same-auto-test.r
 replace prefix-src {***FILE***} :prefix-file
 
 add-test-text {~~~start-file~~~ "same"}
