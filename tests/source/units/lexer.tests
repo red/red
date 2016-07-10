@@ -23,4 +23,10 @@
 	
 ===end-group===
 
+===start-group=== "lexer-time"
+
+	--test-- "lexer-time-1" --assert [2147483645:59:59]	= system/lexer/transcode {2147483645:59:59} none
+
+===end-group===
+
 ~~~end-file~~~
