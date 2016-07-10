@@ -378,11 +378,11 @@ qt: make object! [
     src [file!]
     /local               
       cmd                             ;; command to run
+      output
       test-name                     
   ][
     source-file?: false
-    cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    do call* cmd make string! 1024
+    do join tests-dir src
   ]
   
   run-unit-test-quiet: func [
@@ -391,6 +391,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
+    file/reset
     source-file?: false
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."
