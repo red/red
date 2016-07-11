@@ -337,13 +337,13 @@ font!: object [											;-- keep in sync with font-facet! enum
 			print [
 				"-- font on-change event --" lf
 				tab "word :" word			 lf
-				tab "old  :" type? old		 lf
-				tab "new  :" type? new
+				tab "old  :" type? :old		 lf
+				tab "new  :" type? :new
 			]
 		]
 		if word <> 'state [
-			if any [series? old object? old][modify old 'owned none]
-			if any [series? new object? new][modify new 'owned reduce [self word]]
+			if any [series? :old object? :old][modify old 'owned none]
+			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
 			if all [block? state integer? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
@@ -378,8 +378,8 @@ para!: object [
 			print [
 				"-- para on-change event --" lf
 				tab "word :" word			 lf
-				tab "old  :" type? old		 lf
-				tab "new  :" type? new
+				tab "old  :" type? :old		 lf
+				tab "new  :" type? :new
 			]
 		]
 		if all [
@@ -409,7 +409,8 @@ system/view: context [
 		system:
 		fixed:
 		sans-serif:
-		serif:			none
+		serif:
+		size:			none
 	]
 
 	platform: none	
