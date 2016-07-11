@@ -86,7 +86,7 @@ arg-to-string: func [arg][
 call: func [ "Executes a shell command to run another process."
 	cmd			[string! file! block!]	"A shell command, an executable file or a block"
 	/wait								"Runs command and waits for exit"
-;;	/console							"Runs command with I/O redirected to console"
+	/console							"Runs command with I/O redirected to console (CLI console only at present)"
 	/shell								"Forces command to be run from shell"
 	/input	in	[string! file! block!]	"Redirects in to stdin"
 	/output	out	[any-string! binary!]	"Redirects stdout to out"
@@ -98,5 +98,5 @@ call: func [ "Executes a shell command to run another process."
 	cmd: arg-to-string cmd
 	if input [in: arg-to-string in]
 
-	redsys-call cmd wait no shell in out err
+	redsys-call cmd wait console shell in out err
 ]

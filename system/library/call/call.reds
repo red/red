@@ -136,21 +136,6 @@ system-call: context [
 		]
 	]
 
-	resize-buffer: func [   "Reallocate buffer, error check"
-		buffer       [byte-ptr!]
-		newsize      [integer!]
-		return:      [byte-ptr!]
-		/local
-			tmp [byte-ptr!]
-	][
-		tmp: realloc buffer newsize						;-- Resize output buffer to new size
-		either tmp = null [								;-- reallocation failed, uses current output buffer
-			__red-call-print-error [ "Red/System resize-buffer : Memory allocation failed." ]
-			halt
-		][ buffer: tmp ]
-		return buffer
-	]
-
 	#switch OS [
 	Windows   [											;-- Windows
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
@@ -167,12 +152,11 @@ system-call: context [
 				    total: total + len
 				    if total = size [
 				        size: 2 * size
-				        data/buffer: resize-buffer data/buffer size
+				        data/buffer: realloc data/buffer size
 				    ]
 				]
 				get-last-error = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
-			data/buffer: resize-buffer data/buffer (total + 1)	;-- Resize output buffer to minimum size
 			data/count: total
 		] ; read-from-pipe
 		call: func [ "Executes a DOS command to run another process."
@@ -331,29 +315,25 @@ system-call: context [
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
 		]
-		read-from-pipe: func [ "Read data from pipe fd into buffer"
-			fd        [f-desc!]   "File descriptor"
-			data      [p-buffer!]
-			/local len size total
+
+		set-flags-fd: func [
+			fd	[integer!]
+			/local
+				flags [integer!]
 		][
-			io-close fd/writing                         ;-- close unused pipe end
-			size: READ-BUFFER-SIZE                      ;-- initial buffer size and grow step
-			total: 0
-			until [
-				len: io-read fd/reading (data/buffer + total) (size - total)    ;-- read pipe, store into buffer
-				if len > -1 [                           ;-- FIX: there's something wrong here, need to test errno
-					total: total + len
-					if total = size [                   ;-- buffer must be expanded
-						size: 2 * size
-						data/buffer: resize-buffer data/buffer size
-					]
-				]
-				len = 0
-			]
-			data/buffer: resize-buffer data/buffer (total + 1)  ;-- Resize output buffer to minimum size
-			data/count: total
-			io-close fd/reading                            ;-- close other pipe end
-		] ; read-from-pipe
+			flags: fcntl [fd F_GETFD 0]
+			fcntl [fd F_SETFD flags or 1]				;-- FD_CLOEXEC
+			flags: fcntl [fd F_GETFL 0]
+			fcntl [fd F_SETFL flags or O_NONBLOCK]
+		]
+
+		set-nonblock-fd: func [
+			fd	[f-desc!]
+		][
+			set-flags-fd fd/reading
+			set-flags-fd fd/writing
+		]
+
 		call: func [                   "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
 			waitend?	[logic!]       "Wait for end of command, implicit if any buffer is set"
@@ -363,65 +343,72 @@ system-call: context [
 			out-buf		[p-buffer!]    "Output data buffer or null "
 			err-buf		[p-buffer!]    "Error data buffer or null"
 			return:		[integer!]
-			/local pid status err wexp fd-in fd-out fd-err args dev-null str
+			/local
+				pid status err wexp fd-in fd-out fd-err args dev-null str
+				pfds nfds fds revents n i input-len nbytes offset size to-read
+				out-len err-len out-size err-size pbuf
 		][
 			if in-buf <> null [
+				input-len: 0
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
 					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
+				set-nonblock-fd fd-in
 			]
 			if out-buf <> null [						;- Create buffer for output
-				out-buf/count: 0
-				out-buf/buffer: allocate READ-BUFFER-SIZE
+				out-len: 0
+				out-size: READ-BUFFER-SIZE
 				fd-out: declare f-desc!
 				if (pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
+				set-nonblock-fd fd-out
 			]
 			if err-buf <> null [						;- Create buffer for error
-				err-buf/count: 0
-				err-buf/buffer: allocate READ-BUFFER-SIZE
+				err-len: 0
+				err-size: READ-BUFFER-SIZE
 				fd-err: declare f-desc!
 				if (pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
+				set-nonblock-fd fd-err
 			]
 
 			pid: fork
-			either pid = 0 [                            ;-- Child process
+			if pid = 0 [								;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					io-close fd-in/writing
 					err: dup2 fd-in/reading stdin
-					if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]	 return -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
 					io-close fd-in/reading
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
 					io-close fd-out/reading
 					err: dup2 fd-out/writing stdout
-					if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]	 return -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
 					io-close fd-out/writing
 				][
 					if not console? [					;-- redirect stdout to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
 						err: dup2 dev-null stdout
-						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]	 return -1 ]
+						if err = -1 [ __red-call-print-error [ error-dup2 "stdout to null" ]]
 						io-close dev-null
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
 					io-close fd-err/reading
 					err: dup2 fd-err/writing stderr
-					if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]	 return -1 ]
+					if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
 					io-close fd-err/writing
 				][
 					if not console? [					;-- redirect stderr to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
 						err: dup2 dev-null stderr
-						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]	 return -1 ]
+						if err = -1 [ __red-call-print-error [ error-dup2 "stderr to null" ]]
 						io-close dev-null
 					]
 				]
@@ -434,16 +421,11 @@ system-call: context [
 					args/item: null
 					args: args - 3						;-- reset args pointer
 					execvp shell-name args				;-- Process is launched here, execvp with str-array parameters
-					__red-call-print-error [ "Error Red/System call while calling execvp : " shell-name " -c " cmd ]	  ;-- Should never occur
-					return -1
-
 				][
 					wexp: declare wordexp-type!				;-- Create wordexp struct
 					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [						;-- Parsing ok
 						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
-						__red-call-print-error [ "Error Red/System call while calling execvp : " cmd ]	  ;-- Occurs if command doesn't exist. Should be printed to stderr
-						return -1
 					][										;-- Parsing nok
 						__red-call-print-error [ "Error Red/System call, wordexp parsing command : " cmd ]
 
@@ -454,28 +436,117 @@ system-call: context [
 							WRDE_CMDSUB  [ __red-call-print-error [ "Command substitution requested" ]	 ]
 							WRDE_SYNTAX  [ __red-call-print-error [ "Shell syntax error, such as unbalanced parentheses or unterminated string" ]	 ]
 						]
-						if out-buf <> null [ free out-buf/buffer ]
-						if err-buf <> null [ free err-buf/buffer ]
-						return -1
 					]
 				]
-			][											;-- Parent process
-				if in-buf <> null [						;-- write input buffer to child process' stdin
+				;-- get here only when exec fails
+				quit -1
+			]
+			if pid > 0 [								;-- Parent process
+				nfds: 0
+				pfds: as pollfd! allocate 3 * size? pollfd!
+				if in-buf <> null [
+					waitend?: true
+					fds: pfds + nfds
+					fds/fd: fd-in/writing
+					fds/events: POLLOUT
 					io-close fd-in/reading
-					io-write fd-in/writing in-buf/buffer in-buf/count
-					io-close fd-in/writing
-					waitend?: true
+					nfds: nfds + 1
 				]
-				if out-buf <> null [
-					read-from-pipe fd-out out-buf		;-- read output buffer from child process' stdout
+				if out-buf <> null [						;- Create buffer for output
 					waitend?: true
+					out-buf/count: 0
+					out-buf/buffer: allocate READ-BUFFER-SIZE
+					fds: pfds + nfds
+					fds/fd: fd-out/reading
+					fds/events: POLLIN
+					io-close fd-out/writing
+					nfds: nfds + 1
 				]
-				if err-buf <> null [					;-- read error buffer from child process' stderr
-					read-from-pipe fd-err err-buf
+				if err-buf <> null [						;- Create buffer for error
 					waitend?: true
+					err-buf/count: 0
+					err-buf/buffer: allocate READ-BUFFER-SIZE
+					fds: pfds + nfds
+					fds/fd: fd-err/reading
+					fds/events: POLLIN
+					io-close fd-err/writing
+					nfds: nfds + 1
 				]
-				if waitend? [
-					status: 0
+				n: nfds
+				while [n > 0][
+					i: waitpid pid :status 1				;-- WNOHANG: 1
+					if i = -1 [break]
+					if i = pid [
+						if out-buf <> null [
+							nbytes: io-read fd-out/reading out-buf/buffer + out-len out-size - out-len
+							if nbytes > 0 [out-len: out-len + nbytes]
+						]
+						if err-buf <> null [
+							nbytes: io-read fd-err/reading err-buf/buffer + err-len err-size - err-len
+							if nbytes > 0 [err-len: err-len + nbytes]
+						]
+						break
+					]
+					if 0 > poll pfds nfds -1 [n: 0]
+
+					i: 0
+					while [all [i < nfds n > 0]][
+						fds: pfds + i
+						i: i + 1
+						revents: fds/events >>> 16
+						case [
+							revents and POLLERR <> 0 [
+								fds/fd: -1
+								n: n - 1
+							]
+							revents and POLLOUT <> 0 [
+								nbytes: io-write fds/fd in-buf/buffer in-buf/count - input-len
+								if nbytes <= 0 [n: -1 break]
+								input-len: input-len + nbytes
+								if input-len >= in-buf/count [
+									fds/fd: -1
+									n: n - 1
+								]
+							]
+							revents and POLLIN <> 0 [
+								case [
+									fds/fd = fd-out/reading [
+										pbuf: out-buf
+										offset: :out-len
+										size: :out-size
+									]
+									fds/fd = fd-err/reading [
+										pbuf:	err-buf
+										offset: :err-len
+										size: :err-size
+									]
+									true [0]
+								]
+								until [
+									to-read: size/value - offset/value
+									nbytes: io-read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
+									if nbytes < 0 [break]
+									if nbytes = 0 [
+										fds/fd: -1
+										n: n - 1
+									]
+									offset/value: offset/value + nbytes
+									if offset/value >= size/value [
+										size/value: size/value + READ-BUFFER-SIZE
+										pbuf/buffer: realloc pbuf/buffer size/value 
+										if null? pbuf/buffer [n: -1 break]
+									]
+									nbytes <> to-read
+								]
+								pbuf/count: offset/value
+							]
+							revents and POLLHUP <> 0 [fds/fd: -1 n: n - 1]
+							revents and POLLNVAL <> 0 [n: -1]
+						]
+					]
+				]
+
+				if all [zero? nfds waitend?][
 					waitpid pid :status 0				;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low  byte contains stop code
 						pid: -1
@@ -483,8 +554,13 @@ system-call: context [
 						pid: status >> 8				;-- High byte contains exit code
 					]
 				]
-			] ; either pid
-			return pid
+
+				free as byte-ptr! pfds
+			]
+			if in-buf <> null [io-close fd-in/writing]
+			if out-buf <> null [io-close fd-out/reading]
+			if err-buf <> null [io-close fd-err/reading]
+			pid
 		] ; call
 	] ; #default
 	] ; #switch
