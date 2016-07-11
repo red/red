@@ -520,13 +520,13 @@ system/view/platform: context [
 		]
 		
 		set fonts:
-			bind [system fixed sans-serif serif] system/view/fonts
+			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
-				Windows [["Tahoma" "Courier New" "Arial" "Times"]
+				Windows [["Courier New" "Arial" "Times"]
 			]
 		]
 		
-		set [font-system font-fixed font-sans-serif font-serif] reduce fonts
+		set [font-fixed font-sans-serif font-serif] reduce fonts
 	]
 	
 	version: none

@@ -16,15 +16,6 @@ system/view/VID: context [
 	focal-face: none
 	reactors: make block! 20
 	
-	default-font: switch/default system/platform [
-		Windows [
-			either system/view/platform/version <= 5.1.0 [
-				[name "MS Shell Dlg 2" size 8 color 'black]
-			][
-				[name "MS Shell Dlg" size 9 color 'black]
-			]
-		]
-	][[name "Helvetica" size 9 color 'black]]
 	
 	throw-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
@@ -223,14 +214,19 @@ system/view/VID: context [
 
 		if all [opts/image not opts/size][opts/size: opts/image/size]
 		
-		if font: opts/font [
-			face-font: face/font
-			foreach [field value] default-font [		;-- fill opts/font with default values
+		font: opts/font
+		face-font: face/font
+		if any [font face-font][
+			foreach field [name size color][			;-- fill opts/font with default values
 				if all [
-					none? font/:field					 ;-- explicit test for none! value
+					all [font none? font/:field]		;-- explicit test for none! value
 					all [face-font none? face-font/:field]
 				][
-					font/:field: value
+					font/:field: switch field [
+						name  [system/view/fonts/system]
+						size  [system/view/fonts/size]
+						color [black]
+					]
 				]
 			]
 		]

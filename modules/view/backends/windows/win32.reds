@@ -810,20 +810,20 @@ RECT_STRUCT_FLOAT32: alias struct! [
 ]
 
 tagLOGFONT: alias struct! [								;-- 92 bytes
-	lfHeight				[integer!]
-	lfWidth					[integer!]
-	lfEscapement			[integer!]
-	lfOrientation			[integer!]
-	lfWeight				[integer!]
-	lfItalic				[byte!]
-	lfUnderline				[byte!]
-	lfStrikeOut				[byte!]
-	lfCharSet				[byte!]
-	lfOutPrecision			[byte!]
-	lfClipPrecision			[byte!]
-	lfQuality				[byte!]
-	lfPitchAndFamily		[byte!]
-	lfFaceName				[integer!]					;@@ 64 bytes offset: 28
+	lfHeight		[integer!]
+	lfWidth			[integer!]
+	lfEscapement	[integer!]
+	lfOrientation	[integer!]
+	lfWeight		[integer!]
+	lfItalic		[byte!]
+	lfUnderline		[byte!]
+	lfStrikeOut		[byte!]
+	lfCharSet		[byte!]
+	lfOutPrecision	[byte!]
+	lfClipPrecision	[byte!]
+	lfQuality		[byte!]
+	lfPitchAndFamily[byte!]
+	lfFaceName		[integer!]							;@@ 64 bytes offset: 28
 ]
 
 tagCHOOSEFONT: alias struct! [
@@ -2296,6 +2296,26 @@ DwmIsCompositionEnabled!: alias function! [
 			return:		[integer!]
 		]
 	]
+	"UxTheme.dll" stdcall [
+		OpenThemeData: "OpenThemeData" [
+			hWnd		 [handle!]
+			pszClassList [c-string!]
+			return:		 [handle!]
+		]
+		CloseThemeData: "CloseThemeData" [
+			hTheme		[handle!]
+			return:		[integer!]
+		]
+		IsThemeActive:	"IsThemeActive" [				;WARN: do not call from DllMain!!
+			return:		[logic!]
+		]
+		GetThemeSysFont: "GetThemeSysFont" [
+			hTheme		[handle!]
+			iFontID		[integer!]
+			plf			[tagLOGFONT]
+			return:		[integer!]
+		]
+	]
 ]
 
 
@@ -2326,4 +2346,14 @@ zero-memory: func [
 	size	[integer!]
 ][
 	loop size [dest/value: #"^@" dest: dest + 1]
+]
+
+utf16-length?: func [
+	s 		[c-string!]
+	return: [integer!]
+	/local base
+][
+	base: s
+	while [any [s/1 <> null-byte s/2 <> null-byte]][s: s + 2]
+	(as-integer s - base) >>> 1							;-- do not count the terminal zero
 ]

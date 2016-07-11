@@ -365,10 +365,8 @@ free-handles: func [
 
 init: func [
 	/local
-		ver  [red-tuple!]
-		int  [red-integer!]
-		buf	 [byte-ptr!]
-		size [integer!]
+		ver   [red-tuple!]
+		int   [red-integer!]
 ][
 	process-id:		GetCurrentProcessId
 	hScreen:		GetDC null
@@ -401,15 +399,6 @@ init: func [
 	
 	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-	
-	buf: allocate 64
-	size: GetTextFace hScreen 32 buf
-	unless zero? size [									;-- 32 in WORD count
-		copy-cell
-			as red-value! string/load as-c-string buf size UTF-16LE
-			#get system/view/fonts/system
-	]
-	free buf
 ]
 
 find-last-window: func [
@@ -471,6 +460,7 @@ init-window: func [										;-- post-creation settings
 	size	[red-pair!]
 	bits	[integer!]
 	/local
+		value 	[red-value!]
 		x		[integer!]
 		y		[integer!]
 		cx		[integer!]
@@ -478,6 +468,9 @@ init-window: func [										;-- post-creation settings
 		owner	[handle!]
 		modes	[integer!]
 ][
+	value: #get system/view/fonts/system
+	if TYPE_OF(value) = TYPE_NONE [get-default-font handle]
+	
 	modes: SWP_NOZORDER
 	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]

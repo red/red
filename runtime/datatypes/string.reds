@@ -967,17 +967,17 @@ string: context [
 			zero? part
 		]
 	]
-
-	load-in: func [
+	
+	load-at: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
-		blk		 [red-block!]
+		slot	 [red-value!]
 		encoding [integer!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
 	][
-		str: as red-string! either null = blk [stack/push*][ALLOC_TAIL(blk)]
+		str: as red-string! either slot = null [stack/push*][slot]
 		str/header:	TYPE_STRING							;-- implicit reset of all header flags
 		str/head:	0
 		str/cache:	null
@@ -991,6 +991,16 @@ string: context [
 		]
 		str
 	]
+
+	load-in: func [
+		src		 [c-string!]							;-- source string buffer
+		size	 [integer!]
+		blk		 [red-block!]
+		encoding [integer!]
+		return:  [red-string!]
+	][
+		load-at src size ALLOC_TAIL(blk) encoding
+	]
 	
 	load: func [
 		src		 [c-string!]							;-- source string buffer
@@ -998,7 +1008,7 @@ string: context [
 		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size null encoding
+		load-at src size null encoding
 	]
 	
 	make-at: func [

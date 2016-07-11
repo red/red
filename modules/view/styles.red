@@ -98,10 +98,10 @@ Red [
 	]
 	h4:  [
 		default-actor: on-change
-		template: [type: 'text size: 80x24 font: make font! [size: 18]]
+		template: [type: 'text size: 80x24 font: make font! [size: 17]]
 	]
 	h5:  [
 		default-actor: on-change
-		template: [type: 'text size: 80x24 font: make font! [size: 14]]
+		template: [type: 'text size: 80x24 font: make font! [size: 13]]
 	]
 )
