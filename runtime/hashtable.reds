@@ -173,7 +173,8 @@ _hashtable: context [
 			TYPE_SYMBOL
 			TYPE_STRING
 			TYPE_FILE
-			TYPE_URL   [
+			TYPE_URL
+			TYPE_TAG [
 				hash-string as red-string! key case?
 			]
 			TYPE_CHAR
@@ -587,7 +588,8 @@ _hashtable: context [
 				TYPE_ISSUE	[key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
 				TYPE_STRING
 				TYPE_FILE
-				TYPE_URL	[_series/copy as red-series! key as red-series! key null yes null]
+				TYPE_URL
+				TYPE_TAG	[_series/copy as red-series! key as red-series! key null yes null]
 				default		[0]
 			]
 		]

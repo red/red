@@ -793,6 +793,7 @@ string: context [
 				type <> TYPE_STRING
 				type <> TYPE_FILE
 				type <> TYPE_URL
+				type <> TYPE_TAG
 			][no][
 				zero? equal? str as red-string! value op yes
 			]
@@ -1081,7 +1082,8 @@ string: context [
 		t: type/value
 		switch t [
 			TYPE_FILE
-			TYPE_URL [
+			TYPE_URL
+			TYPE_TAG [
 				set-type copy-cell as cell! spec as cell! type type/value
 				return as red-value! type
 			]
@@ -1360,6 +1362,7 @@ string: context [
 					TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
 					TYPE_OF(str2) <> TYPE_FILE
 					TYPE_OF(str2) <> TYPE_URL
+					TYPE_OF(str2) <> TYPE_TAG
 				]
 			]
 		][RETURN_COMPARE_OTHER]
@@ -1590,6 +1593,7 @@ string: context [
 			type = TYPE_STRING							;@@ use ANY_STRING?
 			type = TYPE_FILE
 			type = TYPE_URL
+			type = TYPE_TAG
 		][not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
@@ -1618,6 +1622,7 @@ string: context [
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
+			TYPE_TAG
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
@@ -1780,7 +1785,12 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD TYPE_BINARY [
+				TYPE_STRING
+				TYPE_FILE
+				TYPE_URL
+				TYPE_TAG
+				TYPE_WORD
+				TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -2004,6 +2014,7 @@ string: context [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
 						type = TYPE_URL
+						type = TYPE_TAG
 					][
 						form-buf: as red-string! cell
 					][
@@ -2362,6 +2373,7 @@ string: context [
 					type = TYPE_STRING				;@@ replace with ANY_STRING?
 					type = TYPE_FILE 
 					type = TYPE_URL
+					type = TYPE_TAG
 				][
 					form-buf: as red-string! cell
 				][

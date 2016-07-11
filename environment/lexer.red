@@ -549,13 +549,13 @@ system/lexer: context [
 		]
 
 		line-string: [
-			{"} s: any [
+			#"^"" s: any [
 				{^^"}
 				| ahead [#"^"" | newline-char] break
 				| escaped-char
 				| skip
 			]
-			e: {"}
+			e: #"^""
 		]
 
 		nested-curly-braces: [
@@ -576,6 +576,13 @@ system/lexer: context [
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
+		
+		tag-rule: [
+			#"<" not [#"=" | #">" | #"<" | ws]
+			(type: tag!)
+			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
+			(if e/1 <> #">" [throw-error [tag! back s]])
+		]
 
 		base-2-rule: [
 			"2#{" (type: binary!) [
@@ -699,6 +706,7 @@ system/lexer: context [
 				to-word stack copy/part s e type
 			)
 		]
+		
 
 		refinement-rule: [
 			slash [
@@ -856,6 +864,7 @@ system/lexer: context [
 				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
+				| tag-rule			(store stack do make-string)
 				| word-rule
 				| lit-word-rule
 				| get-word-rule
