@@ -1662,6 +1662,10 @@ DwmIsCompositionEnabled!: alias function! [
 			cPoints		[integer!]
 			return:		[integer!]
 		]
+		CreateFontIndirect: "CreateFontIndirectW" [
+			lplf		[tagLOGFONT]
+			return:		[handle!]
+		]
 		CreateFont: "CreateFontW" [
 			nHeight				[integer!]
 			nWidth				[integer!]

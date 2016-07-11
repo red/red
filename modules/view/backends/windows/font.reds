@@ -203,38 +203,6 @@ update-font: func [
 	]
 ]
 
-get-default-font: func [
-	hWnd	[handle!]
-	return: [red-string!]
-	/local
-		hTheme	[handle!]
-		font	[tagLOGFONT]
-		name	[c-string!]
-		res		[integer!]
-][
-	if IsThemeActive [
-		hTheme: OpenThemeData hWnd #u16 "Window"
-		if hTheme <> null [
-			font: declare tagLOGFONT
-			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
-			if zero? res [
-				name: (as-c-string font) + 28			
-				string/load-at
-					name
-					utf16-length? name
-					#get system/view/fonts/system
-					UTF-16LE
-					
-				integer/make-at 
-					#get system/view/fonts/size
-					0 - (font/lfHeight * 72 / log-pixels-y)
-			]
-		]
-		CloseThemeData hTheme
-	]
-	null
-]
-
 OS-request-font: func [
 	font	[red-object!]
 	mono?	[logic!]

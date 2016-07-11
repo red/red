@@ -16,6 +16,11 @@ system/view/VID: context [
 	focal-face: none
 	reactors: make block! 20
 	
+	default-font: [
+		name	system/view/fonts/system
+		size	system/view/fonts/size
+		color	black
+	]
 	
 	throw-error: func [spec [block!]][
 		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
@@ -214,23 +219,14 @@ system/view/VID: context [
 
 		if all [opts/image not opts/size][opts/size: opts/image/size]
 		
-		font: opts/font
-		face-font: face/font
-		if any [font face-font][
-			foreach field [name size color][			;-- fill opts/font with default values
-				if all [
-					all [font none? font/:field]		;-- explicit test for none! value
-					all [face-font none? face-font/:field]
-				][
-					font/:field: switch field [
-						name  [system/view/fonts/system]
-						size  [system/view/fonts/size]
-						color [black]
-					]
-				]
+		if face-font: face/font [
+			foreach [field value] default-font [
+				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
+		font: opts/font
 		if all [font face/font][set/some opts/font: face/font font] ;-- merge face and opts font objects
+		
 		set/some face opts
 		
 		if block? face/actors [face/actors: make object! face/actors]
