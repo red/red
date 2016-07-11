@@ -238,7 +238,7 @@ get-text-size: func [
 		size  [tagSIZE]
 ][
 	size: declare tagSIZE
-	if null? hFont [hFont: GetStockObject DEFAULT_GUI_FONT]
+	if null? hFont [hFont: default-font]
 	saved: SelectObject hScreen hFont
 	
 	GetTextExtentPoint32
@@ -363,15 +363,48 @@ free-handles: func [
 	state/header: TYPE_NONE
 ]
 
+set-defaults: func [
+	/local
+		hWnd	[handle!]
+		hTheme	[handle!]
+		font	[tagLOGFONT]
+		name	[c-string!]
+		res		[integer!]
+][
+	if IsThemeActive [
+		hTheme: OpenThemeData null #u16 "Window"
+		if hTheme <> null [
+			font: declare tagLOGFONT
+			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
+			if zero? res [
+				name: (as-c-string font) + 28
+				string/load-at
+					name
+					utf16-length? name
+					#get system/view/fonts/system
+					UTF-16LE
+				
+				integer/make-at 
+					#get system/view/fonts/size
+					0 - (font/lfHeight * 72 / log-pixels-y)
+					
+				default-font: CreateFontIndirect font
+			]
+		]
+		CloseThemeData hTheme
+	]
+	if null? default-font [default-font: GetStockObject DEFAULT_GUI_FONT]
+	null
+]
+
 init: func [
 	/local
-		ver [red-tuple!]
-		int [red-integer!]
+		ver   [red-tuple!]
+		int   [red-integer!]
 ][
 	process-id:		GetCurrentProcessId
 	hScreen:		GetDC null
 	hInstance:		GetModuleHandle 0
-	default-font:	GetStockObject DEFAULT_GUI_FONT
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
@@ -399,6 +432,8 @@ init: func [
 	
 	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+	
+	set-defaults
 ]
 
 find-last-window: func [
@@ -460,6 +495,7 @@ init-window: func [										;-- post-creation settings
 	size	[red-pair!]
 	bits	[integer!]
 	/local
+		value 	[red-value!]
 		x		[integer!]
 		y		[integer!]
 		cx		[integer!]
