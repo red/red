@@ -542,6 +542,7 @@ system-call: context [
 							]
 							revents and POLLHUP <> 0 [fds/fd: -1 n: n - 1]
 							revents and POLLNVAL <> 0 [n: -1]
+							true [0]
 						]
 					]
 				]
