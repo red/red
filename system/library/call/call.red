@@ -56,6 +56,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 			inp/buffer: binary/rs-head as red-binary! in-str
 			inp/count: binary/rs-length? as red-binary! in-str
 		]
+		true [0]
 	]
 	if TYPE_OF(redirout) <> TYPE_NONE [
 		out: as p-buffer! :pad2
