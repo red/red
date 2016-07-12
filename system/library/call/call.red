@@ -44,11 +44,18 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	out: null
 	err: null
 
-	if TYPE_OF(in-str) = TYPE_STRING [
-		PLATFORM_TO_CSTR(cstr in-str len)
-		inp: as p-buffer! :pad1					;@@ a trick as we cannot declear struct on stack
-		inp/buffer: as byte-ptr! cstr
-		inp/count: len
+	case [
+		TYPE_OF(in-str) = TYPE_STRING [
+			PLATFORM_TO_CSTR(cstr in-str len)
+			inp: as p-buffer! :pad1					;@@ a trick as we cannot declear struct on stack
+			inp/buffer: as byte-ptr! cstr
+			inp/count: len
+		]
+		TYPE_OF(in-str) = TYPE_BINARY [
+			inp: as p-buffer! :pad1
+			inp/buffer: binary/rs-head as red-binary! in-str
+			inp/count: binary/rs-length? as red-binary! in-str
+		]
 	]
 	if TYPE_OF(redirout) <> TYPE_NONE [
 		out: as p-buffer! :pad2
@@ -88,7 +95,7 @@ call: func [ "Executes a shell command to run another process."
 	/wait								"Runs command and waits for exit"
 	/console							"Runs command with I/O redirected to console (CLI console only at present)"
 	/shell								"Forces command to be run from shell"
-	/input	in	[string! file! block!]	"Redirects in to stdin"
+	/input	in	[any-string! binary! block!]	"Redirects in to stdin"
 	/output	out	[any-string! binary!]	"Redirects stdout to out"
 	/error	err	[any-string! binary!]	"Redirects stderr to err"
 	return:		[integer!]				"0 if success, -1 if error, or a process ID"
