@@ -756,6 +756,32 @@ string: context [
 			match?
 		]
 	]
+	
+	match-tag?: func [
+		str		[red-string!]
+		value	[red-value!]						;-- tag!
+		op		[integer!]
+		return:	[logic!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			c1	 [integer!]
+			c2	 [integer!]
+			len	 [integer!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		c1: get-char 
+			(as byte-ptr! s/offset) + (str/head << (log-b unit))
+			unit
+		
+		len: str/head + 1 + rs-length? as red-string! value
+		c2: get-char
+			(as byte-ptr! s/offset) + (len << (log-b unit))
+			unit
+		
+		all [c1 = as-integer #"<" c2 = as-integer #">"]
+	]
 
 	match?: func [
 		str	    [red-string!]
@@ -769,33 +795,44 @@ string: context [
 			unit [integer!]
 			c1	 [integer!]
 			c2	 [integer!]
+			res? [logic!]
 	][
-		either TYPE_OF(value) = TYPE_CHAR [
-			char: as red-char! value
-			c1: char/value
-			
-			s: GET_BUFFER(str)
-			unit: GET_UNIT(s)
-			c2: get-char 
-				(as byte-ptr! s/offset) + (str/head << (log-b unit))
-				unit
-			
-			if op <> COMP_STRICT_EQUAL [
-				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
-				c1: case-folding/folding-case c1 yes	;-- uppercase c1
-				c2: case-folding/folding-case c2 yes	;-- uppercase c2
+		type: TYPE_OF(value)
+		switch type [
+			TYPE_CHAR [
+				char: as red-char! value
+				c1: char/value
+
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				c2: get-char 
+					(as byte-ptr! s/offset) + (str/head << (log-b unit))
+					unit
+
+				if op <> COMP_STRICT_EQUAL [
+					if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+					if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+				]
+				c1 = c2
 			]
-			c1 = c2
-		][
-			type: TYPE_OF(value)
-			either all [								;@@ ANY_STRING
-				type <> TYPE_STRING
-				type <> TYPE_FILE
-				type <> TYPE_URL
-				type <> TYPE_TAG
-			][no][
-				zero? equal? str as red-string! value op yes
+			TYPE_TAG [
+				either match-tag? str value op [
+					str/head: str/head + 1
+					res?: zero? equal? str as red-string! value op yes
+					str/head: str/head - 1
+					res?
+				][no]
+			]
+			default  [
+				either all [								;@@ ANY_STRING - TAG
+					type <> TYPE_STRING
+					type <> TYPE_FILE
+					type <> TYPE_URL
+				][no][
+					zero? equal? str as red-string! value op yes
+				]
 			]
 		]
 	]

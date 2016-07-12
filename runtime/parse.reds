@@ -195,6 +195,7 @@ parser: context [
 			]
 			string/rs-length? as red-string! value
 		]
+		if type = TYPE_TAG [len: len + 2]
 		_series/rs-skip as red-series! str len
 	]
 	
@@ -324,18 +325,30 @@ parser: context [
 					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
 					]
+					type: TYPE_OF(token)
 					size: string/rs-length? as red-string! token
+					if type = TYPE_TAG [size: size + 2]
 					if (string/rs-length? as red-string! input) < size [return no]
 					
 					phead: as byte-ptr! s/offset
 					unit:  log-b unit
-					type:  TYPE_OF(token)
 					
 					until [
-						res: either type = TYPE_BINARY [
-							binary/equal? as red-binary! input as red-binary! token comp-op yes
-						][
-							string/equal? as red-string! input as red-string! token comp-op yes
+						res: switch type [
+							TYPE_BINARY [
+								binary/equal? as red-binary! input as red-binary! token comp-op yes
+							]
+							TYPE_TAG [
+								either string/match-tag? as red-string! input token comp-op [
+									input/head: input/head + 1
+									res: string/equal? as red-string! input as red-string! token comp-op yes
+									input/head: input/head - 1
+									res
+								][1]					;-- force failure
+							]
+							default  [
+								string/equal? as red-string! input as red-string! token comp-op yes
+							]
 						]
 						if zero? res [return adjust-input-index input pos* size 0]
 						input/head: input/head + 1
