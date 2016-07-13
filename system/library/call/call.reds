@@ -547,7 +547,7 @@ system-call: context [
 					]
 				]
 
-				if all [zero? nfds waitend?][
+				if all [zero? n waitend?][
 					waitpid pid :status 0				;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low  byte contains stop code
 						pid: -1
