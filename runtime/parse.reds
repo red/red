@@ -897,7 +897,9 @@ parser: context [
 										end?: no
 									]
 								][
-									match?: _series/rs-skip as red-series! input 1
+									before: input/head
+									end?: _series/rs-skip as red-series! input 1
+									match?: before = input/head
 									if positive? part [match?: input/head >= part or match?]
 									
 									either match? [
