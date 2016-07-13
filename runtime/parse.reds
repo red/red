@@ -1666,7 +1666,9 @@ parser: context [
 							if TYPE_OF(value) = TYPE_UNSET [
 								PARSE_ERROR [TO_ERROR(script parse-rule) w]
 							]
-							state: either rule? [ST_MATCH_RULE][ST_DO_ACTION] ;-- enable fast loops for word argument
+							state: either rule? [ 		;-- enable fast loops for word argument
+								either TYPE_OF(value) = TYPE_WORD [ST_MATCH][ST_MATCH_RULE]
+							][ST_DO_ACTION]
 						]
 					]
 					rule?: no
