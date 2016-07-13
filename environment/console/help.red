@@ -217,6 +217,7 @@ Other useful functions:
 ?: :help
 
 a-an: function [s [string!]][
+	"Returns the appropriate variant of a or an"
 	pick ["an" "a"] make logic! find "aeiou" s/1
 ]
 
