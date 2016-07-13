@@ -55,38 +55,41 @@ pair: context [
 		]
 		left
 	]
-
-	make-in: func [
-		parent 	[red-block!]
+	
+	make-at: func [
+		slot 	[red-value!]
 		x 		[integer!]
 		y 		[integer!]
 		return: [red-pair!]
 		/local
 			pair [red-pair!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
 		
-		pair: as red-pair! ALLOC_TAIL(parent)
+		pair: as red-pair! slot
 		pair/header: TYPE_PAIR
 		pair/x: x
 		pair/y: y
 		pair
 	]
 	
-	push: func [
-		value	[integer!]
-		value2  [integer!]
+	make-in: func [
+		parent 	[red-block!]
+		x 		[integer!]
+		y 		[integer!]
 		return: [red-pair!]
-		/local
-			pair [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
+		make-at ALLOC_TAIL(parent) x y
+	]
+	
+	push: func [
+		x		[integer!]
+		y		[integer!]
+		return: [red-pair!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
-		
-		pair: as red-pair! stack/push*
-		pair/header: TYPE_PAIR
-		pair/x: value
-		pair/y: value2
-		pair
+		make-at stack/push* x y
 	]
 
 	;-- Actions --
