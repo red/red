@@ -578,8 +578,7 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 		
 		tag-rule: [
-			#"<" not [#"=" | #">" | #"<" | ws]
-			(type: tag!)
+			#"<" not [#"=" | #">" | #"<" | ws] (type: tag!)
 			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]

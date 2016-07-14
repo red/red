@@ -1623,7 +1623,7 @@ red: context [
 					emit reduce ['get-root idx]
 					insert-lf -3
 				]
-				string!	file! url! [
+				string!	file! url! tag! [
 					idx: redbin/emit-string/root value
 					emit to path! reduce [to word! form type? value 'push]
 					emit compose [as red-string! get-root (idx)]

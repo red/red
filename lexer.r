@@ -88,6 +88,8 @@ lexer: context [
 	not-url-char:	charset {[](){}";}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
+	not-tag-1st:	complement union ws-ASCII charset "=><"
+	not-tag-char:	complement charset ">"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]();:xX}
@@ -373,6 +375,11 @@ lexer: context [
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
 	
 	string-rule: [line-string | multiline-string]
+	
+	tag-rule: [
+		#"<" s: not-tag-1st (type: tag!)
+		 some [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
+	]
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
@@ -451,18 +458,19 @@ lexer: context [
 			| binary-rule	  (stack/push load-binary s e base)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
+			| tag-rule		  (stack/push to tag!		 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
-			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
+			| slash-rule	  (stack/push to word!		 copy/part s e)
 			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
 			| map-rule		  (stack/push value)
-			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
+			| issue-rule	  (stack/push to issue!		 copy/part s e)
 		]
 	]
 	

@@ -13,43 +13,12 @@ Red/System [
 tag: context [
 	verbose: 0
 
-	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size root
-	]
-
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/load"]]
-
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_URL							;-- implicit reset of all header flags
-		cell
-	]
-
-	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size null
-	]
-
 	push: func [
-		url [red-url!]
+		tag [red-tag!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "url/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "tag/push"]]
 
-		copy-cell as red-value! url stack/push*
+		copy-cell as red-value! tag stack/push*
 	]
 
 	;-- Actions --

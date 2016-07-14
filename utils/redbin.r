@@ -54,7 +54,7 @@ context [
 		]
 	]
 	
-	decode-UTF8: func [str [string! file! url!] /local upper s e cp unit new][
+	decode-UTF8: func [str [string! file! url! tag!] /local upper s e cp unit new][
 		upper: 0
 
 		parse/all/case str [
@@ -202,6 +202,7 @@ context [
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
+			tag!	TYPE_TAG
 			url!	TYPE_URL
 			binary! TYPE_BINARY
 		] type?/word str
@@ -213,7 +214,7 @@ context [
 		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
-		append buffer str
+		append buffer to string! str
 		pad buffer 4
 
 		if root [
@@ -361,6 +362,7 @@ context [
 						get-word! [emit-word :item ctx idx]
 						file!
 						url!
+						tag!
 						string!
 						binary!   [emit-string item]
 						integer!  [emit-integer item]
