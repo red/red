@@ -127,7 +127,7 @@ context [
 		]
 		sym-desc [
 			undef-non-lazy			#{00}		; reference to an external non-lazy (data) symbol
-			undef-lazy				#{01}		; external lazy symbol—that is, to a function call
+			undef-lazy				#{01}		; external lazy symbol-that is, to a function call
 			defined					#{02}		; symbol is defined in this module
 			priv-def				#{03}		; defined in module, but private
 			priv-def-non-lazy  		#{04}		; private, defined, non-lazy symbol
@@ -213,7 +213,7 @@ context [
 		addr			[integer!]	; virtual memory address of this section
 		size			[integer!]	; size in bytes of the virtual memory occupied by this section
 		offset			[integer!]	; offset to this section in the file
-		align			[integer!]	; section’s byte alignment as power of two
+		align			[integer!]	; section's byte alignment as power of two
 		reloff			[integer!]	; file offset of the first relocation entry for this section.
 		nreloc			[integer!]	; number of relocation entries located at reloff for this section.
 		flags			[integer!]
