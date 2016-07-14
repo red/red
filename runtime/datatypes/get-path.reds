@@ -30,7 +30,7 @@ get-path: context [
 	]
 	
 	push: func [
-		p [red-get-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/push"]]
 
@@ -85,18 +85,6 @@ get-path: context [
 		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_GET_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_GET_PATH
@@ -105,13 +93,13 @@ get-path: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			null			;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
@@ -133,7 +121,7 @@ get-path: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -142,10 +130,11 @@ get-path: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -160,7 +149,7 @@ get-path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

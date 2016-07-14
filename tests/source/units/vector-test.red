@@ -749,11 +749,6 @@ Red [
 		vand7-v: vand-v1 and -1
 		--assert vand7-v = make vector! [10 20 30 40 50]
 		
-	--test-- "vector-and-6"
-		vand-v1: make vector! [10 20 30 40 50]
-		vand8-v: vand-v1 and 1.5
-		--assert vand8-v = make vector! [0 0 0 0 0]
-		
 ===end-group===
 
 ===start-group=== "vector or"
@@ -782,11 +777,6 @@ Red [
 		vor7-v: vor-v1 or -1
 		--assert vor7-v = make vector! [-1 -1 -1 -1 -1]
 		
-	--test-- "vector-or-6"
-		vor-v1: make vector! [10 20 30 40 50]
-		vor8-v: vor-v1 or 1.5
-		--assert vor8-v = make vector! [11 21 31 41 51]
-		
 ===end-group===
 
 ===start-group=== "vector xor"
@@ -814,11 +804,6 @@ Red [
 		vxor-v1: make vector! [10 20 30 40 50]
 		vxor7-v: vxor-v1 xor -1
 		--assert vxor7-v = make vector! [-11 -21 -31 -41 -51]
-		
-	--test-- "vector-xor-6"
-		vxor-v1: make vector! [10 20 30 40 50]
-		vxor8-v: vxor-v1 xor 1.5
-		--assert vxor8-v = make vector! [11 21 31 41 51]
 		
 ===end-group===
 

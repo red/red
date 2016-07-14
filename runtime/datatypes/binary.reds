@@ -13,6 +13,17 @@ Red/System [
 binary: context [
 	verbose: 0
 
+	#define BINARY_SKIP_COMMENT [
+		if c = as-integer #";" [		;-- skip comment
+			until [
+				p: p + unit
+				len: len - 1
+				c: string/get-char p unit
+				c = as-integer lf
+			]
+		]
+	]
+
 	debase64: [
 		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 07h
 		#"^(40)" #"^(40)" #"^(40)" #"^(80)" #"^(40)" #"^(40)" #"^(80)" #"^(80)" ;-- 0Fh
@@ -52,8 +63,6 @@ binary: context [
 	rs-next: func [
 		bin 	[red-binary!]
 		return: [logic!]
-		/local
-			s [series!]
 	][
 		_series/rs-skip as red-series! bin 1
 	]
@@ -86,6 +95,20 @@ binary: context [
 	][
 		s: GET_BUFFER(bin)
 		(as byte-ptr! s/offset) + bin/head >= as byte-ptr! s/tail
+	]
+	
+	rs-abs-at: func [
+		bin	    [red-binary!]
+		pos  	[integer!]
+		return:	[integer!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/offset) + pos
+		assert p < as byte-ptr! s/tail
+		as-integer p/value
 	]
 
 	rs-clear: func [
@@ -121,23 +144,164 @@ binary: context [
 		/local
 			s	  [series!]
 			p	  [byte-ptr!]
+			size  [integer!]
 	][
 		s: GET_BUFFER(bin)
 
-		if ((as byte-ptr! s/tail) + part > ((as byte-ptr! s + 1) + s/size)) [
-			s: expand-series s 0
-		]
-		p: (as byte-ptr! s/offset) + bin/head + offset
+		size: part + (as-integer s/tail - s/offset)
+		if size > s/size [s: expand-series s s/size * 2 + part]
 
+		p: (as byte-ptr! s/offset) + bin/head + offset
 		move-memory										;-- make space
 			p + part
 			p
 			as-integer (as byte-ptr! s/tail) - p
-
 		s/tail: as cell! (as byte-ptr! s/tail) + part
 
 		copy-memory p data part
 		p
+	]
+
+	rs-overwrite: func [
+		bin		[red-binary!]
+		offset	[integer!]								;-- offset from head in elements
+		data	[byte-ptr!]
+		part	[integer!]								;-- limit to given length of value
+		return: [byte-ptr!]
+		/local
+			s	  [series!]
+			p	  [byte-ptr!]
+			added [integer!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/offset) + bin/head + offset
+
+		added: as-integer p + part - ((as byte-ptr! s + 1) + s/size)
+		if added > 0 [
+			s: expand-series s s/size * 2 + added
+			p: (as byte-ptr! s/offset) + bin/head + offset
+		]
+
+		copy-memory p data part
+
+		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
+		p
+	]
+	
+	equal?: func [
+		bin1	[red-binary!]
+		bin2	[red-binary!]
+		op		[integer!]
+		match?	[logic!]								;-- match bin2 within bin1 (sizes matter less)
+		return:	[integer!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			len1	[integer!]
+			len2	[integer!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			end		[byte-ptr!]
+			same?	[logic!]
+	][
+		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
+
+		same?: all [
+			bin1/node = bin2/node
+			bin1/head = bin2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
+		s1: GET_BUFFER(bin1)
+		s2: GET_BUFFER(bin2)
+		len1: rs-length? bin1
+		len2: rs-length? bin2
+		end: as byte-ptr! s2/tail
+
+		either match? [
+			if zero? len2 [
+				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
+			]
+		][
+			either len1 <> len2 [							;-- shortcut exit for different sizes
+				if any [
+					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				][return 1]
+
+				if len2 > len1 [
+					end: end - (len2 - len1)
+				]
+			][
+				if zero? len1 [return 0]					;-- shortcut exit for empty binary!
+			]
+		]
+
+		p1: (as byte-ptr! s1/offset) + bin1/head
+		p2: (as byte-ptr! s2/offset) + bin2/head
+
+		while [all [p2 < end p1/1 = p2/1]][
+			p1: p1 + 1
+			p2: p2 + 1
+		]
+		either p2 = end [
+			if match? [
+				len1: as-integer p1/0
+				len2: as-integer p2/0
+			]
+		][
+			len1: as-integer p1/1
+			len2: as-integer p2/1
+		]
+		SIGN_COMPARE_RESULT(len1 len2)
+	]
+	
+	match-bitset?: func [
+		bin		[red-binary!]
+		bits	[red-bitset!]
+		return:	[logic!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]							;-- required by BS_TEST_BIT
+			byte   [integer!]
+			size   [integer!]
+			not?   [logic!]
+			match? [logic!]
+	][
+		byte: rs-abs-at bin bin/head
+		s:	  GET_BUFFER(bits)
+		not?: FLAG_NOT?(s)
+		size: s/size << 3
+
+		either size < byte [not?][						;-- virtual bit
+			p: bitset/rs-head bits
+			BS_TEST_BIT(p byte match?)
+			match?
+		]
+	]
+	
+	match?: func [
+		bin		[red-binary!]
+		value	[red-value!]							;-- char! value
+		op		[integer!]
+		return:	[logic!]
+		/local
+			char [red-char!]
+	][
+		switch TYPE_OF(value) [
+			TYPE_BINARY [
+				0 = equal? bin as red-binary! value op yes
+			]
+			TYPE_CHAR [
+				char: as red-char! value
+				char/value = rs-abs-at bin bin/head
+			]
+			default [no]
+		]
 	]
 
 	set-value: func [
@@ -168,6 +332,120 @@ binary: context [
 		copy-cell as red-value! bin stack/push*
 	]
 
+	encode-2: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		return: [node!]
+		/local
+			s		[series!]
+			b		[integer!]
+			n		[integer!]
+			node	[node!]
+			buf		[byte-ptr!]
+	][
+		node: alloc-bytes 8 * len + (2 * (len / 8) + 4)
+		s: as series! node/value
+		buf: as byte-ptr! s/offset
+
+		while [len > 0][
+			n: 80h
+			b: as-integer p/value
+			until [
+				buf/value: either b and n = 0 [#"0"][#"1"]
+				buf: buf + 1
+				n: n >> 1
+				n <= 0
+			]
+			p: p + 1
+			len: len - 1
+		]
+		s/tail: as cell! buf
+		node
+	]
+
+	encode-16: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		return: [node!]
+		/local
+			s		[series!]
+			node	[node!]
+			buf		[byte-ptr!]
+			cstr	[c-string!]
+	][
+		node: alloc-bytes len * 2 + (len / 32) + 32
+		s: as series! node/value
+		buf: as byte-ptr! s/offset
+
+		while [len > 0][
+			cstr: string/byte-to-hex as-integer p/value
+			buf/value: cstr/1
+			buf: buf + 1
+			buf/value: cstr/2
+			buf: buf + 1
+			p: p + 1
+			len: len - 1
+		]
+		s/tail: as cell! buf
+		node
+	]
+
+	encode-64: func [
+		p		[byte-ptr!]
+		len		[integer!]
+		return: [node!]
+		/local
+			s		[series!]
+			b1		[integer!]
+			b2		[integer!]
+			i		[integer!]
+			node	[node!]
+			buf		[byte-ptr!]
+	][
+		node: alloc-bytes 4 * len / 3 + (2 * (len / 32) + 5)
+		s: as series! node/value
+		buf: as byte-ptr! s/offset
+
+		while [len >= 3][
+			b1: as-integer p/1
+			b2: as-integer p/2
+			i: b1 >> 2 + 1
+			buf/value: enbase64/i
+			buf: buf + 1
+			i: b1 << 4 and 30h or (b2 >> 4) + 1
+			buf/value: enbase64/i
+			buf: buf + 1
+			b1: as-integer p/3
+			i: b2 << 2 and 3Ch or (b1 >> 6) + 1
+			buf/value: enbase64/i
+			buf: buf + 1
+			i: b1 and 3Fh + 1
+			buf/value: enbase64/i
+			buf: buf + 1
+			p: p + 3
+			len: len - 3
+		]
+
+		if len > 0 [			;-- fill good string of base64
+			b1: as-integer p/1
+			b2: as-integer p/2
+			i: b1 >> 2 + 1
+			buf/1: enbase64/i
+			i: b1 << 4 and 30h
+			if len > 1 [i: b2 >> 4 or i]
+			i: i + 1
+			buf/2: enbase64/i
+			buf/3: either len > 1 [
+				i: b2 << 2 and 3Ch + 1
+				enbase64/i
+			][#"="]
+			buf/4: #"="
+			buf: buf + 4
+		]
+		s/tail: as cell! buf
+		node
+	]
+
 	decode-2: func [
 		p		[byte-ptr!]
 		len		[integer!]
@@ -189,6 +467,7 @@ binary: context [
 		accum: 0
 		until [
 			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
 			if c > as-integer space [
 				case [
 					c = as-integer #"0" [accum: accum << 1]
@@ -207,6 +486,7 @@ binary: context [
 			len: len - 1
 			zero? len
 		]
+		if positive? count [return null]
 		s/tail: as red-value! bin
 		node
 	]
@@ -221,7 +501,6 @@ binary: context [
 			c	 [integer!]
 			val  [integer!]
 			accum [integer!]
-			count [integer!]
 			flip [integer!]
 			node [node!]
 			bin	 [byte-ptr!]
@@ -230,10 +509,11 @@ binary: context [
 		s: as series! node/value
 		bin: as byte-ptr! s/offset
 		accum: 0
-		count: 0
 		flip: 0
 		until [
-			c: 1 + string/get-char p unit
+			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
+			c: c + 1
 			val: as-integer debase64/c
 			either val < 40h [
 				either c <> 62 [		;-- c <> #"="
@@ -303,6 +583,7 @@ binary: context [
 		count: 0
 		until [
 			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c
@@ -334,47 +615,93 @@ binary: context [
 		return: [integer!]
 		/local
 			s      [series!]
-			formed [c-string!]
-			len    [integer!]
 			bytes  [integer!]
-			p      [byte-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
-			p-int  [int-ptr!]
-			byte   [integer!]
-			byte-int [integer!]
+			size   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/serialize"]]
 
 		s: GET_BUFFER(bin)
 		head: (as byte-ptr! s/offset) + bin/head
 		tail: as byte-ptr! s/tail
+		size: as-integer tail - head
+
 		string/concatenate-literal buffer "#{"
+		bytes: 0
+		if size > 30 [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
 		part: part - 2
 		while [head < tail][
 			string/concatenate-literal buffer string/byte-to-hex as-integer head/value
+			bytes: bytes + 1
+			if bytes % 32 = 0 [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: part - 1
+			]
 			part: part - 2
 			if all [OPTION?(arg) part <= 0][return part]
 			head: head + 1
 		]
+		if all [size > 30 bytes % 32 <> 0] [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 		part - 1
+	]
+
+	make-at: func [
+		slot	[red-value!]
+		size 	[integer!]								;-- number of bytes to pre-allocate
+		return:	[red-binary!]
+		/local 
+			bin	[red-binary!]
+	][
+		bin: as red-binary! slot
+		bin/header: TYPE_BINARY
+		bin/head: 0
+		bin/node: alloc-bytes size
+		bin
 	]
 
 	make-in: func [
 		parent 	[red-block!]
 		size	[integer!]
 		return: [red-binary!]
-		/local
-			bin [red-binary!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bin/make-in"]]
 		
-		bin: as red-binary! ALLOC_TAIL(parent)
-		bin/header: TYPE_BINARY
-		bin/head: 0
-		bin/node: alloc-bytes size
+		make-at ALLOC_TAIL(parent) size
+	]
+
+	load-in: func [
+		src		 [byte-ptr!]
+		size	 [integer!]
+		blk		 [red-block!]
+		return:  [red-binary!]
+		/local
+			slot [red-value!]
+			bin  [red-binary!]
+			s	 [series!]
+	][
+		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
+		bin: make-at slot size
+		
+		s: GET_BUFFER(bin)
+		copy-memory as byte-ptr! s/offset src size
+		s/tail: as cell! (as byte-ptr! s/tail) + size
 		bin
+	]
+	
+	load: func [
+		src		 [byte-ptr!]
+		size	 [integer!]
+		return:  [red-binary!]
+	][
+		load-in src size null
 	]
 
 	;--- Actions ---
@@ -388,11 +715,35 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/make"]]
 
-		bin: as red-binary! string/make proto spec type
+		bin: as red-binary! string/make proto spec
 		set-type as red-value! bin TYPE_BINARY
 		bin
 	]
-	
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-binary!]
+		return: [red-value!]
+		/local
+			ret [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
+
+		switch type/value [
+			TYPE_STRING [
+				spec/node: unicode/load-utf8
+					as c-string! binary/rs-head spec
+					binary/rs-length? spec
+				spec/header: TYPE_STRING
+				ret: as red-value! spec
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		stack/set-last ret
+	]
+
 	form: func [
 		bin		[red-binary!]
 		buffer	[red-string!]
@@ -415,10 +766,6 @@ binary: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
-		/local
-			formed [c-string!]
-			s	   [series!]
-			unit   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/mold"]]
 		
@@ -430,46 +777,10 @@ binary: context [
 		bin2	[red-binary!]
 		op		[integer!]
 		return:	[integer!]
-		/local
-			s1		[series!]
-			s2		[series!]
-			len1	[integer!]
-			len2	[integer!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
-			end		[byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
 
-		if TYPE_OF(bin2) <> TYPE_BINARY [RETURN_COMPARE_OTHER]
-		
-		s1: GET_BUFFER(bin1)
-		s2: GET_BUFFER(bin2)
-		len1: rs-length? bin1
-		len2: rs-length? bin2
-		end: as byte-ptr! s2/tail
-
-		either len1 <> len2 [							;-- shortcut exit for different sizes
-			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
-			][return 1]
-
-			if len2 > len1 [
-				end: end - (len2 - len1)
-			]
-		][
-			if zero? len1 [return 0]					;-- shortcut exit for empty binary!
-		]
-
-		p1: (as byte-ptr! s1/offset) + bin1/head
-		p2: (as byte-ptr! s2/offset) + bin2/head
-
-		while [all [p2 < end p1/1 = p2/1]][
-			p1: p1 + 1
-			p2: p2 + 1
-		]
-		if p2 <> end [len1: as-integer p1/1 len2: as-integer p2/1]
-		SIGN_COMPARE_RESULT(len1 len2)
+		equal? bin1 bin2 op no
 	]
 
 	;--- Modifying actions ---
@@ -514,13 +825,14 @@ binary: context [
 				int/value
 			][
 				sp: as red-binary! part-arg
+				src: as red-block! value
 				unless all [
-					TYPE_OF(sp) = TYPE_BINARY
-					sp/node = bin/node
+					TYPE_OF(sp) = TYPE_OF(src)
+					sp/node = src/node
 				][
-					fire [TO_ERROR(script invalid-part) part-arg]
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head + 1								;-- /head is 0-based
+				sp/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [
@@ -601,26 +913,178 @@ binary: context [
 		as red-value! bin
 	]
 
-	do-math: func [
-		type		[math-op!]
-		return:		[red-value!]
+	change-range: func [
+		bin		[red-binary!]
+		cell	[red-value!]
+		limit	[red-value!]
+		part?	[logic!]
+		return: [integer!]
+		/local
+			added		[integer!]
+			bytes		[integer!]
+			int-value	[integer!]
+			src			[byte-ptr!]
+			type		[integer!]
+			char		[red-char!]
+			int			[red-integer!]
+			form-buf	[red-string!]
+			form-slot	[red-value!]
 	][
-		stack/arguments
+		form-slot: stack/push*				;-- reserve space for FORMing incompatible values
+		added: 0
+		bytes: 0
+
+		while [cell < limit][
+			type: TYPE_OF(cell)
+			switch type [
+				TYPE_BINARY [
+					src: rs-head as red-binary! cell
+					bytes: rs-length? as red-binary! cell
+				]
+				TYPE_CHAR [
+					char: as red-char! cell
+					src: as byte-ptr! "0000"
+					bytes: unicode/cp-to-utf8 char/value src
+				]
+				TYPE_INTEGER [
+					int: as red-integer! cell		
+						either int/value <= FFh [
+							int-value: int/value
+							src: as byte-ptr! :int-value
+							bytes: 1
+						][
+							fire [TO_ERROR(script out-of-range) cell]
+						]
+				]
+				TYPE_TUPLE [
+					bytes: TUPLE_SIZE?(cell)
+					src: GET_TUPLE_ARRAY(cell)
+				]
+				default [
+					either any [
+						type = TYPE_STRING				;@@ replace with ANY_STRING?
+						type = TYPE_FILE 
+						type = TYPE_URL
+						type = TYPE_TAG
+					][
+						form-buf: as red-string! cell
+					][
+						;TBD: free previous form-buf node and series buffer
+						form-buf: string/rs-make-at form-slot 16
+						actions/form cell form-buf null 0
+					]
+					bytes: -1
+					src: as byte-ptr! unicode/to-utf8 form-buf :bytes
+				]
+			]
+			either part? [
+				rs-insert bin added src bytes
+			][
+				rs-overwrite bin added src bytes
+			]
+			added: added + bytes
+			cell: cell + 1
+		]
+		stack/pop 1							;-- pop the FORM slot
+		added
 	]
 
-	and~: func [return: [red-value!]][
+	do-math: func [
+		type		[math-op!]
+		return:		[red-binary!]
+		/local
+			left	[red-binary!]
+			right	[red-binary!]
+			s1		[series!]
+			s2		[series!]
+			len		[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			i		[integer!]
+			node	[node!]
+			buffer	[series!]
+			p		[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+	][
+		left: as red-binary! stack/arguments
+		right: left + 1
+
+		if TYPE_OF(right) <> TYPE_BINARY [
+			fire [TO_ERROR(script invalid-arg) right]
+		]
+
+		s1: GET_BUFFER(left)
+		s2: GET_BUFFER(right)
+		p1: (as byte-ptr! s1/offset) + left/head
+		p2: (as byte-ptr! s2/offset) + right/head
+		len1: as-integer (as byte-ptr! s1/tail) - p1
+		len2: as-integer (as byte-ptr! s2/tail) - p2
+		either len1 < len2 [len: len2][
+			len: len1 len1: len2
+			p: p1 p1: p2 p2: p
+		]
+
+		node: alloc-bytes len
+		buffer: as series! node/value
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + len
+
+		i: 0
+		p: as byte-ptr! buffer/offset
+		while [i < len1][
+			i: i + 1
+			p/i: switch type [
+				OP_AND [p1/i and p2/i]
+				OP_OR  [p1/i or p2/i]
+				OP_XOR [p1/i xor p2/i]
+			]
+		]
+		if i < len [
+			switch type [
+				OP_AND [fill p + i p + len null]
+				OP_OR
+				OP_XOR [copy-memory p + i p2 + i len - i]
+			]
+		]
+		left/node: node
+		left/head: 0
+		left
+	]
+
+	and~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/and~"]]
 		do-math OP_AND
 	]
 
-	or~: func [return: [red-value!]][
+	or~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/or~"]]
 		do-math OP_OR
 	]
 
-	xor~: func [return: [red-value!]][
+	xor~: func [return: [red-binary!]][
 		#if debug? = yes [if verbose > 0 [print-line "binary/xor~"]]
 		do-math OP_XOR
+	]
+
+	complement: func [
+		bin		[red-binary!]
+		return:	[red-value!]
+		/local
+			s      [series!]
+			head   [byte-ptr!]
+			tail   [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/complement"]]
+
+		s: GET_BUFFER(bin)
+		head: (as byte-ptr! s/offset) + bin/head
+		tail: as byte-ptr! s/tail
+
+		while [head < tail][
+			head/1: not head/1
+			head: head + 1
+		]
+		as red-value! bin
 	]
 
 	init: does [
@@ -632,7 +1096,7 @@ binary: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -652,14 +1116,14 @@ binary: context [
 			null			;odd?
 			;-- Bitwise actions --
 			:and~
-			null			;complement
+			:complement
 			:or~
 			:xor~
 			;-- Series actions --
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -668,6 +1132,7 @@ binary: context [
 			INHERIT_ACTION	;index?
 			:insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
@@ -686,7 +1151,7 @@ binary: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

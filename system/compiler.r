@@ -15,6 +15,7 @@ do-cache %system/utils/int-to-bin.r
 do-cache %system/utils/IEEE-754.r
 do-cache %system/utils/virtual-struct.r
 do-cache %system/utils/secure-clean-path.r
+do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
 
@@ -45,6 +46,7 @@ system-dialect: make-profilable context [
 		runtime?:			yes							;-- include Red/System runtime
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
+		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -60,6 +62,7 @@ system-dialect: make-profilable context [
 		red-tracing?:		yes							;-- no => do not compile tracing code
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
+		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 	]
 	
 	compiler: make-profilable context [
@@ -93,6 +96,8 @@ system-dialect: make-profilable context [
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		decoration:		 slash							;-- decoration separator for namespaces
 		shift-right-sym: to word! ">>>"					;-- workaround REBOL LOAD limitation
+		less-or-equal:	 to word! "<="					;-- workaround REBOL LOAD limitation
+		greater-than:	 to word! ">"					;-- workaround REBOL LOAD limitation
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
@@ -345,13 +350,15 @@ system-dialect: make-profilable context [
 			1000 + divide 1 + index? pos 2
 		]
 		
-		get-type-id: func [value /local type alias][
-			with-alias-resolution off [type: resolve-expr-type value]
+		get-type-id: func [value /direct /local type alias][
+			either direct [type: value][
+				with-alias-resolution off [type: resolve-expr-type value]
+			]
 			
-			either alias: find-aliased/position type/1 [		
+			either alias: find-aliased/position type/1 [
 				get-alias-id alias
 			][
-				type: resolve-aliased type
+				type: any [resolve-aliased/silent type [integer!]]
 				type: switch/default type/1 [
 					any-pointer! ['int-ptr!]
 					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
@@ -461,6 +468,25 @@ system-dialect: make-profilable context [
 			count
 		]
 		
+		get-args-array: func [name [word!] /local count array spec][ ;-- used by linker for debug info
+			count: 0
+			array: clear #{}							;-- re-use buffer
+			
+			parse functions/:name/4 [
+				opt block!
+				any [
+					word!
+					spec: block! (
+						count: count + 1
+						id: get-type-id/direct spec/1
+						if id >= 1000 [id: 100]
+						append array to char! id
+					)
+				]
+			]
+			reduce [count array]
+		]
+		
 		any-path?: func [value][
 			find [path! set-path! lit-path!] type?/word value
 		]
@@ -513,7 +539,7 @@ system-dialect: make-profilable context [
 			either position [pos][all [pos pos/2]]
 		]
 		
-		resolve-aliased: func [type [block!] /local name][
+		resolve-aliased: func [type [block!] /silent /local name][
 			name: type/1
 			all [
 				type/1								;-- ensure it is not [none]
@@ -524,19 +550,25 @@ system-dialect: make-profilable context [
 					type: [integer!]
 				]
 				not type: find-aliased name
-				throw-error ["unknown type:" type]
+				any [
+					all [silent return none]
+					throw-error ["unknown type:" type]
+				]
 			]
 			type
 		]
 		
-		resolve-type: func [name /with parent /local type local? pos][
+		resolve-type: func [name /with parent /local type local? pos mark][
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
 				select-globals name
 			]
 			if all [not type pos: select functions decorate-fun name][
-				return reduce ['function! pos/4]
+				if mark: find pos: pos/4 /local [
+					pos: copy/part pos mark			;-- remove locals
+				]
+				return reduce ['function! pos]
 			]
 			if any [
 				all [not local?	any [enum-type? name enum-id? name]]
@@ -585,21 +617,11 @@ system-dialect: make-profilable context [
 			either tail? skip path 2 [
 				switch/default type/1 [
 					struct!   [
-
 						unless word? path/2 [
 							backtrack path
 							throw-error ["invalid struct member" path/2]
 						]
-						type: resolve-struct-member-type type/2 path/2
-						
-						if all [
-							not short
-							not set-path? path
-							type/1 = 'function!
-						][
-							type: select type/2 return-def
-						]
-						type
+						resolve-struct-member-type type/2 path/2
 					]
 					pointer!  [
 						check-path-index path 'pointer
@@ -842,14 +864,21 @@ system-dialect: make-profilable context [
 			to word! join "_local_" form name
 		]
 		
-		find-functions: func [name [word!]][
-			if all [
+		decorate-local-func-ptr: func [name [word!] /local type][
+			either all [
 				locals
 				type: select locals name
+				type: resolve-aliased type
 				type/1 = 'function!
 			][
-				name: decorate-function name
+				decorate-function name
+			][
+				name
 			]
+		]
+		
+		find-functions: func [name [word!]][
+			name: decorate-local-func-ptr name
 			any [
 				find functions name
 				find functions resolve-ns name
@@ -964,11 +993,14 @@ system-dialect: make-profilable context [
 		]
 		
 		compare-func-specs: func [
-			f-type [block!] c-type [block!] /with fun [word!] cb [get-word!] /local spec pos idx
+			f-type [block!] c-type [block!] /with fun [word!] cb [get-word! object!] /local spec pos idx
 		][
-			if with [
+			if all [with not object? cb][
 				cb: to word! cb
-				if functions/:cb/3 <> functions/:fun/3 [
+				if all [
+					select functions :cb
+					functions/:cb/3 <> functions/:fun/3 
+				][
 					throw-error [
 						"incompatible calling conventions between"
 						fun "and" cb
@@ -1132,7 +1164,10 @@ system-dialect: make-profilable context [
 						string! opt [into attribs]		;-- can be specified in any order
 						| into attribs opt string!
 					]
-					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
+					pos: copy args any [
+						pos: 'return (throw-error ["Cannot use `return` as argument name at:" mold pos])
+						| word! into type-def opt string!	;-- arguments definition
+					]
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
@@ -1451,17 +1486,19 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			unless parse defs [
 				some [
 					pos: set lib string! (
+						new?: no
 						unless list: select imports lib [
-							repend imports [lib list: make block! 10]
+						 	list: make block! 10
+							new?: yes
 						]
 					)
-					pos: set cc ['cdecl | 'stdcall]		;-- calling convention	
+					pos: set cc ['cdecl | 'stdcall]		;-- calling convention
 					pos: into [
 						some [
 							specs:						;-- new function mapping marker
@@ -1474,17 +1511,19 @@ system-dialect: make-profilable context [
 								]
 								check-func-name name
 							)
-							pos: set id   string!   (repend list [id reloc: make block! 1])
+							pos: set id   string!
 							pos: set spec block!    (
 								check-specs/extend name spec
 								clear-docstrings spec
 								specs: copy specs
 								specs/1: name
 								add-function 'import specs cc
+								reloc: all [funcs: select imports lib select funcs id]
+								unless reloc [repend list [id reloc: make block! 1]]
 								emitter/import-function name reloc
 							)
 						]
-					]
+					](if new? [repend imports [lib list]])
 				]
 			][
 				throw-error ["invalid import specification at:" pos]
@@ -1517,8 +1556,7 @@ system-dialect: make-profilable context [
 				check-enum-word name 					;-- first checking enumeration identifier possible conflicts
 				parse value [
 					(enum-value: 0)
-					any [
-						[
+					any [[
 							copy enum-names word!
 							| (enum-names: make block! 10) some [
 								set enum-name set-word!
@@ -1526,8 +1564,8 @@ system-dialect: make-profilable context [
 							]	set enum-value [integer! | word!]
 						] 
 						(enum-value: set-enumerator name enum-names enum-value)
-						| set enum-name 1 skip (
-							throw-error ["invalid enumeration:" to word! enum-name]
+						| set enum-name skip (
+							throw-error ["invalid enumeration syntax:" mold enum-name]
 						)
 					]
 				]
@@ -1541,7 +1579,9 @@ system-dialect: make-profilable context [
 				pc: skip pc 2							;-- just ignore #get directive
 				return none
 			]
-			red/process-get-directive code/2 pc
+			unless red/process-get-directive code/2 pc [
+				throw-error ["cannot resolve path:" code/2]
+			]
 			fetch-expression
 		]
 		
@@ -1550,8 +1590,21 @@ system-dialect: make-profilable context [
 				pc: skip pc 2							;-- just ignore #in directive
 				return none
 			]
-			red/process-in-directive code/2 code/3 pc
+			unless red/process-in-directive code/2 code/3 pc [
+				throw-error ["cannot resolve path:" code/2]
+			]
 			fetch-expression
+		]
+		
+		process-check: func [code [block!] /local checks][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore directive
+				return none
+			]
+			checks: red/process-typecheck-directive code/2
+			remove/part pc 2
+			if checks [insert pc checks]
+			none										;-- do not return an expression to compile
 		]
 		
 		process-call: func [code [block!] /local mark][
@@ -1567,6 +1620,16 @@ system-dialect: make-profilable context [
 			none										;-- do not return an expression to compile
 		]
 		
+		process-u16: func [code [block!] /local str pos][
+			unless string? str: code/2 [
+				throw-error "#u16 can only be applied to literal strings"
+			]
+			parse/all str [any [skip pos: (insert pos null) skip]]
+			append str null								;-- extra NUL for UTF-16 version
+			pc: next pc
+			fetch-expression
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1575,19 +1638,22 @@ system-dialect: make-profilable context [
 
 		comp-directive: has [body][
 			switch/default pc/1 [
-				#import  [process-import  pc/2  pc: skip pc 2]
-				#export  [process-export  pc/2  pc: skip pc 2]
-				#syscall [process-syscall pc/2	pc: skip pc 2]
-				#call	 [process-call	  pc]
-				#get	 [process-get	  pc]
-				#in		 [process-in	  pc]
-				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
-				#verbose [set-verbose-level pc/2 pc: skip pc 2]
-				#script	 [								;-- internal compiler directive
+				#import    [process-import  pc/2  pc: skip pc 2]
+				#export    [process-export  pc/2  pc: skip pc 2]
+				#syscall   [process-syscall pc/2  pc: skip pc 2]
+				#call	   [process-call  pc]
+				#get	   [process-get	  pc]
+				#in		   [process-in	  pc]
+				#typecheck [process-check pc]			;-- internal compiler directive
+				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
+				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
+				#u16	   [process-u16 	  pc]
+				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					]
 					pc: skip pc 2
+					none
 				]
 			][
 				throw-error ["unknown directive" pc/1]
@@ -1742,11 +1808,14 @@ system-dialect: make-profilable context [
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
-			unless any [
-				parse blockify ctype [func-pointer | type-syntax]
-				find-aliased ctype
+			if any [
+				not find [word! block!] type?/word ctype
+				not any [	
+					parse blockify ctype [func-pointer | type-syntax]
+					find-aliased ctype
+				]
 			][
-				throw-error ["invalid target type casting:" ctype]
+				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
@@ -1909,7 +1978,7 @@ system-dialect: make-profilable context [
 			none
 		]
 
-		comp-block-chunked: func [/only /test name [word!] /local expr][
+		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
 				fetch-expression/final					;-- returns first expression
@@ -1919,6 +1988,15 @@ system-dialect: make-profilable context [
 			if test [
 				check-conditional name expr				;-- verify conditional expression
 				expr: process-logic-encoding expr no
+			]
+			if bool [
+				if all [
+					block? expr
+					find comparison-op expr/1
+					last-type/1 = 'logic!
+				][
+					emitter/logic-to-integer expr/1
+				]
 			]
 			reduce [
 				expr 
@@ -1953,6 +2031,10 @@ system-dialect: make-profilable context [
 						emitter/target/emit-integer-operation '= [<last> 0]
 						reduce [not invert?]
 					][expr] 
+				]
+				set-word? expr [
+					pc: find/reverse pc set-word!
+					throw-error "assignment not supported in conditional expression"
 				]
 				'else [expr]
 			]
@@ -2033,7 +2115,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked
+					append/only list body: comp-block-chunked/bool
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find expr-call-stack #body
@@ -2083,8 +2165,8 @@ system-dialect: make-profilable context [
 					(repend values [value none])		;-- [value body-offset ...]
 					pos: block! (
 						fetch-into pos [				;-- compile action body
-							body: comp-block-chunked
-							append/only list body/2		
+							body: comp-block-chunked/bool
+							append/only list body/2
 							append/only types resolve-expr-type/quiet body/1
 						]
 					)
@@ -2092,7 +2174,7 @@ system-dialect: make-profilable context [
 				opt [
 					'default pos: block! (
 						fetch-into pos [				;-- compile default body
-							default: comp-block-chunked
+							default: comp-block-chunked/bool
 							append/only types resolve-expr-type/quiet default/1
 						]
 					)
@@ -2147,6 +2229,9 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
+			if 'while-cond = last loop-stack [
+				throw-error "BREAK cannot be used in WHILE condition block"
+			]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
 			none
@@ -2154,6 +2239,9 @@ system-dialect: make-profilable context [
 		
 		comp-continue: does [
 			if empty? loop-stack [throw-error "CONTINUE used with no loop"]
+			if 'while-cond = last loop-stack [
+				throw-error "CONTINUE cannot be used in WHILE condition block"
+			]
 			emitter/target/emit-jump-point last either 'until = last loop-stack [
 				emitter/cont-back						;-- jump at the beginning for UNTIL iterator,
 			][											;-- as the looping condition cannot be guessed.
@@ -2163,7 +2251,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-loop: has [expr chunk start][
+		comp-loop: has [expr body start][
 			pc: next pc
 			
 			fetch-expression/keep/final						;-- compile expression
@@ -2171,18 +2259,22 @@ system-dialect: make-profilable context [
 				throw-error "LOOP requires an integer as argument"
 			]
 			check-body pc/1
+			emitter/target/emit-integer-operation '= [<last> 0]	;-- insert counter comparison to 0 (skipping)
+			
 			emitter/init-loop-jumps
 			push-loop 'loop
 			start: comp-chunked [emitter/target/emit-start-loop]
-			set [expr chunk] comp-block-chunked
+			set [expr body] comp-block-chunked
 			pop-loop
 			
-			chunk: emitter/chunks/join start chunk
-			emitter/resolve-loop-jumps chunk 'cont-next
-			chunk: emitter/chunks/join chunk comp-chunked [emitter/target/emit-end-loop]
-			emitter/branch/back/on chunk '=
-			emitter/resolve-loop-jumps chunk 'breaks
-			emitter/merge chunk	
+			body: emitter/chunks/join start body
+			emitter/resolve-loop-jumps body 'cont-next
+			body: emitter/chunks/join body comp-chunked [emitter/target/emit-end-loop]
+			emitter/target/signed?: yes					;-- force signed comparison for the counter
+			emitter/branch/back/on body less-or-equal
+			emitter/resolve-loop-jumps body 'breaks
+			emitter/branch/over/on body greater-than	;-- skip loop if counter <= 0
+			emitter/merge body
 			last-type: none-type
 			<last>
 		]
@@ -2208,8 +2300,10 @@ system-dialect: make-profilable context [
 			check-body pc/2								;-- check body block
 			emitter/init-loop-jumps
 			
-			push-loop 'while
+			push-loop 'while-cond
 			set [expr cond]   comp-block-chunked/test 'while	;-- Condition block
+			pop-loop
+			push-loop 'while
 			set [unused body] comp-block-chunked		;-- Body block
 			pop-loop
 			
@@ -2253,15 +2347,20 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum ns][
+		comp-assignment: has [name value n enum ns local?][
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
 				n: to word! name
-				unless any [locals local-variable? n][store-ns-symbol n]
+				local?: local-variable? n
+				unless any [locals local?][store-ns-symbol n]
 				
+				if find [set-word! set-path!] type?/word pc/1 [
+					backtrack name
+					throw-error "cascading assignments not supported"
+				]
 				unless all [
-					local-variable? n
+					local?
 					n = 'context						;-- explicitly allow 'context name for local variables
 				][
 					check-keywords n					;-- forbid keywords redefinition
@@ -2271,7 +2370,7 @@ system-dialect: make-profilable context [
 					throw-error ["redeclaration of definition" name]
 				]
 				if all [
-					not local-variable? n
+					not local?
 					enum: enum-id? n
 				][
 					backtrack name
@@ -2283,9 +2382,13 @@ system-dialect: make-profilable context [
 				][
 					throw-error "storing a function! requires a type casting"
 				]
-				unless local-variable? n [
+				unless local? [
+					ns: resolve-ns n
+					if all [locals ns not find globals ns][
+						throw-error ["variable" n "not declared"]
+					]
 					if all [ns-path none? locals][add-ns-symbol pc/-1]
-					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
+					if all [ns ns <> n][name: to set-word! ns]
 					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
 			]
@@ -2361,10 +2464,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-path: has [path value ns type name][
+		comp-path: has [path value ns type name get?][
 			path: pc/1
 			if #":" = first mold path/1 [
-				throw-error "get-path! syntax is not supported"
+				path/1: to word! path/1
+				get?: yes
 			]
 			either all [
 				not local-variable? path/1
@@ -2386,7 +2490,10 @@ system-dialect: make-profilable context [
 							pc: next pc
 						]
 					]
-					'function! = first type: resolve-path-type/short path [
+					all [
+						not get?
+						'function! = first type: resolve-path-type/short path 
+					][
 						name: to word! form path
 						check-specs name type/2
 						clear-docstrings type/2
@@ -2524,6 +2631,7 @@ system-dialect: make-profilable context [
 						any [
 							all [						;-- block local function pointers
 								block? type: select locals name
+								type: resolve-aliased type
 								'function! <> type/1
 							]
 							not block? type				;-- pass-thru
@@ -2549,6 +2657,7 @@ system-dialect: make-profilable context [
 					not path
 					entry: find-functions name
 				][
+					name: decorate-local-func-ptr name
 					spec: entry/2/4
 					if all [
 						find-attribute spec 'infix
@@ -2572,7 +2681,7 @@ system-dialect: make-profilable context [
 				]
 				any-pointer? casting
 			][
-				backtrack variable
+				pc: skip pc -2
 				throw-error "Invalid null assignment"
 			]			
 			casting
@@ -2732,6 +2841,12 @@ system-dialect: make-profilable context [
 				value: get-type expr
 				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
 				new: resolve-aliased value
+				if all [
+					new/1 = 'any-pointer!
+					any-pointer? type
+				][
+					new: type
+				]
 				
 				if type <> any [casted new][
 					backtrack set-word
@@ -2769,7 +2884,10 @@ system-dialect: make-profilable context [
 				variable: expr/1
 				expr: expr/2							;-- switch to assigned expression
 				if set-word? variable [
-					new?: not exists-variable? variable
+					new?: any [
+						not exists-variable? variable
+						to logic! find [string! paren!] type?/word expr
+					]
 				]
 			]			
 			if object? expr [							;-- unbox type-casting object
@@ -2809,14 +2927,6 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
-				if all [
-					variable boxed						;-- process casting if result assigned to variable
-					last-type/1 = 'logic!
-					boxed/type  = 'integer!				;-- fixes #967
-				][
-					emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
-					last-type: boxed/type
-				]
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
@@ -2836,20 +2946,30 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if all [
-				any [
-					keep?
-					variable							;-- result needs to be stored
-					all [
-						'case = pick tail expr-call-stack -3
-						#test <> pick tail expr-call-stack -2
-						4 <= length? expr-call-stack
+			if block? expr [							;-- if expr is a function call	
+				if all [
+					any [
+						keep?
+						variable						;-- result needs to be stored
+						all [
+							'case = pick tail expr-call-stack -3
+							#test <> pick tail expr-call-stack -2
+							4 <= length? expr-call-stack
+						]
 					]
+					last-type/1 = 'logic!				;-- function's return type is logic!
+				][
+					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before storing
 				]
-				block? expr								;-- and if expr is a function call		
-				last-type/1 = 'logic!					;-- which return type is logic!
-			][
-				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
+				if all [
+					variable boxed						;-- process casting if result assigned to variable
+					find [logic! integer!] last-type/1
+					find [logic! integer!] boxed/type	;-- fixes #967
+					last-type/1 <> boxed/type
+				][
+					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
+					last-type: boxed/type
+				]
 			]
 			
 			if all [									;-- clean FPU stack when required
@@ -2939,7 +3059,6 @@ system-dialect: make-profilable context [
 			if job/debug? [store-dbg-lines]
 			
 			check-enum-symbol pc
-
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
@@ -3205,6 +3324,8 @@ system-dialect: make-profilable context [
 	comp-start: has [script][
 		emitter/libc-init?: yes
 		emitter/start-prolog
+		;emitter/target/on-init							;@@ required?
+		
 		script:	either encap? [
 			set-cache-base %system/runtime/
 			%start.reds
@@ -3301,6 +3422,58 @@ system-dialect: make-profilable context [
 		do code
 		now/time/precise - t0
 	]
+
+	collect-resources: func [
+		header	[block!]
+		res		[block!]
+		file	[file!]
+		/local icon name value info main-path version-info-key base
+	][
+		info: make block! 8
+		main-path: first split-path file
+		base: either encap? [%system/assets/][%assets/]
+		
+		either icon: select header first [Icon:][
+			append res 'icon
+			either any [word? :icon any-word? :icon][
+				repend/only res [
+					join base select [
+						default %red.ico
+						flat 	%red.ico
+						old		%red-3D.ico
+						mono	%red-mono.ico
+					] :icon
+				]
+			][
+				icon: either file? icon [reduce [icon]][icon]
+				foreach file icon [
+					append info either loader/relative-path? file [
+						join main-path file
+					][file]
+					unless exists? last info [
+						red/throw-error ["cannot find icon:" last info]
+					]
+				]
+				append/only res copy info
+			]
+		][
+			append res compose/deep [icon [(base/red.ico)]]
+		]
+
+		clear info
+		append res 'version
+
+		version-info-key: [
+			Title: Version: Company: Comments: Notes:
+			Rights: Trademarks: Author: ProductName:
+		]
+		foreach name version-info-key [
+			if value: select header name [
+				append info reduce [to word! name value]
+			]
+		]
+		append/only res info
+	]
 	
 	compile: func [
 		files [file! block!]							;-- source file or block of source files
@@ -3309,7 +3482,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			job-data [block!]
 		/local
-			comp-time link-time err output src
+			comp-time link-time err output src resources icon
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3343,11 +3516,13 @@ system-dialect: make-profilable context [
 			]
 			
 			set-verbose-level opts/verbosity
+			resources: either loaded [job-data/4][make block! 8]
 			foreach file files [
-				src: either loaded [
-					loader/process/with job-data/1 file
+				either loaded [
+					src: loader/process/with job-data/1 file
 				][
-					loader/process file
+					src: loader/process file
+					if job/OS = 'Windows [collect-resources src/2 resources file]
 				]
 				compiler/run job src file
 			]
@@ -3376,6 +3551,17 @@ system-dialect: make-profilable context [
 				unless empty? compiler/exports [
 					append job/sections compose/deep/only [
 						export [- - (compiler/exports)]
+					]
+				]
+				unless empty? resources [
+					if job/OS = 'Windows [
+						if icon: find resources 'icon [
+							insert skip icon 2 reduce ['group-icon icon/2]
+						]
+						append resources reduce ['manifest none]
+					]
+					append job/sections compose/deep/only [
+						rsrc   [- - (resources)]
 					]
 				]
 				if opts/debug? [

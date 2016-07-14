@@ -11,6 +11,38 @@ Red/System [
 ]
 
 ;-------------------------------------------
+;-- Print a given number of characters at max from a c-string
+;-------------------------------------------
+prin-only: func [s [c-string!] len [integer!] return: [c-string!] /local p][
+	p: s
+	while [p/1 <> null-byte][
+		if zero? len [break]
+		prin-byte p/1
+		p: p + 1
+		len: len - 1
+	]
+	s
+]
+
+;-------------------------------------------
+;-- Print a byte value in source format (MOLD-ed format)
+;-------------------------------------------
+prin-molded-byte: func [b [byte!] /local i][
+	prin {#"}
+	i: as-integer b
+	case [
+		i =  00h [prin "^^@"]
+		i =  09h [prin "^^-"]
+		i =  0Ah [prin "^^/"]
+		i =  1Bh [prin "^^]"]
+		i <= 1Fh [prin-byte #"^^" prin-byte #"A" + i - 1]
+		i <= 7Fh [prin-byte b]
+		i <= FFh [prin "^^(" prin-2hex i prin-byte #")"]
+	]
+	prin-byte #"^""
+]
+
+;-------------------------------------------
 ;-- Print in console a single byte as an ASCII character
 ;-------------------------------------------
 prin-byte: func [
@@ -105,4 +137,50 @@ print-line: func [
 ][
 	_print count list no
 	prin-byte lf
+]
+
+#enum trigonometric-type! [
+	TYPE_TANGENT
+	TYPE_COSINE
+	TYPE_SINE
+]
+
+degree-to-radians: func [
+	val		[float!]
+	type	[integer!]
+	return: [float!]
+][
+	val: val % 360.0
+	if any [val > 180.0 val < -180.0] [
+		val: val + either val < 0.0 [360.0][-360.0]
+	]
+	if any [val > 90.0 val < -90.0] [
+		if type = TYPE_TANGENT [
+			val: val + either val < 0.0 [180.0][-180.0]
+		]
+		if type = TYPE_SINE [
+			val: (either val < 0.0 [-180.0][180.0]) - val
+		]
+	]
+	val: val * PI / 180.0			;-- to radians
+	val
+]
+
+equal-string?: func [
+	str1	[c-string!]
+	str2	[c-string!]
+	return: [logic!]
+	/local
+		size [integer!]
+		c	 [byte!]
+][
+	size: length? str1
+	if size <> length? str2 [return no]
+	
+	while [c: str1/1 c <> null-byte][
+		if c <> str2/1 [return no]
+		str1: str1 + 1
+		str2: str2 + 1
+	]
+	yes
 ]

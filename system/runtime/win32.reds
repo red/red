@@ -44,14 +44,26 @@ win32-startup-ctx: context [
 	;-- Catching runtime errors --
 	;; source: http://msdn.microsoft.com/en-us/library/aa363082(v=VS.85).aspx
 	
-	SEH_EXCEPTION_RECORD: alias struct! [
+	SEH_EXCEPTION_POINTERS: alias struct! [
 		error [
 			struct! [
 				code		[integer!]
 				flags		[integer!]
 				records		[integer!]
 				address		[integer!]
-				; remaining fields skipped
+				nb-params	[integer!]
+				info		[integer!]
+			]
+		]
+		context [
+			struct! [
+				flags 		[integer!]
+				Dr0			[integer!]
+				Dr1			[integer!]
+				Dr2			[integer!]
+				Dr3			[integer!]
+				Dr6			[integer!]
+				Dr7			[integer!]
 			]
 		]
 		; remaining fields skipped
@@ -67,7 +79,7 @@ win32-startup-ctx: context [
 				return:		[integer!]
 			]
 			SetUnhandledExceptionFilter: "SetUnhandledExceptionFilter" [
-				handler 	[function! [record [SEH_EXCEPTION_RECORD] return: [integer!]]]
+				handler 	[function! [record [SEH_EXCEPTION_POINTERS] return: [integer!]]]
 			]
 			GetStdHandle: "GetStdHandle" [
 				type		[integer!]
@@ -86,10 +98,21 @@ win32-startup-ctx: context [
 
 	exception-filter: func [
 		[stdcall]
-		record  [SEH_EXCEPTION_RECORD]
+		record  [SEH_EXCEPTION_POINTERS]
 		return: [integer!]
-		/local code error
+		/local code error base p
 	][
+		base: (as int-ptr! record/context) 			;-- point to flags
+		p: base
+		
+		if 0001007Fh = p/value [					;-- check if CONTEXT layout is full
+			system/debug: declare __stack!			;-- allocate a __stack! struct
+			p: base + 45							;-- extract ebp
+			system/debug/frame: as int-ptr! p/value
+			p: base + 49							;-- extract esp
+			system/debug/top: as int-ptr! p/value
+		]
+		
 		error: 99									;-- default unknown error
 		code: record/error/code
 		error: switch code [
@@ -120,7 +143,7 @@ win32-startup-ctx: context [
 		]
 
 		***-on-quit error record/error/address
-		1
+		1											;-- EXCEPTION_EXECUTE_HANDLER, forces termination
 	]
 
 	;-- Runtime functions --
@@ -151,7 +174,7 @@ win32-startup-ctx: context [
 	;-------------------------------------------
 	;-- Retrieve command-line information from stack
 	;-------------------------------------------
-	on-start: func [/local c argv s args][
+	on-start: func [/local c argv s][
 		c: 1											;-- account for executable name
 		argv: as pointer! [integer!] allocate 256 * 4	;-- max argc = 256
 

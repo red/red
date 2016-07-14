@@ -11,13 +11,10 @@ Red [
 
 ~~~start-file~~~ "serialization"
 
-blk: [
-	1 #[none] #[true] #[false] #"c" "red" Red a/b 'a/b :a/b a/b: (1 + 2)
-	[a] [[[]]] [[[a]]] [c [d [b] e] f] :w 'w w: /w :word 'word word: /word
-]
+ser-blk: [1 #[none] #[true] #[false] #"c" "red" Red a/b 'a/b :a/b a/b: (1 + 2) [a] [[[]]] [[[a]]] [c [d [b] e] f] :w 'w w: /w :word 'word word: /word]
 
-molded: {[1 none true false #"c" "red" Red a/b 'a/b :a/b a/b: (1 + 2) [a] [[[]]] [[[a]]] [c [d [b] e] f] :w 'w w: /w :word 'word word: /word]}
-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w w w word word word word}
+ser-molded: {[1 none true false #"c" "red" Red a/b 'a/b :a/b a/b: (1 + 2) [a] [[[]]] [[[a]]] [c [d [b] e] f] :w 'w w: /w :word 'word word: /word]}
+ser-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w w w word word word word}
 
 ===start-group=== "Basic MOLD tests"
 
@@ -34,11 +31,11 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w
 	--assert "1 2 3" = mold/only [1 2 3]
 
 	--test-- "mold-5"
-	--assert molded = mold blk
+	--assert ser-molded = mold ser-blk
 	
 	--test-- "mold-6"
-		repeat i 132 [
-			--assert (copy/part molded i) = mold/part blk i
+		repeat i 24 [
+			--assert (copy/part ser-molded i) = mold/part ser-blk i
 		]
 	
 	--test-- "mold-7"
@@ -55,11 +52,11 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w
 	--assert "1 2 3" = form [1 2 3]
 
 	--test-- "form-3"
-	--assert formed	= form blk
+	--assert ser-formed	= form ser-blk
 	
 	--test-- "form-4"
-	repeat i 132 [
-		--assert (copy/part formed i) = form/part blk i
+	repeat i 24 [
+		--assert (copy/part ser-formed i) = form/part ser-blk i
 	]
 	
 	--test-- "form-5"
@@ -185,4 +182,3 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w
 ===end-group===
 
 ~~~end-file~~~
-

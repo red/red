@@ -15,9 +15,9 @@ system/options/quiet: true
 ;; use win-call if running Rebol 2.7.8 under Windows
 if all [
     system/version/4 = 3
-    system/version/3 = 8              
+    system/version/3 = 8
 ][
-		do %../quick-test/call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 ]
 

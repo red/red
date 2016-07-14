@@ -327,7 +327,7 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global value 'pointer! none		;-- allocate separate variable slot
+				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				saved: name
@@ -344,9 +344,11 @@ emitter: make-profilable context [
 					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				]
 			]
-			if all [new-global? spec compiler/job/PIC? not libc-init?][
+			if all [compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
-				target/emit-store saved value n-spec	;-- store it in pointer variable
+				if new-global? spec [
+					target/emit-store saved value n-spec ;-- store it in pointer variable
+				]
 			]
 			if n-spec [spec: n-spec]
 		][
@@ -499,7 +501,12 @@ emitter: make-profilable context [
 		if all [not with system-path? path value][exit]
 
 		either 2 = length? path [
-			type: first compiler/resolve-type/with path/1 parent
+			type: first either parent [
+				compiler/resolve-type/with path/1 parent
+			][
+				compiler/resolve-type path/1
+			]
+			
 			if all [type = 'struct! parent][
 				parent: resolve-path-head path parent
 			]

@@ -73,9 +73,9 @@ qt: make object! [
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
     windows-os?
-    system/version/3 = 8              
+    system/version/3 = 8
   ][
-		do %call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 	]
 	
@@ -160,7 +160,7 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  	compile: func [
+  compile: func [
   		src [file!]
   		/bin
   		/lib
@@ -247,6 +247,7 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
+    recycle
     either compile-ok? [
       exe
     ][
@@ -356,6 +357,7 @@ qt: make object! [
     clear output
     do call* exec output
     if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    recycle
     if all [
       source-file?
       not pgm
@@ -376,11 +378,11 @@ qt: make object! [
     src [file!]
     /local               
       cmd                             ;; command to run
+      output
       test-name                     
   ][
     source-file?: false
-    cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    do call* cmd make string! 1024
+    do join tests-dir src
   ]
   
   run-unit-test-quiet: func [
@@ -389,6 +391,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
+    file/reset
     source-file?: false
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."

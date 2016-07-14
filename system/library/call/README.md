@@ -99,24 +99,6 @@ Linux examples
 		red>>
 
 
-Windows issues
-------------------------
-
-Windows' call implementation adds `cmd /u /c ` before the command you ask, **/u** ask for unicode chars,
-**/c** execute command line and exit.
-
-With the **/console** refinement, output is printed to the console with no encoding problem.
-
-When grabbing output with **/output** or **/error** refinements there are a few encoding issues :
-
-Found on http://social.msdn.microsoft.com :
-*The Command Prompt (cmd.exe /U /k) - when used as the child process - which writes out Unicode, but does not accept Unicode.
-Plus, there is the possibility that the child process can skip back and forth between Unicode and Ansi (cmd.exe /U /k ping google.com).
-In that case ping.exe writes out Ansi.  Then when ping.exe exits and releases control to cmd.exe, the prompt returns in Unicode.*
-
-Some commands will return ansi chars. **Call** detect this case and chars greater than #"^(7F)" are translated to space char.
-The **dir** command returns wide-char not translated, the **tree** or **ping** command returns ansi chars translated.
-
 Windows examples
 ------------------------
 
@@ -188,8 +170,3 @@ Windows examples
 		red>>
         red>> call/wait/console "cmd"              ; enter Windows console
         C:\Red>
-
-Known bugs
-------------------------
-
-Outputs redirection can loose data. Access to C system variable **[errno](http://en.wikipedia.org/wiki/Errno.h)** required.

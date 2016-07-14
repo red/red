@@ -5,7 +5,8 @@ REBOL [
 ]
 
 context [
-	kernel32: load/library %kernel32.dll
+	sys-path: to-rebol-file get-env "SystemRoot"
+	kernel32: load/library sys-path/System32/kernel32.dll
 
 	SECURITY_ATTRIBUTES: make struct! [
 		nLength 			 [integer!]
@@ -86,7 +87,14 @@ context [
 	
 	GetEnvironmentStrings: make routine! [
 		return: [integer!]
-	] kernel32 "GetEnvironmentStringsA"
+	] kernel32 "GetEnvironmentStringsW"
+	
+	FreeEnvironmentStrings: make routine! [
+		lpszEnvironmentBlock [integer!]
+		return: [integer!]
+	] kernel32 "FreeEnvironmentStringsW"
+	
+	CREATE_UNICODE_ENVIRONMENT: to-integer #{00000400}
 	
 	unless all [value? 'set-env native? :set-env][
 		set 'set-env make routine! [
@@ -226,9 +234,12 @@ context [
 			]
 			
 			unless cmd/show? [cmd/si/dwFlags: cmd/si/dwFlags or STARTF_USESHOWWINDOW]			
-			env: GetEnvironmentStrings
 			
-			if zero? CreateProcess 0 cmd-line sa sa to char! 1 0 env 0 cmd/si cmd/pi [throw 2]
+			env: GetEnvironmentStrings
+			ret: CreateProcess 0 cmd-line sa sa to char! 1 CREATE_UNICODE_ENVIRONMENT env 0 cmd/si cmd/pi
+			FreeEnvironmentStrings env
+			
+			if zero? ret [throw 2]
 			
 			ret: none
 		]

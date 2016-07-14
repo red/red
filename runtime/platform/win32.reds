@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %COM.reds
+
 #define VA_COMMIT_RESERVE	3000h						;-- MEM_COMMIT | MEM_RESERVE
 #define VA_PAGE_RW			04h							;-- PAGE_READWRITE
 #define VA_PAGE_RWX			40h							;-- PAGE_EXECUTE_READWRITE
@@ -26,6 +28,12 @@ Red/System [
 #define FILE_SHARE_WRITE	00000002h
 #define OPEN_EXISTING		00000003h
 
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
+#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
+#define FORMAT_MESSAGE_FROM_STRING        00000400h
+#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
+#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
+
 #define WEOF				FFFFh
 
 platform: context [
@@ -35,11 +43,22 @@ platform: context [
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
-	page-size: 4096
-	confd: -2
+	GdiplusStartupInput!: alias struct! [
+		GdiplusVersion				[integer!]
+		DebugEventCallback			[integer!]
+		SuppressBackgroundThread	[integer!]
+		SuppressExternalCodecs		[integer!]
+	]
 
-	buffer: allocate  1024
-	pbuffer: buffer ;this stores buffer's head position
+	tagSYSTEMTIME: alias struct! [
+		year-month	[integer!]
+		week-day	[integer!]
+		hour-minute	[integer!]
+		second		[integer!]
+	]
+
+	gdiplus-token: 0
+	page-size: 4096
 
 	#import [
 		LIBC-file cdecl [
@@ -103,7 +122,96 @@ platform: context [
 				mode			[int-ptr!]
 				return:			[integer!]
 			]
+			GetCurrentDirectory: "GetCurrentDirectoryW" [
+				buf-len			[integer!]
+				buffer			[byte-ptr!]
+				return:			[integer!]
+			]
+			SetCurrentDirectory: "SetCurrentDirectoryW" [
+				lpPathName		[c-string!]
+				return:			[logic!]
+			]
+			GetCommandLine: "GetCommandLineW" [
+				return:			[byte-ptr!]
+			]
+			GetEnvironmentStrings: "GetEnvironmentStringsW" [
+				return:		[c-string!]
+			]
+			GetEnvironmentVariable: "GetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				valsize		[integer!]
+				return:		[integer!]
+			]
+			SetEnvironmentVariable: "SetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				return:		[logic!]
+			]
+			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
+				env			[c-string!]
+				return:		[logic!]
+			]
+			FormatMessage: "FormatMessageW" [
+				dwFlags			[integer!]
+				lpSource		[byte-ptr!]
+				dwMessageId		[integer!]
+				dwLanguageId	[integer!]
+				lpBuffer		[int-ptr!]
+				nSize			[integer!]
+				Argument		[integer!]
+				return:			[integer!]
+			]
+			GetSystemTime: "GetSystemTime" [
+				time			[tagSYSTEMTIME]
+			]
+			GetLocalTime: "GetLocalTime" [
+				time			[tagSYSTEMTIME]
+			]
+			LocalFree: "LocalFree" [
+				hMem			[integer!]
+				return:			[integer!]
+			]
+			Sleep: "Sleep" [
+				dwMilliseconds	[integer!]
+			]
+			lstrlen: "lstrlenW" [
+				str			[byte-ptr!]
+				return:		[integer!]
+			]
 		]
+		"gdiplus.dll" stdcall [
+			GdiplusStartup: "GdiplusStartup" [
+				token		[int-ptr!]
+				input		[integer!]
+				output		[integer!]
+				return:		[integer!]
+			]
+			GdiplusShutdown: "GdiplusShutdown" [
+				token		[integer!]
+			]
+		]
+		"shell32.dll" stdcall [
+			ShellExecute: "ShellExecuteW" [
+				hwnd		 [integer!]
+				lpOperation	 [c-string!]
+				lpFile		 [c-string!]
+				lpParameters [integer!]
+				lpDirectory	 [integer!]
+				nShowCmd	 [integer!]
+				return:		 [integer!]
+			]
+		]
+	]
+
+	#either sub-system = 'gui [
+		#either gui-console? = yes [
+			#include %win32-gui.reds
+		][
+			#include %win32-cli.reds
+		]
+	][
+		#include %win32-cli.reds
 	]
 
 	;-------------------------------------------
@@ -140,238 +248,92 @@ platform: context [
 		]
 	]
 
-	;-------------------------------------------
-	;-- Initialize console ouput handle
-	;-------------------------------------------
-	init-console-out: func [][
-		confd: simple-io/CreateFile
-					"CONOUT$"
-					GENERIC_WRITE
-					FILE_SHARE_READ or FILE_SHARE_WRITE
-					null
-					OPEN_EXISTING
-					0
-					null
+	init-gdiplus: func [/local startup-input][
+		startup-input: declare GdiplusStartupInput!
+		startup-input/GdiplusVersion: 1
+		startup-input/DebugEventCallback: 0
+		startup-input/SuppressBackgroundThread: 0
+		startup-input/SuppressExternalCodecs: 0
+		GdiplusStartup :gdiplus-token as-integer startup-input 0
 	]
 
-	;-------------------------------------------
-	;-- putwchar use windows api internal
-	;-------------------------------------------
-	putwchar: func [
-		wchar	[integer!]								;-- wchar is 16-bit on Windows
-		return:	[integer!]
+	shutdown-gdiplus: does [
+		GdiplusShutdown gdiplus-token 
+	]
+
+	get-current-dir: func [
+		len		[int-ptr!]
+		return: [c-string!]
 		/local
-			n	[integer!]
-			cr	[integer!]
-			con	[integer!]
+			size [integer!]
+			path [byte-ptr!]
 	][
-		n: 0
-		cr: as integer! #"^M"
-
-		con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
-		either con > 0 [									;-- output to console
-			if confd = -2 [init-console-out]
-			if confd = -1 [return WEOF]
-			WriteConsole confd (as byte-ptr! :wchar) 1 :n null
-		][													;-- output to redirection file
-			if wchar = as integer! #"^/" [					;-- convert lf to crlf
-				WriteFile _get_osfhandle fd-stdout (as c-string! :cr) 2 :n 0
-			]
-			WriteFile _get_osfhandle fd-stdout (as c-string! :wchar) 2 :n 0
-		]
-		wchar
+		size: GetCurrentDirectory 0 null				;-- include NUL terminator
+		path: allocate size << 1
+		GetCurrentDirectory size path
+		len/value: size - 1
+		as c-string! path
 	]
 
-	;-------------------------------------------
-	;-- putbuffer use windows api internal
-	;-------------------------------------------
-	putbuffer: func [
-		chars [integer!]
+	wait: func [time [integer!]][Sleep time]
+
+	set-current-dir: func [
+		path	[c-string!]
+		return: [logic!]
+	][
+		SetCurrentDirectory path
+	]
+
+	set-env: func [
+		name	[c-string!]
+		value	[c-string!]
+		return: [logic!]			;-- true for success
+	][
+		SetEnvironmentVariable name value
+	]
+
+	get-env: func [
+		;; Returns size of retrieved value for success or zero if missing
+		;; If return size is greater than valsize then value contents are undefined
+		name	[c-string!]
+		value	[c-string!]
+		valsize [integer!]			;-- includes null terminator
 		return: [integer!]
+	][
+		GetEnvironmentVariable name value valsize
+	]
+
+	get-time: func [
+		utc?	 [logic!]
+		precise? [logic!]
+		return:  [float!]
 		/local
-			n	[integer!]
-			con	[integer!]
+			time	[tagSYSTEMTIME]
+			h		[integer!]
+			m		[integer!]
+			sec		[integer!]
+			milli	[integer!]
+			t		[float!]
 	][
-		n: 0
-		con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
-		either con > 0 [									;-- output to console
-			if confd = -2 [init-console-out]
-			if confd = -1 [return WEOF]					
-			WriteConsole confd pbuffer chars :n null
-		][													;-- output to redirection file
-			WriteFile _get_osfhandle fd-stdout as c-string! pbuffer 2 * chars :n 0
-		]
-		buffer: pbuffer
-		chars
-	]
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-UCS4: func [
-		str    [int-ptr!]								;-- UCS-4 string
-		size   [integer!]
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-
-		while [not zero? size][
-			cp: str/value
-			either str/value > FFFFh [
-				cp: cp - 00010000h						;-- encode surrogate pair
-				putwchar cp >> 10 + D800h				;-- emit lead
-				putwchar cp and 03FFh + DC00h			;-- emit trail
-			][
-				putwchar cp								;-- UCS-2 codepoint
-			]
-			str: str + 1
-			size: size - 4
-		]
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-4 string to console
-	;-------------------------------------------
-	print-line-UCS4: func [
-		str    [int-ptr!]								;-- UCS-4 string
-		size   [integer!]
-		/local
-			cp [integer!]								;-- codepoint
-	][
-		assert str <> null
-		print-UCS4 str size								;@@ throw an error on failure
-		putwchar 10										;-- newline
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-2 string to console
-	;-------------------------------------------
-	print-UCS2: func [
-		str 	[byte-ptr!]								;-- UCS-2 string
-		size	[integer!]
-		/local
-			chars [integer!]
-	][
-		assert str <> null
-		chars: 0
-		while [not zero? size][
-			buffer/1: str/1
-			buffer/2: str/2
-			chars: chars + 1
-			buffer: buffer + 2
-			str: str + 2
-			size: size - 2
-			if chars = 512 [  ; if the buffer has 1024 bytes, it has room for 512 chars
-				putbuffer chars
-				chars: 0
-			]
-		]
-		putbuffer chars
-	]
-
-	;-------------------------------------------
-	;-- Print a UCS-2 string with newline to console
-	;-------------------------------------------
-	print-line-UCS2: func [
-		str 	[byte-ptr!]								;-- UCS-2 string
-		size	[integer!]
-	][
-		assert str <> null
-		print-UCS2 str size								;@@ throw an error on failure
-		buffer/1: #"^M"
-		buffer/2: null-byte
-		buffer/3: #"^/"
-		buffer/4: null-byte
-		putbuffer 2 									;-- newline
-	]
-
-	;-------------------------------------------
-	;-- Print a Latin-1 string to console
-	;-------------------------------------------
-	print-Latin1: func [
-		str 	[c-string!]								;-- Latin-1 string
-		size	[integer!]
-		/local
-			chars [integer!]							;-- mumber of used chars in buffer
-	][
-		assert str <> null
-		chars: 0
-		while [not zero? size][
-			buffer/1: str/1
-			buffer/2: null-byte ;this should be always 0 in Latin1
-			size: size - 1
-			str: str + 1
-			chars: chars + 1
-			buffer: buffer + 2
-			if chars = 512 [  ; if the buffer has 1024 bytes, it has room for 512 chars
-				putbuffer chars
-				chars: 0
-			]
-		]
-		putbuffer chars
-	]
-
-	;-------------------------------------------
-	;-- Print a Latin-1 string with newline to console
-	;-------------------------------------------
-	print-line-Latin1: func [
-		str  [c-string!]									;-- Latin-1 string
-		size [integer!]
-	][
-		assert str <> null
-		print-Latin1 str size
-		buffer/1: #"^M"
-		buffer/2: null-byte
-		buffer/3: #"^/"
-		buffer/4: null-byte
-		putbuffer 2 									;-- newline
-	]
-
-
-	;-------------------------------------------
-	;-- Red/System Unicode replacement printing functions
-	;-------------------------------------------
-
-	prin*: func [s [c-string!] return: [c-string!] /local p][
-		p: s
-		while [p/1 <> null-byte][
-			putwchar as-integer p/1
-			p: p + 1
-		]
-		s
-	]
-
-	prin-int*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
-		fflush null													;-- flush all streams
-		i
-	]
-
-	prin-hex*: func [i [integer!] return: [integer!]][
-		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
-		fflush null
-		i
-	]
-
-	prin-float*: func [f [float!] return: [float!]][
-		wprintf ["%^(00).^(00)1^(00)6^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
-		fflush null
-		f
-	]
-
-	prin-float32*: func [f [float32!] return: [float32!]][
-		wprintf ["%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
-		fflush null
-		f
+		time: declare tagSYSTEMTIME
+		either utc? [GetSystemTime time][GetLocalTime time]
+		h: time/hour-minute and FFFFh
+		m: time/hour-minute >>> 16
+		sec: time/second and FFFFh
+		milli: either precise? [time/second >>> 16][0]
+		t: integer/to-float h * 3600 + (m * 60) + sec * 1000 + milli
+		t * 1E6				;-- nano second
 	]
 
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: does [
+		init-gdiplus
 		#if unicode? = yes [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
 		]
+		CoInitializeEx 0 COINIT_APARTMENTTHREADED
 	]
 ]

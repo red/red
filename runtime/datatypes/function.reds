@@ -154,13 +154,14 @@ _function: context [
 		index	[integer!]								;-- 0-base index position of function in path
 		return: [integer!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			s	  [series!]
-			count [integer!]
-			cnt	  [integer!]
-			len	  [integer!]
-			stop? [logic!]
+			value  [red-value!]
+			tail   [red-value!]
+			s	   [series!]
+			count  [integer!]
+			locals [integer!]
+			cnt	   [integer!]
+			len	   [integer!]
+			stop?  [logic!]
 	][
 		s: as series! fun/spec/value
 		
@@ -260,7 +261,7 @@ _function: context [
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
 			base: base + 2
 		]
-		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos + 1]]
 
 		value: pos + 1
 		
@@ -330,16 +331,13 @@ _function: context [
 			vec		  [red-vector!]
 			list	  [red-block!]
 			value	  [red-value!]
-			value2	  [red-value!]
 			tail	  [red-value!]
 			saved	  [red-value!]
 			w		  [red-word!]
-			dt		  [red-datatype!]
 			blk		  [red-block!]
 			s		  [series!]
 			routine?  [logic!]
 			function? [logic!]
-			ret-set?  [logic!]
 			required? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
@@ -398,14 +396,7 @@ _function: context [
 					]
 					blk: as red-block! value + 1
 					assert TYPE_OF(blk) = TYPE_BLOCK
-					either routine? [
-						ret-set?: yes
-						value2: _series/pick as red-series! blk 1 null
-						assert TYPE_OF(value2) = TYPE_WORD
-						dt: as red-datatype! _context/get as red-word! value2
-						assert TYPE_OF(dt) = TYPE_DATATYPE
-						interpreter/return-type: dt/value	;@@ get rid of this
-					][
+					unless routine? [
 						block/rs-append list value
 						typeset/make-with list blk
 					]
@@ -414,9 +405,7 @@ _function: context [
 			]
 			value: value + 1
 		]
-
-		unless ret-set? [interpreter/return-type: -1]	;@@ set the default correctly in case of nested calls
-
+		
 		unless function? [
 			block/rs-append list as red-value! none-value ;-- place-holder for argument name
 			block/rs-append list as red-value! vec
@@ -436,7 +425,7 @@ _function: context [
 		word: stack/push value
 		word/header: TYPE_WORD							;-- convert the set-word! into a word!
 
-		result: block/find ignore word null no no no null null no no no no
+		result: block/find ignore word null no no no no null null no no no no
 
 		if TYPE_OF(result) = TYPE_NONE [
 			block/rs-append list word
@@ -449,7 +438,7 @@ _function: context [
 		blk	   [red-block!]
 		list   [red-block!]
 		ignore [red-block!]
-		/local		
+		/local
 			slot  [red-value!]
 			tail  [red-value!]
 	][
@@ -457,12 +446,13 @@ _function: context [
 		tail: block/rs-tail blk
 		
 		while [slot < tail][
-			assert any [								;-- replace with ANY_WORD?
+			if any [								;-- replace with ANY_WORD?
 				TYPE_OF(slot) = TYPE_WORD
 				TYPE_OF(slot) = TYPE_GET_WORD
 				TYPE_OF(slot) = TYPE_LIT_WORD
+			][
+				collect-word slot list ignore
 			]
-			collect-word slot list ignore
 			slot: slot + 1
 		]
 	]
@@ -475,8 +465,9 @@ _function: context [
 			value [red-value!]
 			tail  [red-value!]
 			w	  [red-word!]
-			many? [logic!]
 			slot  [red-value!]
+			type  [integer!]
+			many? [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -490,7 +481,7 @@ _function: context [
 					w: as red-word! value
 					many?: any [
 						EQUAL_SYMBOLS?(w/symbol words/foreach)
-						;EQUAL_SYMBOLS?(w/symbol words/remove-each)
+						EQUAL_SYMBOLS?(w/symbol words/remove-each)
 						;EQUAL_SYMBOLS?(w/symbol words/map-each)
 					]
 					if any [
@@ -499,10 +490,13 @@ _function: context [
 					][
 						if value + 1 < tail [
 							slot: value + 1
-							either all [many? TYPE_OF(slot) = TYPE_BLOCK][
+							type: TYPE_OF(slot)
+							either all [many? type = TYPE_BLOCK][
 								collect-many-words as red-block! slot list ignore
 							][
-								collect-word slot list ignore
+								if any [type = TYPE_WORD type = TYPE_SET_WORD][
+									collect-word slot list ignore
+								]
 							]
 						]
 					]
@@ -527,6 +521,7 @@ _function: context [
 			extern	[red-block!]
 			value	[red-value!]
 			tail	[red-value!]
+			word	[red-word!]
 			s		[series!]
 			extern? [logic!]
 	][
@@ -537,7 +532,7 @@ _function: context [
 		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
-		extern: as red-block! block/find spec value null no no no null null no no no no
+		extern: as red-block! block/find spec value null no no no no null null no no no no
 		extern?: no
 
 		if TYPE_OF(extern) = TYPE_BLOCK [
@@ -546,6 +541,22 @@ _function: context [
 			extern?: TYPE_OF(value) = TYPE_REFINEMENT	;-- ensure it is not another word type
 			if extern? [
 				s: GET_BUFFER(spec)
+				value: s/offset + extern/head + 1
+				while [all [value < s/tail TYPE_OF(value) = TYPE_WORD]][ ;-- search for end of externs
+					value: value + 1
+				]
+				if all [value < s/tail TYPE_OF(value) = TYPE_REFINEMENT][
+					word: as red-word! value
+					if refinements/local/symbol = symbol/resolve word/symbol [
+						value: value + 1
+						while [value < s/tail][			;-- collect explicit locals
+							if TYPE_OF(value) = TYPE_WORD [
+								block/rs-append list value
+							]
+							value: value + 1
+						]
+					]
+				]
 				s/tail: s/offset + extern/head			;-- cut /extern and extern words out			
 			]
 		]
@@ -556,6 +567,8 @@ _function: context [
 		
 		while [value < tail][
 			switch TYPE_OF(value) [
+				TYPE_STRING
+				TYPE_BLOCK
 				TYPE_WORD 	  [0]						;-- do nothing
 				TYPE_REFINEMENT
 				TYPE_GET_WORD
@@ -588,6 +601,7 @@ _function: context [
 			value  [red-value!]
 			end	   [red-value!]
 			next   [red-value!]
+			next2  [red-value!]
 			block? [logic!]
 	][
 		value: block/rs-head spec
@@ -598,6 +612,12 @@ _function: context [
 				TYPE_WORD
 				TYPE_GET_WORD [
 					next: value + 1
+					if all [next < end TYPE_OF(next) = TYPE_STRING][
+						next2: next + 1
+						if all [next2 < end TYPE_OF(next2) = TYPE_BLOCK][
+							fire [TO_ERROR(script bad-func-def)	spec]
+						]
+					]
 					block?: all [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
@@ -658,8 +678,9 @@ _function: context [
 			native [red-native!]
 			value  [red-value!]
 			int	   [red-integer!]
-			args	   [red-block!]
+			args   [red-block!]
 			more   [series!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
@@ -669,8 +690,17 @@ _function: context [
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
 		fun/more:	 alloc-cells 5
 		
+		s: as series! fun/ctx/value
+		copy-cell as red-value! fun s/offset + 1		;-- set back-reference
+		
 		more: as series! fun/more/value
-		value: either null? body [none-value][as red-value! body]
+		either null? body [
+			value: none-value
+		][
+			body: block/clone body yes yes
+			stack/pop 1
+			value: as red-value! body
+		]
 		copy-cell value alloc-tail more					;-- store body block or none
 		
 		args: as red-block! alloc-tail more
@@ -792,6 +822,7 @@ _function: context [
 		if type <> TYPE_FUNCTION [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -850,6 +881,7 @@ _function: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

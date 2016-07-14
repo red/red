@@ -8,7 +8,7 @@ REBOL [
 	Usage:   {
 		do/args %red.r "path/source.red"
 	}
-	Encap: [quiet secure none title "Red" no-window] 
+	Encap: [quiet secure none title "Red" no-window]
 ]
 
 unless value? 'encap-fs [do %system/utils/encap-fs.r]
@@ -20,10 +20,11 @@ unless all [value? 'red object? :red][
 redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
+	win-version:	none								;-- Windows version extracted from "ver" command
 
 	Windows?:  system/version/4 = 3
 	load-lib?: any [encap? find system/components 'Library]
-	
+
 	if encap? [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
@@ -48,7 +49,21 @@ redc: context [
 							return: 	[integer!]
 					] shell32 "SHGetFolderPathA"
 
+					ShellExecute: make routine! [
+							hwnd 		 [integer!]
+							lpOperation  [string!]
+							lpFile		 [string!]
+							lpParameters [string!]
+							lpDirectory  [integer!]
+							nShowCmd	 [integer!]
+							return:		 [integer!]
+					] shell32 "ShellExecuteA"
+
 					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+
+					gui-sys-call: func [cmd [string!] args [string!]][
+						ShellExecute 0 "open" cmd args 0 1
+					]
 
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
@@ -76,17 +91,36 @@ redc: context [
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
 		]
 	]
-	
+
+	if Windows? [
+		use [buf cmd][
+			cmd: "cmd /c ver"
+			buf: make string! 128
+
+			either load-lib? [
+				do-cache %utils/call.r					;@@ put `call.r` in proper place when we encap
+				win-call/output cmd buf
+			][
+				set 'win-call :call						;-- Rebol/Core compatible mode
+				win-call/output/show cmd buf			;-- not using /show would freeze CALL
+			]
+			parse/all buf [[thru "[" | thru "Version" | thru "ver" | thru "v" | thru "indows"] to #"." pos:]
+    			win-version: any [
+        			attempt [load copy/part back remove pos 2]
+        			0
+    			]
+		]
+	]
+
 	;; Select a default target based on the REBOL version.
 	default-target: does [
 		any [
-			select [
-				2 "Darwin"
-				3 "MSDOS"
-				4 "Linux"
-				7 "FreeBSD"
-			] system/version/4
-			"MSDOS"
+			switch/default system/version/4 [
+				2 ["Darwin"]
+				3 ["MSDOS"]
+				4 [either system/version/5 = 8 ["RPI"]["Linux"]]
+				7 ["FreeBSD"]
+			]["MSDOS"]
 		]
 	]
 
@@ -113,11 +147,11 @@ redc: context [
 			]
 		]
 	]
-	
+
 	format-time: func [time [time!]][
 		round (time/second * 1000) + (time/minute * 60000)
 	]
-	
+
 	decorate-name: func [name [file!]][
 		rejoin [										;-- filename: <name>-year-month-day(ISO format)-time
 			name #"-"
@@ -149,21 +183,21 @@ redc: context [
 		]
 		targets
 	]
-	
+
 	red-system?: func [file [file!] /local ws rs?][
 		ws: charset " ^-^/^M"
 		parse/all/case read file [
 			some [
 				thru "Red"
 				opt ["/System" (rs?: yes)]
-				any ws 
+				any ws
 				#"[" (return to logic! rs?)
 				to end
 			]
 		]
 		no
 	]
-	
+
 	safe-to-local-file: func [file [file! string!]][
 		if all [
 			find file: to-local-file file #" "
@@ -173,10 +207,20 @@ redc: context [
 		]
 		file
 	]
-	
+
+	add-legacy-flags: func [opts [object!]][
+		if all [Windows? win-version <= 60][
+			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
+				append opts/legacy 'no-touch
+			][
+				opts/legacy: copy [no-touch]
+			]
+		]
+	]
+
 	build-compress-lib: has [script basename filename text opts ext src][
 		src: %runtime/crush.reds
-		
+
 		basename: either encap? [
 			unless exists? temp-dir [make-dir temp-dir]
 			script: temp-dir/crush.reds
@@ -191,7 +235,7 @@ redc: context [
 			system/version/4 = 2 [%.dylib]
 			'else 				 [%.so]
 		]
-		
+
 		if any [
 			not exists? filename
 			all [
@@ -207,7 +251,7 @@ redc: context [
 			append text " #export [crush/compress]"
 			write script text
 			unless encap? [basename: head insert basename %../]
-			
+
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				config-name: to word! default-target
@@ -217,8 +261,9 @@ redc: context [
 			opts: make opts select load-targets opts/config-name
 			opts/type: 'dll
 			if opts/OS <> 'Windows [opts/PIC?: yes]
-			
-			print "Pre-compiling compression library..."
+			add-legacy-flags opts
+
+			print "Compiling compression library..."
 			unless encap? [
 				change-dir %system/
 				script: head insert script %../
@@ -227,7 +272,7 @@ redc: context [
 			delete script
 			unless encap? [change-dir %../]
 		]
-		
+
 		unless crush-lib [
 			crush-lib: load/library filename
 			crush-compress: make routine! [
@@ -238,38 +283,55 @@ redc: context [
 			] crush-lib "crush/compress"
 		]
 	]
-	
-	run-console: func [/with file [string!] /local opts result script filename exe console files][
+
+	run-console: func [
+		gui? [logic!] /with file [string!]
+		/local opts result script filename exe console files source con-engine gui-target
+	][
 		script: temp-dir/red-console.red
-		filename: decorate-name %console
+		filename: decorate-name pick [%gui-console %console] gui?
 		exe: temp-dir/:filename
 
 		if Windows? [append exe %.exe]
-		
+
 		unless exists? temp-dir [make-dir temp-dir]
-		
 		unless exists? exe [
 			console: %environment/console/
-			write script read-cache console/console.red
-			
-			files: [%help.red %input.red %wcwidth.reds %win32.reds %POSIX.reds]
-			
+			con-engine: pick [%gui-console.red %console.red] gui?
+			if gui? [
+				gui-target: select [
+					;"Darwin"	OSX
+					"MSDOS"		Windows
+					;"Linux"		Linux-GTK
+				] default-target
+			]
+			source: copy read-cache console/:con-engine
+			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			write script source
+
+			files: [
+				%auto-complete.red %engine.red %help.red %input.red
+				%wcwidth.reds %win32.reds %POSIX.reds %terminal.reds
+				%windows.reds
+			]
 			foreach file files [write temp-dir/:file read-cache console/:file]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				unicode?: yes
-				config-name: to word! default-target
+				config-name: any [gui-target to word! default-target]
 				build-basename: filename
 				build-prefix: temp-dir
 				red-help?: yes							;-- include doc-strings
+				gui-console?: gui?
 			]
 			opts: make opts select load-targets opts/config-name
+			add-legacy-flags opts
 
-			print "Pre-compiling Red console..."
+			print replace "Compiling Red $console..." "$" pick ["GUI " ""] gui?
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result
-			
+
 			delete script
 			foreach file files [delete temp-dir/:file]
 
@@ -279,18 +341,23 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
-		if with [
-			repend exe [{ "} file {"}]
-			exe: safe-to-local-file exe
+
+		either gui? [
+			gui-sys-call exe any [file make string! 1]
+		][
+			if with [
+				repend exe [{ "} file {"}]
+				exe: safe-to-local-file exe
+			]
+			sys-call exe								;-- replace the buggy CALL native
 		]
-		sys-call exe									;-- replace the buggy CALL native
 		quit/return 0
 	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target?
+		mode target? gui?
 	][
 		args: any [
 			all [args parse args none]
@@ -299,6 +366,7 @@ redc: context [
 		]
 		target: default-target
 		opts: make system-dialect/options-class [link?: yes]
+		gui?: Windows?									;-- use GUI console by default on Windows
 
 		parse/case args [
 			any [
@@ -311,12 +379,14 @@ redc: context [
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
+				| "--cli"					(gui?: no)
+				| "--catch"								;-- just pass-thru
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
 			]
 			set filename skip (src: load-filename filename)
 		]
-		
+
 		if mode [
 			switch mode [
 				help	[print read-cache %usage.txt]
@@ -357,13 +427,13 @@ redc: context [
 				fail ["Invalid verbosity:" verbose]
 			]
 		]
-		
+
 		;; Process -dlib/--dynamic-lib (if any).
 		if any [type = 'dll opts/type = 'dll][
 			if type = 'dll [opts/type: type]
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
-		
+
 		;; Check common syntax mistakes
 		if all [
 			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
@@ -374,64 +444,66 @@ redc: context [
 		if all [output output/1 = #"-"][				;-- -o (not followed by option)
 			fail "Missing output file or path"
 		]
-		
+
 		;; Process input sources.
 		unless src [
 			either encap? [
 				if load-lib? [build-compress-lib]
-				run-console
+				run-console gui?
 			][
 				fail "No source files specified."
 			]
 		]
-		
+
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with filename
+			run-console/with gui? filename
 		]
-		
+
 		if slash <> first src [							;-- if relative path
 			src: clean-path join base-path src			;-- add working dir path
 		]
 		unless exists? src [
-			fail ["Cannot access source file:" src]
+			fail ["Cannot access source file:" to-local-file src]
 		]
+
+		add-legacy-flags opts
 
 		reduce [src opts]
 	]
 
 	main: func [/with cmd [string!] /local src opts build-dir result saved rs? prefix] [
 		set [src opts] parse-options cmd
-		
+
 		rs?: red-system? src
 
 		;; If we use a build directory, ensure it exists.
 		if all [prefix: opts/build-prefix find prefix %/] [
 			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" build-dir]
+				fail ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
-		
+
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
-			"Compiling" src "..."
+			"Compiling" to-local-file src "..."
 		]
-		
+
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			
+
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]
 			print ["...compilation time :" format-time result/2 "ms"]
 			if opts/red-only? [exit]
 		]
-		
+
 	;--- 2nd pass: Red/System compiler ---
-		
+
 		print [
 			newline
 			"Compiling to native code..."
@@ -448,7 +520,7 @@ redc: context [
 			unless encap? [change-dir %../]
 		]
 		print ["...compilation time :" format-time result/1 "ms"]
-		
+
 		if result/2 [
 			print [
 				"...linking time     :" format-time result/2 "ms^/"
@@ -458,7 +530,7 @@ redc: context [
 		]
 		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
-	
+
 	set 'rc func [cmd [file! string! block!]][
 		fail-try "Driver" [redc/main/with reform cmd]
 		()												;-- return unset value

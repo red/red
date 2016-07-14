@@ -118,10 +118,9 @@ re-throw: func [/local id [integer!]][
 
 
 #if type = 'exe [
-	#switch target [
+	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
-												;-- and overflow raise exceptions.
+			system/fpu/control-word: 027Fh
 			system/fpu/update
 		]
 		ARM [
@@ -145,6 +144,33 @@ re-throw: func [/local id [integer!]][
 
 	#define RED_ERR_VMEM_RELEASE_FAILED		96
 	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+	
+	__set-stack-on-crash: func [
+		return: [int-ptr!]
+		/local address frame top
+	][
+		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame 
+		frame: as int-ptr! top/value
+		top: top + 1
+		address: as int-ptr! top/value
+		top: frame + 2
+
+		system/debug: declare __stack!		;-- allocate a __stack! struct
+		system/debug/frame: frame
+		system/debug/top: top
+		address
+	]
+	
+	#if target = 'ARM [
+		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
+			code [integer!]
+			/local
+				address [int-ptr!]
+		][
+			address: __set-stack-on-crash
+			***-on-quit code as-integer address
+		]
+	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
@@ -205,7 +231,9 @@ re-throw: func [/local id [integer!]][
 			print msg
 
 			#either debug? = yes [
-				__print-debug-line as byte-ptr! address
+				if null? system/debug [__set-stack-on-crash]
+				__print-debug-line  as byte-ptr! address
+				__print-debug-stack as byte-ptr! address
 			][
 				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]

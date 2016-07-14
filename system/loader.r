@@ -21,6 +21,7 @@ loader: make-profilable context [
 	hex-delim: 	  charset "[]()/"
 	non-cbracket: complement charset "}^/"
 
+	scripts-stk:  make block! 10
 	current-script: none
 	line: none
 
@@ -164,8 +165,8 @@ loader: make-profilable context [
 						][
 							all [
 								path: find [path! set-path!] type?/word value
-								find [word! set-word!] to word! type
-								type: get path/1
+								type: find [word! set-word!] to word! type
+								type: get pick head path index? type
 							]
 							to type value				;-- get/set => convert value
 						]
@@ -331,13 +332,16 @@ loader: make-profilable context [
 						][
 							0
 						]
+						name: system/script/path/:name
+						
 						insert e reduce [
 							#pop-path value
-							#script current-script	;-- put back the parent origin
+							#script last scripts-stk	;-- put back the parent origin
 						]
-						insert s reduce [			;-- mark code origin	
+						insert s reduce [				;-- mark code origin
 							#script name
 						]
+						append scripts-stk name
 						current-script: name
 					]
 				) :s
@@ -375,6 +379,7 @@ loader: make-profilable context [
 					][
 						pop-system-path
 					]
+					take/last scripts-stk
 					s: remove/part s 2
 				) :s
 				| line-rule
@@ -406,14 +411,28 @@ loader: make-profilable context [
 		change stack/1 length? stack/1				;-- update root header size	
 		insert src stack/1							;-- return source with hidden root header
 	]
+	
+	prefix-cache: func [file [file!] /local path][
+		path: either empty? ssp-stack [system/script/path][first ssp-stack]
+		path: skip system/script/path length? path
+		secure-clean-path join path file
+	]
 
 	process: func [
 		input [file! string! block!] /sub /with name [file!] /short /own
-		/local src err path ssp pushed? raw
+		/local src err path ssp pushed? raw cache? new
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 		
-		if own [raw: input]
+		cache?: all [
+			encap?
+			file? input
+			any [
+				exists?-cache input
+				exists?-cache new: prefix-cache input
+			]
+		]
+		if any [own cache?][raw: input]
 		
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
@@ -432,22 +451,25 @@ loader: make-profilable context [
 				]
 				pushed?: yes
 			]
+			
 			if error? set/any 'err try [			;-- read source file
-				src: as-string either all [encap? own][
+				src: as-string either any [cache? all [encap? own]][
+					if all [cache? new][raw: new]
 					read-binary-cache raw
 				][
 					read/binary input
 				]
 			][
-				throw-error ["file access error:" mold disarm err]
+				throw-error ["file access error:" mold input]
 			]
 		]
 		unless short [
 			current-script: case [
 				file? input [input]
 				with		[name]
-				'else		['in-memory]
+				'else		[any [select input #script 'in-memory]]
 			]
+			append clear scripts-stk current-script
 		]
 		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker

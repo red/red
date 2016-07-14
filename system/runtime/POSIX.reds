@@ -57,6 +57,10 @@ posix-startup-ctx: context [
 	][
 		error: 99								;-- default unknown error
 		code: info/code
+		
+		system/debug: declare __stack!			;-- allocate a __stack! struct
+		system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
+		system/debug/top: 	as int-ptr! UCTX_GET_STACK_TOP(ctx)
 
 		error: switch signal [
 			SIGILL [
@@ -107,7 +111,10 @@ posix-startup-ctx: context [
 		***-on-quit error UCTX_INSTRUCTION(ctx)
 	]
 
-	init: does [
+	init: func [
+		/local
+			__sigaction-options [sigaction!]
+	][
 		__sigaction-options: declare sigaction!
 
 		__sigaction-options/sigaction: 	as-integer :***-on-signal

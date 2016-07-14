@@ -390,7 +390,7 @@ make-profilable make target-class [
 			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 			#{092d0001}			; PUSHEQ {r0}
-			#{0a000000}			; BEQ ***-on-quit		; call runtime error handler
+			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
 			#{e1500001}			; CMP r0, r1			; if dividend = divisor
 			#{0a00000b}			; BEQ .equal
 			#{e1a03000}			; MOV r3, r0			; r3: dividend
@@ -479,7 +479,7 @@ make-profilable make target-class [
  			emit-i32 opcode
  		]
  		;-- link it with runtime error handler
- 		append emitter/symbols/***-on-quit/3 base + (4 * insn-size)
+ 		append emitter/symbols/***-on-div-error/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
@@ -1052,12 +1052,11 @@ make-profilable make target-class [
 	
 	emit-push-float: func [idx [integer!] type [block!]][
 		width: select emitter/datatypes type/1
+		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+			to char! width
 		emit-float
 			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
 			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
-
-		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
-			to char! width
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -1135,7 +1134,7 @@ make-profilable make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type offset spec
+		/local type offset spec original
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
@@ -1185,16 +1184,40 @@ make-profilable make target-class [
 				]
 			]
 			get-word! [
-				either offset: select emitter/stack to word! value [
-					emit-i32 either negative? offset [
-						#{e24b00}					;-- SUB r0, fp, n
-					][
-						#{e28b00}					;-- ADD r0, fp, n
+				value: to word! original: value
+				either any [
+					all [
+						spec: select compiler/functions value
+						spec/2 = 'routine
 					]
-					emit-i32 to-bin8 abs offset
+					all [
+						select emitter/stack value
+						'function! = first compiler/get-type value
+					]
 				][
-					pools/collect/spec 0 value
-					if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					either alt [
+						emit-variable-poly/alt value
+							#{e5911000}				;-- LDR r1, [r1]		; global
+							#{e7911009}				;-- LDR r1, [r1, sb]	; PIC
+							#{e59b1000}				;-- LDR r1, [fp, #[-]n]	; local
+					][
+						emit-variable-poly value
+							#{e5900000} 			;-- LDR r0, [r0]		; global
+							#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
+							#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
+					]
+				][
+					either offset: select emitter/stack value [
+						emit-i32 either negative? offset [
+							#{e24b00}					;-- SUB r0, fp, n
+						][
+							#{e28b00}					;-- ADD r0, fp, n
+						]
+						emit-i32 to-bin8 abs offset
+					][
+						pools/collect/spec 0 original
+						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					]
 				]
 			]
 			string! [
@@ -1278,6 +1301,7 @@ make-profilable make target-class [
 				do store-word
 			]
 			string! paren! [
+				if spec [emit-load-literal-ptr spec/2]
 				do store-word
 			]
 		]
@@ -1423,7 +1447,7 @@ make-profilable make target-class [
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
-			if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
+			if size <> 8 [emit-swap-regs/alt]		;-- save value/restore address
 		]
 
 		switch type [
@@ -1468,7 +1492,7 @@ make-profilable make target-class [
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
 			at buffer offset
-			reverse to-bin24 shift negate offset 2
+			reverse to-bin24 shift negate offset + 4 2
 	]
 	
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
@@ -2139,15 +2163,21 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-hf-return: func [spec [block!] /local type][
+	emit-hf-return: func [spec [block!] /reverse /local type][
 		if all [
 			compiler/job/ABI = 'hard-float
 			find [float! float64! float32!] type: select spec first [return:]
 		][
 			width: select emitter/datatypes type/1
-			emit-float
-				#{ec510b10}							;-- FMRRD r0, r1, d0
-				#{ee100a10}							;-- FMRS r0, s0
+			either reverse [
+				emit-float
+					#{ec410b10}						;-- FMDRR d0, r0, r1, d0
+					#{ee000a10}						;-- FMSR s0, r0
+			][
+				emit-float
+					#{ec510b10}						;-- FMRRD r0, r1, d0
+					#{ee100a10}						;-- FMRS r0, s0
+			]
 		]
 	]
 
@@ -2315,19 +2345,31 @@ make-profilable make target-class [
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			12
 		][
-			emit-load-local #{e50b0000}	-4			;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
-			emit-load-local #{e50b0000}	-8			;-- STR r0, [fp, -8]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			12
 		]
 	]
 
 	emit-close-catch: func [offset [integer!] global? [logic!]][
-		if global? [
+		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
 			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
+		][
+			emit-i32 #{e3a00000}					;-- MOV r0, 0
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			;offset: offset + 8						;-- account for the 2 catch slots on stack 
+			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			either offset > 255 [
+				emit-load-imm32/reg offset 4
+				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
+			][
+				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, locals-size
+			]
 		]
 	]
 
@@ -2454,7 +2496,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-hf-return fspec/4
+			emit-hf-return/reverse fspec/4
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr

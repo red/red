@@ -12,36 +12,18 @@ Red/System [
 
 file: context [
 	verbose: 0
-
-	rs-load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		return:  [red-string!]
-	][
-		load-in src size root
-	]
-
-	load-in: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
-		size	 [integer!]
-		blk		 [red-block!]
-		return:  [red-string!]
-		/local
-			cell [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
-		
-		cell: string/load-in src size blk UTF-8
-		cell/header: TYPE_FILE							;-- implicit reset of all header flags
-		cell
-	]
-
+	
 	load: func [
-		src		 [c-string!]							;-- UTF-8 source string buffer
+		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
-		return:  [red-string!]
+		encoding [integer!]
+		return:  [red-file!]
+		/local
+			file [red-file!]
 	][
-		load-in src size null
+		file: as red-file! string/load src size encoding
+		set-type as red-value! file TYPE_FILE
+		file
 	]
 
 	push: func [
@@ -50,6 +32,49 @@ file: context [
 		#if debug? = yes [if verbose > 0 [print-line "file/push"]]
 		
 		copy-cell as red-value! file stack/push*
+	]
+
+	to-OS-path: func [
+		src		[red-file!]
+		return: [c-string!]
+		/local
+			str [red-string!]
+			s	[series!]
+			len [integer!]
+			ret [c-string!]
+	][
+		len: string/rs-length? as red-string! src
+		s: GET_BUFFER(src)
+		if zero? len [len: 1]
+		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
+		to-local-path src str no
+
+		#either OS = 'Windows [
+			ret: unicode/to-utf16 str
+		][
+			len: -1
+			ret: unicode/to-utf8 str :len
+		]
+		stack/pop 1
+		ret
+	]
+
+	get-current-dir: func [
+		return: [red-string!]
+		/local
+			len  [integer!]
+			path [c-string!]
+			dir  [red-string!]
+	][
+		len: 0
+		path: platform/get-current-dir :len
+		#either OS = 'Windows [
+			dir: string/load path len UTF-16LE
+		][
+			dir: string/load path len UTF-8
+		]
+		free as byte-ptr! path
+		dir
 	]
 
 	to-local-path: func [
@@ -66,7 +91,7 @@ file: context [
 	][
 		s: GET_BUFFER(src)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (src/head << (log-b unit))
+		p: (as byte-ptr! s/offset) + (src/head << (unit >> 1))
 		end: (as byte-ptr! s/tail)
 		s: GET_BUFFER(out)
 
@@ -80,25 +105,55 @@ file: context [
 					p: p + unit
 				]
 				if c <> as-integer #"/" [		;-- %/c
+					d: as-integer #"/"
 					if p < end [d: string/get-char p unit]
 					either d = as-integer #"/" [
-						string/append-char s c
-						string/append-char s as-integer #":"
+						s: string/append-char s c
+						s: string/append-char s as-integer #":"
+						p: p + unit
 					][
-						string/append-char s OS_DIR_SEP
+						s: string/append-char s OS_DIR_SEP
+						p: p - unit
 					]
 				]
 			]
-			string/append-char s OS_DIR_SEP
+			s: string/append-char s OS_DIR_SEP
 		][
-			out
+			if full? [
+				string/concatenate out get-current-dir -1 0 yes no
+				s: string/append-char GET_BUFFER(out) OS_DIR_SEP
+			]
 		]
 
-		while [p: p + unit p < end][
+		while [p < end][
 			c: string/get-char p unit
-			string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
+			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
+			p: p + unit
 		]
 		out
+	]
+
+	normalize: func [
+		file    [red-file!]
+		/local
+			s	   [series!]
+			unit   [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+			tail   [byte-ptr!]
+	][
+		s: GET_BUFFER(file)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		while [p < tail][
+			cp: string/get-char p unit
+			if cp = as-integer #"\" [
+				string/poke-char s p as-integer #"/"
+			]
+			p: p + unit
+		]
 	]
 
 	;-- Actions --
@@ -116,6 +171,27 @@ file: context [
 		file: as red-file! string/make proto spec type
 		set-type as red-value! file TYPE_FILE
 		file
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-file!]
+		return: [red-value!]
+		/local
+			t	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
+
+		t: type/value
+		switch t [
+			TYPE_STRING
+			TYPE_URL
+			TYPE_TAG [
+				set-type copy-cell as cell! spec as cell! type t
+			]
+			default  [--NOT_IMPLEMENTED--]
+		]
+		as red-value! type
 	]
 
 	mold: func [
@@ -177,16 +253,54 @@ file: context [
 		part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if OPTION?(as-arg) [--NOT_IMPLEMENTED--]
+		simple-io/read as red-file! src part seek binary? lines?
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/write as red-file! dest data part seek binary? append?
+		as red-value! unset-value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_FILE
-			TYPE_STRING
+			TYPE_URL
 			"file!"
 			;-- General actions --
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -213,7 +327,7 @@ file: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -222,10 +336,11 @@ file: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -240,14 +355,14 @@ file: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

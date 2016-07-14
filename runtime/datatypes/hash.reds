@@ -48,7 +48,7 @@ hash: context [
 		if blk? [
 			block/copy as red-block! spec blk null no null
 		]
-		table: _hashtable/init size blk HASH_TABLE_HASH
+		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
 		hash/header: TYPE_HASH							;-- implicit reset of all header flags
 		hash/table: table
@@ -76,7 +76,6 @@ hash: context [
 		hash	[red-hash!]
 		return:	[red-value!]
 		/local
-			s	[series!]
 			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/clear"]]
@@ -100,9 +99,9 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
-		block/copy as red-series! hash new part-arg deep? types
+		block/copy as red-block! hash new part-arg deep? types
 		size: block/rs-length? new
-		table: _hashtable/init size new HASH_TABLE_HASH
+		table: _hashtable/init size new HASH_TABLE_HASH 1
 		hash: as red-hash! new
 		hash/header: TYPE_HASH							;-- implicit reset of all header flags
 		hash/table: table
@@ -188,7 +187,7 @@ hash: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			:clear
 			:copy
 			INHERIT_ACTION	;find
@@ -197,10 +196,11 @@ hash: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select

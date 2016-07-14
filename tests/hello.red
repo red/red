@@ -3,6 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %hello.red
 	Tabs:	 4
+	Version: 1.0.2.4
+	Company: "FullStack Technologies"
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.

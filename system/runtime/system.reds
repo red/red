@@ -125,4 +125,5 @@ system: declare struct! [					;-- store runtime accessible system values
 	words		[integer!]					;-- global context accessor (dummy type)
 	thrown		[integer!]					;-- last THROWn value
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
+	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 ]

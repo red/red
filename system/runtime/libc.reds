@@ -37,6 +37,12 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
+		compare-memory: "memcmp" [
+			ptr1		[byte-ptr!]
+			ptr2		[byte-ptr!]
+			size		[integer!]
+			return:		[integer!]
+		]
 		length?:	 "strlen" [
 			buffer		[c-string!]
 			return:		[integer!]
@@ -131,6 +137,7 @@ Red/System [
 	#define prin			[red/platform/prin*]
 	#define prin-int		[red/platform/prin-int*]
 	#define prin-hex		[red/platform/prin-hex*]
+	#define prin-2hex		[red/platform/prin-2hex*]
 	#define prin-float		[red/platform/prin-float*]
 	#define prin-float32	[red/platform/prin-float32*]
 	
@@ -148,6 +155,11 @@ Red/System [
 		printf ["%i" i]
 		i
 	]
+	
+	prin-2hex: func [i [integer!] return: [integer!]][
+		printf ["%02X" i]
+		i
+	]
 
 	prin-hex: func [i [integer!] return: [integer!]][
 		printf ["%08X" i]
@@ -155,12 +167,21 @@ Red/System [
 	]
 
 	prin-float: func [f [float!] return: [float!]][
-		printf ["%.16g" f]
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.16g" f]
+		]
 		f
 	]
 
-	prin-float32: func [f [float32!] return: [float32!]][
-		printf ["%.7g" as-float f]
-		f
+	prin-float32: func [f32 [float32!] return: [float32!] /local f [float!]][
+		f: as float! f32
+		either f - (floor f) = 0.0 [
+			printf ["%g.0" f]
+		][
+			printf ["%.7g" f]
+		]
+		f32
 	]
 ]

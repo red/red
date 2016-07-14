@@ -54,8 +54,13 @@ Red/System [
 	TYPE_MAP											;-- 28		40
 	TYPE_BINARY											;-- 29		41
 	TYPE_SERIES											;-- 2A		42
+	TYPE_TIME											;-- 2B		43
+	TYPE_TAG											;-- 2C		44
+	TYPE_IMAGE											;-- 2D		45
+	TYPE_EVENT											;-- 2E		46
 	TYPE_CLOSURE
 	TYPE_PORT
+	
 ]
 
 #enum actions! [
@@ -104,6 +109,7 @@ Red/System [
 	ACT_INDEX?
 	ACT_INSERT
 	ACT_LENGTH?
+	ACT_MOVE
 	ACT_NEXT
 	ACT_PICK
 	ACT_POKE
@@ -148,6 +154,7 @@ Red/System [
 	NAT_FOREVER
 	NAT_FOREACH
 	NAT_FORALL
+	NAT_REMOVE_EACH
 	NAT_FUNC
 	NAT_FUNCTION
 	NAT_DOES
@@ -168,7 +175,6 @@ Red/System [
 	NAT_GREATER_OR_EQUAL?
 	NAT_SAME?
 	NAT_NOT
-	NAT_HALT
 	NAT_TYPE?
 	NAT_REDUCE
 	NAT_COMPOSE
@@ -215,6 +221,22 @@ Red/System [
 	NAT_THROW
 	NAT_CATCH
 	NAT_EXTEND
+	NAT_DEBASE
+	NAT_TO_LOCAL_FILE
+	NAT_REQUEST_FILE
+	NAT_WAIT
+	NAT_REQUEST_DIR
+	NAT_CHECKSUM
+	NAT_UNSET
+	NAT_NEW_LINE
+	NAT_NEW_LINE?
+	NAT_ENBASE
+	NAT_CONTEXT?
+	NAT_SET_ENV
+	NAT_GET_ENV
+	NAT_LIST_ENV
+	NAT_NOW
+	NAT_SIGN?
 ]
 
 #enum math-op! [
@@ -245,6 +267,7 @@ Red/System [
 	COMP_GREATER_EQUAL
 	COMP_SORT
 	COMP_CASE_SORT
+	COMP_SAME
 ]
 
 #enum exceptions! [
@@ -258,10 +281,10 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		61							;-- number of actions (exact number)
+#define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
-#either debug? = yes [
+#either verbosity >= 1 [
 	#define ------------| 	print-line
 ][
 	#define ------------| 	comment
@@ -269,6 +292,7 @@ Red/System [
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define TUPLE_SIZE?(value)	(value/header >> 19 and 15)
+#define GET_TUPLE_ARRAY(tp) [(as byte-ptr! tp) + 4]
 #define SET_TUPLE_SIZE(t n) [t/header: t/header and FF87FFFFh or (n << 19)]
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
@@ -283,6 +307,24 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 #define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
+
+#define PLATFORM_TO_CSTR(cstr str len) [	;-- len in bytes
+	len: -1
+	#either OS = 'Windows [
+		cstr: unicode/to-utf16-len str :len yes
+		len: len * 2
+	][
+		cstr: unicode/to-utf8 str :len
+	]
+]
+
+#define PLATFORM_LOAD_STR(str cstr len) [
+	#either OS = 'Windows [
+		str: string/load cstr len UTF-16LE
+	][
+		str: string/load cstr len UTF-8
+	]
+]
 
 #define WHITE_CHAR?(char)	[
 	any [
@@ -329,6 +371,19 @@ Red/System [
 		type = TYPE_FILE
 		type = TYPE_URL
 		type = TYPE_BINARY
+		type = TYPE_IMAGE
+		type = TYPE_TAG
+	]
+]
+
+#define ANY_BLOCK?(type)	[
+	any [									;@@ replace with ANY_BLOCK?
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
 	]
 ]
 
@@ -345,6 +400,11 @@ Red/System [
 #define BS_TEST_BIT(array bit set?)  [
 	pos: array + (bit >> 3)
 	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
+]
+
+#define BS_TEST_BIT_ALT(ts bit) [
+	pos: ((as byte-ptr! ts) + 4) + (bit >> 3)
+	pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
 ]
 
 #define BS_PROCESS_SET_VIRTUAL(bs bit) [
@@ -400,6 +460,7 @@ Red/System [
 				TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
 				TYPE_OF(str2) <> TYPE_FILE
 				TYPE_OF(str2) <> TYPE_URL
+				TYPE_OF(str2) <> TYPE_TAG
 			]
 		]
 	][RETURN_COMPARE_OTHER]
@@ -408,6 +469,9 @@ Red/System [
 #define SIGN_COMPARE_RESULT(a b) [
 	either a < b [-1][either a > b [1][0]]
 ]
+
+#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_HEIGHT(size) (size >> 16)
 
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]

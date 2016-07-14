@@ -13,6 +13,30 @@ Red/System [
 tuple: context [
 	verbose: 0
 
+	rs-make: func [
+		[variadic]
+		count	[integer!]
+		list	[int-ptr!]
+		return: [red-tuple!]
+		/local
+			tuple	[red-tuple!]
+			tp		[byte-ptr!]
+			i		[integer!]
+	][
+		tuple: as red-tuple! stack/push*
+		tuple/header: TYPE_TUPLE or either count > 2 [count << 19][3 << 19]
+
+		tp: (as byte-ptr! tuple) + 4
+		i: 0
+		while [i < count][
+			i: i + 1
+			tp/i: as-byte list/value
+			list: list + 1
+		]
+		while [i < 3][i: i + 1 tp/i: null-byte]
+		tuple
+	]
+
 	push: func [
 		size	[integer!]
 		arr1	[integer!]
@@ -96,7 +120,7 @@ tuple: context [
 				n: n + 1
 				f1: integer/to-float as-integer tp1/n
 				f1: float/do-math-op f1 f2 type
-				v1: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
+				v1: float/to-integer f1
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size1
@@ -358,8 +382,6 @@ tuple: context [
 	length?: func [
 		tp		[red-tuple!]
 		return: [integer!]
-		/local
-			value  [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
@@ -387,7 +409,7 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 			null
 		][
-			as red-value! integer/box as-integer value/index
+			as red-value! integer/push as-integer value/index
 		]
 	]
 
@@ -415,10 +437,21 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
 			int: as red-integer! data
-			v: int/value
-			either v > 255 [v: 255][if negative? v [v: 0]]
-			value/index: as byte! v
+			either TYPE_OF(int) = TYPE_NONE [
+				v: size - index + 1
+				size: either index > 3 [index - 1][3]
+				loop v [
+					value/index: as byte! 0
+					index: index + 1
+				]
+				SET_TUPLE_SIZE(tp size)
+			][
+				v: int/value
+				either v > 255 [v: 255][if negative? v [v: 0]]
+				value/index: as byte! v
+			]
 		]
+		object/check-owner as red-value! tp
 		as red-value! data
 	]
 
@@ -432,7 +465,6 @@ tuple: context [
 			tmp  [byte!]
 			size [integer!]
 			n	 [integer!]
-			m	 [integer!]
 			tp   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
@@ -461,6 +493,7 @@ tuple: context [
 			n: n + 1
 			size: size - 1
 		]
+		object/check-owner as red-value! tuple
 		as red-value! tuple
 	]
 
@@ -509,6 +542,7 @@ tuple: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			:pick
 			:poke

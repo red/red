@@ -395,7 +395,6 @@ crush: context [							;-- LZ77
 		written [int-ptr!]
 		return: [byte-ptr!]
 		/local
-			i			[integer!]
 			s			[integer!]
 			ss			[integer!]
 			p			[integer!]

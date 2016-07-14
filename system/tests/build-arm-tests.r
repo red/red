@@ -15,7 +15,7 @@ if all [
     system/version/4 = 3
     system/version/3 = 8              
 ][
-		do %../../quick-test/call.r					               
+		do %../../utils/call.r
 		set 'call :win-call
 ]
 
@@ -74,23 +74,17 @@ make-dir/deep arm-dir
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]
 
-;; compile any dlls
-dlls: copy []
-src: read %source/units/make-dylib-auto-test.r
-parse/all src [any [a-dll-file (append dlls to file! file) | skip] end]
-foreach dll dlls [
-	lib: copy find/last/tail dll "/"
-	lib: replace lib ".reds" ".so"
-	lib: arm-dir/lib
-	cmd: join "" [  to-local-file system/options/boot " -sc "
-                    to-local-file clean-path %../../red.r
-                    " -dlib -t " target " -o " lib " "
-    				to-local-file dll
-    			]
-    clear output
-    call/output cmd output
-    print output
-]
+;; generate the dylib tests
+change-dir %source/units
+compile-test-dylibs target arm-dir
+create-dylib-auto-test target arm-dir %./
+change-dir %../../
+src: read arm-dir/dylib-auto-test.reds
+replace src "../../../../../" "../../../../"
+replace src {"libtest-dll1.dylib"} {"./libtest-dll1.dylib"}
+write arm-dir/dylib-auto-test.reds src
+compile-test arm-dir/dylib-auto-test.reds
+if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; get the list of test source files
 test-files: copy []
@@ -105,13 +99,15 @@ foreach test-file test-files [
 
 ;; generate the dylib tests
 change-dir %source/units
+compile-test-dylibs target arm-dir
 create-dylib-auto-test target arm-dir %./
 change-dir %../../
 src: read arm-dir/dylib-auto-test.reds
 replace src "../../../../../" "../../../../"
+replace/all src {"libtest-} {"./libtest-}
 write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
-;if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
+if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; complie the test libs
 compile-test-dylibs target arm-dir

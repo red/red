@@ -122,6 +122,120 @@ url: context [
 		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
+			
+		switch type/value [
+			TYPE_FILE
+			TYPE_STRING [
+				set-type copy-cell as cell! spec as cell! type type/value
+			]
+			default [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+			]
+		]
+		as red-value! type
+	]
+
+	eval-path: func [
+		parent	[red-string!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			s	[series!] 
+			new [red-string!]
+	][
+		either value <> null [							;-- set-path
+			fire [TO_ERROR(script bad-path-set) path element]
+		][
+			s: GET_BUFFER(parent)
+			new: string/make-at stack/push* 16 + string/rs-length? parent GET_UNIT(s)
+			actions/form element new null 0
+			string/concatenate new parent -1 0 yes yes
+			set-type as red-value! new TYPE_OF(parent)
+		]
+		as red-value! new
+	]
+
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		part: simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+		part
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+		/local
+			blk		[red-block!]
+			method	[red-word!]
+			header	[red-block!]
+			action	[integer!]
+			sym		[integer!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+
+		either TYPE_OF(data) = TYPE_BLOCK [
+			blk: as red-block! data
+			method: as red-word! block/rs-head blk
+			sym: symbol/resolve method/symbol
+			action: case [
+				sym = words/get  [HTTP_GET]
+				sym = words/put  [HTTP_PUT]
+				sym = words/post [HTTP_POST]
+				true [--NOT_IMPLEMENTED-- 0]
+			]
+			header: as red-block! method + 1
+			data: as red-value! method + 2
+		][
+			header: null
+			action: HTTP_POST
+		]
+		
+		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+		part
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_URL
@@ -131,10 +245,10 @@ url: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
@@ -158,7 +272,7 @@ url: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -167,10 +281,11 @@ url: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -185,14 +300,14 @@ url: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

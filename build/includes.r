@@ -25,15 +25,27 @@ write %build/bin/sources.r set-cache [
 		%lexer.red
 		%natives.red
 		%operators.red
+		%reactivity.red
 		%routines.red
 		%scalars.red
 		%system.red
+		%codecs/ [
+			%bmp.red
+			%gif.red
+			%jpeg.red
+			%png.red
+		]
 		%console/ [
+			%auto-complete.red
 			%console.red
+			%engine.red
+			%gui-console.red
 			%help.red
 			%input.red
 			%wcwidth.reds
 			%POSIX.reds
+			%terminal.reds
+			%windows.reds
 			%win32.reds
 		]
 	]
@@ -47,15 +59,18 @@ write %build/bin/sources.r set-cache [
 		%natives.reds
 		%parse.reds
 		%random.reds
+		%crypto.reds
 		%red.reds
 		%redbin.reds
 		%sort.reds
 		%hashtable.reds
+		%ownership.reds
 		%stack.reds
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
 		%crush.reds
+		%utils.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -66,12 +81,14 @@ write %build/bin/sources.r set-cache [
 			%context.reds
 			%datatype.reds
 			%error.reds
+			%event.reds
 			%file.reds
 			%float.reds
 			%function.reds
 			%get-path.reds
 			%get-word.reds
 			%hash.reds
+			%image.reds
 			%integer.reds
 			%issue.reds
 			%lit-path.reds
@@ -95,6 +112,8 @@ write %build/bin/sources.r set-cache [
 			%string.reds
 			%structures.reds
 			%symbol.reds
+			%tag.reds
+			%time.reds
 			%typeset.reds
 			%tuple.reds
 			%unset.reds
@@ -109,11 +128,43 @@ write %build/bin/sources.r set-cache [
 			%POSIX.reds
 			%syllable.reds
 			%win32.reds
+			%COM.reds
+			%image-gdiplus.reds
+			%win32-cli.reds
+			%win32-gui.reds
+		]
+	]
+	%modules/ [
+		%view/ [
+			%view.red
+			%draw.red
+			%styles.red
+			%VID.red
+			%backends/ [
+				%platform.red
+				%windows/ [
+					%base.reds
+					%button.reds
+					%camera.reds
+					%classes.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gui.reds
+					%menu.reds
+					%panel.reds
+					%para.reds
+					%tab-panel.reds
+					%text-list.reds
+					%win32.reds
+				]
+			]
 		]
 	]
 	%utils/ [
 		%extractor.r
 		%redbin.r
+		%call.r
 	]
 	%system/ [
 		%compiler.r
@@ -121,6 +172,11 @@ write %build/bin/sources.r set-cache [
 		%emitter.r
 		%linker.r
 		%loader.r
+		%assets/ [
+			%red.ico
+			%red-3D.ico
+			%red-mono.ico
+		]
 		%runtime/ [
 			%android.reds
 			%common.reds
@@ -158,6 +214,7 @@ write %build/bin/sources.r set-cache [
 			%secure-clean-path.r
 			%virtual-struct.r
 			%profiler.r
+			%unicode.r
 		]
 	]
 ]

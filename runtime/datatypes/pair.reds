@@ -27,10 +27,6 @@ pair: context [
 		right: left + 1
 		
 		assert TYPE_OF(left) = TYPE_PAIR
-		assert any [
-			TYPE_OF(right) = TYPE_PAIR
-			TYPE_OF(right) = TYPE_INTEGER
-		]
 		
 		switch TYPE_OF(right) [
 			TYPE_PAIR 	 [
@@ -43,7 +39,7 @@ pair: context [
 				y: x
 			]
 			default [
-				print-line "*** Math Error: unsupported right operand for pair operation"
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		
@@ -59,36 +55,41 @@ pair: context [
 		]
 		left
 	]
-
-	make-in: func [
-		parent 	[red-block!]
+	
+	make-at: func [
+		slot 	[red-value!]
 		x 		[integer!]
 		y 		[integer!]
-		/local
-			pair [red-pair!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
-		
-		pair: as red-pair! ALLOC_TAIL(parent)
-		pair/header: TYPE_PAIR
-		pair/x: x
-		pair/y: y
-	]
-	
-	push: func [
-		value	[integer!]
-		value2  [integer!]
 		return: [red-pair!]
 		/local
 			pair [red-pair!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
 		
-		pair: as red-pair! stack/push*
+		pair: as red-pair! slot
 		pair/header: TYPE_PAIR
-		pair/x: value
-		pair/y: value2
+		pair/x: x
+		pair/y: y
 		pair
+	]
+	
+	make-in: func [
+		parent 	[red-block!]
+		x 		[integer!]
+		y 		[integer!]
+		return: [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
+		make-at ALLOC_TAIL(parent) x y
+	]
+	
+	push: func [
+		x		[integer!]
+		y		[integer!]
+		return: [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
+		make-at stack/push* x y
 	]
 
 	;-- Actions --
@@ -100,6 +101,9 @@ pair: context [
 		/local
 			int	 [red-integer!]
 			int2 [red-integer!]
+			fl	 [red-float!]
+			x	 [integer!]
+			y	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
 
@@ -108,17 +112,33 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
-			default [
+			TYPE_BLOCK [
 				int: as red-integer! block/rs-head as red-block! spec
 				int2: int + 1
 				if any [
-					2 <> block/rs-length? as red-block! spec
-					TYPE_OF(int)  <> TYPE_INTEGER
-					TYPE_OF(int2) <> TYPE_INTEGER
+					2 > block/rs-length? as red-block! spec
+					all [TYPE_OF(int)  <> TYPE_INTEGER TYPE_OF(int)  <> TYPE_FLOAT]
+					all [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(int2) <> TYPE_FLOAT]
 				][
-					print-line "*** MAKE Error: pair expects a block with two integers"
+					fire [TO_ERROR(syntax malconstruct) spec]
 				]
-				push int/value int2/value
+				x: either TYPE_OF(int) = TYPE_FLOAT [
+					fl: as red-float! int
+					float/to-integer fl/value
+				][
+					int/value
+				]
+				y: either TYPE_OF(int2) = TYPE_FLOAT [
+					fl: as red-float! int2
+					float/to-integer fl/value
+				][
+					int2/value
+				]	
+				push x y
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) spec]
+				push 0 0
 			]
 		]
 	]
@@ -200,6 +220,8 @@ pair: context [
 			w	 [red-word!]
 			axis [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
+		
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
@@ -222,10 +244,14 @@ pair: context [
 		]
 		either value <> null [
 			int: as red-integer! stack/arguments
+			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
+			object/check-owner as red-value! parent
 			as red-value! int
 		][
-			integer/push either axis = 1 [parent/x][parent/y]
+			int: integer/push either axis = 1 [parent/x][parent/y]
+			stack/pop 1									;-- avoid moving stack top
+			int
 		]
 	]
 	
@@ -380,6 +406,7 @@ pair: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			:pick
 			null			;poke

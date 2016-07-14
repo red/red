@@ -119,9 +119,10 @@ error: context [
 		obj		[red-object!]
 		return: [red-block!]
 		/local
-			value [red-value!]
-			tail  [red-value!]
-			type  [integer!]
+			value  [red-value!]
+			tail   [red-value!]
+			buffer [red-string!]
+			type   [integer!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -132,9 +133,10 @@ error: context [
 				type = TYPE_WORD
 				type = TYPE_GET_WORD
 			][
-				copy-cell 
-					object/rs-select obj value
-					value
+				buffer: string/rs-make-at stack/push* 16
+				actions/mold object/rs-select obj value buffer no no yes null 0 0
+				copy-cell as red-value! buffer value
+				stack/pop 1
 			]
 			value: value + 1
 		]
@@ -149,8 +151,6 @@ error: context [
 		return:	 [red-object!]
 		/local
 			new		[red-object!]
-			obj		[red-object!]
-			series	[red-series!]
 			errors	[red-object!]
 			base	[red-value!]
 			value	[red-value!]
@@ -171,7 +171,6 @@ error: context [
 			no
 			null
 		
-		series: as red-series! spec
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
 		new/class:  0
 		new/on-set: null
@@ -264,6 +263,7 @@ error: context [
 			value	[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
+			bool	[red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
 		
@@ -304,8 +304,11 @@ error: context [
 			part: part - 3
 		]
 		
-		value: #get system/console
-		if TYPE_OF(value) = TYPE_NONE [
+		bool: as red-logic! #get system/state/trace?
+		if all [
+			TYPE_OF(bool) = TYPE_LOGIC
+			bool/value
+		][
 			value: base + field-stack
 			if TYPE_OF(value) = TYPE_INTEGER [
 				string/concatenate-literal buffer "^/*** Stack: "
@@ -380,6 +383,7 @@ error: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

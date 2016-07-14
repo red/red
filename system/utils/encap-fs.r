@@ -55,11 +55,12 @@ encap-fs: context [
 				file: mold filename: file
 				insert tail out "^/^-"
 				insert tail out file
+				insert tail out #" "
 				either find/only text-files suffix? file [
 					insert tail out "^-^-"
 					insert tail out mold read filename
 				][
-					insert tail out read/binary filename
+					insert tail out mold read/binary filename
 				]
 				
 			]
@@ -87,7 +88,7 @@ encap-fs: context [
 		set 'exists?-cache :exists?
 		set 'set-cache-base none
 		set 'do-cache func [file][do load file]
-		set 'load-cache set 'load-cache-binary: :load
+		set 'load-cache set 'load-cache-binary :load
 		set 'read-cache :read
 		set 'read-binary-cache func [file [file!]][read/binary file]
 	]

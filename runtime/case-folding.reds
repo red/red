@@ -1129,7 +1129,6 @@ case-folding: context [
 		op		 [integer!]
 		flags	 [integer!]
 		return:  [integer!]
-
 	][
 		p1/value - p2/value
 	]
@@ -1229,6 +1228,7 @@ case-folding: context [
 			char  [red-char!]
 			str	  [red-string!]
 			str2  [red-string!]
+			w	  [red-word!]
 			unit  [integer!]
 			unit2 [integer!]
 			s	  [series!]
@@ -1265,9 +1265,7 @@ case-folding: context [
 				if negative? len [len: 0]
 			]
 
-
 			i: 0
-
 			while [i < len][
 				cp: switch unit [
 					Latin1 [as-integer p/value]
@@ -1283,6 +1281,8 @@ case-folding: context [
 				i: i + 1
 				p: p + unit
 			]
+			w: either upper? [words/_uppercase][words/_lowercase]
+			ownership/check as red-value! str w null str/head len
 		]
 		arg
 	]

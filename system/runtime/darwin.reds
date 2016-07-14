@@ -86,7 +86,9 @@ siginfo!: alias struct! [
 	]
 ]
 
-#define UCTX_INSTRUCTION(ctx) [ctx/mcontext/eip]
+#define UCTX_INSTRUCTION(ctx)		[ctx/mcontext/eip]
+#define UCTX_GET_STACK_TOP(ctx)		[ctx/mcontext/esp]
+#define UCTX_GET_STACK_FRAME(ctx)	[ctx/mcontext/ebp]
 
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack

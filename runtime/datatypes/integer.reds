@@ -153,13 +153,14 @@ integer: context [
 			TYPE_OF(right) = TYPE_PERCENT
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
+			TYPE_OF(right) = TYPE_TIME
 		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
 				left/value: do-math-op left/value right/value type
 			]
-			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
+			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
 			TYPE_PAIR  [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
@@ -176,8 +177,8 @@ integer: context [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
 				tp: (as byte-ptr! left) + 4
-				size: as-integer tp/1
-				n: 1
+				size: TUPLE_SIZE?(right)
+				n: 0
 				until [
 					n: n + 1
 					v: as-integer tp/n
@@ -190,7 +191,7 @@ integer: context [
 					]
 					either v > 255 [v: 255][if negative? v [v: 0]]
 					tp/n: as byte! v
-					n > size
+					n = size
 				]
 			]
 			default [
@@ -198,6 +199,19 @@ integer: context [
 			]
 		]
 		as red-value! left
+	]
+
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! slot
+		int/header: TYPE_INTEGER
+		int/value: value
+		int
 	]
 
 	make-in: func [
@@ -304,9 +318,10 @@ integer: context [
 				int/header: TYPE_INTEGER
 				int/value: spec/value
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				f: as red-float! type
-				f/header: TYPE_FLOAT
+				f/header: type/value
 				f/value: to-float spec/value
 			]
 			TYPE_STRING [
@@ -470,18 +485,14 @@ integer: context [
 		return: [integer!]
 		/local
 			res  [integer!]
-			neg? [logic!]
 	][
 		res: 1
-		neg?: false
-
-		if exp < 0 [neg?: true exp: 0 - exp]
 		while [exp <> 0][
 			if as logic! exp and 1 [res: res * base]
 			exp: exp >> 1
 			base: base * base
 		]
-		either neg? [1 / res][res]
+		res
 	]
 
 	power: func [
@@ -650,6 +661,7 @@ integer: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

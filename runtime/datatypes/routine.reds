@@ -49,6 +49,7 @@ routine: context [
 		spec	 [red-block!]
 		body	 [red-block!]
 		code	 [integer!]
+		ret-type [integer!]
 		return:	 [red-routine!]							;-- return function's local context
 		/local
 			cell   [red-routine!]
@@ -60,9 +61,10 @@ routine: context [
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
 		cell: as red-routine! stack/push*
-		cell/header: TYPE_ROUTINE						;-- implicit reset of all header flags
-		cell/spec:	 spec/node
-		cell/more:	 alloc-cells 4
+		cell/header:   TYPE_ROUTINE						;-- implicit reset of all header flags
+		cell/ret-type: ret-type
+		cell/spec:	   spec/node
+		cell/more:	   alloc-cells 4
 		
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
@@ -141,6 +143,7 @@ routine: context [
 		if type <> TYPE_ROUTINE [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -199,6 +202,7 @@ routine: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

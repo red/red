@@ -46,6 +46,8 @@ stack: context [										;-- call stack
 	body-symbol:	0									;-- symbol ID
 	anon-symbol:	0									;-- symbol ID
 	
+	where-ctop:		as call-frame!	0					;-- saved call stack position for "Where:" error field
+	
 	#define MARK_STACK(type) [
 		func [fun [red-word!]][mark fun type]
 	]
@@ -117,8 +119,8 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
 		if ctop = c-end [
-			print-line ["^/*** Error: call stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
@@ -135,8 +137,6 @@ stack: context [										;-- call stack
 
 	reset: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
@@ -146,8 +146,6 @@ stack: context [										;-- call stack
 	
 	keep: func [
 		return:  [cell!]
-		/local
-			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
@@ -187,7 +185,7 @@ stack: context [										;-- call stack
 			p	[call-frame!]
 			sym [integer!]
 	][
-		p: ctop
+		p: either where-ctop = null [ctop][where-ctop]
 		until [
 			p: p - 1
 			sym: p/header >> 8 and FFFFh
@@ -196,6 +194,7 @@ stack: context [										;-- call stack
 				p < cbottom
 			]
 		]
+		where-ctop: null
 		word/at p/ctx sym
 	]
 	
@@ -254,7 +253,8 @@ stack: context [										;-- call stack
 	]
 	
 	unroll-frames: func [
-		flags [integer!]
+		flags  [integer!]
+		inner? [logic!]									;-- YES: stay in inner frame
 		/local
 			type [integer!]
 	][
@@ -268,8 +268,9 @@ stack: context [										;-- call stack
 				type = FRAME_TRY_ALL
 			]
 		]
+		if inner? [ctop: ctop + 1]
 		STACK_SET_FRAME
-		ctop: ctop + 1									;-- ctop points past the current call frame
+		unless inner? [ctop: ctop + 1]					;-- ctop points past the current call frame
 	]
 
 	unroll: func [
@@ -280,10 +281,15 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
 
 		last: arguments
-		unroll-frames flags
+		unroll-frames flags no
 		copy-cell last ctop/prev
 		arguments: ctop/prev
 		top: arguments
+	]
+	
+	unroll-loop: func [inner? [logic!]][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unroll-loop"]]
+		unroll-frames FRAME_LOOP inner?
 	]
 	
 	adjust: does [
@@ -298,6 +304,7 @@ stack: context [										;-- call stack
 		part	[integer!]
 		return: [integer!]
 		/local
+			value [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]
@@ -344,33 +351,31 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			saved [red-value!]
 			flags [integer!]
 			all?  [logic!]
 	][
-		error/set-where err as red-value! get-call
-		set-stack err
+		if ctop > cbottom [
+			error/set-where err as red-value! get-call
+			set-stack err
 		
-		all?: (error/get-type err) = words/errors/throw/symbol
-		flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-		
-		extra: top
-		unroll-frames flags
-		
-		ctop: ctop - 1
-		assert ctop >= cbottom
-		top: extra
-		
+			all?: (error/get-type err) = words/errors/throw/symbol
+			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
+
+			extra: top
+			unroll-frames flags no
+
+			ctop: ctop - 1
+			assert ctop >= cbottom
+			top: extra
+		]
 		if all [
 			ctop = cbottom 
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY)
 			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
 		][
-			saved: arguments
-			arguments: extra							;-- use the top stack frame @@ overflows!
 			set-last as red-value! err
-			natives/print*
-			arguments: saved
+			natives/print* no
+			quit -2
 		]
 		stack/push as red-value! err
 		throw RED_THROWN_ERROR
@@ -383,7 +388,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -391,6 +395,7 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
+			ctop: ctop - 1
 			if any [
 				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
 				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
@@ -398,7 +403,6 @@ stack: context [										;-- call stack
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
-			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
@@ -411,7 +415,6 @@ stack: context [										;-- call stack
 			either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either all [return? not cont?][set-last result][unset/push-last]
@@ -429,7 +432,6 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
@@ -454,7 +456,6 @@ stack: context [										;-- call stack
 			fire [TO_ERROR(throw return)]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either return? [
@@ -473,13 +474,14 @@ stack: context [										;-- call stack
 			result	  [red-value!]
 			save-top  [red-value!]
 			save-ctop [call-frame!]
-			p		  [call-frame!]
 	][
 		result:	   arguments
 		save-top:  top
 		save-ctop: ctop
 		
-		;-- unwind the stack and determine the outcome of a break/continue exception
+		if where-ctop = null [where-ctop: ctop]
+		
+		;-- unwind the stack and determine the outcome of a throw exception
 		until [
 			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
@@ -498,7 +500,6 @@ stack: context [										;-- call stack
 			fire [TO_ERROR(throw throw) result]
 		][
 			ctop: ctop + 1
-			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			push result
@@ -548,8 +549,8 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			print-line ["^/*** Error: arguments stack overflow!^/"]
-			throw RED_THROWN_ERROR
+			top: top - 4								;-- make space within the stack for error processing
+			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
 	]

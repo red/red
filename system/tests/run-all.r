@@ -53,8 +53,7 @@ print ["This test started at" start-time]
   --run-script-quiet %source/compiler/namespace-test.r
   --run-script-quiet %source/compiler/compiles-ok-test.r
   --run-script-quiet %source/compiler/dylib-test.r
-  ;--run-test-file-quiet %source/compiler/define-test.reds
-
+  --run-test-file-quiet %source/compiler/define-test.reds
 ===end-group===
 
 ===start-group=== "Datatype tests"
@@ -105,9 +104,6 @@ print ["This test started at" start-time]
 ===start-group=== "Conditional tests"
   --run-test-file-quiet %source/units/conditional-test.reds
 ===end-group===
-
-;===start-group=== "Runtime tests"
-;===end-group===
 
 ===start-group=== "Auto-tests"
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds

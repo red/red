@@ -128,6 +128,9 @@ typeset: context [
 					ts/array2: ts/array2 or ts2/array2
 					ts/array3: ts/array3 or ts2/array3
 				]
+				default [
+					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
+				]
 			]
 			pos: pos + 1
 		]
@@ -274,9 +277,8 @@ typeset: context [
 		/local
 			array	[byte-ptr!]
 			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
-			value	[integer!]
+			name	[names!]
 			id		[integer!]
-			base	[integer!]
 			cnt		[integer!]
 			s		[series!]
 			part?	[logic!]
@@ -342,6 +344,7 @@ typeset: context [
 		if type <> TYPE_TYPESET [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -376,6 +379,7 @@ typeset: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -449,6 +453,7 @@ typeset: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

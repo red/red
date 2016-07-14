@@ -12,10 +12,7 @@ Red/System [
 
 #define CHECK_UNSET(value word) [
 	if TYPE_OF(value) = TYPE_UNSET [
-		fire [
-			TO_ERROR(script no-value)
-			word
-		]
+		fire [TO_ERROR(script need-value) word]
 	]
 ]
 
@@ -34,7 +31,7 @@ word: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		_context/add-global symbol/make str
+		_context/add-global-word symbol/make str yes
 	]
 	
 	make-at: func [
@@ -91,15 +88,25 @@ word: context [
 		node	[node!]
 		index	[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+
+		push from node index
+	]
+	
+	from: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-word!]
 		/local
 			ctx	[red-context!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/from"]]
 		
 		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
-		push as red-word! s/offset + index
+		as red-word! s/offset + index
 	]
 	
 	at: func [
@@ -115,8 +122,12 @@ word: context [
 
 		ctx: TO_CTX(node)
 		idx: _context/find-word ctx sym no
-		s: as series! ctx/symbols/value
-		as red-word! s/offset + idx
+		either idx < 0 [
+			_context/add-global sym
+		][
+			s: as series! ctx/symbols/value
+			as red-word! s/offset + idx
+		]
 	]
 	
 	get-in: func [
@@ -175,21 +186,37 @@ word: context [
 		stack/set-last value
 	]
 
+	replace: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
 	set-in: func [
-		node  [node!]
-		index [integer!]
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
 		/local
 			ctx	   [red-context!]
 			value  [red-value!]
 			values [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
-
+		
 		value: stack/arguments
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index
-		stack/set-last value
+		value
 	]
 	
 	set-local: func [
@@ -223,10 +250,25 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
 		value: copy-cell _context/get word stack/push*
-		CHECK_UNSET(value word)
+		if TYPE_OF(value) = TYPE_UNSET [
+			fire [TO_ERROR(script no-value) word]
+		]
 		value
 	]
-	
+
+	to-string: func [
+		w		[red-word!]
+		return: [red-string!]
+		/local
+			s	[series!]
+			str [red-string!]
+	][
+		s: GET_BUFFER(symbols)
+		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/head: 0
+		str
+	]
+
 	;-- Actions --
 	
 	form: func [
@@ -236,17 +278,19 @@ word: context [
 		part 	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
+			s		[series!]
+			str		[red-string!]
+			saved	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
 		
 		s: GET_BUFFER(symbols)
-		
-		string/form 
-			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
-			buffer
-			arg
-			part
+		str: as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are partial overlapping
+		saved: str/head
+		str/head: 0
+		part: string/form str buffer arg part
+		str/head: saved
+		part
 	]
 	
 	mold: func [
@@ -299,9 +343,10 @@ word: context [
 			COMP_NOT_EQUAL [
 				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
+			COMP_SAME
 			COMP_STRICT_EQUAL [
 				res: as-integer any [
-					type <> TYPE_WORD
+					type <> TYPE_OF(arg1)
 					arg1/symbol <> arg2/symbol
 				]
 			]
@@ -313,6 +358,26 @@ word: context [
 			]
 		]
 		res
+	]
+	
+	index?: func [
+		return: [red-value!]
+		/local
+			w	  [red-word!]
+			int	  [red-integer!]
+			index [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/index?"]]
+
+		w: as red-word! stack/arguments
+		int: as red-integer! w
+		index: w/index
+	
+		either index = -1 [int/header: TYPE_NONE][
+			int/header: TYPE_INTEGER
+			int/value:  index + 1						;-- return a 1-based value
+		]
+		as red-value! int
 	]
 
 	init: does [
@@ -357,9 +422,10 @@ word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			:index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

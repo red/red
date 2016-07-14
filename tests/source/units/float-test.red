@@ -107,8 +107,8 @@ Red [
 	--test-- "float-loc-1"
 		pi: local-float 3.14159265358979
 		--assert pi = 3.14159265358979
-		;--assert -1.0 = cos pi
-		;--assert -1.0 = local-float cos pi
+		--assert -1.0 = cos pi
+		--assert -1.0 = local-float cos pi
 
 	--test-- "float-loc-2"
 		ff: local-float pi
@@ -118,7 +118,7 @@ Red [
 		local-float2: func [n [float!] return: [float!] /local p][p: n local-float p]
 
 		pi: local-float2 3.14159265358979
-		;--assert -1.0 = local-float2 cos pi
+		--assert -1.0 = local-float2 cos pi
 		ff: local-float2 pi
 		--assert pi = local-float2 ff
 
@@ -126,19 +126,19 @@ Red [
 		local-float3: func [n [float!] return: [float!] /local p [float!]][p: n local-float p]
 
 		pi: local-float3 3.14159265358979
-		;--assert -1.0 = local-float3 cos pi
+		--assert -1.0 = local-float3 cos pi
 		ff: local-float3 pi
 		--assert pi = local-float3 ff
 
 	--test-- "float-loc-5"
 		local-float4: func [n [float!] return: [float!] /local r p][p: n p]
-		;--assert -1.0 = local-float4 cos pi
+		--assert -1.0 = local-float4 cos pi
 		ff: local-float4 pi
 		--assert pi = local-float4 ff
 
 	--test-- "float-loc-6"
 		local-float5: func [n [float!] return: [float!] /local r p][p: n local-float p]
-		;--assert -1.0 = local-float5 cos pi
+		--assert -1.0 = local-float5 cos pi
 		ff: local-float5 pi
 		--assert pi = local-float5 ff
 
@@ -165,61 +165,61 @@ Red [
 
 ===end-group===
 
-;===start-group=== "float members in object!"
+===start-group=== "float members in object!"
 
-;	--test-- "float-object-1"
-;		sf1: make object! [
-;			a: 0.0
-;		]
-;		--assert 0.0 = sf1/a
+	--test-- "float-object-1"
+		sf1: make object! [
+			a: 0.0
+		]
+		--assert 0.0 = sf1/a
 
-;	--test-- "float-object-2"
-;		sf2: make object! [
-;			a: 0.0
-;		]
-;		sf1/a: 1.222090944E+33
-;		--assert 1.222090944E+33 = sf1/a
+	--test-- "float-object-2"
+		sf2: make object! [
+			a: 0.0
+		]
+		sf1/a: 1.222090944E+33
+		--assert 1.222090944E+33 = sf1/a
 
-;	--test-- "float-object-3"
-;		sf3: make object! [
-;			a: 0.0
-;			b: 0.0
-;		]
-;		sf3/a: 1.222090944E+33
-;		sf3/b: 9.99999E-45
+	--test-- "float-object-3"
+		sf3: make object! [
+			a: 0.0
+			b: 0.0
+		]
+		sf3/a: 1.222090944E+33
+		sf3/b: 9.99999E-45
 
-;		--assert 1.222090944E+33 = sf3/a
-;		--assert 9.99999E-45 = sf3/b
+		--assert 1.222090944E+33 = sf3/a
+		--assert 9.99999E-45 = sf3/b
 
-;	--test-- "float-object-4"
-;		sf4: make object! [
-;			c: none
-;			a: 0.0
-;			l: false
-;			b: 0.0
-;		]
-;		sf4/a: 1.222090944E+33
-;		sf4/b: 9.99999E-45
-;		--assert 1.222090944E+33 = sf4/a
-;		--assert 9.99999E-45 = sf4/b
+	--test-- "float-object-4"
+		sf4: make object! [
+			c: none
+			a: 0.0
+			l: false
+			b: 0.0
+		]
+		sf4/a: 1.222090944E+33
+		sf4/b: 9.99999E-45
+		--assert 1.222090944E+33 = sf4/a
+		--assert 9.99999E-45 = sf4/b
 
-;	--test-- "float-object-5"
-;		sf5: make object! [f: 0.0 i: 0]
+	--test-- "float-object-5"
+		sf5: make object! [f: 0.0 i: 0]
 
-;		sf5/i: 1234567890
-;		sf5/f: 3.14159265358979
-;		--assert sf5/i = 1234567890
-;		--assert sf5/f = pi
+		sf5/i: 1234567890
+		sf5/f: 3.14159265358979
+		--assert sf5/i = 1234567890
+		--assert sf5/f = pi
 
-;	--test-- "float-object-6"
-;		sf6: make object! [i: 0 f: 0.0]
+	--test-- "float-object-6"
+		sf6: make object! [i: 0 f: 0.0]
 
-;		sf6/i: 1234567890
-;		sf6/f: 3.14159265358979
-;		--assert sf6/i = 1234567890
-;		--assert sf6/f = pi
+		sf6/i: 1234567890
+		sf6/f: 3.14159265358979
+		--assert sf6/i = 1234567890
+		--assert sf6/f = pi
 
-;===end-group===
+===end-group===
 
 ===start-group=== "expressions with returned float values"
 
@@ -249,8 +249,7 @@ Red [
 
 	fcfoo: func [a [float!] return: [float!]][a]
 
-	;fcptr: declare struct! [a [float!]]
-	;fcptr/a: 3.0
+	fcobj: make object! [a: 3.0]
 
 	fc2: 3.0
 
@@ -260,37 +259,37 @@ Red [
 		--assert 2.0 = fc1
 
 	--test-- "fc-2"
-		--assert 5.0 - 3.0 = 2.0							;-- imm/imm
+		--assert 5.0 - 3.0 = 2.0
 
 	--test-- "fc-3"
-		--assert 5.0 - fc2 = 2.0							;-- imm/ref
+		--assert 5.0 - fc2 = 2.0
 
 	--test-- "fc-4"
-		--assert 5.0 - (fcfoo 3.0) = 2.0					;-- imm/reg(block!)
+		--assert 5.0 - (fcfoo 3.0) = 2.0
 
-	;--test-- "fc-5"
-		;--assertf~= 5.0 - fcptr/a 2.0 1E-10				;-- imm/reg(path!)
+	--test-- "fc-5"
+		--assertf~= 5.0 - fcobj/a 2.0 1E-10
 
 	--test-- "fc-6"
-		--assert fc2 - 5.0 = -2.0							;-- ref/imm
+		--assert fc2 - 5.0 = -2.0
 
 	--test-- "fc-7"
-		--assert fc2 - (fcfoo 5.0) = -2.0					;-- ref/reg(block!)
+		--assert fc2 - (fcfoo 5.0) = -2.0
 
-	;--test-- "fc-8"
-		;--assert fc2 - fcptr/a = 0.0						;-- ref/reg(path!)
+	--test-- "fc-8"
+		--assert fc2 - fcobj/a = 0.0						
 
 	--test-- "fc-9"
-		--assert (fcfoo 5.0) - 3.0 = 2.0					;-- reg(block!)/imm
+		--assert (fcfoo 5.0) - 3.0 = 2.0
 
 	--test-- "fc-10"
-		--assert (fcfoo 5.0) - (fcfoo 3.0) = 2.0			;-- reg(block!)/reg(block!)
+		--assert (fcfoo 5.0) - (fcfoo 3.0) = 2.0
 
-	;--test-- "fc-11"
-		;--assert (fcfoo 5.0) - fcptr/a = 2.0				;-- reg(block!)/reg(path!)
+	--test-- "fc-11"
+		--assert (fcfoo 5.0) - fcobj/a = 2.0
 
-	;--test-- "fc-12"
-		;--assert fcptr/a - (fcfoo 5.0) = 2.0				;-- reg(path!)/reg(block!)
+	--test-- "fc-12"
+		--assert fcobj/a - (fcfoo 5.0) = -2.0
 
 ===end-group===
 
@@ -403,15 +402,13 @@ Red [
 	--test-- "special-arithmetic-6"  --assert "-1.#INF" = to string! 9999999.9 - 1.#INF
 	--test-- "special-arithmetic-7"  --assert "1.#INF"  = to string! 1.#INF + 1.#INF
 	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
-
-	;@@ tests below throw errors in default
-	;--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
-	;--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
-	;--test-- "special-arithmetic-4"  --assert "1.#NaN"  = to string! 0.0 / 0.0
-	;--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
-	;--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
-	;--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
-	;--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
+	--test-- "special-arithmetic-2"  --assert error? try [to string! 1.0 / 0.0]
+	--test-- "special-arithmetic-3"  --assert error? try [to string! -1.0 / 0.0]
+	--test-- "special-arithmetic-4"  --assert error? try [to string! 0.0 / 0.0]
+	--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
+	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
+	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
+	--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
 ===end-group===
 
 ===start-group=== "special value equality (NaNs and INF)"
@@ -426,7 +423,7 @@ Red [
 	--test-- "special-equality-8"  --assert -1.#INF < 1.#INF
 	--test-- "special-equality-9"  --assert -0.0 = 0.0
 
-	;@@ tests below throw errors in default
+	; Issue #2001
 	;--test-- "special-equality-10"  --assert 1.#NaN = 1.#NaN			= false
 	;--test-- "special-equality-11"  --assert 1.#NaN <> 1.#NaN			= true
 	;--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false

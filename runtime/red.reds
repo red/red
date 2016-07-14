@@ -37,6 +37,22 @@ red: context [
 	#include %case-folding.reds
 	#include %sort.reds
 	#include %hashtable.reds
+	#include %ownership.reds
+	
+	;--------------------------------------------
+	;-- Import OS dependent image functions
+	;-- load-image: func [								;-- return handle
+	;-- 	filename [c-string!]
+	;-- 	return:  [integer!]
+	;-- ]
+	;--------------------------------------------
+	#switch OS [
+		Windows  [#include %platform/image-gdiplus.reds]
+		Syllable []
+		MacOSX	 []
+		FreeBSD  []
+		#default []
+	]
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
@@ -80,6 +96,9 @@ red: context [
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
 	#include %datatypes/binary.reds
+	#include %datatypes/time.reds
+	#include %datatypes/tag.reds
+	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	
 	;-- Debugging helpers --
 	
@@ -90,15 +109,18 @@ red: context [
 	#include %natives.reds
 	#include %parse.reds
 	#include %random.reds
+	#include %crypto.reds
 	#include %stack.reds
 	#include %interpreter.reds
-	#include %simple-io.reds						;-- temporary file IO support
+	#include %simple-io.reds							;-- temporary file IO support
 	#include %redbin.reds
+	#include %utils.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
-	root:	 	declare red-block!						;-- root block
-	symbols: 	declare red-block! 						;-- symbols table
-	global-ctx: declare node!							;-- global context
+	root:	 	as red-block! 0							;-- root block
+	symbols: 	as red-block! 0 						;-- symbols table
+	global-ctx: as node! 0								;-- global context
+	verbosity:  0
 
 	;-- Booting... --
 	
@@ -137,8 +159,8 @@ red: context [
 		routine/init
 		paren/init
 		issue/init
-		file/init
 		url/init
+		file/init										;-- file! inherits from url!
 		object/init
 		bitset/init
 		point/init
@@ -151,19 +173,22 @@ red: context [
 		pair/init
 		percent/init
 		tuple/init
+		time/init
+		tag/init
+		#if OS = 'Windows [image/init]					;-- temporary
 		
 		actions/init
 		
 		;-- initialize memory before anything else
-		alloc-node-frame nodes-per-frame				;-- 5k nodes
-		alloc-series-frame								;-- first frame of 512KB
+		alloc-node-frame nodes-per-frame				;-- 10k nodes
+		alloc-series-frame								;-- first frame of 1MB
 
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
 
 		case-folding/init
-		symbol/table: _hashtable/init 1000 symbols HASH_TABLE_SYMBOL
+		symbol/table: _hashtable/init 1000 symbols HASH_TABLE_SYMBOL 1
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
@@ -171,12 +196,13 @@ red: context [
 		natives/init									;-- native specific init code
 		parser/init
 		_random/init
+		ownership/init
+		crypto/init
 		
 		stack/init
 		redbin/boot-load
 		
 		#if debug? = yes [
-			verbosity: 0
 			datatype/verbose:	verbosity
 			unset/verbose:		verbosity
 			none/verbose:		verbosity
@@ -214,6 +240,9 @@ red: context [
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity
+			time/verbose:		verbosity
+			tag/verbose:		verbosity
+			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

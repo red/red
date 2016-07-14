@@ -244,7 +244,7 @@ Red [
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block! object! path! map!] value [any-type!] /any /case return: [any-type!]]
+		--assert blk = [word [any-word! block! object! path! map!] value [any-type!] /any /case /only /some return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<
@@ -278,45 +278,47 @@ Red [
 
 ===start-group=== "Reported issues"
   	--test-- "ri1 issue #415"
-    	i415-f: func [] [
-    		g: func [] [1]
-    		g
-    	]
-    --assert 1 = i415-f
+		ri415-f: func [] [
+    		ri415-g: func [] [1]
+			ri415-g
+		]
+		--assert 1 = ri415-f
   
   	--test-- "ri2 issue #461"
   		ri2-fn: func ['word] [:word]
-  	--assert op? ri2-fn :+
+		--assert op? ri2-fn :+
   	
   	--test-- "ri3 issue #461"
   		ri3-fn: func ['word] [mold :word]
-  	--assert "'+" = ri3-fn '+
+		--assert "'+" = ri3-fn '+
   	
   	--test-- "ri4 issue #461"
   		ri4-fn: func ['word] [mold :word]
-  	--assert "+" = ri4-fn +
+ 		--assert "+" = ri4-fn +
+comment {  	
+  	--test-- "ri5 issue #420"
+  		ri5-fn: function [][
+  			g: func [] [true]
+  			g
+  		]
+  		--assert ri5-fn
+}
+ comment {   	
+  	--test-- "ri6 issue #420"
+  		ri6-fn: func [
+  			/local
+  				g
+  		][
+  			g: func [] [true]
+  			g
+  		]
+  	--assert ri6-fn
+}
   	
-  	;--test-- "ri5 issue #420"
-  	;	ri5-fn: function [][
-  	;		g: func [] [true]
-  	;		g
-  	;	]
-  	;--assert ri5-fn
-  	
-  	;--test-- "ri6 issue #420"
-  	;	ri6-fn: func [
-  	;		/local
-  	;			g
-  	;	][
-  	;		g: func [] [true]
-  	;		g
-  	;	]
-  	;--assert ri6-fn
-  	
-  	;--test-- "ri7 issue #420"
-  	;	ri7-g: func [][true]
-  	;	ri7-f: func [][g]
-  	;--assert ri7-f
+  	--test-- "ri7 issue #420"
+  		ri7-g: func [][true]
+  		ri7-f: func [][ri7-g]
+		--assert ri7-f
   	
   	--test-- "ri8 issue #443"
   		ri8-fn: func[
@@ -336,18 +338,14 @@ Red [
   	--assert 200 = ri8-j
   	
   	--test-- "ri9 issue #443"
-  		ri9-i: -1
-  		ri9-j: -2
   		ri9-fn: function[][
   			ri9-b: copy []
   			foreach [ri9-i ri9-j] [1 2 3 4] [append ri9-b ri9-i * ri9-j]
   			ri9-b
   		]
   	--assert [2 12] = ri9-fn
-  	--assert ri9-i = -1
-  	--assert ri9-j = -2
-  	;--assert unset! = type? get 'ri9-i		;-- temporary disabled to avoid the hardcoded error msg
-  	;--assert unset! = type? get 'ri9-j
+  	--assert error? try [get 'ri9-i]
+  	--assert error? try [get 'ri9-j]
 
 ===end-group===
 
@@ -358,16 +356,18 @@ Red [
 		***: make op! :infix
 		--assert 7 *** 3 = 73
 
-	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
-		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
-
-		--test-- "infix-2"
-			*+*: make op! :infix2
-			--assert 5 *+* 6 = 106
-
-		--test-- "infix-3"
-			--assert 5 *+* 6 *** 7 = 1067
-	]
+;; Test commented as routine declaration cannot be handled in a code block anymore...
+;;
+;	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
+;		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
+;
+;		--test-- "infix-2"
+;			*+*: make op! :infix2
+;			--assert 5 *+* 6 = 106
+;
+;		--test-- "infix-3"
+;			--assert 5 *+* 6 *** 7 = 1067
+;	]
 
 ===end-group===
 
@@ -429,12 +429,12 @@ Red [
 ===end-group===
 
 ===start-group=== "functionfunction"
-comment {                                       ####################################
-    --test-- "funfun1"
+comment { issue #420
+	--test-- "funfun1"
         ff1-i: 1
         ff1-f: function [][ff1-i: 2 f: func[][ff1-i] f]
         --assert 2 = ff1-f
-                                                #################################### }
+ }                                              
                                                 
     --test-- "funfun2"
         ff2-i: 1
@@ -503,7 +503,8 @@ comment {                                       ################################
         --assert none = ff8-f 
         
 if system/state/interpreted? [                          ;-- not yet supported by compiler 
-    --test-- "funfun9"
+    do [
+    	--test-- "funfun9"
         ff9-f: function [] [
             a: 1
             b: function [] [c: 2]
@@ -511,9 +512,11 @@ if system/state/interpreted? [                          ;-- not yet supported by
             c
         ]   
         --assert none = ff9-f 
+    ]
 ]
 
 if system/state/interpreted? [                          ;-- not yet supported by compiler         
+	do [
      --test-- "funfun10"
         ff10-i: 1
         ff10-f: function [] [
@@ -523,9 +526,11 @@ if system/state/interpreted? [                          ;-- not yet supported by
             ff10-i
         ]   
         --assert none = ff10-f 
+    ]
 ]
 
 if system/state/interpreted? [                          ;-- not yet supported by compiler         
+    do [
     --test-- "funfun11"
         ff11-i: 1
         ff11-f: function [] [
@@ -534,8 +539,9 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert none = ff11-f
         --assert 1 = ff11-i
+    ]
 ]        
- 
+comment { 
     --test-- "funfun12"
         ff12-i: 1
         ff12-f: function [] [
@@ -544,7 +550,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert none = ff12-f
         --assert 1 = ff12-i
- comment {                                          ####################################       
+       
     --test-- "funfun13"
         ff13-i: 1
         ff13-f: function [/extern ff13-i] [
@@ -553,7 +559,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 3 = ff13-f
         --assert 3 = ff13-i
-                                                    ####################################}      
+      
     --test-- "funfun14"
         ff14-i: 1
         ff14-f: function [/extern ff14-i] [
@@ -562,7 +568,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 3 = ff14-f
         --assert 3 = ff14-i
- comment {                                          ####################################       
+       
     --test-- "funfun15"
         ff15-i: 1
         ff15-f: func [
@@ -578,9 +584,10 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 2 = ff15-f
         --assert 1 = ff15-i     
-                                                    ####################################}
+}
                                                     
-if system/state/interpreted? [                      ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
     --test-- "funfun16"
         ff16-f: function [] [
             f2: func [i] [i: 1]
@@ -588,9 +595,11 @@ if system/state/interpreted? [                      ;-- not yet supported by com
             i
         ]
         --assert none = ff16-f
+    ]
 ]       
 
-if system/state/interpreted? [                      ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler
+	do [
     --test-- "funfun17"
         ff17-i: 10
         ff17-f: function [] [
@@ -599,13 +608,13 @@ if system/state/interpreted? [                      ;-- not yet supported by com
             ff17-i
         ]
         --assert none = ff17-f
+    ]
 ]
                                         
 ===end-group===
 
 ===start-group=== "functions with objects"
-comment {                                          #################################### 
-    --test-- "fwo1 - #965"
+--test-- "fwo1 - #965"
         fwo1-f: func [
             o object!
         ][
@@ -615,8 +624,8 @@ comment {                                          #############################
             a: "hello"
             b: " world"
         ]
-        --assert "hello world" = fwo1-f
-                                                    ####################################} 
+        --assert "hello world" = fwo1-f fwo1-o
+
 ===end-group===
 
 ===start-group=== "function with lit-arg"
@@ -680,4 +689,3 @@ comment {                                          #############################
 ===end-group===
 
 ~~~end-file~~~
-

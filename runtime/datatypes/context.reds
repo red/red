@@ -66,6 +66,16 @@ _context: context [
 	add-global: func [
 		sym		[integer!]
 		return: [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
+		
+		add-global-word sym no
+	]
+	
+	add-global-word: func [
+		sym		[integer!]
+		case?	[logic!]
+		return: [red-word!]
 		/local
 			ctx	  [red-context!]
 			word  [red-word!]
@@ -73,25 +83,32 @@ _context: context [
 			s  	  [series!]
 			id	  [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
-
 		ctx: TO_CTX(global-ctx)
-		id: find-word ctx sym no
+		id: find-word ctx sym case?
 		s: as series! ctx/symbols/value
 		
-		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
-		
-		s: as series! ctx/symbols/value
-		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
-			find-word ctx sym yes
-		][
-			(as-integer s/tail - s/offset) >> 4			;-- index is zero-base
+		if id <> -1 [
+			word: as red-word! s/offset + id	;-- word already defined in global context
+			if all [case? word/symbol <> sym][
+				word: as red-word! copy-cell as red-value! word ALLOC_TAIL(root)
+				word/symbol: sym
+			]
+			return word
 		]
+		
+		s: as series! ctx/symbols/value
 		word: as red-word! alloc-tail s
-
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: sym
+		s: as series! ctx/symbols/value
+
+		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
+			find-word ctx sym yes
+		][
+			(as-integer s/tail - s/offset) >> 4 - 1		;-- index is zero-base
+		]
+
 		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
@@ -226,7 +243,6 @@ _context: context [
 		return:	   [red-value!]
 		/local
 			values [series!]
-			sym	   [red-symbol!]
 			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
@@ -318,11 +334,12 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		if zero? slots [slots: 1]
-		node: alloc-cells 1
+		node: alloc-cells 2
 		cell: as red-context! alloc-tail as series! node/value
 		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 		cell/self: node
+		alloc-tail as series! node/value				;-- allocate a slot for obj/func back-reference
 		
 		if self? [cell/header: cell/header or flag-self-mask]
 
@@ -330,7 +347,7 @@ _context: context [
 			cell/header: TYPE_CONTEXT or flag-series-stk
 			cell/values: null							;-- will be set to stack frame dynamically
 		][
-			cell/values: alloc-cleared-cells slots
+			cell/values: alloc-unset-cells slots
 		]
 		node
 	]
@@ -403,7 +420,6 @@ _context: context [
 			value [red-value!]
 			end	  [red-value!]
 			w	  [red-word!]
-			type  [integer!]
 	][
 		value: block/rs-head body
 		end:   block/rs-tail body
@@ -466,7 +482,6 @@ _context: context [
 			cell [red-value!]
 			tail [red-value!]
 			base [red-value!]
-			word [red-word!]
 			s	 [series!]	
 	][
 		s: GET_BUFFER(spec)
@@ -532,6 +547,7 @@ _context: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

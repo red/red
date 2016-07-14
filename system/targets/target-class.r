@@ -68,7 +68,7 @@ target-class: context [
 	]
 	
 	stack-encode: func [offset [integer!]][
-		either any [								;-- local variable case
+		either any [								;-- local variables only
 			offset < -128
 			offset > 127
 		][
@@ -76,6 +76,15 @@ target-class: context [
 		][
 			skip debase/base to-hex offset 16 3
 		]
+	]
+		
+	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
+		if 4 = length? offset [
+			lcode: copy/deep lcode
+			code: either block? lcode [first back find lcode 'offset][lcode]
+			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
+		]
+		lcode
 	]
 
 	emit: func [bin [binary! char! block!]][
@@ -98,19 +107,14 @@ target-class: context [
 		gcode [binary! block! none!]				;-- global opcodes
 		pcode [binary! block! none!]				;-- PIC opcodes
 		lcode [binary! block!] 						;-- local opcodes
-		/local offset byte code
+		/local offset code
 	][
 		if object? name [name: compiler/unbox name]
 		
 		case [
 			offset: select emitter/stack name [
 				offset: stack-encode offset 			;-- local variable case
-				if 4 = length? offset [
-					lcode: copy/deep lcode
-					code: either block? lcode [first back find lcode 'offset][lcode]
-					change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
-				]
-				either block? lcode [
+				either block? lcode: adjust-disp32 lcode offset [
 					emit reduce bind lcode 'offset
 				][
 					emit lcode

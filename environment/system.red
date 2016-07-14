@@ -15,11 +15,21 @@ system: context [
 	build:	 #build-date
 		
 	words: #system [
-		obj: as red-object! stack/push*
-		obj/header: TYPE_OBJECT
-		obj/ctx:	global-ctx
-		obj/class:	-1
-		obj/on-set:	null
+		__make-sys-object: func [
+			/local
+				obj [red-object!]
+				s	[series!]
+		][
+			obj: as red-object! stack/push*
+			obj/header: TYPE_OBJECT
+			obj/ctx:	global-ctx
+			obj/class:	-1
+			obj/on-set:	null
+			
+			s: as series! global-ctx/value
+			copy-cell as red-value! obj s/offset + 1		;-- set back-reference
+		]
+		__make-sys-object
 	]
 	
 	platform: func ["Return a word identifying the operating system"][
@@ -41,7 +51,7 @@ system: context [
 		errors: context [
 			throw: object [
 				code:				0
-				type:				"Throw error"
+				type:				"Throw Error"
 				break:				"no loop to break"
 				return:				"return or exit not in function"
 				throw:				["no catch for throw:" :arg1]
@@ -54,9 +64,9 @@ system: context [
 			]
 			syntax: object [
 				code:				200
-				type:				"Syntax error"
+				type:				"Syntax Error"
 				invalid:			["invalid" :arg1 "at" :arg2]
-				missing:			["missing" :arg2 "at" :arg1]
+				missing:			["missing" :arg1 "at" :arg2]
 				no-header:			["script is missing a Red header:" :arg1]
 				no-rs-header:		["script is missing a Red/System header:" :arg1]
 				bad-header:			["script header is not valid:" :arg1]
@@ -65,7 +75,7 @@ system: context [
 			]
 			script: object [
 				code:				300
-				type:				"Script error"
+				type:				"Script Error"
 				no-value:			[:arg1 "has no value"]
 				need-value:			[:arg1 "needs a value"]
 				not-defined:		[:arg1 "word is not bound to a context"]
@@ -85,10 +95,12 @@ system: context [
 				not-related:		["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def:		["invalid function definition:" :arg1]
 				bad-func-arg:		["function argument" :arg1 "is not valid"]
-				bad-func-extern:	["invalid /extern value" :arg1]
+				bad-func-extern:	["invalid /extern value:" :arg1]
 				no-refine:			[:arg1 "has no refinement called" :arg2]
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
+				word-first:			["path must start with a word:" :arg1]
+				empty-path:			"cannot evaluate an empty path value"
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
 				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				invalid-path-get:	["unsupported type in" :arg1 "get-path"]
@@ -107,7 +119,7 @@ system: context [
 				size-limit:			["maximum limit reached:" :arg1]
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
-				;locked-word:		["protected variable - cannot modify:" :arg1]
+				locked-word:		["protected word - cannot modify:" :arg1]
 				;protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
@@ -115,6 +127,7 @@ system: context [
                 bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
+				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -125,23 +138,42 @@ system: context [
 				;parse-variable:	["PARSE - expected a variable, not:" :arg1]
 				;parse-command:		"PARSE - command cannot be used as variable:" :arg1]
 				parse-invalid-ref:	["PARSE - get-word refers to a different series!" :arg1]
-				parse-series:		["PARSE - input must be a series:" :arg1]
+				parse-block:		["PARSE - input must be of any-block! type:" :arg1]
 				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
+				parse-infinite:		["PARSE - infinite recursion at rule: [" :arg1 "]"]
+				parse-stack:		"PARSE - stack limit reached"
+				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
+				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
+				invalid-draw:		["invalid Draw dialect input at:" :arg1]
+				invalid-data-facet: ["invalid DATA facet content" :arg1]
+				face-type:			["VIEW - invalid face type:" :arg1]
+				not-window:			"VIEW - expected a window root face"
+				bad-window:			"VIEW - a window face cannot be nested in another window"
+				not-linked:			"VIEW - face not linked to a window"
+				not-event-type:		["VIEW - not a valid event type" :arg1]
+				invalid-facet-type:	["VIEW - invalid rate value:" :arg1]
+				vid-invalid-syntax:	["VID - invalid syntax at:" :arg1]
+				react-bad-func:		"REACT - /LINK option requires a function! as argument"
+				react-not-enough:	"REACT - reactive functions must accept at least 2 arguments"
+				react-no-match:		"REACT - objects block length must match reaction function arg count"
+				react-bad-obj:		"REACT - target can only contain object values"
+				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
 			]
 			math: object [
 				code:				400
-				type:				"Math error"
+				type:				"Math Error"
 				zero-divide:		"attempt to divide by zero"
 				overflow:			"math or number overflow"
 				positive:			"positive number required"
 			]
 			access: object [
 				code:				500
-				type:				"Access error"
-				;cannot-open:		["cannot open:" :arg1 "reason:" :arg2]
+				type:				"Access Error"
+				cannot-open:		["cannot open:" :arg1]
+				invalid-utf8:		["invalid UTF-8 encoding:" :arg1]
 				;not-open:			["port is not open:" :arg1]
 				;already-open:		["port is already open:" :arg1]
-				;no-connect:		["cannot connect:" :arg1 "reason:" :arg2]
+				no-connect:			["cannot connect:" :arg1 "reason: timeout"]
 				;not-connected:		["port is not connected:" :arg1]
 				;no-script:			["script not found:" :arg1]
 				;no-scheme-name:	["new scheme must have a name:" :arg1]
@@ -175,12 +207,12 @@ system: context [
 			]
 			user: object [
 				code:				800
-				type:				"User error"
+				type:				"User Error"
 				message:			[:arg1]
 			]
 			internal: object [
 				code:				900
-				type:				"Internal error"
+				type:				"Internal Error"
 				bad-path:			["bad path:" arg1]
 				not-here:			[arg1 "not supported on your system"]
 				no-memory:			"not enough memory"
@@ -192,6 +224,7 @@ system: context [
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		"error object or fields were not valid"
+				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
 			]
 		]
 
@@ -203,10 +236,11 @@ system: context [
 		]
 		
 		last-error: none
+		trace?: yes
 	]
 	
 	modules: make block! 8
-	codecs:  context []
+	codecs:  make map! 8
 	schemes: context []
 	ports:	 context []
 	
@@ -234,9 +268,9 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			none
+		path: 			what-dir
 		script: 		none
-		args: 			none
+		args: 			#system [stack/push get-cmdline-args]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none
@@ -270,6 +304,24 @@ system: context [
 				]
 			]
 		]
+
+		on-change*: func [word old new][
+			if word = 'path [
+				either file? :new [set-current-dir new][
+					set word old
+					cause-error 'script 'invalid-type reduce [type? :new]
+				]
+			]
+		]
+
+		on-deep-change*: function [owner word target action new index part][
+			if all [
+				word = 'path
+				not find [remove clear take] action
+			][
+				set-current-dir new
+			]
+		]
 	]
 	
 	script: context [
@@ -285,17 +337,8 @@ system: context [
 		]
 	]
 	
-	view: context [
-		screen: 	none
-		event-port: none
-		
-		metrics: context [
-			screen-size: 	none
-			dpi:			none
-			;scaling:		1x1
-		]
-	]
-	
-	lexer: none
-	console: none
+	lexer:		none
+	console:	none
+	view:		none
+	reactivity: none
 ]

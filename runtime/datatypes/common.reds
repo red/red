@@ -10,14 +10,18 @@ Red/System [
 	}
 ]
 
+object!-type: declare red-datatype!
+object!-type/header: TYPE_DATATYPE
+object!-type/value: TYPE_OBJECT
+
 names!: alias struct! [
 	buffer	[c-string!]								;-- datatype name string
 	size	[integer!]								;-- buffer size - 1 (not counting terminal `!`)
 	word	[red-word!]								;-- datatype name as word! value
 ]
 
-name-table:   declare names! 						;-- datatype names table
-action-table: declare int-ptr!						;-- actions jump table
+name-table:	  as names! 0	 						;-- datatype names table
+action-table: as int-ptr! 0							;-- actions jump table
 
 
 set-type: func [										;@@ convert to macro?
@@ -59,9 +63,11 @@ alloc-tail-unit: func [
 	return:  [byte-ptr!]
 	/local 
 		p	 [byte-ptr!]
+		size [integer!]
 ][
 	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
-		s: expand-series s 0
+		size: either unit > s/size [unit << 1][0]
+		s: expand-series s size
 	]
 	
 	p: as byte-ptr! s/tail
@@ -101,6 +107,20 @@ get-root-node: func [
 	obj/ctx
 ]
 
+report: func [
+	type  [red-value!]
+	id    [red-value!]
+	arg1  [red-value!]
+	arg2  [red-value!]
+	arg3  [red-value!]
+][	
+	stack/mark-native words/_body
+	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	natives/print* no
+	stack/set-last unset-value
+	stack/unwind
+]
+
 fire: func [
 	[variadic]
 	count	[integer!]
@@ -128,7 +148,22 @@ fire: func [
 	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
 ]
 
-type-check-alt: func [
+throw-make: func [
+	proto [red-value!]
+	spec  [red-block!]
+][
+	fire [TO_ERROR(script bad-make-arg) proto spec]
+]
+
+type-check-opt: func [									;-- used by #typecheck
+	ref		 [integer!]
+	expected [red-typeset!]
+	index	 [integer!]
+][
+	if ref > -1 [type-check expected index stack/arguments + ref]
+]
+
+type-check-alt: func [									;-- for compiled user code
 	ref		 [red-value!]
 	expected [red-typeset!]
 	index	 [integer!]
@@ -147,6 +182,7 @@ type-check: func [
 	arg		 [red-value!]
 	return:  [red-value!]
 	/local
+		type [integer!]
 		bits [byte-ptr!]
 		pos	 [byte-ptr!]								;-- required by BS_TEST_BIT
 		set? [logic!]									;-- required by BS_TEST_BIT
@@ -163,6 +199,7 @@ set-path*: func [
 	element [red-value!]
 ][
 	stack/set-last actions/eval-path parent element stack/arguments null no
+	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
 set-int-path*: func [
@@ -175,6 +212,7 @@ set-int-path*: func [
 		stack/arguments									;-- value to set
 		null
 		no
+	object/path-parent/header: TYPE_NONE				;-- disables owner checking
 ]
 
 eval-path*: func [
@@ -250,12 +288,23 @@ cycles: context [
 	]
 	
 	find?: func [
-		node	[node!]
+		value	[red-value!]
 		return: [logic!]
 		/local
-			p [node!]
+			obj	 [red-object!]
+			blk	 [red-block!]
+			node [node!]
+			p	 [node!]
 	][
 		if top = stack [return no]
+		
+		node: either TYPE_OF(value) = TYPE_OBJECT [
+			obj: as red-object! value
+			obj/ctx
+		][
+			blk: as red-block! value
+			blk/node
+		]
 		p: stack
 		until [
 			if node = as node! p/value [return yes]
@@ -272,26 +321,16 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			s	 [c-string!]
 			size [integer!]
 	][
-		node: either TYPE_OF(value) = TYPE_OBJECT [
-			obj: as red-object! value
-			obj/ctx
-		][
-			blk: as red-block! value
-			blk/node
-		]
-		either find? node [
+		either find? value [
 			either mold? [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
 					TYPE_PAREN	[s: "(...)"				 size: 5 ]
-					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
 					TYPE_MAP	[s: "#(...)"			 size: 6 ]
+					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
 					TYPE_OBJECT [s: "make object! [...]" size: 18]
 					default		[assert false]
 				]
@@ -326,6 +365,13 @@ words: context [
 	return*:		-1
 	self:			-1
 	values:			-1
+	owner:			-1
+	owned:			-1
+	
+	windows:		-1
+	syllable:		-1
+	macosx:			-1
+	linux:			-1
 	
 	any*:			-1
 	break*:			-1
@@ -365,6 +411,37 @@ words: context [
 	_on:			-1
 	_off:			-1
 	
+	type:			-1
+	face:			-1
+	window:			-1
+	offset:			-1
+	key:			-1
+	flag:			-1
+	code:			-1
+	picked:			-1
+	flags:			-1
+	away?:			-1
+	ctrl?:			-1
+	shift?:			-1
+	down?:			-1
+	mid-down?:		-1
+	alt-down?:		-1
+	aux-down?:		-1
+
+	get:			-1
+	put:			-1
+	post:			-1
+	head:			-1
+
+	size:			-1
+	rgb:			-1
+	alpha:			-1
+	argb:			-1
+	
+	hour:			-1
+	minute:			-1
+	second:			-1
+
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -402,8 +479,35 @@ words: context [
 	_collect: 		as red-word! 0
 	_set: 			as red-word! 0
 	
+	;-- modifying actions
+	_change:		as red-word! 0
+	_changed:		as red-word! 0
+	_clear:			as red-word! 0
+	_cleared:		as red-word! 0
+	_set-path:		as red-word! 0
+	_insert:		as red-word! 0
+	_poke:			as red-word! 0
+	_put:			as red-word! 0
+	;_remove:		as red-word! 0
+	_removed:		as red-word! 0
+	_random:		as red-word! 0
+	_reverse:		as red-word! 0
+	_sort:			as red-word! 0
+	_swap:			as red-word! 0
+	_take:			as red-word! 0
+	_taken:			as red-word! 0
+	_move:			as red-word! 0
+	_moved:			as red-word! 0
+	_trim:			as red-word! 0
+
+	;-- modifying natives
+	_uppercase:		as red-word! 0
+	_lowercase:		as red-word! 0
+	_checksum:		as red-word! 0
+	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
+	_on-deep-change*: as red-word! 0
 	
 	_type:			as red-word! 0
 	_id:			as red-word! 0
@@ -411,6 +515,8 @@ words: context [
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
 	
+	_multiply:		as red-word! 0
+	_browse:		as red-word! 0
 	
 	errors: context [
 		throw:		as red-word! 0
@@ -480,7 +586,9 @@ words: context [
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"
-		
+		owner:			symbol/make "owner"
+		owned:			symbol/make "owned"
+
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"
 		_yes:			symbol/make "yes"
@@ -488,6 +596,37 @@ words: context [
 		_on:			symbol/make "on"
 		_off:			symbol/make "off"
 		
+		type:			symbol/make "type"
+		face:			symbol/make "face"
+		window:			symbol/make "window"
+		offset:			symbol/make "offset"
+		key:			symbol/make "key"
+		flag:			symbol/make "flag"
+		code:			symbol/make "code"
+		picked:			symbol/make "picked"
+		flags:			symbol/make "flags"
+		away?:			symbol/make "away?"
+		ctrl?:			symbol/make "ctrl?"
+		shift?:			symbol/make "shift?"
+		down?:			symbol/make "down?"
+		mid-down?:		symbol/make "mid-down?"
+		alt-down?:		symbol/make "alt-down?"
+		aux-down?:		symbol/make "aux-down?"
+
+		get:			symbol/make "get"
+		put:			symbol/make "put"
+		post:			symbol/make "post"
+		head:			symbol/make "head"
+
+		size:			symbol/make "size"
+		rgb:			symbol/make "rgb"
+		alpha:			symbol/make "alpha"
+		argb:			symbol/make "argb"
+		
+		hour:			symbol/make "hour"
+		minute:			symbol/make "minute"
+		second:			symbol/make "second"
+
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx
@@ -514,6 +653,32 @@ words: context [
 		_collect: 		_context/add-global collect
 		_set: 			_context/add-global set
 		
+		;-- modifying actions
+		_change:		word/load "change"
+		_changed:		word/load "changed"
+		_clear:			word/load "clear"
+		_cleared:		word/load "cleared"
+		_set-path:		word/load "set-path"
+		_insert:		word/load "insert"
+		_move:			word/load "move"
+		_moved:			word/load "moved"
+		_poke:			word/load "poke"
+		_put:			word/load "put"
+		;_remove:		word/load "remove"
+		_removed:		word/load "removed"
+		_random:		word/load "random"
+		_reverse:		word/load "reverse"
+		_sort:			word/load "sort"
+		_swap:			word/load "swap"
+		_take:			word/load "take"
+		_taken:			word/load "taken"
+		_trim:			word/load "trim"
+
+		;-- modifying natives
+		_uppercase:		word/load "uppercase"
+		_lowercase:		word/load "lowercase"
+		_checksum:		word/load "checksum"
+		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
 		_fetch:			word/load "fetch"
@@ -526,12 +691,16 @@ words: context [
 		
 		_on-parse-event: word/load "on-parse-event"
 		_on-change*:	 word/load "on-change*"
+		_on-deep-change*: word/load "on-deep-change*"
 		
 		_type:			word/load "type"
 		_id:			word/load "id"
 		_try:			word/load "try"
 		_catch:			word/load "catch"
 		_name:			word/load "name"
+		
+		_multiply:		word/load "multiply"
+		_browse:		word/load "browse"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
@@ -541,6 +710,7 @@ words: context [
 		errors/access:	 word/load "access"
 		errors/user:	 word/load "user"
 		errors/internal: word/load "internal"
+		
 	]
 ]
 

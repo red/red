@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 12/05/2015
-	Revision: 45
+	Date: 09/03/2016
+	Revision: 46
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2970,7 +2970,7 @@ The following example is Windows-specific.
  			size 	[integer!]
  			return: [c-string!]
  		]
- 		free: "free" [
+ 		release: "free" [
  			block	[c-string!]
  		]
  	]
@@ -2984,7 +2984,7 @@ The following example is Windows-specific.
  get-env "windir" buf  max-size
 
  print buf
- free buf
+ release buf
  
 would output:
 
@@ -3395,6 +3395,19 @@ When generating a shared library, the Red/System toolchain needs to know which i
  <cconv>   : optional calling convention word (stdcall or cdecl)
     
 One or several #export directives can be used in the same Red/System library code.
+
+---#u16
+
+Converts a literal string to UTF-16LE format. The string is stored in memory in that new format with a terminal UTF-16 NUL character.
+
+<b>Syntax</b>
+
+ #u16 <string>
+
+ <string> : a literal c-string!
+ 
+Only literal strings can be statically processed by this directive.
+
     
 ===Source code organization
 
@@ -3706,6 +3719,11 @@ will output:
 
 
 ===Document History
+
+*<b>09/03/2016 - revision 46</b>
+
+*>Added #u16 directive description.
+
 
 *<b>12/05/2015 - revision 45</b>
 

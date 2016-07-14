@@ -27,7 +27,14 @@ Red/System [
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
 #define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
 #define flag-bitset-not		00080000h		;-- complement flag for bitsets
+#define flag-UTF16-cache	00040000h		;-- UTF-16 encoding for string cache buffer
+#define flag-series-owned	00020000h		;-- series is owned by an object
+#define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
+#define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
+#define flag-native-op		00010000h		;-- operator is made from a native! function
 
+#define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
+#define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
 #define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
 #define flag-self-mask		01000000h		;-- mask for self? flag
 #define body-flag			00800000h		;-- flag for op! body node
@@ -54,7 +61,10 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	24:		self?							;-- self-aware context flag
 ;	23:		node-body						;-- op! body points to a block node (instead of native code)
 ;	22-19:	tuple-size						;-- size of tuple
-;   18-8:	<reserved>
+;	18:		series-owned					;-- mark a series owned by an object
+;	17:		owner							;-- indicate that an object is an owner
+;	16:		native! op						;-- operator is made from a native! function
+;   15-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [
@@ -77,7 +87,9 @@ cell!: alias struct! [
 ;   21:		permanent						;-- protected from GC (system-critical series)
 ;   20:     fixed							;-- series cannot be relocated (system-critical series)
 ;	19:		complement						;-- complement flag for bitsets
-;	18-3: 	<reserved>
+;	18:		UTF-16 cache					;-- signifies that the string cache is UTF-16 encoded (UTF-8 by default)
+;	17:		owned							;-- series is owned by an object
+;	16-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -525,37 +537,43 @@ alloc-series-buffer: func [
 	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer (in bytes)
 	return: [series-buffer!]				;-- return the new series buffer
-	/local series size frame sz
+	/local 
+		series	 [series-buffer!]
+		frame	 [series-frame!]
+		size	 [integer!]
+		sz		 [integer!]
+		flag-big [integer!]
 ][
 	assert positive? usize
 	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
+	flag-big: 0
 
 	series: frame/heap
-	if ((as byte-ptr! series) + sz) >= frame/tail [
-		; TBD: trigger a GC pass from here and update memory/s-active
-		if sz >= memory/s-size [				;@@ temporary checks
-			memory/s-size: memory/s-max
+	
+	either sz >= memory/s-max [
+		;print-line "Memory error: series too big!"
+		;throw RED_THROWN_ERROR
+		series: as series-buffer! alloc-big sz
+		flag-big: flag-series-big
+	][
+		if ((as byte-ptr! series) + sz) >= frame/tail [
+			; TBD: trigger a GC pass from here and update memory/s-active
+			if sz >= memory/s-size [		;@@ temporary checks
+				memory/s-size: memory/s-max
+			]
+			frame: alloc-series-frame
+			memory/s-active: frame			;@@ to be removed once GC implemented
+			series: frame/heap
 		]
-		if sz >= memory/s-max [				;@@ temporary checks
-			print-line "Memory error: series too big!"
-			throw RED_THROWN_ERROR
-		]
-		frame: alloc-series-frame
-		memory/s-active: frame				;@@ to be removed once GC implemented
-		series: frame/heap
+		assert sz < _16MB					;-- max series size allowed in a series frame @@
+		frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 	]
-	
-	assert sz < _16MB						;-- max series size allowed in a series frame @@
-	
-	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
-
+		
 	series/size: size
-	series/flags: unit
-		or series-in-use 					;-- mark series as in-use
-		and not flag-series-big				;-- set type bit to 0 (= series)
+	series/flags: unit or series-in-use or flag-big
 
 	either offset = default-offset [
 		offset: size >> 1					;-- target middle of buffer
@@ -599,20 +617,32 @@ alloc-cells: func [
 ]
 
 ;-------------------------------------------
-;-- Wrapper on alloc-cells for easy cells allocation with cleared buffer
+;-- Wrapper on alloc-cells for easy unset cells allocation
 ;-------------------------------------------
-alloc-cleared-cells: func [
+alloc-unset-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		node [node!]
 		s	 [series!]
+		p	 [int-ptr!]
+		end	 [int-ptr!]
 ][
 	node: alloc-series size 16 0
 	s: as series! node/value
-	zerofill
-		as int-ptr! s/offset
-		as int-ptr! ((as byte-ptr! s/offset) + s/size)
+	p: as int-ptr! s/offset
+	end: as int-ptr! ((as byte-ptr! s/offset) + s/size)
+	
+	assert p < end
+	assert (as-integer end) and 3 = 0		;-- end should be a multiple of 4
+	until [
+		p/value: TYPE_UNSET
+		p/2: 0
+		p/3: 0
+		p/4: 0
+		p: p + 4
+		p = end
+	]
 	node
 ]
 
@@ -656,7 +686,7 @@ set-flag: func [
 	/local series
 ][
 	series: as series-buffer! node/value
-	series/flags: (series/flags and not flags) or flags	;-- reset flags bits, then apply flags
+	series/flags: series/flags or flags	;-- apply flags
 ]
 
 ;-------------------------------------------
@@ -690,7 +720,11 @@ expand-series: func [
 	series  [series-buffer!]				;-- series to expand
 	new-sz	[integer!]						;-- new size in bytes
 	return: [series-buffer!]				;-- return new series with new size
-	/local new units delta
+	/local
+		new	  [series-buffer!]
+		units [integer!]
+		delta [integer!]
+		big?  [logic!]
 ][
 	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
 	
@@ -701,16 +735,10 @@ expand-series: func [
 	]
 	units: GET_UNIT(series)
 	
-	if zero? new-sz [
-		new-sz: series/size * 2				;-- by default, alloc twice the old size
-		if new-sz >= _2MB [
-			print-line "Memory error: allocate memory > 2MB (--NOT_IMPLEMENTED--)"
-			throw RED_THROWN_ERROR
-			;TBD: alloc big
-		]
-	]
+	if zero? new-sz [new-sz: series/size * 2]	;-- by default, alloc twice the old size
 
 	new: alloc-series-buffer new-sz / units units 0
+	big?: new/flags and flag-series-big <> 0
 	
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
@@ -718,6 +746,8 @@ expand-series: func [
 	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
+	
+	if big? [new/flags: new/flags or flag-series-big]	;@@ to be improved
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
 	copy-memory 							;-- copy old series in new buffer
@@ -785,9 +815,12 @@ copy-series: func [
 ;-- Allocate a big series
 ;-------------------------------------------
 alloc-big: func [
-	size [integer!]							;-- buffer size to allocate (in bytes)
+	size	[integer!]						;-- buffer size to allocate (in bytes)
 	return: [byte-ptr!]						;-- return allocated buffer pointer
-	/local sz frame frm
+	/local 
+		sz	  [integer!]
+		frame [big-frame!]
+		frm	  [big-frame!]
 ][
 	assert positive? size
 	assert size >= _2MB						;-- should be bigger than a series frame
@@ -802,7 +835,7 @@ alloc-big: func [
 		memory/b-head: frame				;-- first item in the list
 	][
 		frm: memory/b-head					;-- search for tail of list (@@ might want to save it?)
-		until [frm: frm/next null? frm/next]
+		while [frm/next <> null][frm: frm/next]
 		assert not null? frm		
 		
 		frm/next: frame						;-- append new item at tail of the list

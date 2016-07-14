@@ -58,6 +58,9 @@ datatype: context [
 		name: name-table + type
 		name/buffer: as c-string! list/value			;-- store datatype string name
 		name/size: (length? name/buffer) - 1			;-- store string size (not counting terminal `!`)
+		if root <> null [								;-- checks if all datatypes have been loaded
+			name/word: word/load name/buffer
+		]
 		list: list + 1
 		count: count - 3								;-- skip the "header" data
 		
@@ -159,6 +162,8 @@ datatype: context [
 		part	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			name [names!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
@@ -178,7 +183,8 @@ datatype: context [
 		#if debug? = yes [if verbose > 0 [print-line "datatype/compare"]]
 
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL	  [
 				res: as-integer any [TYPE_OF(arg2) <> TYPE_DATATYPE arg1/value <> arg2/value]
@@ -235,6 +241,7 @@ datatype: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

@@ -325,7 +325,9 @@ context [
 
 		data-size: size-of job/sections/data/2
 		if job/debug? [
-			data-size: data-size + linker/get-debug-lines-size job
+			data-size: data-size 
+				+ (linker/get-debug-lines-size job)
+				+  linker/get-debug-funcs-size job
 		]
 		if zero? data-size [
 			remove-elements structure [".data"]
@@ -420,10 +422,8 @@ context [
 
 		set-data ".data" [
 			if job/debug? [
-				linker/build-debug-lines
-					job
-					get-address ".text"
-					machine-word
+				linker/build-debug-lines job get-address ".text"
+				linker/build-debug-func-names job get-address ".text"
 			]
 			job/sections/data/2
 		]

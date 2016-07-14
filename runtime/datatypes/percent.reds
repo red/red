@@ -28,14 +28,27 @@ percent: context [
 		value	[float!]
 		return: [red-float!]
 		/local
-			int [red-float!]
+			fl [red-float!]
 	][
 		fl: as red-float! stack/arguments
 		fl/header: TYPE_PERCENT
 		fl/value: value
 		fl
 	]
-	
+
+	rs-make-at: func [
+		slot	[red-value!]
+		value	[float!]
+		return:	[red-float!]
+		/local
+			p	[red-float!]
+	][
+		p: as red-float! slot
+		p/header: TYPE_PERCENT
+		p/value: value
+		p
+	]
+
 	make-at: func [
 		cell 	[cell!]
 		high	[integer!]
@@ -91,7 +104,7 @@ percent: context [
 			int	 [red-integer!]
 			fl	 [red-float!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_PERCENT [
@@ -195,6 +208,7 @@ percent: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
