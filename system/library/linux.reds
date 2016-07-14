@@ -115,6 +115,12 @@ Red/System [
 			fd2            [integer!]  "File descriptor"
 			return:        [integer!]
 		]
+		_open:	"open" [
+			filename	[c-string!]
+			flags		[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
 		io-open: "open" [ "Open FILE and return a new file descriptor for it, or -1 on error"
 			filename		[c-string!]
 			flags			[integer!]

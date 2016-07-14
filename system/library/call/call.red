@@ -36,6 +36,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 		pad3	[float!]
 		len		[integer!]
 		cstr	[c-string!]
+		type	[integer!]
 ][
 	pad1: 0.0
 	pad2: pad1
@@ -44,39 +45,57 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	out: null
 	err: null
 
+	type: TYPE_OF(in-str)
 	case [
-		TYPE_OF(in-str) = TYPE_STRING [
+		type = TYPE_STRING [
 			PLATFORM_TO_CSTR(cstr in-str len)
 			inp: as p-buffer! :pad1					;@@ a trick as we cannot declear struct on stack
 			inp/buffer: as byte-ptr! cstr
 			inp/count: len
 		]
-		TYPE_OF(in-str) = TYPE_BINARY [
+		type = TYPE_BINARY [
 			inp: as p-buffer! :pad1
 			inp/buffer: binary/rs-head as red-binary! in-str
 			inp/count: binary/rs-length? as red-binary! in-str
 		]
+		type = TYPE_FILE [
+			inp: as p-buffer! :pad1
+			inp/buffer: as byte-ptr! file/to-OS-path as red-file! in-str
+			inp/count: -1
+		]
 		true [0]
 	]
-	if TYPE_OF(redirout) <> TYPE_NONE [
+	type: TYPE_OF(redirout)
+	if type <> TYPE_NONE [
 		out: as p-buffer! :pad2
-		out/buffer: null
-		out/count:  0
+		either type = TYPE_FILE [
+			out/buffer: as byte-ptr! file/to-OS-path as red-file! redirout
+			out/count: -1
+		][
+			out/buffer: null
+			out/count: 0
+		]
 	]
-	if TYPE_OF(redirerr) <> TYPE_NONE [
+	type: TYPE_OF(redirerr)
+	if type <> TYPE_NONE [
 		err: as p-buffer! :pad3
-		err/buffer: null
-		err/count:  0
+		either type = TYPE_FILE [
+			err/buffer: null
+			err/count:  0
+		][
+			err/buffer: as byte-ptr! file/to-OS-path as red-file! redirerr
+			err/count: -1
+		]
 	]
 
 	PLATFORM_TO_CSTR(cstr cmd len)
 	pid: system-call/call cstr waitend console shell inp out err
 
-	if out <> null [
+	if all [out <> null out/count <> -1][
 		system-call/insert-string redirout out shell
 		free out/buffer
 	]
-	if err <> null [
+	if all [err <> null err/count <> -1][
 		system-call/insert-string redirerr err shell
 		free err/buffer
 	]
@@ -84,11 +103,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 ]
 
 arg-to-string: func [arg][
-	case [
-		block? arg [form arg]
-		file?  arg [to-local-file arg]
-		true	   [arg]
-	]
+	either file? arg [to-local-file arg][form arg]
 ]
 
 call: func [ "Executes a shell command to run another process."
@@ -96,9 +111,9 @@ call: func [ "Executes a shell command to run another process."
 	/wait								"Runs command and waits for exit"
 	/console							"Runs command with I/O redirected to console (CLI console only at present)"
 	/shell								"Forces command to be run from shell"
-	/input	in	[any-string! binary! block!]	"Redirects in to stdin"
-	/output	out	[any-string! binary!]	"Redirects stdout to out"
-	/error	err	[any-string! binary!]	"Redirects stderr to err"
+	/input	in	[string! file! binary! block!]	"Redirects in to stdin"
+	/output	out	[string! file! binary!]	"Redirects stdout to out"
+	/error	err	[string! file! binary!]	"Redirects stderr to err"
 	return:		[integer!]				"0 if success, -1 if error, or a process ID"
 ][
 	if empty? cmd [return 0]

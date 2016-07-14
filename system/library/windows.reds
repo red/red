@@ -47,6 +47,9 @@ Red/System [
 	#define OPEN_ALWAYS			4
 	#define TRUNCATE_EXISTING	5
 
+	#define FILE_ATTRIBUTE_NORMAL		00000080h
+	#define FILE_FLAG_SEQUENTIAL_SCAN	08000000h
+
 	#define STD_INPUT_HANDLE	-10
 	#define STD_OUTPUT_HANDLE	-11
 	#define STD_ERROR_HANDLE	-12
@@ -167,6 +170,13 @@ Red/System [
 			lpWideCharStr			[byte-ptr!]
 			cchWideChar				[integer!]
 			return:					[integer!]
+		]
+		SetFilePointer: "SetFilePointer" [
+			file		[integer!]
+			distance	[integer!]
+			pDistance	[int-ptr!]
+			dwMove		[integer!]
+			return:		[integer!]
 		]
 		lstrlen: "lstrlenW" [
 			str						[c-string!]

@@ -170,9 +170,3 @@ Windows examples
 		red>>
         red>> call/wait/console "cmd"              ; enter Windows console
         C:\Red>
-
-
-TODO
-------------------------
-
-* Support file! for /input, /output and /error
