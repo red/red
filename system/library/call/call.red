@@ -103,7 +103,11 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 ]
 
 arg-to-string: func [arg][
-	either file? arg [to-local-file arg][form arg]
+	case [
+		block? arg [form arg]
+		file?  arg [to-local-file arg]
+		true	   [arg]
+	]
 ]
 
 call: func [ "Executes a shell command to run another process."
