@@ -556,6 +556,7 @@ normalize-dir: function [
 ]
 
 what-dir: func [/local path][
+	"Returns the active directory path"
 	path: to-red-file get-current-dir
 	unless dir? path [append path #"/"]
 	path

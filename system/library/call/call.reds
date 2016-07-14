@@ -159,6 +159,24 @@ system-call: context [
 			]
 			data/count: total
 		] ; read-from-pipe
+		open-file-to-write: func [
+			pbuf		[p-buffer!]
+			sa			[security-attributes!]
+			return:		[integer!]
+			/local
+				file	[integer!]
+		][
+			file: create-file
+				as c-string! pbuf/buffer
+				GENERIC_WRITE
+				0
+				sa
+				OPEN_ALWAYS
+				FILE_ATTRIBUTE_NORMAL
+				null
+			either file = -1 [file: 0][SetFilePointer file 0 null SET_FILE_END]
+			file
+		]
 		call: func [ "Executes a DOS command to run another process."
 			cmd           [c-string!]  "The shell command"
 			waitend?      [logic!]     "Wait for end of command, implicit if any buffer is set"
@@ -201,26 +219,41 @@ system-call: context [
 			s-inf/hStdError:  get-std-handle STD_ERROR_HANDLE
 			dev-null: create-file #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
 			if in-buf <> null [
-				if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
-					__red-call-print-error [ error-pipe "stdin" ]
-					return -1
-				]
-				if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
-					__red-call-print-error [ error-sethandle "stdin" ]
-					return -1
+				either in-buf/count = -1 [
+					in-read: create-file
+						as c-string! in-buf/buffer
+						GENERIC_READ
+						0
+						sa
+						OPEN_EXISTING
+						FILE_ATTRIBUTE_NORMAL or FILE_FLAG_SEQUENTIAL_SCAN
+						null
+				][
+					if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
+						__red-call-print-error [ error-pipe "stdin" ]
+						return -1
+					]
+					if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
+						__red-call-print-error [ error-sethandle "stdin" ]
+						return -1
+					]
 				]
 				s-inf/hStdInput: in-read
 			]
 			either out-buf <> null [
-				out-buf/count: 0
-				out-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
-					__red-call-print-error [ error-pipe "stdout" ]
-					return -1
-				]
-				if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
-					__red-call-print-error [ error-sethandle "stdout" ]
-					return -1
+				either out-buf/count = -1 [
+					out-write: open-file-to-write out-buf sa
+				][
+					out-buf/count: 0
+					out-buf/buffer: allocate READ-BUFFER-SIZE
+					if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
+						__red-call-print-error [ error-pipe "stdout" ]
+						return -1
+					]
+					if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
+						__red-call-print-error [ error-sethandle "stdout" ]
+						return -1
+					]
 				]
 				s-inf/hStdOutput: out-write
 			][
@@ -229,15 +262,19 @@ system-call: context [
 				]
 			]
 			either err-buf <> null [
-				err-buf/count: 0
-				err-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
-					__red-call-print-error [ error-pipe "stderr" ]
-					return -1
-				]
-				if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
-					__red-call-print-error [ error-sethandle "stderr" ]
-					return -1
+				either err-buf/count = -1 [
+					err-write: open-file-to-write err-buf sa
+				][
+					err-buf/count: 0
+					err-buf/buffer: allocate READ-BUFFER-SIZE
+					if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
+						__red-call-print-error [ error-pipe "stderr" ]
+						return -1
+					]
+					if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
+						__red-call-print-error [ error-sethandle "stderr" ]
+						return -1
+					]
 				]
 				s-inf/hStdError: err-write
 			][
@@ -292,7 +329,7 @@ system-call: context [
 				read-from-pipe err-read err-buf
 				close-handle err-read
 			]
-			either waitend? [
+			either any [console? waitend?][
 				wait-for-single-object p-inf/hProcess INFINITE
 				get-exit-code-process p-inf/hProcess :pid
 			][
@@ -346,9 +383,12 @@ system-call: context [
 			/local
 				pid status err wexp fd-in fd-out fd-err args dev-null str
 				pfds nfds fds revents n i input-len nbytes offset size to-read
-				out-len err-len out-size err-size pbuf
+				out-len err-len out-size err-size pbuf in? out? err?
 		][
-			if in-buf <> null [
+			in?:  all [in-buf <> null in-buf/count <> -1]
+			out?: all [out-buf <> null out-buf/count <> -1]
+			err?: all [err-buf <> null err-buf/count <> -1]
+			if in? [
 				input-len: 0
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
@@ -357,7 +397,7 @@ system-call: context [
 				]
 				set-nonblock-fd fd-in
 			]
-			if out-buf <> null [						;- Create buffer for output
+			if out? [									;- Create buffer for output
 				out-len: 0
 				out-size: READ-BUFFER-SIZE
 				fd-out: declare f-desc!
@@ -367,7 +407,7 @@ system-call: context [
 				]
 				set-nonblock-fd fd-out
 			]
-			if err-buf <> null [						;- Create buffer for error
+			if err? [									;- Create buffer for error
 				err-len: 0
 				err-size: READ-BUFFER-SIZE
 				fd-err: declare f-desc!
@@ -381,16 +421,33 @@ system-call: context [
 			pid: fork
 			if pid = 0 [								;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
-					io-close fd-in/writing
-					err: dup2 fd-in/reading stdin
-					if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
-					io-close fd-in/reading
+					either in-buf/count = -1 [			;-- file
+						nfds: io-open as c-string! in-buf/buffer O_RDONLY
+						if nfds < 0 [quit -1]
+						dup2 nfds stdin
+						io-close nfds
+					][
+						io-close fd-in/writing
+						err: dup2 fd-in/reading stdin
+						if err = -1 [ __red-call-print-error [ error-dup2 "stdin" ]]
+						io-close fd-in/reading
+					]
 				]
 				either out-buf <> null [				;-- redirect stdout to the pipe
-					io-close fd-out/reading
-					err: dup2 fd-out/writing stdout
-					if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
-					io-close fd-out/writing
+					either out-buf/count = -1 [
+						nfds: _open
+							as c-string! out-buf/buffer
+							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
+							438							;-- 0666
+						if nfds < 0 [quit -1]
+						dup2 nfds stdout
+						io-close nfds
+					][
+						io-close fd-out/reading
+						err: dup2 fd-out/writing stdout
+						if err = -1 [ __red-call-print-error [ error-dup2 "stdout" ]]
+						io-close fd-out/writing
+					]
 				][
 					if not console? [					;-- redirect stdout to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
@@ -400,10 +457,20 @@ system-call: context [
 					]
 				]
 				either err-buf <> null [				;-- redirect stderr to the pipe
-					io-close fd-err/reading
-					err: dup2 fd-err/writing stderr
-					if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
-					io-close fd-err/writing
+					either err-buf/count = -1 [
+						nfds: _open
+							as c-string! err-buf/buffer
+							O_BINARY or O_WRONLY or O_CREAT or O_APPEND
+							438							;-- 0666
+						if nfds < 0 [quit -1]
+						dup2 nfds stderr
+						io-close nfds
+					][
+						io-close fd-err/reading
+						err: dup2 fd-err/writing stderr
+						if err = -1 [ __red-call-print-error [ error-dup2 "stderr" ]]
+						io-close fd-err/writing
+					]
 				][
 					if not console? [					;-- redirect stderr to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
@@ -444,7 +511,7 @@ system-call: context [
 			if pid > 0 [								;-- Parent process
 				nfds: 0
 				pfds: as pollfd! allocate 3 * size? pollfd!
-				if in-buf <> null [
+				if in? [
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
@@ -452,7 +519,7 @@ system-call: context [
 					io-close fd-in/reading
 					nfds: nfds + 1
 				]
-				if out-buf <> null [						;- Create buffer for output
+				if out? [								;- Create buffer for output
 					waitend?: true
 					out-buf/count: 0
 					out-buf/buffer: allocate READ-BUFFER-SIZE
@@ -462,7 +529,7 @@ system-call: context [
 					io-close fd-out/writing
 					nfds: nfds + 1
 				]
-				if err-buf <> null [						;- Create buffer for error
+				if err? [								;- Create buffer for error
 					waitend?: true
 					err-buf/count: 0
 					err-buf/buffer: allocate READ-BUFFER-SIZE
@@ -547,9 +614,10 @@ system-call: context [
 					]
 				]
 
+				if console? [waitend?: yes]
 				if all [zero? n waitend?][
 					waitpid pid :status 0				;-- Wait child process terminate
-					either (status and 00FFh) <> 0 [	;-- a signal occured. Low  byte contains stop code
+					either (status and 00FFh) <> 0 [	;-- a signal occured. Low byte contains stop code
 						pid: -1
 					][
 						pid: status >> 8				;-- High byte contains exit code
@@ -558,9 +626,9 @@ system-call: context [
 
 				free as byte-ptr! pfds
 			]
-			if in-buf <> null [io-close fd-in/writing]
-			if out-buf <> null [io-close fd-out/reading]
-			if err-buf <> null [io-close fd-err/reading]
+			if in?  [io-close fd-in/writing]
+			if out? [io-close fd-out/reading]
+			if err? [io-close fd-err/reading]
 			pid
 		] ; call
 	] ; #default
