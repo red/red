@@ -58,10 +58,12 @@ system/console: context [
 					remove file
 					remove back tail file
 				]
-				unless src: attempt [read to file! file][
+				file: to-red-file file
+				unless src: attempt [read file][
 					print "*** Error: cannot access argument file"
 					;quit/return -1
 				]
+				change-dir first split-path file
 			]
 			src
 		]
