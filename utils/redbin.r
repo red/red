@@ -204,6 +204,7 @@ context [
 			file!	TYPE_FILE
 			tag!	TYPE_TAG
 			url!	TYPE_URL
+			email!	TYPE_EMAIL
 			binary! TYPE_BINARY
 		] type?/word str
 

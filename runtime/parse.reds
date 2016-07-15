@@ -73,7 +73,8 @@ parser: context [
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
 			TYPE_URL
-			TYPE_TAG	[
+			TYPE_TAG
+			TYPE_EMAIL [
 				char: as red-char! base
 				char/header: TYPE_CHAR
 				char/value: string/rs-abs-at as red-string! input p/input
@@ -191,6 +192,7 @@ parser: context [
 				type = TYPE_FILE
 				type = TYPE_URL
 				type = TYPE_TAG
+				type = TYPE_EMAIL
 				type = TYPE_BINARY
 			]
 			string/rs-length? as red-string! value
@@ -279,6 +281,7 @@ parser: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 			type = TYPE_TAG
+			type = TYPE_EMAIL
 			type = TYPE_BINARY
 		][
 			unit:  GET_UNIT(s)
@@ -321,6 +324,7 @@ parser: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_TAG
+				TYPE_EMAIL
 				TYPE_BINARY [
 					if all [type = TYPE_BINARY TYPE_OF(token) <> TYPE_BINARY][
 						PARSE_ERROR [TO_ERROR(script parse-rule) token]
@@ -512,6 +516,7 @@ parser: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 			type = TYPE_TAG
+			type = TYPE_EMAIL
 			type = TYPE_BINARY
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
@@ -971,7 +976,8 @@ parser: context [
 											TYPE_STRING
 											TYPE_FILE
 											TYPE_URL 
-											TYPE_TAG [string/insert as red-string! blk value null yes null no]
+											TYPE_TAG
+											TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
 											default  [block/insert blk value null yes null no]
 										]
 									][
@@ -1125,6 +1131,7 @@ parser: context [
 								type = TYPE_FILE
 								type = TYPE_URL
 								type = TYPE_TAG
+								type = TYPE_EMAIL
 								type = TYPE_BINARY
 							][
 								PARSE_ERROR [TO_ERROR(script parse-unsupported)]
@@ -1230,6 +1237,7 @@ parser: context [
 								type = TYPE_FILE
 								type = TYPE_URL
 								type = TYPE_TAG
+								type = TYPE_EMAIL
 							]
 							any [
 								TYPE_OF(value) = TYPE_STRING
@@ -1251,7 +1259,8 @@ parser: context [
 							TYPE_STRING
 							TYPE_FILE
 							TYPE_URL
-							TYPE_TAG [
+							TYPE_TAG
+							TYPE_EMAIL [
 								match?: either TYPE_OF(value) = TYPE_BITSET [
 									string/match-bitset? as red-string! input as red-bitset! value
 								][

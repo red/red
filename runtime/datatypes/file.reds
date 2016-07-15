@@ -186,7 +186,8 @@ file: context [
 		switch t [
 			TYPE_STRING
 			TYPE_URL
-			TYPE_TAG [
+			TYPE_TAG
+			TYPE_EMAIL [
 				set-type copy-cell as cell! spec as cell! type t
 			]
 			default  [--NOT_IMPLEMENTED--]

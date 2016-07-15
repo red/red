@@ -350,6 +350,7 @@ redbin: context [
 			TYPE_FILE
 			TYPE_URL
 			TYPE_TAG
+			TYPE_EMAIL
 			TYPE_BINARY		[decode-string data parent nl?]
 			TYPE_INTEGER	[
 				cell: as cell! integer/make-in parent data/2

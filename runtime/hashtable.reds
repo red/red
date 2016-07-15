@@ -174,7 +174,8 @@ _hashtable: context [
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
-			TYPE_TAG [
+			TYPE_TAG
+			TYPE_EMAIL [
 				hash-string as red-string! key case?
 			]
 			TYPE_CHAR
@@ -589,7 +590,8 @@ _hashtable: context [
 				TYPE_STRING
 				TYPE_FILE
 				TYPE_URL
-				TYPE_TAG	[_series/copy as red-series! key as red-series! key null yes null]
+				TYPE_TAG
+				TYPE_EMAIL	[_series/copy as red-series! key as red-series! key null yes null]
 				default		[0]
 			]
 		]

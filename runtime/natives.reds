@@ -1195,6 +1195,7 @@ natives: context [
 					TYPE_OF(input) = TYPE_FILE
 					TYPE_OF(input) = TYPE_URL
 					TYPE_OF(input) = TYPE_TAG
+					TYPE_OF(input) = TYPE_EMAIL
 				][
 					string/rs-length? as red-string! input
 				][
@@ -2314,6 +2315,7 @@ natives: context [
 			type = TYPE_FILE 
 			type = TYPE_URL
 			type = TYPE_TAG
+			type = TYPE_EMAIL
 		][
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
@@ -2347,6 +2349,7 @@ natives: context [
 			type = TYPE_STRING				;@@ replace with ANY_STRING?
 			type = TYPE_FILE 
 			type = TYPE_URL
+			type = TYPE_EMAIL
 		][
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
@@ -2568,6 +2571,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
 			TYPE_OF(series) = TYPE_TAG
+			TYPE_OF(series) = TYPE_EMAIL
 			TYPE_OF(series) = TYPE_VECTOR
 			TYPE_OF(series) = TYPE_BINARY
 			TYPE_OF(series) = TYPE_MAP
@@ -2610,6 +2614,7 @@ natives: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 			type = TYPE_TAG
+			type = TYPE_EMAIL
 			type = TYPE_VECTOR
 			type = TYPE_BINARY
 			type = TYPE_MAP
@@ -2624,6 +2629,7 @@ natives: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_TAG
+				TYPE_EMAIL
 				TYPE_VECTOR
 				TYPE_BINARY [
 					set-many-string blk as red-string! series size
@@ -2666,6 +2672,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
 			TYPE_OF(series) = TYPE_TAG
+			TYPE_OF(series) = TYPE_EMAIL
 			TYPE_OF(series) = TYPE_VECTOR
 			TYPE_OF(series) = TYPE_BINARY
 			TYPE_OF(series) = TYPE_MAP
@@ -2720,6 +2727,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
 			TYPE_OF(series) = TYPE_TAG
+			TYPE_OF(series) = TYPE_EMAIL
 			TYPE_OF(series) = TYPE_VECTOR
 			TYPE_OF(series) = TYPE_BINARY
 		]

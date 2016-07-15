@@ -830,6 +830,7 @@ string: context [
 					type <> TYPE_STRING
 					type <> TYPE_FILE
 					type <> TYPE_URL
+					type <> TYPE_EMAIL
 				][no][
 					zero? equal? str as red-string! value op yes
 				]
@@ -1120,7 +1121,8 @@ string: context [
 		switch t [
 			TYPE_FILE
 			TYPE_URL
-			TYPE_TAG [
+			TYPE_TAG
+			TYPE_EMAIL [
 				set-type copy-cell as cell! spec as cell! type type/value
 				return as red-value! type
 			]
@@ -1400,6 +1402,7 @@ string: context [
 					TYPE_OF(str2) <> TYPE_FILE
 					TYPE_OF(str2) <> TYPE_URL
 					TYPE_OF(str2) <> TYPE_TAG
+					TYPE_OF(str2) <> TYPE_EMAIL
 				]
 			]
 		][RETURN_COMPARE_OTHER]
@@ -1631,6 +1634,7 @@ string: context [
 			type = TYPE_FILE
 			type = TYPE_URL
 			type = TYPE_TAG
+			type = TYPE_EMAIL
 		][not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
@@ -1660,6 +1664,7 @@ string: context [
 			TYPE_FILE
 			TYPE_URL
 			TYPE_TAG
+			TYPE_EMAIL
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
@@ -1826,6 +1831,7 @@ string: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_TAG
+				TYPE_EMAIL
 				TYPE_WORD
 				TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
@@ -2052,6 +2058,7 @@ string: context [
 						type = TYPE_FILE 
 						type = TYPE_URL
 						type = TYPE_TAG
+						type = TYPE_EMAIL
 					][
 						form-buf: as red-string! cell
 					][
@@ -2411,6 +2418,7 @@ string: context [
 					type = TYPE_FILE 
 					type = TYPE_URL
 					type = TYPE_TAG
+					type = TYPE_EMAIL
 				][
 					form-buf: as red-string! cell
 				][

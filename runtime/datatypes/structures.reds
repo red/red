@@ -121,6 +121,13 @@ red-tag!: alias struct! [
 	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-email!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
 red-binary!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)

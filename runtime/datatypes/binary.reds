@@ -965,6 +965,7 @@ binary: context [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
 						type = TYPE_URL
+						type = TYPE_EMAIL
 						type = TYPE_TAG
 					][
 						form-buf: as red-string! cell

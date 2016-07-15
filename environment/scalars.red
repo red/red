@@ -41,7 +41,7 @@ any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! any-list!
 any-function!:	make typeset! [native! action! op! function! routine!]
 any-object!:	make typeset! [object! error!]
-any-string!:	make typeset! [string! file! url! tag!]
+any-string!:	make typeset! [string! file! url! tag! email!]
 series!:		union make typeset! [binary! image! vector!] union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
 default!:		union series! union immediate! union any-object! union any-function! make typeset! [map! bitset!]

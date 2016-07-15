@@ -56,8 +56,9 @@ Red/System [
 	TYPE_SERIES											;-- 2A		42
 	TYPE_TIME											;-- 2B		43
 	TYPE_TAG											;-- 2C		44
-	TYPE_IMAGE											;-- 2D		45
-	TYPE_EVENT											;-- 2E		46
+	TYPE_EMAIL											;-- 2D		45
+	TYPE_IMAGE											;-- 2E		46
+	TYPE_EVENT											;-- 2F		47
 	TYPE_CLOSURE
 	TYPE_PORT
 	
@@ -373,6 +374,7 @@ Red/System [
 		type = TYPE_BINARY
 		type = TYPE_IMAGE
 		type = TYPE_TAG
+		type = TYPE_EMAIL
 	]
 ]
 
@@ -461,6 +463,7 @@ Red/System [
 				TYPE_OF(str2) <> TYPE_FILE
 				TYPE_OF(str2) <> TYPE_URL
 				TYPE_OF(str2) <> TYPE_TAG
+				TYPE_OF(str2) <> TYPE_EMAIL
 			]
 		]
 	][RETURN_COMPARE_OTHER]

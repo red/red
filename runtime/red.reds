@@ -98,6 +98,7 @@ red: context [
 	#include %datatypes/binary.reds
 	#include %datatypes/time.reds
 	#include %datatypes/tag.reds
+	#include %datatypes/email.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	
 	;-- Debugging helpers --
@@ -175,6 +176,7 @@ red: context [
 		tuple/init
 		time/init
 		tag/init
+		email/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		
 		actions/init
@@ -242,6 +244,7 @@ red: context [
 			tuple/verbose:		verbosity
 			time/verbose:		verbosity
 			tag/verbose:		verbosity
+			email/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
