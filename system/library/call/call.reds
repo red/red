@@ -563,6 +563,7 @@ system-call: context [
 						revents: fds/events >>> 16
 						case [
 							revents and POLLERR <> 0 [
+								io-close fds/fd
 								fds/fd: -1
 								n: n - 1
 							]
@@ -571,6 +572,7 @@ system-call: context [
 								if nbytes <= 0 [n: -1 break]
 								input-len: input-len + nbytes
 								if input-len >= in-buf/count [
+									io-close fds/fd
 									fds/fd: -1
 									n: n - 1
 								]
@@ -594,6 +596,7 @@ system-call: context [
 									nbytes: io-read fds/fd pbuf/buffer + offset/value to-read    ;-- read pipe, store into buffer
 									if nbytes < 0 [break]
 									if nbytes = 0 [
+										io-close fds/fd
 										fds/fd: -1
 										n: n - 1
 									]
@@ -607,7 +610,7 @@ system-call: context [
 								]
 								pbuf/count: offset/value
 							]
-							revents and POLLHUP <> 0 [fds/fd: -1 n: n - 1]
+							revents and POLLHUP <> 0 [io-close fds/fd fds/fd: -1 n: n - 1]
 							revents and POLLNVAL <> 0 [n: -1]
 							true [0]
 						]
@@ -623,12 +626,8 @@ system-call: context [
 						pid: status >> 8				;-- High byte contains exit code
 					]
 				]
-
 				free as byte-ptr! pfds
 			]
-			if in?  [io-close fd-in/writing]
-			if out? [io-close fd-out/reading]
-			if err? [io-close fd-err/reading]
 			pid
 		] ; call
 	] ; #default
