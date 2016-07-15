@@ -80,11 +80,11 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	if type <> TYPE_NONE [
 		err: as p-buffer! :pad3
 		either type = TYPE_FILE [
-			err/buffer: null
-			err/count:  0
-		][
 			err/buffer: as byte-ptr! file/to-OS-path as red-file! redirerr
 			err/count: -1
+		][
+			err/buffer: null
+			err/count:  0
 		]
 	]
 
