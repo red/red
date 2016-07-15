@@ -77,8 +77,7 @@ unset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
 		
-		string/concatenate-literal buffer "unset"
-		part - 5
+		part
 	]
 	
 	mold: func [
@@ -94,7 +93,8 @@ unset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
 		
-		form value buffer arg part
+		string/concatenate-literal buffer "unset"
+		part - 5
 	]
 	
 	compare: func [
