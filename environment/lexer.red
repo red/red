@@ -586,8 +586,9 @@ system/lexer: context [
 		]
 		
 		email-rule: [
-			s: some [ahead email-end break | skip] #"@" (type: email!)
+			s: some [ahead email-end break | skip] #"@"
 			any [ahead email-end break | skip] e:
+			(type: email!)
 		]
 
 		base-2-rule: [
@@ -868,7 +869,7 @@ system/lexer: context [
 				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
 				| binary-rule		if (value: make-binary s e base) (store stack value)
-				| email-rule		(store stack do make-string)
+				| email-rule		(store stack do make-file)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
 				| tag-rule			(store stack do make-string)
