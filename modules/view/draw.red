@@ -180,7 +180,17 @@ Red/System [
 			alpha?: 0
 			rgb: get-color-int as red-tuple! value :alpha?
 		]
-		
+
+		push-matrix: func [
+			cmds   [red-block!]
+			DC	   [handle!]
+			catch? [logic!]								;-- YES: report errors, NO: fire errors
+		][
+			OS-matrix-push
+			parse-draw cmds DC catch?
+			OS-matrix-pop
+		]
+
 		parse-draw: func [
 			cmds   [red-block!]
 			DC	   [handle!]
@@ -418,21 +428,53 @@ Red/System [
 							sym = rotate [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
-								OS-matrix-rotate as red-integer! start as red-pair! cmd
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push
+									OS-matrix-rotate as red-integer! start as red-pair! cmd - 1
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop
+								][
+									OS-matrix-rotate as red-integer! start as red-pair! cmd
+								]
 							]
 							sym = scale [
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
-								OS-matrix-scale as red-integer! start as red-integer! cmd
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push
+									OS-matrix-scale as red-integer! start as red-integer! cmd - 1
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop
+								][
+									OS-matrix-scale as red-integer! start as red-integer! cmd
+								]
 							]
 							sym = translate [
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								point: as red-pair! start
-								OS-matrix-translate point/x point/y
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push
+									OS-matrix-translate point/x point/y
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop
+								][
+									OS-matrix-translate point/x point/y
+								]
 							]
 							sym = skew [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								OS-matrix-skew as red-integer! start as red-integer! cmd
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push
+									OS-matrix-skew as red-integer! start as red-integer! cmd - 1
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop
+								][
+									OS-matrix-skew as red-integer! start as red-integer! cmd
+								]
 							]
 							sym = transform [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
@@ -440,10 +482,21 @@ Red/System [
 								value: cmd + 1
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
 								DRAW_FETCH_VALUE(TYPE_PAIR)
-								OS-matrix-transform
-									as red-integer! start
-									as red-integer! value
-									as red-pair! cmd
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push
+									OS-matrix-transform
+										as red-integer! start
+										as red-integer! value
+										as red-pair! cmd - 1
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop
+								][
+									OS-matrix-transform
+										as red-integer! start
+										as red-integer! value
+										as red-pair! cmd
+								]
 							]
 							sym = push [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)

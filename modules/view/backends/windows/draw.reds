@@ -89,20 +89,18 @@ update-gdiplus-brush: func [/local handle [integer!]][
 
 update-gdiplus-pen: func [/local handle [integer!]][
 	either modes/pen? [
-		either zero? modes/gp-pen-saved [
-			handle: modes/gp-pen
-			GdipSetPenColor handle to-gdiplus-color modes/pen-color
-			GdipSetPenWidth handle as float32! integer/to-float modes/pen-width
-			if modes/pen-join <> -1 [
-				OS-draw-line-join null modes/pen-join
-			]
-
-			if modes/pen-cap <> -1 [
-				OS-draw-line-cap null modes/pen-cap
-			]
-		][
+		if modes/gp-pen-saved <> 0 [
 			modes/gp-pen: modes/gp-pen-saved
 			modes/gp-pen-saved: 0
+		]
+		handle: modes/gp-pen
+		GdipSetPenColor handle to-gdiplus-color modes/pen-color
+		GdipSetPenWidth handle as float32! integer/to-float modes/pen-width
+		if modes/pen-join <> -1 [
+			OS-draw-line-join null modes/pen-join
+		]
+		if modes/pen-cap <> -1 [
+			OS-draw-line-cap null modes/pen-cap
 		]
 	][
 		modes/gp-pen-saved: modes/gp-pen
@@ -422,7 +420,11 @@ OS-draw-line-width: func [
 ][
 	if modes/pen-width <> width/value [
 		modes/pen-width: width/value
-		update-modes dc
+		either GDI+? [
+			GdipSetPenWidth modes/gp-pen as float32! integer/to-float modes/pen-width
+		][
+			update-pen dc
+		]
 	]
 ]
 
