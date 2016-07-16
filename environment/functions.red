@@ -662,7 +662,7 @@ to-image: func [value][
 ]
 
 hex-to-rgb: function [
-	"Converts a color in hex format to a tuple value, or NONE if it fails"
+	"Converts a color in hex format to a tuple value; returns NONE if it fails"
 	hex		[issue!] "Accepts #rgb, #rrggbb, #rrggbbaa"	 ;-- 3,6,8 nibbles supported
 	return: [tuple! none!]								 ;-- 3 or 4 bytes long
 ][
