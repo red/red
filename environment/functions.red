@@ -89,6 +89,7 @@ binary?:	 func ["Returns true if the value is this type" value [any-type!]] [bin
 block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
 char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
+email?:		 func ["Returns true if the value is this type" value [any-type!]] [email!		= type? :value]
 error?:		 func ["Returns true if the value is this type" value [any-type!]] [error!		= type? :value]
 file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
 float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
