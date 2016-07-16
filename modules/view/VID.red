@@ -71,6 +71,17 @@ system/view/VID: context [
 		]
 	]
 	
+	convert-hex: function [code [block!]][
+		parse code rule: [
+			any [
+				pos: issue! (if color: hex-to-rgb pos/1 [pos/1: color])
+				| into rule
+				| skip
+			]
+		]
+		code
+	]
+	
 	pre-load: function [value][
 		if word? value [attempt [value: get value]]
 		if all [issue? value not color: hex-to-rgb value][
@@ -140,8 +151,10 @@ system/view/VID: context [
 		divides: none
 		calc-y?: no
 		
-		obj-spec!: make typeset! [block! object!]
-		rate!: make typeset! [integer! time!]
+		obj-spec!:	make typeset! [block! object!]
+		rate!:		make typeset! [integer! time!]
+		color!:		make typeset! [tuple! issue!]
+		
 		set opts none
 		
 		;-- process style options --
@@ -153,15 +166,15 @@ system/view/VID: context [
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
 				| 'data		  (opts/data: fetch-value spec: next spec)
-				| 'draw		  (opts/draw: fetch-argument block! spec)
+				| 'draw		  (opts/draw: convert-hex fetch-argument block! spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
 				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
 				| 'focus	  (focal-face: face)
-				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
-				| 'font-color (add-flag opts 'font 'color fetch-argument tuple! spec)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
+				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
+				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
 				| 'react	  (append reactors reduce [face fetch-argument block! spec])
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
@@ -272,7 +285,7 @@ system/view/VID: context [
 		/local axis anti								;-- defined in a SET block
 		/extern focal-face
 	][
-		background!:  make typeset! [image! file! tuple! word!]
+		background!:  make typeset! [image! file! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
