@@ -758,7 +758,7 @@ collect: function [
 	/into 		  		 "Insert into a buffer instead (returns position after insert)"
 		collected [series!] "The buffer series (modified)"
 ][
-	keep: func [v /only][either only [append/only collected v][append collected v]]
+	keep: func [v /only][either only [append/only collected v][append collected v] v]
 	
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
