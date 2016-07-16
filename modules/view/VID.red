@@ -71,8 +71,12 @@ system/view/VID: context [
 		]
 	]
 	
-	pre-load: func [value][
+	pre-load: function [value][
 		if word? value [attempt [value: get value]]
+		if all [issue? value not color: hex-to-rgb value][
+			throw-error reduce [value]
+		]
+		if color [value: color]
 		if find [file! url!] type?/word value [value: load value]
 		value
 	]
