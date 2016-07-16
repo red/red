@@ -54,7 +54,7 @@ context [
 		]
 	]
 	
-	decode-UTF8: func [str [string! file! url! tag!] /local upper s e cp unit new][
+	decode-UTF8: func [str [string! file! url! tag! email!] /local upper s e cp unit new][
 		upper: 0
 
 		parse/all/case str [
@@ -364,6 +364,7 @@ context [
 						file!
 						url!
 						tag!
+						email!
 						string!
 						binary!   [emit-string item]
 						integer!  [emit-integer item]

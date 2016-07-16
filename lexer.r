@@ -86,6 +86,7 @@ lexer: context [
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
+	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><"
@@ -269,7 +270,7 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		decimal-special	e:								;-- escape path for NaN, INFs
+		pos: decimal-special e:								;-- escape path for NaN, INFs
 		(type: issue! value: load-number copy/part s e)
 		|	integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
@@ -380,6 +381,12 @@ lexer: context [
 		#"<" s: not-tag-1st (type: tag!)
 		 some [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
 	]
+	
+	email-rule: [
+		(stop: [not-email-char])
+		s: some UTF8-filtered-char #"@" (type: email!)
+		any UTF8-filtered-char e: (value: dehex copy/part s e)
+	]
 
 	base-2-rule: [
 		"2#{" (type: binary!) [
@@ -456,6 +463,7 @@ lexer: context [
 			| tuple-rule	  (stack/push load-tuple	 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| binary-rule	  (stack/push load-binary s e base)
+			| email-rule	  (stack/push to email! value)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
