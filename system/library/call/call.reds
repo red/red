@@ -547,10 +547,12 @@ system-call: context [
 						if out-buf <> null [
 							nbytes: io-read fd-out/reading out-buf/buffer + out-len out-size - out-len
 							if nbytes > 0 [out-len: out-len + nbytes]
+							io-close fd-out/reading
 						]
 						if err-buf <> null [
 							nbytes: io-read fd-err/reading err-buf/buffer + err-len err-size - err-len
 							if nbytes > 0 [err-len: err-len + nbytes]
+							io-close fd-err/reading
 						]
 						break
 					]
@@ -618,7 +620,7 @@ system-call: context [
 				]
 
 				if console? [waitend?: yes]
-				if all [zero? n waitend?][
+				if waitend? [
 					waitpid pid :status 0				;-- Wait child process terminate
 					either (status and 00FFh) <> 0 [	;-- a signal occured. Low byte contains stop code
 						pid: -1
