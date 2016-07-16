@@ -661,6 +661,32 @@ to-image: func [value][
 	]
 ]
 
+hex-to-rgb: function [
+	"Converts a color in hex format to a tuple value, or NONE if it fails"
+	hex		[issue!] "Accepts #rgb, #rrggbb, #rrggbbaa"	 ;-- 3,6,8 nibbles supported
+	return: [tuple! none!]								 ;-- 3 or 4 bytes long
+][
+	switch length? str: form hex [
+		3 [
+			uppercase str
+			forall str [str/1: str/1 - pick "70" str/1 >= #"A"]
+
+			as-color 
+				shift/left to integer! str/1 4
+				shift/left to integer! str/2 4
+				shift/left to integer! str/3 4
+		]
+		6 [
+			bin: to binary! hex
+			as-color bin/1 bin/2 bin/3
+		]
+		8 [
+			bin: to binary! hex
+			as-rgba bin/1 bin/2 bin/3 bin/4
+		]
+	]
+]
+
 within?: func [
 	"Return TRUE if the point is within the rectangle bounds"
 	point	[pair!] "XY position"
