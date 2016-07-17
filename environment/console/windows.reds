@@ -195,6 +195,10 @@ set-font: func [
 	GetCharWidth32 dc 8220 8220 :w
 	extra-table: either w = vt/char-w [stub-table][ambiguous-table]
 	free as byte-ptr! tm
+	DestroyCaret
+	CreateCaret vt/hwnd null 1 vt/char-h
+	vt/caret?: no
+	OS-update-caret vt
 ]
 
 OS-draw-text: func [
