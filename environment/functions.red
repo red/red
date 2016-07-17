@@ -25,7 +25,7 @@ also: func [
 attempt: func [
 	"Tries to evaluate a block and returns result or NONE on error"
 	value [block!]
-	/safer
+	/safer "Capture all possible errors and exceptions"
 ][
 	either safer [
 		unless error? set/any 'value try/all :value [get/any 'value]
