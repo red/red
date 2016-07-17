@@ -192,10 +192,16 @@ system/view/VID: context [
 				][
 					opt?: switch/default type?/word value: pre-load value [
 						pair!	 [unless opts/size  [opts/size:  value]]
-						tuple!	 [unless opts/color [opts/color: value]]
 						string!	 [unless opts/text  [opts/text:  value]]
 						percent! [unless opts/data  [opts/data:  value]]
 						image!	 [unless opts/image [opts/image: value]]
+						tuple!	 [
+							either opts/color [
+								add-flag opts 'font 'color value
+							][
+								opts/color: value
+							]
+						]
 						integer! [
 							unless opts/size [
 								either find [panel group-box] face/type [
