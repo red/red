@@ -364,13 +364,6 @@ system-call: context [
 			fcntl [fd F_SETFL flags or O_NONBLOCK]
 		]
 
-		set-nonblock-fd: func [
-			fd	[f-desc!]
-		][
-			set-flags-fd fd/reading
-			set-flags-fd fd/writing
-		]
-
 		call: func [                   "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
 			waitend?	[logic!]       "Wait for end of command, implicit if any buffer is set"
@@ -404,7 +397,6 @@ system-call: context [
 					__red-call-print-error [ error-pipe "stdout" ]
 					return -1
 				]
-				set-nonblock-fd fd-out
 			]
 			if err? [									;- Create buffer for error
 				err-len: 0
@@ -414,7 +406,6 @@ system-call: context [
 					__red-call-print-error [ error-pipe "stderr" ]
 					return -1
 				]
-				set-nonblock-fd fd-err
 			]
 
 			pid: fork
@@ -511,10 +502,10 @@ system-call: context [
 				nfds: 0
 				pfds: as pollfd! allocate 3 * size? pollfd!
 				if in? [
-					set-flags-fd fd-in/writing
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
+					set-flags-fd fds/fd
 					fds/events: POLLOUT
 					io-close fd-in/reading
 					nfds: nfds + 1
@@ -525,6 +516,7 @@ system-call: context [
 					out-buf/buffer: allocate READ-BUFFER-SIZE
 					fds: pfds + nfds
 					fds/fd: fd-out/reading
+					set-flags-fd fds/fd
 					fds/events: POLLIN
 					io-close fd-out/writing
 					nfds: nfds + 1
@@ -535,6 +527,7 @@ system-call: context [
 					err-buf/buffer: allocate READ-BUFFER-SIZE
 					fds: pfds + nfds
 					fds/fd: fd-err/reading
+					set-flags-fd fds/fd
 					fds/events: POLLIN
 					io-close fd-err/writing
 					nfds: nfds + 1
