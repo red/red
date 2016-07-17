@@ -1028,7 +1028,7 @@ OS-make-view: func [
 		hInstance
 		as int-ptr! face
 
-	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
+	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
 
 	if any [win8+? not alpha?][BringWindowToTop handle]
 	set-font handle face values
