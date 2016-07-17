@@ -395,7 +395,6 @@ system-call: context [
 					__red-call-print-error [ error-pipe "stdin" ]
 					return -1
 				]
-				set-nonblock-fd fd-in
 			]
 			if out? [									;- Create buffer for output
 				out-len: 0
@@ -512,6 +511,7 @@ system-call: context [
 				nfds: 0
 				pfds: as pollfd! allocate 3 * size? pollfd!
 				if in? [
+					set-flags-fd fd-in/writing
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
@@ -570,8 +570,8 @@ system-call: context [
 								n: n - 1
 							]
 							revents and POLLOUT <> 0 [
-								nbytes: io-write fds/fd in-buf/buffer in-buf/count - input-len
-								if nbytes <= 0 [n: -1 break]
+								nbytes: io-write fds/fd in-buf/buffer + input-len in-buf/count - input-len
+								if nbytes <= 0 [n: 0 nbytes: in-buf/count]
 								input-len: input-len + nbytes
 								if input-len >= in-buf/count [
 									io-close fds/fd
