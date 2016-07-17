@@ -79,6 +79,7 @@ system/view/VID: context [
 		parse code rule: [
 			any [
 				pos: issue! (if color: hex-to-rgb pos/1 [pos/1: color])
+				| any-string! | any-path!
 				| into rule
 				| skip
 			]
