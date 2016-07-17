@@ -869,6 +869,8 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
+	
+	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
 	flags: 	  WS_CHILD or WS_CLIPSIBLINGS
 	ws-flags: 0
@@ -913,13 +915,15 @@ OS-make-view: func [
 		sym = field [
 			class: #u16 "RedField"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
+			ws-flags: WS_TABSTOP
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedField"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL
-			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
+			ws-flags: WS_TABSTOP
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
 			class: #u16 "RedFace"
@@ -966,7 +970,6 @@ OS-make-view: func [
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_BORDER or WS_CLIPCHILDREN
-			bits: get-flags as red-block! values + FACE_OBJ_FLAGS
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
