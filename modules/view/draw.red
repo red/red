@@ -59,8 +59,12 @@ Red/System [
 			cmd	   [red-value!]
 			catch? [logic!]
 			/local
-				base [red-value!]
+				silent [red-logic!]
+				base   [red-value!]
 		][
+			silent: as red-logic! #get system/view/silent?
+			if all [TYPE_OF(silent) = TYPE_LOGIC silent/value][throw 1]
+			
 			base: block/rs-head cmds
 			cmds: as red-block! stack/push as red-value! cmds
 			cmds/head: (as-integer cmd - base) >> 4

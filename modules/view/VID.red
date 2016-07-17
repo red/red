@@ -23,7 +23,11 @@ system/view/VID: context [
 	]
 	
 	throw-error: func [spec [block!]][
-		cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
+		either system/view/silent? [
+			throw 'silent
+		][
+			cause-error 'script 'vid-invalid-syntax [copy/part spec 3]
+		]
 	]
 	
 	process-reactors: function [][

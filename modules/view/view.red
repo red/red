@@ -494,9 +494,10 @@ system/view: context [
 		:result
 	]
 	
-	capturing?: no
-	auto-sync?: yes
-	debug?: no
+	capturing?: no										;-- enable capturing events (on-detect)
+	auto-sync?: yes										;-- refresh faces on changes automatically
+	debug?: 	no										;-- output verbose logs
+	silent?:	no										;-- do not report errors (livecoding)
 ]
 
 #include %backends/platform.red
