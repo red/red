@@ -441,6 +441,9 @@ words: context [
 	hour:			-1
 	minute:			-1
 	second:			-1
+	
+	user:			-1
+	host:			-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -626,6 +629,9 @@ words: context [
 		hour:			symbol/make "hour"
 		minute:			symbol/make "minute"
 		second:			symbol/make "second"
+		
+		user:			symbol/make "user"
+		host:			symbol/make "host"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

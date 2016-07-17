@@ -53,6 +53,59 @@ email: context [
 		
 		url/mold as red-url! email buffer only? all? flat? arg part indent
 	]
+	
+	eval-path: func [
+		parent	[red-string!]								;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			part  [red-value!]
+			w	  [red-word!]
+			sym	  [integer!]
+			saved [integer!]
+			pos	  [integer!]
+			slots [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "email/eval-path"]]
+
+		either TYPE_OF(element) = TYPE_WORD [
+			w: as red-word! element
+			sym: symbol/resolve w/symbol
+			if all [sym <> words/user sym <> words/host][
+				fire [TO_ERROR(script invalid-path) stack/arguments element]
+			]
+		][
+			fire [TO_ERROR(script invalid-path) stack/arguments element]
+		]
+		
+		pos: string/rs-find parent as-integer #"@"
+		if pos = -1 [pos: string/rs-length? parent]
+		saved: parent/head
+
+		part: either sym = words/user [
+			as red-value! integer/push pos
+		][
+			parent/head: pos + 1
+			either value = null [null][
+				as red-value! integer/push string/rs-length? parent
+			]
+		]
+		either value <> null [
+			_series/change as red-series! parent value part no null
+			object/check-owner as red-value! parent
+		][
+			value: stack/push*
+			_series/copy as red-series! parent as red-series! value part no	null 
+		]
+		
+		slots: either part = null [1][2]
+		stack/pop slots									;-- avoid moving stack top
+		parent/head: saved
+		value
+	]
 
 	to: func [
 		type	[red-datatype!]
@@ -85,7 +138,7 @@ email: context [
 			:to
 			INHERIT_ACTION	;form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --

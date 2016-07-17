@@ -300,6 +300,32 @@ string: context [
 		s/tail: s/offset
 		str/head: 0
 	]
+	
+	rs-find: func [
+		str		[red-string!]
+		cp		[integer!]
+		return: [integer!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			pos  [byte-ptr!]
+			head [byte-ptr!]
+			tail [byte-ptr!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		pos:  head
+		tail: as byte-ptr! s/tail
+		
+		while [pos < tail][
+			if cp = get-char pos unit [
+				return (as-integer pos - head) >> (log-b unit)
+			]
+			pos: pos + unit
+		]
+		-1
+	]
 
 	rs-find-char: func [
 		str		[red-string!]
