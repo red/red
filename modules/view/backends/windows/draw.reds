@@ -28,6 +28,7 @@ modes: declare struct! [
 	gp-brush		[integer!]								;-- gdiplus brush
 	gp-font			[integer!]								;-- gdiplus font
 	gp-font-brush	[integer!]
+	gp-matrix		[integer!]
 	image-attr		[integer!]								;-- gdiplus image attributes
 	pen?			[logic!]
 	brush?			[logic!]
@@ -213,6 +214,7 @@ draw-begin: func [
 	modes/gp-pen-saved:		0
 	modes/gp-font:			0
 	modes/gp-font-brush:	0
+	modes/gp-matrix:		0
 	modes/image-attr:		0
 	modes/on-image?:		no
 	modes/pen?:				yes
@@ -296,6 +298,7 @@ draw-end: func [
 	unless zero? modes/gp-font-brush [GdipDeleteBrush modes/gp-font-brush]
 	unless zero? modes/gp-font	[GdipDeleteFont modes/gp-font]
 	unless zero? modes/image-attr [GdipDisposeImageAttributes modes/image-attr]
+	unless zero? modes/gp-matrix [GdipDeleteMatrix modes/gp-matrix]
 	unless null? modes/pen		[DeleteObject modes/pen]
 	unless null? modes/brush	[DeleteObject modes/brush]
 
@@ -1213,11 +1216,31 @@ OS-draw-grad-pen: func [
 OS-matrix-rotate: func [
 	angle	[red-integer!]
 	center	[red-pair!]
+	/local
+		m	[integer!]
+		pts [tagPOINT]
 ][
 	GDI+?: yes
-	if angle <> as red-integer! center [OS-matrix-translate 0 - center/x 0 - center/y]
+	if angle <> as red-integer! center [
+		m: modes/gp-matrix
+		if zero? m [
+			GdipCreateMatrix :m
+			modes/gp-matrix: m
+		]
+		GdipGetWorldTransform modes/graphics m
+		pts: edges
+		pts/x: center/x
+		pts/y: center/y
+		GdipTransformMatrixPointsI m pts 1
+		OS-matrix-translate 0 - pts/x 0 - pts/y
+	]
 	GdipRotateWorldTransform modes/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
-	if angle <> as red-integer! center [OS-matrix-translate center/x center/y]
+	if angle <> as red-integer! center [
+		pts/x: center/x
+		pts/y: center/y
+		GdipTransformMatrixPointsI m pts 1
+		OS-matrix-translate pts/x pts/y
+	]
 ]
 
 OS-matrix-scale: func [
@@ -1284,8 +1307,12 @@ OS-matrix-pop: func [][GdipRestoreGraphics modes/graphics modes/gp-state]
 OS-matrix-reset: func [][GdipResetWorldTransform modes/graphics]
 
 OS-matrix-invert: func [/local m [integer!]][
-	m: 0
-	GdipGetWorldTransform modes/graphics :m
+	m: modes/gp-matrix
+	if zero? m [
+		GdipCreateMatrix :m
+		modes/gp-matrix: m
+	]
+	GdipGetWorldTransform modes/graphics m
 	GdipInvertMatrix m
 	GdipSetWorldTransform modes/graphics m
 ]
