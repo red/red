@@ -75,10 +75,11 @@ system/view/VID: context [
 		]
 	]
 	
-	convert-hex: function [code [block!]][
+	process-draw: function [code [block!]][
 		parse code rule: [
 			any [
 				pos: issue! (if color: hex-to-rgb pos/1 [pos/1: color])
+				| set-word! (set pos/1 next pos)		;-- preset set-words
 				| any-string! | any-path!
 				| into rule
 				| skip
@@ -171,7 +172,7 @@ system/view/VID: context [
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
 				| 'data		  (opts/data: fetch-value spec: next spec)
-				| 'draw		  (opts/draw: convert-hex fetch-argument block! spec)
+				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
@@ -187,6 +188,7 @@ system/view/VID: context [
 				| 'disabled	  (opts/enable?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
+				   opt [rate! 'now (opts/now?: yes spec: next spec)]
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
 				| 'no-border  (set-flag opts 'flags 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
@@ -311,7 +313,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: none
+			rate: font: flags: options: para: data: extra: actors: draw: now?: none
 		]
 		
 		reset: [
@@ -420,6 +422,8 @@ system/view/VID: context [
 					box: face/offset + face/size + spacing
 					if box/x > pane-size/x [pane-size/x: box/x]
 					if box/y > pane-size/y [pane-size/y: box/y]
+					
+					if opts/now? [do-actor face none 'time]
 				]
 			]
 			spec: next spec
