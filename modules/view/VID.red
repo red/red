@@ -183,6 +183,7 @@ system/view/VID: context [
 				| 'select	  (opts/selected: fetch-argument integer! spec)
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
+				| 'no-border  (set-flag opts 'flags 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]
