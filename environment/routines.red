@@ -118,7 +118,7 @@ as-color: routine [
 	/local
 		arr1 [integer!]
 ][
-	arr1: (b << 16) or (g << 8) or r
+	arr1: (b % 256 << 16) or (g % 256 << 8) or (r % 256)
 	stack/set-last as red-value! tuple/push 3 arr1 0 0
 ]
 
