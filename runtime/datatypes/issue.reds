@@ -78,6 +78,7 @@ issue: context [
 					string/rs-length? str
 					unit
 				stack/pop 1
+				if null? bin/node [bin/header: TYPE_NONE]
 				as red-value! bin
 			]
 			default  [

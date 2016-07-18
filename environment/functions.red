@@ -676,14 +676,8 @@ hex-to-rgb: function [
 				shift/left to integer! str/2 4
 				shift/left to integer! str/3 4
 		]
-		6 [
-			bin: to binary! hex
-			as-color bin/1 bin/2 bin/3
-		]
-		8 [
-			bin: to binary! hex
-			as-rgba bin/1 bin/2 bin/3 bin/4
-		]
+		6 [if bin: to binary! hex [as-color bin/1 bin/2 bin/3]]
+		8 [if bin: to binary! hex [as-rgba bin/1 bin/2 bin/3 bin/4]]
 	]
 ]
 
