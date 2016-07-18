@@ -133,7 +133,7 @@ email: context [
 			"email!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			INHERIT_ACTION	;reflect
 			:to
 			INHERIT_ACTION	;form
