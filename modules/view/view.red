@@ -327,7 +327,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 	style:		 none
 	angle:		 0
 	color:		 none
-	anti-alias?: yes
+	anti-alias?: no
 	shadow:		 none
 	state:		 none
 	parent:		 none

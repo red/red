@@ -250,12 +250,14 @@ system/view/VID: context [
 
 		if all [opts/image not opts/size][opts/size: opts/image/size]
 		
-		if face-font: face/font [
+		font: opts/font
+		
+		if any [face-font: face/font font][
+			unless face-font [face-font: face/font: make font! []]
 			foreach [field value] default-font [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
-		font: opts/font
 		if all [font face/font][set/some opts/font: face/font font] ;-- merge face and opts font objects
 		
 		set/some face opts
