@@ -316,7 +316,7 @@ parse-trace: func [
 
 suffix?: function [
 	"Returns the suffix (extension) of a filename or url, or NONE if there is no suffix"
-	path [file! url! string!]
+	path [file! url! string! email!]
 ][
 	if all [
 		path: find/last path #"."
