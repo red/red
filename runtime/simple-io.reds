@@ -921,13 +921,21 @@ simple-io: context [
 		offset	 [integer!]
 		binary?	 [logic!]
 		append?  [logic!]
+		lines?	 [logic!]
 		unicode? [logic!]
 		return:	 [integer!]
 		/local
 			file	[integer!]
+			n		[integer!]
 			len		[integer!]
 			mode	[integer!]
 			ret		[integer!]
+			blk		[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			buffer	[red-string!]
+			lineend [c-string!]
+			lf-sz	[integer!]
 	][
 		unless unicode? [		;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
@@ -941,8 +949,28 @@ simple-io: context [
 		if file < 0 [return file]
 
 		if offset > 0 [seek-file file offset]
-		#if OS = 'Windows [if append? [SetFilePointer file 0 null SET_FILE_END]]
-		ret: write-data file data size
+		#either OS = 'Windows [
+			lineend: "^M^/"
+			lf-sz: 2
+			if append? [SetFilePointer file 0 null SET_FILE_END]
+		][
+			lineend: "^/"
+			lf-sz: 1
+		]
+		either lines? [
+			buffer: string/rs-make-at stack/push* 16
+			blk: as red-block! data
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
+			while [value < tail][
+				data: value-to-buffer value -1 :size binary? no buffer
+				write-data file data size
+				write-data file as byte-ptr! lineend lf-sz
+				value: value + 1
+			]
+		][
+			ret: write-data file data size
+		]
 		close-file file
 		ret
 	]
@@ -1135,6 +1163,47 @@ simple-io: context [
 		data
 	]
 
+	value-to-buffer: func [
+		data	[red-value!]
+		part	[integer!]
+		size	[int-ptr!]
+		binary? [logic!]
+		lines?	[logic!]
+		buffer	[red-string!]
+		return: [byte-ptr!]
+		/local
+			type	[integer!]
+			len		[integer!]
+			str  	[red-string!]
+			buf		[byte-ptr!]
+	][
+		type: TYPE_OF(data)
+		case [
+			type = TYPE_STRING [
+				len: part
+				str: as red-string! data
+				buf: as byte-ptr! unicode/io-to-utf8 str :len not binary?
+			]
+			type = TYPE_BINARY [
+				buf: binary/rs-head as red-binary! data
+				len: binary/rs-length? as red-binary! data
+				if all [part > 0 len > part][len: part]
+			]
+			true [
+				either all [lines? type = TYPE_BLOCK][
+					buf: as byte-ptr! data len: part
+				][
+					len: 0
+					actions/mold as red-value! data buffer no yes no null 0 0
+					buf: value-to-buffer as red-value! buffer part :len binary? yes null
+					string/rs-reset buffer
+				]
+			]
+		]
+		size/value: len
+		buf
+	]
+
 	write: func [
 		filename [red-file!]
 		data	 [red-value!]
@@ -1142,15 +1211,16 @@ simple-io: context [
 		seek	 [red-value!]
 		binary?	 [logic!]
 		append?  [logic!]
+		lines?	 [logic!]
 		return:  [integer!]
 		/local
 			len  	[integer!]
-			str  	[red-string!]
 			buf  	[byte-ptr!]
 			int  	[red-integer!]
 			limit	[integer!]
 			type	[integer!]
 			offset	[integer!]
+			buffer	[red-string!]
 	][
 		offset: -1
 		limit: -1
@@ -1163,28 +1233,16 @@ simple-io: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 			]
 		]
-		type: TYPE_OF(data)
-		case [
-			type = TYPE_STRING [
-				len: limit
-				str: as red-string! data
-				buf: as byte-ptr! unicode/io-to-utf8 str :len not binary?
-			]
-			type = TYPE_BINARY [
-				buf: binary/rs-head as red-binary! data
-				len: binary/rs-length? as red-binary! data
-				if all [limit > 0 len > limit][len: limit]
-			]
-			true [ERR_EXPECT_ARGUMENT(type 1)]
-		]
 		if OPTION?(seek) [
 			int: as red-integer! seek
 			offset: int/value
 		]
-		type: write-file file/to-OS-path filename buf len offset binary? append? yes
-		if negative? type [
-			fire [TO_ERROR(access cannot-open) filename]
-		]
+
+		len: 0
+		buffer: string/rs-make-at stack/push* 16
+		buf: value-to-buffer data limit :len binary? lines? buffer
+		type: write-file file/to-OS-path filename buf len offset binary? append? lines? yes
+		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type
 	]
 

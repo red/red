@@ -288,7 +288,7 @@ file: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/write as red-file! dest data part seek binary? append?
+		simple-io/write as red-file! dest data part seek binary? append? lines?
 		as red-value! unset-value
 	]
 
