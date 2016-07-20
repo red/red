@@ -178,7 +178,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-casting: func [value [object!] alt? [logic!] /local type old][
+	emit-casting: func [value [object!] alt? [logic!] /keep /local type old][
 		type: compiler/get-type value/data	
 		case [
 			value/type/1 = 'logic! [
@@ -224,19 +224,27 @@ make-profilable make target-class [
 				emit #{D90424}						;-- FLD dword [esp]		; load as 32-bit
 				emit #{83C404}						;-- ADD esp, 4			; free space
 			]
-			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
-				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
-				either type/1 = 'integer! [
-					either alt? [
-						emit #{52}					;-- PUSH edx
-					][
-						emit #{50}					;-- PUSH eax
-					]
-					emit #{D90424}					;-- FLD dword [esp]		; load as 32-bit
-					emit #{83EC04}					;-- SUB esp, 4			; alloc more space for 64-bit float
+			all [find [float! float64!] value/type/1 type/1 = 'integer!][
+				if verbose >= 3 [print [">>>converting from integer! to float!"]]
+				
+				emit-load value/data
+				either alt? [
+					emit #{52}						;-- PUSH edx
 				][
-					emit #{83EC08}					;-- SUB esp, 8			; alloc space for 64-bit float
+					emit #{50}						;-- PUSH eax
 				]
+				emit #{DB0424}						;-- FILD dword [esp]	; load as 32-bit
+				emit #{83EC04}						;-- SUB esp, 4			; alloc more space for 64-bit float
+				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
+				unless keep [
+					emit #{DD0424}					;-- FLD qword [esp]		; load as 64-bit
+					emit #{83C408}					;-- ADD esp, 8			; free space
+				]
+			]
+			all [find [float! float64!] value/type/1 type/1 = 'float32!][
+				if verbose >= 3 [print [">>>converting from float32! to float!"]]
+				
+				emit #{83EC08}						;-- SUB esp, 8			; alloc space for 64-bit float
 				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
 				emit #{DD0424}						;-- FLD qword [esp]		; load as 64-bit
 				emit #{83C408}						;-- ADD esp, 8			; free space
@@ -1088,12 +1096,17 @@ make-profilable make target-class [
 					path? value/data
 					compiler/any-float? compiler/get-type value/data 
 				][
-					emit-casting value no
+					emit-casting/keep value no
 				]
-				either cdecl [
-					emit-push/with/cdecl value/data value
+				unless all [
+					find [float! float64!] value/type/1
+					'integer! = first compiler/get-type value/data
 				][
-					emit-push/with value/data value
+					either cdecl [
+						emit-push/with/cdecl value/data value
+					][
+						emit-push/with value/data value
+					]
 				]
 			]
 		]

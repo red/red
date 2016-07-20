@@ -821,8 +821,8 @@ system-dialect: make-profilable context [
 			]
 			if any [
 				all [type/1 = 'function! not find [function! integer!] ctype/1]
-				all [find [float! float64!] ctype/1 not any-float? type]
-				all [find [float! float64!] type/1  not any-float? ctype]
+				all [find [float! float64!] ctype/1 not any-float? type type/1 <> 'integer!]
+				all [find [float! float64!] type/1  not any-float? ctype type type/1 <> 'integer!]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
@@ -854,6 +854,11 @@ system-dialect: make-profilable context [
 					switch type/1 [
 						byte! 	 [value: value <> null]
 						integer! [value: value <> 0]
+					]
+				]
+				float! float!32 [
+					if type/1 = 'integer! [
+						value: to decimal! value
 					]
 				]
 			]
