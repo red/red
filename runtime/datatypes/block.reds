@@ -828,7 +828,14 @@ block: context [
 			until [
 				either zero? values [
 					found?: either positive? type [
-						TYPE_OF(slot) = type				;-- simple type comparison
+						dt: as red-datatype! slot 
+						any [
+							TYPE_OF(slot) = type			;-- simple type comparison
+							all [
+								TYPE_OF(slot) = TYPE_DATATYPE
+								dt/value = type				;-- attempt matching a datatype! value
+							]
+						]
 					][
 						actions/compare slot value op		;-- atomic comparison
 					]
