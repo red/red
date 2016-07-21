@@ -545,7 +545,7 @@ tuple: context [
 			null			;move
 			null			;next
 			:pick
-			:poke
+			null			;poke
 			null			;put
 			null			;remove
 			:reverse
