@@ -106,7 +106,7 @@ forall: make native! [[
 ]
 
 remove-each: make native! [[
-		"Removes values for each block that returns true, returns removal count"
+		"Removes values for each block that returns true"
 		'word [word! block!] "Word or block of words to set each time"
 		data [series!] "The series to traverse (modified)"
 		body [block!] "Block to evaluate (return TRUE to remove)"
