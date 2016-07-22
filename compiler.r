@@ -2710,13 +2710,12 @@ red: context [
 		]
 		idx: redbin/emit-block list
 		
-		emit-open-frame 'select							;-- SWITCH lookup frame
-		emit compose [block/push get-root (idx)]
-		insert-lf -2
+		emit-open-frame 'select-key*					;-- SWITCH lookup frame
 		emit arg
-		emit [integer/push 2]							;-- /skip 2
+		emit compose [block/push get-root (idx)]
+		insert-lf -3
+		emit [select-key* no]
 		insert-lf -2
-		emit-action/with 'select [-1 0 -1 -1 -1 -1 2 -1 -1] ;-- select/only/skip
 		emit-close-frame
 		
 		emit [switch integer/get-any*]

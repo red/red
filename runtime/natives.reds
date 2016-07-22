@@ -420,49 +420,28 @@ natives: context [
 		default? [integer!]
 		/local
 			pos	 [red-value!]
-			blk  [red-block!]
-			alt  [red-block!]
 			end  [red-value!]
+			alt	 [red-block!]
+			blk  [red-block!]
 			s	 [series!]
 	][
 		#typecheck [switch default?]
-		blk: as red-block! stack/arguments + 1
-		alt: as red-block! stack/arguments + 2
 		
-		pos: actions/find
-			as red-series! blk
-			stack/arguments
-			null
-			yes											;-- /only
-			no
-			no
-			no
-			null
-			null
-			no
-			no
-			yes											;-- /tail
-			no
-			
+		pos: select-key* yes
+		
 		either TYPE_OF(pos) = TYPE_NONE [
 			either negative? default? [
 				RETURN_NONE
 			][
+				alt: as red-block! stack/arguments + 2
 				interpreter/eval alt yes
 				exit									;-- early exit with last value on stack
 			]
 		][
-			s: GET_BUFFER(blk)
-			end: s/tail
-			pos: _series/pick as red-series! pos 1 null
-			
-			while [pos < end][							;-- find first following block
-				if TYPE_OF(pos) = TYPE_BLOCK [
-					stack/reset
-					interpreter/eval as red-block! pos yes	;-- do the block
-					exit								;-- early exit with last value on stack
-				]
-				pos: pos + 1
+			if TYPE_OF(pos) = TYPE_BLOCK [
+				stack/reset
+				interpreter/eval as red-block! pos yes	;-- do the block
+				exit									;-- early exit with last value on stack
 			]
 		]
 		RETURN_NONE

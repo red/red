@@ -271,6 +271,40 @@ eval-int-path: func [
 	result
 ]
 
+select-key*: func [									;-- called by compiler for SWITCH
+	sub?	[logic!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		key	  [red-value!]
+		value [red-value!]
+		tail  [red-value!]
+		s	  [series!]
+][
+	key: as red-value! stack/arguments
+	blk: as red-block! key + 1
+	assert TYPE_OF(blk) = TYPE_BLOCK
+	
+	s: GET_BUFFER(blk)
+	value: s/offset + blk/head
+	tail:  s/tail
+	
+	while [value < tail][
+		if TYPE_OF(key) = TYPE_OF(value) [
+			if actions/compare key value COMP_EQUAL [
+				value: either value + 1 < tail [value + 1][value]
+				return either sub? [stack/push value][stack/set-last value]
+			]
+		]
+		value: value + 1
+	]
+	either sub? [as red-value! none/push][
+		value: stack/arguments
+		value/header: TYPE_NONE
+		value
+	]
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack
