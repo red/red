@@ -223,27 +223,24 @@ Red/System [
 		fatf1: function [
 			[typed]
 			count [integer!]
-			list [typed-value!]
+			list [typed-float32!]
 			return: [float32!]
-			/local
-				a [float32!]
 		][
-			a: as float32! list/value
-			a
+			list/value
 		]
-    
+	
 		fatf2: function [
 			[typed]
 			count [integer!]
-			list [typed-value!]
+			list [typed-float32!]
 			return: [float32!]
 			/local
 				a [float32!]
 				b [float32!]
 		][
-			a: as float32! list/value 
+			a: list/value 
 			list: list + 1
-			b: as float32! list/value
+			b: list/value
 			a + b
 		]
   
