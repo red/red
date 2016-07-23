@@ -2706,8 +2706,8 @@ red: context [
 		cnt: 1
 		parse body [									;-- build a [value index] pairs list
 			any [
-				value: skip (repend list [value/1 cnt])
-				to block! skip (cnt: cnt + 1)
+				block! (cnt: cnt + 1)
+				| value: skip (repend list [value/1 cnt])
 			]
 		]
 		idx: redbin/emit-block list
