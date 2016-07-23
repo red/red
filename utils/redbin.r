@@ -371,7 +371,7 @@ context [
 						decimal!  [emit-float item]
 						char!	  [emit-char to integer! item]
 						pair!	  [emit-pair item]
-						datatype! [emit-datatype item]
+						datatype! [emit-datatype get-RS-type-ID/word item]
 						logic!	  [emit-logic item]
 						time!	  [emit-time item]
 						none! 	  [emit-none]

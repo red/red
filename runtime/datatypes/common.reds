@@ -280,23 +280,28 @@ select-key*: func [									;-- called by compiler for SWITCH
 		value [red-value!]
 		tail  [red-value!]
 		s	  [series!]
+		step  [integer!]
 ][
 	key: as red-value! stack/arguments
 	blk: as red-block! key + 1
 	assert TYPE_OF(blk) = TYPE_BLOCK
 	
-	s: GET_BUFFER(blk)
-	value: s/offset + blk/head
-	tail:  s/tail
-	
-	while [value < tail][
-		if TYPE_OF(key) = TYPE_OF(value) [
-			if actions/compare key value COMP_EQUAL [
-				value: either value + 1 < tail [value + 1][value]
-				return either sub? [stack/push value][stack/set-last value]
+	unless TYPE_OF(key) = TYPE_BLOCK [
+		s: GET_BUFFER(blk)
+		value: s/offset + blk/head
+		tail:  s/tail
+		step:  either sub? [1][2]
+
+		while [value < tail][
+			if TYPE_OF(key) = TYPE_OF(value) [
+				if actions/compare key value COMP_EQUAL [
+					value: either value + 1 < tail [value + 1][value]
+					either sub? [stack/push value][stack/set-last value]
+					return value
+				]
 			]
+			value: value + step
 		]
-		value: value + 1
 	]
 	either sub? [as red-value! none/push][
 		value: stack/arguments

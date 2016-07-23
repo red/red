@@ -600,11 +600,13 @@ red: context [
 		]
 	]
 	
-	get-RS-type-ID: func [name [word! datatype!] /local type][	;-- Red type name to R/S type ID
-		name: head remove back tail form name			;-- remove ending #"!"
+	get-RS-type-ID: func [name [word! datatype!] /word /local type][ ;-- Red type name to R/S type ID
+		name: either datatype? name [form name][
+			head remove back tail form name				;-- remove ending #"!"
+		]
 		replace/all name #"-" #"_"
 		type: to word! uppercase head insert name "TYPE_"
-		select extracts/definitions type
+		either word [type][select extracts/definitions type]
 	]
 	
 	make-typeset: func [
