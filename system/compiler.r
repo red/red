@@ -856,7 +856,7 @@ system-dialect: make-profilable context [
 						integer! [value: value <> 0]
 					]
 				]
-				float! float!32 [
+				float! float32! [
 					if type/1 = 'integer! [
 						value: to decimal! value
 					]
@@ -2932,6 +2932,15 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
+				if all [								;-- early post-processing, cannot fit otherwise
+					boxed
+					find [integer! float! float64! float32!] last-type/1
+					find [integer! float! float64! float32!] boxed/type
+					last-type/1 <> boxed/type
+				][
+					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
+					last-type: boxed/type
+				]
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment

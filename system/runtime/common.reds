@@ -82,6 +82,12 @@ typed-value!: alias struct! [
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
+typed-float32!: alias struct! [
+	type	 [integer!]	
+	value	 [float32!]
+	_padding [integer!]						;-- extra space for 64-bit values	
+]
+
 typed-float!: alias struct! [
 	type	 [integer!]	
 	value	 [float!]
