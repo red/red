@@ -204,14 +204,16 @@ make-profilable make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
-			all [value/type/1 = 'integer! type/1 = 'float32!][
-				if verbose >= 3 [print ">>>converting from float32! to integer!"]
+			all [value/type/1 = 'integer! find [float! float64! float!32!] type/1][
+				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 				emit #{83EC04}						;-- SUB esp, 4
-				emit #{D91C24}						;-- FSTP dword [esp]	; save as 32-bit
-				either alt? [
-					emit #{5A}						;-- POP edx
-				][
-					emit #{58}						;-- POP eax
+				emit #{DB1C24}						;-- FISTP dword [esp]	; save as 32-bit
+				unless push [
+					either alt? [
+						emit #{5A}					;-- POP edx
+					][
+						emit #{58}					;-- POP eax
+					]
 				]
 			]
 			all [value/type/1 = 'float32! type/1 = 'integer!][
@@ -979,7 +981,7 @@ make-profilable make target-class [
 		/with cast [object!]
 		/cdecl										;-- external call
 		/keep
-		/local spec type offset int-to-float?
+		/local spec type offset conv-int-float?
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -1094,19 +1096,26 @@ make-profilable make target-class [
 			]
 			object! [
 				type: compiler/get-type value/data
-				int-to-float?: all [
-					find [float! float64! float32!] value/type/1
-					type/1 = 'integer!
-				]
-				unless any [path? value/data compiler/any-float? type][
+				
+				conv-int-float?: any [
 					all [
-						int-to-float?
+						find [float! float64! float32!] value/type/1
+						type/1 = 'integer!
+					]
+					all [
+						find [float! float64! float32!] type/1
+						value/type/1 = 'integer!
+					]
+				]
+				unless path? value/data [
+					all [
+						conv-int-float?
 						not find [block! tag!] type?/word value/data
 						emit-load value/data
 					]
 					emit-casting/push value no
 				]
-				unless int-to-float? [
+				unless conv-int-float? [
 					either cdecl [
 						emit-push/with/cdecl value/data value
 					][
