@@ -32,6 +32,7 @@ Red/System [
 #include %classes.reds
 #include %events.reds
 
+#include %direct2d.reds
 #include %font.reds
 #include %para.reds
 #include %camera.reds
@@ -55,6 +56,7 @@ current-msg: 	as tagMSG 0
 wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
 win8+?:			no
+winxp?:			no
 win-state:		0
 
 log-pixels-x:	0
@@ -274,7 +276,7 @@ update-scrollbars: func [
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
-			get-font-handle font
+			get-font-handle font 0
 		][
 			GetStockObject DEFAULT_GUI_FONT
 		]
@@ -412,6 +414,7 @@ init: func [
 		version-info/dwMajorVersion >= 6
 		version-info/dwMinorVersion >= 2
 	]
+	winxp?: version-info/dwMajorVersion < 6
 
 	ver: as red-tuple! #get system/view/platform/version
 
@@ -432,7 +435,8 @@ init: func [
 	
 	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-	
+
+	unless winxp? [DX-init]
 	set-defaults
 ]
 

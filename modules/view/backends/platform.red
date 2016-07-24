@@ -431,7 +431,7 @@ system/view/platform: context [
 		font: as red-object! values + gui/FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
 			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font]
+			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font 0]
 		][
 			null
 		]
