@@ -217,20 +217,6 @@ compiled?: func [
 	}
 	--assert-msg? "type casting from pointer! to byte! is not allowed"
 	
-	--test-- "cast float! error 7"
-	--compile-this {
-	  Red/System [] 
-	  cfe7-int: as integer! 1.0
-	}
-	--assert-msg? "type casting from float! to integer! is not allowed"
-	
-	;--test-- "cast float32! error 8"				;-- this is allowed
-	;--compile-this {
-	;  Red/System []
-	;  cfe8-int: as integer! as float32! 1.0
-	;}
-	;--assert-msg? "type casting from float32! to integer! is not allowed"
-	
 	--test-- "cast float! error 9"
 	--compile-this {
 	  Red/System []
