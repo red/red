@@ -204,7 +204,7 @@ make-profilable make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
-			all [value/type/1 = 'integer! find [float! float64! float!32!] type/1][
+			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 				emit #{83EC04}						;-- SUB esp, 4
 				emit #{DB1C24}						;-- FISTP dword [esp]	; save as 32-bit
