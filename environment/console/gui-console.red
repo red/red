@@ -231,14 +231,6 @@ gui-console-ctx: context [
 				console/size: event/offset
 				unless system/view/auto-sync? [show face]
 			]
-			on-key-down: func [face [object!] event [event!]][
-				if 'control = first event/flags [
-					switch event/key [
-						187	[console/font/size: console/font/size + 1]	;-- ctrl + =
-						189	[console/font/size: console/font/size - 1]	;-- ctrl + -
-					]
-				]
-			]
 		]
 		pane: reduce [console]
 	]

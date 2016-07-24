@@ -963,7 +963,7 @@ simple-io: context [
 			value: block/rs-head blk
 			tail:  block/rs-tail blk
 			while [value < tail][
-				data: value-to-buffer value -1 :size binary? no buffer
+				data: value-to-buffer value -1 :size binary? buffer
 				write-data file data size
 				write-data file as byte-ptr! lineend lf-sz
 				value: value + 1
@@ -1168,7 +1168,6 @@ simple-io: context [
 		part	[integer!]
 		size	[int-ptr!]
 		binary? [logic!]
-		lines?	[logic!]
 		buffer	[red-string!]
 		return: [byte-ptr!]
 		/local
@@ -1190,14 +1189,10 @@ simple-io: context [
 				if all [part > 0 len > part][len: part]
 			]
 			true [
-				either all [lines? type = TYPE_BLOCK][
-					buf: as byte-ptr! data len: part
-				][
-					len: 0
-					actions/mold as red-value! data buffer no yes no null 0 0
-					buf: value-to-buffer as red-value! buffer part :len binary? yes null
-					string/rs-reset buffer
-				]
+				len: 0
+				actions/mold as red-value! data buffer no yes no null 0 0
+				buf: value-to-buffer as red-value! buffer part :len binary? null
+				string/rs-reset buffer
 			]
 		]
 		size/value: len
@@ -1238,9 +1233,15 @@ simple-io: context [
 			offset: int/value
 		]
 
-		len: 0
-		buffer: string/rs-make-at stack/push* 16
-		buf: value-to-buffer data limit :len binary? lines? buffer
+		either all [lines? TYPE_OF(data) = TYPE_BLOCK][
+			buf: as byte-ptr! data
+		][
+			lines?: no
+			len: 0
+			buffer: string/rs-make-at stack/push* 16
+			buf: value-to-buffer data limit :len binary? buffer
+		]
+
 		type: write-file file/to-OS-path filename buf len offset binary? append? lines? yes
 		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type

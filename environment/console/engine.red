@@ -213,7 +213,7 @@ system/console: context [
 			][
 				either not all [
 					block? script
-					script: find script 'Red
+					script: find/case script 'Red
 					block? script/2 
 				][
 					print "*** Error: not a Red program!"

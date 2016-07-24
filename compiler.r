@@ -600,11 +600,13 @@ red: context [
 		]
 	]
 	
-	get-RS-type-ID: func [name [word! datatype!] /local type][	;-- Red type name to R/S type ID
-		name: head remove back tail form name			;-- remove ending #"!"
+	get-RS-type-ID: func [name [word! datatype!] /word /local type][ ;-- Red type name to R/S type ID
+		name: either datatype? name [form name][
+			head remove back tail form name				;-- remove ending #"!"
+		]
 		replace/all name #"-" #"_"
 		type: to word! uppercase head insert name "TYPE_"
-		select extracts/definitions type
+		either word [type][select extracts/definitions type]
 	]
 	
 	make-typeset: func [
@@ -2704,19 +2706,18 @@ red: context [
 		cnt: 1
 		parse body [									;-- build a [value index] pairs list
 			any [
-				value: skip (repend list [value/1 cnt])
-				to block! skip (cnt: cnt + 1)
+				block! (cnt: cnt + 1)
+				| value: skip (repend list [value/1 cnt])
 			]
 		]
 		idx: redbin/emit-block list
 		
-		emit-open-frame 'select							;-- SWITCH lookup frame
-		emit compose [block/push get-root (idx)]
-		insert-lf -2
+		emit-open-frame 'select-key*					;-- SWITCH lookup frame
 		emit arg
-		emit [integer/push 2]							;-- /skip 2
+		emit compose [block/push get-root (idx)]
+		insert-lf -3
+		emit [select-key* no]
 		insert-lf -2
-		emit-action/with 'select [-1 0 -1 -1 -1 -1 2 -1 -1] ;-- select/only/skip
 		emit-close-frame
 		
 		emit [switch integer/get-any*]
