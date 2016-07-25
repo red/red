@@ -86,22 +86,27 @@ make-profilable make target-class [
 		data
 	]
 	
-	emit-float: func [arg opcode [binary!]][
-		emit either any [
-			arg == 4
-			'float32! = first compiler/get-type arg 
-		][
-			opcode and #{F9FF}
+	emit-float: func [opcode [binary!]][
+		emit either width = 4 [opcode and #{F9FF}][opcode]
+	]
+	
+	emit-float-arg: func [arg opcode [binary!]][
+		emit switch/default first compiler/get-type arg [
+			float32! [opcode and #{F9FF}]
+			integer! [opcode and #{F0FF} or #{0B00}]
 		][
 			opcode
 		]
 	]
 	
-	emit-float-variable: func [name [word! object!] gcode [binary!] pcode [binary!] lcode [binary!]][
-		if 'float32! = first compiler/get-type name [
-			gcode: gcode and #{F9FF}
-			pcode: pcode and #{F9FF}
-			lcode: lcode and #{F9FF} 
+	emit-float-variable: func [
+		name [word! object!] gcode [binary!] pcode [binary!] lcode [binary!]
+		/local codes
+	][
+		codes: [gcode pcode lcode]
+		switch first compiler/get-type name [
+			float32! [foreach c codes [set c (get c) and #{F9FF}]]
+			integer! [foreach c codes [set c (get c) and #{F0FF} or #{0B00}]]
 		]
 		emit-variable name gcode pcode lcode
 	]
@@ -551,7 +556,7 @@ make-profilable make target-class [
 			decimal! [
 				set-width any [cast value]
 				emit-push any [cast value]
-				emit-float width #{DD0424}			;-- FLD [esp]
+				emit-float #{DD0424}				;-- FLD [esp]
 				emit #{83C4} 						;-- ADD esp, 8|4
 				emit to-bin8 pick [4 8] to logic! all [cast cast/type/1 = 'float32!]
 			]
@@ -747,9 +752,9 @@ make-profilable make target-class [
 		
 		either compiler/any-float? type [
 			either zero? offset [
-				emit-float width #{DD00}			;-- FLD [eax]
+				emit-float #{DD00}					;-- FLD [eax]
 			][
-				emit-float width #{DD80}			;-- FLD [eax+offset]
+				emit-float #{DD80}					;-- FLD [eax+offset]
 				emit to-bin32 offset
 			]
 		][
@@ -829,15 +834,15 @@ make-profilable make target-class [
 
 			either integer? idx [
 				either zero? idx: idx - 1 [			;-- indexes are one-based
-					emit-float width opcodes/1
+					emit-float opcodes/1
 				][
 					offset: idx * emitter/size-of? type/2/1	;-- scaled index up
-					emit-float width opcodes/2
+					emit-float opcodes/2
 					emit to-bin32 offset
 				]
 			][
 				emit-load-index idx
-				emit-float width opcodes/3
+				emit-float opcodes/3
 				emit select [4 #{B8} 8 #{F8}] width
 			]
 		][
@@ -906,9 +911,9 @@ make-profilable make target-class [
 				
 				either compiler/any-float? type [
 					either zero? offset [
-						emit-float width #{DD18}	;-- FSTP [eax]
+						emit-float #{DD18}			;-- FSTP [eax]
 					][
-						emit-float width #{DD98}	;-- FSTP [eax+offset]
+						emit-float #{DD98}			;-- FSTP [eax+offset]
 						emit to-bin32 offset
 					]
 				][
@@ -991,7 +996,7 @@ make-profilable make target-class [
 				either compiler/any-float? compiler/last-type [
 					set-width/type any [all [cast cast/type] compiler/last-type]
 					emit join #{83EC} to-bin8 width	;-- SUB esp, 8|4
-					emit-float width #{DD1C24}		;-- FSTP [esp]
+					emit-float #{DD1C24}			;-- FSTP [esp]
 				][
 					emit #{50}						;-- PUSH eax
 				]
@@ -1038,7 +1043,7 @@ make-profilable make target-class [
 					emit #{83EC}					;-- SUB esp, 8|4
 					emit to-bin8 width
 					load-float-variable value
-					emit-float width #{DD1C24}		;-- FSTP [esp]			; push double on stack
+					emit-float #{DD1C24}			;-- FSTP [esp]			; push double on stack
 				][
 					emit-variable value
 						#{FF35}						;-- PUSH [value]		; global
@@ -1462,11 +1467,11 @@ make-profilable make target-class [
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
-		either all [object? args/2 find [imm reg] b][
+		if all [object? args/2 find [imm reg] b][
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
-		][
-			implicit-cast right
 		]
+		implicit-cast right
+		
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
@@ -1553,18 +1558,17 @@ make-profilable make target-class [
 		set-width left
 		
 		load-from-stack: [
-			emit-float width #{DD0424}				;-- FLD [esp]
+			emit-float #{DD0424}					;-- FLD [esp]
 			emit #{83C4} 							;-- ADD esp, 8|4
 			emit to-bin8 width		
 		]
-
 		switch a [									;-- load left operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
 				either PIC? [
-					emit-float args/1 #{DD83}		;-- FLD [ebx+disp]	; PIC
+					emit-float-arg args/1 #{DD83}	;-- FLD [ebx+disp]	; PIC
 				][
-					emit-float args/1 #{DD05}		;-- FLD [<float>]	; global
+					emit-float-arg args/1 #{DD05}	;-- FLD [<float>]	; global
 				]
 				emit-reloc-addr spec/2
 				set-width args/1
@@ -1585,9 +1589,9 @@ make-profilable make target-class [
 			imm [
 				spec: emitter/store-value none args/2 compiler/get-type args/2
 				either PIC? [
-					emit-float args/2 #{DD83}		;-- FLD [ebx+disp]	; PIC
+					emit-float-arg args/2 #{DD83}	;-- FLD [ebx+disp]	; PIC
 				][
-					emit-float args/2 #{DD05}		;-- FLD [<float>]	; global
+					emit-float-arg args/2 #{DD05}	;-- FLD [<float>]	; global
 				]
 				emit-reloc-addr spec/2
 			]
