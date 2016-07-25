@@ -2934,6 +2934,7 @@ system-dialect: make-profilable context [
 				if type [last-type: type]				;-- set last-type if not already set
 				if all [								;-- early post-processing, cannot fit otherwise
 					boxed
+					'op <> compiler/functions/(expr/1)/2 ;-- op casting are handled by code backends
 					find [integer! float! float64! float32!] last-type/1
 					find [float! float64! float32!] boxed/type
 					last-type/1 <> boxed/type
