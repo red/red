@@ -56,6 +56,21 @@ WindowsXP [
 	sub-system: 'GUI
 	legacy:		[no-touch]
 ]
+MSDOS-Old [								; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'console
+	cpu-version: 1.0
+]
+;-------------------------
+Windows-Old [							; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'GUI
+	cpu-version: 1.0
+]
 ;-------------------------
 WinDLL [
 	OS:			'Windows

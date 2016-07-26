@@ -212,7 +212,16 @@ make-profilable make target-class [
 			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
 				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
 				emit #{83EC04}						;-- SUB esp, 4
-				emit #{DB1C24}						;-- FISTP dword [esp]	; save as 32-bit
+				either compiler/job/cpu-version >= 4.0 [ ;-- Only CPUs with SSE3, >= Pentium 4
+					emit #{DB0C24}					;-- FISTTP dword [esp]	; save as 32-bit truncated
+				][
+					emit-push to integer! #{0E7F}	;-- set FPU_X87_ROUNDING_ZERO mode
+					emit #{D92C24}					;-- FLDCW [esp]
+					emit #{83C404}					;-- ADD esp, 4			; free space
+					emit #{DB1C24}					;-- FISTP dword [esp]	; save as 32-bit
+					emit #{D92D}					;-- FLDCW [<word>]	 	; global
+					emit-reloc-addr fpu-cword/2		;-- one-based index
+				]
 				unless push [
 					either alt? [
 						emit #{5A}					;-- POP edx
@@ -1467,7 +1476,10 @@ make-profilable make target-class [
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
-		if all [object? args/2 find [imm reg] b][
+		all [
+			object? args/2
+			find [imm reg] b
+			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)		
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
 		]
 		implicit-cast right
