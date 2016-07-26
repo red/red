@@ -3674,17 +3674,22 @@ red: context [
 	]
 	
 	process-get-directive: func [
-		path code [block!] /local obj fpath ctx blk idx
+		spec code [block!] /local obj fpath ctx blk idx
 	][
-		unless path? path [
-			throw-error ["invalid #get argument:" spec]
-		]
-		set [obj fpath] object-access? path
-		ctx: second obj: find objects obj
-		unless idx: get-word-index/with last path ctx [return none]
-		remove/part code 2
-		blk: [red/word/get-in (decorate-exec-ctx ctx) (idx)]
-		insert code compose blk
+		switch/default type?/word spec [
+			path! [
+				set [obj fpath] object-access? spec
+				ctx: second obj: find objects obj
+				unless idx: get-word-index/with last spec ctx [return none]
+				remove/part code 2
+				blk: [red/word/get-in (decorate-exec-ctx ctx) (idx)]
+				insert code compose blk
+			]
+			word! [
+				remove/part code 2
+				insert code compose [red/word/get (decorate-exec-ctx decorate-symbol spec)]
+			]
+		][throw-error ["invalid #get argument:" spec]]
 	]
 	
 	process-in-directive: func [
