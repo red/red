@@ -157,6 +157,13 @@ words-of: func [
 	reflect :value 'words
 ]
 
+class-of: func [
+	"Returns the class ID of an object"
+	value
+][
+	reflect :value 'class
+]
+
 values-of: func [
 	"Returns the list of values of a value that supports reflection"
 	value
