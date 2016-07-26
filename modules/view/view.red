@@ -17,6 +17,13 @@ Red [
 
 event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
+face?: function [
+	value
+	return:	[logic!]
+][
+	make logic! all [object? value (class-of value) = class-of face!]
+]
+
 size-text: function [
 	"Returns the area size of the text in a face"
 	face	 [object!]		"Face containing the text to size"
