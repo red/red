@@ -514,8 +514,8 @@ update-base-text: func [
 	rect: declare RECT_STRUCT_FLOAT32
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
-	rect/width: as float32! integer/to-float width
-	rect/height: as float32! integer/to-float height
+	rect/width: as float32! width
+	rect/height: as float32! height
 
 	GdipDrawString graphic unicode/to-utf16 text -1 hFont rect format hBrush
 

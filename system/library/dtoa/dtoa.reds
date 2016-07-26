@@ -841,7 +841,7 @@ red-dtoa: context [
 			no
 		]
 
-		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((integer/to-float i) * 0.301029995663981)
+		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((as-float i) * 0.301029995663981)
 		f: fsave
 		k: float/to-integer floor ds			;@@ Optimize it
 
@@ -1425,10 +1425,10 @@ red-dtoa: context [
 		]
 
 		k: either nd < 16 [nd][16]
-		rv: integer/to-float y
+		rv: as-float y
 		if k > 9 [
 			j: k - 8
-			rv: TENS/j * rv + integer/to-float z
+			rv: TENS/j * rv + as-float z
 		]
 
 		if nd < 16 [

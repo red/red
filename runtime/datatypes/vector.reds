@@ -396,7 +396,7 @@ vector: context [
 		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
 			either type = TYPE_INTEGER [
 				int: as red-integer! right
-				f2: integer/to-float int/value
+				f2: as-float int/value
 			][
 				fl: as red-float! right
 				f2: fl/value

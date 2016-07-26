@@ -1659,14 +1659,14 @@ natives: context [
 		f: as red-float! stack/arguments 
 		either TYPE_OF(f) <> TYPE_FLOAT [
 			n: as red-integer! f
-			y: integer/to-float n/value
+			y: as-float n/value
 		][
 			y: f/value
 		]
 		f: as red-float! stack/arguments + 1
 		either TYPE_OF(f) <> TYPE_FLOAT [
 			n: as red-integer! f
-			x: integer/to-float n/value
+			x: as-float n/value
 			f/header: TYPE_FLOAT
 		][
 			x: f/value
@@ -2390,7 +2390,7 @@ natives: context [
 		if TYPE_OF(f) <> TYPE_FLOAT [
 			f/header: TYPE_FLOAT
 			n: as red-integer! f
-			f/value: integer/to-float n/value
+			f/value: as-float n/value
 		]
 		f
 	]

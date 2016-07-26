@@ -113,7 +113,7 @@ percent: context [
 			TYPE_INTEGER [
 				fl: as red-float! spec
 				int: as red-integer! spec
-				fl/value: integer/to-float int/value
+				fl/value: as-float int/value
 				fl/header: TYPE_PERCENT
 				fl
 			]

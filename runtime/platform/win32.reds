@@ -321,7 +321,7 @@ platform: context [
 		m: time/hour-minute >>> 16
 		sec: time/second and FFFFh
 		milli: either precise? [time/second >>> 16][0]
-		t: integer/to-float h * 3600 + (m * 60) + sec * 1000 + milli
+		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
 		t * 1E6				;-- nano second
 	]
 

@@ -99,7 +99,7 @@ Red/System [
 				v	[float!]
 		][
 			either TYPE_OF(int) = TYPE_INTEGER [
-				v: integer/to-float int/value
+				v: as-float int/value
 			][
 				f: as red-float! int
 				v: f/value
@@ -115,7 +115,7 @@ Red/System [
 				v	[float32!]
 		][
 			either TYPE_OF(int) = TYPE_INTEGER [
-				v: as float32! integer/to-float int/value
+				v: as float32! int/value
 			][
 				f: as red-float! int
 				v: as float32! f/value

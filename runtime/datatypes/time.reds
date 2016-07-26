@@ -100,7 +100,7 @@ time: context [
 			TYPE_INTEGER [
 				fl: as red-float! spec
 				int: as red-integer! spec
-				fl/value: oneE9 * integer/to-float int/value
+				fl/value: oneE9 * as-float int/value
 				fl/header: TYPE_TIME
 				as red-time! fl
 			]
@@ -225,18 +225,18 @@ time: context [
 				1 [
 					if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
 					int: as red-integer! value
-					t/time: time - (GET_HOURS(time) - (integer/to-float int/value) * h-factor)
+					t/time: time - (GET_HOURS(time) - (as-float int/value) * h-factor)
 				]
 				2 [
 					if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
 					int: as red-integer! value
-					t/time: time - (GET_MINUTES(time) - (integer/to-float int/value) * m-factor)
+					t/time: time - (GET_MINUTES(time) - (as-float int/value) * m-factor)
 				]
 				3 [
 					switch TYPE_OF(value) [
 						TYPE_INTEGER [
 							int: as red-integer! value
-							fval: integer/to-float int/value
+							fval: as-float int/value
 						]
 						TYPE_FLOAT [
 							fl: as red-float! value

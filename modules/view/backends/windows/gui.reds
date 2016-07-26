@@ -693,7 +693,7 @@ get-position-value: func [
 		TYPE_OF(pos) = TYPE_FLOAT
 		TYPE_OF(pos) = TYPE_PERCENT
 	][
-		f: pos/value * (integer/to-float maximun)
+		f: pos/value * as-float maximun
 	]
 	float/to-integer f
 ]
@@ -720,7 +720,7 @@ get-slider-pos: func [
 	amount: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
 	divisor: size/x
 	if size/y > size/x [divisor: size/y amount: divisor - amount]
-	pos/value: (integer/to-float amount) / (integer/to-float divisor)
+	pos/value: (as-float amount) / as-float divisor
 ]
 
 get-screen-size: func [
@@ -1366,7 +1366,7 @@ change-data: func [
 			size: as red-pair! values + FACE_OBJ_SIZE
 			flt: f/value
 			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
-			flt: flt * integer/to-float range
+			flt: flt * as-float range
 			SendMessage hWnd TBM_SETPOS 1 float/to-integer flt
 		]
 		all [

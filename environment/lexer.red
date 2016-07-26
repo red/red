@@ -27,26 +27,19 @@ system/lexer: context [
 	]
 	
 	make-hm: routine [h [integer!] m [integer!]][
-		time/box (integer/to-float h) * 3600.0
-			+ ((integer/to-float m) * 60.0)
-			/ time/nano
+		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0) / time/nano
 	]
 	
 	make-msf: routine [m [integer!] s [float!]][
-		time/box ((integer/to-float m) * 60.0) + s / time/nano
+		time/box ((as-float m) * 60.0) + s / time/nano
 	]
 	
 	make-hms: routine [h [integer!] m [integer!] s [integer!]][
-		time/box (integer/to-float h) * 3600.0
-			+ ((integer/to-float m) * 60.0)
-			+ (integer/to-float s)
-			/ time/nano
+		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0) + (as-float s) / time/nano
 	]
 	
 	make-hmsf: routine [h [integer!] m [integer!] s [float!]][
-		time/box (integer/to-float h) * 3600.0
-			+ ((integer/to-float m) * 60.0)
-			+ s / time/nano
+		time/box (as-float h) * 3600.0 + ((as-float m) * 60.0) + s / time/nano
 	]
 	
 	make-time: function [

@@ -232,8 +232,8 @@ get-event-picked: func [
 				res: as red-value! either zoom-distance = -1 [none/push][
 					pct: as red-float! stack/push*
 					pct/header: TYPE_PERCENT
-					zd: integer/to-float zoom-distance
-					pct/value: 1.0 + ((integer/to-float gi/ullArgumentH) - zd / zd)				
+					zd: as-float zoom-distance
+					pct/value: 1.0 + ((as-float gi/ullArgumentH) - zd / zd)				
 					pct
 				]
 				zoom-distance: gi/ullArgumentH

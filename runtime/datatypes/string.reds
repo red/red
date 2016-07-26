@@ -1185,7 +1185,7 @@ string: context [
 				int: as red-integer! ret
 				f: as red-float! ret
 				f/header: TYPE_FLOAT
-				f/value: integer/to-float int/value
+				f/value: as-float int/value
 			]
 		][
 			if TYPE_OF(ret) <> t [
