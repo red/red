@@ -18,7 +18,8 @@ Red [
 event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
 face?: function [
-	value
+	"Returns TRUE if the value is a face! object"
+	value	"Value to test"
 	return:	[logic!]
 ][
 	make logic! all [object? value (class-of value) = class-of face!]
