@@ -907,6 +907,7 @@ object: context [
 			obj2 [red-object!]
 			ctx	 [red-context!]
 			blk	 [red-block!]
+			new? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
@@ -926,10 +927,14 @@ object: context [
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
-				_context/collect-set-words ctx blk
+				new?: _context/collect-set-words ctx blk
 				_context/bind blk ctx save-self-object obj yes
 				interpreter/eval blk no
-				obj/class: get-new-id
+				obj/class: either any [new? TYPE_OF(proto) <> TYPE_OBJECT][
+					get-new-id
+				][
+					proto/class
+				]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
@@ -959,6 +964,9 @@ object: context [
 		ctx: GET_CTX(obj)
 		
 		case [
+			field = words/class [
+				return as red-block! integer/box obj/class
+			]
 			field = words/words [
 				blk/node: ctx/symbols
 				blk: block/clone blk no no
