@@ -506,6 +506,7 @@ redc: context [
 
 		print [
 			newline
+			"Target:" opts/config-name lf lf
 			"Compiling to native code..."
 		]
 		fail-try "Red/System Compiler" [
