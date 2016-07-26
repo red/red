@@ -101,14 +101,15 @@ make-profilable make target-class [
 	
 	emit-float-variable: func [
 		name [word! object!] gcode [binary!] pcode [binary!] lcode [binary!]
-		/local codes
+		/local codes type
 	][
 		codes: [gcode pcode lcode]
-		switch first compiler/get-type name [
+		switch type: first compiler/get-type name [
 			float32! [foreach c codes [set c (get c) and #{F9FF}]]
 			integer! [foreach c codes [set c (get c) and #{F0FF} or #{0B00}]]
 		]
 		emit-variable name gcode pcode lcode
+		type
 	]
 	
 	load-float-variable: func [name [word! object!]][
@@ -1556,7 +1557,7 @@ make-profilable make target-class [
 
 	emit-float-operation: func [
 		name [word!] args [block!] 
-		/local a b left right spec load-from-stack reversed?
+		/local a b left right spec load-from-stack reversed? type
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
@@ -1585,9 +1586,13 @@ make-profilable make target-class [
 				emit-reloc-addr spec/2
 				set-width args/1
 			]
-			ref [			
-				load-float-variable left
-				if object? args/1 [emit-casting args/1 no]
+			ref [
+				type: load-float-variable left
+				all [
+					object? args/1
+					not find [float32! integer!] type
+					emit-casting args/1 no
+				]
 			]
 			reg [
 				if object? args/1 [
@@ -1608,8 +1613,12 @@ make-profilable make target-class [
 				emit-reloc-addr spec/2
 			]
 			ref [
-				load-float-variable right
-				if object? args/2 [emit-casting args/2 no]
+				type: load-float-variable right
+				all [
+					object? args/2
+					not find [float32! integer!] type
+					emit-casting args/2 no
+				]
 			]
 			reg [
 				if all [object? args/2 block? right][
