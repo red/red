@@ -243,21 +243,6 @@ integer: context [
 		int
 	]
 
-	to-float: func [
-		i		[integer!]
-		return: [float!]
-		/local
-			f	[float!]
-			d	[int-ptr!]
-	][
-		;-- Based on this method: http://stackoverflow.com/a/429812/494472
-		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
-		f: 6755399441055744.0
-		d: as int-ptr! :f
-		d/value: i or d/value
-		either i < 0 [f - 6755403736023040.0][f - 6755399441055744.0]
-	]
-
 	;-- Actions --
 	
 	make: func [

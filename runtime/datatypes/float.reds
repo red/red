@@ -76,21 +76,6 @@ float: context [
 		fl
 	]
 
-	to-integer: func [
-		number 	[float!]
-		return:	[integer!]
-		/local
-			f	[float!]
-			d	[int-ptr!]
-	][
-		;-- Based on this method: http://stackoverflow.com/a/429812/494472
-		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
-		number: either number < 0.0 [ceil number][floor number]
-		f: number + 6755399441055744.0
-		d: as int-ptr! :f
-		d/value
-	]
-
 	form-float: func [
 		f			[float!]
 		type		[integer!]
