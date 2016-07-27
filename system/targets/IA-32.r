@@ -900,6 +900,7 @@ make-profilable make target-class [
 		unless value = <last> [
 			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
 			emit-load value
+			if object? value [emit-casting value no]
 			unless all [
 				type = 'struct!
 				word? path/2
