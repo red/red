@@ -420,7 +420,7 @@ float: context [
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
-			_random/srand to-integer f/value
+			_random/srand as-integer f/value
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
@@ -447,7 +447,7 @@ float: context [
 			TYPE_INTEGER [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
-				int/value: to-integer f
+				int/value: as-integer f
 			]
 			TYPE_PERCENT [
 				fl: as red-float! type
@@ -749,7 +749,7 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: to-integer dec
+				int/value: as-integer dec
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]

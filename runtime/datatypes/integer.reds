@@ -307,7 +307,7 @@ integer: context [
 			TYPE_PERCENT [
 				f: as red-float! type
 				f/header: type/value
-				f/value: to-float spec/value
+				f/value: as-float spec/value
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
@@ -384,7 +384,7 @@ integer: context [
 			TYPE_FLOAT [
 				f: as red-float! value1
 				left: value1/value
-				f/value: to-float left
+				f/value: as-float left
 				res: float/compare f as red-float! value2 op
 				value1/value: left
 				return res
@@ -494,7 +494,7 @@ integer: context [
 			negative? exp/value
 		][
 			f: as red-float! base
-			f/value: to-float base/value
+			f/value: as-float base/value
 			f/header: TYPE_FLOAT
 			float/power
 		][
@@ -570,7 +570,7 @@ integer: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_FLOAT [
 				f: as red-float! value
-				f/value: to-float num
+				f/value: as-float num
 				f/header: TYPE_FLOAT
 				return float/round value as red-float! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
