@@ -124,13 +124,13 @@ pair: context [
 				]
 				x: either TYPE_OF(int) = TYPE_FLOAT [
 					fl: as red-float! int
-					float/to-integer fl/value
+					as-integer fl/value
 				][
 					int/value
 				]
 				y: either TYPE_OF(int2) = TYPE_FLOAT [
 					fl: as red-float! int2
-					float/to-integer fl/value
+					as-integer fl/value
 				][
 					int2/value
 				]	

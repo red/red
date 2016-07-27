@@ -421,7 +421,7 @@ vector: context [
 			][
 				fl: as red-float! right
 				f1: fl/value
-				v2: float/to-integer f1
+				v2: as-integer f1
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit

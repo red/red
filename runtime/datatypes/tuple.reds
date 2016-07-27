@@ -121,7 +121,7 @@ tuple: context [
 				v1: as-integer tp1/n
 				f1: as-float v1
 				f1: float/do-math-op f1 f2 type
-				v1: float/to-integer f1
+				v1: as-integer f1
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size1

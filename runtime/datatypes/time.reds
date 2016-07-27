@@ -31,8 +31,8 @@ time: context [
 	][
 		t: tm/time
 		as red-value! switch field [
-			1 [integer/push float/to-integer GET_HOURS(t)]
-			2 [integer/push float/to-integer GET_MINUTES(t)]
+			1 [integer/push as-integer GET_HOURS(t)]
+			2 [integer/push as-integer GET_MINUTES(t)]
 			3 [float/push GET_SECONDS(t)]
 			default [assert false]
 		]
@@ -153,13 +153,13 @@ time: context [
 			time: float/abs time
 		]
 		
-		formed: integer/form-signed float/to-integer GET_HOURS(time)
+		formed: integer/form-signed as-integer GET_HOURS(time)
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 
-		formed: integer/form-signed float/to-integer GET_MINUTES(time)
+		formed: integer/form-signed as-integer GET_MINUTES(time)
 		len: length? formed								;@@ optimize by removing length?
 		if len = 1 [
 			string/append-char GET_BUFFER(buffer) as-integer #"0"

@@ -1872,7 +1872,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
-				pair/x: float/to-integer fl/value
+				pair/x: as-integer fl/value
 			]
 			default		 [assert false]
 		]
@@ -1884,7 +1884,7 @@ natives: context [
 			]
 			TYPE_FLOAT	 [
 				fl: as red-float! arg
-				pair/y: float/to-integer fl/value
+				pair/y: as-integer fl/value
 			]
 			default		[assert false]
 		]
@@ -2063,7 +2063,7 @@ natives: context [
 			TYPE_FLOAT [
 				ftime: val/value * #either OS = 'Windows [1000.0][1000000.0]
 				if ftime < 1.0 [ftime: 1.0]
-				time: float/to-integer ftime
+				time: as-integer ftime
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]

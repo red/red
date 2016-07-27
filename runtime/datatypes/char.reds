@@ -24,7 +24,7 @@ char: context [
 		if TYPE_OF(right) = TYPE_FLOAT [
 			char: as red-char! right
 			char/header: TYPE_CHAR
-			char/value: float/to-integer right/value
+			char/value: as-integer right/value
 		]
 		char: as red-char! integer/do-math op
 		char/header: TYPE_CHAR

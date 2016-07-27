@@ -695,7 +695,7 @@ get-position-value: func [
 	][
 		f: pos/value * as-float maximun
 	]
-	float/to-integer f
+	as-integer f
 ]
 
 get-slider-pos: func [
@@ -1367,14 +1367,14 @@ change-data: func [
 			flt: f/value
 			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
 			flt: flt * as-float range
-			SendMessage hWnd TBM_SETPOS 1 float/to-integer flt
+			SendMessage hWnd TBM_SETPOS 1 as-integer flt
 		]
 		all [
 			type = progress
 			TYPE_OF(data) = TYPE_PERCENT
 		][
 			f: as red-float! data
-			SendMessage hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
+			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
 		]
 		type = check [
 			set-logic-state hWnd as red-logic! data yes
@@ -1429,7 +1429,7 @@ change-rate: func [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
 			KillTimer hWnd null
-			SetTimer hWnd null float/to-integer tm/time / 1E6 :TimerProc
+			SetTimer hWnd null as-integer tm/time / 1E6 :TimerProc
 		]
 		TYPE_NONE [KillTimer hWnd null]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
