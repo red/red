@@ -1122,14 +1122,13 @@ make-profilable make target-class [
 						value/type/1 = 'integer!
 					]
 				]
-				unless path? value/data [
-					all [
-						conv-int-float?
-						not find [block! tag!] type?/word value/data
-						emit-load value/data
-					]
-					emit-casting/push value no
+				all [
+					conv-int-float?
+					not find [block! tag!] type?/word value/data
+					emit-load value/data
 				]
+				emit-casting/push value no
+				
 				unless conv-int-float? [
 					either cdecl [
 						emit-push/with/cdecl value/data value
