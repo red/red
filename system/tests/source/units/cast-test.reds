@@ -311,6 +311,17 @@ Red/System [
 		--assertf32~= (as float32! 450.0) rc/x 1E-6
 		--assertf32~= (as float32! 600.0) rc/y 1E-6
 
+	--test-- "int-cast-56"
+		r: as float32! 1.0
+		angle: declare struct! [value [integer!]]
+		angle/value: 90
+		ab: r * as float32! angle/value
+		--assert ab = as float32! 90.0
+		ab: (as float32! 1.0) * as float32! angle/value
+		--assert ab = as float32! 90.0
+		ab: as float32! (as-float angle/value) * 3.14 / 180.0
+		--assert ab = as float32! 1.57
+
 ===end-group===
 
 ===start-group=== "cast from float!"
