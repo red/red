@@ -303,6 +303,14 @@ Red/System [
 		--assertf32~= (as float32! 3.0) as float32! modes/pen-width 1E-6
 		bar1 null as float32! modes/pen-width
 
+	--test-- "int-cast-55"
+		rc: declare struct! [x [float32!] y [float32!]]
+		i: 450
+		rc/x: as float32! i
+		rc/y: as float32! i + 150
+		--assertf32~= (as float32! 450.0) rc/x 1E-6
+		--assertf32~= (as float32! 600.0) rc/y 1E-6
+
 ===end-group===
 
 ===start-group=== "cast from float!"
