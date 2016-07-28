@@ -1128,7 +1128,7 @@ make-profilable make target-class [
 					not find [block! tag!] type?/word value/data
 					emit-load value/data
 				]
-				emit-casting/push value no
+				either keep [emit-casting value no][emit-casting/push value no]
 				
 				unless conv-int-float? [
 					either cdecl [
