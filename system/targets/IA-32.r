@@ -1480,7 +1480,7 @@ make-profilable make target-class [
 		all [
 			object? args/2
 			find [imm reg] b
-			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)		
+			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
 		]
 		implicit-cast right
