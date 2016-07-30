@@ -900,7 +900,11 @@ make-profilable make target-class [
 		unless value = <last> [
 			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
 			emit-load value
-			if object? value [emit-casting value no]
+			all [
+				object? value
+				not all [decimal? value/data 'float32! = value/type/1]
+				emit-casting value no
+			]
 			unless all [
 				type = 'struct!
 				word? path/2
@@ -1477,14 +1481,15 @@ make-profilable make target-class [
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
-		all [
+		either all [
 			object? args/2
 			find [imm reg] b
 			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
+		][
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
+		][
+			implicit-cast right
 		]
-		implicit-cast right
-		
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
