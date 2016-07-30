@@ -390,11 +390,12 @@ words: context [
 	spec:			-1
 	body:			-1
 	words:			-1
+	class:			-1
 	logic!:			-1
 	integer!:		-1
 	char!:			-1
-    float!:			-1
-    percent!:		-1
+	float!:			-1
+	percent!:		-1
 	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
@@ -575,6 +576,7 @@ words: context [
 		spec:			symbol/make "spec"
 		body:			symbol/make "body"
 		words:			symbol/make "words"
+		class:			symbol/make "class"
 		logic!:			symbol/make "logic!"
 		integer!:		symbol/make "integer!"
 		char!:			symbol/make "char!"

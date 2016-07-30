@@ -1312,6 +1312,7 @@ block: context [
 					copy-cell value ALLOC_TAIL(blk)
 				][
 					copy-cell value head
+					head: head + 1
 				]
 			]
 			cnt: cnt - 1

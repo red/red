@@ -482,7 +482,7 @@ _context: context [
 			cell [red-value!]
 			tail [red-value!]
 			base [red-value!]
-			s	 [series!]	
+			s	 [series!]
 	][
 		s: GET_BUFFER(spec)
 		cell: s/offset
@@ -497,6 +497,7 @@ _context: context [
 			]
 			cell: cell + 1
 		]
+		s: as series! ctx/symbols/value					;-- refresh s after possible expansion
 		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
