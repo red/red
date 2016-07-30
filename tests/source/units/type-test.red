@@ -121,5 +121,55 @@ Red [
 	--assert lit-word! = type? :value
 ===end-group===
 
+===start-group=== "scalar?"
+	--test-- "scalar? char!"
+	--assert scalar? #"A"
+	--test-- "scalar? integer!"
+	--assert scalar? 1
+	--test-- "scalar? float!"
+	--assert scalar? 1.0
+	--test-- "scalar? pair!"
+	--assert scalar? 1x2
+	--test-- "scalar? percent!"
+	--assert scalar? 1%
+	--test-- "scalar? tuple!"
+	--assert scalar? 1.2.3
+	--test-- "scalar? time!"
+	--assert scalar? 1:2:3
+===end-group===
+
+===start-group=== "immediate?"
+    --test-- "immediate? none!"
+    --assert immediate? none
+    --test-- "immediate? logic!"
+    --assert immediate? false
+    --test-- "immediate? char!"
+    --assert immediate? #"^@"
+    --test-- "immediate? integer!"
+    --assert immediate? 0
+    --test-- "immediate? float!"
+    --assert immediate? 0.0
+    --test-- "immediate? word!"
+    --assert immediate? first [a]
+    --test-- "immediate? set-word!"
+    --assert immediate? first [a:]
+    --test-- "immediate? lit-word!"
+    --assert immediate? 'a
+    --test-- "immediate? get-word!"
+    --assert immediate? first [:a]
+    --test-- "immediate? refinement!"
+    --assert immediate? /a
+    --test-- "immediate? issue!"
+    --assert immediate? #a
+    --test-- "immediate? pair!"
+    --assert immediate? 0x0
+    --test-- "immediate? percent!"
+    --assert immediate? 0%
+    --test-- "immediate? tuple!"
+    --assert immediate? 0.0.0
+    --test-- "immediate? time!"
+    --assert immediate? 0:00:00.0
+===end-group===
+
 ~~~end-file~~~
 
