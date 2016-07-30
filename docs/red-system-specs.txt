@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 09/03/2016
-	Revision: 46
+	Date: 30/07/2016
+	Revision: 47
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -988,8 +988,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
-<td class="deny">ERROR</td>
-<td class="allow">as integer!</td>
+<td class="allow">to integer!</td>
+<td class="allow">to integer!</td>
 <td class="allow">as integer!</td>
 </tr><tr>
 
@@ -1043,7 +1043,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float!</th>
 <td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
+<td class="allow">to float!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1055,7 +1055,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float32!</th>
 <td class="deny">ERROR</td>
-<td class="allow">as float32!</td>
+<td class="allow">to float32!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -3719,6 +3719,11 @@ will output:
 
 
 ===Document History
+
+*<b>30/07/2016 - revision 47</b>
+
+*>Allows integer to floats, and floats to integer direct type casting (using FPU for conversions).
+
 
 *<b>09/03/2016 - revision 46</b>
 
