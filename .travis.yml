@@ -33,9 +33,9 @@ install:
     # Travis VM.
     - sudo apt-get install -y libc6:i386 libcurl3:i386
     # Rebol 2 is necessary for building Red.
-    - wget http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz
-    - tar xvfz rebol-core-278-4-2.tar.gz -C /tmp
-    - sudo mv /tmp/releases/rebol-core/rebol /usr/local/bin/rebol2
+    - wget http://static.red-lang.org/tmp/rebol
+    - chmod +x rebol
+    - sudo mv ./rebol /usr/local/bin/rebol2
 
 script:
     - rebol2 -qws ${TEST_SUITE}/run-all.r --batch
