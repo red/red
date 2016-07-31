@@ -24,6 +24,45 @@ op: context [
 		;...TBD
 	]
 	
+	binary?: func [										;-- check if arity is binary
+		spec	[node!]
+		return: [logic!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			word  [red-word!]
+			s	  [series!]
+			arity [integer!]
+			sym	  [integer!]
+	][
+		s: as series! spec/value
+		value: s/offset
+		tail:  s/tail
+		arity: 0
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					arity: arity + 1
+				]
+				TYPE_REFINEMENT [
+					word: as red-word! value
+					sym: symbol/resolve word/symbol
+					either any [
+						sym = refinements/local/symbol
+						sym = refinements/extern/symbol
+					][break][return no]
+				]
+				TYPE_SET_WORD [break]
+				default [0]
+			]
+			value: value + 1
+		]
+		arity = 2
+	]
+	
 	;-- Actions -- 
 	
 	make: func [
@@ -65,13 +104,15 @@ op: context [
 			TYPE_NATIVE
 			TYPE_OP [
 				if type = TYPE_NATIVE [flag: flag-native-op]
-				native: as red-native! spec
+				native: as red-native! spec				
+				unless binary? native/spec [fire [TO_ERROR(script bad-op-spec)]]
 				code: native/code
 				native/spec
 			]
 			TYPE_FUNCTION
 			TYPE_ROUTINE [
 				fun: as red-function! spec
+				unless binary? fun/spec [fire [TO_ERROR(script bad-op-spec)]]
 				s: as series! fun/more/value
 				;@@ check if slot #4 is already set!
 				copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
