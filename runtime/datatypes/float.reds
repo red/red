@@ -260,6 +260,7 @@ float: context [
 			op2	  [float!]
 			t1?	  [logic!]
 			t2?	  [logic!]
+			pct?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
@@ -300,13 +301,11 @@ float: context [
 			int: as red-integer! right
 			right/value: as-float int/value
 		]
-
-		if all [							;-- convert percent! to float!
+		pct?:  all [
 			type1 = TYPE_PERCENT
 			type2 <> TYPE_PERCENT
-		][
-			left/header: TYPE_FLOAT
 		]
+		if pct? [left/header: TYPE_FLOAT]			;-- convert percent! to float!
 		
 		op1: left/value
 		op2: right/value
@@ -323,6 +322,7 @@ float: context [
 			left/header: TYPE_TIME
 			left/value: left/value * time/oneE9
 		]
+		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
 
