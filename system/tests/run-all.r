@@ -105,6 +105,10 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/conditional-test.reds
 ===end-group===
 
+===start-group=== "System tests"
+  --run-test-file-quiet %source/units/system-test.reds
+===end-group===
+
 ===start-group=== "Auto-tests"
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
