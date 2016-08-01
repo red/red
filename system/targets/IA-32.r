@@ -428,6 +428,11 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
+	emit-get-overflow: does [
+		emit #{0F90C0}								;-- SETO al
+		emit #{83E001}								;-- AND eax, 1
+	]
+	
 	emit-get-pc: func [/ebx][
 		emit #{E800000000}							;-- CALL next		; call the next instruction
 		either ebx [
@@ -1411,8 +1416,6 @@ make-profilable make target-class [
 				]
 			]
 		]
-		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
-		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][

@@ -418,7 +418,9 @@ emitter: make-profilable context [
 					target/emit-get-pc
 				]
 				cpu [
-					target/emit-access-register path/3 set? value
+					switch/default path/3 [
+						overflow? [target/emit-get-overflow]
+					][target/emit-access-register path/3 set? value]
 				]
 				fpu [
 					if 2 = length? path [
