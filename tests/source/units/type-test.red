@@ -121,5 +121,16 @@ Red [
 	--assert lit-word! = type? :value
 ===end-group===
 
+===start-group=== "typeset"
+
+	--test-- "typeset 1" 
+		--assert scalar! ==  make typeset! [char! integer! float! pair! percent! tuple! time!]
+		
+	--test-- "typeset 2"
+		--assert immediate! == make typeset! [
+			datatype! none! logic! char! integer! float! word! set-word! lit-word! get-word! 
+			refinement! issue! typeset! pair! percent! tuple! time!
+	]
+
 ~~~end-file~~~
 
