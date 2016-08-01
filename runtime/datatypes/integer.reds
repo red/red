@@ -467,10 +467,19 @@ integer: context [
 	negate: func [
 		return: [red-integer!]
 		/local
-			int [red-integer!]
+			int	  [red-integer!]
+			fl	  [red-float!]
+			value [integer!]
 	][
 		int: as red-integer! stack/arguments
-		int/value: 0 - int/value
+		value: 0 - int/value
+		either system/cpu/overflow? [
+			fl: as red-float! int
+			fl/header: TYPE_FLOAT
+			fl/value: 0.0 - as-float int/value
+		][
+			int/value: value
+		]
 		int 											;-- re-use argument slot for return value
 	]
 
