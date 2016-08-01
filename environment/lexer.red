@@ -157,7 +157,7 @@ system/lexer: context [
 			neg? [logic!]
 	][
 		if type/value <> TYPE_INTEGER [
-			make-float start end type					;-- decimal! escape path
+			make-float start end type					;-- float! escape path
 			exit
 		]
 		str:  GET_BUFFER(start)
@@ -180,7 +180,11 @@ system/lexer: context [
 			c: (string/get-char p unit) - #"0"
 			if c >= 0 [									;-- skip #"'"
 				m: n * 10
-				if m < n [SET_RETURN(none-value) exit]	;-- return NONE on overflow
+				if m < n [
+					type/value: TYPE_FLOAT
+					make-float start end type			;-- fallback to float! loading
+					exit
+				]
 				n: m
 
 				if all [n = 2147483640 c = 8][
@@ -189,7 +193,11 @@ system/lexer: context [
 				]
 
 				m: n + c
-				if m < n [SET_RETURN(none-value) exit]	;-- return NONE on overflow
+				if m < n [
+					type/value: TYPE_FLOAT
+					make-float start end type			;-- fallback to float! loading
+					exit
+				]
 				n: m
 			]
 			p: p + unit
@@ -756,7 +764,7 @@ system/lexer: context [
 		]
 
 		float-special: [
-			s: opt [#"-"] "1.#" [
+			s: opt #"-" "1.#" [
 				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 			] e: (type: float!)

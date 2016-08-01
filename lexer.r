@@ -661,7 +661,7 @@ lexer: context [
 				if neg? [append s #"-"]
 			]
 		][
-			unless integer? s: to integer! s [throw-error]
+			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
 		]
 		s
 	]
