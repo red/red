@@ -102,10 +102,22 @@ integer: context [
 		/local
 			res [integer!]
 	][
-		res: switch type [
-			OP_ADD [left + right]
-			OP_SUB [left - right]
-			OP_MUL [left * right]
+		switch type [
+			OP_ADD [
+				res: left + right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
+			OP_SUB [
+				res: left - right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
+			OP_MUL [
+				res: left * right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
 			OP_AND [left and right]
 			OP_OR  [left or right]
 			OP_XOR [left xor right]
@@ -126,8 +138,6 @@ integer: context [
 				]
 			]
 		]
-		if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
-		res
 	]
 
 	do-math: func [
