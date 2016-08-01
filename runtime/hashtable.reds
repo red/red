@@ -584,9 +584,7 @@ _hashtable: context [
 				TYPE_WORD
 				TYPE_GET_WORD
 				TYPE_SET_WORD
-				TYPE_LIT_WORD
-				TYPE_REFINEMENT
-				TYPE_ISSUE	[key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
+				TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
 				TYPE_STRING
 				TYPE_FILE
 				TYPE_URL
