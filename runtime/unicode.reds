@@ -393,7 +393,7 @@ unicode: context [
 			cp: decode-utf8-char src :used
 			if cp = -1 [								;-- premature exit if buffer incomplete
 				s/tail: as cell! either unit = UCS-4 [buf4][buf1]	;-- position s/tail at end of loaded characters (no NUL terminator)
-				remain/value: count						;-- return the number of unprocessed bytes
+				if remain <> null [remain/value: count]				;-- return the number of unprocessed bytes
 				return node
 			]
 
