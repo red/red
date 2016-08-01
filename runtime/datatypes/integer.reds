@@ -95,12 +95,14 @@ integer: context [
 	]
 
 	do-math-op: func [
-		left		[integer!]
-		right		[integer!]
-		type		[math-op!]
-		return:		[integer!]
+		left	[integer!]
+		right	[integer!]
+		type	[math-op!]
+		return:	[integer!]
+		/local
+			res [integer!]
 	][
-		switch type [
+		res: switch type [
 			OP_ADD [left + right]
 			OP_SUB [left - right]
 			OP_MUL [left * right]
@@ -124,6 +126,8 @@ integer: context [
 				]
 			]
 		]
+		if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+		res
 	]
 
 	do-math: func [
@@ -158,7 +162,13 @@ integer: context [
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: do-math-op left/value right/value type
+				catch RED_INT_OVERFLOW [
+					left/value: do-math-op left/value right/value type
+				]
+				if system/thrown = RED_INT_OVERFLOW [
+					float/do-math type
+				]
+				system/thrown: 0
 			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
 			TYPE_PAIR  [
