@@ -1416,8 +1416,6 @@ make-profilable make target-class [
 				]
 			]
 		]
-		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
-		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][

@@ -19,6 +19,7 @@ make-profilable make target-class [
 	branch-offset-size:	4							;-- size of branch instruction
 	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	insn-size:			4
+	last-math-op:		none						;-- save last math op type for overflow checking
 
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
@@ -1055,6 +1056,17 @@ make-profilable make target-class [
 	
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
+	emit-get-overflow: does [
+		either last-math-op = '* [
+			emit-i32 #{e3550000}					;-- CMP   r5, #0
+			emit-i32 #{13a00001}					;-- MOVNE r0, #1
+			emit-i32 #{03a00000}					;-- MOVE  r0, #0
+		][
+			emit-i32 #{63a00001}					;-- MOVVS r0, #1
+			emit-i32 #{73a00000}					;-- MOVVC r0, #0
+		]
+	]
+	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
@@ -1855,12 +1867,12 @@ make-profilable make target-class [
 			]
 		]
 		;-- r0 = a, r1 = b
-		switch name [
+		switch last-math-op: name [
 			+ [
-				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1	; commutable op
+				op-poly: [emit-i32 #{e0900001}]		;-- ADDS r0, r0, r1	; commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2800000} arg2 ;-- ADD r0, r0, #value
+						emit-op-imm32 #{e2900000} arg2 ;-- ADDS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1870,10 +1882,10 @@ make-profilable make target-class [
 				]
 			]
 			- [
-				op-poly: [emit-i32 #{e0400001}] 	;-- SUB r0, r0, r1	; not commutable op
+				op-poly: [emit-i32 #{e0500001}] 	;-- SUBS r0, r0, r1	; not commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2400000} arg2 ;-- SUB r0, r0, #value
+						emit-op-imm32 #{e2500000} arg2 ;-- SUBS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1883,14 +1895,14 @@ make-profilable make target-class [
 				]
 			]
 			* [
-				op-poly: [emit-i32 #{e0000091}]		;-- MUL r0, r0, r1 	; commutable op
+				op-poly: [emit-i32 #{e0d50091}]		;-- SMULLS r0, r5, r0, r1 ; commutable op
 				switch b [
 					imm [
 						either all [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
-							emit-i32 #{e1a00000}	;-- LSL r0, r0, #log2(b)
+							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][
 							emit-load-imm32/reg args/2 1	;-- MOV r1, #value
@@ -1927,8 +1939,6 @@ make-profilable make target-class [
 				]
 			]
 		]
-		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
-		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
