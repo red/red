@@ -1235,24 +1235,25 @@ object: context [
 		
 		s: as series! new/ctx/value
 		copy-cell as red-value! new s/offset + 1		;-- set back-reference
+
+		node:  save-self-object new
+		
+		if size <= 0 [return new]						;-- empty object!
 		
 		;-- process SYMBOLS
 		dst: as series! nctx/symbols/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/size: size
 		dst/tail: dst/offset + slots
 		_context/set-context-each dst new/ctx
-		
+
 		;-- process VALUES
 		src: as series! ctx/values/value
 		dst: as series! nctx/values/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/size: size
 		dst/tail: dst/offset + slots
 		
 		value: dst/offset
 		tail:  dst/tail
-		node:  save-self-object new
 		
 		either deep? [
 			while [value < tail][
