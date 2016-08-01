@@ -72,6 +72,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 			ebp			[integer!]
 			esi			[integer!]
 			edi			[integer!]
+			overflow?	[logic!]
 		]
 	]
 	ARM [	

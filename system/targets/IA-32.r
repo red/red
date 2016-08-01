@@ -428,17 +428,9 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
-	emit-overflow?: does [
-		either compiler/job/cpu-version >= 1.5 [ 	;-- >= Pentium Pro
-			emit #{0F41}							;-- CMOVNO eax, 0
-			emit #{0F40}							;-- CMOVO  eax, 1
-		][
-			emit #{31C0}							;-- 	  XOR eax, eax	; eax = 0 (FALSE)
-			emit #{7103}							;-- 	  JNO _exit
-			emit #{31C0}							;--		  XOR eax, eax
-			emit #{40}								;--		  INC eax		; eax = 1 (TRUE)
-													;-- _exit:
-		]
+	emit-get-overflow: does [
+		emit #{0F90C0}								;-- SETO al
+		emit #{83E001}								;-- AND eax, 1
 	]
 	
 	emit-get-pc: func [/ebx][
