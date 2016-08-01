@@ -126,7 +126,7 @@ integer: context [
 				]
 			]
 		]
-		if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+		if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
 		res
 	]
 
@@ -162,13 +162,7 @@ integer: context [
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				catch RED_INT_OVERFLOW [
-					left/value: do-math-op left/value right/value type
-				]
-				if system/thrown = RED_INT_OVERFLOW [
-					float/do-math type
-				]
-				system/thrown: 0
+				left/value: do-math-op left/value right/value type
 			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
 			TYPE_PAIR  [
@@ -472,14 +466,8 @@ integer: context [
 			value [integer!]
 	][
 		int: as red-integer! stack/arguments
-		value: 0 - int/value
-		either system/cpu/overflow? [
-			fl: as red-float! int
-			fl/header: TYPE_FLOAT
-			fl/value: 0.0 - as-float int/value
-		][
-			int/value: value
-		]
+		int/value: 0 - int/value
+		if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
 		int 											;-- re-use argument slot for return value
 	]
 
@@ -595,10 +583,7 @@ integer: context [
 			]
 			sc: abs scale/value
 		]
-
-		if zero? sc [
-			fire [TO_ERROR(math overflow)]
-		]
+		if zero? sc [fire [TO_ERROR(math overflow)]]
 
 		n: abs num
 		r: n % sc
