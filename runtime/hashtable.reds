@@ -209,10 +209,12 @@ _hashtable: context [
 			TYPE_TUPLE [
 				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE?(key)
 			]
-			TYPE_OBJECT [key/data2]
+			TYPE_OBJECT
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
-			default [key/data3]
+			default [								;-- for any-block!: use head and node
+				murmur3-x86-32 (as byte-ptr! key) + 8 8
+			]
 		]
 	]
 
