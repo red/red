@@ -121,5 +121,19 @@ Red [
 	--assert lit-word! = type? :value
 ===end-group===
 
+===start-group=== "scalar?"
+	--test-- "scalar? char!"
+	--assert scalar? #"A"
+	--test-- "not scalar? string!"
+	--assert not scalar? ""
+===end-group===
+
+===start-group=== "immediate?"
+    --test-- "immediate? none!"
+    --assert immediate? none
+    --test-- "not immediate? map!"
+    --assert not immediate? #()
+===end-group===
+
 ~~~end-file~~~
 
