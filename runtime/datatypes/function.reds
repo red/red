@@ -238,7 +238,16 @@ _function: context [
 			]
 		]
 	]
-	
+comment {
+	foo: func [arg1 /A argA /B argB][?? arg1 ?? argA ?? argB]
+
+	do [	
+	print "foo/A/B"	
+		foo/A/B 4 5 6 
+	print "foo/B/A"		
+		foo/B/A 4 5 6
+	]
+}
 	preprocess-func-options: func [
 		args	  [red-block!]
 		path	  [red-path!]
@@ -246,14 +255,19 @@ _function: context [
 		list	  [node!]
 		fname	  [red-word!]
 		tail	  [red-value!]
+		node	  [node!]
 		/local
-			base  [red-value!]
-			value [red-value!]
-			head  [red-value!]
-			end	  [red-value!]
-			word  [red-word!]
-			ref	  [red-refinement!]
-			bool  [red-logic!]
+			base	[red-value!]
+			value	[red-value!]
+			head	[red-value!]
+			end		[red-value!]
+			word	[red-word!]
+			ref		[red-refinement!]
+			bool	[red-logic!]
+			ctx		[red-context!]
+			max-idx [integer!]
+			idx		[integer!]
+			ooo?	[logic!]
 	][
 		base: block/rs-head args
 		end:  block/rs-tail args
@@ -264,6 +278,10 @@ _function: context [
 		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos + 1]]
 
 		value: pos + 1
+		
+		ooo?: no
+		max-idx: -1
+		ctx: TO_CTX(node)
 		
 		while [value < tail][
 			word: as red-word! value
@@ -276,12 +294,18 @@ _function: context [
 			while [head < end][
 				if TYPE_OF(head) = TYPE_REFINEMENT [
 					ref: as red-refinement! head
+					idx: either ref/ctx = node [ref/index][
+						_context/find-word ctx ref/symbol yes
+					]
+					if all [max-idx <> -1 idx < max-idx][ooo?: yes]
+					max-idx: idx
+					
 
 					if EQUAL_WORDS?(ref word) [
 						bool: as red-logic! head + 1
 						assert TYPE_OF(bool) = TYPE_LOGIC
 						bool/value: true
-						head: end						;-- force loop exit
+						break
 					]
 				]
 				head: head + 2 
@@ -289,6 +313,7 @@ _function: context [
 			if null? bool [fire [TO_ERROR(script no-refine) fname word]]
 			value: value + 1
 		]
+?? ooo?
 	]
 
 	preprocess-options: func [
@@ -300,9 +325,10 @@ _function: context [
 		function? [logic!]
 		return:   [node!]
 		/local
-			args	  [red-block!]
-			tail	  [red-value!]
-			saved	  [red-value!]
+			args  [red-block!]
+			tail  [red-value!]
+			saved [red-value!]
+			f	  [red-function!]
 	][
 		saved: stack/top
 
@@ -315,7 +341,8 @@ _function: context [
 		tail:  block/rs-tail as red-block! path
 
 		either function? [
-			preprocess-func-options args path pos list fname tail
+			f: as red-function! fun
+			preprocess-func-options args path pos list fname tail f/ctx
 		][
 			native/preprocess-options args fun path pos list fname tail
 		]

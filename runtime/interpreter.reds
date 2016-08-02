@@ -396,6 +396,7 @@ interpreter: context [
 		]
 		
 		s: as series! args/value
+dump-memory as byte-ptr! s 4 16		
 		value:	   s/offset
 		tail:	   s/tail
 		required?: yes
