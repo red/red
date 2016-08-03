@@ -195,6 +195,7 @@ red: context [
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
 		refinements/build								;-- create refinements used internally
+		issues/build									;-- create issues used internally
 		natives/init									;-- native specific init code
 		parser/init
 		_random/init

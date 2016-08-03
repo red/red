@@ -32,11 +32,13 @@ native: context [
 			vec		  [red-vector!]
 			s		  [series!]
 			ref-array [int-ptr!]
+			extras	  [int-ptr!]
 			saved	  [node!]
 			index	  [integer!]
 			offset	  [integer!]
 			ref?	  [logic!]
 			found?	  [logic!]
+			ooo?	  [logic!]
 	][
 		s: GET_BUFFER(args)
 		vec: vector/clone as red-vector! s/tail - 1
@@ -49,6 +51,7 @@ native: context [
 		end:	s/tail
 		value:	pos + 1
 		offset: 0
+		extras: null
 
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
 			switch TYPE_OF(base) [
@@ -104,6 +107,13 @@ native: context [
 							ref?: no
 						]
 						index: index + 1
+					]
+					TYPE_ISSUE [
+						vec: as red-vector! head + 1
+						if TYPE_OF(vec) = TYPE_VECTOR [
+							ooo?: true
+							extras: as int-ptr! vector/rs-head vec
+						]
 					]
 					TYPE_SET_WORD [head: end]
 					default [0]							;-- ignore other values

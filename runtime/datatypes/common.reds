@@ -776,3 +776,11 @@ refinements: context [
 		_skip:	refinement/load "skip"
 	]
 ]
+
+issues: context [
+	ooo:	as red-word! 0
+	
+	build: does [
+		ooo: issue/load "ooo"
+	]
+]
