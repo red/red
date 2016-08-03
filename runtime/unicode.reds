@@ -602,10 +602,9 @@ unicode: context [
 						either all [src/1 = #"^M" src/2 = null-byte][
 							size: size - 1
 						][
-							p/value: src/1
-							p: p + 1
-							p/value: null-byte
-							p: p + 1
+							p/1: src/1
+							p/2: src/2
+							p: p + 2
 						]
 						src: src + 2
 						cnt: cnt - 1
