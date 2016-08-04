@@ -423,13 +423,11 @@ interpreter: context [
 						offset: extras
 						ordered?: no
 						
-						saved: stack/top
+						saved: stack/top				;-- move stack/top beyond current frame for ooo args
 						stack/top: stack/top + offset/value
 						ext-args: stack/top
-
 						offset: offset + 1
-						;value: value + 2
-
+						
 						while [offset < v-tail][
 							expected: value + 2 + (offset/value - 1 * 2 + 1)
 							assert TYPE_OF(expected) = TYPE_TYPESET

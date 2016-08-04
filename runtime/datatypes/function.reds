@@ -282,11 +282,11 @@ _function: context [
 		vec-pos: base - 1
 		assert TYPE_OF(vec-pos) = TYPE_NONE
 		
-		ooo?: no
+		ooo?: no										;-- Out-of-order arguments flag
 		max-idx: -1
 		ctx: TO_CTX(node)
 		
-		while [value < tail][							;-- 1st pass: detect if out of order (ooo?)
+		while [value < tail][							;-- 1st pass: detect if out-of-order (ooo?)
 			word:  as red-word! value
 			if TYPE_OF(value) <> TYPE_WORD [
 				fire [TO_ERROR(script no-refine) fname word]
