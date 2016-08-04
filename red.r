@@ -208,12 +208,20 @@ redc: context [
 		file
 	]
 
-	add-legacy-flags: func [opts [object!]][
+	add-legacy-flags: func [opts [object!] /local out ver][
 		if all [Windows? win-version <= 60][
 			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
 				append opts/legacy 'no-touch
 			][
 				opts/legacy: copy [no-touch]
+			]
+		]
+		if system/version/4 = 2 [						;-- macOS version extraction
+			out: make string! 128
+			call/output "sw_vers -productVersion" out
+			attempt [
+				ver: load out
+				opts/OS-version: load rejoin [ver/1 #"." ver/2]
 			]
 		]
 	]

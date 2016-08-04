@@ -1650,8 +1650,13 @@ simple-io: context [
 			]
 		]
 		MacOSX [
+			#either OS-version > 10.7 [
+				#define CFNetwork.lib "/System/Library/Frameworks/CFNetwork.framework/CFNetwork"
+			][
+				#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
+			]
 			#import [
-				"/System/Library/Frameworks/CFNetwork.framework/CFNetwork" cdecl [
+				CFNetwork.lib cdecl [
 					__CFStringMakeConstantString: "__CFStringMakeConstantString" [
 						cStr		[c-string!]
 						return:		[integer!]

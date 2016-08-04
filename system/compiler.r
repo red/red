@@ -30,7 +30,7 @@ system-dialect: make-profilable context [
 	options-class: context [
 		config-name:		none						;-- Preconfigured compilation target ID
 		OS:					none						;-- Operating System
-		OS-version:			none						;-- OS version
+		OS-version:			0							;-- OS version
 		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
