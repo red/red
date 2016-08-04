@@ -345,6 +345,7 @@ interpreter: context [
 			arg		  [red-value!]
 			ext-args  [red-value!]
 			saved	  [red-value!]
+			base	  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
@@ -427,9 +428,11 @@ interpreter: context [
 						stack/top: stack/top + offset/value
 						ext-args: stack/top
 						offset: offset + 1
+						base: value
+						if value = s/offset [base: base + 2] ;-- skip ooo entry if no required args (simplifies calculation)
 						
 						while [offset < v-tail][
-							expected: value + 2 + (offset/value - 1 * 2 + 1)
+							expected: base + (offset/value * 2 + 1)
 							assert TYPE_OF(expected) = TYPE_TYPESET
 							bits: (as byte-ptr! expected) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
