@@ -343,16 +343,24 @@ interpreter: context [
 			vec		  [red-vector!]
 			bool	  [red-logic!]
 			arg		  [red-value!]
+			ext-args  [red-value!]
+			saved	  [red-value!]
+			base	  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
 			p		  [int-ptr!]
 			ref-array [int-ptr!]
+			extras	  [int-ptr!]
+			offset	  [int-ptr!]
+			v-tail	  [int-ptr!]
 			index	  [integer!]
 			size	  [integer!]
 			type	  [integer!]
+			ext-size  [integer!]
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
+			ordered?  [logic!]
 			set? 	  [logic!]
 			call
 	][
@@ -400,17 +408,35 @@ interpreter: context [
 		tail:	   s/tail
 		required?: yes
 		index: 	   0
+		extras:	   null
+		ordered?:  yes
 		
 		while [value < tail][
 			expected: value + 1
 			
-			if TYPE_OF(value) <> TYPE_SET_WORD [
-				switch TYPE_OF(expected) [
-					TYPE_TYPESET [
-						either required? [
+			switch TYPE_OF(value) [
+				TYPE_ISSUE [
+					vec: as red-vector! expected
+					if TYPE_OF(vec) = TYPE_VECTOR [
+						extras: as int-ptr! vector/rs-head vec
+						v-tail: as int-ptr! vector/rs-tail vec
+						ext-size: (as-integer v-tail - extras) >>> 2 - 1
+						offset: extras
+						ordered?: no
+						
+						saved: stack/top				;-- move stack/top beyond current frame for ooo args
+						stack/top: stack/top + offset/value
+						ext-args: stack/top
+						offset: offset + 1
+						base: value
+						if value = s/offset [base: base + 2] ;-- skip ooo entry if no required args (simplifies calculation)
+						
+						while [offset < v-tail][
+							expected: base + (offset/value * 2 + 1)
+							assert TYPE_OF(expected) = TYPE_TYPESET
 							bits: (as byte-ptr! expected) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
-							
+
 							either all [
 								set?					;-- if unset! is accepted
 								pc >= end				;-- if no more values to fetch
@@ -422,33 +448,67 @@ interpreter: context [
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
-								unless set? [ERR_EXPECT_ARGUMENT(type index)]
-								index: index + 1
+								unless set? [ERR_EXPECT_ARGUMENT(type extras/value)]
 							]
-						][
-							none/push
+							offset: offset + 1
 						]
+						stack/top: saved
 					]
-					TYPE_LOGIC [
-						stack/push expected
-						bool: as red-logic! expected
-						required?: bool/value
+				]
+				TYPE_SET_WORD [0]
+				default [
+					switch TYPE_OF(expected) [
+						TYPE_TYPESET [
+							either all [required? ordered?][
+								bits: (as byte-ptr! expected) + 4
+								BS_TEST_BIT(bits TYPE_UNSET set?)
+
+								either all [
+									set?					;-- if unset! is accepted
+									pc >= end				;-- if no more values to fetch
+									TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+								][
+									unset/push				;-- then, supply an unset argument
+								][
+									FETCH_ARGUMENT
+									arg:  stack/top - 1
+									type: TYPE_OF(arg)
+									BS_TEST_BIT(bits type set?)
+									unless set? [ERR_EXPECT_ARGUMENT(type index)]
+									index: index + 1
+								]
+							][
+								none/push
+							]
+						]
+						TYPE_LOGIC [
+							stack/push expected
+							bool: as red-logic! expected
+							required?: bool/value
+						]
+						TYPE_VECTOR [
+							vec: as red-vector! expected
+							s: GET_BUFFER(vec)
+							p: as int-ptr! s/offset
+							size: (as-integer (as int-ptr! s/tail) - p) / 4
+							ref-array: system/stack/top - size
+							system/stack/top: ref-array		;-- reserve space on native stack for refs array
+							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+						]
+						default [assert false]				;-- trap it, if stack corrupted 
 					]
-					TYPE_VECTOR [
-						vec: as red-vector! expected
-						s: GET_BUFFER(vec)
-						p: as int-ptr! s/offset
-						size: (as-integer (as int-ptr! s/tail) - p) / 4
-						ref-array: system/stack/top - size
-						system/stack/top: ref-array		;-- reserve space on native stack for refs array
-						copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
-					]
-					default [assert false]				;-- trap it, if stack corrupted 
 				]
 			]
 			value: value + 2
 		]
-		
+		unless ordered? [
+			offset: extras + 1
+			loop ext-size [
+				copy-cell ext-args stack/arguments + offset/value
+				offset: offset + 1
+				ext-args: ext-args + 1
+			]
+		]
 		unless function? [
 			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.

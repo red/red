@@ -14,28 +14,25 @@ issue: context [
 	verbose: 0
 	
 	load-in: func [
-		str 	 [c-string!]
-		blk		 [red-block!]
-		return:	 [red-word!]
+		str 	[c-string!]
+		blk		[red-block!]
+		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "issue/load"]]
-		
-		cell: word/load-in str blk
+		cell: as red-word! ALLOC_TAIL(blk)
 		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: symbol/make str yes
+		cell/index:  -1
 		cell
 	]
 	
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
-		/local 
-			cell [red-word!]
 	][
-		cell: word/load str
-		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
-		cell
+		load-in str root
 	]
 	
 	push: func [

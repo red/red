@@ -238,7 +238,7 @@ _function: context [
 			]
 		]
 	]
-	
+
 	preprocess-func-options: func [
 		args	  [red-block!]
 		path	  [red-path!]
@@ -246,43 +246,97 @@ _function: context [
 		list	  [node!]
 		fname	  [red-word!]
 		tail	  [red-value!]
+		node	  [node!]
 		/local
-			base  [red-value!]
-			value [red-value!]
-			head  [red-value!]
-			end	  [red-value!]
-			word  [red-word!]
-			ref	  [red-refinement!]
-			bool  [red-logic!]
+			base	[red-value!]
+			value	[red-value!]
+			head	[red-value!]
+			end		[red-value!]
+			vec-pos [red-value!]
+			word	[red-word!]
+			ref		[red-refinement!]
+			bool	[red-logic!]
+			ctx		[red-context!]
+			vec		[red-vector!]
+			max-idx [integer!]
+			idx		[integer!]
+			start	[integer!]
+			remain	[integer!]
+			offset	[integer!]
+			ooo?	[logic!]
+			ref?	[logic!]
 	][
-		base: block/rs-head args
+		head: block/rs-head args
 		end:  block/rs-tail args
+		base: head
 
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
 			base: base + 2
 		]
 		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos + 1]]
 
-		value: pos + 1
+		value:	 pos + 1
+		start:   ((as-integer base - head) >>> 4) - 2 / 2	;-- skip ooo/none slots
+		remain:  (as-integer end - base) >>> 4
+		offset:  start
+		vec-pos: base - 1
+		assert TYPE_OF(vec-pos) = TYPE_NONE
 		
-		while [value < tail][
-			word: as red-word! value
-			head: base
-			bool: null
-			
+		ooo?: no										;-- Out-of-order arguments flag
+		max-idx: -1
+		ctx: TO_CTX(node)
+		
+		while [value < tail][							;-- 1st pass: detect if out-of-order (ooo?)
+			word:  as red-word! value
 			if TYPE_OF(value) <> TYPE_WORD [
 				fire [TO_ERROR(script no-refine) fname word]
 			]
-			while [head < end][
-				if TYPE_OF(head) = TYPE_REFINEMENT [
-					ref: as red-refinement! head
 
-					if EQUAL_WORDS?(ref word) [
-						bool: as red-logic! head + 1
-						assert TYPE_OF(bool) = TYPE_LOGIC
-						bool/value: true
-						head: end						;-- force loop exit
+			unless ooo? [
+				idx: either word/ctx = node [word/index][
+					_context/find-word ctx word/symbol yes
+				]
+				if all [max-idx <> -1 idx < max-idx][
+					ooo?: yes
+					vec: vector/make-at vec-pos remain TYPE_INTEGER 4
+					vector/rs-append-int vec remain / 2
+					break
+				]
+				max-idx: idx
+			]
+			value: value + 1
+		]
+		value: pos + 1
+			
+		while [value < tail][							;-- 2nd pass: build ooo vector, set refs states
+			word:  as red-word! value
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script no-refine) fname word]
+			]
+			head:  base
+			bool:  null
+			ref?:  no
+			offset: start
+			
+			while [head < end][
+				switch TYPE_OF(head) [
+					TYPE_REFINEMENT [
+						ref: as red-refinement! head
+						ref?: EQUAL_WORDS?(ref word)
+						if ref? [
+							bool: as red-logic! head + 1
+							assert TYPE_OF(bool) = TYPE_LOGIC
+							bool/value: true
+						]
+						offset: offset + 1
 					]
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD	[
+						if all [ooo? ref?][vector/rs-append-int vec offset]
+						offset: offset + 1
+					]
+					TYPE_SET_WORD [break]
 				]
 				head: head + 2 
 			]
@@ -300,9 +354,10 @@ _function: context [
 		function? [logic!]
 		return:   [node!]
 		/local
-			args	  [red-block!]
-			tail	  [red-value!]
-			saved	  [red-value!]
+			args  [red-block!]
+			tail  [red-value!]
+			saved [red-value!]
+			f	  [red-function!]
 	][
 		saved: stack/top
 
@@ -315,7 +370,8 @@ _function: context [
 		tail:  block/rs-tail as red-block! path
 
 		either function? [
-			preprocess-func-options args path pos list fname tail
+			f: as red-function! fun
+			preprocess-func-options args path pos list fname tail f/ctx
 		][
 			native/preprocess-options args fun path pos list fname tail
 		]
@@ -381,6 +437,10 @@ _function: context [
 					]
 				]
 				TYPE_REFINEMENT [
+					if all [required? function?][
+						block/rs-append list as red-value! issues/ooo
+						block/rs-append list as red-value! none-value
+					]
 					required?: no
 					either function? [
 						block/rs-append list value
