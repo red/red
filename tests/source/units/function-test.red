@@ -81,6 +81,42 @@ Red [
 		--assert res = non-evaluated (quote (1 + 2))
 		--assert 'quote = non-evaluated quote (1 + 2)
 
+	--test-- "fun-12"
+		foo12: func [/A argA /B argB][reduce [argA argB]]
+		res: foo12/A/B 5 6 
+		--assert res = [5 6]
+
+	--test-- "fun-13"
+		res: foo12/B/A 7 5
+		--assert res = [5 7]
+
+	--test-- "fun-14"
+		foo14: func [arg1 /A argA /B argB][reduce [arg1 argA argB]]
+		res: foo14/A/B 4 7 8
+		--assert res = [4 7 8]
+
+	--test-- "fun-15"
+		res: foo14/B/A 4 9 7
+		--assert res = [4 7 9]
+
+	--test-- "fun-16"
+		foo16: func [arg1 /A argA /B argB /C argC][reduce [arg1 argA argB argC]]
+		res: foo16/A/B/C 4 5 7 8
+		--assert res = [4 5 7 8]
+
+	--test-- "fun-17"
+		res: foo16/A/C/B 4 5 9 7
+		--assert res = [4 5 7 9]
+
+	--test-- "fun-18"
+		foo18: func [/A argA [string!] /B argB [integer!]][reduce [argA argB]]
+		res: foo18/A/B "a" 6
+		--assert res = ["a" 6]
+
+	--test-- "fun-19"
+		res: foo18/B/A 7 "b"
+		--assert res = ["b" 7]
+
 ===end-group===
 
 ===start-group=== "Alternate constructor tests"
