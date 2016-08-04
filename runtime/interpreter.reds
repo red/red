@@ -359,6 +359,7 @@ interpreter: context [
 			ext-size  [integer!]
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
+			ordered?  [logic!]
 			set? 	  [logic!]
 			call
 	][
@@ -402,12 +403,12 @@ interpreter: context [
 		]
 		
 		s: as series! args/value
-dump-memory as byte-ptr! s 4 16		
 		value:	   s/offset
 		tail:	   s/tail
 		required?: yes
 		index: 	   0
 		extras:	   null
+		ordered?:  yes
 		
 		while [value < tail][
 			expected: value + 1
@@ -420,16 +421,17 @@ dump-memory as byte-ptr! s 4 16
 						v-tail: as int-ptr! vector/rs-tail vec
 						ext-size: (as-integer v-tail - extras) >>> 2 - 1
 						offset: extras
+						ordered?: no
 						
 						saved: stack/top
 						stack/top: stack/top + offset/value
 						ext-args: stack/top
 
 						offset: offset + 1
-						value: value + 2
-						
+						;value: value + 2
+
 						while [offset < v-tail][
-							expected: value + (offset/value * 2 + 1)
+							expected: value + 2 + (offset/value - 1 * 2 + 1)
 							assert TYPE_OF(expected) = TYPE_TYPESET
 							bits: (as byte-ptr! expected) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
@@ -456,7 +458,7 @@ dump-memory as byte-ptr! s 4 16
 				default [
 					switch TYPE_OF(expected) [
 						TYPE_TYPESET [
-							either required? [
+							either all [required? ordered?][
 								bits: (as byte-ptr! expected) + 4
 								BS_TEST_BIT(bits TYPE_UNSET set?)
 
@@ -498,15 +500,14 @@ dump-memory as byte-ptr! s 4 16
 			]
 			value: value + 2
 		]
-		if extras <> null [
-			offset: extras
+		unless ordered? [
+			offset: extras + 1
 			loop ext-size [
 				copy-cell ext-args stack/arguments + offset/value
 				offset: offset + 1
 				ext-args: ext-args + 1
 			]
 		]
-		
 		unless function? [
 			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.

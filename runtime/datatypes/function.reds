@@ -343,9 +343,6 @@ _function: context [
 			if null? bool [fire [TO_ERROR(script no-refine) fname word]]
 			value: value + 1
 		]
-		if ooo? [
-			dump4 GET_BUFFER(vec)
-		]
 	]
 
 	preprocess-options: func [
