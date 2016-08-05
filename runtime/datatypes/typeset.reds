@@ -128,8 +128,11 @@ typeset: context [
 					ts/array2: ts/array2 or ts2/array2
 					ts/array3: ts/array3 or ts2/array3
 				]
-				default [
+				TYPE_WORD [
 					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
+				]
+				default [
+					fire [TO_ERROR(script invalid-type-spec) value]
 				]
 			]
 			pos: pos + 1

@@ -87,6 +87,7 @@ system: context [
 				cannot-use:			["cannot use" :arg1 "on" :arg2 "value"]
 				invalid-arg:		["invalid argument:" :arg1]
 				invalid-type:		[:arg1 "type is not allowed here"]
+				invalid-type-spec:	["invalid type specifier:" :arg1]
 				invalid-op:			["invalid operator:" :arg1]
 				no-op-arg:			[:arg1 "operator is missing an argument"]
 				bad-op-spec:		"making an op! requires a function with only 2 arguments"
