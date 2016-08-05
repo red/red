@@ -1162,13 +1162,17 @@ red: context [
 		][
 			throw-error ["invalid function spec block:" mold pos]
 		]
-		forall spec [
+
+		s: copy spec
+		forall s [if any-word? s/1 [s/1: to word! s/1]]
+		
+		forall s [
 			if all [
-				word? spec/1
-				find next spec spec/1
+				word? s/1
+				find next s s/1
 			][
 				pc: skip pc -2
-				throw-error ["duplicate word definition:" spec/1]
+				throw-error ["duplicate word definition:" s/1]
 			]
 		]
 		reduce [symbols locals]

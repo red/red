@@ -474,6 +474,29 @@ _function: context [
 		list/node
 	]
 	
+	find-local-ref: func [
+		spec	[red-block!]
+		return: [logic!]								;-- return TRUE if /local is found
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			ref	  [red-refinement!]
+			sym	  [integer!]
+	][
+		value: block/rs-head spec
+		tail:  block/rs-tail spec
+		sym: refinements/local/symbol
+		
+		while [value < tail][
+			if TYPE_OF(value) = TYPE_REFINEMENT [
+				ref: as red-refinement! value
+				if sym = symbol/resolve ref/symbol [return yes]
+			]
+			value: value + 1
+		]
+		no
+	]
+	
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]
@@ -586,7 +609,9 @@ _function: context [
 			extern? [logic!]
 	][
 		list: block/push* 8
-		block/rs-append list as red-value! refinements/local
+		unless find-local-ref spec [
+			block/rs-append list as red-value! refinements/local
+		]
 		
 		ignore: block/clone spec no no
 		block/rs-append ignore as red-value! refinements/local
@@ -636,12 +661,7 @@ _function: context [
 					value/header: TYPE_WORD				;-- convert it to a word!
 				]
 				default [
-					if extern? [
-						fire [
-							TO_ERROR(script bad-func-extern)
-							value
-						]
-					]
+					if extern? [fire [TO_ERROR(script bad-func-extern) value]]
 				]
 			]
 			value: value + 1
@@ -653,6 +673,49 @@ _function: context [
 			block/rs-append-block spec list
 		]
 		list
+	]
+	
+	check-duplicates: func [
+		spec [red-block!]
+		/local
+			word [red-word!]
+			tail [red-word!]
+			pos	 [red-word!]
+			sym	 [integer!]
+	][
+		word: as red-word! block/rs-head spec
+		tail: as red-word! block/rs-tail spec
+		
+		while [word < tail][
+			switch TYPE_OF(word) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
+					pos: word
+					sym: symbol/resolve word/symbol
+					word: word + 1
+
+					while [word < tail][
+						switch TYPE_OF(word) [
+							TYPE_WORD
+							TYPE_GET_WORD
+							TYPE_LIT_WORD
+							TYPE_REFINEMENT [
+								if sym = symbol/resolve word/symbol [
+									fire [TO_ERROR(script dup-vars) word]
+								]
+							]
+							default [0]
+						]
+						word: word + 1
+					]
+					word: pos
+				]
+				default [0]
+			]
+			word: word + 1
+		]
 	]
 	
 	validate: func [									;-- temporary mimalist spec checking
@@ -711,6 +774,7 @@ _function: context [
 				]
 			]
 		]
+		check-duplicates spec
 	]
 	
 	init-locals: func [
