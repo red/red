@@ -2938,7 +2938,7 @@ system-dialect: make-profilable context [
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
+					emitter/target/emit-load expr		;-- emit code for single value
 					either all [boxed not decimal? unbox expr][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type
