@@ -675,10 +675,7 @@ block: context [
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either all [
-					TYPE_OF(parent) = TYPE_BLOCK
-					type = TYPE_WORD
-				][
+				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
 					value: select parent element null yes case? no no null null no no
