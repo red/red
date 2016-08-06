@@ -800,6 +800,7 @@ binary: context [
 			int		  [red-integer!]
 			char	  [red-char!]
 			sp		  [red-binary!]
+			formed	  [red-string!]
 			data	  [byte-ptr!]
 			s		  [series!]
 			s2		  [series!]
@@ -811,6 +812,7 @@ binary: context [
 			added	  [integer!]
 			bytes	  [integer!]
 			rest	  [integer!]
+			type	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
@@ -870,7 +872,7 @@ binary: context [
 						added: added + 1
 					]
 					TYPE_INTEGER [
-						int: as red-integer! cell		
+						int: as red-integer! cell
 						either int/value <= FFh [
 							int-value: int/value
 							data: as byte-ptr! :int-value
@@ -881,6 +883,12 @@ binary: context [
 						]
 					]
 					default [
+						type: TYPE_OF(cell)
+						unless ANY_SERIES?(type) [
+							formed: string/rs-make-at stack/push* 16
+							actions/form cell formed null 0
+							cell: as red-value! formed
+						]
 						len: _series/get-length as red-series! cell no
 						either positive? part [			;-- /part support
 							rest: part - added
@@ -888,7 +896,7 @@ binary: context [
 							added: added + rest
 						][rest: len]
 						either TYPE_OF(cell) = TYPE_BINARY [
-							data: rs-head as red-binary! cell						
+							data: rs-head as red-binary! cell
 						][
 							data: as byte-ptr! unicode/to-utf8 as red-string! cell :rest
 						]
