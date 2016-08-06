@@ -91,6 +91,10 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	PLATFORM_TO_CSTR(cstr cmd len)
 	pid: system-call/call cstr waitend console shell inp out err
 
+	if all [TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
+		free inp/buffer
+	]
+
 	if all [out <> null out/count <> -1][
 		system-call/insert-string redirout out shell
 		free out/buffer

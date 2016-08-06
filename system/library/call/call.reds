@@ -37,6 +37,8 @@ p-buffer!: alias struct! [								;-- Data buffer struct, pointer and bytes coun
 
 system-call: context [
 
+	str-buffer: as red-value! 0
+
 	#import [
 		LIBC-file cdecl [
 			realloc: "realloc" [				"Resize and return allocated memory."
@@ -109,12 +111,20 @@ system-call: context [
 			len		[integer!]
 			count	[integer!]
 			sout	[red-string!]
+			node	[series!]
 	][
 		if zero? data/count [exit]
 
 		either TYPE_OF(str) = TYPE_BINARY [
 			binary/rs-insert as red-binary! str 0 data/buffer data/count
 		][
+			sout: either null? str-buffer [
+				str-buffer: as red-value! allocate size? red-value!
+				string/make-at str-buffer 1024 * 100 Latin1
+			][as red-string! str-buffer]
+			string/rs-reset sout
+			node: GET_BUFFER(sout)
+
 			#either OS = 'Windows [
 				buffer: data/buffer
 				count: data/count
@@ -124,13 +134,13 @@ system-call: context [
 					if len <= 0 [0]											;TBD free resource and throw error
 					temp: allocate len * 2
 					MultiByteToWideChar 1 0 buffer count temp len
-					sout: string/load as-c-string temp len UTF-16LE
+					unicode/load-utf16 as-c-string temp len sout yes
 					free temp
 				][
-					sout: string/load as-c-string buffer count UTF-8
+					unicode/load-utf8-buffer as-c-string buffer count node null yes
 				]
 			][
-				sout: string/load as-c-string data/buffer data/count UTF-8
+				unicode/load-utf8-buffer as-c-string data/buffer data/count node null yes
 			]
 			string/concatenate str sout -1 0 yes yes
 		]
