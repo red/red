@@ -126,6 +126,9 @@ integer: context [
 					fire [TO_ERROR(math zero-divide)]
 					0								;-- pass the compiler's type-checking
 				][
+					if all [left = -2147483648 right = -1][
+						fire [TO_ERROR(math overflow)]
+					]
 					left % right
 				]
 			]
