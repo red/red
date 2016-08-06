@@ -1216,10 +1216,10 @@ Red [
 	--test-- "-2147483648 / -1"
 		i: -2147483648
 		j: -1
-		;--assert error? try [-2147483648 / -1]
-		;--assert error? try [divide -2147483648 -1]
-		;--assert error? try [i / j]
-		;--assert error? try [divide i j]
+		--assert error? try [-2147483648 / -1]
+		--assert error? try [divide -2147483648 -1]
+		--assert error? try [i / j]
+		--assert error? try [divide i j]
 
 	--test-- "-2147483648 / 2147483647"
 		i: -2147483648
