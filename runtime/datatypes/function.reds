@@ -717,6 +717,35 @@ _function: context [
 		]
 	]
 	
+	check-type-spec: func [
+		spec [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			v	  [red-value!]
+			type  [integer!]
+	][
+		value: block/rs-head spec
+		tail:  block/rs-tail spec
+
+		while [value < tail][
+			v: either TYPE_OF(value) = TYPE_WORD [
+				word/get as red-word! value
+			][
+				value
+			]
+			type: TYPE_OF(v)
+			unless any [
+				type = TYPE_DATATYPE
+				type = TYPE_TYPESET
+				type = TYPE_WORD
+			][
+				fire [TO_ERROR(script invalid-type-spec) value]
+			]
+			value: value + 1
+		]
+	]
+	
 	validate: func [									;-- temporary mimalist spec checking
 		spec [red-block!]
 		/local
@@ -724,7 +753,6 @@ _function: context [
 			end	   [red-value!]
 			next   [red-value!]
 			next2  [red-value!]
-			block? [logic!]
 	][
 		value: block/rs-head spec
 		end:   block/rs-tail spec
@@ -740,11 +768,14 @@ _function: context [
 							fire [TO_ERROR(script bad-func-def)	spec]
 						]
 					]
-					block?: all [
+					value: value + 1
+					if all [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
+					][
+						check-type-spec as red-block! next
+						value: value + 1
 					]
-					value: value + either block? [2][1]
 				]
 				TYPE_SET_WORD [
 					next: value + 1
