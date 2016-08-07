@@ -609,10 +609,6 @@ _function: context [
 			extern? [logic!]
 	][
 		list: block/push* 8
-		unless find-local-ref spec [
-			block/rs-append list as red-value! refinements/local
-		]
-		
 		ignore: block/clone spec no no
 		block/rs-append ignore as red-value! refinements/local
 		
@@ -642,7 +638,7 @@ _function: context [
 						]
 					]
 				]
-				s/tail: s/offset + extern/head			;-- cut /extern and extern words out			
+				s/tail: s/offset + extern/head			;-- cut /extern and extern words out
 			]
 		]
 		stack/pop 1										;-- remove FIND result from stack
@@ -669,7 +665,10 @@ _function: context [
 		
 		collect-deep list ignore body
 		
-		if 1 < block/rs-length? list [
+		if 0 < block/rs-length? list [
+			unless find-local-ref spec [
+				block/rs-append spec as red-value! refinements/local
+			]
 			block/rs-append-block spec list
 		]
 		list
