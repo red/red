@@ -407,7 +407,7 @@ comment {
 
 ===end-group===
 
-===start-group=== "Scope of Varibles"
+===start-group=== "Scope of Variables"
 
 	--test-- "scope1 issue #825"
 		s1-text: "abcde"
@@ -461,6 +461,34 @@ comment {
 			s7-text
 		]
 		--assert "12345" = s7-f "filler" "12345"
+
+	--test-- "scope 8"
+		s8-f: function [/extern a][]
+		--assert empty? spec-of :s8-f
+
+	--test-- "scope 9"
+		s9-f: function [/extern a /local b][]
+		--assert [/local b] = spec-of :s9-f
+
+	--test-- "scope 10"
+		s10-f: function [/local b /extern a][]
+		--assert [/local b] = spec-of :s10-f
+
+	--test-- "scope 11"
+		s11-f: function [/extern a /local b][c: 0]
+		--assert [/local b c] = spec-of :s11-f
+
+	--test-- "scope 12"
+		s12-f: function [/local b /extern a][d: 1]
+		--assert [/local b d] = spec-of :s12-f
+
+	--test-- "scope 13"
+		s13-f: function [/local b][]
+		--assert [/local b] = spec-of :s13-f
+
+	--test-- "scope 14"
+		s14-f: function [/local b][e: 2]
+		--assert [/local b e] = spec-of :s14-f
 
 ===end-group===
 
