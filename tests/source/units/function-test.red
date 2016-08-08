@@ -119,6 +119,28 @@ Red [
 
 ===end-group===
 
+===start-group=== "Out of order arguments type-checking tests"
+	
+	--test-- "ooo-1"
+		extract/into/index [1 2 3 4 5 6] 2 b: [] 2
+
+	--test-- "ooo-2"
+		ooo2: func [cmd /w /o out [block!]][]
+		ooo2/o/w "cmd" o: [] 
+		--assert true
+
+	--test-- "ooo-3"
+		a: func [/b c [integer!] /d e][]
+		a/d/b e: {} 1
+		a/d/b {} e: 1
+		--assert true
+
+	--test-- "ooo-4"
+		--assert error? try [a/d/b 1 e: {}]
+		--assert error? try [a/d/b e: 1 {}]
+
+===end-group===
+
 ===start-group=== "Alternate constructor tests"
 	
 	--test-- "fun-alt-1"
