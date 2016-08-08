@@ -682,11 +682,23 @@ parser: context [
 		restore-stack
 	]
 	
-	eval: func [code [red-value!] /local len [integer!]][
+	eval: func [
+		code	[red-value!]
+		reset?	[logic!]
+		return: [red-value!]
+		/local
+			len	  [integer!]
+			saved [red-value!]
+			res	  [red-value!]
+	][
 		PARSE_SAVE_SERIES
+		saved: stack/top
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		if system/thrown <> 0 [reset re-throw]
+		res: stack/top - 1
+		if reset? [stack/top: saved]
 		PARSE_RESTORE_SERIES
+		res
 	]
 
 	process: func [
@@ -707,8 +719,10 @@ parser: context [
 			tail	 [red-value!]
 			value	 [red-value!]
 			base	 [red-value!]
+			s-top	 [red-value!]
 			char	 [red-char!]
 			dt		 [red-datatype!]
+			bool	 [red-logic!]
 			w		 [red-word!]
 			t 		 [triple!]
 			p		 [positions!]
@@ -1000,10 +1014,11 @@ parser: context [
 								cmd: cmd + 1
 								if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_change]]
 								if match? [
+									s-top: null
 									switch TYPE_OF(cmd) [
 										TYPE_PAREN [
-											eval cmd
-											value: stack/top - 1
+											s-top: stack/top
+											value: eval cmd no
 											PARSE_TRACE(_paren)
 										]
 										TYPE_WORD [
@@ -1021,6 +1036,7 @@ parser: context [
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
 									new: as red-series! actions/change input value base only? null
+									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head
 								]
@@ -1195,8 +1211,7 @@ parser: context [
 						]
 						TYPE_PAREN [
 							offset: (as-integer cmd - block/rs-head rule) >> 4	;-- save rule position							
-							eval value
-							stack/pop 1
+							eval value yes
 							PARSE_TRACE(_paren)
 							cmd: (block/rs-head rule) + offset	;-- refresh rule pointers,							
 							tail: block/rs-tail rule			;-- in case the block was changed						
@@ -1495,19 +1510,18 @@ parser: context [
 							value: cmd + 1
 							if value >= tail [PARSE_ERROR [TO_ERROR(script parse-end) words/_insert]]
 							
+							s-top: null
 							saved: input/head
 							either TYPE_OF(value) = TYPE_WORD [
 								new: as red-series! _context/get as red-word! value
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: value + 1		;-- INSERT position
 									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_insert]]
-									pop?: no
 									switch TYPE_OF(cmd) [
 										TYPE_PAREN [
-											eval cmd
-											value: stack/top - 1
+											s-top: stack/top
+											value: eval cmd no
 											PARSE_TRACE(_paren)
-											pop?: yes
 										]
 										TYPE_WORD [
 											value: _context/get as red-word! cmd
@@ -1521,10 +1535,9 @@ parser: context [
 								]
 							][
 								cmd: value
-								pop?: TYPE_OF(value) = TYPE_PAREN
-								if pop? [
-									eval value
-									value: stack/top - 1
+								if TYPE_OF(value) = TYPE_PAREN [
+									s-top: stack/top
+									value: eval value no
 									PARSE_TRACE(_paren)
 								]
 							]
@@ -1532,8 +1545,8 @@ parser: context [
 							before: input/head
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
+							if s-top <> null [stack/top: s-top]
 							PARSE_RESTORE_SERIES
-							if pop? [stack/pop 1]
 							state: ST_NEXT_ACTION
 						]
 						sym = words/_change/symbol [	;-- CHANGE
@@ -1553,10 +1566,11 @@ parser: context [
 								if all [TYPE_OF(new) = TYPE_OF(input) new/node = input/node][
 									cmd: value + 1		;-- CHANGE position
 									if cmd >= tail [PARSE_ERROR [TO_ERROR(script parse-rule) words/_change]]
+									s-top: null
 									switch TYPE_OF(cmd) [
 										TYPE_PAREN [
-											eval cmd
-											value: stack/top - 1
+											s-top: stack/top
+											value: eval cmd no
 											PARSE_TRACE(_paren)
 										]
 										TYPE_WORD [
@@ -1571,6 +1585,7 @@ parser: context [
 									input/head: new/head
 									PARSE_SAVE_SERIES
 									actions/change input value base as-logic max null
+									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									done?: yes
 								]
@@ -1597,9 +1612,12 @@ parser: context [
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_if]
 							]
-							eval cmd
-							match?: logic/top-true?
-							stack/pop 1
+							bool: as red-logic! eval cmd yes
+							type: TYPE_OF(bool)
+							match?: not any [
+								type = TYPE_NONE
+								all [type = TYPE_LOGIC not bool/value]
+							]
 							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
 						]
