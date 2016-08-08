@@ -1124,7 +1124,8 @@ OS-draw-grad-pen: func [
 	pt: edges
 	color: colors + 1
 	pos: colors-pos + 1
-	delta: 1.0 / as-float count - 1
+	delta: as-float count - 1
+	delta: 1.0 / delta
 	p: 0.0
 	head: as red-value! int
 	loop count [
