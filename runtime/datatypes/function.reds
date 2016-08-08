@@ -276,9 +276,8 @@ _function: context [
 		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos + 1]]
 
 		value:	 pos + 1
-		start:   ((as-integer base - head) >>> 4) - 2 / 2	;-- skip ooo/none slots
+		start:   ((as-integer base - head) >>> 4) / 2
 		remain:  (as-integer end - base) >>> 4
-		offset:  start
 		vec-pos: base - 1
 		assert TYPE_OF(vec-pos) = TYPE_NONE
 		

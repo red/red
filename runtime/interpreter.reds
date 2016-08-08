@@ -429,12 +429,11 @@ interpreter: context [
 						stack/top: stack/top + offset/value
 						ext-args: stack/top
 						offset: offset + 1
-						base: value
-						if value = s/offset [base: base + 2] ;-- skip ooo entry if no required args (simplifies calculation)
+						base: s/offset + 2				;-- skip ooo entry
 						s-value: value
 						
 						while [offset < v-tail][
-							expected: base + (offset/value * 2 + 1)
+							expected: base + (offset/value * 2 - 1)
 							value: expected - 1
 							assert TYPE_OF(expected) = TYPE_TYPESET
 							bits: (as byte-ptr! expected) + 4
@@ -508,7 +507,7 @@ interpreter: context [
 		unless ordered? [
 			offset: extras + 1
 			loop ext-size [
-				copy-cell ext-args stack/arguments + offset/value
+				copy-cell ext-args stack/arguments + offset/value - 1
 				offset: offset + 1
 				ext-args: ext-args + 1
 			]
