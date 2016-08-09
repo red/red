@@ -450,7 +450,10 @@ interpreter: context [
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
-								unless set? [ERR_EXPECT_ARGUMENT(type extras/value)]
+								unless set? [
+									index: offset/value - 1
+									ERR_EXPECT_ARGUMENT(type index)
+								]
 							]
 							offset: offset + 1
 						]

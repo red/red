@@ -78,7 +78,8 @@ error: context [
 			switch TYPE_OF(value) [
 				TYPE_WORD
 				TYPE_GET_WORD
-				TYPE_LIT_WORD [
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
 					if cnt = idx [return as red-word! value]
 					cnt: cnt + 1
 				]
