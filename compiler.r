@@ -4266,7 +4266,7 @@ red: context [
 			unless hidden [script-name: file]
 			src: lexer/process read-binary-cache file
 		][
-			unless hidden [script-name: 'memory]
+			unless hidden [script-name: 'in-memory]
 			src: file
 		]
 		src

@@ -3259,7 +3259,7 @@ system-dialect: make-profilable context [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			
 			if job/type = 'dll [
-				libRed/make-exports functions exports
+				if job/dev-mode? [libRed/make-exports functions exports]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
 				]

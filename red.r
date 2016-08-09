@@ -257,6 +257,7 @@ redc: context [
 				config-name: to word! default-target
 				build-basename: basename
 				build-prefix: temp-dir
+				dev-mode?: no
 			]
 			opts: make opts select load-targets opts/config-name
 			opts/type: 'dll
@@ -360,8 +361,7 @@ redc: context [
 			build-basename: file
 			type: 'dll
 		]
-		script: next [Red [Needs: 'View]]					;-- empty script for the lib
-?? opts
+		script: next [Red []]					;-- empty script for the lib
 		result: red/compile script opts
 		unless encap? [change-dir %system/]
 		system-dialect/compile/options/loaded file opts result
@@ -510,7 +510,7 @@ redc: context [
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			;if opts/dev-mode? [build-libRed opts]
+			if opts/dev-mode? [build-libRed opts]
 
 			fail-try "Red Compiler" [
 				result: red/compile src opts

@@ -288,27 +288,30 @@ libRed: context [
 	
 	template: make string! 50'000
 	
-	make-exports: func [functions exports][
+	make-exports: func [functions exports /local name][
 		foreach def funcs [
-			def: to word! form def
-			append exports def		
-			unless select functions def [
+			name: to word! form def
+			append exports name
+			unless select/only functions name [
 				print ["*** libRed Error: definition not found for" def]
 				halt
 			]
 		]
 	]
 	
-	process: func [functions][
+	process: func [functions /local name][
 		clear template 
 		
 		foreach def funcs [
-			def: to word! form def
-			append exports def
+			name: to word! form def
+			append exports name
 			spec: functions/:def
-?? spec			
-			unless spec [print ["*** libRed Error: definition not found for" def] halt]
-		]		
+			
+			unless spec [
+				print ["*** libRed Error: definition not found for" def]
+				halt
+			]
+		]
 	]
 	
 ]
