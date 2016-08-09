@@ -420,7 +420,9 @@ float: context [
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
-			_random/srand as-integer f/value
+			s: f/value
+			if TYPE_OF(f) = TYPE_TIME [s: s / time/oneE9]
+			_random/srand as-integer s
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
