@@ -952,6 +952,7 @@ string: context [
 		either all [keep? diff?][
 			p2: (as byte-ptr! s2/offset) + h2
 			limit: p2 + size2
+			size2: unit1 / unit2 * size2
 			while [p2 < limit][
 				switch unit2 [
 					Latin1 [cp: as-integer p2/1]
