@@ -248,11 +248,11 @@ logic: context [
 		left: as red-logic! stack/arguments
 		right: left + 1
 		if TYPE_OF(right) <> TYPE_LOGIC [
-			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2)
+			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 1)
 		]
 		left/value: switch type [
 			OP_AND [left/value and right/value]
-			OP_OR  [left/value or right/value]
+			OP_OR  [left/value or  right/value]
 			OP_XOR [left/value xor right/value]
 		]
 		left
