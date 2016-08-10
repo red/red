@@ -503,16 +503,16 @@ to-dx-color: func [
 		c: clr-ptr
 	]
 	tmp: color and FFh
-	r: integer/to-float tmp
+	r: as-float tmp
 	c/r: as float32! r / 255.0
 	tmp: color >> 8 and FFh
-	g: integer/to-float tmp
+	g: as-float tmp
 	c/g: as float32! g / 255.0
 	tmp: color >> 16 and FFh
-	b: integer/to-float tmp
+	b: as-float tmp
 	c/b: as float32! b / 255.0
 	tmp: 255 - (color >>> 24)
-	a: integer/to-float tmp
+	a: as-float tmp
 	c/a: as float32! a / 255.0
 	c
 ]
@@ -564,8 +564,8 @@ create-dc-render-target: func [
 	props/type: 0									;-- D2D1_RENDER_TARGET_TYPE_DEFAULT
 	props/format: 87								;-- DXGI_FORMAT_B8G8R8A8_UNORM
 	props/alphaMode: 1								;-- D2D1_ALPHA_MODE_PREMULTIPLIED
-	props/dpiX: as float32! integer/to-float log-pixels-x
-	props/dpiY: as float32! integer/to-float log-pixels-y
+	props/dpiX: as float32! log-pixels-x
+	props/dpiY: as float32! log-pixels-y
 	props/usage: 2									;-- D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE
 	props/minLevel: 0								;-- D2D1_FEATURE_LEVEL_DEFAULT
 
@@ -619,7 +619,7 @@ create-text-format: func [
 
 		int: as red-integer! values + FONT_OBJ_SIZE
 		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
-		f: integer/to-float len
+		f: as-float len
 		size: ConvertPointSizeToDIP(f)
 
 		str: as red-string! values + FONT_OBJ_NAME
@@ -655,7 +655,7 @@ create-text-format: func [
 		save?: no
 		int: as red-integer! #get system/view/fonts/size
 		str: as red-string!  #get system/view/fonts/system
-		f: integer/to-float int/value
+		f: as-float int/value
 		size: ConvertPointSizeToDIP(f)
 		name: unicode/to-utf16 str
 	]
@@ -694,8 +694,8 @@ draw-text-d2d: func [
 	format/SetTextAlignment this 2					;-- center
 	format/SetParagraphAlignment this 2				;-- center
 
-	w: as float32! integer/to-float rc/right
-	h: as float32! integer/to-float rc/bottom
+	w: as float32! rc/right
+	h: as float32! rc/bottom
 	len: -1
 	str: unicode/to-utf16-len text :len yes
 	layout: 0
