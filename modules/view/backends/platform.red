@@ -505,7 +505,7 @@ system/view/platform: context [
 		gui/OS-request-font font mono?
 	]
 	
-	init: func [/local sys fonts][
+	init: func [/local svs fonts][
 		#system [gui/init]
 		
 		system/view/metrics/dpi: 94						;@@ Needs to be calculated
