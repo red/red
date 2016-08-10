@@ -122,6 +122,7 @@ make-font: func [
 	][
 		blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
 		integer/make-in blk as-integer hFont
+		none/make-in blk								;-- DWrite font
 
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
@@ -157,6 +158,7 @@ set-font: func [
 
 get-font-handle: func [
 	font	[red-object!]
+	idx		[integer!]							;-- 0-based index
 	return: [handle!]
 	/local
 		state  [red-block!]
@@ -164,7 +166,7 @@ get-font-handle: func [
 ][
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
+		int: (as red-integer! block/rs-head state) + idx
 		if TYPE_OF(int) = TYPE_INTEGER [
 			return as handle! int/value
 		]
@@ -177,12 +179,18 @@ free-font: func [
 	/local
 		state [red-block!]
 		hFont [handle!]
+		this  [this!]
+		obj   [IUnknown]
 ][
-	hFont: get-font-handle font
+	hFont: get-font-handle font 0
 	if hFont <> null [
 		DeleteObject hFont
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
+	]
+	unless winxp? [
+		this: as this! get-font-handle font 1
+		COM_SAFE_RELEASE(obj this)
 	]
 ]
 

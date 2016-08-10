@@ -515,6 +515,11 @@ tagPOINT: alias struct! [
 	y		[integer!]	
 ]
 
+POINT_2F: alias struct! [
+	x		[float32!]
+	y		[float32!]
+]
+
 tagSIZE: alias struct! [
 	width	[integer!]
 	height	[integer!]
