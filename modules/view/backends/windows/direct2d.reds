@@ -403,7 +403,7 @@ IDWriteTextFormat: alias struct! [
 	Release							[Release!]
 	SetTextAlignment				[function! [this [this!] align [integer!] return: [integer!]]]
 	SetParagraphAlignment			[function! [this [this!] align [integer!] return: [integer!]]]
-	SetWordWrapping					[integer!]
+	SetWordWrapping					[function! [this [this!] mode [integer!] return: [integer!]]]
 	SetReadingDirection				[integer!]
 	SetFlowDirection				[integer!]
 	SetIncrementalTabStop			[integer!]
@@ -469,7 +469,7 @@ IDWriteFontFace: alias struct! [
 	]
 ]
 
-#define ConvertPointSizeToDIP(size)		(as float32! size / 72.0  * 96.0)
+#define ConvertPointSizeToDIP(size)		(as float32! size / 72.0  * 94.0)
 
 DX-init: func [
 	/local
@@ -491,29 +491,16 @@ to-dx-color: func [
 	return: [D3DCOLORVALUE]
 	/local
 		c	[D3DCOLORVALUE]
-		tmp [integer!]
-		r	[float!]
-		g	[float!]
-		b	[float!]
-		a	[float!]
 ][
 	either null? clr-ptr [
 		c: declare D3DCOLORVALUE
 	][
 		c: clr-ptr
 	]
-	tmp: color and FFh
-	r: as-float tmp
-	c/r: as float32! r / 255.0
-	tmp: color >> 8 and FFh
-	g: as-float tmp
-	c/g: as float32! g / 255.0
-	tmp: color >> 16 and FFh
-	b: as-float tmp
-	c/b: as float32! b / 255.0
-	tmp: 255 - (color >>> 24)
-	a: as-float tmp
-	c/a: as float32! a / 255.0
+	c/r: (as float32! color and FFh) / 255.0
+	c/g: (as float32! color >> 8 and FFh) / 255.0
+	c/b: (as float32! color >> 16 and FFh) / 255.0
+	c/a: (as float32! 255 - (color >>> 24)) / 255.0
 	c
 ]
 
@@ -688,11 +675,30 @@ draw-text-d2d: func [
 		w		[float32!]
 		h		[float32!]
 		format	[IDWriteTextFormat]
+		flags	[integer!]
+		h-align [integer!]
+		v-align [integer!]
 ][
+	flags: either TYPE_OF(para) = TYPE_OBJECT [
+		get-para-flags base para
+	][
+		1 or 4
+	]
+	case [
+		flags and 1 <> 0 [h-align: 2]
+		flags and 2 <> 0 [h-align: 1]
+		true			 [h-align: 0]
+	]
+	case [
+		flags and 4 <> 0 [v-align: 2]
+		flags and 8 <> 0 [v-align: 1]
+		true			 [v-align: 0]
+	]
 	this: as this! create-text-format font
 	format: as IDWriteTextFormat this/vtbl
-	format/SetTextAlignment this 2					;-- center
-	format/SetParagraphAlignment this 2				;-- center
+	format/SetTextAlignment this h-align
+	format/SetParagraphAlignment this v-align
+	format/SetWordWrapping this 1					;-- no wrapping
 
 	w: as float32! rc/right
 	h: as float32! rc/bottom
