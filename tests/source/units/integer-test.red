@@ -2836,4 +2836,908 @@ Red [
 
 ===end-group===
 
+===start-group=== "and"
+
+	--test-- "0 and 1"
+		i: 0
+		j: 1
+		--assert strict-equal? 0 0 and 1
+		--assert strict-equal? 0 and~ 0 1
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and -1"
+		i: 0
+		j: -1
+		--assert strict-equal? 0 0 and -1
+		--assert strict-equal? 0 and~ 0 -1
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and -2147483648"
+		i: 0
+		j: -2147483648
+		--assert strict-equal? 0 0 and -2147483648
+		--assert strict-equal? 0 and~ 0 -2147483648
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and 2147483647"
+		i: 0
+		j: 2147483647
+		--assert strict-equal? 0 0 and 2147483647
+		--assert strict-equal? 0 and~ 0 2147483647
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and -7"
+		i: 0
+		j: -7
+		--assert strict-equal? 0 0 and -7
+		--assert strict-equal? 0 and~ 0 -7
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and -8"
+		i: 0
+		j: -8
+		--assert strict-equal? 0 0 and -8
+		--assert strict-equal? 0 and~ 0 -8
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "0 and -10"
+		i: 0
+		j: -10
+		--assert strict-equal? 0 0 and -10
+		--assert strict-equal? 0 and~ 0 -10
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "1 and 0"
+		i: 1
+		j: 0
+		--assert strict-equal? 0 1 and 0
+		--assert strict-equal? 0 and~ 1 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "1 and -1"
+		i: 1
+		j: -1
+		--assert strict-equal? 1 1 and -1
+		--assert strict-equal? 1 and~ 1 -1
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "1 and -2147483648"
+		i: 1
+		j: -2147483648
+		--assert strict-equal? 0 1 and -2147483648
+		--assert strict-equal? 0 and~ 1 -2147483648
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "1 and 2147483647"
+		i: 1
+		j: 2147483647
+		--assert strict-equal? 1 1 and 2147483647
+		--assert strict-equal? 1 and~ 1 2147483647
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "1 and -7"
+		i: 1
+		j: -7
+		--assert strict-equal? 1 1 and -7
+		--assert strict-equal? 1 and~ 1 -7
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "1 and -8"
+		i: 1
+		j: -8
+		--assert strict-equal? 0 1 and -8
+		--assert strict-equal? 0 and~ 1 -8
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "1 and -10"
+		i: 1
+		j: -10
+		--assert strict-equal? 0 1 and -10
+		--assert strict-equal? 0 and~ 1 -10
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-1 and 0"
+		i: -1
+		j: 0
+		--assert strict-equal? 0 -1 and 0
+		--assert strict-equal? 0 and~ -1 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-1 and 1"
+		i: -1
+		j: 1
+		--assert strict-equal? 1 -1 and 1
+		--assert strict-equal? 1 and~ -1 1
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "-1 and -2147483648"
+		i: -1
+		j: -2147483648
+		--assert strict-equal? -2147483648 -1 and -2147483648
+		--assert strict-equal? -2147483648 and~ -1 -2147483648
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-1 and 2147483647"
+		i: -1
+		j: 2147483647
+		--assert strict-equal? 2147483647 -1 and 2147483647
+		--assert strict-equal? 2147483647 and~ -1 2147483647
+		--assert strict-equal? 2147483647 i and j
+		--assert strict-equal? 2147483647 and~ i j
+
+	--test-- "-1 and -7"
+		i: -1
+		j: -7
+		--assert strict-equal? -7 -1 and -7
+		--assert strict-equal? -7 and~ -1 -7
+		--assert strict-equal? -7 i and j
+		--assert strict-equal? -7 and~ i j
+
+	--test-- "-1 and -8"
+		i: -1
+		j: -8
+		--assert strict-equal? -8 -1 and -8
+		--assert strict-equal? -8 and~ -1 -8
+		--assert strict-equal? -8 i and j
+		--assert strict-equal? -8 and~ i j
+
+	--test-- "-1 and -10"
+		i: -1
+		j: -10
+		--assert strict-equal? -10 -1 and -10
+		--assert strict-equal? -10 and~ -1 -10
+		--assert strict-equal? -10 i and j
+		--assert strict-equal? -10 and~ i j
+
+	--test-- "-2147483648 and 0"
+		i: -2147483648
+		j: 0
+		--assert strict-equal? 0 -2147483648 and 0
+		--assert strict-equal? 0 and~ -2147483648 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-2147483648 and 1"
+		i: -2147483648
+		j: 1
+		--assert strict-equal? 0 -2147483648 and 1
+		--assert strict-equal? 0 and~ -2147483648 1
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-2147483648 and -1"
+		i: -2147483648
+		j: -1
+		--assert strict-equal? -2147483648 -2147483648 and -1
+		--assert strict-equal? -2147483648 and~ -2147483648 -1
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-2147483648 and 2147483647"
+		i: -2147483648
+		j: 2147483647
+		--assert strict-equal? 0 -2147483648 and 2147483647
+		--assert strict-equal? 0 and~ -2147483648 2147483647
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-2147483648 and -7"
+		i: -2147483648
+		j: -7
+		--assert strict-equal? -2147483648 -2147483648 and -7
+		--assert strict-equal? -2147483648 and~ -2147483648 -7
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-2147483648 and -8"
+		i: -2147483648
+		j: -8
+		--assert strict-equal? -2147483648 -2147483648 and -8
+		--assert strict-equal? -2147483648 and~ -2147483648 -8
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-2147483648 and -10"
+		i: -2147483648
+		j: -10
+		--assert strict-equal? -2147483648 -2147483648 and -10
+		--assert strict-equal? -2147483648 and~ -2147483648 -10
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "2147483647 and 0"
+		i: 2147483647
+		j: 0
+		--assert strict-equal? 0 2147483647 and 0
+		--assert strict-equal? 0 and~ 2147483647 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "2147483647 and 1"
+		i: 2147483647
+		j: 1
+		--assert strict-equal? 1 2147483647 and 1
+		--assert strict-equal? 1 and~ 2147483647 1
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "2147483647 and -1"
+		i: 2147483647
+		j: -1
+		--assert strict-equal? 2147483647 2147483647 and -1
+		--assert strict-equal? 2147483647 and~ 2147483647 -1
+		--assert strict-equal? 2147483647 i and j
+		--assert strict-equal? 2147483647 and~ i j
+
+	--test-- "2147483647 and -2147483648"
+		i: 2147483647
+		j: -2147483648
+		--assert strict-equal? 0 2147483647 and -2147483648
+		--assert strict-equal? 0 and~ 2147483647 -2147483648
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "2147483647 and -7"
+		i: 2147483647
+		j: -7
+		--assert strict-equal? 2147483641 2147483647 and -7
+		--assert strict-equal? 2147483641 and~ 2147483647 -7
+		--assert strict-equal? 2147483641 i and j
+		--assert strict-equal? 2147483641 and~ i j
+
+	--test-- "2147483647 and -8"
+		i: 2147483647
+		j: -8
+		--assert strict-equal? 2147483640 2147483647 and -8
+		--assert strict-equal? 2147483640 and~ 2147483647 -8
+		--assert strict-equal? 2147483640 i and j
+		--assert strict-equal? 2147483640 and~ i j
+
+	--test-- "2147483647 and -10"
+		i: 2147483647
+		j: -10
+		--assert strict-equal? 2147483638 2147483647 and -10
+		--assert strict-equal? 2147483638 and~ 2147483647 -10
+		--assert strict-equal? 2147483638 i and j
+		--assert strict-equal? 2147483638 and~ i j
+
+	--test-- "-7 and 0"
+		i: -7
+		j: 0
+		--assert strict-equal? 0 -7 and 0
+		--assert strict-equal? 0 and~ -7 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-7 and 1"
+		i: -7
+		j: 1
+		--assert strict-equal? 1 -7 and 1
+		--assert strict-equal? 1 and~ -7 1
+		--assert strict-equal? 1 i and j
+		--assert strict-equal? 1 and~ i j
+
+	--test-- "-7 and -1"
+		i: -7
+		j: -1
+		--assert strict-equal? -7 -7 and -1
+		--assert strict-equal? -7 and~ -7 -1
+		--assert strict-equal? -7 i and j
+		--assert strict-equal? -7 and~ i j
+
+	--test-- "-7 and -2147483648"
+		i: -7
+		j: -2147483648
+		--assert strict-equal? -2147483648 -7 and -2147483648
+		--assert strict-equal? -2147483648 and~ -7 -2147483648
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-7 and 2147483647"
+		i: -7
+		j: 2147483647
+		--assert strict-equal? 2147483641 -7 and 2147483647
+		--assert strict-equal? 2147483641 and~ -7 2147483647
+		--assert strict-equal? 2147483641 i and j
+		--assert strict-equal? 2147483641 and~ i j
+
+	--test-- "-7 and -8"
+		i: -7
+		j: -8
+		--assert strict-equal? -8 -7 and -8
+		--assert strict-equal? -8 and~ -7 -8
+		--assert strict-equal? -8 i and j
+		--assert strict-equal? -8 and~ i j
+
+	--test-- "-7 and -10"
+		i: -7
+		j: -10
+		--assert strict-equal? -16 -7 and -10
+		--assert strict-equal? -16 and~ -7 -10
+		--assert strict-equal? -16 i and j
+		--assert strict-equal? -16 and~ i j
+
+	--test-- "-8 and 0"
+		i: -8
+		j: 0
+		--assert strict-equal? 0 -8 and 0
+		--assert strict-equal? 0 and~ -8 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-8 and 1"
+		i: -8
+		j: 1
+		--assert strict-equal? 0 -8 and 1
+		--assert strict-equal? 0 and~ -8 1
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-8 and -1"
+		i: -8
+		j: -1
+		--assert strict-equal? -8 -8 and -1
+		--assert strict-equal? -8 and~ -8 -1
+		--assert strict-equal? -8 i and j
+		--assert strict-equal? -8 and~ i j
+
+	--test-- "-8 and -2147483648"
+		i: -8
+		j: -2147483648
+		--assert strict-equal? -2147483648 -8 and -2147483648
+		--assert strict-equal? -2147483648 and~ -8 -2147483648
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-8 and 2147483647"
+		i: -8
+		j: 2147483647
+		--assert strict-equal? 2147483640 -8 and 2147483647
+		--assert strict-equal? 2147483640 and~ -8 2147483647
+		--assert strict-equal? 2147483640 i and j
+		--assert strict-equal? 2147483640 and~ i j
+
+	--test-- "-8 and -7"
+		i: -8
+		j: -7
+		--assert strict-equal? -8 -8 and -7
+		--assert strict-equal? -8 and~ -8 -7
+		--assert strict-equal? -8 i and j
+		--assert strict-equal? -8 and~ i j
+
+	--test-- "-8 and -10"
+		i: -8
+		j: -10
+		--assert strict-equal? -16 -8 and -10
+		--assert strict-equal? -16 and~ -8 -10
+		--assert strict-equal? -16 i and j
+		--assert strict-equal? -16 and~ i j
+
+	--test-- "-10 and 0"
+		i: -10
+		j: 0
+		--assert strict-equal? 0 -10 and 0
+		--assert strict-equal? 0 and~ -10 0
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-10 and 1"
+		i: -10
+		j: 1
+		--assert strict-equal? 0 -10 and 1
+		--assert strict-equal? 0 and~ -10 1
+		--assert strict-equal? 0 i and j
+		--assert strict-equal? 0 and~ i j
+
+	--test-- "-10 and -1"
+		i: -10
+		j: -1
+		--assert strict-equal? -10 -10 and -1
+		--assert strict-equal? -10 and~ -10 -1
+		--assert strict-equal? -10 i and j
+		--assert strict-equal? -10 and~ i j
+
+	--test-- "-10 and -2147483648"
+		i: -10
+		j: -2147483648
+		--assert strict-equal? -2147483648 -10 and -2147483648
+		--assert strict-equal? -2147483648 and~ -10 -2147483648
+		--assert strict-equal? -2147483648 i and j
+		--assert strict-equal? -2147483648 and~ i j
+
+	--test-- "-10 and 2147483647"
+		i: -10
+		j: 2147483647
+		--assert strict-equal? 2147483638 -10 and 2147483647
+		--assert strict-equal? 2147483638 and~ -10 2147483647
+		--assert strict-equal? 2147483638 i and j
+		--assert strict-equal? 2147483638 and~ i j
+
+	--test-- "-10 and -7"
+		i: -10
+		j: -7
+		--assert strict-equal? -16 -10 and -7
+		--assert strict-equal? -16 and~ -10 -7
+		--assert strict-equal? -16 i and j
+		--assert strict-equal? -16 and~ i j
+
+	--test-- "-10 and -8"
+		i: -10
+		j: -8
+		--assert strict-equal? -16 -10 and -8
+		--assert strict-equal? -16 and~ -10 -8
+		--assert strict-equal? -16 i and j
+		--assert strict-equal? -16 and~ i j
+
+===end-group===
+
+===start-group=== "xor"
+
+	--test-- "0 xor 1"
+		i: 0
+		j: 1
+		--assert strict-equal? 1 0 xor 1
+		--assert strict-equal? 1 xor~ 0 1
+		--assert strict-equal? 1 i xor j
+		--assert strict-equal? 1 xor~ i j
+
+	--test-- "0 xor -1"
+		i: 0
+		j: -1
+		--assert strict-equal? -1 0 xor -1
+		--assert strict-equal? -1 xor~ 0 -1
+		--assert strict-equal? -1 i xor j
+		--assert strict-equal? -1 xor~ i j
+
+	--test-- "0 xor -2147483648"
+		i: 0
+		j: -2147483648
+		--assert strict-equal? -2147483648 0 xor -2147483648
+		--assert strict-equal? -2147483648 xor~ 0 -2147483648
+		--assert strict-equal? -2147483648 i xor j
+		--assert strict-equal? -2147483648 xor~ i j
+
+	--test-- "0 xor 2147483647"
+		i: 0
+		j: 2147483647
+		--assert strict-equal? 2147483647 0 xor 2147483647
+		--assert strict-equal? 2147483647 xor~ 0 2147483647
+		--assert strict-equal? 2147483647 i xor j
+		--assert strict-equal? 2147483647 xor~ i j
+
+	--test-- "0 xor -7"
+		i: 0
+		j: -7
+		--assert strict-equal? -7 0 xor -7
+		--assert strict-equal? -7 xor~ 0 -7
+		--assert strict-equal? -7 i xor j
+		--assert strict-equal? -7 xor~ i j
+
+	--test-- "0 xor -8"
+		i: 0
+		j: -8
+		--assert strict-equal? -8 0 xor -8
+		--assert strict-equal? -8 xor~ 0 -8
+		--assert strict-equal? -8 i xor j
+		--assert strict-equal? -8 xor~ i j
+
+	--test-- "0 xor -10"
+		i: 0
+		j: -10
+		--assert strict-equal? -10 0 xor -10
+		--assert strict-equal? -10 xor~ 0 -10
+		--assert strict-equal? -10 i xor j
+		--assert strict-equal? -10 xor~ i j
+
+	--test-- "1 xor 0"
+		i: 1
+		j: 0
+		--assert strict-equal? 1 1 xor 0
+		--assert strict-equal? 1 xor~ 1 0
+		--assert strict-equal? 1 i xor j
+		--assert strict-equal? 1 xor~ i j
+
+	--test-- "1 xor -1"
+		i: 1
+		j: -1
+		--assert strict-equal? -2 1 xor -1
+		--assert strict-equal? -2 xor~ 1 -1
+		--assert strict-equal? -2 i xor j
+		--assert strict-equal? -2 xor~ i j
+
+	--test-- "1 xor -2147483648"
+		i: 1
+		j: -2147483648
+		--assert strict-equal? -2147483647 1 xor -2147483648
+		--assert strict-equal? -2147483647 xor~ 1 -2147483648
+		--assert strict-equal? -2147483647 i xor j
+		--assert strict-equal? -2147483647 xor~ i j
+
+	--test-- "1 xor 2147483647"
+		i: 1
+		j: 2147483647
+		--assert strict-equal? 2147483646 1 xor 2147483647
+		--assert strict-equal? 2147483646 xor~ 1 2147483647
+		--assert strict-equal? 2147483646 i xor j
+		--assert strict-equal? 2147483646 xor~ i j
+
+	--test-- "1 xor -7"
+		i: 1
+		j: -7
+		--assert strict-equal? -8 1 xor -7
+		--assert strict-equal? -8 xor~ 1 -7
+		--assert strict-equal? -8 i xor j
+		--assert strict-equal? -8 xor~ i j
+
+	--test-- "1 xor -8"
+		i: 1
+		j: -8
+		--assert strict-equal? -7 1 xor -8
+		--assert strict-equal? -7 xor~ 1 -8
+		--assert strict-equal? -7 i xor j
+		--assert strict-equal? -7 xor~ i j
+
+	--test-- "1 xor -10"
+		i: 1
+		j: -10
+		--assert strict-equal? -9 1 xor -10
+		--assert strict-equal? -9 xor~ 1 -10
+		--assert strict-equal? -9 i xor j
+		--assert strict-equal? -9 xor~ i j
+
+	--test-- "-1 xor 0"
+		i: -1
+		j: 0
+		--assert strict-equal? -1 -1 xor 0
+		--assert strict-equal? -1 xor~ -1 0
+		--assert strict-equal? -1 i xor j
+		--assert strict-equal? -1 xor~ i j
+
+	--test-- "-1 xor 1"
+		i: -1
+		j: 1
+		--assert strict-equal? -2 -1 xor 1
+		--assert strict-equal? -2 xor~ -1 1
+		--assert strict-equal? -2 i xor j
+		--assert strict-equal? -2 xor~ i j
+
+	--test-- "-1 xor -2147483648"
+		i: -1
+		j: -2147483648
+		--assert strict-equal? 2147483647 -1 xor -2147483648
+		--assert strict-equal? 2147483647 xor~ -1 -2147483648
+		--assert strict-equal? 2147483647 i xor j
+		--assert strict-equal? 2147483647 xor~ i j
+
+	--test-- "-1 xor 2147483647"
+		i: -1
+		j: 2147483647
+		--assert strict-equal? -2147483648 -1 xor 2147483647
+		--assert strict-equal? -2147483648 xor~ -1 2147483647
+		--assert strict-equal? -2147483648 i xor j
+		--assert strict-equal? -2147483648 xor~ i j
+
+	--test-- "-1 xor -7"
+		i: -1
+		j: -7
+		--assert strict-equal? 6 -1 xor -7
+		--assert strict-equal? 6 xor~ -1 -7
+		--assert strict-equal? 6 i xor j
+		--assert strict-equal? 6 xor~ i j
+
+	--test-- "-1 xor -8"
+		i: -1
+		j: -8
+		--assert strict-equal? 7 -1 xor -8
+		--assert strict-equal? 7 xor~ -1 -8
+		--assert strict-equal? 7 i xor j
+		--assert strict-equal? 7 xor~ i j
+
+	--test-- "-1 xor -10"
+		i: -1
+		j: -10
+		--assert strict-equal? 9 -1 xor -10
+		--assert strict-equal? 9 xor~ -1 -10
+		--assert strict-equal? 9 i xor j
+		--assert strict-equal? 9 xor~ i j
+
+	--test-- "-2147483648 xor 0"
+		i: -2147483648
+		j: 0
+		--assert strict-equal? -2147483648 -2147483648 xor 0
+		--assert strict-equal? -2147483648 xor~ -2147483648 0
+		--assert strict-equal? -2147483648 i xor j
+		--assert strict-equal? -2147483648 xor~ i j
+
+	--test-- "-2147483648 xor 1"
+		i: -2147483648
+		j: 1
+		--assert strict-equal? -2147483647 -2147483648 xor 1
+		--assert strict-equal? -2147483647 xor~ -2147483648 1
+		--assert strict-equal? -2147483647 i xor j
+		--assert strict-equal? -2147483647 xor~ i j
+
+	--test-- "-2147483648 xor -1"
+		i: -2147483648
+		j: -1
+		--assert strict-equal? 2147483647 -2147483648 xor -1
+		--assert strict-equal? 2147483647 xor~ -2147483648 -1
+		--assert strict-equal? 2147483647 i xor j
+		--assert strict-equal? 2147483647 xor~ i j
+
+	--test-- "-2147483648 xor 2147483647"
+		i: -2147483648
+		j: 2147483647
+		--assert strict-equal? -1 -2147483648 xor 2147483647
+		--assert strict-equal? -1 xor~ -2147483648 2147483647
+		--assert strict-equal? -1 i xor j
+		--assert strict-equal? -1 xor~ i j
+
+	--test-- "-2147483648 xor -7"
+		i: -2147483648
+		j: -7
+		--assert strict-equal? 2147483641 -2147483648 xor -7
+		--assert strict-equal? 2147483641 xor~ -2147483648 -7
+		--assert strict-equal? 2147483641 i xor j
+		--assert strict-equal? 2147483641 xor~ i j
+
+	--test-- "-2147483648 xor -8"
+		i: -2147483648
+		j: -8
+		--assert strict-equal? 2147483640 -2147483648 xor -8
+		--assert strict-equal? 2147483640 xor~ -2147483648 -8
+		--assert strict-equal? 2147483640 i xor j
+		--assert strict-equal? 2147483640 xor~ i j
+
+	--test-- "-2147483648 xor -10"
+		i: -2147483648
+		j: -10
+		--assert strict-equal? 2147483638 -2147483648 xor -10
+		--assert strict-equal? 2147483638 xor~ -2147483648 -10
+		--assert strict-equal? 2147483638 i xor j
+		--assert strict-equal? 2147483638 xor~ i j
+
+	--test-- "2147483647 xor 0"
+		i: 2147483647
+		j: 0
+		--assert strict-equal? 2147483647 2147483647 xor 0
+		--assert strict-equal? 2147483647 xor~ 2147483647 0
+		--assert strict-equal? 2147483647 i xor j
+		--assert strict-equal? 2147483647 xor~ i j
+
+	--test-- "2147483647 xor 1"
+		i: 2147483647
+		j: 1
+		--assert strict-equal? 2147483646 2147483647 xor 1
+		--assert strict-equal? 2147483646 xor~ 2147483647 1
+		--assert strict-equal? 2147483646 i xor j
+		--assert strict-equal? 2147483646 xor~ i j
+
+	--test-- "2147483647 xor -1"
+		i: 2147483647
+		j: -1
+		--assert strict-equal? -2147483648 2147483647 xor -1
+		--assert strict-equal? -2147483648 xor~ 2147483647 -1
+		--assert strict-equal? -2147483648 i xor j
+		--assert strict-equal? -2147483648 xor~ i j
+
+	--test-- "2147483647 xor -2147483648"
+		i: 2147483647
+		j: -2147483648
+		--assert strict-equal? -1 2147483647 xor -2147483648
+		--assert strict-equal? -1 xor~ 2147483647 -2147483648
+		--assert strict-equal? -1 i xor j
+		--assert strict-equal? -1 xor~ i j
+
+	--test-- "2147483647 xor -7"
+		i: 2147483647
+		j: -7
+		--assert strict-equal? -2147483642 2147483647 xor -7
+		--assert strict-equal? -2147483642 xor~ 2147483647 -7
+		--assert strict-equal? -2147483642 i xor j
+		--assert strict-equal? -2147483642 xor~ i j
+
+	--test-- "2147483647 xor -8"
+		i: 2147483647
+		j: -8
+		--assert strict-equal? -2147483641 2147483647 xor -8
+		--assert strict-equal? -2147483641 xor~ 2147483647 -8
+		--assert strict-equal? -2147483641 i xor j
+		--assert strict-equal? -2147483641 xor~ i j
+
+	--test-- "2147483647 xor -10"
+		i: 2147483647
+		j: -10
+		--assert strict-equal? -2147483639 2147483647 xor -10
+		--assert strict-equal? -2147483639 xor~ 2147483647 -10
+		--assert strict-equal? -2147483639 i xor j
+		--assert strict-equal? -2147483639 xor~ i j
+
+	--test-- "-7 xor 0"
+		i: -7
+		j: 0
+		--assert strict-equal? -7 -7 xor 0
+		--assert strict-equal? -7 xor~ -7 0
+		--assert strict-equal? -7 i xor j
+		--assert strict-equal? -7 xor~ i j
+
+	--test-- "-7 xor 1"
+		i: -7
+		j: 1
+		--assert strict-equal? -8 -7 xor 1
+		--assert strict-equal? -8 xor~ -7 1
+		--assert strict-equal? -8 i xor j
+		--assert strict-equal? -8 xor~ i j
+
+	--test-- "-7 xor -1"
+		i: -7
+		j: -1
+		--assert strict-equal? 6 -7 xor -1
+		--assert strict-equal? 6 xor~ -7 -1
+		--assert strict-equal? 6 i xor j
+		--assert strict-equal? 6 xor~ i j
+
+	--test-- "-7 xor -2147483648"
+		i: -7
+		j: -2147483648
+		--assert strict-equal? 2147483641 -7 xor -2147483648
+		--assert strict-equal? 2147483641 xor~ -7 -2147483648
+		--assert strict-equal? 2147483641 i xor j
+		--assert strict-equal? 2147483641 xor~ i j
+
+	--test-- "-7 xor 2147483647"
+		i: -7
+		j: 2147483647
+		--assert strict-equal? -2147483642 -7 xor 2147483647
+		--assert strict-equal? -2147483642 xor~ -7 2147483647
+		--assert strict-equal? -2147483642 i xor j
+		--assert strict-equal? -2147483642 xor~ i j
+
+	--test-- "-7 xor -8"
+		i: -7
+		j: -8
+		--assert strict-equal? 1 -7 xor -8
+		--assert strict-equal? 1 xor~ -7 -8
+		--assert strict-equal? 1 i xor j
+		--assert strict-equal? 1 xor~ i j
+
+	--test-- "-7 xor -10"
+		i: -7
+		j: -10
+		--assert strict-equal? 15 -7 xor -10
+		--assert strict-equal? 15 xor~ -7 -10
+		--assert strict-equal? 15 i xor j
+		--assert strict-equal? 15 xor~ i j
+
+	--test-- "-8 xor 0"
+		i: -8
+		j: 0
+		--assert strict-equal? -8 -8 xor 0
+		--assert strict-equal? -8 xor~ -8 0
+		--assert strict-equal? -8 i xor j
+		--assert strict-equal? -8 xor~ i j
+
+	--test-- "-8 xor 1"
+		i: -8
+		j: 1
+		--assert strict-equal? -7 -8 xor 1
+		--assert strict-equal? -7 xor~ -8 1
+		--assert strict-equal? -7 i xor j
+		--assert strict-equal? -7 xor~ i j
+
+	--test-- "-8 xor -1"
+		i: -8
+		j: -1
+		--assert strict-equal? 7 -8 xor -1
+		--assert strict-equal? 7 xor~ -8 -1
+		--assert strict-equal? 7 i xor j
+		--assert strict-equal? 7 xor~ i j
+
+	--test-- "-8 xor -2147483648"
+		i: -8
+		j: -2147483648
+		--assert strict-equal? 2147483640 -8 xor -2147483648
+		--assert strict-equal? 2147483640 xor~ -8 -2147483648
+		--assert strict-equal? 2147483640 i xor j
+		--assert strict-equal? 2147483640 xor~ i j
+
+	--test-- "-8 xor 2147483647"
+		i: -8
+		j: 2147483647
+		--assert strict-equal? -2147483641 -8 xor 2147483647
+		--assert strict-equal? -2147483641 xor~ -8 2147483647
+		--assert strict-equal? -2147483641 i xor j
+		--assert strict-equal? -2147483641 xor~ i j
+
+	--test-- "-8 xor -7"
+		i: -8
+		j: -7
+		--assert strict-equal? 1 -8 xor -7
+		--assert strict-equal? 1 xor~ -8 -7
+		--assert strict-equal? 1 i xor j
+		--assert strict-equal? 1 xor~ i j
+
+	--test-- "-8 xor -10"
+		i: -8
+		j: -10
+		--assert strict-equal? 14 -8 xor -10
+		--assert strict-equal? 14 xor~ -8 -10
+		--assert strict-equal? 14 i xor j
+		--assert strict-equal? 14 xor~ i j
+
+	--test-- "-10 xor 0"
+		i: -10
+		j: 0
+		--assert strict-equal? -10 -10 xor 0
+		--assert strict-equal? -10 xor~ -10 0
+		--assert strict-equal? -10 i xor j
+		--assert strict-equal? -10 xor~ i j
+
+	--test-- "-10 xor 1"
+		i: -10
+		j: 1
+		--assert strict-equal? -9 -10 xor 1
+		--assert strict-equal? -9 xor~ -10 1
+		--assert strict-equal? -9 i xor j
+		--assert strict-equal? -9 xor~ i j
+
+	--test-- "-10 xor -1"
+		i: -10
+		j: -1
+		--assert strict-equal? 9 -10 xor -1
+		--assert strict-equal? 9 xor~ -10 -1
+		--assert strict-equal? 9 i xor j
+		--assert strict-equal? 9 xor~ i j
+
+	--test-- "-10 xor -2147483648"
+		i: -10
+		j: -2147483648
+		--assert strict-equal? 2147483638 -10 xor -2147483648
+		--assert strict-equal? 2147483638 xor~ -10 -2147483648
+		--assert strict-equal? 2147483638 i xor j
+		--assert strict-equal? 2147483638 xor~ i j
+
+	--test-- "-10 xor 2147483647"
+		i: -10
+		j: 2147483647
+		--assert strict-equal? -2147483639 -10 xor 2147483647
+		--assert strict-equal? -2147483639 xor~ -10 2147483647
+		--assert strict-equal? -2147483639 i xor j
+		--assert strict-equal? -2147483639 xor~ i j
+
+	--test-- "-10 xor -7"
+		i: -10
+		j: -7
+		--assert strict-equal? 15 -10 xor -7
+		--assert strict-equal? 15 xor~ -10 -7
+		--assert strict-equal? 15 i xor j
+		--assert strict-equal? 15 xor~ i j
+
+	--test-- "-10 xor -8"
+		i: -10
+		j: -8
+		--assert strict-equal? 14 -10 xor -8
+		--assert strict-equal? 14 xor~ -10 -8
+		--assert strict-equal? 14 i xor j
+		--assert strict-equal? 14 xor~ i j
+
+===end-group===
+
 ~~~end-file~~~
