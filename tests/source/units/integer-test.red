@@ -2383,4 +2383,457 @@ Red [
 
 ===end-group===
 
+===start-group=== "integer or"
+
+	--test-- "0 or 1"
+		i: 0
+		j: 1
+		--assert strict-equal? 1 0 or 1
+		--assert strict-equal? 1 or~ 0 1
+		--assert strict-equal? 1 i or j
+		--assert strict-equal? 1 or~ i j
+
+	--test-- "0 or -1"
+		i: 0
+		j: -1
+		--assert strict-equal? -1 0 or -1
+		--assert strict-equal? -1 or~ 0 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "0 or -2147483648"
+		i: 0
+		j: -2147483648
+		--assert strict-equal? -2147483648 0 or -2147483648
+		--assert strict-equal? -2147483648 or~ 0 -2147483648
+		--assert strict-equal? -2147483648 i or j
+		--assert strict-equal? -2147483648 or~ i j
+
+	--test-- "0 or 2147483647"
+		i: 0
+		j: 2147483647
+		--assert strict-equal? 2147483647 0 or 2147483647
+		--assert strict-equal? 2147483647 or~ 0 2147483647
+		--assert strict-equal? 2147483647 i or j
+		--assert strict-equal? 2147483647 or~ i j
+
+	--test-- "0 or -7"
+		i: 0
+		j: -7
+		--assert strict-equal? -7 0 or -7
+		--assert strict-equal? -7 or~ 0 -7
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "0 or -8"
+		i: 0
+		j: -8
+		--assert strict-equal? -8 0 or -8
+		--assert strict-equal? -8 or~ 0 -8
+		--assert strict-equal? -8 i or j
+		--assert strict-equal? -8 or~ i j
+
+	--test-- "0 or -10"
+		i: 0
+		j: -10
+		--assert strict-equal? -10 0 or -10
+		--assert strict-equal? -10 or~ 0 -10
+		--assert strict-equal? -10 i or j
+		--assert strict-equal? -10 or~ i j
+
+	--test-- "1 or 0"
+		i: 1
+		j: 0
+		--assert strict-equal? 1 1 or 0
+		--assert strict-equal? 1 or~ 1 0
+		--assert strict-equal? 1 i or j
+		--assert strict-equal? 1 or~ i j
+
+	--test-- "1 or -1"
+		i: 1
+		j: -1
+		--assert strict-equal? -1 1 or -1
+		--assert strict-equal? -1 or~ 1 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "1 or -2147483648"
+		i: 1
+		j: -2147483648
+		--assert strict-equal? -2147483647 1 or -2147483648
+		--assert strict-equal? -2147483647 or~ 1 -2147483648
+		--assert strict-equal? -2147483647 i or j
+		--assert strict-equal? -2147483647 or~ i j
+
+	--test-- "1 or 2147483647"
+		i: 1
+		j: 2147483647
+		--assert strict-equal? 2147483647 1 or 2147483647
+		--assert strict-equal? 2147483647 or~ 1 2147483647
+		--assert strict-equal? 2147483647 i or j
+		--assert strict-equal? 2147483647 or~ i j
+
+	--test-- "1 or -7"
+		i: 1
+		j: -7
+		--assert strict-equal? -7 1 or -7
+		--assert strict-equal? -7 or~ 1 -7
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "1 or -8"
+		i: 1
+		j: -8
+		--assert strict-equal? -7 1 or -8
+		--assert strict-equal? -7 or~ 1 -8
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "1 or -10"
+		i: 1
+		j: -10
+		--assert strict-equal? -9 1 or -10
+		--assert strict-equal? -9 or~ 1 -10
+		--assert strict-equal? -9 i or j
+		--assert strict-equal? -9 or~ i j
+
+	--test-- "-1 or 0"
+		i: -1
+		j: 0
+		--assert strict-equal? -1 -1 or 0
+		--assert strict-equal? -1 or~ -1 0
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or 1"
+		i: -1
+		j: 1
+		--assert strict-equal? -1 -1 or 1
+		--assert strict-equal? -1 or~ -1 1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or -2147483648"
+		i: -1
+		j: -2147483648
+		--assert strict-equal? -1 -1 or -2147483648
+		--assert strict-equal? -1 or~ -1 -2147483648
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or 2147483647"
+		i: -1
+		j: 2147483647
+		--assert strict-equal? -1 -1 or 2147483647
+		--assert strict-equal? -1 or~ -1 2147483647
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or -7"
+		i: -1
+		j: -7
+		--assert strict-equal? -1 -1 or -7
+		--assert strict-equal? -1 or~ -1 -7
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or -8"
+		i: -1
+		j: -8
+		--assert strict-equal? -1 -1 or -8
+		--assert strict-equal? -1 or~ -1 -8
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-1 or -10"
+		i: -1
+		j: -10
+		--assert strict-equal? -1 -1 or -10
+		--assert strict-equal? -1 or~ -1 -10
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-2147483648 or 0"
+		i: -2147483648
+		j: 0
+		--assert strict-equal? -2147483648 -2147483648 or 0
+		--assert strict-equal? -2147483648 or~ -2147483648 0
+		--assert strict-equal? -2147483648 i or j
+		--assert strict-equal? -2147483648 or~ i j
+
+	--test-- "-2147483648 or 1"
+		i: -2147483648
+		j: 1
+		--assert strict-equal? -2147483647 -2147483648 or 1
+		--assert strict-equal? -2147483647 or~ -2147483648 1
+		--assert strict-equal? -2147483647 i or j
+		--assert strict-equal? -2147483647 or~ i j
+
+	--test-- "-2147483648 or -1"
+		i: -2147483648
+		j: -1
+		--assert strict-equal? -1 -2147483648 or -1
+		--assert strict-equal? -1 or~ -2147483648 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-2147483648 or 2147483647"
+		i: -2147483648
+		j: 2147483647
+		--assert strict-equal? -1 -2147483648 or 2147483647
+		--assert strict-equal? -1 or~ -2147483648 2147483647
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-2147483648 or -7"
+		i: -2147483648
+		j: -7
+		--assert strict-equal? -7 -2147483648 or -7
+		--assert strict-equal? -7 or~ -2147483648 -7
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-2147483648 or -8"
+		i: -2147483648
+		j: -8
+		--assert strict-equal? -8 -2147483648 or -8
+		--assert strict-equal? -8 or~ -2147483648 -8
+		--assert strict-equal? -8 i or j
+		--assert strict-equal? -8 or~ i j
+
+	--test-- "-2147483648 or -10"
+		i: -2147483648
+		j: -10
+		--assert strict-equal? -10 -2147483648 or -10
+		--assert strict-equal? -10 or~ -2147483648 -10
+		--assert strict-equal? -10 i or j
+		--assert strict-equal? -10 or~ i j
+
+	--test-- "2147483647 or 0"
+		i: 2147483647
+		j: 0
+		--assert strict-equal? 2147483647 2147483647 or 0
+		--assert strict-equal? 2147483647 or~ 2147483647 0
+		--assert strict-equal? 2147483647 i or j
+		--assert strict-equal? 2147483647 or~ i j
+
+	--test-- "2147483647 or 1"
+		i: 2147483647
+		j: 1
+		--assert strict-equal? 2147483647 2147483647 or 1
+		--assert strict-equal? 2147483647 or~ 2147483647 1
+		--assert strict-equal? 2147483647 i or j
+		--assert strict-equal? 2147483647 or~ i j
+
+	--test-- "2147483647 or -1"
+		i: 2147483647
+		j: -1
+		--assert strict-equal? -1 2147483647 or -1
+		--assert strict-equal? -1 or~ 2147483647 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "2147483647 or -2147483648"
+		i: 2147483647
+		j: -2147483648
+		--assert strict-equal? -1 2147483647 or -2147483648
+		--assert strict-equal? -1 or~ 2147483647 -2147483648
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "2147483647 or -7"
+		i: 2147483647
+		j: -7
+		--assert strict-equal? -1 2147483647 or -7
+		--assert strict-equal? -1 or~ 2147483647 -7
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "2147483647 or -8"
+		i: 2147483647
+		j: -8
+		--assert strict-equal? -1 2147483647 or -8
+		--assert strict-equal? -1 or~ 2147483647 -8
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "2147483647 or -10"
+		i: 2147483647
+		j: -10
+		--assert strict-equal? -1 2147483647 or -10
+		--assert strict-equal? -1 or~ 2147483647 -10
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-7 or 0"
+		i: -7
+		j: 0
+		--assert strict-equal? -7 -7 or 0
+		--assert strict-equal? -7 or~ -7 0
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-7 or 1"
+		i: -7
+		j: 1
+		--assert strict-equal? -7 -7 or 1
+		--assert strict-equal? -7 or~ -7 1
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-7 or -1"
+		i: -7
+		j: -1
+		--assert strict-equal? -1 -7 or -1
+		--assert strict-equal? -1 or~ -7 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-7 or -2147483648"
+		i: -7
+		j: -2147483648
+		--assert strict-equal? -7 -7 or -2147483648
+		--assert strict-equal? -7 or~ -7 -2147483648
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-7 or 2147483647"
+		i: -7
+		j: 2147483647
+		--assert strict-equal? -1 -7 or 2147483647
+		--assert strict-equal? -1 or~ -7 2147483647
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-7 or -8"
+		i: -7
+		j: -8
+		--assert strict-equal? -7 -7 or -8
+		--assert strict-equal? -7 or~ -7 -8
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-7 or -10"
+		i: -7
+		j: -10
+		--assert strict-equal? -1 -7 or -10
+		--assert strict-equal? -1 or~ -7 -10
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-8 or 0"
+		i: -8
+		j: 0
+		--assert strict-equal? -8 -8 or 0
+		--assert strict-equal? -8 or~ -8 0
+		--assert strict-equal? -8 i or j
+		--assert strict-equal? -8 or~ i j
+
+	--test-- "-8 or 1"
+		i: -8
+		j: 1
+		--assert strict-equal? -7 -8 or 1
+		--assert strict-equal? -7 or~ -8 1
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-8 or -1"
+		i: -8
+		j: -1
+		--assert strict-equal? -1 -8 or -1
+		--assert strict-equal? -1 or~ -8 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-8 or -2147483648"
+		i: -8
+		j: -2147483648
+		--assert strict-equal? -8 -8 or -2147483648
+		--assert strict-equal? -8 or~ -8 -2147483648
+		--assert strict-equal? -8 i or j
+		--assert strict-equal? -8 or~ i j
+
+	--test-- "-8 or 2147483647"
+		i: -8
+		j: 2147483647
+		--assert strict-equal? -1 -8 or 2147483647
+		--assert strict-equal? -1 or~ -8 2147483647
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-8 or -7"
+		i: -8
+		j: -7
+		--assert strict-equal? -7 -8 or -7
+		--assert strict-equal? -7 or~ -8 -7
+		--assert strict-equal? -7 i or j
+		--assert strict-equal? -7 or~ i j
+
+	--test-- "-8 or -10"
+		i: -8
+		j: -10
+		--assert strict-equal? -2 -8 or -10
+		--assert strict-equal? -2 or~ -8 -10
+		--assert strict-equal? -2 i or j
+		--assert strict-equal? -2 or~ i j
+
+	--test-- "-10 or 0"
+		i: -10
+		j: 0
+		--assert strict-equal? -10 -10 or 0
+		--assert strict-equal? -10 or~ -10 0
+		--assert strict-equal? -10 i or j
+		--assert strict-equal? -10 or~ i j
+
+	--test-- "-10 or 1"
+		i: -10
+		j: 1
+		--assert strict-equal? -9 -10 or 1
+		--assert strict-equal? -9 or~ -10 1
+		--assert strict-equal? -9 i or j
+		--assert strict-equal? -9 or~ i j
+
+	--test-- "-10 or -1"
+		i: -10
+		j: -1
+		--assert strict-equal? -1 -10 or -1
+		--assert strict-equal? -1 or~ -10 -1
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-10 or -2147483648"
+		i: -10
+		j: -2147483648
+		--assert strict-equal? -10 -10 or -2147483648
+		--assert strict-equal? -10 or~ -10 -2147483648
+		--assert strict-equal? -10 i or j
+		--assert strict-equal? -10 or~ i j
+
+	--test-- "-10 or 2147483647"
+		i: -10
+		j: 2147483647
+		--assert strict-equal? -1 -10 or 2147483647
+		--assert strict-equal? -1 or~ -10 2147483647
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-10 or -7"
+		i: -10
+		j: -7
+		--assert strict-equal? -1 -10 or -7
+		--assert strict-equal? -1 or~ -10 -7
+		--assert strict-equal? -1 i or j
+		--assert strict-equal? -1 or~ i j
+
+	--test-- "-10 or -8"
+		i: -10
+		j: -8
+		--assert strict-equal? -2 -10 or -8
+		--assert strict-equal? -2 or~ -10 -8
+		--assert strict-equal? -2 i or j
+		--assert strict-equal? -2 or~ i j
+
+
+===end-group===
+
 ~~~end-file~~~
