@@ -3740,4 +3740,59 @@ Red [
 
 ===end-group===
 
+===start-group=== "comparisons"
+
+	--test-- "= 1"					--assert 0 = 0
+	--test-- "= 2"					--assert not 1 = 0
+	--test-- "= 3"					--assert not -1 = 0
+	--test-- "= 4"					--assert not 2147483647 = -2147483648
+	--test-- "= 5"					--assert 2147483647 = 2147483647
+	--test-- "= 6"					--assert -2147483648 = -2147483648
+	--test-- "equal? 1"				--assert equal? 0 0
+	--test-- "equal? 2"				--assert not equal? 1 0
+	--test-- "equal? 3"				--assert not equal? -1 = 0
+	--test-- "equal? 4"				--assert not equal? 2147483647 -2147483648
+	--test-- "<> 1"					--assert not 0 <> 0
+	--test-- "<> 2"					--assert 1 <> 0
+	--test-- "<> 3"					--assert -1 <> 0
+	--test-- "<> 4"					--assert 2147483647 <> -2147483648
+	--test-- "not equal? 1"			--assert not not-equal? 0  0
+	--test-- "not equal? 2"			--assert 1 <> 0
+	--test-- "not equal? 3"			--assert -1 <> 0
+	--test-- "not equal? 4"			--assert 2147483647 <> -2147483648
+	--test-- "> 1"					--assert not 0 > 0
+	--test-- "> 2"					--assert 1 > 0
+	--test-- "> 3"					--assert 0 > -1
+	--test-- "> 4"					--assert 2147483647 > -2147483648
+	--test-- "greater? 1"			--assert not greater? 0 0
+	--test-- "greater? 2"			--assert greater? 1 0
+	--test-- "greater? 3"			--assert greater? 0 -1
+	--test-- "greater? 4"			--assert greater? 2147483647 -2147483648
+	--test-- "< 1"					--assert not 0 < 0
+	--test-- "< 2"					--assert 0 < 1
+	--test-- "< 3"					--assert -1 < 0
+	--test-- "< 4"					--assert -2147483648 < 2147483647
+	--test-- "lesser? 1"			--assert not lesser? 0 0
+	--test-- "lesser? 2"			--assert lesser? 0 1
+	--test-- "lesser? 3"			--assert lesser? -1 0
+	--test-- "lesser? 4"			--assert lesser? -2147483648 2147483647
+	--test-- ">= 1"					--assert 0 >= 0
+	--test-- ">= 2"					--assert 1 >= 0
+	--test-- ">= 3"					--assert 0 >= -1
+	--test-- ">= 4"					--assert 2147483647 >= -2147483648
+	--test-- " greater-or-equal? 1"	--assert greater-or-equal? 0 0
+	--test-- " greater-or-equal? 2"	--assert greater-or-equal? 1 0
+	--test-- " greater-or-equal? 3"	--assert greater-or-equal? 0 -1
+	--test-- " greater-or-equal? 4"	--assert greater-or-equal? 2147483647 -2147483648
+	--test-- "<= 1"					--assert 0 <= 0
+	--test-- "<= 2"					--assert 0 <= 1
+	--test-- "<= 3"					--assert -1 <= 0
+	--test-- "<= 4"					--assert -2147483648 <= 2147483647
+	--test-- " lesser-or-equal? 1"	--assert lesser-or-equal? 0 0
+	--test-- " lesser-or-equal? 2"	--assert lesser-or-equal? 0 1
+	--test-- " lesser-or-equal? 3"	--assert lesser-or-equal? -1 0
+	--test-- " lesser-or-equal? 4"	--assert lesser-or-equal? -2147483648 2147483647
+		
+===end-group===
+
 ~~~end-file~~~
