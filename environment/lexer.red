@@ -187,7 +187,7 @@ system/lexer: context [
 				]
 				n: m
 
-				if all [n = 2147483640 c = 8][
+				if all [neg? n = 2147483640 c = 8][
 					integer/box 80000000h				;-- special exit trap for -2147483648
 					exit
 				]
