@@ -449,33 +449,38 @@ IDWriteFontFace: alias struct! [
 	GetGdiCompatibleGlyphMetrics	[integer!]
 ]
 
-#import [
-	"d2d1.dll" stdcall [
-		D2D1CreateFactory: "D2D1CreateFactory" [
-			type		[integer!]
-			riid		[int-ptr!]
-			options		[D2D1_FACTORY_OPTIONS]		;-- opt
-			factory		[int-ptr!]
-			return:		[integer!]
-		]
-	]
-	"DWrite.dll" stdcall [
-		DWriteCreateFactory: "DWriteCreateFactory" [
-			type		[integer!]
-			iid			[int-ptr!]
-			factory		[int-ptr!]
-			return:		[integer!]
-		]
-	]
+D2D1CreateFactory!: alias function! [
+	type		[integer!]
+	riid		[int-ptr!]
+	options		[D2D1_FACTORY_OPTIONS]		;-- opt
+	factory		[int-ptr!]
+	return:		[integer!]
+]
+
+DWriteCreateFactory!: alias function! [
+	type		[integer!]
+	iid			[int-ptr!]
+	factory		[int-ptr!]
+	return:		[integer!]
 ]
 
 #define ConvertPointSizeToDIP(size)		(as float32! size / 72.0  * 94.0)
 
 DX-init: func [
 	/local
-		hr		[integer!]
-		factory [integer!]
+		hr					[integer!]
+		factory 			[integer!]
+		dll					[handle!]
+		D2D1CreateFactory	[D2D1CreateFactory!]
+		DWriteCreateFactory [DWriteCreateFactory!]
 ][
+	dll: LoadLibraryEx #u16 "d2d1.dll" 0 0
+	if null? dll [winxp?: yes exit]
+	D2D1CreateFactory: as D2D1CreateFactory! GetProcAddress dll "D2D1CreateFactory"
+	dll: LoadLibraryEx #u16 "DWrite.dll" 0 0
+	if null? dll [winxp?: yes exit]
+	DWriteCreateFactory: as DWriteCreateFactory! GetProcAddress dll "DWriteCreateFactory"
+
 	factory: 0
 	hr: D2D1CreateFactory 0 IID_ID2D1Factory null :factory		;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
 	assert zero? hr
