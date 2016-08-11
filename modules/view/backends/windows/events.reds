@@ -788,7 +788,6 @@ WndProc: func [
 		handle [handle!]
 		font   [red-object!]
 		draw   [red-block!]
-		state  [red-block!]
 		brush  [handle!]
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
@@ -821,7 +820,6 @@ WndProc: func [
 		WM_SIZE [
 			if type = window [
 				if null? current-msg [init-current-msg]
-				state: (as red-block! get-face-values hWnd) + FACE_OBJ_STATE
 				if wParam <> SIZE_MINIMIZED [
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it

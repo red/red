@@ -367,7 +367,6 @@ free-handles: func [
 
 set-defaults: func [
 	/local
-		hWnd	[handle!]
 		hTheme	[handle!]
 		font	[tagLOGFONT]
 		name	[c-string!]
@@ -499,7 +498,6 @@ init-window: func [										;-- post-creation settings
 	size	[red-pair!]
 	bits	[integer!]
 	/local
-		value 	[red-value!]
 		x		[integer!]
 		y		[integer!]
 		cx		[integer!]

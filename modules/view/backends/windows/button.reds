@@ -84,14 +84,14 @@ init-button: func [
 	SendMessage hWnd BCM_SETIMAGELIST 0 as-integer BIL
 ]
 
-update-button: func [
-	face  [red-object!]
-	value [red-value!]
-	sym   [integer!]
-	index [integer!]
-	part  [integer!]
-	/local
-		hWnd [handle!]
-][
-	hWnd: get-face-handle face
-]
+;update-button: func [				;-- TBD implement it
+;	face  [red-object!]
+;	value [red-value!]
+;	sym   [integer!]
+;	index [integer!]
+;	part  [integer!]
+;	/local
+;		hWnd [handle!]
+;][
+;	hWnd: get-face-handle face
+;]

@@ -465,6 +465,8 @@ update-base-text: func [
 		hFont	[integer!]
 		hBrush	[integer!]
 		flags	[integer!]
+		v-align [integer!]
+		h-align [integer!]
 		clr		[integer!]
 		int		[red-integer!]
 		values	[red-value!]
@@ -501,16 +503,25 @@ update-base-text: func [
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		DT_CENTER or DT_VCENTER
+		1 or 4
+	]
+	case [
+		flags and 1 <> 0 [h-align: 1]
+		flags and 2 <> 0 [h-align: 2]
+		true			 [h-align: 0]
+	]
+	case [
+		flags and 4 <> 0 [v-align: 1]
+		flags and 8 <> 0 [v-align: 2]
+		true			 [v-align: 0]
 	]
 
 	GdipCreateFontFromDC as-integer dc :hFont
 	GdipCreateSolidFill to-gdiplus-color clr :hBrush
 	
 	GdipCreateStringFormat 80000000h 0 :format
-	;GdipCreateStringFormat 0 0 :format
-	GdipSetStringFormatAlign format 1
-	GdipSetStringFormatLineAlign format 1
+	GdipSetStringFormatAlign format h-align
+	GdipSetStringFormatLineAlign format v-align
 
 	rect: declare RECT_STRUCT_FLOAT32
 	rect/x: as float32! 0.0
