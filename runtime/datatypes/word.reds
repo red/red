@@ -266,6 +266,7 @@ word: context [
 		s: GET_BUFFER(symbols)
 		str: as red-string! stack/push s/offset + w/symbol - 1
 		str/head: 0
+		str/cache: null
 		str
 	]
 
