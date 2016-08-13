@@ -797,23 +797,25 @@ OS-draw-arc: func [
 		start-y 	[integer!]
 		end-x		[integer!]
 		end-y		[integer!]
-		angle-begin [float!]
-		angle-len	[float!]
-		rad-x-float	[float!]
-		rad-y-float	[float!]
-		rad-x-2		[float!]
-		rad-y-2		[float!]
-		rad-x-y		[float!]
-		tan-2		[float!]
+		angle-begin [float32!]
+		angle-len	[float32!]
+		rad-x-float	[float32!]
+		rad-y-float	[float32!]
+		rad-x-2		[float32!]
+		rad-y-2		[float32!]
+		rad-x-y		[float32!]
+		tan-2		[float32!]
+		rad-beg		[float!]
+		rad-end		[float!]
 		closed?		[logic!]
 ][
 	radius: center + 1
 	rad-x: radius/x
 	rad-y: radius/y
 	angle: as red-integer! radius + 1
-	angle-begin: as-float angle/value
+	angle-begin: as float32! angle/value
 	angle: angle + 1
-	angle-len: as-float angle/value
+	angle-len: as float32! angle/value
 
 	closed?: angle < end
 
@@ -827,8 +829,8 @@ OS-draw-arc: func [
 					center/y - rad-y
 					rad-x << 1
 					rad-y << 1
-					as float32! angle-begin
-					as float32! angle-len
+					angle-begin
+					angle-len
 			]
 			GdipDrawPieI
 				modes/graphics
@@ -837,8 +839,8 @@ OS-draw-arc: func [
 				center/y - rad-y
 				rad-x << 1
 				rad-y << 1
-				as float32! angle-begin
-				as float32! angle-len
+				angle-begin
+				angle-len
 		][
 			GdipDrawArcI
 				modes/graphics
@@ -847,37 +849,43 @@ OS-draw-arc: func [
 				center/y - rad-y
 				rad-x << 1
 				rad-y << 1
-				as float32! angle-begin
-				as float32! angle-len
+				angle-begin
+				angle-len
 		]
 	][
-		rad-x-float: as-float rad-x
-		rad-y-float: as-float rad-y
+		rad-x-float: as float32! rad-x
+		rad-y-float: as float32! rad-y
 
 		either rad-x = rad-y [				;-- circle
-			start-x: center/x + as-integer rad-x-float * (system/words/cos degree-to-radians angle-begin TYPE_COSINE)
-			start-y: center/y + as-integer rad-y-float * (system/words/sin degree-to-radians angle-begin TYPE_SINE)
-			end-x:	 center/x + as-integer rad-x-float * (system/words/cos degree-to-radians angle-begin + angle-len TYPE_COSINE)
-			end-y:	 center/y + as-integer rad-y-float * (system/words/sin degree-to-radians angle-begin + angle-len TYPE_SINE)
+			rad-beg: degree-to-radians as float! angle-begin TYPE_SINE
+			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_SINE
+			start-y: center/y + (rad-y-float * system/words/sin rad-beg)
+			end-y:	 center/y + (rad-y-float * system/words/sin rad-end)
+			rad-beg: degree-to-radians as float! angle-begin TYPE_COSINE
+			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_COSINE
+			start-x: center/x + (rad-x-float * system/words/cos rad-beg)
+			end-x:	 center/x + (rad-x-float * system/words/cos rad-end)
 		][
+			rad-beg: degree-to-radians as float! angle-begin TYPE_TANGENT
+			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_TANGENT
 			rad-x-y: rad-x-float * rad-y-float
 			rad-x-2: rad-x-float * rad-x-float
 			rad-y-2: rad-y-float * rad-y-float
-			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: as float32! system/words/tan rad-beg
 			tan-2: tan-2 * tan-2
-			start-x: as-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
-			start-y: as-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
-			if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
-			if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+			start-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+			start-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > as float32! 90.0  angle-begin < as float32! 270.0][start-x: 0 - start-x]
+			if all [angle-begin > as float32! 180.0 angle-begin < as float32! 360.0][start-y: 0 - start-y]
 			start-x: center/x + start-x
 			start-y: center/y + start-y
 			angle-begin: angle-begin + angle-len
-			tan-2: system/words/tan degree-to-radians angle-begin TYPE_TANGENT
+			tan-2: as float32! system/words/tan rad-beg
 			tan-2: tan-2 * tan-2
-			end-x: as-integer rad-x-y / (sqrt rad-x-2 * tan-2 + rad-y-2)
-			end-y: as-integer rad-x-y / (sqrt rad-y-2 / tan-2 + rad-x-2)
-			if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
-			if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+			end-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+			end-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+			if all [angle-begin > as float32! 90.0  angle-begin < as float32! 270.0][end-x: 0 - end-x]
+			if all [angle-begin > as float32! 180.0 angle-begin < as float32! 360.0][end-y: 0 - end-y]
 			end-x: center/x + end-x
 			end-y: center/y + end-y
 		]
