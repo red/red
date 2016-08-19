@@ -285,7 +285,6 @@ libRed: context [
 	]
 	
 	imports: make block! 100
-	
 	template: make string! 50'000
 	
 	make-exports: func [functions exports /local name][
@@ -299,19 +298,51 @@ libRed: context [
 		]
 	]
 	
-	process: func [functions /local name][
-		clear template 
+	process: func [functions /local name list pos][
+		clear imports
+		clear template
+		append template "Red []^/^/red: context "
 		
-		foreach def funcs [
-			name: to word! form def
-			append exports name
-			spec: functions/:def
-			
-			unless spec [
-				print ["*** libRed Error: definition not found for" def]
-				halt
-			]
+		append imports [
+			#include %runtime/macros.reds
+			#include %runtime/datatypes/structures.reds
 		]
+		foreach def funcs [
+			ctx: next def
+			list: imports
+			
+			while [not tail? next ctx][
+				unless pos: find list name: to set-word! ctx/1 [
+					pos: tail list
+					repend list [
+						name 'context
+						make block! 10
+					]
+					new-line skip tail list -3 yes
+				]
+				list: pos/3
+				ctx: next ctx
+			]
+			either pos: find list #system [pos: pos/2/4][
+				append list copy/deep [
+					#system [
+						#import "libRed.dll" stdcall
+					]
+				]
+				append/only last list pos: make block! 20
+			]
+			name: last ctx
+			append pos to set-word! name
+			new-line back tail pos yes
+			name: to word! form def
+			append pos mold name
+			
+			spec: copy/deep functions/:name/4
+			clear find spec /local
+			append/only pos spec
+		]
+		append template mold imports
+		write %/c/dev/red/libred.tmpl template
 	]
 	
 ]
