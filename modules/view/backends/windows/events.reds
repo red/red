@@ -796,6 +796,7 @@ WndProc: func [
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 		w-type [red-word!]
+		miniz? [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
@@ -821,14 +822,16 @@ WndProc: func [
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
+					miniz?: no
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
 							WIN32_HIWORD(lParam) < -9999
 							WIN32_LOWORD(lParam) < -9999
-						][return 0]
+						][miniz?: yes]
 						FACE_OBJ_OFFSET
 					][FACE_OBJ_SIZE]
 					update-pair-facet hWnd type lParam
+					if miniz? [return 0]
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
