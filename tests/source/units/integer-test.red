@@ -3750,16 +3750,16 @@ Red [
 	--test-- "= 6"					--assert -2147483648 = -2147483648
 	--test-- "equal? 1"				--assert equal? 0 0
 	--test-- "equal? 2"				--assert not equal? 1 0
-	--test-- "equal? 3"				--assert not equal? -1 = 0
+	--test-- "equal? 3"				--assert not equal? -1 0
 	--test-- "equal? 4"				--assert not equal? 2147483647 -2147483648
 	--test-- "<> 1"					--assert not 0 <> 0
 	--test-- "<> 2"					--assert 1 <> 0
 	--test-- "<> 3"					--assert -1 <> 0
 	--test-- "<> 4"					--assert 2147483647 <> -2147483648
 	--test-- "not equal? 1"			--assert not not-equal? 0  0
-	--test-- "not equal? 2"			--assert 1 <> 0
-	--test-- "not equal? 3"			--assert -1 <> 0
-	--test-- "not equal? 4"			--assert 2147483647 <> -2147483648
+	--test-- "not equal? 2"			--assert not-equal? 1 0
+	--test-- "not equal? 3"			--assert not-equal? -1 0
+	--test-- "not equal? 4"			--assert not-equal? 2147483647 <> -2147483648
 	--test-- "> 1"					--assert not 0 > 0
 	--test-- "> 2"					--assert 1 > 0
 	--test-- "> 3"					--assert 0 > -1

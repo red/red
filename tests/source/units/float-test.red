@@ -441,4 +441,3072 @@ Red [
 
 ===end-group===
 
+===start-group=== "float-add"
+	--test-- "float-add 1"
+		i: 0.0
+		j: 1.0
+		--assert strict-equal? 1.0 0.0 + 1.0
+		--assert strict-equal? 1.0 add 0.0 1.0
+		--assert strict-equal? 1.0 i + j
+		--assert strict-equal? 1.0 add i j
+
+	--test-- "float-add 2"
+		i: 0.0
+		j: -1.0
+		--assert strict-equal? -1.0 0.0 + -1.0
+		--assert strict-equal? -1.0 add 0.0 -1.0
+		--assert strict-equal? -1.0 i + j
+		--assert strict-equal? -1.0 add i j
+
+	--test-- "float-add 3"
+		i: 0.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 0.0 + 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 add 0.0 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 i + j
+		--assert strict-equal? 2.2250738585072014e-308 add i j
+
+	--test-- "float-add 4"
+		i: 0.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 0.0 + -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 add 0.0 -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 i + j
+		--assert strict-equal? -2.2250738585072014e-308 add i j
+
+	--test-- "float-add 5"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 0.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 0.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 6"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 0.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 7"
+		i: 0.0
+		j: 1.1
+		--assert strict-equal? 1.1 0.0 + 1.1
+		--assert strict-equal? 1.1 add 0.0 1.1
+		--assert strict-equal? 1.1 i + j
+		--assert strict-equal? 1.1 add i j
+
+	--test-- "float-add 8"
+		i: 0.0
+		j: -1.1
+		--assert strict-equal? -1.1 0.0 + -1.1
+		--assert strict-equal? -1.1 add 0.0 -1.1
+		--assert strict-equal? -1.1 i + j
+		--assert strict-equal? -1.1 add i j
+
+	--test-- "float-add 9"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 0.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 0.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 10"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 0.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 11"
+		i: 1.0
+		j: -1.0
+		--assert strict-equal? 0.0 1.0 + -1.0
+		--assert strict-equal? 0.0 add 1.0 -1.0
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 12"
+		i: 1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.0 1.0 + 2.2250738585072014e-308
+		--assert strict-equal? 1.0 add 1.0 2.2250738585072014e-308
+		--assert strict-equal? 1.0 i + j
+		--assert strict-equal? 1.0 add i j
+
+	--test-- "float-add 13"
+		i: 1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.0 1.0 + -2.2250738585072014e-308
+		--assert strict-equal? 1.0 add 1.0 -2.2250738585072014e-308
+		--assert strict-equal? 1.0 i + j
+		--assert strict-equal? 1.0 add i j
+
+	--test-- "float-add 14"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 15"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 16"
+		i: 1.0
+		j: 1.1
+		--assert strict-equal? 2.1 1.0 + 1.1
+		--assert strict-equal? 2.1 add 1.0 1.1
+		--assert strict-equal? 2.1 i + j
+		--assert strict-equal? 2.1 add i j
+
+	--test-- "float-add 17"
+		i: 1.0
+		j: -1.1
+		--assert strict-equal? -0.10000000000000009 1.0 + -1.1
+		--assert strict-equal? -0.10000000000000009 add 1.0 -1.1
+		--assert strict-equal? -0.10000000000000009 i + j
+		--assert strict-equal? -0.10000000000000009 add i j
+
+	--test-- "float-add 18"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 19"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 20"
+		i: -1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.0 -1.0 + 2.2250738585072014e-308
+		--assert strict-equal? -1.0 add -1.0 2.2250738585072014e-308
+		--assert strict-equal? -1.0 i + j
+		--assert strict-equal? -1.0 add i j
+
+	--test-- "float-add 21"
+		i: -1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.0 -1.0 + -2.2250738585072014e-308
+		--assert strict-equal? -1.0 add -1.0 -2.2250738585072014e-308
+		--assert strict-equal? -1.0 i + j
+		--assert strict-equal? -1.0 add i j
+
+	--test-- "float-add 22"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add -1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 23"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add -1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 24"
+		i: -1.0
+		j: 1.1
+		--assert strict-equal? 0.10000000000000009 -1.0 + 1.1
+		--assert strict-equal? 0.10000000000000009 add -1.0 1.1
+		--assert strict-equal? 0.10000000000000009 i + j
+		--assert strict-equal? 0.10000000000000009 add i j
+
+	--test-- "float-add 25"
+		i: -1.0
+		j: -1.1
+		--assert strict-equal? -2.1 -1.0 + -1.1
+		--assert strict-equal? -2.1 add -1.0 -1.1
+		--assert strict-equal? -2.1 i + j
+		--assert strict-equal? -2.1 add i j
+
+	--test-- "float-add 26"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add -1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 27"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add -1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 28"
+		i: 2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 0.0 2.2250738585072014e-308 + -2.2250738585072014e-308
+		--assert strict-equal? 0.0 add 2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 29"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 2.2250738585072014e-308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 30"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 2.2250738585072014e-308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 31"
+		i: 2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? 1.1 2.2250738585072014e-308 + 1.1
+		--assert strict-equal? 1.1 add 2.2250738585072014e-308 1.1
+		--assert strict-equal? 1.1 i + j
+		--assert strict-equal? 1.1 add i j
+
+	--test-- "float-add 32"
+		i: 2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? -1.1 2.2250738585072014e-308 + -1.1
+		--assert strict-equal? -1.1 add 2.2250738585072014e-308 -1.1
+		--assert strict-equal? -1.1 i + j
+		--assert strict-equal? -1.1 add i j
+
+	--test-- "float-add 33"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 2.2250738585072014e-308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 34"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 2.2250738585072014e-308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 35"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -2.2250738585072014e-308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 36"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -2.2250738585072014e-308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 37"
+		i: -2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? 1.1 -2.2250738585072014e-308 + 1.1
+		--assert strict-equal? 1.1 add -2.2250738585072014e-308 1.1
+		--assert strict-equal? 1.1 i + j
+		--assert strict-equal? 1.1 add i j
+
+	--test-- "float-add 38"
+		i: -2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? -1.1 -2.2250738585072014e-308 + -1.1
+		--assert strict-equal? -1.1 add -2.2250738585072014e-308 -1.1
+		--assert strict-equal? -1.1 i + j
+		--assert strict-equal? -1.1 add i j
+
+	--test-- "float-add 39"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -2.2250738585072014e-308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 40"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -2.2250738585072014e-308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 41"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? 0.0 add 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 42"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 + 1.1
+		--assert strict-equal? 1.7976931348623157e+308 add 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 43"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 + -1.1
+		--assert strict-equal? 1.7976931348623157e+308 add 1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 44"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF add 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i + j
+		--assert strict-equal? 1.#INF add i j
+
+	--test-- "float-add 45"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? 0.0 add 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 46"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 + 1.1
+		--assert strict-equal? -1.7976931348623157e+308 add -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 47"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 + -1.1
+		--assert strict-equal? -1.7976931348623157e+308 add -1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 48"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 -1.7976931348623157e+308 + 1.7976931348623157e+308
+		--assert strict-equal? 0.0 add -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 49"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF add -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i + j
+		--assert strict-equal? -1.#INF add i j
+
+	--test-- "float-add 50"
+		i: 1.1
+		j: -1.1
+		--assert strict-equal? 0.0 1.1 + -1.1
+		--assert strict-equal? 0.0 add 1.1 -1.1
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 51"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.1 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add 1.1 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 52"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.1 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add 1.1 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 53"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.1 + 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 add -1.1 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i + j
+		--assert strict-equal? 1.7976931348623157e+308 add i j
+
+	--test-- "float-add 54"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.1 + -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 add -1.1 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i + j
+		--assert strict-equal? -1.7976931348623157e+308 add i j
+
+	--test-- "float-add 55"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? 0.0 add 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 56"
+		i: 0.0
+		j: 0.0
+		--assert strict-equal? 0.0 0.0 + 0.0
+		--assert strict-equal? 0.0 add 0.0 0.0
+		--assert strict-equal? 0.0 i + j
+		--assert strict-equal? 0.0 add i j
+
+	--test-- "float-add 57"
+		i: 1.0
+		j: 1.0
+		--assert strict-equal? 2.0 1.0 + 1.0
+		--assert strict-equal? 2.0 add 1.0 1.0
+		--assert strict-equal? 2.0 i + j
+		--assert strict-equal? 2.0 add i j
+
+	--test-- "float-add 58"
+		i: -1.0
+		j: -1.0
+		--assert strict-equal? -2.0 -1.0 + -1.0
+		--assert strict-equal? -2.0 add -1.0 -1.0
+		--assert strict-equal? -2.0 i + j
+		--assert strict-equal? -2.0 add i j
+
+	--test-- "float-add 59"
+		i: 2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 2.2250738585072014e-308 + 2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 add 2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 i + j
+		--assert strict-equal? 4.450147717014403e-308 add i j
+
+	--test-- "float-add 60"
+		i: -2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 -2.2250738585072014e-308 + -2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 add -2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 i + j
+		--assert strict-equal? -4.450147717014403e-308 add i j
+
+	--test-- "float-add 61"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF add 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i + j
+		--assert strict-equal? 1.#INF add i j
+
+	--test-- "float-add 62"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF add -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i + j
+		--assert strict-equal? -1.#INF add i j
+
+	--test-- "float-add 63"
+		i: 1.1
+		j: 1.1
+		--assert strict-equal? 2.2 1.1 + 1.1
+		--assert strict-equal? 2.2 add 1.1 1.1
+		--assert strict-equal? 2.2 i + j
+		--assert strict-equal? 2.2 add i j
+
+	--test-- "float-add 64"
+		i: -1.1
+		j: -1.1
+		--assert strict-equal? -2.2 -1.1 + -1.1
+		--assert strict-equal? -2.2 add -1.1 -1.1
+		--assert strict-equal? -2.2 i + j
+		--assert strict-equal? -2.2 add i j
+
+	--test-- "float-add 65"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 + 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF add 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i + j
+		--assert strict-equal? 1.#INF add i j
+
+	--test-- "float-add 66"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 + -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF add -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i + j
+		--assert strict-equal? -1.#INF add i j
+
+===end-group===
+===start-group=== "float-subtract"
+	--test-- "float-subtract 1"
+		i: 0.0
+		j: 1.0
+		--assert strict-equal? -1.0 0.0 - 1.0
+		--assert strict-equal? -1.0 subtract 0.0 1.0
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 2"
+		i: 0.0
+		j: -1.0
+		--assert strict-equal? 1.0 0.0 - -1.0
+		--assert strict-equal? 1.0 subtract 0.0 -1.0
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 3"
+		i: 0.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 0.0 - 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 subtract 0.0 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 i - j
+		--assert strict-equal? -2.2250738585072014e-308 subtract i j
+
+	--test-- "float-subtract 4"
+		i: 0.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 0.0 - -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 subtract 0.0 -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 i - j
+		--assert strict-equal? 2.2250738585072014e-308 subtract i j
+
+	--test-- "float-subtract 5"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 0.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 0.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 6"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 0.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 0.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 7"
+		i: 0.0
+		j: 1.1
+		--assert strict-equal? -1.1 0.0 - 1.1
+		--assert strict-equal? -1.1 subtract 0.0 1.1
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 8"
+		i: 0.0
+		j: -1.1
+		--assert strict-equal? 1.1 0.0 - -1.1
+		--assert strict-equal? 1.1 subtract 0.0 -1.1
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 9"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 0.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 0.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 10"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 0.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 0.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 11"
+		i: 1.0
+		j: 0.0
+		--assert strict-equal? 1.0 1.0 - 0.0
+		--assert strict-equal? 1.0 subtract 1.0 0.0
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 12"
+		i: 1.0
+		j: -1.0
+		--assert strict-equal? 2.0 1.0 - -1.0
+		--assert strict-equal? 2.0 subtract 1.0 -1.0
+		--assert strict-equal? 2.0 i - j
+		--assert strict-equal? 2.0 subtract i j
+
+	--test-- "float-subtract 13"
+		i: 1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.0 1.0 - 2.2250738585072014e-308
+		--assert strict-equal? 1.0 subtract 1.0 2.2250738585072014e-308
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 14"
+		i: 1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.0 1.0 - -2.2250738585072014e-308
+		--assert strict-equal? 1.0 subtract 1.0 -2.2250738585072014e-308
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 15"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 16"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 17"
+		i: 1.0
+		j: 1.1
+		--assert strict-equal? -0.10000000000000009 1.0 - 1.1
+		--assert strict-equal? -0.10000000000000009 subtract 1.0 1.1
+		--assert strict-equal? -0.10000000000000009 i - j
+		--assert strict-equal? -0.10000000000000009 subtract i j
+
+	--test-- "float-subtract 18"
+		i: 1.0
+		j: -1.1
+		--assert strict-equal? 2.1 1.0 - -1.1
+		--assert strict-equal? 2.1 subtract 1.0 -1.1
+		--assert strict-equal? 2.1 i - j
+		--assert strict-equal? 2.1 subtract i j
+
+	--test-- "float-subtract 19"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 20"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 21"
+		i: -1.0
+		j: 0.0
+		--assert strict-equal? -1.0 -1.0 - 0.0
+		--assert strict-equal? -1.0 subtract -1.0 0.0
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 22"
+		i: -1.0
+		j: 1.0
+		--assert strict-equal? -2.0 -1.0 - 1.0
+		--assert strict-equal? -2.0 subtract -1.0 1.0
+		--assert strict-equal? -2.0 i - j
+		--assert strict-equal? -2.0 subtract i j
+
+	--test-- "float-subtract 23"
+		i: -1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.0 -1.0 - 2.2250738585072014e-308
+		--assert strict-equal? -1.0 subtract -1.0 2.2250738585072014e-308
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 24"
+		i: -1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.0 -1.0 - -2.2250738585072014e-308
+		--assert strict-equal? -1.0 subtract -1.0 -2.2250738585072014e-308
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 25"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 26"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 27"
+		i: -1.0
+		j: 1.1
+		--assert strict-equal? -2.1 -1.0 - 1.1
+		--assert strict-equal? -2.1 subtract -1.0 1.1
+		--assert strict-equal? -2.1 i - j
+		--assert strict-equal? -2.1 subtract i j
+
+	--test-- "float-subtract 28"
+		i: -1.0
+		j: -1.1
+		--assert strict-equal? 0.10000000000000009 -1.0 - -1.1
+		--assert strict-equal? 0.10000000000000009 subtract -1.0 -1.1
+		--assert strict-equal? 0.10000000000000009 i - j
+		--assert strict-equal? 0.10000000000000009 subtract i j
+
+	--test-- "float-subtract 29"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 30"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 31"
+		i: 2.2250738585072014e-308
+		j: 0.0
+		--assert strict-equal? 2.2250738585072014e-308 2.2250738585072014e-308 - 0.0
+		--assert strict-equal? 2.2250738585072014e-308 subtract 2.2250738585072014e-308 0.0
+		--assert strict-equal? 2.2250738585072014e-308 i - j
+		--assert strict-equal? 2.2250738585072014e-308 subtract i j
+
+	--test-- "float-subtract 32"
+		i: 2.2250738585072014e-308
+		j: 1.0
+		--assert strict-equal? -1.0 2.2250738585072014e-308 - 1.0
+		--assert strict-equal? -1.0 subtract 2.2250738585072014e-308 1.0
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 33"
+		i: 2.2250738585072014e-308
+		j: -1.0
+		--assert strict-equal? 1.0 2.2250738585072014e-308 - -1.0
+		--assert strict-equal? 1.0 subtract 2.2250738585072014e-308 -1.0
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 34"
+		i: 2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 2.2250738585072014e-308 - -2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 subtract 2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? 4.450147717014403e-308 i - j
+		--assert strict-equal? 4.450147717014403e-308 subtract i j
+
+	--test-- "float-subtract 35"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 2.2250738585072014e-308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 36"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 2.2250738585072014e-308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 37"
+		i: 2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? -1.1 2.2250738585072014e-308 - 1.1
+		--assert strict-equal? -1.1 subtract 2.2250738585072014e-308 1.1
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 38"
+		i: 2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? 1.1 2.2250738585072014e-308 - -1.1
+		--assert strict-equal? 1.1 subtract 2.2250738585072014e-308 -1.1
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 39"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 2.2250738585072014e-308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 40"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 2.2250738585072014e-308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 41"
+		i: -2.2250738585072014e-308
+		j: 0.0
+		--assert strict-equal? -2.2250738585072014e-308 -2.2250738585072014e-308 - 0.0
+		--assert strict-equal? -2.2250738585072014e-308 subtract -2.2250738585072014e-308 0.0
+		--assert strict-equal? -2.2250738585072014e-308 i - j
+		--assert strict-equal? -2.2250738585072014e-308 subtract i j
+
+	--test-- "float-subtract 42"
+		i: -2.2250738585072014e-308
+		j: 1.0
+		--assert strict-equal? -1.0 -2.2250738585072014e-308 - 1.0
+		--assert strict-equal? -1.0 subtract -2.2250738585072014e-308 1.0
+		--assert strict-equal? -1.0 i - j
+		--assert strict-equal? -1.0 subtract i j
+
+	--test-- "float-subtract 43"
+		i: -2.2250738585072014e-308
+		j: -1.0
+		--assert strict-equal? 1.0 -2.2250738585072014e-308 - -1.0
+		--assert strict-equal? 1.0 subtract -2.2250738585072014e-308 -1.0
+		--assert strict-equal? 1.0 i - j
+		--assert strict-equal? 1.0 subtract i j
+
+	--test-- "float-subtract 44"
+		i: -2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 -2.2250738585072014e-308 - 2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 subtract -2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? -4.450147717014403e-308 i - j
+		--assert strict-equal? -4.450147717014403e-308 subtract i j
+
+	--test-- "float-subtract 45"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -2.2250738585072014e-308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 46"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -2.2250738585072014e-308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 47"
+		i: -2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? -1.1 -2.2250738585072014e-308 - 1.1
+		--assert strict-equal? -1.1 subtract -2.2250738585072014e-308 1.1
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 48"
+		i: -2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? 1.1 -2.2250738585072014e-308 - -1.1
+		--assert strict-equal? 1.1 subtract -2.2250738585072014e-308 -1.1
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 49"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -2.2250738585072014e-308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 50"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -2.2250738585072014e-308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 51"
+		i: 1.7976931348623157e+308
+		j: 0.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 0.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 0.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 52"
+		i: 1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 1.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 1.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 53"
+		i: 1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -1.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -1.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 54"
+		i: 1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 55"
+		i: 1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 56"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF subtract 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i - j
+		--assert strict-equal? 1.#INF subtract i j
+
+	--test-- "float-subtract 57"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 1.1
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 58"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -1.1
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 59"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 60"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF subtract 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i - j
+		--assert strict-equal? 1.#INF subtract i j
+
+	--test-- "float-subtract 61"
+		i: -1.7976931348623157e+308
+		j: 0.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 0.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 0.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 62"
+		i: -1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 1.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 1.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 63"
+		i: -1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -1.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -1.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 64"
+		i: -1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 65"
+		i: -1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 66"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF subtract -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i - j
+		--assert strict-equal? -1.#INF subtract i j
+
+	--test-- "float-subtract 67"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 1.1
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 68"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -1.1
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 69"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF subtract -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i - j
+		--assert strict-equal? -1.#INF subtract i j
+
+	--test-- "float-subtract 70"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 71"
+		i: 1.1
+		j: 0.0
+		--assert strict-equal? 1.1 1.1 - 0.0
+		--assert strict-equal? 1.1 subtract 1.1 0.0
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 72"
+		i: 1.1
+		j: 1.0
+		--assert strict-equal? 0.10000000000000009 1.1 - 1.0
+		--assert strict-equal? 0.10000000000000009 subtract 1.1 1.0
+		--assert strict-equal? 0.10000000000000009 i - j
+		--assert strict-equal? 0.10000000000000009 subtract i j
+
+	--test-- "float-subtract 73"
+		i: 1.1
+		j: -1.0
+		--assert strict-equal? 2.1 1.1 - -1.0
+		--assert strict-equal? 2.1 subtract 1.1 -1.0
+		--assert strict-equal? 2.1 i - j
+		--assert strict-equal? 2.1 subtract i j
+
+	--test-- "float-subtract 74"
+		i: 1.1
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.1 1.1 - 2.2250738585072014e-308
+		--assert strict-equal? 1.1 subtract 1.1 2.2250738585072014e-308
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 75"
+		i: 1.1
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.1 1.1 - -2.2250738585072014e-308
+		--assert strict-equal? 1.1 subtract 1.1 -2.2250738585072014e-308
+		--assert strict-equal? 1.1 i - j
+		--assert strict-equal? 1.1 subtract i j
+
+	--test-- "float-subtract 76"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.1 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 1.1 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 77"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.1 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.1 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 78"
+		i: 1.1
+		j: -1.1
+		--assert strict-equal? 2.2 1.1 - -1.1
+		--assert strict-equal? 2.2 subtract 1.1 -1.1
+		--assert strict-equal? 2.2 i - j
+		--assert strict-equal? 2.2 subtract i j
+
+	--test-- "float-subtract 79"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.1 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract 1.1 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 80"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.1 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.1 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 81"
+		i: -1.1
+		j: 0.0
+		--assert strict-equal? -1.1 -1.1 - 0.0
+		--assert strict-equal? -1.1 subtract -1.1 0.0
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 82"
+		i: -1.1
+		j: 1.0
+		--assert strict-equal? -2.1 -1.1 - 1.0
+		--assert strict-equal? -2.1 subtract -1.1 1.0
+		--assert strict-equal? -2.1 i - j
+		--assert strict-equal? -2.1 subtract i j
+
+	--test-- "float-subtract 83"
+		i: -1.1
+		j: -1.0
+		--assert strict-equal? -0.10000000000000009 -1.1 - -1.0
+		--assert strict-equal? -0.10000000000000009 subtract -1.1 -1.0
+		--assert strict-equal? -0.10000000000000009 i - j
+		--assert strict-equal? -0.10000000000000009 subtract i j
+
+	--test-- "float-subtract 84"
+		i: -1.1
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.1 -1.1 - 2.2250738585072014e-308
+		--assert strict-equal? -1.1 subtract -1.1 2.2250738585072014e-308
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 85"
+		i: -1.1
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.1 -1.1 - -2.2250738585072014e-308
+		--assert strict-equal? -1.1 subtract -1.1 -2.2250738585072014e-308
+		--assert strict-equal? -1.1 i - j
+		--assert strict-equal? -1.1 subtract i j
+
+	--test-- "float-subtract 86"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.1 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.1 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 87"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.1 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -1.1 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 88"
+		i: -1.1
+		j: 1.1
+		--assert strict-equal? -2.2 -1.1 - 1.1
+		--assert strict-equal? -2.2 subtract -1.1 1.1
+		--assert strict-equal? -2.2 i - j
+		--assert strict-equal? -2.2 subtract i j
+
+	--test-- "float-subtract 89"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.1 - 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.1 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 90"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.1 - -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 subtract -1.1 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 91"
+		i: 1.7976931348623157e+308
+		j: 0.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 0.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 0.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 92"
+		i: 1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 1.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 1.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 93"
+		i: 1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -1.0
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -1.0
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 94"
+		i: 1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 95"
+		i: 1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 96"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 97"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF subtract 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i - j
+		--assert strict-equal? 1.#INF subtract i j
+
+	--test-- "float-subtract 98"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - 1.1
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 99"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 - -1.1
+		--assert strict-equal? 1.7976931348623157e+308 subtract 1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.7976931348623157e+308 i - j
+		--assert strict-equal? 1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 100"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF subtract 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i - j
+		--assert strict-equal? 1.#INF subtract i j
+
+	--test-- "float-subtract 101"
+		i: -1.7976931348623157e+308
+		j: 0.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 0.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 0.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 102"
+		i: -1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 1.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 1.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 103"
+		i: -1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -1.0
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -1.0
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 104"
+		i: -1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 105"
+		i: -1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 106"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF subtract -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i - j
+		--assert strict-equal? -1.#INF subtract i j
+
+	--test-- "float-subtract 107"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 108"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - 1.1
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 109"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 - -1.1
+		--assert strict-equal? -1.7976931348623157e+308 subtract -1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.7976931348623157e+308 i - j
+		--assert strict-equal? -1.7976931348623157e+308 subtract i j
+
+	--test-- "float-subtract 110"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF subtract -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i - j
+		--assert strict-equal? -1.#INF subtract i j
+
+	--test-- "float-subtract 111"
+		i: 0.0
+		j: 0.0
+		--assert strict-equal? 0.0 0.0 - 0.0
+		--assert strict-equal? 0.0 subtract 0.0 0.0
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 112"
+		i: 1.0
+		j: 1.0
+		--assert strict-equal? 0.0 1.0 - 1.0
+		--assert strict-equal? 0.0 subtract 1.0 1.0
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 113"
+		i: -1.0
+		j: -1.0
+		--assert strict-equal? 0.0 -1.0 - -1.0
+		--assert strict-equal? 0.0 subtract -1.0 -1.0
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 114"
+		i: 2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 0.0 2.2250738585072014e-308 - 2.2250738585072014e-308
+		--assert strict-equal? 0.0 subtract 2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 115"
+		i: -2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 0.0 -2.2250738585072014e-308 - -2.2250738585072014e-308
+		--assert strict-equal? 0.0 subtract -2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 116"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 117"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 118"
+		i: 1.1
+		j: 1.1
+		--assert strict-equal? 0.0 1.1 - 1.1
+		--assert strict-equal? 0.0 subtract 1.1 1.1
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 119"
+		i: -1.1
+		j: -1.1
+		--assert strict-equal? 0.0 -1.1 - -1.1
+		--assert strict-equal? 0.0 subtract -1.1 -1.1
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 120"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 1.7976931348623157e+308 - 1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+	--test-- "float-subtract 121"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -1.7976931348623157e+308 - -1.7976931348623157e+308
+		--assert strict-equal? 0.0 subtract -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i - j
+		--assert strict-equal? 0.0 subtract i j
+
+===end-group===
+===start-group=== "float-multiply"
+	--test-- "float-multiply 1"
+		i: 0.0
+		j: 1.0
+		--assert strict-equal? 0.0 0.0 * 1.0
+		--assert strict-equal? 0.0 multiply 0.0 1.0
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 2"
+		i: 0.0
+		j: -1.0
+		--assert strict-equal? -0.0 0.0 * -1.0
+		--assert strict-equal? -0.0 multiply 0.0 -1.0
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 3"
+		i: 0.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 0.0 0.0 * 2.2250738585072014e-308
+		--assert strict-equal? 0.0 multiply 0.0 2.2250738585072014e-308
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 4"
+		i: 0.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -0.0 0.0 * -2.2250738585072014e-308
+		--assert strict-equal? -0.0 multiply 0.0 -2.2250738585072014e-308
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 5"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 0.0 * 1.7976931348623157e+308
+		--assert strict-equal? 0.0 multiply 0.0 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 6"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 0.0 * -1.7976931348623157e+308
+		--assert strict-equal? -0.0 multiply 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 7"
+		i: 0.0
+		j: 1.1
+		--assert strict-equal? 0.0 0.0 * 1.1
+		--assert strict-equal? 0.0 multiply 0.0 1.1
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 8"
+		i: 0.0
+		j: -1.1
+		--assert strict-equal? -0.0 0.0 * -1.1
+		--assert strict-equal? -0.0 multiply 0.0 -1.1
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 9"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 0.0 * 1.7976931348623157e+308
+		--assert strict-equal? 0.0 multiply 0.0 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 10"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 0.0 * -1.7976931348623157e+308
+		--assert strict-equal? -0.0 multiply 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 11"
+		i: 1.0
+		j: -1.0
+		--assert strict-equal? -1.0 1.0 * -1.0
+		--assert strict-equal? -1.0 multiply 1.0 -1.0
+		--assert strict-equal? -1.0 i * j
+		--assert strict-equal? -1.0 multiply i j
+
+	--test-- "float-multiply 12"
+		i: 1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 1.0 * 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 multiply 1.0 2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 i * j
+		--assert strict-equal? 2.2250738585072014e-308 multiply i j
+
+	--test-- "float-multiply 13"
+		i: 1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 1.0 * -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 multiply 1.0 -2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 i * j
+		--assert strict-equal? -2.2250738585072014e-308 multiply i j
+
+	--test-- "float-multiply 14"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 * 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 multiply 1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i * j
+		--assert strict-equal? 1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 15"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 * -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 multiply 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i * j
+		--assert strict-equal? -1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 16"
+		i: 1.0
+		j: 1.1
+		--assert strict-equal? 1.1 1.0 * 1.1
+		--assert strict-equal? 1.1 multiply 1.0 1.1
+		--assert strict-equal? 1.1 i * j
+		--assert strict-equal? 1.1 multiply i j
+
+	--test-- "float-multiply 17"
+		i: 1.0
+		j: -1.1
+		--assert strict-equal? -1.1 1.0 * -1.1
+		--assert strict-equal? -1.1 multiply 1.0 -1.1
+		--assert strict-equal? -1.1 i * j
+		--assert strict-equal? -1.1 multiply i j
+
+	--test-- "float-multiply 18"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 1.0 * 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 multiply 1.0 1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i * j
+		--assert strict-equal? 1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 19"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 1.0 * -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 multiply 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i * j
+		--assert strict-equal? -1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 20"
+		i: -1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 -1.0 * 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 multiply -1.0 2.2250738585072014e-308
+		--assert strict-equal? -2.2250738585072014e-308 i * j
+		--assert strict-equal? -2.2250738585072014e-308 multiply i j
+
+	--test-- "float-multiply 21"
+		i: -1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 -1.0 * -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 multiply -1.0 -2.2250738585072014e-308
+		--assert strict-equal? 2.2250738585072014e-308 i * j
+		--assert strict-equal? 2.2250738585072014e-308 multiply i j
+
+	--test-- "float-multiply 22"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 * 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 multiply -1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i * j
+		--assert strict-equal? -1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 23"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 * -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 multiply -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i * j
+		--assert strict-equal? 1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 24"
+		i: -1.0
+		j: 1.1
+		--assert strict-equal? -1.1 -1.0 * 1.1
+		--assert strict-equal? -1.1 multiply -1.0 1.1
+		--assert strict-equal? -1.1 i * j
+		--assert strict-equal? -1.1 multiply i j
+
+	--test-- "float-multiply 25"
+		i: -1.0
+		j: -1.1
+		--assert strict-equal? 1.1 -1.0 * -1.1
+		--assert strict-equal? 1.1 multiply -1.0 -1.1
+		--assert strict-equal? 1.1 i * j
+		--assert strict-equal? 1.1 multiply i j
+
+	--test-- "float-multiply 26"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 -1.0 * 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 multiply -1.0 1.7976931348623157e+308
+		--assert strict-equal? -1.7976931348623157e+308 i * j
+		--assert strict-equal? -1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 27"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 -1.0 * -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 multiply -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 1.7976931348623157e+308 i * j
+		--assert strict-equal? 1.7976931348623157e+308 multiply i j
+
+	--test-- "float-multiply 28"
+		i: 2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -0.0 2.2250738585072014e-308 * -2.2250738585072014e-308
+		--assert strict-equal? -0.0 multiply 2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? -0.0 i * j
+		--assert strict-equal? -0.0 multiply i j
+
+	--test-- "float-multiply 29"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 2.2250738585072014e-308 * 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 multiply 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 i * j
+		--assert strict-equal? 3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 30"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 2.2250738585072014e-308 * -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 multiply 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 i * j
+		--assert strict-equal? -3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 31"
+		i: 2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? 2.4475812443579217e-308 2.2250738585072014e-308 * 1.1
+		--assert strict-equal? 2.4475812443579217e-308 multiply 2.2250738585072014e-308 1.1
+		--assert strict-equal? 2.4475812443579217e-308 i * j
+		--assert strict-equal? 2.4475812443579217e-308 multiply i j
+
+	--test-- "float-multiply 32"
+		i: 2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? -2.4475812443579217e-308 2.2250738585072014e-308 * -1.1
+		--assert strict-equal? -2.4475812443579217e-308 multiply 2.2250738585072014e-308 -1.1
+		--assert strict-equal? -2.4475812443579217e-308 i * j
+		--assert strict-equal? -2.4475812443579217e-308 multiply i j
+
+	--test-- "float-multiply 33"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 2.2250738585072014e-308 * 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 multiply 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 i * j
+		--assert strict-equal? 3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 34"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 2.2250738585072014e-308 * -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 multiply 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 i * j
+		--assert strict-equal? -3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 35"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 -2.2250738585072014e-308 * 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 multiply -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 i * j
+		--assert strict-equal? -3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 36"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 -2.2250738585072014e-308 * -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 multiply -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 i * j
+		--assert strict-equal? 3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 37"
+		i: -2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? -2.4475812443579217e-308 -2.2250738585072014e-308 * 1.1
+		--assert strict-equal? -2.4475812443579217e-308 multiply -2.2250738585072014e-308 1.1
+		--assert strict-equal? -2.4475812443579217e-308 i * j
+		--assert strict-equal? -2.4475812443579217e-308 multiply i j
+
+	--test-- "float-multiply 38"
+		i: -2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? 2.4475812443579217e-308 -2.2250738585072014e-308 * -1.1
+		--assert strict-equal? 2.4475812443579217e-308 multiply -2.2250738585072014e-308 -1.1
+		--assert strict-equal? 2.4475812443579217e-308 i * j
+		--assert strict-equal? 2.4475812443579217e-308 multiply i j
+
+	--test-- "float-multiply 39"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 -2.2250738585072014e-308 * 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 multiply -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -3.9999999999999996 i * j
+		--assert strict-equal? -3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 40"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 -2.2250738585072014e-308 * -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 multiply -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 3.9999999999999996 i * j
+		--assert strict-equal? 3.9999999999999996 multiply i j
+
+	--test-- "float-multiply 41"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 42"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 * 1.1
+		--assert strict-equal? 1.#INF multiply 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 43"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 * -1.1
+		--assert strict-equal? -1.#INF multiply 1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 44"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 * 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 45"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 46"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 * 1.1
+		--assert strict-equal? -1.#INF multiply -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 47"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 * -1.1
+		--assert strict-equal? 1.#INF multiply -1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 48"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 * 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 49"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 50"
+		i: 1.1
+		j: -1.1
+		--assert strict-equal? -1.2100000000000002 1.1 * -1.1
+		--assert strict-equal? -1.2100000000000002 multiply 1.1 -1.1
+		--assert strict-equal? -1.2100000000000002 i * j
+		--assert strict-equal? -1.2100000000000002 multiply i j
+
+	--test-- "float-multiply 51"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.1 * 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply 1.1 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 52"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF 1.1 * -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply 1.1 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 53"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF -1.1 * 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply -1.1 1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 54"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF -1.1 * -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply -1.1 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 55"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF multiply 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.#INF i * j
+		--assert strict-equal? -1.#INF multiply i j
+
+	--test-- "float-multiply 56"
+		i: 0.0
+		j: 0.0
+		--assert strict-equal? 0.0 0.0 * 0.0
+		--assert strict-equal? 0.0 multiply 0.0 0.0
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 57"
+		i: 1.0
+		j: 1.0
+		--assert strict-equal? 1.0 1.0 * 1.0
+		--assert strict-equal? 1.0 multiply 1.0 1.0
+		--assert strict-equal? 1.0 i * j
+		--assert strict-equal? 1.0 multiply i j
+
+	--test-- "float-multiply 58"
+		i: -1.0
+		j: -1.0
+		--assert strict-equal? 1.0 -1.0 * -1.0
+		--assert strict-equal? 1.0 multiply -1.0 -1.0
+		--assert strict-equal? 1.0 i * j
+		--assert strict-equal? 1.0 multiply i j
+
+	--test-- "float-multiply 59"
+		i: 2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 0.0 2.2250738585072014e-308 * 2.2250738585072014e-308
+		--assert strict-equal? 0.0 multiply 2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 60"
+		i: -2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 0.0 -2.2250738585072014e-308 * -2.2250738585072014e-308
+		--assert strict-equal? 0.0 multiply -2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? 0.0 i * j
+		--assert strict-equal? 0.0 multiply i j
+
+	--test-- "float-multiply 61"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 * 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 62"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 63"
+		i: 1.1
+		j: 1.1
+		--assert strict-equal? 1.2100000000000002 1.1 * 1.1
+		--assert strict-equal? 1.2100000000000002 multiply 1.1 1.1
+		--assert strict-equal? 1.2100000000000002 i * j
+		--assert strict-equal? 1.2100000000000002 multiply i j
+
+	--test-- "float-multiply 64"
+		i: -1.1
+		j: -1.1
+		--assert strict-equal? 1.2100000000000002 -1.1 * -1.1
+		--assert strict-equal? 1.2100000000000002 multiply -1.1 -1.1
+		--assert strict-equal? 1.2100000000000002 i * j
+		--assert strict-equal? 1.2100000000000002 multiply i j
+
+	--test-- "float-multiply 65"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 * 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+	--test-- "float-multiply 66"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 * -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF multiply -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.#INF i * j
+		--assert strict-equal? 1.#INF multiply i j
+
+===end-group===
+===start-group=== "float-divide"
+	--test-- "float-divide 1"
+		i: 0.0
+		j: 1.0
+		--assert strict-equal? 0.0 0.0 / 1.0
+		--assert strict-equal? 0.0 divide 0.0 1.0
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 2"
+		i: 0.0
+		j: -1.0
+		--assert strict-equal? -0.0 0.0 / -1.0
+		--assert strict-equal? -0.0 divide 0.0 -1.0
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 3"
+		i: 0.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 0.0 0.0 / 2.2250738585072014e-308
+		--assert strict-equal? 0.0 divide 0.0 2.2250738585072014e-308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 4"
+		i: 0.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -0.0 0.0 / -2.2250738585072014e-308
+		--assert strict-equal? -0.0 divide 0.0 -2.2250738585072014e-308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 5"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 0.0 / 1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide 0.0 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 6"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 0.0 / -1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 7"
+		i: 0.0
+		j: 1.1
+		--assert strict-equal? 0.0 0.0 / 1.1
+		--assert strict-equal? 0.0 divide 0.0 1.1
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 8"
+		i: 0.0
+		j: -1.1
+		--assert strict-equal? -0.0 0.0 / -1.1
+		--assert strict-equal? -0.0 divide 0.0 -1.1
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 9"
+		i: 0.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 0.0 / 1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide 0.0 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 10"
+		i: 0.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 0.0 / -1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide 0.0 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 11"
+		i: 1.0
+		j: 0.0
+		;--assert strict-equal? 1.#INF 1.0 / 0.0
+		;--assert strict-equal? 1.#INF divide 1.0 0.0
+		;--assert strict-equal? 1.#INF i / j
+		;--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 12"
+		i: 1.0
+		j: -1.0
+		--assert strict-equal? -1.0 1.0 / -1.0
+		--assert strict-equal? -1.0 divide 1.0 -1.0
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 13"
+		i: 1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 1.0 / 2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 divide 1.0 2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 i / j
+		--assert strict-equal? 4.49423283715579e+307 divide i j
+
+	--test-- "float-divide 14"
+		i: 1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 1.0 / -2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 divide 1.0 -2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 i / j
+		--assert strict-equal? -4.49423283715579e+307 divide i j
+
+	--test-- "float-divide 15"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 1.0 / 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 divide 1.0 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 i / j
+		--assert strict-equal? 5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 16"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 1.0 / -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 divide 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 i / j
+		--assert strict-equal? -5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 17"
+		i: 1.0
+		j: 1.1
+		--assert strict-equal? 0.9090909090909091 1.0 / 1.1
+		--assert strict-equal? 0.9090909090909091 divide 1.0 1.1
+		--assert strict-equal? 0.9090909090909091 i / j
+		--assert strict-equal? 0.9090909090909091 divide i j
+
+	--test-- "float-divide 18"
+		i: 1.0
+		j: -1.1
+		--assert strict-equal? -0.9090909090909091 1.0 / -1.1
+		--assert strict-equal? -0.9090909090909091 divide 1.0 -1.1
+		--assert strict-equal? -0.9090909090909091 i / j
+		--assert strict-equal? -0.9090909090909091 divide i j
+
+	--test-- "float-divide 19"
+		i: 1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 1.0 / 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 divide 1.0 1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 i / j
+		--assert strict-equal? 5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 20"
+		i: 1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 1.0 / -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 divide 1.0 -1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 i / j
+		--assert strict-equal? -5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 21"
+		i: -1.0
+		j: 0.0
+		;--assert strict-equal? -1.#INF -1.0 / 0.0
+		;--assert strict-equal? -1.#INF divide -1.0 0.0
+		;--assert strict-equal? -1.#INF i / j
+		;--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 22"
+		i: -1.0
+		j: 1.0
+		--assert strict-equal? -1.0 -1.0 / 1.0
+		--assert strict-equal? -1.0 divide -1.0 1.0
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 23"
+		i: -1.0
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 -1.0 / 2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 divide -1.0 2.2250738585072014e-308
+		--assert strict-equal? -4.49423283715579e+307 i / j
+		--assert strict-equal? -4.49423283715579e+307 divide i j
+
+	--test-- "float-divide 24"
+		i: -1.0
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 -1.0 / -2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 divide -1.0 -2.2250738585072014e-308
+		--assert strict-equal? 4.49423283715579e+307 i / j
+		--assert strict-equal? 4.49423283715579e+307 divide i j
+
+	--test-- "float-divide 25"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 -1.0 / 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 divide -1.0 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 i / j
+		--assert strict-equal? -5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 26"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 -1.0 / -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 divide -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 i / j
+		--assert strict-equal? 5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 27"
+		i: -1.0
+		j: 1.1
+		--assert strict-equal? -0.9090909090909091 -1.0 / 1.1
+		--assert strict-equal? -0.9090909090909091 divide -1.0 1.1
+		--assert strict-equal? -0.9090909090909091 i / j
+		--assert strict-equal? -0.9090909090909091 divide i j
+
+	--test-- "float-divide 28"
+		i: -1.0
+		j: -1.1
+		--assert strict-equal? 0.9090909090909091 -1.0 / -1.1
+		--assert strict-equal? 0.9090909090909091 divide -1.0 -1.1
+		--assert strict-equal? 0.9090909090909091 i / j
+		--assert strict-equal? 0.9090909090909091 divide i j
+
+	--test-- "float-divide 29"
+		i: -1.0
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 -1.0 / 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 divide -1.0 1.7976931348623157e+308
+		--assert strict-equal? -5.562684646268003e-309 i / j
+		--assert strict-equal? -5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 30"
+		i: -1.0
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 -1.0 / -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 divide -1.0 -1.7976931348623157e+308
+		--assert strict-equal? 5.562684646268003e-309 i / j
+		--assert strict-equal? 5.562684646268003e-309 divide i j
+
+	--test-- "float-divide 31"
+		i: 2.2250738585072014e-308
+		j: 0.0
+		;--assert strict-equal? 1.#INF 2.2250738585072014e-308 / 0.0
+		;--assert strict-equal? 1.#INF divide 2.2250738585072014e-308 0.0
+		;--assert strict-equal? 1.#INF i / j
+		;--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 32"
+		i: 2.2250738585072014e-308
+		j: 1.0
+		--assert strict-equal? 2.2250738585072014e-308 2.2250738585072014e-308 / 1.0
+		--assert strict-equal? 2.2250738585072014e-308 divide 2.2250738585072014e-308 1.0
+		--assert strict-equal? 2.2250738585072014e-308 i / j
+		--assert strict-equal? 2.2250738585072014e-308 divide i j
+
+	--test-- "float-divide 33"
+		i: 2.2250738585072014e-308
+		j: -1.0
+		--assert strict-equal? -2.2250738585072014e-308 2.2250738585072014e-308 / -1.0
+		--assert strict-equal? -2.2250738585072014e-308 divide 2.2250738585072014e-308 -1.0
+		--assert strict-equal? -2.2250738585072014e-308 i / j
+		--assert strict-equal? -2.2250738585072014e-308 divide i j
+
+	--test-- "float-divide 34"
+		i: 2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.0 2.2250738585072014e-308 / -2.2250738585072014e-308
+		--assert strict-equal? -1.0 divide 2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 35"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 2.2250738585072014e-308 / 1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 36"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 2.2250738585072014e-308 / -1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 37"
+		i: 2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? 2.022794416824728e-308 2.2250738585072014e-308 / 1.1
+		--assert strict-equal? 2.022794416824728e-308 divide 2.2250738585072014e-308 1.1
+		--assert strict-equal? 2.022794416824728e-308 i / j
+		--assert strict-equal? 2.022794416824728e-308 divide i j
+
+	--test-- "float-divide 38"
+		i: 2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? -2.022794416824728e-308 2.2250738585072014e-308 / -1.1
+		--assert strict-equal? -2.022794416824728e-308 divide 2.2250738585072014e-308 -1.1
+		--assert strict-equal? -2.022794416824728e-308 i / j
+		--assert strict-equal? -2.022794416824728e-308 divide i j
+
+	--test-- "float-divide 39"
+		i: 2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 0.0 2.2250738585072014e-308 / 1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide 2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 40"
+		i: 2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -0.0 2.2250738585072014e-308 / -1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide 2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 41"
+		i: -2.2250738585072014e-308
+		j: 0.0
+		;--assert strict-equal? -1.#INF -2.2250738585072014e-308 / 0.0
+		;--assert strict-equal? -1.#INF divide -2.2250738585072014e-308 0.0
+		;--assert strict-equal? -1.#INF i / j
+		;--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 42"
+		i: -2.2250738585072014e-308
+		j: 1.0
+		--assert strict-equal? -2.2250738585072014e-308 -2.2250738585072014e-308 / 1.0
+		--assert strict-equal? -2.2250738585072014e-308 divide -2.2250738585072014e-308 1.0
+		--assert strict-equal? -2.2250738585072014e-308 i / j
+		--assert strict-equal? -2.2250738585072014e-308 divide i j
+
+	--test-- "float-divide 43"
+		i: -2.2250738585072014e-308
+		j: -1.0
+		--assert strict-equal? 2.2250738585072014e-308 -2.2250738585072014e-308 / -1.0
+		--assert strict-equal? 2.2250738585072014e-308 divide -2.2250738585072014e-308 -1.0
+		--assert strict-equal? 2.2250738585072014e-308 i / j
+		--assert strict-equal? 2.2250738585072014e-308 divide i j
+
+	--test-- "float-divide 44"
+		i: -2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.0 -2.2250738585072014e-308 / 2.2250738585072014e-308
+		--assert strict-equal? -1.0 divide -2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 45"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -0.0 -2.2250738585072014e-308 / 1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 46"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -2.2250738585072014e-308 / -1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 47"
+		i: -2.2250738585072014e-308
+		j: 1.1
+		--assert strict-equal? -2.022794416824728e-308 -2.2250738585072014e-308 / 1.1
+		--assert strict-equal? -2.022794416824728e-308 divide -2.2250738585072014e-308 1.1
+		--assert strict-equal? -2.022794416824728e-308 i / j
+		--assert strict-equal? -2.022794416824728e-308 divide i j
+
+	--test-- "float-divide 48"
+		i: -2.2250738585072014e-308
+		j: -1.1
+		--assert strict-equal? 2.022794416824728e-308 -2.2250738585072014e-308 / -1.1
+		--assert strict-equal? 2.022794416824728e-308 divide -2.2250738585072014e-308 -1.1
+		--assert strict-equal? 2.022794416824728e-308 i / j
+		--assert strict-equal? 2.022794416824728e-308 divide i j
+
+	--test-- "float-divide 49"
+		i: -2.2250738585072014e-308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -0.0 -2.2250738585072014e-308 / 1.7976931348623157e+308
+		--assert strict-equal? -0.0 divide -2.2250738585072014e-308 1.7976931348623157e+308
+		--assert strict-equal? -0.0 i / j
+		--assert strict-equal? -0.0 divide i j
+
+	--test-- "float-divide 50"
+		i: -2.2250738585072014e-308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 0.0 -2.2250738585072014e-308 / -1.7976931348623157e+308
+		--assert strict-equal? 0.0 divide -2.2250738585072014e-308 -1.7976931348623157e+308
+		--assert strict-equal? 0.0 i / j
+		--assert strict-equal? 0.0 divide i j
+
+	--test-- "float-divide 51"
+		i: 1.7976931348623157e+308
+		j: 0.0
+		;--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
+		;--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
+		;--assert strict-equal? 1.#INF i / j
+		;--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 52"
+		i: 1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 / 1.0
+		--assert strict-equal? 1.7976931348623157e+308 divide 1.7976931348623157e+308 1.0
+		--assert strict-equal? 1.7976931348623157e+308 i / j
+		--assert strict-equal? 1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 53"
+		i: 1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? -1.7976931348623157e+308 1.7976931348623157e+308 / -1.0
+		--assert strict-equal? -1.7976931348623157e+308 divide 1.7976931348623157e+308 -1.0
+		--assert strict-equal? -1.7976931348623157e+308 i / j
+		--assert strict-equal? -1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 54"
+		i: 1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 55"
+		i: 1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 / -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF divide 1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 56"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.0 1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 57"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.6342664862384688e+308 1.7976931348623157e+308 / 1.1
+		--assert strict-equal? 1.6342664862384688e+308 divide 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.6342664862384688e+308 i / j
+		--assert strict-equal? 1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 58"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.6342664862384688e+308 1.7976931348623157e+308 / -1.1
+		--assert strict-equal? -1.6342664862384688e+308 divide 1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.6342664862384688e+308 i / j
+		--assert strict-equal? -1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 59"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.0 1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 60"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.0 1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 61"
+		i: -1.7976931348623157e+308
+		j: 0.0
+		;--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
+		;--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
+		;--assert strict-equal? -1.#INF i / j
+		;--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 62"
+		i: -1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 / 1.0
+		--assert strict-equal? -1.7976931348623157e+308 divide -1.7976931348623157e+308 1.0
+		--assert strict-equal? -1.7976931348623157e+308 i / j
+		--assert strict-equal? -1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 63"
+		i: -1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? 1.7976931348623157e+308 -1.7976931348623157e+308 / -1.0
+		--assert strict-equal? 1.7976931348623157e+308 divide -1.7976931348623157e+308 -1.0
+		--assert strict-equal? 1.7976931348623157e+308 i / j
+		--assert strict-equal? 1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 64"
+		i: -1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 65"
+		i: -1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 / -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF divide -1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 66"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.0 -1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 67"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.6342664862384688e+308 -1.7976931348623157e+308 / 1.1
+		--assert strict-equal? -1.6342664862384688e+308 divide -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.6342664862384688e+308 i / j
+		--assert strict-equal? -1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 68"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.6342664862384688e+308 -1.7976931348623157e+308 / -1.1
+		--assert strict-equal? 1.6342664862384688e+308 divide -1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.6342664862384688e+308 i / j
+		--assert strict-equal? 1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 69"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.0 -1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 70"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.0 -1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 71"
+		i: 1.1
+		j: 0.0
+		;--assert strict-equal? 1.#INF 1.1 / 0.0
+		;--assert strict-equal? 1.#INF divide 1.1 0.0
+		;--assert strict-equal? 1.#INF i / j
+		;--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 72"
+		i: 1.1
+		j: 1.0
+		--assert strict-equal? 1.1 1.1 / 1.0
+		--assert strict-equal? 1.1 divide 1.1 1.0
+		--assert strict-equal? 1.1 i / j
+		--assert strict-equal? 1.1 divide i j
+
+	--test-- "float-divide 73"
+		i: 1.1
+		j: -1.0
+		--assert strict-equal? -1.1 1.1 / -1.0
+		--assert strict-equal? -1.1 divide 1.1 -1.0
+		--assert strict-equal? -1.1 i / j
+		--assert strict-equal? -1.1 divide i j
+
+	--test-- "float-divide 74"
+		i: 1.1
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 1.1 / 2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 divide 1.1 2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 i / j
+		--assert strict-equal? 4.943656120871369e+307 divide i j
+
+	--test-- "float-divide 75"
+		i: 1.1
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 1.1 / -2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 divide 1.1 -2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 i / j
+		--assert strict-equal? -4.943656120871369e+307 divide i j
+
+	--test-- "float-divide 76"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 1.1 / 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 divide 1.1 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 i / j
+		--assert strict-equal? 6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 77"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 1.1 / -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 divide 1.1 -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 i / j
+		--assert strict-equal? -6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 78"
+		i: 1.1
+		j: -1.1
+		--assert strict-equal? -1.0 1.1 / -1.1
+		--assert strict-equal? -1.0 divide 1.1 -1.1
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 79"
+		i: 1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 1.1 / 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 divide 1.1 1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 i / j
+		--assert strict-equal? 6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 80"
+		i: 1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 1.1 / -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 divide 1.1 -1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 i / j
+		--assert strict-equal? -6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 81"
+		i: -1.1
+		j: 0.0
+		;--assert strict-equal? -1.#INF -1.1 / 0.0
+		;--assert strict-equal? -1.#INF divide -1.1 0.0
+		;--assert strict-equal? -1.#INF i / j
+		;--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 82"
+		i: -1.1
+		j: 1.0
+		--assert strict-equal? -1.1 -1.1 / 1.0
+		--assert strict-equal? -1.1 divide -1.1 1.0
+		--assert strict-equal? -1.1 i / j
+		--assert strict-equal? -1.1 divide i j
+
+	--test-- "float-divide 83"
+		i: -1.1
+		j: -1.0
+		--assert strict-equal? 1.1 -1.1 / -1.0
+		--assert strict-equal? 1.1 divide -1.1 -1.0
+		--assert strict-equal? 1.1 i / j
+		--assert strict-equal? 1.1 divide i j
+
+	--test-- "float-divide 84"
+		i: -1.1
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 -1.1 / 2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 divide -1.1 2.2250738585072014e-308
+		--assert strict-equal? -4.943656120871369e+307 i / j
+		--assert strict-equal? -4.943656120871369e+307 divide i j
+
+	--test-- "float-divide 85"
+		i: -1.1
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 -1.1 / -2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 divide -1.1 -2.2250738585072014e-308
+		--assert strict-equal? 4.943656120871369e+307 i / j
+		--assert strict-equal? 4.943656120871369e+307 divide i j
+
+	--test-- "float-divide 86"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 -1.1 / 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 divide -1.1 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 i / j
+		--assert strict-equal? -6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 87"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 -1.1 / -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 divide -1.1 -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 i / j
+		--assert strict-equal? 6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 88"
+		i: -1.1
+		j: 1.1
+		--assert strict-equal? -1.0 -1.1 / 1.1
+		--assert strict-equal? -1.0 divide -1.1 1.1
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 89"
+		i: -1.1
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 -1.1 / 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 divide -1.1 1.7976931348623157e+308
+		--assert strict-equal? -6.118953110894807e-309 i / j
+		--assert strict-equal? -6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 90"
+		i: -1.1
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 -1.1 / -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 divide -1.1 -1.7976931348623157e+308
+		--assert strict-equal? 6.118953110894807e-309 i / j
+		--assert strict-equal? 6.118953110894807e-309 divide i j
+
+	--test-- "float-divide 91"
+		i: 1.7976931348623157e+308
+		j: 0.0
+		;--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 0.0
+		;--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 0.0
+		;--assert strict-equal? 1.#INF i / j
+		;--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 92"
+		i: 1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? 1.7976931348623157e+308 1.7976931348623157e+308 / 1.0
+		--assert strict-equal? 1.7976931348623157e+308 divide 1.7976931348623157e+308 1.0
+		--assert strict-equal? 1.7976931348623157e+308 i / j
+		--assert strict-equal? 1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 93"
+		i: 1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? -1.7976931348623157e+308 1.7976931348623157e+308 / -1.0
+		--assert strict-equal? -1.7976931348623157e+308 divide 1.7976931348623157e+308 -1.0
+		--assert strict-equal? -1.7976931348623157e+308 i / j
+		--assert strict-equal? -1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 94"
+		i: 1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF 1.7976931348623157e+308 / 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF divide 1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 95"
+		i: 1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF 1.7976931348623157e+308 / -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF divide 1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 96"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.0 1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 97"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.0 1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 98"
+		i: 1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? 1.6342664862384688e+308 1.7976931348623157e+308 / 1.1
+		--assert strict-equal? 1.6342664862384688e+308 divide 1.7976931348623157e+308 1.1
+		--assert strict-equal? 1.6342664862384688e+308 i / j
+		--assert strict-equal? 1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 99"
+		i: 1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? -1.6342664862384688e+308 1.7976931348623157e+308 / -1.1
+		--assert strict-equal? -1.6342664862384688e+308 divide 1.7976931348623157e+308 -1.1
+		--assert strict-equal? -1.6342664862384688e+308 i / j
+		--assert strict-equal? -1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 100"
+		i: 1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? -1.0 1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide 1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 101"
+		i: -1.7976931348623157e+308
+		j: 0.0
+		;--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 0.0
+		;--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 0.0
+		;--assert strict-equal? -1.#INF i / j
+		;--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 102"
+		i: -1.7976931348623157e+308
+		j: 1.0
+		--assert strict-equal? -1.7976931348623157e+308 -1.7976931348623157e+308 / 1.0
+		--assert strict-equal? -1.7976931348623157e+308 divide -1.7976931348623157e+308 1.0
+		--assert strict-equal? -1.7976931348623157e+308 i / j
+		--assert strict-equal? -1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 103"
+		i: -1.7976931348623157e+308
+		j: -1.0
+		--assert strict-equal? 1.7976931348623157e+308 -1.7976931348623157e+308 / -1.0
+		--assert strict-equal? 1.7976931348623157e+308 divide -1.7976931348623157e+308 -1.0
+		--assert strict-equal? 1.7976931348623157e+308 i / j
+		--assert strict-equal? 1.7976931348623157e+308 divide i j
+
+	--test-- "float-divide 104"
+		i: -1.7976931348623157e+308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF -1.7976931348623157e+308 / 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF divide -1.7976931348623157e+308 2.2250738585072014e-308
+		--assert strict-equal? -1.#INF i / j
+		--assert strict-equal? -1.#INF divide i j
+
+	--test-- "float-divide 105"
+		i: -1.7976931348623157e+308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF -1.7976931348623157e+308 / -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF divide -1.7976931348623157e+308 -2.2250738585072014e-308
+		--assert strict-equal? 1.#INF i / j
+		--assert strict-equal? 1.#INF divide i j
+
+	--test-- "float-divide 106"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.0 -1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 107"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.0 -1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 108"
+		i: -1.7976931348623157e+308
+		j: 1.1
+		--assert strict-equal? -1.6342664862384688e+308 -1.7976931348623157e+308 / 1.1
+		--assert strict-equal? -1.6342664862384688e+308 divide -1.7976931348623157e+308 1.1
+		--assert strict-equal? -1.6342664862384688e+308 i / j
+		--assert strict-equal? -1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 109"
+		i: -1.7976931348623157e+308
+		j: -1.1
+		--assert strict-equal? 1.6342664862384688e+308 -1.7976931348623157e+308 / -1.1
+		--assert strict-equal? 1.6342664862384688e+308 divide -1.7976931348623157e+308 -1.1
+		--assert strict-equal? 1.6342664862384688e+308 i / j
+		--assert strict-equal? 1.6342664862384688e+308 divide i j
+
+	--test-- "float-divide 110"
+		i: -1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? -1.0 -1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? -1.0 divide -1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? -1.0 i / j
+		--assert strict-equal? -1.0 divide i j
+
+	--test-- "float-divide 111"
+		i: 0.0
+		j: 0.0
+		;--assert strict-equal? 1.#NAN 0.0 / 0.0
+		;--assert strict-equal? 1.#NAN divide 0.0 0.0
+		;--assert strict-equal? 1.#NAN i / j
+		;--assert strict-equal? 1.#NAN divide i j
+
+	--test-- "float-divide 112"
+		i: 1.0
+		j: 1.0
+		--assert strict-equal? 1.0 1.0 / 1.0
+		--assert strict-equal? 1.0 divide 1.0 1.0
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 113"
+		i: -1.0
+		j: -1.0
+		--assert strict-equal? 1.0 -1.0 / -1.0
+		--assert strict-equal? 1.0 divide -1.0 -1.0
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 114"
+		i: 2.2250738585072014e-308
+		j: 2.2250738585072014e-308
+		--assert strict-equal? 1.0 2.2250738585072014e-308 / 2.2250738585072014e-308
+		--assert strict-equal? 1.0 divide 2.2250738585072014e-308 2.2250738585072014e-308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 115"
+		i: -2.2250738585072014e-308
+		j: -2.2250738585072014e-308
+		--assert strict-equal? 1.0 -2.2250738585072014e-308 / -2.2250738585072014e-308
+		--assert strict-equal? 1.0 divide -2.2250738585072014e-308 -2.2250738585072014e-308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 116"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.0 1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 117"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.0 -1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 118"
+		i: 1.1
+		j: 1.1
+		--assert strict-equal? 1.0 1.1 / 1.1
+		--assert strict-equal? 1.0 divide 1.1 1.1
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 119"
+		i: -1.1
+		j: -1.1
+		--assert strict-equal? 1.0 -1.1 / -1.1
+		--assert strict-equal? 1.0 divide -1.1 -1.1
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 120"
+		i: 1.7976931348623157e+308
+		j: 1.7976931348623157e+308
+		--assert strict-equal? 1.0 1.7976931348623157e+308 / 1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide 1.7976931348623157e+308 1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+	--test-- "float-divide 121"
+		i: -1.7976931348623157e+308
+		j: -1.7976931348623157e+308
+		--assert strict-equal? 1.0 -1.7976931348623157e+308 / -1.7976931348623157e+308
+		--assert strict-equal? 1.0 divide -1.7976931348623157e+308 -1.7976931348623157e+308
+		--assert strict-equal? 1.0 i / j
+		--assert strict-equal? 1.0 divide i j
+
+===end-group===
+
+===start-group=== "floatcomparisons"
+
+	--test-- "= 1"					--assert 0.0 = 0.0
+	--test-- "= 2"					--assert not 1.0 = 0.0
+	--test-- "= 3"					--assert not -1.0 = 0.0
+	--test-- "= 4"					--assert not 1.7976931348623157e+308 = -1.7976931348623157e+308
+	--test-- "= 5"					--assert 1.7976931348623157e+308 = 1.7976931348623157e+308
+	--test-- "= 6"					--assert 2.2250738585072014e-308 = 2.2250738585072014e-308
+	--test-- "equal? 1"				--assert equal? 0.0 0.0
+	--test-- "equal? 2"				--assert not equal? 1.0 0.0
+	--test-- "equal? 3"				--assert equal? 2.2250738585072014e-308 -2.2250738585072014e-308
+	--test-- "equal? 4"				--assert not equal? 1.7976931348623157e+308 -1.7976931348623157e+308
+	--test-- "== 1"					--assert 0.0 == 0.0
+	--test-- "== 2"					--assert not 1.0 == 0.0
+	--test-- "== 3"					--assert not -1.0 == 0.0
+	--test-- "== 4"					--assert not 1.7976931348623157e+308 == -1.7976931348623157e+308
+	--test-- "== 5"					--assert 1.7976931348623157e+308 == 1.7976931348623157e+308
+	--test-- "== 6"					--assert 2.2250738585072014e-308 == 2.2250738585072014e-308
+	--test-- "strict-equal? 1"		--assert strict-equal? 0.0 0.0
+	--test-- "strict-equal? 2"		--assert not strict-equal? 1.0 0.0
+	--test-- "strict-equal? 3"		--assert not strict-equal? 2.2250738585072014e-308 -2.2250738585072014e-308
+	--test-- "strict-equal? 4"		--assert not strict-equal? 1.7976931348623157e+308 -1.7976931348623157e+308
+	--test-- "<> 1"					--assert not 0.0 <> 0.0
+	--test-- "<> 2"					--assert 1.0 <> 0.0
+	--test-- "<> 3"					--assert -1.0 <> 0.0
+	--test-- "<> 4"					--assert not 2.2250738585072014e-308 <> -2.2250738585072014e-308
+	--test-- "<> 5"					--assert 1.7976931348623157e+308 <> -1.7976931348623157e+308
+	--test-- "not equal? 1"			--assert not not-equal? 0.0  0.0
+	--test-- "not equal? 2"			--assert not-equal? 1.0 0.0
+	--test-- "not equal? 3"			--assert not-equal? -1.0 0.0
+	--test-- "not equal? 4"			--assert not not-equal? 2.2250738585072014e-308 -2.2250738585072014e-308
+	--test-- "not equal? 5"			--assert not-equal? 1.7976931348623157e+308 -1.7976931348623157e+308
+	--test-- "> 1"					--assert not 0.0 > 0.0
+	--test-- "> 2"					--assert 2.2250738585072014e-308 > 0.0
+	--test-- "> 3"					--assert 0.0 > -2.2250738585072014e-308
+	--test-- "> 4"					--assert 2.2250738585072020e-308 > 2.2250738585072014e-308
+	--test-- "greater? 1"			--assert not greater? 0.0 0.0
+	--test-- "greater? 2"			--assert greater? 1.7976931348623157e+308 0.0
+	--test-- "greater? 3"			--assert greater? 0.0 -2.2250738585072014e-308
+	--test-- "greater? 4"			--assert greater? 1.7976931348623156e+308 1.7976931348623150e+308
+	--test-- "< 1"					--assert not 0.0 < 0.0
+	--test-- "< 2"					--assert 0.0 < 2.2250738585072014e-308
+	--test-- "< 3"					--assert -2.2250738585072014e-308 < 0.0
+	--test-- "< 4"					--assert 2.2250738585072014e-308 < 2.225073858507202e-308
+	--test-- "lesser? 1"			--assert not lesser? 0.0 0.0
+	--test-- "lesser? 2"			--assert lesser? 0.0 2.2250738585072014e-308
+	--test-- "lesser? 3"			--assert lesser? -2.2250738585072014e-308 0.0
+	--test-- "lesser? 4"			--assert lesser? 2.2250738585072014e-308 2.225073858507202e-308
+	--test-- ">= 1"					--assert 0.0 >= 0.0
+	--test-- ">= 2"					--assert 1.0 >= 0.0
+	--test-- ">= 3"					--assert 0.0 >= -1.0
+	--test-- ">= 4"					--assert 2.2250738585072014e-308 >= 2.2250738585072014e-308
+	--test-- " greater-or-equal? 1"	--assert greater-or-equal? 0.0 0.0
+	--test-- " greater-or-equal? 2"	--assert greater-or-equal? 1.0 0.0
+	--test-- " greater-or-equal? 3"	--assert greater-or-equal? 0.0 -1.0
+	--test-- " greater-or-equal? 4"	--assert greater-or-equal? 2.2250738585072014e-308 2.2250738585072014e-308
+	--test-- "<= 1"					--assert 0.0 <= 0.0
+	--test-- "<= 2"					--assert 0.0 <= 1.0
+	--test-- "<= 3"					--assert -1.0 <= 0.0
+	--test-- "<= 4"					--assert 1.7976931348623157e+308 <= 1.7976931348623157e+308
+	--test-- " lesser-or-equal? 1"	--assert lesser-or-equal? 0.0 0.0
+	--test-- " lesser-or-equal? 2"	--assert lesser-or-equal? 0.0 1.0
+	--test-- " lesser-or-equal? 3"	--assert lesser-or-equal? -1.0 0.0
+	--test-- " lesser-or-equal? 4"	--assert lesser-or-equal? 1.7976931348623157e+308 1.7976931348623157e+308
+		
+===end-group===
+
 ~~~end-file~~~
