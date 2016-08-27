@@ -402,6 +402,7 @@ interpreter: context [
 					args: path/args
 				]
 			]
+			fname: as red-word! path
 		]
 		
 		s: as series! args/value
