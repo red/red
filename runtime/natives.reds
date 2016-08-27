@@ -2257,7 +2257,7 @@ natives: context [
 		cell: block/rs-head as red-block! stack/arguments
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
-		bool/value: cell/header and flag-nl-mask <> 0
+		bool/value: cell/header and flag-new-line <> 0
 	]
 	
 	context?*: func [
