@@ -718,6 +718,7 @@ parser: context [
 			cmd		 [red-value!]
 			tail	 [red-value!]
 			value	 [red-value!]
+			value2	 [red-value!]
 			base	 [red-value!]
 			s-top	 [red-value!]
 			char	 [red-char!]
@@ -1288,8 +1289,14 @@ parser: context [
 								all [match? advance as red-string! input value]	;-- consume matched input
 							]
 							default [
-								match?: actions/compare block/rs-head input value comp-op
-								all [match? block/rs-next input] ;-- consume matched input
+								s: GET_BUFFER(input)
+								value2: s/offset + input/head
+								end?: value2 >= s/tail
+								either end? [match?: false][
+									match?: actions/compare value2 value comp-op
+									if match? [input/head: input/head + 1] ;-- consume matched input
+								]
+								all [match? end?]
 							]
 						]
 						if positive? part [end?: input/head >= part or end?]
