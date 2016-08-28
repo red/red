@@ -1,4 +1,4 @@
-fRed [
+Red [
 	Title:	"Red PARSE test script"
 	Author:	"Nenad Rakocevic"
 	File:	%parse-test.reds
