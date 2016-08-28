@@ -945,7 +945,11 @@ parser: context [
 							]
 							R_SET [
 								if match? [
-									PARSE_PICK_INPUT
+									either p/input = input/head [
+										value: as red-value! none-value
+									][
+										PARSE_PICK_INPUT
+									]
 									_context/set as red-word! p - 1 value
 								]
 							]
