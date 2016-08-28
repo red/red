@@ -2242,7 +2242,6 @@ red: context [
 	]
 	
 	comp-forall: has [word name][
-		;TBD: check if word argument refers to any-series!
 		name: pc/1
 		word: decorate-symbol name
 		emit-get-word name name							;-- save series (for resetting on end)
@@ -2250,6 +2249,9 @@ red: context [
 		pc: next pc
 		
 		emit-open-frame 'forall
+		emit make-typeset [series!] none functions/forall/3 yes
+		emit [0 stack/arguments - 2]					;-- index of first argument
+		insert-lf -9
 		emit copy/deep [								;-- copy/deep required for R/S lines injection
 			while [natives/forall-loop]
 		]

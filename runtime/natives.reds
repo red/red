@@ -304,10 +304,11 @@ natives: context [
 	forall*: func [
 		check? [logic!]
 		/local
-			w 	   [red-word!]
+			w	   [red-word!]
 			body   [red-block!]
 			saved  [red-value!]
 			series [red-series!]
+			type   [integer!]
 			break? [logic!]
 	][
 		#typecheck forall
@@ -315,6 +316,9 @@ natives: context [
 		body: as red-block! stack/arguments + 1
 		
 		saved: word/get w							;-- save series (for resetting on end)
+		type: TYPE_OF(saved)
+		unless ANY_SERIES?(type) [ERR_EXPECT_ARGUMENT(TYPE_SERIES 0)]
+		
 		w: word/push w								;-- word argument
 		break?: no
 		
