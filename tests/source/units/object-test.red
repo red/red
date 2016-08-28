@@ -218,7 +218,15 @@ Red [
 		--assert so3-o/so3-f = 1
 		--assert "make bitset! #{80}" = mold so3-bs
 		--assert "make bitset! #{40}" = mold so3-o/so3-bs
-		
+
+	--test-- "simple object 4 issue #2181"
+		so4: make object! [
+			fun1: func [a][return a + 1]
+			fun0: does [] [return 10]
+		]
+		--assert 11 = so4/('fun1) 10
+		--assert 10 = so4/('fun0)
+
 ===end-group===
 
 ===start-group=== "nested objects"

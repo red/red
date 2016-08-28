@@ -845,6 +845,21 @@ Red [
 		--assert b = [[1]]
 		--assert [[1]] = head b
 
+	--test-- "#2173"
+		--assert not parse [] [parse]
+		--assert not parse [] [quit]
+		--assert not parse [] [return]
+		--assert not parse [] [append]
+		--assert not parse [] [tcp://:700]
+		--assert not parse [] [/ref]
+		--assert not parse [] [test@mm.mm]
+		--assert not parse [] [quote 10]
+		--assert not parse [] [10.0]
+		--assert not parse [] [127.127.127]
+		--assert not parse [] ['symbol]
+		--assert not parse [] [#"a"]
+		--assert not parse [] [#(a 10)]
+
 ===end-group===
 
 ===start-group=== "string"
@@ -1260,7 +1275,14 @@ Red [
 		--assert parse "abcde" ["xyz" | copy s to end (se53-copied: :s)]
 		--assert "abcde" = se53-copied
 
-		
+	--test-- "blk-ext54"
+		--assert parse ["hello"] ["hello" set test opt "world"]
+		--assert test = none
+
+	--test-- "blk-ext55"
+		--assert parse ["hello"] ["hello" set test any "world"]
+		--assert test = none
+
 ===end-group===
 
 ===start-group=== "string-skipping"

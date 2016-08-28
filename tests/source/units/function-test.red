@@ -405,6 +405,11 @@ comment {
   	--assert error? try [get 'ri9-i]
   	--assert error? try [get 'ri9-j]
 
+	--test-- "ri10 issue #2171"
+		ri10-quote: func ['v] [v]
+		--assert error? try [ri10-quote ()]
+		--assert error? try [ri10-quote (ri10-notexist)]
+
 ===end-group===
 
 
