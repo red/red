@@ -65,7 +65,7 @@ Red/System [
 				]
 				TYPE_PAREN [
 					either TYPE_OF(value) = TYPE_LIT_WORD [
-						stack/mark-interp-native as red-word! pc	;@@ ~paren
+						stack/mark-interp-native words/_anon
 						eval as red-block! pc yes
 						stack/unwind
 					][
