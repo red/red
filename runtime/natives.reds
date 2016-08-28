@@ -317,7 +317,7 @@ natives: context [
 		
 		saved: word/get w							;-- save series (for resetting on end)
 		type: TYPE_OF(saved)
-		unless ANY_SERIES?(type) [ERR_EXPECT_ARGUMENT(TYPE_SERIES 0)]
+		unless ANY_SERIES?(type) [ERR_EXPECT_ARGUMENT(type 0)]
 		
 		w: word/push w								;-- word argument
 		break?: no
