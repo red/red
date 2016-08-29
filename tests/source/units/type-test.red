@@ -117,7 +117,7 @@ Red [
 
 ===start-group=== "immediate?"
     --test-- "immediate? none!" 		    --assert immediate? none
-    --test-- "not immediate? map!"			 --assert not immediate? #()
+    --test-- "not immediate? map!"			--assert not immediate? #()
 ===end-group===
 
 ~~~end-file~~~
