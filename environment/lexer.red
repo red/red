@@ -607,11 +607,11 @@ system/lexer: context [
 		]
 
 		base-64-rule: [
-			"64#{" (type: binary!) [
-				s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"
+			"64#{" (type: binary! cnt: 0) [
+				s: any [counted-newline | base64-char | ws-no-count (cnt: cnt + 1) | comment-rule] e: #"}"
 				| (throw-error [binary! skip s -4])
 			](
-				cnt: offset? s e
+				cnt: (offset? s e) - cnt
 				if all [0 < cnt cnt < 4][throw-error [binary! skip s -4]]
 				base: 64
 			)
