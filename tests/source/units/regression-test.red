@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red bugs tests"
 	Author:  "Boleslav Březovský"
-	File: 	 %bugs-test.red
+	File: 	 %regression-test.red
 	Tabs:	 4
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Needs:	 'View
