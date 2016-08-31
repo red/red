@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red bugs tests"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test.red
+	File: 	 %regression-test1992.red
 	Tabs:	 4
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Needs:	 'View
@@ -1354,56 +1354,115 @@ Red [
 	; --test-- "#1895"
 
 	; --test-- "#1900"
+		; GUI
 
-	; --test-- "#1905"
+	--test-- "#1905"
+		x: [a b c 4 d e f]
+		move/part x skip x 3 2
+		--assert equal? x [c 4 a b d e f]
 
 	; --test-- "#1907"
+		; should check for crash
 
 	; --test-- "#1910"
+		; GUI
 
-	; --test-- "#1911"
+	--test-- "#1911"
+		m: make map! []
+		k: "a"
+		put m k 1
+		k: "b"
+		--assert error? try [set m k]
 
 	; --test-- "#1916"
+		; GUI
 
 	; --test-- "#1919"
+		; GUI console behaviour
 
 	; --test-- "#1920"
+		; GUI
 
-	; --test-- "#1923"
+	--test-- "#1923"
+		a: [1 2 3] 
+		forall a [if a/1 = 2 [break]]
+		--assert equal? a [2 3]
 
 	; --test-- "#1925"
+		; NOTE: Red Compiler internal error
+
+		; test!: object [
+		; clone: func [
+		; 	/local ret [test!]
+		; ][
+		; 	ret: make test! []
+		; 	;initialize ret here, in real application
+		; 	ret
+		; 	]
+		; ]
 
 	; --test-- "#1930"
+		; GUI
 
 	; --test-- "#1933"
+		; GUI
 
 	; --test-- "#1935"
+;		--assert error? try [test/:]
+;		; NOTE: bug should crash, how to test it?
 
 	; --test-- "#1937"
+		; GUI console behaviour
 
-	; --test-- "#1939"
+	--test-- "#1939"
+		unset 'a
+		--assert error? try [parse blk: [1][change integer! a]]
 
 	; --test-- "#1942"
+		; GUI
 
-	; --test-- "#1947"
+	--test-- "#1947"
+		--assert equal? [1] find [a 1] integer!
 
 	; --test-- "#1953"
-
+		; GUI console behaviour
+		
 	; --test-- "#1963"
+		; GUI console behaviour
 
 	; --test-- "#1965"
+		; R/S
 
-	; --test-- "#1968"
+	--test-- "#1968"
+		--assert not equal? mold #"^(005E)" mold #"^(001E)"
+		--assert equal? {#"^^(1E)"} #"^(001E)"
 
 	; --test-- "#1969"
+		; FIXME: still a problem in R/S
+
+		; foo: func [a [float!] b [float!]][a + b]
+
+		; out: #system [
+		; 	#call [foo 2.0 4.0]
+		; 	fl: as red-float! stack/arguments
+		; 	probe fl/value
+		; ]
+		; print ["*** out:" out]
+
 
 	; --test-- "#1974"
+		f: func [p [string!]] [print p]
+		--assert error? try [f 'spec] 	; NOTE: this should check that it does not crash
+										; 		how to do it?
 
 	; --test-- "#1983"
+		; R/S
 
 	; --test-- "#1991"
+		; console behaviour
 
 	; --test-- "#1992"
+		; GUI
 
 	--test-- "#1993"
 		range: [0 0] 
