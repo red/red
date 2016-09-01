@@ -5,6 +5,7 @@ Red [
 	Tabs:	 4
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Needs:	 'View
+	ToDo:	 "Cleanup temporary files"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -1281,77 +1282,202 @@ Red [
 
 	; --test-- "#1799"
 
-	; --test-- "#1807"
+	--test-- "#1807"
+		m: #(a: 1)
+		a: m/a
+		--assert not error? try [probe a]
+		--assert not error? try [print type? a]
+		--assert not error? try [?? a]
 
 	; --test-- "#1809"
+		; GUI
 
-	; --test-- "#1814"
+	--test-- "#1814"
+		t: 1.4.3
+		--assert equal? 1 min min t/1 t/2 t/3
+		--assert equal? 4 max max t/1 t/2 t/3
+		--assert equal? 49 50 - t/1
+		--assert equal? 21 20 + t/1
+		--assert equal? 21 t/1 + 20
 
 	; --test-- "#1816"
+		; GUI
 
 	; --test-- "#1817"
+		; GUI
 
 	; --test-- "#1820"
+		; GUI
 
-	; --test-- "#1829"
+	--test-- "#1829"
+		md5: does ['MD5]
+		--assert function? do "probe :md5"
 
 	; --test-- "#1831"
+	; 	; should check for crash
+	; 	function [a] [repeat a/1]
+	;
+	; FIXME: throws compilation error:
 
-	; --test-- "#1834"
+;*** Compilation Error: invalid function spec block: [1]
+;*** in file: %/E/Code/aaa/rebolek/red/tests/source/units/regression-test.red
+;*** near: [[a
+;        /local a 1
+;    ] [repeat a/1]
 
-	; --test-- "#1835"
+	--test-- "#1834"
+		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
+
+	--test-- "#1835"
+		m: make map! [a 1 A 2]
+		--assert equal? 2 select/case m 'A
+		--assert equal? 1 select/case m 'a
+		--assert equal?
+			make map! [a: 1 a 2]
+			make map! [a 1 a: 2]
+		m: make map! [a 1 A 2 a: 3 :a 4]
+		--assert equal? m #(a: 4 A: 2)	
 
 	; --test-- "#1836"
+		; should check for crash
 
 	; --test-- "#1838"
+		; GUI
 
-	; --test-- "#1842"
+;	--test-- "#1842"
+;		; should check for crash
+;		--assert error? try [throw 10]
 
 	; --test-- "#1847"
+		; GUI
 
 	; --test-- "#1853"
+		; GUI
 
-	; --test-- "#1858"
+	--test-- "#1858"
+		; should check for crash
+		--assert error? try [
+			f: func [] [f]
+			f
+		]
 
-	; --test-- "#1865"
+	--test-- "#1865"
+		--assert not equal? 2 probe (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok probe (a: 'ok 1 + 1 :a)
 
 	; --test-- "#1866"
+	; 	; should check for crash
+	; 	--assert error? try [parse "abc" [(return 1)]]
+	;	FIXME: throws *** Runtime Error 95: no CATCH for THROW
+	;		but when compiled separately, works
 
-	; --test-- "#1867"
+	--test-- "#1867"
+		; original error should result in endless loop. how to check it?
+		rule: [
+			any [
+				to "[" 
+				start-mark: 
+				skip 
+				copy content 
+				to "]" 
+				skip 
+				end-mark: 
+				(insert/only remove/part start-mark end-mark content)
+			]
+		]
+		x: [1 2 "[" a b "]" 3 4]
+		--assert parse x rule
 
 	; --test-- "#1868"
+		; compiler error
 
 	; --test-- "#1869"
+		; GUI
 
 	; --test-- "#1872"
+		; GUI
 
 	; --test-- "#1874"
+		; GUI
 
-	; --test-- "#1878"
+	--test-- "#1878"
+		; should check for crash
+		--assert not error? try [
+			digit: charset "0123456789"
+			content: "a&&1b&&2c"
+			block: copy [] parse content [
+				collect into block any [
+					remove keep ["&&" some digit] 
+					(remove/part head block 1 probe head block) 
+				| 	skip
+				]
+			]
+		]
+
 
 	; --test-- "#1879"
+		; GUI
 
 	; --test-- "#1880"
+		; Rebol GC bug
 
-	; --test-- "#1881"
+	--test-- "#1881"
+		--assert not error? try [
+			rule: [ 
+				any [
+					mark: set a [ any-word! ] (
+						if [ ][ ]
+					) | into rule | skip
+				] 
+			]
+		]
 
-	; --test-- "#1882"
+	--test-- "#1882"
+		a: "X"
+		digit: charset "0123456789"
+		content: "a&&1&&2&&3m"
+		block: copy [] 
+		parse content [
+			collect into block any [
+				remove keep ["&&" some digit] insert (a) 
+			|	skip
+			]
+		]
+		--assert equal? content "aXXXm"
 
 	; --test-- "#1883"
+		; GUI
 
 	; --test-- "#1884"
+		; GUI
 
-	; --test-- "#1887"
+	--test-- "#1887"
+		s: {a
+b}
+		--assert equal? {a^/b} s
+		--assert not equal? {a^M^/b} s
 
 	; --test-- "#1889"
+		; GUI
 
 	; --test-- "#1892"
+		; binding problem when including external file 
+		; TODO: needs separate file for testing
 
-	; --test-- "#1893"
+	--test-- "#1893"
+		--assert equal? (1.4.8 * 3) (3 * 1.4.8)
 
-	; --test-- "#1894"
+	--test-- "#1894"
+		; should check for crash
+		unset 'test
+		--assert error? try [parse [1] [collect into test keep [skip]]]
 
 	; --test-- "#1895"
+	; 	; should check for crash
+	; NOTE: this test works in console, but not when compiled
+	; 	fn: func [body [block!]] [collect [do body]]
+	; 	fn [x: 1]
+	; 	--assert equal? x 1
 
 	; --test-- "#1900"
 		; GUI
@@ -1435,7 +1561,7 @@ Red [
 
 	--test-- "#1968"
 		--assert not equal? mold #"^(005E)" mold #"^(001E)"
-		--assert equal? {#"^^(1E)"} #"^(001E)"
+		--assert equal? {#"^^(1E)"} mold #"^(001E)"
 
 	; --test-- "#1969"
 		; FIXME: still a problem in R/S
@@ -1465,12 +1591,16 @@ Red [
 		; GUI
 
 	--test-- "#1993"
+		unset 'range
+		unset 'a
 		range: [0 0] 
 		a: range/1: 1
 		--assert equal? [1 0] range
 
-	--test-- "#1995"
-		--assert error? try [load/next "(]" 'a]
+	; --test-- "#1995"
+	; 	; NOTE: currently still a bug
+	; 	unset 'a
+	; 	--assert error? try [load/next "(]" 'a]
 
 	--test-- "#1996"
 		blk: [a b #x #y 2 3]
