@@ -273,6 +273,7 @@ eval-int-path: func [
 
 select-key*: func [									;-- called by compiler for SWITCH
 	sub?	[logic!]
+	fetch?	[logic!]
 	return: [red-value!]
 	/local
 		blk	  [red-block!]
@@ -295,7 +296,15 @@ select-key*: func [									;-- called by compiler for SWITCH
 		while [value < tail][
 			if TYPE_OF(key) = TYPE_OF(value) [
 				if actions/compare key value COMP_EQUAL [
-					value: either value + 1 < tail [value + 1][value]
+					either fetch? [
+						value: value + 1
+						while [value < tail][
+							if TYPE_OF(value) = TYPE_BLOCK [break]
+							value: value + 1
+						]
+					][
+						value: either value + 1 < tail [value + 1][value]
+					]
 					either sub? [stack/push value][stack/set-last value]
 					return value
 				]

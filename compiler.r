@@ -2722,7 +2722,7 @@ red: context [
 		emit arg
 		emit compose [block/push get-root (idx)]
 		insert-lf -3
-		emit [select-key* no]
+		emit [select-key* no no]
 		insert-lf -2
 		emit-close-frame
 		
