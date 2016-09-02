@@ -1163,58 +1163,93 @@ Red [
 	; --test-- "#1598"
 
 	; --test-- "#1600"
+		; GUI
 
 	; --test-- "#1606"
+		; console behaviour
 
 	; --test-- "#1607"
+		; TODO: random crash?
 
-	; --test-- "#1609"
+	--test-- "#1609"
+		not error? try [parse-trace "12345678" ["1" to end]]
 
-	; --test-- "#1611"
+	--test-- "#1611"
+		--assert parse "123" [copy a-txt "1" (a-num: to integer! a-txt) copy b-txt "2" (b-num: to integer! b-txt) "3"]
 
 	; --test-- "#1622"
+		; GUI
 
 	; --test-- "#1624"
+		; GUI
 
-	; --test-- "#1627"
+	--test-- "#1627"
+		--assert same? #[none] none
 
 	; --test-- "#1628"
+		; GUI
 
 	; --test-- "#1630"
+		; GUI
 
 	; --test-- "#1632"
+		; GUI
 
 	; --test-- "#1633"
+		; GUI
 
 	; --test-- "#1645"
+		; GUI
 
 	; --test-- "#1646"
+		; GUI
 
 	; --test-- "#1655"
+		; GUI
 
 	; --test-- "#1657"
+		; GUI
 
 	; --test-- "#1670"
+		; GUI
 
 	; --test-- "#1671"
+		; GUI
 
 	; --test-- "#1674"
+		; GUI
 
 	; --test-- "#1677"
+		; GUI
 
 	; --test-- "#1678"
+		; GUI
 
 	; --test-- "#1679"
+	; 	; should check for compilation error -throws error
+	; 	switch 1 []
 
-	; --test-- "#1680"
+	--test-- "#1680"
+		f: func [] [keys-of #(1 2) none]
+		--assert not error? try [f]
 
 	; --test-- "#1683"
+		; GUI
 
 	; --test-- "#1684"
+		; GUI
 
 	; --test-- "#1694"
+	; 	f: func [x] [x]
+	; 	e: try [f/only 3]
+	; 	--assert equal? e/arg2 'only
 
-	; --test-- "#1698"
+	--test-- "#1698"
+		; should check for crash
+		--assert not error? [
+			h: make hash! []
+			loop 10 [insert tail h 1]
+		]
 
 	; --test-- "#1700"
 		; TODO: Linux/Wine specific
