@@ -336,6 +336,10 @@ context [
 			if msg: try* [res: get-process-info][return msg]
 			res
 		]
-		none
+		
+		if all [out string? out][deline out]
+		if all [err string? err][deline err]
+		
+		cmd/exit-code/int
 	]
 ]
