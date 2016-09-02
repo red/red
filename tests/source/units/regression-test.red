@@ -1217,70 +1217,262 @@ Red [
 	; --test-- "#1698"
 
 	; --test-- "#1700"
+		; TODO: Linux/Wine specific
 
 	; --test-- "#1702"
+		; TODO: try to isolate the bug, or put to separate file
 
-	; --test-- "#1709"
+	; --test-- "#1709"
+		; TODO: WHAT is not defined in compiler
 
 	; --test-- "#1710"
+		; should check for compiler error
 
 	; --test-- "#1715"
+		; console behaviour
 
 	; --test-- "#1717"
+		; GUI
 
 	; --test-- "#1718"
+		; GUI
 
 	; --test-- "#1720"
+		; should check for crash
 
-	; --test-- "#1723"
+	--test-- "#1723"
+		write %中坜 "test"
+		--assert equal? "test" read %中坜
 
-	; --test-- "#1729"
+	--test-- "#1729"
+		not error? try [123456789123456789]
+		equal? 123456789123456789 1.234567891234568e17
 
-	; --test-- "#1730"
+	--test-- "#1730"
+		; should check for crash
+		not error? try [reduce does ["ok"]]
 
 	; --test-- "#1732"
+		; FIXME: example throws error: eval-command has no value
 
-	; --test-- "#1741"
+	--test-- "#1741"
+		--assert not error? try [foreach a [1 2 3 4][break]]
+		--assert not error? try [repeat n 4 [break]]
 
 	; --test-- "#1745"
+		; GUI
 
-	; --test-- "#1746"
+	--test-- "#1746"
+		; should check for crash
+		s: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
+		s2: make s []
+		--assert equal? [1] s/b 1
 
-	; --test-- "#1750"
+	--test-- "#1750"
+		e: try [load "2#{FF}"]
+		--assert all [
+			equal? e/type 'syntax
+			equal? e/id 'invalid
+			equal? e/arg1 binary!
+		]
+		e: try [load "64#{AA}"]
+		--assert all [
+			equal? e/type 'syntax
+			equal? e/id 'invalid
+			equal? e/arg1 binary!
+		]
+		e: try [load "4#{0}"]
+		--assert all [
+			equal? e/type 'syntax
+			equal? e/id 'invalid
+			equal? e/arg1 integer!
+		]
+		not error? try [load "16#{AA}"]
 
 	; --test-- "#1751"
+		; R/S
 
 	; --test-- "#1753"
+		; TODO take a look
 
 	; --test-- "#1754"
+		; GUI
 
 	; --test-- "#1755"
+		; GUI
 
-	; --test-- "#1758"
+	--test-- "#1758"
+		; should check for crash
+		--assert error? try [system/options/path: none]
 
 	; --test-- "#1762"
+		; GUI console behaviour
 
 	; --test-- "#1764"
+		; console behaviour (nonGUI)
 
-	; --test-- "#1768"
+	--test-- "#1768"
+		--assert error? try [load {a: %{test ing.txt}}]
 
 	; --test-- "#1769"
+		; console behaviour
 
 	; --test-- "#1774"
+		; needs to be in separate file probably
 
 	; --test-- "#1775"
+		; console behaviour (nonGUI)
 
 	; --test-- "#1781"
+		; GUI console behaviour
 
-	; --test-- "#1784"
+	--test-- "#1784"
+		--assert equal?
+			[1 1 1 1 1 2]
+			max [1 1 1 1] [1 1 1 1 1 2]
+		--assert equal?
+			[1 1 1 1]
+			min [1 1 1 1] [1 1 1 1 1 2]
 
 	; --test-- "#1785"
+		; GUI
 
 	; --test-- "#1790"
+		; GUI
 
 	; --test-- "#1797"
+		; GUI
 
-	; --test-- "#1799"
+	--test-- "#1799"
+		--assert equal?
+			[1 2 3 a b c d e]
+			head insert [a b c d e] [1 2 3]
+		--assert equal?
+			[1 2 1 2 1 2 a b c d e]
+			head insert/dup [a b c d e] [1 2] 3
+		--assert equal?
+			[[1 2] a b c d e] 
+			head insert/only [a b c d e] [1 2]
+		--assert equal?
+			[[1 2] [1 2] [1 2] a b c d e]
+			head insert/only/dup [a b c d e] [1 2] 3
+		--assert equal?
+			[1 2 3 [4 5] 6 a b c d e]
+			head insert [a b c d e ] [1 2 3 [4 5] 6]
+		--assert equal?
+			[1 2 3 [4 5] 6 1 2 3 [4 5] 6 a b c d e]
+			head insert/dup [a b c d e] [1 2 3 [4 5] 6] 2
+		--assert equal?
+			[[1 2 3 [4 5] 6] a b c d e]
+			head insert/only [a b c d e] [1 2 3 [4 5] 6]
+		--assert equal?
+			[[1 2 3 [4 5] 6] [1 2 3 [4 5] 6] a b c d e]
+			head insert/only/dup [a b c d e] [1 2 3 [4 5] 6] 2
+		--assert equal?
+			[123 a b c d e]
+			head insert [a b c d e] 123
+		--assert equal?
+			[123 123 123 a b c d e]
+			head insert/dup [a b c d e] 123 3
+		--assert equal?
+			[123 a b c d e]
+			head insert/only [a b c d e] 123
+		--assert equal?
+			[123 123 123 a b c d e]
+			head insert/only/dup [a b c d e] 123 3
+		--assert equal?
+			["123" a b c d e]
+			head insert [a b c d e] "123"
+		--assert equal?
+			["123" "123" "123" a b c d e]
+			head insert/dup [a b c d e] "123" 3
+		--assert equal?
+			["123" a b c d e]
+			head insert/only [a b c d e] "123"
+		--assert equal?
+			["123" "123" "123" a b c d e]
+			head insert/only/dup [a b c d e] "123" 3
+		--assert equal?
+			[123.10.2.3 a b c d e]
+			head insert [a b c d e] 123.10.2.3
+		--assert equal?
+			[123.10.2.3 123.10.2.3 123.10.2.3 a b c d e]
+			head insert/dup [a b c d e] 123.10.2.3 3
+		--assert equal?
+			[123.10.2.3 a b c d e]
+			head insert/only [a b c d e] 123.10.2.3
+		--assert equal?
+			[123.10.2.3 123.10.2.3 123.10.2.3 a b c d e]
+			head insert/only/dup [a b c d e] 123.10.2.3 3
+		--assert equal?
+			"123abcde"
+			head insert "abcde" [1 2 3]
+		--assert equal?
+			"121212abcde"
+			head insert/dup "abcde" [1 2] 3
+		--assert equal?
+			"123abcde"
+			head insert/only "abcde" [1 2 3]
+		--assert equal?
+			"121212abcde"
+			head insert/only/dup "abcde" [1 2] 3
+		--assert equal?
+			"123 4 56abcde"
+			head insert "abcde" [1 2 [3 4 5] 6]
+		--assert equal?
+			"123 4 56123 4 56123 4 56abcde"
+			head insert/dup "abcde" [1 2 [3 4 5] 6] 3
+		--assert equal?
+			"123 4 56abcde"
+			head insert/only "abcde" [1 2 [3 4 5] 6]
+		--assert equal?
+			"123 4 56123 4 56123 4 56abcde"
+			head insert/only/dup "abcde" [1 2 [3 4 5] 6] 3
+		--assert equal?
+			"123abcde"
+			head insert "abcde" 123
+		--assert equal?
+			"121212abcde"
+			head insert/dup "abcde" 12 3
+		--assert equal?
+			"123abcde"
+			head insert/only "abcde" 123
+		--assert equal?
+			"121212abcde"
+			head insert/only/dup "abcde" 12 3
+		--assert equal?
+			"123abcde"
+			head insert "abcde" "123"
+		--assert equal?
+			"121212abcde"
+			head insert/dup "abcde" "12" 3
+		--assert equal?
+			"123abcde"
+			head insert/only "abcde" "123"
+		--assert equal?
+			"121212abcde"
+			head insert/only/dup "abcde" "12" 3
+		--assert equal?
+			"123.10.2.3abcde"
+			head insert "abcde" 123.10.2.3
+		--assert equal?
+			"123.10.2.3123.10.2.3abcde"
+			head insert/dup "abcde" 123.10.2.3 2
+		--assert equal?
+			"123.10.2.3abcde"
+			head insert/only "abcde" 123.10.2.3
+		--assert equal?
+			"123.10.2.3123.10.2.3abcde"
+			head insert/only/dup "abcde" 123.10.2.3 2
+		--assert equal?
+			[#"X" a b c d e]
+			head insert [a b c d e] #"X"
+		--assert equal?
+			[#"X" #"X" #"X" a b c d e]
+			head insert/dup [a b c d e] #"X" 3
+		--assert equal?
+			"XXXabcde"
+			head insert/dup "abcde" #"X" 3
 
 	--test-- "#1807"
 		m: #(a: 1)
