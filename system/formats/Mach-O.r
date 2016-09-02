@@ -426,6 +426,14 @@ context [
 				if all [seg/2 = '__TEXT job/debug?][
 					process-debug-info job
 				]
+				if seg/2 = '__LINKEDIT [
+					tables: job/sections/symbols/1
+					seg/4: round/ceiling/to
+						sz: tables/2 + tables/3 + tables/4
+						get-ceiling seg/9 
+					seg/6: sz
+					
+				]
 			]
 			tail? seg: skip seg 10
 		]
