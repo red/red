@@ -1085,82 +1085,134 @@ Red [
 	; --test-- "#1499"
 
 	; --test-- "#1500"
+		; GUI
 
-	; --test-- "#1501"
+	--test-- "#1501"
+		c: 0
+		foreach i make image! 100x100 [c: c + 1]
+		--assert equal? 10'000 c
 
 	; --test-- "#1502"
+		; GUI
 
-	; --test-- "#1509"
+	--test-- "#1509"
+		ctx: object [
+			f: func [val /ref][val] 
+			t: does [f/ref 1]
+		]
+		not error? try [ctx/t]
 
-	; --test-- "#1515"
+	--test-- "#1515"
+		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
+		--assert equal? 0.0 1.222090944E+33 % -2147483648.0 
 
 	; --test-- "#1519"
+		; TODO: call-test.red problem
 
 	; --test-- "#1522"
+		; GUI
 
-	; --test-- "#1524"
+	--test-- "#1524"
+		; should check for crash
+		error? try [parse [x][keep 1]]
 
 	; --test-- "#1527"
+		; GUI
 
 	; --test-- "#1528"
+		; GUI
 
 	; --test-- "#1530"
+		; TODO: compiler should check for 2x #import
 
 	; --test-- "#1537"
+		; GUI
 
 	; --test-- "#1540"
+		; GUI
 
-	; --test-- "#1542"
+	--test-- "#1542"
+		f: to float! 7
+		--assert 7 = to integer! f
 
 	; --test-- "#1545"
+		; R/S problem on ARM
 
 	; --test-- "#1551"
+		; GUI
 
 	; --test-- "#1557"
+		; GUI
 
 	; --test-- "#1558"
+		; GUI
 
 	; --test-- "#1559"
+		; GUI
 
 	; --test-- "#1561"
+		; TODO: error in Rebol
 
 	; --test-- "#1562"
+		; GUI console behaviour
 
 	; --test-- "#1565"
+		; GUI
 
 	; --test-- "#1566"
+		; GUI console behaviour
 
 	; --test-- "#1567"
+		; GUI console behaviour
 
 	; --test-- "#1568"
+		; GUI console behaviour
 
 	; --test-- "#1570"
+		; GUI
 
 	; --test-- "#1571"
+		; GUI
 
 	; --test-- "#1574"
+		; GUI
 
 	; --test-- "#1576"
+		; GUI
 
 	; --test-- "#1578"
+		; GUI
 
 	; --test-- "#1583"
+		; GUI console behaviour
 
 	; --test-- "#1587"
+		; GUI console behaviour
 
-	; --test-- "#1589"
+	--test-- "#1589"
+		; should check for crash
+		--assert equal? 1.#NaN power -1 0.5
 
-	; --test-- "#1590"
-
+	--test-- "#1590"
+		str: "1.1.1"
+		find/part str "1." 2
+		--assert equal? "1.1" str: skip str 2
+		
 	; --test-- "#1591"
+		; console behaviour
 
 	; --test-- "#1592"
+		; GUI
 
 	; --test-- "#1593"
+		; GUI
 
 	; --test-- "#1596"
+		; GUI
 
-	; --test-- "#1598"
+	--test-- "#1598"
+		; should check for crash
+		--assert error? try [3x4 // 1.1]
 
 	; --test-- "#1600"
 		; GUI
