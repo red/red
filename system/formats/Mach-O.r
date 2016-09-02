@@ -374,7 +374,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
