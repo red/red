@@ -1024,65 +1024,131 @@ Red [
 
 	; --test-- "#1397"
 
-	; --test-- "#1400"
+	--test-- "#1400"
+		; should check for crash
+		--assert error? try [make op! 'x]
 
-	; --test-- "#1416"
+	--test-- "#1416"
+		; should check for crash
+		a: "1234" 
+		b: skip a 2 
+		copy/part b a
+		
+		a: skip "1234" 2
+		--assert equal? "12" copy/part a -2
 
-	; --test-- "#1417"
+	--test-- "#1417"
+		--assert not error? try [-5 // 3]
 
-	; --test-- "#1418"
+	--test-- "#1418"
+		--assert not strict-equal? 0.0 0
+		--assert not strict-equal? -0.0 0
+		--assert not strict-equal? +0.0 0
+		--assert not strict-equal? 1.0 1
+		--assert not 0.0 == 0
+		--assert not -0.0 == 0
+		--assert not +0.0 == 0
+		--assert not 1.0 == 1
 
-	; --test-- "#1420"
+
+	--test-- "#1420"
+		--assert not error? try [o: make object! compose [a: (add 1 1)]]
 
 	; --test-- "#1422"
+		; GUI
 
 	; --test-- "#1424"
+		; GUI
 
-	; --test-- "#1427"
+	--test-- "#1427"
+		o1: object [
+			make: function [
+				return: [object!]
+			] [
+				temp: object [] 
+				temp
+			]
+		]
+		o2: object []
+		make o1/make o2
+
 
 	; --test-- "#1435"
+		; GUI
 
 	; --test-- "#1438"
+		; GUI
 
 	; --test-- "#1443"
+		; GUI
 
 	; --test-- "#1449"
+		; GUI
 
 	; --test-- "#1451"
+		; GUI
 
 	; --test-- "#1456"
+		; GUI
 
 	; --test-- "#1457"
+		; GUI
 
 	; --test-- "#1458"
+		; TODO? compiler problem with .ico file missing
 
 	; --test-- "#1464"
+		; GUI
 
 	; --test-- "#1468"
+		; GUI
 
-	; --test-- "#1472"
+	--test-- "#1472"
+		--assert equal? [a] unique [a A]
+		--assert equal? [a A] unique/case [a A]
+		--assert equal? "a" unique "aA"
+		--assert equal? "aA" unique/case "aA"
 
-	; --test-- "#1475"
+	--test-- "#1475"
+		--assert logic? true
+		--assert logic? false
 
-	; --test-- "#1477"
+	--test-- "#1477"
+		write %test.txt ""
+		write/append %test.txt "hi"
+		write/append %test.txt "there"
+		--assert equal? "hithere" read %test.txt
 
 	; --test-- "#1479"
+		; GUI
 
 	; --test-- "#1481"
+		; R/S
 
 	; --test-- "#1485"
+		; GUI
 
 	; --test-- "#1487"
+		; GUI
 
 	; --test-- "#1489"
+		; GUI
 
-	; --test-- "#1490"
+	--test-- "#1490"
+		; should check for crash
+		o: make object! [f: 5]
+		--assert error? try [do load {set [o/f] 10}]
 
 	; --test-- "#1493"
+		; GUI
 
 	; --test-- "#1496"
+		; GUI
 
-	; --test-- "#1499"
+	--test-- "#1499"
+		unset 'b
+		--assert error? try [get 'b]
+		--assert unset? get/any 'b
 
 	; --test-- "#1500"
 		; GUI
@@ -1641,8 +1707,8 @@ Red [
 		]
 
 	--test-- "#1865"
-		--assert not equal? 2 probe (a: 'ok 1 + 1 :a)
-		--assert equal? 'ok probe (a: 'ok 1 + 1 :a)
+		--assert not equal? 2 (a: 'ok 1 + 1 :a)
+		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 
 	; --test-- "#1866"
 	; 	; should check for crash
