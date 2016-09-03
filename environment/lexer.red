@@ -17,7 +17,7 @@ system/lexer: context [
 		spec: reduce spec
 		src: back tail spec
 		src/1: trim/tail either string? src/1 [
-			form/part trim/with copy src/1 40 lf
+			form trim/with copy/part src/1 40 lf
 		][
 			mold/flat/part src/1 40
 		]
