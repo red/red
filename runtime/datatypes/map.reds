@@ -229,10 +229,11 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
+		size: rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
-		s-tail: s/tail
-		size: block/rs-length? as red-block! map
+		s-tail: value + size
+		if zero? size [size: 2]
 		case [
 			field = words/words [
 				blk/node: alloc-cells size >> 1
