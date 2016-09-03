@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define RED_TIME_DELTA	1E11
+
 time: context [
 	verbose: 0
 	

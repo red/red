@@ -229,7 +229,7 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
-		size: rs-length? map
+		size: 2 * rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
 		s-tail: value + size
