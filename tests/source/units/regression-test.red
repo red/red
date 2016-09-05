@@ -899,130 +899,338 @@ Red [
 	; --test-- "#1098"
 
 	; --test-- "#1102"
+		; TODO
 
-	; --test-- "#1113"
+	--test-- "#1113"
+		a: "abcz"  
+		b: 5 
+		--assert none? a/5 
+		--assert none? a/:b
+		--assert error? try [a/b]
+		unset [a b]
 
 	; --test-- "#1115"
+		; console behaviour
 
-	; --test-- "#1116"
+	--test-- "#1116"
+		o: object [
+			sin*: :sin
+			set 'sin does [
+				sin* none
+			]
+		]
+		e: try [sin]
+		; NOTE: uses NOT NOT to convert to logic!, because --assert does not accept NONE
+		--assert not not all [
+			error? e
+			not equal? '<anon> e/arg3
+		]
+		print "x3"
 
 	; --test-- "#1117"
+		; should check for crash
 
-	; --test-- "#1119"
+	--test-- "#1119"
+		--assert error? try [append/only: [a b c] [d e]]
 
-	; --test-- "#1120"
+	--test-- "#1120"
+		; should check for crash
+		--assert error? try [load {b: [] parse "1" [copy t to end (append b t)])}]
+		--assert error? try [load {b: [] parse "1" [some [copy t to end (append b t)]])}]
 
 	; --test-- "#1122"
+		; console
 
-	; --test-- "#1126"
+	--test-- "#1126"
+		--assert error? try [load "#"]
+		--assert error? try [do [load "#"]]
 
-	; --test-- "#1128"
+	--test-- "#1128"
+		--assert equal?
+			mold [series/:i: series/(len - (i - 1)) series/(len - (i - 1)): tmp]
+			{[series/:i: series/(len - (i - 1)) series/(len - (i - 1)): tmp]}
 
 	; --test-- "#1130"
+		; console behaviour
 
 	; --test-- "#1135"
+	; 	; should check for crash
+	; 	a: func [v [block!]][error? try v]
+	; 	--assert a [unset-word]
 
-	; --test-- "#1136"
+	--test-- "#1136"
+		e: try [load {}]
+		--assert not not all [
+			equal? e/type 'syntax
+			equal? e/id 'invalid
+			equal? e/arg1 lit-word!
+		]
 
-	; --test-- "#1141"
+	--test-- "#1141"
+		; should check for compilation error
+		o: object [
+			A: 1
+		]
+		s: 'A
+		--assert not error? [print o/:s]
 
-	; --test-- "#1143"
 
-	; --test-- "#1144"
+	--test-- "#1143"
+		--assert not error? try [
+			do [
+				a: object [
+					b: object [
+						c: 1
+					]
+					d: does [
+						make a [b: none]
+						probe b/c
+					]
+				]
+				a/d
+			]
+		]
+		--assert equal? 1 z: do [
+			a: object [
+				b: object [
+					c: 1
+				]
+				d: does [
+					probe b/c
+				]
+			]
+			e: copy/deep a
+			f: make e [b: none]
+			a/d
+		]
+
+	--test-- "#1144"
+		f: function [][
+			op: :form
+			append op 1 2
+		]
+		--assert not error? try [a]
 
 	; --test-- "#1146"
+		; console behaviour
 
 	; --test-- "#1147"
+		; console behaviour
 
-	; --test-- "#1148"
+	--test-- "#1148"
+		try-func: func [v [block!]][error? try v]
+		--assert try-func [unset-word]
 
 	; --test-- "#1153"
+		; TODO
 
-	; --test-- "#1154"
+	--test-- "#1154"
+	f: function [
+		/s string [string!]
+		/i integer [integer!]
+	][]
+	--assert not error? try [do [f/i/s 1 "a"]]
 
-	; --test-- "#1158"
+	--test-- "#1158"
+		ret: copy []
+		v: make vector! [1 2 3 4 5 6 7 8 9]
+		foreach [v1 v2 v3] v [repend ret [v1 v2 V3]]
+		--assert equal? [1 2 3 4 5 6 7 8 9] ret
+		unset [v ret]
 
-	; --test-- "#1159"
+	--test-- "#1159"
+		; should check for compilation error
+		--assert not error? try [
+			f: function [
+				/a
+				/b
+			][
+				if a [b: true]
+			]
+		]
 
-	; --test-- "#1160"
+	--test-- "#1160"
+		abc: 2
+		--assert not error? try [print [ABC]]
 
-	; --test-- "#1163"
+	--test-- "#1163"
+		f: function [
+			/l
+		][
+			b: []
+			if l [return b]
+			append b 1
+		]
+		--assert not error? try [foreach a f/l [print a]]
+		f: does [return [1]]
+		--assert not error? foreach a f [print a]
+		unset [b f] ; cleanup
 
 	; --test-- "#1164"
+		; console behaviour
 
-	; --test-- "#1167"
+	--test-- "#1167"
+		ret: copy []
+		--assert block? case/all [
+ 			1 < 2 [append ret 1]
+    		true [append ret 2]
+		]
+		--assert equal? [1 2] ret
 
-	; --test-- "#1168"
+	--test-- "#1168"
+		; TODO: should check for compilation error (throws compilation error, but is fine in console)
+		;--assert not error? try [case [1 > 2 [print "math is broken"] 1 < 2]]
+		; should check for crash
 
 	; --test-- "#1169"
+		; console behaviour
 
 	; --test-- "#1171"
 
-	; --test-- "#1176"
+;	--test-- "#1176"
+;		; TODO: should check for compilation error
+;		--assert error? try [blk: reduce [does [asdf]]]
+;		--assert error? try [blk/1]
+;		; should check for crash
 
 	; --test-- "#1186"
+		; console behaviour
 
-	; --test-- "#1195"
+	--test-- "#1195"
+		m: make map! [a: 1 b: 2]
+		--assert not error? try [m/b: none]
+		; should check for crash
 
-	; --test-- "#1199"
+	--test-- "#1199"
+		test: func [input [block!] /local exp-res reason] [
+			exp-res: get input/expect
+		]
+		--assert not error? try [test ["" expect true]]
 
-	; --test-- "#1206"
+	--test-- "#1206"
+		m: #(a 1 b 2)
+		m/a: none
+		m/a: none
+	;	--assert equal? m #(b 2) ; -- cannot work because of 2209
+		--assert equal? [b] keys-of m
+		--assert equal? [2] values-of m
 
-	; --test-- "#1207"
+	--test-- "#1207"
+		o: make object! [a: 1 b: 2]
+;		--assert error? try [o/c] ; should check for compilation error
+;		--assert error? try [o/c: 3] ; should check for compilation error
+		--assert not error? try [o] ; should test for crash
 
-	; --test-- "#1209"
+	--test-- "#1209"
+		; should test for freeze
+		--assert not error? try [parse [a: 1.2.3] [some [remove tuple! | skip]]]
 
-	; --test-- "#1213"
+	--test-- "#1213"
+		--assert error? try [load "1.2..4"]
 
-	; --test-- "#1218"
+	--test-- "#1218"
+		--assert error? try [load "p: [a/b:/c]"]
 
-	; --test-- "#1222"
+	--test-- "#1222"
+		o: make object! [a: 1 b: 7 c: 13]
+		--assert error? try [o/("c")]
 
-	; --test-- "#1230"
+;	--test-- "#1230"
+;		TODO: should check for compilation error
+;		o: make object! [a: 1 b: 7 c: 13]
+;		--assert error? try [set [o/b o/c] [2 3]]
 
 	; --test-- "#1232"
+		; TODO
 
-	; --test-- "#1238"
+; 	FIXME: causes internal compiler error, see #2198
+;	--test-- "#1238"
+;		e: try [pick/case #(a 1 b 2) 'B]
+;		--assert equal? 'case e/arg2
 
-	; --test-- "#1243"
+	--test-- "#1243"
+		b: ["A" "a" "b" "B"]
+		d: ["E" "e" "b" "B"]
+		--assert equal? ["A" "a" "b" "B" "E" "e"] union/skip b d 2
 
 	; --test-- "#1245"
+		; TODO
 
 	; --test-- "#1246"
+		; console behaviour
 
-	; --test-- "#1259"
+	--test-- "#1259"
+		--assert not equal? charset "abc" negate charset "abc"
+	
+	--test-- "#1265"
+		--assert equal? -1x-2 negate 1x2
 
-	; --test-- "#1265"
-
-	; --test-- "#1275"
+	--test-- "#1275"
+		o: context [f: does [self]]
+		x: o/f
+		--assert same? o x
 
 	; --test-- "#1281"
+		; TODO
 
 	; --test-- "#1284"
+		; crush.dll problem
 
 	; --test-- "#1290"
+		; GUI
 
 	; --test-- "#1293"
+		; should check for compiler crash
 
-	; --test-- "#1307"
+	--test-- "#1307"
+		h: make hash! [1x2 0 3x4 1]
+		--assert equal? 0 select h 1x2
+		--assert equal? make hash! [3x4 1] find h 3x4
 
 	; --test-- "#1322"
+		; R/S
 
 	; --test-- "#1324"
+		; TODO: should check for compiler error
 
-	; --test-- "#1329"
+	--test-- "#1329"
+		--assert not error? try [and~ #{01} #{FF}]
+		--assert not error? try [or~ #{01} #{FF}]
+		--assert not error? try [xor~ #{01} #{FF}]
 
-	; --test-- "#1345"
+	--test-- "#1345"
+		; should check for crash
+		url: http://autocomplete.wunderground.com/aq?format=JSON&lang=zh&query=Beijing
+		json: read url
 
-	; --test-- "#1354"
+	--test-- "#1354"
+		--assert error? try [0 ** "death"]
 
-	; --test-- "#1378"
+	--test-- "#1378"
+		--assert equal? 1.1.1.1 0.0.0 + 1.1.1.1
+		--assert equal? 2.1.1.1 1.0.0 + 1.1.1.1
+		--assert equal? 4.4.4.0 1.2.3 + 3.2.1.0
+		--assert equal? 3.3.3.3 0.1.2.3 + 3.2.1
+		--assert equal? 2.2.2.0 1.1.1 * 2.2.2.0
 
-	; --test-- "#1384"
+	--test-- "#1384"
+		--assert not error? try [read %.]
+		--assert not error? try [read %""]
 
-	; --test-- "#1396"
+	--test-- "#1396"
+		e: try [load {(5+2)}]
+		--assert all [
+			equal? e/id 'invalid
+			equal? e/arg1 integer!
+		]
+		e: try [load {[5+2]}]
+		--assert all [
+			equal? e/id 'invalid
+			equal? e/arg1 integer!
+		]
 
 	; --test-- "#1397"
+		; R/S
 
 	--test-- "#1400"
 		; should check for crash
@@ -1198,8 +1406,8 @@ Red [
 		; GUI
 
 	--test-- "#1542"
-		f: to float! 7
-		--assert 7 = to integer! f
+		fl: to float! 7
+		--assert 7 = to integer! fl
 
 	; --test-- "#1545"
 		; R/S problem on ARM
