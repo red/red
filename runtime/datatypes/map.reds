@@ -311,6 +311,76 @@ map: context [
 		part - 1
 	]
 
+	compare-each: func [
+		blk1	   [red-hash!]							;-- first operand
+		blk2	   [red-hash!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [integer!]
+		/local
+			size1  [integer!]
+			size2  [integer!]
+			key1   [red-value!]
+			key2   [red-value!]
+			value1 [red-value!]
+			value2 [red-value!]
+			res	   [integer!]
+			n	   [integer!]
+			same?  [logic!]
+			case?  [logic!]
+			table2 [node!]
+	][
+		same?: all [
+			blk1/node = blk2/node
+			blk1/head = blk2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
+		size1: rs-length? blk1
+		size2: rs-length? blk2
+
+		if size1 <> size2 [										;-- shortcut exit for different sizes
+			return either any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][1][SIGN_COMPARE_RESULT(size1 size2)]
+		]
+
+		if zero? size1 [return 0]								;-- shortcut exit for empty map!
+
+		case?: op = COMP_STRICT_EQUAL
+		table2: blk2/table
+		key1: block/rs-head as red-block! blk1
+		key1: key1 - 2
+		n: 0
+
+		cycles/push blk1/node
+		until [
+			until [												;-- next key
+				key1: key1 + 2
+				value1: key1 + 1
+				TYPE_OF(value1) <> TYPE_NONE
+			]
+			key2: _hashtable/get table2 key1 0 0 case? no no
+
+			res: either key2 = null [1][
+				value1: key1 + 1								;-- find the same key, then compare values
+				value2: key2 + 1
+				either cycles/find? value1 [
+					as-integer not natives/same? value1 value2
+				][
+					actions/compare-value value1 value2 op
+				]
+			]
+			n: n + 1
+			any [res <> 0 n = size1]
+		]
+		cycles/pop
+		res
+	]
+
 	compare: func [
 		map1	   [red-hash!]							;-- first operand
 		map2	   [red-hash!]							;-- second operand
@@ -329,7 +399,7 @@ map: context [
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: block/compare-each as red-block! map1 as red-block! map2 op
+				res: compare-each map1 map2 op
 			]
 			default [
 				res: -2
