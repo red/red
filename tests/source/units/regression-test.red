@@ -849,54 +849,168 @@ Red [
 	; --test-- "#995"
 
 	; --test-- "#1001"
+		; should check PRINT output
 
 	; --test-- "#1003"
+		; TODO: reactor test (seem not to work somehow)
 
 	; --test-- "#1005"
+		; precompiled binary error
 
 	; --test-- "#1019"
+		; TODO: library compilation problem
 
 	; --test-- "#1020"
+		; console behaviour
 
-	; --test-- "#1022"
+	--test-- "#1022"
+		; should check for crash
+		--assert not parse [%file] [#"."]
 
 	; --test-- "#1031"
+		; should check PRINT output from R/S
 
-	; --test-- "#1035"
+	--test-- "#1035"
+		; should check for crash
+		global-count: 0
+		global-count-inc: function [
+			condition [logic!]
+		][
+			if condition [global-count: global-count + 1]
+		]
+		--assert error? try [global-count-inc true]
+		unset [global-count global-count-inc]
 
-	; --test-- "#1042"
+	--test-- "#1042"
+		; should check for compilation error
 
-	; --test-- "#1050"
+		varia: 0
+		print power -1 varia
+
+		varia: 1
+		print power -1 varia
+
+		unset 'varia
+
+	--test-- "#1050"
+		; should check for compilation error
+		--assert not error? try [add: func [a b /local] [a + b]]
 
 	; --test-- "#1054"
+	;	TODO: should check for compiler error
+	; 	unset 'a
+	; 	book: object [list-fields: does [words-of self]]
+	; 	try [print a] ; needs to trigger error
+	; 	--assert not error? try [words-of book]
 
-	; --test-- "#1055"
+	--test-- "#1055"
+		my-context: context [
+			do-something: routine [ 
+				num [integer!] 
+				return: [integer!]
+				/local
+				ret
+			] [
+				ret: num + 1
+				ret
+			]
+		]
+
+		--assert equal? 2 my-context/do-something 1
+		unset 'my-context
 
 	; --test-- "#1059"
+		; TODO: should check for crash
 
-	; --test-- "#1063"
+;	--test-- "#1063"
+; 		TODO: help not defined in compiler
+;		--assert not error? try [help]
 
 	; --test-- "#1071"
+		; should check for crash
 
 	; --test-- "#1074"
+	;	TODO: should check for compiler error
+	; 	unset 'd
+	; 	--assert error? try [d]
+	; 	x: [d 1]
+	; 	--assert equal? 1 select x 'd
+	; 	--assert error? try [select x d]
+	; 	--assert error? try [d]
+	; 	unset 'x
 
 	; --test-- "#1075"
+		; should check for crash
 
 	; --test-- "#1079"
+		; TODO: console behaviour
 
-	; --test-- "#1080"
+	--test-- "#1080"
+		; should check for crash
+		--assert error? try [load "x:"]
 
 	; --test-- "#1083"
+		; should check for crash
 
 	; --test-- "#1085"
+		; build server problem
 
-	; --test-- "#1088"
+	--test-- "#1088"
+		b1: ["a" "b" "c" "d" "e"]
+		b2: ["a" "b" "b" "d" "e"]
+		b3: ["a" "b" "b" "b" "e"]
+		h1: make hash! b1
+		h2: make hash! b2
+		h3: make hash! b3
 
-	; --test-- "#1090"
+		s2b1: select/skip b1 "c" 2
+		s3b1: select/skip b1 "d" 3
+		s2b2: select/skip b2 "b" 2
+		s3b3: select/skip b3 "b" 3
 
-	; --test-- "#1093"
+		s2h1: select/skip h1 "c" 2
+		s3h1: select/skip h1 "d" 3
+		s2h2: select/skip h2 "b" 2
+		s3h3: select/skip h3 "b" 3
+
+		--assert equal? s2b1 "d"
+		--assert equal? s3b1 "e"
+		--assert equal? s2b2 "d"
+		--assert equal? s3b3 "e"
+		--assert equal? s2h1 "d"
+		--assert equal? s3h1 "e"
+		--assert equal? s2h2 "d"
+		--assert equal? s3h3 "e"
+
+		unset [b1 b2 b3 h1 h2 h3 s2b1 s3b1 s2b2 s3b3 s2h1 s3h1 s2h2 s3h3]
+
+	--test-- "#1090"
+		#system-global [
+			data!: alias struct! [
+				count [integer!]
+			]
+			data: declare data!
+		]
+		begin: routine [] [
+			data/count: 0
+		]
+		count: routine [
+			return: [integer!]
+		] [
+			data/count
+		]
+		begin
+		prin count print " rows processed"
+		--assert not error? try [print [count "rows processed"]]
+
+	--test-- "#1093"
+		str: none ; othrwise compiler would complain that STR has no value
+		parse "abcde" ["xyz" | copy str to end]
+		--assert equal? "abcde" str
+		unset 'str
 
 	; --test-- "#1098"
+		; console behaviour
 
 	; --test-- "#1102"
 		; TODO
