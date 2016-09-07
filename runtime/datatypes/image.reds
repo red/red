@@ -386,11 +386,14 @@ image: context [
 		img/head: 0
 
 		if all [
-			TYPE_OF(proto) = TYPE_IMAGE
 			TYPE_OF(spec) = TYPE_BLOCK
 			zero? block/rs-length? as red-block! spec
 		][
-			return copy as red-image! proto img null yes null
+			either TYPE_OF(proto) = TYPE_IMAGE [
+				return copy as red-image! proto img null yes null
+			][
+				fire [TO_ERROR(script invalid-arg) spec]
+			]
 		]
 
 		rgb:   null
