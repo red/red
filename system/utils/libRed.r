@@ -301,13 +301,14 @@ libRed: context [
 	process: func [functions /local name list pos][
 		clear imports
 		clear template
-		append template "Red []^/^/red: context "
+		append template "^/red: context "
 		
 		append imports [
 			#include %runtime/macros.reds
 			#include %runtime/datatypes/structures.reds
 		]
 		foreach def funcs [
+?? def		
 			ctx: next def
 			list: imports
 			
@@ -343,6 +344,7 @@ libRed: context [
 		]
 		append template mold imports
 		write %/c/dev/red/libred.tmpl template
+		template
 	]
 	
 ]

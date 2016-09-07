@@ -3240,6 +3240,8 @@ system-dialect: make-profilable context [
 			job: obj
 			pc: src
 			script: secure-clean-path file
+	
+			if job/dev-mode? [replace src <imports> probe libRed/process functions]
 			unless no-header [comp-header]
 			unless no-events [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect

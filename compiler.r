@@ -4084,6 +4084,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
+		;unless job/dev-mode? [
 		pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
@@ -4099,9 +4100,10 @@ red: context [
 			comp-block
 			script-path: saved
 		]
+		;]
 		
 		pc: code										;-- compile user code
-		user: tail output
+		user: either job/dev-mode? [clear output][tail output]
 		comp-block
 		
 		main: output
@@ -4196,7 +4198,15 @@ red: context [
 	]
 	
 	comp-as-exe: func [code [block!] /local out user mods main][
-		out: copy/deep [
+		out: copy/deep either job/dev-mode? [[
+			Red/System [origin: 'Red]
+
+			#import-libRed
+
+			with red [
+				exec: context <script>
+			]
+		]][[
 			Red/System [origin: 'Red]
 
 			red/init
@@ -4204,7 +4214,7 @@ red: context [
 			with red [
 				exec: context <script>
 			]
-		]
+		]]
 		
 		set [user mods main] comp-source code
 		
@@ -4239,6 +4249,10 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
+		
+		;if job/dev-mode? [
+		;	replace out <imports> probe libRed/process
+		;]
 
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
@@ -4342,7 +4356,7 @@ red: context [
 		main-path: first split-path any [all [block? file system/options/path] file]
 		no-global?: job/type = 'dll
 		resources: make block! 8
-
+?? job
 		time: dt [
 			src: load-source file
 ?? src			
