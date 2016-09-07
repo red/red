@@ -770,83 +770,371 @@ Red [
 
 	; --test-- "#899"
 
-	; --test-- "#902"
+	--test-- "#902"
+		; should check for crash
+		--assert not error? try [
+			parse http://rebol.info/foo [
+				"http" opt "s" "://rebol.info" to end
+			]
+		]
 
-	; --test-- "#913"
+	--test-- "#913"
+		person: make object! [
+			name: none
+			new: func [ n ][
+				make self [
+					name: n
+				]
+			]
+		]
+
+		Bob: person/new "Bob"
+		--assert equal? "Bob" Bob/name
+		unset [person Bob]
 
 	; --test-- "#916"
+	; 	; should check for compiler error
+	; 	--assert error? try [round/x 1]
+	; 	--assert error? try [append/y [] 2]
 
-	; --test-- "#917"
+	--test-- "#917"
+		; should check for crash
+		--assert not error? try [o: context [a: b: none]]
 
-	; --test-- "#918"
+	--test-- "#918"
+		; should check for compiler error
+		f: func [o [object!]] [
+			o/a: 1
+		]
+		o: object [a: 0]
+		unset [f o]
 
-	; --test-- "#919"
+	--test-- "#919"
+		o: context [
+			a: 0
+			set 'f does [a: 1]
+		]
+		equal? f object [a: 1]
+		unset 'o
 
-	; --test-- "#920"
+	--test-- "#920"
+		f: func [o [object!]] [
+			o/a: 1
+		]
+		--assert equal? 1 f object [a: 0]
+		o: object [a: 0]
+		--assert equal? 1 f o
+		unset [f o]
 
-	; --test-- "#923"
+	--test-- "#923"
+		; should check print output
+		c: context [
+			a: none
+			?? a
 
-	; --test-- "#927"
+			f: does [
+				?? a
+				print a
+				print [a]
+			]
+		]
+		c/f
+		unset 'c
 
-	; --test-- "#928"
+	--test-- "#927"
+		f: does [
+			object [
+				a: 1
+				g: does [a]
+			]
+		]
 
-	; --test-- "#929"
+		--assert object? obj: f
+		--assert function? obj/g
 
-	; --test-- "#930"
+		obj: object [
+			a: 1
+			f: does [a]
+		]
+		--assert equal? 1 obj/a
+		--assert equal? 1 obj/f
+		unset [f obj]
 
-	; --test-- "#931"
+	--test-- "#928"
+		o: object [
+			a: 1
 
-	; --test-- "#932"
+			c: context [
+				b: 2
+
+				f: does [a]
+			]
+		]
+		--assert not error? try [o/c/f]
+		--assert equal? 1 o/c/f
+		unset 'o
+
+	--test-- "#929"
+		out: copy ""
+		c: context [
+			f: does [
+				append out "*"
+			]
+			g: does [
+				do [f]
+				append out "!"
+				f
+			]
+		]
+		--assert equal? "*!*" c/g
+		unset [out c]
+
+	--test-- "#930"
+		; should check for compiler crash
+		c: context [
+			f: function [
+				/extern x
+				/local y
+			][
+				x: 1
+				set 'y 2
+			]
+		]
+		unset 'c
+
+	--test-- "#931"
+		p1: context [
+			a: 1
+			f: does [a]
+		]
+
+		p2: context [
+			a: 2
+		]
+
+		ch: make p1 p2
+		--assert equal? 2 ch/f
+		unset [p1 p2 ch]
+
+	--test-- "#932"
+		p1: context [
+			a: 1
+			f: does [a]
+		]
+		p2: context [
+			a: 2
+			f: does [100]
+		]
+		ch: make p1 p2
+		--assert equal? 100 ch/f
+		unset [p1 p2 ch]
 
 	; --test-- "#934"
+	; 	; should check for compiler error
+	; 	print*: :print
+	; 	print: does []
+	; 	; TODO: something something
+	; 	print: :print*
 
-	; --test-- "#939"
+	--test-- "#939"
+		b: [#"x" #"y"]
+		--assert not error? try [b/(#"x")]
+		--assert equal? #"y" b/(#"x")
+		unset 'b
 
 	; --test-- "#943"
+	; 	TODO: IMO this bug is double bag, it should not accept "5 at all"
+	; 	; needs to check for print output
+	; 	bar: func [/with a [block!] b][
+	; 		?? a 
+	; 		?? b
+	; 	]
+	; 	bar/with 5 6
 
-	; --test-- "#946"
+	--test-- "#946"
+		; should check for compiler error
+		f: function [
+			a [object!]
+		][
+			a/b
+		]
+		unset 'f
 
-	; --test-- "#947"
+	--test-- "#947"
+		; should check for compiler error
+		f: func [
+			o [object!]
+		][
+			if o/a [o/a]
+		]
+		unset 'f
 
-	; --test-- "#956"
+	--test-- "#956"
+		; should check for compiler error
+		f: function [
+			o [object!]
+		][
+			if o/a [
+				all [o]
+			]
+		]
+		unset 'f
 
-	; --test-- "#957"
+	--test-- "#957"
+		; should check for compiler error
+		f: function [
+			o [object!]
+		] [
+			switch o/a [
+				0 [
+					switch 0 [
+						0 [
+						]
+					]
+				]
+			]
+		]
+		unset 'f
 
-	; --test-- "#959"
+	--test-- "#959"
+		; should check for compiler error
+		c: context [
+			x: none
 
-	; --test-- "#960"
+			f: func [
+				o [object!]
+			] [
+				x: o/a
+			]
+		]
+		unset 'c
 
-	; --test-- "#962"
+	--test-- "#960"
+		; should check for compiler error
+		c: object [
+			d: object [
+			]
+		]
+
+		f: func [
+		][
+			c/d
+		]
+		unset [c f]
+
+	--test-- "#962"
+		; should check for compiler error
+		f: function [
+			o [object!]
+		] [
+			v: none
+
+			case [
+				all [
+					o/a = o/a
+					o/a = o/a
+				] [
+				]
+			]
+		]
+		unset 'f
 
 	; --test-- "#965"
+		; should check for compiler error
+		; f: func [
+		; 	o [object!]
+		; ] [
+		; 	if yes [
+		; 		append o/a o/b
+		; 	]
+		; ]
 
 	; --test-- "#967"
+		; R/S
 
 	; --test-- "#969"
+		; compilation error
 
 	; --test-- "#970"
+		; library compilation problem
 
-	; --test-- "#971"
+	--test-- "#971"
+		c: context [
+			set 'f does []
+		]
+		--assert not unset? 'f
+		unset [c f]
 
-	; --test-- "#973"
+	--test-- "#973"
+		a: func [] [
+			repeat i 2 [i]
+		]
+		b: copy []
+		repeat j 2 [append b a]
+		--assert equal? [2 2] b
+		unset [a b]
 
-	; --test-- "#974"
+	--test-- "#974"
+		--assert not error? try [random 3]
 
-	; --test-- "#980"
+	--test-- "#980"
+		c: context [
+			set 'f does []
+		]
+		--assert not error? try [f]
+		unset [c f]
 
-	; --test-- "#981"
+	--test-- "#981"
+		b: [a: none]
+		--assert equal? object b context b
+		unset 'b
 
-	; --test-- "#983"
+	--test-- "#983"
+		f: func [
+			o
+		] [
+			switch o/x [
+				0 []
+			]
+		]
+		--assert unset? f object [x: 0]
+		unset 'f
 
 	; --test-- "#988"
+		; TODO: platform specific compilation problem
 
-	; --test-- "#990"
+	--test-- "#990"
+		f: func [
+			o [object!]
+		] [
+			switch type?/word o/x [
+				integer! [
+					'integer
+				]
+			]
+		]
+		--assert equal? 'integer f object [x: 0]
+		unset 'f
 
-	; --test-- "#993"
+	--test-- "#993"
+		f: func [
+			o [object!]
+			/local a
+		] [
+			switch a: type? o/x [
+				integer! [
+					print "?"
+				]
+			]
+		]
+		--assert not error? try [f object [x: 0]]
+		unset 'f
 
 	; --test-- "#994"
+		; TODO: caused by Rebol GC bug
 
 	; --test-- "#995"
+		; TODO: architecture specific problem
 
 	; --test-- "#1001"
 		; should check PRINT output
