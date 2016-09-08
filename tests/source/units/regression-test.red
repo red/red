@@ -715,60 +715,179 @@ Red [
 	; --test-- "#796"
 
 	; --test-- "#800"
+		; console behaviour (ask)
 
 	; --test-- "#806"
+		; precompiled console problem
 
 	; --test-- "#810"
+		; R/S
 
 	; --test-- "#817"
+		; TODO: need more info
 
 	; --test-- "#818"
+		; TODO: need more info
 
-	; --test-- "#820"
+	--test-- "#820"
+	; should check for print output
+		print [1 2 3]
+		print [1 space 3]
+		print [1 space space 3]
 
-	; --test-- "#825"
+	--test-- "#825"
+		the-text: "outside"
+		the-fun: function [] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun [/local the-text]
+		the-fun: func [] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun []
+		the-fun: function [/extern the-text] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun []
+		the-fun: func [/local the-text] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun [/local the-text]
+		the-fun: func [extern the-text] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun [extern the-text]
+		the-fun: func [local the-text] [the-text: "Hello, World!" print the-text]
+		--assert equal? spec-of :the-fun [local the-text]
+		unset [the-text the-fun]
 
-	; --test-- "#829"
+	--test-- "#829"
+		; should check print output
+		print "a^@b"
 
 	; --test-- "#831"
+	; 	FIXIME: not fixed yet, crashes compiler
+	; 	f: function [][1]
+	; 	f: function [][1]
 
-	; --test-- "#832"
+	; 	f: 100
+	; 	--assert not equal? f 100
 
-	; --test-- "#837"
+	--test-- "#832"
+		; should check for print output
+		r: routine [
+			/local expected [c-string!]
+		][
+			expected: {^(F0)^(9D)^(84)^(A2)}
+			print [length? expected lf]
+		]
+		r
+		unset 'r
 
-	; --test-- "#839"
+	--test-- "#837"
+		; should check for crash
+		s: "123"
+		--assert error? try [load {s/"1"}]
 
-	; --test-- "#847"
+	--test-- "#839"
+		; should check for crash
+		--assert not error? try [take/part "as" 4]
 
-	; --test-- "#849"
+	--test-- "#847"
+		; should check for print output
+		foo-test: routine [
+			/local inf nan
+		][
+			inf: 1e308 + 1e308
+			nan: 0.0 * inf
+			print-line inf
+			print-line nan
+			print-line ["inf > nan: " inf > nan]
+			print-line ["inf < nan: " inf < nan]
+			print-line ["inf <> nan: " inf <> nan]
+			print-line ["inf = nan: " inf = nan]
+		]
+		foo-test
 
-	; --test-- "#853"
+	--test-- "#849"
+		--assert equal? 1.2 1.2
+		--assert equal? "ščř" "ščř"
+		--assert equal? 1.2 1.2
+		--assert equal? -1.0203 -1.0203
 
-	; --test-- "#854"
+	--test-- "#853"
+	the-text: "outside"
+	the-fun: function [
+		/extern the-text
+	] [
+		the-text: "Hello, World!"  
+		the-text
+	]
+	--assert equal? the-fun "Hello, World!"
+	--assert equal? the-text "Hello, World!"
+	unset [the-text the-fun]
 
-	; --test-- "#856"
+	--test-- "#854"
+		f1: function [/r1 v1 v2 /r2 v3][
+			out: copy {}
+			either r1 [
+				append out reduce [v1 v2]
+			][
+				append out "We're not v1 or v2."
+			]
+			either r2 [append out v3][append out "I'm not v3."]
+			out
+		]
+		--assert equal? f1 "We're not v1 or v2.I'm not v3."
+		--assert equal?
+			f1/r1 "I'm v1!" "I'm v2!"
+			"I'm v1!I'm v2!I'm not v3."
+		--assert equal? 
+			f1/r1/r2 "I'm v1!" "I'm v2!" "I'm v3!"
+			"I'm v1!I'm v2!I'm v3!"
+		--assert equal? 
+			f1/r2/r1 "I'm v3!" "I'm v1!" "I'm v2!"
+			"I'm v1!I'm v2!I'm v3!"
+		unset 'f1
+
+	--test-- "#856"
+		--assert equal? [a bčř 10] load "a bčř 10"
 
 	; --test-- "#858"
+		; R/S
 
 	; --test-- "#861"
+		; R/S, system specific
 
-	; --test-- "#869"
+	--test-- "#869"
+		--assert not error? try [load {[1 2.3]}]
 
-	; --test-- "#871"
+	--test-- "#871"
+		--assert word? first first [:a/b]
 
-	; --test-- "#873"
+	--test-- "#873"
+		parse s: "" [insert (#0)]
+		--assert equal? "0" head s
+		unset 's
 
-	; --test-- "#876"
+	--test-- "#876"
+		--assert error? try [
+			foreach w words-of system/words [
+				if w = 'xx [
+					print [w tab type? get w]
+				]
+			]
+		]
 
 	; --test-- "#877"
+		; needs to check print output
+		; #system [
+		; 	print-line ["In Red/System 1.23 = " 1.23]
+		; ]
+
+		; print ["In Red 1.23 =" 1.23]
 
 	; --test-- "#880"
+		; R/S, system specific
 
 	; --test-- "#884"
+		; TODO: case-sensitivity in header -- needs tests in separate files
 
 	; --test-- "#893"
+		; console precompilation problem
 
-	; --test-- "#899"
+	--test-- "#899"
+		--assert error? try [load {p: [a/b:/c]}]
 
 	--test-- "#902"
 		; should check for crash
