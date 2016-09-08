@@ -360,6 +360,7 @@ redc: context [
 		opts: make opts [
 			build-basename: file
 			type: 'dll
+			libRed?: yes
 		]
 		script: next [Red []]					;-- empty script for the lib
 		result: red/compile script opts
@@ -510,7 +511,7 @@ redc: context [
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			;if opts/dev-mode? [build-libRed opts]
+			if opts/dev-mode? [build-libRed opts]
 
 			fail-try "Red Compiler" [
 				result: red/compile src opts

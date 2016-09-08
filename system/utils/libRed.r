@@ -343,7 +343,8 @@ libRed: context [
 			append/only pos spec
 		]
 		append template mold imports
-		write %/c/dev/red/libred.tmpl template
+		write %/c/dev/red/libred-include.red template
+		;write %/c/dev/red/libred-defs.red mold functions
 		template
 	]
 	
