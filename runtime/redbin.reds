@@ -465,5 +465,9 @@ redbin: context [
 		root-base
 	]
 	
-	boot-load: does [decode system/boot-data root]
+	boot-load: func [payload [byte-ptr!] keep? [logic!] /local saved][
+		if keep? [saved: root-base]
+		decode payload root
+		if keep? [root-base: saved]
+	]
 ]

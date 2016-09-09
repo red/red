@@ -196,7 +196,7 @@ red: context [
 		crypto/init
 		
 		stack/init
-		redbin/boot-load
+		redbin/boot-load system/boot-data no
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity

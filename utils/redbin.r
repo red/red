@@ -390,7 +390,7 @@ context [
 		clear sym-string
 		clear symbols
 		clear contexts
-		index: 0
+		index: 0 ;709
 	]
 	
 	finish: func [spec [block!] /local flags compress? data out len][

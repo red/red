@@ -29,8 +29,19 @@ libRed: context [
 		red/eval-path*
 		red/eval-int-path
 		red/eval-path
-			
+		
+		red/redbin/boot-load
+		
+		red/platform/prin*
+		red/platform/prin-int*
+		red/platform/prin-hex*
+		red/platform/prin-2hex*
+		red/platform/prin-float*
+		red/platform/prin-float32*
+		
 		red/stack/mark
+		red/stack/mark-native
+		red/stack/mark-func
 		red/stack/unwind
 		red/stack/unwind-last
 		red/stack/reset
@@ -101,8 +112,10 @@ libRed: context [
 		red/word/get-any
 		red/word/get-in
 		red/word/set-in
+		red/word/set
 		red/word/replace
 		red/word/from
+		red/word/load
 		
 		red/get-word/get
 		
@@ -298,17 +311,32 @@ libRed: context [
 		]
 	]
 	
-	process: func [functions /local name list pos][
+	process: func [functions /local name list pos tmpl][
 		clear imports
 		clear template
 		append template "^/red: context "
 		
 		append imports [
-			#include %runtime/macros.reds
-			#include %runtime/datatypes/structures.reds
+			#define series!	series-buffer!
+			#define node! int-ptr!
+			#include %../runtime/macros.reds
+			#include %../runtime/datatypes/structures.reds
+				
+			cell!: alias struct! [
+				header	[integer!]						;-- cell's header flags
+				data1	[integer!]						;-- placeholders to make a 128-bit cell
+				data2	[integer!]
+				data3	[integer!]
+			]
+			series-buffer!: alias struct! [
+				flags	[integer!]						;-- series flags
+				node	[int-ptr!]						;-- point back to referring node
+				size	[integer!]						;-- usable buffer size (series-buffer! struct excluded)
+				offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
+				tail	[cell!]							;-- series buffer tail pointer 
+			]
 		]
 		foreach def funcs [
-?? def		
 			ctx: next def
 			list: imports
 			
@@ -324,11 +352,9 @@ libRed: context [
 				list: pos/3
 				ctx: next ctx
 			]
-			either pos: find list #system [pos: pos/2/4][
+			either pos: find list #import [pos: pos/2/3][
 				append list copy/deep [
-					#system [
-						#import "libRed.dll" stdcall
-					]
+					#import ["libRed.dll" stdcall]
 				]
 				append/only last list pos: make block! 20
 			]
@@ -343,8 +369,8 @@ libRed: context [
 			append/only pos spec
 		]
 		append template mold imports
-		write %/c/dev/red/libred-include.red template
-		;write %/c/dev/red/libred-defs.red mold functions
+		tmpl: load replace/all mold template "[red/" "["
+		write %/c/dev/red/libred-include.red tmpl
 		template
 	]
 	

@@ -4084,26 +4084,26 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		;unless job/dev-mode? [
-		pc: next load-source/hidden %boot.red			;-- compile Red's boot script
-		unless job/red-help? [clear-docstrings pc]
-		booting?: yes
-		comp-block
-		booting?: no
-		
-		mods: tail output
-		foreach module needed [
-			saved: if script-path [copy script-path]
-			script-path: first split-path module
-			pc: next load-source/hidden module
+		unless all [job/dev-mode? not in job 'libRed?][
+			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 			unless job/red-help? [clear-docstrings pc]
+			booting?: yes
 			comp-block
-			script-path: saved
+			booting?: no
+
+			mods: tail output
+			foreach module needed [
+				saved: if script-path [copy script-path]
+				script-path: first split-path module
+				pc: next load-source/hidden module
+				unless job/red-help? [clear-docstrings pc]
+				comp-block
+				script-path: saved
+			]
 		]
-		;]
 		
 		pc: code										;-- compile user code
-		user: either job/dev-mode? [clear output][tail output]
+		user: tail output
 		comp-block
 		
 		main: output
@@ -4201,9 +4201,10 @@ red: context [
 		out: copy/deep either job/dev-mode? [[
 			Red/System [origin: 'Red]
 
-			#import-libRed
+			<imports>
 
 			with red [
+				redbin/boot-load system/boot-data yes
 				exec: context <script>
 			]
 		]][[
@@ -4216,6 +4217,10 @@ red: context [
 			]
 		]]
 		
+		if all [job/dev-mode? not in job 'libRed?][
+			replace out <imports> load %libRed-include.red
+			append clear functions load-safe %libred-defs.red
+		]
 		set [user mods main] comp-source code
 		
 		;-- assemble all parts together in right order
@@ -4249,14 +4254,17 @@ red: context [
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
-		
-		;if job/dev-mode? [
-		;	replace out <imports> probe libRed/process
-		;]
 
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
+	]
+	
+	load-safe: func [file [file!]][
+		data: load file
+		replace data %"" to word! "%"
+		replace data ">>>" to word! ">>>"
+		data
 	]
 	
 	clear-docstrings: func [script [block!] /local clean rule pos][
@@ -4356,10 +4364,9 @@ red: context [
 		main-path: first split-path any [all [block? file system/options/path] file]
 		no-global?: job/type = 'dll
 		resources: make block! 8
-?? job
+		
 		time: dt [
 			src: load-source file
-?? src			
 			job/red-pass?: yes
 			process-config src/1 job
 			process-needs src/1 next src

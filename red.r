@@ -356,17 +356,39 @@ redc: context [
 	]
 	
 	build-libRed: func [opts [object!] /local script result file][
+		print "Compiling libRed..."
 		file: %libRed
 		opts: make opts [
 			build-basename: file
 			type: 'dll
 			libRed?: yes
+			link?: yes
+			unicode?: yes
 		]
-		script: next [Red []]					;-- empty script for the lib
+		script: next [Red []]							;-- empty script for the lib
 		result: red/compile script opts
+		print [
+			"...compilation time :" format-time result/2 "ms^/"
+			"^/Compiling to native code..."
+		]
 		unless encap? [change-dir %system/]
-		system-dialect/compile/options/loaded file opts result
+		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
+		show-stats result
+probe red/redbin/get-index
+	]
+	
+	show-stats: func [result][
+		print ["...compilation time :" format-time result/1 "ms"]
+		
+		if result/2 [
+			print [
+				"...linking time     :" format-time result/2 "ms^/"
+				"...output file size :" result/3 "bytes^/"
+				"...output file      :" to-local-file result/4 lf
+			]
+		]
+		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
 
 	parse-options: func [
@@ -511,7 +533,11 @@ redc: context [
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			if opts/dev-mode? [build-libRed opts]
+			all [
+				opts/dev-mode?
+				not all [exists? %libRed.dll exists? %libRed-include.red]
+				build-libRed opts
+			]
 
 			fail-try "Red Compiler" [
 				result: red/compile src opts
@@ -522,10 +548,8 @@ redc: context [
 
 	;--- 2nd pass: Red/System compiler ---
 
-		print [
-			newline
-			"Compiling to native code..."
-		]
+		print "^/Compiling to native code..."
+		
 		fail-try "Red/System Compiler" [
 			unless encap? [change-dir %system/]
 			result: either rs? [
@@ -537,16 +561,7 @@ redc: context [
 			]
 			unless encap? [change-dir %../]
 		]
-		print ["...compilation time :" format-time result/1 "ms"]
-
-		if result/2 [
-			print [
-				"...linking time     :" format-time result/2 "ms^/"
-				"...output file size :" result/3 "bytes^/"
-				"...output file      :" to-local-file result/4 lf
-			]
-		]
-		unless Windows? [print ""]						;-- extra LF for more readable output
+		show-stats result
 	]
 
 	set 'rc func [cmd [file! string! block!]][

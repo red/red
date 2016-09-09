@@ -3241,7 +3241,6 @@ system-dialect: make-profilable context [
 			pc: src
 			script: secure-clean-path file
 	
-			if job/dev-mode? [replace src <imports> read %../libRed-include.red]
 			unless no-header [comp-header]
 			unless no-events [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
@@ -3257,13 +3256,18 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		finalize: does [
+		finalize: has [tmpl][
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			
 			if job/type = 'dll [
-				if job/dev-mode? [
+				if all [job/dev-mode? in job 'libRed?][
 					libRed/make-exports functions exports
 					libRed/process functions
+					
+					tmpl: mold/all new-line/all/skip to-block red/functions yes 2
+					replace tmpl "% " {%"" }
+					replace tmpl ">>>" {">>>"}
+					write %/c/dev/red/libred-defs.red tmpl
 				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
@@ -3367,9 +3371,11 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			set-cache-base %runtime/
- 			script: pick [%red.reds %../runtime/red.reds] encap?
- 			compiler/run job loader/process/own script script
+ 			if any [not job/dev-mode? in job 'libRed?][
+				set-cache-base %runtime/
+				script: pick [%red.reds %../runtime/red.reds] encap?
+				compiler/run job loader/process/own script script
+			]
  		]
  		set-cache-base none
 	]
