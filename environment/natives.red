@@ -849,7 +849,7 @@ now: make native! [[
 ]
 
 sign?: make native! [[
-		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)."
+		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
 		number [number! time!]
 	]
 	#get-definition NAT_SIGN?
