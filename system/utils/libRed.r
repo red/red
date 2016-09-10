@@ -380,7 +380,7 @@ libRed: context [
 		]
 		append template mold imports
 		tmpl: load replace/all mold template "[red/" "["
-		write %/c/dev/red/libred-include.red tmpl
+		write %./../libred-include.red tmpl
 		template
 	]
 	
