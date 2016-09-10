@@ -4197,7 +4197,7 @@ red: context [
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user mods main][
+	comp-as-exe: func [code [block!] /local out user mods main defs][
 		out: copy/deep either job/dev-mode? [[
 			Red/System [origin: 'Red]
 
@@ -4219,7 +4219,9 @@ red: context [
 		
 		if all [job/dev-mode? not in job 'libRed?][
 			replace out <imports> load %libRed-include.red
-			append clear functions load-safe %libred-defs.red
+			defs: load-safe %libred-defs.red
+			append clear functions defs/1
+			redbin/index: defs/2
 		]
 		set [user mods main] comp-source code
 		
@@ -4262,8 +4264,8 @@ red: context [
 	
 	load-safe: func [file [file!]][
 		data: load file
-		replace data %"" to word! "%"
-		replace data ">>>" to word! ">>>"
+		replace data/1 %"" to word! "%"
+		replace data/1 ">>>" to word! ">>>"
 		data
 	]
 	
@@ -4351,6 +4353,7 @@ red: context [
 		depth:	   0
 		max-depth: 0
 		container-obj?: none
+		redbin/index: 0
 	]
 
 	compile: func [

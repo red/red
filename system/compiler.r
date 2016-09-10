@@ -3264,7 +3264,10 @@ system-dialect: make-profilable context [
 					libRed/make-exports functions exports
 					libRed/process functions
 					
-					tmpl: mold/all new-line/all/skip to-block red/functions yes 2
+					tmpl: mold/all reduce [
+						new-line/all/skip to-block red/functions yes 2
+						red/redbin/index
+					]
 					replace tmpl "% " {%"" }
 					replace tmpl ">>>" {">>>"}
 					write %/c/dev/red/libred-defs.red tmpl

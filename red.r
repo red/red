@@ -375,7 +375,6 @@ redc: context [
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
 		show-stats result
-probe red/redbin/get-index
 	]
 	
 	show-stats: func [result][
