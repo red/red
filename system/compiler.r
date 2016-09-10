@@ -3256,20 +3256,28 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		finalize: has [tmpl][
+		finalize: has [tmpl words][
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			
 			if job/type = 'dll [
 				if all [job/dev-mode? in job 'libRed?][
 					libRed/make-exports functions exports
 					libRed/process functions
-					
+					words: to-block extract red/symbols 2
+					remove-each w words [find form w #"~"]
+
 					tmpl: mold/all reduce [
 						new-line/all/skip to-block red/functions yes 2
 						red/redbin/index
+						red/globals
+						red/contexts
+						red/objects
+						red/actions
+						red/op-actions
+						words
 					]
-					replace tmpl "% " {%"" }
-					replace tmpl ">>>" {">>>"}
+					replace/all tmpl "% " {%"" }
+					replace/all tmpl ">>>" {">>>"}
 					write %/c/dev/red/libred-defs.red tmpl
 				]
 				if empty? exports [

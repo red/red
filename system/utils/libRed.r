@@ -42,9 +42,14 @@ libRed: context [
 		red/stack/mark
 		red/stack/mark-native
 		red/stack/mark-func
+		red/stack/mark-loop
+		red/stack/mark-try
+		red/stack/mark-try-all
+		red/stack/mark-catch
 		red/stack/unwind
 		red/stack/unwind-last
 		red/stack/reset
+		red/stack/keep
 		red/stack/push
 		red/stack/check-call
 		red/stack/unroll
@@ -301,6 +306,11 @@ libRed: context [
 	template: make string! 50'000
 	
 	make-exports: func [functions exports /local name][
+		foreach [name spec] functions [
+			if find/match form name "exec/" [
+				append/only funcs load form name
+			]
+		]
 		foreach def funcs [
 			name: to word! form def
 			append exports name

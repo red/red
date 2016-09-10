@@ -4221,7 +4221,15 @@ red: context [
 			replace out <imports> load %libRed-include.red
 			defs: load-safe %libred-defs.red
 			append clear functions defs/1
-			redbin/index: defs/2
+			redbin/index:	defs/2
+			globals:		defs/3
+			contexts:		defs/4
+			objects:		defs/5
+			actions:		defs/6
+			op-actions:		defs/7
+			foreach w defs/8 [add-symbol w]
+			
+			make-keywords
 		]
 		set [user mods main] comp-source code
 		
@@ -4264,8 +4272,10 @@ red: context [
 	
 	load-safe: func [file [file!]][
 		data: load file
-		replace data/1 %"" to word! "%"
-		replace data/1 ">>>" to word! ">>>"
+		foreach part [1 8][
+			replace/all data/:part %"" to word! "%"
+			replace/all data/:part ">>>" to word! ">>>"
+		]
 		data
 	]
 	
@@ -4353,7 +4363,7 @@ red: context [
 		depth:	   0
 		max-depth: 0
 		container-obj?: none
-		redbin/index: 0
+		redbin/index: 0									;-- required here by libRed
 	]
 
 	compile: func [
