@@ -3278,7 +3278,7 @@ system-dialect: make-profilable context [
 					]
 					replace/all tmpl "% " {%"" }
 					replace/all tmpl ">>>" {">>>"}
-					write %/c/dev/red/libred-defs.red tmpl
+					write %./../libred-defs.red tmpl
 				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
