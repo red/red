@@ -46,6 +46,7 @@ libRed: context [
 		red/stack/mark-try
 		red/stack/mark-try-all
 		red/stack/mark-catch
+		red/stack/mark-func-body
 		red/stack/unwind
 		red/stack/unwind-last
 		red/stack/reset
@@ -121,6 +122,7 @@ libRed: context [
 		red/word/replace
 		red/word/from
 		red/word/load
+		red/word/push-local
 		
 		red/get-word/get
 		
@@ -298,12 +300,13 @@ libRed: context [
 	]
 	
 	vars: [
-		red/stack/arguments
-		red/stack/top
+		red/stack/arguments		cell!
+		red/stack/top			cell!
 	]
 	
 	imports: make block! 100
 	template: make string! 50'000
+	obj-path: 'red/objects
 	
 	make-exports: func [functions exports /local name][
 		foreach [name spec] functions [
@@ -319,9 +322,32 @@ libRed: context [
 				halt
 			]
 		]
+		foreach [def type] vars [
+			name: to word! form def
+			append exports name
+		]
 	]
 	
-	process: func [functions /local name list pos tmpl][
+	obj-to-path: func [list tree /local pos o][
+		foreach [sym obj ctx id proto opt] list [
+			if 2 < length? obj-path [
+				pos: find tree obj
+				change/only pos to paren! reduce [append copy obj-path sym]
+			]
+			if object? obj [
+				foreach w next first obj [
+					if object? o: get in obj w [
+						append obj-path sym
+						obj-to-path reduce [w o none none none none] tree
+						remove back tail obj-path
+					]
+				]
+			]
+		]
+		tree
+	]
+	
+	process: func [functions /local name list pos tmpl words lits][
 		clear imports
 		clear template
 		append template "^/red: context "
@@ -329,8 +355,8 @@ libRed: context [
 		append imports [
 			#define series!	series-buffer!
 			#define node! int-ptr!
-			#include %../runtime/macros.reds
-			#include %../runtime/datatypes/structures.reds
+			#include %/c/dev/red/runtime/macros.reds
+			#include %/c/dev/red/runtime/datatypes/structures.reds
 				
 			cell!: alias struct! [
 				header	[integer!]						;-- cell's header flags
@@ -378,10 +404,52 @@ libRed: context [
 			clear find spec /local
 			append/only pos spec
 		]
+		
+		foreach [def type] vars [
+			pos: find imports to set-word! def/2
+			list: pos/3/2/3
+			repend list [
+				to set-word! last def form def reduce [type]
+			]
+			new-line skip tail list -3 yes
+		]
+		list: find imports to set-word! 'stack
+		append list/3 [
+			#enum flags! [FRAME_FUNCTION: 16777216]				;-- 01000000h
+		]
+		append imports [
+			words: context [
+				_body:	red/word/load "<body>"
+				_anon:	red/word/load "<anon>"
+			]
+		]
+		
 		append template mold imports
 		tmpl: load replace/all mold template "[red/" "["
 		write %/c/dev/red/libred-include.red tmpl
-		template
+		
+		words: to-block extract red/symbols 2
+		remove-each w words [find form w #"~"]
+		
+		lits: copy red/literals
+		while [pos: find lits 'get-root][
+			remove/part skip pos -3 5
+		]
+		tmpl: mold/all reduce [
+			new-line/all/skip to-block red/functions yes 2
+			red/redbin/index
+			red/globals
+			obj-to-path list: copy/deep red/objects list
+			red/contexts
+			red/actions
+			red/op-actions
+			words
+			lits
+			red/s-counter
+		]
+		replace/all tmpl "% " {%"" }
+		replace/all tmpl ">>>" {">>>"}
+		write %/c/dev/red/libred-defs.red tmpl
 	]
 	
 ]

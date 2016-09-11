@@ -4223,12 +4223,13 @@ red: context [
 			append clear functions defs/1
 			redbin/index:	defs/2
 			globals:		defs/3
-			contexts:		defs/4
-			objects:		defs/5
+			objects:		compose/deep bind objects: defs/4 red
+			contexts:		defs/5
 			actions:		defs/6
 			op-actions:		defs/7
 			foreach w defs/8 [add-symbol w]
-			
+			append literals defs/9
+			s-counter:		defs/10
 			make-keywords
 		]
 		set [user mods main] comp-source code

@@ -597,7 +597,7 @@ system-dialect: make-profilable context [
 		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
 				pc: skip pc -2
-				throw-error "invalid path value"
+				throw-error ["invalid path value:" mold path]
 			]
 			either word? path/1 [
 				either parent [
@@ -1514,8 +1514,11 @@ system-dialect: make-profilable context [
 							pos: set id   string!
 							pos: set spec block!    (
 								either all [1 = length? spec not block? spec/1][
-									unless parse spec type-syntax [throw-error err]
-									either ns-path [add-ns-symbol specs/1][
+									unless parse spec type-spec [throw-error err]
+									either ns-path [
+										add-ns-symbol specs/1
+										add-symbol ns-prefix to word! specs/1 none spec
+									][
 										add-symbol to word! specs/1 none spec
 									]
 									repend list [id reloc: make block! 1]
@@ -3263,22 +3266,6 @@ system-dialect: make-profilable context [
 				if all [job/dev-mode? in job 'libRed?][
 					libRed/make-exports functions exports
 					libRed/process functions
-					words: to-block extract red/symbols 2
-					remove-each w words [find form w #"~"]
-
-					tmpl: mold/all reduce [
-						new-line/all/skip to-block red/functions yes 2
-						red/redbin/index
-						red/globals
-						red/contexts
-						red/objects
-						red/actions
-						red/op-actions
-						words
-					]
-					replace/all tmpl "% " {%"" }
-					replace/all tmpl ">>>" {">>>"}
-					write %/c/dev/red/libred-defs.red tmpl
 				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
