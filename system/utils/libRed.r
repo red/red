@@ -54,8 +54,10 @@ libRed: context [
 		red/stack/push
 		red/stack/check-call
 		red/stack/unroll
+		red/stack/unroll-loop
 		red/stack/revert
 		red/stack/adjust-post-try
+		red/stack/pop
 		
 		red/interpreter/eval-path
 		
@@ -148,6 +150,33 @@ libRed: context [
 		red/float/box
 		
 		red/_function/init-locals
+		
+		;-- console.red dependencies
+		red/block/rs-head
+		red/block/rs-next
+		red/block/rs-tail?
+		red/block/rs-length?
+		red/block/rs-abs-at
+		red/block/rs-append
+		red/string/rs-head
+		red/string/rs-tail?
+		red/string/equal?
+		red/string/rs-make-at
+		red/string/get-char
+		red/string/rs-reset
+		red/string/concatenate
+		red/string/rs-length?
+		red/string/concatenate-literal
+		red/string/append-char
+		red/string/insert-char
+		red/string/rs-abs-length?
+		red/string/remove-char
+		red/string/poke-char
+		red/string/remove-part
+		red/_series/copy
+		;--
+		
+		red/unicode/load-utf8
 		
 		red/object/unchanged?
 		red/object/unchanged2?
@@ -297,11 +326,16 @@ libRed: context [
 		red/natives/request-dir*
 		red/natives/checksum*
 		red/natives/unset*
+		red/natives/handle-thrown-error
 	]
 	
 	vars: [
 		red/stack/arguments		cell!
 		red/stack/top			cell!
+		red/unset-value			cell!
+		red/none-value			cell!
+		red/true-value			cell!
+		red/false-value			cell!
 	]
 	
 	imports: make block! 100
@@ -355,6 +389,8 @@ libRed: context [
 		append imports [
 			#define series!	series-buffer!
 			#define node! int-ptr!
+			#define get-unit-mask	31
+			
 			#include %/c/dev/red/runtime/macros.reds
 			#include %/c/dev/red/runtime/datatypes/structures.reds
 				
@@ -406,8 +442,13 @@ libRed: context [
 		]
 		
 		foreach [def type] vars [
-			pos: find imports to set-word! def/2
-			list: pos/3/2/3
+			list: either 2 < length? def [
+				pos: find imports to set-word! def/2
+				pos/3/2/3
+			][
+				pos: find imports #import
+				pos/2/3
+			]
 			repend list [
 				to set-word! last def form def reduce [type]
 			]
@@ -449,6 +490,7 @@ libRed: context [
 		]
 		replace/all tmpl "% " {%"" }
 		replace/all tmpl ">>>" {">>>"}
+		replace/all tmpl "red/red-" "red-"
 		write %/c/dev/red/libred-defs.red tmpl
 	]
 	
