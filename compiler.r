@@ -4273,7 +4273,7 @@ red: context [
 	
 	load-safe: func [file [file!]][
 		data: load file
-		foreach part [1 8][
+		foreach part [1 7 8][
 			replace/all data/:part %"" to word! "%"
 			replace/all data/:part ">>>" to word! ">>>"
 		]
