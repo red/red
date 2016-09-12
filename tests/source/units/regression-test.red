@@ -594,73 +594,144 @@ Red [
 
 	; --test-- "#599"
 
-	; --test-- "#601"
+	--test-- "#601"
+		b: [] parse "!" [collect into b [keep 0 skip]]
+		--assert empty? head b
+		unset 'b
 
-	; --test-- "#604"
+	--test-- "#604"
+		--assert equal? "_" form "_"
+		--assert equal? "_" form #"_"
 
-	; --test-- "#605"
+	--test-- "#605"
+		--assert none? length? none
+		--assert error? try [1 + none] ; #621
 
 	; --test-- "#606"
+		; must be separate file
 
 	; --test-- "#608"
+		; must be separate file
 
 	; --test-- "#609"
+		; console behaviour
 
-	; --test-- "#616"
+	--test-- "#616"
+		e: copy ""
+		f: [b_c c_d]
+		append e f
+		--assert equal? "b_cc_d" e
+		a: copy ""
+		c: [glp_set_prob_name glp_get_prob_name]
+		append a c
+		--assert equal? "glp_set_prob_nameglp_get_prob_name" a
+		b: copy ""
+		d: load "glp_set_prob_name glp_get_prob_name"
+		append b d
+		--assert equal? "glp_set_prob_nameglp_get_prob_name" b
+		g: copy ""
+		h: [bc cd]
+		append g h
+		--assert equal? "bccd" g
+		unset [a b c d e f g h]
 
 	; --test-- "#620"
+		; should check for print output
 
-	; --test-- "#625"
+	--test-- "#625"
+		--assert equal? #"^(1F)" first "^(1f)"
 
 	; --test-- "#626"
+		; see #637
 
-	; --test-- "#628"
+	--test-- "#628"
+		--assert equal? "make objec" mold/part context [a: "1" b: "2"] 10
 
 	; --test-- "#630"
+		; should check for crash
+		; st1: "<id"
+		; delimiter: charset "<"
+		; rule: [ some [delimiter | copy c skip ] ]
+		; print parse-trace st1 rule
+
 
 	; --test-- "#633"
+		; should check for compiler error
+		not error? try [#"^(back)"]
 
 	; --test-- "#634"
+		; should check for crash
 
 	; --test-- "#637"
+		; TODO: syntax error in compiler
 
 	; --test-- "#644"
+		; TODO: how to check for hangup?
 
-	; --test-- "#645"
+	--test-- "#645"
+		not error? try [
+			comment [
+				1 + 1
+			]
+		]
 
-	; --test-- "#646"
+	--test-- "#646"
+		--assert not error? try [foreach x [] []]
 
-	; --test-- "#647"
+	--test-- "#647"
+		--assert error? try [load "type? quote '1" ]
 
 	; --test-- "#650"
+		; NOTE still a bug, crashes test
+	;	f: func [/1]
+	;	probe f/1
 
-	; --test-- "#651"
+	--test-- "#651"
+		--assert equal? [1 []] load "1[]"
+		--assert equal? [[] 1] load "[]1"
 
 	; --test-- "#653"
+		; TODO: need to check header
 
-	; --test-- "#655"
+	--test-- "#655"
+		--assert none? load "#[none]"
 
-	; --test-- "#656"
+	--test-- "#656"
+		--assert not error? try [load "+1"]
 
-	; --test-- "#657"
+	--test-- "#657"
+		--assert equal? {"} "^""
 
 	; --test-- "#659"
+		; should check for crash
 
 	; --test-- "#660"
+		; console building problem
 
 	; --test-- "#667"
+		; should check for crash
 
 	; --test-- "#669"
+		; TODO: compiler issue
 
-	; --test-- "#678"
+	--test-- "#678"
+		--assert parse "cat" [1 "cat"]
+		--assert not parse "cat" [2 "cat"]
+		--assert not parse "cat" [3 "cat"]
+		--assert not parse "cat" [4 "cat"]
 
 	; --test-- "#682"
+		; TODO
 
 	; --test-- "#687"
+		; console behaviour
 
 	; --test-- "#696"
+		; console behaviour
 
-	; --test-- "#699"
+	--test-- "#699"
+		letter: charset "ABCDEF"
+		--assert parse "FFh" [2 8 letter #"h"]
 
 	--test-- "#702"
 		--assert not error? try [
