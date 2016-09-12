@@ -37,8 +37,6 @@ event: context [
 		arg		[red-value!]
 		part 	[integer!]
 		return: [integer!]
-		/local
-			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "event/form"]]
 		
@@ -75,7 +73,8 @@ event: context [
 		type: TYPE_OF(arg2)
 		if type <> TYPE_EVENT [RETURN_COMPARE_OTHER]
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL [res: as-integer type <> TYPE_EVENT]
 			COMP_SORT
@@ -110,7 +109,7 @@ event: context [
 			case [
 				sym = words/type	  [gui/get-event-type evt]
 				sym = words/face	  [gui/get-event-face evt]
-				;sym = words/window	  [gui/get-event-window evt]
+				sym = words/window	  [gui/get-event-window evt]
 				sym = words/offset	  [gui/get-event-offset evt]
 				sym = words/key		  [gui/get-event-key evt]
 				sym = words/picked	  [gui/get-event-picked evt]
@@ -173,6 +172,7 @@ event: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

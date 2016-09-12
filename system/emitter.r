@@ -418,7 +418,9 @@ emitter: make-profilable context [
 					target/emit-get-pc
 				]
 				cpu [
-					target/emit-access-register path/3 set? value
+					switch/default path/3 [
+						overflow? [target/emit-get-overflow]
+					][target/emit-access-register path/3 set? value]
 				]
 				fpu [
 					if 2 = length? path [
@@ -501,7 +503,12 @@ emitter: make-profilable context [
 		if all [not with system-path? path value][exit]
 
 		either 2 = length? path [
-			type: first compiler/resolve-type/with path/1 parent
+			type: first either parent [
+				compiler/resolve-type/with path/1 parent
+			][
+				compiler/resolve-type path/1
+			]
+			
 			if all [type = 'struct! parent][
 				parent: resolve-path-head path parent
 			]

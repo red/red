@@ -133,15 +133,15 @@ Red [
 	--test-- "pmul-2"
 		pmul2-p: 1x1
 		--assert equal? pmul2-p * 2x1 2x1
-		
+; awaiting integer! to float! promotion			
 	--test-- "pmul-3"
 		pmul3-p: 2x2
-;		--assert equal? attempt [pmul3-p * 2147483647x2147483647] none
+		;--assert equal? attempt [pmul3-p * 2147483647x2147483647] none
 		
 	--test-- "pmul-4"
 		pmul4-p: -3x-3
-;		--assert equal? attempt [pmul4-p * -2147483648] none
-		
+		;--assert equal? attempt [pmul4-p * -2147483648] none
+	
 ===end-group===
 
 ===start-group=== "pair - divide"
@@ -197,7 +197,7 @@ Red [
 	--test-- "pneg-3"
 		pneg3-p: 2147483647x2147483647
 		--assert equal? negate pneg3-p -2147483647x-2147483647
-		
+; awaiting integer! to float! promotion		
 	--test-- "pneg-4"
 		pneg4-p: -2147483648x-2147483648
 ;		--assert equal? attempt [negate pneg4-p] none

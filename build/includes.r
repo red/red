@@ -25,6 +25,7 @@ write %build/bin/sources.r set-cache [
 		%lexer.red
 		%natives.red
 		%operators.red
+		%reactivity.red
 		%routines.red
 		%scalars.red
 		%system.red
@@ -79,6 +80,7 @@ write %build/bin/sources.r set-cache [
 			%common.reds
 			%context.reds
 			%datatype.reds
+			%email.reds
 			%error.reds
 			%event.reds
 			%file.reds
@@ -111,6 +113,8 @@ write %build/bin/sources.r set-cache [
 			%string.reds
 			%structures.reds
 			%symbol.reds
+			%tag.reds
+			%time.reds
 			%typeset.reds
 			%tuple.reds
 			%unset.reds
@@ -144,6 +148,7 @@ write %build/bin/sources.r set-cache [
 					%button.reds
 					%camera.reds
 					%classes.reds
+					%direct2d.reds
 					%draw.reds
 					%events.reds
 					%font.reds

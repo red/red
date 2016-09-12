@@ -43,6 +43,7 @@ either any [
 	][                     
 		--compile-run-print src
 	][
+		
 		either find read qt/tests-dir/:src "quick-unit-test.r" [
 			--run-unit-test src
 		][
@@ -53,4 +54,3 @@ either any [
 ]
 
 prin ""
-

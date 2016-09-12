@@ -208,12 +208,20 @@ redc: context [
 		file
 	]
 
-	add-legacy-flags: func [opts [object!]][
+	add-legacy-flags: func [opts [object!] /local out ver][
 		if all [Windows? win-version <= 60][
 			either opts/legacy [						;-- do not compile gesture support code for XP, Vista, Windows Server 2003/2008(R1)
 				append opts/legacy 'no-touch
 			][
 				opts/legacy: copy [no-touch]
+			]
+		]
+		if system/version/4 = 2 [						;-- macOS version extraction
+			out: make string! 128
+			call/output "sw_vers -productVersion" out
+			attempt [
+				ver: load out
+				opts/OS-version: load rejoin [ver/1 #"." ver/2]
 			]
 		]
 	]
@@ -502,7 +510,7 @@ redc: context [
 			src: clean-path join base-path src			;-- add working dir path
 		]
 		unless exists? src [
-			fail ["Cannot access source file:" src]
+			fail ["Cannot access source file:" to-local-file src]
 		]
 
 		add-legacy-flags opts
@@ -519,14 +527,14 @@ redc: context [
 		if all [prefix: opts/build-prefix find prefix %/] [
 			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" build-dir]
+				fail ["Cannot access build dir:" to-local-file build-dir]
 			]
 		]
 
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
-			"Compiling" src "..."
+			"Compiling" to-local-file src "..."
 		]
 
 		unless rs? [
@@ -547,8 +555,11 @@ redc: context [
 
 	;--- 2nd pass: Red/System compiler ---
 
-		print "^/Compiling to native code..."
-		
+		print [
+			newline
+			"Target:" opts/config-name lf lf
+			"Compiling to native code..."
+		]
 		fail-try "Red/System Compiler" [
 			unless encap? [change-dir %system/]
 			result: either rs? [

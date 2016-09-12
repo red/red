@@ -95,15 +95,29 @@ integer: context [
 	]
 
 	do-math-op: func [
-		left		[integer!]
-		right		[integer!]
-		type		[math-op!]
-		return:		[integer!]
+		left	[integer!]
+		right	[integer!]
+		type	[math-op!]
+		return:	[integer!]
+		/local
+			res [integer!]
 	][
 		switch type [
-			OP_ADD [left + right]
-			OP_SUB [left - right]
-			OP_MUL [left * right]
+			OP_ADD [
+				res: left + right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
+			OP_SUB [
+				res: left - right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
+			OP_MUL [
+				res: left * right
+				if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
+				res
+			]
 			OP_AND [left and right]
 			OP_OR  [left or right]
 			OP_XOR [left xor right]
@@ -112,6 +126,9 @@ integer: context [
 					fire [TO_ERROR(math zero-divide)]
 					0								;-- pass the compiler's type-checking
 				][
+					if all [left = -2147483648 right = -1][
+						fire [TO_ERROR(math overflow)]
+					]
 					left % right
 				]
 			]
@@ -120,6 +137,9 @@ integer: context [
 					fire [TO_ERROR(math zero-divide)]
 					0								;-- pass the compiler's type-checking
 				][
+					if all [left = -2147483648 right = -1][
+						fire [TO_ERROR(math overflow)]
+					]
 					left / right
 				]
 			]
@@ -153,13 +173,14 @@ integer: context [
 			TYPE_OF(right) = TYPE_PERCENT
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
+			TYPE_OF(right) = TYPE_TIME
 		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
 				left/value: do-math-op left/value right/value type
 			]
-			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
+			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
 			TYPE_PAIR  [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
@@ -176,7 +197,7 @@ integer: context [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
 				tp: (as byte-ptr! left) + 4
-				size: as-integer tp/1
+				size: TUPLE_SIZE?(right)
 				n: 0
 				until [
 					n: n + 1
@@ -240,21 +261,6 @@ integer: context [
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
-	]
-
-	to-float: func [
-		i		[integer!]
-		return: [float!]
-		/local
-			f	[float!]
-			d	[int-ptr!]
-	][
-		;-- Based on this method: http://stackoverflow.com/a/429812/494472
-		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
-		f: 6755399441055744.0
-		d: as int-ptr! :f
-		d/value: i or d/value
-		either i < 0 [f - 6755403736023040.0][f - 6755399441055744.0]
 	]
 
 	;-- Actions --
@@ -321,7 +327,7 @@ integer: context [
 			TYPE_PERCENT [
 				f: as red-float! type
 				f/header: type/value
-				f/value: to-float spec/value
+				f/value: as-float spec/value
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
@@ -398,7 +404,7 @@ integer: context [
 			TYPE_FLOAT [
 				f: as red-float! value1
 				left: value1/value
-				f/value: to-float left
+				f/value: as-float left
 				res: float/compare f as red-float! value2 op
 				value1/value: left
 				return res
@@ -471,10 +477,13 @@ integer: context [
 	negate: func [
 		return: [red-integer!]
 		/local
-			int [red-integer!]
+			int	  [red-integer!]
+			fl	  [red-float!]
+			value [integer!]
 	][
 		int: as red-integer! stack/arguments
 		int/value: 0 - int/value
+		if system/cpu/overflow? [fire [TO_ERROR(math overflow)]]
 		int 											;-- re-use argument slot for return value
 	]
 
@@ -508,7 +517,7 @@ integer: context [
 			negative? exp/value
 		][
 			f: as red-float! base
-			f/value: to-float base/value
+			f/value: as-float base/value
 			f/header: TYPE_FLOAT
 			float/power
 		][
@@ -584,16 +593,13 @@ integer: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_FLOAT [
 				f: as red-float! value
-				f/value: to-float num
+				f/value: as-float num
 				f/header: TYPE_FLOAT
 				return float/round value as red-float! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
 			sc: abs scale/value
 		]
-
-		if zero? sc [
-			fire [TO_ERROR(math overflow)]
-		]
+		if zero? sc [fire [TO_ERROR(math overflow)]]
 
 		n: abs num
 		r: n % sc
@@ -660,6 +666,7 @@ integer: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

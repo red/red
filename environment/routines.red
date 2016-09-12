@@ -60,6 +60,26 @@ quit-return: routine [
 	quit status
 ]
 
+set-quiet: routine [
+	"Set an object's field to a value without triggering object's events"
+	word  [word!]
+	value [any-type!]
+][
+	_context/set word stack/arguments + 1
+]
+
+browse: routine [
+	"Open web browser to a URL"
+	url [url!]
+][
+	#either OS = 'Windows [
+		platform/ShellExecute 0 #u16 "open" unicode/to-utf16 as red-string! url 0 0 1
+		unset/push-last
+	][
+		fire [TO_ERROR(internal not-here) words/_browse]
+	]
+]
+
 ;-- Following definitions are used to create op! corresponding operators
 shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
 shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]
@@ -83,8 +103,12 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 	]
 ]
 
-exists?: routine [path [file!]][
-	logic/box simple-io/file-exists? file/to-OS-path path
+create-dir: routine [path [file!]][			;@@ temporary, user should use `make-dir`
+	simple-io/make-dir file/to-OS-path path
+]
+
+exists?: routine [path [file!] return: [logic!]][
+	simple-io/file-exists? file/to-OS-path path
 ]
 
 as-color: routine [
@@ -94,7 +118,7 @@ as-color: routine [
 	/local
 		arr1 [integer!]
 ][
-	arr1: (b << 16) or (g << 8) or r
+	arr1: (b % 256 << 16) or (g % 256 << 8) or (r % 256)
 	stack/set-last as red-value! tuple/push 3 arr1 0 0
 ]
 
@@ -111,3 +135,8 @@ as-ipv4: routine [
 ]
 
 as-rgba: :as-ipv4
+
+;-- Temporary definition --
+to-paren: routine [blk [series!]][
+	if TYPE_OF(blk) = TYPE_BLOCK [blk/header: TYPE_PAREN]
+]

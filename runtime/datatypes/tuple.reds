@@ -118,9 +118,10 @@ tuple: context [
 		either float? [
 			until [
 				n: n + 1
-				f1: integer/to-float as-integer tp1/n
+				v1: as-integer tp1/n
+				f1: as-float v1
 				f1: float/do-math-op f1 f2 type
-				v1: float/to-integer f1
+				v1: as-integer f1
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size1
@@ -382,8 +383,6 @@ tuple: context [
 	length?: func [
 		tp		[red-tuple!]
 		return: [integer!]
-		/local
-			value  [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
@@ -411,7 +410,7 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 			null
 		][
-			as red-value! integer/box as-integer value/index
+			as red-value! integer/push as-integer value/index
 		]
 	]
 
@@ -467,7 +466,6 @@ tuple: context [
 			tmp  [byte!]
 			size [integer!]
 			n	 [integer!]
-			m	 [integer!]
 			tp   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
@@ -545,9 +543,10 @@ tuple: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			:pick
-			:poke
+			null			;poke
 			null			;put
 			null			;remove
 			:reverse

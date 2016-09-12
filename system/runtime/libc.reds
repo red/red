@@ -166,9 +166,19 @@ Red/System [
 		i
 	]
 
-	prin-float: func [f [float!] return: [float!]][
+	prin-float: func [f [float!] return: [float!] /local s p e?][
 		either f - (floor f) = 0.0 [
-			printf ["%g.0" f]
+			s: "                        "				;-- 23 + 1 for NUL
+			sprintf [s "%g.0" f]
+			assert s/1 <> null-byte
+			p: s
+			e?: no
+			while [p/1 <> null-byte][
+				if p/1 = #"e" [e?: yes]
+				p: p + 1
+			]
+			if e? [p: p - 2 p/1: null-byte]
+			prin s
 		][
 			printf ["%.16g" f]
 		]

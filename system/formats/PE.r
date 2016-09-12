@@ -983,8 +983,11 @@ context [
 	]
 
 	build-res-file-info: func [info [block!] type [word!] /local f ver][
-		either ver: select info 'version [
-			ver: 0.0.0.0 or to tuple! to string! ver
+		either all [
+			ver: select info 'version
+			issue? ver
+		][
+			ver: 0.0.0.0 or to tuple! debase/base next ver 16
 		][
 			ver: 0.0.0.0
 		]

@@ -34,13 +34,14 @@ Rebol: false											;-- makes loading Rebol scripts easier
 
 internal!:		make typeset! [unset! event!]
 number!:		make typeset! [integer! float! percent!]
-scalar!:		union number! make typeset! [char! pair! tuple!]
+scalar!:		union number! make typeset! [char! pair! tuple! time!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]
+any-list!:		make typeset! [block! paren! hash!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
-any-block!:		union any-path! make typeset! [block! paren! hash!]
+any-block!:		union any-path! any-list!
 any-function!:	make typeset! [native! action! op! function! routine!]
 any-object!:	make typeset! [object! error!]
-any-string!:	make typeset! [string! file! url!]
+any-string!:	make typeset! [string! file! url! tag! email!]
 series!:		union make typeset! [binary! image! vector!] union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
 default!:		union series! union immediate! union any-object! union any-function! make typeset! [map! bitset!]

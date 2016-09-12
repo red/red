@@ -223,27 +223,24 @@ Red/System [
 		fatf1: function [
 			[typed]
 			count [integer!]
-			list [typed-value!]
+			list [typed-float32!]
 			return: [float32!]
-			/local
-				a [float32!]
 		][
-			a: as float32! list/value
-			a
+			list/value
 		]
-    
+	
 		fatf2: function [
 			[typed]
 			count [integer!]
-			list [typed-value!]
+			list [typed-float32!]
 			return: [float32!]
 			/local
 				a [float32!]
 				b [float32!]
 		][
-			a: as float32! list/value 
+			a: list/value 
 			list: list + 1
-			b: as float32! list/value
+			b: list/value
 			a + b
 		]
   
@@ -328,7 +325,7 @@ Red/System [
 		--assert (fcfoo as float32! 5.0) - fcptr/a = as float32! 2.0			;-- reg(block!)/reg(path!)
 	
 	--test-- "fc-12"
-		--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! 2.0			;-- reg(path!)/reg(block!)
+		--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! -2.0			;-- reg(path!)/reg(block!)
 
 ===end-group===
 

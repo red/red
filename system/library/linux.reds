@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#if target = 'IA-32 [
-	system/fpu/mask/overflow: on
-	system/fpu/mask/underflow: on
-	system/fpu/mask/zero-divide: on
-	system/fpu/mask/invalid-op: on
-	system/fpu/update
-]
-
 #if OS <> 'Windows [
 	; Wordexp enums
 	#enum wrde-flag [
@@ -42,6 +34,19 @@ Red/System [
 		we_wordv  [str-array!]
 		we_offs   [integer!]
 	]
+
+	pollfd!: alias struct! [
+		fd		[integer!]
+		events	[integer!]			;-- events / revents
+	]
+
+	#define POLLIN		0001h
+	#define POLLPRI		0002h
+	#define POLLOUT		0004h
+	#define POLLERR		0008h
+	#define POLLHUP		0010h
+	#define POLLNVAL	0020h
+
 	; Values for the second argument to fcntl
 	#define F_DUPFD   0
 	#define F_GETFD   1
@@ -49,30 +54,24 @@ Red/System [
 	#define F_GETFL   3
 	#define F_SETFL   4
 
-	; Values for the third argument to fcntl
-	#enum open-fnctl! [
-		O_RDONLY:          00h
-		O_WRONLY:          01h
-		O_RDWR:            02h
-		O_CREAT:         0100h
-		O_EXCL:          0200h
-		O_NOCTTY:        0400h
-		O_TRUNC:     00001000h
-		O_APPEND:    00002000h
-		O_NONBLOCK:  00004000h
-		O_SYNC:      04010000h
-		O_ASYNC:     00020000h
-		O_LARGEFILE: 00100000h
-
-		O_DIRECTORY: 00200000h
-		O_NOFOLLOW:  00400000h
-		O_CLOEXEC:   02000000h
-		O_DIRECT:    00040000h
-		O_NOATIME:   01000000h
-		O_PATH:      10000000h
-		O_DSYNC:     00010000h
+	#case [
+		any [OS = 'FreeBSD OS = 'MacOSX] [
+			#define O_CREAT		0200h
+			#define O_TRUNC		0400h
+			#define O_EXCL		0800h
+			#define O_APPEND	8
+			#define	O_NONBLOCK	4
+			#define	O_CLOEXEC	01000000h
+		]
+		true [
+			#define O_CREAT		64
+			#define O_EXCL		128
+			#define O_TRUNC		512
+			#define O_APPEND	1024
+			#define	O_NONBLOCK	2048
+			#define	O_CLOEXEC	524288
+		]
 	]
-
 
 	#import [ LIBC-file cdecl [
 		fork: "fork" [ "Create a new process"
@@ -116,6 +115,12 @@ Red/System [
 			fd2            [integer!]  "File descriptor"
 			return:        [integer!]
 		]
+		_open:	"open" [
+			filename	[c-string!]
+			flags		[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
 		io-open: "open" [ "Open FILE and return a new file descriptor for it, or -1 on error"
 			filename		[c-string!]
 			flags			[integer!]
@@ -143,6 +148,12 @@ Red/System [
 			; cmd          [integer!]    "Command"
 			; ...                        "Optional arguments"
 			return:        [integer!]
+		]
+		poll: "poll" [
+			fds				[pollfd!]
+			nfds			[integer!]
+			timeout 		[integer!]
+			return: 		[integer!]
 		]
 	] ; cdecl
 	] ; #import

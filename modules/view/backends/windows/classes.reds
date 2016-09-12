@@ -136,8 +136,9 @@ FaceWndProc: func [
 	return: [integer!]
 ][
 	switch msg [
-		WM_LBUTTONDOWN	 [SetCapture hWnd]
-		WM_LBUTTONUP	 [ReleaseCapture]
+		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
+		WM_LBUTTONUP	 [ReleaseCapture return 0]
+		WM_NCHITTEST	 [return 1]						;-- HTCLIENT
 		default [0]
 	]
 	CallWindowProc as wndproc-cb! OldFaceWndProc hWnd msg wParam lParam

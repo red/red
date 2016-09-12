@@ -63,8 +63,6 @@ action: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/form"]]
 
@@ -116,6 +114,7 @@ action: context [
 		if type <> TYPE_ACTION [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -174,6 +173,7 @@ action: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

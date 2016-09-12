@@ -31,7 +31,7 @@ system-dialect: make-profilable context [
 	options-class: context [
 		config-name:		none						;-- Preconfigured compilation target ID
 		OS:					none						;-- Operating System
-		OS-version:			none						;-- OS version
+		OS-version:			0							;-- OS version
 		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
@@ -47,7 +47,7 @@ system-dialect: make-profilable context [
 		runtime?:			yes							;-- include Red/System runtime
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
-		debug-safe?:		no							;-- try to avoid over-crashing on runtime debug reports
+		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
 		dev-mode?:		 	yes							;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
@@ -823,8 +823,8 @@ system-dialect: make-profilable context [
 			]
 			if any [
 				all [type/1 = 'function! not find [function! integer!] ctype/1]
-				all [find [float! float64!] ctype/1 not any-float? type]
-				all [find [float! float64!] type/1  not any-float? ctype]
+				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
+				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
@@ -848,7 +848,7 @@ system-dialect: make-profilable context [
 					]
 				]
 				integer! [
-					if find [byte! logic!] type/1 [
+					if find [byte! logic! float! float32! float64!] type/1 [
 						value: to integer! value
 					]
 				]
@@ -856,6 +856,11 @@ system-dialect: make-profilable context [
 					switch type/1 [
 						byte! 	 [value: value <> null]
 						integer! [value: value <> 0]
+					]
+				]
+				float! float32! [
+					if type/1 = 'integer! [
+						value: to decimal! value
 					]
 				]
 			]
@@ -1166,7 +1171,10 @@ system-dialect: make-profilable context [
 						string! opt [into attribs]		;-- can be specified in any order
 						| into attribs opt string!
 					]
-					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
+					pos: copy args any [
+						pos: 'return (throw-error ["Cannot use `return` as argument name at:" mold pos])
+						| word! into type-def opt string!	;-- arguments definition
+					]
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
@@ -1988,7 +1996,7 @@ system-dialect: make-profilable context [
 			none
 		]
 
-		comp-block-chunked: func [/only /test name [word!] /local expr][
+		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
 				fetch-expression/final					;-- returns first expression
@@ -1998,6 +2006,15 @@ system-dialect: make-profilable context [
 			if test [
 				check-conditional name expr				;-- verify conditional expression
 				expr: process-logic-encoding expr no
+			]
+			if bool [
+				if all [
+					block? expr
+					find comparison-op expr/1
+					last-type/1 = 'logic!
+				][
+					emitter/logic-to-integer expr/1
+				]
 			]
 			reduce [
 				expr 
@@ -2116,7 +2133,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked
+					append/only list body: comp-block-chunked/bool
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find expr-call-stack #body
@@ -2166,8 +2183,8 @@ system-dialect: make-profilable context [
 					(repend values [value none])		;-- [value body-offset ...]
 					pos: block! (
 						fetch-into pos [				;-- compile action body
-							body: comp-block-chunked
-							append/only list body/2		
+							body: comp-block-chunked/bool
+							append/only list body/2
 							append/only types resolve-expr-type/quiet body/1
 						]
 					)
@@ -2175,7 +2192,7 @@ system-dialect: make-profilable context [
 				opt [
 					'default pos: block! (
 						fetch-into pos [				;-- compile default body
-							default: comp-block-chunked
+							default: comp-block-chunked/bool
 							append/only types resolve-expr-type/quiet default/1
 						]
 					)
@@ -2934,7 +2951,7 @@ system-dialect: make-profilable context [
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
+					emitter/target/emit-load expr		;-- emit code for single value
 					either all [boxed not decimal? unbox expr][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type
@@ -2964,8 +2981,8 @@ system-dialect: make-profilable context [
 				]
 				if all [
 					variable boxed						;-- process casting if result assigned to variable
-					find [logic! integer!] last-type/1
-					find [logic! integer!] boxed/type	;-- fixes #967
+					find [logic! integer! float! float32! float64!] last-type/1
+					find [logic! integer! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
 				][
 					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required

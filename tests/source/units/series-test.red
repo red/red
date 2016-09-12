@@ -1078,7 +1078,7 @@ Red [
 
 	--test-- "take-blk-6"
 		a: [1 2 3]
-		--assert 1 = take/part a next a
+		--assert [1] = take/part a next a
 		--assert [2 3] = a
 
 	--test-- "take-blk-7"
@@ -1436,16 +1436,276 @@ Red [
   
 ===end-group===
 
+===start-group=== "change"
+	--test-- "change-blk-1"
+		blk: [1 2 3]
+		blk1: change blk 6
+		--assert [2 3] = blk1
+		--assert 6 = first blk
+	--test-- "change-blk-2"
+		blk2: change blk1 [a b]
+		--assert empty? blk2
+		--assert 'a = first blk1
+	--test-- "change-blk-3"
+		blk3: change blk1 [9 8 7 6 5 4 3]
+		--assert empty? blk3
+		--assert 8 = length? blk
+
+	--test-- "change-str-1"
+		str: "abcde"
+		str1: change str 30
+		--assert "cde" = str1
+		--assert #"3" = first str
+	--test-- "change-str-2"
+		str2: change str1 "123"
+		--assert empty? str2
+		--assert #"1" = first str1
+	--test-- "change-str-3"
+		str3: change str1 "abcdef"
+		--assert empty? str3
+		--assert 8 = length? str
+	--test-- "change-str-4"
+		str4: change str "^(2710)"
+		--assert "0abcdef" = str4
+		--assert #"^(2710)" = first str
+		--assert 8 = length? str
+	--test-- "change-str-5"
+		str4: change str #"变"
+		--assert "0abcdef" = str4
+		--assert #"变" = first str
+		--assert 8 = length? str
+	--test-- "change-str-6"
+		str: change "1234" [a b]
+		--assert "34" = str
+		--assert "ab34" = head str
+
+	--test-- "change-bin-1"
+		bin: #{12345678}
+		bin1: change bin 30
+		--assert #{345678} = bin1
+		--assert 30 = first bin
+	--test-- "change-bin-2"
+		bin2: change bin1 "123"
+		--assert empty? bin2
+		--assert 49 = first bin1
+	--test-- "change-bin-3"
+		bin2: change bin1 #{ABCD}
+		--assert #{33} = bin2
+		--assert #{ABCD33} = bin1
+	--test-- "change-bin-4"
+		bin4: change bin #"^(2710)"
+		--assert #{33} = bin4
+		--assert #{E29C9033} = bin
+	--test-- "change-bin-5"
+		bin: change bin [a b]
+		--assert #{9033} = bin
+		--assert #{61629033} = head bin
+
+	--test-- "change-vec-1"
+		vec: make vector! [1 2 3 4]
+		vec2: change vec 30
+		--assert vec2 = make vector! [2 3 4]
+		--assert 30 = first vec
+	--test-- "change-vec-2"
+		vec3: change vec2 [31 32 33]
+		--assert empty? vec3
+		--assert vec = make vector! [30 31 32 33]
+	--test-- "change-vec-3"
+		vec4: change vec3 [34 35 36 37]
+		--assert empty? vec4
+		--assert 8 = length? vec
+
+	--test-- "change-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		hs2: change hs [x y z]
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
+	--test-- "change-hash-2"
+		change hs2 [a b c d e f]
+		--assert 'y = select hs 'x
+		--assert 'f  = select hs 'e
+===end-group===
+
+===start-group=== "change/only"
+
+	--test-- "change/only-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/only blk [a b]
+		--assert [2 3 4] = blk1
+		--assert [[a b] 2 3 4] = blk
+	
+	--test-- "change/only-str-1"
+		str: "1234"
+		str1: change/only str [a b]
+		--assert "34" = str1
+		--assert "ab34" = str
+
+	--test-- "change/only-bin-1"
+		bin: #{1234}
+		bin1: change/only bin [a b]
+		--assert empty? bin1
+		--assert #{6162} = bin
+
+	--test-- "change/only-vec-1"
+		vec: make vector! [1.0 2.0 3.0 4.0]
+		vec1: change/only vec [11.0 12.0]
+		--assert vec1 = make vector! [3.0 4.0]
+		--assert 11.0 = first vec
+===end-group===
+
+===start-group=== "change/dup"
+
+	--test-- "change/dup-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/dup blk #"o" 3
+		--assert [4] = blk1
+		--assert [#"o" #"o" #"o" 4] = blk
+	
+	--test-- "change/dup-blk-2"
+		blk2: change/dup blk1 'a 0
+		--assert blk2 = blk1
+		blk3: change/dup blk1 'b -1
+		--assert blk3 = blk1
+	
+	--test-- "change/dup-blk-3"
+		blk3: change/dup blk [a b] 4
+		--assert 8 = length? blk
+		--assert 'b = last blk
+		--assert empty? blk3
+	
+	--test-- "change/dup-str-1"
+		str: "1234"
+		str1: change/dup str #"x" 3
+		--assert "4" = str1
+		--assert "xxx4" = str
+
+	--test-- "change/dup-str-2"
+		str2: change/dup str "ab" 4
+		--assert 8 = length? str
+		--assert #"b" = last str
+		--assert empty? str2
+
+	--test-- "change/dup-bin-1"
+		bin: #{12345678}
+		bin1: change/dup bin #"x" 3
+		--assert #{78} = bin1
+		--assert #{78787878} = bin
+
+	--test-- "change/dup-bin-2"
+		bin2: change/dup bin #{ABCD} 4
+		--assert 8 = length? bin
+		--assert 205 = last bin
+		--assert empty? bin2
+
+	--test-- "change/dup-vec-1"
+		vec: make vector! [1 2 3 4]
+		vec1: change/dup vec 5 3
+		--assert vec1 = make vector! [4]
+		--assert vec = make vector! [5 5 5 4]
+
+	--test-- "change/dup-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		change/dup hs [x y] 2
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
+===end-group===
+
+===start-group=== "change/part"
+
+	--test-- "change/part-blk-1"
+		blk: [1 2 3 4]
+		blk1: change/part blk #"o" 3
+		--assert [4] = blk1
+		--assert [#"o" 4] = blk
+	
+	--test-- "change/part-blk-2"
+		blk2: change/part blk [a b c] 1
+		--assert [4] = blk2
+		--assert [a b c 4] = blk
+
+	--test-- "change/part-blk-3"
+		val: first blk2
+		blk3: change/part blk2 [z] -2
+		--assert val = first blk3
+		--assert [a z 4] = blk
+
+	--test-- "change/part-blk-4"
+		val: first blk
+		blk3: change/part blk [x y] 0
+		--assert val = first blk3
+		--assert 5 = length? blk
+		--assert 'x = first blk
+
+	--test-- "change/part-str-1"
+		str: "1234"
+		str1: change/part str #"x" 3
+		--assert "4" = str1
+		--assert "x4" = str
+
+	--test-- "change/part-str-2"
+		str2: change/part str "abc" 1
+		--assert "abc4" = str
+		--assert "4" = str2
+
+	--test-- "change/part-str-3"
+		val: first str2
+		str3: change/part str2 #"z" -2
+		--assert val = first str3
+		--assert "az4" = str
+
+	--test-- "change/part-str-4"
+		val: first str
+		str3: change/part str [x y] 0
+		--assert val = first str3
+		--assert 5 = length? str
+		--assert #"x" = first str
+
+	--test-- "change/part-bin-1"
+		bin: #{12345678}
+		bin1: change/part bin #"x" 3
+		--assert #{78} = bin1
+		--assert #{7878} = bin
+
+	--test-- "change/part-bin-2"
+		bin2: change/part bin "abc" 1
+		--assert #{78} = bin2 
+		--assert #{61626378} = bin
+
+	--test-- "change/part-bin-3"
+		val: first bin2
+		bin3: change/part bin2 #"z" -2
+		--assert val = first bin3
+		--assert #{617A78} = bin
+
+	--test-- "change/part-bin-4"
+		val: first bin
+		bin3: change/part bin [x y] 0
+		--assert val = first bin3
+		--assert 5 = length? bin
+		--assert 120 = first bin
+	;--test-- "change/part-vec-1"
+
+	--test-- "change/part-hash-1"
+		hs: make hash! [a b c 1 2 3]
+		change/part hs [x y] 4
+		--assert 'y = select hs 'x
+		--assert 3  = select hs 2
+	--test-- "change/part-hash-2"
+		change/part hs [n m o p] 1
+		--assert none = select hs 'x
+		--assert 'y = select hs 'p
+		--assert 3  = select hs 2
+===end-group===
+
 ===start-group=== "series-unicode"
 
-	--test-- "suc1"
-		;--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-		;				read %tests/fixtures/chinese-characters.txt
+	;--test-- "suc1"
+	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+	;					read %tests/fixtures/chinese-characters.txt
 						
-	--test-- "suc2"
-		;--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-		;				read/lines %tests/fixtures/chinese-characters.txt
+	;--test-- "suc2"
+	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+	;					read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
 ~~~end-file~~~
-

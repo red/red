@@ -55,36 +55,41 @@ pair: context [
 		]
 		left
 	]
-
-	make-in: func [
-		parent 	[red-block!]
+	
+	make-at: func [
+		slot 	[red-value!]
 		x 		[integer!]
 		y 		[integer!]
-		/local
-			pair [red-pair!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
-		
-		pair: as red-pair! ALLOC_TAIL(parent)
-		pair/header: TYPE_PAIR
-		pair/x: x
-		pair/y: y
-	]
-	
-	push: func [
-		value	[integer!]
-		value2  [integer!]
 		return: [red-pair!]
 		/local
 			pair [red-pair!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-at"]]
 		
-		pair: as red-pair! stack/push*
+		pair: as red-pair! slot
 		pair/header: TYPE_PAIR
-		pair/x: value
-		pair/y: value2
+		pair/x: x
+		pair/y: y
 		pair
+	]
+	
+	make-in: func [
+		parent 	[red-block!]
+		x 		[integer!]
+		y 		[integer!]
+		return: [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
+		make-at ALLOC_TAIL(parent) x y
+	]
+	
+	push: func [
+		x		[integer!]
+		y		[integer!]
+		return: [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/push"]]
+		make-at stack/push* x y
 	]
 
 	;-- Actions --
@@ -119,13 +124,13 @@ pair: context [
 				]
 				x: either TYPE_OF(int) = TYPE_FLOAT [
 					fl: as red-float! int
-					float/to-integer fl/value
+					as-integer fl/value
 				][
 					int/value
 				]
 				y: either TYPE_OF(int2) = TYPE_FLOAT [
 					fl: as red-float! int2
-					float/to-integer fl/value
+					as-integer fl/value
 				][
 					int2/value
 				]	
@@ -401,6 +406,7 @@ pair: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			:pick
 			null			;poke

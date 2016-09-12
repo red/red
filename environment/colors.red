@@ -56,3 +56,5 @@ wheat:		245.222.129
 white:		255.255.255
 yello:		255.240.120
 yellow:		255.255.0
+
+glass: transparent: 0.0.0.255							;-- 100% transparent

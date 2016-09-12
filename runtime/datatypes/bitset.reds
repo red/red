@@ -47,7 +47,6 @@ bitset: context [
 		/local
 			s	 [series!]
 			p	 [byte-ptr!]
-			not? [logic!]
 			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
@@ -256,7 +255,7 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		not?: FLAG_NOT?(s)
-		pbits: rs-head bits
+		pbits: as byte-ptr! s/offset
 		
 		switch op [
 			OP_SET [
@@ -381,7 +380,7 @@ bitset: context [
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
 					not?: FLAG_NOT?(s)
-					pbits: rs-head bits
+					pbits: as byte-ptr! s/offset
 					
 					switch op [
 						OP_SET [
@@ -835,7 +834,6 @@ bitset: context [
 			type  [integer!]
 			op	  [integer!]
 			s	  [series!]
-			not?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/poke"]]
 		
@@ -843,7 +841,6 @@ bitset: context [
 		bool: as red-logic! data
 		int:  as red-integer! data
 		s:	  GET_BUFFER(bits)
-		not?: FLAG_NOT?(s)
 		
 		op: either any [
 			type = TYPE_NONE
@@ -920,6 +917,7 @@ bitset: context [
 			null			;index?
 			:insert
 			:length?
+			null			;move
 			null			;next
 			:pick
 			:poke

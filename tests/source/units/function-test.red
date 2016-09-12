@@ -81,6 +81,64 @@ Red [
 		--assert res = non-evaluated (quote (1 + 2))
 		--assert 'quote = non-evaluated quote (1 + 2)
 
+	--test-- "fun-12"
+		foo12: func [/A argA /B argB][reduce [argA argB]]
+		res: foo12/A/B 5 6 
+		--assert res = [5 6]
+
+	--test-- "fun-13"
+		res: foo12/B/A 7 5
+		--assert res = [5 7]
+
+	--test-- "fun-14"
+		foo14: func [arg1 /A argA /B argB][reduce [arg1 argA argB]]
+		res: foo14/A/B 4 7 8
+		--assert res = [4 7 8]
+
+	--test-- "fun-15"
+		res: foo14/B/A 4 9 7
+		--assert res = [4 7 9]
+
+	--test-- "fun-16"
+		foo16: func [arg1 /A argA /B argB /C argC][reduce [arg1 argA argB argC]]
+		res: foo16/A/B/C 4 5 7 8
+		--assert res = [4 5 7 8]
+
+	--test-- "fun-17"
+		res: foo16/A/C/B 4 5 9 7
+		--assert res = [4 5 7 9]
+
+	--test-- "fun-18"
+		foo18: func [/A argA [string!] /B argB [integer!]][reduce [argA argB]]
+		res: foo18/A/B "a" 6
+		--assert res = ["a" 6]
+
+	--test-- "fun-19"
+		res: foo18/B/A 7 "b"
+		--assert res = ["b" 7]
+
+===end-group===
+
+===start-group=== "Out of order arguments type-checking tests"
+	
+	--test-- "ooo-1"
+		extract/into/index [1 2 3 4 5 6] 2 b: [] 2
+
+	--test-- "ooo-2"
+		ooo2: func [cmd /w /o out [block!]][]
+		ooo2/o/w "cmd" o: [] 
+		--assert true
+
+	--test-- "ooo-3"
+		a: func [/b c [integer!] /d e][]
+		a/d/b e: {} 1
+		a/d/b {} e: 1
+		--assert true
+
+	--test-- "ooo-4"
+		--assert error? try [a/d/b 1 e: {}]
+		--assert error? try [a/d/b e: 1 {}]
+
 ===end-group===
 
 ===start-group=== "Alternate constructor tests"
@@ -278,45 +336,47 @@ Red [
 
 ===start-group=== "Reported issues"
   	--test-- "ri1 issue #415"
-    	i415-f: func [] [
-    		g: func [] [1]
-    		g
-    	]
-    --assert 1 = i415-f
+		ri415-f: func [] [
+    		ri415-g: func [] [1]
+			ri415-g
+		]
+		--assert 1 = ri415-f
   
   	--test-- "ri2 issue #461"
   		ri2-fn: func ['word] [:word]
-  	--assert op? ri2-fn :+
+		--assert op? ri2-fn :+
   	
   	--test-- "ri3 issue #461"
   		ri3-fn: func ['word] [mold :word]
-  	--assert "'+" = ri3-fn '+
+		--assert "'+" = ri3-fn '+
   	
   	--test-- "ri4 issue #461"
   		ri4-fn: func ['word] [mold :word]
-  	--assert "+" = ri4-fn +
+ 		--assert "+" = ri4-fn +
+comment {  	
+  	--test-- "ri5 issue #420"
+  		ri5-fn: function [][
+  			g: func [] [true]
+  			g
+  		]
+  		--assert ri5-fn
+}
+ comment {   	
+  	--test-- "ri6 issue #420"
+  		ri6-fn: func [
+  			/local
+  				g
+  		][
+  			g: func [] [true]
+  			g
+  		]
+  	--assert ri6-fn
+}
   	
-  	;--test-- "ri5 issue #420"
-  	;	ri5-fn: function [][
-  	;		g: func [] [true]
-  	;		g
-  	;	]
-  	;--assert ri5-fn
-  	
-  	;--test-- "ri6 issue #420"
-  	;	ri6-fn: func [
-  	;		/local
-  	;			g
-  	;	][
-  	;		g: func [] [true]
-  	;		g
-  	;	]
-  	;--assert ri6-fn
-  	
-  	;--test-- "ri7 issue #420"
-  	;	ri7-g: func [][true]
-  	;	ri7-f: func [][g]
-  	;--assert ri7-f
+  	--test-- "ri7 issue #420"
+  		ri7-g: func [][true]
+  		ri7-f: func [][ri7-g]
+		--assert ri7-f
   	
   	--test-- "ri8 issue #443"
   		ri8-fn: func[
@@ -336,18 +396,14 @@ Red [
   	--assert 200 = ri8-j
   	
   	--test-- "ri9 issue #443"
-  		ri9-i: -1
-  		ri9-j: -2
   		ri9-fn: function[][
   			ri9-b: copy []
   			foreach [ri9-i ri9-j] [1 2 3 4] [append ri9-b ri9-i * ri9-j]
   			ri9-b
   		]
   	--assert [2 12] = ri9-fn
-  	--assert ri9-i = -1
-  	--assert ri9-j = -2
-  	;--assert unset! = type? get 'ri9-i		;-- temporary disabled to avoid the hardcoded error msg
-  	;--assert unset! = type? get 'ri9-j
+  	--assert error? try [get 'ri9-i]
+  	--assert error? try [get 'ri9-j]
 
 ===end-group===
 
@@ -373,7 +429,7 @@ Red [
 
 ===end-group===
 
-===start-group=== "Scope of Varibles"
+===start-group=== "Scope of Variables"
 
 	--test-- "scope1 issue #825"
 		s1-text: "abcde"
@@ -428,15 +484,43 @@ Red [
 		]
 		--assert "12345" = s7-f "filler" "12345"
 
+	--test-- "scope 8"
+		s8-f: function [/extern a][]
+		--assert empty? spec-of :s8-f
+
+	--test-- "scope 9"
+		s9-f: function [/extern a /local b][]
+		--assert [/local b] = spec-of :s9-f
+
+	--test-- "scope 10"
+		s10-f: function [/local b /extern a][]
+		--assert [/local b] = spec-of :s10-f
+
+	--test-- "scope 11"
+		s11-f: function [/extern a /local b][c: 0]
+		--assert [/local b c] = spec-of :s11-f
+
+	--test-- "scope 12"
+		s12-f: function [/local b /extern a][d: 1]
+		--assert [/local b d] = spec-of :s12-f
+
+	--test-- "scope 13"
+		s13-f: function [/local b][]
+		--assert [/local b] = spec-of :s13-f
+
+	--test-- "scope 14"
+		s14-f: function [/local b][e: 2]
+		--assert [/local b e] = spec-of :s14-f
+
 ===end-group===
 
 ===start-group=== "functionfunction"
-comment {                                       ####################################
-    --test-- "funfun1"
+comment { issue #420
+	--test-- "funfun1"
         ff1-i: 1
         ff1-f: function [][ff1-i: 2 f: func[][ff1-i] f]
         --assert 2 = ff1-f
-                                                #################################### }
+ }                                              
                                                 
     --test-- "funfun2"
         ff2-i: 1
@@ -543,7 +627,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         --assert 1 = ff11-i
     ]
 ]        
- 
+comment { 
     --test-- "funfun12"
         ff12-i: 1
         ff12-f: function [] [
@@ -552,7 +636,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert none = ff12-f
         --assert 1 = ff12-i
- comment {                                          ####################################       
+       
     --test-- "funfun13"
         ff13-i: 1
         ff13-f: function [/extern ff13-i] [
@@ -561,7 +645,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 3 = ff13-f
         --assert 3 = ff13-i
-                                                    ####################################}      
+      
     --test-- "funfun14"
         ff14-i: 1
         ff14-f: function [/extern ff14-i] [
@@ -570,7 +654,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 3 = ff14-f
         --assert 3 = ff14-i
- comment {                                          ####################################       
+       
     --test-- "funfun15"
         ff15-i: 1
         ff15-f: func [
@@ -586,7 +670,7 @@ if system/state/interpreted? [                          ;-- not yet supported by
         ]
         --assert 2 = ff15-f
         --assert 1 = ff15-i     
-                                                    ####################################}
+}
                                                     
 if system/state/interpreted? [                      ;-- not yet supported by compiler
 	do [
@@ -616,8 +700,7 @@ if system/state/interpreted? [                      ;-- not yet supported by com
 ===end-group===
 
 ===start-group=== "functions with objects"
-comment {                                          #################################### 
-    --test-- "fwo1 - #965"
+--test-- "fwo1 - #965"
         fwo1-f: func [
             o object!
         ][
@@ -627,8 +710,8 @@ comment {                                          #############################
             a: "hello"
             b: " world"
         ]
-        --assert "hello world" = fwo1-f
-                                                    ####################################} 
+        --assert "hello world" = fwo1-f fwo1-o
+
 ===end-group===
 
 ===start-group=== "function with lit-arg"
@@ -692,4 +775,3 @@ comment {                                          #############################
 ===end-group===
 
 ~~~end-file~~~
-

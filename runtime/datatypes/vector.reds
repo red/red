@@ -110,6 +110,35 @@ vector: context [
 		set-value p value unit
 		value
 	]
+
+	rs-overwrite: func [
+		vec		[red-vector!]
+		offset	[integer!]								;-- offset from head in elements
+		value	[red-value!]
+		return: [series!]
+		/local
+			s	  [series!]
+			p	  [byte-ptr!]
+			unit  [integer!]
+	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
+		set-value p value unit
+
+		if p >= (as byte-ptr! s/tail) [
+			s/tail: as cell! (as byte-ptr! s/tail) + unit
+		]
+		s
+	]
 	
 	rs-insert: func [
 		vec		[red-vector!]
@@ -120,7 +149,6 @@ vector: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			unit  [integer!]
-			unit2 [integer!]
 	][
 		if vec/type <> TYPE_OF(value) [
 			fire [TO_ERROR(script invalid-arg) value]
@@ -128,19 +156,18 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		unit2: unit
 
-		if ((as byte-ptr! s/tail) + unit2) > ((as byte-ptr! s + 1) + s/size) [
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
 		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 
 		move-memory										;-- make space
-			p + unit2
+			p + unit
 			p
 			as-integer (as byte-ptr! s/tail) - p
 
-		s/tail: as cell! (as byte-ptr! s/tail) + unit2
+		s/tail: as cell! (as byte-ptr! s/tail) + unit
 
 		set-value p value unit
 		s
@@ -369,7 +396,7 @@ vector: context [
 		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
 			either type = TYPE_INTEGER [
 				int: as red-integer! right
-				f2: integer/to-float int/value
+				f2: as-float int/value
 			][
 				fl: as red-float! right
 				f2: fl/value
@@ -394,7 +421,7 @@ vector: context [
 			][
 				fl: as red-float! right
 				f1: fl/value
-				v2: float/to-integer f1
+				v2: as-integer f1
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
@@ -758,7 +785,6 @@ vector: context [
 		/local
 			s1		[series!]
 			s2		[series!]
-			unit	[integer!]
 			unit1	[integer!]
 			unit2	[integer!]
 			type	[integer!]
@@ -771,15 +797,20 @@ vector: context [
 			p2		[byte-ptr!]
 			f1		[float!]
 			f2		[float!]
+			same?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
 
 		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
 		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
 
-		if all [
+		same?: all [
 			vec1/node = vec2/node
 			vec1/head = vec2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 		
@@ -860,16 +891,13 @@ vector: context [
 			cell	  [red-value!]
 			limit	  [red-value!]
 			int		  [red-integer!]
-			char	  [red-char!]
 			sp		  [red-vector!]
 			s		  [series!]
 			s2		  [series!]
 			dup-n	  [integer!]
 			cnt		  [integer!]
 			part	  [integer!]
-			len		  [integer!]
 			added	  [integer!]
-			vec-type  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
@@ -877,7 +905,6 @@ vector: context [
 		dup-n: 1
 		cnt:   1
 		part: -1
-		vec-type: vec/type
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -885,13 +912,14 @@ vector: context [
 				int/value
 			][
 				sp: as red-vector! part-arg
+				src: as red-block! value
 				unless all [
-					TYPE_OF(sp) = TYPE_VECTOR
-					sp/node = vec/node
+					TYPE_OF(sp) = TYPE_OF(src)
+					sp/node = src/node
 				][
-					fire [TO_ERROR(script invalid-part) part-arg]
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head + 1								;-- /head is 0-based
+				sp/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [
@@ -920,9 +948,6 @@ vector: context [
 			added: 0
 			
 			while [all [cell < limit added <> part]][	;-- multiple values case
-				if TYPE_OF(cell) <> vec-type [
-					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(cell)]
-				]
 				either tail? [
 					rs-append vec cell
 				][
@@ -940,6 +965,28 @@ vector: context [
 			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
+	]
+
+	change-range: func [
+		vec		[red-vector!]
+		cell	[red-value!]
+		limit	[red-value!]
+		part?	[logic!]
+		return: [integer!]
+		/local
+			added [integer!]
+	][
+		added: 0
+		while [cell < limit][
+			either part? [
+				rs-insert vec vec/head + added cell
+			][
+				rs-overwrite vec vec/head + added cell
+			]
+			added: added + 1
+			cell: cell + 1
+		]
+		added
 	]
 
 	add: func [return: [red-value!]][
@@ -1018,7 +1065,7 @@ vector: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -1027,6 +1074,7 @@ vector: context [
 			INHERIT_ACTION	;index?
 			:insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke

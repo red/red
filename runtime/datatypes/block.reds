@@ -22,8 +22,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
-		assert (as-integer (s/tail - s/offset)) >> 4 - blk/head >= 0
-		(as-integer (s/tail - s/offset)) >> 4 - blk/head
+		(as-integer (s/tail - s/offset)) >> 4 - blk/head ;-- warning: can be negative for past-end indexes!
 	]
 	
 	rs-next: func [
@@ -377,8 +376,6 @@ block: context [
 	push-only*: func [
 		size	[integer!]
 		return: [red-block!]
-		/local
-			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
@@ -401,12 +398,14 @@ block: context [
 			head  [red-value!]
 			tail  [red-value!]
 			value [red-value!]
+			lf?	  [logic!]
 	][
 		s: GET_BUFFER(blk)
 		head:  s/offset + blk/head
 		value: head
 		tail:  s/tail
 		
+		lf?: off
 		cycles/push blk/node
 		
 		while [value < tail][
@@ -416,6 +415,14 @@ block: context [
 			]
 			depth: depth + 1
 			unless cycles/detect? value buffer :part yes [
+				unless flat? [
+					if value/header and flag-new-line <> 0 [ ;-- new-line marker
+						unless lf? [lf?: on indent: indent + 1]
+						string/append-char GET_BUFFER(buffer) as-integer lf
+						loop indent [string/concatenate-literal buffer "    "]
+						part: part - (indent * 4 + 1) 		;-- account for lf
+					]
+				]
 				part: actions/mold value buffer only? all? flat? arg part indent
 			]
 			if positive? depth [
@@ -432,6 +439,12 @@ block: context [
 			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
 			part: part + 1
 		]
+		if lf? [
+			indent: indent - 1
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			loop indent [string/concatenate-literal buffer "    "]
+			part: part - (indent * 4 + 1) 		;-- account for lf
+		]
 		part
 	]
 
@@ -447,14 +460,20 @@ block: context [
 			size2  [integer!]
 			type1  [integer!]
 			type2  [integer!]
-			end	   [red-value!]
 			value1 [red-value!]
 			value2 [red-value!]
 			res	   [integer!]
+			n	   [integer!]
+			len	   [integer!]
+			same?  [logic!]
 	][
-		if all [
+		same?: all [
 			blk1/node = blk2/node
 			blk1/head = blk2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
 			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
@@ -473,8 +492,9 @@ block: context [
 
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
-		end: s1/tail											;-- only one "end" is needed
-		
+		len: either size1 < size2 [size1][size2]
+		n: 0
+
 		cycles/push blk1/node
 		
 		until [
@@ -499,12 +519,14 @@ block: context [
 				cycles/pop
 				return SIGN_COMPARE_RESULT(type1 type2)
 			]
+			n: n + 1
 			any [
 				res <> 0
-				value1 >= end
+				n = len
 			]
 		]
 		cycles/pop
+		if zero? res [res: SIGN_COMPARE_RESULT(size1 size2)]
 		res
 	]
 
@@ -515,7 +537,6 @@ block: context [
 		spec	 [red-value!]
 		return:	 [red-block!]
 		/local
-			blk  [red-block!]
 			size [integer!]
 			int	 [red-integer!]
 	][
@@ -647,20 +668,17 @@ block: context [
 			]
 		][
 			either set? [
-				element: find parent element null no case? no null null no no no no
+				element: find parent element null no case? no no null null no no no no
 				if TYPE_OF(element) = TYPE_NONE [
 					fire [TO_ERROR(script bad-path-set) path element]
 				]
 				actions/poke as red-series! element 2 value null
 				value
 			][
-				either all [
-					TYPE_OF(parent) = TYPE_BLOCK
-					type = TYPE_WORD
-				][
+				either type = TYPE_WORD [
 					select-word parent as red-word! element case?
 				][
-					value: select parent element null yes case? no null null no no
+					value: select parent element null yes case? no no null null no no
 					stack/pop 1							;-- remove FIND result from stack
 					value
 				]
@@ -676,6 +694,7 @@ block: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?	 	[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -690,7 +709,6 @@ block: context [
 			slot	[red-value!]
 			slot2	[red-value!]
 			end		[red-value!]
-			end2	[red-value!]
 			result	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
@@ -758,7 +776,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: ANY_BLOCK?(type)
+		any-blk?: either all [same? hash?][no][ANY_BLOCK?(type)]
 
 		either any [
 			match?
@@ -770,7 +788,6 @@ block: context [
 					b: as red-block! value
 					s2: GET_BUFFER(b)
 					value: s2/offset + b/head
-					end2: s2/tail
 					(as-integer s2/tail - s2/offset) >> 4 - b/head
 				][0]
 			]
@@ -797,6 +814,7 @@ block: context [
 				]
 			]
 			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
+			if same? [op: COMP_SAME]
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
 			type: either type = TYPE_DATATYPE [
@@ -807,8 +825,14 @@ block: context [
 			until [
 				either zero? values [
 					found?: either positive? type [
-						dt: as red-datatype! slot
-						type = dt/value						;-- simple type comparison
+						dt: as red-datatype! slot 
+						any [
+							TYPE_OF(slot) = type			;-- simple type comparison
+							all [
+								TYPE_OF(slot) = TYPE_DATATYPE
+								dt/value = type				;-- attempt matching a datatype! value
+							]
+						]
 					][
 						actions/compare slot value op		;-- atomic comparison
 					]
@@ -869,6 +893,7 @@ block: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -883,7 +908,7 @@ block: context [
 			type   [integer!]
 			offset [integer!]
 	][
-		result: find blk value part only? case? any? with-arg skip last? reverse? no no
+		result: find blk value part only? case? same? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
@@ -921,13 +946,23 @@ block: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			s	   [series!]
-			p	   [red-value!]
-			result [red-block!]
+			slot  [red-value!]
+			s	  [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
-
-		eval-path blk field value as red-value! none-value case?
+		
+		blk: as red-block! find blk field null no case? no no null null no no no no
+		
+		either TYPE_OF(blk) = TYPE_NONE [
+			copy-cell field ALLOC_TAIL(blk)
+			copy-cell value ALLOC_TAIL(blk)
+		][
+			s: GET_BUFFER(blk)
+			slot: s/offset + blk/head + 1
+			if slot >= s/tail [slot: alloc-tail s]
+			copy-cell value slot
+		]
+		value
 	]
 
 	compare-value: func [								;-- Compare function return integer!
@@ -1050,7 +1085,6 @@ block: context [
 			step	[integer!]
 			int		[red-integer!]
 			blk2	[red-block!]
-			fun		[red-function!]
 			op		[integer!]
 			flags	[integer!]
 			offset	[integer!]
@@ -1161,20 +1195,18 @@ block: context [
 			cell	[red-value!]
 			limit	[red-value!]
 			head	[red-value!]
-			key		[red-value!]
 			hash	[red-hash!]
 			table	[node!]
 			int		[red-integer!]
-			p		[int-ptr!]
 			b		[red-block!]
 			s		[series!]
+			h		[integer!]
 			cnt		[integer!]
 			part	[integer!]
 			size	[integer!]
 			slots	[integer!]
 			index	[integer!]
 			values?	[logic!]
-			head?	[logic!]
 			tail?	[logic!]
 			hash?	[logic!]
 	][
@@ -1194,11 +1226,14 @@ block: context [
 				int/value
 			][
 				b: as red-block! part-arg
-				assert all [
-					TYPE_OF(b) = TYPE_BLOCK
-					b/node = blk/node
+				src: as red-block! value
+				unless all [
+					TYPE_OF(b) = TYPE_OF(src)
+					b/node = src/node
+				][
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				b/head + 1								;-- /head is 0-based
+				b/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [
@@ -1228,20 +1263,26 @@ block: context [
 		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
 		
 		s: GET_BUFFER(blk)
-		head?: zero? blk/head
-		tail?: any [(s/offset + blk/head = s/tail) append?]
+		if s/offset + blk/head > s/tail [				;-- Past-end index adjustment
+			blk/head: (as-integer s/tail - s/offset) >> size? cell!
+		]
+		h: blk/head
+		tail?: any [(s/offset + h = s/tail) append?]
 		slots: part * cnt
-		index: either append? [(as-integer s/tail - s/offset) >> 4][blk/head]
+		index: either append? [(as-integer s/tail - s/offset) >> 4][h]
 		
 		unless tail? [									;TBD: process head? case separately
 			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size * 2]
-			head: s/offset + blk/head
+			head: s/offset + h
 			move-memory									;-- make space
 				as byte-ptr! head + slots
 				as byte-ptr! head
 				as-integer s/tail - head
-			
+
+			if hash? [
+				_hashtable/refresh table slots h (as-integer s/tail - head) >> 4 yes
+			]
 			s/tail: s/tail + slots
 		]
 
@@ -1253,39 +1294,42 @@ block: context [
 
 				either tail? [
 					while [cell < limit][				;-- multiple values case
-						key: copy-cell cell ALLOC_TAIL(blk)
+						copy-cell cell ALLOC_TAIL(blk)
 						cell: cell + 1
-						key: key - 1
-						if hash? [_hashtable/put table key]
 					]
 				][
 					while [cell < limit][				;-- multiple values case
 						copy-cell cell head
-						if hash? [_hashtable/put table head]
 						head: head + 1
 						cell: cell + 1
 					]
 				]
 			][											;-- single value case
 				either tail? [
-					key: copy-cell value ALLOC_TAIL(blk)
-					key: key - 1
-					if hash? [_hashtable/put table key]
+					copy-cell value ALLOC_TAIL(blk)
 				][
 					copy-cell value head
-					if hash? [_hashtable/put table head]
+					head: head + 1
 				]
 			]
 			cnt: cnt - 1
 		]
+
+		if hash? [
+			s: GET_BUFFER(blk)
+			cell: either tail? [s/tail - slots][s/offset + h]
+			loop slots [
+				_hashtable/put table cell
+				cell: cell + 1
+			]
+		]
+
 		ownership/check as red-value! blk words/_insert value index part
-		
+
 		either append? [blk/head: 0][
-			blk/head: blk/head + slots
+			blk/head: h + slots
 			s: GET_BUFFER(blk)
 			assert s/offset + blk/head <= s/tail
-
-			if all [not tail? hash?][_hashtable/refresh table slots blk/head]
 		]
 		as red-value! blk
 	]
@@ -1324,7 +1368,10 @@ block: context [
 			]
 		]
 
-		if 1 = _series/get-length blk yes [								;-- flatten block
+		if all [									;-- flatten block
+			not OPTION?(part-arg)
+			1 = _series/get-length blk yes
+		][
 			copy-cell as cell! s/offset as cell! blk
 		]
 		ownership/check as red-value! blk words/_taken null blk/head 0
@@ -1484,7 +1531,7 @@ block: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
-			skip?	[logic!]
+			append?	[logic!]
 			blk?	[logic!]
 			hash?	[logic!]
 	][
@@ -1506,7 +1553,7 @@ block: context [
 		blk1: as red-block! stack/arguments
 		blk2: blk1 + 1
 		len: rs-length? blk1
-		len: len + either op = OP_UNION [rs-length? blk2][0]
+		if op = OP_UNION [len: len + rs-length? blk2]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2
@@ -1535,16 +1582,16 @@ block: context [
 			]
 
 			while [value < tail] [			;-- iterate over first series
-				skip?: yes
+				append?: no
 				if check? [
-					find?: null <> _hashtable/get hash value 0 1 case? no no
+					find?: null <> _hashtable/get hash value 0 step case? no no
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					null = _hashtable/get table value 0 1 case? no no
+					null = _hashtable/get table value 0 step case? no no
 				][
-					skip?: no
+					append?: yes
 					_hashtable/put table rs-append new value
 				]
 
@@ -1554,7 +1601,7 @@ block: context [
 					all [value < tail i < step]
 				][
 					i: i + 1
-					unless skip? [
+					if append? [
 						key: rs-append new value
 						if hash? [_hashtable/put table key]
 					]
@@ -1619,7 +1666,7 @@ block: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			:copy
 			:find
@@ -1628,6 +1675,7 @@ block: context [
 			INHERIT_ACTION	;index?
 			:insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke

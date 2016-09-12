@@ -69,7 +69,7 @@ target-class: context [
 	]
 	
 	stack-encode: func [offset [integer!]][
-		either any [								;-- local variable case
+		either any [								;-- local variables only
 			offset < -128
 			offset > 127
 		][
@@ -77,6 +77,15 @@ target-class: context [
 		][
 			skip debase/base to-hex offset 16 3
 		]
+	]
+		
+	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
+		if 4 = length? offset [
+			lcode: copy/deep lcode
+			code: either block? lcode [first back find lcode 'offset][lcode]
+			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
+		]
+		lcode
 	]
 
 	emit: func [bin [binary! char! block!]][
@@ -124,7 +133,10 @@ target-class: context [
 	implicit-cast: func [arg /local right-width][
 		right-width: first get-width arg none
 		
-		if all [width = 4 right-width = 1][			;-- detect byte! -> integer! implicit casting
+		if any [
+			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
+			find [float! float32! float64!] first compiler/get-type arg
+		][
 			arg: make object! [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
@@ -226,10 +238,7 @@ target-class: context [
 				if name = 'not [res: compiler/get-type args/1]
 			]
 			op [
-				either any [
-					compiler/any-float? compiler/resolve-expr-type args/1
-					compiler/any-float? compiler/resolve-expr-type args/2
-				][
+				either compiler/any-float? compiler/resolve-expr-type args/1 [
 					emit-float-operation name args
 				][
 					emit-integer-operation name args

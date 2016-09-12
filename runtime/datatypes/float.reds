@@ -19,6 +19,7 @@ float: context [
 		FORM_FLOAT_32
 		FORM_FLOAT_64
 		FORM_PERCENT
+		FORM_TIME
 	]
 
 	pretty-print?: true
@@ -75,21 +76,6 @@ float: context [
 		fl
 	]
 
-	to-integer: func [
-		number 	[float!]
-		return:	[integer!]
-		/local
-			f	[float!]
-			d	[int-ptr!]
-	][
-		;-- Based on this method: http://stackoverflow.com/a/429812/494472
-		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
-		number: either number < 0.0 [ceil number][floor number]
-		f: number + 6755399441055744.0
-		d: as int-ptr! :f
-		d/value
-	]
-
 	form-float: func [
 		f			[float!]
 		type		[integer!]
@@ -125,14 +111,22 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		either type = FORM_FLOAT_32 [
-			s/8: #"0"
-			s/9: #"0"
-			sprintf [s "%.7g" f]
-		][
-			s/17: #"0"
-			s/18: #"0"
-			sprintf [s "%.16g" f]
+		case [
+			type = FORM_FLOAT_32 [
+				s/8: #"0"
+				s/9: #"0"
+				sprintf [s "%.7g" f]
+			]
+			type = FORM_TIME [									;-- nanosecond precision
+				s/10: #"0"
+				s/11: #"0"
+				sprintf [s "%.9g" f]
+			]
+			true [
+				s/17: #"0"
+				s/18: #"0"
+				sprintf [s "%.16g" f]
+			]
 		]
 
 		p:  null
@@ -180,11 +174,12 @@ float: context [
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
-						either type = FORM_FLOAT_32 [
-							sprintf [s0 "%.5g" f]
-						][
-							sprintf [s0 "%.14g" f]
+						s: case [
+							type = FORM_FLOAT_32 ["%.5g"]
+							type = FORM_TIME	 ["%.7g"]
+							true				 ["%.14g"]
 						]
+						sprintf [s0 s f]
 						s: s0
 					]
 				]
@@ -205,7 +200,7 @@ float: context [
 			s/1: #"%"
 			s/2: #"^@"
 		][
-			unless dot? [										;-- added tailing ".0"
+			if all [not dot? type <> FORM_TIME][				;-- added tailing ".0"
 				either p = null [
 					p: s
 				][
@@ -230,7 +225,7 @@ float: context [
 			OP_SUB [left - right]
 			OP_MUL [left * right]
 			OP_DIV [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
@@ -238,7 +233,7 @@ float: context [
 				]
 			]
 			OP_REM [
-				either 0.0 = right [
+				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
 					0.0						;-- pass the compiler's type-checking
 				][
@@ -261,6 +256,11 @@ float: context [
 			type1 [integer!]
 			type2 [integer!]
 			int   [red-integer!]
+			op1	  [float!]
+			op2	  [float!]
+			t1?	  [logic!]
+			t2?	  [logic!]
+			pct?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
@@ -274,6 +274,7 @@ float: context [
 			type1 = TYPE_INTEGER
 			type1 = TYPE_FLOAT
 			type1 = TYPE_PERCENT
+			type1 = TYPE_TIME
 		]
 
 		if type2 = TYPE_TUPLE [
@@ -285,29 +286,43 @@ float: context [
 			type2 = TYPE_CHAR
 			type2 = TYPE_FLOAT
 			type2 = TYPE_PERCENT
+			type2 = TYPE_TIME
 		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
 
 		if type1 = TYPE_INTEGER [
 			int: as red-integer! left
 			left/header: TYPE_FLOAT
-			left/value: integer/to-float int/value
+			left/value: as-float int/value
 		]
 		if any [
 			type2 = TYPE_INTEGER
 			type2 = TYPE_CHAR
 		][
 			int: as red-integer! right
-			right/value: integer/to-float int/value
+			right/value: as-float int/value
 		]
-
-		if all [							;-- convert percent! to float!
+		pct?:  all [
 			type1 = TYPE_PERCENT
 			type2 <> TYPE_PERCENT
-		][
-			left/header: TYPE_FLOAT
 		]
+		if pct? [left/header: TYPE_FLOAT]			;-- convert percent! to float!
+		
+		op1: left/value
+		op2: right/value
+		
+		t1?: all [type1 = TYPE_TIME type2 <> TYPE_TIME]
+		t2?: all [type1 <> TYPE_TIME type2 = TYPE_TIME]
+		
+		if t1? [op1: op1 * time/nano]
+		if t2? [op2: op2 * time/nano]
 
-		left/value: do-math-op left/value right/value type
+		left/value: do-math-op op1 op2 type
+		
+		if any [t1? t2?][
+			left/header: TYPE_TIME
+			left/value: left/value * time/oneE9
+		]
+		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
 
@@ -377,7 +392,7 @@ float: context [
 			TYPE_INTEGER [
 				fl: as red-float! spec
 				int: as red-integer! spec
-				fl/value: integer/to-float int/value
+				fl/value: as-float int/value
 				fl/header: TYPE_FLOAT
 				fl
 			]
@@ -400,16 +415,17 @@ float: context [
 		only?   [logic!]
 		return: [red-float!]
 		/local
-			t	[float!]
 			s	[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
 
 		either seed? [
-			_random/srand to-integer f/value
+			s: f/value
+			if TYPE_OF(f) = TYPE_TIME [s: s / time/oneE9]
+			_random/srand as-integer s
 			f/header: TYPE_UNSET
 		][
-			s: (integer/to-float _random/rand) / 2147483647.0
+			s: (as-float _random/rand) / 2147483647.0
 			if s < 0.0 [s: 0.0 - s]
 			f/value: s * f/value
 		]
@@ -433,7 +449,7 @@ float: context [
 			TYPE_INTEGER [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
-				int/value: to-integer f
+				int/value: as-integer f
 			]
 			TYPE_PERCENT [
 				fl: as red-float! type
@@ -493,10 +509,10 @@ float: context [
 		m: as int-ptr! :value
 		n: m + 1
 		either n/value and 7FF00000h = 7FF00000h [		;-- the exponent bits are all ones
-			either any [								;-- the fraction bits are not entirely zeros
+			any [										;-- the fraction bits are not entirely zeros
 				m/value <> 0
 				n/value and 000FFFFFh <> 0
-			] [true][false]
+			]
 		][false]
 	]
 
@@ -584,7 +600,7 @@ float: context [
 		#if debug? = yes [if verbose > 0 [print-line "float/compare"]]
 
 		if all [
-			op = COMP_STRICT_EQUAL
+			any [op = COMP_SAME op = COMP_STRICT_EQUAL]
 			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
 
@@ -594,8 +610,9 @@ float: context [
 			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! value2
-				right: integer/to-float int/value
+				right: as-float int/value
 			]
+			TYPE_TIME
 			TYPE_PERCENT
 			TYPE_FLOAT [right: value2/value]
 			default [RETURN_COMPARE_OTHER]
@@ -678,7 +695,7 @@ float: context [
 		exp: base + 1
 		if TYPE_OF(exp) = TYPE_INTEGER [
 			int: as red-integer! exp
-			exp/value: integer/to-float int/value
+			exp/value: as-float int/value
 		]
 		base/value: pow base/value exp/value
 		base
@@ -734,7 +751,7 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: to-integer dec
+				int/value: as-integer dec
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
@@ -829,6 +846,7 @@ float: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

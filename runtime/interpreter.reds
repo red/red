@@ -65,7 +65,7 @@ Red/System [
 				]
 				TYPE_PAREN [
 					either TYPE_OF(value) = TYPE_LIT_WORD [
-						stack/mark-interp-native as red-word! pc	;@@ ~paren
+						stack/mark-interp-native words/_anon
 						eval as red-block! pc yes
 						stack/unwind
 					][
@@ -196,7 +196,7 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			switch TYPE_OF(arg) [
+			switch TYPE_OF(arg) [						;@@ always unbox regardless of the spec block
 				TYPE_LOGIC	 [push logic/get arg]
 				TYPE_INTEGER [push integer/get arg]
 				default		 [push arg]
@@ -243,6 +243,7 @@ interpreter: context [
 			type	[integer!]
 			pos		[byte-ptr!]
 			bits	[byte-ptr!]
+			native? [logic!]
 			set?	[logic!]
 			args	[node!]
 			node	[node!]
@@ -253,46 +254,48 @@ interpreter: context [
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
 		fun: null
-		
-		either op/header and body-flag <> 0 [
+		native?: op/header and flag-native-op <> 0
+
+		if all [
+			not native?
+			op/header and body-flag <> 0
+		][
 			node: as node! op/code
 			s: as series! node/value
 			more: s/offset
 			fun: as red-function! more + 3
-			
+
 			s: as series! fun/more/value
 			blk: as red-block! s/offset + 1
-			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
-		][
-			args: op/args
-		]
-		if null? args [
-			args: _function/preprocess-spec as red-native! op
+			args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
 
-			either fun <> null [
-				blk/header: TYPE_BLOCK
-				blk/head:	0
-				blk/node:	args
-			][
-				op/args: args
+			if null? args [
+				args: _function/preprocess-spec as red-native! op
+				either fun <> null [
+					blk/header: TYPE_BLOCK
+					blk/head:	0
+					blk/node:	args
+				][
+					op/args: args
+				]
 			]
+
+			s: as series! args/value
+			slot: s/offset + 1
+			bits: (as byte-ptr! slot) + 4
+			arg:  stack/arguments
+			type: TYPE_OF(arg)
+			BS_TEST_BIT(bits type set?)
+			unless set? [ERR_EXPECT_ARGUMENT(type 0)]
+
+			slot: slot + 2
+			bits: (as byte-ptr! slot) + 4
+			arg:  arg + 1
+			type: TYPE_OF(arg)
+			BS_TEST_BIT(bits type set?)
+			unless set? [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 		
-		s: as series! args/value
-		slot: s/offset + 1
-		bits: (as byte-ptr! slot) + 4
-		arg:  stack/arguments
-		type: TYPE_OF(arg)
-		BS_TEST_BIT(bits type set?)
-		unless set? [ERR_EXPECT_ARGUMENT(type 0)]
-		
-		slot: slot + 2
-		bits: (as byte-ptr! slot) + 4
-		arg:  arg + 1
-		type: TYPE_OF(arg)
-		BS_TEST_BIT(bits type set?)
-		unless set? [ERR_EXPECT_ARGUMENT(type 1)]
-
 		either fun <> null [
 			either TYPE_OF(fun) = TYPE_ROUTINE [
 				exec-routine as red-routine! fun
@@ -301,7 +304,7 @@ interpreter: context [
 				eval-function fun as red-block! more
 			]
 		][
-			if op/header and flag-native-op <> 0 [push yes]	;-- type-checking for natives.
+			if native? [push yes]						;-- type-checking for natives.
 			call-op: as function! [] op/code
 			call-op
 			0											;-- @@ to make compiler happy!
@@ -340,16 +343,25 @@ interpreter: context [
 			vec		  [red-vector!]
 			bool	  [red-logic!]
 			arg		  [red-value!]
+			ext-args  [red-value!]
+			saved	  [red-value!]
+			base	  [red-value!]
+			s-value	  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
 			p		  [int-ptr!]
 			ref-array [int-ptr!]
+			extras	  [int-ptr!]
+			offset	  [int-ptr!]
+			v-tail	  [int-ptr!]
 			index	  [integer!]
 			size	  [integer!]
 			type	  [integer!]
+			ext-size  [integer!]
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
+			ordered?  [logic!]
 			set? 	  [logic!]
 			call
 	][
@@ -390,6 +402,7 @@ interpreter: context [
 					args: path/args
 				]
 			]
+			fname: as red-word! path
 		]
 		
 		s: as series! args/value
@@ -397,17 +410,36 @@ interpreter: context [
 		tail:	   s/tail
 		required?: yes
 		index: 	   0
+		extras:	   null
+		ordered?:  yes
 		
 		while [value < tail][
 			expected: value + 1
 			
-			if TYPE_OF(value) <> TYPE_SET_WORD [
-				switch TYPE_OF(expected) [
-					TYPE_TYPESET [
-						either required? [
+			switch TYPE_OF(value) [
+				TYPE_ISSUE [
+					vec: as red-vector! expected
+					if TYPE_OF(vec) = TYPE_VECTOR [
+						extras: as int-ptr! vector/rs-head vec
+						v-tail: as int-ptr! vector/rs-tail vec
+						ext-size: (as-integer v-tail - extras) >>> 2 - 1
+						offset: extras
+						ordered?: no
+						
+						saved: stack/top				;-- move stack/top beyond current frame for ooo args
+						stack/top: stack/top + offset/value
+						ext-args: stack/top
+						offset: offset + 1
+						base: s/offset + 2				;-- skip ooo entry
+						s-value: value
+						
+						while [offset < v-tail][
+							expected: base + (offset/value * 2 - 1)
+							value: expected - 1
+							assert TYPE_OF(expected) = TYPE_TYPESET
 							bits: (as byte-ptr! expected) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
-							
+
 							either all [
 								set?					;-- if unset! is accepted
 								pc >= end				;-- if no more values to fetch
@@ -419,33 +451,71 @@ interpreter: context [
 								arg:  stack/top - 1
 								type: TYPE_OF(arg)
 								BS_TEST_BIT(bits type set?)
-								unless set? [ERR_EXPECT_ARGUMENT(type index)]
-								index: index + 1
+								unless set? [
+									index: offset/value - 1
+									ERR_EXPECT_ARGUMENT(type index)
+								]
 							]
-						][
-							none/push
+							offset: offset + 1
 						]
+						value: s-value
+						stack/top: saved
 					]
-					TYPE_LOGIC [
-						stack/push expected
-						bool: as red-logic! expected
-						required?: bool/value
+				]
+				TYPE_SET_WORD [0]
+				default [
+					switch TYPE_OF(expected) [
+						TYPE_TYPESET [
+							either all [required? ordered?][
+								bits: (as byte-ptr! expected) + 4
+								BS_TEST_BIT(bits TYPE_UNSET set?)
+
+								either all [
+									set?					;-- if unset! is accepted
+									pc >= end				;-- if no more values to fetch
+									TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+								][
+									unset/push				;-- then, supply an unset argument
+								][
+									FETCH_ARGUMENT
+									arg:  stack/top - 1
+									type: TYPE_OF(arg)
+									BS_TEST_BIT(bits type set?)
+									unless set? [ERR_EXPECT_ARGUMENT(type index)]
+									index: index + 1
+								]
+							][
+								none/push
+							]
+						]
+						TYPE_LOGIC [
+							stack/push expected
+							bool: as red-logic! expected
+							required?: bool/value
+						]
+						TYPE_VECTOR [
+							vec: as red-vector! expected
+							s: GET_BUFFER(vec)
+							p: as int-ptr! s/offset
+							size: (as-integer (as int-ptr! s/tail) - p) / 4
+							ref-array: system/stack/top - size
+							system/stack/top: ref-array		;-- reserve space on native stack for refs array
+							copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+						]
+						default [assert false]				;-- trap it, if stack corrupted 
 					]
-					TYPE_VECTOR [
-						vec: as red-vector! expected
-						s: GET_BUFFER(vec)
-						p: as int-ptr! s/offset
-						size: (as-integer (as int-ptr! s/tail) - p) / 4
-						ref-array: system/stack/top - size
-						system/stack/top: ref-array		;-- reserve space on native stack for refs array
-						copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
-					]
-					default [assert false]				;-- trap it, if stack corrupted 
 				]
 			]
 			value: value + 2
 		]
-		
+		unless ordered? [
+			offset: extras + 1
+			loop ext-size [
+				copy-cell ext-args stack/arguments + offset/value - 1
+				offset: offset + 1
+				ext-args: ext-args + 1
+			]
+		]
 		unless function? [
 			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
 			if TYPE_OF(native) = TYPE_NATIVE [push no]	;-- avoid 2nd type-checking for natives.
@@ -489,7 +559,7 @@ interpreter: context [
 		parent: _context/get as red-word! head
 		
 		switch TYPE_OF(parent) [
-			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_ACTION									;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
@@ -501,18 +571,12 @@ interpreter: context [
 			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
 			default	   [0]
 		]
+		if set? [object/path-parent/header: TYPE_NONE]	;-- disables owner checking
 				
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			value: either any [
-				TYPE_OF(item) = TYPE_GET_WORD 
-				all [
-					parent = head
-					TYPE_OF(item) = TYPE_WORD
-					TYPE_OF(parent) <> TYPE_OBJECT
-				]
-			][
+			value: either TYPE_OF(item) = TYPE_GET_WORD [
 				_context/get as red-word! item
 			][
 				item
@@ -646,7 +710,8 @@ interpreter: context [
 			left   [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
-			sym	   [integer!]
+			s-arg  [red-value!]
+			s-top  [red-value!]
 			infix? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
@@ -670,17 +735,22 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_SET_WORD [
-				stack/mark-interp-native as red-word! pc ;@@ ~set
-				word/push as red-word! pc
-				pc: pc + 1
-				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-				pc: eval-expression pc end no yes
-				word/set
-				either sub? [stack/unwind][stack/unwind-last]
-				#if debug? = yes [
-					if verbose > 0 [
-						value: stack/arguments
-						print-line ["eval: set-word return type: " TYPE_OF(value)]
+				either infix? [
+					either sub? [stack/push pc][stack/set-last pc]
+					pc: pc + 1
+				][
+					stack/mark-interp-native as red-word! pc ;@@ ~set
+					word/push as red-word! pc
+					pc: pc + 1
+					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
+					pc: eval-expression pc end no yes
+					word/set
+					either sub? [stack/unwind][stack/unwind-last]
+					#if debug? = yes [
+						if verbose > 0 [
+							value: stack/arguments
+							print-line ["eval: set-word return type: " TYPE_OF(value)]
+						]
 					]
 				]
 			]
@@ -689,10 +759,19 @@ interpreter: context [
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
+				s-arg: stack/arguments
+				s-top: stack/top
 				pc: eval-path value pc end yes no sub? no
+				stack/arguments: s-arg					;-- restores the stack
+				stack/top: s-top
 			]
 			TYPE_GET_WORD [
-				copy-cell _context/get as red-word! pc stack/push*
+				value: _context/get as red-word! pc
+				either sub? [
+					stack/push value					;-- nested expression: push value
+				][
+					stack/set-last value				;-- root expression: return value
+				]
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
@@ -794,6 +873,28 @@ interpreter: context [
 		]
 		pc
 	]
+	
+	eval-single: func [
+		value	[red-value!]
+		return: [integer!]								;-- return index of next expression
+		/local
+			blk	 [red-block!]
+			s	 [series!]
+			node [node!]
+	][
+		blk: as red-block! value
+		s: GET_BUFFER(blk)
+		if s/offset + blk/head = s/tail [
+			unset/push-last
+			return blk/head
+		]
+		node: blk/node									;-- save node pointer as slot will be overwritten
+		value: eval-next s/offset + blk/head s/tail no
+		
+		s: as series! node/value						;-- refresh buffer pointer
+		assert all [s/offset <= value value <= s/tail]
+		(as-integer value - s/offset) >> 4
+	]
 
 	eval-next: func [
 		value	[red-value!]
@@ -817,18 +918,17 @@ interpreter: context [
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
-		if value = tail [
-			arg: stack/arguments
-			arg/header: TYPE_UNSET
-			exit
-		]
 
 		stack/mark-eval words/_body						;-- outer stack frame
-		
-		while [value < tail][
-			#if debug? = yes [if verbose > 0 [log "root loop..."]]
-			value: eval-expression value tail no no
-			if value + 1 < tail [stack/reset]
+		either value = tail [
+			arg: stack/arguments
+			arg/header: TYPE_UNSET
+		][
+			while [value < tail][
+				#if debug? = yes [if verbose > 0 [log "root loop..."]]
+				value: eval-expression value tail no no
+				if value + 1 < tail [stack/reset]
+			]
 		]
 		either chain? [stack/unwind-last][stack/unwind]
 	]

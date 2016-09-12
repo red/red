@@ -530,7 +530,7 @@ win/pane: reduce [
 	make face! [
 		type: 'base offset: 280x10 size: 100x100
 		options: [drag-on: 'down]
-		image: load %./bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png
+		image: load %../bridges/android/samples/eval/res/drawable-xxhdpi/ic_launcher.png
 	]
 	tab-panel: make face! [
 		type: 'tab-panel offset: 10x320 size: 250x130
@@ -714,7 +714,7 @@ win/pane: reduce [
 			ellipse 240x20 20x40
 			
 			fill-pen red
-			circle 250x150 50
+			circle 250x150 49.5
 			pen gray
 			fill-pen white
 			circle 250x150 40
@@ -869,5 +869,5 @@ append win/pane make face! [
 ]
 
 dump-face win
-view win
+view/flags win [resize]
 system/view/debug?: no

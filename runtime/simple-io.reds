@@ -140,6 +140,11 @@ simple-io: context [
 					template	[int-ptr!]
 					return:		[integer!]
 				]
+				CreateDirectory: "CreateDirectoryW" [
+					pathname	[c-string!]
+					sa			[int-ptr!]
+					return:		[logic!]
+				]
 				ReadFile:	"ReadFile" [
 					file		[integer!]
 					buffer		[byte-ptr!]
@@ -177,7 +182,7 @@ simple-io: context [
 				]
 				CloseHandle:	"CloseHandle" [
 					obj			[integer!]
-					return:		[integer!]
+					return:		[logic!]
 				]
 				SetFilePointer: "SetFilePointer" [
 					file		[integer!]
@@ -365,6 +370,9 @@ simple-io: context [
 					st_blksize	[integer!]
 					st_flags	[integer!]
 					st_gen		[integer!]
+					st_lspare	[integer!]
+					st_qspare_1 [integer!]
+					st_qspare_2 [integer!]
 				]
 				;;-- #if __DARWIN_64_BIT_INO_T
 				;#define DIRENT_NAME_OFFSET	21
@@ -550,6 +558,30 @@ simple-io: context [
 
 		]
 
+		#either OS = 'MacOSX [
+			#import [
+				LIBC-file cdecl [
+					lseek: "lseek" [
+						file		[integer!]
+						offset-lo	[integer!]
+						offset-hi	[integer!]
+						whence		[integer!]
+						return:		[integer!]
+					]
+				]
+			]
+		][
+			#import [
+				LIBC-file cdecl [
+					lseek: "lseek" [
+						file		[integer!]
+						offset		[integer!]
+						whence		[integer!]
+						return:		[integer!]
+					]
+				]
+			]
+		]
 		#import [
 			LIBC-file cdecl [
 				_access: "access" [
@@ -577,6 +609,11 @@ simple-io: context [
 				]
 				_close:	"close" [
 					file		[integer!]
+					return:		[integer!]
+				]
+				mkdir: "mkdir" [
+					pathname	[c-string!]
+					mode		[integer!]
 					return:		[integer!]
 				]
 				opendir: "opendir" [
@@ -610,7 +647,18 @@ simple-io: context [
 			]
 		]
 	]
-	
+
+	make-dir: func [
+		path	[c-string!]
+		return: [logic!]
+	][
+		#either OS = 'Windows [
+			CreateDirectory path null
+		][
+			zero? mkdir path 511			;-- 0777
+		]
+	]
+
 	open-file: func [
 		filename [c-string!]
 		mode	 [integer!]
@@ -627,7 +675,10 @@ simple-io: context [
 				access: OPEN_EXISTING
 			][
 				modes: GENERIC_WRITE
-				either mode and RIO_APPEND <> 0 [
+				either any [
+					mode and RIO_APPEND <> 0
+					mode and RIO_SEEK <> 0
+				][
 					access: OPEN_ALWAYS
 				][
 					access: CREATE_ALWAYS
@@ -658,10 +709,10 @@ simple-io: context [
 				access: S_IREAD
 			][
 				modes: O_BINARY or O_WRONLY or O_CREAT
-				modes: either mode and RIO_APPEND <> 0 [
-					modes or O_APPEND
+				either mode and RIO_APPEND <> 0 [
+					modes: modes or O_APPEND
 				][
-					modes or O_TRUNC
+					if mode and RIO_SEEK = 0 [modes: modes or O_TRUNC]
 				]
 				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
 			]
@@ -704,7 +755,24 @@ simple-io: context [
 		]
 	]
 
-	read-buffer: func [
+	seek-file: func [
+		file	[integer!]
+		offset	[integer!]
+	][
+		#case [
+			OS = 'Windows [
+				SetFilePointer file offset null SET_FILE_BEGIN
+			]
+			OS = 'MacOSX [
+				lseek file offset 0 0				;@@ offset is 64bit
+			]
+			true [
+				lseek file offset 0					;-- SEEK_SET
+			]
+		]
+	]
+
+	read-data: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
 		size	[integer!]
@@ -722,15 +790,34 @@ simple-io: context [
 		]
 		res
 	]
-	
+
+	write-data: func [
+		file	[integer!]
+		data	[byte-ptr!]
+		size	[integer!]
+		return:	[integer!]
+		/local
+			len [integer!]
+			ret	[integer!]
+	][
+		#either OS = 'Windows [
+			len: 0
+			ret: WriteFile file data size :len null
+			ret: either zero? ret [-1][1]
+		][
+			ret: _write file data size
+		]
+		ret
+	]
+
 	close-file: func [
 		file	[integer!]
-		return:	[integer!]
+		return:	[logic!]
 	][
 		#either OS = 'Windows [
 			CloseHandle file
 		][
-			_close file
+			zero? _close file
 		]
 	]
 
@@ -764,6 +851,8 @@ simple-io: context [
 
 	read-file: func [
 		filename [c-string!]
+		part	 [integer!]
+		offset	 [integer!]
 		binary?	 [logic!]
 		lines?	 [logic!]
 		unicode? [logic!]
@@ -775,6 +864,7 @@ simple-io: context [
 			val		[red-value!]
 			str		[red-string!]
 			len		[integer!]
+			type	[integer!]
 	][
 		unless unicode? [		;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
@@ -787,11 +877,23 @@ simple-io: context [
 		size: file-size? file
 
 		if size <= 0 [
-			print-line "*** Warning: empty file"
+			close-file file
+			val: stack/push*
+			string/rs-make-at val 1
+			type: either binary? [TYPE_BINARY][TYPE_STRING]
+			set-type val type
+			return val
 		]
-		
+
+		if offset > 0 [
+			seek-file file offset
+			size: size - offset
+		]
+		if part > 0 [
+			if part < size [size: part]
+		]
 		buffer: allocate size
-		len: read-buffer file buffer size
+		len: read-data file buffer size
 		close-file file
 
 		if negative? len [return none-value]
@@ -816,15 +918,24 @@ simple-io: context [
 		filename [c-string!]
 		data	 [byte-ptr!]
 		size	 [integer!]
+		offset	 [integer!]
 		binary?	 [logic!]
 		append?  [logic!]
+		lines?	 [logic!]
 		unicode? [logic!]
 		return:	 [integer!]
 		/local
 			file	[integer!]
+			n		[integer!]
 			len		[integer!]
 			mode	[integer!]
 			ret		[integer!]
+			blk		[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			buffer	[red-string!]
+			lineend [c-string!]
+			lf-sz	[integer!]
 	][
 		unless unicode? [		;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
@@ -833,16 +944,32 @@ simple-io: context [
 		]
 		mode: RIO_WRITE
 		if append? [mode: mode or RIO_APPEND]
+		if offset >= 0 [mode: mode or RIO_SEEK]
 		file: open-file filename mode unicode?
 		if file < 0 [return file]
 
+		if offset > 0 [seek-file file offset]
 		#either OS = 'Windows [
-			len: 0
+			lineend: "^M^/"
+			lf-sz: 2
 			if append? [SetFilePointer file 0 null SET_FILE_END]
-			ret: WriteFile file data size :len null
-			ret: either zero? ret [-1][1]
 		][
-			ret: _write file data size
+			lineend: "^/"
+			lf-sz: 1
+		]
+		either lines? [
+			buffer: string/rs-make-at stack/push* 16
+			blk: as red-block! data
+			value: block/rs-head blk
+			tail:  block/rs-tail blk
+			while [value < tail][
+				data: value-to-buffer value -1 :size binary? buffer
+				write-data file data size
+				write-data file as byte-ptr! lineend lf-sz
+				value: value + 1
+			]
+		][
+			ret: write-data file data size
 		]
 		close-file file
 		ret
@@ -865,7 +992,7 @@ simple-io: context [
 		cp2: either len > 1 [string/rs-abs-at as red-string! filename pos - 1][0]
 		cp3: either len > 2 [string/rs-abs-at as red-string! filename pos - 2][0]
 
-		either any [
+		any [
 			cp1 = 47		;-- #"/"
 			cp1 = 92 		;-- #"\"
 			all [
@@ -875,7 +1002,7 @@ simple-io: context [
 					all [cp2 = 46 any [cp3 = 47 cp3 = 92 len = 2]]
 				]
 			]
-		][true][false]
+		]
 	]
 
 	read-dir: func [
@@ -1004,38 +1131,93 @@ simple-io: context [
 
 	read: func [
 		filename [red-file!]
+		part	 [red-value!]
+		seek	 [red-value!]
 		binary?	 [logic!]
 		lines?	 [logic!]
 		return:	 [red-value!]
 		/local
-			data [red-value!]
+			data	[red-value!]
+			int		[red-integer!]
+			size	[integer!]
+			offset	[integer!]
 	][
 		if dir? filename [
 			return as red-value! read-dir filename
 		]
 
-		data: read-file file/to-OS-path filename binary? lines? yes
+		size: -1
+		offset: -1
+		if OPTION?(part) [
+			int: as red-integer! part
+			size: int/value
+		]
+		if OPTION?(seek) [
+			int: as red-integer! seek
+			offset: int/value
+		]
+		data: read-file file/to-OS-path filename size offset binary? lines? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
 		]
 		data
 	]
 
+	value-to-buffer: func [
+		data	[red-value!]
+		part	[integer!]
+		size	[int-ptr!]
+		binary? [logic!]
+		buffer	[red-string!]
+		return: [byte-ptr!]
+		/local
+			type	[integer!]
+			len		[integer!]
+			str  	[red-string!]
+			buf		[byte-ptr!]
+	][
+		type: TYPE_OF(data)
+		case [
+			type = TYPE_STRING [
+				len: part
+				str: as red-string! data
+				buf: as byte-ptr! unicode/io-to-utf8 str :len not binary?
+			]
+			type = TYPE_BINARY [
+				buf: binary/rs-head as red-binary! data
+				len: binary/rs-length? as red-binary! data
+				if all [part > 0 len > part][len: part]
+			]
+			true [
+				len: 0
+				actions/mold as red-value! data buffer no yes no null 0 0
+				buf: value-to-buffer as red-value! buffer part :len binary? null
+				string/rs-reset buffer
+			]
+		]
+		size/value: len
+		buf
+	]
+
 	write: func [
 		filename [red-file!]
 		data	 [red-value!]
 		part	 [red-value!]
+		seek	 [red-value!]
 		binary?	 [logic!]
 		append?  [logic!]
+		lines?	 [logic!]
 		return:  [integer!]
 		/local
 			len  	[integer!]
-			str  	[red-string!]
 			buf  	[byte-ptr!]
 			int  	[red-integer!]
 			limit	[integer!]
 			type	[integer!]
+			offset	[integer!]
+			buffer	[red-string!]
 	][
+		offset: -1
 		limit: -1
 		if OPTION?(part) [
 			either TYPE_OF(part) = TYPE_INTEGER [
@@ -1046,24 +1228,22 @@ simple-io: context [
 				ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 			]
 		]
-		type: TYPE_OF(data)
-		case [
-			type = TYPE_STRING [
-				len: limit
-				str: as red-string! data
-				buf: as byte-ptr! unicode/io-to-utf8 str :len not binary?
-			]
-			type = TYPE_BINARY [
-				buf: binary/rs-head as red-binary! data
-				len: binary/rs-length? as red-binary! data
-				if all [limit > 0 len > limit][len: limit]
-			]
-			true [ERR_EXPECT_ARGUMENT(type 1)]
+		if OPTION?(seek) [
+			int: as red-integer! seek
+			offset: int/value
 		]
-		type: write-file file/to-OS-path filename buf len binary? append? yes
-		if negative? type [
-			fire [TO_ERROR(access cannot-open) filename]
+
+		either all [lines? TYPE_OF(data) = TYPE_BLOCK][
+			buf: as byte-ptr! data
+		][
+			lines?: no
+			len: 0
+			buffer: string/rs-make-at stack/push* 16
+			buf: value-to-buffer data limit :len binary? buffer
 		]
+
+		type: write-file file/to-OS-path filename buf len offset binary? append? lines? yes
+		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type
 	]
 
@@ -1345,7 +1525,7 @@ simple-io: context [
 					len		[integer!]
 			][
 				res: as red-value! none-value
-				len: 0
+				len: -1
 				buf-ptr: 0
 				clsid: declare tagGUID
 				async: declare tagVARIANT
@@ -1367,7 +1547,7 @@ simple-io: context [
 					HTTP_POST [
 						action: #u16 "POST"
 						body/data1: VT_BSTR
-						bstr-d: SysAllocString unicode/to-utf16 as red-string! data
+						bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
 						body/data3: as-integer bstr-d
 					]
 					default [--NOT_IMPLEMENTED--]
@@ -1415,7 +1595,7 @@ simple-io: context [
 					]
 					hr: http/Send IH/ptr body/data1 body/data2 body/data3 body/data4
 				][
-					fire [TO_ERROR(access no-connect) url]
+					return res
 				]
 
 				if hr >= 0 [
@@ -1459,19 +1639,24 @@ simple-io: context [
 						SafeArrayUnaccessData array
 					]
 					if body/data1 and VT_ARRAY > 0 [SafeArrayDestroy array]
+					if info? [
+						block/rs-append blk res
+						res: as red-value! blk
+					]
 				]
 
 				if http <> null [http/Release IH/ptr]
-				if info? [
-					block/rs-append blk res
-					res: as red-value! blk
-				]
 				res
 			]
 		]
 		MacOSX [
+			#either OS-version > 10.7 [
+				#define CFNetwork.lib "/System/Library/Frameworks/CFNetwork.framework/CFNetwork"
+			][
+				#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
+			]
 			#import [
-				"/System/Library/Frameworks/CFNetwork.framework/CFNetwork" cdecl [
+				CFNetwork.lib cdecl [
 					__CFStringMakeConstantString: "__CFStringMakeConstantString" [
 						cStr		[c-string!]
 						return:		[integer!]
@@ -1681,8 +1866,6 @@ simple-io: context [
 					bin			[red-binary!]
 					stream		[integer!]
 					response	[integer!]
-					keys		[int-ptr!]
-					vals		[int-ptr!]
 					blk			[red-block!]
 			][
 				switch method [
@@ -1702,7 +1885,7 @@ simple-io: context [
 				CFRelease raw-url
 				CFRelease escaped-url
 
-				if zero? req [fire [TO_ERROR(access no-connect) url]]
+				if zero? req [return as red-value! none-value]
 
 				if any [method = HTTP_POST method = HTTP_PUT][
 					datalen: -1
@@ -1735,7 +1918,7 @@ simple-io: context [
 				]
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
-				if zero? stream [fire [TO_ERROR(access no-connect) url]]
+				if zero? stream [return none-value]
 
 				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
 				CFReadStreamOpen stream

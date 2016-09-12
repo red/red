@@ -78,7 +78,8 @@ error: context [
 			switch TYPE_OF(value) [
 				TYPE_WORD
 				TYPE_GET_WORD
-				TYPE_LIT_WORD [
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
 					if cnt = idx [return as red-word! value]
 					cnt: cnt + 1
 				]
@@ -151,8 +152,6 @@ error: context [
 		return:	 [red-object!]
 		/local
 			new		[red-object!]
-			obj		[red-object!]
-			series	[red-series!]
 			errors	[red-object!]
 			base	[red-value!]
 			value	[red-value!]
@@ -173,7 +172,6 @@ error: context [
 			no
 			null
 		
-		series: as red-series! spec
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
 		new/class:  0
 		new/on-set: null
@@ -386,6 +384,7 @@ error: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

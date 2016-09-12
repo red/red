@@ -12,6 +12,16 @@ Red/System [
 
 terminal: context [
 
+	#import [
+		LIBC-file cdecl [
+			realloc: "realloc" [						"Resize and return allocated memory."
+				memory			[byte-ptr!]
+				size			[integer!]
+				return:			[byte-ptr!]
+			]
+		]
+	]
+
 	#define RS_KEY_UNSET		 -1
 	#define RS_KEY_NONE			  0
 	#define RS_KEY_UP			-20
@@ -75,13 +85,17 @@ terminal: context [
 		tail	[integer!]					;-- 1-based index
 		last	[integer!]					;-- index of last line
 		nlines	[integer!]					;-- number of lines
+		count	[integer!]					;-- capability of the buffer
 		max		[integer!]					;-- maximum size of the line-node array
 		h-idx	[integer!]					;-- offset of the first line
 		s-head	[integer!]					;-- index of the first selected line
 		s-tail	[integer!]					;-- index of the last selected line
 		s-h-idx [integer!]					;-- offset of the first selected line
 		s-t-idx [integer!]					;-- offset of the last selected line
+		limit	[integer!]
+		full?	[logic!]					;-- buffer is full or not
 		data	[red-string!]
+		end		[red-value!]
 	]
 
 	terminal!: alias struct! [
@@ -164,7 +178,7 @@ terminal: context [
 			n	[integer!]
 	][
 		n: string-width? str offset length cols
-		either zero? n [1][n + cols - 1 / cols]
+		n - 1 / cols + 1
 	]
 
 	count-chars: func [
@@ -311,7 +325,6 @@ terminal: context [
 			data	[red-string!]
 			lines	[line-node!]
 			node	[line-node!]
-			nlines	[integer!]
 			added	[integer!]
 			head	[integer!]
 			n		[integer!]
@@ -321,18 +334,25 @@ terminal: context [
 			offset	[integer!]
 			cp		[integer!]
 			max		[integer!]
+			count	[integer!]
+			full?	[logic!]
 	][
 		out: vt/out
-		nlines: out/nlines
+		full?: out/full?
+		count: out/count
 		max: out/max
 		data: out/data
 		added: 0
 		head:	out/head
-		cursor: either append? [out/last][out/tail]
+		cursor: either append? [count: count - 1 out/last][out/tail]
 		lines: out/lines
 		node: lines + cursor - 1
 		buf: GET_BUFFER(data)
-		offset: either append? [node/offset][string/rs-length? data]
+		if all [last? full? count < 0][buf/tail: out/end]
+		offset: either append? [
+			if full? [buf/tail: out/end]
+			node/offset
+		][string/rs-length? data]
 		cp: 0
 
 		until [
@@ -341,7 +361,7 @@ terminal: context [
 				p: p + unit
 
 				either cp = 9 [
-					string/concatenate-literal data "    "
+					buf: string/concatenate-literal data "    "
 				][
 					buf: string/append-char buf cp
 				]
@@ -349,35 +369,51 @@ terminal: context [
 			if any [cp = 10 p = tail][
 				node/offset: offset
 				offset: string/rs-length? data
+				if offset > out/limit [out/limit: offset]
 				node/length: offset - node/offset
-				unless last? [nlines: nlines + 1]
+				count: count + 1
 				if cp = 10 [node/length: node/length - 1]
 				n: string-lines? data node/offset node/length vt/cols
-				delta: either any [append? last?][n - node/nlines][n]
+				delta: n - node/nlines
 				node/nlines: n
-				added: added + delta
 				out/last: cursor
-				cursor: cursor + 1
-				if cursor > max [buf/tail: buf/offset cursor: 1]
-				if cursor = head [head: head % max + 1]
+				out/end: buf/tail
+				either count = max [
+					full?: yes
+					buf/tail: buf/offset
+					offset: 0
+					count: 0
+				][
+					added: added + delta
+				]
+				cursor: cursor % max + 1
 				node: lines + cursor - 1
-				node/nlines: 0
+				
+				either full? [head: cursor % max + 1][node/nlines: 0]
 			]
 			p = tail
 		]
 		node/offset: string/rs-length? data
-		if cp = 10 [out/last: cursor]
+		if cp = 10 [
+			count: count + 1
+			if count = max [
+				full?: yes
+				buf/tail: buf/offset
+				node/offset: 0
+				count: 0
+			]
+			out/last: cursor
+			if full? [out/end: buf/tail]
+		]
 
-		out/nlines: nlines
+		out/full?: full?
+		out/count: count
 		out/head: head
 		out/tail: cursor
 		vt/nlines: vt/nlines + added
-
 		reposition vt
 
-		either nlines >= max [out/nlines: max vt/pos: vt/nlines - vt/rows + 1][
-			if vt/nlines > vt/rows [vt/pos: vt/nlines - vt/rows + 1]
-		]
+		if vt/nlines > vt/rows [vt/pos: vt/nlines - vt/rows + 1]
 	]
 
 	emit-string: func [
@@ -429,7 +465,7 @@ terminal: context [
 					node: lines + start - 1
 					if start = out/head [offset: 0 break]
 					w: string-width? data node/offset node/length cols
-					y: w + cols - 1 / cols
+					y: w - 1 / cols + 1
 					offset: y + offset
 					offset >= 0
 				]
@@ -441,7 +477,7 @@ terminal: context [
 				until [
 					if start = out/last [offset: 0 break]
 					w: string-width? data node/offset node/length cols
-					y: w + cols - 1 / cols
+					y: w - 1 / cols + 1
 					offset: offset - y
 					if offset >= 0 [
 						start: start % out/max + 1
@@ -484,9 +520,8 @@ terminal: context [
 		return: [logic!]
 		/local
 			input	[red-string!]
-			node	[line-node!]
 			out		[ring-buffer!]
-			pos		[integer!]
+			out2	[ring-buffer!]
 			head	[integer!]
 			len		[integer!]
 			w		[integer!]
@@ -516,21 +551,28 @@ terminal: context [
 				string/remove-char input head
 			]
 		][
-			insert-into-line input head cp
-			head: head + 1
+			if cp <> -1 [
+				insert-into-line input head cp
+				head: head + 1
+			]
 		]
 		vt/cursor: head
 
-		cut-red-string out/data len
+		out2: either all [out/full? zero? out/count][out][null]
+		cut-red-string out/data len out2
 		if any [not del? len > 1][
 			s: GET_BUFFER(input)
-			out/tail: out/last
 			tail: as byte-ptr! s/tail
+			out/tail: out/last
+			out/count: out/count - 1
 			w: GET_UNIT(s)
 			if cp = as-integer #"^[" [string/poke-char s tail - w 10]
 			emit-c-string vt as byte-ptr! s/offset tail w yes no
 			if cp = as-integer #"^[" [string/poke-char s tail - w 27]
-			if cp = 10 [s/tail: as cell! tail - w]
+			if cp = 10 [
+				s/tail: as cell! tail - w
+				out/count: out/count - 1
+			]
 		]
 		true
 	]
@@ -601,6 +643,32 @@ terminal: context [
 		vt/char-h: char-y
 	]
 
+	reset-vt: func [vt [terminal!] /local out][
+		out: vt/out
+		out/tail: 1
+		out/head: 1
+		out/last: 1
+		out/lines/offset: 0
+		out/lines/nlines: 0
+		out/nlines: 0
+		out/h-idx: 0
+		out/s-head: -1
+		out/count: 0
+		out/full?: no
+		out/end: as red-value! 0
+		out/limit: 0
+		vt/pos: 1
+		vt/top: 1
+		vt/top-offset: 0
+		vt/nlines: 0
+		vt/scroll: 0
+		vt/select?: no
+		vt/select-all?: no
+		vt/s-mode?: no
+		vt/s-end?: no
+		vt/edit-head: -1
+	]
+
 	init: func [
 		vt		[terminal!]
 		win-x	[integer!]
@@ -611,17 +679,9 @@ terminal: context [
 			out		[ring-buffer!]
 	][
 		out: as ring-buffer! allocate size? ring-buffer!
-		out/max: 4000
-		out/tail: 1
-		out/head: 1
-		out/last: 1
+		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/lines/offset: 0
-		out/lines/nlines: 0
-		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 4000
-		out/nlines: 1
-		out/h-idx: 0
-		out/s-head: -1
+		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -638,22 +698,13 @@ terminal: context [
 		vt/history-beg: 1
 		vt/history-end: 1
 		vt/history-cnt: 0
-		vt/pos: 1
-		vt/top: 1
-		vt/top-offset: 0
-		vt/nlines: 0
-		vt/scroll: 0
 		vt/caret?: no
-		vt/select?: no
-		vt/select-all?: no
 		vt/ask?: no
 		vt/input?: no
-		vt/s-mode?: no
-		vt/s-end?: no
-		vt/edit-head: -1
 		vt/prompt: as red-string! #get system/console/prompt
 		vt/prompt-len: string/rs-length? vt/prompt
 
+		reset-vt vt
 		OS-init vt
 	]
 
@@ -886,7 +937,7 @@ terminal: context [
 			idx		[integer!]
 			beg		[integer!]
 			end		[integer!]
-			s		[series!]
+			out		[ring-buffer!]
 	][
 		hist: refresh-history vt
 		idx: vt/history-pos
@@ -896,7 +947,7 @@ terminal: context [
 		end: vt/history-end
 		input: vt/in
 		len: string/rs-length? input
-		cut-red-string input len
+		cut-red-string input len null
 
 		unless up? [
 			idx: either 1 = block/rs-length? hist [end][vt/history-pre]
@@ -910,7 +961,9 @@ terminal: context [
 			vt/history-pre: end
 		]
 
-		cut-red-string vt/out/data len
+		out: vt/out
+		out: either out/full? [out][null]
+		cut-red-string vt/out/data len out
 		emit-string vt input yes yes
 		input/head: vt/prompt-len
 		vt/cursor: string/rs-abs-length? input
@@ -964,14 +1017,21 @@ terminal: context [
 	]
 
 	cut-red-string: func [
-		str [red-string!]
-		len [integer!]
+		str		[red-string!]
+		len		[integer!]
+		out		[ring-buffer!]
 		/local
-			s [series!]
+			n	[integer!]
+			s	[series!]
 	][
-		if len = -1 [len: string/rs-length? str]
+		if null? out [
+			n: string/rs-length? str
+			if any [len > n len = -1][len: n]
+		]
 		s: GET_BUFFER(str)
+		if out <> null [s/tail: out/end]
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
+		if out <> null [out/end: s/tail]
 	]
 
 	complete-line: func [
@@ -980,6 +1040,7 @@ terminal: context [
 		return:		[integer!]
 		/local
 			out		[ring-buffer!]
+			out2	[ring-buffer!]
 			line	[red-string!]
 			result	[red-block!]
 			num		[integer!]
@@ -1001,8 +1062,9 @@ terminal: context [
 
 		out: vt/out
 		unless zero? num [
-			cut-red-string out/data string/rs-length? str
-			cut-red-string str -1
+			out2: either all [out/full? zero? out/count][out][null]
+			cut-red-string out/data string/rs-length? str out2
+			cut-red-string str -1 null
 
 			either num = 1 [
 				str2: as red-string! block/rs-head result
@@ -1021,7 +1083,7 @@ terminal: context [
 			out/tail: out/last
 			emit-string vt str yes yes
 			if num > 1 [
-				cut-red-string str -1
+				cut-red-string str -1 null
 				line/head: 0
 				string/concatenate str line -1 0 yes no
 				head: str/head
@@ -1083,11 +1145,9 @@ terminal: context [
 	check-selection: func [
 		vt		[terminal!]
 		/local
-			out		[ring-buffer!]
-			input	[red-string!]
+			out	[ring-buffer!]
 	][
 		out: vt/out
-		input: vt/in
 		if all [
 			out/s-head <> -1
 			out/s-tail = out/last
@@ -1158,7 +1218,6 @@ terminal: context [
 			out		[ring-buffer!]
 			input	[red-string!]
 			cursor	[integer!]
-			cue		[red-string!]
 	][
 		unless vt/input? [exit]
 
@@ -1260,6 +1319,17 @@ terminal: context [
 				select-edit vt RS_KEY_END
 			]
 			RS_KEY_CTRL_DELETE [0]
+			RS_KEY_CTRL_K [
+				until [
+					vt/cursor: vt/cursor + 1
+					not emit-char vt cp yes
+				]
+				vt/cursor: vt/cursor - 1
+			]
+			RS_KEY_CTRL_L [
+				reset-vt vt
+				emit-char vt -1 no
+			]
 			default [
 				if cp < 32 [exit]
 				emit-char vt cp no
@@ -1303,6 +1373,7 @@ terminal: context [
 			x		[integer!]
 			w		[integer!]
 			s		[series!]
+			n		[integer!]
 			unit	[integer!]
 			cp		[integer!]
 			char-h	[integer!]
@@ -1338,7 +1409,10 @@ terminal: context [
 				x: 0
 				y: y + char-h
 			]
-			OS-draw-text str 1 x y w char-h
+			n: either cp < 00010000h [1][
+				unicode/cp-to-utf16 cp as byte-ptr! str
+			]
+			OS-draw-text str n x y w char-h
 			x: x + w
 		]
 		unless vt/select-all? [set-normal-color vt]
@@ -1367,10 +1441,12 @@ terminal: context [
 			lines		[line-node!]
 			node		[line-node!]
 			data		[red-string!]
+			s			[series!]
 			select?		[logic!]
 			inversed?	[logic!]
 			c-str		[c-string!]
 			n			[integer!]
+			out-tail	[red-value!]
 	][
 		win-w: vt/win-w
 		win-h: vt/win-h
@@ -1378,6 +1454,11 @@ terminal: context [
 		cols: vt/cols
 		out: vt/out
 		data: out/data
+		s: GET_BUFFER(data)
+		if out/full? [
+			out-tail: s/tail
+			s/tail: as cell! (as byte-ptr! s/offset) + (out/limit << (GET_UNIT(s) >> 1))
+		]
 		lines: out/lines
 		select?: no
 		inversed?: no
@@ -1394,7 +1475,8 @@ terminal: context [
 			nlines: node/nlines
 			select?: nlines and 80000000h <> 0
 			either not zero? len [
-				n: string-lines? data node/offset node/length cols
+				n: string-width? data node/offset node/length cols
+				n: n - 1 / cols + 1
 				data/head: offset
 				case [
 					start = out/s-head [
@@ -1418,7 +1500,7 @@ terminal: context [
 							data/head: offset
 							len: len - cnt
 							offset: offset + cnt
-							c-str: unicode/to-utf16-len data :cnt
+							c-str: unicode/to-utf16-len data :cnt no
 							OS-draw-text c-str cnt 0 y win-w char-h
 							y: y + char-h
 						]
@@ -1435,7 +1517,7 @@ terminal: context [
 				y: y + char-h
 			]
 			start: start % out/max + 1
-			node: lines + start - 1	
+			node: lines + start - 1
 			offset: node/offset
 			len: node/length
 		]
@@ -1450,6 +1532,7 @@ terminal: context [
 			y: y + char-h
 			y > win-h
 		]
+		if out/full? [s/tail: out-tail]
 	]
 
 	with gui [
@@ -1459,8 +1542,28 @@ terminal: context [
 			MacOSX   []
 			FreeBSD  []
 			Syllable []
-			#default []										;-- Linux
+			#default []									;-- Linux
 		]
+	]
+
+	set-buffer-lines: func [n [integer!] /local vt out][
+		vt: as terminal! v-terminal
+		out: vt/out
+		out/max: n
+		out/lines: as line-node! realloc as byte-ptr! out/lines out/max * size? line-node!
+		edit vt RS_KEY_CTRL_K							;-- clear screen
+	]
+
+	set-font-color: func [color [integer!] /local vt][
+		vt: as terminal! v-terminal
+		vt/font-color: color
+		refresh vt
+	]
+
+	set-background: func [color [integer!] /local vt][
+		vt: as terminal! v-terminal
+		vt/bg-color: color
+		refresh vt
 	]
 
 	ask: func [
@@ -1473,7 +1576,9 @@ terminal: context [
 		vt/input?: yes
 		set-prompt vt question
 		refresh vt
-		unless paste-from-clipboard vt yes [
+		either paste-from-clipboard vt yes [
+			loop 3 [gui/do-events yes]					;-- make console respontive
+		][
 			vt/ask?: yes
 			update-caret vt
 			stack/mark-func words/_body
@@ -1490,7 +1595,6 @@ terminal: context [
 		nl?		[logic!]
 		/local
 			vt	[terminal!]
-			out [ring-buffer!]
 	][
 		#if debug? = yes [if zero? v-terminal [exit]]
 
@@ -1498,8 +1602,6 @@ terminal: context [
 			size: length? as c-string! str
 		]
 		vt: as terminal! v-terminal
-		out: vt/out
-		out/nlines: out/nlines - 1
 		emit-c-string vt str str + size unit no yes
 		if nl? [
 			str: as byte-ptr! "^/"

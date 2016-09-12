@@ -19,6 +19,7 @@ make-profilable make target-class [
 	branch-offset-size:	4							;-- size of branch instruction
 	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	insn-size:			4
+	last-math-op:		none						;-- save last math op type for overflow checking
 
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
@@ -874,8 +875,56 @@ make-profilable make target-class [
 					#{e20000ff}						;-- AND r0, r0, #ff
 				] alt?
 			]
-			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
-				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
+			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
+				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
+				either type/1 = 'float32! [
+					either alt? [
+						emit-i32 #{ee011a10}		;-- FMSR   s2, r1
+						emit-i32 #{eebd1ac1}		;-- FTOSIS s2, s2
+					][
+						emit-i32 #{ee000a10}		;-- FMSR   s0, r0
+						emit-i32 #{eebd0ac0}		;-- FTOSIS s0, s0
+					]
+				][
+					emit-i32 #{ec410b10}			;-- FMDRR d0, r1, r0
+					either alt? [
+						emit-i32 #{eebd1bc0}		;-- FTOSID s2, d0
+					][
+						emit-i32 #{eebd0bc0}		;-- FTOSID s0, d0
+					]
+				]
+				either alt? [
+					emit-i32 #{ee111a10}			;-- FMRS   r1, s2
+				][
+					emit-i32 #{ee100a10}			;-- FMRS   r0, s0
+				]
+			]
+			all [find [float! float64! float32!] value/type/1 type/1 = 'integer!][
+				if verbose >= 3 [print [">>>converting from integer! to" value/type/1]]
+				either alt? [
+					emit-i32 #{ee011a10}			;-- FMSR s1, r1
+				][
+					emit-i32 #{ee000a10}			;-- FMSR s0, r0
+				]
+				either value/type/1 = 'float32! [
+					either alt? [
+						emit-i32 #{eeb81ac1}		;-- FSITOS s1, s1
+						emit-i32 #{ee111a10}		;-- FMRS r1, s1
+					][
+						emit-i32 #{eeb80ac0}		;-- FSITOS s0, s0
+						emit-i32 #{ee100a10}		;-- FMRS r0, s0
+					]
+				][
+					either alt? [
+						emit-i32 #{eeb80bc1}		;-- FSITOD d0, s1
+					][
+						emit-i32 #{eeb80bc0}		;-- FSITOD d0, s0
+					]
+					emit-i32 #{ec510b10}			;-- FMRRD r0, r1, d0
+				]
+			]
+			all [find [float! float64!] value/type/1 type/1 = 'float32!][
+				if verbose >= 3 [print ">>>converting from float32! to float!"]
 				either alt? [
 					emit-i32 #{ee001a10}			;-- FMSR s0, r1
 				][
@@ -1007,6 +1056,17 @@ make-profilable make target-class [
 	
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
+	emit-get-overflow: does [
+		either last-math-op = '* [
+			emit-i32 #{e3550000}					;-- CMP   r5, #0
+			emit-i32 #{13a00001}					;-- MOVNE r0, #1
+			emit-i32 #{03a00000}					;-- MOVE  r0, #0
+		][
+			emit-i32 #{63a00001}					;-- MOVVS r0, #1
+			emit-i32 #{73a00000}					;-- MOVVC r0, #0
+		]
+	]
+	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
@@ -1134,7 +1194,7 @@ make-profilable make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type offset spec
+		/local type offset spec original
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
@@ -1184,16 +1244,40 @@ make-profilable make target-class [
 				]
 			]
 			get-word! [
-				either offset: select emitter/stack to word! value [
-					emit-i32 either negative? offset [
-						#{e24b00}					;-- SUB r0, fp, n
-					][
-						#{e28b00}					;-- ADD r0, fp, n
+				value: to word! original: value
+				either any [
+					all [
+						spec: select compiler/functions value
+						spec/2 = 'routine
 					]
-					emit-i32 to-bin8 abs offset
+					all [
+						select emitter/stack value
+						'function! = first compiler/get-type value
+					]
 				][
-					pools/collect/spec 0 value
-					if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					either alt [
+						emit-variable-poly/alt value
+							#{e5911000}				;-- LDR r1, [r1]		; global
+							#{e7911009}				;-- LDR r1, [r1, sb]	; PIC
+							#{e59b1000}				;-- LDR r1, [fp, #[-]n]	; local
+					][
+						emit-variable-poly value
+							#{e5900000} 			;-- LDR r0, [r0]		; global
+							#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
+							#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
+					]
+				][
+					either offset: select emitter/stack value [
+						emit-i32 either negative? offset [
+							#{e24b00}					;-- SUB r0, fp, n
+						][
+							#{e28b00}					;-- ADD r0, fp, n
+						]
+						emit-i32 to-bin8 abs offset
+					][
+						pools/collect/spec 0 original
+						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					]
 				]
 			]
 			string! [
@@ -1420,6 +1504,11 @@ make-profilable make target-class [
 		unless value = <last> [
 			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address
 			emit-load value							; @@ generates duplicate value loading sometimes
+			all [
+				object? value
+				not all [decimal? value/data 'float32! = value/type/1]
+				emit-casting value no
+			]
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
@@ -1526,7 +1615,7 @@ make-profilable make target-class [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl
-		/local push-last push-last64 spec type
+		/local push-last push-last64 spec type conv-int-float?
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -1599,13 +1688,37 @@ make-profilable make target-class [
 				emit-push <last>
 			]
 			object! [
-				unless path? value/data [
-					emit-casting value no
+				type: compiler/get-type value/data
+				
+				conv-int-float?: any [
+					all [
+						find [float! float64! float32!] value/type/1
+						type/1 = 'integer!
+					]
+					all [
+						find [float! float64! float32!] type/1
+						value/type/1 = 'integer!
+					]
 				]
-				either cdecl [
-					emit-push/with/cdecl value/data value
+				all [
+					conv-int-float?
+					not find [block! tag!] type?/word value/data
+					emit-load value/data
+				]
+				emit-casting value no
+
+				either conv-int-float? [
+					either find [float! float64!] value/type/1 [
+						do push-last64
+					][
+						do push-last
+					]
 				][
-					emit-push/with value/data value
+					either cdecl [
+						emit-push/with/cdecl value/data value
+					][
+						emit-push/with value/data value
+					]
 				]
 			]
 		]
@@ -1697,14 +1810,16 @@ make-profilable make target-class [
 					]
 					;2 []							;-- 16-bit not supported
 					4 [
-						emit-load-imm32/reg arg2 1	;-- r1: arg2	
+						emit-load-imm32/reg arg2 1	;-- r1: arg2
 						emit-i32 #{e1500001}		;-- CMP r0, r1		; not commutable op
 					]
 				]
 			]
 			ref [
+				emit-i32 #{e92d0001}				;-- PUSH {r0}
 				emit-load/alt args/2
 				if object? args/2 [emit-casting args/2 yes]
+				emit-pop
 				do op-poly
 			]
 			reg [
@@ -1752,12 +1867,12 @@ make-profilable make target-class [
 			]
 		]
 		;-- r0 = a, r1 = b
-		switch name [
+		switch last-math-op: name [
 			+ [
-				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1	; commutable op
+				op-poly: [emit-i32 #{e0900001}]		;-- ADDS r0, r0, r1	; commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2800000} arg2 ;-- ADD r0, r0, #value
+						emit-op-imm32 #{e2900000} arg2 ;-- ADDS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1767,10 +1882,10 @@ make-profilable make target-class [
 				]
 			]
 			- [
-				op-poly: [emit-i32 #{e0400001}] 	;-- SUB r0, r0, r1	; not commutable op
+				op-poly: [emit-i32 #{e0500001}] 	;-- SUBS r0, r0, r1	; not commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2400000} arg2 ;-- SUB r0, r0, #value
+						emit-op-imm32 #{e2500000} arg2 ;-- SUBS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1780,14 +1895,14 @@ make-profilable make target-class [
 				]
 			]
 			* [
-				op-poly: [emit-i32 #{e0000091}]		;-- MUL r0, r0, r1 	; commutable op
+				op-poly: [emit-i32 #{e0d50091}]		;-- SMULLS r0, r5, r0, r1 ; commutable op
 				switch b [
 					imm [
 						either all [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
-							emit-i32 #{e1a00000}	;-- LSL r0, r0, #log2(b)
+							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][
 							emit-load-imm32/reg args/2 1	;-- MOV r1, #value
@@ -1824,12 +1939,10 @@ make-profilable make target-class [
 				]
 			]
 		]
-		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
-		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
-		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
+		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
@@ -1891,8 +2004,10 @@ make-profilable make target-class [
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion if required
 
 		;-- Operator and second operand processing
-		either all [object? args/2 find [imm reg] b][
-			emit-casting args/2 yes					;-- do runtime conversion if required
+		unless all [
+			object? args/2
+			find [imm reg] b
+			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
 		][
 			implicit-cast right
 		]
@@ -1907,7 +2022,21 @@ make-profilable make target-class [
 	emit-vfp-casting: func [value [object!] /right [logic!] /local type][
 		type: compiler/get-type value/data	
 		case [
-			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
+			all [find [float! float64!] value/type/1 type/1 = 'integer!][
+				either right [
+					emit-i32 #{eeb81bc1}			;-- FSITOD d1, s2
+				][
+					emit-i32 #{eeb80bc0}			;-- FSITOD d0, s0
+				]
+			]
+			all [value/type/1 = 'float32! type/1 = 'integer!][
+				either right [
+					emit-i32 #{eeb81ac1}			;-- FSITOS s2, s2
+				][
+					emit-i32 #{eeb80ac0}			;-- FSITOS s0, s0
+				]
+			]
+			all [find [float! float64!] value/type/1 type/1 = 'float32!][
 				either right [
 					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2
 				][
@@ -2027,6 +2156,21 @@ make-profilable make target-class [
 			]
 		]
 		width: saved
+		
+		if any [
+			all [b = 'reg all [path? left block? right]]
+			all [a = 'reg b = 'ref path? left]
+		][											;-- exchange s0/s2 or d0/d1
+			either width = 4 [
+				emit-i32 #{eeb02a40}				;-- FCPYS  s4, s0
+				emit-i32 #{eeb00a41}				;-- FCPYS  s0, s2
+				emit-i32 #{eeb01a42}				;-- FCPYS  s2, s4
+			][
+				emit-i32 #{eeb02b40}				;-- FCPYD  d2, d0
+				emit-i32 #{eeb00b41}				;-- FCPYD  d0, d1
+				emit-i32 #{eeb01b42}				;-- FCPYD  d1, d2
+			]
+		]
 		
 		case [
 			find comparison-op name [

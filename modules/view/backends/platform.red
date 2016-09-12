@@ -31,7 +31,7 @@ system/view/platform: context [
 				FACE_OBJ_PARENT
 				FACE_OBJ_PANE
 				FACE_OBJ_STATE
-				;FACE_OBJ_RATE
+				FACE_OBJ_RATE
 				FACE_OBJ_EDGE
 				FACE_OBJ_PARA
 				FACE_OBJ_FONT
@@ -57,13 +57,13 @@ system/view/platform: context [
 				FACET_FLAG_PARENT:		00002000h
 				FACET_FLAG_PANE:		00004000h
 				FACET_FLAG_STATE:		00008000h
-				;FACET_FLAG_RATE:		
-				FACET_FLAG_EDGE:		00010000h
-				FACET_FLAG_PARA:		00020000h
-				FACET_FLAG_FONT:		00040000h	;-- keep in sync with value in update-font-faces function
-				FACET_FLAG_ACTOR:		00080000h
-				FACET_FLAG_EXTRA:		00100000h
-				FACET_FLAG_DRAW:		00200000h
+				FACET_FLAG_RATE:		00010000h
+				FACET_FLAG_EDGE:		00020000h
+				FACET_FLAG_PARA:		00040000h
+				FACET_FLAG_FONT:		00080000h	;-- keep in sync with value in update-font-faces function
+				FACET_FLAG_ACTOR:		00100000h
+				FACET_FLAG_EXTRA:		00200000h
+				FACET_FLAG_DRAW:		00400000h
 			]
 			
 			#enum flags-flag! [
@@ -136,6 +136,7 @@ system/view/platform: context [
 				EVT_SIZE
 				EVT_MOVING
 				EVT_SIZING
+				EVT_TIME
 			]
 			
 			#enum event-flag! [
@@ -174,7 +175,7 @@ system/view/platform: context [
 				parent:		symbol/make "parent"
 				pane:		symbol/make "pane"
 				state:		symbol/make "state"
-				;rate:		symbol/make "rate"
+				rate:		symbol/make "rate"
 				edge:		symbol/make "edge"
 				actors:		symbol/make "actors"
 				extra:		symbol/make "extra"
@@ -274,6 +275,7 @@ system/view/platform: context [
 			_rotate:		word/load "rotate"
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
+			_time:			word/load "time"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -309,6 +311,7 @@ system/view/platform: context [
 				return: [red-value!]
 			][
 				as red-value! switch evt/type [
+					EVT_TIME		 [_time]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
 					EVT_MIDDLE_DOWN	 [_mid-down]
@@ -350,6 +353,7 @@ system/view/platform: context [
 			][
 				sym: symbol/resolve word/symbol
 				case [
+					sym = _time/symbol			[sym: EVT_TIME]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
 					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
@@ -427,14 +431,14 @@ system/view/platform: context [
 		font: as red-object! values + gui/FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
 			state: as red-block! (object/get-values font) + gui/FONT_OBJ_STATE
-			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font]
+			either TYPE_OF(state) <> TYPE_BLOCK [gui/make-font face font][gui/get-font-handle font 0]
 		][
 			null
 		]
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont string/rs-length? text pair
+		gui/get-text-size text hFont pair
 	]
 	
 	on-change-facet: routine [
@@ -469,6 +473,10 @@ system/view/platform: context [
 		gui/OS-update-view face
 		SET_RETURN(none-value)
 	]
+
+	refresh-window: routine [hwnd [integer!]][
+		gui/OS-refresh-window hwnd
+	]
 	
 	show-window: routine [id [integer!]][
 		gui/OS-show-window id
@@ -492,8 +500,12 @@ system/view/platform: context [
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
 	]
+
+	request-font: routine [font [object!] mono? [logic!]][
+		gui/OS-request-font font mono?
+	]
 	
-	init: has [svs][
+	init: func [/local svs fonts][
 		#system [gui/init]
 		
 		system/view/metrics/dpi: 94						;@@ Needs to be calculated
@@ -506,6 +518,15 @@ system/view/platform: context [
 			pane:	make block! 4
 			state:	reduce [0 0 none copy [1]]
 		]
+		
+		set fonts:
+			bind [fixed sans-serif serif] system/view/fonts
+			switch system/platform [
+				Windows [["Courier New" "Arial" "Times"]
+			]
+		]
+		
+		set [font-fixed font-sans-serif font-serif] reduce fonts
 	]
 	
 	version: none

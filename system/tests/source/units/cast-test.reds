@@ -216,7 +216,195 @@ Red/System [
 			true
 		]
 		--assert ic20-logic
+
+	--test-- "int-cast-30"
+		--assertf~= 1.0 as float! 1 1E-13
 	
+	--test-- "int-cast-31"
+		f: as float! 2
+		--assert f = 2.0
+
+	--test-- "int-cast-32"
+		to-fl-32: func [n [integer!] return: [float!]][as float! n]
+		--assert 42.0 = to-fl-32 42
+
+	--test-- "int-cast-33"
+		to-fl-33: func [n [integer!] return: [float!] /local f][f: as float! n f]
+		--assert 123.0 = to-fl-33 123
+
+	--test-- "int-cast-34"
+		i: 42
+		--assert 42.0 = to-fl-32 i
+
+	--test-- "int-cast-35"
+		i: 123
+		--assert 123.0 = to-fl-33 i
+
+	--test-- "int-cast-36"
+		to-fl-36: func [n [integer!] return: [integer!]][n]
+		--assert 456.0 = as float! to-fl-36 456
+
+	--test-- "int-cast-37"
+		f: as float! to-fl-36 789
+		--assert f = 789.0
+
+
+	--test-- "int-cast-40"
+		--assertf32~= 1.0 as float32! 1 1E-13
+	
+	--test-- "int-cast-41"
+		f32: as float32! 2
+		--assert f32 = as float32! 2.0
+
+	--test-- "int-cast-42"
+		to-fl-42: func [n [integer!] return: [float32!]][as float32! n]
+		--assert (as float32! 42.0) = to-fl-42 42
+
+	--test-- "int-cast-43"
+		to-fl-43: func [n [integer!] return: [float32!] /local f][f: as float32! n f]
+		--assert (as float32! 123.0) = to-fl-43 123
+
+	--test-- "int-cast-44"
+		i: 42
+		--assert (as float32! 42.0) = to-fl-42 i
+
+	--test-- "int-cast-45"
+		i: 123
+		--assert (as float32! 123.0) = to-fl-43 i
+
+	--test-- "int-cast-46"
+		to-fl-46: func [n [integer!] return: [integer!]][n]
+		--assert (as float32! 456.0) = as float32! to-fl-36 456
+
+	--test-- "int-cast-47"
+		f32: as float32! to-fl-36 789
+		--assert f32 = as float32! 789.0
+
+	--test-- "int-cast-50"
+		h: 5
+		m: 6
+		time50: context [nano: 1E-9]
+		--assert 18000.0 = (3600.0 * as-float h)
+
+	--test-- "int-cast-51"
+		--assert 18000.0 = ((as-float h) * 3600.0)
+
+	--test-- "int-cast-52"
+		--assert 18360.0 = ((as-float h) * 3600.0 + ((as-float m) * 60.0))
+
+	--test-- "int-cast-53"
+		--assertf~= 1.836E13 (((as-float h) * 3600.0 + ((as-float m) * 60.0) / time50/nano)) 1E-12
+
+	--test-- "int-cast-54"
+		bar1: func [h [int-ptr!] f [float32!]][	--assert f = as float32! 3.0 ]
+		modes: declare struct! [pen-width [integer!]]
+		modes/pen-width: 3
+		
+		--assertf32~= (as float32! 3.0) as float32! modes/pen-width 1E-6
+		bar1 null as float32! modes/pen-width
+
+	--test-- "int-cast-55"
+		rc: declare struct! [x [float32!] y [float32!]]
+		i: 450
+		rc/x: as float32! i
+		rc/y: as float32! i + 150
+		--assertf32~= (as float32! 450.0) rc/x 1E-6
+		--assertf32~= (as float32! 600.0) rc/y 1E-6
+
+	--test-- "int-cast-56"
+		r: as float32! 1.0
+		angle: declare struct! [value [integer!]]
+		angle/value: 90
+		ab: r * as float32! angle/value
+		--assert ab = as float32! 90.0
+		ab: (as float32! 1.0) * as float32! angle/value
+		--assert ab = as float32! 90.0
+		ab: as float32! (as-float angle/value) * 3.14 / 180.0
+		--assert ab = as float32! 1.57
+
+===end-group===
+
+===start-group=== "cast from float!"
+
+	--test-- "fl-cast-1"
+		--assert 1 = as integer! 1.0
+
+	--test-- "fl-cast-2"
+		g: 2.0
+		--assert 2 = as integer! g
+
+	--test-- "fl-cast-3"
+		c: as integer! 3.0
+		--assert c = 3
+
+	--test-- "fl-cast-4"
+		foo33: func [f [float!] return: [integer!]][as integer! f]
+		--assert 42 = foo33 42.13
+
+	--test-- "fl-cast-5"
+		foo34: func [f [float!] return: [integer!] /local n][n: as integer! f n]
+		--assert 123 = foo34 123.8
+
+	--test-- "fl-cast-6"
+		c: foo33 42.13
+		--assert c = 42
+
+	--test-- "fl-cast-7"
+		c: foo34 123.8
+		--assert c = 123
+
+	--test-- "fl-cast-8"
+		foo37: func [f [float!] return: [float!]][f]
+		c: as integer! foo37 456.7
+		--assert c = 456
+
+	--test-- "fl-cast-9"
+		c: as integer! foo37 789.0
+		--assert c = 789
+
+===end-group===
+
+
+===start-group=== "cast from float32!"
+
+	--test-- "fl32-cast-1"
+		f32: as float32! 1.0
+		--assert 1 = as integer! f32
+
+	--test-- "fl32-cast-2"
+		f32: as float32! 2.0
+		--assert 2 = as integer! f32
+
+	--test-- "fl32-cast-3"
+		f32: as float32! 3.0
+		c: as integer! f32
+		--assert c = 3
+
+	--test-- "fl32-cast-4"
+		foo43: func [f [float32!] return: [integer!]][as integer! f]
+		--assert 42 = foo43 as float32! 42.13
+
+	--test-- "fl32-cast-5"
+		foo44: func [f [float32!] return: [integer!] /local n][n: as integer! f n]
+		--assert 123 = foo44 as float32! 123.8
+
+	--test-- "fl32-cast-6"
+		c: foo43 as float32! 42.13
+		--assert c = 42
+
+	--test-- "fl32-cast-7"
+		c: foo44 as float32! 123.8
+		--assert c = 123
+
+	--test-- "fl32-cast-8"
+		foo47: func [f [float32!] return: [float32!]][f]
+		c: as integer! foo47 as float32! 456.7
+		--assert c = 456
+
+	--test-- "fl32-cast-9"
+		c: as integer! foo47 as float32! 789.0
+		--assert c = 789
+
 ===end-group===
 
 ===start-group=== "cast from logic!"

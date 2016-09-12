@@ -10,6 +10,37 @@ Red/System [
 	}
 ]
 
+position-base: func [
+	base	[handle!]
+	parent	[handle!]
+	offset	[red-pair!]
+	return: [tagPOINT]
+	/local
+		pt	[tagPOINT]
+][
+	pt: declare tagPOINT
+	pt/x: offset/x
+	pt/y: offset/y
+	ClientToScreen parent pt		;-- convert client offset to screen offset
+	SetWindowLong base wc-offset - 4 pt/x
+	SetWindowLong base wc-offset - 8 pt/y
+	pt
+]
+
+layered-win?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) <> 0
+]
+
+detached?: func [
+	hWnd	[handle!]
+	return: [logic!]
+][
+	(GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0
+]
+
 render-base: func [
 	hWnd	[handle!]
 	hDC		[handle!]
@@ -43,8 +74,12 @@ render-base: func [
 	]
 
 	type: symbol/resolve w/symbol
-	if all [group-box <> type window <> type] [
-		res: render-text values hDC rc
+	if all [
+		group-box <> type
+		window <> type
+		render-text values hDC rc
+	][
+		res: true
 	]
 	res
 ]
@@ -66,11 +101,12 @@ render-text: func [
 		flags	[integer!]
 		res		[logic!]
 ][
+	unless winxp? [return render-text-d2d values hDC rc]
 	res: false
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
-		hFont: GetStockObject DEFAULT_GUI_FONT				;-- select default GUI font
+		hFont: default-font
 		
 		if TYPE_OF(font) = TYPE_OBJECT [
 			values: object/get-values font
@@ -138,39 +174,74 @@ process-layered-region: func [
 	hWnd	[handle!]
 	size	[red-pair!]
 	pos		[red-pair!]
+	pane	[red-block!]
+	origin	[red-pair!]
+	rect	[RECT_STRUCT]
+	layer?	[logic!]
 	/local
 		x	  [integer!]
 		y	  [integer!]
 		w	  [integer!]
 		h	  [integer!]
 		owner [handle!]
-		offset [red-pair!]
-		rect  [RECT_STRUCT]
+		type  [red-word!]
+		value [red-value!]
+		face  [red-object!]
+		tail  [red-object!]
 ][
-	rect: declare RECT_STRUCT
-	owner: as handle! GetWindowLong hWnd wc-offset - 16
-	assert owner <> null
+	x: origin/x
+	y: origin/y
+	either null? rect [
+		rect: declare RECT_STRUCT
+		owner: as handle! GetWindowLong hWnd wc-offset - 16
+		assert owner <> null
+		GetClientRect owner rect
+	][
+		x: x + pos/x
+		y: y + pos/y
+	]
 
-	GetClientRect owner rect
-	x: pos/x
-	either negative? x [
-		x: either x + size/x < 0 [size/x][0 - x]
-		w: size/x
-	][
-		w: x + size/x - rect/right
-		w: either positive? w [size/x - w][size/x]
-		x: 0
+	if layer? [
+		either negative? x [
+			x: either x + size/x < 0 [size/x][0 - x]
+			w: size/x
+		][
+			w: x + size/x - rect/right
+			w: either positive? w [size/x - w][size/x]
+			x: 0
+		]
+		either negative? y [
+			y: either y + size/y < 0 [size/y][0 - y]
+			h: size/y
+		][
+			h: y + size/y - rect/bottom
+			h: either positive? h [size/y - h][size/y]
+			y: 0
+		]
+		clip-layered-window hWnd size x y w h
 	]
-	y: pos/y
-	either negative? y [
-		y: either y + size/y < 0 [size/y][0 - y]
-		h: size/y
+
+	if all [
+		pane <> null
+		TYPE_OF(pane) = TYPE_BLOCK
 	][
-		h: y + size/y - rect/bottom
-		h: either positive? h [size/y - h][size/y]
-		y: 0
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		while [face < tail][
+			hWnd: get-face-handle face
+			value: get-face-values hWnd
+			size: as red-pair! value + FACE_OBJ_SIZE
+			pos: as red-pair! value + FACE_OBJ_OFFSET
+			pane: as red-block! value + FACE_OBJ_PANE
+			type: as red-word! value + FACE_OBJ_TYPE
+			layer?: all [
+				base = symbol/resolve type/symbol
+				(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
+			]
+			process-layered-region hWnd size pos pane origin rect layer?
+			face: face + 1
+		]
 	]
-	clip-layered-window hWnd size x y w h
 ]
 
 update-layered-window: func [
@@ -187,11 +258,9 @@ update-layered-window: func [
 		bool	[red-logic!]
 		face	[red-object!]
 		tail	[red-object!]
-		pos		[red-pair!]
 		size	[red-pair!]
 		pt		[tagPOINT]
 		rect	[RECT_STRUCT]
-		style	[integer!]
 		border	[integer!]
 		width	[integer!]
 		height	[integer!]
@@ -323,9 +392,6 @@ BaseWndProc: func [
 	/local
 		flags	[integer!]
 		draw	[red-block!]
-		pt		[tagPOINT]
-		offset	[red-pair!]
-		winpos	[tagWINDOWPOS]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -361,9 +427,6 @@ update-base-image: func [
 	img			[red-image!]
 	width		[integer!]
 	height		[integer!]
-	/local
-		str  [red-string!]
-		tail [red-string!]
 ][
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipDrawImageRectI graphic as-integer img/node 0 0 width height
@@ -402,6 +465,8 @@ update-base-text: func [
 		hFont	[integer!]
 		hBrush	[integer!]
 		flags	[integer!]
+		v-align [integer!]
+		h-align [integer!]
 		clr		[integer!]
 		int		[red-integer!]
 		values	[red-value!]
@@ -410,6 +475,8 @@ update-base-text: func [
 		rect	[RECT_STRUCT_FLOAT32]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
+
+	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
 	hBrush: 0
@@ -436,22 +503,31 @@ update-base-text: func [
 	flags: either TYPE_OF(para) = TYPE_OBJECT [
 		get-para-flags base para
 	][
-		DT_CENTER or DT_VCENTER
+		1 or 4
+	]
+	case [
+		flags and 1 <> 0 [h-align: 1]
+		flags and 2 <> 0 [h-align: 2]
+		true			 [h-align: 0]
+	]
+	case [
+		flags and 4 <> 0 [v-align: 1]
+		flags and 8 <> 0 [v-align: 2]
+		true			 [v-align: 0]
 	]
 
 	GdipCreateFontFromDC as-integer dc :hFont
 	GdipCreateSolidFill to-gdiplus-color clr :hBrush
 	
 	GdipCreateStringFormat 80000000h 0 :format
-	;GdipCreateStringFormat 0 0 :format
-	GdipSetStringFormatAlign format 1
-	GdipSetStringFormatLineAlign format 1
+	GdipSetStringFormatAlign format h-align
+	GdipSetStringFormatLineAlign format v-align
 
 	rect: declare RECT_STRUCT_FLOAT32
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
-	rect/width: as float32! integer/to-float width
-	rect/height: as float32! integer/to-float height
+	rect/width: as float32! width
+	rect/height: as float32! height
 
 	GdipDrawString graphic unicode/to-utf16 text -1 hFont rect format hBrush
 
@@ -501,7 +577,7 @@ update-base: func [
 		graphic: GetWindowLong hWnd wc-offset - 4
 		DeleteDC as handle! graphic
 		SetWindowLong hWnd wc-offset - 4 0
-		InvalidateRect hWnd null 1
+		InvalidateRect hWnd null 0
 		exit
 	]
 

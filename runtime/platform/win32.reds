@@ -50,6 +50,13 @@ platform: context [
 		SuppressExternalCodecs		[integer!]
 	]
 
+	tagSYSTEMTIME: alias struct! [
+		year-month	[integer!]
+		week-day	[integer!]
+		hour-minute	[integer!]
+		second		[integer!]
+	]
+
 	gdiplus-token: 0
 	page-size: 4096
 
@@ -127,6 +134,24 @@ platform: context [
 			GetCommandLine: "GetCommandLineW" [
 				return:			[byte-ptr!]
 			]
+			GetEnvironmentStrings: "GetEnvironmentStringsW" [
+				return:		[c-string!]
+			]
+			GetEnvironmentVariable: "GetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				valsize		[integer!]
+				return:		[integer!]
+			]
+			SetEnvironmentVariable: "SetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				return:		[logic!]
+			]
+			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
+				env			[c-string!]
+				return:		[logic!]
+			]
 			FormatMessage: "FormatMessageW" [
 				dwFlags			[integer!]
 				lpSource		[byte-ptr!]
@@ -136,6 +161,12 @@ platform: context [
 				nSize			[integer!]
 				Argument		[integer!]
 				return:			[integer!]
+			]
+			GetSystemTime: "GetSystemTime" [
+				time			[tagSYSTEMTIME]
+			]
+			GetLocalTime: "GetLocalTime" [
+				time			[tagSYSTEMTIME]
 			]
 			LocalFree: "LocalFree" [
 				hMem			[integer!]
@@ -158,6 +189,17 @@ platform: context [
 			]
 			GdiplusShutdown: "GdiplusShutdown" [
 				token		[integer!]
+			]
+		]
+		"shell32.dll" stdcall [
+			ShellExecute: "ShellExecuteW" [
+				hwnd		 [integer!]
+				lpOperation	 [c-string!]
+				lpFile		 [c-string!]
+				lpParameters [integer!]
+				lpDirectory	 [integer!]
+				nShowCmd	 [integer!]
+				return:		 [integer!]
 			]
 		]
 	]
@@ -206,13 +248,13 @@ platform: context [
 		]
 	]
 
-	init-gdiplus: func [/local startup-input res][
+	init-gdiplus: func [/local startup-input][
 		startup-input: declare GdiplusStartupInput!
 		startup-input/GdiplusVersion: 1
 		startup-input/DebugEventCallback: 0
 		startup-input/SuppressBackgroundThread: 0
 		startup-input/SuppressExternalCodecs: 0
-		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
+		GdiplusStartup :gdiplus-token as-integer startup-input 0
 	]
 
 	shutdown-gdiplus: does [
@@ -240,6 +282,47 @@ platform: context [
 		return: [logic!]
 	][
 		SetCurrentDirectory path
+	]
+
+	set-env: func [
+		name	[c-string!]
+		value	[c-string!]
+		return: [logic!]			;-- true for success
+	][
+		SetEnvironmentVariable name value
+	]
+
+	get-env: func [
+		;; Returns size of retrieved value for success or zero if missing
+		;; If return size is greater than valsize then value contents are undefined
+		name	[c-string!]
+		value	[c-string!]
+		valsize [integer!]			;-- includes null terminator
+		return: [integer!]
+	][
+		GetEnvironmentVariable name value valsize
+	]
+
+	get-time: func [
+		utc?	 [logic!]
+		precise? [logic!]
+		return:  [float!]
+		/local
+			time	[tagSYSTEMTIME]
+			h		[integer!]
+			m		[integer!]
+			sec		[integer!]
+			milli	[integer!]
+			t		[float!]
+	][
+		time: declare tagSYSTEMTIME
+		either utc? [GetSystemTime time][GetLocalTime time]
+		h: time/hour-minute and FFFFh
+		m: time/hour-minute >>> 16
+		sec: time/second and FFFFh
+		milli: either precise? [time/second >>> 16][0]
+		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
+		t * 1E6				;-- nano second
 	]
 
 	;-------------------------------------------

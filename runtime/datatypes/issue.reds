@@ -14,28 +14,25 @@ issue: context [
 	verbose: 0
 	
 	load-in: func [
-		str 	 [c-string!]
-		blk		 [red-block!]
-		return:	 [red-word!]
+		str 	[c-string!]
+		blk		[red-block!]
+		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "issue/load"]]
-		
-		cell: word/load-in str blk
+		cell: as red-word! ALLOC_TAIL(blk)
 		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: symbol/make str yes
+		cell/index:  -1
 		cell
 	]
 	
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
-		/local 
-			cell [red-word!]
 	][
-		cell: word/load str
-		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
-		cell
+		load-in str root
 	]
 	
 	push: func [
@@ -48,6 +45,45 @@ issue: context [
 	]
 	
 	;-- Actions --
+	
+	to: func [
+		type	[red-datatype!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			issue [red-word!]
+			str   [red-string!]
+			bin   [red-binary!]
+			s	  [series!]
+			unit  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "issue/to"]]
+
+		switch type/value [
+			TYPE_BINARY [
+				issue: as red-word! spec
+				str: as red-string! stack/push as red-value! symbol/get issue/symbol
+				str/head: 0								;-- /head = -1 (casted from symbol!)
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				
+				bin: as red-binary! stack/arguments
+				bin/head: 0
+				bin/header: TYPE_BINARY
+				bin/node: binary/decode-16 
+					(as byte-ptr! s/offset) + (str/head << (log-b unit))
+					string/rs-length? str
+					unit
+				stack/pop 1
+				if null? bin/node [bin/header: TYPE_NONE]
+				as red-value! bin
+			]
+			default  [
+				fire [TO_ERROR(script bad-to-arg) type spec]
+				null
+			]
+		]
+	]
 	
 	mold: func [
 		w	    [red-word!]
@@ -66,21 +102,6 @@ issue: context [
 		word/form w buffer arg part - 1
 	]
 	
-	compare: func [
-		arg1	[red-word!]								;-- first operand
-		arg2	[red-word!]								;-- second operand
-		op		[integer!]								;-- type of comparison
-		return:	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "issue/compare"]]
-
-		either op = COMP_STRICT_EQUAL [
-			all [TYPE_OF(arg2) = TYPE_ISSUE arg1/symbol = arg2/symbol]
-		][
-			word/compare arg1 arg2 op
-		]
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_ISSUE
@@ -90,12 +111,12 @@ issue: context [
 			null			;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
@@ -126,6 +147,7 @@ issue: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

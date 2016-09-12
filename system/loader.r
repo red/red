@@ -460,14 +460,14 @@ loader: make-profilable context [
 					read/binary input
 				]
 			][
-				throw-error ["file access error:" mold disarm err]
+				throw-error ["file access error:" mold input]
 			]
 		]
 		unless short [
 			current-script: case [
 				file? input [input]
 				with		[name]
-				'else		['in-memory]
+				'else		[any [select input #script 'in-memory]]
 			]
 			append clear scripts-stk current-script
 		]

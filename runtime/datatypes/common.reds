@@ -20,8 +20,8 @@ names!: alias struct! [
 	word	[red-word!]								;-- datatype name as word! value
 ]
 
-name-table:   declare names! 						;-- datatype names table
-action-table: declare int-ptr!						;-- actions jump table
+name-table:	  as names! 0	 						;-- datatype names table
+action-table: as int-ptr! 0							;-- actions jump table
 
 
 set-type: func [										;@@ convert to macro?
@@ -271,6 +271,54 @@ eval-int-path: func [
 	result
 ]
 
+select-key*: func [									;-- called by compiler for SWITCH
+	sub?	[logic!]
+	fetch?	[logic!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		key	  [red-value!]
+		value [red-value!]
+		tail  [red-value!]
+		s	  [series!]
+		step  [integer!]
+][
+	key: as red-value! stack/arguments
+	blk: as red-block! key + 1
+	assert TYPE_OF(blk) = TYPE_BLOCK
+	
+	unless TYPE_OF(key) = TYPE_BLOCK [
+		s: GET_BUFFER(blk)
+		value: s/offset + blk/head
+		tail:  s/tail
+		step:  either sub? [1][2]
+
+		while [value < tail][
+			if TYPE_OF(key) = TYPE_OF(value) [
+				if actions/compare key value COMP_EQUAL [
+					either fetch? [
+						value: value + 1
+						while [value < tail][
+							if TYPE_OF(value) = TYPE_BLOCK [break]
+							value: value + 1
+						]
+					][
+						value: either value + 1 < tail [value + 1][value]
+					]
+					either sub? [stack/push value][stack/set-last value]
+					return value
+				]
+			]
+			value: value + step
+		]
+	]
+	either sub? [as red-value! none/push][
+		value: stack/arguments
+		value/header: TYPE_NONE
+		value
+	]
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack
@@ -321,9 +369,6 @@ cycles: context [
 		mold?	[logic!]
 		return: [logic!]
 		/local
-			obj	 [red-object!]
-			blk	 [red-block!]
-			node [node!]
 			s	 [c-string!]
 			size [integer!]
 	][
@@ -354,11 +399,12 @@ words: context [
 	spec:			-1
 	body:			-1
 	words:			-1
+	class:			-1
 	logic!:			-1
 	integer!:		-1
 	char!:			-1
-    float!:			-1
-    percent!:		-1
+	float!:			-1
+	percent!:		-1
 	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
@@ -439,6 +485,14 @@ words: context [
 	size:			-1
 	rgb:			-1
 	alpha:			-1
+	argb:			-1
+	
+	hour:			-1
+	minute:			-1
+	second:			-1
+	
+	user:			-1
+	host:			-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -479,6 +533,7 @@ words: context [
 	
 	;-- modifying actions
 	_change:		as red-word! 0
+	_changed:		as red-word! 0
 	_clear:			as red-word! 0
 	_cleared:		as red-word! 0
 	_set-path:		as red-word! 0
@@ -493,11 +548,14 @@ words: context [
 	_swap:			as red-word! 0
 	_take:			as red-word! 0
 	_taken:			as red-word! 0
+	_move:			as red-word! 0
+	_moved:			as red-word! 0
 	_trim:			as red-word! 0
 
 	;-- modifying natives
 	_uppercase:		as red-word! 0
 	_lowercase:		as red-word! 0
+	_checksum:		as red-word! 0
 	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
@@ -508,6 +566,9 @@ words: context [
 	_try:			as red-word! 0
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
+	
+	_multiply:		as red-word! 0
+	_browse:		as red-word! 0
 	
 	errors: context [
 		throw:		as red-word! 0
@@ -524,6 +585,7 @@ words: context [
 		spec:			symbol/make "spec"
 		body:			symbol/make "body"
 		words:			symbol/make "words"
+		class:			symbol/make "class"
 		logic!:			symbol/make "logic!"
 		integer!:		symbol/make "integer!"
 		char!:			symbol/make "char!"
@@ -612,6 +674,14 @@ words: context [
 		size:			symbol/make "size"
 		rgb:			symbol/make "rgb"
 		alpha:			symbol/make "alpha"
+		argb:			symbol/make "argb"
+		
+		hour:			symbol/make "hour"
+		minute:			symbol/make "minute"
+		second:			symbol/make "second"
+		
+		user:			symbol/make "user"
+		host:			symbol/make "host"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -641,10 +711,13 @@ words: context [
 		
 		;-- modifying actions
 		_change:		word/load "change"
+		_changed:		word/load "changed"
 		_clear:			word/load "clear"
 		_cleared:		word/load "cleared"
 		_set-path:		word/load "set-path"
 		_insert:		word/load "insert"
+		_move:			word/load "move"
+		_moved:			word/load "moved"
 		_poke:			word/load "poke"
 		_put:			word/load "put"
 		;_remove:		word/load "remove"
@@ -660,6 +733,7 @@ words: context [
 		;-- modifying natives
 		_uppercase:		word/load "uppercase"
 		_lowercase:		word/load "lowercase"
+		_checksum:		word/load "checksum"
 		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
@@ -680,6 +754,9 @@ words: context [
 		_try:			word/load "try"
 		_catch:			word/load "catch"
 		_name:			word/load "name"
+		
+		_multiply:		word/load "multiply"
+		_browse:		word/load "browse"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"
@@ -706,5 +783,13 @@ refinements: context [
 
 		_part:	refinement/load "part"
 		_skip:	refinement/load "skip"
+	]
+]
+
+issues: context [
+	ooo:	as red-word! 0
+	
+	build: does [
+		ooo: issue/load "ooo"
 	]
 ]

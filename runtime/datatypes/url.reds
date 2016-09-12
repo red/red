@@ -141,6 +141,29 @@ url: context [
 		as red-value! type
 	]
 
+	eval-path: func [
+		parent	[red-string!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			s	[series!] 
+			new [red-string!]
+	][
+		either value <> null [							;-- set-path
+			fire [TO_ERROR(script bad-path-set) path element]
+		][
+			s: GET_BUFFER(parent)
+			new: string/make-at stack/push* 16 + string/rs-length? parent GET_UNIT(s)
+			actions/form element new null 0
+			string/concatenate new parent -1 0 yes yes
+			set-type as red-value! new TYPE_OF(parent)
+		]
+		as red-value! new
+	]
+
 	;-- I/O actions
 	read: func [
 		src		[red-value!]
@@ -159,7 +182,9 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		part: simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+		part
 	]
 
 	write: func [
@@ -206,7 +231,9 @@ url: context [
 			action: HTTP_POST
 		]
 		
-		simple-io/request-http action as red-url! dest header data binary? lines? info?
+		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+		part
 	]
 
 	init: does [
@@ -221,7 +248,7 @@ url: context [
 			:to
 			INHERIT_ACTION	;form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
@@ -245,7 +272,7 @@ url: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
@@ -254,6 +281,7 @@ url: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke

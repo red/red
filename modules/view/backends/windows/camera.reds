@@ -116,7 +116,6 @@ build-preview-graph: func [
 		filter	[this!]
 		IVM		[interface!]
 		graph	[IGraphBuilder]
-		mc		[IMediaControl]
 		builder [ICaptureGraphBuilder2]
 		video	[IVideoWindow]
 		hr		[integer!]
@@ -255,7 +254,7 @@ collect-camera: func [
 				len: as int-ptr! var/data3 - 4
 				size: len/value >> 1
 				str: string/make-at ALLOC_TAIL(data) size 2
-				unicode/load-utf16 as c-string! var/data3 size str
+				unicode/load-utf16 as c-string! var/data3 size str no
 				dev-ptr/value: as-integer IM/ptr
 				dev-ptr: dev-ptr + 1
 				moniker/AddRef IM/ptr

@@ -17,6 +17,7 @@ char-test.red
 routine-test.red
 append-test.red
 insert-test.red
+move-test.red
 make-test.red
 system-test.red
 parse-test.red
@@ -31,10 +32,9 @@ case-folding-test.red
 throw-test.red
 vector-test.red
 map-test.red
-do-test.red
 pair-test.red
-auto-tests/integer-auto-test.red
-auto-tests/float-auto-test.red
+checksum-test.red
+reactivity-test.red
 auto-tests/infix-equal-auto-test.red
 auto-tests/equal-auto-test.red
 auto-tests/infix-not-equal-auto-test.red
@@ -50,3 +50,4 @@ auto-tests/greater-equal-auto-test.red
 auto-tests/strict-equal-auto-test.red
 auto-tests/infix-strict-equal-auto-test.red
 auto-tests/same-auto-test.red
+auto-tests/lexer-auto-test.red

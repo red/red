@@ -162,8 +162,6 @@ logic: context [
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-logic!]
-		/local
-			res	 [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/random"]]
 
@@ -220,6 +218,7 @@ logic: context [
 		if type <> TYPE_LOGIC [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -249,11 +248,11 @@ logic: context [
 		left: as red-logic! stack/arguments
 		right: left + 1
 		if TYPE_OF(right) <> TYPE_LOGIC [
-			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2)
+			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 1)
 		]
 		left/value: switch type [
 			OP_AND [left/value and right/value]
-			OP_OR  [left/value or right/value]
+			OP_OR  [left/value or  right/value]
 			OP_XOR [left/value xor right/value]
 		]
 		left
@@ -325,6 +324,7 @@ logic: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

@@ -42,8 +42,8 @@ Other useful functions:
 }
 			exit
 		]
-		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
-			type: get :word
+		all [word? :word datatype? get/any :word] [			;-- HELP <datatype!>
+			type: get/any :word
 			found?: no
 			foreach w sort words-of system/words [
 				if all [word? w type = type? get/any w][
@@ -217,6 +217,7 @@ Other useful functions:
 ?: :help
 
 a-an: function [s [string!]][
+	"Returns the appropriate variant of a or an"
 	pick ["an" "a"] make logic! find "aeiou" s/1
 ]
 

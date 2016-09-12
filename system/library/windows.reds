@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#if target = 'IA-32 [
-	system/fpu/mask/overflow: on
-	system/fpu/mask/underflow: on
-	system/fpu/mask/zero-divide: on
-	system/fpu/mask/invalid-op: on
-	system/fpu/update
-]
-
 #if OS = 'Windows [
 	; Spawn enums
 	#enum spawn-mode [
@@ -55,6 +47,9 @@ Red/System [
 	#define OPEN_ALWAYS			4
 	#define TRUNCATE_EXISTING	5
 
+	#define FILE_ATTRIBUTE_NORMAL		00000080h
+	#define FILE_FLAG_SEQUENTIAL_SCAN	08000000h
+
 	#define STD_INPUT_HANDLE	-10
 	#define STD_OUTPUT_HANDLE	-11
 	#define STD_ERROR_HANDLE	-12
@@ -89,19 +84,19 @@ Red/System [
 	]
 	security-attributes!: alias struct! [
 		nLength              [integer!]
-		lpSecurityDescriptor [opaque!]
+		lpSecurityDescriptor [integer!]
 		bInheritHandle       [logic!]
 	]
 
 	#import [ "kernel32.dll" stdcall [
-		create-process: "CreateProcessA" [ "Creates a new process and its primary thread"
+		create-process: "CreateProcessW" [ "Creates a new process and its primary thread"
 			lpApplicationName       [c-string!]
 			lpCommandLine           [c-string!]
-			lpProcessAttributes     [opaque!]
-			lpThreadAttributes      [opaque!]
+			lpProcessAttributes     [integer!]
+			lpThreadAttributes      [integer!]
 			bInheritHandles         [logic!]
 			dwCreationFlags         [integer!]
-			lpEnvironment           [opaque!]
+			lpEnvironment           [integer!]
 			lpCurrentDirectory      [c-string!]
 			lpStartupInfo           [startup-info!]
 			lpProcessInformation    [process-info!]
@@ -124,14 +119,14 @@ Red/System [
 			nSize                   [integer!]
 			return:                 [logic!]
 		]
-		create-file: "CreateFileA" [ "Creates or opens a file or I/O device"
+		create-file: "CreateFileW" [ "Creates or opens a file or I/O device"
 			lpFileName				[c-string!]
 			dwDesiredAccess			[integer!]
 			dwShareMode				[integer!]
 			lpSecurityAttributes	[security-attributes!]
 			dwCreationDisposition	[integer!]
 			dwFlagsAndAttributes	[integer!]
-			hTemplateFile			[opaque!]
+			hTemplateFile			[integer!]
 			return:					[integer!]
 		]
 		close-handle: "CloseHandle" [ "Closes an open object handle"
@@ -147,7 +142,7 @@ Red/System [
 			lpBuffer                [byte-ptr!]
 			nNumberOfBytesToRead    [integer!]
 			lpNumberOfBytesRead     [int-ptr!]
-			lpOverlapped            [opaque!]
+			lpOverlapped            [integer!]
 			return:                 [logic!]
 		]
 		io-write: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
@@ -155,7 +150,7 @@ Red/System [
 			lpBuffer				[byte-ptr!]
 			nNumberOfBytesToWrite   [integer!]
 			lpNumberOfBytesWritten  [int-ptr!]
-			lpOverlapped            [opaque!]
+			lpOverlapped            [integer!]
 			return:                 [logic!]
 		]
 		set-handle-information: "SetHandleInformation" [ "Sets certain properties of an object handle"
@@ -167,15 +162,26 @@ Red/System [
 		get-last-error: "GetLastError" [ "Retrieves the calling thread's last-error code value"
 			return:                 [integer!]
 		]
-		] ; stdcall
-	] ; #import
-	#import [ "advapi32.dll" stdcall [
-		is-text-unicode: "IsTextUnicode" [ "Determines if a buffer is likely to contain a form of Unicode text"
-			lpv						[byte-ptr!]
-			iSize					[integer!]
-			lpiResult				[int-ptr!]
+		MultiByteToWideChar: "MultiByteToWideChar" [
+			CodePage				[integer!]
+			dwFlags					[integer!]
+			lpMultiByteStr			[byte-ptr!]
+			cbMultiByte				[integer!]
+			lpWideCharStr			[byte-ptr!]
+			cchWideChar				[integer!]
+			return:					[integer!]
+		]
+		SetFilePointer: "SetFilePointer" [
+			file		[integer!]
+			distance	[integer!]
+			pDistance	[int-ptr!]
+			dwMove		[integer!]
+			return:		[integer!]
+		]
+		lstrlen: "lstrlenW" [
+			str						[c-string!]
+			return:					[integer!]
 		]
 		] ; stdcall
 	] ; #import
-
 ] ; OS = 'Windows

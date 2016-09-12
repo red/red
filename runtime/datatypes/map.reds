@@ -100,9 +100,7 @@ map: context [
 			cell	[red-value!]
 			tail	[red-value!]
 			value	[red-value!]
-			int		[red-integer!]
 			s		[series!]
-			cnt		[integer!]
 			size	[integer!]
 			table	[node!]
 			key		[red-value!]
@@ -186,7 +184,6 @@ map: context [
 		spec		[red-value!]
 		return:		[red-hash!]
 		/local
-			map		[red-hash!]
 			size	[integer!]
 			int		[red-integer!]
 			blk		[red-block!]
@@ -232,10 +229,11 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
+		size: 2 * rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
-		s-tail: s/tail
-		size: block/rs-length? as red-block! map
+		s-tail: value + size
+		if zero? size [size: 2]
 		case [
 			field = words/words [
 				blk/node: alloc-cells size >> 1
@@ -300,14 +298,87 @@ map: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
+		/local
+			prev [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
 		string/concatenate-literal buffer "#("
-		part: serialize map buffer only? all? flat? arg part - 2 yes indent + 1 yes
-		if indent > 0 [part: object/do-indent buffer indent part]
+		prev: part - 2
+		part: serialize map buffer no all? flat? arg prev yes indent + 1 yes
+		if all [part <> prev indent > 0][part: object/do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
+	]
+
+	compare-each: func [
+		blk1	   [red-hash!]							;-- first operand
+		blk2	   [red-hash!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [integer!]
+		/local
+			size1  [integer!]
+			size2  [integer!]
+			key1   [red-value!]
+			key2   [red-value!]
+			value1 [red-value!]
+			value2 [red-value!]
+			res	   [integer!]
+			n	   [integer!]
+			same?  [logic!]
+			case?  [logic!]
+			table2 [node!]
+	][
+		same?: all [
+			blk1/node = blk2/node
+			blk1/head = blk2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+
+		size1: rs-length? blk1
+		size2: rs-length? blk2
+
+		if size1 <> size2 [										;-- shortcut exit for different sizes
+			return either any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][1][SIGN_COMPARE_RESULT(size1 size2)]
+		]
+
+		if zero? size1 [return 0]								;-- shortcut exit for empty map!
+
+		case?: op = COMP_STRICT_EQUAL
+		table2: blk2/table
+		key1: block/rs-head as red-block! blk1
+		key1: key1 - 2
+		n: 0
+
+		cycles/push blk1/node
+		until [
+			until [												;-- next key
+				key1: key1 + 2
+				value1: key1 + 1
+				TYPE_OF(value1) <> TYPE_NONE
+			]
+			key2: _hashtable/get table2 key1 0 0 case? no no
+
+			res: either key2 = null [1][
+				value1: key1 + 1								;-- find the same key, then compare values
+				value2: key2 + 1
+				either cycles/find? value1 [
+					as-integer not natives/same? value1 value2
+				][
+					actions/compare-value value1 value2 op
+				]
+			]
+			n: n + 1
+			any [res <> 0 n = size1]
+		]
+		cycles/pop
+		res
 	]
 
 	compare: func [
@@ -323,11 +394,12 @@ map: context [
 		if type <> TYPE_MAP [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: block/compare-each as red-block! map1 as red-block! map2 op
+				res: compare-each map1 map2 op
 			]
 			default [
 				res: -2
@@ -462,6 +534,7 @@ map: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -475,6 +548,7 @@ map: context [
 			key   [red-value!]
 			val   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		val: key + 1
@@ -489,6 +563,7 @@ map: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -499,6 +574,7 @@ map: context [
 			table [node!]
 			key   [red-value!]
 	][
+		if same? [case?: yes]
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
 		either key = null [none-value][key + 1]
@@ -600,6 +676,7 @@ map: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

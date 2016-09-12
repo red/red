@@ -127,7 +127,7 @@ context [
 		]
 		sym-desc [
 			undef-non-lazy			#{00}		; reference to an external non-lazy (data) symbol
-			undef-lazy				#{01}		; external lazy symbol—that is, to a function call
+			undef-lazy				#{01}		; external lazy symbol-that is, to a function call
 			defined					#{02}		; symbol is defined in this module
 			priv-def				#{03}		; defined in module, but private
 			priv-def-non-lazy  		#{04}		; private, defined, non-lazy symbol
@@ -213,7 +213,7 @@ context [
 		addr			[integer!]	; virtual memory address of this section
 		size			[integer!]	; size in bytes of the virtual memory occupied by this section
 		offset			[integer!]	; offset to this section in the file
-		align			[integer!]	; section’s byte alignment as power of two
+		align			[integer!]	; section's byte alignment as power of two
 		reloff			[integer!]	; file offset of the first relocation entry for this section.
 		nreloc			[integer!]	; number of relocation entries located at reloff for this section.
 		flags			[integer!]
@@ -374,7 +374,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
@@ -425,6 +425,14 @@ context [
 				]
 				if all [seg/2 = '__TEXT job/debug?][
 					process-debug-info job
+				]
+				if seg/2 = '__LINKEDIT [
+					tables: job/sections/symbols/1
+					seg/4: round/ceiling/to
+						sz: tables/2 + tables/3 + tables/4
+						get-ceiling seg/9 
+					seg/6: sz
+					
 				]
 			]
 			tail? seg: skip seg 10
