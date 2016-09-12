@@ -406,9 +406,12 @@ context [
 		]
 		insert buffer header
 		
-		if compress?: find spec 'compress [
+		if all [
+			compress?: find spec 'compress
+			64 < len: length? buffer
+		][
 			flags: flags or #{02}
-			out: make binary! len: length? buffer
+			out: make binary! len
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
 			clear buffer
