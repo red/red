@@ -662,57 +662,193 @@ Red [
 
 	; --test-- "#699"
 
-	; --test-- "#702"
+	--test-- "#702"
+		--assert not error? try [
+			command: [
+				if-defined | if-not-defined | define | function | comment
+			]
+		]
+		unset 'command
 
 	; --test-- "#704"
+		; console behaviour
 
 	; --test-- "#706"
+		; console behaviour
 
-	; --test-- "#710"
+	--test-- "#710"
+		; FIXME: not sure if both test should work or both should throw an error.
+		;		first tests works with 061, while second does not
+		--assert equal? 
+			1.373691897708523e131
+			probe do load "27847278432473892748932789483290483789743824832478237843927849327492 * 4932948478392784372894783927403290437147389024920147892940729142"
+		--assert not error? try [74789 * 849032]
 
-	; --test-- "#714"
+	--test-- "#714"
+		a: load/all "a"
+		b: load/all "b"
+		--assert equal? [a] a
+		--assert equal? [b] b
 
-	; --test-- "#715"
+	--test-- "#715"
+		--assert equal? "blahblah2" probe append "blah" "blah^2"
 
 	; --test-- "#716"
+		; platfor specific compilation problem
 
 	; --test-- "#720"
+		; console compilation problem
 
 	; --test-- "#725"
+		; should check for print output
 
 	; --test-- "#726"
+		; should check for print output
 
-	; --test-- "#727"
+	--test-- "#727"
+		x: 0
+		rule: [(x: 1)]
+		parse "a" [collect rule]
+		--assert equal? 1 x
+		unset 'x
 
 	; --test-- "#740"
+		; should check for print output
 
 	; --test-- "#745"
+		; should check for print output
 
 	; --test-- "#748"
+		; should check for print output
+;		txt: "Hello world"
+;		parse txt [ while any [ remove "l" | skip ] ]
+;		print txt
 
 	; --test-- "#751"
+		; R/S
 
-	; --test-- "#757"
+	--test-- "#757"
+		--assert not error? try [x: "^(FF)"]
+		unset 'x
 
-	; --test-- "#764"
+	--test-- "#764"
+		; NOTE: some test cannot be compiled, because compiler refuses them
+		f: function[][os: 1] 
+		--assert equal? 1 probe f
+		f: function[][os: 1 os]
+		--assert equal? 1 probe f
+		f: function[os][os] 
+		--assert equal? 1 probe f 1
+		f:func[][os: 1] 
+		--assert equal? 1 probe f
+		f: func[][os: 1 os] 
+		--assert equal? 1 probe f
+		f: func[os][os] 
+		--assert equal? 1 probe f 1
+		f: has [os][os: 1] 
+		--assert equal? 1 probe f
+;		--assert error? try [equal? 1 os]
+		f: has [os][os: 1 os] 
+		--assert equal? 1 probe f
+;		--assert error? try [equal? 1 os]
+		f: does [os: 1] 
+		--assert equal? 1 probe f
+		f: does [os: 1 os] 
+		--assert equal? 1 probe f
+		unset [f os]
 
 	; --test-- "#765"
+		; TODO
 
-	; --test-- "#770"
+	--test-- "#770"
+		f: function [][
+			blk: [1 2 3 4 5]
+			foreach i blk [
+				case [
+					i > 1 [return i]
+				]
+			]
+		]
+		g: function [][if f [return 1]]
+		--assert equal? 1 g
+		f: function [][
+			case [
+				2 > 1 [return true]
+			]
+		]
+		g: function [][if f [return 1]]
+		--assert equal? 1 g
+		f: function [][if true [return true]]
+		g: function [][if f [return 1]]
+		--assert equal? 1 g
+		g: function [][if true [return 1]]
+		--assert equal? 1 g
+		f: function [][true ]
+		g: function [][if f [return 1]]
+		--assert equal? 1 g
+		f: function [][if true [return true]]
+		g: function [][if (f) [return 1]]
+		--assert equal? 1 g
+		f: function [][if true [return true]]
+		g: function [][if not not f [return 1]]
+		--assert equal? 1 g
+		f: function [][if true [return 'X]]
+		g: function [][if f [return 1]]
+		--assert equal? 1 g
+		unset [f g]
 
 	; --test-- "#776"
+		; console behaviour
 
-	; --test-- "#778"
+	--test-- "#778"
+		; should check for crash
+		f: function[][ return 1 ]
+		t: (f)
+		--assert not error? try [f]
+		--assert not error? try [t: f]
 
-	; --test-- "#785"
+	--test-- "#785"
+		nd: charset [not #"0" - #"9"]
+		zero: charset #"0"
+		nd-zero: union nd zero
+		--assert not find nd #"0"
+		--assert not find nd #"1"
+		--assert find nd #"B"
+		--assert find nd #"}"
+		--assert find zero #"0"
+		--assert not find zero #"1"
+		--assert not find zero #"B"
+		--assert not find zero #"}"
+		--assert find nd-zero #"0"
+		--assert not find nd-zero #"1"
+		--assert find nd-zero #"B"
+		--assert find nd-zero #"}"
+		unset [nd zero nd-zero]
 
-	; --test-- "#787"
+	--test-- "#787"
+		--assert equal? ["a"] head reduce/into "a" []
+		--assert equal? ["a"] head compose/into "a" []
 
-	; --test-- "#789"
+	--test-- "#789"
+		--assert not error? try [load "-2147483648"]
 
-	; --test-- "#791"
+	--test-- "#791"
+		blk: [2 #[none] 64 #[none]]
+		result: copy []
+		parse blk [
+			collect into result [
+				any [
+					set s integer! keep (s) | skip
+				]
+			]
+		]
+		--assert equal? [2 64] result
+		--assert not tail? result
+		--assert equal? [2 64] head result
+		unset [blk result]
 
 	; --test-- "#796"
+		; console behaviour
 
 	; --test-- "#800"
 		; console behaviour (ask)
@@ -2472,7 +2608,7 @@ Red [
 		; GUI
 
 	; --test-- "#1874"
-		; GUI
+		; GUI
 
 	--test-- "#1878"
 		; should check for crash
