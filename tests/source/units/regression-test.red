@@ -3256,6 +3256,62 @@ b}
 	; --test-- "#2170"
 		; GUI
 
+	--test-- "#2171"
+		quote1: func ['val] [val]
+		--assert probe equal? first [()] quote1 ()
+		--assert probe error? try [quote1 (test)]
+		unset 'quote1
+
+	--test-- "#2173"
+		--assert not parse [] [return]
+		--assert not parse [] [parse]
+		--assert not parse [] ["why"]
+		--assert not parse [] [red]
+		--assert not parse [] [append]
+		--assert not parse [] [help]
+
+	--test-- "#2177"
+
+		--assert not new-line? [foo]
+		--assert new-line? [
+			foo
+		]
+
+	; --test-- "#2179"
+		; should check for crash
+
+	; --test-- "#2182"
+		; should check for crash
+
+	--test-- "#2187"
+		--assert error? try [load {64#{aaa }}]
+
+	--test-- "#2195"
+		e: try [load "system/options/"]
+		--assert equal? "system/options/" e/arg2
+		unset 'e
+
+	--test-- "#2196"
+		m: #()
+		repeat k 70 [
+			m/:k: {x}
+			m/:k: none
+		]
+		--assert empty? keys-of m
+		unset 'm
+
+	--test-- "#2209"
+		m: #(a 1 b 2)
+		m/a: none
+		--assert equal? #(b: 2) m
+		unset 'm
+
+	; --test-- "#2214"
+		; should check for crash
+
+	; --test-- "#2223"
+		; GUI
+
 ===end-group===
 
 ~~~end-file~~~
