@@ -91,7 +91,7 @@ make-profilable make target-class [
 		gcode [binary! block! none!]					;-- global opcodes
 		pcode [binary! block! none!]					;-- PIC opcodes
 		lcode [binary! block!] 							;-- local opcodes
-		/local offset code
+		/local offset byte code spec
 	][
 		if object? name [name: compiler/unbox name]
 		
@@ -106,31 +106,51 @@ make-profilable make target-class [
 				]
 			]
 			PIC? [										;-- global variable case (PIC version)
-				either block? pcode [
-					foreach code reduce pcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
+				spec: emitter/symbols/:name
+				either all [
+					spec/1 = 'import-var 
+					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
 				][
-					emit pcode
-					emit-reloc-addr emitter/symbols/:name
+					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
+					emit-reloc-addr spec
+					emit (#{FF7E} and copy pcode) or #{0004} ;-- [ebx+<disp>] => [esi]
+				][
+					either block? pcode [
+						foreach code reduce pcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit pcode
+						emit-reloc-addr spec
+					]
 				]
 			]
 			'global [									;-- global variable case
-				either block? gcode [
-					foreach code reduce gcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
+				spec: emitter/symbols/:name
+				either all [
+					spec/1 = 'import-var 
+					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
 				][
-					emit gcode
-					emit-reloc-addr emitter/symbols/:name
+					emit #{8B1D}					;-- MOV ebx, [<import>]
+					emit-reloc-addr spec
+					emit #{FF7F} and copy pcode		;-- [ebx+<disp>] => [ebx]
+				][
+					either block? gcode [
+						foreach code reduce gcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit gcode
+						emit-reloc-addr spec
+					]
 				]
 			]
 		]
