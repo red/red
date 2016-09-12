@@ -4327,7 +4327,7 @@ red: context [
 			<imports>
 
 			with red [
-				redbin/boot-load system/boot-data yes
+				root-base: redbin/boot-load system/boot-data yes
 				exec: context <script>
 			]
 		]][[
@@ -4344,7 +4344,7 @@ red: context [
 			replace out <imports> load %libRed-include.red
 			defs: load-safe %libred-defs.red
 			append clear functions defs/1
-			redbin/index:	defs/2
+;probe			redbin/index:	defs/2
 			globals:		defs/3
 			objects:		compose/deep bind objects: defs/4 red
 			contexts:		defs/5

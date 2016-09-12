@@ -19,8 +19,8 @@ libRed: context [
 
 	funcs: [
 		red/copy-cell
-		red/get-root
-		red/get-root-node
+		;red/get-root
+		red/get-root-node2
 		red/type-check-alt
 		red/type-check
 		red/set-int-path*
@@ -29,6 +29,7 @@ libRed: context [
 		red/eval-path*
 		red/eval-int-path
 		red/eval-path
+		red/select-key*
 		
 		red/redbin/boot-load
 		
@@ -215,6 +216,7 @@ libRed: context [
 		red/actions/append*
 		red/actions/at*
 		red/actions/back*
+		red/actions/change*
 		red/actions/clear*
 		red/actions/copy*
 		red/actions/find*
@@ -222,6 +224,7 @@ libRed: context [
 		red/actions/head?*
 		red/actions/index?*
 		red/actions/insert*
+		red/actions/move*
 		red/actions/length?*
 		red/actions/next*
 		red/actions/pick*
@@ -332,6 +335,7 @@ libRed: context [
 	vars: [
 		red/stack/arguments		cell!
 		red/stack/top			cell!
+		red/stack/bottom		cell!
 		red/unset-value			cell!
 		red/none-value			cell!
 		red/true-value			cell!
@@ -371,7 +375,7 @@ libRed: context [
 			if object? obj [
 				foreach w next first obj [
 					if object? o: get in obj w [
-						append obj-path sym
+						append obj-path load mold/flat sym	;-- clean-up unwanted newlines hints
 						obj-to-path reduce [w o none none none none] tree
 						remove back tail obj-path
 					]
@@ -407,6 +411,26 @@ libRed: context [
 				offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
 				tail	[cell!]							;-- series buffer tail pointer 
 			]
+			
+			root-base: as cell! 0
+			
+			get-root: func [
+				idx		[integer!]
+				return: [red-block!]
+			][
+				as red-block! root-base + idx
+			]
+			
+			get-root-node: func [
+				idx		[integer!]
+				return: [node!]
+				/local
+					obj [red-object!]
+			][
+				obj: as red-object! get-root idx
+				obj/ctx
+			]
+
 		]
 		foreach def funcs [
 			ctx: next def
@@ -476,6 +500,8 @@ libRed: context [
 		while [pos: find lits 'get-root][
 			remove/part skip pos -3 5
 		]
+		replace/all lits 'get-root-node 'get-root-node2
+		
 		tmpl: mold/all reduce [
 			new-line/all/skip to-block red/functions yes 2
 			red/redbin/index
