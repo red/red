@@ -430,7 +430,7 @@ context [
 		
 		if all [
 			compress?: find spec 'compress
-			64 < len: length? buffer
+			128 < len: length? buffer
 		][
 			flags: flags or #{02}
 			out: make binary! len
