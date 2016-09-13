@@ -157,6 +157,7 @@ context [
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
+			idata				#{C0000040}	;-- [read write initialized]
 			reloc				#{42000040} ;-- [read discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
@@ -312,7 +313,7 @@ context [
 		IAT-rva				[integer!]		;-- address table RVA
 	] none
 
-	ILT: make-struct [
+	ILT-struct: make-struct [
 		rva	[integer!]						;-- 32/64-bit
 	] none
 	
@@ -485,7 +486,7 @@ context [
 		]
 	]
 
-	build-import: func [
+	_build-import: func [
 		job [object!]
 		/local spec IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
 	][
@@ -516,8 +517,8 @@ context [
 				hint: tail hints
 				repend hints [#{0000} def null]			;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
-				ILT/rva: hint-ptr
-				append buffer form-struct ILT			;-- ILT instance
+				ILT-struct/rva: hint-ptr
+				append buffer form-struct ILT-struct		;-- ILT instance
 				hint-ptr: hint-ptr + length? hint
 				ptr: ptr + ILT-size
 			]
@@ -536,6 +537,81 @@ context [
 		foreach idt IDTs [append out form-struct idt]
 		append out form-struct import-directory			;-- Null directory entry
 		change next spec append out buffer
+	]
+	
+	build-import: func [
+		job [object!]
+		/local spec IDTs ILTs out dlls hints idt ilt ptr ILTs-base hints-base
+			dlls-base IAT-base ILT-size idx IAT-buffer len offset list
+	][
+		spec:		job/sections/import
+		IDTs: 		make block! len: divide length? spec/3 2	;-- list of directory entries
+		ILTs:		make block!  500
+		out:		make binary! 50000					;-- final output buffer
+		dlls:		make binary! 200					;-- DLL names
+		hints:		make binary! 10000					;-- hints/names temporary buffer
+
+		foreach [name list] spec/3 [					;-- collecting DLL names in buffer
+			append IDTs idt: make-struct import-directory none
+			idt/name-rva: length? dlls
+			repend dlls [uppercase name null]
+			if even? length? name [append dlls null]
+		]
+		pad4 dlls
+		
+		len: 0
+		foreach [name list] spec/3 [					;-- collecting function names in buffer
+			append/only ILTs make block! 50
+			foreach [def reloc] list [
+				append last ILTs ilt: make-struct ILT-struct none
+				ilt/rva: length? hints
+				repend hints [#{0000} def null]			;-- Ordinal is zero, not used
+				if even? length? def [append hints null]
+				len: len + 1
+			]
+			len: len + 1								;-- account for null entry
+		]
+
+		ptr:		section-addr?/memory job 'import
+		ILTs-base:  ptr + (1 + (length? IDTs) * length? form-struct import-directory)
+		hints-base: ILTs-base + (len *  ILT-size: length? form-struct ILT-struct)
+		dlls-base:	hints-base + length? hints
+
+		idx: 0
+		offset: 0
+		foreach idt IDTs [
+			if idx > 0 [offset: offset + (ILT-size * (1 + length? ILTs/:idx))]
+			idt/ILT-rva:  ILTs-base + offset
+			idt/name-rva: idt/name-rva + dlls-base
+			;idt/IAT-rva:  IATs-base + offset
+			append out form-struct idt
+			idx: idx + 1
+			IDTs/:idx: offset
+		]
+		append out form-struct import-directory			;-- Ending null directory entry
+		
+		IAT-buffer: tail out
+		foreach dll ILTs [
+			foreach ilt dll [
+				ilt/rva: ilt/rva + hints-base
+				append out form-struct ilt
+			]
+			append out form-struct ILT-struct				;-- Ending null ILT entry
+		]
+		IAT-buffer: copy IAT-buffer
+		repend out [hints dlls]
+		change next spec out
+	
+		insert find job/sections 'rsrc compose/deep [idata [- (IAT-buffer) -]]	;-- inject IAT section
+		
+		ptr: section-addr?/memory job 'idata
+		idx: 1		
+		foreach offset IDTs [
+			change skip out (idx * 20) - 4 to-bin32 IAT-base: ptr + offset
+			list: pick spec/3 idx * 2
+			repend imports-refs [IAT-base list]			;-- save IAT base ptr for relocation
+			idx: idx + 1
+		]	
 	]
 	
 	build-export: func [
@@ -759,6 +835,9 @@ context [
 		;-- data directory
 		oh/import-addr:			named-sect-addr? job 'import
 		oh/import-size:			length? job/sections/import/2
+		oh/IAT-addr:			named-sect-addr? job 'idata
+		oh/IAT-size:			length? job/sections/idata/2
+		
 		if job/type = 'dll [
 			oh/export-addr:		named-sect-addr? job 'export
 			oh/export-size:		length? job/sections/export/2
