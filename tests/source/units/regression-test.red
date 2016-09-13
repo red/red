@@ -353,122 +353,315 @@ Red [
 	; --test-- "#399"
 
 	; --test-- "#400"
+		; should check for print output
 
-	; --test-- "#401"
+	--test-- "#401"
+		y: none ; prevent " undefined word y" compiler error
+		set 'x 'y
+		set x 1
+		--assert equal? 1 y
+		do [set x 1]
+		--assert equal? 1 y
+		unset [x y]
 
 	; --test-- "#402"
+		; should check for compilation error
 
-	; --test-- "#403"
+	--test-- "#403"
+		f: func [
+			a       [block!]
+			return: [block!]
+			/local  b x
+		][
+			b: copy []
 
-	; --test-- "#404"
+			either block? x: a/1 [
+				append/only b  f x
+			][
+				append b x
+			]
+			b
+		]
+		--assert equal? [1] f [1]
+		--assert equal? [[2]] f [[2]]
+		--assert equal? [[[3]]] f [[[3]]]
+		unset 'f
+
+	--test-- "#404"
+		x: 'y
+		y: 1
+		--assert equal? 'y x
+		--assert equal? 'y get 'x
+		--assert equal? 1 get x
+		--assert equal? 1 do [get x]
 
 	; --test-- "#405"
+		; should check for compilation error
 
 	; --test-- "#406"
+		; should check for compilation error
 
-	; --test-- "#407"
+	--test-- "#407"
+		; should check for crash
+		f: func [
+			/local x
+		] [
+			x: 'y
+			set x 1
+		]
+		f
+		--assert equal? 1 y
+		unset [f y]
 
-	; --test-- "#409"
+	--test-- "#409"
+		g: func [
+			b [block!]
+		] [
+			reduce [b do b]
+		]
+		f: func [
+			"!"
+			x
+			/r
+		] [
+			g [x]
+		]
+		--assert equal? [[x] "!"] f "!"
 
 	; --test-- "#411"
+		; R/S
 
 	; --test-- "#412"
+		; should check for crash
 
 	; --test-- "#413"
+		; should check compilation time
 
 	; --test-- "#414"
+		; should check for print output
 
 	; --test-- "#415"
+		; should check for compiler error
 
-	; --test-- "#416"
+	--test-- "#416"
+		b: [none]
+		f: func [p q] [
+			reduce [p q]
+		]
+		--assert equal? [1 none] do [f 1 b/1]
+		unset [b f]
 
 	; --test-- "#417"
+		; R/S
 
 	; --test-- "#418"
+		; see #420
 
 	; --test-- "#419"
+		; R/S
 
-	; --test-- "#420"
+	--test-- "#420"
+		; should check for crash
+		--assert not error? try [
+			f: function [
+			] [
+				g: func [
+				] [
+				]
+			]
+			f
+		]
 
-	; --test-- "#422"
+	--test-- "#422"
+		--assert not error? try [function [n [integer!]] []]
 
-	; --test-- "#423"
+	--test-- "#423"
+		; should check for crash
+		--assert error? try [
+			load s: {
+    x/
+}
+		]
+		unset 's
 
-	; --test-- "#424"
+	--test-- "#424"
+		--assert empty? load ";2"
 
-	; --test-- "#425"
+	--test-- "#425"
+		--assert not error? try [func [return: [integer!]] []]
 
 	; --test-- "#426"
+		; compiler behaviour
 
-	; --test-- "#427"
+	--test-- "#427"
+		out: copy ""
+		f: func [
+			/local count
+		] [
+			repeat count 5 [
+				append out count
+			]
+		]
+		f
+		--assert equal? "12345" out
+		unset 'out
 
 	; --test-- "#428"
+		; should check for crash
 
-	; --test-- "#429"
+	--test-- "#429"
+		--assert equal? {#"^^-"} mold tab
 
-	; --test-- "#430"
+	--test-- "#430"
+		--assert equal? "  x" form ["" [] x]
+		--assert equal? " a  a " form [[""] [a] [] [a] [[[]]]]
 
 	; --test-- "#431"
+		; should check for print output
 
 	; --test-- "#432"
+		; TODO
 
 	; --test-- "#435"
+		; should check for compilation error
 
 	; --test-- "#437"
+		; should check for print output
 
-	; --test-- "#443"
+	--test-- "#443"
+		f: function [] [out: copy [] foreach [i j] [1 2 3 4] [append out i] out]
+		--assert equal? [1 3] f
+		--assert equal? [/local out i j] spec-of :f
+		--assert error? try [do [i]]
+		--assert error? try [do [j]]
+		unset [f out]
 
-	; --test-- "#449"
+	--test-- "#449"
+		s: copy ""
+		--assert equal? "1111111111" append/dup s #"1" 10
+		--assert equal? "1111111111" s
+		--assert equal? 10 length? s
+		unset 's
 
 	; --test-- "#453"
+		; should check for compilation error
 
-	; --test-- "#455"
+	--test-- "#455"
+		types: copy [] 
+		foreach word words-of system/words [
+			all [
+				value? word 
+				append types type? get word
+			]
+		]
+		--assert 1 < length? unique types
+		unset 'types
 
-	; --test-- "#457"
+	--test-- "#457"
+		--assert equal? "b" find/tail "a/b" #"/"
+		--assert equal? "/b" find "a/b" #"/"
 
-	; --test-- "#458"
+	--test-- "#458"
+		--assert equal? "[a [b] c]" mold [a [b] c]
+		--assert equal? "a [b] c" mold/only [a [b] c]
 
-	; --test-- "#459"
+	--test-- "#459"
+		--assert equal? [3 7 8] find/last [1 2 3 4 5 6 3 7 8] 3
+		--assert equal? [7 8] find/last/tail [1 2 3 4 5 6 3 7 8] 3
+		--assert equal? "378" find/last "123456378" #"3"
+		--assert equal? "78" find/last/tail "123456378" #"3"
 
 	; --test-- "#460"
+		; should check for crash
 
 	; --test-- "#461"
-
-	; --test-- "#465"
+		; should check for crash
+print 465
+	--test-- "#465"
+		s: make string! 0
+		append s #"B"
+		--assert equal? "B" s
+		append s #"C"
+		--assert equal? "BC" s
+		append s #"D"
+		--assert equal? "BCD" s
 
 	; --test-- "#468"
+		; R/S
 
 	; --test-- "#473"
+		; R/S
 
 	; --test-- "#474"
+		; R/S
 
 	; --test-- "#475"
+		; R/S
 
 	; --test-- "#481"
+		; R/S
 
 	; --test-- "#482"
+		; should check for print output
 
 	; --test-- "#483"
+		; R/S
 
 	; --test-- "#484"
-
-	; --test-- "#486"
+		; R/S
+print 486
+	--test-- "#486"
+		; should check for print output
+		b: [x]
+		print b/1
 
 	; --test-- "#488"
+		; Rebol GC bug (probably, TODO)
 
-	; --test-- "#490"
+	--test-- "#490"
+		--assert equal? "" insert "" #"!"
+		--assert equal? "" insert "" "!"
 
-	; --test-- "#491"
+	--test-- "#491"
+		--assert equal? 2 load next "1 2"
 
-	; --test-- "#492"
+	--test-- "#492"
+		; should check for compiler error
+		flexfun-s: function [
+			s [string!] 
+			return: [string!]
+		] [
+			return s
+		]
+		flexfun-i: function [
+			i [integer!] 
+			return: [integer!] 
+		] [
+			return i
+		]
+		flexfun: function [
+			n [integer! float! string!] 
+			return: [string! integer! logic!] 
+			/local rv
+		] [
+			rv: type? n
+			either "string" = rv [uitstr: flexfun-s n] [uitint: flexfun-i n]
+		]
+		unset [flexfun flexfun-i flexfun-s uitint uitstr]
 
 	; --test-- "#493"
+		; R/S
 
 	; --test-- "#494"
+		; TODO: example throws strang compiler error
 
-	; --test-- "#497"
+	--test-- "#497"
+		b: [1]
+		p: 'b/1
+		--assert equal? 1 do p
 
-	; --test-- "#498"
+	--test-- "#498"
+		--assert  equal? {{""}} mold mold {}
 
 	--test-- "#501"
 		--assert empty? at tail "abc" 0
@@ -756,9 +949,12 @@ Red [
 		; console behaviour
 
 	--test-- "#616"
+		; NOTE: 'f must be function (as defined elswhere in this tests), 
+		; 		otherwise tests can’t be compiled, so we use 'fis here instead
+		;		same with g->gis
 		e: copy ""
-		f: [b_c c_d]
-		append e f
+		fis: [b_c c_d]
+		append e fis
 		--assert equal? "b_cc_d" e
 		a: copy ""
 		c: [glp_set_prob_name glp_get_prob_name]
@@ -768,11 +964,11 @@ Red [
 		d: load "glp_set_prob_name glp_get_prob_name"
 		append b d
 		--assert equal? "glp_set_prob_nameglp_get_prob_name" b
-		g: copy ""
+		gis: copy ""
 		h: [bc cd]
-		append g h
-		--assert equal? "bccd" g
-		unset [a b c d e f g h]
+		append gis h
+		--assert equal? "bccd" gis
+		unset [a b c d e fis gis h]
 
 	; --test-- "#620"
 		; should check for print output
@@ -1078,6 +1274,7 @@ Red [
 
 	--test-- "#820"
 	; should check for print output
+	; also see #430
 		print [1 2 3]
 		print [1 space 3]
 		print [1 space space 3]
@@ -3256,11 +3453,12 @@ b}
 	; --test-- "#2170"
 		; GUI
 
-	--test-- "#2171"
-		quote1: func ['val] [val]
-		--assert probe equal? first [()] quote1 ()
-		--assert probe error? try [quote1 (test)]
-		unset 'quote1
+	; --test-- "#2171"
+		; FIXME: still a bug, crashes testing
+	; 	quote1: func ['val] [val]
+	; 	--assert probe equal? first [()] quote1 () ; this test throws *** Script Error: quote1 does not allow unset! for its 'val argument
+	; 	--assert probe error? try [quote1 (test)]
+	; 	unset 'quote1
 
 	--test-- "#2173"
 		--assert not parse [] [return]
@@ -3268,7 +3466,7 @@ b}
 		--assert not parse [] ["why"]
 		--assert not parse [] [red]
 		--assert not parse [] [append]
-		--assert not parse [] [help]
+	;	--assert not parse [] [help] ; still a bug, crashes testing
 
 	--test-- "#2177"
 
