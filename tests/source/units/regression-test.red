@@ -233,124 +233,215 @@ Red [
 	; --test-- "#298"
 
 	; --test-- "#300"
+		; R/S
 
 	; --test-- "#304"
+		; TODO
 
-	; --test-- "#306"
+	--test-- "#306"
+		s: mold []
+		--assert equal? #"[" s/1
 
-	; --test-- "#308"
+	--test-- "#308"
+		bar: func [] [foo]
+		foo: func [] [42]
+		--assert not error? try [bar]
+		unset [foo bar]
 
-	; --test-- "#310"
+	--test-- "#310"
+		--assert equal? "good" either true ["good"] ["bad"]
+		--assert equal? "good" either false ["bad"] ["good"]
+		--assert equal? "good" either 42 ["good"] ["bad"]
 
 	; --test-- "#312"
+		; should check for compilation error
 
 	; --test-- "#313"
+		; TODO
 
 	; --test-- "#316"
+		; R/S
 
 	; --test-- "#317"
+		; R/S
 
-	; --test-- "#321"
+	--test-- "#321"
+		--assert logic? probe if false [1]
+		--assert error? probe try [1 + if false [2]]
 
 	; --test-- "#323"
+		; should check for compilation error
 
 	; --test-- "#324"
+		; NOTE: seems to be buggy still
 
-	; --test-- "#326"
+	--test-- "#326"
+		; should check for compilation error
+		--assert not error? try [func[:a [integer!]] []]
 
 	; --test-- "#328"
+		; should check for compilation error
 
 	; --test-- "#330"
+		; TODO
+		; not sure what is the buggy behaviour, there’s no example
 
-	; --test-- "#331"
+	--test-- "#331"
+		foo: func [] ["ERR"]
+		foo: func [] ["ok"]
+		--assert equal? "ok" foo
 
 	; --test-- "#332"
+		; should check for compilation error
+		; (return and exit outside of function)
 
 	; --test-- "#334"
+		; R/S
 
 	; --test-- "#338"
+		; R/S
 
 	; --test-- "#340"
+		; R/S
 
 	; --test-- "#342"
+		; TODO
 
 	; --test-- "#344"
+		; R/S
 
-	; --test-- "#345"
+	--test-- "#345"
+		spec: spec-of :set
+		--assert (index? find spec 'value) < ((index? find spec /any))
 
 	; --test-- "#346"
+		; R/S
 
 	; --test-- "#347"
+		; should check for compilation error
 
 	; --test-- "#348"
+		; R/S
 
 	; --test-- "#355"
+		; should check for crash
 
-	; --test-- "#356"
+	--test-- "#356"
+		--assert not error? try [if true []]
 
 	; --test-- "#357"
+		; TODO
 
 	; --test-- "#358"
+		; should check for crash
 
 	; --test-- "#360"
+		; should check for compilation error
 
 	; --test-- "#362"
+		; should check for compilation error
 
 	; --test-- "#363"
+		; should check for compilation error
 
 	; --test-- "#364"
+		; TODO: #include problem
 
 	; --test-- "#366"
+		; TODO: compilation problem with dir paths
 
 	; --test-- "#367"
+		; should check for compilation error
 
 	; --test-- "#369"
+		; should check for compilation error
 
 	; --test-- "#370"
+		; should check for compilation error
 
 	; --test-- "#372"
+		; should check for compilation error
 
 	; --test-- "#373"
+		; should check for compilation error
 
 	; --test-- "#374"
+		; should check for compilation error
 
 	; --test-- "#376"
+		; should check for compilation error
 
 	; --test-- "#377"
+		; should check for compilation error
 
 	; --test-- "#379"
+		; R/S
 
 	; --test-- "#381"
+		; R/S
 
 	; --test-- "#383"
+		; should check for print output
 
 	; --test-- "#384"
+		; TODO
 
 	; --test-- "#385"
+		; TODO
 
-	; --test-- "#386"
+	--test-- "#386"
+		; should check for crash
+		--assert equal? [3 3 2 1] find/reverse tail [1 2 3 3 2 1] [3 3]
 
-	; --test-- "#388"
 
-	; --test-- "#389"
+	--test-- "#388"
+		--assert equal? word! type?/word 'a
+
+	--test-- "#389"
+		--assert equal? 
+			"default"
+			switch/default 1 [
+				2 [
+					print 2
+				]
+			][
+				"default"
+			]
 
 	; --test-- "#391"
+		; should check for compilation error
 
 	; --test-- "#392"
+		; should check for compilation error
 
 	; --test-- "#393"
+		; R/S
 
 	; --test-- "#394"
+		; should check for print output
 
-	; --test-- "#395"
+	--test-- "#395"
+		--assert switch 'yes [yes [true]]
 
 	; --test-- "#396"
+		; should check for compilation error
 
-	; --test-- "#397"
+	--test-- "#397"
+		--assert not error? try [do [append [] 1]]
 
 	; --test-- "#398"
+		; should check for compilation error
 
-	; --test-- "#399"
+	--test-- "#399"
+		x: 1
+
+		f: function [
+		][
+			x: 2
+			b: [x]
+			do b
+		]
+		--assert equal? 2 f
 
 	; --test-- "#400"
 		; should check for print output
