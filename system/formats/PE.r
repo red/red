@@ -542,7 +542,7 @@ context [
 	build-import: func [
 		job [object!]
 		/local spec IDTs ILTs out dlls hints idt ilt ptr ILTs-base hints-base
-			dlls-base IAT-base ILT-size idx IAT-buffer len offset list
+			dlls-base IAT-base ILT-size idx IAT-buffer len offset list idata
 	][
 		spec:		job/sections/import
 		IDTs: 		make block! len: divide length? spec/3 2	;-- list of directory entries
@@ -602,7 +602,8 @@ context [
 		repend out [hints dlls]
 		change next spec out
 	
-		insert find job/sections 'rsrc compose/deep [idata [- (IAT-buffer) -]]	;-- inject IAT section
+		idata: compose/deep [idata [- (IAT-buffer) -]]		;-- inject IAT section
+		insert skip find job/sections 'import 2 idata
 		
 		ptr: section-addr?/memory job 'idata
 		idx: 1		
@@ -629,7 +630,7 @@ context [
 						+ length? form-struct export-directory
 		
 		sym-nb: 0
-		sort spec/3										;-- sort all symbols lexicographically
+		sort/case spec/3									;-- sort all symbols lexicographically
 		foreach name spec/3 [							;-- Export Name Table
 			repend NPT [name length? names]
 			repend names [name null]
