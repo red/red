@@ -115,122 +115,181 @@ Red [
 	; --test-- "#198"
 
 	; --test-- "#200"
+		; quick-test bug
 
 	; --test-- "#204"
+		; no code
 
 	; --test-- "#205"
+		; R/S
 
 	; --test-- "#207"
+		; R/S
 
 	; --test-- "#208"
+		; R/S
 
 	; --test-- "#209"
+		; R/S
 
 	; --test-- "#210"
+		; R/S
 
 	; --test-- "#212"
+		; R/S
 
 	; --test-- "#216"
+		; R/S
 
 	; --test-- "#217"
+		; R/S
 
 	; --test-- "#220"
+		; R/S
 
 	; --test-- "#221"
+		; R/S
 
 	; --test-- "#222"
+		; R/S
 
 	; --test-- "#223"
+		; R/S
 
 	; --test-- "#224"
+		; R/S
 
 	; --test-- "#225"
+		; R/S
 
 	; --test-- "#226"
+		; R/S
 
 	; --test-- "#227"
+		; R/S
 
 	; --test-- "#228"
+		; R/S
 
 	; --test-- "#229"
+		; R/S
 
 	; --test-- "#231"
+		; R/S
 
 	; --test-- "#233"
+		; R/S
 
 	; --test-- "#234"
+		; R/S
 
 	; --test-- "#235"
+		; R/S
 
 	; --test-- "#236"
+		; R/S
 
 	; --test-- "#238"
+		; R/S
 
 	; --test-- "#239"
+		; R/S
 
 	; --test-- "#241"
+		; R/S
 
 	; --test-- "#243"
+		; R/S
 
 	; --test-- "#244"
+		; R/S
 
 	; --test-- "#245"
+		; R/S
 
 	; --test-- "#250"
+		; R/S
 
 	; --test-- "#253"
+		; R/S
 
 	; --test-- "#254"
+		; R/S
 
 	; --test-- "#257"
+		; R/S
 
 	; --test-- "#258"
+		; R/S
 
 	; --test-- "#261"
+		; R/S
 
-	; --test-- "#262"
+	--test-- "#262"
+		--assert not error? try [#"^(00)"]
 
 	; --test-- "#263"
+		; R/S
 
 	; --test-- "#265"
+		; R/S
 
 	; --test-- "#269"
+		; R/S
 
 	; --test-- "#272"
+		; R/S
 
 	; --test-- "#273"
+		; R/S
 
 	; --test-- "#274"
+		; should check for print output
 
 	; --test-- "#275"
+		; R/S
 
 	; --test-- "#276"
+		; R/S
 
 	; --test-- "#278"
+		; R/S
 
 	; --test-- "#279"
+		; R/S
 
 	; --test-- "#281"
+		; R/S
 
 	; --test-- "#282"
+		; R/S
 
 	; --test-- "#284"
+		; R/S
 
 	; --test-- "#285"
+		; R/S
 
 	; --test-- "#288"
+		; R/S
 
 	; --test-- "#289"
+		; R/S
 
 	; --test-- "#290"
+		; R/S
 
 	; --test-- "#291"
+		; R/S
 
-	; --test-- "#292"
+	--test-- "#292"
+		--assert error? try [load {#"""}]
 
 	; --test-- "#293"
+		; R/S
 
 	; --test-- "#298"
+		; R/S
 
 	; --test-- "#300"
 		; R/S
