@@ -325,7 +325,7 @@ Red [
 		; R/S
 
 	--test-- "#321"
-		--assert logic? probe if false [1]
+		--assert none? probe if false [1]
 		--assert error? probe try [1 + if false [2]]
 
 	; --test-- "#323"
@@ -454,7 +454,7 @@ Red [
 
 
 	--test-- "#388"
-		--assert equal? word! type?/word 'a
+		--assert equal? word! type? 'a
 
 	--test-- "#389"
 		--assert equal? 
