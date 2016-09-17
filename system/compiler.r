@@ -65,6 +65,7 @@ system-dialect: make-profilable context [
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
+		libRed?: 			no
 	]
 	
 	compiler: make-profilable context [
@@ -3280,7 +3281,7 @@ system-dialect: make-profilable context [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			
 			if job/type = 'dll [
-				if all [job/dev-mode? in job 'libRed?][
+				if all [job/dev-mode? job/libRed?][
 					libRed/make-exports functions exports
 					libRed/process functions
 				]
@@ -3386,7 +3387,7 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			if any [not job/dev-mode? in job 'libRed?][
+ 			if any [not job/dev-mode? job/libRed?][
 				set-cache-base %runtime/
 				script: pick [%red.reds %../runtime/red.reds] encap?
 				compiler/run job loader/process/own script script

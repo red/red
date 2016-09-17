@@ -115,7 +115,7 @@ FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask
 	]
 ]
 
-system: declare struct! [					;-- store runtime accessible system values
+system!: alias struct! [					;-- store runtime accessible system values
 	args-count	[integer!]					;-- command-line arguments count (do not move member)
 	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
@@ -128,4 +128,15 @@ system: declare struct! [					;-- store runtime accessible system values
 	thrown		[integer!]					;-- last THROWn value
 	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
+]
+
+#either libRed? = yes [
+	system: declare system!
+	#export [system]
+][
+	#either dev-mode? = no [
+		system: as system! 0
+	][
+		#import ["libRed.dll" stdcall [system: "system" [system!]]]
+	]
 ]

@@ -4207,7 +4207,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		unless all [job/dev-mode? not in job 'libRed?][
+		unless all [job/dev-mode? not job/libRed?][
 			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 			unless job/red-help? [clear-docstrings pc]
 			booting?: yes
@@ -4340,7 +4340,7 @@ red: context [
 			]
 		]]
 		
-		if all [job/dev-mode? not in job 'libRed?][
+		if all [job/dev-mode? not job/libRed?][
 			replace out <imports> load %libRed-include.red
 			defs: load-safe %libred-defs.red
 			append clear functions defs/1
