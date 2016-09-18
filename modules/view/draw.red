@@ -33,6 +33,7 @@ Red/System [
 		invert-matrix:	symbol/make "invert-matrix"
 		reset-matrix:	symbol/make "reset-matrix"
 		push:			symbol/make "push"
+		clip:			symbol/make "clip"
 		rotate:			symbol/make "rotate"
 		scale:			symbol/make "scale"
 		translate:		symbol/make "translate"
@@ -420,6 +421,18 @@ Red/System [
 									]
 								]
 								OS-draw-image DC as red-image! start point end color border? pattern
+							]
+							sym = clip [
+								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+								either pos = cmd [
+									OS-matrix-push :state
+									OS-set-clip as red-pair! start as red-pair! cmd - 1
+									parse-draw as red-block! cmd DC catch?
+									OS-matrix-pop state
+								][
+									OS-set-clip as red-pair! start as red-pair! cmd
+								]
 							]
 							sym = rotate [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
