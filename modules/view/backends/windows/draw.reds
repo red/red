@@ -1221,6 +1221,20 @@ OS-draw-grad-pen: func [
 		GdipSetPenBrushFill modes/gp-pen brush
 	]
 ]
+	
+OS-set-clip: func [
+	upper	[red-pair!]
+	lower	[red-pair!]
+][
+	GDI+?: yes
+	GdipSetClipRectI
+		modes/graphics
+		upper/x
+		upper/y
+		lower/x - upper/x + 1
+		lower/y - upper/y + 1
+		GDIPLUS_COMBINEMODEREPLACE
+]
 
 OS-matrix-rotate: func [
 	angle	[red-integer!]

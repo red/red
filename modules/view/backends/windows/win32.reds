@@ -443,6 +443,8 @@ Red/System [
 #define GDIPLUS_MATRIXORDERPREPEND	0
 #define GDIPLUS_MATRIXORDERAPPEND	1
 
+#define GDIPLUS_COMBINEMODEREPLACE	0
+
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
 
@@ -1767,6 +1769,15 @@ DwmIsCompositionEnabled!: alias function! [
 		GdipRestoreGraphics: "GdipRestoreGraphics" [
 			graphics	[integer!]
 			state		[integer!]
+			return:		[integer!]
+		]
+		GdipSetClipRectI: "GdipSetClipRectI" [
+			graphics	[integer!]
+			x			[integer!]
+			y			[integer!]
+			width 		[integer!]
+			height 		[integer!]
+			combine 	[integer!]
 			return:		[integer!]
 		]
 		GdipRotateWorldTransform: "GdipRotateWorldTransform" [
