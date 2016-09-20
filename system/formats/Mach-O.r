@@ -374,7 +374,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
@@ -425,6 +425,14 @@ context [
 				]
 				if all [seg/2 = '__TEXT job/debug?][
 					process-debug-info job
+				]
+				if seg/2 = '__LINKEDIT [
+					tables: job/sections/symbols/1
+					seg/4: round/ceiling/to
+						sz: tables/2 + tables/3 + tables/4
+						get-ceiling seg/9 
+					seg/6: sz
+					
 				]
 			]
 			tail? seg: skip seg 10

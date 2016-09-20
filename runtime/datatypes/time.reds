@@ -152,7 +152,8 @@ time: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"-"
 			time: float/abs time
 		]
-		
+
+		time: time + 1.0								;-- fix issue #2134
 		formed: integer/form-signed as-integer GET_HOURS(time)
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
@@ -169,8 +170,9 @@ time: context [
 		part: part - 1 - len
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		
-		formed: float/form-float GET_SECONDS(time) float/FORM_TIME
+
+		time: GET_SECONDS(time)
+		formed: either time < 1E-6 ["00"][float/form-float time float/FORM_TIME]
 		len: length? formed								;@@ optimize by removing length?
 		if any [len = 1 formed/2 = #"."][
 			string/append-char GET_BUFFER(buffer) as-integer #"0"

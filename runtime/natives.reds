@@ -431,7 +431,7 @@ natives: context [
 	][
 		#typecheck [switch default?]
 		
-		pos: select-key* yes
+		pos: select-key* yes yes
 		
 		either TYPE_OF(pos) = TYPE_NONE [
 			either negative? default? [
