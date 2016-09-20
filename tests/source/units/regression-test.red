@@ -2046,10 +2046,6 @@ print 486
 	; --test-- "#1079"
 		; TODO: console behaviour
 
-	--test-- "#1080"
-		; should check for crash
-		--assert error? try [load "x:"]
-
 	; --test-- "#1083"
 		; should check for crash
 
