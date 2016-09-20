@@ -2174,7 +2174,7 @@ print 486
 	; 	--assert a [unset-word]
 
 	--test-- "#1136"
-		e: try [load {}]
+		e: try [load {a: func [][set 'b: 1]}]
 		--assert not not all [
 			equal? e/type 'syntax
 			equal? e/id 'invalid
