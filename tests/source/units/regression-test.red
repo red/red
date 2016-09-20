@@ -3567,9 +3567,8 @@ b}
 ;		--assert error? try [func [/x x] []]
 ;		; causes compiler error
 
-;	--test-- "#2155"
-;		--assert error? try [func [h [integer!!]] [h]]
-;		; causes compiler error
+	--test-- "#2155"
+		--assert error? try [do load {func [h [integer!!]] [h]}]
 
 	--test-- "#2157"
 		--assert error? try [-2147483648 / -1]
