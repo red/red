@@ -2430,7 +2430,7 @@ print 486
 
 	--test-- "#1384"
 		--assert not error? try [read %.]
-		--assert not error? try [read %""]
+		--assert error? try [read %""]
 
 	--test-- "#1396"
 		e: try [load {(5+2)}]
@@ -3104,7 +3104,7 @@ print 486
 			make map! [a: 1 a 2]
 			make map! [a 1 a: 2]
 		m: make map! [a 1 A 2 a: 3 :a 4]
-		--assert equal? m #(a: 4 A: 2)	
+		--assert equal? m #(a: 4 A: 2)
 
 	; --test-- "#1836"
 		; should check for crash
