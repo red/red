@@ -3581,11 +3581,11 @@ b}
 		--assert error? try [-2147483648 % -1]
 		--assert error? try [remainder -2147483648 -1]
 
-	; --test-- "#2159"
+	--test-- "#2159"
 		--assert equal? #{3030303030303134} append #{} to-hex 20
 		; bug causes crash
 
-	; --test-- "#2160"
+	--test-- "#2160"
 		--assert not error? try [extract/into/index [1 2 3 4 5 6] 2 b: [] 2]
 
 	; --test-- "#2162"
@@ -3595,7 +3595,7 @@ b}
 	; --test-- "#2163"
 		; TODO: get some example, description is not good enough
 
-	; --test-- "#2166"
+	--test-- "#2166"
 		x: 2147483648
 		--assert not equal? x -2147483648
 		--assert equal? x 2147483648.0
@@ -3625,12 +3625,6 @@ b}
 			foo
 		]
 
-	; --test-- "#2179"
-		; should check for crash
-
-	; --test-- "#2182"
-		; should check for crash
-
 	--test-- "#2187"
 		--assert error? try [load {64#{aaa }}]
 
@@ -3653,9 +3647,6 @@ b}
 		m/a: none
 		--assert equal? #(b: 2) m
 		unset 'm
-
-	; --test-- "#2214"
-		; should check for crash
 
 	; --test-- "#2223"
 		; GUI
