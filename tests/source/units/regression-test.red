@@ -3563,9 +3563,8 @@ b}
 	; --test-- "#2149"
 		; GUI
 
-;	--test-- "#2152"
-;		--assert error? try [func [/x x] []]
-;		; causes compiler error
+	--test-- "#2152"
+		--assert error? try [do load {func [/x x] []}]
 
 	--test-- "#2155"
 		--assert error? try [do load {func [h [integer!!]] [h]}]
