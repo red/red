@@ -3545,12 +3545,6 @@ b}
 	--test-- "#2139"
 		--assert equal? 1% 1% * 1
 
-	--test-- "#2143"
-		; NOTE: how to catch crash? - should crash in old version
-		ts: [test: 10]
-		t-o: object []
-		make t-o ts
-
 	--test-- "#2146"
 		test: make hash! [a: 10]
 		--assert equal? 10 test/a
