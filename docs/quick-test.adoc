@@ -447,8 +447,8 @@ compilation error.)
 compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
 to calling the function.
 
--`/prg` refinement which should be used when the supplied file is Red program
-that should be run and not a Quick-Test snippet.
+- `/prg` - should be used when the supplied file is Red program that should
+be run and not a Quick-Test snippet.
 
 .Usage:
   --compile-and-run <file>
