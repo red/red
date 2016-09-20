@@ -3435,6 +3435,7 @@ b}
 		--assert equal? "abc1abc2abc3" unique/skip "abc1abc2abc3" 3
 
 	; --test-- "#2070"
+		; GUI
 
 	--test-- "#2072"
 		m: make map! 10
@@ -3459,6 +3460,7 @@ b}
 		--assert not error? try [foreach p i [p]]
 
 	; --test-- "#2081"
+		; GUI
 
 	--test-- "#2083"
 		a: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
@@ -3466,7 +3468,7 @@ b}
 		--assert equal? 6 a/z
 
 ;	--test-- "#2085"
-		; FIME: throws error: *** Script Error: y has no value
+		; OPEN
 ;		--assert error? try [d: make reactor! [x: is [y + 1] y: is [x + 3]]]
 
 	; --test-- "#2096"
@@ -3500,8 +3502,7 @@ b}
 		; console
 
 	; --test-- "#2113"
-		; FIXME: got "compilation error"
-
+		; OPEN
 		; a: make object! [
 		; 	act-state: make object! [
 		; 		finish?: false
