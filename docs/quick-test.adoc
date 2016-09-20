@@ -298,20 +298,32 @@ Test Dialects
 quick-test.reds
 ^^^^^^^^^^^^^^^
 
+\***start-run***
++++++++++++++++
+
   ***start-run*** <title>
     <title> : title of the test run - c-string!
 
 Marks the start of the test run and initialises the run totals.
+
+\~~~start-file~~~
+++++++++++++++++
 
   ~~~start-file~~~ <title>
     <title> : title of the test file - c-string!
 
 Marks the start of an individual test file.
 
+===start-group===
++++++++++++++++++
+
   ===start-group=== <title>
     <title> : title of the test group - c-string!
 
 Marks the start of a group of tests. Using groups in a test is optional.
+
+--test--
+++++++++
 
   --test-- <title>
     <title> : title of an individual test - c-string!
@@ -319,11 +331,17 @@ Marks the start of a group of tests. Using groups in a test is optional.
 The start of an individual test. The number of tests in a run and file are
 counted and reported.
 
+--assert
+++++++++
+
   --assert <assertion>
     <assertion> : a Red/System expression that returns a logic! value
 
 An assertion. True = pass. False = fail. The number of assertions, passes and
 failures are counted and reported for each run and file.
+
+--assertf~=
++++++++++++
 
   --assertf~= <value> <value> <tolerance>
     <value> :     a float! value
@@ -334,19 +352,31 @@ tolerance provided is used both as an absolute and relative tolerance. The
 calculation of the tolerance is a quite simplistic but has proved sufficient
 for its purpose.
 
+--assertf32~=
++++++++++++++
+
   --assertf32~= <value> <value> <tolerance>
     <value> :     a float32! value
     <tolerance> : a float32! value
 
 AssertF~= for float32! values.
 
+===end-group===
++++++++++++++++
+
   ===end-group===
 
 Marks the end of a group of tests.
 
+\~~~end-file~~~
+++++++++++++++
+
   ~~~end-file~~~
 
 Marks the end of a test file.
+
+\***end-run***
++++++++++++++
 
   ***end-run***
 
@@ -364,31 +394,49 @@ report. The more detailed report is logged to %quick-test.log in the tests/
 directory. This is triggered by using the quiet version of the commands in
 the dialect.
 
+\***start-run***
++++++++++++++++
+
   ***start-run*** <title>
     <title> : title of the test run - string!
 
 Marks the start of the test run and initialises the run totals.
+
+\***start-run-quiet***
++++++++++++++++++++++
 
  ***start-run-quiet*** <title>
     <title> : title of the test run - string!
 
 Marks the start of a "quiet" test run and initialises the run totals.
 
+\~~~start-file~~~
+++++++++++++++++
+
   ~~~start-file~~~ <title>
     <title> : title of the test file - string!
 
 Marks the start of an individual test file.
+
+===start-group===
++++++++++++++++++
 
   ===start-group=== <title>
     <title> : title of the test group - string!
 
 Marks the start of a group of tests. Using groups in a test is optional.
 
+--test--
+++++++++
+
   --test-- <title>
     <title> : title of an inidvidual test - string!
 
 The start of an individual test. The number of tests in a run and file are
 counted and reported.
+
+--compile
++++++++++
 
   --compile <file>
     <file> : source file - file!
@@ -402,6 +450,9 @@ failed.
 This function has an +/bin+ refinement which should be used if you want to
 use the binary version of the red compiler. Supply the file path to the bin
 by setting +qt/bin-compiler+ prior to calling the function.
+
+--compile-dll
++++++++++++++
 
   --compile-dll <file> <target>
     <file> : source file - file!
@@ -417,12 +468,18 @@ This function has an +/bin+ refinement which should be used if you want to use
 the binary version of the red compiler. Supply the file path to the bin by
 setting +qt/bin-compiler+ prior to calling the function.
 
+--compile-red
++++++++++++++
+
  --compile-red <file>  DEPRECATED USE --compile
     <file> : Red source file - file!
 
 Compiles a Red source file. The output from the compiler is captured in
 +qt/comp-output+. If the compile is successful, +qt/exe+ will contain the path
 to the executable file. It will be +'none+ if the compile failed.
+
+--compile-this
+++++++++++++++
 
   --compile-this <source code>
     <source code> : source - string!
@@ -439,6 +496,9 @@ This function has an +/bin+ refinement which should be used if you want to use
 the binary version of the red compiler. Supply the file path to the bin by
 setting +qt/bin-compiler+ prior to calling the function.
 
+--compile-this-red
+++++++++++++++++++
+
   --compile-this-red <source code> DEPRECATED USE -- compile-this
     <source code> : Red source - string!
 
@@ -447,6 +507,9 @@ automatically inserted if one is not supplied. The output from the compiler is
 captured in +qt/comp-ouput+. If the compile is successful, +qt/exe+ will
 contain the path to the executable file. It will be +'none+ if the compile
 failed.
+
+--compile-and-run
++++++++++++++++++
 
   --compile-and-run <file>
     <file> : source file - file!
@@ -471,6 +534,8 @@ setting +qt/bin-compiler+ prior to calling the function.
 file is Red program that should be run and not a Quick-Test snippet.
 ===========================
 
+--compile-and-run-red
++++++++++++++++++++++
 
   --compile-and-run-red <file> DEPRECATED use --compile-and-run
     <file> : Red source file - file!
@@ -485,6 +550,8 @@ failed. The output produced by the executable is captured in +qt/output+.
 This function has an +/error+ refinement which should be used if a Red runtime
 error is expected.
 
+--compile-and-run-this
+++++++++++++++++++++++
 
   --compile-and-run-this <source code>
     <file> : source - string!
@@ -503,6 +570,8 @@ error is expected. This function has an +/bin+ refinement which should be used
 if you want to use the binary version of the red compiler. Supply the file
 path to the bin by setting +qt/bin-compiler+ prior to calling the function.
 
+--compile-and-run-this-red
+++++++++++++++++++++++++++
 
   --compile-and-run-this-red <source code> DEPRECATED USE --compile-and-run-this
     <file> : Red source - string!
@@ -518,6 +587,9 @@ a compilation error.)
 [NOTE]
 This function has an +/error+ refinement which should be used if a Red runtime
 error is expected.
+
+--compile-run-print
++++++++++++++++++++
 
   --compile-run-print <file>
   <file> : source file - file!
@@ -536,36 +608,56 @@ use the binary version of the red compiler. Supply the file path to the bin by
 setting +qt/bin-compiler+ prior to calling the function.
 =====================
 
+--add-to-run-totals
++++++++++++++++++++
 
   --add-to-run-totals
 
 Is used after a --compile-and-run or --compile-run-print to collect the totals
 from a test using the quick-test.reds framework.
 
+--run
++++++
+
   --run <file>
     <file> : an executable program - file!
 
 Runs an executable program. The output is captured in +qt/output+.
+
+--run-unit-test
++++++++++++++++
 
   --run-unit-test <file>
     <file> : a REBOL script file - file!
 
 Runs a quick-unit-test.r test written in REBOL.
 
+--run-unit-test-quiet
++++++++++++++++++++++
+
 --run-unit-test-quiet <file>
     <file> : a REBOL script file - file!
 
 Runs a quick-unit-test.r test written in REBOL in quiet mode.
+
+--run-script
+++++++++++++
 
   --run-script <file>
     <file> : a REBOL script - file!
 
 Runs a REBOL script.
 
+--run-script-quiet
+++++++++++++++++++
+
   --run-script-quiet <file>
     <file> : a REBOL script - file!
 
 Runs a REBOL script in quiet mode.
+
+--run-test-file
++++++++++++++++
 
   --run-test-file <file>
   <file> : a quick-test.red or quick-test.reds test program
@@ -573,6 +665,9 @@ Runs a REBOL script in quiet mode.
 Compiles, runs and prints the output of a Red or Red/System test program
 written using quick-test.reds. It automatically adds the totals from the test
 to the run-totals.
+
+--run-test-file-quiet
++++++++++++++++++++++
 
   --run-test-file-quiet <file>
   <file> : a quick-test.reds or quick-test.red test program
@@ -591,6 +686,8 @@ use the binary version of the red compiler. Supply the file path to the bin by
 setting +qt/bin-compiler+ prior to calling the function.
 =====================
 
+--assert
+++++++++
 
   --assert <assertion>
     <assertion> : a Red/System expression that returns a logic! value
@@ -598,15 +695,24 @@ setting +qt/bin-compiler+ prior to calling the function.
 An assertion. True = pass. False = fail. The number of assertions, passes and
 failures are counted and reported for each run and file.
 
+--assert-msg?
++++++++++++++
+
   --assert-msg? <message>
     <message> : an expected compiler messsage - string!
 
 Checks if the compiler has produced the expected message.
 
+--assert-printed?
++++++++++++++++++
+
   --assert-printed? <phrase>
     <phrase> : expected string in runtime output - string!
 
 Checks if the runtime output included the expected phrase.
+
+--assert-red-printed?
++++++++++++++++++++++
 
   --assert-red-printed? <phrase>
     <phrase> : expected string in Red runtime output - string!
@@ -615,27 +721,45 @@ Checks if the runtime output from a Red program included the expected phrase.
 Red program output Unicode (either UTF-8 or UTF-16LE). The phrase must be
 UTF-8 encoded.
 
+--clean
++++++++
+
   --clean
 
 Cleans up the temporary files created by --compile-this and
 --compile-and-run-this. Can be safely used, but is not necessary, after
 --compile, --compile-and-run and --run.
 
+===end-group===
++++++++++++++++
+
   ===end-group===
 
 Marks the end of a group of tests.
+
+\~~~end-file~~~
+++++++++++++++
 
   ~~~end-file~~~
 
 Marks the end of a test file.
 
+\***end-run***
++++++++++++++
+
   ***end-run***
 
 Marks the end of a test run.
 
+***end-run-quiet***
++++++++++++++++++++
+
   ***end-run-quiet***
 
 Marks the end of a quiet-mode test run.
+
+--setup-temp-files
+++++++++++++++++++
 
   --setup-temp-files
 
@@ -643,9 +767,15 @@ Creates a set of temporary files exclusively for a test run to allow multiple
 tests to be run in parallel. These files should be deleted at the end of the
 run.
 
+--delete-temp-files
++++++++++++++++++++
+
   --delete-temp-files
 
 Deletes a set of temporary files created with --setup-temp-files.
+
+--separate-log-file
++++++++++++++++++++
 
   --separate-log-file
 
@@ -653,26 +783,38 @@ Creates a separate log file for a test run. This file will be retained after
 the run for inspection. It needs to be deleted manually.
 
 quick-unit-test.r
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 Syntatically the quick-unit-test dialect is similar to the quick-test.reds
 dialect. There is one significant difference between them, quick-unit-test
 collects all the output from test and provides a means to interogate it.
+
+\***start-run***
++++++++++++++++
 
   ***start-run*** <title>
     <title> : title of the test run - string!
 
 Marks the start of the test run and initialises the run totals.
 
+\~~~start-file~~~
+++++++++++++++++
+
   ~~~start-file~~~ <title>
     <title> : title of the test file - string!
 
 Marks the start of an individual test file.
 
+===start-group===
++++++++++++++++++
+
   ===start-group=== <title>
     <title> : title of the test group - string!
 
 Marks the start of a group of tests. Using groups in a test is optional.
+
+--test--
+++++++++
 
   --test-- <title>
     <title> : title of an inidvidual test - string!
@@ -680,24 +822,39 @@ Marks the start of a group of tests. Using groups in a test is optional.
 The start of an individual test. The number of tests in a run and file are
 counted and reported.
 
+--assert
+++++++++
+
   --assert <assertion>
     <assertion> : a Red/System expression that returns a logic! value
 
 An assertion. True = pass. False = fail. The number of assertions, passes and
 failures are counted and reported for each run and file.
 
+--assert-printed?
++++++++++++++++++
+
   --assert-printed? <value>
     <value> : text - string!
 
 An assertion that the text was printed.
 
+===end-group===
++++++++++++++++
+
   ===end-group===
 
 Marks the end of a group of tests.
 
+\~~~end-file~~~
+++++++++++++++
+
   ~~~end-file~~~
 
 Marks the end of a test file.
+
+\***end-run***
++++++++++++++
 
   ***end-run***
 
