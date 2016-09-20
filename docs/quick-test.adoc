@@ -645,24 +645,24 @@ Marks the end of a group of tests.
 .Usage:
   ===end-group===
 
-\~~~end-file~~~
-++++++++++++++
+pass:[~~~end-file~~~]
++++++++++++++++++++++
 
 Marks the end of a test file.
 
 .Usage:
   ~~~end-file~~~
 
-\***end-run***
-+++++++++++++
+pass:[***end-run***]
+++++++++++++++++++++
 
 Marks the end of a test run.
 
 .Usage:
   ***end-run***
 
-***end-run-quiet***
-+++++++++++++++++++
+pass:[***end-run-quiet***]
+++++++++++++++++++++++++++
 
 Marks the end of a quiet-mode test run.
 
