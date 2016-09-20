@@ -371,10 +371,10 @@ captured in +qt/comp-ouput+. If the compile is successful, +qt/exe+ will
 contain the path to the executable file. It will be +'none+ if the compile
 failed.
 
-[NOTE]
-This function has an +/bin+ refinement which should be used if you want to
-use the binary version of the red compiler. Supply the file path to the bin
-by setting +qt/bin-compiler+ prior to calling the function.
+.Refinements:
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --compile <file>
@@ -389,10 +389,10 @@ Compiles a Red or Red/System source file as a dynamic link library. The output
 tests/runnable directory. Use the +qt/compile-ok?+ function to check if the
 compilation was successful.
 
-[NOTE]
-This function has an +/bin+ refinement which should be used if you want to use
-the binary version of the red compiler. Supply the file path to the bin by
-setting +qt/bin-compiler+ prior to calling the function.
+.Refinements:
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --compile-dll <file> <target>
@@ -420,10 +420,10 @@ compiler is captured in +qt/comp-ouput+. If the compile is successful,
 +qt/exe+ will contain the path to the executable file. It will be +'none+
 if the compile failed.
 
-[NOTE]
-This function has an +/bin+ refinement which should be used if you want to use
-the binary version of the red compiler. Supply the file path to the bin by
-setting +qt/bin-compiler+ prior to calling the function.
+.Refinements:
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --compile-this <source code>
@@ -452,18 +452,15 @@ the compile failed. The output produced by the executable is captured in
 +qt/output+. (It will contain "Compilation failed" in the case of a
 compilation error.)
 
-[NOTE]
-===========================
-. This function has an +/error+ refinement which should be used if a runtime
-error is expected.
+.Refinements:
+- `/error` - should be used if a runtime error is expected.
 
-. This function has a +/bin+ refinement which should be used if you want to
-use the binary version of the red compiler. Supply the file path to the bin by
-setting +qt/bin-compiler+ prior to calling the function.
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
-. This function has a +/prg+ refinement which should be used when the supplied
-file is Red program that should be run and not a Quick-Test snippet.
-===========================
+-`/prg` refinement which should be used when the supplied file is Red program
+that should be run and not a Quick-Test snippet.
 
 .Usage:
   --compile-and-run <file>
@@ -478,9 +475,8 @@ contain the path to the executable file. It will be +'none+ if the compile
 failed. The output produced by the executable is captured in +qt/output+.
 (It will contain "Compilation failed" in the case of a compilation error.)
 
-[NOTE]
-This function has an +/error+ refinement which should be used if a Red runtime
-error is expected.
+.Refinements:
+- `/error` refinement which should be used if a Red runtime error is expected.
 
 .Usage:
   --compile-and-run-red <file> DEPRECATED use --compile-and-run
@@ -497,11 +493,11 @@ succesful, +qt/exe+ will contain the path to the executable file. It will be
 captured in +qt/output+. (It will contain "Compilation failed" in the case
 of a compilation error.)
 
-[NOTE]
-This function has an +/error+ refinement which should be used if a runtime
-error is expected. This function has an +/bin+ refinement which should be used
-if you want to use the binary version of the red compiler. Supply the file
-path to the bin by setting +qt/bin-compiler+ prior to calling the function.
+.Refinements:
+- `/error` - should be used if a runtime error is expected.
+- `/bin` - should be used if you want to use the binary  version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --compile-and-run-this <source code>
@@ -518,9 +514,8 @@ be +'none+ if the compile failed. The output produced by the executable is
 captured in +qt/output+. (It will contain "Compilation failed" in the case of
 a compilation error.)
 
-[NOTE]
-This function has an +/error+ refinement which should be used if a Red runtime
-error is expected.
+.Refinements:
+- `/error` - should be used if a Red runtime error is expected.
 
 .Usage:
   --compile-and-run-this-red <source code> DEPRECATED USE --compile-and-run-this
@@ -533,15 +528,12 @@ Compiles, runs and prints the output of a Red or Red/System program supplied
 as a source file. It is designed to run test programs written using the
 quick-test.reds test framework.
 
-[NOTE]
-=====================
-. This function has an +/error+ refinement which should be used if a runtime
-error is expected.
+.Refinements:
+- `/error` - should be used if a runtime error is expected.
 
-. This function has an +/bin+ refinement which should be used if you want to
-use the binary version of the red compiler. Supply the file path to the bin by
-setting +qt/bin-compiler+ prior to calling the function.
-=====================
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --compile-run-print <file>
@@ -619,15 +611,12 @@ Compiles, runs and prints the output of a Red or Red/System test program
 written using quick-test.reds in quiet mode. It automatically adds the totals
 from the test to the run-totals.
 
-[NOTE]
-=====================
-. This function has an +/error+ refinement which should be used if a runtime
-error is expected.
+.Refinements:
+- `/error` - should be used if a runtime error is expected.
 
-. This function has an +/bin+ refinement which should be used if you want to
-use the binary version of the red compiler. Supply the file path to the bin by
-setting +qt/bin-compiler+ prior to calling the function.
-=====================
+- `/bin` - should be used if you want to use the binary version of the Red
+compiler. Supply the file path to the bin by setting +qt/bin-compiler+ prior
+to calling the function.
 
 .Usage:
   --run-test-file-quiet <file>
