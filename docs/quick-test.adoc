@@ -173,11 +173,11 @@ compiler.
 
 To run the tests using the "binary" compiler from the command line:
 
-	rebol -qs run-all.r --binary <path-to-compiler>
+  rebol -qs run-all.r --binary <path-to-compiler>
 
 To run the tests from the REBOL console:
 
-	do/args %run-all.r "--binary <path-to-compiler>
+  do/args %run-all.r "--binary <path-to-compiler>
 
 You can omit the <path-to-compiler> if it is Red/build/bin/red or
 Red/build/bin/red.exe
@@ -190,7 +190,7 @@ The test can be run in batch mode from within a shell script (or similar).
 In batch mode, the test output is suppressed and the script returns 0 if all
 tests succeed and 1 if any test fails.
 
-	rebol -qs run-all.r --batch
+  rebol -qs run-all.r --batch
 
 
 Writing Tests
@@ -463,9 +463,12 @@ compilation error.)
 . This function has an +/error+ refinement which should be used if a runtime
 error is expected.
 
-. This function has an +/bin+ refinement which should be used if you want to
+. This function has a +/bin+ refinement which should be used if you want to
 use the binary version of the red compiler. Supply the file path to the bin by
 setting +qt/bin-compiler+ prior to calling the function.
+
+. This function has a +/prg+ refinement which should be used when the supplied
+file is Red program that should be run and not a Quick-Test snippet.
 ===========================
 
 
