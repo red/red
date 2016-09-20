@@ -3660,6 +3660,10 @@ b}
 	; --test-- "#2223"
 		; GUI
 
+	--test-- "#2227"
+		--assert equal? ["1"] split "1^/" #"^/"
+		--assert equal? ["1" "2"] split "1^/2^/" #"^/"
+
 ===end-group===
 
 ~~~end-file~~~
