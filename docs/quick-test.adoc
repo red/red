@@ -200,97 +200,6 @@ In terms of writing tests, Quick-Test is quite minimal by design. It provides
 only a simple assert function and a minimal set of test organisation
 functions.
 
-Examples
-~~~~~~~~
-
-Example 1: A Test of inc.reds - an imaginary function which adds 1 to an integer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
------------------------------------------------
-Red/System [
-  Title:    "Tests of inc.reds"
-  File:     %source/run-time/inc-test.reds
-]
-
-#include %../../quick-test/quick-test.reds
-#include %relative-path-to/inc.reds
-
-~~~start-file~~~ "inc"                          ;; start test file
-                                                ;;  initialises totals
-
-===start-group=== "increment an variable"       ;; a marker to group tests
-                                                ;;  group name [string!]
-
-  --test-- "inc-test-1"                         ;; start of code for a test
-                                                ;;   test name [string!]
-    i: 1
-  --assert 2 = inc i                            ;; an assertion
-                                                ;;   expression [logic!]
-
-===end-group===                                 ;; end of group marker
-
-~~~end-file~~~                                  ;; finish test - print totals
------------------------------------------------
-
-
-Example 2: A test to check the compiler correctly identifies aan unidentified variable:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
------------------------------------------------
-change-dir %../                   ;; revert to tests/ dir (from runnable)
-                                  ;; .r test scripts are copied to runnable
-                                  ;; before execution
-
-                                  ;; There is no need to include quick-test.r
-                                  ;; as it will have been included by either
-                                  ;; %run-all.r or %run-test.r
-
-~~~start-file~~~ "comp-err"       ;; start test
-
---test-- "compile-error-1"
-
---compile-this {                  ;; compiles the suplied string
-                                  ;; by default automatically inserts
-                                  ;; Red [] by default
-                                  ;; this can be changed by setting
-                                  ;; qt/script-header prior to running
-                                  ;; the test
-                                  ;; compiler output is collected in
-                                  ;; qt/comp-output
-      i := 1;
-    }
-
-  --assert none <> find qt/comp-output "*** undefined symbol"
-  --assert none <> find qt/comp-output "at:  ["
-  --assert none <> find qt/comp-output "i := 1"
-  --assert none <> find qt/comp-output "]"
-
-  --clean                         ;; tidies up temporary files
-
-~~~end-file~~~                    ;; ends test and print totals
------------------------------------------------
-
-
-Example 3: Test the output of a Red or Red/System program
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
------------------------------------------------
-change-dir %../                   ;; revert to tests/ directory from runnable/
-
-~~~start-file~~~ "output"
-
-  --test-- "hello"
-                                  ;; --compile-and-run compiles and runs
-                                  ;; a Red/System program. The output is
-                                  ;; collected in qt/output
-
-  --compile-and-run %source/compiler/hello.reds
-  --assert none <> find qt/output "hello"
-  --assert none <> find qt/output "world"
-
-~~~end-file~~~
------------------------------------------------
-
 
 Test Dialects
 ~~~~~~~~~~~~~
@@ -860,7 +769,96 @@ Marks the end of a test file.
 
 Marks the end of a test run.
 
+Examples
+~~~~~~~~
 
+Example 1: A Test of inc.reds - an imaginary function which adds 1 to an integer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-----------------------------------------------
+Red/System [
+  Title:    "Tests of inc.reds"
+  File:     %source/run-time/inc-test.reds
+]
+
+#include %../../quick-test/quick-test.reds
+#include %relative-path-to/inc.reds
+
+~~~start-file~~~ "inc"                          ;; start test file
+                                                ;;  initialises totals
+
+===start-group=== "increment an variable"       ;; a marker to group tests
+                                                ;;  group name [string!]
+
+  --test-- "inc-test-1"                         ;; start of code for a test
+                                                ;;   test name [string!]
+    i: 1
+  --assert 2 = inc i                            ;; an assertion
+                                                ;;   expression [logic!]
+
+===end-group===                                 ;; end of group marker
+
+~~~end-file~~~                                  ;; finish test - print totals
+-----------------------------------------------
+
+
+Example 2: A test to check the compiler correctly identifies aan unidentified variable:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-----------------------------------------------
+change-dir %../                   ;; revert to tests/ dir (from runnable)
+                                  ;; .r test scripts are copied to runnable
+                                  ;; before execution
+
+                                  ;; There is no need to include quick-test.r
+                                  ;; as it will have been included by either
+                                  ;; %run-all.r or %run-test.r
+
+~~~start-file~~~ "comp-err"       ;; start test
+
+--test-- "compile-error-1"
+
+--compile-this {                  ;; compiles the suplied string
+                                  ;; by default automatically inserts
+                                  ;; Red [] by default
+                                  ;; this can be changed by setting
+                                  ;; qt/script-header prior to running
+                                  ;; the test
+                                  ;; compiler output is collected in
+                                  ;; qt/comp-output
+      i := 1;
+    }
+
+  --assert none <> find qt/comp-output "*** undefined symbol"
+  --assert none <> find qt/comp-output "at:  ["
+  --assert none <> find qt/comp-output "i := 1"
+  --assert none <> find qt/comp-output "]"
+
+  --clean                         ;; tidies up temporary files
+
+~~~end-file~~~                    ;; ends test and print totals
+-----------------------------------------------
+
+
+Example 3: Test the output of a Red or Red/System program
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-----------------------------------------------
+change-dir %../                   ;; revert to tests/ directory from runnable/
+
+~~~start-file~~~ "output"
+
+  --test-- "hello"
+                                  ;; --compile-and-run compiles and runs
+                                  ;; a Red/System program. The output is
+                                  ;; collected in qt/output
+
+  --compile-and-run %source/compiler/hello.reds
+  --assert none <> find qt/output "hello"
+  --assert none <> find qt/output "world"
+
+~~~end-file~~~
+-----------------------------------------------
 
 
 
