@@ -1,8 +1,8 @@
 Red/System Quick Test - A testing framework
 ===========================================
-:author: Peter W A Wood
-:revnumber: 0.10.1
-:revdate: 13/07/2016
+:author: Peter W A Wood, Boleslav Březovský
+:revnumber: 0.10.2
+:revdate: 20/09/2016
 :homepage: http://www.red-lang.org
 :toc:
 
@@ -207,16 +207,16 @@ Test Dialects
 quick-test.reds
 ^^^^^^^^^^^^^^^
 
-\***start-run***
-+++++++++++++++
+pass:[***start-run***]
+++++++++++++++++++++++
 
   ***start-run*** <title>
     <title> : title of the test run - c-string!
 
 Marks the start of the test run and initialises the run totals.
 
-\~~~start-file~~~
-++++++++++++++++
+pass:[~~~start-file~~~]
++++++++++++++++++++++++
 
   ~~~start-file~~~ <title>
     <title> : title of the test file - c-string!
@@ -277,15 +277,15 @@ AssertF~= for float32! values.
 
 Marks the end of a group of tests.
 
-\~~~end-file~~~
-++++++++++++++
+pass:[~~~end-file~~~]
++++++++++++++++++++++
 
   ~~~end-file~~~
 
 Marks the end of a test file.
 
-\***end-run***
-+++++++++++++
+pass:[***end-run***]
+++++++++++++++++++++
 
   ***end-run***
 
@@ -303,24 +303,24 @@ report. The more detailed report is logged to %quick-test.log in the tests/
 directory. This is triggered by using the quiet version of the commands in
 the dialect.
 
-\***start-run***
-+++++++++++++++
+pass:[***start-run***]
+++++++++++++++++++++++
 
   ***start-run*** <title>
     <title> : title of the test run - string!
 
 Marks the start of the test run and initialises the run totals.
 
-\***start-run-quiet***
-+++++++++++++++++++++
+pass:[***start-run-quiet***]
+++++++++++++++++++++++++++++
 
  ***start-run-quiet*** <title>
     <title> : title of the test run - string!
 
 Marks the start of a "quiet" test run and initialises the run totals.
 
-\~~~start-file~~~
-++++++++++++++++
+pass:[~~~start-file~~~]
++++++++++++++++++++++++
 
   ~~~start-file~~~ <title>
     <title> : title of the test file - string!
@@ -698,16 +698,16 @@ Syntatically the quick-unit-test dialect is similar to the quick-test.reds
 dialect. There is one significant difference between them, quick-unit-test
 collects all the output from test and provides a means to interogate it.
 
-\***start-run***
-+++++++++++++++
+pass:[***start-run***]
+++++++++++++++++++++++
 
   ***start-run*** <title>
     <title> : title of the test run - string!
 
 Marks the start of the test run and initialises the run totals.
 
-\~~~start-file~~~
-++++++++++++++++
+pass:[~~~start-file~~~]
++++++++++++++++++++++++
 
   ~~~start-file~~~ <title>
     <title> : title of the test file - string!
@@ -755,15 +755,15 @@ An assertion that the text was printed.
 
 Marks the end of a group of tests.
 
-\~~~end-file~~~
-++++++++++++++
+pass:[~~~end-file~~~]
++++++++++++++++++++++
 
   ~~~end-file~~~
 
 Marks the end of a test file.
 
-\***end-run***
-+++++++++++++
+pass:[***end-run***]
+++++++++++++++++++++
 
   ***end-run***
 
