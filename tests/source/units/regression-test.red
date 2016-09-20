@@ -2140,7 +2140,6 @@ print 486
 			error? e
 			not equal? '<anon> e/arg3
 		]
-		print "x3"
 
 	; --test-- "#1117"
 		; should check for crash
