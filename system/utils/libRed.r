@@ -128,6 +128,7 @@ libRed: context [
 		red/word/push-local
 		
 		red/get-word/get
+		red/set-word/push-local
 		
 		red/_context/get
 		red/_context/clone
@@ -348,7 +349,10 @@ libRed: context [
 	
 	make-exports: func [functions exports /local name][
 		foreach [name spec] functions [
-			if find/match form name "exec/" [
+			if all [
+				pos: find/match form name "exec/"
+				not find pos slash
+			][
 				append/only funcs load form name
 			]
 		]

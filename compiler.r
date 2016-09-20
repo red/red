@@ -1650,7 +1650,10 @@ red: context [
 		name
 	]
 	
-	inherit-functions: func [new [object!] extend [object!] /local symbol name][ ;-- multiple inheritance case
+	inherit-functions: func [							 ;-- multiple inheritance case
+		new [object!] extend [object!] multi? [logic!]
+		/local symbol name
+	][
 		foreach word next first extend [
 			if function! = get in extend word [
 				symbol: decorate-obj-member word select objects extend
@@ -1659,9 +1662,14 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				
-				append bodies name
-				append bodies bind/copy copy/part next find bodies symbol 8 new
+				either multi? [							;-- not allowed for libRed client programs
+					append bodies name
+					append bodies bind/copy copy/part next find bodies symbol 8 new
+				][
+					redirect-to literals [
+						emit compose [#define (decorate-func name) (decorate-func symbol)]
+					]
+				]
 				add-symbol name
 			]
 		]
@@ -1674,7 +1682,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? multi-inherit?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1694,7 +1702,7 @@ red: context [
 				some [
 					(clear list)
 					pos: set-word! (
-						append list pos/1			;-- store new word
+						append list pos/1				;-- store new word
 						value: pos
 						until [
 							value: next value
@@ -1832,14 +1840,15 @@ red: context [
 			]
 			insert-lf -3
 		]
-
+		multi-inherit?: not all [job/dev-mode? not job/libRed?]
+		
 		if proto [
-			if body? [inherit-functions obj last proto]
+			if body? [inherit-functions obj last proto multi-inherit?]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		if all [not body? not passive][
-			inherit-functions obj new
+			inherit-functions obj new multi-inherit?
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
@@ -1885,7 +1894,10 @@ red: context [
 		event: 'on-change*
 		if pos: find spec event [
 			pos: (index? pos) - 1					;-- 0-based contexts arrays
-			entry: find functions decorate-obj-member event ctx
+			entry: any [
+				find functions decorate-obj-member event ctx
+				all [proto find functions decorate-obj-member event select objects proto/1]
+			]
 			unless zero? loc-s: second check-spec entry/2/3 [
 				loc-s: loc-s + 1					;-- account for /local
 			]
@@ -1893,7 +1905,10 @@ red: context [
 		event: 'on-deep-change*
 		if pos2: find spec event [
 			pos2: (index? pos2) - 1					;-- 0-based contexts arrays
-			entry: find functions decorate-obj-member event ctx
+			entry: any [
+				find functions decorate-obj-member event ctx
+				all [proto find functions decorate-obj-member event select objects proto/1]
+			]
 			unless zero? loc-d: second check-spec entry/2/3 [
 				loc-d: loc-d + 1					;-- account for /local
 			]
@@ -4317,6 +4332,7 @@ red: context [
 		insert pos defs
 		
 		output: out
+write %out-dlib.red mold output		
 		if verbose > 2 [?? output]
 	]
 	

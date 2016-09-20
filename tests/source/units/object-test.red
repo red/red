@@ -413,6 +413,7 @@ Red [
 		--assert list/1/v = 0
 		--assert list/2/v = 1
 
+;#if dev-mode? = no [							;-- libRed does not support multiple-inheritance
 	--test-- "inherit-5"
 		base5: context [
 			b: 123
@@ -450,7 +451,7 @@ Red [
 
 	--test-- "inherit-8"
 		--assert new/foo = 1070
-
+;]
 	--test-- "inherit-9"
 		base9: context [
 			v: 123456
@@ -1375,6 +1376,7 @@ Red [
 			--assert list/1/v = 0
 			--assert list/2/v = 1
 
+;#if dev-mode? = no [							;-- libRed does not support multiple-inheritance
 		--test-- "loc-inherit-5"
 			base5: context [
 				b: 123
@@ -1412,7 +1414,7 @@ Red [
 
 		--test-- "loc-inherit-8"
 			--assert new/foo = 1070
-
+;]
 		--test-- "loc-inherit-9"
 			base9: context [
 				v: 123456

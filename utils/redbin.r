@@ -90,8 +90,7 @@ context [
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
-		unless ctx [emit -1 return -1]				;-- -1 for global context
-		entry: find contexts ctx
+		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]				;-- -1 for global context
 		either pos: find entry/2 to word! word [
 			emit entry/3
 			(index? pos) - 1

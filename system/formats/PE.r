@@ -630,7 +630,7 @@ context [
 						+ length? form-struct export-directory
 		
 		sym-nb: 0
-		sort/case spec/3									;-- sort all symbols lexicographically
+		sort/case spec/3								;-- sort all symbols lexicographically
 		foreach name spec/3 [							;-- Export Name Table
 			repend NPT [name length? names]
 			repend names [name null]
