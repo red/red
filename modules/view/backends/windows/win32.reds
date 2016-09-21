@@ -445,6 +445,9 @@ Red/System [
 
 #define GDIPLUS_COMBINEMODEREPLACE	0
 
+#define AC_SRC_OVER                 0
+#define AC_SRC_ALPHA                0			;-- there are some troubles on Win64 with value 1
+
 #define TextRenderingHintSystemDefault		0
 #define TextRenderingHintAntiAliasGridFit	3
 
@@ -492,6 +495,16 @@ Red/System [
 #define CF_TEXT				1
 #define CF_UNICODETEXT		13
 #define GA_ROOT				2
+
+#define GM_COMPATIBLE       1
+#define GM_ADVANCED         2
+
+#define MWT_IDENTITY        1
+#define MWT_LEFTMULTIPLY    2
+#define MWT_RIGHTMULTIPLY   3
+
+#define AD_COUNTERCLOCKWISE 1
+#define AD_CLOCKWISE        2
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -854,6 +867,15 @@ tagCHOOSEFONT: alias struct! [
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
+]
+
+XFORM!: alias struct! [
+    eM11        [float32!]
+    eM12        [float32!]
+    eM21        [float32!]
+    eM22        [float32!]
+    eDx         [float32!]
+    eDy         [float32!]
 ]
 
 #import [
@@ -1602,12 +1624,44 @@ DwmIsCompositionEnabled!: alias function! [
 			nHeight		[integer!]
 			return:		[logic!]
 		]
+        BeginPath: "BeginPath" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
+        EndPath: "EndPath" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
+        GetPath: "GetPath" [
+            hdc         [handle!]
+            points      [tagPOINT]
+            types       [byte-ptr!]
+            nSize       [integer!]
+            return:     [integer!]
+        ]
+        FillPath: "FillPath" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
 		Polyline: "Polyline" [
 			hdc			[handle!]
 			lppt		[tagPOINT]
 			cPoints		[integer!]
 			return:		[logic!]
 		]
+        PolylineTo: "PolylineTo" [
+            hdc         [handle!]
+            lppt        [tagPOINT]
+            cPoints     [integer!]
+            return:     [logic!]
+        ]
+        PolyDraw: "PolyDraw" [
+            hdc         [handle!]
+            points      [tagPOINT]
+            types       [byte-ptr!]
+            nSize       [integer!]
+            return:     [logic!]
+        ]
 		Polygon: "Polygon" [
 			hdc			[handle!]
 			lppt		[tagPOINT]
@@ -1634,6 +1688,18 @@ DwmIsCompositionEnabled!: alias function! [
 			nYEndArc	[integer!]
 			return:		[logic!]
 		]
+        ArcTo: "ArcTo" [
+            hdc         [handle!]
+            nLeftRect   [integer!]
+            nTopRect    [integer!]
+            nRightRect  [integer!]
+            nBottomRect [integer!]
+            nXStartArc  [integer!]
+            nYStartArc  [integer!]
+            nXEndArc    [integer!]
+            nYEndArc    [integer!]
+            return:     [logic!]
+        ]
 		Chord: "Chord" [
 			hdc			[handle!]
 			nLeftRect	[integer!]
@@ -1663,6 +1729,10 @@ DwmIsCompositionEnabled!: alias function! [
 			direction	[integer!]
 			return:		[integer!]
 		]
+        GetArcDirection: "GetArcDirection" [
+            hdc         [handle!]
+            return:     [integer!]
+        ]
 		PolyBezier: "PolyBezier" [
 			hdc			[handle!]
 			lppt		[tagPOINT]
@@ -1690,6 +1760,22 @@ DwmIsCompositionEnabled!: alias function! [
 			lpszFace			[c-string!]
 			return: 			[handle!]
 		]
+        SetGraphicsMode: "SetGraphicsMode" [
+            hdc         [handle!]
+            mode        [integer!]
+            return:     [integer!]
+        ]
+        SetWorldTransform: "SetWorldTransform" [
+            hdc         [handle!]
+            lpXform     [XFORM!]
+            return:     [logic!]
+        ]
+        ModifyWorldTransform: "ModifyWorldTransform" [
+            hdc         [handle!]
+            lpXform     [XFORM!]
+            iMode       [integer!]
+            return:     [logic!]
+        ]
 	]
 	"comdlg32.dll" stdcall [
 		ChooseFont: "ChooseFontW" [
@@ -2111,6 +2197,12 @@ DwmIsCompositionEnabled!: alias function! [
 			path		[integer!]
 			return:		[integer!]
 		]
+        GdipAddPathLine2I: "GdipAddPathLine2I" [
+            path        [integer!]
+            points      [tagPOINT]
+            count       [integer!]
+            return:     [integer!]
+        ]
 		GdipAddPathRectangleI: "GdipAddPathRectangleI" [
 			path		[integer!]
 			x			[integer!]
@@ -2137,6 +2229,27 @@ DwmIsCompositionEnabled!: alias function! [
 			sweepAngle	[float32!]
 			return:		[integer!]
 		]
+        GdipAddPathBeziersI: "GdipAddPathBeziersI" [
+            path        [integer!]
+            points      [tagPOINT]
+            count       [integer!]
+            return:     [integer!]
+        ]
+        GdipAddPathPath: "GdipAddPathPath" [
+            path-dst    [integer!]
+            path-src    [integer!]
+            connect     [integer!]
+            return:     [integer!]
+        ]
+        GdipGetPointCount: "GdipGetPointCount" [
+            path        [integer!]
+            count       [int-ptr!]
+            return:     [integer!]
+        ]
+        GdipGetPathLastPoint: "GdipGetPathLastPoint" [
+            path        [integer!]
+            point       [POINT_2F]
+        ]
 		GdipDrawArcI: "GdipDrawArcI" [
 			graphics	[integer!]
 			pen			[integer!]

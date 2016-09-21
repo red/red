@@ -29,6 +29,7 @@ modes: declare struct! [
 	gp-font			[integer!]								;-- gdiplus font
 	gp-font-brush	[integer!]
 	gp-matrix		[integer!]
+	gp-path			[integer!]
 	image-attr		[integer!]								;-- gdiplus image attributes
 	pen?			[logic!]
 	brush?			[logic!]
@@ -42,8 +43,29 @@ paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
+types: allocate max-edges * (size? byte!)					;-- point type buffer
 colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
 colors-pos: as pointer! [float32!] colors + max-colors
+
+#define SHAPE_OTHER     0
+#define SHAPE_CURVE     1
+#define SHAPE_QCURVE    2
+
+last-point?: no
+path-last-point: declare tagPOINT
+curve-info!: alias struct! [
+    type    [integer!]
+    control [tagPOINT]
+]
+prev-shape: declare curve-info!
+prev-shape/control: declare tagPOINT
+
+arcPOINTS!: alias struct! [
+    start-x     [integer!]
+    start-y     [integer!]
+    end-x       [integer!]
+    end-y       [integer!]
+]
 
 anti-alias?: no
 GDI+?: no
@@ -329,6 +351,625 @@ to-gdiplus-color: func [
 	blue: color >> 16 and FFh
 	alpha: (255 - (color >>> 24)) << 24
 	red or green or blue or alpha
+]
+
+
+radian-to-degrees: func [
+    radians     [float!]
+    return:     [float!]
+][
+    (radians * 180.0) / PI
+]
+
+abs: func [
+    value   [float!]
+    return: [float!]
+    /local
+        n   [int-ptr!]
+][
+    n: (as int-ptr! :value) + 1
+    n/value: n/value and 7FFFFFFFh
+    value
+]
+
+adjust-angle: func [
+    x       [float!]
+    y       [float!]
+    angle   [float!]
+    return: [float!]
+][
+    case [
+        all [ x >= 0.0 y <= 0.0 ] [ either angle = 0.0 [0.0 - angle][360.0 - angle] ]
+        all [ x <= 0.0 y >= 0.0 ] [ 180.0 - angle ]
+        all [ x <= 0.0 y <= 0.0 ] [ 180.0 + angle ]
+        true [ angle ]
+    ]
+]
+
+set-matrix: func [
+    xform       [XFORM!]
+    eM11        [float!]
+    eM12        [float!]
+    eM21        [float!]
+    eM22        [float!]
+    eDx         [float!]
+    eDy         [float!]
+][
+    xform/eM11: as float32! eM11
+    xform/eM12: as float32! eM12
+    xform/eM21: as float32! eM21
+    xform/eM22: as float32! eM22
+    xform/eDx: as float32! eDx
+    xform/eDy: as float32! eDy
+]
+
+gdi-calc-arc: func [
+    center-x        [integer!]
+    center-y        [integer!]
+    rad-x           [float!]
+    rad-y           [float!]
+    angle-begin     [float!]
+    angle-len       [float!]
+    return:         [arcPOINTS!]
+	/local
+        radius      [red-pair!]
+        angle       [red-integer!]
+        start-x     [integer!]
+        start-y     [integer!]
+        end-x       [integer!]
+        end-y       [integer!]
+        rad-x-float [float32!]
+        rad-y-float [float32!]
+        rad-x-2     [float32!]
+        rad-y-2     [float32!]
+        rad-x-y     [float32!]
+        tan-2       [float32!]
+        rad-beg     [float!]
+        rad-end     [float!]
+        points      [arcPOINTS!]
+][
+    points: declare arcPOINTS!
+    rad-x-float: as float32! rad-x
+    rad-y-float: as float32! rad-y
+
+    either rad-x = rad-y [				;-- circle
+        rad-beg: degree-to-radians angle-begin TYPE_SINE
+        rad-end: degree-to-radians angle-begin + angle-len TYPE_SINE
+        start-y: center-y + (rad-y-float * system/words/sin rad-beg)
+        end-y:	 center-y + (rad-y-float * system/words/sin rad-end)
+        rad-beg: degree-to-radians angle-begin TYPE_COSINE
+        rad-end: degree-to-radians angle-begin + angle-len TYPE_COSINE
+        start-x: center-x + (rad-x-float * system/words/cos rad-beg)
+        end-x:	 center-x + (rad-x-float * system/words/cos rad-end)
+    ][
+        rad-beg: degree-to-radians angle-begin TYPE_TANGENT
+        rad-end: degree-to-radians angle-begin + angle-len TYPE_TANGENT
+        rad-x-y: rad-x-float * rad-y-float
+        rad-x-2: rad-x-float * rad-x-float
+        rad-y-2: rad-y-float * rad-y-float
+        tan-2: as float32! system/words/tan rad-beg
+        tan-2: tan-2 * tan-2
+        start-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        start-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+        start-x: center-x + start-x
+        start-y: center-y + start-y
+        angle-begin: angle-begin + angle-len
+        tan-2: as float32! system/words/tan rad-end
+        tan-2: tan-2 * tan-2
+        end-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        end-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        if angle-begin < 0.0 [ angle-begin: 360.0 + angle-begin]
+        if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+        end-x: center-x + end-x
+        end-y: center-y + end-y
+    ]
+    points/start-x: start-x
+    points/start-y: start-y
+    points/end-x: end-x
+    points/end-y: end-y
+    points
+]
+
+draw-curves: func [
+    dc          [handle!]
+    start       [red-pair!]
+    end         [red-pair!]
+    rel?        [logic!]
+    nr-points   [integer!]
+    /local
+        point   [tagPOINT]
+        pair    [red-pair!]
+        pt      [tagPOINT]
+        nb      [integer!]
+        count   [integer!]
+][
+    pt:     edges
+    pair:   start
+    nb:     0
+    count: (as-integer end - pair) >> 4 + 1
+    while [ all [ pair <= end nb < max-edges count >= nr-points ] ][
+        pt/x: path-last-point/x
+        pt/y: path-last-point/y
+        while [ nb < 3 ][
+            nb: nb + 1
+            pt: pt + 1
+            pt/x: either rel? [ pair/x + path-last-point/x ][ pair/x ]
+            pt/y: either rel? [ pair/y + path-last-point/y ][ pair/y ]
+            if nb < nr-points [ pair: pair + 1 ] 
+        ]
+        path-last-point/x: pt/x
+        path-last-point/y: pt/y
+        either GDI+? [
+            GdipAddPathBeziersI modes/gp-path edges nb + 1
+        ][
+            PolyBezier dc edges nb + 1 
+        ]
+
+        count: (as-integer end - pair) >> 4
+        nb: 0
+        pt: edges
+        pair: pair + 1
+    ]
+    last-point?: yes
+    point: edges + nr-points - 1
+    prev-shape/type: SHAPE_CURVE
+    prev-shape/control/x: point/x
+    prev-shape/control/y: point/y
+]
+
+draw-short-curves: func [
+    dc          [handle!]
+    start       [red-pair!]
+    end         [red-pair!]
+    rel?        [logic!]
+    nr-points   [integer!]
+    /local
+        point   [tagPOINT]
+        pair    [red-pair!]
+        pt      [tagPOINT]
+        nb      [integer!]
+        control [tagPOINT]
+        count   [integer!]
+][
+    pt: edges
+    nb: 0
+    pair: start
+    control: declare tagPOINT
+    either prev-shape/type = SHAPE_CURVE [
+        control/x: prev-shape/control/x
+        control/y: prev-shape/control/y
+    ][
+        control/x: path-last-point/x
+        control/y: path-last-point/y
+    ]
+    while [ pair <= end ][
+        pt/x: path-last-point/x
+        pt/y: path-last-point/y
+        pt: pt + 1
+        pt/x: ( 2 * path-last-point/x ) - control/x
+        pt/y: ( 2 * path-last-point/y ) - control/y
+        pt: pt + 1
+        pt/x: either rel? [ path-last-point/x + pair/x ][ pair/x ]
+        pt/y: either rel? [ path-last-point/y + pair/y ][ pair/y ]
+        control/x: pt/x
+        control/y: pt/y
+        pt: pt + 1
+        loop nr-points - 1 [ pair: pair + 1 ]
+        if pair <= end [
+            pt/x: either rel? [ path-last-point/x + pair/x ][ pair/x ]
+            pt/y: either rel? [ path-last-point/y + pair/y ][ pair/y ]
+            last-point?: yes
+            path-last-point/x: pt/x
+            path-last-point/y: pt/y
+            pair: pair + 1
+            nb: nb + 4
+        ]
+        either GDI+? [
+            GdipAddPathBeziersI modes/gp-path edges nb
+        ][
+            PolyBezier dc edges nb
+        ]
+        prev-shape/type: SHAPE_CURVE
+        prev-shape/control/x: control/x
+        prev-shape/control/y: control/y 
+
+        pt: edges
+        nb: 0
+    ]
+]
+
+OS-draw-shape-beginpath: func [
+    dc          [handle!]
+    /local
+        path    [integer!]
+][
+    last-point?: no
+    prev-shape/type: SHAPE_OTHER
+    path-last-point/x: 0
+    path-last-point/y: 0
+    either GDI+? [
+        path: 0
+        GdipCreatePath 0 :path	; alternate fill
+        modes/gp-path: path
+		GdipStartPathFigure modes/gp-path
+    ][
+        update-modes dc
+    	BeginPath dc
+    ]
+]
+
+OS-draw-shape-endpath: func [
+    dc          [handle!]
+    close?      [logic!]
+    return:     [logic!]
+    /local
+        alpha   [byte!]
+        width   [integer!]
+        height  [integer!]
+        ftn     [integer!]
+        bf      [tagBLENDFUNCTION]
+        count   [integer!]
+        result  [logic!]
+        point   [tagPOINT]
+][
+    result: true
+
+    either GDI+? [
+        count: 0
+        GdipGetPointCount modes/gp-path :count
+
+        either all [ count > 0 count <= max-edges ][
+            if close? [ GdipClosePathFigure modes/gp-path ]
+            GdipDrawPath modes/graphics modes/gp-pen modes/gp-path
+            GdipFillPath modes/graphics modes/gp-brush modes/gp-path
+            GdipDeletePath modes/gp-path
+        ][ if count > max-edges [ result: false ] ]
+    ][
+        EndPath dc
+        count: GetPath dc edges types 0
+        either all [ count > 0 count <= max-edges ][
+            count: GetPath dc edges types count
+            if close? [
+                point: edges + count
+                point/x: edges/x
+                point/y: edges/y
+                count: count + 1
+            ]
+            FillPath dc
+            PolyDraw dc edges types count
+        ][ if count > max-edges [ result: false ] ]
+    ]
+    result
+]
+
+OS-draw-shape-moveto: func [
+    dc      [handle!]
+    coord   [red-pair!]
+    rel?    [logic!]
+    /local
+        pt  [tagPOINT]
+][
+    either all [ rel? last-point? ][
+        path-last-point/x: path-last-point/x + coord/x
+        path-last-point/y: path-last-point/y + coord/y
+    ][
+        path-last-point/x: coord/x
+        path-last-point/y: coord/y
+    ]
+    last-point?: yes
+    prev-shape/type: SHAPE_OTHER
+    either GDI+? [
+        GdipStartPathFigure modes/gp-path
+	][
+        pt: declare tagPOINT
+        MoveToEx dc path-last-point/x path-last-point/y pt
+    ]
+]
+
+OS-draw-shape-line: func [
+    dc          [handle!]
+    start       [red-pair!]
+    end         [red-pair!]
+    rel?        [logic!]
+    /local
+        pt      [tagPOINT]
+        nb      [integer!]
+        pair    [red-pair!]
+][
+    pt: edges
+    pair:  start
+    nb:	   0
+
+    if last-point? [
+        pt/x: path-last-point/x
+        pt/y: path-last-point/y
+        pt: pt + 1
+        nb: nb + 1
+    ]
+
+    while [all [pair <= end nb < max-edges]][
+        pt/x: pair/x
+        pt/y: pair/y
+        if rel? [
+            pt/x: pt/x + path-last-point/x
+            pt/y: pt/y + path-last-point/y
+        ]
+        path-last-point/x: pt/x
+        path-last-point/y: pt/y
+        nb: nb + 1
+        pt: pt + 1
+        pair: pair + 1	
+    ]
+    either GDI+? [
+        GdipAddPathLine2I  modes/gp-path edges nb
+    ][
+        PolylineTo dc edges nb
+    ]
+	last-point?: yes
+    prev-shape/type: SHAPE_OTHER
+]
+
+OS-draw-shape-axis: func [
+    dc          [handle!]
+    start       [red-integer!]
+    end         [red-integer!]
+    rel?        [logic!]
+    hline       [logic!]
+    /local
+        pt      [tagPOINT]
+        nb      [integer!]
+        coord   [red-integer!]
+][
+    pt: edges
+    nb: 0
+    coord: start
+
+    pt/x: path-last-point/x
+    pt/y: path-last-point/y
+    pt: pt + 1
+    nb: nb + 1
+    while [ all [ coord <= end nb < max-edges ] ][
+        case [
+            hline [
+                either rel? [ 
+                    pt/x: path-last-point/x + coord/value
+                ][ pt/x: coord/value ]
+                pt/y: path-last-point/y
+                path-last-point/x: pt/x
+            ]
+            true [
+                either rel? [ 
+                    pt/y: path-last-point/y + coord/value
+                ][ pt/y: coord/value ]
+                pt/x: path-last-point/x
+                path-last-point/y: pt/y 
+            ]
+        ]
+        coord: coord + 1
+        nb: nb + 1
+        pt: pt + 1
+    ]
+    last-point?: yes
+    either GDI+? [
+        GdipAddPathLine2I modes/gp-path edges nb
+    ][
+        PolylineTo dc edges nb
+    ]
+    prev-shape/type: SHAPE_OTHER
+]
+
+OS-draw-shape-curve: func [
+    dc      [handle!]
+    start   [red-pair!]
+    end     [red-pair!]
+    rel?    [logic!]
+][
+    draw-curves dc start end rel? 3
+]
+
+OS-draw-shape-qcurve: func [
+    dc      [handle!]
+    start   [red-pair!]
+    end     [red-pair!]
+    rel?    [logic!]
+][
+    draw-curves dc start end rel? 2
+]
+
+OS-draw-shape-curv: func [
+    dc      [handle!]
+    start   [red-pair!]
+    end     [red-pair!]
+    rel?    [logic!]
+][
+    draw-short-curves dc start end rel? 2
+]
+
+OS-draw-shape-qcurv: func [
+    dc      [handle!]
+    start   [red-pair!]
+    end     [red-pair!]
+    rel?    [logic!]
+][
+    draw-short-curves dc start end rel? 1
+]
+
+OS-draw-shape-arc: func [
+    dc      [handle!]
+    start   [red-pair!]
+    end     [red-integer!]
+    sweep?  [logic!]
+    large?  [logic!]
+    rel?    [logic!]
+    /local
+        int         [red-integer!]
+        center-x    [float!]
+        center-y    [float!]
+        cx          [float!]
+        cy          [float!]
+        cf          [float!]
+        angle-1     [float!]
+        angle-2     [float!]
+        angle-len   [float!]
+        radius-x    [float!]
+        radius-y    [float!]
+        theta       [float!]
+        X1          [float!]
+        Y1          [float!]
+        p1-x        [float!]
+        p1-y        [float!]
+        p2-x        [float!]
+        p2-y        [float!]
+        cos-val     [float!]
+        sin-val     [float!]
+        rx2         [float!]
+        ry2         [float!]
+        dx          [float!]
+        dy          [float!]
+        sqrt-val    [float!]
+        sign        [float!]
+        rad-check   [float!]
+        angle       [red-integer!]
+        center      [red-pair!]
+        m           [integer!]
+        path        [integer!]
+        xform       [XFORM!]
+        arc-dir     [integer!]
+        prev-dir    [integer!]
+        pt          [tagPOINT]
+        arc-points  [arcPOINTS!]
+][
+    if last-point? [
+        ;-- parse arguments 
+        p1-x: as float! path-last-point/x
+        p1-y: as float! path-last-point/y
+        p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
+        p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
+        int: as red-integer! start + 1
+        radius-x: as float! int/value
+        int: int + 1
+        radius-y: as float! int/value
+        int: int + 1
+        theta: as float! int/value
+        if radius-x < 0.0 [ radius-x: radius-x * -1]
+        if radius-y < 0.0 [ radius-x: radius-x * -1]
+
+        ;-- calculate center
+        dx: (p1-x - p2-x) / 2.0
+        dy: (p1-y - p2-y) / 2.0
+        cos-val: system/words/cos degree-to-radians theta TYPE_COSINE
+        sin-val: system/words/sin degree-to-radians theta TYPE_SINE
+        X1: (cos-val * dx) + (sin-val * dy)
+        Y1: (cos-val * dy) - (sin-val * dx)
+        rx2: radius-x * radius-x
+        ry2: radius-y * radius-y
+        rad-check: ((X1 * X1) / rx2) + ((Y1 * Y1) / ry2)
+        if rad-check > 1.0 [
+            radius-x: radius-x * sqrt rad-check
+            radius-y: radius-y * sqrt rad-check
+            rx2: radius-x * radius-x
+            ry2: radius-y * radius-y
+        ]
+        sign: either large? = sweep? [ -1.0 ][ 1.0 ]
+        sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
+        cf: either sqrt-val < 0.0 [ 0.0 ][ sign * sqrt sqrt-val ]
+        cx: cf * (radius-x * Y1 / radius-y)
+        cy: cf * (radius-y * X1 / radius-x) * (-1)
+        center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / 2.0)
+        center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
+
+        ;-- calculate angles
+        angle-1: radian-to-degrees system/words/atan (abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
+        angle-2: radian-to-degrees system/words/atan (abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
+        angle-len: angle-2 - angle-1
+        sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
+        if large? [
+            either sign < 0.0 [
+                angle-len: 360.0 + angle-len 
+            ][
+                angle-len: angle-len - 360.0
+            ]
+        ]
+        angle-1: angle-1 - theta
+
+        ;--draw arc
+        either GDI+? [
+            path: 0
+            GdipCreatePath 0 :path	; alternate fill
+            GdipAddPathArcI 
+                path 
+                as integer! center-x - radius-x
+                as integer! center-y - radius-y
+                as integer! (radius-x * 2.0)
+                as integer! (radius-y * 2.0)
+                as float32! angle-1
+                as float32! angle-len
+            m: 0
+            GdipCreateMatrix :m
+            GdipTranslateMatrix m as float32! (center-x * -1) as float32! (center-y * -1) GDIPLUS_MATRIXORDERAPPEND 
+            GdipRotateMatrix m as float32! theta GDIPLUS_MATRIXORDERAPPEND
+            GdipTranslateMatrix m as float32! center-x as float32! center-y GDIPLUS_MATRIXORDERAPPEND
+            GdipTransformPath path m  
+            GdipDeleteMatrix m
+
+            GdipAddPathPath modes/gp-path path 0
+            GdipDeletePath path
+        ][
+            either theta <> 0.0 [
+                arc-points: gdi-calc-arc 
+                                as integer! center-x 
+                                as integer! center-y 
+                                radius-x 
+                                radius-y 
+                                angle-1 
+                                angle-len
+            ][
+                arc-points: declare arcPOINTS!
+                arc-points/start-x: as integer! p1-x
+                arc-points/start-y: as integer! p1-y
+                arc-points/end-x: as integer! p2-x
+                arc-points/end-y: as integer! p2-y
+            ]
+            SetGraphicsMode dc GM_ADVANCED
+            xform: declare XFORM!
+            set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1 center-y * -1
+            SetWorldTransform dc xform
+            set-matrix xform cos-val sin-val sin-val * -1 cos-val center-x center-y
+            ModifyWorldTransform dc xform MWT_RIGHTMULTIPLY
+
+            prev-dir: GetArcDirection dc
+            arc-dir: either sweep? [ AD_CLOCKWISE ][ AD_COUNTERCLOCKWISE ]
+            SetArcDirection dc arc-dir
+            pt: declare tagPOINT
+            MoveToEx dc arc-points/start-x arc-points/start-y pt
+            ArcTo
+                dc
+                as integer! center-x - radius-x
+                as integer! center-y - radius-y
+                as integer! center-x + radius-x
+                as integer! center-y + radius-y
+                arc-points/start-x
+                arc-points/start-y
+                arc-points/end-x
+                arc-points/end-y
+            SetArcDirection dc prev-dir
+                
+            set-matrix xform 1.0 0.0 0.0 1.0 0.0 0.0
+            SetWorldTransform dc xform
+            SetGraphicsMode dc GM_COMPATIBLE
+        ]
+
+        ;-- set last point
+        last-point?: yes
+        path-last-point/x: as integer! p2-x
+        path-last-point/y: as integer! p2-y
+        prev-shape/type: SHAPE_OTHER
+    ]
 ]
 
 OS-draw-anti-alias: func [
@@ -808,6 +1449,9 @@ OS-draw-arc: func [
 		rad-beg		[float!]
 		rad-end		[float!]
 		closed?		[logic!]
+        prev-dir    [integer!]
+        arc-dir     [integer!]
+        arc-points  [arcPOINTS!]
 ][
 	radius: center + 1
 	rad-x: radius/x
@@ -856,40 +1500,16 @@ OS-draw-arc: func [
 		rad-x-float: as float32! rad-x
 		rad-y-float: as float32! rad-y
 
-		either rad-x = rad-y [				;-- circle
-			rad-beg: degree-to-radians as float! angle-begin TYPE_SINE
-			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_SINE
-			start-y: center/y + (rad-y-float * system/words/sin rad-beg)
-			end-y:	 center/y + (rad-y-float * system/words/sin rad-end)
-			rad-beg: degree-to-radians as float! angle-begin TYPE_COSINE
-			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_COSINE
-			start-x: center/x + (rad-x-float * system/words/cos rad-beg)
-			end-x:	 center/x + (rad-x-float * system/words/cos rad-end)
-		][
-			rad-beg: degree-to-radians as float! angle-begin TYPE_TANGENT
-			rad-end: degree-to-radians as float! angle-begin + angle-len TYPE_TANGENT
-			rad-x-y: rad-x-float * rad-y-float
-			rad-x-2: rad-x-float * rad-x-float
-			rad-y-2: rad-y-float * rad-y-float
-			tan-2: as float32! system/words/tan rad-beg
-			tan-2: tan-2 * tan-2
-			start-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-			start-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
-			if all [angle-begin > as float32! 90.0  angle-begin < as float32! 270.0][start-x: 0 - start-x]
-			if all [angle-begin > as float32! 180.0 angle-begin < as float32! 360.0][start-y: 0 - start-y]
-			start-x: center/x + start-x
-			start-y: center/y + start-y
-			angle-begin: angle-begin + angle-len
-			tan-2: as float32! system/words/tan rad-beg
-			tan-2: tan-2 * tan-2
-			end-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-			end-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
-			if all [angle-begin > as float32! 90.0  angle-begin < as float32! 270.0][end-x: 0 - end-x]
-			if all [angle-begin > as float32! 180.0 angle-begin < as float32! 360.0][end-y: 0 - end-y]
-			end-x: center/x + end-x
-			end-y: center/y + end-y
-		]
-
+        arc-points: gdi-calc-arc 
+                        center/x 
+                        center/y 
+                        as float! rad-x 
+                        as float! rad-y 
+                        as float! angle-begin 
+                        as float! angle-len
+        prev-dir: GetArcDirection dc
+        arc-dir: either angle-len > as float32! 0.0 [ AD_CLOCKWISE ][ AD_COUNTERCLOCKWISE ]
+        SetArcDirection dc arc-dir
 		either closed? [
 			Pie
 				dc
@@ -897,10 +1517,10 @@ OS-draw-arc: func [
 				center/y - rad-y
 				center/x + rad-x + 1
 				center/y + rad-y + 1
-				start-x
-				start-y
-				end-x
-				end-y
+				arc-points/start-x
+				arc-points/start-y
+				arc-points/end-x
+				arc-points/end-y
 		][
 			Arc
 				dc
@@ -908,11 +1528,12 @@ OS-draw-arc: func [
 				center/y - rad-y
 				center/x + rad-x + 1
 				center/y + rad-y + 1
-				start-x
-				start-y
-				end-x
-				end-y
+				arc-points/start-x
+				arc-points/start-y
+				arc-points/end-x
+				arc-points/end-y
 		]
+        SetArcDirection dc prev-dir
 	]
 ]
 
