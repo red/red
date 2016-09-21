@@ -20,6 +20,38 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	; --test-- "#1679"
+	;	OPEN
+	;	--compile-and-run-this {switch 1 []}
+
+	--test-- "#1694"
+		--compile-and-run-this {
+do  [
+	f: func [x] [x]
+	probe try [f/only 3]
+]
+		}
+		--assert true? find qt/output "arg2: 'only"
+
+	;--test-- "#1720"
+	; OPEN
+	;	--compile-and-run-this {write http://abc.com compose [ {} {} ]}
+	;	--assert not crashed?
+
+	--test-- "#1730"
+		--compile-and-run-this {reduce does ["ok"]}
+		--assert not crashed?
+		--compile-and-run-this {do [reduce does ["ok"]]}
+		--assert not crashed?
+
+	--test-- "#1758"
+		--compile-and-run-this {do [system/options/path: none]}
+		--assert not crashed?
+
+	--test-- "#1831"
+		--compile-and-run-this {do [function [a] [repeat a/1]]}
+		--assert not crashed?
+
 	--test-- "#1836"
 		--compile-and-run-this {
 do [

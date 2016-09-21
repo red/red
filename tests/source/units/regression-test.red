@@ -2761,10 +2761,6 @@ print 486
 	; --test-- "#1678"
 		; GUI
 
-	; --test-- "#1679"
-	; 	; should check for compilation error -throws error
-	; 	switch 1 []
-
 	--test-- "#1680"
 		f: func [] [keys-of #(1 2) none]
 		--assert not error? try [f]
@@ -2774,11 +2770,6 @@ print 486
 
 	; --test-- "#1684"
 		; GUI
-
-	; --test-- "#1694"
-	; 	f: func [x] [x]
-	; 	e: try [f/only 3]
-	; 	--assert equal? e/arg2 'only
 
 	--test-- "#1698"
 		; should check for crash
@@ -2797,7 +2788,7 @@ print 486
 		; TODO: WHAT is not defined in compiler
 
 	; --test-- "#1710"
-		; should check for compiler error
+		; R/S
 
 	; --test-- "#1715"
 		; console behaviour
@@ -2808,9 +2799,6 @@ print 486
 	; --test-- "#1718"
 		; GUI
 
-	; --test-- "#1720"
-		; should check for crash
-
 	--test-- "#1723"
 		write %中坜 "test"
 		--assert equal? "test" read %中坜
@@ -2820,7 +2808,6 @@ print 486
 		equal? 123456789123456789 1.234567891234568e17
 
 	--test-- "#1730"
-		; should check for crash
 		not error? try [reduce does ["ok"]]
 
 	; --test-- "#1732"
@@ -3075,18 +3062,6 @@ print 486
 	--test-- "#1829"
 		md5: does ['MD5]
 		--assert function? do "probe :md5"
-
-	; --test-- "#1831"
-	; 	; should check for crash
-	; 	function [a] [repeat a/1]
-	;
-	; FIXME: throws compilation error:
-
-;*** Compilation Error: invalid function spec block: [1]
-;*** in file: %/E/Code/aaa/rebolek/red/tests/source/units/regression-test.red
-;*** near: [[a
-;        /local a 1
-;    ] [repeat a/1]
 
 	--test-- "#1834"
 		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
