@@ -3643,6 +3643,16 @@ b}
 		--assert equal? ["1"] split "1^/" #"^/"
 		--assert equal? ["1" "2"] split "1^/2^/" #"^/"
 
+	--test-- "#2234"
+		m: #(a 1 b 2)
+		m/a: none
+		--assert not empty? keys-of m
+		--assert not empty? values-of m
+		m: #(a 1 b 2 c 3 d 4 e 5 f 6 g 7 h 8)
+		m/b: none
+		--assert equal? [a c d e f g h] keys-of m
+		--assert equal? [1 3 4 5 6 7 8] values-of m
+
 ===end-group===
 
 ~~~end-file~~~
