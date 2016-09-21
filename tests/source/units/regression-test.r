@@ -10,7 +10,7 @@ cd %../
 
 ; help functions for crash and compiler-problem detection
 true?: func [value] [not not value]
-crashed?: does [true? find qt/output "*** Runtime Error 1: access violation"]
+crashed?: does [true? find qt/output "*** Runtime Error"]
 compiled?: does [true? not find qt/comp-output "Error"]
 script-error?: does [true? find qt/output "Script Error"]
 
@@ -20,9 +20,28 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test- "#1416"
+		--compile-and-run-this {do [a: "1234" b: skip a 2 copy/part b a]}
+		--assert not crashed?
+
+	--test-- "#1490"
+		--compile-and-run-this {
+o: make object! [f: 5]
+do load {set [o/f] 10}
+}
+	--assert not crashed?
+
 	; --test-- "#1679"
 	;	OPEN
 	;	--compile-and-run-this {switch 1 []}
+
+	--test-- "#1524"
+		--compile-and-run-this {parse [x][keep 1]}
+		--assert not crashed?
+
+	--test-- "#1589"
+		--compile-and-run-this {power -1 0.5}
+		--assert not crashed?
 
 	--test-- "#1694"
 		--compile-and-run-this {
@@ -72,6 +91,7 @@ do [
 	--test-- "#1866"
 		--compile-and-run-this {do [parse "abc" [(return 1)]]}
 		--assert not crashed?
+		probe qt/output
 
 	--test-- "#1868"
 		--compile-and-run-this {
