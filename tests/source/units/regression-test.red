@@ -3250,9 +3250,6 @@ b}
 		move/part x skip x 3 2
 		--assert equal? x [c 4 a b d e f]
 
-	; --test-- "#1907"
-		; should check for crash
-
 	; --test-- "#1910"
 		; GUI
 
@@ -3278,6 +3275,7 @@ b}
 		--assert equal? a [2 3]
 
 	; --test-- "#1925"
+		; OPEN
 		; NOTE: Red Compiler internal error
 
 		; test!: object [
