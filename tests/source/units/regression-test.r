@@ -20,6 +20,10 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test-- "#1866"
+		--compile-and-run-this {do [parse "abc" [(return 1)]]}
+		--assert not crashed?
+
 	--test-- "#1868"
 		--compile-and-run-this {
 dot2d: func [a [pair!] b [pair!] return: [float!]][
