@@ -3101,15 +3101,8 @@ print 486
 		m: make map! [a 1 A 2 a: 3 :a 4]
 		--assert equal? m #(a: 4 A: 2)
 
-	; --test-- "#1836"
-		; should check for crash
-
 	; --test-- "#1838"
 		; GUI
-
-;	--test-- "#1842"
-;		; should check for crash
-;		--assert error? try [throw 10]
 
 	; --test-- "#1847"
 		; GUI

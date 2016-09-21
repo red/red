@@ -20,6 +20,23 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test-- "#1836"
+		--compile-and-run-this {
+do [
+	content: [a [b] c]
+	rule: [any [
+		set item word! (print item) 
+	|	mark: () into [rule] stop: (prin "STOP: " probe stop)]
+	]
+	parse content rule
+]
+}
+		--assert not crashed?
+
+	--test-- "#1842"
+		--compile-and-run-this {do [throw 10]}
+		--assert not crashed?
+
 	--test-- "#1866"
 		--compile-and-run-this {do [parse "abc" [(return 1)]]}
 		--assert not crashed?
