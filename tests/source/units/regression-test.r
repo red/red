@@ -20,6 +20,23 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test-- "#1868"
+		--compile-and-run-this {
+dot2d: func [a [pair!] b [pair!] return: [float!]][
+	(to float! a/x * to float! b/x) + (to float! b/y * to float! b/y)
+]
+
+norm: func [a [pair!] return: [integer!] /local d2 ][
+	d2: dot2d a a 
+	res: to integer! (square-root d2) 
+	return res 
+]
+distance: func [a [pair!] b [pair!] return: [integer!] /local res ][
+	norm (a - b)
+]
+}
+	--assert compiled?
+
 	--test-- "#1895"
 		--compile-and-run-this {
 fn: func [body [block!]] [collect [do body]]
