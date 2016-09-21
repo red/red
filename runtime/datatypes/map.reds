@@ -229,14 +229,14 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
-		size: 2 * rs-length? map
+		size: rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
-		s-tail: value + size
-		if zero? size [size: 2]
+		s-tail: s/tail
+		if zero? size [size: 1]
 		case [
 			field = words/words [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -249,7 +249,7 @@ map: context [
 				]
 			]
 			field = words/values [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -259,7 +259,7 @@ map: context [
 				]
 			]
 			field = words/body [
-				blk/node: alloc-cells size
+				blk/node: alloc-cells size * 2
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
