@@ -2447,13 +2447,13 @@ print 486
 		--assert error? try [make op! 'x]
 
 	--test-- "#1416"
-		; should check for crash
 		a: "1234" 
 		b: skip a 2 
 		copy/part b a
 		
 		a: skip "1234" 2
 		--assert equal? "12" copy/part a -2
+		unset [a b]
 
 	--test-- "#1417"
 		--assert not error? try [-5 // 3]
@@ -2468,7 +2468,6 @@ print 486
 		--assert not +0.0 == 0
 		--assert not 1.0 == 1
 
-
 	--test-- "#1420"
 		--assert not error? try [o: make object! compose [a: (add 1 1)]]
 
@@ -2479,6 +2478,7 @@ print 486
 		; GUI
 
 	--test-- "#1427"
+		; TODO: no assertion
 		o1: object [
 			make: function [
 				return: [object!]
@@ -2489,7 +2489,6 @@ print 486
 		]
 		o2: object []
 		make o1/make o2
-
 
 	; --test-- "#1435"
 		; GUI
@@ -2556,6 +2555,7 @@ print 486
 		; should check for crash
 		o: make object! [f: 5]
 		--assert error? try [do load {set [o/f] 10}]
+		unset 'o
 
 	; --test-- "#1493"
 		; GUI
@@ -2575,6 +2575,7 @@ print 486
 		c: 0
 		foreach i make image! 100x100 [c: c + 1]
 		--assert equal? 10'000 c
+		unset 'c
 
 	; --test-- "#1502"
 		; GUI
@@ -2585,6 +2586,7 @@ print 486
 			t: does [f/ref 1]
 		]
 		not error? try [ctx/t]
+		unset 'ctx
 
 	--test-- "#1515"
 		--assert not error? try [1.222090944E+33 // -2147483648.0] ; expected 0
@@ -2595,10 +2597,6 @@ print 486
 
 	; --test-- "#1522"
 		; GUI
-
-	--test-- "#1524"
-		; should check for crash
-		error? try [parse [x][keep 1]]
 
 	; --test-- "#1527"
 		; GUI
@@ -2618,6 +2616,7 @@ print 486
 	--test-- "#1542"
 		fl: to float! 7
 		--assert 7 = to integer! fl
+		unset 'fl
 
 	; --test-- "#1545"
 		; R/S problem on ARM
@@ -2673,14 +2672,11 @@ print 486
 	; --test-- "#1587"
 		; GUI console behaviour
 
-	--test-- "#1589"
-		; should check for crash
-		--assert equal? 1.#NaN power -1 0.5
-
 	--test-- "#1590"
 		str: "1.1.1"
 		find/part str "1." 2
 		--assert equal? "1.1" str: skip str 2
+		unset 'str
 		
 	; --test-- "#1591"
 		; console behaviour
@@ -2764,6 +2760,7 @@ print 486
 	--test-- "#1680"
 		f: func [] [keys-of #(1 2) none]
 		--assert not error? try [f]
+		unset 'f
 
 	; --test-- "#1683"
 		; GUI
@@ -2777,6 +2774,7 @@ print 486
 			h: make hash! []
 			loop 10 [insert tail h 1]
 		]
+		unset 'h
 
 	; --test-- "#1700"
 		; TODO: Linux/Wine specific
@@ -2825,6 +2823,7 @@ print 486
 		s: make object! [m: func [][] b: func [arg] [compose/deep [(arg)]]]
 		s2: make s []
 		--assert equal? [1] s/b 1
+		unset [s s2]
 
 	--test-- "#1750"
 		e: try [load "2#{FF}"]
@@ -2846,6 +2845,7 @@ print 486
 			equal? e/arg1 integer!
 		]
 		not error? try [load "16#{AA}"]
+		unset 'e
 
 	; --test-- "#1751"
 		; R/S
@@ -3038,6 +3038,7 @@ print 486
 		--assert not error? try [probe a]
 		--assert not error? try [print type? a]
 		--assert not error? try [?? a]
+		unset [a m]
 
 	; --test-- "#1809"
 		; GUI
@@ -3049,6 +3050,7 @@ print 486
 		--assert equal? 49 50 - t/1
 		--assert equal? 21 20 + t/1
 		--assert equal? 21 t/1 + 20
+		unset 't
 
 	; --test-- "#1816"
 		; GUI
@@ -3062,6 +3064,7 @@ print 486
 	--test-- "#1829"
 		md5: does ['MD5]
 		--assert function? do "probe :md5"
+		unset 'md5
 
 	--test-- "#1834"
 		--assert equal? #(a: 3) extend/case extend/case make map! [a 1] [a 2] [a 3]
@@ -3075,6 +3078,7 @@ print 486
 			make map! [a 1 a: 2]
 		m: make map! [a 1 A 2 a: 3 :a 4]
 		--assert equal? m #(a: 4 A: 2)
+		unset 'm
 
 	; --test-- "#1838"
 		; GUI
@@ -3091,10 +3095,12 @@ print 486
 			f: func [] [f]
 			f
 		]
+		unset 'f
 
 	--test-- "#1865"
 		--assert not equal? 2 (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
+		unset 'a
 
 	; --test-- "#1866"
 	; 	; should check for crash
@@ -3118,6 +3124,7 @@ print 486
 		]
 		x: [1 2 "[" a b "]" 3 4]
 		--assert parse x rule
+		unset [rule x]
 
 	; --test-- "#1868"
 		; compiler error
@@ -3144,6 +3151,7 @@ print 486
 				]
 			]
 		]
+		unset [digit content block]
 
 
 	; --test-- "#1879"
@@ -3162,6 +3170,7 @@ print 486
 				] 
 			]
 		]
+		unset [rule mark]
 
 	--test-- "#1882"
 		a: "X"
@@ -3175,6 +3184,7 @@ print 486
 			]
 		]
 		--assert equal? content "aXXXm"
+		unset [a digit content block]
 
 	; --test-- "#1883"
 		; GUI
@@ -3187,6 +3197,7 @@ print 486
 b}
 		--assert equal? {a^/b} s
 		--assert not equal? {a^M^/b} s
+		unset 's
 
 	; --test-- "#1889"
 		; GUI
@@ -3210,6 +3221,7 @@ b}
 		x: [a b c 4 d e f]
 		move/part x skip x 3 2
 		--assert equal? x [c 4 a b d e f]
+		unset 'x
 
 	; --test-- "#1910"
 		; GUI
@@ -3220,6 +3232,7 @@ b}
 		put m k 1
 		k: "b"
 		--assert error? try [set m k]
+		unset [m k]
 
 	; --test-- "#1916"
 		; GUI
@@ -3234,6 +3247,7 @@ b}
 		a: [1 2 3] 
 		forall a [if a/1 = 2 [break]]
 		--assert equal? a [2 3]
+		unset 'a
 
 	; --test-- "#1925"
 		; OPEN
@@ -3265,6 +3279,7 @@ b}
 	--test-- "#1939"
 		unset 'a
 		--assert error? try [parse blk: [1][change integer! a]]
+		unset 'blk
 
 	; --test-- "#1942"
 		; GUI
@@ -3302,6 +3317,7 @@ b}
 		f: func [p [string!]] [print p]
 		--assert error? try [f 'spec] 	; NOTE: this should check that it does not crash
 										; 		how to do it?
+		unset 'f
 
 	; --test-- "#1983"
 		; R/S
@@ -3313,11 +3329,11 @@ b}
 		; GUI
 
 	--test-- "#1993"
-		unset 'range
-		unset 'a
+		unset [a range]
 		range: [0 0] 
 		a: range/1: 1
 		--assert equal? [1 0] range
+		unset [a range]
 
 	; --test-- "#1995"
 	; 	; NOTE: currently still a bug
@@ -3328,6 +3344,7 @@ b}
 		blk: [a b #x #y 2 3]
 		put blk 2 4
 		--assert equal? [a b #x #y 2 4] blk
+		unset 'blk
 
 	; --test-- "#1999"
 		; R/S
@@ -3343,6 +3360,7 @@ b}
 		random/seed 1
 		t: random 0:0:1
 		--assert equal? 0:00:00.0 round t
+		unset 't
 
 	--test-- "#2014"
 		--assert equal? 1:00:00 / 0:0:1 3600.0
@@ -3389,6 +3407,7 @@ b}
 		--assert equal? x 1.2.3.4.5.6.7.8.9.10
 		x: 1.2.3.4.5.6.7.8.9.10.11.12
 		--assert equal? x 1.2.3.4.5.6.7.8.9.10.11.12
+		unset 'x
 
 	--test-- "#2069"
 		--assert equal? "abc1abc2abc3" unique/skip "abc1abc2abc3" 3
@@ -3403,6 +3422,7 @@ b}
 		save %file m
 		n: load %file
 		--assert equal? m n
+		unset [a m n]
 
 	--test-- "#2077"
 		sum: function [list [block!]] [
@@ -3413,10 +3433,12 @@ b}
 		r: make reactor! [l: [3 4 5 6] total: is [sum l]]
 		r/l: append copy r/l 5
 		--assert not error? try [append r/l 5]
+		unset [sum r]
 
 	--test-- "#2079"
 		i: make image! 2x2
 		--assert not error? try [foreach p i [p]]
+		unset 'i
 
 	; --test-- "#2081"
 		; GUI
@@ -3425,6 +3447,7 @@ b}
 		a: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
 		a/x: 4
 		--assert equal? 6 a/z
+		unset 'a
 
 ;	--test-- "#2085"
 		; OPEN
@@ -3447,6 +3470,7 @@ b}
 		write/binary %button.gif original
 		saved: read/binary %button.gif
 		--assert equal? saved original
+		unset [original saved]
 
 	; --test-- "#2104"
 		; console behaviour - #1995
@@ -3492,6 +3516,7 @@ b}
 		insert/dup blk 0 3
 		insert/dup blk 1 2
 		--assert equal? blk [1 1 0 0 0]
+		unset 'blk
 
 	--test-- "#2137"
 		repeat n 56 [to string! debase/base at form to-hex n + 191 7 16]
@@ -3501,6 +3526,7 @@ b}
 		b: [1 2 3 4 5]
 		forall b [i: b/1: form b/1]
 		--assert equal? b ["1" "2" "3" "4" "5"]
+		unset [b i]
 
 	--test-- "#2139"
 		--assert equal? 1% 1% * 1
@@ -3510,6 +3536,7 @@ b}
 		--assert equal? 10 test/a
 		test: make hash! [a: 10 a 20]
 		--assert equal? 10 test/a
+		unset 'test
 
 	; --test-- "#2147"
 		; GUI
@@ -3546,6 +3573,7 @@ b}
 		x: 2147483648
 		--assert not equal? x -2147483648
 		--assert equal? x 2147483648.0
+		unset 'x
 
 	; --test-- "#2170"
 		; GUI
