@@ -373,7 +373,7 @@ redc: context [
 			link?: yes
 			unicode?: yes
 		]
-		script: next [Red []]							;-- empty script for the lib
+		script: next [Red [Needs: View]]				;-- empty script for the lib
 		result: red/compile script opts
 		print [
 			"...compilation time :" format-time result/2 "ms^/"

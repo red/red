@@ -3334,15 +3334,18 @@ system-dialect: make-profilable context [
 		]
 	]
 	
+	emit-func-prolog: func [name [word!] /local spec][
+		compiler/add-function 'native reduce [name none []] 'stdcall
+		spec: emitter/add-native name
+		spec/2: either name = '***-boot-rs [1][emitter/tail-ptr]
+		emitter/target/emit-prolog name [] 0
+	]
+	
 	emit-main-prolog: has [name spec][
 		either job/type = 'exe [
 			emitter/target/on-init
 		][												;-- wrap global code in a function
-			name: '***-main
-			compiler/add-function 'native reduce [name none []] 'stdcall
-			spec: emitter/add-native name
-			spec/2: 1
-			emitter/target/emit-prolog name [] 0
+			emit-func-prolog '***-boot-rs
 		]
 	]
 
@@ -3387,23 +3390,27 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			if any [not job/dev-mode? job/libRed?][
+ 			if any [not job/dev-mode? job/libRed?][		;@@ job/type = 'dll ?
 				set-cache-base %runtime/
 				script: pick [%red.reds %../runtime/red.reds] encap?
 				compiler/run job loader/process/own script script
+			]
+			if job/type = 'dll [
+				emitter/target/emit-epilog '***-boot-rs [] 0 0
+				emit-func-prolog '***-main
 			]
  		]
  		set-cache-base none
 	]
 	
-	comp-runtime-epilog: does [
+	comp-runtime-epilog: func [red? [logic!]][
 		either job/need-main? [
 			emitter/target/on-global-epilog no job/type	;-- emit main() epilog
 		][
 			switch job/type [
 				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
-				dll [emitter/target/emit-epilog '***-main [] 0 0]
-				drv [emitter/target/emit-epilog '***-main [] 0 0]
+				dll [emitter/target/emit-epilog pick [***-main ***-boot-rs] red? [] 0 0]
+				drv [emitter/target/emit-epilog '***-boot-rs [] 0 0]
 			]
 		]
 	]
@@ -3509,7 +3516,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			job-data [block!]
 		/local
-			comp-time link-time err output src resources icon
+			comp-time link-time err output src resources icon red?
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3539,7 +3546,7 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]		
 			if opts/runtime? [
-				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
+				comp-runtime-prolog red?: to logic! loaded all [loaded job-data/3]
 			]
 			
 			set-verbose-level opts/verbosity
@@ -3554,7 +3561,7 @@ system-dialect: make-profilable context [
 				compiler/run job src file
 			]
 			set-verbose-level 0
-			if opts/runtime? [comp-runtime-epilog]
+			if opts/runtime? [comp-runtime-epilog red?]
 			
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions

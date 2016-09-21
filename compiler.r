@@ -65,7 +65,6 @@ red: context [
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
 	booting?:	   none									;-- YES: compiling boot script
-	no-global?:	   no									;-- YES: put global code in a function
 	nl: 		   newline
 	set 'float!	   'float								;-- type name not defined in Rebol
  
@@ -2649,18 +2648,18 @@ red: context [
 			-1
 		]
 		convert-types spec
-		either no-global? [
-			repend bodies [								;-- saved for deferred inclusion
-				name spec body none none none none none none
-			]
-		][
+		;either no-global? [
+		;	repend bodies [								;-- saved for deferred inclusion
+		;		name spec body none none none none none none
+		;	]
+		;][
 			;redirect-to literals [
 				emit reduce [to set-word! name 'func]
 				insert-lf -2
 				append/only output spec
 				append/only output body
 			;]
-		]
+		;]
 		ret: any [
 			all [ret: get-return-type spec get-RS-type-ID ret/1]
 			-1
@@ -4173,6 +4172,7 @@ red: context [
 		
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			either none? symbols [						;-- routine in no-global? mode
+				print "no-global? code path used!!!!" halt
 				emit reduce [to set-word! name 'func]
 				insert-lf -2
 				append/only output spec
@@ -4253,7 +4253,7 @@ red: context [
 		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user mods main mark defs pos ext-ctx][
+	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -4263,18 +4263,13 @@ red: context [
 			with red [
 				exec: context [
 					<declarations>
-					init: func [/local tmp] <script>
+					<script>
 				]
 			]
-			on-load: does [
-				red/init
-				exec/init
-			]
+			on-load: does [red/init]
 		]
 		
 		set [user mark main] comp-source code
-		mods: copy/part mark user
-		remove/part mark user
 
 		defs: make block! 10'000
 		foreach [type cast][
@@ -4304,8 +4299,6 @@ red: context [
 		]
 		append defs output
 ;		if verbose = 2 [probe pos]
-
-		append defs mods
 		
 		script: make block! 10'000
 		append script [
@@ -4327,7 +4320,7 @@ red: context [
 		]
 		
 		pos: third pick tail out -4
-		change/only find pos <script> script
+		change find pos <script> script
 		remove pos: find pos <declarations>
 		insert pos defs
 		
@@ -4515,7 +4508,6 @@ write %out-dlib.red mold output
 		job: opts
 		clean-up
 		main-path: first split-path any [all [block? file system/options/path] file]
-		no-global?: job/type = 'dll
 		resources: make block! 8
 		
 		time: dt [
@@ -4525,7 +4517,7 @@ write %out-dlib.red mold output
 			process-needs src/1 next src
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
-			either no-global? [comp-as-lib src][comp-as-exe src]
+			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]
 save %out.r output
 		reduce [output time redbin/buffer resources]

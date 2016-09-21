@@ -133,7 +133,7 @@ posix-startup-ctx: context [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
-				***-main
+				***-boot-rs
 				posix-startup-ctx/init
 				on-load
 			]
