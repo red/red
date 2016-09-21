@@ -679,6 +679,61 @@ _hashtable: context [
 		key
 	]
 
+	get-next: func [
+		node	[node!]
+		key		[red-value!]
+		start	[int-ptr!]
+		end		[int-ptr!]
+		pace	[int-ptr!]
+		return: [red-value!]
+		/local
+			s h i flags last mask step keys hash ii sh blk idx k key-type n
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		assert h/n-buckets > 0
+
+		n: 0
+		key-type: TYPE_OF(key)
+		s: as series! h/blk/value
+		blk: s/offset
+
+		s: as series! h/keys/value
+		keys: as int-ptr! s/offset
+		s: as series! h/flags/value
+		flags: as int-ptr! s/offset
+		mask: h/n-buckets - 1
+		i: start/value
+		if i = -1 [
+			hash: hash-value key no
+			i: hash and mask
+			end/value: i + 1
+		]
+		_HT_CAL_FLAG_INDEX(i ii sh)
+		i: i + 1
+		last: end/value
+		step: pace/value
+		while [_BUCKET_IS_NOT_EMPTY(flags ii sh)][
+			k: blk + keys/i
+			if all [
+				_BUCKET_IS_HAS_KEY(flags ii sh)
+				TYPE_OF(k) = key-type
+				actions/compare k key COMP_EQUAL
+			][
+				start/value: i + step and mask
+				pace/value: step + 1
+				return k
+			]
+
+			i: i + step and mask
+			_HT_CAL_FLAG_INDEX(i ii sh)
+			i: i + 1
+			step: step + 1
+			if i = last [break]
+		]
+		null
+	]
+
 	get: func [
 		node	 [node!]
 		key		 [red-value!]
