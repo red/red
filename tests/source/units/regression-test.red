@@ -3235,13 +3235,6 @@ b}
 		unset 'test
 		--assert error? try [parse [1] [collect into test keep [skip]]]
 
-	; --test-- "#1895"
-	; 	; should check for crash
-	; NOTE: this test works in console, but not when compiled
-	; 	fn: func [body [block!]] [collect [do body]]
-	; 	fn [x: 1]
-	; 	--assert equal? x 1
-
 	; --test-- "#1900"
 		; GUI
 
