@@ -258,6 +258,7 @@ system-dialect: make-profilable context [
 		
 		quit-on-error: does [
 			clean-up
+			if find system/options/args "-show-error" [ halt ]
 			if system/options/args [quit/return 1]
 			halt
 		]
