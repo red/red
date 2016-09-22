@@ -18,6 +18,137 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- probe "#946"
+		--compile-this {
+f: function [
+	a [object!]
+][
+	a/b
+]
+}
+		--assert compiled?
+
+	--test-- probe "#947"
+		--compile-this {
+f: func [
+	o [object!]
+][
+	if o/a [o/a]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#956"
+		--compile-this {
+f: function [
+	o [object!]
+][
+	if o/a [
+		all [o]
+	]
+]
+}
+		--assert compiled?	
+
+	--test-- probe "#957"
+		--compile-this {
+f: function [
+	o [object!]
+] [
+	switch o/a [
+		0 [
+			switch 0 [
+				0 [
+				]
+			]
+		]
+	]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#959"
+		--compile-this {
+c: context [
+	x: none
+
+	f: func [
+		o [object!]
+	] [
+		x: o/a
+	]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#960"
+		--compile-this {
+c: object [
+	d: object [
+	]
+]
+
+f: func [
+][
+	c/d
+]
+}
+		--assert compiled?
+
+	--test-- probe "#962"
+		--compile-this {
+f: function [
+    o [object!]
+][
+	v: none
+
+	case [
+		all [
+			o/a = o/a
+			o/a = o/a
+		][
+		]
+	]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#965"
+		--compile-this {
+f: func [
+    o [object!]
+][
+    if yes [
+        append o/a o/b
+    ]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#969"
+		--compile-this {
+r2: routine [
+	i [integer!]
+	j [integer!]
+][
+]
+
+f: function [
+    s
+][
+	s/x = r2 0  any [0 0]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#970"
+		--compile-this {
+Red [
+    Type: 'library
+]
+}
+		--assert compiled?
+
 	--test-- probe "#1022"
 		--compile-and-run-this {parse [%file] [#"."]}
 		--assert not crashed?
