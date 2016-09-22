@@ -2648,18 +2648,11 @@ red: context [
 			-1
 		]
 		convert-types spec
-		;either no-global? [
-		;	repend bodies [								;-- saved for deferred inclusion
-		;		name spec body none none none none none none
-		;	]
-		;][
-			;redirect-to literals [
-				emit reduce [to set-word! name 'func]
-				insert-lf -2
-				append/only output spec
-				append/only output body
-			;]
-		;]
+		emit reduce [to set-word! name 'func]
+		insert-lf -2
+		append/only output spec
+		append/only output body
+		
 		ret: any [
 			all [ret: get-return-type spec get-RS-type-ID ret/1]
 			-1
@@ -4171,23 +4164,15 @@ red: context [
 		obj-stack: to path! 'func-objs
 		
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
-			either none? symbols [						;-- routine in no-global? mode
-				print "no-global? code path used!!!!" halt
-				emit reduce [to set-word! name 'func]
-				insert-lf -2
-				append/only output spec
-				append/only output body
-			][
-				locals-stack: stack
-				ssa-names: ssa
-				ctx-stack: ctx
-				container-obj?: obj?
-				func-objs: tail objects
-				depth: max-depth
-				preprocess-types name spec
+			locals-stack: stack
+			ssa-names: ssa
+			ctx-stack: ctx
+			container-obj?: obj?
+			func-objs: tail objects
+			depth: max-depth
+			preprocess-types name spec
 
-				comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
-			]
+			comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
 		]
 		clear locals-stack
 		clear ssa-names
@@ -4324,8 +4309,7 @@ red: context [
 		remove pos: find pos <declarations>
 		insert pos defs
 		
-		output: out
-write %out-dlib.red mold output		
+		output: out	
 		if verbose > 2 [?? output]
 	]
 	
@@ -4353,7 +4337,7 @@ write %out-dlib.red mold output
 			replace out <imports> load %libRed-include.red
 			defs: load-safe %libred-defs.red
 			append clear functions defs/1
-;probe			redbin/index:	defs/2
+			;redbin/index:	defs/2
 			globals:		defs/3
 			objects:		compose/deep bind objects: defs/4 red
 			contexts:		defs/5
@@ -4519,7 +4503,6 @@ write %out-dlib.red mold output
 			src: next src
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]
-save %out.r output
 		reduce [output time redbin/buffer resources]
 	]
 ]

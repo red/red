@@ -212,6 +212,7 @@ write %build/bin/sources.r set-cache [
 		%utils/ [
 			%IEEE-754.r
 			%int-to-bin.r
+			%libRed.r
 			%r2-forward.r
 			%secure-clean-path.r
 			%virtual-struct.r

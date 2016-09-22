@@ -333,6 +333,7 @@ redc: context [
 				build-prefix: temp-dir
 				red-help?: yes							;-- include doc-strings
 				gui-console?: gui?
+				dev-mode?: no
 			]
 			opts: make opts select load-targets opts/config-name
 			add-legacy-flags opts

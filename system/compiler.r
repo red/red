@@ -3390,26 +3390,26 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			if any [not job/dev-mode? job/libRed?][		;@@ job/type = 'dll ?
+ 			if any [not job/dev-mode? job/libRed?][
 				set-cache-base %runtime/
 				script: pick [%red.reds %../runtime/red.reds] encap?
 				compiler/run job loader/process/own script script
 			]
-			if job/type = 'dll [
-				emitter/target/emit-epilog '***-boot-rs [] 0 0
-				emit-func-prolog '***-main
-			]
  		]
+ 		if job/type = 'dll [
+			emitter/target/emit-epilog '***-boot-rs [] 0 0
+			emit-func-prolog '***-main
+		]
  		set-cache-base none
 	]
 	
-	comp-runtime-epilog: func [red? [logic!]][
+	comp-runtime-epilog: does [
 		either job/need-main? [
 			emitter/target/on-global-epilog no job/type	;-- emit main() epilog
 		][
 			switch job/type [
 				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
-				dll [emitter/target/emit-epilog pick [***-main ***-boot-rs] red? [] 0 0]
+				dll [emitter/target/emit-epilog '***-main [] 0 0]
 				drv [emitter/target/emit-epilog '***-boot-rs [] 0 0]
 			]
 		]
@@ -3516,7 +3516,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			job-data [block!]
 		/local
-			comp-time link-time err output src resources icon red?
+			comp-time link-time err output src resources icon
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3546,7 +3546,7 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]		
 			if opts/runtime? [
-				comp-runtime-prolog red?: to logic! loaded all [loaded job-data/3]
+				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 			]
 			
 			set-verbose-level opts/verbosity
@@ -3561,7 +3561,7 @@ system-dialect: make-profilable context [
 				compiler/run job src file
 			]
 			set-verbose-level 0
-			if opts/runtime? [comp-runtime-epilog red?]
+			if opts/runtime? [comp-runtime-epilog]
 			
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions

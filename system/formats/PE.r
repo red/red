@@ -485,59 +485,6 @@ context [
 			]
 		]
 	]
-
-	_build-import: func [
-		job [object!]
-		/local spec IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
-	][
-		spec:		job/sections/import
-		IDTs: 		make block! len: divide length? spec/3 2	;-- list of directory entries
-		out:		make binary! 4096					;-- final output buffer
-		buffer:		make binary! 256					;-- DLL names + ILTs + IATs + hints/names buffer
-		hints:		make binary! 2048					;-- hints/names temporary buffer
-		ptr: 		(section-addr?/memory job 'import)
-					+ (1 + len * length? form-struct import-directory)	;-- point to end of directory table
-
-		foreach [name list] spec/3 [					;-- collecting DLL names in buffer
-			append IDTs idt: make-struct import-directory none
-			idt/name-rva: ptr + length? buffer
-			repend buffer [uppercase name null]
-			if even? length? name [append buffer null]
-		]
-		ptr: ptr + length? buffer						;-- base address of ILT/IAT/hints entries
-
-		idx: 1
-		foreach [name list] spec/3 [
-			IDTs/:idx/ILT-rva: ptr
-			ILT-base: tail buffer
-			clear hints
-			hint-ptr: ptr + (ILT-size * 2 * (1 + divide length? list 2))	;-- ILTs + IATs
-
-			foreach [def reloc] list [
-				hint: tail hints
-				repend hints [#{0000} def null]			;-- Ordinal is zero, not used
-				if even? length? def [append hints null]
-				ILT-struct/rva: hint-ptr
-				append buffer form-struct ILT-struct		;-- ILT instance
-				hint-ptr: hint-ptr + length? hint
-				ptr: ptr + ILT-size
-			]
-			append buffer #{00000000}					;-- null entry (8 bytes for 64-bit)
-			ptr: ptr + ILT-size		
-
-			repend imports-refs [ptr list]				;-- save IAT base ptr for relocation
-			IDTs/:idx/IAT-rva: ptr
-			ptr: ptr + offset? ILT-base tail buffer
-			append buffer ILT-base						;-- IAT instances (copy of all ILTs)
-
-			ptr: ptr + length? hints
-			append buffer hints
-			idx: idx + 1
-		]
-		foreach idt IDTs [append out form-struct idt]
-		append out form-struct import-directory			;-- Null directory entry
-		change next spec append out buffer
-	]
 	
 	build-import: func [
 		job [object!]
@@ -583,7 +530,6 @@ context [
 			if idx > 0 [offset: offset + (ILT-size * (1 + length? ILTs/:idx))]
 			idt/ILT-rva:  ILTs-base + offset
 			idt/name-rva: idt/name-rva + dlls-base
-			;idt/IAT-rva:  IATs-base + offset
 			append out form-struct idt
 			idx: idx + 1
 			IDTs/:idx: offset
@@ -596,13 +542,13 @@ context [
 				ilt/rva: ilt/rva + hints-base
 				append out form-struct ilt
 			]
-			append out form-struct ILT-struct				;-- Ending null ILT entry
+			append out form-struct ILT-struct			;-- Ending null ILT entry
 		]
 		IAT-buffer: copy IAT-buffer
 		repend out [hints dlls]
 		change next spec out
 	
-		idata: compose/deep [idata [- (IAT-buffer) -]]		;-- inject IAT section
+		idata: compose/deep [idata [- (IAT-buffer) -]]	;-- inject IAT section
 		insert skip find job/sections 'import 2 idata
 		
 		ptr: section-addr?/memory job 'idata
