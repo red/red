@@ -2030,24 +2030,19 @@ print 486
 	; --test-- "#1071"
 		; should check for crash
 
-	; --test-- "#1074"
-	;	TODO: should check for compiler error
-	; 	unset 'd
-	; 	--assert error? try [d]
-	; 	x: [d 1]
-	; 	--assert equal? 1 select x 'd
-	; 	--assert error? try [select x d]
-	; 	--assert error? try [d]
-	; 	unset 'x
-
-	; --test-- "#1075"
-		; should check for crash
+	 --test-- "#1074"
+	 	do [
+		 	unset 'd
+		 	--assert error? try [d]
+		 	x: [d 1]
+		 	--assert equal? 1 select x 'd
+		 	--assert error? try [select x d]
+		 	--assert error? try [d]
+		 	unset 'x
+	 	]
 
 	; --test-- "#1079"
 		; TODO: console behaviour
-
-	; --test-- "#1083"
-		; should check for crash
 
 	; --test-- "#1085"
 		; build server problem
@@ -2137,9 +2132,6 @@ print 486
 			not equal? '<anon> e/arg3
 		]
 
-	; --test-- "#1117"
-		; should check for crash
-
 	--test-- "#1119"
 		--assert error? try [append/only: [a b c] [d e]]
 
@@ -2162,11 +2154,6 @@ print 486
 
 	; --test-- "#1130"
 		; console behaviour
-
-	; --test-- "#1135"
-	; 	; should check for crash
-	; 	a: func [v [block!]][error? try v]
-	; 	--assert a [unset-word]
 
 	--test-- "#1136"
 		e: try [load {a: func [][set 'b: 1]}]
