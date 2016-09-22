@@ -256,4 +256,6 @@ red: context [
 			unicode/verbose:	verbosity
 		]
 	]
+	
+	#if type = 'dll [init]
 ]

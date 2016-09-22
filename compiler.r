@@ -4251,7 +4251,6 @@ red: context [
 					<script>
 				]
 			]
-			on-load: does [red/init]
 		]
 		
 		set [user mark main] comp-source code
@@ -4304,7 +4303,7 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 		
-		pos: third pick tail out -4
+		pos: third last out
 		change find pos <script> script
 		remove pos: find pos <declarations>
 		insert pos defs

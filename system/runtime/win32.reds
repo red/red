@@ -234,7 +234,6 @@ win32-startup-ctx: context [
 		switch fdwReason [
 			DLL_PROCESS_ATTACH [
 				***-boot-rs
-				win32-startup-ctx/init				;-- init Windows-specific handlers
 				on-load hinstDLL
 				***-main
 			]

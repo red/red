@@ -120,8 +120,8 @@ siginfo!: alias struct! [
 			pvars	[program-vars!]
 		][
 			***-boot-rs
-			posix-startup-ctx/init
 			on-load argc argv envp apple pvars
+			***-main
 		]
 	]
 	exe [

@@ -134,8 +134,8 @@ posix-startup-ctx: context [
 				[cdecl]
 			][
 				***-boot-rs
-				posix-startup-ctx/init
 				on-load
+				***-main
 			]
 		]
 		exe [
