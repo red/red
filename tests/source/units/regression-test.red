@@ -1968,42 +1968,6 @@ print 486
 		; should check for crash
 		--assert not parse [%file] [#"."]
 
-	; --test-- "#1031"
-		; should check PRINT output from R/S
-
-	--test-- "#1035"
-		; should check for crash
-		global-count: 0
-		global-count-inc: function [
-			condition [logic!]
-		][
-			if condition [global-count: global-count + 1]
-		]
-		--assert error? try [global-count-inc true]
-		unset [global-count global-count-inc]
-
-	--test-- "#1042"
-		; should check for compilation error
-
-		varia: 0
-		print power -1 varia
-
-		varia: 1
-		print power -1 varia
-
-		unset 'varia
-
-	--test-- "#1050"
-		; should check for compilation error
-		--assert not error? try [add: func [a b /local] [a + b]]
-
-	; --test-- "#1054"
-	;	TODO: should check for compiler error
-	; 	unset 'a
-	; 	book: object [list-fields: does [words-of self]]
-	; 	try [print a] ; needs to trigger error
-	; 	--assert not error? try [words-of book]
-
 	--test-- "#1055"
 		my-context: context [
 			do-something: routine [ 

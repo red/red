@@ -18,6 +18,42 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- probe "#1031"
+		--compile-and-run-this {
+f: routine [] [print "Why are all my spaces disappearing"]
+f
+}
+	--assert "Why are all my spaces disappearing" = qt/output
+
+	--test-- probe "#1035"
+		--compile-and-run-this {
+do [
+global-count: 0
+
+global-count-inc: function [
+	condition [logic!]
+][
+	if condition [global-count: global-count + 1]
+]
+global-count-inc true
+]
+}
+	--assert not crashed?
+
+	--test-- probe "#1042"
+		--compile-and-run-this {
+varia: 0
+print power -1 varia
+
+varia: 1
+print power -1 varia
+}
+	--assert compiled?
+
+	--test-- probe "#1050"
+		--compile-and-run-this {add: func [ a b /local ] [ a + b ]}
+		--assert not crashed?
+
 	--test-- probe "#1054"
 		--compile-and-run-this {
 do [
