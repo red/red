@@ -18,6 +18,98 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#847"
+	; NOTE: let’s hope this is right
+		--compile-and-run-this {
+foo-test: routine [
+	return: [logic!]
+	/local inf nan
+][
+	inf: 1e308 + 1e308
+	nan: 0.0 * inf
+	all [
+		not (inf > nan)
+		inf < nan
+		not (inf <> nan)
+		inf = nan
+	]
+]
+probe foo-test
+}
+	--assert equal? "true" trim/tail qt/output
+
+	--test-- probe "#877"
+		--compile-and-run-this {
+#system [
+    print-line ["In Red/System 1.23 = " 1.23]
+]			
+}
+		--assert equal? "In Red/System 1.23 = 1.23" trim/tail qt/output
+
+	--test-- probe "#902"
+		--compile-and-run-this {
+parse http://rebol.info/foo [
+	"http" opt "s" "://rebol.info" to end
+]
+}
+		--assert not crashed?
+
+	--test-- probe "#916"
+		--compile-and-run-this {do [round/x 1]}
+		--assert not crashed?
+
+	--test-- probe "#917"
+		--compile-and-run-this {
+o: context [a: b: none]
+}
+		--assert not crashed?
+
+	--test-- "#918"
+		--compile-this {
+f: func [o [object!]] [
+	o/a: 1
+]
+o: object [a: 0]
+}
+		--assert compiled?
+
+	--test-- probe "#923"
+		--compile-this {
+c: context [
+	a: none
+	?? a
+
+	f: does [
+		?? a
+		print a
+		print [a]
+	]
+]
+c/f
+}
+		--assert compiled?
+
+	--test-- probe "#930"
+		--compile-this {
+c: context [
+	f: function [
+		/extern x
+		/local y
+	][
+		x: 1
+		set 'y 2
+	]
+]
+}
+		--assert compiled?
+
+	--test-- probe "#934"
+		--compile-this {
+print*: :print
+print: does []
+}
+		--assert compiled?
+
 	--test-- probe "#946"
 		--compile-this {
 f: function [

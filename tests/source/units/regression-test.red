@@ -1477,22 +1477,6 @@ print 486
 		; should check for crash
 		--assert not error? try [take/part "as" 4]
 
-	--test-- "#847"
-		; should check for print output
-		foo-test: routine [
-			/local inf nan
-		][
-			inf: 1e308 + 1e308
-			nan: 0.0 * inf
-			print-line inf
-			print-line nan
-			print-line ["inf > nan: " inf > nan]
-			print-line ["inf < nan: " inf < nan]
-			print-line ["inf <> nan: " inf <> nan]
-			print-line ["inf = nan: " inf = nan]
-		]
-		foo-test
-
 	--test-- "#849"
 		--assert equal? 1.2 1.2
 		--assert equal? "ščř" "ščř"
@@ -1563,14 +1547,6 @@ print 486
 			]
 		]
 
-	; --test-- "#877"
-		; needs to check print output
-		; #system [
-		; 	print-line ["In Red/System 1.23 = " 1.23]
-		; ]
-
-		; print ["In Red 1.23 =" 1.23]
-
 	; --test-- "#880"
 		; R/S, system specific
 
@@ -1582,14 +1558,6 @@ print 486
 
 	--test-- "#899"
 		--assert error? try [load {p: [a/b:/c]}]
-
-	--test-- "#902"
-		; should check for crash
-		--assert not error? try [
-			parse http://rebol.info/foo [
-				"http" opt "s" "://rebol.info" to end
-			]
-		]
 
 	--test-- "#913"
 		person: make object! [
@@ -1604,23 +1572,6 @@ print 486
 		Bob: person/new "Bob"
 		--assert equal? "Bob" Bob/name
 		unset [person Bob]
-
-	; --test-- "#916"
-	; 	; should check for compiler error
-	; 	--assert error? try [round/x 1]
-	; 	--assert error? try [append/y [] 2]
-
-	--test-- "#917"
-		; should check for crash
-		--assert not error? try [o: context [a: b: none]]
-
-	--test-- "#918"
-		; should check for compiler error
-		f: func [o [object!]] [
-			o/a: 1
-		]
-		o: object [a: 0]
-		unset [f o]
 
 	--test-- "#919"
 		o: context [
@@ -1638,21 +1589,6 @@ print 486
 		o: object [a: 0]
 		--assert equal? 1 f o
 		unset [f o]
-
-	--test-- "#923"
-		; should check print output
-		c: context [
-			a: none
-			?? a
-
-			f: does [
-				?? a
-				print a
-				print [a]
-			]
-		]
-		c/f
-		unset 'c
 
 	--test-- "#927"
 		f: does [
@@ -1702,19 +1638,6 @@ print 486
 		--assert equal? "*!*" c/g
 		unset [out c]
 
-	--test-- "#930"
-		; should check for compiler crash
-		c: context [
-			f: function [
-				/extern x
-				/local y
-			][
-				x: 1
-				set 'y 2
-			]
-		]
-		unset 'c
-
 	--test-- "#931"
 		p1: context [
 			a: 1
@@ -1742,13 +1665,6 @@ print 486
 		--assert equal? 100 ch/f
 		unset [p1 p2 ch]
 
-	; --test-- "#934"
-	; 	; should check for compiler error
-	; 	print*: :print
-	; 	print: does []
-	; 	; TODO: something something
-	; 	print: :print*
-
 	--test-- "#939"
 		b: [#"x" #"y"]
 		--assert not error? try [b/(#"x")]
@@ -1756,7 +1672,7 @@ print 486
 		unset 'b
 
 	; --test-- "#943"
-	; 	TODO: IMO this bug is double bag, it should not accept "5 at all"
+	; 	TODO: IMO this bug is double bug, it should not accept 5 at all
 	; 	; needs to check for print output
 	; 	bar: func [/with a [block!] b][
 	; 		?? a 
