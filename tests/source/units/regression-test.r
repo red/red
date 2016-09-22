@@ -18,6 +18,10 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- probe "#1022"
+		--compile-and-run-this {parse [%file] [#"."]}
+		--assert not crashed?
+
 	--test-- probe "#1031"
 		--compile-and-run-this {
 f: routine [] [print "Why are all my spaces disappearing"]
