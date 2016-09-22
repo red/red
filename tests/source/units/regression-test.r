@@ -18,19 +18,33 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
-	--test-- probe "#1075"
+	--test-- probe "#1054"
 		--compile-and-run-this {
-#system [
-    integer/to-float 1 print-line 1
-    integer/to-float 1 print-line 2
-    integer/to-float 1 print-line 3
-    integer/to-float 1 print-line 4
-    integer/to-float 1 print-line 5
-    integer/to-float 1 print-line 6
-    integer/to-float 1 print-line 7
-    integer/to-float 1 print-line 8
+do [
+	book: object [list-fields: does [words-of self]]
+	try [print a]
+	print words-of book			
 ]
 }
+	--assert not script-error?
+
+	--test-- probe "#1071"
+		--compile-and-run-this {do load {(x)}}
+			--assert not crashed?
+
+; 	--test-- probe "#1075"
+; 		--compile-and-run-this {
+; #system [
+; 	integer/to-float 1 print-line 1
+; 	integer/to-float 1 print-line 2
+; 	integer/to-float 1 print-line 3
+; 	integer/to-float 1 print-line 4
+; 	integer/to-float 1 print-line 5
+; 	integer/to-float 1 print-line 6
+; 	integer/to-float 1 print-line 7
+; 	integer/to-float 1 print-line 8
+; ]
+; }
 		--assert not crashed?
 
 	--test-- probe "#1080"

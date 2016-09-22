@@ -2027,9 +2027,6 @@ print 486
 ; 		TODO: help not defined in compiler
 ;		--assert not error? try [help]
 
-	; --test-- "#1071"
-		; should check for crash
-
 	 --test-- "#1074"
 	 	do [
 		 	unset 'd
