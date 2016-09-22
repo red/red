@@ -18,9 +18,46 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- probe "#1075"
+		--compile-and-run-this {
+#system [
+    integer/to-float 1 print-line 1
+    integer/to-float 1 print-line 2
+    integer/to-float 1 print-line 3
+    integer/to-float 1 print-line 4
+    integer/to-float 1 print-line 5
+    integer/to-float 1 print-line 6
+    integer/to-float 1 print-line 7
+    integer/to-float 1 print-line 8
+]
+}
+		--assert not crashed?
+
 	--test-- probe "#1080"
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
+
+	--test-- probe "#1083"
+		--compile-and-run-this {do [load {œ∑´®†}]}
+		--assert not crashed?
+
+	--test-- probe "#1117"
+		--compile-and-run-this {
+do [
+	foo: :append/only 
+	foo/dup [a b c] [d e] 2
+]
+}
+		--assert not crashed?
+
+	 --test-- probe "#1135"
+		--compile-and-run-this {
+do [
+	a: func [v [block!]][error? try v]
+	a [unset-word]
+]
+}
+		--assert not crashed?
 
 	--test-- probe "#1141"
 		--compile-and-run-this {
