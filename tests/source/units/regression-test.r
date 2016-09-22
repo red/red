@@ -18,7 +18,53 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
-	--test-- "#847"
+	--test-- probe "#820"
+	; also see #430
+		--compile-and-run-this {		
+print [1 2 3]
+print [1 space 3]
+print [1 space space 3]
+}
+		--assert equal? qt/output {1 2 3
+
+1   3
+
+1     3
+
+}
+
+	--test-- probe "#829"
+		--compile-and-run-this {print "a^@b"}
+		--assert equal? "a^@b" trim/tail qt/output
+
+; 	--test-- probe "#832"
+; TODO: gives confusing results. "1" here in test, "4" when compiled separately
+; 		--compile-and-run-this {
+; r: routine [
+; 	/local expected [c-string!]
+; ][
+; 	expected: {^(F0)^(9D)^(84)^(A2)}
+; 	print [length? expected]
+; ]
+; r
+; }
+; 	print mold qt/output
+
+	--test-- probe "#837"
+		--compile-and-run-this {
+s: "123"
+load {s/"1"}
+}
+		--assert not crashed?
+
+	--test-- probe "#839"
+		--compile-and-run-this {
+take/part "as" 4
+}
+		--assert not crashed?
+
+
+	--test-- probe "#847"
 	; NOTE: let’s hope this is right
 		--compile-and-run-this {
 foo-test: routine [

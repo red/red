@@ -1422,13 +1422,6 @@ print 486
 	; --test-- "#818"
 		; TODO: need more info
 
-	--test-- "#820"
-	; should check for print output
-	; also see #430
-		print [1 2 3]
-		print [1 space 3]
-		print [1 space space 3]
-
 	--test-- "#825"
 		the-text: "outside"
 		the-fun: function [] [the-text: "Hello, World!" print the-text]
@@ -1445,10 +1438,6 @@ print 486
 		--assert equal? spec-of :the-fun [local the-text]
 		unset [the-text the-fun]
 
-	--test-- "#829"
-		; should check print output
-		print "a^@b"
-
 	; --test-- "#831"
 	; 	FIXIME: not fixed yet, crashes compiler
 	; 	f: function [][1]
@@ -1456,26 +1445,6 @@ print 486
 
 	; 	f: 100
 	; 	--assert not equal? f 100
-
-	--test-- "#832"
-		; should check for print output
-		r: routine [
-			/local expected [c-string!]
-		][
-			expected: {^(F0)^(9D)^(84)^(A2)}
-			print [length? expected lf]
-		]
-		r
-		unset 'r
-
-	--test-- "#837"
-		; should check for crash
-		s: "123"
-		--assert error? try [load {s/"1"}]
-
-	--test-- "#839"
-		; should check for crash
-		--assert not error? try [take/part "as" 4]
 
 	--test-- "#849"
 		--assert equal? 1.2 1.2
