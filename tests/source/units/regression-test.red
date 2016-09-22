@@ -1949,8 +1949,12 @@ print 486
 	; --test-- "#995"
 		; TODO: architecture specific problem
 
-	; --test-- "#1001"
-		; should check PRINT output
+	--test-- "#1001"
+		o: context [a: 1 b: "x"]
+		--assert equal? 
+			[integer! string!] 
+			collect [foreach w words-of o [keep type? get w]]
+		unset 'o
 
 	; --test-- "#1003"
 		; TODO: reactor test (seem not to work somehow)
@@ -1963,10 +1967,6 @@ print 486
 
 	; --test-- "#1020"
 		; console behaviour
-
-	--test-- "#1022"
-		; should check for crash
-		--assert not parse [%file] [#"."]
 
 	--test-- "#1055"
 		my-context: context [
