@@ -2287,15 +2287,8 @@ print 486
 		]
 		--assert equal? [1 2] ret
 
-	--test-- "#1168"
-		; TODO: should check for compilation error (throws compilation error, but is fine in console)
-		;--assert not error? try [case [1 > 2 [print "math is broken"] 1 < 2]]
-		; should check for crash
-
 	; --test-- "#1169"
 		; console behaviour
-
-	; --test-- "#1171"
 
 	; --test-- "#1186"
 		; console behaviour

@@ -14,7 +14,7 @@ crashed?: does [true? find qt/output "*** Runtime Error"]
 compiled?: does [true? not find qt/comp-output "Error"]
 script-error?: does [true? find qt/output "Script Error"]
 
---separate-log-file
+;--separate-log-file
 
 ~~~start-file~~~ "Red regressions"
 
@@ -22,11 +22,23 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test-- probe "#1159"
+
+	--test-- probe "#1168"
+		--compile-and-run-this {do [case [1 > 2 [print "math is broken"] 1 < 2]]}
+		--assert not crashed?
+
+	--test-- probe "#1171"
+		--compile-and-run-this {load {]}}
+		--assert not crashed?
+
 	--test-- probe "#1176"
 		--compile-and-run-this {
-blk: reduce [does [asdf]]
-blk/1		
-		}
+do [
+	blk: reduce [does [asdf]]
+	blk/1
+]
+}
 		--assert not crashed?
 
 	--test-- probe "#1195"
