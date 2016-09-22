@@ -5,14 +5,6 @@ REBOL [
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
-	Notes: {
-		These utility functions extract types ID and function definitions from Red
-		runtime source code and make it available to the compiler, before the Red runtime
-		is actually compiled.
-		
-		This procedure is required during bootstrapping, as the REBOL compiler can't
-		examine loaded Red data in memory at runtime.
-	}
 ]
 
 libRed: context [
