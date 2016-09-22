@@ -2176,15 +2176,6 @@ print 486
 			equal? e/arg1 lit-word!
 		]
 
-	--test-- "#1141"
-		; should check for compilation error
-		o: object [
-			A: 1
-		]
-		s: 'A
-		--assert not error? [print o/:s]
-
-
 	--test-- "#1143"
 		--assert not error? try [
 			do [
@@ -2247,17 +2238,6 @@ print 486
 		foreach [v1 v2 v3] v [repend ret [v1 v2 V3]]
 		--assert equal? [1 2 3 4 5 6 7 8 9] ret
 		unset [v ret]
-
-	--test-- "#1159"
-		; should check for compilation error
-		--assert not error? try [
-			f: function [
-				/a
-				/b
-			][
-				if a [b: true]
-			]
-		]
 
 	--test-- "#1160"
 		abc: 2

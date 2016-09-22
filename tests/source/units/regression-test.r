@@ -22,7 +22,26 @@ script-error?: does [true? find qt/output "Script Error"]
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
+	--test-- probe "#1141"
+		--compile-and-run-this {
+o: object [
+	A: 1
+]
+s: 'A
+print o/:s
+}
+		--assert not crashed?
+
 	--test-- probe "#1159"
+		--compile-and-run-this {
+f: function [
+	/a
+	/b
+][
+	if a [b: true]
+]
+}
+		--assert not crashed?
 
 	--test-- probe "#1168"
 		--compile-and-run-this {do [case [1 > 2 [print "math is broken"] 1 < 2]]}
@@ -34,10 +53,10 @@ script-error?: does [true? find qt/output "Script Error"]
 
 	--test-- probe "#1176"
 		--compile-and-run-this {
-do [
+do load {
 	blk: reduce [does [asdf]]
 	blk/1
-]
+}
 }
 		--assert not crashed?
 
