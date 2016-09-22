@@ -2297,19 +2297,8 @@ print 486
 
 	; --test-- "#1171"
 
-;	--test-- "#1176"
-;		; TODO: should check for compilation error
-;		--assert error? try [blk: reduce [does [asdf]]]
-;		--assert error? try [blk/1]
-;		; should check for crash
-
 	; --test-- "#1186"
 		; console behaviour
-
-	--test-- "#1195"
-		m: make map! [a: 1 b: 2]
-		--assert not error? try [m/b: none]
-		; should check for crash
 
 	--test-- "#1199"
 		test: func [input [block!] /local exp-res reason] [
@@ -2321,15 +2310,9 @@ print 486
 		m: #(a 1 b 2)
 		m/a: none
 		m/a: none
-	;	--assert equal? m #(b 2) ; -- cannot work because of 2209
+		--assert equal? m #(b 2)
 		--assert equal? [b] keys-of m
 		--assert equal? [2] values-of m
-
-	--test-- "#1207"
-		o: make object! [a: 1 b: 2]
-;		--assert error? try [o/c] ; should check for compilation error
-;		--assert error? try [o/c: 3] ; should check for compilation error
-		--assert not error? try [o] ; should test for crash
 
 	--test-- "#1209"
 		; should test for freeze
@@ -2344,11 +2327,6 @@ print 486
 	--test-- "#1222"
 		o: make object! [a: 1 b: 7 c: 13]
 		--assert error? try [o/("c")]
-
-;	--test-- "#1230"
-;		TODO: should check for compilation error
-;		o: make object! [a: 1 b: 7 c: 13]
-;		--assert error? try [set [o/b o/c] [2 3]]
 
 	; --test-- "#1232"
 		; TODO
@@ -2389,9 +2367,6 @@ print 486
 	; --test-- "#1290"
 		; GUI
 
-	; --test-- "#1293"
-		; should check for compiler crash
-
 	--test-- "#1307"
 		h: make hash! [1x2 0 3x4 1]
 		--assert equal? 0 select h 1x2
@@ -2401,7 +2376,7 @@ print 486
 		; R/S
 
 	; --test-- "#1324"
-		; TODO: should check for compiler error
+		; R/S
 
 	--test-- "#1329"
 		--assert not error? try [and~ #{01} #{FF}]
@@ -2441,10 +2416,6 @@ print 486
 
 	; --test-- "#1397"
 		; R/S
-
-	--test-- "#1400"
-		; should check for crash
-		--assert error? try [make op! 'x]
 
 	--test-- "#1416"
 		a: "1234" 
