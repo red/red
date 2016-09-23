@@ -137,6 +137,10 @@ system!: alias struct! [					;-- store runtime accessible system values
 	#either dev-mode? = no [
 		system: declare system!
 	][
-		#import [LIBRED-file stdcall [system: "system" [system!]]]
+		#either red-pass? = no [
+			system: declare system!
+		][
+			#import [LIBRED-file stdcall [system: "system" [system!]]]
+		]
 	]
 ]
