@@ -3282,8 +3282,7 @@ system-dialect: make-profilable context [
 			
 			if job/type = 'dll [
 				if all [job/dev-mode? job/libRed?][
-					libRed/make-exports functions exports
-					libRed/process functions
+					libRed/process job functions exports
 				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"

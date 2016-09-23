@@ -4333,19 +4333,7 @@ red: context [
 		]]
 		
 		if all [job/dev-mode? not job/libRed?][
-			replace out <imports> load %libRed-include.red
-			defs: load-safe %libred-defs.red
-			append clear functions defs/1
-			;redbin/index:	defs/2
-			globals:		defs/3
-			objects:		compose/deep bind objects: defs/4 red
-			contexts:		defs/5
-			actions:		defs/6
-			op-actions:		defs/7
-			foreach w defs/8 [add-symbol w]
-			append literals defs/9
-			s-counter:		defs/10
-			make-keywords
+			replace out <imports> libRed/get-include-file
 		]
 		set [user mods main] comp-source code
 		
@@ -4384,15 +4372,6 @@ red: context [
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
-	]
-	
-	load-safe: func [file [file!]][
-		data: load file
-		foreach part [1 7 8][
-			replace/all data/:part %"" to word! "%"
-			replace/all data/:part ">>>" to word! ">>>"
-		]
-		data
 	]
 	
 	clear-docstrings: func [script [block!] /local clean rule pos][
@@ -4485,7 +4464,7 @@ red: context [
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
-		/local time src resources
+		/local time src resources defs
 	][
 		verbose: opts/verbosity
 		job: opts
@@ -4500,6 +4479,21 @@ red: context [
 			process-needs src/1 next src
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
+			
+			if all [job/dev-mode? not job/libRed?][
+				defs: libRed/get-definitions
+				append clear functions defs/1
+				;redbin/index:	defs/2
+				globals:		defs/3
+				objects:		compose/deep bind objects: defs/4 red
+				contexts:		defs/5
+				actions:		defs/6
+				op-actions:		defs/7
+				foreach w defs/8 [add-symbol w]
+				append literals defs/9
+				s-counter:		defs/10
+				make-keywords
+			]
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]
 		reduce [output time redbin/buffer resources]

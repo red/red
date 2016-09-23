@@ -98,6 +98,12 @@ re-throw: func [/local id [integer!]][
 	throw id								;-- let the exception pass through
 ]
 
+#switch OS [
+	Windows  [#define LIBRED-file "libRed.dll"]
+	MacOSX	 [#define LIBRED-file "./libRed.dylib"]
+	#default [#define LIBRED-file "./libRed.so"]
+]
+
 #include %system.reds
 #include %lib-names.reds
 

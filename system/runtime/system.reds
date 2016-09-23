@@ -137,6 +137,6 @@ system!: alias struct! [					;-- store runtime accessible system values
 	#either dev-mode? = no [
 		system: declare system!
 	][
-		#import ["libRed.dll" stdcall [system: "system" [system!]]]
+		#import [LIBRED-file stdcall [system: "system" [system!]]]
 	]
 ]

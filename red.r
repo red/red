@@ -374,7 +374,10 @@ redc: context [
 			link?: yes
 			unicode?: yes
 		]
-		script: next [Red [Needs: View]]				;-- empty script for the lib
+		script: switch/default opts/OS [	;-- empty script for the lib
+			Windows [ [[Needs: View]] ]
+		][ [[]] ]
+		
 		result: red/compile script opts
 		print [
 			"...compilation time :" format-time result/2 "ms^/"
@@ -543,7 +546,15 @@ redc: context [
 			if load-lib? [build-compress-lib]
 			all [
 				opts/dev-mode?
-				not all [exists? %libRed.dll exists? %libRed-include.red]
+				not all [
+					any [
+						exists? %libRed.dll				;@@ To be improved
+						exists? %libRed.so
+						exists? %libRed.dylib
+					]
+					exists? %libRed-include.red
+					exists? %libRed-defs.red
+				]
 				build-libRed opts
 			]
 
