@@ -374,6 +374,8 @@ redc: context [
 			link?: yes
 			unicode?: yes
 		]
+		if opts/OS <> 'Windows [opts/PIC?: yes]
+		
 		script: switch/default opts/OS [	;-- empty script for the lib
 			Windows [ [[Needs: View]] ]
 		][ [[]] ]
