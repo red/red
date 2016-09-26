@@ -282,7 +282,7 @@ context [
 			structure segments sections commands layout
 			data-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset
+			relro-offset pos list
 	] [
 		base-address: case [
 			job/type = 'dll [0]
@@ -290,6 +290,11 @@ context [
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
+		;-- (hack) Move libRed in first position to avoid "system" symbol
+		;-- to be bound to libC instead! (TBD: find a cleaner way)
+		pos: find list: job/sections/import/3 "./libRed.so"
+		insert list take/part pos 2
+		
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
