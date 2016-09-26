@@ -1187,17 +1187,8 @@ print 486
 	--test-- "#657"
 		--assert equal? {"} "^""
 
-	; --test-- "#659"
-		; should check for crash
-
 	; --test-- "#660"
 		; console building problem
-
-	; --test-- "#667"
-		; should check for crash
-
-	; --test-- "#669"
-		; TODO: compiler issue
 
 	--test-- "#678"
 		--assert parse "cat" [1 "cat"]
@@ -1256,11 +1247,11 @@ print 486
 	; --test-- "#720"
 		; console compilation problem
 
-	; --test-- "#725"
-		; should check for print output
+	--test-- "#725"
+		--assert not equal? load {"Español"} "Espa^(F1)ol"
 
-	; --test-- "#726"
-		; should check for print output
+	--test-- "#726"
+		--assert equal? load {"^(line)"} "^/"
 
 	--test-- "#727"
 		x: 0
@@ -1356,13 +1347,6 @@ print 486
 
 	; --test-- "#776"
 		; console behaviour
-
-	--test-- "#778"
-		; should check for crash
-		f: function[][ return 1 ]
-		t: (f)
-		--assert not error? try [f]
-		--assert not error? try [t: f]
 
 	--test-- "#785"
 		nd: charset [not #"0" - #"9"]

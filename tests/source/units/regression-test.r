@@ -13,12 +13,48 @@ true?: func [value] [not not value]
 crashed?: does [true? find qt/output "*** Runtime Error"]
 compiled?: does [true? not find qt/comp-output "Error"]
 script-error?: does [true? find qt/output "Script Error"]
+-test-: :--test--
+--test--: func [value] [probe value -test- value]
 
 ;--separate-log-file
 
 ~~~start-file~~~ "Red regressions"
 
-	--test-- probe "#820"
+	--test-- "#659"
+		--compile-and-run-this {
+f: does [parse [] []]
+r: [
+	ahead block! into [r]
+|	skip (f)
+]
+parse [[0]] r
+}
+	--assert not crashed?
+
+	--test-- "#667"
+		--compile-and-run-this {
+code: [print "Hello"]
+replace code "Hello" "Cheers"
+}
+	--assert not crashed?
+
+	--test-- "#669"
+		--compile-and-run-this {
+a: #version 
+print type? a 
+}
+		--assert equal? "string" trim/tail qt/output
+
+	--test-- "#778"
+		--compile-and-run-this {
+f: function[] [return 1]
+t: (f)
+f
+t: f
+}
+		--assert not crashed?
+
+	--test-- "#820"
 	; also see #430
 		--compile-and-run-this {		
 print [1 2 3]
@@ -33,11 +69,11 @@ print [1 space space 3]
 
 }
 
-	--test-- probe "#829"
+	--test-- "#829"
 		--compile-and-run-this {print "a^@b"}
 		--assert equal? "a^@b" trim/tail qt/output
 
-; 	--test-- probe "#832"
+; 	--test-- "#832"
 ; TODO: gives confusing results. "1" here in test, "4" when compiled separately
 ; 		--compile-and-run-this {
 ; r: routine [
@@ -50,21 +86,21 @@ print [1 space space 3]
 ; }
 ; 	print mold qt/output
 
-	--test-- probe "#837"
+	--test-- "#837"
 		--compile-and-run-this {
 s: "123"
 load {s/"1"}
 }
 		--assert not crashed?
 
-	--test-- probe "#839"
+	--test-- "#839"
 		--compile-and-run-this {
 take/part "as" 4
 }
 		--assert not crashed?
 
 
-	--test-- probe "#847"
+	--test-- "#847"
 	; NOTE: let’s hope this is right
 		--compile-and-run-this {
 foo-test: routine [
@@ -84,7 +120,7 @@ probe foo-test
 }
 	--assert equal? "true" trim/tail qt/output
 
-	--test-- probe "#877"
+	--test-- "#877"
 		--compile-and-run-this {
 #system [
     print-line ["In Red/System 1.23 = " 1.23]
@@ -92,7 +128,7 @@ probe foo-test
 }
 		--assert equal? "In Red/System 1.23 = 1.23" trim/tail qt/output
 
-	--test-- probe "#902"
+	--test-- "#902"
 		--compile-and-run-this {
 parse http://rebol.info/foo [
 	"http" opt "s" "://rebol.info" to end
@@ -100,11 +136,11 @@ parse http://rebol.info/foo [
 }
 		--assert not crashed?
 
-	--test-- probe "#916"
+	--test-- "#916"
 		--compile-and-run-this {do [round/x 1]}
 		--assert not crashed?
 
-	--test-- probe "#917"
+	--test-- "#917"
 		--compile-and-run-this {
 o: context [a: b: none]
 }
@@ -119,7 +155,7 @@ o: object [a: 0]
 }
 		--assert compiled?
 
-	--test-- probe "#923"
+	--test-- "#923"
 		--compile-this {
 c: context [
 	a: none
@@ -135,7 +171,7 @@ c/f
 }
 		--assert compiled?
 
-	--test-- probe "#930"
+	--test-- "#930"
 		--compile-this {
 c: context [
 	f: function [
@@ -149,14 +185,14 @@ c: context [
 }
 		--assert compiled?
 
-	--test-- probe "#934"
+	--test-- "#934"
 		--compile-this {
 print*: :print
 print: does []
 }
 		--assert compiled?
 
-	--test-- probe "#946"
+	--test-- "#946"
 		--compile-this {
 f: function [
 	a [object!]
@@ -166,7 +202,7 @@ f: function [
 }
 		--assert compiled?
 
-	--test-- probe "#947"
+	--test-- "#947"
 		--compile-this {
 f: func [
 	o [object!]
@@ -176,7 +212,7 @@ f: func [
 }
 		--assert compiled?
 
-	--test-- probe "#956"
+	--test-- "#956"
 		--compile-this {
 f: function [
 	o [object!]
@@ -188,7 +224,7 @@ f: function [
 }
 		--assert compiled?	
 
-	--test-- probe "#957"
+	--test-- "#957"
 		--compile-this {
 f: function [
 	o [object!]
@@ -205,7 +241,7 @@ f: function [
 }
 		--assert compiled?
 
-	--test-- probe "#959"
+	--test-- "#959"
 		--compile-this {
 c: context [
 	x: none
@@ -219,7 +255,7 @@ c: context [
 }
 		--assert compiled?
 
-	--test-- probe "#960"
+	--test-- "#960"
 		--compile-this {
 c: object [
 	d: object [
@@ -233,7 +269,7 @@ f: func [
 }
 		--assert compiled?
 
-	--test-- probe "#962"
+	--test-- "#962"
 		--compile-this {
 f: function [
     o [object!]
@@ -251,7 +287,7 @@ f: function [
 }
 		--assert compiled?
 
-	--test-- probe "#965"
+	--test-- "#965"
 		--compile-this {
 f: func [
     o [object!]
@@ -263,7 +299,7 @@ f: func [
 }
 		--assert compiled?
 
-	--test-- probe "#969"
+	--test-- "#969"
 		--compile-this {
 r2: routine [
 	i [integer!]
@@ -279,7 +315,7 @@ f: function [
 }
 		--assert compiled?
 
-	--test-- probe "#970"
+	--test-- "#970"
 		--compile-this {
 Red [
     Type: 'library
@@ -287,18 +323,18 @@ Red [
 }
 		--assert compiled?
 
-	--test-- probe "#1022"
+	--test-- "#1022"
 		--compile-and-run-this {parse [%file] [#"."]}
 		--assert not crashed?
 
-	--test-- probe "#1031"
+	--test-- "#1031"
 		--compile-and-run-this {
 f: routine [] [print "Why are all my spaces disappearing"]
 f
 }
 	--assert "Why are all my spaces disappearing" = qt/output
 
-	--test-- probe "#1035"
+	--test-- "#1035"
 		--compile-and-run-this {
 do [
 global-count: 0
@@ -313,7 +349,7 @@ global-count-inc true
 }
 	--assert not crashed?
 
-	--test-- probe "#1042"
+	--test-- "#1042"
 		--compile-and-run-this {
 varia: 0
 print power -1 varia
@@ -323,11 +359,11 @@ print power -1 varia
 }
 	--assert compiled?
 
-	--test-- probe "#1050"
+	--test-- "#1050"
 		--compile-and-run-this {add: func [ a b /local ] [ a + b ]}
 		--assert not crashed?
 
-	--test-- probe "#1054"
+	--test-- "#1054"
 		--compile-and-run-this {
 do [
 	book: object [list-fields: does [words-of self]]
@@ -337,11 +373,11 @@ do [
 }
 	--assert not script-error?
 
-	--test-- probe "#1071"
+	--test-- "#1071"
 		--compile-and-run-this {do load {(x)}}
 			--assert not crashed?
 
-; 	--test-- probe "#1075"
+; 	--test-- "#1075"
 ; 		--compile-and-run-this {
 ; #system [
 ; 	integer/to-float 1 print-line 1
@@ -356,15 +392,15 @@ do [
 ; }
 		--assert not crashed?
 
-	--test-- probe "#1080"
+	--test-- "#1080"
 		--compile-and-run-this {do load "x:"}
 		--assert script-error?
 
-	--test-- probe "#1083"
+	--test-- "#1083"
 		--compile-and-run-this {do [load {œ∑´®†}]}
 		--assert not crashed?
 
-	--test-- probe "#1117"
+	--test-- "#1117"
 		--compile-and-run-this {
 do [
 	foo: :append/only 
@@ -373,7 +409,7 @@ do [
 }
 		--assert not crashed?
 
-	 --test-- probe "#1135"
+	 --test-- "#1135"
 		--compile-and-run-this {
 do [
 	a: func [v [block!]][error? try v]
@@ -382,7 +418,7 @@ do [
 }
 		--assert not crashed?
 
-	--test-- probe "#1141"
+	--test-- "#1141"
 		--compile-and-run-this {
 o: object [
 	A: 1
@@ -392,7 +428,7 @@ print o/:s
 }
 		--assert not crashed?
 
-	--test-- probe "#1159"
+	--test-- "#1159"
 		--compile-and-run-this {
 f: function [
 	/a
@@ -403,15 +439,15 @@ f: function [
 }
 		--assert not crashed?
 
-	--test-- probe "#1168"
+	--test-- "#1168"
 		--compile-and-run-this {do [case [1 > 2 [print "math is broken"] 1 < 2]]}
 		--assert not crashed?
 
-	--test-- probe "#1171"
+	--test-- "#1171"
 		--compile-and-run-this {load {]}}
 		--assert not crashed?
 
-	--test-- probe "#1176"
+	--test-- "#1176"
 		--compile-and-run-this {
 do load {
 	blk: reduce [does [asdf]]
@@ -420,14 +456,14 @@ do load {
 }
 		--assert not crashed?
 
-	--test-- probe "#1195"
+	--test-- "#1195"
 		--compile-and-run-this {			
 m: make map! [a: 1 b: 2]
 m/b: none
 }
 		--assert not crashed?
 
-	--test-- probe "#1207"
+	--test-- "#1207"
 		--compile-and-run-this {
 do [
 	o: make object! [a: 1 b: 2]
@@ -447,7 +483,7 @@ do [
 }
 		--assert not crashed?
 
-	--test-- probe "#1230"
+	--test-- "#1230"
 		--compile-and-run-this {
 do [
 	o: make object! [a: 1 b: 7 c: 13]
@@ -456,7 +492,7 @@ do [
 		}
 		--assert not crashed?
 
-	--test-- probe "#1293"
+	--test-- "#1293"
 		--compile-and-run-this {
 o1: context [
 	val: 1
@@ -468,35 +504,35 @@ o2: context [
 }
 		--assert not crashed?
 
-	; --test-- probe "#1400"
+	; --test-- "#1400"
 	;	FIXME: Internal compiler error
 	; 	--compile-and-run-this {make op! 'x}
 	; 	--assert not crashed?
 
-	--test-- probe "#1416"
+	--test-- "#1416"
 		--compile-and-run-this {do [a: "1234" b: skip a 2 copy/part b a]}
 		--assert not crashed?
 
-	--test-- probe "#1490"
+	--test-- "#1490"
 		--compile-and-run-this {
 o: make object! [f: 5]
 do load {set [o/f] 10}
 }
 	--assert not crashed?
 
-	; --test-- probe "#1679"
+	; --test-- "#1679"
 	;	OPEN
 	;	--compile-and-run-this {switch 1 []}
 
-	--test-- probe "#1524"
+	--test-- "#1524"
 		--compile-and-run-this {parse [x][keep 1]}
 		--assert not crashed?
 
-	--test-- probe "#1589"
+	--test-- "#1589"
 		--compile-and-run-this {power -1 0.5}
 		--assert not crashed?
 
-	--test-- probe "#1694"
+	--test-- "#1694"
 		--compile-and-run-this {
 do  [
 	f: func [x] [x]
@@ -505,26 +541,26 @@ do  [
 		}
 		--assert true? find qt/output "arg2: 'only"
 
-	;--test-- probe "#1720"
+	;--test-- "#1720"
 	; OPEN
 	;	--compile-and-run-this {write http://abc.com compose [ {} {} ]}
 	;	--assert not crashed?
 
-	--test-- probe "#1730"
+	--test-- "#1730"
 		--compile-and-run-this {reduce does ["ok"]}
 		--assert not crashed?
 		--compile-and-run-this {do [reduce does ["ok"]]}
 		--assert not crashed?
 
-	--test-- probe "#1758"
+	--test-- "#1758"
 		--compile-and-run-this {do [system/options/path: none]}
 		--assert not crashed?
 
-	--test-- probe "#1831"
+	--test-- "#1831"
 		--compile-and-run-this {do [function [a] [repeat a/1]]}
 		--assert not crashed?
 
-	--test-- probe "#1836"
+	--test-- "#1836"
 		--compile-and-run-this {
 do [
 	content: [a [b] c]
@@ -537,16 +573,16 @@ do [
 }
 		--assert not crashed?
 
-	--test-- probe "#1842"
+	--test-- "#1842"
 		--compile-and-run-this {do [throw 10]}
 		--assert not crashed?
 
-	--test-- probe "#1866"
+	--test-- "#1866"
 		--compile-and-run-this {do [parse "abc" [(return 1)]]}
 		--assert not crashed?
 		probe qt/output
 
-	--test-- probe "#1868"
+	--test-- "#1868"
 		--compile-and-run-this {
 dot2d: func [a [pair!] b [pair!] return: [float!]][
 	(to float! a/x * to float! b/x) + (to float! b/y * to float! b/y)
@@ -563,23 +599,23 @@ distance: func [a [pair!] b [pair!] return: [integer!] /local res ][
 }
 	--assert compiled?
 
-	--test-- probe "#1895"
+	--test-- "#1895"
 		--compile-and-run-this {
 fn: func [body [block!]] [collect [do body]]
 fn [x: 1]
 }
 	 	--assert not crashed?
 
-	--test-- probe "#1907"
+	--test-- "#1907"
 		--compile-and-run-this {do [set: 1]}
 		--assert not crashed?
 
-	; --test-- probe "#2133"
+	; --test-- "#2133"
 	;	OPEN
 	; 	--compile-and-run/pgm %tests/source/units/issue-2133.red
 	; 	--assert not crashed?
 
-	--test-- probe "#2143"
+	--test-- "#2143"
 		--compile-and-run-this {
 do [
 	ts: [test: 10]
@@ -589,15 +625,15 @@ do [
 }
 		--assert not crashed?
 
-	--test-- probe "#2162"
+	--test-- "#2162"
 		--compile-and-run-this {write/info https://api.github.com/user [GET [User-Agent: "me"]]}
 		--assert not crashed?
 
-	--test-- probe "#2173"
+	--test-- "#2173"
 		--compile-and-run-this {not parse [] [help]}
 		--assert not crashed?
 
-	--test-- probe "#2179"
+	--test-- "#2179"
 		--compile-and-run-this {
 test: none
 parse ["hello" "world"] ["hello" set test opt "world"]
@@ -609,11 +645,11 @@ test
 }
 		--assert not crashed?
 
-	--test-- probe "#2182"
+	--test-- "#2182"
 		--compile-and-run-this {sym: 10 forall sym []}
 		--assert not crashed?
 
-	--test-- probe "#2214"
+	--test-- "#2214"
 		--compile-and-run-this {make image! []}
 		--assert not crashed?
 
