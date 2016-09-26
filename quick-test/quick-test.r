@@ -38,7 +38,7 @@ qt: make object! [
   version: system/script/header/version
   
   ;; switch for binary compiler usage
-  binary?: false
+  binary-compiler?: false
 
   ;; check if call-show? is enabled for call
   either any [
@@ -201,7 +201,7 @@ qt: make object! [
     parse read src red?-rule
  
     ;; compose and write compilation script
-    either binary? [
+    either binary-compiler? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
