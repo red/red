@@ -740,7 +740,7 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	args: system/options/args
+	unless args: system/options/args [exit]				;-- non-executable case
 	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
 	
 	either pos [

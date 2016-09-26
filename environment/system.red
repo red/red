@@ -272,7 +272,9 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			#system [stack/push get-cmdline-args]
+		args: 			#system [
+			#either type = 'exe [stack/push get-cmdline-args][none/push]
+		]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none
