@@ -1139,17 +1139,6 @@ print 486
 		; rule: [ some [delimiter | copy c skip ] ]
 		; print parse-trace st1 rule
 
-
-	; --test-- "#633"
-		; should check for compiler error
-		not error? try [#"^(back)"]
-
-	; --test-- "#634"
-		; should check for crash
-
-	; --test-- "#637"
-		; TODO: syntax error in compiler
-
 	; --test-- "#644"
 		; TODO: how to check for hangup?
 

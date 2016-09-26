@@ -20,6 +20,29 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#633"
+		--compile-this {#"^(back)"}
+		--assert compiled?
+
+	--test-- "#634"
+		--compile-and-run-this {make block! 0 none}
+		--assert not crashed?
+
+	--test-- "#637"
+		--compile-this {
+remain?: routine [
+	m [integer!]
+	n [integer!]
+	return: [integer!]
+][
+	m % n
+]
+
+remain-value: remain? 12 5
+print ["remainder of division of over 5 is: " remain-value]
+}
+		--assert compiled?
+
 	--test-- "#659"
 		--compile-and-run-this {
 f: does [parse [] []]
