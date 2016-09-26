@@ -135,9 +135,9 @@ make-profilable make target-class [
 					spec/1 = 'import-var 
 					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
 				][
-					emit #{8B1D}					;-- MOV ebx, [<import>]
+					emit #{8B3D}					;-- MOV edi, [<import>]
 					emit-reloc-addr spec
-					emit #{FF7F} and copy pcode		;-- [ebx+<disp>] => [ebx]
+					emit (#{FF7E} and copy pcode) or #{0005} ;-- [ebx+<disp>] => [edi]
 				][
 					either block? gcode [
 						foreach code reduce gcode [
