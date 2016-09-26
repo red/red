@@ -517,9 +517,6 @@ Red [
 		--assert equal? 1 y
 		unset [x y]
 
-	; --test-- "#402"
-		; should check for compilation error
-
 	--test-- "#403"
 		f: func [
 			a       [block!]
@@ -548,24 +545,6 @@ Red [
 		--assert equal? 1 get x
 		--assert equal? 1 do [get x]
 
-	; --test-- "#405"
-		; should check for compilation error
-
-	; --test-- "#406"
-		; should check for compilation error
-
-	--test-- "#407"
-		; should check for crash
-		f: func [
-			/local x
-		] [
-			x: 'y
-			set x 1
-		]
-		f
-		--assert equal? 1 y
-		unset [f y]
-
 	--test-- "#409"
 		g: func [
 			b [block!]
@@ -584,17 +563,8 @@ Red [
 	; --test-- "#411"
 		; R/S
 
-	; --test-- "#412"
-		; should check for crash
-
 	; --test-- "#413"
-		; should check compilation time
-
-	; --test-- "#414"
-		; should check for print output
-
-	; --test-- "#415"
-		; should check for compiler error
+		; TODO: should check compilation time
 
 	--test-- "#416"
 		b: [none]
@@ -613,29 +583,8 @@ Red [
 	; --test-- "#419"
 		; R/S
 
-	--test-- "#420"
-		; should check for crash
-		--assert not error? try [
-			f: function [
-			] [
-				g: func [
-				] [
-				]
-			]
-			f
-		]
-
 	--test-- "#422"
 		--assert not error? try [function [n [integer!]] []]
-
-	--test-- "#423"
-		; should check for crash
-		--assert error? try [
-			load s: {
-    x/
-}
-		]
-		unset 's
 
 	--test-- "#424"
 		--assert empty? load ";2"
@@ -659,9 +608,6 @@ Red [
 		--assert equal? "12345" out
 		unset 'out
 
-	; --test-- "#428"
-		; should check for crash
-
 	--test-- "#429"
 		--assert equal? {#"^^-"} mold tab
 
@@ -669,17 +615,12 @@ Red [
 		--assert equal? "  x" form ["" [] x]
 		--assert equal? " a  a " form [[""] [a] [] [a] [[[]]]]
 
-	; --test-- "#431"
-		; should check for print output
+	--test-- "#431"
+		--assert error? try [val: print ""]
+		unset 'val
 
 	; --test-- "#432"
 		; TODO
-
-	; --test-- "#435"
-		; should check for compilation error
-
-	; --test-- "#437"
-		; should check for print output
 
 	--test-- "#443"
 		f: function [] [out: copy [] foreach [i j] [1 2 3 4] [append out i] out]
