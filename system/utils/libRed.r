@@ -57,6 +57,7 @@ libRed: context [
 				print ["*** libRed Error: definition not found for" def]
 				halt
 			]
+			system-dialect/compiler/flag-callback name none
 		]
 		foreach [def type] vars [
 			name: to word! form def

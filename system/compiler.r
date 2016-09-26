@@ -1465,6 +1465,12 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
+		flag-callback: func [name [word!] cc [word! none!] /local spec][
+			spec: select functions name
+			spec/3: any [cc spec/3 'cdecl]
+			unless spec/5 = 'callback [append spec 'callback]
+		]
+		
 		process-export: has [defs cc ns func? spec][
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
@@ -1485,12 +1491,7 @@ system-dialect: make-profilable context [
 					throw-error ["undefined exported symbol:" mold name]
 				]
 				append exports name
-				
-				if func? [
-					spec: select functions name
-					spec/3: any [cc 'cdecl]
-					unless spec/5 = 'callback [append spec 'callback]
-				]
+				if func? [flag-callback name cc]
 			]
 		]
 		
