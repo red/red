@@ -20,6 +20,240 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+<<<<<<< HEAD
+=======
+	--test-- "#402"
+		--compile-this {
+f: func [
+	/r
+	/x a
+][
+]
+f/x 0
+}
+		--assert compiled?
+
+	--test-- "#405"
+		--compile-this {
+f: func [
+	/local i
+][
+	repeat i 10 [
+	]
+]
+}
+		--assert compiled?
+
+	--test-- "#406"
+		--compile-this {
+Red []
+
+f: func [
+	/local y
+][
+	x: 'y
+]
+}
+		--assert compiled?
+
+	--test-- "#407"
+		--compile-and-run-this {
+do [
+	f: func [
+		/local x
+	] [
+		x: 'y
+		do [set x 1]
+	]
+	f
+	probe y
+]
+}
+		--assert not crashed?
+
+	--test-- "#412"
+		--compile-and-run-this {
+f: func [
+	/local x
+][
+	[x]
+]
+do f
+}
+		--assert not crashed?
+
+	--test-- "#414"
+		--compile-and-run-this {
+r: routine [
+	a [integer!]
+	b [integer!]
+] [
+	?? a
+	?? b
+]
+f: function [
+	/p
+		q
+	return: [integer!]
+] [
+	a: 1
+	b: 2
+	r a b
+]
+do [f]
+}
+	--assert equal? "a: 1 b: 2" trim/lines qt/output
+
+	--test-- "#420" ; and #415 also
+		--compile-and-run-this {
+f: function [
+][
+	g: func [
+	][
+	]
+]
+f
+}
+		--assert not crashed?
+
+	--test-- "#426"
+		--compile-and-run-this {
+s: {
+    x/
+}
+}
+		--assert not crashed?
+
+	--test-- "#428"
+		--compile-and-run-this {
+function [] [
+	[text]
+]			
+}
+		--assert not crashed?
+
+	--test-- "#435"
+		--compile-this {
+f: function [] [
+    x: 0
+    if set 'x 0 [
+    ]
+]
+
+f: has [x] [
+    if set 'x 0 [
+    ]
+]
+}
+	--assert compiled?
+
+;	--test-- "#437"
+;	TODO: problems with source
+
+	--test-- "#453"
+		--compile-this {
+words: [a b c d /local]
+clear find words /local
+}
+		--assert compiled?
+
+	--test-- "#460"
+		--compile-and-run-this {head insert "" 1}
+		--assert not crashed?
+
+	--test-- "#461"
+		--compile-and-run-this {
+fn: func [
+	'word
+] [
+	mold :word
+] 
+fn :+
+fn '+
+fn +
+}
+		--assert not crashed?
+
+	--test-- "#486"
+		--compile-and-run-this {
+b: [x]
+print b/1			
+}
+		--assert equal? "x" trim/lines qt/output
+	
+	--test-- "#492"
+		--compile-this {
+flexfun-s: function [
+	s [string!] 
+	return: [string!]
+] [
+	return s
+]
+flexfun-i: function [
+	i [integer!] 
+	return: [integer!] 
+] [
+	return i
+]
+flexfun: function [
+	n [integer! float! string!] 
+	return: [string! integer! logic!] 
+	/local rv
+] [
+	rv: type? n
+	either "string" = rv [uitstr: flexfun-s n] [uitint: flexfun-i n]
+]
+}
+		--assert compiled?
+
+	--test-- "#506"
+		--compile-this {
+r: routine [
+    i [integer!]
+    s [string!]
+][
+]
+r2: routine [
+    return: [logic!]
+][
+]
+
+if no [
+    if no [
+        if i: 0 [
+            if no [
+                if no [
+                    while [yes] [
+                        case [
+                            no []
+                            no []
+                            yes [
+                                s: skip "" 0
+                                append clear "" ""
+
+                                case [
+                                    all [][]
+                                    all [][]
+                                    all [
+                                        r i ""
+                                    ][
+                                    ]
+                                    yes [
+                                        if r2 []
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+]
+}
+		--assert compiled?
+
+>>>>>>> ccf4c7e3247ebaf5487658bd93f0a54af51cb972
 	--test-- "#530"
 		--compile-and-run-this {
 f: function [
@@ -155,9 +389,14 @@ print parse-trace st1 rule
 }
 		--assert not crashed?
 
-	--test-- "#633"
-		--compile-this {#"^(back)"}
-		--assert compiled?
+; FIXME: problems with loading source: 
+; *** Syntax Error: Invalid issue! value
+; *** line: 2
+; *** at: {#"^^H"}
+	; --test-- "#633"
+	; 	--compile-this {#"^(back)"}
+	; 	print mold qt/comp-output
+	; 	--assert compiled?
 
 	--test-- "#634"
 		--compile-and-run-this {make block! 0 none}

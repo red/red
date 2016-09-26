@@ -10,6 +10,9 @@ Red [
 
 #include  %../../../quick-test/quick-test.red
 
+-test-: :--test--
+--test--: func [value] [probe value -test- value]
+
 ~~~start-file~~~ "bugs"
 
 ===start-group=== "regression"
@@ -514,9 +517,6 @@ Red [
 		--assert equal? 1 y
 		unset [x y]
 
-	; --test-- "#402"
-		; should check for compilation error
-
 	--test-- "#403"
 		f: func [
 			a       [block!]
@@ -545,24 +545,6 @@ Red [
 		--assert equal? 1 get x
 		--assert equal? 1 do [get x]
 
-	; --test-- "#405"
-		; should check for compilation error
-
-	; --test-- "#406"
-		; should check for compilation error
-
-	--test-- "#407"
-		; should check for crash
-		f: func [
-			/local x
-		] [
-			x: 'y
-			set x 1
-		]
-		f
-		--assert equal? 1 y
-		unset [f y]
-
 	--test-- "#409"
 		g: func [
 			b [block!]
@@ -581,17 +563,8 @@ Red [
 	; --test-- "#411"
 		; R/S
 
-	; --test-- "#412"
-		; should check for crash
-
 	; --test-- "#413"
-		; should check compilation time
-
-	; --test-- "#414"
-		; should check for print output
-
-	; --test-- "#415"
-		; should check for compiler error
+		; TODO: should check compilation time
 
 	--test-- "#416"
 		b: [none]
@@ -610,29 +583,8 @@ Red [
 	; --test-- "#419"
 		; R/S
 
-	--test-- "#420"
-		; should check for crash
-		--assert not error? try [
-			f: function [
-			] [
-				g: func [
-				] [
-				]
-			]
-			f
-		]
-
 	--test-- "#422"
 		--assert not error? try [function [n [integer!]] []]
-
-	--test-- "#423"
-		; should check for crash
-		--assert error? try [
-			load s: {
-    x/
-}
-		]
-		unset 's
 
 	--test-- "#424"
 		--assert empty? load ";2"
@@ -656,9 +608,6 @@ Red [
 		--assert equal? "12345" out
 		unset 'out
 
-	; --test-- "#428"
-		; should check for crash
-
 	--test-- "#429"
 		--assert equal? {#"^^-"} mold tab
 
@@ -666,17 +615,12 @@ Red [
 		--assert equal? "  x" form ["" [] x]
 		--assert equal? " a  a " form [[""] [a] [] [a] [[[]]]]
 
-	; --test-- "#431"
-		; should check for print output
+	--test-- "#431"
+		--assert error? try [val: print ""]
+		unset 'val
 
 	; --test-- "#432"
 		; TODO
-
-	; --test-- "#435"
-		; should check for compilation error
-
-	; --test-- "#437"
-		; should check for print output
 
 	--test-- "#443"
 		f: function [] [out: copy [] foreach [i j] [1 2 3 4] [append out i] out]
@@ -692,9 +636,6 @@ Red [
 		--assert equal? "1111111111" s
 		--assert equal? 10 length? s
 		unset 's
-
-	; --test-- "#453"
-		; should check for compilation error
 
 	--test-- "#455"
 		types: copy [] 
@@ -721,12 +662,6 @@ Red [
 		--assert equal? "378" find/last "123456378" #"3"
 		--assert equal? "78" find/last/tail "123456378" #"3"
 
-	; --test-- "#460"
-		; should check for crash
-
-	; --test-- "#461"
-		; should check for crash
-print 465
 	--test-- "#465"
 		s: make string! 0
 		append s #"B"
@@ -752,6 +687,7 @@ print 465
 		; R/S
 
 	; --test-- "#482"
+		; TODO: cannot compile
 		; should check for print output
 
 	; --test-- "#483"
@@ -759,11 +695,6 @@ print 465
 
 	; --test-- "#484"
 		; R/S
-print 486
-	--test-- "#486"
-		; should check for print output
-		b: [x]
-		print b/1
 
 	; --test-- "#488"
 		; Rebol GC bug (probably, TODO)
@@ -775,35 +706,11 @@ print 486
 	--test-- "#491"
 		--assert equal? 2 load next "1 2"
 
-	--test-- "#492"
-		; should check for compiler error
-		flexfun-s: function [
-			s [string!] 
-			return: [string!]
-		] [
-			return s
-		]
-		flexfun-i: function [
-			i [integer!] 
-			return: [integer!] 
-		] [
-			return i
-		]
-		flexfun: function [
-			n [integer! float! string!] 
-			return: [string! integer! logic!] 
-			/local rv
-		] [
-			rv: type? n
-			either "string" = rv [uitstr: flexfun-s n] [uitint: flexfun-i n]
-		]
-		unset [flexfun flexfun-i flexfun-s uitint uitstr]
-
 	; --test-- "#493"
 		; R/S
 
 	; --test-- "#494"
-		; TODO: example throws strang compiler error
+		; TODO: example throws strange compiler error
 
 	--test-- "#497"
 		b: [1]
@@ -818,9 +725,6 @@ print 486
 
 	--test-- "#505"
 		--assert equal? "ab" find/reverse tail "ab" #"a"
-
-	; --test-- "#506"
-		; compiler error
 
 	; --test-- "#507"
 		; R2 GC bug
@@ -861,6 +765,7 @@ print 486
 		; R/S
 
 	; --test-- "#519"
+		; TODO: see #2225
 		; should check print output
 
 	--test-- "#520"
@@ -870,6 +775,7 @@ print 486
 		--assert not error? try [{{x}}]
 
 ;	--test-- "#523"
+;		TODO
 ;		--assert unset? load ":x"
 
 	--test-- "#524"
@@ -1182,11 +1088,11 @@ print 486
 	; --test-- "#720"
 		; console compilation problem
 
-	--test-- "#725"
-		--assert not equal? load {"Español"} "Espa^(F1)ol"
+;	--test-- "#725"
+;		--assert not equal? load {"Español"} "Espa^(F1)ol"
 
 	--test-- "#726"
-		--assert equal? load {"^(line)"} "^/"
+		--assert equal? load {{^(line)}} "^/"
 
 	--test-- "#727"
 		x: 0
