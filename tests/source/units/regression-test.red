@@ -696,9 +696,6 @@ Red [
 		--assert equal? 10 length? s
 		unset 's
 
-	; --test-- "#453"
-		; should check for compilation error
-
 	--test-- "#455"
 		types: copy [] 
 		foreach word words-of system/words [
@@ -724,12 +721,6 @@ Red [
 		--assert equal? "378" find/last "123456378" #"3"
 		--assert equal? "78" find/last/tail "123456378" #"3"
 
-	; --test-- "#460"
-		; should check for crash
-
-	; --test-- "#461"
-		; should check for crash
-print 465
 	--test-- "#465"
 		s: make string! 0
 		append s #"B"
@@ -755,6 +746,7 @@ print 465
 		; R/S
 
 	; --test-- "#482"
+		; TODO: cannot compile
 		; should check for print output
 
 	; --test-- "#483"
@@ -762,11 +754,6 @@ print 465
 
 	; --test-- "#484"
 		; R/S
-print 486
-	--test-- "#486"
-		; should check for print output
-		b: [x]
-		print b/1
 
 	; --test-- "#488"
 		; Rebol GC bug (probably, TODO)
@@ -778,35 +765,11 @@ print 486
 	--test-- "#491"
 		--assert equal? 2 load next "1 2"
 
-	--test-- "#492"
-		; should check for compiler error
-		flexfun-s: function [
-			s [string!] 
-			return: [string!]
-		] [
-			return s
-		]
-		flexfun-i: function [
-			i [integer!] 
-			return: [integer!] 
-		] [
-			return i
-		]
-		flexfun: function [
-			n [integer! float! string!] 
-			return: [string! integer! logic!] 
-			/local rv
-		] [
-			rv: type? n
-			either "string" = rv [uitstr: flexfun-s n] [uitint: flexfun-i n]
-		]
-		unset [flexfun flexfun-i flexfun-s uitint uitstr]
-
 	; --test-- "#493"
 		; R/S
 
 	; --test-- "#494"
-		; TODO: example throws strang compiler error
+		; TODO: example throws strange compiler error
 
 	--test-- "#497"
 		b: [1]
@@ -821,9 +784,6 @@ print 486
 
 	--test-- "#505"
 		--assert equal? "ab" find/reverse tail "ab" #"a"
-
-	; --test-- "#506"
-		; compiler error
 
 	; --test-- "#507"
 		; R2 GC bug

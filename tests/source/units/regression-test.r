@@ -20,6 +20,127 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#435"
+		--compile-this {
+f: function [] [
+    x: 0
+    if set 'x 0 [
+    ]
+]
+
+f: has [x] [
+    if set 'x 0 [
+    ]
+]
+}
+	--assert compiled?
+
+;	--test-- "#437"
+;	TODO: problems with source
+
+	--test-- "#453"
+		--compile-this {
+words: [a b c d /local]
+clear find words /local
+}
+		--assert compiled?
+
+	--test-- "#460"
+		--compile-and-run-this {head insert "" 1}
+		--assert not crashed?
+
+	--test-- "#461"
+		--compile-and-run-this {
+fn: func [
+	'word
+] [
+	mold :word
+] 
+fn :+
+fn '+
+fn +
+}
+		--assert not crashed?
+
+	--test-- "#486"
+		--compile-and-run-this {
+b: [x]
+print b/1			
+}
+		--assert equal? "x" trim/lines qt/output
+	
+	--test-- "#492"
+		--compile-this {
+flexfun-s: function [
+	s [string!] 
+	return: [string!]
+] [
+	return s
+]
+flexfun-i: function [
+	i [integer!] 
+	return: [integer!] 
+] [
+	return i
+]
+flexfun: function [
+	n [integer! float! string!] 
+	return: [string! integer! logic!] 
+	/local rv
+] [
+	rv: type? n
+	either "string" = rv [uitstr: flexfun-s n] [uitint: flexfun-i n]
+]
+}
+		--assert compiled?
+
+	--test-- "#506"
+		--compile-this {
+r: routine [
+    i [integer!]
+    s [string!]
+][
+]
+r2: routine [
+    return: [logic!]
+][
+]
+
+if no [
+    if no [
+        if i: 0 [
+            if no [
+                if no [
+                    while [yes] [
+                        case [
+                            no []
+                            no []
+                            yes [
+                                s: skip "" 0
+                                append clear "" ""
+
+                                case [
+                                    all [][]
+                                    all [][]
+                                    all [
+                                        r i ""
+                                    ][
+                                    ]
+                                    yes [
+                                        if r2 []
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+]
+}
+		--assert compiled?
+
 	--test-- "#530"
 		--compile-and-run-this {
 f: function [
