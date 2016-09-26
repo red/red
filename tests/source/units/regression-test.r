@@ -20,6 +20,49 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#587"
+		--compile-and-run-this {probe :zero?}
+		--assert not crashed?
+
+	--test-- "#589"
+		--compile-and-run-this {a: 1;}
+		--assert not crashed?
+
+	--test-- "#606"
+		--compile-this {print ["No error"}
+		--assert not compiled?
+
+	--test-- "#608"
+		--compile-this {a: "hello}
+		--assert not compiled?
+
+	--test-- "#620"
+		--compile-and-run-this {
+str-16: "0123456789abcdef"
+s: ""
+ss: str-16
+print ss
+append s ss
+print ss
+
+cstr-16: "0123456789abcdef"
+cs: copy ""
+css: copy cstr-16
+print css
+append cs css
+print css
+}
+		--assert not crashed?
+
+	--test-- "#630"
+		--compile-and-run-this {
+st1: "<id"
+delimiter: charset "<"
+rule: [some [delimiter | copy c skip]]
+print parse-trace st1 rule
+}
+		--assert not crashed?
+
 	--test-- "#633"
 		--compile-this {#"^(back)"}
 		--assert compiled?

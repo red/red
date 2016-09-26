@@ -1042,12 +1042,6 @@ print 486
 		--assert equal? reduce [block!] find t type? []
 		unset 't
 
-	; --test-- "#587"
-		; should check for crash
-
-	; --test-- "#589"
-		; must be separate file
-
 	--test-- "#592"
 		--assert file? %x
 		--assert file? copy %x
@@ -1057,8 +1051,18 @@ print 486
 		--assert equal? ["1"] parse "12" [collect [keep copy x skip]]
 		--assert equal? [#"1"] parse "12" [collect [keep skip]]
 
-	; --test-- "#594"
-		; should check for print output
+	--test-- "#594"
+		count: 0
+		letter: charset [#"a" - #"z" #"A" - #"Z"]
+		rule: [
+			some [
+				"end" end (count: count + 1)
+			|	letter
+			]
+		]
+		--assert parse "blahendslkjsfdend" rule
+		--assert 1 = count
+		unset [count letter rule]
 
 	--test-- "#596"
 		list: ""
@@ -1089,12 +1093,6 @@ print 486
 		--assert none? length? none
 		--assert error? try [1 + none] ; #621
 
-	; --test-- "#606"
-		; must be separate file
-
-	; --test-- "#608"
-		; must be separate file
-
 	; --test-- "#609"
 		; console behaviour
 
@@ -1120,9 +1118,6 @@ print 486
 		--assert equal? "bccd" gis
 		unset [a b c d e fis gis h]
 
-	; --test-- "#620"
-		; should check for print output
-
 	--test-- "#625"
 		--assert equal? #"^(1F)" first "^(1f)"
 
@@ -1131,13 +1126,6 @@ print 486
 
 	--test-- "#628"
 		--assert equal? "make objec" mold/part context [a: "1" b: "2"] 10
-
-	; --test-- "#630"
-		; should check for crash
-		; st1: "<id"
-		; delimiter: charset "<"
-		; rule: [ some [delimiter | copy c skip ] ]
-		; print parse-trace st1 rule
 
 	; --test-- "#644"
 		; TODO: how to check for hangup?
