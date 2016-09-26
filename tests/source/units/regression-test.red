@@ -888,11 +888,8 @@ print 486
 	; --test-- "#528"
 		; R/S
 
-	; --test-- "#530"
-		; should check for print output
-
 	; --test-- "#531"
-		; should check for compiler error
+		; TODO: should check for compiler error
 
 	; --test-- "#532"
 		; R/S
@@ -903,20 +900,11 @@ print 486
 	; --test-- "#535"
 		; R/S
 
-	; --test-- "#537"
-		; should check for compiler error
-
-	; --test-- "#538"
-		; should check for compiler error
-
 	; --test-- "#539"
-		; should check for compiler error
-
-	; --test-- "#540"
-		; should check for compiler error
+		; TODO: should check for compiler error
 
 	; --test-- "#541"
-		; compiler problem
+		; TODO: compiler problem
 
 	; --test-- "#542"
 		; precompiled library problem
@@ -932,13 +920,6 @@ print 486
 
 	; --test-- "#552"
 		; R/S
-
-	--test-- "#553"
-		; should check for crash
-		b: 23
-		probe quote b
-		probe quote :b
-		unset 'b
 
 	; --test-- "#554"
 		; R/S
@@ -983,28 +964,8 @@ print 486
 		--assert equal? "01:a,01:b,1:c,1:d,]]" s
 		unset [fx s]
 
-
 	--test-- "#562"
 		--assert not parse "+" [any [#"+" if (no)]]
-
-	--test-- "#563"
-		; should check for print output
-		r: [#"+" if (probe fx "-")]
-		fx: func [
-			t [string!]
-		][
-			parse t [any r]
-		]
-		--assert not fx "-"
-		--assert not fx "+"
-		unset [fx r]
-
-
-	; --test-- "#564"
-		; should check for crash
-
-	; --test-- "#565"
-		; should check for crash
 
 	--test-- "#569"
 		size: 1
@@ -1026,9 +987,6 @@ print 486
 
 	--test-- "#573"
 		--assert error? try [load "{"]
-
-	; --test-- "#574"
-		; should check for crash
 
 	--test-- "#581"
 		--assert not error? try [do "S: 1 S"]

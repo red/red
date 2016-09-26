@@ -20,6 +20,98 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#530"
+		--compile-and-run-this {
+f: function [
+	s
+][
+	probe first reduce x: [do s]
+]
+g: function [
+	s
+][
+	probe first reduce/into x: [do s] []
+]
+probe f [()]
+probe g [()]
+}
+		--assert equal? "unset unset none none" trim/lines qt/output
+
+	--test-- "#537"
+		--compile-this {
+#system-global [
+	series!: alias struct! [i [integer!]]
+	s!: alias struct! [s [series!]]
+]
+}
+		--assert compiled?
+
+	--test-- "#538" 
+		--compile-this {Red/System []}
+		--assert compiled?
+
+	--test-- "#540" 
+		--compile-this {
+#system-global []
+#system-global []
+}
+		--assert compiled?
+
+	--test-- "#553"
+		--compile-and-run-this {
+b: 23
+probe quote b
+probe quote :b
+}
+		--assert not crashed?
+
+	--test-- "#563"
+		--compile-and-run-this {
+r: [#"+" if (probe f "-")]
+f: func [
+	t [string!]
+][
+	parse t [any r]
+]
+print f "-"
+print f "+"
+}
+		--assert equal? "false false false" trim/lines qt/output
+
+	--test-- "#564"
+		--compile-and-run-this {
+f: func [
+    s [string!]
+][
+	r: [
+		copy l  skip (l: load l)
+		copy x  l skip
+		[
+			#","
+		| 	#"]" if (f probe x)
+		]
+	]
+	parse s [any r end]
+]
+print f "420,]]"
+}
+		--assert not crashed?
+
+	--test-- "#565"
+		--compile-and-run-this {
+b: []
+parse [1] [
+	collect into b [
+		collect [keep integer!]
+	]
+]
+}
+		--assert not crashed?
+
+	--test-- "#574"
+		--compile-and-run-this {probe do [switch 'a [a b [1] b [2]]]}
+		--assert not crashed?
+
 	--test-- "#587"
 		--compile-and-run-this {probe :zero?}
 		--assert not crashed?
