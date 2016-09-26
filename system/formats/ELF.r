@@ -292,8 +292,9 @@ context [
 
 		;-- (hack) Move libRed in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
-		pos: find list: job/sections/import/3 "./libRed.so"
-		insert list take/part pos 2
+		if pos: find list: job/sections/import/3 "./libRed.so" [
+			insert list take/part pos 2
+		]
 		
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
