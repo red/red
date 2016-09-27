@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red bugs tests"
 	Author:  "Boleslav Březovský"
-	File: 	 %regression-test1992.red
+	File: 	 %regression-test.red
 	Tabs:	 4
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Needs:	 'View
@@ -10,6 +10,7 @@ Red [
 
 #include  %../../../quick-test/quick-test.red
 
+true?: func [value] [not not value]
 -test-: :--test--
 --test--: func [value] [probe value -test- value]
 
@@ -418,43 +419,18 @@ Red [
 	; --test-- "#369"
 		; should check for compilation error
 
-	; --test-- "#370"
-		; should check for compilation error
-
-	; --test-- "#372"
-		; should check for compilation error
-
-	; --test-- "#373"
-		; should check for compilation error
-
-	; --test-- "#374"
-		; should check for compilation error
-
-	; --test-- "#376"
-		; should check for compilation error
-
-	; --test-- "#377"
-		; should check for compilation error
-
 	; --test-- "#379"
 		; R/S
 
 	; --test-- "#381"
 		; R/S
 
-	; --test-- "#383"
-		; should check for print output
-
-	; --test-- "#384"
-		; TODO
+	--test-- "#384"
+		f: func [/refine] [refine]
+		--assert not f
 
 	; --test-- "#385"
 		; TODO
-
-	--test-- "#386"
-		; should check for crash
-		--assert equal? [3 3 2 1] find/reverse tail [1 2 3 3 2 1] [3 3]
-
 
 	--test-- "#388"
 		--assert equal? word! type? 'a
@@ -470,29 +446,14 @@ Red [
 				"default"
 			]
 
-	; --test-- "#391"
-		; should check for compilation error
-
-	; --test-- "#392"
-		; should check for compilation error
-
 	; --test-- "#393"
 		; R/S
-
-	; --test-- "#394"
-		; should check for print output
 
 	--test-- "#395"
 		--assert switch 'yes [yes [true]]
 
-	; --test-- "#396"
-		; should check for compilation error
-
 	--test-- "#397"
 		--assert not error? try [do [append [] 1]]
-
-	; --test-- "#398"
-		; should check for compilation error
 
 	--test-- "#399"
 		x: 1
@@ -505,8 +466,43 @@ Red [
 		]
 		--assert equal? 2 f
 
-	; --test-- "#400"
-		; should check for print output
+	--test-- "#400"
+		r: none
+		t: none
+		r: all [
+			any [
+				true
+				t: "*"
+				true
+			]	
+		]
+		--assert equal? t "*"
+		--assert true? r
+		r: none
+		t: none
+		r: all [
+			any [
+				false
+				t: "*"
+				true
+			]
+			"!"
+		]
+		--assert equal? t "*"
+		--assert equal? r "!"
+		r: none
+		t: none
+		r: all [
+			any [
+				none
+				t: "*"
+				true
+			]
+			"!"
+		]
+		--assert equal? t "*"
+		--assert equal? r "!"
+		unset [r t]
 
 	--test-- "#401"
 		y: none ; prevent " undefined word y" compiler error

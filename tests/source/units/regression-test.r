@@ -20,16 +20,161 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
-<<<<<<< HEAD
-=======
+	--test-- "#370"
+		--compile-this {
+f: routine [
+	"Test."
+][
+]
+f
+}
+		--assert compiled?
+
+	--test-- "#372"
+		--compile-this {
+switch/default 1 [
+	1 []
+][]
+}
+		--assert compiled?
+
+	--test-- "#373"
+		--compile-this {
+zero?: routine [
+	value [integer!]
+	return: [logic!]
+][
+	value = 0
+]
+print zero? 0
+}
+		--assert compiled?
+
+	--test-- "#374"
+		--compile-this {
+f: does [
+	for i 1 10 1 [
+		print i
+	]
+]
+}
+		--assert not compiled?
+
+	--test-- "#376"
+		--compile-this {
+f: routine [
+	"Test."
+	n [integer!]
+][
+]
+f 0
+}
+		--assert compiled?
+
+	--test-- "#377"
+		--compile-this {
+#system-global [
+	c: context [
+	]
+]
+f: routine [
+	a [integer!]
+][
+	with c [a]
+]
+}
+		--assert compiled?
+
+	--test-- "#383"
+		--compile-and-run-this {
+s: "!"
+print s
+}
+		--assert not find qt/output {"}
+
+	--test-- "#386"
+		--compile-and-run-this {find/reverse tail [1 2 3 3 2 1] [3 3]}
+		--assert not crashed?
+
+	--test-- "#391"
+		--compile-this {
+f: function [
+	a
+][
+	a: 1
+]
+}
+		--assert compiled?
+
+	--test-- "#392"
+		--compile-this {
+a: (
+	1
+)
+}
+		--assert compiled?
+
+	--test-- "#394"
+		--compile-and-run-this {
+f: function [
+	a [integer!]
+	b [integer!]
+][
+	print a
+	print b
+]
+x: 1
+f x switch/default yes [
+	yes [x: 2]
+][
+	x: 2
+]
+
+f: function [
+	a [block!]
+	b [block!]
+][
+	print a/1
+	print b/1
+]
+x: [1 2]
+f x switch/default yes [
+	yes [x: next x]
+][
+	x: next x
+]
+}
+		--assert equal? "1 2 1 2" trim/lines qt/output
+
+	--test-- "#396"
+		--compile-this {
+f: function [
+] [
+	x: 1
+	x: 1
+]
+}
+		--assert compiled?
+
+	--test-- "#398"
+		--compile-this {
+f: func [
+	b [block!]
+] [
+	forall b [
+	]
+]
+}
+		--assert compiled?
+
 	--test-- "#402"
 		--compile-this {
 f: func [
 	/r
 	/x a
-][
+] [
 ]
-f/x 0
+	f/x 0
 }
 		--assert compiled?
 
@@ -37,7 +182,7 @@ f/x 0
 		--compile-this {
 f: func [
 	/local i
-][
+] [
 	repeat i 10 [
 	]
 ]
@@ -50,7 +195,7 @@ Red []
 
 f: func [
 	/local y
-][
+] [
 	x: 'y
 ]
 }
@@ -253,7 +398,6 @@ if no [
 }
 		--assert compiled?
 
->>>>>>> ccf4c7e3247ebaf5487658bd93f0a54af51cb972
 	--test-- "#530"
 		--compile-and-run-this {
 f: function [
