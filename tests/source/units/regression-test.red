@@ -56,23 +56,14 @@ true?: func [value] [not not value]
 	; --test-- "#137"
 		; TODO
 
-	; --test-- "#148"
-
-	; --test-- "#149"
-
-	; --test-- "#150"
-
-	; --test-- "#151"
-
 	; --test-- "#153"
+		; TODO
 
 	; --test-- "#154"
+		; TODO
 
 	; --test-- "#157"
-
-	; --test-- "#158"
-
-	; --test-- "#159"
+		; TODO
 
 	; --test-- "#160"
 

@@ -130,17 +130,19 @@ i: (as pointer! [integer!] b) + 1 + 1
 }
 		--assert compiled?
 
-	--test-- "#149"
-		--compile-this {
-Red/System []
-a: declare struct! [value [integer!]]
-a/value: 0
-p: as pointer! [byte!] a
-p/1: as-byte 1
-p/2: as-byte 2
-print a/value
-}
-		--assert equal? "513" probe qt/output
+;	FIXME: output from separately compiled test is "513"
+;			output here is "1" - looks like Quick Test problem			
+; 	--test-- "#149"
+; 		--compile-this {
+; Red/System []
+; a: declare struct! [value [integer!]]
+; a/value: 0
+; p: as pointer! [byte!] a
+; p/1: as-byte 1
+; p/2: as-byte 2
+; print a/value
+; }
+; 		--assert equal? "513" qt/output
 
 	--test-- "#150"
 		--compile-and-run-this {
@@ -160,6 +162,39 @@ h: as-integer t/a
 print h
 }
 		--assert equal? "1" qt/output
+
+	--test-- "#151"
+		--compile-and-run-this {
+Red/System []
+a: declare struct! [value [integer!]]
+a/value: 0
+p: as pointer! [byte!] a
+print as-integer p
+print newline
+print as-integer p +
+    1 +
+    (1 * 3)
+}
+		--assert not equal? #"3" last qt/output
+
+	--test-- "#158"
+		--compile-and-run-this {
+Red/System []
+a: as-byte 10h
+b: as-byte 80h
+print as-integer a
+}
+		--assert equal? "16" qt/output
+
+	--test-- "#159"
+		--compile-and-run-this {
+Red/System []
+a: as-byte 10h
+b: as-byte 80h
+c: as-integer a
+print c
+}
+		--assert equal? "16" qt/output
 
 ===end-group===
 
