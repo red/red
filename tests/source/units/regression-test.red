@@ -65,23 +65,17 @@ true?: func [value] [not not value]
 	; --test-- "#157"
 		; TODO
 
-	; --test-- "#160"
-
-	; --test-- "#161"
-
-	; --test-- "#162"
-
-	; --test-- "#164"
-
 	; --test-- "#165"
+		; TODO
 
 	; --test-- "#167"
+		; TODO
 
 	; --test-- "#168"
-
-	; --test-- "#169"
+		; specific compiler version problem
 
 	; --test-- "#170"
+		; TODO
 
 	; --test-- "#171"
 

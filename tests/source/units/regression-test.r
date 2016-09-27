@@ -196,6 +196,69 @@ print c
 }
 		--assert equal? "16" qt/output
 
+	--test-- "#160"
+		--compile-and-run-this {
+Red/System []
+#define as-binary [as pointer! [byte!]]
+a: as-byte 1
+b: as-byte 2
+print [as-binary (as-integer a) * 2 " "]
+print [as-binary (as-integer a) << 2]
+}
+		--assert equal? "00000002 00000004" qt/output
+
+	--test-- "#161"
+		--compile-and-run-this {
+Red/System []
+a: as-byte 1
+b: as-byte 2
+print as byte-ptr! (as-integer b) << 16 or as-integer a
+}
+		--assert equal? "00020001" qt/output
+
+	--test-- "#162"
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [
+	a	[byte!]
+	b	[byte!]
+]
+s/a: as-byte 0
+s/b: as-byte 1
+print as-logic s/a
+}
+		--assert equal? "false" qt/output
+
+	--test-- "#164"
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [
+	a	[byte!]
+	b	[byte!]
+]
+s/a: as-byte 0
+s/b: as-byte 1
+print either as-logic s/a ["bogus"] [""]
+}
+		--assert empty? qt/output
+
+	--test-- "#169"
+		--compile-this {
+Red/System []
+s!: alias struct! [x [integer!]]
+
+x: function [
+	return: [s!]
+][
+	either true [
+		as s! 0
+	][
+		null
+	]
+]
+}
+	--assert compiled?
+
 ===end-group===
 
 ===start-group=== "Red regressions"
