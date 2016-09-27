@@ -399,12 +399,7 @@ true?: func [value] [not not value]
 		; should check for crash
 
 	; --test-- "#360"
-		; should check for compilation error
-
-	; --test-- "#362"
-		; should check for compilation error
-
-	; --test-- "#363"
+		; TODO: OPEN
 		; should check for compilation error
 
 	; --test-- "#364"
@@ -412,12 +407,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#366"
 		; TODO: compilation problem with dir paths
-
-	; --test-- "#367"
-		; should check for compilation error
-
-	; --test-- "#369"
-		; should check for compilation error
 
 	; --test-- "#379"
 		; R/S

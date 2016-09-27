@@ -20,6 +20,47 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#362"
+		--compile-this {
+f: routine [
+	s [string!]
+	return: [integer!]
+][
+	0
+]
+f ""
+}
+		--assert compiled?
+
+	--test-- "#363"
+		--compile-this {
+f: routine [
+	return: [integer!]
+][
+	#either OS = 'Windows [
+		0
+    ] [
+		1
+    ]
+]
+}
+		--assert compiled?
+
+	--test-- "#367"
+		--compile-this {#1}
+		--assert compiled?
+
+	--test-- "#369"
+		--compile-this {
+f: routine [
+	return: [integer!]
+][
+	0
+]
+if yes [print f]
+}
+		--assert compiled?
+
 	--test-- "#370"
 		--compile-this {
 f: routine [
