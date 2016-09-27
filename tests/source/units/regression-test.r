@@ -20,6 +20,24 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+; FIXME: There is some strange problem with Quick Test. print integer! from R/S
+;		returns some strange values, but when printed to console, it’s fine.
+; 	--test-- "#274"
+; 		--compile-and-run-this {
+; #system-global [
+; 	print ["Symptom of the universe: " 42]
+; ]
+; }
+; 		print mold qt/output
+
+	--test-- "#304"
+		--compile-this {c: #"^^(0A)"} ; double ^^ to prevent escape mangling when moving code from Rebol to Red
+		--assert compiled?
+
+	--test-- "#312"
+		--compile-this {f: func[/local f][]}
+		--assert compiled?
+
 	--test-- "#323"
 		--compile-this {loop []}
 		--assert true? find qt/comp-output "expected a block for LOOP-BODY instead of none! value"

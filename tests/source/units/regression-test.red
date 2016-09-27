@@ -247,9 +247,6 @@ true?: func [value] [not not value]
 	; --test-- "#273"
 		; R/S
 
-	; --test-- "#274"
-		; should check for print output
-
 	; --test-- "#275"
 		; R/S
 
@@ -298,9 +295,6 @@ true?: func [value] [not not value]
 	; --test-- "#300"
 		; R/S
 
-	; --test-- "#304"
-		; TODO
-
 	--test-- "#306"
 		s: mold []
 		--assert equal? #"[" s/1
@@ -315,9 +309,6 @@ true?: func [value] [not not value]
 		--assert equal? "good" either true ["good"] ["bad"]
 		--assert equal? "good" either false ["bad"] ["good"]
 		--assert equal? "good" either 42 ["good"] ["bad"]
-
-	; --test-- "#312"
-		; should check for compilation error
 
 	; --test-- "#313"
 		; TODO
