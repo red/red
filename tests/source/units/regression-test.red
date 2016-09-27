@@ -89,40 +89,15 @@ true?: func [value] [not not value]
 	; --test-- "#188"
 		; TODO
 
-	; --test-- "#198"
-
 	; --test-- "#200"
 		; quick-test bug
 
 	; --test-- "#204"
 		; no code
 
-	; --test-- "#205"
-		; R/S
-
-	; --test-- "#207"
-		; R/S
-
-	; --test-- "#208"
-		; R/S
-
-	; --test-- "#209"
-		; R/S
-
-	; --test-- "#210"
-		; R/S
-
 	; --test-- "#212"
-		; R/S
-
-	; --test-- "#216"
-		; R/S
-
-	; --test-- "#217"
-		; R/S
-
-	; --test-- "#220"
-		; R/S
+		; NOTE: float! problem on ARM - there is ton of other float! tests
+		;		that will test this as well
 
 	; --test-- "#221"
 		; R/S

@@ -335,6 +335,116 @@ print ["finished"]
 		--assert compiled?
 		--assert equal? "started finished" qt/output
 
+	--test-- "#205"
+		--compile-and-run-this {
+Red/System []
+f1: function [
+    return: [float!]
+][
+    1.0
+]
+f2: function [
+    return: [float!]
+][
+    2.0
+]
+
+print [
+    1.0 / 2.0 " "
+    f1 / f2
+]
+}
+		--assert equal? "0.5 0.5" qt/output
+
+	--test-- "#207"
+		--compile-this {
+Red/System []
+#define x 0
+comment [
+	#define x 0
+]
+}
+		--assert compiled?
+
+	--test-- "#208"
+		--compile-and-run-this {
+Red/System []
+test: function [
+	a	[float!]
+	b	[float!]
+][
+	print-wide [a b " "]
+	print-wide [as-float32 a as-float32 b]
+]
+print-wide [as-float32 0.0 as-float32 1.0 " "]
+test 0.0 1.0
+}
+		--assert equal? "0.0 1.0  0.0 1.0  0.0 1.0" qt/output
+
+	--test-- "#209"
+		--compile-and-run-this {
+Red/System []
+print [as-float32 0.0  lf]
+}
+		--assert not crashed?
+
+	--test-- "#210"
+		--compile-and-run-this {
+Red/System []
+print [as-float32 0.0  lf]
+print-wide [as-float32 0.0  as-float32 1.0  lf]
+
+test: function [
+	a	[float!]
+	b	[float!]
+][
+	print-wide [a b lf]
+	print-wide [as-float32 a  as-float32 b  lf]
+]
+print-wide [as-float32 0.0  as-float32 1.0  lf]
+test 0.0 1.0
+}
+		--assert not crashed?
+
+	--test-- "#216"
+		--compile-and-run-this {
+Red/System []
+i: 2.0
+print i / (i - 1.0) 
+}
+		--assert equal? "2.0" qt/output		
+
+	--test-- "#217"
+		--compile-and-run-this {
+Red/System []
+i: 1
+f: 0.0
+arr: as pointer! [float!] allocate 10 * size? float!
+
+while [i <= 10] [
+	arr/i: f
+	f: f + 0.1
+	i: i + 1
+]
+}
+		--assert not crashed?
+
+	--test-- "#220"
+		--compile-and-run-this {
+Red/System []
+i: 1
+f: 0.0
+arr: as pointer! [float!] allocate 10 * size? float!
+
+while [i <= 10] [
+	arr/i: f
+	f: f + 0.1
+	print [i ":" as-float32 arr/i lf]
+	i: i + 1
+]
+}
+		--assert not crashed?
+
 ===end-group===
 
 ===start-group=== "Red regressions"
