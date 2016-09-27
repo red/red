@@ -20,25 +20,14 @@ true?: func [value] [not not value]
 
 	; --test-- "#5"
 
-	; --test-- "#28"
-
-	; --test-- "#32"
-
-	; --test-- "#55"
-
-	; --test-- "#59"
-
 	; --test-- "#63"
+		; TODO
 
 	; --test-- "#65"
+		; TODO
 
 	; --test-- "#71"
-
-	; --test-- "#76"
-
-	; --test-- "#88"
-
-	; --test-- "#89"
+		; TODO
 
 	; --test-- "#114"
 

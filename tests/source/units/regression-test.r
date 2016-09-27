@@ -18,7 +18,73 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ;--separate-log-file
 
-~~~start-file~~~ "Red regressions"
+~~~start-file~~~ "Regression tests"
+
+===start-group=== "Red/System regressions"
+
+	--test-- "#28"
+		--compile-this {
+Red/System []
+i: 1 * 0
+}
+		--assert compiled?
+
+	--test-- "#32"
+		--compile-this {
+Red/System []
+
+f: func [
+	result: [integer!]
+] []
+}
+		--assert not compiled?
+
+	--test-- "#55"
+		--compile-this {
+Red/System []
+i: 0 
+i: "A"
+}
+		--assert not compiled?
+
+	--test-- "#59"
+		--compile-this {
+Red/System []
+exit
+}
+		--assert not compiled?
+		--compile-this {
+Red/System []
+return
+}
+		--assert not compiled?
+
+	--test-- "#76"
+		--compile-and-run-this {
+Red/System []
+a: "0"
+a/1: a/1 + (2 * 2)
+print a
+}
+		--assert equal? "4" qt/output
+
+	--test-- "#88"
+		--compile-this {
+Red/System []
+s: declare struct! []
+}
+		--assert not compiled?
+
+	--test-- "#89"
+		--compile-this {
+Red/System []
+OemToChar: 123
+}
+		--assert compiled?
+
+===end-group===
+
+===start-group=== "Red regressions"
 
 ; FIXME: There is some strange problem with Quick Test. print integer! from R/S
 ;		returns some strange values, but when printed to console, it’s fine.
@@ -1289,5 +1355,7 @@ test
 
 ;	print mold qt/output
 ;	print mold qt/comp-output
+
+===end-group===
 
 ~~~end-file~~~ 
