@@ -13,6 +13,8 @@ true?: func [value] [not not value]
 crashed?: does [true? find qt/output "*** Runtime Error"]
 compiled?: does [true? not find qt/comp-output "Error"]
 script-error?: does [true? find qt/output "Script Error"]
+compiler-error?: does [true? find qt/comp-output "*** Compiler Internal Error"]
+compilation-error?: does [true? find qt/comp-output "*** Compilation Error"]
 -test-: :--test--
 --test--: func [value] [probe value -test- value]
 
@@ -571,6 +573,130 @@ Red/System []
 not as byte! 0
 }
 		--assert compiled?
+
+	--test-- "#231"
+		--compile-this {
+Red/System []
+f: func [
+	[typed]
+	count	[integer!]
+	list	[typed-value!]
+][
+	pi: declare pointer! [integer!]
+	pi: as pointer! [integer!] list/value
+]
+
+f [:i]
+}
+		--assert not compiler-error?
+
+	--test-- "#233"
+		--compile-this {
+Red/System []
+#enum type! [
+	x
+]
+
+f: function [
+	a [type!]
+][
+]
+
+g: function [
+	a [type!]
+][
+	f a
+]
+}
+		--assert compiled?
+
+	--test-- "#235"
+		--compile-this {
+Red/System []
+a!: alias struct! [a [byte!]]
+system/alias/a!
+}
+		--assert compiled?
+
+	--test-- "#238"
+		--compile-this {
+Red/System []
+
+c: context [
+	s!: alias struct! [dummy [integer!]]
+]
+
+with c [
+	f: function [
+		p [s!]
+	][
+	]
+]
+}
+		--assert compiled?
+
+	--test-- "#241"
+		--compile-this {
+Red/System []
+c: context [
+    #enum e! [i]
+]
+
+with c [
+	f: function [
+		return: [e!]
+	][
+		i
+	]
+]
+}
+		--assert compiled?
+
+	--test-- "#243"
+		--compile-this {
+Red/System []
+c: context [
+	#enum e! [x]
+]
+
+with c [
+	f: function [
+		p [float!]
+	][
+	]
+
+	x: 0.0
+	f x
+]
+}
+		--assert compilation-error?
+
+	--test-- "#244"
+		--compile-this {
+Red/System []
+a: "REBOL []"
+b: {REBOL []}
+c: {
+	REBOL
+}
+d: {
+	REBOL []
+}
+}
+		--assert compiled?
+
+	--test-- "#245"
+		--compile-this {
+Red/System []
+a: declare struct! [
+	b [integer!]
+	b [byte!]
+]
+
+a/b: 123
+print a/b
+}
+		--assert compilation-error?
 
 ===end-group===
 

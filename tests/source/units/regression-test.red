@@ -102,41 +102,17 @@ true?: func [value] [not not value]
 	; --test-- "#228"
 		; TODO
 
-	; --test-- "#231"
-		; R/S
-
-	; --test-- "#233"
-		; R/S
-
 	; --test-- "#234"
-		; R/S
-
-	; --test-- "#235"
-		; R/S
+		; TODO
 
 	; --test-- "#236"
-		; R/S
-
-	; --test-- "#238"
-		; R/S
+		; TODO
 
 	; --test-- "#239"
-		; R/S
-
-	; --test-- "#241"
-		; R/S
-
-	; --test-- "#243"
-		; R/S
-
-	; --test-- "#244"
-		; R/S
-
-	; --test-- "#245"
-		; R/S
+		; TODO
 
 	; --test-- "#250"
-		; R/S
+		; TODO
 
 	; --test-- "#253"
 		; R/S
