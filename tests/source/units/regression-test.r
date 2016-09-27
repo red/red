@@ -82,6 +82,85 @@ OemToChar: 123
 }
 		--assert compiled?
 
+	--test-- "#136"
+		--compile-and-run-this {
+Red/System []
+a: declare struct! [x [byte!] y [logic!]]
+prin-int size? a
+}
+		--assert equal? "8" qt/output
+
+	--test-- "#138"
+		--compile-this {
+Red/System []
+(1 + 2) and 3
+}
+		--assert compiled?
+
+	--test-- "#139"
+		--compile-this {
+Red/System []
+assert all [1 = 2]
+}
+		--assert compiled?
+
+	--test-- "#146"
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [
+	a [byte!]
+	b [byte!]
+	c [byte!]
+	d [byte!]
+]
+s/a: as-byte 1
+s/b: as-byte 1
+s/c: as-byte 0
+s/d: as-byte 0
+print as-integer s/a
+}
+		--assert equal? "1" qt/output
+
+	--test-- "#148"
+		--compile-this {
+Red/System []
+i: declare pointer! [integer!]
+b: declare pointer! [byte!]
+i: (as pointer! [integer!] b) + 1 + 1
+}
+		--assert compiled?
+
+	--test-- "#149"
+		--compile-this {
+Red/System []
+a: declare struct! [value [integer!]]
+a/value: 0
+p: as pointer! [byte!] a
+p/1: as-byte 1
+p/2: as-byte 2
+print a/value
+}
+		--assert equal? "513" probe qt/output
+
+	--test-- "#150"
+		--compile-and-run-this {
+Red/System []
+s!: alias struct! [
+	a	[byte!]
+	b	[byte!]
+	c	[byte!]
+	d	[byte!]
+]
+t: declare s!
+t/a: as-byte 1
+t/b: as-byte 1
+t/c: as-byte 0
+t/d: as-byte 0
+h: as-integer t/a
+print h
+}
+		--assert equal? "1" qt/output
+
 ===end-group===
 
 ===start-group=== "Red regressions"
