@@ -257,7 +257,83 @@ x: function [
 	]
 ]
 }
-	--assert compiled?
+		--assert compiled?
+
+	--test-- "#171"
+		--compile-and-run-this {
+Red/System []
+x: as struct! [x [integer!]] 0
+if as-logic x [
+	print "not null"
+]
+y: as pointer! [byte!] 0
+if as-logic y [
+	print "not null"
+]
+}
+		--assert empty? qt/output
+
+	--test-- "#173"
+		--compile-and-run-this {
+Red/System []
+x: as struct! [x [integer!]] 1
+if as-logic x [
+	print "not null "
+]
+y: as pointer! [byte!] 1
+if as-logic y [
+	print "not null"
+]
+}
+		--assert equal? "not null not null" qt/output
+
+	--test-- "#175"
+		--compile-and-run-this {
+Red/System []
+s!: alias struct! [x [integer!]]
+p: declare s!
+unless as-logic p [
+	print "true = as-logic not non-null"
+]
+}
+		--assert empty? qt/output
+
+	--test-- "#198"
+		--compile-and-run-this {
+Red/System []
+print ["started"]
+
+f: func [
+	i               [integer!]
+	s               [c-string!]
+	return:         [integer!]
+	/local
+	divisor         [integer!]
+] [
+	divisor: 0
+
+	switch i [
+		0 [
+			return 0
+		]
+		-2147483648 [
+			return 0
+		]
+		default [
+			until [
+				divisor = 0
+			]
+		]
+	]
+	0
+]
+s: " "
+f 1 s
+print [s]
+print ["finished"]
+}
+		--assert compiled?
+		--assert equal? "started finished" qt/output
 
 ===end-group===
 
