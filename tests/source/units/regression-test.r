@@ -20,6 +20,40 @@ script-error?: does [true? find qt/output "Script Error"]
 
 ~~~start-file~~~ "Red regressions"
 
+	--test-- "#323"
+		--compile-this {loop []}
+		--assert true? find qt/comp-output "expected a block for LOOP-BODY instead of none! value"
+
+	--test-- "#326"
+		--compile-this {f: func[:a [integer!]] []}
+		--assert compiled?
+
+	--test-- "#328"
+		--compile-this {x}
+		--assert not find qt/comp-output "%red/boot.red"
+
+	--test-- "#332"
+		--compile-this {exit}
+		--assert not compiled?
+		--compile-this {return}
+		--assert not compiled?
+
+	--test-- "#347"
+		--compile-this {
+#system-global [
+	f: does [print-line "Error"]
+]
+}
+		--assert compiled?
+
+	--test-- "#355"
+		--compile-and-run-this {do [unless true []]}
+		--assert not crashed?
+
+	--test-- "#358"
+		--compile-and-run-this {do [reflect :first 'spec]}
+		--assert not crashed?
+
 	--test-- "#362"
 		--compile-this {
 f: routine [

@@ -332,18 +332,8 @@ true?: func [value] [not not value]
 		--assert none? probe if false [1]
 		--assert error? probe try [1 + if false [2]]
 
-	; --test-- "#323"
-		; should check for compilation error
-
 	; --test-- "#324"
 		; NOTE: seems to be buggy still
-
-	--test-- "#326"
-		; should check for compilation error
-		--assert not error? try [func[:a [integer!]] []]
-
-	; --test-- "#328"
-		; should check for compilation error
 
 	; --test-- "#330"
 		; TODO
@@ -353,10 +343,6 @@ true?: func [value] [not not value]
 		foo: func [] ["ERR"]
 		foo: func [] ["ok"]
 		--assert equal? "ok" foo
-
-	; --test-- "#332"
-		; should check for compilation error
-		; (return and exit outside of function)
 
 	; --test-- "#334"
 		; R/S
@@ -380,23 +366,14 @@ true?: func [value] [not not value]
 	; --test-- "#346"
 		; R/S
 
-	; --test-- "#347"
-		; should check for compilation error
-
 	; --test-- "#348"
 		; R/S
-
-	; --test-- "#355"
-		; should check for crash
 
 	--test-- "#356"
 		--assert not error? try [if true []]
 
 	; --test-- "#357"
 		; TODO
-
-	; --test-- "#358"
-		; should check for crash
 
 	; --test-- "#360"
 		; TODO: OPEN
