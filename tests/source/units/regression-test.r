@@ -445,6 +445,133 @@ while [i <= 10] [
 }
 		--assert not crashed?
 
+	--test-- "#221"
+		--compile-and-run-this {
+Red/System []
+x: -1.0
+y: either x < 0.0 [0.0 - x][x]
+print [y lf]
+}
+		--assert not crashed?
+		--compile-and-run-this {
+Red/System []
+fabs: func [x [float!] return: [float!] ][
+	either x < 0.0 [0.0 - x][x]
+]
+print [fabs -3.14 lf]
+}
+		--assert not crashed?		
+
+	--test-- "#222"
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [value [float!]]
+s/value: 1.0
+a: as pointer! [float!] allocate 100 * size? float!
+a/1: s/value
+a/1: s/value
+1 + 1
+}
+		--assert not crashed?
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [value [float!]]
+s/value: 1.0
+a: as pointer! [float!] allocate 100 * size? float!
+a/1: s/value
+a/1: s/value
+if true [a/1: s/value]
+}
+		--assert not crashed?
+
+	--test-- "#223"
+		--compile-and-run-this {
+Red/System []
+i: 1
+while [i <= 10][
+	0.0
+	i: i + 1
+]
+}
+		--assert not crashed?
+		--compile-and-run-this {
+Red/System []
+a: as pointer! [float!] allocate 10 * size? float!
+i: 1
+f: 1.0
+while [i <= 7][
+	f: f * 0.8
+	print [f lf]
+	a/i: f 
+	i: i + 1
+]
+}
+		--assert not crashed?
+		--compile-and-run-this {
+Red/System []
+a: as pointer! [float!] allocate 10 * size? float!
+i: 1
+f: 1.0
+while [i <= 10][
+	f: f * 0.8
+	print [f lf]
+	a/i: f 
+	i: i + 1
+]
+}
+		--assert not crashed?
+
+	--test-- "#224"
+		--compile-this {
+Red/System []
+n: 1
+n: not n
+}
+		--assert compiled?
+
+	--test-- "#225"
+		--compile-and-run-this {
+Red/System []
+i: 1.0
+f: 1.0
+data: declare pointer! [float!]
+data: :f
+while [i < 10.0][
+	data/value: i
+	i
+	i: i + 1.0
+]
+}
+		--assert not crashed?
+
+	--test-- "#226"
+		--compile-and-run-this {
+Red/System []
+number: 10
+array: declare pointer! [byte!]
+array: as byte-ptr! :number
+value: as integer! array/value
+print [10 * as integer! array/value lf]
+}
+		--assert not crashed?
+
+	--test-- "#227"	
+		--compile-and-run-this {
+Red/System []
+t: 2.2
+s: declare struct! [v [float!]]
+s/v: 2.0
+print [t - s/v]
+}
+		--assert equal? "0.2" copy/part qt/output 3 ; prevent rounding errors
+	
+	--test-- "#229"
+		--compile-this {
+Red/System []
+not as byte! 0
+}
+		--assert compiled?
+
 ===end-group===
 
 ===start-group=== "Red regressions"
