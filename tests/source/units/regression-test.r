@@ -773,7 +773,6 @@ Red/System []
 	--test-- "#275"
 		--compile-and-run-this {
 Red/System []
-
 a: 600851475143.0 ;prime number
 i: 2.0
 while [i * i <= a] [
@@ -785,14 +784,6 @@ while [i * i <= a] [
 print a
 }
 		--assert not crashed?
-
-	--test-- "#276"
-		--compile-this {
-#system-global [
-    c: #" "
-]
-}
-		--assert compiled?
 
 	--test-- "#281"
 		--compile-this {
@@ -888,8 +879,6 @@ c: context [
 		zero? a
 	]
 ]
-
-
 }
 		--assert compiled?
 
@@ -907,8 +896,89 @@ v: declare pointer![float64!] d: 1.0 v: :d
 }
 		--assert compiled?
 
+	--test-- "#317"
+		--compile-and-run-this {
+Red/System []
+a: as-byte 1
+b: as-byte 2
+c: as-byte 3
+d: as-byte 4
+a: as-byte 0
+print-wide [as-integer a  as-integer b  as-integer c  as-integer d  lf]
+}
+		--assert equal? "0 2 3 4" qt/output
+
+	--test-- "#334"
+		--compile-this {
+Red/System []
+
+#define def (a) [
+	v: a
+]
+b: true
+def ((not b))
+}
+		--assert compiled?
+
+	--test-- "#338"
+		--compile-this {
+Red/System []
+a: as pointer! [integer!] allocate 10 * size? integer!
+c: context [
+	i: 1
+	a/i: i
+]
+}
+		--assert compiled?
+
+	--test-- "#344"
+		--compile-and-run-this {
+Red/System []
+b: as-byte 0
+print as-integer not as-logic b
+b: as-byte 1
+print as-integer not as-logic b
+b: as-byte 2
+print as-integer not as-logic b
+}
+		--assert equal? "100" qt/output
+
+	--test-- "#346"
+		--compile-this {
+Red/System []
+#import [LIBC-file cdecl [
+    to-float: "atof" ["Parse string to floating point."
+        string      [c-string!]
+        return:     [float!]
+    ]
+]]
+print (to-float "1")
+}
+		--assert compiled?
+
+	--test-- "#348"
+		--compile-this {
+Red/System []
+c1: context [
+	c2: context [
+		x: 0
+	]
+	with c2 [
+		x: 1
+	]
+]
+}
+		--assert compiled?
 
 ===end-group===
+
+;-----------------------------------------------------------------------------
+;
+;   *****   ****** *****
+;   * **    ****   *   **
+;   *   **  ****** *****
+;
+;-----------------------------------------------------------------------------
 
 ===start-group=== "Red regressions"
 
@@ -921,6 +991,14 @@ v: declare pointer![float64!] d: 1.0 v: :d
 ; ]
 ; }
 ; 		print mold qt/output
+
+	--test-- "#276"
+		--compile-this {
+#system-global [
+	c: #" "
+]
+}
+		--assert compiled?
 
 	--test-- "#304"
 		--compile-this {c: #"^^(0A)"} ; double ^^ to prevent escape mangling when moving code from Rebol to Red

@@ -154,10 +154,7 @@ true?: func [value] [not not value]
 		; TODO
 
 	; --test-- "#316"
-		; R/S
-
-	; --test-- "#317"
-		; R/S
+		; TODO
 
 	--test-- "#321"
 		--assert none? probe if false [1]
@@ -175,30 +172,15 @@ true?: func [value] [not not value]
 		foo: func [] ["ok"]
 		--assert equal? "ok" foo
 
-	; --test-- "#334"
-		; R/S
-
-	; --test-- "#338"
-		; R/S
-
 	; --test-- "#340"
-		; R/S
+		; TODO
 
 	; --test-- "#342"
 		; TODO
 
-	; --test-- "#344"
-		; R/S
-
 	--test-- "#345"
 		spec: spec-of :set
 		--assert (index? find spec 'value) < ((index? find spec /any))
-
-	; --test-- "#346"
-		; R/S
-
-	; --test-- "#348"
-		; R/S
 
 	--test-- "#356"
 		--assert not error? try [if true []]
