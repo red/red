@@ -280,7 +280,8 @@ context [
 	  uthread		-			 -	 -   -	 -   - 		  -		   -	[]
 	]
 	
-	imports-refs:		make block! 10					;-- [ptr [refs] ...]
+	imports-refs:		make block! 10					;-- [ptr [refs] ...]  (functions)
+	import-vars-refs:	make block! 10					;-- [ptr [refs] ...]  (variables)
 	dylink?:			no								;-- yes => dynamic library linking required
 	segment-sz:			length? form-struct segment-command
 	section-sz:			length? form-struct section-header
@@ -469,11 +470,21 @@ context [
 				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
 			]
 		]
+		
+		base: get-section-addr '__pointers
+		if job/PIC? [base: base - get-section-addr '__text]
+
+		foreach [ptr reloc] import-vars-refs [
+			pointer/value: base + ptr
+			foreach ref reloc [
+				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
+			]
+		]
 	]
 
 	build-imports: func [
 		job [object!]
-		/local sym-tbl dy-sym-tbl lib cnt entry
+		/local sym-tbl dy-sym-tbl lib cnt cnt-var entry flag
 	][
 		sym-tbl:    make binary! 1024
 		dy-sym-tbl: make binary! 1024
@@ -481,9 +492,7 @@ context [
 		append str-tbl #{00000000}						;-- start with 4 null bytes @@
 		
 		insert find segments 'uthread [
-			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page [
-				section		__jump_table ?	 ?   ?   ?  -		  jmptbl   byte
-			]
+			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page []
 			segment			__LINKEDIT	 ?	 ?	 ?	 ?  [r]		  symbols  page [] 
 			dylinker		-			 -	 -   -	 -   - 		  -		   -	[]
 			symtab			-			 -	 -   -	 -   - 		  -		   -	[]
@@ -493,38 +502,61 @@ context [
 		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
 		
 		lib: 1											;-- one-based index
-		cnt: 0
+		cnt: cnt-var: 0
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
 			if name/1 <> slash [insert name "/usr/lib/"]
 			insert find segments 'symtab compose [
-				  lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
+				lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
 			]
-			foreach [def reloc] list [		
+			foreach [def reloc] list [
+				flag: pick [undef-non-lazy undef-lazy] var?: issue? def
+				
 				entry: make-struct nlist none
 				entry/n-strx:  length? str-tbl
 				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
 				entry/n-sect:  0						;-- NO_SECT
-				entry/n-desc:  (to integer! defs/sym-desc/undef-lazy) or shift/left lib 8
+				entry/n-desc:  (to integer! defs/sym-desc/:flag) or shift/left lib 8
 				entry/n-value: 0
 				append sym-tbl form-struct entry
 				
-				pointer/value: cnt
+				either var? [
+					pointer/value: cnt-var
+					repend import-vars-refs [cnt-var * stub-size reloc]	;-- store symbol offset
+					cnt-var: cnt-var + 1
+				][
+					pointer/value: cnt
+					repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
+					cnt: cnt + 1
+				]
 				append dy-sym-tbl form-struct pointer
-				
-				repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
-				
 				append str-tbl join "_" to-c-string def
-				cnt: cnt + 1
 			]
 			lib: lib + 1
 		]
-		repend job/sections [
-			'jmptbl reduce [
-				'- head insert/dup make binary! cnt * stub-size #{F4F4F4F4F4} cnt
+		unless empty? imports-refs [
+			append pick find segments '__IMPORT 9 [
+				section		__jump_table ?	 ?   ?   ?  -		  jmptbl   byte
 			]
+			repend job/sections [
+				'jmptbl reduce [
+					'- head insert/dup make binary! cnt * stub-size #{F4F4F4F4F4} cnt
+				]
+			]
+		]
+		unless empty? import-vars-refs [
+			append pick find segments '__IMPORT 9 [
+				section		__pointers ?	 ?   ?   ?  -		  pointers   byte
+			]
+			repend job/sections [
+				'pointers reduce [
+					'- head insert/dup make binary! cnt-var * 4 #{00000000} cnt
+				]
+			]
+		]
+		repend job/sections [
 			'symbols reduce [
-				reduce [cnt length? sym-tbl length? dy-sym-tbl length? str-tbl]
+				reduce [cnt + cnt-var length? sym-tbl length? dy-sym-tbl length? str-tbl]
 				reduce [sym-tbl dy-sym-tbl str-tbl]
 			]
 		]
@@ -781,6 +813,7 @@ context [
 		dylink?: not empty? job/sections/import/3
 		
 		clear imports-refs
+		clear import-vars-refs
 		if dylink? [build-imports job]
 		if job/type = 'dll [build-exports job]
 	

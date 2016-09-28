@@ -512,7 +512,7 @@ context [
 			foreach [def reloc] list [
 				append last ILTs ilt: make-struct ILT-struct none
 				ilt/rva: length? hints
-				repend hints [#{0000} def null]			;-- Ordinal is zero, not used
+				repend hints [#{0000} form def null]	;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
 				len: len + 1
 			]

@@ -1531,7 +1531,7 @@ system-dialect: make-profilable context [
 									][
 										add-symbol to word! specs/1 none spec
 									]
-									repend list [id reloc: make block! 1]
+									repend list [to issue! id reloc: make block! 1]
 									emitter/import/var name reloc
 								][
 									check-specs/extend name spec
