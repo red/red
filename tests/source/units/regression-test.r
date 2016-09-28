@@ -865,7 +865,7 @@ print 1 + "c"
 		--compile-this {
 Red/System []
 #enum color! [a b c]
-print #"^(0A)"
+print #"^^(0A)"
 }
 		--assert compiled?
 
