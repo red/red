@@ -508,7 +508,7 @@ context [
 		cnt: cnt-var: idx: 0
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
-			if name/1 <> slash [insert name "/usr/lib/"]
+			;if name/1 <> slash [insert name "/usr/lib/"]
 			insert find segments 'symtab compose [
 				lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
 			]
