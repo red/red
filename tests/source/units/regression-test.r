@@ -15,6 +15,8 @@ compiled?: does [true? not find qt/comp-output "Error"]
 script-error?: does [true? find qt/output "Script Error"]
 compiler-error?: does [true? find qt/comp-output "*** Compiler Internal Error"]
 compilation-error?: does [true? find qt/comp-output "*** Compilation Error"]
+loading-error: func [value] [found? find qt/comp-output join "*** Loading Error: " value]
+compilation-error: func [value] [found? find qt/comp-output join "*** Compilation Error: " value]
 -test-: :--test--
 --test--: func [value] [probe value -test- value]
 
@@ -770,7 +772,7 @@ Red/System []
 
 	--test-- "#275"
 		--compile-and-run-this {
-red/system []
+Red/System []
 
 a: 600851475143.0 ;prime number
 i: 2.0
@@ -791,6 +793,120 @@ print a
 ]
 }
 		--assert compiled?
+
+	--test-- "#281"
+		--compile-this {
+Red/System []
+if false [c: context [d: 1]]
+}
+		--assert found? find
+			qt/comp-output
+			"*** Compilation Error: context has to be declared at root level"
+
+	--test-- "#282"
+		--compile-this {
+Red/System []
+c: "HELLO"
+c: context [b: 2]
+b: 1
+print c/b
+}
+		--assert found? find
+			qt/comp-output
+			"*** Compilation Error: context name is already taken"
+
+	--test-- "#284"
+		--compile-this {
+Red/System []
+c: context [
+	f: func [[infix] a [integer!] b[integer!] return: [integer!]][a + b]
+]
+print 1 c/f 2
+}
+		--assert found? find
+			qt/comp-output
+			"*** Compilation Error: infix functions cannot be called using a path"
+
+	--test-- "#285"
+		--compile-this {
+Red/System []
+c: context [
+	f: func [[infix] a [integer!] b [integer!] return: [integer!]][a + b]
+	print 1 f 2
+]
+}
+		--assert compiled?
+
+	--test-- "#288"
+		--compile-this {
+Red/System []
+#define a(b not) [b + not] print a(1 2)
+}
+		--assert loading-error "keywords cannot be used as macro parameters"
+		--compile-this {
+Red/System []
+#define a(b 5) [b + 5] print a(1 2)
+}
+		--assert loading-error "only words can be used as macro parameters"
+		--compile-this {
+Red/System []
+#define a(b "c") [b + "c"] print a(1 2)
+}
+		--assert loading-error "only words can be used as macro parameters"
+
+	--test-- "#289"
+		--compile-this {
+Red/System []
+print 1 + "c"
+		}
+		--assert compilation-error "a literal string cannot be used with a math operator"
+
+	--test-- "#290"
+		--compile-this {
+Red/System []
+#enum color! [a b c]
+print #"^(0A)"
+}
+		--assert compiled?
+
+	--test-- "#291"
+		--compile-this {
+Red/System []
+f: func[a [integer!]][a: context [b: 1]]
+}
+		--assert compilation-error "context name is already taken"
+
+	--test-- "#293"
+		--compile-this {
+Red/System []
+c: context [
+	#enum e! [x]
+	f: function [
+		a		[e!]
+		return: [logic!]
+	][
+		zero? a
+	]
+]
+
+
+}
+		--assert compiled?
+
+	--test-- "#298"
+		--compile-this {
+Red/System []
+#enum color! [a b c] print size? color!
+}
+		--assert compiled?
+
+	--test-- "#300"
+		--compile-this {
+Red/System []
+v: declare pointer![float64!] d: 1.0 v: :d
+}
+		--assert compiled?
+
 
 ===end-group===
 

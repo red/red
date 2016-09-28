@@ -132,41 +132,8 @@ true?: func [value] [not not value]
 	; --test-- "#279"
 		; TODO
 
-	; --test-- "#281"
-		; R/S
-
-	; --test-- "#282"
-		; R/S
-
-	; --test-- "#284"
-		; R/S
-
-	; --test-- "#285"
-		; R/S
-
-	; --test-- "#288"
-		; R/S
-
-	; --test-- "#289"
-		; R/S
-
-	; --test-- "#290"
-		; R/S
-
-	; --test-- "#291"
-		; R/S
-
 	--test-- "#292"
 		--assert error? try [load {#"""}]
-
-	; --test-- "#293"
-		; R/S
-
-	; --test-- "#298"
-		; R/S
-
-	; --test-- "#300"
-		; R/S
 
 	--test-- "#306"
 		s: mold []
