@@ -1094,7 +1094,7 @@ context [
 
 	;; -- Helpers for creating/using ELF structures --
 
-	strtab-index-of: func [strtab [binary!] string [string!]] [
+	strtab-index-of: func [strtab [binary!] string [string! issue!]] [
 		-1 + index? find strtab to-c-string string
 	]
 
@@ -1106,13 +1106,13 @@ context [
 
 	rel-address-of: func [
 		base [integer!]
-		/symbol syms [block!] sym [string!]
+		/symbol syms [block!] sym [string! issue!]
 		/index ind [integer!]
 	] [
 		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
 	]
 
-	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
+	to-c-string: func [data [string! binary! issue!]] [join as-binary data #{00}]
 
 	to-elf-strtab: func [items [block!]] [
 		join #{00} map-each item items [to-c-string form item]
