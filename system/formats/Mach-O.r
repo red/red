@@ -857,7 +857,7 @@ context [
 		emit-page-aligned out data
 		
 		if dylink? [
-			either find job/sections 'pointers [
+			if find job/sections 'pointers [
 				buffer: job/sections/pointers/2
 				either find job/sections 'jmptbl [
 					append out buffer
