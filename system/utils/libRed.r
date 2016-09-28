@@ -28,8 +28,10 @@ libRed: context [
 		]
 	]
 	
-	get-include-file: does [
-		load get-path include-file
+	get-include-file: func [job][
+		data: read get-path include-file
+		replace/all data "$ROOT-PATH$" form job/build-prefix
+		load data
 	]
 	
 	get-definitions: func [/local data][
@@ -97,8 +99,8 @@ libRed: context [
 			#define node! int-ptr!
 			#define get-unit-mask	31
 			
-			#include %../runtime/macros.reds
-			#include %../runtime/datatypes/structures.reds
+			#include %$ROOT-PATH$runtime/macros.reds
+			#include %$ROOT-PATH$runtime/datatypes/structures.reds
 				
 			cell!: alias struct! [
 				header	[integer!]						;-- cell's header flags

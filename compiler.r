@@ -4333,7 +4333,7 @@ red: context [
 		]]
 		
 		if all [job/dev-mode? not job/libRed?][
-			replace out <imports> libRed/get-include-file
+			replace out <imports> libRed/get-include-file job
 		]
 		set [user mods main] comp-source code
 		
