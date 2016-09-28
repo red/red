@@ -28,9 +28,10 @@ libRed: context [
 		]
 	]
 	
-	get-include-file: func [job][
+	get-include-file: func [job /local path][
 		data: read get-path include-file
-		replace/all data "$ROOT-PATH$" form job/build-prefix
+		if empty? path: job/build-prefix [path: system/script/path]
+		replace/all data "$ROOT-PATH$" form path
 		load data
 	]
 	
