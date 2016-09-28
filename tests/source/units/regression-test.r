@@ -698,6 +698,100 @@ print a/b
 }
 		--assert compilation-error?
 
+	--test-- "#253"
+		--compile-this {
+Red/System []
+context []
+}
+		--assert true? find qt/comp-output "*** Compilation Error: context's name setting is missing"
+
+	--test-- "#254" 
+		--compile-this {
+Red/System []
+c: context [
+	#enum e! [
+		x
+	]
+
+	f: function [
+		a [e!]
+	][
+	]
+]
+}
+		--assert compiled?
+	
+	--test-- "#257"
+		--compile-this {
+Red/System []
+s!: alias struct! [a [integer!]]
+c: context [
+	a: declare s!
+]
+}
+		--assert compiled?
+
+	--test-- "#261"
+		--compile-this {
+Red/System []
+prin "123"
+}
+		--assert compiled?
+
+	--test-- "#263"
+		--compile-this {
+Red/System []
+p1: as byte-ptr! "test"
+a: (as-integer p1/value) << 8
+print a
+}
+		--assert compiled?
+
+	--test-- "#272"
+		--compile-and-run-this {
+Red/System []
+foo: func [return: [logic!]][
+	either true [
+		1 = 3
+	][
+		false
+	]
+]
+print foo
+}
+		--assert equal? "false" qt/output
+
+	--test-- "#273"
+		--compile-this {
+Red/System []
+4.0 // 2.0
+}
+		--assert compiled?
+
+	--test-- "#275"
+		--compile-and-run-this {
+red/system []
+
+a: 600851475143.0 ;prime number
+i: 2.0
+while [i * i <= a] [
+	if a // i = 0.0 [
+		a: a / i
+	]
+	i: i + 1.0
+]
+print a
+}
+		--assert not crashed?
+
+	--test-- "#276"
+		--compile-this {
+#system-global [
+    c: #" "
+]
+}
+		--assert compiled?
+
 ===end-group===
 
 ===start-group=== "Red regressions"

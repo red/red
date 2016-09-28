@@ -114,50 +114,23 @@ true?: func [value] [not not value]
 	; --test-- "#250"
 		; TODO
 
-	; --test-- "#253"
-		; R/S
-
-	; --test-- "#254"
-		; R/S
-
-	; --test-- "#257"
-		; R/S
-
 	; --test-- "#258"
-		; R/S
-
-	; --test-- "#261"
-		; R/S
+		; TODO
 
 	--test-- "#262"
 		--assert not error? try [#"^(00)"]
 
-	; --test-- "#263"
-		; R/S
-
 	; --test-- "#265"
-		; R/S
+		; NOTE: problem with compiling %tests/hello.red on Linux/ARM
 
 	; --test-- "#269"
-		; R/S
-
-	; --test-- "#272"
-		; R/S
-
-	; --test-- "#273"
-		; R/S
-
-	; --test-- "#275"
-		; R/S
-
-	; --test-- "#276"
-		; R/S
+		; TODO
 
 	; --test-- "#278"
-		; R/S
+		; TODO
 
 	; --test-- "#279"
-		; R/S
+		; TODO
 
 	; --test-- "#281"
 		; R/S
