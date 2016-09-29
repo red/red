@@ -17,6 +17,7 @@ compiler-error?: does [true? find qt/comp-output "*** Compiler Internal Error"]
 compilation-error?: does [true? find qt/comp-output "*** Compilation Error"]
 loading-error: func [value] [found? find qt/comp-output join "*** Loading Error: " value]
 compilation-error: func [value] [found? find qt/comp-output join "*** Compilation Error: " value]
+syntax-error: func [value] [found? find qt/comp-output join "*** Syntax Error: " value]
 -test-: :--test--
 --test--: func [value] [probe value -test- value]
 
@@ -1174,6 +1175,92 @@ true and true
 }
 		--assert not crashed?
 
+	--test-- "#751"
+		--compile-this {
+Red/System []
+foo: 458724589764398757698437598437598347 
+print [foo lf]
+}
+		--assert syntax-error "Invalid integer! value"
+
+	--test-- "#810"
+		--compile-and-run-this {
+Red/System []
+res: case [
+	true [1 = 0]
+]
+print res
+}
+		--assert equal? "false" qt/output
+
+	--test-- "#858"
+		--compile-and-run-this {
+Red/System []
+k: as pointer! [integer!] 1
+print ["k: " as integer! k " "]
+i: 1
+m: as pointer! [integer!] i
+print ["m: " as integer! m " "]
+k: as pointer! [integer!] 10
+print ["k: " as integer! k " "] 
+k: as pointer! [integer!] -10
+print ["k: " as integer! k " "]
+k: as pointer! [integer!] 0
+print ["k: " as integer! k " "]
+}
+		--assert equal? "k: 1 m: 1 k: 10 k: -10 k: 0" qt/output
+
+	--test-- "#861"
+		--compile-and-run-this {
+Red/System []
+int64!: alias struct! [int1 [integer!] int2 [integer!]]
+print-float-hex: func [
+	number  [float!]
+	tmp     [integer!]
+	/local
+		f   [int64!]
+][
+	f: as int64! :number
+	print [as byte-ptr! f/int2 as byte-ptr! f/int1]
+]
+foo-test: func [
+	/local
+		f   [float!]
+		p   [pointer! [float!]]
+		a   [int64!]
+		tmp [integer!]
+][
+	f: 0.0
+	a: as int64! :f
+	p: as pointer! [float!] a
+	tmp: 20
+	print [as byte-ptr! a/int2 as byte-ptr! a/int1]
+	print-float-hex p/value tmp 
+	print [as byte-ptr! a/int2 as byte-ptr! a/int1]
+]
+foo-test
+}
+		--assert 1 = length? unique qt/output
+
+	--test-- "#880"
+		--compile-and-run-this {
+Red/System []
+print switch 1 [
+	0 ["a"]
+	1 ["b"]
+	2 ["c"]
+	3 ["d"]
+]
+}
+		--assert not crashed?
+
+	--test-- "#884"
+		--compile-this {
+red/system []
+print "1"
+}
+		--assert compiled?
+
 ===end-group===
 
 ;-----------------------------------------------------------------------------
@@ -1890,6 +1977,32 @@ a: #version
 print type? a 
 }
 		--assert equal? "string" trim/tail qt/output
+
+	--test-- "#740"
+		--compile-and-run-this {print "%e中b"}
+		--assert equal? "%e中b" qt/output
+
+	--test-- "#745"
+		--compile-and-run-this {print mold %目录1}
+		--assert equal? "%目录1" qt/output
+
+	--test-- "#748"
+		--compile-and-run-this {
+txt: "foo"
+remove txt
+print txt
+}
+		--assert 2 = length? trim/all qt/output
+
+	--test-- "#765"
+		--compile-and-run-this {
+board: [ 'a 'a 'a ]
+while [ board: find board 'a ] [
+	print index? board 
+	board: next board
+]
+}
+		--assert not script-error?
 
 	--test-- "#778"
 		--compile-and-run-this {

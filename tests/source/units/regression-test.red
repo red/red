@@ -804,8 +804,8 @@ true?: func [value] [not not value]
 	; --test-- "#720"
 		; console compilation problem
 
-;	--test-- "#725"
-;		--assert not equal? load {"Español"} "Espa^(F1)ol"
+	--test-- "#725"
+		--assert not equal? load {"Español"} "Espa^^(F1)ol"
 
 	--test-- "#726"
 		--assert equal? load {{^(line)}} "^/"
@@ -816,21 +816,6 @@ true?: func [value] [not not value]
 		parse "a" [collect rule]
 		--assert equal? 1 x
 		unset 'x
-
-	; --test-- "#740"
-		; should check for print output
-
-	; --test-- "#745"
-		; should check for print output
-
-	; --test-- "#748"
-		; should check for print output
-;		txt: "Hello world"
-;		parse txt [ while any [ remove "l" | skip ] ]
-;		print txt
-
-	; --test-- "#751"
-		; R/S
 
 	--test-- "#757"
 		--assert not error? try [x: "^(FF)"]
@@ -861,9 +846,6 @@ true?: func [value] [not not value]
 		f: does [os: 1 os] 
 		--assert equal? 1 probe f
 		unset [f os]
-
-	; --test-- "#765"
-		; TODO
 
 	--test-- "#770"
 		f: function [][
@@ -954,9 +936,6 @@ true?: func [value] [not not value]
 	; --test-- "#806"
 		; precompiled console problem
 
-	; --test-- "#810"
-		; R/S
-
 	; --test-- "#817"
 		; TODO: need more info
 
@@ -1031,12 +1010,6 @@ true?: func [value] [not not value]
 	--test-- "#856"
 		--assert equal? [a bčř 10] load "a bčř 10"
 
-	; --test-- "#858"
-		; R/S
-
-	; --test-- "#861"
-		; R/S, system specific
-
 	--test-- "#869"
 		--assert not error? try [load {[1 2.3]}]
 
@@ -1056,12 +1029,6 @@ true?: func [value] [not not value]
 				]
 			]
 		]
-
-	; --test-- "#880"
-		; R/S, system specific
-
-	; --test-- "#884"
-		; TODO: case-sensitivity in header -- needs tests in separate files
 
 	; --test-- "#893"
 		; console precompilation problem
