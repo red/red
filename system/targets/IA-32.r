@@ -107,10 +107,7 @@ make-profilable make target-class [
 			]
 			PIC? [										;-- global variable case (PIC version)
 				spec: emitter/symbols/:name
-				either all [
-					spec/1 = 'import-var 
-					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
-				][
+				either spec/1 = 'import-var [
 					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
 					emit-reloc-addr spec
 					emit (#{FF7E} and copy pcode) or #{0004} ;-- [ebx+<disp>] => [esi]
@@ -131,10 +128,7 @@ make-profilable make target-class [
 			]
 			'global [									;-- global variable case
 				spec: emitter/symbols/:name
-				either all [
-					spec/1 = 'import-var 
-					compiler/job/OS <> 'MacOSX		;-- direct access to imports on OSX
-				][
+				either spec/1 = 'import-var [
 					emit #{8B3D}					;-- MOV edi, [<import>]
 					emit-reloc-addr spec
 					emit (#{FF7E} and copy pcode) or #{0005} ;-- [ebx+<disp>] => [edi]
