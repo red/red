@@ -1245,9 +1245,6 @@ true?: func [value] [not not value]
 			collect [foreach w words-of o [keep type? get w]]
 		unset 'o
 
-	; --test-- "#1003"
-		; TODO: reactor test (seem not to work somehow)
-
 	; --test-- "#1005"
 		; precompiled binary error
 
