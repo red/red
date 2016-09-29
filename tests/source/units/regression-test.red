@@ -503,7 +503,7 @@ true?: func [value] [not not value]
 		; no example
 
 	; --test-- "#518"
-		; R/S
+		; TODO
 
 	; --test-- "#519"
 		; TODO: see #2225
@@ -515,10 +515,6 @@ true?: func [value] [not not value]
 	--test-- "#522"
 		--assert not error? try [{{x}}]
 
-;	--test-- "#523"
-;		TODO
-;		--assert unset? load ":x"
-
 	--test-- "#524"
 		s: "^(1234)B"
 		--assert equal? "B" find s "B"
@@ -529,26 +525,14 @@ true?: func [value] [not not value]
 		--assert not error? try [load {^/}]
 		--assert not error? try [load {{^/}}]
 
-	; --test-- "#526"
-		; R/S
-
-	; --test-- "#528"
-		; R/S
-
 	; --test-- "#531"
 		; TODO: should check for compiler error
 
 	; --test-- "#532"
-		; R/S
-
-	; --test-- "#533"
-		; R/S
-
-	; --test-- "#535"
-		; R/S
+		; TODO
 
 	; --test-- "#539"
-		; TODO: should check for compiler error
+		; TODO: #inlcude path problem
 
 	; --test-- "#541"
 		; TODO: compiler problem
@@ -563,16 +547,7 @@ true?: func [value] [not not value]
 		; broken release
 
 	; --test-- "#548"
-		; R/S
-
-	; --test-- "#552"
-		; R/S
-
-	; --test-- "#554"
-		; R/S
-
-	; --test-- "#555"
-		; R/S
+		; TODO: #include path problem
 
 	--test-- "#558"
 		o: copy ""

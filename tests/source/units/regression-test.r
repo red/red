@@ -1106,6 +1106,73 @@ LTM-MP-zero-set(mp-int/mp-digit 32)
 }
 		--assert compiled?
 
+	--test-- "#526"
+		--compile-and-run-this {
+Red/System []
+print-wide [
+	"A" newline
+	"B"
+]
+}
+		--assert equal? "A ^/B" qt/output
+
+	--test-- "#528"
+		--compile-and-run-this {
+Red/System []
+s: system/args-list + either yes [0] [1]
+print-wide [system/args-list s]
+}
+		--assert equal? 
+			copy/part qt/output 8 
+			copy/part tail qt/output -8
+
+	--test-- "#533"
+		--compile-this {
+Red/System []
+f: function [
+	/local x
+][
+	print :x
+]
+}
+		--assert compilation-error "local variable x used before being initialized"
+
+	--test-- "#535"
+		--compile-this {
+Red/System []
+c: context [
+	x: 0
+	print :x
+]
+}
+		--assert compiled?
+
+	--test-- "#552"
+		--compile-and-run-this {
+Red/System []
+pos: as byte-ptr! "test"
+cp: 0
+print pos/value
+pos/value: pos/value + as-byte 1 << (cp and 7)
+print pos/value
+}
+		--assert equal? "tu" qt/output
+
+	--test-- "#554"
+		--compile-and-run-this {
+Red/System []
+a: yes
+b: yes
+probe a xor b
+}
+		--assert not crashed?
+
+	--test-- "#555"
+		--compile-and-run-this {
+Red/System []
+true and true
+}
+		--assert not crashed?
 
 ===end-group===
 
@@ -1628,6 +1695,13 @@ if no [
 ]
 }
 		--assert compiled?
+
+	--test-- "#523"
+		--compile-this {unset? :x}
+		--assert compilation-error "undefined word"
+		--compile-this {unset? get/any 'x}
+		--assert compiled?
+
 
 	--test-- "#530"
 		--compile-and-run-this {
