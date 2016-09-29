@@ -487,7 +487,7 @@ context [
 
 	build-imports: func [
 		job [object!]
-		/local sym-tbl dy-sym-tbl lib cnt cnt-var idx entry flag
+		/local sym-tbl dy-sym-tbl lib cnt cnt-var idx entry flag syms
 	][
 		sym-tbl:    make binary! 1024
 		dy-sym-tbl: make binary! 1024
@@ -504,39 +504,50 @@ context [
 		]
 		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
 		
+		syms: make block! 1000
 		lib: 1											;-- one-based index
-		cnt: cnt-var: idx: 0
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
 			;if name/1 <> slash [insert name "/usr/lib/"]
 			insert find segments 'symtab compose [
 				lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
 			]
-			foreach [def reloc] list [
-				flag: pick [undef-non-lazy undef-lazy] var?: issue? def
-				
-				entry: make-struct nlist none
-				entry/n-strx:  length? str-tbl
-				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
-				entry/n-sect:  0						;-- NO_SECT
-				entry/n-desc:  (to integer! defs/sym-desc/:flag) or shift/left lib 8
-				entry/n-value: 0
-				append sym-tbl form-struct entry
-				
-				either var? [
-					repend import-vars-refs [cnt-var * stub-size reloc]	;-- store symbol offset
-					cnt-var: cnt-var + 1
-				][
-					repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
-					cnt: cnt + 1
-				]
-				pointer/value: idx
-				append dy-sym-tbl form-struct pointer
-				append str-tbl join "_" to-c-string def
-				idx: idx + 1
-			]
+			foreach [def reloc] list [repend syms [def reloc lib]]
 			lib: lib + 1
+		]	
+		sort/case/skip/compare syms 3 func [a b][
+			to logic! any [
+				all [issue?  a issue?  b a < b]
+				all [string? a string? b a < b]
+				issue? a
+			]
 		]
+	
+		cnt: cnt-var: idx: 0
+		foreach [def reloc lib] syms [
+			flag: pick [undef-non-lazy undef-lazy] var?: issue? def
+
+			entry: make-struct nlist none
+			entry/n-strx:  length? str-tbl
+			entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
+			entry/n-sect:  0						;-- NO_SECT
+			entry/n-desc:  (to integer! defs/sym-desc/:flag) or shift/left lib 8
+			entry/n-value: 0
+			append sym-tbl form-struct entry
+
+			either var? [
+				repend import-vars-refs [cnt-var * 4 reloc]	;-- store symbol offset
+				cnt-var: cnt-var + 1
+			][
+				repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
+				cnt: cnt + 1
+			]
+			pointer/value: idx
+			append dy-sym-tbl form-struct pointer
+			append str-tbl join "_" to-c-string def
+			idx: idx + 1
+		]
+		
 		unless empty? import-vars-refs [
 			append pick find segments '__IMPORT 9 [
 				section	__pointers ?	 ?   ?   ?  -		  pointers word
