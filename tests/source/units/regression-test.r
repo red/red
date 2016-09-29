@@ -2644,7 +2644,7 @@ do  [
 		--assert not crashed?
 
 	--test-- "#1700"
-		--compile-and-run-this {cd %../}
+		--compile-and-run-this {change-dir %../}
 		--assert not crashed?
 
 	--test-- "#1702"
@@ -2720,7 +2720,7 @@ cmp/lz77/compress "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 		--assert not crashed?
 
 	--test-- "#1774"
-		--compile-and-run-this {system/options/}
+		--compile-this {system/options/}
 		--assert syntax-error "Invalid path! value"
 
 	--test-- "#1831"
