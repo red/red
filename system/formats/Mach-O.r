@@ -647,7 +647,7 @@ context [
 		str-tbl:   symbols/2/3
 		list: 	   make block! length? exports
 		
-		foreach sym sort exports [						;-- sorted symbols by name
+		foreach sym sort/case exports [					;-- sorted symbols by name
 			spec: job/symbols/:sym
 			data?: spec/1 = 'global
 			
