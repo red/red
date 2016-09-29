@@ -1261,6 +1261,49 @@ print "1"
 }
 		--assert compiled?
 
+	--test-- "#1322"
+		--compile-and-run-this {
+Red/System []
+bad: context [
+	pen: 123
+	system-func: func [pen [int-ptr!]][
+		pen/value: 33
+	]
+	change-pen: func [
+		/local
+			pen [integer!]
+	][
+		pen: 0
+		system-func :pen
+	]
+	print pen
+	change-pen
+	print pen
+]
+}
+		--assert equal? "123123" qt/output
+
+	--test-- "#1324"
+		--compile-this {
+Red/System []
+#import [
+	LIBC-file cdecl [
+		lol: "funny" [
+			return [whoops!]
+		]
+	]
+]
+}
+		--assert compilation-error "Cannot use `return` as argument name"
+
+; 	TODO: how to check for infinite loop?
+; 	--test-- "#1397"
+; 		--compile-and-run-this {
+; Red/System []			
+; loop 0 [print 123]
+; }
+
+
 ===end-group===
 
 ;-----------------------------------------------------------------------------
@@ -2361,19 +2404,19 @@ log-error: function [
 		--compile-and-run-this {do load {(x)}}
 			--assert not crashed?
 
-	--test-- "#1075"
-		--compile-and-run-this {
-#system [
-	integer/to-float 1 print-line 1
-	integer/to-float 1 print-line 2
-	integer/to-float 1 print-line 3
-	integer/to-float 1 print-line 4
-	integer/to-float 1 print-line 5
-	integer/to-float 1 print-line 6
-	integer/to-float 1 print-line 7
-	integer/to-float 1 print-line 8
-]
-}
+; 	--test-- "#1075"
+; 		--compile-and-run-this {
+; #system [
+; 	integer/to-float 1 print-line 1
+; 	integer/to-float 1 print-line 2
+; 	integer/to-float 1 print-line 3
+; 	integer/to-float 1 print-line 4
+; 	integer/to-float 1 print-line 5
+; 	integer/to-float 1 print-line 6
+; 	integer/to-float 1 print-line 7
+; 	integer/to-float 1 print-line 8
+; ]
+; }
 		--assert not crashed?
 
 	--test-- "#1080"
@@ -2391,6 +2434,10 @@ do [
 	foo/dup [a b c] [d e] 2
 ]
 }
+		--assert not crashed?
+
+	--test-- "#1120"
+		--compile-and-run-this {load {b: [] parse "1" [some [copy t to end (append b t)]])}}
 		--assert not crashed?
 
 	 --test-- "#1135"
@@ -2485,6 +2532,13 @@ o1: context [
 o2: context [
 	v: o1/val
 ]
+}
+		--assert not crashed?
+
+	--test-- "#1345"
+		--compile-and-run-this {
+url: http://autocomplete.wunderground.com/aq?format=JSON&lang=zh&query=Beijing
+json: read url		
 }
 		--assert not crashed?
 

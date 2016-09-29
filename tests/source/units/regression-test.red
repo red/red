@@ -1270,9 +1270,6 @@ true?: func [value] [not not value]
 		--assert equal? 2 my-context/do-something 1
 		unset 'my-context
 
-	; --test-- "#1059"
-		; TODO: should check for crash
-
 ;	--test-- "#1063"
 ; 		TODO: help not defined in compiler
 ;		--assert not error? try [help]
@@ -1381,11 +1378,6 @@ true?: func [value] [not not value]
 
 	--test-- "#1119"
 		--assert error? try [append/only: [a b c] [d e]]
-
-	--test-- "#1120"
-		; should check for crash
-		--assert error? try [load {b: [] parse "1" [copy t to end (append b t)])}]
-		--assert error? try [load {b: [] parse "1" [some [copy t to end (append b t)]])}]
 
 	; --test-- "#1122"
 		; console
@@ -1579,21 +1571,10 @@ true?: func [value] [not not value]
 		--assert equal? 0 select h 1x2
 		--assert equal? make hash! [3x4 1] find h 3x4
 
-	; --test-- "#1322"
-		; R/S
-
-	; --test-- "#1324"
-		; R/S
-
 	--test-- "#1329"
 		--assert not error? try [and~ #{01} #{FF}]
 		--assert not error? try [or~ #{01} #{FF}]
 		--assert not error? try [xor~ #{01} #{FF}]
-
-	--test-- "#1345"
-		; should check for crash
-		url: http://autocomplete.wunderground.com/aq?format=JSON&lang=zh&query=Beijing
-		json: read url
 
 	--test-- "#1354"
 		--assert error? try [0 ** "death"]
