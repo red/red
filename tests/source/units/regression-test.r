@@ -904,7 +904,7 @@ b: as-byte 2
 c: as-byte 3
 d: as-byte 4
 a: as-byte 0
-print-wide [as-integer a  as-integer b  as-integer c  as-integer d  lf]
+print-wide [as-integer a as-integer b as-integer c as-integer d]
 }
 		--assert equal? "0 2 3 4" qt/output
 
@@ -969,6 +969,143 @@ c1: context [
 ]
 }
 		--assert compiled?
+
+	--test-- "#379"
+		--compile-this {
+Red/System []
+c: context [
+	#import [LIBC-file cdecl [
+		print-error: "perror" [  ; Print error to stderr.
+			string	[c-string!]
+		]
+	]]
+]
+c/print-error "."
+with c [
+    print-error "!"
+]
+}
+		--assert compiled?
+
+	--test-- "#393"
+		--compile-this {
+Red/System []
+
+d: does [
+]
+x: either yes [:d] [:d]
+print-line :x
+}
+		--assert compiled?
+
+	--test-- "#417"
+		--compile-this {
+Red/System []
+{
+	REBOL []
+}
+}
+		--assert compiled?
+
+	--test-- "#419"
+		--compile-and-run-this {
+Red/System []
+
+str: "123"
+p: as byte-ptr! str
+print-line as-integer p/1
+either (as integer! str) = (as integer! p) [print ["ok" lf]] [print ["ko" lf]]
+
+s: as struct! [a [integer!]] str
+print-line s/a
+either (as integer! str) = (as integer! s) [print ["ok" lf]] [print ["ko" lf]]
+}
+		--assert not found? find qt/output "ko"
+
+;	--test-- "#473"
+;		TODO: causes compiler problems, see #2240
+
+	--test-- "#474"
+		--compile-this {
+Red/System []
+c: context [
+	s!: alias struct! [
+		f [function! []]
+	]
+
+	r: declare struct! [s [s!]]
+]
+with c [
+    r/s/f
+]
+}
+		--assert compiled?
+
+	--test-- "#475"
+		--compile-this {
+Red/System []
+s: declare struct! [
+	f [
+		function! [
+			""
+	    	i       [integer!]
+	    	return: [integer!]
+		]
+	]
+]
+print [s/f]
+}
+		--assert compilation-error "missing argument"
+
+	--test-- "#481"
+		--compile-this {
+Red/System []
+c1: context [
+	x: 1
+	f: does []
+]
+with c1 [
+	c2: context [
+		x: 2
+		f: does []
+	]
+]
+with c2 [
+	c2/f
+	print-line c2/x
+	print-line x
+	f
+]
+}
+		--assert compiled?
+
+	--test-- "#483"
+		--compile-this {
+Red/System []
+#define LTM-MP-zero-set(digit size) [
+	LTM-MP-digit-counter: size
+	until [
+		digit/value: null-byte
+		digit: digit + 1
+		LTM-MP-digit-counter: LTM-MP-digit-counter - 1
+		LTM-MP-digit-counter = 0
+	]
+]
+LTM-mp-int!: alias struct! [
+	used		[integer!]
+	alloc		[integer!]
+	sign		[integer!]
+	mp-digit	[byte-ptr!]
+]
+mp-int: declare LTM-mp-int!
+mp-int/used: 0
+mp-int/alloc: 32
+mp-int/sign: 0
+mp-int/mp-digit: allocate 32
+LTM-MP-zero-set(mp-int/mp-digit 32)
+}
+		--assert compiled?
+
 
 ===end-group===
 
@@ -1381,6 +1518,37 @@ fn '+
 fn +
 }
 		--assert not crashed?
+
+	--test-- "#468"
+		--compile-this {
+r: routine [
+	/local
+	b	[byte!]
+	cp	[integer!]
+][
+	cp: 1
+	b: as byte! (cp >>> 6)              
+]
+}
+		--assert compiled?
+
+	--test-- "#482"
+		--compile-and-run-this {
+prin: does [
+	print "My prin"
+]
+prin newline
+do [prin newline]
+f: does [
+	print "f1"
+]
+f: does [
+	print "f2"
+]
+f
+do [f]
+}
+		print mold qt/output
 
 	--test-- "#486"
 		--compile-and-run-this {

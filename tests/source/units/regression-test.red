@@ -198,11 +198,8 @@ true?: func [value] [not not value]
 	; --test-- "#366"
 		; TODO: compilation problem with dir paths
 
-	; --test-- "#379"
-		; R/S
-
 	; --test-- "#381"
-		; R/S
+		; TODO: #include problem
 
 	--test-- "#384"
 		f: func [/refine] [refine]
@@ -224,9 +221,6 @@ true?: func [value] [not not value]
 			][
 				"default"
 			]
-
-	; --test-- "#393"
-		; R/S
 
 	--test-- "#395"
 		--assert switch 'yes [yes [true]]
@@ -336,7 +330,7 @@ true?: func [value] [not not value]
 		--assert equal? [[x] "!"] f "!"
 
 	; --test-- "#411"
-		; R/S
+		; TODO
 
 	; --test-- "#413"
 		; TODO: should check compilation time
@@ -349,14 +343,8 @@ true?: func [value] [not not value]
 		--assert equal? [1 none] do [f 1 b/1]
 		unset [b f]
 
-	; --test-- "#417"
-		; R/S
-
 	; --test-- "#418"
 		; see #420
-
-	; --test-- "#419"
-		; R/S
 
 	--test-- "#422"
 		--assert not error? try [function [n [integer!]] []]
@@ -446,30 +434,8 @@ true?: func [value] [not not value]
 		append s #"D"
 		--assert equal? "BCD" s
 
-	; --test-- "#468"
-		; R/S
-
-	; --test-- "#473"
-		; R/S
-
-	; --test-- "#474"
-		; R/S
-
-	; --test-- "#475"
-		; R/S
-
-	; --test-- "#481"
-		; R/S
-
-	; --test-- "#482"
-		; TODO: cannot compile
-		; should check for print output
-
-	; --test-- "#483"
-		; R/S
-
 	; --test-- "#484"
-		; R/S
+		; TODO
 
 	; --test-- "#488"
 		; Rebol GC bug (probably, TODO)
@@ -482,7 +448,7 @@ true?: func [value] [not not value]
 		--assert equal? 2 load next "1 2"
 
 	; --test-- "#493"
-		; R/S
+		; TODO
 
 	; --test-- "#494"
 		; TODO: example throws strange compiler error
