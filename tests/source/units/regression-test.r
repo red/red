@@ -1320,6 +1320,16 @@ bad-error-msg: func [/local a [logic!]][
 bad-error-msg
 }
 		--assert compilation-error "assignment not supported in conditional expression"
+
+	--test-- "#2019"
+		--compile-and-run-this {
+Red/System []
+s: declare struct! [time [float!]]
+s/time: 3E9
+print s/time / 1E6
+}
+		--assert equal? "3000.0" qt/output
+
 ===end-group===
 
 ;-----------------------------------------------------------------------------
@@ -2787,6 +2797,34 @@ fn [x: 1]
 	--test-- "#1935"
 		--compile-and-run-this {do load {test/:}}
 		--assert not crashed?
+
+	--test-- "#1969"
+		--compile-and-run-this {
+foo: func [a [float!] b [float!]][a + b]
+#system [
+    #call [foo 2.0 4.0]
+    fl: as red-float! stack/arguments
+    probe fl/value
+]
+}
+		--assert equal? "6" trim/all qt/output
+
+	--test-- "#1974"
+		--compile-and-run-this {
+do [
+	f1: func [p [string!]][print p]
+	reflect f1 'spec
+]
+}
+		--assert not crashed?
+
+	--test-- "#2007"
+		--compile-and-run-this {make image! 0x0}
+		--assert not crashed?
+
+	--test-- "#2027"
+		--compile-and-run-this {do [a: func [b "b var" [integer!]][b]]}
+		--assert script-error "invalid function definition"
 
 	; --test-- "#2133"
 	;	OPEN

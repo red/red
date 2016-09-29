@@ -2370,27 +2370,8 @@ b}
 		--assert not equal? mold #"^(005E)" mold #"^(001E)"
 		--assert equal? {#"^^(1E)"} mold #"^(001E)"
 
-	; --test-- "#1969"
-		; FIXME: still a problem in R/S
-
-		; foo: func [a [float!] b [float!]][a + b]
-
-		; out: #system [
-		; 	#call [foo 2.0 4.0]
-		; 	fl: as red-float! stack/arguments
-		; 	probe fl/value
-		; ]
-		; print ["*** out:" out]
-
-
-	; --test-- "#1974"
-		f: func [p [string!]] [print p]
-		--assert error? try [f 'spec] 	; NOTE: this should check that it does not crash
-										; 		how to do it?
-		unset 'f
-
 	; --test-- "#1983"
-		; R/S
+		; TODO: no example code
 
 	; --test-- "#1991"
 		; console behaviour
@@ -2417,14 +2398,10 @@ b}
 		unset 'blk
 
 	; --test-- "#1999"
-		; R/S
+		; Test exists in suite
 
 	; --test-- "#2003"
 		; GUI console
-
-	--test-- "#2007"
-		; NOTE: how to check for crash?
-		--assert not error? [make image! 0x0]
 
 	--test-- "#2012"
 		random/seed 1
@@ -2438,9 +2415,6 @@ b}
 	--test-- "#2015"
 		--assert error? try [0:0:2 ** 5]
 
-	; --test-- "#2019"
-		; R/S
-
 	--test-- "#2021"
 		--assert error? try [set 'vv first reduce [()]]
 	
@@ -2453,7 +2427,6 @@ b}
 
 	--test-- "#2033"
 		--assert not error? try [func [x "radius" y "degrees"][x + y]]
-;		--assert error? try [func [x "radius" [integer!] y [integer!] "degrees"][x + y]] ; test for #2027 -- how to test for compiler errors?
 
 	; --test-- "#2034"
 		; GUI
@@ -2524,6 +2497,7 @@ b}
 ;		--assert error? try [d: make reactor! [x: is [y + 1] y: is [x + 3]]]
 
 	; --test-- "#2096"
+		; TODO
 
 	--test-- "#2097"
 		write %test.bin #{00000000}
