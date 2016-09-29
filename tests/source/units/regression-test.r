@@ -1330,12 +1330,21 @@ print s/time / 1E6
 }
 		--assert equal? "3000.0" qt/output
 
+	--test-- "#2135"
+		--compile-and-run-this {
+Red/System []
+probe 1.836E13
+}
+		--assert not found? find qt/output "13.0"
+
 ===end-group===
 
 ;-----------------------------------------------------------------------------
 ;
 ;   *****   ****** *****
-;   * **    ****   *   **
+;   **  **  *      *   **
+;   * **    ****   *    *
+;   ** **   *    * *   **
 ;   *   **  ****** *****
 ;
 ;-----------------------------------------------------------------------------
@@ -2831,6 +2840,10 @@ do [
 	; 	--compile-and-run/pgm %tests/source/units/issue-2133.red
 	; 	--assert not crashed?
 
+	--test-- "#2137"
+		--compile-and-run-this {repeat n 56 [to string! debase/base at form to-hex n + 191 7 16]}
+		--assert not crashed?
+
 	--test-- "#2143"
 		--compile-and-run-this {
 do [
@@ -2839,6 +2852,10 @@ do [
 	make t-o ts		
 ]
 }
+		--assert not crashed?
+
+	--test-- "#2159"
+		--compile-and-run-this {append #{} to-hex 20}
 		--assert not crashed?
 
 	--test-- "#2162"

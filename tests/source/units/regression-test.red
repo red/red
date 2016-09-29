@@ -2550,10 +2550,7 @@ b}
 		--assert 2 = length? find reduce [integer! 1] integer!
 
 	; --test-- "#2133"
-		; TODO: compiler error
-
-	; --test-- "#2135"
-		; TODO: R/S
+		; OPEN
 
 	--test-- "#2136"
 		blk: copy []
@@ -2561,10 +2558,6 @@ b}
 		insert/dup blk 1 2
 		--assert equal? blk [1 1 0 0 0]
 		unset 'blk
-
-	--test-- "#2137"
-		repeat n 56 [to string! debase/base at form to-hex n + 191 7 16]
-		; NOTE: how to catch crash? - should crash in old version
 
 	--test-- "#2138"
 		b: [1 2 3 4 5]
@@ -2599,16 +2592,8 @@ b}
 		--assert error? try [-2147483648 % -1]
 		--assert error? try [remainder -2147483648 -1]
 
-	--test-- "#2159"
-		--assert equal? #{3030303030303134} append #{} to-hex 20
-		; bug causes crash
-
 	--test-- "#2160"
 		--assert not error? try [extract/into/index [1 2 3 4 5 6] 2 b: [] 2]
-
-	; --test-- "#2162"
-		; write/info https://api.github.com/user [GET [User-Agent: "me"]]
-		; crashes runtime
 
 	; --test-- "#2163"
 		; TODO: get some example, description is not good enough
