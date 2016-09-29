@@ -1304,6 +1304,22 @@ Red/System []
 ; }
 
 
+	--test-- "#1545"
+		--compile-and-run-this {
+Red/System []
+print [1 lf]
+}
+		--assert not crashed?
+
+	--test-- "#1710"
+		--compile-this {
+Red/System []
+bad-error-msg: func [/local a [logic!]][
+	if a: true [0]
+]
+bad-error-msg
+}
+		--assert compilation-error "assignment not supported in conditional expression"
 ===end-group===
 
 ;-----------------------------------------------------------------------------
@@ -2551,6 +2567,24 @@ json: read url
 		--compile-and-run-this {do [a: "1234" b: skip a 2 copy/part b a]}
 		--assert not crashed?
 
+	--test-- "#1427"
+		--compile-this {
+Red []
+
+obj1: object [
+	make: function [return: [object!]] [
+		temp: object []
+		temp
+	]
+]
+obj2: object [
+
+]
+
+make obj1/make obj2
+}
+		--assert compiled?
+
 	--test-- "#1490"
 		--compile-and-run-this {
 o: make object! [f: 5]
@@ -2570,6 +2604,10 @@ do load {set [o/f] 10}
 		--compile-and-run-this {power -1 0.5}
 		--assert not crashed?
 
+	--test-- "#1598"
+		--compile-and-run-this {3x4 // 1.1}
+		--assert not crashed?
+
 	--test-- "#1694"
 		--compile-and-run-this {
 do  [
@@ -2578,6 +2616,74 @@ do  [
 ]
 		}
 		--assert true? find qt/output "arg2: 'only"
+
+	--test-- "#1698"
+		--compile-and-run-this {
+	h: make hash! []
+	loop 10 [insert tail h 1]
+}
+		--assert not crashed?
+
+	--test-- "#1700"
+		--compile-and-run-this {cd %../}
+		--assert not crashed?
+
+	--test-- "#1702"
+		--compile-and-run-this {
+offset?: func [
+	series1
+	series2
+] [
+	(index? series2) - (index? series1)
+]
+cmp: context [
+	shift-window: func [look-ahead-buffer positions][
+		set look-ahead-buffer skip get look-ahead-buffer positions              
+	]
+	match-length: func [a b /local start][
+		start: a
+		while [all [a/1 = b/1 not tail? a]][a: next a b: next b]
+		probe offset? start a
+	]
+	find-longest-match: func [
+		search 
+		data
+		/local 
+			pos len off length result
+	] [
+		pos: data
+		length: 0
+		result: head insert insert clear [] 0 0
+		while [pos: find/case/reverse pos first data] [
+			if (len: match-length pos data) > length [
+				if len > 15 [
+					break
+				]
+				length: len
+			]
+		]
+		result
+	]
+	lz77: context [
+		result: copy []
+		compress: func [
+			data [any-string!]
+			/local
+				look-ahead-buffer search-buffer position length
+		] [
+			clear result
+			look-ahead-buffer: data
+			search-buffer: data
+			while [not empty? look-ahead-buffer] [
+				set [position length] find-longest-match search-buffer look-ahead-buffer
+				shift-window 'look-ahead-buffer length + 1
+			]
+		]
+	]
+]
+cmp/lz77/compress "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+		--assert not script-error?
 
 	;--test-- "#1720"
 	; OPEN
@@ -2593,6 +2699,10 @@ do  [
 	--test-- "#1758"
 		--compile-and-run-this {do [system/options/path: none]}
 		--assert not crashed?
+
+	--test-- "#1774"
+		--compile-and-run-this {system/options/}
+		--assert syntax-error "Invalid path! value"
 
 	--test-- "#1831"
 		--compile-and-run-this {do [function [a] [repeat a/1]]}
@@ -2615,17 +2725,25 @@ do [
 		--compile-and-run-this {do [throw 10]}
 		--assert not crashed?
 
+	--test-- "#1858"
+		--compile-and-run-this {
+do [
+	f: func [] [f]
+	f
+]
+}
+		--assert not crashed?
+
 	--test-- "#1866"
 		--compile-and-run-this {do [parse "abc" [(return 1)]]}
 		--assert not crashed?
 		probe qt/output
 
 	--test-- "#1868"
-		--compile-and-run-this {
+		--compile-this {
 dot2d: func [a [pair!] b [pair!] return: [float!]][
 	(to float! a/x * to float! b/x) + (to float! b/y * to float! b/y)
 ]
-
 norm: func [a [pair!] return: [integer!] /local d2 ][
 	d2: dot2d a a 
 	res: to integer! (square-root d2) 
@@ -2635,7 +2753,25 @@ distance: func [a [pair!] b [pair!] return: [integer!] /local res ][
 	norm (a - b)
 ]
 }
-	--assert compiled?
+		--assert compiled?
+
+	--test-- "#1878"
+		--compile-and-run-this {
+digit: charset "0123456789"
+content: "a&&1b&&2c"
+block: copy [] parse content [
+	collect into block any [
+		remove keep ["&&" some digit] 
+		(remove/part head block 1 probe head block) 
+	| 	skip
+	]
+]
+}
+		--assert not crashed?
+
+	--test-- "#1894"
+		--compile-and-run-this {parse [1] [collect into test keep [skip]]}
+		--assert not crashed?
 
 	--test-- "#1895"
 		--compile-and-run-this {
@@ -2646,6 +2782,10 @@ fn [x: 1]
 
 	--test-- "#1907"
 		--compile-and-run-this {do [set: 1]}
+		--assert not crashed?
+
+	--test-- "#1935"
+		--compile-and-run-this {do load {test/:}}
 		--assert not crashed?
 
 	; --test-- "#2133"

@@ -1602,9 +1602,6 @@ true?: func [value] [not not value]
 			equal? e/arg1 integer!
 		]
 
-	; --test-- "#1397"
-		; R/S
-
 	--test-- "#1416"
 		a: "1234" 
 		b: skip a 2 
@@ -1635,19 +1632,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#1424"
 		; GUI
-
-	--test-- "#1427"
-		; TODO: no assertion
-		o1: object [
-			make: function [
-				return: [object!]
-			] [
-				temp: object [] 
-				temp
-			]
-		]
-		o2: object []
-		make o1/make o2
 
 	; --test-- "#1435"
 		; GUI
@@ -1777,9 +1761,6 @@ true?: func [value] [not not value]
 		--assert 7 = to integer! fl
 		unset 'fl
 
-	; --test-- "#1545"
-		; R/S problem on ARM
-
 	; --test-- "#1551"
 		; GUI
 
@@ -1848,10 +1829,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#1596"
 		; GUI
-
-	--test-- "#1598"
-		; should check for crash
-		--assert error? try [3x4 // 1.1]
 
 	; --test-- "#1600"
 		; GUI
@@ -1927,25 +1904,8 @@ true?: func [value] [not not value]
 	; --test-- "#1684"
 		; GUI
 
-	--test-- "#1698"
-		; should check for crash
-		--assert not error? [
-			h: make hash! []
-			loop 10 [insert tail h 1]
-		]
-		unset 'h
-
-	; --test-- "#1700"
-		; TODO: Linux/Wine specific
-
-	; --test-- "#1702"
-		; TODO: try to isolate the bug, or put to separate file
-
 	; --test-- "#1709"
 		; TODO: WHAT is not defined in compiler
-
-	; --test-- "#1710"
-		; R/S
 
 	; --test-- "#1715"
 		; console behaviour
@@ -2007,7 +1967,7 @@ true?: func [value] [not not value]
 		unset 'e
 
 	; --test-- "#1751"
-		; R/S
+		; TODO: R/S
 
 	; --test-- "#1753"
 		; TODO take a look
@@ -2017,10 +1977,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#1755"
 		; GUI
-
-	--test-- "#1758"
-		; should check for crash
-		--assert error? try [system/options/path: none]
 
 	; --test-- "#1762"
 		; GUI console behaviour
@@ -2033,9 +1989,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#1769"
 		; console behaviour
-
-	; --test-- "#1774"
-		; needs to be in separate file probably
 
 	; --test-- "#1775"
 		; console behaviour (nonGUI)
@@ -2248,27 +2201,13 @@ true?: func [value] [not not value]
 	; --test-- "#1853"
 		; GUI
 
-	--test-- "#1858"
-		; should check for crash
-		--assert error? try [
-			f: func [] [f]
-			f
-		]
-		unset 'f
-
 	--test-- "#1865"
 		--assert not equal? 2 (a: 'ok 1 + 1 :a)
 		--assert equal? 'ok (a: 'ok 1 + 1 :a)
 		unset 'a
 
-	; --test-- "#1866"
-	; 	; should check for crash
-	; 	--assert error? try [parse "abc" [(return 1)]]
-	;	FIXME: throws *** Runtime Error 95: no CATCH for THROW
-	;		but when compiled separately, works
-
 	--test-- "#1867"
-		; original error should result in endless loop. how to check it?
+		; TODO: original error should result in endless loop. how to check it?
 		rule: [
 			any [
 				to "[" 
@@ -2285,9 +2224,6 @@ true?: func [value] [not not value]
 		--assert parse x rule
 		unset [rule x]
 
-	; --test-- "#1868"
-		; compiler error
-
 	; --test-- "#1869"
 		; GUI
 
@@ -2296,22 +2232,6 @@ true?: func [value] [not not value]
 
 	; --test-- "#1874"
 		; GUI
-
-	--test-- "#1878"
-		; should check for crash
-		--assert not error? try [
-			digit: charset "0123456789"
-			content: "a&&1b&&2c"
-			block: copy [] parse content [
-				collect into block any [
-					remove keep ["&&" some digit] 
-					(remove/part head block 1 probe head block) 
-				| 	skip
-				]
-			]
-		]
-		unset [digit content block]
-
 
 	; --test-- "#1879"
 		; GUI
@@ -2368,11 +2288,6 @@ b}
 	--test-- "#1893"
 		--assert equal? (1.4.8 * 3) (3 * 1.4.8)
 
-	--test-- "#1894"
-		; should check for crash
-		unset 'test
-		--assert error? try [parse [1] [collect into test keep [skip]]]
-
 	; --test-- "#1900"
 		; GUI
 
@@ -2427,10 +2342,6 @@ b}
 
 	; --test-- "#1933"
 		; GUI
-
-	; --test-- "#1935"
-;		--assert error? try [test/:]
-;		; NOTE: bug should crash, how to test it?
 
 	; --test-- "#1937"
 		; GUI console behaviour
