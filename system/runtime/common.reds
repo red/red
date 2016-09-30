@@ -101,7 +101,7 @@ re-throw: func [/local id [integer!]][
 #switch OS [
 	Windows  [#define LIBRED-file "libRed.dll"]
 	MacOSX	 [#define LIBRED-file "libRed.dylib"]
-	#default [#define LIBRED-file "./libRed.so"]
+	#default [#define LIBRED-file "libRed.so"]
 ]
 
 #include %system.reds
