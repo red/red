@@ -418,7 +418,7 @@ OS-update-view: func [
 		int2	[red-integer!]
 		bool	[red-logic!]
 		s		[series!]
-		hWnd	[integer!]
+		widget	[integer!]
 		flags	[integer!]
 		type	[integer!]
 ][
@@ -431,49 +431,50 @@ OS-update-view: func [
 	type: symbol/resolve word/symbol
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
-	hWnd: int/value
+	widget: int/value
 	int: int + 1
 	flags: int/value
 
 	;if flags and FACET_FLAG_OFFSET <> 0 [
-	;	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET type
+	;	change-offset widget as red-pair! values + FACE_OBJ_OFFSET type
 	;]
 	;if flags and FACET_FLAG_SIZE <> 0 [
-	;	change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
+	;	change-size widget as red-pair! values + FACE_OBJ_SIZE type
 	;]
 	;if flags and FACET_FLAG_TEXT <> 0 [
-	;	change-text hWnd values type
+	;	change-text widget values type
 	;]
 	;if flags and FACET_FLAG_DATA <> 0 [
-	;	change-data	as handle! hWnd values
+	;	change-data	as handle! widget values
 	;]
 	;if flags and FACET_FLAG_ENABLE? <> 0 [
-	;	change-enabled as handle! hWnd values
+	;	change-enabled as handle! widget values
 	;]
 	;if flags and FACET_FLAG_VISIBLE? <> 0 [
 	;	bool: as red-logic! values + FACE_OBJ_VISIBLE?
-	;	change-visible hWnd bool/value type
+	;	change-visible widget bool/value type
 	;]
 	;if flags and FACET_FLAG_SELECTED <> 0 [
 	;	int2: as red-integer! values + FACE_OBJ_SELECTED
-	;	change-selection hWnd int2 values
+	;	change-selection widget int2 values
 	;]
 	;if flags and FACET_FLAG_FLAGS <> 0 [
 	;	SetWindowLong
-	;		as handle! hWnd
+	;		as handle! widget
 	;		wc-offset + 16
 	;		get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		gtk_widget_queue_draw as handle! hWnd
+		gtk_widget_queue_draw as handle! widget
 	]
-	;if flags and FACET_FLAG_COLOR <> 0 [
-	;	either type = base [
-	;		update-base as handle! hWnd null null values
+	if flags and FACET_FLAG_COLOR <> 0 [
+		if type = base [
+	;		update-base as handle! widget null null values
+			gtk_widget_queue_draw as handle! widget
 	;	][
-	;		InvalidateRect as handle! hWnd null 1
-	;	]
-	;]
+	;		InvalidateRect as handle! widget null 1
+		]
+	]
 	;if flags and FACET_FLAG_PANE <> 0 [
 	;	if tab-panel <> type [				;-- tab-panel/pane has custom z-order handling
 	;		update-z-order 
@@ -482,22 +483,22 @@ OS-update-view: func [
 	;	]
 	;]
 	;if flags and FACET_FLAG_FONT <> 0 [
-	;	set-font as handle! hWnd face values
-	;	InvalidateRect as handle! hWnd null 1
+	;	set-font as handle! widget face values
+	;	InvalidateRect as handle! widget null 1
 	;]
 	;if flags and FACET_FLAG_PARA <> 0 [
 	;	update-para face 0
-	;	InvalidateRect as handle! hWnd null 1
+	;	InvalidateRect as handle! widget null 1
 	;]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
 	;	if menu-bar? menu window [
-	;		DestroyMenu GetMenu as handle! hWnd
-	;		SetMenu as handle! hWnd build-menu menu CreateMenu
+	;		DestroyMenu GetMenu as handle! widget
+	;		SetMenu as handle! widget build-menu menu CreateMenu
 	;	]
 	;]
 	;if flags and FACET_FLAG_IMAGE <> 0 [
-	;	change-image hWnd values type
+	;	change-image widget values type
 	;]
 
 	int/value: 0										;-- reset flags
