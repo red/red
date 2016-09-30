@@ -1926,9 +1926,11 @@ make-profilable make target-class [
 		23											;-- return size of (catch-frame + extra) opcodes
 	]
 	
-	emit-close-catch: func [offset [integer!]][
+	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
 		offset: offset + 8							;-- account for the 2 catch slots on stack
+		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
+		
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp
 			emit #{81EC}							;-- SUB esp, locals-size	; 32-bit

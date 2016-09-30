@@ -2472,7 +2472,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-close-catch: func [offset [integer!] global? [logic!]][
+	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
 		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
@@ -2484,6 +2484,9 @@ make-profilable make target-class [
 			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			;offset: offset + 8						;-- account for the 2 catch slots on stack 
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			
+			if cb? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
+			
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
 				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4

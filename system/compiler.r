@@ -1966,7 +1966,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end][
+		comp-catch: has [offset locals-size unused chunk start end cb?][
 			pc: next pc
 			fetch-expression/keep/final
 			if any [not last-type last-type <> [integer!]][
@@ -1990,7 +1990,8 @@ system-dialect: make-profilable context [
 			][
 				emitter/target/locals-offset
 			]
-			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals]
+			cb?: to logic! all [locals 'callback last functions/:func-name]
+			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
 			
