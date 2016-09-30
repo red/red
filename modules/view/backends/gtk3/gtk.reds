@@ -219,6 +219,36 @@ tagSIZE: alias struct! [
 		gtk_drawing_area_new: "gtk_drawing_area_new" [
 			return:		[handle!]
 		]
+		gtk_label_new: "gtk_label_new" [
+			label		[c-string!]
+			return:		[handle!]
+		]
+		gtk_entry_new: "gtk_entry_new" [
+			return:		[handle!]
+		]
+		gtk_scale_new_with_range: "gtk_scale_new_with_range" [
+			vertical?	[logic!]
+			min			[float!]
+			max			[float!]
+			step		[float!]
+			return:		[handle!]
+		]
+		gtk_scale_set_draw_value: "gtk_scale_set_draw_value" [
+			scale		[handle!]
+			draw?		[logic!]
+		]
+		gtk_scale_set_has_origin: "gtk_scale_set_has_origin" [
+			scale		[handle!]
+			origin?		[logic!]
+		]
+		gtk_range_set_value: "gtk_range_set_value" [
+			range		[handle!]
+			value		[float!]
+		]
+		gtk_range_get_value: "gtk_range_get_value" [
+			range		[handle!]
+			return:		[float!]
+		]
 	;; LIBCAIRO-file cdecl [
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]

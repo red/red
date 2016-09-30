@@ -319,6 +319,8 @@ OS-make-view: func [
 		len		  [integer!]
 		widget	  [handle!]
 		container [handle!]
+		value	  [integer!]
+		vertical? [logic!]
 ][
 	stack/mark-func words/_body
 
@@ -367,6 +369,18 @@ OS-make-view: func [
 			gtk_container_add widget gtk_fixed_new
 			gtk_window_move widget offset/x offset/y
 			gobj_signal_connect(widget "delete-event" :window-delete-event null)
+		]
+		sym = slider [
+			vertical?: size/y > size/x
+			value: either vertical? [size/y][size/x]
+			widget: gtk_scale_new_with_range vertical? 0.0 as float! value 1.0
+			value: get-position-value as red-float! data value
+			if vertical? [value: size/y - value]
+			gtk_range_set_value widget as float! value
+			gtk_scale_set_has_origin widget no
+			gtk_scale_set_draw_value widget no
+			; insert value-changed handler
+			gobj_signal_connect(widget "value-changed" :value-changed face/ctx)
 		]
 		true [
 			;-- search in user-defined classes

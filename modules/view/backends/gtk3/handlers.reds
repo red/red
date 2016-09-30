@@ -89,3 +89,38 @@ window-removed-event: func [
 ][
 	count/value: count/value - 1
 ]
+
+value-changed: func [
+	[cdecl]
+	range	[handle!]
+	ctx		[node!]
+	/local
+		vals  [red-value!]
+		val   [float!]
+		size  [red-pair!]
+	;	type  [red-word!]
+		pos   [red-float!]
+	;	sym   [integer!]
+		max   [float!]
+][
+	; This event happens on GtkRange widgets including GtkScale.
+	; Will any other widget need this?
+	vals: get-node-values ctx
+	;type:	as red-word!	vals + FACE_OBJ_TYPE
+	size:	as red-pair!	vals + FACE_OBJ_SIZE
+	pos:	as red-float!	vals + FACE_OBJ_DATA
+
+	;sym:	symbol/resolve type/symbol
+
+	;if type = slider [
+	val: gtk_range_get_value range
+	either size/y > size/x [
+		max: as-float size/y
+		val: max - val
+	][
+		max: as-float size/x
+	]
+	pos/value: val / max
+	make-event range 0 EVT_CHANGE
+	;]
+]
