@@ -1990,7 +1990,7 @@ system-dialect: make-profilable context [
 			][
 				emitter/target/locals-offset
 			]
-			cb?: to logic! all [locals 'callback last functions/:func-name]
+			cb?: to logic! all [locals 'callback = last functions/:func-name]
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
