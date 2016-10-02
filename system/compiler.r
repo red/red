@@ -1467,7 +1467,7 @@ system-dialect: make-profilable context [
 		
 		flag-callback: func [name [word!] cc [word! none!] /local spec][
 			spec: select functions name
-			spec/3: any [cc spec/3 'cdecl]
+			spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
 			unless spec/5 = 'callback [append spec 'callback]
 		]
 		
