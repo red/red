@@ -397,13 +397,19 @@ crypto: context [
 					addrlen	[int-ptr!]
 					return:	[integer!]
 				]
-				read:	"read" [
+				_write: "write" [
+					fd		[integer!]
+					buffer	[c-string!]
+					count	[integer!]
+					return: [integer!]
+				]
+				_read:	"read" [
 					fd		[integer!]
 					buf	    [byte-ptr!]
 					size	[integer!]
 					return:	[integer!]
 				]
-				close:	"close" [
+				_close:	"close" [
 					fd		[integer!]
 					return:	[integer!]
 				]
@@ -455,10 +461,10 @@ crypto: context [
 			fd: socket AF_ALG SOCK_SEQPACKET 0
 			sock-bind fd sa 88
 			opfd: accept fd null null
-			write opfd as c-string! data len
-			read opfd hash alg-digest-size type
-			close opfd
-			close fd
+			_write opfd as c-string! data len
+			_read opfd hash alg-digest-size type
+			_close opfd
+			_close fd
 			free sa
 			hash
 		]
