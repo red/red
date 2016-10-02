@@ -2258,8 +2258,9 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
-			if 'while-cond = last loop-stack [
-				throw-error "BREAK cannot be used in WHILE condition block"
+			switch last loop-stack [
+				while-cond [throw-error "BREAK cannot be used in WHILE condition block"]
+				loop	   [emitter/target/emit-pop]
 			]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
