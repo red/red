@@ -811,6 +811,12 @@ system-dialect: make-profilable context [
 		
 		pop-calls: does [clear expr-call-stack]
 		
+		count-outer-loops: has [n][
+			n: 0
+			parse loop-stack [any ['loop (n: n + 1) | skip]]
+			n
+		]
+		
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
 			ctype: resolve-aliased obj/type
@@ -1966,7 +1972,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end cb?][
+		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
 			pc: next pc
 			fetch-expression/keep/final
 			if any [not last-type last-type <> [integer!]][
@@ -1991,6 +1997,8 @@ system-dialect: make-profilable context [
 				emitter/target/locals-offset
 			]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
+			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
+			
 			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
