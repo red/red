@@ -3304,6 +3304,8 @@ system-dialect: make-profilable context [
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
+			
+			libRed/make-extras functions exports
 		]
 	]
 	

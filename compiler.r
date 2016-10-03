@@ -4227,6 +4227,7 @@ red: context [
 		
 		pc: code										;-- compile user code
 		user: tail output
+		append output [#user-code]
 		comp-block
 		
 		main: output

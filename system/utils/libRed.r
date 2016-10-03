@@ -43,6 +43,16 @@ libRed: context [
 		data
 	]
 	
+	make-extras: func [functions exports][
+		extras: make block! 100
+		foreach [name spec] functions [
+			if find/match form name "red/" [
+				unless find funcs name [append extras name]
+			]
+		]
+?? extras		
+	]
+	
 	make-exports: func [functions exports /local name][
 		foreach [name spec] functions [
 			if all [
