@@ -382,6 +382,18 @@ OS-make-view: func [
 			; insert value-changed handler
 			gobj_signal_connect(widget "value-changed" :value-changed face/ctx)
 		]
+		sym = text [
+			widget: gtk_label_new caption
+		]
+		sym = field [
+			widget: gtk_entry_new
+		]
+		sym = progress [
+			widget: gtk_progress_bar_new
+		]
+		sym = area [
+			widget: gtk_text_view_new
+		]
 		true [
 			;-- search in user-defined classes
 			fire [TO_ERROR(script face-type) type]

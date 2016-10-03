@@ -249,6 +249,12 @@ tagSIZE: alias struct! [
 			range		[handle!]
 			return:		[float!]
 		]
+		gtk_progress_bar_new: "gtk_progress_bar_new" [
+			return:		[handle!]
+		]
+		gtk_text_view_new: "gtk_text_view_new" [
+			return:		[handle!]
+		]
 	;; LIBCAIRO-file cdecl [
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
