@@ -499,17 +499,27 @@ pad: func [
 		(n - length? str)
 ]
 
-modulo: func [
+mod: func [
 	"Compute a nonnegative remainder of A divided by B"
+	a		[number! char! pair! tuple! vector! time!]
+	b		[number! char! pair! tuple! vector! time!]	"Must be nonzero"
+	return: [number! char! pair! tuple! vector! time!]
+	/local r
+][
+	if (r: a % b) < 0 [r: r + b]
+	a: absolute a
+	either all [a + r = (a + b) r + r - b > 0][r - b][r]
+]
+
+modulo: func [
+	"{Wrapper for MOD that handles errors like REMAINDER. Negligible values (compared to A and B) are rounded to zero"
 	a		[number! char! pair! tuple! vector! time!]
 	b		[number! char! pair! tuple! vector! time!]
 	return: [number! char! pair! tuple! vector! time!]
 	/local r
 ][
-	b: absolute b
-	if (r: a % b) < 0 [r: r + b]
-	a: absolute a
-	either all [a + r = (a + b) 0 < r + r - b][r - b][r]
+	r: mod a absolute b
+	either any [a - r = a r + b = b][0][r]
 ]
 
 eval-set-path: func [value1][]
