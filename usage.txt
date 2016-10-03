@@ -12,6 +12,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -c, --compile                  : Generate an executable in the working
                                      folder.
 
+    -r, --release                  : Compile in release mode, linking everything
+                                     together (default: development mode).
+
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
 
@@ -23,7 +26,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
                                      the generated binary file.
 
-    -r, --no-runtime               : Do not include runtime during Red/System
+    --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
 
     -t <ID>, --target <ID>         : Cross-compile to a different platform

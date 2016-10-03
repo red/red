@@ -421,7 +421,7 @@ redc: context [
 		parse/case args [
 			any [
 				  ["-c"	| "--compile"]		(type: 'exe)
-				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
+				| ["-r" | "--release"]		(opts/dev-mode?: no)
 				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip (target?: yes)
@@ -430,7 +430,7 @@ redc: context [
 				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--dev"					(opts/dev-mode?: yes)
-				| "--release"				(opts/dev-mode?: no)
+				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
 				| "--cli"					(gui?: no)
 				| "--catch"								;-- just pass-thru
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
