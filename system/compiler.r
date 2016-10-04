@@ -66,6 +66,7 @@ system-dialect: make-profilable context [
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRed?: 			no
+		libRed-update?:		no
 	]
 	
 	compiler: make-profilable context [
