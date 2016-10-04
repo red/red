@@ -542,8 +542,8 @@ redc: context [
 						exists? %libRed.so
 						exists? %libRed.dylib
 					]
-					exists? %libRed-include.red
-					exists? %libRed-defs.red
+					exists? libRed/include-file
+					exists? libRed/defs-file
 				]
 				build-libRed opts
 			]
@@ -595,7 +595,7 @@ redc: context [
 		if opts/libRed-update? [
 			opts/dev-mode?: opts/link?: no
 			compile src opts
-			print ["libRed-extras.r file generated, recompiling..." lf lf]
+			print ["libRed-extras.r file generated, recompiling..." lf]
 			opts/dev-mode?: opts/link?: yes
 			opts/libRed-update?: no
 		]

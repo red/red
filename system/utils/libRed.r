@@ -18,7 +18,8 @@ libRed: context [
 	extras:		make block! 100
 	obj-path:	'red/objects
 	
-	include-file: %libRed-include.red
+	include-file: %libRed-include.r
+	extras-file:  %libRed-extras.r
 	defs-file:	  %libRed-defs.red
 	root-dir:	  %./
 	
@@ -51,7 +52,7 @@ libRed: context [
 	]	
 	
 	save-extras: does [
-		write join system/script/path %libRed-extras.r mold/only extras
+		write get-path extras-file mold/only extras
 	]
 	
 	collect-extra: func [name [word!]][
@@ -64,7 +65,7 @@ libRed: context [
 		]	
 	]
 	
-	make-exports: func [functions exports /local name][
+	make-exports: func [functions exports /local name file][
 		foreach [name spec] functions [
 			if all [
 				pos: find/match form name "exec/"
@@ -73,8 +74,8 @@ libRed: context [
 				append/only funcs load form name
 			]
 		]
-		if exists? %libRed-extras.r [
-			append funcs load %libRed-extras.r
+		if exists? file: get-path extras-file [
+			append funcs load file
 		]
 		foreach def funcs [
 			name: to word! form def
