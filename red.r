@@ -415,7 +415,10 @@ redc: context [
 			parse any [system/script/args ""] none
 		]
 		target: default-target
-		opts: make system-dialect/options-class [link?: yes]
+		opts: make system-dialect/options-class [
+			link?: yes
+			libRed-update?: no
+		]
 		gui?: Windows?									;-- use GUI console by default on Windows
 
 		parse/case args [
@@ -428,6 +431,7 @@ redc: context [
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
+				| "-u"						(opts/libRed-update?: yes)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--dev"					(opts/dev-mode?: yes)
 				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
@@ -523,27 +527,11 @@ redc: context [
 
 		reduce [src opts]
 	]
+	
+	compile: func [src opts /local result saved rs?][
+		print [	"Compiling" to-local-file src "..."]
 
-	main: func [/with cmd [string!] /local src opts build-dir result saved rs? prefix] [
-		set [src opts] parse-options cmd
-
-		rs?: red-system? src
-
-		;; If we use a build directory, ensure it exists.
-		if all [prefix: opts/build-prefix find prefix %/] [
-			build-dir: copy/part prefix find/last prefix %/
-			unless attempt [make-dir/deep build-dir] [
-				fail ["Cannot access build dir:" to-local-file build-dir]
-			]
-		]
-
-		print [
-			newline
-			"-=== Red Compiler" read-cache %version.r "===-" newline newline
-			"Compiling" to-local-file src "..."
-		]
-
-		unless rs? [
+		unless rs?: red-system? src [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
 			all [
@@ -585,6 +573,34 @@ redc: context [
 			]
 			unless encap? [change-dir %../]
 		]
+		result
+	]
+
+	main: func [/with cmd [string!] /local src opts build-dir prefix result][
+		set [src opts] parse-options cmd
+
+		rs?: red-system? src
+
+		;-- If we use a build directory, ensure it exists.
+		if all [prefix: opts/build-prefix find prefix %/] [
+			build-dir: copy/part prefix find/last prefix %/
+			unless attempt [make-dir/deep build-dir] [
+				fail ["Cannot access build dir:" to-local-file build-dir]
+			]
+		]
+		
+		print [lf "-=== Red Compiler" read-cache %version.r "===-" lf]
+
+		;-- libRed updating mode
+		if opts/libRed-update? [
+			opts/dev-mode?: opts/link?: no
+			compile src opts
+			print ["libRed-extras.r file generated, recompiling..." lf lf]
+			opts/dev-mode?: opts/link?: yes
+			opts/libRed-update?: no
+		]
+		
+		result: compile src opts
 		show-stats result
 	]
 

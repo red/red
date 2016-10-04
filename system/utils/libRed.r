@@ -11,6 +11,7 @@ libRed: context [
 	funcs: vars: none
 	
 	set [funcs vars] load-cache %system/utils/libRed-exports.r
+	user-funcs: tail funcs
 		
 	imports:	make block! 100
 	template:	make string! 100'000
@@ -44,13 +45,21 @@ libRed: context [
 		data
 	]
 	
+	init-extras: does [
+		clear extras
+		clear user-funcs
+	]	
+	
+	save-extras: does [
+		write join system/script/path %libRed-extras.r mold/only extras
+	]
+	
 	collect-extra: func [name [word!]][
 		if all [
 			find/match form name "red/"
 			not find/only funcs path: load form name	;-- funcs contains paths
 			not find [get-root get-root-node] path/2
 		][
-?? name		
 			append extras name
 		]	
 	]
@@ -63,6 +72,9 @@ libRed: context [
 			][
 				append/only funcs load form name
 			]
+		]
+		if exists? %libRed-extras.r [
+			append funcs load %libRed-extras.r
 		]
 		foreach def funcs [
 			name: to word! form def

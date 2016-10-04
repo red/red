@@ -4236,6 +4236,7 @@ red: context [
 		
 		comp-bodies										;-- compile deferred functions
 		comp-finish
+		libRed/save-extras
 		
 		reduce [user mods main]
 	]

@@ -3567,6 +3567,8 @@ system-dialect: make-profilable context [
 			
 			set-verbose-level opts/verbosity
 			resources: either loaded [job-data/4][make block! 8]
+			if job/libRed-update? [libRed/init-extras]
+			
 			foreach file files [
 				either loaded [
 					src: loader/process/with job-data/1 file
@@ -3582,6 +3584,8 @@ system-dialect: make-profilable context [
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
+			
+			if job/libRed-update? [libRed/save-extras]
 		]
 		if verbose >= 5 [
 			print [
@@ -3623,7 +3627,7 @@ system-dialect: make-profilable context [
 		
 		set-verbose-level opts/verbosity
 		output-logs
-		if opts/link? [clean-up]
+		if any [opts/link? not opts/dev-mode?][clean-up]
 
 		reduce [
 			comp-time
