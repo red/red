@@ -2669,6 +2669,12 @@ b}
 		--assert equal? [a c d e f g h] keys-of m
 		--assert equal? [1 3 4 5 6 7 8] values-of m
 
+	--test-- "#2250"
+		--assert equal? [2:00:00] difference [1:00] [2:00 1:00]
+
+	--test-- "#2253"
+		--assert not error? try [3151391351465.995 // 1.0]
+
 ===end-group===
 
 ~~~end-file~~~
