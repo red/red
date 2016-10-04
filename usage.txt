@@ -15,6 +15,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -r, --release                  : Compile in release mode, linking everything
                                      together (default: development mode).
 
+    -u, --update-libRed             : Rebuild libRed and compile the input script
+                                      (only for Red scripts with R/S code).
+
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
 
