@@ -2796,7 +2796,7 @@ system-dialect: make-profilable context [
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
-			if user-code? [libRed/collect-extra name]
+			if all [user-code? spec/2 <> 'import][libRed/collect-extra name]
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [

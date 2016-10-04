@@ -57,6 +57,7 @@ libRed: context [
 	
 	collect-extra: func [name [word!]][
 		if all [
+			not find extras name
 			find/match form name "red/"
 			not find/only funcs path: load form name	;-- funcs contains paths
 			not find [get-root get-root-node] path/2
