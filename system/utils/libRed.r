@@ -12,9 +12,10 @@ libRed: context [
 	
 	set [funcs vars] load-cache %system/utils/libRed-exports.r
 		
-	imports: make block! 100
-	template: make string! 100'000
-	obj-path: 'red/objects
+	imports:	make block! 100
+	template:	make string! 100'000
+	extras:		make block! 100
+	obj-path:	'red/objects
 	
 	include-file: %libRed-include.red
 	defs-file:	  %libRed-defs.red
@@ -43,14 +44,15 @@ libRed: context [
 		data
 	]
 	
-	make-extras: func [functions exports][
-		extras: make block! 100
-		foreach [name spec] functions [
-			if find/match form name "red/" [
-				unless find funcs name [append extras name]
-			]
-		]
-?? extras		
+	collect-extra: func [name [word!]][
+		if all [
+			find/match form name "red/"
+			not find/only funcs path: load form name	;-- funcs contains paths
+			not find [get-root get-root-node] path/2
+		][
+?? name		
+			append extras name
+		]	
 	]
 	
 	make-exports: func [functions exports /local name][

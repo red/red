@@ -81,6 +81,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
+		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
 		verbose:  	 	 0								;-- logs verbosity level
@@ -1428,6 +1429,7 @@ system-dialect: make-profilable context [
 				name specs pc/3 script
 				all [ns-path copy ns-path]
 				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
+				user-code?
 			]
 			pc: skip pc 3
 		]
@@ -1674,6 +1676,7 @@ system-dialect: make-profilable context [
 				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
+				#user-code [user-code?: not user-code? pc: next pc]
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -2792,6 +2795,7 @@ system-dialect: make-profilable context [
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
+			if user-code? [libRed/collect-extra name]
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
@@ -3195,7 +3199,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns nss] natives [
+			foreach [name spec body origin ns nss user?] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -3206,6 +3210,7 @@ system-dialect: make-profilable context [
 				script: origin
 				ns-path: ns
 				ns-stack: nss
+				user-code?: user?
 				comp-func-body name spec body
 			]
 		]
@@ -3255,7 +3260,7 @@ system-dialect: make-profilable context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 6 [
+				unless find/skip natives fun 7 [
 					repend code [
 						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
@@ -3304,8 +3309,6 @@ system-dialect: make-profilable context [
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
-			
-			libRed/make-extras functions exports
 		]
 	]
 	
@@ -3432,6 +3435,7 @@ system-dialect: make-profilable context [
 		compiler/ns-stack: 
 		compiler/locals: none
 		compiler/resolve-alias?:  yes
+		compiler/user-code?: no
 		
 		clear compiler/imports
 		clear compiler/exports

@@ -4229,6 +4229,7 @@ red: context [
 		user: tail output
 		append output [#user-code]
 		comp-block
+		append output [#user-code]
 		
 		main: output
 		output: make block! 1000
