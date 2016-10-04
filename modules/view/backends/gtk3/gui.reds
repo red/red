@@ -18,6 +18,7 @@ Red/System [
 #include %draw.reds
 
 #include %handlers.reds
+#include %style.reds
 
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
@@ -169,6 +170,8 @@ init: func [][
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
+
+	style-init
 ]
 
 set-selected-focus: func [
@@ -399,6 +402,8 @@ OS-make-view: func [
 			fire [TO_ERROR(script face-type) type]
 		]
 	]
+
+	set-widget-style widget face
 
 	if all [
 		sym <> window
