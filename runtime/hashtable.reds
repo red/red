@@ -182,7 +182,8 @@ _hashtable: context [
 			TYPE_INTEGER [key/data2]
 			TYPE_FLOAT
 			TYPE_PAIR
-			TYPE_PERCENT [
+			TYPE_PERCENT
+			TYPE_TIME [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
 			TYPE_WORD
