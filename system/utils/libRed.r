@@ -18,9 +18,9 @@ libRed: context [
 	extras:		make block! 100
 	obj-path:	'red/objects
 	
-	include-file: %libRed-include.r
+	include-file: %libRed-include.red
 	extras-file:  %libRed-extras.r
-	defs-file:	  %libRed-defs.red
+	defs-file:	  %libRed-defs.r
 	root-dir:	  %./
 	
 	get-path: func [file][
