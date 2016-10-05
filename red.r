@@ -431,7 +431,7 @@ redc: context [
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
-				| "-u"						(opts/libRedRT-update?: yes)
+				| ["-u"	| "--update-libRedRT"] (opts/libRedRT-update?: yes)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--dev"					(opts/dev-mode?: yes)
 				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
