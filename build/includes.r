@@ -168,6 +168,7 @@ write %build/bin/sources.r set-cache [
 		%extractor.r
 		%redbin.r
 		%call.r
+		%preprocessor.r
 	]
 	%system/ [
 		%compiler.r
