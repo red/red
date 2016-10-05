@@ -121,10 +121,7 @@ libRed: context [
 		append template "^/red: context "
 		
 		append imports [
-			#define series!	series-buffer!
-			#define node! int-ptr!
-			#define get-unit-mask	31
-			
+			#include %$ROOT-PATH$runtime/definitions.reds
 			#include %$ROOT-PATH$runtime/macros.reds
 			#include %$ROOT-PATH$runtime/datatypes/structures.reds
 				

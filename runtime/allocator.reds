@@ -10,48 +10,6 @@ Red/System [
 	}
 ]
 
-#define _512KB				524288
-#define _1MB				1048576
-#define _2MB				2097152
-#define _16MB				16777216
-#define nodes-per-frame		10000
-#define node-frame-size		[((nodes-per-frame * 2 * size? pointer!) + size? node-frame!)]
-
-#define series-in-use		80000000h		;-- mark a series as used (not collectable by the GC)
-#define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
-#define flag-ins-tail		20000000h		;-- optimize for tail insertions
-#define flag-ins-head		10000000h		;-- optimize for head insertions
-#define flag-series-big		01000000h		;-- 1 = big, 0 = series
-#define flag-series-small	00800000h		;-- series <= 16 bytes
-#define flag-series-stk		00400000h		;-- values block allocated on stack
-#define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
-#define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
-#define flag-bitset-not		00080000h		;-- complement flag for bitsets
-#define flag-UTF16-cache	00040000h		;-- UTF-16 encoding for string cache buffer
-#define flag-series-owned	00020000h		;-- series is owned by an object
-#define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
-#define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
-#define flag-native-op		00010000h		;-- operator is made from a native! function
-
-#define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
-#define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
-#define flag-arity-mask		C1FFFFFFh		;-- mask for reading routines arity field
-#define flag-self-mask		01000000h		;-- mask for self? flag
-#define body-flag			00800000h		;-- flag for op! body node
-#define tuple-size-mask		00780000h		;-- mask for reading tuple size field
-#define flag-unit-mask		FFFFFFE0h		;-- mask for reading unit field in series-buffer!
-#define get-unit-mask		0000001Fh		;-- mask for setting unit field in series-buffer!
-#define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
-#define flag-not-mask		FFF7FFFFh		;-- mask for complement flag
-
-#define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
-#define get-type-mask		000000FFh		;-- mask for reading type ID in cell header
-#define node!				int-ptr!
-#define default-offset		-1				;-- for offset value in alloc-series calls
-
-#define series!				series-buffer! 
-
-
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --

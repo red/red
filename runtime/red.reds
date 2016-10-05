@@ -13,6 +13,7 @@ Red/System [
 red: context [
 	;-- Runtime sub-system --
 	
+	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
 	
