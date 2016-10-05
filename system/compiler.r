@@ -18,7 +18,7 @@ do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
-do-cache %system/utils/libRed.r
+do-cache %system/utils/libRedRT.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
@@ -65,8 +65,8 @@ system-dialect: make-profilable context [
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
-		libRed?: 			no
-		libRed-update?:		no
+		libRedRT?: 			no
+		libRedRT-update?:	no
 	]
 	
 	compiler: make-profilable context [
@@ -2796,7 +2796,7 @@ system-dialect: make-profilable context [
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
-			if all [user-code? spec/2 <> 'import][libRed/collect-extra name]
+			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
@@ -3298,8 +3298,8 @@ system-dialect: make-profilable context [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			
 			if job/type = 'dll [
-				if all [job/dev-mode? job/libRed?][
-					libRed/process job functions exports
+				if all [job/dev-mode? job/libRedRT?][
+					libRedRT/process job functions exports
 				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
@@ -3406,7 +3406,7 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			if any [not job/dev-mode? job/libRed?][
+ 			if any [not job/dev-mode? job/libRedRT?][
 				set-cache-base %runtime/
 				script: pick [%red.reds %../runtime/red.reds] encap?
 				compiler/run job loader/process/own script script
@@ -3568,7 +3568,7 @@ system-dialect: make-profilable context [
 			
 			set-verbose-level opts/verbosity
 			resources: either loaded [job-data/4][make block! 8]
-			if job/libRed-update? [libRed/init-extras]
+			if job/libRedRT-update? [libRedRT/init-extras]
 			
 			foreach file files [
 				either loaded [
@@ -3586,7 +3586,7 @@ system-dialect: make-profilable context [
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
 			
-			if job/libRed-update? [libRed/save-extras]
+			if job/libRedRT-update? [libRedRT/save-extras]
 		]
 		if verbose >= 5 [
 			print [

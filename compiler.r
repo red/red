@@ -1661,7 +1661,7 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				either multi? [							;-- not allowed for libRed client programs
+				either multi? [							;-- not allowed for libRedRT client programs
 					append bodies name
 					append bodies bind/copy copy/part next find bodies symbol 8 new
 				][
@@ -1839,7 +1839,7 @@ red: context [
 			]
 			insert-lf -3
 		]
-		multi-inherit?: not all [job/dev-mode? not job/libRed?]
+		multi-inherit?: not all [job/dev-mode? not job/libRedRT?]
 		
 		if proto [
 			if body? [inherit-functions obj last proto multi-inherit?]
@@ -4207,7 +4207,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		unless all [job/dev-mode? not job/libRed?][
+		unless all [job/dev-mode? not job/libRedRT?][
 			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 			unless job/red-help? [clear-docstrings pc]
 			booting?: yes
@@ -4236,7 +4236,7 @@ red: context [
 		
 		comp-bodies										;-- compile deferred functions
 		comp-finish
-		libRed/save-extras
+		libRedRT/save-extras
 		
 		reduce [user mods main]
 	]
@@ -4335,8 +4335,8 @@ red: context [
 			]
 		]]
 		
-		if all [job/dev-mode? not job/libRed?][
-			replace out <imports> libRed/get-include-file job
+		if all [job/dev-mode? not job/libRedRT?][
+			replace out <imports> libRedRT/get-include-file job
 		]
 		set [user mods main] comp-source code
 		
@@ -4461,7 +4461,7 @@ red: context [
 		depth:	   0
 		max-depth: 0
 		container-obj?: none
-		redbin/index: 0									;-- required here by libRed
+		redbin/index: 0									;-- required here by libRedRT
 	]
 
 	compile: func [
@@ -4483,8 +4483,8 @@ red: context [
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
 			
-			if all [job/dev-mode? not job/libRed?][
-				defs: libRed/get-definitions
+			if all [job/dev-mode? not job/libRedRT?][
+				defs: libRedRT/get-definitions
 				append clear functions defs/1
 				;redbin/index:	defs/2
 				globals:		defs/3

@@ -364,13 +364,13 @@ redc: context [
 		quit/return 0
 	]
 	
-	build-libRed: func [opts [object!] /local script result file][
-		print "Compiling libRed..."
-		file: %libRed
+	build-libRedRT: func [opts [object!] /local script result file][
+		print "Compiling libRedRT..."
+		file: libRedRT/lib-file
 		opts: make opts [
 			build-basename: file
 			type: 'dll
-			libRed?: yes
+			libRedRT?: yes
 			link?: yes
 			unicode?: yes
 		]
@@ -417,7 +417,7 @@ redc: context [
 		target: default-target
 		opts: make system-dialect/options-class [
 			link?: yes
-			libRed-update?: no
+			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
 
@@ -431,7 +431,7 @@ redc: context [
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
-				| "-u"						(opts/libRed-update?: yes)
+				| "-u"						(opts/libRedRT-update?: yes)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--dev"					(opts/dev-mode?: yes)
 				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
@@ -538,14 +538,14 @@ redc: context [
 				opts/dev-mode?
 				not all [
 					any [
-						exists? %libRed.dll				;@@ To be improved
-						exists? %libRed.so
-						exists? %libRed.dylib
+						exists? %libRedRT.dll				;@@ To be improved
+						exists? %libRedRT.so
+						exists? %libRedRT.dylib
 					]
-					exists? libRed/include-file
-					exists? libRed/defs-file
+					exists? libRedRT/include-file
+					exists? libRedRT/defs-file
 				]
-				build-libRed opts
+				build-libRedRT opts
 			]
 
 			fail-try "Red Compiler" [
@@ -591,13 +591,13 @@ redc: context [
 		
 		print [lf "-=== Red Compiler" read-cache %version.r "===-" lf]
 
-		;-- libRed updating mode
-		if opts/libRed-update? [
+		;-- libRedRT updating mode
+		if opts/libRedRT-update? [
 			opts/dev-mode?: opts/link?: no
 			compile src opts
-			print ["libRed-extras.r file generated, recompiling..." lf]
+			print ["libRedRT-extras.r file generated, recompiling..." lf]
 			opts/dev-mode?: opts/link?: yes
-			opts/libRed-update?: no
+			opts/libRedRT-update?: no
 		]
 		
 		result: compile src opts

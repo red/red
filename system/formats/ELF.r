@@ -290,9 +290,9 @@ context [
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
-		;-- (hack) Move libRed in first position to avoid "system" symbol
+		;-- (hack) Move libRedRT in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
-		if pos: find list: job/sections/import/3 "libRed.so" [
+		if pos: find list: job/sections/import/3 "libRedRT.so" [
 			insert list take/part pos 2
 		]
 		

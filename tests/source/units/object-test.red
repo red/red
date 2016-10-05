@@ -413,7 +413,7 @@ Red [
 		--assert list/1/v = 0
 		--assert list/2/v = 1
 
-;#if dev-mode? = no [							;-- libRed does not support multiple-inheritance
+;#if dev-mode? = no [							;-- libRedRT does not support multiple-inheritance
 	--test-- "inherit-5"
 		base5: context [
 			b: 123

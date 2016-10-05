@@ -1,26 +1,27 @@
 REBOL [
 	Title:   "Information extractor from Red runtime source code"
 	Author:  "Nenad Rakocevic"
-	File: 	 %libRed.r
+	File: 	 %libRedRT.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
-libRed: context [
+libRedRT: context [
 	funcs: vars: none
 	
-	set [funcs vars] load-cache %system/utils/libRed-exports.r
+	set [funcs vars] load-cache %system/utils/libRedRT-exports.r
 	user-funcs: tail funcs
 		
-	imports:	make block! 100
+	imports:	make block!  100
 	template:	make string! 100'000
-	extras:		make block! 100
+	extras:		make block!  100
 	obj-path:	'red/objects
 	
-	include-file: %libRed-include.red
-	extras-file:  %libRed-extras.r
-	defs-file:	  %libRed-defs.r
+	lib-file:	  %libRedRT
+	include-file: %libRedRT-include.red
+	extras-file:  %libRedRT-extras.r
+	defs-file:	  %libRedRT-defs.r
 	root-dir:	  %./
 	
 	get-path: func [file][
@@ -82,7 +83,7 @@ libRed: context [
 			name: to word! form def
 			append exports name
 			unless select/only functions name [
-				print ["*** libRed Error: definition not found for" def]
+				print ["*** libRedRT Error: definition not found for" def]
 				halt
 			]
 			system-dialect/compiler/flag-callback name none
@@ -177,7 +178,7 @@ libRed: context [
 			]
 			either pos: find list #import [pos: pos/2/3][
 				append list copy/deep [
-					#import [LIBRED-file stdcall]
+					#import [libRedRT-file stdcall]
 				]
 				append/only last list pos: make block! 20
 			]

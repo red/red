@@ -107,7 +107,7 @@ get-root-node: func [
 	obj/ctx
 ]
 
-get-root-node2: func [									;-- alias used by libRed
+get-root-node2: func [									;-- alias used by libRedRT
 	idx		[integer!]
 	return: [node!]
 ][

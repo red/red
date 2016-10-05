@@ -130,7 +130,7 @@ system!: alias struct! [					;-- store runtime accessible system values
 	debug		[__stack!]					;-- stack info for debugging (set on runtime error only, internal use)
 ]
 
-#either libRed? = yes [
+#either libRedRT? = yes [
 	system: declare system!
 	#export [system]
 ][
@@ -140,7 +140,7 @@ system!: alias struct! [					;-- store runtime accessible system values
 		#either red-pass? = no [
 			system: declare system!
 		][
-			#import [LIBRED-file stdcall [system: "system" [system!]]]
+			#import [LIBREDRT-file stdcall [system: "system" [system!]]]
 		]
 	]
 ]
