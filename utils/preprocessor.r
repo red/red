@@ -1,35 +1,34 @@
 REBOL [
-	Title:   "Compilation directives preprocessing"
+	Title:   "Compilation directives processing"
 	Author:  "Nenad Rakocevic"
 	File: 	 %preprocessor.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
-	Notes: 	 {}
 ]
 
 context [
 
-	check-condition: func [job [object!] type [word!] payload [block!]][
+	check-condition: func [job [object!] type [word!] expr [block!]][
 		if any [
-			not any [word? payload/1 lit-word? payload/1]
-			not in job payload/1
-			all [type <> 'switch not find [= <> < > <= >= contains] payload/2]
+			not any [word? expr/1 lit-word? expr/1]
+			not in job expr/1
+			all [type <> 'switch not find [= <> < > <= >= contains] expr/2]
 		][
-			throw-error rejoin ["invalid #" type " condition"]
+			print rejoin ["invalid #" type " condition"]
 		]
 		either type = 'switch [
 			any [
-				select payload/2 job/(payload/1)
-				select payload/2 #default
+				select expr/2 job/(expr/1)
+				select expr/2 #default
 			]
 		][
-			payload: either payload/2 = 'contains [
-				compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
+			expr: either expr/2 = 'contains [
+				compose/deep [all [(expr/1) find (expr/1) (expr/3)]]
 			][
-				copy/part payload 3
+				copy/part expr 3
 			]
-			do bind payload job
+			do bind expr job
 		]
 	]
 	
@@ -71,6 +70,12 @@ context [
 				| skip
 			]
 		]
+		code
 	]
-
+	
+	set 'expand-directives func [						;-- to be called from Red
+		code [block!]
+	][
+		expand code system/options/build
+	]
 ]
