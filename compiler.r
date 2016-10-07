@@ -3946,6 +3946,11 @@ red: context [
 				comp-expression
 				true
 			]
+			#build-config [
+				change/only pc load find mold job #"["
+				comp-expression
+				true
+			]
 			#register-intrinsics [						;-- internal boot-level directive
 				if booting? [
 					pc: next pc

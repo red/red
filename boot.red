@@ -29,6 +29,7 @@ Red [
 #include %environment/codecs/gif.red
 
 #include %environment/reactivity.red					;-- requires SET intrinsic
+#include %utils/preprocessor.r
 
 extract-boot-args
 

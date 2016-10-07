@@ -6,6 +6,7 @@ REBOL [
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
+Red []													;-- make it usable by Red too.
 
 context [
 
@@ -73,9 +74,9 @@ context [
 		code
 	]
 	
-	set 'expand-directives func [						;-- to be called from Red
+	set 'expand-directives func [						;-- to be called from Red only
 		code [block!]
 	][
-		expand code system/options/build
+		expand code system/build/config
 	]
 ]

@@ -12,7 +12,10 @@ Red [
 
 system: context [
 	version: #version
-	build:	 #build-date
+	build:	 context [
+		date:	#build-date
+		config: context #build-config
+	]
 		
 	words: #system [
 		__make-sys-object: func [
