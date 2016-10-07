@@ -860,7 +860,7 @@ split-path: func [
 
 do-file: func [file [file!] /local saved code new-path][
 	saved: system/options/path
-	code: load file
+	code: expand-directives load file
 	new-path: first split-path clean-path file
 	change-dir new-path
 	set/any 'code do code

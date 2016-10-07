@@ -40,6 +40,7 @@ red: context [
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
+	preprocessor:  do bind load-cache %utils/preprocessor.r 'self
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
@@ -3945,6 +3946,11 @@ red: context [
 				comp-expression
 				true
 			]
+			#build-config [
+				change/only pc load find mold job #"["
+				comp-expression
+				true
+			]
 			#register-intrinsics [						;-- internal boot-level directive
 				if booting? [
 					pc: next pc
@@ -4479,6 +4485,7 @@ red: context [
 			src: load-source file
 			job/red-pass?: yes
 			process-config src/1 job
+			preprocessor/expand src job
 			process-needs src/1 next src
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src

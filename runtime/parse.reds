@@ -39,7 +39,7 @@ parser: context [
 		p/header: TYPE_POINT
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
-		p/sub:	  len												;-- default value for sub-rule type
+		p/sub:	  len											;-- default value for sub-rule type
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
