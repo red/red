@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum image-format! [
-	IMAGE_BMP
-	IMAGE_PNG
-	IMAGE_GIF
-	IMAGE_JPEG
-	IMAGE_TIFF
-]
-
 image: context [
 	verbose: 0
 

@@ -136,5 +136,14 @@ Red/System [
 	]
 	
 	#define BFFM_SETEXPANDED		1130
-	
+]
+
+;=== Image definitions ===
+
+#enum image-format! [
+	IMAGE_BMP
+	IMAGE_PNG
+	IMAGE_GIF
+	IMAGE_JPEG
+	IMAGE_TIFF
 ]

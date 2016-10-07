@@ -4213,21 +4213,21 @@ red: context [
 			booting?: yes
 			comp-block
 			booting?: no
-
-			mods: tail output
-			foreach module needed [
-				saved: if script-path [copy script-path]
-				script-path: first split-path module
-				pc: next load-source/hidden module
-				unless job/red-help? [clear-docstrings pc]
-				comp-block
-				script-path: saved
-			]
 		]
 		
+		mods: tail output
+		append output [#user-code]
+		foreach module needed [
+			saved: if script-path [copy script-path]
+			script-path: first split-path module
+			pc: next load-source/hidden module
+			unless job/red-help? [clear-docstrings pc]
+			comp-block
+			script-path: saved
+		]
+
 		pc: code										;-- compile user code
 		user: tail output
-		append output [#user-code]
 		comp-block
 		append output [#user-code]
 		
@@ -4495,6 +4495,7 @@ red: context [
 				foreach w defs/8 [add-symbol w]
 				append literals defs/9
 				s-counter:		defs/10
+				needed: 		exclude needed defs/11	;-- exclude already compiled modules
 				make-keywords
 			]
 			either job/type = 'dll [comp-as-lib src][comp-as-exe src]

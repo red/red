@@ -10,6 +10,10 @@ Red/System [
 	}
 ]
 
+#if dev-mode? = yes [
+	#include %../../../../runtime/platform/COM.reds
+	#include %../../../../runtime/platform/image-gdiplus.reds
+]
 
 #define NM_CUSTOMDRAW			-12
 
@@ -909,6 +913,10 @@ DwmIsCompositionEnabled!: alias function! [
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
 			lpProcName	[c-string!]
+			return:		[integer!]
+		]
+		lstrlen: "lstrlenW" [
+			str			[byte-ptr!]
 			return:		[integer!]
 		]
 	]

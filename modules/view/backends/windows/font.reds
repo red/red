@@ -243,7 +243,7 @@ OS-request-font: func [
 	if mono? [cf/Flags: 4000h or cf/Flags]				;-- CF_FIXEDPITCHONLY
 
 	either ChooseFont cf [
-		size: platform/lstrlen as byte-ptr! name
+		size: lstrlen as byte-ptr! name
 		values: object/get-values font
 		str: as red-string! values + FONT_OBJ_NAME
 		str/header:	TYPE_STRING							;-- implicit reset of all header flags

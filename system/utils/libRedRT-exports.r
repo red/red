@@ -11,6 +11,7 @@
 	red/eval-int-path
 	red/eval-path
 	red/select-key*
+	red/alloc-bytes
 
 	red/redbin/boot-load
 
@@ -157,6 +158,8 @@
 	red/string/remove-part
 	red/_series/copy
 	;--
+	
+	red/symbol/make
 
 	red/unicode/load-utf8
 

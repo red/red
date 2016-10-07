@@ -1837,6 +1837,7 @@ system-dialect: make-profilable context [
 		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
+			if path? ctype [ctype: to word! form ctype]
 			
 			if any [
 				not find [word! block!] type?/word ctype

@@ -212,8 +212,32 @@ libRedRT: context [
 		]
 		append imports [
 			words: context [
-				_body:	red/word/load "<body>"
-				_anon:	red/word/load "<anon>"
+				_body:		red/word/load "<body>"
+				_anon:		red/word/load "<anon>"
+				_remove:	red/word/load "remove"
+				_take:		red/word/load "take"
+				_clear:		red/word/load "clear"
+				_insert:	red/word/load "insert"
+				_poke:		red/word/load "poke"
+				_put:		red/word/load "put"
+				_moved:		red/word/load "moved"
+				_changed:	red/word/load "changed"
+				_reverse:	red/word/load "reverse"
+				
+				type:		red/symbol/make "type"
+				face:	 	red/symbol/make "face"
+				window:	 	red/symbol/make "window"
+				offset:	 	red/symbol/make "offset"
+				key:		red/symbol/make "key"
+				picked:		red/symbol/make "picked"
+				flags:	 	red/symbol/make "flags"
+				away?:		red/symbol/make "away?"
+				down?:		red/symbol/make "down?"
+				mid-down?:	red/symbol/make "mid-down?"
+				alt-down?:	red/symbol/make "alt-down?"
+				aux-down?:	red/symbol/make "aux-down?"
+				ctrl?:		red/symbol/make "ctrl?"
+				shift?:	 	red/symbol/make "shift?"
 			]
 		]
 		
@@ -244,6 +268,7 @@ libRedRT: context [
 			words
 			lits
 			red/s-counter
+			red/needed
 		]
 		replace/all tmpl "% " {%"" }
 		replace/all tmpl ">>>" {">>>"}
