@@ -2490,7 +2490,7 @@ make-profilable make target-class [
 			;offset: offset + 8						;-- account for the 2 catch slots on stack 
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			
-			if cb? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
+			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
 			offset: offset + (2 * 8) - args-offset		;-- account for the 2 catch slots + 2 saved slots
 			
 			either offset > 255 [
