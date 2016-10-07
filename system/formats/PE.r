@@ -498,6 +498,10 @@ context [
 		dlls:		make binary! 200					;-- DLL names
 		hints:		make binary! 10000					;-- hints/names temporary buffer
 
+		if pos: find spec/3 "libRedRT.dll" [
+			append spec/3 take/part pos 2				;-- ensures libRedRT is loaded last
+		]												;-- to allow VisualStyles to work properly
+		
 		foreach [name list] spec/3 [					;-- collecting DLL names in buffer
 			append IDTs idt: make-struct import-directory none
 			idt/name-rva: length? dlls
