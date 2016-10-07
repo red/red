@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Image routine functions using GDI+"
 	Author:  "Qingtian Xie"
-	File: 	 %image-gdiplus.red
+	File: 	 %image-gdiplus.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014 Qingtian Xie. All rights reserved."
 	License: {
