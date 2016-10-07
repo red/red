@@ -24,6 +24,7 @@ GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
 red-face-id:	0
+gtk-style-id:	0
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -167,6 +168,7 @@ init: func [][
 	g_application_register GTKApp null null
 
 	red-face-id: g_quark_from_string "red-face-id"
+	gtk-style-id: g_quark_from_string "gtk-style-id"
 
 	screen-size-x: gdk_screen_width
 	screen-size-y: gdk_screen_height
@@ -403,7 +405,7 @@ OS-make-view: func [
 		]
 	]
 
-	set-widget-style widget face
+	create-widget-style widget face
 
 	if all [
 		sym <> window

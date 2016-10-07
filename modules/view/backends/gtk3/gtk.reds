@@ -112,6 +112,13 @@ tagSIZE: alias struct! [
 			list		[int-ptr!]
 			return:		[integer!]
 		]
+		g_strdup_printf: "g_strdup_printf" [
+			[variadic]
+			return:		[c-string!]
+		]
+		g_free: "g_free" [
+			pointer		[handle!]
+		]
 	;; ]
 	;; LIBGIO-file cdecl [
 		g_application_register: "g_application_register" [
@@ -266,6 +273,11 @@ tagSIZE: alias struct! [
 			data		[c-string!]
 			length		[integer!]
 			error		[handle!]
+		]
+		gtk_style_context_add_provider: "gtk_style_context_add_provider" [
+			context		[handle!]
+			provider	[handle!]
+			priority	[integer!]
 		]
 		gtk_style_context_add_provider_for_screen: "gtk_style_context_add_provider_for_screen" [
 			screen		[handle!]

@@ -28,6 +28,10 @@ css-style: {
 	.strike {
 		text-decoration-line: line-through;
 	}
+
+	progress, trough {
+		min-height: 2em;
+	}
 }
 
 style-init: func [
@@ -43,18 +47,45 @@ style-init: func [
 	gtk_style_context_add_provider_for_screen screen provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
 ]
 
+get-style-provider: func [
+	widget  [handle!]
+	return: [handle!]
+][
+	g_object_get_qdata widget gtk-style-id
+]
+
+create-widget-style: func [
+	widget [handle!]
+	face   [red-object!]
+	/local
+		context  [handle!]
+		provider [handle!]
+][
+	provider:	gtk_css_provider_new
+	context:	gtk_widget_get_style_context widget
+
+	gtk_style_context_add_provider context provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+
+	g_object_set_qdata widget gtk-style-id provider
+
+	set-widget-style widget face
+]
+
 set-widget-style: func [
 	widget [handle!]
 	face   [red-object!]
 	/local
-		font    [red-object!]
-		values  [red-value!]
-		context [handle!]
-		style   [red-word!]
-		blk     [red-block!]
-		len     [integer!]
-		sym     [integer!]
-		class   [c-string!]
+		font     [red-object!]
+		values   [red-value!]
+		context  [handle!]
+		provider [handle!]
+		style    [red-word!]
+		blk      [red-block!]
+		len      [integer!]
+		sym      [integer!]
+		class    [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
 ][
 	values: object/get-values face
 
@@ -63,7 +94,16 @@ set-widget-style: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		values: object/get-values font
 
+		size:	as red-integer!	values + FONT_OBJ_SIZE
 		style:	as red-word!	values + FONT_OBJ_STYLE
+
+		css:		""
+		context:	gtk_widget_get_style_context widget
+		provider:	get-style-provider widget
+
+		if TYPE_OF(size) = TYPE_INTEGER [
+			css: g_strdup_printf ["* {font-size:%dpt;}" size/value]
+		]
 
 		len: switch TYPE_OF(style) [
 			TYPE_BLOCK [
@@ -74,8 +114,6 @@ set-widget-style: func [
 			TYPE_WORD	[1]
 			default		[0]
 		]
-
-		context: gtk_widget_get_style_context widget
 
 		unless zero? len [
 			loop len [
@@ -90,5 +128,7 @@ set-widget-style: func [
 				unless 0 = length? class [gtk_style_context_add_class context class]
 			]
 		]
+
+		gtk_css_provider_load_from_data provider css -1 null
 	]
 ]
