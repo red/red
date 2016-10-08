@@ -209,6 +209,17 @@ get-event-key: func [
 	]
 ]
 
+get-event-count: func [
+	evt		[red-event!]
+	return: [red-value!]
+][
+	as red-value! either evt/type = EVT_WHEEL [
+		integer/push evt/flags << 16 >> 16
+	][
+		none-value
+	]
+]
+
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -405,10 +416,11 @@ make-event: func [
 		EVT_RIGHT_UP
 		EVT_MIDDLE_DOWN
 		EVT_MIDDLE_UP
-		EVT_DBL_CLICK [
-			key: 0
+		EVT_DBL_CLICK
+		EVT_WHEEL [
+			key: flags
 			flags: msg/wParam
-			if flags and 08h <> 0 [key: EVT_FLAG_CTRL_DOWN]			;-- MK_CONTROL
+			if flags and 08h <> 0 [key: key or EVT_FLAG_CTRL_DOWN]	;-- MK_CONTROL
 			if flags and 04h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]	;-- MK_SHIFT
 			gui-evt/flags: key
 		]
@@ -1050,6 +1062,13 @@ process: func [
 			hover-saved: new
 			EVT_DISPATCH
 		]
+		WM_MOUSEWHELL [
+			x: WIN32_HIWORD(msg/wParam)
+			y: either x < 0 [0 - x][x]
+			if y > 120 [y: 120]							;-- WHEEL_DELTA: 120
+			make-event msg x / y and FFFFh EVT_WHEEL
+			EVT_DISPATCH
+		]
 		WM_LBUTTONDOWN	[
 			if GetCapture <> null [return EVT_DISPATCH]
 			menu-origin: null							;-- reset if user clicks on menu bar
@@ -1075,10 +1094,6 @@ process: func [
 		WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
 		WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
 		WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
-		WM_HSCROLL [
-			get-slider-pos msg
-			make-event current-msg 0 EVT_CHANGE
-		]
 		WM_KEYDOWN		[
 			res: make-event msg 0 EVT_KEY_DOWN
 			if res <> EVT_NO_DISPATCH [

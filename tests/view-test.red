@@ -120,7 +120,7 @@ sub-win2: make face! [
 		]
 	]
 ]
-
+	
 ;; requires pane cursor to be moved back in closing event handler
 
 win: make face! [
@@ -199,6 +199,72 @@ win: make face! [
 				'stop
 			]
 		]
+	]
+]
+
+canvas: make face! [
+	type: 'base offset: 0x0 size: 300x200 color: silver
+	draw: [
+		image smiley 10x30
+
+		line-cap round
+		pen red
+		line 10x10 130x190 80x40 150x100
+		
+		pen blue
+		line-width 4
+		line-join round
+		line 15x190 50x50 190x180
+		
+		pen green
+		line-join miter
+		box 10x120 70x160
+		
+		line-width 1
+		pen maroon
+		fill-pen orange
+		box 150x80 180x120
+		
+		fill-pen off
+		pen red
+		triangle 170x10 170x50 195x50
+		
+		pen yellow fill-pen orange
+		line-width 5
+		line-join bevel
+		polygon 120x130 120x190 180x130 180x190
+
+		line-width 1
+		pen purple
+		fill-pen purple
+		box 220x10 280x70 10
+		pen gray
+		fill-pen white
+		ellipse 240x20 20x40
+		
+		fill-pen red
+		circle 250x150 49.5
+		pen gray
+		fill-pen white
+		circle 250x150 40
+		fill-pen red
+		circle 250x150 30
+		fill-pen blue
+		circle 250x150 20
+		pen blue
+		fill-pen white
+		polygon 232x144 245x144 250x130 255x144 268x144
+			257x153 260x166 250x158 239x166 243x153
+
+		font font-A
+		text 40x6 "Scroll Me with mouse wheel :-)"
+		
+		arc 100x25 80x80 0 90 closed
+		pen red
+		arc 100x25 50x80 30 90
+
+		curve 20x150 60x250 200x50
+		curve 224x14 220x40 280x40 276x66
 	]
 ]
 
@@ -673,69 +739,15 @@ win/pane: reduce [
 		type: 'button offset: 570x440 size: 38x38
 		image: smiley
 	]
-	canvas: make face! [
-		type: 'base offset: 10x460 size: 300x200 color: silver
-		draw: [
-			image smiley 10x30
-
-			line-cap round
-			pen red
-			line 10x10 130x190 80x40 150x100
-			
-			pen blue
-			line-width 4
-			line-join round
-			line 15x190 50x50 190x180
-			
-			pen green
-			line-join miter
-			box 10x120 70x160
-			
-			line-width 1
-			pen maroon
-			fill-pen orange
-			box 150x80 180x120
-			
-			fill-pen off
-			pen red
-			triangle 170x10 170x50 195x50
-			
-			pen yellow fill-pen orange
-			line-width 5
-			line-join bevel
-			polygon 120x130 120x190 180x130 180x190
-
-			line-width 1
-			pen purple
-			fill-pen purple
-			box 220x10 280x70 10
-			pen gray
-			fill-pen white
-			ellipse 240x20 20x40
-			
-			fill-pen red
-			circle 250x150 49.5
-			pen gray
-			fill-pen white
-			circle 250x150 40
-			fill-pen red
-			circle 250x150 30
-			fill-pen blue
-			circle 250x150 20
-			pen blue
-			fill-pen white
-			polygon 232x144 245x144 250x130 255x144 268x144
-				257x153 260x166 250x158 239x166 243x153
-
-			font font-A
-			text 40x6 "Hello Red :-)"
-			
-			arc 100x25 80x80 0 90 closed
-			pen red
-			arc 100x25 50x80 30 90
-
-			curve 20x150 60x250 200x50
-			curve 224x14 220x40 280x40 276x66
+	make face! [										;-- clip view for canvas
+		type: 'panel offset: 10x460 size: 300x200
+		pane: reduce [canvas]
+		actors: object [
+			on-wheel: func [face [object!] event [event!]][
+				print [face/type event/count]
+				canvas/offset/y: canvas/offset/y + event/count
+				unless live? [show canvas]
+			]
 		]
 	]
 	make face! [

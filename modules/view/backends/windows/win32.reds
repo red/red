@@ -915,6 +915,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"User32.dll" stdcall [
+		SystemParametersInfo: "SystemParametersInfoW" [
+			action		[integer!]
+			iParam		[integer!]
+			vParam		[int-ptr!]
+			winini		[integer!]
+			return:		[logic!]
+		]
 		GetForegroundWindow: "GetForegroundWindow" [
 			return:		[handle!]
 		]
