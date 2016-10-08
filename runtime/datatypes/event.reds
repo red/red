@@ -113,7 +113,6 @@ event: context [
 				sym = words/offset	  [gui/get-event-offset evt]
 				sym = words/key		  [gui/get-event-key evt]
 				sym = words/picked	  [gui/get-event-picked evt]
-				sym = words/count	  [gui/get-event-count evt]
 				sym = words/flags	  [gui/get-event-flags evt]
 				sym = words/away?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_AWAY]
 				sym = words/down?	  [gui/get-event-flag evt/flags gui/EVT_FLAG_DOWN]

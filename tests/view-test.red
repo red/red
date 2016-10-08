@@ -744,8 +744,8 @@ win/pane: reduce [
 		pane: reduce [canvas]
 		actors: object [
 			on-wheel: func [face [object!] event [event!]][
-				print [face/type event/count]
-				canvas/offset/y: canvas/offset/y + event/count
+				print [face/type event/picked]
+				canvas/offset/y: canvas/offset/y + event/picked
 				unless live? [show canvas]
 			]
 		]

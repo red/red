@@ -468,7 +468,6 @@ words: context [
 	flag:			-1
 	code:			-1
 	picked:			-1
-	count:			-1
 	flags:			-1
 	away?:			-1
 	ctrl?:			-1
@@ -658,7 +657,6 @@ words: context [
 		flag:			symbol/make "flag"
 		code:			symbol/make "code"
 		picked:			symbol/make "picked"
-		count:			symbol/make "count"
 		flags:			symbol/make "flags"
 		away?:			symbol/make "away?"
 		ctrl?:			symbol/make "ctrl?"

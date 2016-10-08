@@ -209,17 +209,6 @@ get-event-key: func [
 	]
 ]
 
-get-event-count: func [
-	evt		[red-event!]
-	return: [red-value!]
-][
-	as red-value! either evt/type = EVT_WHEEL [
-		integer/push evt/flags << 16 >> 16
-	][
-		none-value
-	]
-]
-
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
@@ -257,7 +246,7 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
-		default	 [integer/push evt/flags and FFFFh]
+		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
 
