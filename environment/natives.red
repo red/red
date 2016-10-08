@@ -786,7 +786,7 @@ new-line: make native! [[
 		value					 "Set TRUE for newline"
 		/all					 "Set/clear marker to end of series"
 		/skip					 "Set/clear marker periodically to the end of the series"
-		size 	 [integer!]
+			size [integer!]
 		return:  [block! paren!]
 	]
 	#get-definition NAT_NEW_LINE
