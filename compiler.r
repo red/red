@@ -37,6 +37,8 @@ red: context [
 	expr-stack:	   make block! 8
 	current-call:  none
 	
+	unless value? 'Red [red: none]						;-- for %preprocessor to load
+	
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
