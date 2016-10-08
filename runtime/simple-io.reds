@@ -1909,13 +1909,14 @@ simple-io: context [
 
 					while [value < tail][
 						len: -1
-						cf-key: CFSTR((unicode/to-utf8 word/to-string as red-word! value :len))
+						cf-key: CFString((unicode/to-utf8 word/to-string as red-word! value :len))
 						value: value + 1
 						len: -1
 						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
 						value: value + 1
 						CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
 						CFRelease cf-val
+						CFRelease cf-key
 					]
 				]
 

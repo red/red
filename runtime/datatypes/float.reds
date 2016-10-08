@@ -536,8 +536,8 @@ float: context [
 			hi2  [byte-ptr!]
 			diff [byte-ptr!]
 	][
-		if left = right [return true]					;-- for NaN, also raise error in default mode
 		if any [NaN? left NaN? right] [return false]
+		if left = right [return true]					;-- for NaN, also raise error in default mode
 
 		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
 

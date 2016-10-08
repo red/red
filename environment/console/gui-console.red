@@ -243,7 +243,6 @@ gui-console-ctx: context [
 		svs/pane: next svs/pane
 
 		system/console/launch
-		do-events
 	]
 ]
 

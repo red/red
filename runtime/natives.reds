@@ -2227,11 +2227,14 @@ natives: context [
 		s: GET_BUFFER(blk)
 		cell: s/offset + blk/head
 		
-		either _all <> -1 [
+		either any [_all <> -1 skip <> -1][
 			step: 1
 			if skip <> -1 [
 				int: as red-integer! blk + skip
-				unless negative? step [step: int/value]
+				unless positive? int/value [
+					fire [TO_ERROR(script out-of-range) int]
+				]
+				step: int/value
 			]
 			tail: s/tail
 			while [cell < tail][
