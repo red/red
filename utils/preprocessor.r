@@ -39,6 +39,9 @@ context [
 	][
 		parse code rule: [
 			any [
+				s: #include (
+					if all [not Rebol system/state/interpreted?][s/1: 'do]
+				)
 				s: #if set name word! set op skip set value any-type! set then block! e: (
 					either check-condition job 'if reduce [name op get/any 'value][
 						change/part s then e
