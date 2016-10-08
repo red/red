@@ -1221,6 +1221,20 @@ OS-draw-grad-pen: func [
 		GdipSetPenBrushFill modes/gp-pen brush
 	]
 ]
+	
+OS-set-clip: func [
+	upper	[red-pair!]
+	lower	[red-pair!]
+][
+	GDI+?: yes
+	GdipSetClipRectI
+		modes/graphics
+		upper/x
+		upper/y
+		lower/x - upper/x + 1
+		lower/y - upper/y + 1
+		GDIPLUS_COMBINEMODEREPLACE
+]
 
 OS-matrix-rotate: func [
 	angle	[red-integer!]
@@ -1305,13 +1319,13 @@ OS-matrix-transform: func [
 	OS-matrix-translate translate/x translate/y
 ]
 
-OS-matrix-push: func [/local state [integer!]][
-	state: 0
-	GdipSaveGraphics modes/graphics :state
-	modes/gp-state: state
+OS-matrix-push: func [state [int-ptr!] /local s][
+	s: 0
+	GdipSaveGraphics modes/graphics :s
+	state/value: s
 ]
 
-OS-matrix-pop: func [][GdipRestoreGraphics modes/graphics modes/gp-state]
+OS-matrix-pop: func [state [integer!]][GdipRestoreGraphics modes/graphics state]
 
 OS-matrix-reset: func [][GdipResetWorldTransform modes/graphics]
 

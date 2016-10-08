@@ -1654,7 +1654,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		either type = base [
-			update-base hWnd null null values
+			update-base hWnd GetParent hWnd null values
 		][
 			InvalidateRect hWnd null 1
 		]

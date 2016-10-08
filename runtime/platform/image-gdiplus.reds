@@ -449,7 +449,9 @@ OS-image: context [
 	][
 		if any [zero? width zero? height][return null]
 		bitmap: 0
-		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
+		if 0 <> GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap [
+			fire [TO_ERROR(script invalid-arg) pair/push width height]
+		]
 		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
 		end: scan0 + (width * height)

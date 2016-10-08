@@ -249,7 +249,7 @@ linker: context [
 		if verbose >= 1 [print ["output file:" file]]
 		
 		if error? try [write/binary/direct file job/buffer][
-			throw-error ["locked or unreachable file:" file]
+			throw-error ["locked or unreachable file:" to-local-file file]
 		]
 		
 		if fun: in file-emitter 'on-file-written [

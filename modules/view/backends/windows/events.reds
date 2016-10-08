@@ -1096,14 +1096,13 @@ process: func [
 		]
 		WM_SYSKEYUP
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
-		WM_SYSKEYDOWN	[
-			make-event msg 0 EVT_KEY_DOWN
-			EVT_NO_DISPATCH
-		]
+		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
 		WM_CHAR
-		WM_DEADCHAR [
-			make-event current-msg 0 EVT_KEY
-			EVT_DISPATCH
+		WM_DEADCHAR		[
+			if any [special-key = VK_LMENU special-key = VK_RMENU][
+				special-key: -1							;-- we prefer the translate char here, for ALT Key Codes, e.g ALT+0169
+			]
+			make-event msg 0 EVT_KEY
 		]
 		WM_LBUTTONDBLCLK [
 			menu-origin: null							;-- reset if user clicks on menu bar

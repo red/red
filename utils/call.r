@@ -278,11 +278,11 @@ context [
 		CloseHandle cmd/in-hWrite/int
 	]
 
-    get-process-info: has [ret][	
+	get-process-info: has [ret][	
 		;unless zero? cmd/pi/hProcess [
 			ret: catch [
 				if zero? GetExitCodeProcess cmd/pi/hProcess cmd/exit-code [throw 3]
- 				
+				
 				if cmd/output [read-pipe cmd/output cmd/out-hRead]
 				if cmd/error  [read-pipe cmd/error  cmd/err-hRead]
 				
@@ -308,8 +308,44 @@ context [
 			]
 		;]
 		false
-    ]
+	]
 
+	; Patched from 2.7.8
+	if not value? 'deline [
+    	deline: func [
+    		{Converts string terminators to standard format, e.g. CRLF to LF. (Modifies)}
+    		string [any-string!]
+    		/lines "Convert to block of lines (does not modify)"
+    		/local linechar a b output
+    	][
+    		linechar: make bitset! #{
+    			FFDBFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+    		}
+    		
+    		also case [
+    			not lines [
+    				parse/all/case either binary? string [as-string string] [string] [
+    					any [to cr a: cr opt lf b: (
+    							b: change/part a lf b
+    						) :b] to end
+    				]
+    				string
+    			]
+    			empty? string [copy []]
+    			'else [
+    				output: make block! divide length? string 50
+    				if binary? string [string: as-string string]
+    				parse/all/case string [any [
+    						copy a some linechar (output: insert output a) [crlf | cr | lf | end]
+    						|
+    						[crlf | cr | lf] (output: insert output copy "")
+    					]]
+    				head output
+    			]
+    		] set [string output a b] none
+    	]
+    ]
+    
 	set 'win-call func [
 		command [string!]
 		/input
@@ -336,6 +372,10 @@ context [
 			if msg: try* [res: get-process-info][return msg]
 			res
 		]
-		none
+		
+		if all [out string? out][deline out]
+		if all [err string? err][deline err]
+		
+		cmd/exit-code/int
 	]
 ]
