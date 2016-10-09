@@ -706,6 +706,7 @@ terminal: context [
 
 		reset-vt vt
 		OS-init vt
+		platform/gui-print: as-integer :vprint
 	]
 
 	close: func [
