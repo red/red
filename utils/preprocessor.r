@@ -50,14 +50,14 @@ context [
 					]
 				) :s
 				| s: #either set name word! set op skip set value any-type! set then block! set else block! e: (
-					either check-condition 'either reduce [name op get/any 'value][
+					either check-condition job 'either reduce [name op get/any 'value][
 						change/part s then e
 					][
 						change/part s else e
 					]
 				) :s
 				| s: #switch set name word! set cases block! e: (
-					either body: check-condition 'switch reduce [name cases][
+					either body: check-condition job 'switch reduce [name cases][
 						change/part s body e
 					][
 						remove/part s e
