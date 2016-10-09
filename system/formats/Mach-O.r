@@ -508,7 +508,7 @@ context [
 		lib: 1											;-- one-based index
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
-			;if name/1 <> slash [insert name "/usr/lib/"]
+			if name/1 <> slash [insert name "@loader_path/"]
 			insert find segments 'symtab compose [
 				lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
 			]
