@@ -3877,7 +3877,9 @@ red: context [
 					]
 					saved: script-name
 					insert skip pc 2 #pop-path
-					change/part pc next load-source/header file 2	;@@ Header skipped, should be processed
+					src: load-source/header file
+					src: preprocessor/expand src job
+					change/part pc next src 2			;@@ Header skipped, should be processed
 					script-name: saved
 					append included-list file
 					unless empty? expr-stack [comp-expression]
