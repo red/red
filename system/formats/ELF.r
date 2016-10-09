@@ -24,6 +24,7 @@ context [
 
 		base-address	(to-integer #{08048000})
 		page-size		4096
+		rpath			"$ORIGIN"
 
 		;; ELF Constants
 
@@ -87,9 +88,11 @@ context [
 		dt-syment		11			;; size of one symbol table entry (in bytes)
 		dt-init			12			;; address of the initialization function
 		dt-fini			13			;; address of the termination function
+		dt-rpath		15			;; library search path (deprecated)
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
+		dt-runpath		29			;; library search path
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
@@ -366,7 +369,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -686,6 +689,7 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
+		repend entries ['rpath strtab-index-of dynstr defs/rpath]
 
 		if job-type = 'dll [
 			if spec: select symbols '***-dll-entry-point [
