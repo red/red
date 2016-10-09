@@ -369,7 +369,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (to-c-string defs/rpath)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -976,7 +976,7 @@ context [
 	]
 
 	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
-		size: 9
+		size: 10
 		if job-type = 'dll [
 			if find symbols '***-dll-entry-point [
 				size: size + 1
