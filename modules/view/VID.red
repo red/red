@@ -71,7 +71,15 @@ system/view/VID: context [
 				]
 				size-text/with face copy/part mark len
 			]
-			'else [either face/text [size-text face][size-text/with face "X"]]
+			'else [
+				either face/text [
+					size: size-text face
+					if find [button radio check] face/type [size/x: size/x + size/y]
+					size
+				][
+					size-text/with face "X"
+				]
+			]
 		]
 	]
 	

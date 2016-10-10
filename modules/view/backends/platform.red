@@ -241,7 +241,10 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
-			
+
+			on-over:		symbol/make "on-over"
+			_actors:		word/load "actors"
+
 			_text:			word/load "text"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
@@ -305,8 +308,10 @@ system/view/platform: context [
 			_right-shift:	word/load "right-shift"
 			_left-control:	word/load "left-control"
 			_right-control:	word/load "right-control"
-			_left-menu:		word/load "left-menu"
-			_right-menu:	word/load "right-menu"
+			_left-alt:		word/load "left-alt"
+			_right-alt:		word/load "right-alt"
+			_left-command:	word/load "left-command"
+			_right-command:	word/load "right-command"
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -395,8 +400,50 @@ system/view/platform: context [
 				evt/type: sym
 			]
 
+			#import  [
+			LIBM-file cdecl [
+				fabsf: "fabsf" [
+					x			[float32!]
+					return:		[float32!]
+				]
+				sinf:		 "sinf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				cosf:		 "cosf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				tanf:		 "tanf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				asinf:		 "asinf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				acosf:		 "acosf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				atanf:		 "atanf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				atan2f:		 "atan2f" [
+					y			[float32!]
+					x			[float32!]
+					return:		[float32!]
+				]
+			]]
+
 			;#include %android/gui.reds
-			#include %windows/gui.reds
+			#switch OS [
+				Windows  [#include %windows/gui.reds]
+				MacOSX   [#include %osx/gui.reds]
+				Android  []
+				#default [#include %gtk3/gui.reds]					;-- Linux
+			]
 		]
 	]
 

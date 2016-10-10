@@ -1590,6 +1590,17 @@ simple-io: context [
 				#define CFNetwork.lib "/System/Library/Frameworks/CoreServices.framework/CoreServices" 
 			]
 			#import [
+				LIBC-file cdecl [
+					objc_getClass: "objc_getClass" [
+						class		[c-string!]
+						return:		[integer!]
+					]
+					sel_getUid: "sel_getUid" [
+						name		[c-string!]
+						return:		[integer!]
+					]
+					objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+				]
 				CFNetwork.lib cdecl [
 					__CFStringMakeConstantString: "__CFStringMakeConstantString" [
 						cStr		[c-string!]
@@ -1665,6 +1676,13 @@ simple-io: context [
 						encoding	[integer!]
 						return:		[integer!]
 					]
+					CFURLCreateWithFileSystemPath: "CFURLCreateWithFileSystemPath" [
+						allocator	[integer!]
+						filePath	[integer!]
+						pathStyle	[integer!]
+						isDir		[logic!]
+						return:		[integer!]
+					]
 					CFReadStreamSetProperty: "CFReadStreamSetProperty" [
 						stream		[integer!]
 						name		[integer!]
@@ -1701,6 +1719,38 @@ simple-io: context [
 
 			#define CFSTR(cStr)		[__CFStringMakeConstantString cStr]
 			#define CFString(cStr)	[CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
+
+			to-NSString: func [str [red-string!] return: [integer!] /local len][
+				len: -1
+				objc_msgSend [
+					objc_getClass "NSString"
+					sel_getUid "stringWithUTF8String:"
+					unicode/to-utf8 str :len
+				]
+			]
+
+			to-NSURL: func [
+				str		[red-string!]
+				file?	[logic!]					;-- local file path or url?
+				return: [integer!]
+				/local
+					nsstr	[integer!]
+					url		[integer!]
+					path	[integer!]
+			][
+				nsstr: to-NSString str
+				either file? [
+					path: objc_msgSend [nsstr sel_getUid "stringByExpandingTildeInPath"]
+					;@@ release path ? Does it already autoreleased?
+					path: CFURLCreateWithFileSystemPath 0 path 0 false
+				][
+					url: CFURLCreateStringByAddingPercentEscapes 0 nsstr 0 0 kCFStringEncodingUTF8
+					path: CFURLCreateWithString 0 url 0
+					CFRelease url
+				]
+				objc_msgSend [nsstr sel_getUid "release"]
+				path
+			]
 
 			split-set-cookie: func [
 				s		[c-string!]

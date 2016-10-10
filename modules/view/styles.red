@@ -21,7 +21,7 @@ Red [
 	]
 	button: [
 		default-actor: on-click
-		template: [type: 'button size: 60x30]
+		template: [type: 'button size: 60x32]
 	]
 	text: [
 		default-actor: on-change
@@ -74,7 +74,7 @@ Red [
 	]
 	panel: [
 		default-actor: on-down						;@@ something better?
-		template: [type: 'panel size: 200x200]
+		template: [type: 'panel size: 200x200 color: 240.240.240]
 	]
 	group-box: [
 		default-actor: on-down						;@@ something better?

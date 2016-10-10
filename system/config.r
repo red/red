@@ -95,6 +95,7 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
+dev-mode?: no
 ]
 Linux-Old [
 	OS:			'Linux
@@ -174,6 +175,7 @@ Darwin [
 	sub-system: 'console
 	syscall:	'BSD
 	stack-align-16?: yes
+dev-mode?: no
 ]
 DarwinSO [
 	OS:			'MacOSX
@@ -185,10 +187,14 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-;OSX [									; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'GUI
-;]
+OSX [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'GUI
+	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+dev-mode?: no
+]
 ;-------------------------

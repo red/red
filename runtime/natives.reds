@@ -1593,7 +1593,7 @@ natives: context [
 	][
 		#typecheck [sine radians]
 		f: degree-to-radians* radians TYPE_SINE
-		f/value: sin f/value
+		f/value: _sin f/value
 		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
 		f
 	]
@@ -1606,7 +1606,7 @@ natives: context [
 	][
 		#typecheck [cosine radians]
 		f: degree-to-radians* radians TYPE_COSINE
-		f/value: cos f/value
+		f/value: _cos f/value
 		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
 		f
 	]
@@ -1622,7 +1622,7 @@ natives: context [
 		either (float/abs f/value) = (PI / 2.0) [
 			fire [TO_ERROR(math overflow)]
 		][
-			f/value: tan f/value
+			f/value: _tan f/value
 		]
 		f
 	]

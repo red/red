@@ -416,10 +416,12 @@ save: function [
 	/as     "Specify the format of data; use NONE to save as plain text"
 		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
 ][
+	dst: either any [file? where url? where][where][none]
 	either as [
 		if word? format [
 			either codec: select system/codecs format [
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if dst [exit]
 			][exit]
 		]
 	][
@@ -431,7 +433,8 @@ save: function [
 		find-encoder?: no
 		foreach [name codec] system/codecs [
 			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if dst [exit]
 				find-encoder?: yes
 			]
 		]

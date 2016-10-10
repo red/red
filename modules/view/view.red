@@ -94,6 +94,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			tab "new value  :" mold type? new	 lf
 			tab "index      :" index			 lf
 			tab "part       :" part				 lf
+			tab "auto-sync? :" system/view/auto-sync? lf
 			tab "forced?    :" forced?
 		]
 	]
@@ -160,7 +161,6 @@ on-face-deep-change*: function [owner word target action new index part state fo
 								until [
 									face: faces/1
 									if owner/type = 'tab-panel [
-										face/visible?: no
 										face/parent: owner
 									]
 									if all [owner/type = 'window face/type = 'window][
@@ -209,9 +209,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 
 link-tabs-to-parent: function [face [object!]][
 	if faces: face/pane [
-		visible?: face/visible?
 		forall faces [
-			faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			faces/1/parent: face
 		]
 	]
@@ -585,6 +583,10 @@ show: function [
 				do-safe [face/actors/on-create face none]
 			]
 			p: either with [parent/state/1][0]
+			if all [face/type = 'tab-panel face/pane][
+				link-tabs-to-parent face
+				foreach f face/pane [show f]
+			]
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
@@ -598,24 +600,21 @@ show: function [
 				]
 			]
 			
-			switch face/type [
-				tab-panel [link-tabs-to-parent face]
-				window	  [
-					pane: system/view/screens/1/pane
-					if find-flag? face/flags 'modal [
-						foreach f head pane [
-							f/enable?: no
-							unless system/view/auto-sync? [show f]
-						]
+			if face/type = 'window [
+				pane: system/view/screens/1/pane
+				if find-flag? face/flags 'modal [
+					foreach f head pane [
+						f/enable?: no
+						unless system/view/auto-sync? [show f]
 					]
-					append pane face
 				]
+				append pane face
 			]
 		]
 		face/state: reduce [obj 0 none false]
 	]
 
-	if face/pane [
+	if all [face/type <> 'tab-panel face/pane] [
 		foreach f face/pane [show/with f face]
 		system/view/platform/refresh-window face/state/1
 	]
@@ -799,6 +798,7 @@ insert-event-func [
 		]
 	][
 		print [
+			"face> type:"	event/face/type
 			"event> type:"	event/type
 			"offset:"		event/offset
 			"key:"			mold event/key

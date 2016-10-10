@@ -34,4 +34,10 @@ Red [
 extract-boot-args
 
 ;-- temporary code --
-if system/platform <> 'Windows [unset [event! image!]]
+if all [
+	system/platform <> 'Windows
+	system/platform <> 'MacOSX
+	system/platform <> 'Linux
+][
+	unset [event! image!]
+]

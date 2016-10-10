@@ -78,15 +78,15 @@ Red/System [
 			exponent	[float!]
 			return:		[float!]
 		]
-		sin:		 "sin" [
+		_sin:		 "sin" [
 			radians		[float!]
 			return:		[float!]
 		]
-		cos:		 "cos" [
+		_cos:		 "cos" [
 			radians		[float!]
 			return:		[float!]
 		]
-		tan:		 "tan" [
+		_tan:		 "tan" [
 			radians		[float!]
 			return:		[float!]
 		]
