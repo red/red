@@ -14,21 +14,5 @@ unless value? 'qt [
 ]
 
 make-dir qt/tests-dir/source/units/auto-tests
-qt/make-if-needed?  %source/units/auto-tests/integer-auto-test.red 
-                    %source/units/make-integer-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/infix-equal-auto-test.red
-                    %source/units/make-equal-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/infix-not-equal-auto-test.red 
-                    %source/units/make-not-equal-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/lesser-auto-test.red
-                    %source/units/make-lesser-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/greater-auto-test.red 
-                    %source/units/make-greater-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/float-auto-test.red 
-                    %source/units/make-float-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/strict-equal-auto-test.red 
-                    %source/units/make-strict-equal-auto-test.r
-qt/make-if-needed?  %source/units/auto-tests/same-auto-test.red
-                    %source/units/make-same-auto-test.r
 qt/make-if-needed?  %source/units/auto-tests/lexer-auto-test.red 
                     %source/units/make-lexer-auto-tests.r

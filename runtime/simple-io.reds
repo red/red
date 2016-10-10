@@ -1757,6 +1757,8 @@ simple-io: context [
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
+					if k = null [k: as c-string! platform/objc_msgSend [keys/i platform/sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
+					if v = null [v: as c-string! platform/objc_msgSend [vals/i platform/sel_getUid "UTF8String"]]
 
 					w: as red-value! word/push* symbol/make k
 					res: either zero? strncmp k "Set-Cookie" 10 [
@@ -1841,13 +1843,14 @@ simple-io: context [
 
 					while [value < tail][
 						len: -1
-						cf-key: CFSTR((unicode/to-utf8 word/to-string as red-word! value :len))
+						cf-key: CFString((unicode/to-utf8 word/to-string as red-word! value :len))
 						value: value + 1
 						len: -1
 						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
 						value: value + 1
 						CFHTTPMessageSetHeaderFieldValue req cf-key cf-val
 						CFRelease cf-val
+						CFRelease cf-key
 					]
 				]
 

@@ -229,14 +229,14 @@ map: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 
-		size: 2 * rs-length? map
+		size: rs-length? map
 		s: GET_BUFFER(map)
 		value: s/offset
-		s-tail: value + size
-		if zero? size [size: 2]
+		s-tail: s/tail
+		if zero? size [size: 1]
 		case [
 			field = words/words [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -249,7 +249,7 @@ map: context [
 				]
 			]
 			field = words/values [
-				blk/node: alloc-cells size >> 1
+				blk/node: alloc-cells size
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -259,7 +259,7 @@ map: context [
 				]
 			]
 			field = words/body [
-				blk/node: alloc-cells size
+				blk/node: alloc-cells size * 2
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
@@ -325,6 +325,9 @@ map: context [
 			value2 [red-value!]
 			res	   [integer!]
 			n	   [integer!]
+			start  [integer!]
+			pace   [integer!]
+			end    [integer!]
 			same?  [logic!]
 			case?  [logic!]
 			table2 [node!]
@@ -350,32 +353,59 @@ map: context [
 
 		if zero? size1 [return 0]								;-- shortcut exit for empty map!
 
-		case?: op = COMP_STRICT_EQUAL
 		table2: blk2/table
 		key1: block/rs-head as red-block! blk1
 		key1: key1 - 2
 		n: 0
 
 		cycles/push blk1/node
-		until [
-			until [												;-- next key
-				key1: key1 + 2
-				value1: key1 + 1
-				TYPE_OF(value1) <> TYPE_NONE
-			]
-			key2: _hashtable/get table2 key1 0 0 case? no no
-
-			res: either key2 = null [1][
-				value1: key1 + 1								;-- find the same key, then compare values
-				value2: key2 + 1
-				either cycles/find? value1 [
-					as-integer not natives/same? value1 value2
-				][
-					actions/compare-value value1 value2 op
+		either op = COMP_STRICT_EQUAL [
+			until [
+				until [												;-- next key
+					key1: key1 + 2
+					value1: key1 + 1
+					TYPE_OF(value1) <> TYPE_NONE
 				]
+				key2: _hashtable/get table2 key1 0 0 yes no no
+
+				res: either key2 = null [1][
+					value1: key1 + 1								;-- find the same key, then compare values
+					value2: key2 + 1
+					either cycles/find? value1 [
+						as-integer not natives/same? value1 value2
+					][
+						actions/compare-value value1 value2 op
+					]
+				]
+				n: n + 1
+				any [res <> 0 n = size1]
 			]
-			n: n + 1
-			any [res <> 0 n = size1]
+		][
+			end: 0
+			until [
+				until [												;-- next key
+					key1: key1 + 2
+					value1: key1 + 1
+					TYPE_OF(value1) <> TYPE_NONE
+				]
+				start: -1
+				pace: 0
+				until [
+					key2: _hashtable/get-next table2 key1 :start :end :pace
+					either key2 <> null [
+						value1: key1 + 1
+						value2: key2 + 1
+						res: either cycles/find? value1 [
+							as-integer not natives/same? value1 value2
+						][
+							actions/compare-value value1 value2 COMP_EQUAL
+						]
+					][res: 1 break]
+					zero? res
+				]
+				n: n + 1
+				any [res <> 0 n = size1]
+			]
 		]
 		cycles/pop
 		res
@@ -396,10 +426,12 @@ map: context [
 			COMP_EQUAL
 			COMP_SAME
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL
+			COMP_NOT_EQUAL [
+				res: compare-each map1 map2 op
+			]
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: compare-each map1 map2 op
+				res: as-integer map1/node - map2/node
 			]
 			default [
 				res: -2

@@ -38,6 +38,8 @@ Red/System [
 
 platform: context [
 
+	gui-print: 0										;-- `print` function used for gui-console
+
 	#enum file-descriptors! [
 		fd-stdout: 1									;@@ hardcoded, safe?
 		fd-stderr: 2									;@@ hardcoded, safe?

@@ -112,6 +112,7 @@ system/view/platform: context [
 				EVT_AUX_UP
 				EVT_CLICK
 				EVT_DBL_CLICK
+				EVT_WHEEL
 				EVT_OVER								;-- last mouse event
 				
 				EVT_KEY
@@ -253,6 +254,7 @@ system/view/platform: context [
 			_alt-up:		word/load "alt-up"
 			_aux-down:		word/load "aux-down"
 			_aux-up:		word/load "aux-up"
+			_wheel:			word/load "wheel"
 			_click:			word/load "click"
 			_dbl-click:		word/load "dbl-click"
 			_over:			word/load "over"
@@ -320,6 +322,7 @@ system/view/platform: context [
 					EVT_RIGHT_UP	 [_alt-up]
 					EVT_AUX_DOWN	 [_aux-down]
 					EVT_AUX_UP		 [_aux-up]
+					EVT_WHEEL		 [_wheel]
 					EVT_CLICK		 [_click]
 					EVT_DBL_CLICK	 [_dbl-click]
 					EVT_OVER		 [_over]
@@ -362,6 +365,7 @@ system/view/platform: context [
 					sym = _alt-up/symbol		[sym: EVT_RIGHT_UP]
 					sym = _aux-down/symbol		[sym: EVT_AUX_DOWN]
 					sym = _aux-up/symbol		[sym: EVT_AUX_UP]
+					sym = _wheel/symbol			[sym: EVT_WHEEL]
 					sym = _click/symbol			[sym: EVT_CLICK]
 					sym = _dbl-click/symbol		[sym: EVT_DBL_CLICK]
 					sym = _over/symbol			[sym: EVT_OVER]

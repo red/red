@@ -786,7 +786,7 @@ new-line: make native! [[
 		value					 "Set TRUE for newline"
 		/all					 "Set/clear marker to end of series"
 		/skip					 "Set/clear marker periodically to the end of the series"
-		size 	 [integer!]
+			size [integer!]
 		return:  [block! paren!]
 	]
 	#get-definition NAT_NEW_LINE
@@ -849,7 +849,7 @@ now: make native! [[
 ]
 
 sign?: make native! [[
-		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)."
+		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
 		number [number! time!]
 	]
 	#get-definition NAT_SIGN?

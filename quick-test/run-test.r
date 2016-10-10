@@ -20,7 +20,7 @@ print rejoin ["Running under REBOL " system/version]
 ;; get the name of the test file & any other args
 args: parse system/script/args " "
 src: last args
-if find system/script/args "--binary" [qt/binary?: true]
+if find system/script/args "--binary" [qt/binary-compiler?: true]
 all [
 	2 < length? args 
 	src <> temp: select args "--binary"
