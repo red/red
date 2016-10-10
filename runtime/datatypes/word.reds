@@ -320,7 +320,7 @@ word: context [
 			type = TYPE_SET_WORD
 			type = TYPE_LIT_WORD
 			type = TYPE_REFINEMENT
-			type = TYPE_ISSUE
+			;type = TYPE_ISSUE							;-- do not equal it to other word types
 		]
 	]
 	
