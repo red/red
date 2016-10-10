@@ -15,15 +15,96 @@ Red/System [
 ps:				as tagPAINTSTRUCT 0
 hdc:			as handle! 0
 mdc:			as handle! 0
-mbmp:			as handle! 0
 timer:			as handle! 0
 max-win-width:	0
 pad-left:		0
+caret-x:		0
 scroll-count:	0
 scroll-x:		0
 scroll-y:		0
 clipboard:		as handle! 0
 paste-data:		as byte-ptr! 0	
+
+OS-char-width?: func [
+	str		[c-string!]
+	n		[integer!]
+	return: [integer!]
+	/local
+		h [integer!]
+		w [integer!]
+][
+	w: 0 h: 0
+	GetTextExtentPoint32 mdc str n as tagSIZE :w
+	w
+]
+
+OS-count-chars: func [
+	str		[red-string!]
+	offset	[integer!]
+	length	[integer!]
+	width	[integer!]
+	return: [integer!]
+	/local
+		h		[integer!]
+		w		[integer!]
+		cnt		[integer!]
+		n		[integer!]
+		head	[integer!]
+		cstr	[c-string!]
+		cp		[integer!]
+][
+	w: 0 cnt: 0
+	head: str/head
+	str/head: offset
+	cstr: unicode/to-utf16-len str :length no
+	GetTextExtentExPoint mdc cstr length width + 1 :cnt null as tagSIZE :w
+	str/head: head
+	if cnt < length [
+		cp: 0
+		GetTextExtentExPoint mdc cstr cnt width :cp null as tagSIZE :w
+		cp: string/rs-abs-at str offset + cnt
+		cstr: as c-string! :cp
+		n: either cp < 00010000h [1][
+			unicode/cp-to-utf16 cp as byte-ptr! str
+		]
+		n: (OS-char-width? cstr n) / 2
+		if width - w > n [cnt: cnt + 1]
+	]
+	cnt
+]
+
+string-lines?: func [
+	str		[red-string!]
+	offset	[integer!]
+	length	[integer!]
+	return: [integer!]
+	/local
+		h		[integer!]
+		w		[integer!]
+		cstr	[c-string!]
+		cols	[integer!]
+		n		[integer!]
+		cnt		[integer!]
+		head	[integer!]
+][
+	if zero? length [return 1]
+	n: 0 w: 0 cnt: 0
+	cols: max-win-width - pad-left
+
+	head: str/head
+	str/head: offset
+	cstr: unicode/to-utf16-len str :length no
+	until [
+		GetTextExtentExPoint mdc cstr length cols :cnt null as tagSIZE :w
+		n: n + 1
+		length: length - cnt
+		cstr: cstr + (cnt * 2)
+		length <= 0
+	]
+	caret-x: w
+	str/head: head
+	n
+]
 
 update-scrollbar: func [
 	vt		[terminal!]
@@ -186,11 +267,10 @@ set-font: func [
 		w  [integer!]
 ][
 	w: 0
-	dc: GetDC vt/hwnd
+	dc: mdc
 	tm: as tagTEXTMETRIC allocate size? tagTEXTMETRIC
 	SelectObject dc vt/font
 	GetTextMetrics dc tm
-	ReleaseDC vt/hwnd dc
 	update-font vt tm/tmAveCharWidth tm/tmHeight
 	GetCharWidth32 dc 8220 8220 :w
 	extra-table: either w = vt/char-w [stub-table][ambiguous-table]
@@ -232,6 +312,7 @@ OS-init: func [vt [terminal!]][
 OS-close: func [vt [terminal!]][
 	free as byte-ptr! vt/scrollbar
 	free as byte-ptr! ps
+	DeleteDC mdc
 ]
 
 OS-hide-caret: func [vt [terminal!]][
@@ -239,7 +320,8 @@ OS-hide-caret: func [vt [terminal!]][
 ]
 
 OS-update-caret: func [vt [terminal!]][
-	SetCaretPos vt/caret-x * vt/char-w + vt/pad-left vt/caret-y * vt/char-h
+	vt/caret-x: caret-x
+	SetCaretPos caret-x + vt/pad-left vt/caret-y * vt/char-h
 	if all [vt/input? not vt/caret?][ShowCaret vt/hwnd vt/caret?: yes]
 ]
 
@@ -308,6 +390,8 @@ ConsoleWndProc: func [
 		out		[ring-buffer!]
 		p-int	[int-ptr!]
 		limit	[red-integer!]
+		mbmp	[handle!]
+		saved	[handle!]
 		rc		[RECT_STRUCT]
 ][
 	vt: as terminal! GetWindowLong hWnd wc-offset - 4
@@ -320,6 +404,7 @@ ConsoleWndProc: func [
 			dc: GetDC hWnd
 			SelectObject dc GetStockObject SYSTEM_FIXED_FONT
 			GetTextMetrics dc tm
+			mdc: CreateCompatibleDC hdc
 			ReleaseDC hWnd dc
 			vt/hwnd: hWnd
 			init vt p-int/6 p-int/5 tm/tmAveCharWidth tm/tmHeight
@@ -332,10 +417,8 @@ ConsoleWndProc: func [
 			hdc: BeginPaint hWnd ps
 			pad-left: vt/pad-left
 			max-win-width: vt/win-w
-			mdc: CreateCompatibleDC hdc
 			mbmp: CreateCompatibleBitmap hdc max-win-width vt/char-h
-			SelectObject mdc mbmp
-			SelectObject mdc vt/font
+			saved: SelectObject mdc mbmp
 			set-normal-color vt
 			rc: declare RECT_STRUCT
 			rc/top: 0
@@ -346,7 +429,7 @@ ConsoleWndProc: func [
 			ExtTextOut hdc 0 0 ETO_OPAQUE rc null 0 null
 			paint vt
 			EndPaint hWnd ps
-			DeleteDC mdc
+			SelectObject mdc saved
 			DeleteObject mbmp
 			if vt/caret? [update-caret vt]
 			update-scrollbar vt

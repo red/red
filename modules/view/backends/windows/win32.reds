@@ -1498,6 +1498,16 @@ XFORM!: alias struct! [
 			lpSize		[tagSIZE]
 			return:		[integer!]
 		]
+		GetTextExtentExPoint: "GetTextExtentExPointW" [
+			hdc			[handle!]
+			lpString	[c-string!]
+			len			[integer!]
+			extent		[integer!]
+			lpnFit		[int-ptr!]
+			alpDx		[int-ptr!]
+			lpSize		[tagSIZE]
+			return:		[logic!]
+		]
 		CreateCompatibleDC: "CreateCompatibleDC" [
 			hDC			[handle!]
 			return:		[handle!]
