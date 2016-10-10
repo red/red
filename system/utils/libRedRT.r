@@ -52,8 +52,9 @@ libRedRT: context [
 		clear user-funcs
 	]	
 	
-	save-extras: does [
+	save-extras: has [file][
 		unless empty? extras [
+			unless encap? [file: join %../ extras-file]
 			write get-path extras-file mold/only extras
 		]
 	]
