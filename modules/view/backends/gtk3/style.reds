@@ -42,9 +42,55 @@ style-init: func [
 	screen: gdk_screen_get_default
 	provider: gtk_css_provider_new
 
-	gtk_css_provider_load_from_data provider css-style length? css-style as handle! 0
+	gtk_css_provider_load_from_data provider css-style -1 null
 
 	gtk_style_context_add_provider_for_screen screen provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+]
+
+add-to-string: func [
+	string  [c-string!]
+	format  [c-string!]
+	value   [handle!]
+	return: [c-string!]
+	/local
+		temp [c-string!]
+][
+	temp: g_strdup_printf [format string value]
+	g_free as handle! string
+	temp
+]
+
+to-css-rgba: func [
+	color   [red-tuple!]								;-- needs to be a valid color tuple
+	return: [c-string!]									;-- rgba(r, g, b, a) format - Should be cleaned with g_free
+	/local
+		size  [integer!]
+		r     [integer!]
+		g     [integer!]
+		b     [integer!]
+		a     [float!]
+		rgba  [c-string!]
+		alpha [c-string!]
+][
+	size: TUPLE_SIZE?(color)
+
+	r: color/array1 and FFh
+	g: (color/array1 >> 8) and FFh
+	b: (color/array1 >> 16) and FFh
+	a: 1.0
+
+	if size = 4 [
+		a: (as-float 255 - color/array1 >>> 24) / 255.0
+	]
+
+	alpha: as c-string! allocate G_ASCII_DTOSTR_BUF_SIZE
+	g_ascii_dtostr alpha G_ASCII_DTOSTR_BUF_SIZE a
+
+	rgba: g_strdup_printf ["rgba(%d, %d, %d, %s)" r g b alpha]
+
+	free as byte-ptr! alpha
+
+	rgba
 ]
 
 get-style-provider: func [
@@ -86,6 +132,8 @@ set-widget-style: func [
 		class    [c-string!]
 		size     [red-integer!]
 		css      [c-string!]
+		color    [red-tuple!]
+		rgba     [c-string!]
 ][
 	values: object/get-values face
 
@@ -94,15 +142,19 @@ set-widget-style: func [
 	if TYPE_OF(font) = TYPE_OBJECT [
 		values: object/get-values font
 
+		;name:
 		size:	as red-integer!	values + FONT_OBJ_SIZE
 		style:	as red-word!	values + FONT_OBJ_STYLE
+		;angle:
+		color:	as red-tuple!	values + FONT_OBJ_COLOR
+		;anti-alias?:
 
-		css:		""
+		css:		g_strdup_printf ["* {"]
 		context:	gtk_widget_get_style_context widget
 		provider:	get-style-provider widget
 
 		if TYPE_OF(size) = TYPE_INTEGER [
-			css: g_strdup_printf ["* {font-size:%dpt;}" size/value]
+			css: add-to-string css "%s font-size: %dpt;" as handle! size/value
 		]
 
 		len: switch TYPE_OF(style) [
@@ -129,6 +181,16 @@ set-widget-style: func [
 			]
 		]
 
+		if TYPE_OF(color) = TYPE_TUPLE [
+			rgba: to-css-rgba color
+			css: add-to-string css "%s color: %s;" as handle! rgba
+			g_free as handle! rgba
+		]
+
+		css: add-to-string css "%s}" null
+
 		gtk_css_provider_load_from_data provider css -1 null
+
+		g_free as handle! css
 	]
 ]

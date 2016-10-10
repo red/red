@@ -18,6 +18,8 @@ Red/System [
 	g_signal_connect_data instance signal as-integer handler data null 0
 ]
 
+#define G_ASCII_DTOSTR_BUF_SIZE	39
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -111,6 +113,12 @@ tagSIZE: alias struct! [
 		g_list_length: "g_list_length" [
 			list		[int-ptr!]
 			return:		[integer!]
+		]
+		g_ascii_dtostr: "g_ascii_dtostr" [
+			buffer		[c-string!]
+			buf_len		[integer!]
+			d			[float!]
+			return:		[c-string!]
 		]
 		g_strdup_printf: "g_strdup_printf" [
 			[variadic]
