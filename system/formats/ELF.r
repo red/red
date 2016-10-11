@@ -227,7 +227,7 @@ context [
 		offset			[integer!]
 		info-sym		[char!]
 		info-type		[char!]
-		info-unused		[short]
+		info-addend		[short]
 	] none
 
 	stab-entry: make-struct [
@@ -647,18 +647,20 @@ context [
 		target-arch [word!]
 		symbols [block!]
 		relro-address [integer!]
-		/local rel-type result entry
+		/local rel-type result entry len
 	] [
 		rel-type: select reduce [
 			'ia-32 defs/r-386-32
 			'arm defs/r-arm-abs32
 		] target-arch
-		result: copy []
-		repeat i length? symbols [ ;; 1..n, 0 is undef
+		result: make block! len: length? symbols
+		
+		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
 			entry/offset: rel-address-of/index relro-address (i - 1)
 			entry/info-sym: rel-type
-			entry/info-type: i
+			entry/info-type: i // 256
+			entry/info-addend: shift/logical i 8
 			append result entry
 		]
 		result
