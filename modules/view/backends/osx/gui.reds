@@ -789,9 +789,8 @@ change-selection: func [
 		idx [integer!]
 		sz	[integer!]
 ][
-	if TYPE_OF(int) = TYPE_NONE [idx: -1]
-	idx: int/value - 1
-	if idx < 0 [exit]		;-- @@ should unselect the items ?
+	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+	if idx < 0 [exit]									;-- @@ should unselect the items ?
 	case [
 		type = camera [
 			either TYPE_OF(int) = TYPE_NONE [
