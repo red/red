@@ -37,15 +37,19 @@ red: context [
 	expr-stack:	   make block! 8
 	current-call:  none
 	
+	unless value? 'Red [red: none]						;-- for %preprocessor to load
+	
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
+	preprocessor:  do bind load-cache %utils/preprocessor.r 'self
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
 		'string	   make hash! 1000
 		'context   make hash! 1000
+		'typeset   make hash! 100
 	]
 	 
 	pc: 		   none
@@ -64,7 +68,6 @@ red: context [
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
 	booting?:	   none									;-- YES: compiling boot script
-	no-global?:	   no									;-- YES: put global code in a function
 	nl: 		   newline
 	set 'float!	   'float								;-- type name not defined in Rebol
  
@@ -735,7 +738,7 @@ red: context [
 	
 	decorate-series-var: func [name [word!] /local new list][
 		new: to word! join name get-counter
-		list: select lit-vars select [blk block str string ctx context] name
+		list: select lit-vars select [blk block str string ctx context ts typeset] name
 		if all [list not find list new][append list new]
 		new
 	]
@@ -1649,7 +1652,10 @@ red: context [
 		name
 	]
 	
-	inherit-functions: func [new [object!] extend [object!] /local symbol name][ ;-- multiple inheritance case
+	inherit-functions: func [							 ;-- multiple inheritance case
+		new [object!] extend [object!] multi? [logic!]
+		/local symbol name
+	][
 		foreach word next first extend [
 			if function! = get in extend word [
 				symbol: decorate-obj-member word select objects extend
@@ -1658,9 +1664,14 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				
-				append bodies name
-				append bodies bind/copy copy/part next find bodies symbol 8 new
+				either multi? [							;-- not allowed for libRedRT client programs
+					append bodies name
+					append bodies bind/copy copy/part next find bodies symbol 8 new
+				][
+					redirect-to literals [
+						emit compose [#define (decorate-func name) (decorate-func symbol)]
+					]
+				]
 				add-symbol name
 			]
 		]
@@ -1673,7 +1684,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? multi-inherit?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1693,7 +1704,7 @@ red: context [
 				some [
 					(clear list)
 					pos: set-word! (
-						append list pos/1			;-- store new word
+						append list pos/1				;-- store new word
 						value: pos
 						until [
 							value: next value
@@ -1831,14 +1842,15 @@ red: context [
 			]
 			insert-lf -3
 		]
-
+		multi-inherit?: not all [job/dev-mode? not job/libRedRT?]
+		
 		if proto [
-			if body? [inherit-functions obj last proto]
+			if body? [inherit-functions obj last proto multi-inherit?]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		if all [not body? not passive][
-			inherit-functions obj new
+			inherit-functions obj new multi-inherit?
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
@@ -1884,7 +1896,10 @@ red: context [
 		event: 'on-change*
 		if pos: find spec event [
 			pos: (index? pos) - 1					;-- 0-based contexts arrays
-			entry: find functions decorate-obj-member event ctx
+			entry: any [
+				find functions decorate-obj-member event ctx
+				all [proto find functions decorate-obj-member event select objects proto/1]
+			]
 			unless zero? loc-s: second check-spec entry/2/3 [
 				loc-s: loc-s + 1					;-- account for /local
 			]
@@ -1892,7 +1907,10 @@ red: context [
 		event: 'on-deep-change*
 		if pos2: find spec event [
 			pos2: (index? pos2) - 1					;-- 0-based contexts arrays
-			entry: find functions decorate-obj-member event ctx
+			entry: any [
+				find functions decorate-obj-member event ctx
+				all [proto find functions decorate-obj-member event select objects proto/1]
+			]
 			unless zero? loc-d: second check-spec entry/2/3 [
 				loc-d: loc-d + 1					;-- account for /local
 			]
@@ -2633,18 +2651,11 @@ red: context [
 			-1
 		]
 		convert-types spec
-		either no-global? [
-			repend bodies [								;-- saved for deferred inclusion
-				name spec body none none none none none none
-			]
-		][
-			;redirect-to literals [
-				emit reduce [to set-word! name 'func]
-				insert-lf -2
-				append/only output spec
-				append/only output body
-			;]
-		]
+		emit reduce [to set-word! name 'func]
+		insert-lf -2
+		append/only output spec
+		append/only output body
+		
 		ret: any [
 			all [ret: get-return-type spec get-RS-type-ID ret/1]
 			-1
@@ -3866,7 +3877,9 @@ red: context [
 					]
 					saved: script-name
 					insert skip pc 2 #pop-path
-					change/part pc next load-source/header file 2	;@@ Header skipped, should be processed
+					src: load-source/header file
+					src: preprocessor/expand src job
+					change/part pc next src 2			;@@ Header skipped, should be processed
 					script-name: saved
 					append included-list file
 					unless empty? expr-stack [comp-expression]
@@ -3934,6 +3947,11 @@ red: context [
 			]
 			#build-date [
 				change pc mold now
+				comp-expression
+				true
+			]
+			#build-config [
+				change/only pc load find mold job #"["
 				comp-expression
 				true
 			]
@@ -4156,22 +4174,15 @@ red: context [
 		obj-stack: to path! 'func-objs
 		
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
-			either none? symbols [						;-- routine in no-global? mode
-				emit reduce [to set-word! name 'func]
-				insert-lf -2
-				append/only output spec
-				append/only output body
-			][
-				locals-stack: stack
-				ssa-names: ssa
-				ctx-stack: ctx
-				container-obj?: obj?
-				func-objs: tail objects
-				depth: max-depth
-				preprocess-types name spec
+			locals-stack: stack
+			ssa-names: ssa
+			ctx-stack: ctx
+			container-obj?: obj?
+			func-objs: tail objects
+			depth: max-depth
+			preprocess-types name spec
 
-				comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
-			]
+			comp-func-body name spec body copy symbols locals-nb ;-- copy avoids symbols corruption by decoration
 		]
 		clear locals-stack
 		clear ssa-names
@@ -4202,16 +4213,20 @@ red: context [
 		redbin/finish pick [[compress] []] to logic! redc/load-lib?
 	]
 	
-	comp-source: func [code [block!] /local user main saved][
+	comp-source: func [code [block!] /local user main saved mods][
 		output: make block! 10000
 		comp-init
 		
-		pc: next load-source/hidden %boot.red			;-- compile Red's boot script
-		unless job/red-help? [clear-docstrings pc]
-		booting?: yes
-		comp-block
-		booting?: no
+		unless all [job/dev-mode? not job/libRedRT?][
+			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
+			unless job/red-help? [clear-docstrings pc]
+			booting?: yes
+			comp-block
+			booting?: no
+		]
 		
+		mods: tail output
+		append output [#user-code]
 		foreach module needed [
 			saved: if script-path [copy script-path]
 			script-path: first split-path module
@@ -4220,21 +4235,23 @@ red: context [
 			comp-block
 			script-path: saved
 		]
-		
+
 		pc: code										;-- compile user code
 		user: tail output
 		comp-block
+		append output [#user-code]
 		
 		main: output
 		output: make block! 1000
 		
 		comp-bodies										;-- compile deferred functions
 		comp-finish
+		libRedRT/save-extras
 		
-		reduce [user main]
+		reduce [user mods main]
 	]
 	
-	comp-as-lib: func [code [block!] /local user main defs pos][
+	comp-as-lib: func [code [block!] /local user main mark defs pos ext-ctx][
 		out: copy/deep [
 			Red/System [
 				type:   'dll
@@ -4244,23 +4261,19 @@ red: context [
 			with red [
 				exec: context [
 					<declarations>
-					init: func [/local tmp] <script>
+					<script>
 				]
-			]
-			on-load: does [
-				red/init
-				exec/init
 			]
 		]
 		
-		set [user main] comp-source code
-		
+		set [user mark main] comp-source code
+
 		defs: make block! 10'000
-		
 		foreach [type cast][
 			block	red-block!
 			string	red-string!
 			context node!
+			typeset	red-typeset!
 		][
 			foreach name lit-vars/:type [
 				repend defs [to set-word! name 'as cast 0]
@@ -4271,7 +4284,9 @@ red: context [
 			repend defs [to set-word! spec/1 'as 'red-word! 0]
 			new-line skip tail defs -4 on
 		]
+		
 		append defs [
+			obj: as red-object! 0
 			------------| "Declarations"
 		]
 		append defs declarations
@@ -4301,17 +4316,26 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 		
-		pos: third pick tail out -4
-		change/only find pos <script> script
+		pos: third last out
+		change find pos <script> script
 		remove pos: find pos <declarations>
 		insert pos defs
 		
-		output: out
+		output: out	
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user main][
-		out: copy/deep [
+	comp-as-exe: func [code [block!] /local out user mods main defs][
+		out: copy/deep either job/dev-mode? [[
+			Red/System [origin: 'Red]
+
+			<imports>
+
+			with red [
+				root-base: redbin/boot-load system/boot-data yes
+				exec: context <script>
+			]
+		]][[
 			Red/System [origin: 'Red]
 
 			red/init
@@ -4319,9 +4343,12 @@ red: context [
 			with red [
 				exec: context <script>
 			]
-		]
+		]]
 		
-		set [user main] comp-source code
+		if all [job/dev-mode? not job/libRedRT?][
+			replace out <imports> libRedRT/get-include-file job
+		]
+		set [user mods main] comp-source code
 		
 		;-- assemble all parts together in right order
 		script: make block! 100'000
@@ -4381,7 +4408,7 @@ red: context [
 			unless hidden [script-name: file]
 			src: lexer/process read-cache file
 		][
-			unless hidden [script-name: 'memory]
+			unless hidden [script-name: 'in-memory]
 			src: file
 		]
 		src
@@ -4436,6 +4463,7 @@ red: context [
 		clear lit-vars/block
 		clear lit-vars/string
 		clear lit-vars/context
+		clear lit-vars/typeset
 		clear types-cache
 		clear shadow-funcs
 		clear native-ts
@@ -4443,28 +4471,45 @@ red: context [
 		depth:	   0
 		max-depth: 0
 		container-obj?: none
+		redbin/index: 0									;-- required here by libRedRT
 	]
 
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
-		/local time src resources
+		/local time src resources defs
 	][
 		verbose: opts/verbosity
 		job: opts
 		clean-up
-		main-path: first split-path file
-		no-global?: job/type = 'dll
+		main-path: first split-path any [all [block? file system/options/path] file]
 		resources: make block! 8
-
+		
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
 			process-config src/1 job
+			preprocessor/expand src job
 			process-needs src/1 next src
-			system-dialect/collect-resources src/1 resources file
+			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
-			either no-global? [comp-as-lib src][comp-as-exe src]
+			
+			if all [job/dev-mode? not job/libRedRT?][
+				defs: libRedRT/get-definitions
+				append clear functions defs/1
+				;redbin/index:	defs/2
+				globals:		defs/3
+				objects:		compose/deep bind objects: defs/4 red
+				contexts:		defs/5
+				actions:		defs/6
+				op-actions:		defs/7
+				foreach w defs/8 [add-symbol w]
+				append literals defs/9
+				s-counter:		defs/10
+				needed: 		exclude needed defs/11	;-- exclude already compiled modules
+				make-keywords
+			]
+			either job/type = 'dll [comp-as-lib src][comp-as-exe src]
 		]
 		reduce [output time redbin/buffer resources]
 	]

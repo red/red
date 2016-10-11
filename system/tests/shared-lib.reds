@@ -74,6 +74,7 @@ foo: func [
 	a		[integer!]
 	return: [integer!]
 ][
+	?? i
 	a + 1
 ]
 
@@ -84,9 +85,9 @@ bar: func [][1 / 0]
 
 ;-- This compiler directive defines what symbols (global variable or function)
 ;-- will be exposed by the DLL to the host program.
-#export [foo bar i]
+;#export [foo bar i]
 
 ;-- Alternatively, you can force a calling convention on exported
 ;-- functions, only stdcall and cdecl are supported. Cdecl is the default one.
 
-; #export stdcall [foo bar i]
+#export stdcall [foo bar i]

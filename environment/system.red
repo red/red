@@ -12,7 +12,10 @@ Red [
 
 system: context [
 	version: #version
-	build:	 #build-date
+	build:	 context [
+		date:	#build-date
+		config: context #build-config
+	]
 		
 	words: #system [
 		__make-sys-object: func [
@@ -272,7 +275,9 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			#system [stack/push get-cmdline-args]
+		args: 			#system [
+			#either type = 'exe [stack/push get-cmdline-args][none/push]
+		]
 		do-arg: 		none
 		debug: 			none
 		secure: 		none

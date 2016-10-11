@@ -24,6 +24,7 @@ context [
 
 		base-address	(to-integer #{08048000})
 		page-size		4096
+		rpath			"$ORIGIN"
 
 		;; ELF Constants
 
@@ -87,9 +88,11 @@ context [
 		dt-syment		11			;; size of one symbol table entry (in bytes)
 		dt-init			12			;; address of the initialization function
 		dt-fini			13			;; address of the termination function
+		dt-rpath		15			;; library search path (deprecated)
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
+		dt-runpath		29			;; library search path
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
@@ -282,7 +285,7 @@ context [
 			structure segments sections commands layout
 			data-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset
+			relro-offset pos list
 	] [
 		base-address: case [
 			job/type = 'dll [0]
@@ -290,6 +293,12 @@ context [
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
+		;-- (hack) Move libRedRT in first position to avoid "system" symbol
+		;-- to be bound to libC instead! (TBD: find a cleaner way)
+		if pos: find list: job/sections/import/3 "libRedRT.so" [
+			insert list take/part pos 2
+		]
+		
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
@@ -360,7 +369,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -680,6 +689,7 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
+		repend entries ['rpath strtab-index-of dynstr defs/rpath]
 
 		if job-type = 'dll [
 			if spec: select symbols '***-dll-entry-point [
@@ -829,7 +839,7 @@ context [
 			foreach [meta symbol] reverse copy job/symbols [
 				catch [
 					case [
-						find [import native-ref] meta/1 [
+						find [import import-var native-ref] meta/1 [
 							throw 'continue
 						]
 						'global = meta/1 [
@@ -966,7 +976,7 @@ context [
 	]
 
 	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
-		size: 9
+		size: 10
 		if job-type = 'dll [
 			if find symbols '***-dll-entry-point [
 				size: size + 1
@@ -1088,7 +1098,7 @@ context [
 
 	;; -- Helpers for creating/using ELF structures --
 
-	strtab-index-of: func [strtab [binary!] string [string!]] [
+	strtab-index-of: func [strtab [binary!] string [string! issue!]] [
 		-1 + index? find strtab to-c-string string
 	]
 
@@ -1100,13 +1110,13 @@ context [
 
 	rel-address-of: func [
 		base [integer!]
-		/symbol syms [block!] sym [string!]
+		/symbol syms [block!] sym [string! issue!]
 		/index ind [integer!]
 	] [
 		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
 	]
 
-	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
+	to-c-string: func [data [string! binary! issue!]] [join as-binary data #{00}]
 
 	to-elf-strtab: func [items [block!]] [
 		join #{00} map-each item items [to-c-string form item]

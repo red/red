@@ -119,9 +119,9 @@ siginfo!: alias struct! [
 			apple	[struct! [s [c-string!]]]
 			pvars	[program-vars!]
 		][
-			***-main
-			posix-startup-ctx/init
+			***-boot-rs
 			on-load argc argv envp apple pvars
+			***-main
 		]
 	]
 	exe [

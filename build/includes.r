@@ -53,6 +53,7 @@ write %build/bin/sources.r set-cache [
 		%actions.reds
 		%allocator.reds
 		%debug-tools.reds
+		%definitions.reds
 		%case-folding.reds
 		%interpreter.reds
 		%macros.reds
@@ -167,6 +168,7 @@ write %build/bin/sources.r set-cache [
 		%extractor.r
 		%redbin.r
 		%call.r
+		%preprocessor.r
 	]
 	%system/ [
 		%compiler.r
@@ -212,6 +214,8 @@ write %build/bin/sources.r set-cache [
 		%utils/ [
 			%IEEE-754.r
 			%int-to-bin.r
+			%libRedRT.r
+			%libRedRT-exports.r
 			%r2-forward.r
 			%secure-clean-path.r
 			%virtual-struct.r

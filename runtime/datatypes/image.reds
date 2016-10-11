@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum image-format! [
-	IMAGE_BMP
-	IMAGE_PNG
-	IMAGE_GIF
-	IMAGE_JPEG
-	IMAGE_TIFF
-]
-
 image: context [
 	verbose: 0
 
@@ -451,6 +443,7 @@ image: context [
 			bitmap	[integer!]
 			data	[int-ptr!]
 			stride	[integer!]
+			size	[integer!]
 			end		[int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/serialize"]]
@@ -475,14 +468,19 @@ image: context [
 			return part - 5
 		]
 
-		string/append-char GET_BUFFER(buffer) as-integer space
-		string/concatenate-literal buffer "#{^/"
-		part: part - 4
-
 		stride: 0
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
+		size: as-integer end - data
+		
+		string/append-char GET_BUFFER(buffer) as-integer space
+		string/concatenate-literal buffer "#{"
+		part: part - 2	
+		if size > 30 [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
 		
 		offset: img/head
 		count: 0
@@ -500,6 +498,10 @@ image: context [
 			]
 			if pixel >>> 24 <> 255 [alpha?: yes]
 			data: data + 1
+		]
+		if all [size > 30 count % 10 <> 0] [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 

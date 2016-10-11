@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum encoding! [
-	UTF-16LE:	-1
-	UTF-8:		 0
-	Latin1:		 1
-	UCS-2:		 2
-	UCS-4:		 4
-]
-
 unicode: context [
 	verbose: 0
 

@@ -2312,7 +2312,20 @@ make-profilable make target-class [
 		emit-hf-return fspec/4
 	]
 	
+	emit-variadic-data: func [args [block!] /local total][
+		emit-push call-arguments-size? args/2		;-- push arguments total size in bytes 
+													;-- (required to clear stack on stdcall return)
+		emit-i32 #{e28dc004}						;-- ADD ip, sp, #4	; skip last pushed value
+		emit-i32 #{e92d1000}						;-- PUSH {ip}		; push arguments list pointer
+		total: length? args/2
+		if args/1 = #typed [total: total / 3]		;-- typed args have 3 components
+		emit-push total								;-- push arguments count
+	]
+	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
+		if all [issue? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
+			emit-variadic-data args
+		]
 		extra: emit-APCS-header args fspec/3 attribs
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
@@ -2354,15 +2367,7 @@ make-profilable make target-class [
 			]
 			if cb? [emit-hf-return fspec/4]
 		][
-			if issue? args/1 [							;-- variadic call
-				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
-														;-- (required to clear stack on stdcall return)
-				emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
-				emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
-				total: length? args/2
-				if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
-				emit-push total							;-- push arguments count
-			]
+			if all [issue? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
 		]
@@ -2472,7 +2477,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-close-catch: func [offset [integer!] global? [logic!]][
+	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
 		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
@@ -2484,6 +2489,10 @@ make-profilable make target-class [
 			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			;offset: offset + 8						;-- account for the 2 catch slots on stack 
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			
+			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
+			offset: offset + (2 * 8) - args-offset		;-- account for the 2 catch slots + 2 saved slots
+			
 			either offset > 255 [
 				emit-load-imm32/reg offset 4
 				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4

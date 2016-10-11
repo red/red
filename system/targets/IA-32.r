@@ -86,10 +86,74 @@ make-profilable make target-class [
 		data
 	]
 	
+	emit-variable: func [
+		name  [word! object!] 
+		gcode [binary! block! none!]					;-- global opcodes
+		pcode [binary! block! none!]					;-- PIC opcodes
+		lcode [binary! block!] 							;-- local opcodes
+		/local offset byte code spec
+	][
+		if object? name [name: compiler/unbox name]
+		
+		case [
+			offset: select emitter/stack name [
+				offset: stack-encode offset 			;-- local variable case
+				either block? lcode: adjust-disp32 lcode offset [
+					emit reduce bind lcode 'offset
+				][
+					emit lcode
+					emit offset
+				]
+			]
+			PIC? [										;-- global variable case (PIC version)
+				spec: emitter/symbols/:name
+				either spec/1 = 'import-var [
+					emit #{8BB3}					;-- MOV esi, [ebx+<import disp>]
+					emit-reloc-addr spec
+					emit (#{FF7E} and copy pcode) or #{0004} ;-- [ebx+<disp>] => [esi]
+				][
+					either block? pcode [
+						foreach code reduce pcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit pcode
+						emit-reloc-addr spec
+					]
+				]
+			]
+			'global [									;-- global variable case
+				spec: emitter/symbols/:name
+				either spec/1 = 'import-var [
+					emit #{8B3D}					;-- MOV edi, [<import>]
+					emit-reloc-addr spec
+					emit (#{FF7E} and copy pcode) or #{0005} ;-- [ebx+<disp>] => [edi]
+				][
+					either block? gcode [
+						foreach code reduce gcode [
+							either code = 'address [
+								emit-reloc-addr spec
+							][
+								emit code
+							]
+						]
+					][
+						emit gcode
+						emit-reloc-addr spec
+					]
+				]
+			]
+		]
+	]
+	
 	emit-float: func [opcode [binary!]][
 		emit either width = 4 [opcode and #{F9FF}][opcode]
 	]
-	
+
 	emit-float-arg: func [arg opcode [binary!]][
 		emit switch/default first compiler/get-type arg [
 			float32! [opcode and #{F9FF}]
@@ -97,8 +161,7 @@ make-profilable make target-class [
 		][
 			opcode
 		]
-	]
-	
+	]	
 	emit-float-variable: func [
 		name [word! object!] gcode [binary!] pcode [binary!] lcode [binary!]
 		/local codes type
@@ -716,9 +779,9 @@ make-profilable make target-class [
 						emit #{8D83}				;-- LEA eax, [ebx+disp]	; PIC
 						emit-reloc-addr value
 						emit-variable name
-						#{A3}						;-- MOV [name], eax		; global
-						#{8983}						;-- MOV [ebx+disp], eax	; PIC
-						#{8945}						;-- MOV [ebp+n], eax	; local
+							#{A3}					;-- MOV [name], eax		; global
+							#{8983}					;-- MOV [ebx+disp], eax	; PIC
+							#{8945}					;-- MOV [ebp+n], eax	; local
 					][
 						do store-dword
 						emit-reloc-addr value
@@ -1752,7 +1815,20 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!]][
+	emit-variadic-data: func [args [block!] /local total][
+		emit-push call-arguments-size? args/2		;-- push arguments total size in bytes 
+													;-- (required to clear stack on stdcall return)
+		emit #{8D742404}							;-- LEA esi, [esp+4]	; skip last pushed value
+		emit #{56}									;-- PUSH esi			; push arguments list pointer
+		total: length? args/2
+		if args/1 = #typed [total: total / 3]		;-- typed args have 3 components
+		emit-push total								;-- push arguments count
+	]
+	
+	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local cdecl?][
+		cdecl?: fspec/3 = 'cdecl
+		if all [issue? args/1 not cdecl?][emit-variadic-data args]
+
 		either compiler/job/OS = 'MacOSX [
 			either PIC? [
 				emit #{8D83}						;-- LEA eax, [ebx+disp]	; PIC
@@ -1764,12 +1840,16 @@ make-profilable make target-class [
 		][
 			emit-indirect-call spec
 		]
-		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
-			emit-cdecl-pop fspec args
-		]
+		if cdecl? [emit-cdecl-pop fspec args]		;-- add calling cleanup when required
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /routine name [word!] /local total][
+	emit-call-native: func [
+		args [block!] fspec [block!] spec [block!] attribs [block! none!]
+		/routine name [word!]
+		/local cdecl?
+	][
+		cdecl?: fspec/3 = 'cdecl
+		
 		either routine [
 			either 'local = last fspec [
 				name: pick tail fspec -2
@@ -1783,21 +1863,11 @@ make-profilable make target-class [
 				emit-indirect-call spec
 			]
 		][
-			if issue? args/1 [							;-- variadic call
-				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
-														;-- (required to clear stack on stdcall return)
-				emit #{8D742404}						;-- LEA esi, [esp+4]	; skip last pushed value
-				emit #{56}								;-- PUSH esi			; push arguments list pointer
-				total: length? args/2
-				if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
-				emit-push total							;-- push arguments count
-			]
+			if all [issue? args/1 not cdecl?][emit-variadic-data args]
 			emit #{E8}								;-- CALL NEAR disp
 			emit-reloc-addr spec					;-- 32-bit relative displacement
 		]
-		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
-			emit-cdecl-pop fspec args
-		]
+		if cdecl? [emit-cdecl-pop fspec args]		;-- in case of non-default calling convention
 	]
 	
 	emit-stack-align: does [
@@ -1863,9 +1933,11 @@ make-profilable make target-class [
 		23											;-- return size of (catch-frame + extra) opcodes
 	]
 	
-	emit-close-catch: func [offset [integer!]][
+	emit-close-catch: func [offset [integer!] global [logic!] callback? [logic!]][
 		if verbose >= 3 [print ">>>emitting CATCH epilog"]
-		offset: offset + 8							;-- account for the 2 catch slots on stack
+		offset: offset + (2 * 8) - args-offset		;-- account for the 2 catch slots + 2 saved slots
+		if callback? [offset: offset + 12]			;-- account for ebx,esi,edi saving slots
+		
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp
 			emit #{81EC}							;-- SUB esp, locals-size	; 32-bit

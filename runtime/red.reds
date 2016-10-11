@@ -13,6 +13,7 @@ Red/System [
 red: context [
 	;-- Runtime sub-system --
 	
+	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
 	
@@ -203,7 +204,7 @@ red: context [
 		crypto/init
 		
 		stack/init
-		redbin/boot-load
+		redbin/boot-load system/boot-data no
 		
 		#if debug? = yes [
 			datatype/verbose:	verbosity
@@ -256,4 +257,6 @@ red: context [
 			unicode/verbose:	verbosity
 		]
 	]
+	
+	#if type = 'dll [init]
 ]

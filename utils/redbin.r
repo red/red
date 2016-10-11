@@ -90,8 +90,7 @@ context [
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
-		unless ctx [emit -1 return -1]				;-- -1 for global context
-		entry: find contexts ctx
+		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]				;-- -1 for global context
 		either pos: find entry/2 to word! word [
 			emit entry/3
 			(index? pos) - 1
@@ -412,7 +411,6 @@ context [
 		clear sym-string
 		clear symbols
 		clear contexts
-		index: 0
 	]
 	
 	finish: func [spec [block!] /local flags compress? data out len][
@@ -429,9 +427,12 @@ context [
 		]
 		insert buffer header
 		
-		if compress?: find spec 'compress [
+		if all [
+			compress?: find spec 'compress
+			128 < len: length? buffer
+		][
 			flags: flags or #{02}
-			out: make binary! len: length? buffer
+			out: make binary! len
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
 			clear buffer

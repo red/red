@@ -344,9 +344,9 @@ emitter: make-profilable context [
 					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 				]
 			]
-			if all [compiler/job/PIC? not libc-init?][
+			if all [spec compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
-				if new-global? spec [
+				if new-global? [
 					target/emit-store saved value n-spec ;-- store it in pointer variable
 				]
 			]
@@ -636,8 +636,9 @@ emitter: make-profilable context [
 		target/emit-epilog name locals args-sz locals-sz
 	]
 	
-	import-function: func [name [word!] reloc [block!]][
-		repend symbols [name reduce ['import none reloc]]
+	import: func [name [word!] reloc [block!] /var /local type][
+		type: pick [import-var import] to logic! var
+		repend symbols [name reduce [type none reloc]]
 	]
 	
 	add-native: func [name [word!] /local spec][

@@ -107,6 +107,13 @@ get-root-node: func [
 	obj/ctx
 ]
 
+get-root-node2: func [									;-- alias used by libRedRT
+	idx		[integer!]
+	return: [node!]
+][
+	get-root-node idx
+]
+
 report: func [
 	type  [red-value!]
 	id    [red-value!]

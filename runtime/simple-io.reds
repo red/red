@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum http-verb! [
-	HTTP_GET
-	HTTP_PUT
-	HTTP_POST
-	HTTP_DEL
-	HTTP_HEAD
-]
-
 simple-io: context [
 
 	#enum red-io-mode! [
@@ -32,36 +24,6 @@ simple-io: context [
 
 		dir-keep: 0
 		dir-inited: false
-
-		#define GENERIC_WRITE			40000000h
-		#define GENERIC_READ 			80000000h
-		#define FILE_SHARE_READ			00000001h
-		#define FILE_SHARE_WRITE		00000002h
-		#define OPEN_ALWAYS				00000004h
-		#define OPEN_EXISTING			00000003h
-		#define CREATE_ALWAYS			00000002h
-		#define FILE_ATTRIBUTE_NORMAL	00000080h
-		#define FILE_ATTRIBUTE_DIRECTORY 00000010h
-
-		#define SET_FILE_BEGIN			0
-		#define SET_FILE_CURRENT		1
-		#define SET_FILE_END			2
-
-		#define MAX_FILE_REQ_BUF		4000h			;-- 16 KB
-		#define OFN_HIDEREADONLY		0004h
-		#define OFN_EXPLORER			00080000h
-		#define OFN_ALLOWMULTISELECT	00000200h
-
-		#define WIN32_FIND_DATA_SIZE	592
-
-		#define BIF_RETURNONLYFSDIRS	1
-		#define BIF_USENEWUI			50h
-		#define BIF_SHAREABLE			8000h
-
-		#define BFFM_INITIALIZED		1
-		#define BFFM_SELCHANGED			2
-		#define BFFM_SETSELECTION		1127
-		#define BFFM_SETEXPANDED		1130
 
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]
@@ -284,34 +246,6 @@ simple-io: context [
 			0
 		]
 	][
-		#define O_RDONLY	0
-		#define O_WRONLY	1
-		#define O_RDWR		2
-		#define O_BINARY	0
-
-		#define S_IREAD		256
-		#define S_IWRITE    128
-		#define S_IRGRP		32
-		#define S_IWGRP		16
-		#define S_IROTH		4
-
-		#define	DT_DIR		#"^(04)"
-
-		#case [
-			any [OS = 'FreeBSD OS = 'MacOSX] [
-				#define O_CREAT		0200h
-				#define O_TRUNC		0400h
-				#define O_EXCL		0800h
-				#define O_APPEND	8
-			]
-			true [
-				#define O_CREAT		64
-				#define O_EXCL		128
-				#define O_TRUNC		512
-				#define O_APPEND	1024
-			]
-		]
-
 		#case [
 			OS = 'FreeBSD [
 				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10

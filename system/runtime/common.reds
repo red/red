@@ -98,6 +98,12 @@ re-throw: func [/local id [integer!]][
 	throw id								;-- let the exception pass through
 ]
 
+#switch OS [
+	Windows  [#define LIBREDRT-file "libRedRT.dll"]
+	MacOSX	 [#define LIBREDRT-file "libRedRT.dylib"]
+	#default [#define LIBREDRT-file "libRedRT.so"]
+]
+
 #include %system.reds
 #include %lib-names.reds
 
@@ -268,3 +274,11 @@ re-throw: func [/local id [integer!]][
 ]
 push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
+
+#if type = 'dll [
+	#switch OS [								;-- init OS-specific handlers
+		Windows  [win32-startup-ctx/init]
+		Syllable []
+		#default [posix-startup-ctx/init]
+	]
+]

@@ -437,6 +437,7 @@ system/view: context [
 		alt-up			on-alt-up
 		aux-down		on-aux-down
 		aux-up			on-aux-up
+		wheel			on-wheel
 		drag-start		on-drag-start
 		drag			on-drag
 		drop			on-drop

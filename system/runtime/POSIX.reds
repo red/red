@@ -133,9 +133,9 @@ posix-startup-ctx: context [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
-				***-main
-				posix-startup-ctx/init
+				***-boot-rs
 				on-load
+				***-main
 			]
 		]
 		exe [

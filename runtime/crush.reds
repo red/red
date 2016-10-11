@@ -206,6 +206,12 @@ crush: context [							;-- LZ77
 			continue?	[logic!]
 			crush		[crush!]
 	][
+		output: as int-ptr! outbuf
+		if length < 128 [							;-- don't compress if size is too small
+			output/1: length or 80000000h
+			copy-memory outbuf + 4 data length
+			return length + 4
+		]
 		hash-size: CRUSH_HASH1_SIZE + CRUSH_HASH2_SIZE
 		head: as int-ptr! allocate hash-size * size? integer!
 		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer!
@@ -213,9 +219,8 @@ crush: context [							;-- LZ77
 
 		crush: declare crush!
 		init crush length null
-		output: as int-ptr! outbuf
-		output/3: length				;-- save orignal file size
-		crush/buf: outbuf + 12			;-- skip header
+		output/2: length				;-- save orignal file size
+		crush/buf: outbuf + 8			;-- skip header
 
 		size: CRUSH_BUF_SIZE
 		while [length > 0][
@@ -386,8 +391,8 @@ crush: context [							;-- LZ77
 		free buf
 
 		head: as int-ptr! outbuf
-		head/2: crush/index				;-- save size of compressed data
-		crush/index + 12
+		head/1: crush/index				;-- save size of compressed data
+		crush/index + 8
 	]
 
 	decompress: func [
@@ -409,9 +414,16 @@ crush: context [							;-- LZ77
 			crush		[crush!]
 	][
 		head: as int-ptr! data
-		length: head/2
+		length: head/1
+		if length and 80000000h <> 0 [				;-- no need decompress
+			length: length and 7FFFFFFFh
+			buf: allocate length
+			copy-memory buf data + 4 length
+			unless written = null [written/value: length]
+			return buf
+		]
 		crush: declare crush!
-		init crush head/3 data + 12					;-- skip size of data
+		init crush head/2 data + 8					;-- skip size of data
 
 		head: as int-ptr! crush/input
 		while [

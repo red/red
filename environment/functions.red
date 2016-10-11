@@ -750,7 +750,7 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	args: system/options/args
+	unless args: system/options/args [exit]				;-- non-executable case
 	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
 	
 	either pos [
@@ -870,7 +870,7 @@ split-path: func [
 
 do-file: func [file [file!] /local saved code new-path][
 	saved: system/options/path
-	code: load file
+	code: expand-directives load file
 	new-path: first split-path clean-path file
 	change-dir new-path
 	set/any 'code do code

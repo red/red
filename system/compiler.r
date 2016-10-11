@@ -18,6 +18,7 @@ do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
+do-cache %system/utils/libRedRT.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
@@ -47,6 +48,7 @@ system-dialect: make-profilable context [
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
+		dev-mode?:		 	yes							;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -63,6 +65,8 @@ system-dialect: make-profilable context [
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
+		libRedRT?: 			no
+		libRedRT-update?:	no
 	]
 	
 	compiler: make-profilable context [
@@ -78,6 +82,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
+		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
 		verbose:  	 	 0								;-- logs verbosity level
@@ -595,7 +600,7 @@ system-dialect: make-profilable context [
 		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
 				pc: skip pc -2
-				throw-error "invalid path value"
+				throw-error ["invalid path value:" mold path]
 			]
 			either word? path/1 [
 				either parent [
@@ -807,6 +812,12 @@ system-dialect: make-profilable context [
 		]
 		
 		pop-calls: does [clear expr-call-stack]
+		
+		count-outer-loops: has [n][
+			n: 0
+			parse loop-stack [any ['loop (n: n + 1) | skip]]
+			n
+		]
 		
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
@@ -1419,6 +1430,7 @@ system-dialect: make-profilable context [
 				name specs pc/3 script
 				all [ns-path copy ns-path]
 				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
+				user-code?
 			]
 			pc: skip pc 3
 		]
@@ -1462,6 +1474,12 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
+		flag-callback: func [name [word!] cc [word! none!] /local spec][
+			spec: select functions name
+			spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
+			unless spec/5 = 'callback [append spec 'callback]
+		]
+		
 		process-export: has [defs cc ns func? spec][
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
@@ -1482,18 +1500,14 @@ system-dialect: make-profilable context [
 					throw-error ["undefined exported symbol:" mold name]
 				]
 				append exports name
-				
-				if func? [
-					spec: select functions name
-					spec/3: any [cc 'cdecl]
-					unless spec/5 = 'callback [append spec 'callback]
-				]
+				if func? [flag-callback name cc]
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
+			err: ["invalid import specification at:" pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
@@ -1518,21 +1532,31 @@ system-dialect: make-profilable context [
 							)
 							pos: set id   string!
 							pos: set spec block!    (
-								check-specs/extend name spec
-								clear-docstrings spec
-								specs: copy specs
-								specs/1: name
-								add-function 'import specs cc
-								reloc: all [funcs: select imports lib select funcs id]
-								unless reloc [repend list [id reloc: make block! 1]]
-								emitter/import-function name reloc
+								either all [1 = length? spec not block? spec/1][
+									unless parse spec type-spec [throw-error err]
+									either ns-path [
+										add-ns-symbol specs/1
+										add-symbol ns-prefix to word! specs/1 none spec
+									][
+										add-symbol to word! specs/1 none spec
+									]
+									repend list [to issue! id reloc: make block! 1]
+									emitter/import/var name reloc
+								][
+									check-specs/extend name spec
+									clear-docstrings spec
+									specs: copy specs
+									specs/1: name
+									add-function 'import specs cc
+									reloc: all [funcs: select imports lib select funcs id]
+									unless reloc [repend list [id reloc: make block! 1]]
+									emitter/import name reloc
+								]
 							)
 						]
 					](if new? [repend imports [lib list]])
 				]
-			][
-				throw-error ["invalid import specification at:" pos]
-			]		
+			][throw-error err]
 		]
 		
 		process-syscall: func [defs [block!] /local name id spec pos][
@@ -1653,6 +1677,7 @@ system-dialect: make-profilable context [
 				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
+				#user-code [user-code?: not user-code? pc: next pc]
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -1812,6 +1837,7 @@ system-dialect: make-profilable context [
 		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
+			if path? ctype [ctype: to word! form ctype]
 			
 			if any [
 				not find [word! block!] type?/word ctype
@@ -1951,7 +1977,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end][
+		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
 			pc: next pc
 			fetch-expression/keep/final
 			if any [not last-type last-type <> [integer!]][
@@ -1975,7 +2001,10 @@ system-dialect: make-profilable context [
 			][
 				emitter/target/locals-offset
 			]
-			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals]
+			cb?: to logic! all [locals 'callback = last functions/:func-name]
+			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
+			
+			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
 			
@@ -2234,8 +2263,9 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
-			if 'while-cond = last loop-stack [
-				throw-error "BREAK cannot be used in WHILE condition block"
+			switch last loop-stack [
+				while-cond [throw-error "BREAK cannot be used in WHILE condition block"]
+				loop	   [emitter/target/emit-pop]
 			]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
@@ -2767,6 +2797,7 @@ system-dialect: make-profilable context [
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
+			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
@@ -3170,7 +3201,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns nss] natives [
+			foreach [name spec body origin ns nss user?] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -3181,6 +3212,7 @@ system-dialect: make-profilable context [
 				script: origin
 				ns-path: ns
 				ns-stack: nss
+				user-code?: user?
 				comp-func-body name spec body
 			]
 		]
@@ -3230,7 +3262,7 @@ system-dialect: make-profilable context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 6 [
+				unless find/skip natives fun 7 [
 					repend code [
 						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
@@ -3247,6 +3279,7 @@ system-dialect: make-profilable context [
 			job: obj
 			pc: src
 			script: secure-clean-path file
+	
 			unless no-header [comp-header]
 			unless no-events [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
@@ -3262,9 +3295,13 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		finalize: does [
+		finalize: has [tmpl words][
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
+			
 			if job/type = 'dll [
+				if all [job/dev-mode? job/libRedRT?][
+					libRedRT/process job functions exports
+				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
 				]
@@ -3314,15 +3351,18 @@ system-dialect: make-profilable context [
 		]
 	]
 	
+	emit-func-prolog: func [name [word!] /local spec][
+		compiler/add-function 'native reduce [name none []] 'stdcall
+		spec: emitter/add-native name
+		spec/2: either name = '***-boot-rs [1][emitter/tail-ptr]
+		emitter/target/emit-prolog name [] 0
+	]
+	
 	emit-main-prolog: has [name spec][
 		either job/type = 'exe [
 			emitter/target/on-init
 		][												;-- wrap global code in a function
-			name: '***-main
-			compiler/add-function 'native reduce [name none []] 'stdcall
-			spec: emitter/add-native name
-			spec/2: 1
-			emitter/target/emit-prolog name [] 0
+			emit-func-prolog '***-boot-rs
 		]
 	]
 
@@ -3367,10 +3407,16 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			set-cache-base %runtime/
- 			script: pick [%red.reds %../runtime/red.reds] encap?
- 			compiler/run job loader/process/own script script
+ 			if any [not job/dev-mode? job/libRedRT?][
+				set-cache-base %runtime/
+				script: pick [%red.reds %../runtime/red.reds] encap?
+				compiler/run job loader/process/own script script
+			]
  		]
+ 		if job/type = 'dll [
+			emitter/target/emit-epilog '***-boot-rs [] 0 0
+			emit-func-prolog '***-main
+		]
  		set-cache-base none
 	]
 	
@@ -3381,7 +3427,7 @@ system-dialect: make-profilable context [
 			switch job/type [
 				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
 				dll [emitter/target/emit-epilog '***-main [] 0 0]
-				drv [emitter/target/emit-epilog '***-main [] 0 0]
+				drv [emitter/target/emit-epilog '***-boot-rs [] 0 0]
 			]
 		]
 	]
@@ -3391,6 +3437,7 @@ system-dialect: make-profilable context [
 		compiler/ns-stack: 
 		compiler/locals: none
 		compiler/resolve-alias?:  yes
+		compiler/user-code?: no
 		
 		clear compiler/imports
 		clear compiler/exports
@@ -3522,6 +3569,8 @@ system-dialect: make-profilable context [
 			
 			set-verbose-level opts/verbosity
 			resources: either loaded [job-data/4][make block! 8]
+			if job/libRedRT-update? [libRedRT/init-extras]
+			
 			foreach file files [
 				either loaded [
 					src: loader/process/with job-data/1 file
@@ -3537,6 +3586,8 @@ system-dialect: make-profilable context [
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
+			
+			if job/libRedRT-update? [libRedRT/save-extras]
 		]
 		if verbose >= 5 [
 			print [
@@ -3544,7 +3595,7 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
-
+		
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
@@ -3578,7 +3629,7 @@ system-dialect: make-profilable context [
 		
 		set-verbose-level opts/verbosity
 		output-logs
-		if opts/link? [clean-up]
+		if any [opts/link? not opts/dev-mode?][clean-up]
 
 		reduce [
 			comp-time

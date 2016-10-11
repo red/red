@@ -23,6 +23,8 @@ Red/System [
 	}
 ]
 
+#include %../../../runtime/definitions.reds
+
 #switch OS [
 	Windows   [ #include %../windows.reds ]
 	#default  [ #include %../linux.reds  ]

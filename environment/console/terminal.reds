@@ -168,19 +168,6 @@ terminal: context [
 		]
 	]
 
-	string-lines?: func [
-		str		[red-string!]
-		offset	[integer!]
-		length	[integer!]
-		cols	[integer!]
-		return: [integer!]
-		/local
-			n	[integer!]
-	][
-		n: string-width? str offset length cols
-		n - 1 / cols + 1
-	]
-
 	count-chars: func [
 		str		[red-string!]
 		offset	[integer!]
@@ -215,38 +202,6 @@ terminal: context [
 		(as-integer p - p0) >> (unit >> 1)
 	]
 
-	string-width?: func [
-		str		[red-string!]
-		offset	[integer!]
-		len		[integer!]
-		column	[integer!]
-		return: [integer!]
-		/local
-			unit [integer!]
-			w	 [integer!]
-			s	 [series!]
-			p	 [byte-ptr!]
-			tail [byte-ptr!]
-	][
-		s: GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (offset << (unit >> 1))
-		tail: either len = -1 [as byte-ptr! s/tail][p + (len << (unit >> 1))]
-
-		len: 0
-		while [p < tail][
-			w: char-width? string/get-char p unit
-			unless zero? column [
-				either w = 2 [
-					if len + 1 % column = 0 [w: 3]
-				][w: 1]
-			]
-			len: len + w
-			p: p + unit
-		]
-		len
-	]
-
 	reposition: func [
 		vt		[terminal!]
 		/local
@@ -256,8 +211,6 @@ terminal: context [
 			node	[line-node!]
 			head	[integer!]
 			tail	[integer!]
-			cols	[integer!]
-			w		[integer!]
 			y		[integer!]
 	][
 		out: vt/out
@@ -275,7 +228,6 @@ terminal: context [
 		]
 		if y <= vt/rows [exit]
 
-		cols: vt/cols
 		data: out/data
 
 		y: 0
@@ -285,8 +237,7 @@ terminal: context [
 			if zero? tail [tail: out/max]
 			if tail = head [break]
 			node: lines + tail - 1
-			w: string-width? data node/offset node/length cols
-			y: w - 1 / cols + 1 + y
+			y: y + string-lines? data node/offset node/length
 			y >= vt/rows
 		]
 		if tail <> head [
@@ -373,7 +324,7 @@ terminal: context [
 				node/length: offset - node/offset
 				count: count + 1
 				if cp = 10 [node/length: node/length - 1]
-				n: string-lines? data node/offset node/length vt/cols
+				n: string-lines? data node/offset node/length
 				delta: n - node/nlines
 				node/nlines: n
 				out/last: cursor
@@ -464,9 +415,7 @@ terminal: context [
 					if zero? start [start: out/max]
 					node: lines + start - 1
 					if start = out/head [offset: 0 break]
-					w: string-width? data node/offset node/length cols
-					y: w - 1 / cols + 1
-					offset: y + offset
+					offset: offset + string-lines? data node/offset node/length
 					offset >= 0
 				]
 			]
@@ -476,8 +425,7 @@ terminal: context [
 			][
 				until [
 					if start = out/last [offset: 0 break]
-					w: string-width? data node/offset node/length cols
-					y: w - 1 / cols + 1
+					y: string-lines? data node/offset node/length
 					offset: offset - y
 					if offset >= 0 [
 						start: start % out/max + 1
@@ -491,7 +439,7 @@ terminal: context [
 		]
 
 		out/h-idx: either positive? offset [
-			count-chars data node/offset node/length cols * offset
+			OS-count-chars data node/offset node/length vt/win-w - vt/pad-left * offset
 		][0]
 		vt/top: start
 		vt/top-offset: offset
@@ -608,17 +556,10 @@ terminal: context [
 	update-caret: func [
 		vt [terminal!]
 		/local
-			cols	[integer!]
 			x		[integer!]
 	][
-		cols: vt/cols
-		x: string-width? vt/in 0 vt/cursor cols
-		vt/caret-y: x - 1 / cols + vt/edit-y
-		if positive? x [
-			x: x % cols
-			if zero? x [x: cols]
-		]
-		vt/caret-x: x
+		x: string-lines? vt/in 0 vt/cursor
+		vt/caret-y: x - 1 + vt/edit-y
 		OS-update-caret vt
 	]
 
@@ -706,6 +647,7 @@ terminal: context [
 
 		reset-vt vt
 		OS-init vt
+		platform/gui-print: as-integer :vprint
 	]
 
 	close: func [
@@ -837,7 +779,7 @@ terminal: context [
 		offset: node/offset + out/h-idx
 		len: node/length - out/h-idx
 		while [y > 0][
-			w: string-lines? data offset len cols
+			w: string-lines? data offset len
 			y: y - w
 			if y < 0 [break]
 			head: head % max + 1
@@ -854,10 +796,9 @@ terminal: context [
 		]
 
 		unless zero? y [y: w + y]
-		x: vt/char-w / 2 + x - vt/pad-left / vt/char-w
-		if any [zero? len y > 0 x <> 0][
+		if any [zero? len y > 0 x > 0][
 			x: either zero? len [0][
-				count-chars data offset len cols * y + x
+				OS-count-chars data offset len vt/win-w - vt/pad-left * y + x - vt/pad-left
 			]
 			if head = vt/top [x: out/h-idx + x]
 		]
@@ -1166,7 +1107,7 @@ terminal: context [
 			x	[integer!]
 			y	[integer!]
 	][
-		x: vt/caret-x * vt/char-w
+		x: vt/caret-x
 		y: vt/caret-y * vt/char-h
 		unless vt/s-mode? [
 			cancel-select vt
@@ -1185,7 +1126,7 @@ terminal: context [
 			]
 			default [move-cursor vt key = RS_KEY_LEFT]
 		]
-		x: vt/caret-x * vt/char-w
+		x: vt/caret-x
 		select vt x y no
 		vt/edit-head: vt/out/s-h-idx
 		vt/edit-tail: vt/out/s-t-idx
@@ -1400,7 +1341,10 @@ terminal: context [
 			]
 			cp: string/get-char p unit
 			str: as c-string! :cp
-			w: vt/char-w * char-width? cp
+			n: either cp < 00010000h [1][
+				unicode/cp-to-utf16 cp as byte-ptr! str
+			]
+			w: OS-char-width? str n
 			length: length - 1
 			offset: offset + 1
 			p: p + unit
@@ -1408,9 +1352,6 @@ terminal: context [
 				OS-draw-text null 0 x y win-w - x char-h
 				x: 0
 				y: y + char-h
-			]
-			n: either cp < 00010000h [1][
-				unicode/cp-to-utf16 cp as byte-ptr! str
 			]
 			OS-draw-text str n x y w char-h
 			x: x + w
@@ -1475,8 +1416,7 @@ terminal: context [
 			nlines: node/nlines
 			select?: nlines and 80000000h <> 0
 			either not zero? len [
-				n: string-width? data node/offset node/length cols
-				n: n - 1 / cols + 1
+				n: string-lines? data node/offset node/length
 				data/head: offset
 				case [
 					start = out/s-head [
