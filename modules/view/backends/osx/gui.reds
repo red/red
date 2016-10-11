@@ -454,7 +454,7 @@ change-rate: func [
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			ts: tm/time / 1E3
+			ts: tm/time / 1E9
 		]
 		TYPE_NONE [exit]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
