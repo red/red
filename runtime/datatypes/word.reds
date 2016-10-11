@@ -320,7 +320,7 @@ word: context [
 			type = TYPE_SET_WORD
 			type = TYPE_LIT_WORD
 			type = TYPE_REFINEMENT
-			;type = TYPE_ISSUE							;-- do not equal it to other word types
+			type = TYPE_ISSUE							;-- do not equal it to other word types
 		]
 	]
 	
@@ -338,7 +338,12 @@ word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
 		type: TYPE_OF(arg2)
-		unless any-word? type [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
+		if any [
+			all [type = TYPE_ISSUE TYPE_OF(arg1) <> TYPE_ISSUE]
+			not any-word? type
+		][
+			RETURN_COMPARE_OTHER						;@@ replace by ANY_WORD? when available
+		]
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL [

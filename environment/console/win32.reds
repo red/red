@@ -83,6 +83,14 @@ screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
 
 #import [
 	"kernel32.dll" stdcall [
+		ReadFile:	"ReadFile" [
+			file		[integer!]
+			buffer		[byte-ptr!]
+			bytes		[integer!]
+			read		[int-ptr!]
+			overlapped	[int-ptr!]
+			return:		[integer!]
+		]
 		ReadConsoleInput: "ReadConsoleInputW" [
 			handle			[integer!]
 			arrayOfRecs		[integer!]
@@ -154,7 +162,7 @@ stdin-read: func [
 		read-sz [integer!]
 ][
 	read-sz: 0
-	if zero? simple-io/ReadFile stdin utf-char 1 :read-sz null [return -1]
+	if zero? ReadFile stdin utf-char 1 :read-sz null [return -1]
 
 	c: as-integer utf-char/1
 	case [
@@ -169,7 +177,7 @@ stdin-read: func [
 	while [i < len][
 		if all [
 			len >= (i + 1)
-			zero? simple-io/ReadFile stdin utf-char + i 1 :read-sz null
+			zero? 	ReadFile stdin utf-char + i 1 :read-sz null
 		][
 			return -1
 		]
