@@ -95,7 +95,7 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
-dev-mode?: no
+	;dev-mode?: no
 ]
 Linux-Old [
 	OS:			'Linux
