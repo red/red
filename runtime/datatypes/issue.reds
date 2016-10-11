@@ -102,6 +102,18 @@ issue: context [
 		word/form w buffer arg part - 1
 	]
 	
+	compare: func [
+		arg1	 [red-word!]							;-- first operand
+		arg2	 [red-word!]							;-- second operand
+		op		 [integer!]								;-- type of comparison
+		return:	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "issue/compare"]]
+		
+		if TYPE_OF(arg2) <> TYPE_ISSUE [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
+		word/compare arg1 arg2 op
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_ISSUE
@@ -116,7 +128,7 @@ issue: context [
 			:mold
 			null			;eval-path
 			null			;set-path
-			INHERIT_ACTION	;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

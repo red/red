@@ -52,8 +52,11 @@ libRedRT: context [
 		clear user-funcs
 	]	
 	
-	save-extras: does [
-		write get-path extras-file mold/only extras
+	save-extras: has [file][
+		unless empty? extras [
+			unless encap? [file: join %../ extras-file]
+			write get-path extras-file mold/only extras
+		]
 	]
 	
 	collect-extra: func [name [word!]][
@@ -244,9 +247,9 @@ libRedRT: context [
 		append template mold imports
 		tmpl: load replace/all mold template "[red/" "["
 		
-		base-dir: either encap? [%""][%../]
 		file: get-path include-file
-		write clean-path base-dir/:file tmpl
+		unless encap? [file: join %../ file]
+		write clean-path file tmpl
 		
 		words: to-block extract red/symbols 2
 		remove-each w words [find form w #"~"]
@@ -275,7 +278,8 @@ libRedRT: context [
 		replace/all tmpl "red/red-" "red-"
 
 		file: get-path defs-file
-		write clean-path base-dir/:file tmpl
+		unless encap? [file: join %../ file]
+		write clean-path file tmpl
 	]
 	
 ]
