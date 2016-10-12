@@ -39,6 +39,7 @@ install:
 
 script:
     - rebol2 -qws ${TEST_SUITE}/run-all.r --batch
+    - cat quick-test/quick-test.log
 
 notifications:
   webhooks:

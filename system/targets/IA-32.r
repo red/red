@@ -1876,12 +1876,19 @@ make-profilable make target-class [
 		emit #{89F8}								;-- MOV eax, edi
 	]
 
-	emit-stack-align-prolog: func [args [block!] /local offset][
+	emit-stack-align-prolog: func [args [block!] fspec [block!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
 			offset: 4								;-- account for saved edi
-			if issue? args/1 [args: args/2]
+			if issue? args/1 [
+				all [
+					args/1 = #variadic
+					fspec/3 <> 'cdecl
+					offset: offset + 12				;-- account for extra variadic slots
+				]
+				args: args/2
+			]
 			offset: offset + call-arguments-size? args
 			
 			unless zero? offset: offset // 16 [

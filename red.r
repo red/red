@@ -183,6 +183,17 @@ redc: context [
 		]
 		targets
 	]
+	
+	get-output-path: func [opts [object!] /local path][
+		case [
+			opts/build-basename [
+				path: first split-path opts/build-basename
+				either opts/build-prefix [join opts/build-prefix path][path]
+			]
+			opts/build-prefix [opts/build-prefix]
+			'else			  [%""]
+		]
+	]
 
 	red-system?: func [file [file!] /local ws rs?][
 		ws: charset " ^-^/^M"
@@ -364,10 +375,13 @@ redc: context [
 		quit/return 0
 	]
 	
-	build-libRedRT: func [opts [object!] /local script result file][
+	build-libRedRT: func [opts [object!] /local script result file path][
 		print "Compiling libRedRT..."
 		file: libRedRT/lib-file
+		path: get-output-path opts
+		
 		opts: make opts [
+			build-prefix: path
 			build-basename: file
 			type: 'dll
 			libRedRT?: yes
@@ -375,6 +389,13 @@ redc: context [
 			unicode?: yes
 		]
 		if opts/OS <> 'Windows [opts/PIC?: yes]
+		
+		all [
+			not empty? path: opts/build-prefix
+			slash <> first path
+			not encap?
+			opts/build-prefix: head insert copy path %../
+		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
 			Windows [ [[Needs: View]] ]
@@ -389,6 +410,23 @@ redc: context [
 		result: system-dialect/compile/options/loaded file opts result
 		unless encap? [change-dir %../]
 		show-stats result
+	]
+	
+	needs-libRedRT?: func [opts [object!] /local file path][
+		unless opts/dev-mode? [return no]
+		
+		path: get-output-path opts
+		file: join path %libRedRT
+		libRedRT/root-dir: path
+		
+		not all [
+			exists? join file switch/default opts/OS [
+				Windows [%.dll]
+				MacOSX	[%.dylib]
+			][%.so]
+			exists? join path libRedRT/include-file
+			exists? join path libRedRT/defs-file
+		]
 	]
 	
 	show-stats: func [result][
@@ -534,20 +572,8 @@ redc: context [
 		unless rs?: red-system? src [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			all [
-				opts/dev-mode?
-				not all [
-					any [
-						exists? %libRedRT.dll				;@@ To be improved
-						exists? %libRedRT.so
-						exists? %libRedRT.dylib
-					]
-					exists? libRedRT/include-file
-					exists? libRedRT/defs-file
-				]
-				build-libRedRT opts
-			]
-
+			if needs-libRedRT? opts [build-libRedRT opts]
+			
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]

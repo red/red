@@ -253,5 +253,5 @@ source: function [
 ]
 
 about: function ["Print Red version information"][
-	print ["Red" system/version #"-" system/build]
+	print ["Red" system/version #"-" system/build/date]
 ]
