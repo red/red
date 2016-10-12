@@ -25,7 +25,7 @@ libRedRT: context [
 	root-dir:	  %./
 	
 	get-path: func [file][
-		either all [system/version/4 = 3 root-dir/1 = %.][
+		either all [system/version/4 = 3 root-dir = %./][
 			file
 		][
 			root-dir/:file
@@ -54,8 +54,8 @@ libRedRT: context [
 	
 	save-extras: has [file][
 		unless empty? extras [
-			unless encap? [file: join %../ extras-file]
-			write get-path extras-file mold/only extras
+			file: get-path extras-file
+			write file mold/only extras
 		]
 	]
 	
@@ -248,7 +248,7 @@ libRedRT: context [
 		tmpl: load replace/all mold template "[red/" "["
 		
 		file: get-path include-file
-		unless encap? [file: join %../ file]
+		if all [not encap? slash <> first file][file: join %../ file]
 		write clean-path file tmpl
 		
 		words: to-block extract red/symbols 2
@@ -278,7 +278,7 @@ libRedRT: context [
 		replace/all tmpl "red/red-" "red-"
 
 		file: get-path defs-file
-		unless encap? [file: join %../ file]
+		if all [not encap? slash <> first file][file: join %../ file]
 		write clean-path file tmpl
 	]
 	
