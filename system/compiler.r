@@ -2773,7 +2773,7 @@ system-dialect: make-profilable context [
 					all [spec/2 = 'routine external-call? spec]
 				]
 			]
-			if align? [emitter/target/emit-stack-align-prolog args]
+			if align? [emitter/target/emit-stack-align-prolog args spec]
 			
 			if args/1 <> #custom [
 				type: functions/:name/2
