@@ -26,13 +26,6 @@ Red/System [
 NSApp:					0
 NSAppDelegate:			0
 AppMainMenu:			0
-NSDefaultRunLoopMode:	0
-&_NSConcreteStackBlock: 0
-NSFontAttributeName:	0
-NSParagraphStyleAttributeName:		0
-NSForegroundColorAttributeName:		0
-NSUnderlineStyleAttributeName:		0
-NSStrikethroughStyleAttributeName:	0
 
 nswindow-cnt:	0
 
@@ -252,23 +245,6 @@ init: func [
 		lib		 [integer!]
 		p-int	 [int-ptr!]
 ][
-	lib: red/platform/dlopen "/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" RTLD_LAZY
-	p-int: red/platform/dlsym lib "NSDefaultRunLoopMode"
-	NSDefaultRunLoopMode: p-int/value
-	p-int: red/platform/dlsym lib "NSFontAttributeName"
-	NSFontAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSParagraphStyleAttributeName"
-	NSParagraphStyleAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSForegroundColorAttributeName"
-	NSForegroundColorAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSUnderlineStyleAttributeName"
-	NSUnderlineStyleAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSStrikethroughStyleAttributeName"
-	NSStrikethroughStyleAttributeName: p-int/value
-
-	lib: red/platform/dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
-	&_NSConcreteStackBlock: as-integer red/platform/dlsym lib "_NSConcreteStackBlock"
-
 	init-selectors
 
 	NSApp: objc_msgSend [objc_getClass "NSApplication" sel_getUid "sharedApplication"]

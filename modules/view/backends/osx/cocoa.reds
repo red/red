@@ -364,9 +364,21 @@ tagSIZE: alias struct! [
 			class		[integer!]
 			return:		[integer!]
 		]
+		_NSConcreteStackBlock: "_NSConcreteStackBlock" [integer!]
+	]
+	"/System/Library/Frameworks/AVFoundation.framework/AVFoundation" cdecl [
+		AVMediaTypeVideo: "AVMediaTypeVideo" [integer!]
+		AVVideoCodecKey: "AVVideoCodecKey" [integer!]
+		AVVideoCodecJPEG: "AVVideoCodecJPEG" [integer!]
 	]
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
+		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
+		NSFontAttributeName: "NSFontAttributeName" [integer!]
+		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
+		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
+		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
+		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [

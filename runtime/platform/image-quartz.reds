@@ -12,12 +12,6 @@ Red/System [
 
 OS-image: context [
 
-	kUTTypeJPEG:	0
-	kUTTypeTIFF:	0
-	kUTTypeGIF:		0
-	kUTTypePNG:		0
-	kUTTypeBMP:		0
-
 	NSRect!: alias struct! [
 		x		[float32!]
 		y		[float32!]
@@ -134,20 +128,13 @@ OS-image: context [
 				cf			[integer!]
 			]
 		]
-	]
-
-	init: func [/local lib [integer!] p-int [int-ptr!]][
-		lib: red/platform/dlopen "/System/Library/Frameworks/CoreServices.framework/CoreServices" RTLD_LAZY
-		p-int: red/platform/dlsym lib "kUTTypeJPEG"
-		kUTTypeJPEG: p-int/value
-		p-int: red/platform/dlsym lib "kUTTypeTIFF"
-		kUTTypeTIFF: p-int/value
-		p-int: red/platform/dlsym lib "kUTTypeGIF"
-		kUTTypeGIF: p-int/value
-		p-int: red/platform/dlsym lib "kUTTypePNG"
-		kUTTypePNG: p-int/value
-		p-int: red/platform/dlsym lib "kUTTypeBMP"
-		kUTTypeBMP: p-int/value	
+		"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
+			kUTTypeJPEG: "kUTTypeJPEG" [integer!]
+			kUTTypeTIFF: "kUTTypeTIFF" [integer!]
+			kUTTypeGIF: "kUTTypeGIF" [integer!]
+			kUTTypePNG: "kUTTypePNG" [integer!]
+			kUTTypeBMP: "kUTTypeBMP" [integer!]
+		]
 	]
 
 	make-rect: func [

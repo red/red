@@ -22,12 +22,6 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
-#define OBJC_ALLOC(class)		[objc_msgSend [objc_getClass class red/platform/id-alloc]]
-#define OBJC_INIT(obj)			[obj: objc_msgSend [obj red/platform/id-init]]
-#define OBJC_AUTO_RELEASE(obj)	[obj: objc_msgSend [obj red/platform/id-autorelease]]
-#define OBJC_RELEASE(obj)		[objc_msgSend [obj red/platform/id-release]]
-#define OBJC_DRAIN(obj)			[objc_msgSend [obj red/platform/id-drain]]
-
 platform: context [
 
 	#include %POSIX.reds
@@ -38,36 +32,10 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
-			objc_getClass: "objc_getClass" [
-				class		[c-string!]
-				return:		[integer!]
-			]
-			sel_getUid: "sel_getUid" [
-				name		[c-string!]
-				return:		[integer!]
-			]
-			objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		]
 	]
 
 	page-size: 0
-
-	true-value: 0						;-- Core Foundation: True value
-	id-alloc: 0
-	id-init: 0
-	id-autorelease: 0
-	id-release: 0
-	id-drain: 0
-
-	init-object-c: does [
-		dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
-		true-value: objc_msgSend [objc_getClass "NSNumber" sel_getUid "numberWithBool:" 1]
-		id-alloc: sel_getUid "alloc"
-		id-init:  sel_getUid "init"
-		id-autorelease: sel_getUid "autorelease"
-		id-release: sel_getUid "release"
-		id-drain: sel_getUid "drain"
-	]
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -126,6 +94,5 @@ platform: context [
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
-		init-object-c
 	]
 ]

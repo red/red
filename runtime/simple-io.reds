@@ -1643,6 +1643,7 @@ simple-io: context [
 					]
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1807,8 +1808,8 @@ simple-io: context [
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! platform/objc_msgSend [keys/i platform/sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
-					if v = null [v: as c-string! platform/objc_msgSend [vals/i platform/sel_getUid "UTF8String"]]
+					if k = null [k: as c-string! objc_msgSend [keys/i sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
+					if v = null [v: as c-string! objc_msgSend [vals/i sel_getUid "UTF8String"]]
 
 					w: as red-value! word/push* symbol/make k
 					res: either zero? strncmp k "Set-Cookie" 10 [
@@ -1907,7 +1908,7 @@ simple-io: context [
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [return none-value]
 
-				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
+				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") kCFBooleanTrue
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
