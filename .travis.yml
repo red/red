@@ -4,6 +4,14 @@
 # (http://docs.travis-ci.com/).
 #
 
+os:
+  - linux
+  - osx
+  
+matrix:
+  allow_failures:
+    - os: linux
+  
 # Only use continuous integration on the master branch
 branches: 
     only: 
