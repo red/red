@@ -18,6 +18,8 @@ Red/System [
 	g_signal_connect_data instance signal as-integer handler data null 0
 ]
 
+#define G_ASCII_DTOSTR_BUF_SIZE	39
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -84,6 +86,9 @@ tagSIZE: alias struct! [
 		gdk_screen_height: "gdk_screen_height" [
 			return:		[integer!]
 		]
+		gdk_screen_get_default: "gdk_screen_get_default" [
+			return:		[handle!]
+		]
 	;; ]
 	;; LIBGLIB-file cdecl [
 		g_quark_from_string: "g_quark_from_string" [
@@ -108,6 +113,19 @@ tagSIZE: alias struct! [
 		g_list_length: "g_list_length" [
 			list		[int-ptr!]
 			return:		[integer!]
+		]
+		g_ascii_dtostr: "g_ascii_dtostr" [
+			buffer		[c-string!]
+			buf_len		[integer!]
+			d			[float!]
+			return:		[c-string!]
+		]
+		g_strdup_printf: "g_strdup_printf" [
+			[variadic]
+			return:		[c-string!]
+		]
+		g_free: "g_free" [
+			pointer		[handle!]
 		]
 	;; ]
 	;; LIBGIO-file cdecl [
@@ -248,6 +266,39 @@ tagSIZE: alias struct! [
 		gtk_range_get_value: "gtk_range_get_value" [
 			range		[handle!]
 			return:		[float!]
+		]
+		gtk_progress_bar_new: "gtk_progress_bar_new" [
+			return:		[handle!]
+		]
+		gtk_text_view_new: "gtk_text_view_new" [
+			return:		[handle!]
+		]
+		gtk_css_provider_new: "gtk_css_provider_new" [
+			return:		[handle!]
+		]
+		gtk_css_provider_load_from_data: "gtk_css_provider_load_from_data" [
+			provider	[handle!]
+			data		[c-string!]
+			length		[integer!]
+			error		[handle!]
+		]
+		gtk_style_context_add_provider: "gtk_style_context_add_provider" [
+			context		[handle!]
+			provider	[handle!]
+			priority	[integer!]
+		]
+		gtk_style_context_add_provider_for_screen: "gtk_style_context_add_provider_for_screen" [
+			screen		[handle!]
+			provider	[handle!]
+			priority	[integer!]
+		]
+		gtk_style_context_add_class: "gtk_style_context_add_class" [
+			context		[handle!]
+			class		[c-string!]
+		]
+		gtk_widget_get_style_context: "gtk_widget_get_style_context" [
+			widget		[handle!]
+			return:		[handle!]
 		]
 	;; LIBCAIRO-file cdecl [
 		cairo_line_to: "cairo_line_to" [
