@@ -412,18 +412,27 @@ redc: context [
 		show-stats result
 	]
 	
-	needs-libRedRT?: func [opts [object!] /local file path][
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date][
 		unless opts/dev-mode? [return no]
 		
 		path: get-output-path opts
 		file: join path %libRedRT
 		libRedRT/root-dir: path
 		
+		lib?: exists? lib: join file switch/default opts/OS [
+			Windows [%.dll]
+			MacOSX	[%.dylib]
+		][%.so]
+		
+		;if all [lib? load-lib? encap?][
+		;	lib: load/library lib
+		;	get-date: make routine! [return: [string!]] lib "get-build-date"
+		;	if build-date <> get-date [lib?: no]		;-- force a rebuild
+		;	free lib
+		;]
+		
 		not all [
-			exists? join file switch/default opts/OS [
-				Windows [%.dll]
-				MacOSX	[%.dylib]
-			][%.so]
+			lib?
 			exists? join path libRedRT/include-file
 			exists? join path libRedRT/defs-file
 		]

@@ -1,4 +1,5 @@
 [
+	red/get-build-date
 	red/copy-cell
 	;red/get-root
 	red/get-root-node2
