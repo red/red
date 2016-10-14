@@ -9,6 +9,49 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 context [
+	exec:	none										;-- object that captures preproc symbols
+	macros: make block! 10
+	syms:	make block! 20
+	
+	quit-on-error: does [
+		if system/options/args [quit/return 1]
+		halt
+	]
+	
+	do-code: func [code [block!] /local p res w][
+		clear syms
+		parse code/2 [any [
+			p: set-word! (unless in exec p/1 [append syms p/1])
+			| skip
+		]]
+		unless empty? syms [
+			append syms none
+			exec: make exec compose [(syms) (macros)]
+		]
+		if error? set 'res try [do bind code/2 exec][
+			prin "*** #DO Evaluation Error^/"
+			either rebol [
+				res: disarm res
+				res/where: rejoin ["#do " copy/part mold code/2 100]
+				foreach w [arg1 arg2 arg3][
+					set w either unset? get/any in res w [none][
+						get/any in res w
+					]
+				]
+				print [
+					"***" system/error/(res/type)/type #":"
+					reduce system/error/(res/type)/(res/id) newline
+					"*** Where:" mold/flat res/where newline
+					"*** Near: " mold/flat res/near newline
+				]
+			][
+				res/where: rejoin ["#do " mold/part code/2 100]
+				print form :res
+			]
+			quit-on-error
+		]
+		:res
+	]
 
 	check-condition: func [job [object!] type [word!] expr [block!]][
 		if any [
@@ -37,6 +80,9 @@ context [
 		code [block!] job [object!]
 		/local rule s e name op value then else cases body
 	][
+		exec: context []
+		clear macros
+		
 		parse code rule: [
 			any [
 				s: #include (
@@ -70,6 +116,7 @@ context [
 						remove/part s e
 					]
 				) :s
+				| s: #do block! e: (change/part s do-code s e)
 				| pos: [block! | paren!] :pos into rule
 				| skip
 			]
