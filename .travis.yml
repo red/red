@@ -4,6 +4,9 @@
 # (http://docs.travis-ci.com/).
 #
 
+sudo: required
+dist: trusty
+
 os:
   - linux
   - osx
