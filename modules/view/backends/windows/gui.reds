@@ -43,6 +43,7 @@ Red/System [
 #include %text-list.reds
 #include %button.reds
 #include %draw.reds
+#include %comdlgs.reds
 
 exit-loop:		0
 process-id:		0

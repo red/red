@@ -732,6 +732,34 @@ request-font: function [
 	system/view/platform/request-font make font! [] mono
 ]
 
+request-file: function [
+	"Asks user to select a file and returns full file path (or block of paths)"
+	/title	"Window title"
+		text [string!]
+	/file	"Default file name or directory"
+		name [string! file!]
+	/filter	"Block of filters (filter-name filter)"
+		list [block!]
+	/save	"File save mode"
+	/multi	"Allows multiple file selection, returned as a block"
+][
+	system/view/platform/request-file text name list save multi
+]
+
+request-dir: function [
+	"Asks user to select a directory and returns full directory path (or block of paths)"
+	/title	"Window title"
+		text [string!]
+	/dir	"Set starting directory"
+		name [string! file!]
+	/filter	"TBD: Block of filters (filter-name filter)"
+		list [block!]
+	/keep	"Keep previous directory path"
+	/multi	"TBD: Allows multiple file selection, returned as a block"
+][
+	system/view/platform/request-dir text name list keep multi
+]
+	
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
