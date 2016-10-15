@@ -258,5 +258,11 @@ red: context [
 		]
 	]
 	
-	#if type = 'dll [init]
+	#if type = 'dll [
+		boot: does [
+			***-boot-rs
+			red/init
+			***-main
+		]
+	]
 ]

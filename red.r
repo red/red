@@ -105,10 +105,11 @@ redc: context [
 				win-call/output/show cmd buf			;-- not using /show would freeze CALL
 			]
 			parse/all buf [[thru "[" | thru "Version" | thru "ver" | thru "v" | thru "indows"] to #"." pos:]
-    			win-version: any [
-        			attempt [load copy/part back remove pos 2]
-        			0
-    			]
+			
+			win-version: any [
+				attempt [load copy/part back remove pos 2]
+				0
+			]
 		]
 	]
 

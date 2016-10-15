@@ -1,4 +1,5 @@
 [
+	red/boot
 	red/get-build-date
 	red/copy-cell
 	;red/get-root

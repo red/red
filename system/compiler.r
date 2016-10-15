@@ -3389,7 +3389,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script][
+	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script ext][
 		script: either encap? [
 			set-cache-base %system/runtime/
 			%common.reds
@@ -3399,6 +3399,13 @@ system-dialect: make-profilable context [
  		compiler/run/runtime job loader/process/own script script
  		
  		if red? [
+			if all [job/dev-mode? job/type = 'exe][
+				ext: switch/default job/OS [Windows [%.dll] MacOSX [%.dylib]][%.so]
+				compiler/process-import compose [
+					(join "libRedRT" ext) stdcall [__red-boot: "red/boot" []]
+				]
+				compiler/comp-call '__red-boot []
+			]
 			if payload [								;-- Redbin boot data handling
 				emitter/target/emit-load-literal [binary!] payload
 				emitter/target/emit-move-path-alt
