@@ -637,7 +637,7 @@ context [
 	
 	build-section-reloc: func [
 		job [object!] name [word!] refs [block!]
-		/local _4K block buffer base type offset header open-block close-block
+		/local _4K block buffer base type offset factor header open-block close-block
 	][
 		_4K: 4096
 		buffer: make binary! _4K
@@ -657,12 +657,13 @@ context [
 		do open-block
 		foreach offset refs [
 			offset: offset - 1
-			if offset - block > _4K [
+			if offset - block >= _4K [
 				pad4 buffer
 				do close-block
 				do open-block
-				base: base + _4K
-				block: block + _4K
+				factor: offset - block / _4K
+				base: base + factor: (_4K * to integer! factor)
+				block: block + factor
 			]
 			append buffer to-bin16 (offset - block) or type
 		]
