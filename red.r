@@ -425,12 +425,12 @@ redc: context [
 			MacOSX	[%.dylib]
 		][%.so]
 		
-		;if all [lib? load-lib? encap?][
-		;	lib: load/library lib
-		;	get-date: make routine! [return: [string!]] lib "get-build-date"
-		;	if build-date <> get-date [lib?: no]		;-- force a rebuild
-		;	free lib
-		;]
+		if all [lib? load-lib?][
+			lib: load/library lib
+			get-date: make routine! [return: [string!]] lib "red/get-build-date"
+			print ["...using libRedRT built on" get-date]
+			free lib
+		]
 		
 		not all [
 			lib?
