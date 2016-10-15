@@ -1678,7 +1678,7 @@ system-dialect: make-profilable context [
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
 				#user-code [user-code?: not user-code? pc: next pc]
-				#build-date[change pc mold now pc: next pc]
+				#build-date[change pc mold now]
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
