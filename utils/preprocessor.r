@@ -8,6 +8,8 @@ REBOL [
 ]
 Red []													;-- make it usable by Red too.
 
+unless value? 'disarm [disarm: none]
+
 context [
 	exec:	none										;-- object that captures preproc symbols
 	macros: make block! 10
