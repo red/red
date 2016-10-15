@@ -2011,42 +2011,6 @@ natives: context [
 		stack/set-last as red-value! out
 	]
 
-	request-file*: func [
-		check?  [logic!]
-		title	[integer!]
-		file	[integer!]
-		filter	[integer!]
-		save?	[integer!]
-		multi?	[integer!]
-	][
-		#typecheck [request-file title file filter save? multi?]
-		
-		stack/set-last simple-io/request-file 
-			as red-string! stack/arguments + title
-			stack/arguments + file
-			as red-block! stack/arguments + filter
-			save? <> -1
-			multi? <> -1
-	]
-
-	request-dir*: func [
-		check?  [logic!]
-		title	[integer!]
-		dir		[integer!]
-		filter	[integer!]
-		keep?	[integer!]
-		multi?	[integer!]
-	][
-		#typecheck [request-dir title dir filter keep? multi?]
-		
-		stack/set-last simple-io/request-dir 
-			as red-string! stack/arguments + title
-			stack/arguments + dir
-			as red-block! stack/arguments + filter
-			keep? <> -1
-			multi? <> -1
-	]
-
 	wait*: func [
 		check?	[logic!]
 		all?	[integer!]
@@ -2843,9 +2807,7 @@ natives: context [
 			:extend*
 			:debase*
 			:to-local-file*
-			:request-file*
 			:wait*
-			:request-dir*
 			:checksum*
 			:unset*
 			:new-line*

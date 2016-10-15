@@ -451,11 +451,30 @@ redc: context [
 		]
 		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
+	
+	do-clear: func [args [block!] /local path file][
+		either empty? args [path: %""][
+			path: either args/1/1 = #"%" [
+				attempt [load args/1]
+			][
+				attempt [to-rebol-file args/1]
+			]
+			unless all [path exists? path][
+				fail "***Clear command error: invalid path"
+			]
+		]
+		foreach ext [%.dll %.dylib %.so][
+			if exists? file: rejoin [path libRedRT/lib-file ext][delete file]
+		]
+		foreach file [include-file defs-file extras-file][
+			if exists? file: join path libRedRT/:file [delete file]
+		]
+	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui?
+		mode target? gui? cmd
 	][
 		args: any [
 			all [args parse args none]
@@ -468,6 +487,12 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
+	
+		if cmd: select [
+			"clear" do-clear
+		] first args [
+			return reduce [none reduce [cmd next args]]
+		]
 
 		parse/case args [
 			any [
@@ -614,6 +639,7 @@ redc: context [
 
 	main: func [/with cmd [string!] /local src opts build-dir prefix result][
 		set [src opts] parse-options cmd
+		unless src [do opts exit]						;-- run named command and terminates
 
 		rs?: red-system? src
 

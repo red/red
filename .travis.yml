@@ -4,6 +4,9 @@
 # (http://docs.travis-ci.com/).
 #
 
+sudo: required
+dist: trusty
+
 os:
   - linux
   - osx
@@ -34,6 +37,7 @@ env:
     - TEST_SUITE=system/tests
 
 before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo dpkg --add-architecture i386; fi
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update ; fi
 
 install:

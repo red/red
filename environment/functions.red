@@ -622,6 +622,7 @@ list-dir: function [
 		]
 		prin lf
 	]
+	()
 ]
 
 make-dir: function [
