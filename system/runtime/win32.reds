@@ -233,11 +233,11 @@ win32-startup-ctx: context [
 	][
 		switch fdwReason [
 			DLL_PROCESS_ATTACH [
-				;#if red-pass? = no [				;-- only for pure R/S DLLs
-				;	***-boot-rs
-				;	on-load hinstDLL
-				;	***-main
-				;]
+				#if red-pass? = no [				;-- only for pure R/S DLLs
+					***-boot-rs
+					on-load hinstDLL
+					***-main
+				]
 			]
 			DLL_THREAD_ATTACH  [on-new-thread  hinstDLL]
 			DLL_THREAD_DETACH  [on-exit-thread hinstDLL]
