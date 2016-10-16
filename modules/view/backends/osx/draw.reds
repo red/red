@@ -628,8 +628,12 @@ OS-draw-arc: func [
 			CGContextAddArc ctx cx cy rad-x angle-begin angle-end 0
 		]
 	]
-	if closed? [CGContextClosePath ctx]
-	do-draw-path dc
+	either closed? [
+		CGContextClosePath ctx
+		do-draw-path dc
+	][
+		CGContextStrokePath ctx
+	]
 ]
 
 OS-draw-curve: func [
