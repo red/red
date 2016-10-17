@@ -488,9 +488,12 @@ redc: context [
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
 	
-		if cmd: select [
-			"clear" do-clear
-		] first args [
+		if all [
+			not empty? args
+			cmd: select [
+				"clear" do-clear
+			] first args
+		][
 			return reduce [none reduce [cmd next args]]
 		]
 
