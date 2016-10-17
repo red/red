@@ -3617,13 +3617,13 @@ system-dialect: make-profilable context [
 						export [- - (compiler/exports)]
 					]
 				]
-				unless empty? resources [
-					if job/OS = 'Windows [
-						if icon: find resources 'icon [
-							insert skip icon 2 reduce ['group-icon icon/2]
-						]
-						append resources reduce ['manifest none]
+				if job/OS = 'Windows [
+					if icon: find resources 'icon [
+						insert skip icon 2 reduce ['group-icon icon/2]
 					]
+					append resources reduce ['manifest none]		;-- always use manifest file in DLL and EXE
+				]
+				unless empty? resources [
 					append job/sections compose/deep/only [
 						rsrc   [- - (resources)]
 					]
