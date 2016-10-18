@@ -128,7 +128,7 @@ context [
 						]
 					]
 				) :s
-				| s: #do block! e: (probe s/1 if active? [change/part s do-code s e])
+				| s: #do block! e: (if active? [change/part s do-code s e])
 				| s: #process ['on (active?: yes) | 'off (active?: no)] e: (remove/part s e)
 				| pos: [block! | paren!] :pos into rule
 				| skip
