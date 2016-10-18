@@ -956,9 +956,39 @@ OS-matrix-set: func [
 ]
 
 OS-set-clip: func [
+	dc		[draw-ctx!]
 	upper	[red-pair!]
 	lower	[red-pair!]
+	/local
+		ctx [handle!]
+		t	[integer!]
+		x1	[integer!]
+		x2	[integer!]
+		y1	[integer!]
+		y2	[integer!]
+		p4	[integer!]
+		p3	[integer!]
+		p2	[integer!]
+		p1	[integer!]
+		rc	[NSRect!]
 ][
+	ctx: dc/raw
+	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+
+	p1: 0
+	rc: as NSRect! :p1
+	x1: upper/x
+	y1: upper/y
+	x2: lower/x
+	y2: lower/y
+	rc/x: as float32! x1
+	rc/y: as float32! y1
+	rc/w: as float32! x2 - x1
+	rc/h: as float32! y2 - y1
+	CGContextBeginPath ctx
+	CGContextAddRect ctx rc/x rc/y rc/w rc/h
+	CGContextClip ctx
 ]
 
 ;-- shape sub command --

@@ -561,11 +561,11 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC
-									OS-set-clip as red-pair! start as red-pair! cmd - 1
+									OS-set-clip DC as red-pair! start as red-pair! cmd - 1
 									parse-draw as red-block! cmd DC catch?
 									OS-matrix-pop DC
 								][
-									OS-set-clip as red-pair! start as red-pair! cmd
+									OS-set-clip DC as red-pair! start as red-pair! cmd
 								]
 							]
 							sym = shape [

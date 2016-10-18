@@ -499,6 +499,9 @@ tagSIZE: alias struct! [
 		CGContextClosePath: "CGContextClosePath" [
 			c			[handle!]
 		]
+		CGContextClip: "CGContextClip" [
+			c			[handle!]
+		]
 		CGContextMoveToPoint: "CGContextMoveToPoint" [
 			c			[handle!]
 			x			[float32!]
@@ -546,6 +549,13 @@ tagSIZE: alias struct! [
 			x2			[float32!]
 			y2			[float32!]
 			radius		[float32!]
+		]
+		CGContextAddRect: "CGContextAddRect" [
+			c			[handle!]
+			x			[float32!]
+			y			[float32!]
+			width		[float32!]
+			height		[float32!]
 		]
 		CGContextStrokePath: "CGContextStrokePath" [
 			c			[handle!]
