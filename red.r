@@ -487,11 +487,13 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
-	
-		if cmd: select [
-			"clear" do-clear
-		] first args [
-			return reduce [none reduce [cmd next args]]
+
+		unless empty? cmd [
+			if cmd: select [
+				"clear" do-clear
+			] first args [
+				return reduce [none reduce [cmd next args]]
+			]
 		]
 
 		parse/case args [
