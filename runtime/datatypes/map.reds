@@ -130,7 +130,7 @@ map: context [
 					key <> null
 					TYPE_OF(val) <> TYPE_NONE
 				][
-					_hashtable/delete table key
+					_hashtable/delete  table key
 				]
 			][
 				either key = null [
@@ -615,35 +615,43 @@ map: context [
 	;--- Misc actions ---
 
 	set-many: func [
-		map		[red-hash!]
 		blk		[red-block!]
+		map		[red-hash!]
+		size	[integer!]
 		/local
-			s		[series!]
-			slot	[red-value!]
-			value	[red-value!]
-			end		[red-value!]
-			s-tail	[red-value!]
+			w		[red-word!]
+			k		[red-value!]
+			v		[red-value!]
+			i		[integer!]
+			type	[integer!]
 	][
-		s: GET_BUFFER(blk)
-		value: s/offset
-		end: s/tail
-		s: GET_BUFFER(map)
-		slot: s/offset + 1
-		s-tail: s/tail
-		while [slot < s-tail][
-			if TYPE_OF(slot) <> TYPE_NONE [
-				either value < end [
-					either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
-						_hashtable/delete map/table slot - 1
+		i: 1
+		k: block/rs-head as red-block! map
+		w: as red-word! block/rs-head blk
+		while [i <= size][
+			either i % 2 = 0 [
+				_context/set w k
+			][
+				v: k + 1
+				unless TYPE_OF(v) = TYPE_NONE [
+					type: TYPE_OF(w)
+					unless any [
+						type = TYPE_WORD
+						type = TYPE_GET_WORD
+						type = TYPE_SET_WORD
+						type = TYPE_LIT_WORD
 					][
-						copy-cell value slot
+						fire [TO_ERROR(script invalid-arg) w]
 					]
-				][
-					_hashtable/delete map/table slot - 1
+					type: k/header
+					k/header: TYPE_WORD
+					_context/set w k
+					k/header: type
 				]
 			]
-			value: value + 1
-			slot: slot + 2
+			k: k + 1
+			w: w + 1
+			i: i + 1
 		]
 	]
 

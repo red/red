@@ -620,14 +620,6 @@ natives: context [
 				object/set-many as red-object! w value only? some?
 				stack/set-last value
 			]
-			TYPE_MAP [
-				type: TYPE_OF(value)
-				unless any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH][
-					fire [TO_ERROR(script invalid-type) datatype/push type]
-				]
-				map/set-many as red-hash! w as red-block! value only? some?
-				stack/set-last value
-			]
 			TYPE_BLOCK [
 				blk: as red-block! w
 				set-many blk value block/rs-length? blk only? some?
@@ -2423,6 +2415,8 @@ natives: context [
 		s: GET_BUFFER(series)
 		either any [									;@@ replace with any-block?
 			type = TYPE_BLOCK
+			type = TYPE_MAP
+			type = TYPE_HASH
 			type = TYPE_PAREN
 			type = TYPE_PATH
 			type = TYPE_GET_PATH
