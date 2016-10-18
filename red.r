@@ -488,7 +488,7 @@ redc: context [
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
 
-		unless empty? cmd [
+		unless empty? args [
 			if cmd: select [
 				"clear" do-clear
 			] first args [
