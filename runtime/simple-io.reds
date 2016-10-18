@@ -776,16 +776,20 @@ simple-io: context [
 			lineend [c-string!]
 			lf-sz	[integer!]
 	][
-		unless unicode? [		;-- only command line args need to be checked
-			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
-			len: length? filename
-			if filename/len = #"^"" [filename/len: null-byte]
+		either null? filename [
+			file: stdout
+		][
+			unless unicode? [		;-- only command line args need to be checked
+				if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
+				len: length? filename
+				if filename/len = #"^"" [filename/len: null-byte]
+			]
+			mode: RIO_WRITE
+			if append? [mode: mode or RIO_APPEND]
+			if offset >= 0 [mode: mode or RIO_SEEK]
+			file: open-file filename mode unicode?
+			if file < 0 [return file]
 		]
-		mode: RIO_WRITE
-		if append? [mode: mode or RIO_APPEND]
-		if offset >= 0 [mode: mode or RIO_SEEK]
-		file: open-file filename mode unicode?
-		if file < 0 [return file]
 
 		if offset > 0 [seek-file file offset]
 		#either OS = 'Windows [
@@ -810,7 +814,7 @@ simple-io: context [
 		][
 			ret: write-data file data size
 		]
-		close-file file
+		if filename <> null [close-file file]
 		ret
 	]
 
@@ -1055,6 +1059,7 @@ simple-io: context [
 			type	[integer!]
 			offset	[integer!]
 			buffer	[red-string!]
+			name	[c-string!]
 	][
 		offset: -1
 		limit: -1
@@ -1081,7 +1086,8 @@ simple-io: context [
 			buf: value-to-buffer data limit :len binary? buffer
 		]
 
-		type: write-file file/to-OS-path filename buf len offset binary? append? lines? yes
+		name: either null? filename [null][file/to-OS-path filename]
+		type: write-file name buf len offset binary? append? lines? yes
 		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type
 	]

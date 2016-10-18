@@ -85,12 +85,13 @@ red-complete-file: func [
 	result
 ]
 
-default-input-completer: func [
-	str  [string!]
+red-complete-input: func [
+	str		 [string!]
+	console? [logic!]
 	/local word ptr result sys-word delim? len insert? start end delimiters d w
 ][
 	result: make block! 4
-	delimiters: [#" " #"[" #"(" #":" #"'" #"{"]
+	delimiters: [#"^-" #" " #"[" #"(" #":" #"'" #"{"]
 	delim?: no
 	insert?: not tail? str
 	len: (index? str) - 1
@@ -108,16 +109,19 @@ default-input-completer: func [
 				#"%" = word/1
 				1 < length? word
 			][
-				result: red-complete-file word
+				append result 'file
+				append result red-complete-file word
 			]
 			all [
 				#"/" <> word/1
 				ptr: find word #"/"
 				#" " <> pick ptr -1
 			][
-				result: red-complete-path word
+				append result 'path
+				append result red-complete-path word
 			]
 			true [
+				append result 'word
 				foreach w words-of system/words [
 					if value? w [
 						sys-word: mold w
@@ -126,10 +130,12 @@ default-input-completer: func [
 						]
 					]
 				]
+				if ptr: find result word [swap next result ptr]
 			]
 		]
 	]
-	if 1 = length? result [
+	if console? [result: next result]
+	if all [console? 1 = length? result][
 		either word = result/1 [
 			clear result
 		][
