@@ -14,6 +14,7 @@ context [
 	exec:	none										;-- object that captures preproc symbols
 	macros: make block! 10
 	syms:	make block! 20
+	active?: yes
 	
 	quit-on-error: does [
 		if system/options/args [quit/return 1]
@@ -85,44 +86,55 @@ context [
 		exec: context []
 		clear macros
 		
+		#process off
 		parse code rule: [
 			any [
 				s: #include (
-					if all [not Rebol system/state/interpreted?][s/1: 'do]
+					if all [active? not Rebol system/state/interpreted?][s/1: 'do]
 				)
 				| s: #if set name word! set op skip set value any-type! set then block! e: (
-					either check-condition job 'if reduce [name op get/any 'value][
-						change/part s then e
-					][
-						remove/part s e
+					if active? [
+						either check-condition job 'if reduce [name op get/any 'value][
+							change/part s then e
+						][
+							remove/part s e
+						]
 					]
 				) :s
 				| s: #either set name word! set op skip set value any-type! set then block! set else block! e: (
-					either check-condition job 'either reduce [name op get/any 'value][
-						change/part s then e
-					][
-						change/part s else e
+					if active? [
+						either check-condition job 'either reduce [name op get/any 'value][
+							change/part s then e
+						][
+							change/part s else e
+						]
 					]
 				) :s
 				| s: #switch set name word! set cases block! e: (
-					either body: check-condition job 'switch reduce [name cases][
-						change/part s body e
-					][
-						remove/part s e
+					if active? [
+						either body: check-condition job 'switch reduce [name cases][
+							change/part s body e
+						][
+							remove/part s e
+						]
 					]
 				) :s
 				| s: #case set cases block! e: (
-					either body: select reduce bind cases job true [
-						change/part s body e
-					][
-						remove/part s e
+					if active? [
+						either body: select reduce bind cases job true [
+							change/part s body e
+						][
+							remove/part s e
+						]
 					]
 				) :s
-				| s: #do block! e: (change/part s do-code s e)
+				| s: #do block! e: (probe s/1 if active? [change/part s do-code s e])
+				| s: #process ['on (active?: yes) | 'off (active?: no)] e: (remove/part s e)
 				| pos: [block! | paren!] :pos into rule
 				| skip
 			]
 		]
+		#process on
 		code
 	]
 	
