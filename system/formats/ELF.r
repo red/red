@@ -283,7 +283,7 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size
+			data-size data-reloc
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list
 	] [
@@ -302,6 +302,7 @@ context [
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
+		data-reloc: collect-data-reloc job
 
 		structure: copy default-structure
 
@@ -364,6 +365,7 @@ context [
 			".rel.text"		size [elf-relocation	length? imports]
 			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? imports]
+			".rel.data"		size [elf-relocation	(length? data-reloc) / 2]
 			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
@@ -439,6 +441,9 @@ context [
 
 		set-data ".data.rel.ro"
 			[build-relro imports]
+			
+		set-data ".rel.data"
+			[build-reldata job/target data-reloc get-address ".data"]
 
 		set-data ".dynamic" [
 			build-dynamic
@@ -665,6 +670,25 @@ context [
 		]
 		result
 	]
+	
+	build-reldata: func [
+		target-arch [word!]
+		relocs [block!]
+		data-address [integer!]
+		/local rel-type result entry len
+	][
+		result: make block! (length? relocs) / 2
+		
+		foreach [name spec] relocs [
+			entry: make-struct elf-relocation none
+			entry/offset: spec/2
+			entry/info-sym: defs/stn-undef
+			entry/info-type: 0
+			entry/info-addend: 0
+			append result entry
+		]
+		result
+	]
 
 	build-relro: func [symbols [block!]] [
 		;; @@ Use NOBITS section (filesize 0, memsize n) instead?
@@ -813,6 +837,26 @@ context [
 	]
 
 	;; -- Job helpers --
+	
+	collect-data-reloc: func [job [object!] /local list syms name spec][
+		list: make block! 100
+		syms: job/symbols
+		
+		while [not tail? syms][
+			name: syms/1								;-- set [...] does not behave properly on hash!
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][		
+				repend list [name spec]
+			]		
+		]
+		list
+	]
 
 	collect-import-names: func [job [object!] /local libraries symbols] [
 		libraries: copy []
