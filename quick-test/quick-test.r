@@ -670,7 +670,7 @@ qt: make object! [
   
   setup-temp-files: func [
   	  /local
-  	  	f
+  	  	f file
   ][
   	f: to string! now/time/precise
   	f: replace/all f ":" ""
@@ -678,6 +678,7 @@ qt: make object! [
     comp-echo: join runnable-dir ["comp-echo" f ".txt"]
   	comp-r: join runnable-dir ["comp" f ".r"]
   	test-src-file: join runnable-dir ["qt-test-comp" f ".red"]
+  	if exists? file: runnable-dir/libRedRT-defs.r [delete file]
   ]
   
   delete-temp-files: does [
