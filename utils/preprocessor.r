@@ -21,9 +21,9 @@ context [
 		halt
 	]
 	
-	do-code: func [code [block!] /local p res w][
+	do-code: func [code [block!] cmd [issue!] /local p res w][
 		clear syms
-		parse code/2 [any [
+		parse code [any [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
@@ -31,11 +31,11 @@ context [
 			append syms none
 			exec: make exec compose [(syms) (macros)]
 		]
-		if error? set 'res try [do bind code/2 exec][
-			prin "*** #DO Evaluation Error^/"
+		if error? set 'res try bind code exec [
+			prin ["***" uppercase mold cmd "Evaluation Error^/"]
 			either rebol [
 				res: disarm res
-				res/where: rejoin ["#do " copy/part mold code/2 100]
+				res/where: rejoin [mold cmd #" " copy/part mold code 100]
 				foreach w [arg1 arg2 arg3][
 					set w either unset? get/any in res w [none][
 						get/any in res w
@@ -48,88 +48,115 @@ context [
 					"*** Near: " mold/flat res/near newline
 				]
 			][
-				res/where: rejoin ["#do " mold/part code/2 100]
+				res/where: rejoin [mold cmd #" " mold/part code 100]
 				print form :res
 			]
 			quit-on-error
 		]
 		:res
 	]
-
-	check-condition: func [job [object!] type [word!] expr [block!]][
-		if any [
-			not any [word? expr/1 lit-word? expr/1]
-			not in job expr/1
-			all [type <> 'switch not find [= <> < > <= >= contains] expr/2]
-		][
-			print rejoin ["invalid #" type " condition"]
-		]
-		either type = 'switch [
+	
+	count-args: func [spec [block!] /local total][
+		total: 0
+		parse spec [
 			any [
-				select expr/2 job/(expr/1)
-				select expr/2 #default
+				[word! | lit-word! | get-word!] (total: total + 1)
+				| refinement! (return total)
 			]
-		][
-			expr: either expr/2 = 'contains [
-				compose/deep [all [(expr/1) find (expr/1) (expr/3)]]
-			][
-				copy/part expr 3
-			]
-			do bind expr job
 		]
+		total
+	]
+	
+	func-arity?: func [spec [block!] /with path [path!] /local arity pos][
+		arity: count-args spec
+		if path [
+			foreach word next path	[
+				unless pos: find/tail spec to refinement! word [
+					;throw-error
+					print "error!"
+				]
+				arity: arity + count-args pos
+			]
+		]
+		arity
+	]
+	
+	fetch-next: func [code [block!] /local base arity value][
+		base: code
+		arity: 1
+		
+		while [arity > 0][
+			arity: arity + either all [
+				not tail? next code
+				word? value: code/2
+				op? get/any value
+			][
+				code: next code
+				1
+			][
+				either all [
+					find [word! path!] type? value: code/1
+					value: either word? value [value][first value]
+					any-function? get/any value
+				][
+					func-arity? first get value
+				][0]
+			]
+			code: next code
+			arity: arity - 1
+		]
+		code
+	]
+	
+	eval: func [code [block!] cmd [issue!] /local after][
+		expr: copy/part code after: fetch-next code
+		expr: do-code expr cmd
+		reduce [expr after]
 	]
 	
 	expand: func [
 		code [block!] job [object!]
-		/local rule s e name op value then else cases body
+		/local rule s e name cond expr value then else cases body
 	][
-		exec: context []
+		exec: context [config: job]
 		clear macros
 		
 		#process off
 		parse code rule: [
 			any [
-				s: #include (
+				'routine 2 skip							;-- avoid overlapping with R/S preprocessor
+				| #system skip
+				| #system-global skip
+				
+				| s: #include (
 					if all [active? not Rebol system/state/interpreted?][s/1: 'do]
 				)
-				| s: #if set name word! set op skip set value any-type! set then block! e: (
-					if active? [
-						either check-condition job 'if reduce [name op get/any 'value][
-							change/part s then e
-						][
-							remove/part s e
-						]
-					]
+				| s: #if (set [cond e] eval next s s/1) :e set then block! e: (
+					if active? [either cond [change/part s then e][remove/part s e]]
 				) :s
-				| s: #either set name word! set op skip set value any-type! set then block! set else block! e: (
-					if active? [
-						either check-condition job 'either reduce [name op get/any 'value][
-							change/part s then e
-						][
-							change/part s else e
-						]
-					]
+				| s: #either (set [cond e] eval next s s/1) :e set then block! set else block! e: (
+					if active? [either cond [change/part s then e][change/part s else e]]
 				) :s
-				| s: #switch set name word! set cases block! e: (
+				| s: #switch (set [expr e] eval next s s/1) :e set cases block! e: (
 					if active? [
-						either body: check-condition job 'switch reduce [name cases][
-							change/part s body e
-						][
-							remove/part s e
-						]
+						body: any [select cases expr select cases #default]
+						either body [change/part s body e][remove/part s e]
 					]
 				) :s
 				| s: #case set cases block! e: (
 					if active? [
-						either body: select reduce bind cases job true [
-							change/part s body e
-						][
-							remove/part s e
+						until [
+							set [cond cases] eval cases s/1
+							any [cond tail? cases: next cases]
 						]
+						either cond [change/part s cases/1 e][remove/part s e]
 					]
 				) :s
-				| s: #do block! e: (if active? [change/part s do-code s e])
-				| s: #process ['on (active?: yes) | 'off (active?: no)] e: (remove/part s e)
+				| s: #do block! e: (if active? [s: change/part s do-code s/2 s/1 e]) :s
+				
+				| s: #process ['on (active?: yes) | 'off (active?: no) [to #process | to end]]
+				  (remove/part s 2)
+				  
 				| pos: [block! | paren!] :pos into rule
 				| skip
 			]

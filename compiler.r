@@ -42,7 +42,7 @@ red: context [
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
-	preprocessor:  do bind load-cache %utils/preprocessor.r 'self
+	preprocessor:  do-cache %utils/preprocessor.r
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
