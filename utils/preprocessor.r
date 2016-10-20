@@ -9,6 +9,7 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 unless value? 'disarm [disarm: none]
+unless value? 'spec-of [spec-of: func [fun [any-function!]][first :fun]]
 
 context [
 	exec:	none										;-- object that captures preproc symbols
@@ -16,7 +17,28 @@ context [
 	syms:	make block! 20
 	active?: yes
 	
-	quit-on-error: does [
+	throw-error: func [error [error! block!] cmd [issue!] code [block!] /local w][
+		prin ["*** Preprocessor Error in" mold cmd lf]
+		error/where: new-line/all reduce [cmd] no
+		
+		either rebol [
+			if block? error [error: make object! error]
+			unless object? error [error: disarm error]
+			
+			foreach w [arg1 arg2 arg3][
+				set w either unset? get/any in error w [none][
+					get/any in error w
+				]
+			]
+			print [
+				"***" system/error/(error/type)/type #":"
+				reduce system/error/(error/type)/(error/id) newline
+				"*** Where:" mold/flat error/where newline
+				"*** Near: " mold/flat error/near newline
+			]
+		][
+			print form :error
+		]
 		if system/options/args [quit/return 1]
 		halt
 	]
@@ -31,28 +53,7 @@ context [
 			append syms none
 			exec: make exec compose [(syms) (macros)]
 		]
-		if error? set 'res try bind code exec [
-			prin ["***" uppercase mold cmd "Evaluation Error^/"]
-			either rebol [
-				res: disarm res
-				res/where: rejoin [mold cmd #" " copy/part mold code 100]
-				foreach w [arg1 arg2 arg3][
-					set w either unset? get/any in res w [none][
-						get/any in res w
-					]
-				]
-				print [
-					"***" system/error/(res/type)/type #":"
-					reduce system/error/(res/type)/(res/id) newline
-					"*** Where:" mold/flat res/where newline
-					"*** Near: " mold/flat res/near newline
-				]
-			][
-				res/where: rejoin [mold cmd #" " mold/part code 100]
-				print form :res
-			]
-			quit-on-error
-		]
+		if error? set 'res try bind code exec [throw-error res cmd code]
 		:res
 	]
 	
@@ -72,8 +73,7 @@ context [
 		if path [
 			foreach word next path	[
 				unless pos: find/tail spec to refinement! word [
-					;throw-error
-					print "error!"
+					throw reduce ['error path/1 word]
 				]
 				arity: arity + count-args pos
 			]
@@ -81,7 +81,7 @@ context [
 		arity
 	]
 	
-	fetch-next: func [code [block!] /local base arity value][
+	fetch-next: func [code [block!] /local base arity value path][
 		base: code
 		arity: 1
 		
@@ -95,11 +95,15 @@ context [
 				1
 			][
 				either all [
-					find [word! path!] type? value: code/1
-					value: either word? value [value][first value]
+					find [word! path!] type?/word value: code/1
+					value: either word? value [value][first path: value]
 					any-function? get/any value
 				][
-					func-arity? first get value
+					either path [
+						func-arity?/with spec-of get value path
+					][
+						func-arity? spec-of get value
+					]
 				][0]
 			]
 			code: next code
@@ -108,8 +112,19 @@ context [
 		code
 	]
 	
-	eval: func [code [block!] cmd [issue!] /local after][
-		expr: copy/part code after: fetch-next code
+	eval: func [code [block!] cmd [issue!] /local after expr][
+		if 'error = first after: catch [fetch-next code][
+			throw-error compose/deep [
+				type:	'script
+				id:		'no-refine
+				where:	none
+				near:	[(code)]
+				arg1:	(form after/2)
+				arg2:	(form after/3)
+				arg3:	none
+			] cmd code
+		]
+		expr: copy/part code after
 		expr: do-code expr cmd
 		reduce [expr after]
 	]
