@@ -13,9 +13,15 @@ unless value? 'spec-of [spec-of: func [fun [any-function!]][first :fun]]
 
 context [
 	exec:	none										;-- object that captures preproc symbols
+	protos: make block! 10
 	macros: make block! 10
 	syms:	make block! 20
 	active?: yes
+	
+	quit-on-error: does [
+		if system/options/args [quit/return 1]
+		halt
+	]
 	
 	throw-error: func [error [error! block!] cmd [issue!] code [block!] /local w][
 		prin ["*** Preprocessor Error in" mold cmd lf]
@@ -39,8 +45,11 @@ context [
 		][
 			print form :error
 		]
-		if system/options/args [quit/return 1]
-		halt
+		quit-on-error
+	]
+	
+	refresh-exec: does [
+		exec: make exec compose [(syms) (protos)]
 	]
 	
 	do-code: func [code [block!] cmd [issue!] /local p res w][
@@ -51,7 +60,7 @@ context [
 		]]
 		unless empty? syms [
 			append syms none
-			exec: make exec compose [(syms) (macros)]
+			refresh-exec
 		]
 		if error? set 'res try bind code exec [throw-error res cmd code]
 		:res
@@ -129,17 +138,60 @@ context [
 		reduce [expr after]
 	]
 	
+	do-macro: func [name pos [block! paren!] /local cmd][
+		cmd: clear []
+		append cmd name
+		append cmd copy/part next pos 2 ;arity
+		do bind cmd exec
+	]
+	
+	register-macro: func [spec [block!] /local cnt rule p name][
+		cnt: 0
+		rule: make block! 10
+		unless parse spec/3 [
+			any [
+				opt string! 
+				word! (cnt: cnt + 1)
+				opt [
+					p: block! :p into [some word!]
+						;(append/only rule make block! 1)
+						;some [p: word! (append last rule p/1)]
+						;(append rule '|)
+					;]
+				]
+				opt [/local some word!]
+			]
+		][
+			print [
+				"*** Macro Error: invalid specification:"
+				mold copy/part back spec 3
+			]
+			quit-on-error
+		]
+		repend rule [
+			name: to lit-word! spec/1
+			to-paren compose [change/part s do-macro (:name) s (cnt + 1)]
+		]
+		either tag? macros/1 [remove macros][append macros '|]
+		append macros rule
+		
+		append protos copy/part spec 4
+		refresh-exec
+	]
+	
 	expand: func [
 		code [block!] job [object!]
 		/local rule s e name cond expr value then else cases body
 	][
 		exec: context [config: job]
-		clear macros
+		clear protos
+		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
 		
 		#process off
 		parse code rule: [
 			any [
-				'routine 2 skip							;-- avoid overlapping with R/S preprocessor
+				s: macros ;:s
+				| 'routine 2 skip						;-- avoid overlapping with R/S preprocessor
 				| #system skip
 				| #system-global skip
 				
@@ -172,6 +224,11 @@ context [
 				| s: #process ['on (active?: yes) | 'off (active?: no) [to #process | to end]]
 				  (remove/part s 2)
 				  
+				| s: #macro set-word! ['func | 'function] block! block! e: (
+					register-macro next s
+					bind macros 'code					;-- bind newly formed macros to 'expand
+					remove/part s e
+				) :s
 				| pos: [block! | paren!] :pos into rule
 				| skip
 			]
