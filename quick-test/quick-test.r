@@ -225,6 +225,7 @@ qt: make object! [
     	  do/args (reduce base-dir/red.r) (join " -o " [
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
+    	  echo none
     	]
     	either lib [
     		replace comp "###lib###" join "-dlib -t " [target " "]
@@ -670,15 +671,16 @@ qt: make object! [
   
   setup-temp-files: func [
   	  /local
-  	  	f file
+  	  	f
   ][
+  	foreach file read runnable-dir [attempt [delete runnable-dir/:file]]
+  	
   	f: to string! now/time/precise
   	f: replace/all f ":" ""
   	f: replace/all f "." ""
     comp-echo: join runnable-dir ["comp-echo" f ".txt"]
   	comp-r: join runnable-dir ["comp" f ".r"]
   	test-src-file: join runnable-dir ["qt-test-comp" f ".red"]
-  	if exists? file: runnable-dir/libRedRT-defs.r [delete file]
   ]
   
   delete-temp-files: does [
