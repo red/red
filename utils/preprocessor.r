@@ -181,7 +181,7 @@ context [
 	
 	expand: func [
 		code [block!] job [object!]
-		/local rule s e name cond expr value then else cases body
+		/local rule s e cond value then else cases body
 	][
 		exec: context [config: job]
 		clear protos
@@ -204,9 +204,9 @@ context [
 				| s: #either (set [cond e] eval next s s/1) :e set then block! set else block! e: (
 					if active? [either cond [change/part s then e][change/part s else e]]
 				) :s
-				| s: #switch (set [expr e] eval next s s/1) :e set cases block! e: (
+				| s: #switch (set [cond e] eval next s s/1) :e set cases block! e: (
 					if active? [
-						body: any [select cases expr select cases #default]
+						body: any [select cases cond select cases #default]
 						either body [change/part s body e][remove/part s e]
 					]
 				) :s
@@ -221,8 +221,9 @@ context [
 				) :s
 				| s: #do block! e: (if active? [s: change/part s do-code s/2 s/1 e]) :s
 				
-				| s: #process ['on (active?: yes) | 'off (active?: no) [to #process | to end]]
+				| s: #process ['on (active?: yes) | 'off (active?: no)
 				  (remove/part s 2)
+				  :s [to #process | to end]]
 				  
 				| s: #macro set-word! ['func | 'function] block! block! e: (
 					register-macro next s
