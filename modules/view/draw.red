@@ -187,6 +187,11 @@ Red/System [
             cmd: cmd - 1
         ]
 		
+        #define DRAW_FETCH_SOME_2(type1 type2) [
+            until [cmd: cmd + 1 any [ all [TYPE_OF(cmd) <> type1 TYPE_OF(cmd) <> type2] cmd = tail]]
+            cmd: cmd - 1
+        ]
+		
 		#define DRAW_FETCH_NAMED_VALUE(type) [
 			cmd: cmd + 1
 			if cmd >= tail [throw-draw-error cmds cmd catch?]
@@ -247,14 +252,10 @@ Red/System [
                                 close?: yes
                             ]
                             any [ sym = hline sym = vline ][
-                                DRAW_FETCH_VALUE(TYPE_INTEGER)
-                                DRAW_FETCH_SOME(TYPE_INTEGER)
+                                DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+                                DRAW_FETCH_SOME_2(TYPE_INTEGER TYPE_FLOAT)
                                 unless first? [
-                                    either sym = hline [
-                                        OS-draw-shape-axis DC as red-integer! start as red-integer! cmd rel? yes
-                                    ][
-                                        OS-draw-shape-axis DC as red-integer! start as red-integer! cmd rel? no
-                                    ]
+                                    OS-draw-shape-axis DC start cmd rel? (sym = hline)
                                     close?: yes
                                 ]
                             ]
@@ -262,9 +263,9 @@ Red/System [
                                 sweep?: false
                                 large?: false
                                 DRAW_FETCH_VALUE(TYPE_PAIR)
-                                DRAW_FETCH_VALUE(TYPE_INTEGER)
-                                DRAW_FETCH_VALUE(TYPE_INTEGER)
-                                DRAW_FETCH_VALUE(TYPE_INTEGER)
+                                DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+                                DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+                                DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
                                 end: cmd
                                 opts: cmd
                                 loop 2 [
@@ -279,7 +280,7 @@ Red/System [
                                         opts: cmd
                                     ]
                                 ]
-                                OS-draw-shape-arc DC as red-pair! start as red-integer! end sweep? large? rel?
+                                OS-draw-shape-arc DC as red-pair! start end sweep? large? rel?
                                 close?: yes
                             ]
                             sym = curve [
