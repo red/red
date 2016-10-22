@@ -9,7 +9,6 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 unless value? 'disarm [disarm: none]
-unless value? 'spec-of [spec-of: func [fun [any-function!]][first :fun]]
 
 context [
 	exec:	none										;-- object that captures preproc symbols
@@ -138,10 +137,10 @@ context [
 		reduce [expr after]
 	]
 	
-	do-macro: func [name pos [block! paren!] /local cmd][
+	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd][
 		cmd: clear []
 		append cmd name
-		append cmd copy/part next pos 2 ;arity
+		append cmd copy/part next pos arity
 		do bind cmd exec
 	]
 	
@@ -170,7 +169,7 @@ context [
 		]
 		repend rule [
 			name: to lit-word! spec/1
-			to-paren compose [change/part s do-macro (:name) s (cnt + 1)]
+			to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
 		]
 		either tag? macros/1 [remove macros][append macros '|]
 		append macros rule
@@ -181,7 +180,7 @@ context [
 	
 	expand: func [
 		code [block!] job [object!]
-		/local rule s e cond value then else cases body
+		/local rule s e cond value then else cases body skip?
 	][
 		exec: context [config: job]
 		clear protos
@@ -219,11 +218,16 @@ context [
 						either cond [change/part s cases/1 e][remove/part s e]
 					]
 				) :s
-				| s: #do block! e: (if active? [s: change/part s do-code s/2 s/1 e]) :s
+				| s: #do (skip?: no) opt ['skip (skip?: yes)] block! e: (
+					if active? [
+						either skip? [remove/part s e][s: change/part s do-code s/2 s/1 e]
+					]
+				) :s
 				
-				| s: #process ['on (active?: yes) | 'off (active?: no)
-				  (remove/part s 2)
-				  :s [to #process | to end]]
+				| s: #process [
+					  'on  (active?: yes remove/part s 2) :s
+					| 'off (active?: no  remove/part s 2) :s [to #process | to end]
+				]
 				  
 				| s: #macro set-word! ['func | 'function] block! block! e: (
 					register-macro next s

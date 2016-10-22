@@ -102,3 +102,6 @@ collect: func [
 	either into [output] [head output]
 ]
 ; R3 version based on a discussion with Gregg and Gabriele in AltME.
+
+
+spec-of: func [fun [any-function!]][first :fun]
