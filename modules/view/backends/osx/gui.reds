@@ -1578,5 +1578,5 @@ OS-do-draw: func [
 		rc	[NSRect!]
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
-	do-draw img/node as red-image! rc cmds no yes yes yes
+	do-draw img/node as red-image! rc cmds yes yes yes yes
 ]

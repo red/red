@@ -66,6 +66,13 @@ draw-begin: func [
 		m		[CGAffineTransform!]
 ][
 	CGContextSaveGState CGCtx
+	rc: as NSRect! img
+	ctx/height:	rc/y
+
+	if on-graphic? [							;-- draw on image!, flip the CTM
+		CGContextTranslateCTM CGCtx as float32! 0.0 ctx/height
+		CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+	]
 	CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 
 	ctx/raw:			CGCtx
@@ -86,8 +93,6 @@ draw-begin: func [
 		default-font NSFontAttributeName
 		0
 	]
-	rc: as NSRect! img
-	ctx/height:	rc/y	
 
 	CGContextSetMiterLimit CGCtx DRAW_FLOAT_MAX
 	OS-draw-anti-alias ctx yes
