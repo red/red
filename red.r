@@ -124,6 +124,14 @@ redc: context [
 			]["MSDOS"]
 		]
 	]
+	
+	get-OS-name: does [
+		switch/default system/version/4 [
+			2 ['MacOSX]
+			3 ['Windows]
+			4 ['Linux]
+		]['Linux]										;-- usage related to lib suffixes
+	]
 
 	fail: func [value] [
 		print value
@@ -425,11 +433,15 @@ redc: context [
 			MacOSX	[%.dylib]
 		][%.so]
 		
-		if all [lib? load-lib?][
-			lib: load/library lib
-			get-date: make routine! [return: [string!]] lib "red/get-build-date"
-			print ["...using libRedRT built on" get-date]
-			free lib
+		if lib? [
+			either all [load-lib? opts/OS = get-OS-name][
+				lib: load/library lib
+				get-date: make routine! [return: [string!]] lib "red/get-build-date"
+				print ["...using libRedRT built on" get-date]
+				free lib
+			][
+				print ["...using libRedRT for" form opts/OS]
+			]
 		]
 		
 		not all [
