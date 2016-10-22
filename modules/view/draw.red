@@ -221,7 +221,6 @@ Red/System [
                 sym     [integer!]
                 rel?    [logic!]
                 close?  [logic!]
-                first?  [logic!]
                 sweep?  [logic!]
                 large?  [logic!]
         ][
@@ -231,7 +230,6 @@ Red/System [
             close?: no
             OS-draw-shape-beginpath DC
             while [cmd < tail][
-                first?: either cmd = block/rs-head cmds [ yes ][ no ]
                 case [
                     any [ TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_LIT_WORD ][
                         rel?: TYPE_OF(cmd) = TYPE_LIT_WORD
@@ -254,10 +252,8 @@ Red/System [
                             any [ sym = hline sym = vline ][
                                 DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
                                 DRAW_FETCH_SOME_2(TYPE_INTEGER TYPE_FLOAT)
-                                unless first? [
-                                    OS-draw-shape-axis DC start cmd rel? (sym = hline)
-                                    close?: yes
-                                ]
+                                OS-draw-shape-axis DC start cmd rel? (sym = hline)
+                                close?: yes
                             ]
                             sym = _arc [
                                 sweep?: false

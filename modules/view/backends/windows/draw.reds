@@ -246,6 +246,11 @@ draw-begin: func [
 	modes/font-color?:		no
 	dc:						null
 
+    last-point?: no
+    prev-shape/type: SHAPE_OTHER
+    path-last-point/x: 0
+    path-last-point/y: 0
+
 	rect: declare RECT_STRUCT
 	either null? hWnd [
 		modes/on-image?: yes
@@ -586,10 +591,6 @@ OS-draw-shape-beginpath: func [
     /local
         path    [integer!]
 ][
-    last-point?: no
-    prev-shape/type: SHAPE_OTHER
-    path-last-point/x: 0
-    path-last-point/y: 0
     either GDI+? [
         path: 0
         GdipCreatePath 0 :path	; alternate fill
@@ -726,51 +727,53 @@ OS-draw-shape-axis: func [
         coord-f [red-float!]
         coord-i [red-integer!]
 ][
-    pt: edges
-    nb: 0
-    coord: start
+    if last-point? [
+        pt: edges
+        nb: 0
+        coord: start
 
-    pt/x: path-last-point/x
-    pt/y: path-last-point/y
-    pt: pt + 1
-    nb: nb + 1
-    coord-v: 0
-	until [
-        either TYPE_OF(coord) = TYPE_INTEGER [
-            coord-i: as red-integer! coord
-            coord-v: coord-i/value
-        ][
-            coord-f: as red-float! coord
-            coord-v: as integer! coord-f/value
-        ]
-        case [
-            hline [
-                either rel? [ 
-                    pt/x: path-last-point/x + coord-v
-                ][ pt/x: coord-v ]
-                pt/y: path-last-point/y
-                path-last-point/x: pt/x
-            ]
-            true [
-                either rel? [ 
-                    pt/y: path-last-point/y + coord-v
-                ][ pt/y: coord-v ]
-                pt/x: path-last-point/x
-                path-last-point/y: pt/y 
-            ]
-        ]
-        coord: coord + 1
-        nb: nb + 1
+        pt/x: path-last-point/x
+        pt/y: path-last-point/y
         pt: pt + 1
-        any [ coord > end nb >= max-edges ]
+        nb: nb + 1
+        coord-v: 0
+        until [
+            either TYPE_OF(coord) = TYPE_INTEGER [
+                coord-i: as red-integer! coord
+                coord-v: coord-i/value
+            ][
+                coord-f: as red-float! coord
+                coord-v: as integer! coord-f/value
+            ]
+            case [
+                hline [
+                    either rel? [ 
+                        pt/x: path-last-point/x + coord-v
+                    ][ pt/x: coord-v ]
+                    pt/y: path-last-point/y
+                    path-last-point/x: pt/x
+                ]
+                true [
+                    either rel? [ 
+                        pt/y: path-last-point/y + coord-v
+                    ][ pt/y: coord-v ]
+                    pt/x: path-last-point/x
+                    path-last-point/y: pt/y 
+                ]
+            ]
+            coord: coord + 1
+            nb: nb + 1
+            pt: pt + 1
+            any [ coord > end nb >= max-edges ]
+        ]
+        last-point?: yes
+        either GDI+? [
+            GdipAddPathLine2I modes/gp-path edges nb
+        ][
+            PolylineTo dc edges nb
+        ]
+        prev-shape/type: SHAPE_OTHER
     ]
-    last-point?: yes
-    either GDI+? [
-        GdipAddPathLine2I modes/gp-path edges nb
-    ][
-        PolylineTo dc edges nb
-    ]
-    prev-shape/type: SHAPE_OTHER
 ]
 
 OS-draw-shape-curve: func [
