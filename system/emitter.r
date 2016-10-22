@@ -340,8 +340,11 @@ emitter: make-profilable context [
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 			]
-			if all [spec new-global? compiler/job/PIC? not libc-init?][
-				target/emit-store saved value n-spec	;-- store it in pointer variable
+			if all [spec compiler/job/PIC? not libc-init?][
+				target/emit-load-literal-ptr spec/2
+				if new-global? [
+					target/emit-store saved value n-spec ;-- store it in pointer variable
+				]
 			]
 			if n-spec [spec: n-spec]
 		][
