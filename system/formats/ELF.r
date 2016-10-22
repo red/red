@@ -96,6 +96,7 @@ context [
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
+		r-386-rel		8			;; relocation relative to image's base
 
 		r-arm-abs32		2			;; direct 32-bit relocation
 
@@ -283,7 +284,7 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size
+			data-size data-reloc
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list
 	] [
@@ -302,6 +303,7 @@ context [
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
+		data-reloc: collect-data-reloc job
 
 		structure: copy default-structure
 
@@ -361,7 +363,7 @@ context [
 			"phdr"			size [program-header	length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	length? imports]
+			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? imports]
 			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
@@ -426,8 +428,15 @@ context [
 				section-index-of sections ".data"
 		]
 
-		set-data ".rel.text"
-			[build-reltext job/target imports get-address ".data.rel.ro"]
+		set-data ".rel.text" [
+			build-reltext
+				job/target
+				imports
+				get-address ".data.rel.ro"
+				data-reloc
+				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
+				get-address ".text"
+		]
 
 		set-data ".data" [
 			if job/debug? [
@@ -439,7 +448,7 @@ context [
 
 		set-data ".data.rel.ro"
 			[build-relro imports]
-
+		
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
@@ -647,13 +656,16 @@ context [
 		target-arch [word!]
 		symbols [block!]
 		relro-address [integer!]
+		relocs [block!]
+		data-address [integer!]
+		code-address [integer!]
 		/local rel-type result entry len
 	] [
 		rel-type: select reduce [
 			'ia-32 defs/r-386-32
 			'arm defs/r-arm-abs32
 		] target-arch
-		result: make block! len: length? symbols
+		result: make block! (length? relocs) + len: length? symbols
 		
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
@@ -661,6 +673,33 @@ context [
 			entry/info-sym: rel-type
 			entry/info-type: i // 256
 			entry/info-addend: shift/logical i 8
+			append result entry
+		]
+		foreach ptr relocs [
+			entry: make-struct elf-relocation none
+			entry/offset: data-address + ptr
+			entry/info-sym: defs/r-386-rel
+			entry/info-type: 0
+			entry/info-addend: 0
+			append result entry
+		]
+		result
+	]
+	
+	build-reldata: func [
+		target-arch [word!]
+		relocs [block!]
+		data-address [integer!]
+		/local rel-type result entry len
+	][
+		result: make block! (length? relocs) / 2
+		
+		foreach [name spec] relocs [
+			entry: make-struct elf-relocation none
+			entry/offset: spec/2
+			entry/info-sym: defs/stn-undef
+			entry/info-type: 0
+			entry/info-addend: 0
 			append result entry
 		]
 		result
@@ -813,6 +852,26 @@ context [
 	]
 
 	;; -- Job helpers --
+	
+	collect-data-reloc: func [job [object!] /local list syms name spec][
+		list: make block! 100
+		syms: job/symbols
+		
+		while [not tail? syms][
+			name: syms/1								;-- set [...] does not behave properly on hash!
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][
+				append list spec/2
+			]
+		]
+		list
+	]
 
 	collect-import-names: func [job [object!] /local libraries symbols] [
 		libraries: copy []
