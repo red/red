@@ -96,6 +96,7 @@ context [
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
+		r-386-rel		8			;; relocation relative to image's base
 
 		r-arm-abs32		2			;; direct 32-bit relocation
 
@@ -263,7 +264,6 @@ context [
 		segment "rw"				[load	  	[r w]				page] [
 			section ".data"			[progbits 	[write alloc]		word]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
-			section ".rel.data"		[rel	  	[alloc]				word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]
 			]
@@ -363,10 +363,9 @@ context [
 			"phdr"			size [program-header	length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	length? imports]
+			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? imports]
-			".rel.data"		size [elf-relocation	(length? data-reloc) / 2]
 			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
@@ -429,8 +428,15 @@ context [
 				section-index-of sections ".data"
 		]
 
-		set-data ".rel.text"
-			[build-reltext job/target imports get-address ".data.rel.ro"]
+		set-data ".rel.text" [
+			build-reltext
+				job/target
+				imports
+				get-address ".data.rel.ro"
+				data-reloc
+				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
+				get-address ".text"
+		]
 
 		set-data ".data" [
 			if job/debug? [
@@ -442,10 +448,7 @@ context [
 
 		set-data ".data.rel.ro"
 			[build-relro imports]
-			
-		set-data ".rel.data"
-			[build-reldata job/target data-reloc get-address ".data"]
-
+		
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
@@ -653,13 +656,16 @@ context [
 		target-arch [word!]
 		symbols [block!]
 		relro-address [integer!]
+		relocs [block!]
+		data-address [integer!]
+		code-address [integer!]
 		/local rel-type result entry len
 	] [
 		rel-type: select reduce [
 			'ia-32 defs/r-386-32
 			'arm defs/r-arm-abs32
 		] target-arch
-		result: make block! len: length? symbols
+		result: make block! (length? relocs) + len: length? symbols
 		
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
@@ -667,6 +673,14 @@ context [
 			entry/info-sym: rel-type
 			entry/info-type: i // 256
 			entry/info-addend: shift/logical i 8
+			append result entry
+		]
+		foreach ptr relocs [
+			entry: make-struct elf-relocation none
+			entry/offset: data-address + ptr
+			entry/info-sym: defs/r-386-rel
+			entry/info-type: 0
+			entry/info-addend: 0
 			append result entry
 		]
 		result
@@ -852,9 +866,9 @@ context [
 				syms/1 = <data>	
 				block? syms/2/4
 				syms/2/4/1 - 1 = spec/2
-			][		
-				repend list [name spec]
-			]		
+			][
+				append list spec/2
+			]
 		]
 		list
 	]
