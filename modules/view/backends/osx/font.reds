@@ -71,7 +71,8 @@ make-font: func [
 
 	temp/x: size
 	str: as red-string! values + FONT_OBJ_NAME
-	either TYPE_OF(str) = TYPE_STRING [
+	hFont: null
+	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
 		sym: CFString(name)
@@ -85,7 +86,9 @@ make-font: func [
 			temp/x
 		]
 		CFRelease sym
-	][												;-- use system font
+		#if debug? = yes [print-line ["cannot find font: " name]]
+	]
+	if null? hFont 	[						;-- use system font
 		method: either traits and NSBoldFontMask <> 0 [
 			"boldSystemFontOfSize:"
 		][

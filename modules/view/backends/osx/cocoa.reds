@@ -409,6 +409,42 @@ tagSIZE: alias struct! [
 			y1			[float32!]
 			return:		[logic!]
 		]
+		CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
+			return:		[integer!]
+		]
+		CGColorSpaceRelease: "CGColorSpaceRelease" [
+			colorspace	[integer!]
+		]
+		CGGradientCreateWithColorComponents: "CGGradientCreateWithColorComponents" [
+			colorspace	[integer!]
+			components	[pointer! [float32!]]
+			locations	[pointer! [float32!]]
+			nlocations	[integer!]
+			return:		[integer!]
+		]
+		CGGradientRelease: "CGGradientRelease" [
+			gradient	[integer!]
+		]
+		CGContextDrawLinearGradient: "CGContextDrawLinearGradient" [
+			ctx			[handle!]
+			gradient	[integer!]
+			start-x		[float32!]
+			start-y		[float32!]
+			end-x		[float32!]
+			end-y		[float32!]
+			options		[integer!]
+		]
+		CGContextDrawRadialGradient: "CGContextDrawRadialGradient" [
+			ctx			[handle!]
+			gradient	[integer!]
+			start-x		[float32!]
+			start-y		[float32!]
+			start-r		[float32!]
+			end-x		[float32!]
+			end-y		[float32!]
+			end-r		[float32!]
+			options		[integer!]
+		]
 		CGContextSaveGState: "CGContextSaveGState" [
 			c			[handle!]
 		]
@@ -498,6 +534,14 @@ tagSIZE: alias struct! [
 		]
 		CGContextClosePath: "CGContextClosePath" [
 			c			[handle!]
+		]
+		CGContextCopyPath: "CGContextCopyPath" [
+			ctx			[handle!]
+			return:		[integer!]
+		]
+		CGContextAddPath: "CGContextAddPath" [
+			ctx			[handle!]
+			path		[integer!]
 		]
 		CGContextClip: "CGContextClip" [
 			c			[handle!]
