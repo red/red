@@ -13,9 +13,9 @@ Red [
 prin-out: function [out data][
 	either block? data [
 		data: reduce data
-		foreach w data [
-			append out form w
-			append out #" "
+		forall data [
+			append out form data/1
+			unless tail? data [append out #" "]
 		]
 	][
 		append out data
@@ -235,7 +235,7 @@ help: function [
 	"Display helping information about words and other values"
 	'word [any-type!] "Word you are looking for"
 ][
-	print fetch-help word
+	print fetch-help :word
 ]
 
 ?: :help
