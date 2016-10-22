@@ -99,6 +99,7 @@ context [
 		r-386-rel		8			;; relocation relative to image's base
 
 		r-arm-abs32		2			;; direct 32-bit relocation
+		r-arm-rel		23			;; relocation relative to image's base
 
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
@@ -662,25 +663,31 @@ context [
 		/local rel-type result entry len
 	] [
 		rel-type: select reduce [
-			'ia-32 defs/r-386-32
-			'arm defs/r-arm-abs32
+			'IA-32	defs/r-386-32
+			'ARM	defs/r-arm-abs32
 		] target-arch
 		result: make block! (length? relocs) + len: length? symbols
 		
 		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
-			entry/offset: rel-address-of/index relro-address (i - 1)
-			entry/info-sym: rel-type
-			entry/info-type: i // 256
-			entry/info-addend: shift/logical i 8
+			entry/offset:		rel-address-of/index relro-address (i - 1)
+			entry/info-sym:		rel-type
+			entry/info-type:	i // 256
+			entry/info-addend:	shift/logical i 8
 			append result entry
 		]
+		
+		rel-type: select reduce [
+			'IA-32	defs/r-386-rel
+			'ARM	defs/r-arm-rel
+		] target-arch
+		
 		foreach ptr relocs [
 			entry: make-struct elf-relocation none
-			entry/offset: data-address + ptr
-			entry/info-sym: defs/r-386-rel
-			entry/info-type: 0
-			entry/info-addend: 0
+			entry/offset:		data-address + ptr
+			entry/info-sym:		rel-type
+			entry/info-type:	0
+			entry/info-addend:	0
 			append result entry
 		]
 		result
