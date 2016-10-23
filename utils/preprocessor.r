@@ -18,8 +18,7 @@ context [
 	active?: yes
 	
 	quit-on-error: does [
-		if system/options/args [quit/return 1]
-		halt
+		either rebol [quit/return 1][halt]
 	]
 	
 	throw-error: func [error [error! block!] cmd [issue!] code [block!] /local w][
