@@ -860,12 +860,11 @@ context [
 
 	;; -- Job helpers --
 	
-	collect-data-reloc: func [job [object!] /local list syms name spec][
+	collect-data-reloc: func [job [object!] /local list syms spec][
 		list: make block! 100
 		syms: job/symbols
 		
 		while [not tail? syms][
-			name: syms/1								;-- set [...] does not behave properly on hash!
 			spec: syms/2
 			syms: skip syms 2
 			if all [
