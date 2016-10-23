@@ -8,24 +8,22 @@ REBOL [
 ]
 Red []													;-- make it usable by Red too.
 
-unless value? 'disarm [disarm: none]
-
-context [
+preprocessor: context [
 	exec:	none										;-- object that captures preproc symbols
 	protos: make block! 10
 	macros: make block! 10
 	syms:	make block! 20
 	active?: yes
 	
-	quit-on-error: does [
-		either rebol [quit/return 1][halt]
+	do-quit: does [
+		either all [rebol system/options/args][quit/return 1][halt]
 	]
 	
 	throw-error: func [error [error! block!] cmd [issue!] code [block!] /local w][
 		prin ["*** Preprocessor Error in" mold cmd lf]
 		error/where: new-line/all reduce [cmd] no
 		
-		either rebol [
+		#either none? config [							;-- config is none when preprocessor is applied to itself
 			if block? error [error: make object! error]
 			unless object? error [error: disarm error]
 			
@@ -40,10 +38,11 @@ context [
 				"*** Where:" mold/flat error/where newline
 				"*** Near: " mold/flat error/near newline
 			]
+			do-quit
 		][
 			print form :error
+			halt
 		]
-		quit-on-error
 	]
 	
 	refresh-exec: does [
@@ -162,9 +161,9 @@ context [
 		][
 			print [
 				"*** Macro Error: invalid specification:"
-				mold copy/part back spec 3
+				mold copy/part spec 3
 			]
-			quit-on-error
+			do-quit
 		]
 		repend rule [
 			name: to lit-word! spec/1
@@ -178,7 +177,7 @@ context [
 	]
 	
 	expand: func [
-		code [block!] job [object!]
+		code [block!] job [object! none!]
 		/local rule s e cond value then else cases body skip?
 	][
 		exec: context [config: job]
