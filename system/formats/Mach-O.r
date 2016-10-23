@@ -342,6 +342,9 @@ context [
 				flags/attr_pure_instructions
 					or flags/attr_some_instructions
 			]
+			data [
+				flags/regular or flags/attr_loc_reloc
+			]
 			pointers [
 				flags/non_lazy_symbol_pointers
 			]
@@ -460,6 +463,47 @@ context [
 			]
 		]
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
+	]
+	
+	data-reloc: [0 0 -]
+	
+	collect-data-reloc: func [job [object!] /local list syms spec][
+		list: make block! 100
+		syms: job/symbols
+
+		while [not tail? syms][
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][
+				append list spec/2
+			]
+		]
+		list
+	]
+	
+	build-data-reloc: func [
+		job [object!]
+		/local relocs buffer sym-info
+	][
+		unless empty? relocs: collect-data-reloc job [
+			buffer: make binary! 8 * length? relocs
+			foreach ptr relocs [
+				pointer/value: ptr
+				append buffer form-struct pointer
+				append buffer defs/reloc-bits
+			]
+			
+			sym-info: job/sections/symbols/1 
+			data-reloc/1: (third get-segment-info '__LINKEDIT)
+				+ sym-info/2 + sym-info/3 + sym-info/4 + 16
+			data-reloc/2: length? relocs
+			data-reloc/3: buffer
+		]
 	]
 	
 	resolve-import-refs: func [job [object!] /local code base][
@@ -760,13 +804,15 @@ context [
 	]
 	
 	build-section-header: func [job [object!] spec [block!] seg-name [word!] /local sh][
+		if all [job/type = 'dll spec/2 = '__data][build-data-reloc job]
+		
 		sh: make-struct section-header none
 		sh/addr:		spec/3
 		sh/size:		spec/6
 		sh/offset:		spec/5
 		sh/align:		to integer! log-2 select [byte 1 word 4 dword 8] spec/9	;-- 32/64-bit @@
-		sh/reloff:		0
-		sh/nreloc:		0
+		sh/reloff:		either spec/2 = '__data [data-reloc/1][0]
+		sh/nreloc:		either spec/2 = '__data [data-reloc/2][0]
 		sh/flags:		get-flags spec/8
 		sh/reserved1:	either spec/2 = '__jump_table [job/sections/symbols/1/5][0]
 		sh/reserved2:	either spec/2 = '__jump_table [stub-size][0]
@@ -883,9 +929,11 @@ context [
 		either job/type = 'dll [
 			either find job/sections 'initfuncs [
 				append out rejoin job/sections/symbols/2
-				emit-page-aligned out job/sections/reloc-info/2
+				append out job/sections/reloc-info/2
+				emit-page-aligned out data-reloc/3
 			][
-				emit-page-aligned out rejoin job/sections/symbols/2
+				append out rejoin job/sections/symbols/2
+				emit-page-aligned out data-reloc/3
 			]
 		][
 			emit-page-aligned out rejoin job/sections/symbols/2
