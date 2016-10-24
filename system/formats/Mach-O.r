@@ -342,9 +342,6 @@ context [
 				flags/attr_pure_instructions
 					or flags/attr_some_instructions
 			]
-			data [
-				flags/regular or flags/attr_loc_reloc
-			]
 			pointers [
 				flags/non_lazy_symbol_pointers
 			]
@@ -488,12 +485,13 @@ context [
 	
 	build-data-reloc: func [
 		job [object!]
-		/local relocs buffer sym-info
+		/local relocs buffer sym-info base
 	][
 		unless empty? relocs: collect-data-reloc job [
 			buffer: make binary! 8 * length? relocs
+			base: get-section-addr '__data
 			foreach ptr relocs [
-				pointer/value: ptr
+				pointer/value: ptr + base
 				append buffer form-struct pointer
 				append buffer defs/reloc-bits
 			]
@@ -749,7 +747,7 @@ context [
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   either reloc [reloffset][0]
-		sc/nlocrel:		   either reloc [(length? reloc/2) / 8][0]
+		sc/nlocrel:		   either reloc [data-reloc/2 + (length? reloc/2) / 8][0]
 		sc: form-struct sc
 		sc
 	]
@@ -804,15 +802,13 @@ context [
 	]
 	
 	build-section-header: func [job [object!] spec [block!] seg-name [word!] /local sh][
-		if all [job/type = 'dll spec/2 = '__data][build-data-reloc job]
-		
 		sh: make-struct section-header none
 		sh/addr:		spec/3
 		sh/size:		spec/6
 		sh/offset:		spec/5
 		sh/align:		to integer! log-2 select [byte 1 word 4 dword 8] spec/9	;-- 32/64-bit @@
-		sh/reloff:		either spec/2 = '__data [data-reloc/1][0]
-		sh/nreloc:		either spec/2 = '__data [data-reloc/2][0]
+		sh/reloff:		0
+		sh/nreloc:		0
 		sh/flags:		get-flags spec/8
 		sh/reserved1:	either spec/2 = '__jump_table [job/sections/symbols/1/5][0]
 		sh/reserved2:	either spec/2 = '__jump_table [stub-size][0]
@@ -879,7 +875,10 @@ context [
 	
 		prepare-headers job
 		
-		if job/type = 'dll [resolve-exports job]
+		if job/type = 'dll [
+			resolve-exports job
+			build-data-reloc job
+		]
 		
 		out: job/buffer
 		append out build-mach-header job
