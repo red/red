@@ -289,6 +289,7 @@ context [
 	load-cmds-sz:		0
 	stub-size:			5								;-- imported functions slot size
 	segments:			none
+	data-reloc: 		none							;-- temporary info for data segment local relocation
 
 	;-- Mach-O structure builders --
 	
@@ -462,8 +463,6 @@ context [
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 	
-	data-reloc: [0 0 -]
-	
 	collect-data-reloc: func [job [object!] /local list syms spec][
 		list: make block! 100
 		syms: job/symbols
@@ -485,9 +484,11 @@ context [
 	
 	build-data-reloc: func [
 		job [object!]
-		/local relocs buffer sym-info base
+		/local relocs buffer base
 	][
-		unless empty? relocs: collect-data-reloc job [
+		data-reloc: either empty? relocs: collect-data-reloc job [
+			[0 #{}]
+		][
 			buffer: make binary! 8 * length? relocs
 			base: get-section-addr '__data
 			foreach ptr relocs [
@@ -495,12 +496,7 @@ context [
 				append buffer form-struct pointer
 				append buffer defs/reloc-bits
 			]
-			
-			sym-info: job/sections/symbols/1 
-			data-reloc/1: (third get-segment-info '__LINKEDIT)
-				+ sym-info/2 + sym-info/3 + sym-info/4 + 16
-			data-reloc/2: length? relocs
-			data-reloc/3: buffer
+			reduce [length? relocs buffer]
 		]
 	]
 	
