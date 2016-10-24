@@ -743,7 +743,7 @@ context [
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   either reloc [reloffset][0]
-		sc/nlocrel:		   either reloc [data-reloc/1 + (length? reloc/2) / 8][0]
+		sc/nlocrel:		   either reloc [(length? reloc/2) / 8 + data-reloc/1][0]
 		sc: form-struct sc
 		sc
 	]
