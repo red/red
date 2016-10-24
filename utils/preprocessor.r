@@ -8,28 +8,23 @@ REBOL [
 ]
 Red []													;-- make it usable by Red too.
 
-unless value? 'disarm [disarm: none]
-
-context [
+preprocessor: context [
 	exec:	none										;-- object that captures preproc symbols
 	protos: make block! 10
 	macros: make block! 10
 	syms:	make block! 20
 	active?: yes
 	
-	quit-on-error: does [
-		if system/options/args [quit/return 1]
-		halt
+	do-quit: does [
+		either all [rebol system/options/args][quit/return 1][halt]
 	]
 	
-	throw-error: func [error [error! block!] cmd [issue!] code [block!] /local w][
+	throw-error: func [error [error!] cmd [issue!] code [block!] /local w][
 		prin ["*** Preprocessor Error in" mold cmd lf]
 		error/where: new-line/all reduce [cmd] no
 		
-		either rebol [
-			if block? error [error: make object! error]
-			unless object? error [error: disarm error]
-			
+		#either none? config [							;-- config is none when preprocessor is applied to itself
+			error: disarm error
 			foreach w [arg1 arg2 arg3][
 				set w either unset? get/any in error w [none][
 					get/any in error w
@@ -41,10 +36,11 @@ context [
 				"*** Where:" mold/flat error/where newline
 				"*** Near: " mold/flat error/near newline
 			]
+			do-quit
 		][
 			print form :error
+			halt
 		]
-		quit-on-error
 	]
 	
 	refresh-exec: does [
@@ -81,7 +77,11 @@ context [
 		if path [
 			foreach word next path	[
 				unless pos: find/tail spec to refinement! word [
-					throw reduce ['error path/1 word]
+					print [
+						"*** Macro Error: unknown refinement in"
+						mold path
+					]
+					do-quit
 				]
 				arity: arity + count-args pos
 			]
@@ -121,17 +121,7 @@ context [
 	]
 	
 	eval: func [code [block!] cmd [issue!] /local after expr][
-		if 'error = first after: catch [fetch-next code][
-			throw-error compose/deep [
-				type:	'script
-				id:		'no-refine
-				where:	none
-				near:	[(code)]
-				arg1:	(form after/2)
-				arg2:	(form after/3)
-				arg3:	none
-			] cmd code
-		]
+		after: fetch-next code
 		expr: copy/part code after
 		expr: do-code expr cmd
 		reduce [expr after]
@@ -163,9 +153,9 @@ context [
 		][
 			print [
 				"*** Macro Error: invalid specification:"
-				mold copy/part back spec 3
+				mold copy/part spec 3
 			]
-			quit-on-error
+			do-quit
 		]
 		repend rule [
 			name: to lit-word! spec/1
@@ -179,7 +169,7 @@ context [
 	]
 	
 	expand: func [
-		code [block!] job [object!]
+		code [block!] job [object! none!]
 		/local rule s e cond value then else cases body skip?
 	][
 		exec: context [config: job]
