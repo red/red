@@ -743,7 +743,7 @@ context [
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   either reloc [reloffset][0]
-		sc/nlocrel:		   either reloc [data-reloc/2 + (length? reloc/2) / 8][0]
+		sc/nlocrel:		   either reloc [data-reloc/1 + (length? reloc/2) / 8][0]
 		sc: form-struct sc
 		sc
 	]
@@ -925,10 +925,10 @@ context [
 			either find job/sections 'initfuncs [
 				append out rejoin job/sections/symbols/2
 				append out job/sections/reloc-info/2
-				emit-page-aligned out data-reloc/3
+				emit-page-aligned out data-reloc/2
 			][
 				append out rejoin job/sections/symbols/2
-				emit-page-aligned out data-reloc/3
+				emit-page-aligned out data-reloc/2
 			]
 		][
 			emit-page-aligned out rejoin job/sections/symbols/2
