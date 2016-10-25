@@ -9,7 +9,7 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 preprocessor: context [
-	exec:	none										;-- object that captures preproc symbols
+	exec:	none										;-- object that captures directive words
 	protos: make block! 10
 	macros: make block! 10
 	syms:	make block! 20
@@ -43,20 +43,14 @@ preprocessor: context [
 		]
 	]
 	
-	refresh-exec: does [
-		exec: make exec compose [(syms) (protos)]
-	]
-	
 	do-code: func [code [block!] cmd [issue!] /local p res w][
 		clear syms
 		parse code [any [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
-		unless empty? syms [
-			append syms none
-			refresh-exec
-		]
+		unless empty? syms [exec: make exec append syms none]
+		
 		if error? set 'res try bind code exec [throw-error res cmd code]
 		:res
 	]
@@ -166,7 +160,7 @@ preprocessor: context [
 		append macros rule
 		
 		append protos copy/part spec 4
-		refresh-exec
+		exec: make exec protos
 	]
 	
 	expand: func [
