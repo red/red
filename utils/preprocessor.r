@@ -155,7 +155,6 @@ preprocessor: context [
 			repend rule [
 				name: to lit-word! spec/1
 				to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
-				first [:s]
 			]
 			append protos copy/part spec 4
 		][												;-- pattern-matching macro
