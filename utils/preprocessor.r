@@ -128,7 +128,7 @@ preprocessor: context [
 		do bind cmd exec
 	]
 	
-	register-macro: func [spec [block!] /local cnt rule p name][
+	register-macro: func [spec [block!] /local cnt rule p name macro pos][
 		cnt: 0
 		rule: make block! 10
 		unless parse spec/3 [
@@ -151,15 +151,30 @@ preprocessor: context [
 			]
 			do-quit
 		]
-		repend rule [
-			name: to lit-word! spec/1
-			to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
-			first [:s]
+		either set-word? spec/1 [						;-- named macro
+			repend rule [
+				name: to lit-word! spec/1
+				to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
+				first [:s]
+			]
+			append protos copy/part spec 4
+		][												;-- pattern-matching macro
+			macro: do bind copy/part next spec 3 exec
+			append/only protos spec/4
+			
+			repend rule [
+				to set-word! 's
+				spec/1
+				to set-word! 'e
+				to-paren compose/deep [do [(:macro) s e]]
+			]
 		]
+		
+		pos: tail macros
 		either tag? macros/1 [remove macros][append macros '|]
 		append macros rule
+		new-line pos yes
 		
-		append protos copy/part spec 4
 		exec: make exec protos
 	]
 	
@@ -214,7 +229,7 @@ preprocessor: context [
 					| 'off (active?: no  remove/part s 2) :s [to #process | to end]
 				]
 				  
-				| s: #macro set-word! ['func | 'function] block! block! e: (
+				| s: #macro [set-word! | word! | block!]['func | 'function] block! block! e: (
 					register-macro next s
 					bind macros 'code					;-- bind newly formed macros to 'expand
 					remove/part s e
