@@ -160,6 +160,7 @@ preprocessor: context [
 		repend rule [
 			name: to lit-word! spec/1
 			to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
+			first [:s]
 		]
 		either tag? macros/1 [remove macros][append macros '|]
 		append macros rule
@@ -170,7 +171,7 @@ preprocessor: context [
 	
 	expand: func [
 		code [block!] job [object! none!]
-		/local rule s e cond value then else cases body skip?
+		/local rule s e pos cond value then else cases body skip?
 	][
 		exec: context [config: job]
 		clear protos
@@ -179,7 +180,7 @@ preprocessor: context [
 		#process off
 		parse code rule: [
 			any [
-				s: macros ;:s
+				s: macros
 				| 'routine 2 skip						;-- avoid overlapping with R/S preprocessor
 				| #system skip
 				| #system-global skip
