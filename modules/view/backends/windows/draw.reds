@@ -1876,17 +1876,42 @@ OS-draw-grad-pen: func [
 ]
 	
 OS-set-clip: func [
-	upper	[red-pair!]
-	lower	[red-pair!]
+	upper	[red-value!]
+	lower	[red-value!]
+    rect?   [logic!]
+    dc      [handle!]
+    /local
+        u   [red-pair!]
+        l   [red-pair!]
 ][
-	GDI+?: yes
-	GdipSetClipRectI
-		modes/graphics
-		upper/x
-		upper/y
-		lower/x - upper/x + 1
-		lower/y - upper/y + 1
-		GDIPLUS_COMBINEMODEREPLACE
+    either GDI+? [
+        either rect? [
+            u: as red-pair! upper
+            l: as red-pair! lower
+            GdipSetClipRectI
+                modes/graphics
+                u/x
+                u/y
+                l/x - u/x + 1
+                l/y - u/y + 1
+                GDIPLUS_COMBINEMODEREPLACE
+        ][
+            GdipSetClipPath
+                modes/graphics
+                modes/gp-path
+                GDIPLUS_COMBINEMODEREPLACE
+            GdipDeletePath modes/gp-path
+        ]
+    ][
+        if rect? [
+            u: as red-pair! upper
+            l: as red-pair! lower
+            BeginPath dc
+            Rectangle dc u/x u/y l/x l/y  
+        ]
+        EndPath dc  ;-- a path has already been started
+        SelectClipPath dc RGN_COPY
+    ]
 ]
 
 OS-matrix-rotate: func [
