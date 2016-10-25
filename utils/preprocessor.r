@@ -21,10 +21,11 @@ preprocessor: context [
 	
 	throw-error: func [error [error!] cmd [issue!] code [block!] /local w][
 		prin ["*** Preprocessor Error in" mold cmd lf]
-		error/where: new-line/all reduce [cmd] no
 		
 		#either none? config [							;-- config is none when preprocessor is applied to itself
 			error: disarm error
+			error/where: new-line/all reduce [cmd] no
+			
 			foreach w [arg1 arg2 arg3][
 				set w either unset? get/any in error w [none][
 					get/any in error w
@@ -38,21 +39,25 @@ preprocessor: context [
 			]
 			do-quit
 		][
+			error/where: new-line/all reduce [cmd] no
 			print form :error
 			halt
 		]
 	]
 	
-	do-code: func [code [block!] cmd [issue!] /local p res w][
+	do-safe: func [code [block!] /with cmd [issue!] /local res][
+		if error? set 'res try code [throw-error res any [cmd #macro] code]
+		:res
+	]
+	
+	do-code: func [code [block!] cmd [issue!] /local p][
 		clear syms
 		parse code [any [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
 		unless empty? syms [exec: make exec append syms none]
-		
-		if error? set 'res try bind code exec [throw-error res cmd code]
-		:res
+		do-safe bind code exec
 	]
 	
 	count-args: func [spec [block!] /local total][
@@ -165,7 +170,7 @@ preprocessor: context [
 				to set-word! 's
 				spec/1
 				to set-word! 'e
-				to-paren compose/deep [do [(:macro) s e]]
+				to-paren compose/deep [do-safe [(:macro) s e]]
 			]
 		]
 		
