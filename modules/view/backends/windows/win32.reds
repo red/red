@@ -2313,6 +2313,16 @@ XFORM!: alias struct! [
 			sweepAngle	[float32!]
 			return:		[integer!]
 		]
+		GdipAddPathArc: "GdipAddPathArc" [
+			path		[integer!]
+			x			[float32!]
+			y			[float32!]
+			width		[float32!]
+			height		[float32!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
         GdipAddPathBeziersI: "GdipAddPathBeziersI" [
             path        [integer!]
             points      [tagPOINT]

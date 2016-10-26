@@ -933,15 +933,16 @@ OS-draw-shape-arc: func [
         either GDI+? [
             path: 0
             GdipCreatePath 0 :path	; alternate fill
-            GdipAddPathArcI 
+            GdipAddPathArc 
                 path 
-                as integer! center-x - radius-x
-                as integer! center-y - radius-y
-                as integer! (radius-x * 2.0)
-                as integer! (radius-y * 2.0)
+                as float32! center-x - radius-x
+                as float32! center-y - radius-y
+                as float32! (radius-x * 2.0)
+                as float32! (radius-y * 2.0)
                 as float32! angle-1
                 as float32! angle-len
             m: 0
+
             GdipCreateMatrix :m
             GdipTranslateMatrix m as float32! (center-x * -1) as float32! (center-y * -1) GDIPLUS_MATRIXORDERAPPEND 
             GdipRotateMatrix m as float32! theta GDIPLUS_MATRIXORDERAPPEND
