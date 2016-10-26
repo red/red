@@ -45,6 +45,12 @@ preprocessor: context [
 		]
 	]
 	
+	reset: does [
+		exec: context [config: none]
+		clear protos
+		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
+	]
+	
 	do-safe: func [code [block!] /with cmd [issue!] /local res][
 		if error? set 'res try code [throw-error res any [cmd #macro] code]
 		:res
@@ -186,9 +192,7 @@ preprocessor: context [
 		code [block!] job [object! none!]
 		/local rule s e pos cond value then else cases body keep?
 	][
-		exec: context [config: job]
-		clear protos
-		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
+		exec/config: job
 		
 		#process off
 		parse code rule: [
@@ -251,4 +255,6 @@ preprocessor: context [
 	][
 		expand code system/build/config
 	]
+	
+	reset												;-- start with a clean state
 ]
