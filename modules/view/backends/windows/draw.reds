@@ -714,14 +714,17 @@ OS-draw-shape-line: func [
 
 OS-draw-shape-axis: func [
     dc          [handle!]
-    start       [red-integer!]
-    end         [red-integer!]
+    start       [red-value!]
+    end         [red-value!]
     rel?        [logic!]
     hline       [logic!]
     /local
         pt      [tagPOINT]
         nb      [integer!]
-        coord   [red-integer!]
+        coord	[red-value!]
+        coord-v [integer!]
+        coord-f [red-float!]
+        coord-i [red-integer!]
 ][
     pt: edges
     nb: 0
@@ -731,19 +734,27 @@ OS-draw-shape-axis: func [
     pt/y: path-last-point/y
     pt: pt + 1
     nb: nb + 1
-    while [ all [ coord <= end nb < max-edges ] ][
+    coord-v: 0
+	until [
+        either TYPE_OF(coord) = TYPE_INTEGER [
+            coord-i: as red-integer! coord
+            coord-v: coord-i/value
+        ][
+            coord-f: as red-float! coord
+            coord-v: as integer! coord-f/value
+        ]
         case [
             hline [
                 either rel? [ 
-                    pt/x: path-last-point/x + coord/value
-                ][ pt/x: coord/value ]
+                    pt/x: path-last-point/x + coord-v
+                ][ pt/x: coord-v ]
                 pt/y: path-last-point/y
                 path-last-point/x: pt/x
             ]
             true [
                 either rel? [ 
-                    pt/y: path-last-point/y + coord/value
-                ][ pt/y: coord/value ]
+                    pt/y: path-last-point/y + coord-v
+                ][ pt/y: coord-v ]
                 pt/x: path-last-point/x
                 path-last-point/y: pt/y 
             ]
@@ -751,6 +762,7 @@ OS-draw-shape-axis: func [
         coord: coord + 1
         nb: nb + 1
         pt: pt + 1
+        any [ coord > end nb >= max-edges ]
     ]
     last-point?: yes
     either GDI+? [
@@ -797,15 +809,32 @@ OS-draw-shape-qcurv: func [
     draw-short-curves dc start end rel? 1
 ]
 
+param-to-float: func [
+    value       [red-value!]    ;-- only TYPE_FLOAT or TYPE_INTEGER
+    return:     [float!]
+    /local
+        val-f   [red-float!]
+        val-i   [red-integer!]
+][
+    either TYPE_OF(value) = TYPE_INTEGER [
+        val-i: as red-integer! value
+        as float! val-i/value
+    ][
+        val-f: as red-float! value
+        val-f/value
+    ]
+]
+
 OS-draw-shape-arc: func [
     dc      [handle!]
     start   [red-pair!]
-    end     [red-integer!]
+    end     [red-value!]
     sweep?  [logic!]
     large?  [logic!]
     rel?    [logic!]
     /local
-        int         [red-integer!]
+        item        [red-value!]
+        item-f      [red-float!]
         center-x    [float!]
         center-y    [float!]
         cx          [float!]
@@ -848,12 +877,12 @@ OS-draw-shape-arc: func [
         p1-y: as float! path-last-point/y
         p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
         p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
-        int: as red-integer! start + 1
-        radius-x: as float! int/value
-        int: int + 1
-        radius-y: as float! int/value
-        int: int + 1
-        theta: as float! int/value
+        item: as red-value! start + 1
+        radius-x: param-to-float item
+        item: item + 1
+        radius-y: param-to-float item
+        item: item + 1
+        theta: param-to-float item
         if radius-x < 0.0 [ radius-x: radius-x * -1]
         if radius-y < 0.0 [ radius-x: radius-x * -1]
 
