@@ -10,29 +10,23 @@ Red/System [
 	}
 ]
 
-confd: -2
-buffer: allocate 1024
-pbuffer: buffer ;this stores buffer's head position
+dos-console?:	yes
+buffer:			allocate 1024
+pbuffer:		buffer ;this stores buffer's head position
 
 ;-------------------------------------------
-;-- Initialize console ouput handle
+;-- check whether we are in console mode
 ;-------------------------------------------
-init-console-out: func [][
-	confd: simple-io/CreateFileA
-				"CONOUT$"
-				GENERIC_WRITE
-				FILE_SHARE_READ or FILE_SHARE_WRITE
-				null
-				OPEN_EXISTING
-				0
-				null
+get-console-mode: func [/local n [integer!]][
+	n: 0
+	dos-console?: 0 < GetConsoleMode stdout :n
 ]
 
 ;-------------------------------------------
 ;-- putwchar use windows api internal
 ;-------------------------------------------
 putwchar: func [
-	wchar	[integer!]								;-- wchar is 16-bit on Windows
+	wchar	[integer!]									;-- wchar is 16-bit on Windows
 	return:	[integer!]
 	/local
 		n	[integer!]
@@ -42,16 +36,13 @@ putwchar: func [
 	n: 0
 	cr: as integer! #"^M"
 
-	con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
-	either con > 0 [									;-- output to console
-		if confd = -2 [init-console-out]
-		if confd = -1 [return WEOF]
-		WriteConsole confd (as byte-ptr! :wchar) 1 :n null
+	either dos-console? [								;-- output to console
+		WriteConsole stdout (as byte-ptr! :wchar) 1 :n null
 	][													;-- output to redirection file
 		if wchar = as integer! #"^/" [					;-- convert lf to crlf
-			WriteFile _get_osfhandle fd-stdout (as c-string! :cr) 2 :n 0
+			WriteFile stdout (as c-string! :cr) 2 :n 0
 		]
-		WriteFile _get_osfhandle fd-stdout (as c-string! :wchar) 2 :n 0
+		WriteFile stdout (as c-string! :wchar) 2 :n 0
 	]
 	wchar
 ]
@@ -67,13 +58,10 @@ putbuffer: func [
 		con	[integer!]
 ][
 	n: 0
-	con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
-	either con > 0 [									;-- output to console
-		if confd = -2 [init-console-out]
-		if confd = -1 [return WEOF]					
-		WriteConsole confd pbuffer chars :n null
-	][													;-- output to redirection file
-		WriteFile _get_osfhandle fd-stdout as c-string! pbuffer 2 * chars :n 0
+	either dos-console? [
+		WriteConsole stdout pbuffer chars :n null
+	][												;-- output to redirection file
+		WriteFile stdout as c-string! pbuffer 2 * chars :n 0
 	]
 	buffer: pbuffer
 	chars

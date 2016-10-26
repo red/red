@@ -181,15 +181,20 @@ preprocessor: context [
 		
 		exec: make exec protos
 	]
-	
+
+	reset: does [
+		exec: do [context [config: none]]
+		clear protos
+		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
+	]
+
 	expand: func [
 		code [block!] job [object! none!]
 		/local rule s e pos cond value then else cases body keep? expr
 	][
-		exec: context [config: job]
-		clear protos
-		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
-		
+		reset
+		exec/config: job
+
 		#process off
 		parse code rule: [
 			any [
