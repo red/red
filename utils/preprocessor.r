@@ -184,7 +184,7 @@ preprocessor: context [
 	
 	expand: func [
 		code [block!] job [object! none!]
-		/local rule s e pos cond value then else cases body keep?
+		/local rule s e pos cond value then else cases body keep? expr
 	][
 		exec: context [config: job]
 		clear protos
@@ -224,15 +224,17 @@ preprocessor: context [
 				) :s
 				| s: #do (keep?: no) opt ['keep (keep?: yes)] block! e: (
 					if active? [
-						either keep? [remove/part s e][s: change/part s do-code s/2 s/1 e]
+						pos: pick [3 2] keep?
+						expr: do-code s/:pos s/1
+						either keep? [s: change/part s expr e][remove/part s e]
 					]
-				)
+				) :s
 				
 				| s: #process [
 					  'on  (active?: yes remove/part s 2) :s
 					| 'off (active?: no  remove/part s 2) :s [to #process | to end]
 				]
-				  
+				
 				| s: #macro [set-word! | word! | block!]['func | 'function] block! block! e: (
 					register-macro next s
 					bind macros 'code					;-- bind newly formed macros to 'expand
