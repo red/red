@@ -46,7 +46,7 @@ preprocessor: context [
 	]
 	
 	reset: does [
-		exec: context [config: none]
+		exec: do [context [config: none]]
 		clear protos
 		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
 	]
