@@ -184,7 +184,7 @@ preprocessor: context [
 	
 	expand: func [
 		code [block!] job [object! none!]
-		/local rule s e pos cond value then else cases body skip?
+		/local rule s e pos cond value then else cases body keep?
 	][
 		exec: context [config: job]
 		clear protos
@@ -222,11 +222,11 @@ preprocessor: context [
 						either cond [change/part s cases/1 e][remove/part s e]
 					]
 				) :s
-				| s: #do (skip?: no) opt ['skip (skip?: yes)] block! e: (
+				| s: #do (keep?: no) opt ['keep (keep?: yes)] block! e: (
 					if active? [
-						either skip? [remove/part s e][s: change/part s do-code s/2 s/1 e]
+						either keep? [remove/part s e][s: change/part s do-code s/2 s/1 e]
 					]
-				) :s
+				)
 				
 				| s: #process [
 					  'on  (active?: yes remove/part s 2) :s
