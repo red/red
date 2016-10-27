@@ -4219,7 +4219,7 @@ red: context [
 		comp-init
 		
 		unless all [job/dev-mode? not job/libRedRT?][
-			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
+			pc: next preprocessor/expand load-source/hidden %boot.red job		;-- compile Red's boot script
 			unless job/red-help? [clear-docstrings pc]
 			booting?: yes
 			comp-block
@@ -4485,7 +4485,9 @@ red: context [
 		clean-up
 		main-path: first split-path any [all [block? file system/options/path] file]
 		resources: make block! 8
-		
+
+		extracts/init job
+
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
