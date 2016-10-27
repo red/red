@@ -361,17 +361,6 @@ radian-to-degrees: func [
     (radians * 180.0) / PI
 ]
 
-abs: func [
-    value   [float!]
-    return: [float!]
-    /local
-        n   [int-ptr!]
-][
-    n: (as int-ptr! :value) + 1
-    n/value: n/value and 7FFFFFFFh
-    value
-]
-
 adjust-angle: func [
     x       [float!]
     y       [float!]
@@ -809,22 +798,6 @@ OS-draw-shape-qcurv: func [
     draw-short-curves dc start end rel? 1
 ]
 
-param-to-float: func [
-    value       [red-value!]    ;-- only TYPE_FLOAT or TYPE_INTEGER
-    return:     [float!]
-    /local
-        val-f   [red-float!]
-        val-i   [red-integer!]
-][
-    either TYPE_OF(value) = TYPE_INTEGER [
-        val-i: as red-integer! value
-        as float! val-i/value
-    ][
-        val-f: as red-float! value
-        val-f/value
-    ]
-]
-
 OS-draw-shape-arc: func [
     dc      [handle!]
     start   [red-pair!]
@@ -833,8 +806,7 @@ OS-draw-shape-arc: func [
     large?  [logic!]
     rel?    [logic!]
     /local
-        item        [red-value!]
-        item-f      [red-float!]
+        item        [red-integer!]
         center-x    [float!]
         center-y    [float!]
         cx          [float!]
@@ -877,12 +849,12 @@ OS-draw-shape-arc: func [
         p1-y: as float! path-last-point/y
         p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
         p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
-        item: as red-value! start + 1
-        radius-x: param-to-float item
+        item: as red-integer! start + 1
+        radius-x: get-float item
         item: item + 1
-        radius-y: param-to-float item
+        radius-y: get-float item
         item: item + 1
-        theta: param-to-float item
+        theta: get-float item
         if radius-x < 0.0 [ radius-x: radius-x * -1]
         if radius-y < 0.0 [ radius-x: radius-x * -1]
 
@@ -911,9 +883,9 @@ OS-draw-shape-arc: func [
         center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
         ;-- calculate angles
-        angle-1: radian-to-degrees system/words/atan (abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: radian-to-degrees system/words/atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
         angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
-        angle-2: radian-to-degrees system/words/atan (abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: radian-to-degrees system/words/atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
         angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
         angle-len: angle-2 - angle-1
         sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
