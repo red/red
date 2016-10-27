@@ -336,8 +336,8 @@ suffix?: function [
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
 	source [file! url! string! binary!]
-	/header "TBD: Include Red header as a loaded value"
-	/all    "TBD: Don't evaluate Red header"
+	/header "TBD"
+	/all    "Load all values, returns a block. TBD: Don't evaluate Red header"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
 	/part
@@ -625,6 +625,7 @@ list-dir: function [
 		]
 		prin lf
 	]
+	()
 ]
 
 make-dir: function [
@@ -873,7 +874,7 @@ split-path: func [
 
 do-file: func [file [file!] /local saved code new-path][
 	saved: system/options/path
-	code: expand-directives load file
+	code: expand-directives load/all file
 	new-path: first split-path clean-path file
 	change-dir new-path
 	set/any 'code do code

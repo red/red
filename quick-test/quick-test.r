@@ -225,6 +225,7 @@ qt: make object! [
     	  do/args (reduce base-dir/red.r) (join " -o " [
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
+    	  echo none
     	]
     	either lib [
     		replace comp "###lib###" join "-dlib -t " [target " "]
@@ -672,6 +673,8 @@ qt: make object! [
   	  /local
   	  	f
   ][
+  	foreach file read runnable-dir [attempt [delete runnable-dir/:file]]
+  	
   	f: to string! now/time/precise
   	f: replace/all f ":" ""
   	f: replace/all f "." ""

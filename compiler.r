@@ -42,7 +42,8 @@ red: context [
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
-	preprocessor:  do bind load-cache %utils/preprocessor.r 'self
+	preprocessor:  do-cache file: %utils/preprocessor.r
+	preprocessor:  do preprocessor/expand load-cache file none ;-- apply preprocessor on itself
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
@@ -4218,7 +4219,7 @@ red: context [
 		comp-init
 		
 		unless all [job/dev-mode? not job/libRedRT?][
-			pc: next load-source/hidden %boot.red			;-- compile Red's boot script
+			pc: next preprocessor/expand load-source/hidden %boot.red job		;-- compile Red's boot script
 			unless job/red-help? [clear-docstrings pc]
 			booting?: yes
 			comp-block
@@ -4414,26 +4415,27 @@ red: context [
 		src
 	]
 	
-	process-config: func [header [block!] job [object!]][
+	process-config: func [header [block!] /local spec][
 		if spec: select header first [config:][do bind spec job]
 	]
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
-		case [
-			all [
-				list: select header first [Needs:]
-				find [word! lit-word! block!] type?/word list	;-- do not process other types
-			][
-				unless block? list [list: reduce [list]]
-				mods: make block! 2
-				
-				foreach mod list [
-					unless file: select standard-modules mod [
-						throw-error ["module not found:" mod]
-					]
-					unless find needed file [append needed file]
+		either all [
+			list: select header first [Needs:]
+			find [word! lit-word! block!] type?/word list	;-- do not process other types
+		][
+			unless block? list [list: reduce [list]]
+			job/modules: list
+			mods: make block! 2
+			
+			foreach mod list [
+				unless file: select standard-modules mod [
+					throw-error ["module not found:" mod]
 				]
+				unless find needed file [append needed file]
 			]
+		][
+			job/modules: make block! 0
 		]
 	]
 	
@@ -4484,13 +4486,14 @@ red: context [
 		clean-up
 		main-path: first split-path any [all [block? file system/options/path] file]
 		resources: make block! 8
-		
+
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
-			process-config src/1 job
+			process-config src/1
 			preprocessor/expand src job
 			process-needs src/1 next src
+			extracts/init job
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
 			

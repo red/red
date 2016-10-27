@@ -80,15 +80,6 @@ platform: context [
 				mode		[integer!]
 				return:		[integer!]
 			]
-			_get_osfhandle: "_get_osfhandle" [
-				fd			[integer!]
-				return:		[integer!]
-			]
-			;_open_osfhandle: "_open_osfhandle" [
-			;	handle		[integer!]
-			;	flags		[integer!]
-			;	return:		[integer!]
-			;]
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
@@ -337,5 +328,6 @@ platform: context [
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
 		]
 		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		#if sub-system = 'console [get-console-mode]
 	]
 ]

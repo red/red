@@ -1699,14 +1699,11 @@ make-profilable make target-class [
 			]
 		]
 		
-		reversed?: to logic! any [
-			all [b = 'reg any [
-				all [a = 'ref block? right]
-				all [a = 'imm block? right]
-				all [path? left block? right]
-			]]
-			all [a = 'reg b = 'ref path? left]
-		]
+		reversed?: to logic! all [b = 'reg any [
+			all [a = 'ref block? right]
+			all [a = 'imm block? right]
+			all [path? left block? right]
+		]]
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args reversed?]
 			find math-op	   name	[emit-float-math-op		  name a b args reversed?]

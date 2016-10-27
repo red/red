@@ -149,6 +149,7 @@ write %build/bin/sources.r set-cache [
 					%button.reds
 					%camera.reds
 					%classes.reds
+					%comdlgs.reds
 					%direct2d.reds
 					%draw.reds
 					%events.reds

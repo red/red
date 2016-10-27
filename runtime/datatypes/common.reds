@@ -23,6 +23,9 @@ names!: alias struct! [
 name-table:	  as names! 0	 						;-- datatype names table
 action-table: as int-ptr! 0							;-- actions jump table
 
+get-build-date: func [return: [c-string!]][			;-- used by red.r
+	#build-date
+]
 
 set-type: func [										;@@ convert to macro?
 	cell [cell!]

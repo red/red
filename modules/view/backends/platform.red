@@ -555,7 +555,27 @@ system/view/platform: context [
 	request-font: routine [font [object!] mono? [logic!]][
 		gui/OS-request-font font mono?
 	]
-	
+
+	request-file: routine [
+		title	[string!]
+		name	[file!]
+		filter	[block!]
+		save?	[logic!]
+		multi?	[logic!]
+	][
+		stack/set-last gui/OS-request-file title name filter save? multi?
+	]
+
+	request-dir: routine [
+		title	[string!]
+		dir		[file!]
+		filter	[block!]
+		keep?	[logic!]
+		multi?	[logic!]
+	][
+		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+	]
+
 	init: func [/local svs fonts][
 		#system [gui/init]
 		

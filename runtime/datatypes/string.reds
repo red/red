@@ -877,6 +877,7 @@ string: context [
 			unit1 [integer!]
 			unit2 [integer!]
 			size  [integer!]
+			size1 [integer!]
 			size2 [integer!]
 			tail  [byte-ptr!]
 			p	  [byte-ptr!]
@@ -927,18 +928,16 @@ string: context [
 		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
-		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + (unit1 / unit2 * size2)		;-- account for keep?
+		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
+		if all [part >= 0 part < size2][size2: part]
+		size: unit1 * size2
 
-		if s1/size < size [s1: expand-series s1 size * 2]
-		
-		if part >= 0 [
-			part: part << (log-b unit2)
-			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
-		]
+		size1: (as-integer s1/tail - s1/offset) + size
+		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+
 		if type = TYPE_INSERT [
 			move-memory									;-- make space
-				(as byte-ptr! s1/offset) + h1 + offset + size2
+				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
@@ -951,8 +950,7 @@ string: context [
 		]
 		either all [keep? diff?][
 			p2: (as byte-ptr! s2/offset) + h2
-			limit: p2 + size2
-			size2: unit1 / unit2 * size2
+			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
 				switch unit2 [
 					Latin1 [cp: as-integer p2/1]
@@ -968,10 +966,10 @@ string: context [
 				p2: p2 + unit2
 			]
 		][
-			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
-			p: p + size2
+			copy-memory	p (as byte-ptr! s2/offset) + h2 size
+			p: p + size
 		]
-		if type = TYPE_INSERT [p: tail + size2] 
+		if type = TYPE_INSERT [p: tail + size] 
 		if all [type = TYPE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]

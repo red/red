@@ -1,9 +1,9 @@
 
-Usage: red [options] [file]
+Usage: red [command] [options] [file]
 
 [file]: any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
-Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run as gui-mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
+Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
 
 [options]:
     --cli                          : Run the command-line REPL instead of the
@@ -11,12 +11,6 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 
     -c, --compile                  : Generate an executable in the working
                                      folder.
-
-    -r, --release                  : Compile in release mode, linking everything
-                                     together (default: development mode).
-
-    -u, --update-libRedRT          : Rebuild libRedRT and compile the input script
-                                      (only for Red scripts with R/S code).
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -32,9 +26,15 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --no-runtime                   : Do not include runtime during Red/System
                                      source compilation.
 
+    -r, --release                  : Compile in release mode, linking everything
+                                     together (default: development mode).
+
     -t <ID>, --target <ID>         : Cross-compile to a different platform
                                      target than the current one (see targets
                                      table below).
+
+    -u, --update-libRedRT          : Rebuild libRedRT and compile the input script
+                                      (only for Red scripts with R/S code).
 
     -v <level>, --verbose <level>  : Set compilation verbosity level, 1-3 for
                                      Red, 4-11 for Red/System.
@@ -45,6 +45,10 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+                                     
+[command]:
+    clear [<path>]                 : Delete all temporary files from current
+                                     or target <path> folder.
 
 Cross-compilation targets:
 

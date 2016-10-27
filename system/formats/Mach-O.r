@@ -289,6 +289,7 @@ context [
 	load-cmds-sz:		0
 	stub-size:			5								;-- imported functions slot size
 	segments:			none
+	data-reloc: 		none							;-- temporary info for data segment local relocation
 
 	;-- Mach-O structure builders --
 	
@@ -460,6 +461,43 @@ context [
 			]
 		]
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
+	]
+	
+	collect-data-reloc: func [job [object!] /local list syms spec][
+		list: make block! 100
+		syms: job/symbols
+
+		while [not tail? syms][
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][
+				append list spec/2
+			]
+		]
+		list
+	]
+	
+	build-data-reloc: func [
+		job [object!]
+		/local relocs buffer base
+	][
+		data-reloc: either empty? relocs: collect-data-reloc job [
+			[0 #{}]
+		][
+			buffer: make binary! 8 * length? relocs
+			base: get-section-addr '__data
+			foreach ptr relocs [
+				pointer/value: ptr + base
+				append buffer form-struct pointer
+				append buffer defs/reloc-bits
+			]
+			reduce [length? relocs buffer]
+		]
 	]
 	
 	resolve-import-refs: func [job [object!] /local code base][
@@ -705,7 +743,7 @@ context [
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   either reloc [reloffset][0]
-		sc/nlocrel:		   either reloc [(length? reloc/2) / 8][0]
+		sc/nlocrel:		   either reloc [(length? reloc/2) / 8 + data-reloc/1][0]
 		sc: form-struct sc
 		sc
 	]
@@ -833,7 +871,10 @@ context [
 	
 		prepare-headers job
 		
-		if job/type = 'dll [resolve-exports job]
+		if job/type = 'dll [
+			resolve-exports job
+			build-data-reloc job
+		]
 		
 		out: job/buffer
 		append out build-mach-header job
@@ -883,9 +924,11 @@ context [
 		either job/type = 'dll [
 			either find job/sections 'initfuncs [
 				append out rejoin job/sections/symbols/2
-				emit-page-aligned out job/sections/reloc-info/2
+				append out job/sections/reloc-info/2
+				emit-page-aligned out data-reloc/2
 			][
-				emit-page-aligned out rejoin job/sections/symbols/2
+				append out rejoin job/sections/symbols/2
+				emit-page-aligned out data-reloc/2
 			]
 		][
 			emit-page-aligned out rejoin job/sections/symbols/2

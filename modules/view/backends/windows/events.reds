@@ -95,6 +95,7 @@ get-event-offset: func [
 		x	   [integer!]
 		y	   [integer!]
 ][
+	msg: as tagMSG evt/msg
 	case [
 		any [
 			evt/type <= EVT_OVER
@@ -103,8 +104,6 @@ get-event-offset: func [
 			evt/type = EVT_MOVE
 			evt/type = EVT_SIZE
 		][
-			msg: as tagMSG evt/msg
-
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
 			value: msg/lParam
@@ -128,13 +127,26 @@ get-event-offset: func [
 			as red-value! offset
 		]
 		any [
+			evt/type = EVT_KEY
+			evt/type = EVT_KEY_UP
+			evt/type = EVT_KEY_DOWN
+		][
+			offset: as red-pair! stack/push*
+			offset/header: TYPE_PAIR
+
+			value: GetMessagePos
+			pt: screen-to-client msg/hWnd WIN32_LOWORD(value) WIN32_HIWORD(value)
+			offset/x: pt/x
+			offset/y: pt/y
+			as red-value! offset
+		]
+		any [
 			evt/type = EVT_ZOOM
 			evt/type = EVT_PAN
 			evt/type = EVT_ROTATE
 			evt/type = EVT_TWO_TAP
 			evt/type = EVT_PRESS_TAP
 		][
-			msg: as tagMSG evt/msg
 			gi: get-gesture-info msg/lParam
 			
 			offset: as red-pair! stack/push*

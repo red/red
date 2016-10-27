@@ -2159,7 +2159,7 @@ make-profilable make target-class [
 		
 		if any [
 			all [b = 'reg all [path? left block? right]]
-			all [a = 'reg b = 'ref path? left]
+			;all [a = 'reg b = 'ref path? left]
 		][											;-- exchange s0/s2 or d0/d1
 			either width = 4 [
 				emit-i32 #{eeb02a40}				;-- FCPYS  s4, s0

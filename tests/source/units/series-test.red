@@ -1478,6 +1478,9 @@ Red [
 		str: change "1234" [a b]
 		--assert "34" = str
 		--assert "ab34" = head str
+	--test-- "change-str-7"
+		str: "我ab/cd"
+		--assert "-cd" = back change/part skip str 3 "-" skip str 4
 
 	--test-- "change-bin-1"
 		bin: #{12345678}

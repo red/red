@@ -1,4 +1,6 @@
 [
+	red/boot
+	red/get-build-date
 	red/copy-cell
 	;red/get-root
 	red/get-root-node2
@@ -308,9 +310,7 @@
 	red/natives/extend*
 	red/natives/debase*
 	red/natives/to-local-file*
-	red/natives/request-file*
 	red/natives/wait*
-	red/natives/request-dir*
 	red/natives/checksum*
 	red/natives/unset*
 	red/natives/handle-thrown-error

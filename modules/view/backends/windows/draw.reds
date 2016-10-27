@@ -361,17 +361,6 @@ radian-to-degrees: func [
     (radians * 180.0) / PI
 ]
 
-abs: func [
-    value   [float!]
-    return: [float!]
-    /local
-        n   [int-ptr!]
-][
-    n: (as int-ptr! :value) + 1
-    n/value: n/value and 7FFFFFFFh
-    value
-]
-
 adjust-angle: func [
     x       [float!]
     y       [float!]
@@ -714,14 +703,17 @@ OS-draw-shape-line: func [
 
 OS-draw-shape-axis: func [
     dc          [handle!]
-    start       [red-integer!]
-    end         [red-integer!]
+    start       [red-value!]
+    end         [red-value!]
     rel?        [logic!]
     hline       [logic!]
     /local
         pt      [tagPOINT]
         nb      [integer!]
-        coord   [red-integer!]
+        coord	[red-value!]
+        coord-v [integer!]
+        coord-f [red-float!]
+        coord-i [red-integer!]
 ][
     pt: edges
     nb: 0
@@ -731,19 +723,27 @@ OS-draw-shape-axis: func [
     pt/y: path-last-point/y
     pt: pt + 1
     nb: nb + 1
-    while [ all [ coord <= end nb < max-edges ] ][
+    coord-v: 0
+	until [
+        either TYPE_OF(coord) = TYPE_INTEGER [
+            coord-i: as red-integer! coord
+            coord-v: coord-i/value
+        ][
+            coord-f: as red-float! coord
+            coord-v: as integer! coord-f/value
+        ]
         case [
             hline [
                 either rel? [ 
-                    pt/x: path-last-point/x + coord/value
-                ][ pt/x: coord/value ]
+                    pt/x: path-last-point/x + coord-v
+                ][ pt/x: coord-v ]
                 pt/y: path-last-point/y
                 path-last-point/x: pt/x
             ]
             true [
                 either rel? [ 
-                    pt/y: path-last-point/y + coord/value
-                ][ pt/y: coord/value ]
+                    pt/y: path-last-point/y + coord-v
+                ][ pt/y: coord-v ]
                 pt/x: path-last-point/x
                 path-last-point/y: pt/y 
             ]
@@ -751,6 +751,7 @@ OS-draw-shape-axis: func [
         coord: coord + 1
         nb: nb + 1
         pt: pt + 1
+        any [ coord > end nb >= max-edges ]
     ]
     last-point?: yes
     either GDI+? [
@@ -800,12 +801,12 @@ OS-draw-shape-qcurv: func [
 OS-draw-shape-arc: func [
     dc      [handle!]
     start   [red-pair!]
-    end     [red-integer!]
+    end     [red-value!]
     sweep?  [logic!]
     large?  [logic!]
     rel?    [logic!]
     /local
-        int         [red-integer!]
+        item        [red-integer!]
         center-x    [float!]
         center-y    [float!]
         cx          [float!]
@@ -848,12 +849,12 @@ OS-draw-shape-arc: func [
         p1-y: as float! path-last-point/y
         p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
         p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
-        int: as red-integer! start + 1
-        radius-x: as float! int/value
-        int: int + 1
-        radius-y: as float! int/value
-        int: int + 1
-        theta: as float! int/value
+        item: as red-integer! start + 1
+        radius-x: get-float item
+        item: item + 1
+        radius-y: get-float item
+        item: item + 1
+        theta: get-float item
         if radius-x < 0.0 [ radius-x: radius-x * -1]
         if radius-y < 0.0 [ radius-x: radius-x * -1]
 
@@ -882,9 +883,9 @@ OS-draw-shape-arc: func [
         center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
         ;-- calculate angles
-        angle-1: radian-to-degrees system/words/atan (abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: radian-to-degrees system/words/atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
         angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
-        angle-2: radian-to-degrees system/words/atan (abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: radian-to-degrees system/words/atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
         angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
         angle-len: angle-2 - angle-1
         sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
