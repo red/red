@@ -22,6 +22,7 @@ Red/System [
 #include %classes.reds
 #include %menu.reds
 #include %tab-panel.reds
+#include %comdlgs.reds
 
 NSApp:					0
 NSAppDelegate:			0
