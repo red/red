@@ -67,6 +67,7 @@ system-dialect: make-profilable context [
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRedRT?: 			no
 		libRedRT-update?:	no
+		modules:			none
 	]
 	
 	compiler: make-profilable context [
