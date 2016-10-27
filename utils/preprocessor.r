@@ -165,6 +165,7 @@ preprocessor: context [
 			repend rule [
 				name: to lit-word! spec/1
 				to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
+				to get-word! 's
 			]
 			append protos copy/part spec 4
 		][												;-- pattern-matching macro
@@ -175,7 +176,8 @@ preprocessor: context [
 				to set-word! 's
 				bind spec/1 self						;-- allow rule to reference exec's words
 				to set-word! 'e
-				to-paren compose/deep [do-safe [(:macro) s e]]
+				to-paren compose/deep [s: do-safe [(:macro) s e]]
+				to get-word! 's
 			]
 		]
 		
