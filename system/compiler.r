@@ -67,6 +67,7 @@ system-dialect: make-profilable context [
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
 		libRedRT?: 			no
 		libRedRT-update?:	no
+		modules:			none
 	]
 	
 	compiler: make-profilable context [
@@ -1678,6 +1679,7 @@ system-dialect: make-profilable context [
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
 				#user-code [user-code?: not user-code? pc: next pc]
+				#build-date[change pc mold now]
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -2773,7 +2775,7 @@ system-dialect: make-profilable context [
 					all [spec/2 = 'routine external-call? spec]
 				]
 			]
-			if align? [emitter/target/emit-stack-align-prolog args]
+			if align? [emitter/target/emit-stack-align-prolog args spec]
 			
 			if args/1 <> #custom [
 				type: functions/:name/2
@@ -3388,7 +3390,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script][
+	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script ext][
 		script: either encap? [
 			set-cache-base %system/runtime/
 			%common.reds
@@ -3398,6 +3400,13 @@ system-dialect: make-profilable context [
  		compiler/run/runtime job loader/process/own script script
  		
  		if red? [
+			if all [job/dev-mode? job/type = 'exe][
+				ext: switch/default job/OS [Windows [%.dll] MacOSX [%.dylib]][%.so]
+				compiler/process-import compose [
+					(join "libRedRT" ext) stdcall [__red-boot: "red/boot" []]
+				]
+				compiler/comp-call '__red-boot []
+			]
 			if payload [								;-- Redbin boot data handling
 				emitter/target/emit-load-literal [binary!] payload
 				emitter/target/emit-move-path-alt
@@ -3609,13 +3618,13 @@ system-dialect: make-profilable context [
 						export [- - (compiler/exports)]
 					]
 				]
-				unless empty? resources [
-					if job/OS = 'Windows [
-						if icon: find resources 'icon [
-							insert skip icon 2 reduce ['group-icon icon/2]
-						]
-						append resources reduce ['manifest none]
+				if job/OS = 'Windows [
+					if icon: find resources 'icon [
+						insert skip icon 2 reduce ['group-icon icon/2]
 					]
+					append resources reduce ['manifest none]		;-- always use manifest file in DLL and EXE
+				]
+				unless empty? resources [
 					append job/sections compose/deep/only [
 						rsrc   [- - (resources)]
 					]

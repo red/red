@@ -22,17 +22,11 @@ Red/System [
 #include %classes.reds
 #include %menu.reds
 #include %tab-panel.reds
+#include %comdlgs.reds
 
 NSApp:					0
 NSAppDelegate:			0
 AppMainMenu:			0
-NSDefaultRunLoopMode:	0
-&_NSConcreteStackBlock: 0
-NSFontAttributeName:	0
-NSParagraphStyleAttributeName:		0
-NSForegroundColorAttributeName:		0
-NSUnderlineStyleAttributeName:		0
-NSStrikethroughStyleAttributeName:	0
 
 nswindow-cnt:	0
 
@@ -252,23 +246,6 @@ init: func [
 		lib		 [integer!]
 		p-int	 [int-ptr!]
 ][
-	lib: red/platform/dlopen "/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" RTLD_LAZY
-	p-int: red/platform/dlsym lib "NSDefaultRunLoopMode"
-	NSDefaultRunLoopMode: p-int/value
-	p-int: red/platform/dlsym lib "NSFontAttributeName"
-	NSFontAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSParagraphStyleAttributeName"
-	NSParagraphStyleAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSForegroundColorAttributeName"
-	NSForegroundColorAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSUnderlineStyleAttributeName"
-	NSUnderlineStyleAttributeName: p-int/value
-	p-int: red/platform/dlsym lib "NSStrikethroughStyleAttributeName"
-	NSStrikethroughStyleAttributeName: p-int/value
-
-	lib: red/platform/dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
-	&_NSConcreteStackBlock: as-integer red/platform/dlsym lib "_NSConcreteStackBlock"
-
 	init-selectors
 
 	NSApp: objc_msgSend [objc_getClass "NSApplication" sel_getUid "sharedApplication"]
@@ -454,7 +431,7 @@ change-rate: func [
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			ts: tm/time / 1E3
+			ts: tm/time / 1E9
 		]
 		TYPE_NONE [exit]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
@@ -789,9 +766,8 @@ change-selection: func [
 		idx [integer!]
 		sz	[integer!]
 ][
-	if TYPE_OF(int) = TYPE_NONE [idx: -1]
-	idx: int/value - 1
-	if idx < 0 [exit]		;-- @@ should unselect the items ?
+	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+	if idx < 0 [exit]									;-- @@ should unselect the items ?
 	case [
 		type = camera [
 			either TYPE_OF(int) = TYPE_NONE [
@@ -1603,5 +1579,5 @@ OS-do-draw: func [
 		rc	[NSRect!]
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
-	do-draw img/node as red-image! rc cmds no yes yes yes
+	do-draw img/node as red-image! rc cmds yes yes yes yes
 ]

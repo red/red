@@ -12,8 +12,11 @@ Red/System [
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
 
+max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
 edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buffer
+colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
+colors-pos: colors + (4 * max-colors)
 
 draw-ctx!: alias struct! [
 	raw				[handle!]					;-- OS drawing object: CGContext
@@ -31,6 +34,19 @@ draw-ctx!: alias struct! [
 	brush-color		[integer!]					;-- 00bbggrr format
 	font-attrs		[integer!]
 	height			[float32!]
+	colorspace		[integer!]
+	grad-pen		[integer!]
+	grad-type		[integer!]
+	grad-mode		[integer!]
+	grad-x			[float32!]
+	grad-y			[float32!]
+	grad-start		[float32!]
+	grad-stop		[float32!]
+	grad-angle		[float32!]
+	grad-sx			[float32!]
+	grad-sy			[float32!]
+	grad-rotate?	[logic!]
+	grad-scale?		[logic!]
 	pen?			[logic!]
 	brush?			[logic!]
 	on-image?		[logic!]					;-- drawing on image?
@@ -50,6 +66,13 @@ draw-begin: func [
 		m		[CGAffineTransform!]
 ][
 	CGContextSaveGState CGCtx
+	rc: as NSRect! img
+	ctx/height:	rc/y
+
+	if on-graphic? [							;-- draw on image!, flip the CTM
+		CGContextTranslateCTM CGCtx as float32! 0.0 ctx/height
+		CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+	]
 	CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 
 	ctx/raw:			CGCtx
@@ -59,8 +82,10 @@ draw-begin: func [
 	ctx/pen-join:		miter
 	ctx/pen-cap:		flat
 	ctx/brush-color:	0
+	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
+	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
@@ -68,8 +93,6 @@ draw-begin: func [
 		default-font NSFontAttributeName
 		0
 	]
-	rc: as NSRect! img
-	ctx/height:	rc/y	
 
 	CGContextSetMiterLimit CGCtx DRAW_FLOAT_MAX
 	OS-draw-anti-alias ctx yes
@@ -94,6 +117,7 @@ draw-end: func [
 	paint?		[logic!]
 ][
 	if dc/font-attrs <> 0	[objc_msgSend [dc/font-attrs sel_getUid "release"]]
+	CGColorSpaceRelease dc/colorspace
 	CGContextRestoreGState CGCtx
 	OS-draw-anti-alias dc yes
 ]
@@ -173,6 +197,7 @@ OS-draw-fill-pen: func [
 	off?   [logic!]
 	alpha? [logic!]
 ][
+	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen dc/grad-pen: -1]
 	either off? [dc/brush?: no][
 		if dc/brush-color <> color [
 			dc/brush?: yes
@@ -232,25 +257,36 @@ OS-draw-box: func [
 		CGContextAddArcToPoint ctx x2 y2 xm y2 rad
 		CGContextAddArcToPoint ctx x1 y2 x1 ym rad
 		CGContextClosePath ctx
-		do-draw-path dc
 	][
-		if dc/brush? [CGContextFillRect ctx x1 y1 x2 - x1 y2 - y1]
-		if dc/pen? [CGContextStrokeRect ctx x1 y1 x2 - x1 y2 - y1]
+		CGContextAddRect ctx x1 y1 x2 - x1 y2 - y1
 	]
+	do-draw-path dc
 ]
 
 do-draw-path: func [
 	dc	  [draw-ctx!]
 	/local
+		ctx  [handle!]
 		mode [integer!]
+		path [integer!]
 ][
-	mode: case [
-		all [dc/pen? dc/brush?] [kCGPathFillStroke]
-		dc/brush?				[kCGPathFill]
-		dc/pen?					[kCGPathStroke]
-		true					[-1]
+	ctx: dc/raw
+	either dc/grad-pen = -1 [
+		mode: case [
+			all [dc/pen? dc/brush?] [kCGPathFillStroke]
+			dc/brush?				[kCGPathFill]
+			dc/pen?					[kCGPathStroke]
+			true					[-1]
+		]
+		if mode <> -1 [CGContextDrawPath ctx mode]
+	][
+		if dc/pen? [path: CGContextCopyPath ctx]
+		fill-gradient-region dc
+		if dc/pen? [
+			CGContextAddPath ctx path
+			CGContextStrokePath ctx
+		]
 	]
-	if mode <> -1 [CGContextDrawPath dc/raw mode]
 ]
 
 OS-draw-triangle: func [
@@ -401,8 +437,8 @@ do-draw-ellipse: func [
 	w		[float32!]
 	h		[float32!]
 ][
-	if dc/brush? [CGContextFillEllipseInRect dc/raw x y w h]
-	if dc/pen? [CGContextStrokeEllipseInRect dc/raw x y w h]
+	CGContextAddEllipseInRect dc/raw x y w h
+	do-draw-path dc
 ]
 
 OS-draw-circle: func [
@@ -628,8 +664,12 @@ OS-draw-arc: func [
 			CGContextAddArc ctx cx cy rad-x angle-begin angle-end 0
 		]
 	]
-	if closed? [CGContextClosePath ctx]
-	do-draw-path dc
+	either closed? [
+		CGContextClosePath ctx
+		do-draw-path dc
+	][
+		CGContextStrokePath ctx
+	]
 ]
 
 OS-draw-curve: func [
@@ -767,6 +807,41 @@ OS-draw-image: func [
 	CG-draw-image dc/raw as-integer image/node x y width height
 ]
 
+fill-gradient-region: func [
+	dc		[draw-ctx!]
+	/local
+		ctx [handle!]
+		r	[float32!]
+][
+	ctx: dc/raw
+	CGContextSaveGState ctx
+	CGContextClip ctx
+
+	either dc/grad-type = linear [
+		CGContextDrawLinearGradient
+			ctx
+			dc/grad-pen
+			dc/grad-x + dc/grad-start
+			dc/grad-y
+			dc/grad-x + dc/grad-stop
+			dc/grad-y
+			0
+	][
+		r: dc/grad-stop - dc/grad-start
+		CGContextDrawRadialGradient
+			ctx
+			dc/grad-pen
+			dc/grad-x
+			dc/grad-y
+			as float32! 0
+			dc/grad-x
+			dc/grad-y
+			r
+			0
+	]
+	CGContextRestoreGState ctx
+]
+
 OS-draw-grad-pen: func [
 	dc			[draw-ctx!]
 	type		[integer!]
@@ -774,7 +849,95 @@ OS-draw-grad-pen: func [
 	offset		[red-pair!]
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
-][0]
+	/local
+		start	[integer!]
+		stop	[integer!]
+		space	[integer!]
+		val		[integer!]
+		color	[pointer! [float32!]]
+		pos		[pointer! [float32!]]
+		last-c	[pointer! [float32!]]
+		last-p	[pointer! [float32!]]
+		int		[red-integer!]
+		f		[red-float!]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		n		[integer!]
+		delta	[float32!]
+		p		[float32!]
+		scale?	[logic!]
+][
+	dc/grad-type: type
+	dc/grad-mode: mode
+	dc/grad-x: as float32! offset/x			;-- save gradient offset for later use
+	dc/grad-y: as float32! offset/y
+
+	int: as red-integer! offset + 1
+	dc/grad-start: as float32! int/value
+	int: int + 1
+	dc/grad-stop: as float32! int/value
+
+	n: 0
+	while [
+		int: int + 1
+		n < 3
+	][										;-- fetch angle, scale-x and scale-y (optional)
+		switch TYPE_OF(int) [
+			TYPE_INTEGER	[p: as float32! int/value]
+			TYPE_FLOAT		[f: as red-float! int p: as float32! f/value]
+			default			[break]
+		]
+		switch n [
+			0	[if p <> as float32! 0.0 [dc/grad-angle: p dc/grad-rotate?: yes]]
+			1	[if p <> as float32! 1.0 [dc/grad-sx: p dc/grad-scale?: yes]]
+			2	[if p <> as float32! 1.0 [dc/grad-sy: p dc/grad-scale?: yes]]
+		]
+		n: n + 1
+	]
+
+	color: colors + 4
+	pos: colors-pos + 1
+	delta: as float32! count - 1
+	delta: (as float32! 1.0) / delta
+	p: as float32! 0.0
+	head: as red-value! int
+
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		val: clr/array1
+		color/1: (as float32! val and FFh) / 255.0
+		color/2: (as float32! val >> 8 and FFh) / 255.0
+		color/3: (as float32! val >> 16 and FFh) / 255.0
+		color/4: (as float32! 255 - (val >>> 24)) / 255.0
+		next: head + 1 
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: as float32! f/value]
+		pos/value: p
+		if next <> head [p: p + delta]
+		head: head + 1
+		color: color + 4
+		pos: pos + 1
+	]
+
+	last-p: pos - 1
+	last-c: color - 4
+	pos: pos - count
+	color: color - (count * 4)
+
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 0.0
+		colors/1: color/1
+		colors/2: color/2
+		colors/3: color/3
+		colors/4: color/4
+		color: colors
+		pos: colors-pos
+		count: count + 1
+	]
+
+	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen]
+	dc/grad-pen: CGGradientCreateWithColorComponents dc/colorspace color pos count
+]
 
 ;transform-point: func [
 ;	ctx			[handle!]
@@ -952,9 +1115,39 @@ OS-matrix-set: func [
 ]
 
 OS-set-clip: func [
+	dc		[draw-ctx!]
 	upper	[red-pair!]
 	lower	[red-pair!]
+	/local
+		ctx [handle!]
+		t	[integer!]
+		x1	[integer!]
+		x2	[integer!]
+		y1	[integer!]
+		y2	[integer!]
+		p4	[integer!]
+		p3	[integer!]
+		p2	[integer!]
+		p1	[integer!]
+		rc	[NSRect!]
 ][
+	ctx: dc/raw
+	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+
+	p1: 0
+	rc: as NSRect! :p1
+	x1: upper/x
+	y1: upper/y
+	x2: lower/x
+	y2: lower/y
+	rc/x: as float32! x1
+	rc/y: as float32! y1
+	rc/w: as float32! x2 - x1
+	rc/h: as float32! y2 - y1
+	;CGContextBeginPath ctx
+	CGContextAddRect ctx rc/x rc/y rc/w rc/h
+	CGContextClip ctx
 ]
 
 ;-- shape sub command --
@@ -996,8 +1189,8 @@ OS-draw-shape-line: func [
 
 OS-draw-shape-axis: func [
     dc          [draw-ctx!]
-    start       [red-integer!]
-    end         [red-integer!]
+    start       [red-value!]
+    end         [red-value!]
     rel?        [logic!]
     hline       [logic!]
 ][
@@ -1042,7 +1235,7 @@ OS-draw-shape-qcurv: func [
 OS-draw-shape-arc: func [
     dc      [draw-ctx!]
     start   [red-pair!]
-    end     [red-integer!]
+    end     [red-value!]
     sweep?  [logic!]
     large?  [logic!]
     rel?    [logic!]

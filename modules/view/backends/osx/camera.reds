@@ -4,8 +4,8 @@ Red/System [
 	File: 	%camera.reds
 	Tabs: 	4
 	Notes:  {
-		For 10.9+, use AVFoundation, iOS would also use it.
-		For 10.0 ~ 10.8, use QTKit.
+		For 10.7+, use AVFoundation, iOS will also use it.
+		For 10.0 ~ 10.6, use QTKit.(TBD)
 	}
 	References: {
 		https://developer.apple.com/library/ios/samplecode/AVCam/Listings/AVCam_AAPLCameraViewController_m.html#//apple_ref/doc/uid/DTS40010112-AVCam_AAPLCameraViewController_m-DontLinkElementID_6
@@ -18,10 +18,6 @@ Red/System [
 	}
 ]
 
-AVMediaTypeVideo:		0
-AVVideoCodecKey:		0
-AVVideoCodecJPEG:		0
-
 init-camera: func [
 	camera	[integer!]
 	rc		[NSRect!]
@@ -31,8 +27,6 @@ init-camera: func [
 		session	[integer!]
 		preview	[integer!]
 		layer	[integer!]
-		av-lib	[integer!]
-		p-int	[int-ptr!]
 		n		[integer!]
 		cnt		[integer!]
 		dev		[integer!]
@@ -45,18 +39,17 @@ init-camera: func [
 ][
 	rc/x: as float32! 0.0
 	rc/y: as float32! 0.0
-	if zero? AVMediaTypeVideo [
-		av-lib: red/platform/dlopen "/System/Library/Frameworks/AVFoundation.framework/Versions/Current/AVFoundation" RTLD_LAZY
-		p-int: red/platform/dlsym av-lib "AVMediaTypeVideo"
-		AVMediaTypeVideo: p-int/value
-		p-int: red/platform/dlsym av-lib "AVVideoCodecKey"
-		AVVideoCodecKey: p-int/value
-		p-int: red/platform/dlsym av-lib "AVVideoCodecJPEG"
-		AVVideoCodecJPEG: p-int/value
+
+	layer: objc_msgSend [camera sel_getUid "setWantsLayer:" yes]
+	layer: objc_msgSend [camera sel_getUid "layer"]
+	n: objc_msgSend [objc_getClass "NSColor" sel_getUid "blackColor"]
+	objc_msgSend [
+		layer sel_getUid "setBackgroundColor:" objc_msgSend [n sel_getUid "CGColor"]
 	]
 
 	;-- get all devices name
 	devices: objc_msgSend [objc_getClass "AVCaptureDevice" sel_getUid "devicesWithMediaType:" AVMediaTypeVideo]
+	if zero? devices [exit]
 	cnt: objc_msgSend [devices sel_getUid "count"]
 	if zero? cnt [exit]
 
@@ -92,8 +85,6 @@ init-camera: func [
 
 	preview: objc_msgSend [objc_getClass "AVCaptureVideoPreviewLayer" sel_getUid "layerWithSession:" session]
 	objc_msgSend [preview sel_getUid "setFrame:" rc/x rc/y rc/w rc/h]
-	layer: objc_msgSend [camera sel_getUid "setWantsLayer:" yes]
-	layer: objc_msgSend [camera sel_getUid "layer"]
 	objc_msgSend [layer sel_getUid "addSublayer:" preview]
 ]
 
@@ -167,6 +158,7 @@ snap-camera: func [				;-- capture an image of current preview window
 		invoke		[integer!]
 		reserved	[integer!]
 		flags		[integer!]
+		p-int		[integer!]
 		isa			[integer!]
 		image		[integer!]
 		connection	[integer!]
@@ -176,7 +168,8 @@ snap-camera: func [				;-- capture an image of current preview window
 	objc_block_descriptor/reserved: 0
 	objc_block_descriptor/size: 4 * 6
 
-	isa: &_NSConcreteStackBlock
+	p-int: _NSConcreteStackBlock
+	isa: as-integer :p-int
 	flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
 	reserved: 0
 	invoke: as-integer :still-image-handler

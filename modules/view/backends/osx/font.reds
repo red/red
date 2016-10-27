@@ -71,7 +71,8 @@ make-font: func [
 
 	temp/x: size
 	str: as red-string! values + FONT_OBJ_NAME
-	either TYPE_OF(str) = TYPE_STRING [
+	hFont: null
+	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
 		sym: CFString(name)
@@ -85,7 +86,9 @@ make-font: func [
 			temp/x
 		]
 		CFRelease sym
-	][												;-- use system font
+		#if debug? = yes [print-line ["cannot find font: " name]]
+	]
+	if null? hFont 	[						;-- use system font
 		method: either traits and NSBoldFontMask <> 0 [
 			"boldSystemFontOfSize:"
 		][
@@ -146,7 +149,7 @@ free-font: func [
 ][
 	hFont: get-font-handle font
 	if hFont <> null [
-		OBJC_RELEASE(hFont)
+		objc_msgSend [hFont sel_getUid "release"]
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]

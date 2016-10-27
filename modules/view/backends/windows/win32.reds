@@ -868,6 +868,44 @@ tagCHOOSEFONT: alias struct! [
 	nSizeMax		[integer!]
 ]
 
+tagOFNW: alias struct! [
+	lStructSize			[integer!]
+	hwndOwner			[handle!]
+	hInstance			[integer!]
+	lpstrFilter			[c-string!]
+	lpstrCustomFilter	[c-string!]
+	nMaxCustFilter		[integer!]
+	nFilterIndex		[integer!]
+	lpstrFile			[byte-ptr!]
+	nMaxFile			[integer!]
+	lpstrFileTitle		[c-string!]
+	nMaxFileTitle		[integer!]
+	lpstrInitialDir		[c-string!]
+	lpstrTitle			[c-string!]
+	Flags				[integer!]
+	nFileOffset			[integer!]
+	;nFileExtension		[integer!]
+	lpstrDefExt			[c-string!]
+	lCustData			[integer!]
+	lpfnHook			[integer!]
+	lpTemplateName		[integer!]
+	;-- if (_WIN32_WINNT >= 0x0500)
+	pvReserved			[integer!]
+	dwReserved			[integer!]
+	FlagsEx				[integer!]
+]
+
+tagBROWSEINFO: alias struct! [
+	hwndOwner		[handle!]
+	pidlRoot		[int-ptr!]
+	pszDisplayName	[c-string!]
+	lpszTitle		[c-string!]
+	ulFlags			[integer!]
+	lpfn			[integer!]
+	lParam			[integer!]
+	iImage			[integer!]
+]
+
 DwmIsCompositionEnabled!: alias function! [
 	pfEnabled	[int-ptr!]
 	return:		[integer!]
@@ -1803,6 +1841,14 @@ XFORM!: alias struct! [
         ]
 	]
 	"comdlg32.dll" stdcall [
+			GetOpenFileName: "GetOpenFileNameW" [
+				lpofn		[tagOFNW]
+				return:		[integer!]
+			]
+			GetSaveFileName: "GetSaveFileNameW" [
+				lpofn		[tagOFNW]
+				return:		[integer!]
+			]
 		ChooseFont: "ChooseFontW" [
 			lpcf		[tagCHOOSEFONT]
 			return:		[logic!]
@@ -2452,6 +2498,22 @@ XFORM!: alias struct! [
 			hbmImage	[integer!]
 			hbmMask		[integer!]
 			return:		[integer!]
+		]
+	]
+	"shell32.dll" stdcall [
+		SHBrowseForFolder: "SHBrowseForFolderW" [
+			lpbi		[tagBROWSEINFO]
+			return: 	[integer!]
+		]
+		SHGetPathFromIDList: "SHGetPathFromIDListW" [
+			pidl		[integer!]
+			pszPath		[byte-ptr!]
+			return:		[logic!]
+		]
+	]
+	"ole32.dll" stdcall [
+		CoTaskMemFree: "CoTaskMemFree" [
+			pv		[integer!]
 		]
 	]
 	"UxTheme.dll" stdcall [

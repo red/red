@@ -140,3 +140,7 @@ as-rgba: :as-ipv4
 to-paren: routine [blk [series!]][
 	if TYPE_OF(blk) = TYPE_BLOCK [blk/header: TYPE_PAREN]
 ]
+
+write-stdout: routine [str [string!]][			;-- internal use only
+	simple-io/write null as red-value! str null null no no no
+]

@@ -1,7 +1,7 @@
 Red/System [
-	Title:	"GUI console"
+	Title:	"GUI console windows backend"
 	Author: "Qingtian Xie"
-	File: 	%console.reds
+	File: 	%windows.reds
 	Tabs: 	4
 	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
 	License: {

@@ -22,9 +22,6 @@ simple-io: context [
 
 	#either OS = 'Windows [
 
-		dir-keep: 0
-		dir-inited: false
-
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]
 			ftCreationTime		[float!]
@@ -36,44 +33,6 @@ simple-io: context [
 			dwReserved1			[integer!]
 			;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
 			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
-		]
-
-		tagOFNW: alias struct! [
-			lStructSize			[integer!]
-			hwndOwner			[integer!]
-			hInstance			[integer!]
-			lpstrFilter			[c-string!]
-			lpstrCustomFilter	[c-string!]
-			nMaxCustFilter		[integer!]
-			nFilterIndex		[integer!]
-			lpstrFile			[byte-ptr!]
-			nMaxFile			[integer!]
-			lpstrFileTitle		[c-string!]
-			nMaxFileTitle		[integer!]
-			lpstrInitialDir		[c-string!]
-			lpstrTitle			[c-string!]
-			Flags				[integer!]
-			nFileOffset			[integer!]
-			;nFileExtension		[integer!]
-			lpstrDefExt			[c-string!]
-			lCustData			[integer!]
-			lpfnHook			[integer!]
-			lpTemplateName		[integer!]
-			;-- if (_WIN32_WINNT >= 0x0500)
-			pvReserved			[integer!]
-			dwReserved			[integer!]
-			FlagsEx				[integer!]
-		]
-
-		tagBROWSEINFO: alias struct! [
-			hwndOwner		[integer!]
-			pidlRoot		[int-ptr!]
-			pszDisplayName	[c-string!]
-			lpszTitle		[c-string!]
-			ulFlags			[integer!]
-			lpfn			[integer!]
-			lParam			[integer!]
-			iImage			[integer!]
 		]
 
 		#import [
@@ -178,27 +137,6 @@ simple-io: context [
 					return:		[integer!]
 				]
 			]
-			"comdlg32.dll" stdcall [
-				GetOpenFileName: "GetOpenFileNameW" [
-					lpofn		[tagOFNW]
-					return:		[integer!]
-				]
-				GetSaveFileName: "GetSaveFileNameW" [
-					lpofn		[tagOFNW]
-					return:		[integer!]
-				]
-			]
-			"shell32.dll" stdcall [
-				SHBrowseForFolder: "SHBrowseForFolderW" [
-					lpbi		[tagBROWSEINFO]
-					return: 	[integer!]
-				]
-				SHGetPathFromIDList: "SHGetPathFromIDListW" [
-					pidl		[integer!]
-					pszPath		[byte-ptr!]
-					return:		[logic!]
-				]
-			]
 			"user32.dll" stdcall [
 				SendMessage: "SendMessageW" [
 					hWnd		[integer!]
@@ -211,39 +149,6 @@ simple-io: context [
 					return:		[integer!]
 				]
 			]
-			"ole32.dll" stdcall [
-				CoTaskMemFree: "CoTaskMemFree" [
-					pv		[integer!]
-				]
-			]
-		]
-
-		req-dir-callback: func [
-			hwnd	[integer!]
-			msg		[integer!]
-			lParam	[integer!]
-			lpData	[integer!]
-			return:	[integer!]
-			/local
-				method [integer!]
-		][
-			method: either lpData = dir-keep [0][1]
-			switch msg [
-				BFFM_INITIALIZED [
-					unless zero? lpData [
-						dir-inited: yes
-						SendMessage hwnd BFFM_SETSELECTION method lpData
-					]
-				]
-				BFFM_SELCHANGED [			;-- located to folder
-					if all [dir-inited not zero? lpData][
-						dir-inited: no
-						SendMessage hwnd BFFM_SETSELECTION method lpData
-					]
-				]
-				default [0]
-			]
-			0
 		]
 	][
 		#case [
@@ -871,16 +776,20 @@ simple-io: context [
 			lineend [c-string!]
 			lf-sz	[integer!]
 	][
-		unless unicode? [		;-- only command line args need to be checked
-			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
-			len: length? filename
-			if filename/len = #"^"" [filename/len: null-byte]
+		either null? filename [
+			file: stdout
+		][
+			unless unicode? [		;-- only command line args need to be checked
+				if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
+				len: length? filename
+				if filename/len = #"^"" [filename/len: null-byte]
+			]
+			mode: RIO_WRITE
+			if append? [mode: mode or RIO_APPEND]
+			if offset >= 0 [mode: mode or RIO_SEEK]
+			file: open-file filename mode unicode?
+			if file < 0 [return file]
 		]
-		mode: RIO_WRITE
-		if append? [mode: mode or RIO_APPEND]
-		if offset >= 0 [mode: mode or RIO_SEEK]
-		file: open-file filename mode unicode?
-		if file < 0 [return file]
 
 		if offset > 0 [seek-file file offset]
 		#either OS = 'Windows [
@@ -905,7 +814,7 @@ simple-io: context [
 		][
 			ret: write-data file data size
 		]
-		close-file file
+		if filename <> null [close-file file]
 		ret
 	]
 
@@ -1150,6 +1059,7 @@ simple-io: context [
 			type	[integer!]
 			offset	[integer!]
 			buffer	[red-string!]
+			name	[c-string!]
 	][
 		offset: -1
 		limit: -1
@@ -1176,187 +1086,10 @@ simple-io: context [
 			buf: value-to-buffer data limit :len binary? buffer
 		]
 
-		type: write-file file/to-OS-path filename buf len offset binary? append? lines? yes
+		name: either null? filename [null][file/to-OS-path filename]
+		type: write-file name buf len offset binary? append? lines? yes
 		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type
-	]
-
-	file-filter-to-str: func [
-		filter	[red-block!]
-		return: [c-string!]
-		/local
-			s	[series!]
-			val [red-value!]
-			end [red-value!]
-			str [red-string!]
-	][
-		s: GET_BUFFER(filter)
-		val: s/offset + filter/head
-		end:  s/tail
-		if val = end [return null]
-
-		str: string/make-at stack/push* 16 UCS-2
-		while [val < end][
-			string/concatenate str as red-string! val -1 0 yes no
-			string/append-char GET_BUFFER(str) 0
-			val: val + 1
-		]
-		unicode/to-utf16 str
-	]
-
-	file-list-to-block: func [
-		blk		[red-block!]
-		path	[red-string!]
-		buffer	[byte-ptr!]
-		/local
-			dir [red-string!]
-			name [red-string!]
-			len [integer!]
-	][
-		#if OS = 'Windows [
-			until [
-				dir: as red-string! ALLOC_TAIL(blk)
-				_series/copy as red-series! path as red-series! dir null yes null
-				len: lstrlen buffer
-				name: string/load as-c-string buffer len UTF-16LE
-				string/concatenate dir name -1 0 yes no
-				buffer: buffer + (len + 1 * 2)
-				all [buffer/1 = #"^@" buffer/2 = #"^@"]
-			]
-		]
-	]
-
-	request-dir: func [
-		title	[red-string!]
-		dir		[red-value!]
-		filter	[red-block!]
-		keep?	[logic!]
-		multi?	[logic!]
-		return: [red-value!]
-		/local
-			buffer	[byte-ptr!]
-			ret		[integer!]
-			path	[red-value!]
-			base	[red-value!]
-			str		[red-string!]
-			pbuf	[byte-ptr!]
-			bInfo
-	][
-		#either OS = 'Windows [
-			bInfo: declare tagBROWSEINFO
-			pbuf: null
-			base: stack/arguments
-			buffer: allocate 520
-
-			if dir >= base [
-				pbuf: as byte-ptr! file/to-OS-path as red-file! dir
-				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
-			]
-
-			bInfo/hwndOwner: GetForegroundWindow
-			bInfo/lpszTitle: either title >= base [unicode/to-utf16 title][null]
-			bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI or BIF_SHAREABLE
-			bInfo/lpfn: as-integer :req-dir-callback
-			bInfo/lParam: either keep? [dir-keep][as-integer pbuf]
-
-			ret: SHBrowseForFolder bInfo
-			path: as red-value! either zero? ret [none-value][
-				if keep? [
-					unless zero? dir-keep [CoTaskMemFree dir-keep]
-					dir-keep: ret
-				]
-				SHGetPathFromIDList ret buffer
-				str: string/load as-c-string buffer lstrlen buffer UTF-16LE
-				string/append-char GET_BUFFER(str) as-integer #"/"
-				str/header: TYPE_FILE
-				#call [to-red-file str]
-				stack/arguments
-			]
-			free buffer
-			path
-		][
-			as red-value! none-value
-		]
-	]
-
-	request-file: func [
-		title	[red-string!]
-		name	[red-value!]
-		filter	[red-block!]
-		save?	[logic!]
-		multi?	[logic!]
-		return: [red-value!]
-		/local
-			filters [c-string!]
-			buffer	[byte-ptr!]
-			ret		[integer!]
-			len		[integer!]
-			files	[red-value!]
-			base	[red-value!]
-			str		[red-string!]
-			blk		[red-block!]
-			pbuf	[byte-ptr!]
-			ofn
-	][
-		#either OS = 'Windows [
-			ofn: declare tagOFNW
-			base: stack/arguments
-			filters: #u16 "All files^@*.*^@Red scripts^@*.red;*.reds^@REBOL scripts^@*.r^@Text files^@*.txt^@"
-			buffer: allocate MAX_FILE_REQ_BUF
-			either name >= base [
-				pbuf: as byte-ptr! file/to-OS-path as red-file! name
-				len: lstrlen pbuf
-				len: len << 1 - 1
-				while [all [len > 0 pbuf/len <> #"\"]][len: len - 2]
-				if len > 0 [
-					pbuf/len: #"^@"
-					ofn/lpstrInitialDir: as-c-string pbuf
-					pbuf: pbuf + len + 1
-				]
-				copy-memory buffer pbuf (lstrlen pbuf) << 1 + 2
-			][
-				buffer/1: #"^@"
-				buffer/2: #"^@"
-			]
-
-			ofn/lStructSize: size? tagOFNW
-			ofn/hwndOwner: GetForegroundWindow
-			ofn/lpstrTitle: either title >= base [unicode/to-utf16 title][null]
-			ofn/lpstrFile: buffer
-			ofn/lpstrFilter: either filter >= base [file-filter-to-str filter][filters]
-			ofn/nMaxFile: MAX_FILE_REQ_BUF
-			ofn/lpstrFileTitle: null
-			ofn/nMaxFileTitle: 0
-
-			ofn/Flags: OFN_HIDEREADONLY or OFN_EXPLORER
-			if multi? [ofn/Flags: ofn/Flags or OFN_ALLOWMULTISELECT]
-
-			ret: either save? [GetSaveFileName ofn][GetOpenFileName ofn]
-			files: as red-value! either zero? ret [none-value][
-				len: lstrlen buffer
-				str: string/load as-c-string buffer len UTF-16LE
-				#call [to-red-file str]
-				str: as red-string! stack/arguments
-				as red-value! either multi? [
-					pbuf: buffer + (len + 1 * 2)
-					stack/push*							;@@ stack/arguments is already used after #call [...]
-					blk: block/push-only* 1
-					either all [pbuf/1 = #"^@" pbuf/2 = #"^@"][
-						block/rs-append blk as red-value! str
-					][
-						string/append-char GET_BUFFER(str) as-integer #"/"
-						file-list-to-block blk str pbuf
-					]
-					blk
-				][
-					str
-				]
-			]
-			free buffer
-			files
-		][
-			as red-value! none-value
-		]
 	]
 
 	#switch OS [
@@ -1643,6 +1376,7 @@ simple-io: context [
 					]
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1807,8 +1541,8 @@ simple-io: context [
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! platform/objc_msgSend [keys/i platform/sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
-					if v = null [v: as c-string! platform/objc_msgSend [vals/i platform/sel_getUid "UTF8String"]]
+					if k = null [k: as c-string! objc_msgSend [keys/i sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
+					if v = null [v: as c-string! objc_msgSend [vals/i sel_getUid "UTF8String"]]
 
 					w: as red-value! word/push* symbol/make k
 					res: either zero? strncmp k "Set-Cookie" 10 [
@@ -1907,7 +1641,7 @@ simple-io: context [
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [return none-value]
 
-				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
+				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") kCFBooleanTrue
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096

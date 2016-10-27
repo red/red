@@ -1699,14 +1699,11 @@ make-profilable make target-class [
 			]
 		]
 		
-		reversed?: to logic! any [
-			all [b = 'reg any [
-				all [a = 'ref block? right]
-				all [a = 'imm block? right]
-				all [path? left block? right]
-			]]
-			all [a = 'reg b = 'ref path? left]
-		]
+		reversed?: to logic! all [b = 'reg any [
+			all [a = 'ref block? right]
+			all [a = 'imm block? right]
+			all [path? left block? right]
+		]]
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args reversed?]
 			find math-op	   name	[emit-float-math-op		  name a b args reversed?]
@@ -1876,12 +1873,19 @@ make-profilable make target-class [
 		emit #{89F8}								;-- MOV eax, edi
 	]
 
-	emit-stack-align-prolog: func [args [block!] /local offset][
+	emit-stack-align-prolog: func [args [block!] fspec [block!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
 			offset: 4								;-- account for saved edi
-			if issue? args/1 [args: args/2]
+			if issue? args/1 [
+				all [
+					args/1 = #variadic
+					fspec/3 <> 'cdecl
+					offset: offset + 12				;-- account for extra variadic slots
+				]
+				args: args/2
+			]
 			offset: offset + call-arguments-size? args
 			
 			unless zero? offset: offset // 16 [

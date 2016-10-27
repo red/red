@@ -105,10 +105,11 @@ redc: context [
 				win-call/output/show cmd buf			;-- not using /show would freeze CALL
 			]
 			parse/all buf [[thru "[" | thru "Version" | thru "ver" | thru "v" | thru "indows"] to #"." pos:]
-    			win-version: any [
-        			attempt [load copy/part back remove pos 2]
-        			0
-    			]
+			
+			win-version: any [
+				attempt [load copy/part back remove pos 2]
+				0
+			]
 		]
 	]
 
@@ -122,6 +123,14 @@ redc: context [
 				7 ["FreeBSD"]
 			]["MSDOS"]
 		]
+	]
+	
+	get-OS-name: does [
+		switch/default system/version/4 [
+			2 ['MacOSX]
+			3 ['Windows]
+			4 ['Linux]
+		]['Linux]										;-- usage related to lib suffixes
 	]
 
 	fail: func [value] [
@@ -182,6 +191,17 @@ redc: context [
 			insert targets load %system/custom-targets.r
 		]
 		targets
+	]
+	
+	get-output-path: func [opts [object!] /local path][
+		case [
+			opts/build-basename [
+				path: first split-path opts/build-basename
+				either opts/build-prefix [join opts/build-prefix path][path]
+			]
+			opts/build-prefix [opts/build-prefix]
+			'else			  [%""]
+		]
 	]
 
 	red-system?: func [file [file!] /local ws rs?][
@@ -364,10 +384,13 @@ redc: context [
 		quit/return 0
 	]
 	
-	build-libRedRT: func [opts [object!] /local script result file][
+	build-libRedRT: func [opts [object!] /local script result file path][
 		print "Compiling libRedRT..."
 		file: libRedRT/lib-file
+		path: get-output-path opts
+		
 		opts: make opts [
+			build-prefix: path
 			build-basename: file
 			type: 'dll
 			libRedRT?: yes
@@ -375,6 +398,13 @@ redc: context [
 			unicode?: yes
 		]
 		if opts/OS <> 'Windows [opts/PIC?: yes]
+		
+		all [
+			not empty? path: opts/build-prefix
+			slash <> first path
+			not encap?
+			opts/build-prefix: head insert copy path %../
+		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
 			Windows [ [[Needs: View]] ]
@@ -391,6 +421,36 @@ redc: context [
 		show-stats result
 	]
 	
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date][
+		unless opts/dev-mode? [return no]
+		
+		path: get-output-path opts
+		file: join path %libRedRT
+		libRedRT/root-dir: path
+		
+		lib?: exists? lib: join file switch/default opts/OS [
+			Windows [%.dll]
+			MacOSX	[%.dylib]
+		][%.so]
+		
+		if lib? [
+			either all [load-lib? opts/OS = get-OS-name][
+				lib: load/library lib
+				get-date: make routine! [return: [string!]] lib "red/get-build-date"
+				print ["...using libRedRT built on" get-date]
+				free lib
+			][
+				print ["...using libRedRT for" form opts/OS]
+			]
+		]
+		
+		not all [
+			lib?
+			exists? join path libRedRT/include-file
+			exists? join path libRedRT/defs-file
+		]
+	]
+	
 	show-stats: func [result][
 		print ["...compilation time :" format-time result/1 "ms"]
 		
@@ -403,11 +463,30 @@ redc: context [
 		]
 		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
+	
+	do-clear: func [args [block!] /local path file][
+		either empty? args [path: %""][
+			path: either args/1/1 = #"%" [
+				attempt [load args/1]
+			][
+				attempt [to-rebol-file args/1]
+			]
+			unless all [path exists? path][
+				fail "***Clear command error: invalid path"
+			]
+		]
+		foreach ext [%.dll %.dylib %.so][
+			if exists? file: rejoin [path libRedRT/lib-file ext][delete file]
+		]
+		foreach file [include-file defs-file extras-file][
+			if exists? file: join path libRedRT/:file [delete file]
+		]
+	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui?
+		mode target? gui? cmd
 	][
 		args: any [
 			all [args parse args none]
@@ -420,6 +499,14 @@ redc: context [
 			libRedRT-update?: no
 		]
 		gui?: Windows?									;-- use GUI console by default on Windows
+
+		unless empty? args [
+			if cmd: select [
+				"clear" do-clear
+			] first args [
+				return reduce [none reduce [cmd next args]]
+			]
+		]
 
 		parse/case args [
 			any [
@@ -534,20 +621,8 @@ redc: context [
 		unless rs?: red-system? src [
 	;--- 1st pass: Red compiler ---
 			if load-lib? [build-compress-lib]
-			all [
-				opts/dev-mode?
-				not all [
-					any [
-						exists? %libRedRT.dll				;@@ To be improved
-						exists? %libRedRT.so
-						exists? %libRedRT.dylib
-					]
-					exists? libRedRT/include-file
-					exists? libRedRT/defs-file
-				]
-				build-libRedRT opts
-			]
-
+			if needs-libRedRT? opts [build-libRedRT opts]
+			
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]
@@ -578,6 +653,7 @@ redc: context [
 
 	main: func [/with cmd [string!] /local src opts build-dir prefix result][
 		set [src opts] parse-options cmd
+		unless src [do opts exit]						;-- run named command and terminates
 
 		rs?: red-system? src
 

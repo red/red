@@ -364,9 +364,21 @@ tagSIZE: alias struct! [
 			class		[integer!]
 			return:		[integer!]
 		]
+		_NSConcreteStackBlock: "_NSConcreteStackBlock" [integer!]
+	]
+	"/System/Library/Frameworks/AVFoundation.framework/AVFoundation" cdecl [
+		AVMediaTypeVideo: "AVMediaTypeVideo" [integer!]
+		AVVideoCodecKey: "AVVideoCodecKey" [integer!]
+		AVVideoCodecJPEG: "AVVideoCodecJPEG" [integer!]
 	]
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
+		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
+		NSFontAttributeName: "NSFontAttributeName" [integer!]
+		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
+		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
+		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
+		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [
@@ -396,6 +408,42 @@ tagSIZE: alias struct! [
 			x1			[float32!]
 			y1			[float32!]
 			return:		[logic!]
+		]
+		CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
+			return:		[integer!]
+		]
+		CGColorSpaceRelease: "CGColorSpaceRelease" [
+			colorspace	[integer!]
+		]
+		CGGradientCreateWithColorComponents: "CGGradientCreateWithColorComponents" [
+			colorspace	[integer!]
+			components	[pointer! [float32!]]
+			locations	[pointer! [float32!]]
+			nlocations	[integer!]
+			return:		[integer!]
+		]
+		CGGradientRelease: "CGGradientRelease" [
+			gradient	[integer!]
+		]
+		CGContextDrawLinearGradient: "CGContextDrawLinearGradient" [
+			ctx			[handle!]
+			gradient	[integer!]
+			start-x		[float32!]
+			start-y		[float32!]
+			end-x		[float32!]
+			end-y		[float32!]
+			options		[integer!]
+		]
+		CGContextDrawRadialGradient: "CGContextDrawRadialGradient" [
+			ctx			[handle!]
+			gradient	[integer!]
+			start-x		[float32!]
+			start-y		[float32!]
+			start-r		[float32!]
+			end-x		[float32!]
+			end-y		[float32!]
+			end-r		[float32!]
+			options		[integer!]
 		]
 		CGContextSaveGState: "CGContextSaveGState" [
 			c			[handle!]
@@ -487,6 +535,17 @@ tagSIZE: alias struct! [
 		CGContextClosePath: "CGContextClosePath" [
 			c			[handle!]
 		]
+		CGContextCopyPath: "CGContextCopyPath" [
+			ctx			[handle!]
+			return:		[integer!]
+		]
+		CGContextAddPath: "CGContextAddPath" [
+			ctx			[handle!]
+			path		[integer!]
+		]
+		CGContextClip: "CGContextClip" [
+			c			[handle!]
+		]
 		CGContextMoveToPoint: "CGContextMoveToPoint" [
 			c			[handle!]
 			x			[float32!]
@@ -534,6 +593,13 @@ tagSIZE: alias struct! [
 			x2			[float32!]
 			y2			[float32!]
 			radius		[float32!]
+		]
+		CGContextAddRect: "CGContextAddRect" [
+			c			[handle!]
+			x			[float32!]
+			y			[float32!]
+			width		[float32!]
+			height		[float32!]
 		]
 		CGContextStrokePath: "CGContextStrokePath" [
 			c			[handle!]

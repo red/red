@@ -938,6 +938,5 @@ image: context [
 			null			;update
 			null			;write
 		]
-		OS-image/init
 	]
 ]
