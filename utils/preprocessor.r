@@ -14,6 +14,7 @@ preprocessor: context [
 	macros: make block! 10
 	syms:	make block! 20
 	active?: yes
+	s: none
 	
 	do-quit: does [
 		either all [rebol system/options/args][quit/return 1][halt]
@@ -126,10 +127,14 @@ preprocessor: context [
 		reduce [expr after]
 	]
 	
-	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd][
-		cmd: clear []
+	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd saved][
+		saved: s
+		parse next pos [arity [s: macros | skip]]		;-- resolve nexted macros first
+		s: saved
+		
+		cmd: make block! 1
 		append cmd name
-		append cmd copy/part next pos arity
+		insert/part tail cmd next pos arity
 		do bind cmd exec
 	]
 	
@@ -168,7 +173,7 @@ preprocessor: context [
 			
 			repend rule [
 				to set-word! 's
-				spec/1
+				bind spec/1 self						;-- allow rule to reference exec's words
 				to set-word! 'e
 				to-paren compose/deep [do-safe [(:macro) s e]]
 			]
@@ -190,7 +195,7 @@ preprocessor: context [
 
 	expand: func [
 		code [block!] job [object! none!]
-		/local rule s e pos cond value then else cases body keep? expr
+		/local rule e pos cond value then else cases body keep? expr
 	][
 		reset
 		exec/config: job
@@ -242,7 +247,6 @@ preprocessor: context [
 				
 				| s: #macro [set-word! | word! | block!]['func | 'function] block! block! e: (
 					register-macro next s
-					bind macros 'code					;-- bind newly formed macros to 'expand
 					remove/part s e
 				) :s
 				| pos: [block! | paren!] :pos into rule
