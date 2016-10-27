@@ -19,6 +19,7 @@ Red/System [
 
 #include %handlers.reds
 #include %style.reds
+#include %comdlgs.reds
 
 GTKApp:			as handle! 0
 GTKApp-Ctx: 	0

@@ -34,6 +34,6 @@ Red [
 extract-boot-args
 
 ;-- temporary code --
-#if not find [Windows MacOSX] config/OS [
+#if not find [Windows MacOSX Linux] config/OS [
 	unset [event! image!]
 ]

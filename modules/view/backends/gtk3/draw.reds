@@ -533,6 +533,7 @@ OS-matrix-set: func [
 ]
 
 OS-set-clip: func [
+	dc		[draw-ctx!]
 	upper	[red-pair!]
 	lower	[red-pair!]
 ][
@@ -577,8 +578,8 @@ OS-draw-shape-line: func [
 
 OS-draw-shape-axis: func [
     dc          [draw-ctx!]
-    start       [red-integer!]
-    end         [red-integer!]
+    start       [red-value!]
+    end         [red-value!]
     rel?        [logic!]
     hline       [logic!]
 ][
@@ -623,7 +624,7 @@ OS-draw-shape-qcurv: func [
 OS-draw-shape-arc: func [
     dc      [draw-ctx!]
     start   [red-pair!]
-    end     [red-integer!]
+    end     [red-value!]
     sweep?  [logic!]
     large?  [logic!]
     rel?    [logic!]
