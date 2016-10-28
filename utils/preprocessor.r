@@ -199,8 +199,8 @@ preprocessor: context [
 		exec: make exec protos
 	]
 
-	reset: does [
-		exec: do [context [config: none]]
+	reset: func [job [object! none!]][
+		exec: do [context [config: job]]
 		clear protos
 		insert clear macros <none>						;-- required to avoid empty rule (causes infinite loop)
 	]
@@ -209,8 +209,7 @@ preprocessor: context [
 		code [block!] job [object! none!]
 		/local rule e pos cond value then else cases body keep? expr
 	][
-		reset
-		exec/config: job
+		reset job
 
 		#process off
 		parse code rule: [
@@ -254,6 +253,8 @@ preprocessor: context [
 						either keep? [s: change/part s expr e][remove/part s e]
 					]
 				) :s
+				
+				| s: #reset (reset job remove s)
 				
 				| s: #process [[
 					  'on  (active?: yes remove/part s 2) :s
