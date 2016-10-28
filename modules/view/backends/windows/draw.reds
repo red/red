@@ -66,6 +66,7 @@ arcPOINTS!: alias struct! [
     end-x       [float!]
     end-y       [float!]
 ]
+connect-subpath: 0
 
 anti-alias?: no
 GDI+?: no
@@ -523,6 +524,7 @@ draw-curves: func [
     prev-shape/type: SHAPE_CURVE
     prev-shape/control/x: point/x
     prev-shape/control/y: point/y
+	connect-subpath: 1
 ]
 
 draw-short-curves: func [
@@ -584,6 +586,7 @@ draw-short-curves: func [
         pt: edges
         nb: 0
     ]
+	connect-subpath: 1
 ]
 
 OS-draw-shape-beginpath: func [
@@ -591,6 +594,7 @@ OS-draw-shape-beginpath: func [
     /local
         path    [integer!]
 ][
+    connect-subpath: 0
     either GDI+? [
         path: 0
         GdipCreatePath 0 :path	; alternate fill
@@ -655,6 +659,7 @@ OS-draw-shape-moveto: func [
         path-last-point/x: coord/x
         path-last-point/y: coord/y
     ]
+	connect-subpath: 0
     last-point?: yes
     prev-shape/type: SHAPE_OTHER
     either GDI+? [
@@ -706,6 +711,7 @@ OS-draw-shape-line: func [
     ]
 	last-point?: yes
     prev-shape/type: SHAPE_OTHER
+	connect-subpath: 1
 ]
 
 OS-draw-shape-axis: func [
@@ -768,6 +774,7 @@ OS-draw-shape-axis: func [
             Polyline dc edges nb
         ]
         prev-shape/type: SHAPE_OTHER
+		connect-subpath: 1
     ]
 ]
 
@@ -945,7 +952,7 @@ OS-draw-shape-arc: func [
             GdipTransformPath path m  
             GdipDeleteMatrix m
 
-            GdipAddPathPath modes/gp-path path 0
+            GdipAddPathPath modes/gp-path path connect-subpath
             GdipDeletePath path
         ][
             either theta <> 0.0 [
@@ -995,6 +1002,7 @@ OS-draw-shape-arc: func [
         path-last-point/x: as integer! p2-x
         path-last-point/y: as integer! p2-y
         prev-shape/type: SHAPE_OTHER
+		connect-subpath: 1
     ]
 ]
 
