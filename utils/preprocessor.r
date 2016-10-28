@@ -12,6 +12,7 @@ preprocessor: context [
 	exec:	none										;-- object that captures directive words
 	protos: make block! 10
 	macros: make block! 10
+	stack:	make block!	10
 	syms:	make block! 20
 	active?: yes
 	s: none
@@ -207,9 +208,10 @@ preprocessor: context [
 
 	expand: func [
 		code [block!] job [object! none!]
+		/keep
 		/local rule e pos cond value then else cases body keep? expr
-	][
-		reset job
+	][	
+		unless keep [reset job]
 
 		#process off
 		parse code rule: [
@@ -253,7 +255,11 @@ preprocessor: context [
 						either keep? [s: change/part s expr e][remove/part s e]
 					]
 				) :s
-				
+				| s: #local [block! | (syntax-error s next s)] e: (
+					repend stack [tail macros tail protos]
+					change/part s expand/keep s/2 job e
+					loop 2 [clear take/last stack]
+				)
 				| s: #reset (reset job remove s)
 				
 				| s: #process [[
