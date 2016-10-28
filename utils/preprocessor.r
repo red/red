@@ -46,8 +46,18 @@ preprocessor: context [
 		]
 	]
 	
+	syntax-error: func [s [block! paren!] e [block! paren!]][
+		print [
+			"*** Preprocessor Error: Syntax error^/"
+			"*** Where:" trim/head mold/only copy/part s next e
+		]
+		do-quit
+	]
+	
 	do-safe: func [code [block!] /with cmd [issue!] /local res][
+		#process off
 		if error? set 'res try code [throw-error res any [cmd #macro] code]
+		#process on
 		:res
 	]
 	
@@ -78,8 +88,8 @@ preprocessor: context [
 			foreach word next path	[
 				unless pos: find/tail spec to refinement! word [
 					print [
-						"*** Macro Error: unknown refinement in"
-						mold path
+						"*** Macro Error: unknown refinement^/"
+						"*** Where:" mold path
 					]
 					do-quit
 				]
@@ -156,8 +166,8 @@ preprocessor: context [
 			]
 		][
 			print [
-				"*** Macro Error: invalid specification:"
-				mold copy/part spec 3
+				"*** Macro Error: invalid specification^/"
+				"*** Where:" mold copy/part spec 3
 			]
 			do-quit
 		]
@@ -213,28 +223,31 @@ preprocessor: context [
 				| s: #include (
 					if all [active? not Rebol system/state/interpreted?][s/1: 'do]
 				)
-				| s: #if (set [cond e] eval next s s/1) :e set then block! e: (
+				| s: #if (set [cond e] eval next s s/1) :e [set then block! | (syntax-error s e)] e: (
 					if active? [either cond [change/part s then e][remove/part s e]]
 				) :s
-				| s: #either (set [cond e] eval next s s/1) :e set then block! set else block! e: (
-					if active? [either cond [change/part s then e][change/part s else e]]
+				| s: #either (set [cond e] eval next s s/1) :e 
+					[set then block! set else block! | (syntax-error s e)] e: (
+						if active? [either cond [change/part s then e][change/part s else e]]
 				) :s
-				| s: #switch (set [cond e] eval next s s/1) :e set cases block! e: (
+				| s: #switch (set [cond e] eval next s s/1) :e [set cases block! | (syntax-error s e)] e: (
 					if active? [
 						body: any [select cases cond select cases #default]
+						unless block? body [syntax-error body next body]
 						either body [change/part s body e][remove/part s e]
 					]
 				) :s
-				| s: #case set cases block! e: (
+				| s: #case [set cases block! | e: (syntax-error s e)] e: (
 					if active? [
 						until [
 							set [cond cases] eval cases s/1
+							unless block? cases [syntax-error cases next cases]
 							any [cond tail? cases: next cases]
 						]
 						either cond [change/part s cases/1 e][remove/part s e]
 					]
 				) :s
-				| s: #do (keep?: no) opt ['keep (keep?: yes)] block! e: (
+				| s: #do (keep?: no) opt ['keep (keep?: yes)] [block! | (syntax-error s next s)] e: (
 					if active? [
 						pos: pick [3 2] keep?
 						expr: do-code s/:pos s/1
@@ -242,12 +255,15 @@ preprocessor: context [
 					]
 				) :s
 				
-				| s: #process [
+				| s: #process [[
 					  'on  (active?: yes remove/part s 2) :s
 					| 'off (active?: no  remove/part s 2) :s [to #process | to end]
-				]
+				] | (syntax-error s next s)]
 				
-				| s: #macro [set-word! | word! | block!]['func | 'function] block! block! e: (
+				| s: #macro [
+					[set-word! | word! | block!]['func | 'function] block! block! 
+					| (syntax-error s skip s 4)
+				] e: (
 					register-macro next s
 					remove/part s e
 				) :s
