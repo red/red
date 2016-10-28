@@ -114,7 +114,7 @@ get-word: context [
 			null			;make
 			null			;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path

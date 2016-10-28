@@ -322,7 +322,9 @@ word: context [
 			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_GET_WORD
-			TYPE_LIT_WORD [
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE [
 				spec/header: type/value
 			]
 			TYPE_STRING [

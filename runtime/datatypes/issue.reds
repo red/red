@@ -60,6 +60,15 @@ issue: context [
 		#if debug? = yes [if verbose > 0 [print-line "issue/to"]]
 
 		switch type/value [
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_GET_WORD
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE [
+				spec/header: type/value
+				as red-value! spec
+			]
 			TYPE_BINARY [
 				issue: as red-word! spec
 				str: as red-string! stack/push as red-value! symbol/get issue/symbol
