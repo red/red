@@ -61,10 +61,10 @@ prev-shape: declare curve-info!
 prev-shape/control: declare tagPOINT
 
 arcPOINTS!: alias struct! [
-    start-x     [integer!]
-    start-y     [integer!]
-    end-x       [integer!]
-    end-y       [integer!]
+    start-x     [float!]
+    start-y     [float!]
+    end-x       [float!]
+    end-y       [float!]
 ]
 
 anti-alias?: no
@@ -409,8 +409,8 @@ set-matrix: func [
 ]
 
 gdi-calc-arc: func [
-    center-x        [integer!]
-    center-y        [integer!]
+    center-x        [float!]
+    center-y        [float!]
     rad-x           [float!]
     rad-y           [float!]
     angle-begin     [float!]
@@ -419,10 +419,10 @@ gdi-calc-arc: func [
 	/local
         radius      [red-pair!]
         angle       [red-integer!]
-        start-x     [integer!]
-        start-y     [integer!]
-        end-x       [integer!]
-        end-y       [integer!]
+        start-x     [float!]
+        start-y     [float!]
+        end-x       [float!]
+        end-y       [float!]
         rad-x-float [float32!]
         rad-y-float [float32!]
         rad-x-2     [float32!]
@@ -454,20 +454,20 @@ gdi-calc-arc: func [
         rad-y-2: rad-y-float * rad-y-float
         tan-2: as float32! system/words/tan rad-beg
         tan-2: tan-2 * tan-2
-        start-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-        start-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
-        if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
-        if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+        start-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        start-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0.0 - start-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0.0 - start-y]
         start-x: center-x + start-x
         start-y: center-y + start-y
         angle-begin: angle-begin + angle-len
         tan-2: as float32! system/words/tan rad-end
         tan-2: tan-2 * tan-2
-        end-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-        end-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        end-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        end-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
         if angle-begin < 0.0 [ angle-begin: 360.0 + angle-begin]
-        if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
-        if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+        if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0.0 - end-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0.0 - end-y]
         end-x: center-x + end-x
         end-y: center-y + end-y
     ]
@@ -591,6 +591,7 @@ OS-draw-shape-beginpath: func [
     /local
         path    [integer!]
 ][
+    GDI+?: false
     either GDI+? [
         path: 0
         GdipCreatePath 0 :path	; alternate fill
@@ -707,7 +708,7 @@ OS-draw-shape-line: func [
     either GDI+? [
         GdipAddPathLine2I  modes/gp-path edges nb
     ][
-        PolylineTo dc edges nb
+        Polyline dc edges nb
     ]
 	last-point?: yes
     prev-shape/type: SHAPE_OTHER
@@ -955,18 +956,18 @@ OS-draw-shape-arc: func [
         ][
             either theta <> 0.0 [
                 arc-points: gdi-calc-arc 
-                                as integer! center-x 
-                                as integer! center-y 
+                                center-x 
+                                center-y 
                                 radius-x 
                                 radius-y 
                                 angle-1 
                                 angle-len
             ][
                 arc-points: declare arcPOINTS!
-                arc-points/start-x: as integer! p1-x
-                arc-points/start-y: as integer! p1-y
-                arc-points/end-x: as integer! p2-x
-                arc-points/end-y: as integer! p2-y
+                arc-points/start-x: p1-x
+                arc-points/start-y: p1-y
+                arc-points/end-x: p2-x
+                arc-points/end-y: p2-y
             ]
             SetGraphicsMode dc GM_ADVANCED
             xform: declare XFORM!
@@ -979,17 +980,17 @@ OS-draw-shape-arc: func [
             arc-dir: either sweep? [ AD_CLOCKWISE ][ AD_COUNTERCLOCKWISE ]
             SetArcDirection dc arc-dir
             pt: declare tagPOINT
-            MoveToEx dc arc-points/start-x arc-points/start-y pt
-            ArcTo
+            MoveToEx dc as integer! arc-points/start-x as integer! arc-points/start-y pt
+            Arc
                 dc
                 as integer! center-x - radius-x
                 as integer! center-y - radius-y
                 as integer! center-x + radius-x
                 as integer! center-y + radius-y
-                arc-points/start-x
-                arc-points/start-y
-                arc-points/end-x
-                arc-points/end-y
+                as integer! arc-points/start-x
+                as integer! arc-points/start-y
+                as integer! arc-points/end-x
+                as integer! arc-points/end-y
             SetArcDirection dc prev-dir
                 
             set-matrix xform 1.0 0.0 0.0 1.0 0.0 0.0
@@ -1534,8 +1535,8 @@ OS-draw-arc: func [
 		rad-y-float: as float32! rad-y
 
         arc-points: gdi-calc-arc 
-                        center/x 
-                        center/y 
+                        as float! center/x 
+                        as float! center/y 
                         as float! rad-x 
                         as float! rad-y 
                         as float! angle-begin 
@@ -1550,10 +1551,10 @@ OS-draw-arc: func [
 				center/y - rad-y
 				center/x + rad-x + 1
 				center/y + rad-y + 1
-				arc-points/start-x
-				arc-points/start-y
-				arc-points/end-x
-				arc-points/end-y
+				as integer! arc-points/start-x
+				as integer! arc-points/start-y
+				as integer! arc-points/end-x
+				as integer! arc-points/end-y
 		][
 			Arc
 				dc
@@ -1561,10 +1562,10 @@ OS-draw-arc: func [
 				center/y - rad-y
 				center/x + rad-x + 1
 				center/y + rad-y + 1
-				arc-points/start-x
-				arc-points/start-y
-				arc-points/end-x
-				arc-points/end-y
+				as integer! arc-points/start-x
+				as integer! arc-points/start-y
+				as integer! arc-points/end-x
+				as integer! arc-points/end-y
 		]
         SetArcDirection dc prev-dir
 	]
