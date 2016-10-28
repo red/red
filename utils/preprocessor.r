@@ -14,6 +14,7 @@ preprocessor: context [
 	macros: make block! 10
 	stack:	make block!	10
 	syms:	make block! 20
+	depth: 	0											;-- track depth of recursive macro calls
 	active?: yes
 	s: none
 	
@@ -57,9 +58,9 @@ preprocessor: context [
 	
 	do-safe: func [code [block!] /with cmd [issue!] /local res][
 		#process off
-		if error? set 'res try code [throw-error res any [cmd #macro] code]
+		if error? set/any 'res try code [throw-error res any [cmd #macro] code]
 		#process on
-		:res
+		either unset? get/any 'res [[]][res]
 	]
 	
 	do-code: func [code [block!] cmd [issue!] /local p][
@@ -138,15 +139,27 @@ preprocessor: context [
 		reduce [expr after]
 	]
 	
-	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd saved][
+	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd saved res][
+		depth: depth + 1
 		saved: s
-		parse next pos [arity [s: macros | skip]]		;-- resolve nexted macros first
+		parse next pos [arity [s: macros | skip]]		;-- resolve nested macros first
 		s: saved
 		
 		cmd: make block! 1
 		append cmd name
 		insert/part tail cmd next pos arity
-		do bind cmd exec
+		if unset? set/any 'res do bind cmd exec [
+			print ["*** Macro Error: no value returned by" name "macro^/"]
+			do-quit
+		]
+		s/1: :res
+		
+		if positive? depth: depth - 1[
+			saved: s
+			parse s macros								;-- apply macros to result
+			s: saved
+		]
+		s/1
 	]
 	
 	register-macro: func [spec [block!] /local cnt rule p name macro pos][
@@ -260,7 +273,7 @@ preprocessor: context [
 					change/part s expand/keep s/2 job e
 					loop 2 [clear take/last stack]
 				)
-				| s: #reset (reset job remove s)
+				| s: #reset (reset job remove s) :s
 				
 				| s: #process [[
 					  'on  (active?: yes remove/part s 2) :s
