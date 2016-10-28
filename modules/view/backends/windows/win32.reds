@@ -1713,6 +1713,10 @@ XFORM!: alias struct! [
             hdc         [handle!]
             return:     [logic!]
         ]
+        CloseFigure: "CloseFigure" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
 		Polyline: "Polyline" [
 			hdc			[handle!]
 			lppt		[tagPOINT]

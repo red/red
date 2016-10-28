@@ -591,7 +591,6 @@ OS-draw-shape-beginpath: func [
     /local
         path    [integer!]
 ][
-    GDI+?: false
     either GDI+? [
         path: 0
         GdipCreatePath 0 :path	; alternate fill
@@ -630,16 +629,11 @@ OS-draw-shape-endpath: func [
             GdipDeletePath modes/gp-path
         ][ if count > max-edges [ result: false ] ]
     ][
+        if close? [ CloseFigure dc ]
         EndPath dc
         count: GetPath dc edges types 0
         either all [ count > 0 count <= max-edges ][
             count: GetPath dc edges types count
-            if close? [
-                point: edges + count
-                point/x: edges/x
-                point/y: edges/y
-                count: count + 1
-            ]
             FillPath dc
             PolyDraw dc edges types count
         ][ if count > max-edges [ result: false ] ]
@@ -771,7 +765,7 @@ OS-draw-shape-axis: func [
         either GDI+? [
             GdipAddPathLine2I modes/gp-path edges nb
         ][
-            PolylineTo dc edges nb
+            Polyline dc edges nb
         ]
         prev-shape/type: SHAPE_OTHER
     ]
@@ -979,8 +973,6 @@ OS-draw-shape-arc: func [
             prev-dir: GetArcDirection dc
             arc-dir: either sweep? [ AD_CLOCKWISE ][ AD_COUNTERCLOCKWISE ]
             SetArcDirection dc arc-dir
-            pt: declare tagPOINT
-            MoveToEx dc as integer! arc-points/start-x as integer! arc-points/start-y pt
             Arc
                 dc
                 as integer! center-x - radius-x
