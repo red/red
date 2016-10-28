@@ -265,6 +265,7 @@ word: context [
 	][
 		s: GET_BUFFER(symbols)
 		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/header: TYPE_STRING
 		str/head: 0
 		str/cache: null
 		str
@@ -308,6 +309,30 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/mold"]]
 
 		form w buffer arg part
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-word!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
+
+		switch type/value [
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_GET_WORD
+			TYPE_LIT_WORD [
+				spec/header: type/value
+			]
+			TYPE_STRING [
+				spec: as red-word! to-string spec
+			]
+			default [
+				--NOT_IMPLEMENTED--
+			]
+		]
+		as red-value! spec
 	]
 
 	any-word?: func [									;@@ discard it when ANY_WORD? available
@@ -395,7 +420,7 @@ word: context [
 			null			;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
