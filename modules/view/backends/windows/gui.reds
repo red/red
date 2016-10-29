@@ -64,6 +64,7 @@ log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
+default-font-name: as c-string! 0
 
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
@@ -372,6 +373,7 @@ set-defaults: func [
 		font	[tagLOGFONT]
 		name	[c-string!]
 		res		[integer!]
+		len		[integer!]
 ][
 	if IsThemeActive [
 		hTheme: OpenThemeData null #u16 "Window"
@@ -380,9 +382,13 @@ set-defaults: func [
 			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
 			if zero? res [
 				name: (as-c-string font) + 28
+				len: utf16-length? name
+				res: len + 1 * 2
+				default-font-name: as c-string! allocate res
+				copy-memory as byte-ptr! default-font-name as byte-ptr! name res
 				string/load-at
 					name
-					utf16-length? name
+					len
 					#get system/view/fonts/system
 					UTF-16LE
 				
