@@ -156,7 +156,7 @@ preprocessor: context [
 		
 		if positive? depth: depth - 1 [
 			saved: s
-			parse s macros								;-- apply macros to result
+			parse s [s: macros]								;-- apply macros to result
 			s: saved
 		]
 		s/1
@@ -198,7 +198,7 @@ preprocessor: context [
 			
 			repend rule [
 				to set-word! 's
-				bind spec/1 'self						;-- allow rule to reference exec's words
+				bind spec/1 exec						;-- allow rule to reference exec's words
 				to set-word! 'e
 				to-paren compose/deep [s: do-safe [(:macro) s e]]
 				to get-word! 's
