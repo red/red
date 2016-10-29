@@ -1090,9 +1090,9 @@ natives: context [
 						self?
 			]
 		][
+			word: as red-word! value
 			idx: _context/find-word TO_CTX(ctx) word/symbol no
 			if idx <> -1 [
-				word: as red-word! value
 				word/ctx: ctx
 				word/index: idx
 			]
