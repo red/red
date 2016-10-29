@@ -276,9 +276,11 @@ push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
 
 #if type = 'dll [
-	#switch OS [								;-- init OS-specific handlers
-		Windows  [win32-startup-ctx/init]
-		Syllable []
-		#default [posix-startup-ctx/init]
+	#if libRedRT? = yes [
+		#switch OS [								;-- init OS-specific handlers
+			Windows  [win32-startup-ctx/init]
+			Syllable []
+			#default [posix-startup-ctx/init]
+		]
 	]
 ]

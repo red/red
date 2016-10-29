@@ -218,7 +218,9 @@ win32-startup-ctx: context [
 		]
 	]
 	
-	#if type = 'exe [init]							;-- call init codes for executables only
+	#if type = 'exe [
+		#if dev-mode? = no [init]							;-- call init codes for executables only
+	]
 ]
 
 #if type = 'dll [
