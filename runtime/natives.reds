@@ -1054,6 +1054,7 @@ natives: context [
 			word  [red-word!]
 			ctx	  [node!]
 			self? [logic!]
+			idx	  [integer!]
 	][
 		#typecheck [bind copy]
 		value: stack/arguments
@@ -1089,9 +1090,12 @@ natives: context [
 						self?
 			]
 		][
-			word: as red-word! value
-			word/ctx: ctx
-			word/index: _context/find-word TO_CTX(ctx) word/symbol no
+			idx: _context/find-word TO_CTX(ctx) word/symbol no
+			if idx <> -1 [
+				word: as red-word! value
+				word/ctx: ctx
+				word/index: idx
+			]
 		]
 	]
 	
