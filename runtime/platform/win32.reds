@@ -80,6 +80,11 @@ platform: context [
 				mode		[integer!]
 				return:		[integer!]
 			]
+			_fileno: "_fileno" [
+				file		[int-ptr!]
+				return:		[integer!]
+			]
+			__iob_func: "__iob_func" [return: [int-ptr!]]
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
@@ -321,11 +326,12 @@ platform: context [
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: does [
+	init: func [/local h [int-ptr!]] [
 		init-gdiplus
 		#if unicode? = yes [
-			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
-			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
+			h: __iob_func
+			_setmode _fileno h + 1 _O_U16TEXT				;@@ throw an error on failure
+			_setmode _fileno h + 2 _O_U16TEXT				;@@ throw an error on failure
 		]
 		CoInitializeEx 0 COINIT_APARTMENTTHREADED
 		#if sub-system = 'console [get-console-mode]
