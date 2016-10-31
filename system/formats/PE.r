@@ -684,8 +684,8 @@ context [
 				foreach ref spec/3 [append code-refs ref]
 			]
 		]
-		sort code-refs
-		sort data-refs
+		code-refs: unique sort code-refs
+		data-refs: unique sort data-refs
 			
 		unless empty? code-refs [append out build-section-reloc job 'code code-refs]
 		unless empty? data-refs [append out build-section-reloc job 'data data-refs]
