@@ -219,6 +219,7 @@ system/console: context [
 					print "*** Error: not a Red program!"
 					;quit/return -2
 				][
+					expand-directives script
 					set/any 'result try-do skip script 2
 					if error? :result [print result]
 				]
