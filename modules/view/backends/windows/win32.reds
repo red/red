@@ -510,6 +510,8 @@ Red/System [
 #define AD_COUNTERCLOCKWISE 1
 #define AD_CLOCKWISE        2
 
+#define RGN_COPY            5
+
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
 	left		[integer!]
@@ -1687,6 +1689,11 @@ XFORM!: alias struct! [
 			nHeight		[integer!]
 			return:		[logic!]
 		]
+        SelectClipPath: "SelectClipPath" [
+            hdc         [handle!]
+            iMode       [integer!]
+            return:     [logic!]
+        ]
         BeginPath: "BeginPath" [
             hdc         [handle!]
             return:     [logic!]
@@ -1703,6 +1710,10 @@ XFORM!: alias struct! [
             return:     [integer!]
         ]
         FillPath: "FillPath" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
+        CloseFigure: "CloseFigure" [
             hdc         [handle!]
             return:     [logic!]
         ]
@@ -1937,6 +1948,12 @@ XFORM!: alias struct! [
 			combine 	[integer!]
 			return:		[integer!]
 		]
+        GdipSetClipPath: "GdipSetClipPath" [
+			graphics	[integer!]
+			path		[integer!]
+            combineMode [integer!]
+            return:     [integer!]
+        ]
 		GdipRotateWorldTransform: "GdipRotateWorldTransform" [
 			graphics	[integer!]
 			angle		[float32!]
@@ -2296,6 +2313,16 @@ XFORM!: alias struct! [
 			y			[integer!]
 			width		[integer!]
 			height		[integer!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
+		GdipAddPathArc: "GdipAddPathArc" [
+			path		[integer!]
+			x			[float32!]
+			y			[float32!]
+			width		[float32!]
+			height		[float32!]
 			startAngle	[float32!]
 			sweepAngle	[float32!]
 			return:		[integer!]

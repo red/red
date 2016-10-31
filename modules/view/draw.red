@@ -208,6 +208,7 @@ Red/System [
         parse-shape: func [
             cmds    [red-block!]
             DC      [handle!]
+            draw?   [logic!]
             catch?  [logic!]								;-- YES: report errors, NO: fire errors
             /local
                 cmd     [red-value!]
@@ -221,7 +222,6 @@ Red/System [
                 sym     [integer!]
                 rel?    [logic!]
                 close?  [logic!]
-                first?  [logic!]
                 sweep?  [logic!]
                 large?  [logic!]
         ][
@@ -231,7 +231,6 @@ Red/System [
             close?: no
             OS-draw-shape-beginpath DC
             while [cmd < tail][
-                first?: either cmd = block/rs-head cmds [ yes ][ no ]
                 case [
                     any [ TYPE_OF(cmd) = TYPE_WORD TYPE_OF(cmd) = TYPE_LIT_WORD ][
                         rel?: TYPE_OF(cmd) = TYPE_LIT_WORD
@@ -254,10 +253,8 @@ Red/System [
                             any [ sym = hline sym = vline ][
                                 DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
                                 DRAW_FETCH_SOME_2(TYPE_INTEGER TYPE_FLOAT)
-                                unless first? [
-                                    OS-draw-shape-axis DC start cmd rel? (sym = hline)
-                                    close?: yes
-                                ]
+                                OS-draw-shape-axis DC start cmd rel? (sym = hline)
+                                close?: yes
                             ]
                             sym = _arc [
                                 sweep?: false
@@ -310,7 +307,9 @@ Red/System [
                 ]
                 cmd: cmd + 1
             ]
-            unless OS-draw-shape-endpath DC close? [ throw-draw-error cmds cmd catch? ]
+            if draw? [
+                unless OS-draw-shape-endpath DC close? [ throw-draw-error cmds cmd catch? ]
+            ]
         ]
 
 		parse-draw: func [
@@ -340,6 +339,7 @@ Red/System [
 				border?	[logic!]
 				closed? [logic!]
 				grad?	[logic!]
+                rect?   [logic!]
 				state	[integer!]
 		][
 			cmd:  block/rs-head cmds
@@ -550,20 +550,27 @@ Red/System [
 								OS-draw-image DC as red-image! start point end color border? pattern
 							]
 							sym = clip [
-								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+                                rect?: false
+                                DRAW_FETCH_VALUE_2(TYPE_PAIR TYPE_BLOCK)
+                                either TYPE_OF(cmd) = TYPE_PAIR [
+                                    DRAW_FETCH_VALUE(TYPE_PAIR)
+                                    rect?: true
+                                ][
+    								parse-shape as red-block! cmd DC false catch?
+                                ]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push :state
-									OS-set-clip as red-pair! start as red-pair! cmd - 1
+                                    OS-set-clip start cmd - 1 rect? DC
 									parse-draw as red-block! cmd DC catch?
 									OS-matrix-pop state
 								][
-									OS-set-clip as red-pair! start as red-pair! cmd
+                                    OS-set-clip start cmd rect? DC
 								]
 							]
 							sym = shape [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								parse-shape as red-block! cmd DC catch?
+								parse-shape as red-block! cmd DC true catch?
 							]
 							sym = rotate [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
