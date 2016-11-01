@@ -328,12 +328,12 @@ platform: context [
 	;-------------------------------------------
 	init: func [/local h [int-ptr!]] [
 		init-gdiplus
+		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		#if sub-system = 'console [init-dos-console]
 		#if unicode? = yes [
 			h: __iob_func
 			_setmode _fileno h + 1 _O_U16TEXT				;@@ throw an error on failure
 			_setmode _fileno h + 2 _O_U16TEXT				;@@ throw an error on failure
 		]
-		CoInitializeEx 0 COINIT_APARTMENTTHREADED
-		#if sub-system = 'console [get-console-mode]
 	]
 ]
