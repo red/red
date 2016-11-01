@@ -4218,13 +4218,11 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		unless all [job/dev-mode? not job/libRedRT?][
-			pc: next preprocessor/expand load-source/hidden %boot.red job		;-- compile Red's boot script
-			unless job/red-help? [clear-docstrings pc]
-			booting?: yes
-			comp-block
-			booting?: no
-		]
+		pc: next preprocessor/expand load-source/hidden %boot.red job ;-- compile Red's boot script
+		unless job/red-help? [clear-docstrings pc]
+		booting?: yes
+		comp-block
+		booting?: no
 		
 		mods: tail output
 		append output [#user-code]
