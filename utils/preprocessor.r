@@ -70,7 +70,7 @@ preprocessor: context [
 			| skip
 		]]
 		unless empty? syms [exec: make exec append syms none]
-		do-safe bind code exec
+		do-safe/with bind code exec cmd
 	]
 	
 	count-args: func [spec [block!] /local total][
