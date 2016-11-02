@@ -1093,7 +1093,7 @@ red: context [
 		name
 	]
 	
-	check-cloned-function: func [new [word!] /local name alter entry pos][
+	check-cloned-function: func [new [word!] /local name alter entry pos alias old type][
 		if all [
 			get-word? pc/1
 			name: to word! pc/1	
@@ -1107,6 +1107,27 @@ red: context [
 				entry: find functions alter
 			]
 			repend functions [new entry/2]
+
+			unless local-bound? pc/-1 [
+				switch/default type: entry/2/1 [
+					routine! [
+						alias: new
+						old: decorate-exec-ctx name
+					]
+					native! [
+						alias: decorate-func new
+						old: load rejoin ["red/" natives-prefix slash name #"*"]
+					]
+					action! [
+						alias: decorate-func new
+						old: load rejoin ["red/" actions-prefix slash name #"*"]
+					]
+				][
+					alias: decorate-func new
+					old: decorate-exec-ctx decorate-func name
+				]
+				libRedRT/collect-aliased alias old
+			]
 			
 			either pos: find-ssa new [					;-- add the real function name as alias
 				pos/2: name
@@ -4492,6 +4513,7 @@ red: context [
 			preprocessor/expand src job
 			process-needs src/1 next src
 			extracts/init job
+			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
 			

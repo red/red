@@ -16,6 +16,7 @@ libRedRT: context [
 	imports:	make block!  100
 	template:	make string! 100'000
 	extras:		make block!  100
+	aliased:		make block!	 10							;-- [new old...]
 	obj-path:	'red/objects
 	
 	lib-file:	  %libRedRT
@@ -47,6 +48,10 @@ libRedRT: context [
 		data
 	]
 	
+	init: does [
+		clear aliased
+	]
+	
 	init-extras: does [
 		clear extras
 		clear user-funcs
@@ -68,6 +73,10 @@ libRedRT: context [
 		][
 			append extras name
 		]	
+	]
+	
+	collect-aliased: func [new [word!] old [path!]][
+		repend aliased [new to word! form old]
 	]
 	
 	make-exports: func [functions exports /local name file][
@@ -163,7 +172,7 @@ libRedRT: context [
 			]
 
 		]
-		foreach def funcs [
+		foreach def funcs [								;-- functions
 			ctx: next def
 			list: imports
 			
@@ -196,7 +205,15 @@ libRedRT: context [
 			append/only pos spec
 		]
 		
-		foreach [def type] vars [
+		list: third second find imports #import			;-- aliased functions
+		foreach [new old] aliased [
+			spec: copy/deep functions/:old/4
+			clear find spec /local
+			repend list [to set-word! new form old spec]
+			new-line skip tail list -3 yes
+		]
+		
+		foreach [def type] vars [						;-- global variables
 			list: either 2 < length? def [
 				pos: find imports to set-word! def/2
 				pos/3/2/3
@@ -211,7 +228,7 @@ libRedRT: context [
 		]
 		list: find imports to set-word! 'stack
 		append list/3 [
-			#enum flags! [FRAME_FUNCTION: 16777216]				;-- 01000000h
+			#enum flags! [FRAME_FUNCTION: 16777216]		;-- 01000000h
 		]
 		append imports [
 			words: context [
