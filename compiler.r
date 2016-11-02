@@ -4491,8 +4491,11 @@ red: context [
 		s-counter: 0
 		depth:	   0
 		max-depth: 0
-		container-obj?: none
 		redbin/index: 0									;-- required here by libRedRT
+		container-obj?:
+		script-path:
+		script-file:
+		main-path: none
 	]
 
 	compile: func [
