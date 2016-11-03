@@ -315,8 +315,9 @@ system/view/VID: context [
 		local-styles: case [
 			master 	(system/view/VID/styles)
 			styles 	(copy css)
-			true 	(#())
+			true 	(make map! 2)
 		]
+		opts: make face-options []
 		while [spec: find spec set-word!] [
 			name: first spec
 			parent: first spec: next spec
@@ -327,7 +328,7 @@ system/view/VID: context [
 			unless tmp: find spec set-word! [tmp: tail spec]
 			args: copy/part spec tmp
 			face: make face! copy/deep style/template
-			spec: fetch-options face face-options style spec local-styles
+			spec: fetch-options face opts style spec local-styles
 			parse style/template: body-of face [
 				some [remove [set-word! [none! | function!]] | skip]
 			]
@@ -351,17 +352,19 @@ system/view/VID: context [
 		/styles					"Use an existing styles list"
 			css		  [map!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
-		/extern focal-face
+		/extern focal-face face-options
 	][
 		background!:  make typeset! [image! file! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
-		local-styles: any [css #()]						;-- panel-local styles definitions
+		local-styles: any [css make map! 2]				;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
+
+		opts: make face-options []
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
 
@@ -429,7 +432,7 @@ system/view/VID: context [
 				]
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
-				spec: fetch-options face face-options style spec local-styles
+				spec: fetch-options face opts style spec local-styles
 				if style/init [do bind style/init 'face]
 				
 				either styling? [
@@ -473,7 +476,7 @@ system/view/VID: context [
 					if box/x > pane-size/x [pane-size/x: box/x]
 					if box/y > pane-size/y [pane-size/y: box/y]
 					
-					if face-options/now? [do-actor face none 'time]
+					if opts/now? [do-actor face none 'time]
 				]
 			]
 			spec: next spec
