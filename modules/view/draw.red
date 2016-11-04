@@ -529,9 +529,8 @@ Red/System [
 								pos: cmd + 1
 								if pos < tail [
 									if any [TYPE_OF(pos) = TYPE_TUPLE TYPE_OF(pos) = TYPE_WORD][
-										if pos >= tail [throw-draw-error cmds cmd catch?]
 										value: either TYPE_OF(pos) = TYPE_WORD [_context/get as red-word! pos][pos]
-										if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value]
+										if TYPE_OF(value) = TYPE_TUPLE [color: as red-tuple! value cmd: pos]
 									]
 
 									pos: cmd + 1
@@ -539,7 +538,7 @@ Red/System [
 										word: as red-word! pos
 										sym: symbol/resolve word/symbol
 										case [
-											sym = border [border?: yes cmd: cmd + 1]
+											sym = border [border?: yes cmd: pos]
 											;any [sym = repeat sym = reflect][
 											;	;@@ TBD check if followed by four integers
 											;]

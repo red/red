@@ -1687,7 +1687,7 @@ OS-draw-image: func [
 				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
 			exit
 		]
-		true [0]							;@@ TBD four control points
+		true [exit]							;@@ TBD four control points
 	]
 	GdipDrawImageRectRectI
 		modes/graphics as-integer image/node
