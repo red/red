@@ -19,7 +19,11 @@ preprocessor: context [
 	s: none
 	
 	do-quit: does [
-		either all [rebol system/options/args][quit/return 1][halt]
+		case [
+			all [rebol system/options/args][quit/return 1]
+			system/console [throw/name 'halt-request 'console]
+			'else [quit]
+		]
 	]
 	
 	throw-error: func [error [error!] cmd [issue!] code [block!] /local w][
@@ -281,7 +285,7 @@ preprocessor: context [
 				] | (syntax-error s next s)]
 				
 				| s: #macro [
-					[set-word! | word! | block!]['func | 'function] block! block! 
+					[set-word! | word! | lit-word! | block!]['func | 'function] block! block! 
 					| (syntax-error s skip s 4)
 				] e: (
 					register-macro next s
