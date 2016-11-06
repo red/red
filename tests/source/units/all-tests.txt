@@ -1,3 +1,4 @@
+preprocessor-test.red
 logic-test.red
 conditional-test.red
 series-test.red
