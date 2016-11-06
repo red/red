@@ -733,6 +733,22 @@ msg-send-super: func [
 	objc_msgSendSuper [super sel arg]
 ]
 
+to-red-string: func [
+	nsstr	[integer!]
+	str		[red-string!]
+	return: [red-string!]
+	/local
+		size [integer!]
+		cstr [c-string!]
+][
+	size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
+	cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
+	if null? str [str: as red-string! stack/push*]
+	string/make-at as red-value! str size Latin1
+	unicode/load-utf8-stream cstr size str null
+	str
+]
+
 to-NSString: func [str [red-string!] return: [integer!] /local len][
 	len: -1
 	objc_msgSend [

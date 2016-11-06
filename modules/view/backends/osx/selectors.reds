@@ -16,8 +16,14 @@ Red/System [
 
 ;-- User's define selectors
 
-sel-on-timer: 0
+sel-on-timer:		0
+sel_release:		0
+sel_alloc:			0
+sel_init:			0
 
 init-selectors: does [
-	sel-on-timer: sel_getUid "on-timer:"
+	sel-on-timer:		sel_getUid "on-timer:"
+	sel_release:		sel_getUid "release"
+	sel_alloc:			sel_getUid "alloc"
+	sel_init:			sel_getUid "init"
 ]
