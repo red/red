@@ -831,6 +831,7 @@ setup-tracking-area: func [
 		rc/x rc/y rc/w rc/h options obj 0
 	]
 	objc_msgSend [obj sel_getUid "addTrackingArea:" track]
+	objc_setAssociatedObject obj RedAllOverFlagKey track OBJC_ASSOCIATION_RETAIN
 ]
 
 same-type?: func [

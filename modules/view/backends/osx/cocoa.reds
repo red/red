@@ -110,8 +110,6 @@ Red/System [
 #define NSMouseMovedMask			32
 #define NSLeftMouseDraggedMask		64
 
-
-
 #define NSItalicFontMask			1
 #define NSBoldFontMask				2
 #define NSFixedPitchFontMask		0400h
@@ -165,6 +163,7 @@ Red/System [
 #define RedCameraImageKey		4000FFF4h
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
+#define RedAllOverFlagKey		4000FFFCh
 
 #define handle! [pointer! [integer!]]
 

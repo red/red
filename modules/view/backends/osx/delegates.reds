@@ -162,7 +162,10 @@ mouse-events: func [
 		NSRightMouseDragged	
 		NSOtherMouseDragged	[
 			opt: (get-face-values self) + FACE_OBJ_OPTIONS
-			if TYPE_OF(opt) = TYPE_BLOCK [
+			if any [
+				TYPE_OF(opt) = TYPE_BLOCK
+				0 <> objc_getAssociatedObject self RedAllOverFlagKey
+			][
 				make-event self flags EVT_OVER
 			]
 		]
