@@ -19,7 +19,7 @@ REBOL [
 ===end-group===
 
 ===start-group=== "Red Compiler tests"
-  	
+	--run-script-quiet %source/compiler/preprocessor-test.r
 ===end-group===
 
 ===start-group=== "Red Library tests"
