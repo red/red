@@ -156,7 +156,7 @@ preprocessor: context [
 		reduce [expr after]
 	]
 	
-	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd saved res][
+	do-macro: func [name pos [block! paren!] arity [integer!] /local cmd saved p v res][
 		depth: depth + 1
 		saved: s
 		parse next pos [arity [s: macros | skip]]		;-- resolve nested macros first
@@ -166,6 +166,13 @@ preprocessor: context [
 		append cmd name
 		insert/part tail cmd next pos arity
 		if trace? [print ["preproc: eval macro" mold cmd]]
+		p: next cmd
+		forall p [
+			switch type?/word v: p/1 [
+				word! [change p to lit-word! v]
+				path! [change/only p to lit-path! v]
+			]
+		]
 		
 		if unset? set/any 'res do bind cmd exec [
 			print ["*** Macro Error: no value returned by" name "macro^/"]
