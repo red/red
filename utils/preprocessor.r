@@ -9,13 +9,14 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 preprocessor: context [
-	exec:	none										;-- object that captures directive words
-	protos: make block! 10
-	macros: make block! 10
-	stack:	make block!	10
-	syms:	make block! 20
-	depth: 	0											;-- track depth of recursive macro calls
+	exec:	 none										;-- object that captures directive words
+	protos:  make block! 10
+	macros:  make block! 10
+	stack:	 make block! 10
+	syms:	 make block! 20
+	depth:	 0											;-- track depth of recursive macro calls
 	active?: yes
+	trace?:  no
 	s: none
 	
 	do-quit: does [
@@ -60,10 +61,18 @@ preprocessor: context [
 		do-quit
 	]
 	
-	do-safe: func [code [block!] /with cmd [issue!] /local res][
+	do-safe: func [code [block!] /with cmd [issue!] /local res t?][
+		if t?: all [trace? not with][
+			print [
+				"preproc: matched" mold/flat copy/part get code/2 get code/3 lf
+				"preproc: eval macro" copy/part mold/flat body-of first code 80
+			]
+		]
 		#process off
 		if error? set/any 'res try code [throw-error res any [cmd #macro] code]
 		#process on
+		
+		if t? [print ["preproc: ==" mold copy/part get/any 'res 1]]
 		either unset? get/any 'res [[]][res]
 	]
 	
@@ -139,7 +148,11 @@ preprocessor: context [
 	eval: func [code [block!] cmd [issue!] /local after expr][
 		after: fetch-next code
 		expr: copy/part code after
+		if trace? [print ["preproc:" mold cmd mold expr]]
+		
 		expr: do-code expr cmd
+		if trace? [print ["preproc: ==" mold expr]]
+		
 		reduce [expr after]
 	]
 	
@@ -152,15 +165,18 @@ preprocessor: context [
 		cmd: make block! 1
 		append cmd name
 		insert/part tail cmd next pos arity
+		if trace? [print ["preproc: eval macro" mold cmd]]
+		
 		if unset? set/any 'res do bind cmd exec [
 			print ["*** Macro Error: no value returned by" name "macro^/"]
 			do-quit
 		]
+		if trace? [print ["preproc: ==" mold :res]]
 		s/1: :res
 		
 		if positive? depth: depth - 1 [
 			saved: s
-			parse s [s: macros]								;-- apply macros to result
+			parse s [s: macros]							;-- apply macros to result
 			s: saved
 		]
 		s/1
@@ -268,7 +284,9 @@ preprocessor: context [
 				| s: #do (keep?: no) opt ['keep (keep?: yes)] [block! | (syntax-error s next s)] e: (
 					if active? [
 						pos: pick [3 2] keep?
+						if trace? [print ["preproc: eval" mold s/:pos]]
 						expr: do-code s/:pos s/1
+						if all [keep? trace?][print ["preproc: ==" mold expr]]
 						either keep? [s: change/part s expr e][remove/part s e]
 					]
 				) :s
@@ -278,6 +296,9 @@ preprocessor: context [
 					loop 2 [clear take/last stack]
 				)
 				| s: #reset (reset job remove s) :s
+				| s: #trace [[
+					['on (trace?: on) | 'off (trace?: off)] (remove/part s 2) :s
+				] | (syntax-error s next s)]
 				
 				| s: #process [[
 					  'on  (active?: yes remove/part s 2) :s

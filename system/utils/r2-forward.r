@@ -105,3 +105,4 @@ collect: func [
 
 
 spec-of: func [fun [any-function!]][first :fun]
+body-of: func [fun [any-function!]][second :fun]
