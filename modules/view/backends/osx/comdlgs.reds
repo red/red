@@ -10,6 +10,34 @@ Red/System [
 	}
 ]
 
+quit-modal-loop?: no
+
+do-modal-loop: func [
+	/local
+		state	[integer!]
+		pool	[integer!]
+		timeout [integer!]
+		event	[integer!]
+][
+	timeout: objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]
+	until [
+		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
+		objc_msgSend [pool sel_getUid "init"]
+
+		event: objc_msgSend [
+			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
+			NSAnyEventMask
+			timeout
+			NSModalPanelRunLoopMode
+			true
+		]
+		if event <> 0 [objc_msgSend [NSApp sel_getUid "sendEvent:" event]]
+		objc_msgSend [pool sel_getUid "drain"]
+
+		quit-modal-loop?
+	]
+]
+
 set-file-filter: func [
 	panel		[integer!]
 	filter		[red-string!]
@@ -72,26 +100,78 @@ set-file-filter: func [
 	objc_msgSend [panel sel_getUid "setAllowedFileTypes:" allowed]
 ]
 
-_request-file: func [
-	title	[red-string!]
-	path	[red-file!]
-	filter	[red-block!]
-	save?	[logic!]
-	multi?	[logic!]
-	dir?	[logic!]
-	return: [red-value!]
+request-file-handler: func [
+	[cdecl]
+	_blk		[int-ptr!]
+	result		[integer!]
 	/local
 		panel	[integer!]
-		parent	[integer!]
-		dir		[integer!]
+		multi?	[logic!]
+		save?	[logic!]
+		dir?	[logic!]
 		file	[integer!]
 		files	[integer!]
 		i		[integer!]
 		count	[integer!]
-		res		[integer!]
+		ret		[red-value!]
 		blk		[red-block!]
 		str		[red-string!]
 ][
+	panel:	_blk/6
+	multi?:	as logic! _blk/7
+	save?:	as logic! _blk/8
+	dir?:	as logic! _blk/9
+	ret:	as red-value! _blk/10
+	either result = 1 [							;-- NSFileHandlingPanelOKButton
+		either any [not multi? save?][
+			str: to-red-string objc_msgSend [panel sel_getUid "filename"] ret
+			set-type ret TYPE_FILE
+			if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
+		][
+			files: objc_msgSend [panel sel_getUid "filenames"]
+			count: objc_msgSend [files sel_getUid "count"]
+			blk: block/make-at as red-block! ret count
+			i: 0
+			while [i < count][
+				file: objc_msgSend [files sel_getUid "objectAtIndex:" i]
+				str: to-red-string file ALLOC_TAIL(blk)
+				set-type as red-value! str TYPE_FILE
+				if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
+				i: i + 1
+			]
+		]
+	][
+		set-type ret TYPE_NONE
+	]
+	quit-modal-loop?: yes
+]
+
+_request-file: func [
+	title			[red-string!]
+	path			[red-file!]
+	filter			[red-block!]
+	save?			[logic!]
+	multi?			[logic!]
+	dir?			[logic!]
+	return:			[red-value!]
+	/local
+		ret			[integer!]
+		value4		[integer!]
+		value3		[integer!]
+		value2		[integer!]
+		value1		[integer!]
+		descriptor	[integer!]
+		invoke		[integer!]
+		reserved	[integer!]
+		flags		[integer!]
+		isa			[integer!]
+		panel		[integer!]
+		parent		[integer!]
+		dir			[integer!]
+		file		[integer!]
+		res			[integer!]
+][
+	quit-modal-loop?: no
 	either any [dir? not save?][
 		panel: objc_msgSend [objc_getClass "NSOpenPanel" sel_getUid "openPanel"]
 		if multi? [
@@ -124,41 +204,33 @@ _request-file: func [
 		]
 	]
 
-	parent: objc_msgSend [NSApp sel_getUid "mainWindow"]
-	if parent <> 0 [
-		objc_msgSend [
-			NSApp sel_getUid "beginSheet:modalForWindow:modalDelegate:didEndSelector:contextInfo:"
-			panel parent 0 0 0
-		]
-	]
-	res: objc_msgSend [panel sel_getUid "runModalForDirectory:file:" dir file]
-	if parent <> 0 [
-		objc_msgSend [NSApp sel_getUid "endSheet:returnCode:" panel 0]
-	]
+	objc_block_descriptor/reserved: 0
+	objc_block_descriptor/size: 4 * 10
 
-	either res = 1 [							;-- NSFileHandlingPanelOKButton
-		either any [not multi? save?][
-			str: to-red-string objc_msgSend [panel sel_getUid "filename"] null
-			set-type as red-value! str TYPE_FILE
-			if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
-			as red-value! str
-		][
-			files: objc_msgSend [panel sel_getUid "filenames"]
-			count: objc_msgSend [files sel_getUid "count"]
-			blk: block/push-only* count
-			i: 0
-			while [i < count][
-				file: objc_msgSend [files sel_getUid "objectAtIndex:" i]
-				str: to-red-string file as red-string! ALLOC_TAIL(blk)
-				set-type as red-value! str TYPE_FILE
-				if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
-				i: i + 1
-			]
-			as red-value! blk
+	isa: _NSConcreteStackBlock
+	flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
+	reserved: 0
+	invoke: as-integer :request-file-handler
+	descriptor: as-integer objc_block_descriptor
+	value1: panel
+	value2: as-integer multi?
+	value3: as-integer save?
+	value4: as-integer dir?
+	ret:	as-integer stack/push*
+
+	parent: objc_msgSend [NSApp sel_getUid "mainWindow"]
+	either parent <> 0 [
+		objc_msgSend [
+			panel sel_getUid "beginSheetModalForWindow:completionHandler:"
+			parent :isa
 		]
+		do-modal-loop
+		objc_msgSend [parent sel_getUid "makeKeyWindow"]
 	][
-		as red-value! none-value
+		res: objc_msgSend [panel sel_getUid "runModalForDirectory:file:" dir file]
+		request-file-handler :isa res
 	]
+	as red-value! ret
 ]
 
 OS-request-dir: func [

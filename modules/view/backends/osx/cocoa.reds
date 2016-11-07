@@ -374,6 +374,7 @@ tagSIZE: alias struct! [
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
 		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
+		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
 		NSFontAttributeName: "NSFontAttributeName" [integer!]
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
@@ -735,16 +736,17 @@ msg-send-super: func [
 
 to-red-string: func [
 	nsstr	[integer!]
-	str		[red-string!]
+	slot	[red-value!]
 	return: [red-string!]
 	/local
+		str  [red-string!]
 		size [integer!]
 		cstr [c-string!]
 ][
 	size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
 	cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
-	if null? str [str: as red-string! stack/push*]
-	string/make-at as red-value! str size Latin1
+	if null? slot [slot: stack/push*]
+	str: string/make-at slot size Latin1
 	unicode/load-utf8-stream cstr size str null
 	str
 ]

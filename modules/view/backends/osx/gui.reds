@@ -948,8 +948,6 @@ init-window: func [
 		rect/x rect/y rect/w rect/h flags 2 0
 	]
 
-?? window
-
 	set-content-view window
 
 	if bits and FACET_FLAGS_NO_BORDER = 0 [

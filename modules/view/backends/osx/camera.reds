@@ -158,7 +158,6 @@ snap-camera: func [				;-- capture an image of current preview window
 		invoke		[integer!]
 		reserved	[integer!]
 		flags		[integer!]
-		p-int		[integer!]
 		isa			[integer!]
 		image		[integer!]
 		connection	[integer!]
@@ -168,8 +167,7 @@ snap-camera: func [				;-- capture an image of current preview window
 	objc_block_descriptor/reserved: 0
 	objc_block_descriptor/size: 4 * 6
 
-	p-int: _NSConcreteStackBlock
-	isa: as-integer :p-int
+	isa: _NSConcreteStackBlock
 	flags: 1 << 29				;-- BLOCK_HAS_DESCRIPTOR, no copy and dispose helpers
 	reserved: 0
 	invoke: as-integer :still-image-handler
