@@ -1091,6 +1091,9 @@ parser: context [
 								]
 							]
 							R_INTO [
+								PARSE_CHECK_INPUT_EMPTY?
+								unless end? [match?: no]
+								
 								s: GET_BUFFER(series)
 								s/tail: s/tail - 1
 								input: as red-series! s/tail - 1
