@@ -168,8 +168,8 @@ _request-file: func [
 		panel		[integer!]
 		parent		[integer!]
 		dir			[integer!]
-		file		[integer!]
 		res			[integer!]
+		exist?		[logic!]
 ][
 	quit-modal-loop?: no
 	either any [dir? not save?][
@@ -184,6 +184,15 @@ _request-file: func [
 		]
 	][
 		panel: objc_msgSend [objc_getClass "NSSavePanel" sel_getUid "savePanel"]
+		if TYPE_OF(path) = TYPE_FILE [
+			dir: to-NSString path
+			if zero? objc_msgSend [dir sel_getUid "hasSuffix:" NSString("/")][
+				objc_msgSend [
+					panel sel_getUid "setNameFieldStringValue:"
+					objc_msgSend [dir sel_getUid "lastPathComponent"]
+				]
+			]
+		]
 	]
 
 	if TYPE_OF(title) = TYPE_STRING [
@@ -191,16 +200,25 @@ _request-file: func [
 	]
 	objc_msgSend [panel sel_getUid "setCanCreateDirectories:" true]
 
-	dir: 0
-	file: 0
 	if TYPE_OF(path) = TYPE_FILE [
 		dir: to-NSString path
+		dir: objc_msgSend [dir sel_getUid "stringByExpandingTildeInPath"]
+		exist?: 0 <> objc_msgSend [
+			objc_msgSend [objc_getClass "NSFileManager" sel_getUid "defaultManager"]
+			sel_getUid "fileExistsAtPath:" dir
+		]
 		if all [
+			any [save? not exist?]
 			not dir?
 			zero? objc_msgSend [dir sel_getUid "hasSuffix:" NSString("/")]
 		][
 			dir: objc_msgSend [dir sel_getUid "stringByDeletingLastPathComponent"]
-			file: objc_msgSend [dir sel_getUid "lastPathComponent"]
+		]
+		if any [dir? 0 <> objc_msgSend [dir sel_getUid "containsString:" NSString("/")]][
+			objc_msgSend [
+				panel sel_getUid "setDirectoryURL:"
+				objc_msgSend [objc_getClass "NSURL" sel_getUid "fileURLWithPath:" dir]
+			]
 		]
 	]
 
@@ -227,7 +245,7 @@ _request-file: func [
 		do-modal-loop
 		objc_msgSend [parent sel_getUid "makeKeyWindow"]
 	][
-		res: objc_msgSend [panel sel_getUid "runModalForDirectory:file:" dir file]
+		res: objc_msgSend [panel sel_getUid "runModal"]
 		request-file-handler :isa res
 	]
 	as red-value! ret
