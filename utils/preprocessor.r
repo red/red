@@ -22,8 +22,8 @@ preprocessor: context [
 	do-quit: does [
 		case [
 			all [rebol system/options/args][quit/return 1]
-			system/console [throw/name 'halt-request 'console]
-			'else [quit]
+			all [not rebol system/console][throw/name 'halt-request 'console]
+			'else [halt]
 		]
 	]
 	
@@ -69,11 +69,11 @@ preprocessor: context [
 			]
 		]
 		#process off
-		if error? set/any 'res try code [throw-error res any [cmd #macro] code]
+		if error? set/any 'res try code [throw-error :res any [cmd #macro] code]
 		#process on
 		
 		if t? [print ["preproc: ==" mold copy/part get/any 'res 1]]
-		either unset? get/any 'res [[]][res]
+		either unset? get/any 'res [[]][:res]
 	]
 	
 	do-code: func [code [block!] cmd [issue!] /local p][
