@@ -328,8 +328,9 @@ preprocessor: context [
 	]
 	
 	set 'expand-directives func [						;-- to be called from Red only
-		code [block!]
-		/keep
+		"Invokes the preprocessor on argument list, modifying and returning it"
+		code [block! paren!] "List of Red values to preprocess"
+		/keep 				 "Keep previous preprocessor state, do not reset it"
 		/local job
 	][
 		job: system/build/config
