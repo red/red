@@ -329,7 +329,10 @@ preprocessor: context [
 	
 	set 'expand-directives func [						;-- to be called from Red only
 		code [block!]
+		/keep
+		/local job
 	][
-		expand code system/build/config
+		job: system/build/config
+		either keep [expand/keep code job][expand code job]
 	]
 ]
