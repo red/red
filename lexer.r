@@ -379,7 +379,7 @@ lexer: context [
 	
 	tag-rule: [
 		#"<" s: not-tag-1st (type: tag!)
-		 some [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
+		 any [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
 	]
 	
 	email-rule: [
