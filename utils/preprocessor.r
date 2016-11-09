@@ -301,6 +301,7 @@ preprocessor: context [
 					repend stack [tail macros tail protos]
 					change/part s expand/keep s/2 job e
 					loop 2 [clear take/last stack]
+					if tail? next macros [macros/1: <none>] ;-- re-inject a value to match (avoids infinite loops)
 				)
 				| s: #reset (reset job remove s) :s
 				| s: #trace [[
