@@ -13,6 +13,11 @@ Red/System [
 #include %delegates.reds
 #include %camera.reds
 
+#enum subclass-flags! [	
+	STORE_FACE_FLAG: 1
+	EXTRA_DATA_FLAG: 2
+]
+
 add-method!: alias function! [class [integer!]]
 
 add-base-handler: func [class [integer!]][
@@ -108,6 +113,10 @@ add-tabview-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "tabView:shouldSelectTabViewItem:" as-integer :tabview-should-select "B@:@@"
 ]
 
+add-filedialog-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "filter-filetype:" as-integer :filter-filetype-action "v@:@"
+]
+
 add-app-delegate: func [class [integer!]][
 	class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
@@ -121,14 +130,17 @@ make-super-class: func [
 	new		[c-string!]
 	base	[c-string!]
 	method	[integer!]				;-- override functions or add functions
-	store?	[logic!]
+	flags	[integer!]
 	return:	[integer!]
 	/local
 		new-class	[integer!]
 		add-method	[add-method!]
 ][
 	new-class: objc_allocateClassPair objc_getClass base new 0
-	if store? [						;-- add an instance value to store red-object!
+	if flags and EXTRA_DATA_FLAG <> 0 [
+		class_addIvar new-class IVAR_RED_DATA  4 2 "i"
+	]
+	if flags and STORE_FACE_FLAG <> 0 [
 		class_addIvar new-class IVAR_RED_FACE 16 2 "{red-face=iiii}"
 		class_addMethod new-class sel-on-timer as-integer :red-timer-action "v@:@"
 		class_addMethod new-class sel_getUid "mouseEntered:" as-integer :mouse-entered "v@:@"
@@ -154,19 +166,21 @@ make-super-class: func [
 ]
 
 register-classes: does [
-	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	no
-	make-super-class "RedView"			"NSView"				as-integer :flipp-coord			no
-	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	yes
-	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	yes
-	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	yes
-	make-super-class "RedSlider"		"NSSlider"				as-integer :add-slider-handler	yes
-	make-super-class "RedProgress"		"NSProgressIndicator"	0	yes
-	make-super-class "RedTextField"		"NSTextField"			as-integer :add-text-field-handler yes
-	make-super-class "RedTextView"		"NSTextView"			as-integer :add-area-handler yes
-	make-super-class "RedComboBox"		"NSComboBox"			as-integer :add-combo-box-handler yes
-	make-super-class "RedTableView"		"NSTableView"			as-integer :add-table-view-handler yes
-	make-super-class "RedCamera"		"NSView"				as-integer :add-camera-handler yes
-	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler yes
-	make-super-class "RedScrollView"	"NSScrollView"			0	yes
-	make-super-class "RedBox"			"NSBox"					0	yes
+	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
+	make-super-class "RedView"			"NSView"				as-integer :flipp-coord			0
+	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG
+	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG
+	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	STORE_FACE_FLAG
+	make-super-class "RedSlider"		"NSSlider"				as-integer :add-slider-handler	STORE_FACE_FLAG
+	make-super-class "RedTextField"		"NSTextField"			as-integer :add-text-field-handler STORE_FACE_FLAG
+	make-super-class "RedTextView"		"NSTextView"			as-integer :add-area-handler STORE_FACE_FLAG
+	make-super-class "RedComboBox"		"NSComboBox"			as-integer :add-combo-box-handler STORE_FACE_FLAG
+	make-super-class "RedTableView"		"NSTableView"			as-integer :add-table-view-handler STORE_FACE_FLAG
+	make-super-class "RedCamera"		"NSView"				as-integer :add-camera-handler STORE_FACE_FLAG
+	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG
+	make-super-class "RedOpenPanel"		"NSOpenPanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
+	make-super-class "RedSavePanel"		"NSSavePanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
+	make-super-class "RedScrollView"	"NSScrollView"			0	STORE_FACE_FLAG
+	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
+	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG
 ]

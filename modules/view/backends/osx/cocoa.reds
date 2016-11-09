@@ -151,7 +151,8 @@ Red/System [
 #define NSWindowsCP1250StringEncoding	15
 #define NSUTF16LittleEndianStringEncoding	94000100h
 
-#define IVAR_RED_FACE	"red-face"
+#define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
+#define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
 #define kCFStringEncodingUTF8	08000100h
 #define CFString(cStr) [CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
@@ -164,6 +165,7 @@ Red/System [
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh
+#define RedAttachedWidgetKey	4000FFFDh
 
 #define handle! [pointer! [integer!]]
 
@@ -290,6 +292,18 @@ tagSIZE: alias struct! [
 		]
 		object_getClass: "object_getClass" [
 			id			[integer!]
+			return:		[integer!]
+		]
+		object_setInstanceVariable: "object_setInstanceVariable" [
+			id			[integer!]
+			name		[c-string!]
+			value		[integer!]
+			return:		[integer!]
+		]
+		object_getInstanceVariable: "object_getInstanceVariable" [
+			id			[integer!]
+			name		[c-string!]
+			out			[int-ptr!]
 			return:		[integer!]
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]

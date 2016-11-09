@@ -770,7 +770,7 @@ context [
 		lc/size:		(get-struct-size 'lddylib) + length? spec/2
 		lc/offset:		24
 		lc/timestamp:	2
-		lc/version:		to integer! pick [ #{00010000} #{007D0000}] alt	;-- 1.0.0 | 128.0.0
+		lc/version:		to integer! pick [ #{00010000} #{7FFD0000}] alt	;-- 1.0.0 | 32765.0.0 @@ use latest version
 		lc/compat:		to integer! #{00000000}	;-- 0.0.0		@@ should be configurable
 		lc: form-struct lc
 		append lc spec/2

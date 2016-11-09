@@ -96,8 +96,25 @@ set-file-filter: func [
 		if idx <> 0 [t: objc_msgSend [t sel_getUid "substringFromIndex:" idx]]
 		objc_msgSend [allowed sel_getUid "addObject:" t]
 	]
-
 	objc_msgSend [panel sel_getUid "setAllowedFileTypes:" allowed]
+]
+
+filter-filetype-action: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+	/local
+		idx		[integer!]
+		p-int	[integer!]
+		filters [red-block!]
+][
+	p-int: 0
+	object_getInstanceVariable self IVAR_RED_DATA :p-int
+	filters: as red-block! p-int
+	idx: objc_msgSend [sender sel_getUid "indexOfSelectedItem"]
+	set-file-filter self as red-string! (block/rs-head filters) + (idx * 2 + 1)
+	objc_msgSend [self sel_getUid "validateVisibleColumns"]
 ]
 
 request-file-handler: func [
@@ -146,6 +163,60 @@ request-file-handler: func [
 	quit-modal-loop?: yes
 ]
 
+setup-filter-button: func [
+	panel		[integer!]
+	filter		[red-block!]
+	/local
+		obj		[integer!]
+		rc		[NSRect!]
+		menu	[integer!]
+		head	[red-value!]
+		tail	[red-value!]
+		str		[red-value!]
+		item	[integer!]
+		key		[integer!]
+		type	[integer!]
+][
+	object_setInstanceVariable panel IVAR_RED_DATA as-integer filter
+
+	rc: make-rect 0 0 0 0
+	obj: objc_msgSend [
+		objc_msgSend [objc_getClass "NSPopUpButton" sel_getUid "alloc"]
+		sel_getUid "initWithFrame:pullsDown:" rc/x rc/y rc/w rc/h false
+	]
+	objc_msgSend [obj sel_getUid "setTarget:" panel]
+	objc_msgSend [obj sel_getUid "setAction:" sel_getUid "filter-filetype:"]
+
+	menu: objc_msgSend [obj sel_getUid "menu"]
+	objc_msgSend [menu sel_getUid "setAutoenablesItems:" false]
+
+	head: block/rs-head filter
+	tail: block/rs-tail filter
+	key: NSString("")
+	until [
+		str: head + 1
+		if TYPE_OF(head) <> TYPE_STRING [fire [TO_ERROR(script invalid-arg) head]]
+		if TYPE_OF(str) <> TYPE_STRING [fire [TO_ERROR(script invalid-arg) str]]
+
+		if 0 <> string/rs-length? as red-string! head [str: head]
+		item: objc_msgSend [objc_getClass "NSMenuItem" sel_getUid "alloc"]
+		item: objc_msgSend [
+			item sel_getUid "initWithTitle:action:keyEquivalent:"
+			to-NSString as red-string! str 0 key
+		]
+		objc_msgSend [menu sel_getUid "addItem:" item]
+		objc_msgSend [item sel_release]
+		head: head + 2
+		head >= tail
+	]
+	objc_msgSend [obj sel_getUid "selectItemAtIndex:" 0]
+	objc_msgSend [obj sel_getUid "sizeToFit"]
+	objc_msgSend [panel sel_getUid "setAccessoryView:" obj]
+
+	set-file-filter panel as red-string! (block/rs-head filter) + 1
+	objc_msgSend [panel sel_getUid "setAllowsOtherFileTypes:" true]
+]
+
 _request-file: func [
 	title			[red-string!]
 	path			[red-file!]
@@ -173,7 +244,7 @@ _request-file: func [
 ][
 	quit-modal-loop?: no
 	either any [dir? not save?][
-		panel: objc_msgSend [objc_getClass "NSOpenPanel" sel_getUid "openPanel"]
+		panel: objc_msgSend [objc_getClass "RedOpenPanel" sel_getUid "openPanel"]
 		if multi? [
 			objc_msgSend [panel sel_getUid "setAllowsMultipleSelection:" true]
 		]
@@ -183,7 +254,7 @@ _request-file: func [
 			objc_msgSend [panel sel_getUid "setTreatsFilePackagesAsDirectories:" true]
 		]
 	][
-		panel: objc_msgSend [objc_getClass "NSSavePanel" sel_getUid "savePanel"]
+		panel: objc_msgSend [objc_getClass "RedSavePanel" sel_getUid "savePanel"]
 		if TYPE_OF(path) = TYPE_FILE [
 			dir: to-NSString path
 			if zero? objc_msgSend [dir sel_getUid "hasSuffix:" NSString("/")][
@@ -195,10 +266,19 @@ _request-file: func [
 		]
 	]
 
+	objc_msgSend [panel sel_getUid "setDelegate:" panel]
+
 	if TYPE_OF(title) = TYPE_STRING [
 		objc_msgSend [panel sel_getUid "setTitle:" to-NSString title]
 	]
 	objc_msgSend [panel sel_getUid "setCanCreateDirectories:" true]
+
+	if all [
+		TYPE_OF(filter) = TYPE_BLOCK
+		0 <> block/rs-length? filter
+	][
+		setup-filter-button panel filter
+	]
 
 	if TYPE_OF(path) = TYPE_FILE [
 		dir: to-NSString path
