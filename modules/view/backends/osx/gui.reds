@@ -24,11 +24,12 @@ Red/System [
 #include %tab-panel.reds
 #include %comdlgs.reds
 
-NSApp:					0
-NSAppDelegate:			0
-AppMainMenu:			0
+NSApp:			0
+NSAppDelegate:	0
+AppMainMenu:	0
 
 nswindow-cnt:	0
+current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
 
 default-font:	0
 log-pixels-x:	0
@@ -823,9 +824,9 @@ setup-tracking-area: func [
 		NSTrackingActiveInKeyWindow or
 		NSTrackingInVisibleRect or
 		NSTrackingEnabledDuringMouseDrag
-	if flags and FACET_FLAGS_ALL_OVER <> 0 [
-		options: options or NSTrackingMouseMoved
-	]
+	;if flags and FACET_FLAGS_ALL_OVER <> 0 [
+	;	options: options or NSTrackingMouseMoved
+	;]
 	track: objc_msgSend [
 		objc_msgSend [objc_getClass "NSTrackingArea" sel_getUid "alloc"]
 		sel_getUid "initWithRect:options:owner:userInfo:"
@@ -972,11 +973,11 @@ init-window: func [
 		objc_msgSend [window sel_getUid "setLevel:" CGWindowLevelForKey 5]		;-- FloatingWindowLevel
 	]
 
+	objc_msgSend [window sel_getUid "setDelegate:" window]
+	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
 	objc_msgSend [window sel_getUid "makeMainWindow"]
-
-	objc_msgSend [window sel_getUid "setDelegate:" window]
 ]
 
 make-area: func [
@@ -1381,9 +1382,9 @@ OS-make-view: func [
 	]
 
 	if caption <> 0 [CFRelease caption]
-	if all [sym <> area sym <> field sym <> drop-down][
-		setup-tracking-area obj face rc bits
-	]
+	;if all [sym <> area sym <> field sym <> drop-down][
+	;	setup-tracking-area obj face rc bits
+	;]
 
 	stack/unwind
 	obj
