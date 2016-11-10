@@ -82,98 +82,48 @@ fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 
 
 last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
 
-
-action?:	 func ["Returns true if the value is this type" value [any-type!]] [action!		= type? :value]
-bitset?:	 func ["Returns true if the value is this type" value [any-type!]] [bitset!		= type? :value]
-binary?:	 func ["Returns true if the value is this type" value [any-type!]] [binary!		= type? :value]
-block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
-char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
-datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
-email?:		 func ["Returns true if the value is this type" value [any-type!]] [email!		= type? :value]
-error?:		 func ["Returns true if the value is this type" value [any-type!]] [error!		= type? :value]
-file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
-float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
-function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
-get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
-get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
-hash?:		 func ["Returns true if the value is this type" value [any-type!]] [hash!		= type? :value]
-image?:		 func ["Returns true if the value is this type" value [any-type!]] [image!		= type? :value]
-integer?:    func ["Returns true if the value is this type" value [any-type!]] [integer!	= type? :value]
-issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [issue!		= type? :value]
-lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
-lit-word?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-word!	= type? :value]
-logic?:		 func ["Returns true if the value is this type" value [any-type!]] [logic!		= type? :value]
-map?:		 func ["Returns true if the value is this type" value [any-type!]] [map!		= type? :value]
-native?:	 func ["Returns true if the value is this type" value [any-type!]] [native!		= type? :value]
-none?:		 func ["Returns true if the value is this type" value [any-type!]] [none!		= type? :value]
-object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
-op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			= type? :value]
-pair?:		 func ["Returns true if the value is this type" value [any-type!]] [pair!		= type? :value]
-paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
-path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
-percent?:	 func ["Returns true if the value is this type" value [any-type!]] [percent!	= type? :value]
-refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
-routine?:	 func ["Returns true if the value is this type" value [any-type!]] [routine!	= type? :value]
-set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [set-path!	= type? :value]
-set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
-string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
-tag?:		 func ["Returns true if the value is this type" value [any-type!]] [tag!		= type? :value]
-time?:		 func ["Returns true if the value is this type" value [any-type!]] [time!		= type? :value]
-typeset?:	 func ["Returns true if the value is this type" value [any-type!]] [typeset!	= type? :value]
-tuple?:		 func ["Returns true if the value is this type" value [any-type!]] [tuple!		= type? :value]
-unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
-url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
-vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]
-word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
-
-any-list?:		func ["Returns true if the value is any type of list"	  value [any-type!]][find any-list! 	type? :value]
-any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]
-any-function?:	func ["Returns true if the value is any type of function" value [any-type!]][find any-function! type? :value]
-any-object?:	func ["Returns true if the value is any type of object"	  value [any-type!]][find any-object!	type? :value]
-any-path?:		func ["Returns true if the value is any type of path"	  value [any-type!]][find any-path!		type? :value]
-any-string?:	func ["Returns true if the value is any type of string"	  value [any-type!]][find any-string!	type? :value]
-any-word?:		func ["Returns true if the value is any type of word"	  value [any-type!]][find any-word!		type? :value]
-series?:		func ["Returns true if the value is any type of series"	  value [any-type!]][find series!		type? :value]
-number?:		func ["Returns true if the value is any type of number"	  value [any-type!]][find number!		type? :value]
-immediate?:		func ["Returns true if the value is any immediate value"  value [any-type!]][find immediate!	type? :value]
-scalar?:		func ["Returns true if the value is any type of scalar"	  value [any-type!]][find scalar!		type? :value]
-
-spec-of: func [
-	"Returns the spec of a value that supports reflection"
-	value
-][
-	reflect :value 'spec
+#do keep [
+	list: make block! 50
+	
+	foreach [name desc][
+		spec   "Returns the spec of a value that supports reflection"
+		body   "Returns the body of a value that supports reflection"
+		words  "Returns the list of words of a value that supports reflection"
+		class  "Returns the class ID of an object"
+		values "Returns the list of values of a value that supports reflection"
+	][
+		repend list [
+			load join form name "-of:" 'func reduce [desc 'value] new-line/all compose [
+				reflect :value (to lit-word! name)
+			] off
+		]
+	]
+	foreach name [
+		action! bitset! binary! block! char! datatype! email! error! file! float! function! get-path!
+		get-word! hash! image! integer! issue! lit-path! lit-word! logic! map! native! none! object! op!
+		pair! paren! path! percent! refinement! routine! set-path! set-word! string! tag! time! typeset!
+		tuple! unset! url! vector! word!
+	][
+		repend list [
+			load head change back tail form name "?:" 'func
+			["Returns true if the value is this type" value [any-type!]]
+			compose [(name) = type? :value]
+		]
+	]
+	
+	docstring: "Returns true if the value is any type of "
+	
+	foreach name [
+		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
+		series! number! immediate! scalar!
+	][
+		repend list [
+			load head change back tail form name "?:" 'func
+			compose [(join docstring head clear back tail form name) value [any-type!]]
+			compose [find (name) type? :value]
+		]
+	]
 ]
-
-body-of: func [
-	"Returns the body of a value that supports reflection"
-	value
-][
-	reflect :value 'body
-]
-
-words-of: func [
-	"Returns the list of words of a value that supports reflection"
-	value
-][
-	reflect :value 'words
-]
-
-class-of: func [
-	"Returns the class ID of an object"
-	value
-][
-	reflect :value 'class
-]
-
-values-of: func [
-	"Returns the list of values of a value that supports reflection"
-	value
-][
-	reflect :value 'values
-]
-
-keys-of: :words-of
 
 context: func [spec [block!]][make object! spec]
 
@@ -894,6 +844,7 @@ rejoin: function [
 ;-				Aliases					  -
 ;------------------------------------------
 
+keys-of:	:words-of
 atan2:		:arctangent2
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded
