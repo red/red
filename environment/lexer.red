@@ -180,7 +180,8 @@ system/lexer: context [
 			c: (string/get-char p unit) - #"0"
 			if c >= 0 [									;-- skip #"'"
 				m: n * 10
-				if m < n [
+				
+				if system/cpu/overflow? [
 					type/value: TYPE_FLOAT
 					make-float start end type			;-- fallback to float! loading
 					exit
@@ -193,7 +194,8 @@ system/lexer: context [
 				]
 
 				m: n + c
-				if m < n [
+				
+				if system/cpu/overflow? [
 					type/value: TYPE_FLOAT
 					make-float start end type			;-- fallback to float! loading
 					exit
