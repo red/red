@@ -34,6 +34,12 @@ Red/System [
 		reset-matrix:	symbol/make "reset-matrix"
 		push:			symbol/make "push"
 		clip:			symbol/make "clip"
+        replace:        symbol/make "replace"
+        intersect:      symbol/make "intersect"
+        union:          symbol/make "union"
+        xor:            symbol/make "xor"
+        exclude:        symbol/make "exclude"
+        complement:     symbol/make "complement"
 		rotate:			symbol/make "rotate"
 		scale:			symbol/make "scale"
 		translate:		symbol/make "translate"
@@ -341,11 +347,13 @@ Red/System [
 				grad?	[logic!]
                 rect?   [logic!]
 				state	[integer!]
+                clip-mode       [integer!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
 			state: 0
+            clip-mode: 0
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -557,14 +565,27 @@ Red/System [
                                 ][
     								parse-shape as red-block! cmd DC false catch?
                                 ]
+                                value: cmd
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+                                if pos = cmd [
+                                    word: as red-word! cmd
+                                    case [
+                                        ( symbol/resolve word/symbol ) = replace    [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY] ]
+                                        ( symbol/resolve word/symbol ) = intersect  [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND] ]
+                                        ( symbol/resolve word/symbol ) = union      [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR] ]
+                                        ( symbol/resolve word/symbol ) = xor        [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR] ]
+                                        ( symbol/resolve word/symbol ) = exclude    [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF] ]
+                                        true [ cmd: cmd - 1 ]
+                                    ]
+                                ]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push :state
-                                    OS-set-clip start cmd - 1 rect? DC
+                                    OS-set-clip start value rect? DC clip-mode
 									parse-draw as red-block! cmd DC catch?
 									OS-matrix-pop state
 								][
-                                    OS-set-clip start cmd rect? DC
+                                    OS-set-clip start value rect? DC clip-mode
 								]
 							]
 							sym = shape [

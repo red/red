@@ -1853,12 +1853,13 @@ OS-draw-grad-pen: func [
 		GdipSetPenBrushFill modes/gp-pen brush
 	]
 ]
-	
+
 OS-set-clip: func [
 	upper	[red-value!]
 	lower	[red-value!]
     rect?   [logic!]
     dc      [handle!]
+    mode    [integer!]
     /local
         u   [red-pair!]
         l   [red-pair!]
@@ -1873,12 +1874,12 @@ OS-set-clip: func [
                 u/y
                 l/x - u/x + 1
                 l/y - u/y + 1
-                GDIPLUS_COMBINEMODEREPLACE
+                mode
         ][
             GdipSetClipPath
                 modes/graphics
                 modes/gp-path
-                GDIPLUS_COMBINEMODEREPLACE
+                mode
             GdipDeletePath modes/gp-path
         ]
     ][
@@ -1889,7 +1890,7 @@ OS-set-clip: func [
             Rectangle dc u/x u/y l/x l/y  
         ]
         EndPath dc  ;-- a path has already been started
-        SelectClipPath dc RGN_COPY
+        SelectClipPath dc mode
     ]
 ]
 
