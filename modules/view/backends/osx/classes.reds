@@ -122,6 +122,11 @@ add-app-delegate: func [class [integer!]][
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
 ]
 
+add-panel-delegate: func [class [integer!]][
+	class_addMethod class sel_changeFont as-integer :dialog-proc "v@:@"
+	class_addMethod class sel_windowWillClose as-integer :dialog-proc "v@:@"
+]
+
 flipp-coord: func [class [integer!]][
 	class_addMethod class sel_getUid "isFlipped" as-integer :is-flipped "B@:"
 ]
@@ -167,6 +172,7 @@ make-super-class: func [
 
 register-classes: does [
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
+	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
 	make-super-class "RedView"			"NSView"				as-integer :flipp-coord			0
 	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG
 	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG

@@ -11,6 +11,24 @@ Red/System [
 ]
 
 quit-modal-loop?: no
+font-changed?: no
+
+dialog-proc: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	arg0	[integer!]
+][
+	case [
+		cmd = sel_changeFont [
+			font-changed?: yes
+		]
+		cmd = sel_windowWillClose [
+			objc_msgSend [NSApp sel_getUid "stopModal"]
+		]
+		true [0]
+	]
+]
 
 do-modal-loop: func [
 	/local
@@ -351,4 +369,72 @@ OS-request-file: func [
 	return: [red-value!]
 ][
 	_request-file title name filter save? multi? no
+]
+
+OS-request-font: func [
+	font			[red-object!]
+	mono?			[logic!]
+	return:			[red-object!]
+	/local
+		panel		[integer!]
+		delegate	[integer!]
+		nsfont		[integer!]
+		values		[red-value!]
+		style		[red-block!]
+		size		[float32!]
+		manager		[integer!]
+		trait		[integer!]
+		bold?		[logic!]
+		pool		[integer!]
+][
+	font-changed?: no
+	nsfont: default-font
+	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
+	delegate: objc_msgSend [delegate sel_getUid "init"]
+
+	panel: objc_msgSend [objc_getClass "NSFontPanel" sel_getUid "sharedFontPanel"]
+	objc_msgSend [panel sel_getUid "setPanelFont:isMultiple:" nsfont no]
+	objc_msgSend [panel sel_getUid "setDelegate:" delegate]
+	objc_msgSend [panel sel_getUid "orderFront:" 0]
+	objc_msgSend [NSApp sel_getUid "runModalForWindow:" panel]
+	either font-changed? [
+		nsfont: objc_msgSend [panel sel_getUid "panelConvertFont:" nsfont]
+		pool: either zero? objc_msgSend [objc_getClass "NSThread" sel_getUid "isMainThread"][
+			objc_msgSend [
+				objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
+				sel_getUid "init"
+			]
+		][0]
+		values: object/get-values font
+		to-red-string
+			objc_msgSend [nsfont sel_getUid "familyName"]
+			values + FONT_OBJ_NAME
+
+		size: objc_msgSend_f32 [nsfont sel_getUid "pointSize"]
+		integer/make-at values + FONT_OBJ_SIZE as-integer size
+
+		manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
+		trait: objc_msgSend [manager sel_getUid "traitsOfFont:" nsfont]
+		style: as red-block! values + FONT_OBJ_STYLE
+		bold?: no
+		if trait and NSBoldFontMask <> 0 [
+			word/make-at _bold as red-value! style
+			bold?: yes
+		]
+		if trait and NSItalicFontMask <> 0 [
+			either bold? [
+				block/make-at style 4
+				word/push-in _bold style
+				word/push-in _italic style
+			][
+				word/make-at _italic as red-value! style
+			]
+		]
+		if pool <> 0 [objc_msgSend [pool sel_release]]
+	][
+		font/header: TYPE_NONE
+	]
+	objc_msgSend [panel sel_getUid "setDelegate:" 0]
+	objc_msgSend [delegate sel_release]
+	font
 ]

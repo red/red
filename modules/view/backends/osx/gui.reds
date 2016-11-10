@@ -235,6 +235,7 @@ set-defaults: func [][
 	default-font: objc_msgSend [
 		objc_getClass "NSFont" sel_getUid "systemFontOfSize:" 0
 	]
+	objc_msgSend [default-font sel_getUid "retain"]
 ]
 
 init: func [

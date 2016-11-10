@@ -240,16 +240,7 @@ make-font-attrs: func [
 		0
 	]
 	if para <> 0 [objc_msgSend [para sel_getUid "release"]]
-	;objc_msgSend [nscolor sel_getUid "release"]
 	CFRelease under
 	CFRelease strike
 	attrs
-]
-
-OS-request-font: func [
-	font	[red-object!]
-	mono?	[logic!]
-	return: [red-object!]
-][
-	font
 ]
