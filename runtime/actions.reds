@@ -203,7 +203,7 @@ actions: context [
 	to*: func [
 		return: [red-value!]
 	][
-		stack/set-last to as red-datatype! stack/arguments stack/arguments + 1
+		stack/set-last to stack/arguments stack/arguments + 1
 	]
 
 	to: func [

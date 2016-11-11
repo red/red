@@ -388,6 +388,14 @@ Red/System [
 	]
 ]
 
+#define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
+	TYPE_STRING
+	TYPE_FILE
+	TYPE_URL
+	TYPE_EMAIL
+	TYPE_TAG
+]
+
 #define BS_SET_BIT(array bit)  [
 	pos: array + (bit >> 3)
 	pos/value: pos/value or (as-byte 128 >> (bit and 7))

@@ -307,37 +307,62 @@ integer: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-integer!]
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
 		return: [red-value!]
 		/local
-			int [red-integer!]
-			f	[red-float!]
-			buf [red-string!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			str	 [red-string!]
+			blk	 [red-block!]
+			t	 [red-time!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
-			
-		switch type/value [
+		
+		int: as red-integer! proto
+		int/header: TYPE_INTEGER
+		
+		switch TYPE_OF(spec) [
+			TYPE_CHAR
 			TYPE_INTEGER [
-				int: as red-integer! type
-				int/header: TYPE_INTEGER
-				int/value: spec/value
+				int/value: spec/data2
+			]
+			TYPE_TIME [
+				t: as red-time! spec
+				int/value: as-integer t/time / time/oneE9
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
-				f: as red-float! type
-				f/header: type/value
-				f/value: as-float spec/value
+				fl: as red-float! spec
+				int/value: as-integer fl/value
 			]
-			TYPE_STRING [
-				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-signed spec/value
+			TYPE_BINARY [
+				int/value: binary/to-integer as red-binary! spec
 			]
-			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
+			TYPE_ANY_STRING [
+				str: as red-string! spec
+				#call [system/lexer/transcode str none none]
+				
+				blk: as red-block! stack/arguments
+				assert TYPE_OF(blk) = TYPE_BLOCK
+				
+				either zero? block/rs-length? blk [
+					proto: as red-value! blk
+					proto/header: TYPE_UNSET
+				][
+					proto: block/rs-head blk
+				]
+				either TYPE_OF(proto) = TYPE_FLOAT [
+					fire [TO_ERROR(script too-long)]
+				][
+					if TYPE_OF(proto) <> TYPE_INTEGER [ 
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER proto]
+					]
+				]
 			]
+			default [fire [TO_ERROR(script bad-to-arg) proto spec]]
 		]
-		as red-value! type
+		as red-value! proto
 	]
 
 	form: func [
