@@ -137,10 +137,11 @@ actions: context [
 		action-make: as function! [
 			proto 	 [red-value!]
 			spec	 [red-value!]
+			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
 		] get-action-ptr-from type ACT_MAKE
 		
-		action-make proto spec
+		action-make proto spec type
 	]
 
 	random*: func [
@@ -226,10 +227,11 @@ actions: context [
 		action-to: as function! [
 			proto 	 [red-value!]
 			spec	 [red-value!]
+			type	 [integer!]
 			return:	 [red-value!]						;-- newly created value
 		] get-action-ptr-from type ACT_TO
 
-		action-to proto spec
+		action-to proto spec type
 	]
 
 

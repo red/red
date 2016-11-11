@@ -375,38 +375,7 @@ float: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-float!]
-		/local
-			int	 [red-integer!]
-			fl	 [red-float!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
-
-		switch TYPE_OF(spec) [
-			TYPE_FLOAT [
-				as red-float! spec
-			]
-			TYPE_INTEGER [
-				fl: as red-float! spec
-				int: as red-integer! spec
-				fl/value: as-float int/value
-				fl/header: TYPE_FLOAT
-				fl
-			]
-			TYPE_PERCENT [
-				fl: as red-float! spec
-				fl/header: TYPE_FLOAT
-				fl
-			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-float! spec					;@@ just for making it compilable
-			]
-		]
-	]
+	;-- make: :to
 
 	random: func [
 		f		[red-float!]
@@ -433,38 +402,54 @@ float: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-float!]
-		return: [red-value!]
+		proto	[red-float!]
+		spec	[red-value!]
+		type	[integer!]				;-- target type
+		return: [red-float!]
 		/local
-			fl  [red-float!]
 			int [red-integer!]
-			buf [red-string!]
-			f	[float!]
+			tm	[red-time!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
-		f: spec/value
-		switch type/value [
-			TYPE_INTEGER [
-				int: as red-integer! type
-				int/header: TYPE_INTEGER
-				int/value: as-integer f
+		proto/header: type
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER
+			TYPE_CHAR [
+				int: as red-integer! spec
+				proto/value: as-float int/value
 			]
+			TYPE_TIME [
+				tm: as red-time! spec
+				proto/value: tm/time / time/oneE9
+			]
+			TYPE_ANY_STRING [
+				proto: as red-float! load-value as red-string! spec
+
+				switch TYPE_OF(proto) [
+					TYPE_FLOAT	
+					TYPE_PERCENT [0]				;-- most common case
+					TYPE_INTEGER [
+						int: as red-integer! proto
+						proto/value: as float! int/value
+					]
+					default [
+						fire [TO_ERROR(script bad-to-arg) datatype/push type spec]
+					]
+				]
+				proto/header: type
+			]
+			TYPE_BINARY [
+				proto/value: as float! binary/to-integer as red-binary! spec
+			]
+			TYPE_FLOAT
 			TYPE_PERCENT [
-				fl: as red-float! type
-				fl/header: TYPE_PERCENT
-				fl/value: f
+				spec/header: type
+				proto: as red-float! spec
 			]
-			TYPE_STRING [
-				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-float f FORM_FLOAT_64
-			]
-			default [
-				--NOT_IMPLEMENTED--
-			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 		]
-		as red-value! type
+		proto
 	]
 
 	form: func [
@@ -807,7 +792,7 @@ float: context [
 			TYPE_VALUE
 			"float!"
 			;-- General actions --
-			:make
+			:to
 			:random
 			null			;reflect
 			:to
