@@ -388,8 +388,6 @@ OS-request-font: func [
 		bold?		[logic!]
 		pool		[integer!]
 ][
-	filter-font mono?
-
 	font-changed?: no
 	nsfont: as-integer get-font null selected
 	if zero? nsfont [nsfont: default-font]
