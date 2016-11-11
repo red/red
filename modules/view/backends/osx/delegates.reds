@@ -641,6 +641,7 @@ render-text: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
+	CGContextSaveGState ctx
 	font: as red-object! values + FACE_OBJ_FONT
 	either TYPE_OF(font) = TYPE_OBJECT [
 		attrs: make-font-attrs font as red-object! none-value -1
@@ -691,6 +692,7 @@ render-text: func [
 	CFRelease attr
 	CFRelease line
 	objc_msgSend [attrs sel_getUid "release"]
+	CGContextRestoreGState ctx
 ]
 
 paint-background: func [
