@@ -175,7 +175,7 @@ tuple: context [
 				tp: (as byte-ptr! tuple) + 4
 				n: block/rs-length? blk
 				if n > 12 [
-					fire [TO_ERROR(script bad-make-arg) proto spec]
+					fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TUPLE spec]
 				]
 				tuple/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
 				s: GET_BUFFER(blk)
@@ -186,7 +186,7 @@ tuple: context [
 					if any [
 						int/value > 255
 						int/value < 0
-					][fire [TO_ERROR(script bad-make-arg) proto spec]]
+					][fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TUPLE spec]]
 					tp/i: as byte! int/value
 					int: int + 1
 				]
