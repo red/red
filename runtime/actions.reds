@@ -112,7 +112,7 @@ actions: context [
 	;--- Actions polymorphic calls ---
 
 	make*: func [
-		return:	 [red-value!]
+		return:	[red-value!]
 	][
 		stack/set-last make stack/arguments stack/arguments + 1
 	]
@@ -207,22 +207,31 @@ actions: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-value!]
-		return: [red-value!]
+		proto 	 [red-value!]
+		spec	 [red-value!]
+		return:	 [red-value!]
 		/local
+			dt	 [red-datatype!]
+			type [integer!]
 			action-to
 	][
-		if TYPE_OF(spec) = type/value [return stack/set-last spec]
+		#if debug? = yes [if verbose > 0 [print-line "actions/to"]]
 
-		action-to: as function! [
-			type	[red-datatype!]
-			spec	[red-value!]
-			return: [red-value!]
-		] get-action-ptr-from TYPE_OF(spec) ACT_TO
+		type: TYPE_OF(proto)
+		if type = TYPE_DATATYPE [
+			dt: as red-datatype! proto
+			type: dt/value
+		]
 
-		action-to type spec
+		action-make: as function! [
+			proto 	 [red-value!]
+			spec	 [red-value!]
+			return:	 [red-value!]						;-- newly created value
+		] get-action-ptr-from type ACT_TO
+
+		action-to proto spec
 	]
+
 
 	form*: func [
 		part	   [integer!]
