@@ -313,8 +313,6 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
-			str	 [red-string!]
-			blk	 [red-block!]
 			t	 [red-time!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
@@ -340,27 +338,17 @@ integer: context [
 				int/value: binary/to-integer as red-binary! spec
 			]
 			TYPE_ANY_STRING [
-				str: as red-string! spec
-				#call [system/lexer/transcode str none none]
+				proto: load-value as red-string! spec
 				
-				blk: as red-block! stack/arguments
-				assert TYPE_OF(blk) = TYPE_BLOCK
-				
-				either zero? block/rs-length? blk [
-					proto: as red-value! blk
-					proto/header: TYPE_UNSET
-				][
-					proto: block/rs-head blk
-				]
 				either TYPE_OF(proto) = TYPE_FLOAT [
 					fire [TO_ERROR(script too-long)]
 				][
 					if TYPE_OF(proto) <> TYPE_INTEGER [ 
-						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER proto]
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
 					]
 				]
 			]
-			default [fire [TO_ERROR(script bad-to-arg) proto spec]]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]]
 		]
 		as red-value! proto
 	]

@@ -117,6 +117,43 @@ time: context [
 		]
 	]
 
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			tm	 [red-time!]
+			tm2	 [red-time!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			str	 [red-string!]
+			blk	 [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/to"]]
+		
+		tm: as red-time! proto
+		tm/header: TYPE_TIME
+		
+		switch TYPE_OF(spec) [
+			TYPE_TIME [
+				tm2: as red-time! spec
+				tm/time: tm2/time
+			]
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				tm/time: (as-float int/value) * oneE9
+			]
+			TYPE_ANY_STRING [
+				proto: load-value as red-string! spec
+				
+				if TYPE_OF(proto) <> TYPE_TIME [ 
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
+				]
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]]
+		]
+		as red-value! proto
+	]
 	
 	form: func [
 		t		[red-time!]
@@ -323,7 +360,7 @@ time: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

@@ -329,6 +329,27 @@ select-key*: func [									;-- called by compiler for SWITCH
 	]
 ]
 
+load-value: func [
+	str		[red-string!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		value [red-value!]
+][
+	#call [system/lexer/transcode str none none]
+
+	blk: as red-block! stack/arguments
+	assert TYPE_OF(blk) = TYPE_BLOCK
+
+	either zero? block/rs-length? blk [
+		value: as red-value! blk
+		value/header: TYPE_UNSET
+	][
+		value: block/rs-head blk
+	]
+	value
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack
