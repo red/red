@@ -223,7 +223,7 @@ actions: context [
 			type: dt/value
 		]
 
-		action-make: as function! [
+		action-to: as function! [
 			proto 	 [red-value!]
 			spec	 [red-value!]
 			return:	 [red-value!]						;-- newly created value

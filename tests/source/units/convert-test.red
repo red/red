@@ -12,8 +12,6 @@ Red [
 ~~~start-file~~~ "to"
 
 
-;=============== copy this into the unit test file =================
-
 ===start-group=== "to-char!"
         --test-- "to-char!-char!"
                 --assert #"a" = to char! #"a"
@@ -28,6 +26,7 @@ Red [
         --test-- "to-char!-binary!"
                 --assert #"a" = to char! #{616263}
 ===end-group===
+
 ===start-group=== "to-string!"
         --test-- "to-string!-char!"
                 --assert "a" = to string! #"a"
