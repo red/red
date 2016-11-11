@@ -67,6 +67,7 @@ arcPOINTS!: alias struct! [
     end-y       [float!]
 ]
 connect-subpath: 0
+matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 anti-alias?: no
 GDI+?: no
@@ -1894,34 +1895,33 @@ OS-set-clip: func [
     ]
 ]
 
+matrix-rotate: func [
+	angle	[red-integer!]
+	center	[red-pair!]
+    m       [integer!]
+][
+	GDI+?: yes
+	if angle <> as red-integer! center [
+        GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIXORDERAPPEND 
+	]
+    GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIXORDERAPPEND
+	if angle <> as red-integer! center [
+        GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIXORDERAPPEND 
+	]
+]
+
 OS-matrix-rotate: func [
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
-		m	[integer!]
-		pts [tagPOINT]
+        m   [integer!]
 ][
 	GDI+?: yes
-	if angle <> as red-integer! center [
-		m: modes/gp-matrix
-		if zero? m [
-			GdipCreateMatrix :m
-			modes/gp-matrix: m
-		]
-		GdipGetWorldTransform modes/graphics m
-		pts: edges
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate 0 - pts/x 0 - pts/y
-	]
-	GdipRotateWorldTransform modes/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
-	if angle <> as red-integer! center [
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate pts/x pts/y
-	]
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate angle center m
+    GdipMultiplyWorldTransform modes/graphics m matrix-order
+    GdipDeleteMatrix m
 ]
 
 OS-matrix-scale: func [
@@ -1929,7 +1929,7 @@ OS-matrix-scale: func [
 	sy		[red-integer!]
 ][
 	GDI+?: yes
-	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy GDIPLUS_MATRIXORDERAPPEND
+	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy matrix-order
 ]
 
 OS-matrix-translate: func [
@@ -1941,7 +1941,7 @@ OS-matrix-translate: func [
 		modes/graphics
 		as float32! x
 		as float32! y
-		GDIPLUS_MATRIXORDERAPPEND
+		matrix-order
 ]
 
 OS-matrix-skew: func [
@@ -1960,7 +1960,7 @@ OS-matrix-skew: func [
 	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
 	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
 	GdipCreateMatrix2 u y x u z z :m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform modes/graphics m matrix-order
 	GdipDeleteMatrix m
 ]
 
@@ -1970,11 +1970,16 @@ OS-matrix-transform: func [
 	translate	[red-pair!]
 	/local
 		center	[red-pair!]
+        m       [integer!]
 ][
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-	OS-matrix-rotate rotate center
-	OS-matrix-scale scale scale + 1
-	OS-matrix-translate translate/x translate/y
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate rotate center m
+    GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
+    GdipTranslateMatrix m as float32! translate/x as float32! translate/y
+    GdipMultiplyWorldTransform modes/graphics m matrix-order
+    GdipDeleteMatrix m
 ]
 
 OS-matrix-push: func [state [int-ptr!] /local s][
@@ -2014,6 +2019,10 @@ OS-matrix-set: func [
 		get-float32 val + 4
 		get-float32 val + 5
 		:m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform modes/graphics m matrix-order
 	GdipDeleteMatrix m
 ]
+
+OS-set-matrix-order: func [
+    order   [integer!]
+][ matrix-order: order ]

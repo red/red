@@ -30,6 +30,9 @@ Red/System [
 		line-join:		symbol/make "line-join"
 		line-cap:		symbol/make "line-cap"
 		matrix:			symbol/make "matrix"
+        _matrix-order:  symbol/make "matrix-order"
+        _append:        symbol/make "append"
+        prepend:        symbol/make "prepend"
 		invert-matrix:	symbol/make "invert-matrix"
 		reset-matrix:	symbol/make "reset-matrix"
 		push:			symbol/make "push"
@@ -348,12 +351,14 @@ Red/System [
                 rect?   [logic!]
 				state	[integer!]
                 clip-mode       [integer!]
+                m-order [integer!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
 			state: 0
             clip-mode: 0
+            m-order: GDIPLUS_MATRIXORDERAPPEND
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -592,6 +597,16 @@ Red/System [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
 								parse-shape as red-block! cmd DC true catch?
 							]
+                            sym = _matrix-order [
+								DRAW_FETCH_VALUE(TYPE_WORD)
+								word: as red-word! start
+                                case [
+                                    ( symbol/resolve word/symbol ) = _append [ m-order: GDIPLUS_MATRIXORDERAPPEND ]
+                                    ( symbol/resolve word/symbol ) = prepend [ m-order: GDIPLUS_MATRIXORDERPREPEND ]
+                                    true [throw-draw-error cmds cmd catch?]
+                                ]
+                                OS-set-matrix-order m-order
+                            ]
 							sym = rotate [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
