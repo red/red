@@ -478,7 +478,7 @@ Red/System [
 			tail: block/rs-tail cmds
 
 			state: 0
-            clip-mode: 0
+            clip-mode: either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
             m-order: GDIPLUS_MATRIXORDERAPPEND
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
