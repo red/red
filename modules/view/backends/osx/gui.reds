@@ -175,6 +175,8 @@ free-handles: func [
 		sym	   [integer!]
 		handle [integer!]
 ][
+	if hWnd = current-widget [current-widget: 0]
+
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
