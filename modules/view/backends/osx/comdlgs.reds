@@ -373,6 +373,7 @@ OS-request-file: func [
 
 OS-request-font: func [
 	font			[red-object!]
+	selected		[red-object!]
 	mono?			[logic!]
 	return:			[red-object!]
 	/local
@@ -387,8 +388,11 @@ OS-request-font: func [
 		bold?		[logic!]
 		pool		[integer!]
 ][
+	filter-font mono?
+
 	font-changed?: no
-	nsfont: default-font
+	nsfont: as-integer get-font null selected
+	if zero? nsfont [nsfont: default-font]
 	delegate: objc_msgSend [objc_getClass "RedPanelDelegate" sel_getUid "alloc"]
 	delegate: objc_msgSend [delegate sel_getUid "init"]
 

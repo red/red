@@ -244,3 +244,43 @@ make-font-attrs: func [
 	CFRelease strike
 	attrs
 ]
+
+;setup-fixed-collection: func [
+;	/local
+;		collection		[integer!]
+;		collection-cls	[integer!]
+;		descriptors		[integer!]
+;		all-descs		[integer!]
+;		desc			[integer!]
+;		enumerator		[integer!]
+;		traits			[integer!]
+;		sel_traits		[integer!]
+;][
+;	collection-cls: objc_getClass "NSFontCollection"
+;	collection: objc_msgSend [
+;		collection-cls sel_getUid "fontCollectionWithName:" NSString("com.apple.AllFonts")
+;	]
+
+;	descriptors: objc_msgSend [
+;		objc_msgSend [objc_getClass "NSMutableArray" sel_alloc] sel_init
+;	]
+;	all-descs: objc_msgSend [collection sel_getUid "matchingDescriptors"]
+;	enumerator: objc_msgSend [all-descs sel_getUid "objectEnumerator"]
+;	sel_traits: sel_getUid "symbolicTraits"
+;	while [
+;		desc: objc_msgSend [enumerator sel_getUid "nextObject"]
+;		desc <> 0
+;	][
+;		traits: objc_msgSend [desc sel_traits]
+;		if traits and NSFontMonoSpaceTrait <> 0 [objc_msgSend [descriptors sel_addObject desc]]
+;	]
+
+;	collection: objc_msgSend [
+;		collection-cls sel_getUid "fontCollectionWithDescriptors:" descriptors
+;	]
+
+;	objc_msgSend [
+;		collection-cls sel_getUid "showFontCollection:withName:visibility:error:"
+;		collection NSString("Red Monospaced") 1 0			;-- NSFontCollectionVisibilityProcess: 1
+;	]
+;]

@@ -726,9 +726,11 @@ remove-event-func: function [
 
 request-font: function [
 	"Requests a font object"
-	/mono			"Show monospaced font only"
+	/font	"Sets the selected font"
+		ft	[object!]
+	/mono	"Show monospaced font only"
 ][
-	system/view/platform/request-font make font! [] mono
+	system/view/platform/request-font make font! [] ft mono
 ]
 
 request-file: function [

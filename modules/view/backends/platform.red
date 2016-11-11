@@ -552,8 +552,8 @@ system/view/platform: context [
 		bool/value:  gui/do-events no-wait?
 	]
 
-	request-font: routine [font [object!] mono? [logic!]][
-		gui/OS-request-font font mono?
+	request-font: routine [font [object!] selected [object!] mono? [logic!]][
+		gui/OS-request-font font selected mono?
 	]
 
 	request-file: routine [

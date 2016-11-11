@@ -114,6 +114,8 @@ Red/System [
 #define NSBoldFontMask				2
 #define NSFixedPitchFontMask		0400h
 
+#define NSFontMonoSpaceTrait		1024
+
 #define NSTrackingMouseEnteredAndExited		1
 #define NSTrackingMouseMoved				2
 #define NSTrackingCursorUpdate				4
