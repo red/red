@@ -74,6 +74,14 @@ Red/System [
 	HTTP_HEAD
 ]
 
+;== Image definitions ===
+
+#enum extract-type! [
+	EXTRACT_ALPHA
+	EXTRACT_RGB
+	EXTRACT_ARGB
+]
+
 #either OS = 'Windows [
 
 	#define GENERIC_WRITE			40000000h

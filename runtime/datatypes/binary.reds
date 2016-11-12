@@ -797,6 +797,9 @@ binary: context [
 				load-integer proto p4/2
 				load-integer proto p4/1
 			]
+			TYPE_IMAGE [
+				proto: image/extract-data as red-image! spec EXTRACT_ALPHA
+			]
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
 			]
