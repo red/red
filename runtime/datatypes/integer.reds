@@ -370,7 +370,12 @@ integer: context [
 				proto: load-value as red-string! spec
 				
 				either TYPE_OF(proto) = TYPE_FLOAT [
-					fire [TO_ERROR(script too-long)]
+					fl: as red-float! proto
+					int: as red-integer! proto
+					int/header: TYPE_INTEGER
+					int/value: as-integer fl/value
+					;TODO: catch overflows
+					;fire [TO_ERROR(script too-long)]
 				][
 					if TYPE_OF(proto) <> TYPE_INTEGER [ 
 						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
