@@ -132,14 +132,12 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/to"]]
 		
+		if TYPE_OF(spec) = TYPE_TIME [return spec]
+		
 		tm: as red-time! proto
 		tm/header: TYPE_TIME
 		
 		switch TYPE_OF(spec) [
-			TYPE_TIME [
-				tm2: as red-time! spec
-				tm/time: tm2/time
-			]
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				tm/time: (as-float int/value) * oneE9
@@ -153,7 +151,7 @@ time: context [
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]]
 		]
-		as red-value! proto
+		proto
 	]
 	
 	form: func [

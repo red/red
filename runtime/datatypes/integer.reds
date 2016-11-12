@@ -318,12 +318,13 @@ integer: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
+		if TYPE_OF(spec) = TYPE_INTEGER [return spec]
+		
 		int: as red-integer! proto
 		int/header: TYPE_INTEGER
 		
 		switch TYPE_OF(spec) [
-			TYPE_CHAR
-			TYPE_INTEGER [
+			TYPE_CHAR [
 				int/value: spec/data2
 			]
 			TYPE_TIME [
@@ -351,7 +352,7 @@ integer: context [
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]]
 		]
-		as red-value! proto
+		proto
 	]
 
 	form: func [
