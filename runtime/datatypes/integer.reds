@@ -12,6 +12,13 @@ Red/System [
 
 integer: context [
 	verbose: 0
+	
+	overflow?: func [
+		fl		[red-float!]
+		return: [logic!]
+	][
+		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
+	]
 
 	abs: func [
 		value	[integer!]
@@ -361,6 +368,7 @@ integer: context [
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				fl: as red-float! spec
+				if overflow? fl [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
 				int/value: as-integer fl/value
 			]
 			TYPE_BINARY [
@@ -371,11 +379,10 @@ integer: context [
 				
 				either TYPE_OF(proto) = TYPE_FLOAT [
 					fl: as red-float! proto
+					if overflow? fl [fire [TO_ERROR(script too-long)]]
 					int: as red-integer! proto
 					int/header: TYPE_INTEGER
 					int/value: as-integer fl/value
-					;TODO: catch overflows
-					;fire [TO_ERROR(script too-long)]
 				][
 					if TYPE_OF(proto) <> TYPE_INTEGER [ 
 						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
