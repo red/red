@@ -797,6 +797,9 @@ binary: context [
 				load-integer proto p4/2
 				load-integer proto p4/1
 			]
+			TYPE_TUPLE [
+				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
+			]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
 				insert proto spec null no null yes
@@ -871,8 +874,8 @@ binary: context [
 			limit	  [red-value!]
 			int		  [red-integer!]
 			char	  [red-char!]
-			sp		  [red-binary!]
-			formed	  [red-string!]
+			bin2	  [red-binary!]
+			saved	  [red-value!]
 			data	  [byte-ptr!]
 			s		  [series!]
 			s2		  [series!]
@@ -884,7 +887,6 @@ binary: context [
 			added	  [integer!]
 			bytes	  [integer!]
 			rest	  [integer!]
-			type	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
@@ -898,15 +900,15 @@ binary: context [
 				int: as red-integer! part-arg
 				int/value
 			][
-				sp: as red-binary! part-arg
+				bin2: as red-binary! part-arg
 				src: as red-block! value
 				unless all [
-					TYPE_OF(sp) = TYPE_OF(src)
-					sp/node = src/node
+					TYPE_OF(bin2) = TYPE_OF(src)
+					bin2/node = src/node
 				][
 					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head - src/head
+				bin2/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [
@@ -940,40 +942,36 @@ binary: context [
 					TYPE_CHAR [
 						char: as red-char! cell
 						data: as byte-ptr! "0000"
-						rest: unicode/cp-to-utf8 char/value data
-						added: added + 1
+						len: unicode/cp-to-utf8 char/value data
 					]
 					TYPE_INTEGER [
 						int: as red-integer! cell
 						either int/value <= FFh [
 							int-value: int/value
 							data: as byte-ptr! :int-value
-							rest: 1
-							added: added + 1
+							len: 1
 						][
 							fire [TO_ERROR(script out-of-range) cell]
 						]
 					]
 					default [
-						type: TYPE_OF(cell)
-						unless ANY_SERIES?(type) [
-							formed: string/rs-make-at stack/push* 16
-							actions/form cell formed null 0
-							cell: as red-value! formed
-						]
-						len: _series/get-length as red-series! cell no
-						either positive? part [			;-- /part support
-							rest: part - added
-							if rest > len [rest: len]
-							added: added + rest
-						][rest: len]
-						either TYPE_OF(cell) = TYPE_BINARY [
-							data: rs-head as red-binary! cell
-						][
-							data: as byte-ptr! unicode/to-utf8 as red-string! cell :rest
-						]
+						bin2: as red-binary! stack/push*
+						saved: stack/top
+
+						bin2: to bin2 cell		;@@ TO will push value to stack
+						data: rs-head bin2
+						len: rs-length? bin2
+
+						stack/top: saved
 					]
 				]
+
+				either positive? part [			;-- /part support
+					rest: part - added
+					if rest > len [rest: len]
+					added: added + rest
+				][rest: len]
+
 				either tail? [
 					rs-append bin data rest
 				][
