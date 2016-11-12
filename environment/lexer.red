@@ -393,6 +393,7 @@ system/lexer: context [
 		src	[string!]
 		dst	[block! none!]
 		/one
+		/only											;-- force returning the loaded value (with /one)
 		/part	
 			length [integer! string!]
 		return: [block!]
@@ -905,6 +906,6 @@ system/lexer: context [
 		][
 			throw-error ['value pos]
 		]
-		either one [pos][stack/1]
+		either all [one not only][pos][stack/1]
 	]
 ]
