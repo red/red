@@ -205,32 +205,6 @@ binary: context [
 		]
 	]
 
-	to-integer: func [
-		bin		[red-binary!]
-		return: [integer!]
-		/local
-			s	   [series!]
-			p	   [byte-ptr!]
-			len	   [integer!]
-			i	   [integer!]
-			factor [integer!]
-	][
-		s: GET_BUFFER(bin)
-		len: (as-integer s/tail - s/offset) + bin/head
-		if len > 4 [len: 4]								;-- take first 32 bits only
-		
-		i: 0
-		factor: 0
-		p: (as byte-ptr! s/offset) + bin/head + len - 1
-		
-		loop len [
-			i: i + ((as-integer p/value) << factor)
-			factor: factor + 8
-			p: p - 1
-		]
-		i
-	]
-	
 	equal?: func [
 		bin1	[red-binary!]
 		bin2	[red-binary!]
