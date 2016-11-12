@@ -68,30 +68,49 @@ char: context [
 	
 	;-- Actions --
 	
-	make: func [
-		proto 	  [red-value!]
-		spec	  [red-value!]	
-		return:	  [red-char!]
+	;-- make: :to
+
+	to: func [
+		proto 	[red-char!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		return: [red-char!]
 		/local
-			char  [red-char!]
-			int	  [red-integer!]
-			value [integer!]
+			fl	 [red-float!]
+			ser  [red-series!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			unit [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "char/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "char/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				value: int/value
+			TYPE_INTEGER
+			TYPE_CHAR [
+				proto/value: spec/data2
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				proto/value: as-integer fl/value
+			]
+			TYPE_BINARY
+			TYPE_ANY_STRING [						;-- to char! FIRST series!
+				ser: as red-series! spec
+				s: GET_BUFFER(ser)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (ser/head << (unit >> 1))
+				if p >= as byte-ptr! s/tail [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_CHAR spec]
+				]
+				proto/value: either unit = 1 [as-integer p/value][string/get-char p unit]
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_CHAR spec]]
 		]
-		char: as red-char! stack/push*
-		char/header: TYPE_CHAR
-		char/value: value
-		char
+
+		proto/header: TYPE_CHAR
+		proto
 	]
-	
+
 	form: func [
 		c	    [red-char!]
 		buffer  [red-string!]
@@ -201,10 +220,10 @@ char: context [
 			TYPE_INTEGER
 			"char!"
 			;-- General actions --
-			:make
+			:to
 			INHERIT_ACTION	;random
 			null			;reflect
-			INHERIT_ACTION	;to
+			:to
 			:form
 			:mold
 			null			;eval-path
