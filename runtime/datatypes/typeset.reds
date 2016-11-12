@@ -232,6 +232,32 @@ typeset: context [
 		BS_SET_BIT(bits id)
 	]
 
+	to-block: func [
+		sets	[red-typeset!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			array	[byte-ptr!]
+			id		[integer!]
+			name	[names!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
+			set?	[logic!]							;-- required by BS_TEST_BIT
+	][
+		array: (as byte-ptr! sets) + 4
+		block/make-at blk 4
+		id: 1
+		until [
+			BS_TEST_BIT(array id set?)
+			if set? [
+				name: name-table + id
+				block/rs-append blk as red-value! name/word
+			]
+			id: id + 1
+			id > datatype/top-id
+		]
+		blk
+	]
+
 	;-- Actions --
 
 	make: func [
