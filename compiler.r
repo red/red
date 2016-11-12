@@ -3748,15 +3748,15 @@ red: context [
 	
 	process-call-directive: func [
 		body [block!] global?
-		/local name spec cmd types type arg trash ctx offset
+		/local name spec cmd types type arg path ctx offset
 	][
 		name: body/1
 		switch/default type?/word name [
 			word! [name: to word! clean-lf-flag name]
-			path! [set [trash name ctx] obj-func-path? body/1]
+			path! [set [path name ctx] obj-func-path? body/1]
 		][
 			throw-error ["invalid function name in #call:" mold body]
-		]	
+		]
 		if any [
 			not spec: select functions name
 			not spec/1 = 'function!
@@ -3822,7 +3822,11 @@ red: context [
 			switch type?/word types/1 [
 				refinement! [
 					if types/1 = /local [break]
-					emit [red/logic/push false]
+					emit 'red/logic/push 
+					emit to word! form to logic! all [
+						path? path
+						find path to word! types/1
+					]
 					insert-lf -2
 				]
 				word! [
