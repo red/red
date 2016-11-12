@@ -13,12 +13,6 @@ Red/System [
 image: context [
 	verbose: 0
 
-	#enum extract-type! [
-		EXTRACT_ALPHA
-		EXTRACT_RGB
-		EXTRACT_ARGB
-	]
-
 	acquire-buffer: func [
 		img		[red-image!]
 		bitmap	[int-ptr!]
