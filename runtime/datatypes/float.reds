@@ -440,7 +440,7 @@ float: context [
 				proto/header: type
 			]
 			TYPE_BINARY [
-				proto/value: as float! binary/to-integer as red-binary! spec
+				proto/value: as float! integer/from-binary as red-binary! spec
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
