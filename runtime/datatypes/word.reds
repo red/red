@@ -312,29 +312,57 @@ word: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-word!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
 		return: [red-value!]
+		/local
+			char	[red-char!]
+			dt		[red-datatype!]
+			bool	[red-logic!]
+			name	[names!]
+			idx		[integer!]
+			buf1	[integer!]
+			data	[byte-ptr!]
+			cstr	[c-string!]
+			len		[integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
 
-		switch type/value [
+		switch TYPE_OF(spec) [
 			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_GET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT
-			TYPE_ISSUE [
-				spec/header: type/value
+			TYPE_ISSUE [0]
+			TYPE_ANY_STRING [
+				make-at (symbol/make-alt as red-string! spec) proto
 			]
-			TYPE_STRING [
-				spec: as red-word! to-string spec
+			TYPE_CHAR [
+				char: as red-char! spec
+				buf1: 0
+				data: as byte-ptr! :buf1
+				len: unicode/cp-to-utf8 char/value data
+				idx: len + 1
+				data/idx: null-byte
+				make-at symbol/make as c-string! data proto
 			]
-			default [
-				--NOT_IMPLEMENTED--
+			TYPE_DATATYPE [
+				dt: as red-datatype! spec
+				name: name-table + dt/value
+				copy-cell as cell! name/word proto
 			]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				cstr: either bool/value ["true"]["false"]
+				make-at symbol/make cstr proto
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 		]
-		as red-value! spec
+
+		proto/header: type
+		proto
 	]
 
 	any-word?: func [									;@@ discard it when ANY_WORD? available
