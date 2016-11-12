@@ -20,6 +20,12 @@ bitset: context [
 		OP_CLEAR										;-- clear value bits
 	]
 	
+	#enum bitset-cmd! [
+		CMD_MAKE
+		CMD_TO
+		CMD_OTHER
+	]
+	
 	rs-head: func [
 		bits	[red-bitset!]
 		return: [byte-ptr!]
@@ -346,6 +352,7 @@ bitset: context [
 		bits 	[red-bitset!]
 		op		[bitset-op!]
 		sub?	[logic!]
+		cmd		[bitset-cmd!]
 		return: [integer!]
 		/local
 			int	  [red-integer!]
@@ -427,7 +434,7 @@ bitset: context [
 				test?: op = OP_TEST
 				
 				while [value < tail][
-					size: process value bits op yes
+					size: process value bits op yes cmd
 					if all [test? zero? size][return 0]	;-- size > 0 => TRUE, 0 => FALSE
 					
 					type: TYPE_OF(value)
@@ -470,9 +477,10 @@ bitset: context [
 				]
 			]
 			default [
-				fire [
-					TO_ERROR(script invalid-arg)
-					spec
+				switch cmd [
+					CMD_MAKE [fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_BITSET spec]]
+					CMD_TO	 [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BITSET spec]]
+					default  [fire [TO_ERROR(script invalid-arg) spec]]
 				]
 			]
 		]
@@ -490,22 +498,14 @@ bitset: context [
 		max
 	]
 	
-	push: func [
-		bits [red-bitset!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "bitset/push"]]
-
-		copy-cell as red-value! bits stack/push*
-	]
-	
-	;-- Actions --
-	
-	make: func [
+	construct: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		cmd		[integer!]
 		return: [red-bitset!]
 		/local
 			bits [red-bitset!]
+			b2	 [red-bitset!]
 			size [integer!]
 			int	 [red-integer!]
 			blk	 [red-block!]
@@ -516,12 +516,14 @@ bitset: context [
 			not? [logic!]
 			byte [byte!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
-		
 		bits: as red-bitset! stack/push*
 		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
 
 		switch TYPE_OF(spec) [
+			TYPE_BITSET [
+				b2: as red-bitset! spec
+				bits/node: copy-series GET_BUFFER(b2)
+			]
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				size: int/value
@@ -561,17 +563,47 @@ bitset: context [
 				byte: either not? [#"^(FF)"][null-byte]
 				op: either not? [OP_CLEAR][OP_SET]
 				
-				size: process spec null OP_MAX no			;-- 1st pass: determine size
+				size: process spec null OP_MAX no cmd		;-- 1st pass: determine size
 				bits/node: alloc-bytes-filled size byte
 				if not? [
 					s: GET_BUFFER(bits)
 					s/flags: s/flags or flag-bitset-not
 				]
-				process spec bits op no						;-- 2nd pass: set bits
+				process spec bits op no	cmd					;-- 2nd pass: set bits
 				if not? [blk/head: blk/head - 1]			;-- restore series argument head
 			]
 		]
 		bits
+	]
+	
+	push: func [
+		bits [red-bitset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/push"]]
+
+		copy-cell as red-value! bits stack/push*
+	]
+	
+	;-- Actions --
+	
+	make: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-bitset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
+		construct proto spec CMD_MAKE
+	]
+	
+	to: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-bitset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/to"]]
+		construct proto spec CMD_TO
 	]
 	
 	form: func [
@@ -792,7 +824,7 @@ bitset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/insert"]]
 		
-		process value bits OP_SET no
+		process value bits OP_SET no CMD_OTHER
 		as red-value! bits
 	]
 	
@@ -818,7 +850,7 @@ bitset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/pick"]]
 		
-		set?: process boxed bits OP_TEST yes
+		set?: process boxed bits OP_TEST yes CMD_OTHER
 		as red-value! either positive? set? [true-value][false-value]
 	]
 	
@@ -851,7 +883,7 @@ bitset: context [
 		][
 			OP_SET
 		]
-		process boxed bits op no
+		process boxed bits op no CMD_OTHER
 		as red-value! data
 	]
 	
@@ -868,7 +900,7 @@ bitset: context [
 		]
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
-		process part bits op no
+		process part bits op no CMD_OTHER
 		as red-value! bits
 	]
 	
@@ -881,7 +913,7 @@ bitset: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
