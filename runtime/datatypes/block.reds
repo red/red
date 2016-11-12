@@ -535,6 +535,7 @@ block: context [
 	make: func [
 		proto 	 [red-value!]
 		spec	 [red-value!]
+		type	 [integer!]
 		return:	 [red-block!]
 		/local
 			size [integer!]
@@ -553,7 +554,37 @@ block: context [
 		if zero? size [size: 1]
 		make-at as red-block! stack/push* size
 	]
-	
+
+	to: func [
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-block!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_OBJECT [object/reflect as red-object! spec words/body]
+			TYPE_MAP	[map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
+			TYPE_STRING [
+				str: as red-string! spec
+				#call [system/lexer/transcode str none none]
+			]
+			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
+			TYPE_PATH
+			TYPE_GET_PATH
+			TYPE_SET_PATH
+			TYPE_LIT_PATH
+			TYPE_BLOCK   [proto: clone as red-block! spec no no]
+			default [rs-append make-at proto 1 spec]
+		]
+		set-type as red-value! proto type
+		proto
+	]
+
 	form: func [
 		blk		  [red-block!]
 		buffer	  [red-string!]
@@ -1639,7 +1670,7 @@ block: context [
 			:make
 			INHERIT_ACTION	;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

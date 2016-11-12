@@ -283,7 +283,52 @@ vector: context [
 			value: value + 1
 		]
 	]
-	
+
+	to-block: func [
+		vec		[red-vector!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			type [integer!]
+			p	 [byte-ptr!]
+			end  [byte-ptr!]
+			int  [red-integer!]
+			f	 [red-float!]
+			slot [red-value!]
+	][
+		type: vec/type
+		block/make-at blk rs-length? vec
+		s: GET_BUFFER(blk)
+		slot: s/offset
+		s/tail: slot + rs-length? vec
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (vec/head << (log-b unit))
+		end: as byte-ptr! s/tail
+
+		while [p < end][
+			switch type [
+				TYPE_INTEGER
+				TYPE_CHAR [
+					int: as red-integer! slot
+					int/value: get-value-int as int-ptr! p unit
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					f: as red-float! slot
+					f/value: get-value-float p unit
+				]
+			]
+			slot/header: type
+			slot: slot + 1
+			p: p + unit
+		]
+		blk
+	]
+
 	serialize: func [
 		vec		[red-vector!]
 		buffer	[red-string!]
