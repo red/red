@@ -336,7 +336,7 @@ load-value: func [
 		blk	  [red-block!]
 		value [red-value!]
 ][
-	#call [system/lexer/transcode str none none]
+	#call [system/lexer/transcode/one str none none]
 
 	blk: as red-block! stack/arguments
 	assert TYPE_OF(blk) = TYPE_BLOCK
