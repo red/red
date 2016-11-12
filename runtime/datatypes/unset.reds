@@ -55,10 +55,10 @@ unset: context [
 	;-- Actions -- 
 
 	to: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-unset!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-unset!]
 		/local
 			cell [red-unset!]
 	][

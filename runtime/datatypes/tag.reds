@@ -69,25 +69,6 @@ tag: context [
 		form tag buffer arg part - 1
 	]
 
-	to: func [
-		type	[red-datatype!]
-		spec	[red-integer!]
-		return: [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "tag/to"]]
-			
-		switch type/value [
-			TYPE_FILE
-			TYPE_STRING [
-				set-type copy-cell as cell! spec as cell! type type/value
-			]
-			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
-			]
-		]
-		as red-value! type
-	]
-
 	init: does [
 		datatype/register [
 			TYPE_TAG
@@ -97,7 +78,7 @@ tag: context [
 			:make
 			null			;random
 			INHERIT_ACTION	;reflect
-			:to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path

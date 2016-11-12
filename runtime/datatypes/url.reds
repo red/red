@@ -122,25 +122,6 @@ url: context [
 		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
-	to: func [
-		type	[red-datatype!]
-		spec	[red-integer!]
-		return: [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
-			
-		switch type/value [
-			TYPE_FILE
-			TYPE_STRING [
-				set-type copy-cell as cell! spec as cell! type type/value
-			]
-			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
-			]
-		]
-		as red-value! type
-	]
-
 	eval-path: func [
 		parent	[red-string!]							;-- implicit type casting
 		element	[red-value!]
@@ -245,7 +226,7 @@ url: context [
 			:make
 			null			;random
 			null			;reflect
-			:to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			:eval-path

@@ -1129,70 +1129,33 @@ string: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-string!]
-		return: [red-value!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
-			t	[integer!]
-			f	[red-float!]
-			int [red-integer!]
-			blk [red-block!]
-			ret [red-value!]
-			bin [byte-ptr!]
+			buffer [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
-
-		t: type/value
-		switch t [
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL [
-				set-type copy-cell as cell! spec as cell! type type/value
-				return as red-value! type
+		
+		switch TYPE_OF(spec) [
+			TYPE_NONE [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
 			]
 			TYPE_BINARY [
-				t: -1
-				bin: as byte-ptr! unicode/to-utf8 spec :t
-				return stack/set-last as cell! binary/load bin t
+				buffer: load
+					as-c-string binary/rs-head as red-binary! spec
+					binary/rs-length? as red-binary! spec
+					UTF-8
 			]
-			TYPE_ISSUE [
-				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
-			]
-			TYPE_WORD
-			TYPE_LIT_WORD
-			TYPE_SET_WORD [
-				ret: as red-value! word/box (symbol/make-alt spec)
-				set-type ret t
-				return ret
-			]
-			default  [0]
-		]
-
-		blk: as red-block! type
-		#call [system/lexer/transcode spec none none]
-
-		either zero? block/rs-length? blk [
-			ret: as red-value! blk
-			ret/header: TYPE_UNSET
-		][
-			ret: block/rs-head blk
-		]
-
-		either t = TYPE_FLOAT [
-			if TYPE_OF(ret) = TYPE_INTEGER [
-				int: as red-integer! ret
-				f: as red-float! ret
-				f/header: TYPE_FLOAT
-				f/value: as-float int/value
-			]
-		][
-			if TYPE_OF(ret) <> t [
-				fire [TO_ERROR(script bad-to-arg) datatype/push t ret]
+			default [
+				buffer: string/rs-make-at stack/push* 16
+				actions/form spec buffer null 0
+				buffer
 			]
 		]
-		if t = TYPE_ISSUE [remove-char spec spec/head]
-		stack/set-last ret
+		set-type as cell! buffer type
+		buffer
 	]
 
 	form: func [
