@@ -54,15 +54,15 @@ unset: context [
 
 	;-- Actions -- 
 
-	make: func [
+	to: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
+		type	 [integer!]
 		return:	 [red-unset!]
 		/local
 			cell [red-unset!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "unset/make"]]
-		
+		#if debug? = yes [if verbose > 0 [print-line "unset/to"]]
 		cell: as red-unset! stack/push*
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
 		cell
@@ -132,10 +132,10 @@ unset: context [
 			TYPE_VALUE
 			"unset!"
 			;-- General actions --
-			:make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
