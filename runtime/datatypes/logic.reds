@@ -173,6 +173,22 @@ logic: context [
 		]
 		logic
 	]
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_LOGIC [return spec]
+			TYPE_NONE  [return as red-value! false-value]
+			default	   [return as red-value! true-value]
+		]
+		proto
+	]
 
 	form: func [
 		boolean	[red-logic!]
@@ -288,7 +304,7 @@ logic: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
