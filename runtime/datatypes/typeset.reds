@@ -237,39 +237,56 @@ typeset: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		type	[integer!]
 		return: [red-typeset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "typeset/make"]]
+
+		if TYPE_OF(spec) <> TYPE_BLOCK [
+			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TYPESET spec]
+		]		
+		as red-typeset! to proto spec type
+	]
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
 		/local
 			sets [red-typeset!]
-			type [red-value!]
+			dt 	 [red-value!]
 			blk	 [red-block!]
 			i	 [integer!]
 			end  [red-value!]
 			s	 [series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "typeset/to"]]
+
+		if TYPE_OF(spec) = TYPE_TYPESET [return spec]
 
 		sets: as red-typeset! stack/push*
 		sets/header: TYPE_TYPESET						;-- implicit reset of all header flags
 		rs-clear sets
-		
+
 		either TYPE_OF(spec) = TYPE_BLOCK [
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
 			i: blk/head
 			end: s/tail
-			type: s/offset + i
+			dt: s/offset + i
 
-			while [type < end][
-				set-type sets type
+			while [dt < end][
+				set-type sets dt
 				i: i + 1
-				type: s/offset + i
+				dt: s/offset + i
 			]
 		][
-
-			fire [TO_ERROR(script bad-make-arg) proto spec]
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TYPESET spec]
 		]		
-		sets
+		as red-value! sets
 	]
+
 
 	form: func [
 		sets	[red-typeset!]
@@ -420,7 +437,7 @@ typeset: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
