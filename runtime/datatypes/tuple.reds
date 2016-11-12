@@ -36,6 +36,33 @@ tuple: context [
 		while [i < 3][i: i + 1 tp/i: null-byte]
 		tuple
 	]
+	
+	from-binary: func [
+		bin		[red-binary!]
+		tp		[red-tuple!]
+		return: [red-tuple!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			dst	   [byte-ptr!]
+			len	   [integer!]
+	][
+		s: GET_BUFFER(bin)
+		len: (as-integer s/tail - s/offset) + bin/head
+		if len > 12 [len: 12]							;-- take first 12 bytes only
+		
+		tp/header: TYPE_TUPLE or (len << 19)
+		
+		p: (as byte-ptr! s/offset) + bin/head
+		dst: (as byte-ptr! tp) + 4
+
+		loop len [
+			dst/value: p/value
+			p: p + 1
+			dst: dst + 1
+		]
+		tp
+	]
 
 	push: func [
 		size	[integer!]
@@ -229,6 +256,32 @@ tuple: context [
 			]
 		]
 		as red-value! tp
+	]
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_TUPLE	  [return spec]
+			TYPE_ANY_LIST [return as red-value! make proto spec]
+			TYPE_BINARY	  [
+				return as red-value! from-binary as red-binary! spec as red-tuple! proto
+			]
+			TYPE_ANY_STRING [
+				proto: load-value as red-string! spec
+				
+				if TYPE_OF(proto) <> TYPE_TUPLE [ 
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+				]
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
+		]
+		proto
 	]
 
 	form: func [
@@ -507,7 +560,7 @@ tuple: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
