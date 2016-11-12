@@ -187,7 +187,24 @@ binary: context [
 		if p + part > (as byte-ptr! s/tail) [s/tail: as cell! p + part]
 		p
 	]
-	
+
+	load-integer: func [
+		bin		[red-binary!]
+		int		[integer!]
+		/local
+			s	[series!]
+			p	[byte-ptr!]
+	][
+		s: GET_BUFFER(bin)
+		p: (as byte-ptr! s/tail) + 4
+		s/tail: as cell! p
+		loop 4 [
+			p: p - 1
+			p/value: as byte! int
+			int: int >> 8
+		]
+	]
+
 	to-integer: func [
 		bin		[red-binary!]
 		return: [integer!]
@@ -747,27 +764,56 @@ binary: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-binary!]
-		return: [red-value!]
+		proto	[red-binary!]
+		spec	[red-value!]
+		return: [red-binary!]
 		/local
-			ret [red-value!]
+			len [integer!]
+			int [red-integer!]
+			p	[byte-ptr!]
+			p4	[int-ptr!]
+			bin [byte-ptr!]
+			bs	[red-bitset!]
+			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/to"]]
 
-		switch type/value [
-			TYPE_STRING [
-				spec/node: unicode/load-utf8
-					as c-string! binary/rs-head spec
-					binary/rs-length? spec
-				spec/header: TYPE_STRING
-				ret: as red-value! spec
+		switch TYPE_OF(spec) [
+			TYPE_ANY_STRING [
+				len: -1
+				p: as byte-ptr! unicode/to-utf8 as red-string! spec :len
+				proto: load p len
+			]
+			TYPE_INTEGER
+			TYPE_CHAR [
+				int: as red-integer! spec
+				make-at as red-value! proto 4
+				load-integer proto int/value
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				p4: (as int-ptr! spec) + 2
+				make-at as red-value! proto 8
+				load-integer proto p4/2
+				load-integer proto p4/1
+			]
+			TYPE_ANY_LIST [
+				make-at as red-value! proto 16
+				insert proto spec null no null yes
+			]
+			TYPE_BITSET [
+				bs: as red-bitset! spec
+				s: GET_BUFFER(bs)
+				proto: load as byte-ptr! s/offset as-integer s/tail - s/offset
+			]
+			TYPE_BINARY [
+				_series/copy as red-series! spec as red-series! proto null no null
 			]
 			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BINARY spec]
 			]
 		]
-		stack/set-last ret
+		proto
 	]
 
 	form: func [
@@ -841,7 +887,7 @@ binary: context [
 			type	  [integer!]
 			tail?	  [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
+		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
 
 		dup-n: 1
 		cnt:   1

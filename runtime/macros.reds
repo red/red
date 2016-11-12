@@ -396,6 +396,12 @@ Red/System [
 	TYPE_TAG
 ]
 
+#define TYPE_ANY_LIST [
+	TYPE_BLOCK
+	TYPE_HASH
+	TYPE_PAREN
+]
+
 #define BS_SET_BIT(array bit)  [
 	pos: array + (bit >> 3)
 	pos/value: pos/value or (as-byte 128 >> (bit and 7))
