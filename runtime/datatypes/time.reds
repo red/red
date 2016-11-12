@@ -120,6 +120,7 @@ time: context [
 	to: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
 		spec	[red-value!]
+		type	[integer!]
 		return: [red-value!]
 		/local
 			tm	 [red-time!]
