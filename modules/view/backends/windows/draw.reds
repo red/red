@@ -1873,8 +1873,8 @@ OS-set-clip: func [
                 modes/graphics
                 u/x
                 u/y
-                l/x - u/x + 1
-                l/y - u/y + 1
+                l/x - u/x
+                l/y - u/y
                 mode
         ][
             GdipSetClipPath
