@@ -99,7 +99,6 @@ integer: context [
 		i
 	]
 	
-	
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
