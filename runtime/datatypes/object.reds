@@ -901,6 +901,7 @@ object: context [
 	make: func [
 		proto	[red-object!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]

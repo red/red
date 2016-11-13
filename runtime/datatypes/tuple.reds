@@ -177,9 +177,10 @@ tuple: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-tuple!]
+		proto	[red-value!]	
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-tuple!]
 		/local
 			blk   [red-block!]
 			tuple [red-tuple!]
@@ -268,7 +269,7 @@ tuple: context [
 
 		switch TYPE_OF(spec) [
 			TYPE_TUPLE	  [return spec]
-			TYPE_ANY_LIST [return as red-value! make proto spec]
+			TYPE_ANY_LIST [return as red-value! make proto spec type]
 			TYPE_BINARY	  [
 				return as red-value! from-binary as red-binary! spec as red-tuple! proto
 			]

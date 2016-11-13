@@ -533,10 +533,10 @@ block: context [
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-block!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-block!]
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-block!]
 		/local
 			size [integer!]
 			int	 [red-integer!]

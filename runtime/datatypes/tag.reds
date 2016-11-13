@@ -24,10 +24,10 @@ tag: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-tag!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-tag!]
 		/local
 			tag [red-tag!]
 	][

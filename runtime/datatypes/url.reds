@@ -55,10 +55,10 @@ url: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-url!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-url!]
 		/local
 			url [red-url!]
 	][

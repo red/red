@@ -24,10 +24,10 @@ email: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-email!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-email!]
 		/local
 			email [red-email!]
 	][

@@ -127,9 +127,10 @@ logic: context [
 	;-- Actions -- 
 
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-logic!]							;-- return cell pointer
+		proto	[red-value!]	
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-logic!]							;-- return cell pointer
 		/local
 			bool  [red-logic!]
 			int	  [red-integer!]

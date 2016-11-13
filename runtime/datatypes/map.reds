@@ -180,10 +180,10 @@ map: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-hash!]
-		spec		[red-value!]
-		type		[integer!]
-		return:		[red-hash!]
+		proto	[red-hash!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-hash!]
 		/local
 			size	[integer!]
 			int		[red-integer!]
