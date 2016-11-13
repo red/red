@@ -291,7 +291,7 @@ draw-begin: func [
 	GdipCreatePen1
 		to-gdiplus-color modes/pen-color
 		as float32! modes/pen-width
-		GDIPLUS_UNIT_PIXEL
+		GDIPLUS_UNIT_WORLD
 		:graphics
 	modes/gp-pen: graphics
 	OS-draw-anti-alias dc yes
