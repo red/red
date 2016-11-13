@@ -27,9 +27,10 @@ action: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	   [red-value!]
-		spec   	   [red-block!]
-		return:    [red-action!]						;-- return action cell pointer
+		proto	[red-value!]
+		spec	[red-block!]
+		type	[integer!]
+		return:	[red-action!]							;-- return action cell pointer
 		/local
 			list   [red-block!]
 			action [red-action!]

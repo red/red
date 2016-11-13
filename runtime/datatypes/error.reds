@@ -147,9 +147,10 @@ error: context [
 	;-- Actions -- 
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-object!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-object!]
 		/local
 			new		[red-object!]
 			errors	[red-object!]

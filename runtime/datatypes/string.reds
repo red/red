@@ -1102,9 +1102,10 @@ string: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-string!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
 			str	 [red-string!]
 			size [integer!]

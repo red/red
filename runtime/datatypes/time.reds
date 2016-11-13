@@ -87,9 +87,10 @@ time: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-time!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-time!]
 		/local
 			int	 [red-integer!]
 			fl	 [red-float!]

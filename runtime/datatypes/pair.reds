@@ -95,9 +95,10 @@ pair: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-pair!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-pair!]
 		/local
 			int	 [red-integer!]
 			int2 [red-integer!]

@@ -16,10 +16,10 @@ hash: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-block!]
-		spec		[red-value!]
-		type		[integer!]
-		return:		[red-hash!]
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-hash!]
 		/local
 			hash	[red-hash!]
 			size	[integer!]

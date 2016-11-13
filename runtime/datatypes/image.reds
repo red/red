@@ -353,9 +353,10 @@ image: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-image!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-image!]
 		/local
 			img		[red-image!]
 			pair	[red-pair!]

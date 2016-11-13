@@ -73,6 +73,7 @@ char: context [
 	to: func [
 		proto 	[red-char!]							;-- overwrite this slot with result
 		spec	[red-value!]
+		type	[integer!]
 		return: [red-char!]
 		/local
 			fl	 [red-float!]

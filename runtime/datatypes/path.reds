@@ -55,10 +55,10 @@ path: context [
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-path!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-path!]
+		proto 	[red-path!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-path!]
 		/local
 			path [red-path!]
 			int  [red-integer!]

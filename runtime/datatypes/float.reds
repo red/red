@@ -446,8 +446,8 @@ float: context [
 	to: func [
 		proto	[red-float!]
 		spec	[red-value!]
-		type	[integer!]				;-- target type
-		return: [red-float!]
+		type	[integer!]								;-- target type
+		return:	[red-float!]
 		/local
 			int [red-integer!]
 			tm	[red-time!]

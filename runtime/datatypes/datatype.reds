@@ -123,8 +123,9 @@ datatype: context [
 	;-- Actions --
 	
 	make: func [
-		proto 	[red-value!]
+		proto	[red-value!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-datatype!]							;-- return datatype cell pointer
 		/local
 			int [red-integer!]

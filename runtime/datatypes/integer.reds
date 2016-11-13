@@ -299,9 +299,10 @@ integer: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-integer!]
+		proto	[red-value!]	
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/make"]]
 

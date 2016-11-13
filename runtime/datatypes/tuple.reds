@@ -177,9 +177,10 @@ tuple: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-tuple!]
+		proto	[red-value!]	
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-tuple!]
 		/local
 			blk   [red-block!]
 			tuple [red-tuple!]

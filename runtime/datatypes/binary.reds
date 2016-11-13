@@ -726,9 +726,10 @@ binary: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-binary!]
 		/local
-			bin	  [red-binary!]
+			bin	[red-binary!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/make"]]
 
