@@ -312,8 +312,8 @@ Red/System [
         ][
             case [
                 sym = line-width [
-                    DRAW_FETCH_VALUE(TYPE_INTEGER)
-                    OS-draw-line-width DC as red-integer! start
+                    DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+                    OS-draw-line-width DC cmd
                 ]
                 sym = line-join	[
                     DRAW_FETCH_VALUE(TYPE_WORD)

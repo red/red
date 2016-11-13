@@ -15,7 +15,7 @@ modes: declare struct! [
 	brush			[handle!]
 	pen-join		[integer!]
 	pen-cap			[integer!]
-	pen-width		[integer!]
+	pen-width		[float32!]
 	pen-style		[integer!]
 	pen-color		[integer!]								;-- 00bbggrr format
 	brush-color		[integer!]								;-- 00bbggrr format
@@ -120,7 +120,7 @@ update-gdiplus-pen: func [/local handle [integer!]][
 		]
 		handle: modes/gp-pen
 		GdipSetPenColor handle to-gdiplus-color modes/pen-color
-		GdipSetPenWidth handle as float32! modes/pen-width
+		GdipSetPenWidth handle modes/pen-width
 		if modes/pen-join <> -1 [
 			OS-draw-line-join null modes/pen-join
 		]
@@ -160,7 +160,7 @@ update-pen: func [
 		cap: modes/pen-cap
 		join: modes/pen-join
 		modes/pen: either all [join = -1 cap = -1] [
-			pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+			pen: CreatePen modes/pen-style as integer! modes/pen-width modes/pen-color
 			pen
 		][
 			if join <> -1 [
@@ -185,7 +185,7 @@ update-pen: func [
 			brush/lbColor: modes/pen-color
 			pen: ExtCreatePen
 				PS_GEOMETRIC or modes/pen-style or mode
-				modes/pen-width
+				as integer! modes/pen-width
 				brush
 				0
 				null
@@ -226,7 +226,7 @@ draw-begin: func [
 ][
 	modes/pen:				null
 	modes/brush:			null
-	modes/pen-width:		1
+	modes/pen-width:		as float32! 1
 	modes/pen-style:		PS_SOLID
 	modes/pen-color:		0						;-- default: black
 	modes/pen-join:			-1
@@ -290,7 +290,7 @@ draw-begin: func [
 	modes/graphics:	graphics
 	GdipCreatePen1
 		to-gdiplus-color modes/pen-color
-		as float32! modes/pen-width
+		modes/pen-width
 		GDIPLUS_UNIT_WORLD
 		:graphics
 	modes/gp-pen: graphics
@@ -1067,12 +1067,23 @@ OS-draw-fill-pen: func [
 
 OS-draw-line-width: func [
 	dc	  [handle!]
-	width [red-integer!]
+	width [red-value!]
+    /local 
+        width-i     [red-integer!]
+        width-f     [red-float!]
+        width-v     [float32!]
 ][
-	if modes/pen-width <> width/value [
-		modes/pen-width: width/value
+    either TYPE_OF(width) = TYPE_INTEGER [
+        width-i: as red-integer! width
+        width-v: as float32! width-i/value
+    ][
+        width-f: as red-float! width
+        width-v: as float32! width-f/value
+    ]
+	if modes/pen-width <> width-v [
+        modes/pen-width: width-v
 		either GDI+? [
-			GdipSetPenWidth modes/gp-pen as float32! modes/pen-width
+			GdipSetPenWidth modes/gp-pen modes/pen-width
 		][
 			update-pen dc
 		]
