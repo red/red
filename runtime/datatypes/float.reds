@@ -373,6 +373,48 @@ float: context [
 		fl
 	]
 
+	from-binary: func [
+		bin		[red-binary!]
+		return: [float!]
+		/local
+			s		[series!]
+			p		[byte-ptr!]
+			len		[integer!]
+			part	[integer!]
+			int2	[integer!]
+			int1	[integer!]
+			pf		[pointer! [float!]]
+			factor	[integer!]
+			f64?	[logic!]
+	][
+		s: GET_BUFFER(bin)
+		len: (as-integer s/tail - s/offset) + bin/head
+		if len > 8 [len: 8]							;-- take first 32 bits only
+		f64?: either len > 4 [part: 4 yes][part: len no]
+
+		int2: 0
+		int1: 0
+		factor: 0
+		p: (as byte-ptr! s/offset) + bin/head + len - 1
+
+		loop part [
+			int1: int1 or ((as-integer p/value) << factor)
+			factor: factor + 8
+			p: p - 1
+		]
+		if f64? [
+			factor: 0
+			part: len - 4
+			loop part [
+				int2: int2 or ((as-integer p/value) << factor)
+				factor: factor + 8
+				p: p - 1
+			]
+		]
+		pf: as pointer! [float!] :int1
+		pf/value
+	]
+
 	;-- Actions --
 
 	;-- make: :to
@@ -440,7 +482,7 @@ float: context [
 				proto/header: type
 			]
 			TYPE_BINARY [
-				proto/value: as float! integer/from-binary as red-binary! spec
+				proto/value: from-binary as red-binary! spec
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [

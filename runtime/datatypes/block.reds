@@ -315,7 +315,7 @@ block: context [
 		]
 		none-value
 	]
-	
+
 	make-at: func [
 		blk		[red-block!]
 		size	[integer!]
@@ -533,7 +533,7 @@ block: context [
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-value!]
+		proto 	 [red-block!]
 		spec	 [red-value!]
 		type	 [integer!]
 		return:	 [red-block!]
@@ -543,16 +543,17 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 
-		size: 1
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				size: int/value
+				if zero? size [size: 1]
+				make-at proto size
+				proto/header: type
+				proto
 			]
-			default [--NOT_IMPLEMENTED--]
+			default [to proto spec type]
 		]
-		if zero? size [size: 1]
-		make-at as red-block! stack/push* size
 	]
 
 	to: func [
@@ -581,7 +582,7 @@ block: context [
 			TYPE_BLOCK   [proto: clone as red-block! spec no no]
 			default [rs-append make-at proto 1 spec]
 		]
-		set-type as red-value! proto type
+		proto/header: type
 		proto
 	]
 

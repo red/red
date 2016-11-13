@@ -188,7 +188,7 @@ binary: context [
 		p
 	]
 
-	load-integer: func [
+	from-integer: func [
 		bin		[red-binary!]
 		int		[integer!]
 		/local
@@ -762,14 +762,14 @@ binary: context [
 			TYPE_CHAR [
 				int: as red-integer! spec
 				make-at as red-value! proto 4
-				load-integer proto int/value
+				from-integer proto int/value
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				p4: (as int-ptr! spec) + 2
 				make-at as red-value! proto 8
-				load-integer proto p4/2
-				load-integer proto p4/1
+				from-integer proto p4/2
+				from-integer proto p4/1
 			]
 			TYPE_IMAGE [
 				proto: image/extract-data as red-image! spec EXTRACT_ALPHA
