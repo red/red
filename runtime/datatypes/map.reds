@@ -180,8 +180,9 @@ map: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-value!]
+		proto		[red-hash!]
 		spec		[red-value!]
+		type		[integer!]
 		return:		[red-hash!]
 		/local
 			size	[integer!]
@@ -192,24 +193,37 @@ map: context [
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
 
 		blk?: no
-		size: 1
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
+				if type = -1 [					;-- called by TO
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
+				]
 				int: as red-integer! spec
 				size: int/value
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
-			TYPE_BLOCK [
+			TYPE_ANY_LIST [
 				size: block/rs-length? as red-block! spec
 				if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
 				blk?: yes
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_MAP [return copy as red-hash! spec proto null no null]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
+
 		if zero? size [size: 1]
 		blk: block/make-at as red-block! stack/push* size
 		if blk? [block/copy as red-block! spec blk null no null]
 		make-at as red-value! blk blk size
+	]
+
+	to: func [
+		proto		[red-hash!]
+		spec		[red-value!]
+		type		[integer!]
+		return:		[red-hash!]
+	][
+		make proto spec -1
 	]
 
 	reflect: func [
@@ -680,7 +694,7 @@ map: context [
 			:make
 			null			;random
 			:reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
