@@ -299,21 +299,24 @@ integer: context [
 	;-- Actions --
 	
 	make: func [
-		proto	[red-value!]	
+		proto	[red-value!]
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-integer!]
+		/local
+			bool [red-logic!]
+			int	 [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/make"]]
 
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				as red-integer! spec
-			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-integer! spec					;@@ just for making it compilable
-			]
+		either TYPE_OF(spec) = TYPE_LOGIC [
+			bool: as red-logic! spec
+			int: as red-integer! proto
+			int/header: TYPE_INTEGER
+			int/value: as-integer bool/value
+			int
+		][
+			as red-integer! to proto spec type
 		]
 	]
 
