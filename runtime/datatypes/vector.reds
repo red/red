@@ -636,6 +636,7 @@ vector: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-vector!]
 		/local
 			s	  [series!]
