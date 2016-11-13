@@ -248,7 +248,7 @@ a-an: function [s [string!]][
 what: function ["Lists all functions"][
 	foreach w sort words-of system/words [
 		if all [word? w any-function? get/any :w][
-			prin pad form w 15
+			prin pad form w 17
 			spec: spec-of get w
 			
 			either any [

@@ -27,7 +27,7 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If conditional expression is true, eval true-block; else eval false-blk"
+		"If conditional expression is TRUE, eval true-block; else eval false-blk"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
@@ -36,14 +36,14 @@ either: make native! [[
 ]
 	
 any: make native! [[
-		"Evaluates, returning at the first that is true"
+		"Evaluates, returning at the first that is TRUE"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returning at the first that is not true"
+		"Evaluates, returning at the first that is not TRUE"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
@@ -106,7 +106,7 @@ forall: make native! [[
 ]
 
 remove-each: make native! [[
-		"Removes values for each block that returns true"
+		"Removes values for each block that returns TRUE"
 		'word [word! block!] "Word or block of words to set each time"
 		data [series!] "The series to traverse (modified)"
 		body [block!] "Block to evaluate (return TRUE to remove)"
@@ -552,7 +552,7 @@ NaN?: make native! [[
 ]
 
 log-2: make native! [[
-		"Return the base-2 logarithm"
+		"Returns the base-2 logarithm"
 		value	[number!]
 		return: [float!]
 	]
@@ -690,7 +690,7 @@ catch: make native! [[
 ]
 
 extend: make native! [[
-		"Extend an object or map value with list of key and value pairs"
+		"Extend an object or map value with a list of key and value pairs"
 		obj  [object! map!]
 		spec [block! hash! map!]
 		/case "Use case-sensitive comparison"
@@ -809,7 +809,7 @@ now: make native! [[
 		/month		"Returns month only"
 		/day		"Returns day of the month only"
 		/time		"Returns time only"
-		/zone		"Returns time zone offset from UCT (GMT) only"
+		/zone		"Returns time zone offset from UTC (GMT) only"
 		/date		"Returns date only"
 		/weekday	"Returns day of the week as integer (Monday is day 1)"
 		/yearday	"Returns day of the year (Julian)"

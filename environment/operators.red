@@ -28,7 +28,8 @@ Red [
 #load set-word! ">="	make op! :greater-or-equal?
 #load set-word! "<<"	make op! :shift-left
 #load set-word! ">>"	make op! :shift-right
-#load set-word! ">>>"	make op! :shift-logical
+#load set-word! ">>>"	make op! :shift-logical-right
+#load set-word! "<<<"	make op! :shift-logical-left
 #load set-word! "**"	make op! :power
 and:					make op! :and~
 or:						make op! :or~

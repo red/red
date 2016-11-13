@@ -38,13 +38,13 @@ comment: func [value][]
 
 quit: func [
 	"Stops evaluation and exits the program"
-	/return status	[integer!] "Return an exit status"
+	/return status	[integer!] "Returns an exit status"
 ][
 	quit-return any [status 0]
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail"
+	"Returns TRUE if a series is at its tail"
 	series	[series! none!]
 	return:	[logic!]
 ][
@@ -106,12 +106,12 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
-			["Returns true if the value is this type" value [any-type!]]
+			["Returns TRUE if the value is this type" value [any-type!]]
 			compose [(name) = type? :value]
 		]
 	]
 	
-	docstring: "Returns true if the value is any type of "
+	docstring: "Returns TRUE if the value is any type of "
 	
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
@@ -128,7 +128,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 context: func [spec [block!]][make object! spec]
 
 alter: func [
-	"If a value is not found in a series, append it; otherwise, remove it. Returns true if added"
+	"If a value is not found in a series, append it; otherwise, remove it. Returns TRUE if added"
 	series [series!]
 	value
 ][
@@ -222,7 +222,7 @@ charset: func [
 	make bitset! spec
 ]
 
-p-indent: make string! 30								;@@ to be put in an local context
+p-indent: make string! 30								;@@ to be put in a local context
 
 on-parse-event: func [
 	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
@@ -652,7 +652,7 @@ hex-to-rgb: function [
 ]
 
 within?: func [
-	"Return TRUE if the point is within the rectangle bounds"
+	"Returns TRUE if the point is within the rectangle bounds"
 	point	[pair!] "XY position"
 	offset  [pair!] "Offset of area"
 	size	[pair!] "Size of area"
@@ -667,7 +667,7 @@ within?: func [
 ]
 
 overlap?: function [
-	"Return TRUE if the two faces bounding boxes are overlapping"
+	"Returns TRUE if the two faces bounding boxes are overlapping"
 	A		[object!] "First face"
 	B		[object!] "Second face"
 	return: [logic!]  "TRUE if overlapping"

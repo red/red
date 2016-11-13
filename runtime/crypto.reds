@@ -70,7 +70,7 @@ crypto: context [
 
 
 	alg-digest-size: func [
-		"Return the size of a digest result for a given algorithm."
+		"Returns the size of a digest result for a given algorithm."
 		type	[integer!]
 		return:	[integer!]
 	][
@@ -85,7 +85,7 @@ crypto: context [
 	]
 	
 	alg-from-symbol: func [
-		"Return the algorithm ID for a given symbol."
+		"Returns the algorithm ID for a given symbol."
 		sym		[integer!]
 		return: [integer!]
 	][
@@ -243,8 +243,8 @@ crypto: context [
 	]
 
 	HASH_STRING: func [
-		;"Return a case insensitive hash value"
-		;"Return a case sensitive hash value"
+		;"Returns a case insensitive hash value"
+		;"Returns a case sensitive hash value"
 		data	[byte-ptr!]
 		len		[integer!]	"Data length"
 		size	[integer!]	"Size of the hash table."
@@ -256,7 +256,7 @@ crypto: context [
 	]
 
 	known-method?: func [
-		"Return true if the given symbol is supported."
+		"Returns TRUE if the given symbol is supported."
 		sym		[integer!]
 		return: [logic!]
 	][

@@ -35,7 +35,7 @@ system: context [
 		__make-sys-object
 	]
 	
-	platform: func ["Return a word identifying the operating system"][
+	platform: func ["Returns a word identifying the operating system"][
 		#system [
 			#switch OS [
 				Windows  [SET_RETURN(words/_windows)]
@@ -62,7 +62,7 @@ system: context [
 			]
 			note: object [
 				code:				100
-				type:				"note"
+				type:				"Note Error"
 				no-load:			["cannot load: " :arg1]
 			]
 			syntax: object [
@@ -132,7 +132,7 @@ system: context [
                 bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
-				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
+				move-bad:			["cannot MOVE elements from" :arg1 "to" :arg2]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -236,7 +236,7 @@ system: context [
 	]
 	
 	state: context [
-		interpreted?: func ["Return TRUE if called from the interpreter"][
+		interpreted?: func ["Returns TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null]
 		]
 		
