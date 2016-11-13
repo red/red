@@ -40,24 +40,67 @@ path: context [
 		copy-cell as red-value! p stack/push*
 	]
 
+	make-at: func [
+		path	[red-path!]
+		size	[integer!]
+		return: [red-path!]
+	][
+		path/header: TYPE_PATH							;-- implicit reset of all header flags
+		path/head: 0
+		path/node: alloc-cells size
+		path/args: null
+		path
+	]
 
 	;--- Actions ---
 	
 	make: func [
-		proto 	 [red-value!]
+		proto 	 [red-path!]
 		spec	 [red-value!]
+		type	 [integer!]
 		return:	 [red-path!]
 		/local
 			path [red-path!]
+			int  [red-integer!]
+			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/make"]]
 
-		path: as red-path! block/make proto spec
-		path/header: TYPE_PATH
-		path/args:	 null
-		path
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				size: int/value
+				if zero? size [size: 1]
+				make-at proto size
+				proto/header: type					;-- implicit reset of all header flags
+			]
+			default [to proto spec type]
+		]
+		proto
 	]
-	
+
+	to: func [
+		proto	[red-path!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-path!]
+		/local
+			str [red-string!]
+	][
+		switch TYPE_OF(spec) [
+			TYPE_TYPESET
+			TYPE_OBJECT
+			TYPE_MAP
+			TYPE_VECTOR [block/rs-append as red-block! make-at proto 1 spec]
+			default [
+				proto: as red-path! block/to as red-block! proto spec type
+				proto/args: null
+			]
+		]
+		proto/header: type
+		proto
+	]
+
 	form: func [
 		path	  [red-path!]
 		buffer	  [red-string!]
@@ -150,7 +193,7 @@ path: context [
 			:make
 			null			;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path

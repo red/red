@@ -40,21 +40,7 @@ set-path: context [
 
 
 	;--- Actions ---
-	
-	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-set-path!]
-		/local
-			path [red-set-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-path/make"]]
 
-		path: as red-set-path! block/make proto spec
-		path/header: TYPE_SET_PATH
-		path
-	]
-	
 	form: func [
 		p		[red-set-path!]
 		buffer	[red-string!]
@@ -93,10 +79,10 @@ set-path: context [
 			TYPE_PATH
 			"set-path!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
