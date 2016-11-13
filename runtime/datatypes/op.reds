@@ -68,7 +68,7 @@ op: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-block!]							;-- type casted to red-block! to avoid an additional var
-		type	[integer!]
+		dtype	[integer!]
 		return:	[red-op!]
 		/local
 			op		[red-op!]

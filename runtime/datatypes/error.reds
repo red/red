@@ -106,7 +106,7 @@ error: context [
 		block/rs-append blk as red-value! cat
 		block/rs-append blk as red-value! id
 	
-		err:  make null as red-value! blk
+		err:  make null as red-value! blk TYPE_ERROR
 		base: object/get-values err
 		
 		unless null? arg1 [copy-cell arg1 base + field-arg1]

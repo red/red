@@ -70,7 +70,7 @@ redbin: context [
 		either type = TYPE_OP [
 			sym: table + index
 			copy-cell
-				as red-value! op/make null as red-block! _context/get-global sym/1
+				as red-value! op/make null as red-block! _context/get-global sym/1 TYPE_OP
 				as red-value! cell
 		][
 			spec: as red-block! block/rs-tail parent
