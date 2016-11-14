@@ -2021,7 +2021,12 @@ string: context [
 		index: either append? [len][str/head]
 		
 		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+			type: TYPE_OF(value)
+			either any [								;@@ replace it with: typeset/any-list?
+				type = TYPE_BLOCK
+				type = TYPE_PAREN
+				type = TYPE_HASH
+			][
 				src: as red-block! value
 				s2: GET_BUFFER(src)
 				cell:  s2/offset + src/head

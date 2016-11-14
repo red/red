@@ -71,9 +71,9 @@ Red [
 ;       --test-- "to-string!-tuple!"
 ;               --assert "1.1.1" = to string! 1.1.1
         --test-- "to-string!-paren!"
-                --assert "" = to string! ()
+                --assert "" = to string! first [()]
         --test-- "to-string!-paren!"
-                --assert "12" = to string! (1 2)
+                --assert "12" = to string! first [(1 2)]
 ;       --test-- "to-string!-tag!"
 ;               --assert "a" = to string! <a>
 ;       --test-- "to-string!-time!"
@@ -127,7 +127,7 @@ Red [
         --test-- "to-float!-block!"
                 --assert 100.0 = to float! [1 2]
         --test-- "to-float!-paren!"
-                --assert 100.0 = to float! (1 2)
+                --assert 100.0 = to float! first [(1 2)]
        --test-- "to-float!-time!"
                --assert 36000.0 = to float! 10:00
 ===end-group===
@@ -407,16 +407,16 @@ Red [
                 --assert %make%20bitset!%20#%7B00%7D = to file! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-issue!"
-;        --test-- "to-issue!-char!"
-;                --assert #a = to issue! #"a"
-;        --test-- "to-issue!-string!"
-;                --assert #foo = to issue! "foo"
-;        --test-- "to-issue!-word!"
-;                --assert #word = to issue! 'word
-;        --test-- "to-issue!-refinement!"
-;                --assert #refinement = to issue! /refinement
-;        --test-- "to-issue!-issue!"
-;                --assert #FF00 = to issue! #FF00
+        --test-- "to-issue!-char!"
+                --assert #a = to issue! #"a"
+        --test-- "to-issue!-string!"
+                --assert #foo = to issue! "foo"
+        --test-- "to-issue!-word!"
+                --assert #word = to issue! 'word
+        --test-- "to-issue!-refinement!"
+                --assert #refinement = to issue! /refinement
+        --test-- "to-issue!-issue!"
+                --assert #FF00 = to issue! #FF00
 ===end-group===
 ===start-group=== "to-binary!"
         --test-- "to-binary!-char!"
