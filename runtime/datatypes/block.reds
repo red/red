@@ -579,7 +579,7 @@ block: context [
 			TYPE_GET_PATH
 			TYPE_SET_PATH
 			TYPE_LIT_PATH
-			TYPE_BLOCK   [proto: clone as red-block! spec no no]
+			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
 			default [rs-append make-at proto 1 spec]
 		]
 		proto/header: type
