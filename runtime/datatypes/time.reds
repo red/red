@@ -95,7 +95,6 @@ time: context [
 		return: [red-value!]
 		/local
 			tm	 [red-time!]
-			tm2	 [red-time!]
 			int  [red-integer!]
 			fl	 [red-float!]
 			str	 [red-string!]
@@ -112,6 +111,11 @@ time: context [
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				tm/time: (as-float int/value) * oneE9
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				tm/time: fl/value * oneE9
 			]
 			TYPE_ANY_STRING [
 				proto: load-value as red-string! spec
