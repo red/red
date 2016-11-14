@@ -782,10 +782,7 @@ _function: context [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
 					][
-						fire [
-							TO_ERROR(script bad-func-def)
-							value
-						]
+						fire [TO_ERROR(script bad-func-def) value]
 					]
 					value: next
 				]
@@ -796,10 +793,7 @@ _function: context [
 					value: value + 1
 				]
 				default [
-					fire [
-						TO_ERROR(script bad-func-def)
-						value
-					]
+					fire [TO_ERROR(script bad-func-def) value]
 				]
 			]
 		]
@@ -881,7 +875,39 @@ _function: context [
 		fun/ctx
 	]
 		
-	;-- Actions -- 
+	;-- Actions --
+	
+	make: func [
+		proto	[red-value!]
+		list	[red-block!]
+		type	[integer!]
+		return:	[red-function!]
+		/local
+			spec [red-block!]
+			body [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "function/make"]]
+		
+		if any [
+			TYPE_OF(list) <> TYPE_BLOCK
+			2 > block/rs-length? list
+		][
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		spec: as red-block! block/rs-head list
+		
+		if TYPE_OF(spec) <> TYPE_BLOCK [
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		validate spec
+		body: spec + 1
+		
+		if TYPE_OF(body) <> TYPE_BLOCK [
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		push spec body null 0 null
+		as red-function! stack/top - 1
+	]
 	
 	reflect: func [
 		fun		[red-function!]
@@ -995,7 +1021,7 @@ _function: context [
 			TYPE_CONTEXT
 			"function!"
 			;-- General actions --
-			null			;make
+			:make
 			null			;random
 			:reflect
 			null			;to
