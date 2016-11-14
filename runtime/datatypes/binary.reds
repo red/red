@@ -205,6 +205,29 @@ binary: context [
 		]
 	]
 
+	from-issue: func [
+		bin		[red-binary!]
+		issue	[red-word!]
+		/local
+			str  [red-string!]
+			s	 [series!]
+			unit [integer!]
+	][
+		str: as red-string! stack/push as red-value! symbol/get issue/symbol
+		str/head: 0								;-- /head = -1 (casted from symbol!)
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		
+		bin/head: 0
+		bin/header: TYPE_BINARY
+		bin/node: binary/decode-16 
+			(as byte-ptr! s/offset) + (str/head << (log-b unit))
+			string/rs-length? str
+			unit
+		stack/pop 1
+		if null? bin/node [bin/header: TYPE_NONE]
+	]
+
 	equal?: func [
 		bin1	[red-binary!]
 		bin2	[red-binary!]
@@ -764,6 +787,7 @@ binary: context [
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
 			]
+			TYPE_ISSUE [from-issue proto as red-word! spec]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
 				insert proto spec null no null yes
