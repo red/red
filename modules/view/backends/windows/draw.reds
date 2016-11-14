@@ -1148,12 +1148,12 @@ OS-draw-box: func [
 			gdiplus-draw-roundbox
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x + 1
+				lower/y - upper/y + 1
 				rad
 				modes/brush?
 		][
-			RoundRect dc upper/x upper/y lower/x + 1 lower/y + 1 rad rad
+			RoundRect dc upper/x upper/y lower/x lower/y rad rad
 		]
 	][
 		either GDI+? [
@@ -1165,18 +1165,18 @@ OS-draw-box: func [
 					modes/gp-brush
 					upper/x
 					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					lower/x - upper/x + 1
+					lower/y - upper/y + 1
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				modes/gp-pen
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x + 1
+				lower/y - upper/y + 1
 		][
-			Rectangle dc upper/x upper/y lower/x + 1 lower/y + 1
+			Rectangle dc upper/x upper/y lower/x lower/y
 		]
 	]
 ]
