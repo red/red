@@ -84,6 +84,14 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 
 #do keep [
 	list: make block! 50
+	to-list: [
+		bitset! binary! block! char! email! error! file! float! get-path!
+		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
+		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
+		tuple! unset! url! word!
+		;image!
+	]
+	test-list: union to-list [action! datatype! function! image! object! op! routine! vector!]
 	
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
@@ -103,12 +111,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	
 	;-- Generates all type testing functions (action?, bitset?, binary?,...)
 	
-	foreach name [
-		action! bitset! binary! block! char! datatype! email! error! file! float! function! get-path!
-		get-word! hash! image! integer! issue! lit-path! lit-word! logic! map! native! none! object! op!
-		pair! paren! path! percent! refinement! routine! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! vector! word!
-	][
+	foreach name test-list [
 		repend list [
 			load head change back tail form name "?:" 'func
 			["Returns true if the value is this type" value [any-type!]]
@@ -132,13 +135,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	
 	;-- Generates all conversion wrapper functions (to-bitset, to-binary, to-block,...)
 
-	foreach name [
-		bitset! binary! block! char! email! error! file! float! get-path!
-		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
-		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! word!
-		;image!
-	][
+	foreach name to-list [
 		repend list [
 			to set-word! join "to-" head remove back tail form name 'func
 			reduce [reform ["Convert to" name "value"] 'value]
