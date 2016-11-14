@@ -616,7 +616,7 @@ Red [
        --test-- "to-tag!-refinement!"
                --assert </refinement> = to tag! /refinement
        --test-- "to-tag!-path!"
-               --assert <path/foo> = to tag! path/foo
+               --assert <path/foo> = to tag! 'path/foo
        --test-- "to-tag!-url!"
                --assert <http://red-lang.org> = to tag! http://red-lang.org
        --test-- "to-tag!-file!"
@@ -624,11 +624,11 @@ Red [
        --test-- "to-tag!-issue!"
                --assert <#FF00> = to tag! #FF00
        --test-- "to-tag!-binary!"
-               --assert <> = to tag! #{}
+               --assert (clear <o>) = to tag! #{}
        --test-- "to-tag!-binary!"
                --assert <abc> = to tag! #{616263}
        --test-- "to-tag!-block!"
-               --assert <> = to tag! []
+               --assert (clear <o>) = to tag! []
        --test-- "to-tag!-block!"
                --assert <12> = to tag! [1 2]
        --test-- "to-tag!-block!"
@@ -638,7 +638,7 @@ Red [
        --test-- "to-tag!-tuple!"
                --assert <1.1.1> = to tag! 1.1.1
        --test-- "to-tag!-paren!"
-               --assert <> = to tag! first [()]
+               --assert (clear <o>) = to tag! first [()]
        --test-- "to-tag!-paren!"
                --assert <12> = to tag! first [(1 2)]
        --test-- "to-tag!-tag!"
