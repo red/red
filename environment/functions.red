@@ -85,6 +85,8 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 #do keep [
 	list: make block! 50
 	
+	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
+	
 	foreach [name desc][
 		spec   "Returns the spec of a value that supports reflection"
 		body   "Returns the body of a value that supports reflection"
@@ -98,6 +100,9 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 			] off
 		]
 	]
+	
+	;-- Generates all type testing functions (action?, bitset?, binary?,...)
+	
 	foreach name [
 		action! bitset! binary! block! char! datatype! email! error! file! float! function! get-path!
 		get-word! hash! image! integer! issue! lit-path! lit-word! logic! map! native! none! object! op!
@@ -111,8 +116,9 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 		]
 	]
 	
-	docstring: "Returns true if the value is any type of "
+	;-- Generates all typesets testing functions (any-list?, any-block?,...)
 	
+	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
 		series! number! immediate! scalar!
@@ -123,6 +129,23 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 			compose [find (name) type? :value]
 		]
 	]
+	
+	;-- Generates all conversion wrapper functions (to-bitset, to-binary, to-block,...)
+
+	foreach name [
+		bitset! binary! block! char! email! error! file! float! get-path!
+		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
+		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
+		tuple! unset! url! word!
+		;image!
+	][
+		repend list [
+			to set-word! join "to-" head remove back tail form name 'func
+			reduce [reform ["Convert to" name "value"] 'value]
+			compose [to (name) :value]
+		]
+	]
+	list
 ]
 
 context: func [spec [block!]][make object! spec]
