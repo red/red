@@ -336,8 +336,9 @@ word: context [
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE [0]
-			TYPE_ANY_STRING [
-				make-at (symbol/make-alt as red-string! spec) proto
+			TYPE_STRING [
+				proto: load-value as red-string! spec
+				if TYPE_OF(proto) <> type [fire [TO_ERROR(syntax bad-char) proto]]
 			]
 			TYPE_CHAR [
 				char: as red-char! spec
