@@ -415,6 +415,39 @@ float: context [
 		pf/value
 	]
 
+	get-rs-float: func [
+		val		[red-float!]
+		return: [float!]
+		/local
+			int [red-integer!]
+	][
+		switch TYPE_OF(val) [
+			TYPE_INTEGER [
+				int: as red-integer! val
+				as float! int/value
+			]
+			TYPE_FLOAT [val/value]
+			default [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_FLOAT val]
+				0.0
+			]
+		]
+	]
+
+	from-block: func [
+		blk		[red-block!]
+		return: [float!]
+		/local
+			val [red-float!]
+			f	[float!]
+			int [integer!]
+	][
+		val: as red-float! block/rs-head blk
+		int: as-integer get-rs-float val + 1
+		f: pow 10.0 as float! int
+		f * get-rs-float val
+	]
+
 	;-- Actions --
 
 	;-- make: :to
@@ -451,6 +484,8 @@ float: context [
 		/local
 			int [red-integer!]
 			tm	[red-time!]
+			blk [red-block!]
+			v	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
@@ -483,6 +518,12 @@ float: context [
 			]
 			TYPE_BINARY [
 				proto/value: from-binary as red-binary! spec
+			]
+			TYPE_ANY_LIST [
+				if 2 <> block/rs-length? as red-block! spec [
+					fire [TO_ERROR(script bad-to-arg) datatype/push type spec]
+				]
+				proto/value: from-block as red-block! spec
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [

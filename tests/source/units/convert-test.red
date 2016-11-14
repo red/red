@@ -47,7 +47,7 @@ Red [
         --test-- "to-string!-word!"
                 --assert "word" = to string! 'word
         --test-- "to-string!-refinement!"
-                --assert "/refinement" = to string! /refinement
+                --assert "refinement" = to string! /refinement
         --test-- "to-string!-path!"
                 --assert "path/foo" = to string! 'path/foo
 ;       --test-- "to-string!-url!"
@@ -128,8 +128,8 @@ Red [
                 --assert 100.0 = to float! [1 2]
         --test-- "to-float!-paren!"
                 --assert 100.0 = to float! (1 2)
-;       --test-- "to-float!-time!"
-;               --assert 36000.0 = to float! 10:00
+       --test-- "to-float!-time!"
+               --assert 36000.0 = to float! 10:00
 ===end-group===
 ===start-group=== "to-pair!"
 ;       --test-- "to-pair!-integer!"
@@ -519,22 +519,22 @@ Red [
 ===start-group=== "to-tuple!"
 ;       --test-- "to-tuple!-issue!"
 ;               --assert 255.0.0 = to tuple! #FF00
-;       --test-- "to-tuple!-binary!"
-;               --assert 0.0.0 = to tuple! #{}
-;       --test-- "to-tuple!-binary!"
-;               --assert 97.98.99 = to tuple! #{616263}
-;       --test-- "to-tuple!-block!"
-;               --assert 0.0.0 = to tuple! []
-;       --test-- "to-tuple!-block!"
-;               --assert 1.2.0 = to tuple! [1 2]
-;       --test-- "to-tuple!-block!"
-;               --assert 1.2.3 = to tuple! [1 2 3]
-;       --test-- "to-tuple!-tuple!"
-;               --assert 1.1.1 = to tuple! 1.1.1
-;       --test-- "to-tuple!-paren!"
-;               --assert 0.0.0 = to tuple! ()
-;       --test-- "to-tuple!-paren!"
-;               --assert 1.2.0 = to tuple! (1 2)
+       --test-- "to-tuple!-binary!"
+               --assert 0.0.0 = to tuple! #{}
+       --test-- "to-tuple!-binary!"
+               --assert 97.98.99 = to tuple! #{616263}
+       --test-- "to-tuple!-block!"
+               --assert 0.0.0 = to tuple! []
+       --test-- "to-tuple!-block!"
+               --assert 1.2.0 = to tuple! [1 2]
+       --test-- "to-tuple!-block!"
+               --assert 1.2.3 = to tuple! [1 2 3]
+       --test-- "to-tuple!-tuple!"
+               --assert 1.1.1 = to tuple! 1.1.1
+       --test-- "to-tuple!-paren!"
+               --assert 0.0.0 = to tuple! ()
+       --test-- "to-tuple!-paren!"
+               --assert 1.2.0 = to tuple! (1 2)
 ===end-group===
 ===start-group=== "to-paren!"
         --test-- "to-paren!-char!"
@@ -595,82 +595,82 @@ Red [
                 --assert (make bitset! #{00}) = to paren! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-tag!"
-;       --test-- "to-tag!-char!"
-;               --assert <a> = to tag! #"a"
-;       --test-- "to-tag!-string!"
-;               --assert <foo> = to tag! "foo"
-;       --test-- "to-tag!-integer!"
-;               --assert <123> = to tag! 123
-;       --test-- "to-tag!-integer!"
-;               --assert <256> = to tag! 256
-;       --test-- "to-tag!-float!"
-;               --assert <1.5> = to tag! 1.5
-;       --test-- "to-tag!-integer!"
-;               --assert <-1> = to tag! -1
-;       --test-- "to-tag!-float!"
-;               --assert <-1.5> = to tag! -1.5
-;       --test-- "to-tag!-pair!"
-;               --assert <1x2> = to tag! 1x2
-;       --test-- "to-tag!-word!"
-;               --assert <word> = to tag! word
-;       --test-- "to-tag!-refinement!"
-;               --assert </refinement> = to tag! /refinement
-;       --test-- "to-tag!-path!"
-;               --assert <path/foo> = to tag! path/foo
-;       --test-- "to-tag!-url!"
-;               --assert <http://red-lang.org> = to tag! http://red-lang.org
-;       --test-- "to-tag!-file!"
-;               --assert </file/> = to tag! %/file/
-;       --test-- "to-tag!-issue!"
-;               --assert <#FF00> = to tag! #FF00
-;       --test-- "to-tag!-binary!"
-;               --assert <> = to tag! #{}
-;       --test-- "to-tag!-binary!"
-;               --assert <abc> = to tag! #{616263}
-;       --test-- "to-tag!-block!"
-;               --assert <> = to tag! []
-;       --test-- "to-tag!-block!"
-;               --assert <12> = to tag! [1 2]
-;       --test-- "to-tag!-block!"
-;               --assert <123> = to tag! [1 2 3]
-;       --test-- "to-tag!-block!"
-;               --assert <ab> = to tag! ["a" "b"]
-;       --test-- "to-tag!-tuple!"
-;               --assert <1.1.1> = to tag! 1.1.1
-;       --test-- "to-tag!-paren!"
-;               --assert <> = to tag! ()
-;       --test-- "to-tag!-paren!"
-;               --assert <12> = to tag! (1 2)
-;       --test-- "to-tag!-tag!"
-;               --assert <a> = to tag! <a>
-;       --test-- "to-tag!-time!"
-;               --assert <10:00> = to tag! 10:00
-;       --test-- "to-tag!-date!"
-;               --assert <16-Jun-2014/14:34:59+2:00> = to tag! 16-Jun-2014/14:34:59+2:00
-;       --test-- "to-tag!-email!"
-;               --assert <foo@boo> = to tag! foo@boo
-;       --test-- "to-tag!-bitset!"
-;               --assert <make bitset! #{00}> = to tag! make bitset! #{00}
+       --test-- "to-tag!-char!"
+               --assert <a> = to tag! #"a"
+       --test-- "to-tag!-string!"
+               --assert <foo> = to tag! "foo"
+       --test-- "to-tag!-integer!"
+               --assert <123> = to tag! 123
+       --test-- "to-tag!-integer!"
+               --assert <256> = to tag! 256
+       --test-- "to-tag!-float!"
+               --assert <1.5> = to tag! 1.5
+       --test-- "to-tag!-integer!"
+               --assert <-1> = to tag! -1
+       --test-- "to-tag!-float!"
+               --assert <-1.5> = to tag! -1.5
+       --test-- "to-tag!-pair!"
+               --assert <1x2> = to tag! 1x2
+       --test-- "to-tag!-word!"
+               --assert <word> = to tag! 'word
+       --test-- "to-tag!-refinement!"
+               --assert </refinement> = to tag! /refinement
+       --test-- "to-tag!-path!"
+               --assert <path/foo> = to tag! path/foo
+       --test-- "to-tag!-url!"
+               --assert <http://red-lang.org> = to tag! http://red-lang.org
+       --test-- "to-tag!-file!"
+               --assert </file/> = to tag! %/file/
+       --test-- "to-tag!-issue!"
+               --assert <#FF00> = to tag! #FF00
+       --test-- "to-tag!-binary!"
+               --assert <> = to tag! #{}
+       --test-- "to-tag!-binary!"
+               --assert <abc> = to tag! #{616263}
+       --test-- "to-tag!-block!"
+               --assert <> = to tag! []
+       --test-- "to-tag!-block!"
+               --assert <12> = to tag! [1 2]
+       --test-- "to-tag!-block!"
+               --assert <123> = to tag! [1 2 3]
+       --test-- "to-tag!-block!"
+               --assert <ab> = to tag! ["a" "b"]
+       --test-- "to-tag!-tuple!"
+               --assert <1.1.1> = to tag! 1.1.1
+       --test-- "to-tag!-paren!"
+               --assert <> = to tag! ()
+       --test-- "to-tag!-paren!"
+               --assert <12> = to tag! (1 2)
+       --test-- "to-tag!-tag!"
+               --assert <a> = to tag! <a>
+       --test-- "to-tag!-time!"
+               --assert <10:00> = to tag! 10:00
+       ;--test-- "to-tag!-date!"
+       ;        --assert <16-Jun-2014/14:34:59+2:00> = to tag! 16-Jun-2014/14:34:59+2:00
+       --test-- "to-tag!-email!"
+               --assert <foo@boo> = to tag! foo@boo
+       --test-- "to-tag!-bitset!"
+               --assert <make bitset! #{00}> = to tag! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-time!"
-;       --test-- "to-time!-integer!"
-;               --assert 0:02:03 = to time! 123
-;       --test-- "to-time!-integer!"
-;               --assert 0:04:16 = to time! 256
-;       --test-- "to-time!-float!"
-;               --assert 0:00:01.5 = to time! 1.5
-;       --test-- "to-time!-integer!"
-;               --assert -0:00:01 = to time! -1
-;       --test-- "to-time!-float!"
-;               --assert -0:00:01.499999999 = to time! -1.5
-;       --test-- "to-time!-block!"
-;               --assert 1:02 = to time! [1 2]
-;       --test-- "to-time!-block!"
-;               --assert 1:02:03 = to time! [1 2 3]
-;       --test-- "to-time!-paren!"
-;               --assert 1:02 = to time! (1 2)
-;       --test-- "to-time!-time!"
-;               --assert 10:00 = to time! 10:00
+       --test-- "to-time!-integer!"
+               --assert 0:02:03 = to time! 123
+       --test-- "to-time!-integer!"
+               --assert 0:04:16 = to time! 256
+       --test-- "to-time!-float!"
+               --assert 0:00:01.5 = to time! 1.5
+       --test-- "to-time!-integer!"
+               --assert -0:00:01 = to time! -1
+       --test-- "to-time!-float!"
+               --assert -0:00:01.499999999 = to time! -1.5
+       --test-- "to-time!-block!"
+               --assert 1:02 = to time! [1 2]
+       --test-- "to-time!-block!"
+               --assert 1:02:03 = to time! [1 2 3]
+       --test-- "to-time!-paren!"
+               --assert 1:02 = to time! (1 2)
+       --test-- "to-time!-time!"
+               --assert 10:00 = to time! 10:00
 ===end-group===
 ===start-group=== "to-date!"
 ;       --test-- "to-date!-block!"
@@ -761,10 +761,10 @@ Red [
                 --assert make bitset! #{70} = to bitset! [1 2 3]
         --test-- "to-bitset!-block!"
                 --assert make bitset! #{00000000000000000000000060} = to bitset! ["a" "b"]
-;       --test-- "to-bitset!-tag!"
-;               --assert make bitset! #{00000000000000000000000040} = to bitset! <a>
-;       --test-- "to-bitset!-email!"
-;               --assert make bitset! #{0000000000000000800000002201} = to bitset! foo@boo
+       --test-- "to-bitset!-tag!"
+               --assert make bitset! #{00000000000000000000000040} = to bitset! <a>
+       --test-- "to-bitset!-email!"
+               --assert make bitset! #{0000000000000000800000002201} = to bitset! foo@boo
 ===end-group===
 
 
