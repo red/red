@@ -738,33 +738,33 @@ Red [
 ===end-group===
 ===start-group=== "to-bitset!"
         --test-- "to-bitset!-char!"
-                --assert make bitset! #{00000000000000000000000040} = to bitset! #"a"
+                --assert (make bitset! #{00000000000000000000000040}) = to bitset! #"a"
         --test-- "to-bitset!-string!"
-                --assert make bitset! #{0000000000000000000000000201} = to bitset! "foo"
+                --assert (make bitset! #{0000000000000000000000000201}) = to bitset! "foo"
         --test-- "to-bitset!-integer!"
-                --assert make bitset! #{00000000000000000000000000000000} = to bitset! 123
+                --assert (make bitset! #{00000000000000000000000000000000}) = to bitset! 123
         --test-- "to-bitset!-integer!"
-                --assert make bitset! #{0000000000000000000000000000000000000000000000000000000000000000} = to bitset! 256
+                --assert (make bitset! #{0000000000000000000000000000000000000000000000000000000000000000}) = to bitset! 256
 ;       --test-- "to-bitset!-url!"
-;               --assert make bitset! #{0000000000070020000000004D8BA8} = to bitset! http://red-lang.org
+;               --assert (make bitset! #{0000000000070020000000004D8BA8}) = to bitset! http://red-lang.org
         --test-- "to-bitset!-file!"
-                --assert make bitset! #{0000000000010000000000000648} = to bitset! %/file/
+                --assert (make bitset! #{0000000000010000000000000648}) = to bitset! %/file/
         --test-- "to-bitset!-binary!"
-                --assert make bitset! #{} = to bitset! #{}
+                --assert (make bitset! #{}) = to bitset! #{}
         --test-- "to-bitset!-binary!"
-                --assert make bitset! #{616263} = to bitset! #{616263}
+                --assert (make bitset! #{616263}) = to bitset! #{616263}
         --test-- "to-bitset!-block!"
-                --assert make bitset! #{} = to bitset! []
+                --assert (make bitset! #{}) = to bitset! []
         --test-- "to-bitset!-block!"
-                --assert make bitset! #{60} = to bitset! [1 2]
+                --assert (make bitset! #{60}) = to bitset! [1 2]
         --test-- "to-bitset!-block!"
-                --assert make bitset! #{70} = to bitset! [1 2 3]
+                --assert (make bitset! #{70}) = to bitset! [1 2 3]
         --test-- "to-bitset!-block!"
-                --assert make bitset! #{00000000000000000000000060} = to bitset! ["a" "b"]
+                --assert (make bitset! #{00000000000000000000000060}) = to bitset! ["a" "b"]
        --test-- "to-bitset!-tag!"
-               --assert make bitset! #{00000000000000000000000040} = to bitset! <a>
+               --assert (make bitset! #{00000000000000000000000040}) = to bitset! <a>
        --test-- "to-bitset!-email!"
-               --assert make bitset! #{0000000000000000800000002201} = to bitset! foo@boo
+               --assert (make bitset! #{0000000000000000800000002201}) = to bitset! foo@boo
 ===end-group===
 
 
