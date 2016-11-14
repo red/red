@@ -1141,17 +1141,21 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 		
 		switch TYPE_OF(spec) [
-			TYPE_NONE [
-				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
-			]
 			TYPE_BINARY [
 				buffer: load
 					as-c-string binary/rs-head as red-binary! spec
 					binary/rs-length? as red-binary! spec
 					UTF-8
 			]
+			TYPE_ANY_LIST [
+				buffer: make-at as red-value! proto 16 1
+				insert buffer spec null no null yes
+			]
+			TYPE_NONE [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
+			]
 			default [
-				buffer: string/rs-make-at stack/push* 16
+				buffer: rs-make-at stack/push* 16
 				actions/form spec buffer null 0
 				buffer
 			]
