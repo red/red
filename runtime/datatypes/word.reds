@@ -447,7 +447,7 @@ word: context [
 			TYPE_SYMBOL
 			"word!"
 			;-- General actions --
-			null			;make
+			:to				;make
 			null			;random
 			null			;reflect
 			:to

@@ -221,7 +221,7 @@ char: context [
 			TYPE_INTEGER
 			"char!"
 			;-- General actions --
-			:to
+			:to				;make
 			INHERIT_ACTION	;random
 			null			;reflect
 			:to

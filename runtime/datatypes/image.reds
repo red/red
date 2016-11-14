@@ -868,7 +868,7 @@ image: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:make			;to
 			:form
 			:mold
 			:eval-path

@@ -23,21 +23,6 @@ tag: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-tag!]
-		/local
-			tag [red-tag!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "tag/make"]]
-
-		tag: as red-tag! string/make proto spec type
-		set-type as red-value! tag TYPE_TAG
-		tag
-	]
-	
 	form: func [
 		tag		  [red-tag!]
 		buffer	  [red-string!]
@@ -75,7 +60,7 @@ tag: context [
 			TYPE_STRING
 			"tag!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
 			INHERIT_ACTION	;to

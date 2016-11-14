@@ -86,37 +86,7 @@ time: context [
 	
 	;-- Actions --
 	
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-time!]
-		/local
-			int	 [red-integer!]
-			fl	 [red-float!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "time/make"]]
-
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				fl: as red-float! spec
-				int: as red-integer! spec
-				fl/value: oneE9 * as-float int/value
-				fl/header: TYPE_TIME
-				as red-time! fl
-			]
-			TYPE_FLOAT [
-				fl: as red-float! spec
-				fl/header: TYPE_TIME
-				fl/value: oneE9 * fl/value
-				as red-time! fl
-			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-float! spec					;@@ just for making it compilable
-			]
-		]
-	]
+	;make: :to
 
 	to: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
@@ -357,7 +327,7 @@ time: context [
 			TYPE_FLOAT
 			"time!"
 			;-- General actions --
-			:make
+			:to				;make
 			INHERIT_ACTION	;random
 			null			;reflect
 			:to

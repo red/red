@@ -129,7 +129,7 @@ issue: context [
 			TYPE_WORD
 			"issue!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			:to

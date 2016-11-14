@@ -158,21 +158,6 @@ file: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-file!]
-		/local
-			file [red-file!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/make"]]
-
-		file: as red-file! string/make proto spec type
-		set-type as red-value! file TYPE_FILE
-		file
-	]
-
 	mold: func [
 		file    [red-file!]
 		buffer	[red-string!]
@@ -276,7 +261,7 @@ file: context [
 			TYPE_URL
 			"file!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

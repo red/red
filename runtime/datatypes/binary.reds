@@ -722,25 +722,11 @@ binary: context [
 	]
 
 	;--- Actions ---
-	
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-binary!]
-		/local
-			bin	[red-binary!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "binary/make"]]
-
-		bin: as red-binary! string/make proto spec type
-		set-type as red-value! bin TYPE_BINARY
-		bin
-	]
 
 	to: func [
 		proto	[red-binary!]
 		spec	[red-value!]
+		type	[integer!]
 		return: [red-binary!]
 		/local
 			len [integer!]
@@ -936,7 +922,7 @@ binary: context [
 						bin2: as red-binary! stack/push*
 						saved: stack/top
 
-						bin2: to bin2 cell		;@@ TO will push value to stack
+						bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
 						data: rs-head bin2
 						len: rs-length? bin2
 
@@ -1150,7 +1136,7 @@ binary: context [
 			TYPE_STRING
 			"binary!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			INHERIT_ACTION	;random
 			null			;reflect
 			:to

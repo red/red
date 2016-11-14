@@ -1102,35 +1102,36 @@ string: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	[red-value!]
+		proto	[red-string!]
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-string!]
 		/local
-			str	 [red-string!]
 			size [integer!]
 			int	 [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/make"]]
 		
-		size: 1
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+		either TYPE_OF(spec) = TYPE_INTEGER [
+			int: as red-integer! spec
+			size: int/value
+			if size < 0 [fire [TO_ERROR(script out-of-range) int]]
+			proto/header: type								;-- implicit reset of all header flags
+			proto/head: 0
+			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+			proto/cache: null
+			proto
+		][
+			either type = TYPE_BINARY [
+				as red-string! binary/to as red-binary! proto spec type
+			][
+				to proto spec type
 			]
-			default [--NOT_IMPLEMENTED--]
 		]
-		str: as red-string! stack/push*
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 	0
-		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
-		str/cache:	null
-		str
 	]
 
 	to: func [
-		proto	[red-value!]
+		proto	[red-string!]
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-string!]

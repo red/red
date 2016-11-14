@@ -197,7 +197,7 @@ none: context [
 			TYPE_VALUE
 			"none!"
 			;-- General actions --
-			:to
+			:to				;make
 			null			;random
 			null			;reflect
 			:to

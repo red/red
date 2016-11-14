@@ -23,21 +23,6 @@ email: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-email!]
-		/local
-			email [red-email!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "email/make"]]
-
-		email: as red-tag! string/make proto spec type
-		set-type as red-value! email TYPE_EMAIL
-		email
-	]
-
 	mold: func [
 		email   [red-email!]
 		buffer	[red-string!]
@@ -113,7 +98,7 @@ email: context [
 			TYPE_STRING
 			"email!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
 			INHERIT_ACTION	;to

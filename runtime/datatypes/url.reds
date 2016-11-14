@@ -54,21 +54,6 @@ url: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-url!]
-		/local
-			url [red-url!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
-
-		url: as red-url! string/make proto spec type
-		set-type as red-value! url TYPE_URL
-		url
-	]
-
 	mold: func [
 		url    [red-url!]
 		buffer	[red-string!]
@@ -223,7 +208,7 @@ url: context [
 			TYPE_STRING
 			"url!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

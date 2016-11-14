@@ -111,7 +111,7 @@ get-word: context [
 			TYPE_WORD
 			"get-word!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

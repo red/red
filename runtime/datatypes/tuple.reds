@@ -177,57 +177,14 @@ tuple: context [
 	;-- Actions --
 
 	make: func [
-		proto	[red-value!]	
+		proto 	[red-tuple!]							;-- overwrite this slot with result
 		spec	[red-value!]
 		type	[integer!]
-		return:	[red-tuple!]
-		/local
-			blk   [red-block!]
-			tuple [red-tuple!]
-			tp    [byte-ptr!]
-			n	  [integer!]
-			i	  [integer!]
-			s	  [series!]
-			int   [red-integer!]
+		return: [red-tuple!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tuple/make"]]
-
-		switch TYPE_OF(spec) [
-			TYPE_TUPLE [
-				as red-tuple! spec
-			]
-			TYPE_BLOCK [
-				blk: as red-block! spec
-				tuple: as red-tuple! stack/push*
-				tuple/header: TYPE_TUPLE
-				tp: (as byte-ptr! tuple) + 4
-				n: block/rs-length? blk
-				if n > 12 [
-					fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TUPLE spec]
-				]
-				tuple/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
-				s: GET_BUFFER(blk)
-				int: as red-integer! s/offset + blk/head
-				i: 0
-				while [i < n][
-					i: i + 1
-					if any [
-						int/value > 255
-						int/value < 0
-					][fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TUPLE spec]]
-					tp/i: as byte! int/value
-					int: int + 1
-				]
-				while [i < 3][i: i + 1 tp/i: null-byte]
-				tuple
-			]
-			default [
-				fire [TO_ERROR(script bad-make-arg) proto spec]
-				null
-			]
-		]
+		to proto spec -1
 	]
-	
+
 	random: func [
 		tp		[red-tuple!]
 		seed?	[logic!]
@@ -260,27 +217,66 @@ tuple: context [
 	]
 	
 	to: func [
-		proto 	[red-value!]							;-- overwrite this slot with result
+		proto 	[red-tuple!]							;-- overwrite this slot with result
 		spec	[red-value!]
 		type	[integer!]
-		return: [red-value!]
+		return: [red-tuple!]
+		/local
+			int [red-integer!]
+			blk [red-block!]
+			tp  [byte-ptr!]
+			n	[integer!]
+			i	[integer!]
+			s	[series!]
+			msg [red-value!]
+			err
+			cat
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
 
+		err: #in system/catalog/errors script
+		either type = -1 [								;-- called by make
+			cat: #in system/catalog/errors/script bad-make-arg
+		][
+			cat: #in system/catalog/errors/script bad-to-arg
+		]
+
 		switch TYPE_OF(spec) [
-			TYPE_TUPLE	  [return spec]
-			TYPE_ANY_LIST [return as red-value! make proto spec type]
+			TYPE_ANY_LIST [
+				blk: as red-block! spec
+				proto/header: TYPE_TUPLE
+				tp: (as byte-ptr! proto) + 4
+				n: block/rs-length? blk
+				if n > 12 [
+					fire [err cat datatype/push TYPE_TUPLE spec]
+				]
+				proto/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
+				s: GET_BUFFER(blk)
+				int: as red-integer! s/offset + blk/head
+				i: 0
+				while [i < n][
+					i: i + 1
+					if any [
+						int/value > 255
+						int/value < 0
+					][fire [err cat datatype/push TYPE_TUPLE spec]]
+					tp/i: as byte! int/value
+					int: int + 1
+				]
+				while [i < 3][i: i + 1 tp/i: null-byte]
+			]
 			TYPE_BINARY	  [
-				return as red-value! from-binary as red-binary! spec as red-tuple! proto
+				proto: from-binary as red-binary! spec as red-tuple! proto
 			]
 			TYPE_ANY_STRING [
-				proto: load-value as red-string! spec
+				proto: as red-tuple! load-value as red-string! spec
 				
 				if TYPE_OF(proto) <> TYPE_TUPLE [ 
-					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+					fire [err cat datatype/push TYPE_TUPLE spec]
 				]
 			]
-			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
+			TYPE_TUPLE [return as red-tuple! spec]
+			default [fire [err cat datatype/push TYPE_TUPLE spec]]
 		]
 		proto
 	]
