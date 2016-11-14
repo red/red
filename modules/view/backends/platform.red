@@ -491,10 +491,6 @@ system/view/platform: context [
 		gui/OS-make-view face parent
 	]
 
-	to-image: routine [face [object!]][
-		stack/set-last as red-value! gui/OS-to-image face
-	]
-
 	draw-image: routine [image [image!] cmds [block!]][
 		gui/OS-do-draw image cmds
 	]

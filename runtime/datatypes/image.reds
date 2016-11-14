@@ -417,6 +417,28 @@ image: context [
 		img
 	]
 
+	to: func [								;-- to image! face! only
+		proto	[red-value!]
+		spec	[red-object!]
+		type	[integer!]
+		return:	[red-image!]
+		/local
+			ret [red-logic!]
+	][
+		#either sub-system = 'gui [
+			#call [face? spec]
+			ret: as red-logic! stack/arguments
+			either ret/value [
+				return gui/OS-to-image spec
+			][
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+			]
+		][
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+		]
+		as red-image! proto
+	]
+
 	serialize: func [
 		img		[red-image!]
 		buffer	[red-string!]
@@ -868,7 +890,7 @@ image: context [
 			:make
 			null			;random
 			null			;reflect
-			:make			;to
+			:to
 			:form
 			:mold
 			:eval-path

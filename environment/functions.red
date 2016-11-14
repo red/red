@@ -636,21 +636,6 @@ make-dir: function [
 	path
 ]
 
-to-image: func [value][
-	case [
-		binary? value [
-			;@@ TBD
-		]
-		all [											;-- face!
-			system/view
-			object? value
-			do [find words-of value words-of face!]
-		][
-			system/view/platform/to-image value
-		]
-	]
-]
-
 hex-to-rgb: function [
 	"Converts a color in hex format to a tuple value; returns NONE if it fails"
 	hex		[issue!] "Accepts #rgb, #rrggbb, #rrggbbaa"	 ;-- 3,6,8 nibbles supported
