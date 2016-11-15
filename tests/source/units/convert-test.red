@@ -488,7 +488,7 @@ Red [
 ;        --test-- "to-block!-issue!"
 ;                --assert [#FF00] = to block! #FF00
         --test-- "to-block!-binary!"
-                --assert [] = to block! #{}
+                --assert [#{}] = to block! #{}
         --test-- "to-block!-binary!"
                 --assert [#{616263}] = to block! #{616263}
         --test-- "to-block!-block!"
@@ -566,9 +566,9 @@ Red [
 ;        --test-- "to-paren!-issue!"
 ;                --assert (first [(#FF00)]) = to paren! #FF00
         --test-- "to-paren!-binary!"
-                --assert (first [()]) = to paren! #{}
+                --assert (first [(#{})]) = to paren! #{}
         --test-- "to-paren!-binary!"
-                --assert (first [('abc)]) = to paren! #{616263}
+                --assert (first [(#{616263})]) = to paren! #{616263}
         --test-- "to-paren!-block!"
                 --assert (first [()]) = to paren! []
         --test-- "to-paren!-block!"
@@ -592,7 +592,8 @@ Red [
 ;       --test-- "to-paren!-email!"
 ;               --assert (first [(foo@boo)]) = to paren! foo@boo
         --test-- "to-paren!-bitset!"
-                --assert (first [(make bitset! #{00})]) = to paren! make bitset! #{00}
+                append p: make paren! 1 make bitset! #{00}
+                --assert p = to paren! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-tag!"
        --test-- "to-tag!-char!"
@@ -622,7 +623,7 @@ Red [
        --test-- "to-tag!-file!"
                --assert </file/> = to tag! %/file/
        --test-- "to-tag!-issue!"
-               --assert <#FF00> = to tag! #FF00
+               --assert <FF00> = to tag! #FF00
        --test-- "to-tag!-binary!"
                --assert (clear <o>) = to tag! #{}
        --test-- "to-tag!-binary!"
@@ -643,8 +644,6 @@ Red [
                --assert <12> = to tag! first [(1 2)]
        --test-- "to-tag!-tag!"
                --assert <a> = to tag! <a>
-       --test-- "to-tag!-time!"
-               --assert <10:00> = to tag! 10:00
        ;--test-- "to-tag!-date!"
        ;        --assert <16-Jun-2014/14:34:59+2:00> = to tag! 16-Jun-2014/14:34:59+2:00
        --test-- "to-tag!-email!"
