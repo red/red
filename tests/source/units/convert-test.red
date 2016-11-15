@@ -42,20 +42,20 @@ Red [
                 --assert "-1" = to string! -1
         --test-- "to-string!-float!"
                 --assert "-1.5" = to string! -1.5
-;       --test-- "to-string!-pair!"
-;               --assert "1x2" = to string! 1x2
+        --test-- "to-string!-pair!"
+                --assert "1x2" = to string! 1x2
         --test-- "to-string!-word!"
                 --assert "word" = to string! 'word
         --test-- "to-string!-refinement!"
                 --assert "refinement" = to string! /refinement
         --test-- "to-string!-path!"
                 --assert "path/foo" = to string! 'path/foo
-;       --test-- "to-string!-url!"
-;               --assert "http://red-lang.org" = to string! http://red-lang.org
+        --test-- "to-string!-url!"
+                --assert "http://red-lang.org" = to string! http://red-lang.org
         --test-- "to-string!-file!"
                 --assert "/file/" = to string! %/file/
-;        --test-- "to-string!-issue!"
-;                --assert "#FF00" = to string! #FF00
+         --test-- "to-string!-issue!"
+                 --assert "FF00" = to string! #FF00
         --test-- "to-string!-binary!"
                 --assert "" = to string! #{}
         --test-- "to-string!-binary!"
@@ -68,20 +68,20 @@ Red [
                 --assert "123" = to string! [1 2 3]
         --test-- "to-string!-block!"
                 --assert "ab" = to string! ["a" "b"]
-;       --test-- "to-string!-tuple!"
-;               --assert "1.1.1" = to string! 1.1.1
+        --test-- "to-string!-tuple!"
+                --assert "1.1.1" = to string! 1.1.1
         --test-- "to-string!-paren!"
                 --assert "" = to string! first [()]
         --test-- "to-string!-paren!"
                 --assert "12" = to string! first [(1 2)]
-;       --test-- "to-string!-tag!"
-;               --assert "a" = to string! <a>
-;       --test-- "to-string!-time!"
-;               --assert "10:00" = to string! 10:00
+        --test-- "to-string!-tag!"
+                --assert "a" = to string! <a>
+        --test-- "to-string!-time!"
+                --assert "10:00" = to string! 10:00
 ;       --test-- "to-string!-date!"
 ;               --assert "16-Jun-2014/14:34:59+2:00" = to string! 16-Jun-2014/14:34:59+2:00
-;       --test-- "to-string!-email!"
-;               --assert "foo@boo" = to string! foo@boo
+        --test-- "to-string!-email!"
+                --assert "foo@boo" = to string! foo@boo
         --test-- "to-string!-bitset!"
                 --assert "make bitset! #{00}" = to string! make bitset! #{00}
 ===end-group===
@@ -753,7 +753,7 @@ Red [
         --test-- "to-bitset!-binary!"
                 --assert (make bitset! #{616263}) = to bitset! #{616263}
         --test-- "to-bitset!-block!"
-                --assert (make bitset! #{}) = to bitset! []
+                --assert (make bitset! #{00}) = to bitset! []
         --test-- "to-bitset!-block!"
                 --assert (make bitset! #{60}) = to bitset! [1 2]
         --test-- "to-bitset!-block!"
