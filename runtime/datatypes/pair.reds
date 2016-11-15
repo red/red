@@ -137,8 +137,9 @@ pair: context [
 				]	
 				push x y
 			]
+			TYPE_PAIR [as red-pair! spec]
 			default [
-				fire [TO_ERROR(script invalid-type) spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
 				push 0 0
 			]
 		]
@@ -374,7 +375,7 @@ pair: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:make			;to
 			:form
 			:mold
 			:eval-path

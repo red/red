@@ -353,8 +353,8 @@ image: context [
 	;-- Actions --
 
 	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
+		proto	[red-image!]
+		spec	[red-object!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
@@ -377,7 +377,7 @@ image: context [
 			zero? block/rs-length? as red-block! spec
 		][
 			either TYPE_OF(proto) = TYPE_IMAGE [
-				return copy as red-image! proto img null yes null
+				return copy proto img null yes null
 			][
 				fire [TO_ERROR(script invalid-arg) spec]
 			]
@@ -409,7 +409,7 @@ image: context [
 					alpha: binary/rs-head bin
 				]
 			]
-			default [fire [TO_ERROR(syntax malconstruct) spec]]
+			default [return to proto spec type]
 		]
 
 		img/size: pair/y << 16 or pair/x
@@ -418,13 +418,16 @@ image: context [
 	]
 
 	to: func [								;-- to image! face! only
-		proto	[red-value!]
+		proto	[red-image!]
 		spec	[red-object!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
 			ret [red-logic!]
 	][
+		if TYPE_OF(spec) = TYPE_IMAGE [		;-- copy it
+			return return copy as red-image! spec proto null yes null
+		]
 		#either sub-system = 'gui [
 			#call [face? spec]
 			ret: as red-logic! stack/arguments
