@@ -77,7 +77,7 @@ Red [
 	--test-- "to-string!-tag!"
 		--assert "a" = to string! <a>
 	--test-- "to-string!-time!"
-		--assert "10:00" = to string! 10:00
+		--assert "10:00:00" = to string! 10:00
 ;	   --test-- "to-string!-date!"
 ;		   --assert "16-Jun-2014/14:34:59+2:00" = to string! 16-Jun-2014/14:34:59+2:00
 	--test-- "to-string!-email!"
