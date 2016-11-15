@@ -198,9 +198,9 @@ Red [
         --test-- "to-path!-float!"
                 --assert path? to path! -1.5
                 --assert "-1.5" = form to path! -1.5
-;       --test-- "to-path!-pair!"
-;               --assert path? to path! 1x2
-;               --assert "1x2" = form to path! 1x2
+       --test-- "to-path!-pair!"
+               --assert path? to path! 1x2
+               --assert "1x2" = form to path! 1x2
         --test-- "to-path!-word!"
                 --assert path? to path! 'word
                 --assert "word" = form to path! 'word
@@ -216,18 +216,18 @@ Red [
         --test-- "to-path!-file!"
                 --assert path? to path! %/file/
                 --assert "%/file/" = mold to path! %/file/
-;        --test-- "to-path!-issue!"
-;                --assert path? to path! #FF00
-;                --assert "#FF00" = mold to path! #FF00
+        --test-- "to-path!-issue!"
+                --assert path? to path! #FF00
+                --assert "#FF00" = mold to path! #FF00
         --test-- "to-path!-binary!"
                 --assert path? to path! #{}
-                --assert "#[path! []]" = mold to path! #{}
+                --assert "#{}" = mold to path! #{}
         --test-- "to-path!-binary!"
                 --assert path? to path! #{616263}
-                --assert "abc" = mold to path! #{616263}
-        ;--test-- "to-path!-block!"
-        ;        --assert path? to path! []
-        ;        --assert "#[path! []]" = mold to path! []
+                --assert "#{616263}" = mold to path! #{616263}
+        --test-- "to-path!-block!"
+                --assert path? to path! []
+                --assert "" = mold to path! []
         --test-- "to-path!-block!"
                 --assert path? to path! [1 2]
                 --assert "1/2" = form to path! [1 2]
@@ -237,9 +237,9 @@ Red [
         --test-- "to-path!-block!"
                 --assert path? to path! ["a" "b"]
                 --assert {"a"/"b"} = mold to path! ["a" "b"]
-;       --test-- "to-path!-tuple!"
-;               --assert path? to path! 1.1.1
-;               --assert "1.1.1" = form to path! 1.1.1
+       --test-- "to-path!-tuple!"
+               --assert path? to path! 1.1.1
+               --assert "1.1.1" = form to path! 1.1.1
         ;--test-- "to-path!-paren!"
         ;        --assert path? to path! first [()]
         ;        --assert "#[path! []]" = form to path! first [()]
@@ -424,13 +424,13 @@ Red [
         --test-- "to-binary!-string!"
                 --assert #{666F6F} = to binary! "foo"
         --test-- "to-binary!-integer!"
-                --assert #{000000000000007B} = to binary! 123
+                --assert #{0000007B} = to binary! 123
         --test-- "to-binary!-integer!"
-                --assert #{0000000000000100} = to binary! 256
+                --assert #{00000100} = to binary! 256
         --test-- "to-binary!-float!"
                 --assert #{3FF8000000000000} = to binary! 1.5
         --test-- "to-binary!-integer!"
-                --assert #{FFFFFFFFFFFFFFFF} = to binary! -1
+                --assert #{FFFFFFFF} = to binary! -1
         --test-- "to-binary!-float!"
                 --assert #{BFF8000000000000} = to binary! -1.5
 ;       --test-- "to-binary!-url!"
@@ -449,12 +449,12 @@ Red [
                 --assert #{010203} = to binary! [1 2 3]
         --test-- "to-binary!-block!"
                 --assert #{6162} = to binary! ["a" "b"]
-;       --test-- "to-binary!-tuple!"
-;               --assert #{010101} = to binary! 1.1.1
-;       --test-- "to-binary!-tag!"
-;               --assert #{61} = to binary! <a>
-;       --test-- "to-binary!-email!"
-;               --assert #{666F6F40626F6F} = to binary! foo@boo
+       --test-- "to-binary!-tuple!"
+               --assert #{010101} = to binary! 1.1.1
+       --test-- "to-binary!-tag!"
+               --assert #{61} = to binary! <a>
+       --test-- "to-binary!-email!"
+               --assert #{666F6F40626F6F} = to binary! foo@boo
         --test-- "to-binary!-bitset!"
                 --assert #{00} = to binary! make bitset! #{00}
 ===end-group===
@@ -490,7 +490,7 @@ Red [
         --test-- "to-block!-binary!"
                 --assert [] = to block! #{}
         --test-- "to-block!-binary!"
-                --assert [abc] = to block! #{616263}
+                --assert [#{616263}] = to block! #{616263}
         --test-- "to-block!-block!"
                 --assert [] = to block! []
         --test-- "to-block!-block!"
@@ -747,8 +747,8 @@ Red [
                 --assert (make bitset! #{0000000000000000000000000000000000000000000000000000000000000000}) = to bitset! 256
 ;       --test-- "to-bitset!-url!"
 ;               --assert (make bitset! #{0000000000070020000000004D8BA8}) = to bitset! http://red-lang.org
-        --test-- "to-bitset!-file!"
-                --assert (make bitset! #{0000000000010000000000000648}) = to bitset! %/file/
+        ;--test-- "to-bitset!-file!"
+        ;        --assert (make bitset! #{0000000000010000000000000648}) = to bitset! %/file/
         --test-- "to-bitset!-binary!"
                 --assert (make bitset! #{}) = to bitset! #{}
         --test-- "to-bitset!-binary!"
@@ -761,10 +761,10 @@ Red [
                 --assert (make bitset! #{70}) = to bitset! [1 2 3]
         --test-- "to-bitset!-block!"
                 --assert (make bitset! #{00000000000000000000000060}) = to bitset! ["a" "b"]
-       --test-- "to-bitset!-tag!"
-               --assert (make bitset! #{00000000000000000000000040}) = to bitset! <a>
-       --test-- "to-bitset!-email!"
-               --assert (make bitset! #{0000000000000000800000002201}) = to bitset! foo@boo
+       ;--test-- "to-bitset!-tag!"
+       ;       --assert (make bitset! #{00000000000000000000000040}) = to bitset! <a>
+       ;--test-- "to-bitset!-email!"
+       ;       --assert (make bitset! #{0000000000000000800000002201}) = to bitset! foo@boo
 ===end-group===
 
 

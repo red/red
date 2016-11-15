@@ -51,7 +51,8 @@ system/lexer: context [
 	][
 		if any [mins < 0 all [secs secs < 0]][throw-error [time! pos]]
 		if all [hours hours < 0][hours: absolute hours neg?: yes]
-		
+		if all [not neg? pos/1 = #"-"][neg?: yes]
+
 		time: case [
 			all [hours secs][
 				either float? secs [

@@ -553,6 +553,10 @@ bitset: context [
 				
 				if TYPE_OF(spec) = TYPE_BLOCK [
 					blk: as red-block! spec
+					if zero? block/rs-length? blk [			;-- shortcut
+						bits/node: alloc-bytes 1
+						return bits
+					]
 					w: as red-word! block/rs-head blk
 					not?: all [
 						TYPE_OF(w) = TYPE_WORD
@@ -661,7 +665,8 @@ bitset: context [
 			head  [byte-ptr!]
 			p	  [byte-ptr!]
 			p2	  [byte-ptr!]
-			size  [integer!]
+			sz1   [integer!]
+			sz2   [integer!]
 			not?  [logic!]
 			not2? [logic!]
 			b1	  [byte!]
@@ -674,15 +679,16 @@ bitset: context [
 		s: 	  GET_BUFFER(bs1)
 		head: as byte-ptr! s/offset
 		p:	  as byte-ptr! s/tail
-		size: s/size
+		sz1:  as-integer p - head
 		not?: FLAG_NOT?(s)
 		s: 	  GET_BUFFER(bs2)
 		p2:   as byte-ptr! s/tail
+		sz2:  as-integer p2 - s/offset
 		
-		if size <> s/size [
-			return SIGN_COMPARE_RESULT(size s/size)
+		if sz1 <> sz2 [
+			return SIGN_COMPARE_RESULT(sz1 sz2)
 		]
-		if zero? size [									;-- shortcut exit for empty bitsets
+		if zero? sz1 [									;-- shortcut exit for empty bitsets
 			return 0
 		]
 

@@ -1151,13 +1151,18 @@ string: context [
 				buffer: make-at as red-value! proto 16 1
 				insert buffer spec null no null yes
 			]
+			TYPE_REFINEMENT [
+				if type <> TYPE_STRING [
+					buffer: rs-make-at as red-value! proto 16
+					refinement/mold as red-word! spec buffer yes yes yes null 0 0
+				]
+			]
 			TYPE_NONE [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
 			]
 			default [
-				buffer: rs-make-at stack/push* 16
+				buffer: rs-make-at as red-value! proto 16
 				actions/form spec buffer null 0
-				buffer
 			]
 		]
 		set-type as cell! buffer type
@@ -2062,7 +2067,7 @@ string: context [
 						form-buf: as red-string! cell
 					][
 						;TBD: free previous form-buf node and series buffer
-						form-buf: string/rs-make-at form-slot 16
+						form-buf: rs-make-at form-slot 16
 						actions/form cell form-buf null 0
 					]
 					len: rs-length? form-buf
@@ -2354,7 +2359,7 @@ string: context [
 			][										;-- return char!
 				char: as red-char! str
 				char/header: TYPE_CHAR
-				char/value:  string/get-char as byte-ptr! s/offset unit
+				char/value:  get-char as byte-ptr! s/offset unit
 			]
 			ownership/check as red-value! str words/_taken null str/head 0
 		]
@@ -2422,7 +2427,7 @@ string: context [
 					form-buf: as red-string! cell
 				][
 					;TBD: free previous form-buf node and series buffer
-					form-buf: string/rs-make-at form-slot 16
+					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
 				either part? [
@@ -2482,7 +2487,7 @@ string: context [
 		ser2: ser1 + 1
 		len: _series/get-length ser1 no
 		if op = OP_UNION [len: len + _series/get-length ser2 no]
-		new: as red-series! string/rs-make-at stack/push* len
+		new: as red-series! rs-make-at stack/push* len
 		s2: GET_BUFFER(new)
 		n: 2
 
@@ -2494,17 +2499,17 @@ string: context [
 
 			while [head < tail] [			;-- iterate over first series
 				append?: no
-				cp: string/get-char head unit
+				cp: get-char head unit
 				if check? [
-					find?: string/rs-find-char as red-string! ser2 cp step case?
+					find?: rs-find-char as red-string! ser2 cp step case?
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					not string/rs-find-char as red-string! new cp step case?
+					not rs-find-char as red-string! new cp step case?
 				][
 					append?: yes
-					s2: string/append-char s2 cp
+					s2: append-char s2 cp
 				]
 
 				i: 1
@@ -2513,7 +2518,7 @@ string: context [
 					all [head < tail i < step]
 				][
 					i: i + 1
-					if append? [s2: string/append-char s2 string/get-char head unit]
+					if append? [s2: append-char s2 get-char head unit]
 				]
 			]
 

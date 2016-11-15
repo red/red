@@ -768,11 +768,16 @@ binary: context [
 				p: as byte-ptr! unicode/to-utf8 as red-string! spec :len
 				proto: load p len
 			]
-			TYPE_INTEGER
-			TYPE_CHAR [
+			TYPE_INTEGER [
 				int: as red-integer! spec
 				make-at as red-value! proto 4
 				from-integer proto int/value
+			]
+			TYPE_CHAR [
+				int: as red-integer! spec
+				p: as byte-ptr! "0000"
+				len: unicode/cp-to-utf8 int/value p
+				proto: load p len
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
@@ -926,32 +931,24 @@ binary: context [
 			added: 0
 			len: 0
 			while [all [cell < limit added <> part]][	;-- multiple values case
-				switch TYPE_OF(cell) [
-					TYPE_CHAR [
-						char: as red-char! cell
-						data: as byte-ptr! "0000"
-						len: unicode/cp-to-utf8 char/value data
+				either TYPE_OF(cell) = TYPE_INTEGER [
+					int: as red-integer! cell
+					either int/value <= FFh [
+						int-value: int/value
+						data: as byte-ptr! :int-value
+						len: 1
+					][
+						fire [TO_ERROR(script out-of-range) cell]
 					]
-					TYPE_INTEGER [
-						int: as red-integer! cell
-						either int/value <= FFh [
-							int-value: int/value
-							data: as byte-ptr! :int-value
-							len: 1
-						][
-							fire [TO_ERROR(script out-of-range) cell]
-						]
-					]
-					default [
-						bin2: as red-binary! stack/push*
-						saved: stack/top
+				][
+					bin2: as red-binary! stack/push*
+					saved: stack/top
 
-						bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
-						data: rs-head bin2
-						len: rs-length? bin2
+					bin2: to bin2 cell TYPE_BINARY	;@@ TO will push value to stack
+					data: rs-head bin2
+					len: rs-length? bin2
 
-						stack/top: saved
-					]
+					stack/top: saved
 				]
 
 				either positive? part [			;-- /part support
