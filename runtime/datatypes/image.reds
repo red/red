@@ -426,13 +426,13 @@ image: context [
 			ret [red-logic!]
 	][
 		if TYPE_OF(spec) = TYPE_IMAGE [		;-- copy it
-			return return copy as red-image! spec proto null yes null
+			return copy as red-image! spec proto null yes null
 		]
 		#either sub-system = 'gui [
 			#call [face? spec]
 			ret: as red-logic! stack/arguments
 			either ret/value [
-				return gui/OS-to-image spec
+				return exec/gui/OS-to-image spec
 			][
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
 			]
