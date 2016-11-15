@@ -188,11 +188,20 @@ map: context [
 			size	[integer!]
 			int		[red-integer!]
 			blk		[red-block!]
+			obj		[red-object!]
+			ctx		[red-context!]
+			syms	[red-value!]
+			vals	[red-value!]
+			tail	[red-value!]
+			value	[red-value!]
+			word	[red-word!]
+			s		[series!]
+			obj?	[logic!]
 			blk?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/make"]]
 
-		blk?: no
+		blk?: no obj?: no
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				if type = -1 [					;-- called by TO
@@ -207,13 +216,44 @@ map: context [
 				if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
 				blk?: yes
 			]
+			TYPE_OBJECT [
+				blk: 		as red-block! stack/push*
+				blk/header: TYPE_BLOCK
+				blk/head: 	0
+
+				obj: as red-object! spec
+				ctx: GET_CTX(obj)
+				blk/node: ctx/symbols
+				size: 2 * block/rs-length? blk
+				blk/node: alloc-cells size
+
+				s: as series! ctx/symbols/value
+				syms: s/offset
+				tail: s/tail
+
+				s: as series! ctx/values/value
+				vals: s/offset
+
+				while [syms < tail][
+					word: as red-word! block/rs-append blk syms
+					word/header: TYPE_SET_WORD
+					word/ctx: obj/ctx
+
+					value: block/rs-append blk vals
+					syms: syms + 1
+					vals: vals + 1
+				]
+				obj?: yes
+			]
 			TYPE_MAP [return copy as red-hash! spec proto null no null]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]]
 		]
 
-		if zero? size [size: 1]
-		blk: block/make-at as red-block! stack/push* size
-		if blk? [block/copy as red-block! spec blk null no null]
+		unless obj? [
+			if zero? size [size: 1]
+			blk: block/make-at as red-block! stack/push* size
+			if blk? [block/copy as red-block! spec blk null no null]
+		]
 		make-at as red-value! blk blk size
 	]
 
