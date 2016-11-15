@@ -47,11 +47,12 @@ system/lexer: context [
 		hours	[integer! none!]
 		mins	[integer!]
 		secs	[integer! float! none!]
+		neg?	[logic!]
 		return: [time!]
 	][
-		if any [mins < 0 all [secs secs < 0]][throw-error [time! pos]]
-		if all [hours hours < 0][hours: absolute hours neg?: yes]
-		if all [not neg? pos/1 = #"-"][neg?: yes]
+		if any [all [hours hours <> 0 mins < 0] all [secs secs < 0]][throw-error [time! pos]]
+		if hours [hours: absolute hours]
+		mins: absolute mins
 
 		time: case [
 			all [hours secs][
@@ -739,18 +740,20 @@ system/lexer: context [
 		tuple-rule: [tuple-value-rule sticky-word-rule]
 		
 		time-rule: [
-			s: integer-number-rule [
-				float-number-rule (value: make-time pos none value make-number s e type) ;-- mm:ss.dd
+			s: positive-integer-rule [
+				float-number-rule (value: make-time pos none value make-number s e type neg?) ;-- mm:ss.dd
 				| (value2: make-number s e type) [
-					#":" s: integer-number-rule opt float-number-rule
-					  (value: make-time pos value value2 make-number s e type)			;-- hh:mm:ss[.dd]
-					| (value: make-time pos value value2 none)							;-- hh:mm
+					#":" s: positive-integer-rule opt float-number-rule
+					  (value: make-time pos value value2 make-number s e type neg?)		;-- hh:mm:ss[.dd]
+					| (value: make-time pos value value2 none neg?)						;-- hh:mm
 				]
 			] (type: time!)
 		]
+		
+		positive-integer-rule: [(type: integer!) digit any digit e:]
 
 		integer-number-rule: [
-			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
+			opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e: (type: integer!)
 		]
 
 		integer-rule: [

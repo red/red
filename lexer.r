@@ -254,19 +254,21 @@ lexer: context [
 	tuple-rule: [tuple-value-rule sticky-word-rule]
 	
 	time-rule: [
-		s: integer-number-rule [
-			decimal-number-rule (value: as-time 0 value load-number copy/part s e) ;-- mm:ss.dd
+		s: positive-integer-rule [
+			decimal-number-rule (value: as-time 0 value load-number copy/part s e neg?) ;-- mm:ss.dd
 			| (value2: load-number copy/part s e) [
-				#":" s: integer-number-rule opt decimal-number-rule
-				  (value: as-time value value2 load-number copy/part s e)	;-- hh:mm:ss[.dd]
-				| (value: as-time value value2 0)							;-- hh:mm
+				#":" s: positive-integer-rule opt decimal-number-rule
+				  (value: as-time value value2 load-number copy/part s e neg?)	;-- hh:mm:ss[.dd]
+				| (value: as-time value value2 0 neg?)							;-- hh:mm
 			]
 		] (type: time!)
 	]
-		
+	
+	positive-integer-rule: [(type: integer!) digit any digit e:]
+	
 	integer-number-rule: [
 		(type: integer!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
+		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
 	]
 	
 	integer-rule: [
@@ -640,9 +642,10 @@ lexer: context [
 		to integer! debase/base s 16
 	]
 	
-	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
-		if any [m < 0 all [s s < 0]][type: time! throw-error]
-		to time! reduce [h m s]
+	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
+		if any [all [h <> 0 m < 0] all [s s < 0]][type: time! throw-error]
+		t: to time! reduce [abs h abs m abs s]
+		either neg? [negate t][t]
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][
