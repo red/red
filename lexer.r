@@ -274,7 +274,7 @@ lexer: context [
 	integer-rule: [
 		pos: decimal-special e:								;-- escape path for NaN, INFs
 		(type: issue! value: load-number copy/part s e)
-		|	integer-number-rule
+		|	(neg?: no) integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 			opt [#"%" e: (type: issue!)]
 			sticky-word-rule

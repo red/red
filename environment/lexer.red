@@ -758,7 +758,7 @@ system/lexer: context [
 
 		integer-rule: [
 			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
-			| integer-number-rule
+			| (neg?: no) integer-number-rule
 			  opt [float-number-rule | float-exp-rule e: (type: float!)]
 			  opt [#"%" (type: percent!)]
 			  sticky-word-rule
