@@ -85,6 +85,8 @@
 	red/set-path/push
 	red/set-word/push
 	red/string/push
+	red/tag/push
+	red/time/push
 	red/tuple/push
 	red/typeset/push
 	red/unset/push
