@@ -61,6 +61,7 @@
 	red/char/push
 	red/datatype/push
 	;red/event/push
+	red/email/push
 	red/file/push
 	red/float/push
 	red/_function/push
