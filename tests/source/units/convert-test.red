@@ -662,7 +662,7 @@ Red [
        --test-- "to-time!-integer!"
                --assert -0:00:01 = to time! -1
        --test-- "to-time!-float!"
-               --assert -0:00:01.499999999 = to time! -1.5
+               --assert -0:00:01.5 = to time! -1.5
        --test-- "to-time!-block!"
                --assert 1:02 = to time! [1 2]
        --test-- "to-time!-block!"
