@@ -3770,23 +3770,22 @@ red: context [
 		][
 			emit-open-frame name
 		]
-		
 		types: spec/3
 		body: next body
 		
 		loop spec/2 [									;-- process arguments
+			type: none
 			types: find/tail types word!
-			unless block? types/1 [
-				throw-error ["type undefined for" types/1 "in function" name]
-			]
-			either 1 = length? types/1 [
-				type: types/1/1
-			][
-				arg: body/1
-				if word? arg [arg: attempt [get arg]]
-				type: none
-				foreach value types/1 [
-					if value = type?/word arg [type: value break]
+			if block? types/1 [
+				either 1 = length? types/1 [
+					type: types/1/1
+				][
+					arg: body/1
+					if word? arg [arg: attempt [get arg]]
+					type: none
+					foreach value types/1 [
+						if value = type?/word arg [type: value break]
+					]
 				]
 			]
 			offset: either type [
