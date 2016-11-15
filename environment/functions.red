@@ -88,8 +88,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 		bitset! binary! block! char! email! error! file! float! get-path!
 		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
 		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! word!
-		;image!
+		tuple! unset! url! word! image!
 	]
 	test-list: union to-list [action! datatype! function! image! object! op! routine! vector!]
 	

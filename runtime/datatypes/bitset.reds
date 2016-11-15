@@ -553,10 +553,6 @@ bitset: context [
 				
 				if TYPE_OF(spec) = TYPE_BLOCK [
 					blk: as red-block! spec
-					if zero? block/rs-length? blk [			;-- shortcut
-						bits/node: alloc-bytes 1
-						return bits
-					]
 					w: as red-word! block/rs-head blk
 					not?: all [
 						TYPE_OF(w) = TYPE_WORD
