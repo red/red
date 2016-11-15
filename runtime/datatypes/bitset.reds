@@ -177,7 +177,7 @@ bitset: context [
 		p1:	  as byte-ptr! s1/offset
 		p2:	  as byte-ptr! s2/offset
 		i:  0
-		until [
+		while [i < min][
 			p/value: switch type [
 				OP_UNION
 				OP_OR		[p1/value or p2/value]			;-- OR s1 with part(s2)
@@ -191,7 +191,6 @@ bitset: context [
 			p1: p1 + 1
 			p2: p2 + 1
 			i:  i + 1
-			i = min
 		]
 
 		min: max - i
