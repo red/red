@@ -787,7 +787,11 @@ binary: context [
 				from-integer p4/1 proto
 			]
 			TYPE_IMAGE [
-				proto: image/extract-data as red-image! spec EXTRACT_ALPHA
+				#either OS = 'Windows [
+					proto: image/extract-data as red-image! spec EXTRACT_ALPHA
+				][
+					proto
+				]
 			]
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
