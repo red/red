@@ -98,7 +98,34 @@ integer: context [
 		]
 		i
 	]
-	
+
+	from-issue: func [
+		issue	[red-word!]
+		return: [integer!]
+		/local
+			len  [integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			s	 [series!]
+			unit [integer!]
+	][
+		str: as red-string! stack/push as red-value! symbol/get issue/symbol
+		str/head: 0								;-- /head = -1 (casted from symbol!)
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		len: string/rs-length? str
+		if len > 8 [len: 8]
+
+		str/node: binary/decode-16 
+			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			len
+			unit
+		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
+		len: from-binary as red-binary! str
+		stack/pop 1
+		len
+	]
+
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
@@ -376,6 +403,9 @@ integer: context [
 			]
 			TYPE_BINARY [
 				int/value: from-binary as red-binary! spec
+			]
+			TYPE_ISSUE [
+				int/value: from-issue as red-word! spec
 			]
 			TYPE_ANY_STRING [
 				proto: load-value as red-string! spec

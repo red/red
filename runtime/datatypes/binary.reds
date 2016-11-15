@@ -189,8 +189,8 @@ binary: context [
 	]
 
 	from-integer: func [
-		bin		[red-binary!]
 		int		[integer!]
+		bin		[red-binary!]
 		/local
 			s	[series!]
 			p	[byte-ptr!]
@@ -206,8 +206,8 @@ binary: context [
 	]
 
 	from-issue: func [
-		bin		[red-binary!]
 		issue	[red-word!]
+		bin		[red-binary!]
 		/local
 			str  [red-string!]
 			s	 [series!]
@@ -220,12 +220,12 @@ binary: context [
 		
 		bin/head: 0
 		bin/header: TYPE_BINARY
-		bin/node: binary/decode-16 
+		bin/node: decode-16 
 			(as byte-ptr! s/offset) + (str/head << (log-b unit))
 			string/rs-length? str
 			unit
 		stack/pop 1
-		if null? bin/node [bin/header: TYPE_NONE]
+		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
 	]
 
 	equal?: func [
@@ -622,7 +622,7 @@ binary: context [
 		accum: 0
 		count: 0
 		until [
-			c: string/get-char p unit
+			c: 7Fh and string/get-char p unit
 			BINARY_SKIP_COMMENT
 			if c > as-integer space [
 				c: c + 1
@@ -771,7 +771,7 @@ binary: context [
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				make-at as red-value! proto 4
-				from-integer proto int/value
+				from-integer int/value proto
 			]
 			TYPE_CHAR [
 				int: as red-integer! spec
@@ -783,8 +783,8 @@ binary: context [
 			TYPE_PERCENT [
 				p4: (as int-ptr! spec) + 2
 				make-at as red-value! proto 8
-				from-integer proto p4/2
-				from-integer proto p4/1
+				from-integer p4/2 proto
+				from-integer p4/1 proto
 			]
 			TYPE_IMAGE [
 				proto: image/extract-data as red-image! spec EXTRACT_ALPHA
@@ -792,7 +792,7 @@ binary: context [
 			TYPE_TUPLE [
 				proto: load GET_TUPLE_ARRAY(spec) TUPLE_SIZE?(spec)
 			]
-			TYPE_ISSUE [from-issue proto as red-word! spec]
+			TYPE_ISSUE [from-issue as red-word! spec proto]
 			TYPE_ANY_LIST [
 				make-at as red-value! proto 16
 				insert proto spec null no null yes

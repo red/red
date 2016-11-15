@@ -51,8 +51,6 @@ tuple: context [
 		len: (as-integer s/tail - s/offset) + bin/head
 		if len > 12 [len: 12]							;-- take first 12 bytes only
 		
-		tp/header: TYPE_TUPLE or (len << 19)
-		
 		p: (as byte-ptr! s/offset) + bin/head
 		dst: (as byte-ptr! tp) + 4
 
@@ -61,6 +59,38 @@ tuple: context [
 			p: p + 1
 			dst: dst + 1
 		]
+
+		while [len < 3][dst/value: null-byte len: 3 dst: dst + 1]
+
+		tp/header: TYPE_TUPLE or (len << 19)
+		tp
+	]
+
+	from-issue: func [
+		issue	[red-word!]
+		tp		[red-tuple!]
+		return: [red-tuple!]
+		/local
+			len  [integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			s	 [series!]
+			unit [integer!]
+	][
+		str: as red-string! stack/push as red-value! symbol/get issue/symbol
+		str/head: 0								;-- /head = -1 (casted from symbol!)
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		len: string/rs-length? str
+		if len > 24 [len: 24]
+
+		str/node: binary/decode-16 
+			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			len
+			unit
+		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
+		tp: from-binary as red-binary! str tp
+		stack/pop 1
 		tp
 	]
 
@@ -225,8 +255,8 @@ tuple: context [
 			int [red-integer!]
 			blk [red-block!]
 			tp  [byte-ptr!]
-			n	[integer!]
 			i	[integer!]
+			n	[integer!]
 			s	[series!]
 			msg [red-value!]
 			err
@@ -244,13 +274,11 @@ tuple: context [
 		switch TYPE_OF(spec) [
 			TYPE_ANY_LIST [
 				blk: as red-block! spec
-				proto/header: TYPE_TUPLE
-				tp: (as byte-ptr! proto) + 4
 				n: block/rs-length? blk
 				if n > 12 [
 					fire [err cat datatype/push TYPE_TUPLE spec]
 				]
-				proto/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
+				tp: (as byte-ptr! proto) + 4
 				s: GET_BUFFER(blk)
 				int: as red-integer! s/offset + blk/head
 				i: 0
@@ -264,9 +292,13 @@ tuple: context [
 					int: int + 1
 				]
 				while [i < 3][i: i + 1 tp/i: null-byte]
+				proto/header: TYPE_TUPLE or (i << 19)
 			]
 			TYPE_BINARY	  [
-				proto: from-binary as red-binary! spec as red-tuple! proto
+				proto: from-binary as red-binary! spec proto
+			]
+			TYPE_ISSUE [
+				from-issue as red-word! spec proto
 			]
 			TYPE_ANY_STRING [
 				proto: as red-tuple! load-value as red-string! spec
