@@ -1125,13 +1125,13 @@ string: context [
 			either type = TYPE_BINARY [
 				as red-string! binary/to as red-binary! proto spec type
 			][
-				to proto spec type
+				to as red-value! proto spec type
 			]
 		]
 	]
 
 	to: func [
-		proto	[red-string!]
+		proto	[red-value!]
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-string!]
@@ -1141,6 +1141,12 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
 		
 		switch TYPE_OF(spec) [
+			TYPE_ANY_STRING [
+				buffer: as red-string! _series/copy
+					as red-series! spec
+					as red-series! proto
+					null no null
+			]
 			TYPE_BINARY [
 				buffer: load
 					as-c-string binary/rs-head as red-binary! spec
@@ -1148,12 +1154,14 @@ string: context [
 					UTF-8
 			]
 			TYPE_ANY_LIST [
-				buffer: make-at as red-value! proto 16 1
+				buffer: make-at proto 16 1
 				insert buffer spec null no null yes
 			]
 			TYPE_REFINEMENT [
-				if type <> TYPE_STRING [
-					buffer: rs-make-at as red-value! proto 16
+				buffer: rs-make-at proto 16
+				either type = TYPE_STRING [
+					actions/form spec buffer null 0
+				][
 					refinement/mold as red-word! spec buffer yes yes yes null 0 0
 				]
 			]
@@ -1161,7 +1169,7 @@ string: context [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
 			]
 			default [
-				buffer: rs-make-at as red-value! proto 16
+				buffer: rs-make-at proto 16
 				actions/form spec buffer null 0
 			]
 		]
