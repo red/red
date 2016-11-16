@@ -97,6 +97,7 @@ system: context [
 				invalid-data:		["data not in correct format:" :arg1]
 				invalid-part:		["invalid /part count:" :arg1]
 				not-same-type:		"values must be of the same type"
+				not-same-class:		["cannot coerce" :arg1 "to" :arg2]
 				not-related:		["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def:		["invalid function definition:" :arg1]
 				bad-func-arg:		["function argument" :arg1 "is not valid"]

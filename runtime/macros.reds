@@ -236,6 +236,7 @@ Red/System [
 	NAT_LIST_ENV
 	NAT_NOW
 	NAT_SIGN?
+	NAT_AS
 ]
 
 #enum math-op! [
@@ -388,15 +389,34 @@ Red/System [
 	]
 ]
 
+#define ANY_STRING?(type)	[
+	any [									;@@ replace with ANY_BLOCK?
+		type = TYPE_STRING
+		type = TYPE_FILE
+		type = TYPE_URL
+		type = TYPE_TAG
+		type = TYPE_EMAIL
+	]
+]
+
 #define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
 	TYPE_STRING
 	TYPE_FILE
 	TYPE_URL
-	TYPE_EMAIL
 	TYPE_TAG
+	TYPE_EMAIL	
 ]
 
-#define TYPE_ANY_LIST [
+#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
+	TYPE_BLOCK
+	TYPE_PAREN
+	TYPE_PATH
+	TYPE_GET_PATH
+	TYPE_SET_PATH
+	TYPE_LIT_PATH
+]
+
+#define TYPE_ANY_LIST [						;-- To be used in SWITCH cases
 	TYPE_BLOCK
 	TYPE_HASH
 	TYPE_PAREN

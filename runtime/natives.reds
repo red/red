@@ -2343,6 +2343,37 @@ natives: context [
 		dt/header: TYPE_TIME
 		dt/time: platform/get-time utc >= 0 precise >= 0
 	]
+	
+	as*: func [
+		check?	[logic!]
+		/local
+			proto [red-value!]
+			spec  [red-value!]
+			dt	  [red-datatype!]
+			type  [integer!]
+			type2 [integer!]
+	][
+		#typecheck as
+		proto: stack/arguments
+		spec: proto + 1
+		
+		type:  TYPE_OF(proto)
+		type2: TYPE_OF(spec)
+		
+		if type = TYPE_DATATYPE [
+			dt: as red-datatype! proto
+			type: dt/value
+		]
+		either any [
+			all [ANY_BLOCK?(type)  ANY_BLOCK?(type2)]
+			all [ANY_STRING?(type) ANY_STRING?(type2)]
+		][
+			copy-cell spec proto
+			set-type proto type
+		][
+			fire [TO_ERROR(script not-same-class) datatype/push type datatype/push type2]
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -2816,6 +2847,7 @@ natives: context [
 			:list-env*
 			:now*
 			:sign?*
+			:as*
 		]
 	]
 

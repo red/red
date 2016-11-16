@@ -826,3 +826,11 @@ sign?: make native! [[
 	]
 	#get-definition NAT_SIGN?
 ]
+
+as: make native! [[
+		"Coerce a series into a compatible datatype without copying it"
+		type	[datatype! block! paren! any-path! any-string!] "The datatype or example value"
+		spec	[block! paren! any-path! any-string!] "The series to coerce"
+	]
+	#get-definition NAT_AS
+]
