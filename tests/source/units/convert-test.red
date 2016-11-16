@@ -98,8 +98,8 @@ Red [
 		--assert -1 = to integer! -1
 	--test-- "to-integer!-float!"
 		--assert -1 = to integer! -1.5
-;	--test-- "to-integer!-issue!"
-;		--assert 65280 = to integer! #FF00
+	--test-- "to-integer!-issue!"
+		--assert 65280 = to integer! #FF00
 	--test-- "to-integer!-binary!"
 		--assert 0 = to integer! #{}
 	--test-- "to-integer!-binary!"
@@ -239,8 +239,8 @@ Red [
 	   --test-- "to-path!-tuple!"
 		   --assert path? to path! 1.1.1
 		   --assert "1.1.1" = form to path! 1.1.1
-	;--test-- "to-path!-paren!"
-	;	--assert path? to path! first [()]
+	--test-- "to-path!-paren!"
+		--assert path? to path! first [()]
 	;	--assert "#[path! []]" = form to path! first [()]
 	--test-- "to-path!-paren!"
 		--assert path? to path! first [(1 2)]
@@ -304,15 +304,15 @@ Red [
 	 --test-- "to-url!-issue!"
 		--assert url? to url! #FF00
 		--assert "FF00" = form to url! #FF00
-;	   --test-- "to-url!-binary!"
-;		   --assert url? to url! #{}
-;		   --assert "" = form to url! #{}
+	   --test-- "to-url!-binary!"
+		   --assert url? to url! #{}
+		   --assert "" = form to url! #{}
 	--test-- "to-url!-binary!"
 		--assert url? to url! #{616263}
 		--assert "abc" = form to url! #{616263}
-;	   --test-- "to-url!-block!"
-;		   --assert url? to url! []
-;		   --assert "" = form to url! []
+	   --test-- "to-url!-block!"
+		   --assert url? to url! []
+		   --assert "" = form to url! []
 	 --test-- "to-url!-block!"
 		--assert url? to url! [1 2]
 		--assert "12" = form to url! [1 2]
@@ -325,10 +325,10 @@ Red [
 	--test-- "to-url!-tuple!"
 		--assert url? to url! 1.1.1
 		--assert "1.1.1" = form to url! 1.1.1
-;	   --test-- "to-url!-paren!"
-;		   --assert url? to url! first [()]
-;		   --assert "" = form to url! first [()]
-;	   --test-- "to-url!-paren!"
+	   --test-- "to-url!-paren!"
+		   --assert url? to url! first [()]
+		   --assert "" = form to url! first [()]
+	   --test-- "to-url!-paren!"
 		--assert url? to url! first [(1 2)]
 		--assert "12" = form to url! first [(1 2)]
 	--test-- "to-url!-tag!"
@@ -516,8 +516,8 @@ Red [
 		--assert (reduce [make bitset! #{00}]) = to block! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-tuple!"
-;	   --test-- "to-tuple!-issue!"
-;		   --assert 255.0.0 = to tuple! #FF00
+	   --test-- "to-tuple!-issue!"
+		   --assert 255.0.0 = to tuple! #FF00
 	   --test-- "to-tuple!-binary!"
 		   --assert 0.0.0 = to tuple! #{}
 	   --test-- "to-tuple!-binary!"
