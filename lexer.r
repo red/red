@@ -423,7 +423,7 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| #"^"" s: any UTF8-filtered-char e: #"^""
+			| line-string
 			| s: any UTF8-filtered-char e:
 		]
 	]
