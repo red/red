@@ -247,7 +247,10 @@ error: context [
 				]
 			]
 			TYPE_STRING [
-				return to proto spec type
+				create
+					as red-word! #in system/catalog/errors user
+					as red-word! #in system/catalog/errors/user message
+					spec null null
 			]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
@@ -255,26 +258,7 @@ error: context [
 		]
 		new
 	]
-	
-	to: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-object!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "error/make"]]
-		
-		either TYPE_OF(spec) = TYPE_STRING [
-			create
-				as red-word! #in system/catalog/errors user
-				as red-word! #in system/catalog/errors/user message
-				spec null null
-		][
-			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_ERROR spec]
-			null
-		]
-	]
-	
+
 	form: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -371,7 +355,7 @@ error: context [
 			:make
 			null			;random
 			INHERIT_ACTION	;reflect
-			:to
+			null			;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path

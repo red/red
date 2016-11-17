@@ -113,6 +113,12 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				x: as-integer fl/value
+				push x x
+			]
 			TYPE_BLOCK [
 				int: as red-integer! block/rs-head as red-block! spec
 				int2: int + 1

@@ -150,7 +150,7 @@ time: context [
 			]
 			TYPE_ANY_STRING [
 				proto: load-value as red-string! spec
-				if TYPE_OF(proto) <> TYPE_TIME [throw-error spec]
+				if TYPE_OF(proto) <> TYPE_TIME [throw-error proto]
 			]
 			default [throw-error spec]
 		]

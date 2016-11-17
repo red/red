@@ -788,7 +788,7 @@ binary: context [
 			]
 			TYPE_IMAGE [
 				#either OS = 'Windows [
-					proto: image/extract-data as red-image! spec EXTRACT_ALPHA
+					proto: image/extract-data as red-image! spec EXTRACT_ARGB
 				][
 					proto
 				]
