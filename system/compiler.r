@@ -1511,7 +1511,7 @@ system-dialect: make-profilable context [
 				][
 					name: form sym
 				]
-				repend exports [sym name]
+				repend exports [sym any [find/match name "exec/" name]]
 				list: next list
 			]
 		]

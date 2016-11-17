@@ -3,7 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %libRed.red
 	Tabs:	 4
-	Config:	[type: 'dll]
+	Config:	 [type: 'dll]
+	;Needs: 	 'View
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -33,5 +34,5 @@ Red [
 		
 	]
 	
-	#export [redBoot "redBoot" redDo redQuit]
+	#export [redBoot redDo redQuit]
 ]
