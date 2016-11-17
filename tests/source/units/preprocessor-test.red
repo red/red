@@ -60,7 +60,7 @@ Red [
 		--assert 12 = foo 1 foo 3 4
 
 		#local [
-			#macro integer! func [s e][print ["inc:" s/1] s/1: s/1 + 1 next s]
+			#macro integer! func [s e][s/1: s/1 + 1 next s]
 			--test-- "macro-4"
 				--assert (load "17") = foo 1 foo 3 4
 			--test-- "macro-5"

@@ -70,7 +70,7 @@ REBOL [
 			print foo 1 foo 3 4
 
 			#local [
-				#macro integer! func [s e][print ["inc:" s/1] s/1: s/1 + 1 next s]
+				#macro integer! func [s e][s/1: s/1 + 1 next s]
 				prin "*test5* "
 				print foo 1 foo 3 4
 				prin "*test6* "
