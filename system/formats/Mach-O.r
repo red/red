@@ -685,7 +685,8 @@ context [
 		str-tbl:   symbols/2/3
 		list: 	   make block! length? exports
 		
-		foreach sym sort/case exports [					;-- sorted symbols by name
+		sort/case/skip/compare exports 2 2				;-- sort all symbols lexicographically
+		foreach [sym ext-name] exports [
 			spec: job/symbols/:sym
 			data?: spec/1 = 'global
 			
@@ -699,17 +700,16 @@ context [
 			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
 			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
 			
-			sym: any [find/match form sym "exec/" form sym]
-			append str-tbl join "_" to-c-string sym
+			append str-tbl join "_" to-c-string ext-name
 		]
 		pad4 str-tbl
-		symbols/1/1: symbols/1/1 + length? exports
+		symbols/1/1: symbols/1/1 + ((length? exports) / 2)
 		symbols/1/2: length? sym-tbl
 		symbols/1/4: length? str-tbl
 		symbols/2/1: sym-tbl
 		symbols/2/3: str-tbl
 		
-		append symbols/1 length? exports
+		append symbols/1 (length? exports) / 2
 		append/only job/sections/export list
 	]
 	

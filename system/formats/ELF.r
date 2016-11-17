@@ -896,9 +896,9 @@ context [
 		the object size is not yet stored in the symbol or exports table, we
 		have to compute it here.}
 		job [object!]
-		/local current-tail code-tail data-tail symbol-offset symbol-size
+		/local current-tail code-tail data-tail symbol-offset symbol-size ext-name
 	] [
-		if  not find job/sections 'export [return make block! 0]
+		unless find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2
@@ -925,12 +925,12 @@ context [
 							make error! reform ["Unhandled symbol type:" meta/1]
 						]
 					]
-					if find job/sections/export/3 symbol [
+					if ext-name: select job/sections/export/3 symbol [
 						keep compose/deep [
-							(any [find/match form symbol "exec/" form symbol]) [
-								type (meta/1)
-								offset (symbol-offset)
-								size (symbol-size)
+							(ext-name) [
+								type	(meta/1)
+								offset	(symbol-offset)
+								size	(symbol-size)
 							]
 						]
 					]

@@ -27,5 +27,5 @@ Red [
 		
 	]
 	
-	#export [redBoot redDo redQuit]
+	#export [redBoot "redBoot" redDo redQuit]
 ]

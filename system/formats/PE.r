@@ -580,10 +580,10 @@ context [
 						+ length? form-struct export-directory
 		
 		sym-nb: 0
-		sort/case spec/3								;-- sort all symbols lexicographically
-		foreach name spec/3 [							;-- Export Name Table
+		sort/case/skip/compare spec/3 2 2				;-- sort all symbols lexicographically
+		foreach [name exp-name] spec/3 [				;-- Export Name Table
 			repend NPT [name length? names]
-			repend names [any [find/match form name "exec/" name] null]
+			repend names [exp-name null]
 			sym-nb: sym-nb + 1
 		]
 		
