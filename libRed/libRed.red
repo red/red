@@ -16,9 +16,15 @@ Red [
 	redBoot: does [red/boot]
 	
 	redDo: func [
-	
+		src		[c-string!]
+		return: [red-value!]
+		/local
+			str [red-string!]
 	][
-	
+		str: string/load src length? src UTF-8
+		#call [system/lexer/transcode str none none]
+		interpreter/eval as red-block! stack/arguments yes
+		stack/arguments
 	]
 	
 	redQuit: func [
