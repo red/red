@@ -1475,13 +1475,7 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		flag-callback: func [name [word!] cc [word! none!] /local spec][
-			spec: select functions name
-			spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
-			unless spec/5 = 'callback [append spec 'callback]
-		]
-		
-		process-export: has [defs cc ns func? spec][
+		process-export: has [defs cc ns func? spec entry][
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
 					throw-error ["invalid calling convention specifier:" cc]
@@ -1496,12 +1490,17 @@ system-dialect: make-profilable context [
 				if path? name [name: resolve-ns-path name]
 				unless any [
 					find globals name
-					func?: find-functions name
+					entry: find-functions name
 				][
 					throw-error ["undefined exported symbol:" mold name]
 				]
+				if entry [
+					name: entry/1
+					spec: entry/2
+					spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
+					unless spec/5 = 'callback [append spec 'callback]
+				]
 				append exports name
-				if func? [flag-callback name cc]
 			]
 		]
 		

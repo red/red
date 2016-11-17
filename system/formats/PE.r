@@ -583,7 +583,7 @@ context [
 		sort/case spec/3								;-- sort all symbols lexicographically
 		foreach name spec/3 [							;-- Export Name Table
 			repend NPT [name length? names]
-			repend names [name null]
+			repend names [any [find/match form name "exec/" name] null]
 			sym-nb: sym-nb + 1
 		]
 		

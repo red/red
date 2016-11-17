@@ -699,7 +699,8 @@ context [
 			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
 			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
 			
-			append str-tbl join "_" to-c-string form sym
+			sym: any [find/match form sym "exec/" form sym]
+			append str-tbl join "_" to-c-string sym
 		]
 		pad4 str-tbl
 		symbols/1/1: symbols/1/1 + length? exports

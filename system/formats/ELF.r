@@ -927,7 +927,7 @@ context [
 					]
 					if find job/sections/export/3 symbol [
 						keep compose/deep [
-							(form symbol) [
+							(any [find/match form symbol "exec/" form symbol]) [
 								type (meta/1)
 								offset (symbol-offset)
 								size (symbol-size)
