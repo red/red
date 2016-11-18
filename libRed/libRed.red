@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %libRed.red
 	Tabs:	 4
-	Config:	 [type: 'dll]
+	Config:	 [type: 'dll libRedRT?: yes]
 	;Needs: 	 'View
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -24,7 +24,7 @@ Red [
 	][
 		str: string/load src length? src UTF-8
 		#call [system/lexer/transcode str none none]
-		interpreter/eval as red-block! stack/arguments yes
+		interpreter/eval as red-block! stack/arguments + 1 yes
 		stack/arguments
 	]
 	
@@ -34,5 +34,5 @@ Red [
 		
 	]
 	
-	#export [redBoot redDo redQuit]
+	#export cdecl [redBoot redDo redQuit]
 ]
