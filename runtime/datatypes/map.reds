@@ -187,6 +187,7 @@ map: context [
 		/local
 			size	[integer!]
 			int		[red-integer!]
+			fl		[red-float!]
 			blk		[red-block!]
 			obj		[red-object!]
 			ctx		[red-context!]
@@ -202,12 +203,12 @@ map: context [
 
 		blk?: no
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
+			TYPE_INTEGER
+			TYPE_FLOAT [
 				if type = -1 [					;-- called by TO
 					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_MAP spec]
 				]
-				int: as red-integer! spec
-				size: int/value
+				size: GET_SIZE_FROM(spec)
 				if negative? size [fire [TO_ERROR(script out-of-range) spec]]
 			]
 			TYPE_ANY_LIST [

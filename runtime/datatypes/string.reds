@@ -1109,12 +1109,15 @@ string: context [
 		/local
 			size [integer!]
 			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/make"]]
 		
-		either TYPE_OF(spec) = TYPE_INTEGER [
-			int: as red-integer! spec
-			size: int/value
+		either any [
+			TYPE_OF(spec) = TYPE_INTEGER
+			TYPE_OF(spec) = TYPE_FLOAT
+		][
+			size: GET_SIZE_FROM(spec)
 			if size < 0 [fire [TO_ERROR(script out-of-range) int]]
 			proto/header: type								;-- implicit reset of all header flags
 			proto/head: 0

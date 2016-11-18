@@ -487,6 +487,16 @@ Red/System [
 	]
 ]
 
+#define GET_SIZE_FROM(spec) [
+	either TYPE_OF(spec) = TYPE_FLOAT [
+		fl: as red-float! spec
+		as-integer fl/value
+	][
+		int: as red-integer! spec
+		int/value
+	]
+]
+
 #define ERR_INVALID_REFINEMENT_ARG(refine arg) [
 	fire [
 		TO_ERROR(script invalid-refine-arg)
