@@ -2372,7 +2372,7 @@ natives: context [
 			copy-cell spec proto
 			set-type proto type
 		][
-			fire [TO_ERROR(script not-same-class) datatype/push type datatype/push type2]
+			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
 	]
 
