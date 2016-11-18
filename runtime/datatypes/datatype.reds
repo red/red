@@ -132,7 +132,9 @@ datatype: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
 		
-		assert TYPE_OF(spec) = TYPE_INTEGER
+		if TYPE_OF(spec) <> TYPE_INTEGER [
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATATYPE spec]
+		]
 		int: as red-integer! spec
 		push int/value
 	]

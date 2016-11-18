@@ -538,15 +538,24 @@ block: context [
 		type	[integer!]
 		return:	[red-block!]
 		/local
+			t	 [integer!]
 			size [integer!]
 			int	 [red-integer!]
+			f	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+		t: TYPE_OF(spec)
+		switch t [
+			TYPE_INTEGER
+			TYPE_FLOAT [
+				either t = TYPE_INTEGER [
+					f: as red-float! spec
+					size: as-integer f/value
+				][
+					int: as red-integer! spec
+					size: int/value
+				]
 				if zero? size [size: 1]
 				make-at proto size
 				proto/header: type

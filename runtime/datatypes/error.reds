@@ -247,7 +247,7 @@ error: context [
 				]
 			]
 			TYPE_STRING [
-				create
+				new: create
 					as red-word! #in system/catalog/errors user
 					as red-word! #in system/catalog/errors/user message
 					spec null null

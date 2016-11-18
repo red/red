@@ -73,10 +73,10 @@ path: context [
 				if zero? size [size: 1]
 				make-at proto size
 				proto/header: type					;-- implicit reset of all header flags
+				proto
 			]
 			default [to proto spec type]
 		]
-		proto
 	]
 
 	to: func [
