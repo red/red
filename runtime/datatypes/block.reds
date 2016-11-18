@@ -817,7 +817,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: either all [same? hash?][no][ANY_BLOCK?(type)]
+		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 
 		either any [
 			match?
@@ -954,14 +954,7 @@ block: context [
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
-				either any [							;@@ replace with ANY_BLOCK?
-					type = TYPE_BLOCK
-					type = TYPE_PAREN
-					type = TYPE_PATH
-					type = TYPE_GET_PATH
-					type = TYPE_SET_PATH
-					type = TYPE_LIT_PATH
-				][
+				either ANY_BLOCK_STRICT?(type) [
 					b: as red-block! value
 					s: GET_BUFFER(b)
 					(as-integer s/tail - s/offset) >> 4 - b/head

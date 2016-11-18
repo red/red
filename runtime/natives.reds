@@ -2366,7 +2366,7 @@ natives: context [
 			type: dt/value
 		]
 		either any [
-			all [ANY_BLOCK?(type)  ANY_BLOCK?(type2)]
+			all [ANY_BLOCK_STRICT?(type) ANY_BLOCK_STRICT?(type2)]
 			all [ANY_STRING?(type) ANY_STRING?(type2)]
 		][
 			copy-cell spec proto

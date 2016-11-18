@@ -443,12 +443,7 @@ _context: context [
 						bind-word ctx w
 					]
 				]
-				TYPE_BLOCK 								;@@ replace with TYPE_ANY_BLOCK
-				TYPE_PAREN
-				TYPE_PATH
-				TYPE_LIT_PATH
-				TYPE_SET_PATH
-				TYPE_GET_PATH	[
+				TYPE_ANY_BLOCK	[
 					bind as red-block! value ctx obj self?
 				]
 				default [0]
