@@ -4,7 +4,7 @@ Red [
 	File: 	 %libRed.red
 	Tabs:	 4
 	Config:	 [type: 'dll libRedRT?: yes]
-	;Needs: 	 'View
+	Needs: 	 'View
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.

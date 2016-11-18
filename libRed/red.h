@@ -23,7 +23,7 @@
 /*
 ** setup and terminate
 */
-int  redBoot();
+void redBoot();
 void redQuit();
 
 /*
