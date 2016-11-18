@@ -401,6 +401,15 @@ Red/System [
 	]
 ]
 
+#define ANY_PATH?(type)	[
+	any [
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
+	]
+]
+
 #define ANY_STRING?(type)	[
 	any [
 		type = TYPE_STRING
@@ -433,6 +442,13 @@ Red/System [
 	TYPE_BLOCK
 	TYPE_HASH
 	TYPE_PAREN
+]
+
+#define TYPE_ANY_PATH [						;-- To be used in SWITCH cases
+	TYPE_PATH
+	TYPE_GET_PATH
+	TYPE_SET_PATH
+	TYPE_LIT_PATH
 ]
 
 #define BS_SET_BIT(array bit)  [
