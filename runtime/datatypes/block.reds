@@ -561,7 +561,19 @@ block: context [
 				proto/header: type
 				proto
 			]
-			default [to proto spec type]
+			TYPE_ANY_PATH
+			TYPE_ANY_LIST [
+				proto: clone as red-block! spec no no
+				proto/header: type
+				proto
+			]
+			TYPE_OBJECT [object/reflect as red-object! spec words/body]
+			TYPE_MAP	[map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
+			default [
+				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
+				null
+			]
 		]
 	]
 
@@ -584,10 +596,7 @@ block: context [
 				#call [system/lexer/transcode str none none]
 			]
 			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH
+			TYPE_ANY_PATH
 			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
 			default [rs-append make-at proto 1 spec]
 		]
