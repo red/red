@@ -550,11 +550,11 @@ block: context [
 			TYPE_INTEGER
 			TYPE_FLOAT [
 				either t = TYPE_INTEGER [
-					f: as red-float! spec
-					size: as-integer f/value
-				][
 					int: as red-integer! spec
 					size: int/value
+				][
+					f: as red-float! spec
+					size: as-integer f/value
 				]
 				if zero? size [size: 1]
 				make-at proto size
