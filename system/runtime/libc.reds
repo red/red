@@ -50,6 +50,10 @@ Red/System [
 		quit:		 "exit" [
 			status		[integer!]
 		]
+		fflush:		 "fflush" [
+			fd			[integer!]
+			return:		[integer!]
+		]
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]

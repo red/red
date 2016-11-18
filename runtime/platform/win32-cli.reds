@@ -254,30 +254,25 @@ prin*: func [s [c-string!] return: [c-string!] /local p n][
 
 prin-int*: func [i [integer!] return: [integer!]][
 	wprintf [#u16 "%i" i]
-	fflush null										;-- flush all streams
 	i
 ]
 
 prin-2hex*: func [i [integer!] return: [integer!]][
 	wprintf [#u16 "%02X" i]
-	fflush null
 	i
 ]
 
 prin-hex*: func [i [integer!] return: [integer!]][
 	wprintf [#u16 "%08X" i]
-	fflush null
 	i
 ]
 
 prin-float*: func [f [float!] return: [float!]][
 	wprintf [#u16 "%.16g" f]
-	fflush null
 	f
 ]
 
 prin-float32*: func [f [float32!] return: [float32!]][
 	wprintf [#u16 "%.7g" as-float f]
-	fflush null
 	f
 ]

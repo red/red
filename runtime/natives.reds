@@ -706,6 +706,7 @@ natives: context [
 					print-line ["Error: unknown string encoding: " unit]
 				]
 			]
+			fflush 0
 		]
 		last-lf?: no
 		stack/set-last unset-value

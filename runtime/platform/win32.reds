@@ -71,10 +71,6 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
-			fflush: "fflush" [
-				fd			[integer!]
-				return:		[integer!]
-			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
