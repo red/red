@@ -121,24 +121,7 @@ datatype: context [
 	]
 	
 	;-- Actions --
-	
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return:	[red-datatype!]							;-- return datatype cell pointer
-		/local
-			int [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
-		
-		if TYPE_OF(spec) <> TYPE_INTEGER [
-			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATATYPE spec]
-		]
-		int: as red-integer! spec
-		push int/value
-	]
-	
+
 	form: func [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
@@ -205,7 +188,7 @@ datatype: context [
 			TYPE_VALUE
 			"datatype!"
 			;-- General actions --
-			:make
+			null			;make
 			null			;random
 			null			;reflect
 			null			;to
