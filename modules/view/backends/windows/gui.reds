@@ -405,6 +405,22 @@ set-defaults: func [
 	null
 ]
 
+enable-visual-styles: func [
+	return:   [logic!]
+	/local
+		icc   [integer!]
+		size  [integer!]
+		ctrls [tagINITCOMMONCONTROLSEX]
+][
+	size: size? tagINITCOMMONCONTROLSEX
+	icc: ICC_STANDARD_CLASSES
+	  or ICC_TAB_CLASSES
+	  or ICC_LISTVIEW_CLASSES
+	  or ICC_BAR_CLASSES
+	ctrls: as tagINITCOMMONCONTROLSEX :size
+	InitCommonControlsEx ctrls
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -416,6 +432,14 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
+
+	unless all [
+		version-info/dwMajorVersion = 5
+		version-info/dwMinorVersion < 1
+	][
+		enable-visual-styles							;-- not called for Win2000
+	]
+
 	win8+?: all [
 		version-info/dwMajorVersion >= 6
 		version-info/dwMinorVersion >= 2
