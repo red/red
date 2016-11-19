@@ -31,7 +31,11 @@ Red [
 	]
 	
 	redQuit: does [
-		
+		free as byte-ptr! natives/table
+		free as byte-ptr! _random/table
+		free as byte-ptr! name-table
+		free as byte-ptr! action-table
+		free as byte-ptr! cycles/stack
 	]
 	
 	#export cdecl [redBoot redDo redQuit]
