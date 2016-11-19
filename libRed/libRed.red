@@ -23,14 +23,14 @@ Red [
 			str [red-string!]
 	][
 		str: string/load src length? src UTF-8
+		stack/mark-eval words/_body
 		#call [system/lexer/transcode str none none]
-		interpreter/eval as red-block! stack/arguments + 1 yes
+		stack/unwind-last
+		interpreter/eval as red-block! stack/arguments yes
 		stack/arguments
 	]
 	
-	redQuit: func [
-		
-	][
+	redQuit: does [
 		
 	]
 	
