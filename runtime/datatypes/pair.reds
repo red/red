@@ -143,6 +143,13 @@ pair: context [
 				]	
 				push x y
 			]
+			TYPE_STRING [
+				proto: load-value as red-string! spec
+				if TYPE_OF(proto) <> TYPE_PAIR [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR proto]
+				]
+				proto
+			]
 			TYPE_PAIR [as red-pair! spec]
 			default [
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
