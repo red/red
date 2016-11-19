@@ -1069,17 +1069,9 @@ OS-draw-line-width: func [
 	dc	  [handle!]
 	width [red-value!]
     /local 
-        width-i     [red-integer!]
-        width-f     [red-float!]
         width-v     [float32!]
 ][
-    either TYPE_OF(width) = TYPE_INTEGER [
-        width-i: as red-integer! width
-        width-v: as float32! width-i/value
-    ][
-        width-f: as red-float! width
-        width-v: as float32! width-f/value
-    ]
+    width-v: get-float32 as red-integer! width
 	if modes/pen-width <> width-v [
         modes/pen-width: width-v
 		either GDI+? [
