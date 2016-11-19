@@ -46,6 +46,24 @@ _context: context [
 		-1												;-- search failed
 	]
 	
+	set-global: func [
+		symbol	[integer!]
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			ctx	   [red-context!]
+			values [series!]
+			idx	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/set-global"]]
+
+		ctx: TO_CTX(global-ctx)
+		idx: find-word ctx symbol no
+		if idx = -1 [return unset-value]
+		values: as series! ctx/values/value
+		copy-cell value values/offset + idx
+	]
+	
 	get-global: func [
 		symbol  [integer!]
 		return:	[red-value!]

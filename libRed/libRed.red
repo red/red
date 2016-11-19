@@ -14,11 +14,16 @@ Red [
 
 #system [
 
-	redBoot: does [red/boot]
+	redBoot: func [
+		"Initialize the Red runtime"
+	][
+		red/boot
+	]
 	
 	redDo: func [
-		src		[c-string!]
-		return: [red-value!]
+		"Evaluates Red code"
+		src		[c-string!]		"Red code encoded in UTF-8"
+		return: [red-value!]	"Last value or error! value"
 		/local
 			str [red-string!]
 	][
@@ -30,7 +35,10 @@ Red [
 		stack/arguments
 	]
 	
-	redQuit: does [
+	redQuit: func [
+		"Releases dynamic memory allocated by Red runtime"
+	][
+		;@@ Free the main buffers
 		free as byte-ptr! natives/table
 		free as byte-ptr! actions/table
 		free as byte-ptr! _random/table
@@ -40,5 +48,83 @@ Red [
 		free as byte-ptr! crypto/crc32-table
 	]
 	
-	#export cdecl [redBoot redDo redQuit]
+	redInteger: func [
+		n		[integer!]
+		return: [red-integer!]
+	][
+		integer/push n
+	]
+	
+	redFloat: func [
+		f		[float!]
+		return: [red-float!]
+	][
+		float/push f
+	]
+	
+	redString: func [
+		s		[c-string!]
+		return: [red-string!]
+	][
+		string/load s length? s UTF-8
+	]
+	
+	redWord: func [
+		s		[c-string!]
+		return: [integer!]								;-- symbol ID
+	][
+		symbol/make s
+	]
+	
+	redCInt32: func [									;@@ make a macro instead?
+		int		[red-integer!]
+		return: [integer!]
+	][
+		int/value
+	]
+	
+	redCString: func [
+		str		[red-string!]
+		return: [c-string!]								;-- caller needs to free it
+		/local
+			len [integer!]
+			s	[c-string!]
+	][
+		len: -1
+		s: unicode/to-utf8 str :len
+		str/cache: null									;-- detach buffer
+		s
+	]
+	
+	redSetGlobalWord: func [
+		"Set a word to a value in global context"
+		id		[integer!]	 "symbol ID of the word to set"
+		value	[red-value!] "value to be referred to"
+		return: [red-value!]
+	][
+		_context/set-global id value
+	]
+	
+	redGetGlobalWord: func [
+		"Get the value referenced by a word in global context"
+		id		[integer!]	 "Symbol ID of the word to get"
+		return: [red-value!] "Value referred by the word"
+	][
+		_context/get-global id
+	]
+	
+	
+	#export cdecl [
+		redBoot
+		redDo
+		redQuit
+		redInteger
+		redFloat
+		redString
+		redWord
+		redCInt32
+		redCString
+		redSetGlobalWord
+		redGetGlobalWord
+	]
 ]
