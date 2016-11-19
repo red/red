@@ -43,8 +43,7 @@ crypto: context [
 		ALG_HASH
 	]
 
-	crc32-table: declare int-ptr!
-	crc32-table: null
+	crc32-table: as int-ptr! 0
 
 	make-crc32-table: func [
 		/local
