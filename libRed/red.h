@@ -36,12 +36,13 @@ void redQuit();
 /*
 ** run Red code
 */
-int redDo(const char* source);
-
+int			redDo(const char* source);
+red_value   redCall(red_word name, ...);
 /*
 ** C -> Red
 */
 
+int			redSymbol(const char* s);
 red_integer redInteger(int n);
 red_float   redFloat(double f);
 red_string  redString(const char* s);
@@ -51,7 +52,7 @@ red_block   redBlock(red_value v,...);
 /*
 ** Red -> C
 */
-int redCInt32(red_integer value);
+int			redCInt32(red_integer value);
 const char* redCString(red_string value);
 
 /*

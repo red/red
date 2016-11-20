@@ -6,6 +6,7 @@ redQuit
 redInteger
 redFloat
 redString
+redSymbol
 redWord
 redBlock
 		
@@ -16,6 +17,7 @@ redCString
 redSetGlobalWord
 redGetGlobalWord
 redTypeOf
+redCall
 		
 redPrint
 redProbe

@@ -14,6 +14,8 @@ Red [
 
 #system [
 
+	cmd-blk: as red-block! 0
+
 	names: context [
 		print: word/load "print"
 	]
@@ -22,6 +24,7 @@ Red [
 		"Initialize the Red runtime"
 	][
 		red/boot
+		cmd-blk: block/push* 10
 	]
 	
 	redDo: func [
@@ -73,11 +76,18 @@ Red [
 		string/load s length? s UTF-8
 	]
 	
-	redWord: func [
+	redSymbol: func [
 		s		[c-string!]
 		return: [integer!]								;-- symbol ID
 	][
 		symbol/make s
+	]
+	
+	redWord: func [
+		s		[c-string!]
+		return: [red-word!]
+	][
+		word/load s
 	]
 	
 	redBlock: func [
@@ -152,6 +162,27 @@ Red [
 		TYPE_OF(value)
 	]
 	
+	redCall: func [
+		[variadic]
+		return: [red-value!]
+		/local
+			list [int-ptr!]
+			p	 [int-ptr!]
+	][
+		list: system/stack/frame
+		list: list + 2									;-- jump to 1st argument
+		p: list
+		
+		block/rs-clear cmd-blk
+		
+		while [list/value <> 0][
+			block/rs-append cmd-blk as red-value! list/value
+			list: list + 1
+		]
+		interpreter/eval cmd-blk yes
+		stack/arguments
+	]
+	
 	redPrint: func [
 		value [red-value!]
 	][
@@ -175,6 +206,7 @@ Red [
 		redInteger
 		redFloat
 		redString
+		redSymbol
 		redWord
 		redBlock
 		
@@ -185,6 +217,7 @@ Red [
 		redSetGlobalWord
 		redGetGlobalWord
 		redTypeOf
+		redCall
 		
 		redPrint
 		redProbe
