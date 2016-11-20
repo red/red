@@ -46,6 +46,7 @@ red_integer redInteger(int n);
 red_float   redFloat(double f);
 red_string  redString(const char* s);
 red_word    redWord(const char* s);
+red_block   redBlock(red_value v,...);
 
 /*
 ** Red -> C
@@ -54,7 +55,7 @@ int redCInt32(red_integer value);
 const char* redCString(red_string value);
 
 /*
-** create global red value
+** Access to a Red global word
 */
 red_value redSetGlobalWord(int id, red_value value);
 red_value redGetGlobalWord(int id);
