@@ -2,3 +2,11 @@ EXPORTS
 redBoot
 redDo
 redQuit
+redInteger
+redFloat
+redString
+redWord
+redCInt32
+redCString
+redSetGlobalWord
+redGetGlobalWord

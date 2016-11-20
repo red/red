@@ -20,6 +20,13 @@
                              RED_VERSION_MINOR * 1000 + \
                              RED_VERSION_PATCH)
 
+typedef void*     red_value;
+typedef red_value red_integer;
+typedef red_value red_float;
+typedef red_value red_string;
+typedef red_value red_word;
+typedef red_value red_block;
+
 /*
 ** setup and terminate
 */
@@ -31,6 +38,26 @@ void redQuit();
 */
 int redDo(const char* source);
 
+/*
+** C -> Red
+*/
+
+red_integer redInteger(int n);
+red_float   redFloat(double f);
+red_string  redString(const char* s);
+red_word    redWord(const char* s);
+
+/*
+** Red -> C
+*/
+int redCInt32(red_integer value);
+const char* redCString(red_string value);
+
+/*
+** create global red value
+*/
+red_value redSetGlobalWord(int id, red_value value);
+red_value redGetGlobalWord(int id);
 
 /*
 ** Red Types
