@@ -3787,6 +3787,7 @@ red: context [
 						if value = type?/word arg [type: value break]
 					]
 				]
+				if type = 'any-type! [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]
