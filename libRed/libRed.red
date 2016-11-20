@@ -89,11 +89,11 @@ Red [
 			p	 [int-ptr!]
 	][
 		list: system/stack/frame
-		list: list + 3									;-- jump to 1st argument
+		list: list + 2									;-- jump to 1st argument
 		p: list
 		
 		while [p/value <> 0][p: p + 1]
-		blk: block/push* (as-integer p - list) >> 4
+		blk: block/push* (as-integer p - list) >> 2
 		
 		while [list/value <> 0][
 			block/rs-append blk as red-value! list/value
