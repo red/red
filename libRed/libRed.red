@@ -14,6 +14,10 @@ Red [
 
 #system [
 
+	names: context [
+		print: word/load "print"
+	]
+
 	redBoot: func [
 		"Initialize the Red runtime"
 	][
@@ -76,11 +80,40 @@ Red [
 		symbol/make s
 	]
 	
-	redCInt32: func [									;@@ make a macro instead?
+	redBlock: func [
+		[variadic]
+		return: [red-block!]
+		/local
+			blk	 [red-block!]
+			list [int-ptr!]
+			p	 [int-ptr!]
+	][
+		list: system/stack/frame
+		list: list + 3									;-- jump to 1st argument
+		p: list
+		
+		while [p/value <> 0][p: p + 1]
+		blk: block/push* (as-integer p - list) >> 4
+		
+		while [list/value <> 0][
+			block/rs-append blk as red-value! list/value
+			list: list + 1
+		]
+		blk
+	]
+	
+	redCInt32: func [
 		int		[red-integer!]
 		return: [integer!]
 	][
 		int/value
+	]
+	
+	redCDouble: func [
+		fl		[red-float!]
+		return: [float!]
+	][
+		fl/value
 	]
 	
 	redCString: func [
@@ -113,18 +146,47 @@ Red [
 		_context/get-global id
 	]
 	
+	redTypeOf: func [
+		value [red-value!]
+	][
+		TYPE_OF(value)
+	]
 	
+	redPrint: func [
+		value [red-value!]
+	][
+		stack/mark-native names/print
+		stack/push value
+		natives/print* yes
+		stack/unwind
+	]
+
+	redProbe: func [
+		value [red-value!]
+	][
+		#call [probe value]
+	]
+		
 	#export cdecl [
 		redBoot
 		redDo
 		redQuit
+		
 		redInteger
 		redFloat
 		redString
 		redWord
+		redBlock
+		
 		redCInt32
+		redCDouble
 		redCString
+		
 		redSetGlobalWord
 		redGetGlobalWord
+		redTypeOf
+		
+		redPrint
+		redProbe
 	]
 ]
