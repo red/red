@@ -126,6 +126,43 @@ Red [
 		blk
 	]
 	
+	redPath: func [
+		[variadic]
+		return: [red-path!]
+		/local
+			path [red-path!]
+			list [int-ptr!]
+			p	 [int-ptr!]
+	][
+		list: system/stack/frame
+		list: list + 2									;-- jump to 1st argument
+		p: list
+		
+		while [p/value <> 0][p: p + 1]
+		path: as red-path! block/push* (as-integer p - list) >> 2
+		
+		while [list/value <> 0][
+			block/rs-append as red-block! path as red-value! list/value
+			list: list + 1
+		]
+		path/header: TYPE_PATH
+		path
+	]
+	
+	redPathFromString: func [
+		src		[c-string!]
+		return: [red-value!]
+		/local
+			blk	[red-block!]
+	][
+		blk: as red-block! load-string src
+		either TYPE_OF(blk) = TYPE_BLOCK [
+			block/rs-head blk
+		][
+			as red-value! blk
+		]
+	]
+	
 	redCInt32: func [
 		int		[red-integer!]
 		return: [integer!]
@@ -168,6 +205,35 @@ Red [
 		return: [red-value!] "Value referred by the word"
 	][
 		_context/get-global id
+	]
+	
+	redSetPath: func [
+		path	[red-path!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			p [red-value!]
+	][
+		block/rs-clear cmd-blk
+		p: block/rs-append cmd-blk as red-value! path
+		p/header: TYPE_SET_PATH
+		block/rs-append cmd-blk value
+		
+		interpreter/eval cmd-blk yes
+		stack/arguments
+	]
+	
+	redGetPath: func [
+		path	[red-path!]
+		return: [red-value!]
+		/local
+			p [red-value!]
+	][
+		block/rs-clear cmd-blk
+		p: block/rs-append cmd-blk as red-value! path
+		
+		interpreter/eval cmd-blk yes
+		stack/arguments
 	]
 	
 	redTypeOf: func [
@@ -252,6 +318,8 @@ Red [
 		redSymbol
 		redWord
 		redBlock
+		redPath
+		redPathFromString
 		
 		redCInt32
 		redCDouble
@@ -259,6 +327,8 @@ Red [
 		
 		redSetGlobalWord
 		redGetGlobalWord
+		redSetPath
+		redGetPath
 		redRoutine
 		redTypeOf
 		redCall

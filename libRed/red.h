@@ -26,6 +26,7 @@ typedef red_value red_float;
 typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
+typedef red_value red_path;
 
 /* Setup and terminate */
 void		redBoot();
@@ -46,6 +47,8 @@ red_float	redFloat(double f);
 red_string	redString(const char* s);
 red_word	redWord(const char* s);
 red_block	redBlock(red_value v,...);
+red_path	redPath(red_value v, ...);
+red_path	redPathFromString(const char* s);
 
 /* Red -> C */
 int			redCInt32(red_integer value);
@@ -54,6 +57,10 @@ const char*	redCString(red_string value);
 /* Access to a Red global word */
 red_value	redSetGlobalWord(int id, red_value value);
 red_value	redGetGlobalWord(int id);
+
+/* Access to a Red path */
+red_value	redSetPath(red_path p, red_value v);
+red_value	redGetPath(red_path p);
 
 /* Red Types */
 typedef enum
