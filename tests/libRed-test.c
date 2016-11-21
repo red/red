@@ -11,6 +11,7 @@ int main() {
 	int a = redSymbol("a");
 	red_word Print = redWord("print");
 	red_path o_b = redPathFromString("o/b");
+	red_path o_b_2 = redPath(redWord("o"), redWord("b"), redInteger(2), 0);
 	
 	redSetGlobalWord(a, (red_value) redBlock(redInteger(42), redString("hello"), 0));
 	redDo("?? a foreach v a [probe v]");
@@ -28,10 +29,11 @@ int main() {
 	redDo("o: object [b: {hello}]");
 	
 	redProbe(redGetPath(o_b));
+	redProbe(o_b_2);
+	redProbe(redGetPath(o_b_2));
+	
 	redSetPath(o_b, redInteger(123));
 	redProbe(redGetPath(o_b));
-
-	redProbe(redPath(redWord("a"), redWord("b"), redInteger(1), 0));
 
 	return 0;
 }
