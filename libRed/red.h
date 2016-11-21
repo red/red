@@ -27,43 +27,35 @@ typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
 
-/*
-** setup and terminate
-*/
-void redBoot();
-void redQuit();
+/* Setup and terminate */
+void		redBoot();
+void		redQuit();
 
-/*
-** run Red code
-*/
+/* Run Red code */
 int			redDo(const char* source);
-red_value   redCall(red_word name, ...);
+red_value	redCall(red_word name, ...);
 /*
-** C -> Red
-*/
 
+/* Expose a C callback in Red */
+int			redRoutine(red_word, const char*, void*);
+
+/* C -> Red */
 int			redSymbol(const char* s);
-red_integer redInteger(int n);
-red_float   redFloat(double f);
-red_string  redString(const char* s);
-red_word    redWord(const char* s);
-red_block   redBlock(red_value v,...);
+red_integer	redInteger(int n);
+red_float	redFloat(double f);
+red_string	redString(const char* s);
+red_word	redWord(const char* s);
+red_block	redBlock(red_value v,...);
 
-/*
-** Red -> C
-*/
+/* Red -> C */
 int			redCInt32(red_integer value);
-const char* redCString(red_string value);
+const char*	redCString(red_string value);
 
-/*
-** Access to a Red global word
-*/
-red_value redSetGlobalWord(int id, red_value value);
-red_value redGetGlobalWord(int id);
+/* Access to a Red global word */
+red_value	redSetGlobalWord(int id, red_value value);
+red_value	redGetGlobalWord(int id);
 
-/*
-** Red Types
-*/
+/* Red Types */
 typedef enum
 {
     RED_TYPE_VALUE,

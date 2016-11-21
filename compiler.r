@@ -2685,7 +2685,7 @@ red: context [
 		
 		pc: skip pc 2
 		compose [
-			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret) no
 		]
 	]
 	

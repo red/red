@@ -16,6 +16,7 @@ redCString
 		
 redSetGlobalWord
 redGetGlobalWord
+redRoutine
 redTypeOf
 redCall
 		
