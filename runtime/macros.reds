@@ -363,6 +363,7 @@ Red/System [
 #define ANY_SERIES?(type)	[
 	any [
 		type = TYPE_BLOCK
+		type = TYPE_HASH
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH
