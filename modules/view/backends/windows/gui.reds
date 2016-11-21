@@ -1369,7 +1369,7 @@ change-data: func [
 	case [
 		all [
 			type = slider
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
@@ -1380,7 +1380,7 @@ change-data: func [
 		]
 		all [
 			type = progress
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
