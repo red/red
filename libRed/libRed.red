@@ -30,8 +30,12 @@ Red [
 	][
 		str: string/load src length? src UTF-8
 		stack/mark-eval words/_body
-		#call [system/lexer/transcode str none none]
-		stack/unwind-last
+		catch RED_THROWN_ERROR [
+			#call [system/lexer/transcode str none none]
+			stack/unwind-last
+		]
+		stack/adjust-post-try
+		system/thrown: 0
 		stack/arguments
 	]
 	
