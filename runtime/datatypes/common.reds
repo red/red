@@ -125,7 +125,7 @@ report: func [
 	arg3  [red-value!]
 ][	
 	stack/mark-native words/_body
-	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	stack/set-last as red-value! error/create type id arg1 arg2 arg3
 	natives/print* no
 	stack/set-last unset-value
 	stack/unwind
@@ -155,7 +155,7 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
+	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
 ]
 
 throw-make: func [
