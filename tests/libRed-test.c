@@ -7,6 +7,8 @@ red_integer add(red_integer a, red_integer b) {
 }
 
 int main() {
+	red_error err;
+
 	redBoot();
 	int a = redSymbol("a");
 	red_word Print = redWord("print");
@@ -24,9 +26,12 @@ int main() {
 	redCall(redWord("print"), redDo("system/version"), 0);
 	redCall(Print, redFloat(99.0), 0);
 
-	value = redRoutine(redWord("c-add"), "[a [integer!] b [integer!]]", (void*) &add);
-	if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
-	redDo("probe c-add 2 3 probe :c-add");
+	redRoutine(redWord("c-add"), "[a [integer!] b [integer!]]", (void*) &add);
+	//if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
+	if (err = redHasError())
+		redPrint(err);
+	else
+		redDo("probe c-add 2 3 probe :c-add");
 
 	redProbe((red_value)o_b);
 	redDo("o: object [b: {hello}]");

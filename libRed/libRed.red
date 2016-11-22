@@ -14,36 +14,47 @@ Red [
 
 #system [
 
-	#define TRAP_ERRORS(body) [
-		stack/mark-try-all words/_body
+	#define TRAP_ERRORS(name body) [
+		last-error: null
+		stack/mark-try-all name
 		catch RED_THROWN_ERROR body
 		stack/adjust-post-try
+		res: stack/arguments
+		if all [system/thrown > 0 TYPE_OF(res) = TYPE_ERROR][last-error: res]
 		system/thrown: 0
-		stack/arguments
+		res
 	]
 	
 	cmd-blk:	as red-block! 0
 	extern-blk: as red-block! 0
+	last-error: as red-value! 0
 
 	names: context [
-		print:	word/load "print"
-		extern:	word/load "extern"
+		print:		word/load "print"
+		extern:		word/load "extern"
+		redDo:		word/load "redDo"
+		redDoBlock:	word/load "redDoBlock"
+		redCall:	word/load "redCall"
+		redPathFS:	word/load "redPathFromString"
+		redSetPath: word/load "redSetPath"
+		redGetPath: word/load "redGetPath"
+		redRoutine: word/load "redRoutine"
 	]
 	
 	load-string: func [
 		src		[c-string!]		"Red code encoded in UTF-8"
+		name	[red-word!]
 		return: [red-value!]	"Last value or error! value"
 		/local
 			str [red-string!]
 			res [red-value!]
 	][
-		TRAP_ERRORS([
+		TRAP_ERRORS(name [
 			str: string/load src length? src UTF-8
 		])
-		res: stack/arguments
-		if TYPE_OF(res) = TYPE_ERROR [return res]
+		if last-error <> null [return last-error]
 		
-		TRAP_ERRORS([
+		TRAP_ERRORS(name [
 			#call [system/lexer/transcode str none none]
 			stack/unwind-last
 		])
@@ -51,9 +62,12 @@ Red [
 	
 	do-safe: func [
 		code	[red-block!]
+		name	[red-word!]
 		return: [red-value!]
+		/local
+			res [red-value!]
 	][
-		TRAP_ERRORS([
+		TRAP_ERRORS(name [
 			interpreter/eval code yes
 			stack/unwind-last
 		])
@@ -80,8 +94,8 @@ Red [
 		/local
 			blk [red-block!]
 	][
-		blk: as red-block! load-string src yes
-		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk]
+		blk: as red-block! load-string src names/redDo
+		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk names/redDo]
 		stack/arguments
 	]
 	
@@ -90,7 +104,7 @@ Red [
 		code	[red-block!]	"Block to evaluate"
 		return: [red-value!]	"Last value or error! value"
 	][
-		do-safe code
+		do-safe code names/redDoBlock
 	]
 	
 	redQuit: func [
@@ -192,7 +206,7 @@ Red [
 		/local
 			blk	[red-block!]
 	][
-		blk: as red-block! load-string src
+		blk: as red-block! load-string src names/redPathFS
 		either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
 		][
@@ -255,7 +269,7 @@ Red [
 		p: block/rs-append cmd-blk as red-value! path
 		p/header: TYPE_SET_PATH
 		block/rs-append cmd-blk value
-		do-safe cmd-blk
+		do-safe cmd-blk names/redSetPath
 	]
 	
 	redGetPath: func [
@@ -266,7 +280,7 @@ Red [
 	][
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
-		do-safe cmd-blk
+		do-safe cmd-blk names/redGetPath
 	]
 	
 	redTypeOf: func [
@@ -292,7 +306,7 @@ Red [
 			block/rs-append cmd-blk as red-value! list/value
 			list: list + 1
 		]
-		do-safe cmd-blk
+		do-safe cmd-blk names/redCall
 	]
 	
 	redRoutine: func [
@@ -305,7 +319,7 @@ Red [
 			blk  [red-block!]
 			res	 [red-value!]
 	][
-		spec: as red-block! load-string desc
+		spec: as red-block! load-string desc names/redRoutine
 		either TYPE_OF(spec) <> TYPE_BLOCK [
 			as red-value! spec
 		][
@@ -316,12 +330,11 @@ Red [
 					as red-value! spec
 					null null
 			]
-			TRAP_ERRORS([
+			TRAP_ERRORS(names/redRoutine [
 				_function/validate spec
 				stack/unwind-last
 			])
-			res: stack/arguments
-			if TYPE_OF(res) = TYPE_ERROR [return res]
+			if last-error <> null [return last-error]
 			
 			blk: as red-block! block/rs-head spec
 			
@@ -349,7 +362,13 @@ Red [
 	][
 		#call [probe value]
 	]
-		
+	
+	redHasError: func [
+		return: [red-value!]
+	][
+		return as red-value! last-error
+	]
+	
 	#export cdecl [
 		redBoot
 		redDo
@@ -379,5 +398,6 @@ Red [
 		
 		redPrint
 		redProbe
+		redHasError
 	]
 ]

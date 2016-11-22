@@ -27,6 +27,7 @@ typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
 typedef red_value red_path;
+typedef red_value red_error;
 
 /* Setup and terminate */
 void		redBoot();
@@ -67,6 +68,7 @@ red_value	redGetPath(red_path path);
 /* Debugging */
 void		redPrint(red_value value);
 red_value	redProbe(red_value value);
+red_value	redHasError(void);
 
 /* Red Types */
 typedef enum
