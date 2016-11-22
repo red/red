@@ -35,6 +35,15 @@ Red [
 		stack/arguments
 	]
 	
+	do-cmd-blk: func [
+		return: [red-value!]
+	][
+		catch RED_THROWN_ERROR [interpreter/eval cmd-blk yes]
+		stack/adjust-post-try
+		system/thrown: 0
+		stack/arguments
+	]
+	
 	;=== Exported API ===
 
 	redBoot: func [
@@ -218,9 +227,7 @@ Red [
 		p: block/rs-append cmd-blk as red-value! path
 		p/header: TYPE_SET_PATH
 		block/rs-append cmd-blk value
-		
-		interpreter/eval cmd-blk yes
-		stack/arguments
+		do-cmd-blk
 	]
 	
 	redGetPath: func [
@@ -231,9 +238,7 @@ Red [
 	][
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
-		
-		interpreter/eval cmd-blk yes
-		stack/arguments
+		do-cmd-blk
 	]
 	
 	redTypeOf: func [
@@ -259,8 +264,7 @@ Red [
 			block/rs-append cmd-blk as red-value! list/value
 			list: list + 1
 		]
-		interpreter/eval cmd-blk yes
-		stack/arguments
+		do-cmd-blk
 	]
 	
 	redRoutine: func [
