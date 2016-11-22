@@ -1088,13 +1088,12 @@ gdiplus-roundrect-path: func [
 	/local
 		angle90 [float32!]
 ][
-	angle90: as float32! 90.0
-	GdipResetPath path
-	GdipAddPathArcI path x y diameter diameter as float32! 180.0 angle90
+	angle90: as float32! 90
+	GdipAddPathArcI path x y diameter diameter as float32! 180 angle90
 	x: x + (width - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 270.0 angle90
+	GdipAddPathArcI path x y diameter diameter as float32! 270 angle90
 	y: y + (height - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 0.0 angle90
+	GdipAddPathArcI path x y diameter diameter as float32! 0 angle90
 	x: x - (width - diameter)
 	GdipAddPathArcI path x y diameter diameter angle90 angle90
 	GdipClosePathFigure path
