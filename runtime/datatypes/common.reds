@@ -540,6 +540,7 @@ words: context [
 	_anon:			as red-word! 0
 	_body:			as red-word! 0
 	_end:			as red-word! 0
+	_not-found:		as red-word! 0
 	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
@@ -774,6 +775,7 @@ words: context [
 		_paren:			word/load "paren"
 		_anon:			word/load "<anon>"				;-- internal usage
 		_body:			word/load "<body>"				;-- internal usage
+		_not-found:		word/load "<not-found>"			;-- internal usage
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"
