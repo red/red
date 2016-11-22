@@ -33,34 +33,40 @@ void		redBoot();
 void		redQuit();
 
 /* Run Red code */
-int			redDo(const char* source);
+red_value	redDo(const char* source);
+red_value	redDoBlock(red_block code);
 red_value	redCall(red_word name, ...);
-/*
 
 /* Expose a C callback in Red */
-int			redRoutine(red_word, const char*, void*);
+red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 
 /* C -> Red */
-int			redSymbol(const char* s);
-red_integer	redInteger(int n);
-red_float	redFloat(double f);
-red_string	redString(const char* s);
-red_word	redWord(const char* s);
+int			redSymbol(const char* word);
+red_integer	redInteger(int number);
+red_float	redFloat(double number);
+red_string	redString(const char* string);
+red_word	redWord(const char* word);
 red_block	redBlock(red_value v,...);
 red_path	redPath(red_value v, ...);
-red_path	redPathFromString(const char* s);
+red_path	redPathFromString(const char* path);
 
 /* Red -> C */
-int			redCInt32(red_integer value);
-const char*	redCString(red_string value);
+int			redCInt32(red_integer number);
+double		redCDouble(red_float number);
+const char*	redCString(red_string string);
+int			redTypeOf(red_value value);
 
 /* Access to a Red global word */
 red_value	redSetGlobalWord(int id, red_value value);
 red_value	redGetGlobalWord(int id);
 
 /* Access to a Red path */
-red_value	redSetPath(red_path p, red_value v);
-red_value	redGetPath(red_path p);
+red_value	redSetPath(red_path path, red_value value);
+red_value	redGetPath(red_path path);
+
+/* Debugging */
+void		redPrint(red_value value);
+red_value	redProbe(red_value value);
 
 /* Red Types */
 typedef enum

@@ -14,6 +14,14 @@ Red [
 
 #system [
 
+	#define TRAP_ERRORS(body) [
+		stack/mark-try-all words/_body
+		catch RED_THROWN_ERROR body
+		stack/adjust-post-try
+		system/thrown: 0
+		stack/arguments
+	]
+	
 	cmd-blk:	as red-block! 0
 	extern-blk: as red-block! 0
 
@@ -27,28 +35,33 @@ Red [
 		return: [red-value!]	"Last value or error! value"
 		/local
 			str [red-string!]
+			res [red-value!]
 	][
-		str: string/load src length? src UTF-8
-		stack/mark-eval words/_body
-		catch RED_THROWN_ERROR [
+		TRAP_ERRORS([
+			str: string/load src length? src UTF-8
+		])
+		res: stack/arguments
+		if TYPE_OF(res) = TYPE_ERROR [return res]
+		
+		TRAP_ERRORS([
 			#call [system/lexer/transcode str none none]
 			stack/unwind-last
-		]
-		stack/adjust-post-try
-		system/thrown: 0
-		stack/arguments
+		])
 	]
 	
-	do-cmd-blk: func [
+	do-safe: func [
+		code	[red-block!]
 		return: [red-value!]
 	][
-		catch RED_THROWN_ERROR [interpreter/eval cmd-blk yes]
-		stack/adjust-post-try
-		system/thrown: 0
-		stack/arguments
+		TRAP_ERRORS([
+			interpreter/eval code yes
+			stack/unwind-last
+		])
 	]
 	
-	;=== Exported API ===
+	;====================================
+	;=========== Exported API ===========
+	;====================================
 
 	redBoot: func [
 		"Initialize the Red runtime"
@@ -61,12 +74,23 @@ Red [
 	]
 	
 	redDo: func [
-		"Evaluates Red code"
+		"Loads and evaluates Red code"
 		src		[c-string!]		"Red code encoded in UTF-8"
 		return: [red-value!]	"Last value or error! value"
+		/local
+			blk [red-block!]
 	][
-		interpreter/eval as red-block! load-string src yes
+		blk: as red-block! load-string src yes
+		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk]
 		stack/arguments
+	]
+	
+	redDoBlock: func [
+		"Evaluates Red code"
+		code	[red-block!]	"Block to evaluate"
+		return: [red-value!]	"Last value or error! value"
+	][
+		do-safe code
 	]
 	
 	redQuit: func [
@@ -231,7 +255,7 @@ Red [
 		p: block/rs-append cmd-blk as red-value! path
 		p/header: TYPE_SET_PATH
 		block/rs-append cmd-blk value
-		do-cmd-blk
+		do-safe cmd-blk
 	]
 	
 	redGetPath: func [
@@ -242,7 +266,7 @@ Red [
 	][
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
-		do-cmd-blk
+		do-safe cmd-blk
 	]
 	
 	redTypeOf: func [
@@ -268,26 +292,37 @@ Red [
 			block/rs-append cmd-blk as red-value! list/value
 			list: list + 1
 		]
-		do-cmd-blk
+		do-safe cmd-blk
 	]
 	
 	redRoutine: func [
 		name	[red-word!]
 		desc	[c-string!]
 		ptr		[byte-ptr!]
-		return: [integer!]								;-- 0: ok, <>0: error
+		return: [red-value!]
 		/local
 			spec [red-block!]
 			blk  [red-block!]
+			res	 [red-value!]
 	][
 		spec: as red-block! load-string desc
 		either TYPE_OF(spec) <> TYPE_BLOCK [
-			1
+			as red-value! spec
 		][
 			spec: as red-block! block/rs-head spec
-			if TYPE_OF(spec) <> TYPE_BLOCK [return 1]
+			if TYPE_OF(spec) <> TYPE_BLOCK [
+				return as red-value! error/create
+					TO_ERROR(script invalid-arg)
+					as red-value! spec
+					null null
+			]
+			TRAP_ERRORS([
+				_function/validate spec
+				stack/unwind-last
+			])
+			res: stack/arguments
+			if TYPE_OF(res) = TYPE_ERROR [return res]
 			
-			_function/validate spec						;@@ catch errors
 			blk: as red-block! block/rs-head spec
 			
 			either TYPE_OF(blk) = TYPE_BLOCK [
@@ -296,7 +331,6 @@ Red [
 				block/insert-value spec as red-value! extern-blk
 			]
 			_context/set name as red-value! routine/push spec null as-integer ptr 0 true
-			0
 		]
 	]
 	
@@ -310,7 +344,8 @@ Red [
 	]
 
 	redProbe: func [
-		value [red-value!]
+		value	[red-value!]
+		return: [red-value!]
 	][
 		#call [probe value]
 	]
@@ -318,6 +353,7 @@ Red [
 	#export cdecl [
 		redBoot
 		redDo
+		redDoBlock
 		redQuit
 		
 		redInteger

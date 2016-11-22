@@ -17,12 +17,15 @@ int main() {
 	redDo("?? a foreach v a [probe v]");
 	redPrint(redGetGlobalWord(a));
 
+	red_value value = redDo("$%$");
+	if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
+
 	redProbe(redCall(redWord("what-dir"), 0));
 	redCall(redWord("print"), redDo("system/version"), 0);
 	redCall(Print, redFloat(99.0), 0);
 
-	int res = redRoutine(redWord("c-add"), "[a [integer!] b [integer!]]", (void*) &add);
-	if (res != 0) { printf("Error constructing routine: %d\n", res); }
+	value = redRoutine(redWord("c-add"), "[a [integer!] b [integer!]]", (void*) &add);
+	if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
 	redDo("probe c-add 2 3 probe :c-add");
 
 	redProbe((red_value)o_b);
