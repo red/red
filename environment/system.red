@@ -135,6 +135,7 @@ system: context [
 				missing-spec-field: [:arg1 "not found in spec block"]
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				too-long:			"Content too long"
+				invalid-char:		["Invalid char! value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]

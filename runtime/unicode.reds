@@ -67,8 +67,7 @@ unicode: context [
 				4
 			]
 			true [
-				print "*** Error: to-utf8 codepoint overflow"
-				halt
+				fire [TO_ERROR(script invalid-char) char/push cp]
 				0
 			]
 		]
