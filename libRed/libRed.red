@@ -35,7 +35,7 @@ Red [
 		redDo:		word/load "redDo"
 		redDoBlock:	word/load "redDoBlock"
 		redCall:	word/load "redCall"
-		redPathFS:	word/load "redPathFromString"
+		redLDPath:	word/load "redLoadPath"
 		redSetPath: word/load "redSetPath"
 		redGetPath: word/load "redGetPath"
 		redRoutine: word/load "redRoutine"
@@ -77,8 +77,8 @@ Red [
 	;=========== Exported API ===========
 	;====================================
 
-	redBoot: func [
-		"Initialize the Red runtime"
+	redOpen: func [
+		"Initialize the Red runtime for the current instance"
 	][
 		red/boot
 		
@@ -107,8 +107,8 @@ Red [
 		do-safe code names/redDoBlock
 	]
 	
-	redQuit: func [
-		"Releases dynamic memory allocated by Red runtime"
+	redClose: func [
+		"Releases dynamic memory allocated for the current instance"
 	][
 		;@@ Free the main buffers
 		free as byte-ptr! natives/table
@@ -200,13 +200,13 @@ Red [
 		path
 	]
 	
-	redPathFromString: func [
+	redLoadPath: func [
 		src		[c-string!]
 		return: [red-value!]
 		/local
 			blk	[red-block!]
 	][
-		blk: as red-block! load-string src names/redPathFS
+		blk: as red-block! load-string src names/redLDPath
 		either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
 		][
@@ -370,10 +370,10 @@ Red [
 	]
 	
 	#export cdecl [
-		redBoot
+		redOpen
 		redDo
 		redDoBlock
-		redQuit
+		redClose
 		
 		redInteger
 		redFloat
@@ -382,7 +382,7 @@ Red [
 		redWord
 		redBlock
 		redPath
-		redPathFromString
+		redLoadPath
 		
 		redCInt32
 		redCDouble

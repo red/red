@@ -30,8 +30,8 @@ typedef red_value red_path;
 typedef red_value red_error;
 
 /* Setup and terminate */
-void		redBoot();
-void		redQuit();
+void		redOpen();
+void		redClose();
 
 /* Run Red code */
 red_value	redDo(const char* source);
@@ -49,7 +49,7 @@ red_string	redString(const char* string);
 red_word	redWord(const char* word);
 red_block	redBlock(red_value v,...);
 red_path	redPath(red_value v, ...);
-red_path	redPathFromString(const char* path);
+red_path	redLoadPath(const char* path);
 
 /* Red -> C */
 int			redCInt32(red_integer number);
