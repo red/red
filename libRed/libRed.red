@@ -14,6 +14,12 @@ Red [
 
 #system [
 
+	#enum str-encoding! [
+		UTF8: 	1
+		UTF16
+		BSTR
+	]
+	
 	#define TRAP_ERRORS(name body) [
 		last-error: null
 		stack/mark-try-all name
@@ -141,6 +147,24 @@ Red [
 		string/load s length? s UTF-8
 	]
 	
+	redStringWith: func [
+		s		 [c-string!]
+		encoding [integer!]
+		len		 [integer!]
+		return:  [red-string!]
+		/local
+			p [int-ptr!]	
+	][	
+		switch encoding [
+			UTF8  [string/load s length? s UTF-8]
+			UTF16 [string/load s len UTF-16LE]
+			BSTR  [
+				p: (as int-ptr! s) - 1
+				string/load s (p/value / 2) UTF-16LE
+			]
+		]
+	]
+	
 	redSymbol: func [
 		s		[c-string!]
 		return: [integer!]								;-- symbol ID
@@ -230,14 +254,37 @@ Red [
 	
 	redCString: func [
 		str		[red-string!]
-		return: [c-string!]								;-- caller needs to free it
+		return: [c-string!]
+		/local
+			len [integer!]
+	][
+		len: -1
+		unicode/to-utf8 str :len
+	]
+	
+	redCStringWith: func [
+		str		 [red-string!]
+		encoding [integer!]
+		return:  [c-string!]							;-- caller needs to free it
 		/local
 			len [integer!]
 			s	[c-string!]
+			bs	[int-ptr!]
 	][
-		len: -1
-		s: unicode/to-utf8 str :len
-		str/cache: null									;-- detach buffer
+		switch encoding [
+			UTF8  [len: -1 s: unicode/to-utf8 str :len]
+			UTF16 [s: unicode/to-utf16 str]
+			BSTR  [
+				s: unicode/to-utf16 str
+				len: (string/rs-length? str) * 2
+				bs: as int-ptr! allocate len + 4
+				bs/value: len
+				s: as-c-string copy-memory
+					(as byte-ptr! bs + 1)
+					as byte-ptr! s
+					len
+			]
+		]
 		s
 	]
 	
@@ -369,7 +416,7 @@ Red [
 		return as red-value! last-error
 	]
 	
-	#export cdecl [
+	#export stdcall [
 		redBoot
 		redDo
 		redDoBlock
@@ -378,6 +425,7 @@ Red [
 		redInteger
 		redFloat
 		redString
+		redStringWith
 		redSymbol
 		redWord
 		redBlock
@@ -387,6 +435,7 @@ Red [
 		redCInt32
 		redCDouble
 		redCString
+		redCStringWith
 		
 		redSetGlobalWord
 		redGetGlobalWord
