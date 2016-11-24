@@ -58,7 +58,7 @@ REBOL [
 			#macro add2: func [n][n + 2]
 			#macro foo: func [a b][add2 a + b]
 			#macro bar: func [a b][a - b]
-			#macro ['max some [integer!]] func [s e][
+			#macro ['max some [integer!]] func [[manual] s e][
 				change/part s first maximum-of copy/part next s e e 
 				s
 			]
@@ -70,7 +70,7 @@ REBOL [
 			print foo 1 foo 3 4
 
 			#local [
-				#macro integer! func [s e][print ["inc:" s/1] s/1: s/1 + 1 next s]
+				#macro integer! func [[manual] s e][s/1: s/1 + 1 next s]
 				prin "*test5* "
 				print foo 1 foo 3 4
 				prin "*test6* "
