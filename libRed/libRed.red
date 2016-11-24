@@ -269,21 +269,11 @@ Red [
 		/local
 			len [integer!]
 			s	[c-string!]
-			bs	[int-ptr!]
 	][
 		switch encoding [
 			UTF8  [len: -1 s: unicode/to-utf8 str :len]
 			UTF16 [s: unicode/to-utf16 str]
-			BSTR  [
-				s: unicode/to-utf16 str
-				len: (string/rs-length? str) * 2
-				bs: as int-ptr! allocate len + 4
-				bs/value: len
-				s: as-c-string copy-memory
-					(as byte-ptr! bs + 1)
-					as byte-ptr! s
-					len
-			]
+			BSTR  [s: as-c-string SysAllocString #u16 "Hello!"] ;unicode/to-utf16 str]
 		]
 		s
 	]
