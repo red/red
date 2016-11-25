@@ -9,15 +9,15 @@ REBOL [
 Red []													;-- make it usable by Red too.
 
 preprocessor: context [
-	exec:	 none										;-- object that captures directive words
+	exec:	 do [context [config: none]]				;-- object that captures directive words
 	protos:  make block! 10
-	macros:  make block! 10
+	macros:  [<none>]
 	stack:	 make block! 10
 	syms:	 make block! 20
 	depth:	 0											;-- track depth of recursive macro calls
 	active?: yes
 	trace?:  no
-	s: none
+	s:		 none
 	
 	do-quit: does [
 		case [
