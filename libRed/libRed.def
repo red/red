@@ -13,6 +13,15 @@ redBlock
 redPath
 redLoadPath
 
+redPushInteger
+redPushFloat
+redPushString
+redPushWord
+redPushBlock
+redPushPath
+redPushLoadPath
+redPop
+
 redCInt32
 redCDouble
 redCString
