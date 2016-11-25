@@ -159,6 +159,23 @@ Red/System [
 			]
 		]
         
+		reverse-float32-array: func [
+			array	[pointer! [float32!]]
+			count	[integer!]
+			/local
+				tail [pointer! [float32!]]
+				val  [float32!]
+		][
+			tail: array + count - 1
+			while [array < tail][
+				val: array/value
+				array/value: tail/value
+				tail/value: val
+				array: array + 1
+				tail: tail - 1
+			]
+		]
+        
 		#define DRAW_FETCH_VALUE(type) [
 			cmd: cmd + 1
 			if any [cmd >= tail TYPE_OF(cmd) <> type][

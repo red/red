@@ -1777,7 +1777,7 @@ OS-draw-grad-pen: func [
 		color/value: to-gdiplus-color clr/array1
 		next: head + 1 
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-		pos/value: as float32! p
+		pos/value: as float32! ( 1.0 - p )
 		if next <> head [p: p + delta]
 		head: head + 1
 		color: color + 1
@@ -1788,16 +1788,16 @@ OS-draw-grad-pen: func [
 	last-c: color - 1
 	pos: pos - count
 	color: color - count
-	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
-		colors-pos/value: as float32! 0.0
+	if pos/value < as float32! 1.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 1.0
 		colors/value: color/value
 		color: colors
 		pos: colors-pos
 		count: count + 1
 	]
-	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+	if last-p/value > as float32! 0.0 [			;-- last one should be always 1.0
 		last-c/2: last-c/value
-		last-p/2: as float32! 1.0
+		last-p/2: as float32! 0.0
 		count: count + 1
 	]
 
@@ -1835,6 +1835,7 @@ OS-draw-grad-pen: func [
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
 		reverse-int-array color count
+        reverse-float32-array colors-pos count
 		GdipSetPathGradientPresetBlend brush color pos count
 
 		if any [							;@@ move the shape back to the right position
