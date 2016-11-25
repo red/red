@@ -145,10 +145,10 @@ gui-console-ctx: context [
 
 	save-cfg: function [][
 		offset: win/offset					;-- offset could be negative in some cases
-		if offset/x < 0 [offset/x: 0]
-		if offset/y < 0 [offset/y: 0]
-		cfg/win-pos:  offset
-		cfg/win-size: win/size
+		size: win/size
+		scr-sz: system/view/screens/1/size
+		if all [offset/x > 0 offset/y > 0 offset < scr-sz][cfg/win-pos: offset]
+		if size > 100x20 [cfg/win-size: size]
 		cfg/font-name: console/font/name
 		cfg/font-size: console/font/size
 		save/header cfg-path cfg [Purpose: "Red GUI Console Configuration File"]

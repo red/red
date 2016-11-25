@@ -1258,9 +1258,23 @@ object: context [
 		
 		either deep? [
 			while [value < tail][
-				type: TYPE_OF(value)
-				case [
-					ANY_SERIES?(type) [
+				switch TYPE_OF(value) [
+					TYPE_MAP
+					TYPE_BITSET
+					TYPE_BLOCK
+					TYPE_HASH
+					TYPE_PAREN
+					TYPE_PATH
+					TYPE_LIT_PATH
+					TYPE_SET_PATH
+					TYPE_GET_PATH
+					TYPE_STRING
+					TYPE_FILE
+					TYPE_URL
+					TYPE_BINARY
+					TYPE_IMAGE
+					TYPE_TAG
+					TYPE_EMAIL [
 						actions/copy 
 							as red-series! value
 							value						;-- overwrite the value
@@ -1268,10 +1282,10 @@ object: context [
 							yes
 							null
 					]
-					type = TYPE_FUNCTION [
+					TYPE_FUNCTION [
 						rebind as red-function! value nctx node
 					]
-					true [0]
+					default [0]
 				]
 				value: value + 1
 			]

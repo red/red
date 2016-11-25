@@ -418,7 +418,7 @@ integer: context [
 					int/value: as-integer fl/value
 				][
 					if TYPE_OF(proto) <> TYPE_INTEGER [ 
-						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER proto]
 					]
 				]
 			]

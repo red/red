@@ -109,6 +109,7 @@ _print: func [
 		list: list + 1
 		zero? count
 	]
+	fflush 0
 ]
 
 ;-------------------------------------------

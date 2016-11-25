@@ -49,8 +49,7 @@ Red [
 		#macro foo: func [a b][add2 a + b]
 		#macro bar: func [a b][a - b]
 		#macro ['max some [integer!]] func [s e][
-			change/part s first maximum-of copy/part next s e e 
-			s
+			first maximum-of copy/part next s e
 		]
 
 	--test-- "macro-2"
@@ -60,7 +59,7 @@ Red [
 		--assert 12 = foo 1 foo 3 4
 
 		#local [
-			#macro integer! func [s e][s/1: s/1 + 1 next s]
+			#macro integer! func [s e][s/1 + 1]
 			--test-- "macro-4"
 				--assert (load "17") = foo 1 foo 3 4
 			--test-- "macro-5"

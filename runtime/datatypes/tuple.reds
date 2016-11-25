@@ -259,24 +259,15 @@ tuple: context [
 			n	[integer!]
 			s	[series!]
 			msg [red-value!]
-			err
-			cat
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
-
-		err: #in system/catalog/errors script
-		either type = -1 [								;-- called by make
-			cat: #in system/catalog/errors/script bad-make-arg
-		][
-			cat: #in system/catalog/errors/script bad-to-arg
-		]
 
 		switch TYPE_OF(spec) [
 			TYPE_ANY_LIST [
 				blk: as red-block! spec
 				n: block/rs-length? blk
 				if n > 12 [
-					fire [err cat datatype/push TYPE_TUPLE spec]
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
 				]
 				tp: (as byte-ptr! proto) + 4
 				s: GET_BUFFER(blk)
@@ -287,7 +278,7 @@ tuple: context [
 					if any [
 						int/value > 255
 						int/value < 0
-					][fire [err cat datatype/push TYPE_TUPLE spec]]
+					][fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
 					tp/i: as byte! int/value
 					int: int + 1
 				]
@@ -304,11 +295,11 @@ tuple: context [
 				proto: as red-tuple! load-value as red-string! spec
 				
 				if TYPE_OF(proto) <> TYPE_TUPLE [ 
-					fire [err cat datatype/push TYPE_TUPLE spec]
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE proto]
 				]
 			]
 			TYPE_TUPLE [return as red-tuple! spec]
-			default [fire [err cat datatype/push TYPE_TUPLE spec]]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
 		]
 		proto
 	]

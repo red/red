@@ -113,6 +113,12 @@ pair: context [
 				int: as red-integer! spec
 				push int/value int/value
 			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				x: as-integer fl/value
+				push x x
+			]
 			TYPE_BLOCK [
 				int: as red-integer! block/rs-head as red-block! spec
 				int2: int + 1
@@ -136,6 +142,13 @@ pair: context [
 					int2/value
 				]	
 				push x y
+			]
+			TYPE_STRING [
+				proto: load-value as red-string! spec
+				if TYPE_OF(proto) <> TYPE_PAIR [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR proto]
+				]
+				proto
 			]
 			TYPE_PAIR [as red-pair! spec]
 			default [

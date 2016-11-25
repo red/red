@@ -36,6 +36,7 @@ system/console: context [
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
 	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
+	ws:		 charset " ^/^M^-"
 
 	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
@@ -208,22 +209,28 @@ system/console: context [
 
 	launch: function [/local result][
 		either script: read-argument [
-			either error? script: try-do [load script][
-				print :script
-			][
-				either not all [
-					block? script
-					script: find/case script 'Red
-					block? script/2 
+			parse script [some [[to "Red" pos: 3 skip any ws #"[" end skip] | skip]]
+			
+			either script: pos [
+				either error? script: try-do [load script][
+					print :script
 				][
-					print "*** Error: not a Red program!"
-					;quit/return -2
-				][
-					expand-directives script
-					set/any 'result try-do skip script 2
-					if error? :result [print result]
+					either not all [
+						block? script
+						script: find/case script 'Red
+						block? script/2 
+					][
+						print "*** Error: not a Red program!"
+						;quit/return -2
+					][
+						expand-directives script
+						set/any 'result try-do skip script 2
+						if error? :result [print result]
+					]
 				]
-			]
+			][
+				print "*** Error: Red header not found!"
+			]	
 			if any [catch? gui?][run/no-banner]
 		][
 			run
