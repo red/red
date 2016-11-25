@@ -268,10 +268,10 @@ preprocessor: context [
 
 	expand: func [
 		code [block!] job [object! none!]
-		/keep
+		/clean
 		/local rule e pos cond value then else cases body keep? expr
 	][	
-		unless keep [reset job]
+		if clean [reset job]
 
 		#process off
 		parse code rule: [
@@ -319,7 +319,7 @@ preprocessor: context [
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (
 					repend stack [tail macros tail protos]
-					change/part s expand/keep s/2 job e
+					change/part s expand s/2 job e
 					loop 2 [clear take/last stack]
 					if tail? next macros [macros/1: <none>] ;-- re-inject a value to match (avoids infinite loops)
 				)
@@ -351,10 +351,10 @@ preprocessor: context [
 	set 'expand-directives func [						;-- to be called from Red only
 		"Invokes the preprocessor on argument list, modifying and returning it"
 		code [block! paren!] "List of Red values to preprocess"
-		/keep 				 "Keep previous preprocessor state, do not reset it"
+		/clean 				 "Clear all previously created macros and words"
 		/local job
 	][
 		job: system/build/config
-		either keep [expand/keep code job][expand code job]
+		either clean [expand/clean code job][expand code job]
 	]
 ]

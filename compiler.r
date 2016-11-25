@@ -43,7 +43,7 @@ red: context [
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
 	preprocessor:  do-cache file: %utils/preprocessor.r
-	preprocessor:  do preprocessor/expand load-cache file none ;-- apply preprocessor on itself
+	preprocessor:  do preprocessor/expand/clean load-cache file none ;-- apply preprocessor on itself
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
@@ -4516,7 +4516,7 @@ red: context [
 			src: load-source file
 			job/red-pass?: yes
 			process-config src/1
-			preprocessor/expand src job
+			preprocessor/expand/clean src job
 			process-needs src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]
