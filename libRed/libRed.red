@@ -461,7 +461,7 @@ Red [
 	redHasError: func [
 		return: [red-value!]
 	][
-		return as red-value! last-error
+		last-error
 	]
 	
 	#export cdecl [
