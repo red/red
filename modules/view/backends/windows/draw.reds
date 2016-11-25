@@ -1424,17 +1424,12 @@ OS-draw-text: func [
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
 	either modes/on-image? [
-		w: 0 h: 0
-		if len > 1 [
-			sz: as tagSIZE :w
-			GetTextExtentPoint32 dc str len sz
-		]
 		x: 0
 		rect: as RECT_STRUCT_FLOAT32 :x
 		rect/x: as float32! pos/x
 		rect/y: as float32! pos/y
-		rect/width: as float32! w
-		rect/height: as float32! h
+		rect/width: as float32! 0
+		rect/height: as float32! 0
 		GdipDrawString modes/graphics str len modes/gp-font rect 0 modes/gp-font-brush
 	][
 		ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
