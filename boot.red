@@ -10,6 +10,8 @@ Red [
 	}
 ]
 
+#include %environment/macros.red
+
 #if any [not config/dev-mode? config/libRedRT?][
 
 	#include %environment/datatypes.red
