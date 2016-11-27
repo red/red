@@ -260,19 +260,7 @@ typeset: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
-		spec	[red-value!]
-		type	[integer!]
-		return: [red-typeset!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/make"]]
-
-		if TYPE_OF(spec) <> TYPE_BLOCK [
-			fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_TYPESET spec]
-		]		
-		as red-typeset! to proto spec type
-	]
+	;make: :to
 	
 	to: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
@@ -460,7 +448,7 @@ typeset: context [
 			TYPE_VALUE
 			"typeset!"
 			;-- General actions --
-			:make
+			:to				;make
 			null			;random
 			null			;reflect
 			:to

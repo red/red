@@ -325,6 +325,19 @@ float: context [
 		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
+	
+	make-in2: func [
+		parent	[red-block!]
+		value	[float!]
+		return: [red-float!]
+		/local
+			fl [red-float!]
+	][
+		fl: as red-float! ALLOC_TAIL(parent)
+		fl/header: TYPE_FLOAT
+		fl/value: value
+		fl
+	]
 
 	make-in: func [
 		parent	[red-block!]
@@ -511,7 +524,7 @@ float: context [
 						proto/value: as float! int/value
 					]
 					default [
-						fire [TO_ERROR(script bad-to-arg) datatype/push type spec]
+						fire [TO_ERROR(script bad-to-arg) datatype/push type proto]
 					]
 				]
 				proto/header: type

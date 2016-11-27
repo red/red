@@ -739,12 +739,12 @@ Red [
 		--assert (make bitset! #{00000000000000000000000040}) = to bitset! #"a"
 	--test-- "to-bitset!-string!"
 		--assert (make bitset! #{0000000000000000000000000201}) = to bitset! "foo"
-	--test-- "to-bitset!-integer!"
-		--assert (make bitset! #{00000000000000000000000000000000}) = to bitset! 123
-	--test-- "to-bitset!-integer!"
-		--assert (make bitset! #{0000000000000000000000000000000000000000000000000000000000000000}) = to bitset! 256
-;	   --test-- "to-bitset!-url!"
-;		   --assert (make bitset! #{0000000000070020000000004D8BA8}) = to bitset! http://red-lang.org
+	;--test-- "to-bitset!-integer!"
+	;	--assert (make bitset! #{00000000000000000000000000000000}) = to bitset! 123
+	;--test-- "to-bitset!-integer!"
+	;	--assert (make bitset! #{0000000000000000000000000000000000000000000000000000000000000000}) = to bitset! 256
+	;--test-- "to-bitset!-url!"
+	;	--assert (make bitset! #{0000000000070020000000004D8BA8}) = to bitset! http://red-lang.org
 	;--test-- "to-bitset!-file!"
 	;	--assert (make bitset! #{0000000000010000000000000648}) = to bitset! %/file/
 	--test-- "to-bitset!-binary!"

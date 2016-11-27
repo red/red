@@ -1,7 +1,8 @@
 EXPORTS
-redBoot
+redOpen
 redDo
-redQuit
+redDoBlock
+redClose
 
 redInteger
 redFloat
@@ -10,7 +11,16 @@ redSymbol
 redWord
 redBlock
 redPath
-redPathFromString
+redLoadPath
+
+redPushInteger
+redPushFloat
+redPushString
+redPushWord
+redPushBlock
+redPushPath
+redPushLoadPath
+redPop
 
 redCInt32
 redCDouble

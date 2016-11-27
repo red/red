@@ -639,18 +639,19 @@ vector: context [
 		dtype	[integer!]
 		return:	[red-vector!]
 		/local
-			s	  [series!]
-			w	  [red-word!]
-			vec	  [red-vector!]
-			int	  [red-integer!]
-			value [red-value!]
-			sym   [integer!]
-			size  [integer!]
+			s	   [series!]
+			w	   [red-word!]
+			vec	   [red-vector!]
+			int	   [red-integer!]
+			fl	   [red-float!]
+			value  [red-value!]
+			sym    [integer!]
+			size   [integer!]
 			blk-sz [integer!]
-			unit  [integer!]
-			type  [integer!]
-			fill? [logic!]
-			end   [byte-ptr!]
+			unit   [integer!]
+			type   [integer!]
+			fill?  [logic!]
+			end	   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/make"]]
 
@@ -660,10 +661,8 @@ vector: context [
 		type: TYPE_OF(spec)
 		
 		switch type [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
-			]
+			TYPE_INTEGER
+			TYPE_FLOAT [size: GET_SIZE_FROM(spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [

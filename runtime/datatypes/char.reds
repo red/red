@@ -94,7 +94,11 @@ char: context [
 				fl: as red-float! spec
 				proto/value: as-integer fl/value
 			]
-			TYPE_BINARY
+			TYPE_BINARY [							;-- first character in UTF-8 encoding
+				p: binary/rs-head as red-binary! spec
+				unit: unicode/utf8-char-size? as-integer p/value
+				proto/value: unicode/decode-utf8-char as c-string! p :unit
+			]
 			TYPE_ANY_STRING [						;-- to char! FIRST series!
 				ser: as red-series! spec
 				s: GET_BUFFER(ser)

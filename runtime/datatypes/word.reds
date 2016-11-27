@@ -338,7 +338,7 @@ word: context [
 			TYPE_ISSUE [proto: spec]
 			TYPE_STRING [
 				proto: load-value as red-string! spec
-				unless any-word? type [fire [TO_ERROR(syntax bad-char) proto]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) proto]]
 			]
 			TYPE_CHAR [
 				char: as red-char! spec

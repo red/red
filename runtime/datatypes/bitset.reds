@@ -524,6 +524,9 @@ bitset: context [
 				bits/node: copy-series GET_BUFFER(b2)
 			]
 			TYPE_INTEGER [
+				if cmd = CMD_TO [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_BITSET spec]
+				]
 				int: as red-integer! spec
 				size: int/value
 				if size <= 0 [

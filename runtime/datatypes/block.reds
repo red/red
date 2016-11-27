@@ -540,19 +540,32 @@ block: context [
 		/local
 			size [integer!]
 			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+			TYPE_INTEGER
+			TYPE_FLOAT [
+				size: GET_SIZE_FROM(spec)
 				if zero? size [size: 1]
 				make-at proto size
 				proto/header: type
 				proto
 			]
-			default [to proto spec type]
+			TYPE_ANY_PATH
+			TYPE_ANY_LIST [
+				proto: clone as red-block! spec no no
+				proto/header: type
+				proto
+			]
+			TYPE_OBJECT [object/reflect as red-object! spec words/body]
+			TYPE_MAP	[map/reflect as red-hash! spec words/body]
+			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
+			default [
+				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
+				null
+			]
 		]
 	]
 
@@ -575,10 +588,7 @@ block: context [
 				#call [system/lexer/transcode str none none]
 			]
 			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
-			TYPE_PATH
-			TYPE_GET_PATH
-			TYPE_SET_PATH
-			TYPE_LIT_PATH
+			TYPE_ANY_PATH
 			TYPE_ANY_LIST [proto: clone as red-block! spec no no]
 			default [rs-append make-at proto 1 spec]
 		]
@@ -808,7 +818,7 @@ block: context [
 		]
 		
 		type: TYPE_OF(value)
-		any-blk?: either all [same? hash?][no][ANY_BLOCK?(type)]
+		any-blk?: either all [same? hash?][no][ANY_BLOCK_STRICT?(type)]
 
 		either any [
 			match?
@@ -945,14 +955,7 @@ block: context [
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
-				either any [							;@@ replace with ANY_BLOCK?
-					type = TYPE_BLOCK
-					type = TYPE_PAREN
-					type = TYPE_PATH
-					type = TYPE_GET_PATH
-					type = TYPE_SET_PATH
-					type = TYPE_LIT_PATH
-				][
+				either ANY_BLOCK_STRICT?(type) [
 					b: as red-block! value
 					s: GET_BUFFER(b)
 					(as-integer s/tail - s/offset) >> 4 - b/head

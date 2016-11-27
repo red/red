@@ -31,8 +31,9 @@ Red [
 		res
 	]
 	
-	cmd-blk:	as red-block! 0
-	extern-blk: as red-block! 0
+	heap: 		declare red-block!
+	cmd-blk:	declare red-block!
+	extern-blk: declare red-block!
 	last-error: as red-value! 0
 
 	names: context [
@@ -41,7 +42,7 @@ Red [
 		redDo:		word/load "redDo"
 		redDoBlock:	word/load "redDoBlock"
 		redCall:	word/load "redCall"
-		redPathFS:	word/load "redPathFromString"
+		redLDPath:	word/load "redLoadPath"
 		redSetPath: word/load "redSetPath"
 		redGetPath: word/load "redGetPath"
 		redRoutine: word/load "redRoutine"
@@ -83,13 +84,14 @@ Red [
 	;=========== Exported API ===========
 	;====================================
 
-	redBoot: func [
-		"Initialize the Red runtime"
+	redOpen: func [
+		"Initialize the Red runtime for the current instance"
 	][
 		red/boot
 		
-		cmd-blk: block/push* 10
-		extern-blk: block/push* 1
+		block/make-at heap 100
+		block/make-at cmd-blk 10
+		block/make-at extern-blk 1
 		block/rs-append extern-blk as red-value! names/extern
 	]
 	
@@ -113,8 +115,8 @@ Red [
 		do-safe code names/redDoBlock
 	]
 	
-	redQuit: func [
-		"Releases dynamic memory allocated by Red runtime"
+	redClose: func [
+		"Releases dynamic memory allocated for the current instance"
 	][
 		;@@ Free the main buffers
 		free as byte-ptr! natives/table
@@ -130,21 +132,21 @@ Red [
 		n		[integer!]
 		return: [red-integer!]
 	][
-		integer/push n
+		integer/make-in heap n
 	]
 	
 	redFloat: func [
 		f		[float!]
 		return: [red-float!]
 	][
-		float/push f
+		float/make-in2 heap f
 	]
 	
 	redString: func [
 		s		[c-string!]
 		return: [red-string!]
 	][
-		string/load s length? s UTF-8
+		string/load-in s length? s heap UTF-8
 	]
 	
 	redStringWith: func [
@@ -176,7 +178,7 @@ Red [
 		s		[c-string!]
 		return: [red-word!]
 	][
-		word/load s
+		word/load-in s heap
 	]
 	
 	redBlock: func [
@@ -192,7 +194,7 @@ Red [
 		p: list
 		
 		while [p/value <> 0][p: p + 1]
-		blk: block/push* (as-integer p - list) >> 2
+		blk: block/make-in heap (as-integer p - list) >> 2
 		
 		while [list/value <> 0][
 			block/rs-append blk as red-value! list/value
@@ -214,7 +216,7 @@ Red [
 		p: list
 		
 		while [p/value <> 0][p: p + 1]
-		path: as red-path! block/push* (as-integer p - list) >> 2
+		path: as red-path! block/make-in heap (as-integer p - list) >> 2
 		
 		while [list/value <> 0][
 			block/rs-append as red-block! path as red-value! list/value
@@ -224,18 +226,111 @@ Red [
 		path
 	]
 	
-	redPathFromString: func [
+	redLoadPath: func [
 		src		[c-string!]
 		return: [red-value!]
 		/local
 			blk	[red-block!]
 	][
-		blk: as red-block! load-string src names/redPathFS
+		blk: as red-block! load-string src names/redLDPath
+		either TYPE_OF(blk) = TYPE_BLOCK [
+			block/rs-append heap block/rs-head blk
+		][
+			as red-value! blk
+		]
+	]
+	
+	redPushInteger: func [
+		n		[integer!]
+		return: [red-integer!]
+	][
+		integer/push n
+	]
+
+	redPushFloat: func [
+		f		[float!]
+		return: [red-float!]
+	][
+		float/push f
+	]
+
+	redPushString: func [
+		s		[c-string!]
+		return: [red-string!]
+	][
+		string/load s length? s UTF-8
+	]
+
+	redPushWord: func [
+		s		[c-string!]
+		return: [red-word!]
+	][
+		word/load s
+	]
+
+	redPushBlock: func [
+		[variadic]
+		return: [red-block!]
+		/local
+			blk	 [red-block!]
+			list [int-ptr!]
+			p	 [int-ptr!]
+	][
+		list: system/stack/frame
+		list: list + 2									;-- jump to 1st argument
+		p: list
+
+		while [p/value <> 0][p: p + 1]
+		blk: block/push* (as-integer p - list) >> 2
+
+		while [list/value <> 0][
+			block/rs-append blk as red-value! list/value
+			list: list + 1
+		]
+		blk
+	]
+
+	redPushPath: func [
+		[variadic]
+		return: [red-path!]
+		/local
+			path [red-path!]
+			list [int-ptr!]
+			p	 [int-ptr!]
+	][
+		list: system/stack/frame
+		list: list + 2									;-- jump to 1st argument
+		p: list
+
+		while [p/value <> 0][p: p + 1]
+		path: as red-path! block/push* (as-integer p - list) >> 2
+
+		while [list/value <> 0][
+			block/rs-append as red-block! path as red-value! list/value
+			list: list + 1
+		]
+		path/header: TYPE_PATH
+		path
+	]
+
+	redPushLoadPath: func [
+		src		[c-string!]
+		return: [red-value!]
+		/local
+			blk	[red-block!]
+	][
+		blk: as red-block! load-string src names/redLDPath
 		either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
 		][
 			as red-value! blk
 		]
+	]
+	
+	redPop: func [
+		n [integer!]
+	][
+		stack/pop n
 	]
 	
 	redCInt32: func [
@@ -403,14 +498,14 @@ Red [
 	redHasError: func [
 		return: [red-value!]
 	][
-		return as red-value! last-error
+		last-error
 	]
 	
 	#export stdcall [
-		redBoot
+		redOpen
 		redDo
 		redDoBlock
-		redQuit
+		redClose
 		
 		redInteger
 		redFloat
@@ -420,7 +515,16 @@ Red [
 		redWord
 		redBlock
 		redPath
-		redPathFromString
+		redLoadPath
+		
+		redPushInteger
+		redPushFloat
+		redPushString
+		redPushWord
+		redPushBlock
+		redPushPath
+		redPushLoadPath
+		redPop
 		
 		redCInt32
 		redCDouble

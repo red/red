@@ -62,21 +62,38 @@ path: context [
 		/local
 			path [red-path!]
 			int  [red-integer!]
+			fl	 [red-float!]
 			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/make"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+			TYPE_INTEGER
+			TYPE_FLOAT 
+			TYPE_PERCENT [
+				size: either TYPE_OF(spec) = TYPE_INTEGER [
+					int: as red-integer! spec
+					int/value
+				][
+					fl: as red-float! spec
+					as-integer fl/value
+				]
 				if zero? size [size: 1]
 				make-at proto size
 				proto/header: type					;-- implicit reset of all header flags
+				proto
 			]
-			default [to proto spec type]
+			TYPE_ANY_LIST
+			TYPE_ANY_PATH [
+				proto: as red-path! block/to as red-block! proto spec type
+				proto/args: null
+				proto
+			]
+			default [
+				fire [TO_ERROR(script bad-make-arg) datatype/push type spec]
+				null
+			]
 		]
-		proto
 	]
 
 	to: func [

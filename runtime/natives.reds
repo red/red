@@ -706,6 +706,7 @@ natives: context [
 					print-line ["Error: unknown string encoding: " unit]
 				]
 			]
+			fflush 0
 		]
 		last-lf?: no
 		stack/set-last unset-value
@@ -2350,6 +2351,7 @@ natives: context [
 			proto [red-value!]
 			spec  [red-value!]
 			dt	  [red-datatype!]
+			path  [red-path!]
 			type  [integer!]
 			type2 [integer!]
 	][
@@ -2365,13 +2367,17 @@ natives: context [
 			type: dt/value
 		]
 		either any [
-			all [ANY_BLOCK?(type)  ANY_BLOCK?(type2)]
+			all [ANY_BLOCK_STRICT?(type) ANY_BLOCK_STRICT?(type2)]
 			all [ANY_STRING?(type) ANY_STRING?(type2)]
 		][
 			copy-cell spec proto
 			set-type proto type
+			if ANY_PATH?(type) [
+				path: as red-path! proto
+				path/args: null
+			]
 		][
-			fire [TO_ERROR(script not-same-class) datatype/push type datatype/push type2]
+			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
 	]
 

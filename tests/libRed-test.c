@@ -9,10 +9,10 @@ red_integer add(red_integer a, red_integer b) {
 int main() {
 	red_error err;
 
-	redBoot();
+	redOpen();
 	int a = redSymbol("a");
 	red_word Print = redWord("print");
-	red_path o_b = redPathFromString("o/b");
+	red_path o_b = redLoadPath("o/b");
 	red_path o_b_2 = redPath(redWord("o"), redWord("b"), redInteger(2), 0);
 	
 	redSetGlobalWord(a, (red_value) redBlock(redInteger(42), redString("hello"), 0));
@@ -43,5 +43,6 @@ int main() {
 	redSetPath(o_b, redInteger(123));
 	redProbe(redGetPath(o_b));
 
+	redClose();
 	return 0;
 }
