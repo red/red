@@ -23,7 +23,6 @@ write %build/bin/sources.r set-cache [
 		%datatypes.red
 		%functions.red
 		%lexer.red
-		%macros.red
 		%natives.red
 		%operators.red
 		%reactivity.red
