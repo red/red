@@ -16,7 +16,7 @@ libRedRT: context [
 	imports:	make block!  100
 	template:	make string! 100'000
 	extras:		make block!  100
-	aliased:		make block!	 10							;-- [new old...]
+	aliased:	make block!	 10							;-- [new old...]
 	obj-path:	'red/objects
 	
 	lib-file:	  %libRedRT
@@ -89,7 +89,7 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load file
+			append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def
