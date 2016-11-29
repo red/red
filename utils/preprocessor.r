@@ -105,6 +105,7 @@ preprocessor: context [
 			any [
 				[word! | lit-word! | get-word!] (total: total + 1)
 				| refinement! (return total)
+				| skip
 			]
 		]
 		total

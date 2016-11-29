@@ -520,7 +520,15 @@ red: context [
 			]
 		]
 		append body [
-			RED_THROWN_RETURN RED_THROWN_EXIT
+			RED_THROWN_RETURN
+		]
+		append/only body pick [
+			[re-throw]
+			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+		] empty? locals-stack
+		
+		append body [
+			RED_THROWN_EXIT
 		]
 		append/only body pick [
 			[re-throw]
