@@ -49,7 +49,7 @@ preprocessor: context [
 		][
 			error/where: new-line/all reduce [cmd] no
 			print form :error
-			halt
+			either system/console [throw/name 'halt-request 'console][halt]
 		]
 	]
 	
