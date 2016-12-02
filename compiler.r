@@ -4250,7 +4250,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: next preprocessor/expand load-source/hidden %boot.red job ;-- compile Red's boot script
+		pc: next preprocessor/expand/clean load-source/hidden %boot.red job ;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
