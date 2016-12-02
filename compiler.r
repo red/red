@@ -4525,6 +4525,7 @@ red: context [
 			job/red-pass?: yes
 			process-config src/1
 			preprocessor/expand/clean src job
+			if job/show = 'expanded [probe next src]
 			process-needs src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]

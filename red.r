@@ -519,6 +519,7 @@ redc: context [
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
 				| ["-u"	| "--update-libRedRT"] (opts/libRedRT-update?: yes)
+				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
 				| "--red-only"				(opts/red-only?: yes)
 				| "--dev"					(opts/dev-mode?: yes)
 				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
