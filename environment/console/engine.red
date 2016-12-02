@@ -240,6 +240,13 @@ system/console: context [
 
 ;-- Console-oriented function definitions
 
+expand: func [
+	"Preprocess the argument block and display the output"
+	blk [block!] "Block to expand"
+][
+	probe expand-directives/clean blk
+]
+
 ls:		func ['dir [any-type!]][list-dir :dir]
 ll:		func ['dir [any-type!]][list-dir/col :dir 1]
 pwd:	does [prin mold system/options/path]
