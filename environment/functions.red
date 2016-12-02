@@ -851,5 +851,6 @@ rejoin: function [
 
 keys-of:	:words-of
 atan2:		:arctangent2
+sqrt:		:square-root
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded
