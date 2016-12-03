@@ -254,8 +254,8 @@ preprocessor: context [
 		]
 		
 		pos: tail macros
-		either tag? macros/1 [remove macros][append macros '|]
-		append macros rule
+		either tag? macros/1 [remove macros][insert macros '|]
+		insert macros rule
 		new-line pos yes
 		
 		exec: make exec protos
@@ -319,9 +319,10 @@ preprocessor: context [
 					]
 				) :s
 				| s: #local [block! | (syntax-error s next s)] e: (
-					repend stack [tail macros tail protos]
+					repend stack [negate length? macros tail protos]
 					change/part s expand s/2 job e
-					loop 2 [clear take/last stack]
+					clear take/last stack
+					remove/part macros skip tail macros take/last stack
 					if tail? next macros [macros/1: <none>] ;-- re-inject a value to match (avoids infinite loops)
 				)
 				| s: #reset (reset job remove s) :s
