@@ -640,7 +640,12 @@ system/lexer: context [
 		]
 
 		symbol-rule: [
-			some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
+			(ot: none) some [
+				ahead [not-word-char | ws-no-count | control-char] break
+				| #"<" ot: [ahead #"/" (ot: back ot) :ot break | none]	;-- a</b>
+				| #">" if (ot) [(ot: back ot) :ot break]				;-- a<b>
+				| skip
+			] e:
 		]
 
 		begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -673,20 +678,18 @@ system/lexer: context [
 		]
 		
 		special-words: [
-			[
-				#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
-				| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
-					#"/" 
-					ahead [slash-end | ws-no-count | control-char | end] (value: "//")
-					| (value: "/")
-				]
+			#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
+			| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
+				#"/" 
+				ahead [slash-end | ws-no-count | control-char | end] (value: "//")
+				| (value: "/")
 			]
-			opt [#":" (type: set-word!)]
-			(to-word stack value type)				;-- special case for / and // as words
+			| "<>" (value: "<>")
 		]
 
 		word-rule: 	[
-			(type: word!) special-words
+			(type: word!) special-words	opt [#":" (type: set-word!)]
+			(to-word stack value type)				;-- special case for / and // as words
 			| path: s: begin-symbol-rule (type: word!) [
 				url-rule
 				| path-rule							;-- path matched
@@ -697,7 +700,7 @@ system/lexer: context [
 
 		get-word-rule: [
 			#":" (type: get-word!) [
-				special-words
+				special-words (to-word stack value type)
 				| s: begin-symbol-rule [
 					path-rule (type: get-path!)
 					| (to-word stack copy/part s e type)	;-- get-word matched
@@ -706,10 +709,15 @@ system/lexer: context [
 		]
 
 		lit-word-rule: [
-			#"'" (type: lit-word!) s: begin-symbol-rule [
-				path-rule (type: lit-path!)				;-- path matched
-				| (to-word stack copy/part s e type)	;-- lit-word matched
-			] 
+			#"'" (type: lit-word!) [
+				special-words (to-word stack value type)
+				| [
+					s: begin-symbol-rule [
+						path-rule (type: lit-path!)			 ;-- path matched
+						| (to-word stack copy/part s e type) ;-- lit-word matched
+					]
+				]
+			]
 			opt [#":" (throw-error [type back s])]
 		]
 

@@ -209,8 +209,8 @@ system/console: context [
 
 	launch: function [/local result][
 		either script: read-argument [
-			parse script [some [[to "Red" pos: 3 skip any ws #"[" end skip] | skip]]
-			
+			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
+		
 			either script: pos [
 				either error? script: try-do [load script][
 					print :script
@@ -239,6 +239,13 @@ system/console: context [
 ]
 
 ;-- Console-oriented function definitions
+
+expand: func [
+	"Preprocess the argument block and display the output"
+	blk [block!] "Block to expand"
+][
+	probe expand-directives/clean blk
+]
 
 ls:		func ['dir [any-type!]][list-dir :dir]
 ll:		func ['dir [any-type!]][list-dir/col :dir 1]

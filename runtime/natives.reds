@@ -17,6 +17,10 @@ Red/System [
 ]
 
 #define DO_EVAL_BLOCK [
+	if expand? > 0 [
+		job: #get system/build/config
+		#call [preprocessor/expand as red-block! arg job]
+	]
 	either negative? next [
 		interpreter/eval as red-block! arg yes
 	][
@@ -484,6 +488,7 @@ natives: context [
 	
 	do*: func [
 		check?  [logic!]
+		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
 		return: [integer!]
@@ -494,8 +499,9 @@ natives: context [
 			str	   [red-string!]
 			slot   [red-value!]
 			blk	   [red-block!]
+			job	   [red-value!]
 	][
-		#typecheck [do args next]
+		#typecheck [do expand? args next]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args

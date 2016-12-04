@@ -29,6 +29,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -r, --release                  : Compile in release mode, linking everything
                                      together (default: development mode).
 
+    -s, --show-expanded            : Output result of Red source code expansion by
+                                     the preprocessor.
+
     -t <ID>, --target <ID>         : Cross-compile to a different platform
                                      target than the current one (see targets
                                      table below).
