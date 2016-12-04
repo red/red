@@ -4467,6 +4467,13 @@ red: context [
 		][
 			job/modules: make block! 0
 		]
+		if all [
+			job/OS = 'Windows
+			job/sub-system = 'GUI
+			not find job/modules 'View
+		][
+			throw-error "Windows target requires View module (`Needs: View` in the header)"
+		]
 	]
 	
 	clean-up: does [
