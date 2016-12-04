@@ -167,6 +167,7 @@ case: make native! [[
 do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
+		/expand "Expand directives before evaluation"
 		/args "If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
 		/next "Do next expression only, return it, update block word"

@@ -68,6 +68,7 @@ system-dialect: make-profilable context [
 		libRedRT?: 			no
 		libRedRT-update?:	no
 		modules:			none
+		show:				none
 	]
 	
 	compiler: make-profilable context [

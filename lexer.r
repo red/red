@@ -33,6 +33,9 @@ lexer: context [
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	base:	16										;-- binary base
+	otag: 	none
+	ot:		none
+	ct:		none
 	
 	;====== Parsing rules ======
 
@@ -82,20 +85,21 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"@:;}
+	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
-	not-str-char:   #"^""
-	not-mstr-char:  #"}"
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><"
 	not-tag-char:	complement charset ">"
-	caret-char:	    charset [#"^(40)" - #"^(5F)"]
+	tag-char:		charset "<>"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
-	stop: 		    none
+	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
 		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
@@ -157,8 +161,12 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: [not-word-char | ws-no-count | control-char])
-		some UTF8-filtered-char e:
+		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
+		some [
+			otag ot: [#"/" (otag: [end skip] ot: back ot) :ot | none] ;-- a</b>
+			| #">" ct: (if ot [otag: [end skip] ct: back ot]) :ct	  ;-- a<b>
+			| UTF8-filtered-char
+		] e:
 	]
 	
 	begin-symbol-rule: [							;-- 1st char in symbols is restricted

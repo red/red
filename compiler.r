@@ -520,7 +520,15 @@ red: context [
 			]
 		]
 		append body [
-			RED_THROWN_RETURN RED_THROWN_EXIT
+			RED_THROWN_RETURN
+		]
+		append/only body pick [
+			[re-throw]
+			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+		] empty? locals-stack
+		
+		append body [
+			RED_THROWN_EXIT
 		]
 		append/only body pick [
 			[re-throw]
@@ -4243,7 +4251,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: next preprocessor/expand load-source/hidden %boot.red job ;-- compile Red's boot script
+		pc: next preprocessor/expand/clean load-source/hidden %boot.red job ;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
@@ -4518,6 +4526,7 @@ red: context [
 			job/red-pass?: yes
 			process-config src/1
 			preprocessor/expand/clean src job
+			if job/show = 'expanded [probe next src]
 			process-needs src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]

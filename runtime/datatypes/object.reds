@@ -1259,20 +1259,15 @@ object: context [
 		either deep? [
 			while [value < tail][
 				switch TYPE_OF(value) [
-					TYPE_MAP
-					TYPE_BITSET
 					TYPE_BLOCK
-					TYPE_HASH
 					TYPE_PAREN
-					TYPE_PATH
+					TYPE_PATH				;-- any-path!
 					TYPE_LIT_PATH
 					TYPE_SET_PATH
 					TYPE_GET_PATH
-					TYPE_STRING
+					TYPE_STRING				;-- any-string!
 					TYPE_FILE
 					TYPE_URL
-					TYPE_BINARY
-					TYPE_IMAGE
 					TYPE_TAG
 					TYPE_EMAIL [
 						actions/copy 
