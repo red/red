@@ -131,6 +131,7 @@ typeset: context [
 				TYPE_WORD [
 					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
 				]
+				TYPE_BLOCK [0]								;-- <type!> [<extra>], just skip it
 				default [
 					fire [TO_ERROR(script invalid-type-spec) value]
 				]
