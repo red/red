@@ -272,7 +272,7 @@ preprocessor: context [
 		/clean
 		/local rule e pos cond value then else cases body keep? expr
 	][	
-		if clean [reset job]
+		either clean [reset job][exec/config: job]
 
 		#process off
 		parse code rule: [
