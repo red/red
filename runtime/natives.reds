@@ -1224,20 +1224,31 @@ natives: context [
 		op		 [integer!]
 		/local
 			set1	 [red-value!]
+			set2	 [red-value!]
 			skip-arg [red-value!]
+			type	 [integer!]
 			case?	 [logic!]
 	][
-		set1:	  stack/arguments
+		set1: stack/arguments
+		set2: set1 + 1
+		type: TYPE_OF(set1)
+
+		if all [
+			op <> OP_UNIQUE
+			type <> TYPE_OF(set2)
+		][
+			fire [TO_ERROR(script expect-val) datatype/push type datatype/push TYPE_OF(set2)]
+		]
 		skip-arg: set1 + skip
 		case?:	  as logic! cased + 1
-		
-		switch TYPE_OF(set1) [
+
+		switch type [
 			TYPE_BLOCK   
 			TYPE_HASH    [block/do-set-op case? as red-integer! skip-arg op]
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
-			default 	 [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
+			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]
 	
