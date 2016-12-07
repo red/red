@@ -615,22 +615,21 @@ OS-draw-shape-endpath: func [
     either GDI+? [
         count: 0
         GdipGetPointCount modes/gp-path :count
-
-        either all [ count > 0 count <= max-edges ][
+        if count > 0 [
             if close? [ GdipClosePathFigure modes/gp-path ]
             GdipDrawPath modes/graphics modes/gp-pen modes/gp-path
             GdipFillPath modes/graphics modes/gp-brush modes/gp-path
             GdipDeletePath modes/gp-path
-        ][ if count > max-edges [ result: false ] ]
+        ]
     ][
         if close? [ CloseFigure dc ]
         EndPath dc
         count: GetPath dc edges types 0
-        either all [ count > 0 count <= max-edges ][
+        if count > 0 [
             count: GetPath dc edges types count
             FillPath dc
             PolyDraw dc edges types count
-        ][ if count > max-edges [ result: false ] ]
+        ]
     ]
     result
 ]
