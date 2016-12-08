@@ -124,6 +124,15 @@ red-console-ctx: context [
 		save/header cfg-path cfg [Purpose: "Red REPL Console Configuration File"]
 	]
 
+	caret: make face! [
+		type: 'base color: black offset: 2x0 size: 1x18 rate: 2
+		actors: object [
+			on-time: func [face [object!] event [event!]][
+				face/visible?: not face/visible?
+			]
+		]
+	]
+
 	setup-faces: does [
 		win/menu: [
 			"File" [
@@ -136,6 +145,7 @@ red-console-ctx: context [
 				"Settings..."		settings
 			]
 		]
+		append win/pane caret
 		win/actors: object [
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [

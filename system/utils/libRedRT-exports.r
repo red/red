@@ -318,6 +318,7 @@
 	red/natives/unset*
 	red/natives/handle-thrown-error
 	red/natives/now*
+	red/natives/get-env*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!
