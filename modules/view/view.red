@@ -525,6 +525,12 @@ do-events: function [
 	:result
 ]
 
+exit-event-loop: function [
+	"exit current event loop"
+][
+	system/view/platform/exit-event-loop
+]
+
 do-safe: func [code [block!] /local result][
 	if error? set/any 'result try/all code [
 		print :result

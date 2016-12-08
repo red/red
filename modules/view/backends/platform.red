@@ -501,6 +501,10 @@ system/view/platform: context [
 		bool/value:  gui/do-events no-wait?
 	]
 
+	exit-event-loop: routine [][
+		gui/PostQuitMessage 0
+	]
+
 	request-font: routine [font [object!] mono? [logic!]][
 		gui/OS-request-font font mono?
 	]

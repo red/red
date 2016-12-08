@@ -10,11 +10,34 @@ Red [
 	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
 ]
 
-red-console-ctx: context [
-	console:	none
+#include %../console/engine.red
+
+ask: function [
+	question [string!]
+	return:  [string!]
+][
+	line: make string! 8
+	append red-console-ctx/console/lines line
+	red-console-ctx/console/line: line
+	red-console-ctx/console/prompt: question
+	do-events
+	line
+]
+
+red-console-ctx: context [	
 	cfg-path:	none
 	cfg:		none
 	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
+
+	console: #include %console.red
+	caret: make face! [
+		type: 'base color: black offset: 2x0 size: 1x18 rate: 2
+		actors: object [
+			on-time: func [face [object!] event [event!]][
+				face/visible?: not face/visible?
+			]
+		]
+	]
 
 	fstk-logo: load/as 64#{iVBORw0KGgoAAAANSUhEUgAAAD4AAAA/CAIAAAA3/+y2AAAACXBIWXMAABJ
 		 0AAASdAHeZh94AAAGr0lEQVR4nNVaTW8kVxU9975XVf0xthNDBMoi4m8EwTZZsEAiG9jwM9jzE/gB
@@ -124,16 +147,8 @@ red-console-ctx: context [
 		save/header cfg-path cfg [Purpose: "Red REPL Console Configuration File"]
 	]
 
-	caret: make face! [
-		type: 'base color: black offset: 2x0 size: 1x18 rate: 2
-		actors: object [
-			on-time: func [face [object!] event [event!]][
-				face/visible?: not face/visible?
-			]
-		]
-	]
-
 	setup-faces: does [
+		append win/pane reduce [console caret]
 		win/menu: [
 			"File" [
 				"About"				about-msg
@@ -145,7 +160,6 @@ red-console-ctx: context [
 				"Settings..."		settings
 			]
 		]
-		append win/pane caret
 		win/actors: object [
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [
@@ -162,20 +176,6 @@ red-console-ctx: context [
 			on-resizing: func [face [object!] event [event!]][
 				console/size: event/offset
 				unless system/view/auto-sync? [show face]
-			]
-		]
-		console/menu: [
-			"Copy^-Ctrl+C"		 copy
-			"Paste^-Ctrl+V"		 paste
-			"Select All^-Ctrl+A" select-all
-		]
-		console/actors: object [
-			on-menu: func [face [object!] event [event!]][
-				switch event/picked [
-					copy		['TBD]
-					paste		['TBD]
-					select-all	['TBD]
-				]
 			]
 		]
 	]
@@ -206,7 +206,6 @@ red-console-ctx: context [
 
 	win: layout/tight [						;-- main window
 		title  "Red RELP Console"
-		console: base
 	]
 
 	launch: does [
@@ -220,7 +219,7 @@ red-console-ctx: context [
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
 
-		do-events
+		system/console/launch
 	]
 ]
 
