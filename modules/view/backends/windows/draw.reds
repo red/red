@@ -15,7 +15,7 @@ modes: declare struct! [
 	brush			[handle!]
 	pen-join		[integer!]
 	pen-cap			[integer!]
-	pen-width		[integer!]
+	pen-width		[float32!]
 	pen-style		[integer!]
 	pen-color		[integer!]								;-- 00bbggrr format
 	brush-color		[integer!]								;-- 00bbggrr format
@@ -67,6 +67,7 @@ arcPOINTS!: alias struct! [
     end-y       [float!]
 ]
 connect-subpath: 0
+matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 anti-alias?: no
 GDI+?: no
@@ -119,7 +120,7 @@ update-gdiplus-pen: func [/local handle [integer!]][
 		]
 		handle: modes/gp-pen
 		GdipSetPenColor handle to-gdiplus-color modes/pen-color
-		GdipSetPenWidth handle as float32! modes/pen-width
+		GdipSetPenWidth handle modes/pen-width
 		if modes/pen-join <> -1 [
 			OS-draw-line-join null modes/pen-join
 		]
@@ -159,7 +160,7 @@ update-pen: func [
 		cap: modes/pen-cap
 		join: modes/pen-join
 		modes/pen: either all [join = -1 cap = -1] [
-			pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
+			pen: CreatePen modes/pen-style as integer! modes/pen-width modes/pen-color
 			pen
 		][
 			if join <> -1 [
@@ -184,7 +185,7 @@ update-pen: func [
 			brush/lbColor: modes/pen-color
 			pen: ExtCreatePen
 				PS_GEOMETRIC or modes/pen-style or mode
-				modes/pen-width
+				as integer! modes/pen-width
 				brush
 				0
 				null
@@ -225,7 +226,7 @@ draw-begin: func [
 ][
 	modes/pen:				null
 	modes/brush:			null
-	modes/pen-width:		1
+	modes/pen-width:		as float32! 1
 	modes/pen-style:		PS_SOLID
 	modes/pen-color:		0						;-- default: black
 	modes/pen-join:			-1
@@ -289,8 +290,8 @@ draw-begin: func [
 	modes/graphics:	graphics
 	GdipCreatePen1
 		to-gdiplus-color modes/pen-color
-		as float32! modes/pen-width
-		GDIPLUS_UNIT_PIXEL
+		modes/pen-width
+		GDIPLUS_UNIT_WORLD
 		:graphics
 	modes/gp-pen: graphics
 	OS-draw-anti-alias dc yes
@@ -614,22 +615,21 @@ OS-draw-shape-endpath: func [
     either GDI+? [
         count: 0
         GdipGetPointCount modes/gp-path :count
-
-        either all [ count > 0 count <= max-edges ][
+        if count > 0 [
             if close? [ GdipClosePathFigure modes/gp-path ]
             GdipDrawPath modes/graphics modes/gp-pen modes/gp-path
             GdipFillPath modes/graphics modes/gp-brush modes/gp-path
             GdipDeletePath modes/gp-path
-        ][ if count > max-edges [ result: false ] ]
+        ]
     ][
         if close? [ CloseFigure dc ]
         EndPath dc
         count: GetPath dc edges types 0
-        either all [ count > 0 count <= max-edges ][
+        if count > 0 [
             count: GetPath dc edges types count
             FillPath dc
             PolyDraw dc edges types count
-        ][ if count > max-edges [ result: false ] ]
+        ]
     ]
     result
 ]
@@ -1066,12 +1066,15 @@ OS-draw-fill-pen: func [
 
 OS-draw-line-width: func [
 	dc	  [handle!]
-	width [red-integer!]
+	width [red-value!]
+    /local 
+        width-v     [float32!]
 ][
-	if modes/pen-width <> width/value [
-		modes/pen-width: width/value
+    width-v: get-float32 as red-integer! width
+	if modes/pen-width <> width-v [
+        modes/pen-width: width-v
 		either GDI+? [
-			GdipSetPenWidth modes/gp-pen as float32! modes/pen-width
+			GdipSetPenWidth modes/gp-pen modes/pen-width
 		][
 			update-pen dc
 		]
@@ -1136,12 +1139,12 @@ OS-draw-box: func [
 			gdiplus-draw-roundbox
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x + 1
+				lower/y - upper/y + 1
 				rad
 				modes/brush?
 		][
-			RoundRect dc upper/x upper/y lower/x + 1 lower/y + 1 rad rad
+			RoundRect dc upper/x upper/y lower/x lower/y rad rad
 		]
 	][
 		either GDI+? [
@@ -1153,18 +1156,18 @@ OS-draw-box: func [
 					modes/gp-brush
 					upper/x
 					upper/y
-					lower/x - upper/x
-					lower/y - upper/y
+					lower/x - upper/x + 1
+					lower/y - upper/y + 1
 			]
 			GdipDrawRectangleI
 				modes/graphics
 				modes/gp-pen
 				upper/x
 				upper/y
-				lower/x - upper/x
-				lower/y - upper/y
+				lower/x - upper/x + 1
+				lower/y - upper/y + 1
 		][
-			Rectangle dc upper/x upper/y lower/x + 1 lower/y + 1
+			Rectangle dc upper/x upper/y lower/x lower/y
 		]
 	]
 ]
@@ -1773,7 +1776,7 @@ OS-draw-grad-pen: func [
 		color/value: to-gdiplus-color clr/array1
 		next: head + 1 
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-		pos/value: as float32! p
+		pos/value: as float32! ( 1.0 - p )
 		if next <> head [p: p + delta]
 		head: head + 1
 		color: color + 1
@@ -1784,16 +1787,16 @@ OS-draw-grad-pen: func [
 	last-c: color - 1
 	pos: pos - count
 	color: color - count
-	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
-		colors-pos/value: as float32! 0.0
+	if pos/value < as float32! 1.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 1.0
 		colors/value: color/value
 		color: colors
 		pos: colors-pos
 		count: count + 1
 	]
-	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+	if last-p/value > as float32! 0.0 [			;-- last one should be always 1.0
 		last-c/2: last-c/value
-		last-p/2: as float32! 1.0
+		last-p/2: as float32! 0.0
 		count: count + 1
 	]
 
@@ -1831,6 +1834,7 @@ OS-draw-grad-pen: func [
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
 		reverse-int-array color count
+        reverse-float32-array colors-pos count
 		GdipSetPathGradientPresetBlend brush color pos count
 
 		if any [							;@@ move the shape back to the right position
@@ -1853,12 +1857,13 @@ OS-draw-grad-pen: func [
 		GdipSetPenBrushFill modes/gp-pen brush
 	]
 ]
-	
+
 OS-set-clip: func [
 	upper	[red-value!]
 	lower	[red-value!]
     rect?   [logic!]
     dc      [handle!]
+    mode    [integer!]
     /local
         u   [red-pair!]
         l   [red-pair!]
@@ -1871,14 +1876,14 @@ OS-set-clip: func [
                 modes/graphics
                 u/x
                 u/y
-                l/x - u/x + 1
-                l/y - u/y + 1
-                GDIPLUS_COMBINEMODEREPLACE
+                l/x - u/x
+                l/y - u/y
+                mode
         ][
             GdipSetClipPath
                 modes/graphics
                 modes/gp-path
-                GDIPLUS_COMBINEMODEREPLACE
+                mode
             GdipDeletePath modes/gp-path
         ]
     ][
@@ -1889,38 +1894,37 @@ OS-set-clip: func [
             Rectangle dc u/x u/y l/x l/y  
         ]
         EndPath dc  ;-- a path has already been started
-        SelectClipPath dc RGN_COPY
+        SelectClipPath dc mode
     ]
+]
+
+matrix-rotate: func [
+	angle	[red-integer!]
+	center	[red-pair!]
+    m       [integer!]
+][
+	GDI+?: yes
+	if angle <> as red-integer! center [
+        GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIXORDERAPPEND 
+	]
+    GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIXORDERAPPEND
+	if angle <> as red-integer! center [
+        GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIXORDERAPPEND 
+	]
 ]
 
 OS-matrix-rotate: func [
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
-		m	[integer!]
-		pts [tagPOINT]
+        m   [integer!]
 ][
 	GDI+?: yes
-	if angle <> as red-integer! center [
-		m: modes/gp-matrix
-		if zero? m [
-			GdipCreateMatrix :m
-			modes/gp-matrix: m
-		]
-		GdipGetWorldTransform modes/graphics m
-		pts: edges
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate 0 - pts/x 0 - pts/y
-	]
-	GdipRotateWorldTransform modes/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
-	if angle <> as red-integer! center [
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate pts/x pts/y
-	]
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate angle center m
+    GdipMultiplyWorldTransform modes/graphics m matrix-order
+    GdipDeleteMatrix m
 ]
 
 OS-matrix-scale: func [
@@ -1928,7 +1932,7 @@ OS-matrix-scale: func [
 	sy		[red-integer!]
 ][
 	GDI+?: yes
-	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy GDIPLUS_MATRIXORDERAPPEND
+	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy matrix-order
 ]
 
 OS-matrix-translate: func [
@@ -1940,7 +1944,7 @@ OS-matrix-translate: func [
 		modes/graphics
 		as float32! x
 		as float32! y
-		GDIPLUS_MATRIXORDERAPPEND
+		matrix-order
 ]
 
 OS-matrix-skew: func [
@@ -1959,7 +1963,7 @@ OS-matrix-skew: func [
 	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
 	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
 	GdipCreateMatrix2 u y x u z z :m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform modes/graphics m matrix-order
 	GdipDeleteMatrix m
 ]
 
@@ -1969,11 +1973,16 @@ OS-matrix-transform: func [
 	translate	[red-pair!]
 	/local
 		center	[red-pair!]
+        m       [integer!]
 ][
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-	OS-matrix-rotate rotate center
-	OS-matrix-scale scale scale + 1
-	OS-matrix-translate translate/x translate/y
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate rotate center m
+    GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
+    GdipTranslateMatrix m as float32! translate/x as float32! translate/y
+    GdipMultiplyWorldTransform modes/graphics m matrix-order
+    GdipDeleteMatrix m
 ]
 
 OS-matrix-push: func [state [int-ptr!] /local s][
@@ -2013,6 +2022,10 @@ OS-matrix-set: func [
 		get-float32 val + 4
 		get-float32 val + 5
 		:m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform modes/graphics m matrix-order
 	GdipDeleteMatrix m
 ]
+
+OS-set-matrix-order: func [
+    order   [integer!]
+][ matrix-order: order ]
