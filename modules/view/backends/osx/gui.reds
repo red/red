@@ -278,22 +278,6 @@ init: func [
 	objc_msgSend [NSApp sel_getUid "finishLaunching"]
 ]
 
-set-selected-focus: func [
-	hWnd [integer!]
-	/local
-		face   [red-object!]
-		values [red-value!]
-		handle [handle!]
-][
-	values: get-face-values hWnd
-	if values <> null [
-		face: as red-object! values + FACE_OBJ_SELECTED
-		if TYPE_OF(face) = TYPE_OBJECT [
-			0;@@ TBD
-		]
-	]
-]
-
 set-logic-state: func [
 	hWnd   [integer!]
 	state  [red-logic!]
@@ -779,9 +763,12 @@ change-selection: func [
 	/local
 		idx [integer!]
 		sz	[integer!]
+		wnd [integer!]
 ][
-	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
-	if idx < 0 [exit]									;-- @@ should unselect the items ?
+	if type <> window [
+		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+		if idx < 0 [exit]								;-- @@ should unselect the items ?
+	]
 	case [
 		type = camera [
 			either TYPE_OF(int) = TYPE_NONE [
@@ -811,7 +798,12 @@ change-selection: func [
 			objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
 		]
 		type = tab-panel [select-tab hWnd int]
-		type = window [0]
+		type = window [
+			wnd: either TYPE_OF(int) = TYPE_OBJECT [
+				as-integer face-handle? as red-object! int
+			][0]
+			objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
