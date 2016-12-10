@@ -608,6 +608,16 @@ change-font: func [
 		]
 		objc_msgSend [view sel_getUid "setTypingAttributes:" attrs]
 	][
+		if type = field [
+			objc_msgSend [
+				hWnd sel_getUid "setFont:"
+				objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+			]
+			objc_msgSend [
+				hWnd sel_getUid "setTextColor:"
+				objc_msgSend [attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+			]
+		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
 		if TYPE_OF(values) <> TYPE_STRING [exit]			;-- accept any-string! ?
 

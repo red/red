@@ -86,9 +86,9 @@ make-font: func [
 			temp/x
 		]
 		CFRelease sym
-		#if debug? = yes [print-line ["cannot find font: " name]]
 	]
 	if null? hFont 	[						;-- use system font
+		#if debug? = yes [print-line ["cannot find font: " name]]
 		method: either traits and NSBoldFontMask <> 0 [
 			"boldSystemFontOfSize:"
 		][
