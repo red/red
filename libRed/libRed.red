@@ -15,6 +15,27 @@ Red [
 
 #system [
 	
+	#either OS = 'Windows [
+		#define utf16-length? [platform/lstrlen]
+	][
+		tagVARIANT: alias struct! [
+			data1		[integer!]
+			data2		[integer!]
+			data3		[integer!]
+			data4		[integer!]
+		]
+		
+		utf16-length?: func [
+			s		[byte-ptr!]
+			return: [integer!]
+			/local
+				p [byte-ptr!]
+		][
+			p: s
+			while [all [p/1 <> null-byte p/2 <> null-byte]][p: p + 2]
+			(as-integer p - s) >> 1
+		]
+	]
 	#enum string-encoding! [
 		UTF8: 	1
 		UTF16
@@ -127,12 +148,12 @@ Red [
 		TRAP_ERRORS(name [
 			str: as red-value! switch encoding-in [
 				UTF8	[string/load src length? src UTF-8]
-				UTF16	[string/load src platform/lstrlen as byte-ptr! src UTF-16LE]
+				UTF16	[string/load src utf16-length? as byte-ptr! src UTF-16LE]
 				VARIANT [
 					v: as tagVARIANT src
 					string/load
 						as-c-string v/data3
-						platform/lstrlen as byte-ptr! v/data3
+						utf16-length? as byte-ptr! v/data3
 						UTF-16LE
 				]
 			]
@@ -422,17 +443,21 @@ Red [
 		s
 	]
 
-	redVString: func [
-		str	[red-string!]
-		var	[tagVARIANT]
-	][
-		if TYPE_OF(str) <> TYPE_STRING [
-			make-error names/redVString
-			exit
+	#either OS = 'Windows [
+		redVString: func [
+			str	[red-string!]
+			var	[tagVARIANT]
+		][
+			if TYPE_OF(str) <> TYPE_STRING [
+				make-error names/redVString
+				exit
+			]
+			SysFreeString as byte-ptr! var/data3
+			;var/data1: VT_BSTR
+			var/data3: as-integer SysAllocString unicode/to-utf16 str
 		]
-		SysFreeString as byte-ptr! var/data3
-		;var/data1: VT_BSTR
-		var/data3: as-integer SysAllocString unicode/to-utf16 str
+	][
+		redVString: does []								;-- place-holder
 	]
 	
 	redSet: func [
@@ -787,10 +812,14 @@ Red [
 		redCString form-value last-error 0
 	]
 	
-	redVFormError: func [
-		var	[tagVARIANT]
+	#either OS = 'Windows [
+		redVFormError: func [
+			var	[tagVARIANT]
+		][
+			redVString form-value last-error 0 var
+		]
 	][
-		redVString form-value last-error 0 var
+		redVFormError: does []
 	]
 	
 	#export cdecl [
