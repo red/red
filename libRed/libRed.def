@@ -4,6 +4,10 @@ redDo
 redDoBlock
 redClose
 
+redSetEncoding
+redOpenLogFile
+redCloseLogFile
+
 redInteger
 redFloat
 redString
@@ -12,28 +16,39 @@ redWord
 redBlock
 redPath
 redLoadPath
-
-redPushInteger
-redPushFloat
-redPushString
-redPushWord
-redPushBlock
-redPushPath
-redPushLoadPath
-redPop
+redMakeSeries
 
 redCInt32
 redCDouble
 redCString
+redVString
 
-redSetGlobalWord
-redGetGlobalWord
+redSet
+redGet
 redSetPath
 redGetPath
 redRoutine
 redTypeOf
 redCall
 
+redAppend
+redChange
+redClear
+redCopy
+redFind
+redIndex?
+redLength?
+redMake
+redPick
+redPoke
+redPut
+redRemove
+redSelect
+redSkip
+redTo
+
 redPrint
 redProbe
 redHasError
+redFormError
+redVFormError

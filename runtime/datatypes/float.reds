@@ -326,14 +326,14 @@ float: context [
 		left
 	]
 	
-	make-in2: func [
-		parent	[red-block!]
+	make-at: func [
+		slot	[red-value!]
 		value	[float!]
 		return: [red-float!]
 		/local
 			fl [red-float!]
 	][
-		fl: as red-float! ALLOC_TAIL(parent)
+		fl: as red-float! slot
 		fl/header: TYPE_FLOAT
 		fl/value: value
 		fl

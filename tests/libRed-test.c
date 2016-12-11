@@ -10,21 +10,26 @@ int main() {
 	red_error err;
 
 	redOpen();
-	int a = redSymbol("a");
-	red_word Print = redWord("print");
-	red_path o_b = redLoadPath("o/b");
-	red_path o_b_2 = redPath(redWord("o"), redWord("b"), redInteger(2), 0);
+	printf("redOpen done\n");
+	int		a = redSymbol("a");
+	int o_b_2 = redSymbol("o_b_2");
+	int print = redSymbol("print");
+	int	  o_b = redSymbol("o_b");
+
+	redSet(o_b, redLoadPath("o/b"));
+	redDo("?? o_b");
+	redSet(o_b_2, redPath(redWord("o"), redWord("b"), redInteger(2), 0));
 	
-	redSetGlobalWord(a, (red_value) redBlock(redInteger(42), redString("hello"), 0));
+	redSet(a, (red_value) redBlock(redInteger(42), redString("hello"), 0));
 	redDo("?? a foreach v a [probe v]");
-	redPrint(redGetGlobalWord(a));
+	redPrint(redGet(a));
 
 	red_value value = redDo("$%$");
 	if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
 
 	redProbe(redCall(redWord("what-dir"), 0));
 	redCall(redWord("print"), redDo("system/version"), 0);
-	redCall(Print, redFloat(99.0), 0);
+	redCall(redGet(print), redFloat(99.0), 0);
 
 	redRoutine(redWord("c-add"), "[a [integer!] b [integer!]]", (void*) &add);
 	//if (redTypeOf(value) == RED_TYPE_ERROR) redProbe(value);
@@ -33,15 +38,15 @@ int main() {
 	else
 		redDo("probe c-add 2 3 probe :c-add");
 
-	redProbe((red_value)o_b);
 	redDo("o: object [b: {hello}]");
+	redDo("?? o_b");
+	redProbe(redGet(o_b));
 	
-	redProbe(redGetPath(o_b));
-	redProbe(o_b_2);
-	redProbe(redGetPath(o_b_2));
+	redProbe(redGet(o_b_2));
+	redProbe(redGetPath(redGet(o_b_2)));
 	
-	redSetPath(o_b, redInteger(123));
-	redProbe(redGetPath(o_b));
+	redSetPath(redGet(o_b), redInteger(123));
+	redProbe(redGetPath(redGet(o_b)));
 
 	redClose();
 	return 0;

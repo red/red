@@ -166,6 +166,7 @@ system: context [
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
+				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
 			]
 			math: object [
 				code:				400

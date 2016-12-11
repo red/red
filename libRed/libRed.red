@@ -5,6 +5,7 @@ Red [
 	Tabs:	 4
 	Config:	 [type: 'dll libRedRT?: yes]
 	Needs: 	 'View
+	Version: 1.0.0
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -13,11 +14,11 @@ Red [
 ]
 
 #system [
-
-	#enum str-encoding! [
+	
+	#enum string-encoding! [
 		UTF8: 	1
 		UTF16
-		BSTR
+		VARIANT
 	]
 	
 	#define TRAP_ERRORS(name body) [
@@ -25,18 +26,22 @@ Red [
 		stack/mark-try-all name
 		catch RED_THROWN_ERROR body
 		stack/adjust-post-try
-		res: stack/arguments
+		res: stack/top - 1
 		if all [system/thrown > 0 TYPE_OF(res) = TYPE_ERROR][last-error: res]
 		system/thrown: 0
-		res
+		ring/store res
 	]
 	
-	heap: 		declare red-block!
-	cmd-blk:	declare red-block!
-	extern-blk: declare red-block!
-	last-error: as red-value! 0
+	cmd-blk:	 declare red-block!
+	extern-blk:  declare red-block!
+	last-error:  as red-value! 0
+	lib-loaded?: no
+	
+	encoding-in:  UTF8
+	encoding-out: UTF8
 
 	names: context [
+		action:		word/load "action"
 		print:		word/load "print"
 		extern:		word/load "extern"
 		redDo:		word/load "redDo"
@@ -46,19 +51,109 @@ Red [
 		redSetPath: word/load "redSetPath"
 		redGetPath: word/load "redGetPath"
 		redRoutine: word/load "redRoutine"
+		redString:	word/load "redString"
+		redWord:	word/load "redWord"
+		redCInt32:	word/load "redCInt32"
+		redCDouble:	word/load "redCDouble"
+		redCString:	word/load "redCString"
+		redVString:	word/load "redVString"
+		
+		redAppend:	word/load "redAppend"
+		redChange:	word/load "redChange"
+		redClear:	word/load "redClear"
+		redCopy:	word/load "redCopy"
+		redFind:	word/load "redFind"
+		redIndex?:	word/load "redIndex?"
+		redLength?:	word/load "redLength?"
+		redMake:	word/load "redMake"
+		redPick:	word/load "redPick"
+		redPoke:	word/load "redPoke"
+		redPut:		word/load "redPut"
+		redRemove:	word/load "redRemove"
+		redSelect:	word/load "redSelect"
+		redSkip:	word/load "redSkip"
+		redTo:		word/load "redTo"
+	]
+	
+	ring: context [
+		head: as cell! 0
+		tail: as cell! 0
+		pos:  as cell! 0
+		size: 50
+		
+		store: func [
+			value	[red-value!]
+			return: [red-value!]
+		][
+			copy-cell value alloc
+		]
+		
+		alloc: func [return: [red-value!]][
+			pos: pos + 1
+			if pos = tail [pos: head]
+			pos
+		]
+		
+		init: does [
+			head: as cell! allocate size * size? cell!
+			tail: head + size
+			pos:  head
+		]
+		
+		destroy: does [free as byte-ptr! head]
+	]
+	
+	make-error: func [
+		name	[red-word!]
+		return: [red-value!]
+	][
+		last-error: as red-value! error/create
+			TO_ERROR(script lib-invalid-arg)
+			as red-value! name
+			null null
+		last-error
+	]
+	
+	import-string: func [
+		src		[c-string!]
+		name	[red-word!]
+		save?	[logic!]
+		return: [red-value!]	"Last value or error! value"
+		/local
+			str [red-value!]
+			res [red-value!]
+			v	[tagVARIANT]
+	][
+		TRAP_ERRORS(name [
+			str: as red-value! switch encoding-in [
+				UTF8	[string/load src length? src UTF-8]
+				UTF16	[string/load src platform/lstrlen as byte-ptr! src UTF-16LE]
+				VARIANT [
+					v: as tagVARIANT src
+					string/load
+						as-c-string v/data3
+						platform/lstrlen as byte-ptr! v/data3
+						UTF-16LE
+				]
+			]
+			stack/unwind-last
+		])
+		either last-error <> null [
+			last-error
+		][
+			either save? [ring/store str][str]
+		]
 	]
 	
 	load-string: func [
-		src		[c-string!]		"Red code encoded in UTF-8"
+		src		[c-string!]		"Red code as string"
 		name	[red-word!]
 		return: [red-value!]	"Last value or error! value"
 		/local
 			str [red-string!]
 			res [red-value!]
 	][
-		TRAP_ERRORS(name [
-			str: string/load src length? src UTF-8
-		])
+		str: as red-string! import-string src name no
 		if last-error <> null [return last-error]
 		
 		TRAP_ERRORS(name [
@@ -87,24 +182,26 @@ Red [
 	redOpen: func [
 		"Initialize the Red runtime for the current instance"
 	][
-		red/boot
-		
-		block/make-at heap 100
-		block/make-at cmd-blk 10
-		block/make-at extern-blk 1
-		block/rs-append extern-blk as red-value! names/extern
+		unless lib-loaded? [
+			red/boot
+			ring/init
+			block/make-at cmd-blk 10
+			block/make-at extern-blk 1
+			block/rs-append extern-blk as red-value! names/extern
+			lib-loaded?: yes
+		]
 	]
 	
 	redDo: func [
 		"Loads and evaluates Red code"
-		src		[c-string!]		"Red code encoded in UTF-8"
+		src		[c-string!]		"Red code as encoded string"
 		return: [red-value!]	"Last value or error! value"
 		/local
 			blk [red-block!]
 	][
 		blk: as red-block! load-string src names/redDo
 		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk names/redDo]
-		stack/arguments
+		ring/store stack/arguments
 	]
 	
 	redDoBlock: func [
@@ -112,12 +209,13 @@ Red [
 		code	[red-block!]	"Block to evaluate"
 		return: [red-value!]	"Last value or error! value"
 	][
-		do-safe code names/redDoBlock
+		ring/store do-safe code names/redDoBlock
 	]
 	
 	redClose: func [
 		"Releases dynamic memory allocated for the current instance"
 	][
+		ring/destroy
 		;@@ Free the main buffers
 		free as byte-ptr! natives/table
 		free as byte-ptr! actions/table
@@ -128,57 +226,82 @@ Red [
 		free as byte-ptr! crypto/crc32-table
 	]
 	
+	redSetEncoding: func [
+		in	[string-encoding!]
+		out [string-encoding!]
+	][
+		encoding-in:  in
+		encoding-out: out
+	]
+	
+	redOpenLogFile: func [
+		name [c-string!]
+	][
+		stdout: red/simple-io/open-file name red/simple-io/RIO_APPEND no
+	]
+	
+	redCloseLogFile: does [
+		red/simple-io/close-file stdout
+	]
+	
 	redInteger: func [
 		n		[integer!]
 		return: [red-integer!]
 	][
-		integer/make-in heap n
+		integer/make-at ring/alloc n
 	]
 	
 	redFloat: func [
 		f		[float!]
 		return: [red-float!]
 	][
-		float/make-in2 heap f
+		float/make-at ring/alloc f
 	]
 	
 	redString: func [
 		s		[c-string!]
-		return: [red-string!]
+		return: [red-value!] "String! or error! value"
 	][
-		string/load-in s length? s heap UTF-8
-	]
-	
-	redStringWith: func [
-		s		 [c-string!]
-		encoding [integer!]
-		len		 [integer!]
-		return:  [red-string!]
-		/local
-			p [int-ptr!]	
-	][	
-		switch encoding [
-			UTF8  [string/load s length? s UTF-8]
-			UTF16 [string/load s len UTF-16LE]
-			BSTR  [
-				p: (as int-ptr! s) - 1
-				string/load s (p/value / 2) UTF-16LE
-			]
-		]
+		ring/store import-string s names/redString yes
 	]
 	
 	redSymbol: func [
 		s		[c-string!]
-		return: [integer!]								;-- symbol ID
+		return: [integer!]								;-- symbol ID, -1 if error
+		/local
+			word [red-word!]
 	][
-		symbol/make s
+		either encoding-in = UTF8 [
+			symbol/make s
+		][
+			word: as red-word! redWord s
+			either TYPE_OF(word) = TYPE_WORD [word/symbol][-1]
+		]
 	]
 	
 	redWord: func [
 		s		[c-string!]
-		return: [red-word!]
+		return: [red-value!]
+		/local
+			str [red-string!]
+			res	[red-value!]
 	][
-		word/load-in s heap
+		either encoding-in = UTF8 [
+			as red-value! word/make-at symbol/make s ring/alloc
+		][
+			res: load-string s names/redWord
+			if last-error <> null [return last-error]
+			either TYPE_OF(res) = TYPE_BLOCK [
+				ring/store block/rs-head as red-block! res
+			][
+				last-error: as red-value! error/create
+					TO_ERROR(syntax invalid)
+					as red-value! datatype/push TYPE_WORD
+					res
+					null
+				last-error
+			]
+		]
 	]
 	
 	redBlock: func [
@@ -194,7 +317,9 @@ Red [
 		p: list
 		
 		while [p/value <> 0][p: p + 1]
-		blk: block/make-in heap (as-integer p - list) >> 2
+		blk: block/make-at
+			as red-block! ring/alloc
+			(as-integer p - list) >> 2
 		
 		while [list/value <> 0][
 			block/rs-append blk as red-value! list/value
@@ -216,7 +341,9 @@ Red [
 		p: list
 		
 		while [p/value <> 0][p: p + 1]
-		path: as red-path! block/make-in heap (as-integer p - list) >> 2
+		path: as red-path! block/make-at
+			as red-block! ring/alloc
+			(as-integer p - list) >> 2
 		
 		while [list/value <> 0][
 			block/rs-append as red-block! path as red-value! list/value
@@ -233,110 +360,33 @@ Red [
 			blk	[red-block!]
 	][
 		blk: as red-block! load-string src names/redLDPath
-		either TYPE_OF(blk) = TYPE_BLOCK [
-			block/rs-append heap block/rs-head blk
-		][
-			as red-value! blk
-		]
-	]
-	
-	redPushInteger: func [
-		n		[integer!]
-		return: [red-integer!]
-	][
-		integer/push n
-	]
-
-	redPushFloat: func [
-		f		[float!]
-		return: [red-float!]
-	][
-		float/push f
-	]
-
-	redPushString: func [
-		s		[c-string!]
-		return: [red-string!]
-	][
-		string/load s length? s UTF-8
-	]
-
-	redPushWord: func [
-		s		[c-string!]
-		return: [red-word!]
-	][
-		word/load s
-	]
-
-	redPushBlock: func [
-		[variadic]
-		return: [red-block!]
-		/local
-			blk	 [red-block!]
-			list [int-ptr!]
-			p	 [int-ptr!]
-	][
-		list: system/stack/frame
-		list: list + 2									;-- jump to 1st argument
-		p: list
-
-		while [p/value <> 0][p: p + 1]
-		blk: block/push* (as-integer p - list) >> 2
-
-		while [list/value <> 0][
-			block/rs-append blk as red-value! list/value
-			list: list + 1
-		]
-		blk
-	]
-
-	redPushPath: func [
-		[variadic]
-		return: [red-path!]
-		/local
-			path [red-path!]
-			list [int-ptr!]
-			p	 [int-ptr!]
-	][
-		list: system/stack/frame
-		list: list + 2									;-- jump to 1st argument
-		p: list
-
-		while [p/value <> 0][p: p + 1]
-		path: as red-path! block/push* (as-integer p - list) >> 2
-
-		while [list/value <> 0][
-			block/rs-append as red-block! path as red-value! list/value
-			list: list + 1
-		]
-		path/header: TYPE_PATH
-		path
-	]
-
-	redPushLoadPath: func [
-		src		[c-string!]
-		return: [red-value!]
-		/local
-			blk	[red-block!]
-	][
-		blk: as red-block! load-string src names/redLDPath
-		either TYPE_OF(blk) = TYPE_BLOCK [
+		ring/store either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
 		][
 			as red-value! blk
 		]
 	]
 	
-	redPop: func [
-		n [integer!]
+	redMakeSeries: func [
+		type	[integer!]
+		size	[integer!]
+		return: [red-value!]
+		/local
+			res [red-value!]
 	][
-		stack/pop n
+		TRAP_ERRORS(names/action [
+			datatype/push type
+			integer/push size
+			actions/make*
+			stack/unwind-last
+		])
 	]
 	
 	redCInt32: func [
 		int		[red-integer!]
 		return: [integer!]
 	][
+		if TYPE_OF(int) <> TYPE_INTEGER [make-error names/redCInt32]
 		int/value
 	]
 	
@@ -344,6 +394,7 @@ Red [
 		fl		[red-float!]
 		return: [float!]
 	][
+		if TYPE_OF(fl) <> TYPE_FLOAT [make-error names/redCDouble]
 		fl/value
 	]
 	
@@ -352,28 +403,39 @@ Red [
 		return: [c-string!]
 		/local
 			len [integer!]
-	][
-		len: -1
-		unicode/to-utf8 str :len
-	]
-	
-	redCStringWith: func [
-		str		 [red-string!]
-		encoding [integer!]
-		return:  [c-string!]							;-- caller needs to free it
-		/local
-			len [integer!]
 			s	[c-string!]
 	][
-		switch encoding [
-			UTF8  [len: -1 s: unicode/to-utf8 str :len]
-			UTF16 [s: unicode/to-utf16 str]
-			BSTR  [s: as-c-string SysAllocString #u16 "Hello!"] ;unicode/to-utf16 str]
+		if TYPE_OF(str) <> TYPE_STRING [
+			make-error names/redCString
+			return null
+		]
+		switch encoding-out [
+			UTF8	[len: -1 s: unicode/to-utf8 str :len]
+			UTF16	[s: unicode/to-utf16 str]
+			VARIANT [
+				;v: declare tagVARIANT
+				;v/data1: VT_BSTR
+				;v/data3: as-c-string SysAllocString #u16 "Hello!"
+				s: null
+			]
 		]
 		s
 	]
+
+	redVString: func [
+		str	[red-string!]
+		var	[tagVARIANT]
+	][
+		if TYPE_OF(str) <> TYPE_STRING [
+			make-error names/redVString
+			exit
+		]
+		SysFreeString as byte-ptr! var/data3
+		;var/data1: VT_BSTR
+		var/data3: as-integer SysAllocString unicode/to-utf16 str
+	]
 	
-	redSetGlobalWord: func [
+	redSet: func [
 		"Set a word to a value in global context"
 		id		[integer!]	 "symbol ID of the word to set"
 		value	[red-value!] "value to be referred to"
@@ -382,7 +444,7 @@ Red [
 		_context/set-global id value
 	]
 	
-	redGetGlobalWord: func [
+	redGet: func [
 		"Get the value referenced by a word in global context"
 		id		[integer!]	 "Symbol ID of the word to get"
 		return: [red-value!] "Value referred by the word"
@@ -401,7 +463,7 @@ Red [
 		p: block/rs-append cmd-blk as red-value! path
 		p/header: TYPE_SET_PATH
 		block/rs-append cmd-blk value
-		do-safe cmd-blk names/redSetPath
+		ring/store do-safe cmd-blk names/redSetPath
 	]
 	
 	redGetPath: func [
@@ -412,11 +474,12 @@ Red [
 	][
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
-		do-safe cmd-blk names/redGetPath
+		ring/store do-safe cmd-blk names/redGetPath
 	]
 	
 	redTypeOf: func [
-		value [red-value!]
+		value	[red-value!]
+		return: [integer!]
 	][
 		TYPE_OF(value)
 	]
@@ -438,9 +501,226 @@ Red [
 			block/rs-append cmd-blk as red-value! list/value
 			list: list + 1
 		]
-		do-safe cmd-blk names/redCall
+		ring/store do-safe cmd-blk names/redCall
 	]
 	
+	redAppend: func [
+		series	[red-series!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redAppend [
+			stack/push as red-value! series
+			stack/push value
+			actions/append* -1 -1 -1
+			stack/unwind-last
+		])
+	]
+		
+	redChange: func [
+		series	[red-series!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redChange [
+			stack/push as red-value! series
+			stack/push value
+			actions/change* -1 -1 -1
+			stack/unwind-last
+		])
+	]
+	
+	redClear: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redClear [
+			stack/push as red-value! series
+			actions/clear*
+			stack/unwind-last
+		])
+	]
+	
+	redCopy: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redCopy [
+			stack/push as red-value! series
+			actions/copy* -1 -1 -1
+			stack/unwind-last
+		])
+	]
+	
+	redFind: func [
+		series	[red-series!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redFind [
+			stack/push as red-value! series
+			stack/push value
+			actions/find* -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+			stack/unwind-last
+		])
+	]
+
+	redIndex?: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redIndex? [
+			stack/push as red-value! series
+			actions/index?*
+			stack/unwind-last
+		])
+	]
+	
+	redLength?: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redLength? [
+			stack/push as red-value! series
+			actions/length?*
+			stack/unwind-last
+		])
+	]
+	
+	redMake: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redMake [
+			stack/push proto
+			stack/push spec
+			actions/make* -1 -1 -1
+			stack/unwind-last
+		])
+	]
+
+	redPick: func [
+		series	[red-series!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redPick [
+			stack/push as red-value! series
+			stack/push value
+			actions/pick*
+			stack/unwind-last
+		])
+	]
+	
+	redPoke: func [
+		series	[red-series!]
+		index	[red-value!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redPoke [
+			stack/push as red-value! series
+			stack/push index
+			stack/push value
+			actions/poke*
+			stack/unwind-last
+		])
+	]
+	
+	redPut: func [
+		series	[red-series!]
+		index	[red-value!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redPut [
+			stack/push as red-value! series
+			stack/push index
+			stack/push value
+			actions/put* -1
+			stack/unwind-last
+		])
+	]
+
+	redRemove: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redRemove [
+			stack/push as red-value! series
+			actions/remove* -1
+			stack/unwind-last
+		])
+	]
+	
+	redSelect: func [
+		series	[red-series!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redSelect [
+			stack/push as red-value! series
+			stack/push value
+			actions/select* -1 -1 -1 -1 -1 -1 -1 -1 -1
+			stack/unwind-last
+		])
+	]
+	
+	redSkip: func [
+		series	[red-series!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redSkip [
+			stack/push as red-value! series
+			actions/skip*
+			stack/unwind-last
+		])
+	]
+
+	redTo: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redTo [
+			stack/push proto
+			stack/push spec
+			actions/to*
+			stack/unwind-last
+		])
+	]
+
 	redRoutine: func [
 		name	[red-word!]
 		desc	[c-string!]
@@ -485,7 +765,7 @@ Red [
 		stack/mark-native names/print
 		stack/push value
 		natives/print* yes
-		stack/unwind
+		stack/unwind-last
 	]
 
 	redProbe: func [
@@ -501,46 +781,71 @@ Red [
 		last-error
 	]
 	
-	#export stdcall [
+	redFormError: func [
+		return: [c-string!]
+	][
+		redCString form-value last-error 0
+	]
+	
+	redVFormError: func [
+		var	[tagVARIANT]
+	][
+		redVString form-value last-error 0 var
+	]
+	
+	#export cdecl [
 		redOpen
 		redDo
 		redDoBlock
 		redClose
 		
+		redSetEncoding
+		redOpenLogFile
+		redCloseLogFile
+		
 		redInteger
 		redFloat
 		redString
-		redStringWith
 		redSymbol
 		redWord
 		redBlock
 		redPath
 		redLoadPath
-		
-		redPushInteger
-		redPushFloat
-		redPushString
-		redPushWord
-		redPushBlock
-		redPushPath
-		redPushLoadPath
-		redPop
+		redMakeSeries
 		
 		redCInt32
 		redCDouble
 		redCString
-		redCStringWith
+		redVString
 		
-		redSetGlobalWord
-		redGetGlobalWord
+		redSet
+		redGet
 		redSetPath
 		redGetPath
 		redRoutine
 		redTypeOf
 		redCall
 		
+		redAppend
+		redChange
+		redClear
+		redCopy
+		redFind
+		redIndex?
+		redLength?
+		redMake
+		redPick
+		redPoke
+		redPut
+		redRemove
+		redSelect
+		redSkip
+		redTo
+		
 		redPrint
 		redProbe
 		redHasError
+		redFormError
+		redVFormError
 	]
 ]

@@ -350,6 +350,23 @@ load-value: func [
 	value
 ]
 
+form-value: func [
+	arg		[red-value!]
+	part	[integer!]								;-- pass 0 for full string
+	return: [red-string!]
+	/local
+		buffer [red-string!]
+		limit  [integer!]
+][
+	buffer: string/rs-make-at stack/push* 16
+	limit: actions/form stack/arguments buffer arg part
+
+	if all [part >= 0 negative? limit][
+		string/truncate-from-tail GET_BUFFER(buffer) limit
+	]
+	buffer
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack

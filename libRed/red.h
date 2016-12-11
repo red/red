@@ -57,19 +57,9 @@ double		redCDouble(red_float number);
 const char*	redCString(red_string string);
 int			redTypeOf(red_value value);
 
-/* Red stack */
-red_integer	redPushInteger(int number);
-red_float	redPushFloat(double number);
-red_string	redPushString(const char* string);
-red_word	redPushWord(const char* word);
-red_block	redPushBlock(red_value v, ...);
-red_path	redPushPath(red_value v, ...);
-red_path	redPushLoadPath(const char* path);
-void		redPop(int slots);
-
 /* Access to a Red global word */
-red_value	redSetGlobalWord(int id, red_value value);
-red_value	redGetGlobalWord(int id);
+red_value	redSet(int id, red_value value);
+red_value	redGet(int id);
 
 /* Access to a Red path */
 red_value	redSetPath(red_path path, red_value value);
