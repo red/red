@@ -128,6 +128,7 @@ red: context [
 	
 	init: does [
 		platform/init
+		_random/init
 		init-mem										;@@ needs a local context
 		
 		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
@@ -199,7 +200,6 @@ red: context [
 		issues/build									;-- create issues used internally
 		natives/init									;-- native specific init code
 		parser/init
-		_random/init
 		ownership/init
 		crypto/init
 		

@@ -325,6 +325,7 @@ platform: context [
 	init: func [/local h [int-ptr!]] [
 		init-gdiplus
 		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		crypto/init-provider
 		#if sub-system = 'console [init-dos-console]
 		#if unicode? = yes [
 			h: __iob_func

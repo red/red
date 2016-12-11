@@ -91,6 +91,14 @@ _random: context [
 	
 	init: does [
 		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!
-		srand 314159
+		srand 19650218
+		hash-secret: as-integer :hash-secret
+		#either OS = 'Linux [
+			if 1 > crypto/getrandom as byte-ptr! :hash-secret 4 no [	;-- fall back on using /dev/urandom
+				crypto/urandom as byte-ptr! :hash-secret 4
+			]
+		][
+			crypto/urandom as byte-ptr! :hash-secret 4
+		]
 	]
 ]

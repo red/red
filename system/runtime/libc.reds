@@ -57,6 +57,7 @@ Red/System [
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]
+		errno:		 "errno" [integer!]
 		printf: 	 "printf"  [[variadic]]
 		
 		sprintf:	 "sprintf" [[variadic]]
