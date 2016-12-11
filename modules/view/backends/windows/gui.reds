@@ -42,8 +42,9 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
-#include %draw.reds
 #include %comdlgs.reds
+#include %text-box.reds
+#include %draw.reds
 
 exit-loop:		0
 process-id:		0

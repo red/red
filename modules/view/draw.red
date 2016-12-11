@@ -461,8 +461,8 @@ Red/System [
 								OS-draw-font DC as red-object! value
 							]
 							sym = text [
-								DRAW_FETCH_VALUE(TYPE_PAIR)		;-- position
-								DRAW_FETCH_VALUE(TYPE_STRING)	;-- text string
+								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
+								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
 								OS-draw-text DC as red-pair! start as red-string! cmd
 							]
 							sym = _arc [
@@ -701,6 +701,54 @@ Red/System [
 			]
 		]
 	]
+]
+
+;; Text Box is a graphic object that represents styled text.
+;; It provide support for drawing, cursor navigation, hit testing, 
+;; text wrapping, alignment, tab expansion, line breaking, etc.
+
+text-box!: object [
+	text:		none					;-- a string to draw (string!)
+	size:		none					;-- box size in pixels (pair!)
+	align:		none					;-- horizontal text alignment: left, center, right
+	v-align:	none					;-- vertical text alignment: top, middle, bottom
+	indent:		none					;-- indent of the first line (integer!)
+	wrap:		none					;-- wrapping mode: none, word, character
+	bounds:		none					;-- bounds of the text (pair!)
+	direction:	'left-to-right			;-- left-to-right, right-to-left
+	justify?:	no
+	ascent:		none					;-- (integer!)
+	descent:	none					;-- (integer!)
+	leading:	none					;-- (integer!)
+	spacing:	none					;-- line spacing (integer!)
+	tabs:		none					;-- tab list (block!)
+	styles:		none					;-- style list (block!), [style1 start-idx end-idx style2 start-idx end-idx ...]
+	internal:	none					;-- OS handles
+
+	offset?: function [
+		"Returns the character offset for the specified point"
+		pt		[pair!]
+		return: [integer!]
+	][
+	]
+]
+
+text-style!: object [
+	color:			 none
+	backdrop:		 none
+	border-color:	 none
+	border-style:	 none
+	strikeout:		 none
+	strikeout-color: none
+	underline:		 none
+	underline-color: none
+	underline-style: none
+	font:			 none				;-- font! object
+	rise:			 0					;-- the baseline rise of the style
+	ascent:			 none
+	descent:		 none
+	width:			 none
+	internal:		 none				;-- OS handles
 ]
 
 draw: function [
