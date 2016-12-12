@@ -4448,6 +4448,7 @@ red: context [
 	
 	process-config: func [header [block!] /local spec][
 		if spec: select header first [config:][do bind spec job]
+		if all [job/type = 'dll job/OS <> 'Windows][job/PIC?: yes]	;-- ensure PIC mode is enabled
 	]
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
