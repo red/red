@@ -54,6 +54,7 @@ system-dialect: make-profilable context [
 		base-address:		none						;-- base image memory address
 		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
 		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
+		export-ABI:			'cdecl						;-- default calling convention for exports
 		stack-align-16?:	no							;-- yes => align stack to 16 bytes
 		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
@@ -1478,7 +1479,7 @@ system-dialect: make-profilable context [
 		
 		flag-callback: func [name [word!] cc [word! none!] /local spec][
 			spec: second find-functions name
-			spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
+			spec/3: any [cc all [job/red-pass? spec/3] job/export-ABI]
 			unless spec/5 = 'callback [append spec 'callback]
 		]
 		
