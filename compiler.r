@@ -99,7 +99,8 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
-		View		%modules/view/view.red
+	;-- Name ------ Entry file -------------- OS availability -----
+		View		%modules/view/view.red	  [Windows]
 	]
 
 	func-constructors: [
@@ -4461,10 +4462,14 @@ red: context [
 			mods: make block! 2
 			
 			foreach mod list [
-				unless file: select standard-modules mod [
+				unless file: find standard-modules mod [
 					throw-error ["module not found:" mod]
 				]
-				unless find needed file [append needed file]
+				all [
+					any [file/3 = 'all find file/3 job/OS]
+					not find needed file/2
+					append needed file/2
+				]
 			]
 		][
 			job/modules: make block! 0
