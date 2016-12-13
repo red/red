@@ -59,7 +59,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-global"]]
 
 		ctx: TO_CTX(global-ctx)
-		idx: find-word ctx symbol no		
+		idx: find-word ctx symbol no
 		if idx = -1 [
 			word: add-global symbol
 			idx: word/index

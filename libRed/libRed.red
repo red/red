@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %libRed.red
 	Tabs:	 4
-	Config:	 [type: 'dll libRedRT?: yes]
+	Config:	 [type: 'dll libRedRT?: yes export-ABI: 'cdecl]
 	Needs: 	 'View
 	Version: 1.0.0
 	Rights:  "Copyright (C) 2016 Nenad Rakocevic. All rights reserved."
