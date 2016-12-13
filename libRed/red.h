@@ -27,6 +27,7 @@ typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
 typedef red_value red_path;
+typedef red_value red_series;
 typedef red_value red_error;
 
 /* Setup and terminate */
@@ -50,12 +51,30 @@ red_word	redWord(const char* word);
 red_block	redBlock(red_value v,...);
 red_path	redPath(red_value v, ...);
 red_path	redLoadPath(const char* path);
+red_value	redMakeSeries(unsigned int type, unsigned int slots);
 
 /* Red -> C */
 int			redCInt32(red_integer number);
 double		redCDouble(red_float number);
 const char*	redCString(red_string string);
 int			redTypeOf(red_value value);
+
+/* Red actions */
+red_value	redAppend(red_series series, red_value value);
+red_value	redChange(red_series series, red_value value);
+red_value	redClear(red_series series);
+red_value	redCopy(red_series series);
+red_value	redFind(red_series series, red_value value);
+red_value	redIndex(red_series series);
+red_value	redLength(red_series series);
+red_value	redMake(red_value proto, red_value spec);
+red_value	redPick(red_series series, red_value value);
+red_value	redPoke(red_series series, red_value index, red_value value);
+red_value	redPut(red_series series, red_value index, red_value value);
+red_value	redRemove(red_series series);
+red_value	redSelect(red_series series, red_value value);
+red_value	redSkip(red_series series);
+red_value	redTo(red_value proto, red_value spec);
 
 /* Access to a Red global word */
 red_value	redSet(int id, red_value value);
@@ -69,6 +88,7 @@ red_value	redGetPath(red_path path);
 void		redPrint(red_value value);
 red_value	redProbe(red_value value);
 red_value	redHasError(void);
+const char*	redFormError(void);
 
 /* Red Types */
 typedef enum
