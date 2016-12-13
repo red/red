@@ -482,17 +482,34 @@ redc: context [
 			if exists? file: join path libRedRT/:file [delete file]
 		]
 	]
+	
+	parse-tokens: func [cmds [string!] /local ws list s e token store][
+		ws: charset " ^/^M^-"
+		list: make block! 10
+		store: [
+			unless empty? token: trim copy/part s e [append list token]
+			s: e
+		]
+		parse/all cmds [
+			s: any [
+				e: some ws (do store)
+				| {"} thru {"} e: (do store)
+				| "[" thru "]" e: (do store)
+				| skip
+			] e: (do store)
+		]
+		list
+	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd
+		mode target? gui? cmd spec cmds ws
 	][
-		args: any [
-			all [args parse args none]
-			system/options/args
-			parse any [system/script/args ""] none
-		]
+	
+		cmds: any [args system/options/args system/script/args ""]
+		args: parse-tokens cmds
+		
 		target: default-target
 		opts: make system-dialect/options-class [
 			link?: yes
@@ -510,23 +527,24 @@ redc: context [
 
 		parse/case args [
 			any [
-				  ["-c"	| "--compile"]		(type: 'exe)
-				| ["-r" | "--release"]		(opts/dev-mode?: no)
-				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
-				| ["-o" | "--output"]  		set output skip
-				| ["-t" | "--target"]  		set target skip (target?: yes)
-				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
-				| ["-h" | "--help"]			(mode: 'help)
-				| ["-V" | "--version"]		(mode: 'version)
-				| ["-u"	| "--update-libRedRT"] (opts/libRedRT-update?: yes)
+				  ["-c" | "--compile"]			(type: 'exe)
+				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
+				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
+				| ["-o" | "--output"]  			set output skip
+				| ["-t" | "--target"]  			set target skip (target?: yes)
+				| ["-v" | "--verbose"] 			set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-h" | "--help"]				(mode: 'help)
+				| ["-V" | "--version"]			(mode: 'version)
+				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
 				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
-				| "--red-only"				(opts/red-only?: yes)
-				| "--dev"					(opts/dev-mode?: yes)
-				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
-				| "--cli"					(gui?: no)
+				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
+				;| ["-slib" | "--static-lib"]	(type 'lib)
+				| "--config" set spec skip		(attempt [spec: load spec])
+				| "--red-only"					(opts/red-only?: yes)
+				| "--dev"						(opts/dev-mode?: yes)
+				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
+				| "--cli"						(gui?: no)
 				| "--catch"								;-- just pass-thru
-				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
-				;| ["-slib" | "--static-lib"] (type 'lib)
 			]
 			set filename skip (src: load-filename filename)
 		]
@@ -612,7 +630,8 @@ redc: context [
 		]
 
 		add-legacy-flags opts
-
+		if spec [opts: make opts spec]
+		
 		reduce [src opts]
 	]
 	
