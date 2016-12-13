@@ -130,7 +130,6 @@ file: context [
 			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
 			p: p + unit
 		]
-		out
 	]
 
 	normalize: func [
