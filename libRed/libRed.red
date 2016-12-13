@@ -600,7 +600,7 @@ Red [
 		])
 	]
 
-	redIndex?: func [
+	redIndex: func [
 		series	[red-series!]
 		return: [red-value!]
 		/local
@@ -613,7 +613,7 @@ Red [
 		])
 	]
 	
-	redLength?: func [
+	redLength: func [
 		series	[red-series!]
 		return: [red-value!]
 		/local
@@ -860,8 +860,8 @@ Red [
 		redClear
 		redCopy
 		redFind
-		redIndex?
-		redLength?
+		redIndex
+		redLength
 		redMake
 		redPick
 		redPoke
