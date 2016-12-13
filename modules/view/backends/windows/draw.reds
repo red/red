@@ -278,6 +278,7 @@ draw-begin: func [
 
 		dc: hBackDC
 
+		SetGraphicsMode dc GM_ADVANCED
 		SetArcDirection dc AD_CLOCKWISE
 		SetBkMode dc BK_TRANSPARENT
 		SelectObject dc GetStockObject NULL_BRUSH
@@ -942,7 +943,7 @@ OS-draw-shape-arc: func [
                 arc-points/end-x: p2-x
                 arc-points/end-y: p2-y
             ]
-            SetGraphicsMode dc GM_ADVANCED
+
             xform: declare XFORM!
             set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1 center-y * -1
             SetWorldTransform dc xform
@@ -966,7 +967,6 @@ OS-draw-shape-arc: func [
                 
             set-matrix xform 1.0 0.0 0.0 1.0 0.0 0.0
             SetWorldTransform dc xform
-            SetGraphicsMode dc GM_COMPATIBLE
         ]
 
         ;-- set last point
