@@ -70,6 +70,7 @@ system-dialect: make-profilable context [
 		libRedRT-update?:	no
 		modules:			none
 		show:				none
+		command-line:		none
 	]
 	
 	compiler: make-profilable context [

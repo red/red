@@ -630,7 +630,10 @@ redc: context [
 		]
 
 		add-legacy-flags opts
-		if spec [opts: make opts spec]
+		if spec [
+			opts: make opts spec
+			opts/command-line: spec
+		]
 		
 		reduce [src opts]
 	]

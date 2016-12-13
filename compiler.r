@@ -4448,7 +4448,10 @@ red: context [
 	]
 	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][do bind spec job]
+		if spec: select header first [config:][
+			do bind spec job
+			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
+		]
 		if all [job/type = 'dll job/OS <> 'Windows][job/PIC?: yes]	;-- ensure PIC mode is enabled
 	]
 	
