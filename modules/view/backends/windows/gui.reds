@@ -1657,7 +1657,9 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if type = base [update-base hWnd null null values]
+		if any [type = base type = panel type = window][
+			update-base hWnd null null values
+		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		either type = base [
