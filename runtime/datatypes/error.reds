@@ -91,8 +91,8 @@ error: context [
 	]
 	
 	create: func [
-		cat		[red-word!]
-		id		[red-word!]
+		cat		[red-value!]							;-- expects a word!
+		id		[red-value!]							;-- expects a word!
 		arg1 	[red-value!]
 		arg2 	[red-value!]
 		arg3 	[red-value!]
@@ -103,8 +103,8 @@ error: context [
 			blk	 [red-block!]
 	][
 		blk: block/push* 2
-		block/rs-append blk as red-value! cat
-		block/rs-append blk as red-value! id
+		block/rs-append blk cat
+		block/rs-append blk id
 	
 		err:  make null as red-value! blk TYPE_ERROR
 		base: object/get-values err
@@ -247,10 +247,7 @@ error: context [
 				]
 			]
 			TYPE_STRING [
-				new: create
-					as red-word! #in system/catalog/errors user
-					as red-word! #in system/catalog/errors/user message
-					spec null null
+				new: create TO_ERROR(user message) spec null null
 			]
 			default [
 				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
@@ -258,7 +255,7 @@ error: context [
 		]
 		new
 	]
-
+	
 	form: func [
 		obj		[red-object!]
 		buffer	[red-string!]

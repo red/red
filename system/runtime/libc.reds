@@ -57,16 +57,16 @@ Red/System [
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]
-		errno:		 "errno" [integer!]
-		printf: 	 "printf"  [[variadic]]
-		
-		sprintf:	 "sprintf" [[variadic]]
-		
+		printf: 	 "printf"	[[variadic]]
+		sprintf:	 "sprintf"	[[variadic] return: [integer!]]
+		swprintf:	 "swprintf"	[[variadic] return: [integer!]]
 		strtod:		 "strtod"  [
 			str			[byte-ptr!]
 			endptr		[byte-ptr!]
 			return:		[float!]
 		]
+
+		errno:		 "errno" [integer!]
 	]
 
 	LIBM-file cdecl [

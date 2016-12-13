@@ -165,6 +165,12 @@ write %build/bin/sources.r set-cache [
 			]
 		]
 	]
+	%libRed/ [
+		%libRed.def
+		%libRed.lib
+		%libRed.red
+		%red.h
+	]
 	%utils/ [
 		%extractor.r
 		%redbin.r

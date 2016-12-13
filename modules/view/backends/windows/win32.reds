@@ -802,7 +802,7 @@ OSVERSIONINFO: alias struct! [
 	wReserved			[byte!]
 ]
 
-INITCOMMONCONTROLSEX: alias struct! [
+tagINITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
 ]
@@ -2519,6 +2519,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"comctl32.dll" stdcall [
+		InitCommonControlsEx: "InitCommonControlsEx" [
+			lpInitCtrls [tagINITCOMMONCONTROLSEX]
+			return:		[logic!]
+		]
 		ImageList_Create: "ImageList_Create" [
 			cx			[integer!]
 			cy			[integer!]

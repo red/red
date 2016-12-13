@@ -33,7 +33,7 @@ natives: context [
 	lf?: 	  no										;-- used to print or not an ending newline
 	last-lf?: no
 	
-	table: declare int-ptr!
+	table: as int-ptr! 0
 	top: 1
 	
 	buffer-blk: as red-block! 0

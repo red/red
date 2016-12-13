@@ -24,7 +24,7 @@ _random: context [
 	#define	MT_RANDOM_STATE_HALF_SIZE 	397
 
 	idx: 0
-	table: declare int-ptr!
+	table: as int-ptr! 0
 
 	srand: func [
 		seed [integer!]
