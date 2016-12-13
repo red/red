@@ -472,7 +472,7 @@ redc: context [
 				attempt [to-rebol-file args/1]
 			]
 			unless all [path exists? path][
-				fail "***Clear command error: invalid path"
+				fail "`red clear` command error: invalid path"
 			]
 		]
 		foreach ext [%.dll %.dylib %.so][
@@ -480,6 +480,32 @@ redc: context [
 		]
 		foreach file [include-file defs-file extras-file][
 			if exists? file: join path libRedRT/:file [delete file]
+		]
+		reduce [none none]
+	]
+	
+	do-build: func [args [block!] /local cmd][
+		if all [encap? not exists? %libRed/][
+			make-dir path: %libRed/
+			foreach file [
+				%libRed.def
+				%libRed.lib
+				%libRed.red
+				%red.h
+			][
+				write path/:file read-cache path/:file
+			]
+		]
+		switch/default args/1 [
+			"libRed" [
+				cmd: copy "-r libRed/libRed.red"
+				if all [not tail? next args args/2 = "stdcall"][
+					insert at cmd 3 " --config [export-ABI: 'stdcall]"
+				]
+				parse-options cmd
+			]
+		][
+			fail reform ["command error: unknown command" args/1]
 		]
 	]
 	
@@ -508,7 +534,7 @@ redc: context [
 	][
 	
 		cmds: any [args system/options/args system/script/args ""]
-		args: parse-tokens cmds
+		args: either block? cmds [cmds][parse-tokens cmds]
 		
 		target: default-target
 		opts: make system-dialect/options-class [
@@ -520,8 +546,9 @@ redc: context [
 		unless empty? args [
 			if cmd: select [
 				"clear" do-clear
+				"build" do-build
 			] first args [
-				return reduce [none reduce [cmd next args]]
+				return do reduce [cmd next args]
 			]
 		]
 
