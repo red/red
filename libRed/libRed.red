@@ -822,7 +822,7 @@ Red [
 		redVFormError: does []
 	]
 	
-	#export cdecl [
+	#export [
 		redOpen
 		redDo
 		redDoBlock
