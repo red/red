@@ -440,9 +440,12 @@ init: func [
 		enable-visual-styles							;-- not called for Win2000
 	]
 
-	win8+?: all [
-		version-info/dwMajorVersion >= 6
-		version-info/dwMinorVersion >= 2
+	win8+?: any [
+		version-info/dwMajorVersion >= 10				;-- Win 10+
+		all [											;-- Win 8, Win 8.1
+			version-info/dwMajorVersion >= 6
+			version-info/dwMinorVersion >= 2
+		]
 	]
 	winxp?: version-info/dwMajorVersion < 6
 
