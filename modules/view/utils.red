@@ -30,14 +30,14 @@ hex-to-rgb: function [
 	]
 ]
 
-within?: func [
+within?: function [
 	"Return TRUE if the point is within the rectangle bounds"
 	point	[pair!] "XY position"
 	offset  [pair!] "Offset of area"
 	size	[pair!] "Size of area"
 	return: [logic!]
 ][
-	make logic! all [
+	to logic! all [
 		point/x >= offset/x
 		point/y >= offset/y
 		point/x < (offset/x + size/x)
