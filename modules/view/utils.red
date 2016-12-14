@@ -59,6 +59,7 @@ overlap?: function [
 ]
 
 distance?: function [
+	"Returns the distance between the center of two faces"
 	A		[object!] "First face"
 	B		[object!] "Second face"
 	return: [float!]  "Distance between them"
