@@ -107,9 +107,9 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
-		atan2:       "atan2" [
-			y           [float!]
-			x           [float!]
+		atan2:		"atan2" [
+			y			[float!]
+			x			[float!]
 			return:		[float!]
 		]
 		ldexp:		"ldexp" [
@@ -122,11 +122,11 @@ Red/System [
 			exponent	[int-ptr!]
 			return:		[float!]
 		]
-		log10:		"log10" [
+		log-10:		"log10" [
 			value		[float!]
 			return:		[float!]
 		]
-		log:		"log" [
+		log-2:		"log" [
 			value		[float!]
 			return:		[float!]
 		]
