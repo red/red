@@ -786,6 +786,66 @@ do-file: func [file [file!] /local saved code new-path][
 	:code
 ]
 
+cos: func [
+	"Returns the trigonometric cosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/cosine* no 1
+	]
+]
+
+sin: func [
+	"Returns the trigonometric sine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/sine* no 1
+	]
+]
+
+tan: func [
+	"Returns the trigonometric tangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/tangent* no 1
+	]
+]
+
+acos: func [
+	"Returns the trigonometric arccosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arccosine* no 1
+	]
+]
+
+asin: func [
+	"Returns the trigonometric arcsine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arcsine* no 1
+	]
+]
+
+atan: func [
+	"Returns the trigonometric arctangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arctangent* no 1
+	]
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
