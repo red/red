@@ -40,14 +40,14 @@ linker: context [
 		buffer: none								;-- output buffer
 	]
 	
-	throw-error: func [err [word! string! block!]][
+	throw-error: func [err [word! string! block!] /warn][
 		print [
-			"*** Linker Error:"
+			"*** Linker " pick ["Warning:" "Error:"] to-logic warn
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
 		]
-		system-dialect/compiler/quit-on-error
+		unless warn [system-dialect/compiler/quit-on-error]
 	]
 	
 	set-ptr: func [job [object!] name [word!] value [integer!] /local spec][
@@ -58,6 +58,16 @@ linker: context [
 	set-integer: func [job [object!] name [word!] value [integer!] /local spec][
 		spec: find job/symbols name
 		change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
+	]
+	
+	check-dup-symbols: func [job [object!] imports [block!] /local exports dup][
+		all [
+			exports: select job/sections 'export
+			not empty? dup: intersect imports exports/3
+			throw-error/warn [
+				"some imported and exported symbols share the same name:" dup
+			]
+		]
 	]
 	
 	resolve-symbol-refs: func [

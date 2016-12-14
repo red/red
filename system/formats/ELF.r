@@ -955,6 +955,7 @@ context [
 	] [
 		rel: make-struct machine-word none
 		foreach [libname libimports] job/sections/import/3 [
+			linker/check-dup-symbols job libimports
 			foreach [symbol callsites] libimports [
 				rel/value: rel-address-of/symbol relro-offset symbols symbol
 				foreach callsite callsites [

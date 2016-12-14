@@ -545,6 +545,7 @@ context [
 		syms: make block! 1000
 		lib: 1											;-- one-based index
 		foreach [name list] job/sections/import/3 [
+			linker/check-dup-symbols job list
 			name: to-c-string name
 			if name/1 <> slash [insert name "@loader_path/"]
 			insert find segments 'symtab compose [

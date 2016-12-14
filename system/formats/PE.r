@@ -516,6 +516,7 @@ context [
 		len: 0
 		foreach [name list] spec/3 [					;-- collecting function names in buffer
 			append/only ILTs make block! 50
+			linker/check-dup-symbols job list
 			foreach [def reloc] list [
 				append last ILTs ilt: make-struct ILT-struct none
 				ilt/rva: length? hints
