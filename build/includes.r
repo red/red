@@ -141,6 +141,7 @@ write %build/bin/sources.r set-cache [
 			%view.red
 			%draw.red
 			%styles.red
+			%utils.red
 			%VID.red
 			%backends/ [
 				%platform.red

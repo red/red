@@ -15,6 +15,8 @@ Red [
 	event/init
 ]
 
+#include %utils.red
+
 event?: routine [value [any-type!] return: [logic!]][TYPE_OF(value) = TYPE_EVENT]
 
 face?: function [
