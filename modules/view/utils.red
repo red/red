@@ -65,6 +65,6 @@ distance?: function [
 	return: [float!]  "Distance between them"
 ][
 	square-root
-		((A/offset/x + (A/size/x / 2) - B/offset/x - (B/size/x / 2)) ** 2)
-		+ ((A/offset/y + (A/size/y / 2) - B/offset/y - (B/size/y / 2)) ** 2)
+		((A/offset/x - B/offset/x + (A/size/x - B/size/x / 2)) ** 2)
+		+ ((A/offset/y - B/offset/y + (A/size/y - B/size/y / 2)) ** 2)
 ]
