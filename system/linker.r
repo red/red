@@ -42,10 +42,11 @@ linker: context [
 	
 	throw-error: func [err [word! string! block!] /warn][
 		print [
-			"*** Linker " pick ["Warning:" "Error:"] to-logic warn
+			"*** Linker" pick ["Warning:" "Error:"] to-logic warn
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
+			lf
 		]
 		unless warn [system-dialect/compiler/quit-on-error]
 	]
@@ -65,7 +66,7 @@ linker: context [
 			exports: select job/sections 'export
 			not empty? dup: intersect imports exports/3
 			throw-error/warn [
-				"some imported and exported symbols share the same name:" dup
+				"possibly conflicting import and export symbols:" dup
 			]
 		]
 	]
