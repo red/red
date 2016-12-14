@@ -684,6 +684,16 @@ overlap?: function [
 	make logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
 ]
 
+distance?: function [
+	A		[object!] "First face"
+	B		[object!] "Second face"
+	return: [float!]  "Distance between them"
+][
+	square-root
+		((A/offset/x + (A/size/x / 2) - B/offset/x - (B/size/x / 2)) ** 2)
+		+ ((A/offset/y + (A/size/y / 2) - B/offset/y - (B/size/y / 2)) ** 2)
+]
+
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
