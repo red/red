@@ -265,6 +265,28 @@ Red [
 		red/simple-io/close-file stdout
 	]
 	
+	redNone: func [
+		return: [red-none!]
+		/local
+			cell [red-none!]
+	][
+		cell: as red-none! ring/alloc
+		cell/header: TYPE_NONE
+		cell
+	]
+	
+	redLogic: func [
+		bool	[integer!]
+		return: [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		cell: as red-logic! ring/alloc
+		cell/header: TYPE_LOGIC
+		cell/value: as-logic bool
+		cell
+	]
+	
 	redInteger: func [
 		n		[integer!]
 		return: [red-integer!]
@@ -832,6 +854,8 @@ Red [
 		redOpenLogFile
 		redCloseLogFile
 		
+		redNone
+		redLogic
 		redInteger
 		redFloat
 		redString
