@@ -95,6 +95,8 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			AllocConsole: "AllocConsole" [return: [logic!]]
+			FreeConsole: "FreeConsole" [return: [logic!]]
 			WriteConsole: 	 "WriteConsoleW" [
 				consoleOutput	[integer!]
 				buffer			[byte-ptr!]
@@ -317,6 +319,21 @@ platform: context [
 		milli: either precise? [time/second >>> 16][0]
 		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
 		t * 1E6				;-- nano second
+	]
+
+	open-console: func [return: [logic!]][
+		either AllocConsole [
+			stdin:  win32-startup-ctx/GetStdHandle WIN_STD_INPUT_HANDLE
+			stdout: win32-startup-ctx/GetStdHandle WIN_STD_OUTPUT_HANDLE
+			stderr: win32-startup-ctx/GetStdHandle WIN_STD_ERROR_HANDLE
+			yes
+		][
+			no
+		]
+	]
+
+	close-console: func [return: [logic!]][
+		FreeConsole
 	]
 
 	;-------------------------------------------
