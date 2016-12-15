@@ -227,7 +227,7 @@ math: function [
 			pos: ['* (op: 'multiply) | quote / (op: 'divide)] 
 			[ahead sub: paren! (sub/1: math as block! sub/1) | skip] (
 				end: skip pos: back pos 3
-				pos: change/only/part pos as-paren copy/part pos end end
+				pos: change/only/part pos as paren! copy/part pos end end
 			) :pos
 			| into rule
 			| skip
