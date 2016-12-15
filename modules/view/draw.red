@@ -37,6 +37,7 @@ Red/System [
 		reset-matrix:	symbol/make "reset-matrix"
 		push:			symbol/make "push"
 		clip:			symbol/make "clip"
+		crop:			symbol/make "crop"
         replace:        symbol/make "replace"
         intersect:      symbol/make "intersect"
         union:          symbol/make "union"
@@ -473,6 +474,7 @@ Red/System [
 				pattern [red-word!]
 				point	[red-pair!]
 				end		[red-pair!]
+				crop-s	[red-pair!]
 				blk		[red-block!]
 				color	[red-tuple!]
 				sym		[integer!]
@@ -607,6 +609,7 @@ Red/System [
 								]
 								color: null
 								border?: no
+								crop-s: null
 								pattern: null
 
 								pos: cmd + 1
@@ -622,6 +625,11 @@ Red/System [
 										sym: symbol/resolve word/symbol
 										case [
 											sym = border [border?: yes cmd: pos]
+											sym = crop [
+												crop-s: as red-pair! pos + 1
+												cmd: pos
+												loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
+											]
 											;any [sym = repeat sym = reflect][
 											;	;@@ TBD check if followed by four integers
 											;]
@@ -629,7 +637,7 @@ Red/System [
 										]
 									]
 								]
-								OS-draw-image DC as red-image! start point end color border? pattern
+								OS-draw-image DC as red-image! start point end color border? crop-s pattern
 							]
 							sym = clip [
                                 rect?: false

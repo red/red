@@ -1651,16 +1651,20 @@ OS-draw-image: func [
 	end			[red-pair!]
 	key-color	[red-tuple!]
 	border?		[logic!]
+	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
 		x		[integer!]
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		src-x	[integer!]
+		src-y	[integer!]
 		w		[integer!]
 		h		[integer!]
 		attr	[integer!]
 		color	[integer!]
+		crop2	[red-pair!]
 		pts		[tagPOINT]
 ][
 	attr: 0
@@ -1670,8 +1674,17 @@ OS-draw-image: func [
 		color: to-gdiplus-color key-color/array1
 		GdipSetImageAttributesColorKeys attr 0 true color color
 	]
-	w: IMAGE_WIDTH(image/size)
-	h: IMAGE_HEIGHT(image/size)
+	either crop1 = null [
+		src-x: 0 src-y: 0
+		w: IMAGE_WIDTH(image/size)
+		h: IMAGE_HEIGHT(image/size)
+	][
+		crop2: crop1 + 1
+		src-x: crop1/x
+		src-y: crop1/y
+		w: crop2/x
+		h: crop2/y
+	]
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
@@ -1699,7 +1712,7 @@ OS-draw-image: func [
 	]
 	GdipDrawImageRectRectI
 		modes/graphics as-integer image/node
-		x y width height 0 0 w h
+		x y width height src-x src-y w h
 		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
