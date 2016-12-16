@@ -264,7 +264,15 @@ Red [
 	redCloseLogFile: does [
 		red/simple-io/close-file stdout
 	]
-	
+
+	redOpenDebugConsole: func [return: [logic!]][
+		red/platform/open-console
+	]
+
+	redCloseDebugConsole: func [return: [logic!]][
+		red/platform/close-console
+	]
+
 	redNone: func [
 		return: [red-none!]
 		/local
@@ -853,7 +861,9 @@ Red [
 		redSetEncoding
 		redOpenLogFile
 		redCloseLogFile
-		
+		redOpenDebugConsole
+		redCloseDebugConsole
+
 		redNone
 		redLogic
 		redInteger
