@@ -25,9 +25,20 @@ object: context [
 	
 	check-owner: func [
 		slot [red-value!]
+		/local
+			ser  [red-series!]
+			type [integer!]
 	][
-		if TYPE_OF(path-parent) = TYPE_OBJECT [
-			ownership/check-slot path-parent field-parent slot
+		type: TYPE_OF(path-parent)
+		case [
+			type = TYPE_OBJECT [
+				ownership/check-slot path-parent field-parent slot
+			]	
+			ANY_SERIES?(type) [
+				ser: as red-series! path-parent
+				ownership/check as red-value! ser words/_poke null ser/head 1
+			]
+			true [0]									;-- ignore other types
 		]
 	]
 	
