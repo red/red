@@ -28,7 +28,7 @@ draw-ctx!: alias struct! [
 	ty				[float32!]
 	pen-join		[integer!]
 	pen-cap			[integer!]
-	pen-width		[integer!]
+	pen-width		[float32!]
 	pen-style		[integer!]
 	pen-color		[integer!]					;-- 00bbggrr format
 	brush-color		[integer!]					;-- 00bbggrr format
@@ -76,7 +76,7 @@ draw-begin: func [
 	CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 
 	ctx/raw:			CGCtx
-	ctx/pen-width:		1
+	ctx/pen-width:		as float32! 1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
@@ -210,10 +210,13 @@ OS-draw-fill-pen: func [
 OS-draw-line-width: func [
 	dc	  [draw-ctx!]
 	width [red-integer!]
+	/local 
+		width-v	[float32!]
 ][
-	if dc/pen-width <> width/value [
-		dc/pen-width: width/value
-		CGContextSetLineWidth dc/raw as float32! width/value
+	width-v: get-float32 width
+	if dc/pen-width <> width-v [
+		dc/pen-width: width-v
+		CGContextSetLineWidth dc/raw width-v
 	]
 ]
 
@@ -748,17 +751,15 @@ OS-draw-line-cap: func [
 
 CG-draw-image: func [						;@@ use CALayer to get very good performance?
 	dc			[handle!]
-	bitmap		[integer!]
+	image		[integer!]
 	x			[integer!]
 	y			[integer!]
 	width		[integer!]
 	height		[integer!]
 	/local
 		rc		[NSRect!]
-		image	[integer!]
 		ty		[float32!]
 ][
-	image: CGBitmapContextCreateImage bitmap
 	rc: make-rect x y width height
 	ty: rc/y + rc/h
 	;-- flip coords
@@ -769,7 +770,6 @@ CG-draw-image: func [						;@@ use CALayer to get very good performance?
 	CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
 
 	CGContextDrawImage dc rc/x as float32! 0.0 rc/w rc/h image
-	CGImageRelease image
 
 	;-- flip back
 	CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
@@ -783,12 +783,19 @@ OS-draw-image: func [
 	end			[red-pair!]
 	key-color	[red-tuple!]
 	border?		[logic!]
+	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
+		img		[integer!]
+		sub-img [integer!]
 		x		[integer!]
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		w		[float32!]
+		h		[float32!]
+		ww		[float32!]
+		crop2	[red-pair!]
 ][
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
@@ -804,7 +811,25 @@ OS-draw-image: func [
 		true [0]							;@@ TBD four control points
 	]
 
-	CG-draw-image dc/raw as-integer image/node x y width height
+	img: CGBitmapContextCreateImage as-integer image/node
+	if crop1 <> null [
+		crop2: crop1 + 1
+		w: as float32! crop2/x
+		h: as float32! crop2/y
+		ww: w / h * (as float32! height)
+		width: as-integer ww
+		sub-img: CGImageCreateWithImageInRect
+			img
+			as float32! crop1/x
+			as float32! crop1/y
+			w
+			h
+		CGImageRelease img
+		img: sub-img
+	]
+
+	CG-draw-image dc/raw img x y width height
+	if crop1 <> null [CGImageRelease img]
 ]
 
 fill-gradient-region: func [

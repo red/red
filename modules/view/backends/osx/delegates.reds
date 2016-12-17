@@ -732,6 +732,7 @@ draw-rect: func [
 		draw	[red-block!]
 		clr		[red-tuple!]
 		size	[red-pair!]
+		bmp		[integer!]
 		v1010?	[logic!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
@@ -751,7 +752,9 @@ draw-rect: func [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx as-integer img/node 0 0 size/x size/y
+		bmp: CGBitmapContextCreateImage as-integer img/node 
+		CG-draw-image ctx bmp 0 0 size/x size/y
+		CGImageRelease bmp
 	]
 	render-text ctx vals as NSSize! (as int-ptr! self) + 8
 

@@ -100,7 +100,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows]
+		View		%modules/view/view.red	  [Windows MacOSX]
 	]
 
 	func-constructors: [

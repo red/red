@@ -474,7 +474,7 @@ change-image: func [
 			CGImageRelease cg-image
 		]
 		true [
-			objc_msgSend [hWnd sel_getUid "display"]
+			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
 	]
 ]
@@ -520,7 +520,7 @@ change-color: func [
 		]
 		objc_msgSend [hWnd sel_getUid "setBackgroundColor:" clr]
 	][
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 ]
 
@@ -664,7 +664,7 @@ change-text: func [
 		str  [red-string!]
 ][
 	if type = base [
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		exit
 	]
 
@@ -1318,6 +1318,7 @@ OS-make-view: func [
 			sym = base
 		][
 			if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
+			objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1451,7 +1452,7 @@ OS-update-view: func [
 	;	get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color hWnd as red-tuple! values + FACE_OBJ_COLOR type

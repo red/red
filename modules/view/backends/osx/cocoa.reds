@@ -690,6 +690,14 @@ tagSIZE: alias struct! [
 			h			[float32!]
 			src			[integer!]
 		]
+		CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
+			image		[integer!]
+			x			[float32!]
+			y			[float32!]
+			w			[float32!]
+			h			[float32!]
+			return:		[integer!]
+		]
 		CGBitmapContextCreateImage: "CGBitmapContextCreateImage" [
 			ctx			[integer!]
 			return:		[integer!]
