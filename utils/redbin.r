@@ -431,12 +431,14 @@ context [
 			compress?: find spec 'compress
 			128 < len: length? buffer
 		][
-			flags: flags or #{02}
 			out: make binary! len
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
-			clear buffer
-			insert/part buffer out len
+			if len > 0 [
+				flags: flags or #{02}
+				clear buffer
+				insert/part buffer out len
+			]
 		]
 		
 		clear header

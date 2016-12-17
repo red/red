@@ -250,6 +250,13 @@ emitter: make-profilable context [
 			]
 			c-string! [
 				either string? value [
+					if all [							;-- heuristic to detect wide strings (UTF-16LE)
+						value/2 = null
+						null = last value
+					][
+						pad-data-buf 2					;-- ensures it is aligned on 16-bit
+						ptr: tail data-buf
+					]
 					repend ptr [value null]
 				][
 					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer

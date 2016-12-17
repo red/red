@@ -1094,6 +1094,38 @@ simple-io: context [
 
 	#switch OS [
 		Windows [
+			IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
+			IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
+			
+			IWinHttpRequest: alias struct! [
+				QueryInterface			[QueryInterface!]
+				AddRef					[AddRef!]
+				Release					[Release!]
+				GetTypeInfoCount		[integer!]
+				GetTypeInfo				[integer!]
+				GetIDsOfNames			[integer!]
+				Invoke					[integer!]
+				SetProxy				[integer!]
+				SetCredentials			[integer!]
+				Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
+				SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
+				GetResponseHeader		[function! [this [this!] header [byte-ptr!] value [int-ptr!] return: [integer!]]]
+				GetAllResponseHeaders	[function! [this [this!] header [int-ptr!] return: [integer!]]]
+				Send					[function! [this [this!] body1 [integer!] body2 [integer!] body3 [integer!] body4 [integer!] return: [integer!]]]
+				Status					[function! [this [this!] status [int-ptr!] return: [integer!]]]
+				StatusText				[integer!]
+				ResponseText			[function! [this [this!] body [int-ptr!] return: [integer!]]]
+				ResponseBody			[function! [this [this!] body [tagVARIANT] return: [integer!]]]
+				ResponseStream			[integer!]
+				GetOption				[integer!]
+				PutOption				[integer!]
+				WaitForResponse			[integer!]
+				Abort					[integer!]
+				SetTimeouts				[integer!]
+				SetClientCertificate	[integer!]
+				SetAutoLogonPolicy		[integer!]
+			]
+
 			BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
 				len: as int-ptr! s - 4
 				len/value >> 1

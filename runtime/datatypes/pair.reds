@@ -95,9 +95,10 @@ pair: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-pair!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-pair!]
 		/local
 			int	 [red-integer!]
 			int2 [red-integer!]
@@ -111,6 +112,12 @@ pair: context [
 			TYPE_INTEGER [
 				int: as red-integer! spec
 				push int/value int/value
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				x: as-integer fl/value
+				push x x
 			]
 			TYPE_BLOCK [
 				int: as red-integer! block/rs-head as red-block! spec
@@ -136,8 +143,16 @@ pair: context [
 				]	
 				push x y
 			]
+			TYPE_STRING [
+				proto: load-value as red-string! spec
+				if TYPE_OF(proto) <> TYPE_PAIR [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR proto]
+				]
+				proto
+			]
+			TYPE_PAIR [as red-pair! spec]
 			default [
-				fire [TO_ERROR(script invalid-type) spec]
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR spec]
 				push 0 0
 			]
 		]
@@ -265,6 +280,9 @@ pair: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 
+		if TYPE_OF(right) <> TYPE_PAIR [
+			return either op = COMP_STRICT_EQUAL [1][RETURN_COMPARE_OTHER]
+		]
 		diff: left/y - right/y
 		if zero? diff [diff: left/x - right/x]
 		SIGN_COMPARE_RESULT(diff 0)
@@ -370,7 +388,7 @@ pair: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:make			;to
 			:form
 			:mold
 			:eval-path

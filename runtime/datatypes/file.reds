@@ -130,7 +130,6 @@ file: context [
 			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
 			p: p + unit
 		]
-		out
 	]
 
 	normalize: func [
@@ -157,43 +156,6 @@ file: context [
 	]
 
 	;-- Actions --
-
-	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-file!]
-		/local
-			file [red-file!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/make"]]
-
-		file: as red-file! string/make proto spec type
-		set-type as red-value! file TYPE_FILE
-		file
-	]
-
-	to: func [
-		type	[red-datatype!]
-		spec	[red-file!]
-		return: [red-value!]
-		/local
-			t	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
-
-		t: type/value
-		switch t [
-			TYPE_STRING
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL [
-				set-type copy-cell as cell! spec as cell! type t
-			]
-			default  [--NOT_IMPLEMENTED--]
-		]
-		as red-value! type
-	]
 
 	mold: func [
 		file    [red-file!]
@@ -298,10 +260,10 @@ file: context [
 			TYPE_URL
 			"file!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
-			:to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path

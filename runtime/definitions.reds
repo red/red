@@ -34,6 +34,7 @@ Red/System [
 #define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-native-op		00010000h		;-- operator is made from a native! function
+#define flag-extern-code	00008000h		;-- routine's body is from FFI
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
@@ -72,6 +73,14 @@ Red/System [
 	HTTP_POST
 	HTTP_DEL
 	HTTP_HEAD
+]
+
+;== Image definitions ===
+
+#enum extract-type! [
+	EXTRACT_ALPHA
+	EXTRACT_RGB
+	EXTRACT_ARGB
 ]
 
 #either OS = 'Windows [

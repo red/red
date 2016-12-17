@@ -357,7 +357,7 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     do call* exec output
-    if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    ;;if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
     recycle
     if all [
       source-file?

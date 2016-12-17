@@ -71,15 +71,16 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
-			fflush: "fflush" [
-				fd			[integer!]
-				return:		[integer!]
-			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
 				return:		[integer!]
 			]
+			_fileno: "_fileno" [
+				file		[int-ptr!]
+				return:		[integer!]
+			]
+			__iob_func: "__iob_func" [return: [int-ptr!]]
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
@@ -94,6 +95,8 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			AllocConsole: "AllocConsole" [return: [logic!]]
+			FreeConsole: "FreeConsole" [return: [logic!]]
 			WriteConsole: 	 "WriteConsoleW" [
 				consoleOutput	[integer!]
 				buffer			[byte-ptr!]
@@ -318,16 +321,39 @@ platform: context [
 		t * 1E6				;-- nano second
 	]
 
+	open-console: func [return: [logic!]][
+		either AllocConsole [
+			stdin:  win32-startup-ctx/GetStdHandle WIN_STD_INPUT_HANDLE
+			stdout: win32-startup-ctx/GetStdHandle WIN_STD_OUTPUT_HANDLE
+			stderr: win32-startup-ctx/GetStdHandle WIN_STD_ERROR_HANDLE
+			yes
+		][
+			no
+		]
+	]
+
+	close-console: func [return: [logic!]][
+		FreeConsole
+	]
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: does [
+	init: func [/local h [int-ptr!]] [
 		init-gdiplus
-		#if unicode? = yes [
-			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
-			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
+		#either libRed? = no [
+			CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		][
+			#if export-ABI <> 'stdcall [
+				CoInitializeEx 0 COINIT_APARTMENTTHREADED
+			]
 		]
-		CoInitializeEx 0 COINIT_APARTMENTTHREADED
-		#if sub-system = 'console [get-console-mode]
+		crypto/init-provider
+		#if sub-system = 'console [init-dos-console]
+		#if unicode? = yes [
+			h: __iob_func
+			_setmode _fileno h + 1 _O_U16TEXT				;@@ throw an error on failure
+			_setmode _fileno h + 2 _O_U16TEXT				;@@ throw an error on failure
+		]
 	]
 ]

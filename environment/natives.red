@@ -167,6 +167,7 @@ case: make native! [[
 do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
+		/expand "Expand directives before evaluation"
 		/args "If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
 		/next "Do next expression only, return it, update block word"
@@ -825,4 +826,12 @@ sign?: make native! [[
 		number [number! time!]
 	]
 	#get-definition NAT_SIGN?
+]
+
+as: make native! [[
+		"Coerce a series into a compatible datatype without copying it"
+		type	[datatype! block! paren! any-path! any-string!] "The datatype or example value"
+		spec	[block! paren! any-path! any-string!] "The series to coerce"
+	]
+	#get-definition NAT_AS
 ]

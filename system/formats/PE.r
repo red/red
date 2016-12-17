@@ -12,19 +12,22 @@ context [
 		<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
 			<dependency>
 				<dependentAssembly>
-					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
+					<assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="x86" publicKeyToken="6595b64144ccf1df" language="*"/>
 				</dependentAssembly>
 			</dependency>
 			<trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
 				<security>
 					<requestedPrivileges>
-						<requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+						<requestedExecutionLevel level="asInvoker" uiAccess="false"/>
 					</requestedPrivileges>
 				</security>
 			</trustInfo>
 			<compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
 				<application>
-					<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"></supportedOS>
+					<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+					<supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
+					<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
+					<supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
 				</application>
 			</compatibility>
 		</assembly>
@@ -513,6 +516,7 @@ context [
 		len: 0
 		foreach [name list] spec/3 [					;-- collecting function names in buffer
 			append/only ILTs make block! 50
+			linker/check-dup-symbols job list
 			foreach [def reloc] list [
 				append last ILTs ilt: make-struct ILT-struct none
 				ilt/rva: length? hints
@@ -580,10 +584,10 @@ context [
 						+ length? form-struct export-directory
 		
 		sym-nb: 0
-		sort/case spec/3								;-- sort all symbols lexicographically
-		foreach name spec/3 [							;-- Export Name Table
+		sort/case/skip/compare spec/3 2 2				;-- sort all symbols lexicographically
+		foreach [name exp-name] spec/3 [				;-- Export Name Table
 			repend NPT [name length? names]
-			repend names [name null]
+			repend names [exp-name null]
 			sym-nb: sym-nb + 1
 		]
 		
@@ -684,8 +688,8 @@ context [
 				foreach ref spec/3 [append code-refs ref]
 			]
 		]
-		sort code-refs
-		sort data-refs
+		code-refs: unique sort code-refs
+		data-refs: unique sort data-refs
 			
 		unless empty? code-refs [append out build-section-reloc job 'code code-refs]
 		unless empty? data-refs [append out build-section-reloc job 'data data-refs]
@@ -1081,8 +1085,7 @@ context [
 		entry/offset: base + length? buf
 		data-buf: tail buf
 
-		append buf trim/with either info [info][manifest-template] "^/^-"
-		pad4 buf
+		append buf trim/with either info [info][manifest-template] "^M^/^-"
 
 		entry/size: length? data-buf
 		append out form-struct entry

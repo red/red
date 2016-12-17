@@ -22,6 +22,10 @@ time: context [
 	#define GET_MINUTES(time) (floor time / oneE9 // 3600.0 / 60.0)
 	#define GET_SECONDS(time) (time / oneE9 // 60.0)
 	
+	throw-error: func [spec [red-value!]][
+		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
+	]
+	
 	push-field: func [
 		tm		[red-time!]
 		field	[integer!]
@@ -86,37 +90,72 @@ time: context [
 	
 	;-- Actions --
 	
-	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-time!]
-		/local
-			int	 [red-integer!]
-			fl	 [red-float!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "time/make"]]
+	;make: :to
 
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+		/local
+			tm	 [red-time!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			str	 [red-string!]
+			blk	 [red-block!]
+			len	 [integer!]
+			i	 [integer!]
+			t	 [float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/to"]]
+		
+		if TYPE_OF(spec) = TYPE_TIME [return spec]
+		
+		tm: as red-time! proto
+		tm/header: TYPE_TIME
+		
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
-				fl: as red-float! spec
 				int: as red-integer! spec
-				fl/value: oneE9 * as-float int/value
-				fl/header: TYPE_TIME
-				as red-time! fl
+				tm/time: (as-float int/value) * oneE9
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				fl: as red-float! spec
-				fl/header: TYPE_TIME
-				fl/value: oneE9 * fl/value
-				as red-time! fl
+				tm/time: fl/value * oneE9
 			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-float! spec					;@@ just for making it compilable
+			TYPE_ANY_LIST [
+				blk: as red-block! spec
+				len: block/rs-length? blk
+				if len > 3 [throw-error spec]
+				int: as red-integer! block/rs-head blk
+				fl: null
+				t: 0.0
+				i: 1
+				loop len [
+					either all [i = 3 TYPE_OF(int) = TYPE_FLOAT][
+						fl: as red-float! int 
+					][
+						if TYPE_OF(int) <> TYPE_INTEGER [throw-error spec]
+					]
+					t: switch i [
+						1 [t + ((as-float int/value) * 3600.0)]
+						2 [t + ((as-float int/value) * 60.0)]
+						3 [either fl = null [t +  as-float int/value][t + fl/value]]
+					]
+					int: int + 1
+					i: i + 1
+				]
+				tm/time: t * oneE9
 			]
+			TYPE_ANY_STRING [
+				proto: load-value as red-string! spec
+				if TYPE_OF(proto) <> TYPE_TIME [throw-error proto]
+			]
+			default [throw-error spec]
 		]
+		proto
 	]
-
 	
 	form: func [
 		t		[red-time!]
@@ -320,10 +359,10 @@ time: context [
 			TYPE_FLOAT
 			"time!"
 			;-- General actions --
-			:make
+			:to				;make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

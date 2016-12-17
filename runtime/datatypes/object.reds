@@ -25,9 +25,20 @@ object: context [
 	
 	check-owner: func [
 		slot [red-value!]
+		/local
+			ser  [red-series!]
+			type [integer!]
 	][
-		if TYPE_OF(path-parent) = TYPE_OBJECT [
-			ownership/check-slot path-parent field-parent slot
+		type: TYPE_OF(path-parent)
+		case [
+			type = TYPE_OBJECT [
+				ownership/check-slot path-parent field-parent slot
+			]	
+			ANY_SERIES?(type) [
+				ser: as red-series! path-parent
+				ownership/check as red-value! ser words/_poke null ser/head 1
+			]
+			true [0]									;-- ignore other types
 		]
 	]
 	
@@ -901,6 +912,7 @@ object: context [
 	make: func [
 		proto	[red-object!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
@@ -1257,9 +1269,18 @@ object: context [
 		
 		either deep? [
 			while [value < tail][
-				type: TYPE_OF(value)
-				case [
-					ANY_SERIES?(type) [
+				switch TYPE_OF(value) [
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_PATH				;-- any-path!
+					TYPE_LIT_PATH
+					TYPE_SET_PATH
+					TYPE_GET_PATH
+					TYPE_STRING				;-- any-string!
+					TYPE_FILE
+					TYPE_URL
+					TYPE_TAG
+					TYPE_EMAIL [
 						actions/copy 
 							as red-series! value
 							value						;-- overwrite the value
@@ -1267,10 +1288,10 @@ object: context [
 							yes
 							null
 					]
-					type = TYPE_FUNCTION [
+					TYPE_FUNCTION [
 						rebind as red-function! value nctx node
 					]
-					true [0]
+					default [0]
 				]
 				value: value + 1
 			]

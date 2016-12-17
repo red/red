@@ -141,6 +141,7 @@ write %build/bin/sources.r set-cache [
 			%view.red
 			%draw.red
 			%styles.red
+			%utils.red
 			%VID.red
 			%backends/ [
 				%platform.red
@@ -164,6 +165,12 @@ write %build/bin/sources.r set-cache [
 				]
 			]
 		]
+	]
+	%libRed/ [
+		%libRed.def
+		%libRed.lib
+		%libRed.red
+		%red.h
 	]
 	%utils/ [
 		%extractor.r

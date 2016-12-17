@@ -45,46 +45,7 @@ issue: context [
 	]
 	
 	;-- Actions --
-	
-	to: func [
-		type	[red-datatype!]
-		spec	[red-value!]
-		return: [red-value!]
-		/local
-			issue [red-word!]
-			str   [red-string!]
-			bin   [red-binary!]
-			s	  [series!]
-			unit  [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "issue/to"]]
 
-		switch type/value [
-			TYPE_BINARY [
-				issue: as red-word! spec
-				str: as red-string! stack/push as red-value! symbol/get issue/symbol
-				str/head: 0								;-- /head = -1 (casted from symbol!)
-				s: GET_BUFFER(str)
-				unit: GET_UNIT(s)
-				
-				bin: as red-binary! stack/arguments
-				bin/head: 0
-				bin/header: TYPE_BINARY
-				bin/node: binary/decode-16 
-					(as byte-ptr! s/offset) + (str/head << (log-b unit))
-					string/rs-length? str
-					unit
-				stack/pop 1
-				if null? bin/node [bin/header: TYPE_NONE]
-				as red-value! bin
-			]
-			default  [
-				fire [TO_ERROR(script bad-to-arg) type spec]
-				null
-			]
-		]
-	]
-	
 	mold: func [
 		w	    [red-word!]
 		buffer	[red-string!]
@@ -120,10 +81,10 @@ issue: context [
 			TYPE_WORD
 			"issue!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
-			:to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path

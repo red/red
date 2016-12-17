@@ -125,7 +125,7 @@ report: func [
 	arg3  [red-value!]
 ][	
 	stack/mark-native words/_body
-	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	stack/set-last as red-value! error/create type id arg1 arg2 arg3
 	natives/print* no
 	stack/set-last unset-value
 	stack/unwind
@@ -155,7 +155,7 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
+	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
 ]
 
 throw-make: func [
@@ -327,6 +327,44 @@ select-key*: func [									;-- called by compiler for SWITCH
 		value/header: TYPE_NONE
 		value
 	]
+]
+
+load-value: func [
+	str		[red-string!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		value [red-value!]
+][
+	#call [system/lexer/transcode/one/only str none none]
+
+	blk: as red-block! stack/arguments
+	assert TYPE_OF(blk) = TYPE_BLOCK
+
+	either zero? block/rs-length? blk [
+		value: as red-value! blk
+		value/header: TYPE_UNSET
+	][
+		value: block/rs-head blk
+	]
+	value
+]
+
+form-value: func [
+	arg		[red-value!]
+	part	[integer!]								;-- pass 0 for full string
+	return: [red-string!]
+	/local
+		buffer [red-string!]
+		limit  [integer!]
+][
+	buffer: string/rs-make-at stack/push* 16
+	limit: actions/form stack/arguments buffer arg part
+
+	if all [part >= 0 negative? limit][
+		string/truncate-from-tail GET_BUFFER(buffer) limit
+	]
+	buffer
 ]
 
 cycles: context [
@@ -519,6 +557,7 @@ words: context [
 	_anon:			as red-word! 0
 	_body:			as red-word! 0
 	_end:			as red-word! 0
+	_not-found:		as red-word! 0
 	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
@@ -753,6 +792,7 @@ words: context [
 		_paren:			word/load "paren"
 		_anon:			word/load "<anon>"				;-- internal usage
 		_body:			word/load "<body>"				;-- internal usage
+		_not-found:		word/load "<not-found>"			;-- internal usage
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"

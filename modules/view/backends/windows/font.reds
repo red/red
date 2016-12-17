@@ -67,8 +67,8 @@ make-font: func [
 		len: string/rs-length? str
 		if len > 31 [len: 31]
 		unicode/to-utf16-len str :len yes
-	][null]
-	
+	][default-font-name]
+
 	style: as red-word! values + FONT_OBJ_STYLE
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [

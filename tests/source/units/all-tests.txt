@@ -1,3 +1,4 @@
+preprocessor-test.red
 logic-test.red
 conditional-test.red
 series-test.red
@@ -34,6 +35,7 @@ throw-test.red
 vector-test.red
 map-test.red
 pair-test.red
+convert-test.red
 checksum-test.red
 reactivity-test.red
 auto-tests/lexer-auto-test.red

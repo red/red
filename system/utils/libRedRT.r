@@ -16,6 +16,7 @@ libRedRT: context [
 	imports:	make block!  100
 	template:	make string! 100'000
 	extras:		make block!  100
+	aliased:	make block!	 10							;-- [new old...]
 	obj-path:	'red/objects
 	
 	lib-file:	  %libRedRT
@@ -47,6 +48,10 @@ libRedRT: context [
 		data
 	]
 	
+	init: does [
+		clear aliased
+	]
+	
 	init-extras: does [
 		clear extras
 		clear user-funcs
@@ -70,6 +75,14 @@ libRedRT: context [
 		]	
 	]
 	
+	collect-aliased: func [new [word!] old [path!]][
+		repend aliased [new to word! form old]
+	]
+	
+	undecorate: func [sym [word! path!]][
+		any [find/match sym: form sym "exec/" sym]
+	]
+	
 	make-exports: func [functions exports /local name file][
 		foreach [name spec] functions [
 			if all [
@@ -80,11 +93,11 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load file
+			append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def
-			append exports name
+			repend exports [name undecorate def]
 			unless select/only functions name [
 				print ["*** libRedRT Error: definition not found for" def]
 				halt
@@ -92,8 +105,7 @@ libRedRT: context [
 			system-dialect/compiler/flag-callback name none
 		]
 		foreach [def type] vars [
-			name: to word! form def
-			append exports name
+			repend exports [to word! form def undecorate def]
 		]
 	]
 	
@@ -163,7 +175,7 @@ libRedRT: context [
 			]
 
 		]
-		foreach def funcs [
+		foreach def funcs [								;-- functions
 			ctx: next def
 			list: imports
 			
@@ -189,14 +201,22 @@ libRedRT: context [
 			append pos to set-word! name
 			new-line back tail pos yes
 			name: to word! form def
-			append pos mold name
+			append pos undecorate def
 			
 			spec: copy/deep functions/:name/4
 			clear find spec /local
 			append/only pos spec
 		]
 		
-		foreach [def type] vars [
+		list: third second find imports #import			;-- aliased functions
+		foreach [new old] aliased [
+			spec: copy/deep functions/:old/4
+			clear find spec /local
+			repend list [to set-word! new form old spec]
+			new-line skip tail list -3 yes
+		]
+		
+		foreach [def type] vars [						;-- global variables
 			list: either 2 < length? def [
 				pos: find imports to set-word! def/2
 				pos/3/2/3
@@ -211,7 +231,7 @@ libRedRT: context [
 		]
 		list: find imports to set-word! 'stack
 		append list/3 [
-			#enum flags! [FRAME_FUNCTION: 16777216]				;-- 01000000h
+			#enum flags! [FRAME_FUNCTION: 16777216]		;-- 01000000h
 		]
 		append imports [
 			words: context [

@@ -64,6 +64,7 @@ log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
+default-font-name: as c-string! 0
 
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
@@ -372,6 +373,7 @@ set-defaults: func [
 		font	[tagLOGFONT]
 		name	[c-string!]
 		res		[integer!]
+		len		[integer!]
 ][
 	if IsThemeActive [
 		hTheme: OpenThemeData null #u16 "Window"
@@ -380,9 +382,13 @@ set-defaults: func [
 			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
 			if zero? res [
 				name: (as-c-string font) + 28
+				len: utf16-length? name
+				res: len + 1 * 2
+				default-font-name: as c-string! allocate res
+				copy-memory as byte-ptr! default-font-name as byte-ptr! name res
 				string/load-at
 					name
-					utf16-length? name
+					len
 					#get system/view/fonts/system
 					UTF-16LE
 				
@@ -399,6 +405,22 @@ set-defaults: func [
 	null
 ]
 
+enable-visual-styles: func [
+	return:   [logic!]
+	/local
+		icc   [integer!]
+		size  [integer!]
+		ctrls [tagINITCOMMONCONTROLSEX]
+][
+	size: size? tagINITCOMMONCONTROLSEX
+	icc: ICC_STANDARD_CLASSES
+	  or ICC_TAB_CLASSES
+	  or ICC_LISTVIEW_CLASSES
+	  or ICC_BAR_CLASSES
+	ctrls: as tagINITCOMMONCONTROLSEX :size
+	InitCommonControlsEx ctrls
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -410,9 +432,20 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: all [
-		version-info/dwMajorVersion >= 6
-		version-info/dwMinorVersion >= 2
+
+	unless all [
+		version-info/dwMajorVersion = 5
+		version-info/dwMinorVersion < 1
+	][
+		enable-visual-styles							;-- not called for Win2000
+	]
+
+	win8+?: any [
+		version-info/dwMajorVersion >= 10				;-- Win 10+
+		all [											;-- Win 8, Win 8.1
+			version-info/dwMajorVersion >= 6
+			version-info/dwMinorVersion >= 2
+		]
 	]
 	winxp?: version-info/dwMajorVersion < 6
 
@@ -1363,7 +1396,7 @@ change-data: func [
 	case [
 		all [
 			type = slider
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			size: as red-pair! values + FACE_OBJ_SIZE
@@ -1374,7 +1407,7 @@ change-data: func [
 		]
 		all [
 			type = progress
-			TYPE_OF(data) = TYPE_PERCENT
+			any [TYPE_OF(data) = TYPE_PERCENT TYPE_OF(data) = TYPE_FLOAT]
 		][
 			f: as red-float! data
 			SendMessage hWnd PBM_SETPOS as-integer f/value * 100.0 0
@@ -1651,7 +1684,9 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if type = base [update-base hWnd null null values]
+		if any [type = base type = panel type = window][
+			update-base hWnd null null values
+		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		either type = base [
