@@ -467,6 +467,7 @@ DWriteCreateFactory!: alias function! [
 #define ConvertPointSizeToDIP(size)		(as float32! size / 72.0  * 94.0)
 
 DX-init: func [
+	return:					[logic!]
 	/local
 		hr					[integer!]
 		factory 			[integer!]
@@ -483,11 +484,12 @@ DX-init: func [
 
 	factory: 0
 	hr: D2D1CreateFactory 0 IID_ID2D1Factory null :factory		;-- D2D1_FACTORY_TYPE_SINGLE_THREADED: 0
-	assert zero? hr
-	d2d-factory: as this! factory
-	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
-	assert zero? hr
-	dwrite-factory: as this! factory
+	if zero? hr [
+		d2d-factory: as this! factory
+		hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory	;-- DWRITE_FACTORY_TYPE_SHARED: 0
+		dwrite-factory: as this! factory
+	]
+	zero? hr
 ]
 
 to-dx-color: func [
