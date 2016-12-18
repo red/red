@@ -10,36 +10,6 @@ Red/System [
 	}
 ]
 
-draw-ctx!: alias struct! [
-	dc				[handle!]								;-- OS drawing object
-	pen				[handle!]
-	brush			[handle!]
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-width		[float32!]
-	pen-style		[integer!]
-	pen-color		[integer!]								;-- 00bbggrr format
-	brush-color		[integer!]								;-- 00bbggrr format
-	font-color		[integer!]
-	bitmap			[handle!]
-	graphics		[integer!]								;-- gdiplus graphics
-	gp-state		[integer!]
-	gp-pen			[integer!]								;-- gdiplus pen
-	gp-pen-saved	[integer!]
-	gp-brush		[integer!]								;-- gdiplus brush
-	gp-font			[integer!]								;-- gdiplus font
-	gp-font-brush	[integer!]
-	gp-matrix		[integer!]
-	gp-path			[integer!]
-	image-attr		[integer!]								;-- gdiplus image attributes
-	pen?			[logic!]
-	brush?			[logic!]
-	on-image?		[logic!]								;-- drawing on image?
-	alpha-pen?		[logic!]
-	alpha-brush?	[logic!]
-	font-color?		[logic!]
-]
-
 paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone

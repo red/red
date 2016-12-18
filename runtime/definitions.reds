@@ -113,6 +113,36 @@ Red/System [
 	#define BFFM_INITIALIZED		1
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
+
+	draw-ctx!: alias struct! [
+		dc				[int-ptr!]								;-- OS drawing object
+		pen				[int-ptr!]
+		brush			[int-ptr!]
+		pen-join		[integer!]
+		pen-cap			[integer!]
+		pen-width		[float32!]
+		pen-style		[integer!]
+		pen-color		[integer!]								;-- 00bbggrr format
+		brush-color		[integer!]								;-- 00bbggrr format
+		font-color		[integer!]
+		bitmap			[int-ptr!]
+		graphics		[integer!]								;-- gdiplus graphics
+		gp-state		[integer!]
+		gp-pen			[integer!]								;-- gdiplus pen
+		gp-pen-saved	[integer!]
+		gp-brush		[integer!]								;-- gdiplus brush
+		gp-font			[integer!]								;-- gdiplus font
+		gp-font-brush	[integer!]
+		gp-matrix		[integer!]
+		gp-path			[integer!]
+		image-attr		[integer!]								;-- gdiplus image attributes
+		pen?			[logic!]
+		brush?			[logic!]
+		on-image?		[logic!]								;-- drawing on image?
+		alpha-pen?		[logic!]
+		alpha-brush?	[logic!]
+		font-color?		[logic!]
+	]
 ][
 	#define O_RDONLY	0
 	#define O_WRONLY	1
