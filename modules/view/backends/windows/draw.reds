@@ -1123,8 +1123,8 @@ OS-draw-box: func [
 				ctx
 				upper/x
 				upper/y
-				lower/x - upper/x + 1
-				lower/y - upper/y + 1
+				lower/x - upper/x
+				lower/y - upper/y
 				rad
 				ctx/brush?
 		][
@@ -1140,16 +1140,16 @@ OS-draw-box: func [
 					ctx/gp-brush
 					upper/x
 					upper/y
-					lower/x - upper/x + 1
-					lower/y - upper/y + 1
+					lower/x - upper/x
+					lower/y - upper/y
 			]
 			GdipDrawRectangleI
 				ctx/graphics
 				ctx/gp-pen
 				upper/x
 				upper/y
-				lower/x - upper/x + 1
-				lower/y - upper/y + 1
+				lower/x - upper/x
+				lower/y - upper/y
 		][
 			Rectangle ctx/dc upper/x upper/y lower/x lower/y
 		]
@@ -1310,7 +1310,7 @@ do-draw-ellipse: func [
 			width
 			height
 	][	
-		Ellipse ctx/dc x y x + width + 1 y + height + 1
+		Ellipse ctx/dc x y x + width y + height
 	]
 ]
 
@@ -1515,8 +1515,8 @@ OS-draw-arc: func [
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x + 1
-				center/y + rad-y + 1
+				center/x + rad-x
+				center/y + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
@@ -1526,8 +1526,8 @@ OS-draw-arc: func [
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x + 1
-				center/y + rad-y + 1
+				center/x + rad-x
+				center/y + rad-y
 				as integer! arc-points/start-x
 				as integer! arc-points/start-y
 				as integer! arc-points/end-x
