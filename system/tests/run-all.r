@@ -110,11 +110,6 @@ print ["This test started at" start-time]
 ===end-group===
 
 ===start-group=== "Auto-tests"
-  --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/dylib-auto-test.reds
 
 ===end-group===

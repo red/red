@@ -447,7 +447,14 @@ Red/System [
 #define GDIPLUS_MATRIXORDERPREPEND	0
 #define GDIPLUS_MATRIXORDERAPPEND	1
 
-#define GDIPLUS_COMBINEMODEREPLACE	0
+#define GDIPLUS_COMBINEMODEREPLACE	    0
+#define GDIPLUS_COMBINEMODEINTERSECT	1
+#define GDIPLUS_COMBINEMODEUNION	    2
+#define GDIPLUS_COMBINEMODEXOR  	    3
+#define GDIPLUS_COMBINEMODEEXCLUDE	    4
+;#define GDIPLUS_COMBINEMODECOMPLEMENT   5
+
+
 
 #define AC_SRC_OVER                 0
 #define AC_SRC_ALPHA                0			;-- there are some troubles on Win64 with value 1
@@ -510,6 +517,10 @@ Red/System [
 #define AD_COUNTERCLOCKWISE 1
 #define AD_CLOCKWISE        2
 
+#define RGN_AND             1
+#define RGN_OR              2
+#define RGN_XOR             3
+#define RGN_DIFF            4
 #define RGN_COPY            5
 
 BUTTON_IMAGELIST: alias struct! [
@@ -791,7 +802,7 @@ OSVERSIONINFO: alias struct! [
 	wReserved			[byte!]
 ]
 
-INITCOMMONCONTROLSEX: alias struct! [
+tagINITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
 ]
@@ -2508,6 +2519,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"comctl32.dll" stdcall [
+		InitCommonControlsEx: "InitCommonControlsEx" [
+			lpInitCtrls [tagINITCOMMONCONTROLSEX]
+			return:		[logic!]
+		]
 		ImageList_Create: "ImageList_Create" [
 			cx			[integer!]
 			cy			[integer!]

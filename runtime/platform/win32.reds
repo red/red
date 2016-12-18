@@ -95,6 +95,8 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			AllocConsole: "AllocConsole" [return: [logic!]]
+			FreeConsole: "FreeConsole" [return: [logic!]]
 			WriteConsole: 	 "WriteConsoleW" [
 				consoleOutput	[integer!]
 				buffer			[byte-ptr!]
@@ -319,12 +321,34 @@ platform: context [
 		t * 1E6				;-- nano second
 	]
 
+	open-console: func [return: [logic!]][
+		either AllocConsole [
+			stdin:  win32-startup-ctx/GetStdHandle WIN_STD_INPUT_HANDLE
+			stdout: win32-startup-ctx/GetStdHandle WIN_STD_OUTPUT_HANDLE
+			stderr: win32-startup-ctx/GetStdHandle WIN_STD_ERROR_HANDLE
+			yes
+		][
+			no
+		]
+	]
+
+	close-console: func [return: [logic!]][
+		FreeConsole
+	]
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: func [/local h [int-ptr!]] [
 		init-gdiplus
-		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		#either libRed? = no [
+			CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		][
+			#if export-ABI <> 'stdcall [
+				CoInitializeEx 0 COINIT_APARTMENTTHREADED
+			]
+		]
+		crypto/init-provider
 		#if sub-system = 'console [init-dos-console]
 		#if unicode? = yes [
 			h: __iob_func

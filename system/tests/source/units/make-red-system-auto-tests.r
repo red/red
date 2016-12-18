@@ -15,15 +15,5 @@ unless value? 'qt [
 ]
 
 make-dir qt/tests-dir/source/units/auto-tests
-qt/make-if-needed? 	%source/units/auto-tests/byte-auto-test.reds 
-					%source/units/make-byte-auto-test.r                 
-qt/make-if-needed? 	%source/units/auto-tests/integer-auto-test.reds
-					%source/units/make-integer-auto-test.r    
-qt/make-if-needed? 	%source/units/auto-tests/maths-auto-test.reds
-					%source/units/make-maths-auto-test.r
-qt/make-if-needed? 	%source/units/auto-tests/float-auto-test.reds
-					%source/units/make-float-auto-test.r
-qt/make-if-needed? 	%source/units/auto-tests/float32-auto-test.reds
-					%source/units/make-float32-auto-test.r
 qt/make-if-needed? 	%source/units/auto-tests/dylib-auto-test.reds
 					%source/units/make-dylib-auto-test.r

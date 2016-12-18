@@ -406,6 +406,22 @@ set-defaults: func [
 	null
 ]
 
+enable-visual-styles: func [
+	return:   [logic!]
+	/local
+		icc   [integer!]
+		size  [integer!]
+		ctrls [tagINITCOMMONCONTROLSEX]
+][
+	size: size? tagINITCOMMONCONTROLSEX
+	icc: ICC_STANDARD_CLASSES
+	  or ICC_TAB_CLASSES
+	  or ICC_LISTVIEW_CLASSES
+	  or ICC_BAR_CLASSES
+	ctrls: as tagINITCOMMONCONTROLSEX :size
+	InitCommonControlsEx ctrls
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -417,9 +433,20 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: all [
-		version-info/dwMajorVersion >= 6
-		version-info/dwMinorVersion >= 2
+
+	unless all [
+		version-info/dwMajorVersion = 5
+		version-info/dwMinorVersion < 1
+	][
+		enable-visual-styles							;-- not called for Win2000
+	]
+
+	win8+?: any [
+		version-info/dwMajorVersion >= 10				;-- Win 10+
+		all [											;-- Win 8, Win 8.1
+			version-info/dwMajorVersion >= 6
+			version-info/dwMinorVersion >= 2
+		]
 	]
 	winxp?: version-info/dwMajorVersion < 6
 
@@ -1658,7 +1685,9 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if type = base [update-base hWnd null null values]
+		if any [type = base type = panel type = window][
+			update-base hWnd null null values
+		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		either type = base [

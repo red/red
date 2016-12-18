@@ -178,17 +178,20 @@ interpreter: context [
 	]
 	
 	exec-routine: func [
-		rt	 [red-routine!]
+		rt [red-routine!]
 		/local
-			native [red-native!]
-			arg	   [red-value!]
-			bool   [red-logic!]
-			int	   [red-integer!]
-			s	   [series!]
-			ret	   [integer!]
-			count  [integer!]
+			native	[red-native!]
+			arg		[red-value!]
+			bool	[red-logic!]
+			int		[red-integer!]
+			s		[series!]
+			ret		[integer!]
+			count	[integer!]
+			extern?	[logic!]
 			call
 	][
+		extern?: rt/header and flag-extern-code <> 0
+		
 		s: as series! rt/more/value
 		native: as red-native! s/offset + 2
 		call: as function! [return: [integer!]] native/code
@@ -196,30 +199,38 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			switch TYPE_OF(arg) [						;@@ always unbox regardless of the spec block
-				TYPE_LOGIC	 [push logic/get arg]
-				TYPE_INTEGER [push integer/get arg]
-				default		 [push arg]
+			either extern? [push arg][
+				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
+					TYPE_LOGIC	 [push logic/get arg]
+					TYPE_INTEGER [push integer/get arg]
+					default		 [push arg]
+				]
 			]
 			count: count - 1
 		]
-		either positive? rt/ret-type [
-			ret: call
-			switch rt/ret-type [
-				TYPE_LOGIC	[
-					bool: as red-logic! stack/arguments
-					bool/header: TYPE_LOGIC
-					bool/value: ret <> 0
-				]
-				TYPE_INTEGER [
-					int: as red-integer! stack/arguments
-					int/header: TYPE_INTEGER
-					int/value: ret
-				]
-				default [assert false]					;-- should never happen
+		case [
+			extern? [
+				arg: as red-value! call
+				pop count + 1
+				stack/set-last arg
 			]
-		][
-			call
+			positive? rt/ret-type [
+				ret: call
+				switch rt/ret-type [
+					TYPE_LOGIC	[
+						bool: as red-logic! stack/arguments
+						bool/header: TYPE_LOGIC
+						bool/value: ret <> 0
+					]
+					TYPE_INTEGER [
+						int: as red-integer! stack/arguments
+						int/header: TYPE_INTEGER
+						int/value: ret
+					]
+					default [assert false]				;-- should never happen
+				]
+			]
+			true [call]
 		]
 	]
 	

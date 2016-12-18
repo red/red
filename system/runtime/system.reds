@@ -132,7 +132,7 @@ system!: alias struct! [					;-- store runtime accessible system values
 
 #either libRedRT? = yes [
 	system: declare system!
-	#export [system]
+	#if dev-mode? = yes [#export [system]]	;-- exclude it from libRed
 ][
 	#either dev-mode? = no [
 		system: declare system!

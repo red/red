@@ -13,8 +13,8 @@ Red/System [
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --
-;   31:		lock							;-- lock series for active thread access only
-;   30:		new-line						;-- new-line (LF) marker (before the slot)
+;	31:		lock							;-- lock series for active thread access only
+;	30:		new-line						;-- new-line (LF) marker (before the slot)
 ;	29-25:	arity							;-- arity for routine! functions.
 ;	24:		self?							;-- self-aware context flag
 ;	23:		node-body						;-- op! body points to a block node (instead of native code)
@@ -22,8 +22,9 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;	18:		series-owned					;-- mark a series owned by an object
 ;	17:		owner							;-- indicate that an object is an owner
 ;	16:		native! op						;-- operator is made from a native! function
-;   15-8:	<reserved>
-;   7-0:	datatype ID						;-- datatype number
+;	15:		extern flag						;-- routine code is external to Red (from FFI)
+;	14-8:	<reserved>
+;	7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [
 	header	[integer!]						;-- cell's header flags

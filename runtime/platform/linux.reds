@@ -27,6 +27,12 @@ Red/System [
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
+#define	EPERM				1			;-- Operation not permitted
+#define	ENOENT				2			;-- No such file or directory
+#define	EINTR				4			;-- Interrupted system call
+#define	EAGAIN				11			;-- Try again
+#define	ENOSYS				38			;-- Function not implemented
+
 platform: context [
 	
 	#either OS = 'Android [

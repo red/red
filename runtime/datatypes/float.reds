@@ -325,6 +325,19 @@ float: context [
 		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
+	
+	make-at: func [
+		slot	[red-value!]
+		value	[float!]
+		return: [red-float!]
+		/local
+			fl [red-float!]
+	][
+		fl: as red-float! slot
+		fl/header: TYPE_FLOAT
+		fl/value: value
+		fl
+	]
 
 	make-in: func [
 		parent	[red-block!]

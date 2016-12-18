@@ -27,9 +27,4 @@
 %source/units/math-mixed-test.reds
 %source/units/infix-test.reds
 %source/units/conditional-test.reds
-%source/units/auto-tests/byte-auto-test.reds
-%source/units/auto-tests/integer-auto-test.reds
-%source/units/auto-tests/maths-auto-test.reds
-%source/units/auto-tests/float-auto-test.reds
-%source/units/auto-tests/float32-auto-test.reds
 %source/units/auto-tests/dylib-auto-test.reds

@@ -1701,7 +1701,7 @@ simple-io: context [
 
 			;-- use libcurl, may need to install it on some distros
 			#import [
-				"libcurl.so" cdecl [
+				"libcurl.so.4" cdecl [
 					curl_global_init: "curl_global_init" [
 						flags	[integer!]
 						return: [integer!]
