@@ -1245,9 +1245,13 @@ simple-io: context [
 					]
 					HTTP_POST [
 						action: #u16 "POST"
-						body/data1: VT_BSTR
-						bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-						body/data3: as-integer bstr-d
+						either null? data [
+							body/data1: VT_ERROR
+						][
+							body/data1: VT_BSTR
+							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+							body/data3: as-integer bstr-d
+						]
 					]
 					default [--NOT_IMPLEMENTED--]
 				]
@@ -1588,7 +1592,7 @@ simple-io: context [
 
 				if zero? req [return as red-value! none-value]
 
-				if any [method = HTTP_POST method = HTTP_PUT][
+				if all [data <> null any [method = HTTP_POST method = HTTP_PUT]][
 					datalen: -1
 					either TYPE_OF(data) = TYPE_STRING [
 						buf: as byte-ptr! unicode/to-utf8 as red-string! data :datalen
@@ -1902,15 +1906,17 @@ simple-io: context [
 						curl_easy_setopt curl CURLOPT_HTTPGET 1
 					]
 					method = HTTP_POST [
-						len: -1
-						either TYPE_OF(data) = TYPE_STRING [
-							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
-						][
-							buf: binary/rs-head as red-binary! data
-							len: binary/rs-length? as red-binary! data
+						if data <> null [
+							len: -1
+							either TYPE_OF(data) = TYPE_STRING [
+								buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
+							][
+								buf: binary/rs-head as red-binary! data
+								len: binary/rs-length? as red-binary! data
+							]
+							curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
+							curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 						]
-						curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
-						curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 					]
 				]
 				res: curl_easy_perform curl
