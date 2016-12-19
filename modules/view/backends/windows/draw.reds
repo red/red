@@ -17,6 +17,7 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 types: allocate max-edges * (size? byte!)					;-- point type buffer
 colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
 colors-pos: as pointer! [float32!] colors + max-colors
+matrix-order: 0
 
 #define SHAPE_OTHER     0
 #define SHAPE_CURVE     1
@@ -38,10 +39,28 @@ arcPOINTS!: alias struct! [
     end-y       [float!]
 ]
 connect-subpath: 0
-matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 anti-alias?: no
 GDI+?: no
+
+clip-replace: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
+]
+clip-intersect: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND]
+]
+clip-union: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR]
+]
+clip-xor: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR]
+]
+clip-diff: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF]
+]
+
+matrix-order-append: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
+matrix-order-prepend: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
 
 update-gdiplus-font-color: func [ctx [draw-ctx!] color [integer!] /local brush [integer!]][
 	if ctx/font-color <> color [
@@ -224,6 +243,8 @@ draw-begin: func [
     prev-shape/type: SHAPE_OTHER
     path-last-point/x: 0
     path-last-point/y: 0
+
+	matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
@@ -1867,7 +1888,16 @@ OS-set-clip: func [
 		u	[red-pair!]
 		l	[red-pair!]
 		dc	[handle!]
+		clip-mode 	[integer!]
 ][
+	case [
+		mode = replace [ clip-mode: clip-replace ]
+		mode = intersect [ clip-mode: clip-intersect ]
+		mode = union [ clip-mode: clip-union ]
+		mode = xor [ clip-mode: clip-xor ]
+		mode = exclude [ clip-mode: clip-diff ]
+		true [ clip-mode: clip-replace ]
+	]
     either GDI+? [
         either rect? [
             u: as red-pair! upper
@@ -1878,12 +1908,12 @@ OS-set-clip: func [
                 u/y
                 l/x - u/x
                 l/y - u/y
-                mode
+                clip-mode
         ][
             GdipSetClipPath
                 ctx/graphics
                 ctx/gp-path
-                mode
+                clip-mode
             GdipDeletePath ctx/gp-path
         ]
     ][
@@ -1895,7 +1925,7 @@ OS-set-clip: func [
             Rectangle dc u/x u/y l/x l/y  
         ]
         EndPath dc  ;-- a path has already been started
-        SelectClipPath dc mode
+        SelectClipPath dc clip-mode
     ]
 ]
 
@@ -2050,4 +2080,10 @@ OS-matrix-set: func [
 
 OS-set-matrix-order: func [
     order   [integer!]
-][ matrix-order: order ]
+][ 
+	case [
+		order = _append [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+		order = prepend [ matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
+		true [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+	]
+]
