@@ -59,6 +59,7 @@ wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
 win8+?:			no
 winxp?:			no
+DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
 win-state:		0
 
 log-pixels-x:	0
@@ -441,6 +442,8 @@ init: func [
 		enable-visual-styles							;-- not called for Win2000
 	]
 
+	DWM-enabled?: dwm-composition-enabled?
+
 	win8+?: any [
 		version-info/dwMajorVersion >= 10				;-- Win 10+
 		all [											;-- Win 8, Win 8.1
@@ -457,6 +460,9 @@ init: func [
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
 
+	unless winxp? [DX-init]
+	set-defaults
+
 	register-classes hInstance
 
 	int: as red-integer! #get system/view/platform/build
@@ -469,9 +475,6 @@ init: func [
 	
 	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
 	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-
-	unless winxp? [DX-init]
-	set-defaults
 ]
 
 find-last-window: func [
@@ -769,7 +772,7 @@ get-screen-size: func [
 	pair/push screen-size-x screen-size-y
 ]
 
-DWM-enabled?: func [
+dwm-composition-enabled?: func [
 	return:		[logic!]
 	/local
 		enabled [integer!]
