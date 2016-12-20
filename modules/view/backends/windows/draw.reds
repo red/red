@@ -429,19 +429,19 @@ gdi-calc-arc: func [
     either rad-x = rad-y [				;-- circle
         rad-beg: degree-to-radians angle-begin TYPE_SINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_SINE
-        start-y: center-y + (rad-y-float * system/words/sin rad-beg)
-        end-y:	 center-y + (rad-y-float * system/words/sin rad-end)
+        start-y: center-y + (rad-y-float * sin rad-beg)
+        end-y:	 center-y + (rad-y-float * sin rad-end)
         rad-beg: degree-to-radians angle-begin TYPE_COSINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_COSINE
-        start-x: center-x + (rad-x-float * system/words/cos rad-beg)
-        end-x:	 center-x + (rad-x-float * system/words/cos rad-end)
+        start-x: center-x + (rad-x-float * cos rad-beg)
+        end-x:	 center-x + (rad-x-float * cos rad-end)
     ][
         rad-beg: degree-to-radians angle-begin TYPE_TANGENT
         rad-end: degree-to-radians angle-begin + angle-len TYPE_TANGENT
         rad-x-y: rad-x-float * rad-y-float
         rad-x-2: rad-x-float * rad-x-float
         rad-y-2: rad-y-float * rad-y-float
-        tan-2: as float32! system/words/tan rad-beg
+        tan-2: as float32! tan rad-beg
         tan-2: tan-2 * tan-2
         start-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
         start-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
@@ -450,7 +450,7 @@ gdi-calc-arc: func [
         start-x: center-x + start-x
         start-y: center-y + start-y
         angle-begin: angle-begin + angle-len
-        tan-2: as float32! system/words/tan rad-end
+        tan-2: as float32! tan rad-end
         tan-2: tan-2 * tan-2
         end-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
         end-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
@@ -869,8 +869,8 @@ OS-draw-shape-arc: func [
         ;-- calculate center
         dx: (p1-x - p2-x) / 2.0
         dy: (p1-y - p2-y) / 2.0
-        cos-val: system/words/cos degree-to-radians theta TYPE_COSINE
-        sin-val: system/words/sin degree-to-radians theta TYPE_SINE
+        cos-val: cos degree-to-radians theta TYPE_COSINE
+        sin-val: sin degree-to-radians theta TYPE_SINE
         X1: (cos-val * dx) + (sin-val * dy)
         Y1: (cos-val * dy) - (sin-val * dx)
         rx2: radius-x * radius-x
@@ -891,9 +891,9 @@ OS-draw-shape-arc: func [
         center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
         ;-- calculate angles
-        angle-1: radian-to-degrees system/words/atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: radian-to-degrees atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
         angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
-        angle-2: radian-to-degrees system/words/atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: radian-to-degrees atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
         angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
         angle-len: angle-2 - angle-1
         sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
@@ -2010,8 +2010,8 @@ OS-matrix-skew: func [
 	m: 0
 	u: as float32! 1.0
 	z: as float32! 0.0
-	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
+	x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	GdipCreateMatrix2 u y x u z z :m
 	GdipMultiplyWorldTransform ctx/graphics m matrix-order
 	GdipDeleteMatrix m
