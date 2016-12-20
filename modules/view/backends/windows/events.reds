@@ -954,6 +954,7 @@ WndProc: func [
 				][
 					bitblt-memory-dc hWnd no
 				]
+				return 0
 			]
 		]
 		WM_CTLCOLOREDIT

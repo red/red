@@ -116,8 +116,8 @@ Red/System [
 
 	draw-ctx!: alias struct! [
 		dc				[int-ptr!]								;-- OS drawing object
-		pen				[int-ptr!]
-		brush			[int-ptr!]
+		pen				[integer!]
+		brush			[integer!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]

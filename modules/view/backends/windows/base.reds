@@ -390,7 +390,10 @@ BaseWndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
+		w		[integer!]
 		draw	[red-block!]
 ][
 	switch msg [
@@ -404,11 +407,21 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			unless zero? GetWindowLong hWnd wc-offset + 4 [
-				update-base hWnd null null get-face-values hWnd
+			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+				unless zero? GetWindowLong hWnd wc-offset + 4 [
+					update-base hWnd null null get-face-values hWnd
+				]
+			][
+				this: as this! GetWindowLong hWnd wc-offset - 24
+				rt: as ID2D1HwndRenderTarget this/vtbl
+				w: WIN32_LOWORD(lParam)
+				flags: WIN32_HIWORD(lParam)
+				rt/Resize this as tagSIZE :w
+				InvalidateRect hWnd null 1
 			]
 		]
-		WM_PAINT [
+		WM_PAINT
+		WM_DISPLAYCHANGE [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
 			either zero? GetWindowLong hWnd wc-offset - 4 [
 				do-draw hWnd null draw no yes yes yes

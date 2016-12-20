@@ -260,6 +260,7 @@ Red/System [
 #define WM_WINDOWPOSCHANGED 0047h
 #define WM_NOTIFY			004Eh
 #define WM_CONTEXTMENU		007Bh
+#define WM_DISPLAYCHANGE	007Eh
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
@@ -1223,6 +1224,11 @@ XFORM!: alias struct! [
 			lpRect		[RECT_STRUCT]
 			bErase		[integer!]
 			return:		[integer!]
+		]
+		ValidateRect: "ValidateRect" [
+			hWnd		[handle!]
+			lpRect		[RECT_STRUCT]
+			return:		[logic!]
 		]
 		GetParent: "GetParent" [
 			hWnd 		[handle!]

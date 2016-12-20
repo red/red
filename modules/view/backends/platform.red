@@ -68,7 +68,9 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
-				
+
+				FACET_FLAGS_D2D:		00100000h
+
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
 				FACET_FLAGS_RESIZE:		04000000h
@@ -241,6 +243,8 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+
+			Direct2D:		symbol/make "Direct2D"
 			
 			_text:			word/load "text"
 			_control:		word/load "control"

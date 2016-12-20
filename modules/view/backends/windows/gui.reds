@@ -13,7 +13,7 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60 :							<- TOP
-;;		-56 : direct-2d? flags			;@@ temporary
+;;		-24 : Direct2D target interface
 ;;		-20 : evolved-base-layered: child handle
 ;;		-16 : base-layered: owner handle
 ;;		-12 : base-layered: clipped? flags
@@ -352,11 +352,13 @@ free-handles: func [
 				free-graph cam
 			]
 		]
-		sym = base [
+		any [sym = window sym = panel sym = base][
 			if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
 				dc: GetWindowLong hWnd wc-offset - 4
 				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
 			]
+			dc: GetWindowLong hWnd wc-offset - 24
+			if dc <> 0 [d2d-release-target as this! dc]
 		]
 		true [
 			0
@@ -415,10 +417,13 @@ enable-visual-styles: func [
 		ctrls [tagINITCOMMONCONTROLSEX]
 ][
 	size: size? tagINITCOMMONCONTROLSEX
-	icc: ICC_STANDARD_CLASSES
-	  or ICC_TAB_CLASSES
-	  or ICC_LISTVIEW_CLASSES
-	  or ICC_BAR_CLASSES
+	icc: ICC_STANDARD_CLASSES			;-- user32.dll controls
+	  or ICC_PROGRESS_CLASS				;-- progress
+	  or ICC_TAB_CLASSES				;-- tabs
+	  or ICC_LISTVIEW_CLASSES			;-- table headers
+	  or ICC_UPDOWN_CLASS				;-- spinboxes
+	  or ICC_BAR_CLASSES				;-- trackbar
+	  or ICC_DATE_CLASSES				;-- date/time picker
 	ctrls: as tagINITCOMMONCONTROLSEX :size
 	InitCommonControlsEx ctrls
 ]
@@ -460,6 +465,9 @@ init: func [
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
 
+	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
+	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+
 	unless winxp? [DX-init]
 	set-defaults
 
@@ -472,9 +480,6 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
-	
-	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
-	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
 ]
 
 find-last-window: func [
@@ -543,6 +548,8 @@ init-window: func [										;-- post-creation settings
 		owner	[handle!]
 		modes	[integer!]
 ][
+	SetWindowLong handle wc-offset - 24 0
+
 	modes: SWP_NOZORDER
 	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
@@ -638,6 +645,10 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			all [
+				sym = Direct2D
+				d2d-factory <> null
+			]				 [flags: flags or FACET_FLAGS_D2D]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1089,6 +1100,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 4 0
 			SetWindowLong handle wc-offset - 16 parent
 			SetWindowLong handle wc-offset - 20 0
+			SetWindowLong handle wc-offset - 24 0
 			either alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
@@ -1130,6 +1142,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
+			SetWindowLong handle wc-offset - 24 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x
