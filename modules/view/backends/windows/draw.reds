@@ -1900,17 +1900,32 @@ OS-set-clip: func [
 ]
 
 matrix-rotate: func [
+	ctx		[draw-ctx!]
 	angle	[red-integer!]
 	center	[red-pair!]
     m       [integer!]
+	/local
+		mm  [integer!]
+		pts [tagPOINT]
 ][
 	GDI+?: yes
+	pts: edges
 	if angle <> as red-integer! center [
-        GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIXORDERAPPEND 
+		pts/x: center/x
+		pts/y: center/y
+		mm: ctx/gp-matrix
+		if zero? mm [
+			GdipCreateMatrix :mm
+			ctx/gp-matrix: mm
+		]
+		GdipGetWorldTransform ctx/graphics ctx/gp-matrix
+		GdipTransformMatrixPointsI ctx/gp-matrix pts 1
+
+        GdipTranslateMatrix m as float32! 0 - pts/x as float32! 0 - pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
     GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIXORDERAPPEND
 	if angle <> as red-integer! center [
-        GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIXORDERAPPEND 
+        GdipTranslateMatrix m as float32! pts/x as float32! pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
 ]
 
@@ -1924,7 +1939,7 @@ OS-matrix-rotate: func [
 	GDI+?: yes
     m: 0
     GdipCreateMatrix :m
-    matrix-rotate angle center m
+    matrix-rotate ctx angle center m
     GdipMultiplyWorldTransform ctx/graphics m matrix-order
     GdipDeleteMatrix m
 ]
@@ -1984,7 +1999,7 @@ OS-matrix-transform: func [
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
     m: 0
     GdipCreateMatrix :m
-    matrix-rotate rotate center m
+    matrix-rotate ctx rotate center m
     GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
     GdipTranslateMatrix m as float32! translate/x as float32! translate/y
     GdipMultiplyWorldTransform ctx/graphics m matrix-order
