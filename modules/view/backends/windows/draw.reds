@@ -17,6 +17,7 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 types: allocate max-edges * (size? byte!)					;-- point type buffer
 colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
 colors-pos: as pointer! [float32!] colors + max-colors
+matrix-order: 0
 
 #define SHAPE_OTHER     0
 #define SHAPE_CURVE     1
@@ -38,10 +39,28 @@ arcPOINTS!: alias struct! [
     end-y       [float!]
 ]
 connect-subpath: 0
-matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 anti-alias?: no
 GDI+?: no
+
+clip-replace: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
+]
+clip-intersect: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND]
+]
+clip-union: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR]
+]
+clip-xor: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR]
+]
+clip-diff: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF]
+]
+
+matrix-order-append: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
+matrix-order-prepend: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
 
 update-gdiplus-font-color: func [ctx [draw-ctx!] color [integer!] /local brush [integer!]][
 	if ctx/font-color <> color [
@@ -224,6 +243,8 @@ draw-begin: func [
     prev-shape/type: SHAPE_OTHER
     path-last-point/x: 0
     path-last-point/y: 0
+
+	matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
@@ -408,19 +429,19 @@ gdi-calc-arc: func [
     either rad-x = rad-y [				;-- circle
         rad-beg: degree-to-radians angle-begin TYPE_SINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_SINE
-        start-y: center-y + (rad-y-float * system/words/sin rad-beg)
-        end-y:	 center-y + (rad-y-float * system/words/sin rad-end)
+        start-y: center-y + (rad-y-float * sin rad-beg)
+        end-y:	 center-y + (rad-y-float * sin rad-end)
         rad-beg: degree-to-radians angle-begin TYPE_COSINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_COSINE
-        start-x: center-x + (rad-x-float * system/words/cos rad-beg)
-        end-x:	 center-x + (rad-x-float * system/words/cos rad-end)
+        start-x: center-x + (rad-x-float * cos rad-beg)
+        end-x:	 center-x + (rad-x-float * cos rad-end)
     ][
         rad-beg: degree-to-radians angle-begin TYPE_TANGENT
         rad-end: degree-to-radians angle-begin + angle-len TYPE_TANGENT
         rad-x-y: rad-x-float * rad-y-float
         rad-x-2: rad-x-float * rad-x-float
         rad-y-2: rad-y-float * rad-y-float
-        tan-2: as float32! system/words/tan rad-beg
+        tan-2: as float32! tan rad-beg
         tan-2: tan-2 * tan-2
         start-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
         start-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
@@ -429,7 +450,7 @@ gdi-calc-arc: func [
         start-x: center-x + start-x
         start-y: center-y + start-y
         angle-begin: angle-begin + angle-len
-        tan-2: as float32! system/words/tan rad-end
+        tan-2: as float32! tan rad-end
         tan-2: tan-2 * tan-2
         end-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
         end-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
@@ -848,8 +869,8 @@ OS-draw-shape-arc: func [
         ;-- calculate center
         dx: (p1-x - p2-x) / 2.0
         dy: (p1-y - p2-y) / 2.0
-        cos-val: system/words/cos degree-to-radians theta TYPE_COSINE
-        sin-val: system/words/sin degree-to-radians theta TYPE_SINE
+        cos-val: cos degree-to-radians theta TYPE_COSINE
+        sin-val: sin degree-to-radians theta TYPE_SINE
         X1: (cos-val * dx) + (sin-val * dy)
         Y1: (cos-val * dy) - (sin-val * dx)
         rx2: radius-x * radius-x
@@ -870,9 +891,9 @@ OS-draw-shape-arc: func [
         center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
         ;-- calculate angles
-        angle-1: radian-to-degrees system/words/atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: radian-to-degrees atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
         angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
-        angle-2: radian-to-degrees system/words/atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: radian-to-degrees atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
         angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
         angle-len: angle-2 - angle-1
         sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
@@ -1867,7 +1888,16 @@ OS-set-clip: func [
 		u	[red-pair!]
 		l	[red-pair!]
 		dc	[handle!]
+		clip-mode 	[integer!]
 ][
+	case [
+		mode = replace [ clip-mode: clip-replace ]
+		mode = intersect [ clip-mode: clip-intersect ]
+		mode = union [ clip-mode: clip-union ]
+		mode = xor [ clip-mode: clip-xor ]
+		mode = exclude [ clip-mode: clip-diff ]
+		true [ clip-mode: clip-replace ]
+	]
     either GDI+? [
         either rect? [
             u: as red-pair! upper
@@ -1878,12 +1908,12 @@ OS-set-clip: func [
                 u/y
                 l/x - u/x
                 l/y - u/y
-                mode
+                clip-mode
         ][
             GdipSetClipPath
                 ctx/graphics
                 ctx/gp-path
-                mode
+                clip-mode
             GdipDeletePath ctx/gp-path
         ]
     ][
@@ -1895,22 +1925,37 @@ OS-set-clip: func [
             Rectangle dc u/x u/y l/x l/y  
         ]
         EndPath dc  ;-- a path has already been started
-        SelectClipPath dc mode
+        SelectClipPath dc clip-mode
     ]
 ]
 
 matrix-rotate: func [
+	ctx		[draw-ctx!]
 	angle	[red-integer!]
 	center	[red-pair!]
     m       [integer!]
+	/local
+		mm  [integer!]
+		pts [tagPOINT]
 ][
 	GDI+?: yes
+	pts: edges
 	if angle <> as red-integer! center [
-        GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIXORDERAPPEND 
+		pts/x: center/x
+		pts/y: center/y
+		mm: ctx/gp-matrix
+		if zero? mm [
+			GdipCreateMatrix :mm
+			ctx/gp-matrix: mm
+		]
+		GdipGetWorldTransform ctx/graphics ctx/gp-matrix
+		GdipTransformMatrixPointsI ctx/gp-matrix pts 1
+
+        GdipTranslateMatrix m as float32! 0 - pts/x as float32! 0 - pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
     GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIXORDERAPPEND
 	if angle <> as red-integer! center [
-        GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIXORDERAPPEND 
+        GdipTranslateMatrix m as float32! pts/x as float32! pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
 ]
 
@@ -1924,7 +1969,7 @@ OS-matrix-rotate: func [
 	GDI+?: yes
     m: 0
     GdipCreateMatrix :m
-    matrix-rotate angle center m
+    matrix-rotate ctx angle center m
     GdipMultiplyWorldTransform ctx/graphics m matrix-order
     GdipDeleteMatrix m
 ]
@@ -1965,8 +2010,8 @@ OS-matrix-skew: func [
 	m: 0
 	u: as float32! 1.0
 	z: as float32! 0.0
-	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
+	x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	GdipCreateMatrix2 u y x u z z :m
 	GdipMultiplyWorldTransform ctx/graphics m matrix-order
 	GdipDeleteMatrix m
@@ -1984,7 +2029,7 @@ OS-matrix-transform: func [
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
     m: 0
     GdipCreateMatrix :m
-    matrix-rotate rotate center m
+    matrix-rotate ctx rotate center m
     GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
     GdipTranslateMatrix m as float32! translate/x as float32! translate/y
     GdipMultiplyWorldTransform ctx/graphics m matrix-order
@@ -2035,4 +2080,10 @@ OS-matrix-set: func [
 
 OS-set-matrix-order: func [
     order   [integer!]
-][ matrix-order: order ]
+][ 
+	case [
+		order = _append [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+		order = prepend [ matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
+		true [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+	]
+]

@@ -490,15 +490,14 @@ Red/System [
 				grad?	[logic!]
                 rect?   [logic!]
 				state	[integer!]
-                clip-mode       [integer!]
+                clip-mode    [integer!]
                 m-order [integer!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
 			state: 0
-            clip-mode: either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
-            m-order: GDIPLUS_MATRIXORDERAPPEND
+			clip-mode: replace
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -651,16 +650,20 @@ Red/System [
                                 value: cmd
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
                                 if pos = cmd [
-                                    word: as red-word! cmd
-                                    case [
-                                        ( symbol/resolve word/symbol ) = replace    [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY] ]
-                                        ( symbol/resolve word/symbol ) = intersect  [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND] ]
-                                        ( symbol/resolve word/symbol ) = union      [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR] ]
-                                        ( symbol/resolve word/symbol ) = xor        [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR] ]
-                                        ( symbol/resolve word/symbol ) = exclude    [ clip-mode: either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF] ]
-                                        true [ cmd: cmd - 1 ]
-                                    ]
-                                ]
+									word: as red-word! cmd
+									type: symbol/resolve word/symbol  
+									either any [
+										type = replace
+										type = intersect
+										type = union
+										type = xor
+										type = exclude
+									][ 
+										clip-mode: type
+									][
+										cmd: cmd - 1 
+									]
+								]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
@@ -678,11 +681,11 @@ Red/System [
                             sym = _matrix-order [
 								DRAW_FETCH_VALUE(TYPE_WORD)
 								word: as red-word! start
-                                case [
-                                    ( symbol/resolve word/symbol ) = _append [ m-order: GDIPLUS_MATRIXORDERAPPEND ]
-                                    ( symbol/resolve word/symbol ) = prepend [ m-order: GDIPLUS_MATRIXORDERPREPEND ]
-                                    true [throw-draw-error cmds cmd catch?]
-                                ]
+								m-order: symbol/resolve word/symbol
+								unless any [
+									m-order = _append
+									m-order = prepend
+								][ throw-draw-error cmds cmd catch? ]
                                 OS-set-matrix-order m-order
                             ]
 							sym = rotate [
