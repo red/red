@@ -173,6 +173,7 @@ update-list: func [
 		hWnd [handle!]
 		msg  [integer!]
 		str  [red-string!]
+		sel  [red-integer!]
 ][
 	hWnd: get-face-handle face
 	switch TYPE_OF(value) [
@@ -201,7 +202,7 @@ update-list: func [
 					sym = words/_put/symbol
 					sym = words/_reverse/symbol
 				][
-					;ownership/unbind-each as red-block! value index part
+					ownership/unbind-each as red-block! value index part
 					
 					str: as red-string! either any [
 						null? new
@@ -217,6 +218,7 @@ update-list: func [
 						]
 						insert-list-item hWnd str index drop?
 						if sym = words/_reverse/symbol [index: index + 1]
+						ownership/bind as red-value! str face _data
 						str: str + 1
 					]
 				]
@@ -224,6 +226,10 @@ update-list: func [
 			]
 		]
 		TYPE_STRING [
+			if any [sym = words/_lowercase/symbol sym = words/_uppercase/symbol][
+				sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
+				index: sel/value - 1
+			]
 			remove-list-item hWnd index drop?
 			insert-list-item hWnd as red-string! value index drop?
 		]

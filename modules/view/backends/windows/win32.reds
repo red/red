@@ -260,6 +260,7 @@ Red/System [
 #define WM_WINDOWPOSCHANGED 0047h
 #define WM_NOTIFY			004Eh
 #define WM_CONTEXTMENU		007Bh
+#define WM_DISPLAYCHANGE	007Eh
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
@@ -323,6 +324,11 @@ Red/System [
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h
+#define VK_PAUSE			13h
+#define VK_CAPITAL			14h
+
+#define VK_ESCAPE			1Bh
+
 #define VK_SPACE			20h
 #define VK_PRIOR			21h
 #define VK_NEXT				22h
@@ -366,6 +372,10 @@ Red/System [
 #define VK_F22				85h
 #define VK_F23				86h
 #define VK_F24				87h
+
+#define VK_NUMLOCK			90h
+#define VK_SCROLL			91h
+
 #define VK_LSHIFT			A0h
 #define VK_RSHIFT			A1h
 #define VK_LCONTROL			A2h
@@ -447,7 +457,14 @@ Red/System [
 #define GDIPLUS_MATRIXORDERPREPEND	0
 #define GDIPLUS_MATRIXORDERAPPEND	1
 
-#define GDIPLUS_COMBINEMODEREPLACE	0
+#define GDIPLUS_COMBINEMODEREPLACE	    0
+#define GDIPLUS_COMBINEMODEINTERSECT	1
+#define GDIPLUS_COMBINEMODEUNION	    2
+#define GDIPLUS_COMBINEMODEXOR  	    3
+#define GDIPLUS_COMBINEMODEEXCLUDE	    4
+;#define GDIPLUS_COMBINEMODECOMPLEMENT   5
+
+
 
 #define AC_SRC_OVER                 0
 #define AC_SRC_ALPHA                0			;-- there are some troubles on Win64 with value 1
@@ -510,6 +527,10 @@ Red/System [
 #define AD_COUNTERCLOCKWISE 1
 #define AD_CLOCKWISE        2
 
+#define RGN_AND             1
+#define RGN_OR              2
+#define RGN_XOR             3
+#define RGN_DIFF            4
 #define RGN_COPY            5
 
 BUTTON_IMAGELIST: alias struct! [
@@ -791,7 +812,7 @@ OSVERSIONINFO: alias struct! [
 	wReserved			[byte!]
 ]
 
-INITCOMMONCONTROLSEX: alias struct! [
+tagINITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
 ]
@@ -968,11 +989,13 @@ XFORM!: alias struct! [
 			hMem		[handle!]
 			return:		[byte-ptr!]
 		]
-		LoadLibraryEx: "LoadLibraryExW" [
+		LoadLibraryA: "LoadLibraryA" [
 			lpFileName	[c-string!]
-			hFile		[integer!]
-			dwFlags		[integer!]
 			return:		[handle!]
+		]
+		FreeLibrary: "FreeLibrary" [
+			hModule		[handle!]
+			return:		[logic!]
 		]
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
@@ -1212,6 +1235,11 @@ XFORM!: alias struct! [
 			lpRect		[RECT_STRUCT]
 			bErase		[integer!]
 			return:		[integer!]
+		]
+		ValidateRect: "ValidateRect" [
+			hWnd		[handle!]
+			lpRect		[RECT_STRUCT]
+			return:		[logic!]
 		]
 		GetParent: "GetParent" [
 			hWnd 		[handle!]
@@ -2508,6 +2536,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"comctl32.dll" stdcall [
+		InitCommonControlsEx: "InitCommonControlsEx" [
+			lpInitCtrls [tagINITCOMMONCONTROLSEX]
+			return:		[logic!]
+		]
 		ImageList_Create: "ImageList_Create" [
 			cx			[integer!]
 			cy			[integer!]

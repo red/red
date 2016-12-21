@@ -99,7 +99,8 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
-		View		%modules/view/view.red
+	;-- Name ------ Entry file -------------- OS availability -----
+		View		%modules/view/view.red	  [Windows]
 	]
 
 	func-constructors: [
@@ -1582,8 +1583,8 @@ red: context [
 					emit 'tuple/push
 					emit length? head bin
 					emit to integer! skip bin -4
-					emit to integer! copy/part skip bin -8 4
-					emit to integer! copy/part head bin 4
+					emit to integer! copy/part skip bin -4 -4
+					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
@@ -2693,7 +2694,7 @@ red: context [
 		
 		pc: skip pc 2
 		compose [
-			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret) no
 		]
 	]
 	
@@ -3795,6 +3796,7 @@ red: context [
 						if value = type?/word arg [type: value break]
 					]
 				]
+				if type = 'any-type! [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]
@@ -4446,7 +4448,11 @@ red: context [
 	]
 	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][do bind spec job]
+		if spec: select header first [config:][
+			do bind spec job
+			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
+		]
+		if all [job/type = 'dll job/OS <> 'Windows][job/PIC?: yes]	;-- ensure PIC mode is enabled
 	]
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
@@ -4459,10 +4465,14 @@ red: context [
 			mods: make block! 2
 			
 			foreach mod list [
-				unless file: select standard-modules mod [
+				unless file: find standard-modules mod [
 					throw-error ["module not found:" mod]
 				]
-				unless find needed file [append needed file]
+				all [
+					any [file/3 = 'all find file/3 job/OS]
+					not find needed file/2
+					append needed file/2
+				]
 			]
 		][
 			job/modules: make block! 0

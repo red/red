@@ -325,6 +325,19 @@ float: context [
 		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
+	
+	make-at: func [
+		slot	[red-value!]
+		value	[float!]
+		return: [red-float!]
+		/local
+			fl [red-float!]
+	][
+		fl: as red-float! slot
+		fl/header: TYPE_FLOAT
+		fl/value: value
+		fl
+	]
 
 	make-in: func [
 		parent	[red-block!]
@@ -484,8 +497,11 @@ float: context [
 		/local
 			int [red-integer!]
 			tm	[red-time!]
-			blk [red-block!]
-			v	[red-integer!]
+			_1	[integer!]
+			_2	[integer!]
+			_3	[integer!]
+			_4	[integer!]
+			val [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
@@ -501,8 +517,11 @@ float: context [
 				proto/value: tm/time / time/oneE9
 			]
 			TYPE_ANY_STRING [
-				proto: as red-float! load-value as red-string! spec
+				_4: 0
+				val: as red-value! :_4
+				copy-cell spec val					;-- save spec, load-value will change it
 
+				proto: as red-float! load-value as red-string! spec
 				switch TYPE_OF(proto) [
 					TYPE_FLOAT	
 					TYPE_PERCENT [0]				;-- most common case
@@ -511,7 +530,7 @@ float: context [
 						proto/value: as float! int/value
 					]
 					default [
-						fire [TO_ERROR(script bad-to-arg) datatype/push type proto]
+						fire [TO_ERROR(script bad-to-arg) datatype/push type val]
 					]
 				]
 				proto/header: type

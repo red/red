@@ -13,7 +13,7 @@ Red/System [
 actions: context [
 	verbose: 0
 	
-	table: declare int-ptr!
+	table: as int-ptr! 0
 	
 	register: func [
 		[variadic]

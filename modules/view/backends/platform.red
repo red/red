@@ -68,7 +68,9 @@ system/view/platform: context [
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
-				
+
+				FACET_FLAGS_D2D:		00100000h
+
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
 				FACET_FLAGS_RESIZE:		04000000h
@@ -241,8 +243,11 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+
+			Direct2D:		symbol/make "Direct2D"
 			
 			_text:			word/load "text"
+			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
 			_away:			word/load "away"
@@ -307,6 +312,10 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-menu:		word/load "left-menu"
 			_right-menu:	word/load "right-menu"
+			_left-command:	word/load "left-command"
+			_right-command:	word/load "right-command"
+			_caps-lock:		word/load "caps-lock"
+			_num-lock:		word/load "num-lock"
 
 			get-event-type: func [
 				evt		[red-event!]

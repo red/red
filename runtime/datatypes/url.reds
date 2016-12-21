@@ -182,21 +182,41 @@ url: context [
 
 		either TYPE_OF(data) = TYPE_BLOCK [
 			blk: as red-block! data
-			method: as red-word! block/rs-head blk
-			sym: symbol/resolve method/symbol
-			action: case [
-				sym = words/get  [HTTP_GET]
-				sym = words/put  [HTTP_PUT]
-				sym = words/post [HTTP_POST]
-				true [--NOT_IMPLEMENTED-- 0]
+			either 0 = block/rs-length? blk [
+				header: null
+				action: HTTP_GET
+			][
+				method: as red-word! block/rs-head blk
+				if TYPE_OF(method) <> TYPE_WORD [
+					fire [TO_ERROR(script invalid-arg) method]
+				]
+				sym: symbol/resolve method/symbol
+				action: case [
+					sym = words/get  [HTTP_GET]
+					sym = words/put  [HTTP_PUT]
+					sym = words/post [HTTP_POST]
+					true [--NOT_IMPLEMENTED-- 0]
+				]
+				either block/rs-next blk [null][
+					header: as red-block! block/rs-head blk
+					if TYPE_OF(header) <> TYPE_BLOCK [
+						fire [TO_ERROR(script invalid-arg) header]
+					]
+				]
+				data: as red-value! either block/rs-next blk [null][block/rs-head blk]
 			]
-			header: as red-block! method + 1
-			data: as red-value! method + 2
 		][
 			header: null
 			action: HTTP_POST
 		]
 		
+		if all [
+			data <> null
+			TYPE_OF(data) <> TYPE_BLOCK
+			TYPE_OF(data) <> TYPE_STRING
+		][
+			fire [TO_ERROR(script invalid-arg) data]
+		]
 		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
 		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
 		part

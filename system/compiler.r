@@ -54,6 +54,7 @@ system-dialect: make-profilable context [
 		base-address:		none						;-- base image memory address
 		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
 		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
+		export-ABI:			none						;-- force a calling convention for exports
 		stack-align-16?:	no							;-- yes => align stack to 16 bytes
 		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
@@ -65,10 +66,12 @@ system-dialect: make-profilable context [
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
+		libRed?: 			no
 		libRedRT?: 			no
 		libRedRT-update?:	no
 		modules:			none
 		show:				none
+		command-line:		none
 	]
 	
 	compiler: make-profilable context [
@@ -1477,32 +1480,43 @@ system-dialect: make-profilable context [
 		]
 		
 		flag-callback: func [name [word!] cc [word! none!] /local spec][
-			spec: select functions name
-			spec/3: any [cc all [job/red-pass? spec/3] 'cdecl]
+			spec: second find-functions name
+			spec/3: any [cc job/export-ABI all [job/red-pass? spec/3] 'cdecl]
 			unless spec/5 = 'callback [append spec 'callback]
 		]
 		
-		process-export: has [defs cc ns func? spec][
+		process-export: has [defs cc ns entry spec list name sym][
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
 					throw-error ["invalid calling convention specifier:" cc]
 				]
 				pc: next pc
 			]
-			foreach name pc/2 [
-				func?: no
-				unless any [word? name path? name][
-					throw-error ["invalid exported symbol:" mold name]
+			list: pc/2
+			while [not tail? list][
+				sym: list/1
+				entry: none
+				unless any [word? sym path? sym][
+					throw-error ["invalid exported symbol:" mold sym]
 				]
-				if path? name [name: resolve-ns-path name]
+				if path? sym [sym: resolve-ns-path sym]
 				unless any [
-					find globals name
-					func?: find-functions name
+					find globals sym
+					entry: find-functions sym
 				][
-					throw-error ["undefined exported symbol:" mold name]
+					throw-error ["undefined exported symbol:" mold sym]
 				]
-				append exports name
-				if func? [flag-callback name cc]
+				if entry [
+					flag-callback sym cc
+					sym: entry/1
+				]
+				either string? name: pick list 2 [
+					list: next list
+				][
+					name: form sym
+				]
+				repend exports [sym any [find/match name "exec/" name]]
+				list: next list
 			]
 		]
 		

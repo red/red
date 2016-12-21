@@ -43,6 +43,8 @@ Red/System [
 	x << r or (x >>> (32 - r))
 ]
 
+hash-secret: 0
+
 hash-string: func [
 	str		[red-string!]
 	case?	[logic!]
@@ -55,7 +57,7 @@ hash-string: func [
 	p: (as byte-ptr! s/offset) + (head << (log-b unit))
 	tail: as byte-ptr! s/tail
 	len: (as-integer tail - p) >> (log-b unit) << 2
-	h1: 42								;-- seed
+	h1: hash-secret						;-- seed
 
 	;-- body
 	while [p < tail][
@@ -95,7 +97,7 @@ murmur3-x86-32: func [
 
 	data: key
 	nblocks: len / 4
-	h1: 42								;-- seed
+	h1: hash-secret						;-- seed
 
 	;-- body
 	blocks: as int-ptr! (data + (nblocks * 4))

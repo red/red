@@ -10,6 +10,15 @@ Red/System [
 	}
 ]
 
+#define COM_SAFE_RELEASE_OBJ(interface obj) [
+	this: as this! obj
+	if this <> null [
+		interface: as IUnknown this/vtbl
+		interface/Release this
+		obj: 0
+	]
+]
+
 #define COM_SAFE_RELEASE(interface this) [
 	if this <> null [
 		interface: as IUnknown this/vtbl
@@ -17,6 +26,8 @@ Red/System [
 		this: null
 	]
 ]
+
+#define COM_S_OK				0
 
 #define COM_SUCCEEDED(hr)		[hr >= 0]
 #define COM_FAILED(hr)			[hr < 0]

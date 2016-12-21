@@ -13,6 +13,7 @@ Red/System [
 ;; ===== Extra slots usage in Window structs =====
 ;;
 ;;		-60 :							<- TOP
+;;		-24 : Direct2D target interface
 ;;		-20 : evolved-base-layered: child handle
 ;;		-16 : base-layered: owner handle
 ;;		-12 : base-layered: clipped? flags
@@ -42,6 +43,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
 
@@ -58,6 +60,7 @@ wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		60										;-- offset to our 16+4 bytes
 win8+?:			no
 winxp?:			no
+DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
 win-state:		0
 
 log-pixels-x:	0
@@ -350,11 +353,13 @@ free-handles: func [
 				free-graph cam
 			]
 		]
-		sym = base [
+		any [sym = window sym = panel sym = base][
 			if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
 				dc: GetWindowLong hWnd wc-offset - 4
 				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
 			]
+			dc: GetWindowLong hWnd wc-offset - 24
+			if dc <> 0 [d2d-release-target as this! dc]
 		]
 		true [
 			0
@@ -405,6 +410,25 @@ set-defaults: func [
 	null
 ]
 
+enable-visual-styles: func [
+	return:   [logic!]
+	/local
+		icc   [integer!]
+		size  [integer!]
+		ctrls [tagINITCOMMONCONTROLSEX]
+][
+	size: size? tagINITCOMMONCONTROLSEX
+	icc: ICC_STANDARD_CLASSES			;-- user32.dll controls
+	  or ICC_PROGRESS_CLASS				;-- progress
+	  or ICC_TAB_CLASSES				;-- tabs
+	  or ICC_LISTVIEW_CLASSES			;-- table headers
+	  or ICC_UPDOWN_CLASS				;-- spinboxes
+	  or ICC_BAR_CLASSES				;-- trackbar
+	  or ICC_DATE_CLASSES				;-- date/time picker
+	ctrls: as tagINITCOMMONCONTROLSEX :size
+	InitCommonControlsEx ctrls
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -416,9 +440,22 @@ init: func [
 
 	version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
 	GetVersionEx version-info
-	win8+?: all [
-		version-info/dwMajorVersion >= 6
-		version-info/dwMinorVersion >= 2
+
+	unless all [
+		version-info/dwMajorVersion = 5
+		version-info/dwMinorVersion < 1
+	][
+		enable-visual-styles							;-- not called for Win2000
+	]
+
+	DWM-enabled?: dwm-composition-enabled?
+
+	win8+?: any [
+		version-info/dwMajorVersion >= 10				;-- Win 10+
+		all [											;-- Win 8, Win 8.1
+			version-info/dwMajorVersion >= 6
+			version-info/dwMinorVersion >= 2
+		]
 	]
 	winxp?: version-info/dwMajorVersion < 6
 
@@ -429,6 +466,12 @@ init: func [
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
 
+	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
+	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
+
+	unless winxp? [DX-init]
+	set-defaults
+
 	register-classes hInstance
 
 	int: as red-integer! #get system/view/platform/build
@@ -438,12 +481,6 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
-	
-	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
-	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-
-	unless winxp? [DX-init]
-	set-defaults
 ]
 
 find-last-window: func [
@@ -512,6 +549,8 @@ init-window: func [										;-- post-creation settings
 		owner	[handle!]
 		modes	[integer!]
 ][
+	SetWindowLong handle wc-offset - 24 0
+
 	modes: SWP_NOZORDER
 	
 	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
@@ -607,6 +646,10 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			all [
+				sym = Direct2D
+				d2d-factory <> null
+			]				 [flags: flags or FACET_FLAGS_D2D]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -741,7 +784,7 @@ get-screen-size: func [
 	pair/push screen-size-x screen-size-y
 ]
 
-DWM-enabled?: func [
+dwm-composition-enabled?: func [
 	return:		[logic!]
 	/local
 		enabled [integer!]
@@ -749,10 +792,11 @@ DWM-enabled?: func [
 		fun		[DwmIsCompositionEnabled!]
 ][
 	enabled: 0
-	dll: LoadLibraryEx #u16 "dwmapi.dll" 0 0
+	dll: LoadLibraryA "dwmapi.dll"
 	if dll = null [return false]
 	fun: as DwmIsCompositionEnabled! GetProcAddress dll "DwmIsCompositionEnabled"
 	fun :enabled
+	FreeLibrary dll
 	either zero? enabled [false][true]
 ]
 
@@ -1058,6 +1102,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 4 0
 			SetWindowLong handle wc-offset - 16 parent
 			SetWindowLong handle wc-offset - 20 0
+			SetWindowLong handle wc-offset - 24 0
 			either alpha? [
 				pt: as tagPOINT (as int-ptr! offset) + 2
 				unless win8+? [
@@ -1099,6 +1144,7 @@ OS-make-view: func [
 		]
 		panel? [
 			adjust-parent handle as handle! parent offset/x offset/y
+			SetWindowLong handle wc-offset - 24 0
 		]
 		sym = slider [
 			vertical?: size/y > size/x
@@ -1657,7 +1703,9 @@ OS-update-view: func [
 			get-flags as red-block! values + FACE_OBJ_FLAGS
 	]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		if type = base [update-base hWnd null null values]
+		if any [type = base type = panel type = window][
+			update-base hWnd null null values
+		]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		either type = base [

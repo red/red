@@ -119,10 +119,12 @@ siginfo!: alias struct! [
 			apple	[struct! [s [c-string!]]]
 			pvars	[program-vars!]
 		][
-			#if red-pass? = no [						;-- only for pure R/S DLLs
+			#either red-pass? = no [					;-- only for pure R/S DLLs
 				***-boot-rs
 				on-load argc argv envp apple pvars
 				***-main
+			][
+				on-load argc argv envp apple pvars
 			]
 		]
 	]

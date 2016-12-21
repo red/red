@@ -199,6 +199,8 @@ get-event-key: func [
 					VK_RSHIFT	[_right-shift]
 					VK_LCONTROL	[_left-control]
 					VK_RCONTROL	[_right-control]
+					VK_CAPITAL	[_caps-lock]
+					VK_NUMLOCK	[_num-lock]
 					VK_LMENU	[_left-menu]
 					VK_RMENU	[_right-menu]
 					default		[
@@ -939,8 +941,11 @@ WndProc: func [
 		]
 		WM_ERASEBKGND [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			unless TYPE_OF(draw) = TYPE_BLOCK [			;-- draw background in draw to avoid flickering
-				if render-base hWnd as handle! wParam [return 1]
+			if any [
+				TYPE_OF(draw) = TYPE_BLOCK				;-- draw background in draw to avoid flickering
+				render-base hWnd as handle! wParam
+			][
+				return 1
 			]
 		]
 		WM_PAINT [
@@ -951,6 +956,7 @@ WndProc: func [
 				][
 					bitblt-memory-dc hWnd no
 				]
+				return 0
 			]
 		]
 		WM_CTLCOLOREDIT

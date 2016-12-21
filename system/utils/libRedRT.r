@@ -79,6 +79,10 @@ libRedRT: context [
 		repend aliased [new to word! form old]
 	]
 	
+	undecorate: func [sym [word! path!]][
+		any [find/match sym: form sym "exec/" sym]
+	]
+	
 	make-exports: func [functions exports /local name file][
 		foreach [name spec] functions [
 			if all [
@@ -93,7 +97,7 @@ libRedRT: context [
 		]
 		foreach def funcs [
 			name: to word! form def
-			append exports name
+			repend exports [name undecorate def]
 			unless select/only functions name [
 				print ["*** libRedRT Error: definition not found for" def]
 				halt
@@ -101,8 +105,7 @@ libRedRT: context [
 			system-dialect/compiler/flag-callback name none
 		]
 		foreach [def type] vars [
-			name: to word! form def
-			append exports name
+			repend exports [to word! form def undecorate def]
 		]
 	]
 	
@@ -198,7 +201,7 @@ libRedRT: context [
 			append pos to set-word! name
 			new-line back tail pos yes
 			name: to word! form def
-			append pos mold name
+			append pos undecorate def
 			
 			spec: copy/deep functions/:name/4
 			clear find spec /local

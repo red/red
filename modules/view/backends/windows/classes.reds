@@ -148,8 +148,10 @@ register-classes: func [
 	hInstance [handle!]
 	/local
 		wcex  [WNDCLASSEX]
+		cur	  [handle!]
 ][
 	wcex: declare WNDCLASSEX
+	cur: LoadCursor null IDC_ARROW
 
 	wcex/cbSize: 		size? WNDCLASSEX
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
@@ -158,7 +160,7 @@ register-classes: func [
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			LoadIcon hInstance as c-string! 1
-	wcex/hCursor:		LoadCursor null IDC_ARROW
+	wcex/hCursor:		cur
 	wcex/hbrBackground:	COLOR_3DFACE + 1
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedWindow"
@@ -172,7 +174,7 @@ register-classes: func [
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			null
-	wcex/hCursor:		LoadCursor null IDC_ARROW
+	wcex/hCursor:		cur
 	wcex/hbrBackground:	COLOR_3DFACE + 1
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBase"
@@ -185,7 +187,7 @@ register-classes: func [
 	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			null
-	wcex/hCursor:		LoadCursor null IDC_ARROW
+	wcex/hCursor:		cur
 	wcex/hbrBackground:	COLOR_3DFACE + 1
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBaseInternal"
