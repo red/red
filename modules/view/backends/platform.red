@@ -312,6 +312,10 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-menu:		word/load "left-menu"
 			_right-menu:	word/load "right-menu"
+			_left-command:	word/load "left-command"
+			_right-command:	word/load "right-command"
+			_caps-lock:		word/load "caps-lock"
+			_num-lock:		word/load "num-lock"
 
 			get-event-type: func [
 				evt		[red-event!]

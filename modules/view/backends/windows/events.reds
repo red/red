@@ -199,6 +199,8 @@ get-event-key: func [
 					VK_RSHIFT	[_right-shift]
 					VK_LCONTROL	[_left-control]
 					VK_RCONTROL	[_right-control]
+					VK_CAPITAL	[_caps-lock]
+					VK_NUMLOCK	[_num-lock]
 					VK_LMENU	[_left-menu]
 					VK_RMENU	[_right-menu]
 					default		[
