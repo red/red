@@ -43,6 +43,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %text-box.reds
 #include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
