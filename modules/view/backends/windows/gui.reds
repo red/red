@@ -43,6 +43,7 @@ Red/System [
 #include %tab-panel.reds
 #include %text-list.reds
 #include %button.reds
+#include %draw-d2d.reds
 #include %draw.reds
 #include %comdlgs.reds
 
@@ -791,10 +792,11 @@ dwm-composition-enabled?: func [
 		fun		[DwmIsCompositionEnabled!]
 ][
 	enabled: 0
-	dll: LoadLibraryEx #u16 "dwmapi.dll" 0 0
+	dll: LoadLibraryA "dwmapi.dll"
 	if dll = null [return false]
 	fun: as DwmIsCompositionEnabled! GetProcAddress dll "DwmIsCompositionEnabled"
 	fun :enabled
+	FreeLibrary dll
 	either zero? enabled [false][true]
 ]
 

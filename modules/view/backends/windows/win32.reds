@@ -989,11 +989,13 @@ XFORM!: alias struct! [
 			hMem		[handle!]
 			return:		[byte-ptr!]
 		]
-		LoadLibraryEx: "LoadLibraryExW" [
+		LoadLibraryA: "LoadLibraryA" [
 			lpFileName	[c-string!]
-			hFile		[integer!]
-			dwFlags		[integer!]
 			return:		[handle!]
+		]
+		FreeLibrary: "FreeLibrary" [
+			hModule		[handle!]
+			return:		[logic!]
 		]
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]

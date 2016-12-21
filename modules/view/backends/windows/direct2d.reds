@@ -505,10 +505,10 @@ DX-init: func [
 		D2D1CreateFactory	[D2D1CreateFactory!]
 		DWriteCreateFactory [DWriteCreateFactory!]
 ][
-	dll: LoadLibraryEx #u16 "d2d1.dll" 0 0
+	dll: LoadLibraryA "d2d1.dll"
 	if null? dll [winxp?: yes exit]
 	D2D1CreateFactory: as D2D1CreateFactory! GetProcAddress dll "D2D1CreateFactory"
-	dll: LoadLibraryEx #u16 "DWrite.dll" 0 0
+	dll: LoadLibraryA "DWrite.dll"
 	if null? dll [winxp?: yes exit]
 	DWriteCreateFactory: as DWriteCreateFactory! GetProcAddress dll "DWriteCreateFactory"
 
@@ -587,9 +587,6 @@ create-hwnd-render-target: func [
 	minLevel: 0
 	props: as D2D1_RENDER_TARGET_PROPERTIES :minLevel
 	zero-memory as byte-ptr! props size? D2D1_RENDER_TARGET_PROPERTIES
-	;props/format: 87				;-- DXGI_FORMAT_B8G8R8A8_UNORM
-	;props/alphaMode: 1				;-- D2D1_ALPHA_MODE_PREMULTIPLIED
-	;props/minLevel: 40960			;-- D2D1_FEATURE_LEVEL_10
 
 	target: 0
 	factory: as ID2D1Factory d2d-factory/vtbl
@@ -603,14 +600,22 @@ create-dc-render-target: func [
 	rc		[RECT_STRUCT]
 	return: [this!]
 	/local
-		props	[D2D1_RENDER_TARGET_PROPERTIES]
-		factory [ID2D1Factory]
-		rt		[ID2D1DCRenderTarget]
-		IRT		[this!]
-		target	[integer!]
-		hr		[integer!]
+		type		[integer!]
+		format		[integer!]
+		alphaMode	[integer!]
+		dpiX		[integer!]
+		dpiY		[integer!]
+		usage		[integer!]
+		minLevel	[integer!]
+		props		[D2D1_RENDER_TARGET_PROPERTIES]
+		factory		[ID2D1Factory]
+		rt			[ID2D1DCRenderTarget]
+		IRT			[this!]
+		target		[integer!]
+		hr			[integer!]
 ][
-	props: as D2D1_RENDER_TARGET_PROPERTIES allocate size? D2D1_RENDER_TARGET_PROPERTIES
+	minLevel: 0
+	props: as D2D1_RENDER_TARGET_PROPERTIES :minLevel
 	props/type: 0									;-- D2D1_RENDER_TARGET_TYPE_DEFAULT
 	props/format: 87								;-- DXGI_FORMAT_B8G8R8A8_UNORM
 	props/alphaMode: 1								;-- D2D1_ALPHA_MODE_PREMULTIPLIED
@@ -628,7 +633,6 @@ create-dc-render-target: func [
 	rt: as ID2D1DCRenderTarget IRT/vtbl
 	hr: rt/BindDC IRT dc rc
 	if hr <> 0 [rt/Release IRT return null]
-	free as byte-ptr! props
 	IRT
 ]
 
