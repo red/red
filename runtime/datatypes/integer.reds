@@ -379,6 +379,11 @@ integer: context [
 			int  [red-integer!]
 			fl	 [red-float!]
 			t	 [red-time!]
+			pad1 [integer!]
+			pad2 [integer!]
+			pad3 [integer!]
+			pad4 [integer!]
+			val	 [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
@@ -408,6 +413,10 @@ integer: context [
 				int/value: from-issue as red-word! spec
 			]
 			TYPE_ANY_STRING [
+				pad4: 0
+				val: as red-value! :pad4
+				copy-cell spec val					;-- save spec, load-value will change it
+
 				proto: load-value as red-string! spec
 				
 				either TYPE_OF(proto) = TYPE_FLOAT [
@@ -418,7 +427,7 @@ integer: context [
 					int/value: as-integer fl/value
 				][
 					if TYPE_OF(proto) <> TYPE_INTEGER [ 
-						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER proto]
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER val]
 					]
 				]
 			]

@@ -106,6 +106,7 @@ time: context [
 			len	 [integer!]
 			i	 [integer!]
 			t	 [float!]
+			val  [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/to"]]
 		
@@ -149,8 +150,11 @@ time: context [
 				tm/time: t * oneE9
 			]
 			TYPE_ANY_STRING [
+				i: 0
+				val: as red-value! :i
+				copy-cell spec val					;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
-				if TYPE_OF(proto) <> TYPE_TIME [throw-error proto]
+				if TYPE_OF(proto) <> TYPE_TIME [throw-error val]
 			]
 			default [throw-error spec]
 		]

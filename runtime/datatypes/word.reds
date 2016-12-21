@@ -326,6 +326,7 @@ word: context [
 			data	[byte-ptr!]
 			cstr	[c-string!]
 			len		[integer!]
+			val		[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
 
@@ -337,8 +338,11 @@ word: context [
 			TYPE_REFINEMENT
 			TYPE_ISSUE [proto: spec]
 			TYPE_STRING [
+				len: 0
+				val: as red-value! :len
+				copy-cell spec val					;-- save spec, load-value will change it
 				proto: load-value as red-string! spec
-				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) proto]]
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
 			]
 			TYPE_CHAR [
 				char: as red-char! spec

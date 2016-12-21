@@ -105,6 +105,7 @@ pair: context [
 			fl	 [red-float!]
 			x	 [integer!]
 			y	 [integer!]
+			val	 [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
 
@@ -144,9 +145,13 @@ pair: context [
 				push x y
 			]
 			TYPE_STRING [
+				y: 0
+				val: as red-value! :y
+				copy-cell spec val					;-- save spec, load-value will change it
+
 				proto: load-value as red-string! spec
 				if TYPE_OF(proto) <> TYPE_PAIR [
-					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR proto]
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_PAIR val]
 				]
 				proto
 			]

@@ -258,7 +258,7 @@ tuple: context [
 			i	[integer!]
 			n	[integer!]
 			s	[series!]
-			msg [red-value!]
+			val [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
 
@@ -292,10 +292,14 @@ tuple: context [
 				from-issue as red-word! spec proto
 			]
 			TYPE_ANY_STRING [
+				i: 0
+				val: as red-value! :i
+				copy-cell spec val					;-- save spec, load-value will change it
+
 				proto: as red-tuple! load-value as red-string! spec
 				
 				if TYPE_OF(proto) <> TYPE_TUPLE [ 
-					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE proto]
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE val]
 				]
 			]
 			TYPE_TUPLE [return as red-tuple! spec]
