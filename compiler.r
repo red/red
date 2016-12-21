@@ -1583,8 +1583,8 @@ red: context [
 					emit 'tuple/push
 					emit length? head bin
 					emit to integer! skip bin -4
-					emit to integer! copy/part skip bin -8 4
-					emit to integer! copy/part head bin 4
+					emit to integer! copy/part skip bin -4 -4
+					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
