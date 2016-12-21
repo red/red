@@ -969,9 +969,6 @@ XFORM!: alias struct! [
 			lpModuleName [integer!]
 			return:		 [handle!]
 		]
-		GetLastError: "GetLastError" [
-			return: [integer!]
-		]
 		GetSystemDirectory: "GetSystemDirectoryW" [
 			lpBuffer	[c-string!]
 			uSize		[integer!]
