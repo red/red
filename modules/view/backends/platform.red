@@ -247,6 +247,7 @@ system/view/platform: context [
 			Direct2D:		symbol/make "Direct2D"
 			
 			_text:			word/load "text"
+			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
 			_away:			word/load "away"
