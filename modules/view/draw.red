@@ -830,20 +830,14 @@ Red/System [
 text-box!: object [
 	text:		none					;-- a string to draw (string!)
 	size:		none					;-- box size in pixels (pair!)
-	align:		none					;-- horizontal text alignment: left, center, right
-	v-align:	none					;-- vertical text alignment: top, middle, bottom
-	indent:		none					;-- indent of the first line (integer!)
-	wrap:		none					;-- wrapping mode: none, word, character
-	bounds:		none					;-- bounds of the text (pair!)
-	direction:	'left-to-right			;-- left-to-right, right-to-left
-	justify?:	no
-	ascent:		none					;-- (integer!)
-	descent:	none					;-- (integer!)
-	leading:	none					;-- (integer!)
+	font:		none					;-- font! object
+	para:		none					;-- para! object
+	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
 	spacing:	none					;-- line spacing (integer!)
 	tabs:		none					;-- tab list (block!)
-	styles:		none					;-- style list (block!), [style1 start-idx end-idx style2 start-idx end-idx ...]
-	internal:	none					;-- OS handles
+	styles:		none					;-- style list (block!), [style1 start-pos length style2 start-pos length ...]
+	state:		none					;-- OS handles
 
 	offset?: function [
 		"Returns the character offset for the specified point"
@@ -851,24 +845,6 @@ text-box!: object [
 		return: [integer!]
 	][
 	]
-]
-
-text-style!: object [
-	color:			 none
-	backdrop:		 none
-	border-color:	 none
-	border-style:	 none
-	strikeout:		 none
-	strikeout-color: none
-	underline:		 none
-	underline-color: none
-	underline-style: none
-	font:			 none				;-- font! object
-	rise:			 0					;-- the baseline rise of the style
-	ascent:			 none
-	descent:		 none
-	width:			 none
-	internal:		 none				;-- OS handles
 ]
 
 draw: function [

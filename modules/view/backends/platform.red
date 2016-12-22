@@ -102,7 +102,18 @@ system/view/platform: context [
 				PARA_OBJ_WRAP?
 				PARA_OBJ_PARENT
 			]
-			
+
+			#enum text-box-facet! [
+				TBOX_OBJ_TEXT
+				TBOX_OBJ_SIZE
+				TBOX_OBJ_FONT
+				TBOX_OBJ_PARA
+				TBOX_OBJ_SPACING
+				TBOX_OBJ_TABS
+				TBOX_OBJ_STYLES
+				TBOX_OBJ_STATE
+			]
+
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP

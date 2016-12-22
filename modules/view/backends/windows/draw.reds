@@ -1049,6 +1049,8 @@ OS-draw-pen: func [
 ][
 	if all [off? ctx/pen? <> off?][exit]
 
+	if D2D? [OS-draw-pen-d2d ctx color off? exit]
+
 	ctx/alpha-pen?: alpha?
 	GDI+?: any [alpha? anti-alias? ctx/alpha-brush?]
 
@@ -1448,6 +1450,8 @@ OS-draw-text: func [
 		x		[integer!]
 		rect	[RECT_STRUCT_FLOAT32]
 ][
+	if D2D? [OS-draw-text-d2d ctx pos text exit]
+
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
 	either ctx/on-image? [
