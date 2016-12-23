@@ -242,6 +242,8 @@ system/view/platform: context [
 			_italic:		symbol/make "italic"
 			_underline:		symbol/make "underline"
 			_strike:		symbol/make "strike"
+			_border:		symbol/make "border"
+			_backdrop:		symbol/make "backdrop"
 			
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"

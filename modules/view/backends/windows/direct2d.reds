@@ -889,17 +889,14 @@ create-text-layout: func [
 	fmt		[this!]
 	width	[integer!]
 	height	[integer!]
-	styles	[red-block!]
 	return: [this!]
 	/local
-		str		[c-string!]
-		len		[integer!]
-		dw		[IDWriteFactory]
-		w		[float32!]
-		h		[float32!]
-		lay		[integer!]
-		this	[this!]
-		layout	[IDWriteTextLayout]
+		str	[c-string!]
+		len	[integer!]
+		dw	[IDWriteFactory]
+		w	[float32!]
+		h	[float32!]
+		lay	[integer!]
 ][
 	len: -1
 	str: unicode/to-utf16-len text :len yes
@@ -909,11 +906,6 @@ create-text-layout: func [
 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory str len fmt w h :lay
-
-	if styles <> null [
-		0
-	]
-
 	as this! lay
 ]
 
@@ -945,7 +937,7 @@ draw-text-d2d: func [
 	fmt: as this! create-text-format font
 	set-text-format fmt para
 
-	layout: create-text-layout text fmt rc/right rc/bottom null
+	layout: create-text-layout text fmt rc/right rc/bottom
 
 	this: create-dc-render-target dc rc
 	rt: as ID2D1DCRenderTarget this/vtbl

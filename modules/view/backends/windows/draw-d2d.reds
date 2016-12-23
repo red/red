@@ -10,6 +10,42 @@ Red/System [
 	}
 ]
 
+d2d-brushes: as int-ptr! 0							;-- brushes cache for Direct2D
+d2d-brush-cnt: 0
+
+#define D2D_MAX_BRUSHES 64
+
+#include %text-box.reds
+
+select-brush: func [
+	color	[integer!]
+	return: [integer!]
+	/local
+		brushes [int-ptr!]
+][
+	brushes: d2d-brushes
+	loop d2d-brush-cnt [
+		either brushes/value = color [
+			return brushes/2
+		][
+			brushes: brushes + 2
+		]
+	]
+	0
+]
+
+put-brush: func [
+	color	[integer!]
+	brush	[integer!]
+	/local
+		brushes [int-ptr!]
+][
+	brushes: d2d-brushes + (d2d-brush-cnt * 2)
+	brushes/1: color
+	brushes/2: brush
+	d2d-brush-cnt: d2d-brush-cnt + 1
+]
+
 draw-begin-d2d: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -49,7 +85,13 @@ draw-begin-d2d: func [
 	]
 
 	brush: 0
-	rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+	either null? d2d-brushes [
+		d2d-brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+		rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+		put-brush ctx/pen-color brush
+	][
+		brush: select-brush ctx/pen-color
+	]
 	ctx/pen: brush
 ]
 
@@ -59,7 +101,7 @@ clean-draw-d2d: func [
 		IUnk [IUnknown]
 		this [this!]
 ][
-	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
+	;;TBD release all brushes when D2DERR_RECREATE_TARGET or exit the process
 ]
 
 draw-end-d2d: func [
@@ -137,6 +179,7 @@ OS-draw-text-d2d: func [
 	ctx		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
@@ -168,15 +211,17 @@ OS-draw-text-d2d: func [
 
 		str: as red-string! values + TBOX_OBJ_TEXT
 		size: as red-pair! values + TBOX_OBJ_SIZE
-		styles: as red-block! values + TBOX_OBJ_STYLES
 		either TYPE_OF(size) = TYPE_PAIR [
 			w: size/x h: size/y
 		][
 			w: 7FFFFFFFh h: 7FFFFFFFh
 		]
-		if TYPE_OF(styles) <> TYPE_BLOCK [styles: null]
+		layout: create-text-layout str fmt w h
 
-		layout: create-text-layout str fmt w h styles
+		styles: as red-block! values + TBOX_OBJ_STYLES
+		if TYPE_OF(styles) = TYPE_BLOCK [
+			parse-text-styles as handle! layout styles catch?
+		]
 	][
 		0
 	]

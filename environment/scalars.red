@@ -32,7 +32,7 @@ Rebol: false											;-- makes loading Rebol scripts easier
 ;-- warning: following typeset definitions are processed by the compiler, do not change them
 ;-- unless you know what you are doing!
 
-internal!:		make typeset! [unset! #if find config/modules 'view [event!]]
+internal!:		make typeset! [unset! event!]
 number!:		make typeset! [integer! float! percent!]
 scalar!:		union number! make typeset! [char! pair! tuple! time!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]

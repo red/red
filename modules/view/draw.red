@@ -506,9 +506,9 @@ Red/System [
 						start: cmd + 1
 
 						case [
-                            any [sym = pen sym = fill-pen] [
-                                cmd: check-pen DC cmds start tail cmd sym catch?
-                            ]
+							any [sym = pen sym = fill-pen] [
+								cmd: check-pen DC cmds start tail cmd sym catch?
+							]
 							sym = box [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
 								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
@@ -557,7 +557,7 @@ Red/System [
 							sym = text [
 								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
 								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
-								OS-draw-text DC as red-pair! start as red-string! cmd
+								OS-draw-text DC as red-pair! start as red-string! cmd catch?
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
@@ -820,6 +820,86 @@ Red/System [
 				either catch? [system/thrown: 0][re-throw]
 			]
 		]
+
+		parse-text-styles: func [
+			layout		[handle!]			;-- text layout (opaque handle)
+			cmds		[red-block!]
+			catch?		[logic!]
+			/local
+				cmd		[red-value!]
+				tail	[red-value!]
+				pos		[red-value!]
+				value	[red-value!]
+				start	[red-value!]
+				int1	[red-integer!]
+				int2	[red-integer!]
+				word	[red-word!]
+				sym		[integer!]
+				rgb		[integer!]
+				alpha?	[integer!]
+				idx		[integer!]
+				len		[integer!]
+		][
+			alpha?: 0 idx: 0 len: 0
+			cmd:  block/rs-head cmds
+			tail: block/rs-tail cmds
+
+			while [cmd < tail][
+				switch TYPE_OF(cmd) [
+					TYPE_WORD [
+						word: as red-word! cmd
+						sym: symbol/resolve word/symbol
+						start: cmd + 1
+
+						case [
+							sym = _backdrop [							;-- background color
+								DRAW_FETCH_TUPLE
+								OS-text-box-background layout idx len rgb
+							]
+							sym = _bold [
+								OS-text-box-weight layout idx len 700
+							]
+							sym = _italic [
+								OS-text-box-italic layout idx len
+							]
+							sym = _underline [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								OS-text-box-underline layout idx len start cmd
+							]
+							sym = _strike [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								OS-text-box-strikeout layout idx len start cmd
+							]
+							sym = border [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								OS-text-box-border layout idx len start cmd
+							]
+							true [throw-draw-error cmds cmd catch?]
+						]
+					]
+					TYPE_TUPLE [										;-- text color
+						rgb: get-color-int as red-tuple! cmd :alpha?
+						OS-text-box-color layout idx len rgb
+					]
+					TYPE_INTEGER [										;-- range
+						int1: as red-integer! cmd
+						int2: int1 + 1
+						cmd: cmd + 2
+						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
+							throw-draw-error cmds cmd catch?
+						]
+						idx: int1/value
+						len: int2/value
+						cmd: as red-value! int2
+					]
+					default [throw-draw-error cmds cmd catch?]
+				]
+				cmd: cmd + 1
+			]
+		]
 	]
 ]
 
@@ -836,7 +916,7 @@ text-box!: object [
 	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
 	spacing:	none					;-- line spacing (integer!)
 	tabs:		none					;-- tab list (block!)
-	styles:		none					;-- style list (block!), [style1 start-pos length style2 start-pos length ...]
+	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
 	state:		none					;-- OS handles
 
 	offset?: function [

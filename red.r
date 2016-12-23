@@ -407,7 +407,8 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows [ [[Needs: View]] ]
+			;Windows [ [[Needs: View]] ]
+			Windows [ [[]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts

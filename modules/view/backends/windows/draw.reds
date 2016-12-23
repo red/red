@@ -15,8 +15,8 @@ max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
 types: allocate max-edges * (size? byte!)					;-- point type buffer
-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
-colors-pos: as pointer! [float32!] colors + max-colors
+colors: as int-ptr! 0
+colors-pos: as pointer! [float32!] 0
 matrix-order: 0
 
 #define SHAPE_OTHER     0
@@ -1440,6 +1440,7 @@ OS-draw-text: func [
 	ctx		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
 	/local
 		str		[c-string!]
 		len		[integer!]
@@ -1450,7 +1451,10 @@ OS-draw-text: func [
 		x		[integer!]
 		rect	[RECT_STRUCT_FLOAT32]
 ][
-	if D2D? [OS-draw-text-d2d ctx pos text exit]
+	if D2D? [
+		OS-draw-text-d2d ctx pos text catch?
+		exit
+	]
 
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
@@ -1778,6 +1782,11 @@ OS-draw-grad-pen: func [
 		rotate? [logic!]
 		scale?	[logic!]
 ][
+	if null? colors [				;-- initialize color stops array
+		colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
+		colors-pos: as pointer! [float32!] colors + max-colors
+	]
+
 	x: offset/x
 	y: offset/y
 
