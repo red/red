@@ -15,6 +15,7 @@ dwrite-factory: as this! 0
 
 #define float32-ptr! [pointer! [float32!]]
 #define D2DERR_RECREATE_TARGET 8899000Ch
+#define FLT_MAX	[as float32! 3.402823466e38]
 
 IID_ID2D1Factory:		[06152247h 465A6F50h 8B114592h 07603BFDh]
 IID_IDWriteFactory:		[B859EE5Ah 4B5BD838h DC1AE8A2h 48DB937Dh]
@@ -901,8 +902,8 @@ create-text-layout: func [
 	len: -1
 	str: unicode/to-utf16-len text :len yes
 	lay: 0
-	w: as float32! width
-	h: as float32! height
+	w: either zero? width  [FLT_MAX][as float32! width]
+	h: either zero? height [FLT_MAX][as float32! height]
 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory str len fmt w h :lay

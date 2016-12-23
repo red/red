@@ -151,6 +151,7 @@ system/view/platform: context [
 				EVT_MOVING
 				EVT_SIZING
 				EVT_TIME
+				EVT_DRAW
 			]
 			
 			#enum event-flag! [
@@ -296,6 +297,7 @@ system/view/platform: context [
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
+			_draw:			word/load "draw"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -336,6 +338,7 @@ system/view/platform: context [
 			][
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
+					EVT_DRAW		 [_draw]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
 					EVT_MIDDLE_DOWN	 [_mid-down]
@@ -379,6 +382,7 @@ system/view/platform: context [
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
+					sym = _draw/symbol			[sym: EVT_DRAW]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
 					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
@@ -517,6 +521,11 @@ system/view/platform: context [
 		gui/OS-do-draw image cmds
 	]
 
+	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
+		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
+		gui/OS-draw-face as draw-ctx! int/value cmds
+	]
+
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
@@ -549,6 +558,21 @@ system/view/platform: context [
 		multi?	[logic!]
 	][
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+	]
+
+	text-box-metrics: routine [
+		state	[block!]
+		/local
+			int [red-integer!]
+			ret [red-value!]
+	][
+		ret: as red-value! either TYPE_OF(state) = TYPE_BLOCK [
+			int: as red-integer! block/rs-head state
+			gui/OS-text-box-metrics as handle! int/value
+		][
+			none-value
+		]
+		SET_RETURN(ret)
 	]
 
 	init: func [/local svs fonts][

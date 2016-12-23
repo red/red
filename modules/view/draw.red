@@ -791,6 +791,8 @@ Red/System [
 			]
 		]
 
+		_draw-ctx: declare draw-ctx!				;@@ make it local in function
+
 		do-draw: func [
 			handle		[handle!]
 			img			[red-image!]
@@ -800,7 +802,7 @@ Red/System [
 			paint?		[logic!]
 			catch?		[logic!]
 			/local
-				DC		[draw-ctx!]						;-- drawing context (opaque handle)
+				DC		[draw-ctx!]					;-- drawing context (opaque handle)
 		][
 			if all [
 				null? handle
@@ -809,7 +811,7 @@ Red/System [
 
 			system/thrown: 0
 
-			DC: declare draw-ctx!						;@@ should declare it on stack
+			DC: _draw-ctx							;@@ should declare it on stack
 			draw-begin DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
@@ -822,6 +824,7 @@ Red/System [
 		]
 
 		parse-text-styles: func [
+			dc			[handle!]
 			layout		[handle!]			;-- text layout (opaque handle)
 			cmds		[red-block!]
 			catch?		[logic!]
@@ -854,7 +857,7 @@ Red/System [
 						case [
 							sym = _backdrop [							;-- background color
 								DRAW_FETCH_TUPLE
-								OS-text-box-background layout idx len rgb
+								OS-text-box-background dc layout idx len rgb
 							]
 							sym = _bold [
 								OS-text-box-weight layout idx len 700
@@ -882,7 +885,7 @@ Red/System [
 					]
 					TYPE_TUPLE [										;-- text color
 						rgb: get-color-int as red-tuple! cmd :alpha?
-						OS-text-box-color layout idx len rgb
+						OS-text-box-color dc layout idx len rgb
 					]
 					TYPE_INTEGER [										;-- range
 						int1: as red-integer! cmd
@@ -924,16 +927,28 @@ text-box!: object [
 		pt		[pair!]
 		return: [integer!]
 	][
+		;system/view/platform/
+	]
+
+	metrics: function [
+		"Get metrics for the formatted string: [width height line-count]"
+		return: [block!]
+	][
+		system/view/platform/text-box-metrics state
 	]
 ]
 
 draw: function [
 	"Draws scalable vector graphics to an image"
-	image	[image! pair!]	"Image or size for an image"
+	target	[image! pair! object!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
 	return: [image!]
 ][
-	if pair? image [image: make image! image]
-	system/view/platform/draw-image image cmd
-	image
+	either face? target [
+		system/view/platform/draw-face target cmd
+	][
+		if pair? target [target: make image! target]
+		system/view/platform/draw-image target cmd
+		target
+	]
 ]

@@ -395,6 +395,7 @@ BaseWndProc: func [
 		flags	[integer!]
 		w		[integer!]
 		draw	[red-block!]
+		DC		[draw-ctx!]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -423,10 +424,21 @@ BaseWndProc: func [
 		WM_PAINT
 		WM_DISPLAYCHANGE [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			either zero? GetWindowLong hWnd wc-offset - 4 [
-				do-draw hWnd null draw no yes yes yes
+			either TYPE_OF(draw) = TYPE_BLOCK [
+				either zero? GetWindowLong hWnd wc-offset - 4 [
+					do-draw hWnd null draw no yes yes yes
+				][
+					bitblt-memory-dc hWnd no
+				]
 			][
-				bitblt-memory-dc hWnd no
+				system/thrown: 0
+				DC: _draw-ctx						;@@ should declare it on stack
+				draw-begin DC hWnd null no yes
+				integer/make-at as red-value! draw as-integer DC
+				current-msg/hWnd: hWnd
+				make-event current-msg 0 EVT_DRAW
+				draw/header: TYPE_NONE
+				draw-end DC hWnd no no yes
 			]
 			return 0
 		]

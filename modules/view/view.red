@@ -431,6 +431,7 @@ system/view: context [
 	evt-names: make hash! [
 		detect			on-detect
 		time			on-time
+		draw			on-draw
 		down			on-down
 		up				on-up
 		mid-down		on-mid-down

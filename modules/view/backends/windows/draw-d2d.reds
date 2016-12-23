@@ -110,7 +110,7 @@ draw-end-d2d: func [
 	/local
 		this [this!]
 		rt	 [ID2D1HwndRenderTarget]
-		hr [integer!]
+		hr	 [integer!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -183,10 +183,12 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
+		IUnk	[IUnknown]
 		values	[red-value!]
 		str		[red-string!]
 		size	[red-pair!]
-		state	[red-integer!]
+		int		[red-integer!]
+		state	[red-block!]
 		styles	[red-block!]
 		w		[integer!]
 		h		[integer!]
@@ -198,13 +200,19 @@ OS-draw-text-d2d: func [
 
 	either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
 		values: object/get-values as red-object! text
-		state: as red-integer! values + TBOX_OBJ_STATE
+		state: as red-block! values + TBOX_OBJ_STATE
 
-		either TYPE_OF(state) = TYPE_INTEGER [
-			fmt: as this! state/value
+		either TYPE_OF(state) = TYPE_BLOCK [
+			int: as red-integer! block/rs-head state	;-- release previous text layout
+			layout: as this! int/value
+			COM_SAFE_RELEASE(IUnk layout)
+			int: int + 1
+			fmt: as this! int/value
 		][
 			fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-			integer/make-at as red-value! state as-integer fmt
+			block/make-at state 2
+			none/make-in state							;-- 1: text layout
+			integer/make-in state as-integer fmt		;-- 2: text format
 		]
 
 		set-text-format fmt as red-object! values + TBOX_OBJ_PARA
@@ -214,17 +222,18 @@ OS-draw-text-d2d: func [
 		either TYPE_OF(size) = TYPE_PAIR [
 			w: size/x h: size/y
 		][
-			w: 7FFFFFFFh h: 7FFFFFFFh
+			w: 0 h: 0
 		]
 		layout: create-text-layout str fmt w h
+		integer/make-at block/rs-head state as-integer layout
 
 		styles: as red-block! values + TBOX_OBJ_STYLES
 		if TYPE_OF(styles) = TYPE_BLOCK [
-			parse-text-styles as handle! layout styles catch?
+			parse-text-styles as handle! this as handle! layout styles catch?
 		]
 	][
 		0
 	]
 
-	rt/DrawTextLayout this as float32! 10.0 as float32! 100.0 layout ctx/pen 0
+	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 ]
