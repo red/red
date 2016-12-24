@@ -82,6 +82,20 @@ no-face?: func [
 	(GetWindowLong hWnd wc-offset) and get-type-mask <> TYPE_OBJECT
 ]
 
+get-face-obj: func [
+	hWnd	[handle!]
+	return: [red-object!]
+	/local
+		face [red-object!]
+][
+	face: declare red-object!
+	face/header: GetWindowLong hWnd wc-offset
+	face/ctx:	 as node! GetWindowLong hWnd wc-offset + 4
+	face/class:  GetWindowLong hWnd wc-offset + 8
+	face/on-set: as node! GetWindowLong hWnd wc-offset + 12
+	face
+]
+
 get-face-values: func [
 	hWnd	[handle!]
 	return: [red-value!]

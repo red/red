@@ -466,6 +466,7 @@ update-base-background: func [
 ]
 
 update-base-text: func [
+	hWnd	[handle!]
 	graphic	[integer!]
 	dc		[handle!]
 	text	[red-string!]
@@ -507,7 +508,7 @@ update-base-text: func [
 				hFont: int/value
 			]
 		][
-			hFont: as-integer make-font as red-object! none-value font
+			hFont: as-integer make-font get-face-obj hWnd font
 		]
 		if TYPE_OF(color) = TYPE_TUPLE [clr: color/array1]
 	]
@@ -629,7 +630,7 @@ update-base: func [
 		alpha?: update-base-background graphic color width height
 	]
 	update-base-image graphic img width height
-	update-base-text graphic hBackDC text font para width height
+	update-base-text hWnd graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0

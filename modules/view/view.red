@@ -240,6 +240,9 @@ update-font-faces: function [parent [block! none!]][
 			if f/state [
 				system/reactivity/check/only f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
+				if block? f/draw [						;-- force a redraw in case the font in draw block
+					f/state/2: f/state/2 or 00400000h	;-- (1 << ((index? in f 'draw) - 1))
+				]
 				show f
 			]
 		]
