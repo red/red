@@ -442,6 +442,15 @@ BaseWndProc: func [
 			]
 			return 0
 		]
+		WM_VSCROLL
+		WM_HSCROLL [
+			if zero? lParam [						;-- message from standard scroll bar
+				current-msg/hWnd: hWnd
+				current-msg/msg: msg
+				make-event current-msg wParam EVT_SCROLL
+				return 0
+			]
+		]
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam

@@ -405,6 +405,29 @@ para!: object [
 	]
 ]
 
+scroller!: object [
+	position:	none			;-- knob position
+	page-size:	none
+	max-size:	none
+	visible?:	yes
+	vertical?:	yes				;-- read only. YES: vertical NO: horizontal
+	parent:		none
+
+	on-change*: function [word old new][
+		if system/view/debug? [
+			print [
+				"-- scroller on-change event --" lf
+				tab "word :" word			 lf
+				tab "old  :" type? :old		 lf
+				tab "new  :" type? :new
+			]
+		]
+		if all [parent block? parent/state integer? parent/state/1][
+			system/view/platform/update-scroller self (index? in self word) - 1
+		]
+	]
+]
+
 system/view: context [
 	screens: 	none
 	event-port: none
@@ -432,6 +455,7 @@ system/view: context [
 		detect			on-detect
 		time			on-time
 		draw			on-draw
+		scroll			on-scroll
 		down			on-down
 		up				on-up
 		mid-down		on-mid-down
@@ -716,6 +740,18 @@ dump-face: function [
 	if block? face/pane [foreach f face/pane [dump-face f]]
 	remove/part depth 4
 	face
+]
+
+get-scroller: function [
+	"return a scroller object from a face"
+	face		[object!]
+	orientation [word!]
+	return:		[object!]
+][
+	make scroller! [
+		parent: face
+		vertical?: orientation = 'vertical
+	]
 ]
 
 insert-event-func: function [

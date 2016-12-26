@@ -166,6 +166,7 @@ get-event-key: func [
 	return: [red-value!]
 	/local
 		char [red-char!]
+		msg  [tagMSG]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -174,7 +175,7 @@ get-event-key: func [
 			either special-key <> -1 [
 				switch special-key [
 					VK_PRIOR	[_page-up]
-					VK_NEXT		[_page_down]
+					VK_NEXT		[_page-down]
 					VK_END		[_end]
 					VK_HOME		[_home]
 					VK_LEFT		[_left]
@@ -217,6 +218,26 @@ get-event-key: func [
 				char/header: TYPE_CHAR
 				char/value: evt/flags and FFFFh
 				as red-value! char
+			]
+		]
+		EVT_SCROLL [
+			msg: as tagMSG evt/msg
+			either msg/msg = WM_VSCROLL [
+				switch msg/wParam and FFFFh [
+					SB_LINEUP	[_up]
+					SB_LINEDOWN [_down]
+					SB_PAGEUP	[_page-up]
+					SB_PAGEDOWN	[_page-down]
+					default		[_end]
+				]
+			][
+				switch msg/wParam and FFFFh [
+					SB_LINEUP	[_left]
+					SB_LINEDOWN [_right]
+					SB_PAGEUP	[_page-left]
+					SB_PAGEDOWN	[_page-right]
+					default		[_end]
+				]
 			]
 		]
 		default [as red-value! none-value]
@@ -358,6 +379,27 @@ char-key?: func [
 	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
 ]
 
+process-track-pos: func [
+	hWnd			[handle!]
+	vertical?		[logic!]
+	return:			[integer!]
+	/local
+		nTrackPos	[integer!]
+		nPos		[integer!]
+		nPage		[integer!]
+		nMax		[integer!]
+		nMin		[integer!]
+		fMask		[integer!]
+		cbSize		[integer!]
+][
+	cbSize: size? tagSCROLLINFO
+	fMask: 4 or 10h
+	nPos: 0
+	nTrackPos: 0
+	GetScrollInfo hWnd as-integer vertical? as tagSCROLLINFO :cbSize
+	either nPos > nTrackPos [SB_LINEUP][SB_LINEDOWN]
+]
+
 make-event: func [
 	msg		[tagMSG]
 	flags	[integer!]
@@ -429,6 +471,15 @@ make-event: func [
 		]
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
+		]
+		EVT_SCROLL [
+			key: WIN32_LOWORD(flags)
+			if key = SB_THUMBTRACK [
+				flags: process-track-pos msg/hWnd msg/msg = WM_VSCROLL
+				key: 0
+			]
+			if key > 3 [return EVT_DISPATCH]			;-- exclude some events we don't need
+			msg/wParam: flags
 		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
 		default	 [0]
@@ -931,13 +982,15 @@ WndProc: func [
 		]
 		WM_VSCROLL
 		WM_HSCROLL [
-			unless zero? lParam [						;-- message from trackbar
+			either zero? lParam [						;-- message from standard scroll bar
+				make-event current-msg wParam EVT_SCROLL
+			][											;-- message from trackbar
 				if null? current-msg [init-current-msg]
 				current-msg/hWnd: as handle! lParam		;-- trackbar handle
 				get-slider-pos current-msg
 				make-event current-msg 0 EVT_CHANGE
-				return 0
 			]
+			return 0
 		]
 		WM_ERASEBKGND [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW

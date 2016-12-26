@@ -191,6 +191,7 @@ system/view/VID: context [
 				   opt [rate! 'now (opts/now?: yes spec: next spec)]
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
 				| 'no-border  (set-flag opts 'flags 'no-border)
+				| 'scrollable  (set-flag opts 'flags 'scrollable)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				] to end
 			]

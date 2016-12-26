@@ -298,6 +298,49 @@ update-scrollbars: func [
 	]
 ]
 
+update-scroller: func [
+	scroller [red-object!]
+	flag	 [integer!]
+	/local
+		parent		[red-object!]
+		vertical?	[red-logic!]
+		int			[red-integer!]
+		values		[red-value!]
+		hWnd		[handle!]
+		nTrackPos	[integer!]
+		nPos		[integer!]
+		nPage		[integer!]
+		nMax		[integer!]
+		nMin		[integer!]
+		fMask		[integer!]
+		cbSize		[integer!]
+][
+	values: object/get-values scroller
+	parent: as red-object! values + SCROLLER_OBJ_PARENT
+	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	hWnd: as handle! int/value
+
+	int: as red-integer! values + flag
+
+	if flag = SCROLLER_OBJ_VISIBLE? [
+		ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
+		exit
+	]
+
+	fMask: switch flag [
+		SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
+		SCROLLER_OBJ_PAGE [nPage: int/value SIF_PAGE]
+		SCROLLER_OBJ_MAX [nMin: 1 nMax: int/value SIF_RANGE]
+		default [0]
+	]
+	if fMask <> 0 [
+		fMask: fMask or SIF_DISABLENOSCROLL
+		cbSize: size? tagSCROLLINFO
+		SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
+	]
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -646,6 +689,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			all [
 				sym = Direct2D
 				d2d-factory <> null
@@ -939,6 +983,10 @@ OS-make-view: func [
 	
 	if all [TYPE_OF(enable?) = TYPE_LOGIC not enable?/value][
 		flags: flags or WS_DISABLED
+	]
+
+	if bits and FACET_FLAGS_SCROLLABLE <> 0 [
+		flags: flags or WS_HSCROLL or WS_VSCROLL
 	]
 
 	case [

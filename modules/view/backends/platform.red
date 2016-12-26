@@ -69,6 +69,8 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
+				FACET_FLAGS_SCROLLABLE: 00080000h
+
 				FACET_FLAGS_D2D:		00100000h
 
 				FACET_FLAGS_POPUP:		01000000h
@@ -114,6 +116,15 @@ system/view/platform: context [
 				TBOX_OBJ_STATE
 			]
 
+			#enum scroller-facet! [
+				SCROLLER_OBJ_POS
+				SCROLLER_OBJ_PAGE
+				SCROLLER_OBJ_MAX
+				SCROLLER_OBJ_VISIBLE?
+				SCROLLER_OBJ_VERTICAL?
+				SCROLLER_OBJ_PARENT
+			]
+
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP
@@ -152,9 +163,10 @@ system/view/platform: context [
 				EVT_SIZING
 				EVT_TIME
 				EVT_DRAW
+				EVT_SCROLL
 			]
 			
-			#enum event-flag! [
+			#enum event-flag! [				
 				EVT_FLAG_AX2_DOWN:		00400000h
 				EVT_FLAG_AUX_DOWN:		00800000h
 				EVT_FLAG_ALT_DOWN:		01000000h
@@ -257,6 +269,7 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+			scrollable:		symbol/make "scrollable"
 
 			Direct2D:		symbol/make "Direct2D"
 			
@@ -298,9 +311,12 @@ system/view/platform: context [
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
 			_draw:			word/load "draw"
+			_scroll:		word/load "scroll"
 			
+			_page-left:		word/load "page-left"
+			_page-right:	word/load "page-right"
 			_page-up:		word/load "page-up"
-			_page_down:		word/load "page-down"
+			_page-down:		word/load "page-down"
 			_end:			word/load "end"
 			_home:			word/load "home"
 			_left:			word/load "left"
@@ -339,6 +355,7 @@ system/view/platform: context [
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
 					EVT_DRAW		 [_draw]
+					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
 					EVT_MIDDLE_DOWN	 [_mid-down]
@@ -383,6 +400,7 @@ system/view/platform: context [
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
 					sym = _draw/symbol			[sym: EVT_DRAW]
+					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
 					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
@@ -573,6 +591,11 @@ system/view/platform: context [
 			none-value
 		]
 		SET_RETURN(ret)
+	]
+
+	update-scroller: routine [scroller [object!] flags [integer!]][
+		gui/update-scroller scroller flags
+		SET_RETURN(none-value)
 	]
 
 	init: func [/local svs fonts][
