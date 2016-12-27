@@ -922,12 +922,20 @@ text-box!: object [
 	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
 	state:		none					;-- OS handles
 
-	offset?: function [
-		"Returns the character offset for the specified point"
+	index?: function [
+		"Given a coordinate, returns the corresponding text position"
 		pt		[pair!]
 		return: [integer!]
 	][
 		;system/view/platform/
+	]
+
+	offset?: function [
+		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+		pos		[integer!]
+		return:	[pair!]
+	][
+		;system/view/platform/text-box-offset state
 	]
 
 	metrics: function [

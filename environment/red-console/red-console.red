@@ -17,11 +17,17 @@ ask: function [
 	return:  [string!]
 ][
 	line: make string! 8
-	append red-console-ctx/console/lines line
-	red-console-ctx/console/line: line
-	red-console-ctx/console/prompt: question
+	append line question
+
+	con: red-console-ctx/console
+	either con/full? [
+		0
+	][
+		append con/lines line
+	]
+	con/line: tail line
 	do-events
-	line
+	con/line
 ]
 
 red-console-ctx: context [	
@@ -34,7 +40,7 @@ red-console-ctx: context [
 		type: 'base color: black offset: 2x0 size: 1x18 rate: 2
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				face/visible?: not face/visible?
+				face/color: either face/color = 0.0.0 [252.252.252][0.0.0]
 			]
 		]
 	]
@@ -133,7 +139,9 @@ red-console-ctx: context [
 			size:  cfg/font-size
 			color: cfg/font-color
 		]
+		console/box/font: console/font
 		console/color:	cfg/background
+		console/max-lines: cfg/buffer-lines
 	]
 
 	save-cfg: function [][
@@ -171,13 +179,17 @@ red-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
-				if event/type = 'menu [clear head system/view/screens/1/pane]
+				clear head system/view/screens/1/pane
+				;if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: func [face [object!] event [event!]][
 				console/size: event/offset
+				console/box/size: event/offset
+				console/box/size/y: 0
 				unless system/view/auto-sync? [show face]
 			]
 		]
+		do [console/init caret]
 	]
 
 	load-cfg: func [/local cfg-dir][
@@ -208,7 +220,7 @@ red-console-ctx: context [
 		title  "Red RELP Console"
 	]
 
-	launch: does [
+	launch: func [/local svs][
 		setup-faces
 		win/visible?: no
 
