@@ -438,14 +438,34 @@ change-size: func [
 	size [red-pair!]
 	type [integer!]
 	/local
-		rc [NSRect!]
+		h		[integer!]
+		w		[integer!]
+		y		[integer!]
+		x		[integer!]
+		rc		[NSRect!]
+		frame	[NSRect!]
+		saved	[int-ptr!]
+		method	[integer!]
 ][
 	rc: make-rect size/x size/y 0 0
 	if all [type = button size/y > 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
-	objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
-	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	either type = window [
+		x: 0
+		frame: as NSRect! :x
+		method: sel_getUid "frame"
+		saved: system/stack/align
+		push 0
+		push method push hWnd push frame
+		objc_msgSend_stret 3
+		system/stack/top: saved
+		frame/y: frame/y + frame/h - rc/y
+		objc_msgSend [hWnd sel_getUid "setFrame:display:animate:" frame/x frame/y rc/x rc/y yes yes]
+	][
+		objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	]
 ]
 
 change-image: func [
