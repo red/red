@@ -126,6 +126,7 @@
 	red/object/init-events
 	red/object/loc-fire-on-set*
 	red/object/fire-on-set*
+	red/object/get-values
 
 	red/integer/get-any*
 	red/integer/get*

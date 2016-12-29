@@ -114,6 +114,7 @@ system/view/platform: context [
 				TBOX_OBJ_TABS
 				TBOX_OBJ_STYLES
 				TBOX_OBJ_STATE
+				TBOX_OBJ_TARGET
 			]
 
 			#enum scroller-facet! [
@@ -525,7 +526,11 @@ system/view/platform: context [
 	refresh-window: routine [hwnd [integer!]][
 		gui/OS-refresh-window hwnd
 	]
-	
+
+	redraw: routine [hwnd [integer!]][
+		gui/OS-redraw hwnd
+	]
+
 	show-window: routine [id [integer!]][
 		gui/OS-show-window id
 		SET_RETURN(none-value)
@@ -578,19 +583,21 @@ system/view/platform: context [
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
 	]
 
+	text-box-layout: routine [
+		box		[object!]
+	][
+		gui/OS-text-box-layout box null no
+	]
+
 	text-box-metrics: routine [
 		state	[block!]
+		arg0	[any-type!]
+		type	[integer!]
 		/local
 			int [red-integer!]
-			ret [red-value!]
 	][
-		ret: as red-value! either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state
-			gui/OS-text-box-metrics as handle! int/value
-		][
-			none-value
-		]
-		SET_RETURN(ret)
+		int: as red-integer! block/rs-head state
+		stack/set-last gui/OS-text-box-metrics as handle! int/value arg0 type
 	]
 
 	update-scroller: routine [scroller [object!] flags [integer!]][

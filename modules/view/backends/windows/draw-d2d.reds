@@ -202,34 +202,11 @@ OS-draw-text-d2d: func [
 		values: object/get-values as red-object! text
 		state: as red-block! values + TBOX_OBJ_STATE
 
-		either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state	;-- release previous text layout
-			layout: as this! int/value
-			COM_SAFE_RELEASE(IUnk layout)
-			int: int + 1
-			fmt: as this! int/value
+		layout: either TYPE_OF(state) = TYPE_BLOCK [
+			int: as red-integer! block/rs-head state
+			as this! int/value
 		][
-			fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-			block/make-at state 2
-			none/make-in state							;-- 1: text layout
-			integer/make-in state as-integer fmt		;-- 2: text format
-		]
-
-		set-text-format fmt as red-object! values + TBOX_OBJ_PARA
-
-		str: as red-string! values + TBOX_OBJ_TEXT
-		size: as red-pair! values + TBOX_OBJ_SIZE
-		either TYPE_OF(size) = TYPE_PAIR [
-			w: size/x h: size/y
-		][
-			w: 0 h: 0
-		]
-		layout: create-text-layout str fmt w h
-		integer/make-at block/rs-head state as-integer layout
-
-		styles: as red-block! values + TBOX_OBJ_STYLES
-		if TYPE_OF(styles) = TYPE_BLOCK [
-			parse-text-styles as handle! this as handle! layout styles catch?
+			OS-text-box-layout as red-object! text this yes
 		]
 	][
 		0

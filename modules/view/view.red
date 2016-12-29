@@ -428,6 +428,53 @@ scroller!: object [
 	]
 ]
 
+;; Text Box is a graphic object that represents styled text.
+;; It provide support for drawing, cursor navigation, hit testing, 
+;; text wrapping, alignment, tab expansion, line breaking, etc.
+
+text-box!: object [
+	text:		none					;-- a string to draw (string!)
+	size:		none					;-- box size in pixels (pair!)
+	font:		none					;-- font! object
+	para:		none					;-- para! object
+	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	spacing:	none					;-- line spacing (integer!)
+	tabs:		none					;-- tab list (block!)
+	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
+	state:		none					;-- OS handles
+	target:		none					;-- face!, image!, etc.
+
+	offset?: function [
+		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+		pos		[integer!]
+		return:	[pair!]
+	][
+		system/view/platform/text-box-metrics self/state pos 0
+	]
+
+	index?: function [
+		"Given a coordinate, returns the corresponding text position"
+		pt		[pair!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pt 1
+	]
+
+	height: function [
+		"Get the height for the formatted string in pixels"
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state none 2
+	]
+
+	layout: function [
+		obj [object!]				;@@ temporary, workaround for a bug
+	][
+		system/view/platform/text-box-layout obj
+	]
+]
+
 system/view: context [
 	screens: 	none
 	event-port: none
@@ -603,7 +650,11 @@ show: function [
 			]
 			clear pending
 		]
-		if face/state/2 <> 0 [system/view/platform/update-view face]
+		either zero? face/state/2 [
+			system/view/platform/redraw face/state/1
+		][
+			system/view/platform/update-view face
+		]
 	][
 		new?: yes
 		

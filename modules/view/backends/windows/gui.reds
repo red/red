@@ -899,6 +899,8 @@ evolve-base-face: func [
 	hWnd
 ]
 
+OS-redraw: func [hWnd [integer!]][InvalidateRect as handle! hWnd null 0]
+
 OS-refresh-window: func [hWnd [integer!]][UpdateWindow as handle! hWnd]
 
 OS-show-window: func [

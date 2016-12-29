@@ -11,6 +11,12 @@ Red/System [
 	}
 ]
 
+#define TBOX_METRICS_OFFSET?		0
+#define TBOX_METRICS_INDEX?			1
+#define TBOX_METRICS_HEIGHT			2
+#define TBOX_METRICS_WIDTH			3
+#define TBOX_METRICS_LINE_COUNT		4
+
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
@@ -96,7 +102,9 @@ OS-text-box-border: func [
 
 OS-text-box-metrics: func [
 	layout	[handle!]
-	return: [red-block!]
+	arg0	[red-value!]
+	type	[integer!]
+	return: [red-value!]
 	/local
 		this			[this!]
 		dl				[IDWriteTextLayout]
@@ -110,23 +118,111 @@ OS-text-box-metrics: func [
 		top				[float32!]
 		left			[integer!]
 		metrics			[DWRITE_TEXT_METRICS]
+		hit				[DWRITE_HIT_TEST_METRICS]
+		x				[float32!]
+		y				[float32!]
+		trailing?		[integer!]
+		inside?			[integer!]
 		blk				[red-block!]
-		int				[red-value!]
+		int				[red-integer!]
+		pos				[red-pair!]
 		hr				[integer!]
 ][
+	left: 0
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
 
-	left: 0
-	metrics: as DWRITE_TEXT_METRICS :left
-	hr: dl/GetMetrics this metrics
-	#if debug? = yes [if hr <> 0 [log-error hr]]
+	as red-value! switch type [
+		TBOX_METRICS_OFFSET? [
+			x: as float32! 0.0 y: as float32! 0.0
+			int: as red-integer! arg0
+			hit: as DWRITE_HIT_TEST_METRICS :left
+			dl/HitTestTextPosition this int/value - 1 yes :x :y hit
+			pair/push as-integer x as-integer y
+		]
+		TBOX_METRICS_INDEX? [
+			pos: as red-pair! arg0
+			x: as float32! pos/x
+			y: as float32! pos/y
+			trailing?: 0
+			inside?: 0
+			hit: as DWRITE_HIT_TEST_METRICS :left
+			dl/HitTestPoint this x y :trailing? :inside? hit
+			if 0 <> trailing? [left: left + 1]
+			integer/push left + 1
+		]
+		default [
+			metrics: as DWRITE_TEXT_METRICS :left
+			hr: dl/GetMetrics this metrics
+			#if debug? = yes [if hr <> 0 [log-error hr]]
 
-	blk: block/push-only* 3
-	if zero? hr [
-		integer/make-in blk as-integer metrics/width
-		integer/make-in blk as-integer metrics/height
-		integer/make-in blk metrics/lineCount
+			switch type [
+				TBOX_METRICS_HEIGHT [integer/push as-integer metrics/height]
+				TBOX_METRICS_WIDTH [integer/push as-integer metrics/width]
+				TBOX_METRICS_LINE_COUNT [integer/push metrics/lineCount]
+			]
+		]
 	]
-	blk
+]
+
+OS-text-box-layout: func [
+	box		[red-object!]
+	target	[this!]
+	catch?	[logic!]
+	return: [this!]
+	/local
+		IUnk	[IUnknown]
+		hWnd	[handle!]
+		values	[red-value!]
+		str		[red-string!]
+		size	[red-pair!]
+		int		[red-integer!]
+		state	[red-block!]
+		styles	[red-block!]
+		w		[integer!]
+		h		[integer!]
+		fmt		[this!]
+		layout	[this!]
+][
+	values: object/get-values box
+	if null? target [
+		hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
+		target: as this! GetWindowLong hWnd wc-offset - 24
+		if null? target [
+			target: create-hwnd-render-target hWnd
+			SetWindowLong hWnd wc-offset - 24 as-integer target
+		]
+	]
+
+	state: as red-block! values + TBOX_OBJ_STATE
+	either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state	;-- release previous text layout
+		layout: as this! int/value
+		COM_SAFE_RELEASE(IUnk layout)
+		int: int + 1
+		fmt: as this! int/value
+	][
+		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
+		block/make-at state 2
+		none/make-in state							;-- 1: text layout
+		integer/make-in state as-integer fmt		;-- 2: text format
+	]
+
+	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
+
+	str: as red-string! values + TBOX_OBJ_TEXT
+	size: as red-pair! values + TBOX_OBJ_SIZE
+	either TYPE_OF(size) = TYPE_PAIR [
+		w: size/x h: size/y
+	][
+		w: 0 h: 0
+	]
+	layout: create-text-layout str fmt w h
+	integer/make-at block/rs-head state as-integer layout
+
+	styles: as red-block! values + TBOX_OBJ_STYLES
+	if TYPE_OF(styles) = TYPE_BLOCK [
+		parse-text-styles as handle! target as handle! layout styles catch?
+	]
+	layout
 ]

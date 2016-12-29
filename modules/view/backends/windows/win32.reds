@@ -1005,6 +1005,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetSystemMetrics: "GetSystemMetrics" [
+			index		[integer!]
+			return:		[integer!]
+		]
 		SystemParametersInfo: "SystemParametersInfoW" [
 			action		[integer!]
 			iParam		[integer!]

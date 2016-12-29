@@ -906,46 +906,6 @@ Red/System [
 	]
 ]
 
-;; Text Box is a graphic object that represents styled text.
-;; It provide support for drawing, cursor navigation, hit testing, 
-;; text wrapping, alignment, tab expansion, line breaking, etc.
-
-text-box!: object [
-	text:		none					;-- a string to draw (string!)
-	size:		none					;-- box size in pixels (pair!)
-	font:		none					;-- font! object
-	para:		none					;-- para! object
-	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
-	spacing:	none					;-- line spacing (integer!)
-	tabs:		none					;-- tab list (block!)
-	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
-	state:		none					;-- OS handles
-
-	index?: function [
-		"Given a coordinate, returns the corresponding text position"
-		pt		[pair!]
-		return: [integer!]
-	][
-		;system/view/platform/
-	]
-
-	offset?: function [
-		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
-		pos		[integer!]
-		return:	[pair!]
-	][
-		;system/view/platform/text-box-offset state
-	]
-
-	metrics: function [
-		"Get metrics for the formatted string: [width height line-count]"
-		return: [block!]
-	][
-		system/view/platform/text-box-metrics state
-	]
-]
-
 draw: function [
 	"Draws scalable vector graphics to an image"
 	target	[image! pair! object!]	"Image or size for an image"
