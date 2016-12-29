@@ -38,6 +38,7 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
+				FACE_OBJ_CURSOR
 			]
 			
 			#enum facet-flag! [
@@ -64,6 +65,7 @@ system/view/platform: context [
 				FACET_FLAG_ACTOR:		00100000h
 				FACET_FLAG_EXTRA:		00200000h
 				FACET_FLAG_DRAW:		00400000h
+				FACET_FLAG_CURSOR:		00800000h
 			]
 			
 			#enum flags-flag! [
@@ -273,6 +275,18 @@ system/view/platform: context [
 			scrollable:		symbol/make "scrollable"
 
 			Direct2D:		symbol/make "Direct2D"
+
+			_arrow:			symbol/make "arrow"
+			_cross:			symbol/make "cross"
+			_hand:			symbol/make "hand"
+			_help:			symbol/make "help"
+			_I-beam:		symbol/make "I-beam"
+			_no:			symbol/make "no"
+			_wait:			symbol/make "wait"
+			_resize-ns:		symbol/make "resize-ns"
+			_resize-we:		symbol/make "resize-we"
+			_resize-nesw:	symbol/make "resize-nesw"
+			_resize-nwse:	symbol/make "resize-nwse"
 			
 			_text:			word/load "text"
 			_data:			word/load "data"

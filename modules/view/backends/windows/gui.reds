@@ -899,6 +899,24 @@ evolve-base-face: func [
 	hWnd
 ]
 
+set-cursor: func [
+	hWnd	[handle!]
+	cursor	[red-word!]
+	/local
+		sym [integer!]
+		cur [integer!]
+][
+	if TYPE_OF(cursor) = TYPE_WORD [
+		sym: symbol/resolve cursor/symbol
+		cur: case [
+			sym = _I-beam [IDC_IBEAM]
+			sym = _hand	  [32649]			;-- IDC_HAND
+			true		  [IDC_ARROW]
+		]
+		setClassLong hWnd -12 as-integer LoadCursor null cur
+	]
+]
+
 OS-redraw: func [hWnd [integer!]][InvalidateRect as handle! hWnd null 0]
 
 OS-refresh-window: func [hWnd [integer!]][UpdateWindow as handle! hWnd]
@@ -925,6 +943,7 @@ OS-make-view: func [
 	return: [integer!]
 	/local
 		values	  [red-value!]
+		cursor	  [red-word!]
 		type	  [red-word!]
 		str		  [red-string!]
 		offset	  [red-pair!]
@@ -968,6 +987,7 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
+	cursor:	  as red-word!		values + FACE_OBJ_CURSOR
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -1137,6 +1157,7 @@ OS-make-view: func [
 	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
 
 	if any [win8+? not alpha?][BringWindowToTop handle]
+	set-cursor handle cursor
 	set-font handle face values
 
 	;-- store the face value in the extra space of the window struct

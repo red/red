@@ -1332,6 +1332,12 @@ XFORM!: alias struct! [
 		GetMessagePos: "GetMessagePos" [
 			return:		[integer!]
 		]
+		SetClassLong: "SetClassLongW" [
+			hWnd		[handle!]
+			nIndex		[integer!]
+			dwNewLong	[integer!]
+			return: 	[integer!]
+		]
 		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]

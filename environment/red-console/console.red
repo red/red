@@ -7,7 +7,7 @@ Red [
 ]
 
 make face! [
-	type: 'base color: white offset: 0x0 size: 400x400
+	type: 'base color: white offset: 0x0 size: 400x400 cursor: 'I-beam
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste

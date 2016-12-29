@@ -270,6 +270,7 @@ face!: object [				;-- keep in sync with facet! enum
 	actors:		none
 	extra:		none		;-- for storing optional user data
 	draw:		none
+	cursor:		none
 	
 	on-change*: function [word old new][
 		if system/view/debug? [
@@ -699,10 +700,7 @@ show: function [
 		face/state: reduce [obj 0 none false]
 	]
 
-	if face/pane [
-		foreach f face/pane [show/with f face]
-		system/view/platform/refresh-window face/state/1
-	]
+	if face/pane [foreach f face/pane [show/with f face]]
 	;check-all-reactions face
 	
 	if all [new? face/type = 'window face/visible?][
