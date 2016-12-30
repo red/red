@@ -26,6 +26,7 @@ ask: function [
 		append con/lines line
 	]
 	con/line: line
+	con/pos: 0
 	do-events
 	line
 ]
@@ -37,10 +38,10 @@ red-console-ctx: context [
 
 	console: #include %console.red
 	caret: make face! [
-		type: 'base color: black offset: 0x0 size: 1x17 rate: 2
+		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				face/color: either face/color = 0.0.0 [252.252.252][0.0.0]
+				face/color: either face/color = 0.0.0.1 [255.255.255.254][0.0.0.1]
 			]
 		]
 	]

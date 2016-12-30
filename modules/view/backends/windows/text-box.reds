@@ -138,8 +138,9 @@ OS-text-box-metrics: func [
 			;int: as red-integer! arg0
 			hr: as-integer arg0
 			hit: as DWRITE_HIT_TEST_METRICS :left
-			dl/HitTestTextPosition this hr - 1  yes :x :y hit
-			pair/push as-integer x + as float32! 0.5 as-integer y + as float32! 0.5
+			dl/HitTestTextPosition this hr - 1 no :x :y hit
+			if y < as float32! 3.0 [y: as float32! 0.0]
+			pair/push as-integer x + as float32! 0.5 as-integer y
 		]
 		TBOX_METRICS_INDEX? [
 			pos: as red-pair! arg0
