@@ -17,7 +17,7 @@ ask: function [
 	return:  [string!]
 ][
 	line: make string! 8
-	append line question
+	line: insert line question
 
 	con: red-console-ctx/console
 	either con/full? [
@@ -25,9 +25,9 @@ ask: function [
 	][
 		append con/lines line
 	]
-	con/line: tail line
+	con/line: line
 	do-events
-	con/line
+	line
 ]
 
 red-console-ctx: context [	
@@ -37,7 +37,7 @@ red-console-ctx: context [
 
 	console: #include %console.red
 	caret: make face! [
-		type: 'base color: black offset: 2x0 size: 1x18 rate: 2
+		type: 'base color: black offset: 0x0 size: 1x17 rate: 2
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = 0.0.0 [252.252.252][0.0.0]

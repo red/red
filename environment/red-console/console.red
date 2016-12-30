@@ -7,7 +7,8 @@ Red [
 ]
 
 make face! [
-	type: 'base color: white offset: 0x0 size: 400x400 cursor: 'I-beam
+	type: 'base color: white offset: 0x0 size: 400x400
+	cursor: 'I-beam flags: [Direct2D]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste
@@ -15,33 +16,46 @@ make face! [
 	]
 	actors: object [
 		;on-time: func [face [object!] event [event!]][]
+		draw: get 'system/view/platform/draw-face
 		on-draw: func [
 			face [object!] event [event!]
 			/local
 				str cmds y m
 		][
-			probe box/font/name
+			box/target: face
+			unless face/state [exit]
 			cmds: [text 0x0 text-box]	
 			cmds/3: box
 			y: 0
 
 			foreach str at lines top [
-				box/text: str
+				box/text: head str
+				box/prepare
 				cmds/2/y: y
-				system/view/platform/draw-face face cmds
-				m: box/metrics
-				y: y + m/2
+				draw face cmds
+				y: y + box/height
 			]
 		]
-		on-key: func [face [object!] event [event!]][
+		on-key: func [
+			face [object!] event [event!]
+			/local
+				pos char
+		][
 			if process-shortcuts event [exit]
-
-			either event/key = #"^M" [				;-- ENTER key
-				exit-event-loop
+probe reduce [event/key event/flags]
+			char: event/key
+			switch/default char [
+				#"^M" [exit-event-loop]				;-- ENTER key
+				#"^H" [remove line: back line]
+				left  [line: back line]
+				right [line: next line]
 			][
-				append line event/key
+				insert line event/key
+				line: next line
 			]
-			caret/offset/x: caret/offset/x + 8
+			box/text: head line
+			box/prepare
+			caret/offset: box/offset? index? line
 		]
 		on-menu: func [face [object!] event [event!]][
 			switch event/picked [
@@ -61,7 +75,6 @@ make face! [
 	]
 
 	init: func [caret-face][
-		self/flags: [Direct2D]
 		box: make text-box! []
 		caret: caret-face
 	]

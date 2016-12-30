@@ -469,10 +469,8 @@ text-box!: object [
 		system/view/platform/text-box-metrics self/state none 2
 	]
 
-	layout: function [
-		obj [object!]				;@@ temporary, workaround for a bug
-	][
-		system/view/platform/text-box-layout obj
+	prepare: func [][
+		system/view/platform/text-box-layout self
 	]
 ]
 

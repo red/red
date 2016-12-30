@@ -408,6 +408,7 @@ ConsoleWndProc: func [
 			ReleaseDC hWnd dc
 			vt/hwnd: hWnd
 			init vt p-int/6 p-int/5 tm/tmAveCharWidth tm/tmHeight
+			max-win-width: vt/win-w
 			SetWindowLong hWnd wc-offset - 4 as-integer vt
 			free as byte-ptr! tm
 			return 1
