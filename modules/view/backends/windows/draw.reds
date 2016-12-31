@@ -2695,21 +2695,32 @@ OS-matrix-skew: func [
 
 OS-matrix-transform: func [
     ctx			[draw-ctx!]
+    pen-fill    [integer!]
     rotate		[red-integer!]
     scale		[red-integer!]
     translate	[red-pair!]
     /local
-        center	[red-pair!]
-        m       [integer!]
+        center	    [red-pair!]
+        m           [integer!]
+        gradient    [gradient!]
 ][
-    center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-    m: 0
-    GdipCreateMatrix :m
-    matrix-rotate ctx rotate center m
-    GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
-    GdipTranslateMatrix m as float32! translate/x as float32! translate/y
-    GdipMultiplyWorldTransform ctx/graphics m matrix-order
-    GdipDeleteMatrix m
+    either pen-fill <> -1 [
+        ;-- transform pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-rotate ctx gradient as-float rotate/value
+        gradient-scale ctx gradient get-float scale get-float scale + 1
+        gradient-translate ctx gradient as-float translate/x as-float translate/y
+    ][ 
+        ;-- transform figure
+        center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
+        m: 0
+        GdipCreateMatrix :m
+        matrix-rotate ctx rotate center m
+        GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
+        GdipTranslateMatrix m as float32! translate/x as float32! translate/y
+        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipDeleteMatrix m
+    ]
 ]
 
 OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!] /local s][

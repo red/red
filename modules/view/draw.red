@@ -814,6 +814,7 @@ Red/System [
 								]
 							]
 							sym = transform [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								value: cmd + 1
@@ -824,6 +825,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-transform
 										DC
+										sym
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd - 1
@@ -832,6 +834,7 @@ Red/System [
 								][
 									OS-matrix-transform
 										DC
+										sym
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd
