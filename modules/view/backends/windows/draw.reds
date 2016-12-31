@@ -1947,6 +1947,19 @@ gradient-scale: func [
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
 
+gradient-translate: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    x	        [float!]
+    y	        [float!]
+    /local
+        gm  [integer!]
+][
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    GdipTranslateMatrix gm as-float32 x as-float32 y GDIPLUS_MATRIXORDERAPPEND
+    if gradient/created? [ gradient-transform ctx gradient gm ]
+]
+
 gradient-transf-reset: func [
     gradient    [gradient!]
     /local 
@@ -2628,16 +2641,26 @@ OS-matrix-scale: func [
 ]
 
 OS-matrix-translate: func [
-    ctx	[draw-ctx!]
-    x	[integer!]
-    y	[integer!]
+    ctx			[draw-ctx!]
+    pen-fill    [integer!]
+    x			[integer!]
+    y	        [integer!]
+    /local
+        gradient    [gradient!]
 ][
     GDI+?: yes
-    GdipTranslateWorldTransform
-        ctx/graphics
-        as float32! x
-        as float32! y
-        matrix-order
+    either pen-fill <> -1 [
+        ;-- translate pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-translate ctx gradient as-float x as-float y
+    ][ 
+        ;-- translate figure
+        GdipTranslateWorldTransform
+            ctx/graphics
+            as float32! x
+            as float32! y
+            matrix-order
+    ]
 ]
 
 OS-matrix-skew: func [

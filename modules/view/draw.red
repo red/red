@@ -786,16 +786,17 @@ Red/System [
 								]
 							]
 							sym = translate [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-translate DC point/x point/y
+									OS-matrix-translate DC sym point/x point/y
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-translate DC point/x point/y
+									OS-matrix-translate DC sym point/x point/y
 								]
 							]
 							sym = skew [
