@@ -1369,6 +1369,7 @@ do-draw-ellipse: func [
     height	[integer!]
 ][
     either GDI+? [
+        check-gradient-ellipse ctx x y width height
         if ctx/brush? [
             GdipFillEllipseI
                 ctx/graphics
@@ -1978,6 +1979,68 @@ check-gradient-box: func [
     if all [ gradient-fill? not gradient-fill/positions? ][
         ctx/brush?: true
         _check-gradient-box ctx gradient-fill colors colors-pos upper lower
+    ]
+]
+
+_check-gradient-ellipse: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    x       [integer!]
+    y       [integer!]
+    width   [integer!]
+    height  [integer!]
+    /local
+        dx      [integer!]
+        dy      [integer!]
+        upper   [tagPOINT]
+        lower   [tagPOINT]
+        other   [tagPOINT]
+][
+    INIT_GRADIENT_DATA(upper lower other)
+    case [
+        any [
+            gradient/type = GRADIENT_LINEAR
+            gradient/type = GRADIENT_DIAMOND 
+        ][
+            upper/x: x 
+            lower/x: x + width 
+            either gradient/type = GRADIENT_LINEAR [
+                upper/y: 0
+                lower/y: 0
+            ][
+                upper/y: y 
+                lower/y: y + height
+            ]
+            other/x: INVALID_RADIUS
+        ]
+        gradient/type = GRADIENT_RADIAL [
+            dx: width / 2
+            dy: height / 2
+            upper/x: x + dx
+            upper/y: y + dy
+            lower/x: upper/x
+            lower/y: upper/y
+            other/x: either dx > dy [dx][dy]
+        ]
+        true []
+    ]
+    check-gradient ctx gradient _colors _colors-pos upper lower other
+]
+check-gradient-ellipse: func [
+    ctx		[draw-ctx!]
+    x       [integer!]
+    y       [integer!]
+    width   [integer!]
+    height  [integer!]
+][
+    if all [ gradient-pen? not gradient-pen/positions? ][
+        _check-gradient-ellipse ctx gradient-pen pen-colors pen-colors-pos x y width height
+    ]
+    if all [ gradient-fill? not gradient-fill/positions? ][
+        ctx/brush?: true
+        _check-gradient-ellipse ctx gradient-fill colors colors-pos x y width height
     ]
 ]
 
