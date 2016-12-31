@@ -2311,6 +2311,17 @@ PATHDATA: alias struct! [
 			path		[integer!]
 			return:		[integer!]
 		]
+        GdipClonePath: "GdipClonePath" [
+            path        [integer!]
+            new-path    [int-ptr!]
+            return:     [integer!]
+        ]
+        GdipFlattenPath: "GdipFlattenPath" [
+            path        [integer!]
+            matrix      [integer!]
+            flatness    [float32!]
+            return:     [integer!]
+        ]
 		GdipStartPathFigure: "GdipStartPathFigure" [
 			path		[integer!]
 			return:		[integer!]
@@ -2376,6 +2387,11 @@ PATHDATA: alias struct! [
         GdipGetPointCount: "GdipGetPointCount" [
             path        [integer!]
             count       [int-ptr!]
+            return:     [integer!]
+        ]
+        GdipGetPathData: "GdipGetPathData" [
+            path        [integer!]
+            pathData    [PATHDATA]
             return:     [integer!]
         ]
         GdipGetPathLastPoint: "GdipGetPathLastPoint" [

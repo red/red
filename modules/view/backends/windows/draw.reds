@@ -670,6 +670,7 @@ OS-draw-shape-endpath: func [
         count: 0
         GdipGetPointCount ctx/gp-path :count
         if count > 0 [
+            check-gradient-shape ctx                          ;-- check for gradient
             if close? [ GdipClosePathFigure ctx/gp-path ]
             GdipDrawPath ctx/graphics ctx/gp-pen ctx/gp-path
             GdipFillPath ctx/graphics ctx/gp-brush ctx/gp-path
@@ -2186,6 +2187,57 @@ check-gradient-poly: func [
     if all [ gradient-fill? not gradient-fill/positions? ][
         ctx/brush?: true
         _check-gradient-poly ctx gradient-fill colors colors-pos start count
+    ]
+]
+
+_check-gradient-shape: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    /local 
+        new-path    [integer!]
+        count       [integer!]
+        result      [integer!]
+        points      [tagPOINT]
+        point       [tagPOINT]
+        pt2F        [POINT_2F]
+][
+    ;-- flatten path to get a polygon aproximation
+    new-path: 0
+    GdipClonePath ctx/gp-path :new-path
+    GdipFlattenPath new-path 0 as float32! 1.0
+    count: 0
+    GdipGetPointCount new-path :count
+    gradient/path-data/count: count
+    gradient/path-data/points: as POINT_2F allocate count * (size? POINT_2F)
+    gradient/path-data/types: allocate count 
+    GdipGetPathData new-path gradient/path-data
+    ;-- translate call to check-gradient-poly (it will draw gradient in the center of aproximated polygon)
+    points: as tagPOINT allocate count * (size? tagPOINT)
+    point: points
+    pt2F:  gradient/path-data/points
+    loop count [
+        point/x: as-integer pt2F/x 
+        point/y: as-integer pt2F/y
+        point: point + 1
+        pt2F: pt2F + 1
+    ]
+    _check-gradient-poly ctx gradient _colors _colors-pos points count 
+    ;-- free allocated resources
+    free as byte-ptr! points
+    free as byte-ptr! gradient/path-data/points
+    free gradient/path-data/types
+]
+check-gradient-shape: func [
+    ctx		[draw-ctx!]
+][
+    if all [ gradient-pen? not gradient-pen/positions? ][
+        _check-gradient-shape ctx gradient-pen pen-colors pen-colors-pos
+    ]
+    if all [ gradient-fill? not gradient-fill/positions? ][
+        ctx/brush?: true
+        _check-gradient-shape ctx gradient-fill colors colors-pos
     ]
 ]
 
