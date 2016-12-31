@@ -3,7 +3,7 @@ Red [
 	Author:	 "Qingtian Xie"
 	File:	 %console.red
 	Tabs:	 4
-	Icon:	 %red-console.ico
+	Icon:	 %app.ico
 	Version: 0.0.1
 	Needs:	 View
 	Config:	 [gui-console?: yes red-help?: yes]
@@ -11,6 +11,7 @@ Red [
 ]
 
 #include %../console/engine.red
+#include %core.red
 
 ask: function [
 	question [string!]
@@ -19,7 +20,7 @@ ask: function [
 	line: make string! 8
 	line: insert line question
 
-	con: red-console-ctx/console
+	con: red-console-ctx/console/extra
 	either con/full? [
 		0
 	][
@@ -31,12 +32,12 @@ ask: function [
 	line
 ]
 
-red-console-ctx: context [	
+red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
 	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
-	console: #include %console.red
+	console: make console! []
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
 		actors: object [
@@ -133,16 +134,9 @@ red-console-ctx: context [
 	]
 
 	apply-cfg: does [
-		win/offset:		cfg/win-pos
-		win/size:		cfg/win-size
-		console/font:	make font! [
-			name:  cfg/font-name
-			size:  cfg/font-size
-			color: cfg/font-color
-		]
-		console/box/font: console/font
-		console/color:	cfg/background
-		console/max-lines: cfg/buffer-lines
+		win/offset:	cfg/win-pos
+		win/size:	cfg/win-size
+		console/apply-cfg cfg
 	]
 
 	save-cfg: function [][
@@ -184,13 +178,12 @@ red-console-ctx: context [
 				;if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: func [face [object!] event [event!]][
-				console/size: event/offset
-				console/box/size: event/offset
-				console/box/size/y: 0
+				;console/size: event/offset
+				console/resize event/offset
 				unless system/view/auto-sync? [show face]
 			]
 		]
-		do [console/init caret]
+		console/extra/caret: caret
 	]
 
 	load-cfg: func [/local cfg-dir][
@@ -226,6 +219,7 @@ red-console-ctx: context [
 		win/visible?: no
 
 		view/flags/no-wait win [resize]		;-- create window instance
+		console/init
 		load-cfg
 		win/visible?: yes
 

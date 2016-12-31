@@ -469,6 +469,18 @@ text-box!: object [
 		system/view/platform/text-box-metrics self/state none 2
 	]
 
+	line-count: function [return: [integer!]][
+		system/view/platform/text-box-metrics self/state none 4
+	]
+
+	line-height: function [
+		"Given a text position, returns the corresponding line's height"
+		pos 	[integer!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pos 5
+	]
+
 	prepare: func [][
 		system/view/platform/text-box-layout self
 	]
