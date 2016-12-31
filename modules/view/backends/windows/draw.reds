@@ -30,6 +30,10 @@ gradient-fill/data: as tagPOINT allocate max-data * (size? tagPOINT)
 gradient-pen?: false
 gradient-fill?: false
 
+gradient-matrix-pen: 0  ;-- transformation matrix for pen gradient GDI+
+gradient-matrix-fill: 0  ;-- transformation matrix for fill gradient GDI+
+
+
 paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
@@ -276,6 +280,9 @@ draw-begin: func [
     gradient-fill/positions?:    false
     gradient-fill/created?:      false
 
+    gradient-matrix-pen: 0 
+    gradient-matrix-fill: 0 
+
     D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
     last-point?: no
     prev-shape/type: SHAPE_OTHER
@@ -382,6 +389,8 @@ draw-end: func [
     unless zero? ctx/gp-matrix		[GdipDeleteMatrix ctx/gp-matrix]
     unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
     unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
+    unless zero? gradient-matrix-pen [ GdipDeleteMatrix gradient-matrix-pen ]
+    unless zero? gradient-matrix-fill [ GdipDeleteMatrix gradient-matrix-fill ]
 
     unless ctx/on-image? [
         DeleteObject ctx/bitmap
@@ -1871,6 +1880,42 @@ get-shape-bounding-box: func [
     ]
 ]
 
+gradient-transform: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    gm          [integer!]
+    /local
+        brush   [integer!]
+][
+    either gradient/type = GRADIENT_LINEAR [
+        brush: 0
+        GdipGetPenBrushFill ctx/gp-pen :brush
+        GdipSetLineTransform brush gm
+    ][
+        GdipSetPathGradientTransform ctx/gp-brush gm
+    ]
+]
+
+gradient-transf-reset: func [
+    gradient    [gradient!]
+    /local 
+        mm      [int-ptr!]
+][
+    mm: either gradient = gradient-pen [ :gradient-matrix-pen ][ :gradient-matrix-fill ]
+    either zero? mm/value [
+        GdipCreateMatrix mm
+    ][
+        GdipSetMatrixElements 
+            mm/value
+            as-float32 1 
+            as-float32 0 
+            as-float32 0 
+            as-float32 1 
+            as-float32 0 
+            as-float32 0
+    ]
+]
+
 save-brush: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
@@ -1907,6 +1952,9 @@ gradient-linear: func [
     ] 
     GdipCreateLineBrushI point-1 point-2 _colors/1 _colors/count 0 :brush
     GdipSetLinePresetBlend brush _colors _colors-pos count
+
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    GdipSetLineTransform brush gm
 
     save-brush ctx gradient brush
 ]
@@ -1980,6 +2028,9 @@ gradient-radial-diamond: func [
     GdipSetPathGradientPresetBlend brush _colors _colors-pos count
     reverse-int-array _colors count
     reverse-float32-array _colors-pos count
+
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    GdipSetPathGradientTransform brush gm
 
     save-brush ctx gradient brush
 ]
@@ -2346,6 +2397,7 @@ OS-draw-grad-pen: func [
     gradient/count:     count
     gradient/created?:  false
     gradient/positions?: false
+    gradient-transf-reset gradient
     
     ;-- positions
     case [

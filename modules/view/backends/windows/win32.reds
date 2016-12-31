@@ -1957,6 +1957,21 @@ PATHDATA: alias struct! [
 			matrix		[int-ptr!]
 			return:		[int-ptr!]
 		]
+		GdipGetMatrixElements: "GdipGetMatrixElements" [
+			m 			[integer!]
+			out			[pointer! [float32!]]
+			return:		[integer!]
+		]
+		GdipSetMatrixElements: "GdipSetMatrixElements" [
+			m			[integer!]
+			m11			[float32!]
+			m12			[float32!]
+			m21			[float32!]
+			m22			[float32!]
+			dx			[float32!]
+			dy			[float32!]
+			return:		[integer!]
+		]
 		GdipTransformMatrixPointsI: "GdipTransformMatrixPointsI" [
 			matrix		[integer!]
 			pts			[tagPOINT]
@@ -2090,6 +2105,11 @@ PATHDATA: alias struct! [
 			count		[integer!]
 			return:		[integer!]
 		]
+		GdipSetPathGradientTransform: "GdipSetPathGradientTransform" [
+            brush       [integer!]
+            matrix      [integer!]
+            return:     [integer!]
+		]
 		GdipScaleLineTransform: "GdipScaleLineTransform" [
 			brush		[integer!]
 			sx			[float32!]
@@ -2101,6 +2121,11 @@ PATHDATA: alias struct! [
 			brush		[integer!]
 			angle		[float32!]
 			matrixorder	[integer!]
+			return:		[integer!]
+		]
+		GdipSetLineTransform: "GdipSetLineTransform" [
+			brush		[integer!]
+			matrix		[integer!]
 			return:		[integer!]
 		]
 		GdipCreateTexture: "GdipCreateTexture" [
@@ -2500,6 +2525,11 @@ PATHDATA: alias struct! [
 			brush		[integer!]
 			return:		[integer!]
 		]
+        GdipGetPenBrushFill: "GdipGetPenBrushFill" [
+			pen			[integer!]
+			brush		[int-ptr!]
+			return:		[integer!]
+        ]
 		GdipDrawImageRectRectI: "GdipDrawImageRectRectI" [
 			graphics	[integer!]
 			image		[integer!]
