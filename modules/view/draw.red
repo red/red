@@ -237,6 +237,16 @@ Red/System [
 			rgb: get-color-int as red-tuple! value :alpha?
 		]
 
+		#define DRAW_FETCH_OPT_TRANSFORM [
+			value: start
+			DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+			either cmd = pos [
+				word: as red-word! value
+				sym: symbol/resolve word/symbol
+				start: start + 1
+			][ sym: -1 ]
+		]
+
         check-pen: func [
 			DC	    [draw-ctx!]
             cmds    [red-block!]
@@ -749,16 +759,17 @@ Red/System [
                                 OS-set-matrix-order m-order
                             ]
 							sym = rotate [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-rotate DC as red-integer! start as red-pair! cmd - 1
+									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-rotate DC as red-integer! start as red-pair! cmd
+									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = scale [

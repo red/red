@@ -1896,6 +1896,19 @@ gradient-transform: func [
     ]
 ]
 
+gradient-rotate: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    angle       [float!]
+    /local
+        gm      [integer!]
+        brush   [integer!]
+][
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ] 
+    GdipRotateMatrix gm as float32! angle GDIPLUS_MATRIXORDERAPPEND 
+    if gradient/created? [ gradient-transform ctx gradient gm ]
+]
+
 gradient-transf-reset: func [
     gradient    [gradient!]
     /local 
@@ -2533,18 +2546,28 @@ matrix-rotate: func [
 ]
 
 OS-matrix-rotate: func [
-    ctx		[draw-ctx!]
-    angle	[red-integer!]
-    center	[red-pair!]
+    ctx	    	[draw-ctx!]
+    pen-fill    [integer!]
+    angle	    [red-integer!]
+    center	    [red-pair!]
     /local
-        m   [integer!]
+        m           [integer!]
+        brush       [integer!]
+        gradient    [gradient!]
 ][
     GDI+?: yes
-    m: 0
-    GdipCreateMatrix :m
-    matrix-rotate ctx angle center m
-    GdipMultiplyWorldTransform ctx/graphics m matrix-order
-    GdipDeleteMatrix m
+    either pen-fill <> -1 [
+        ;-- rotate pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ] 
+        gradient-rotate ctx gradient as-float angle/value 
+    ][
+        ;-- rotate figure
+        m: 0
+        GdipCreateMatrix :m
+        matrix-rotate ctx angle center m
+        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipDeleteMatrix m
+    ]
 ]
 
 OS-matrix-scale: func [
