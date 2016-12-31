@@ -446,6 +446,11 @@ text-box!: object [
 	state:		none					;-- OS handles
 	target:		none					;-- face!, image!, etc.
 
+	;-- read only properties
+	width:		none					;-- actual width
+	height:		none					;-- actual height
+	line-count: none
+
 	offset?: function [
 		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 		pos		[integer!]
@@ -462,27 +467,17 @@ text-box!: object [
 		system/view/platform/text-box-metrics self/state pt 1
 	]
 
-	height: function [
-		"Get the height for the formatted string in pixels"
-		return: [integer!]
-	][
-		system/view/platform/text-box-metrics self/state none 2
-	]
-
-	line-count: function [return: [integer!]][
-		system/view/platform/text-box-metrics self/state none 4
-	]
-
 	line-height: function [
 		"Given a text position, returns the corresponding line's height"
 		pos 	[integer!]
 		return: [integer!]
 	][
-		system/view/platform/text-box-metrics self/state pos 5
+		system/view/platform/text-box-metrics self/state pos 2
 	]
 
-	prepare: func [][
+	layout: func [][
 		system/view/platform/text-box-layout self
+		system/view/platform/text-box-metrics self/state self 3
 	]
 ]
 

@@ -13,10 +13,8 @@ Red/System [
 
 #define TBOX_METRICS_OFFSET?		0
 #define TBOX_METRICS_INDEX?			1
-#define TBOX_METRICS_HEIGHT			2
-#define TBOX_METRICS_WIDTH			3
-#define TBOX_METRICS_LINE_COUNT		4
-#define TBOX_METRICS_LINE_HEIGHT	5
+#define TBOX_METRICS_LINE_HEIGHT	2
+#define TBOX_METRICS_METRICS		3
 
 OS-text-box-color: func [
 	dc		[handle!]
@@ -127,6 +125,7 @@ OS-text-box-metrics: func [
 		blk				[red-block!]
 		int				[red-integer!]
 		pos				[red-pair!]
+		values			[red-value!]
 		hr				[integer!]
 ][
 	left: 0
@@ -134,8 +133,7 @@ OS-text-box-metrics: func [
 	dl: as IDWriteTextLayout this/vtbl
 
 	as red-value! switch type [
-		TBOX_METRICS_OFFSET? 
-		TBOX_METRICS_LINE_HEIGHT [
+		TBOX_METRICS_OFFSET? [
 			x: as float32! 0.0 y: as float32! 0.0
 			;int: as red-integer! arg0
 			hr: as-integer arg0
@@ -159,16 +157,18 @@ OS-text-box-metrics: func [
 			if 0 <> trailing? [left: left + 1]
 			integer/push left + 1
 		]
+		TBOX_METRICS_LINE_HEIGHT [
+			integer/push 17
+		]
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
 			#if debug? = yes [if hr <> 0 [log-error hr]]
 
-			switch type [
-				TBOX_METRICS_HEIGHT [integer/push as-integer metrics/height]
-				TBOX_METRICS_WIDTH [integer/push as-integer metrics/width]
-				TBOX_METRICS_LINE_COUNT [integer/push metrics/lineCount]
-			]
+			values: object/get-values as red-object! arg0
+			integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width
+			integer/make-at values + TBOX_OBJ_HEIGHT as-integer metrics/height
+			integer/make-at values + TBOX_OBJ_LINE_COUNT metrics/lineCount
 		]
 	]
 ]

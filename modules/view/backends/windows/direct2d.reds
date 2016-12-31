@@ -366,6 +366,15 @@ ID2D1DCRenderTarget: alias struct! [
 
 ;-- Direct Write
 
+DWRITE_LINE_METRICS: alias struct! [
+	length					 [integer!]
+	trailingWhitespaceLength [integer!]
+	newlineLength			 [integer!]
+	height					 [float32!]
+	baseline				 [float32!]
+	isTrimmed				 [logic!]
+]
+
 DWRITE_TEXT_METRICS: alias struct! [
 	left			[float32!]
 	top				[float32!]
@@ -575,7 +584,7 @@ IDWriteTextLayout: alias struct! [
 	GetLocaleNameLength				[integer!]
 	GetLocaleName					[integer!]
 	Draw							[integer!]
-	GetLineMetrics					[integer!]
+	GetLineMetrics					[function! [this [this!] metrics [DWRITE_LINE_METRICS] count [integer!] actual-count [int-ptr!] return: [integer!]]]
 	GetMetrics						[function! [this [this!] metrics [DWRITE_TEXT_METRICS] return: [integer!]]]
 	GetOverhangMetrics				[integer!]
 	GetClusterMetrics				[integer!]

@@ -7,9 +7,11 @@ Red [
 ]
 
 terminal!: object [
-	heights:	make block! 1000				;-- height of each line
 	lines:		make block! 1000				;-- line buffer
-	nlines:		make block! 1000
+	nlines:		make block! 1000				;-- line count of each line
+	heights:	make block! 1000				;-- height of each line
+
+	line-cnt:	0								;-- number of lines on screen (include wrapped lines)
 	max-lines:	1000							;-- maximum size of the line buffer
 	full?:		no								;-- Is line buffer full?
 
@@ -17,29 +19,38 @@ terminal!: object [
 	line:		none							;-- current editing line
 	pos:		0								;-- insert position of the current editing line
 
+	line-h:		0								;-- average line height
+
 	box:		make text-box! []
 	caret:		none
 	scroller:	none
-
 	target:		none
 
 	draw: get 'system/view/platform/draw-face
+
+	update-cfg: func [font cfg][
+		box/font: font
+		max-lines: cfg/buffer-lines
+		box/text: "X"
+		box/layout
+		line-h: box/line-height 1
+	]
 
 	resize: func [new-size [pair!]][
 		box/size: new-size
 		box/size/y: 0
 		if scroller [
 			scroller/max-size: length? lines
-			scroller/page-size: new-size/y / 17
+			scroller/page-size: new-size/y / line-h
 		]
 	]
 
 	update-caret: func [/local len n s h lh offset][
 		box/text: head line
-		box/prepare
+		box/layout
 
-		h: box/line-height pos + index? line
-		if h <> caret/size/y [caret/size/y: h]
+		;h: box/line-height pos + index? line
+		;if h <> caret/size/y [caret/size/y: h]
 
 		n: top
 		h: 0
@@ -71,7 +82,7 @@ terminal!: object [
 		if process-shortcuts event [exit]
 		char: event/key
 		switch/default char [
-			#"^M" [scroller/max-size: probe length? nlines scroller/page-size: exit-event-loop]				;-- ENTER key
+			#"^M" [exit-event-loop]				;-- ENTER key
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
 			left  [move-caret -1]
 			right [move-caret 1]
@@ -96,7 +107,7 @@ terminal!: object [
 
 		foreach str at lines top [
 			box/text: head str
-			box/prepare
+			box/layout
 			cmds/2/y: y
 			draw target cmds
 			h: box/height
@@ -135,7 +146,7 @@ console!: make face! [
 probe reduce [event/key event/flags]
 			extra/press-key event
 		]
-		on-menu: func [sface [object!] event [event!]][
+		on-menu: func [face [object!] event [event!]][
 			switch event/picked [
 				copy		[probe 'TBD]
 				paste		['TBD]
@@ -166,8 +177,7 @@ probe reduce [event/key event/flags]
 			color: cfg/font-color
 		]
 		self/color:	cfg/background
-		extra/box/font: self/font
-		extra/max-lines: cfg/buffer-lines
+		extra/update-cfg self/font cfg
 	]
 
 	extra: make terminal! []
