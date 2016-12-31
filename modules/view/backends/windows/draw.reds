@@ -54,6 +54,12 @@ pen-colors-pos: as pointer! [float32!] pen-colors + max-colors      ;-- for dela
 #define INDEX_LOWER         1
 #define INDEX_OTHER         2
 
+#define INIT_GRADIENT_DATA(upper lower other)  [
+    upper: gradient/data + INDEX_UPPER
+    lower: gradient/data + INDEX_LOWER
+    other: gradient/data + INDEX_OTHER
+]
+
 last-point?: no
 path-last-point: declare tagPOINT
 curve-info!: alias struct! [
@@ -1187,6 +1193,7 @@ OS-draw-box: func [
         lower:  lower - 1
         rad: radius/value * 2
         either GDI+? [
+            check-gradient-box ctx upper lower
             gdiplus-draw-roundbox
                 ctx
                 upper/x
@@ -1202,6 +1209,7 @@ OS-draw-box: func [
         either GDI+? [
             if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
             if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+            check-gradient-box ctx upper lower
             unless zero? ctx/gp-brush [				;-- fill rect
                 GdipFillRectangleI
                     ctx/graphics
@@ -1885,6 +1893,92 @@ gradient-radial-diamond: func [
     reverse-float32-array _colors-pos count
 
     save-brush ctx gradient brush
+]
+
+check-gradient: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    /local
+        upper       [tagPOINT]
+        lower       [tagPOINT]
+        radius      [tagPOINT]
+][
+    INIT_GRADIENT_DATA(upper lower radius)
+    if all [ gradient = gradient-pen ctx/pen-width > as float32! 1.0 ] [
+        gradient/extra: as-integer ctx/pen-width / 2
+    ]
+    case [
+        gradient/type = GRADIENT_LINEAR [
+            gradient-linear ctx gradient _colors _colors-pos upper lower
+        ]
+        any [
+            gradient/type = GRADIENT_RADIAL 
+            gradient/type = GRADIENT_DIAMOND
+        ][
+            gradient-radial-diamond ctx gradient _colors _colors-pos upper lower radius/x
+        ]
+        true []
+    ]
+]
+
+_check-gradient-box: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    upper       [red-pair!]
+    lower       [red-pair!]
+    /local
+        dx      [integer!]
+        dy      [integer!]
+        _upper  [tagPOINT]
+        _lower  [tagPOINT]
+        _other  [tagPOINT]
+][
+    INIT_GRADIENT_DATA(_upper _lower _other)
+    case [
+        any [
+            gradient/type = GRADIENT_LINEAR
+            gradient/type = GRADIENT_DIAMOND 
+        ][
+            _upper/x: upper/x 
+            _lower/x: lower/x 
+            either gradient/type = GRADIENT_LINEAR [
+                _upper/y: 0
+                _lower/y: 0
+            ][
+                _upper/y: upper/y
+                _lower/y: lower/y
+            ]
+            _other/x: INVALID_RADIUS
+        ]
+        gradient/type = GRADIENT_RADIAL [
+            dx: ( lower/x - upper/x + 1 ) / 2
+            dy: ( lower/y - upper/y + 1 ) / 2
+            _upper/x: upper/x + dx 
+            _upper/y: upper/y + dy
+            _lower/x: _upper/x
+            _lower/y: _upper/y
+            _other/x: as-integer sqrt as-float (dx * dx + ( dy * dy ) )
+        ]
+        true []
+    ]
+    check-gradient ctx gradient _colors _colors-pos _upper _lower _other
+]
+check-gradient-box: func [
+    ctx		[draw-ctx!]
+    upper   [red-pair!]
+    lower   [red-pair!]
+][
+    if all [ gradient-pen? not gradient-pen/positions? ][
+        _check-gradient-box ctx gradient-pen pen-colors pen-colors-pos upper lower
+    ]
+    if all [ gradient-fill? not gradient-fill/positions? ][
+        ctx/brush?: true
+        _check-gradient-box ctx gradient-fill colors colors-pos upper lower
+    ]
 ]
 
 OS-draw-grad-pen: func [
