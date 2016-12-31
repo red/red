@@ -1259,6 +1259,7 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
     point/y: start/y
 
     either GDI+? [
+        check-gradient-poly ctx edges 3
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
@@ -1303,6 +1304,7 @@ OS-draw-polygon: func [
     point/y: start/y
 
     either GDI+? [
+        check-gradient-poly ctx edges nb
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
@@ -1783,6 +1785,91 @@ OS-draw-image: func [
         GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
+get-shape-center: func [
+    start   [tagPOINT]
+    count   [integer!]
+    cx      [int-ptr!]
+    cy      [int-ptr!]
+    d       [int-ptr!]
+    /local
+        point   [tagPOINT]
+        dx      [integer!]
+        dy      [integer!]
+        x0      [integer!]
+        y0      [integer!]
+        x1      [integer!]
+        y1      [integer!]
+        a       [integer!]
+        r       [integer!]
+        signedArea  [float!]
+        centroid-x  [float!]
+        centroid-y  [float!]
+][
+    ;-- implementation taken from http://stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
+    x0: 0 y0: 0 x1: 0 y1: 0
+    a: 0 signedArea: 0.0
+    centroid-x: 0.0 centroid-y: 0.0
+    point: start
+    loop count - 1 [
+        x0: point/x
+        y0: point/y
+        point: point + 1
+        x1: point/x
+        y1: point/y
+        a: x0 * y1 - (x1 * y0)
+        signedArea: signedArea + as-float a
+        centroid-x: centroid-x + as-float ((x0 + x1) * a)
+        centroid-y: centroid-y + as-float ((y0 + y1) * a)
+    ]
+    x0: point/x
+    y0: point/y
+    x1: start/x
+    y1: start/y
+    a: x0 * y1 - (x1 * y0)
+    signedArea: signedArea + as-float a
+    centroid-x: centroid-x + as-float ((x0 + x1) * a)
+    centroid-y: centroid-y + as-float ((y0 + y1) * a)
+
+    signedArea: signedArea * 0.5
+    centroid-x: centroid-x / (signedArea * 6.0) 
+    centroid-y: centroid-y / (signedArea * 6.0) 
+
+    cx/value: as-integer centroid-x
+    cy/value: as-integer centroid-y
+    ;-- take biggest distance
+    d/value: 0
+    point: start
+    loop count [
+        dx: cx/value - point/x
+        dy: cy/value - point/y
+        r: as-integer sqrt as-float ( dx * dx + ( dy * dy ) )
+        if r > d/value [ d/value: r ]
+        point: point + 1
+    ] 
+]
+
+get-shape-bounding-box: func [
+    start   [tagPOINT]
+    count   [integer!]
+    upper   [tagPOINT]
+    lower   [tagPOINT]
+    /local
+        point   [tagPOINT]
+][
+    upper/x: 1000000 
+    upper/y: 1000000
+    lower/x: 0
+    lower/y: 0
+    point: start
+    loop count [
+        if point/x > lower/x [ lower/x: point/x ]
+        if point/y > lower/y [ lower/y: point/y ]
+        if point/x < upper/x [ upper/x: point/x ]
+        if point/y < upper/y [ upper/y: point/y ]
+        point: point + 1
+    ]
+]
+
 save-brush: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
@@ -2041,6 +2128,64 @@ check-gradient-ellipse: func [
     if all [ gradient-fill? not gradient-fill/positions? ][
         ctx/brush?: true
         _check-gradient-ellipse ctx gradient-fill colors colors-pos x y width height
+    ]
+]
+
+_check-gradient-poly: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    start   [tagPOINT]
+    count   [integer!]
+    /local
+        cx      [integer!]
+        cy      [integer!]
+        d       [integer!]
+        upper   [tagPOINT]
+        lower   [tagPOINT]
+        other   [tagPOINT]
+][
+    INIT_GRADIENT_DATA(upper lower other)
+    cx: 0 cy: 0 d: 0
+    case [
+        any [
+            gradient/type = GRADIENT_LINEAR
+            gradient/type = GRADIENT_DIAMOND 
+        ][
+            get-shape-bounding-box start count upper lower
+            either gradient/type = GRADIENT_LINEAR [
+                upper/y: 0
+                lower/y: 0
+                other/x: INVALID_RADIUS
+            ][
+                get-shape-center start count :cx :cy :d
+                other/x: cx
+                other/y: cy
+            ]
+        ]
+        gradient/type = GRADIENT_RADIAL [
+            get-shape-center start count :cx :cy :d
+            upper/x: cx 
+            upper/y: cy
+            lower/x: cx 
+            lower/y: cy
+            other/x: d
+        ]
+    ]
+    check-gradient ctx gradient _colors _colors-pos upper lower other
+]
+check-gradient-poly: func [
+    ctx		[draw-ctx!]
+    start   [tagPOINT]
+    count   [integer!]
+][
+    if all [ gradient-pen? not gradient-pen/positions? ][
+        _check-gradient-poly ctx gradient-pen pen-colors pen-colors-pos start count
+    ]
+    if all [ gradient-fill? not gradient-fill/positions? ][
+        ctx/brush?: true
+        _check-gradient-poly ctx gradient-fill colors colors-pos start count
     ]
 ]
 
