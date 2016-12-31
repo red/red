@@ -798,16 +798,17 @@ Red/System [
 								]
 							]
 							sym = skew [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-skew DC as red-integer! start as red-integer! cmd - 1
+									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-skew DC as red-integer! start as red-integer! cmd
+									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
 								]
 							]
 							sym = transform [

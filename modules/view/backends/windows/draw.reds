@@ -1909,6 +1909,31 @@ gradient-rotate: func [
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
 
+gradient-skew: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    sx		    [float!]
+    sy		    [float!]
+    /local
+        gm  [integer!]
+        m	[integer!]
+        x	[float32!]
+        y	[float32!]
+        u	[float32!]
+        z	[float32!]
+][
+    m: 0
+    u: as float32! 1.0
+    z: as float32! 0.0
+    x: as float32! system/words/tan degree-to-radians sx TYPE_TANGENT
+    y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians sy TYPE_TANGENT]
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    GdipCreateMatrix2 u y x u z z :m
+    GdipMultiplyMatrix gm m GDIPLUS_MATRIXORDERAPPEND
+    GdipDeleteMatrix m  
+    if gradient/created? [ gradient-transform ctx gradient gm ]
+]
+
 gradient-transf-reset: func [
     gradient    [gradient!]
     /local 
@@ -2593,24 +2618,33 @@ OS-matrix-translate: func [
 ]
 
 OS-matrix-skew: func [
-    ctx		[draw-ctx!]
-    sx		[red-integer!]
-    sy		[red-integer!]
+    ctx		    [draw-ctx!]
+    pen-fill    [integer!]
+    sx		    [red-integer!]
+    sy		    [red-integer!]
     /local
         m	[integer!]
         x	[float32!]
         y	[float32!]
         u	[float32!]
         z	[float32!]
+        gradient    [gradient!]
 ][
-    m: 0
-    u: as float32! 1.0
-    z: as float32! 0.0
-    x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
-    y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
-    GdipCreateMatrix2 u y x u z z :m
-    GdipMultiplyWorldTransform ctx/graphics m matrix-order
-    GdipDeleteMatrix m
+    either pen-fill <> -1 [
+        ;-- skew pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-skew ctx gradient as-float sx/value as-float sy/value
+    ][ 
+        ;-- skew figure
+        m: 0
+        u: as float32! 1.0
+        z: as float32! 0.0
+        x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+        y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+        GdipCreateMatrix2 u y x u z z :m
+        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipDeleteMatrix m
+    ]
 ]
 
 OS-matrix-transform: func [

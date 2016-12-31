@@ -1924,6 +1924,12 @@ PATHDATA: alias struct! [
 			matrix		[integer!]
 			return:		[integer!]
 		]
+		GdipMultiplyMatrix: "GdipMultiplyMatrix" [
+			matrix-1	[integer!]
+			matrix-2	[integer!]
+			order		[integer!]
+			return:		[integer!]
+		]
 		GdipRotateMatrix: "GdipRotateMatrix" [
 			matrix		[integer!]
 			angle		[float32!]
