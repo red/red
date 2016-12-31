@@ -243,7 +243,12 @@ Red/System [
 			either cmd = pos [
 				word: as red-word! value
 				sym: symbol/resolve word/symbol
-				start: start + 1
+				either any [ sym = pen sym = fill-pen][
+					start: start + 1
+				][
+					cmd: cmd - 1
+					sym: -1
+				]
 			][ sym: -1 ]
 		]
 
@@ -847,11 +852,18 @@ Red/System [
 								OS-matrix-pop DC state
 							]
 							sym = matrix [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-set DC as red-block! start
+								OS-matrix-set DC sym as red-block! start
 							]
-							sym = reset-matrix  [OS-matrix-reset DC]
-							sym = invert-matrix [OS-matrix-invert DC]
+							sym = reset-matrix  [
+								DRAW_FETCH_OPT_TRANSFORM
+								OS-matrix-reset DC sym
+							]
+							sym = invert-matrix [
+								DRAW_FETCH_OPT_TRANSFORM
+								OS-matrix-invert DC sym
+							]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]

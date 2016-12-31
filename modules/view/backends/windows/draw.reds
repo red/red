@@ -30,9 +30,9 @@ gradient-fill/data: as tagPOINT allocate max-data * (size? tagPOINT)
 gradient-pen?: false
 gradient-fill?: false
 
-gradient-matrix-pen: 0  ;-- transformation matrix for pen gradient GDI+
-gradient-matrix-fill: 0  ;-- transformation matrix for fill gradient GDI+
-
+gradient-matrix-pen:    0  ;-- transformation matrix for pen gradient GDI+
+gradient-matrix-fill:   0  ;-- transformation matrix for fill gradient GDI+
+matrix-elems: as pointer! [float32!] 0     ;-- elements of matrix allocated in draw-begin for performance reason
 
 paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
@@ -281,7 +281,8 @@ draw-begin: func [
     gradient-fill/created?:      false
 
     gradient-matrix-pen: 0 
-    gradient-matrix-fill: 0 
+    gradient-matrix-fill: 0
+    matrix-elems: as pointer! [float32!] allocate 6 * (size? float32!) 
 
     D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
     last-point?: no
@@ -391,6 +392,7 @@ draw-end: func [
     unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
     unless zero? gradient-matrix-pen [ GdipDeleteMatrix gradient-matrix-pen ]
     unless zero? gradient-matrix-fill [ GdipDeleteMatrix gradient-matrix-fill ]
+    unless zero? as-integer matrix-elems       [ free as byte-ptr! matrix-elems ]
 
     unless ctx/on-image? [
         DeleteObject ctx/bitmap
@@ -1980,6 +1982,61 @@ gradient-transf-reset: func [
     ]
 ]
 
+gradient-set-matrix: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    m           [integer!]
+    /local
+        gm  [integer!]
+        m11 [pointer! [float32!]]
+        m12 [pointer! [float32!]]
+        m21 [pointer! [float32!]]
+        m22 [pointer! [float32!]]
+        dx  [pointer! [float32!]]
+        dy  [pointer! [float32!]]
+][
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    GdipGetMatrixElements m matrix-elems
+    m11: matrix-elems
+    m12: matrix-elems + 1
+    m21: matrix-elems + 2
+    m22: matrix-elems + 3
+    dx:  matrix-elems + 4
+    dy:  matrix-elems + 5
+    GdipSetMatrixElements 
+        gm 
+        m11/value 
+        m12/value 
+        m21/value 
+        m22/value 
+        dx/value 
+        dy/value
+    if gradient/created? [ gradient-transform ctx gradient gm ]
+]
+
+gradient-reset-matrix: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    /local
+        gm  [integer!]
+][
+    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gradient-transf-reset gradient
+    if gradient/created? [ gradient-transform ctx gradient gm ]
+]
+
+gradient-invert-matrix: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    /local
+        gm  [int-ptr!]
+][
+    gm: either gradient = gradient-pen [ :gradient-matrix-pen ][ :gradient-matrix-fill ]
+    GdipInvertMatrix gm/value
+    if gradient/created? [ gradient-transform ctx gradient gm/value ]
+]
+
+
 save-brush: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
@@ -2731,25 +2788,54 @@ OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!] /local s][
 
 OS-matrix-pop: func [ctx [draw-ctx!] state [integer!]][GdipRestoreGraphics ctx/graphics state]
 
-OS-matrix-reset: func [ctx [draw-ctx!]][GdipResetWorldTransform ctx/graphics]
+OS-matrix-reset: func [
+    ctx         [draw-ctx!]
+    pen-fill    [integer!]
+    /local
+        gradient    [gradient!]
+][
+    either pen-fill <> -1 [
+        ;-- reset matrix for pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-transf-reset gradient
+    ][
+        ;-- reset matrix for figure
+        GdipResetWorldTransform ctx/graphics
+    ]
+]
 
-OS-matrix-invert: func [ctx [draw-ctx!] /local m [integer!]][
+OS-matrix-invert: func [
+    ctx         [draw-ctx!] 
+    pen-fill    [integer!]
+    /local 
+        m           [integer!]
+        gradient    [gradient!]
+][
     m: ctx/gp-matrix
     if zero? m [
         GdipCreateMatrix :m
         ctx/gp-matrix: m
     ]
-    GdipGetWorldTransform ctx/graphics m
-    GdipInvertMatrix m
-    GdipSetWorldTransform ctx/graphics m
+    either pen-fill <> -1 [
+        ;-- invert matrix for pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-invert-matrix ctx gradient
+    ][
+        ;-- invert matrix for figure
+        GdipGetWorldTransform ctx/graphics m
+        GdipInvertMatrix m
+        GdipSetWorldTransform ctx/graphics m
+    ]
 ]
 
 OS-matrix-set: func [
-    ctx		[draw-ctx!] 
-    blk		[red-block!]
+    ctx		    [draw-ctx!] 
+    pen-fill    [integer!]
+    blk		    [red-block!]
     /local
-        m	[integer!]
-        val [red-integer!]
+        m	        [integer!]
+        val         [red-integer!]
+        gradient    [gradient!]
 ][
     m: 0
     val: as red-integer! block/rs-head blk
@@ -2761,7 +2847,14 @@ OS-matrix-set: func [
         get-float32 val + 4
         get-float32 val + 5
         :m
-    GdipMultiplyWorldTransform ctx/graphics m matrix-order
+    either pen-fill <> -1 [
+        ;-- set matrix for pen or fill
+        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient-set-matrix ctx gradient m
+    ][
+        ;-- set matrix for figure
+        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+    ]
     GdipDeleteMatrix m
 ]
 
