@@ -10,6 +10,26 @@ Red/System [
     }
 ]
 
+gradient!: alias struct! [
+    extra           [integer!]                              ;-- used when pen width > 1
+    pair-1          [red-pair!]                             ;-- preallocated for performance reasons
+    pair-2          [red-pair!]                             ;-- preallocated for performance reasons
+    path-data       [PATHDATA]                              ;-- preallocated for performance reasons
+    points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+    type            [integer!]                              ;-- gradient on fly (just before drawing figure)
+    count           [integer!]                              ;-- gradient stops count
+    data            [tagPOINT]                              ;-- figure coordinates
+    positions?      [logic!]                                ;-- true if positions are defined, false otherwise
+    created?        [logic!]                                ;-- true if gradient brush created, false otherwise                                 
+]
+max-data: 5
+gradient-pen: declare gradient!                             ;-- one for pen
+gradient-pen/data: as tagPOINT allocate max-data * (size? tagPOINT)
+gradient-fill: declare gradient!                            ;-- one for fill
+gradient-fill/data: as tagPOINT allocate max-data * (size? tagPOINT)
+gradient-pen?: false
+gradient-fill?: false
+
 paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
@@ -17,11 +37,22 @@ edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buff
 types: allocate max-edges * (size? byte!)					;-- point type buffer
 colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
 colors-pos: as pointer! [float32!] colors + max-colors
-matrix-order: 0
+pen-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)  ;-- for delayed pen gradients (no positions specified)
+pen-colors-pos: as pointer! [float32!] pen-colors + max-colors      ;-- for delayed pen gradients (no positions specified)
 
 #define SHAPE_OTHER     0
 #define SHAPE_CURVE     1
 #define SHAPE_QCURVE    2
+
+#define GRADIENT_NONE       0
+#define GRADIENT_LINEAR     1
+#define GRADIENT_RADIAL     2
+#define GRADIENT_DIAMOND    3
+
+#define INVALID_RADIUS      -1
+#define INDEX_UPPER         0
+#define INDEX_LOWER         1
+#define INDEX_OTHER         2
 
 last-point?: no
 path-last-point: declare tagPOINT
@@ -39,6 +70,7 @@ arcPOINTS!: alias struct! [
     end-y       [float!]
 ]
 connect-subpath: 0
+matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 anti-alias?: no
 GDI+?: no
@@ -219,6 +251,24 @@ draw-begin: func [
     ctx/pen?:			yes
     ctx/hwnd:			hWnd
     dc:					null
+
+    gradient-pen/extra:         0
+    gradient-pen/pair-1:        declare red-pair!
+    gradient-pen/pair-2:        declare red-pair!
+    gradient-pen/path-data:     declare PATHDATA
+    gradient-pen/type:        GRADIENT_NONE
+    gradient-pen/count:         0
+    gradient-pen/positions?:    false
+    gradient-pen/created?:      false 
+
+    gradient-fill/extra:         0
+    gradient-fill/pair-1:        declare red-pair!
+    gradient-fill/pair-2:        declare red-pair!
+    gradient-fill/path-data:     declare PATHDATA
+    gradient-fill/type:        GRADIENT_NONE
+    gradient-fill/count:         0 
+    gradient-fill/positions?:    false
+    gradient-fill/created?:      false
 
     D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
     last-point?: no
@@ -1724,12 +1774,128 @@ OS-draw-image: func [
         GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
+save-brush: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    brush       [integer!]
+][
+    GDI+?: yes
+    gradient/created?: true
+    either gradient = gradient-fill [
+        unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
+        ctx/gp-brush: brush
+    ][
+        GdipSetPenBrushFill ctx/gp-pen brush
+    ]
+]
+
+gradient-linear: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    point-1     [tagPOINT]
+    point-2     [tagPOINT]
+    /local
+        brush	[integer!]
+        count   [integer!]
+        gm      [integer!]
+][
+    brush: 0
+    count: gradient/count
+    unless gradient/extra = 0 [
+        point-1/x: point-1/x - gradient/extra - 1
+        point-2/x: point-2/x + gradient/extra + 1
+        gradient/extra: 0
+    ] 
+    GdipCreateLineBrushI point-1 point-2 _colors/1 _colors/count 0 :brush
+    GdipSetLinePresetBlend brush _colors _colors-pos count
+
+    save-brush ctx gradient brush
+]
+
+gradient-radial-diamond: func [
+    ctx		    [draw-ctx!]
+    gradient    [gradient!]
+    _colors     [int-ptr!]
+    _colors-pos [pointer! [float32!]]
+    center      [tagPOINT]
+    focal       [tagPOINT]
+    radius      [integer!]
+    /local
+        brush	[integer!]
+        count   [integer!]
+        color   [int-ptr!]
+        size    [integer!]
+        n		[integer!]
+        width   [integer!]
+        height  [integer!]
+        x       [integer!]
+        y       [integer!]
+        other   [tagPOINT]
+        gm      [integer!]
+][
+    brush: 0
+
+    count: gradient/count
+    GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :brush
+
+    other: gradient/data + INDEX_OTHER
+    either gradient/type = GRADIENT_RADIAL [
+        size: radius * 2
+        x: center/x - radius
+        y: center/y - radius
+        unless gradient/extra = 0 [
+            x: x - gradient/extra - 1
+            y: y - gradient/extra - 1
+            size: 2 * gradient/extra + size
+            gradient/extra: 0
+        ] 
+        GdipAddPathEllipseI brush x y size size
+        other/x: focal/x
+        other/y: focal/y
+    ][
+        x: center/x
+        y: center/y
+        width: focal/x - center/x + 1
+        height: focal/y - center/y + 1
+        unless gradient/extra = 0 [
+            x: x - gradient/extra - 1
+            y: y - gradient/extra - 1
+            width: 2 * gradient/extra + height
+            height: 2 * gradient/extra + height
+            gradient/extra: 0
+        ] 
+        GdipAddPathRectangleI brush x y width height
+    ]
+
+    n: brush
+    GdipCreatePathGradientFromPath n :brush
+    GdipDeletePath n
+    GdipSetPathGradientCenterColor brush _colors/value
+    either gradient/type = GRADIENT_RADIAL [
+        GdipSetPathGradientCenterPointI brush focal
+    ][
+        unless radius = INVALID_RADIUS [ GdipSetPathGradientCenterPointI brush other ]
+    ]
+    reverse-int-array _colors count
+    reverse-float32-array _colors-pos count
+    GdipSetPathGradientPresetBlend brush _colors _colors-pos count
+    reverse-int-array _colors count
+    reverse-float32-array _colors-pos count
+
+    save-brush ctx gradient brush
+]
+
 OS-draw-grad-pen: func [
     ctx			[draw-ctx!]
-    type		[integer!]
     mode		[integer!]
-    offset		[red-pair!]
-    count		[integer!]					;-- number of the colors
+    stops		[red-value!]
+    count       [integer!]
+    skip-pos    [logic!]
+    positions   [red-value!]
+    focal?      [logic!]
+    spread      [integer!]
     brush?		[logic!]
     /local
         x		[integer!]
@@ -1753,129 +1919,129 @@ OS-draw-grad-pen: func [
         n		[integer!]
         delta	[float!]
         p		[float!]
-        rotate? [logic!]
-        scale?	[logic!]
+        radius      [integer!]
+        first-point [logic!]
+        last-point  [logic!]
+        point       [red-pair!]
+        value       [red-value!]
+        _colors     [int-ptr!]
+        _colors-pos [pointer! [float32!]]
+        gradient    [gradient!]
+        gm          [integer!]
 ][
-    x: offset/x
-    y: offset/y
-
-    int: as red-integer! offset + 1
-    start: int/value
-    int: int + 1
-    stop: int/value
-
-    n: 0
-    rotate?: no
-    scale?: no
-    sy: as float32! 1.0
-    while [
-        int: int + 1
-        n < 3
-    ][								;-- fetch angle, scale-x and scale-y (optional)
-        switch TYPE_OF(int) [
-            TYPE_INTEGER	[p: as-float int/value]
-            TYPE_FLOAT		[f: as red-float! int p: f/value]
-            default			[break]
-        ]
-        switch n [
-            0	[if p <> 0.0 [angle: as float32! p rotate?: yes]]
-            1	[if p <> 1.0 [sx: as float32! p scale?: yes]]
-            2	[if p <> 1.0 [sy: as float32! p scale?: yes]]
-        ]
-        n: n + 1
+    either brush? [
+        gradient-fill?: true
+        _colors: colors
+        _colors-pos: colors-pos 
+    ][
+        gradient-pen?: true
+        _colors: pen-colors
+        _colors-pos: pen-colors-pos
     ]
-
+    ;-- stops
     pt: edges
-    color: colors + 1
-    pos: colors-pos + 1
+    color: _colors + 1
+    pos: _colors-pos + 1
     delta: as-float count - 1
     delta: 1.0 / delta
     p: 0.0
-    head: as red-value! int
+    head: stops
     loop count [
         clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
         color/value: to-gdiplus-color clr/array1
         next: head + 1 
         if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-        pos/value: as float32! ( 1.0 - p )
+        pos/value: either mode = linear [ as float32! p ][ as float32! ( 1.0 - p ) ]
         if next <> head [p: p + delta]
         head: head + 1
         color: color + 1
         pos: pos + 1
     ]
-
-    last-p: pos - 1
+    ;-- patch first and last point
+    last-p: pos - 1 
     last-c: color - 1
     pos: pos - count
     color: color - count
-    if pos/value < as float32! 1.0 [			;-- first one should be always 0.0
-        colors-pos/value: as float32! 1.0
-        colors/value: color/value
-        color: colors
-        pos: colors-pos
+    first-point: false
+    last-point:  false
+    either mode = linear [
+        _colors-pos/value: as float32! 0.0           ;-- first one should be always 0.0
+        if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+            last-point: true
+            last-p: last-p + 1
+            last-p/value: as float32! 1.0
+        ]
+    ][
+        _colors-pos/value: as float32! 1.0           ;-- first one should be always 1.0
+        if last-p/value > as float32! 0.0 [			;-- last one should be always 0.0
+            last-point: true
+            last-p: last-p + 1
+            last-p/value: as float32! 0.0
+        ]
+    ]
+    _colors/value: color/value
+    count: count + 1
+    if last-point [
+        color: last-c
+        last-c: last-c + 1
+        last-c/value: color/value
         count: count + 1
     ]
-    if last-p/value > as float32! 0.0 [			;-- last one should be always 1.0
-        last-c/2: last-c/value
-        last-p/2: as float32! 0.0
-        count: count + 1
-    ]
-
-    brush: 0
-    either type = linear [
-        pt/x: x + start
-        pt/y: y
-        pt: pt + 1
-        pt/x: x + stop
-        pt/y: y
-        GdipCreateLineBrushI edges pt color/1 color/count 0 :brush
-        GdipSetLinePresetBlend brush color pos count
-        if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
-        if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
-    ][
-        GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :brush
-        n: stop - start
-        stop: n * 2
-        case [
-            type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
-            type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
+    ctx/brush?:       brush?
+    gradient: either ctx/brush? [ gradient-fill ][ gradient-pen ]
+    gradient/count:     count
+    gradient/created?:  false
+    gradient/positions?: false
+    
+    ;-- positions
+    case [
+        mode = linear [ 
+            gradient/type: GRADIENT_LINEAR 
+            unless skip-pos [
+                gradient/positions?: true
+                pt: gradient/data
+                point: as red-pair! positions
+                pt/x: point/x pt/y: point/y
+                pt: pt + 1
+                point: as red-pair! (positions + 1)
+                pt/x: point/x pt/y: point/y
+                gradient-linear ctx gradient _colors _colors-pos gradient/data gradient/data + 1
+            ]
         ]
-
-        GdipCreateMatrix :n
-        if rotate? [GdipRotateMatrix n angle GDIPLUS_MATRIXORDERPREPEND]
-        if scale?  [GdipScaleMatrix n sx sy GDIPLUS_MATRIXORDERPREPEND]
-        scale?: any [rotate? scale?]
-        if scale? [							;@@ transform path will move it
-            GdipTransformPath brush n
-            GdipDeleteMatrix n
+        any [ mode = radial mode = diamond ][
+            gradient/type: either mode = radial [ GRADIENT_RADIAL ][ GRADIENT_DIAMOND ] 
+            unless skip-pos [
+                gradient/positions?: true
+                pt: gradient/data
+                point: as red-pair! positions
+                pt/x: point/x pt/y: point/y
+                either mode = radial [
+                    value: positions + 1
+                    radius: as-integer get-float as red-integer! value
+                    pt: pt + 1
+                    if focal? [
+                        point: as red-pair! ( positions + 2 )
+                    ]
+                    pt/x: point/x pt/y: point/y
+                    pt: pt + 1
+                    pt/x: radius
+                ][
+                    pt: pt + 1
+                    point: as red-pair! (positions + 1)
+                    pt/x: point/x pt/y: point/y
+                    pt: pt + 1
+                    either focal? [
+                        point: as red-pair! ( positions + 2 )
+                        pt/x: point/x 
+                        pt/y: point/y
+                    ][
+                        pt/x: INVALID_RADIUS
+                    ]
+                ] 
+                gradient-radial-diamond ctx gradient _colors _colors-pos gradient/data gradient/data + 1 pt/x
+            ] 
         ]
-
-        n: brush
-        GdipCreatePathGradientFromPath n :brush
-        GdipDeletePath n
-        GdipSetPathGradientCenterColor brush color/value
-        reverse-int-array color count
-        reverse-float32-array colors-pos count
-        GdipSetPathGradientPresetBlend brush color pos count
-
-        if any [							;@@ move the shape back to the right position
-            all [type = radial scale?]
-            all [type = diamond rotate?]
-        ][
-            GdipGetPathGradientCenterPointI brush pt
-            sx: as float32! x - pt/x
-            sy: as float32! y - pt/y
-            GdipTranslatePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND
-        ]
-    ]
-
-    GDI+?: yes
-    either brush? [
-        unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
-        ctx/brush?: yes
-        ctx/gp-brush: brush
-    ][
-        GdipSetPenBrushFill ctx/gp-pen brush
+        true [ gradient/type: GRADIENT_NONE ]
     ]
 ]
 

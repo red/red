@@ -73,6 +73,11 @@ Red/System [
 		linear:			symbol/make "linear"
 		radial:			symbol/make "radial"
 		diamond:		symbol/make "diamond"
+        _pattern:       symbol/make "pattern"
+        bitmap:         symbol/make "bitmap"
+        _pad:           symbol/make "pad"
+        _repeat:        symbol/make "repeat"
+        _reflect:       symbol/make "reflect"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -254,6 +259,12 @@ Red/System [
 				alpha?	[integer!]
                 off?    [logic!]
 				grad?	[logic!]
+                stops   [red-value!]
+                _start  [red-value!]
+                spread  [integer!]
+                positions   [red-value!]
+                skip-pos    [logic!]
+                focal?      [logic!]
         ][
             off?: no
             grad?: no
@@ -265,52 +276,101 @@ Red/System [
             ]
             either grad? [								;-- gradient pen
                 cmd: cmd + 1
-                DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- grad mode (optional)
-                pattern: either pos = cmd [as red-word! cmd][null]
-
-                DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
-                point: as red-pair! cmd
-                loop 2 [								;-- start and stop
-                    DRAW_FETCH_VALUE(TYPE_INTEGER)
+                count: 0
+                stops: cmd + 1
+                loop 2 [                                ;-- at least two stops required
+                    DRAW_FETCH_VALUE_2(TYPE_TUPLE TYPE_WORD)
+                    DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
+                    count: count + 1
                 ]
-                loop 3 [								;-- angle, scale-x and scale-y (optional)
-                    pos: cmd + 1
-                    if pos < tail [
-                        type: TYPE_OF(pos)
-                        either any [
-                            type = TYPE_INTEGER
-                            type = TYPE_FLOAT
-                        ][cmd: pos][break]
+                _start: cmd
+                while [ cmd < tail ][                   ;--optional more stops
+                    DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)
+                    if cmd = _start [ break ]
+					value: cmd
+					if TYPE_OF(value) = TYPE_WORD [
+                    	value: as red-value! _context/get as red-word! cmd
+					]
+                    if TYPE_OF(value) <> TYPE_TUPLE [ cmd: cmd - 1 break ]
+                    DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
+                    _start: cmd
+                    count: count + 1
+                ]
+                positions: cmd
+                skip-pos: true
+                focal?: false
+                case [                                                  ;-- positions
+                    mode = linear [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd <> positions [
+                            skip-pos: false
+                            DRAW_FETCH_VALUE(TYPE_PAIR)
+                        ] 
+                    ]
+                    mode = radial [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- center
+                        if cmd <> positions [
+                            skip-pos: false 
+                            DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius
+                            _start: cmd
+                            DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+                            if _start <> cmd [ focal?: true ]
+                        ]
+                    ]
+                    mode = diamond [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- upper
+                        if cmd <> positions [
+                            skip-pos: false 
+                            DRAW_FETCH_VALUE(TYPE_PAIR)                 ;-- lower
+                            _start: cmd
+                            DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+                            if _start <> cmd [ focal?: true ]
+                        ]
                     ]
                 ]
-                count: 0
-                off?: no
-                start: cmd
-                while [
-                    cmd: cmd + 1
-                    cmd < tail
+                positions: positions + 1
+                _start: cmd
+                DRAW_FETCH_OPT_VALUE(TYPE_WORD)         ;-- spread value
+                either cmd <> _start [
+                    word:   as red-word! cmd
+                    spread: symbol/resolve word/symbol
+                    unless any [
+                        spread = _pad
+                        spread = _repeat
+                        spread = _reflect
+                    ][
+                        spread: _pad 
+                        cmd: cmd - 1
+                    ]
                 ][
-                    value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
-                    type: TYPE_OF(value)
-                    if type = TYPE_TUPLE [count: count + 1]
-                    unless any [type = TYPE_TUPLE type = TYPE_FLOAT][break]
+                    spread: _pad
                 ]
-                if count < 2 [throw-draw-error cmds start catch?]
-                mode: either null? pattern [-1][symbol/resolve pattern/symbol]
                 OS-draw-grad-pen
                     DC
-                    symbol/resolve word/symbol
                     mode
-                    point
+                    stops
                     count
+                    skip-pos
+                    positions
+                    focal?
+                    spread
                     sym = fill-pen
-                cmd: cmd - 1
             ][
-                either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
-                either sym = pen [
-                    OS-draw-pen DC rgb off? as logic! alpha?
-                ][
-                    OS-draw-fill-pen DC rgb off? as logic! alpha?
+                case [
+                    mode = _pattern [
+                        ;-- TBD ...
+                    ]
+                    mode = bitmap [
+                        ;-- TBD ...
+                    ]
+                    true [
+                        either off? [ cmd: cmd + 1 rgb: -1 ][ DRAW_FETCH_TUPLE ]
+                        either sym = pen [
+                            OS-draw-pen DC rgb off? as logic! alpha?
+                        ][
+                            OS-draw-fill-pen DC rgb off? as logic! alpha?
+                        ]
+                    ]
                 ]
             ]
             cmd

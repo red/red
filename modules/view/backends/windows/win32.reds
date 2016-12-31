@@ -943,6 +943,12 @@ XFORM!: alias struct! [
     eDy         [float32!]
 ]
 
+PATHDATA: alias struct! [
+    count       [integer!]
+    points      [POINT_2F]
+    types       [byte-ptr!]
+]
+
 #import [
 	"kernel32.dll" stdcall [
 		GlobalAlloc: "GlobalAlloc" [
