@@ -60,7 +60,6 @@ OS-text-box-weight: func [
 		this	[this!]
 		dl		[IDWriteTextLayout]
 ][
-	probe "weight"
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
 	dl/SetFontWeight this weight pos len
