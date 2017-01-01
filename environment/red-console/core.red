@@ -33,6 +33,7 @@ terminal!: object [
 		str: form value
 		append lines str
 		show target
+		()				;-- return unset!
 	]
 
 	update-cfg: func [font cfg][
@@ -106,7 +107,7 @@ terminal!: object [
 
 	paint: func [/local str cmds y n h cnt len][
 		probe "draw..................."
-		cmds: [text 0x0 text-box]	
+		cmds: [text 0x0 text-box]
 		cmds/3: box
 		y: 0
 		n: top
@@ -114,6 +115,8 @@ terminal!: object [
 
 		foreach str at lines top [
 			box/text: head str
+			highlight/add-styles head str clear box/styles
+probe box/styles
 			box/layout
 			cmds/2/y: y
 			draw target cmds
@@ -171,6 +174,7 @@ probe reduce [event/key event/flags]
 		terminal: extra
 		terminal/target: self
 		terminal/box/target: self
+		terminal/box/styles: make block! 200
 		scroller: get-scroller self 'horizontal
 		scroller/visible?: no
 		scroller: get-scroller self 'vertical

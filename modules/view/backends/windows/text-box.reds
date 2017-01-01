@@ -56,17 +56,27 @@ OS-text-box-weight: func [
 	pos		[integer!]
 	len		[integer!]
 	weight	[integer!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
 ][
-	0
+	probe "weight"
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetFontWeight this weight pos len
 ]
-
 
 OS-text-box-italic: func [
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
 ][
-	0
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetFontStyle this 2 pos len
 ]
 
 OS-text-box-underline: func [
@@ -75,8 +85,13 @@ OS-text-box-underline: func [
 	len		[integer!]
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
 ][
-	0
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetUnderline this yes pos len
 ]
 
 OS-text-box-strikeout: func [
@@ -229,7 +244,10 @@ OS-text-box-layout: func [
 	integer/make-at block/rs-head state as-integer layout
 
 	styles: as red-block! values + TBOX_OBJ_STYLES
-	if TYPE_OF(styles) = TYPE_BLOCK [
+	if all [
+		TYPE_OF(styles) = TYPE_BLOCK
+		2 < block/rs-length? styles
+	][
 		parse-text-styles as handle! target as handle! layout styles catch?
 	]
 	layout

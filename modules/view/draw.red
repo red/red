@@ -894,7 +894,7 @@ Red/System [
 						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
 							throw-draw-error cmds cmd catch?
 						]
-						idx: int1/value
+						idx: int1/value - 1
 						len: int2/value
 						cmd: as red-value! int2
 					]

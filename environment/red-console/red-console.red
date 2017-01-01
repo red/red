@@ -11,6 +11,7 @@ Red [
 ]
 
 #include %../console/engine.red
+#include %highlight.red
 #include %core.red
 
 ask: function [
