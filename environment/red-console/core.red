@@ -28,6 +28,13 @@ terminal!: object [
 
 	draw: get 'system/view/platform/draw-face
 
+	print: func [value [any-type!] /local str][
+		if block? value [value: reduce value]
+		str: form value
+		append lines str
+		show target
+	]
+
 	update-cfg: func [font cfg][
 		box/font: font
 		max-lines: cfg/buffer-lines
@@ -168,6 +175,7 @@ probe reduce [event/key event/flags]
 		scroller/visible?: no
 		scroller: get-scroller self 'vertical
 		terminal/scroller: scroller
+		print: get 'terminal/print
 	]
 
 	apply-cfg: func [cfg][
