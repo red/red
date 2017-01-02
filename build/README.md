@@ -1,6 +1,8 @@
 Building Red binaries
 ------------------------
 
+_Note: This is **not** required to build or run red from sources. It is for a feature used by the red team. Check the [main readme](/README.md#running-red-from-the-sources) if you want to build red from sources_
+
 _Prerequisite_
 
 _You need a [Rebol SDK](http://www.rebol.com/sdk.html) copy with a valid license file in order to rebuild the Red binary, this is a constraint from using Rebol2 for the bootstrapping. Once selfhosted, Red will not have such constraint._
