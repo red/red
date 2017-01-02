@@ -135,7 +135,7 @@ terminal!: object [
 		show target
 	]
 
-	paint: func [/local str cmds y n h cnt len][
+	paint: func [/local str cmds y n h cnt delta len][
 		probe "draw..................."
 		cmds: [text 0x0 text-box]
 		cmds/3: box
@@ -155,8 +155,10 @@ terminal!: object [
 			either n > len [
 				append heights h
 				append nlines cnt
+				line-cnt: line-cnt + cnt - 1
 			][
 				poke heights n h
+				line-cnt: line-cnt + cnt - pick nlines n cnt
 				poke nlines n cnt
 			]
 			n: n + 1

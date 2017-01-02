@@ -263,6 +263,8 @@ system/view/platform: context [
 			_strike:		symbol/make "strike"
 			_border:		symbol/make "border"
 			_backdrop:		symbol/make "backdrop"
+			_font-name:		symbol/make "font-name"
+			_font-size:		symbol/make "font-size"
 			
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"

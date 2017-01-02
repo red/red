@@ -719,16 +719,6 @@ WNDCLASSEX: alias struct! [
 	hIconSm	  	  [integer!]
 ]
 
-SCROLLINFO: alias struct! [
-	cbSize		[integer!]
-	fMask		[integer!]
-	nMin		[integer!]
-	nMax		[integer!]
-	nPage		[integer!]
-	nPos		[integer!]
-	nTrackPos	[integer!]
-]
-
 GESTUREINFO: alias struct! [
 	cbSize		 [integer!]
 	dwFlags		 [integer!]
@@ -1201,7 +1191,7 @@ XFORM!: alias struct! [
 		SetScrollInfo:	"SetScrollInfo" [
 			hWnd		 [handle!]
 			fnBar		 [integer!]
-			lpsi		 [SCROLLINFO]
+			lpsi		 [tagSCROLLINFO]
 			fRedraw		 [logic!]
 			return: 	 [integer!]
 		]
@@ -2600,6 +2590,13 @@ XFORM!: alias struct! [
 			iFontID		[integer!]
 			plf			[tagLOGFONT]
 			return:		[integer!]
+		]
+	]
+	LIBC-file cdecl [
+		realloc: "realloc" [						"Resize and return allocated memory."
+			memory			[byte-ptr!]
+			size			[integer!]
+			return:			[byte-ptr!]
 		]
 	]
 ]

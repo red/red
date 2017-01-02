@@ -330,10 +330,18 @@ update-scroller: func [
 
 	fMask: switch flag [
 		SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
-		SCROLLER_OBJ_PAGE [nPage: int/value SIF_PAGE]
-		SCROLLER_OBJ_MAX [nMin: 1 nMax: int/value SIF_RANGE]
+		SCROLLER_OBJ_PAGE
+		SCROLLER_OBJ_MAX [
+			int: as red-integer! values + SCROLLER_OBJ_PAGE
+			nPage: int/value
+			int: as red-integer! values + SCROLLER_OBJ_MAX
+			nMin: 1
+			nMax: int/value
+		 	SIF_RANGE or SIF_PAGE
+		]
 		default [0]
 	]
+
 	if fMask <> 0 [
 		fMask: fMask or SIF_DISABLENOSCROLL
 		cbSize: size? tagSCROLLINFO

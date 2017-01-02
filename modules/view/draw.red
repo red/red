@@ -880,11 +880,13 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
 								OS-text-box-border layout idx len start cmd
 							]
-							sym = font-name [
-								
+							sym = _font-name [
+								DRAW_FETCH_VALUE(TYPE_STRING)
+								OS-text-box-font-name layout idx len as red-string! start
 							]
-							sym = font-size [
-								
+							sym = _font-size [
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								OS-text-box-font-size layout idx len get-float as red-integer! start
 							]
 							true [throw-draw-error cmds cmd catch?]
 						]

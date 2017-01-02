@@ -16,6 +16,9 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_METRICS		3
 
+line-metrics: as DWRITE_LINE_METRICS 0
+max-line-cnt:  0
+
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
@@ -99,8 +102,13 @@ OS-text-box-strikeout: func [
 	len		[integer!]
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
 ][
-	0
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetStrikethrough this yes pos len
 ]
 
 OS-text-box-border: func [
@@ -111,6 +119,36 @@ OS-text-box-border: func [
 	tail	[red-value!]
 ][
 	0
+]
+
+OS-text-box-font-name: func [
+	layout	[handle!]
+	pos		[integer!]
+	len		[integer!]
+	name	[red-string!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
+		n		[integer!]
+][
+	n: -1
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetFontFamilyName this unicode/to-utf16-len name :n yes pos len
+]
+
+OS-text-box-font-size: func [
+	layout	[handle!]
+	pos		[integer!]
+	len		[integer!]
+	size	[float!]
+	/local
+		this	[this!]
+		dl		[IDWriteTextLayout]
+][
+	this: as this! layout
+	dl: as IDWriteTextLayout this/vtbl
+	dl/SetFontSize this ConvertPointSizeToDIP(size) pos len
 ]
 
 OS-text-box-metrics: func [
@@ -130,6 +168,7 @@ OS-text-box-metrics: func [
 		width			[float32!]
 		top				[float32!]
 		left			[integer!]
+		lm				[DWRITE_LINE_METRICS]
 		metrics			[DWRITE_TEXT_METRICS]
 		hit				[DWRITE_HIT_TEST_METRICS]
 		x				[float32!]
@@ -172,7 +211,27 @@ OS-text-box-metrics: func [
 			integer/push left + 1
 		]
 		TBOX_METRICS_LINE_HEIGHT [
-			integer/push 17
+			lineCount: 0
+			dl/GetLineMetrics this null 0 :lineCount
+?? lineCount
+			if lineCount > max-line-cnt [
+				max-line-cnt: lineCount + 1
+				line-metrics: as DWRITE_LINE_METRICS realloc
+					as byte-ptr! line-metrics
+					lineCount + 1 * size? DWRITE_LINE_METRICS
+			]
+			lineCount: 0
+			dl/GetLineMetrics this line-metrics max-line-cnt :lineCount
+			lm: line-metrics
+			hr: as-integer arg0
+			while [
+				hr: hr - lm/length
+				lineCount: lineCount - 1
+				all [hr > 0 lineCount > 0]
+			][
+				lm: lm + 1
+			]
+			integer/push as-integer lm/height
 		]
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
