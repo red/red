@@ -19,6 +19,8 @@ terminal!: object [
 	line:		none							;-- current editing line
 	pos:		0								;-- insert position of the current editing line
 
+	scroll-y:	0
+
 	line-h:		0								;-- average line height
 
 	box:		make text-box! []
@@ -32,6 +34,7 @@ terminal!: object [
 		if block? value [value: reduce value]
 		str: form value
 		append lines str
+		calc-top
 		show target
 		()				;-- return unset!
 	]
@@ -54,8 +57,8 @@ terminal!: object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
-		box/text: head line
-		box/layout
+		;box/text: head line
+		;box/layout
 
 		;h: box/line-height pos + index? line
 		;if h <> caret/size/y [caret/size/y: h]
@@ -68,7 +71,7 @@ terminal!: object [
 			n: n + 1
 		]
 		offset: box/offset? pos + index? line
-		offset/y: offset/y + h
+		offset/y: offset/y + h - scroll-y
 		caret/offset: offset
 	]
 
@@ -76,6 +79,31 @@ terminal!: object [
 		pos: pos + n
 		if negative? pos [pos: 0]
 		if pos > length? line [pos: pos - n]
+	]
+
+	calc-top: func [/local n cnt h win-h][
+		scroll-y: 0
+		win-h: target/size/y
+		n: length? lines
+
+		cnt: 0
+		while [n > 0][
+			cnt: cnt + either h: pick heights n [h][
+				box/text: pick lines n
+				box/layout
+				box/height
+			]
+			if cnt > win-h [
+				top: n
+				scroll-y: cnt - win-h / line-h + 1 * line-h
+				n: 0			;-- break
+			]
+			n: n - 1
+		]
+	]
+
+	update-scroller: func [][
+		scroller/max-size: line-cnt
 	]
 
 	process-shortcuts: function [event [event!]][
@@ -102,6 +130,8 @@ terminal!: object [
 		]
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
+		calc-top
+		update-scroller
 		show target
 	]
 
@@ -109,14 +139,14 @@ terminal!: object [
 		probe "draw..................."
 		cmds: [text 0x0 text-box]
 		cmds/3: box
-		y: 0
+		y: 0 - scroll-y
 		n: top
 		len: length? heights
 
 		foreach str at lines top [
 			box/text: head str
 			highlight/add-styles head str clear box/styles
-probe box/styles
+;probe box/styles
 			box/layout
 			cmds/2/y: y
 			draw target cmds
