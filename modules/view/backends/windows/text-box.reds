@@ -192,7 +192,7 @@ OS-text-box-metrics: func [
 			hr: as-integer arg0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr - 1 no :x :y hit
-			if y < as float32! 3.0 [y: as float32! 0.0]
+			;if y < as float32! 3.0 [y: as float32! 0.0]
 			either type = TBOX_METRICS_OFFSET? [
 				pair/push as-integer x + as float32! 0.5 as-integer y
 			][

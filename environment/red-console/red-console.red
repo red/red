@@ -30,7 +30,6 @@ ask: function [
 	con/line: line
 	con/pos: 0
 	con/calc-top
-	con/line-cnt: con/line-cnt + 1
 	do-events
 	line
 ]

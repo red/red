@@ -51,18 +51,23 @@ terminal!: object [
 		box/size: new-size
 		box/size/y: 0
 		if scroller [
-			scroller/max-size: length? lines
 			scroller/page-size: new-size/y / line-h
 		]
 	]
 
+	scroll: func [key /local n][
+		n: either integer? key [key * 3][
+			switch/default key [
+				up		[1]
+				down	[-1]
+				page-up [scroller/page-size]
+				page-down [0 - scroller/page-size]
+			][0]
+		]
+		?? n
+	]
+
 	update-caret: func [/local len n s h lh offset][
-		;box/text: head line
-		;box/layout
-
-		;h: box/line-height pos + index? line
-		;if h <> caret/size/y [caret/size/y: h]
-
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -100,6 +105,9 @@ terminal!: object [
 			]
 			n: n - 1
 		]
+		;if top <> scroller/position [
+		;	scroller/position: scroller/max-size
+		;]
 	]
 
 	update-scroller: func [][
@@ -131,22 +139,20 @@ terminal!: object [
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top
-		update-scroller
 		show target
 	]
 
-	paint: func [/local str cmds y n h cnt delta len][
+	paint: func [/local str cmds y n h cnt delta len num][
 		probe "draw..................."
 		cmds: [text 0x0 text-box]
 		cmds/3: box
 		y: 0 - scroll-y
 		n: top
 		len: length? heights
-
+		num: line-cnt
 		foreach str at lines top [
 			box/text: head str
 			highlight/add-styles head str clear box/styles
-;probe box/styles
 			box/layout
 			cmds/2/y: y
 			draw target cmds
@@ -155,16 +161,17 @@ terminal!: object [
 			either n > len [
 				append heights h
 				append nlines cnt
-				line-cnt: line-cnt + cnt - 1
+				line-cnt: line-cnt + cnt
 			][
 				poke heights n h
-				line-cnt: line-cnt + cnt - pick nlines n cnt
+				line-cnt: line-cnt + cnt - pick nlines n
 				poke nlines n cnt
 			]
 			n: n + 1
 			y: y + h
 		]
 		update-caret
+		if num <> line-cnt [update-scroller]
 	]
 ]
 
@@ -184,8 +191,13 @@ console!: make face! [
 		on-draw: func [face [object!] event [event!]][
 			extra/paint
 		]
+		on-scroll: func [face [object!] event [event!]][
+			extra/scroll event/key
+		]
+		on-wheel: func [face [object!] event [event!]][
+			extra/scroll event/picked
+		]
 		on-key: func [face [object!] event [event!]][
-probe reduce [event/key event/flags]
 			extra/press-key event
 		]
 		on-menu: func [face [object!] event [event!]][
@@ -210,6 +222,7 @@ probe reduce [event/key event/flags]
 		scroller: get-scroller self 'horizontal
 		scroller/visible?: no
 		scroller: get-scroller self 'vertical
+		scroller/position: 1
 		terminal/scroller: scroller
 		print: get 'terminal/print
 	]
