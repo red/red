@@ -445,6 +445,7 @@ text-box!: object [
 	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
 	state:		none					;-- OS handles
 	target:		none					;-- face!, image!, etc.
+	fixed?:		no						;-- fixed line height
 
 	;-- read only properties
 	width:		none					;-- actual width

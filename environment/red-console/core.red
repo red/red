@@ -45,6 +45,7 @@ terminal!: object [
 		box/text: "X"
 		box/layout
 		line-h: box/line-height 1
+		caret/size/y: line-h
 	]
 
 	resize: func [new-size [pair!]][
@@ -214,11 +215,13 @@ console!: make face! [
 		extra/resize new-size
 	]
 
-	init: func [/local terminal scroller][
+	init: func [/local terminal box scroller][
 		terminal: extra
 		terminal/target: self
-		terminal/box/target: self
-		terminal/box/styles: make block! 200
+		box: terminal/box
+		box/fixed?: yes
+		box/target: self
+		box/styles: make block! 200
 		scroller: get-scroller self 'horizontal
 		scroller/visible?: no
 		scroller: get-scroller self 'vertical

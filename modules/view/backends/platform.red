@@ -117,6 +117,7 @@ system/view/platform: context [
 				TBOX_OBJ_STYLES
 				TBOX_OBJ_STATE
 				TBOX_OBJ_TARGET
+				TBOX_OBJ_FIXED?
 				TBOX_OBJ_WIDTH
 				TBOX_OBJ_HEIGHT
 				TBOX_OBJ_LINE_COUNT

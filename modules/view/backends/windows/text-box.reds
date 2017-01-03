@@ -192,12 +192,12 @@ OS-text-box-metrics: func [
 			hr: as-integer arg0
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr - 1 no :x :y hit
-			;if y < as float32! 3.0 [y: as float32! 0.0]
-			either type = TBOX_METRICS_OFFSET? [
+			if y < as float32! 0.0 [y: as float32! 0.0]
+;			either type = TBOX_METRICS_OFFSET? [
 				pair/push as-integer x + as float32! 0.5 as-integer y
-			][
-				integer/push as-integer hit/height
-			]
+;			][
+;				integer/push as-integer hit/height
+;			]
 		]
 		TBOX_METRICS_INDEX? [
 			pos: as red-pair! arg0
@@ -213,7 +213,6 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_LINE_HEIGHT [
 			lineCount: 0
 			dl/GetLineMetrics this null 0 :lineCount
-?? lineCount
 			if lineCount > max-line-cnt [
 				max-line-cnt: lineCount + 1
 				line-metrics: as DWRITE_LINE_METRICS realloc
@@ -258,6 +257,7 @@ OS-text-box-layout: func [
 		str		[red-string!]
 		size	[red-pair!]
 		int		[red-integer!]
+		fixed?	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
 		w		[integer!]
@@ -283,7 +283,9 @@ OS-text-box-layout: func [
 		int: int + 1
 		fmt: as this! int/value
 	][
+		fixed?: as red-logic! values + TBOX_OBJ_FIXED?
 		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
+		if fixed?/value [set-line-spacing fmt]
 		block/make-at state 2
 		none/make-in state							;-- 1: text layout
 		integer/make-in state as-integer fmt		;-- 2: text format

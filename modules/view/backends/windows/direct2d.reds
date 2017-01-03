@@ -455,6 +455,22 @@ HitTestTextRange*: alias function! [
 	return:		[integer!]
 ]
 
+SetLineSpacing*: alias function! [
+	this		[this!]
+	method		[integer!]
+	lineSpacing [float32!]
+	baseline	[float32!]
+	return:		[integer!]
+]
+
+GetLineSpacing*: alias function! [
+	this		[this!]
+	method		[int-ptr!]
+	lineSpacing [float32-ptr!]
+	baseline	[float32-ptr!]
+	return:		[integer!]
+]
+
 IDWriteFactory: alias struct! [
 	QueryInterface					[QueryInterface!]
 	AddRef							[AddRef!]
@@ -504,7 +520,7 @@ IDWriteTextFormat: alias struct! [
 	SetFlowDirection				[integer!]
 	SetIncrementalTabStop			[integer!]
 	SetTrimming						[integer!]
-	SetLineSpacing					[integer!]
+	SetLineSpacing					[SetLineSpacing*]
 	GetTextAlignment				[integer!]
 	GetParagraphAlignment			[integer!]
 	GetWordWrapping					[integer!]
@@ -512,7 +528,7 @@ IDWriteTextFormat: alias struct! [
 	GetFlowDirection				[integer!]
 	GetIncrementalTabStop			[integer!]
 	GetTrimming						[integer!]
-	GetLineSpacing					[integer!]
+	GetLineSpacing					[GetLineSpacing*]
 	GetFontCollection				[integer!]
 	GetFontFamilyNameLength			[integer!]
 	GetFontFamilyName				[integer!]
@@ -535,7 +551,7 @@ IDWriteTextLayout: alias struct! [
 	SetFlowDirection				[integer!]
 	SetIncrementalTabStop			[integer!]
 	SetTrimming						[integer!]
-	SetLineSpacing					[integer!]
+	SetLineSpacing					[SetLineSpacing*]
 	GetTextAlignment				[integer!]
 	GetParagraphAlignment			[integer!]
 	GetWordWrapping					[integer!]
@@ -543,7 +559,7 @@ IDWriteTextLayout: alias struct! [
 	GetFlowDirection				[integer!]
 	GetIncrementalTabStop			[integer!]
 	GetTrimming						[integer!]
-	GetLineSpacing					[integer!]
+	GetLineSpacing					[GetLineSpacing*]
 	GetFontCollection				[integer!]
 	GetFontFamilyNameLength			[integer!]
 	GetFontFamilyName				[integer!]
@@ -892,6 +908,35 @@ set-text-format: func [
 	format/SetTextAlignment fmt h-align
 	format/SetParagraphAlignment fmt v-align
 	format/SetWordWrapping fmt wrap
+]
+
+set-line-spacing: func [
+	fmt		[this!]
+	/local
+		dw				[IDWriteFactory]
+		lay				[integer!]
+		layout			[this!]
+		lineCount		[integer!]
+		maxBidiDepth	[integer!]
+		baseline		[float32!]
+		height			[float32!]
+		width			[float32!]
+		top				[float32!]
+		left			[integer!]
+		tf				[IDWriteTextFormat]
+		dl				[IDWriteTextLayout]
+		lm				[DWRITE_LINE_METRICS]
+][
+	left: 20008 lineCount: 0 lay: 0 
+	dw: as IDWriteFactory dwrite-factory/vtbl
+	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
+
+	layout: as this! lay
+	dl: as IDWriteTextLayout layout/vtbl
+	lm: as DWRITE_LINE_METRICS :left
+	dl/GetLineMetrics layout lm 1 :lineCount
+	tf: as IDWriteTextFormat fmt/vtbl
+	tf/SetLineSpacing fmt 1 lm/height lm/baseline
 ]
 
 create-text-layout: func [
