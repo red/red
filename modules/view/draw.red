@@ -78,6 +78,11 @@ Red/System [
         _pad:           symbol/make "pad"
         _repeat:        symbol/make "repeat"
         _reflect:       symbol/make "reflect"
+        tile:           symbol/make "tile"
+        flip-x:         symbol/make "flip-x"
+        flip-y:         symbol/make "flip-y"
+        flip-xy:        symbol/make "flip-xy"
+        clamp:          symbol/make "clamp"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -267,6 +272,9 @@ Red/System [
 				point	[red-pair!]
 				pos		[red-value!]
 				value	[red-value!]
+				img     [red-image!]
+				crop-1	[red-pair!]
+				crop-2	[red-pair!]
 				type	[integer!]
 				count	[integer!]
 				mode	[integer!]
@@ -289,8 +297,8 @@ Red/System [
                 off?: _off = mode
                 grad?: any [mode = linear mode = radial mode = diamond]
             ]
+            cmd: cmd + 1
             either grad? [								;-- gradient pen
-                cmd: cmd + 1
                 count: 0
                 stops: cmd + 1
                 loop 2 [                                ;-- at least two stops required
@@ -376,9 +384,38 @@ Red/System [
                         ;-- TBD ...
                     ]
                     mode = bitmap [
-                        ;-- TBD ...
+                        img: null
+						DRAW_FETCH_VALUE(TYPE_WORD)
+                        either TYPE_OF(cmd) = TYPE_WORD [
+                            value: as red-value! _context/get as red-word! cmd
+                            if TYPE_OF(value) <> TYPE_IMAGE [ 
+                                throw-draw-error cmds cmd catch? 
+                            ]
+    						img: as red-image! value
+                        ][ throw-draw-error cmds cmd catch? ]
+                        word:   null
+						crop-1: null
+						crop-2: null 
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-1: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-2: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+                        if pos = cmd [ 
+                            word: as red-word! cmd
+                            type: symbol/resolve word/symbol
+                            unless any [ 
+                                type = tile 
+                                type = flip-x 
+                                type = flip-y
+                                type = flip-xy
+                                type = clamp
+                            ][ cmd: cmd - 1 word: null ] 
+                        ]
+						OS-draw-brush-bitmap DC img word crop-1 crop-2 sym = fill-pen
                     ]
                     true [
+                        cmd: cmd - 1
                         either off? [ cmd: cmd + 1 rgb: -1 ][ DRAW_FETCH_TUPLE ]
                         either sym = pen [
                             OS-draw-pen DC rgb off? as logic! alpha?

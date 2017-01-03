@@ -533,6 +533,12 @@ Red/System [
 #define RGN_DIFF            4
 #define RGN_COPY            5
 
+#define WRAP_MODE_TILE          0
+#define WRAP_MODE_TILE_FLIP_X   1
+#define WRAP_MODE_TILE_FLIP_Y   2
+#define WRAP_MODE_TILE_FLIP_XY  3
+#define WRAP_MODE_CLAMP         4
+
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
 	left		[integer!]
@@ -2283,6 +2289,16 @@ PATHDATA: alias struct! [
 		GdipDeleteBrush: "GdipDeleteBrush" [
 			brush		[integer!]
 			return:		[integer!]
+		]
+        GdipCreateTexture2I: "GdipCreateTexture2I" [
+            image       [integer!]
+            wrapmode    [integer!]
+            x           [integer!]
+            y           [integer!]
+            width       [integer!]
+            height      [integer!]
+            texture     [int-ptr!]
+            return:     [integer!]
 		]
 		GdipDrawPolygonI: "GdipDrawPolygonI" [
 			graphics	[integer!]

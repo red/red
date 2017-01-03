@@ -135,6 +135,7 @@ update-gdiplus-modes: func [ctx [draw-ctx!] ][
 
 update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
     handle: 0
+    ctx/gp-brush-type: BRUSH_TYPE_NORMAL
     unless zero? ctx/gp-brush [
         GdipDeleteBrush ctx/gp-brush
         ctx/gp-brush: 0
@@ -146,6 +147,7 @@ update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 ]
 
 update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
+    ctx/gp-pen-type: BRUSH_TYPE_NORMAL
     either ctx/pen? [
         if ctx/gp-pen-saved <> 0 [
             ctx/gp-pen: ctx/gp-pen-saved
@@ -260,6 +262,8 @@ draw-begin: func [
     ctx/pen-width:		as float32! 1.0
     ctx/pen?:			yes
     ctx/hwnd:			hWnd
+    ctx/gp-brush-type:  BRUSH_TYPE_NORMAL
+    ctx/gp-pen-type:    BRUSH_TYPE_NORMAL
     dc:					null
 
     gradient-pen/extra:         0
@@ -1797,6 +1801,60 @@ OS-draw-image: func [
         GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
+OS-draw-brush-bitmap: func [
+    ctx		[draw-ctx!]
+    img     [red-image!]
+    mode    [red-word!]
+    crop-1  [red-pair!]
+    crop-2  [red-pair!]
+    brush?  [logic!]
+    /local
+        x       [integer!]
+        y       [integer!]
+        width   [integer!]
+        height  [integer!]
+        texture [integer!]
+        wrap    [integer!]
+][
+    width:  OS-image/width? as-integer img/node
+    height: OS-image/height? as-integer img/node
+    either crop-1 = null [ 
+        x: 0 
+        y: 0 
+    ][
+        x: crop-1/x
+        y: crop-1/y
+    ]
+    either crop-2 = null [
+        width:  width - x
+        height: height - y
+    ][
+        width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
+        height: either ( y + crop-2/y ) > height [ height - x ][ crop-2/y ]
+    ]
+    wrap: WRAP_MODE_TILE
+    unless mode = null [
+        wrap: symbol/resolve mode/symbol
+        case [
+            wrap = flip-x [ wrap: WRAP_MODE_TILE_FLIP_X ]
+            wrap = flip-y [ wrap: WRAP_MODE_TILE_FLIP_Y ]
+            wrap = flip-xy [ wrap: WRAP_MODE_TILE_FLIP_XY ]
+            wrap = clamp [ wrap: WRAP_MODE_CLAMP]
+            true [ wrap: WRAP_MODE_TILE ]
+        ]
+    ]
+    texture: 0
+    GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+    ctx/brush?: brush?
+    either brush? [
+        ctx/gp-brush:       texture
+        ctx/gp-brush-type:  BRUSH_TYPE_TEXTURE
+    ][
+        GdipSetPenBrushFill ctx/gp-pen texture
+        ctx/gp-pen-type:    BRUSH_TYPE_TEXTURE
+    ] 
+]
+
 get-shape-center: func [
     start   [tagPOINT]
     count   [integer!]
@@ -2047,8 +2105,10 @@ save-brush: func [
     either gradient = gradient-fill [
         unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
         ctx/gp-brush: brush
+        ctx/gp-brush-type: BRUSH_TYPE_NORMAL
     ][
         GdipSetPenBrushFill ctx/gp-pen brush
+        ctx/gp-pen-type: BRUSH_TYPE_NORMAL
     ]
 ]
 

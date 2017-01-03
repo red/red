@@ -114,6 +114,11 @@ Red/System [
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
 
+	#enum brush-type! [
+		BRUSH_TYPE_NORMAL
+		BRUSH_TYPE_TEXTURE
+	]
+
 	draw-ctx!: alias struct! [
 		dc				[int-ptr!]								;-- OS drawing object
 		hwnd			[int-ptr!]								;-- Window's handle
@@ -130,8 +135,10 @@ Red/System [
 		graphics		[integer!]								;-- gdiplus graphics
 		gp-state		[integer!]
 		gp-pen			[integer!]								;-- gdiplus pen
+		gp-pen-type 	[brush-type!]							;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
 		gp-pen-saved	[integer!]
 		gp-brush		[integer!]								;-- gdiplus brush
+		gp-brush-type 	[brush-type!]							;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
 		gp-font			[integer!]								;-- gdiplus font
 		gp-font-brush	[integer!]
 		gp-matrix		[integer!]
