@@ -31,12 +31,12 @@ OS-text-box-color: func [
 		dl		[IDWriteTextLayout]
 		brush	[integer!]
 ][
-	brush: select-brush color
+	brush: select-brush dc + 1 color
 	if zero? brush [
-		this: as this! dc
+		this: as this! dc/value
 		rt: as ID2D1HwndRenderTarget this/vtbl
 		rt/CreateSolidColorBrush this to-dx-color color null null :brush
-		put-brush color brush
+		put-brush dc + 1 color brush
 	]
 
 	this: as this! layout
@@ -247,7 +247,7 @@ OS-text-box-metrics: func [
 
 OS-text-box-layout: func [
 	box		[red-object!]
-	target	[this!]
+	target	[int-ptr!]
 	catch?	[logic!]
 	return: [this!]
 	/local
@@ -268,11 +268,7 @@ OS-text-box-layout: func [
 	values: object/get-values box
 	if null? target [
 		hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
-		target: as this! GetWindowLong hWnd wc-offset - 24
-		if null? target [
-			target: create-hwnd-render-target hWnd
-			SetWindowLong hWnd wc-offset - 24 as-integer target
-		]
+		target: get-hwnd-render-target hWnd
 	]
 
 	state: as red-block! values + TBOX_OBJ_STATE
@@ -308,7 +304,7 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		2 < block/rs-length? styles
 	][
-		parse-text-styles as handle! target as handle! layout styles catch?
+		parse-text-styles target as handle! layout styles catch?
 	]
 	layout
 ]

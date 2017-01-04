@@ -410,7 +410,7 @@ free-handles: func [
 				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
 			]
 			dc: GetWindowLong hWnd wc-offset - 24
-			if dc <> 0 [d2d-release-target as this! dc]
+			if dc <> 0 [d2d-release-target as int-ptr! dc]
 		]
 		true [
 			0

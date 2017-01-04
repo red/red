@@ -10,41 +10,7 @@ Red/System [
 	}
 ]
 
-d2d-brushes: as int-ptr! 0							;-- brushes cache for Direct2D
-d2d-brush-cnt: 0
-
-#define D2D_MAX_BRUSHES 64
-
 #include %text-box.reds
-
-select-brush: func [
-	color	[integer!]
-	return: [integer!]
-	/local
-		brushes [int-ptr!]
-][
-	brushes: d2d-brushes
-	loop d2d-brush-cnt [
-		either brushes/value = color [
-			return brushes/2
-		][
-			brushes: brushes + 2
-		]
-	]
-	0
-]
-
-put-brush: func [
-	color	[integer!]
-	brush	[integer!]
-	/local
-		brushes [int-ptr!]
-][
-	brushes: d2d-brushes + (d2d-brush-cnt * 2)
-	brushes/1: color
-	brushes/2: brush
-	d2d-brush-cnt: d2d-brush-cnt + 1
-]
 
 draw-begin-d2d: func [
 	ctx			[draw-ctx!]
@@ -61,13 +27,14 @@ draw-begin-d2d: func [
 		m		[D2D_MATRIX_3X2_F]
 		bg-clr	[integer!]
 		brush	[integer!]
+		target	[int-ptr!]
+		brushes [int-ptr!]
 ][
-	this: as this! GetWindowLong hWnd wc-offset - 24
-	if null? this [
-		this: create-hwnd-render-target hWnd
-		SetWindowLong hWnd wc-offset - 24 as-integer this
-	]
+	target: get-hwnd-render-target hWnd
+
+	this: as this! target/value
 	ctx/dc: as handle! this
+	ctx/brushes: target
 
 	rt: as ID2D1HwndRenderTarget this/vtbl
 	rt/SetTextAntialiasMode this 1				;-- ClearType
@@ -84,13 +51,10 @@ draw-begin-d2d: func [
 		rt/Clear this to-dx-color bg-clr null
 	]
 
-	brush: 0
-	either null? d2d-brushes [
-		d2d-brushes: as int-ptr! allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+	brush: select-brush target + 1 ctx/pen-color
+	if zero? brush [
 		rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
-		put-brush ctx/pen-color brush
-	][
-		brush: select-brush ctx/pen-color
+		put-brush target + 1 ctx/pen-color brush
 	]
 	ctx/pen: brush
 ]
@@ -121,7 +85,7 @@ draw-end-d2d: func [
 	switch hr [
 		COM_S_OK [ValidateRect hWnd null]
 		D2DERR_RECREATE_TARGET [
-			rt/Release this
+			d2d-release-target ctx/brushes
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
 		]
@@ -206,7 +170,7 @@ OS-draw-text-d2d: func [
 			int: as red-integer! block/rs-head state
 			as this! int/value
 		][
-			OS-text-box-layout as red-object! text this yes
+			OS-text-box-layout as red-object! text ctx/brushes yes
 		]
 	][
 		0

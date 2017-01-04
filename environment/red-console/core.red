@@ -45,6 +45,7 @@ terminal!: object [
 		box/text: "X"
 		box/layout
 		line-h: box/line-height 1
+		?? line-h
 		caret/size/y: line-h
 	]
 

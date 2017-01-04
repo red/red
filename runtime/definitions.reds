@@ -126,6 +126,7 @@ Red/System [
 		brush-color		[integer!]								;-- 00bbggrr format
 		font-color		[integer!]
 		bitmap			[int-ptr!]
+		brushes			[int-ptr!]
 		graphics		[integer!]								;-- gdiplus graphics
 		gp-state		[integer!]
 		gp-pen			[integer!]								;-- gdiplus pen

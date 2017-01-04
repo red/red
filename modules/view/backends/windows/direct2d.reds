@@ -13,6 +13,8 @@ Red/System [
 d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 
+#define D2D_MAX_BRUSHES 64
+
 #define float32-ptr! [pointer! [float32!]]
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define FLT_MAX	[as float32! 3.402823466e38]
@@ -648,6 +650,41 @@ DWriteCreateFactory!: alias function! [
 
 #define ConvertPointSizeToDIP(size)		(as float32! 96.0 / 72.0 * size)
 
+select-brush: func [
+	target		[int-ptr!]
+	color		[integer!]
+	return: 	[integer!]
+	/local
+		brushes [int-ptr!]
+		cnt		[integer!]
+][
+	brushes: as int-ptr! target/1
+	cnt: target/2
+	loop cnt [
+		either brushes/value = color [
+			return brushes/2
+		][
+			brushes: brushes + 2
+		]
+	]
+	0
+]
+
+put-brush: func [
+	target		[int-ptr!]
+	color		[integer!]
+	brush		[integer!]
+	/local
+		brushes [int-ptr!]
+		cnt		[integer!]
+][
+	cnt: target/2
+	brushes: (as int-ptr! target/1) + (cnt * 2)
+	brushes/1: color
+	brushes/2: brush
+	target/2: cnt + 1 % D2D_MAX_BRUSHES
+]
+
 DX-init: func [
 	/local
 		hr					[integer!]
@@ -694,12 +731,24 @@ to-dx-color: func [
 ]
 
 d2d-release-target: func [
-	this	[this!]
+	target	[int-ptr!]
 	/local
-		rt	 [ID2D1HwndRenderTarget]
+		rt		[ID2D1HwndRenderTarget]
+		brushes [int-ptr!]
+		cnt		[integer!]
+		this	[this!]
+		obj		[IUnknown]
 ][
+	brushes: as int-ptr! target/2
+	cnt: target/3
+	loop cnt [
+		COM_SAFE_RELEASE_OBJ(obj brushes/2)
+		brushes: brushes + 2
+	]
+	this: as this! target/1
 	rt: as ID2D1HwndRenderTarget this/vtbl
 	rt/Release this
+	free as byte-ptr! target
 ]
 
 create-hwnd-render-target: func [
@@ -745,6 +794,23 @@ create-hwnd-render-target: func [
 	hr: factory/CreateHwndRenderTarget d2d-factory props hprops :target
 	if hr <> 0 [return null]
 	as this! target
+]
+
+get-hwnd-render-target: func [
+	hWnd	[handle!]
+	return:	[int-ptr!]
+	/local
+		target	[int-ptr!]
+][
+	target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+	if null? target [
+		target: as int-ptr! allocate 4 * size? int-ptr!
+		target/1: as-integer create-hwnd-render-target hWnd
+		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
+		target/3: 0
+		SetWindowLong hWnd wc-offset - 24 as-integer target
+	]
+	target
 ]
 
 create-dc-render-target: func [
