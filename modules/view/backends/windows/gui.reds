@@ -1135,11 +1135,9 @@ OS-make-view: func [
 		null
 	]
 
-	unless DWM-enabled? [
-		unless alpha? [
-			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
-		]
-	]
+	;if all [not DWM-enabled? not alpha? bits and FACET_FLAGS_D2D = 0][
+	;	ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+	;]
 
 	if all [
 		parent <> 0
