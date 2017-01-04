@@ -268,13 +268,13 @@ Red/System [
             return: [red-value!]
             /local
 				word	[red-word!]
-				pattern [red-word!]
 				point	[red-pair!]
 				pos		[red-value!]
 				value	[red-value!]
 				img     [red-image!]
 				crop-1	[red-pair!]
 				crop-2	[red-pair!]
+                size    [red-pair!]
 				type	[integer!]
 				count	[integer!]
 				mode	[integer!]
@@ -381,7 +381,29 @@ Red/System [
             ][
                 case [
                     mode = _pattern [
-                        ;-- TBD ...
+                        DRAW_FETCH_VALUE(TYPE_PAIR)
+                        size: as red-pair! cmd
+                        word:   null
+						crop-1: null
+						crop-2: null 
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-1: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-2: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+                        if pos = cmd [ 
+                            word: as red-word! cmd
+                            type: symbol/resolve word/symbol
+                            unless any [ 
+                                type = tile 
+                                type = flip-x 
+                                type = flip-y
+                                type = flip-xy
+                                type = clamp
+                            ][ cmd: cmd - 1 word: null ] 
+                        ]
+                        DRAW_FETCH_VALUE(TYPE_BLOCK)
+                        OS-draw-brush-pattern DC size crop-1 crop-2 word as red-block! cmd sym = fill-pen
                     ]
                     mode = bitmap [
                         img: null
@@ -412,7 +434,7 @@ Red/System [
                                 type = clamp
                             ][ cmd: cmd - 1 word: null ] 
                         ]
-						OS-draw-brush-bitmap DC img word crop-1 crop-2 sym = fill-pen
+						OS-draw-brush-bitmap DC img crop-1 crop-2 word sym = fill-pen
                     ]
                     true [
                         cmd: cmd - 1
@@ -954,9 +976,12 @@ draw: function [
 	"Draws scalable vector graphics to an image"
 	image	[image! pair!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
+	/transparent
 	return: [image!]
 ][
-	if pair? image [image: make image! image]
+	if pair? image [
+		image: either transparent [ make image! image 255.255.255.0 ][ make image! image ]
+	]
 	system/view/platform/draw-image image cmd
 	image
 ]

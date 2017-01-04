@@ -10,20 +10,60 @@ Red/System [
     }
 ]
 
-#define SHAPE_OTHER     		0
-#define SHAPE_CURVE     		1
-#define SHAPE_QCURVE    		2
+<<<<<<< Updated upstream
+=======
+gradient!: alias struct! [
+    extra           [integer!]                              ;-- used when pen width > 1
+    pair-1          [red-pair!]                             ;-- preallocated for performance reasons
+    pair-2          [red-pair!]                             ;-- preallocated for performance reasons
+    path-data       [PATHDATA]                              ;-- preallocated for performance reasons
+    points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+    type            [integer!]                              ;-- gradient on fly (just before drawing figure)
+    count           [integer!]                              ;-- gradient stops count
+    data            [tagPOINT]                              ;-- figure coordinates
+    positions?      [logic!]                                ;-- true if positions are defined, false otherwise
+    created?        [logic!]                                ;-- true if gradient brush created, false otherwise                                 
+]
+max-data: 5
+gradient-pen: declare gradient!                             ;-- one for pen
+gradient-pen/data: as tagPOINT allocate max-data * (size? tagPOINT)
+gradient-fill: declare gradient!                            ;-- one for fill
+gradient-fill/data: as tagPOINT allocate max-data * (size? tagPOINT)
+gradient-pen?: false
+gradient-fill?: false
 
-#define GRADIENT_NONE       	0
-#define GRADIENT_LINEAR     	1
-#define GRADIENT_RADIAL     	2
-#define GRADIENT_DIAMOND    	3
+gradient-matrix-pen:    0  ;-- transformation matrix for pen gradient GDI+
+gradient-matrix-fill:   0  ;-- transformation matrix for fill gradient GDI+
+matrix-elems: as pointer! [float32!] 0     ;-- elements of matrix allocated in draw-begin for performance reason
 
-#define INVALID_RADIUS      	-1
-#define INDEX_UPPER         	0
-#define INDEX_LOWER         	1
-#define INDEX_OTHER         	2
+paint: declare tagPAINTSTRUCT
+max-colors: 256												;-- max number of colors for gradient
+max-edges:  1000											;-- max number of edges for a polygone
+edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
+types: allocate max-edges * (size? byte!)					;-- point type buffer
+colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
+colors-pos: as pointer! [float32!] colors + max-colors
+pen-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)  ;-- for delayed pen gradients (no positions specified)
+pen-colors-pos: as pointer! [float32!] pen-colors + max-colors      ;-- for delayed pen gradients (no positions specified)
 
+pattern-image: as red-image! 0
+pattern-image: null
+
+#define SHAPE_OTHER     0
+#define SHAPE_CURVE     1
+#define SHAPE_QCURVE    2
+
+#define GRADIENT_NONE       0
+#define GRADIENT_LINEAR     1
+#define GRADIENT_RADIAL     2
+#define GRADIENT_DIAMOND    3
+
+#define INVALID_RADIUS      -1
+#define INDEX_UPPER         0
+#define INDEX_LOWER         1
+#define INDEX_OTHER         2
+
+>>>>>>> Stashed changes
 #define INIT_GRADIENT_DATA(upper lower other)  [
     upper: gradient/data + INDEX_UPPER
     lower: gradient/data + INDEX_LOWER
@@ -48,6 +88,24 @@ Red/System [
 ]
 #define FREE_REENTRANT_BYTES(word) [
     free word
+]
+
+#define FIELD_GRADIENT_MATRIX_PEN(ctxt) [
+    as int-ptr! ( 
+        as byte-ptr! ctxt + ( size? ctxt/other/gradient-pen ) +
+        ( size? ctxt/other/gradient-fill ) +
+        ( size? ctxt/other/gradient-pen? ) +
+        ( size? ctxt/other/gradient-fill? )
+    ) 
+]
+#define FIELD_GRADIENT_MATRIX_FILL(ctxt) [
+    as int-ptr! ( 
+        as byte-ptr! ctxt + ( size? ctxt/other/gradient-pen ) +
+        ( size? ctxt/other/gradient-fill ) +
+        ( size? ctxt/other/gradient-pen? ) +
+        ( size? ctxt/other/gradient-fill? ) + 
+        ( size? ctxt/other/gradient-matrix-pen )
+    ) 
 ]
 
 
@@ -75,15 +133,11 @@ alloc-context: func [
     ctx/other/path-last-point:          ALLOC_REENTRANT(tagPOINT)
     ctx/other/prev-shape:               ALLOC_REENTRANT(curve-info!)
     ctx/other/prev-shape/control:       ALLOC_REENTRANT(tagPOINT)
-    ctx/other/pattern-image-fill:       ALLOC_REENTRANT_ELEMS(integer! red-image! 1)
-    ctx/other/pattern-image-pen:        ALLOC_REENTRANT_ELEMS(integer! red-image! 1)
 ]
 
 free-context: func [
     ctx     [draw-ctx!]
 ][
-    FREE_REENTRANT(ctx/other/pattern-image-pen)
-    FREE_REENTRANT(ctx/other/pattern-image-fill)
     FREE_REENTRANT(ctx/other/prev-shape/control)
     FREE_REENTRANT(ctx/other/prev-shape)
     FREE_REENTRANT(ctx/other/path-last-point)
@@ -271,7 +325,6 @@ draw-begin: func [
         hBitmap  [handle!]
         hBackDC  [handle!]
         graphics [integer!]
-        ptrn     [red-image!]
 ][
     zero-memory as byte-ptr! ctx size? draw-ctx!
     alloc-context ctx
@@ -311,10 +364,6 @@ draw-begin: func [
     ctx/other/anti-alias?:                  no
     ctx/other/GDI+?:                        no
     ctx/other/D2D?:                         no
-    ptrn:                                   as red-image! ctx/other/pattern-image-fill 
-    ptrn/node:                              null
-    ptrn:                                   as red-image! ctx/other/pattern-image-pen 
-    ptrn/node:                              null
 
     rect: declare RECT_STRUCT
     either null? hWnd [
@@ -388,7 +437,6 @@ draw-end: func [
         bitmap	[integer!]
         old-dc	[integer!]
         dc		[handle!]
-        ptrn    [red-image!]
 ][
     if ctx/other/D2D? [
         draw-end-d2d ctx hWnd
@@ -418,14 +466,6 @@ draw-end: func [
     unless zero? ctx/other/gradient-matrix-pen [ GdipDeleteMatrix ctx/other/gradient-matrix-pen ]
     unless zero? ctx/other/gradient-matrix-fill [ GdipDeleteMatrix ctx/other/gradient-matrix-fill ]
     unless zero? as-integer ctx/other/matrix-elems       [ free as byte-ptr! ctx/other/matrix-elems ]
-    ptrn: as red-image! ctx/other/pattern-image-fill 
-    unless null? ptrn/node [
-        OS-image/delete as red-image! ctx/other/pattern-image-fill
-    ]
-    ptrn: as red-image! ctx/other/pattern-image-pen 
-    unless null? ptrn/node [
-        OS-image/delete as red-image! ctx/other/pattern-image-pen
-    ]
 
     unless ctx/on-image? [
         DeleteObject ctx/bitmap
@@ -1833,9 +1873,9 @@ OS-draw-image: func [
 OS-draw-brush-bitmap: func [
     ctx		[draw-ctx!]
     img     [red-image!]
+    mode    [red-word!]
     crop-1  [red-pair!]
     crop-2  [red-pair!]
-    mode    [red-word!]
     brush?  [logic!]
     /local
         x       [integer!]
@@ -1875,6 +1915,7 @@ OS-draw-brush-bitmap: func [
     ]
     texture: 0
     result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
+    print ["result: " result " x: " x " y: " y " width: " width " height: " height " texture: " texture lf]
     ctx/brush?: brush?
     either brush? [
         ctx/gp-brush:       texture
@@ -1888,37 +1929,20 @@ OS-draw-brush-bitmap: func [
 OS-draw-brush-pattern: func [
     ctx		[draw-ctx!]
     size    [red-pair!]
-    crop-1  [red-pair!]
-    crop-2  [red-pair!]
-    mode    [red-word!]
     block   [red-block!]
     brush?  [logic!]
-    /local
-        pat-image   [red-image!]
-        bkg-alpha   [byte!]
-        p-alpha     [byte-ptr!]
-        p           [byte-ptr!]
 ][
-    pat-image: either brush? 
-        [ as red-image! ctx/other/pattern-image-fill ]
-        [ as red-image! ctx/other/pattern-image-pen ]
-    unless null? pat-image/node [
-        OS-image/delete pat-image
+    print ["STEP 1" lf]
+    unless pattern-image = null [
+        OS-image/delete pattern-image
     ]
-    pat-image/header: TYPE_IMAGE
-    pat-image/head:   0
-    pat-image/size:   size/y << 16 or size/x
-    bkg-alpha:        as byte! 0
-    p-alpha:          allocate pat-image/size
-    p: p-alpha
-    loop pat-image/size [
-        p/value: as-byte 255
-        p: p + 1
-    ]
-    pat-image/node:   as node! OS-image/make-image size/x size/y null p-alpha null
-    free p-alpha
-    do-draw null pat-image block no no no no
-    OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?
+    print ["STEP 2" lf]
+    #call [ draw size block ]
+    print ["STEP 3" lf]
+    pattern-image: as red-image! stack/arguments
+    print ["STEP 4 pattern-image: " pattern-image " pattern-image/node: " pattern-image/node lf]
+    OS-draw-brush-bitmap ctx pattern-image null null null brush?
+    print ["STEP 5" lf]
 ]
 
 get-shape-center: func [
@@ -2090,38 +2114,20 @@ gradient-transf-reset: func [
     ctx         [draw-ctx!]
     gradient    [gradient!]
     /local 
-        m       [integer!]
+        mm      [int-ptr!]
 ][
-    either gradient = ctx/other/gradient-pen [
-        m: ctx/other/gradient-matrix-pen
-        either zero? m [
-            GdipCreateMatrix :m
-            ctx/other/gradient-matrix-pen: m
-        ][
-            GdipSetMatrixElements 
-                m
-                as-float32 1 
-                as-float32 0 
-                as-float32 0 
-                as-float32 1 
-                as-float32 0 
-                as-float32 0
-        ]
+    mm: either gradient = ctx/other/gradient-pen [ FIELD_GRADIENT_MATRIX_PEN(ctx) ][ FIELD_GRADIENT_MATRIX_FILL(ctx) ]
+    either zero? mm/value [
+        GdipCreateMatrix mm
     ][
-        m: ctx/other/gradient-matrix-fill
-        either zero? m [
-            GdipCreateMatrix :m
-            ctx/other/gradient-matrix-fill: m
-        ][
-            GdipSetMatrixElements 
-                m
-                as-float32 1 
-                as-float32 0 
-                as-float32 0 
-                as-float32 1 
-                as-float32 0 
-                as-float32 0
-        ]
+        GdipSetMatrixElements 
+            mm/value
+            as-float32 1 
+            as-float32 0 
+            as-float32 0 
+            as-float32 1 
+            as-float32 0 
+            as-float32 0
     ]
 ]
 
@@ -2172,11 +2178,11 @@ gradient-invert-matrix: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
     /local
-        gm      [integer!]
+        gm  [int-ptr!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipInvertMatrix gm
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    gm: either gradient = ctx/other/gradient-pen [ FIELD_GRADIENT_MATRIX_PEN(ctx) ][ FIELD_GRADIENT_MATRIX_FILL(ctx) ]
+    GdipInvertMatrix gm/value
+    if gradient/created? [ gradient-transform ctx gradient gm/value ]
 ]
 
 
@@ -2379,23 +2385,11 @@ check-gradient-box: func [
     lower   [red-pair!]
 ][
     if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
-        _check-gradient-box 
-            ctx 
-            ctx/other/gradient-pen 
-            ctx/other/pen-colors 
-            ctx/other/pen-colors-pos 
-            upper 
-            lower
+        _check-gradient-box ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos upper lower
     ]
     if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
         ctx/brush?: true
-        _check-gradient-box 
-            ctx 
-            ctx/other/gradient-fill 
-            ctx/other/colors 
-            ctx/other/colors-pos 
-            upper 
-            lower
+        _check-gradient-box ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos upper lower
     ]
 ]
 

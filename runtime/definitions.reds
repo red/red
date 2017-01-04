@@ -203,6 +203,8 @@ Red/System [
 		anti-alias?				[logic!]
 		GDI+?					[logic!]
 		D2D?					[logic!]
+		pattern-image-fill		[integer!]
+		pattern-image-pen		[integer!]
 	]
 
 	draw-ctx!: alias struct! [
