@@ -114,9 +114,95 @@ Red/System [
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
 
+	#define handle!				[pointer! [integer!]]
+
 	#enum brush-type! [
 		BRUSH_TYPE_NORMAL
 		BRUSH_TYPE_TEXTURE
+	]
+
+	tagPAINTSTRUCT: alias struct! [
+		hdc			 [handle!]
+		fErase		 [integer!]
+		left		 [integer!]
+		top			 [integer!]
+		right		 [integer!]
+		bottom		 [integer!]
+		fRestore	 [integer!]
+		fIncUpdate	 [integer!]
+		rgbReserved1 [integer!]
+		rgbReserved2 [integer!]
+		rgbReserved3 [integer!]
+		rgbReserved4 [integer!]
+		rgbReserved5 [integer!]
+		rgbReserved6 [integer!]
+		rgbReserved7 [integer!]
+		rgbReserved8 [integer!]
+	]
+	
+	POINT_2F: alias struct! [
+		x		[float32!]
+		y		[float32!]
+	]
+
+	PATHDATA: alias struct! [
+		count       [integer!]
+		points      [POINT_2F]
+		types       [byte-ptr!]
+	]
+
+	tagPOINT: alias struct! [
+		x		[integer!]
+		y		[integer!]	
+	]
+
+
+	gradient!: alias struct! [
+		extra           [integer!]                              ;-- used when pen width > 1
+		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
+		points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
+		count           [integer!]                              ;-- gradient stops count
+		data            [tagPOINT]                              ;-- figure coordinates
+		positions?      [logic!]                                ;-- true if positions are defined, false otherwise
+		created?        [logic!]                                ;-- true if gradient brush created, false otherwise                                 
+	]
+
+	curve-info!: alias struct! [
+		type    [integer!]
+		control [tagPOINT]
+	]
+
+	arcPOINTS!: alias struct! [
+		start-x     [float!]
+		start-y     [float!]
+		end-x       [float!]
+		end-y       [float!]
+	]
+
+	other!: alias struct! [
+		gradient-pen			[gradient!]
+		gradient-fill			[gradient!]
+		gradient-pen?			[logic!]
+		gradient-fill?			[logic!]
+		gradient-matrix-pen		[integer!]					;-- transformation matrix for pen gradient GDI+
+		gradient-matrix-fill	[integer!]					;-- transformation matrix for fill gradient GDI+
+		matrix-elems			[pointer! [float32!]]		;-- elements of matrix allocated in draw-begin for performance reason
+		paint					[tagPAINTSTRUCT]
+		edges					[tagPOINT]					;-- polygone edges buffer
+		types					[byte-ptr!]					;-- point type buffer
+		colors					[int-ptr!]
+		colors-pos				[pointer! [float32!]]
+		pen-colors				[int-ptr!]					;-- for delayed pen gradients (no positions specified)
+		pen-colors-pos			[pointer! [float32!]]		;-- for delayed pen gradients (no positions specified)
+		last-point?				[logic!]
+		path-last-point			[tagPOINT]
+		prev-shape				[curve-info!]
+		connect-subpath			[integer!]
+		matrix-order			[integer!]
+		anti-alias?				[logic!]
+		GDI+?					[logic!]
+		D2D?					[logic!]
 	]
 
 	draw-ctx!: alias struct! [
@@ -150,6 +236,7 @@ Red/System [
 		alpha-pen?		[logic!]
 		alpha-brush?	[logic!]
 		font-color?		[logic!]
+		other 			[other!]
 	]
 ][
 	#define O_RDONLY	0

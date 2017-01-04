@@ -10,53 +10,19 @@ Red/System [
     }
 ]
 
-gradient!: alias struct! [
-    extra           [integer!]                              ;-- used when pen width > 1
-    pair-1          [red-pair!]                             ;-- preallocated for performance reasons
-    pair-2          [red-pair!]                             ;-- preallocated for performance reasons
-    path-data       [PATHDATA]                              ;-- preallocated for performance reasons
-    points-data     [tagPOINT]                              ;-- preallocated for performance reasons
-    type            [integer!]                              ;-- gradient on fly (just before drawing figure)
-    count           [integer!]                              ;-- gradient stops count
-    data            [tagPOINT]                              ;-- figure coordinates
-    positions?      [logic!]                                ;-- true if positions are defined, false otherwise
-    created?        [logic!]                                ;-- true if gradient brush created, false otherwise                                 
-]
-max-data: 5
-gradient-pen: declare gradient!                             ;-- one for pen
-gradient-pen/data: as tagPOINT allocate max-data * (size? tagPOINT)
-gradient-fill: declare gradient!                            ;-- one for fill
-gradient-fill/data: as tagPOINT allocate max-data * (size? tagPOINT)
-gradient-pen?: false
-gradient-fill?: false
+#define SHAPE_OTHER     		0
+#define SHAPE_CURVE     		1
+#define SHAPE_QCURVE    		2
 
-gradient-matrix-pen:    0  ;-- transformation matrix for pen gradient GDI+
-gradient-matrix-fill:   0  ;-- transformation matrix for fill gradient GDI+
-matrix-elems: as pointer! [float32!] 0     ;-- elements of matrix allocated in draw-begin for performance reason
+#define GRADIENT_NONE       	0
+#define GRADIENT_LINEAR     	1
+#define GRADIENT_RADIAL     	2
+#define GRADIENT_DIAMOND    	3
 
-paint: declare tagPAINTSTRUCT
-max-colors: 256												;-- max number of colors for gradient
-max-edges:  1000											;-- max number of edges for a polygone
-edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
-types: allocate max-edges * (size? byte!)					;-- point type buffer
-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
-colors-pos: as pointer! [float32!] colors + max-colors
-pen-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)  ;-- for delayed pen gradients (no positions specified)
-pen-colors-pos: as pointer! [float32!] pen-colors + max-colors      ;-- for delayed pen gradients (no positions specified)
-
-#define SHAPE_OTHER     0
-#define SHAPE_CURVE     1
-#define SHAPE_QCURVE    2
-
-#define GRADIENT_NONE       0
-#define GRADIENT_LINEAR     1
-#define GRADIENT_RADIAL     2
-#define GRADIENT_DIAMOND    3
-
-#define INVALID_RADIUS      -1
-#define INDEX_UPPER         0
-#define INDEX_LOWER         1
-#define INDEX_OTHER         2
+#define INVALID_RADIUS      	-1
+#define INDEX_UPPER         	0
+#define INDEX_LOWER         	1
+#define INDEX_OTHER         	2
 
 #define INIT_GRADIENT_DATA(upper lower other)  [
     upper: gradient/data + INDEX_UPPER
@@ -64,46 +30,108 @@ pen-colors-pos: as pointer! [float32!] pen-colors + max-colors      ;-- for dela
     other: gradient/data + INDEX_OTHER
 ]
 
-last-point?: no
-path-last-point: declare tagPOINT
-curve-info!: alias struct! [
-    type    [integer!]
-    control [tagPOINT]
-]
-prev-shape: declare curve-info!
-prev-shape/control: declare tagPOINT
+#define MAX_GRADIENT_DATA       5 
+#define MAX_EDGES               1000    ;-- max number of edges for a polygone
+#define MAX_COLORS              256     ;-- max number of colors for gradient
 
-arcPOINTS!: alias struct! [
-    start-x     [float!]
-    start-y     [float!]
-    end-x       [float!]
-    end-y       [float!]
+#define ALLOC_REENTRANT(type) [
+    as type allocate size? type
 ]
-connect-subpath: 0
-matrix-order: GDIPLUS_MATRIXORDERAPPEND
-
-anti-alias?: no
-GDI+?: no
-D2D?: no
-
-clip-replace: func [ return: [integer!] ][
-    either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
+#define ALLOC_REENTRANT_ELEMS(type1 type2 count) [
+    as type1 allocate count * (size? type2)
 ]
-clip-intersect: func [ return: [integer!] ][
-    either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND]
+#define ALLOC_REENTRANT_BYTES(count) [
+    allocate count
 ]
-clip-union: func [ return: [integer!] ][
-    either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR]
+#define FREE_REENTRANT(word) [
+    free as byte-ptr! word
 ]
-clip-xor: func [ return: [integer!] ][
-    either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR]
-]
-clip-diff: func [ return: [integer!] ][
-    either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF]
+#define FREE_REENTRANT_BYTES(word) [
+    free word
 ]
 
-matrix-order-append: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
-matrix-order-prepend: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
+#define FIELD_GRADIENT_MATRIX_PEN(ctxt) [
+    as int-ptr! ( 
+        as byte-ptr! ctxt + ( size? ctxt/other/gradient-pen ) +
+        ( size? ctxt/other/gradient-fill ) +
+        ( size? ctxt/other/gradient-pen? ) +
+        ( size? ctxt/other/gradient-fill? )
+    ) 
+]
+#define FIELD_GRADIENT_MATRIX_FILL(ctxt) [
+    as int-ptr! ( 
+        as byte-ptr! ctxt + ( size? ctxt/other/gradient-pen ) +
+        ( size? ctxt/other/gradient-fill ) +
+        ( size? ctxt/other/gradient-pen? ) +
+        ( size? ctxt/other/gradient-fill? ) + 
+        ( size? ctxt/other/gradient-matrix-pen )
+    ) 
+]
+
+
+alloc-context: func [
+    ctx     [draw-ctx!]
+    /local
+        max-colors  [integer!]
+][
+    max-colors: 2 * MAX_COLORS
+    ctx/other:                          ALLOC_REENTRANT(other!) 
+    ctx/other/gradient-pen:             ALLOC_REENTRANT(gradient!)
+    ctx/other/gradient-pen/path-data:   ALLOC_REENTRANT(PATHDATA)
+    ctx/other/gradient-pen/data:        ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_GRADIENT_DATA) 
+    ctx/other/gradient-fill:            ALLOC_REENTRANT(gradient!)
+    ctx/other/gradient-fill/path-data:  ALLOC_REENTRANT(PATHDATA)
+    ctx/other/gradient-fill/data:       ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_GRADIENT_DATA) 
+    ctx/other/matrix-elems:             ALLOC_REENTRANT_ELEMS(float32-ptr! float32! 6)
+    ctx/other/paint:                    ALLOC_REENTRANT(tagPAINTSTRUCT)
+    ctx/other/edges:                    ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_EDGES)
+    ctx/other/types:                    ALLOC_REENTRANT_BYTES(MAX_EDGES)
+    ctx/other/colors:                   ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
+    ctx/other/colors-pos:               as float32-ptr! ctx/other/colors + MAX_COLORS
+    ctx/other/pen-colors:               ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
+    ctx/other/pen-colors-pos:           as float32-ptr! ctx/other/pen-colors + MAX_COLORS
+    ctx/other/path-last-point:          ALLOC_REENTRANT(tagPOINT)
+    ctx/other/prev-shape:               ALLOC_REENTRANT(curve-info!)
+    ctx/other/prev-shape/control:       ALLOC_REENTRANT(tagPOINT)
+]
+
+free-context: func [
+    ctx     [draw-ctx!]
+][
+    FREE_REENTRANT(ctx/other/prev-shape/control)
+    FREE_REENTRANT(ctx/other/prev-shape)
+    FREE_REENTRANT(ctx/other/path-last-point)
+    FREE_REENTRANT(ctx/other/pen-colors-pos)
+    FREE_REENTRANT(ctx/other/pen-colors)
+    FREE_REENTRANT(ctx/other/colors)
+    FREE_REENTRANT_BYTES(ctx/other/types)
+    FREE_REENTRANT(ctx/other/edges)
+    FREE_REENTRANT(ctx/other/paint)
+    FREE_REENTRANT(ctx/other/matrix-elems)
+    FREE_REENTRANT(ctx/other/gradient-fill/data)
+    FREE_REENTRANT(ctx/other/gradient-fill/path-data)
+    FREE_REENTRANT(ctx/other/gradient-fill)
+    FREE_REENTRANT(ctx/other/gradient-pen/data)
+    FREE_REENTRANT(ctx/other/gradient-pen/path-data)
+    FREE_REENTRANT(ctx/other/gradient-pen)
+    FREE_REENTRANT(ctx/other)
+]
+
+clip-replace: func [ ctx [draw-ctx!] return: [integer!] ][
+    either ctx/other/GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
+]
+clip-intersect: func [ ctx [draw-ctx!] return: [integer!] ][
+    either ctx/other/GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND]
+]
+clip-union: func [ ctx [draw-ctx!] return: [integer!] ][
+    either ctx/other/GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR]
+]
+clip-xor: func [ ctx [draw-ctx!] return: [integer!] ][
+    either ctx/other/GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR]
+]
+clip-diff: func [ ctx [draw-ctx!] return: [integer!] ][
+    either ctx/other/GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF]
+]
 
 update-gdiplus-font-color: func [ctx [draw-ctx!] color [integer!] /local brush [integer!]][
     if ctx/font-color <> color [
@@ -234,7 +262,7 @@ update-pen: func [
 update-modes: func [
     ctx [draw-ctx!]
 ][
-    either GDI+? [
+    either ctx/other/GDI+? [
         update-gdiplus-modes ctx
     ][
         update-pen ctx
@@ -259,6 +287,8 @@ draw-begin: func [
         graphics [integer!]
 ][
     zero-memory as byte-ptr! ctx size? draw-ctx!
+    alloc-context ctx
+
     ctx/pen-width:		as float32! 1.0
     ctx/pen?:			yes
     ctx/hwnd:			hWnd
@@ -266,35 +296,34 @@ draw-begin: func [
     ctx/gp-pen-type:    BRUSH_TYPE_NORMAL
     dc:					null
 
-    gradient-pen/extra:         0
-    gradient-pen/pair-1:        declare red-pair!
-    gradient-pen/pair-2:        declare red-pair!
-    gradient-pen/path-data:     declare PATHDATA
-    gradient-pen/type:        GRADIENT_NONE
-    gradient-pen/count:         0
-    gradient-pen/positions?:    false
-    gradient-pen/created?:      false 
-
-    gradient-fill/extra:         0
-    gradient-fill/pair-1:        declare red-pair!
-    gradient-fill/pair-2:        declare red-pair!
-    gradient-fill/path-data:     declare PATHDATA
-    gradient-fill/type:        GRADIENT_NONE
-    gradient-fill/count:         0 
-    gradient-fill/positions?:    false
-    gradient-fill/created?:      false
-
-    gradient-matrix-pen: 0 
-    gradient-matrix-fill: 0
-    matrix-elems: as pointer! [float32!] allocate 6 * (size? float32!) 
-
-    D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
-    last-point?: no
-    prev-shape/type: SHAPE_OTHER
-    path-last-point/x: 0
-    path-last-point/y: 0
-
-    matrix-order: GDIPLUS_MATRIXORDERAPPEND
+    ctx/other/gradient-pen/extra:           0
+    ctx/other/gradient-pen/type:            GRADIENT_NONE
+    ctx/other/gradient-pen/count:           0
+    ctx/other/gradient-pen/positions?:      false
+    ctx/other/gradient-pen/created?:        false 
+    ctx/other/gradient-fill/extra:          0
+    ctx/other/gradient-fill/type:           GRADIENT_NONE
+    ctx/other/gradient-fill/count:          0 
+    ctx/other/gradient-fill/positions?:     false
+    ctx/other/gradient-fill/created?:       false
+    ctx/other/gradient-matrix-pen:          0 
+    ctx/other/gradient-matrix-fill:         0
+    ctx/other/gradient-pen?:                false
+    ctx/other/gradient-fill?:               false
+    ctx/other/gradient-matrix-pen:          0
+    ctx/other/gradient-matrix-fill:         0
+    ctx/other/D2D?:                         (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+    ctx/other/last-point?:                  no
+    ctx/other/prev-shape/type:              SHAPE_OTHER
+    ctx/other/path-last-point/x:            0
+    ctx/other/path-last-point/y:            0
+    ctx/other/matrix-order:                 GDIPLUS_MATRIXORDERAPPEND
+    ctx/other/connect-subpath:              0
+    ctx/other/last-point?:                  no
+    ctx/other/matrix-order:                 GDIPLUS_MATRIXORDERAPPEND
+    ctx/other/anti-alias?:                  no
+    ctx/other/GDI+?:                        no
+    ctx/other/D2D?:                         no
 
     rect: declare RECT_STRUCT
     either null? hWnd [
@@ -311,11 +340,11 @@ draw-begin: func [
         ctx/dc: dc
         update-gdiplus-font-color ctx ctx/pen-color
     ][
-        either D2D? [
+        either ctx/other/D2D? [
             draw-begin-d2d ctx hWnd
             return ctx
         ][
-            dc: either paint? [BeginPaint hWnd paint][hScreen]
+            dc: either paint? [BeginPaint hWnd ctx/other/paint][hScreen]
             GetClientRect hWnd rect
             width: rect/right - rect/left
             height: rect/bottom - rect/top
@@ -369,7 +398,7 @@ draw-end: func [
         old-dc	[integer!]
         dc		[handle!]
 ][
-    if D2D? [
+    if ctx/other/D2D? [
         draw-end-d2d ctx hWnd
         exit
     ]
@@ -381,7 +410,7 @@ draw-end: func [
         GetClientRect hWnd rect
         width: rect/right - rect/left
         height: rect/bottom - rect/top
-        BitBlt paint/hdc 0 0 width height dc 0 0 SRCCOPY
+        BitBlt ctx/other/paint/hdc 0 0 width height dc 0 0 SRCCOPY
     ]
 
     unless any [on-graphic? zero? ctx/graphics][GdipDeleteGraphics ctx/graphics]
@@ -394,9 +423,9 @@ draw-end: func [
     unless zero? ctx/gp-matrix		[GdipDeleteMatrix ctx/gp-matrix]
     unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
     unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
-    unless zero? gradient-matrix-pen [ GdipDeleteMatrix gradient-matrix-pen ]
-    unless zero? gradient-matrix-fill [ GdipDeleteMatrix gradient-matrix-fill ]
-    unless zero? as-integer matrix-elems       [ free as byte-ptr! matrix-elems ]
+    unless zero? ctx/other/gradient-matrix-pen [ GdipDeleteMatrix ctx/other/gradient-matrix-pen ]
+    unless zero? ctx/other/gradient-matrix-fill [ GdipDeleteMatrix ctx/other/gradient-matrix-fill ]
+    unless zero? as-integer ctx/other/matrix-elems       [ free as byte-ptr! ctx/other/matrix-elems ]
 
     unless ctx/on-image? [
         DeleteObject ctx/bitmap
@@ -408,7 +437,9 @@ draw-end: func [
     ][
         DeleteDC dc
     ]
-    if all [hWnd <> null paint?][EndPaint hWnd paint]
+    if all [hWnd <> null paint?][EndPaint hWnd ctx/other/paint]
+
+    free-context ctx
 ]
 
 to-gdiplus-color: func [
@@ -536,8 +567,7 @@ gdi-calc-arc: func [
 ]
 
 draw-curves: func [
-    dc			[handle!]
-    gp-path		[integer!]
+    ctx         [draw-ctx!]
     start		[red-pair!]
     end			[red-pair!]
     rel?		[logic!]
@@ -549,44 +579,43 @@ draw-curves: func [
         nb      [integer!]
         count   [integer!]
 ][
-    pt:     edges
+    pt:     ctx/other/edges
     pair:   start
     nb:     0
     count: (as-integer end - pair) >> 4 + 1
-    while [ all [ pair <= end nb < max-edges count >= nr-points ] ][
-        pt/x: path-last-point/x
-        pt/y: path-last-point/y
+    while [ all [ pair <= end nb < MAX_EDGES count >= nr-points ] ][
+        pt/x: ctx/other/path-last-point/x
+        pt/y: ctx/other/path-last-point/y
         while [ nb < 3 ][
             nb: nb + 1
             pt: pt + 1
-            pt/x: either rel? [ pair/x + path-last-point/x ][ pair/x ]
-            pt/y: either rel? [ pair/y + path-last-point/y ][ pair/y ]
+            pt/x: either rel? [ pair/x + ctx/other/path-last-point/x ][ pair/x ]
+            pt/y: either rel? [ pair/y + ctx/other/path-last-point/y ][ pair/y ]
             if nb < nr-points [ pair: pair + 1 ] 
         ]
-        path-last-point/x: pt/x
-        path-last-point/y: pt/y
-        either GDI+? [
-            GdipAddPathBeziersI gp-path edges nb + 1
+        ctx/other/path-last-point/x: pt/x
+        ctx/other/path-last-point/y: pt/y
+        either ctx/other/GDI+? [
+            GdipAddPathBeziersI ctx/gp-path ctx/other/edges nb + 1
         ][
-            PolyBezier dc edges nb + 1 
+            PolyBezier ctx/dc ctx/other/edges nb + 1 
         ]
 
         count: (as-integer end - pair) >> 4
         nb: 0
-        pt: edges
+        pt: ctx/other/edges
         pair: pair + 1
     ]
-    last-point?: yes
-    point: edges + nr-points - 1
-    prev-shape/type: SHAPE_CURVE
-    prev-shape/control/x: point/x
-    prev-shape/control/y: point/y
-    connect-subpath: 1
+    ctx/other/last-point?: yes
+    point: ctx/other/edges + nr-points - 1
+    ctx/other/prev-shape/type: SHAPE_CURVE
+    ctx/other/prev-shape/control/x: point/x
+    ctx/other/prev-shape/control/y: point/y
+    ctx/other/connect-subpath: 1
 ]
 
 draw-short-curves: func [
-    dc			[handle!]
-    gp-path		[integer!]
+    ctx         [draw-ctx!]
     start       [red-pair!]
     end         [red-pair!]
     rel?        [logic!]
@@ -599,52 +628,52 @@ draw-short-curves: func [
         control [tagPOINT]
         count   [integer!]
 ][
-    pt: edges
+    pt: ctx/other/edges
     nb: 0
     pair: start
     control: declare tagPOINT
-    either prev-shape/type = SHAPE_CURVE [
-        control/x: prev-shape/control/x
-        control/y: prev-shape/control/y
+    either ctx/other/prev-shape/type = SHAPE_CURVE [
+        control/x: ctx/other/prev-shape/control/x
+        control/y: ctx/other/prev-shape/control/y
     ][
-        control/x: path-last-point/x
-        control/y: path-last-point/y
+        control/x: ctx/other/path-last-point/x
+        control/y: ctx/other/path-last-point/y
     ]
     while [ pair <= end ][
-        pt/x: path-last-point/x
-        pt/y: path-last-point/y
+        pt/x: ctx/other/path-last-point/x
+        pt/y: ctx/other/path-last-point/y
         pt: pt + 1
-        pt/x: ( 2 * path-last-point/x ) - control/x
-        pt/y: ( 2 * path-last-point/y ) - control/y
+        pt/x: ( 2 * ctx/other/path-last-point/x ) - control/x
+        pt/y: ( 2 * ctx/other/path-last-point/y ) - control/y
         pt: pt + 1
-        pt/x: either rel? [ path-last-point/x + pair/x ][ pair/x ]
-        pt/y: either rel? [ path-last-point/y + pair/y ][ pair/y ]
+        pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
+        pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
         control/x: pt/x
         control/y: pt/y
         pt: pt + 1
         loop nr-points - 1 [ pair: pair + 1 ]
         if pair <= end [
-            pt/x: either rel? [ path-last-point/x + pair/x ][ pair/x ]
-            pt/y: either rel? [ path-last-point/y + pair/y ][ pair/y ]
-            last-point?: yes
-            path-last-point/x: pt/x
-            path-last-point/y: pt/y
+            pt/x: either rel? [ ctx/other/path-last-point/x + pair/x ][ pair/x ]
+            pt/y: either rel? [ ctx/other/path-last-point/y + pair/y ][ pair/y ]
+            ctx/other/last-point?: yes
+            ctx/other/path-last-point/x: pt/x
+            ctx/other/path-last-point/y: pt/y
             pair: pair + 1
             nb: nb + 4
         ]
-        either GDI+? [
-            GdipAddPathBeziersI gp-path edges nb
+        either ctx/other/GDI+? [
+            GdipAddPathBeziersI ctx/gp-path ctx/other/edges nb
         ][
-            PolyBezier dc edges nb
+            PolyBezier ctx/dc ctx/other/edges nb
         ]
-        prev-shape/type: SHAPE_CURVE
-        prev-shape/control/x: control/x
-        prev-shape/control/y: control/y 
+        ctx/other/prev-shape/type: SHAPE_CURVE
+        ctx/other/prev-shape/control/x: control/x
+        ctx/other/prev-shape/control/y: control/y 
 
-        pt: edges
+        pt: ctx/other/edges
         nb: 0
     ]
-    connect-subpath: 1
+    ctx/other/connect-subpath: 1
 ]
 
 OS-draw-shape-beginpath: func [
@@ -652,8 +681,8 @@ OS-draw-shape-beginpath: func [
     /local
         path	[integer!]
 ][
-    connect-subpath: 0
-    either GDI+? [
+    ctx/other/connect-subpath: 0
+    either ctx/other/GDI+? [
         path: 0
         GdipCreatePath 0 :path	; alternate fill
         ctx/gp-path: path
@@ -681,7 +710,7 @@ OS-draw-shape-endpath: func [
 ][
     result: true
 
-    either GDI+? [
+    either ctx/other/GDI+? [
         count: 0
         GdipGetPointCount ctx/gp-path :count
         if count > 0 [
@@ -695,11 +724,11 @@ OS-draw-shape-endpath: func [
         dc: ctx/dc
         if close? [ CloseFigure dc ]
         EndPath dc
-        count: GetPath dc edges types 0
+        count: GetPath dc ctx/other/edges ctx/other/types 0
         if count > 0 [
-            count: GetPath dc edges types count
+            count: GetPath dc ctx/other/edges ctx/other/types count
             FillPath dc
-            PolyDraw dc edges types count
+            PolyDraw dc ctx/other/edges ctx/other/types count
         ]
     ]
     result
@@ -712,21 +741,21 @@ OS-draw-shape-moveto: func [
     /local
         pt	[tagPOINT]
 ][
-    either all [ rel? last-point? ][
-        path-last-point/x: path-last-point/x + coord/x
-        path-last-point/y: path-last-point/y + coord/y
+    either all [ rel? ctx/other/last-point? ][
+        ctx/other/path-last-point/x: ctx/other/path-last-point/x + coord/x
+        ctx/other/path-last-point/y: ctx/other/path-last-point/y + coord/y
     ][
-        path-last-point/x: coord/x
-        path-last-point/y: coord/y
+        ctx/other/path-last-point/x: coord/x
+        ctx/other/path-last-point/y: coord/y
     ]
-    connect-subpath: 0
-    last-point?: yes
-    prev-shape/type: SHAPE_OTHER
-    either GDI+? [
+    ctx/other/connect-subpath: 0
+    ctx/other/last-point?: yes
+    ctx/other/prev-shape/type: SHAPE_OTHER
+    either ctx/other/GDI+? [
         GdipStartPathFigure ctx/gp-path
     ][
         pt: declare tagPOINT
-        MoveToEx ctx/dc path-last-point/x path-last-point/y pt
+        MoveToEx ctx/dc ctx/other/path-last-point/x ctx/other/path-last-point/y pt
     ]
 ]
 
@@ -740,38 +769,38 @@ OS-draw-shape-line: func [
         nb		[integer!]
         pair	[red-pair!]
 ][
-    pt: edges
+    pt: ctx/other/edges
     pair:  start
     nb:	   0
 
-    if last-point? [
-        pt/x: path-last-point/x
-        pt/y: path-last-point/y
+    if ctx/other/last-point? [
+        pt/x: ctx/other/path-last-point/x
+        pt/y: ctx/other/path-last-point/y
         pt: pt + 1
         nb: nb + 1
     ]
 
-    while [all [pair <= end nb < max-edges]][
+    while [all [pair <= end nb < MAX_EDGES]][
         pt/x: pair/x
         pt/y: pair/y
         if rel? [
-            pt/x: pt/x + path-last-point/x
-            pt/y: pt/y + path-last-point/y
+            pt/x: pt/x + ctx/other/path-last-point/x
+            pt/y: pt/y + ctx/other/path-last-point/y
         ]
-        path-last-point/x: pt/x
-        path-last-point/y: pt/y
+        ctx/other/path-last-point/x: pt/x
+        ctx/other/path-last-point/y: pt/y
         nb: nb + 1
         pt: pt + 1
         pair: pair + 1	
     ]
-    either GDI+? [
-        GdipAddPathLine2I ctx/gp-path edges nb
+    either ctx/other/GDI+? [
+        GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
     ][
-        Polyline ctx/dc edges nb
+        Polyline ctx/dc ctx/other/edges nb
     ]
-    last-point?: yes
-    prev-shape/type: SHAPE_OTHER
-    connect-subpath: 1
+    ctx/other/last-point?: yes
+    ctx/other/prev-shape/type: SHAPE_OTHER
+    ctx/other/connect-subpath: 1
 ]
 
 OS-draw-shape-axis: func [
@@ -788,13 +817,13 @@ OS-draw-shape-axis: func [
         coord-f [red-float!]
         coord-i [red-integer!]
 ][
-    if last-point? [
-        pt: edges
+    if ctx/other/last-point? [
+        pt: ctx/other/edges
         nb: 0
         coord: start
 
-        pt/x: path-last-point/x
-        pt/y: path-last-point/y
+        pt/x: ctx/other/path-last-point/x
+        pt/y: ctx/other/path-last-point/y
         pt: pt + 1
         nb: nb + 1
         coord-v: 0
@@ -809,32 +838,32 @@ OS-draw-shape-axis: func [
             case [
                 hline [
                     either rel? [ 
-                        pt/x: path-last-point/x + coord-v
+                        pt/x: ctx/other/path-last-point/x + coord-v
                     ][ pt/x: coord-v ]
-                    pt/y: path-last-point/y
-                    path-last-point/x: pt/x
+                    pt/y: ctx/other/path-last-point/y
+                    ctx/other/path-last-point/x: pt/x
                 ]
                 true [
                     either rel? [ 
-                        pt/y: path-last-point/y + coord-v
+                        pt/y: ctx/other/path-last-point/y + coord-v
                     ][ pt/y: coord-v ]
-                    pt/x: path-last-point/x
-                    path-last-point/y: pt/y 
+                    pt/x: ctx/other/path-last-point/x
+                    ctx/other/path-last-point/y: pt/y 
                 ]
             ]
             coord: coord + 1
             nb: nb + 1
             pt: pt + 1
-            any [ coord > end nb >= max-edges ]
+            any [ coord > end nb >= MAX_EDGES ]
         ]
-        last-point?: yes
-        either GDI+? [
-            GdipAddPathLine2I ctx/gp-path edges nb
+        ctx/other/last-point?: yes
+        either ctx/other/GDI+? [
+            GdipAddPathLine2I ctx/gp-path ctx/other/edges nb
         ][
-            Polyline ctx/dc edges nb
+            Polyline ctx/dc ctx/other/edges nb
         ]
-        prev-shape/type: SHAPE_OTHER
-        connect-subpath: 1
+        ctx/other/prev-shape/type: SHAPE_OTHER
+        ctx/other/connect-subpath: 1
     ]
 ]
 
@@ -844,7 +873,7 @@ OS-draw-shape-curve: func [
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-curves ctx/dc ctx/gp-path start end rel? 3
+    draw-curves ctx start end rel? 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -853,7 +882,7 @@ OS-draw-shape-qcurve: func [
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-curves ctx/dc ctx/gp-path start end rel? 2
+    draw-curves ctx start end rel? 2
 ]
 
 OS-draw-shape-curv: func [
@@ -862,7 +891,7 @@ OS-draw-shape-curv: func [
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-short-curves ctx/dc ctx/gp-path start end rel? 2
+    draw-short-curves ctx start end rel? 2
 ]
 
 OS-draw-shape-qcurv: func [
@@ -871,7 +900,7 @@ OS-draw-shape-qcurv: func [
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-short-curves ctx/dc ctx/gp-path start end rel? 1
+    draw-short-curves ctx start end rel? 1
 ]
 
 OS-draw-shape-arc: func [
@@ -920,10 +949,10 @@ OS-draw-shape-arc: func [
         arc-points  [arcPOINTS!]
         dc			[handle!]
 ][
-    if last-point? [
+    if ctx/other/last-point? [
         ;-- parse arguments 
-        p1-x: as float! path-last-point/x
-        p1-y: as float! path-last-point/y
+        p1-x: as float! ctx/other/path-last-point/x
+        p1-y: as float! ctx/other/path-last-point/y
         p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
         p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
         item: as red-integer! start + 1
@@ -976,7 +1005,7 @@ OS-draw-shape-arc: func [
         angle-1: angle-1 - theta
 
         ;--draw arc
-        either GDI+? [
+        either ctx/other/GDI+? [
             path: 0
             GdipCreatePath 0 :path	; alternate fill
             GdipAddPathArc 
@@ -996,7 +1025,7 @@ OS-draw-shape-arc: func [
             GdipTransformPath path m  
             GdipDeleteMatrix m
 
-            GdipAddPathPath ctx/gp-path path connect-subpath
+            GdipAddPathPath ctx/gp-path path ctx/other/connect-subpath
             GdipDeletePath path
         ][
             dc: ctx/dc
@@ -1042,11 +1071,11 @@ OS-draw-shape-arc: func [
         ]
 
         ;-- set last point
-        last-point?: yes
-        path-last-point/x: as integer! p2-x
-        path-last-point/y: as integer! p2-y
-        prev-shape/type: SHAPE_OTHER
-        connect-subpath: 1
+        ctx/other/last-point?: yes
+        ctx/other/path-last-point/x: as integer! p2-x
+        ctx/other/path-last-point/y: as integer! p2-y
+        ctx/other/prev-shape/type: SHAPE_OTHER
+        ctx/other/connect-subpath: 1
     ]
 ]
 
@@ -1054,14 +1083,14 @@ OS-draw-anti-alias: func [
     ctx [draw-ctx!]
     on? [logic!]
 ][
-    anti-alias?: on?
+    ctx/other/anti-alias?: on?
     either on? [
-        GDI+?: yes
+        ctx/other/GDI+?: yes
         GdipSetSmoothingMode ctx/graphics GDIPLUS_ANTIALIAS
         GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
     ][
-        GDI+?: no
-        if ctx/on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
+        ctx/other/GDI+?: no
+        if ctx/on-image? [ctx/other/anti-alias?: yes ctx/other/GDI+?: yes]			;-- always use GDI+ to draw on image
         GdipSetSmoothingMode ctx/graphics GDIPLUS_HIGHSPPED
         GdipSetTextRenderingHint ctx/graphics TextRenderingHintSystemDefault
     ]
@@ -1077,21 +1106,21 @@ OS-draw-line: func [
         nb		[integer!]
         pair	[red-pair!]
 ][
-    pt: edges
+    pt: ctx/other/edges
     pair:  point
     nb:	   0
     
-    while [all [pair <= end nb < max-edges]][
+    while [all [pair <= end nb < MAX_EDGES]][
         pt/x: pair/x
         pt/y: pair/y
         nb: nb + 1
         pt: pt + 1
         pair: pair + 1	
     ]
-    either GDI+? [
-        GdipDrawLinesI ctx/graphics ctx/gp-pen edges nb
+    either ctx/other/GDI+? [
+        GdipDrawLinesI ctx/graphics ctx/gp-pen ctx/other/edges nb
     ][
-        Polyline ctx/dc edges nb
+        Polyline ctx/dc ctx/other/edges nb
     ]
 ]
 
@@ -1104,16 +1133,16 @@ OS-draw-pen: func [
     if all [off? ctx/pen? <> off?][exit]
 
     ctx/alpha-pen?: alpha?
-    GDI+?: any [alpha? anti-alias? ctx/alpha-brush?]
+    ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-brush?]
 
     if any [ctx/pen-color <> color ctx/pen? = off?][
         ctx/pen?: not off?
         ctx/pen-color: color
-        either GDI+? [update-gdiplus-pen ctx][update-pen ctx]
+        either ctx/other/GDI+? [update-gdiplus-pen ctx][update-pen ctx]
     ]
 
     unless ctx/font-color? [
-        if GDI+? [update-gdiplus-font-color ctx color]
+        if ctx/other/GDI+? [update-gdiplus-font-color ctx color]
         unless ctx/on-image? [SetTextColor ctx/dc color]
     ]
 ]
@@ -1127,12 +1156,12 @@ OS-draw-fill-pen: func [
     if all [off? ctx/brush? <> off?][exit]
 
     ctx/alpha-brush?: alpha?
-    GDI+?: any [alpha? anti-alias? ctx/alpha-pen?]
+    ctx/other/GDI+?: any [alpha? ctx/other/anti-alias? ctx/alpha-pen?]
 
     if any [ctx/brush-color <> color ctx/brush? = off?][
         ctx/brush?: not off?
         ctx/brush-color: color
-        either GDI+? [update-gdiplus-brush ctx][update-brush ctx]
+        either ctx/other/GDI+? [update-gdiplus-brush ctx][update-brush ctx]
     ]
 ]
 
@@ -1145,7 +1174,7 @@ OS-draw-line-width: func [
     width-v: get-float32 as red-integer! width
     if ctx/pen-width <> width-v [
         ctx/pen-width: width-v
-        either GDI+? [
+        either ctx/other/GDI+? [
             GdipSetPenWidth ctx/gp-pen ctx/pen-width
         ][
             update-pen ctx
@@ -1208,7 +1237,7 @@ OS-draw-box: func [
         radius: as red-integer! lower
         lower:  lower - 1
         rad: radius/value * 2
-        either GDI+? [
+        either ctx/other/GDI+? [
             check-gradient-box ctx upper lower
             gdiplus-draw-roundbox
                 ctx
@@ -1222,7 +1251,7 @@ OS-draw-box: func [
             RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
         ]
     ][
-        either GDI+? [
+        either ctx/other/GDI+? [
             if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
             if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
             check-gradient-box ctx upper lower
@@ -1255,7 +1284,7 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
         pair  [red-pair!]
         point [tagPOINT]
 ][
-    point: edges
+    point: ctx/other/edges
     
     point/x: start/x									;-- 1st point
     point/y: start/y
@@ -1274,22 +1303,22 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
     point/x: start/x									;-- close the triangle
     point/y: start/y
 
-    either GDI+? [
-        check-gradient-poly ctx edges 3
+    either ctx/other/GDI+? [
+        check-gradient-poly ctx ctx/other/edges 3
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
                 ctx/gp-brush
-                edges
+                ctx/other/edges
                 4
                 GDIPLUS_FILLMODE_ALTERNATE
         ]
-        GdipDrawPolygonI ctx/graphics ctx/gp-pen edges 4
+        GdipDrawPolygonI ctx/graphics ctx/gp-pen ctx/other/edges 4
     ][
         either ctx/brush? [
-            Polygon ctx/dc edges 4
+            Polygon ctx/dc ctx/other/edges 4
         ][
-            Polyline ctx/dc edges 4
+            Polyline ctx/dc ctx/other/edges 4
         ]
     ]
 ]
@@ -1303,11 +1332,11 @@ OS-draw-polygon: func [
         point [tagPOINT]
         nb	  [integer!]
 ][
-    point: edges
+    point: ctx/other/edges
     pair:  start
     nb:	   0
     
-    while [all [pair <= end nb < max-edges]][
+    while [all [pair <= end nb < MAX_EDGES]][
         point/x: pair/x
         point/y: pair/y
         nb: nb + 1
@@ -1319,22 +1348,22 @@ OS-draw-polygon: func [
     point/x: start/x									;-- close the polygon
     point/y: start/y
 
-    either GDI+? [
-        check-gradient-poly ctx edges nb
+    either ctx/other/GDI+? [
+        check-gradient-poly ctx ctx/other/edges nb
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
                 ctx/gp-brush
-                edges
+                ctx/other/edges
                 nb + 1
                 GDIPLUS_FILLMODE_ALTERNATE
         ]
-        GdipDrawPolygonI ctx/graphics ctx/gp-pen edges nb + 1
+        GdipDrawPolygonI ctx/graphics ctx/gp-pen ctx/other/edges nb + 1
     ][
         either ctx/brush? [
-            Polygon ctx/dc edges nb + 1
+            Polygon ctx/dc ctx/other/edges nb + 1
         ][
-            Polyline ctx/dc edges nb + 1
+            Polyline ctx/dc ctx/other/edges nb + 1
         ]
     ]
 ]
@@ -1349,11 +1378,11 @@ OS-draw-spline: func [
         point [tagPOINT]
         nb	  [integer!]
 ][
-    point: edges
+    point: ctx/other/edges
     pair:  start
     nb:	   0
     
-    while [all [pair <= end nb < max-edges]][
+    while [all [pair <= end nb < MAX_EDGES]][
         point/x: pair/x
         point/y: pair/y
         nb: nb + 1
@@ -1362,20 +1391,20 @@ OS-draw-spline: func [
     ]
     ;if nb = max-edges [fire error]
 
-    unless GDI+? [update-gdiplus-modes ctx]					;-- force to use GDI+
+    unless ctx/other/GDI+? [update-gdiplus-modes ctx]					;-- force to use GDI+
 
     if ctx/brush? [
         GdipFillClosedCurveI
             ctx/graphics
             ctx/gp-brush
-            edges
+            ctx/other/edges
             nb
             GDIPLUS_FILLMODE_ALTERNATE
     ]
     either closed? [
-        GdipDrawClosedCurveI ctx/graphics ctx/gp-pen edges nb
+        GdipDrawClosedCurveI ctx/graphics ctx/gp-pen ctx/other/edges nb
     ][
-        GdipDrawCurveI ctx/graphics ctx/gp-pen edges nb
+        GdipDrawCurveI ctx/graphics ctx/gp-pen ctx/other/edges nb
     ]
 ]
 
@@ -1386,7 +1415,7 @@ do-draw-ellipse: func [
     width	[integer!]
     height	[integer!]
 ][
-    either GDI+? [
+    either ctx/other/GDI+? [
         check-gradient-ellipse ctx x y width height
         if ctx/brush? [
             GdipFillEllipseI
@@ -1420,7 +1449,7 @@ OS-draw-circle: func [
         h	  [integer!]
         f	  [red-float!]
 ][
-    if D2D? [
+    if ctx/other/D2D? [
         OS-draw-circle-d2d ctx center radius
         exit
     ]
@@ -1561,7 +1590,7 @@ OS-draw-arc: func [
 
     closed?: angle < end
 
-    either GDI+? [
+    either ctx/other/GDI+? [
         either closed? [
             if ctx/brush? [
                 GdipFillPieI
@@ -1648,7 +1677,7 @@ OS-draw-curve: func [
         nb	  [integer!]
         count [integer!]
 ][
-    point: edges
+    point: ctx/other/edges
     pair:  start
     nb:	   0
     count: (as-integer end - pair) >> 4 + 1
@@ -1678,10 +1707,10 @@ OS-draw-curve: func [
         ]
     ]
 
-    either GDI+? [
-        GdipDrawBeziersI ctx/graphics ctx/gp-pen edges 4
+    either ctx/other/GDI+? [
+        GdipDrawBeziersI ctx/graphics ctx/gp-pen ctx/other/edges 4
     ][
-        PolyBezier ctx/dc edges 4
+        PolyBezier ctx/dc ctx/other/edges 4
     ]
 ]
 
@@ -1693,7 +1722,7 @@ OS-draw-line-join: func [
 ][
     mode: 0
     ctx/pen-join: style
-    either GDI+? [
+    either ctx/other/GDI+? [
         case [
             style = miter		[mode: GDIPLUS_MITER]
             style = miter-bevel [mode: GDIPLUS_MITERCLIPPED]
@@ -1715,7 +1744,7 @@ OS-draw-line-cap: func [
 ][
     mode: 0
     ctx/pen-cap: style
-    either GDI+? [
+    either ctx/other/GDI+? [
         case [
             style = flat		[mode: GDIPLUS_LINECAPFLAT]
             style = square		[mode: GDIPLUS_LINECAPSQUARE]
@@ -1781,7 +1810,7 @@ OS-draw-image: func [
             height: end/y - y
         ]
         start + 2 = end [					;-- three control points
-            pts: edges
+            pts: ctx/other/edges
             loop 3 [
                 pts/x: start/x
                 pts/y: start/y
@@ -1789,7 +1818,7 @@ OS-draw-image: func [
                 start: start + 1
             ]
             GdipDrawImagePointsRectI
-                ctx/graphics as-integer image/node edges 3
+                ctx/graphics as-integer image/node ctx/other/edges 3
                 0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
             exit
         ]
@@ -1964,7 +1993,7 @@ gradient-rotate: func [
         gm      [integer!]
         brush   [integer!]
 ][
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ] 
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ] 
     GdipRotateMatrix gm as float32! angle GDIPLUS_MATRIXORDERAPPEND 
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
@@ -1987,7 +2016,7 @@ gradient-skew: func [
     z: as float32! 0.0
     x: as float32! system/words/tan degree-to-radians sx TYPE_TANGENT
     y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians sy TYPE_TANGENT]
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
     GdipCreateMatrix2 u y x u z z :m
     GdipMultiplyMatrix gm m GDIPLUS_MATRIXORDERAPPEND
     GdipDeleteMatrix m  
@@ -2002,7 +2031,7 @@ gradient-scale: func [
     /local
         gm  [integer!]
 ][
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
     GdipScaleMatrix gm as-float32 sx as-float32 sy GDIPLUS_MATRIXORDERAPPEND
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
@@ -2015,17 +2044,18 @@ gradient-translate: func [
     /local
         gm  [integer!]
 ][
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
     GdipTranslateMatrix gm as-float32 x as-float32 y GDIPLUS_MATRIXORDERAPPEND
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
 
 gradient-transf-reset: func [
+    ctx         [draw-ctx!]
     gradient    [gradient!]
     /local 
         mm      [int-ptr!]
 ][
-    mm: either gradient = gradient-pen [ :gradient-matrix-pen ][ :gradient-matrix-fill ]
+    mm: either gradient = ctx/other/gradient-pen [ FIELD_GRADIENT_MATRIX_PEN(ctx) ][ FIELD_GRADIENT_MATRIX_FILL(ctx) ]
     either zero? mm/value [
         GdipCreateMatrix mm
     ][
@@ -2053,14 +2083,14 @@ gradient-set-matrix: func [
         dx  [pointer! [float32!]]
         dy  [pointer! [float32!]]
 ][
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
-    GdipGetMatrixElements m matrix-elems
-    m11: matrix-elems
-    m12: matrix-elems + 1
-    m21: matrix-elems + 2
-    m22: matrix-elems + 3
-    dx:  matrix-elems + 4
-    dy:  matrix-elems + 5
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
+    GdipGetMatrixElements m ctx/other/matrix-elems
+    m11: ctx/other/matrix-elems
+    m12: ctx/other/matrix-elems + 1
+    m21: ctx/other/matrix-elems + 2
+    m22: ctx/other/matrix-elems + 3
+    dx:  ctx/other/matrix-elems + 4
+    dy:  ctx/other/matrix-elems + 5
     GdipSetMatrixElements 
         gm 
         m11/value 
@@ -2078,8 +2108,8 @@ gradient-reset-matrix: func [
     /local
         gm  [integer!]
 ][
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
-    gradient-transf-reset gradient
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
+    gradient-transf-reset ctx gradient
     if gradient/created? [ gradient-transform ctx gradient gm ]
 ]
 
@@ -2089,7 +2119,7 @@ gradient-invert-matrix: func [
     /local
         gm  [int-ptr!]
 ][
-    gm: either gradient = gradient-pen [ :gradient-matrix-pen ][ :gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ FIELD_GRADIENT_MATRIX_PEN(ctx) ][ FIELD_GRADIENT_MATRIX_FILL(ctx) ]
     GdipInvertMatrix gm/value
     if gradient/created? [ gradient-transform ctx gradient gm/value ]
 ]
@@ -2100,9 +2130,9 @@ save-brush: func [
     gradient    [gradient!]
     brush       [integer!]
 ][
-    GDI+?: yes
+    ctx/other/GDI+?: yes
     gradient/created?: true
-    either gradient = gradient-fill [
+    either gradient = ctx/other/gradient-fill [
         unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
         ctx/gp-brush: brush
         ctx/gp-brush-type: BRUSH_TYPE_NORMAL
@@ -2134,7 +2164,7 @@ gradient-linear: func [
     GdipCreateLineBrushI point-1 point-2 _colors/1 _colors/count 0 :brush
     GdipSetLinePresetBlend brush _colors _colors-pos count
 
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
     GdipSetLineTransform brush gm
 
     save-brush ctx gradient brush
@@ -2210,7 +2240,7 @@ gradient-radial-diamond: func [
     reverse-int-array _colors count
     reverse-float32-array _colors-pos count
 
-    gm: either gradient = gradient-pen [ gradient-matrix-pen ][ gradient-matrix-fill ]
+    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
     GdipSetPathGradientTransform brush gm
 
     save-brush ctx gradient brush
@@ -2227,7 +2257,7 @@ check-gradient: func [
         radius      [tagPOINT]
 ][
     INIT_GRADIENT_DATA(upper lower radius)
-    if all [ gradient = gradient-pen ctx/pen-width > as float32! 1.0 ] [
+    if all [ gradient = ctx/other/gradient-pen ctx/pen-width > as float32! 1.0 ] [
         gradient/extra: as-integer ctx/pen-width / 2
     ]
     case [
@@ -2293,12 +2323,12 @@ check-gradient-box: func [
     upper   [red-pair!]
     lower   [red-pair!]
 ][
-    if all [ gradient-pen? not gradient-pen/positions? ][
-        _check-gradient-box ctx gradient-pen pen-colors pen-colors-pos upper lower
+    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
+        _check-gradient-box ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos upper lower
     ]
-    if all [ gradient-fill? not gradient-fill/positions? ][
+    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
         ctx/brush?: true
-        _check-gradient-box ctx gradient-fill colors colors-pos upper lower
+        _check-gradient-box ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos upper lower
     ]
 ]
 
@@ -2355,12 +2385,12 @@ check-gradient-ellipse: func [
     width   [integer!]
     height  [integer!]
 ][
-    if all [ gradient-pen? not gradient-pen/positions? ][
-        _check-gradient-ellipse ctx gradient-pen pen-colors pen-colors-pos x y width height
+    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
+        _check-gradient-ellipse ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos x y width height
     ]
-    if all [ gradient-fill? not gradient-fill/positions? ][
+    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
         ctx/brush?: true
-        _check-gradient-ellipse ctx gradient-fill colors colors-pos x y width height
+        _check-gradient-ellipse ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos x y width height
     ]
 ]
 
@@ -2413,12 +2443,12 @@ check-gradient-poly: func [
     start   [tagPOINT]
     count   [integer!]
 ][
-    if all [ gradient-pen? not gradient-pen/positions? ][
-        _check-gradient-poly ctx gradient-pen pen-colors pen-colors-pos start count
+    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
+        _check-gradient-poly ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos start count
     ]
-    if all [ gradient-fill? not gradient-fill/positions? ][
+    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
         ctx/brush?: true
-        _check-gradient-poly ctx gradient-fill colors colors-pos start count
+        _check-gradient-poly ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos start count
     ]
 ]
 
@@ -2464,12 +2494,12 @@ _check-gradient-shape: func [
 check-gradient-shape: func [
     ctx		[draw-ctx!]
 ][
-    if all [ gradient-pen? not gradient-pen/positions? ][
-        _check-gradient-shape ctx gradient-pen pen-colors pen-colors-pos
+    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
+        _check-gradient-shape ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos
     ]
-    if all [ gradient-fill? not gradient-fill/positions? ][
+    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
         ctx/brush?: true
-        _check-gradient-shape ctx gradient-fill colors colors-pos
+        _check-gradient-shape ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos
     ]
 ]
 
@@ -2516,16 +2546,16 @@ OS-draw-grad-pen: func [
         gm          [integer!]
 ][
     either brush? [
-        gradient-fill?: true
-        _colors: colors
-        _colors-pos: colors-pos 
+        ctx/other/gradient-fill?: true
+        _colors: ctx/other/colors
+        _colors-pos: ctx/other/colors-pos 
     ][
-        gradient-pen?: true
-        _colors: pen-colors
-        _colors-pos: pen-colors-pos
+        ctx/other/gradient-pen?: true
+        _colors: ctx/other/pen-colors
+        _colors-pos: ctx/other/pen-colors-pos
     ]
     ;-- stops
-    pt: edges
+    pt: ctx/other/edges
     color: _colors + 1
     pos: _colors-pos + 1
     delta: as-float count - 1
@@ -2574,11 +2604,11 @@ OS-draw-grad-pen: func [
         count: count + 1
     ]
     ctx/brush?:       brush?
-    gradient: either ctx/brush? [ gradient-fill ][ gradient-pen ]
+    gradient: either ctx/brush? [ ctx/other/gradient-fill ][ ctx/other/gradient-pen ]
     gradient/count:     count
     gradient/created?:  false
     gradient/positions?: false
-    gradient-transf-reset gradient
+    gradient-transf-reset ctx gradient
     
     ;-- positions
     case [
@@ -2645,14 +2675,14 @@ OS-set-clip: func [
         clip-mode 	[integer!]
 ][
     case [
-        mode = replace [ clip-mode: clip-replace ]
-        mode = intersect [ clip-mode: clip-intersect ]
-        mode = union [ clip-mode: clip-union ]
-        mode = xor [ clip-mode: clip-xor ]
-        mode = exclude [ clip-mode: clip-diff ]
-        true [ clip-mode: clip-replace ]
+        mode = replace [ clip-mode: clip-replace ctx ]
+        mode = intersect [ clip-mode: clip-intersect ctx ]
+        mode = union [ clip-mode: clip-union ctx ]
+        mode = xor [ clip-mode: clip-xor ctx ]
+        mode = exclude [ clip-mode: clip-diff ctx]
+        true [ clip-mode: clip-replace ctx ]
     ]
-    either GDI+? [
+    either ctx/other/GDI+? [
         either rect? [
             u: as red-pair! upper
             l: as red-pair! lower
@@ -2692,8 +2722,8 @@ matrix-rotate: func [
         mm  [integer!]
         pts [tagPOINT]
 ][
-    GDI+?: yes
-    pts: edges
+    ctx/other/GDI+?: yes
+    pts: ctx/other/edges
     if angle <> as red-integer! center [
         pts/x: center/x
         pts/y: center/y
@@ -2723,17 +2753,17 @@ OS-matrix-rotate: func [
         brush       [integer!]
         gradient    [gradient!]
 ][
-    GDI+?: yes
+    ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- rotate pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ] 
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ] 
         gradient-rotate ctx gradient as-float angle/value 
     ][
         ;-- rotate figure
         m: 0
         GdipCreateMatrix :m
         matrix-rotate ctx angle center m
-        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
         GdipDeleteMatrix m
     ]
 ]
@@ -2746,14 +2776,14 @@ OS-matrix-scale: func [
     /local
         gradient    [gradient!]
 ][
-    GDI+?: yes
+    ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- scale pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-scale ctx gradient as-float sx/value as-float sy/value
     ][ 
         ;-- scale figure
-        GdipScaleWorldTransform ctx/graphics get-float32 sx get-float32 sy matrix-order
+        GdipScaleWorldTransform ctx/graphics get-float32 sx get-float32 sy ctx/other/matrix-order
     ]
 ]
 
@@ -2765,10 +2795,10 @@ OS-matrix-translate: func [
     /local
         gradient    [gradient!]
 ][
-    GDI+?: yes
+    ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- translate pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-translate ctx gradient as-float x as-float y
     ][ 
         ;-- translate figure
@@ -2776,7 +2806,7 @@ OS-matrix-translate: func [
             ctx/graphics
             as float32! x
             as float32! y
-            matrix-order
+            ctx/other/matrix-order
     ]
 ]
 
@@ -2795,7 +2825,7 @@ OS-matrix-skew: func [
 ][
     either pen-fill <> -1 [
         ;-- skew pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-skew ctx gradient as-float sx/value as-float sy/value
     ][ 
         ;-- skew figure
@@ -2805,7 +2835,7 @@ OS-matrix-skew: func [
         x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
         y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
         GdipCreateMatrix2 u y x u z z :m
-        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
         GdipDeleteMatrix m
     ]
 ]
@@ -2823,7 +2853,7 @@ OS-matrix-transform: func [
 ][
     either pen-fill <> -1 [
         ;-- transform pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-rotate ctx gradient as-float rotate/value
         gradient-scale ctx gradient get-float scale get-float scale + 1
         gradient-translate ctx gradient as-float translate/x as-float translate/y
@@ -2835,7 +2865,7 @@ OS-matrix-transform: func [
         matrix-rotate ctx rotate center m
         GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
         GdipTranslateMatrix m as float32! translate/x as float32! translate/y
-        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
         GdipDeleteMatrix m
     ]
 ]
@@ -2856,8 +2886,8 @@ OS-matrix-reset: func [
 ][
     either pen-fill <> -1 [
         ;-- reset matrix for pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
-        gradient-transf-reset gradient
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        gradient-transf-reset ctx gradient
     ][
         ;-- reset matrix for figure
         GdipResetWorldTransform ctx/graphics
@@ -2878,7 +2908,7 @@ OS-matrix-invert: func [
     ]
     either pen-fill <> -1 [
         ;-- invert matrix for pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-invert-matrix ctx gradient
     ][
         ;-- invert matrix for figure
@@ -2909,21 +2939,22 @@ OS-matrix-set: func [
         :m
     either pen-fill <> -1 [
         ;-- set matrix for pen or fill
-        gradient: either pen-fill = pen [ gradient-pen ][ gradient-fill ]
+        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-set-matrix ctx gradient m
     ][
         ;-- set matrix for figure
-        GdipMultiplyWorldTransform ctx/graphics m matrix-order
+        GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
     ]
     GdipDeleteMatrix m
 ]
 
 OS-set-matrix-order: func [
+    ctx     [draw-ctx!]
     order   [integer!]
 ][ 
     case [
-        order = _append [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
-        order = prepend [ matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
-        true [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+        order = _append [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+        order = prepend [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
+        true [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
     ]
 ]

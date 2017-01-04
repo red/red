@@ -499,8 +499,6 @@ Red/System [
 #define ICC_STANDARD_CLASSES	00004000h
 #define ICC_LINK_CLASS			00008000h
 
-#define handle!				[pointer! [integer!]]
-
 #define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
 #define WIN32_HIWORD(param) (param >> 16)
 
@@ -558,16 +556,6 @@ tagWINDOWPOS: alias struct! [
 	flags			[integer!]
 ]
 
-tagPOINT: alias struct! [
-	x		[integer!]
-	y		[integer!]	
-]
-
-POINT_2F: alias struct! [
-	x		[float32!]
-	y		[float32!]
-]
-
 tagSIZE: alias struct! [
 	width	[integer!]
 	height	[integer!]
@@ -608,25 +596,6 @@ tagTEXTMETRIC: alias struct! [
 	tmStruckOut			[byte!]
 	tmPitchAndFamily	[byte!]
 	tmCharSet			[byte!]
-]
-
-tagPAINTSTRUCT: alias struct! [
-	hdc			 [handle!]
-	fErase		 [integer!]
-	left		 [integer!]
-	top			 [integer!]
-	right		 [integer!]
-	bottom		 [integer!]
-	fRestore	 [integer!]
-	fIncUpdate	 [integer!]
-	rgbReserved1 [integer!]
-	rgbReserved2 [integer!]
-	rgbReserved3 [integer!]
-	rgbReserved4 [integer!]
-	rgbReserved5 [integer!]
-	rgbReserved6 [integer!]
-	rgbReserved7 [integer!]
-	rgbReserved8 [integer!]
 ]
 
 tagNMHDR: alias struct! [
@@ -947,12 +916,6 @@ XFORM!: alias struct! [
     eM22        [float32!]
     eDx         [float32!]
     eDy         [float32!]
-]
-
-PATHDATA: alias struct! [
-    count       [integer!]
-    points      [POINT_2F]
-    types       [byte-ptr!]
 ]
 
 #import [

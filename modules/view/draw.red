@@ -798,7 +798,7 @@ Red/System [
 									m-order = _append
 									m-order = prepend
 								][ throw-draw-error cmds cmd catch? ]
-                                OS-set-matrix-order m-order
+                                OS-set-matrix-order DC m-order
                             ]
 							sym = rotate [
 								DRAW_FETCH_OPT_TRANSFORM
@@ -935,7 +935,7 @@ Red/System [
 
 			system/thrown: 0
 
-			DC: declare draw-ctx!						;@@ should declare it on stack
+			DC: as draw-ctx! allocate size? draw-ctx!	;-- allocate on heap to allow reentrancy 
 			draw-begin DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
@@ -945,6 +945,7 @@ Red/System [
 			if system/thrown = RED_THROWN_ERROR [
 				either catch? [system/thrown: 0][re-throw]
 			]
+			free as byte-ptr! DC
 		]
 	]
 ]

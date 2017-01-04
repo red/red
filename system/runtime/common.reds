@@ -38,6 +38,8 @@ Red/System [
 
 #define byte-ptr!	  [pointer! [byte!]]
 #define int-ptr!	  [pointer! [integer!]]
+#define float32-ptr!  [pointer! [float32!]]
+
 #define make-c-string [as c-string! allocate]
 
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
