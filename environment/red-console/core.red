@@ -45,7 +45,6 @@ terminal!: object [
 		box/text: "X"
 		box/layout
 		line-h: box/line-height 1
-		?? line-h
 		caret/size/y: line-h
 	]
 
@@ -113,7 +112,7 @@ terminal!: object [
 	]
 
 	update-scroller: func [][
-		scroller/max-size: line-cnt
+		scroller/max-size: line-cnt - 1 + scroller/page-size
 	]
 
 	process-shortcuts: function [event [event!]][

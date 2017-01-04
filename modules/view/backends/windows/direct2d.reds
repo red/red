@@ -993,7 +993,7 @@ set-line-spacing: func [
 		dl				[IDWriteTextLayout]
 		lm				[DWRITE_LINE_METRICS]
 ][
-	left: 20008 lineCount: 0 lay: 0 
+	left: 73 lineCount: 0 lay: 0 
 	dw: as IDWriteFactory dwrite-factory/vtbl
 	dw/CreateTextLayout dwrite-factory as c-string! :left 1 fmt FLT_MAX FLT_MAX :lay
 
