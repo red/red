@@ -397,7 +397,11 @@ process-track-pos: func [
 	nPos: 0
 	nTrackPos: 0
 	GetScrollInfo hWnd as-integer vertical? as tagSCROLLINFO :cbSize
-	either nPos > nTrackPos [SB_LINEUP][SB_LINEDOWN]
+	case [
+		nPos > nTrackPos [SB_LINEUP]
+		nPos < nTrackPos [SB_LINEDOWN]
+		true [-1]
+	]
 ]
 
 make-event: func [
@@ -478,7 +482,7 @@ make-event: func [
 				flags: process-track-pos msg/hWnd msg/msg = WM_VSCROLL
 				key: 0
 			]
-			if key > 3 [return EVT_DISPATCH]			;-- exclude some events we don't need
+			if any [key > 3 flags = -1][return EVT_DISPATCH]		;-- exclude some events we don't need
 			msg/wParam: flags
 		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu

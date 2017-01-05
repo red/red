@@ -11,7 +11,6 @@ terminal!: object [
 	nlines:		make block! 1000				;-- line count of each line
 	heights:	make block! 1000				;-- height of each line
 
-	line-cnt:	0								;-- number of lines on screen (include wrapped lines)
 	max-lines:	1000							;-- maximum size of the line buffer
 	full?:		no								;-- Is line buffer full?
 
@@ -22,6 +21,8 @@ terminal!: object [
 	scroll-y:	0
 
 	line-h:		0								;-- average line height
+	page-cnt:	0								;-- number of lines in one page
+	line-cnt:	0								;-- number of lines on screen (include wrapped lines)
 
 	box:		make text-box! []
 	caret:		none
@@ -35,7 +36,6 @@ terminal!: object [
 		str: form value
 		append lines str
 		calc-top
-		show target
 		()				;-- return unset!
 	]
 
@@ -52,7 +52,8 @@ terminal!: object [
 		box/size: new-size
 		box/size/y: 0
 		if scroller [
-			scroller/page-size: new-size/y / line-h
+			page-cnt: new-size/y / line-h
+			scroller/page-size: page-cnt
 		]
 	]
 
@@ -65,7 +66,7 @@ terminal!: object [
 				page-down [0 - scroller/page-size]
 			][0]
 		]
-		?? n
+		scroll-lines n
 	]
 
 	update-caret: func [/local len n s h lh offset][
@@ -77,7 +78,7 @@ terminal!: object [
 			n: n + 1
 		]
 		offset: box/offset? pos + index? line
-		offset/y: offset/y + h - scroll-y
+		offset/y: offset/y + h + scroll-y
 		caret/offset: offset
 	]
 
@@ -87,28 +88,56 @@ terminal!: object [
 		if pos > length? line [pos: pos - n]
 	]
 
-	calc-top: func [/local n cnt h win-h][
-		scroll-y: 0
-		win-h: target/size/y
-		n: length? lines
-
-		cnt: 0
-		while [n > 0][
-			cnt: cnt + either h: pick heights n [h][
-				box/text: pick lines n
-				box/layout
-				box/height
+	scroll-lines: func [delta /local n len cnt][
+	?? delta
+		scroller/position: scroller/position - delta
+		either delta > 0 [			;-- scroll up
+			
+		][
+			n: top
+			len: length? lines
+			until [
+				cnt: pick nlines n
+				delta: delta + cnt
+				n: n + 1
+				any [delta >= 0 n > len]
 			]
-			if cnt > win-h [
-				top: n
-				scroll-y: cnt - win-h / line-h + 1 * line-h
-				n: 0			;-- break
+			if delta > 0 [
+				delta: delta - cnt
+				n: n - 1
+				delta: delta * line-h
+				scroll-y: either top = n [scroll-y + delta][delta]
 			]
-			n: n - 1
+			top: n
 		]
-		;if top <> scroller/position [
-		;	scroller/position: scroller/max-size
-		;]
+		show target
+	]
+
+	calc-last-line: func [/local n cnt h num][
+		n: length? lines
+		box/text: head last lines
+		box/layout
+		num: line-cnt
+		h: box/height
+		cnt: box/line-count
+		either n > length? nlines [
+			append heights h
+			append nlines cnt
+			line-cnt: line-cnt + cnt
+		][
+			poke heights n h
+			line-cnt: line-cnt + cnt - pick nlines n
+			poke nlines n cnt
+		]
+		if num <> line-cnt [update-scroller]
+	]
+
+	calc-top: func [/local delta n cnt h win-h][
+		calc-last-line
+		delta: line-cnt - scroller/position - page-cnt
+		if delta < 0 [exit]
+
+		scroll-lines -1 - delta
 	]
 
 	update-scroller: func [][
@@ -140,16 +169,14 @@ terminal!: object [
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top
-		show target
 	]
 
-	paint: func [/local str cmds y n h cnt delta len num][
-		probe "draw..................."
+	paint: func [/local str cmds y n h cnt delta num][
 		cmds: [text 0x0 text-box]
 		cmds/3: box
-		y: 0 - scroll-y
+		y: scroll-y
+?? y
 		n: top
-		len: length? heights
 		num: line-cnt
 		foreach str at lines top [
 			box/text: head str
@@ -157,20 +184,17 @@ terminal!: object [
 			box/layout
 			cmds/2/y: y
 			draw target cmds
+
 			h: box/height
-			cnt: box/line-count
-			either n > len [
-				append heights h
-				append nlines cnt
-				line-cnt: line-cnt + cnt
-			][
-				poke heights n h
-				line-cnt: line-cnt + cnt - pick nlines n
-				poke nlines n cnt
-			]
+			;cnt: box/line-count
+			;poke heights n h
+			;line-cnt: line-cnt + cnt - pick nlines n
+			;poke nlines n cnt
+
 			n: n + 1
 			y: y + h
 		]
+?? y
 		update-caret
 		if num <> line-cnt [update-scroller]
 	]
