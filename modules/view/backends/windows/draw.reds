@@ -283,14 +283,16 @@ draw-begin: func [
     dc:					null
 
     ctx/other/gradient-pen/extra:           0
-    ctx/other/gradient-pen/matrix:         0 
+    ctx/other/gradient-pen/matrix:          0 
+    ctx/other/gradient-pen/spread:          WRAP_MODE_TILE 
     ctx/other/gradient-pen/type:            GRADIENT_NONE
     ctx/other/gradient-pen/count:           0
     ctx/other/gradient-pen/positions?:      false
     ctx/other/gradient-pen/created?:        false
     ctx/other/gradient-pen/transformed?:    false 
     ctx/other/gradient-fill/extra:          0
-    ctx/other/gradient-fill/matrix:         0 
+    ctx/other/gradient-fill/matrix:         0
+    ctx/other/gradient-fill/spread:         WRAP_MODE_TILE 
     ctx/other/gradient-fill/type:           GRADIENT_NONE
     ctx/other/gradient-fill/count:          0 
     ctx/other/gradient-fill/positions?:     false
@@ -2289,6 +2291,7 @@ gradient-linear: func [
         gradient/transformed?: false
     ]
     GdipSetLinePresetBlend brush gradient/colors gradient/colors-pos count
+    GdipSetLineWrapMode brush gradient/spread
 
     save-brush ctx gradient brush
 ]
@@ -2364,6 +2367,7 @@ gradient-radial-diamond: func [
         GdipSetPathGradientTransform brush gradient/matrix
         gradient/transformed?: false
     ]
+    GdipSetPathGradientWrapMode brush gradient/spread
 
     save-brush ctx gradient brush
 ]
@@ -2749,14 +2753,14 @@ OS-draw-grad-pen: func [
     first-point: false
     last-point:  false
     either mode = linear [
-        _colors-pos/value: as float32! 0.0           ;-- first one should be always 0.0
+        _colors-pos/value: as float32! 0.0          ;-- first one should be always 0.0
         if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
             last-point: true
             last-p: last-p + 1
             last-p/value: as float32! 1.0
         ]
     ][
-        _colors-pos/value: as float32! 1.0           ;-- first one should be always 1.0
+        _colors-pos/value: as float32! 1.0          ;-- first one should be always 1.0
         if last-p/value > as float32! 0.0 [			;-- last one should be always 0.0
             last-point: true
             last-p: last-p + 1
@@ -2777,6 +2781,15 @@ OS-draw-grad-pen: func [
     gradient/created?:  false
     gradient/positions?: false
     gradient-transf-reset ctx gradient
+
+    ;-- spread
+    case [
+        spread = _pad       [ gradient/spread: WRAP_MODE_TILE ]         ;-- currently pad not supported by GDI+, fallback to repeat
+        spread = _repeat    [ gradient/spread: WRAP_MODE_TILE ]
+        spread = _reflect   [ gradient/spread: WRAP_MODE_TILE_FLIP_X ]
+        true [ gradient/spread: WRAP_MODE_TILE ] 
+    ]
+
     
     ;-- positions
     case [

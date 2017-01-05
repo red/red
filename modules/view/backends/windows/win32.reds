@@ -2103,6 +2103,11 @@ XFORM!: alias struct! [
 			matrix		[integer!]
 			return:		[integer!]
 		]
+		GdipSetLineWrapMode: "GdipSetLineWrapMode" [
+			brush		[integer!]
+			wrapmode	[integer!]
+			return:		[integer!]
+		]
 		GdipCreateTexture: "GdipCreateTexture" [
 			image		[integer!]
 			wrapmode	[integer!]

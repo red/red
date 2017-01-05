@@ -164,6 +164,7 @@ Red/System [
 		matrix			[integer!]
 		colors			[int-ptr!]
 		colors-pos		[float32-ptr!]
+		spread			[integer!]
 		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
 		count           [integer!]                              ;-- gradient stops count
 		data            [tagPOINT]                              ;-- figure coordinates
