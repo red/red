@@ -61,17 +61,17 @@ alloc-context: func [
     ctx/other/gradient-pen:             ALLOC_REENTRANT(gradient!)
     ctx/other/gradient-pen/path-data:   ALLOC_REENTRANT(PATHDATA)
     ctx/other/gradient-pen/data:        ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_GRADIENT_DATA) 
+    ctx/other/gradient-pen/colors:      ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
+    ctx/other/gradient-pen/colors-pos:  as float32-ptr! ctx/other/gradient-pen/colors + MAX_COLORS
     ctx/other/gradient-fill:            ALLOC_REENTRANT(gradient!)
     ctx/other/gradient-fill/path-data:  ALLOC_REENTRANT(PATHDATA)
     ctx/other/gradient-fill/data:       ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_GRADIENT_DATA) 
+    ctx/other/gradient-fill/colors:     ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
+    ctx/other/gradient-fill/colors-pos: as float32-ptr! ctx/other/gradient-fill/colors + MAX_COLORS
     ctx/other/matrix-elems:             ALLOC_REENTRANT_ELEMS(float32-ptr! float32! 6)
     ctx/other/paint:                    ALLOC_REENTRANT(tagPAINTSTRUCT)
     ctx/other/edges:                    ALLOC_REENTRANT_ELEMS(tagPOINT tagPOINT MAX_EDGES)
     ctx/other/types:                    ALLOC_REENTRANT_BYTES(MAX_EDGES)
-    ctx/other/colors:                   ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
-    ctx/other/colors-pos:               as float32-ptr! ctx/other/colors + MAX_COLORS
-    ctx/other/pen-colors:               ALLOC_REENTRANT_ELEMS(int-ptr! integer! max-colors)
-    ctx/other/pen-colors-pos:           as float32-ptr! ctx/other/pen-colors + MAX_COLORS
     ctx/other/path-last-point:          ALLOC_REENTRANT(tagPOINT)
     ctx/other/prev-shape:               ALLOC_REENTRANT(curve-info!)
     ctx/other/prev-shape/control:       ALLOC_REENTRANT(tagPOINT)
@@ -87,16 +87,15 @@ free-context: func [
     FREE_REENTRANT(ctx/other/prev-shape/control)
     FREE_REENTRANT(ctx/other/prev-shape)
     FREE_REENTRANT(ctx/other/path-last-point)
-    FREE_REENTRANT(ctx/other/pen-colors-pos)
-    FREE_REENTRANT(ctx/other/pen-colors)
-    FREE_REENTRANT(ctx/other/colors)
     FREE_REENTRANT_BYTES(ctx/other/types)
     FREE_REENTRANT(ctx/other/edges)
     FREE_REENTRANT(ctx/other/paint)
     FREE_REENTRANT(ctx/other/matrix-elems)
+    FREE_REENTRANT(ctx/other/gradient-fill/colors)
     FREE_REENTRANT(ctx/other/gradient-fill/data)
     FREE_REENTRANT(ctx/other/gradient-fill/path-data)
     FREE_REENTRANT(ctx/other/gradient-fill)
+    FREE_REENTRANT(ctx/other/gradient-pen/colors)
     FREE_REENTRANT(ctx/other/gradient-pen/data)
     FREE_REENTRANT(ctx/other/gradient-pen/path-data)
     FREE_REENTRANT(ctx/other/gradient-pen)
@@ -284,21 +283,21 @@ draw-begin: func [
     dc:					null
 
     ctx/other/gradient-pen/extra:           0
+    ctx/other/gradient-pen/matrix:         0 
     ctx/other/gradient-pen/type:            GRADIENT_NONE
     ctx/other/gradient-pen/count:           0
     ctx/other/gradient-pen/positions?:      false
-    ctx/other/gradient-pen/created?:        false 
+    ctx/other/gradient-pen/created?:        false
+    ctx/other/gradient-pen/transformed?:    false 
     ctx/other/gradient-fill/extra:          0
+    ctx/other/gradient-fill/matrix:         0 
     ctx/other/gradient-fill/type:           GRADIENT_NONE
     ctx/other/gradient-fill/count:          0 
     ctx/other/gradient-fill/positions?:     false
     ctx/other/gradient-fill/created?:       false
-    ctx/other/gradient-matrix-pen:          0 
-    ctx/other/gradient-matrix-fill:         0
+    ctx/other/gradient-fill/transformed?:   false 
     ctx/other/gradient-pen?:                false
     ctx/other/gradient-fill?:               false
-    ctx/other/gradient-matrix-pen:          0
-    ctx/other/gradient-matrix-fill:         0
     ctx/other/D2D?:                         (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
     ctx/other/last-point?:                  no
     ctx/other/prev-shape/type:              SHAPE_OTHER
@@ -307,7 +306,6 @@ draw-begin: func [
     ctx/other/matrix-order:                 GDIPLUS_MATRIXORDERAPPEND
     ctx/other/connect-subpath:              0
     ctx/other/last-point?:                  no
-    ctx/other/matrix-order:                 GDIPLUS_MATRIXORDERAPPEND
     ctx/other/anti-alias?:                  no
     ctx/other/GDI+?:                        no
     ctx/other/D2D?:                         no
@@ -415,8 +413,8 @@ draw-end: func [
     unless zero? ctx/gp-matrix		[GdipDeleteMatrix ctx/gp-matrix]
     unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
     unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
-    unless zero? ctx/other/gradient-matrix-pen [ GdipDeleteMatrix ctx/other/gradient-matrix-pen ]
-    unless zero? ctx/other/gradient-matrix-fill [ GdipDeleteMatrix ctx/other/gradient-matrix-fill ]
+    unless zero? ctx/other/gradient-pen/matrix [ GdipDeleteMatrix ctx/other/gradient-pen/matrix ]
+    unless zero? ctx/other/gradient-fill/matrix [ GdipDeleteMatrix ctx/other/gradient-fill/matrix ]
     unless zero? as-integer ctx/other/matrix-elems       [ free as byte-ptr! ctx/other/matrix-elems ]
     ptrn: as red-image! ctx/other/pattern-image-fill 
     unless null? ptrn/node [
@@ -2080,19 +2078,44 @@ get-shape-bounding-box: func [
     ]
 ]
 
+gradient-deviation: func [
+    p1          [tagPOINT]
+    p2          [tagPOINT]
+    return:     [float32!]
+    /local
+        d       [float!]
+        d1      [float!]
+        d2      [float!]
+][
+    d1: as-float p1/x - p2/x
+    d2: as-float p1/y - p2/y
+    d: sqrt ( ( d1 * d1 ) + ( d2 * d2 ) )
+    as-float32 radian-to-degrees asin ( d2 / d )
+]
+
 gradient-transform: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    gm          [integer!]
     /local
         brush   [integer!]
 ][
-    either gradient/type = GRADIENT_LINEAR [
-        brush: 0
-        GdipGetPenBrushFill ctx/gp-pen :brush
-        GdipSetLineTransform brush gm
-    ][
-        GdipSetPathGradientTransform ctx/gp-brush gm
+    if gradient/transformed? [
+        either gradient = ctx/other/gradient-pen [
+            brush: 0
+            GdipGetPenBrushFill ctx/gp-pen :brush
+        ][
+            brush: ctx/gp-brush
+        ]
+        either gradient/type = GRADIENT_LINEAR [
+            GdipRotateMatrix 
+                gradient/matrix 
+                as-float32 0 - gradient-deviation gradient/data gradient/data + 1 
+                GDIPLUS_MATRIXORDERPREPEND
+            GdipSetLineTransform brush gradient/matrix      ;-- this function resets angle of position points
+        ][
+            GdipSetPathGradientTransform brush gradient/matrix
+        ]
+        gradient/transformed?: false
     ]
 ]
 
@@ -2100,13 +2123,10 @@ gradient-rotate: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
     angle       [float!]
-    /local
-        gm      [integer!]
-        brush   [integer!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ] 
-    GdipRotateMatrix gm as float32! angle GDIPLUS_MATRIXORDERAPPEND 
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    gradient/transformed?: true
+    GdipRotateMatrix gradient/matrix as float32! angle GDIPLUS_MATRIXORDERAPPEND 
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-skew: func [
@@ -2115,7 +2135,6 @@ gradient-skew: func [
     sx		    [float!]
     sy		    [float!]
     /local
-        gm  [integer!]
         m	[integer!]
         x	[float32!]
         y	[float32!]
@@ -2125,13 +2144,13 @@ gradient-skew: func [
     m: 0
     u: as float32! 1.0
     z: as float32! 0.0
-    x: as float32! system/words/tan degree-to-radians sx TYPE_TANGENT
-    y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians sy TYPE_TANGENT]
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
+    x: as float32! tan degree-to-radians sx TYPE_TANGENT
+    y: as float32! either sx = sy [0.0][tan degree-to-radians sy TYPE_TANGENT]
+    gradient/transformed?: true 
     GdipCreateMatrix2 u y x u z z :m
-    GdipMultiplyMatrix gm m GDIPLUS_MATRIXORDERAPPEND
+    GdipMultiplyMatrix gradient/matrix m GDIPLUS_MATRIXORDERAPPEND
     GdipDeleteMatrix m  
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-scale: func [
@@ -2139,12 +2158,10 @@ gradient-scale: func [
     gradient    [gradient!]
     sx		    [float!]
     sy		    [float!]
-    /local
-        gm  [integer!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipScaleMatrix gm as-float32 sx as-float32 sy GDIPLUS_MATRIXORDERAPPEND
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    gradient/transformed?: true 
+    GdipScaleMatrix gradient/matrix as-float32 sx as-float32 sy GDIPLUS_MATRIXORDERAPPEND
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-translate: func [
@@ -2152,12 +2169,10 @@ gradient-translate: func [
     gradient    [gradient!]
     x	        [float!]
     y	        [float!]
-    /local
-        gm  [integer!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipTranslateMatrix gm as-float32 x as-float32 y GDIPLUS_MATRIXORDERAPPEND
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    gradient/transformed?: true 
+    GdipTranslateMatrix gradient/matrix as-float32 x as-float32 y GDIPLUS_MATRIXORDERAPPEND
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-transf-reset: func [
@@ -2166,36 +2181,19 @@ gradient-transf-reset: func [
     /local 
         m       [integer!]
 ][
-    either gradient = ctx/other/gradient-pen [
-        m: ctx/other/gradient-matrix-pen
-        either zero? m [
-            GdipCreateMatrix :m
-            ctx/other/gradient-matrix-pen: m
-        ][
-            GdipSetMatrixElements 
-                m
-                as-float32 1 
-                as-float32 0 
-                as-float32 0 
-                as-float32 1 
-                as-float32 0 
-                as-float32 0
-        ]
+    m: gradient/matrix
+    either zero? m [
+        GdipCreateMatrix :m
+        gradient/matrix: m
     ][
-        m: ctx/other/gradient-matrix-fill
-        either zero? m [
-            GdipCreateMatrix :m
-            ctx/other/gradient-matrix-fill: m
-        ][
-            GdipSetMatrixElements 
-                m
-                as-float32 1 
-                as-float32 0 
-                as-float32 0 
-                as-float32 1 
-                as-float32 0 
-                as-float32 0
-        ]
+        GdipSetMatrixElements 
+            m
+            as-float32 1 
+            as-float32 0 
+            as-float32 0 
+            as-float32 1 
+            as-float32 0 
+            as-float32 0
     ]
 ]
 
@@ -2204,15 +2202,14 @@ gradient-set-matrix: func [
     gradient    [gradient!]
     m           [integer!]
     /local
-        gm  [integer!]
-        m11 [pointer! [float32!]]
-        m12 [pointer! [float32!]]
-        m21 [pointer! [float32!]]
-        m22 [pointer! [float32!]]
-        dx  [pointer! [float32!]]
-        dy  [pointer! [float32!]]
+        m11 [float32-ptr!]
+        m12 [float32-ptr!]
+        m21 [float32-ptr!]
+        m22 [float32-ptr!]
+        dx  [float32-ptr!]
+        dy  [float32-ptr!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
+    gradient/transformed?: true 
     GdipGetMatrixElements m ctx/other/matrix-elems
     m11: ctx/other/matrix-elems
     m12: ctx/other/matrix-elems + 1
@@ -2221,38 +2218,33 @@ gradient-set-matrix: func [
     dx:  ctx/other/matrix-elems + 4
     dy:  ctx/other/matrix-elems + 5
     GdipSetMatrixElements 
-        gm 
+        gradient/matrix 
         m11/value 
         m12/value 
         m21/value 
         m22/value 
         dx/value 
         dy/value
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-reset-matrix: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    /local
-        gm  [integer!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
+    gradient/transformed?: true 
     gradient-transf-reset ctx gradient
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
 
 gradient-invert-matrix: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    /local
-        gm      [integer!]
 ][
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipInvertMatrix gm
-    if gradient/created? [ gradient-transform ctx gradient gm ]
+    gradient/transformed?: true 
+    GdipInvertMatrix gradient/matrix
+    if gradient/created? [ gradient-transform ctx gradient ]
 ]
-
 
 save-brush: func [
     ctx		    [draw-ctx!]
@@ -2274,14 +2266,11 @@ save-brush: func [
 gradient-linear: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     point-1     [tagPOINT]
     point-2     [tagPOINT]
     /local
         brush	[integer!]
         count   [integer!]
-        gm      [integer!]
 ][
     brush: 0
     count: gradient/count
@@ -2289,12 +2278,17 @@ gradient-linear: func [
         point-1/x: point-1/x - gradient/extra - 1
         point-2/x: point-2/x + gradient/extra + 1
         gradient/extra: 0
-    ] 
-    GdipCreateLineBrushI point-1 point-2 _colors/1 _colors/count 0 :brush
-    GdipSetLinePresetBlend brush _colors _colors-pos count
-
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipSetLineTransform brush gm
+    ]
+    GdipCreateLineBrushI point-1 point-2 gradient/colors/1 gradient/colors/count 0 :brush
+    if gradient/transformed? [
+        GdipRotateMatrix 
+            gradient/matrix 
+            as-float32 0 - gradient-deviation point-1 point-2 
+            GDIPLUS_MATRIXORDERPREPEND
+        GdipSetLineTransform brush gradient/matrix      ;-- this function resets angle of position points 
+        gradient/transformed?: false
+    ]
+    GdipSetLinePresetBlend brush gradient/colors gradient/colors-pos count
 
     save-brush ctx gradient brush
 ]
@@ -2302,8 +2296,6 @@ gradient-linear: func [
 gradient-radial-diamond: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     center      [tagPOINT]
     focal       [tagPOINT]
     radius      [integer!]
@@ -2318,7 +2310,6 @@ gradient-radial-diamond: func [
         x       [integer!]
         y       [integer!]
         other   [tagPOINT]
-        gm      [integer!]
 ][
     brush: 0
 
@@ -2357,20 +2348,22 @@ gradient-radial-diamond: func [
     n: brush
     GdipCreatePathGradientFromPath n :brush
     GdipDeletePath n
-    GdipSetPathGradientCenterColor brush _colors/value
+    GdipSetPathGradientCenterColor brush gradient/colors/value
     either gradient/type = GRADIENT_RADIAL [
         GdipSetPathGradientCenterPointI brush focal
     ][
         unless radius = INVALID_RADIUS [ GdipSetPathGradientCenterPointI brush other ]
     ]
-    reverse-int-array _colors count
-    reverse-float32-array _colors-pos count
-    GdipSetPathGradientPresetBlend brush _colors _colors-pos count
-    reverse-int-array _colors count
-    reverse-float32-array _colors-pos count
+    reverse-int-array gradient/colors count
+    reverse-float32-array gradient/colors-pos count
+    GdipSetPathGradientPresetBlend brush gradient/colors gradient/colors-pos count
+    reverse-int-array gradient/colors count
+    reverse-float32-array gradient/colors-pos count
 
-    gm: either gradient = ctx/other/gradient-pen [ ctx/other/gradient-matrix-pen ][ ctx/other/gradient-matrix-fill ]
-    GdipSetPathGradientTransform brush gm
+    if gradient/transformed? [
+        GdipSetPathGradientTransform brush gradient/matrix
+        gradient/transformed?: false
+    ]
 
     save-brush ctx gradient brush
 ]
@@ -2378,8 +2371,6 @@ gradient-radial-diamond: func [
 check-gradient: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     /local
         upper       [tagPOINT]
         lower       [tagPOINT]
@@ -2391,13 +2382,13 @@ check-gradient: func [
     ]
     case [
         gradient/type = GRADIENT_LINEAR [
-            gradient-linear ctx gradient _colors _colors-pos upper lower
+            gradient-linear ctx gradient upper lower
         ]
         any [
             gradient/type = GRADIENT_RADIAL 
             gradient/type = GRADIENT_DIAMOND
         ][
-            gradient-radial-diamond ctx gradient _colors _colors-pos upper lower radius/x
+            gradient-radial-diamond ctx gradient upper lower radius/x
         ]
         true []
     ]
@@ -2406,8 +2397,6 @@ check-gradient: func [
 _check-gradient-box: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     upper       [red-pair!]
     lower       [red-pair!]
     /local
@@ -2445,29 +2434,31 @@ _check-gradient-box: func [
         ]
         true []
     ]
-    check-gradient ctx gradient _colors _colors-pos _upper _lower _other
+    check-gradient ctx gradient _upper _lower _other
 ]
 check-gradient-box: func [
     ctx		[draw-ctx!]
     upper   [red-pair!]
     lower   [red-pair!]
 ][
-    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
+    if all [ 
+        ctx/other/gradient-pen? 
+        not ctx/other/gradient-pen/positions? 
+    ][
         _check-gradient-box 
             ctx 
             ctx/other/gradient-pen 
-            ctx/other/pen-colors 
-            ctx/other/pen-colors-pos 
             upper 
             lower
     ]
-    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
+    if all [ 
+        ctx/other/gradient-fill? 
+        not ctx/other/gradient-fill/positions? 
+    ][
         ctx/brush?: true
         _check-gradient-box 
             ctx 
             ctx/other/gradient-fill 
-            ctx/other/colors 
-            ctx/other/colors-pos 
             upper 
             lower
     ]
@@ -2476,8 +2467,6 @@ check-gradient-box: func [
 _check-gradient-ellipse: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     x       [integer!]
     y       [integer!]
     width   [integer!]
@@ -2517,7 +2506,7 @@ _check-gradient-ellipse: func [
         ]
         true []
     ]
-    check-gradient ctx gradient _colors _colors-pos upper lower other
+    check-gradient ctx gradient upper lower other
 ]
 check-gradient-ellipse: func [
     ctx		[draw-ctx!]
@@ -2526,20 +2515,36 @@ check-gradient-ellipse: func [
     width   [integer!]
     height  [integer!]
 ][
-    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
-        _check-gradient-ellipse ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos x y width height
+    if all [ 
+        ctx/other/gradient-pen? 
+        not ctx/other/gradient-pen/positions? 
+    ][
+        _check-gradient-ellipse 
+            ctx 
+            ctx/other/gradient-pen 
+            x 
+            y 
+            width 
+            height
     ]
-    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
+    if all [ 
+        ctx/other/gradient-fill? 
+        not ctx/other/gradient-fill/positions? 
+    ][
         ctx/brush?: true
-        _check-gradient-ellipse ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos x y width height
+        _check-gradient-ellipse 
+            ctx 
+            ctx/other/gradient-fill 
+            x 
+            y 
+            width 
+            height
     ]
 ]
 
 _check-gradient-poly: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     start   [tagPOINT]
     count   [integer!]
     /local
@@ -2577,27 +2582,39 @@ _check-gradient-poly: func [
             other/x: d
         ]
     ]
-    check-gradient ctx gradient _colors _colors-pos upper lower other
+    check-gradient ctx gradient upper lower other
 ]
 check-gradient-poly: func [
     ctx		[draw-ctx!]
     start   [tagPOINT]
     count   [integer!]
 ][
-    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
-        _check-gradient-poly ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos start count
+    if all [ 
+        ctx/other/gradient-pen? 
+        not ctx/other/gradient-pen/positions? 
+    ][
+        _check-gradient-poly 
+            ctx 
+            ctx/other/gradient-pen 
+            start 
+            count
     ]
-    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
+    if all [ 
+        ctx/other/gradient-fill? 
+        not ctx/other/gradient-fill/positions? 
+    ][
         ctx/brush?: true
-        _check-gradient-poly ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos start count
+        _check-gradient-poly 
+            ctx 
+            ctx/other/gradient-fill 
+            start 
+            count
     ]
 ]
 
 _check-gradient-shape: func [
     ctx		    [draw-ctx!]
     gradient    [gradient!]
-    _colors     [int-ptr!]
-    _colors-pos [pointer! [float32!]]
     /local 
         new-path    [integer!]
         count       [integer!]
@@ -2626,7 +2643,7 @@ _check-gradient-shape: func [
         point: point + 1
         pt2F: pt2F + 1
     ]
-    _check-gradient-poly ctx gradient _colors _colors-pos points count 
+    _check-gradient-poly ctx gradient points count 
     ;-- free allocated resources
     free as byte-ptr! points
     free as byte-ptr! gradient/path-data/points
@@ -2635,12 +2652,22 @@ _check-gradient-shape: func [
 check-gradient-shape: func [
     ctx		[draw-ctx!]
 ][
-    if all [ ctx/other/gradient-pen? not ctx/other/gradient-pen/positions? ][
-        _check-gradient-shape ctx ctx/other/gradient-pen ctx/other/pen-colors ctx/other/pen-colors-pos
+    if all [ 
+        ctx/other/gradient-pen? 
+        not ctx/other/gradient-pen/positions? 
+    ][
+        _check-gradient-shape 
+            ctx 
+            ctx/other/gradient-pen
     ]
-    if all [ ctx/other/gradient-fill? not ctx/other/gradient-fill/positions? ][
+    if all [ 
+        ctx/other/gradient-fill? 
+        not ctx/other/gradient-fill/positions? 
+    ][
         ctx/brush?: true
-        _check-gradient-shape ctx ctx/other/gradient-fill ctx/other/colors ctx/other/colors-pos
+        _check-gradient-shape 
+            ctx 
+            ctx/other/gradient-fill
     ]
 ]
 
@@ -2671,8 +2698,8 @@ OS-draw-grad-pen: func [
         pt		[tagPOINT]
         color	[int-ptr!]
         last-c	[int-ptr!]
-        pos		[pointer! [float32!]]
-        last-p	[pointer! [float32!]]
+        pos		[float32-ptr!]
+        last-p	[float32-ptr!]
         n		[integer!]
         delta	[float!]
         p		[float!]
@@ -2682,18 +2709,18 @@ OS-draw-grad-pen: func [
         point       [red-pair!]
         value       [red-value!]
         _colors     [int-ptr!]
-        _colors-pos [pointer! [float32!]]
+        _colors-pos [float32-ptr!]
         gradient    [gradient!]
         gm          [integer!]
 ][
     either brush? [
         ctx/other/gradient-fill?: true
-        _colors: ctx/other/colors
-        _colors-pos: ctx/other/colors-pos 
+        _colors: ctx/other/gradient-fill/colors
+        _colors-pos: ctx/other/gradient-fill/colors-pos 
     ][
         ctx/other/gradient-pen?: true
-        _colors: ctx/other/pen-colors
-        _colors-pos: ctx/other/pen-colors-pos
+        _colors: ctx/other/gradient-pen/colors
+        _colors-pos: ctx/other/gradient-pen/colors-pos
     ]
     ;-- stops
     pt: ctx/other/edges
@@ -2763,7 +2790,7 @@ OS-draw-grad-pen: func [
                 pt: pt + 1
                 point: as red-pair! (positions + 1)
                 pt/x: point/x pt/y: point/y
-                gradient-linear ctx gradient _colors _colors-pos gradient/data gradient/data + 1
+                gradient-linear ctx gradient gradient/data gradient/data + 1
             ]
         ]
         any [ mode = radial mode = diamond ][
@@ -2796,7 +2823,7 @@ OS-draw-grad-pen: func [
                         pt/x: INVALID_RADIUS
                     ]
                 ] 
-                gradient-radial-diamond ctx gradient _colors _colors-pos gradient/data gradient/data + 1 pt/x
+                gradient-radial-diamond ctx gradient gradient/data gradient/data + 1 pt/x
             ] 
         ]
         true [ gradient/type: GRADIENT_NONE ]

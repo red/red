@@ -161,11 +161,15 @@ Red/System [
 		extra           [integer!]                              ;-- used when pen width > 1
 		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
 		points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+		matrix			[integer!]
+		colors			[int-ptr!]
+		colors-pos		[float32-ptr!]
 		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
 		count           [integer!]                              ;-- gradient stops count
 		data            [tagPOINT]                              ;-- figure coordinates
 		positions?      [logic!]                                ;-- true if positions are defined, false otherwise
-		created?        [logic!]                                ;-- true if gradient brush created, false otherwise                                 
+		created?        [logic!]                                ;-- true if gradient brush created, false otherwise
+		transformed?	[logic!]								;-- true if transformation applied
 	]
 
 	curve-info!: alias struct! [
@@ -185,16 +189,10 @@ Red/System [
 		gradient-fill			[gradient!]
 		gradient-pen?			[logic!]
 		gradient-fill?			[logic!]
-		gradient-matrix-pen		[integer!]					;-- transformation matrix for pen gradient GDI+
-		gradient-matrix-fill	[integer!]					;-- transformation matrix for fill gradient GDI+
-		matrix-elems			[pointer! [float32!]]		;-- elements of matrix allocated in draw-begin for performance reason
+		matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
 		paint					[tagPAINTSTRUCT]
 		edges					[tagPOINT]					;-- polygone edges buffer
 		types					[byte-ptr!]					;-- point type buffer
-		colors					[int-ptr!]
-		colors-pos				[pointer! [float32!]]
-		pen-colors				[int-ptr!]					;-- for delayed pen gradients (no positions specified)
-		pen-colors-pos			[pointer! [float32!]]		;-- for delayed pen gradients (no positions specified)
 		last-point?				[logic!]
 		path-last-point			[tagPOINT]
 		prev-shape				[curve-info!]
