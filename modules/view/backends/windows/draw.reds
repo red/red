@@ -715,6 +715,7 @@ OS-draw-shape-endpath: func [
         GdipGetPointCount ctx/gp-path :count
         if count > 0 [
             check-gradient-shape ctx                          ;-- check for gradient
+            check-texture-shape ctx
             if close? [ GdipClosePathFigure ctx/gp-path ]
             GdipDrawPath ctx/graphics ctx/gp-pen ctx/gp-path
             GdipFillPath ctx/graphics ctx/gp-brush ctx/gp-path
@@ -1239,6 +1240,7 @@ OS-draw-box: func [
         rad: radius/value * 2
         either ctx/other/GDI+? [
             check-gradient-box ctx upper lower
+            check-texture-box ctx upper
             gdiplus-draw-roundbox
                 ctx
                 upper/x
@@ -1255,6 +1257,7 @@ OS-draw-box: func [
             if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
             if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
             check-gradient-box ctx upper lower
+            check-texture-box ctx upper
             unless zero? ctx/gp-brush [				;-- fill rect
                 GdipFillRectangleI
                     ctx/graphics
@@ -1305,6 +1308,7 @@ OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
 
     either ctx/other/GDI+? [
         check-gradient-poly ctx ctx/other/edges 3
+        check-texture-poly ctx ctx/other/edges 3
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
@@ -1350,6 +1354,7 @@ OS-draw-polygon: func [
 
     either ctx/other/GDI+? [
         check-gradient-poly ctx ctx/other/edges nb
+        check-texture-poly ctx ctx/other/edges nb
         if ctx/brush? [
             GdipFillPolygonI
                 ctx/graphics
@@ -1848,6 +1853,105 @@ check-texture: func [
         ]
     ]
     brush
+]
+
+check-texture-box: func [
+    ctx		[draw-ctx!]
+    upper   [red-pair!]
+    /local
+        brush   [integer!]
+][
+    brush: 0
+    if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx true
+        texture-translate as-float upper/x as-float upper/y brush
+    ]
+    if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx false
+        texture-translate as-float upper/x as-float upper/y brush
+    ]
+]
+
+check-texture-ellipse: func [
+    ctx		[draw-ctx!]
+    x       [integer!]
+    y       [integer!]
+    /local
+        brush   [integer!]
+][
+    brush: 0
+    if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx true
+        texture-translate as-float x as-float y brush
+    ]
+    if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx false
+        texture-translate as-float x as-float y brush
+    ]
+]
+
+check-texture-poly: func [
+    ctx		[draw-ctx!]
+    start   [tagPOINT]
+    count   [integer!]
+    /local
+        cx      [integer!]
+        cy      [integer!]
+        d       [integer!]
+        brush   [integer!]
+][
+    brush: 0
+    cx: 0 cy: 0 d: 0
+    if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx true
+        get-shape-center start count :cx :cy :d
+        texture-translate as-float cx as-float cy brush
+    ]
+    if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
+        brush: check-texture ctx false
+        get-shape-center start count :cx :cy :d
+        texture-translate as-float cx as-float cy brush
+    ]
+]
+
+check-texture-shape: func [
+    ctx		    [draw-ctx!]
+    /local 
+        new-path    [integer!]
+        count       [integer!]
+        result      [integer!]
+        points      [tagPOINT]
+        point       [tagPOINT]
+        path-data   [PATHDATA]
+        pt2F        [POINT_2F]
+][
+    ;-- flatten path to get a polygon aproximation
+    new-path: 0
+    GdipClonePath ctx/gp-path :new-path
+    GdipFlattenPath new-path 0 as float32! 1.0
+    count: 0
+    GdipGetPointCount new-path :count
+    path-data: ALLOC_REENTRANT(PATHDATA)
+    path-data/count: count
+    path-data/points: as POINT_2F allocate count * (size? POINT_2F)
+    path-data/types: allocate count 
+    GdipGetPathData new-path path-data
+    ;-- translate call to check-texture-poly (it will start drawing texture in the center of aproximated polygon)
+    points: as tagPOINT allocate count * (size? tagPOINT)
+    point: points
+    pt2F:  path-data/points
+    loop count [
+        point/x: as-integer pt2F/x 
+        point/y: as-integer pt2F/y
+        point: point + 1
+        pt2F: pt2F + 1
+    ]
+    check-texture-poly ctx points count
+    ;-- free allocated resources
+    free as byte-ptr! points
+    free as byte-ptr! path-data/points
+    free path-data/types
+    FREE_REENTRANT(path-data)
 ]
 
 texture-rotate: func [
