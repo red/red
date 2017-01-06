@@ -213,7 +213,7 @@ red-console-ctx: context [
 	]
 
 	win: layout/tight [						;-- main window
-		title  "Red RELP Console"
+		title  "Red Console"
 	]
 
 	launch: func [/local svs][

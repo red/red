@@ -31,11 +31,25 @@ terminal!: object [
 
 	draw: get 'system/view/platform/draw-face
 
-	print: func [value [any-type!] /local str][
+	print: func [value [any-type!] /local str s][
 		if block? value [value: reduce value]
 		str: form value
-		append lines str
-		calc-top
+		s: find str lf
+		either s [
+			while [s: find str lf][
+				append lines copy/part str s
+				calc-top
+				str: skip s 1
+				;loop 3 [do-events/no-wait]
+			]
+			if lf = last str [
+				append lines ""
+				calc-top
+			]
+		][
+			append lines str
+			calc-top
+		]
 		()				;-- return unset!
 	]
 
@@ -88,14 +102,52 @@ terminal!: object [
 		if pos > length? line [pos: pos - n]
 	]
 
-	scroll-lines: func [delta /local n len cnt][
-	?? delta
-		scroller/position: scroller/position - delta
-		either delta > 0 [			;-- scroll up
-			
-		][
-			n: top
+	scroll-lines: func [delta /local n len cnt end offset][
+		end: scroller/max-size - page-cnt + 1
+		offset: scroller/position
+		if any [
+			all [offset = 1 delta > 0]
+			all [offset = end delta < 0]
+		][exit]
+?? delta
+?? top
+		offset: offset - delta
+		scroller/position: either offset < 1 [1][
+			either offset > end [end][offset]
+		]
+
+		n: top
+		either delta > 0 [						;-- scroll up
+			if scroll-y <> 0 [
+				offset: delta
+				delta: scroll-y / line-h + delta
+				if delta <= 0 [
+					scroll-y: scroll-y + (offset * line-h)
+					show target
+					exit
+				]
+			]
+			n: n - 1
+			if zero? n [scroll-y: 0 show target exit]
+			scroll-y: 0
+			until [
+				cnt: pick nlines n
+				delta: delta - cnt
+				n: n - 1
+				any [delta < 1 n < 1]
+			]
+			if delta <= 0 [
+				n: n + 1
+				if delta < 0 [
+					delta: delta + cnt * line-h
+					scroll-y: 0 - delta
+				]
+			]
+			if zero? n [n: 1 scroll-y: 0]
+		][										;-- scroll down
 			len: length? lines
+			delta: scroll-y / line-h + delta
+			scroll-y: 0
 			until [
 				cnt: pick nlines n
 				delta: delta + cnt
@@ -103,13 +155,12 @@ terminal!: object [
 				any [delta >= 0 n > len]
 			]
 			if delta > 0 [
-				delta: delta - cnt
 				n: n - 1
-				delta: delta * line-h
-				scroll-y: either top = n [scroll-y + delta][delta]
+				scroll-y: delta - cnt * line-h
 			]
-			top: n
+			if n > len [n: len scroll-y: 0]
 		]
+		top: n
 		show target
 	]
 
@@ -135,7 +186,7 @@ terminal!: object [
 	calc-top: func [/local delta n cnt h win-h][
 		calc-last-line
 		delta: line-cnt - scroller/position - page-cnt
-		if delta < 0 [exit]
+		if delta < 0 [show target exit]
 
 		scroll-lines -1 - delta
 	]
@@ -186,15 +237,14 @@ terminal!: object [
 			draw target cmds
 
 			h: box/height
-			;cnt: box/line-count
-			;poke heights n h
-			;line-cnt: line-cnt + cnt - pick nlines n
-			;poke nlines n cnt
+			cnt: box/line-count
+			poke heights n h
+			line-cnt: line-cnt + cnt - pick nlines n
+			poke nlines n cnt
 
 			n: n + 1
 			y: y + h
 		]
-?? y
 		update-caret
 		if num <> line-cnt [update-scroller]
 	]

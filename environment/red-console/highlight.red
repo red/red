@@ -496,7 +496,7 @@ highlight: context [
 		any-value: [
 			pos: any [some ws | literal-value (
 				if all [type style: select theme type][
-					len: (index? e) - index? s
+					len: offset? s e
 					append dst index? s
 					append dst len
 					either type = 'tuple! [

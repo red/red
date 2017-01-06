@@ -1178,7 +1178,7 @@ process: func [
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
 		WM_CHAR
 		WM_DEADCHAR		[
-			if any [special-key = VK_LMENU special-key = VK_RMENU][
+			if special-key = VK_LMENU [
 				special-key: -1							;-- we prefer the translate char here, for ALT Key Codes, e.g ALT+0169
 			]
 			make-event msg 0 EVT_KEY
