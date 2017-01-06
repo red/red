@@ -2109,6 +2109,40 @@ XFORM!: alias struct! [
 			texture		[int-ptr!]
 			return:		[integer!]
 		]
+		GdipRotateTextureTransform: "GdipRotateTextureTransform" [
+			brush		[integer!]
+			angle		[float32!]
+			order 		[integer!]
+			return:		[integer!]
+		]
+		GdipScaleTextureTransform: "GdipScaleTextureTransform" [
+			brush		[integer!]
+			sx			[float32!]
+			sy			[float32!]
+			order 		[integer!]
+			return:		[integer!]
+		]
+		GdipTranslateTextureTransform: "GdipTranslateTextureTransform" [
+			brush		[integer!]
+			dx			[float32!]
+			dy			[float32!]
+			order 		[integer!]
+			return:		[integer!]
+		]
+		GdipResetTextureTransform: "GdipResetTextureTransform" [
+			brush		[integer!]
+			return:		[integer!]
+		]
+		GdipSetTextureTransform: "GdipSetTextureTransform" [
+			brush		[integer!]
+			matrix		[integer!]
+			return:		[integer!]
+		]
+		GdipGetTextureTransform: "GdipGetTextureTransform" [
+			brush		[integer!]
+			matrix		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipDrawImagePointsRectI: "GdipDrawImagePointsRectI" [
 			graphics	[integer!]
 			image		[integer!]

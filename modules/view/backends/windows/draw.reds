@@ -1830,6 +1830,80 @@ OS-draw-image: func [
         GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
+check-texture: func [
+    ctx     [draw-ctx!]
+    pen?    [logic!]
+    return: [integer!]
+    /local
+        brush   [integer!]
+][
+    brush: 0
+    either pen? [
+        if ctx/gp-pen-type = BRUSH_TYPE_TEXTURE [
+            GdipGetPenBrushFill ctx/gp-pen :brush
+        ]
+    ][
+        if ctx/gp-brush-type = BRUSH_TYPE_TEXTURE [
+            brush: ctx/gp-brush
+        ]
+    ]
+    brush
+]
+
+texture-rotate: func [
+    angle   [float!]
+    brush   [integer!]
+][
+    unless zero? brush [ GdipRotateTextureTransform brush as-float32 angle GDIPLUS_MATRIXORDERAPPEND ]
+]
+
+texture-scale: func [
+    sx	    [float!]
+    sy	    [float!]
+    brush   [integer!]
+][
+    unless zero? brush [ GdipScaleTextureTransform brush as-float32 sx as-float32 sy GDIPLUS_MATRIXORDERAPPEND ]
+]
+
+texture-translate: func [
+    x	    [float!]
+    y	    [float!]
+    brush   [integer!]
+][
+    unless zero? brush [ GdipTranslateTextureTransform brush as-float32 x as-float32 y GDIPLUS_MATRIXORDERAPPEND ]
+]
+
+texture-set-matrix: func [
+    matrix  [integer!]
+    brush   [integer!]
+][
+    unless zero? brush [ GdipSetTextureTransform brush matrix ]
+]
+
+texture-reset-matrix: func [
+    brush   [integer!]
+][
+    unless zero? brush [ GdipResetTextureTransform brush ]
+]
+
+texture-invert-matrix: func [
+    ctx     [draw-ctx!]
+    brush   [integer!]
+    /local
+        m   [integer!]
+][
+    unless zero? brush [
+        m: ctx/gp-matrix
+        if zero? m [
+            GdipCreateMatrix :m
+            ctx/gp-matrix: m
+        ]
+        GdipGetTextureTransform brush :m
+        GdipInvertMatrix m
+        GdipSetTextureTransform brush m
+    ]
+]
+
 OS-draw-brush-bitmap: func [
     ctx		[draw-ctx!]
     img     [red-image!]
@@ -2819,12 +2893,18 @@ OS-matrix-rotate: func [
         m           [integer!]
         brush       [integer!]
         gradient    [gradient!]
+        pen?        [logic!]
 ][
     ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- rotate pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ] 
-        gradient-rotate ctx gradient as-float angle/value 
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ] 
+        gradient-rotate ctx gradient as-float angle/value
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-rotate as-float angle/value brush
     ][
         ;-- rotate figure
         m: 0
@@ -2842,12 +2922,19 @@ OS-matrix-scale: func [
     sy			[red-integer!]
     /local
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- scale pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-scale ctx gradient as-float sx/value as-float sy/value
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-scale as-float sx/value as-float sy/value brush
     ][ 
         ;-- scale figure
         GdipScaleWorldTransform ctx/graphics get-float32 sx get-float32 sy ctx/other/matrix-order
@@ -2861,12 +2948,19 @@ OS-matrix-translate: func [
     y	        [integer!]
     /local
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     ctx/other/GDI+?: yes
     either pen-fill <> -1 [
         ;-- translate pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-translate ctx gradient as-float x as-float y
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-translate as-float x as-float y brush
     ][ 
         ;-- translate figure
         GdipTranslateWorldTransform
@@ -2917,13 +3011,22 @@ OS-matrix-transform: func [
         center	    [red-pair!]
         m           [integer!]
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     either pen-fill <> -1 [
         ;-- transform pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-rotate ctx gradient as-float rotate/value
         gradient-scale ctx gradient get-float scale get-float scale + 1
         gradient-translate ctx gradient as-float translate/x as-float translate/y
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-rotate as-float rotate/value brush
+        texture-scale get-float scale get-float scale + 1 brush
+        texture-translate as-float translate/x as-float translate/y brush
     ][ 
         ;-- transform figure
         center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
@@ -2950,11 +3053,18 @@ OS-matrix-reset: func [
     pen-fill    [integer!]
     /local
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     either pen-fill <> -1 [
         ;-- reset matrix for pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-transf-reset ctx gradient
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-reset-matrix brush
     ][
         ;-- reset matrix for figure
         GdipResetWorldTransform ctx/graphics
@@ -2967,6 +3077,8 @@ OS-matrix-invert: func [
     /local 
         m           [integer!]
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     m: ctx/gp-matrix
     if zero? m [
@@ -2975,8 +3087,13 @@ OS-matrix-invert: func [
     ]
     either pen-fill <> -1 [
         ;-- invert matrix for pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-invert-matrix ctx gradient
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-invert-matrix ctx brush
     ][
         ;-- invert matrix for figure
         GdipGetWorldTransform ctx/graphics m
@@ -2993,6 +3110,8 @@ OS-matrix-set: func [
         m	        [integer!]
         val         [red-integer!]
         gradient    [gradient!]
+        pen?        [logic!]
+        brush       [integer!]
 ][
     m: 0
     val: as red-integer! block/rs-head blk
@@ -3006,8 +3125,13 @@ OS-matrix-set: func [
         :m
     either pen-fill <> -1 [
         ;-- set matrix for pen or fill
-        gradient: either pen-fill = pen [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
+        pen?: either pen-fill = pen [ true ][ false ]
+        ;-- gradient
+        gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
         gradient-set-matrix ctx gradient m
+        ;-- texture
+        brush: check-texture ctx pen? 
+        texture-set-matrix m brush
     ][
         ;-- set matrix for figure
         GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
