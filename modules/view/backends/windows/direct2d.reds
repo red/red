@@ -13,6 +13,8 @@ Red/System [
 d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 
+dwrite-str-cache: as c-string! 0
+
 #define D2D_MAX_BRUSHES 64
 
 #define float32-ptr! [pointer! [float32!]]
@@ -687,6 +689,8 @@ put-brush: func [
 
 DX-init: func [
 	/local
+		node				[node!]
+		s					[series!]
 		hr					[integer!]
 		factory 			[integer!]
 		dll					[handle!]
@@ -709,6 +713,9 @@ DX-init: func [
 	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
 	dwrite-factory: as this! factory
+	node: alloc-bytes 1024
+	s: as series! node/value
+	dwrite-str-cache: as-c-string s/offset
 ]
 
 to-dx-color: func [
@@ -1020,7 +1027,9 @@ create-text-layout: func [
 		lay	[integer!]
 ][
 	len: -1
+	text/cache: dwrite-str-cache
 	str: unicode/to-utf16-len text :len yes
+	dwrite-str-cache: text/cache
 	lay: 0
 	w: either zero? width  [FLT_MAX][as float32! width]
 	h: either zero? height [FLT_MAX][as float32! height]

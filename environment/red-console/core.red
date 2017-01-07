@@ -85,6 +85,7 @@ terminal!: object [
 	]
 
 	scroll: func [event /local key n][
+		unless ask? [exit]
 		key: event/key
 		n: switch/default key [
 			up			[1]
@@ -205,7 +206,7 @@ terminal!: object [
 		if num <> line-cnt [update-scroller]
 	]
 
-	calc-top: func [/local delta n cnt h win-h][
+	calc-top: func [/local delta n cnt h][
 		calc-last-line
 		delta: line-cnt - scroller/position - page-cnt
 
@@ -247,9 +248,10 @@ terminal!: object [
 		show target
 	]
 
-	paint: func [/local str cmds y n h cnt delta num][
+	paint: func [/local str cmds y n h cnt delta num end][
 		cmds: [text 0x0 text-box]
 		cmds/3: box
+		end: target/size/y
 		y: scroll-y
 		n: top
 		num: line-cnt
@@ -268,6 +270,7 @@ terminal!: object [
 
 			n: n + 1
 			y: y + h
+			if y > end [break]
 		]
 		update-caret
 		if num <> line-cnt [update-scroller]
