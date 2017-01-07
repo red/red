@@ -29,8 +29,11 @@ ask: function [
 	]
 	con/line: line
 	con/pos: 0
+	con/ask?: yes
 	con/calc-top
+	show con/target
 	do-events
+	con/ask?: no
 	line
 ]
 

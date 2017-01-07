@@ -12,7 +12,8 @@ terminal!: object [
 	heights:	make block! 1000				;-- height of each line
 
 	max-lines:	1000							;-- maximum size of the line buffer
-	full?:		no								;-- Is line buffer full?
+	full?:		no								;-- is line buffer full?
+	ask?:		no								;-- is it in ask loop
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
@@ -31,25 +32,35 @@ terminal!: object [
 
 	draw: get 'system/view/platform/draw-face
 
-	print: func [value [any-type!] /local str s][
+	print: func [value [any-type!] /local str s cnt][
 		if block? value [value: reduce value]
 		str: form value
 		s: find str lf
 		either s [
-			while [s: find str lf][
+			cnt: 0
+			until [
 				append lines copy/part str s
 				calc-top
 				str: skip s 1
-				;loop 3 [do-events/no-wait]
+				cnt: cnt + 1
+				if cnt = 200 [
+					show target
+					loop 3 [do-events/no-wait]
+					cnt: 0
+				]
+				not s: find str lf
 			]
-			if lf = last str [
+			either lf = last str [
 				append lines ""
-				calc-top
+			][
+				append lines copy str
 			]
 		][
 			append lines str
-			calc-top
 		]
+		calc-top
+		show target
+		do-events/no-wait
 		()				;-- return unset!
 	]
 
@@ -62,25 +73,31 @@ terminal!: object [
 		caret/size/y: line-h
 	]
 
-	resize: func [new-size [pair!]][
+	resize: func [new-size [pair!] /local y][
+		y: new-size/y
+		new-size/x: new-size/x - 20
+		new-size/y: 0
 		box/size: new-size
-		box/size/y: 0
 		if scroller [
-			page-cnt: new-size/y / line-h
+			page-cnt: y / line-h
 			scroller/page-size: page-cnt
 		]
 	]
 
-	scroll: func [key /local n][
-		n: either integer? key [key * 3][
-			switch/default key [
-				up		[1]
-				down	[-1]
-				page-up [scroller/page-size]
-				page-down [0 - scroller/page-size]
-			][0]
+	scroll: func [event /local key n][
+		key: event/key
+		n: switch/default key [
+			up			[1]
+			down		[-1]
+			page-up		[scroller/page-size]
+			page-down	[0 - scroller/page-size]
+			track		[probe scroller/position - event/picked]
+			mouse-wheel [event/picked * 3]
+		][0]
+		if n <> 0 [
+			scroll-lines n
+			show target
 		]
-		scroll-lines n
 	]
 
 	update-caret: func [/local len n s h lh offset][
@@ -93,7 +110,14 @@ terminal!: object [
 		]
 		offset: box/offset? pos + index? line
 		offset/y: offset/y + h + scroll-y
-		caret/offset: offset
+		if ask? [
+			either offset/y < target/size/y [
+				caret/offset: offset
+				unless caret/visible? [caret/visible?: yes]
+			][
+				if caret/visible? [caret/visible?: no]
+			]
+		]
 	]
 
 	move-caret: func [n][
@@ -109,8 +133,7 @@ terminal!: object [
 			all [offset = 1 delta > 0]
 			all [offset = end delta < 0]
 		][exit]
-?? delta
-?? top
+
 		offset: offset - delta
 		scroller/position: either offset < 1 [1][
 			either offset > end [end][offset]
@@ -161,7 +184,6 @@ terminal!: object [
 			if n > len [n: len scroll-y: 0]
 		]
 		top: n
-		show target
 	]
 
 	calc-last-line: func [/local n cnt h num][
@@ -186,9 +208,8 @@ terminal!: object [
 	calc-top: func [/local delta n cnt h win-h][
 		calc-last-line
 		delta: line-cnt - scroller/position - page-cnt
-		if delta < 0 [show target exit]
 
-		scroll-lines -1 - delta
+		if delta >= 0 [scroll-lines -1 - delta]
 	]
 
 	update-scroller: func [][
@@ -207,7 +228,10 @@ terminal!: object [
 		if process-shortcuts event [exit]
 		char: event/key
 		switch/default char [
-			#"^M" [exit-event-loop]				;-- ENTER key
+			#"^M" [									;-- ENTER key
+				caret/visible?: no
+				exit-event-loop
+			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
 			left  [move-caret -1]
 			right [move-caret 1]
@@ -220,13 +244,13 @@ terminal!: object [
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top
+		show target
 	]
 
 	paint: func [/local str cmds y n h cnt delta num][
 		cmds: [text 0x0 text-box]
 		cmds/3: box
 		y: scroll-y
-?? y
 		n: top
 		num: line-cnt
 		foreach str at lines top [
@@ -267,10 +291,10 @@ console!: make face! [
 			extra/paint
 		]
 		on-scroll: func [face [object!] event [event!]][
-			extra/scroll event/key
+			extra/scroll event
 		]
 		on-wheel: func [face [object!] event [event!]][
-			extra/scroll event/picked
+			extra/scroll event
 		]
 		on-key: func [face [object!] event [event!]][
 			extra/press-key event

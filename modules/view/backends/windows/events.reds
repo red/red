@@ -228,6 +228,7 @@ get-event-key: func [
 					SB_LINEDOWN [_down]
 					SB_PAGEUP	[_page-up]
 					SB_PAGEDOWN	[_page-down]
+					SB_THUMBTRACK [_track]
 					default		[_end]
 				]
 			][
@@ -236,10 +237,12 @@ get-event-key: func [
 					SB_LINEDOWN [_right]
 					SB_PAGEUP	[_page-left]
 					SB_PAGEDOWN	[_page-right]
+					SB_THUMBTRACK [_track]
 					default		[_end]
 				]
 			]
 		]
+		EVT_WHEEL [_mouse-wheel]
 		default [as red-value! none-value]
 	]
 ]
@@ -281,6 +284,10 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_SCROLL [
+			msg: as tagMSG evt/msg
+			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
+		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
@@ -379,7 +386,7 @@ char-key?: func [
 	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
 ]
 
-process-track-pos: func [
+get-track-pos: func [
 	hWnd			[handle!]
 	vertical?		[logic!]
 	return:			[integer!]
@@ -397,11 +404,7 @@ process-track-pos: func [
 	nPos: 0
 	nTrackPos: 0
 	GetScrollInfo hWnd as-integer vertical? as tagSCROLLINFO :cbSize
-	case [
-		nPos > nTrackPos [SB_LINEUP]
-		nPos < nTrackPos [SB_LINEDOWN]
-		true [-1]
-	]
+	nTrackPos
 ]
 
 make-event: func [
@@ -475,15 +478,6 @@ make-event: func [
 		]
 		EVT_CLICK [
 			gui-evt/flags: check-extra-keys yes
-		]
-		EVT_SCROLL [
-			key: WIN32_LOWORD(flags)
-			if key = SB_THUMBTRACK [
-				flags: process-track-pos msg/hWnd msg/msg = WM_VSCROLL
-				key: 0
-			]
-			if any [key > 3 flags = -1][return EVT_DISPATCH]		;-- exclude some events we don't need
-			msg/wParam: flags
 		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]		;-- symbol ID of the menu
 		default	 [0]
@@ -987,7 +981,8 @@ WndProc: func [
 		WM_VSCROLL
 		WM_HSCROLL [
 			either zero? lParam [						;-- message from standard scroll bar
-				make-event current-msg wParam EVT_SCROLL
+				current-msg/wParam: wParam
+				make-event current-msg 0 EVT_SCROLL
 			][											;-- message from trackbar
 				if null? current-msg [init-current-msg]
 				current-msg/hWnd: as handle! lParam		;-- trackbar handle

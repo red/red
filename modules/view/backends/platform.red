@@ -333,7 +333,9 @@ system/view/platform: context [
 			_time:			word/load "time"
 			_draw:			word/load "draw"
 			_scroll:		word/load "scroll"
-			
+
+			_mouse-wheel:	word/load "mouse-wheel"
+			_track:			word/load "track"
 			_page-left:		word/load "page-left"
 			_page-right:	word/load "page-right"
 			_page-up:		word/load "page-up"

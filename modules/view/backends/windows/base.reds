@@ -452,7 +452,8 @@ BaseWndProc: func [
 			if zero? lParam [						;-- message from standard scroll bar
 				current-msg/hWnd: hWnd
 				current-msg/msg: msg
-				make-event current-msg wParam EVT_SCROLL
+				current-msg/wParam: wParam
+				make-event current-msg 0 EVT_SCROLL
 				return 0
 			]
 		]
