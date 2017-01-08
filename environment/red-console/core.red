@@ -24,6 +24,8 @@ terminal!: object [
 	line-h:		0								;-- average line height
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines on screen (include wrapped lines)
+	delta-cnt:	0
+	screen-cnt: 0
 
 	box:		make text-box! []
 	caret:		none
@@ -39,7 +41,7 @@ terminal!: object [
 		either s [
 			cnt: 0
 			until [
-				append lines copy/part str s
+				add-line copy/part str s
 				calc-top
 				str: skip s 1
 				cnt: cnt + 1
@@ -51,17 +53,45 @@ terminal!: object [
 				not s: find str lf
 			]
 			either lf = last str [
-				append lines ""
+				add-line ""
 			][
-				append lines copy str
+				add-line copy str
 			]
 		][
-			append lines str
+			add-line str
 		]
 		calc-top
 		show target
 		do-events/no-wait
 		()				;-- return unset!
+	]
+
+	reset-block: func [blk [block!] /advance /local s][
+		s: either advance [next blk][blk]
+		blk: head blk
+		move/part s blk max-lines
+		clear s
+		blk
+	]
+
+	add-line: func [str][
+		append lines str
+		either full? [
+			delta-cnt: first nlines
+			line-cnt: line-cnt - delta-cnt
+			if top <> 1 [top: top - 1]
+			either max-lines = index? lines [
+				lines: reset-block/advance lines
+				nlines: reset-block nlines
+				heights: reset-block heights
+			][
+				lines: next lines
+				nlines: next nlines
+				heights: next heights
+			]
+		][
+			full?: max-lines = length? lines
+		]
 	]
 
 	update-cfg: func [font cfg][
@@ -92,7 +122,7 @@ terminal!: object [
 			down		[-1]
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
-			track		[probe scroller/position - event/picked]
+			track		[scroller/position - event/picked]
 			mouse-wheel [event/picked * 3]
 		][0]
 		if n <> 0 [
@@ -130,6 +160,7 @@ terminal!: object [
 	scroll-lines: func [delta /local n len cnt end offset][
 		end: scroller/max-size - page-cnt + 1
 		offset: scroller/position
+
 		if any [
 			all [offset = 1 delta > 0]
 			all [offset = end delta < 0]
@@ -140,19 +171,11 @@ terminal!: object [
 			either offset > end [end][offset]
 		]
 
+		if zero? delta [exit]
+
 		n: top
 		either delta > 0 [						;-- scroll up
-			if scroll-y <> 0 [
-				offset: delta
-				delta: scroll-y / line-h + delta
-				if delta <= 0 [
-					scroll-y: scroll-y + (offset * line-h)
-					show target
-					exit
-				]
-			]
-			n: n - 1
-			if zero? n [scroll-y: 0 show target exit]
+			delta: delta + (scroll-y / line-h + pick nlines n)
 			scroll-y: 0
 			until [
 				cnt: pick nlines n
@@ -203,18 +226,41 @@ terminal!: object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
-		if num <> line-cnt [update-scroller]
+		n: line-cnt - num - delta-cnt
+		delta-cnt: 0
+		n
 	]
 
-	calc-top: func [/local delta n cnt h][
-		calc-last-line
-		delta: line-cnt - scroller/position - page-cnt
+	calc-top: func [/edit /local delta n][
+		n: calc-last-line
+		if n < 0 [
+			delta: scroller/position + n
+			scroller/position: either delta < 1 [1][delta]
+		]
+		if n <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
+		delta: screen-cnt + n - page-cnt
 
-		if delta >= 0 [scroll-lines -1 - delta]
+		if delta >= 0 [
+			either edit [
+				n: line-cnt - page-cnt
+				if scroller/position < n [
+					top: length? lines
+					scroller/position: scroller/max-size - page-cnt + 1
+					scroll-lines page-cnt - 1
+				]
+			][
+				scroll-lines -1 - delta
+			]
+		]
 	]
 
-	update-scroller: func [][
-		scroller/max-size: line-cnt - 1 + scroller/page-size
+	update-scroller: func [delta /reposition /local n end][
+		end: scroller/max-size - page-cnt + 1
+		if delta <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
+		if delta < 0 [
+			n: scroller/position
+			if n <> end [scroller/position: n - delta]
+		]
 	]
 
 	process-shortcuts: function [event [event!]][
@@ -244,7 +290,7 @@ terminal!: object [
 		]
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
-		calc-top
+		calc-top/edit
 		show target
 	]
 
@@ -272,8 +318,9 @@ terminal!: object [
 			y: y + h
 			if y > end [break]
 		]
+		screen-cnt: y / line-h
 		update-caret
-		if num <> line-cnt [update-scroller]
+		update-scroller line-cnt - num
 	]
 ]
 
@@ -327,6 +374,7 @@ console!: make face! [
 		scroller/visible?: no
 		scroller: get-scroller self 'vertical
 		scroller/position: 1
+		scroller/max-size: 2
 		terminal/scroller: scroller
 		print: get 'terminal/print
 	]

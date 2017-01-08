@@ -22,15 +22,11 @@ ask: function [
 	line: insert line question
 
 	con: red-console-ctx/console/extra
-	either con/full? [
-		0
-	][
-		append con/lines line
-	]
+	con/add-line line
 	con/line: line
 	con/pos: 0
-	con/ask?: yes
 	con/calc-top
+	con/ask?: yes
 	show con/target
 	do-events
 	con/ask?: no
