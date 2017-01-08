@@ -811,10 +811,11 @@ get-hwnd-render-target: func [
 ][
 	target: as int-ptr! GetWindowLong hWnd wc-offset - 24
 	if null? target [
-		target: as int-ptr! allocate 4 * size? int-ptr!
+		target: as int-ptr! allocate 8 * size? int-ptr!
 		target/1: as-integer create-hwnd-render-target hWnd
 		target/2: as-integer allocate D2D_MAX_BRUSHES * 2 * size? int-ptr!
 		target/3: 0
+		target/4: 0			;-- for text-box! background color
 		SetWindowLong hWnd wc-offset - 24 as-integer target
 	]
 	target

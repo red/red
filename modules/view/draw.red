@@ -867,17 +867,17 @@ Red/System [
 							]
 							sym = _underline [
 								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'double, 'triple
 								OS-text-box-underline layout idx len start cmd
 							]
 							sym = _strike [
 								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'wave, 'double
 								OS-text-box-strikeout layout idx len start cmd
 							]
 							sym = border [
 								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
-								DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- style
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'wave
 								OS-text-box-border layout idx len start cmd
 							]
 							sym = _font-name [

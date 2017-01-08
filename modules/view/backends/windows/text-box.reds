@@ -50,8 +50,26 @@ OS-text-box-background: func [
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
+	/local
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+		cache	[red-vector!]
+		brush	[integer!]
 ][
-	0
+	cache: as red-vector! dc + 3
+	if TYPE_OF(cache) <> TYPE_VECTOR [
+		vector/make-at as red-value! cache 128 TYPE_INTEGER 4
+	]
+	brush: select-brush dc + 1 color
+	if zero? brush [
+		this: as this! dc/value
+		rt: as ID2D1HwndRenderTarget this/vtbl
+		rt/CreateSolidColorBrush this to-dx-color color null null :brush
+		put-brush dc + 1 color brush
+	]
+	vector/rs-append-int cache pos
+	vector/rs-append-int cache len
+	vector/rs-append-int cache brush
 ]
 
 OS-text-box-weight: func [
@@ -217,7 +235,7 @@ OS-text-box-metrics: func [
 				max-line-cnt: lineCount + 1
 				line-metrics: as DWRITE_LINE_METRICS realloc
 					as byte-ptr! line-metrics
-					lineCount + 1 * size? DWRITE_LINE_METRICS
+					lineCount + 1 * size? DWRITE_HIT_TEST_METRICS
 			]
 			lineCount: 0
 			dl/GetLineMetrics this line-metrics max-line-cnt :lineCount
@@ -307,4 +325,71 @@ OS-text-box-layout: func [
 		parse-text-styles target as handle! layout styles catch?
 	]
 	layout
+]
+
+txt-box-draw-background: func [
+	target	[int-ptr!]
+	pos		[red-pair!]
+	layout	[this!]
+	/local
+		this		[this!]
+		rt			[ID2D1HwndRenderTarget]
+		styles		[red-vector!]
+		line-cnt	[integer!]
+		dl			[IDWriteTextLayout]
+		hits		[DWRITE_HIT_TEST_METRICS]
+		hit			[DWRITE_HIT_TEST_METRICS]
+		s			[series!]
+		p			[int-ptr!]
+		end			[int-ptr!]
+		x			[float32!]
+		y			[float32!]
+		height		[integer!]
+		width		[integer!]
+		top			[integer!]
+		left		[integer!]
+		rc			[D2D_RECT_F]
+][
+	styles: as red-vector! target + 3
+	if TYPE_OF(styles) <> TYPE_VECTOR [exit]
+
+	this: as this! target/value
+	rt: as ID2D1HwndRenderTarget this/vtbl
+	dl: as IDWriteTextLayout layout/vtbl
+
+	line-cnt: 0
+	dl/GetLineMetrics layout null 0 :line-cnt
+	if line-cnt > max-line-cnt [
+		max-line-cnt: line-cnt + 1
+		line-metrics: as DWRITE_LINE_METRICS realloc
+			as byte-ptr! line-metrics
+			line-cnt + 1 * size? DWRITE_HIT_TEST_METRICS
+	]
+	hits: as DWRITE_HIT_TEST_METRICS line-metrics
+
+	left: 0
+	rc: as D2D_RECT_F :left
+	x: as float32! pos/x
+	y: as float32! pos/y
+	s: GET_BUFFER(styles)
+	p: (as int-ptr! s/offset) + styles/head
+	end: as int-ptr! s/tail
+	while [p < end][
+		dl/HitTestTextRange layout p/1 p/2 x y hits max-line-cnt :line-cnt
+		hit: hits
+		loop line-cnt [
+			left: as-integer hit/left + as float32! 0.5
+			top: as-integer hit/top + as float32! 0.5
+			width: as-integer hit/width + as float32! 0.5
+			height: as-integer hit/height + as float32! 0.5
+			rc/right: as float32! left + width
+			rc/bottom: as float32! top + height
+			rc/top: as float32! top
+			rc/left: as float32! left
+			rt/FillRectangle this rc p/3
+			hit: hit + 1
+		]
+		p: p + 3
+	]
+	vector/rs-clear styles
 ]

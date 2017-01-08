@@ -176,5 +176,6 @@ OS-draw-text-d2d: func [
 		0
 	]
 
+	txt-box-draw-background ctx/brushes pos layout
 	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 ]
