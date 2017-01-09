@@ -93,6 +93,8 @@ void		redPrint(red_value value);
 red_value	redProbe(red_value value);
 red_value	redHasError(void);
 const char*	redFormError(void);
+bool		redOpenDebugConsole();
+bool		redCloseDebugConsole();
 
 /* Red Types */
 typedef enum
