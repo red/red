@@ -39,7 +39,7 @@ red-console-ctx: context [
 	cfg:		none
 	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
-	tips: make tips! []
+	tips: make tips! [visible?: no]
 	console: make console! []
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2

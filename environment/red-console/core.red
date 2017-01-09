@@ -21,9 +21,10 @@ terminal!: object [
 
 	scroll-y:	0
 
+	line-y:		0								;-- y offset of editing line
 	line-h:		0								;-- average line height
 	page-cnt:	0								;-- number of lines in one page
-	line-cnt:	0								;-- number of lines on screen (include wrapped lines)
+	line-cnt:	0								;-- number of lines in total (include wrapped lines)
 	delta-cnt:	0
 	screen-cnt: 0
 
@@ -107,7 +108,7 @@ terminal!: object [
 	resize: func [new-size [pair!] /local y][
 		y: new-size/y
 		new-size/x: new-size/x - 20
-		new-size/y: 0
+		new-size/y: y + line-h
 		box/size: new-size
 		if scroller [
 			page-cnt: y / line-h
@@ -132,7 +133,7 @@ terminal!: object [
 		]
 	]
 
-	update-caret: func [/local len n s h lh offset offset2][
+	update-caret: func [/local len n s h lh offset][
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -142,9 +143,6 @@ terminal!: object [
 		]
 		offset: box/offset? pos + index? line
 		offset/y: offset/y + h + scroll-y
-		offset2: offset
-		offset2/y: offset2/y + line-h
-		tips/offset: offset2
 		if ask? [
 			either offset/y < target/size/y [
 				caret/offset: offset
@@ -153,6 +151,16 @@ terminal!: object [
 				if caret/visible? [caret/visible?: no]
 			]
 		]
+	]
+
+	mouse-down: func [event [event!] /local offset][
+		offset: event/offset
+		if any [offset/y < line-y offset/y > (line-y + last heights)][exit]
+		box/text: head line
+		box/layout
+		pos: (box/index? offset) - (index? line)
+		if pos < 0 [pos: 0]
+		update-caret
 	]
 
 	move-caret: func [n][
@@ -322,6 +330,7 @@ terminal!: object [
 			y: y + h
 			if y > end [break]
 		]
+		line-y: y - h
 		screen-cnt: y / line-h
 		update-caret
 		update-scroller line-cnt - num
@@ -353,6 +362,9 @@ console!: make face! [
 		]
 		on-key: func [face [object!] event [event!]][
 			extra/press-key event
+		]
+		on-down: func [face [object!] event [event!]][
+			extra/mouse-down event
 		]
 		on-menu: func [face [object!] event [event!]][
 			switch event/picked [
