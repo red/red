@@ -31,6 +31,7 @@ terminal!: object [
 	caret:		none
 	scroller:	none
 	target:		none
+	tips:		none
 
 	draw: get 'system/view/platform/draw-face
 
@@ -117,7 +118,7 @@ terminal!: object [
 	scroll: func [event /local key n][
 		unless ask? [exit]
 		key: event/key
-		n: switch/default key [
+		n: switch/default key [ 
 			up			[1]
 			down		[-1]
 			page-up		[scroller/page-size]
@@ -131,7 +132,7 @@ terminal!: object [
 		]
 	]
 
-	update-caret: func [/local len n s h lh offset][
+	update-caret: func [/local len n s h lh offset offset2][
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -141,6 +142,9 @@ terminal!: object [
 		]
 		offset: box/offset? pos + index? line
 		offset/y: offset/y + h + scroll-y
+		offset2: offset
+		offset2/y: offset2/y + line-h
+		tips/offset: offset2
 		if ask? [
 			either offset/y < target/size/y [
 				caret/offset: offset
@@ -338,6 +342,7 @@ console!: make face! [
 			face/rate: none
 		]
 		on-draw: func [face [object!] event [event!]][
+			probe "on-draw"
 			extra/paint
 		]
 		on-scroll: func [face [object!] event [event!]][

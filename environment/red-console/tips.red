@@ -7,8 +7,7 @@ Red [
 ]
 
 tips!: make face! [
-	type: 'base color: blue offset: 0x0 size: 200x300
-	;flags: [scrollable]
+	type: 'panel color: 0.0.128 offset: 0x0 size: 150x200
 
 	actors: object [
 		on-key-down: func [face [object!] event [event!]][

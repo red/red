@@ -12,6 +12,7 @@ Red [
 
 #include %../console/engine.red
 #include %highlight.red
+#include %tips.red
 #include %core.red
 
 ask: function [
@@ -38,6 +39,7 @@ red-console-ctx: context [
 	cfg:		none
 	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
 
+	tips: make tips! []
 	console: make console! []
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
@@ -152,7 +154,7 @@ red-console-ctx: context [
 	]
 
 	setup-faces: does [
-		append win/pane reduce [console caret]
+		append win/pane reduce [console tips caret]
 		win/menu: [
 			"File" [
 				"About"				about-msg
@@ -185,6 +187,7 @@ red-console-ctx: context [
 			]
 		]
 		console/extra/caret: caret
+		console/extra/tips: tips
 	]
 
 	load-cfg: func [/local cfg-dir][
