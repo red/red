@@ -47,7 +47,7 @@ red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 /* C -> Red */
 int			redSymbol(const char* word);
 red_none	redNone();
-red_logic	redLogic(int bool);
+red_logic	redLogic(int logic);
 red_integer	redInteger(int number);
 red_float	redFloat(double number);
 red_string	redString(const char* string);
@@ -93,6 +93,8 @@ void		redPrint(red_value value);
 red_value	redProbe(red_value value);
 red_value	redHasError(void);
 const char*	redFormError(void);
+bool		redOpenDebugConsole();
+bool		redCloseDebugConsole();
 
 /* Red Types */
 typedef enum
