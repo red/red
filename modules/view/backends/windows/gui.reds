@@ -981,15 +981,14 @@ OS-make-view: func [
 		]
 		sym = field [
 			class: #u16 "RedField"
+			flags: flags or WS_TABSTOP
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			ws-flags: WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedField"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL
-			ws-flags: WS_TABSTOP
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
@@ -1873,6 +1872,10 @@ OS-to-image: func [
 		hWnd 	[handle!]
 		dc		[handle!]
 		mdc		[handle!]
+		x		[integer!]
+		y		[integer!]
+		h		[integer!]
+		w		[integer!]
 		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
@@ -1883,7 +1886,8 @@ OS-to-image: func [
 		size	[red-pair!]
 		screen? [logic!]
 ][
-	rect: declare RECT_STRUCT
+	hWnd: null w: 0
+	rect: as RECT_STRUCT :w
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	screen?: screen = symbol/resolve word/symbol
 	either screen? [
@@ -1904,7 +1908,12 @@ OS-to-image: func [
 	mdc: CreateCompatibleDC dc
 	bmp: CreateCompatibleBitmap dc width height
 	SelectObject mdc bmp
-	BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
+
+	either screen? [
+		BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
+	][
+		SendMessage hWnd 0317h as-integer mdc 62				;-- WM_PRINT
+	]
 
 	bitmap: 0
 	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
@@ -1913,7 +1922,7 @@ OS-to-image: func [
 		img: image/init-image as red-image! stack/push* bitmap
 	]
 
-    DeleteDC mdc
+    if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window
     DeleteObject bmp
     unless screen? [ReleaseDC hWnd dc]
 	img

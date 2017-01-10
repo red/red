@@ -430,6 +430,12 @@ BaseWndProc: func [
 			]
 			return 0
 		]
+		0317h	;-- WM_PRINT
+		0318h [ ;-- WM_PRINTCLIENT
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			do-draw hWnd as red-image! wParam draw no no no yes
+			return 0
+		]
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam

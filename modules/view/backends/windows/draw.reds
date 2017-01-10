@@ -247,14 +247,18 @@ draw-begin: func [
 			draw-begin-d2d ctx hWnd
 			return ctx
 		][
-			dc: either paint? [BeginPaint hWnd paint][hScreen]
-			GetClientRect hWnd rect
-			width: rect/right - rect/left
-			height: rect/bottom - rect/top
-			hBitmap: CreateCompatibleBitmap dc width height
-			hBackDC: CreateCompatibleDC dc
-			SelectObject hBackDC hBitmap
-			ctx/bitmap: hBitmap
+			either null? img [
+				dc: either paint? [BeginPaint hWnd paint][hScreen]
+				GetClientRect hWnd rect
+				width: rect/right - rect/left
+				height: rect/bottom - rect/top
+				hBitmap: CreateCompatibleBitmap dc width height
+				hBackDC: CreateCompatibleDC dc
+				SelectObject hBackDC hBitmap
+				ctx/bitmap: hBitmap
+			][
+				hBackDC: as handle! img
+			]
 
 			dc: hBackDC
 			ctx/dc: dc
@@ -327,9 +331,7 @@ draw-end: func [
 	unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
 	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 
-	unless ctx/on-image? [
-		DeleteObject ctx/bitmap
-	]
+	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
 		old-dc: GetWindowLong hWnd wc-offset - 4
 		unless zero? old-dc [DeleteDC as handle! old-dc]
