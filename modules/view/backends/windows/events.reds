@@ -615,6 +615,7 @@ process-custom-draw: func [
 		sym		[integer!]
 		old		[integer!]
 		DC		[handle!]
+		rc		[RECT_STRUCT]
 ][
 	item:	as tagNMCUSTOMDRAWINFO lParam
 	values: get-face-values item/hWndFrom
@@ -642,12 +643,14 @@ process-custom-draw: func [
 				][
 					old: SetBkMode DC 1
 					SetTextColor DC color/array1 and 00FFFFFFh
+					rc: as RECT_STRUCT (as int-ptr! item) + 5
+					rc/left: rc/left + 16
 					DrawText
 						DC
 						unicode/to-utf16 txt
 						-1
-						as RECT_STRUCT (as int-ptr! item) + 5
-						DT_CENTER or DT_VCENTER or DT_SINGLELINE
+						rc
+						DT_VCENTER or DT_SINGLELINE
 					SetBkMode DC old
 					return CDRF_SKIPDEFAULT
 				]
