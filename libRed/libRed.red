@@ -87,6 +87,7 @@ Red [
 		redIndex?:	word/load "redIndex?"
 		redLength?:	word/load "redLength?"
 		redMake:	word/load "redMake"
+		redMold:	word/load "redMold"
 		redPick:	word/load "redPick"
 		redPoke:	word/load "redPoke"
 		redPut:		word/load "redPut"
@@ -670,6 +671,19 @@ Red [
 			stack/unwind-last
 		])
 	]
+	
+	redMold: func [
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		TRAP_ERRORS(names/redMold [
+			stack/push value
+			actions/mold* -1 -1 -1 -1
+			stack/unwind-last
+		])
+	]
 
 	redPick: func [
 		series	[red-series!]
@@ -750,12 +764,14 @@ Red [
 	
 	redSkip: func [
 		series	[red-series!]
+		offset	[red-integer!]
 		return: [red-value!]
 		/local
 			res [red-value!]
 	][
 		TRAP_ERRORS(names/redSkip [
 			stack/push as red-value! series
+			stack/push as red-value offset
 			actions/skip*
 			stack/unwind-last
 		])
@@ -897,6 +913,7 @@ Red [
 		redIndex
 		redLength
 		redMake
+		redMold
 		redPick
 		redPoke
 		redPut
