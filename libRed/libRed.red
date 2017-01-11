@@ -273,6 +273,16 @@ Red [
 	redCloseDebugConsole: func [return: [logic!]][
 		#if OS = 'Windows [red/platform/close-console]
 	]
+	
+	redUnset: func [
+		return: [red-unset!]
+		/local
+			cell [red-unset!]
+	][
+		cell: as red-unset! ring/alloc
+		cell/header: TYPE_UNSET
+		cell
+	]
 
 	redNone: func [
 		return: [red-none!]
@@ -888,6 +898,7 @@ Red [
 		redOpenDebugConsole
 		redCloseDebugConsole
 
+		redUnset
 		redNone
 		redLogic
 		redInteger

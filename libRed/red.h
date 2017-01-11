@@ -21,6 +21,7 @@
                              RED_VERSION_PATCH)
 
 typedef void*     red_value;
+typedef red_value red_unset;
 typedef red_value red_none;
 typedef red_value red_logic;
 typedef red_value red_integer;
@@ -47,6 +48,7 @@ red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 
 /* C -> Red */
 long		redSymbol(const char* word);
+red_unset	redUnset();
 red_none	redNone();
 red_logic	redLogic(long logic);
 red_integer	redInteger(long number);
