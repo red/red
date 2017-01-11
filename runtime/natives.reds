@@ -17,6 +17,10 @@ Red/System [
 ]
 
 #define DO_EVAL_BLOCK [
+	if expand? > 0 [
+		job: #get system/build/config
+		#call [preprocessor/expand as red-block! arg job]
+	]
 	either negative? next [
 		interpreter/eval as red-block! arg yes
 	][
@@ -29,7 +33,7 @@ natives: context [
 	lf?: 	  no										;-- used to print or not an ending newline
 	last-lf?: no
 	
-	table: declare int-ptr!
+	table: as int-ptr! 0
 	top: 1
 	
 	buffer-blk: as red-block! 0
@@ -484,6 +488,7 @@ natives: context [
 	
 	do*: func [
 		check?  [logic!]
+		expand? [integer!]
 		args 	[integer!]
 		next	[integer!]
 		return: [integer!]
@@ -494,8 +499,9 @@ natives: context [
 			str	   [red-string!]
 			slot   [red-value!]
 			blk	   [red-block!]
+			job	   [red-value!]
 	][
-		#typecheck [do args next]
+		#typecheck [do expand? args next]
 		arg: stack/arguments
 		cframe: stack/get-ctop							;-- save the current call frame pointer
 		do-arg: stack/arguments + args
@@ -706,6 +712,7 @@ natives: context [
 					print-line ["Error: unknown string encoding: " unit]
 				]
 			]
+			fflush 0
 		]
 		last-lf?: no
 		stack/set-last unset-value
@@ -1054,6 +1061,7 @@ natives: context [
 			word  [red-word!]
 			ctx	  [node!]
 			self? [logic!]
+			idx	  [integer!]
 	][
 		#typecheck [bind copy]
 		value: stack/arguments
@@ -1090,8 +1098,11 @@ natives: context [
 			]
 		][
 			word: as red-word! value
-			word/ctx: ctx
-			word/index: _context/find-word TO_CTX(ctx) word/symbol no
+			idx: _context/find-word TO_CTX(ctx) word/symbol no
+			if idx <> -1 [
+				word/ctx: ctx
+				word/index: idx
+			]
 		]
 	]
 	
@@ -1213,20 +1224,31 @@ natives: context [
 		op		 [integer!]
 		/local
 			set1	 [red-value!]
+			set2	 [red-value!]
 			skip-arg [red-value!]
+			type	 [integer!]
 			case?	 [logic!]
 	][
-		set1:	  stack/arguments
+		set1: stack/arguments
+		set2: set1 + 1
+		type: TYPE_OF(set1)
+
+		if all [
+			op <> OP_UNIQUE
+			type <> TYPE_OF(set2)
+		][
+			fire [TO_ERROR(script expect-val) datatype/push type datatype/push TYPE_OF(set2)]
+		]
 		skip-arg: set1 + skip
 		case?:	  as logic! cased + 1
-		
-		switch TYPE_OF(set1) [
+
+		switch type [
 			TYPE_BLOCK   
 			TYPE_HASH    [block/do-set-op case? as red-integer! skip-arg op]
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
-			default 	 [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
+			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]
 	
@@ -1693,7 +1715,7 @@ natives: context [
 	][
 		#typecheck log-2
 		f: argument-as-float
-		f/value: (log f/value) / 0.6931471805599453
+		f/value: (log-2 f/value) / 0.6931471805599453
 	]
 
 	log-10*: func [
@@ -1703,7 +1725,7 @@ natives: context [
 	][
 		#typecheck log-10
 		f: argument-as-float
-		f/value: log10 f/value
+		f/value: log-10 f/value
 	]
 
 	log-e*: func [
@@ -1713,7 +1735,7 @@ natives: context [
 	][
 		#typecheck log-e
 		f: argument-as-float
-		f/value: log f/value
+		f/value: log-2 f/value
 	]
 
 	exp*: func [
@@ -2339,6 +2361,42 @@ natives: context [
 		dt/header: TYPE_TIME
 		dt/time: platform/get-time utc >= 0 precise >= 0
 	]
+	
+	as*: func [
+		check?	[logic!]
+		/local
+			proto [red-value!]
+			spec  [red-value!]
+			dt	  [red-datatype!]
+			path  [red-path!]
+			type  [integer!]
+			type2 [integer!]
+	][
+		#typecheck as
+		proto: stack/arguments
+		spec: proto + 1
+		
+		type:  TYPE_OF(proto)
+		type2: TYPE_OF(spec)
+		
+		if type = TYPE_DATATYPE [
+			dt: as red-datatype! proto
+			type: dt/value
+		]
+		either any [
+			all [ANY_BLOCK_STRICT?(type) ANY_BLOCK_STRICT?(type2)]
+			all [ANY_STRING?(type) ANY_STRING?(type2)]
+		][
+			copy-cell spec proto
+			set-type proto type
+			if ANY_PATH?(type) [
+				path: as red-path! proto
+				path/args: null
+			]
+		][
+			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -2812,6 +2870,7 @@ natives: context [
 			:list-env*
 			:now*
 			:sign?*
+			:as*
 		]
 	]
 

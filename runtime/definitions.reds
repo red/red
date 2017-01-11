@@ -34,6 +34,7 @@ Red/System [
 #define flag-owned			00010000h		;-- cell is owned by an object. (for now only image! use it)
 #define flag-owner			00010000h		;-- object is an owner (carried by object's context value)
 #define flag-native-op		00010000h		;-- operator is made from a native! function
+#define flag-extern-code	00008000h		;-- routine's body is from FFI
 
 #define flag-new-line		40000000h		;-- if set, indicates that a new-line preceeds the value
 #define flag-nl-mask		BFFFFFFFh		;-- mask for new-line flag
@@ -72,6 +73,86 @@ Red/System [
 	HTTP_POST
 	HTTP_DEL
 	HTTP_HEAD
+]
+
+;== Image definitions ===
+
+#enum extract-type! [
+	EXTRACT_ALPHA
+	EXTRACT_RGB
+	EXTRACT_ARGB
+]
+
+#switch OS [										;-- loading OS-specific bindings
+	Windows  [
+		draw-ctx!: alias struct! [
+			dc				[int-ptr!]								;-- OS drawing object
+			hwnd			[int-ptr!]								;-- Window's handle
+			pen				[integer!]
+			brush			[integer!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-width		[float32!]
+			pen-style		[integer!]
+			pen-color		[integer!]								;-- 00bbggrr format
+			brush-color		[integer!]								;-- 00bbggrr format
+			font-color		[integer!]
+			bitmap			[int-ptr!]
+			brushes			[int-ptr!]
+			graphics		[integer!]								;-- gdiplus graphics
+			gp-state		[integer!]
+			gp-pen			[integer!]								;-- gdiplus pen
+			gp-pen-saved	[integer!]
+			gp-brush		[integer!]								;-- gdiplus brush
+			gp-font			[integer!]								;-- gdiplus font
+			gp-font-brush	[integer!]
+			gp-matrix		[integer!]
+			gp-path			[integer!]
+			image-attr		[integer!]								;-- gdiplus image attributes
+			pen?			[logic!]
+			brush?			[logic!]
+			on-image?		[logic!]								;-- drawing on image?
+			alpha-pen?		[logic!]
+			alpha-brush?	[logic!]
+			font-color?		[logic!]
+		]
+	]
+	MacOSX	 [
+		draw-ctx!: alias struct! [
+			raw				[int-ptr!]					;-- OS drawing object: CGContext
+			a				[float32!]					;-- CTM
+			b				[float32!]
+			c				[float32!]
+			d				[float32!]
+			tx				[float32!]
+			ty				[float32!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-width		[float32!]
+			pen-style		[integer!]
+			pen-color		[integer!]					;-- 00bbggrr format
+			brush-color		[integer!]					;-- 00bbggrr format
+			font-attrs		[integer!]
+			height			[float32!]
+			colorspace		[integer!]
+			grad-pen		[integer!]
+			grad-type		[integer!]
+			grad-mode		[integer!]
+			grad-x			[float32!]
+			grad-y			[float32!]
+			grad-start		[float32!]
+			grad-stop		[float32!]
+			grad-angle		[float32!]
+			grad-sx			[float32!]
+			grad-sy			[float32!]
+			grad-rotate?	[logic!]
+			grad-scale?		[logic!]
+			pen?			[logic!]
+			brush?			[logic!]
+			on-image?		[logic!]					;-- drawing on image?
+		]
+	]
+	#default []											;-- Linux?
 ]
 
 #either OS = 'Windows [

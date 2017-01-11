@@ -82,98 +82,67 @@ fifth:	func ["Returns the fifth value in a series"  s [series! tuple!]] [pick s 
 
 last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
 
+#do keep [
+	list: make block! 50
+	to-list: [
+		bitset! binary! block! char! email! error! file! float! get-path!
+		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
+		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
+		tuple! unset! url! word! image!
+	]
+	test-list: union to-list [action! datatype! function! image! object! op! routine! vector!]
+	
+	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
+	
+	foreach [name desc][
+		spec   "Returns the spec of a value that supports reflection"
+		body   "Returns the body of a value that supports reflection"
+		words  "Returns the list of words of a value that supports reflection"
+		class  "Returns the class ID of an object"
+		values "Returns the list of values of a value that supports reflection"
+	][
+		repend list [
+			load join form name "-of:" 'func reduce [desc 'value] new-line/all compose [
+				reflect :value (to lit-word! name)
+			] off
+		]
+	]
+	
+	;-- Generates all type testing functions (action?, bitset?, binary?,...)
+	
+	foreach name test-list [
+		repend list [
+			load head change back tail form name "?:" 'func
+			["Returns true if the value is this type" value [any-type!]]
+			compose [(name) = type? :value]
+		]
+	]
+	
+	;-- Generates all typesets testing functions (any-list?, any-block?,...)
+	
+	docstring: "Returns true if the value is any type of "
+	foreach name [
+		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
+		series! number! immediate! scalar!
+	][
+		repend list [
+			load head change back tail form name "?:" 'func
+			compose [(join docstring head clear back tail form name) value [any-type!]]
+			compose [find (name) type? :value]
+		]
+	]
+	
+	;-- Generates all conversion wrapper functions (to-bitset, to-binary, to-block,...)
 
-action?:	 func ["Returns true if the value is this type" value [any-type!]] [action!		= type? :value]
-bitset?:	 func ["Returns true if the value is this type" value [any-type!]] [bitset!		= type? :value]
-binary?:	 func ["Returns true if the value is this type" value [any-type!]] [binary!		= type? :value]
-block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
-char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
-datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
-email?:		 func ["Returns true if the value is this type" value [any-type!]] [email!		= type? :value]
-error?:		 func ["Returns true if the value is this type" value [any-type!]] [error!		= type? :value]
-file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
-float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
-function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
-get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
-get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
-hash?:		 func ["Returns true if the value is this type" value [any-type!]] [hash!		= type? :value]
-image?:		 func ["Returns true if the value is this type" value [any-type!]] [image!		= type? :value]
-integer?:    func ["Returns true if the value is this type" value [any-type!]] [integer!	= type? :value]
-issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [issue!		= type? :value]
-lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
-lit-word?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-word!	= type? :value]
-logic?:		 func ["Returns true if the value is this type" value [any-type!]] [logic!		= type? :value]
-map?:		 func ["Returns true if the value is this type" value [any-type!]] [map!		= type? :value]
-native?:	 func ["Returns true if the value is this type" value [any-type!]] [native!		= type? :value]
-none?:		 func ["Returns true if the value is this type" value [any-type!]] [none!		= type? :value]
-object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
-op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			= type? :value]
-pair?:		 func ["Returns true if the value is this type" value [any-type!]] [pair!		= type? :value]
-paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
-path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
-percent?:	 func ["Returns true if the value is this type" value [any-type!]] [percent!	= type? :value]
-refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
-routine?:	 func ["Returns true if the value is this type" value [any-type!]] [routine!	= type? :value]
-set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [set-path!	= type? :value]
-set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
-string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
-tag?:		 func ["Returns true if the value is this type" value [any-type!]] [tag!		= type? :value]
-time?:		 func ["Returns true if the value is this type" value [any-type!]] [time!		= type? :value]
-typeset?:	 func ["Returns true if the value is this type" value [any-type!]] [typeset!	= type? :value]
-tuple?:		 func ["Returns true if the value is this type" value [any-type!]] [tuple!		= type? :value]
-unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
-url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
-vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]
-word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
-
-any-list?:		func ["Returns true if the value is any type of list"	  value [any-type!]][find any-list! 	type? :value]
-any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]
-any-function?:	func ["Returns true if the value is any type of function" value [any-type!]][find any-function! type? :value]
-any-object?:	func ["Returns true if the value is any type of object"	  value [any-type!]][find any-object!	type? :value]
-any-path?:		func ["Returns true if the value is any type of path"	  value [any-type!]][find any-path!		type? :value]
-any-string?:	func ["Returns true if the value is any type of string"	  value [any-type!]][find any-string!	type? :value]
-any-word?:		func ["Returns true if the value is any type of word"	  value [any-type!]][find any-word!		type? :value]
-series?:		func ["Returns true if the value is any type of series"	  value [any-type!]][find series!		type? :value]
-number?:		func ["Returns true if the value is any type of number"	  value [any-type!]][find number!		type? :value]
-immediate?:		func ["Returns true if the value is any immediate value"  value [any-type!]][find immediate!	type? :value]
-scalar?:		func ["Returns true if the value is any type of scalar"	  value [any-type!]][find scalar!		type? :value]
-
-spec-of: func [
-	"Returns the spec of a value that supports reflection"
-	value
-][
-	reflect :value 'spec
+	foreach name to-list [
+		repend list [
+			to set-word! join "to-" head remove back tail form name 'func
+			reduce [reform ["Convert to" name "value"] 'value]
+			compose [to (name) :value]
+		]
+	]
+	list
 ]
-
-body-of: func [
-	"Returns the body of a value that supports reflection"
-	value
-][
-	reflect :value 'body
-]
-
-words-of: func [
-	"Returns the list of words of a value that supports reflection"
-	value
-][
-	reflect :value 'words
-]
-
-class-of: func [
-	"Returns the class ID of an object"
-	value
-][
-	reflect :value 'class
-]
-
-values-of: func [
-	"Returns the list of values of a value that supports reflection"
-	value
-][
-	reflect :value 'values
-]
-
-keys-of: :words-of
 
 context: func [spec [block!]][make object! spec]
 
@@ -255,9 +224,10 @@ math: function [
 ][
 	parse body: copy/deep body rule: [
 		any [
-			pos: ['* (op: 'multiply) | quote / (op: 'divide)] (
+			pos: ['* (op: 'multiply) | quote / (op: 'divide)] 
+			[ahead sub: paren! (sub/1: math as block! sub/1) | skip] (
 				end: skip pos: back pos 3
-				pos: change/only/part pos to-paren copy/part pos end end
+				pos: change/only/part pos as paren! copy/part pos end end
 			) :pos
 			| into rule
 			| skip
@@ -669,69 +639,6 @@ make-dir: function [
 	path
 ]
 
-to-image: func [value][
-	case [
-		binary? value [
-			;@@ TBD
-		]
-		all [											;-- face!
-			system/view
-			object? value
-			do [find words-of value words-of face!]
-		][
-			system/view/platform/to-image value
-		]
-	]
-]
-
-hex-to-rgb: function [
-	"Converts a color in hex format to a tuple value; returns NONE if it fails"
-	hex		[issue!] "Accepts #rgb, #rrggbb, #rrggbbaa"	 ;-- 3,6,8 nibbles supported
-	return: [tuple! none!]								 ;-- 3 or 4 bytes long
-][
-	switch length? str: form hex [
-		3 [
-			uppercase str
-			forall str [str/1: str/1 - pick "70" str/1 >= #"A"]
-
-			as-color 
-				shift/left to integer! str/1 4
-				shift/left to integer! str/2 4
-				shift/left to integer! str/3 4
-		]
-		6 [if bin: to binary! hex [as-color bin/1 bin/2 bin/3]]
-		8 [if bin: to binary! hex [as-rgba bin/1 bin/2 bin/3 bin/4]]
-	]
-]
-
-within?: func [
-	"Return TRUE if the point is within the rectangle bounds"
-	point	[pair!] "XY position"
-	offset  [pair!] "Offset of area"
-	size	[pair!] "Size of area"
-	return: [logic!]
-][
-	make logic! all [
-		point/x >= offset/x
-		point/y >= offset/y
-		point/x < (offset/x + size/x)
-		point/y < (offset/y + size/y)
-	]
-]
-
-overlap?: function [
-	"Return TRUE if the two faces bounding boxes are overlapping"
-	A		[object!] "First face"
-	B		[object!] "Second face"
-	return: [logic!]  "TRUE if overlapping"
-][
-	A1: A/offset
-	B1: B/offset
-	A2: A1 + A/size
-	B2: B1 + B/size
-	make logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
-]
-
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
@@ -882,6 +789,66 @@ do-file: func [file [file!] /local saved code new-path][
 	:code
 ]
 
+cos: func [
+	"Returns the trigonometric cosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/cosine* no 1
+	]
+]
+
+sin: func [
+	"Returns the trigonometric sine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/sine* no 1
+	]
+]
+
+tan: func [
+	"Returns the trigonometric tangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/tangent* no 1
+	]
+]
+
+acos: func [
+	"Returns the trigonometric arccosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arccosine* no 1
+	]
+]
+
+asin: func [
+	"Returns the trigonometric arcsine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arcsine* no 1
+	]
+]
+
+atan: func [
+	"Returns the trigonometric arctangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arctangent* no 1
+	]
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
@@ -897,6 +864,8 @@ rejoin: function [
 ;-				Aliases					  -
 ;------------------------------------------
 
+keys-of:	:words-of
 atan2:		:arctangent2
+sqrt:		:square-root
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded

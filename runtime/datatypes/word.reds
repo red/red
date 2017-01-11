@@ -265,6 +265,7 @@ word: context [
 	][
 		s: GET_BUFFER(symbols)
 		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/header: TYPE_STRING
 		str/head: 0
 		str/cache: null
 		str
@@ -308,6 +309,65 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/mold"]]
 
 		form w buffer arg part
+	]
+
+	to: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+		/local
+			char	[red-char!]
+			dt		[red-datatype!]
+			bool	[red-logic!]
+			name	[names!]
+			idx		[integer!]
+			buf1	[integer!]
+			data	[byte-ptr!]
+			cstr	[c-string!]
+			len		[integer!]
+			val		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_GET_WORD
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE [proto: spec]
+			TYPE_STRING [
+				len: 0
+				val: as red-value! :len
+				copy-cell spec val					;-- save spec, load-value will change it
+				proto: load-value as red-string! spec
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
+			]
+			TYPE_CHAR [
+				char: as red-char! spec
+				buf1: 0
+				data: as byte-ptr! :buf1
+				len: unicode/cp-to-utf8 char/value data
+				idx: len + 1
+				data/idx: null-byte
+				make-at symbol/make as c-string! data proto
+			]
+			TYPE_DATATYPE [
+				dt: as red-datatype! spec
+				name: name-table + dt/value
+				copy-cell as cell! name/word proto
+			]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				cstr: either bool/value ["true"]["false"]
+				make-at symbol/make cstr proto
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
+		]
+
+		proto/header: type
+		proto
 	]
 
 	any-word?: func [									;@@ discard it when ANY_WORD? available
@@ -392,10 +452,10 @@ word: context [
 			TYPE_SYMBOL
 			"word!"
 			;-- General actions --
-			null			;make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

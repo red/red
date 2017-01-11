@@ -308,7 +308,7 @@ get-event-key: func [
 			if special? [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
-					RED_VK_NEXT		[_page_down]
+					RED_VK_NEXT		[_page-down]
 					RED_VK_END		[_end]
 					RED_VK_HOME		[_home]
 					RED_VK_LEFT		[_left]
@@ -450,13 +450,64 @@ make-event: func [
 	res: as red-word! stack/arguments
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
-		case [
-			sym = done [state: EVT_DISPATCH]			;-- prevent other high-level events
-			sym = stop [state: EVT_NO_DISPATCH]			;-- prevent all other events
-			true 	   [0]								;-- ignore others
-		]
+		if any [sym = done sym = stop][state: EVT_NO_DISPATCH]
 	]
 	state
+]
+
+process-mouse-tracking: func [
+	window	[integer!]
+	event	[integer!]
+	return: [integer!]
+	/local
+		y	[integer!]
+		x	[integer!]
+		pt	[CGPoint!]
+		n 	[integer!]
+		v	[integer!]
+		w	[integer!]
+][
+	w: window
+	if zero? w [
+		x: objc_msgSend [objc_getClass "NSEvent" sel_getUid "mouseLocation"]
+		y: system/cpu/edx
+		pt: as CGPoint! :x
+		n: objc_msgSend [
+			objc_getClass "NSWindow" sel_getUid "windowNumberAtPoint:belowWindowWithWindowNumber:"
+			pt/x pt/y 0
+		]
+		w: objc_msgSend [NSApp sel_getUid "windowWithWindowNumber:" n]
+	]
+	if w <> 0 [
+		v: objc_msgSend [w sel_getUid "contentView"]
+		if v <> 0 [v: objc_msgSend [v sel_getUid "superview"]]
+		if zero? v [return 0]
+
+		either zero? window [
+			x: objc_msgSend [w sel_getUid "convertScreenToBase:" pt/x pt/y]
+		][
+			x: objc_msgSend [event sel_getUid "locationInWindow"]
+		]
+		y: system/cpu/edx
+		pt: as CGPoint! :x
+
+		v: objc_msgSend [v sel_getUid "hitTest:" pt/x pt/y]
+
+		while [all [v <> 0 not red-face? v]][
+			v: objc_msgSend [v sel_getUid "superview"]
+		]
+		if v <> 0 [
+			objc_msgSend [v sel_getUid "mouseMoved:" event]
+		]
+		if v <> current-widget [
+			if current-widget <> 0 [
+				objc_msgSend [current-widget sel_getUid "mouseExited:" event]
+			]
+			if v <> 0 [objc_msgSend [v sel_getUid "mouseEntered:" event]]
+			current-widget: v
+		]
+	]
+	w
 ]
 
 process: func [
@@ -466,6 +517,7 @@ process: func [
 		p-int		[int-ptr!]
 		type		[integer!]
 		window		[integer!]
+		n-win		[integer!]
 		flags		[integer!]
 		faces		[red-block!]
 		face		[red-object!]
@@ -473,12 +525,28 @@ process: func [
 		check?		[logic!]
 		active?		[logic!]
 		down?		[logic!]
+		y			[integer!]
+		x			[integer!]
+		point		[CGPoint!]
+		view		[integer!]
 ][
 	window: objc_msgSend [event sel_getUid "window"]
+	p-int: as int-ptr! event
+	type: p-int/2
+	switch type [
+		NSMouseMoved
+		NSLeftMouseDragged
+		NSRightMouseDragged
+		NSOtherMouseDragged [
+			check?: yes
+			window: process-mouse-tracking window event
+		]
+		default [0]
+	]
+
 	if window <> 0 [
 		down?: no active?: no check?: no
-		p-int: as int-ptr! event
-		type: p-int/2
+
 		if any [
 			type = NSLeftMouseDown type = NSRightMouseDown type = NSOtherMouseDown
 		][
@@ -490,10 +558,6 @@ process: func [
 			active?: yes check?: yes
 		]
 		switch type [
-			NSLeftMouseDragged
-			NSRightMouseDragged
-			NSOtherMouseDragged
-			NSMouseMoved
 			NSMouseEntered
 			NSMouseExited
 			NSKeyDown

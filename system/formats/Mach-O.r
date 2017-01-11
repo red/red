@@ -545,6 +545,7 @@ context [
 		syms: make block! 1000
 		lib: 1											;-- one-based index
 		foreach [name list] job/sections/import/3 [
+			linker/check-dup-symbols job list
 			name: to-c-string name
 			if name/1 <> slash [insert name "@loader_path/"]
 			insert find segments 'symtab compose [
@@ -685,7 +686,8 @@ context [
 		str-tbl:   symbols/2/3
 		list: 	   make block! length? exports
 		
-		foreach sym sort/case exports [					;-- sorted symbols by name
+		sort/case/skip/compare exports 2 2				;-- sort all symbols lexicographically
+		foreach [sym ext-name] exports [
 			spec: job/symbols/:sym
 			data?: spec/1 = 'global
 			
@@ -699,16 +701,16 @@ context [
 			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
 			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
 			
-			append str-tbl join "_" to-c-string form sym
+			append str-tbl join "_" to-c-string ext-name
 		]
 		pad4 str-tbl
-		symbols/1/1: symbols/1/1 + length? exports
+		symbols/1/1: symbols/1/1 + ((length? exports) / 2)
 		symbols/1/2: length? sym-tbl
 		symbols/1/4: length? str-tbl
 		symbols/2/1: sym-tbl
 		symbols/2/3: str-tbl
 		
-		append symbols/1 length? exports
+		append symbols/1 (length? exports) / 2
 		append/only job/sections/export list
 	]
 	
@@ -770,7 +772,7 @@ context [
 		lc/size:		(get-struct-size 'lddylib) + length? spec/2
 		lc/offset:		24
 		lc/timestamp:	2
-		lc/version:		to integer! pick [ #{00010000} #{007D0000}] alt	;-- 1.0.0 | 128.0.0
+		lc/version:		to integer! pick [ #{00010000} #{7FFD0000}] alt	;-- 1.0.0 | 32765.0.0 @@ use latest version
 		lc/compat:		to integer! #{00000000}	;-- 0.0.0		@@ should be configurable
 		lc: form-struct lc
 		append lc spec/2

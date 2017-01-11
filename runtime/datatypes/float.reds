@@ -325,6 +325,19 @@ float: context [
 		if pct? [left/header: TYPE_PERCENT]
 		left
 	]
+	
+	make-at: func [
+		slot	[red-value!]
+		value	[float!]
+		return: [red-float!]
+		/local
+			fl [red-float!]
+	][
+		fl: as red-float! slot
+		fl/header: TYPE_FLOAT
+		fl/value: value
+		fl
+	]
 
 	make-in: func [
 		parent	[red-block!]
@@ -373,40 +386,84 @@ float: context [
 		fl
 	]
 
-	;-- Actions --
-
-	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-float!]
+	from-binary: func [
+		bin		[red-binary!]
+		return: [float!]
 		/local
-			int	 [red-integer!]
-			fl	 [red-float!]
+			s		[series!]
+			p		[byte-ptr!]
+			len		[integer!]
+			part	[integer!]
+			int2	[integer!]
+			int1	[integer!]
+			pf		[pointer! [float!]]
+			factor	[integer!]
+			f64?	[logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
+		s: GET_BUFFER(bin)
+		len: (as-integer s/tail - s/offset) + bin/head
+		if len > 8 [len: 8]							;-- take first 32 bits only
+		f64?: either len > 4 [part: 4 yes][part: len no]
 
-		switch TYPE_OF(spec) [
-			TYPE_FLOAT [
-				as red-float! spec
+		int2: 0
+		int1: 0
+		factor: 0
+		p: (as byte-ptr! s/offset) + bin/head + len - 1
+
+		loop part [
+			int1: int1 or ((as-integer p/value) << factor)
+			factor: factor + 8
+			p: p - 1
+		]
+		if f64? [
+			factor: 0
+			part: len - 4
+			loop part [
+				int2: int2 or ((as-integer p/value) << factor)
+				factor: factor + 8
+				p: p - 1
 			]
+		]
+		pf: as pointer! [float!] :int1
+		pf/value
+	]
+
+	get-rs-float: func [
+		val		[red-float!]
+		return: [float!]
+		/local
+			int [red-integer!]
+	][
+		switch TYPE_OF(val) [
 			TYPE_INTEGER [
-				fl: as red-float! spec
-				int: as red-integer! spec
-				fl/value: as-float int/value
-				fl/header: TYPE_FLOAT
-				fl
+				int: as red-integer! val
+				as float! int/value
 			]
-			TYPE_PERCENT [
-				fl: as red-float! spec
-				fl/header: TYPE_FLOAT
-				fl
-			]
+			TYPE_FLOAT [val/value]
 			default [
-				--NOT_IMPLEMENTED--
-				as red-float! spec					;@@ just for making it compilable
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_FLOAT val]
+				0.0
 			]
 		]
 	]
+
+	from-block: func [
+		blk		[red-block!]
+		return: [float!]
+		/local
+			val [red-float!]
+			f	[float!]
+			int [integer!]
+	][
+		val: as red-float! block/rs-head blk
+		int: as-integer get-rs-float val + 1
+		f: pow 10.0 as float! int
+		f * get-rs-float val
+	]
+
+	;-- Actions --
+
+	;-- make: :to
 
 	random: func [
 		f		[red-float!]
@@ -433,38 +490,68 @@ float: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-float!]
-		return: [red-value!]
+		proto	[red-float!]
+		spec	[red-value!]
+		type	[integer!]								;-- target type
+		return:	[red-float!]
 		/local
-			fl  [red-float!]
 			int [red-integer!]
-			buf [red-string!]
-			f	[float!]
+			tm	[red-time!]
+			_1	[integer!]
+			_2	[integer!]
+			_3	[integer!]
+			_4	[integer!]
+			val [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
-		f: spec/value
-		switch type/value [
-			TYPE_INTEGER [
-				int: as red-integer! type
-				int/header: TYPE_INTEGER
-				int/value: as-integer f
+		proto/header: type
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER
+			TYPE_CHAR [
+				int: as red-integer! spec
+				proto/value: as-float int/value
 			]
+			TYPE_TIME [
+				tm: as red-time! spec
+				proto/value: tm/time / time/oneE9
+			]
+			TYPE_ANY_STRING [
+				_4: 0
+				val: as red-value! :_4
+				copy-cell spec val					;-- save spec, load-value will change it
+
+				proto: as red-float! load-value as red-string! spec
+				switch TYPE_OF(proto) [
+					TYPE_FLOAT	
+					TYPE_PERCENT [0]				;-- most common case
+					TYPE_INTEGER [
+						int: as red-integer! proto
+						proto/value: as float! int/value
+					]
+					default [
+						fire [TO_ERROR(script bad-to-arg) datatype/push type val]
+					]
+				]
+				proto/header: type
+			]
+			TYPE_BINARY [
+				proto/value: from-binary as red-binary! spec
+			]
+			TYPE_ANY_LIST [
+				if 2 <> block/rs-length? as red-block! spec [
+					fire [TO_ERROR(script bad-to-arg) datatype/push type spec]
+				]
+				proto/value: from-block as red-block! spec
+			]
+			TYPE_FLOAT
 			TYPE_PERCENT [
-				fl: as red-float! type
-				fl/header: TYPE_PERCENT
-				fl/value: f
+				spec/header: type
+				proto: as red-float! spec
 			]
-			TYPE_STRING [
-				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-float f FORM_FLOAT_64
-			]
-			default [
-				--NOT_IMPLEMENTED--
-			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 		]
-		as red-value! type
+		proto
 	]
 
 	form: func [
@@ -807,7 +894,7 @@ float: context [
 			TYPE_VALUE
 			"float!"
 			;-- General actions --
-			:make
+			:to
 			:random
 			null			;reflect
 			:to

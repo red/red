@@ -1094,6 +1094,38 @@ simple-io: context [
 
 	#switch OS [
 		Windows [
+			IID_IWinHttpRequest:			[06F29373h 4B545C5Ah F16E25B0h 0EBF8ABFh]
+			IID_IStream:					[0000000Ch 00000000h 0000000Ch 46000000h]
+			
+			IWinHttpRequest: alias struct! [
+				QueryInterface			[QueryInterface!]
+				AddRef					[AddRef!]
+				Release					[Release!]
+				GetTypeInfoCount		[integer!]
+				GetTypeInfo				[integer!]
+				GetIDsOfNames			[integer!]
+				Invoke					[integer!]
+				SetProxy				[integer!]
+				SetCredentials			[integer!]
+				Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
+				SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
+				GetResponseHeader		[function! [this [this!] header [byte-ptr!] value [int-ptr!] return: [integer!]]]
+				GetAllResponseHeaders	[function! [this [this!] header [int-ptr!] return: [integer!]]]
+				Send					[function! [this [this!] body1 [integer!] body2 [integer!] body3 [integer!] body4 [integer!] return: [integer!]]]
+				Status					[function! [this [this!] status [int-ptr!] return: [integer!]]]
+				StatusText				[integer!]
+				ResponseText			[function! [this [this!] body [int-ptr!] return: [integer!]]]
+				ResponseBody			[function! [this [this!] body [tagVARIANT] return: [integer!]]]
+				ResponseStream			[integer!]
+				GetOption				[integer!]
+				PutOption				[integer!]
+				WaitForResponse			[integer!]
+				Abort					[integer!]
+				SetTimeouts				[integer!]
+				SetClientCertificate	[integer!]
+				SetAutoLogonPolicy		[integer!]
+			]
+
 			BSTR-length?: func [s [integer!] return: [integer!] /local len [int-ptr!]][
 				len: as int-ptr! s - 4
 				len/value >> 1
@@ -1213,9 +1245,13 @@ simple-io: context [
 					]
 					HTTP_POST [
 						action: #u16 "POST"
-						body/data1: VT_BSTR
-						bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
-						body/data3: as-integer bstr-d
+						either null? data [
+							body/data1: VT_ERROR
+						][
+							body/data1: VT_BSTR
+							bstr-d: SysAllocString unicode/to-utf16-len as red-string! data :len no
+							body/data3: as-integer bstr-d
+						]
 					]
 					default [--NOT_IMPLEMENTED--]
 				]
@@ -1607,7 +1643,7 @@ simple-io: context [
 
 				if zero? req [return as red-value! none-value]
 
-				if any [method = HTTP_POST method = HTTP_PUT][
+				if all [data <> null any [method = HTTP_POST method = HTTP_PUT]][
 					datalen: -1
 					either TYPE_OF(data) = TYPE_STRING [
 						buf: as byte-ptr! unicode/to-utf8 as red-string! data :datalen
@@ -1921,15 +1957,17 @@ simple-io: context [
 						curl_easy_setopt curl CURLOPT_HTTPGET 1
 					]
 					method = HTTP_POST [
-						len: -1
-						either TYPE_OF(data) = TYPE_STRING [
-							buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
-						][
-							buf: binary/rs-head as red-binary! data
-							len: binary/rs-length? as red-binary! data
+						if data <> null [
+							len: -1
+							either TYPE_OF(data) = TYPE_STRING [
+								buf: as byte-ptr! unicode/to-utf8 as red-string! data :len
+							][
+								buf: binary/rs-head as red-binary! data
+								len: binary/rs-length? as red-binary! data
+							]
+							curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
+							curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 						]
-						curl_easy_setopt curl CURLOPT_POSTFIELDSIZE len
-						curl_easy_setopt curl CURLOPT_POSTFIELDS as-integer buf
 					]
 				]
 				res: curl_easy_perform curl

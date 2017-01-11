@@ -24,11 +24,12 @@ Red/System [
 #include %tab-panel.reds
 #include %comdlgs.reds
 
-NSApp:					0
-NSAppDelegate:			0
-AppMainMenu:			0
+NSApp:			0
+NSAppDelegate:	0
+AppMainMenu:	0
 
 nswindow-cnt:	0
+current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
 
 default-font:	0
 log-pixels-x:	0
@@ -174,6 +175,8 @@ free-handles: func [
 		sym	   [integer!]
 		handle [integer!]
 ][
+	if hWnd = current-widget [current-widget: 0]
+
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
@@ -235,6 +238,7 @@ set-defaults: func [][
 	default-font: objc_msgSend [
 		objc_getClass "NSFont" sel_getUid "systemFontOfSize:" 0
 	]
+	objc_msgSend [default-font sel_getUid "retain"]
 ]
 
 init: func [
@@ -272,22 +276,6 @@ init: func [
 
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
 	objc_msgSend [NSApp sel_getUid "finishLaunching"]
-]
-
-set-selected-focus: func [
-	hWnd [integer!]
-	/local
-		face   [red-object!]
-		values [red-value!]
-		handle [handle!]
-][
-	values: get-face-values hWnd
-	if values <> null [
-		face: as red-object! values + FACE_OBJ_SELECTED
-		if TYPE_OF(face) = TYPE_OBJECT [
-			0;@@ TBD
-		]
-	]
 ]
 
 set-logic-state: func [
@@ -450,14 +438,34 @@ change-size: func [
 	size [red-pair!]
 	type [integer!]
 	/local
-		rc [NSRect!]
+		h		[integer!]
+		w		[integer!]
+		y		[integer!]
+		x		[integer!]
+		rc		[NSRect!]
+		frame	[NSRect!]
+		saved	[int-ptr!]
+		method	[integer!]
 ][
 	rc: make-rect size/x size/y 0 0
 	if all [type = button size/y > 32][
 		objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
 	]
-	objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
-	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	either type = window [
+		x: 0
+		frame: as NSRect! :x
+		method: sel_getUid "frame"
+		saved: system/stack/align
+		push 0
+		push method push hWnd push frame
+		objc_msgSend_stret 3
+		system/stack/top: saved
+		frame/y: frame/y + frame/h - rc/y
+		objc_msgSend [hWnd sel_getUid "setFrame:display:animate:" frame/x frame/y rc/x rc/y yes yes]
+	][
+		objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	]
 ]
 
 change-image: func [
@@ -486,7 +494,7 @@ change-image: func [
 			CGImageRelease cg-image
 		]
 		true [
-			objc_msgSend [hWnd sel_getUid "display"]
+			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
 	]
 ]
@@ -532,7 +540,7 @@ change-color: func [
 		]
 		objc_msgSend [hWnd sel_getUid "setBackgroundColor:" clr]
 	][
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 ]
 
@@ -604,6 +612,16 @@ change-font: func [
 		]
 		objc_msgSend [view sel_getUid "setTypingAttributes:" attrs]
 	][
+		if type = field [
+			objc_msgSend [
+				hWnd sel_getUid "setFont:"
+				objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+			]
+			objc_msgSend [
+				hWnd sel_getUid "setTextColor:"
+				objc_msgSend [attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
+			]
+		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
 		if TYPE_OF(values) <> TYPE_STRING [exit]			;-- accept any-string! ?
 
@@ -666,7 +684,7 @@ change-text: func [
 		str  [red-string!]
 ][
 	if type = base [
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		exit
 	]
 
@@ -765,9 +783,12 @@ change-selection: func [
 	/local
 		idx [integer!]
 		sz	[integer!]
+		wnd [integer!]
 ][
-	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
-	if idx < 0 [exit]									;-- @@ should unselect the items ?
+	if type <> window [
+		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+		if idx < 0 [exit]								;-- @@ should unselect the items ?
+	]
 	case [
 		type = camera [
 			either TYPE_OF(int) = TYPE_NONE [
@@ -797,7 +818,12 @@ change-selection: func [
 			objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
 		]
 		type = tab-panel [select-tab hWnd int]
-		type = window [0]
+		type = window [
+			wnd: either TYPE_OF(int) = TYPE_OBJECT [
+				as-integer face-handle? as red-object! int
+			][0]
+			objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+		]
 		true [0]										;-- default, do nothing
 	]
 ]
@@ -822,15 +848,16 @@ setup-tracking-area: func [
 		NSTrackingActiveInKeyWindow or
 		NSTrackingInVisibleRect or
 		NSTrackingEnabledDuringMouseDrag
-	if flags and FACET_FLAGS_ALL_OVER <> 0 [
-		options: options or NSTrackingMouseMoved
-	]
+	;if flags and FACET_FLAGS_ALL_OVER <> 0 [
+	;	options: options or NSTrackingMouseMoved
+	;]
 	track: objc_msgSend [
 		objc_msgSend [objc_getClass "NSTrackingArea" sel_getUid "alloc"]
 		sel_getUid "initWithRect:options:owner:userInfo:"
 		rc/x rc/y rc/w rc/h options obj 0
 	]
 	objc_msgSend [obj sel_getUid "addTrackingArea:" track]
+	objc_setAssociatedObject obj RedAllOverFlagKey track OBJC_ASSOCIATION_RETAIN
 ]
 
 same-type?: func [
@@ -970,11 +997,11 @@ init-window: func [
 		objc_msgSend [window sel_getUid "setLevel:" CGWindowLevelForKey 5]		;-- FloatingWindowLevel
 	]
 
+	objc_msgSend [window sel_getUid "setDelegate:" window]
+	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
 	objc_msgSend [window sel_getUid "makeMainWindow"]
-
-	objc_msgSend [window sel_getUid "setDelegate:" window]
 ]
 
 make-area: func [
@@ -1139,6 +1166,61 @@ update-combo-box: func [
 		]
 		default [assert false]			;@@ raise a runtime error
 	]
+]
+
+update-scroller: func [
+	scroller [red-object!]
+	flag	 [integer!]
+	/local
+		parent		[red-object!]
+		vertical?	[red-logic!]
+		int			[red-integer!]
+		values		[red-value!]
+		hWnd		[handle!]
+		nTrackPos	[integer!]
+		nPos		[integer!]
+		nPage		[integer!]
+		nMax		[integer!]
+		nMin		[integer!]
+		fMask		[integer!]
+		cbSize		[integer!]
+][
+	;values: object/get-values scroller
+	;parent: as red-object! values + SCROLLER_OBJ_PARENT
+	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	;hWnd: as handle! int/value
+
+	;int: as red-integer! values + flag
+
+	;if flag = SCROLLER_OBJ_VISIBLE? [
+	;	ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
+	;	exit
+	;]
+
+	;fMask: switch flag [
+	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
+	;	SCROLLER_OBJ_PAGE
+	;	SCROLLER_OBJ_MAX [
+	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
+	;		nPage: int/value
+	;		int: as red-integer! values + SCROLLER_OBJ_MAX
+	;		nMin: 1
+	;		nMax: int/value
+	;	 	SIF_RANGE or SIF_PAGE
+	;	]
+	;	default [0]
+	;]
+
+	;if fMask <> 0 [
+	;	fMask: fMask or SIF_DISABLENOSCROLL
+	;	cbSize: size? tagSCROLLINFO
+	;	SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
+	;]
+]
+
+OS-redraw: func [hWnd [integer!]][
+	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 ]
 
 OS-refresh-window: func [hWnd [integer!]][0]
@@ -1311,6 +1393,7 @@ OS-make-view: func [
 			sym = base
 		][
 			if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
+			objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1379,9 +1462,9 @@ OS-make-view: func [
 	]
 
 	if caption <> 0 [CFRelease caption]
-	if all [sym <> area sym <> field sym <> drop-down][
-		setup-tracking-area obj face rc bits
-	]
+	;if all [sym <> area sym <> field sym <> drop-down][
+	;	setup-tracking-area obj face rc bits
+	;]
 
 	stack/unwind
 	obj
@@ -1444,7 +1527,7 @@ OS-update-view: func [
 	;	get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		objc_msgSend [hWnd sel_getUid "display"]
+		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		change-color hWnd as red-tuple! values + FACE_OBJ_COLOR type
@@ -1580,4 +1663,14 @@ OS-do-draw: func [
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
 	do-draw img/node as red-image! rc cmds yes yes yes yes
+]
+
+OS-draw-face: func [
+	ctx		[draw-ctx!]
+	cmds	[red-block!]
+][
+	if TYPE_OF(cmds) = TYPE_BLOCK [
+		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
+	]
+	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]

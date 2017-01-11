@@ -40,20 +40,6 @@ paren: context [
 
 	;--- Actions ---
 	
-	make: func [
-		proto 	  [red-value!]
-		spec	  [red-value!]
-		return:	  [red-paren!]
-		/local
-			paren [red-paren!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/make"]]
-
-		paren: as red-paren! block/make proto spec
-		paren/header: TYPE_PAREN						;-- implicit reset of all header flags
-		paren
-	]
-	
 	mold: func [
 		paren	  [red-paren!]
 		buffer	  [red-string!]
@@ -80,10 +66,10 @@ paren: context [
 			TYPE_BLOCK
 			"paren!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			INHERIT_ACTION	;random
 			INHERIT_ACTION	;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path

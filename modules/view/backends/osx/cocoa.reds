@@ -110,11 +110,11 @@ Red/System [
 #define NSMouseMovedMask			32
 #define NSLeftMouseDraggedMask		64
 
-
-
 #define NSItalicFontMask			1
 #define NSBoldFontMask				2
 #define NSFixedPitchFontMask		0400h
+
+#define NSFontMonoSpaceTrait		1024
 
 #define NSTrackingMouseEnteredAndExited		1
 #define NSTrackingMouseMoved				2
@@ -153,7 +153,8 @@ Red/System [
 #define NSWindowsCP1250StringEncoding	15
 #define NSUTF16LittleEndianStringEncoding	94000100h
 
-#define IVAR_RED_FACE	"red-face"
+#define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
+#define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
 #define kCFStringEncodingUTF8	08000100h
 #define CFString(cStr) [CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
@@ -165,6 +166,8 @@ Red/System [
 #define RedCameraImageKey		4000FFF4h
 #define RedTimerKey				4000FFFAh
 #define RedFieldEditorKey		4000FFFBh
+#define RedAllOverFlagKey		4000FFFCh
+#define RedAttachedWidgetKey	4000FFFDh
 
 #define handle! [pointer! [integer!]]
 
@@ -293,6 +296,18 @@ tagSIZE: alias struct! [
 			id			[integer!]
 			return:		[integer!]
 		]
+		object_setInstanceVariable: "object_setInstanceVariable" [
+			id			[integer!]
+			name		[c-string!]
+			value		[integer!]
+			return:		[integer!]
+		]
+		object_getInstanceVariable: "object_getInstanceVariable" [
+			id			[integer!]
+			name		[c-string!]
+			out			[int-ptr!]
+			return:		[integer!]
+		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend" [[variadic] return: [float32!]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
@@ -374,6 +389,7 @@ tagSIZE: alias struct! [
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
 		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
+		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
 		NSFontAttributeName: "NSFontAttributeName" [integer!]
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
@@ -674,6 +690,14 @@ tagSIZE: alias struct! [
 			h			[float32!]
 			src			[integer!]
 		]
+		CGImageCreateWithImageInRect: "CGImageCreateWithImageInRect" [
+			image		[integer!]
+			x			[float32!]
+			y			[float32!]
+			w			[float32!]
+			h			[float32!]
+			return:		[integer!]
+		]
 		CGBitmapContextCreateImage: "CGBitmapContextCreateImage" [
 			ctx			[integer!]
 			return:		[integer!]
@@ -731,6 +755,23 @@ msg-send-super: func [
 	super/receiver: id
 	super/superclass: objc_msgSend [id sel_getUid "superclass"]
 	objc_msgSendSuper [super sel arg]
+]
+
+to-red-string: func [
+	nsstr	[integer!]
+	slot	[red-value!]
+	return: [red-string!]
+	/local
+		str  [red-string!]
+		size [integer!]
+		cstr [c-string!]
+][
+	size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" NSUTF8StringEncoding]
+	cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
+	if null? slot [slot: stack/push*]
+	str: string/make-at slot size Latin1
+	unicode/load-utf8-stream cstr size str null
+	str
 ]
 
 to-NSString: func [str [red-string!] return: [integer!] /local len][

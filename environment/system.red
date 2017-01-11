@@ -97,6 +97,7 @@ system: context [
 				invalid-data:		["data not in correct format:" :arg1]
 				invalid-part:		["invalid /part count:" :arg1]
 				not-same-type:		"values must be of the same type"
+				not-same-class:		["cannot coerce" :arg1 "to" :arg2]
 				not-related:		["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def:		["invalid function definition:" :arg1]
 				bad-func-arg:		["function argument" :arg1 "is not valid"]
@@ -129,10 +130,12 @@ system: context [
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
-                bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
+				bad-to-arg:			["cannot MAKE/TO" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
+				too-long:			"Content too long"
+				invalid-char:		["Invalid char! value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -163,6 +166,7 @@ system: context [
 				react-no-match:		"REACT - objects block length must match reaction function arg count"
 				react-bad-obj:		"REACT - target can only contain object values"
 				react-gctx:			["REACT - word" :arg1 "is not a reactor's field"]
+				lib-invalid-arg:	["LIBRED - invalid argument for" :arg1]
 			]
 			math: object [
 				code:				400

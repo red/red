@@ -10,30 +10,34 @@ Red [
 	}
 ]
 
-#include %environment/datatypes.red
-#include %environment/actions.red
-#include %environment/natives.red
-#include %environment/routines.red
-#include %environment/scalars.red
-#include %environment/colors.red
-#include %environment/functions.red
-#include %environment/system.red
-#include %environment/lexer.red
-#include %environment/operators.red
+#if any [not config/dev-mode? config/libRedRT?][
 
-#register-intrinsics
+	#include %environment/datatypes.red
+	#include %environment/actions.red
+	#include %environment/natives.red
+	#include %environment/routines.red
+	#include %environment/scalars.red
+	#include %environment/colors.red
+	#include %environment/functions.red
+	#include %environment/system.red
+	#include %environment/lexer.red
+	#include %environment/operators.red
 
-#include %environment/codecs/png.red
-#include %environment/codecs/jpeg.red
-#include %environment/codecs/bmp.red
-#include %environment/codecs/gif.red
+	#register-intrinsics
 
-#include %environment/reactivity.red					;-- requires SET intrinsic
-#include %utils/preprocessor.r
+	#include %environment/codecs/png.red
+	#include %environment/codecs/jpeg.red
+	#include %environment/codecs/bmp.red
+	#include %environment/codecs/gif.red
 
-extract-boot-args
+	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %utils/preprocessor.r
 
-;-- temporary code --
+	;-- temporary code --
 #if not find [Windows MacOSX Linux] config/OS [
-	unset [event! image!]
+		unset [event! image!]
+	]
 ]
+
+#if config/type = 'exe [extract-boot-args]
+

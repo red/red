@@ -10,42 +10,14 @@ Red/System [
 	}
 ]
 
-modes: declare struct! [
-	pen				[handle!]
-	brush			[handle!]
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-width		[integer!]
-	pen-style		[integer!]
-	pen-color		[integer!]								;-- 00bbggrr format
-	brush-color		[integer!]								;-- 00bbggrr format
-	font-color		[integer!]
-	bitmap			[handle!]
-	graphics		[integer!]								;-- gdiplus graphics
-	gp-state		[integer!]
-	gp-pen			[integer!]								;-- gdiplus pen
-	gp-pen-saved	[integer!]
-	gp-brush		[integer!]								;-- gdiplus brush
-	gp-font			[integer!]								;-- gdiplus font
-	gp-font-brush	[integer!]
-	gp-matrix		[integer!]
-	gp-path			[integer!]
-	image-attr		[integer!]								;-- gdiplus image attributes
-	pen?			[logic!]
-	brush?			[logic!]
-	on-image?		[logic!]								;-- drawing on image?
-	alpha-pen?		[logic!]
-	alpha-brush?	[logic!]
-	font-color?		[logic!]
-]
-
 paint: declare tagPAINTSTRUCT
 max-colors: 256												;-- max number of colors for gradient
 max-edges:  1000											;-- max number of edges for a polygone
 edges: as tagPOINT allocate max-edges * (size? tagPOINT)	;-- polygone edges buffer
 types: allocate max-edges * (size? byte!)					;-- point type buffer
-colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
-colors-pos: as pointer! [float32!] colors + max-colors
+colors: as int-ptr! 0
+colors-pos: as pointer! [float32!] 0
+matrix-order: 0
 
 #define SHAPE_OTHER     0
 #define SHAPE_CURVE     1
@@ -61,90 +33,110 @@ prev-shape: declare curve-info!
 prev-shape/control: declare tagPOINT
 
 arcPOINTS!: alias struct! [
-    start-x     [integer!]
-    start-y     [integer!]
-    end-x       [integer!]
-    end-y       [integer!]
+    start-x     [float!]
+    start-y     [float!]
+    end-x       [float!]
+    end-y       [float!]
 ]
+connect-subpath: 0
 
 anti-alias?: no
 GDI+?: no
+D2D?: no
 
-update-gdiplus-font-color: func [color [integer!] /local brush [integer!]][
-	if modes/font-color <> color [
-		unless zero? modes/gp-font-brush [
-			GdipDeleteBrush modes/gp-font-brush
-			modes/gp-font-brush: 0
+clip-replace: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEREPLACE][RGN_COPY]
+]
+clip-intersect: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEINTERSECT][RGN_AND]
+]
+clip-union: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEUNION][RGN_OR]
+]
+clip-xor: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEXOR][RGN_XOR]
+]
+clip-diff: func [ return: [integer!] ][
+    either GDI+? [GDIPLUS_COMBINEMODEEXCLUDE][RGN_DIFF]
+]
+
+matrix-order-append: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
+matrix-order-prepend: func [ return: [integer!] ][ GDIPLUS_MATRIXORDERAPPEND ]
+
+update-gdiplus-font-color: func [ctx [draw-ctx!] color [integer!] /local brush [integer!]][
+	if ctx/font-color <> color [
+		unless zero? ctx/gp-font-brush [
+			GdipDeleteBrush ctx/gp-font-brush
+			ctx/gp-font-brush: 0
 		]
-		modes/font-color: color
+		ctx/font-color: color
 		;-- work around for drawing text on transparent background
 		;-- http://stackoverflow.com/questions/5647322/gdi-font-rendering-especially-in-layered-windows
 		if color >>> 24 = 0 [color: 1 << 24 or color]
 		brush: 0
 		GdipCreateSolidFill to-gdiplus-color color :brush
-		modes/gp-font-brush: brush
+		ctx/gp-font-brush: brush
 	]
 ]
 
-update-gdiplus-font: func [dc [handle!] /local font [integer!]][
+update-gdiplus-font: func [ctx [draw-ctx!] /local font [integer!]][
 	font: 0
-	unless zero? modes/gp-font [GdipDeleteFont modes/gp-font]
-	GdipCreateFontFromDC as-integer dc :font
-	modes/gp-font: font
+	unless zero? ctx/gp-font [GdipDeleteFont ctx/gp-font]
+	GdipCreateFontFromDC as-integer ctx/dc :font
+	ctx/gp-font: font
 ]
 
-update-gdiplus-modes: func [][
-	update-gdiplus-pen
-	update-gdiplus-brush
+update-gdiplus-modes: func [ctx [draw-ctx!] ][
+	update-gdiplus-pen ctx
+	update-gdiplus-brush ctx
 ]
 
-update-gdiplus-brush: func [/local handle [integer!]][
+update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 	handle: 0
-	unless zero? modes/gp-brush [
-		GdipDeleteBrush modes/gp-brush
-		modes/gp-brush: 0
+	unless zero? ctx/gp-brush [
+		GdipDeleteBrush ctx/gp-brush
+		ctx/gp-brush: 0
 	]
-	if modes/brush? [
-		GdipCreateSolidFill to-gdiplus-color modes/brush-color :handle
-		modes/gp-brush: handle
-	]
-]
-
-update-gdiplus-pen: func [/local handle [integer!]][
-	either modes/pen? [
-		if modes/gp-pen-saved <> 0 [
-			modes/gp-pen: modes/gp-pen-saved
-			modes/gp-pen-saved: 0
-		]
-		handle: modes/gp-pen
-		GdipSetPenColor handle to-gdiplus-color modes/pen-color
-		GdipSetPenWidth handle as float32! modes/pen-width
-		if modes/pen-join <> -1 [
-			OS-draw-line-join null modes/pen-join
-		]
-		if modes/pen-cap <> -1 [
-			OS-draw-line-cap null modes/pen-cap
-		]
-	][
-		modes/gp-pen-saved: modes/gp-pen
-		modes/gp-pen: 0
+	if ctx/brush? [
+		GdipCreateSolidFill to-gdiplus-color ctx/brush-color :handle
+		ctx/gp-brush: handle
 	]
 ]
 
-update-brush: func [dc [handle!] /local handle [handle!]][
-	unless null? modes/brush [DeleteObject modes/brush]
-	modes/brush: either modes/brush? [
-		handle: CreateSolidBrush modes/brush-color
-		handle
+update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
+	either ctx/pen? [
+		if ctx/gp-pen-saved <> 0 [
+			ctx/gp-pen: ctx/gp-pen-saved
+			ctx/gp-pen-saved: 0
+		]
+		handle: ctx/gp-pen
+		GdipSetPenColor handle to-gdiplus-color ctx/pen-color
+		GdipSetPenWidth handle ctx/pen-width
+		if ctx/pen-join <> 0 [
+			OS-draw-line-join ctx ctx/pen-join
+		]
+		if ctx/pen-cap <> 0 [
+			OS-draw-line-cap ctx ctx/pen-cap
+		]
 	][
-		handle: GetStockObject NULL_BRUSH
-		null
+		ctx/gp-pen-saved: ctx/gp-pen
+		ctx/gp-pen: 0
 	]
-	SelectObject dc handle
+]
+
+update-brush: func [ctx [draw-ctx!] /local handle [handle!]][
+	if 0 <> ctx/brush [DeleteObject as handle! ctx/brush]
+	handle: either ctx/brush? [
+		CreateSolidBrush ctx/brush-color
+	][
+		GetStockObject NULL_BRUSH
+	]
+	ctx/brush: as-integer handle
+	SelectObject ctx/dc handle
 ]
 
 update-pen: func [
-	dc		[handle!]
+	ctx		  [draw-ctx!]
 	/local
 		mode  [integer!]
 		cap   [integer!]
@@ -153,13 +145,12 @@ update-pen: func [
 		brush [tagLOGBRUSH]
 ][
 	mode: 0
-	unless null? modes/pen [DeleteObject modes/pen]
-	either modes/pen? [
-		cap: modes/pen-cap
-		join: modes/pen-join
-		modes/pen: either all [join = -1 cap = -1] [
-			pen: CreatePen modes/pen-style modes/pen-width modes/pen-color
-			pen
+	if 0 <> ctx/pen [DeleteObject as handle! ctx/pen]
+	either ctx/pen? [
+		cap: ctx/pen-cap
+		join: ctx/pen-join
+		pen: either all [join = -1 cap = -1] [
+			CreatePen ctx/pen-style as integer! ctx/pen-width ctx/pen-color
 		][
 			if join <> -1 [
 				mode: case [
@@ -180,39 +171,40 @@ update-pen: func [
 			]
 			brush: declare tagLOGBRUSH
 			brush/lbStyle: BS_SOLID
-			brush/lbColor: modes/pen-color
-			pen: ExtCreatePen
-				PS_GEOMETRIC or modes/pen-style or mode
-				modes/pen-width
+			brush/lbColor: ctx/pen-color
+			ExtCreatePen
+				PS_GEOMETRIC or ctx/pen-style or mode
+				as integer! ctx/pen-width
 				brush
 				0
 				null
-			pen
 		]
+		ctx/pen: as-integer pen
 	][
 		pen: GetStockObject NULL_PEN
-		modes/pen: null
+		ctx/pen: 0
 	]
-	SelectObject dc pen
+	SelectObject ctx/dc pen
 ]
 
 update-modes: func [
-	dc [handle!]
+	ctx [draw-ctx!]
 ][
 	either GDI+? [
-		update-gdiplus-modes
+		update-gdiplus-modes ctx
 	][
-		update-pen dc
-		update-brush dc
+		update-pen ctx
+		update-brush ctx
 	]
 ]
 
 draw-begin: func [
+	ctx			[draw-ctx!]
 	hWnd		[handle!]
 	img			[red-image!]
 	on-graphic? [logic!]
 	paint?		[logic!]
-	return: 	[handle!]
+	return: 	[draw-ctx!]
 	/local
 		dc		 [handle!]
 		rect	 [RECT_STRUCT]
@@ -222,33 +214,23 @@ draw-begin: func [
 		hBackDC  [handle!]
 		graphics [integer!]
 ][
-	modes/pen:				null
-	modes/brush:			null
-	modes/pen-width:		1
-	modes/pen-style:		PS_SOLID
-	modes/pen-color:		0						;-- default: black
-	modes/pen-join:			-1
-	modes/pen-cap:			-1
-	modes/brush-color:		-1
-	modes/font-color:		-1
-	modes/gp-brush:			0
-	modes/gp-pen:			0
-	modes/gp-pen-saved:		0
-	modes/gp-font:			0
-	modes/gp-font-brush:	0
-	modes/gp-matrix:		0
-	modes/image-attr:		0
-	modes/on-image?:		no
-	modes/pen?:				yes
-	modes/brush?:			no
-	modes/alpha-pen?:		no
-	modes/alpha-brush?:		no
-	modes/font-color?:		no
-	dc:						null
+	zero-memory as byte-ptr! ctx size? draw-ctx!
+	ctx/pen-width:		as float32! 1.0
+	ctx/pen?:			yes
+	ctx/hwnd:			hWnd
+	dc:					null
+
+	D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+    last-point?: no
+    prev-shape/type: SHAPE_OTHER
+    path-last-point/x: 0
+    path-last-point/y: 0
+
+	matrix-order: GDIPLUS_MATRIXORDERAPPEND
 
 	rect: declare RECT_STRUCT
 	either null? hWnd [
-		modes/on-image?: yes
+		ctx/on-image?: yes
 		either on-graphic? [
 			graphics: as-integer img
 		][
@@ -257,55 +239,80 @@ draw-begin: func [
 		]
 		dc: CreateCompatibleDC hScreen
 		SelectObject dc default-font
-		SetTextColor dc modes/pen-color
-		update-gdiplus-font-color modes/pen-color
+		SetTextColor dc ctx/pen-color
+		ctx/dc: dc
+		update-gdiplus-font-color ctx ctx/pen-color
 	][
-		dc: either paint? [BeginPaint hWnd paint][hScreen]
-		GetClientRect hWnd rect
-		width: rect/right - rect/left
-		height: rect/bottom - rect/top
-		hBitmap: CreateCompatibleBitmap dc width height
-		hBackDC: CreateCompatibleDC dc
-		SelectObject hBackDC hBitmap
-		modes/bitmap: hBitmap
+		either D2D? [
+			draw-begin-d2d ctx hWnd
+			return ctx
+		][
+			either null? img [
+				dc: either paint? [BeginPaint hWnd paint][hScreen]
+				GetClientRect hWnd rect
+				width: rect/right - rect/left
+				height: rect/bottom - rect/top
+				hBitmap: CreateCompatibleBitmap dc width height
+				hBackDC: CreateCompatibleDC dc
+				SelectObject hBackDC hBitmap
+				ctx/bitmap: hBitmap
+			][
+				hBackDC: as handle! img
+			]
 
-		dc: hBackDC
+			dc: hBackDC
+			ctx/dc: dc
 
-		SetArcDirection dc AD_CLOCKWISE
-		SetBkMode dc BK_TRANSPARENT
-		SelectObject dc GetStockObject NULL_BRUSH
+			SetGraphicsMode dc GM_ADVANCED
+			SetArcDirection dc AD_CLOCKWISE
+			SetBkMode dc BK_TRANSPARENT
+			SelectObject dc GetStockObject NULL_BRUSH
 
-		render-base hWnd dc
+			render-base hWnd dc
 
-		graphics: 0
-		GdipCreateFromHDC dc :graphics	
+			graphics: 0
+			GdipCreateFromHDC dc :graphics
+		]
 	]
-	modes/graphics:	graphics
+
+	ctx/graphics: graphics
 	GdipCreatePen1
-		to-gdiplus-color modes/pen-color
-		as float32! modes/pen-width
-		GDIPLUS_UNIT_PIXEL
+		to-gdiplus-color ctx/pen-color
+		ctx/pen-width
+		GDIPLUS_UNIT_WORLD
 		:graphics
-	modes/gp-pen: graphics
-	OS-draw-anti-alias dc yes
-	update-gdiplus-font dc
-	dc
+	ctx/gp-pen: graphics
+	OS-draw-anti-alias ctx yes
+	update-gdiplus-font ctx
+	ctx
 ]
 
 draw-end: func [
-	dc			[handle!]
+	ctx			[draw-ctx!]
 	hWnd		[handle!]
 	on-graphic? [logic!]
 	cache?		[logic!]
 	paint?		[logic!]
 	/local
+		hr		[integer!]
+		IUnk	[IUnknown]
+		this	[this!]
+		pad4	[integer!]
 		rect	[RECT_STRUCT]
 		width	[integer!]
 		height	[integer!]
 		bitmap	[integer!]
 		old-dc	[integer!]
+		dc		[handle!]
 ][
-	rect: declare RECT_STRUCT
+	if D2D? [
+		draw-end-d2d ctx hWnd
+		exit
+	]
+
+	dc: ctx/dc
+	pad4: 0
+	rect: as RECT_STRUCT :pad4
 	if paint? [
 		GetClientRect hWnd rect
 		width: rect/right - rect/left
@@ -313,20 +320,18 @@ draw-end: func [
 		BitBlt paint/hdc 0 0 width height dc 0 0 SRCCOPY
 	]
 
-	unless any [on-graphic? zero? modes/graphics][GdipDeleteGraphics modes/graphics]
-	unless zero? modes/gp-pen	[GdipDeletePen modes/gp-pen]
-	unless zero? modes/gp-pen-saved	[GdipDeletePen modes/gp-pen-saved]
-	unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
-	unless zero? modes/gp-font-brush [GdipDeleteBrush modes/gp-font-brush]
-	unless zero? modes/gp-font	[GdipDeleteFont modes/gp-font]
-	unless zero? modes/image-attr [GdipDisposeImageAttributes modes/image-attr]
-	unless zero? modes/gp-matrix [GdipDeleteMatrix modes/gp-matrix]
-	unless null? modes/pen		[DeleteObject modes/pen]
-	unless null? modes/brush	[DeleteObject modes/brush]
+	unless any [on-graphic? zero? ctx/graphics][GdipDeleteGraphics ctx/graphics]
+	unless zero? ctx/gp-pen			[GdipDeletePen ctx/gp-pen]
+	unless zero? ctx/gp-pen-saved	[GdipDeletePen ctx/gp-pen-saved]
+	unless zero? ctx/gp-brush		[GdipDeleteBrush ctx/gp-brush]
+	unless zero? ctx/gp-font-brush	[GdipDeleteBrush ctx/gp-font-brush]
+	unless zero? ctx/gp-font		[GdipDeleteFont ctx/gp-font]
+	unless zero? ctx/image-attr 	[GdipDisposeImageAttributes ctx/image-attr]
+	unless zero? ctx/gp-matrix		[GdipDeleteMatrix ctx/gp-matrix]
+	unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
+	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 
-	unless modes/on-image? [
-		DeleteObject modes/bitmap
-	]
+	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
 		old-dc: GetWindowLong hWnd wc-offset - 4
 		unless zero? old-dc [DeleteDC as handle! old-dc]
@@ -352,7 +357,6 @@ to-gdiplus-color: func [
 	alpha: (255 - (color >>> 24)) << 24
 	red or green or blue or alpha
 ]
-
 
 radian-to-degrees: func [
     radians     [float!]
@@ -393,8 +397,8 @@ set-matrix: func [
 ]
 
 gdi-calc-arc: func [
-    center-x        [integer!]
-    center-y        [integer!]
+    center-x        [float!]
+    center-y        [float!]
     rad-x           [float!]
     rad-y           [float!]
     angle-begin     [float!]
@@ -403,10 +407,10 @@ gdi-calc-arc: func [
 	/local
         radius      [red-pair!]
         angle       [red-integer!]
-        start-x     [integer!]
-        start-y     [integer!]
-        end-x       [integer!]
-        end-y       [integer!]
+        start-x     [float!]
+        start-y     [float!]
+        end-x       [float!]
+        end-y       [float!]
         rad-x-float [float32!]
         rad-y-float [float32!]
         rad-x-2     [float32!]
@@ -424,34 +428,34 @@ gdi-calc-arc: func [
     either rad-x = rad-y [				;-- circle
         rad-beg: degree-to-radians angle-begin TYPE_SINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_SINE
-        start-y: center-y + (rad-y-float * system/words/sin rad-beg)
-        end-y:	 center-y + (rad-y-float * system/words/sin rad-end)
+        start-y: center-y + (rad-y-float * sin rad-beg)
+        end-y:	 center-y + (rad-y-float * sin rad-end)
         rad-beg: degree-to-radians angle-begin TYPE_COSINE
         rad-end: degree-to-radians angle-begin + angle-len TYPE_COSINE
-        start-x: center-x + (rad-x-float * system/words/cos rad-beg)
-        end-x:	 center-x + (rad-x-float * system/words/cos rad-end)
+        start-x: center-x + (rad-x-float * cos rad-beg)
+        end-x:	 center-x + (rad-x-float * cos rad-end)
     ][
         rad-beg: degree-to-radians angle-begin TYPE_TANGENT
         rad-end: degree-to-radians angle-begin + angle-len TYPE_TANGENT
         rad-x-y: rad-x-float * rad-y-float
         rad-x-2: rad-x-float * rad-x-float
         rad-y-2: rad-y-float * rad-y-float
-        tan-2: as float32! system/words/tan rad-beg
+        tan-2: as float32! tan rad-beg
         tan-2: tan-2 * tan-2
-        start-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-        start-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
-        if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0 - start-x]
-        if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0 - start-y]
+        start-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        start-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        if all [angle-begin > 90.0  angle-begin < 270.0][start-x: 0.0 - start-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][start-y: 0.0 - start-y]
         start-x: center-x + start-x
         start-y: center-y + start-y
         angle-begin: angle-begin + angle-len
-        tan-2: as float32! system/words/tan rad-end
+        tan-2: as float32! tan rad-end
         tan-2: tan-2 * tan-2
-        end-x: as-integer rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
-        end-y: as-integer rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
+        end-x: as float! rad-x-y / (sqrt as-float rad-x-2 * tan-2 + rad-y-2)
+        end-y: as float! rad-x-y / (sqrt as-float rad-y-2 / tan-2 + rad-x-2)
         if angle-begin < 0.0 [ angle-begin: 360.0 + angle-begin]
-        if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0 - end-x]
-        if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0 - end-y]
+        if all [angle-begin > 90.0  angle-begin < 270.0][end-x: 0.0 - end-x]
+        if all [angle-begin > 180.0 angle-begin < 360.0][end-y: 0.0 - end-y]
         end-x: center-x + end-x
         end-y: center-y + end-y
     ]
@@ -463,11 +467,12 @@ gdi-calc-arc: func [
 ]
 
 draw-curves: func [
-    dc          [handle!]
-    start       [red-pair!]
-    end         [red-pair!]
-    rel?        [logic!]
-    nr-points   [integer!]
+	dc			[handle!]
+	gp-path		[integer!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
+	nr-points	[integer!]
     /local
         point   [tagPOINT]
         pair    [red-pair!]
@@ -492,7 +497,7 @@ draw-curves: func [
         path-last-point/x: pt/x
         path-last-point/y: pt/y
         either GDI+? [
-            GdipAddPathBeziersI modes/gp-path edges nb + 1
+            GdipAddPathBeziersI gp-path edges nb + 1
         ][
             PolyBezier dc edges nb + 1 
         ]
@@ -507,10 +512,12 @@ draw-curves: func [
     prev-shape/type: SHAPE_CURVE
     prev-shape/control/x: point/x
     prev-shape/control/y: point/y
+	connect-subpath: 1
 ]
 
 draw-short-curves: func [
-    dc          [handle!]
+	dc			[handle!]
+    gp-path		[integer!]
     start       [red-pair!]
     end         [red-pair!]
     rel?        [logic!]
@@ -557,7 +564,7 @@ draw-short-curves: func [
             nb: nb + 4
         ]
         either GDI+? [
-            GdipAddPathBeziersI modes/gp-path edges nb
+            GdipAddPathBeziersI gp-path edges nb
         ][
             PolyBezier dc edges nb
         ]
@@ -568,105 +575,100 @@ draw-short-curves: func [
         pt: edges
         nb: 0
     ]
+	connect-subpath: 1
 ]
 
 OS-draw-shape-beginpath: func [
-    dc          [handle!]
-    /local
-        path    [integer!]
+	ctx			[draw-ctx!]
+	/local
+		path	[integer!]
 ][
-    last-point?: no
-    prev-shape/type: SHAPE_OTHER
-    path-last-point/x: 0
-    path-last-point/y: 0
-    either GDI+? [
-        path: 0
-        GdipCreatePath 0 :path	; alternate fill
-        modes/gp-path: path
-		GdipStartPathFigure modes/gp-path
-    ][
-        update-modes dc
-    	BeginPath dc
-    ]
+	connect-subpath: 0
+	either GDI+? [
+		path: 0
+		GdipCreatePath 0 :path	; alternate fill
+		ctx/gp-path: path
+		GdipStartPathFigure ctx/gp-path
+	][
+		update-modes ctx
+		BeginPath ctx/dc
+	]
 ]
 
 OS-draw-shape-endpath: func [
-    dc          [handle!]
-    close?      [logic!]
-    return:     [logic!]
-    /local
-        alpha   [byte!]
-        width   [integer!]
-        height  [integer!]
-        ftn     [integer!]
-        bf      [tagBLENDFUNCTION]
-        count   [integer!]
-        result  [logic!]
-        point   [tagPOINT]
+	ctx			[draw-ctx!]
+	close?		[logic!]
+	return:		[logic!]
+	/local
+		alpha   [byte!]
+		width   [integer!]
+		height  [integer!]
+		ftn     [integer!]
+		bf      [tagBLENDFUNCTION]
+		count   [integer!]
+		result  [logic!]
+		point   [tagPOINT]
+		dc		[handle!]
 ][
     result: true
 
     either GDI+? [
         count: 0
-        GdipGetPointCount modes/gp-path :count
-
-        either all [ count > 0 count <= max-edges ][
-            if close? [ GdipClosePathFigure modes/gp-path ]
-            GdipDrawPath modes/graphics modes/gp-pen modes/gp-path
-            GdipFillPath modes/graphics modes/gp-brush modes/gp-path
-            GdipDeletePath modes/gp-path
-        ][ if count > max-edges [ result: false ] ]
+        GdipGetPointCount ctx/gp-path :count
+        if count > 0 [
+            if close? [ GdipClosePathFigure ctx/gp-path ]
+            GdipDrawPath ctx/graphics ctx/gp-pen ctx/gp-path
+            GdipFillPath ctx/graphics ctx/gp-brush ctx/gp-path
+            GdipDeletePath ctx/gp-path
+        ]
     ][
+	    dc: ctx/dc
+        if close? [ CloseFigure dc ]
         EndPath dc
         count: GetPath dc edges types 0
-        either all [ count > 0 count <= max-edges ][
+        if count > 0 [
             count: GetPath dc edges types count
-            if close? [
-                point: edges + count
-                point/x: edges/x
-                point/y: edges/y
-                count: count + 1
-            ]
             FillPath dc
             PolyDraw dc edges types count
-        ][ if count > max-edges [ result: false ] ]
+        ]
     ]
     result
 ]
 
 OS-draw-shape-moveto: func [
-    dc      [handle!]
-    coord   [red-pair!]
-    rel?    [logic!]
-    /local
-        pt  [tagPOINT]
+	ctx		[draw-ctx!]
+	coord	[red-pair!]
+	rel?	[logic!]
+	/local
+		pt	[tagPOINT]
 ][
-    either all [ rel? last-point? ][
-        path-last-point/x: path-last-point/x + coord/x
-        path-last-point/y: path-last-point/y + coord/y
-    ][
-        path-last-point/x: coord/x
-        path-last-point/y: coord/y
-    ]
-    last-point?: yes
-    prev-shape/type: SHAPE_OTHER
-    either GDI+? [
-        GdipStartPathFigure modes/gp-path
+	either all [ rel? last-point? ][
+		path-last-point/x: path-last-point/x + coord/x
+		path-last-point/y: path-last-point/y + coord/y
 	][
-        pt: declare tagPOINT
-        MoveToEx dc path-last-point/x path-last-point/y pt
-    ]
+		path-last-point/x: coord/x
+		path-last-point/y: coord/y
+	]
+	connect-subpath: 0
+	last-point?: yes
+	prev-shape/type: SHAPE_OTHER
+	either GDI+? [
+		GdipStartPathFigure ctx/gp-path
+	][
+		pt: declare tagPOINT
+		MoveToEx ctx/dc path-last-point/x path-last-point/y pt
+	]
 ]
 
 OS-draw-shape-line: func [
-    dc          [handle!]
-    start       [red-pair!]
-    end         [red-pair!]
-    rel?        [logic!]
-    /local
-        pt      [tagPOINT]
-        nb      [integer!]
-        pair    [red-pair!]
+	ctx			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
+	/local
+		pt		[tagPOINT]
+		nb		[integer!]
+		pair	[red-pair!]
 ][
     pt: edges
     pair:  start
@@ -693,16 +695,17 @@ OS-draw-shape-line: func [
         pair: pair + 1	
     ]
     either GDI+? [
-        GdipAddPathLine2I  modes/gp-path edges nb
+        GdipAddPathLine2I ctx/gp-path edges nb
     ][
-        PolylineTo dc edges nb
+        Polyline ctx/dc edges nb
     ]
 	last-point?: yes
     prev-shape/type: SHAPE_OTHER
+	connect-subpath: 1
 ]
 
 OS-draw-shape-axis: func [
-    dc          [handle!]
+    ctx         [draw-ctx!]
     start       [red-value!]
     end         [red-value!]
     rel?        [logic!]
@@ -715,91 +718,94 @@ OS-draw-shape-axis: func [
         coord-f [red-float!]
         coord-i [red-integer!]
 ][
-    pt: edges
-    nb: 0
-    coord: start
+    if last-point? [
+        pt: edges
+        nb: 0
+        coord: start
 
-    pt/x: path-last-point/x
-    pt/y: path-last-point/y
-    pt: pt + 1
-    nb: nb + 1
-    coord-v: 0
-	until [
-        either TYPE_OF(coord) = TYPE_INTEGER [
-            coord-i: as red-integer! coord
-            coord-v: coord-i/value
-        ][
-            coord-f: as red-float! coord
-            coord-v: as integer! coord-f/value
-        ]
-        case [
-            hline [
-                either rel? [ 
-                    pt/x: path-last-point/x + coord-v
-                ][ pt/x: coord-v ]
-                pt/y: path-last-point/y
-                path-last-point/x: pt/x
-            ]
-            true [
-                either rel? [ 
-                    pt/y: path-last-point/y + coord-v
-                ][ pt/y: coord-v ]
-                pt/x: path-last-point/x
-                path-last-point/y: pt/y 
-            ]
-        ]
-        coord: coord + 1
-        nb: nb + 1
+        pt/x: path-last-point/x
+        pt/y: path-last-point/y
         pt: pt + 1
-        any [ coord > end nb >= max-edges ]
+        nb: nb + 1
+        coord-v: 0
+        until [
+            either TYPE_OF(coord) = TYPE_INTEGER [
+                coord-i: as red-integer! coord
+                coord-v: coord-i/value
+            ][
+                coord-f: as red-float! coord
+                coord-v: as integer! coord-f/value
+            ]
+            case [
+                hline [
+                    either rel? [ 
+                        pt/x: path-last-point/x + coord-v
+                    ][ pt/x: coord-v ]
+                    pt/y: path-last-point/y
+                    path-last-point/x: pt/x
+                ]
+                true [
+                    either rel? [ 
+                        pt/y: path-last-point/y + coord-v
+                    ][ pt/y: coord-v ]
+                    pt/x: path-last-point/x
+                    path-last-point/y: pt/y 
+                ]
+            ]
+            coord: coord + 1
+            nb: nb + 1
+            pt: pt + 1
+            any [ coord > end nb >= max-edges ]
+        ]
+        last-point?: yes
+        either GDI+? [
+            GdipAddPathLine2I ctx/gp-path edges nb
+        ][
+            Polyline ctx/dc edges nb
+        ]
+        prev-shape/type: SHAPE_OTHER
+		connect-subpath: 1
     ]
-    last-point?: yes
-    either GDI+? [
-        GdipAddPathLine2I modes/gp-path edges nb
-    ][
-        PolylineTo dc edges nb
-    ]
-    prev-shape/type: SHAPE_OTHER
 ]
 
 OS-draw-shape-curve: func [
-    dc      [handle!]
+    ctx		[draw-ctx!]
     start   [red-pair!]
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-curves dc start end rel? 3
+    draw-curves ctx/dc ctx/gp-path start end rel? 3
 ]
 
 OS-draw-shape-qcurve: func [
-    dc      [handle!]
+	ctx		[draw-ctx!]
     start   [red-pair!]
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-curves dc start end rel? 2
+    draw-curves ctx/dc ctx/gp-path start end rel? 2
 ]
 
 OS-draw-shape-curv: func [
-    dc      [handle!]
+    ctx		[draw-ctx!]
     start   [red-pair!]
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-short-curves dc start end rel? 2
+    draw-short-curves ctx/dc ctx/gp-path start end rel? 2
 ]
 
 OS-draw-shape-qcurv: func [
-    dc      [handle!]
+    ctx		[draw-ctx!]
     start   [red-pair!]
     end     [red-pair!]
     rel?    [logic!]
 ][
-    draw-short-curves dc start end rel? 1
+    draw-short-curves ctx/dc ctx/gp-path start end rel? 1
 ]
 
 OS-draw-shape-arc: func [
-    dc      [handle!]
+    ctx		[draw-ctx!]
     start   [red-pair!]
     end     [red-value!]
     sweep?  [logic!]
@@ -842,6 +848,7 @@ OS-draw-shape-arc: func [
         prev-dir    [integer!]
         pt          [tagPOINT]
         arc-points  [arcPOINTS!]
+        dc			[handle!]
 ][
     if last-point? [
         ;-- parse arguments 
@@ -861,8 +868,8 @@ OS-draw-shape-arc: func [
         ;-- calculate center
         dx: (p1-x - p2-x) / 2.0
         dy: (p1-y - p2-y) / 2.0
-        cos-val: system/words/cos degree-to-radians theta TYPE_COSINE
-        sin-val: system/words/sin degree-to-radians theta TYPE_SINE
+        cos-val: cos degree-to-radians theta TYPE_COSINE
+        sin-val: sin degree-to-radians theta TYPE_SINE
         X1: (cos-val * dx) + (sin-val * dy)
         Y1: (cos-val * dy) - (sin-val * dx)
         rx2: radius-x * radius-x
@@ -883,9 +890,9 @@ OS-draw-shape-arc: func [
         center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
         ;-- calculate angles
-        angle-1: radian-to-degrees system/words/atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
+        angle-1: radian-to-degrees atan (float/abs ((p1-y - center-y) / (p1-x - center-x)))
         angle-1: adjust-angle (p1-x - center-x) (p1-y - center-y) angle-1
-        angle-2: radian-to-degrees system/words/atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
+        angle-2: radian-to-degrees atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
         angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
         angle-len: angle-2 - angle-1
         sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
@@ -902,15 +909,16 @@ OS-draw-shape-arc: func [
         either GDI+? [
             path: 0
             GdipCreatePath 0 :path	; alternate fill
-            GdipAddPathArcI 
+            GdipAddPathArc 
                 path 
-                as integer! center-x - radius-x
-                as integer! center-y - radius-y
-                as integer! (radius-x * 2.0)
-                as integer! (radius-y * 2.0)
+                as float32! center-x - radius-x
+                as float32! center-y - radius-y
+                as float32! (radius-x * 2.0)
+                as float32! (radius-y * 2.0)
                 as float32! angle-1
                 as float32! angle-len
             m: 0
+
             GdipCreateMatrix :m
             GdipTranslateMatrix m as float32! (center-x * -1) as float32! (center-y * -1) GDIPLUS_MATRIXORDERAPPEND 
             GdipRotateMatrix m as float32! theta GDIPLUS_MATRIXORDERAPPEND
@@ -918,25 +926,26 @@ OS-draw-shape-arc: func [
             GdipTransformPath path m  
             GdipDeleteMatrix m
 
-            GdipAddPathPath modes/gp-path path 0
+            GdipAddPathPath ctx/gp-path path connect-subpath
             GdipDeletePath path
         ][
+	        dc: ctx/dc
             either theta <> 0.0 [
                 arc-points: gdi-calc-arc 
-                                as integer! center-x 
-                                as integer! center-y 
+                                center-x 
+                                center-y 
                                 radius-x 
                                 radius-y 
                                 angle-1 
                                 angle-len
             ][
                 arc-points: declare arcPOINTS!
-                arc-points/start-x: as integer! p1-x
-                arc-points/start-y: as integer! p1-y
-                arc-points/end-x: as integer! p2-x
-                arc-points/end-y: as integer! p2-y
+                arc-points/start-x: p1-x
+                arc-points/start-y: p1-y
+                arc-points/end-x: p2-x
+                arc-points/end-y: p2-y
             ]
-            SetGraphicsMode dc GM_ADVANCED
+
             xform: declare XFORM!
             set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1 center-y * -1
             SetWorldTransform dc xform
@@ -946,23 +955,20 @@ OS-draw-shape-arc: func [
             prev-dir: GetArcDirection dc
             arc-dir: either sweep? [ AD_CLOCKWISE ][ AD_COUNTERCLOCKWISE ]
             SetArcDirection dc arc-dir
-            pt: declare tagPOINT
-            MoveToEx dc arc-points/start-x arc-points/start-y pt
-            ArcTo
+            Arc
                 dc
                 as integer! center-x - radius-x
                 as integer! center-y - radius-y
                 as integer! center-x + radius-x
                 as integer! center-y + radius-y
-                arc-points/start-x
-                arc-points/start-y
-                arc-points/end-x
-                arc-points/end-y
+                as integer! arc-points/start-x
+                as integer! arc-points/start-y
+                as integer! arc-points/end-x
+                as integer! arc-points/end-y
             SetArcDirection dc prev-dir
                 
             set-matrix xform 1.0 0.0 0.0 1.0 0.0 0.0
             SetWorldTransform dc xform
-            SetGraphicsMode dc GM_COMPATIBLE
         ]
 
         ;-- set last point
@@ -970,29 +976,30 @@ OS-draw-shape-arc: func [
         path-last-point/x: as integer! p2-x
         path-last-point/y: as integer! p2-y
         prev-shape/type: SHAPE_OTHER
+		connect-subpath: 1
     ]
 ]
 
 OS-draw-anti-alias: func [
-	dc	 [handle!]
+	ctx [draw-ctx!]
 	on? [logic!]
 ][
 	anti-alias?: on?
 	either on? [
 		GDI+?: yes
-		GdipSetSmoothingMode modes/graphics GDIPLUS_ANTIALIAS
-		GdipSetTextRenderingHint modes/graphics TextRenderingHintAntiAliasGridFit
+		GdipSetSmoothingMode ctx/graphics GDIPLUS_ANTIALIAS
+		GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
 	][
 		GDI+?: no
-		if modes/on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
-		GdipSetSmoothingMode modes/graphics GDIPLUS_HIGHSPPED
-		GdipSetTextRenderingHint modes/graphics TextRenderingHintSystemDefault
+		if ctx/on-image? [anti-alias?: yes GDI+?: yes]			;-- always use GDI+ to draw on image
+		GdipSetSmoothingMode ctx/graphics GDIPLUS_HIGHSPPED
+		GdipSetTextRenderingHint ctx/graphics TextRenderingHintSystemDefault
 	]
-	update-modes dc
+	update-modes ctx
 ]
 
 OS-draw-line: func [
-	dc	   [handle!]
+	ctx	   [draw-ctx!]
 	point  [red-pair!]
 	end	   [red-pair!]
 	/local
@@ -1012,63 +1019,68 @@ OS-draw-line: func [
 		pair: pair + 1	
 	]
 	either GDI+? [
-		GdipDrawLinesI modes/graphics modes/gp-pen edges nb
+		GdipDrawLinesI ctx/graphics ctx/gp-pen edges nb
 	][
-		Polyline dc edges nb
+		Polyline ctx/dc edges nb
 	]
 ]
 
 OS-draw-pen: func [
-	dc	   [handle!]
-	color  [integer!]									;-- 00bbggrr format
+	ctx		[draw-ctx!]
+	color	[integer!]									;-- 00bbggrr format
 	off?	[logic!]
-	alpha? [logic!]
+	alpha?	[logic!]
 ][
-	if all [off? modes/pen? <> off?][exit]
+	if all [off? ctx/pen? <> off?][exit]
 
-	modes/alpha-pen?: alpha?
-	GDI+?: any [alpha? anti-alias? modes/alpha-brush?]
+	if D2D? [OS-draw-pen-d2d ctx color off? exit]
 
-	if any [modes/pen-color <> color modes/pen? = off?][
-		modes/pen?: not off?
-		modes/pen-color: color
-		either GDI+? [update-gdiplus-pen][update-pen dc]
+	ctx/alpha-pen?: alpha?
+	GDI+?: any [alpha? anti-alias? ctx/alpha-brush?]
+
+	if any [ctx/pen-color <> color ctx/pen? = off?][
+		ctx/pen?: not off?
+		ctx/pen-color: color
+		either GDI+? [update-gdiplus-pen ctx][update-pen ctx]
 	]
 
-	unless modes/font-color? [
-		if GDI+? [update-gdiplus-font-color color]
-		unless modes/on-image? [SetTextColor dc color]
+	unless ctx/font-color? [
+		if GDI+? [update-gdiplus-font-color ctx color]
+		unless ctx/on-image? [SetTextColor ctx/dc color]
 	]
 ]
 
 OS-draw-fill-pen: func [
-	dc	   [handle!]
-	color  [integer!]									;-- 00bbggrr format
-	off?   [logic!]
-	alpha? [logic!]
+	ctx		[draw-ctx!]
+	color	[integer!]									;-- 00bbggrr format
+	off?	[logic!]
+	alpha?	[logic!]
 ][
-	if all [off? modes/brush? <> off?][exit]
+	if all [off? ctx/brush? <> off?][exit]
 
-	modes/alpha-brush?: alpha?
-	GDI+?: any [alpha? anti-alias? modes/alpha-pen?]
+	ctx/alpha-brush?: alpha?
+	GDI+?: any [alpha? anti-alias? ctx/alpha-pen?]
 
-	if any [modes/brush-color <> color modes/brush? = off?][
-		modes/brush?: not off?
-		modes/brush-color: color
-		either GDI+? [update-gdiplus-brush][update-brush dc]
+	if any [ctx/brush-color <> color ctx/brush? = off?][
+		ctx/brush?: not off?
+		ctx/brush-color: color
+		either GDI+? [update-gdiplus-brush ctx][update-brush ctx]
 	]
 ]
 
 OS-draw-line-width: func [
-	dc	  [handle!]
-	width [red-integer!]
+	ctx			[draw-ctx!]
+	width		[red-value!]
+    /local 
+        width-v [float32!]
 ][
-	if modes/pen-width <> width/value [
-		modes/pen-width: width/value
+    width-v: get-float32 as red-integer! width
+	if ctx/pen-width <> width-v [
+        ctx/pen-width: width-v
 		either GDI+? [
-			GdipSetPenWidth modes/gp-pen as float32! modes/pen-width
+			GdipSetPenWidth ctx/gp-pen ctx/pen-width
 		][
-			update-pen dc
+			update-pen ctx
 		]
 	]
 ]
@@ -1083,25 +1095,25 @@ gdiplus-roundrect-path: func [
 	/local
 		angle90 [float32!]
 ][
-	angle90: as float32! 90.0
-	GdipResetPath path
-	GdipAddPathArcI path x y diameter diameter as float32! 180.0 angle90
+	angle90: as float32! 90
+	GdipAddPathArcI path x y diameter diameter as float32! 180 angle90
 	x: x + (width - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 270.0 angle90
+	GdipAddPathArcI path x y diameter diameter as float32! 270 angle90
 	y: y + (height - diameter)
-	GdipAddPathArcI path x y diameter diameter as float32! 0.0 angle90
+	GdipAddPathArcI path x y diameter diameter as float32! 0 angle90
 	x: x - (width - diameter)
 	GdipAddPathArcI path x y diameter diameter angle90 angle90
 	GdipClosePathFigure path
 ]
 
 gdiplus-draw-roundbox: func [
-	x		[integer!]
-	y		[integer!]
-	width	[integer!]
-	height	[integer!]
-	radius	[integer!]
-	fill?	[logic!]
+	ctx			[draw-ctx!]
+	x			[integer!]
+	y			[integer!]
+	width		[integer!]
+	height		[integer!]
+	radius		[integer!]
+	fill?		[logic!]
 	/local
 		path	[integer!]
 ][
@@ -1109,20 +1121,20 @@ gdiplus-draw-roundbox: func [
 	GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :path
 	gdiplus-roundrect-path path x y width height radius
 	if fill? [
-		GdipFillPath modes/graphics modes/gp-brush path
+		GdipFillPath ctx/graphics ctx/gp-brush path
 	]
-	GdipDrawPath modes/graphics modes/gp-pen path
+	GdipDrawPath ctx/graphics ctx/gp-pen path
 	GdipDeletePath path
 ]
 
 OS-draw-box: func [
-	dc	  [handle!]
-	upper [red-pair!]
-	lower [red-pair!]
+	ctx			[draw-ctx!]
+	upper		[red-pair!]
+	lower		[red-pair!]
 	/local
-		t	   [integer!]
-		radius [red-integer!]
-		rad	   [integer!]
+		t		[integer!]
+		radius	[red-integer!]
+		rad		[integer!]
 ][
 	either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
@@ -1130,44 +1142,45 @@ OS-draw-box: func [
 		rad: radius/value * 2
 		either GDI+? [
 			gdiplus-draw-roundbox
+				ctx
 				upper/x
 				upper/y
 				lower/x - upper/x
 				lower/y - upper/y
 				rad
-				modes/brush?
+				ctx/brush?
 		][
-			RoundRect dc upper/x upper/y lower/x + 1 lower/y + 1 rad rad
+			RoundRect ctx/dc upper/x upper/y lower/x lower/y rad rad
 		]
 	][
 		either GDI+? [
 			if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
 			if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
-			unless zero? modes/gp-brush [				;-- fill rect
+			unless zero? ctx/gp-brush [				;-- fill rect
 				GdipFillRectangleI
-					modes/graphics
-					modes/gp-brush
+					ctx/graphics
+					ctx/gp-brush
 					upper/x
 					upper/y
 					lower/x - upper/x
 					lower/y - upper/y
 			]
 			GdipDrawRectangleI
-				modes/graphics
-				modes/gp-pen
+				ctx/graphics
+				ctx/gp-pen
 				upper/x
 				upper/y
 				lower/x - upper/x
 				lower/y - upper/y
 		][
-			Rectangle dc upper/x upper/y lower/x + 1 lower/y + 1
+			Rectangle ctx/dc upper/x upper/y lower/x lower/y
 		]
 	]
 ]
 
-OS-draw-triangle: func [
-	dc	  [handle!]
-	start [red-pair!]
+OS-draw-triangle: func [		;@@ TBD merge this function with OS-draw-polygon
+	ctx		[draw-ctx!]
+	start	[red-pair!]
 	/local
 		pair  [red-pair!]
 		point [tagPOINT]
@@ -1192,28 +1205,28 @@ OS-draw-triangle: func [
 	point/y: start/y
 
 	either GDI+? [
-		if modes/brush? [
+		if ctx/brush? [
 			GdipFillPolygonI
-				modes/graphics
-				modes/gp-brush
+				ctx/graphics
+				ctx/gp-brush
 				edges
 				4
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics modes/gp-pen edges 4
+		GdipDrawPolygonI ctx/graphics ctx/gp-pen edges 4
 	][
-		either modes/brush? [
-			Polygon dc edges 4
+		either ctx/brush? [
+			Polygon ctx/dc edges 4
 		][
-			Polyline dc edges 4
+			Polyline ctx/dc edges 4
 		]
 	]
 ]
 
 OS-draw-polygon: func [
-	dc	  [handle!]
-	start [red-pair!]
-	end	  [red-pair!]
+	ctx		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
 	/local
 		pair  [red-pair!]
 		point [tagPOINT]
@@ -1236,26 +1249,26 @@ OS-draw-polygon: func [
 	point/y: start/y
 
 	either GDI+? [
-		if modes/brush? [
+		if ctx/brush? [
 			GdipFillPolygonI
-				modes/graphics
-				modes/gp-brush
+				ctx/graphics
+				ctx/gp-brush
 				edges
 				nb + 1
 				GDIPLUS_FILLMODE_ALTERNATE
 		]
-		GdipDrawPolygonI modes/graphics modes/gp-pen edges nb + 1
+		GdipDrawPolygonI ctx/graphics ctx/gp-pen edges nb + 1
 	][
-		either modes/brush? [
-			Polygon dc edges nb + 1
+		either ctx/brush? [
+			Polygon ctx/dc edges nb + 1
 		][
-			Polyline dc edges nb + 1
+			Polyline ctx/dc edges nb + 1
 		]
 	]
 ]
 
 OS-draw-spline: func [
-	dc		[handle!]
+	ctx		[draw-ctx!]
 	start	[red-pair!]
 	end		[red-pair!]
 	closed? [logic!]
@@ -1277,56 +1290,56 @@ OS-draw-spline: func [
 	]
 	;if nb = max-edges [fire error]
 
-	unless GDI+? [update-gdiplus-modes]					;-- force to use GDI+
+	unless GDI+? [update-gdiplus-modes ctx]					;-- force to use GDI+
 
-	if modes/brush? [
+	if ctx/brush? [
 		GdipFillClosedCurveI
-			modes/graphics
-			modes/gp-brush
+			ctx/graphics
+			ctx/gp-brush
 			edges
 			nb
 			GDIPLUS_FILLMODE_ALTERNATE
 	]
 	either closed? [
-		GdipDrawClosedCurveI modes/graphics modes/gp-pen edges nb
+		GdipDrawClosedCurveI ctx/graphics ctx/gp-pen edges nb
 	][
-		GdipDrawCurveI modes/graphics modes/gp-pen edges nb
+		GdipDrawCurveI ctx/graphics ctx/gp-pen edges nb
 	]
 ]
 
 do-draw-ellipse: func [
-	dc		[handle!]
+	ctx		[draw-ctx!]
 	x		[integer!]
 	y		[integer!]
 	width	[integer!]
 	height	[integer!]
 ][
 	either GDI+? [
-		if modes/brush? [
+		if ctx/brush? [
 			GdipFillEllipseI
-				modes/graphics
-				modes/gp-brush
+				ctx/graphics
+				ctx/gp-brush
 				x
 				y
 				width
 				height
 		]
 		GdipDrawEllipseI
-			modes/graphics
-			modes/gp-pen
+			ctx/graphics
+			ctx/gp-pen
 			x
 			y
 			width
 			height
 	][	
-		Ellipse dc x y x + width + 1 y + height + 1
+		Ellipse ctx/dc x y x + width y + height
 	]
 ]
 
 OS-draw-circle: func [
-	dc	   [handle!]
-	center [red-pair!]
-	radius [red-integer!]
+	ctx		[draw-ctx!]
+	center	[red-pair!]
+	radius	[red-integer!]
 	/local
 		rad-x [integer!]
 		rad-y [integer!]
@@ -1334,6 +1347,10 @@ OS-draw-circle: func [
 		h	  [integer!]
 		f	  [red-float!]
 ][
+	if D2D? [
+		OS-draw-circle-d2d ctx center radius
+		exit
+	]
 	either TYPE_OF(radius) = TYPE_INTEGER [
 		either center + 1 = radius [					;-- center, radius
 			rad-x: radius/value
@@ -1360,19 +1377,19 @@ OS-draw-circle: func [
 			w: as-integer f/value * 2.0
 		]
 	]
-	do-draw-ellipse dc center/x - rad-x center/y - rad-y w h
+	do-draw-ellipse ctx center/x - rad-x center/y - rad-y w h
 ]
 
 OS-draw-ellipse: func [
-	dc	  	 [handle!]
+	ctx		 [draw-ctx!]
 	upper	 [red-pair!]
 	diameter [red-pair!]
 ][
-	do-draw-ellipse dc upper/x upper/y diameter/x diameter/y
+	do-draw-ellipse ctx upper/x upper/y diameter/x diameter/y
 ]
 
 OS-draw-font: func [
-	dc		[handle!]
+	ctx		[draw-ctx!]
 	font	[red-object!]
 	/local
 		vals  [red-value!]
@@ -1389,45 +1406,57 @@ OS-draw-font: func [
 		int: as red-integer! block/rs-head state
 		int/value
 	][
-		make-font as red-object! none-value font
+		make-font get-face-obj ctx/hwnd font
 	]
 
-	SelectObject dc hFont
-	modes/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
-		SetTextColor dc color/array1
-		if modes/on-image? [update-gdiplus-font-color color/array1]
+	SelectObject ctx/dc hFont
+	ctx/font-color?: either TYPE_OF(color) = TYPE_TUPLE [
+		SetTextColor ctx/dc color/array1
+		if ctx/on-image? [update-gdiplus-font-color ctx color/array1]
 		yes
 	][
 		no
 	]
-	if modes/on-image? [update-gdiplus-font dc]
+	if ctx/on-image? [update-gdiplus-font ctx]
 ]
 
 OS-draw-text: func [
-	dc		[handle!]
+	ctx		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
 	/local
 		str		[c-string!]
 		len		[integer!]
+		h		[integer!]
+		w		[integer!]
+		sz		[tagSIZE]
+		y		[integer!]
+		x		[integer!]
 		rect	[RECT_STRUCT_FLOAT32]
 ][
+	if D2D? [
+		OS-draw-text-d2d ctx pos text catch?
+		exit
+	]
+
 	str: unicode/to-utf16 text
 	len: string/rs-length? text
-	either modes/on-image? [
-		rect: declare RECT_STRUCT_FLOAT32
+	either ctx/on-image? [
+		x: 0
+		rect: as RECT_STRUCT_FLOAT32 :x
 		rect/x: as float32! pos/x
 		rect/y: as float32! pos/y
-		rect/width: as float32! 0.0
-		rect/height: as float32! 0.0
-		GdipDrawString modes/graphics str len modes/gp-font rect 0 modes/gp-font-brush
+		rect/width: as float32! 0
+		rect/height: as float32! 0
+		GdipDrawString ctx/graphics str len ctx/gp-font rect 0 ctx/gp-font-brush
 	][
-		ExtTextOut dc pos/x pos/y ETO_CLIPPED null str len null
+		ExtTextOut ctx/dc pos/x pos/y ETO_CLIPPED null str len null
 	]
 ]
 
 OS-draw-arc: func [
-	dc	   [handle!]
+	ctx	   [draw-ctx!]
 	center [red-pair!]
 	end	   [red-value!]
 	/local
@@ -1453,6 +1482,7 @@ OS-draw-arc: func [
         prev-dir    [integer!]
         arc-dir     [integer!]
         arc-points  [arcPOINTS!]
+        dc			[handle!]
 ][
 	radius: center + 1
 	rad-x: radius/x
@@ -1466,10 +1496,10 @@ OS-draw-arc: func [
 
 	either GDI+? [
 		either closed? [
-			if modes/brush? [
+			if ctx/brush? [
 				GdipFillPieI
-					modes/graphics
-					modes/gp-brush
+					ctx/graphics
+					ctx/gp-brush
 					center/x - rad-x
 					center/y - rad-y
 					rad-x << 1
@@ -1478,8 +1508,8 @@ OS-draw-arc: func [
 					angle-len
 			]
 			GdipDrawPieI
-				modes/graphics
-				modes/gp-pen
+				ctx/graphics
+				ctx/gp-pen
 				center/x - rad-x
 				center/y - rad-y
 				rad-x << 1
@@ -1488,8 +1518,8 @@ OS-draw-arc: func [
 				angle-len
 		][
 			GdipDrawArcI
-				modes/graphics
-				modes/gp-pen
+				ctx/graphics
+				ctx/gp-pen
 				center/x - rad-x
 				center/y - rad-y
 				rad-x << 1
@@ -1498,12 +1528,13 @@ OS-draw-arc: func [
 				angle-len
 		]
 	][
+		dc: ctx/dc
 		rad-x-float: as float32! rad-x
 		rad-y-float: as float32! rad-y
 
         arc-points: gdi-calc-arc 
-                        center/x 
-                        center/y 
+                        as float! center/x 
+                        as float! center/y 
                         as float! rad-x 
                         as float! rad-y 
                         as float! angle-begin 
@@ -1516,30 +1547,30 @@ OS-draw-arc: func [
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x + 1
-				center/y + rad-y + 1
-				arc-points/start-x
-				arc-points/start-y
-				arc-points/end-x
-				arc-points/end-y
+				center/x + rad-x
+				center/y + rad-y
+				as integer! arc-points/start-x
+				as integer! arc-points/start-y
+				as integer! arc-points/end-x
+				as integer! arc-points/end-y
 		][
 			Arc
 				dc
 				center/x - rad-x
 				center/y - rad-y
-				center/x + rad-x + 1
-				center/y + rad-y + 1
-				arc-points/start-x
-				arc-points/start-y
-				arc-points/end-x
-				arc-points/end-y
+				center/x + rad-x
+				center/y + rad-y
+				as integer! arc-points/start-x
+				as integer! arc-points/start-y
+				as integer! arc-points/end-x
+				as integer! arc-points/end-y
 		]
         SetArcDirection dc prev-dir
 	]
 ]
 
 OS-draw-curve: func [
-	dc	  [handle!]
+	ctx		[draw-ctx!]
 	start [red-pair!]
 	end	  [red-pair!]
 	/local
@@ -1581,20 +1612,20 @@ OS-draw-curve: func [
 	]
 
 	either GDI+? [
-		GdipDrawBeziersI modes/graphics modes/gp-pen edges 4
+		GdipDrawBeziersI ctx/graphics ctx/gp-pen edges 4
 	][
-		PolyBezier dc edges 4
+		PolyBezier ctx/dc edges 4
 	]
 ]
 
 OS-draw-line-join: func [
-	dc	  [handle!]
-	style [integer!]
+	ctx		[draw-ctx!]
+	style	[integer!]
 	/local
 		mode  [integer!]
 ][
 	mode: 0
-	modes/pen-join: style
+	ctx/pen-join: style
 	either GDI+? [
 		case [
 			style = miter		[mode: GDIPLUS_MITER]
@@ -1603,20 +1634,20 @@ OS-draw-line-join: func [
 			style = bevel		[mode: GDIPLUS_BEVEL]
 			true				[mode: GDIPLUS_MITER]
 		]
-		GdipSetPenLineJoin modes/gp-pen mode
+		GdipSetPenLineJoin ctx/gp-pen mode
 	][
-		update-pen dc PEN_LINE_JOIN
+		update-pen ctx PEN_LINE_JOIN
 	]
 ]
 	
 OS-draw-line-cap: func [
-	dc	  [handle!]
-	style [integer!]
+	ctx		[draw-ctx!]
+	style	[integer!]
 	/local
 		mode  [integer!]
 ][
 	mode: 0
-	modes/pen-cap: style
+	ctx/pen-cap: style
 	either GDI+? [
 		case [
 			style = flat		[mode: GDIPLUS_LINECAPFLAT]
@@ -1624,41 +1655,54 @@ OS-draw-line-cap: func [
 			style = _round		[mode: GDIPLUS_LINECAPROUND]
 			true				[mode: GDIPLUS_LINECAPFLAT]
 		]
-		GdipSetPenStartCap modes/gp-pen mode
-		GdipSetPenEndCap modes/gp-pen mode
+		GdipSetPenStartCap ctx/gp-pen mode
+		GdipSetPenEndCap ctx/gp-pen mode
 	][
-		update-pen dc PEN_LINE_CAP
+		update-pen ctx PEN_LINE_CAP
 	]
 ]
 
 OS-draw-image: func [
-	dc			[handle!]
+	ctx			[draw-ctx!]
 	image		[red-image!]
 	start		[red-pair!]
 	end			[red-pair!]
 	key-color	[red-tuple!]
 	border?		[logic!]
+	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
 		x		[integer!]
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		src-x	[integer!]
+		src-y	[integer!]
 		w		[integer!]
 		h		[integer!]
 		attr	[integer!]
 		color	[integer!]
+		crop2	[red-pair!]
 		pts		[tagPOINT]
 ][
 	attr: 0
 	if key-color <> null [
-		attr: modes/image-attr
+		attr: ctx/image-attr
 		if zero? attr [GdipCreateImageAttributes :attr]
 		color: to-gdiplus-color key-color/array1
 		GdipSetImageAttributesColorKeys attr 0 true color color
 	]
-	w: IMAGE_WIDTH(image/size)
-	h: IMAGE_HEIGHT(image/size)
+	either crop1 = null [
+		src-x: 0 src-y: 0
+		w: IMAGE_WIDTH(image/size)
+		h: IMAGE_HEIGHT(image/size)
+	][
+		crop2: crop1 + 1
+		src-x: crop1/x
+		src-y: crop1/y
+		w: crop2/x
+		h: crop2/y
+	]
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
@@ -1678,20 +1722,20 @@ OS-draw-image: func [
 				start: start + 1
 			]
 			GdipDrawImagePointsRectI
-				modes/graphics as-integer image/node edges 3
+				ctx/graphics as-integer image/node edges 3
 				0 0 w h GDIPLUS_UNIT_PIXEL attr 0 0
 			exit
 		]
-		true [0]							;@@ TBD four control points
+		true [exit]							;@@ TBD four control points
 	]
 	GdipDrawImageRectRectI
-		modes/graphics as-integer image/node
-		x y width height 0 0 w h
+		ctx/graphics as-integer image/node
+		x y width height src-x src-y w h
 		GDIPLUS_UNIT_PIXEL attr 0 0
 ]
 
 OS-draw-grad-pen: func [
-	dc			[handle!]
+	ctx			[draw-ctx!]
 	type		[integer!]
 	mode		[integer!]
 	offset		[red-pair!]
@@ -1722,6 +1766,11 @@ OS-draw-grad-pen: func [
 		rotate? [logic!]
 		scale?	[logic!]
 ][
+	if null? colors [				;-- initialize color stops array
+		colors: as int-ptr! allocate 2 * max-colors * (size? integer!)
+		colors-pos: as pointer! [float32!] colors + max-colors
+	]
+
 	x: offset/x
 	y: offset/y
 
@@ -1763,7 +1812,7 @@ OS-draw-grad-pen: func [
 		color/value: to-gdiplus-color clr/array1
 		next: head + 1 
 		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
-		pos/value: as float32! p
+		pos/value: as float32! ( 1.0 - p )
 		if next <> head [p: p + delta]
 		head: head + 1
 		color: color + 1
@@ -1774,16 +1823,16 @@ OS-draw-grad-pen: func [
 	last-c: color - 1
 	pos: pos - count
 	color: color - count
-	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
-		colors-pos/value: as float32! 0.0
+	if pos/value < as float32! 1.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 1.0
 		colors/value: color/value
 		color: colors
 		pos: colors-pos
 		count: count + 1
 	]
-	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+	if last-p/value > as float32! 0.0 [			;-- last one should be always 1.0
 		last-c/2: last-c/value
-		last-p/2: as float32! 1.0
+		last-p/2: as float32! 0.0
 		count: count + 1
 	]
 
@@ -1821,6 +1870,7 @@ OS-draw-grad-pen: func [
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
 		reverse-int-array color count
+        reverse-float32-array colors-pos count
 		GdipSetPathGradientPresetBlend brush color pos count
 
 		if any [							;@@ move the shape back to the right position
@@ -1836,79 +1886,134 @@ OS-draw-grad-pen: func [
 
 	GDI+?: yes
 	either brush? [
-		unless zero? modes/gp-brush	[GdipDeleteBrush modes/gp-brush]
-		modes/brush?: yes
-		modes/gp-brush: brush
+		unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
+		ctx/brush?: yes
+		ctx/gp-brush: brush
 	][
-		GdipSetPenBrushFill modes/gp-pen brush
+		GdipSetPenBrushFill ctx/gp-pen brush
 	]
 ]
-	
+
 OS-set-clip: func [
-	upper	[red-pair!]
-	lower	[red-pair!]
+	ctx		[draw-ctx!]
+	upper	[red-value!]
+	lower	[red-value!]
+	rect?	[logic!]
+	mode	[integer!]
+	/local
+		u	[red-pair!]
+		l	[red-pair!]
+		dc	[handle!]
+		clip-mode 	[integer!]
 ][
-	GDI+?: yes
-	GdipSetClipRectI
-		modes/graphics
-		upper/x
-		upper/y
-		lower/x - upper/x + 1
-		lower/y - upper/y + 1
-		GDIPLUS_COMBINEMODEREPLACE
+	case [
+		mode = replace [ clip-mode: clip-replace ]
+		mode = intersect [ clip-mode: clip-intersect ]
+		mode = union [ clip-mode: clip-union ]
+		mode = xor [ clip-mode: clip-xor ]
+		mode = exclude [ clip-mode: clip-diff ]
+		true [ clip-mode: clip-replace ]
+	]
+    either GDI+? [
+        either rect? [
+            u: as red-pair! upper
+            l: as red-pair! lower
+            GdipSetClipRectI
+                ctx/graphics
+                u/x
+                u/y
+                l/x - u/x
+                l/y - u/y
+                clip-mode
+        ][
+            GdipSetClipPath
+                ctx/graphics
+                ctx/gp-path
+                clip-mode
+            GdipDeletePath ctx/gp-path
+        ]
+    ][
+	    dc: ctx/dc
+        if rect? [
+            u: as red-pair! upper
+            l: as red-pair! lower
+            BeginPath dc
+            Rectangle dc u/x u/y l/x l/y  
+        ]
+        EndPath dc  ;-- a path has already been started
+        SelectClipPath dc clip-mode
+    ]
 ]
 
-OS-matrix-rotate: func [
+matrix-rotate: func [
+	ctx		[draw-ctx!]
 	angle	[red-integer!]
 	center	[red-pair!]
+    m       [integer!]
 	/local
-		m	[integer!]
+		mm  [integer!]
 		pts [tagPOINT]
 ][
 	GDI+?: yes
+	pts: edges
 	if angle <> as red-integer! center [
-		m: modes/gp-matrix
-		if zero? m [
-			GdipCreateMatrix :m
-			modes/gp-matrix: m
+		pts/x: center/x
+		pts/y: center/y
+		mm: ctx/gp-matrix
+		if zero? mm [
+			GdipCreateMatrix :mm
+			ctx/gp-matrix: mm
 		]
-		GdipGetWorldTransform modes/graphics m
-		pts: edges
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate 0 - pts/x 0 - pts/y
+		GdipGetWorldTransform ctx/graphics ctx/gp-matrix
+		GdipTransformMatrixPointsI ctx/gp-matrix pts 1
+
+        GdipTranslateMatrix m as float32! 0 - pts/x as float32! 0 - pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
-	GdipRotateWorldTransform modes/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
+    GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIXORDERAPPEND
 	if angle <> as red-integer! center [
-		pts/x: center/x
-		pts/y: center/y
-		GdipTransformMatrixPointsI m pts 1
-		OS-matrix-translate pts/x pts/y
+        GdipTranslateMatrix m as float32! pts/x as float32! pts/y GDIPLUS_MATRIXORDERAPPEND 
 	]
 ]
 
+OS-matrix-rotate: func [
+	ctx		[draw-ctx!]
+	angle	[red-integer!]
+	center	[red-pair!]
+	/local
+        m   [integer!]
+][
+	GDI+?: yes
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate ctx angle center m
+    GdipMultiplyWorldTransform ctx/graphics m matrix-order
+    GdipDeleteMatrix m
+]
+
 OS-matrix-scale: func [
+	ctx		[draw-ctx!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 ][
 	GDI+?: yes
-	GdipScaleWorldTransform modes/graphics get-float32 sx get-float32 sy GDIPLUS_MATRIXORDERAPPEND
+	GdipScaleWorldTransform ctx/graphics get-float32 sx get-float32 sy matrix-order
 ]
 
 OS-matrix-translate: func [
+	ctx	[draw-ctx!]
 	x	[integer!]
 	y	[integer!]
 ][
 	GDI+?: yes
 	GdipTranslateWorldTransform
-		modes/graphics
+		ctx/graphics
 		as float32! x
 		as float32! y
-		GDIPLUS_MATRIXORDERAPPEND
+		matrix-order
 ]
 
 OS-matrix-skew: func [
+	ctx		[draw-ctx!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 	/local
@@ -1921,48 +2026,55 @@ OS-matrix-skew: func [
 	m: 0
 	u: as float32! 1.0
 	z: as float32! 0.0
-	x: as float32! system/words/tan degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! either sx = sy [0.0][system/words/tan degree-to-radians get-float sy TYPE_TANGENT]
+	x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	GdipCreateMatrix2 u y x u z z :m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform ctx/graphics m matrix-order
 	GdipDeleteMatrix m
 ]
 
 OS-matrix-transform: func [
+	ctx			[draw-ctx!]
 	rotate		[red-integer!]
 	scale		[red-integer!]
 	translate	[red-pair!]
 	/local
 		center	[red-pair!]
+        m       [integer!]
 ][
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-	OS-matrix-rotate rotate center
-	OS-matrix-scale scale scale + 1
-	OS-matrix-translate translate/x translate/y
+    m: 0
+    GdipCreateMatrix :m
+    matrix-rotate ctx rotate center m
+    GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIXORDERAPPEND
+    GdipTranslateMatrix m as float32! translate/x as float32! translate/y
+    GdipMultiplyWorldTransform ctx/graphics m matrix-order
+    GdipDeleteMatrix m
 ]
 
-OS-matrix-push: func [state [int-ptr!] /local s][
+OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!] /local s][
 	s: 0
-	GdipSaveGraphics modes/graphics :s
+	GdipSaveGraphics ctx/graphics :s
 	state/value: s
 ]
 
-OS-matrix-pop: func [state [integer!]][GdipRestoreGraphics modes/graphics state]
+OS-matrix-pop: func [ctx [draw-ctx!] state [integer!]][GdipRestoreGraphics ctx/graphics state]
 
-OS-matrix-reset: func [][GdipResetWorldTransform modes/graphics]
+OS-matrix-reset: func [ctx [draw-ctx!]][GdipResetWorldTransform ctx/graphics]
 
-OS-matrix-invert: func [/local m [integer!]][
-	m: modes/gp-matrix
+OS-matrix-invert: func [ctx [draw-ctx!] /local m [integer!]][
+	m: ctx/gp-matrix
 	if zero? m [
 		GdipCreateMatrix :m
-		modes/gp-matrix: m
+		ctx/gp-matrix: m
 	]
-	GdipGetWorldTransform modes/graphics m
+	GdipGetWorldTransform ctx/graphics m
 	GdipInvertMatrix m
-	GdipSetWorldTransform modes/graphics m
+	GdipSetWorldTransform ctx/graphics m
 ]
 
 OS-matrix-set: func [
+	ctx		[draw-ctx!] 
 	blk		[red-block!]
 	/local
 		m	[integer!]
@@ -1978,6 +2090,16 @@ OS-matrix-set: func [
 		get-float32 val + 4
 		get-float32 val + 5
 		:m
-	GdipMultiplyWorldTransform modes/graphics m GDIPLUS_MATRIXORDERAPPEND
+	GdipMultiplyWorldTransform ctx/graphics m matrix-order
 	GdipDeleteMatrix m
+]
+
+OS-set-matrix-order: func [
+    order   [integer!]
+][ 
+	case [
+		order = _append [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+		order = prepend [ matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
+		true [ matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
+	]
 ]

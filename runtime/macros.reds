@@ -236,6 +236,7 @@ Red/System [
 	NAT_LIST_ENV
 	NAT_NOW
 	NAT_SIGN?
+	NAT_AS
 ]
 
 #enum math-op! [
@@ -362,6 +363,7 @@ Red/System [
 #define ANY_SERIES?(type)	[
 	any [
 		type = TYPE_BLOCK
+		type = TYPE_HASH
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH
@@ -377,8 +379,8 @@ Red/System [
 	]
 ]
 
-#define ANY_BLOCK?(type)	[
-	any [									;@@ replace with ANY_BLOCK?
+#define ANY_BLOCK_STRICT?(type)	[
+	any [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN
 		type = TYPE_PATH
@@ -386,6 +388,68 @@ Red/System [
 		type = TYPE_SET_PATH
 		type = TYPE_LIT_PATH
 	]
+]
+
+#define ANY_BLOCK?(type)	[
+	any [
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_HASH
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
+	]
+]
+
+#define ANY_PATH?(type)	[
+	any [
+		type = TYPE_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_LIT_PATH
+	]
+]
+
+#define ANY_STRING?(type)	[
+	any [
+		type = TYPE_STRING
+		type = TYPE_FILE
+		type = TYPE_URL
+		type = TYPE_TAG
+		type = TYPE_EMAIL
+	]
+]
+
+#define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
+	TYPE_STRING
+	TYPE_FILE
+	TYPE_URL
+	TYPE_TAG
+	TYPE_EMAIL	
+]
+
+#define TYPE_ANY_BLOCK [					;-- To be used in SWITCH cases
+	TYPE_BLOCK
+	TYPE_PAREN
+	TYPE_HASH
+	TYPE_PATH
+	TYPE_GET_PATH
+	TYPE_SET_PATH
+	TYPE_LIT_PATH
+]
+
+#define TYPE_ANY_LIST [						;-- To be used in SWITCH cases
+	TYPE_BLOCK
+	TYPE_HASH
+	TYPE_PAREN
+]
+
+#define TYPE_ANY_PATH [						;-- To be used in SWITCH cases
+	TYPE_PATH
+	TYPE_GET_PATH
+	TYPE_SET_PATH
+	TYPE_LIT_PATH
 ]
 
 #define BS_SET_BIT(array bit)  [
@@ -421,6 +485,16 @@ Red/System [
 		pbits: bound-check bs bit
 	][
 		if virtual-bit? bs bit [return 0]
+	]
+]
+
+#define GET_SIZE_FROM(spec) [
+	either TYPE_OF(spec) = TYPE_FLOAT [
+		fl: as red-float! spec
+		as-integer fl/value
+	][
+		int: as red-integer! spec
+		int/value
 	]
 ]
 

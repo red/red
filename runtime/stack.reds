@@ -195,7 +195,7 @@ stack: context [										;-- call stack
 			]
 		]
 		where-ctop: null
-		word/at p/ctx sym
+		either p < cbottom [words/_not-found][word/at p/ctx sym]
 	]
 	
 	revert: does [

@@ -131,6 +131,7 @@ typeset: context [
 				TYPE_WORD [
 					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
 				]
+				TYPE_BLOCK [0]								;-- <type!> [<extra>], just skip it
 				default [
 					fire [TO_ERROR(script invalid-type-spec) value]
 				]
@@ -232,44 +233,75 @@ typeset: context [
 		BS_SET_BIT(bits id)
 	]
 
+	to-block: func [
+		sets	[red-typeset!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			array	[byte-ptr!]
+			id		[integer!]
+			name	[names!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
+			set?	[logic!]							;-- required by BS_TEST_BIT
+	][
+		array: (as byte-ptr! sets) + 4
+		block/make-at blk 4
+		id: 1
+		until [
+			BS_TEST_BIT(array id set?)
+			if set? [
+				name: name-table + id
+				block/rs-append blk as red-value! name/word
+			]
+			id: id + 1
+			id > datatype/top-id
+		]
+		blk
+	]
+
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
+	;make: :to
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
 		spec	[red-value!]
-		return: [red-typeset!]
+		type	[integer!]
+		return: [red-value!]
 		/local
 			sets [red-typeset!]
-			type [red-value!]
+			dt 	 [red-value!]
 			blk	 [red-block!]
 			i	 [integer!]
 			end  [red-value!]
 			s	 [series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "typeset/to"]]
+
+		if TYPE_OF(spec) = TYPE_TYPESET [return spec]
 
 		sets: as red-typeset! stack/push*
 		sets/header: TYPE_TYPESET						;-- implicit reset of all header flags
 		rs-clear sets
-		
+
 		either TYPE_OF(spec) = TYPE_BLOCK [
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
 			i: blk/head
 			end: s/tail
-			type: s/offset + i
+			dt: s/offset + i
 
-			while [type < end][
-				set-type sets type
+			while [dt < end][
+				set-type sets dt
 				i: i + 1
-				type: s/offset + i
+				dt: s/offset + i
 			]
 		][
-
-			fire [TO_ERROR(script bad-make-arg) proto spec]
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TYPESET spec]
 		]		
-		sets
+		as red-value! sets
 	]
+
 
 	form: func [
 		sets	[red-typeset!]
@@ -417,10 +449,10 @@ typeset: context [
 			TYPE_VALUE
 			"typeset!"
 			;-- General actions --
-			:make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

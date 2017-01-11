@@ -43,7 +43,7 @@ red: context [
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
 	preprocessor:  do-cache file: %utils/preprocessor.r
-	preprocessor:  do preprocessor/expand load-cache file none ;-- apply preprocessor on itself
+	preprocessor:  do preprocessor/expand/clean load-cache file none ;-- apply preprocessor on itself
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
@@ -99,7 +99,8 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
-		View		%modules/view/view.red
+	;-- Name ------ Entry file -------------- OS availability -----
+		View		%modules/view/view.red	  [Windows MacOSX]
 	]
 
 	func-constructors: [
@@ -520,7 +521,15 @@ red: context [
 			]
 		]
 		append body [
-			RED_THROWN_RETURN RED_THROWN_EXIT
+			RED_THROWN_RETURN
+		]
+		append/only body pick [
+			[re-throw]
+			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+		] empty? locals-stack
+		
+		append body [
+			RED_THROWN_EXIT
 		]
 		append/only body pick [
 			[re-throw]
@@ -1093,7 +1102,7 @@ red: context [
 		name
 	]
 	
-	check-cloned-function: func [new [word!] /local name alter entry pos][
+	check-cloned-function: func [new [word!] /local name alter entry pos alias old type][
 		if all [
 			get-word? pc/1
 			name: to word! pc/1	
@@ -1107,6 +1116,27 @@ red: context [
 				entry: find functions alter
 			]
 			repend functions [new entry/2]
+
+			unless local-bound? pc/-1 [
+				switch/default type: entry/2/1 [
+					routine! [
+						alias: new
+						old: decorate-exec-ctx name
+					]
+					native! [
+						alias: decorate-func new
+						old: load rejoin ["red/" natives-prefix slash name #"*"]
+					]
+					action! [
+						alias: decorate-func new
+						old: load rejoin ["red/" actions-prefix slash name #"*"]
+					]
+				][
+					alias: decorate-func new
+					old: decorate-exec-ctx decorate-func name
+				]
+				libRedRT/collect-aliased alias old
+			]
 			
 			either pos: find-ssa new [					;-- add the real function name as alias
 				pos/2: name
@@ -1553,8 +1583,8 @@ red: context [
 					emit 'tuple/push
 					emit length? head bin
 					emit to integer! skip bin -4
-					emit to integer! copy/part skip bin -8 4
-					emit to integer! copy/part head bin 4
+					emit to integer! copy/part skip bin -4 -4
+					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
@@ -2664,7 +2694,7 @@ red: context [
 		
 		pc: skip pc 2
 		compose [
-			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret) no
 		]
 	]
 	
@@ -3727,15 +3757,15 @@ red: context [
 	
 	process-call-directive: func [
 		body [block!] global?
-		/local name spec cmd types type arg trash ctx offset
+		/local name spec cmd types type arg path ctx offset
 	][
 		name: body/1
 		switch/default type?/word name [
 			word! [name: to word! clean-lf-flag name]
-			path! [set [trash name ctx] obj-func-path? body/1]
+			path! [set [path name ctx] obj-func-path? body/1]
 		][
 			throw-error ["invalid function name in #call:" mold body]
-		]	
+		]
 		if any [
 			not spec: select functions name
 			not spec/1 = 'function!
@@ -3749,24 +3779,24 @@ red: context [
 		][
 			emit-open-frame name
 		]
-		
 		types: spec/3
 		body: next body
 		
 		loop spec/2 [									;-- process arguments
+			type: none
 			types: find/tail types word!
-			unless block? types/1 [
-				throw-error ["type undefined for" types/1 "in function" name]
-			]
-			either 1 = length? types/1 [
-				type: types/1/1
-			][
-				arg: body/1
-				if word? arg [arg: attempt [get arg]]
-				type: none
-				foreach value types/1 [
-					if value = type?/word arg [type: value break]
+			if block? types/1 [
+				either 1 = length? types/1 [
+					type: types/1/1
+				][
+					arg: body/1
+					if word? arg [arg: attempt [get arg]]
+					type: none
+					foreach value types/1 [
+						if value = type?/word arg [type: value break]
+					]
 				]
+				if type = 'any-type! [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]
@@ -3801,7 +3831,11 @@ red: context [
 			switch type?/word types/1 [
 				refinement! [
 					if types/1 = /local [break]
-					emit [red/logic/push false]
+					emit 'red/logic/push 
+					emit to word! form to logic! all [
+						path? path
+						find path to word! types/1
+					]
 					insert-lf -2
 				]
 				word! [
@@ -4218,13 +4252,11 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		unless all [job/dev-mode? not job/libRedRT?][
-			pc: next preprocessor/expand load-source/hidden %boot.red job		;-- compile Red's boot script
-			unless job/red-help? [clear-docstrings pc]
-			booting?: yes
-			comp-block
-			booting?: no
-		]
+		pc: next preprocessor/expand/clean load-source/hidden %boot.red job ;-- compile Red's boot script
+		unless job/red-help? [clear-docstrings pc]
+		booting?: yes
+		comp-block
+		booting?: no
 		
 		mods: tail output
 		append output [#user-code]
@@ -4416,7 +4448,11 @@ red: context [
 	]
 	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][do bind spec job]
+		if spec: select header first [config:][
+			do bind spec job
+			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
+		]
+		if all [job/type = 'dll job/OS <> 'Windows][job/PIC?: yes]	;-- ensure PIC mode is enabled
 	]
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
@@ -4429,13 +4465,24 @@ red: context [
 			mods: make block! 2
 			
 			foreach mod list [
-				unless file: select standard-modules mod [
+				unless file: find standard-modules mod [
 					throw-error ["module not found:" mod]
 				]
-				unless find needed file [append needed file]
+				all [
+					any [file/3 = 'all find file/3 job/OS]
+					not find needed file/2
+					append needed file/2
+				]
 			]
 		][
 			job/modules: make block! 0
+		]
+		if all [
+			job/OS = 'Windows
+			job/sub-system = 'GUI
+			not find job/modules 'View
+		][
+			throw-error "Windows target requires View module (`Needs: View` in the header)"
 		]
 	]
 	
@@ -4472,8 +4519,11 @@ red: context [
 		s-counter: 0
 		depth:	   0
 		max-depth: 0
-		container-obj?: none
 		redbin/index: 0									;-- required here by libRedRT
+		container-obj?:
+		script-path:
+		script-file:
+		main-path: none
 	]
 
 	compile: func [
@@ -4491,9 +4541,11 @@ red: context [
 			src: load-source file
 			job/red-pass?: yes
 			process-config src/1
-			preprocessor/expand src job
+			preprocessor/expand/clean src job
+			if job/show = 'expanded [probe next src]
 			process-needs src/1 next src
 			extracts/init job
+			if job/libRedRT? [libRedRT/init]
 			if file? file [system-dialect/collect-resources src/1 resources file]
 			src: next src
 			

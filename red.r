@@ -407,7 +407,8 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows [ [[Needs: View]] ]
+			;Windows [ [[Needs: View]] ]
+			Windows [ [[]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
@@ -472,7 +473,7 @@ redc: context [
 				attempt [to-rebol-file args/1]
 			]
 			unless all [path exists? path][
-				fail "***Clear command error: invalid path"
+				fail "`red clear` command error: invalid path"
 			]
 		]
 		foreach ext [%.dll %.dylib %.so][
@@ -481,18 +482,61 @@ redc: context [
 		foreach file [include-file defs-file extras-file][
 			if exists? file: join path libRedRT/:file [delete file]
 		]
+		reduce [none none]
+	]
+	
+	do-build: func [args [block!] /local cmd][
+		if all [encap? not exists? %libRed/][
+			make-dir path: %libRed/
+			foreach file [
+				%libRed.def
+				%libRed.lib
+				%libRed.red
+				%red.h
+			][
+				write path/:file read-cache path/:file
+			]
+		]
+		switch/default args/1 [
+			"libRed" [
+				cmd: copy "-r libRed/libRed.red"
+				if all [not tail? next args args/2 = "stdcall"][
+					insert at cmd 3 " --config [export-ABI: 'stdcall]"
+				]
+				parse-options cmd
+			]
+		][
+			fail reform ["command error: unknown command" args/1]
+		]
+	]
+	
+	parse-tokens: func [cmds [string!] /local ws list s e token store][
+		ws: charset " ^/^M^-"
+		list: make block! 10
+		store: [
+			unless empty? token: trim copy/part s e [append list token]
+			s: e
+		]
+		parse/all cmds [
+			s: any [
+				e: some ws (do store)
+				| {"} thru {"} e: (do store)
+				| "[" thru "]" e: (do store)
+				| skip
+			] e: (do store)
+		]
+		list
 	]
 
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd
+		mode target? gui? cmd spec cmds ws
 	][
-		args: any [
-			all [args parse args none]
-			system/options/args
-			parse any [system/script/args ""] none
-		]
+	
+		cmds: any [args system/options/args system/script/args ""]
+		args: either block? cmds [cmds][parse-tokens cmds]
+		
 		target: default-target
 		opts: make system-dialect/options-class [
 			link?: yes
@@ -503,29 +547,32 @@ redc: context [
 		unless empty? args [
 			if cmd: select [
 				"clear" do-clear
+				"build" do-build
 			] first args [
-				return reduce [none reduce [cmd next args]]
+				return do reduce [cmd next args]
 			]
 		]
 
 		parse/case args [
 			any [
-				  ["-c"	| "--compile"]		(type: 'exe)
-				| ["-r" | "--release"]		(opts/dev-mode?: no)
-				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
-				| ["-o" | "--output"]  		set output skip
-				| ["-t" | "--target"]  		set target skip (target?: yes)
-				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
-				| ["-h" | "--help"]			(mode: 'help)
-				| ["-V" | "--version"]		(mode: 'version)
-				| ["-u"	| "--update-libRedRT"] (opts/libRedRT-update?: yes)
-				| "--red-only"				(opts/red-only?: yes)
-				| "--dev"					(opts/dev-mode?: yes)
-				| "--no-runtime"			(opts/runtime?: no)		;@@ overridable by config!
-				| "--cli"					(gui?: no)
+				  ["-c" | "--compile"]			(type: 'exe)
+				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
+				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
+				| ["-o" | "--output"]  			set output skip
+				| ["-t" | "--target"]  			set target skip (target?: yes)
+				| ["-v" | "--verbose"] 			set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-h" | "--help"]				(mode: 'help)
+				| ["-V" | "--version"]			(mode: 'version)
+				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
+				| ["-s" | "--show-expanded"]	(opts/show: 'expanded)
+				| ["-dlib" | "--dynamic-lib"]	(type: 'dll)
+				;| ["-slib" | "--static-lib"]	(type 'lib)
+				| "--config" set spec skip		(attempt [spec: load spec])
+				| "--red-only"					(opts/red-only?: yes)
+				| "--dev"						(opts/dev-mode?: yes)
+				| "--no-runtime"				(opts/runtime?: no)		;@@ overridable by config!
+				| "--cli"						(gui?: no)
 				| "--catch"								;-- just pass-thru
-				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
-				;| ["-slib" | "--static-lib"] (type 'lib)
 			]
 			set filename skip (src: load-filename filename)
 		]
@@ -611,7 +658,11 @@ redc: context [
 		]
 
 		add-legacy-flags opts
-
+		if spec [
+			opts: make opts spec
+			opts/command-line: spec
+		]
+		
 		reduce [src opts]
 	]
 	

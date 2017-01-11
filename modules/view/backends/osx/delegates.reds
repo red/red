@@ -129,11 +129,12 @@ mouse-events: func [
 		opt		[red-value!]
 		evt		[integer!]
 		flags	[integer!]
+		state	[integer!]
 ][
 	p: as int-ptr! event
 	flags: check-extra-keys event
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	switch p/2 [
+	state: switch p/2 [
 		NSLeftMouseDown		[
 			evt: objc_msgSend [event sel_getUid "clickCount"]
 			evt: switch evt [
@@ -141,18 +142,20 @@ mouse-events: func [
 				2 [EVT_DBL_CLICK]
 				default [-1]
 			]
-			if evt <> -1 [make-event self flags evt]
+			either evt = -1 [EVT_DISPATCH][make-event self flags evt]
 		]
 		NSLeftMouseUp		[
-			if 2 > objc_msgSend [event sel_getUid "clickCount"][
+			either 2 > objc_msgSend [event sel_getUid "clickCount"][
 				make-event self flags EVT_LEFT_UP
+			][
+				EVT_DISPATCH
 			]
 		]
 		NSRightMouseDown	[make-event self flags EVT_RIGHT_DOWN]
 		NSRightMouseUp		[make-event self flags EVT_RIGHT_UP]
 		NSOtherMouseDown	[
 			evt: either 2 < objc_msgSend [event sel_getUid "buttonNumber"][EVT_AUX_DOWN][EVT_MIDDLE_DOWN]
-			 make-event self flags evt
+			make-event self flags evt
 		]
 		NSOtherMouseUp		[
 			evt: either 2 < objc_msgSend [event sel_getUid "buttonNumber"][EVT_AUX_UP][EVT_MIDDLE_UP]
@@ -162,13 +165,18 @@ mouse-events: func [
 		NSRightMouseDragged	
 		NSOtherMouseDragged	[
 			opt: (get-face-values self) + FACE_OBJ_OPTIONS
-			if TYPE_OF(opt) = TYPE_BLOCK [
+			either any [
+				TYPE_OF(opt) = TYPE_BLOCK
+				0 <> objc_getAssociatedObject self RedAllOverFlagKey
+			][
 				make-event self flags EVT_OVER
+			][
+				EVT_DISPATCH
 			]
 		]
-		default [0]
+		default [EVT_DISPATCH]
 	]
-	msg-send-super self cmd event
+	if state = EVT_DISPATCH [msg-send-super self cmd event]
 ]
 
 print-classname: func [
@@ -633,6 +641,7 @@ render-text: func [
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
+	CGContextSaveGState ctx
 	font: as red-object! values + FACE_OBJ_FONT
 	either TYPE_OF(font) = TYPE_OBJECT [
 		attrs: make-font-attrs font as red-object! none-value -1
@@ -683,6 +692,7 @@ render-text: func [
 	CFRelease attr
 	CFRelease line
 	objc_msgSend [attrs sel_getUid "release"]
+	CGContextRestoreGState ctx
 ]
 
 paint-background: func [
@@ -722,6 +732,7 @@ draw-rect: func [
 		draw	[red-block!]
 		clr		[red-tuple!]
 		size	[red-pair!]
+		bmp		[integer!]
 		v1010?	[logic!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
@@ -741,7 +752,9 @@ draw-rect: func [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		CG-draw-image ctx as-integer img/node 0 0 size/x size/y
+		bmp: CGBitmapContextCreateImage as-integer img/node 
+		CG-draw-image ctx bmp 0 0 size/x size/y
+		CGImageRelease bmp
 	]
 	render-text ctx vals as NSSize! (as int-ptr! self) + 8
 

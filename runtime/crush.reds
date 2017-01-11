@@ -52,6 +52,8 @@ crush: context [							;-- LZ77
 	#define CRUSH_HASH1_SHIFT	7           ;-- (CRUSH_HASH1_BITS + (CRUSH_HASH1_LEN - 1)) / CRUSH_HASH1_LEN
 	#define CRUSH_HASH2_SHIFT	5           ;-- (CRUSH_HASH2_BITS + (CRUSH_HASH2_LEN - 1)) / CRUSH_HASH2_LEN
 
+	crush-error?: no
+
 	crush!: alias struct! [
 		bit-buf		[integer!]
 		bit-count	[integer!]
@@ -79,18 +81,16 @@ crush: context [							;-- LZ77
 		size	[integer!]
 		return: [byte-ptr!]
 		/local
-			buf			[byte-ptr!]
 			index		[integer!]
-			buf-size	[integer!]
 	][
-		buf: crush/buf
-		buf-size: crush/buf-size
 		index: crush/index
-
-		assert index + size <= buf-size
+		if index + size >= crush/buf-size [
+			crush-error?: yes
+			return crush/buf - size
+		]
 
 		crush/index: index + size
-		buf + index
+		crush/buf + index
 	]
 
 	put-bits: func [
@@ -207,18 +207,16 @@ crush: context [							;-- LZ77
 			crush		[crush!]
 	][
 		output: as int-ptr! outbuf
-		if length < 128 [							;-- don't compress if size is too small
-			output/1: length or 80000000h
-			copy-memory outbuf + 4 data length
-			return length + 4
-		]
+		if length < 128 [return -1]		;-- don't compress if size is too small
+
 		hash-size: CRUSH_HASH1_SIZE + CRUSH_HASH2_SIZE
 		head: as int-ptr! allocate hash-size * size? integer!
 		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer!
 		buf: allocate CRUSH_BUF_SIZE + CRUSH_MAX_MATCH
 
+		crush-error?: no
 		crush: declare crush!
-		init crush length null
+		init crush length - 8 null
 		output/2: length				;-- save orignal file size
 		crush/buf: outbuf + 8			;-- skip header
 
@@ -390,6 +388,8 @@ crush: context [							;-- LZ77
 		free as byte-ptr! prev
 		free buf
 
+		if crush-error? [return -1]
+
 		head: as int-ptr! outbuf
 		head/1: crush/index				;-- save size of compressed data
 		crush/index + 8
@@ -415,15 +415,8 @@ crush: context [							;-- LZ77
 	][
 		head: as int-ptr! data
 		length: head/1
-		if length and 80000000h <> 0 [				;-- no need decompress
-			length: length and 7FFFFFFFh
-			buf: allocate length
-			copy-memory buf data + 4 length
-			unless written = null [written/value: length]
-			return buf
-		]
 		crush: declare crush!
-		init crush head/2 data + 8					;-- skip size of data
+		init crush head/2 + 8 data + 8					;-- skip size of data
 
 		head: as int-ptr! crush/input
 		while [

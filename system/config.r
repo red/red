@@ -175,7 +175,7 @@ Darwin [
 	sub-system: 'console
 	syscall:	'BSD
 	stack-align-16?: yes
-dev-mode?: no
+;dev-mode?: no
 ]
 DarwinSO [
 	OS:			'MacOSX

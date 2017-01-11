@@ -59,7 +59,9 @@ time!:			make datatype! #get-definition TYPE_TIME
 tag!:			make datatype! #get-definition TYPE_TAG
 email!:			make datatype! #get-definition TYPE_EMAIL
 
-event!:			make datatype! #get-definition TYPE_EVENT
+;#if find config/modules 'view [
+	event!: make datatype! #get-definition TYPE_EVENT
+;]
 
 none:  			make none! 0
 true:  			make logic! 1

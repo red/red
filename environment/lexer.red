@@ -47,11 +47,13 @@ system/lexer: context [
 		hours	[integer! none!]
 		mins	[integer!]
 		secs	[integer! float! none!]
+		neg?	[logic!]
 		return: [time!]
 	][
-		if any [mins < 0 all [secs secs < 0]][throw-error [time! pos]]
-		if all [hours hours < 0][hours: absolute hours neg?: yes]
-		
+		if any [all [hours hours <> 0 mins < 0] all [secs secs < 0]][throw-error [time! pos]]
+		if hours [hours: absolute hours]
+		mins: absolute mins
+
 		time: case [
 			all [hours secs][
 				either float? secs [
@@ -180,7 +182,8 @@ system/lexer: context [
 			c: (string/get-char p unit) - #"0"
 			if c >= 0 [									;-- skip #"'"
 				m: n * 10
-				if m < n [
+				
+				if system/cpu/overflow? [
 					type/value: TYPE_FLOAT
 					make-float start end type			;-- fallback to float! loading
 					exit
@@ -193,7 +196,8 @@ system/lexer: context [
 				]
 
 				m: n + c
-				if m < n [
+				
+				if system/cpu/overflow? [
 					type/value: TYPE_FLOAT
 					make-float start end type			;-- fallback to float! loading
 					exit
@@ -391,6 +395,7 @@ system/lexer: context [
 		src	[string!]
 		dst	[block! none!]
 		/one
+		/only											;-- force returning the loaded value (with /one)
 		/part	
 			length [integer! string!]
 		return: [block!]
@@ -635,7 +640,12 @@ system/lexer: context [
 		]
 
 		symbol-rule: [
-			some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
+			(ot: none) some [
+				ahead [not-word-char | ws-no-count | control-char] break
+				| #"<" ot: [ahead #"/" (ot: back ot) :ot break | none]	;-- a</b>
+				| #">" if (ot) [(ot: back ot) :ot break]				;-- a<b>
+				| skip
+			] e:
 		]
 
 		begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -668,20 +678,18 @@ system/lexer: context [
 		]
 		
 		special-words: [
-			[
-				#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
-				| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
-					#"/" 
-					ahead [slash-end | ws-no-count | control-char | end] (value: "//")
-					| (value: "/")
-				]
+			#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
+			| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
+				#"/" 
+				ahead [slash-end | ws-no-count | control-char | end] (value: "//")
+				| (value: "/")
 			]
-			opt [#":" (type: set-word!)]
-			(to-word stack value type)				;-- special case for / and // as words
+			| "<>" (value: "<>")
 		]
 
 		word-rule: 	[
-			(type: word!) special-words
+			(type: word!) special-words	opt [#":" (type: set-word!)]
+			(to-word stack value type)				;-- special case for / and // as words
 			| path: s: begin-symbol-rule (type: word!) [
 				url-rule
 				| path-rule							;-- path matched
@@ -692,7 +700,7 @@ system/lexer: context [
 
 		get-word-rule: [
 			#":" (type: get-word!) [
-				special-words
+				special-words (to-word stack value type)
 				| s: begin-symbol-rule [
 					path-rule (type: get-path!)
 					| (to-word stack copy/part s e type)	;-- get-word matched
@@ -701,10 +709,15 @@ system/lexer: context [
 		]
 
 		lit-word-rule: [
-			#"'" (type: lit-word!) s: begin-symbol-rule [
-				path-rule (type: lit-path!)				;-- path matched
-				| (to-word stack copy/part s e type)	;-- lit-word matched
-			] 
+			#"'" (type: lit-word!) [
+				special-words (to-word stack value type)
+				| [
+					s: begin-symbol-rule [
+						path-rule (type: lit-path!)			 ;-- path matched
+						| (to-word stack copy/part s e type) ;-- lit-word matched
+					]
+				]
+			]
 			opt [#":" (throw-error [type back s])]
 		]
 
@@ -735,23 +748,25 @@ system/lexer: context [
 		tuple-rule: [tuple-value-rule sticky-word-rule]
 		
 		time-rule: [
-			s: integer-number-rule [
-				float-number-rule (value: make-time pos none value make-number s e type) ;-- mm:ss.dd
+			s: positive-integer-rule [
+				float-number-rule (value: make-time pos none value make-number s e type neg?) ;-- mm:ss.dd
 				| (value2: make-number s e type) [
-					#":" s: integer-number-rule opt float-number-rule
-					  (value: make-time pos value value2 make-number s e type)			;-- hh:mm:ss[.dd]
-					| (value: make-time pos value value2 none)							;-- hh:mm
+					#":" s: positive-integer-rule opt float-number-rule
+					  (value: make-time pos value value2 make-number s e type neg?)		;-- hh:mm:ss[.dd]
+					| (value: make-time pos value value2 none neg?)						;-- hh:mm
 				]
 			] (type: time!)
 		]
+		
+		positive-integer-rule: [(type: integer!) digit any digit e:]
 
 		integer-number-rule: [
-			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
+			opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e: (type: integer!)
 		]
 
 		integer-rule: [
 			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
-			| integer-number-rule
+			| (neg?: no) integer-number-rule
 			  opt [float-number-rule | float-exp-rule e: (type: float!)]
 			  opt [#"%" (type: percent!)]
 			  sticky-word-rule
@@ -903,6 +918,6 @@ system/lexer: context [
 		][
 			throw-error ['value pos]
 		]
-		either one [pos][stack/1]
+		either all [one not only][pos][stack/1]
 	]
 ]

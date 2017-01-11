@@ -166,6 +166,7 @@ get-event-key: func [
 	return: [red-value!]
 	/local
 		char [red-char!]
+		msg  [tagMSG]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -174,7 +175,7 @@ get-event-key: func [
 			either special-key <> -1 [
 				switch special-key [
 					VK_PRIOR	[_page-up]
-					VK_NEXT		[_page_down]
+					VK_NEXT		[_page-down]
 					VK_END		[_end]
 					VK_HOME		[_home]
 					VK_LEFT		[_left]
@@ -199,6 +200,8 @@ get-event-key: func [
 					VK_RSHIFT	[_right-shift]
 					VK_LCONTROL	[_left-control]
 					VK_RCONTROL	[_right-control]
+					VK_CAPITAL	[_caps-lock]
+					VK_NUMLOCK	[_num-lock]
 					VK_LMENU	[_left-menu]
 					VK_RMENU	[_right-menu]
 					default		[
@@ -217,6 +220,29 @@ get-event-key: func [
 				as red-value! char
 			]
 		]
+		EVT_SCROLL [
+			msg: as tagMSG evt/msg
+			either msg/msg = WM_VSCROLL [
+				switch msg/wParam and FFFFh [
+					SB_LINEUP	[_up]
+					SB_LINEDOWN [_down]
+					SB_PAGEUP	[_page-up]
+					SB_PAGEDOWN	[_page-down]
+					SB_THUMBTRACK [_track]
+					default		[_end]
+				]
+			][
+				switch msg/wParam and FFFFh [
+					SB_LINEUP	[_left]
+					SB_LINEDOWN [_right]
+					SB_PAGEUP	[_page-left]
+					SB_PAGEDOWN	[_page-right]
+					SB_THUMBTRACK [_track]
+					default		[_end]
+				]
+			]
+		]
+		EVT_WHEEL [_mouse-wheel]
 		default [as red-value! none-value]
 	]
 ]
@@ -258,6 +284,10 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_SCROLL [
+			msg: as tagMSG evt/msg
+			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
+		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
@@ -354,6 +384,27 @@ char-key?: func [
 ][
 	slot: (as byte-ptr! char-keys) + as-integer (key >>> 3)
 	slot/value and (as-byte (80h >> as-integer (key and as-byte 7))) <> null-byte
+]
+
+get-track-pos: func [
+	hWnd			[handle!]
+	vertical?		[logic!]
+	return:			[integer!]
+	/local
+		nTrackPos	[integer!]
+		nPos		[integer!]
+		nPage		[integer!]
+		nMax		[integer!]
+		nMin		[integer!]
+		fMask		[integer!]
+		cbSize		[integer!]
+][
+	cbSize: size? tagSCROLLINFO
+	fMask: 4 or 10h
+	nPos: 0
+	nTrackPos: 0
+	GetScrollInfo hWnd as-integer vertical? as tagSCROLLINFO :cbSize
+	nTrackPos
 ]
 
 make-event: func [
@@ -612,7 +663,9 @@ process-custom-draw: func [
 		color	[red-tuple!]
 		sym		[integer!]
 		old		[integer!]
+		flags	[integer!]
 		DC		[handle!]
+		rc		[RECT_STRUCT]
 ][
 	item:	as tagNMCUSTOMDRAWINFO lParam
 	values: get-face-values item/hWndFrom
@@ -634,21 +687,23 @@ process-custom-draw: func [
 				txt: as red-string! values + FACE_OBJ_TEXT
 				values: object/get-values font
 				color: as red-tuple! values + FONT_OBJ_COLOR
+				old: SetBkMode DC 1
 				if all [
 					TYPE_OF(color) = TYPE_TUPLE
 					color/array1 <> 0
 				][
-					old: SetBkMode DC 1
 					SetTextColor DC color/array1 and 00FFFFFFh
-					DrawText
-						DC
-						unicode/to-utf16 txt
-						-1
-						as RECT_STRUCT (as int-ptr! item) + 5
-						DT_CENTER or DT_VCENTER or DT_SINGLELINE
-					SetBkMode DC old
-					return CDRF_SKIPDEFAULT
 				]
+				rc: as RECT_STRUCT (as int-ptr! item) + 5
+				flags: DT_VCENTER or DT_SINGLELINE
+				either sym = button [
+					flags: flags or DT_CENTER
+				][
+					rc/left: rc/left + 16
+				]
+				DrawText DC unicode/to-utf16 txt -1 rc flags
+				SetBkMode DC old
+				return CDRF_SKIPDEFAULT
 			]
 		]
 	]
@@ -923,24 +978,33 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
-				NM_CUSTOMDRAW	[return process-custom-draw wParam lParam]
+				NM_CUSTOMDRAW	[
+					res: process-custom-draw wParam lParam
+					if res <> 0 [return res]
+				]
 				default [0]
 			]
 		]
 		WM_VSCROLL
 		WM_HSCROLL [
-			unless zero? lParam [						;-- message from trackbar
+			either zero? lParam [						;-- message from standard scroll bar
+				current-msg/wParam: wParam
+				make-event current-msg 0 EVT_SCROLL
+			][											;-- message from trackbar
 				if null? current-msg [init-current-msg]
 				current-msg/hWnd: as handle! lParam		;-- trackbar handle
 				get-slider-pos current-msg
 				make-event current-msg 0 EVT_CHANGE
-				return 0
 			]
+			return 0
 		]
 		WM_ERASEBKGND [
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			unless TYPE_OF(draw) = TYPE_BLOCK [			;-- draw background in draw to avoid flickering
-				if render-base hWnd as handle! wParam [return 1]
+			if any [
+				TYPE_OF(draw) = TYPE_BLOCK				;-- draw background in draw to avoid flickering
+				render-base hWnd as handle! wParam
+			][
+				return 1
 			]
 		]
 		WM_PAINT [
@@ -951,6 +1015,7 @@ WndProc: func [
 				][
 					bitblt-memory-dc hWnd no
 				]
+				return 0
 			]
 		]
 		WM_CTLCOLOREDIT
@@ -1115,7 +1180,7 @@ process: func [
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
 		WM_CHAR
 		WM_DEADCHAR		[
-			if any [special-key = VK_LMENU special-key = VK_RMENU][
+			if special-key = VK_LMENU [
 				special-key: -1							;-- we prefer the translate char here, for ALT Key Codes, e.g ALT+0169
 			]
 			make-event msg 0 EVT_KEY

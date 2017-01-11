@@ -33,6 +33,9 @@ lexer: context [
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	base:	16										;-- binary base
+	otag: 	none
+	ot:		none
+	ct:		none
 	
 	;====== Parsing rules ======
 
@@ -82,20 +85,21 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"@:;}
+	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
-	not-str-char:   #"^""
-	not-mstr-char:  #"}"
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><"
 	not-tag-char:	complement charset ">"
-	caret-char:	    charset [#"^(40)" - #"^(5F)"]
+	tag-char:		charset "<>"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
-	stop: 		    none
+	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
 		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
@@ -157,8 +161,12 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: [not-word-char | ws-no-count | control-char])
-		some UTF8-filtered-char e:
+		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
+		some [
+			otag ot: [#"/" (otag: [end skip] ot: back ot) :ot | none] ;-- a</b>
+			| #">" ct: (if ot [otag: [end skip] ct: back ot]) :ct	  ;-- a<b>
+			| UTF8-filtered-char
+		] e:
 	]
 	
 	begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -254,25 +262,27 @@ lexer: context [
 	tuple-rule: [tuple-value-rule sticky-word-rule]
 	
 	time-rule: [
-		s: integer-number-rule [
-			decimal-number-rule (value: as-time 0 value load-number copy/part s e) ;-- mm:ss.dd
+		s: positive-integer-rule [
+			decimal-number-rule (value: as-time 0 value load-number copy/part s e neg?) ;-- mm:ss.dd
 			| (value2: load-number copy/part s e) [
-				#":" s: integer-number-rule opt decimal-number-rule
-				  (value: as-time value value2 load-number copy/part s e)	;-- hh:mm:ss[.dd]
-				| (value: as-time value value2 0)							;-- hh:mm
+				#":" s: positive-integer-rule opt decimal-number-rule
+				  (value: as-time value value2 load-number copy/part s e neg?)	;-- hh:mm:ss[.dd]
+				| (value: as-time value value2 0 neg?)							;-- hh:mm
 			]
 		] (type: time!)
 	]
-		
+	
+	positive-integer-rule: [(type: integer!) digit any digit e:]
+	
 	integer-number-rule: [
 		(type: integer!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
+		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
 	]
 	
 	integer-rule: [
 		pos: decimal-special e:								;-- escape path for NaN, INFs
 		(type: issue! value: load-number copy/part s e)
-		|	integer-number-rule
+		|	(neg?: no) integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 			opt [#"%" e: (type: issue!)]
 			sticky-word-rule
@@ -379,7 +389,7 @@ lexer: context [
 	
 	tag-rule: [
 		#"<" s: not-tag-1st (type: tag!)
-		 some [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
+		 any [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
 	]
 	
 	email-rule: [
@@ -421,7 +431,7 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| #"^"" s: any UTF8-filtered-char e: #"^""
+			| line-string
 			| s: any UTF8-filtered-char e:
 		]
 	]
@@ -640,9 +650,10 @@ lexer: context [
 		to integer! debase/base s 16
 	]
 	
-	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
-		if any [m < 0 all [s s < 0]][type: time! throw-error]
-		to time! reduce [h m s]
+	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
+		if any [all [h <> 0 m < 0] all [s s < 0]][type: time! throw-error]
+		t: to time! reduce [abs h abs m abs s]
+		either neg? [negate t][t]
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][

@@ -260,6 +260,7 @@ Red/System [
 #define WM_WINDOWPOSCHANGED 0047h
 #define WM_NOTIFY			004Eh
 #define WM_CONTEXTMENU		007Bh
+#define WM_DISPLAYCHANGE	007Eh
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
@@ -323,6 +324,11 @@ Red/System [
 #define VK_SHIFT			10h
 #define VK_CONTROL			11h
 #define VK_MENU				12h
+#define VK_PAUSE			13h
+#define VK_CAPITAL			14h
+
+#define VK_ESCAPE			1Bh
+
 #define VK_SPACE			20h
 #define VK_PRIOR			21h
 #define VK_NEXT				22h
@@ -366,6 +372,10 @@ Red/System [
 #define VK_F22				85h
 #define VK_F23				86h
 #define VK_F24				87h
+
+#define VK_NUMLOCK			90h
+#define VK_SCROLL			91h
+
 #define VK_LSHIFT			A0h
 #define VK_RSHIFT			A1h
 #define VK_LCONTROL			A2h
@@ -447,7 +457,14 @@ Red/System [
 #define GDIPLUS_MATRIXORDERPREPEND	0
 #define GDIPLUS_MATRIXORDERAPPEND	1
 
-#define GDIPLUS_COMBINEMODEREPLACE	0
+#define GDIPLUS_COMBINEMODEREPLACE	    0
+#define GDIPLUS_COMBINEMODEINTERSECT	1
+#define GDIPLUS_COMBINEMODEUNION	    2
+#define GDIPLUS_COMBINEMODEXOR  	    3
+#define GDIPLUS_COMBINEMODEEXCLUDE	    4
+;#define GDIPLUS_COMBINEMODECOMPLEMENT   5
+
+
 
 #define AC_SRC_OVER                 0
 #define AC_SRC_ALPHA                0			;-- there are some troubles on Win64 with value 1
@@ -509,6 +526,12 @@ Red/System [
 
 #define AD_COUNTERCLOCKWISE 1
 #define AD_CLOCKWISE        2
+
+#define RGN_AND             1
+#define RGN_OR              2
+#define RGN_XOR             3
+#define RGN_DIFF            4
+#define RGN_COPY            5
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
@@ -696,16 +719,6 @@ WNDCLASSEX: alias struct! [
 	hIconSm	  	  [integer!]
 ]
 
-SCROLLINFO: alias struct! [
-	cbSize		[integer!]
-	fMask		[integer!]
-	nMin		[integer!]
-	nMax		[integer!]
-	nPage		[integer!]
-	nPos		[integer!]
-	nTrackPos	[integer!]
-]
-
 GESTUREINFO: alias struct! [
 	cbSize		 [integer!]
 	dwFlags		 [integer!]
@@ -789,7 +802,7 @@ OSVERSIONINFO: alias struct! [
 	wReserved			[byte!]
 ]
 
-INITCOMMONCONTROLSEX: alias struct! [
+tagINITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
 ]
@@ -946,9 +959,6 @@ XFORM!: alias struct! [
 			lpModuleName [integer!]
 			return:		 [handle!]
 		]
-		GetLastError: "GetLastError" [
-			return: [integer!]
-		]
 		GetSystemDirectory: "GetSystemDirectoryW" [
 			lpBuffer	[c-string!]
 			uSize		[integer!]
@@ -966,11 +976,13 @@ XFORM!: alias struct! [
 			hMem		[handle!]
 			return:		[byte-ptr!]
 		]
-		LoadLibraryEx: "LoadLibraryExW" [
+		LoadLibraryA: "LoadLibraryA" [
 			lpFileName	[c-string!]
-			hFile		[integer!]
-			dwFlags		[integer!]
 			return:		[handle!]
+		]
+		FreeLibrary: "FreeLibrary" [
+			hModule		[handle!]
+			return:		[logic!]
 		]
 		GetProcAddress: "GetProcAddress" [
 			hModule		[handle!]
@@ -983,6 +995,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetSystemMetrics: "GetSystemMetrics" [
+			index		[integer!]
+			return:		[integer!]
+		]
 		SystemParametersInfo: "SystemParametersInfoW" [
 			action		[integer!]
 			iParam		[integer!]
@@ -1175,7 +1191,7 @@ XFORM!: alias struct! [
 		SetScrollInfo:	"SetScrollInfo" [
 			hWnd		 [handle!]
 			fnBar		 [integer!]
-			lpsi		 [SCROLLINFO]
+			lpsi		 [tagSCROLLINFO]
 			fRedraw		 [logic!]
 			return: 	 [integer!]
 		]
@@ -1210,6 +1226,11 @@ XFORM!: alias struct! [
 			lpRect		[RECT_STRUCT]
 			bErase		[integer!]
 			return:		[integer!]
+		]
+		ValidateRect: "ValidateRect" [
+			hWnd		[handle!]
+			lpRect		[RECT_STRUCT]
+			return:		[logic!]
 		]
 		GetParent: "GetParent" [
 			hWnd 		[handle!]
@@ -1300,6 +1321,12 @@ XFORM!: alias struct! [
 		]
 		GetMessagePos: "GetMessagePos" [
 			return:		[integer!]
+		]
+		SetClassLong: "SetClassLongW" [
+			hWnd		[handle!]
+			nIndex		[integer!]
+			dwNewLong	[integer!]
+			return: 	[integer!]
 		]
 		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]
@@ -1687,6 +1714,11 @@ XFORM!: alias struct! [
 			nHeight		[integer!]
 			return:		[logic!]
 		]
+        SelectClipPath: "SelectClipPath" [
+            hdc         [handle!]
+            iMode       [integer!]
+            return:     [logic!]
+        ]
         BeginPath: "BeginPath" [
             hdc         [handle!]
             return:     [logic!]
@@ -1703,6 +1735,10 @@ XFORM!: alias struct! [
             return:     [integer!]
         ]
         FillPath: "FillPath" [
+            hdc         [handle!]
+            return:     [logic!]
+        ]
+        CloseFigure: "CloseFigure" [
             hdc         [handle!]
             return:     [logic!]
         ]
@@ -1937,6 +1973,12 @@ XFORM!: alias struct! [
 			combine 	[integer!]
 			return:		[integer!]
 		]
+        GdipSetClipPath: "GdipSetClipPath" [
+			graphics	[integer!]
+			path		[integer!]
+            combineMode [integer!]
+            return:     [integer!]
+        ]
 		GdipRotateWorldTransform: "GdipRotateWorldTransform" [
 			graphics	[integer!]
 			angle		[float32!]
@@ -2300,6 +2342,16 @@ XFORM!: alias struct! [
 			sweepAngle	[float32!]
 			return:		[integer!]
 		]
+		GdipAddPathArc: "GdipAddPathArc" [
+			path		[integer!]
+			x			[float32!]
+			y			[float32!]
+			width		[float32!]
+			height		[float32!]
+			startAngle	[float32!]
+			sweepAngle	[float32!]
+			return:		[integer!]
+		]
         GdipAddPathBeziersI: "GdipAddPathBeziersI" [
             path        [integer!]
             points      [tagPOINT]
@@ -2481,6 +2533,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"comctl32.dll" stdcall [
+		InitCommonControlsEx: "InitCommonControlsEx" [
+			lpInitCtrls [tagINITCOMMONCONTROLSEX]
+			return:		[logic!]
+		]
 		ImageList_Create: "ImageList_Create" [
 			cx			[integer!]
 			cy			[integer!]
@@ -2534,6 +2590,13 @@ XFORM!: alias struct! [
 			iFontID		[integer!]
 			plf			[tagLOGFONT]
 			return:		[integer!]
+		]
+	]
+	LIBC-file cdecl [
+		realloc: "realloc" [						"Resize and return allocated memory."
+			memory			[byte-ptr!]
+			size			[integer!]
+			return:			[byte-ptr!]
 		]
 	]
 ]

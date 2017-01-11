@@ -127,33 +127,35 @@ logic: context [
 	;-- Actions -- 
 
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-logic!]							;-- return cell pointer
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-logic!]							;-- return cell pointer
 		/local
-			bool  [red-logic!]
-			int	  [red-integer!]
-			value [logic!]
+			bool [red-logic!]
+			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
 
-		value: switch TYPE_OF(spec) [
-			TYPE_NONE  [no]
-			TYPE_LOGIC [
-				bool: as red-logic! spec
-				bool/value
-			]
+		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
-				int/value <> 0
+				bool: as red-logic! proto
+				bool/header: TYPE_LOGIC					;-- implicit reset of all header flags
+				bool/value: as-logic int/value
+				bool
 			]
-			default [yes]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				bool: as red-logic! proto
+				bool/header: TYPE_LOGIC					;-- implicit reset of all header flags
+				bool/value: fl/value <> 0.0
+				bool
+			]
+			default [to proto spec type]
 		]
-		
-		bool: as red-logic! stack/push*
-		bool/header: TYPE_LOGIC							;-- implicit reset of all header flags
-		bool/value:  value
-		bool
 	]
 
 	random: func [
@@ -172,6 +174,21 @@ logic: context [
 			logic/value: _random/rand % 2 <> 0
 		]
 		logic
+	]
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_LOGIC [as red-logic! spec]
+			TYPE_NONE  [false-value]
+			default	   [true-value]
+		]
 	]
 
 	form: func [
@@ -288,7 +305,7 @@ logic: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
