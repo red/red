@@ -267,11 +267,11 @@ Red [
 	]
 
 	redOpenDebugConsole: func [return: [logic!]][
-		red/platform/open-console
+		#if OS = 'Windows [red/platform/open-console]
 	]
 
 	redCloseDebugConsole: func [return: [logic!]][
-		red/platform/close-console
+		#if OS = 'Windows [red/platform/close-console]
 	]
 
 	redNone: func [
