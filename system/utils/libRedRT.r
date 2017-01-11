@@ -246,6 +246,8 @@ libRedRT: context [
 				_moved:		red/word/load "moved"
 				_changed:	red/word/load "changed"
 				_reverse:	red/word/load "reverse"
+				_lowercase:	red/word/load "lowercase"
+				_uppercase:	red/word/load "uppercase"
 				
 				type:		red/symbol/make "type"
 				face:	 	red/symbol/make "face"

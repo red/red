@@ -38,6 +38,7 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
+				FACE_OBJ_CURSOR
 			]
 			
 			#enum facet-flag! [
@@ -64,11 +65,16 @@ system/view/platform: context [
 				FACET_FLAG_ACTOR:		00100000h
 				FACET_FLAG_EXTRA:		00200000h
 				FACET_FLAG_DRAW:		00400000h
+				FACET_FLAG_CURSOR:		00800000h
 			]
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
-				
+
+				FACET_FLAGS_SCROLLABLE: 00080000h
+
+				FACET_FLAGS_D2D:		00100000h
+
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
 				FACET_FLAGS_RESIZE:		04000000h
@@ -100,7 +106,32 @@ system/view/platform: context [
 				PARA_OBJ_WRAP?
 				PARA_OBJ_PARENT
 			]
-			
+
+			#enum text-box-facet! [
+				TBOX_OBJ_TEXT
+				TBOX_OBJ_SIZE
+				TBOX_OBJ_FONT
+				TBOX_OBJ_PARA
+				TBOX_OBJ_SPACING
+				TBOX_OBJ_TABS
+				TBOX_OBJ_STYLES
+				TBOX_OBJ_STATE
+				TBOX_OBJ_TARGET
+				TBOX_OBJ_FIXED?
+				TBOX_OBJ_WIDTH
+				TBOX_OBJ_HEIGHT
+				TBOX_OBJ_LINE_COUNT
+			]
+
+			#enum scroller-facet! [
+				SCROLLER_OBJ_POS
+				SCROLLER_OBJ_PAGE
+				SCROLLER_OBJ_MAX
+				SCROLLER_OBJ_VISIBLE?
+				SCROLLER_OBJ_VERTICAL?
+				SCROLLER_OBJ_PARENT
+			]
+
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP
@@ -138,9 +169,11 @@ system/view/platform: context [
 				EVT_MOVING
 				EVT_SIZING
 				EVT_TIME
+				EVT_DRAW
+				EVT_SCROLL
 			]
 			
-			#enum event-flag! [
+			#enum event-flag! [				
 				EVT_FLAG_AX2_DOWN:		00400000h
 				EVT_FLAG_AUX_DOWN:		00800000h
 				EVT_FLAG_ALT_DOWN:		01000000h
@@ -229,6 +262,10 @@ system/view/platform: context [
 			_italic:		symbol/make "italic"
 			_underline:		symbol/make "underline"
 			_strike:		symbol/make "strike"
+			_border:		symbol/make "border"
+			_backdrop:		symbol/make "backdrop"
+			_font-name:		symbol/make "font-name"
+			_font-size:		symbol/make "font-size"
 			
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"
@@ -241,11 +278,27 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+			scrollable:		symbol/make "scrollable"
+
+			Direct2D:		symbol/make "Direct2D"
+
+			_arrow:			symbol/make "arrow"
+			_cross:			symbol/make "cross"
+			_hand:			symbol/make "hand"
+			_help:			symbol/make "help"
+			_I-beam:		symbol/make "I-beam"
+			_no:			symbol/make "no"
+			_wait:			symbol/make "wait"
+			_resize-ns:		symbol/make "resize-ns"
+			_resize-we:		symbol/make "resize-we"
+			_resize-nesw:	symbol/make "resize-nesw"
+			_resize-nwse:	symbol/make "resize-nwse"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
 
 			_text:			word/load "text"
+			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
 			_away:			word/load "away"
@@ -281,9 +334,15 @@ system/view/platform: context [
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
-			
+			_draw:			word/load "draw"
+			_scroll:		word/load "scroll"
+
+			_mouse-wheel:	word/load "mouse-wheel"
+			_track:			word/load "track"
+			_page-left:		word/load "page-left"
+			_page-right:	word/load "page-right"
 			_page-up:		word/load "page-up"
-			_page_down:		word/load "page-down"
+			_page-down:		word/load "page-down"
 			_end:			word/load "end"
 			_home:			word/load "home"
 			_left:			word/load "left"
@@ -312,6 +371,8 @@ system/view/platform: context [
 			_right-alt:		word/load "right-alt"
 			_left-command:	word/load "left-command"
 			_right-command:	word/load "right-command"
+			_caps-lock:		word/load "caps-lock"
+			_num-lock:		word/load "num-lock"
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -319,6 +380,8 @@ system/view/platform: context [
 			][
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
+					EVT_DRAW		 [_draw]
+					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
 					EVT_MIDDLE_DOWN	 [_mid-down]
@@ -362,6 +425,8 @@ system/view/platform: context [
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
+					sym = _draw/symbol			[sym: EVT_DRAW]
+					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
 					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
@@ -528,7 +593,11 @@ system/view/platform: context [
 	refresh-window: routine [hwnd [integer!]][
 		gui/OS-refresh-window hwnd
 	]
-	
+
+	redraw: routine [hwnd [integer!]][
+		gui/OS-redraw hwnd
+	]
+
 	show-window: routine [id [integer!]][
 		gui/OS-show-window id
 		SET_RETURN(none-value)
@@ -542,10 +611,19 @@ system/view/platform: context [
 		gui/OS-do-draw image cmds
 	]
 
+	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
+		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
+		gui/OS-draw-face as draw-ctx! int/value cmds
+	]
+
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
+	]
+
+	exit-event-loop: routine [][
+		gui/PostQuitMessage 0
 	]
 
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][
@@ -570,6 +648,28 @@ system/view/platform: context [
 		multi?	[logic!]
 	][
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+	]
+
+	text-box-layout: routine [
+		box		[object!]
+	][
+		gui/OS-text-box-layout box null no
+	]
+
+	text-box-metrics: routine [
+		state	[block!]
+		arg0	[any-type!]
+		type	[integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! block/rs-head state
+		stack/set-last gui/OS-text-box-metrics as handle! int/value arg0 type
+	]
+
+	update-scroller: routine [scroller [object!] flags [integer!]][
+		gui/update-scroller scroller flags
+		SET_RETURN(none-value)
 	]
 
 	init: func [/local svs fonts][

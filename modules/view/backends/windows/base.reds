@@ -100,10 +100,13 @@ render-text: func [
 		old		[integer!]
 		flags	[integer!]
 		res		[logic!]
+		len		[integer!]
+		str		[c-string!]
 ][
-	unless winxp? [return render-text-d2d values hDC rc]
+	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
 	text: as red-string! values + FACE_OBJ_TEXT
+	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: default-font
@@ -126,16 +129,16 @@ render-text: func [
 			]
 		]
 		SelectObject hDC hFont
-		
-		flags: DT_SINGLELINE
-		para: as red-object! values + FACE_OBJ_PARA
 		flags: either TYPE_OF(para) = TYPE_OBJECT [
 			get-para-flags base para
 		][
-			flags or DT_CENTER or DT_VCENTER
+			DT_SINGLELINE or DT_CENTER or DT_VCENTER
 		]
+		flags: flags or 0800h		;-- DT_NOPREFIX
 		old: SetBkMode hDC 1
-		res: 0 <> DrawText hDC unicode/to-utf16 text -1 rc flags
+		len: -1
+		str: unicode/to-utf16-len text :len yes
+		res: 0 <> DrawText hDC str len rc flags
 		SetBkMode hDC old
 	]
 	res
@@ -390,8 +393,13 @@ BaseWndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
+		target	[int-ptr!]
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
+		w		[integer!]
 		draw	[red-block!]
+		DC		[draw-ctx!]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -404,17 +412,58 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			unless zero? GetWindowLong hWnd wc-offset + 4 [
-				update-base hWnd null null get-face-values hWnd
+			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+				unless zero? GetWindowLong hWnd wc-offset + 4 [
+					update-base hWnd null null get-face-values hWnd
+				]
+			][
+				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+				if target <> null [
+					this: as this! target/value
+					rt: as ID2D1HwndRenderTarget this/vtbl
+					w: WIN32_LOWORD(lParam)
+					flags: WIN32_HIWORD(lParam)
+					rt/Resize this as tagSIZE :w
+					InvalidateRect hWnd null 1
+				]
+			]
+			return 0
+		]
+		WM_PAINT
+		WM_DISPLAYCHANGE [
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			either TYPE_OF(draw) = TYPE_BLOCK [
+				either zero? GetWindowLong hWnd wc-offset - 4 [
+					do-draw hWnd null draw no yes yes yes
+				][
+					bitblt-memory-dc hWnd no
+				]
+			][
+				system/thrown: 0
+				DC: _draw-ctx						;@@ should declare it on stack
+				draw-begin DC hWnd null no yes
+				integer/make-at as red-value! draw as-integer DC
+				current-msg/hWnd: hWnd
+				make-event current-msg 0 EVT_DRAW
+				draw/header: TYPE_NONE
+				draw-end DC hWnd no no yes
+			]
+			return 0
+		]
+		WM_VSCROLL
+		WM_HSCROLL [
+			if zero? lParam [						;-- message from standard scroll bar
+				current-msg/hWnd: hWnd
+				current-msg/msg: msg
+				current-msg/wParam: wParam
+				make-event current-msg 0 EVT_SCROLL
+				return 0
 			]
 		]
-		WM_PAINT [
+		0317h	;-- WM_PRINT
+		0318h [ ;-- WM_PRINTCLIENT
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
-			either zero? GetWindowLong hWnd wc-offset - 4 [
-				do-draw hWnd null draw no yes yes yes
-			][
-				bitblt-memory-dc hWnd no
-			]
+			do-draw hWnd as red-image! wParam draw no no no yes
 			return 0
 		]
 		default [0]
@@ -453,6 +502,7 @@ update-base-background: func [
 ]
 
 update-base-text: func [
+	hWnd	[handle!]
 	graphic	[integer!]
 	dc		[handle!]
 	text	[red-string!]
@@ -494,7 +544,7 @@ update-base-text: func [
 				hFont: int/value
 			]
 		][
-			hFont: as-integer make-font as red-object! none-value font
+			hFont: as-integer make-font get-face-obj hWnd font
 		]
 		if TYPE_OF(color) = TYPE_TUPLE [clr: color/array1]
 	]
@@ -616,7 +666,7 @@ update-base: func [
 		alpha?: update-base-background graphic color width height
 	]
 	update-base-image graphic img width height
-	update-base-text graphic hBackDC text font para width height
+	update-base-text hWnd graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0

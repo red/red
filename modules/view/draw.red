@@ -243,12 +243,12 @@ Red/System [
 		]
 
         check-pen: func [
+			DC	    [draw-ctx!]
             cmds    [red-block!]
             start	[red-value!]
             tail	[red-value!]
             cmd     [red-value!]
             sym     [integer!]
-			DC	    [draw-ctx!]
 			catch?  [logic!]								;-- YES: report errors, NO: fire errors
             return: [red-value!]
             /local
@@ -327,12 +327,12 @@ Red/System [
         ]
 
         check-line: func [
+            DC      [draw-ctx!]
             cmds    [red-block!]
             start	[red-value!]
 			tail	[red-value!]
             cmd     [red-value!]
             sym     [integer!]
-            DC      [draw-ctx!]
 			catch?  [logic!]								;-- YES: report errors, NO: fire errors
             return: [red-value!]
             /local
@@ -358,8 +358,8 @@ Red/System [
         ]
         
        ;;; parse-shape: func [
+       ;;;     DC      [draw-ctx!]
        ;;;     cmds    [red-block!]
-       ;;;     DC      [handle!]
        ;;;     draw?   [logic!]
        ;;;     catch?  [logic!]								;-- YES: report errors, NO: fire errors
        ;;;     /local
@@ -392,7 +392,7 @@ Red/System [
 
        ;;;                 case [
        ;;;                     any [sym = pen sym = fill-pen] [
-       ;;;                         cmd: check-pen cmds start tail cmd sym DC catch?
+       ;;;                         cmd: check-pen DC cmds start tail cmd sym catch?
        ;;;                     ]
        ;;;                     sym = move [
        ;;;                         DRAW_FETCH_VALUE(TYPE_PAIR)
@@ -406,7 +406,7 @@ Red/System [
        ;;;                         close?: yes
        ;;;                     ]
 	;;						;any [sym = line-width sym = line-join sym = line-cap][
-       ;;;                         cmd: check-line cmds start tail cmd sym DC catch?
+       ;;;                         cmd: check-line DC cmds start tail cmd sym catch?
 	;;						;]
        ;;;                     any [ sym = hline sym = vline ][
        ;;;                         DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
@@ -471,8 +471,8 @@ Red/System [
        ;;; ]
 
 		parse-draw: func [
-			cmds   [red-block!]
 			DC	   [draw-ctx!]
+			cmds   [red-block!]
 			catch? [logic!]								;-- YES: report errors, NO: fire errors
 			/local
 				cmd		[red-value!]
@@ -500,15 +500,14 @@ Red/System [
 				grad?	[logic!]
                 rect?   [logic!]
 				state	[integer!]
-                clip-mode [integer!]
+                clip-mode    [integer!]
                 m-order [integer!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
 			state: 0
-            clip-mode: 0
-            m-order: 0
+			clip-mode: replace
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -517,9 +516,9 @@ Red/System [
 						start: cmd + 1
 
 						case [
-                            any [sym = pen sym = fill-pen] [
-                                cmd: check-pen cmds start tail cmd sym DC catch?
-                            ]
+							any [sym = pen sym = fill-pen] [
+								cmd: check-pen DC cmds start tail cmd sym catch?
+							]
 							sym = box [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]
 								DRAW_FETCH_OPT_VALUE(TYPE_INTEGER)
@@ -531,7 +530,7 @@ Red/System [
 								OS-draw-line DC as red-pair! start as red-pair! cmd
 							]
 							any [sym = line-width sym = line-join sym = line-cap][
-                                cmd: check-line cmds start tail cmd sym DC catch?
+                                cmd: check-line DC cmds start tail cmd sym catch?
 							]
 							sym = triangle [
 								loop 3 [DRAW_FETCH_VALUE(TYPE_PAIR)]
@@ -566,9 +565,9 @@ Red/System [
 								OS-draw-font DC as red-object! value
 							]
 							sym = text [
-								DRAW_FETCH_VALUE(TYPE_PAIR)		;-- position
-								DRAW_FETCH_VALUE(TYPE_STRING)	;-- text string
-								OS-draw-text DC as red-pair! start as red-string! cmd
+								DRAW_FETCH_VALUE(TYPE_PAIR)					;-- position
+								DRAW_FETCH_VALUE_2(TYPE_STRING TYPE_OBJECT) ;-- string! or text-box!
+								OS-draw-text DC as red-pair! start as red-string! cmd catch?
 							]
 							sym = _arc [
 								loop 2 [DRAW_FETCH_VALUE(TYPE_PAIR)]	;-- center/radius (of the circle/ellipse)
@@ -656,55 +655,59 @@ Red/System [
                                     DRAW_FETCH_VALUE(TYPE_PAIR)
                                     rect?: true
                                 ][
-	                                0
-    								;;; parse-shape as red-block! cmd DC false catch?
+									0
+    								;;; parse-shape DC as red-block! cmd false catch?
                                 ]
                                 value: cmd
-								;;; DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+								DRAW_FETCH_OPT_VALUE(TYPE_WORD)
                                 if pos = cmd [
-                                    word: as red-word! cmd
-                                    case [
-                                        ( symbol/resolve word/symbol ) = replace    [ clip-mode: 0]
-                                        ( symbol/resolve word/symbol ) = intersect  [ clip-mode: 0]
-                                        ( symbol/resolve word/symbol ) = union      [ clip-mode: 0]
-                                        ( symbol/resolve word/symbol ) = xor        [ clip-mode: 0]
-                                        ( symbol/resolve word/symbol ) = exclude    [ clip-mode: 0]
-                                        true [ cmd: cmd - 1 ]
-                                    ]
-                                ]
-								;;; DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
+									word: as red-word! cmd
+									type: symbol/resolve word/symbol  
+									either any [
+										type = replace
+										type = intersect
+										type = union
+										type = xor
+										type = exclude
+									][ 
+										clip-mode: type
+									][
+										cmd: cmd - 1 
+									]
+								]
+								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
-                                    OS-set-clip DC as red-pair! start as red-pair! value
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									OS-matrix-push DC :state
+                                    OS-set-clip DC start value rect? clip-mode
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
-                                    OS-set-clip DC as red-pair! start as red-pair! value
+                                    OS-set-clip DC start value rect? clip-mode
 								]
 							]
 							sym = shape [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								;;; parse-shape as red-block! cmd DC true catch?
+								parse-shape DC as red-block! cmd true catch?
 							]
                             sym = _matrix-order [
 								DRAW_FETCH_VALUE(TYPE_WORD)
 								word: as red-word! start
-                                case [
-                                    ( symbol/resolve word/symbol ) = _append [ m-order: 0]
-                                    ( symbol/resolve word/symbol ) = prepend [ m-order: 0]
-                                    true [throw-draw-error cmds cmd catch?]
-                                ]
-                                ;;; OS-set-matrix-order m-order
+								m-order: symbol/resolve word/symbol
+								unless any [
+									m-order = _append
+									m-order = prepend
+								][ throw-draw-error cmds cmd catch? ]
+                                OS-set-matrix-order m-order
                             ]
 							sym = rotate [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
+									OS-matrix-push DC :state
 									OS-matrix-rotate DC as red-integer! start as red-pair! cmd - 1
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
 									OS-matrix-rotate DC as red-integer! start as red-pair! cmd
 								]
@@ -713,10 +716,10 @@ Red/System [
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
+									OS-matrix-push DC :state
 									OS-matrix-scale DC as red-integer! start as red-integer! cmd - 1
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
 									OS-matrix-scale DC as red-integer! start as red-integer! cmd
 								]
@@ -726,12 +729,12 @@ Red/System [
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
-									OS-matrix-translate DC/raw point/x point/y
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									OS-matrix-push DC :state
+									OS-matrix-translate DC point/x point/y
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
-									OS-matrix-translate DC/raw point/x point/y
+									OS-matrix-translate DC point/x point/y
 								]
 							]
 							sym = skew [
@@ -739,10 +742,10 @@ Red/System [
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
+									OS-matrix-push DC :state
 									OS-matrix-skew DC as red-integer! start as red-integer! cmd - 1
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
 									OS-matrix-skew DC as red-integer! start as red-integer! cmd
 								]
@@ -755,25 +758,27 @@ Red/System [
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
-									OS-matrix-push DC
-									OS-matrix-transform DC
+									OS-matrix-push DC :state
+									OS-matrix-transform
+										DC
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd - 1
-									parse-draw as red-block! cmd DC catch?
-									OS-matrix-pop DC
+									parse-draw DC as red-block! cmd catch?
+									OS-matrix-pop DC state
 								][
-									OS-matrix-transform DC
+									OS-matrix-transform
+										DC
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd
 								]
 							]
-							sym = _push [
+							sym = push [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-push DC
-								parse-draw as red-block! start DC catch?
-								OS-matrix-pop DC
+								OS-matrix-push DC :state
+								parse-draw DC as red-block! start catch?
+								OS-matrix-pop DC state
 							]
 							sym = matrix [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
@@ -789,13 +794,15 @@ Red/System [
 						blk/head: ((as-integer cmd - block/rs-head cmds) / size? cell!) + 1
 					]
 					TYPE_BLOCK [
-						parse-draw as red-block! cmd DC catch?
+						parse-draw DC as red-block! cmd catch?
 					]
 					default [throw-draw-error cmds cmd catch?]
 				]
 				cmd: cmd + 1
 			]
 		]
+
+		_draw-ctx: declare draw-ctx!				;@@ make it local in function
 
 		do-draw: func [
 			handle		[handle!]
@@ -806,7 +813,7 @@ Red/System [
 			paint?		[logic!]
 			catch?		[logic!]
 			/local
-				DC		[draw-ctx!]						;-- drawing context (opaque handle)
+				DC		[draw-ctx!]					;-- drawing context (opaque handle)
 		][
 			if all [
 				null? handle
@@ -815,10 +822,10 @@ Red/System [
 
 			system/thrown: 0
 
-			DC: declare draw-ctx!						;@@ should declare it on stack
+			DC: _draw-ctx							;@@ should declare it on stack
 			draw-begin DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
-				catch RED_THROWN_ERROR [parse-draw cmds DC catch?]
+				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
 			]
 			draw-end DC handle on-graphic? cache? paint?
 			
@@ -826,16 +833,109 @@ Red/System [
 				either catch? [system/thrown: 0][re-throw]
 			]
 		]
+
+		parse-text-styles: func [
+			dc			[handle!]
+			layout		[handle!]			;-- text layout (opaque handle)
+			cmds		[red-block!]
+			catch?		[logic!]
+			/local
+				cmd		[red-value!]
+				tail	[red-value!]
+				pos		[red-value!]
+				value	[red-value!]
+				start	[red-value!]
+				int1	[red-integer!]
+				int2	[red-integer!]
+				word	[red-word!]
+				sym		[integer!]
+				rgb		[integer!]
+				alpha?	[integer!]
+				idx		[integer!]
+				len		[integer!]
+		][
+			alpha?: 0 idx: 0 len: 0
+			cmd:  block/rs-head cmds
+			tail: block/rs-tail cmds
+
+			while [cmd < tail][
+				switch TYPE_OF(cmd) [
+					TYPE_WORD [
+						word: as red-word! cmd
+						sym: symbol/resolve word/symbol
+						start: cmd + 1
+
+						case [
+							sym = _backdrop [							;-- background color
+								DRAW_FETCH_TUPLE
+								OS-text-box-background dc layout idx len rgb
+							]
+							sym = _bold [
+								OS-text-box-weight layout idx len 700
+							]
+							sym = _italic [
+								OS-text-box-italic layout idx len
+							]
+							sym = _underline [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'double, 'triple
+								OS-text-box-underline layout idx len start cmd
+							]
+							sym = _strike [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'wave, 'double
+								OS-text-box-strikeout layout idx len start cmd
+							]
+							sym = border [
+								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
+								DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)		;-- style: 'dash, 'wave
+								OS-text-box-border layout idx len start cmd
+							]
+							sym = _font-name [
+								DRAW_FETCH_VALUE(TYPE_STRING)
+								OS-text-box-font-name layout idx len as red-string! start
+							]
+							sym = _font-size [
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
+								OS-text-box-font-size layout idx len get-float as red-integer! start
+							]
+							true [throw-draw-error cmds cmd catch?]
+						]
+					]
+					TYPE_TUPLE [										;-- text color
+						rgb: get-color-int as red-tuple! cmd :alpha?
+						OS-text-box-color dc layout idx len rgb
+					]
+					TYPE_INTEGER [										;-- range
+						int1: as red-integer! cmd
+						int2: int1 + 1
+						cmd: cmd + 2
+						if any [TYPE_OF(int2) <> TYPE_INTEGER TYPE_OF(cmd) = TYPE_INTEGER][
+							throw-draw-error cmds cmd catch?
+						]
+						idx: int1/value - 1
+						len: int2/value
+						cmd: as red-value! int2
+					]
+					default [throw-draw-error cmds cmd catch?]
+				]
+				cmd: cmd + 1
+			]
+		]
 	]
 ]
 
 draw: function [
 	"Draws scalable vector graphics to an image"
-	image	[image! pair!]	"Image or size for an image"
+	target	[image! pair! object!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
 	return: [image!]
 ][
-	if pair? image [image: make image! image]
-	system/view/platform/draw-image image cmd
-	image
+	either face? target [
+		system/view/platform/draw-face target cmd
+	][
+		if pair? target [target: make image! target]
+		system/view/platform/draw-image target cmd
+		target
+	]
 ]

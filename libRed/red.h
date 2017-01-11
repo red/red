@@ -12,7 +12,7 @@
 /* A human-friendly string representation of the version */
 #define RED_VERSION_STRING "0.6.2"
 
-/* 
+/*
 ** A monotonically increasing numeric representation of the version number. Use
 ** this if you want to do range checks over versions.
 */
@@ -47,7 +47,7 @@ red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 /* C -> Red */
 int			redSymbol(const char* word);
 red_none	redNone();
-red_logic	redLogic(int bool);
+red_logic	redLogic(int logic);
 red_integer	redInteger(int number);
 red_float	redFloat(double number);
 red_string	redString(const char* string);
@@ -77,7 +77,7 @@ red_value	redPoke(red_series series, red_value index, red_value value);
 red_value	redPut(red_series series, red_value index, red_value value);
 red_value	redRemove(red_series series);
 red_value	redSelect(red_series series, red_value value);
-red_value	redSkip(red_series series);
+red_value	redSkip(red_series series, red_integer offset );
 red_value	redTo(red_value proto, red_value spec);
 
 /* Access to a Red global word */
@@ -93,6 +93,8 @@ void		redPrint(red_value value);
 red_value	redProbe(red_value value);
 red_value	redHasError(void);
 const char*	redFormError(void);
+int			redOpenDebugConsole();
+int			redCloseDebugConsole();
 
 /* Red Types */
 typedef enum

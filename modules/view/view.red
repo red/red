@@ -238,6 +238,9 @@ update-font-faces: function [parent [block! none!]][
 			if f/state [
 				system/reactivity/check/only f 'font
 				f/state/2: f/state/2 or 00080000h		;-- (1 << ((index? in f 'font) - 1))
+				if block? f/draw [						;-- force a redraw in case the font in draw block
+					f/state/2: f/state/2 or 00400000h	;-- (1 << ((index? in f 'draw) - 1))
+				]
 				show f
 			]
 		]
@@ -268,6 +271,7 @@ face!: object [				;-- keep in sync with facet! enum
 	actors:		none
 	extra:		none		;-- for storing optional user data
 	draw:		none
+	cursor:		none
 	
 	on-change*: function [word old new][
 		if system/view/debug? [
@@ -403,6 +407,82 @@ para!: object [
 	]
 ]
 
+scroller!: object [
+	position:	none			;-- knob position
+	page-size:	none
+	max-size:	none
+	visible?:	yes
+	vertical?:	yes				;-- read only. YES: vertical NO: horizontal
+	parent:		none
+
+	on-change*: function [word old new][
+		if system/view/debug? [
+			print [
+				"-- scroller on-change event --" lf
+				tab "word :" word			 lf
+				tab "old  :" type? :old		 lf
+				tab "new  :" type? :new
+			]
+		]
+		if all [parent block? parent/state integer? parent/state/1][
+			system/view/platform/update-scroller self (index? in self word) - 1
+		]
+	]
+]
+
+;; Text Box is a graphic object that represents styled text.
+;; It provide support for drawing, cursor navigation, hit testing, 
+;; text wrapping, alignment, tab expansion, line breaking, etc.
+
+text-box!: object [
+	text:		none					;-- a string to draw (string!)
+	size:		none					;-- box size in pixels (pair!)
+	font:		none					;-- font! object
+	para:		none					;-- para! object
+	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	spacing:	none					;-- line spacing (integer!)
+	tabs:		none					;-- tab list (block!)
+	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
+	state:		none					;-- OS handles
+	target:		none					;-- face!, image!, etc.
+	fixed?:		no						;-- fixed line height
+
+	;-- read only properties
+	width:		none					;-- actual width
+	height:		none					;-- actual height
+	line-count: none
+
+	offset?: function [
+		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+		pos		[integer!]
+		return:	[pair!]
+	][
+		system/view/platform/text-box-metrics self/state pos 0
+	]
+
+	index?: function [
+		"Given a coordinate, returns the corresponding text position"
+		pt		[pair!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pt 1
+	]
+
+	line-height: function [
+		"Given a text position, returns the corresponding line's height"
+		pos 	[integer!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pos 2
+	]
+
+	layout: func [][
+		system/view/platform/text-box-layout self
+		system/view/platform/text-box-metrics self/state self 3
+	]
+]
+
 system/view: context [
 	screens: 	none
 	event-port: none
@@ -429,6 +509,8 @@ system/view: context [
 	evt-names: make hash! [
 		detect			on-detect
 		time			on-time
+		draw			on-draw
+		scroll			on-scroll
 		down			on-down
 		up				on-up
 		mid-down		on-mid-down
@@ -525,6 +607,12 @@ do-events: function [
 	:result
 ]
 
+exit-event-loop: function [
+	"exit current event loop"
+][
+	system/view/platform/exit-event-loop
+]
+
 do-safe: func [code [block!] /local result][
 	if error? set/any 'result try/all code [
 		print :result
@@ -570,7 +658,11 @@ show: function [
 			]
 			clear pending
 		]
-		if face/state/2 <> 0 [system/view/platform/update-view face]
+		either zero? face/state/2 [
+			system/view/platform/redraw face/state/1
+		][
+			system/view/platform/update-view face
+		]
 	][
 		new?: yes
 		
@@ -616,10 +708,7 @@ show: function [
 		face/state: reduce [obj 0 none false]
 	]
 
-	if all [face/type <> 'tab-panel face/pane] [
-		foreach f face/pane [show/with f face]
-		system/view/platform/refresh-window face/state/1
-	]
+	if face/pane [foreach f face/pane [show/with f face]]
 	;check-all-reactions face
 	
 	if all [new? face/type = 'window face/visible?][
@@ -708,6 +797,18 @@ dump-face: function [
 	if block? face/pane [foreach f face/pane [dump-face f]]
 	remove/part depth 4
 	face
+]
+
+get-scroller: function [
+	"return a scroller object from a face"
+	face		[object!]
+	orientation [word!]
+	return:		[object!]
+][
+	make scroller! [
+		parent: face
+		vertical?: orientation = 'vertical
+	]
 ]
 
 insert-event-func: function [

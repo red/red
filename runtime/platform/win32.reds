@@ -148,25 +148,11 @@ platform: context [
 				env			[c-string!]
 				return:		[logic!]
 			]
-			FormatMessage: "FormatMessageW" [
-				dwFlags			[integer!]
-				lpSource		[byte-ptr!]
-				dwMessageId		[integer!]
-				dwLanguageId	[integer!]
-				lpBuffer		[int-ptr!]
-				nSize			[integer!]
-				Argument		[integer!]
-				return:			[integer!]
-			]
 			GetSystemTime: "GetSystemTime" [
 				time			[tagSYSTEMTIME]
 			]
 			GetLocalTime: "GetLocalTime" [
 				time			[tagSYSTEMTIME]
-			]
-			LocalFree: "LocalFree" [
-				hMem			[integer!]
-				return:			[integer!]
 			]
 			Sleep: "Sleep" [
 				dwMilliseconds	[integer!]
@@ -352,8 +338,8 @@ platform: context [
 		#if sub-system = 'console [init-dos-console]
 		#if unicode? = yes [
 			h: __iob_func
-			_setmode _fileno h + 1 _O_U16TEXT				;@@ throw an error on failure
-			_setmode _fileno h + 2 _O_U16TEXT				;@@ throw an error on failure
+			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
+			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
 	]
 ]
