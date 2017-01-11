@@ -1168,6 +1168,61 @@ update-combo-box: func [
 	]
 ]
 
+update-scroller: func [
+	scroller [red-object!]
+	flag	 [integer!]
+	/local
+		parent		[red-object!]
+		vertical?	[red-logic!]
+		int			[red-integer!]
+		values		[red-value!]
+		hWnd		[handle!]
+		nTrackPos	[integer!]
+		nPos		[integer!]
+		nPage		[integer!]
+		nMax		[integer!]
+		nMin		[integer!]
+		fMask		[integer!]
+		cbSize		[integer!]
+][
+	;values: object/get-values scroller
+	;parent: as red-object! values + SCROLLER_OBJ_PARENT
+	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	;hWnd: as handle! int/value
+
+	;int: as red-integer! values + flag
+
+	;if flag = SCROLLER_OBJ_VISIBLE? [
+	;	ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
+	;	exit
+	;]
+
+	;fMask: switch flag [
+	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
+	;	SCROLLER_OBJ_PAGE
+	;	SCROLLER_OBJ_MAX [
+	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
+	;		nPage: int/value
+	;		int: as red-integer! values + SCROLLER_OBJ_MAX
+	;		nMin: 1
+	;		nMax: int/value
+	;	 	SIF_RANGE or SIF_PAGE
+	;	]
+	;	default [0]
+	;]
+
+	;if fMask <> 0 [
+	;	fMask: fMask or SIF_DISABLENOSCROLL
+	;	cbSize: size? tagSCROLLINFO
+	;	SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
+	;]
+]
+
+OS-redraw: func [hWnd [integer!]][
+	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+]
+
 OS-refresh-window: func [hWnd [integer!]][0]
 
 OS-show-window: func [
@@ -1608,4 +1663,14 @@ OS-do-draw: func [
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
 	do-draw img/node as red-image! rc cmds yes yes yes yes
+]
+
+OS-draw-face: func [
+	ctx		[draw-ctx!]
+	cmds	[red-block!]
+][
+	if TYPE_OF(cmds) = TYPE_BLOCK [
+		catch RED_THROWN_ERROR [parse-draw ctx cmds yes]
+	]
+	if system/thrown = RED_THROWN_ERROR [system/thrown: 0]
 ]

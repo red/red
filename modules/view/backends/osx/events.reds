@@ -308,7 +308,7 @@ get-event-key: func [
 			if special? [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
-					RED_VK_NEXT		[_page_down]
+					RED_VK_NEXT		[_page-down]
 					RED_VK_END		[_end]
 					RED_VK_HOME		[_home]
 					RED_VK_LEFT		[_left]

@@ -623,7 +623,11 @@ system/view/platform: context [
 	]
 
 	exit-event-loop: routine [][
-		gui/PostQuitMessage 0
+		#switch OS [
+			Windows  [gui/PostQuitMessage 0]
+			MacOSX   [0]
+			#default [0]
+		]
 	]
 
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][

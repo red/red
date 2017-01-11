@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %text-box.reds
+
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
 
 max-colors: 256												;-- max number of colors for gradient
@@ -17,40 +19,6 @@ max-edges: 1000												;-- max number of edges for a polygon
 edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buffer
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
-
-draw-ctx!: alias struct! [
-	raw				[handle!]					;-- OS drawing object: CGContext
-	a				[float32!]					;-- CTM
-	b				[float32!]
-	c				[float32!]
-	d				[float32!]
-	tx				[float32!]
-	ty				[float32!]
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-width		[float32!]
-	pen-style		[integer!]
-	pen-color		[integer!]					;-- 00bbggrr format
-	brush-color		[integer!]					;-- 00bbggrr format
-	font-attrs		[integer!]
-	height			[float32!]
-	colorspace		[integer!]
-	grad-pen		[integer!]
-	grad-type		[integer!]
-	grad-mode		[integer!]
-	grad-x			[float32!]
-	grad-y			[float32!]
-	grad-start		[float32!]
-	grad-stop		[float32!]
-	grad-angle		[float32!]
-	grad-sx			[float32!]
-	grad-sy			[float32!]
-	grad-rotate?	[logic!]
-	grad-scale?		[logic!]
-	pen?			[logic!]
-	brush?			[logic!]
-	on-image?		[logic!]					;-- drawing on image?
-]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -535,6 +503,7 @@ OS-draw-text: func [
 	dc		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
 ][
 	draw-text-at dc/raw text dc/font-attrs pos/x pos/y
 	if dc/brush? [CG-set-color dc/raw dc/brush-color yes]
@@ -1011,11 +980,11 @@ OS-matrix-rotate: func [
 ][
 	ctx: dc/raw
 	if angle <> as red-integer! center [
-		OS-matrix-translate ctx center/x center/y
+		_OS-matrix-translate ctx center/x center/y
 	]
 	CGContextRotateCTM ctx (as float32! PI) / (as float32! 180.0) * get-float32 angle
 	if angle <> as red-integer! center [
-		OS-matrix-translate ctx 0 - center/x 0 - center/y
+		_OS-matrix-translate ctx 0 - center/x 0 - center/y
 	]
 ]
 
@@ -1027,12 +996,20 @@ OS-matrix-scale: func [
 	CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
 ]
 
-OS-matrix-translate: func [
+_OS-matrix-translate: func [
 	ctx [handle!]
 	x	[integer!]
 	y	[integer!]
 ][
 	CGContextTranslateCTM ctx as float32! x as float32! y
+]
+
+OS-matrix-translate: func [
+	dc	[draw-ctx!]
+	x	[integer!]
+	y	[integer!]
+][
+	CGContextTranslateCTM dc/raw as float32! x as float32! y
 ]
 
 OS-matrix-skew: func [
@@ -1070,7 +1047,7 @@ OS-matrix-transform: func [
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
 	OS-matrix-rotate dc rotate center
 	OS-matrix-scale dc scale scale + 1
-	OS-matrix-translate dc/raw translate/x translate/y
+	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
 OS-matrix-push: func [dc [draw-ctx!]][
@@ -1143,6 +1120,8 @@ OS-set-clip: func [
 	dc		[draw-ctx!]
 	upper	[red-pair!]
 	lower	[red-pair!]
+	rect?	[logic!]
+	mode	[integer!]
 	/local
 		ctx [handle!]
 		t	[integer!]
