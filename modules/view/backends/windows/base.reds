@@ -100,10 +100,13 @@ render-text: func [
 		old		[integer!]
 		flags	[integer!]
 		res		[logic!]
+		len		[integer!]
+		str		[c-string!]
 ][
-	unless winxp? [return render-text-d2d values hDC rc]
+	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
 	text: as red-string! values + FACE_OBJ_TEXT
+	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: default-font
@@ -126,16 +129,16 @@ render-text: func [
 			]
 		]
 		SelectObject hDC hFont
-		
-		flags: DT_SINGLELINE
-		para: as red-object! values + FACE_OBJ_PARA
 		flags: either TYPE_OF(para) = TYPE_OBJECT [
 			get-para-flags base para
 		][
-			flags or DT_CENTER or DT_VCENTER
+			DT_SINGLELINE or DT_CENTER or DT_VCENTER
 		]
+		flags: flags or 0800h		;-- DT_NOPREFIX
 		old: SetBkMode hDC 1
-		res: 0 <> DrawText hDC unicode/to-utf16 text -1 rc flags
+		len: -1
+		str: unicode/to-utf16-len text :len yes
+		res: 0 <> DrawText hDC str len rc flags
 		SetBkMode hDC old
 	]
 	res

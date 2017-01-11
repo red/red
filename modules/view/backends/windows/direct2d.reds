@@ -12,6 +12,7 @@ Red/System [
 
 d2d-factory:	as this! 0
 dwrite-factory: as this! 0
+dw-locale-name: as c-string! 0
 
 #define float32-ptr! [pointer! [float32!]]
 #define D2DERR_RECREATE_TARGET 8899000Ch
@@ -494,6 +495,12 @@ DWriteCreateFactory!: alias function! [
 	return:		[integer!]
 ]
 
+GetUserDefaultLocaleName!: alias function! [
+	lpLocaleName	[c-string!]
+	cchLocaleName	[integer!]
+	return:			[integer!]
+]
+
 #define ConvertPointSizeToDIP(size)		(as float32! size / 72.0  * 94.0)
 
 DX-init: func [
@@ -504,6 +511,7 @@ DX-init: func [
 		options				[integer!]
 		D2D1CreateFactory	[D2D1CreateFactory!]
 		DWriteCreateFactory [DWriteCreateFactory!]
+		GetUserDefaultLocaleName [GetUserDefaultLocaleName!]
 ][
 	dll: LoadLibraryA "d2d1.dll"
 	if null? dll [winxp?: yes exit]
@@ -511,6 +519,10 @@ DX-init: func [
 	dll: LoadLibraryA "DWrite.dll"
 	if null? dll [winxp?: yes exit]
 	DWriteCreateFactory: as DWriteCreateFactory! GetProcAddress dll "DWriteCreateFactory"
+	dll: LoadLibraryA "kernel32.dll"
+	GetUserDefaultLocaleName: as GetUserDefaultLocaleName! GetProcAddress dll "GetUserDefaultLocaleName"
+	dw-locale-name: as c-string! allocate 85
+	GetUserDefaultLocaleName dw-locale-name 85
 
 	factory: 0
 	options: 0													;-- debugLevel
@@ -716,7 +728,7 @@ create-text-format: func [
 
 	format: 0
 	factory: as IDWriteFactory dwrite-factory/vtbl
-	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size #u16 "" :format
+	factory/CreateTextFormat dwrite-factory name 0 weight style 5 size dw-locale-name :format
 	if save? [integer/make-at as red-value! h-font format]
 	format
 ]
