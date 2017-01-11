@@ -771,7 +771,7 @@ Red [
 	][
 		TRAP_ERRORS(names/redSkip [
 			stack/push as red-value! series
-			stack/push as red-value offset
+			stack/push as red-value! offset
 			actions/skip*
 			stack/unwind-last
 		])
