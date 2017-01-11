@@ -76,6 +76,7 @@ red_value	redFind(red_series series, red_value value);
 red_value	redIndex(red_series series);
 red_value	redLength(red_series series);
 red_value	redMake(red_value proto, red_value spec);
+red_value	redMold(red_series series);
 red_value	redPick(red_series series, red_value value);
 red_value	redPoke(red_series series, red_value index, red_value value);
 red_value	redPut(red_series series, red_value index, red_value value);
