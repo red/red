@@ -116,6 +116,7 @@ Red/System [
 
 	draw-ctx!: alias struct! [
 		dc				[int-ptr!]								;-- OS drawing object
+		hwnd			[int-ptr!]								;-- Window's handle
 		pen				[integer!]
 		brush			[integer!]
 		pen-join		[integer!]

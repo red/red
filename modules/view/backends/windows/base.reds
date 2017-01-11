@@ -100,10 +100,13 @@ render-text: func [
 		old		[integer!]
 		flags	[integer!]
 		res		[logic!]
+		len		[integer!]
+		str		[c-string!]
 ][
-	unless winxp? [return render-text-d2d values hDC rc]
+	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
 	text: as red-string! values + FACE_OBJ_TEXT
+	para: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(text) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: default-font
@@ -126,16 +129,16 @@ render-text: func [
 			]
 		]
 		SelectObject hDC hFont
-		
-		flags: DT_SINGLELINE
-		para: as red-object! values + FACE_OBJ_PARA
 		flags: either TYPE_OF(para) = TYPE_OBJECT [
 			get-para-flags base para
 		][
-			flags or DT_CENTER or DT_VCENTER
+			DT_SINGLELINE or DT_CENTER or DT_VCENTER
 		]
+		flags: flags or 0800h		;-- DT_NOPREFIX
 		old: SetBkMode hDC 1
-		res: 0 <> DrawText hDC unicode/to-utf16 text -1 rc flags
+		len: -1
+		str: unicode/to-utf16-len text :len yes
+		res: 0 <> DrawText hDC str len rc flags
 		SetBkMode hDC old
 	]
 	res
@@ -457,6 +460,12 @@ BaseWndProc: func [
 				return 0
 			]
 		]
+		0317h	;-- WM_PRINT
+		0318h [ ;-- WM_PRINTCLIENT
+			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			do-draw hWnd as red-image! wParam draw no no no yes
+			return 0
+		]
 		default [0]
 	]
 	DefWindowProc hWnd msg wParam lParam
@@ -493,6 +502,7 @@ update-base-background: func [
 ]
 
 update-base-text: func [
+	hWnd	[handle!]
 	graphic	[integer!]
 	dc		[handle!]
 	text	[red-string!]
@@ -534,7 +544,7 @@ update-base-text: func [
 				hFont: int/value
 			]
 		][
-			hFont: as-integer make-font as red-object! none-value font
+			hFont: as-integer make-font get-face-obj hWnd font
 		]
 		if TYPE_OF(color) = TYPE_TUPLE [clr: color/array1]
 	]
@@ -656,7 +666,7 @@ update-base: func [
 		alpha?: update-base-background graphic color width height
 	]
 	update-base-image graphic img width height
-	update-base-text graphic hBackDC text font para width height
+	update-base-text hWnd graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no yes
 
 	ptSrc/x: 0

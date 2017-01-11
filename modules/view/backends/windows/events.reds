@@ -663,7 +663,9 @@ process-custom-draw: func [
 		color	[red-tuple!]
 		sym		[integer!]
 		old		[integer!]
+		flags	[integer!]
 		DC		[handle!]
+		rc		[RECT_STRUCT]
 ][
 	item:	as tagNMCUSTOMDRAWINFO lParam
 	values: get-face-values item/hWndFrom
@@ -685,21 +687,23 @@ process-custom-draw: func [
 				txt: as red-string! values + FACE_OBJ_TEXT
 				values: object/get-values font
 				color: as red-tuple! values + FONT_OBJ_COLOR
+				old: SetBkMode DC 1
 				if all [
 					TYPE_OF(color) = TYPE_TUPLE
 					color/array1 <> 0
 				][
-					old: SetBkMode DC 1
 					SetTextColor DC color/array1 and 00FFFFFFh
-					DrawText
-						DC
-						unicode/to-utf16 txt
-						-1
-						as RECT_STRUCT (as int-ptr! item) + 5
-						DT_CENTER or DT_VCENTER or DT_SINGLELINE
-					SetBkMode DC old
-					return CDRF_SKIPDEFAULT
 				]
+				rc: as RECT_STRUCT (as int-ptr! item) + 5
+				flags: DT_VCENTER or DT_SINGLELINE
+				either sym = button [
+					flags: flags or DT_CENTER
+				][
+					rc/left: rc/left + 16
+				]
+				DrawText DC unicode/to-utf16 txt -1 rc flags
+				SetBkMode DC old
+				return CDRF_SKIPDEFAULT
 			]
 		]
 	]
@@ -974,7 +978,10 @@ WndProc: func [
 			switch nmhdr/code [
 				TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
 				TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
-				NM_CUSTOMDRAW	[return process-custom-draw wParam lParam]
+				NM_CUSTOMDRAW	[
+					res: process-custom-draw wParam lParam
+					if res <> 0 [return res]
+				]
 				default [0]
 			]
 		]

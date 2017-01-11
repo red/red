@@ -112,10 +112,10 @@ update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
 		handle: ctx/gp-pen
 		GdipSetPenColor handle to-gdiplus-color ctx/pen-color
 		GdipSetPenWidth handle ctx/pen-width
-		if ctx/pen-join <> -1 [
+		if ctx/pen-join <> 0 [
 			OS-draw-line-join ctx ctx/pen-join
 		]
-		if ctx/pen-cap <> -1 [
+		if ctx/pen-cap <> 0 [
 			OS-draw-line-cap ctx ctx/pen-cap
 		]
 	][
@@ -214,28 +214,10 @@ draw-begin: func [
 		hBackDC  [handle!]
 		graphics [integer!]
 ][
-	ctx/pen:			0
-	ctx/brush:			0
+	zero-memory as byte-ptr! ctx size? draw-ctx!
 	ctx/pen-width:		as float32! 1.0
-	ctx/pen-style:		PS_SOLID
-	ctx/pen-color:		0						;-- default: black
-	ctx/pen-join:		-1
-	ctx/pen-cap:		-1
-	ctx/brush-color:	-1
-	ctx/font-color:		-1
-	ctx/gp-brush:		0
-	ctx/gp-pen:			0
-	ctx/gp-pen-saved:	0
-	ctx/gp-font:		0
-	ctx/gp-font-brush:	0
-	ctx/gp-matrix:		0
-	ctx/image-attr:		0
-	ctx/on-image?:		no
 	ctx/pen?:			yes
-	ctx/brush?:			no
-	ctx/alpha-pen?:		no
-	ctx/alpha-brush?:	no
-	ctx/font-color?:	no
+	ctx/hwnd:			hWnd
 	dc:					null
 
 	D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
@@ -265,14 +247,18 @@ draw-begin: func [
 			draw-begin-d2d ctx hWnd
 			return ctx
 		][
-			dc: either paint? [BeginPaint hWnd paint][hScreen]
-			GetClientRect hWnd rect
-			width: rect/right - rect/left
-			height: rect/bottom - rect/top
-			hBitmap: CreateCompatibleBitmap dc width height
-			hBackDC: CreateCompatibleDC dc
-			SelectObject hBackDC hBitmap
-			ctx/bitmap: hBitmap
+			either null? img [
+				dc: either paint? [BeginPaint hWnd paint][hScreen]
+				GetClientRect hWnd rect
+				width: rect/right - rect/left
+				height: rect/bottom - rect/top
+				hBitmap: CreateCompatibleBitmap dc width height
+				hBackDC: CreateCompatibleDC dc
+				SelectObject hBackDC hBitmap
+				ctx/bitmap: hBitmap
+			][
+				hBackDC: as handle! img
+			]
 
 			dc: hBackDC
 			ctx/dc: dc
@@ -345,9 +331,7 @@ draw-end: func [
 	unless zero? ctx/pen			[DeleteObject as handle! ctx/pen]
 	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 
-	unless ctx/on-image? [
-		DeleteObject ctx/bitmap
-	]
+	if ctx/bitmap <> null [DeleteObject ctx/bitmap]
 	either cache? [
 		old-dc: GetWindowLong hWnd wc-offset - 4
 		unless zero? old-dc [DeleteDC as handle! old-dc]
@@ -1422,7 +1406,7 @@ OS-draw-font: func [
 		int: as red-integer! block/rs-head state
 		int/value
 	][
-		make-font as red-object! none-value font
+		make-font get-face-obj ctx/hwnd font
 	]
 
 	SelectObject ctx/dc hFont
