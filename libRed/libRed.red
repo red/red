@@ -317,6 +317,14 @@ Red [
 		ring/store import-string s names/redString yes
 	]
 	
+	redPair: func [
+		x		[integer!]
+		y		[integer!]
+		return: [red-pair!]
+	][
+		pair/make-at ring/alloc x y
+	]
+	
 	redSymbol: func [
 		s		[c-string!]
 		return: [integer!]								;-- symbol ID, -1 if error
@@ -884,6 +892,7 @@ Red [
 		redLogic
 		redInteger
 		redFloat
+		redPair
 		redString
 		redSymbol
 		redWord
