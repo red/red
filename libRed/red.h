@@ -46,24 +46,24 @@ red_value	redCall(red_word name, ...);
 red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 
 /* C -> Red */
-int			redSymbol(const char* word);
+long		redSymbol(const char* word);
 red_none	redNone();
-red_logic	redLogic(int logic);
-red_integer	redInteger(int number);
+red_logic	redLogic(long logic);
+red_integer	redInteger(long number);
 red_float	redFloat(double number);
-red_pair	redPair(int x, int y);
+red_pair	redPair(long x, long y);
 red_string	redString(const char* string);
 red_word	redWord(const char* word);
 red_block	redBlock(red_value v,...);
 red_path	redPath(red_value v, ...);
 red_path	redLoadPath(const char* path);
-red_value	redMakeSeries(unsigned int type, unsigned int slots);
+red_value	redMakeSeries(unsigned long type, unsigned long slots);
 
 /* Red -> C */
-int			redCInt32(red_integer number);
+long		redCInt32(red_integer number);
 double		redCDouble(red_float number);
 const char*	redCString(red_string string);
-int			redTypeOf(red_value value);
+long		redTypeOf(red_value value);
 
 /* Red actions */
 red_value	redAppend(red_series series, red_value value);
@@ -83,8 +83,8 @@ red_value	redSkip(red_series series, red_integer offset );
 red_value	redTo(red_value proto, red_value spec);
 
 /* Access to a Red global word */
-red_value	redSet(int id, red_value value);
-red_value	redGet(int id);
+red_value	redSet(long id, red_value value);
+red_value	redGet(long id);
 
 /* Access to a Red path */
 red_value	redSetPath(red_path path, red_value value);
