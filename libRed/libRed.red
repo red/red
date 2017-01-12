@@ -873,14 +873,18 @@ Red [
 	redFormError: func [
 		return: [c-string!]
 	][
-		redCString form-value last-error -1
+		either last-error = null [null][
+			redCString form-value last-error -1
+		]
 	]
 	
 	#either OS = 'Windows [
 		redVFormError: func [
 			var	[tagVARIANT]
 		][
-			redVString form-value last-error -1 var
+			either last-error = null [null][
+				redVString form-value last-error -1 var
+			]
 		]
 	][
 		redVFormError: does []
