@@ -66,9 +66,10 @@ update-font: func [
 ]
 
 OS-request-font: func [
-	font	[red-object!]
-	mono?	[logic!]
-	return: [red-object!]
+	font		[red-object!]
+	selected	[red-object!]
+	mono?		[logic!]
+	return:		[red-object!]
 ][
 	font
 ]

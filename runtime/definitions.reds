@@ -152,7 +152,23 @@ Red/System [
 			on-image?		[logic!]					;-- drawing on image?
 		]
 	]
-	#default []											;-- Linux?
+	Linux [
+		draw-ctx!: alias struct! [
+			raw				[int-ptr!]
+			pen-join		[integer!]
+			pen-cap			[integer!]
+			pen-width		[integer!]
+			pen-style		[integer!]
+			pen-color		[integer!]					;-- 00bbggrr format
+			brush-color		[integer!]					;-- 00bbggrr format
+			font-color		[integer!]
+			pen?			[logic!]
+			brush?			[logic!]
+			pattern			[int-ptr!]
+			on-image?		[logic!]					;-- drawing on image?
+		]
+	]
+	#default []
 ]
 
 #either OS = 'Windows [

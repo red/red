@@ -10,20 +10,7 @@ Red/System [
 	}
 ]
 
-draw-ctx!: alias struct! [
-	raw				[handle!]
-	pen-join		[integer!]
-	pen-cap			[integer!]
-	pen-width		[integer!]
-	pen-style		[integer!]
-	pen-color		[integer!]					;-- 00bbggrr format
-	brush-color		[integer!]					;-- 00bbggrr format
-	font-color		[integer!]
-	pen?			[logic!]
-	brush?			[logic!]
-	pattern			[handle!]
-	on-image?		[logic!]					;-- drawing on image?
-]
+#include %text-box.reds
 
 set-source-color: func [
 	cr			[handle!]
@@ -349,6 +336,7 @@ OS-draw-image: func [
 	end			[red-pair!]
 	key-color	[red-tuple!]
 	border?		[logic!]
+	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
 		x		[integer!]
@@ -470,7 +458,7 @@ OS-matrix-scale: func [
 ]
 
 OS-matrix-translate: func [
-	ctx [handle!]
+	dc	[draw-ctx!]
 	x	[integer!]
 	y	[integer!]
 ][
@@ -506,7 +494,7 @@ OS-matrix-transform: func [
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
 	OS-matrix-rotate dc rotate center
 	OS-matrix-scale dc scale scale + 1
-	OS-matrix-translate dc/raw translate/x translate/y
+	OS-matrix-translate dc translate/x translate/y
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] /local state [integer!]][
