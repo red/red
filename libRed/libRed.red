@@ -53,10 +53,22 @@ Red [
 		ring/store res
 	]
 	
+	#define CHECK_LIB_OPENED_RETURN(type) [
+		unless lib-opened? [return as type -2]
+	]
+	
+	#define CHECK_LIB_OPENED_RETURN_INT [
+		unless lib-opened? [return -2]
+	]
+	
+	#define CHECK_LIB_OPENED [
+		unless lib-opened? [exit]
+	]
+	
 	cmd-blk:	 declare red-block!
 	extern-blk:  declare red-block!
 	last-error:  as red-value! 0
-	lib-loaded?: no
+	lib-opened?: no
 	
 	encoding-in:  UTF8
 	encoding-out: UTF8
@@ -204,13 +216,13 @@ Red [
 	redOpen: func [
 		"Initialize the Red runtime for the current instance"
 	][
-		unless lib-loaded? [
+		unless lib-opened? [
 			red/boot
 			ring/init
 			block/make-at cmd-blk 10
 			block/make-at extern-blk 1
 			block/rs-append extern-blk as red-value! names/extern
-			lib-loaded?: yes
+			lib-opened?: yes
 		]
 	]
 	
@@ -221,6 +233,7 @@ Red [
 		/local
 			blk [red-block!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		blk: as red-block! load-string src names/redDo
 		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk names/redDo]
 		ring/store stack/arguments
@@ -231,12 +244,14 @@ Red [
 		code	[red-block!]	"Block to evaluate"
 		return: [red-value!]	"Last value or error! value"
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		ring/store do-safe code names/redDoBlock
 	]
 	
 	redClose: func [
 		"Releases dynamic memory allocated for the current instance"
 	][
+		CHECK_LIB_OPENED
 		ring/destroy
 		;@@ Free the main buffers
 		free as byte-ptr! natives/table
@@ -259,10 +274,12 @@ Red [
 	redOpenLogFile: func [
 		name [c-string!]
 	][
+		CHECK_LIB_OPENED
 		stdout: red/simple-io/open-file name red/simple-io/RIO_APPEND no
 	]
 	
 	redCloseLogFile: does [
+		CHECK_LIB_OPENED
 		red/simple-io/close-file stdout
 	]
 
@@ -279,6 +296,7 @@ Red [
 		/local
 			cell [red-unset!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-unset!)
 		cell: as red-unset! ring/alloc
 		cell/header: TYPE_UNSET
 		cell
@@ -289,6 +307,7 @@ Red [
 		/local
 			cell [red-none!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-none!)
 		cell: as red-none! ring/alloc
 		cell/header: TYPE_NONE
 		cell
@@ -300,6 +319,7 @@ Red [
 		/local
 			cell [red-logic!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-logic!)
 		cell: as red-logic! ring/alloc
 		cell/header: TYPE_LOGIC
 		cell/value: as-logic bool
@@ -310,6 +330,7 @@ Red [
 		n		[integer!]
 		return: [red-integer!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-integer!)
 		integer/make-at ring/alloc n
 	]
 	
@@ -317,6 +338,7 @@ Red [
 		f		[float!]
 		return: [red-float!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-float!)
 		float/make-at ring/alloc f
 	]
 	
@@ -324,6 +346,7 @@ Red [
 		s		[c-string!]
 		return: [red-value!] "String! or error! value"
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		ring/store import-string s names/redString yes
 	]
 	
@@ -332,6 +355,7 @@ Red [
 		y		[integer!]
 		return: [red-pair!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-pair!)
 		pair/make-at ring/alloc x y
 	]
 	
@@ -341,6 +365,7 @@ Red [
 		/local
 			word [red-word!]
 	][
+		CHECK_LIB_OPENED_RETURN_INT
 		either encoding-in = UTF8 [
 			symbol/make s
 		][
@@ -356,6 +381,7 @@ Red [
 			str [red-string!]
 			res	[red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		either encoding-in = UTF8 [
 			as red-value! word/make-at symbol/make s ring/alloc
 		][
@@ -382,6 +408,7 @@ Red [
 			list [int-ptr!]
 			p	 [int-ptr!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-block!)
 		list: system/stack/frame
 		list: list + 2									;-- jump to 1st argument
 		p: list
@@ -406,6 +433,7 @@ Red [
 			list [int-ptr!]
 			p	 [int-ptr!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-path!)
 		list: system/stack/frame
 		list: list + 2									;-- jump to 1st argument
 		p: list
@@ -429,6 +457,7 @@ Red [
 		/local
 			blk	[red-block!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		blk: as red-block! load-string src names/redLDPath
 		ring/store either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
@@ -444,6 +473,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/action [
 			datatype/push type
 			integer/push size
@@ -456,6 +486,7 @@ Red [
 		int		[red-integer!]
 		return: [integer!]
 	][
+		CHECK_LIB_OPENED_RETURN_INT
 		if TYPE_OF(int) <> TYPE_INTEGER [make-error names/redCInt32]
 		int/value
 	]
@@ -464,6 +495,7 @@ Red [
 		fl		[red-float!]
 		return: [float!]
 	][
+		CHECK_LIB_OPENED_RETURN(float!)
 		if TYPE_OF(fl) <> TYPE_FLOAT [make-error names/redCDouble]
 		fl/value
 	]
@@ -475,6 +507,7 @@ Red [
 			len [integer!]
 			s	[c-string!]
 	][
+		CHECK_LIB_OPENED_RETURN(c-string!)
 		if TYPE_OF(str) <> TYPE_STRING [
 			make-error names/redCString
 			return null
@@ -497,6 +530,7 @@ Red [
 			str	[red-string!]
 			var	[tagVARIANT]
 		][
+			CHECK_LIB_OPENED
 			if TYPE_OF(str) <> TYPE_STRING [
 				make-error names/redVString
 				exit
@@ -515,6 +549,7 @@ Red [
 		value	[red-value!] "value to be referred to"
 		return: [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		_context/set-global id value
 	]
 	
@@ -523,6 +558,7 @@ Red [
 		id		[integer!]	 "Symbol ID of the word to get"
 		return: [red-value!] "Value referred by the word"
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		_context/get-global id
 	]
 	
@@ -533,6 +569,7 @@ Red [
 		/local
 			p [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
 		p/header: TYPE_SET_PATH
@@ -546,6 +583,7 @@ Red [
 		/local
 			p [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		block/rs-clear cmd-blk
 		p: block/rs-append cmd-blk as red-value! path
 		ring/store do-safe cmd-blk names/redGetPath
@@ -565,6 +603,7 @@ Red [
 			list [int-ptr!]
 			p	 [int-ptr!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		list: system/stack/frame
 		list: list + 2									;-- jump to 1st argument
 		p: list
@@ -585,6 +624,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redAppend [
 			stack/push as red-value! series
 			stack/push value
@@ -600,6 +640,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redChange [
 			stack/push as red-value! series
 			stack/push value
@@ -614,6 +655,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redClear [
 			stack/push as red-value! series
 			actions/clear*
@@ -627,6 +669,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redCopy [
 			stack/push as red-value! series
 			actions/copy* -1 -1 -1
@@ -641,6 +684,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redFind [
 			stack/push as red-value! series
 			stack/push value
@@ -655,6 +699,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redIndex? [
 			stack/push as red-value! series
 			actions/index?*
@@ -668,6 +713,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redLength? [
 			stack/push as red-value! series
 			actions/length?*
@@ -682,6 +728,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redMake [
 			stack/push proto
 			stack/push spec
@@ -696,6 +743,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redMold [
 			stack/push value
 			actions/mold* -1 -1 -1 -1
@@ -710,6 +758,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redPick [
 			stack/push as red-value! series
 			stack/push value
@@ -726,6 +775,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redPoke [
 			stack/push as red-value! series
 			stack/push index
@@ -743,6 +793,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redPut [
 			stack/push as red-value! series
 			stack/push index
@@ -758,6 +809,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redRemove [
 			stack/push as red-value! series
 			actions/remove* -1
@@ -772,6 +824,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redSelect [
 			stack/push as red-value! series
 			stack/push value
@@ -787,6 +840,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redSkip [
 			stack/push as red-value! series
 			stack/push as red-value! offset
@@ -802,6 +856,7 @@ Red [
 		/local
 			res [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		TRAP_ERRORS(names/redTo [
 			stack/push proto
 			stack/push spec
@@ -820,6 +875,7 @@ Red [
 			blk  [red-block!]
 			res	 [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		spec: as red-block! load-string desc names/redRoutine
 		either TYPE_OF(spec) <> TYPE_BLOCK [
 			as red-value! spec
@@ -851,6 +907,7 @@ Red [
 	redPrint: func [
 		value [red-value!]
 	][
+		CHECK_LIB_OPENED
 		stack/mark-native names/print
 		stack/push value
 		natives/print* yes
@@ -861,6 +918,7 @@ Red [
 		value	[red-value!]
 		return: [red-value!]
 	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
 		#call [probe value]
 	]
 	
@@ -873,6 +931,7 @@ Red [
 	redFormError: func [
 		return: [c-string!]
 	][
+		CHECK_LIB_OPENED_RETURN(c-string!)
 		either last-error = null [null][
 			redCString form-value last-error -1
 		]
@@ -882,6 +941,7 @@ Red [
 		redVFormError: func [
 			var	[tagVARIANT]
 		][
+			CHECK_LIB_OPENED
 			either last-error = null [null][
 				redVString form-value last-error -1 var
 			]
