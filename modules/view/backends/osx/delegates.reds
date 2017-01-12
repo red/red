@@ -734,6 +734,7 @@ draw-rect: func [
 		size	[red-pair!]
 		bmp		[integer!]
 		v1010?	[logic!]
+		DC		[draw-ctx!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
 	v1010?: as logic! objc_msgSend [nsctx sel_getUid "respondsToSelector:" sel_getUid "CGContext"]
@@ -758,7 +759,18 @@ draw-rect: func [
 	]
 	render-text ctx vals as NSSize! (as int-ptr! self) + 8
 
-	do-draw ctx as red-image! (as int-ptr! self) + 8 draw no yes yes yes
+	img: as red-image! (as int-ptr! self) + 8				;-- view's size
+	either TYPE_OF(draw) = TYPE_BLOCK [
+		do-draw ctx img draw no yes yes yes
+	][
+		system/thrown: 0
+		DC: _draw-ctx						;@@ should declare it on stack
+		draw-begin DC ctx img no yes
+		integer/make-at as red-value! draw as-integer DC
+		make-event self 0 EVT_DRAW
+		draw/header: TYPE_NONE
+		draw-end DC ctx no no yes
+	]
 ]
 
 return-field-editor: func [

@@ -183,48 +183,66 @@ OS-text-box-layout: func [
 	target	[int-ptr!]
 	catch?	[logic!]
 	return: [integer!]
+	/local
+		values	[red-value!]
+		state	[red-block!]
+		int		[red-integer!]
+		styles	[red-block!]
+		size	[red-pair!]
+		layout	[integer!]
+		ts		[integer!]
+		tc		[integer!]
+		str		[integer!]
+		w		[integer!]
+		h		[integer!]
+		sz		[NSSize!]
 ][
-	;values: object/get-values box
-	;if null? target [
-	;	hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
-	;	target: get-hwnd-render-target hWnd
-	;]
+	values: object/get-values box
 
-	;state: as red-block! values + TBOX_OBJ_STATE
-	;either TYPE_OF(state) = TYPE_BLOCK [
-	;	int: as red-integer! block/rs-head state	;-- release previous text layout
-	;	layout: as this! int/value
-	;	COM_SAFE_RELEASE(IUnk layout)
-	;	int: int + 1
-	;	fmt: as this! int/value
-	;][
-	;	fixed?: as red-logic! values + TBOX_OBJ_FIXED?
-	;	fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-	;	if fixed?/value [set-line-spacing fmt]
-	;	block/make-at state 2
-	;	none/make-in state							;-- 1: text layout
-	;	integer/make-in state as-integer fmt		;-- 2: text format
-	;]
+	state: as red-block! values + TBOX_OBJ_STATE
+	either TYPE_OF(state) = TYPE_BLOCK [
+		int: as red-integer! block/rs-head state
+		layout: int/value
+	][
+		str: to-NSString as red-string! values + TBOX_OBJ_TEXT
+		size: as red-pair! values + TBOX_OBJ_SIZE
+		h: 0
+		sz: as NSSize! :h
+		sz/w: as float32! 1e37 sz/h: as float32! 1e37
+		if TYPE_OF(size) = TYPE_PAIR [
+			unless zero? size/x [sz/w: as float32! size/x]
+			unless zero? size/y [sz/h: as float32! size/y]
+		]
+		ts: objc_msgSend [
+			objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
+			sel_getUid "initWithString:" str
+		]
 
-	;set-text-format fmt as red-object! values + TBOX_OBJ_PARA
+		tc: objc_msgSend [
+			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
+			sel_getUid "initWithSize:" sz/w sz/h
+		]
+		layout: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
 
-	;str: as red-string! values + TBOX_OBJ_TEXT
-	;size: as red-pair! values + TBOX_OBJ_SIZE
-	;either TYPE_OF(size) = TYPE_PAIR [
-	;	w: size/x h: size/y
-	;][
-	;	w: 0 h: 0
-	;]
-	;layout: create-text-layout str fmt w h
-	;integer/make-at block/rs-head state as-integer layout
+		objc_msgSend [layout sel_getUid "addTextContainer:" tc]
+		objc_msgSend [tc sel_release]
+		objc_msgSend [ts sel_getUid "addLayoutManager:" layout]
+		objc_msgSend [layout sel_release]
 
-	;styles: as red-block! values + TBOX_OBJ_STYLES
-	;if all [
-	;	TYPE_OF(styles) = TYPE_BLOCK
-	;	2 < block/rs-length? styles
-	;][
-	;	parse-text-styles target as handle! layout styles catch?
-	;]
-	;layout
-	0
+		block/make-at state 3
+		integer/make-in state layout
+		integer/make-in state tc
+		integer/make-in state ts
+	]
+
+	;@@ set para: as red-object! values + TBOX_OBJ_PARA
+
+	styles: as red-block! values + TBOX_OBJ_STYLES
+	if all [
+		TYPE_OF(styles) = TYPE_BLOCK
+		2 < block/rs-length? styles
+	][
+		parse-text-styles target as handle! layout styles catch?
+	]
+	layout
 ]

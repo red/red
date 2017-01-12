@@ -499,14 +499,57 @@ draw-text-at: func [
 	CFRelease line
 ]
 
+draw-text-box: func [
+	ctx		[handle!]
+	pos		[red-pair!]
+	tbox	[red-object!]
+	catch?	[logic!]
+	/local
+		int		[red-integer!]
+		state	[red-block!]
+		layout	[integer!]
+		tc		[integer!]
+		idx		[integer!]
+		len		[integer!]
+		y		[integer!]
+		x		[integer!]
+		pt		[CGPoint!]
+][
+	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
+
+	if TYPE_OF(state) <> TYPE_BLOCK [
+		OS-text-box-layout tbox null catch?
+	]
+
+	int: as red-integer! block/rs-head state
+	layout: int/value
+	int: int + 1
+	tc: int/value
+
+	idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
+	len: system/cpu/edx
+	x: 0
+	pt: as CGPoint! :x
+	pt/x: as float32! pos/x
+	pt/y: as float32! pos/y
+	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
+]
+
 OS-draw-text: func [
 	dc		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
 	catch?	[logic!]
+	/local
+		ctx [handle!]
 ][
-	draw-text-at dc/raw text dc/font-attrs pos/x pos/y
-	if dc/brush? [CG-set-color dc/raw dc/brush-color yes]
+	ctx: dc/raw
+	either TYPE_OF(text) = TYPE_STRING [
+		draw-text-at ctx text dc/font-attrs pos/x pos/y
+	][
+		draw-text-box ctx pos as red-object! text catch?
+	]
+	if dc/brush? [CG-set-color ctx dc/brush-color yes]
 ]
 
 _draw-arc: func [
