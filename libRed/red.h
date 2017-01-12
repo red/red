@@ -35,8 +35,8 @@ typedef red_value red_series;
 typedef red_value red_error;
 
 /* Setup and terminate */
-void		redOpen();
-void		redClose();
+void		redOpen(void);
+void		redClose(void);
 
 /* Run Red code */
 red_value	redDo(const char* source);
@@ -48,8 +48,8 @@ red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 
 /* C -> Red */
 long		redSymbol(const char* word);
-red_unset	redUnset();
-red_none	redNone();
+red_unset	redUnset(void);
+red_none	redNone(void);
 red_logic	redLogic(long logic);
 red_integer	redInteger(long number);
 red_float	redFloat(double number);
@@ -82,7 +82,7 @@ red_value	redPoke(red_series series, red_value index, red_value value);
 red_value	redPut(red_series series, red_value index, red_value value);
 red_value	redRemove(red_series series);
 red_value	redSelect(red_series series, red_value value);
-red_value	redSkip(red_series series, red_integer offset );
+red_value	redSkip(red_series series, red_integer offset);
 red_value	redTo(red_value proto, red_value spec);
 
 /* Access to a Red global word */
@@ -98,8 +98,8 @@ void		redPrint(red_value value);
 red_value	redProbe(red_value value);
 red_value	redHasError(void);
 const char*	redFormError(void);
-int			redOpenDebugConsole();
-int			redCloseDebugConsole();
+int			redOpenDebugConsole(void);
+int			redCloseDebugConsole(void);
 
 /* Red Types */
 typedef enum
