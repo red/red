@@ -10,10 +10,12 @@ redCloseLogFile
 redOpenDebugConsole
 redCloseDebugConsole
 
+redUnset
 redNone
 redLogic
 redInteger
 redFloat
+redPair
 redString
 redSymbol
 redWord
@@ -40,9 +42,10 @@ redChange
 redClear
 redCopy
 redFind
-redIndex?
-redLength?
+redIndex
+redLength
 redMake
+redMold
 redPick
 redPoke
 redPut
