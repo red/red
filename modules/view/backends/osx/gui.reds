@@ -330,6 +330,8 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = scrollable [0]
+			sym = Direct2D	 [0]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1

@@ -196,6 +196,8 @@ OS-text-box-layout: func [
 		w		[integer!]
 		h		[integer!]
 		sz		[NSSize!]
+		attrs	[integer!]
+		nsfont	[integer!]
 ][
 	values: object/get-values box
 
@@ -213,15 +215,27 @@ OS-text-box-layout: func [
 			unless zero? size/x [sz/w: as float32! size/x]
 			unless zero? size/y [sz/h: as float32! size/y]
 		]
-		ts: objc_msgSend [
-			objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
-			sel_getUid "initWithString:" str
-		]
-
 		tc: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
 			sel_getUid "initWithSize:" sz/w sz/h
 		]
+		objc_msgSend [tc sel_getUid "setLineFragmentPadding:" 0]
+
+		ts: objc_msgSend [
+			objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
+			sel_getUid "initWithString:" str
+		]
+		w: objc_msgSend [str sel_getUid "length"]
+		nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
+		attrs: objc_msgSend [
+			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+			sel_getUid "initWithObjectsAndKeys:"
+			nsfont NSFontAttributeName
+			0
+		]
+		objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
+		objc_msgSend [attrs sel_getUid "release"]
+
 		layout: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
 
 		objc_msgSend [layout sel_getUid "addTextContainer:" tc]
