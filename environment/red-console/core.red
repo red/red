@@ -10,23 +10,25 @@ terminal!: object [
 	lines:		make block! 1000				;-- line buffer
 	nlines:		make block! 1000				;-- line count of each line
 	heights:	make block! 1000				;-- height of each line
+	selects:	make block! 8					;-- selected texts: [start-linenum idx end-linenum idx]
 
 	max-lines:	1000							;-- maximum size of the line buffer
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
+	mouse-up?:	yes
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
 	pos:		0								;-- insert position of the current editing line
 
-	scroll-y:	0
+	scroll-y:	0								;-- in pixels
 
 	line-y:		0								;-- y offset of editing line
 	line-h:		0								;-- average line height
 	page-cnt:	0								;-- number of lines in one page
 	line-cnt:	0								;-- number of lines in total (include wrapped lines)
+	screen-cnt: 0								;-- number of lines on screen
 	delta-cnt:	0
-	screen-cnt: 0
 
 	box:		make text-box! []
 	caret:		none
@@ -153,14 +155,58 @@ terminal!: object [
 		]
 	]
 
-	mouse-down: func [event [event!] /local offset][
+	offset-to-line: func [offset [pair!] /local h y start end n][
+		if offset/y > (line-y + last heights) [exit]
+
+		y: offset/y - scroll-y
+		end: line-y - scroll-y
+		h: 0
+		n: top
+		until [
+			h: h + pick heights n
+			if y < h [break]
+			n: n + 1
+			h > end
+		]
+		box/text: head pick lines n
+		box/layout
+		start: pick heights n
+		offset/y: y + start - h
+		append selects n
+		append selects box/index? offset
+	]
+
+	mouse-to-caret: func [event [event!] /local offset][
 		offset: event/offset
 		if any [offset/y < line-y offset/y > (line-y + last heights)][exit]
+
+		offset/y: offset/y - line-y
 		box/text: head line
 		box/layout
 		pos: (box/index? offset) - (index? line)
 		if pos < 0 [pos: 0]
 		update-caret
+	]
+
+	mouse-down: func [event [event!]][
+		mouse-up?: no
+		clear selects
+
+		offset-to-line event/offset
+		mouse-to-caret event
+	]
+
+	mouse-up: func [event [event!]][
+		mouse-up?: yes
+	]
+
+	mouse-move: func [event [event!]][
+		if any [mouse-up? empty? selects][exit]
+
+		clear skip selects 2
+		offset-to-line event/offset
+		mouse-to-caret event
+		show target
 	]
 
 	move-caret: func [n][
@@ -306,6 +352,30 @@ terminal!: object [
 		show target
 	]
 
+	paint-selects: func [box n /local start-n end-n start-idx end-idx bg styles][
+		if any [empty? selects 3 > length? selects][exit]
+
+		bg: [backdrop 200.200.255]
+		set [start-n start-idx end-n end-idx] selects
+?? n
+		if any [
+			n < start-n
+			n > end-n
+			all [start-n = end-n start-idx = end-idx]				;-- select nothing
+		][exit]
+
+probe "jfkdls"
+?? n
+		styles: box/styles
+		either start-n = end-n [
+			append styles start-idx
+			append styles end-idx - start-idx
+			append styles bg
+		][
+			0
+		]
+	]
+
 	paint: func [/local str cmds y n h cnt delta num end][
 		cmds: [text 0x0 text-box]
 		cmds/3: box
@@ -313,9 +383,11 @@ terminal!: object [
 		y: scroll-y
 		n: top
 		num: line-cnt
+		probe selects
 		foreach str at lines top [
 			box/text: head str
 			highlight/add-styles head str clear box/styles
+			paint-selects box n
 			box/layout
 			cmds/2/y: y
 			draw target cmds
@@ -339,7 +411,7 @@ terminal!: object [
 
 console!: make face! [
 	type: 'base color: white offset: 0x0 size: 400x400 cursor: 'I-beam
-	flags: [Direct2D scrollable]
+	flags: [Direct2D scrollable all-over]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste
@@ -365,6 +437,12 @@ console!: make face! [
 		]
 		on-down: func [face [object!] event [event!]][
 			extra/mouse-down event
+		]
+		on-up: func [face [object!] event [event!]][
+			extra/mouse-up event
+		]
+		on-over: func [face [object!] event [event!]][
+			extra/mouse-move event
 		]
 		on-menu: func [face [object!] event [event!]][
 			switch event/picked [

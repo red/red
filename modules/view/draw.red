@@ -35,7 +35,7 @@ Red/System [
         prepend:        symbol/make "prepend"
 		invert-matrix:	symbol/make "invert-matrix"
 		reset-matrix:	symbol/make "reset-matrix"
-		push:			symbol/make "push"
+		_push:			symbol/make "push"
 		clip:			symbol/make "clip"
 		crop:			symbol/make "crop"
         replace:        symbol/make "replace"
@@ -763,7 +763,7 @@ Red/System [
 										as red-pair! cmd
 								]
 							]
-							sym = push [
+							sym = _push [
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
 								OS-matrix-push DC :state
 								parse-draw DC as red-block! start catch?
