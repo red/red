@@ -872,10 +872,10 @@ Red/System [
 								OS-text-box-background dc layout idx len rgb
 							]
 							sym = _bold [
-								OS-text-box-weight layout idx len 700
+								OS-text-box-weight dc layout idx len 700
 							]
 							sym = _italic [
-								OS-text-box-italic layout idx len
+								OS-text-box-italic dc layout idx len
 							]
 							sym = _underline [
 								DRAW_FETCH_OPT_VALUE(TYPE_TUPLE)		;-- color
@@ -894,11 +894,11 @@ Red/System [
 							]
 							sym = _font-name [
 								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name layout idx len as red-string! start
+								OS-text-box-font-name dc layout idx len as red-string! start
 							]
 							sym = _font-size [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-								OS-text-box-font-size layout idx len get-float as red-integer! start
+								OS-text-box-font-size dc layout idx len get-float as red-integer! start
 							]
 							true [throw-draw-error cmds cmd catch?]
 						]

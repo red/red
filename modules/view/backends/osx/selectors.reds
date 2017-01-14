@@ -16,20 +16,24 @@ Red/System [
 
 ;-- User's define selectors
 
-sel-on-timer:			0
-sel_release:			0
-sel_alloc:				0
-sel_init:				0
-sel_changeFont:			0
-sel_windowWillClose:	0
-sel_addObject:			0
+sel-on-timer:					0
+sel_release:					0
+sel_alloc:						0
+sel_init:						0
+sel_changeFont:					0
+sel_windowWillClose:			0
+sel_addObject:					0
+sel_addAttributes:				0
+sel_initWithObjectsAndKeys:		0
 
 init-selectors: does [
-	sel-on-timer:			sel_getUid "on-timer:"
-	sel_release:			sel_getUid "release"
-	sel_alloc:				sel_getUid "alloc"
-	sel_init:				sel_getUid "init"
-	sel_changeFont:			sel_getUid "changeFont:"
-	sel_windowWillClose:	sel_getUid "windowWillClose:"
-	sel_addObject:			sel_getUid "addObject:"
+	sel-on-timer:				sel_getUid "on-timer:"
+	sel_release:				sel_getUid "release"
+	sel_alloc:					sel_getUid "alloc"
+	sel_init:					sel_getUid "init"
+	sel_changeFont:				sel_getUid "changeFont:"
+	sel_windowWillClose:		sel_getUid "windowWillClose:"
+	sel_addObject:				sel_getUid "addObject:"
+	sel_addAttributes:			sel_getUid "addAttributes:range:"
+	sel_initWithObjectsAndKeys:	sel_getUid "initWithObjectsAndKeys:"
 ]

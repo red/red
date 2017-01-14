@@ -393,6 +393,7 @@ tagSIZE: alias struct! [
 		NSFontAttributeName: "NSFontAttributeName" [integer!]
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
+		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [integer!]
 		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
 		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
 	]
@@ -788,21 +789,18 @@ to-CFString: func [str [red-string!] return: [integer!] /local len][
 	CFStringCreateWithCString 0 unicode/to-utf8 str :len kCFStringEncodingUTF8
 ]
 
-to-NSColor: func [
-	color	[red-tuple!]
+rs-to-NSColor: func [
+	clr		[integer!]
 	return: [integer!]
 	/local
-		clr [integer!]
-		r	[float32!]
-		g	[float32!]
-		b	[float32!]
-		a	[float32!]
+		r	[integer!]
+		g	[integer!]
+		b	[integer!]
+		a	[integer!]
 		c	[NSColor!]
 ][
-	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
-
-	c: declare NSColor!
-	clr: color/array1
+	a: 0
+	c: as NSColor! :a
 	c/r: (as float32! clr and FFh) / 255.0
 	c/g: (as float32! clr >> 8 and FFh) / 255.0
 	c/b: (as float32! clr >> 16 and FFh) / 255.0
@@ -813,6 +811,14 @@ to-NSColor: func [
 		sel_getUid "colorWithDeviceRed:green:blue:alpha:"
 		c/r c/g c/b c/a
 	]
+]
+
+to-NSColor: func [
+	color	[red-tuple!]
+	return: [integer!]
+][
+	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
+	rs-to-NSColor color/array1
 ]
 
 make-CGMatrix: func [

@@ -18,24 +18,27 @@ Red/System [
 
 max-line-cnt:  0
 
+#define ADD_ATTRIBUTE [
+	objc_msgSend [layout sel_addAttributes attrs pos len]
+	objc_msgSend [attrs sel_release]
+]
+
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
+	/local
+		attrs [integer!]
 ][
-	;brush: select-brush dc + 1 color
-	;if zero? brush [
-	;	this: as this! dc/value
-	;	rt: as ID2D1HwndRenderTarget this/vtbl
-	;	rt/CreateSolidColorBrush this to-dx-color color null null :brush
-	;	put-brush dc + 1 color brush
-	;]
-
-	;this: as this! layout
-	;dl: as IDWriteTextLayout this/vtbl
-	;dl/SetDrawingEffect this as this! brush pos len
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		rs-to-NSColor color NSForegroundColorAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-background: func [
@@ -45,38 +48,66 @@ OS-text-box-background: func [
 	len		[integer!]
 	color	[integer!]
 	/local
-		cache	[red-vector!]
-		brush	[integer!]
+		attrs [integer!]
 ][
-	;cache: as red-vector! dc + 3
-	;if TYPE_OF(cache) <> TYPE_VECTOR [
-	;	vector/make-at as red-value! cache 128 TYPE_INTEGER 4
-	;]
-	;brush: select-brush dc + 1 color
-	;if zero? brush [
-	;	this: as this! dc/value
-	;	rt: as ID2D1HwndRenderTarget this/vtbl
-	;	rt/CreateSolidColorBrush this to-dx-color color null null :brush
-	;	put-brush dc + 1 color brush
-	;]
-	;vector/rs-append-int cache pos
-	;vector/rs-append-int cache len
-	;vector/rs-append-int cache brush
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		rs-to-NSColor color NSBackgroundColorAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-weight: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	weight	[integer!]
+	/local
+		desc [integer!]
+		font [integer!]
+		attrs [integer!]
 ][
+	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
+	font: objc_msgSend [
+		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
+		objc_msgSend [desc sel_getUid "fontDescriptorWithSymbolicTraits:" NSBoldFontMask]
+		0
+	]
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		font NSFontAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-italic: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
+	/local
+		desc [integer!]
+		font [integer!]
+		attrs [integer!]
 ][
+	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
+	font: objc_msgSend [
+		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
+		objc_msgSend [desc sel_getUid "fontDescriptorWithSymbolicTraits:" NSItalicFontMask]
+		0
+	]
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		font NSFontAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-underline: func [
@@ -85,7 +116,19 @@ OS-text-box-underline: func [
 	len		[integer!]
 	opts	[red-value!]					;-- options
 	tail	[red-value!]
+	/local
+		under [integer!]
+		attrs [integer!]
 ][
+	under: 1
+	under: CFNumberCreate 0 15 :under
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		under NSUnderlineStyleAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-strikeout: func [
@@ -93,7 +136,19 @@ OS-text-box-strikeout: func [
 	pos		[integer!]
 	len		[integer!]
 	opts	[red-value!]					;-- options
+	/local
+		strike [integer!]
+		attrs  [integer!]
 ][
+	strike: 1
+	strike: CFNumberCreate 0 15 :strike
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		strike NSStrikethroughStyleAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-border: func [
@@ -107,6 +162,7 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -119,11 +175,36 @@ OS-text-box-font-name: func [
 ]
 
 OS-text-box-font-size: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	size	[float!]
+	/local
+		desc	[integer!]
+		font	[integer!]
+		attrs	[integer!]
+		x		[integer!]
+		y		[integer!]
+		temp	[CGPoint!]
+		
 ][
+	y: 0
+	temp: as CGPoint! :y
+	temp/x: as float32! size
+	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
+	font: objc_msgSend [
+		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
+		objc_msgSend [desc sel_getUid "fontDescriptorWithSize:" temp/x]
+		0
+	]
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
+		sel_initWithObjectsAndKeys
+		font NSFontAttributeName
+		0
+	]
+	ADD_ATTRIBUTE
 ]
 
 OS-text-box-metrics: func [
@@ -198,6 +279,7 @@ OS-text-box-layout: func [
 		sz		[NSSize!]
 		attrs	[integer!]
 		nsfont	[integer!]
+		clr		[integer!]
 ][
 	values: object/get-values box
 
@@ -205,6 +287,8 @@ OS-text-box-layout: func [
 	either TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
 		layout: int/value
+		int: int + 2
+		ts: int/value
 	][
 		str: to-NSString as red-string! values + TBOX_OBJ_TEXT
 		size: as red-pair! values + TBOX_OBJ_SIZE
@@ -225,12 +309,15 @@ OS-text-box-layout: func [
 			objc_msgSend [objc_getClass "NSTextStorage" sel_alloc]
 			sel_getUid "initWithString:" str
 		]
+
 		w: objc_msgSend [str sel_getUid "length"]
 		nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
+		clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "clearColor"]
 		attrs: objc_msgSend [
 			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
 			sel_getUid "initWithObjectsAndKeys:"
 			nsfont NSFontAttributeName
+			clr NSBackgroundColorAttributeName
 			0
 		]
 		objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
@@ -256,7 +343,9 @@ OS-text-box-layout: func [
 		TYPE_OF(styles) = TYPE_BLOCK
 		2 < block/rs-length? styles
 	][
-		parse-text-styles target as handle! layout styles catch?
+		objc_msgSend [ts sel_getUid "beginEditing"]
+		parse-text-styles as handle! nsfont as handle! ts styles catch?
+		objc_msgSend [ts sel_getUid "endEditing"]
 	]
 	layout
 ]
