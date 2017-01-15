@@ -92,7 +92,7 @@ Public Declare Sub redVString Lib "libRed.dll" (ByVal str As Long, ByRef varg As
 '--- Red actions ---
 Public Declare Function redAppend Lib "libRed.dll" (ByVal series As Long, ByVal value As Long) As Long
 Public Declare Function redClear Lib "libRed.dll" (ByVal series As Long) As Long
-Public Declare Function redCopy Lib "libRed.dll" (ByVal series As Long) As Long
+Public Declare Function redCopy Lib "libRed.dll" (ByVal value As Long) As Long
 Public Declare Function redFind Lib "libRed.dll" (ByVal series As Long, ByVal value As Long) As Long
 Public Declare Function redIndex Lib "libRed.dll" (ByVal series As Long) As Long
 Public Declare Function redLength Lib "libRed.dll" (ByVal series As Long) As Long
