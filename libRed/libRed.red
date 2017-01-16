@@ -283,11 +283,11 @@ Red [
 		red/simple-io/close-file stdout
 	]
 
-	redOpenDebugConsole: func [return: [logic!]][
+	redOpenLogWindow: func [return: [logic!]][
 		#if OS = 'Windows [red/platform/open-console]
 	]
 
-	redCloseDebugConsole: func [return: [logic!]][
+	redCloseLogWindow: func [return: [logic!]][
 		#if OS = 'Windows [red/platform/close-console]
 	]
 	
@@ -959,8 +959,8 @@ Red [
 		redSetEncoding
 		redOpenLogFile
 		redCloseLogFile
-		redOpenDebugConsole
-		redCloseDebugConsole
+		redOpenLogWindow
+		redCloseLogWindow
 
 		redUnset
 		redNone
