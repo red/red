@@ -444,7 +444,11 @@ make-event: func [
 		EVT_KEY [
 			char: msg/wParam
 			key: check-extra-keys no
-			if key and EVT_FLAG_CTRL_DOWN <> 0 [char: char + 64]
+			if all [
+				key and EVT_FLAG_CTRL_DOWN <> 0
+				96 < char char < 123					;-- #"a" <= char <= #"z"
+			][char: char + 64 special-key: -1]
+			if any [special-key = VK_LMENU special-key = VK_RMENU][special-key: -1]
 			gui-evt/flags: char or key
 		]
 		EVT_SELECT [
@@ -1179,10 +1183,7 @@ process: func [
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
 		WM_CHAR
-		WM_DEADCHAR		[
-			special-key: -1								;-- always send translate key in on-key event
-			make-event msg 0 EVT_KEY
-		]
+		WM_DEADCHAR		[make-event msg 0 EVT_KEY]
 		WM_LBUTTONDBLCLK [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
