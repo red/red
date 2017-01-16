@@ -36,6 +36,25 @@ terminal!: object [
 	target:		none
 	tips:		none
 
+	background: none
+	select-bg:	none							;-- selected text background color
+
+	theme: #(
+		background	[252.252.252]
+		selected	[200.200.255]				;-- selected text background color
+		string!		[120.120.61]
+		integer!	[255.0.0]
+		float!		[255.0.0]
+		pair!		[255.0.0]
+		percent!	[255.128.128]
+		datatype!	[0.222.0]
+		lit-word!	[0.0.255 bold]
+		set-word!	[0.0.255]
+		tuple!		[0.0.0]
+		url!		[0.0.255 underline]
+		comment!	[128.128.128]
+	)
+
 	draw: get 'system/view/platform/draw-face
 
 	print: func [value [any-type!] /local str s cnt][
@@ -98,6 +117,12 @@ terminal!: object [
 		]
 	]
 
+	update-theme: func [][
+		background: first select theme 'background
+		select-bg:  reduce ['backdrop first select theme 'selected]
+		target/color: background
+	]
+
 	update-cfg: func [font cfg][
 		box/font: font
 		max-lines: cfg/buffer-lines
@@ -156,7 +181,7 @@ terminal!: object [
 	]
 
 	offset-to-line: func [offset [pair!] /local h y start end n][
-		if offset/y > (line-y + last heights) [exit]
+		;if offset/y > (line-y + last heights) [exit]
 
 		y: offset/y - scroll-y
 		end: line-y - scroll-y
@@ -168,6 +193,7 @@ terminal!: object [
 			n: n + 1
 			h > end
 		]
+		if n > length? lines [n: length? lines]
 		box/text: head pick lines n
 		box/layout
 		start: pick heights n
@@ -198,6 +224,7 @@ terminal!: object [
 
 	mouse-up: func [event [event!]][
 		mouse-up?: yes
+		show target
 	]
 
 	mouse-move: func [event [event!]][
@@ -352,43 +379,55 @@ terminal!: object [
 		show target
 	]
 
-	paint-selects: func [box n /local start-n end-n start-idx end-idx bg styles][
+	paint-selects: func [
+		styles n
+		/local start-n end-n start-idx end-idx len swap?
+	][
 		if any [empty? selects 3 > length? selects][exit]
 
-		bg: [backdrop 200.200.255]
+		swap?: selects/1 > selects/3
+		if swap? [move/part skip selects 2 selects 2]				;-- swap start and end
 		set [start-n start-idx end-n end-idx] selects
-?? n
 		if any [
 			n < start-n
 			n > end-n
 			all [start-n = end-n start-idx = end-idx]				;-- select nothing
-		][exit]
-
-probe "jfkdls"
-?? n
-		styles: box/styles
-		either start-n = end-n [
-			append styles start-idx
-			append styles end-idx - start-idx
-			append styles bg
 		][
-			0
+			if swap? [move/part skip selects 2 selects 2]
+			exit
 		]
+
+		either start-n = end-n [
+			len: end-idx - start-idx
+			if len < 0 [start-idx: end-idx len: 0 - len]
+		][
+			len: length? head pick lines n
+			case [
+				n = start-n [len: len - start-idx + 1]
+				n = end-n	[start-idx: 1 len: end-idx - 1]
+				true		[start-idx: 1]
+			]
+		]
+		append styles start-idx
+		append styles len
+		append styles select-bg
+		if swap? [move/part skip selects 2 selects 2]
 	]
 
-	paint: func [/local str cmds y n h cnt delta num end][
+	paint: func [/local str cmds y n h cnt delta num end styles][
 		cmds: [text 0x0 text-box]
 		cmds/3: box
 		end: target/size/y
 		y: scroll-y
 		n: top
 		num: line-cnt
-		probe selects
+		styles: box/styles
 		foreach str at lines top [
 			box/text: head str
-			highlight/add-styles head str clear box/styles
-			paint-selects box n
+			highlight/add-styles head str clear styles theme
+			paint-selects styles n
 			box/layout
+			clear styles
 			cmds/2/y: y
 			draw target cmds
 
@@ -410,7 +449,7 @@ probe "jfkdls"
 ]
 
 console!: make face! [
-	type: 'base color: white offset: 0x0 size: 400x400 cursor: 'I-beam
+	type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
 	flags: [Direct2D scrollable all-over]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
@@ -480,8 +519,8 @@ console!: make face! [
 			size:  cfg/font-size
 			color: cfg/font-color
 		]
-		self/color:	cfg/background
 		extra/update-cfg self/font cfg
+		extra/update-theme
 	]
 
 	extra: make terminal! []

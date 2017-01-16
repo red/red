@@ -11,27 +11,14 @@ Red [
 ]
 
 highlight: context [
-	theme: #(
-		string!		[120.120.61]
-		integer!	[255.0.0]
-		float!		[255.0.0]
-		pair!		[255.0.0]
-		percent!	[255.128.128]
-		datatype!	[0.222.0]
-		lit-word!	[0.0.255 bold]
-		set-word!	[0.0.255]
-		tuple!		[0.0.0]
-		url!		[0.0.255 underline]
-		comment!	[128.128.128]
-	)
-
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
 	]
-	
+
 	add-styles: function [
 		src	[string!]
 		dst	[block! none!]
+		theme [map!]
 		/part	
 			length [integer! string!]
 		return: [block!]
@@ -499,11 +486,7 @@ highlight: context [
 					len: offset? s e
 					append dst index? s
 					append dst len
-					either type = 'tuple! [
-						append dst to-tuple copy/part s e
-					][
-						append dst style
-					]
+					append dst style
 				]
 			)]
 		]

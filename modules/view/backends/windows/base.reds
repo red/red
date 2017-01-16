@@ -622,6 +622,11 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
+	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
 	flags: GetWindowLong hWnd GWL_EXSTYLE
 	if zero? (flags and WS_EX_LAYERED) [
 		graphic: GetWindowLong hWnd wc-offset - 4
