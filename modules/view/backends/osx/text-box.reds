@@ -208,55 +208,118 @@ OS-text-box-font-size: func [
 ]
 
 OS-text-box-metrics: func [
-	layout	[handle!]
+	state	[red-block!]
 	arg0	[red-value!]
 	type	[integer!]
 	return: [red-value!]
+	/local
+		layout	[integer!]
+		ts		[integer!]
+		tc		[integer!]
+		pos		[red-pair!]
+		int		[red-integer!]
+		values	[red-value!]
+		y		[float32!]
+		x		[float32!]
+		cnt		[integer!]
+		yy		[integer!]
+		xx		[integer!]
+		_w		[integer!]
+		_h		[integer!]
+		_y		[integer!]
+		_x		[integer!]
+		frame	[NSRect!]
+		pt		[CGPoint!]
+		idx		[integer!]
+		len		[integer!]
+		method	[integer!]
+		saved	[int-ptr!]
+		last?	[logic!]
 ][
-	as red-value! none-value
-	;as red-value! switch type [
-	;	TBOX_METRICS_OFFSET? [
-	;		x: as float32! 0.0 y: as float32! 0.0
-	;		;int: as red-integer! arg0
-	;	]
-	;	TBOX_METRICS_INDEX? [
-	;		pos: as red-pair! arg0
-	;		x: as float32! pos/x
-	;		y: as float32! pos/y
-	;	]
-	;	TBOX_METRICS_LINE_HEIGHT [
-	;		lineCount: 0
-	;		dl/GetLineMetrics this null 0 :lineCount
-	;		if lineCount > max-line-cnt [
-	;			max-line-cnt: lineCount + 1
-	;			line-metrics: as DWRITE_LINE_METRICS realloc
-	;				as byte-ptr! line-metrics
-	;				lineCount + 1 * size? DWRITE_HIT_TEST_METRICS
-	;		]
-	;		lineCount: 0
-	;		dl/GetLineMetrics this line-metrics max-line-cnt :lineCount
-	;		lm: line-metrics
-	;		hr: as-integer arg0
-	;		while [
-	;			hr: hr - lm/length
-	;			lineCount: lineCount - 1
-	;			all [hr > 0 lineCount > 0]
-	;		][
-	;			lm: lm + 1
-	;		]
-	;		integer/push as-integer lm/height
-	;	]
-	;	default [
-	;		metrics: as DWRITE_TEXT_METRICS :left
-	;		hr: dl/GetMetrics this metrics
-	;		#if debug? = yes [if hr <> 0 [log-error hr]]
+	int: as red-integer! block/rs-head state
+	layout: int/value
+	int: int + 1
+	tc: int/value
+	int: int + 1
+	ts: int/value
+	as red-value! switch type [
+		TBOX_METRICS_OFFSET? [
+			xx: 0 _x: 0
+			;int: as red-integer! arg0
+			idx: (as-integer arg0) - 1
+			len: objc_msgSend [ts sel_getUid "length"]
+			if idx < 0 [idx: 0]
+			last?: idx >= len
+			if last? [idx: len - 1]
 
-	;		values: object/get-values as red-object! arg0
-	;		integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width
-	;		integer/make-at values + TBOX_OBJ_HEIGHT as-integer metrics/height
-	;		integer/make-at values + TBOX_OBJ_LINE_COUNT metrics/lineCount
-	;	]
-	;]
+			frame: as NSRect! :_x
+			method: sel_getUid "lineFragmentUsedRectForGlyphAtIndex:effectiveRange:"
+			saved: system/stack/align
+			push 0 push 0 push 0
+			push 0 push idx
+			push method push layout push frame
+			objc_msgSend_stret 5
+			system/stack/top: saved
+
+			pt: as CGPoint! :_x
+			either last? [
+				pt/x: frame/x + frame/w
+			][
+				_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
+			]
+			pair/push as-integer pt/x as-integer pt/y
+		]
+		TBOX_METRICS_INDEX? [
+			y: as float32! 0.0
+			pos: as red-pair! arg0
+			xx: 0
+			pt: as CGPoint! :xx
+			pt/x: as float32! pos/x
+			pt/y: as float32! pos/y
+			idx: objc_msgSend [
+				layout
+				sel_getUid "characterIndexForPoint:inTextContainer:fractionOfDistanceBetweenInsertionPoints:"
+				pt/x pt/y tc :y
+			]
+			if y > as float32! 0.5 [idx: idx + 1]
+			integer/push idx + 1
+		]
+		TBOX_METRICS_LINE_HEIGHT [
+			integer/push 17
+		]
+		default [
+			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
+			len: system/cpu/edx
+			xx: 0 _x: 0
+			frame: as NSRect! :_x
+			method: sel_getUid "boundingRectForGlyphRange:inTextContainer:"
+			saved: system/stack/align
+			push 0 push 0
+			push tc push len push idx
+			push method push layout push frame
+			objc_msgSend_stret 6
+			system/stack/top: saved
+			values: object/get-values as red-object! arg0
+			integer/make-at values + TBOX_OBJ_WIDTH as-integer frame/w
+			integer/make-at values + TBOX_OBJ_HEIGHT as-integer frame/h
+
+			method: sel_getUid "lineFragmentRectForGlyphAtIndex:effectiveRange:"
+			cnt: 0
+			idx: 0
+			yy: 0
+			while [idx < len][
+				cnt: cnt + 1
+				saved: system/stack/align
+				push 0 push 0 push 0
+				push :xx push idx
+				push method push layout push frame
+				objc_msgSend_stret 5
+				system/stack/top: saved
+				idx: xx + yy
+			]
+			integer/make-at values + TBOX_OBJ_LINE_COUNT 1
+		]
+	]
 ]
 
 OS-text-box-layout: func [
@@ -280,28 +343,28 @@ OS-text-box-layout: func [
 		attrs	[integer!]
 		nsfont	[integer!]
 		clr		[integer!]
+		para	[integer!]
+		cached?	[logic!]
 ][
 	values: object/get-values box
 
+	str: to-NSString as red-string! values + TBOX_OBJ_TEXT
 	state: as red-block! values + TBOX_OBJ_STATE
-	either TYPE_OF(state) = TYPE_BLOCK [
+	size: as red-pair! values + TBOX_OBJ_SIZE
+	nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
+	cached?: TYPE_OF(state) = TYPE_BLOCK
+
+	either cached? [
 		int: as red-integer! block/rs-head state
 		layout: int/value
-		int: int + 2
+		int: int + 1
+		tc: int/value
+		int: int + 1
 		ts: int/value
 	][
-		str: to-NSString as red-string! values + TBOX_OBJ_TEXT
-		size: as red-pair! values + TBOX_OBJ_SIZE
-		h: 0
-		sz: as NSSize! :h
-		sz/w: as float32! 1e37 sz/h: as float32! 1e37
-		if TYPE_OF(size) = TYPE_PAIR [
-			unless zero? size/x [sz/w: as float32! size/x]
-			unless zero? size/y [sz/h: as float32! size/y]
-		]
 		tc: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
-			sel_getUid "initWithSize:" sz/w sz/h
+			sel_getUid "initWithSize:" 7CF0BDC2h 7CF0BDC2h
 		]
 		objc_msgSend [tc sel_getUid "setLineFragmentPadding:" 0]
 
@@ -310,21 +373,7 @@ OS-text-box-layout: func [
 			sel_getUid "initWithString:" str
 		]
 
-		w: objc_msgSend [str sel_getUid "length"]
-		nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
-		clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "clearColor"]
-		attrs: objc_msgSend [
-			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
-			sel_getUid "initWithObjectsAndKeys:"
-			nsfont NSFontAttributeName
-			clr NSBackgroundColorAttributeName
-			0
-		]
-		objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
-		objc_msgSend [attrs sel_getUid "release"]
-
 		layout: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
-
 		objc_msgSend [layout sel_getUid "addTextContainer:" tc]
 		objc_msgSend [tc sel_release]
 		objc_msgSend [ts sel_getUid "addLayoutManager:" layout]
@@ -338,14 +387,45 @@ OS-text-box-layout: func [
 
 	;@@ set para: as red-object! values + TBOX_OBJ_PARA
 
+	h: 7CF0BDC2h w: 7CF0BDC2h
+	sz: as NSSize! :h
+	if TYPE_OF(size) = TYPE_PAIR [
+		unless zero? size/x [sz/w: as float32! size/x]
+		unless zero? size/y [sz/h: as float32! size/y]
+	]
+	objc_msgSend [tc sel_getUid "setSize:" sz/w sz/h]
+
+	objc_msgSend [ts sel_getUid "beginEditing"]
+
+	if cached? [
+		w: objc_msgSend [ts sel_getUid "length"]
+		objc_msgSend [ts sel_getUid "deleteCharactersInRange:" 0 w]
+		objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
+	]
+
+	;para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
+	;para: objc_msgSend [para sel_getUid "mutableCopy"]
+
+	clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "clearColor"]
+	attrs: objc_msgSend [
+		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+		sel_getUid "initWithObjectsAndKeys:"
+		nsfont NSFontAttributeName
+		clr NSBackgroundColorAttributeName
+		0
+	]
+	w: objc_msgSend [str sel_getUid "length"]
+	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
+	objc_msgSend [attrs sel_getUid "release"]
+
 	styles: as red-block! values + TBOX_OBJ_STYLES
 	if all [
 		TYPE_OF(styles) = TYPE_BLOCK
 		2 < block/rs-length? styles
 	][
-		objc_msgSend [ts sel_getUid "beginEditing"]
 		parse-text-styles as handle! nsfont as handle! ts styles catch?
-		objc_msgSend [ts sel_getUid "endEditing"]
 	]
+
+	objc_msgSend [ts sel_getUid "endEditing"]
 	layout
 ]

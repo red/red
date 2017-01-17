@@ -601,9 +601,12 @@ do-events: func [
 		pool	[integer!]
 		timeout [integer!]
 		event	[integer!]
+		saved	[integer!]
 ][
 	msg?: no
-	if nswindow-cnt > 1 [no-wait?: yes]					;-- should be only one loop
+	saved: evt-loop-cnt
+	evt-loop-cnt: evt-loop-cnt + 1
+
 	timeout: either no-wait? [0][
 		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
 		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
@@ -630,7 +633,9 @@ do-events: func [
 		]
 
 		objc_msgSend [pool sel_getUid "drain"]
-		any [nswindow-cnt < 1 no-wait?]
+		any [evt-loop-cnt <= saved no-wait?]
 	]
+
+	evt-loop-cnt: evt-loop-cnt - 1
 	msg?
 ]

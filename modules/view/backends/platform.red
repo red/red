@@ -625,7 +625,7 @@ system/view/platform: context [
 	exit-event-loop: routine [][
 		#switch OS [
 			Windows  [gui/PostQuitMessage 0]
-			MacOSX   [0]
+			MacOSX   [gui/evt-loop-cnt: gui/evt-loop-cnt - 1]
 			#default [0]
 		]
 	]
@@ -664,11 +664,8 @@ system/view/platform: context [
 		state	[block!]
 		arg0	[any-type!]
 		type	[integer!]
-		/local
-			int [red-integer!]
 	][
-		int: as red-integer! block/rs-head state
-		stack/set-last gui/OS-text-box-metrics as handle! int/value arg0 type
+		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 
 	update-scroller: routine [scroller [object!] flags [integer!]][

@@ -220,6 +220,10 @@ on-key-down: func [
 		either flags and 80000000h <> 0 [				;-- special key
 			make-event self key or flags EVT_KEY
 		][
+			if key = 8 [								;-- backspace
+				make-event self key or flags EVT_KEY
+				exit
+			]
 			key: objc_msgSend [event sel_getUid "characters"]
 			if all [
 				key <> 0
@@ -523,7 +527,7 @@ win-will-close: func [
 	cmd		[integer!]
 	notif	[integer!]
 ][
-	nswindow-cnt: nswindow-cnt - 1
+	evt-loop-cnt: evt-loop-cnt - 1
 ]
 
 ;win-will-resize: func [								;-- use it to block resizing window

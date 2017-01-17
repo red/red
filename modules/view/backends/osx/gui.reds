@@ -28,7 +28,7 @@ NSApp:			0
 NSAppDelegate:	0
 AppMainMenu:	0
 
-nswindow-cnt:	0
+evt-loop-cnt:	0
 current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
 
 default-font:	0
@@ -654,6 +654,7 @@ change-offset: func [
 ][
 	rc: make-rect pos/x pos/y 0 0
 	either type = window [
+		rc/y: as float32! screen-size-y - pos/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
@@ -1411,7 +1412,7 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
-			nswindow-cnt: nswindow-cnt + 1
+			evt-loop-cnt: evt-loop-cnt + 1
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]
