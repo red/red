@@ -134,6 +134,7 @@ terminal!: object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
+		unless line [exit]
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -306,17 +307,20 @@ terminal!: object [
 		show target
 	]
 
-	paint: func [/local str cmds y n h cnt delta num end][
+	paint: func [/local str cmds y n h cnt delta num end styles][
+		unless line [exit]
 		cmds: [text 0x0 text-box]
 		cmds/3: box
+		styles: box/styles
 		end: target/size/y
 		y: scroll-y
 		n: top
 		num: line-cnt
 		foreach str at lines top [
 			box/text: head str
-			highlight/add-styles head str clear box/styles
+			highlight/add-styles head str clear styles
 			box/layout
+			clear styles
 			cmds/2/y: y
 			draw target cmds
 
@@ -332,8 +336,9 @@ terminal!: object [
 		]
 		line-y: y - h
 		screen-cnt: y / line-h
+
 		update-caret
-		update-scroller line-cnt - num
+		;update-scroller line-cnt - num
 	]
 ]
 

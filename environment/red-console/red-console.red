@@ -21,7 +21,6 @@ ask: function [
 ][
 	line: make string! 8
 	line: insert line question
-
 	con: red-console-ctx/console/extra
 	con/add-line line
 	con/line: line
@@ -37,7 +36,8 @@ ask: function [
 red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
-	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
+	;font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
+	font-name: "Menlo"
 
 	tips: make tips! [visible?: no]
 	console: make console! []
@@ -177,7 +177,7 @@ red-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
-				clear head system/view/screens/1/pane
+				;clear head system/view/screens/1/pane
 				if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: func [face [object!] event [event!]][
@@ -192,7 +192,8 @@ red-console-ctx: context [
 
 	load-cfg: func [/local cfg-dir][
 		system/view/auto-sync?: no
-		cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
+		;cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
+		cfg-dir: append to-red-file get-env "HOME" %/.Red-Console/
 		unless exists? cfg-dir [make-dir cfg-dir]
 		cfg-path: append cfg-dir %console-cfg.red
 		
