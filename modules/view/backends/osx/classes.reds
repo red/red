@@ -117,6 +117,10 @@ add-filedialog-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "filter-filetype:" as-integer :filter-filetype-action "v@:@"
 ]
 
+add-text-layout-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "layoutManager:lineSpacingAfterGlyphAtIndex:withProposedLineFragmentRect:" as-integer :set-line-spacing "f@:@I{_NSRect=ffff}"
+]
+
 add-app-delegate: func [class [integer!]][
 	class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
@@ -189,4 +193,5 @@ register-classes: does [
 	make-super-class "RedScrollView"	"NSScrollView"			0	STORE_FACE_FLAG
 	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
 	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG
+	make-super-class "RedLayoutManager" "NSLayoutManager"		as-integer :add-text-layout-handler 0
 ]

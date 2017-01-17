@@ -622,6 +622,27 @@ tabview-should-select: func [
 	]
 ]
 
+set-line-spacing: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	layout	[integer!]
+	idx		[integer!]
+	x		[float32!]
+	y		[float32!]
+	width	[float32!]
+	height	[float32!]
+	return: [float32!]
+	/local
+		d	[float32!]
+][
+	d: objc_msgSend_f32 [
+		objc_getAssociatedObject layout RedAttachedWidgetKey
+		sel_getUid "descender"
+	]
+	(as float32! 1.0) - d
+]
+
 render-text: func [
 	ctx		[handle!]
 	values	[red-value!]

@@ -243,7 +243,8 @@ OS-text-box-metrics: func [
 	int: int + 1
 	ts: int/value
 	as red-value! switch type [
-		TBOX_METRICS_OFFSET? [
+		TBOX_METRICS_OFFSET?
+		TBOX_METRICS_LINE_HEIGHT [
 			xx: 0 _x: 0
 			;int: as red-integer! arg0
 			idx: (as-integer arg0) - 1
@@ -260,14 +261,18 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 5
 			system/stack/top: saved
-
-			pt: as CGPoint! :_x
-			either last? [
-				pt/x: frame/x + frame/w
+			either type = TBOX_METRICS_LINE_HEIGHT [
+				integer/push as-integer frame/h
 			][
-				_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
+				pt: as CGPoint! :_x
+				either last? [
+					pt/x: frame/x + frame/w
+				][
+					_x: objc_msgSend [layout sel_getUid "locationForGlyphAtIndex:" idx]
+				]
+				x: pt/x + as float32! 0.5
+				pair/push as-integer x as-integer pt/y
 			]
-			pair/push as-integer pt/x as-integer pt/y
 		]
 		TBOX_METRICS_INDEX? [
 			y: as float32! 0.0
@@ -283,9 +288,6 @@ OS-text-box-metrics: func [
 			]
 			if y > as float32! 0.5 [idx: idx + 1]
 			integer/push idx + 1
-		]
-		TBOX_METRICS_LINE_HEIGHT [
-			integer/push 17
 		]
 		default [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
@@ -317,7 +319,7 @@ OS-text-box-metrics: func [
 				system/stack/top: saved
 				idx: xx + yy
 			]
-			integer/make-at values + TBOX_OBJ_LINE_COUNT 1
+			integer/make-at values + TBOX_OBJ_LINE_COUNT cnt
 		]
 	]
 ]
@@ -373,11 +375,13 @@ OS-text-box-layout: func [
 			sel_getUid "initWithString:" str
 		]
 
-		layout: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
+		layout: objc_msgSend [objc_msgSend [objc_getClass "RedLayoutManager" sel_alloc] sel_init]
 		objc_msgSend [layout sel_getUid "addTextContainer:" tc]
 		objc_msgSend [tc sel_release]
 		objc_msgSend [ts sel_getUid "addLayoutManager:" layout]
 		objc_msgSend [layout sel_release]
+		objc_msgSend [layout sel_getUid "setDelegate:" layout]
+		objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN
 
 		block/make-at state 3
 		integer/make-in state layout
