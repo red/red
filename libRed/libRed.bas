@@ -66,6 +66,7 @@ Public Declare Sub redOpenReal Lib "libRed.dll" Alias "redOpen" ()
 
 '--- Run Red code ---
 Public Declare Function redDo Lib "libRed.dll" (ByRef source As Variant) As Long
+Public Declare Function redDoFile Lib "libRed.dll" (ByRef file As Variant) As Long
 Public Declare Function redDoBlock Lib "libRed.dll" (ByVal code As Long) As Long
 
 '--- Expose a VB callback in Red ---

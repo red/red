@@ -78,6 +78,7 @@ Red [
 		print:		word/load "print"
 		extern:		word/load "extern"
 		redDo:		word/load "redDo"
+		redDoFile:	word/load "redDoFile"
 		redDoBlock:	word/load "redDoBlock"
 		redCall:	word/load "redCall"
 		redLDPath:	word/load "redLoadPath"
@@ -237,6 +238,25 @@ Red [
 		blk: as red-block! load-string src names/redDo
 		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk names/redDo]
 		ring/store stack/arguments
+	]
+	
+	redDoFile: func [
+		src		[c-string!]
+		return: [red-value!]
+		/local
+			res	 [red-value!]
+			file [red-file!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
+		file: as red-file! import-string src names/redDoFile yes
+		file/header: TYPE_FILE
+		if last-error <> null [return last-error]
+		
+		TRAP_ERRORS(names/redDoFile [
+			stack/push as red-value! file
+			natives/do* yes -1 -1 -1
+			stack/unwind-last
+		])
 	]
 	
 	redDoBlock: func [
@@ -988,7 +1008,7 @@ Red [
 		redOpen
 		redDo
 		redDoBlock
-		;redDoFile
+		redDoFile
 		redClose
 		
 		redSetEncoding
@@ -1000,7 +1020,7 @@ Red [
 		redUnset
 		redNone
 		redLogic
-		redDatatype		
+		redDatatype
 		redInteger
 		redFloat
 		redPair

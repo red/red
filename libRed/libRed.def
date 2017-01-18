@@ -2,20 +2,24 @@ EXPORTS
 redOpen
 redDo
 redDoBlock
+redDoFile
 redClose
 
 redSetEncoding
 redOpenLogFile
 redCloseLogFile
-redOpenDebugConsole
-redCloseDebugConsole
+redOpenLogWindow
+redCloseLogWindow
 
 redUnset
 redNone
 redLogic
+redDatatype
 redInteger
 redFloat
 redPair
+redTuple
+redTuple4
 redString
 redSymbol
 redWord

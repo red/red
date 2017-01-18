@@ -42,6 +42,7 @@ void		redClose(void);
 
 /* Run Red code */
 red_value	redDo(const char* source);
+red_value	redDoFile(const char* file);
 red_value	redDoBlock(red_block code);
 red_value	redCall(red_word name, ...);
 
@@ -105,7 +106,7 @@ red_value	redHasError(void);
 const char*	redFormError(void);
 int			redOpenLogWindow(void);
 int			redCloseLogWindow(void);
-void		redOpenLogFile(const string *name);
+void		redOpenLogFile(const char *name);
 void		redCloseLogFile(void);
 
 /* Red Types */
