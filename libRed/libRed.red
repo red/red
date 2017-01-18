@@ -108,6 +108,8 @@ Red [
 		redSelect:	word/load "redSelect"
 		redSkip:	word/load "redSkip"
 		redTo:		word/load "redTo"
+		
+		redOpenLogFile: word/load "redOpenLogFile"
 	]
 	
 	ring: context [
@@ -292,10 +294,18 @@ Red [
 	]
 	
 	redOpenLogFile: func [
-		name [c-string!]
+		name	[c-string!]
+		return: [red-value!]
+		/local
+			script [red-file!]
 	][
-		CHECK_LIB_OPENED
-		stdout: red/simple-io/open-file name red/simple-io/RIO_APPEND no
+		CHECK_LIB_OPENED_RETURN(red-value!)
+		script: as red-file! import-string name names/redOpenLogFile yes
+		script/header: TYPE_FILE
+		if last-error <> null [return last-error]
+		
+		stdout: red/simple-io/open-file file/to-OS-path script red/simple-io/RIO_APPEND yes
+		null
 	]
 	
 	redCloseLogFile: does [
