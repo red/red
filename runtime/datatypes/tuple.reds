@@ -93,6 +93,26 @@ tuple: context [
 		stack/pop 1
 		tp
 	]
+	
+	make-rgba: func [
+		slot	[red-value!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]								;-- a = -1 => RGB else RGBA
+		return: [red-tuple!]
+		/local
+			tp	 [red-tuple!]
+			size [integer!]
+	][
+		size: either a = -1 [a: 0 3][4]
+		tp: as red-tuple! slot
+		tp/header: TYPE_TUPLE or (size << 19)
+		tp/array1: (r << 24) or (g << 16 and 00FF0000h) or (b << 8 and FF00h) or (a and FFh)
+		tp/array2: 0
+		tp/array3: 0
+		tp
+	]
 
 	push: func [
 		size	[integer!]

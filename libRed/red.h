@@ -22,11 +22,13 @@
 
 typedef void*     red_value;
 typedef red_value red_unset;
+typedef red_value red_datatype;
 typedef red_value red_none;
 typedef red_value red_logic;
 typedef red_value red_integer;
 typedef red_value red_float;
 typedef red_value red_pair;
+typedef red_value red_tuple;
 typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
@@ -51,9 +53,12 @@ long		redSymbol(const char* word);
 red_unset	redUnset(void);
 red_none	redNone(void);
 red_logic	redLogic(long logic);
+red_datatype redDatatype(long type);
 red_integer	redInteger(long number);
 red_float	redFloat(double number);
 red_pair	redPair(long x, long y);
+red_tuple	redTuple(long r, long g, long b);
+red_tuple	redTuple4(long r, long g, long b, long a);
 red_string	redString(const char* string);
 red_word	redWord(const char* word);
 red_block	redBlock(red_value v,...);
@@ -100,6 +105,8 @@ red_value	redHasError(void);
 const char*	redFormError(void);
 int			redOpenDebugConsole(void);
 int			redCloseDebugConsole(void);
+void		redOpenLogFile(const string *name);
+void		redCloseLogFile(void);
 
 /* Red Types */
 typedef enum

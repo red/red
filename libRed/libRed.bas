@@ -76,9 +76,12 @@ Public Declare Function redSymbol Lib "libRed.dll" (ByRef word As Variant) As Lo
 Public Declare Function redUnset Lib "libRed.dll" () As Long
 Public Declare Function redNone Lib "libRed.dll" () As Long
 Public Declare Function redLogicReal Lib "libRed.dll" Alias "redLogic" (ByVal bool As Long) As Long
+Public Declare Function redDatatype Lib "libRed.dll" (ByVal type As Long) As Long
 Public Declare Function redInteger Lib "libRed.dll" (ByVal number As Long) As Long
 Public Declare Function redFloat Lib "libRed.dll" (ByVal number As Double) As Long
 Public Declare Function redPair Lib "libRed.dll" (ByVal x As Long, ByVal y As Long) As Long
+Public Declare Function redTuple Lib "libRed.dll" (ByVal r As Long, ByVal g As Long, ByVal b As Long) As Long
+Public Declare Function redTuple4 Lib "libRed.dll" (ByVal r As Long, ByVal g As Long, ByVal b As Long, ByVal a As Long) As Long
 Public Declare Function redString Lib "libRed.dll" (ByRef str As Variant) As Long
 Public Declare Function redWord Lib "libRed.dll" (ByRef word As Variant) As Long
 Public Declare Function redMakeSeries Lib "libRed.dll" (ByVal t As Long, ByVal size As Long) As Long
@@ -116,8 +119,6 @@ Public Declare Function redGetPath Lib "libRed.dll" (ByVal path As Long) As Long
 
 '--- libRed settings ---
 Public Declare Sub redSetEncoding Lib "libRed.dll" (ByVal encIn As Long, ByVal encOut As Long)
-Public Declare Sub redOpenLogFile Lib "libRed.dll" (ByVal name As String)
-Public Declare Sub redCloseLogFile Lib "libRed.dll" ()
 
 '--- Debugging purpose ---
 Public Declare Function redPrint Lib "libRed.dll" (ByVal value As Long)
@@ -125,6 +126,9 @@ Public Declare Function redProbe Lib "libRed.dll" (ByVal value As Long) As Long
 Public Declare Function redHasError Lib "libRed.dll" () As Long
 Public Declare Function redOpenDebugConsole Lib "libRed.dll" () As Long
 Public Declare Function redCloseDebugConsole Lib "libRed.dll" () As Long
+Public Declare Sub redOpenLogFile Lib "libRed.dll" (ByVal name As String)
+Public Declare Sub redCloseLogFile Lib "libRed.dll" ()
+
 
 '--- libRed VB-specific wrappers ---
 

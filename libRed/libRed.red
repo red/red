@@ -326,6 +326,19 @@ Red [
 		cell
 	]
 	
+	redDatatype: func [
+		type	[integer!]
+		return: [red-datatype!]
+		/local
+			cell [red-datatype!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-datatype!)
+		cell: as red-datatype! ring/alloc
+		cell/header: TYPE_DATATYPE
+		cell/value: type
+		cell
+	]
+	
 	redInteger: func [
 		n		[integer!]
 		return: [red-integer!]
@@ -357,6 +370,27 @@ Red [
 	][
 		CHECK_LIB_OPENED_RETURN(red-pair!)
 		pair/make-at ring/alloc x y
+	]
+	
+	redTuple: func [
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		return: [red-tuple!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-tuple!)
+		tuple/make-rgba ring/alloc r g b -1
+	]
+	
+	redTuple4: func [
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]
+		return: [red-tuple!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-tuple!)
+		tuple/make-rgba ring/alloc r g b a
 	]
 	
 	redSymbol: func [
@@ -954,6 +988,7 @@ Red [
 		redOpen
 		redDo
 		redDoBlock
+		;redDoFile
 		redClose
 		
 		redSetEncoding
@@ -965,9 +1000,12 @@ Red [
 		redUnset
 		redNone
 		redLogic
+		redDatatype		
 		redInteger
 		redFloat
 		redPair
+		redTuple
+		redTuple4
 		redString
 		redSymbol
 		redWord
