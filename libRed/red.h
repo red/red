@@ -20,6 +20,13 @@
                              RED_VERSION_MINOR * 1000 + \
                              RED_VERSION_PATCH)
 
+/* Forces the use of Visual Styles if compiling with VisualStudio */
+#ifdef _MSC_VER
+	#pragma comment(linker,"\"/manifestdependency:type='win32' \
+	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
+
 typedef void*     red_value;
 typedef red_value red_unset;
 typedef red_value red_datatype;
