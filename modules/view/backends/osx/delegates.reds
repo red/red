@@ -640,7 +640,7 @@ set-line-spacing: func [
 		objc_getAssociatedObject layout RedAttachedWidgetKey
 		sel_getUid "descender"
 	]
-	(as float32! 1.0) - d
+	(as float32! 1.5) - d
 ]
 
 render-text: func [

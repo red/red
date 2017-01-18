@@ -65,24 +65,8 @@ OS-text-box-weight: func [
 	pos		[integer!]
 	len		[integer!]
 	weight	[integer!]
-	/local
-		desc [integer!]
-		font [integer!]
-		attrs [integer!]
 ][
-	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
-	font: objc_msgSend [
-		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
-		objc_msgSend [desc sel_getUid "fontDescriptorWithSymbolicTraits:" NSBoldFontMask]
-		0
-	]
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		font NSFontAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_getUid "applyFontTraits:range:" NSBoldFontMask pos len]
 ]
 
 OS-text-box-italic: func [
@@ -90,24 +74,8 @@ OS-text-box-italic: func [
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
-	/local
-		desc [integer!]
-		font [integer!]
-		attrs [integer!]
 ][
-	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
-	font: objc_msgSend [
-		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
-		objc_msgSend [desc sel_getUid "fontDescriptorWithSymbolicTraits:" NSItalicFontMask]
-		0
-	]
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		font NSFontAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_getUid "applyFontTraits:range:" NSItalicFontMask pos len]
 ]
 
 OS-text-box-underline: func [
@@ -187,7 +155,6 @@ OS-text-box-font-size: func [
 		x		[integer!]
 		y		[integer!]
 		temp	[CGPoint!]
-		
 ][
 	y: 0
 	temp: as CGPoint! :y
