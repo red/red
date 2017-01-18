@@ -124,8 +124,8 @@ Public Declare Sub redSetEncoding Lib "libRed.dll" (ByVal encIn As Long, ByVal e
 Public Declare Function redPrint Lib "libRed.dll" (ByVal value As Long)
 Public Declare Function redProbe Lib "libRed.dll" (ByVal value As Long) As Long
 Public Declare Function redHasError Lib "libRed.dll" () As Long
-Public Declare Function redOpenDebugConsole Lib "libRed.dll" () As Long
-Public Declare Function redCloseDebugConsole Lib "libRed.dll" () As Long
+Public Declare Function redOpenLogWindow Lib "libRed.dll" () As Long
+Public Declare Function redCloseLogWindow Lib "libRed.dll" () As Long
 Public Declare Sub redOpenLogFile Lib "libRed.dll" (ByVal name As String)
 Public Declare Sub redCloseLogFile Lib "libRed.dll" ()
 
