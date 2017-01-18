@@ -1,16 +1,13 @@
 #ifndef LIB_RED_H
 #define LIB_RED_H
 
-#include <stdarg.h>
-#include <stddef.h>
-
 /* The Red semantic version number components */
-#define RED_VERSION_MAJOR 0
-#define RED_VERSION_MINOR 6
-#define RED_VERSION_PATCH 2
+#define RED_VERSION_MAJOR 1
+#define RED_VERSION_MINOR 0
+#define RED_VERSION_PATCH 0
 
 /* A human-friendly string representation of the version */
-#define RED_VERSION_STRING "0.6.2"
+#define RED_VERSION_STRING "1.0.0"
 
 /*
 ** A monotonically increasing numeric representation of the version number. Use
