@@ -18,27 +18,14 @@ Red/System [
 
 max-line-cnt:  0
 
-#define ADD_ATTRIBUTE [
-	objc_msgSend [layout sel_addAttributes attrs pos len]
-	objc_msgSend [attrs sel_release]
-]
-
 OS-text-box-color: func [
 	dc		[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
-	/local
-		attrs [integer!]
 ][
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		rs-to-NSColor color NSForegroundColorAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_addAttribute NSForegroundColorAttributeName rs-to-NSColor color pos len]
 ]
 
 OS-text-box-background: func [
@@ -47,16 +34,8 @@ OS-text-box-background: func [
 	pos		[integer!]
 	len		[integer!]
 	color	[integer!]
-	/local
-		attrs [integer!]
 ][
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		rs-to-NSColor color NSBackgroundColorAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_addAttribute NSBackgroundColorAttributeName rs-to-NSColor color pos len]
 ]
 
 OS-text-box-weight: func [
@@ -86,17 +65,10 @@ OS-text-box-underline: func [
 	tail	[red-value!]
 	/local
 		under [integer!]
-		attrs [integer!]
 ][
 	under: 1
 	under: CFNumberCreate 0 15 :under
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		under NSUnderlineStyleAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_addAttribute NSUnderlineStyleAttributeName under pos len]
 ]
 
 OS-text-box-strikeout: func [
@@ -106,17 +78,10 @@ OS-text-box-strikeout: func [
 	opts	[red-value!]					;-- options
 	/local
 		strike [integer!]
-		attrs  [integer!]
 ][
 	strike: 1
 	strike: CFNumberCreate 0 15 :strike
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		strike NSStrikethroughStyleAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_addAttribute NSStrikethroughStyleAttributeName strike pos len]
 ]
 
 OS-text-box-border: func [
@@ -165,13 +130,7 @@ OS-text-box-font-size: func [
 		objc_msgSend [desc sel_getUid "fontDescriptorWithSize:" temp/x]
 		0
 	]
-	attrs: objc_msgSend [
-		objc_msgSend [objc_getClass "NSDictionary" sel_alloc]
-		sel_initWithObjectsAndKeys
-		font NSFontAttributeName
-		0
-	]
-	ADD_ATTRIBUTE
+	objc_msgSend [layout sel_addAttribute NSFontAttributeName font pos len]
 ]
 
 OS-text-box-metrics: func [
@@ -377,12 +336,10 @@ OS-text-box-layout: func [
 	;para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
 	;para: objc_msgSend [para sel_getUid "mutableCopy"]
 
-	clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "clearColor"]
 	attrs: objc_msgSend [
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
 		sel_getUid "initWithObjectsAndKeys:"
 		nsfont NSFontAttributeName
-		clr NSBackgroundColorAttributeName
 		0
 	]
 	w: objc_msgSend [str sel_getUid "length"]

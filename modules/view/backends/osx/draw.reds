@@ -532,6 +532,7 @@ draw-text-box: func [
 	pt: as CGPoint! :x
 	pt/x: as float32! pos/x
 	pt/y: as float32! pos/y
+	objc_msgSend [layout sel_getUid "drawBackgroundForGlyphRange:atPoint:" idx len pt/x pt/y]
 	objc_msgSend [layout sel_getUid "drawGlyphsForGlyphRange:atPoint:" idx len pt/x pt/y]
 ]
 

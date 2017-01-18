@@ -24,6 +24,7 @@ sel_changeFont:					0
 sel_windowWillClose:			0
 sel_addObject:					0
 sel_addAttributes:				0
+sel_addAttribute:				0
 sel_initWithObjectsAndKeys:		0
 
 init-selectors: does [
@@ -35,5 +36,6 @@ init-selectors: does [
 	sel_windowWillClose:		sel_getUid "windowWillClose:"
 	sel_addObject:				sel_getUid "addObject:"
 	sel_addAttributes:			sel_getUid "addAttributes:range:"
+	sel_addAttribute:			sel_getUid "addAttribute:value:range:"
 	sel_initWithObjectsAndKeys:	sel_getUid "initWithObjectsAndKeys:"
 ]
