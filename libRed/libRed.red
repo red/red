@@ -303,7 +303,8 @@ Red [
 		script: as red-file! import-string name names/redOpenLogFile yes
 		script/header: TYPE_FILE
 		if last-error <> null [return last-error]
-		
+
+		#if OS = 'Windows [red/platform/dos-console?: no]
 		stdout: red/simple-io/open-file file/to-OS-path script red/simple-io/RIO_APPEND yes
 		null
 	]
@@ -311,6 +312,7 @@ Red [
 	redCloseLogFile: does [
 		CHECK_LIB_OPENED
 		red/simple-io/close-file stdout
+		#if OS = 'Windows [red/platform/dos-console?: yes]
 	]
 
 	redOpenLogWindow: func [return: [logic!]][
