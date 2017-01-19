@@ -436,7 +436,7 @@ scroller!: object [
 
 text-box!: object [
 	text:		none					;-- a string to draw (string!)
-	size:		none					;-- box size in pixels (pair!)
+	size:		none					;-- box size in pixels, infinite size if none (pair! none!)
 	font:		none					;-- font! object
 	para:		none					;-- para! object
 	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top

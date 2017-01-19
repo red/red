@@ -317,6 +317,7 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setDefaultTabInterval:" sz/w * (as float32! 4.0)]
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
+		h: 7CF0BDC2h
 		block/make-at state 4
 		integer/make-in state layout
 		integer/make-in state tc
