@@ -8,3 +8,5 @@ The `libRed.dll` precompiled library (using `stdcall` ABI) provided in this fold
 
 * **Console**: simple Red console made from Excel cells, shows how to create VBA callbacks in Red.
 
+The `test.c` file just contains some tests for libRed integration with C language. It requires a libRed binary compiled using `cdecl` ABI (using `red build libRed` command-line), it cannot run properly with the provided `libRed.dll` file (which is compiled for `stdcall` ABI).
+
