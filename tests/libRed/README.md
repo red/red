@@ -1,8 +1,8 @@
 ### LibRed tests and demo files.
 
-The `libRed.dll` precompiled library (using `stdcall` ABI) provided in this folder is required for the `text.xlsm` demo. That file contains three Excel/libRed integration demos:
+The `libRed.dll` precompiled library (using `stdcall` ABI) provided in this folder is required for the `text.xlsm` demo. That Excel file contains three Excel/libRed integration demos:
 
-* **Pong**: shows how to integrate a VBA form with a Red window and handle all events in a common event loop.
+* **Pong**: shows how to integrate a VBA form with a Red window and handle all events in a common event loop. This demo is optimized for Windows 7, using display font size of 100% and Aero activated. Other Windows settings and versions would need some code tweaking to get the VB form window position and size adjusted (a contributed general solution for that is welcome).
 
 * **Extractor**: shows how to invoke Parse DSL from VBA in order to process a cell text content.
 
