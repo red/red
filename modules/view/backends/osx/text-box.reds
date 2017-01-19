@@ -282,13 +282,15 @@ OS-text-box-layout: func [
 	nsfont: as-integer get-font null as red-object! values + TBOX_OBJ_FONT
 	cached?: TYPE_OF(state) = TYPE_BLOCK
 
+	h: 7CF0BDC2h w: 7CF0BDC2h
+	sz: as NSSize! :h
+
 	either cached? [
 		int: as red-integer! block/rs-head state
 		layout: int/value
-		int: int + 1
-		tc: int/value
-		int: int + 1
-		ts: int/value
+		int: int + 1 tc: int/value
+		int: int + 1 ts: int/value
+		int: int + 1 para: int/value
 	][
 		tc: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
@@ -309,16 +311,21 @@ OS-text-box-layout: func [
 		objc_msgSend [layout sel_getUid "setDelegate:" layout]
 		objc_setAssociatedObject layout RedAttachedWidgetKey nsfont OBJC_ASSOCIATION_ASSIGN
 
-		block/make-at state 3
+		para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
+		para: objc_msgSend [para sel_getUid "mutableCopy"]
+		h: objc_msgSend [nsfont sel_getUid "advancementForGlyph:" 32]			;-- #" "
+		objc_msgSend [para sel_getUid "setDefaultTabInterval:" sz/w * (as float32! 4.0)]
+		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
+
+		block/make-at state 4
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts
+		integer/make-in state para
 	]
 
 	;@@ set para: as red-object! values + TBOX_OBJ_PARA
 
-	h: 7CF0BDC2h w: 7CF0BDC2h
-	sz: as NSSize! :h
 	if TYPE_OF(size) = TYPE_PAIR [
 		unless zero? size/x [sz/w: as float32! size/x]
 		unless zero? size/y [sz/h: as float32! size/y]
@@ -333,18 +340,16 @@ OS-text-box-layout: func [
 		objc_msgSend [ts sel_getUid "replaceCharactersInRange:withString:" 0 0 str]
 	]
 
-	;para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
-	;para: objc_msgSend [para sel_getUid "mutableCopy"]
-
 	attrs: objc_msgSend [
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
 		sel_getUid "initWithObjectsAndKeys:"
 		nsfont NSFontAttributeName
+		para NSParagraphStyleAttributeName
 		0
 	]
 	w: objc_msgSend [str sel_getUid "length"]
 	objc_msgSend [ts sel_getUid "setAttributes:range:" attrs 0 w]
-	objc_msgSend [attrs sel_getUid "release"]
+	objc_msgSend [attrs sel_release]
 
 	styles: as red-block! values + TBOX_OBJ_STYLES
 	if all [

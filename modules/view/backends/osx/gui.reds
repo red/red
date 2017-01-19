@@ -671,7 +671,13 @@ change-visible: func [
 			objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
 			objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
 		]
-		type = window [0]
+		type = window [
+			either show? [
+				objc_msgSend [hWnd sel_getUid "makeKeyAndOrderFront:" hWnd]
+			][
+				objc_msgSend [hWnd sel_getUid "orderOut:" hWnd]
+			]
+		]
 		true [objc_msgSend [hWnd sel_getUid "setHidden:" not show?]]
 	]
 ]
