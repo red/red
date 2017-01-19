@@ -11,15 +11,15 @@ int main() {
 
 	redOpen();
 	printf("redOpen done\n");
-	int		a = redSymbol("a");
+	int     a = redSymbol("a");
 	int o_b_2 = redSymbol("o_b_2");
 	int print = redSymbol("print");
-	int	  o_b = redSymbol("o_b");
+	int   o_b = redSymbol("o_b");
 
 	redSet(o_b, redLoadPath("o/b"));
 	redDo("?? o_b");
 	redSet(o_b_2, redPath(redWord("o"), redWord("b"), redInteger(2), 0));
-	
+
 	redSet(a, (red_value) redBlock(redInteger(42), redString("hello"), 0));
 	redDo("?? a foreach v a [probe v]");
 	redPrint(redGet(a));
@@ -41,10 +41,10 @@ int main() {
 	redDo("o: object [b: {hello}]");
 	redDo("?? o_b");
 	redProbe(redGet(o_b));
-	
+
 	redProbe(redGet(o_b_2));
 	redProbe(redGetPath(redGet(o_b_2)));
-	
+
 	redSetPath(redGet(o_b), redInteger(123));
 	redProbe(redGetPath(redGet(o_b)));
 
