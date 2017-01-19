@@ -77,7 +77,7 @@ Public Declare Function redSymbol Lib "libRed.dll" (ByRef word As Variant) As Lo
 Public Declare Function redUnset Lib "libRed.dll" () As Long
 Public Declare Function redNone Lib "libRed.dll" () As Long
 Public Declare Function redLogicReal Lib "libRed.dll" Alias "redLogic" (ByVal bool As Long) As Long
-Public Declare Function redDatatype Lib "libRed.dll" (ByVal type As Long) As Long
+Public Declare Function redDatatype Lib "libRed.dll" (ByVal dtype As Long) As Long
 Public Declare Function redInteger Lib "libRed.dll" (ByVal number As Long) As Long
 Public Declare Function redFloat Lib "libRed.dll" (ByVal number As Double) As Long
 Public Declare Function redPair Lib "libRed.dll" (ByVal x As Long, ByVal y As Long) As Long
