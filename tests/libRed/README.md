@@ -1,4 +1,4 @@
-### LibRed tests and demo files.
+### LibRed tests and demo files
 
 The `libRed.dll` precompiled library (using `stdcall` ABI) provided in this folder is required for the `text.xlsm` demo. That Excel file contains three Excel/libRed integration demos:
 
