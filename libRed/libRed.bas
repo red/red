@@ -148,7 +148,7 @@ Public Function redCString(str As Long)
     redCString = var
 End Function
 
-Sub redClose()
+Public Sub redClose()
     'Do nothing for now
 End Sub
 
@@ -156,7 +156,7 @@ Public Function redLogic(bool As Boolean) As Long
     redLogic = redLogicReal(IIf(bool, 1, 0))
 End Function
 
-Sub redAppendBlockValue(blk As Long, value As Variant, asWord As Boolean)
+Private Sub redAppendBlockValue(blk As Long, value As Variant, asWord As Boolean)
     Select Case VarType(value)
         Case vbInteger, vbLong: redAppend redGet(blk), redInteger(CLng(value))
         Case vbSingle, vbDouble: redAppend redGet(blk), redFloat(CDbl(value))
@@ -165,7 +165,7 @@ Sub redAppendBlockValue(blk As Long, value As Variant, asWord As Boolean)
     End Select
 End Sub
 
-Function redBlock(ParamArray args() As Variant) As Long
+Public Function redBlock(ParamArray args() As Variant) As Long
     Dim i As Long
     Dim blk As Long
     
@@ -175,7 +175,7 @@ Function redBlock(ParamArray args() As Variant) As Long
     redBlock = redGet(blk)
 End Function
 
-Function redPath(ParamArray args() As Variant) As Long
+Public Function redPath(ParamArray args() As Variant) As Long
     Dim i As Long
     Dim blk As Long
     
@@ -185,7 +185,7 @@ Function redPath(ParamArray args() As Variant) As Long
     redPath = redGet(blk)
 End Function
 
-Function redCall(ParamArray args() As Variant) As Long
+Public Function redCall(ParamArray args() As Variant) As Long
     Dim i As Long
     Dim blk As Long
     
