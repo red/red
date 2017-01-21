@@ -171,7 +171,7 @@ Public Function redBlock(ParamArray args() As Variant) As Long
     
     blk = blkWord
     redSet blk, redMakeSeries(red_block, UBound(args) - LBound(args) + 1)
-    For i = LBound(args) To UBound(args): redAppendBlockValue blk, args(i), False: Next i
+    For i = LBound(args) To UBound(args): redAppend redGet(blk), args(i): Next i
     redBlock = redGet(blk)
 End Function
 
@@ -181,7 +181,7 @@ Public Function redPath(ParamArray args() As Variant) As Long
     
     blk = blkWord
     redSet blk, redMakeSeries(red_path, UBound(args) - LBound(args) + 1)
-    For i = LBound(args) To UBound(args): redAppendBlockValue blk, args(i), True: Next i
+    For i = LBound(args) To UBound(args): redAppend redGet(blk), args(i), True: Next i
     redPath = redGet(blk)
 End Function
 
@@ -192,6 +192,41 @@ Public Function redCall(ParamArray args() As Variant) As Long
     blk = callBlkWord
     redClear redGet(blk)
     redAppend redGet(blk), args(0)
-    For i = LBound(args) + 1 To UBound(args): redAppendBlockValue blk, args(i), False: Next i
+    For i = LBound(args) + 1 To UBound(args): redAppend redGet(blk), args(i), False: Next i
     redCall = redDoBlock(redGet(blk))
+End Function
+
+Public Function redBlockVB(ParamArray args() As Variant) As Long
+    Dim i As Long
+    Dim blk As Long
+    
+    blk = blkWord
+    redSet blk, redMakeSeries(red_block, UBound(args) - LBound(args) + 1)
+    For i = LBound(args) To UBound(args): redAppendBlockValue blk, args(i), False: Next i
+    redBlockVB = redGet(blk)
+End Function
+
+Public Function redPathVB(ParamArray args() As Variant) As Long
+    Dim i As Long
+    Dim blk As Long
+    
+    blk = blkWord
+    redSet blk, redMakeSeries(red_path, UBound(args) - LBound(args) + 1)
+    For i = LBound(args) To UBound(args): redAppendBlockValue blk, args(i), True: Next i
+    redPathVB = redGet(blk)
+End Function
+
+Public Function redCallVB(ParamArray args() As Variant) As Long
+    Dim i As Long
+    Dim blk As Long
+    
+    If VarType(args(0)) <> vbString Then
+        MsgBox "Error in redCallVB(), first argument must be a string"
+        redCallVB = redUnset
+    End If
+    blk = callBlkWord
+    redClear redGet(blk)
+    redAppend redGet(blk), redWord(CVar(args(0)))
+    For i = LBound(args) + 1 To UBound(args): redAppendBlockValue blk, args(i), False: Next i
+    redCallVB = redDoBlock(redGet(blk))
 End Function
