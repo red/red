@@ -1134,10 +1134,13 @@ OS-draw-box: func [
 		radius	[red-integer!]
 		rad		[integer!]
 ][
-	either TYPE_OF(lower) = TYPE_INTEGER [
+	rad: either TYPE_OF(lower) = TYPE_INTEGER [
 		radius: as red-integer! lower
-		lower:  lower - 1
-		rad: radius/value * 2
+		lower: lower - 1
+		radius/value
+	][0]
+	either positive? rad [
+		rad: rad * 2
 		either GDI+? [
 			gdiplus-draw-roundbox
 				ctx
