@@ -280,6 +280,8 @@ Red [
 		"Releases dynamic memory allocated for the current instance"
 	][
 		CHECK_LIB_OPENED
+		#if sub-system = 'GUI [gui/finalize]
+		
 		ring/destroy
 		;@@ Free the main buffers
 		free as byte-ptr! natives/table
