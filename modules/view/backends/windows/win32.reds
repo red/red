@@ -1179,7 +1179,7 @@ XFORM!: alias struct! [
 		]
 		UnregisterClass: "UnregisterClassW" [
 			lpClassName	[c-string!]
-			hInstance	[integer!]
+			hInstance	[handle!]
 			return:		[integer!]
 		]
 		LoadCursor: "LoadCursorW" [
