@@ -535,7 +535,7 @@ system/view/platform: context [
 	]
 
 	init: func [/local svs fonts][
-		#system [gui/init]
+		#system [gui/initialize]
 		
 		system/view/metrics/dpi: 94						;@@ Needs to be calculated
 		system/view/screens: svs: make block! 6

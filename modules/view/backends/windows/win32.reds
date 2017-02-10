@@ -1177,6 +1177,11 @@ XFORM!: alias struct! [
 			lpwcx		[WNDCLASSEX]
 			return: 	[integer!]
 		]
+		UnregisterClass: "UnregisterClassW" [
+			lpClassName	[c-string!]
+			hInstance	[integer!]
+			return:		[integer!]
+		]
 		LoadCursor: "LoadCursorW" [
 			hInstance	 [handle!]
 			lpCursorName [integer!]

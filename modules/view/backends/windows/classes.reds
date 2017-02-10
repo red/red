@@ -219,3 +219,22 @@ register-classes: func [
 		as-integer :FaceWndProc
 		yes
 ]
+
+unregister-classes: func [
+	hInstance [handle!]
+][
+	UnregisterClass #u16 "RedWindow"		hInstance
+	UnregisterClass #u16 "RedBase"			hInstance
+	UnregisterClass #u16 "RedBaseInternal"	hInstance
+	UnregisterClass #u16 "RedCamera"		hInstance
+	UnregisterClass #u16 "RedButton"		hInstance
+	UnregisterClass #u16 "RedField"			hInstance
+	UnregisterClass #u16 "RedCombo"			hInstance
+	UnregisterClass #u16 "RedListBox"		hInstance
+	UnregisterClass #u16 "RedProgress"		hInstance
+	UnregisterClass #u16 "RedSlider"		hInstance
+	UnregisterClass #u16 "RedTabpanel"		hInstance
+	UnregisterClass #u16 "RedPanel"			hInstance
+	UnregisterClass #u16 "RedFace"			hInstance
+	;@@ unregister custom classes too!
+]

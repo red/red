@@ -13,6 +13,12 @@ Red [
 	}
 ]
 
+#system-global [
+	on-unload: func [hInstance [integer!]][
+		if exec/lib-opened? [probe "on-unload" exec/redClose]
+	]
+]
+
 #system [
 	
 	#either OS = 'Windows [
@@ -283,6 +289,7 @@ Red [
 		free as byte-ptr! action-table
 		free as byte-ptr! cycles/stack
 		free as byte-ptr! crypto/crc32-table
+		lib-opened?: no
 	]
 	
 	redSetEncoding: func [

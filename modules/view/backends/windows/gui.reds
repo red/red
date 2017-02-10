@@ -443,7 +443,7 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-init: func [
+initialize: func [
 	/local
 		ver   [red-tuple!]
 		int   [red-integer!]
@@ -495,6 +495,10 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
+]
+
+finalize: does [
+	unregister-classes hInstance
 ]
 
 find-last-window: func [
