@@ -283,14 +283,7 @@ Red [
 		#if modules contains 'View [gui/cleanup]
 		
 		ring/destroy
-		;@@ Free the main buffers
-		free as byte-ptr! natives/table
-		free as byte-ptr! actions/table
-		free as byte-ptr! _random/table
-		free as byte-ptr! name-table
-		free as byte-ptr! action-table
-		free as byte-ptr! cycles/stack
-		free as byte-ptr! crypto/crc32-table
+		red/cleanup
 		lib-opened?: no
 	]
 	
