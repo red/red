@@ -532,7 +532,10 @@ process-command-event: func [
 					current-msg/hWnd: child	  				;-- force Edit handle
 					make-event current-msg -1 EVT_CHANGE
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-					if type/symbol = area [update-scrollbars child]
+					if type/symbol = area [
+						extend-area-limit child 16
+						update-scrollbars child
+					]
 				]
 			]
 			0

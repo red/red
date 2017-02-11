@@ -991,7 +991,7 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
-			class: #u16 "RedField"
+			class: #u16 "RedArea"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
@@ -1309,6 +1309,21 @@ change-offset: func [
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
 ]
 
+extend-area-limit: func [
+	hWnd  [handle!]
+	extra [integer!]
+	/local
+		limit [integer!]
+		old	  [integer!]
+][
+	limit: as-integer SendMessage hWnd EM_GETLIMITTEXT 0 0
+	old:   as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+	
+	if extra + old > limit [
+		SendMessage hWnd EM_SETLIMITTEXT old + extra + 30'000 0
+	]
+]
+
 change-text: func [
 	hWnd	[handle!]
 	values	[red-value!]
@@ -1333,7 +1348,10 @@ change-text: func [
 			hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		]
 		SetWindowText hWnd text
-		if type = area [update-scrollbars hWnd]
+		if type = area [
+			extend-area-limit hWnd string/rs-length? str
+			update-scrollbars hWnd
+		]
 	]
 ]
 
