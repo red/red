@@ -15,7 +15,7 @@ Red [
 
 #system-global [
 	on-unload: func [hInstance [integer!]][
-		if exec/lib-opened? [probe "on-unload" exec/redClose]
+		if exec/lib-opened? [exec/redClose]
 	]
 ]
 
@@ -280,7 +280,7 @@ Red [
 		"Releases dynamic memory allocated for the current instance"
 	][
 		CHECK_LIB_OPENED
-		#if sub-system = 'GUI [gui/finalize]
+		#if modules contains 'View [gui/cleanup]
 		
 		ring/destroy
 		;@@ Free the main buffers

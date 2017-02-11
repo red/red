@@ -443,7 +443,7 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-initialize: func [
+init: func [
 	/local
 		ver   [red-tuple!]
 		int   [red-integer!]
@@ -497,7 +497,7 @@ initialize: func [
 	int/value:  as-integer version-info/wProductType
 ]
 
-finalize: does [
+cleanup: does [
 	unregister-classes hInstance
 	DX-cleanup
 ]
