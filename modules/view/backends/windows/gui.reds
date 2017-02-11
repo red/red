@@ -499,6 +499,7 @@ initialize: func [
 
 finalize: does [
 	unregister-classes hInstance
+	DX-cleanup
 ]
 
 find-last-window: func [
