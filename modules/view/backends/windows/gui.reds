@@ -1184,7 +1184,11 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = area	 [update-scrollbars handle]
+		sym = area	 [
+			flags: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
+			SendMessage handle CBh 1 as-integer :flags
+			update-scrollbars handle
+		]
 		sym = window [init-window handle offset size bits]
 		true [0]
 	]
