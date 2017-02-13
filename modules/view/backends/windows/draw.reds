@@ -218,6 +218,7 @@ draw-begin: func [
 	ctx/pen-width:		as float32! 1.0
 	ctx/pen?:			yes
 	ctx/hwnd:			hWnd
+	ctx/font-color:		-1
 	dc:					null
 
 	D2D?: (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
