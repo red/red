@@ -661,13 +661,13 @@ system-dialect: make-profilable context [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
 					
 					either 'op = second get-function-spec value/1 [
-						either base-type? type: get-return-type value/1 [
+						either base-type? type: get-return-type/check value/1 [
 							type						;-- unique returned type, stop here
 						][
 							get-type value/2			;-- recursively search for left operand base type
 						]
 					][
-						get-return-type value/1
+						get-return-type/check value/1
 					]
 				]
 				object!  [value/type]
