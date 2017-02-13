@@ -2748,7 +2748,13 @@ red: context [
 		
 		body: pc/1
 		unless block? body [
-			throw-error "SWITCH expects a block as second argument"
+			append output arg
+			comp-expression								;-- compile cases argument
+			if default? [comp-expression]				;-- optionally compile /default argument
+			emit-native/with 'switch reduce [pick [2 -1] to logic! default?]
+			emit-close-frame
+			pop-call
+			exit
 		]
 		list: make block! 4
 		cnt: 1
