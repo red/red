@@ -461,12 +461,14 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
+			true? [logic!]
 	][
 		#typecheck [case all?]
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		if value = tail [RETURN_NONE]
-		
+
+		true?: false
 		while [value < tail][
 			value: interpreter/eval-next value tail no	;-- eval condition
 			if value = tail [break]
@@ -479,11 +481,12 @@ natives: context [
 					value: interpreter/eval-next value tail no
 				]
 				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
+				true?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
-		RETURN_NONE
+		unless true? [RETURN_NONE]
 	]
 	
 	do*: func [
