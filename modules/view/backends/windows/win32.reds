@@ -1044,10 +1044,6 @@ XFORM!: alias struct! [
 		CloseClipboard: "CloseClipboard" [
 			return:		[integer!]
 		]
-		IsClipboardFormatAvailable: "IsClipboardFormatAvailable" [
-			format		[integer!]
-			return:		[logic!]
-		]
 		GetKeyState: "GetKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]

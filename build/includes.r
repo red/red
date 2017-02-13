@@ -70,6 +70,7 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
+		%clipboard.reds
 		%crush.reds
 		%utils.reds
 		%datatypes/ [

@@ -115,6 +115,7 @@ red: context [
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds							;-- temporary file IO support
+	#include %clipboard.reds
 	#include %redbin.reds
 	#include %utils.reds
 
