@@ -216,7 +216,7 @@ paste-from-clipboard: func [
 		hMem: clipboard
 		p: paste-data
 	][
-		unless OpenClipboard GetParent vt/hwnd [return false]
+		unless OpenClipboard vt/hwnd [return false]
 		hMem: GetClipboardData CF_UNICODETEXT
 	]
 
