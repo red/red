@@ -846,6 +846,30 @@ atan: func [
 	]
 ]
 
+atan2: func [
+	"Returns the angle of the point y/x in radians"
+	y		[number!]
+	x		[number!]
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 2
+		natives/arctangent2* no 1
+	]
+]
+
+
+sqrt: func [
+	"Returns the square root of a number"
+	number	[number!] "Angle in radians"
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/square-root* no
+	]
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
@@ -862,7 +886,5 @@ rejoin: function [
 ;------------------------------------------
 
 keys-of:	:words-of
-atan2:		:arctangent2
-sqrt:		:square-root
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded
