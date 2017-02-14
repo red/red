@@ -286,6 +286,7 @@ update-scrollbars: func [
 		saved	[handle!]
 		rc		[RECT_STRUCT]
 		new		[RECT_STRUCT]
+		horz?	[logic!]
 ][
 	rc:  declare RECT_STRUCT
 	new: declare RECT_STRUCT
@@ -301,10 +302,14 @@ update-scrollbars: func [
 		]
 		saved: SelectObject hScreen hFont
 		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
+		horz?: any [
+			new/right  >= rc/right
+			all [zero? new/right 500 < string/rs-length? str]			;-- very long line
+		]
+
 		SelectObject hScreen saved
 		GetClientRect hWnd rc
-		
-		ShowScrollBar hWnd 0 new/right  >= rc/right		;-- SB_HORZ
+		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
 	][
 		ShowScrollBar hWnd 0 no							;-- SB_HORZ
@@ -1069,7 +1074,7 @@ OS-make-view: func [
 		]
 	]
 
-	caption: either TYPE_OF(str) = TYPE_STRING [
+	caption: either all [TYPE_OF(str) = TYPE_STRING sym <> area][
 		unicode/to-utf16 str
 	][
 		null
@@ -1187,7 +1192,7 @@ OS-make-view: func [
 		sym = area	 [
 			flags: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
 			SendMessage handle CBh 1 as-integer :flags
-			update-scrollbars handle
+			change-text handle values sym
 		]
 		sym = window [init-window handle offset size bits]
 		true [0]
@@ -1335,6 +1340,7 @@ change-text: func [
 	/local
 		text [c-string!]
 		str  [red-string!]
+		len  [integer!]
 ][
 	if type = base [
 		update-base hWnd null null values
@@ -1343,19 +1349,25 @@ change-text: func [
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
-		TYPE_STRING [text: unicode/to-utf16 str yes]
-		TYPE_NONE	[text: #u16 "^@"]
+		TYPE_STRING [
+			text: unicode/to-utf16 str yes
+			len: string/rs-length? str
+		]
+		TYPE_NONE	[
+			text: #u16 "^@"
+			len: 1
+		]
 		default		[0]									;@@ Auto-convert?
 	]
 	unless null? text [
 		if type = group-box [
 			hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		]
-		SetWindowText hWnd text
 		if type = area [
-			extend-area-limit hWnd string/rs-length? str
+			extend-area-limit hWnd len
 			update-scrollbars hWnd
 		]
+		SetWindowText hWnd text
 	]
 ]
 
