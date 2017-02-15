@@ -2568,6 +2568,21 @@ XFORM!: alias struct! [
 			pv		[integer!]
 		]
 	]
+	"imm32.dll" stdcall [
+		ImmGetContext: "ImmGetContext" [
+			hWnd	[handle!]
+			return:	[handle!]
+		]
+		ImmReleaseContext: "ImmReleaseContext" [
+			hWnd	[handle!]
+			hIMC	[handle!]
+			return:	[logic!]
+		]
+		ImmGetOpenStatus: "ImmGetOpenStatus" [
+			hIMC	[handle!]
+			return:	[logic!]
+		]
+	]
 	"UxTheme.dll" stdcall [
 		OpenThemeData: "OpenThemeData" [
 			hWnd		 [handle!]

@@ -370,8 +370,10 @@ terminal!: object [
 			up	  []
 			down  []
 		][
-			insert skip line pos char
-			pos: pos + 1
+			if all [char? char char > 31][
+				insert skip line pos char
+				pos: pos + 1
+			]
 		]
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
