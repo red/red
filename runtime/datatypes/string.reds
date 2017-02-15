@@ -1566,7 +1566,6 @@ string: context [
 			limit	[byte-ptr!]
 			part?	[logic!]
 			bs?		[logic!]
-			not?	[logic!]
 			type	[integer!]
 			found?	[logic!]
 	][
@@ -1665,7 +1664,6 @@ string: context [
 			TYPE_BITSET [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
-				not?:  FLAG_NOT?(sbits)
 				pbits: as byte-ptr! sbits/offset
 				bs?:   yes
 				case?: no
@@ -1715,14 +1713,13 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
 					BS_TEST_BIT(pbits c1 found?)
-					if not? [found?: not found?]
 				][
 					found?: c1 = c2
-				]
+				]			
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
 					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
