@@ -1684,8 +1684,8 @@ red: context [
 	]
 	
 	inherit-functions: func [							 ;-- multiple inheritance case
-		new [object!] extend [object!] multi? [logic!]
-		/local symbol name
+		new [object!] extend [object!]
+		/local symbol name entry
 	][
 		foreach word next first extend [
 			if function! = get in extend word [
@@ -1695,9 +1695,9 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				either multi? [							;-- not allowed for libRedRT client programs
+				either entry: find bodies symbol [		;-- not allowed for libRedRT client programs
 					append bodies name
-					append bodies bind/copy copy/part next find bodies symbol 8 new
+					append bodies bind/copy copy/part next entry 8 new
 				][
 					redirect-to literals [
 						emit compose [#define (decorate-func name) (decorate-func symbol)]
@@ -1715,7 +1715,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? multi-inherit?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1873,15 +1873,14 @@ red: context [
 			]
 			insert-lf -3
 		]
-		multi-inherit?: not all [job/dev-mode? not job/libRedRT?]
 		
 		if proto [
-			if body? [inherit-functions obj last proto multi-inherit?]
+			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		if all [not body? not passive][
-			inherit-functions obj new multi-inherit?
+			inherit-functions obj new
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
