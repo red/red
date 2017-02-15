@@ -272,13 +272,16 @@ tuple: context [
 		type	[integer!]
 		return: [red-tuple!]
 		/local
-			int [red-integer!]
-			blk [red-block!]
-			tp  [byte-ptr!]
-			i	[integer!]
-			n	[integer!]
-			s	[series!]
-			val [red-value!]
+			int  [red-integer!]
+			blk  [red-block!]
+			char [red-char!]
+			fl	 [red-float!]
+			tp   [byte-ptr!]
+			i	 [integer!]
+			n	 [integer!]
+			byte [integer!]
+			s	 [series!]
+			val	 [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
 
@@ -295,11 +298,24 @@ tuple: context [
 				i: 0
 				while [i < n][
 					i: i + 1
-					if any [
-						int/value > 255
-						int/value < 0
-					][fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
-					tp/i: as byte! int/value
+					switch TYPE_OF(int) [
+						TYPE_INTEGER [byte: int/value]
+						TYPE_CHAR	 [
+							char: as red-char! int
+							byte: char/value
+						]
+						TYPE_FLOAT 	 [
+							fl: as red-float! int
+							byte: as-integer fl/value
+						]
+						default [
+							fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+						]
+					]
+					if any [byte > 255 byte < 0][
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+					]
+					tp/i: as byte! byte
 					int: int + 1
 				]
 				while [i < 3][i: i + 1 tp/i: null-byte]
