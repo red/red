@@ -43,6 +43,7 @@ red-console-ctx: context [
 	console: make console! []
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
+		options: reduce ['caret console]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = 0.0.0.1 [255.255.255.254][0.0.0.1]

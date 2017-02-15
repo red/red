@@ -250,7 +250,8 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
-			
+			caret:			symbol/make "caret"
+
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"

@@ -10,6 +10,73 @@ Red/System [
 	}
 ]
 
+#define BASE_FACE_CLIPPED 1
+#define BASE_FACE_CARET   2
+
+init-base-face: func [
+	handle		[handle!]
+	parent		[integer!]
+	values		[red-value!]
+	alpha?		[logic!]
+	/local
+		pt		[tagPOINT]
+		offset	[red-pair!]
+		size	[red-pair!]
+		show?	[red-logic!]
+		opts	[red-block!]
+		word	[red-word!]
+		len		[integer!]
+		sym		[integer!]
+		flags	[integer!]
+		face [red-object!]
+][
+	offset: as red-pair! values + FACE_OBJ_OFFSET
+	size:	as red-pair! values + FACE_OBJ_SIZE
+	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
+	opts:	as red-block! values + FACE_OBJ_OPTIONS
+
+	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 16 parent
+	SetWindowLong handle wc-offset - 20 0
+	SetWindowLong handle wc-offset - 24 0
+	either alpha? [
+		pt: as tagPOINT (as int-ptr! offset) + 2
+		unless win8+? [
+			pt: position-base handle as handle! parent offset
+		]
+		update-base handle as handle! parent pt values
+		if all [show?/value IsWindowVisible as handle! parent][
+			ShowWindow handle SW_SHOWNA
+		]
+		unless win8+? [
+			process-layered-region handle size offset null offset null yes
+		]
+	][
+		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+	]
+
+	if TYPE_OF(opts) = TYPE_BLOCK [
+		word: as red-word! block/rs-head opts
+		len: block/rs-length? opts
+		if len % 2 <> 0 [exit]
+		flags: GetWindowLong handle wc-offset - 12
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = caret [
+					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
+					face: as red-object! word + 1
+					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
+					update-caret handle values
+				]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+]
+
 position-base: func [
 	base	[handle!]
 	parent	[handle!]
@@ -154,15 +221,17 @@ clip-layered-window: func [
 	/local
 		rgn		[handle!]
 		child	[handle!]
+		flags	[integer!]
 ][
+	flags: GetWindowLong hWnd wc-offset - 12
 	either any [
 		not zero? x
 		not zero? y
 		size/x <> new-width
 		size/y <> new-height
-		1 = GetWindowLong hWnd wc-offset - 12
+		BASE_FACE_CLIPPED and flags <> 0
 	][
-		SetWindowLong hWnd wc-offset - 12 1
+		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
 		rgn: CreateRectRgn x y new-width new-height
 		SetWindowRgn hWnd rgn false
 		child: as handle! GetWindowLong hWnd wc-offset - 20
@@ -170,7 +239,7 @@ clip-layered-window: func [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
 		]
-	][SetWindowLong hWnd wc-offset - 12 0]
+	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
 process-layered-region: func [
