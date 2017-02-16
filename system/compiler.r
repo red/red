@@ -2804,6 +2804,10 @@ system-dialect: make-profilable context [
 						]
 					]
 				][										;-- nested calls as op argument require special handling
+					if any [string? list/1 string? list/2][
+						backtrack first find/reverse pc string!
+						throw-error "literal string values cannot be used with operators"
+					]
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					left:  unbox list/1
 					right: unbox list/2
