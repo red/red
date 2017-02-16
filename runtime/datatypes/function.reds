@@ -620,7 +620,6 @@ _function: context [
 	][
 		list: block/push* 8
 		ignore: block/clone spec no no
-		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no no null null no no no no
