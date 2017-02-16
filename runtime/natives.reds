@@ -24,6 +24,7 @@ Red/System [
 	either negative? next [
 		interpreter/eval as red-block! arg yes
 	][
+		blk: as red-block! copy-cell arg slot
 		blk/head: interpreter/eval-single arg
 	]
 ]
@@ -512,10 +513,7 @@ natives: context [
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
-		if next > 0 [
-			slot: _context/get as red-word! stack/arguments + next
-			blk: as red-block! copy-cell arg slot
-		]
+		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
