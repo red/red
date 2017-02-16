@@ -208,7 +208,7 @@ system/console: context [
 	]
 
 	launch: function [/local result][
-		either script: read-argument [
+		either script: src: read-argument [
 			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
 		
 			either script: pos [
@@ -220,7 +220,14 @@ system/console: context [
 						script: find/case script 'Red
 						block? script/2 
 					][
-						print "*** Error: not a Red program!"
+						print [
+							"*** Error:"
+							either find src "Red/System" [
+								"contains Red/System code which requires compilation!"
+							][
+								"not a Red program!"
+							]
+						]
 						;quit/return -2
 					][
 						expand-directives script

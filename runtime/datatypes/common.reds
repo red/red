@@ -541,6 +541,9 @@ words: context [
 	
 	user:			-1
 	host:			-1
+	
+	system:			-1
+	system-global:	-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -731,6 +734,9 @@ words: context [
 		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
+		
+		system:			symbol/make "system"
+		system-global:	symbol/make "system-global"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable

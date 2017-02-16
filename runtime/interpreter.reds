@@ -723,6 +723,7 @@ interpreter: context [
 			op	   [red-value!]
 			s-arg  [red-value!]
 			s-top  [red-value!]
+			sym	   [integer!]
 			infix? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
@@ -865,6 +866,29 @@ interpreter: context [
 				value: pc + 1
 				if value >= end [value: end]
 				pc: eval-code pc value end sub? null null null
+			]
+			TYPE_ISSUE [
+				value: pc + 1
+				if all [
+					value < end
+					TYPE_OF(value) = TYPE_BLOCK
+				][
+					w: as red-word! pc
+					sym: symbol/resolve w/symbol
+					
+					if any [
+						sym = words/system
+						sym = words/system-global
+					][
+						fire [TO_ERROR(internal red-system)]
+					]
+				]
+				either sub? [
+					stack/push pc						;-- nested expression: push value
+				][
+					stack/set-last pc					;-- root expression: return value
+				]
+				pc: pc + 1
 			]
 			default [
 				either sub? [
