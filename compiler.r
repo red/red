@@ -2746,7 +2746,7 @@ red: context [
 		clear mark
 		
 		body: pc/1
-		unless block? body [
+		if any [not block? body empty? body][
 			append output arg
 			comp-expression								;-- compile cases argument
 			if default? [comp-expression]				;-- optionally compile /default argument
@@ -2788,7 +2788,7 @@ red: context [
 				cnt: cnt + 1
 			) skip]
 		]
-		unless empty? body [pc: next pc]
+		pc: next pc
 		
 		append list 'default							;-- process default case
 		either default? [
