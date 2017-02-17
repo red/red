@@ -2452,7 +2452,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
+	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule counter][
 		if pos: find spec /extern [
 			either end: any [
 				find next pos refinement!
@@ -2475,7 +2475,7 @@ red: context [
 			while [not tail? pos][
 				either all [
 					find [word! lit-word! get-word!] type?/word pos/1
-					any [
+					any [ 
 						find/part spec to lit-word! pos/1 loc
 						find/part spec to get-word! pos/1 loc
 					]
@@ -2500,7 +2500,7 @@ red: context [
 			unless any [
 				all [ignore	find ignore word]
 				find words word
-			][
+			][			
 				append words word
 			]
 		]
@@ -2513,11 +2513,12 @@ red: context [
 				| pos: word! (
 					if all [
 						find word-iterators pos/1
-						pos/2
+						counter: pos/2
 					][
 						foreach word any [
-							all [block? pos/2 pos/2]
-							reduce [pos/2]
+							all [block? counter counter]
+							all [any-word? counter reduce [counter]]
+							[]
 						] make-local
 					]
 				)
