@@ -492,7 +492,14 @@ interpreter: context [
 									arg:  stack/top - 1
 									type: TYPE_OF(arg)
 									BS_TEST_BIT(bits type set?)
-									unless set? [ERR_EXPECT_ARGUMENT(type index)]
+									unless set? [
+										fire [
+											TO_ERROR(script expect-arg)
+											stack/get-call
+											datatype/push type
+											value
+										]
+									]
 									index: index + 1
 								]
 							][
