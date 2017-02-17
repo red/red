@@ -63,6 +63,9 @@ win8+?:			no
 winxp?:			no
 DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
 win-state:		0
+hIMCtx:			as handle! 0
+ime-open?:		no
+ime-font:		as tagLOGFONT allocate 92
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -725,6 +728,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = editable   [flags: flags or FACET_FLAGS_EDITABLE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			all [
 				sym = Direct2D
@@ -1302,6 +1306,25 @@ change-size: func [
 	]
 ]
 
+set-ime-pos: func [
+	hWnd	[handle!]
+	pos		[red-pair!]
+	/local
+
+		left	[integer!]
+		top		[integer!]
+		right	[integer!]
+		bottom	[integer!]
+		y		[integer!]
+		x		[integer!]
+		dwStyle	[integer!]
+][
+	dwStyle: 2			;-- CFS_POINT
+	x: pos/x
+	y: pos/y
+	ImmSetCompositionWindow hIMCtx as tagCOMPOSITIONFORM :dwStyle
+]
+
 change-offset: func [
 	hWnd [handle!]
 	pos  [red-pair!]
@@ -1322,7 +1345,7 @@ change-offset: func [
 		values	[red-value!]
 		layer?	[logic!]
 		x		[integer!]
-		y		[integer!]	
+		y		[integer!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	header: 0
@@ -1331,7 +1354,10 @@ change-offset: func [
 	if all [					;-- caret widget
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
-	][SetCaretPos pos/x pos/y]
+	][
+		SetCaretPos pos/x pos/y
+		set-ime-pos hWnd pos
+	]
 
 	x: 0
 	y: 0

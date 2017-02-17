@@ -296,6 +296,8 @@ Red/System [
 #define WM_MOVING			0216h
 #define WM_ENTERSIZEMOVE	0231h
 #define WM_EXITSIZEMOVE		0232h
+#define WM_IME_SETCONTEXT	0281h
+#define WM_IME_NOTIFY		0282h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
@@ -846,6 +848,16 @@ RECT_STRUCT_FLOAT32: alias struct! [
 	height		[float32!]
 ]
 
+tagCOMPOSITIONFORM: alias struct! [
+	dwStyle		[integer!]
+	x			[integer!]
+	y			[integer!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+]
+
 tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfHeight		[integer!]
 	lfWidth			[integer!]
@@ -995,6 +1007,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetKeyboardLayout: "GetKeyboardLayout" [
+			idThread	[integer!]
+			return:		[integer!]
+		]
 		GetSystemMetrics: "GetSystemMetrics" [
 			index		[integer!]
 			return:		[integer!]
@@ -1524,6 +1540,12 @@ XFORM!: alias struct! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		GetObject: "GetObjectW" [
+			hObj		[handle!]
+			cbBuffer	[integer!]
+			lpObject	[byte-ptr!]
+			return:		[integer!]
+		]
 		GetTextFace: 	"GetTextFaceW" [
 			hdc			[handle!]
 			nCount		[integer!]
@@ -2581,6 +2603,16 @@ XFORM!: alias struct! [
 		ImmGetOpenStatus: "ImmGetOpenStatus" [
 			hIMC	[handle!]
 			return:	[logic!]
+		]
+		ImmSetCompositionWindow: "ImmSetCompositionWindow" [
+			hIMC	[handle!]
+			lpComp	[tagCOMPOSITIONFORM]
+			return: [logic!]
+		]
+		ImmSetCompositionFontW: "ImmSetCompositionFontW" [
+			hIMC	[handle!]
+			lfont	[tagLOGFONT]
+			return: [logic!]
 		]
 	]
 	"UxTheme.dll" stdcall [

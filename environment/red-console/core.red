@@ -452,7 +452,7 @@ terminal!: object [
 
 console!: make face! [
 	type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
-	flags: [Direct2D scrollable all-over]
+	flags: [Direct2D editable scrollable all-over]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste

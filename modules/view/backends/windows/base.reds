@@ -467,8 +467,11 @@ BaseWndProc: func [
 		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
 		w		[integer!]
+		len		[integer!]
+		hfont	[handle!]
 		draw	[red-block!]
 		DC		[draw-ctx!]
+		font	[red-object!]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -536,6 +539,32 @@ BaseWndProc: func [
 			return 0
 		]
 		default [0]
+	]
+	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+		switch msg [
+			WM_IME_SETCONTEXT [
+				either zero? wParam [
+					ImmReleaseContext hWnd hIMCtx
+				][
+					hIMCtx: ImmGetContext hWnd
+				]
+			]
+			010Dh [							;-- WM_IME_STARTCOMPOSITION
+				ime-open?: yes
+				font: as red-object! (get-face-values hWnd) + FACE_OBJ_FONT
+				if TYPE_OF(font) = TYPE_OBJECT [
+					hfont: get-font-handle font 0
+					if hfont <> null [
+						GetObject hFont 92 as byte-ptr! ime-font
+						ImmSetCompositionFontW hIMCtx ime-font
+					]
+				]
+			]
+			010Eh [							;-- WM_IME_ENDCOMPOSITION
+				ime-open?: no
+			]
+			default [0]
+		]
 	]
 	DefWindowProc hWnd msg wParam lParam
 ]
