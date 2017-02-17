@@ -3254,9 +3254,11 @@ red: context [
 				emit-open-frame name
 			]
 			current-call: call							;-- for error reporting
+			pos: pc
 			comp-arguments spec/3 spec/2				;-- fetch arguments
 			
 			if all [path? call none? spec/4][
+				pc: back pos
 				throw-error [call/1 "has no refinement"]
 			]
 			
