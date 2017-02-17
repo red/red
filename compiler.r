@@ -2183,7 +2183,11 @@ red: context [
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
-		add-symbol word: pc/1
+		unless any-word? word: pc/1 [
+			pc: back pc
+			throw-error "REPEAT expects a word as first argument"
+		]
+		add-symbol word
 		add-global word
 		name: decorate-symbol word
 		action: either local-word? word [
