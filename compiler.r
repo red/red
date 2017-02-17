@@ -2187,6 +2187,8 @@ red: context [
 			pc: back pc
 			throw-error "REPEAT expects a word as first argument"
 		]
+		emit-open-frame 'body
+		
 		add-symbol word
 		add-global word
 		name: decorate-symbol word
@@ -2242,6 +2244,7 @@ red: context [
 		pop-call
 		insert last output reduce [action name cnt]
 		new-line last output on
+		emit-close-frame
 		emit-close-frame
 		depth: depth - 1
 	]
