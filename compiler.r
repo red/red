@@ -3256,6 +3256,10 @@ red: context [
 			current-call: call							;-- for error reporting
 			comp-arguments spec/3 spec/2				;-- fetch arguments
 			
+			if all [path? call none? spec/4][
+				throw-error [call/1 "has no refinement"]
+			]
+			
 			either compact? [
 				refs: either spec/4 [
 					head insert/dup make block! 8 -1 (length? spec/4) / 3	;-- init with -1
