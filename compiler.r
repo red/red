@@ -3682,6 +3682,7 @@ red: context [
 					][-3]
 					cnt: cnt + 1
 				)
+				| refinement! (cnt: cnt + 1)
 				| skip
 			]
 		]
@@ -3718,6 +3719,7 @@ red: context [
 						pos/1: 'type-check-opt
 						pos/2: pick spec select refs to refinement! next form pos/2
 						remove at pos 8
+						new-line pos yes
 					) 2 skip
 					| skip
 				]
