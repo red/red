@@ -1268,6 +1268,10 @@ red: context [
 	]
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity nat? proto entry][
+		if any [tail? pos not any-word? pos/1][
+			pc: back pc
+			throw-error "Non-compilable function definition"
+		]
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
