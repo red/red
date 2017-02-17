@@ -272,11 +272,11 @@ lexer: context [
 		] (type: time!)
 	]
 	
-	positive-integer-rule: [(type: integer!) digit any digit e:]
+	positive-integer-rule: [digit any digit e: (type: integer!)]
 	
 	integer-number-rule: [
-		(type: integer!)
 		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
+		(type: integer!)
 	]
 	
 	integer-rule: [
