@@ -1627,7 +1627,7 @@ system-dialect: make-profilable context [
 			unless red/process-get-directive code/2 pc [
 				throw-error ["cannot resolve path:" code/2]
 			]
-			fetch-expression
+			fetch-expression #get
 		]
 		
 		process-in: func [code [block!] /local value][
@@ -1638,7 +1638,7 @@ system-dialect: make-profilable context [
 			unless red/process-in-directive code/2 code/3 pc [
 				throw-error ["cannot resolve path:" code/2]
 			]
-			fetch-expression
+			fetch-expression #in
 		]
 		
 		process-check: func [code [block!] /local checks][
@@ -1672,7 +1672,7 @@ system-dialect: make-profilable context [
 			parse/all str [any [skip pos: (insert pos null) skip]]
 			append str null								;-- extra NUL for UTF-16 version
 			pc: next pc
-			fetch-expression
+			fetch-expression #u16
 		]
 		
 		comp-chunked: func [body [block!]][
@@ -1725,7 +1725,7 @@ system-dialect: make-profilable context [
 		
 		comp-comment: does [
 			pc: next pc
-			either block? pc/1 [pc: next pc][fetch-expression]
+			either block? pc/1 [pc: next pc][fetch-expression 'comment]
 			none
 		]
 		
@@ -1866,7 +1866,7 @@ system-dialect: make-profilable context [
 				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
-			expr: fetch-expression
+			expr: fetch-expression 'as
 
 			if all [
 				block? ctype
@@ -1893,23 +1893,23 @@ system-dialect: make-profilable context [
 			either job/debug? [
 				line: calc-line
 				pc: next pc
-				expr: fetch-expression/final
+				expr: fetch-expression/final 'assert
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
 				insert/only pc next next compose [
-					2 (to pair! reduce [line 1])			;-- hidden line offset header
+					2 (to pair! reduce [line 1])		;-- hidden line offset header
 					***-on-quit 98 as integer! system/pc
 				]
-				set [unused chunk] comp-block-chunked		;-- compile TRUE block
-				emitter/set-signed-state expr				;-- properly set signed/unsigned state
+				set [unused chunk] comp-block-chunked	;-- compile TRUE block
+				emitter/set-signed-state expr			;-- properly set signed/unsigned state
 				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
 				emitter/merge chunk
 				last-type: none-type
 				<last>
 			][
 				pc: next pc
-				fetch-expression							;-- consume next expression
+				fetch-expression none					;-- consume next expression
 				none
 			]
 		]
@@ -1964,7 +1964,7 @@ system-dialect: make-profilable context [
 				]
 				pc: next pc
 			][
-				expr: fetch-expression/final	
+				expr: fetch-expression/final 'size?
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr
@@ -1984,7 +1984,7 @@ system-dialect: make-profilable context [
 						func-name
 					]
 				]
-				expr: fetch-expression/final/keep		;-- compile expression to return
+				expr: fetch-expression/final/keep 'return ;-- compile expression to return
 				type: check-expected-type/ret func-name expr ret
 				ret: either type [last-type: type <last>][none]
 			][
@@ -1996,7 +1996,7 @@ system-dialect: make-profilable context [
 
 		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
 			pc: next pc
-			fetch-expression/keep/final
+			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
 				backtrack 'catch
 				throw-error "CATCH expects a threshold value of type integer!"
@@ -2032,7 +2032,7 @@ system-dialect: make-profilable context [
 		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
-				fetch-expression/final					;-- returns first expression
+				fetch-expression/final none				;-- returns first expression
 			][
 				comp-block/final						;-- returns last expression
 			]
@@ -2093,7 +2093,7 @@ system-dialect: make-profilable context [
 		
 		comp-if: has [expr unused chunk][		
 			pc: next pc
-			expr: fetch-expression/final				;-- compile expression
+			expr: fetch-expression/final 'if			;-- compile expression
 			check-conditional 'if expr					;-- verify conditional expression
 			expr: process-logic-encoding expr no
 			check-body pc/1								;-- check TRUE block
@@ -2108,7 +2108,7 @@ system-dialect: make-profilable context [
 		
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
 			pc: next pc
-			expr: fetch-expression/final				;-- compile expression
+			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
 			check-body pc/1								;-- check TRUE block
@@ -2196,7 +2196,7 @@ system-dialect: make-profilable context [
 		
 		comp-switch: has [expr save-type spec value values body bodies list types default pos][
 			pc: next pc
-			expr: fetch-expression/keep/final			;-- compile argument
+			expr: fetch-expression/keep/final 'switch	;-- compile argument
 			if any [none? expr last-type = none-type][
 				throw-error "SWITCH argument has no return value"
 			]
@@ -2306,7 +2306,7 @@ system-dialect: make-profilable context [
 		comp-loop: has [expr body start][
 			pc: next pc
 			
-			fetch-expression/keep/final						;-- compile expression
+			fetch-expression/keep/final 'loop			;-- compile expression
 			if any [none? last-type last-type/1 <> 'integer!][
 				throw-error "LOOP requires an integer as argument"
 			]
@@ -2451,7 +2451,7 @@ system-dialect: make-profilable context [
 				if all [series? name value: system-reflexion? name][name: value]
 			]
 			
-			either none? value: fetch-expression [		;-- explicitly test for none!
+			either none? value: fetch-expression name [	;-- explicitly test for none!
 				none
 			][
 				new-line/all reduce [name value] no
@@ -2464,7 +2464,7 @@ system-dialect: make-profilable context [
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
 					pos: pc
-					expr: fetch-expression
+					expr: fetch-expression name
 					either attribute = 'typed [
 						if all [expr = <last> none? last-type/1][
 							pc: pos
@@ -2487,7 +2487,7 @@ system-dialect: make-profilable context [
 				reduce [name to-issue attribute args]
 			][									;-- fixed arity case
 				args: make block! n: entry/2/1
-				loop n [append/only args fetch-expression]	;-- fetch n arguments
+				loop n [append/only args fetch-expression name]	;-- fetch n arguments
 				new-line/all head insert/only args name no
 			]
 		]
@@ -3103,15 +3103,23 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		fetch-expression: func [/final /keep /local expr pass value][
+		fetch-expression: func [
+			caller [any-word! issue! none! set-path!]
+			/final /keep /local expr pass value
+		][
 			check-infix-operators
 			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
 			if tail? pc [
-				pc: back pc
-				throw-error "missing argument"
+				either caller [
+					unless backtrack caller [pc: back pc]
+					throw-error [mold caller "is missing an argument"]
+				][
+					pc: back pc
+					throw-error "missing argument"
+				]
 			]
 			if job/debug? [store-dbg-lines]
 			
@@ -3149,14 +3157,14 @@ system-dialect: make-profilable context [
 			pc: pc/1
 
 			either only [
-				expr: either final [fetch-expression/final][fetch-expression]
+				expr: either final [fetch-expression/final none][fetch-expression none]
 				unless tail? pc [
 					throw-error "more than one expression found in parentheses"
 				]
 			][
 				while [not tail? pc][
 					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
-					expr: either final [fetch-expression/final][fetch-expression]
+					expr: either final [fetch-expression/final none][fetch-expression none]
 					unless tail? pc [pop-calls]
 				]
 			]
@@ -3184,9 +3192,9 @@ system-dialect: make-profilable context [
 					]
 					paren? pc/1 [
 						;unless infix? at pc 2 [raise-paren-error]
-						expr: fetch-expression/final/keep
+						expr: fetch-expression/final/keep none
 					]
-					'else [expr: fetch-expression/final/keep]
+					'else [expr: fetch-expression/final/keep none]
 				]
 				pop-calls
 				emitter/target/on-root-level-entry
