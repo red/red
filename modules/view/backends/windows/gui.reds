@@ -330,6 +330,24 @@ set-hint-text: func [
 	]
 ]
 
+set-area-options: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		tabsize	[red-integer!]
+		size	[integer!]
+][
+	size: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
+	SendMessage hWnd CBh 1 as-integer :size
+
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	tabsize: as red-integer! block/select-word options word/load "tabs" no
+	if TYPE_OF(tabsize) = TYPE_INTEGER [
+		size: tabsize/value * 4
+		SendMessage hWnd CBh 1 as-integer :size
+	]
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -1204,8 +1222,7 @@ OS-make-view: func [
 		]
 		sym = field [set-hint-text handle as red-block! values + FACE_OBJ_OPTIONS]
 		sym = area	 [
-			flags: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
-			SendMessage handle CBh 1 as-integer :flags
+			set-area-options handle as red-block! values + FACE_OBJ_OPTIONS
 			change-text handle values sym
 		]
 		sym = window [init-window handle offset size bits]
