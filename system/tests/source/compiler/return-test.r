@@ -21,7 +21,7 @@ change-dir %../
 	--clean
 	
 	--compile-this "Red/System [] foo: func [return: [integer!]][until [return]]"
-	--assert-msg? "*** Compilation Error: missing argument"
+	--assert-msg? "*** Compilation Error: return is missing an argument"
 	--clean
 	
 	--compile-this "Red/System [] foo: func [return: [integer!]][until [return true]]"
