@@ -371,8 +371,10 @@ terminal!: object [
 			up	  []
 			down  []
 		][
-			insert skip line pos char
-			pos: pos + 1
+			if all [char? char char > 31][
+				insert skip line pos char
+				pos: pos + 1
+			]
 		]
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
@@ -452,8 +454,8 @@ terminal!: object [
 ]
 
 console!: make face! [
-	type: 'base color: white offset: 0x0 size: 400x400 cursor: 'I-beam
-	flags: [Direct2D scrollable all-over]
+	type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
+	flags: [Direct2D editable scrollable all-over]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste

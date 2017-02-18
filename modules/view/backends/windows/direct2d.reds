@@ -913,6 +913,8 @@ create-text-format: func [
 			return h-font/value
 		]
 
+		make-font null font				;-- always make a GDI font
+
 		int: as red-integer! values + FONT_OBJ_SIZE
 		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
 		f: as-float len

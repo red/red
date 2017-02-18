@@ -14,9 +14,10 @@ Red/System [
 ;;
 ;;		-60 :							<- TOP
 ;;		-24 : Direct2D target interface
+;;				base-layered: caret's owner handle
 ;;		-20 : evolved-base-layered: child handle
 ;;		-16 : base-layered: owner handle
-;;		-12 : base-layered: clipped? flags
+;;		-12 : base-layered: clipped? flag, caret? flag
 ;;		 -8  : base-layered: screen pos Y
 ;;		 -4  : camera (camera!)
 ;;				console (terminal!)
@@ -62,6 +63,9 @@ win8+?:			no
 winxp?:			no
 DWM-enabled?:	no										;-- listen for composition state changes by handling the WM_DWMCOMPOSITIONCHANGED notification
 win-state:		0
+hIMCtx:			as handle! 0
+ime-open?:		no
+ime-font:		as tagLOGFONT allocate 92
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -361,6 +365,19 @@ update-scroller: func [
 		cbSize: size? tagSCROLLINFO
 		SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
 	]
+]
+
+update-caret: func [
+	hWnd	[handle!]
+	values	[red-value!]
+	/local
+		size  [red-pair!]
+		owner [handle!]
+][
+	size: as red-pair! values + FACE_OBJ_SIZE
+	owner: as handle! GetWindowLong hWnd wc-offset - 24
+	CreateCaret owner null size/x size/y
+	change-offset hWnd as red-pair! values + FACE_OBJ_OFFSET caret
 ]
 
 to-bgr: func [
@@ -711,6 +728,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = editable   [flags: flags or FACET_FLAGS_EDITABLE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			all [
 				sym = Direct2D
@@ -1188,27 +1206,7 @@ OS-make-view: func [
 		sym = button	[init-button handle values]
 		sym = camera	[init-camera handle data false]
 		sym = text-list [init-text-list handle data selected]
-		sym = base		[
-			SetWindowLong handle wc-offset - 4 0
-			SetWindowLong handle wc-offset - 16 parent
-			SetWindowLong handle wc-offset - 20 0
-			SetWindowLong handle wc-offset - 24 0
-			either alpha? [
-				pt: as tagPOINT (as int-ptr! offset) + 2
-				unless win8+? [
-					pt: position-base handle as handle! parent offset
-				]
-				update-base handle as handle! parent pt values
-				if all [show?/value IsWindowVisible as handle! parent][
-					ShowWindow handle SW_SHOWNA
-				]
-				unless win8+? [
-					process-layered-region handle size offset null offset null yes
-				]
-			][
-				SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
-			]
-		]
+		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [
 			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
 			set-tabs handle values
@@ -1308,6 +1306,25 @@ change-size: func [
 	]
 ]
 
+set-ime-pos: func [
+	hWnd	[handle!]
+	pos		[red-pair!]
+	/local
+
+		left	[integer!]
+		top		[integer!]
+		right	[integer!]
+		bottom	[integer!]
+		y		[integer!]
+		x		[integer!]
+		dwStyle	[integer!]
+][
+	dwStyle: 2			;-- CFS_POINT
+	x: pos/x
+	y: pos/y
+	ImmSetCompositionWindow hIMCtx as tagCOMPOSITIONFORM :dwStyle
+]
+
 change-offset: func [
 	hWnd [handle!]
 	pos  [red-pair!]
@@ -1319,15 +1336,28 @@ change-offset: func [
 		flags	[integer!]
 		style	[integer!]
 		param	[integer!]
+		_y		[integer!]
+		_x		[integer!]
+		pad		[integer!]
+		header	[integer!]
 		pt		[red-pair!]
 		offset	[tagPOINT]
 		values	[red-value!]
 		layer?	[logic!]
 		x		[integer!]
-		y		[integer!]	
+		y		[integer!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-	pt: declare red-pair!
+	header: 0
+	pt: as red-pair! :header
+
+	if all [					;-- caret widget
+		type = base
+		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
+	][
+		SetCaretPos pos/x pos/y
+		set-ime-pos hWnd pos
+	]
 
 	x: 0
 	y: 0
@@ -1410,13 +1440,19 @@ change-text: func [
 ]
 
 change-enabled: func [
-	hWnd   [handle!]
-	values [red-value!]
+	hWnd	[handle!]
+	values	[red-value!]
+	type	[integer!]
 	/local
 		bool [red-logic!]
 ][
 	bool: as red-logic! values + FACE_OBJ_ENABLE?
-	EnableWindow hWnd bool/value
+	either type = caret [
+		either bool/value [update-caret hWnd values][DestroyCaret]
+		change-visible hWnd bool/value caret
+	][
+		EnableWindow hWnd bool/value
+	]
 ]
 
 change-visible: func [
@@ -1776,7 +1812,7 @@ OS-update-view: func [
 		change-data	hWnd values
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
-		change-enabled hWnd values
+		change-enabled hWnd values type
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?

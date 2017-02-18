@@ -211,11 +211,7 @@ OS-text-box-metrics: func [
 			hit: as DWRITE_HIT_TEST_METRICS :left
 			dl/HitTestTextPosition this hr - 1 no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
-;			either type = TBOX_METRICS_OFFSET? [
-				pair/push as-integer x + as float32! 0.5 as-integer y
-;			][
-;				integer/push as-integer hit/height
-;			]
+			pair/push as-integer x + as float32! 0.5 as-integer y
 		]
 		TBOX_METRICS_INDEX? [
 			pos: as red-pair! arg0
@@ -278,6 +274,7 @@ OS-text-box-layout: func [
 		fixed?	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
+		vec		[red-vector!]
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
@@ -288,6 +285,9 @@ OS-text-box-layout: func [
 		hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
 		target: get-hwnd-render-target hWnd
 	]
+
+	vec: as red-vector! target + 3
+	if TYPE_OF(vec) = TYPE_VECTOR [vector/rs-clear vec]
 
 	state: as red-block! values + TBOX_OBJ_STATE
 	either TYPE_OF(state) = TYPE_BLOCK [
@@ -351,7 +351,10 @@ txt-box-draw-background: func [
 		rc			[D2D_RECT_F]
 ][
 	styles: as red-vector! target + 3
-	if TYPE_OF(styles) <> TYPE_VECTOR [exit]
+	if any [
+		TYPE_OF(styles) <> TYPE_VECTOR
+		zero? vector/rs-length? styles
+	][exit]
 
 	this: as this! target/value
 	rt: as ID2D1HwndRenderTarget this/vtbl

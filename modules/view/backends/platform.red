@@ -71,7 +71,8 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
-				FACET_FLAGS_SCROLLABLE: 00080000h
+				FACET_FLAGS_EDITABLE:	00040000h
+				FACET_FLAGS_SCROLLABLE:	00080000h
 
 				FACET_FLAGS_D2D:		00100000h
 
@@ -250,7 +251,8 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
-			
+			caret:			symbol/make "caret"
+
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
@@ -279,6 +281,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
+			editable:		symbol/make "editable"
 
 			Direct2D:		symbol/make "Direct2D"
 

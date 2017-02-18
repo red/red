@@ -14,7 +14,7 @@ highlight: context [
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
 	]
-	
+
 	add-styles: function [
 		src		[string!]
 		dst		[block! none!]
