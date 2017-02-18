@@ -282,6 +282,7 @@ update-scrollbars: func [
 		values	[red-value!]
 		str		[red-string!]
 		font	[red-object!]
+		para	[red-object!]
 		hFont	[handle!]
 		saved	[handle!]
 		rc		[RECT_STRUCT]
@@ -292,7 +293,9 @@ update-scrollbars: func [
 	new: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str: as red-string! values + FACE_OBJ_TEXT
-	
+	para: as red-object! values + FACE_OBJ_PARA
+	horz?: no
+
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
@@ -309,12 +312,11 @@ update-scrollbars: func [
 
 		SelectObject hScreen saved
 		GetClientRect hWnd rc
-		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
 	][
-		ShowScrollBar hWnd 0 no							;-- SB_HORZ
 		ShowScrollBar hWnd 1 no							;-- SB_VERT
 	]
+	if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
 ]
 
 set-hint-text: func [
@@ -1028,8 +1030,8 @@ OS-make-view: func [
 		]
 		sym = area [
 			class: #u16 "RedArea"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL or WS_TABSTOP
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
