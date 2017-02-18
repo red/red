@@ -592,7 +592,10 @@ integer: context [
 	][
 		res: 1
 		while [exp <> 0][
-			if as logic! exp and 1 [res: res * base]
+			if as logic! exp and 1 [
+				res: res * base
+				if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			]
 			exp: exp >> 1
 			base: base * base
 		]
@@ -605,19 +608,25 @@ integer: context [
 			base [red-integer!]
 			exp  [red-integer!]
 			f	 [red-float!]
+			up?	 [logic!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
-		either any [
+		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value
-		][
+		]
+		unless up? [
+			catch RED_INT_OVERFLOW [
+				base/value: int-power base/value exp/value
+			]
+		]
+		if any [up? system/thrown = RED_INT_OVERFLOW][
+			system/thrown: 0
 			f: as red-float! base
 			f/value: as-float base/value
 			f/header: TYPE_FLOAT
 			float/power
-		][
-			base/value: int-power base/value exp/value
 		]
 		as red-value! base
 	]
