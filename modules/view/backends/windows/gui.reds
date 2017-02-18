@@ -282,6 +282,7 @@ update-scrollbars: func [
 		values	[red-value!]
 		str		[red-string!]
 		font	[red-object!]
+		para	[red-object!]
 		hFont	[handle!]
 		saved	[handle!]
 		rc		[RECT_STRUCT]
@@ -292,7 +293,9 @@ update-scrollbars: func [
 	new: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str: as red-string! values + FACE_OBJ_TEXT
-	
+	para: as red-object! values + FACE_OBJ_PARA
+	horz?: no
+
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
@@ -309,11 +312,41 @@ update-scrollbars: func [
 
 		SelectObject hScreen saved
 		GetClientRect hWnd rc
-		ShowScrollBar hWnd 0 horz?						;-- SB_HORZ
 		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
 	][
-		ShowScrollBar hWnd 0 no							;-- SB_HORZ
 		ShowScrollBar hWnd 1 no							;-- SB_VERT
+	]
+	if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
+]
+
+set-hint-text: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		text	[red-string!]
+][
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	text: as red-string! block/select-word options word/load "hint" no
+	if TYPE_OF(text) = TYPE_STRING [
+		SendMessage hWnd 1501h 0 as-integer unicode/to-utf16 text		;-- EM_SETCUEBANNER
+	]
+]
+
+set-area-options: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		tabsize	[red-integer!]
+		size	[integer!]
+][
+	size: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
+	SendMessage hWnd CBh 1 as-integer :size
+
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	tabsize: as red-integer! block/select-word options word/load "tabs" no
+	if TYPE_OF(tabsize) = TYPE_INTEGER [
+		size: tabsize/value * 4
+		SendMessage hWnd CBh 1 as-integer :size
 	]
 ]
 
@@ -997,8 +1030,8 @@ OS-make-view: func [
 		]
 		sym = area [
 			class: #u16 "RedArea"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL or WS_TABSTOP
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
@@ -1189,9 +1222,9 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
+		sym = field [set-hint-text handle as red-block! values + FACE_OBJ_OPTIONS]
 		sym = area	 [
-			flags: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
-			SendMessage handle CBh 1 as-integer :flags
+			set-area-options handle as red-block! values + FACE_OBJ_OPTIONS
 			change-text handle values sym
 		]
 		sym = window [init-window handle offset size bits]
