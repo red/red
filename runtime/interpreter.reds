@@ -184,11 +184,13 @@ interpreter: context [
 			arg		[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
+			fl		[red-float!]
 			s		[series!]
 			ret		[integer!]
+			retf	[float!]
 			count	[integer!]
 			extern?	[logic!]
-			call
+			call callf
 	][
 		extern?: rt/header and flag-extern-code <> 0
 		
@@ -203,6 +205,7 @@ interpreter: context [
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
+					TYPE_LOGIC	 [push float/get arg]
 					default		 [push arg]
 				]
 			]
@@ -215,17 +218,25 @@ interpreter: context [
 				stack/set-last arg
 			]
 			positive? rt/ret-type [
-				ret: call
 				switch rt/ret-type [
 					TYPE_LOGIC	[
+						ret: call
 						bool: as red-logic! stack/arguments
 						bool/header: TYPE_LOGIC
 						bool/value: ret <> 0
 					]
 					TYPE_INTEGER [
+						ret: call
 						int: as red-integer! stack/arguments
 						int/header: TYPE_INTEGER
 						int/value: ret
+					]
+					TYPE_FLOAT [
+						callf: as function! [return: [float!]] native/code
+						retf: callf
+						fl: as red-float! stack/arguments
+						fl/header: TYPE_FLOAT
+						fl/value: retf
 					]
 					default [assert false]				;-- should never happen
 				]
