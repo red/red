@@ -1486,6 +1486,9 @@ system-dialect: make-profilable context [
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
+			if job/type = 'exe [
+				throw-error "#export directive requires a library compilation mode"
+			]
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
 					throw-error ["invalid calling convention specifier:" cc]
