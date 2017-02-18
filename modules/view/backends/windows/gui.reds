@@ -317,6 +317,19 @@ update-scrollbars: func [
 	]
 ]
 
+set-hint-text: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		text	[red-string!]
+][
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	text: as red-string! block/select-word options word/load "hint" no
+	if TYPE_OF(text) = TYPE_STRING [
+		SendMessage hWnd 1501h 0 as-integer unicode/to-utf16 text		;-- EM_SETCUEBANNER
+	]
+]
+
 to-bgr: func [
 	node	[node!]
 	pos		[integer!]
@@ -1189,6 +1202,7 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
+		sym = field [set-hint-text handle as red-block! values + FACE_OBJ_OPTIONS]
 		sym = area	 [
 			flags: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
 			SendMessage handle CBh 1 as-integer :flags
