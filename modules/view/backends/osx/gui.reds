@@ -1228,6 +1228,19 @@ update-scroller: func [
 	;]
 ]
 
+set-hint-text: func [
+	hWnd		[integer!]
+	options		[red-block!]
+	/local
+		text	[red-string!]
+][
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	text: as red-string! block/select-word options word/load "hint" no
+	if TYPE_OF(text) = TYPE_STRING [
+		objc_msgSend [hWnd sel_getUid "setPlaceholderString:" to-NSString text]
+	]
+]
+
 OS-redraw: func [hWnd [integer!]][
 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 ]
@@ -1369,6 +1382,7 @@ OS-make-view: func [
 			objc_msgSend [id sel_getUid "setWraps:" no]
 			objc_msgSend [id sel_getUid "setScrollable:" yes]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setStringValue:" caption]]
+			set-hint-text obj as red-block! values + FACE_OBJ_OPTIONS
 		]
 		sym = area [
 			make-area face obj rc caption bits and FACET_FLAGS_NO_BORDER = 0
