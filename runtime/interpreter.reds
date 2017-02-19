@@ -50,7 +50,7 @@ Red/System [
 	switch TYPE_OF(value) [
 		TYPE_WORD [
 			#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-			pc: eval-expression pc end no yes
+			pc: eval-expression pc end no yes no
 		]
 		TYPE_GET_WORD [
 			#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
@@ -273,7 +273,7 @@ interpreter: context [
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
-		pc: eval-expression pc end yes yes				;-- eval right operand
+		pc: eval-expression pc end yes yes no			;-- eval right operand
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0
@@ -732,6 +732,7 @@ interpreter: context [
 		end	  	  [red-value!]
 		prefix?	  [logic!]								;-- TRUE => don't check for infix
 		sub?	  [logic!]
+		passive?  [logic!]
 		return:   [red-value!]
 		/local
 			next   [red-word!]
@@ -773,7 +774,7 @@ interpreter: context [
 					word/push as red-word! pc
 					pc: pc + 1
 					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-					pc: eval-expression pc end no yes
+					pc: eval-expression pc end no yes no
 					word/set
 					either sub? [stack/unwind][stack/unwind-last]
 					#if debug? = yes [
@@ -788,7 +789,7 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
-				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
+				pc: eval-expression pc end no yes no	;-- yes: push value on top of stack
 				s-arg: stack/arguments
 				s-top: stack/top
 				pc: eval-path value pc end yes no sub? no
@@ -881,9 +882,18 @@ interpreter: context [
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
-				value: pc + 1
-				if value >= end [value: end]
-				pc: eval-code pc value end sub? null null null
+				either passive? [
+					either sub? [
+						stack/push pc						;-- nested expression: push value
+					][
+						stack/set-last pc					;-- root expression: return value
+					]
+					pc: pc + 1
+				][
+					value: pc + 1
+					if value >= end [value: end]
+					pc: eval-code pc value end sub? null null null
+				]
 			]
 			TYPE_ISSUE [
 				value: pc + 1
@@ -956,7 +966,7 @@ interpreter: context [
 		return: [red-value!]							;-- return start of next expression
 	][
 		stack/mark-interp-native words/_body			;-- outer stack frame
-		value: eval-expression value tail no sub?
+		value: eval-expression value tail no sub? no
 		either sub? [stack/unwind][stack/unwind-last]
 		value
 	]
@@ -979,7 +989,7 @@ interpreter: context [
 		][
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				value: eval-expression value tail no no
+				value: eval-expression value tail no no no
 				if value + 1 < tail [stack/reset]
 			]
 		]
