@@ -3132,7 +3132,7 @@ red: context [
 					either (emit-deep-check path fpath) (true-blk)
 				]
 			]
-			if all [set? obj/5][						;-- detect on-set callback 
+			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
 				insert clear last output compose [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
