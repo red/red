@@ -494,7 +494,11 @@ system/view/platform: context [
 	refresh-window: routine [hwnd [integer!]][
 		gui/OS-refresh-window hwnd
 	]
-	
+
+	redraw: routine [hwnd [integer!]][
+		gui/OS-redraw hwnd
+	]
+
 	show-window: routine [id [integer!]][
 		gui/OS-show-window id
 		SET_RETURN(none-value)
