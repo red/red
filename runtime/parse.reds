@@ -1573,6 +1573,7 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
+							if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]
@@ -1614,6 +1615,7 @@ parser: context [
 									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
 									input/head: new/head
 									PARSE_SAVE_SERIES
+									if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
 									actions/change input value base as-logic max null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
