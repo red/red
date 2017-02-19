@@ -1476,6 +1476,12 @@ system-dialect: make-profilable context [
 					expr
 				]
 			]
+			all [
+				block? expr
+				1 = length? expr
+				literal? expr/1
+				expr: expr/1							;-- unwrap literal value
+			]
 			expr
 		]
 		
