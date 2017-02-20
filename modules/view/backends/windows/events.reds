@@ -812,6 +812,7 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
+		values [red-value!]
 		font   [red-object!]
 		draw   [red-block!]
 		brush  [handle!]
@@ -826,7 +827,8 @@ WndProc: func [
 ][
 	in-wndproc?: yes
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
-		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
+		values: get-face-values hWnd
+		w-type: (as red-word! values) + FACE_OBJ_TYPE
 		symbol/resolve w-type/symbol
 	]
 	switch msg [
@@ -838,7 +840,7 @@ WndProc: func [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
-				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
+				offset: (as red-pair! values) + FACE_OBJ_OFFSET
 				pt/x: winpos/x - offset/x - pt/x
 				pt/y: winpos/y - offset/y - pt/y
 				update-layered-window hWnd null pt winpos -1
@@ -863,8 +865,10 @@ WndProc: func [
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
 
+					values: values + FACE_OBJ_STATE
 					if all [
 						msg = WM_SIZE
+						TYPE_OF(values) = TYPE_BLOCK
 						any [zero? win-state wParam = SIZE_MAXIMIZED]
 					][
 						make-event current-msg 0 EVT_SIZE
@@ -955,7 +959,7 @@ WndProc: func [
 			]
 		]
 		WM_ERASEBKGND [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if any [
 				TYPE_OF(draw) = TYPE_BLOCK				;-- draw background in draw to avoid flickering
 				render-base hWnd as handle! wParam
@@ -964,7 +968,7 @@ WndProc: func [
 			]
 		]
 		WM_PAINT [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
