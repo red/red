@@ -497,7 +497,7 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT TYPE_PERCENT [
 				f: as red-float! value1
 				left: value1/value
 				f/value: as-float left
