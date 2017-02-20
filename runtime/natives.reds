@@ -24,6 +24,7 @@ Red/System [
 	either negative? next [
 		interpreter/eval as red-block! arg yes
 	][
+		stack/keep
 		blk: as red-block! stack/push arg
 		pos: interpreter/eval-single arg
 		blk: as red-block! copy-cell as red-value! blk slot
