@@ -100,6 +100,7 @@ red: context [
 	#include %datatypes/binary.reds
 	#include %datatypes/tag.reds
 	#include %datatypes/email.reds
+	#include %datatypes/handle.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
 	
 	;-- Debugging helpers --
@@ -179,6 +180,7 @@ red: context [
 		time/init
 		tag/init
 		email/init
+		handle/init
 		#if OS = 'Windows [image/init]					;-- temporary
 		
 		actions/init
@@ -247,6 +249,7 @@ red: context [
 			time/verbose:		verbosity
 			tag/verbose:		verbosity
 			email/verbose:		verbosity
+			handle/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
 
 			actions/verbose:	verbosity

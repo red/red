@@ -122,6 +122,7 @@ write %build/bin/sources.r set-cache [
 			%url.reds
 			%vector.reds
 			%word.reds
+			%handle.reds
 		]
 		%platform/ [
 			%android.reds
