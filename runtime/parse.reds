@@ -1518,7 +1518,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either ANY_SERIES?(type) [
+							either all [ANY_SERIES?(type) type <> TYPE_IMAGE][
 								input: as red-series! block/rs-append series value
 								min:  R_NONE
 								type: R_INTO
