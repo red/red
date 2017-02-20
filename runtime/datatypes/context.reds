@@ -238,6 +238,9 @@ _context: context [
 			word/index: find-word ctx word/symbol no
 			if word/index = -1 [add ctx word]
 		]
+		if null? ctx/values [
+			fire [TO_ERROR(script not-defined) word]
+		]
 		either ON_STACK?(ctx) [
 			copy-cell value (as red-value! ctx/values) + word/index
 		][
