@@ -824,6 +824,7 @@ WndProc: func [
 		w-type [red-word!]
 		miniz? [logic!]
 ][
+	in-wndproc?: yes
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
 		symbol/resolve w-type/symbol
@@ -1036,6 +1037,7 @@ WndProc: func [
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
 
+	in-wndproc?: no
 	DefWindowProc hWnd msg wParam lParam
 ]
 
@@ -1177,6 +1179,10 @@ do-events: func [
 			current-msg: msg
 			TranslateMessage msg
 			DispatchMessage msg
+		]
+		if defer-close? [
+			defer-close?: no
+			OS-destroy-view face-saved yes
 		]
 		if no-wait? [return msg?]
 	]

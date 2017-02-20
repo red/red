@@ -48,6 +48,9 @@ Red/System [
 #include %comdlgs.reds
 
 exit-loop:		0
+defer-close?:	no
+in-wndproc?:	no
+face-saved:		declare red-object!
 process-id:		0
 border-width:	0
 hScreen:		as handle! 0
@@ -1841,6 +1844,12 @@ OS-destroy-view: func [
 		rate   [red-value!]
 		flags  [integer!]
 ][
+	if in-wndproc? [		;-- it's not safe to destroy a window inside WndProc
+		defer-close?: yes
+		copy-cell as red-value! face as red-value! face-saved
+		exit
+	]
+
 	handle: get-face-handle face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
