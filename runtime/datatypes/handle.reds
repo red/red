@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Handle! datatype runtime functions"
 	Author:  "Nenad Rakocevic, Oldes"
-	File: 	 %integer.reds
+	File: 	 %handle.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
