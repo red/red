@@ -17,7 +17,7 @@ system/lexer: context [
 		spec: reduce spec
 		src: back tail spec
 		src/1: trim/tail either string? src/1 [
-			form trim/with copy/part src/1 40 lf
+			form trim/with copy/part src/1 40 #"^/"
 		][
 			mold/flat/part src/1 40
 		]
@@ -655,13 +655,13 @@ system/lexer: context [
 		]
 
 		path-rule: [
-			ahead slash (								;-- path detection barrier
+			ahead #"/" (								;-- path detection barrier
 				push-path stack type					;-- create empty path
 				to-word stack copy/part s e word!		;-- push 1st path element
 				type: path!
 			)
 			some [
-				slash
+				#"/"
 				s: [
 					integer-number-rule			(store stack make-number s e type)
 					| begin-symbol-rule			(to-word stack copy/part s e word!)
@@ -680,7 +680,7 @@ system/lexer: context [
 		
 		special-words: [
 			#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
-			| #"/" ahead [slash-end | slash | ws-no-count | control-char | end][
+			| #"/" ahead [slash-end | #"/" | ws-no-count | control-char | end][
 				#"/" 
 				ahead [slash-end | ws-no-count | control-char | end] (value: "//")
 				| (value: "/")
@@ -731,8 +731,8 @@ system/lexer: context [
 		
 
 		refinement-rule: [
-			slash [
-				some slash (type: word!) e:				;--  ///... case
+			#"/" [
+				some #"/" (type: word!) e:				;--  ///... case
 				| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
 				| symbol-rule (type: refinement! s: next s)
 			]
@@ -744,7 +744,7 @@ system/lexer: context [
 		]
 		hexa-rule: [2 8 hexa e: #"h"]
 
-		tuple-value-rule: [byte 2 11 [dot byte] e: (type: tuple!)]
+		tuple-value-rule: [byte 2 11 [#"." byte] e: (type: tuple!)]
 
 		tuple-rule: [tuple-value-rule sticky-word-rule]
 		
@@ -790,7 +790,7 @@ system/lexer: context [
 		float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
 
 		float-number-rule: [
-			[dot | comma] digit any [digit | #"'" digit]
+			[#"." | #","] digit any [digit | #"'" digit]
 			opt float-exp-rule e: (type: float!)
 		]
 
@@ -869,7 +869,7 @@ system/lexer: context [
 			] pos: any ws #"]"
 		]
 
-		comment-rule: [#";" [to lf | to end] (old-line: line)]
+		comment-rule: [#";" [to #"^/" | to end] (old-line: line)]
 
 		wrong-delimiters: [
 			pos: [
