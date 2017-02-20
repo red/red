@@ -645,13 +645,13 @@ integer: context [
 		as-logic int/value and 1
 	]
 
-	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+	#define INT_TRUNC [val: either num > 0 [n - r][r - n]]
 
 	#define INT_FLOOR [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [n - r][0 - m]
+			val: either num > 0 [n - r][0 - m]
 		]
 	]
 
@@ -659,7 +659,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num < 0 [r - n][m]
+			val: either num < 0 [r - n][m]
 		]
 	]
 
@@ -667,7 +667,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [m][0 - m]
+			val: either num > 0 [m][0 - m]
 		]
 	]
 
@@ -690,6 +690,7 @@ integer: context [
 			n		[integer!]
 			m		[integer!]
 			r		[integer!]
+			val		[integer!]
 	][
 		int: as red-integer! value
 		num: int/value
@@ -723,6 +724,7 @@ integer: context [
 			half-ceil?	[INT_CEIL ]
 			true		[INT_AWAY ]
 		]
+		int/value: val
 		value
 	]
 
