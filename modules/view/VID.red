@@ -114,7 +114,7 @@ system/view/VID: context [
 		]
 		obj: obj/:facet
 		
-		make logic! either blk: obj/:field [
+		make logic! either all [blk: obj/:field facet = 'font field = 'style] [
 			unless block? blk [obj/:field: blk: reduce [blk]]
 			alter blk flag
 		][
