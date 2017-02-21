@@ -36,6 +36,7 @@ terminal!: object [
 	target:		none
 	tips:		none
 
+	tab-size:	4
 	background: none
 	select-bg:	none							;-- selected text background color
 
@@ -124,10 +125,12 @@ terminal!: object [
 	]
 
 	update-cfg: func [font cfg][
+		box/state: none					;TBD release resources in text-box!
 		box/font: font
 		max-lines: cfg/buffer-lines
 		box/text: "X"
 		box/layout
+		box/tabs: tab-size * box/width
 		line-h: box/line-height 1
 		caret/size/y: line-h
 	]
@@ -365,6 +368,10 @@ terminal!: object [
 				exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
+			#"^-" [				;TBD autocompletion
+				insert skip line pos char
+				pos: pos + 1
+			]
 			left  [move-caret -1]
 			right [move-caret 1]
 			up	  []

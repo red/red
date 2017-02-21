@@ -306,6 +306,7 @@ OS-text-box-layout: func [
 	]
 
 	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
+	set-tab-size fmt as red-integer! values + TBOX_OBJ_TABS
 
 	str: as red-string! values + TBOX_OBJ_TEXT
 	size: as red-pair! values + TBOX_OBJ_SIZE

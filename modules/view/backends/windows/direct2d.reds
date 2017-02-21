@@ -460,6 +460,12 @@ HitTestTextRange*: alias function! [
 	return:		[integer!]
 ]
 
+SetIncrementalTabStop*: alias function! [
+	this		[this!]
+	size		[float32!]
+	return:		[integer!]
+]
+
 SetLineSpacing*: alias function! [
 	this		[this!]
 	method		[integer!]
@@ -523,7 +529,7 @@ IDWriteTextFormat: alias struct! [
 	SetWordWrapping					[function! [this [this!] mode [integer!] return: [integer!]]]
 	SetReadingDirection				[integer!]
 	SetFlowDirection				[integer!]
-	SetIncrementalTabStop			[integer!]
+	SetIncrementalTabStop			[SetIncrementalTabStop*]
 	SetTrimming						[integer!]
 	SetLineSpacing					[SetLineSpacing*]
 	GetTextAlignment				[integer!]
@@ -554,7 +560,7 @@ IDWriteTextLayout: alias struct! [
 	SetWordWrapping					[function! [this [this!] mode [integer!] return: [integer!]]]
 	SetReadingDirection				[integer!]
 	SetFlowDirection				[integer!]
-	SetIncrementalTabStop			[integer!]
+	SetIncrementalTabStop			[SetIncrementalTabStop*]
 	SetTrimming						[integer!]
 	SetLineSpacing					[SetLineSpacing*]
 	GetTextAlignment				[integer!]
@@ -996,6 +1002,16 @@ set-text-format: func [
 	format/SetTextAlignment fmt h-align
 	format/SetParagraphAlignment fmt v-align
 	format/SetWordWrapping fmt wrap
+]
+
+set-tab-size: func [
+	fmt		[this!]
+	size	[red-integer!]
+	/local
+		tf	[IDWriteTextFormat]
+][
+	tf: as IDWriteTextFormat fmt/vtbl
+	tf/SetIncrementalTabStop fmt get-float32 size
 ]
 
 set-line-spacing: func [

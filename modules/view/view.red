@@ -444,7 +444,7 @@ text-box!: object [
 	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
 	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
 	spacing:	none					;-- line spacing (integer!)
-	tabs:		none					;-- tab list (block!)
+	tabs:		none					;-- incremental tab size: the fixed distance between two adjacent tab stops (integer!)
 	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
 	state:		none					;-- OS handles
 	target:		none					;-- face!, image!, etc.
