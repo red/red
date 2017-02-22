@@ -16,8 +16,6 @@ Red/System [
 
 #define RTLD_LAZY	1
 
-environ: as int-ptr! 0
-
 timeval!: alias struct! [
 	tv_sec	[integer!]
 	tv_usec [integer!]
@@ -48,16 +46,6 @@ tm!: alias struct! [
 			category	[integer!]
 			locale		[c-string!]
 			return:		[c-string!]
-		]
-		dlopen:	"dlopen" [
-			dllpath		[c-string!]
-			flags		[integer!]
-			return:		[integer!]
-		]
-		dlsym: "dlsym" [
-			handle		[integer!]
-			symbol		[c-string!]
-			return:		[int-ptr!]
 		]
 		getcwd: "getcwd" [
 			buf		[byte-ptr!]
@@ -99,6 +87,7 @@ tm!: alias struct! [
 			tv_sec	[int-ptr!]
 			return: [tm!]
 		]
+		environ: "environ" [integer!]
 	]
 ]
 

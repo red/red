@@ -110,14 +110,7 @@ Red/System [
 			blk		[red-block!]
 			len		[integer!]
 	][
-		env: platform/environ
-		if null? env [
-			handle: platform/dlopen LIBC-file RTLD_LAZY
-			p-int: platform/dlsym handle "environ"
-			env: as int-ptr! p-int/value
-			platform/environ: env
-		]
-
+		env: as int-ptr! platform/environ
 		blk: null
 		len: 0
 

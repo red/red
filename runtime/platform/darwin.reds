@@ -47,13 +47,6 @@ platform: context [
 
 	page-size: 0
 
-	true-value: 0						;-- Core Foundation: True value
-
-	init-cf-bool: does [
-		dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
-		true-value: objc_msgSend [objc_getClass "NSNumber" sel_getUid "numberWithBool:" 1]
-	]
-
 	#syscall [
 		mmap: SYSCALL_MMAP [
 			address		[byte-ptr!]
@@ -111,6 +104,5 @@ platform: context [
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
-		init-cf-bool
 	]
 ]

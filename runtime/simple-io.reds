@@ -1406,6 +1406,7 @@ simple-io: context [
 					]
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
+					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1631,7 +1632,7 @@ simple-io: context [
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [return none-value]
 
-				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") platform/true-value
+				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") kCFBooleanTrue
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
