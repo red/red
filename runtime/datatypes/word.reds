@@ -157,6 +157,10 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
+		if null? ctx/values [
+			s: as series! ctx/symbols/value
+			fire [TO_ERROR(script not-defined) s/offset + index]
+		]
 		
 		value: either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + index
