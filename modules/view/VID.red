@@ -236,10 +236,10 @@ system/view/VID: context [
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
-							][make-actor opts style/default-actor spec/1 spec]
+							][make-actor opts style/default-actor value spec]
 							yes
 						]
-						get-word! [make-actor opts style/default-actor spec/1 spec]
+						get-word! [make-actor opts style/default-actor value spec]
 						char!	  [yes]
 					][no]
 				]
