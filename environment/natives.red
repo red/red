@@ -332,7 +332,7 @@ bind: make native! [[
 
 in: make native! [[
 		object [any-object!]
-		word   [any-word! block! paren!]
+		word   [any-word!]
 	]
 	#get-definition NAT_IN
 ]

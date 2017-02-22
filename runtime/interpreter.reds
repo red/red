@@ -657,15 +657,17 @@ interpreter: context [
 		parent	[red-value!]
 		return: [red-value!]
 		/local
-			name [red-word!]
-			obj  [red-object!]
-			fun	 [red-function!]
-			int	 [red-integer!]
-			s	 [series!]
-			ctx	 [node!]
+			name  [red-word!]
+			obj   [red-object!]
+			fun	  [red-function!]
+			int	  [red-integer!]
+			saved [red-value!]
+			s	  [series!]
+			ctx	  [node!]
 	][
 		name: as red-word! either null? slot [pc - 1][slot]
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		saved: stack/push value							;-- prevent word's value slot to be corrupted #2199
 		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
@@ -714,6 +716,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end path slot
+				value: saved				
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -724,6 +727,9 @@ interpreter: context [
 				]
 			]
 		]
+		
+		stack/pop 1										;-- slide down the returned value
+		copy-cell stack/top stack/top - 1				;-- replacing the saved value slot
 		pc
 	]
 	
