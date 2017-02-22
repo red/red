@@ -1843,10 +1843,11 @@ system-dialect: make-profilable context [
 				offset: 3
 				[pc/2 pc/3]
 			][
-				unless all [word? pc/2 resolve-aliased reduce [pc/2]][
-					throw-error ["declaring literal for type" pc/2 "not supported"]
+				if path? value: pc/2 [value: to word! form value]
+				
+				unless all [word? value resolve-aliased reduce [value]][
+					throw-error ["declaring literal for type" value "not supported"]
 				]
-				value: pc/2
 				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
 				['struct! value]
