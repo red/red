@@ -338,7 +338,7 @@ in: make native! [[
 ]
 
 parse: make native! [[
-		input [series!]
+		input [binary! any-block! any-string!]
 		rules [block!]
 		/case
 		;/strict
