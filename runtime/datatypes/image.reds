@@ -461,7 +461,6 @@ image: context [
 		/local
 			height	[integer!]
 			width	[integer!]
-			offset	[integer!]
 			alpha?	[logic!]
 			formed	[c-string!]
 			pixel	[integer!]
@@ -498,6 +497,7 @@ image: context [
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
+		data: data + img/head
 		size: as-integer end - data
 		
 		string/append-char GET_BUFFER(buffer) as-integer space
@@ -508,7 +508,6 @@ image: context [
 			part: part - 1
 		]
 		
-		offset: img/head
 		count: 0
 		while [data < end][
 			pixel: data/value
