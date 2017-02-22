@@ -496,6 +496,7 @@ words: context [
 	only:			-1
 	collect:		-1
 	keep:			-1
+	pick:			-1
 	ahead:			-1
 	after:			-1
 	x:				-1
@@ -683,6 +684,7 @@ words: context [
 		only:			symbol/make "only"
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
+		pick:			symbol/make "pick"
 		ahead:			symbol/make "ahead"
 		after:			symbol/make "after"
 

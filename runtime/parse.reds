@@ -68,7 +68,7 @@ parser: context [
 			TYPE_BINARY [
 				int: as red-integer! base
 				int/header: TYPE_INTEGER
-				int/value: binary/rs-abs-at as red-binary! input p/input
+				int/value: binary/rs-abs-at as red-binary! input offset
 			]
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
@@ -77,9 +77,9 @@ parser: context [
 			TYPE_EMAIL [
 				char: as red-char! base
 				char/header: TYPE_CHAR
-				char/value: string/rs-abs-at as red-string! input p/input
+				char/value: string/rs-abs-at as red-string! input offset
 			]
-			default [value: block/rs-abs-at input p/input]
+			default [value: block/rs-abs-at input offset]
 		]
 	]
 	
@@ -132,9 +132,10 @@ parser: context [
 		R_COLLECT:		-12
 		R_KEEP:			-13
 		R_KEEP_PAREN:	-14
-		R_AHEAD:		-15
-		R_CHANGE:		-16
-		R_CHANGE_ONLY:	-17
+		R_KEEP_PICK:	-15
+		R_AHEAD:		-16
+		R_CHANGE:		-17
+		R_CHANGE_ONLY:	-18
 	]
 	
 	triple!: alias struct! [
@@ -961,13 +962,15 @@ parser: context [
 									either p/input = input/head [
 										value: as red-value! none-value
 									][
+										offset: p/input
 										PARSE_PICK_INPUT
 									]
 									_context/set as red-word! p - 1 value
 								]
 							]
 							R_KEEP
-							R_KEEP_PAREN [
+							R_KEEP_PAREN
+							R_KEEP_PICK [
 								if match? [
 									blk: as red-block! stack/top - 1
 									assert any [
@@ -984,13 +987,14 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									offset: p/input		;-- required by PARSE_PICK_INPUT
+									
 									if int/value = R_KEEP [
-										w: as red-word! s/tail
 										case [
 											p/sub = R_COPY [			;-- KEEP COPY case
-												value: _context/get w
+												value: _context/get as red-word! s/tail
 											]
-											p/input + 1 < input/head [	;-- KEEP with matched size > 1
+											offset + 1 < input/head [	;-- KEEP with matched size > 1
 												PARSE_COPY_INPUT(value)
 											]
 											true [
@@ -998,18 +1002,27 @@ parser: context [
 											]
 										]
 									]
-									either into? [
-										switch TYPE_OF(blk) [
-											TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-											TYPE_STRING
-											TYPE_FILE
-											TYPE_URL 
-											TYPE_TAG
-											TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
-											default  [block/insert blk value null yes null no]
+									if int/value <> R_KEEP_PICK [offset: input/head] ;-- ensures no looping
+									
+									until [
+										if int/value = R_KEEP_PICK [
+											PARSE_PICK_INPUT
+											offset: offset + 1
 										]
-									][
-										block/rs-append blk value
+										either into? [
+											switch TYPE_OF(blk) [
+												TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
+												TYPE_STRING
+												TYPE_FILE
+												TYPE_URL 
+												TYPE_TAG
+												TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
+												default  [block/insert blk value null yes null no]
+											]
+										][
+											block/rs-append blk value
+										]
+										offset = input/head
 									]
 								]
 							]
@@ -1480,7 +1493,20 @@ parser: context [
 							if cnt-col = 0 [PARSE_ERROR [TO_ERROR(script parse-keep) words/_keep]]
 							value: cmd + 1
 							min:   R_NONE
-							type:  either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][R_KEEP]
+							type:  either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][
+								w: as red-word! value
+								either all [
+									(as red-value! w) < tail
+									TYPE_OF(w) = TYPE_WORD
+									words/pick = symbol/resolve w/symbol
+								][
+									cmd: cmd + 1
+									value: cmd + 1
+									R_KEEP_PICK
+								][
+									R_KEEP
+								]
+							]
 							state: ST_PUSH_RULE
 						]
 						sym = words/fail [				;-- FAIL
