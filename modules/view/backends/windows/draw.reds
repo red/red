@@ -1776,6 +1776,8 @@ OS-draw-grad-pen: func [
 		p		[float!]
 		rotate? [logic!]
 		scale?	[logic!]
+		tmp-colors-pos	[pointer! [float32!]]
+		tmp-colors		[int-ptr!]
 ][
 	x: offset/x
 	y: offset/y
@@ -1829,14 +1831,19 @@ OS-draw-grad-pen: func [
 	last-c: color - 1
 	pos: pos - count
 	color: color - count
-	if pos/value < as float32! 1.0 [			;-- first one should be always 0.0
+	tmp-colors-pos: colors-pos
+	tmp-colors: colors
+	either pos/value < as float32! 1.0 [			;-- first one should be always 1.0
 		colors-pos/value: as float32! 1.0
 		colors/value: color/value
 		color: colors
 		pos: colors-pos
 		count: count + 1
+	][
+		colors-pos: colors-pos + 1
+		colors: colors + 1
 	]
-	if last-p/value > as float32! 0.0 [			;-- last one should be always 1.0
+	if last-p/value > as float32! 0.0 [			;-- last one should be always 0.0
 		last-c/2: last-c/value
 		last-p/2: as float32! 0.0
 		count: count + 1
@@ -1889,6 +1896,9 @@ OS-draw-grad-pen: func [
 			GdipTranslatePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND
 		]
 	]
+	colors-pos: tmp-colors-pos
+	colors: tmp-colors
+	
 
 	GDI+?: yes
 	either brush? [
