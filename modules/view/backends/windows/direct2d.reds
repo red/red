@@ -14,7 +14,6 @@ d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 dw-locale-name: as c-string! 0
 
-#define float32-ptr! [pointer! [float32!]]
 #define D2DERR_RECREATE_TARGET 8899000Ch
 
 IID_ID2D1Factory:		[06152247h 465A6F50h 8B114592h 07603BFDh]

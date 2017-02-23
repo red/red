@@ -73,6 +73,16 @@ Red/System [
 		linear:			symbol/make "linear"
 		radial:			symbol/make "radial"
 		diamond:		symbol/make "diamond"
+        _pattern:       symbol/make "pattern"
+        bitmap:         symbol/make "bitmap"
+        _pad:           symbol/make "pad"
+        _repeat:        symbol/make "repeat"
+        _reflect:       symbol/make "reflect"
+        tile:           symbol/make "tile"
+        flip-x:         symbol/make "flip-x"
+        flip-y:         symbol/make "flip-y"
+        flip-xy:        symbol/make "flip-xy"
+        clamp:          symbol/make "clamp"
 
 		throw-draw-error: func [
 			cmds   [red-block!]
@@ -232,6 +242,21 @@ Red/System [
 			rgb: get-color-int as red-tuple! value :alpha?
 		]
 
+		#define DRAW_FETCH_OPT_TRANSFORM [
+			value: start
+			DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+			either cmd = pos [
+				word: as red-word! value
+				sym: symbol/resolve word/symbol
+				either any [ sym = pen sym = fill-pen][
+					start: start + 1
+				][
+					cmd: cmd - 1
+					sym: -1
+				]
+			][ sym: -1 ]
+		]
+
         check-pen: func [
 			DC	    [draw-ctx!]
             cmds    [red-block!]
@@ -243,10 +268,13 @@ Red/System [
             return: [red-value!]
             /local
 				word	[red-word!]
-				pattern [red-word!]
 				point	[red-pair!]
 				pos		[red-value!]
 				value	[red-value!]
+				img     [red-image!]
+				crop-1	[red-pair!]
+				crop-2	[red-pair!]
+                size    [red-pair!]
 				type	[integer!]
 				count	[integer!]
 				mode	[integer!]
@@ -254,6 +282,12 @@ Red/System [
 				alpha?	[integer!]
                 off?    [logic!]
 				grad?	[logic!]
+                stops   [red-value!]
+                _start  [red-value!]
+                spread  [integer!]
+                positions   [red-value!]
+                skip-pos    [logic!]
+                focal?      [logic!]
         ][
             off?: no
             grad?: no
@@ -263,54 +297,154 @@ Red/System [
                 off?: _off = mode
                 grad?: any [mode = linear mode = radial mode = diamond]
             ]
+            cmd: cmd + 1
             either grad? [								;-- gradient pen
-                cmd: cmd + 1
-                DRAW_FETCH_OPT_VALUE(TYPE_WORD)			;-- grad mode (optional)
-                pattern: either pos = cmd [as red-word! cmd][null]
-
-                DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
-                point: as red-pair! cmd
-                loop 2 [								;-- start and stop
-                    DRAW_FETCH_VALUE(TYPE_INTEGER)
+                count: 0
+                stops: cmd + 1
+                loop 2 [                                ;-- at least two stops required
+                    DRAW_FETCH_VALUE_2(TYPE_TUPLE TYPE_WORD)
+                    DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
+                    count: count + 1
                 ]
-                loop 3 [								;-- angle, scale-x and scale-y (optional)
-                    pos: cmd + 1
-                    if pos < tail [
-                        type: TYPE_OF(pos)
-                        either any [
-                            type = TYPE_INTEGER
-                            type = TYPE_FLOAT
-                        ][cmd: pos][break]
+                _start: cmd
+                while [ cmd < tail ][                   ;--optional more stops
+                    DRAW_FETCH_OPT_VALUE_2(TYPE_TUPLE TYPE_WORD)
+                    if cmd = _start [ break ]
+					value: cmd
+					if TYPE_OF(value) = TYPE_WORD [
+                    	value: as red-value! _context/get as red-word! cmd
+					]
+                    if TYPE_OF(value) <> TYPE_TUPLE [ cmd: cmd - 1 break ]
+                    DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)
+                    _start: cmd
+                    count: count + 1
+                ]
+                positions: cmd
+                skip-pos: true
+                focal?: false
+                case [                                                  ;-- positions
+                    mode = linear [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd <> positions [
+                            skip-pos: false
+                            DRAW_FETCH_VALUE(TYPE_PAIR)
+                        ] 
+                    ]
+                    mode = radial [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- center
+                        if cmd <> positions [
+                            skip-pos: false 
+                            DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT) ;-- radius
+                            _start: cmd
+                            DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+                            if _start <> cmd [ focal?: true ]
+                        ]
+                    ]
+                    mode = diamond [
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)                 ;-- upper
+                        if cmd <> positions [
+                            skip-pos: false 
+                            DRAW_FETCH_VALUE(TYPE_PAIR)                 ;-- lower
+                            _start: cmd
+                            DRAW_FETCH_OPT_VALUE(TYPE_PAIR)             ;-- focal point
+                            if _start <> cmd [ focal?: true ]
+                        ]
                     ]
                 ]
-                count: 0
-                off?: no
-                start: cmd
-                while [
-                    cmd: cmd + 1
-                    cmd < tail
+                positions: positions + 1
+                _start: cmd
+                DRAW_FETCH_OPT_VALUE(TYPE_WORD)         ;-- spread value
+                either cmd <> _start [
+                    word:   as red-word! cmd
+                    spread: symbol/resolve word/symbol
+                    unless any [
+                        spread = _pad
+                        spread = _repeat
+                        spread = _reflect
+                    ][
+                        spread: _pad 
+                        cmd: cmd - 1
+                    ]
                 ][
-                    value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
-                    type: TYPE_OF(value)
-                    if type = TYPE_TUPLE [count: count + 1]
-                    unless any [type = TYPE_TUPLE type = TYPE_FLOAT][break]
+                    spread: _pad
                 ]
-                if count < 2 [throw-draw-error cmds start catch?]
-                mode: either null? pattern [-1][symbol/resolve pattern/symbol]
                 OS-draw-grad-pen
                     DC
-                    symbol/resolve word/symbol
                     mode
-                    point
+                    stops
                     count
+                    skip-pos
+                    positions
+                    focal?
+                    spread
                     sym = fill-pen
-                cmd: cmd - 1
             ][
-                either off? [cmd: cmd + 1 rgb: -1][DRAW_FETCH_TUPLE]
-                either sym = pen [
-                    OS-draw-pen DC rgb off? as logic! alpha?
-                ][
-                    OS-draw-fill-pen DC rgb off? as logic! alpha?
+                case [
+                    mode = _pattern [
+                        DRAW_FETCH_VALUE(TYPE_PAIR)
+                        size: as red-pair! cmd
+                        word:   null
+						crop-1: null
+						crop-2: null 
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-1: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-2: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+                        if pos = cmd [ 
+                            word: as red-word! cmd
+                            type: symbol/resolve word/symbol
+                            unless any [ 
+                                type = tile 
+                                type = flip-x 
+                                type = flip-y
+                                type = flip-xy
+                                type = clamp
+                            ][ cmd: cmd - 1 word: null ] 
+                        ]
+                        DRAW_FETCH_VALUE(TYPE_BLOCK)
+                        OS-draw-brush-pattern DC size crop-1 crop-2 word as red-block! cmd sym = fill-pen
+                    ]
+                    mode = bitmap [
+                        img: null
+						DRAW_FETCH_VALUE(TYPE_WORD)
+                        either TYPE_OF(cmd) = TYPE_WORD [
+                            value: as red-value! _context/get as red-word! cmd
+                            if TYPE_OF(value) <> TYPE_IMAGE [ 
+                                throw-draw-error cmds cmd catch? 
+                            ]
+    						img: as red-image! value
+                        ][ throw-draw-error cmds cmd catch? ]
+                        word:   null
+						crop-1: null
+						crop-2: null 
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-1: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+                        if cmd = pos [ crop-2: as red-pair! cmd ]
+                        DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+                        if pos = cmd [ 
+                            word: as red-word! cmd
+                            type: symbol/resolve word/symbol
+                            unless any [ 
+                                type = tile 
+                                type = flip-x 
+                                type = flip-y
+                                type = flip-xy
+                                type = clamp
+                            ][ cmd: cmd - 1 word: null ] 
+                        ]
+						OS-draw-brush-bitmap DC img crop-1 crop-2 word sym = fill-pen
+                    ]
+                    true [
+                        cmd: cmd - 1
+                        either off? [ cmd: cmd + 1 rgb: -1 ][ DRAW_FETCH_TUPLE ]
+                        either sym = pen [
+                            OS-draw-pen DC rgb off? as logic! alpha?
+                        ][
+                            OS-draw-fill-pen DC rgb off? as logic! alpha?
+                        ]
+                    ]
                 ]
             ]
             cmd
@@ -686,60 +820,65 @@ Red/System [
 									m-order = _append
 									m-order = prepend
 								][ throw-draw-error cmds cmd catch? ]
-                                OS-set-matrix-order m-order
+                                OS-set-matrix-order DC m-order
                             ]
 							sym = rotate [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-rotate DC as red-integer! start as red-pair! cmd - 1
+									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-rotate DC as red-integer! start as red-pair! cmd
+									OS-matrix-rotate DC sym as red-integer! start as red-pair! cmd
 								]
 							]
 							sym = scale [
+								DRAW_FETCH_OPT_TRANSFORM
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-scale DC as red-integer! start as red-integer! cmd - 1
+									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-scale DC as red-integer! start as red-integer! cmd
+									OS-matrix-scale DC sym as red-integer! start as red-integer! cmd
 								]
 							]
 							sym = translate [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_PAIR)
 								point: as red-pair! start
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-translate DC point/x point/y
+									OS-matrix-translate DC sym point/x point/y
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-translate DC point/x point/y
+									OS-matrix-translate DC sym point/x point/y
 								]
 							]
 							sym = skew [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_BLOCK)
 								either pos = cmd [
 									OS-matrix-push DC :state
-									OS-matrix-skew DC as red-integer! start as red-integer! cmd - 1
+									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd - 1
 									parse-draw DC as red-block! cmd catch?
 									OS-matrix-pop DC state
 								][
-									OS-matrix-skew DC as red-integer! start as red-integer! cmd
+									OS-matrix-skew DC sym as red-integer! start as red-integer! cmd
 								]
 							]
 							sym = transform [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
 								value: cmd + 1
@@ -750,6 +889,7 @@ Red/System [
 									OS-matrix-push DC :state
 									OS-matrix-transform
 										DC
+										sym
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd - 1
@@ -758,6 +898,7 @@ Red/System [
 								][
 									OS-matrix-transform
 										DC
+										sym
 										as red-integer! start
 										as red-integer! value
 										as red-pair! cmd
@@ -770,11 +911,18 @@ Red/System [
 								OS-matrix-pop DC state
 							]
 							sym = matrix [
+								DRAW_FETCH_OPT_TRANSFORM
 								DRAW_FETCH_VALUE(TYPE_BLOCK)
-								OS-matrix-set DC as red-block! start
+								OS-matrix-set DC sym as red-block! start
 							]
-							sym = reset-matrix  [OS-matrix-reset DC]
-							sym = invert-matrix [OS-matrix-invert DC]
+							sym = reset-matrix  [
+								DRAW_FETCH_OPT_TRANSFORM
+								OS-matrix-reset DC sym
+							]
+							sym = invert-matrix [
+								DRAW_FETCH_OPT_TRANSFORM
+								OS-matrix-invert DC sym
+							]
 							true [throw-draw-error cmds cmd catch?]
 						]
 					]
@@ -809,7 +957,7 @@ Red/System [
 
 			system/thrown: 0
 
-			DC: declare draw-ctx!						;@@ should declare it on stack
+			DC: as draw-ctx! allocate size? draw-ctx!	;-- allocate on heap to allow reentrancy 
 			draw-begin DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
@@ -819,6 +967,7 @@ Red/System [
 			if system/thrown = RED_THROWN_ERROR [
 				either catch? [system/thrown: 0][re-throw]
 			]
+			free as byte-ptr! DC
 		]
 	]
 ]
@@ -827,9 +976,12 @@ draw: function [
 	"Draws scalable vector graphics to an image"
 	image	[image! pair!]	"Image or size for an image"
 	cmd		[block!]		"Draw commands"
+	/transparent
 	return: [image!]
 ][
-	if pair? image [image: make image! image]
+	if pair? image [
+		image: either transparent [ make image! image 255.255.255.0 ][ make image! image ]
+	]
 	system/view/platform/draw-image image cmd
 	image
 ]

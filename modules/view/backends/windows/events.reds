@@ -15,6 +15,8 @@ Red/System [
 	EVT_DISPATCH										;-- allow DispatchMessage call only
 ]
 
+paint: declare tagPAINTSTRUCT							;-- moved here from 'draw.reds'
+
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
