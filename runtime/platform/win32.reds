@@ -22,11 +22,6 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
-#define GENERIC_WRITE		40000000h
-#define GENERIC_READ 		80000000h
-#define FILE_SHARE_READ		00000001h
-#define FILE_SHARE_WRITE	00000002h
-#define OPEN_EXISTING		00000003h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h

@@ -508,7 +508,6 @@ Red/System [
 
 #define IS_EXTENDED_KEY		01000000h
 
-#define AD_CLOCKWISE		2
 #define ANSI_FIXED_FONT		11
 #define SYSTEM_FONT			13
 #define SYSTEM_FIXED_FONT	16
