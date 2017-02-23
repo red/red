@@ -257,6 +257,64 @@ Red/System [
 			][ sym: -1 ]
 		]
 
+		old-gradient-pen: func [
+			DC		[draw-ctx!]
+			cmds	[red-block!]
+			start	[red-value!]
+			tail	[red-value!]
+			cmd		[red-value!]
+			sym		[integer!]
+			catch?	[logic!]
+			return: [red-value!]
+			/local
+				word	[red-word!]
+				pattern [red-word!]
+				point	[red-pair!]
+				pos		[red-value!]
+				value	[red-value!]
+				type	[integer!]
+				count	[integer!]
+				off?	[logic!]
+		][
+			word: as red-word! start
+			DRAW_FETCH_VALUE(TYPE_PAIR)				;-- grad offset
+			point: as red-pair! cmd
+			loop 2 [								;-- start and stop
+			    DRAW_FETCH_VALUE(TYPE_INTEGER)
+			]
+			loop 3 [								;-- angle, scale-x and scale-y (optional)
+				pos: cmd + 1
+					if pos < tail [
+					type: TYPE_OF(pos)
+					either any [
+						type = TYPE_INTEGER
+						type = TYPE_FLOAT
+					][cmd: pos][break]
+				]
+			]
+			count: 0
+			off?: no
+			start: cmd
+			while [
+				cmd: cmd + 1
+				cmd < tail
+			][
+				value: either TYPE_OF(cmd) = TYPE_WORD [_context/get as red-word! cmd][cmd]
+				type: TYPE_OF(value)
+				if type = TYPE_TUPLE [count: count + 1]
+				unless any [type = TYPE_TUPLE type = TYPE_FLOAT][break]
+			]
+			if count < 2 [throw-draw-error cmds start catch?]
+			OS-draw-grad-pen-old
+				DC
+				symbol/resolve word/symbol
+				-1
+				point
+				count
+				sym = fill-pen
+			cmd - 1
+		]
+
         check-pen: func [
 			DC	    [draw-ctx!]
             cmds    [red-block!]
@@ -301,6 +359,9 @@ Red/System [
             either grad? [								;-- gradient pen
                 count: 0
                 stops: cmd + 1
+                if TYPE_OF(stops) = TYPE_PAIR [
+                    return old-gradient-pen DC cmds start tail cmd sym catch?
+                ]
                 loop 2 [                                ;-- at least two stops required
                     DRAW_FETCH_VALUE_2(TYPE_TUPLE TYPE_WORD)
                     DRAW_FETCH_OPT_VALUE(TYPE_FLOAT)

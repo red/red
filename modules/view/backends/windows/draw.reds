@@ -2800,6 +2800,173 @@ check-gradient-shape: func [
     ]
 ]
 
+OS-draw-grad-pen-old: func [
+	ctx			[draw-ctx!]
+	type		[integer!]
+	mode		[integer!]
+	offset		[red-pair!]
+	count		[integer!]					;-- number of the colors
+	brush?		[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		start	[integer!]
+		stop	[integer!]
+		brush	[integer!]
+		angle	[float32!]
+		sx		[float32!]
+		sy		[float32!]
+		int		[red-integer!]
+		f		[red-float!]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		pt		[tagPOINT]
+		color	[int-ptr!]
+		last-c	[int-ptr!]
+		pos		[float32-ptr!]
+		last-p	[float32-ptr!]
+		n		[integer!]
+		delta	[float!]
+		p		[float!]
+		rotate? [logic!]
+		scale?	[logic!]
+		_colors [int-ptr!]
+		_colors-pos [float32-ptr!]
+][
+	_colors: ctx/other/gradient-pen/colors
+	_colors-pos: ctx/other/gradient-pen/colors-pos
+	x: offset/x
+	y: offset/y
+
+	int: as red-integer! offset + 1
+	start: int/value
+	int: int + 1
+	stop: int/value
+
+	n: 0
+	rotate?: no
+	scale?: no
+	sy: as float32! 1.0
+	while [
+		int: int + 1
+		n < 3
+	][								;-- fetch angle, scale-x and scale-y (optional)
+		switch TYPE_OF(int) [
+			TYPE_INTEGER	[p: as-float int/value]
+			TYPE_FLOAT		[f: as red-float! int p: f/value]
+			default			[break]
+		]
+		switch n [
+			0	[if p <> 0.0 [angle: as float32! p rotate?: yes]]
+			1	[if p <> 1.0 [sx: as float32! p scale?: yes]]
+			2	[if p <> 1.0 [sy: as float32! p scale?: yes]]
+		]
+		n: n + 1
+	]
+
+	pt: ctx/other/edges
+	color: _colors + 1
+	pos: _colors-pos + 1
+	delta: as-float count - 1
+	delta: 1.0 / delta
+	p: 0.0
+	head: as red-value! int
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		color/value: to-gdiplus-color clr/array1
+		next: head + 1 
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: f/value]
+		pos/value: as float32! p
+		if next <> head [p: p + delta]
+		head: head + 1
+		color: color + 1
+		pos: pos + 1
+	]
+
+	last-p: pos - 1
+	last-c: color - 1
+	pos: pos - count
+	color: color - count
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		_colors-pos/value: as float32! 0.0
+		_colors/value: color/value
+		color: _colors
+		pos: _colors-pos
+		count: count + 1
+	]
+	if last-p/value < as float32! 1.0 [			;-- last one should be always 1.0
+		last-c/2: last-c/value
+		last-p/2: as float32! 1.0
+		count: count + 1
+	]
+
+	brush: 0
+	either type = linear [
+		pt/x: x + start
+		pt/y: y
+		pt: pt + 1
+		pt/x: x + stop
+		pt/y: y
+		GdipCreateLineBrushI ctx/other/edges pt color/1 color/count 0 :brush
+		GdipSetLinePresetBlend brush color pos count
+		if rotate? [GdipRotateLineTransform brush angle GDIPLUS_MATRIXORDERAPPEND]
+		if scale? [GdipScaleLineTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND]
+	][
+		GdipCreatePath GDIPLUS_FILLMODE_ALTERNATE :brush
+		n: stop - start
+		stop: n * 2
+		case [
+			type = radial  [GdipAddPathEllipseI brush x - n y - n stop stop]
+			type = diamond [GdipAddPathRectangleI brush x - n y - n stop stop]
+		]
+
+		GdipCreateMatrix :n
+		if rotate? [GdipRotateMatrix n angle GDIPLUS_MATRIXORDERPREPEND]
+		if scale?  [GdipScaleMatrix n sx sy GDIPLUS_MATRIXORDERPREPEND]
+		scale?: any [rotate? scale?]
+		if scale? [							;@@ transform path will move it
+			GdipTransformPath brush n
+			GdipDeleteMatrix n
+		]
+
+		n: brush
+		GdipCreatePathGradientFromPath n :brush
+		GdipDeletePath n
+		GdipSetPathGradientCenterColor brush color/value
+		reverse-int-array color count
+		n: count - 1
+		start: 2
+		while [start < n][					;-- reverse position
+			sx: pos/start
+			pos/start: (as float32! 1.0) - pos/n
+			pos/n: (as float32! 1.0) - sx
+			n: n - 1
+			start: start + 1
+		]
+		GdipSetPathGradientPresetBlend brush color pos count
+
+		if any [							;@@ move the shape back to the right position
+			all [type = radial scale?]
+			all [type = diamond rotate?]
+		][
+			GdipGetPathGradientCenterPointI brush pt
+			sx: as float32! x - pt/x
+			sy: as float32! y - pt/y
+			GdipTranslatePathGradientTransform brush sx sy GDIPLUS_MATRIXORDERAPPEND
+		]
+	]
+
+	ctx/other/GDI+?: yes
+	either brush? [
+		unless zero? ctx/gp-brush	[GdipDeleteBrush ctx/gp-brush]
+		ctx/brush?: yes
+		ctx/gp-brush: brush
+	][
+		GdipSetPenBrushFill ctx/gp-pen brush
+	]
+]
+
 OS-draw-grad-pen: func [
     ctx			[draw-ctx!]
     mode		[integer!]
