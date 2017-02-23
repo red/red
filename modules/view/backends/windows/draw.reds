@@ -337,14 +337,14 @@ draw-begin: func [
             return ctx
         ][
 			either null? img [
-            dc: either paint? [BeginPaint hWnd ctx/other/paint][hScreen]
-			GetClientRect hWnd rect
-			width: rect/right - rect/left
-			height: rect/bottom - rect/top
-			hBitmap: CreateCompatibleBitmap dc width height
-			hBackDC: CreateCompatibleDC dc
-			SelectObject hBackDC hBitmap
-			ctx/bitmap: hBitmap
+            	dc: either paint? [BeginPaint hWnd ctx/other/paint][hScreen]
+            	GetClientRect hWnd rect
+            	width: rect/right - rect/left
+            	height: rect/bottom - rect/top
+            	hBitmap: CreateCompatibleBitmap dc width height
+            	hBackDC: CreateCompatibleDC dc
+            	SelectObject hBackDC hBitmap
+            	ctx/bitmap: hBitmap
 			][
 				hBackDC: as handle! img
 			]
@@ -1560,7 +1560,7 @@ OS-draw-text: func [
         rect/height: as float32! 0
         GdipDrawString ctx/graphics str len ctx/gp-font rect 0 ctx/gp-font-brush
     ][
-		tm: as tagTEXTMETRIC colors
+		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
 		GetTextMetrics ctx/dc tm
 		y: pos/y
 		p: str
@@ -2837,6 +2837,8 @@ OS-draw-grad-pen: func [
         last-point  [logic!]
         point       [red-pair!]
         value       [red-value!]
+        _colors     [int-ptr!]
+        _colors-pos [float32-ptr!]
         gradient    [gradient!]
         gm          [integer!]
 ][
@@ -2912,7 +2914,6 @@ OS-draw-grad-pen: func [
         spread = _reflect   [ gradient/spread: WRAP_MODE_TILE_FLIP_X ]
         true [ gradient/spread: WRAP_MODE_TILE ] 
     ]
-
     
     ;-- positions
     case [
