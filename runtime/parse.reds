@@ -1358,8 +1358,6 @@ parser: context [
 							TYPE_WORD	 [state: ST_WORD rule?: all [type <> R_COLLECT type <> R_KEEP]]
 							TYPE_DATATYPE
 							TYPE_TYPESET
-							TYPE_SET_WORD
-							TYPE_GET_WORD
 							TYPE_INTEGER [state: ST_DO_ACTION]
 							default [
 								either min = R_NONE [
@@ -1368,7 +1366,7 @@ parser: context [
 										PARSE_TRACE(_match)
 										ST_POP_RULE
 									][
-										ST_DO_ACTION
+										ST_DO_ACTION	;-- set/get-words are sinking here
 									]
 								][
 									match?: loop-token input value min max :cnt comp-op part
@@ -1376,7 +1374,7 @@ parser: context [
 									PARSE_TRACE(_match)
 									s: GET_BUFFER(rules)
 									PARSE_TRACE(_pop)
-									s/tail: s/tail - 3		;-- pop rule stack frame
+									s/tail: s/tail - 3	;-- pop rule stack frame
 									state: ST_CHECK_PENDING
 								]
 								PARSE_CHECK_INPUT_EMPTY?
