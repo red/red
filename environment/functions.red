@@ -196,7 +196,9 @@ replace: function [
 				pos: insert pos value
 			]
 		][
-			while [pos: find pos :pattern][pos/1: value]
+			while [pos: find pos :pattern][
+				pos: change pos value
+			]
 		]
 	][
 		if pos: find series :pattern [
