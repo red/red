@@ -1343,7 +1343,8 @@ parser: context [
 							R_REMOVE	 [words/_remove]
 							R_WHILE		 [words/_while]
 							R_COLLECT	 [words/_collect]
-							R_KEEP		 [words/_keep]
+							R_KEEP
+							R_KEEP_PICK
 							R_KEEP_PAREN [words/_keep]
 							R_AHEAD		 [words/_ahead]
 							default		 [null]
