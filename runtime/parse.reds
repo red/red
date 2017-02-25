@@ -706,10 +706,10 @@ parser: context [
 		PARSE_SAVE_SERIES
 		saved: stack/top
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
+		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
 		res: stack/top - 1
 		if reset? [stack/top: saved]
-		PARSE_RESTORE_SERIES
 		res
 	]
 
