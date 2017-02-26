@@ -18,7 +18,7 @@ context [
 	
 	stats:		make block! 100
 	profile?:	no
-	debug?:		yes
+	debug?:		no
 	
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
