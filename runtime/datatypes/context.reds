@@ -91,12 +91,13 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 		
-		add-global-word sym no
+		add-global-word sym no yes
 	]
 	
 	add-global-word: func [
 		sym		[integer!]
 		case?	[logic!]
+		store?	[logic!]
 		return: [red-word!]
 		/local
 			ctx	  [red-context!]
@@ -111,7 +112,7 @@ _context: context [
 		
 		if id <> -1 [
 			word: as red-word! s/offset + id	;-- word already defined in global context
-			if all [case? word/symbol <> sym][
+			if all [case? store? word/symbol <> sym][
 				word: as red-word! copy-cell as red-value! word ALLOC_TAIL(root)
 				word/symbol: sym
 			]

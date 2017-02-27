@@ -221,7 +221,7 @@ redbin: context [
 		offset: data/3
 		either offset = -1 [
 			new/ctx: global-ctx
-			w: _context/add-global sym/1
+			w: _context/add-global-word sym/1 yes no
 			new/index: w/index
 		][
 			obj: as red-object! block/rs-abs-at root offset + root-offset

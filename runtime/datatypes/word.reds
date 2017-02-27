@@ -31,7 +31,7 @@ word: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		_context/add-global-word symbol/make str yes
+		_context/add-global-word symbol/make str yes yes
 	]
 	
 	make-at: func [
