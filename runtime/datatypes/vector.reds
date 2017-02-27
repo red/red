@@ -179,8 +179,8 @@ vector: context [
 		return: [integer!]
 	][
 		switch unit [
-			1 [p/value and FFh]
-			2 [p/value and FFFFh]
+			1 [p/value and FFh << 24 >> 24]
+			2 [p/value and FFFFh << 16 >> 16]
 			4 [p/value]
 		]
 	]
