@@ -98,6 +98,7 @@ lexer: context [
 	tag-char:		charset "<>"
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
+	pair-end:		charset {^{"[]();:}
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
 	stop:			none
@@ -119,7 +120,7 @@ lexer: context [
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		pos: #"^/" (
+		#"^/" (
 			if count? [
 				line: line + 1
 				stack/nl?: yes
@@ -293,7 +294,8 @@ lexer: context [
 					type: pair!
 					value2: to pair! reduce [value 0]
 				)
-				s: integer-number-rule
+				[s: integer-number-rule | (type: pair! throw-error)]
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
 			opt [#":" [time-rule | (throw-error)]]

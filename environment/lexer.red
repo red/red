@@ -405,9 +405,9 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end
+			email-end pair-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -468,6 +468,7 @@ system/lexer: context [
 			cs/22: charset {[](){}":;}					;-- slash-end
 			cs/23: charset {[](){}";}					;-- not-url-char
 			cs/24: union cs/8 union cs/14 charset "<^/" ;-- email-end
+			cs/25: charset {^{"[]();:}					;-- pair-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
@@ -487,7 +488,7 @@ system/lexer: context [
 
 		;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 		ws: [
-			pos: #"^/" (
+			#"^/" (
 				if count? [
 					line: line + 1 
 					;append/only lines to block! stack/tail?
@@ -776,7 +777,8 @@ system/lexer: context [
 			  sticky-word-rule
 			  (value: make-number s e type)
 			  opt [
-				[#"x" | #"X"] s: integer-number-rule
+				[#"x" | #"X"] [s: integer-number-rule | (throw-error [pair! pos])]
+				ahead [pair-end | ws-no-count | end | (throw-error [pair! pos])]
 				(value: as-pair value make-number s e type)
 			  ]
 			  opt [#":" [time-rule | (throw-error [type pos])]]
