@@ -110,19 +110,17 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			either word = 'pane [
 				case [
 					action = 'moved [
-						nb: part
 						faces: skip head target index	;-- zero-based absolute index				
-						until [
+						loop part [
 							faces/1/parent: owner
 							faces: next faces
-							zero? nb: nb - 1
 						]
 						;unless forced? [show owner]
 						system/view/platform/on-change-facet owner word target action new index part
 					]
 					find [remove clear take change] action [
 						either owner/type = 'screen [
-							until [
+							loop part [
 								face: target/1
 								if face/type = 'window [
 									modal?: find-flag? face/flags 'modal
@@ -139,15 +137,13 @@ on-face-deep-change*: function [owner word target action new index part state fo
 									]
 								]
 								target: next target
-								zero? part: part - 1
 							]
 						][
-							until [
+							loop part [
 								face: target/1
 								face/parent: none
 								system/view/platform/destroy-view face no
 								target: next target
-								zero? part: part - 1
 							]
 						]
 					]
@@ -157,9 +153,8 @@ on-face-deep-change*: function [owner word target action new index part state fo
 								find [tab-panel window panel] owner/type
 								not find [cleared removed taken move] action 
 							][
-								nb: part
 								faces: skip head target index	;-- zero-based absolute index
-								until [
+								loop part [
 									face: faces/1
 									if owner/type = 'tab-panel [
 										face/visible?: no
@@ -170,7 +165,6 @@ on-face-deep-change*: function [owner word target action new index part state fo
 									]
 									show/with face owner
 									faces: next faces
-									zero? nb: nb - 1
 								]
 							]
 							unless forced? [show owner]
