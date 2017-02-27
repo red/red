@@ -428,9 +428,8 @@ system/lexer: context [
 
 		make-file: [
 			new: make type (index? e) - index? s
-			unless parse buffer: copy/part s e [any [#"%" [2 hexa | reject] | skip]][
-				throw-error [type s]
-			]
+			buffer: copy/part s e
+			parse buffer [any [#"%" [2 hexa | (throw-error [type s])] | skip]]
 			append new dehex buffer
 			if type = file! [parse new [any [s: #"\" change s #"/" | skip]]]
 			new

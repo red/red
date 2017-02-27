@@ -712,6 +712,7 @@ lexer: context [
 	]
 
 	load-file: func [s [string!]][
+		parse s [any [#"%" [2 hexa | (pos: skip pos negate 1 + length? s throw-error)] | skip]]
 		to file! replace/all dehex s #"\" #"/"
 	]
 	
