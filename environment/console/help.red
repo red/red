@@ -31,7 +31,6 @@ fetch-help: function [
 	"Display helping information about words and other values"
 	word	[any-type!] "Word you are looking for"
 	return: [string!]
-	/local type info w attributes block ref out 
 ][
 	out: make string! 32
 	tab: tab4: "    "
