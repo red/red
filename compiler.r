@@ -1307,7 +1307,7 @@ red: context [
 				emit [									;-- get arguments just below the stack record
 					if stack/arguments > stack/bottom [stack/push stack/arguments - 1]
 				]
-				insert-lf -4
+				insert-lf -5
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
@@ -3118,8 +3118,8 @@ red: context [
 			]
 			
 			true-blk: compose/deep pick [
-				[[word/set-in	 (ctx) (index)]]
-				[[word/get-local (ctx) (index)]]
+				[[word/set-in-ctx (ctx) (index)]]
+				[[word/get-local  (ctx) (index)]]
 			] set?
 			
 			either self? [

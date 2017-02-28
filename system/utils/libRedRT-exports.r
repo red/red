@@ -107,6 +107,7 @@
 	red/word/get-any
 	red/word/get-in
 	red/word/set-in
+	red/word/set-in-ctx
 	red/word/set
 	red/word/replace
 	red/word/from

@@ -205,6 +205,20 @@ word: context [
 		copy-cell value values/offset + index
 	]
 	
+	set-in-ctx: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		copy-cell value values/offset + index
+	]
+	
 	set-in: func [
 		node	[node!]
 		index	[integer!]
