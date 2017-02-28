@@ -272,6 +272,7 @@ face!: object [				;-- keep in sync with facet! enum
 		if system/view/debug? [
 			print [
 				"-- on-change event --" lf
+				tab "face :" type		lf
 				tab "word :" word		lf
 				tab "old  :" type? old	lf
 				tab "new  :" type? new
