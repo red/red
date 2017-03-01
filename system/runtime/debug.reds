@@ -73,6 +73,12 @@ __print-debug-stack: func [
 	lines:	40								;-- max number of lines displayed
 	print-line "***"
 	
+	top: frame								;-- skip on-quit handler
+	frame: as int-ptr! top/value
+	top: top + 1
+	ret: as int-ptr! top/value
+	top: frame + 2
+	
 	until [
 		nb: __debug-funcs-nb
 		records: __debug-funcs
