@@ -83,7 +83,7 @@ Other useful functions:
 						datatype? get/any w [
 							print-out out [tab pad form :w 15]
 						]
-						object? get/any w [
+						any [object? get/any w map? get/any w] [
 							print-out out [tab pad form :w 15 mold words-of get/any w]
 						]
 						'else [
