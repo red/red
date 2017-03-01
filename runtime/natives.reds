@@ -623,7 +623,7 @@ natives: context [
 			TYPE_LIT_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes no no case? <> -1
+				interpreter/eval-path value null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value only? some?

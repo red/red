@@ -795,7 +795,7 @@ interpreter: context [
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				stack/mark-interp-native words/_set-path
 				pc: eval-expression pc end no yes no	;-- yes: push value on top of stack
-				pc: eval-path value pc end yes no sub? no
+				pc: eval-path value pc end yes yes sub? no
 				either sub? [stack/unwind][stack/unwind-last]
 			]
 			TYPE_GET_WORD [
