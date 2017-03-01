@@ -125,4 +125,22 @@ Red [
 
 ===end-group===
 
+
+===start-group=== "issues"
+
+	--test-- "issue #1993"
+		s: object [v: object [a: none]]
+		live?: s/v/a: no
+		--assert live? == false
+		--assert s/v/a == false
+
+		do [
+			range: [0 0]
+			a: range/2: 1
+			--assert range = [0 1]
+			--assert a = 1
+		]
+
+===end-group===
+
 ~~~end-file~~~
