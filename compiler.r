@@ -71,6 +71,7 @@ red: context [
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
 	set 'float!	   'float								;-- type name not defined in Rebol
+	comment-marker: '------------|
  
 	unboxed-set:   [integer! char! float! float32! logic!]
 	block-set:	   [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
@@ -295,7 +296,7 @@ red: context [
 		]
 		if 50 < length? cmt [cmt: append copy/part cmt 50 "..."]
 		emit reduce [
-			'------------| (cmt)
+			comment-marker (cmt)
 		]
 	]
 	
@@ -1913,7 +1914,7 @@ red: context [
 					append obj-stack any [path name]	;-- from current objects stack
 				]
 				pc: next pc
-				comp-next-block
+				comp-next-block yes
 				obj-stack: saved						;-- restore objects stack
 			]
 			'else [
@@ -4060,6 +4061,9 @@ red: context [
 					pop-call
 					if tail? pc [emit-dyn-check]
 				]
+				if all [root 'stack/reset <> last output][
+					emit-stack-reset					;-- clear stack from last root expression result
+				]
 				exit
 			]
 
@@ -4088,7 +4092,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[comp-next-block]
+			paren!		[comp-next-block root]
 			set-path!	[comp-path/set? root]
 			path! 		[comp-path root]
 		][
@@ -4113,10 +4117,23 @@ red: context [
 		]
 	]
 	
-	comp-next-block: func [/with blk /local saved][
+	comp-next-block: func [root? [logic!] /with blk /local saved pos][
 		saved: pc
 		pc: any [blk pc/1]
+		
 		comp-block
+		
+		unless root? [
+			case [
+				'stack/reset = last output [remove back tail output]
+				all [
+					comment-marker = pick tail output -2
+					'stack/reset = pick tail output -3
+				][
+					remove skip tail output -3
+				]
+			]
+		]
 		pc: next saved
 	]
 	
