@@ -405,9 +405,9 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end
+			email-end pair-end file-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -469,13 +469,14 @@ system/lexer: context [
 			cs/23: charset {[](){}";}					;-- not-url-char
 			cs/24: union cs/8 union cs/14 charset "<^/" ;-- email-end
 			cs/25: charset {^{"[]();:}					;-- pair-end
+			cs/26: charset {^{[]();:}					;-- file-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end
+			pair-end file-end
 		] cs
 
 		byte: [
@@ -683,7 +684,7 @@ system/lexer: context [
 		]
 		
 		special-words: [
-			#"%" [ws-no-count | end] (value: "%")	;-- special case for remainder op!
+			#"%" [ws-no-count | ahead file-end | end] (value: "%")	;-- special case for remainder op!
 			| #"/" ahead [slash-end | #"/" | ws-no-count | control-char | end][
 				#"/" 
 				ahead [slash-end | ws-no-count | control-char | end] (value: "//")

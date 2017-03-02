@@ -101,6 +101,7 @@ lexer: context [
 	pair-end:		charset {^{"[]();:}
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
+	file-end:		charset {^{[]();}
 	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
@@ -206,7 +207,7 @@ lexer: context [
 	
 	word-rule: 	[
 		(type: word!)
-		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
