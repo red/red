@@ -446,7 +446,7 @@ stack: context [										;-- call stack
 				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!			
 			]
 		]
-		either ctop < cbottom [
+		either ctop <= cbottom [
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
