@@ -48,9 +48,6 @@ Red/System [
 #include %comdlgs.reds
 
 exit-loop:		0
-defer-close?:	no
-in-wndproc?:	no
-face-saved:		declare red-object!
 process-id:		0
 border-width:	0
 hScreen:		as handle! 0
@@ -421,8 +418,13 @@ free-handles: func [
 			;; handle user-provided classes too
 		]
 	]
-	DestroyWindow hWnd
-	
+	either sym = window [
+		SetWindowLong hWnd wc-offset - 4 -1
+		PostMessage hWnd WM_CLOSE 0 0
+	][
+		DestroyWindow hWnd
+	]
+
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
@@ -1844,12 +1846,6 @@ OS-destroy-view: func [
 		rate   [red-value!]
 		flags  [integer!]
 ][
-	if in-wndproc? [		;-- it's not safe to destroy a window inside WndProc
-		defer-close?: yes
-		copy-cell as red-value! face as red-value! face-saved
-		exit
-	]
-
 	handle: get-face-handle face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
@@ -1866,9 +1862,8 @@ OS-destroy-view: func [
 	
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
-	
+
 	if empty? [
-		clean-up
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
 	]

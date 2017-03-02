@@ -827,7 +827,6 @@ WndProc: func [
 		w-type [red-word!]
 		miniz? [logic!]
 ][
-	in-wndproc?: yes
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		values: get-face-values hWnd
 		w-type: (as red-word! values) + FACE_OBJ_TYPE
@@ -1030,20 +1029,21 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			if type = window [
-				SetFocus hWnd									;-- force focus on the closing window,
-				current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
-				res: make-event current-msg 0 EVT_CLOSE
-				if res  = EVT_DISPATCH [return 0]				;-- continue
-				;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
-				if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
-				return 0
+				either -1 = GetWindowLong hWnd wc-offset - 4 [clean-up][
+					SetFocus hWnd									;-- force focus on the closing window,
+					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
+					res: make-event current-msg 0 EVT_CLOSE
+					if res  = EVT_DISPATCH [return 0]				;-- continue
+					;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
+					if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
+					return 0
+				]
 			]
 		]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
 
-	in-wndproc?: no
 	DefWindowProc hWnd msg wParam lParam
 ]
 
@@ -1185,10 +1185,6 @@ do-events: func [
 			current-msg: msg
 			TranslateMessage msg
 			DispatchMessage msg
-		]
-		if defer-close? [
-			defer-close?: no
-			OS-destroy-view face-saved yes
 		]
 		if no-wait? [return msg?]
 	]
