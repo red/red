@@ -40,7 +40,7 @@ system: context [
 			#switch OS [
 				Windows  [SET_RETURN(words/_windows)]
 				Syllable [SET_RETURN(words/_syllable)]
-				macOS	 [SET_RETURN(words/_macOS)]
+				MacOSX	 [SET_RETURN(words/_macOS)]
 				#default [SET_RETURN(words/_linux)]
 			]
 		]
