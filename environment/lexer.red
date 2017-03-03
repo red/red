@@ -877,12 +877,16 @@ system/lexer: context [
 
 		comment-rule: [#";" [to #"^/" | to end] (old-line: line)]
 
-		wrong-delimiters: [
-			pos: [
-				  #"]" (value: #"[") | #")" (value: #"(")
-				| #"[" (value: #"]") | #"(" (value: #")")
-			] :pos
-			(throw-error/missing [value skip pos -3])
+		wrong-end: [(
+				ending: either 1 < length? stack [
+					value: switch type?/word last stack [
+						block! [#"]"]
+						paren! [#")"]
+					]
+					quote (throw-error/missing [value pos])
+				][none]
+			)
+			ending
 		]
 
 		literal-value: [
@@ -915,9 +919,9 @@ system/lexer: context [
 			)
 		]
 
-		one-value: [any ws pos: opt literal-value pos: to end]
+		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
 		any-value: [pos: any [some ws | literal-value]]
-		red-rules: [any-value opt wrong-delimiters]
+		red-rules: [any-value opt wrong-end]
 
 		unless either part [
 			parse/case/part src red-rules length
