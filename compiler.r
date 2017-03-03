@@ -138,7 +138,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" mold script-name
+			"^/*** in file:" to-local-file script-name
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
