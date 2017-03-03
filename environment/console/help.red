@@ -14,7 +14,7 @@ prin-out: function [out data][
 	either block? data [
 		data: reduce data
 		forall data [
-			append out form data/1
+			append out data/1
 			unless tail? data [append out #" "]
 		]
 	][
@@ -207,7 +207,7 @@ Other useful functions:
 					'else [:value]
 				]
 
-				desc: either string? desc [copy/part desc 47][mold/part/flat desc 47]
+				desc: either string? desc [mold/flat copy/part desc 47][mold/part/flat desc 47]
 
 				if 47 = length? desc [					;-- optimized for width = 78
 					clear skip tail desc -3
