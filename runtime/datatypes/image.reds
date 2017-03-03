@@ -354,7 +354,7 @@ image: context [
 
 	make: func [
 		proto	[red-image!]
-		spec	[red-object!]
+		spec	[red-value!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
@@ -423,22 +423,23 @@ image: context [
 		img
 	]
 
-	to: func [								;-- to image! face! only
+	to: func [											;-- to image! face! only
 		proto	[red-image!]
-		spec	[red-object!]
+		spec	[red-value!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
 			ret [red-logic!]
 	][
-		if TYPE_OF(spec) = TYPE_IMAGE [		;-- copy it
+		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
 			return copy as red-image! spec proto null yes null
 		]
 		#either sub-system = 'gui [
+			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
 			#call [face? spec]
 			ret: as red-logic! stack/arguments
 			either ret/value [
-				return exec/gui/OS-to-image spec
+				return exec/gui/OS-to-image as red-object! spec
 			][
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
 			]
