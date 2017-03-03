@@ -1118,7 +1118,7 @@ string: context [
 			TYPE_OF(spec) = TYPE_FLOAT
 		][
 			size: GET_SIZE_FROM(spec)
-			if size < 0 [fire [TO_ERROR(script out-of-range) int]]
+			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
 			proto/header: type								;-- implicit reset of all header flags
 			proto/head: 0
 			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
