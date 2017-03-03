@@ -467,7 +467,7 @@ words: context [
 	
 	windows:		-1
 	syllable:		-1
-	macosx:			-1
+	macOS:			-1
 	linux:			-1
 	
 	any*:			-1
@@ -549,7 +549,7 @@ words: context [
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
-	_macosx:		as red-word! 0
+	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
 	
 	_push:			as red-word! 0
@@ -650,7 +650,7 @@ words: context [
 
 		windows:		symbol/make "Windows"
 		syllable:		symbol/make "Syllable"
-		macosx:			symbol/make "MacOSX"
+		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
 		
 		repeat:			symbol/make "repeat"
@@ -742,7 +742,7 @@ words: context [
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
-		_macosx:		_context/add-global macosx
+		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
 		
 		_to:			_context/add-global to
