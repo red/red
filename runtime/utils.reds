@@ -61,23 +61,29 @@ Red/System [
 	get-cmdline-args: func [
 		return: [red-value!]
 		/local
-			str	 [red-string!]
-			args [str-array!]
-			src	 [c-string!]
-			s	 [series!]
-			cnt	 [int-ptr!]
-			size [integer!]
+			str		[red-string!]
+			args	[str-array!]
+			src		[c-string!]
+			s		[series!]
+			cnt		[int-ptr!]
+			size	[integer!]
+			first?	[logic!]
 	][
+		cnt: declare int-ptr!
 		size: 4'000									;-- enough?
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
-		args: system/args-list 
+		args: system/args-list
+		first?: yes
 		
 		until [
 			src: args/item
 			until [
-;@@ add double-quote escaping when whitespace is present
 				s: string/append-char s unicode/decode-utf8-char src cnt
+				if first? [
+					s: string/append-char s as-integer #" "	;-- add a space after first arg
+					first?: no
+				]
 				src: src + cnt/value
 				size: size - 1
 				any [src/1 = null-byte zero? size]
@@ -85,7 +91,6 @@ Red/System [
 			args: args + 1 
 			null? args/item
 		]
-		free as byte-ptr! new
 		as red-value! str
 	]
 
