@@ -79,7 +79,7 @@ zlib: context [
 	]
 
 	#import [z-library cdecl [
-		version: "zlibVersion" [ "Return zlib library version"
+		version: "zlibVersion" [ "Returns zlib library version"
 			return:   [c-string!]
 		]
 
@@ -258,7 +258,7 @@ zlib: context [
 	decompress: func [ "Decompress a byte array"
 		in-buf       [byte-ptr!] "Pointer to source data"
 		in-count     [integer!]  "Source data count (bytes)"
-		return:      [byte-ptr!] "Return a pointer to decompressed data"
+		return:      [byte-ptr!] "Returns a pointer to decompressed data"
 		/local ret out-buf tmp
 		out-count    [integer!]
 	][
@@ -303,7 +303,7 @@ zlib: context [
 	bin-to-str: func [ "Convert a byte array into an hex string."
 		address [byte-ptr!] "Memory address where the conversion starts"
 		limit   [integer!]  "Number of bytes to convert"
-		return: [c-string!] "Return a c string"
+		return: [c-string!] "Returns a c string"
 		/local i str cnum byte major minor
 	][
 		str: make-c-string (1 + (2 * limit))

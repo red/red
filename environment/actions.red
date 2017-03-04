@@ -148,7 +148,7 @@ remainder: make action! [[
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number! time! pair!]
-		/to		"Return the nearest multiple of the scale parameter"
+		/to		"Returns the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
 		/down		"Round toward zero, ignoring discarded digits. (truncate)"
@@ -170,7 +170,7 @@ subtract: make action! [[
 ]
 
 even?: make action! [[
-		"Returns true if the number is evenly divisible by 2"
+		"Returns TRUE if the number is evenly divisible by 2"
 		number 	 [number! char!]
 		return:  [number! char!]
 	]
@@ -178,7 +178,7 @@ even?: make action! [[
 ]
 
 odd?: make action! [[
-		"Returns true if the number has a remainder of 1 when divided by 2"
+		"Returns TRUE if the number has a remainder of 1 when divided by 2"
 		number 	 [number! char!]
 		return:  [number! char!]
 	]
@@ -305,7 +305,7 @@ find: make action! [[
 			size [integer!]
 		/last "Find the last occurrence of value, from the tail"
 		/reverse "Find the last occurrence of value, from the current index"
-		/tail "Return the tail of the match found, rather than the head"
+		/tail "Returns the tail of the match found, rather than the head"
 		/match "Match at current index only and return tail of match"
 	]
 	#get-definition ACT_FIND
@@ -320,7 +320,7 @@ head: make action! [[
 ]
 
 head?: make action! [[
-		"Returns true if a series is at its first index"
+		"Returns TRUE if a series is at its first index"
 		series	 [series!]
 		return:  [logic!]
 	]
@@ -492,7 +492,7 @@ tail: make action! [[
 ]
 
 tail?: make action! [[
-		"Returns true if a series is past its last value"
+		"Returns TRUE if a series is past its last value"
 		series	 [series!]
 		return:  [logic!]
 	]

@@ -38,11 +38,31 @@ browse: routine [
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
-shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
-shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no 1 -1]
-shift-logical: routine [data [integer!] bits [integer!]][natives/shift* no -1 1]
+shift-right:   routine [
+	"Perform a bit right shift operation (decreasing)"
+	data [integer!] "Number to shift"
+	bits [integer!] "Number of bits shifted"
+][
+	natives/shift* no -1 -1
+]
 
-;-- Helping routine for console, returns true if last output character was a LF
+shift-left:	   routine [
+	"Perform a bit left shift operation (increasing)"
+	data [integer!] "Number to shift"
+	bits [integer!] "Number of bits shifted"
+][
+	natives/shift* no 1 -1
+]
+
+shift-logical: routine [
+	"Perform a bit logical right shift operation (decreasing)"
+	data [integer!] "Number to shift (unsigned, fill with zero)"
+	bits [integer!] "Number of logical bits shifted"
+][
+	natives/shift* no -1 1
+]
+
+;-- Helping routine for console, returns TRUE if last output character was a LF
 last-lf?: routine [/local bool [red-logic!]][
 	bool: as red-logic! stack/arguments
 	bool/header: TYPE_LOGIC
@@ -69,9 +89,10 @@ exists?: routine [path [file!] return: [logic!]][
 ]
 
 as-color: routine [
-	r [integer!]
-	g [integer!]
-	b [integer!]
+	"Combine R, G, and B values into a tuple to represent an RGB color"
+	r [integer!] "Red component (0-255)"
+	g [integer!] "Green component (0-255)"
+	b [integer!] "Blue component (0-255)"
 	/local
 		arr1 [integer!]
 ][
@@ -80,10 +101,11 @@ as-color: routine [
 ]
 
 as-ipv4: routine [
-	a [integer!]
-	b [integer!]
-	c [integer!]
-	d [integer!]
+	"Combine A, B, C, and D values into a tuple to represent an IPv4 address"
+	a [integer!] "Component of class A (0-255)"
+	b [integer!] "Component of class B (0-255)"
+	c [integer!] "Component of class C (0-255)"
+	d [integer!] "Component of class D (0-255)"
 	/local
 		arr1 [integer!]
 ][

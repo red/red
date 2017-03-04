@@ -1913,7 +1913,7 @@ system-dialect: make-profilable context [
 				]
 				set [unused chunk] comp-block-chunked	;-- compile TRUE block
 				emitter/set-signed-state expr			;-- properly set signed/unsigned state
-				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
+				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is TRUE
 				emitter/merge chunk
 				last-type: none-type
 				<last>

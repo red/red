@@ -3,7 +3,7 @@ Red [
 	Author:	["Ingo Hohmann" "Nenad Rakocevic"]
 	File:	%help.red
 	Tabs:	4
-	Rights:	"Copyright (C) 2014-2015 Ingo Hohmann, Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2014-2017 Ingo Hohmann, Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -251,7 +251,7 @@ a-an: function [s [string!]][
 what: function ["Lists all functions"][
 	foreach w sort words-of system/words [
 		if all [word? w any-function? get/any :w][
-			prin pad form w 15
+			prin pad form w 17
 			spec: spec-of get w
 			
 			either any [

@@ -35,7 +35,7 @@ system: context [
 		__make-sys-object
 	]
 	
-	platform: func ["Return a word identifying the operating system"][
+	platform: func ["Returns a word identifying the operating system"][
 		#system [
 			#switch OS [
 				Windows  [SET_RETURN(words/_windows)]
@@ -62,8 +62,8 @@ system: context [
 			]
 			note: object [
 				code:				100
-				type:				"note"
-				no-load:			["cannot load: " :arg1]
+				type:				"Note Error"
+				no-load:			["cannot load:" :arg1]
 			]
 			syntax: object [
 				code:				200
@@ -119,23 +119,23 @@ system: context [
 				out-of-range:		["value out of range:" :arg1]
 				invalid-chars:		"contains invalid characters"
 				invalid-compare:	["cannot compare" :arg1 "with" :arg2]
-				wrong-type:			["datatype assertion failed for:" :arg1]
+				wrong-type:			["datatype assertion failed for" :arg1]
 				invalid-refine-arg: ["invalid" :arg1 "argument:" :arg2]
 				type-limit:			[:arg1 "overflow/underflow"]
-				size-limit:			["maximum limit reached:" :arg1]
+				size-limit:			["maximum size limit reached:" :arg1]
 				no-return:			"block did not return a value"
 				throw-usage:		"invalid use of a thrown error value"
 				locked-word:		["protected word - cannot modify:" :arg1]
 				;protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
-				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
-				bad-to-arg:			["cannot MAKE/TO" :arg1 "from:" :arg2]
+				bad-make-arg:		["cannot MAKE" :arg1 "from" :arg2]
+				bad-to-arg:			["cannot MAKE/TO" :arg1 "from" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
-				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
-				too-long:			"Content too long"
-				invalid-char:		["Invalid char! value:" :arg1]
+				move-bad:			["cannot MOVE elements from" :arg1 "to" :arg2]
+				too-long:			"content too long"
+				invalid-char:		["invalid char! value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -153,7 +153,7 @@ system: context [
 				parse-keep:			"PARSE - KEEP is used without a wrapping COLLECT"
 				parse-into-bad:		"PARSE - COLLECT INTO/AFTER expects a series! argument"
 				invalid-draw:		["invalid Draw dialect input at:" :arg1]
-				invalid-data-facet: ["invalid DATA facet content" :arg1]
+				invalid-data-facet: ["invalid DATA facet content:" :arg1]
 				face-type:			["VIEW - invalid face type:" :arg1]
 				not-window:			"VIEW - expected a window root face"
 				bad-window:			"VIEW - a window face cannot be nested in another window"
@@ -242,7 +242,7 @@ system: context [
 	]
 	
 	state: context [
-		interpreted?: func ["Return TRUE if called from the interpreter"][
+		interpreted?: func ["Returns TRUE if called from the interpreter"][
 			#system [logic/box stack/eval? null]
 		]
 		
