@@ -835,3 +835,13 @@ as: make native! [[
 	]
 	#get-definition NAT_AS
 ]
+
+secrets: make native! [[
+		"Generate sensitive information such as passwords, secure tokens, session keys, etc."
+		/size		"The number of bytes, 32 bytes by default"
+			bytes	[integer!]
+		/base64		"Use base-64 encoding"
+		return: [binary! string!]
+	]
+	#get-definition NAT_SECRETS
+]

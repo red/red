@@ -1444,6 +1444,50 @@ natives: context [
 		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
 	]
 
+	secrets*: func [
+		check?   [logic!]
+		size-arg [integer!]
+		base64	 [integer!]
+		/local
+			int	[red-integer!]
+			len	[integer!]
+			bin	[red-binary!]
+			s	[series!]
+			p	[byte-ptr!]
+	][
+		#typecheck [secrets size-arg base64]
+		len: either size-arg >= 0 [
+			int: as red-integer! stack/arguments
+			int/value
+		][32]
+
+		p: either base64 = -1 [
+			bin: binary/make-at stack/arguments len
+			s: GET_BUFFER(bin)
+			s/tail: as red-value! (as byte-ptr! s/tail) + len
+			as byte-ptr! s/offset
+		][
+			len: len / 4 * 3
+			allocate len
+		]
+
+		#either OS = 'Linux [
+			if 1 > crypto/getrandom p len no [
+				crypto/urandom p len				;-- fall back on using /dev/urandom
+			]
+		][
+			crypto/urandom p len
+		]
+
+		if base64 >= 0 [
+			bin: as red-binary! stack/arguments
+			bin/header: TYPE_STRING
+			bin/head: 0
+			bin/node: binary/encode-64 p len
+			free p
+		]
+	]
+
 	negative?*: func [
 		check?  [logic!]
 		return:	[red-logic!]
@@ -2879,6 +2923,7 @@ natives: context [
 			:now*
 			:sign?*
 			:as*
+			:secrets*
 		]
 	]
 
