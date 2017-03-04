@@ -660,19 +660,39 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	unless args: system/options/args [exit]				;-- non-executable case
-	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
-	
-	either pos [
-		system/options/boot: copy/part next args pos
-		if pos/1 = dbl-quote [pos: next pos]
-		if pos/2 = space [pos: skip pos 2]
-		remove/part args pos
-		if empty? trim/head args [system/options/args: none]
-	][
-		system/options/boot: args
-		system/options/args: none
+	if system/platform = Windows [
+		unescape: quote (
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		)
+		parse system/options/args [
+			any [
+				s: {'"} thru {"'} e: (remove s e: remove back back e) :e
+				| s: #"'" remove s
+				| s: some #"\" e: {"} unescape :e
+				  thru [s: some #"\" e: {"}] unescape :e
+				| skip
+			]
+		]
 	]
+
+	; system/options/args: {'" one  "' ' two ' \"three\"}
+	; system/options/boot: args
+	;
+	;unless args: system/options/args [exit]				;-- non-executable case
+	;pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
+	;
+	;either pos [
+	;	system/options/boot: copy/part next args pos
+	;	if pos/1 = dbl-quote [pos: next pos]
+	;	if pos/2 = space [pos: skip pos 2]
+	;	remove/part args pos
+	;	if empty? trim/head args [system/options/args: none]
+	;][
+	;	system/options/boot: args
+	;	system/options/args: none
+	;]
 ]
 
 collect: function [
