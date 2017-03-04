@@ -67,6 +67,7 @@ Red/System [
 			s		[series!]
 			cnt		[int-ptr!]
 			size	[integer!]
+			end?	[logic!]
 	][
 		cnt: declare int-ptr!
 		size: 4'000									;-- enough?
@@ -82,9 +83,10 @@ Red/System [
 				size: size - 1
 				any [src/1 = null-byte zero? size]
 			]
-			s: string/append-char s as-integer #" "	;-- add a space as separation
-			args: args + 1 
-			null? args/item
+			args: args + 1
+			end?: null? args/item
+			unless end? [s: string/append-char s as-integer #" "] ;-- add a space as separation
+			end?
 		]
 		as red-value! str
 	]
