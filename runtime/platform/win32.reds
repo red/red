@@ -216,15 +216,8 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc
-			null
-			size
-			VA_COMMIT_RESERVE
-			prot
-
-		if ptr = null [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
-		]
+		ptr: VirtualAlloc null size VA_COMMIT_RESERVE prot
+		if ptr = null [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		ptr
 	]
 
@@ -235,7 +228,7 @@ platform: context [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
 		if negative? VirtualFree ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
+			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 

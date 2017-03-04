@@ -155,9 +155,6 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
-
-	#define RED_ERR_VMEM_RELEASE_FAILED		96
-	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
 	
 	__set-stack-on-crash: func [
 		return: [int-ptr!]
@@ -232,8 +229,6 @@ re-throw: func [/local id [integer!]][
 				34	["Bus error"]			;-- generic SIGBUS message
 
 				95	["no CATCH for THROW"]
-				96	["virtual memory release failed"]
-				97	["out of memory"]
 				98	["assertion failed"]
 				99	["unknown error"]
 

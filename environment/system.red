@@ -225,6 +225,7 @@ system: context [
 				bad-path:			["bad path:" arg1]
 				not-here:			[arg1 "not supported on your system"]
 				no-memory:			"not enough memory"
+				wrong-mem:			"failed to release memory"
 				stack-overflow:		"stack overflow"
 				;bad-series:		"invalid series"
 				;limit-hit:			["internal limit reached:" :arg1]
