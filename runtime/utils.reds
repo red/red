@@ -67,27 +67,22 @@ Red/System [
 			s		[series!]
 			cnt		[int-ptr!]
 			size	[integer!]
-			first?	[logic!]
 	][
 		cnt: declare int-ptr!
 		size: 4'000									;-- enough?
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
 		args: system/args-list
-		first?: yes
 		
 		until [
 			src: args/item
 			until [
 				s: string/append-char s unicode/decode-utf8-char src cnt
-				if first? [
-					s: string/append-char s as-integer #" "	;-- add a space after first arg
-					first?: no
-				]
 				src: src + cnt/value
 				size: size - 1
 				any [src/1 = null-byte zero? size]
 			]
+			s: string/append-char s as-integer #" "	;-- add a space as separation
 			args: args + 1 
 			null? args/item
 		]
