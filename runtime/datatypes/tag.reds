@@ -23,21 +23,6 @@ tag: context [
 
 	;-- Actions --
 
-	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-tag!]
-		/local
-			tag [red-tag!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "tag/make"]]
-
-		tag: as red-tag! string/make proto spec type
-		set-type as red-value! tag TYPE_TAG
-		tag
-	]
-	
 	form: func [
 		tag		  [red-tag!]
 		buffer	  [red-string!]
@@ -69,35 +54,16 @@ tag: context [
 		form tag buffer arg part - 1
 	]
 
-	to: func [
-		type	[red-datatype!]
-		spec	[red-integer!]
-		return: [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "tag/to"]]
-			
-		switch type/value [
-			TYPE_FILE
-			TYPE_STRING [
-				set-type copy-cell as cell! spec as cell! type type/value
-			]
-			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
-			]
-		]
-		as red-value! type
-	]
-
 	init: does [
 		datatype/register [
 			TYPE_TAG
 			TYPE_STRING
 			"tag!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			INHERIT_ACTION	;reflect
-			:to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path

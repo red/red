@@ -13,11 +13,13 @@ Red/System [
 dos-console?:	yes
 buffer:			as byte-ptr! 0
 pbuffer:		as byte-ptr! 0
+cbuffer:		as byte-ptr! 0
 
 ;-------------------------------------------
 ;-- check whether we are in console mode
 ;-------------------------------------------
 init-dos-console: func [/local n [integer!]][
+	cbuffer:		allocate 128
 	buffer:			allocate 1024
 	pbuffer:		buffer ;this stores buffer's head position
 	n: 0
@@ -142,6 +144,10 @@ print-str: func [
 	]
 ]
 
+wflush: func [len [integer!]][
+	print-str cbuffer len * 2 UCS-2 no
+]
+
 ;-------------------------------------------
 ;-- Print a UCS-4 string to console
 ;-------------------------------------------
@@ -253,31 +259,26 @@ prin*: func [s [c-string!] return: [c-string!] /local p n][
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
-	wprintf [#u16 "%i" i]
-	fflush null										;-- flush all streams
+	wflush swprintf [cbuffer #u16 "%i" i]
 	i
 ]
 
 prin-2hex*: func [i [integer!] return: [integer!]][
-	wprintf [#u16 "%02X" i]
-	fflush null
+	wflush swprintf [cbuffer #u16 "%02X" i]
 	i
 ]
 
 prin-hex*: func [i [integer!] return: [integer!]][
-	wprintf [#u16 "%08X" i]
-	fflush null
+	wflush swprintf [cbuffer #u16 "%08X" i]
 	i
 ]
 
 prin-float*: func [f [float!] return: [float!]][
-	wprintf [#u16 "%.16g" f]
-	fflush null
+	wflush swprintf [cbuffer #u16 "%.16g" f]
 	f
 ]
 
 prin-float32*: func [f [float32!] return: [float32!]][
-	wprintf [#u16 "%.7g" as-float f]
-	fflush null
+	wflush swprintf [cbuffer #u16 "%.7g" as-float f]
 	f
 ]

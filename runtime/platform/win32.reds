@@ -22,11 +22,6 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
-#define GENERIC_WRITE		40000000h
-#define GENERIC_READ 		80000000h
-#define FILE_SHARE_READ		00000001h
-#define FILE_SHARE_WRITE	00000002h
-#define OPEN_EXISTING		00000003h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
@@ -71,10 +66,6 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
-			fflush: "fflush" [
-				fd			[integer!]
-				return:		[integer!]
-			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
@@ -99,6 +90,8 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			AllocConsole: "AllocConsole" [return: [logic!]]
+			FreeConsole: "FreeConsole" [return: [logic!]]
 			WriteConsole: 	 "WriteConsoleW" [
 				consoleOutput	[integer!]
 				buffer			[byte-ptr!]
@@ -323,17 +316,39 @@ platform: context [
 		t * 1E6				;-- nano second
 	]
 
+	open-console: func [return: [logic!]][
+		either AllocConsole [
+			stdin:  win32-startup-ctx/GetStdHandle WIN_STD_INPUT_HANDLE
+			stdout: win32-startup-ctx/GetStdHandle WIN_STD_OUTPUT_HANDLE
+			stderr: win32-startup-ctx/GetStdHandle WIN_STD_ERROR_HANDLE
+			yes
+		][
+			no
+		]
+	]
+
+	close-console: func [return: [logic!]][
+		FreeConsole
+	]
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: func [/local h [int-ptr!]] [
 		init-gdiplus
-		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		#either libRed? = no [
+			CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		][
+			#if export-ABI <> 'stdcall [
+				CoInitializeEx 0 COINIT_APARTMENTTHREADED
+			]
+		]
+		crypto/init-provider
 		#if sub-system = 'console [init-dos-console]
 		#if unicode? = yes [
 			h: __iob_func
-			_setmode _fileno h + 1 _O_U16TEXT				;@@ throw an error on failure
-			_setmode _fileno h + 2 _O_U16TEXT				;@@ throw an error on failure
+			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
+			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
 		]
 	]
 ]

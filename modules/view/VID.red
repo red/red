@@ -114,7 +114,7 @@ system/view/VID: context [
 		]
 		obj: obj/:facet
 		
-		make logic! either blk: obj/:field [
+		make logic! either all [blk: obj/:field facet = 'font field = 'style] [
 			unless block? blk [obj/:field: blk: reduce [blk]]
 			alter blk flag
 		][
@@ -176,7 +176,7 @@ system/view/VID: context [
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
-				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
+				| 'no-wrap	  (add-flag opts 'para 'wrap? no opt?: yes)
 				| 'focus	  (focal-face: face)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
@@ -236,10 +236,10 @@ system/view/VID: context [
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
-							][make-actor opts style/default-actor spec/1 spec]
+							][make-actor opts style/default-actor value spec]
 							yes
 						]
-						get-word! [make-actor opts style/default-actor spec/1 spec]
+						get-word! [make-actor opts style/default-actor value spec]
 						char!	  [yes]
 					][no]
 				]

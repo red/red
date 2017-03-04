@@ -1069,7 +1069,7 @@ make-profilable make target-class [
 		/with cast [object!]
 		/cdecl										;-- external call
 		/keep
-		/local spec type offset conv-int-float?
+		/local spec type offset conv-int-float? float?
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -1184,12 +1184,10 @@ make-profilable make target-class [
 			]
 			object! [
 				type: compiler/get-type value/data
+				float?: find [float! float64! float32!] value/type/1
 				
 				conv-int-float?: any [
-					all [
-						find [float! float64! float32!] value/type/1
-						type/1 = 'integer!
-					]
+					all [float?	type/1 = 'integer!]
 					all [
 						find [float! float64! float32!] type/1
 						value/type/1 = 'integer!
@@ -1200,7 +1198,11 @@ make-profilable make target-class [
 					not find [block! tag!] type?/word value/data
 					emit-load value/data
 				]
-				either keep [emit-casting value no][emit-casting/push value no]
+				either keep [emit-casting value no][
+					unless all [float? decimal? value/data][
+						emit-casting/push value no
+					]
+				]
 				
 				unless conv-int-float? [
 					either cdecl [

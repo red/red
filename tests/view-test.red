@@ -817,7 +817,7 @@ win/pane: reduce [
 				if within? pos dropped/offset dropped/size [
 					face/offset: 550x540
 					dropped/draw/5: form 1 + to integer! dropped/draw/5
-					unless live? [show dropped]
+					unless live? [show [face dropped]]
 				]
 			]
 		]

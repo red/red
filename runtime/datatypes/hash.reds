@@ -16,9 +16,10 @@ hash: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-value!]
-		spec		[red-value!]
-		return:		[red-hash!]
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-hash!]
 		/local
 			hash	[red-hash!]
 			size	[integer!]
@@ -40,19 +41,34 @@ hash: context [
 				size: block/rs-length? as red-block! spec
 				blk?: yes
 			]
-			default [--NOT_IMPLEMENTED--]
+			default [
+				return to proto spec type
+			]
 		]
 
 		unless positive? size [size: 1]
-		blk: block/make-at as red-block! stack/push* size
-		if blk? [
-			block/copy as red-block! spec blk null no null
+		either type = -1 [							;-- called by TO
+			blk: as red-block! spec
+		][
+			blk: block/make-at as red-block! stack/push* size
+			if blk? [block/copy as red-block! spec blk null no null]
 		]
 		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
-		hash/header: TYPE_HASH							;-- implicit reset of all header flags
+		hash/header: TYPE_HASH						;-- implicit reset of all header flags
 		hash/table: table
 		hash
+	]
+
+	to: func [
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-hash!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "hash/to"]]
+
+		make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
 	]
 
 	mold: func [
@@ -69,7 +85,7 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/mold"]]
 
 		string/concatenate-literal buffer "make hash! "
-		block/mold as red-block! hash buffer only? all? flat? arg part - 11 indent
+		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
 	]
 
 	clear: func [
@@ -160,7 +176,7 @@ hash: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -215,7 +231,7 @@ hash: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

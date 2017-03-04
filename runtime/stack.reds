@@ -195,7 +195,7 @@ stack: context [										;-- call stack
 			]
 		]
 		where-ctop: null
-		word/at p/ctx sym
+		either p < cbottom [words/_not-found][word/at p/ctx sym]
 	]
 	
 	revert: does [
@@ -395,20 +395,17 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
-			ctop: ctop - 1
-			if any [
-				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
-				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
-			][
+			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
+			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_LOOP)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
@@ -446,10 +443,10 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop <= cbottom
-				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!			
+				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom ctop/header and FLAG_IN_FUNC = 0][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
@@ -489,11 +486,11 @@ stack: context [										;-- call stack
 			]
 			ctop: ctop - 1
 			any [
-				ctop < cbottom
+				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_CATCH)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop

@@ -12,6 +12,13 @@ Red/System [
 
 integer: context [
 	verbose: 0
+	
+	overflow?: func [
+		fl		[red-float!]
+		return: [logic!]
+	][
+		any [fl/value > 2147483647.0 fl/value < -2147483648.0]
+	]
 
 	abs: func [
 		value	[integer!]
@@ -66,6 +73,59 @@ integer: context [
 		int
 	]
 	
+	from-binary: func [
+		bin		[red-binary!]
+		return: [integer!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			len	   [integer!]
+			i	   [integer!]
+			factor [integer!]
+	][
+		s: GET_BUFFER(bin)
+		len: (as-integer s/tail - s/offset) + bin/head
+		if len > 4 [len: 4]								;-- take first 32 bits only
+
+		i: 0
+		factor: 0
+		p: (as byte-ptr! s/offset) + bin/head + len - 1
+
+		loop len [
+			i: i + ((as-integer p/value) << factor)
+			factor: factor + 8
+			p: p - 1
+		]
+		i
+	]
+
+	from-issue: func [
+		issue	[red-word!]
+		return: [integer!]
+		/local
+			len  [integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			s	 [series!]
+			unit [integer!]
+	][
+		str: as red-string! stack/push as red-value! symbol/get issue/symbol
+		str/head: 0								;-- /head = -1 (casted from symbol!)
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		len: string/rs-length? str
+		if len > 8 [len: 8]
+
+		str/node: binary/decode-16 
+			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			len
+			unit
+		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
+		len: from-binary as red-binary! str
+		stack/pop 1
+		len
+	]
+
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
@@ -266,20 +326,24 @@ integer: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-integer!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-integer!]
+		/local
+			bool [red-logic!]
+			int	 [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/make"]]
 
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				as red-integer! spec
-			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-integer! spec					;@@ just for making it compilable
-			]
+		either TYPE_OF(spec) = TYPE_LOGIC [
+			bool: as red-logic! spec
+			int: as red-integer! proto
+			int/header: TYPE_INTEGER
+			int/value: as-integer bool/value
+			int
+		][
+			as red-integer! to proto spec type
 		]
 	]
 
@@ -307,37 +371,69 @@ integer: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-integer!]
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
 		return: [red-value!]
 		/local
-			int [red-integer!]
-			f	[red-float!]
-			buf [red-string!]
+			int  [red-integer!]
+			fl	 [red-float!]
+			t	 [red-time!]
+			pad1 [integer!]
+			pad2 [integer!]
+			pad3 [integer!]
+			pad4 [integer!]
+			val	 [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
-			
-		switch type/value [
-			TYPE_INTEGER [
-				int: as red-integer! type
-				int/header: TYPE_INTEGER
-				int/value: spec/value
+		
+		if TYPE_OF(spec) = TYPE_INTEGER [return spec]
+		
+		int: as red-integer! proto
+		int/header: TYPE_INTEGER
+		
+		switch TYPE_OF(spec) [
+			TYPE_CHAR [
+				int/value: spec/data2
+			]
+			TYPE_TIME [
+				t: as red-time! spec
+				int/value: as-integer t/time / time/oneE9
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
-				f: as red-float! type
-				f/header: type/value
-				f/value: as-float spec/value
+				fl: as red-float! spec
+				if overflow? fl [fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]]
+				int/value: as-integer fl/value
 			]
-			TYPE_STRING [
-				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-signed spec/value
+			TYPE_BINARY [
+				int/value: from-binary as red-binary! spec
 			]
-			default [
-				fire [TO_ERROR(script bad-to-arg) type spec]
+			TYPE_ISSUE [
+				int/value: from-issue as red-word! spec
 			]
+			TYPE_ANY_STRING [
+				pad4: 0
+				val: as red-value! :pad4
+				copy-cell spec val					;-- save spec, load-value will change it
+
+				proto: load-value as red-string! spec
+				
+				either TYPE_OF(proto) = TYPE_FLOAT [
+					fl: as red-float! proto
+					if overflow? fl [fire [TO_ERROR(script too-long)]]
+					int: as red-integer! proto
+					int/header: TYPE_INTEGER
+					int/value: as-integer fl/value
+				][
+					if TYPE_OF(proto) <> TYPE_INTEGER [ 
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER val]
+					]
+				]
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]]
 		]
-		as red-value! type
+		proto
 	]
 
 	form: func [
@@ -401,7 +497,7 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT TYPE_PERCENT [
 				f: as red-float! value1
 				left: value1/value
 				f/value: as-float left
@@ -496,7 +592,10 @@ integer: context [
 	][
 		res: 1
 		while [exp <> 0][
-			if as logic! exp and 1 [res: res * base]
+			if as logic! exp and 1 [
+				res: res * base
+				if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			]
 			exp: exp >> 1
 			base: base * base
 		]
@@ -509,19 +608,25 @@ integer: context [
 			base [red-integer!]
 			exp  [red-integer!]
 			f	 [red-float!]
+			up?	 [logic!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
-		either any [
+		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value
-		][
+		]
+		unless up? [
+			catch RED_INT_OVERFLOW [
+				base/value: int-power base/value exp/value
+			]
+		]
+		if any [up? system/thrown = RED_INT_OVERFLOW][
+			system/thrown: 0
 			f: as red-float! base
 			f/value: as-float base/value
 			f/header: TYPE_FLOAT
 			float/power
-		][
-			base/value: int-power base/value exp/value
 		]
 		as red-value! base
 	]
@@ -540,13 +645,13 @@ integer: context [
 		as-logic int/value and 1
 	]
 
-	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+	#define INT_TRUNC [val: either num > 0 [n - r][r - n]]
 
 	#define INT_FLOOR [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [n - r][0 - m]
+			val: either num > 0 [n - r][0 - m]
 		]
 	]
 
@@ -554,7 +659,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num < 0 [r - n][m]
+			val: either num < 0 [r - n][m]
 		]
 	]
 
@@ -562,7 +667,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [m][0 - m]
+			val: either num > 0 [m][0 - m]
 		]
 	]
 
@@ -585,6 +690,7 @@ integer: context [
 			n		[integer!]
 			m		[integer!]
 			r		[integer!]
+			val		[integer!]
 	][
 		int: as red-integer! value
 		num: int/value
@@ -618,6 +724,7 @@ integer: context [
 			half-ceil?	[INT_CEIL ]
 			true		[INT_AWAY ]
 		]
+		int/value: val
 		value
 	]
 

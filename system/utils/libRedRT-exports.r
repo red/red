@@ -61,6 +61,7 @@
 	red/char/push
 	red/datatype/push
 	;red/event/push
+	red/email/push
 	red/file/push
 	red/float/push
 	red/_function/push
@@ -85,6 +86,8 @@
 	red/set-path/push
 	red/set-word/push
 	red/string/push
+	red/tag/push
+	red/time/push
 	red/tuple/push
 	red/typeset/push
 	red/unset/push
@@ -104,6 +107,7 @@
 	red/word/get-any
 	red/word/get-in
 	red/word/set-in
+	red/word/set-in-ctx
 	red/word/set
 	red/word/replace
 	red/word/from

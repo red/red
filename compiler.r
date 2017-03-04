@@ -43,7 +43,7 @@ red: context [
 	extracts:	   do bind load-cache %utils/extractor.r 'self
 	redbin:		   do bind load-cache %utils/redbin.r 'self
 	preprocessor:  do-cache file: %utils/preprocessor.r
-	preprocessor:  do preprocessor/expand load-cache file none ;-- apply preprocessor on itself
+	preprocessor:  do preprocessor/expand/clean load-cache file none ;-- apply preprocessor on itself
 	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
@@ -71,6 +71,7 @@ red: context [
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
 	set 'float!	   'float								;-- type name not defined in Rebol
+	comment-marker: '------------|
  
 	unboxed-set:   [integer! char! float! float32! logic!]
 	block-set:	   [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
@@ -99,7 +100,8 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever remove-each]
 	
 	standard-modules: [
-		View		%modules/view/view.red
+	;-- Name ------ Entry file -------------- OS availability -----
+		View		%modules/view/view.red	  [Windows]
 	]
 
 	func-constructors: [
@@ -136,7 +138,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" mold script-name
+			"^/*** in file:" to-local-file script-name
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
@@ -294,7 +296,7 @@ red: context [
 		]
 		if 50 < length? cmt [cmt: append copy/part cmt 50 "..."]
 		emit reduce [
-			'------------| (cmt)
+			comment-marker (cmt)
 		]
 	]
 	
@@ -520,7 +522,15 @@ red: context [
 			]
 		]
 		append body [
-			RED_THROWN_RETURN RED_THROWN_EXIT
+			RED_THROWN_RETURN
+		]
+		append/only body pick [
+			[re-throw]
+			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+		] empty? locals-stack
+		
+		append body [
+			RED_THROWN_EXIT
 		]
 		append/only body pick [
 			[re-throw]
@@ -1259,6 +1269,10 @@ red: context [
 	]
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity nat? proto entry][
+		if any [tail? pos not any-word? pos/1][
+			pc: back pc
+			throw-error "Non-compilable function definition"
+		]
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
@@ -1294,7 +1308,7 @@ red: context [
 				emit [									;-- get arguments just below the stack record
 					if stack/arguments > stack/bottom [stack/push stack/arguments - 1]
 				]
-				insert-lf -4
+				insert-lf -5
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
@@ -1574,8 +1588,8 @@ red: context [
 					emit 'tuple/push
 					emit length? head bin
 					emit to integer! skip bin -4
-					emit to integer! copy/part skip bin -8 4
-					emit to integer! copy/part head bin 4
+					emit to integer! copy/part skip bin -4 -4
+					emit to integer! copy/part skip bin -8 -4
 					insert-lf -5
 				]
 				find [refinement! issue!] type?/word :value [
@@ -1675,8 +1689,8 @@ red: context [
 	]
 	
 	inherit-functions: func [							 ;-- multiple inheritance case
-		new [object!] extend [object!] multi? [logic!]
-		/local symbol name
+		new [object!] extend [object!]
+		/local symbol name entry
 	][
 		foreach word next first extend [
 			if function! = get in extend word [
@@ -1686,9 +1700,9 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				either multi? [							;-- not allowed for libRedRT client programs
+				either entry: find bodies symbol [		;-- not allowed for libRedRT client programs
 					append bodies name
-					append bodies bind/copy copy/part next find bodies symbol 8 new
+					append bodies bind/copy copy/part next entry 8 new
 				][
 					redirect-to literals [
 						emit compose [#define (decorate-func name) (decorate-func symbol)]
@@ -1706,7 +1720,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? multi-inherit?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1864,15 +1878,14 @@ red: context [
 			]
 			insert-lf -3
 		]
-		multi-inherit?: not all [job/dev-mode? not job/libRedRT?]
 		
 		if proto [
-			if body? [inherit-functions obj last proto multi-inherit?]
+			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		if all [not body? not passive][
-			inherit-functions obj new multi-inherit?
+			inherit-functions obj new
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
@@ -1901,7 +1914,7 @@ red: context [
 					append obj-stack any [path name]	;-- from current objects stack
 				]
 				pc: next pc
-				comp-next-block
+				comp-next-block yes
 				obj-stack: saved						;-- restore objects stack
 			]
 			'else [
@@ -2175,7 +2188,13 @@ red: context [
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
-		add-symbol word: pc/1
+		unless any-word? word: pc/1 [
+			pc: back pc
+			throw-error "REPEAT expects a word as first argument"
+		]
+		emit-open-frame 'body
+		
+		add-symbol word
 		add-global word
 		name: decorate-symbol word
 		action: either local-word? word [
@@ -2230,6 +2249,7 @@ red: context [
 		pop-call
 		insert last output reduce [action name cnt]
 		new-line last output on
+		emit-close-frame
 		emit-close-frame
 		depth: depth - 1
 	]
@@ -2444,7 +2464,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
+	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule counter][
 		if pos: find spec /extern [
 			either end: any [
 				find next pos refinement!
@@ -2467,7 +2487,7 @@ red: context [
 			while [not tail? pos][
 				either all [
 					find [word! lit-word! get-word!] type?/word pos/1
-					any [
+					any [ 
 						find/part spec to lit-word! pos/1 loc
 						find/part spec to get-word! pos/1 loc
 					]
@@ -2492,7 +2512,7 @@ red: context [
 			unless any [
 				all [ignore	find ignore word]
 				find words word
-			][
+			][			
 				append words word
 			]
 		]
@@ -2505,11 +2525,12 @@ red: context [
 				| pos: word! (
 					if all [
 						find word-iterators pos/1
-						pos/2
+						counter: pos/2
 					][
 						foreach word any [
-							all [block? pos/2 pos/2]
-							reduce [pos/2]
+							all [block? counter counter]
+							all [any-word? counter reduce [counter]]
+							[]
 						] make-local
 					]
 				)
@@ -2685,7 +2706,7 @@ red: context [
 		
 		pc: skip pc 2
 		compose [
-			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret) no
 		]
 	]
 	
@@ -2738,8 +2759,14 @@ red: context [
 		clear mark
 		
 		body: pc/1
-		unless block? body [
-			throw-error "SWITCH expects a block as second argument"
+		if any [not block? body empty? body][
+			append output arg
+			comp-expression								;-- compile cases argument
+			if default? [comp-expression]				;-- optionally compile /default argument
+			emit-native/with 'switch reduce [pick [2 -1] to logic! default?]
+			emit-close-frame
+			pop-call
+			exit
 		]
 		list: make block! 4
 		cnt: 1
@@ -2774,7 +2801,7 @@ red: context [
 				cnt: cnt + 1
 			) skip]
 		]
-		unless empty? body [pc: next pc]
+		pc: next pc
 		
 		append list 'default							;-- process default case
 		either default? [
@@ -3092,8 +3119,8 @@ red: context [
 			]
 			
 			true-blk: compose/deep pick [
-				[[word/set-in	 (ctx) (index)]]
-				[[word/get-local (ctx) (index)]]
+				[[word/set-in-ctx (ctx) (index)]]
+				[[word/get-local  (ctx) (index)]]
 			] set?
 			
 			either self? [
@@ -3106,7 +3133,7 @@ red: context [
 					either (emit-deep-check path fpath) (true-blk)
 				]
 			]
-			if all [set? obj/5][						;-- detect on-set callback 
+			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
 				insert clear last output compose [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
@@ -3240,7 +3267,13 @@ red: context [
 				emit-open-frame name
 			]
 			current-call: call							;-- for error reporting
+			pos: pc
 			comp-arguments spec/3 spec/2				;-- fetch arguments
+			
+			if all [path? call none? spec/4][
+				pc: back pos
+				throw-error [call/1 "has no refinement"]
+			]
 			
 			either compact? [
 				refs: either spec/4 [
@@ -3668,6 +3701,7 @@ red: context [
 					][-3]
 					cnt: cnt + 1
 				)
+				| refinement! (cnt: cnt + 1)
 				| skip
 			]
 		]
@@ -3704,6 +3738,7 @@ red: context [
 						pos/1: 'type-check-opt
 						pos/2: pick spec select refs to refinement! next form pos/2
 						remove at pos 8
+						new-line pos yes
 					) 2 skip
 					| skip
 				]
@@ -3717,6 +3752,9 @@ red: context [
 	][
 		switch/default type?/word spec [
 			path! [
+				unless parse spec [some word!][
+					throw-error ["invalid #get argument:" spec]
+				]
 				set [obj fpath] object-access? spec
 				ctx: second obj: find objects obj
 				unless idx: get-word-index/with last spec ctx [return none]
@@ -3748,15 +3786,15 @@ red: context [
 	
 	process-call-directive: func [
 		body [block!] global?
-		/local name spec cmd types type arg trash ctx offset
+		/local name spec cmd types type arg path ctx offset
 	][
 		name: body/1
 		switch/default type?/word name [
 			word! [name: to word! clean-lf-flag name]
-			path! [set [trash name ctx] obj-func-path? body/1]
+			path! [set [path name ctx] obj-func-path? body/1]
 		][
 			throw-error ["invalid function name in #call:" mold body]
-		]	
+		]
 		if any [
 			not spec: select functions name
 			not spec/1 = 'function!
@@ -3770,24 +3808,24 @@ red: context [
 		][
 			emit-open-frame name
 		]
-		
 		types: spec/3
 		body: next body
 		
 		loop spec/2 [									;-- process arguments
+			type: none
 			types: find/tail types word!
-			unless block? types/1 [
-				throw-error ["type undefined for" types/1 "in function" name]
-			]
-			either 1 = length? types/1 [
-				type: types/1/1
-			][
-				arg: body/1
-				if word? arg [arg: attempt [get arg]]
-				type: none
-				foreach value types/1 [
-					if value = type?/word arg [type: value break]
+			if block? types/1 [
+				either 1 = length? types/1 [
+					type: types/1/1
+				][
+					arg: body/1
+					if word? arg [arg: attempt [get arg]]
+					type: none
+					foreach value types/1 [
+						if value = type?/word arg [type: value break]
+					]
 				]
+				if type = 'any-type! [type: none]
 			]
 			offset: either type [
 				cmd: to path! reduce [to word! form get type 'push]
@@ -3822,7 +3860,11 @@ red: context [
 			switch type?/word types/1 [
 				refinement! [
 					if types/1 = /local [break]
-					emit [red/logic/push false]
+					emit 'red/logic/push 
+					emit to word! form to logic! all [
+						path? path
+						find path to word! types/1
+					]
 					insert-lf -2
 				]
 				word! [
@@ -4019,6 +4061,9 @@ red: context [
 					pop-call
 					if tail? pc [emit-dyn-check]
 				]
+				if all [root 'stack/reset <> last output][
+					emit-stack-reset					;-- clear stack from last root expression result
+				]
 				exit
 			]
 
@@ -4047,7 +4092,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[comp-next-block]
+			paren!		[comp-next-block root]
 			set-path!	[comp-path/set? root]
 			path! 		[comp-path root]
 		][
@@ -4072,10 +4117,23 @@ red: context [
 		]
 	]
 	
-	comp-next-block: func [/with blk /local saved][
+	comp-next-block: func [root? [logic!] /with blk /local saved pos][
 		saved: pc
 		pc: any [blk pc/1]
+		
 		comp-block
+		
+		unless root? [
+			case [
+				'stack/reset = last output [remove back tail output]
+				all [
+					comment-marker = pick tail output -2
+					'stack/reset = pick tail output -3
+				][
+					remove skip tail output -3
+				]
+			]
+		]
 		pc: next saved
 	]
 	
@@ -4239,7 +4297,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: next preprocessor/expand load-source/hidden %boot.red job ;-- compile Red's boot script
+		pc: next preprocessor/expand/clean load-source/hidden %boot.red job ;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
@@ -4435,7 +4493,11 @@ red: context [
 	]
 	
 	process-config: func [header [block!] /local spec][
-		if spec: select header first [config:][do bind spec job]
+		if spec: select header first [config:][
+			do bind spec job
+			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
+		]
+		if all [job/type = 'dll job/OS <> 'Windows][job/PIC?: yes]	;-- ensure PIC mode is enabled
 	]
 	
 	process-needs: func [header [block!] src [block!] /local list file mods][
@@ -4448,13 +4510,24 @@ red: context [
 			mods: make block! 2
 			
 			foreach mod list [
-				unless file: select standard-modules mod [
+				unless file: find standard-modules mod [
 					throw-error ["module not found:" mod]
 				]
-				unless find needed file [append needed file]
+				all [
+					any [file/3 = 'all find file/3 job/OS]
+					not find needed file/2
+					append needed file/2
+				]
 			]
 		][
 			job/modules: make block! 0
+		]
+		if all [
+			job/OS = 'Windows
+			job/sub-system = 'GUI
+			not find job/modules 'View
+		][
+			throw-error "Windows target requires View module (`Needs: View` in the header)"
 		]
 	]
 	
@@ -4513,7 +4586,8 @@ red: context [
 			src: load-source file
 			job/red-pass?: yes
 			process-config src/1
-			preprocessor/expand src job
+			preprocessor/expand/clean src job
+			if job/show = 'expanded [probe next src]
 			process-needs src/1 next src
 			extracts/init job
 			if job/libRedRT? [libRedRT/init]

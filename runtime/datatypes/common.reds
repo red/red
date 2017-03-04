@@ -125,7 +125,7 @@ report: func [
 	arg3  [red-value!]
 ][	
 	stack/mark-native words/_body
-	stack/set-last as red-value! error/create as red-word! type as red-word! id arg1 arg2 arg3
+	stack/set-last as red-value! error/create type id arg1 arg2 arg3
 	natives/print* no
 	stack/set-last unset-value
 	stack/unwind
@@ -155,7 +155,7 @@ fire: func [
 			unless zero? count [arg3: as red-value! list/5]
 		]
 	]
-	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
+	stack/throw-error error/create as red-value! list/1 as red-value! list/2 arg1 arg2 arg3
 ]
 
 throw-make: func [
@@ -329,6 +329,44 @@ select-key*: func [									;-- called by compiler for SWITCH
 	]
 ]
 
+load-value: func [
+	str		[red-string!]
+	return: [red-value!]
+	/local
+		blk	  [red-block!]
+		value [red-value!]
+][
+	#call [system/lexer/transcode/one/only str none none]
+
+	blk: as red-block! stack/arguments
+	assert TYPE_OF(blk) = TYPE_BLOCK
+
+	either zero? block/rs-length? blk [
+		value: as red-value! blk
+		value/header: TYPE_UNSET
+	][
+		value: block/rs-head blk
+	]
+	value
+]
+
+form-value: func [
+	arg		[red-value!]
+	part	[integer!]								;-- pass 0 for full string
+	return: [red-string!]
+	/local
+		buffer [red-string!]
+		limit  [integer!]
+][
+	buffer: string/rs-make-at stack/push* 16
+	limit: actions/form stack/arguments buffer arg part
+
+	if all [part >= 0 negative? limit][
+		string/truncate-from-tail GET_BUFFER(buffer) limit
+	]
+	buffer
+]
+
 cycles: context [
 	size: 1000											;-- max depth allowed (arbitrary)
 	stack: as node! allocate size * size? node!			;-- cycles detection stack
@@ -429,7 +467,7 @@ words: context [
 	
 	windows:		-1
 	syllable:		-1
-	macosx:			-1
+	macOS:			-1
 	linux:			-1
 	
 	any*:			-1
@@ -458,6 +496,7 @@ words: context [
 	only:			-1
 	collect:		-1
 	keep:			-1
+	pick:			-1
 	ahead:			-1
 	after:			-1
 	x:				-1
@@ -503,11 +542,14 @@ words: context [
 	
 	user:			-1
 	host:			-1
+	
+	system:			-1
+	system-global:	-1
 
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
-	_macosx:		as red-word! 0
+	_macOS:			as red-word! 0
 	_linux:			as red-word! 0
 	
 	_push:			as red-word! 0
@@ -519,6 +561,7 @@ words: context [
 	_anon:			as red-word! 0
 	_body:			as red-word! 0
 	_end:			as red-word! 0
+	_not-found:		as red-word! 0
 	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
@@ -607,7 +650,7 @@ words: context [
 
 		windows:		symbol/make "Windows"
 		syllable:		symbol/make "Syllable"
-		macosx:			symbol/make "MacOSX"
+		macOS:			symbol/make "macOS"
 		linux:			symbol/make "Linux"
 		
 		repeat:			symbol/make "repeat"
@@ -641,6 +684,7 @@ words: context [
 		only:			symbol/make "only"
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
+		pick:			symbol/make "pick"
 		ahead:			symbol/make "ahead"
 		after:			symbol/make "after"
 
@@ -692,10 +736,13 @@ words: context [
 		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
+		
+		system:			symbol/make "system"
+		system-global:	symbol/make "system-global"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
-		_macosx:		_context/add-global macosx
+		_macOS:			_context/add-global macOS
 		_linux:			_context/add-global linux
 		
 		_to:			_context/add-global to
@@ -753,6 +800,7 @@ words: context [
 		_paren:			word/load "paren"
 		_anon:			word/load "<anon>"				;-- internal usage
 		_body:			word/load "<body>"				;-- internal usage
+		_not-found:		word/load "<not-found>"			;-- internal usage
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"

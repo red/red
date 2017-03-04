@@ -106,7 +106,7 @@ lit-word: context [
 			TYPE_WORD
 			"lit-word!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

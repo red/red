@@ -36,6 +36,7 @@ system/console: context [
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
 	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
+	ws:		 charset " ^/^M^-"
 
 	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
@@ -98,7 +99,7 @@ system/console: context [
 				| #"]" (if zero? count/2 [count/1: count/1 - 1])
 				| #"(" (if zero? count/2 [count/3: count/3 + 1])
 				| #")" (if zero? count/2 [count/3: count/3 - 1])
-				| dbl-quote any [escaped | dbl-quote break | skip]
+				| dbl-quote if (zero? count/2) any [escaped | dbl-quote break | skip]
 				| #"{" (count/2: count/2 + 1) any [
 					escaped
 					| #"{" (count/2: count/2 + 1)
@@ -207,23 +208,36 @@ system/console: context [
 	]
 
 	launch: function [/local result][
-		either script: read-argument [
-			either error? script: try-do [load script][
-				print :script
-			][
-				either not all [
-					block? script
-					script: find/case script 'Red
-					block? script/2 
+		either script: src: read-argument [
+			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
+		
+			either script: pos [
+				either error? script: try-do [load script][
+					print :script
 				][
-					print "*** Error: not a Red program!"
-					;quit/return -2
-				][
-					expand-directives script
-					set/any 'result try-do skip script 2
-					if error? :result [print result]
+					either not all [
+						block? script
+						script: find/case script 'Red
+						block? script/2 
+					][
+						print [
+							"*** Error:"
+							either find src "Red/System" [
+								"contains Red/System code which requires compilation!"
+							][
+								"not a Red program!"
+							]
+						]
+						;quit/return -2
+					][
+						expand-directives script
+						set/any 'result try-do skip script 2
+						if error? :result [print result]
+					]
 				]
-			]
+			][
+				print "*** Error: Red header not found!"
+			]	
 			if any [catch? gui?][run/no-banner]
 		][
 			run
@@ -232,6 +246,13 @@ system/console: context [
 ]
 
 ;-- Console-oriented function definitions
+
+expand: func [
+	"Preprocess the argument block and display the output"
+	blk [block!] "Block to expand"
+][
+	probe expand-directives/clean blk
+]
 
 ls:		func ['dir [any-type!]][list-dir :dir]
 ll:		func ['dir [any-type!]][list-dir/col :dir 1]

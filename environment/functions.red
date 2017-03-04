@@ -84,6 +84,15 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 
 #do keep [
 	list: make block! 50
+	to-list: [
+		bitset! binary! block! char! email! file! float! get-path!
+		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
+		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
+		tuple! unset! url! word! image!
+	]
+	test-list: union to-list [error! action! datatype! function! image! object! op! routine! vector!]
+	
+	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
 	foreach [name desc][
 		spec   "Returns the spec of a value that supports reflection"
@@ -98,12 +107,10 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 			] off
 		]
 	]
-	foreach name [
-		action! bitset! binary! block! char! datatype! email! error! file! float! function! get-path!
-		get-word! hash! image! integer! issue! lit-path! lit-word! logic! map! native! none! object! op!
-		pair! paren! path! percent! refinement! routine! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! vector! word!
-	][
+	
+	;-- Generates all type testing functions (action?, bitset?, binary?,...)
+	
+	foreach name test-list [
 		repend list [
 			load head change back tail form name "?:" 'func
 			["Returns TRUE if the value is this type" value [any-type!]]
@@ -111,8 +118,9 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 		]
 	]
 	
-	docstring: "Returns TRUE if the value is any type of "
+	;-- Generates all typesets testing functions (any-list?, any-block?,...)
 	
+	docstring: "Returns TRUE if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
 		series! number! immediate! scalar!
@@ -123,6 +131,17 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 			compose [find (name) type? :value]
 		]
 	]
+	
+	;-- Generates all conversion wrapper functions (to-bitset, to-binary, to-block,...)
+
+	foreach name to-list [
+		repend list [
+			to set-word! join "to-" head remove back tail form name 'func
+			reduce [reform ["Convert to" name "value"] 'value]
+			compose [to (name) :value]
+		]
+	]
+	list
 ]
 
 context: func [spec [block!]][make object! spec]
@@ -177,7 +196,9 @@ replace: function [
 				pos: insert pos value
 			]
 		][
-			while [pos: find pos :pattern][pos/1: value]
+			while [pos: find pos :pattern][
+				pos: change pos value
+			]
 		]
 	][
 		if pos: find series :pattern [
@@ -205,9 +226,10 @@ math: function [
 ][
 	parse body: copy/deep body rule: [
 		any [
-			pos: ['* (op: 'multiply) | quote / (op: 'divide)] (
+			pos: ['* (op: 'multiply) | quote / (op: 'divide)] 
+			[ahead sub: paren! (sub/1: math as block! sub/1) | skip] (
 				end: skip pos: back pos 3
-				pos: change/only/part pos to-paren copy/part pos end end
+				pos: change/only/part pos as paren! copy/part pos end end
 			) :pos
 			| into rule
 			| skip
@@ -243,11 +265,11 @@ on-parse-event: func [
 		]
 		fetch [
 			print [
-				p-indent "match:" mold/part rule  50 newline
-				p-indent "input:" mold/part input 50 p-indent
+				p-indent "match:" mold/flat/part rule 50 newline
+				p-indent "input:" mold/flat/part input 50 p-indent
 			]
 		]
-		match [print [p-indent "==>" either match? ["matched"]["not matched"]]]
+		match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
 		end   [print ["return:" match?]]
 	]
 	true
@@ -616,69 +638,6 @@ make-dir: function [
 	path
 ]
 
-to-image: func [value][
-	case [
-		binary? value [
-			;@@ TBD
-		]
-		all [											;-- face!
-			system/view
-			object? value
-			do [find words-of value words-of face!]
-		][
-			system/view/platform/to-image value
-		]
-	]
-]
-
-hex-to-rgb: function [
-	"Converts a color in hex format to a tuple value; returns NONE if it fails"
-	hex		[issue!] "Accepts #rgb, #rrggbb, #rrggbbaa"	 ;-- 3,6,8 nibbles supported
-	return: [tuple! none!]								 ;-- 3 or 4 bytes long
-][
-	switch length? str: form hex [
-		3 [
-			uppercase str
-			forall str [str/1: str/1 - pick "70" str/1 >= #"A"]
-
-			as-color 
-				shift/left to integer! str/1 4
-				shift/left to integer! str/2 4
-				shift/left to integer! str/3 4
-		]
-		6 [if bin: to binary! hex [as-color bin/1 bin/2 bin/3]]
-		8 [if bin: to binary! hex [as-rgba bin/1 bin/2 bin/3 bin/4]]
-	]
-]
-
-within?: func [
-	"Returns TRUE if the point is within the rectangle bounds"
-	point	[pair!] "XY position"
-	offset  [pair!] "Offset of area"
-	size	[pair!] "Size of area"
-	return: [logic!]
-][
-	make logic! all [
-		point/x >= offset/x
-		point/y >= offset/y
-		point/x < (offset/x + size/x)
-		point/y < (offset/y + size/y)
-	]
-]
-
-overlap?: function [
-	"Returns TRUE if the two faces bounding boxes are overlapping"
-	A		[object!] "First face"
-	B		[object!] "Second face"
-	return: [logic!]  "TRUE if overlapping"
-][
-	A1: A/offset
-	B1: B/offset
-	A2: A1 + A/size
-	B2: B1 + B/size
-	make logic! all [A1/x < B2/x B1/x < A2/x A1/y < B2/y B1/y < A2/y]
-]
-
 extract: function [
 	"Extracts a value from a series at regular intervals"
 	series	[series!]
@@ -819,14 +778,102 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file!] /local saved code new-path][
+do-file: func [file [file!] /local saved code new-path src][
 	saved: system/options/path
-	code: expand-directives load/all file
+	unless src: find/case read file "Red" [
+		cause-error 'syntax 'no-header reduce [file]
+	]
+	code: expand-directives load/all src
+	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
 	new-path: first split-path clean-path file
 	change-dir new-path
 	set/any 'code do code
 	change-dir saved
 	:code
+]
+
+cos: func [
+	"Returns the trigonometric cosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/cosine* no 1
+	]
+]
+
+sin: func [
+	"Returns the trigonometric sine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/sine* no 1
+	]
+]
+
+tan: func [
+	"Returns the trigonometric tangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/tangent* no 1
+	]
+]
+
+acos: func [
+	"Returns the trigonometric arccosine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arccosine* no 1
+	]
+]
+
+asin: func [
+	"Returns the trigonometric arcsine"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arcsine* no 1
+	]
+]
+
+atan: func [
+	"Returns the trigonometric arctangent"
+	angle [float!] "Angle in radians"
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/arctangent* no 1
+	]
+]
+
+atan2: func [
+	"Returns the angle of the point y/x in radians"
+	y		[number!]
+	x		[number!]
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 2
+		natives/arctangent2* no 1
+	]
+]
+
+
+sqrt: func [
+	"Returns the square root of a number"
+	number	[number!] "Angle in radians"
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/square-root* no
+	]
 ]
 
 ;--- Temporary definition, use at your own risks! ---
@@ -845,6 +892,5 @@ rejoin: function [
 ;------------------------------------------
 
 keys-of:	:words-of
-atan2:		:arctangent2
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded

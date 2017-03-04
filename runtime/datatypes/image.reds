@@ -13,12 +13,6 @@ Red/System [
 image: context [
 	verbose: 0
 
-	#enum extract-type! [
-		EXTRACT_ALPHA
-		EXTRACT_RGB
-		EXTRACT_ARGB
-	]
-
 	acquire-buffer: func [
 		img		[red-image!]
 		bitmap	[int-ptr!]
@@ -359,9 +353,10 @@ image: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-image!]
+		proto	[red-image!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-image!]
 		/local
 			img		[red-image!]
 			pair	[red-pair!]
@@ -370,6 +365,8 @@ image: context [
 			rgb		[byte-ptr!]
 			alpha	[byte-ptr!]
 			color	[red-tuple!]
+			x		[integer!]
+			y		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/make"]]
 
@@ -382,7 +379,7 @@ image: context [
 			zero? block/rs-length? as red-block! spec
 		][
 			either TYPE_OF(proto) = TYPE_IMAGE [
-				return copy as red-image! proto img null yes null
+				return copy proto img null yes null
 			][
 				fire [TO_ERROR(script invalid-arg) spec]
 			]
@@ -414,12 +411,42 @@ image: context [
 					alpha: binary/rs-head bin
 				]
 			]
-			default [fire [TO_ERROR(syntax malconstruct) spec]]
+			default [return to proto spec type]
 		]
 
-		img/size: pair/y << 16 or pair/x
-		img/node: as node! OS-image/make-image pair/x pair/y rgb alpha color
+		x: pair/x
+		if negative? x [x: 0]
+		y: pair/y
+		if negative? y [y: 0]
+		img/size: y << 16 or x
+		img/node: as node! OS-image/make-image x y rgb alpha color
 		img
+	]
+
+	to: func [											;-- to image! face! only
+		proto	[red-image!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-image!]
+		/local
+			ret [red-logic!]
+	][
+		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
+			return copy as red-image! spec proto null yes null
+		]
+		#either sub-system = 'gui [
+			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
+			#call [face? spec]
+			ret: as red-logic! stack/arguments
+			either ret/value [
+				return exec/gui/OS-to-image as red-object! spec
+			][
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+			]
+		][
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+		]
+		as red-image! proto
 	]
 
 	serialize: func [
@@ -435,7 +462,6 @@ image: context [
 		/local
 			height	[integer!]
 			width	[integer!]
-			offset	[integer!]
 			alpha?	[logic!]
 			formed	[c-string!]
 			pixel	[integer!]
@@ -472,6 +498,7 @@ image: context [
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
+		data: data + img/head
 		size: as-integer end - data
 		
 		string/append-char GET_BUFFER(buffer) as-integer space
@@ -482,7 +509,6 @@ image: context [
 			part: part - 1
 		]
 		
-		offset: img/head
 		count: 0
 		while [data < end][
 			pixel: data/value
@@ -873,7 +899,7 @@ image: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

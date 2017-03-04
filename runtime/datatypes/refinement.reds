@@ -103,7 +103,7 @@ refinement: context [
 			TYPE_WORD
 			"refinement!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

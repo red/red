@@ -1102,97 +1102,82 @@ string: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-string!]
+		proto	[red-string!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
-			str	 [red-string!]
 			size [integer!]
 			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/make"]]
 		
-		size: 1
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+		either any [
+			TYPE_OF(spec) = TYPE_INTEGER
+			TYPE_OF(spec) = TYPE_FLOAT
+		][
+			size: GET_SIZE_FROM(spec)
+			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
+			proto/header: type								;-- implicit reset of all header flags
+			proto/head: 0
+			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+			proto/cache: null
+			proto
+		][
+			either type = TYPE_BINARY [
+				as red-string! binary/to as red-binary! proto spec type
+			][
+				to as red-value! proto spec type
 			]
-			default [--NOT_IMPLEMENTED--]
 		]
-		str: as red-string! stack/push*
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 	0
-		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
-		str/cache:	null
-		str
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-string!]
-		return: [red-value!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
-			t	[integer!]
-			f	[red-float!]
-			int [red-integer!]
-			blk [red-block!]
-			ret [red-value!]
-			bin [byte-ptr!]
+			buffer [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
-
-		t: type/value
-		switch t [
-			TYPE_FILE
-			TYPE_URL
-			TYPE_TAG
-			TYPE_EMAIL [
-				set-type copy-cell as cell! spec as cell! type type/value
-				return as red-value! type
+		
+		switch TYPE_OF(spec) [
+			TYPE_ANY_STRING [
+				buffer: as red-string! _series/copy
+					as red-series! spec
+					as red-series! proto
+					null no null
 			]
 			TYPE_BINARY [
-				t: -1
-				bin: as byte-ptr! unicode/to-utf8 spec :t
-				return stack/set-last as cell! binary/load bin t
+				buffer: load
+					as-c-string binary/rs-head as red-binary! spec
+					binary/rs-length? as red-binary! spec
+					UTF-8
 			]
-			TYPE_ISSUE [
-				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
+			TYPE_ANY_LIST [
+				buffer: make-at proto 16 1
+				insert buffer spec null no null yes
 			]
-			TYPE_WORD
-			TYPE_LIT_WORD
-			TYPE_SET_WORD [
-				ret: as red-value! word/box (symbol/make-alt spec)
-				set-type ret t
-				return ret
+			TYPE_REFINEMENT [
+				buffer: rs-make-at proto 16
+				either type = TYPE_STRING [
+					actions/form spec buffer null 0
+				][
+					refinement/mold as red-word! spec buffer yes yes yes null 0 0
+				]
 			]
-			default  [0]
-		]
-
-		blk: as red-block! type
-		#call [system/lexer/transcode spec none none]
-
-		either zero? block/rs-length? blk [
-			ret: as red-value! blk
-			ret/header: TYPE_UNSET
-		][
-			ret: block/rs-head blk
-		]
-
-		either t = TYPE_FLOAT [
-			if TYPE_OF(ret) = TYPE_INTEGER [
-				int: as red-integer! ret
-				f: as red-float! ret
-				f/header: TYPE_FLOAT
-				f/value: as-float int/value
+			TYPE_NONE [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
 			]
-		][
-			if TYPE_OF(ret) <> t [
-				fire [TO_ERROR(script bad-to-arg) datatype/push t ret]
+			default [
+				buffer: rs-make-at proto 16
+				actions/form spec buffer null 0
 			]
 		]
-		if t = TYPE_ISSUE [remove-char spec spec/head]
-		stack/set-last ret
+		set-type as cell! buffer type
+		buffer
 	]
 
 	form: func [
@@ -1581,7 +1566,6 @@ string: context [
 			limit	[byte-ptr!]
 			part?	[logic!]
 			bs?		[logic!]
-			not?	[logic!]
 			type	[integer!]
 			found?	[logic!]
 	][
@@ -1680,7 +1664,6 @@ string: context [
 			TYPE_BITSET [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
-				not?:  FLAG_NOT?(sbits)
 				pbits: as byte-ptr! sbits/offset
 				bs?:   yes
 				case?: no
@@ -1730,14 +1713,13 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
 					BS_TEST_BIT(pbits c1 found?)
-					if not? [found?: not found?]
 				][
 					found?: c1 = c2
-				]
+				]			
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
 					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
@@ -2052,7 +2034,12 @@ string: context [
 		index: either append? [len][str/head]
 		
 		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+			type: TYPE_OF(value)
+			either any [								;@@ replace it with: typeset/any-list?
+				type = TYPE_BLOCK
+				type = TYPE_PAREN
+				type = TYPE_HASH
+			][
 				src: as red-block! value
 				s2: GET_BUFFER(src)
 				cell:  s2/offset + src/head
@@ -2088,7 +2075,7 @@ string: context [
 						form-buf: as red-string! cell
 					][
 						;TBD: free previous form-buf node and series buffer
-						form-buf: string/rs-make-at form-slot 16
+						form-buf: rs-make-at form-slot 16
 						actions/form cell form-buf null 0
 					]
 					len: rs-length? form-buf
@@ -2380,7 +2367,7 @@ string: context [
 			][										;-- return char!
 				char: as red-char! str
 				char/header: TYPE_CHAR
-				char/value:  string/get-char as byte-ptr! s/offset unit
+				char/value:  get-char as byte-ptr! s/offset unit
 			]
 			ownership/check as red-value! str words/_taken null str/head 0
 		]
@@ -2448,7 +2435,7 @@ string: context [
 					form-buf: as red-string! cell
 				][
 					;TBD: free previous form-buf node and series buffer
-					form-buf: string/rs-make-at form-slot 16
+					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
 				either part? [
@@ -2508,7 +2495,7 @@ string: context [
 		ser2: ser1 + 1
 		len: _series/get-length ser1 no
 		if op = OP_UNION [len: len + _series/get-length ser2 no]
-		new: as red-series! string/rs-make-at stack/push* len
+		new: as red-series! rs-make-at stack/push* len
 		s2: GET_BUFFER(new)
 		n: 2
 
@@ -2520,17 +2507,17 @@ string: context [
 
 			while [head < tail] [			;-- iterate over first series
 				append?: no
-				cp: string/get-char head unit
+				cp: get-char head unit
 				if check? [
-					find?: string/rs-find-char as red-string! ser2 cp step case?
+					find?: rs-find-char as red-string! ser2 cp step case?
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					not string/rs-find-char as red-string! new cp step case?
+					not rs-find-char as red-string! new cp step case?
 				][
 					append?: yes
-					s2: string/append-char s2 cp
+					s2: append-char s2 cp
 				]
 
 				i: 1
@@ -2539,7 +2526,7 @@ string: context [
 					all [head < tail i < step]
 				][
 					i: i + 1
-					if append? [s2: string/append-char s2 string/get-char head unit]
+					if append? [s2: append-char s2 get-char head unit]
 				]
 			]
 

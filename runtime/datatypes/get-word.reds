@@ -81,9 +81,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/get"]]
 		
-		copy-cell
-			as cell! _context/get word
-			stack/push*
+		stack/push _context/get word
 	]
 	
 	;-- Actions --
@@ -111,7 +109,7 @@ get-word: context [
 			TYPE_WORD
 			"get-word!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

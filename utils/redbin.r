@@ -298,7 +298,7 @@ context [
 		unless type = 'map [emit (index? blk) - 1]		;-- head field
 		emit length? blk
 		if all [not sub debug?][
-			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
+			print [index ": block" length? blk #":" trim/lines copy/part mold/flat blk 60]
 		]
 		nl?: no
 		multi-line?: any [block? blk paren? blk]
@@ -398,7 +398,7 @@ context [
 		emit length? spec
 		foreach word spec [emit-symbol word]
 		if root [
-			if debug? [print [index ": context :" copy/part mold/flat spec 50 "," stack? "," self?]]
+			if debug? [print [index ": context :" trim/lines copy/part mold/flat spec 50 "," stack? "," self?]]
 			index: index + 1
 		]
 		index - 1
@@ -431,12 +431,14 @@ context [
 			compress?: find spec 'compress
 			128 < len: length? buffer
 		][
-			flags: flags or #{02}
 			out: make binary! len
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
-			clear buffer
-			insert/part buffer out len
+			if len > 0 [
+				flags: flags or #{02}
+				clear buffer
+				insert/part buffer out len
+			]
 		]
 		
 		clear header

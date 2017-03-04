@@ -107,7 +107,7 @@ set-word: context [
 			TYPE_WORD
 			"set-word!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
 			INHERIT_ACTION	;to

@@ -91,8 +91,8 @@ error: context [
 	]
 	
 	create: func [
-		cat		[red-word!]
-		id		[red-word!]
+		cat		[red-value!]							;-- expects a word!
+		id		[red-value!]							;-- expects a word!
 		arg1 	[red-value!]
 		arg2 	[red-value!]
 		arg3 	[red-value!]
@@ -103,10 +103,10 @@ error: context [
 			blk	 [red-block!]
 	][
 		blk: block/push* 2
-		block/rs-append blk as red-value! cat
-		block/rs-append blk as red-value! id
+		block/rs-append blk cat
+		block/rs-append blk id
 	
-		err:  make null as red-value! blk
+		err:  make null as red-value! blk TYPE_ERROR
 		base: object/get-values err
 		
 		unless null? arg1 [copy-cell arg1 base + field-arg1]
@@ -147,9 +147,10 @@ error: context [
 	;-- Actions -- 
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-object!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-object!]
 		/local
 			new		[red-object!]
 			errors	[red-object!]
@@ -245,8 +246,11 @@ error: context [
 					]
 				]
 			]
+			TYPE_STRING [
+				new: create TO_ERROR(user message) spec null null
+			]
 			default [
-				--NOT_IMPLEMENTED--
+				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
 		new

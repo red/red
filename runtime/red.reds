@@ -62,6 +62,7 @@ red: context [
 	#include %datatypes/series.reds
 	#include %datatypes/block.reds
 	#include %datatypes/string.reds
+	#include %datatypes/time.reds
 	#include %datatypes/integer.reds
 	#include %datatypes/symbol.reds
 	#include %datatypes/context.reds
@@ -97,7 +98,6 @@ red: context [
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
 	#include %datatypes/binary.reds
-	#include %datatypes/time.reds
 	#include %datatypes/tag.reds
 	#include %datatypes/email.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
@@ -128,6 +128,7 @@ red: context [
 	
 	init: does [
 		platform/init
+		_random/init
 		init-mem										;@@ needs a local context
 		
 		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
@@ -199,7 +200,6 @@ red: context [
 		issues/build									;-- create issues used internally
 		natives/init									;-- native specific init code
 		parser/init
-		_random/init
 		ownership/init
 		crypto/init
 		
@@ -256,6 +256,17 @@ red: context [
 			stack/verbose:		verbosity
 			unicode/verbose:	verbosity
 		]
+	]
+	
+	cleanup: does [
+		free-all										;-- Allocator's memory freeing
+		free as byte-ptr! natives/table
+		free as byte-ptr! actions/table
+		free as byte-ptr! _random/table
+		free as byte-ptr! name-table
+		free as byte-ptr! action-table
+		free as byte-ptr! cycles/stack
+		free as byte-ptr! crypto/crc32-table
 	]
 	
 	#if type = 'dll [

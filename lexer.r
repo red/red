@@ -33,22 +33,26 @@ lexer: context [
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
 	base:	16										;-- binary base
+	otag: 	none
+	ot:		none
+	ct:		none
 	
 	;====== Parsing rules ======
 
-	four:  charset "01234"
-	half:  charset "012345"
-    non-zero: charset "123456789"
-    digit: union non-zero charset "0"
-    dot: #"."
-    comma: #","
+	four:	  charset "01234"
+	half:	  charset "012345"
+	non-zero: charset "123456789"
+	digit:	  union non-zero charset "0"
+	dot:	  #"."
+	comma:	  #","
 
 	byte: [
 		"25" half
-		| "2" four digit
-		| "1" digit digit
-		| non-zero digit
-		| digit
+		| #"2" four digit
+		| #"1" digit digit
+		| opt #"0" non-zero digit
+		| 0 2 #"0" digit
+		| #"0"
 	]
 
 	hexa:  union digit charset "ABCDEF"
@@ -82,20 +86,23 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"@:;}
+	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
 	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
-	not-str-char:   #"^""
-	not-mstr-char:  #"}"
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
 	not-tag-1st:	complement union ws-ASCII charset "=><"
 	not-tag-char:	complement charset ">"
-	caret-char:	    charset [#"^(40)" - #"^(5F)"]
+	tag-char:		charset "<>"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
+	pair-end:		charset {^{"[]();:}
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
-	stop: 		    none
+	file-end:		charset {^{[]();}
+	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
 		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
@@ -114,7 +121,7 @@ lexer: context [
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		pos: #"^/" (
+		#"^/" (
 			if count? [
 				line: line + 1
 				stack/nl?: yes
@@ -157,8 +164,12 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: [not-word-char | ws-no-count | control-char])
-		some UTF8-filtered-char e:
+		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
+		some [
+			otag ot: [#"/" (otag: [end skip] ot: back ot) :ot | none] ;-- a</b>
+			| #">" ct: (if ot [otag: [end skip] ct: back ot]) :ct	  ;-- a<b>
+			| UTF8-filtered-char
+		] e:
 	]
 	
 	begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -196,7 +207,7 @@ lexer: context [
 	
 	word-rule: 	[
 		(type: word!)
-		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
@@ -254,25 +265,27 @@ lexer: context [
 	tuple-rule: [tuple-value-rule sticky-word-rule]
 	
 	time-rule: [
-		s: integer-number-rule [
-			decimal-number-rule (value: as-time 0 value load-number copy/part s e) ;-- mm:ss.dd
+		s: positive-integer-rule [
+			decimal-number-rule (value: as-time 0 value load-number copy/part s e neg?) ;-- mm:ss.dd
 			| (value2: load-number copy/part s e) [
-				#":" s: integer-number-rule opt decimal-number-rule
-				  (value: as-time value value2 load-number copy/part s e)	;-- hh:mm:ss[.dd]
-				| (value: as-time value value2 0)							;-- hh:mm
+				#":" s: positive-integer-rule opt decimal-number-rule
+				  (value: as-time value value2 load-number copy/part s e neg?)	;-- hh:mm:ss[.dd]
+				| (value: as-time value value2 0 neg?)							;-- hh:mm
 			]
 		] (type: time!)
 	]
-		
+	
+	positive-integer-rule: [digit any digit e: (type: integer!)]
+	
 	integer-number-rule: [
+		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
 		(type: integer!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 	]
 	
 	integer-rule: [
 		pos: decimal-special e:								;-- escape path for NaN, INFs
 		(type: issue! value: load-number copy/part s e)
-		|	integer-number-rule
+		|	(neg?: no) integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 			opt [#"%" e: (type: issue!)]
 			sticky-word-rule
@@ -282,7 +295,8 @@ lexer: context [
 					type: pair!
 					value2: to pair! reduce [value 0]
 				)
-				s: integer-number-rule
+				[s: integer-number-rule | (type: pair! throw-error)]
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
 			opt [#":" [time-rule | (throw-error)]]
@@ -421,7 +435,7 @@ lexer: context [
 	file-rule: [
 		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"{" (throw-error)
-			| #"^"" s: any UTF8-filtered-char e: #"^""
+			| line-string
 			| s: any UTF8-filtered-char e:
 		]
 	]
@@ -448,12 +462,16 @@ lexer: context [
 	
 	comment-rule: [#";" [to #"^/" | to end]]
 	
-	wrong-delimiters: [
-		pos: [
-			  #"]" (value: #"[") | #")" (value: #"(")
-			| #"[" (value: #"]") | #"(" (value: #")")
-		] :pos
-		(throw-error/with ["missing matching" value])
+	wrong-end: [(
+			ending: either 1 < length? stack/stk [
+				value: switch type?/word stack/top [
+					block! [#"]"]
+					paren! [#")"]
+				]
+				first [(throw-error/with ["missing" mold value "character"])]
+			][none]
+		)
+		ending
 	]
 
 	literal-value: [
@@ -494,7 +512,7 @@ lexer: context [
 		pos: opt UTF-8-BOM
 		header
 		any-value
-		opt wrong-delimiters
+		opt wrong-end
 	]
 	
 	;====== Helper functions ======
@@ -530,6 +548,8 @@ lexer: context [
 			]
 			also pos/1 remove pos
 		]
+		
+		top: does [last stk]
 		
 		reset: does [clear stk]
 	]
@@ -640,9 +660,10 @@ lexer: context [
 		to integer! debase/base s 16
 	]
 	
-	as-time: func [h [integer!] m [integer!] s [integer! decimal!]][
-		if any [m < 0 all [s s < 0]][type: time! throw-error]
-		to time! reduce [h m s]
+	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
+		if any [all [h <> 0 m < 0] all [s s < 0]][type: time! throw-error]
+		t: to time! reduce [abs h abs m abs s]
+		either neg? [negate t][t]
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][
@@ -700,6 +721,7 @@ lexer: context [
 	]
 
 	load-file: func [s [string!]][
+		parse s [any [#"%" [2 hexa | (pos: skip pos negate 1 + length? s throw-error)] | skip]]
 		to file! replace/all dehex s #"\" #"/"
 	]
 	

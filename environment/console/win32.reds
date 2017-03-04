@@ -18,19 +18,23 @@ Red/System [
 #define VK_TAB 					 	09h
 #define VK_CLEAR 				 	0Ch
 #define VK_RETURN 				 	0Dh
-#define VK_SHIFT 				 	10h
-#define VK_CONTROL 				 	11h
-#define VK_PRIOR 				 	21h
-#define VK_NEXT 				 	22h
-#define VK_END 					 	23h
-#define VK_HOME 				 	24h
-#define VK_LEFT 				 	25h
-#define VK_UP 					 	26h
-#define VK_RIGHT 				 	27h
-#define VK_DOWN 				 	28h
-#define VK_SELECT 				 	29h
-#define VK_INSERT 				 	2Dh
-#define VK_DELETE 				 	2Eh
+
+#either modules contains 'View [][
+	#define VK_SHIFT				10h
+	#define VK_CONTROL				11h
+	#define VK_PRIOR				21h
+	#define VK_NEXT					22h
+	#define VK_END					23h
+	#define VK_HOME					24h
+	#define VK_LEFT					25h
+	#define VK_UP					26h
+	#define VK_RIGHT				27h
+	#define VK_DOWN					28h
+	#define VK_SELECT				29h
+	#define VK_INSERT				2Dh
+	#define VK_DELETE				2Eh
+]
+
 #define KEY_EVENT 				 	01h
 #define MOUSE_EVENT 			 	02h
 #define WINDOW_BUFFER_SIZE_EVENT 	04h

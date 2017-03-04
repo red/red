@@ -31,7 +31,7 @@ word: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		_context/add-global-word symbol/make str yes
+		_context/add-global-word symbol/make str yes yes
 	]
 	
 	make-at: func [
@@ -157,6 +157,10 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
+		if null? ctx/values [
+			s: as series! ctx/symbols/value
+			fire [TO_ERROR(script not-defined) s/offset + index]
+		]
 		
 		value: either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + index
@@ -198,6 +202,20 @@ word: context [
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
+	set-in-ctx: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]
 	
@@ -312,29 +330,62 @@ word: context [
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-word!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
 		return: [red-value!]
+		/local
+			char	[red-char!]
+			dt		[red-datatype!]
+			bool	[red-logic!]
+			name	[names!]
+			idx		[integer!]
+			buf1	[integer!]
+			data	[byte-ptr!]
+			cstr	[c-string!]
+			len		[integer!]
+			val		[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
+		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
 
-		switch type/value [
+		switch TYPE_OF(spec) [
 			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_GET_WORD
 			TYPE_LIT_WORD
 			TYPE_REFINEMENT
-			TYPE_ISSUE [
-				spec/header: type/value
-			]
+			TYPE_ISSUE [proto: spec]
 			TYPE_STRING [
-				spec: as red-word! to-string spec
+				len: 0
+				val: as red-value! :len
+				copy-cell spec val					;-- save spec, load-value will change it
+				proto: load-value as red-string! spec
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
 			]
-			default [
-				--NOT_IMPLEMENTED--
+			TYPE_CHAR [
+				char: as red-char! spec
+				buf1: 0
+				data: as byte-ptr! :buf1
+				len: unicode/cp-to-utf8 char/value data
+				idx: len + 1
+				data/idx: null-byte
+				make-at symbol/make as c-string! data proto
 			]
+			TYPE_DATATYPE [
+				dt: as red-datatype! spec
+				name: name-table + dt/value
+				copy-cell as cell! name/word proto
+			]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				cstr: either bool/value ["true"]["false"]
+				make-at symbol/make cstr proto
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 		]
-		as red-value! spec
+
+		proto/header: type
+		proto
 	]
 
 	any-word?: func [									;@@ discard it when ANY_WORD? available
@@ -419,7 +470,7 @@ word: context [
 			TYPE_SYMBOL
 			"word!"
 			;-- General actions --
-			null			;make
+			:to				;make
 			null			;random
 			null			;reflect
 			:to

@@ -179,8 +179,8 @@ vector: context [
 		return: [integer!]
 	][
 		switch unit [
-			1 [p/value and FFh]
-			2 [p/value and FFFFh]
+			1 [p/value and FFh << 24 >> 24]
+			2 [p/value and FFFFh << 16 >> 16]
 			4 [p/value]
 		]
 	]
@@ -283,7 +283,52 @@ vector: context [
 			value: value + 1
 		]
 	]
-	
+
+	to-block: func [
+		vec		[red-vector!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			type [integer!]
+			p	 [byte-ptr!]
+			end  [byte-ptr!]
+			int  [red-integer!]
+			f	 [red-float!]
+			slot [red-value!]
+	][
+		type: vec/type
+		block/make-at blk rs-length? vec
+		s: GET_BUFFER(blk)
+		slot: s/offset
+		s/tail: slot + rs-length? vec
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (vec/head << (log-b unit))
+		end: as byte-ptr! s/tail
+
+		while [p < end][
+			switch type [
+				TYPE_INTEGER
+				TYPE_CHAR [
+					int: as red-integer! slot
+					int/value: get-value-int as int-ptr! p unit
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					f: as red-float! slot
+					f/value: get-value-float p unit
+				]
+			]
+			slot/header: type
+			slot: slot + 1
+			p: p + unit
+		]
+		blk
+	]
+
 	serialize: func [
 		vec		[red-vector!]
 		buffer	[red-string!]
@@ -591,20 +636,22 @@ vector: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		dtype	[integer!]
 		return:	[red-vector!]
 		/local
-			s	  [series!]
-			w	  [red-word!]
-			vec	  [red-vector!]
-			int	  [red-integer!]
-			value [red-value!]
-			sym   [integer!]
-			size  [integer!]
+			s	   [series!]
+			w	   [red-word!]
+			vec	   [red-vector!]
+			int	   [red-integer!]
+			fl	   [red-float!]
+			value  [red-value!]
+			sym    [integer!]
+			size   [integer!]
 			blk-sz [integer!]
-			unit  [integer!]
-			type  [integer!]
-			fill? [logic!]
-			end   [byte-ptr!]
+			unit   [integer!]
+			type   [integer!]
+			fill?  [logic!]
+			end	   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/make"]]
 
@@ -614,10 +661,8 @@ vector: context [
 		type: TYPE_OF(spec)
 		
 		switch type [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
-			]
+			TYPE_INTEGER
+			TYPE_FLOAT [size: GET_SIZE_FROM(spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [

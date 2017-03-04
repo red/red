@@ -44,23 +44,27 @@ system/reactivity: context [
 	queue:		make block! 100
 	debug?: 	no
 	
-	do-safe: function [code [block!]][
-		if error? set/any 'result try/all code [
-			print :result
-			prin "*** Near: "
-			probe code
-			result: none
+	eval: function [code [block!] /safe][
+		either safe [
+			if error? set/any 'result try/all code [
+				print :result
+				prin "*** Near: "
+				probe code
+				result: none
+			]
+			get/any 'result
+		][
+			do code
 		]
-		get/any 'result
 	]
 	
 	eval-reaction: function [reactor [object!] reaction [block! function!] target][
 		append stack reactor
 		append/only stack :reaction
 		either set-word? target [
-			set/any target do-safe :reaction
+			set/any target eval/safe :reaction
 		][
-			do-safe any [all [block? :reaction reaction] target]
+			eval/safe any [all [block? :reaction reaction] target]
 		]
 		clear back back tail stack
 	]
@@ -156,7 +160,7 @@ system/reactivity: context [
 			]
 		]
 		react/later/with reaction field
-		set field either block? reaction/1 [do reaction/1][do-safe reaction]
+		set field either block? reaction/1 [do reaction/1][eval reaction]
 	]
 	
 	set 'is make op! :is~
@@ -218,7 +222,7 @@ system/reactivity: context [
 							if pos: find objs item/1 [
 								obj: pick objects 1 + index? pos
 								repend relations [obj item/2 :reaction objects]
-								unless later [do-safe objects]
+								unless later [eval objects]
 								found?: yes
 							]
 						)
@@ -273,7 +277,7 @@ system/reactivity: context [
 							][
 								part: part + 1
 								repend relations [obj item/:part reaction ctx]
-								unless later [do-safe reaction]
+								unless later [eval reaction]
 								found?: yes
 							]
 							parse saved rule

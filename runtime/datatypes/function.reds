@@ -227,15 +227,26 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
-			either ctx = global-ctx [
-				call: as function! [] native/code
-				call
-				0										;FIXME: required to pass compilation
-			][
-				ocall: as function! [octx [node!]] native/code
-				ocall ctx
-				0
+			catch RED_THROWN_ERROR [
+				either ctx = global-ctx [
+					call: as function! [] native/code
+					call
+					0									;FIXME: required to pass compilation
+				][
+					ocall: as function! [octx [node!]] native/code
+					ocall ctx
+					0
+				]
 			]
+			switch system/thrown [
+				RED_THROWN_ERROR
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE
+				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
+				RED_THROWN_RETURN	[stack/unwind-last]
+				default [0]								;-- else, do nothing
+			]
+			system/thrown: 0
 		]
 	]
 
@@ -609,7 +620,6 @@ _function: context [
 	][
 		list: block/push* 8
 		ignore: block/clone spec no no
-		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no no null null no no no no
@@ -782,10 +792,7 @@ _function: context [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
 					][
-						fire [
-							TO_ERROR(script bad-func-def)
-							value
-						]
+						fire [TO_ERROR(script bad-func-def) value]
 					]
 					value: next
 				]
@@ -796,10 +803,7 @@ _function: context [
 					value: value + 1
 				]
 				default [
-					fire [
-						TO_ERROR(script bad-func-def)
-						value
-					]
+					fire [TO_ERROR(script bad-func-def) value]
 				]
 			]
 		]
@@ -881,7 +885,39 @@ _function: context [
 		fun/ctx
 	]
 		
-	;-- Actions -- 
+	;-- Actions --
+	
+	make: func [
+		proto	[red-value!]
+		list	[red-block!]
+		type	[integer!]
+		return:	[red-function!]
+		/local
+			spec [red-block!]
+			body [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "function/make"]]
+		
+		if any [
+			TYPE_OF(list) <> TYPE_BLOCK
+			2 > block/rs-length? list
+		][
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		spec: as red-block! block/rs-head list
+		
+		if TYPE_OF(spec) <> TYPE_BLOCK [
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		validate spec
+		body: spec + 1
+		
+		if TYPE_OF(body) <> TYPE_BLOCK [
+			fire [TO_ERROR(script bad-func-def)	list]
+		]
+		push spec body null 0 null
+		as red-function! stack/top - 1
+	]
 	
 	reflect: func [
 		fun		[red-function!]
@@ -995,7 +1031,7 @@ _function: context [
 			TYPE_CONTEXT
 			"function!"
 			;-- General actions --
-			null			;make
+			:make
 			null			;random
 			:reflect
 			null			;to

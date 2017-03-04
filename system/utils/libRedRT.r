@@ -16,7 +16,7 @@ libRedRT: context [
 	imports:	make block!  100
 	template:	make string! 100'000
 	extras:		make block!  100
-	aliased:		make block!	 10							;-- [new old...]
+	aliased:	make block!	 10							;-- [new old...]
 	obj-path:	'red/objects
 	
 	lib-file:	  %libRedRT
@@ -35,7 +35,7 @@ libRedRT: context [
 	
 	get-include-file: func [job][
 		data: read get-path include-file
-		replace/all data "$ROOT-PATH$" form system/script/path
+		replace/all data "$ROOT-PATH$" remove mold system/script/path
 		load data
 	]
 	
@@ -79,6 +79,10 @@ libRedRT: context [
 		repend aliased [new to word! form old]
 	]
 	
+	undecorate: func [sym [word! path!]][
+		any [find/match sym: form sym "exec/" sym]
+	]
+	
 	make-exports: func [functions exports /local name file][
 		foreach [name spec] functions [
 			if all [
@@ -89,11 +93,11 @@ libRedRT: context [
 			]
 		]
 		if exists? file: get-path extras-file [
-			append funcs load file
+			append funcs load/all file
 		]
 		foreach def funcs [
 			name: to word! form def
-			append exports name
+			repend exports [name undecorate def]
 			unless select/only functions name [
 				print ["*** libRedRT Error: definition not found for" def]
 				halt
@@ -101,8 +105,7 @@ libRedRT: context [
 			system-dialect/compiler/flag-callback name none
 		]
 		foreach [def type] vars [
-			name: to word! form def
-			append exports name
+			repend exports [to word! form def undecorate def]
 		]
 	]
 	
@@ -198,7 +201,7 @@ libRedRT: context [
 			append pos to set-word! name
 			new-line back tail pos yes
 			name: to word! form def
-			append pos mold name
+			append pos undecorate def
 			
 			spec: copy/deep functions/:name/4
 			clear find spec /local

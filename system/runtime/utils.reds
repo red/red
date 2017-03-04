@@ -109,6 +109,7 @@ _print: func [
 		list: list + 1
 		zero? count
 	]
+	fflush 0
 ]
 
 ;-------------------------------------------
@@ -150,17 +151,22 @@ degree-to-radians: func [
 	val		[float!]
 	type	[integer!]
 	return: [float!]
+	/local
+		factor [float!]
 ][
 	val: val % 360.0
 	if any [val > 180.0 val < -180.0] [
-		val: val + either val < 0.0 [360.0][-360.0]
+		factor: either val < 0.0 [360.0][-360.0]
+		val: val + factor
 	]
 	if any [val > 90.0 val < -90.0] [
 		if type = TYPE_TANGENT [
-			val: val + either val < 0.0 [180.0][-180.0]
+			factor: either val < 0.0 [180.0][-180.0]
+			val: val + factor
 		]
 		if type = TYPE_SINE [
-			val: (either val < 0.0 [-180.0][180.0]) - val
+			factor: either val < 0.0 [-180.0][180.0]
+			val: factor - val
 		]
 	]
 	val: val * PI / 180.0			;-- to radians
