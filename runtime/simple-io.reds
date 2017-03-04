@@ -180,7 +180,6 @@ simple-io: context [
 					pad0		[integer!]
 					pad1		[integer!]
 				]
-				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [					;@@ the same as MacOSX
 					d_ino		[integer!]
 					d_reclen	[byte!]
@@ -227,7 +226,6 @@ simple-io: context [
 				;]
 				;;-- #endif
 
-				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [
 					d_ino		[integer!]
 					d_reclen	[byte!]
