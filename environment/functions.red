@@ -660,8 +660,10 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	unless args: system/options/args [exit]				;-- non-executable case
+	unless args: system/script/args [exit]				;-- non-executable case
 	
+	;-- decode escaping rules following CommandLineToArgvW() rules:
+	;-- https://msdn.microsoft.com/en-us/library/windows/desktop/bb776391(v=vs.85).aspx
 	if system/platform = 'Windows [
 		unescape: quote (
 			if odd? len: offset? s e [len: len - 1]
@@ -687,9 +689,18 @@ extract-boot-args: function [
 		pos: either pos: find/tail args space [back pos][tail args]
 		system/options/boot: copy/part args pos
 	]
-	;-- clean-up system/options/args
+	;-- clean-up system/script/args
 	remove/part args: head args pos
-	if empty? trim/head args [system/options/args: none]
+	
+	;-- set system/options/args
+	either empty? trim/head args [system/script/args: none][
+		system/options/args: parse head args [
+			collect some [[
+				some #"^"" keep copy s to #"^"" some #"^""
+				| keep copy s to #" "] any #" "
+			]
+		]
+	]
 ]
 
 collect: function [

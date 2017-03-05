@@ -41,7 +41,7 @@ system/console: context [
 	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
-		if args: system/options/args [
+		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
 				remove/part pos 1 + length? --catch		;-- remove extra space too
