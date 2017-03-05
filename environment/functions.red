@@ -697,7 +697,7 @@ extract-boot-args: function [
 		system/options/args: parse head args [
 			collect some [[
 				some #"^"" keep copy s to #"^"" some #"^""
-				| keep copy s to #" "] any #" "
+				| keep copy s [to #" " | to end]] any #" "
 			]
 		]
 	]
