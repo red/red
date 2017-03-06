@@ -314,7 +314,7 @@ redc: context [
 	]
 
 	run-console: func [
-		gui? [logic!] /with file [string!]
+		gui? [logic!] /with file [string!] args [string!]
 		/local opts result script filename exe console files source con-engine gui-target
 	][
 		script: temp-dir/red-console.red
@@ -376,7 +376,7 @@ redc: context [
 			gui-sys-call exe any [file make string! 1]
 		][
 			if with [
-				repend exe [{ "} file {"}]
+				repend exe [{ "} file {"} args]
 				exe: safe-to-local-file exe
 			]
 			sys-call exe								;-- replace the buggy CALL native
@@ -574,7 +574,9 @@ redc: context [
 				| "--catch"								;-- just pass-thru
 			]
 			set filename skip (src: load-filename filename)
-		]
+			args:
+		]		
+		unless empty? args: reform args [insert args #" "]
 
 		if mode [
 			switch mode [
@@ -646,7 +648,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? filename
+			run-console/with gui? filename args
 		]
 
 		if slash <> first src [							;-- if relative path
