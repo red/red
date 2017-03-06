@@ -61,7 +61,13 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				unless src: attempt [read file][
+				either src: attempt [read file][
+					system/options/script: file
+					remove system/options/args
+					args: system/script/args
+					remove/part args find/tail next args pick {" } args/1 = #"^""
+					trim/head args
+				][
 					print "*** Error: cannot access argument file"
 					;quit/return -1
 				]
