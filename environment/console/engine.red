@@ -44,6 +44,7 @@ system/console: context [
 		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
+				remove find system/options/args --catch
 				remove/part pos 1 + length? --catch		;-- remove extra space too
 			]
 
@@ -64,7 +65,8 @@ system/console: context [
 					print "*** Error: cannot access argument file"
 					;quit/return -1
 				]
-				change-dir first split-path file
+				path: first split-path file
+				if path <> %./ [change-dir path]
 			]
 			src
 		]
