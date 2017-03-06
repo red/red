@@ -750,10 +750,14 @@ clean-path: func [
 	file [file! url! string!]
 	/only "Do not prepend current directory"
 	/dir "Add a trailing / if missing"
-	/local out cnt f
+	/local out cnt f not-file?
 ][
-	case [
-		any [only not file? file] [file: copy file]
+	not-file?: not file? file
+	
+	file: case [
+		any [only not-file?][
+			copy file
+		]
 		#"/" = first file [
 			file: next file
 			out: next what-dir
@@ -762,32 +766,32 @@ clean-path: func [
 					#"/" = first file
 					do [f: find/tail out #"/"]
 				]
-			] [
+			][
 				file: next file
 				out: f
 			]
-			file: append clear out file
+			 append clear out file
 		]
-		true [file: append what-dir file]
+		'else [append what-dir file]
 	]
-	if all [dir not dir? file] [append file #"/"]
+	if all [dir not dir? file][append file #"/"]
+	
 	out: make file! length? file
 	cnt: 0
+	
 	parse reverse file [
 		some [
 			"../" (cnt: cnt + 1)
 			| "./"
-			| #"/" (if any [not file? file #"/" <> last out] [append out #"/"])
-			| copy f [to #"/" | to end skip] (
-				either cnt > 0 [
-					cnt: cnt - 1
-				] [
-					unless find ["" "." ".."] to string! f [append out f]
+			| #"/" (if any [not-file? not dir? out][append out #"/"])
+			| copy f thru #"/" (
+				either cnt > 0 [cnt: cnt - 1][
+					unless find ["" "." ".."] as string! f [append out f]
 				]
 			)
 		]
 	]
-	if all [#"/" = last out #"/" <> last file] [remove back tail out]
+	if all [dir? out #"/" <> last file][take/last out]
 	reverse out
 ]
 
