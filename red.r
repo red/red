@@ -484,20 +484,25 @@ redc: context [
 		reduce [none none]
 	]
 	
-	do-build: func [args [block!] /local cmd][
-		if all [encap? not exists? %libRed/][
-			make-dir path: %libRed/
-			foreach file [
-				%libRed.def
-				%libRed.lib
-				%libRed.red
-				%red.h
-			][
-				write path/:file read-cache path/:file
-			]
-		]
+	do-build: func [args [block!] /local cmd src][
 		switch/default args/1 [
 			"libRed" [
+				if all [encap? not exists? %libRed/][
+					make-dir path: %libRed/
+					foreach file [
+						%libRed.def
+						%libRed.lib
+						%libRed.red
+						%red.h
+					][
+						write path/:file read-cache path/:file
+					]
+				]
+				unless Windows? [
+					src: read-cache path/libRed.red
+					replace src "'View" "none"
+					write path/%libRed.red src
+				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
 					insert at cmd 3 " --config [export-ABI: 'stdcall]"
