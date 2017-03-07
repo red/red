@@ -65,7 +65,10 @@ system/console: context [
 					system/options/script: file
 					remove system/options/args
 					args: system/script/args
-					remove/part args find/tail next args pick {" } args/1 = #"^""
+					remove/part args any [
+						find/tail next args pick {" } args/1 = #"^""
+						tail args
+					]
 					trim/head args
 				][
 					print "*** Error: cannot access argument file"
