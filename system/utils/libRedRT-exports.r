@@ -14,6 +14,7 @@
 	red/eval-path
 	red/select-key*
 	red/alloc-bytes
+	red/get-cmdline-args
 
 	red/redbin/boot-load
 
