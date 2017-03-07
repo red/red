@@ -683,7 +683,7 @@ redc: context [
 				result: red/compile src opts
 			]
 			print ["...compilation time :" format-time result/2 "ms"]
-			if opts/red-only? [exit]
+			if opts/red-only? [probe result/1 return none]
 		]
 
 	;--- 2nd pass: Red/System compiler ---
@@ -732,8 +732,7 @@ redc: context [
 			opts/libRedRT-update?: no
 		]
 		
-		result: compile src opts
-		show-stats result
+		if result: compile src opts [show-stats result]
 	]
 
 	set 'rc func [cmd [file! string! block!]][
