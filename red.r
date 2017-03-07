@@ -373,11 +373,11 @@ redc: context [
 		exe: safe-to-local-file exe
 
 		either gui? [
-			gui-sys-call exe any [file make string! 1]
+			if all [with args][file: reform [file args]]
+			gui-sys-call exe file
 		][
 			if with [
 				repend exe [{ "} file {"} args]
-				exe: safe-to-local-file exe
 			]
 			sys-call exe								;-- replace the buggy CALL native
 		]
