@@ -179,7 +179,7 @@ redc: context [
 				file? result
 			]
 			attempt [result: to-rebol-file filename]
-		] [
+		][
 			fail ["Invalid filename:" filename]
 		]
 		result
@@ -371,14 +371,13 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
+		if all [file find file #" "][file: rejoin [{"} file {"}]]
 
 		either gui? [
 			if all [with args][file: reform [file args]]
 			gui-sys-call exe file
 		][
-			if with [
-				repend exe [{ "} file {"} args]
-			]
+			if with [repend exe [{ "} file {"} args]]
 			sys-call exe								;-- replace the buggy CALL native
 		]
 		quit/return 0
