@@ -561,9 +561,9 @@ redc: context [
 				  ["-c" | "--compile"]			(type: 'exe)
 				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
-				| ["-o" | "--output"]  			set output skip
-				| ["-t" | "--target"]  			set target skip (target?: yes)
-				| ["-v" | "--verbose"] 			set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-o" | "--output"]			[set output  skip | (fail "Missing output filename")]
+				| ["-t" | "--target"]			[set target  skip | (fail "Missing target")] (target?: yes)
+				| ["-v" | "--verbose"]			[set verbose skip | (fail "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
 				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
