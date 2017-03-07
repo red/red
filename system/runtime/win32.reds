@@ -23,6 +23,8 @@ Red/System [
 
 #define OS_DIR_SEP				 92		;-- #"\"
 
+#define CP_UTF8					 65001
+
 #if use-natives? = yes [
 	#import [
 		"kernel32.dll" stdcall [
@@ -71,7 +73,7 @@ win32-startup-ctx: context [
 	
 	#import [
 		"kernel32.dll" stdcall [
-			GetCommandLine: "GetCommandLineA" [
+			GetCommandLine: "GetCommandLineW" [
 				return:		[c-string!]
 			]
 			SetErrorMode: "SetErrorMode" [
@@ -92,6 +94,28 @@ win32-startup-ctx: context [
 				written		[int-ptr!]
 				overlapped	[integer!]
 				return:		[integer!]
+			]
+			LocalFree: "LocalFree" [
+				hMem		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			WideCharToMultiByte: "WideCharToMultiByte" [
+				CodePage			[integer!]
+				dwFlags				[integer!]
+				lpWideCharStr		[c-string!]
+				cchWideChar			[integer!]
+				lpMultiByteStr		[byte-ptr!]
+				cbMultiByte			[integer!]
+				lpDefaultChar		[c-string!]
+				lpUsedDefaultChar	[integer!]
+				return:				[integer!]
+			]
+		]
+		"shell32.dll" stdcall [
+			CommandLineToArgvW: "CommandLineToArgvW" [
+				lpCmdLine	[byte-ptr!]
+				pNumArgs	[int-ptr!]
+				return:		[int-ptr!]
 			]
 		]
 	]
@@ -172,49 +196,41 @@ win32-startup-ctx: context [
 	]
 
 	;-------------------------------------------
-	;-- Retrieve command-line information from stack
+	;-- Retrieve command-line information
 	;-------------------------------------------
-	on-start: func [/local c argv s][
-		c: 1											;-- account for executable name
-		argv: as pointer! [integer!] allocate 256 * 4	;-- max argc = 256
-
-		s: GetCommandLine
-		argv/1: as-integer s
-
-		;-- Build argv array in a newly allocated buffer, but reuse GetCommandLine buffer
-		;-- to store tokenized strings by replacing each new first space byte by a null byte
-		;-- to avoid allocating a new buffer for each new token. Might create side-effects
-		;-- if GetCommandLine buffer is shared, but side-effects should be rare and minor issues.
-
-		while [s/1 <> null-byte][					;-- iterate other all command line bytes
-			if s/1 = #" " [							;-- space detected
-				s/1: null-byte						;-- mark previous token's end
-				until [s: s + 1 s/1 <> #" "]		;-- consume extra spaces
-				either s/1 = null-byte [			;-- end of string?
-					s: s - 1						;-- adjust s so that main loop test exits
-				][
-					c: c + 1						;-- one more token
-					argv/c: as-integer s			;-- save new token start address in argv array
-				]
-			]
-			if s/1 = #"^"" [
-				until [s: s + 1 s/1 = #"^""]		;-- skip "..."
-			]
-			s: s + 1
+	on-start: func [/local c argv args len src dst][
+		c: 0
+		args: CommandLineToArgvW as byte-ptr! GetCommandLine :c
+		
+		argv: as int-ptr! allocate c + 1 * size? int-ptr!
+		src: args
+		dst: argv
+		
+		while [src/value <> 0][
+			len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
+			dst/value: as-integer allocate len
+			WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 as byte-ptr! dst/value len null 0
+		
+			dst: dst + 1
+			src: src + 1
 		]
-		system/args-count: c
-		c: c + 1									;-- add a null entry at argv's end to match UNIX layout
-		argv/c: 0									;-- end of argv array marker
-
+		dst/value: 0
+		LocalFree args
+		
 		system/args-list: as str-array! argv
+		system/args-count: c
 		system/env-vars: null
-
 		memory-blocks/argv: argv
 	]
 	
-	on-quit: does [
+	on-quit: func [/local arg][
 		if memory-blocks/argv <> null [
-			free as byte-ptr! memory-blocks/argv	;-- free call is safe here (defined in all cases)
+			arg: memory-blocks/argv
+			while [arg/value <> 0][
+				free as byte-ptr! arg/value
+				arg: arg + 1
+			]
+			free as byte-ptr! memory-blocks/argv
 		]
 	]
 	

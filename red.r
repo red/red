@@ -179,7 +179,7 @@ redc: context [
 				file? result
 			]
 			attempt [result: to-rebol-file filename]
-		] [
+		][
 			fail ["Invalid filename:" filename]
 		]
 		result
@@ -314,7 +314,7 @@ redc: context [
 	]
 
 	run-console: func [
-		gui? [logic!] /with file [string!]
+		gui? [logic!] /with file [string!] args [string!]
 		/local opts result script filename exe console files source con-engine gui-target
 	][
 		script: temp-dir/red-console.red
@@ -371,14 +371,13 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
+		if all [file find file #" "][file: rejoin [{"} file {"}]]
 
 		either gui? [
-			gui-sys-call exe any [file make string! 1]
+			if all [with args][file: reform [file args]]
+			gui-sys-call exe file
 		][
-			if with [
-				repend exe [{ "} file {"}]
-				exe: safe-to-local-file exe
-			]
+			if with [repend exe [{ "} file {"} args]]
 			sys-call exe								;-- replace the buggy CALL native
 		]
 		quit/return 0
@@ -579,7 +578,9 @@ redc: context [
 				| "--catch"								;-- just pass-thru
 			]
 			set filename skip (src: load-filename filename)
-		]
+			args:
+		]		
+		unless empty? args: reform args [insert args #" "]
 
 		if mode [
 			switch mode [
@@ -651,7 +652,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? filename
+			run-console/with gui? filename args
 		]
 
 		if slash <> first src [							;-- if relative path

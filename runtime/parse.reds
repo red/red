@@ -897,7 +897,7 @@ parser: context [
 								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									all [end? int/value = R_WHILE] ;-- don't loop on WHILE if no more input
+									end? 						 ;-- don't loop if no more input
 								][
 									loop?: no
 									break?: no
@@ -927,7 +927,6 @@ parser: context [
 								either match? [
 									if int/value = R_TO [
 										input/head: p/input	;-- move input before the last match
-										end?: no
 									]
 								][
 									before: input/head

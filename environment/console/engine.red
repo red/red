@@ -41,9 +41,10 @@ system/console: context [
 	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
-		if args: system/options/args [
+		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
+				remove find system/options/args --catch
 				remove/part pos 1 + length? --catch		;-- remove extra space too
 			]
 
@@ -60,11 +61,21 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				unless src: attempt [read file][
+				either src: attempt [read file][
+					system/options/script: file
+					remove system/options/args
+					args: system/script/args
+					remove/part args any [
+						find/tail next args pick {" } args/1 = #"^""
+						tail args
+					]
+					trim/head args
+				][
 					print "*** Error: cannot access argument file"
 					;quit/return -1
 				]
-				change-dir first split-path file
+				path: first split-path file
+				if path <> %./ [change-dir path]
 			]
 			src
 		]

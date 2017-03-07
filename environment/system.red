@@ -281,9 +281,7 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			#system [
-			#either type = 'exe [stack/push get-cmdline-args][none/push]
-		]
+		args: 			none
 		do-arg: 		none
 		debug: 			none
 		secure: 		none
@@ -338,7 +336,10 @@ system: context [
 	]
 	
 	script: context [
-		title: header: parent: path: args: none
+		title: header: parent: path: none
+		args: #system [
+			#either type = 'exe [stack/push get-cmdline-args][none/push]
+		]
 	]
 	
 	standard: context [

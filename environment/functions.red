@@ -660,18 +660,46 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	unless args: system/options/args [exit]				;-- non-executable case
-	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
+	unless args: system/script/args [exit]				;-- non-executable case
 	
-	either pos [
-		system/options/boot: copy/part next args pos
-		if pos/1 = dbl-quote [pos: next pos]
-		if pos/2 = space [pos: skip pos 2]
-		remove/part args pos
-		if empty? trim/head args [system/options/args: none]
+	;-- decode escaping rules following CommandLineToArgvW() rules:
+	;-- https://msdn.microsoft.com/en-us/library/windows/desktop/bb776391(v=vs.85).aspx
+	if system/platform = 'Windows [
+		unescape: quote (
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		)
+		parse args [
+			any [
+				s: {'"} thru {"'} e: (remove s e: remove back back e) :e
+				| s: #"'" remove s
+				| s: some #"\" e: {"} unescape :e
+				  thru [s: some #"\" e: {"}] unescape :e
+				| skip
+			]
+		]
+	]
+	;-- extract system/options/boot
+	either args/1 = dbl-quote [
+		until [args: next args args/1 <> dbl-quote]
+		system/options/boot: copy/part args pos: find args dbl-quote
+		until [pos: next pos pos/1 <> dbl-quote]
 	][
-		system/options/boot: args
-		system/options/args: none
+		pos: either pos: find/tail args space [back pos][tail args]
+		system/options/boot: copy/part args pos
+	]
+	;-- clean-up system/script/args
+	remove/part args: head args pos
+	
+	;-- set system/options/args
+	either empty? trim/head args [system/script/args: none][
+		system/options/args: parse head args [
+			collect some [[
+				some #"^"" keep copy s to #"^"" some #"^""
+				| keep copy s [to #" " | to end]] any #" "
+			]
+		]
 	]
 ]
 
@@ -722,10 +750,14 @@ clean-path: func [
 	file [file! url! string!]
 	/only "Do not prepend current directory"
 	/dir "Add a trailing / if missing"
-	/local out cnt f
+	/local out cnt f not-file?
 ][
-	case [
-		any [only not file? file] [file: copy file]
+	not-file?: not file? file
+	
+	file: case [
+		any [only not-file?][
+			copy file
+		]
 		#"/" = first file [
 			file: next file
 			out: next what-dir
@@ -734,32 +766,32 @@ clean-path: func [
 					#"/" = first file
 					do [f: find/tail out #"/"]
 				]
-			] [
+			][
 				file: next file
 				out: f
 			]
-			file: append clear out file
+			 append clear out file
 		]
-		true [file: append what-dir file]
+		'else [append what-dir file]
 	]
-	if all [dir not dir? file] [append file #"/"]
+	if all [dir not dir? file][append file #"/"]
+	
 	out: make file! length? file
 	cnt: 0
+	
 	parse reverse file [
 		some [
 			"../" (cnt: cnt + 1)
 			| "./"
-			| #"/" (if any [not file? file #"/" <> last out] [append out #"/"])
-			| copy f [to #"/" | to end skip] (
-				either cnt > 0 [
-					cnt: cnt - 1
-				] [
-					unless find ["" "." ".."] to string! f [append out f]
+			| #"/" (if any [not-file? not dir? out][append out #"/"])
+			| copy f thru #"/" (
+				either cnt > 0 [cnt: cnt - 1][
+					unless find ["" "." ".."] as string! f [append out f]
 				]
 			)
 		]
 	]
-	if all [#"/" = last out #"/" <> last file] [remove back tail out]
+	if all [dir? out #"/" <> last file][take/last out]
 	reverse out
 ]
 
