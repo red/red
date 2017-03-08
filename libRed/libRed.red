@@ -280,7 +280,7 @@ Red [
 		"Releases dynamic memory allocated for the current instance"
 	][
 		CHECK_LIB_OPENED
-		#if modules contains 'View [gui/cleanup]
+		#if OS = 'Windows [#if modules contains 'View [gui/cleanup]]
 		
 		ring/destroy
 		red/cleanup

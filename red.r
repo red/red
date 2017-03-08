@@ -497,11 +497,6 @@ redc: context [
 						write path/:file read-cache path/:file
 					]
 				]
-				unless Windows? [
-					src: read-cache path/libRed.red
-					replace src "'View" "none"
-					write path/%libRed.red src
-				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
 					insert at cmd 3 " --config [export-ABI: 'stdcall]"
