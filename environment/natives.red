@@ -835,3 +835,17 @@ as: make native! [[
 	]
 	#get-definition NAT_AS
 ]
+
+call: make native! [[
+		"Executes a shell command to run another process"
+		cmd			[string! file! block!]	"A shell command, an executable file or a block"
+		/wait								"Runs command and waits for exit"
+		/console							"Runs command with I/O redirected to console (CLI console only at present)"
+		/shell								"Forces command to be run from shell"
+		/input	in	[string! file! binary! block!]	"Redirects in to stdin"
+		/output	out	[string! file! binary!]	"Redirects stdout to out"
+		/error	err	[string! file! binary!]	"Redirects stderr to err"
+		return:		[integer!]				"0 if success, -1 if error, or a process ID"
+	]
+	#get-definition NAT_CALL
+]

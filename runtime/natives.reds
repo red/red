@@ -2405,6 +2405,29 @@ natives: context [
 			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
 	]
+	
+	call*: func [
+		check?	[logic!]
+		wait	[integer!]
+		console	[integer!]
+		shell	[integer!]
+		input	[integer!]
+		output	[integer!]
+		error	[integer!]
+		return: [red-integer!]
+		/local
+			
+	][
+		#typecheck [call wait console shell input output error]
+		
+		cmd: stack/arguments
+		if series/tail? cmd [return integer/box 0]
+		
+		cmd: arg-to-string cmd
+		if input [in: arg-to-string in]
+		
+		ext-process/call cmd wait console shell in out err
+	]
 
 	;--- Natives helper functions ---
 
@@ -2879,6 +2902,7 @@ natives: context [
 			:now*
 			:sign?*
 			:as*
+			:call*
 		]
 	]
 
