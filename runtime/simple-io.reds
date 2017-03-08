@@ -1148,10 +1148,10 @@ simple-io: context [
 					val  [red-block!]
 					new? [logic!]
 			][
-				len: WideCharToMultiByte 65001 0 headers -1 null 0 null 0
+				len: WideCharToMultiByte CP_UTF8 0 headers -1 null 0 null 0
 				s: allocate len
 				ss: s
-				WideCharToMultiByte 65001 0 headers -1 s len null 0
+				WideCharToMultiByte CP_UTF8 0 headers -1 s len null 0
 
 				mp: map/make-at stack/push* null 20
 				p: s
