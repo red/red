@@ -31,6 +31,58 @@ Red/System [
 
 #define WEOF				FFFFh
 
+#define INFINITE				FFFFFFFFh
+#define HANDLE_FLAG_INHERIT		00000001h
+#define STARTF_USESTDHANDLES	00000100h
+
+#define ERROR_BROKEN_PIPE 109
+
+#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#enum spawn-mode [
+	P_WAIT:		0
+	P_NOWAIT:	1
+	P_OVERLAY:	2
+	P_NOWAITO:	3
+	P_DETACH:	4
+]
+
+process-info!: alias struct! [
+	hProcess	[integer!]
+	hThread		[integer!]
+	dwProcessId	[integer!]
+	dwThreadId	[integer!]
+]
+
+startup-info!: alias struct! [
+	cb				[integer!]
+	lpReserved		[c-string!]
+	lpDesktop		[c-string!]
+	lpTitle			[c-string!]
+	dwX				[integer!]
+	dwY				[integer!]
+	dwXSize			[integer!]
+	dwYSize			[integer!]
+	dwXCountChars	[integer!]
+	dwYCountChars	[integer!]
+	dwFillAttribute	[integer!]
+	dwFlags			[integer!]
+	wShowWindow-a	[byte!]           ; 16 bits integer needed here for windows WORD type
+	wShowWindow-b	[byte!]
+	cbReserved2-a	[byte!]
+	cbReserved2-b	[byte!]
+	lpReserved2		[byte-ptr!]
+	hStdInput		[integer!]
+	hStdOutput		[integer!]
+	hStdError		[integer!]
+]
+
+security-attributes!: alias struct! [
+	nLength				 [integer!]
+	lpSecurityDescriptor [integer!]
+	bInheritHandle		 [logic!]
+]
+
 platform: context [
 
 	gui-print: 0										;-- `print` function used for gui-console
@@ -168,6 +220,87 @@ platform: context [
 			]
 			lstrlen: "lstrlenW" [
 				str			[byte-ptr!]
+				return:		[integer!]
+			]
+			CreateProcessW: "CreateProcessW" [
+				lpApplicationName       [c-string!]
+				lpCommandLine           [c-string!]
+				lpProcessAttributes     [integer!]
+				lpThreadAttributes      [integer!]
+				bInheritHandles         [logic!]
+				dwCreationFlags         [integer!]
+				lpEnvironment           [integer!]
+				lpCurrentDirectory      [c-string!]
+				lpStartupInfo           [startup-info!]
+				lpProcessInformation    [process-info!]
+				return:                 [logic!]
+			]
+			WaitForSingleObject: "WaitForSingleObject" [
+				hHandle                 [integer!]
+				dwMilliseconds          [integer!]
+				return:                 [integer!]
+			]
+			GetExitCodeProcess: "GetExitCodeProcess" [
+				hProcess				[integer!]
+				lpExitCode				[int-ptr!]
+				return:                 [logic!]
+			]
+			CreatePipe: "CreatePipe" [
+				hReadPipe               [int-ptr!]
+				hWritePipe              [int-ptr!]
+				lpPipeAttributes        [security-attributes!]
+				nSize                   [integer!]
+				return:                 [logic!]
+			]
+			CreateFileW: "CreateFileW" [
+				lpFileName				[c-string!]
+				dwDesiredAccess			[integer!]
+				dwShareMode				[integer!]
+				lpSecurityAttributes	[security-attributes!]
+				dwCreationDisposition	[integer!]
+				dwFlagsAndAttributes	[integer!]
+				hTemplateFile			[integer!]
+				return:					[integer!]
+			]
+			CloseHandle: "CloseHandle" [
+				hObject                 [integer!]
+				return:                 [logic!]
+			]
+			GetStdHandle: "GetStdHandle" [
+				nStdHandle				[integer!]
+				return:					[integer!]
+			]
+			ReadFile: "ReadFile" [
+				hFile                   [integer!]
+				lpBuffer                [byte-ptr!]
+				nNumberOfBytesToRead    [integer!]
+				lpNumberOfBytesRead     [int-ptr!]
+				lpOverlapped            [integer!]
+				return:                 [logic!]
+			]
+			SetHandleInformation: "SetHandleInformation" [
+				hObject					[integer!]
+				dwMask					[integer!]
+				dwFlags					[integer!]
+				return:					[logic!]
+			]
+			GetLastError: "GetLastError" [
+				return:                 [integer!]
+			]
+			MultiByteToWideChar: "MultiByteToWideChar" [
+				CodePage				[integer!]
+				dwFlags					[integer!]
+				lpMultiByteStr			[byte-ptr!]
+				cbMultiByte				[integer!]
+				lpWideCharStr			[byte-ptr!]
+				cchWideChar				[integer!]
+				return:					[integer!]
+			]
+			SetFilePointer: "SetFilePointer" [
+				file		[integer!]
+				distance	[integer!]
+				pDistance	[int-ptr!]
+				dwMove		[integer!]
 				return:		[integer!]
 			]
 		]

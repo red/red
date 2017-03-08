@@ -2416,17 +2416,38 @@ natives: context [
 		error	[integer!]
 		return: [red-integer!]
 		/local
-			
+			cmd	[red-string!]
+			in	[red-string!]
+			out [red-string!]
+			err	[red-string!]
+			new	[red-string!]
 	][
 		#typecheck [call wait console shell input output error]
 		
-		cmd: stack/arguments
-		if series/tail? cmd [return integer/box 0]
+		cmd: as red-string! stack/arguments
+		if string/rs-tail? cmd [return integer/box 0]
 		
-		cmd: arg-to-string cmd
-		if input [in: arg-to-string in]
+		if TYPE_OF(cmd) = TYPE_FILE [
+			new: string/rs-make-at stack/push* string/rs-length? cmd
+			file/to-local-path as red-file! cmd new no
+			cmd: new
+		]
 		
-		ext-process/call cmd wait console shell in out err
+		in: as red-string! stack/arguments + input
+		in: either OPTION?(in)[
+			new: string/rs-make-at stack/push* string/rs-length? in
+			file/to-local-path as red-file! in new no
+			new
+		][
+			null
+		]
+		out: as red-string! stack/arguments + output
+		unless OPTION?(out)[out: null]
+		
+		err: as red-string! stack/arguments + error
+		unless OPTION?(err)[err: null]
+		
+		ext-process/call cmd wait > -1 console > -1 shell > -1 in out err
 	]
 
 	;--- Natives helper functions ---

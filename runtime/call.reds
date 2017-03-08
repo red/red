@@ -1,6 +1,6 @@
 Red/System [
 	Title:  "Red/System call binding"
-	Author: "Bruno Anselme"
+	Author: ["Bruno Anselme" "Nenad Rakocevic"]
 	EMail:  "be.red@free.fr"
 	File:   %call.reds
 	Rights: "Copyright (c) 2014-2015 Bruno Anselme"
@@ -9,10 +9,7 @@ Red/System [
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		Requires:
-			Red/System >= 0.4.1
-			%linux.reds
-			%windows.reds
+		Slightly modified from original version for integration in the Red runtime.
 	}
 	Purpose: {
 		This binding implements a call function for Red/System (similar to rebol's call function).
@@ -24,14 +21,9 @@ Red/System [
 	}
 ]
 
-#switch OS [
-	Windows   [ #include %../windows.reds ]
-	#default  [ #include %../linux.reds  ]
-]
-
 #define READ-BUFFER-SIZE 4096
 
-system-call: context [
+ext-process: context [
 
 	p-buffer!: alias struct! [							;-- Data buffer struct, pointer and bytes count
 		count  [integer!]
@@ -88,7 +80,7 @@ system-call: context [
 			len: len + 1
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
-				Windows  [ io-write get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
+				Windows  [ platform/WriteFile platform/GetStdHandle STD_ERROR_HANDLE str len :len null ]
 				#default [ io-write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
@@ -123,6 +115,7 @@ system-call: context [
 				str-buffer: as red-value! allocate size? red-value!
 				string/make-at str-buffer 1024 * 100 Latin1
 			][as red-string! str-buffer]
+			
 			string/rs-reset sout
 			node: GET_BUFFER(sout)
 
@@ -131,10 +124,10 @@ system-call: context [
 				count: data/count
 				either shell? [
 					len: 0
-					len: MultiByteToWideChar 1 0 buffer count null 0	;-- CP_OEMCP
+					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
 					temp: allocate len * 2
-					MultiByteToWideChar 1 0 buffer count temp len
+					platform/MultiByteToWideChar 0 0 buffer count temp len
 					unicode/load-utf16 as-c-string temp len sout yes
 					free temp
 				][
@@ -158,7 +151,7 @@ system-call: context [
 			total: 0
 			until [
 				len: 0
-				io-read fd (data/buffer + total) (size - total) :len null
+				platform/ReadFile fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 					total: total + len
 					if total = size [
@@ -166,10 +159,11 @@ system-call: context [
 						data/buffer: realloc data/buffer size
 					]
 				]
-				get-last-error = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
+				platform/GetLastError = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
 			data/count: total
 		] ; read-from-pipe
+		
 		open-file-to-write: func [
 			pbuf		[p-buffer!]
 			sa			[security-attributes!]
@@ -177,7 +171,7 @@ system-call: context [
 			/local
 				file	[integer!]
 		][
-			file: create-file
+			file: platform/CreateFileW
 				as c-string! pbuf/buffer
 				GENERIC_WRITE
 				0
@@ -185,7 +179,7 @@ system-call: context [
 				OPEN_ALWAYS
 				FILE_ATTRIBUTE_NORMAL
 				null
-			either file = -1 [file: 0][SetFilePointer file 0 null SET_FILE_END]
+			either file = -1 [file: 0][platform/SetFilePointer file 0 null SET_FILE_END]
 			file
 		]
 		
@@ -217,22 +211,26 @@ system-call: context [
 			sa/nLength: size? sa
 			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
+			
 			out-read:  0								;-- Pipes
 			out-write: 0
 			in-read:   0
 			in-write:  0
 			err-read:  0
 			err-write: 0
+			
 			inherit: false
 			s-inf/cb: size? s-inf
 			s-inf/dwFlags: 0
-			s-inf/hStdInput:  get-std-handle STD_INPUT_HANDLE
-			s-inf/hStdOutput: get-std-handle STD_OUTPUT_HANDLE
-			s-inf/hStdError:  get-std-handle STD_ERROR_HANDLE
-			dev-null: create-file #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
+			s-inf/hStdInput:  platform/GetStdHandle STD_INPUT_HANDLE
+			s-inf/hStdOutput: platform/GetStdHandle STD_OUTPUT_HANDLE
+			s-inf/hStdError:  platform/GetStdHandle STD_ERROR_HANDLE
+			
+			dev-null: platform/CreateFileW #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
+			
 			if in-buf <> null [
 				either in-buf/count = -1 [
-					in-read: create-file
+					in-read: platform/CreateFileW
 						as c-string! in-buf/buffer
 						GENERIC_READ
 						0
@@ -241,11 +239,11 @@ system-call: context [
 						FILE_ATTRIBUTE_NORMAL or FILE_FLAG_SEQUENTIAL_SCAN
 						null
 				][
-					if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
+					unless platform/CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 						__red-call-print-error [ error-pipe "stdin" ]
 						return -1
 					]
-					if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
+					unless platform/SetHandleInformation in-write HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdin" ]
 						return -1
 					]
@@ -258,18 +256,19 @@ system-call: context [
 				][
 					out-buf/count: 0
 					out-buf/buffer: allocate READ-BUFFER-SIZE
-					if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
+					
+					unless platform/CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 						__red-call-print-error [ error-pipe "stdout" ]
 						return -1
 					]
-					if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
+					unless platform/SetHandleInformation out-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdout" ]
 						return -1
 					]
 				]
 				s-inf/hStdOutput: out-write
 			][
-				if not console? [						;-- output must be redirected to "nul" or process returns an error code
+				unless console? [						;-- output must be redirected to "nul" or process returns an error code
 					s-inf/hStdOutput: dev-null
 				]
 			]
@@ -279,43 +278,43 @@ system-call: context [
 				][
 					err-buf/count: 0
 					err-buf/buffer: allocate READ-BUFFER-SIZE
-					if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
+					unless platform/CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 						__red-call-print-error [ error-pipe "stderr" ]
 						return -1
 					]
-					if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
+					unless platform/SetHandleInformation err-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stderr" ]
 						return -1
 					]
 				]
 				s-inf/hStdError: err-write
 			][
-				if not console? [
+				unless console? [
 					s-inf/hStdError: dev-null
 				]
 			]
-			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
+			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ][
 				waitend?: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-			if not console? [
+			unless console? [
 				if in-buf  = null [ s-inf/hStdInput:  0 ]
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-
 			sa/bInheritHandle: inherit
+			
 			either shell? [
-				len: (1 + lstrlen cmd) * 2
+				len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
 				cmdstr: make-c-string (14 + len)
 				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
 				copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
 			][
 				cmdstr: cmd
 			]
-			if not create-process null cmdstr null null inherit 0 null null s-inf p-inf [
-				__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error ]
+			unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+				__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
 				if shell? [free as byte-ptr! cmdstr]
 				return -1
 			]
@@ -323,33 +322,33 @@ system-call: context [
 
 			pid: 0
 			if in-buf <> null [
-				close-handle in-read
+				platform/CloseHandle in-read
 				len: in-buf/count
-				success: io-write in-write in-buf/buffer len :len null
-				if not success [
-					__red-call-print-error [ "Error Red/System call : write into pipe failed : " get-last-error ]
+				success: platform/WriteFile in-write as-c-string in-buf/buffer len :len null
+				if zero? success [
+					__red-call-print-error [ "Error Red/System call : write into pipe failed : " platform/GetLastError]
 				]
-				close-handle in-write
+				platform/CloseHandle in-write
 			]
 			if out-buf <> null [
-				close-handle out-write
+				platform/CloseHandle out-write
 				read-from-pipe out-read out-buf
-				close-handle out-read
+				platform/CloseHandle out-read
 			]
 			if err-buf <> null [
-				close-handle err-write
+				platform/CloseHandle err-write
 				read-from-pipe err-read err-buf
-				close-handle err-read
+				platform/CloseHandle err-read
 			]
 			either any [console? waitend?][
-				wait-for-single-object p-inf/hProcess INFINITE
-				get-exit-code-process p-inf/hProcess :pid
+				platform/WaitForSingleObject p-inf/hProcess INFINITE
+				platform/GetExitCodeProcess p-inf/hProcess :pid
 			][
 				pid: p-inf/dwProcessId
 			]
-			close-handle p-inf/hProcess
-			close-handle p-inf/hThread
-			close-handle dev-null
+			platform/CloseHandle p-inf/hProcess
+			platform/CloseHandle p-inf/hThread
+			platform/CloseHandle dev-null
 			return pid
 		] ; call
 	] ; Windows
@@ -642,9 +641,9 @@ system-call: context [
 	
 	call: func [
 		cmd			[red-string!]
-		waitend		[red-logic!]
-		console		[red-logic!]
-		shell		[red-logic!]
+		wait?		[logic!]
+		console?	[logic!]
+		shell?		[logic!]
 		in-str		[red-string!]
 		redirout	[red-string!]
 		redirerr	[red-string!]
@@ -668,30 +667,29 @@ system-call: context [
 		out: null
 		err: null
 	
-		type: TYPE_OF(in-str)
-		case [
-			type = TYPE_STRING [
-				PLATFORM_TO_CSTR(cstr in-str len)
-				inp: as p-buffer! :pad1					;@@ a trick as we cannot declear struct on stack
-				inp/buffer: as byte-ptr! cstr
-				inp/count: len
+		if in-str <> null [
+			switch TYPE_OF(in-str) [
+				TYPE_STRING [
+					PLATFORM_TO_CSTR(cstr in-str len)
+					inp: as p-buffer! :pad1					;@@ a trick as we cannot declare struct on stack
+					inp/buffer: as byte-ptr! cstr
+					inp/count: len
+				]
+				TYPE_BINARY [
+					inp: as p-buffer! :pad1
+					inp/buffer: binary/rs-head as red-binary! in-str
+					inp/count: binary/rs-length? as red-binary! in-str
+				]
+				TYPE_FILE [
+					inp: as p-buffer! :pad1
+					inp/buffer: as byte-ptr! file/to-OS-path as red-file! in-str
+					inp/count: -1
+				]
 			]
-			type = TYPE_BINARY [
-				inp: as p-buffer! :pad1
-				inp/buffer: binary/rs-head as red-binary! in-str
-				inp/count: binary/rs-length? as red-binary! in-str
-			]
-			type = TYPE_FILE [
-				inp: as p-buffer! :pad1
-				inp/buffer: as byte-ptr! file/to-OS-path as red-file! in-str
-				inp/count: -1
-			]
-			true [0]
 		]
-		type: TYPE_OF(redirout)
-		if type <> TYPE_NONE [
+		if redirout <> null [
 			out: as p-buffer! :pad2
-			either type = TYPE_FILE [
+			either TYPE_OF(redirout) = TYPE_FILE [
 				out/buffer: as byte-ptr! file/to-OS-path as red-file! redirout
 				out/count: -1
 			][
@@ -699,10 +697,9 @@ system-call: context [
 				out/count: 0
 			]
 		]
-		type: TYPE_OF(redirerr)
-		if type <> TYPE_NONE [
+		if redirerr <> null [
 			err: as p-buffer! :pad3
-			either type = TYPE_FILE [
+			either TYPE_OF(redirerr) = TYPE_FILE [
 				err/buffer: as byte-ptr! file/to-OS-path as red-file! redirerr
 				err/count: -1
 			][
@@ -711,22 +708,22 @@ system-call: context [
 			]
 		]
 	
-		PLATFORM_TO_CSTR(cstr cmd len)
-		pid: OS-call cstr waitend console shell inp out err
+		PLATFORM_TO_CSTR(cstr cmd len)	
+		pid: OS-call cstr wait? console? shell? inp out err
 	
-		if all [TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
+		if all [in-str <> null TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
 			free inp/buffer
 		]
 	
-		if all [out <> null out/count <> -1][
-			insert-string redirout out shell
+		if all [redirout <> null out/count <> -1][
+			insert-string redirout out shell?
 			free out/buffer
 		]
-		if all [err <> null err/count <> -1][
-			insert-string redirerr err shell
+		if all [redirerr <> null err/count <> -1][
+			insert-string redirerr err shell?
 			free err/buffer
 		]
-		pid
+		integer/box pid
 	]
 ] ; context
 
