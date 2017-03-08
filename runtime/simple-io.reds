@@ -1284,7 +1284,7 @@ simple-io: context [
 						tail:  s/tail
 
 						while [value < tail][
-							bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+							bstr-u: SysAllocString unicode/to-utf16 word/as-string as red-word! value
 							value: value + 1
 							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
 							value: value + 1
@@ -1616,7 +1616,7 @@ simple-io: context [
 
 					while [value < tail][
 						len: -1
-						cf-key: CFString((unicode/to-utf8 word/to-string as red-word! value :len))
+						cf-key: CFString((unicode/to-utf8 word/as-string as red-word! value :len))
 						value: value + 1
 						len: -1
 						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
@@ -1893,7 +1893,8 @@ simple-io: context [
 					tail:  s/tail
 
 					while [value < tail][
-						str: word/to-string as red-word! value
+						str: word/as-string as red-word! value		;-- cast word! to string!
+						_series/copy as red-series! str as red-series! str null yes null
 						string/append-char GET_BUFFER(str) as-integer #":"
 						string/append-char GET_BUFFER(str) as-integer #" "
 						value: value + 1

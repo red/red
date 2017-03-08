@@ -274,7 +274,7 @@ word: context [
 		value
 	]
 
-	to-string: func [
+	as-string: func [
 		w		[red-word!]
 		return: [red-string!]
 		/local
