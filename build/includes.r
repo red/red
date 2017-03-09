@@ -72,6 +72,7 @@ write %build/bin/sources.r set-cache [
 		%simple-io.reds
 		%crush.reds
 		%utils.reds
+		%call.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds

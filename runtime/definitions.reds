@@ -89,11 +89,19 @@ Red/System [
 	#define GENERIC_READ 			80000000h
 	#define FILE_SHARE_READ			00000001h
 	#define FILE_SHARE_WRITE		00000002h
-	#define OPEN_ALWAYS				00000004h
-	#define OPEN_EXISTING			00000003h
+	#define FILE_SHARE_DELETE		00000004h
+	#define CREATE_NEW				00000001h
 	#define CREATE_ALWAYS			00000002h
+	#define OPEN_EXISTING			00000003h
+	#define OPEN_ALWAYS				00000004h
+	#define TRUNCATE_EXISTING		00000005h
 	#define FILE_ATTRIBUTE_NORMAL	00000080h
-	#define FILE_ATTRIBUTE_DIRECTORY 00000010h
+	#define FILE_ATTRIBUTE_DIRECTORY  00000010h
+	#define FILE_FLAG_SEQUENTIAL_SCAN 08000000h
+	
+	#define STD_INPUT_HANDLE		-10
+	#define STD_OUTPUT_HANDLE		-11
+	#define STD_ERROR_HANDLE		-12
 
 	#define SET_FILE_BEGIN			0
 	#define SET_FILE_CURRENT		1
@@ -252,13 +260,15 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
-
+	
 	#case [
 		any [OS = 'FreeBSD OS = 'MacOSX] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h
 			#define O_APPEND	8
+			#define	O_NONBLOCK	4
+			#define	O_CLOEXEC	01000000h
 			
 			#define DIRENT_NAME_OFFSET 8
 		]
@@ -267,6 +277,8 @@ Red/System [
 			#define O_EXCL		128
 			#define O_TRUNC		512
 			#define O_APPEND	1024
+			#define	O_NONBLOCK	2048
+			#define	O_CLOEXEC	524288
 		]
 	]
 	

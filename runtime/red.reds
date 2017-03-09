@@ -117,6 +117,7 @@ red: context [
 	#include %simple-io.reds							;-- temporary file IO support
 	#include %redbin.reds
 	#include %utils.reds
+	#include %call.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	as red-block! 0							;-- root block
