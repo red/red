@@ -2434,13 +2434,8 @@ natives: context [
 		]
 		
 		in: as red-string! stack/arguments + input
-		in: either OPTION?(in)[
-			new: string/rs-make-at stack/push* string/rs-length? in
-			file/to-local-path as red-file! in new no
-			new
-		][
-			null
-		]
+		unless OPTION?(in)[in: null]
+		
 		out: as red-string! stack/arguments + output
 		unless OPTION?(out)[out: null]
 		
