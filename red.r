@@ -343,7 +343,7 @@ redc: context [
 				%wcwidth.reds %win32.reds %POSIX.reds %terminal.reds
 				%windows.reds
 			]
-			foreach file files [write temp-dir/:file read-cache console/:file]
+			foreach f files [write temp-dir/:f read-cache console/:f]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
@@ -363,7 +363,7 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result
 
 			delete script
-			foreach file files [delete temp-dir/:file]
+			foreach f files [delete temp-dir/:f]
 
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
@@ -375,7 +375,7 @@ redc: context [
 
 		either gui? [
 			if all [with args][file: reform [file args]]
-			gui-sys-call exe file
+			gui-sys-call exe any [file ""]
 		][
 			if with [repend exe [{ "} file {"} args]]
 			sys-call exe								;-- replace the buggy CALL native
