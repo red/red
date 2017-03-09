@@ -1965,8 +1965,10 @@ system-dialect: make-profilable context [
 		
 		comp-size?: has [type expr][
 			pc: next pc
+			if path? expr: pc/1 [expr: to word! form expr]
+			
 			unless all [
-				word? expr: pc/1
+				word? expr
 				type: any [
 					all [base-type? expr expr]
 					all [enum-type? expr [integer!]]
