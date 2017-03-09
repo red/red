@@ -799,6 +799,7 @@ simple-io: context [
 			lineend: "^/"
 			lf-sz: 1
 		]
+		ret: 1
 		either lines? [
 			buffer: string/rs-make-at stack/push* 16
 			blk: as red-block! data
@@ -811,7 +812,7 @@ simple-io: context [
 				value: value + 1
 			]
 		][
-			write-data file data size
+			ret: write-data file data size
 			if block? [ret: write-data file as byte-ptr! lineend lf-sz]
 		]
 		if filename <> null [close-file file]
