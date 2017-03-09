@@ -482,6 +482,7 @@ ext-process: context [
 					]
 				]
 				if all [(in-buf = null) (not console?)] [platform/io-close stdin]	;-- no redirection, stdin closed
+				
 				either shell? [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
@@ -512,12 +513,12 @@ ext-process: context [
 			]
 			if pid > 0 [								;-- Parent process
 				nfds: 0
-				pfds: as red/platform/pollfd! allocate 3 * size? platform/pollfd!
+				pfds: as red/platform/pollfd! allocate 3 * size? red/platform/pollfd!
 				if in? [
 					waitend?: true
 					fds: pfds + nfds
 					fds/fd: fd-in/writing
-					platform/set-flags-fd fds/fd
+					set-flags-fd fds/fd
 					fds/events: POLLOUT
 					platform/io-close fd-in/reading
 					nfds: nfds + 1
@@ -528,7 +529,7 @@ ext-process: context [
 					out-buf/buffer: allocate READ-BUFFER-SIZE
 					fds: pfds + nfds
 					fds/fd: fd-out/reading
-					platform/set-flags-fd fds/fd
+					set-flags-fd fds/fd
 					fds/events: POLLIN
 					platform/io-close fd-out/writing
 					nfds: nfds + 1
@@ -539,7 +540,7 @@ ext-process: context [
 					err-buf/buffer: allocate READ-BUFFER-SIZE
 					fds: pfds + nfds
 					fds/fd: fd-err/reading
-					platform/set-flags-fd fds/fd
+					set-flags-fd fds/fd
 					fds/events: POLLIN
 					platform/io-close fd-err/writing
 					nfds: nfds + 1

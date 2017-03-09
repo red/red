@@ -260,13 +260,15 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
-
+	
 	#case [
 		any [OS = 'FreeBSD OS = 'MacOSX] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h
 			#define O_APPEND	8
+			#define	O_NONBLOCK	4
+			#define	O_CLOEXEC	01000000h
 			
 			#define DIRENT_NAME_OFFSET 8
 		]
@@ -275,6 +277,8 @@ Red/System [
 			#define O_EXCL		128
 			#define O_TRUNC		512
 			#define O_APPEND	1024
+			#define	O_NONBLOCK	2048
+			#define	O_CLOEXEC	524288
 		]
 	]
 	
