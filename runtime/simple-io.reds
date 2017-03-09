@@ -799,6 +799,7 @@ simple-io: context [
 			lineend: "^/"
 			lf-sz: 1
 		]
+		ret: 1
 		either lines? [
 			buffer: string/rs-make-at stack/push* 16
 			blk: as red-block! data
@@ -811,7 +812,7 @@ simple-io: context [
 				value: value + 1
 			]
 		][
-			write-data file data size
+			ret: write-data file data size
 			if block? [ret: write-data file as byte-ptr! lineend lf-sz]
 		]
 		if filename <> null [close-file file]
@@ -1405,6 +1406,8 @@ simple-io: context [
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
+					kCFStreamPropertyHTTPShouldAutoredirect: "kCFStreamPropertyHTTPShouldAutoredirect" [integer!]
+					kCFStreamPropertyHTTPResponseHeader: "kCFStreamPropertyHTTPResponseHeader" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1608,7 +1611,8 @@ simple-io: context [
 					CFHTTPMessageSetBody req body
 				]
 
-				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
+				stream: CFString("application/x-www-form-urlencoded; charset=utf-8")
+				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") stream
 				if header <> null [
 					s: GET_BUFFER(header)
 					value: s/offset + header/head
@@ -1626,11 +1630,12 @@ simple-io: context [
 						CFRelease cf-key
 					]
 				]
+				CFRelease stream
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [return none-value]
 
-				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") kCFBooleanTrue
+				CFReadStreamSetProperty stream kCFStreamPropertyHTTPShouldAutoredirect kCFBooleanTrue
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
@@ -1656,7 +1661,7 @@ simple-io: context [
 
 				if info? [
 					blk: block/push-only* 3
-					response: CFReadStreamCopyProperty stream CFSTR("kCFStreamPropertyHTTPResponseHeader")
+					response: CFReadStreamCopyProperty stream kCFStreamPropertyHTTPResponseHeader
 					len: CFHTTPMessageGetResponseStatusCode response
 					integer/make-in blk len
 					len: CFHTTPMessageCopyAllHeaderFields response
