@@ -529,9 +529,8 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd spec cmds ws
+		mode target? gui? cmd spec cmds ws ssp
 	][
-	
 		cmds: any [args system/options/args system/script/args ""]
 		args: either block? cmds [cmds][parse-tokens cmds]
 		
@@ -593,7 +592,11 @@ redc: context [
 		base-path: either encap? [
 			system/options/path
 		][
-			system/script/parent/path
+			ssp: system/script/parent
+			any [
+				all [ssp ssp/path]
+				system/script/path
+			]
 		]
 		opts: make opts config
 		opts/config-name: config-name
