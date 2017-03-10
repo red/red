@@ -65,11 +65,11 @@ Red/System [
 			args	[str-array!]
 			src		[c-string!]
 			s		[series!]
-			cnt		[int-ptr!]
+			cnt		[integer!]
 			size	[integer!]
 			end?	[logic!]
 	][
-		cnt: declare int-ptr!
+		cnt: 0
 		size: 4'000									;-- enough?
 		str: string/rs-make-at ALLOC_TAIL(root) size
 		s: GET_BUFFER(str)
@@ -78,8 +78,9 @@ Red/System [
 		until [
 			src: args/item
 			until [
-				s: string/append-char s unicode/decode-utf8-char src cnt
-				src: src + cnt/value
+				cnt: unicode/utf8-char-size? as-integer src/1
+				s: string/append-char s unicode/decode-utf8-char src :cnt
+				src: src + cnt
 				size: size - 1
 				any [src/1 = null-byte zero? size]
 			]
