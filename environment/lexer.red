@@ -12,6 +12,8 @@ Red [
 
 system/lexer: context [
 
+	pre-load: none
+
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
 		spec: reduce spec
@@ -923,6 +925,8 @@ system/lexer: context [
 		any-value: [pos: any [some ws | literal-value]]
 		red-rules: [any-value opt wrong-end]
 
+		if pre-load [do [pre-load src part]]
+		
 		unless either part [
 			parse/case/part src red-rules length
 		][
