@@ -81,7 +81,7 @@ ext-process: context [
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
 				Windows  [ platform/WriteFile platform/GetStdHandle STD_ERROR_HANDLE str len :len null ]
-				#default [ io-write stderr as byte-ptr! str len ]
+				#default [ platform/io-write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
 		]
