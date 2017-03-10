@@ -740,4 +740,4 @@ redc: context [
 ]
 
 redc/fail-try "Driver" [redc/main]
-either encap? [quit/return 0][halt]
+if encap? [quit/return 0]
