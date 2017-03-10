@@ -1557,6 +1557,7 @@ system-dialect: make-profilable context [
 							)
 							pos: set id   string!
 							pos: set spec block!    (
+								clear-docstrings spec
 								either all [1 = length? spec not block? spec/1][
 									unless parse spec type-spec [throw-error err]
 									either ns-path [
@@ -1569,7 +1570,6 @@ system-dialect: make-profilable context [
 									emitter/import/var name reloc
 								][
 									check-specs/extend name spec
-									clear-docstrings spec
 									specs: copy specs
 									specs/1: name
 									add-function 'import specs cc
