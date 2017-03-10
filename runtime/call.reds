@@ -95,9 +95,10 @@ ext-process: context [
 	]
 
 	insert-string: func [
-		str		[red-string!]
-		data	[p-buffer!]
-		shell?	[logic!]
+		str		 [red-string!]
+		data	 [p-buffer!]
+		shell?	 [logic!]
+		console? [logic!]
 		/local
 			temp	[byte-ptr!]
 			buffer	[byte-ptr!]
@@ -122,7 +123,7 @@ ext-process: context [
 			#either OS = 'Windows [
 				buffer: data/buffer
 				count: data/count
-				either shell? [
+				either any [console? shell?][
 					len: 0
 					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
@@ -723,11 +724,11 @@ ext-process: context [
 		]
 	
 		if all [redirout <> null out/count <> -1][
-			insert-string redirout out shell?
+			insert-string redirout out shell? console?
 			free out/buffer
 		]
 		if all [redirerr <> null err/count <> -1][
-			insert-string redirerr err shell?
+			insert-string redirerr err shell? console?
 			free err/buffer
 		]
 		integer/box pid
