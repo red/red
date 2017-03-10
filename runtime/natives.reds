@@ -2409,6 +2409,7 @@ natives: context [
 	call*: func [
 		check?	[logic!]
 		wait	[integer!]
+		show	[integer!]
 		console	[integer!]
 		shell	[integer!]
 		input	[integer!]
@@ -2422,7 +2423,7 @@ natives: context [
 			err	[red-string!]
 			new	[red-string!]
 	][
-		#typecheck [call wait console shell input output error]
+		#typecheck [call wait show console shell input output error]
 		
 		cmd: as red-string! stack/arguments
 		if string/rs-tail? cmd [return integer/box 0]
@@ -2442,7 +2443,7 @@ natives: context [
 		err: as red-string! stack/arguments + error
 		unless OPTION?(err)[err: null]
 		
-		ext-process/call cmd wait > -1 console > -1 shell > -1 in out err
+		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
 	]
 
 	;--- Natives helper functions ---

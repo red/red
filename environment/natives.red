@@ -840,6 +840,7 @@ call: make native! [[
 		"Executes a shell command to run another process"
 		cmd			[string! file!]			"A shell command or an executable file"
 		/wait								"Runs command and waits for exit"
+		/show								"Force the display of system's shell window (Windows only)"
 		/console							"Runs command with I/O redirected to console (CLI console only at present)"
 		/shell								"Forces command to be run from shell"
 		/input	in	[string! file! binary!]	"Redirects in to stdin"

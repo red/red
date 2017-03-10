@@ -186,6 +186,7 @@ ext-process: context [
 		OS-call: func [ "Executes a DOS command to run another process."
 			cmd           [c-string!]  "The shell command"
 			waitend?      [logic!]     "Wait for end of command, implicit if any buffer is set"
+			show?		  [logic!]	   "Forces display of system's shell window"
 			console?      [logic!]     "Redirect outputs to console"
 			shell?        [logic!]     "Forces command to be run from shell"
 			in-buf        [p-buffer!]  "Input data buffer or null"
@@ -303,6 +304,8 @@ ext-process: context [
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
+			unless show? [s-inf/dwFlags: s-inf/dwFlags or STARTF_USESHOWWINDOW]
+			
 			sa/bInheritHandle: inherit
 			
 			either shell? [
@@ -378,6 +381,7 @@ ext-process: context [
 
 		OS-call: func [                "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
+			show?		[logic!]	   "<unused>"
 			waitend?	[logic!]       "Wait for end of command, implicit if any buffer is set"
 			console?	[logic!]       "Redirect outputs to console"
 			shell?		[logic!]       "Forces command to be run from shell"
@@ -644,6 +648,7 @@ ext-process: context [
 	call: func [
 		cmd			[red-string!]
 		wait?		[logic!]
+		show?		[logic!]
 		console?	[logic!]
 		shell?		[logic!]
 		in-str		[red-string!]
@@ -711,7 +716,7 @@ ext-process: context [
 		]
 	
 		PLATFORM_TO_CSTR(cstr cmd len)	
-		pid: OS-call cstr wait? console? shell? inp out err
+		pid: OS-call cstr wait? show? console? shell? inp out err
 	
 		if all [in-str <> null TYPE_OF(in-str) = TYPE_STRING inp/count > 0][
 			free inp/buffer
