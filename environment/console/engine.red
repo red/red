@@ -156,7 +156,8 @@ system/console: context [
 	]
 
 	do-command: function [][
-		if error? code: try [load/all buffer][print code]
+		load-it: [load/all buffer]						;-- avoids compiling call to LOAD
+		if error? code: try load-it [print code]
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
