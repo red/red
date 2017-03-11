@@ -545,6 +545,7 @@ redc: context [
 			if cmd: select [
 				"clear" do-clear
 				"build" do-build
+				"halt"	'halt
 			] first args [
 				return do reduce [cmd next args]
 			]
