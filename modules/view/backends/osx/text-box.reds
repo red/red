@@ -245,6 +245,7 @@ OS-text-box-metrics: func [
 				system/stack/top: saved
 				idx: xx + yy
 			]
+			if zero? cnt [cnt: 1]
 			integer/make-at values + TBOX_OBJ_LINE_COUNT cnt
 		]
 	]

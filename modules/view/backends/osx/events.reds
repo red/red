@@ -351,6 +351,29 @@ get-event-key: func [
 				]
 			][res]
 		]
+		EVT_SCROLL [
+			code: evt/flags
+			either code and 8 = 0 [
+				switch code and 7 [
+					2 [_track]
+					1 [_page-up]
+					3 [_page-down]
+					4 [_up]
+					5 [_down]
+					default [_end]
+				]
+			][
+				switch code and 7 [
+					2 [_track]
+					1 [_page-left]
+					3 [_page-right]
+					4 [_left]
+					5 [_right]
+					default [_end]
+				]
+			]
+		]
+		EVT_WHEEL [_mouse-wheel]
 		default [as red-value! none-value]
 	]
 ]
@@ -379,6 +402,7 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_SCROLL [integer/push evt/flags >>> 4]
 		default	 [integer/push evt/flags and FFFFh]
 	]
 ]

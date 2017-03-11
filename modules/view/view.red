@@ -409,8 +409,9 @@ para!: object [
 
 scroller!: object [
 	position:	none			;-- knob position
-	page-size:	none
-	max-size:	none
+	page-size:	none			;-- page size
+	min-size:	1				;-- minimum value
+	max-size:	none			;-- maximum value
 	visible?:	yes
 	vertical?:	yes				;-- read only. YES: vertical NO: horizontal
 	parent:		none
@@ -806,6 +807,10 @@ get-scroller: function [
 	return:		[object!]
 ][
 	make scroller! [
+		position: 1
+		page: 10
+		minimum: 1
+		maximum: 100
 		parent: face
 		vertical?: orientation = 'vertical
 	]

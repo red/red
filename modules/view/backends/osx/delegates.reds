@@ -19,6 +19,15 @@ is-flipped: func [
 	true
 ]
 
+accepts-first-responder: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [logic!]
+][
+	true
+]
+
 become-first-responder: func [
 	[cdecl]
 	self	[integer!]
@@ -284,6 +293,75 @@ button-click: func [
 		]
 		if change? [make-event self 0 EVT_CHANGE]
 	]
+]
+
+empty-func: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+	return: [integer!]
+][
+	probe "empty-func"
+	0
+]
+
+scroller-change: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+	/local
+		code		[integer!]
+		bar			[integer!]
+		direction	[integer!]
+		pos			[integer!]
+		view		[integer!]
+		min			[red-integer!]
+		max			[red-integer!]
+		page		[red-integer!]
+		range		[integer!]
+		n			[integer!]
+		frac		[float!]
+		values		[red-value!]
+][
+	probe "scroller-change"
+	view: objc_msgSend [self sel_getUid "documentView"]
+	bar: objc_msgSend [self sel_getUid "verticalScroller"]
+	direction: either bar = sender [0][1]
+	code: objc_msgSend [sender sel_getUid "hitPart"]
+	pos: 0
+	if code = 2 [			;-- track
+		frac: objc_msgSend_fpret [sender sel_getUid "doubleValue"]
+		n: objc_getAssociatedObject sender RedAttachedWidgetKey
+		if n <> 0 [
+			values: as red-value! objc_msgSend [n sel_getUid "unsignedIntValue"]
+			min:	as red-integer! values + SCROLLER_OBJ_MIN
+			max:	as red-integer! values + SCROLLER_OBJ_MAX
+			page:	as red-integer! values + SCROLLER_OBJ_PAGE
+			range:	max/value - page/value
+			frac: frac * as float! range
+			frac: 0.5 + frac + as float! min/value
+			pos: as-integer frac
+			pos: pos << 4
+		]
+	]
+	make-event self direction << 3 or code or pos EVT_SCROLL
+]
+
+refresh-scrollview: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	draw?	[integer!]
+	/local
+		view [integer!]
+][
+	if draw? <> 0 [
+		view: objc_msgSend [self sel_getUid "documentView"]
+		objc_msgSend [view sel_getUid "setNeedsDisplay:" yes]
+	]
+	msg-send-super self cmd draw?
 ]
 
 slider-change: func [

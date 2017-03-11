@@ -24,6 +24,13 @@ add-base-handler: func [class [integer!]][
 	flipp-coord class
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
+	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
+]
+
+add-scrollview-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "setNeedsDisplay:" as-integer :refresh-scrollview "v@:B"
+	class_addMethod class sel_getUid "_doScroller:" as-integer :scroller-change "v@:@"
+	class_addMethod class sel_getUid "inLiveResizeForScrollerImpPair" as-integer :empty-func "c12@0:4@8"
 ]
 
 win-add-subview: func [
@@ -190,6 +197,7 @@ register-classes: does [
 	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG
 	make-super-class "RedOpenPanel"		"NSOpenPanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
 	make-super-class "RedSavePanel"		"NSSavePanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
+	make-super-class "RedScrollBase"	"NSScrollView"			as-integer :add-scrollview-handler STORE_FACE_FLAG
 	make-super-class "RedScrollView"	"NSScrollView"			0	STORE_FACE_FLAG
 	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
 	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG

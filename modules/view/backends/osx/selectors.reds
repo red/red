@@ -20,6 +20,7 @@ sel-on-timer:					0
 sel_release:					0
 sel_alloc:						0
 sel_init:						0
+sel_initWithFrame:				0
 sel_changeFont:					0
 sel_windowWillClose:			0
 sel_addObject:					0
@@ -32,6 +33,7 @@ init-selectors: does [
 	sel_release:				sel_getUid "release"
 	sel_alloc:					sel_getUid "alloc"
 	sel_init:					sel_getUid "init"
+	sel_initWithFrame:			sel_getUid "initWithFrame:"
 	sel_changeFont:				sel_getUid "changeFont:"
 	sel_windowWillClose:		sel_getUid "windowWillClose:"
 	sel_addObject:				sel_getUid "addObject:"

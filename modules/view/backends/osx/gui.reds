@@ -317,7 +317,7 @@ get-flags: func [
 		default [return 0]
 	]
 	flags: 0
-	
+
 	until [
 		sym: symbol/resolve word/symbol
 		case [
@@ -330,7 +330,8 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = scrollable [0]
+			sym = editable	 [flags: flags or FACET_FLAGS_EDITABLE]
+			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
 			sym = Direct2D	 [0]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
@@ -740,7 +741,7 @@ change-data: func [
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: word/symbol
-	
+
 	case [
 		all [
 			type = progress
@@ -774,7 +775,7 @@ change-data: func [
 			objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
 		]
 		any [type = drop-list type = drop-down][
-			init-combo-box 
+			init-combo-box
 				hWnd
 				as red-block! data
 				null
@@ -925,7 +926,7 @@ init-combo-box: func [
 	][
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
-		
+
 		objc_msgSend [combo sel_getUid "removeAllItems"]
 
 		if str = tail [exit]
@@ -1011,6 +1012,37 @@ init-window: func [
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
 	objc_msgSend [window sel_getUid "makeMainWindow"]
+]
+
+init-base-face: func [
+	face	[red-object!]
+	base	[integer!]
+	menu	[red-block!]
+	size	[red-pair!]
+	bits	[integer!]
+	/local
+		id	[integer!]
+		obj [integer!]
+		rc	[NSRect!]
+][
+	either bits and FACET_FLAGS_SCROLLABLE <> 0 [
+		rc: make-rect 0 0 size/x size/y
+		id: objc_getClass "RedBase"
+		obj: objc_msgSend [
+			objc_msgSend [id sel_getUid "alloc"]
+			sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h
+		]
+		store-face-to-obj obj id face
+
+		objc_msgSend [obj sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
+		objc_msgSend [base sel_getUid "setHasVerticalScroller:" yes]
+		;objc_msgSend [base sel_getUid "setHasHorizontalScroller:" yes]
+		objc_msgSend [base sel_getUid "setDocumentView:" obj]
+	][
+		obj: base
+	]
+	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
+	objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
 ]
 
 make-area: func [
@@ -1128,7 +1160,7 @@ update-combo-box: func [
 					sym = words/_clear/symbol
 				][
 					ownership/unbind-each as red-block! value index part
-					
+
 					either all [
 						sym = words/_clear/symbol
 						zero? index
@@ -1148,7 +1180,7 @@ update-combo-box: func [
 					sym = words/_reverse/symbol
 				][
 					;ownership/unbind-each as red-block! value index part
-					
+
 					str: as red-string! either any [
 						null? new
 						TYPE_OF(new) = TYPE_BLOCK
@@ -1177,6 +1209,14 @@ update-combo-box: func [
 	]
 ]
 
+get-track-pos: func [
+	obj			[integer!]
+	vertical?	[logic!]
+	return:		[integer!]
+][
+	
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -1185,47 +1225,90 @@ update-scroller: func [
 		vertical?	[red-logic!]
 		int			[red-integer!]
 		values		[red-value!]
-		hWnd		[handle!]
-		nTrackPos	[integer!]
-		nPos		[integer!]
-		nPage		[integer!]
-		nMax		[integer!]
-		nMin		[integer!]
-		fMask		[integer!]
-		cbSize		[integer!]
+		container	[integer!]
+		bar			[integer!]
+		range		[integer!]
+		sel			[integer!]
+		pos			[integer!]
+		page		[integer!]
+		min			[integer!]
+		max			[integer!]
+		n			[integer!]
+		frac		[float!]
+		old-frac	[float!]
+		knob		[float32!]
+		pf32		[pointer! [float32!]]
+		old-knob	[float32!]
 ][
-	;values: object/get-values scroller
-	;parent: as red-object! values + SCROLLER_OBJ_PARENT
-	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
-	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
-	;hWnd: as handle! int/value
+	values: object/get-values scroller
+	parent: as red-object! values + SCROLLER_OBJ_PARENT
+	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	container: int/value
 
-	;int: as red-integer! values + flag
+	if flag = SCROLLER_OBJ_VISIBLE? [
+		int: as red-integer! values + SCROLLER_OBJ_VISIBLE?
+		sel: either vertical?/value [sel_getUid "setHasVerticalScroller:"][sel_getUid "setHasHorizontalScroller:"]
+		objc_msgSend [container sel int/value]
+		exit
+	]
 
-	;if flag = SCROLLER_OBJ_VISIBLE? [
-	;	ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
-	;	exit
-	;]
+	sel: either vertical?/value [sel_getUid "verticalScroller"][sel_getUid "horizontalScroller"]
+	bar: objc_msgSend [container sel]
 
-	;fMask: switch flag [
-	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
-	;	SCROLLER_OBJ_PAGE
-	;	SCROLLER_OBJ_MAX [
-	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
-	;		nPage: int/value
-	;		int: as red-integer! values + SCROLLER_OBJ_MAX
-	;		nMin: 1
-	;		nMax: int/value
-	;	 	SIF_RANGE or SIF_PAGE
-	;	]
-	;	default [0]
-	;]
+	int: as red-integer! values + SCROLLER_OBJ_POS
+	pos: int/value
+	int: as red-integer! values + SCROLLER_OBJ_PAGE
+	page: int/value
+	int: as red-integer! values + SCROLLER_OBJ_MIN
+	min: int/value
+	int: as red-integer! values + SCROLLER_OBJ_MAX
+	max: int/value
 
-	;if fMask <> 0 [
-	;	fMask: fMask or SIF_DISABLENOSCROLL
-	;	cbSize: size? tagSCROLLINFO
-	;	SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
-	;]
+	n: objc_getAssociatedObject bar RedAttachedWidgetKey
+	if any [
+		zero? n
+		values <> as red-value! objc_msgSend [n sel_getUid "unsignedIntValue"]
+	][
+		n: objc_msgSend [
+			objc_getClass "NSNumber" sel_getUid "numberWithUnsignedInt:"
+			values
+		]
+		objc_setAssociatedObject bar RedAttachedWidgetKey n OBJC_ASSOCIATION_ASSIGN
+	]
+
+	n: max - page
+	if pos < n [n: pos]
+	if pos < min [pos: min]
+probe [max " " min " " page " " pos]
+	range: max - min - page
+	sel: max - min
+	frac: either range <= 0 [as float! 1.0][
+		max: max - page
+		(as float! pos - 1) / as float! max
+	]
+	pos: pos - min
+?? sel
+	probe (as float! pos) / as float! sel
+	knob: either range <= 0 [as float32! 1.0][
+		(as float32! page) / as float32! sel
+	]
+
+	old-frac: objc_msgSend_fpret [bar sel_getUid "doubleValue"]
+	old-knob: objc_msgSend_f32 [bar sel_getUid "knobProportion"]
+
+	pf32: as pointer! [float32!] :sel
+	pf32/value: knob
+	objc_msgSend [bar sel_getUid "setDoubleValue:" frac]
+	objc_msgSend [bar sel_getUid "setKnobProportion:" pf32/value]
+	objc_msgSend [bar sel_getUid "setEnabled:" true]
+probe [frac " " old-frac " " knob " " old-knob]
+	if any [
+		knob <> old-knob
+		frac <> old-frac
+	][
+		objc_msgSend [container sel_getUid "flashScrollers"]
+	]
 ]
 
 set-hint-text: func [
@@ -1329,7 +1412,9 @@ OS-make-view: func [
 		any [
 			sym = panel
 			sym = base
-		][class: "RedBase"]
+		][
+			class: either bits and FACET_FLAGS_SCROLLABLE = 0 ["RedBase"]["RedScrollBase"]
+		]
 		any [
 			sym = drop-down
 			sym = drop-list
@@ -1415,8 +1500,7 @@ OS-make-view: func [
 			sym = panel
 			sym = base
 		][
-			if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
-			objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
+			init-base-face face obj menu size bits
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1603,7 +1687,7 @@ OS-destroy-view: func [
 
 	obj: as red-object! values + FACE_OBJ_FONT
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
-	
+
 	obj: as red-object! values + FACE_OBJ_PARA
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
 ]
@@ -1623,7 +1707,7 @@ OS-update-facet: func [
 		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
-	
+
 	case [
 		sym = facets/pane [0]
 		sym = facets/data [
@@ -1644,7 +1728,7 @@ OS-update-facet: func [
 					index: index / 2
 					part:   part / 2
 					if zero? part [exit]
-					
+
 					update-combo-box face value sym new index part yes
 				]
 				type = tab-panel [

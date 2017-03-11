@@ -127,6 +127,7 @@ system/view/platform: context [
 			#enum scroller-facet! [
 				SCROLLER_OBJ_POS
 				SCROLLER_OBJ_PAGE
+				SCROLLER_OBJ_MIN
 				SCROLLER_OBJ_MAX
 				SCROLLER_OBJ_VISIBLE?
 				SCROLLER_OBJ_VERTICAL?
