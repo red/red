@@ -661,25 +661,7 @@ extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
 	unless args: system/script/args [exit]				;-- non-executable case
-	
-	;-- decode escaping rules following CommandLineToArgvW() rules:
-	;-- https://msdn.microsoft.com/en-us/library/windows/desktop/bb776391(v=vs.85).aspx
-	if system/platform = 'Windows [
-		unescape: quote (
-			if odd? len: offset? s e [len: len - 1]
-			e: skip e negate len / 2
-			e: remove/part s e
-		)
-		parse args [
-			any [
-				s: {'"} thru {"'} e: (remove s e: remove back back e) :e
-				| s: #"'" remove s
-				| s: some #"\" e: {"} unescape :e
-				  thru [s: some #"\" e: {"}] unescape :e
-				| skip
-			]
-		]
-	]
+
 	;-- extract system/options/boot
 	either args/1 = dbl-quote [
 		until [args: next args args/1 <> dbl-quote]
@@ -694,9 +676,24 @@ extract-boot-args: function [
 	
 	;-- set system/options/args
 	either empty? trim/head args [system/script/args: none][
-		system/options/args: parse head args [
+		unescape: quote (
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		)
+		parse args: copy args [							;-- preprocess escape chars
+			any [
+				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
+				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
+				| s: some #"\" e: {"} unescape :e
+				  thru [s: some #"\" e: {"}] unescape :e
+				| skip
+			]
+		]
+		system/options/args: parse head args [			;-- tokenize and collect
 			collect some [[
 				some #"^"" keep copy s to #"^"" some #"^""
+				| #"{" keep copy s to #"}" skip
 				| keep copy s [to #" " | to end]] any #" "
 			]
 		]
