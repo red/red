@@ -382,8 +382,8 @@ ext-process: context [
 
 		OS-call: func [                "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
-			show?		[logic!]	   "<unused>"
 			waitend?	[logic!]       "Wait for end of command, implicit if any buffer is set"
+			show?		[logic!]	   "<unused>"
 			console?	[logic!]       "Redirect outputs to console"
 			shell?		[logic!]       "Forces command to be run from shell"
 			in-buf		[p-buffer!]    "Input data buffer or null"
