@@ -67,7 +67,12 @@ Red/System [
 			s		[series!]
 			cnt		[integer!]
 			size	[integer!]
+			cp		[integer!]
+			offset	[integer!]
+			delim	[integer!]
 			end?	[logic!]
+			ws?		[logic!]
+			dq?		[logic!]
 	][
 		cnt: 0
 		size: 4'000									;-- enough?
@@ -77,12 +82,35 @@ Red/System [
 		
 		until [
 			src: args/item
+			ws?: no
+			dq?: no
+			offset: string/rs-abs-length? str
+			
 			until [
 				cnt: unicode/utf8-char-size? as-integer src/1
-				s: string/append-char s unicode/decode-utf8-char src :cnt
+				cp: unicode/decode-utf8-char src :cnt
+				switch cp [
+					#" "	[ws?: yes]
+					#"^""	[dq?: yes]
+					default [0]
+				]
+				s: string/append-char s cp
 				src: src + cnt
 				size: size - 1
 				any [src/1 = null-byte zero? size]
+			]
+			
+			case [
+				ws? [
+					delim: as-integer either dq? [#"'"][#"^""]
+					s: string/insert-char s offset delim
+					s: string/append-char s delim
+				]
+				dq? [
+					s: string/insert-char s offset as-integer #"'"
+					s: string/append-char s delim  as-integer #"'"
+				]
+				true [0]
 			]
 			args: args + 1
 			end?: null? args/item
