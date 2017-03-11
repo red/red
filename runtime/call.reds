@@ -180,6 +180,7 @@ ext-process: context [
 				OPEN_ALWAYS
 				FILE_ATTRIBUTE_NORMAL
 				null
+			
 			either file = -1 [file: 0][platform/SetFilePointer file 0 null SET_FILE_END]
 			file
 		]
@@ -318,9 +319,23 @@ ext-process: context [
 				cmdstr: cmd
 			]
 			unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
-				__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
-				if shell? [free as byte-ptr! cmdstr]
-				return -1
+				either 2 = platform/GetLastError [		;-- ERROR_FILE_NOT_FOUND
+					len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
+					cmdstr: make-c-string (14 + len)
+					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
+					copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
+					shell?: yes							;-- force /shell mode and try again
+					
+					unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+						if shell? [free as byte-ptr! cmdstr]
+						return -1
+					]
+				][
+					__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+					if shell? [free as byte-ptr! cmdstr]
+					return -1
+				]
 			]
 			if shell? [free as byte-ptr! cmdstr]
 
