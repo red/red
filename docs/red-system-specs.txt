@@ -1326,7 +1326,7 @@ The purpose of the <b>callback</b> attribute is to manually force a callback com
 
 The compiler can correctly infer callbacks when a function pointer is passed as a get-word to an imported function call. Other cases of passing a Red/System function pointer cannot be properly detected as external callbacks.
 
-For example, if Red/System function pointers are passed to an external API in an indirect way (filling an array or a structure), and those functions will be later called the external code (OS or a library), the <b>callback</b> attribute *must* be used in order for correct code to be generated. Moreover, if the external caller is using C calling convention, then the additional <b>cdecl</b> is required.
+For example, if Red/System function pointers are passed to an external API in an indirect way (filling an array or a structure), and those functions will be later called by the external code (OS or a library), the <b>callback</b> attribute *must* be used in order for correct code to be generated. Moreover, if the external caller is using C calling convention, then the additional <b>cdecl</b> is required.
 
 +++Variadic
 
