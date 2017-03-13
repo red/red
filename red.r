@@ -266,7 +266,7 @@ redc: context [
 					| #"{" s: to #"}" e: (keep copy/part s e) skip
 					| s: [
 						to #" "  e: (keep copy/part s e)
-						| to end e: (keep copy/part s e) skip]
+						| to end e: (if s <> e [keep copy/part s e]) skip]
 					] any #" "
 				]
 			]
@@ -281,7 +281,7 @@ redc: context [
 			insert/dup buffer null size + 1
 
 			WideCharToMultiByte 65001 0 cmd -1 buffer size 0 0 ;-- CP_UTF8
-			while [null = last buffer][remove back tail buffer]
+			while [find " ^@" last buffer][remove back tail buffer]
 			system/script/args: buffer
 			split-tokens
 		][
