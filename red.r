@@ -35,35 +35,59 @@ redc: context [
 			3 [											;-- Windows
 				either lib?: find system/components 'Library [
 					sys-path: to-rebol-file get-env "SystemRoot"
-					shell32: load/library sys-path/System32/shell32.dll
-					libc:  	 load/library sys-path/System32/msvcrt.dll
+					shell32:  load/library sys-path/System32/shell32.dll
+					kernel32: load/library sys-path/System32/kernel32.dll
+					libc:  	  load/library sys-path/System32/msvcrt.dll
 
 					CSIDL_COMMON_APPDATA: to integer! #{00000023}
 
 					SHGetFolderPath: make routine! [
-							hwndOwner 	[integer!]
-							nFolder		[integer!]
-							hToken		[integer!]
-							dwFlags		[integer!]
-							pszPath		[string!]
-							return: 	[integer!]
+						hwndOwner 	[integer!]
+						nFolder		[integer!]
+						hToken		[integer!]
+						dwFlags		[integer!]
+						pszPath		[string!]
+						return: 	[integer!]
 					] shell32 "SHGetFolderPathA"
 
-					ShellExecute: make routine! [
-							hwnd 		 [integer!]
-							lpOperation  [string!]
-							lpFile		 [string!]
-							lpParameters [string!]
-							lpDirectory  [integer!]
-							nShowCmd	 [integer!]
-							return:		 [integer!]
-					] shell32 "ShellExecuteA"
+					ShellExecuteW: make routine! [
+						hwnd 		 [integer!]
+						lpOperation  [string!]
+						lpFile		 [string!]
+						lpParameters [string!]
+						lpDirectory  [integer!]
+						nShowCmd	 [integer!]
+						return:		 [integer!]
+					] shell32 "ShellExecuteW"
+					
+					GetCommandLineW: make routine! compose/deep [
+						return: [integer!]
+					] kernel32 "GetCommandLineW"
 
-					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+					WideCharToMultiByte: make routine! [
+						CodePage				[integer!]
+						dwFlags					[integer!]
+						lpWideCharStr			[integer!]
+						cchWideChar				[integer!]
+						lpMultiByteStr			[string!]
+						cbMultiByte				[integer!]
+						lpDefaultChar			[integer!]
+						lpUsedDefaultChar		[integer!]
+						return:					[integer!]
+					] kernel32 "WideCharToMultiByte"
+
+					_wsystem: make routine! [cmd [string!] return: [integer!]] libc "_wsystem"
 
 					gui-sys-call: func [cmd [string!] args [string!]][
-						ShellExecute 0 "open" cmd args 0 1
+						ShellExecuteW
+							0
+							utf8-to-utf16 "open"
+							utf8-to-utf16 cmd
+							utf8-to-utf16 args
+							0 1
 					]
+					
+					sys-call: func [cmd [string!]][_wsystem utf8-to-utf16 cmd]
 
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
@@ -217,6 +241,53 @@ redc: context [
 		]
 		no
 	]
+	
+	split-tokens: has [args unescape len s e][
+		args: system/script/args
+		
+		unescape: to-paren [
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		]
+		parse/all args: copy args [						;-- preprocess escape chars
+			any [
+				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
+				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
+				| s: some #"\" e: {"} unescape :e
+				  thru #"\" s: any #"\" e: {"} unescape :e
+				| skip
+			]
+		]
+		remove system/options/args: collect [			;-- remove first entry
+			parse/all args [							;-- tokenize and collect
+				some [[
+					some #"^"" s: to #"^"" e: (keep copy/part s e) some #"^""
+					| #"{" s: to #"}" e: (keep copy/part s e) skip
+					| s: [
+						to #" "  e: (keep copy/part s e)
+						| to end e: (keep copy/part s e) skip]
+					] any #" "
+				]
+			]
+		]
+	]
+	
+	fetch-cmdline: has [cmd buffer size][
+		either Windows? [
+			cmd: GetCommandLineW
+			size: WideCharToMultiByte 65001 0 cmd -1 "" 0 0 0  ;-- CP_UTF8
+			buffer: make string! size + 1
+			insert/dup buffer null size + 1
+
+			WideCharToMultiByte 65001 0 cmd -1 buffer size 0 0 ;-- CP_UTF8
+			while [null = last buffer][remove back tail buffer]
+			system/script/args: buffer
+			split-tokens
+		][
+		
+		]
+	]
 
 	safe-to-local-file: func [file [file! string!]][
 		if all [
@@ -226,6 +297,28 @@ redc: context [
 			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
 		]
 		file
+	]
+	
+	form-args: func [file /local args delim][
+		args: make string! 32
+
+		foreach arg find system/options/args file [
+			case [
+				find arg #" " [
+					delim: pick {'"} to logic! find arg #"^""
+					repend args [delim arg delim]
+				]
+				find arg #"^"" [
+					repend args [#"'" arg #"'"]
+				]
+				'else [
+					append args arg
+				]
+			]
+			append args #" "
+		]
+		remove back tail args
+		args
 	]
 
 	add-legacy-flags: func [opts [object!] /local out ver][
@@ -314,8 +407,8 @@ redc: context [
 	]
 
 	run-console: func [
-		gui? [logic!] /with file [string!] args [string!]
-		/local opts result script filename exe console files source con-engine gui-target
+		gui? [logic!] /with file [string!]
+		/local opts result script filename exe console files source con-ui gui-target
 	][
 		script: temp-dir/red-console.red
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -324,9 +417,10 @@ redc: context [
 		if Windows? [append exe %.exe]
 
 		unless exists? temp-dir [make-dir temp-dir]
+		
 		unless exists? exe [
 			console: %environment/console/
-			con-engine: pick [%gui-console.red %console.red] gui?
+			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
 					;"Darwin"	OSX
@@ -334,7 +428,7 @@ redc: context [
 					;"Linux"		Linux-GTK
 				] default-target
 			]
-			source: copy read-cache console/:con-engine
+			source: copy read-cache console/:con-ui
 			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 
@@ -371,13 +465,11 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
-		if all [file find file #" "][file: rejoin [{"} file {"}]]
 
 		either gui? [
-			if all [with args][file: reform [file args]]
-			gui-sys-call exe any [file ""]
+			gui-sys-call exe any [all [file form-args file] ""]
 		][
-			if with [repend exe [{ "} file {"} args]]
+			if with [repend exe [" " form-args file]]
 			sys-call exe								;-- replace the buggy CALL native
 		]
 		quit/return 0
@@ -531,8 +623,11 @@ redc: context [
 		/local src opts output target verbose filename config config-name base-path type
 		mode target? gui? cmd spec cmds ws ssp
 	][
-		cmds: any [args system/options/args system/script/args ""]
-		args: either block? cmds [cmds][parse-tokens cmds]
+		unless args [
+			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
+			args: any [system/options/args system/script/args ""] ;-- ssa for quick-test.r
+		]	
+		unless block? args [args: parse-tokens args]
 		
 		target: default-target
 		opts: make system-dialect/options-class [
@@ -573,9 +668,7 @@ redc: context [
 				| "--catch"								;-- just pass-thru
 			]
 			set filename skip (src: load-filename filename)
-			args:
 		]		
-		unless empty? args: reform args [insert args #" "]
 
 		if mode [
 			switch mode [
@@ -651,7 +744,7 @@ redc: context [
 
 		if all [encap? none? output none? type][
 			if load-lib? [build-compress-lib]
-			run-console/with gui? filename args
+			run-console/with gui? filename
 		]
 
 		if slash <> first src [							;-- if relative path
