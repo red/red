@@ -123,7 +123,7 @@ ext-process: context [
 			#either OS = 'Windows [
 				buffer: data/buffer
 				count: data/count
-				either any [console? shell?][
+				either any [console? shell? win-error?][
 					len: 0
 					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
@@ -143,6 +143,8 @@ ext-process: context [
 
 	#switch OS [
 	Windows   [											;-- Windows
+		win-error?: no
+
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd	 [integer!]      "File descriptor"
 			data [p-buffer!]
@@ -208,6 +210,7 @@ ext-process: context [
 				dev-null   [integer!]
 				sa p-inf s-inf len success error str
 		][
+			win-error?: no
 			s-inf: declare startup-info!
 			p-inf: declare process-info!
 			sa: declare security-attributes!
@@ -358,6 +361,7 @@ ext-process: context [
 				platform/CloseHandle err-write
 				read-from-pipe err-read err-buf
 				platform/CloseHandle err-read
+				if all [shell? err-buf/count > 0][win-error?: yes]
 			]
 			either any [console? waitend?][
 				platform/WaitForSingleObject p-inf/hProcess INFINITE
@@ -607,12 +611,12 @@ ext-process: context [
 							]
 							revents and POLLIN <> 0 [
 								case [
-									fds/fd = fd-out/reading [
+									all [out? fds/fd = fd-out/reading][
 										pbuf: out-buf
 										offset: :out-len
 										size: :out-size
 									]
-									fds/fd = fd-err/reading [
+									all [err? fds/fd = fd-err/reading][
 										pbuf:	err-buf
 										offset: :err-len
 										size: :err-size
