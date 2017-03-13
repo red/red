@@ -582,12 +582,12 @@ redc: context [
 					make-dir path: %libRed/
 					foreach file [
 						%libRed.def
-						%libRed.lib
 						%libRed.red
 						%red.h
 					][
 						write path/:file read-cache path/:file
 					]
+					write/binary path/libRed.lib read-cache path/libRed.lib
 				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
