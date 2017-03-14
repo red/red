@@ -24,6 +24,13 @@
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
+#ifdef __cplusplus
+#define EXTERN_C extern "C" {
+#define EXTERN_C_END }
+#else
+#define EXTERN_C
+#define EXTERN_C_END
+#endif
 
 typedef void*     red_value;
 typedef red_value red_unset;
@@ -41,8 +48,7 @@ typedef red_value red_path;
 typedef red_value red_series;
 typedef red_value red_error;
 
-extern "C" {
-
+EXTERN_C
 /* Setup and terminate */
 	void		redOpen(void);
 	void		redClose(void);
@@ -115,7 +121,7 @@ extern "C" {
 	int			redCloseLogWindow(void);
 	void		redOpenLogFile(const char *name);
 	void		redCloseLogFile(void);
-}
+EXTERN_C_END
 
 /* Red Types */
 typedef enum

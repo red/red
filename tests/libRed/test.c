@@ -1,7 +1,11 @@
 #include "red.h"
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" red_integer add(red_integer a, red_integer b) {
+#else
 red_integer add(red_integer a, red_integer b) {
+#endif
 	printf("add called! %d %d\n", redCInt32(a), redCInt32(b));
 	return redInteger(redCInt32(a) + redCInt32(b));
 }
