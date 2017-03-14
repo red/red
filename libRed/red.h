@@ -24,6 +24,7 @@
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
+
 typedef void*     red_value;
 typedef red_value red_unset;
 typedef red_value red_datatype;
@@ -40,78 +41,81 @@ typedef red_value red_path;
 typedef red_value red_series;
 typedef red_value red_error;
 
+extern "C" {
+
 /* Setup and terminate */
-void		redOpen(void);
-void		redClose(void);
+	void		redOpen(void);
+	void		redClose(void);
 
 /* Run Red code */
-red_value	redDo(const char* source);
-red_value	redDoFile(const char* file);
-red_value	redDoBlock(red_block code);
-red_value	redCall(red_word name, ...);
+	red_value	redDo(const char* source);
+	red_value	redDoFile(const char* file);
+	red_value	redDoBlock(red_block code);
+	red_value	redCall(red_word name, ...);
 
 /* Expose a C callback in Red */
-red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
+	red_value	redRoutine(red_word name, const char* spec, void* func_ptr);
 
 /* C -> Red */
-long		redSymbol(const char* word);
-red_unset	redUnset(void);
-red_none	redNone(void);
-red_logic	redLogic(long logic);
-red_datatype redDatatype(long type);
-red_integer	redInteger(long number);
-red_float	redFloat(double number);
-red_pair	redPair(long x, long y);
-red_tuple	redTuple(long r, long g, long b);
-red_tuple	redTuple4(long r, long g, long b, long a);
-red_string	redString(const char* string);
-red_word	redWord(const char* word);
-red_block	redBlock(red_value v,...);
-red_path	redPath(red_value v, ...);
-red_path	redLoadPath(const char* path);
-red_value	redMakeSeries(unsigned long type, unsigned long slots);
+	long		redSymbol(const char* word);
+	red_unset	redUnset(void);
+	red_none	redNone(void);
+	red_logic	redLogic(long logic);
+	red_datatype redDatatype(long type);
+	red_integer	redInteger(long number);
+	red_float	redFloat(double number);
+	red_pair	redPair(long x, long y);
+	red_tuple	redTuple(long r, long g, long b);
+	red_tuple	redTuple4(long r, long g, long b, long a);
+	red_string	redString(const char* string);
+	red_word	redWord(const char* word);
+	red_block	redBlock(red_value v, ...);
+	red_path	redPath(red_value v, ...);
+	red_path	redLoadPath(const char* path);
+	red_value	redMakeSeries(unsigned long type, unsigned long slots);
 
 /* Red -> C */
-long		redCInt32(red_integer number);
-double		redCDouble(red_float number);
-const char*	redCString(red_string string);
-long		redTypeOf(red_value value);
+	long		redCInt32(red_integer number);
+	double		redCDouble(red_float number);
+	const char*	redCString(red_string string);
+	long		redTypeOf(red_value value);
 
 /* Red actions */
-red_value	redAppend(red_series series, red_value value);
-red_value	redChange(red_series series, red_value value);
-red_value	redClear(red_series series);
-red_value	redCopy(red_value value);
-red_value	redFind(red_series series, red_value value);
-red_value	redIndex(red_series series);
-red_value	redLength(red_series series);
-red_value	redMake(red_value proto, red_value spec);
-red_value	redMold(red_value value);
-red_value	redPick(red_series series, red_value value);
-red_value	redPoke(red_series series, red_value index, red_value value);
-red_value	redPut(red_series series, red_value index, red_value value);
-red_value	redRemove(red_series series);
-red_value	redSelect(red_series series, red_value value);
-red_value	redSkip(red_series series, red_integer offset);
-red_value	redTo(red_value proto, red_value spec);
+	red_value	redAppend(red_series series, red_value value);
+	red_value	redChange(red_series series, red_value value);
+	red_value	redClear(red_series series);
+	red_value	redCopy(red_value value);
+	red_value	redFind(red_series series, red_value value);
+	red_value	redIndex(red_series series);
+	red_value	redLength(red_series series);
+	red_value	redMake(red_value proto, red_value spec);
+	red_value	redMold(red_value value);
+	red_value	redPick(red_series series, red_value value);
+	red_value	redPoke(red_series series, red_value index, red_value value);
+	red_value	redPut(red_series series, red_value index, red_value value);
+	red_value	redRemove(red_series series);
+	red_value	redSelect(red_series series, red_value value);
+	red_value	redSkip(red_series series, red_integer offset);
+	red_value	redTo(red_value proto, red_value spec);
 
 /* Access to a Red global word */
-red_value	redSet(long id, red_value value);
-red_value	redGet(long id);
+	red_value	redSet(long id, red_value value);
+	red_value	redGet(long id);
 
 /* Access to a Red path */
-red_value	redSetPath(red_path path, red_value value);
-red_value	redGetPath(red_path path);
+	red_value	redSetPath(red_path path, red_value value);
+	red_value	redGetPath(red_path path);
 
 /* Debugging */
-void		redPrint(red_value value);
-red_value	redProbe(red_value value);
-red_value	redHasError(void);
-const char*	redFormError(void);
-int			redOpenLogWindow(void);
-int			redCloseLogWindow(void);
-void		redOpenLogFile(const char *name);
-void		redCloseLogFile(void);
+	void		redPrint(red_value value);
+	red_value	redProbe(red_value value);
+	red_value	redHasError(void);
+	const char*	redFormError(void);
+	int			redOpenLogWindow(void);
+	int			redCloseLogWindow(void);
+	void		redOpenLogFile(const char *name);
+	void		redCloseLogFile(void);
+}
 
 /* Red Types */
 typedef enum
@@ -165,7 +169,7 @@ typedef enum
 	RED_TYPE_IMAGE,
 	RED_TYPE_EVENT
 	// RED_TYPE_CLOSURE,
-    // RED_TYPE_PORT
+	// RED_TYPE_PORT
 } RedType;
 
 #endif
