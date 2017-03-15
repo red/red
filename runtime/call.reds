@@ -687,6 +687,8 @@ ext-process: context [
 			cstr	[c-string!]
 			type	[integer!]
 	][
+		#if gui-console? = yes [if console? [--NOT_IMPLEMENTED--]]
+
 		pad1: 0.0
 		pad2: pad1
 		pad3: pad1
