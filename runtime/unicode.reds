@@ -560,7 +560,11 @@ unicode: context [
 		unit: scan-utf16 src size
 		
 		either null? str [
-			node: alloc-series size unit 0
+			node: either size = 0 [
+				alloc-series 1 2 0						;-- create an empty string
+			][
+				alloc-series size unit 0
+			]
 			s: as series! node/value
 		][
 			node: str/node
