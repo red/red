@@ -198,24 +198,30 @@ win32-startup-ctx: context [
 	;-------------------------------------------
 	;-- Retrieve command-line information
 	;-------------------------------------------
-	on-start: func [/local c argv args len src dst][
+	on-start: func [/local c n argv args len src dst][
 		c: 0
 		args: CommandLineToArgvW as byte-ptr! GetCommandLine :c
 		
 		argv: as int-ptr! allocate c + 1 * size? int-ptr!
 		src: args
 		dst: argv
-		
-		while [src/value <> 0][
-			len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
-			dst/value: as-integer allocate len
-			WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 as byte-ptr! dst/value len null 0
-		
-			dst: dst + 1
-			src: src + 1
+
+		either null? src [
+			probe "CommandLineToArgvW failed!"
+		][
+			n: c
+			while [n > 0][
+				len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
+				dst/value: as-integer allocate len
+				WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 as byte-ptr! dst/value len null 0
+
+				dst: dst + 1
+				src: src + 1
+				n: n - 1
+			]
+			LocalFree args
 		]
 		dst/value: 0
-		LocalFree args
 		
 		system/args-list: as str-array! argv
 		system/args-count: c
