@@ -412,6 +412,8 @@ system/view/platform: context [
 			#include %windows/gui.reds
 		]
 	]
+	
+	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -491,8 +493,8 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	refresh-window: routine [hwnd [integer!]][
-		gui/OS-refresh-window hwnd
+	refresh-window: routine [h [handle!]][
+		gui/OS-refresh-window h/value
 	]
 	
 	show-window: routine [id [integer!]][
@@ -500,8 +502,8 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	make-view: routine [face [object!] parent [integer!] return: [integer!]][
-		gui/OS-make-view face parent
+	make-view: routine [face [object!] parent [handle!]][
+		handle/box gui/OS-make-view face parent/value
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
@@ -549,7 +551,7 @@ system/view/platform: context [
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
-			state:	reduce [0 0 none copy [1]]
+			state:	reduce [make-null-handle 0 none copy [1]]
 		]
 		
 		set fonts:

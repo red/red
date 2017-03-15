@@ -658,7 +658,7 @@ create-text-format: func [
 	return: [integer!]
 	/local
 		values	[red-value!]
-		h-font	[red-integer!]
+		h-font	[red-handle!]
 		int		[red-integer!]
 		value	[red-value!]
 		w		[red-word!]
@@ -683,8 +683,8 @@ create-text-format: func [
 		blk: as red-block! values + FONT_OBJ_STATE
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		h-font: (as red-integer! block/rs-head blk) + 1
-		if TYPE_OF(h-font) = TYPE_INTEGER [
+		h-font: (as red-handle! block/rs-head blk) + 1
+		if TYPE_OF(h-font) = TYPE_HANDLE [
 			return h-font/value
 		]
 

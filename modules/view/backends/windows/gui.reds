@@ -181,15 +181,15 @@ get-face-flags: func [
 
 face-handle?: func [
 	face	[red-object!]
-	return: [handle!]									;-- returns NULL is no handle
+	return: [handle!]									;-- returns NULL if no handle
 	/local
-		state [red-block!]
-		int	  [red-integer!]
+		state  [red-block!]
+		handle [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [return as handle! int/value]
+		handle: as red-handle! block/rs-head state
+		if TYPE_OF(handle) = TYPE_HANDLE [return as handle! handle/value]
 	]
 	null
 ]
@@ -198,14 +198,14 @@ get-face-handle: func [
 	face	[red-object!]
 	return: [handle!]
 	/local
-		state [red-block!]
-		int	  [red-integer!]
+		state  [red-block!]
+		handle [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
-	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_INTEGER
-	as handle! int/value
+	handle: as red-handle! block/rs-head state
+	assert TYPE_OF(handle) = TYPE_HANDLE
+	as handle! handle/value
 ]
 
 get-window-pos: func [
