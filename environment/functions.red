@@ -90,7 +90,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
 		tuple! unset! url! word! image!
 	]
-	test-list: union to-list [error! action! datatype! function! image! object! op! routine! vector!]
+	test-list: union to-list [handle! error! action! datatype! function! image! object! op! routine! vector!]
 	
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
