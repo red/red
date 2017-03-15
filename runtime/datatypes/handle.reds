@@ -1,9 +1,9 @@
 Red/System [
-	Title:   "Handle! datatype runtime functions"
-	Author:  "Nenad Rakocevic, Oldes"
+	Title:	 "Handle! datatype runtime functions"
+	Author:	 "Nenad Rakocevic, Oldes"
 	File: 	 %handle.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
+	Rights:	 "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -12,99 +12,27 @@ Red/System [
 
 handle: context [
 	verbose: 0
-
-	get*: func [										;-- unboxing integer value from stack
-		return: [integer!]
-		/local
-			h [red-handle!]
-	][
-		h: as red-handle! stack/arguments
-		assert TYPE_OF(h) = TYPE_HANDLE
-		h/value
-	]
-	
-	get-any*: func [									;-- special get* variant for SWITCH
-		return: [integer!]
-		/local
-			h [red-handle!]
-	][
-		h: as red-handle! stack/arguments
-		either TYPE_OF(h) = TYPE_HANDLE [h/value][0] ;-- accept NONE values
-	]
-	
-	get: func [											;-- unboxing integer value
-		value	[red-value!]
-		return: [integer!]
-		/local
-			h [red-handle!]
-	][
-		assert TYPE_OF(value) = TYPE_HANDLE
-		h: as red-handle! value
-		h/value
-	]
 	
 	box: func [
-		value	[integer!]
-		return: [red-handle!]
-		/local
-			h [red-handle!]
-	][
-		h: as red-handle! stack/arguments
-		h/header: TYPE_HANDLE
-		h/value: value
-		h
-	]
-	
-	make-at: func [
-		slot	[red-value!]
 		value	[integer!]
 		return:	[red-handle!]
 		/local
 			h [red-handle!]
 	][
-		h: as red-handle! slot
-		h/header: TYPE_HANDLE
-		h/value: value
-		h
-	]
-
-	make-in: func [
-		parent 	[red-block!]
-		value 	[integer!]
-		return: [red-handle!]
-		/local
-			h [red-handle!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "handle/make-in"]]
-		
-		h: as red-handle! ALLOC_TAIL(parent)
+		h: as red-handle! stack/arguments
 		h/header: TYPE_HANDLE
 		h/value: value
 		h
 	]
 	
-	push: func [
-		value	[integer!]
-		return: [red-handle!]
-		/local
-			h [red-handle!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "handle/push"]]
-		
-		h: as red-handle! stack/push*
-		h/header: TYPE_HANDLE
-		h/value: value
-		h
-	]
-
 	;-- Actions --
 
 	form: func [
-		h		   [red-handle!]
-		buffer	   [red-string!]
-		arg		   [red-value!]
-		part 	   [integer!]
-		return:    [integer!]
+		h		[red-handle!]
+		buffer	[red-string!]
+		arg		[red-value!]
+		part	[integer!]
+		return:	[integer!]
 		/local
 			formed [c-string!]
 	][
@@ -124,21 +52,27 @@ handle: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part 	[integer!]
-		indent	[integer!]		
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "handle/mold"]]
-		string/concatenate-literal buffer "#[handle! "
-		part: form h buffer arg part
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
-		part + 11
+		
+		either all? [
+			string/concatenate-literal buffer "#[handle! "
+			part: form h buffer arg part
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part + 11
+		][
+			string/concatenate-literal buffer "handle!"
+			part + 11
+		]
 	]
 
 	compare: func [
-		value1    [red-handle!]						;-- first operand
-		value2    [red-handle!]						;-- second operand
-		op	      [integer!]						;-- type of comparison
-		return:   [integer!]
+		value1	[red-handle!]						;-- first operand
+		value2	[red-handle!]						;-- second operand
+		op		[integer!]						;-- type of comparison
+		return:	[integer!]
 		/local
 			left  [integer!]
 			right [integer!] 
@@ -146,7 +80,6 @@ handle: context [
 		#if debug? = yes [if verbose > 0 [print-line "handle/compare"]]
 
 		if TYPE_OF(value2) <> TYPE_HANDLE [return 1]
-		
 		SIGN_COMPARE_RESULT(value1/value value2/value)
 	]
 	
