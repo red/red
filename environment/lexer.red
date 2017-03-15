@@ -923,7 +923,7 @@ system/lexer: context [
 
 		one-value: [any ws pos: opt literal-value pos: to end opt wrong-end]
 		any-value: [pos: any [some ws | literal-value]]
-		red-rules: [any-value opt wrong-end]
+		red-rules: [any-value any ws opt wrong-end]
 
 		if pre-load [do [pre-load src part]]
 		
