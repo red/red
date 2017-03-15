@@ -234,6 +234,7 @@ integer: context [
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
 			TYPE_OF(right) = TYPE_TIME
+			TYPE_OF(right) = TYPE_HANDLE
 		]
 
 		switch TYPE_OF(right) [
