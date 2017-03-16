@@ -497,8 +497,8 @@ system/view/platform: context [
 		gui/OS-refresh-window h/value
 	]
 	
-	show-window: routine [id [integer!]][
-		gui/OS-show-window id
+	show-window: routine [id [handle!]][
+		gui/OS-show-window id/value
 		SET_RETURN(none-value)
 	]
 
