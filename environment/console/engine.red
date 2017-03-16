@@ -32,6 +32,7 @@ system/state/trace?: no									;-- disable stack trace in console by default
 system/console: context [
 
 	prompt: ">> "
+	result: "=="
 	history: make block! 200
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
@@ -170,7 +171,7 @@ system/console: context [
 						clear back tail result
 						append result "..."
 					]
-					print ["==" result]
+					print [system/console/result result]
 				]
 			]
 			unless last-lf? [prin lf]
