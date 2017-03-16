@@ -31,7 +31,7 @@ system/state/trace?: no									;-- disable stack trace in console by default
 
 system/console: context [
 
-	prompt: "red>> "
+	prompt: ">> "
 	history: make block! 200
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console

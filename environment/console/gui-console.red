@@ -123,12 +123,12 @@ gui-console-ctx: context [
 			txt bold "Red Programming Language" font [size: 15 color: white]
 			ver: txt font [size: 8 color: white]
 			at 153x86 image fstk-logo
-			at 0x160 small 360x20 "Copyright 2011-2016 - Fullstack Technologies"
+			at 0x160 small 360x20 "Copyright 2011-2017 - Fullstack Technologies"
 			at 0x180 small 360x20 "and contributors."
 			at 0x230 link "http://red-lang.org" font-size 10 font-color white
 			at 0x260 link "http://github.com/red/red" font-size 10 font-color white
 			at 154x310 button "Ok" [unview win/selected: console]
-			do [ver/text: form reduce [system/version #"-" system/build]]
+			do [ver/text: form reduce [system/version #"-" system/build/date]]
 		]
 		center-face/with lay win
 		view/flags lay [modal no-title]
