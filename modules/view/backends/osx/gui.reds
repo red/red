@@ -604,7 +604,7 @@ change-font: func [
 	if TYPE_OF(font) <> TYPE_OBJECT [exit]
 
 	attrs: make-font-attrs font face type
-	objc_msgSend [attrs sel_getUid "autorelease"]
+	;objc_msgSend [attrs sel_getUid "autorelease"]
 
 	either type = area [
 		view: objc_msgSend [hWnd sel_getUid "documentView"]
@@ -642,7 +642,7 @@ change-font: func [
 			]
 			true [0]
 		]
-		objc_msgSend [title sel_getUid "release"]
+		;objc_msgSend [title sel_getUid "release"]
 	]
 ]
 
@@ -1042,7 +1042,7 @@ init-base-face: func [
 		obj: base
 	]
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
-	objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
+	;objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
 ]
 
 make-area: func [
@@ -1320,7 +1320,7 @@ set-hint-text: func [
 ]
 
 OS-redraw: func [hWnd [integer!]][
-	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	;objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 ]
 
 OS-refresh-window: func [hWnd [integer!]][0]

@@ -659,11 +659,7 @@ show: function [
 			]
 			clear pending
 		]
-		either zero? face/state/2 [
-			system/view/platform/redraw face/state/1
-		][
-			system/view/platform/update-view face
-		]
+		if face/state/2 <> 0 [system/view/platform/update-view face]
 	][
 		new?: yes
 		
