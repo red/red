@@ -113,23 +113,23 @@ gui-console-ctx: context [
 			title "About"
 			size 360x320
 			backdrop 58.58.60
-			style text: text 360 center 58.58.60 
-			style txt: text font-color white
-			style small: txt font [size: 8 color: white]
-			style link: text all-over 
+			style text:  text 360 center 58.58.60 
+			style txt:   text font-color white
+			style small: txt  font [size: 9 color: white]
+			style link:  text 100 all-over
 				on-down [browse face/data]
-				on-over [face/font/color: get pick [white orange] event/away?]
+				on-over [face/font/style: pick [#[none] underline] event/away?]
 			below
 			pad 0x15
 			txt bold "Red Programming Language" font [size: 15 color: white]
-			ver: txt font [size: 8 color: white]
+			ver: txt font [size: 9 color: white]
 			at 153x86 image fstk-logo
 			at 0x160 small 360x20 "Copyright 2011-2017 - Fullstack Technologies"
 			at 0x180 small 360x20 "and contributors."
-			at 0x230 link "http://red-lang.org" font-size 10 font-color white
-			at 0x260 link "http://github.com/red/red" font-size 10 font-color white
-			at 154x310 button "Ok" [unview win/selected: console]
-			do [ver/text: form reduce [system/version #"-" system/build/date]]
+			at 120x230 link "http://red-lang.org" font-size 10 font-color white
+			at 100x260 link "http://github.com/red/red" font-size 10 font-color white
+			at 154x300 button "Close" [unview win/selected: console]
+			do [ver/text: form reduce ["Build" system/version #"-" system/build/date]]
 		]
 		center-face/with lay win
 		view/flags lay [modal no-title]
