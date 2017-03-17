@@ -25,6 +25,7 @@ add-base-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
+	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
 ]
 
 add-scrollview-handler: func [class [integer!]][

@@ -403,7 +403,7 @@ get-event-picked: func [
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
-		default	 [integer/push evt/flags and FFFFh]
+		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
 

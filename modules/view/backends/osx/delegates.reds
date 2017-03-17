@@ -359,6 +359,26 @@ refresh-scrollview: func [
 	msg-send-super self cmd draw?
 ]
 
+scroll-wheel: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		d	  [float32!]
+		flags [integer!]
+		delta [integer!]
+][
+	d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
+	case [
+		all [d > as float32! -1.0 d < as float32! 0.0][delta: -1]
+		all [d > as float32! 0.0 d < as float32! 1.0][delta: 1]
+		true [delta: as-integer d]
+	]
+	flags: check-extra-keys event
+	make-event self delta or flags EVT_WHEEL
+]
+
 slider-change: func [
 	[cdecl]
 	self	[integer!]

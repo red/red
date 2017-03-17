@@ -140,6 +140,8 @@ terminal!: object [
 		if scroller [
 			page-cnt: y / line-h
 			scroller/page-size: page-cnt
+			scroller/max-size: line-cnt - 1 + page-cnt
+			scroller/position: scroller/position
 		]
 	]
 
@@ -152,7 +154,7 @@ terminal!: object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			mouse-wheel [event/picked * 3]
+			mouse-wheel [event/picked]
 		][0]
 		if n <> 0 [
 			scroll-lines n
@@ -449,7 +451,7 @@ terminal!: object [
 		screen-cnt: y / line-h
 
 		update-caret
-		;update-scroller line-cnt - num
+		update-scroller line-cnt - num
 	]
 ]
 
@@ -498,7 +500,7 @@ console!: make face! [
 	]
 
 	resize: func [new-size][
-		self/size: new-size
+		self/size: new-size - 0x20
 		extra/resize new-size
 	]
 
