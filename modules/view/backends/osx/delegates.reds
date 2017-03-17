@@ -300,11 +300,7 @@ empty-func: func [
 	self	[integer!]
 	cmd		[integer!]
 	sender	[integer!]
-	return: [integer!]
-][
-	probe "empty-func"
-	0
-]
+][0]
 
 scroller-change: func [
 	[cdecl]
@@ -325,7 +321,6 @@ scroller-change: func [
 		frac		[float!]
 		values		[red-value!]
 ][
-	probe "scroller-change"
 	view: objc_msgSend [self sel_getUid "documentView"]
 	bar: objc_msgSend [self sel_getUid "verticalScroller"]
 	direction: either bar = sender [0][1]
@@ -339,7 +334,7 @@ scroller-change: func [
 			min:	as red-integer! values + SCROLLER_OBJ_MIN
 			max:	as red-integer! values + SCROLLER_OBJ_MAX
 			page:	as red-integer! values + SCROLLER_OBJ_PAGE
-			range:	max/value - page/value
+			range:	max/value - page/value - min/value + 2
 			frac: frac * as float! range
 			frac: 0.5 + frac + as float! min/value
 			pos: as-integer frac

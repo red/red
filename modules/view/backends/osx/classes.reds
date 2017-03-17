@@ -30,7 +30,7 @@ add-base-handler: func [class [integer!]][
 add-scrollview-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "setNeedsDisplay:" as-integer :refresh-scrollview "v@:B"
 	class_addMethod class sel_getUid "_doScroller:" as-integer :scroller-change "v@:@"
-	class_addMethod class sel_getUid "inLiveResizeForScrollerImpPair" as-integer :empty-func "c12@0:4@8"
+	class_addMethod class sel_getUid "reflectScrolledClipView:" as-integer :empty-func "@:@"
 ]
 
 win-add-subview: func [

@@ -1036,7 +1036,7 @@ init-base-face: func [
 
 		objc_msgSend [obj sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
 		objc_msgSend [base sel_getUid "setHasVerticalScroller:" yes]
-		;objc_msgSend [base sel_getUid "setHasHorizontalScroller:" yes]
+		objc_msgSend [base sel_getUid "setHasHorizontalScroller:" yes]
 		objc_msgSend [base sel_getUid "setDocumentView:" obj]
 	][
 		obj: base
@@ -1280,16 +1280,12 @@ update-scroller: func [
 	n: max - page
 	if pos < n [n: pos]
 	if pos < min [pos: min]
-probe [max " " min " " page " " pos]
-	range: max - min - page
-	sel: max - min
+	range: max - min - page + 2
 	frac: either range <= 0 [as float! 1.0][
-		max: max - page
-		(as float! pos - 1) / as float! max
+		(as float! pos - min) / as float! range
 	]
-	pos: pos - min
-?? sel
-	probe (as float! pos) / as float! sel
+
+	sel: max - min
 	knob: either range <= 0 [as float32! 1.0][
 		(as float32! page) / as float32! sel
 	]
@@ -1302,7 +1298,6 @@ probe [max " " min " " page " " pos]
 	objc_msgSend [bar sel_getUid "setDoubleValue:" frac]
 	objc_msgSend [bar sel_getUid "setKnobProportion:" pf32/value]
 	objc_msgSend [bar sel_getUid "setEnabled:" true]
-probe [frac " " old-frac " " knob " " old-knob]
 	if any [
 		knob <> old-knob
 		frac <> old-frac
