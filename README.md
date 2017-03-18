@@ -40,9 +40,9 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 
 7. Want to cross-compile to another supported platform?
 
-        $ red -c -t Windows hello.red
-        $ red -c -t Darwin hello.red
-        $ red -c -t Linux-ARM hello.red
+        $ red -t Windows hello.red
+        $ red -t Darwin hello.red
+        $ red -t Linux-ARM hello.red
 
 **The command-line syntax is:**
 
@@ -96,8 +96,6 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
-                                     
-                                     
                                      
 
 [command]:

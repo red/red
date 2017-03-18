@@ -49,11 +49,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
-                                     
-                                     
-                                     
 
 [command]:
+
     build libRed [stdcall]         : Builds libRed library and unpacks the 
                                      libRed/ folder locally.
 
