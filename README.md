@@ -20,7 +20,7 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 2. In a code or text editor, write the following Hello World program:
 
         Red [
-        	Title: "Simple hello world script"
+            Title: "Simple hello world script"
         ]
 
         print "Hello World!"
@@ -38,7 +38,12 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
         $ red -c hello.red
         $ ./hello
 
-7. Want to cross-compile to another supported platform?
+7. Want to generate a compiled executable from that program with no dependencies?
+
+        $ red -r hello.red
+        $ ./hello
+
+8. Want to cross-compile to another supported platform?
 
         $ red -t Windows hello.red
         $ red -t Darwin hello.red
@@ -117,7 +122,7 @@ Cross-compilation targets:
     Syllable     : Syllable OS, x86
     FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
-    Android-x86	 : Android, x86
+    Android-x86  : Android, x86
 
 _Note_: Running the Red toolchain binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547).
 
