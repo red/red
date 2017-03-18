@@ -684,7 +684,7 @@ redc: context [
 			fail ["Unknown target:" target]
 		]
 		if target? [
-			type: 'exe									;-- implies compilation
+			unless type [type: 'exe]					;-- implies compilation
 			opts/dev-mode?: no							;-- forces release mode
 		]
 		base-path: either encap? [
