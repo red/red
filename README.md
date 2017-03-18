@@ -44,21 +44,18 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
         $ red -c -t Darwin hello.red
         $ red -c -t Linux-ARM hello.red
 
-**The command-line options are:**
+**The command-line syntax is:**
 
-    red [options] [file]
+    red [command] [options] [file]
 
-**[file]**
+[file]: any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
-Any Red or Red/System source file. If no file and no option is provided, the graphical console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (*it is expected to be a Red script with no Red/System code*).
+Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
 
-**[options]**
+[options]:
 
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
-
-    -c, --compile                  : Forces generation of an executable in
-                                     the working folder.
+    -c, --compile                  : Generate an executable in the working
+                                     folder, using libRedRT. (developement mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -71,21 +68,44 @@ Any Red or Red/System source file. If no file and no option is provided, the gra
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
                                      the generated binary file.
 
-    -r, --no-runtime               : Do not include runtime during Red/System
-                                     source compilation.
+    -r, --release                  : Compile in release mode, linking everything
+                                     together (default: development mode).
+
+    -s, --show-expanded            : Output result of Red source code expansion by
+                                     the preprocessor.
 
     -t <ID>, --target <ID>         : Cross-compile to a different platform
                                      target than the current one (see targets
                                      table below).
 
+    -u, --update-libRedRT          : Rebuild libRedRT and compile the input script
+                                      (only for Red scripts with R/S code).
+
     -v <level>, --verbose <level>  : Set compilation verbosity level, 1-3 for
                                      Red, 4-11 for Red/System.
 
-    -V, --version                  : Output binary version string.
+    -V, --version                  : Output Red's executable version in x.y.z
+                                     format.
+
+    --cli                          : Run the command-line REPL instead of the
+                                     graphical console.
+
+    --no-runtime                   : Do not include runtime during Red/System
+                                     source compilation.
 
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+                                     
+                                     
+                                     
+
+[command]:
+    build libRed [stdcall]         : Builds libRed library and unpacks the 
+                                     libRed/ folder locally.
+
+    clear [<path>]                 : Delete all temporary files from current
+                                     or target <path> folder.
 
 Cross-compilation targets:
 
@@ -97,7 +117,7 @@ Cross-compilation targets:
     RPi          : GNU/Linux, ARMv5, armhf (hard-float)
     Darwin       : MacOSX Intel, console-only applications
     Syllable     : Syllable OS, x86
-    FreeBSD		 : FreeBSD, x86
+    FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
     Android-x86	 : Android, x86
 
