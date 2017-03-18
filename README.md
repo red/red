@@ -53,11 +53,11 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 
     red [command] [options] [file]
 
-[file]: any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
+`[file]` any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
 Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
 
-[options]:
+`[options]`
 
     -c, --compile                  : Generate an executable in the working
                                      folder, using libRedRT. (developement mode)
@@ -103,7 +103,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
                                      output. (internal debugging purpose)
                                      
 
-[command]:
+`[command]`
 
     build libRed [stdcall]         : Builds libRed library and unpacks the 
                                      libRed/ folder locally.
