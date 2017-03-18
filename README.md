@@ -104,6 +104,7 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
                                      
 
 [command]:
+
     build libRed [stdcall]         : Builds libRed library and unpacks the 
                                      libRed/ folder locally.
 
