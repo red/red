@@ -1014,11 +1014,22 @@ init-window: func [
 	objc_msgSend [window sel_getUid "makeMainWindow"]
 ]
 
+transparent-base?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either all [
+		TYPE_OF(color) = TYPE_TUPLE
+		TUPLE_SIZE?(color) = 3
+	][false][true]
+]
+
 init-base-face: func [
 	face	[red-object!]
 	base	[integer!]
 	menu	[red-block!]
 	size	[red-pair!]
+	color	[red-tuple!]
 	bits	[integer!]
 	/local
 		id	[integer!]
@@ -1042,7 +1053,7 @@ init-base-face: func [
 		obj: base
 	]
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
-	;objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
+	if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
 ]
 
 make-area: func [
@@ -1209,14 +1220,6 @@ update-combo-box: func [
 	]
 ]
 
-get-track-pos: func [
-	obj			[integer!]
-	vertical?	[logic!]
-	return:		[integer!]
-][
-	
-]
-
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -1319,8 +1322,9 @@ set-hint-text: func [
 	]
 ]
 
-OS-redraw: func [hWnd [integer!]][
-	;objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+OS-redraw: func [face [red-object!] /local hWnd][
+	hWnd: face-handle? face
+	if hWnd <> null [objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
 ]
 
 OS-refresh-window: func [hWnd [integer!]][0]
@@ -1495,7 +1499,7 @@ OS-make-view: func [
 			sym = panel
 			sym = base
 		][
-			init-base-face face obj menu size bits
+			init-base-face face obj menu size as red-tuple! values + FACE_OBJ_COLOR bits
 		]
 		sym = tab-panel [
 			set-tabs obj values

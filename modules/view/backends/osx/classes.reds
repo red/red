@@ -26,6 +26,21 @@ add-base-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
 	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
+
+	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
+	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
+	class_addMethod class sel_getUid "hasMarkedText" as-integer :has-marked-text "B@:"
+	class_addMethod class sel_getUid "markedRange" as-integer :marked-range "{_NSRange=ii}@:"
+	class_addMethod class sel_getUid "selectedRange" as-integer :selected-range "{_NSRange=ii}@:"
+	class_addMethod class sel_getUid "setMarkedText:selectedRange:replacementRange:" as-integer :set-marked-text "v@:@{_NSRange=ii}{_NSRange=ii}"
+	class_addMethod class sel_getUid "unmarkText" as-integer :unmark-text "v@:"
+	class_addMethod class sel_getUid "validAttributesForMarkedText" as-integer :valid-attrs-marked-text "@@:"
+	class_addMethod class sel_getUid "attributedSubstringForProposedRange:actualRange:" as-integer :attr-str-range "@@:{_NSRange=ii}^{_NSRange=ii}"
+	class_addMethod class sel_getUid "insertText:replacementRange:" as-integer :insert-text-range "v@:@{_NSRange=ii}"
+	class_addMethod class sel_getUid "characterIndexForPoint:" as-integer :char-idx-point "I@:{_NSPoint=ff}"
+	class_addMethod class sel_getUid "firstRectForCharacterRange:actualRange:" as-integer :first-rect-range "{_NSRect=ffff}@:{_NSRange=ii}^{_NSRange=ii}"
+	class_addMethod class sel_getUid "doCommandBySelector:" as-integer :do-cmd-selector "v@::"
+	class_addMethod class sel_getUid "windowLevel" as-integer :win-level "i@:"
 ]
 
 add-scrollview-handler: func [class [integer!]][
@@ -178,6 +193,9 @@ make-super-class: func [
 	unless zero? method [
 		add-method: as add-method! method
 		add-method new-class
+	]
+	if all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"][
+		class_addProtocol new-class objc_getProtocol "NSTextInputClient"
 	]
 	objc_registerClassPair new-class
 ]

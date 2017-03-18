@@ -27,6 +27,9 @@ sel_addObject:					0
 sel_addAttributes:				0
 sel_addAttribute:				0
 sel_initWithObjectsAndKeys:		0
+sel_arrayWithObject:			0
+
+cls_NSArray:					0
 
 init-selectors: does [
 	sel-on-timer:				sel_getUid "on-timer:"
@@ -40,4 +43,7 @@ init-selectors: does [
 	sel_addAttributes:			sel_getUid "addAttributes:range:"
 	sel_addAttribute:			sel_getUid "addAttribute:value:range:"
 	sel_initWithObjectsAndKeys:	sel_getUid "initWithObjectsAndKeys:"
+	sel_arrayWithObject:		sel_getUid "arrayWithObject:"
+
+	cls_NSArray:				objc_getClass "NSArray"
 ]

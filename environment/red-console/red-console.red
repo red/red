@@ -27,7 +27,7 @@ ask: function [
 	con/pos: 0
 	con/calc-top
 	con/ask?: yes
-	show con/target
+	con/redraw con/target
 	do-events
 	con/ask?: no
 	line

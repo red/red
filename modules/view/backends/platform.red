@@ -598,8 +598,8 @@ system/view/platform: context [
 		gui/OS-refresh-window hwnd
 	]
 
-	redraw: routine [hwnd [integer!]][
-		gui/OS-redraw hwnd
+	redraw: routine [face [object!]][
+		gui/OS-redraw face
 	]
 
 	show-window: routine [id [integer!]][

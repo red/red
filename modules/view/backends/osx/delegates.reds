@@ -245,6 +245,53 @@ on-key-down: func [
 	]
 ]
 
+key-down-base: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		input-ctx [integer!]
+][
+	;arr: objc_msgSend [cls_NSArray sel_arrayWithObject event]
+	;objc_msgSend [self sel_getUid "interpretKeyEvents:" arr]
+	;objc_msgSend [arr sel_release]
+	;input-ctx: objc_getAssociatedObject self RedInputContextKey
+	;if zero? input-ctx [
+	;	input-ctx: objc_msgSend [
+	;		objc_getClass "NSTextInputContext"
+	;		sel_getUid "inputContextWithClient:"
+	;		self
+	;	]
+	;	objc_setAssociatedObject self RedInputContextKey input-ctx OBJC_ASSOCIATION_RETAIN
+	;]
+	input-ctx: objc_msgSend [self sel_getUid "inputContext"]
+?? input-ctx
+	objc_msgSend [input-ctx sel_getUid "handleEvent:" event]
+]
+
+win-level: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [integer!]
+][
+	probe "win-level"
+	objc_msgSend [
+		objc_msgSend [self sel_getUid "window"]
+		sel_getUid "level"
+	]
+]
+
+insert-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+][
+	probe "insert-text"
+]
+
 on-key-up: func [
 	[cdecl]
 	self	[integer!]
@@ -832,6 +879,141 @@ paint-background: func [
 	a: (as float32! 255 - (color >>> 24)) / 255.0
 	CGContextSetRGBFillColor ctx r g b a
 	CGContextFillRect ctx x y width height
+]
+
+has-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [logic!]
+][
+	probe "has-marked-text"
+	no
+]
+
+marked-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	probe "marked-range"
+	system/cpu/edx: 0
+	system/cpu/eax: 0
+]
+
+selected-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	probe "selected-range"
+	?? self
+	system/cpu/edx: 0
+	system/cpu/eax: 0
+]
+
+set-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+	idx1	[integer!]
+	len1	[integer!]
+	idx2	[integer!]
+	len2	[integer!]
+][
+	probe "set-marked-text"
+	0
+]
+
+unmark-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	probe "unmark-text"
+	0
+]
+
+valid-attrs-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [integer!]
+][
+	probe "valid-attrs-marked-text"
+	objc_msgSend [
+		objc_getClass "NSArray" sel_getUid "arrayWithObjects:"
+		NSMarkedClauseSegmentAttributeName
+		NSGlyphInfoAttributeName
+		0
+	]
+]
+
+attr-str-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	idx		[integer!]
+	len		[integer!]
+	p-range	[int-ptr!]
+	return: [integer!]
+][
+	probe "attr-str-range"
+	0
+]
+
+insert-text-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+	idx		[integer!]
+	len		[integer!]
+][
+	probe "insert-text-range"
+	?? idx
+	?? len
+]
+
+char-idx-point: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	x		[float32!]
+	y		[float32!]
+	return: [integer!]
+][
+	probe "char-idx-point"
+	0
+]
+
+first-rect-range: func [
+	[cdecl]
+	rc		[NSRect!]
+	self	[integer!]
+	cmd		[integer!]
+	idx		[integer!]
+	len		[integer!]
+	p-range [int-ptr!]
+][
+	probe "first-rect-range"
+	probe [self " " idx " " len]
+	rc/x: as float32! 100.0
+	rc/y: as float32! 100.0
+	rc/w: as float32! 0.0
+	rc/h: as float32! 100.0
+	system/cpu/esp: system/cpu/esp + 4
+]
+
+do-cmd-selector: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sel		[integer!]
+][
+	probe "do-cmd-selector"
+	msg-send-super self cmd sel
 ]
 
 draw-rect: func [

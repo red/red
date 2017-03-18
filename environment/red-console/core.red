@@ -56,6 +56,7 @@ terminal!: object [
 	)
 
 	draw: get 'system/view/platform/draw-face
+	redraw: get 'system/view/platform/redraw
 
 	print: func [value [any-type!] /local str s cnt][
 		if block? value [value: reduce value]
@@ -69,7 +70,7 @@ terminal!: object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 200 [
-					show target
+					redraw target
 					loop 3 [do-events/no-wait]
 					cnt: 0
 				]
@@ -84,7 +85,7 @@ terminal!: object [
 			add-line str
 		]
 		calc-top
-		show target
+		redraw target
 		do-events/no-wait
 		()				;-- return unset!
 	]
@@ -158,7 +159,7 @@ terminal!: object [
 		][0]
 		if n <> 0 [
 			scroll-lines n
-			show target
+			redraw target
 		]
 	]
 
@@ -227,7 +228,7 @@ terminal!: object [
 
 	mouse-up: func [event [event!]][
 		mouse-up?: yes
-		show target
+		redraw target
 	]
 
 	mouse-move: func [event [event!]][
@@ -236,7 +237,7 @@ terminal!: object [
 		clear skip selects 2
 		offset-to-line event/offset
 		mouse-to-caret event
-		show target
+		redraw target
 	]
 
 	move-caret: func [n][
@@ -381,7 +382,7 @@ terminal!: object [
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
-		show target
+		redraw target
 	]
 
 	paint-selects: func [
