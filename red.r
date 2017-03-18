@@ -683,6 +683,10 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
+		if target? [
+			type: 'exe									;-- implies compilation
+			opts/dev-mode?: no							;-- forces release mode
+		]
 		base-path: either encap? [
 			system/options/path
 		][
