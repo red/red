@@ -349,6 +349,7 @@ Red/System [
         ][
             off?: no
             grad?: no
+            mode: -1
             if TYPE_OF(start) = TYPE_WORD [
                 word: as red-word! start
                 mode: symbol/resolve word/symbol
