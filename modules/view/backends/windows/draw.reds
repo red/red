@@ -2059,7 +2059,7 @@ OS-draw-brush-bitmap: func [
 		height: height - y
 	][
 		width:  either ( x + crop-2/x ) > width [ width - x ][ crop-2/x ]
-		height: either ( y + crop-2/y ) > height [ height - x ][ crop-2/y ]
+		height: either ( y + crop-2/y ) > height [ height - y ][ crop-2/y ]
 	]
 	wrap: WRAP_MODE_TILE
 	unless mode = null [

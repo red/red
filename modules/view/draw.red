@@ -595,7 +595,6 @@ Red/System [
 							]
                             any [ sym = hline sym = vline ][
                                 DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
-                                DRAW_FETCH_SOME_2(TYPE_INTEGER TYPE_FLOAT)
                                 OS-draw-shape-axis DC start cmd rel? (sym = hline)
                                 close?: yes
                             ]
