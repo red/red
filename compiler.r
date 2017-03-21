@@ -688,6 +688,24 @@ red: context [
 		]
 	]
 	
+	emit-argument-type-check: func [
+		index [integer!] name [word!] slot [block! word! path!]
+		/local spec count arg
+	][
+		spec: functions/:name/3
+		count: 0
+		forall spec [
+			if find [word! lit-word! get-word!] type?/word spec/1 [
+				either count = index [arg: spec/1 break][count: count + 1]
+			]
+		]
+
+		emit emit-type-checking/native arg spec
+		emit index
+		emit slot
+		insert-lf -7
+	]
+	
 	get-counter: does [s-counter: s-counter + 1]
 	
 	clean-lf-deep: func [blk [block! paren!] /local pos][
@@ -2134,6 +2152,7 @@ red: context [
 		
 		emit-open-frame 'loop
 		comp-expression/close-path						;@@ optimize case for literal counter
+		emit-argument-type-check 0 'loop 'stack/arguments
 		
 		emit compose [(set-name) integer/get*]
 		insert-lf -2
