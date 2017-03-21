@@ -2365,11 +2365,12 @@ red: context [
 			add-global word
 		]
 		pc: next pc
-
+		
+		emit-open-frame 'remove-each
 		emit [integer/push 0]							;-- store number of words to set
 		insert-lf -2
 		comp-expression/close-path						;-- compile series argument
-		;TBD: check if result is any-series!
+		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
 
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2394,6 +2395,7 @@ red: context [
 			natives/remove-each-next (either blk [length? blk][1])
 		]
 		pop-call
+		emit-close-frame
 		emit-close-frame
 	]
 	
