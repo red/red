@@ -251,7 +251,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  make map! 8
+	codecs:  make block! 8
 	schemes: context []
 	ports:	 context []
 	
