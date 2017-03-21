@@ -2730,8 +2730,10 @@ natives: context [
 		assert TYPE_OF(word) = TYPE_WORD
 		
 		result: loop? series
-		if result [_context/set word actions/pick series 1 null]
-		series/head: series/head + 1
+		if result [
+			_context/set word actions/pick series 1 null
+			series/head: series/head + 1
+		]
 		result
 	]
 	

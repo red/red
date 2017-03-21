@@ -2299,8 +2299,6 @@ red: context [
 		
 		comp-expression/close-path						;-- compile series argument
 		;TBD: check if result is any-series!
-		emit 'stack/keep
-		insert-lf -1
 		
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
