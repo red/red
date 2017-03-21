@@ -2297,8 +2297,9 @@ red: context [
 		]
 		pc: next pc
 		
+		emit-open-frame 'foreach
 		comp-expression/close-path						;-- compile series argument
-		;TBD: check if result is any-series!
+		emit-argument-type-check 1 'foreach 'stack/arguments
 		
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2316,6 +2317,7 @@ red: context [
 		push-call 'foreach
 		comp-sub-block 'foreach-body					;-- compile body
 		pop-call
+		emit-close-frame
 		emit-close-frame
 	]
 	
