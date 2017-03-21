@@ -2211,7 +2211,7 @@ red: context [
 			pc: back pc
 			throw-error "REPEAT expects a word as first argument"
 		]
-		emit-open-frame 'body
+		emit-open-frame 'repeat
 		
 		add-symbol word
 		add-global word
@@ -2229,6 +2229,7 @@ red: context [
 		
 		pc: next pc
 		comp-expression/close-path						;-- compile 2nd argument
+		emit-argument-type-check 1 'repeat 'stack/arguments
 		
 		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
 		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
