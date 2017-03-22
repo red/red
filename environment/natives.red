@@ -433,30 +433,30 @@ dehex: make native! [[
 
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
-		number [number!]
+		number [number! time!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
 		"Returns TRUE if the number is positive"
-		number [number!]
+		number [number! time!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series! char!]
-		value2 [number! series! char!]
+		value1 [number! series! char! time!]
+		value2 [number! series! char! time!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series! char!]
-		value2 [number! series! char!]
+		value1 [number! series! char! time!]
+		value2 [number! series! char! time!]
 	]
 	#get-definition NAT_MIN
 ]
