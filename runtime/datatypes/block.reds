@@ -585,7 +585,7 @@ block: context [
 			TYPE_VECTOR [vector/to-block as red-vector! spec proto]
 			TYPE_STRING [
 				str: as red-string! spec
-				#call [system/lexer/transcode str none none]
+				#call [system/lexer/transcode str none no]
 			]
 			TYPE_TYPESET [typeset/to-block as red-typeset! spec proto]
 			TYPE_ANY_PATH

@@ -310,6 +310,7 @@ load: function [
 	source [file! url! string! binary!]
 	/header "TBD"
 	/all    "Load all values, returns a block. TBD: Don't evaluate Red header"
+	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
 	/part
@@ -340,7 +341,7 @@ load: function [
 			]
 		]
 	]
-	unless out [out: make block! 100]
+	unless out [out: make block! 10]
 	
 	switch/default type?/word source [
 		file!	[
@@ -368,13 +369,15 @@ load: function [
 		binary! [source: to string! source]				;-- For text: UTF-8 encoding TBD: load image in binary form
 	][source]
 
-	case [
-		part  [system/lexer/transcode/part source out length]
-		next  [set position system/lexer/transcode/one source out]
-		'else [system/lexer/transcode source out]
+	result: case [
+		part  [system/lexer/transcode/part source out trap length]
+		next  [set position system/lexer/transcode/one source out trap]
+		'else [system/lexer/transcode source out trap]
 	]
-	unless :all [if 1 = length? out [out: out/1]]
-	out 
+	either trap [result][
+		unless :all [if 1 = length? out [out: out/1]]
+		out
+	]
 ]
 
 save: function [

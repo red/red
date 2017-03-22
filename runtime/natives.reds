@@ -528,7 +528,7 @@ natives: context [
 				]
 				TYPE_STRING [
 					str: as red-string! arg
-					#call [system/lexer/transcode str none none]
+					#call [system/lexer/transcode str none no]
 					DO_EVAL_BLOCK
 				]
 				TYPE_FILE [#call [do-file as red-file! arg]]

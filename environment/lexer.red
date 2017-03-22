@@ -394,8 +394,9 @@ system/lexer: context [
 	]
 	
 	transcode: function [
-		src	[string!]
-		dst	[block! none!]
+		src	 [string!]
+		dst	 [block! none!]
+		trap [logic!]
 		/one
 		/only											;-- force returning the loaded value (with /one)
 		/part	
@@ -927,13 +928,20 @@ system/lexer: context [
 
 		if pre-load [do [pre-load src part]]
 		
-		unless either part [
-			parse/case/part src red-rules length
+		set/any 'err try [
+			unless either part [
+				parse/case/part src red-rules length
+			][
+				parse/case src either one [one-value][red-rules]
+			][
+				throw-error ['value pos]
+			]
+		]	
+		either trap [
+			reduce [stack/1 pos :err]
 		][
-			parse/case src either one [one-value][red-rules]
-		][
-			throw-error ['value pos]
+			if error? :err [do :err]
+			either all [one not only][pos][stack/1]
 		]
-		either all [one not only][pos][stack/1]
 	]
 ]

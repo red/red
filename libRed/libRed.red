@@ -200,7 +200,7 @@ Red [
 		if last-error <> null [return last-error]
 		
 		TRAP_ERRORS(name [
-			#call [system/lexer/transcode str none none]
+			#call [system/lexer/transcode str none no]
 			stack/unwind-last
 		])
 	]
