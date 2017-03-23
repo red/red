@@ -1717,7 +1717,6 @@ natives: context [
 		/local
 			i	 [red-integer!]
 			p	 [red-pair!]
-			t    [red-tuple!]
 			ret  [red-logic!]
 	][
 		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
