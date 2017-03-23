@@ -1711,6 +1711,34 @@ natives: context [
 		ret
 	]
 
+	zero?*: func [
+		check?  [logic!]
+		return: [red-logic!]
+		/local
+			i	 [red-integer!]
+			p	 [red-pair!]
+			ret  [red-logic!]
+	][
+		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		i: as red-integer! stack/arguments
+		ret: as red-logic! i
+		ret/value: switch TYPE_OF(i) [
+			TYPE_INTEGER
+			TYPE_FLOAT
+			TYPE_TIME
+			TYPE_CHAR [
+				i/value = 0
+			]
+			TYPE_PAIR [
+				p: as red-pair! i
+				all [p/x = 0 p/y = 0]
+			]
+			default [false]
+		]
+		ret/header: TYPE_LOGIC
+		ret
+	]
+
 	log-2*: func [
 		check? [logic!]
 		/local
@@ -2922,6 +2950,7 @@ natives: context [
 			:sign?*
 			:as*
 			:call*
+			:zero?*
 		]
 	]
 

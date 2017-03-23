@@ -552,6 +552,14 @@ NaN?: make native! [[
 	#get-definition NAT_NAN?
 ]
 
+zero?: make native! [[
+		"Returns TRUE if the value is zero"
+		value	[number! pair! time! char!]
+		return: [logic!]
+	]
+	#get-definition NAT_ZERO?
+]
+
 log-2: make native! [[
 		"Return the base-2 logarithm"
 		value	[number!]
