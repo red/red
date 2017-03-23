@@ -502,6 +502,25 @@ tuple: context [
 		TUPLE_SIZE?(tp)
 	]
 
+	all-zero?: func [ ;ugly name, but needed because of the `zero?` macro
+		tp		[red-tuple!]
+		return: [logic!]
+		/local
+			value	[byte-ptr!]
+			size	[integer!]
+			n		[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/zero?"]]
+		value: (as byte-ptr! tp) + 4
+		size: TUPLE_SIZE?(tp)
+		n: 1
+		while [n <= size] [
+			if value/n <> as byte! 0 [return false]
+			n: n + 1
+		]
+		true
+	]
+
 	pick: func [
 		tp		[red-tuple!]
 		index	[integer!]

@@ -554,7 +554,7 @@ NaN?: make native! [[
 
 zero?: make native! [[
 		"Returns TRUE if the value is zero"
-		value	[number! pair! time! char!]
+		value	[number! pair! time! char! tuple!]
 		return: [logic!]
 	]
 	#get-definition NAT_ZERO?
