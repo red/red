@@ -289,7 +289,9 @@ face!: object [				;-- keep in sync with facet! enum
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
-						system/view/platform/destroy-view f no
+						if all [block? state handle? state/1][
+							system/view/platform/destroy-view f no
+						]
 					]
 				]
 				if type = 'tab-panel [link-tabs-to-parent/init self] ;-- panels need to be SHOWn before parent
