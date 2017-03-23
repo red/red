@@ -16,6 +16,8 @@ terminal!: object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	mouse-up?:	yes
+	ime-open?:	no
+	ime-pos:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
@@ -352,6 +354,20 @@ terminal!: object [
 		]
 	]
 
+	process-ime-input: func [event [event!] /local text][
+		text: event/picked
+		either ime-open? [
+			change/part skip line ime-pos text pos - ime-pos
+		][
+			ime-pos: pos
+			insert skip line pos text
+			ime-open?: yes
+		]
+		pos: ime-pos + length? text
+		calc-top/edit
+		redraw target
+	]
+
 	process-shortcuts: function [event [event!]][
 		if find event/flags 'control [
 			switch event/key [
@@ -361,6 +377,11 @@ terminal!: object [
 	]
 
 	press-key: func [event [event!] /local char][
+		if ime-open? [
+			remove/part skip line ime-pos pos - ime-pos
+			pos: ime-pos
+			ime-open?: no
+		]
 		if process-shortcuts event [exit]
 		char: event/key
 		switch/default char [
@@ -458,7 +479,7 @@ terminal!: object [
 
 console!: make face! [
 	type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
-	flags: [Direct2D editable scrollable all-over]
+	flags: [Direct2D scrollable editable all-over]
 	menu: [
 		"Copy^-Ctrl+C"		 copy
 		"Paste^-Ctrl+V"		 paste
@@ -481,6 +502,9 @@ console!: make face! [
 		]
 		on-key: func [face [object!] event [event!]][
 			extra/press-key event
+		]
+		on-ime: func [face [object!] event [event!]][
+			extra/process-ime-input event
 		]
 		on-down: func [face [object!] event [event!]][
 			extra/mouse-down event
