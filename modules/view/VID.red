@@ -192,6 +192,7 @@ system/view/VID: context [
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
 				| 'no-border  (set-flag opts 'flags 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
+				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
 				] to end
 			]
 			unless match? [
