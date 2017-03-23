@@ -1255,7 +1255,7 @@ string: context [
 				escape-url-chars/idx = (as byte! ESC_URL)
 			][
 				append-char GET_BUFFER(buffer) as-integer #"%"
-				concatenate-literal buffer to-hex cp yes
+				concatenate-literal buffer byte-to-hex cp
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
