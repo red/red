@@ -147,10 +147,11 @@ system/view/platform: context [
 				EVT_DBL_CLICK
 				EVT_WHEEL
 				EVT_OVER								;-- last mouse event
-				
+
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				EVT_IME
 				EVT_FOCUS
 				EVT_UNFOCUS
 				EVT_ENTER
@@ -321,6 +322,7 @@ system/view/platform: context [
 			_key:			word/load "key"
 			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			_ime:			word/load "ime"
 			_focus:			word/load "focus"
 			_unfocus:		word/load "unfocus"
 			_select:		word/load "select"
@@ -401,6 +403,7 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
+					EVT_IME			 [_ime]
 					EVT_FOCUS		 [_focus]
 					EVT_UNFOCUS		 [_unfocus]
 					EVT_SELECT	 	 [_select]
@@ -446,6 +449,7 @@ system/view/platform: context [
 					sym = _key/symbol			[sym: EVT_KEY]
 					sym = _key-down/symbol		[sym: EVT_KEY_DOWN]
 					sym = _key-up/symbol		[sym: EVT_KEY_UP]
+					sym = _ime/symbol			[sym: EVT_IME]
 					sym = _focus/symbol			[sym: EVT_FOCUS]
 					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]
 					sym = _select/symbol		[sym: EVT_SELECT]

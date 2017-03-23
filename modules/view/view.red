@@ -530,6 +530,7 @@ system/view: context [
 		key				on-key
 		key-down		on-key-down
 		key-up			on-key-up
+		ime				on-ime
 		focus			on-focus
 		unfocus			on-unfocus
 		select			on-select

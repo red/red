@@ -12,6 +12,8 @@ Red/System [
 
 #define RTLD_LAZY	1
 
+#define NSNotFound					7FFFFFFFh			;@@ should be NSIntegerMax
+
 #define OBJC_ASSOCIATION_ASSIGN		0
 #define OBJC_ASSOCIATION_RETAIN		0301h
 #define OBJC_ASSOCIATION_COPY		0303h

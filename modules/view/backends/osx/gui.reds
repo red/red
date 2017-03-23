@@ -37,6 +37,14 @@ log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
 
+;-- for IME support
+in-composition?: no
+ime-str-styles: as red-block! 0
+caret-w:		as float32! 0.0
+caret-h:		as float32! 0.0
+caret-x:		as float32! 0.0
+caret-y:		as float32! 0.0
+
 red-face?: func [
 	handle	[integer!]
 	return: [logic!]
@@ -468,6 +476,11 @@ change-size: func [
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		object_getInstanceVariable hWnd IVAR_RED_DATA :type
+		if type = caret [
+			caret-w: rc/x
+			caret-h: rc/y
+		]
 	]
 ]
 
@@ -659,6 +672,13 @@ change-offset: func [
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
+		unless in-composition? [
+			object_getInstanceVariable hWnd IVAR_RED_DATA :type
+			if type = caret [
+				caret-x: rc/x
+				caret-y: rc/y
+			]
+		]
 	]
 ]
 
@@ -1026,16 +1046,24 @@ transparent-base?: func [
 
 init-base-face: func [
 	face	[red-object!]
-	base	[integer!]
+	hwnd	[integer!]
 	menu	[red-block!]
 	size	[red-pair!]
-	color	[red-tuple!]
+	values	[red-value!]
 	bits	[integer!]
 	/local
-		id	[integer!]
-		obj [integer!]
-		rc	[NSRect!]
+		color	[red-tuple!]
+		opts	[red-block!]
+		word	[red-word!]
+		id		[integer!]
+		obj		[integer!]
+		sym		[integer!]
+		len		[integer!]
+		rc		[NSRect!]
 ][
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	opts: as red-block! values + FACE_OBJ_OPTIONS
+
 	either bits and FACET_FLAGS_SCROLLABLE <> 0 [
 		rc: make-rect 0 0 size/x size/y
 		id: objc_getClass "RedBase"
@@ -1046,12 +1074,33 @@ init-base-face: func [
 		store-face-to-obj obj id face
 
 		objc_msgSend [obj sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
-		objc_msgSend [base sel_getUid "setHasVerticalScroller:" yes]
-		objc_msgSend [base sel_getUid "setHasHorizontalScroller:" yes]
-		objc_msgSend [base sel_getUid "setDocumentView:" obj]
+		objc_msgSend [hwnd sel_getUid "setHasVerticalScroller:" yes]
+		objc_msgSend [hwnd sel_getUid "setHasHorizontalScroller:" yes]
+		objc_msgSend [hwnd sel_getUid "setDocumentView:" obj]
 	][
-		obj: base
+		obj: hwnd
 	]
+
+	object_setInstanceVariable obj IVAR_RED_DATA base					;-- set a flag as we handle keyboard event differently in base face
+
+	if TYPE_OF(opts) = TYPE_BLOCK [
+		word: as red-word! block/rs-head opts
+		len: block/rs-length? opts
+		if len % 2 <> 0 [exit]
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = caret [
+					object_setInstanceVariable obj IVAR_RED_DATA caret	;-- overwrite extra RED_DATA
+					change-offset obj as red-pair! values + FACE_OBJ_OFFSET base
+				]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
 	if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
 ]
@@ -1499,7 +1548,7 @@ OS-make-view: func [
 			sym = panel
 			sym = base
 		][
-			init-base-face face obj menu size as red-tuple! values + FACE_OBJ_COLOR bits
+			init-base-face face obj menu size values bits
 		]
 		sym = tab-panel [
 			set-tabs obj values

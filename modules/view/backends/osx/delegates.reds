@@ -24,8 +24,12 @@ accepts-first-responder: func [
 	self	[integer!]
 	cmd		[integer!]
 	return: [logic!]
+	/local
+		type [integer!]
 ][
-	true
+	type: 0
+	object_getInstanceVariable self IVAR_RED_DATA :type
+	type = base
 ]
 
 become-first-responder: func [
@@ -251,23 +255,16 @@ key-down-base: func [
 	cmd		[integer!]
 	event	[integer!]
 	/local
-		input-ctx [integer!]
+		flags		[integer!]
 ][
-	;arr: objc_msgSend [cls_NSArray sel_arrayWithObject event]
-	;objc_msgSend [self sel_getUid "interpretKeyEvents:" arr]
-	;objc_msgSend [arr sel_release]
-	;input-ctx: objc_getAssociatedObject self RedInputContextKey
-	;if zero? input-ctx [
-	;	input-ctx: objc_msgSend [
-	;		objc_getClass "NSTextInputContext"
-	;		sel_getUid "inputContextWithClient:"
-	;		self
-	;	]
-	;	objc_setAssociatedObject self RedInputContextKey input-ctx OBJC_ASSOCIATION_RETAIN
-	;]
-	input-ctx: objc_msgSend [self sel_getUid "inputContext"]
-?? input-ctx
-	objc_msgSend [input-ctx sel_getUid "handleEvent:" event]
+	flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
+	either flags and FACET_FLAGS_EDITABLE = 0 [
+		on-key-down self event
+	][
+		objc_msgSend [
+			objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
+		]
+	]
 ]
 
 win-level: func [
@@ -887,18 +884,19 @@ has-marked-text: func [
 	cmd		[integer!]
 	return: [logic!]
 ][
-	probe "has-marked-text"
-	no
+	in-composition?
 ]
+
+_marked-range-idx: 0
+_marked-range-len: 0
 
 marked-range: func [
 	[cdecl]
 	self	[integer!]
 	cmd		[integer!]
 ][
-	probe "marked-range"
-	system/cpu/edx: 0
-	system/cpu/eax: 0
+	system/cpu/edx: _marked-range-len
+	system/cpu/eax: _marked-range-idx
 ]
 
 selected-range: func [
@@ -906,10 +904,15 @@ selected-range: func [
 	self	[integer!]
 	cmd		[integer!]
 ][
-	probe "selected-range"
-	?? self
 	system/cpu/edx: 0
 	system/cpu/eax: 0
+]
+
+get-text-styles: func [
+	str		[integer!]
+	styles	[red-block!]
+][
+	
 ]
 
 set-marked-text: func [
@@ -921,9 +924,23 @@ set-marked-text: func [
 	len1	[integer!]
 	idx2	[integer!]
 	len2	[integer!]
+	/local
+		attr-str?	[logic!]
+		text		[integer!]
+		cstr		[c-string!]
+		key			[integer!]
 ][
-	probe "set-marked-text"
-	0
+	in-composition?: yes
+	attr-str?: as logic! objc_msgSend [
+		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
+	]
+	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
+	make-event self text EVT_IME
+	_marked-range-idx: idx1
+	_marked-range-len: objc_msgSend [text sel_getUid "length"]
+	if zero? _marked-range-len [
+		objc_msgSend [self sel_getUid "unmarkText"]
+	]
 ]
 
 unmark-text: func [
@@ -931,8 +948,11 @@ unmark-text: func [
 	self	[integer!]
 	cmd		[integer!]
 ][
-	probe "unmark-text"
-	0
+	in-composition?: no
+	objc_msgSend [
+		objc_msgSend [self sel_getUid "inputContext"]
+		sel_getUid "discardMarkedText"
+	]
 ]
 
 valid-attrs-marked-text: func [
@@ -941,7 +961,6 @@ valid-attrs-marked-text: func [
 	cmd		[integer!]
 	return: [integer!]
 ][
-	probe "valid-attrs-marked-text"
 	objc_msgSend [
 		objc_getClass "NSArray" sel_getUid "arrayWithObjects:"
 		NSMarkedClauseSegmentAttributeName
@@ -970,10 +989,24 @@ insert-text-range: func [
 	str		[integer!]
 	idx		[integer!]
 	len		[integer!]
+	/local
+		attr-str?	[logic!]
+		text		[integer!]
+		cstr		[c-string!]
+		key			[integer!]
 ][
-	probe "insert-text-range"
-	?? idx
-	?? len
+	objc_msgSend [self sel_getUid "unmarkText"]
+	attr-str?: as logic! objc_msgSend [
+		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
+	]
+	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
+	len: objc_msgSend [text sel_getUid "length"]
+	idx: 0
+	while [idx < len][
+		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]
+		make-event self key EVT_KEY
+		idx: idx + 1
+	]
 ]
 
 char-idx-point: func [
@@ -989,21 +1022,43 @@ char-idx-point: func [
 ]
 
 first-rect-range: func [
-	[cdecl]
-	rc		[NSRect!]
-	self	[integer!]
-	cmd		[integer!]
-	idx		[integer!]
-	len		[integer!]
-	p-range [int-ptr!]
+	[stdcall]
+	base		[integer!]
+	/local
+		pc		[int-ptr!]
+		rc		[NSRect!]
+		self	[integer!]
+		cmd		[integer!]
+		idx		[integer!]
+		len		[integer!]
+		p-range [int-ptr!]
+		y		[integer!]
+		x		[integer!]
+		pt		[CGPoint!]
+		sy		[float32!]
 ][
-	probe "first-rect-range"
-	probe [self " " idx " " len]
-	rc/x: as float32! 100.0
-	rc/y: as float32! 100.0
-	rc/w: as float32! 0.0
-	rc/h: as float32! 100.0
-	system/cpu/esp: system/cpu/esp + 4
+	pc: :base
+	rc: as NSRect! base
+	pc: pc + 1
+	self: pc/value
+
+	rc/x: caret-x
+	rc/y: caret-y + caret-h
+	rc/w: caret-w
+	rc/h: caret-h
+
+	x: objc_msgSend [self sel_getUid "convertPoint:toView:" rc/x rc/y 0]
+	y: system/cpu/edx
+	pt: as CGPoint! :x
+
+	x: objc_msgSend [
+		objc_msgSend [self sel_getUid "window"]
+		sel_getUid "convertBaseToScreen:" pt/x pt/y
+	]
+	y: system/cpu/edx
+	pt: as CGPoint! :x
+	rc/x: pt/x
+	rc/y: pt/y
 ]
 
 do-cmd-selector: func [
@@ -1011,9 +1066,16 @@ do-cmd-selector: func [
 	self	[integer!]
 	cmd		[integer!]
 	sel		[integer!]
+	/local
+		event [integer!]
 ][
-	probe "do-cmd-selector"
-	msg-send-super self cmd sel
+	event: objc_msgSend [NSApp sel_getUid "currentEvent"]
+	if all [
+		event <> 0
+		NSKeyDown = objc_msgSend [event sel_getUid "type"]
+	][
+		on-key-down self event
+	]
 ]
 
 draw-rect: func [
@@ -1129,10 +1191,6 @@ perform-key-equivalent: func [
 	as logic! msg-send-super self cmd event
 ]
 
-;app-send-event: func [
-	
-;]
-
 win-send-event: func [
 	[cdecl]
 	self	[integer!]
@@ -1154,11 +1212,14 @@ win-send-event: func [
 	if type = NSKeyDown	[
 		find?: yes
 		responder: objc_msgSend [self sel_getUid "firstResponder"]
-		unless red-face? responder [
-			responder: objc_getAssociatedObject self RedFieldEditorKey
-			unless red-face? responder [find?: no]
+		object_getInstanceVariable responder IVAR_RED_DATA :type
+		if type <> base [
+			unless red-face? responder [
+				responder: objc_getAssociatedObject self RedFieldEditorKey
+				unless red-face? responder [find?: no]
+			]
+			if find? [on-key-down responder event]
 		]
-		if find? [on-key-down responder event]
 	]
 	msg-send-super self cmd event
 ]
