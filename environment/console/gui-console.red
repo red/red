@@ -84,7 +84,6 @@ gui-console-ctx: context [
 	set-background: routine [color [tuple!]][terminal/set-background color/array1]
 
 	init: func [/local cfg-dir][
-		system/view/auto-sync?: no
 		cfg-dir: append to-red-file get-env "ALLUSERSPROFILE" %/Red/
 		unless exists? cfg-dir [make-dir cfg-dir]
 		cfg-path: append cfg-dir %console-cfg.red
@@ -104,7 +103,6 @@ gui-console-ctx: context [
 		]
 		apply-cfg
 		win/selected: console
-		system/view/auto-sync?: yes
 		win/visible?: yes
 	]
 	
@@ -136,12 +134,12 @@ gui-console-ctx: context [
 	]
 
 	apply-cfg: does [
-		win/offset:		 cfg/win-pos
-		win/size:		 cfg/win-size
 		console/font:	 make font! [name: cfg/font-name size: cfg/font-size anti-alias?: no]
 		set-font-color	 cfg/font-color
 		set-background	 cfg/background
 		set-buffer-lines cfg/buffer-lines
+		win/offset:		 cfg/win-pos
+		win/size:		 cfg/win-size
 	]
 
 	save-cfg: function [][
