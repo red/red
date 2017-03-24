@@ -303,6 +303,7 @@ update-scrollbars: func [
 		][
 			GetStockObject DEFAULT_GUI_FONT
 		]
+		GetClientRect hWnd rc
 		saved: SelectObject hScreen hFont
 		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
 		horz?: any [
@@ -311,7 +312,6 @@ update-scrollbars: func [
 		]
 
 		SelectObject hScreen saved
-		GetClientRect hWnd rc
 		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
 	][
 		ShowScrollBar hWnd 1 no							;-- SB_VERT
