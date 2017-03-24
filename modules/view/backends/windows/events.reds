@@ -1135,7 +1135,7 @@ process: func [
 						default  [res: make-event msg 0 EVT_KEY] ;-- force a KEY event
 					]
 				]
-			]	
+			]
 			res
 		]
 		WM_SYSKEYUP

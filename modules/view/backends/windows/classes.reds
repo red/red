@@ -162,6 +162,12 @@ AreaWndProc: func [
 				CloseClipboard
 			]
 		]
+		WM_CHAR [				;-- stop beep when pressing enter in field
+			if all [
+				wParam = 0Dh	;-- VK_RETURN
+				zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE)
+			][return 0]
+		]
 		default [0]
 	]
 	CallWindowProc as wndproc-cb! OldEditWndProc hWnd msg wParam lParam
@@ -228,7 +234,6 @@ register-classes: func [
 
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
-	make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
 	make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
@@ -247,6 +252,7 @@ register-classes: func [
 		#u16 "EDIT"
 		as-integer :AreaWndProc
 		yes
+	make-super-class #u16 "RedField" #u16 "RedArea" 0 yes
 ]
 
 unregister-classes: func [
