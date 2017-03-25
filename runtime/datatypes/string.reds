@@ -1092,11 +1092,12 @@ string: context [
 	]
 	
 	push: func [
-		str [red-string!]
+		str		[red-string!]
+		return: [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/push"]]
 
-		copy-cell as red-value! str stack/push*
+		as red-string! copy-cell as red-value! str stack/push*
 	]
 	
 	;-- Actions -- 
