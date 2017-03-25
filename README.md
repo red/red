@@ -92,6 +92,9 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
+    --config [...]                 : Provides compilation settings as a block
+                                     of `name: value` pairs.
+
     --cli                          : Run the command-line REPL instead of the
                                      graphical console.
 
