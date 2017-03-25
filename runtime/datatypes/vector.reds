@@ -823,6 +823,7 @@ vector: context [
 				TYPE_CHAR		[part: part - 5 "char!"]
 				TYPE_INTEGER	[part: part - 8 "integer!"]
 				TYPE_FLOAT		[part: part - 6 "float!"]
+				TYPE_PERCENT	[part: part - 8 "percent!"]
 			]
 			string/append-char GET_BUFFER(buffer) as-integer space
 
