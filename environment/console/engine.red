@@ -260,7 +260,7 @@ system/console: context [
 ;-- Console-oriented function definitions
 
 expand: func [
-	"Preprocess the argument block and display the output"
+	"Preprocess the argument block and display the output (console only)"
 	blk [block!] "Block to expand"
 ][
 	probe expand-directives/clean blk
