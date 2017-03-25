@@ -512,7 +512,7 @@ redc: context [
 		show-stats result
 	]
 	
-	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date][
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
 		unless opts/dev-mode? [return no]
 		
 		path: get-output-path opts
@@ -525,18 +525,22 @@ redc: context [
 		][%.so]
 		
 		if lib? [
+			date: modified? lib
+			current?: any [not encap? date > build-date]
+			
 			either all [load-lib? opts/OS = get-OS-name][
 				lib: load/library lib
 				get-date: make routine! [return: [string!]] lib "red/get-build-date"
-				print ["...using libRedRT built on" get-date]
+				ts: get-date
 				free lib
 			][
-				print ["...using libRedRT for" form opts/OS]
+				ts: date
 			]
+			if current? [print ["...using libRedRT built on" ts]]
 		]
-		
 		not all [
 			lib?
+			current?
 			exists? join path libRedRT/include-file
 			exists? join path libRedRT/defs-file
 		]
