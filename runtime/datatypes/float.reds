@@ -792,23 +792,17 @@ float: context [
 	]
 
 	even?: func [
-		int		[red-float!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;not as-logic float/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		not as-logic (as integer! fl/value) and 1
 	]
 
 	odd?: func [
-		int		[red-integer!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;as-logic int/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		as-logic (as integer! fl/value) and 1
 	]
 
 	#define FLOAT_TRUNC(x) [d: floor float/abs x either x < 0.0 [0.0 - d][d]]
@@ -916,8 +910,8 @@ float: context [
 			:remainder
 			:round
 			:subtract
-			null			;even?
-			null			;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

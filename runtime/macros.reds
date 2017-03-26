@@ -239,6 +239,7 @@ Red/System [
 	NAT_SIGN?
 	NAT_AS
 	NAT_CALL
+	NAT_ZERO?
 ]
 
 #enum math-op! [

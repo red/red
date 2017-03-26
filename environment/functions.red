@@ -209,16 +209,6 @@ replace: function [
 	series
 ]
 
-zero?: func [
-	value [number! pair!]
-][
-	either pair! = type? value [
-		make logic! all [value/1 = 0 value/2 = 0]
-	][
-		value = 0
-	]
-]
-
 math: function [
 	"Evaluates a block using math precedence rules, returning the last result"
 	body [block!] "Block to evaluate"

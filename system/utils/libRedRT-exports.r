@@ -295,6 +295,7 @@
 	red/natives/arctangent*
 	red/natives/arctangent2*
 	red/natives/NaN?*
+	red/natives/zero?*
 	red/natives/log-2*
 	red/natives/log-10*
 	red/natives/log-e*

@@ -1454,12 +1454,12 @@ natives: context [
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add time! money! pair!
+		switch TYPE_OF(res) [							;@@ Add money! pair!
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: negative? num/value
 			]
-			TYPE_FLOAT	 [
+			TYPE_FLOAT TYPE_TIME [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
@@ -1479,12 +1479,12 @@ natives: context [
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add time! money! pair!
+		switch TYPE_OF(res) [							;@@ Add money! pair!
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: positive? num/value
 			]
-			TYPE_FLOAT	 [
+			TYPE_FLOAT TYPE_TIME [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
@@ -1707,6 +1707,38 @@ natives: context [
 		f: as red-float! stack/arguments
 		ret: as red-logic! f
 		ret/value: float/NaN? f/value
+		ret/header: TYPE_LOGIC
+		ret
+	]
+
+	zero?*: func [
+		check?  [logic!]
+		return: [red-logic!]
+		/local
+			i	 [red-integer!]
+			p	 [red-pair!]
+			ret  [red-logic!]
+	][
+		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		i: as red-integer! stack/arguments
+		ret: as red-logic! i
+		ret/value: switch TYPE_OF(i) [
+			TYPE_INTEGER
+			TYPE_FLOAT
+			TYPE_PERCENT
+			TYPE_TIME
+			TYPE_CHAR [
+				i/value = 0
+			]
+			TYPE_PAIR [
+				p: as red-pair! i
+				all [p/x = 0 p/y = 0]
+			]
+			TYPE_TUPLE [
+				tuple/all-zero? as red-tuple! i
+			]
+			default [false]
+		]
 		ret/header: TYPE_LOGIC
 		ret
 	]
@@ -2922,6 +2954,7 @@ natives: context [
 			:sign?*
 			:as*
 			:call*
+			:zero?*
 		]
 	]
 

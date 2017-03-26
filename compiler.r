@@ -3745,6 +3745,7 @@ red: context [
 			-negative?-	negative?
 			-max-		max
 			-min-		min
+			-zero?-     zero?
 		] name [
 			name: pos
 		]
