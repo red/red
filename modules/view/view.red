@@ -94,7 +94,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			tab "word       :" word				 lf
 			tab "target type:" mold type? target lf
 			tab "new value  :" mold type? new	 lf
-			tab "index      :" index			 lf
+			tab "index      :" index			 lf		;-- zero-based absolute index
 			tab "part       :" part				 lf
 			tab "forced?    :" forced?
 		]
@@ -110,7 +110,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			either word = 'pane [
 				case [
 					action = 'moved [
-						faces: skip head target index	;-- zero-based absolute index				
+						faces: skip head target index	;-- zero-based absolute index
 						loop part [
 							faces/1/parent: owner
 							faces: next faces
@@ -192,6 +192,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			][
 				unless find [cleared removed taken] action [
 					if find [clear remove take] action [
+						index: 0
 						target: copy/part target part
 					]
 					reduce/into
