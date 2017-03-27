@@ -31,7 +31,7 @@ hex-to-rgb: function [
 ]
 
 within?: function [
-	"Return TRUE if the point is within the rectangle bounds"
+	"Returns TRUE if the point is within the rectangle bounds"
 	point	[pair!] "XY position"
 	offset  [pair!] "Offset of area"
 	size	[pair!] "Size of area"
@@ -46,7 +46,7 @@ within?: function [
 ]
 
 overlap?: function [
-	"Return TRUE if the two faces bounding boxes are overlapping"
+	"Returns TRUE if the two faces bounding boxes are overlapping"
 	A		[object!] "First face"
 	B		[object!] "Second face"
 	return: [logic!]  "TRUE if overlapping"

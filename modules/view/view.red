@@ -32,7 +32,7 @@ size-text: function [
 	face	 [object!]		"Face containing the text to size"
 	/with 					"Provide a text string instead of face/text"
 		text [string!]		"Text to measure"
-	return:  [pair! none!]	"Return the text's size or NONE if failed"
+	return:  [pair! none!]	"Returns the text's size or NONE if failed"
 ][
 	system/view/platform/size-text face text
 ]
@@ -664,7 +664,7 @@ view: function [
 	/flags
 		flgs [block! word!]	"One or more window flags"
 	;/modal					"Display a modal window (pop-up)"
-	/no-wait				"Return immediately - do not wait"
+	/no-wait				"Returns immediately - do not wait"
 ][
 	unless system/view/screens [system/view/platform/init]
 	
