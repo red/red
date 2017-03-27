@@ -781,7 +781,7 @@ parser: context [
 		max:	  -1
 		cnt:	   0
 		cnt-col:   0
-		state:    ST_NEXT_ACTION
+		state:    ST_PUSH_BLOCK
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
@@ -813,7 +813,7 @@ parser: context [
 					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
-					either zero? block/rs-length? rules [
+					either 3 = block/rs-length? rules [
 						state: ST_END
 					][
 						loop?: no
@@ -830,10 +830,7 @@ parser: context [
 						s/tail: s/tail - 3
 						value: s/tail - 1
 						
-						state: either all [
-							0 < block/rs-length? rules 
-							TYPE_OF(value) = TYPE_INTEGER
-						][
+						state: either TYPE_OF(value) = TYPE_INTEGER [
 							ST_POP_RULE
 						][
 							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
@@ -1147,10 +1144,7 @@ parser: context [
 					s: GET_BUFFER(rules)
 					value: s/tail - 1
 					
-					state: either any [					;-- order of conditional expressions matters!
-						zero? block/rs-length? rules
-						TYPE_OF(value) <> TYPE_INTEGER
-					][
+					state: either TYPE_OF(value) <> TYPE_INTEGER [
 						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 					][
 						ST_POP_RULE
