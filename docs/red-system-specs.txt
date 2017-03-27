@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 11/03/2017
-	Revision: 48
+	Date: 27/03/2017
+	Revision: 49
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2927,7 +2927,7 @@ As compiler directives apply globally to programs, they are not allowed inside c
 
 ---#import
 
-Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
+Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions and variables to Red/System current context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global or local contexts of your Red/System program, but be sure to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
 
 <u>Note</u>: this is not the same as dynamically loading a shared library from your Red/System code after your program has started. Such approach allows you to delay the loading of your libraries and to free them. Imports cannot be freed.
 
@@ -2941,16 +2941,22 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  			return: [<datatype>]		;-- optional part
  		]
  		...								;-- more functions mappings
+ 		<variable name>: "<VAR>" [
+ 			<datatype>
+ 		]
+ 		...								;-- more variables mappings
  	]
- 	...									;-- more libraries to load					
+ 	...									;-- more libraries to load
  ]
 
- <library>		 : shared library file name (with extension)
- <convention>	 : calling convention of the library (stdcall | cdecl)
- <function name> : name of the mapped function in global context
- <ID>			 : identifier of the function in the shared library
- <argument>		 : function's argument indentifier
- <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
+ <library>       : shared library file name (with extension)
+ <convention>    : calling convention of the library (stdcall | cdecl)
+ <function name> : name of the mapped function in current context
+ <variable name> : name of the mapped variable in current context
+ <ID>            : identifier of the function in the shared library
+ <VAR>           : identifier of the variable in the shared library
+ <argument>      : function's argument indentifier
+ <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
                    float! | float32! | c-string! | struct! [<members>] |
                    function! [<spec>]
 
@@ -3739,9 +3745,17 @@ will output:
 
 ===Document History
 
+*<b>27/03/2017 - revision 49</b>
+
+*>Adds description for variables importing from external libraries.
+
+
+
 *<b>11/03/2017 - revision 48</b>
 
 *>Additional explanations for `callback` attribute usage.
+
+
 
 *<b>10/10/2016 - revision 47</b>
 
