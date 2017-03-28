@@ -104,7 +104,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? munmap as byte-ptr! ptr ptr/value [
+		if -1 = munmap as byte-ptr! ptr ptr/value [
 			throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
