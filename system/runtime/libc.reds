@@ -65,8 +65,6 @@ Red/System [
 			endptr		[byte-ptr!]
 			return:		[float!]
 		]
-
-		errno:		 "errno" [integer!]
 	]
 
 	LIBM-file cdecl [
