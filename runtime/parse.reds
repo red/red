@@ -277,6 +277,7 @@ parser: context [
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
+		assert s/offset <= (s/tail - 2)
 		pos*: as positions! s/tail - 2
 		s: GET_BUFFER(input)
 		
@@ -681,6 +682,7 @@ parser: context [
 		if rules/head > 0 [
 			s: GET_BUFFER(rules)
 			s/tail: s/tail - 1
+			assert s/offset <= s/tail
 			p: as positions! s/tail
 			series/head: p/input
 			rules/head: p/rule
@@ -829,6 +831,7 @@ parser: context [
 						PARSE_TRACE(_pop)
 						s/tail: s/tail - 3
 						value: s/tail - 1
+						assert s/offset <= value
 						
 						state: either TYPE_OF(value) = TYPE_INTEGER [
 							ST_POP_RULE
@@ -861,12 +864,10 @@ parser: context [
 				]
 				ST_POP_RULE [
 					s: GET_BUFFER(rules)
+					assert s/offset <= (s/tail - 3)
 					value: s/tail - 1
 					
-					either any [
-						s/offset + rules/head = s/tail	;-- rules stack empty already
-						TYPE_OF(value) = TYPE_BLOCK    
-					][
+					either TYPE_OF(value) = TYPE_BLOCK [
 						state: either pop? [pop?: no ST_POP_BLOCK][ST_NEXT_ACTION]
 					][
 						pop?: yes
@@ -1131,6 +1132,7 @@ parser: context [
 						if pop? [
 							PARSE_TRACE(_pop)
 							s/tail: s/tail - 3			;-- pop rule stack frame
+							assert s/offset <= s/tail
 							if s/tail > s/offset [
 								p: as positions! s/tail - 2
 								p/sub: int/value		;-- save rule type in parent stack frame
@@ -1143,6 +1145,7 @@ parser: context [
 				ST_CHECK_PENDING [
 					s: GET_BUFFER(rules)
 					value: s/tail - 1
+					assert s/offset <= value
 					
 					state: either TYPE_OF(value) <> TYPE_INTEGER [
 						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
@@ -1263,6 +1266,7 @@ parser: context [
 					state: either cmd = tail [
 						s: GET_BUFFER(rules)
 						value: s/tail - 1
+						assert s/offset <= value
 						either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 					][
 						PARSE_TRACE(_fetch)
@@ -1368,6 +1372,7 @@ parser: context [
 									s: GET_BUFFER(rules)
 									PARSE_TRACE(_pop)
 									s/tail: s/tail - 3	;-- pop rule stack frame
+									assert s/offset <= s/tail
 									state: ST_CHECK_PENDING
 								]
 								PARSE_CHECK_INPUT_EMPTY?
@@ -1378,6 +1383,7 @@ parser: context [
 				ST_FIND_ALTERN [
 					s: GET_BUFFER(rules)				;-- backtrack input
 					p: as positions! s/tail - 2
+					assert s/offset <= p
 					input/head: p/input
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag after backtracking
 					
@@ -1404,6 +1410,7 @@ parser: context [
 							cmd: tail
 							s: GET_BUFFER(rules)
 							value: s/tail - 1
+							assert s/offset <= value
 							state: either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 						]
 						sym = words/skip [				;-- SKIP
