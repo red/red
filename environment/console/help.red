@@ -109,10 +109,7 @@ Other useful functions:
 					either string? :pattern [
 						find str pattern
 					] [
-						all [
-							datatype? get :pattern
-							type = :pattern
-						]
+						type = get :pattern
 					]
 				]
 			][
