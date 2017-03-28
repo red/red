@@ -31,7 +31,7 @@ crypto: context [
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
 		_hash:		symbol/make "hash"
-		errno: 		get-errno-ptr
+		#if OS <> 'Windows [errno: get-errno-ptr]
 	]
 
 	#enum crypto-algorithm! [
