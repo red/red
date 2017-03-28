@@ -145,6 +145,8 @@ ext-process: context [
 	Windows   [											;-- Windows
 		win-error?: no
 
+		init: does []
+
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd	 [integer!]      "File descriptor"
 			data [p-buffer!]
@@ -376,16 +378,10 @@ ext-process: context [
 		] ; call
 	] ; Windows
 	#default  [											;-- POSIX
-		;-- Shell detection
-		shell-name: declare c-string!
-		env: system/env-vars
-		until [
-			if null <> strstr env/item "SHELL=" [
-				shell-name: make-c-string length? env/item
-				strcpy shell-name (env/item + 6)
-			]
-			env: env + 1
-			env/item = null
+		shell-name: as c-string! 0
+
+		init: does [
+			shell-name: platform/getenv "SHELL"
 		]
 
 		set-flags-fd: func [

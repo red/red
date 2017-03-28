@@ -205,6 +205,7 @@ red: context [
 		parser/init
 		ownership/init
 		crypto/init
+		ext-process/init
 		
 		stack/init
 		redbin/boot-load system/boot-data no
