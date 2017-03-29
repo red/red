@@ -69,7 +69,7 @@ Other useful functions:
 			find any-object! type [ mold/part keys-of value 100]
 			find any-block!  type [ trim/lines mold/part :value 100 ]
 			find any-function! type [
-				spec: spec-of :value
+				spec: copy/deep spec-of :value
 				either any [
 					string? value: spec/1
 					string? value: spec/2	;-- attributes block case
@@ -113,9 +113,7 @@ Other useful functions:
 					]
 				]
 			][
-				unless all [
-					weak type = unset!
-				][
+				unless all [weak type = unset!][
 					str: pad form word 18
 					insert tail out to string! reduce [
 						"   " str #" "
@@ -141,6 +139,7 @@ Other useful functions:
 			_buffer: buffer ;store default help output buffer
 			buffer: string
 		]
+
 		catch [case/all [
 			if unset? :word [									;-- HELP with no arguments
 				buffer: insert buffer HELP-USAGE
@@ -148,11 +147,20 @@ Other useful functions:
 			]
 
 			if word? :word [
+				print "Word"
 				either value? :word [
 					value: get :word    ;lookup for word's value if any
 				][	word: mold :word ]  ;or use it as a string input
 			]
 
+			string? :word  [
+				types: form-obj/weak/match system/words :word
+				output either empty? types [
+					["No information on:" word]
+				][	["Found these related words:" newline types]]
+				throw true
+			]
+			
 			datatype? :value [
 				output [uppercase mold :word "is a datatype of value:" mold :value]
 				;if desc: select datatypes to word! :value [
@@ -164,118 +172,98 @@ Other useful functions:
 				]
 				throw true
 			]
-			any [string? :word all [word? :word datatype? :word]] [
-				if all [word? :word datatype? :word] [
-					output form-obj/match system/words :word
-					output [mold :word "is a datatype^/"]
-				]
-				if any [:word = 'unset! not value? :word] [
-					throw true
-				]
-				types: form-obj/weak/match system/words :word
-				output case [
-					not empty? types [
-						["Found these related words:" newline types]
-					]
-					all [word? :word datatype? :word] [
-						["No values defined for:" word]
-					]
-					'else [["No information on:" word]]
-				]
-				throw true
-			]
 
 			not any [word? :word path? :word] [
 				output [mold :word "is" form-type :word]
 				throw true
 			]
 
-			'else [
-				if path? :word [
-					if any [
-						error? set/any 'value try [get :word]
-						not value? value
-					] [
-						output ["No information on" word "(path has no value)"]
-						throw true
+			path? :word [
+				if any [
+					error? set/any 'value try [get :word]
+					not value? :value
+				] [
+					output ["No information on" word "(path has no value)"]
+					throw true
+				]
+			]
+
+			any-function? :value [
+				spec: copy/deep spec-of :value
+				args: copy []
+				refs: none
+				type: type? :value
+				parse spec [
+					any block!
+					copy desc any string!
+					any [
+						set arg [word! | lit-word! | get-word!] 
+						set def block!
+						set des opt [string!] (
+							repend args [arg def des]
+						)
 					]
-				] 
-				either any-function? :value [
-					spec: spec-of :value
-					args: copy []
-					refs: none
-					type: type? :value
-					parse spec [
-						any block!
-						copy desc any string!
+					opt [refinement! refs:]
+				]
+				clear find spec /local
+				output "USAGE:^/    "
+				either op? :value [
+					output [args/1 word args/4]
+				] [
+					output [uppercase mold word]
+					foreach [arg def des] args [
+						buffer: insert buffer rejoin [#" " mold arg]
+					]
+				]
+
+				output "^/^/DESCRIPTION:^/"
+				unless empty? desc [
+					foreach line desc [
+						trim/head/tail line
+						unless empty? line [
+							uppercase/part line 1
+							if #"." <> last line [append line #"."]
+							output ["   " line #"^/"]
+						]
+					]
+				]
+				output ["   " uppercase form word "is" a-an mold type "value."]
+
+				unless empty? args [
+					output "^/^/ARGUMENTS:"
+					foreach [arg def des] args [
+						if des [des: trim/head/tail des]
+						output [
+							"^/   " pad mold arg 10 "is"
+							mold def
+						]
+						if des [output ["" uppercase/part des 1]]
+					]
+				]
+
+				if refs [
+					output "^/^/REFINEMENTS:"
+					parse back refs [
 						any [
-							set arg [word! | lit-word! | get-word!] 
-							set def block!
-							set des opt [string!] (
-								repend args [arg def des]
-							)
-						]
-						opt [refinement! refs:]
-					]
-					clear find spec /local
-					output "USAGE:^/    "
-					either op? :value [
-						output [args/1 word args/4]
-					] [
-						output [uppercase mold word]
-						foreach [arg def des] args [
-							buffer: insert buffer rejoin [#" " mold arg]
-						]
-					]
-
-					output "^/^/DESCRIPTION:^/"
-					unless empty? desc [
-						foreach line desc [
-							trim/head/tail line
-							unless empty? line [
-								uppercase/part line 1
-								if #"." <> last line [append line #"."]
-								output ["   " line #"^/"]
-							]
-							
-						]
-					]
-					output ["   " uppercase form word "is" a-an mold type "value."]
-
-					unless empty? args [
-						output "^/^/ARGUMENTS:"
-						foreach [arg def des] args [
-							if des [des: trim/head/tail des]
-							output [
-								"^/   " pad mold arg 10 "is"
-								mold def
-							]
-							if des [output ["" uppercase/part des 1]]
-						]
-					]
-
-					if refs [
-						output "^/^/REFINEMENTS:"
-						parse back refs [
+							set tmp refinement! (output ["^/   " pad mold tmp 10])
+							opt [set tmp string! (output [" <-" tmp])]
 							any [
-								set tmp refinement! (output ["^/   " pad mold tmp 10])
-								opt [set tmp string! (output [" <-" tmp])]
-								any [
-									set arg [word! | lit-word! | get-word!] 
-									set def block!
-									set des opt [string!] (
-										output ["^/      " pad form arg 7 "is" mold def]
-										if des [output ["" uppercase/part des 1]]
-									)
-								]
+								set arg [word! | lit-word! | get-word!] 
+								set def block!
+								set des opt [string!] (
+									output ["^/      " pad form arg 7 "is" mold def]
+									if des [output ["" uppercase/part des 1]]
+								)
 							]
 						]
 					]
-				][
-					output [
-						uppercase mold word "is" form-type :value "of value:"
-						either any [object? value] [rejoin [#"^/" form-obj value]] [mold :value]
-					]
+				]
+				throw true
+			]
+			'else [
+				output [
+					uppercase mold word "is" form-type :value "of value:"
+					either any [object? value] [rejoin [#"^/" form-obj value]] [mold :value]
 				]
 			]
 		]]
