@@ -241,7 +241,7 @@ Other useful functions:
 					]
 				]
 
-				if all [refs not empty? refs] [
+				if all [refs 0 < length? refs] [
 					output "^/^/REFINEMENTS:"
 					parse back refs [
 						any [
