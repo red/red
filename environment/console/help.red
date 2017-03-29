@@ -39,6 +39,12 @@ Other useful functions:
 
 	buffer: copy ""
 
+	interpunction: charset ";.?!"
+	dot: func[value [string!] return: [string!]][
+		unless find interpunction last value [append value #"."]
+		value
+	]
+
 	output: func[value][ buffer: insert buffer form reduce value ]
 
 	pad: func [val [string!] size] [head insert/dup tail val #" " size - length? val]
@@ -74,8 +80,7 @@ Other useful functions:
 					string? value: spec/1
 					string? value: spec/2	;-- attributes block case
 				][	
-					if #"." <> last value [append value #"."]
-					value
+					dot	value
 				][
 					clear find spec /local
 					value: trim/lines mold spec
@@ -83,9 +88,8 @@ Other useful functions:
 				;@@ TODO: wrap long description lines
 			]
 			'else [mold :value]
-		] 80
+		] system/console/limit - 25
 	]
-
 
 	form-obj: function [
 		"Outputs information about an object"
@@ -125,6 +129,14 @@ Other useful functions:
 			]
 		]
 		out
+	]
+
+	out-description: func [des [block!]][
+		foreach line des [
+			uppercase/part trim/lines line 1
+			dot line
+		]
+		buffer: insert insert buffer #" " form des
 	]
 
 	set 'help function [
@@ -192,20 +204,23 @@ Other useful functions:
 				args: copy []
 				refs: none
 				type: type? :value
+				
+				clear find spec /local
+				ret: select/last spec quote return:
 				parse spec [
 					any block!
 					copy desc any string!
 					any [
 						set arg [word! | lit-word! | get-word!] 
-						set def block!
-						set des opt [string!] (
+						set def opt block!
+						copy des any string! (
 							repend args [arg def des]
 						)
+						opt [set-word! block!]
 					]
 					opt [refinement! refs:]
 					to end
 				]
-				clear find spec /local
 				output "USAGE:^/    "
 				either op? :value [
 					output [args/1 word args/4]
@@ -221,27 +236,25 @@ Other useful functions:
 					foreach line desc [
 						trim/head/tail line
 						unless empty? line [
-							uppercase/part line 1
-							if #"." <> last line [append line #"."]
-							output ["   " line #"^/"]
+							output ["   " dot uppercase/part line 1 #"^/"]
 						]
 					]
 				]
 				output ["   " uppercase form word "is" a-an mold type "value."]
+				if ret [ output  ["^/    Returns value of type:" mold ret] ]
 
 				unless empty? args [
 					output "^/^/ARGUMENTS:"
 					foreach [arg def des] args [
-						if des [des: trim/head/tail des]
 						output [
-							"^/   " pad mold arg 10 "is"
-							mold def
+							"^/   " pad mold arg 10
+							pad either def [mold def]["[any-type!]"] 10
 						]
-						if des [output ["" uppercase/part des 1]]
+						out-description des
 					]
 				]
 
-				if all [refs 0 < length? refs] [
+				if refs [
 					output "^/^/REFINEMENTS:"
 					parse back refs [
 						any [
@@ -249,10 +262,14 @@ Other useful functions:
 							opt [set tmp string! (output [" <-" tmp])]
 							any [
 								set arg [word! | lit-word! | get-word!] 
-								set def block!
-								set des opt [string!] (
-									output ["^/      " pad form arg 7 "is" mold def]
-									if des [output ["" uppercase/part des 1]]
+								set def opt block! 
+								copy des any string! (
+									output [
+										"^/      "
+										pad form arg 7 
+										pad either def [mold def]["[any-type!]"] 10
+									]
+									out-description des
 								)
 							]
 						]
