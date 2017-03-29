@@ -238,6 +238,7 @@ get-window-size: func [
 	/local
 		info 	[screenbuf-info!]
 		x-y 	[integer!]
+		limit   [red-integer!]
 ][
 	info: declare screenbuf-info!
 	if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
@@ -247,6 +248,8 @@ get-window-size: func [
 	if columns <= 0 [columns: 80 return -1]
 	x-y: info/Position
 	base-y: SECOND_WORD(x-y)
+	limit: as red-integer! #get system/console/limit
+	limit/value: columns
 	0
 ]
 
