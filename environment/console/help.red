@@ -147,7 +147,6 @@ Other useful functions:
 			]
 
 			if word? :word [
-				print "Word"
 				either value? :word [
 					value: get :word    ;lookup for word's value if any
 				][	word: mold :word ]  ;or use it as a string input
@@ -204,6 +203,7 @@ Other useful functions:
 						)
 					]
 					opt [refinement! refs:]
+					to end
 				]
 				clear find spec /local
 				output "USAGE:^/    "
@@ -241,7 +241,7 @@ Other useful functions:
 					]
 				]
 
-				if refs [
+				if all [refs not empty? refs] [
 					output "^/^/REFINEMENTS:"
 					parse back refs [
 						any [
