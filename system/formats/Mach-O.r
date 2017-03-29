@@ -443,7 +443,7 @@ context [
 						if find job/sections 'initfuncs [	 ;-- account for initfunc/termfuncs
 							relocs: relocs + 2
 						]
-						seg/6: seg/6 + 8 * relocs
+						seg/6: seg/6 + (8 * relocs)
 					]
 				]
 			]
