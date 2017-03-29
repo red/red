@@ -379,7 +379,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz tables relocs
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables relocs extra
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
@@ -443,7 +443,9 @@ context [
 						if find job/sections 'initfuncs [	 ;-- account for initfunc/termfuncs
 							relocs: relocs + 2
 						]
-						seg/6: seg/6 + (8 * relocs)
+						extra: 8 * relocs
+						seg/4: seg/4 + extra
+						seg/6: seg/6 + extra
 					]
 				]
 			]
