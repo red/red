@@ -1,7 +1,7 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 27/03/2017
+	Date: 29/03/2017
 	Revision: 49
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
@@ -552,7 +552,7 @@ From last example, that would give:
 
 It is possible to apply some simple math operations on struct variables, like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
 
-Syntax
+<b>Syntax</b>
 
  <struct> + <n>
  <struct> - <n>
@@ -560,7 +560,7 @@ Syntax
  <struct>	: struct variable
  <n>        : integer value
 
-Examples
+<b>Examples</b>
 
  p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
@@ -1082,6 +1082,34 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; A data modification can occur.<br>
+
+--- Size?
+
+<b>Syntax</b>
+
+ size? <type>
+ size? "<string>"
+
+ <type>     : an valid type name.
+ "<string>" : a c-string literal value.
+
+<b>Size?</b> returns the memory storage size in bytes required by a value of given type. When passed a c-string literal value, it will return the number of bytes in the c-string, including the ending null byte.
+
+<b>Example</b>
+
+ size? byte!				;-- will return 1
+ size? integer!				;-- will return 4
+ 
+ s!: alias struct! [
+ 	a [integer!]
+ 	b [float32!]
+ ]
+ size? s!					;-- will return 8
+
+\note Dynamic string use cases
+Size? can only be used on a literal c-string, when only a c-string pointer is available use <b>length?</b> function.
+
+/note
 
 ===Expressions
 
@@ -3119,14 +3147,14 @@ will output:
 
 A more powerful macro version is possible, taking one or several parameters as input that get replaced in the emitted template.
 
-Syntax (declaration):
+<b>Syntax (declaration)</b>
 
     #define <name>(arg1 arg2 ...) <body>
 
     <name> : macro identifier
     <body> : macro body (block! or paren! value)
 
-Syntax (usage):
+<b>Syntax (usage)</b>
 
     <name>(value1 value2 ...)
     
@@ -3375,14 +3403,16 @@ As a dialect of Red, Red/System can call back a Red-level function, passing argu
 
 <b>Syntax</b>
 
- #call [<red-fun-name> <arg1>...<argn>]
+ #call [<Red-call> <arg1>...<argn>]
 
- <red-fun-name>  : a Red word referring to a function! value.
+ <Red-call>      : a Red word, or path (for refinements), referring to a function! value.
  <arg1>...<argn> : list of arguments.
 
 The arguments should be passed as pointers to Red values of the expected type, except for integer! and logic! datatypes, that can be passed inlined, without requiring any boxing. When required, for pointer arguments, a simple type casting is allowed.
 
 Once the Red function returns, the normal execution of Red/System code continues. The Red return value cannot be directly retrieved currently, but it should be accessible from Red arguments stack. The Red function <b>must</b> have all arguments typed, else a compilation error will occur.
+
+When a path is used as the function call, it refers to the function name, followed by refinements. The eventual refinements arguments are then, expected to be provided, following the mandatory ones.
 
 <b>Example</b>
 
@@ -3745,9 +3775,13 @@ will output:
 
 ===Document History
 
-*<b>27/03/2017 - revision 49</b>
+*<b>29/03/2017 - revision 49</b>
 
 *>Adds description for variables importing from external libraries.
+
+*>Updates #call description to include refinements.
+
+*>Adds a section for `size?` description.
 
 
 
