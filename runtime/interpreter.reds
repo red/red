@@ -189,6 +189,8 @@ interpreter: context [
 			ret		[integer!]
 			retf	[float!]
 			count	[integer!]
+			cnt 	[integer!]
+			saved	[int-ptr!]
 			extern?	[logic!]
 			call callf
 	][
@@ -198,6 +200,14 @@ interpreter: context [
 		native: as red-native! s/offset + 2
 		call: as function! [return: [integer!]] native/code
 		count: (routine/get-arity rt) - 1				;-- zero-based stack access
+		
+		#if stack-align-16? = yes [						;@@ 64-bit alignment required on ARM
+			if extern? [
+				saved: system/stack/align
+				cnt: 4 - (count + 1 and 3)
+				while [cnt > 0][push 0 cnt: cnt - 1]
+			]
+		]
 		
 		while [count >= 0][
 			arg: stack/arguments + count
@@ -214,7 +224,11 @@ interpreter: context [
 		case [
 			extern? [
 				arg: as red-value! call
-				pop count + 1
+				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
+					system/stack/top: saved
+				][
+					pop count + 1
+				]
 				stack/set-last arg
 			]
 			positive? rt/ret-type [
