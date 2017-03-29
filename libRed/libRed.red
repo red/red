@@ -14,7 +14,11 @@ Red [
 ]
 
 #system-global [
-	on-unload: func [hInstance [integer!]][
+	#either OS = 'Windows [
+		on-unload: func [hInstance [integer!]]
+	][
+		on-unload: func [[cdecl]]
+	][
 		if exec/lib-opened? [exec/redClose]
 	]
 ]
