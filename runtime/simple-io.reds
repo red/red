@@ -1521,20 +1521,22 @@ simple-io: context [
 					v		[c-string!]
 					w		[red-value!]
 					res		[red-value!]
+					sel_str [integer!]
 			][
 				sz: CFDictionaryGetCount dict
 				mp: map/make-at stack/push* null sz << 1
 				keys: as int-ptr! allocate sz << 2
 				vals: as int-ptr! allocate sz << 2
 				CFDictionaryGetKeysAndValues dict keys vals
+				sel_str: platform/sel_getUid "UTF8String"
 
 				i: 0
 				while [i < sz][
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! platform/objc_msgSend [keys/i platform/sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
-					if v = null [v: as c-string! platform/objc_msgSend [vals/i platform/sel_getUid "UTF8String"]]
+					if k = null [k: as c-string! platform/objc_msgSend [keys/i sel_str]]		;-- fallback when CFStringGetCStringPtr failed
+					if v = null [v: as c-string! platform/objc_msgSend [vals/i sel_str]]
 
 					w: as red-value! word/push* symbol/make k
 					res: either zero? strncmp k "Set-Cookie" 10 [
