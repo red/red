@@ -925,6 +925,7 @@ parser: context [
 								either match? [
 									if int/value = R_TO [
 										input/head: p/input	;-- move input before the last match
+										end?: no
 									]
 								][
 									before: input/head
