@@ -252,7 +252,7 @@ register-classes: func [
 		#u16 "EDIT"
 		as-integer :AreaWndProc
 		yes
-	make-super-class #u16 "RedField" #u16 "RedArea" 0 yes
+	make-super-class #u16 "RedField" #u16 "RedArea" 0 no
 ]
 
 unregister-classes: func [
