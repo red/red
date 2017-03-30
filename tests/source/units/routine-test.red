@@ -11,8 +11,7 @@ Red [
 
 #either all [
 	in system 'state
-	system/state/interpreted?
-		
+	system/state/interpreted?	
 ][
 	rr1-r: func [] [
 		1
