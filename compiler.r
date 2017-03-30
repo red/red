@@ -526,7 +526,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+			[stack/unroll stack/FRAME_FUNCTION ctx/values: saved system/thrown: 0 exit]
 		] empty? locals-stack
 		
 		append body [

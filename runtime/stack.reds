@@ -514,6 +514,7 @@ stack: context [										;-- call stack
 	
 	eval?: func [
 		ptr		[byte-ptr!]
+		parent? [logic!]
 		return: [logic!]
 		/local
 			cframe [call-frame!]
@@ -522,7 +523,7 @@ stack: context [										;-- call stack
 		until [
 			cframe: cframe - 1
 			if FLAG_INTERPRET and cframe/header = FLAG_INTERPRET [return yes]
-			cframe <= cbottom
+			any [parent? cframe <= cbottom]
 		]
 		no
 	]
