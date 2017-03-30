@@ -2703,6 +2703,13 @@ Red [
 		--assert v = #{0a0a0a}
 
 ===end-group===
+
+===start-group=== "Issues"
+
+	--test-- "#2515"
+		--assert parse "this one is" ["this" to "is" "is"]
+
+===end-group===
     
 ~~~end-file~~~
 
