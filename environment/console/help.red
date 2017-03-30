@@ -67,13 +67,14 @@ Other useful functions:
 
 	form-value: function [value] [
 		type: type? :value
+		limit: system/console/size/x
 		clip-str case [
 			unset!    = type [ "" ]
 			image!    = type [ form reduce ["size:" value/size] ]
-			typeset!  = type [ mold/part to-block value 100]
+			typeset!  = type [ mold/part to-block value limit]
 			;datatype! = type [ uppercase/part any [select datatypes to word! :value ""] 1 ] 
-			find any-object! type [ mold/part keys-of value 100]
-			find any-block!  type [ trim/lines mold/part :value 100 ]
+			find any-object! type [ mold/part keys-of value limit]
+			find any-block!  type [ trim/lines mold/part :value limit ]
 			find any-function! type [
 				spec: copy/deep spec-of :value
 				either any [
@@ -88,7 +89,7 @@ Other useful functions:
 				;@@ TODO: wrap long description lines
 			]
 			'else [mold :value]
-		] system/console/limit - 25
+		] (limit - 38)
 	]
 
 	form-obj: function [
