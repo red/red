@@ -18,7 +18,7 @@ Red [
 unless system/console [
 	system/console: context [
 		history: make block! 200
-		limit: 72
+		size: 0x0
 	]
 ]
 ;; End patch

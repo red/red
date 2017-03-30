@@ -34,7 +34,7 @@ system/console: context [
 	prompt: ">> "
 	result: "=="
 	history: make block! 200
-	limit:	 67
+	size:	 0x0
 	catch?:	 no											;-- YES: force script to fallback into the console
 	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
 	ws:		 charset " ^/^M^-"
@@ -167,6 +167,7 @@ system/console: context [
 					print result
 				]
 				not unset? :result [
+					limit: size/x - 13
 					if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
 						clear back tail result
 						append result "..."
