@@ -114,7 +114,7 @@ system/reactivity: context [
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
 	][
-		limit: any [all [system/console system/console/limit] 72] - 10
+		limit: any [all [system/console system/console/size/x] 72] - 10
 		count: 0
 		
 		foreach [obj field reaction target] relations [

@@ -568,10 +568,11 @@ list-dir: function [
 		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
 	]
 	list: read normalize-dir dir
+	limit: system/console/size/x - 13
 	max-sz: either n [
-		system/console/limit / n - n					;-- account for n extra spaces
+		limit / n - n					;-- account for n extra spaces
 	][
-		n: max 1 system/console/limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22				;-- account for n extra spaces
 		22 - n
 	]
 

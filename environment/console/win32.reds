@@ -47,6 +47,7 @@ Red/System [
 #define ENABLE_PROCESSED_INPUT		01h
 #define ENABLE_LINE_INPUT 			02h
 #define ENABLE_ECHO_INPUT 			04h
+#define ENABLE_WINDOW_INPUT         08h
 #define ENABLE_QUICK_EDIT_MODE		40h
 
 mouse-event!: alias struct! [
@@ -67,6 +68,7 @@ key-event!: alias struct! [		   ;typedef struct _KEY_EVENT_RECORD {
                                    ;  } uChar;						10
                                    ;  DWORD dwControlKeyState;		12
                                    ;} KEY_EVENT_RECORD,*PKEY_EVENT_RECORD;
+
 input-record!: alias struct! [
 	EventType [integer!]
 	Event	  [integer!]
@@ -197,37 +199,48 @@ fd-read: func [
 		key 	[key-event!]
 		n	 	[integer!]
 		keycode [integer!]
+		size    [red-pair!]
 ][
 	n: 0
 	while [true] [
 		if zero? ReadConsoleInput stdin as-integer input-rec 1 :n [return -1]
-		key: as key-event! (as-integer input-rec) + (size? integer!)
-
-		if all [
-			input-rec/EventType and FFFFh = KEY_EVENT
-			key/KeyDown <> 0
-		][
-			keycode: SECOND_WORD(key/RepeatCnt-KeyCode)  ;-- 1st RepeatCnt 2 KeyCode
-			case [
-				key/KeyState and ENHANCED_KEY > 0 [
-					switch keycode [
-						VK_LEFT		[return KEY_LEFT]
-						VK_RIGHT	[return KEY_RIGHT]
-						VK_UP		[return KEY_UP]
-						VK_DOWN		[return KEY_DOWN]
-						VK_INSERT	[return KEY_INSERT]
-						VK_DELETE	[return KEY_DELETE]
-						VK_HOME		[return KEY_HOME]
-						VK_END		[return KEY_END]
-						VK_PRIOR	[return KEY_PAGE_UP]
-						VK_NEXT		[return KEY_PAGE_DOWN]
-						VK_RETURN	[return KEY_ENTER]
-						default		[return KEY_NONE]
+		switch input-rec/EventType and FFFFh [
+			KEY_EVENT [
+				key: as key-event! (as-integer input-rec) + (size? integer!)
+				if key/KeyDown <> 0 [
+					keycode: SECOND_WORD(key/RepeatCnt-KeyCode)  ;-- 1st RepeatCnt 2 KeyCode
+					case [
+						key/KeyState and ENHANCED_KEY > 0 [
+							switch keycode [
+								VK_LEFT		[return KEY_LEFT]
+								VK_RIGHT	[return KEY_RIGHT]
+								VK_UP		[return KEY_UP]
+								VK_DOWN		[return KEY_DOWN]
+								VK_INSERT	[return KEY_INSERT]
+								VK_DELETE	[return KEY_DELETE]
+								VK_HOME		[return KEY_HOME]
+								VK_END		[return KEY_END]
+								VK_PRIOR	[return KEY_PAGE_UP]
+								VK_NEXT		[return KEY_PAGE_DOWN]
+								VK_RETURN	[return KEY_ENTER]
+								default		[return KEY_NONE]
+							]
+						]
+						keycode = VK_CONTROL []
+						true [return SECOND_WORD(key/ScanCode-Char)] ;-- return Char
 					]
 				]
-				keycode = VK_CONTROL []
-				true [return SECOND_WORD(key/ScanCode-Char)] ;-- return Char
 			]
+			WINDOW_BUFFER_SIZE_EVENT [
+				n: input-rec/Event
+				size: as red-pair! #get system/console/size
+				size/x: FIRST_WORD(n)
+				size/y: SECOND_WORD(n)
+			]
+			;FOCUS_EVENT
+			;MENU_EVENT
+			;MOUSE_EVENT
+			default []
 		]
 	]
 	-1
@@ -238,14 +251,17 @@ get-window-size: func [
 	/local
 		info 	[screenbuf-info!]
 		x-y 	[integer!]
-		limit   [red-integer!]
+		size    [red-pair!]
 ][
 	info: declare screenbuf-info!
 	if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
 	x-y: info/Size
 	columns: FIRST_WORD(x-y)
 	rows: SECOND_WORD(x-y)
-	if columns <= 0 [columns: 80 return -1]
+	size: as red-pair! #get system/console/size
+	size/x: columns
+	size/y: rows
+	if columns <= 0 [size/x: 80 columns: 80 return -1]
 	x-y: info/Position
 	base-y: SECOND_WORD(x-y)
 	limit: as red-integer! #get system/console/limit
@@ -316,7 +332,7 @@ init: func [
 	either console? [
 		GetConsoleMode stdin :saved-con
 		mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
-		mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text
+		mode: mode or ENABLE_QUICK_EDIT_MODE or ENABLE_WINDOW_INPUT	;-- use the mouse to select and edit text
 		SetConsoleMode stdin mode
 		buffer: allocate buf-size
 	][
