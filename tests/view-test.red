@@ -883,3 +883,4 @@ append win/pane make face! [
 dump-face win
 view/flags win [resize]
 system/view/debug?: no
+system/view/auto-sync?: yes
