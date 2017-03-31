@@ -569,6 +569,8 @@ system-dialect: make-profilable context [
 		]
 		
 		resolve-type: func [name /with parent /local type local? pos mark][
+			if get-word? name [name: to word! name]
+			
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
@@ -607,6 +609,8 @@ system-dialect: make-profilable context [
 				pc: skip pc -2
 				throw-error ["invalid path value:" mold path]
 			]
+			if get-word? path/1 [return [pointer! [integer!]]] ;-- get-path! -> int-ptr!
+			
 			either word? path/1 [
 				either parent [
 					resolve-struct-member-type prev path/1	;-- just check for correct member name
@@ -2568,6 +2572,9 @@ system-dialect: make-profilable context [
 					'else [
 						comp-word/path path/1				;-- check if root word is defined
 						last-type: resolve-path-type path
+						if all [get? 'struct! = first get-type path/1][
+							path/1: to get-word! path/1		;-- reform the pseudo get-path (for forward propagation)
+						]
 					]
 				]
 				any [value path]

@@ -1367,8 +1367,8 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-init-path: func [name [word!]][
-		emit-load-symbol name
+	emit-init-path: func [name [word! get-word!]][
+		emit-load-symbol to word! name
 	]
 
 	emit-access-path: func [
@@ -1387,10 +1387,14 @@ make-profilable make target-class [
 		set-width/type type							;-- adjust operations width to member value size
 
 		offset: emitter/member-offset? spec path/2
-		if width = 8 [								;-- 64-bit value case
-			emit-poly/with #{e5901000} offset + 4	;-- LDR r1, [r0, offset+4]	; high bits
+		either get-word? path/1 [
+			emit-op-imm32 #{e2800000} offset		  ;-- ADD r0, r0, #offset
+		][
+			if width = 8 [							  ;-- 64-bit value case
+				emit-poly/with #{e5901000} offset + 4 ;-- LDR r1, [r0, offset+4]	; high bits
+			]
+			emit-poly/with #{e5900000} offset		  ;-- LDR[B] r0, [r0, offset]
 		]
-		emit-poly/with #{e5900000} offset			;-- LDR[B] r0, [r0, offset]
 		width: saved
 	]
 	
