@@ -46,7 +46,10 @@ CONSOLE_SCREEN_BUFFER_INFO!: alias struct! [
 ]
 
 csbi: declare CONSOLE_SCREEN_BUFFER_INFO!
+
 saved-cursor: declare coord!
+;user can change default colors in properties and we must use this settings for correct reset
+default-attributes: 0 ;this value holds default attributes and is used on `reset` command 
 
 #import [
 	"kernel32.dll" stdcall [
@@ -116,19 +119,23 @@ set-console-graphic: func[
 ][
 	SetConsoleTextAttribute stdout mode
 ]
+store-default: func[][
+	GetConsoleScreenBufferInfo stdout csbi
+	default-attributes: csbi/attributes
+]
 update-graphic-mode: func[
 	attribute  [integer!]
 	value      [integer!]
 	return: [integer!]
 	/local
 		tmp [integer!]
-][
+][	
 	if attribute < 0 [
 		GetConsoleScreenBufferInfo stdout csbi
 		attribute: csbi/attributes
 	]
 	switch value [
-		0  [attribute: FOREGROUND_GREY]
+		0  [attribute: default-attributes]
 		1  [attribute: attribute or FOREGROUND_INTENSITY or BACKGROUND_INTENSITY]
 		4  [attribute: attribute or COMMON_LVB_UNDERSCORE]
 		7  [tmp: (attribute and F0h) >> 4 attribute: ((attribute and 0Fh) << 4) or tmp ] ;reverse
@@ -140,7 +147,7 @@ update-graphic-mode: func[
 		35 [attribute: (attribute and F8h) or FOREGROUND_MAGENTA]
 		36 [attribute: (attribute and F8h) or FOREGROUND_CYAN]
 		37 [attribute: (attribute and F8h) or FOREGROUND_GREY]
-		39 [attribute: attribute and F7h] ; FOREGROUND_INTENSITY]
+		39 [attribute: attribute or FOREGROUND_INTENSITY]
 		40 [attribute: (attribute and 8Fh)]
 		41 [attribute: (attribute and 8Fh) or BACKGROUND_RED]
 		42 [attribute: (attribute and 8Fh) or BACKGROUND_GREEN]
@@ -149,7 +156,7 @@ update-graphic-mode: func[
 		45 [attribute: (attribute and 8Fh) or BACKGROUND_MAGENTA]
 		46 [attribute: (attribute and 8Fh) or BACKGROUND_CYAN]
 		47 [attribute: (attribute and 8Fh) or BACKGROUND_GREY]
-		49 [attribute: attribute and 7Fh] ; BACKGROUND_INTENSITY]
+		49 [attribute: attribute or BACKGROUND_INTENSITY]
 		default [attribute: value]
 	]
 	attribute
@@ -230,7 +237,7 @@ parse-ansi-sequence: func[
 						print-line "Screen buffer info:"
 						print-line ["   size______ " COORD_X(csbi/size) "x" COORD_Y(csbi/size)]
 						print-line ["   cursor____ " COORD_X(csbi/cursor) "x" COORD_Y(csbi/cursor)]
-						print-line ["   attribute_ " csbi/attributes]
+						print-line ["   attribute_ " as int-ptr! csbi/attributes " " as int-ptr! default-attributes]
 						state: -1
 					]
 					true [ state: -1 ]
@@ -327,3 +334,4 @@ parse-ansi-sequence: func[
 	bytes
 ]
 
+store-default
