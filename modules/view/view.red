@@ -290,7 +290,7 @@ face!: object [				;-- keep in sync with facet! enum
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
-						if all [block? state handle? state/1][
+						if all [block? f/state handle? f/state/1][
 							system/view/platform/destroy-view f no
 						]
 					]
@@ -304,6 +304,7 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
+			
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
