@@ -1830,6 +1830,7 @@ string: context [
 			head2  [integer!]
 			offset [integer!]
 			unit   [integer!]
+			type   [integer!]
 	][
 		result: find str value part only? case? same? any? with-arg skip last? reverse? no no
 		
@@ -1861,8 +1862,13 @@ string: context [
 			p: (as byte-ptr! s/offset) + ((str/head + offset) << (log-b unit))
 			
 			either p < as byte-ptr! s/tail [
+				type: switch TYPE_OF(str) [
+					TYPE_BINARY	[TYPE_INTEGER]
+					TYPE_VECTOR [as-integer str/cache]
+					default 	[TYPE_CHAR]
+				]
 				char: as red-char! result
-				char/header: either TYPE_OF(str) = TYPE_VECTOR [as-integer str/cache][TYPE_CHAR]
+				char/header: type
 				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
