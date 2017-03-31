@@ -8,15 +8,30 @@ Red [
 ]
 
 ;; counters
-qt-run-tests: 0 
-qt-run-asserts: 0
-qt-run-passes: 0
-qt-run-failures: 0
-qt-file-tests: 0 
-qt-file-asserts: 0 
-qt-file-passes: 0 
-qt-file-failures: 0
-
+#either any [
+	not in system 'state
+	not system/state/interpreted?	
+][
+  qt-run-tests: 0 
+  qt-run-asserts: 0
+  qt-run-passes: 0
+  qt-run-failures: 0
+  qt-file-tests: 0 
+  qt-file-asserts: 0 
+  qt-file-passes: 0 
+  qt-file-failures: 0
+][
+  if not value? 'qt-run-tests [
+    qt-run-tests: 0 
+    qt-run-asserts: 0
+    qt-run-passes: 0
+    qt-run-failures: 0
+    qt-file-tests: 0 
+    qt-file-asserts: 0 
+    qt-file-passes: 0 
+    qt-file-failures: 0
+  ]  
+]
 qt-file-name: none
 
 ;; group switches
@@ -181,6 +196,3 @@ qt-print-totals: func [
                   qt-run-passes
                   qt-run-failures
 ]
-
-
-
