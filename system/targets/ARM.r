@@ -1387,7 +1387,7 @@ make-profilable make target-class [
 		set-width/type type							;-- adjust operations width to member value size
 
 		offset: emitter/member-offset? spec path/2
-		either get-word? path/1 [
+		either get-word? first head path [
 			emit-op-imm32 #{e2800000} offset		  ;-- ADD r0, r0, #offset
 		][
 			if width = 8 [							  ;-- 64-bit value case

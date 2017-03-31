@@ -604,26 +604,32 @@ system-dialect: make-profilable context [
 			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
+		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error p1][
 			path-error: [
 				pc: skip pc -2
 				throw-error ["invalid path value:" mold path]
 			]
-			if get-word? path/1 [return [pointer! [integer!]]] ;-- get-path! -> int-ptr!
 			
-			either word? path/1 [
+			either find [word! get-word!] type?/word path/1 [
+				p1: to word! path/1
 				either parent [
-					resolve-struct-member-type prev path/1	;-- just check for correct member name
+					resolve-struct-member-type prev p1	;-- just check for correct member name
 					with-alias-resolution on [
-						type: resolve-type/with path/1 prev
+						type: resolve-type/with p1 prev
 					]
 				][
 					with-alias-resolution on [
-						type: resolve-type path/1
+						type: resolve-type p1
 					]
 				]
 			][
 				type: reduce [type?/word path/1]
+			]
+
+			all [
+				get-word? path/1 word? path/2
+				'function! <> first resolve-struct-member-type type/2 path/2
+				return [pointer! [integer!]]			;-- struct member get-path! -> int-ptr!
 			]
 			
 			unless type path-error
@@ -2572,7 +2578,10 @@ system-dialect: make-profilable context [
 					'else [
 						comp-word/path path/1				;-- check if root word is defined
 						last-type: resolve-path-type path
-						if all [get? 'struct! = first get-type path/1][
+						all [
+							get?
+							'struct! = first get-type path/1
+							'function! <> first resolve-path-type/short path 
 							path/1: to get-word! path/1		;-- reform the pseudo get-path (for forward propagation)
 						]
 					]
