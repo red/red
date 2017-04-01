@@ -604,26 +604,22 @@ system-dialect: make-profilable context [
 			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error p1][
+		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error p1][
 			path-error: [
 				pc: skip pc -2
 				throw-error ["invalid path value:" mold path]
 			]
 			
-			either find [word! get-word!] type?/word path/1 [
-				p1: to word! path/1
-				either parent [
-					resolve-struct-member-type prev p1	;-- just check for correct member name
-					with-alias-resolution on [
-						type: resolve-type/with p1 prev
-					]
-				][
-					with-alias-resolution on [
-						type: resolve-type p1
-					]
+			p1: to word! path/1
+			either parent [
+				resolve-struct-member-type prev p1	;-- just check for correct member name
+				with-alias-resolution on [
+					type: resolve-type/with p1 prev
 				]
 			][
-				type: reduce [type?/word path/1]
+				with-alias-resolution on [
+					type: resolve-type p1
+				]
 			]
 
 			all [
@@ -654,11 +650,7 @@ system-dialect: make-profilable context [
 
 				] path-error
 			][
-				either short [
-					resolve-path-type/parent/short next path second type
-				][
-					resolve-path-type/parent next path second type
-				]
+				resolve-path-type/parent next path second type
 			]
 		]
 		
@@ -2540,10 +2532,8 @@ system-dialect: make-profilable context [
 		
 		comp-path: has [path value ns type name get?][
 			path: pc/1
-			if #":" = first mold path/1 [
-				path/1: to word! path/1
-				get?: yes
-			]
+			if get?: get-word? path/1 [path/1: to word! path/1]
+			
 			either all [
 				not local-variable? path/1
 				path: resolve-ns-path path
@@ -2566,7 +2556,7 @@ system-dialect: make-profilable context [
 					]
 					all [
 						not get?
-						'function! = first type: resolve-path-type/short path 
+						'function! = first type: resolve-path-type path 
 					][
 						name: to word! form path
 						check-specs name type/2
@@ -2581,7 +2571,7 @@ system-dialect: make-profilable context [
 						all [
 							get?
 							'struct! = first get-type path/1
-							'function! <> first resolve-path-type/short path 
+							'function! <> first resolve-path-type path 
 							path/1: to get-word! path/1		;-- reform the pseudo get-path (for forward propagation)
 						]
 					]
