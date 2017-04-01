@@ -1354,6 +1354,7 @@ red: context [
 			]
 		]		
 		emit words
+		unless set? [emit 'stack/top]
 		
 		new-line/all pos no
 		new-line pos yes
