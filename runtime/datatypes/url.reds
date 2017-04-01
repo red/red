@@ -117,12 +117,17 @@ url: context [
 		/local
 			s	[series!] 
 			new [red-string!]
+			unit [integer!]
 	][
 		either value <> null [							;-- set-path
 			fire [TO_ERROR(script bad-path-set) path element]
 		][
 			s: GET_BUFFER(parent)
-			new: string/make-at stack/push* 16 + string/rs-length? parent GET_UNIT(s)
+			unit: GET_UNIT(s)
+			new: string/make-at stack/push* 16 + string/rs-length? parent unit
+			if (as-integer #"/") <> string/get-char (as byte-ptr! s/tail) - unit unit [
+				string/concatenate-literal new "/"
+			]
 			actions/form element new null 0
 			string/concatenate new parent -1 0 yes yes
 			set-type as red-value! new TYPE_OF(parent)
