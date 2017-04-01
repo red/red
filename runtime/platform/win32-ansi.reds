@@ -31,23 +31,33 @@ Red/System [
 #define COMMON_LVB_REVERSE_VIDEO 4000h
 #define COMMON_LVB_UNDERSCORE    8000h
 
+#enum ansi-erase-mode! [
+	ERASE_DOWN
+	ERASE_UP
+	ERASE_SCREEN
+	ERASE_LINE
+	ERASE_LINE_END
+	ERASE_LINE_START
+]
 
-#define COORD_Y(value)      (value >>> 16)
-#define COORD_X(value)      (value and 0000FFFFh)       
+
+
+#define LOWORD(int) (int and FFFFh)
+#define HIWORD(int) (int >>> 16)
 #define coord! integer!
 
 CONSOLE_SCREEN_BUFFER_INFO!: alias struct! [
-	size                [coord!]
-	cursor              [coord!]
-	attributes          [integer!]
-	leftTop             [coord!]
-	rightBottom         [coord!]
-	maximumWindowSize   [coord!]
+	size            [integer!]
+	cursor          [integer!]
+	attr-left       [integer!]
+	top-right       [integer!]
+	bottom-maxWidth [integer!]
+	maxHeigth       [integer!]
 ]
 
 csbi: declare CONSOLE_SCREEN_BUFFER_INFO!
 
-saved-cursor: declare coord!
+saved-cursor: 0
 ;user can change default colors in properties and we must use this settings for correct reset
 default-attributes: 0 ;this value holds default attributes and is used on `reset` command 
 
@@ -90,26 +100,68 @@ default-attributes: 0 ;this value holds default attributes and is used on `reset
 ;-------------------------------------------
 ;-- ANSI escape sequence emulation          
 ;-------------------------------------------
-
-clear-console: func[
-	/local
-		handle [integer!]
-		num    [integer!]
-		len    [integer!]
-][
-	GetConsoleScreenBufferInfo stdout csbi
-	num: 0
-	len: COORD_X(csbi/size) * COORD_Y(csbi/size)
-	FillConsoleOutputCharacter stdout as-integer #" " len 0 :num
-	FillConsoleOutputAttribute stdout csbi/attributes len 0 :num ;@@ when I do this, next time changed background is not used to the end of line :/
-	                                                             ;@@ but when I don't do this, previously used background would not be cleared
-	SetConsoleCursorPosition stdout 0
-]
 console-store-position: does [
 	GetConsoleScreenBufferInfo stdout csbi
 	saved-cursor: csbi/cursor
 ]
+console-store-default: does[
+	GetConsoleScreenBufferInfo stdout csbi
+	default-attributes: LOWORD(csbi/attr-left)
+]
+
+clear-screen: func[
+	"Clears the screen and moves the cursor to the home position (line 0, column 0)"
+	mode       [ansi-erase-mode!]
+	/local
+		num    [integer!]
+		len    [integer!]
+		from   [coord!]
+		cols   [integer!]
+		rows   [integer!]
+][
+	GetConsoleScreenBufferInfo stdout csbi
+	num: 0
+	cols: LOWORD(csbi/size)
+	rows: HIWORD(csbi/size)
+	switch mode [
+		ERASE_DOWN [
+			len: cols * (rows - HIWORD(csbi/cursor))
+			from: csbi/cursor and FFFF0000h ;@@ should it erase the line where is cursor?
+		]
+		ERASE_UP [
+			len: cols * HIWORD(csbi/cursor)
+			from: 0
+		]
+		ERASE_SCREEN [
+			len: cols * rows
+			from: 0
+		]
+		ERASE_LINE_END [
+			len: LOWORD(csbi/size) - LOWORD(csbi/cursor)
+			from: csbi/cursor
+		]
+		ERASE_LINE_START [
+			len: LOWORD(csbi/cursor)
+			from: csbi/cursor and FFFF0000h
+		]
+		ERASE_LINE [
+			len: LOWORD(csbi/size)
+			from: csbi/cursor and FFFF0000h
+		]
+	]
+	FillConsoleOutputCharacter stdout as-integer #" " len from :num
+	FillConsoleOutputAttribute stdout default-attributes len from :num
+	if any [
+		mode = ERASE_SCREEN
+		mode = ERASE_LINE
+		mode = ERASE_LINE_START ;@@ should I move cursor in this case?
+	][
+		SetConsoleCursorPosition stdout from
+	]
+]
+
 set-console-cursor: func[
+	"Moves the cursor to the specified position (coordinates)"
 	position   [coord!]
 ][
 	SetConsoleCursorPosition stdout position
@@ -118,10 +170,6 @@ set-console-graphic: func[
 	mode  [integer!]
 ][
 	SetConsoleTextAttribute stdout mode
-]
-store-default: func[][
-	GetConsoleScreenBufferInfo stdout csbi
-	default-attributes: csbi/attributes
 ]
 update-graphic-mode: func[
 	attribute  [integer!]
@@ -132,7 +180,7 @@ update-graphic-mode: func[
 ][	
 	if attribute < 0 [
 		GetConsoleScreenBufferInfo stdout csbi
-		attribute: csbi/attributes
+		attribute: LOWORD(csbi/attr-left)
 	]
 	switch value [
 		0  [attribute: default-attributes]
@@ -162,7 +210,7 @@ update-graphic-mode: func[
 	attribute
 ]
 
-;-- Based on http://ascii-table.com/ansi-escape-sequences.php
+;-- Based on http://ascii-table.com/ansi-escape-sequences.php and http://www.termsys.demon.co.uk/vtansi.htm
 parse-ansi-sequence: func[
 	str 	[byte-ptr!]
 	unit    [integer!]
@@ -221,11 +269,11 @@ parse-ansi-sequence: func[
 						state: -1
 					]
 					cp = #"K" [ ;-- Erase Line.
-						;@@ todo
+						clear-screen ERASE_LINE_END
 						state: -1
 					]
 					cp = #"J" [ ;-- Clear screen from cursor down.
-						;@@ todo
+						clear-screen ERASE_DOWN
 						state: -1
 					]
 					any [cp = #"H" cp = #"f"] [
@@ -235,9 +283,12 @@ parse-ansi-sequence: func[
 					cp = #"?" [	;@@ just for testing purposes
 						GetConsoleScreenBufferInfo stdout csbi
 						print-line "Screen buffer info:"
-						print-line ["   size______ " COORD_X(csbi/size) "x" COORD_Y(csbi/size)]
-						print-line ["   cursor____ " COORD_X(csbi/cursor) "x" COORD_Y(csbi/cursor)]
-						print-line ["   attribute_ " as int-ptr! csbi/attributes " " as int-ptr! default-attributes]
+						print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
+						print-line ["   cursor____ " LOWORD(csbi/cursor) "x" HIWORD(csbi/cursor)]
+						print-line ["   attribute_ " as int-ptr! LOWORD(csbi/attr-left) " " as int-ptr! default-attributes]
+						print-line ["   left______ " HIWORD(csbi/attr-left) " top: " LOWORD(csbi/top-right)]
+						print-line ["   right_____ " HIWORD(csbi/top-right) " bottom: " LOWORD(csbi/bottom-maxWidth)]
+						print-line ["   max_______ " HIWORD(csbi/bottom-maxWidth) "x" LOWORD(csbi/maxHeigth)]
 						state: -1
 					]
 					true [ state: -1 ]
@@ -259,7 +310,7 @@ parse-ansi-sequence: func[
 					cp = #"A" [ ;-- Cursor Up.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
-						row: COORD_Y(cursor) - value1
+						row: HIWORD(cursor) - value1
 						if row < 0 [ row: 0 ]
 						set-console-cursor (cursor and 0000FFFFh) or (row << 16)
 						state: -1
@@ -267,29 +318,41 @@ parse-ansi-sequence: func[
 					cp = #"B" [ ;-- Cursor Down.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
-						row: COORD_Y(cursor) + value1
-						if row < COORD_Y(csbi/size) [ row: COORD_Y(csbi/size) ]
+						row: HIWORD(cursor) + value1
+						if row < HIWORD(csbi/size) [ row: HIWORD(csbi/size) ]
 						set-console-cursor (cursor and 0000FFFFh) or (row << 16)
 						state: -1
 					]
 					cp = #"C" [ ;-- Cursor Forward.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
-						col: COORD_X(cursor) + value1
-						if col > COORD_X(csbi/size)  [ col: COORD_X(csbi/size) ]
+						col: LOWORD(cursor) + value1
+						if col > LOWORD(csbi/size)  [ col: LOWORD(csbi/size) ]
 						set-console-cursor (cursor and FFFF0000h) or (col and 0000FFFFh)
 						state: -1
 					]
 					cp = #"D" [ ;-- Cursor Backward.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
-						col: COORD_X(cursor) - value1
+						col: LOWORD(cursor) - value1
 						if col < 0 [ col: 0 ]
 						set-console-cursor (cursor and FFFF0000h) or (col and 0000FFFFh)
 						state: -1
 					]
 					cp = #"J" [
-						if value1 = 2 [clear-console]
+						case [
+							value1 = 1 [clear-screen ERASE_UP]
+							value1 = 2 [clear-screen ERASE_SCREEN]
+							true [] ;ignore other values
+						]
+						state: -1
+					]
+					cp = #"K" [
+						case [
+							value1 = 1 [clear-screen ERASE_LINE_START]
+							value1 = 2 [clear-screen ERASE_LINE]
+							true [] ;ignore other values
+						]
 						state: -1
 					]
 					true [ state: -1 ]
@@ -334,4 +397,4 @@ parse-ansi-sequence: func[
 	bytes
 ]
 
-store-default
+console-store-default
