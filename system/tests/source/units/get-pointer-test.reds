@@ -109,4 +109,22 @@ Red/System [
 		--assert s1/c = 321
 		--assert s1/d = #"d"		;-- checks eventual overflow
 		
+	--test-- "get-path-5"
+	
+	b!: alias struct! [
+		b1  [byte!]
+		b2  [integer!]
+	]
+	gp5: declare struct! [
+		x   [byte!]
+		bb  [b!]
+		val [integer!]
+	]
+	
+	gp5/bb: as b! allocate size? b!
+	gp5/bb/b1: #"A"
+	p-bb-b1: :gp5/bb/b1
+	--assert gp5/bb/b1 = #"A"
+	--assert #"A" = as byte! p-bb-b1/value
+		
 ~~~end-file~~~
