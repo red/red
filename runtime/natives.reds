@@ -2082,6 +2082,9 @@ natives: context [
 				if ftime < 1.0 [ftime: 1.0]
 				time: as-integer ftime
 			]
+			TYPE_TIME [
+				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
+			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		val/header: TYPE_NONE
