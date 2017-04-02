@@ -331,6 +331,7 @@ bind: make native! [[
 ]
 
 in: make native! [[
+		"Returns the given word bound to the object's context"
 		object [any-object!]
 		word   [any-word!]
 	]
