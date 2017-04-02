@@ -243,9 +243,6 @@ eval-path: func [
 	parent  [red-value!]
 	element [red-value!]
 	return: [red-value!]
-	/local
-		top	   [red-value!]
-		result [red-value!]
 ][
 	stack/push actions/eval-path parent element null null no ;-- no value to set
 ]
