@@ -273,7 +273,6 @@ win-level: func [
 	cmd		[integer!]
 	return: [integer!]
 ][
-	probe "win-level"
 	objc_msgSend [
 		objc_msgSend [self sel_getUid "window"]
 		sel_getUid "level"
@@ -286,7 +285,6 @@ insert-text: func [
 	cmd		[integer!]
 	str		[integer!]
 ][
-	probe "insert-text"
 ]
 
 on-key-up: func [
@@ -978,7 +976,7 @@ attr-str-range: func [
 	p-range	[int-ptr!]
 	return: [integer!]
 ][
-	probe "attr-str-range"
+	;probe "attr-str-range"
 	0
 ]
 
@@ -1017,7 +1015,7 @@ char-idx-point: func [
 	y		[float32!]
 	return: [integer!]
 ][
-	probe "char-idx-point"
+	;probe "char-idx-point"
 	0
 ]
 
