@@ -2535,7 +2535,7 @@ red: context [
 			unless any [
 				all [ignore	find ignore word]
 				find words word
-			][			
+			][
 				append words word
 			]
 		]
@@ -3146,10 +3146,12 @@ red: context [
 				[[word/get-local  (ctx) (index)]]
 			] set?
 			
+			mark: none
 			either self? [
 				if all [not empty? locals-stack	container-obj?][
 					true-blk/1/2: 'octx
 				]
+				mark: tail output
 				emit first true-blk
 			][
 				emit compose [
@@ -3157,7 +3159,7 @@ red: context [
 				]
 			]
 			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
-				insert clear last output compose [
+				insert clear any [mark last output] compose [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
 				]
@@ -3175,15 +3177,15 @@ red: context [
 					breaks: [-10 -7 -4 -1]				;-- word is in global context
 					[decorate-symbol path/1]
 				]
-				repend last output compose [
+				repend any [mark last output] compose [
 					fire
 						(parent)
 						decorate-exec-ctx decorate-symbol last path
 				]
-				append last output [
+				append any [mark last output][
 					stack/reset
 				]
-				foreach pos breaks [new-line skip tail last output pos yes]
+				foreach pos breaks [new-line skip tail any [mark last output] pos yes]
 			]
 		]
 		mark: tail output
