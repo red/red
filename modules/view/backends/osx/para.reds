@@ -1,37 +1,18 @@
 Red/System [
-	Title:	"Windows para object management"
-	Author: "Nenad Rakocevic"
+	Title:	"Cocoa para object management"
+	Author: "Qingtian Xie"
 	File: 	%para.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-update-area-para: func [
-	hWnd	[handle!]
-	face	[red-object!]
-	/local
-		parent [handle!]
-		state  [red-block!]
-		h	   [red-handle!]
-][
-	parent: GetParent hWnd
-	free-faces get-face-obj hWnd
-	hWnd: as handle! OS-make-view face as-integer parent
-	state: as red-block! (get-face-values hWnd) + FACE_OBJ_STATE
-	state/header: TYPE_BLOCK
-	
-	h: as red-handle! block/rs-head state
-	h/header: TYPE_HANDLE
-	h/value:  as-integer hWnd
-]
-
 update-para: func [
 	face	[red-object!]
-	fields	[integer!]
+	flags	[integer!]
 	/local
 		para   [red-object!]
 		type   [red-word!]
@@ -64,18 +45,9 @@ update-para: func [
 			sym = area
 			sym = text
 		][
-			mask: not 000040C3h
+			mask: not 00004003h
 		]
 		true [0]
-	]
-	hWnd: get-face-handle face
-	either sym = area [
-		update-area-para hWnd face
-		values: object/get-values face
-	][
-		style: GetWindowLong hWnd GWL_STYLE
-		style: style and mask or get-para-flags sym para
-		SetWindowLong hWnd GWL_STYLE style
 	]
 	
 	state: as red-block! values + FACE_OBJ_STATE
@@ -107,8 +79,6 @@ get-para-flags: func [
 		h-sym	[integer!]
 		v-sym	[integer!]
 ][
-	if TYPE_OF(para) <> TYPE_OBJECT [return 0]
-
 	values: object/get-values para
 	align:  as red-word! values + PARA_OBJ_ALIGN
 	h-sym:  symbol/resolve align/symbol
@@ -118,7 +88,7 @@ get-para-flags: func [
 	
 	wrap?:	any [
 		TYPE_OF(bool) = TYPE_NONE
-		all [TYPE_OF(bool) = TYPE_LOGIC bool/value]
+		all [TYPE_OF(bool) = TYPE_LOGIC not bool/value]
 	]
 	
 	left:	 0
@@ -166,12 +136,8 @@ get-para-flags: func [
 			right:  0002h								;-- ES_RIGHT / SS_RIGHT
 			default: left
 			
-			unless wrap? [
-				flags: either type = text [
-					00004000h							;-- SS_ENDELLIPSIS
-				][
-					00C0h								;-- ES_AUTOHSCROLL or ES_AUTOVSCROLL
-				]
+			if all [not wrap? type = text][
+				flags: 00004000h						;-- SS_ENDELLIPSIS
 			]
 		]
 		true [0]

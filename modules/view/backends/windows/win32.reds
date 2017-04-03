@@ -298,6 +298,8 @@ Red/System [
 #define WM_MOVING			0216h
 #define WM_ENTERSIZEMOVE	0231h
 #define WM_EXITSIZEMOVE		0232h
+#define WM_IME_SETCONTEXT	0281h
+#define WM_IME_NOTIFY		0282h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
 #define WM_CLEAR			0303h
@@ -512,8 +514,6 @@ Red/System [
 #define ETO_OPAQUE			2
 #define ETO_CLIPPED			4
 
-#define CF_TEXT				1
-#define CF_UNICODETEXT		13
 #define GA_ROOT				2
 
 #define GM_COMPATIBLE       1
@@ -695,16 +695,6 @@ WNDCLASSEX: alias struct! [
 	hIconSm	  	  [integer!]
 ]
 
-SCROLLINFO: alias struct! [
-	cbSize		[integer!]
-	fMask		[integer!]
-	nMin		[integer!]
-	nMax		[integer!]
-	nPage		[integer!]
-	nPos		[integer!]
-	nTrackPos	[integer!]
-]
-
 GESTUREINFO: alias struct! [
 	cbSize		 [integer!]
 	dwFlags		 [integer!]
@@ -832,6 +822,16 @@ RECT_STRUCT_FLOAT32: alias struct! [
 	height		[float32!]
 ]
 
+tagCOMPOSITIONFORM: alias struct! [
+	dwStyle		[integer!]
+	x			[integer!]
+	y			[integer!]
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
+]
+
 tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfHeight		[integer!]
 	lfWidth			[integer!]
@@ -945,9 +945,6 @@ XFORM!: alias struct! [
 			lpModuleName [integer!]
 			return:		 [handle!]
 		]
-		GetLastError: "GetLastError" [
-			return: [integer!]
-		]
 		GetSystemDirectory: "GetSystemDirectoryW" [
 			lpBuffer	[c-string!]
 			uSize		[integer!]
@@ -984,6 +981,14 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		GetKeyboardLayout: "GetKeyboardLayout" [
+			idThread	[integer!]
+			return:		[integer!]
+		]
+		GetSystemMetrics: "GetSystemMetrics" [
+			index		[integer!]
+			return:		[integer!]
+		]
 		SystemParametersInfo: "SystemParametersInfoW" [
 			action		[integer!]
 			iParam		[integer!]
@@ -1181,7 +1186,7 @@ XFORM!: alias struct! [
 		SetScrollInfo:	"SetScrollInfo" [
 			hWnd		 [handle!]
 			fnBar		 [integer!]
-			lpsi		 [SCROLLINFO]
+			lpsi		 [tagSCROLLINFO]
 			fRedraw		 [logic!]
 			return: 	 [integer!]
 		]
@@ -1512,6 +1517,12 @@ XFORM!: alias struct! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		GetObject: "GetObjectW" [
+			hObj		[handle!]
+			cbBuffer	[integer!]
+			lpObject	[byte-ptr!]
+			return:		[integer!]
+		]
 		GetTextFace: 	"GetTextFaceW" [
 			hdc			[handle!]
 			nCount		[integer!]
@@ -2657,6 +2668,31 @@ XFORM!: alias struct! [
 			pv		[integer!]
 		]
 	]
+	"imm32.dll" stdcall [
+		ImmGetContext: "ImmGetContext" [
+			hWnd	[handle!]
+			return:	[handle!]
+		]
+		ImmReleaseContext: "ImmReleaseContext" [
+			hWnd	[handle!]
+			hIMC	[handle!]
+			return:	[logic!]
+		]
+		ImmGetOpenStatus: "ImmGetOpenStatus" [
+			hIMC	[handle!]
+			return:	[logic!]
+		]
+		ImmSetCompositionWindow: "ImmSetCompositionWindow" [
+			hIMC	[handle!]
+			lpComp	[tagCOMPOSITIONFORM]
+			return: [logic!]
+		]
+		ImmSetCompositionFontW: "ImmSetCompositionFontW" [
+			hIMC	[handle!]
+			lfont	[tagLOGFONT]
+			return: [logic!]
+		]
+	]
 	"UxTheme.dll" stdcall [
 		OpenThemeData: "OpenThemeData" [
 			hWnd		 [handle!]
@@ -2675,6 +2711,13 @@ XFORM!: alias struct! [
 			iFontID		[integer!]
 			plf			[tagLOGFONT]
 			return:		[integer!]
+		]
+	]
+	LIBC-file cdecl [
+		realloc: "realloc" [						"Resize and return allocated memory."
+			memory			[byte-ptr!]
+			size			[integer!]
+			return:			[byte-ptr!]
 		]
 	]
 ]

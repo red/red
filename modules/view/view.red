@@ -96,6 +96,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			tab "new value  :" mold type? new	 lf
 			tab "index      :" index			 lf		;-- zero-based absolute index
 			tab "part       :" part				 lf
+			tab "auto-sync? :" system/view/auto-sync? lf
 			tab "forced?    :" forced?
 		]
 	]
@@ -205,12 +206,21 @@ on-face-deep-change*: function [owner word target action new index part state fo
 ]
 
 link-tabs-to-parent: function [face [object!] /init][
-	if faces: face/pane [
-		visible?: face/visible?
-		forall faces [
-			faces/1/visible?: make logic! all [visible? face/selected = index? faces]
-			faces/1/parent: face
-			if init [show/with faces/1 face]
+	either system/platform = 'Windows [
+		if faces: face/pane [
+			visible?: face/visible?
+			forall faces [
+				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
+				faces/1/parent: face
+				if init [show/with faces/1 face]
+			]
+		]
+	][
+		if faces: face/pane [
+			forall faces [
+				faces/1/parent: face
+				if init [show/with faces/1 face]
+			]
 		]
 	]
 ]
@@ -414,6 +424,83 @@ para!: object [
 	]
 ]
 
+scroller!: object [
+	position:	none			;-- knob position
+	page-size:	none			;-- page size
+	min-size:	1				;-- minimum value
+	max-size:	none			;-- maximum value
+	visible?:	yes
+	vertical?:	yes				;-- read only. YES: vertical NO: horizontal
+	parent:		none
+
+	on-change*: function [word old new][
+		if system/view/debug? [
+			print [
+				"-- scroller on-change event --" lf
+				tab "word :" word			 lf
+				tab "old  :" type? :old		 lf
+				tab "new  :" type? :new
+			]
+		]
+		if all [parent block? parent/state handle? parent/state/1][
+			system/view/platform/update-scroller self (index? in self word) - 1
+		]
+	]
+]
+
+;; Text Box is a graphic object that represents styled text.
+;; It provide support for drawing, cursor navigation, hit testing, 
+;; text wrapping, alignment, tab expansion, line breaking, etc.
+
+text-box!: object [
+	text:		none					;-- a string to draw (string!)
+	size:		none					;-- box size in pixels, infinite size if none (pair! none!)
+	font:		none					;-- font! object
+	para:		none					;-- para! object
+	;flow:		'left-to-right			;-- text flow direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	;reading:	'left-to-right			;-- reading direction: left-to-right, right-to-left, top-to-bottom and bottom-to-top
+	spacing:	none					;-- line spacing (integer!)
+	tabs:		none					;-- tab list (block!)
+	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
+	state:		none					;-- OS handles
+	target:		none					;-- face!, image!, etc.
+	fixed?:		no						;-- fixed line height
+
+	;-- read only properties
+	width:		none					;-- actual width
+	height:		none					;-- actual height
+	line-count: none
+
+	offset?: function [
+		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
+		pos		[integer!]
+		return:	[pair!]
+	][
+		system/view/platform/text-box-metrics self/state pos 0
+	]
+
+	index?: function [
+		"Given a coordinate, returns the corresponding text position"
+		pt		[pair!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pt 1
+	]
+
+	line-height: function [
+		"Given a text position, returns the corresponding line's height"
+		pos 	[integer!]
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self/state pos 2
+	]
+
+	layout: func [][
+		system/view/platform/text-box-layout self
+		system/view/platform/text-box-metrics self/state self 3
+	]
+]
+
 system/view: context [
 	screens: 	none
 	event-port: none
@@ -440,6 +527,8 @@ system/view: context [
 	evt-names: make hash! [
 		detect			on-detect
 		time			on-time
+		draw			on-draw
+		scroll			on-scroll
 		down			on-down
 		up				on-up
 		mid-down		on-mid-down
@@ -458,6 +547,7 @@ system/view: context [
 		key				on-key
 		key-down		on-key-down
 		key-up			on-key-up
+		ime				on-ime
 		focus			on-focus
 		unfocus			on-unfocus
 		select			on-select
@@ -536,6 +626,12 @@ do-events: function [
 	:result
 ]
 
+exit-event-loop: function [
+	"exit current event loop"
+][
+	system/view/platform/exit-event-loop
+]
+
 do-safe: func [code [block!] /local result][
 	if error? set/any 'result try/all code [
 		print :result
@@ -596,6 +692,14 @@ show: function [
 				do-safe [face/actors/on-create face none]
 			]
 			p: either with [parent/state/1][0]
+
+			if system/platform = 'macOS [
+				if all [face/type = 'tab-panel face/pane][
+					link-tabs-to-parent face
+					foreach f face/pane [show f]
+				]
+			]
+
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
@@ -610,7 +714,9 @@ show: function [
 			]
 			
 			switch face/type [
-				tab-panel [link-tabs-to-parent face]
+				tab-panel [				;@@ make it the same as in macOS
+					if system/platform = 'Windows [link-tabs-to-parent face]
+				]
 				window	  [
 					pane: system/view/screens/1/pane
 					if find-flag? face/flags 'modal [
@@ -720,6 +826,22 @@ dump-face: function [
 	face
 ]
 
+get-scroller: function [
+	"return a scroller object from a face"
+	face		[object!]
+	orientation [word!]
+	return:		[object!]
+][
+	make scroller! [
+		position: 1
+		page: 10
+		minimum: 1
+		maximum: 100
+		parent: face
+		vertical?: orientation = 'vertical
+	]
+]
+
 insert-event-func: function [
 	"Add a function to monitor global events. Return the function"
 	fun [block! function!] "A function or a function body block"
@@ -738,9 +860,11 @@ remove-event-func: function [
 
 request-font: function [
 	"Requests a font object"
-	/mono			"Show monospaced font only"
+	/font	"Sets the selected font"
+		ft	[object!]
+	/mono	"Show monospaced font only"
 ][
-	system/view/platform/request-font make font! [] mono
+	system/view/platform/request-font make font! [] ft mono
 ]
 
 request-file: function [
@@ -838,6 +962,7 @@ insert-event-func [
 		]
 	][
 		print [
+			"face> type:"	event/face/type
 			"event> type:"	event/type
 			"offset:"		event/offset
 			"key:"			mold event/key

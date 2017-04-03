@@ -302,6 +302,7 @@ draw-begin: func [
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
 	ctx/other/D2D?:							(get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER
 	ctx/other/path-last-point/x:			0
@@ -310,8 +311,6 @@ draw-begin: func [
 	ctx/other/connect-subpath:				0
 	ctx/other/last-point?:					no
 	ctx/other/anti-alias?:					no
-	ctx/other/GDI+?:						no
-	ctx/other/D2D?:							no
 	ptrn:									as red-image! ctx/other/pattern-image-fill
 	ptrn/node:								null
 	ptrn:									as red-image! ctx/other/pattern-image-pen
@@ -1537,6 +1536,7 @@ OS-draw-text: func [
 	ctx		[draw-ctx!]
 	pos		[red-pair!]
 	text	[red-string!]
+	catch?	[logic!]
 	/local
 		str		[c-string!]
 		p		[c-string!]
@@ -1549,6 +1549,11 @@ OS-draw-text: func [
 		rect	[RECT_STRUCT_FLOAT32]
 		tm		[tagTEXTMETRIC]
 ][
+	if ctx/other/D2D? [
+		OS-draw-text-d2d ctx pos text catch?
+		exit
+	]
+
 	len: -1
 	str: unicode/to-utf16-len text :len no
 	either ctx/on-image? [
@@ -3136,13 +3141,11 @@ OS-draw-grad-pen: func [
 
 OS-set-clip: func [
 	ctx		[draw-ctx!]
-	upper	[red-value!]
-	lower	[red-value!]
+	u		[red-pair!]
+	l		[red-pair!]
 	rect?	[logic!]
 	mode	[integer!]
 	/local
-		u	[red-pair!]
-		l	[red-pair!]
 		dc	[handle!]
 		clip-mode [integer!]
 ][
@@ -3156,8 +3159,6 @@ OS-set-clip: func [
 	]
 	either ctx/other/GDI+? [
 		either rect? [
-			u: as red-pair! upper
-			l: as red-pair! lower
 			GdipSetClipRectI
 				ctx/graphics
 				u/x
@@ -3175,8 +3176,6 @@ OS-set-clip: func [
 	][
 		dc: ctx/dc
 		if rect? [
-			u: as red-pair! upper
-			l: as red-pair! lower
 			BeginPath dc
 			Rectangle dc u/x u/y l/x l/y
 		]
