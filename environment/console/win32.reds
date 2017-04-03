@@ -203,7 +203,7 @@ fd-read: func [
 		size    [red-pair!]
 ][
 	n: 0
-	while [true] [
+	forever [
 		if zero? ReadConsoleInput stdin as-integer input-rec 1 :n [return -1]
 		switch input-rec/EventType and FFFFh [
 			KEY_EVENT [
