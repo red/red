@@ -328,7 +328,6 @@
 	red/natives/sign?*
 	red/natives/as*
 	red/natives/call*
-	red/natives/zero?*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!
