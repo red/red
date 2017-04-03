@@ -41,9 +41,6 @@ Red/System [
 #define MENU_EVENT 				 	08h
 #define FOCUS_EVENT 			 	10h
 #define ENHANCED_KEY 			 	0100h
-#define FOREGROUND_BLUE 		 	01h
-#define FOREGROUND_GREEN 		 	02h
-#define FOREGROUND_RED 			 	04h
 #define ENABLE_PROCESSED_INPUT		01h
 #define ENABLE_LINE_INPUT 			02h
 #define ENABLE_ECHO_INPUT 			04h

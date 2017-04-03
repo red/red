@@ -136,6 +136,7 @@ write %build/bin/sources.r set-cache [
 			%image-gdiplus.reds
 			%win32-cli.reds
 			%win32-gui.reds
+			%win32-ansi.reds
 		]
 	]
 	%modules/ [
