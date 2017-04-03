@@ -77,12 +77,13 @@ input-record!: alias struct! [
 	pad4	  [integer!]
 ]
 
+;@@ use integer16! once available as values are in words
 screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
-	Size	  [integer!]        	;typedef struct _CONSOLE_SCREEN_BUFFER_INFO {
-	Position  [integer!]        	;  COORD dwSize;		offset: 0
-	pad1	  [integer!]        	;  COORD dwCursorPosition;		4
-	pad2	  [integer!]        	;  WORD wAttributes;			8
-	pad3	  [integer!]        	;  SMALL_RECT srWindow;			10
+	Size	        [integer!]     	;typedef struct _CONSOLE_SCREEN_BUFFER_INFO {
+	Position        [integer!]     	;  COORD dwSize;		offset: 0
+	attr-left       [integer!]     	;  COORD dwCursorPosition;		4
+	top-right       [integer!]     	;  WORD wAttributes;			8
+	bottom-maxWidth [integer!]     	;  SMALL_RECT srWindow;			10
 	pad4 	  [byte!]           	;  COORD dwMaximumWindowSize;	18
 	pad5 	  [byte!]           	;} CONSOLE_SCREEN_BUFFER_INFO,*PCONSOLE_SCREEN_BUFFER_INFO;
 ]									;-- sizeof(CONSOLE_SCREEN_BUFFER_INFO) = 22
@@ -232,10 +233,7 @@ fd-read: func [
 				]
 			]
 			WINDOW_BUFFER_SIZE_EVENT [
-				n: input-rec/Event
-				size: as red-pair! #get system/console/size
-				size/x: FIRST_WORD(n)
-				size/y: SECOND_WORD(n)
+				get-window-size
 			]
 			;FOCUS_EVENT
 			;MENU_EVENT
@@ -259,13 +257,11 @@ get-window-size: func [
 	columns: FIRST_WORD(x-y)
 	rows: SECOND_WORD(x-y)
 	size: as red-pair! #get system/console/size
-	size/x: columns
-	size/y: rows
+	size/x: SECOND_WORD(info/top-right) - SECOND_WORD(info/attr-left) 
+	size/y: FIRST_WORD(info/bottom-maxWidth) - FIRST_WORD(info/top-right)
 	if columns <= 0 [size/x: 80 columns: 80 return -1]
 	x-y: info/Position
 	base-y: SECOND_WORD(x-y)
-	limit: as red-integer! #get system/console/limit
-	limit/value: columns
 	0
 ]
 
