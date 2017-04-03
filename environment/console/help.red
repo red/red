@@ -154,12 +154,12 @@ Other useful functions:
 		]
 
 		catch [case/all [
-			if unset? :word [									;-- HELP with no arguments
+			unset? :word [									;-- HELP with no arguments
 				buffer: insert buffer HELP-USAGE
 				throw true
 			]
 
-			if word? :word [
+			word? :word [
 				either value? :word [
 					value: get :word    ;lookup for word's value if any
 				][	word: mold :word ]  ;or use it as a string input
