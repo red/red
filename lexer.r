@@ -39,19 +39,20 @@ lexer: context [
 	
 	;====== Parsing rules ======
 
-	four:  charset "01234"
-	half:  charset "012345"
-    non-zero: charset "123456789"
-    digit: union non-zero charset "0"
-    dot: #"."
-    comma: #","
+	four:	  charset "01234"
+	half:	  charset "012345"
+	non-zero: charset "123456789"
+	digit:	  union non-zero charset "0"
+	dot:	  #"."
+	comma:	  #","
 
 	byte: [
 		"25" half
-		| "2" four digit
-		| "1" digit digit
-		| non-zero digit
-		| digit
+		| #"2" four digit
+		| #"1" digit digit
+		| opt #"0" non-zero digit
+		| 0 2 #"0" digit
+		| #"0"
 	]
 
 	hexa:  union digit charset "ABCDEF"
@@ -97,8 +98,10 @@ lexer: context [
 	tag-char:		charset "<>"
 	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
+	pair-end:		charset {^{"[]();:}
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
+	file-end:		charset {^{[]();}
 	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
@@ -118,7 +121,7 @@ lexer: context [
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		pos: #"^/" (
+		#"^/" (
 			if count? [
 				line: line + 1
 				stack/nl?: yes
@@ -204,7 +207,7 @@ lexer: context [
 	
 	word-rule: 	[
 		(type: word!)
-		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
@@ -272,11 +275,11 @@ lexer: context [
 		] (type: time!)
 	]
 	
-	positive-integer-rule: [(type: integer!) digit any digit e:]
+	positive-integer-rule: [digit any digit e: (type: integer!)]
 	
 	integer-number-rule: [
-		(type: integer!)
 		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
+		(type: integer!)
 	]
 	
 	integer-rule: [
@@ -292,7 +295,8 @@ lexer: context [
 					type: pair!
 					value2: to pair! reduce [value 0]
 				)
-				s: integer-number-rule
+				[s: integer-number-rule | (type: pair! throw-error)]
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
 			opt [#":" [time-rule | (throw-error)]]
@@ -458,12 +462,16 @@ lexer: context [
 	
 	comment-rule: [#";" [to #"^/" | to end]]
 	
-	wrong-delimiters: [
-		pos: [
-			  #"]" (value: #"[") | #")" (value: #"(")
-			| #"[" (value: #"]") | #"(" (value: #")")
-		] :pos
-		(throw-error/with ["missing matching" value])
+	wrong-end: [(
+			ending: either 1 < length? stack/stk [
+				value: switch type?/word stack/top [
+					block! [#"]"]
+					paren! [#")"]
+				]
+				first [(throw-error/with ["missing" mold value "character"])]
+			][none]
+		)
+		ending
 	]
 
 	literal-value: [
@@ -504,7 +512,7 @@ lexer: context [
 		pos: opt UTF-8-BOM
 		header
 		any-value
-		opt wrong-delimiters
+		opt wrong-end
 	]
 	
 	;====== Helper functions ======
@@ -540,6 +548,8 @@ lexer: context [
 			]
 			also pos/1 remove pos
 		]
+		
+		top: does [last stk]
 		
 		reset: does [clear stk]
 	]
@@ -711,6 +721,7 @@ lexer: context [
 	]
 
 	load-file: func [s [string!]][
+		parse s [any [#"%" [2 hexa | (pos: skip pos negate 1 + length? s throw-error)] | skip]]
 		to file! replace/all dehex s #"\" #"/"
 	]
 	

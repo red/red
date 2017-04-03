@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 10/10/2016
-	Revision: 47
+	Date: 31/03/2017
+	Revision: 50
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -538,7 +538,6 @@ Member access is achieved using path notation. Syntax is:
  <member>  : a valid member identifier in <struct>
  <value>   : a value of same datatype as <member>
 
-
 From last example, that would give:
 
  foo: s/a								;-- reading member 'a in struct 's
@@ -547,12 +546,25 @@ From last example, that would give:
  bar: s/c/d								;-- deep read/write access is also possible
  
 <u>Note</u>: Accessing a function! pointer member will result in dereferencing the pointer.
- 
+
+It is also possible to acquire a pointer on a struct member using the get-path notation:
+
+ :<struct>/<member>
+
+ <struct>  : a valid struct variable
+ <member>  : a valid member identifier in <struct>
+
+The returned type is always `pointer! [integer!]` in such case. It can be freely type-casted to other pointer types.
+
+  p: :s/a
+  p/value								;-- returns the value of s/a
+  p/value: 456							;-- sets a new value in s/a
+
 +++Struct arithmetic
 
 It is possible to apply some simple math operations on struct variables, like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
 
-Syntax
+<b>Syntax</b>
 
  <struct> + <n>
  <struct> - <n>
@@ -560,7 +572,7 @@ Syntax
  <struct>	: struct variable
  <n>        : integer value
 
-Examples
+<b>Examples</b>
 
  p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
@@ -1083,6 +1095,34 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; A data modification can occur.<br>
 
+--- Size?
+
+<b>Syntax</b>
+
+ size? <type>
+ size? "<string>"
+
+ <type>     : an valid type name.
+ "<string>" : a c-string literal value.
+
+<b>Size?</b> returns the memory storage size in bytes required by a value of given type. When passed a c-string literal value, it will return the number of bytes in the c-string, including the ending null byte.
+
+<b>Example</b>
+
+ size? byte!				;-- will return 1
+ size? integer!				;-- will return 4
+ 
+ s!: alias struct! [
+ 	a [integer!]
+ 	b [float32!]
+ ]
+ size? s!					;-- will return 8
+
+\note Dynamic string use cases
+Size? can only be used on a literal c-string, when only a c-string pointer is available use <b>length?</b> function.
+
+/note
+
 ===Expressions
 
 Expressions are the basic building blocks of a Red/System program. They are composed of:
@@ -1316,13 +1356,17 @@ Example:
  foo :compare							;-- pass the function pointer
 
 \note Stdcall support
-The <b>stdcall</b> attribute is also accepted (it is already the default calling convention in Red/System), but will have no effect for internal functions. Imported functions with such attribute will be compiled as callbacks, but in such case, the more explicit <b>callback</b> attribute should be used. This attribute might be removed in the future.
+The <b>stdcall</b> attribute is also accepted (it is already the default calling convention in Red/System), but will have no effect for internal functions. Imported functions with such attribute will be compiled as callbacks, but in such case, the more explicit <b>callback</b> attribute should be used.
   
 /note
 
 +++Callback
 
 The purpose of the <b>callback</b> attribute is to manually force a callback compilation mode for a function that the compiler failed to infer as a callback. It can be used as a more meaningful replacement for <b>stdcall</b> when used on Windows.
+
+The compiler can correctly infer callbacks when a function pointer is passed as a get-word to an imported function call. Other cases of passing a Red/System function pointer cannot be properly detected as external callbacks.
+
+For example, if Red/System function pointers are passed to an external API in an indirect way (filling an array or a structure), and those functions will be later called by the external code (OS or a library), the <b>callback</b> attribute *must* be used in order for correct code to be generated. Moreover, if the external caller is using C calling convention, then the additional <b>cdecl</b> is required.
 
 +++Variadic
 
@@ -2923,7 +2967,7 @@ As compiler directives apply globally to programs, they are not allowed inside c
 
 ---#import
 
-Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
+Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions and variables to Red/System current context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global or local contexts of your Red/System program, but be sure to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
 
 <u>Note</u>: this is not the same as dynamically loading a shared library from your Red/System code after your program has started. Such approach allows you to delay the loading of your libraries and to free them. Imports cannot be freed.
 
@@ -2937,16 +2981,22 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  			return: [<datatype>]		;-- optional part
  		]
  		...								;-- more functions mappings
+ 		<variable name>: "<VAR>" [
+ 			<datatype>
+ 		]
+ 		...								;-- more variables mappings
  	]
- 	...									;-- more libraries to load					
+ 	...									;-- more libraries to load
  ]
 
- <library>		 : shared library file name (with extension)
- <convention>	 : calling convention of the library (stdcall | cdecl)
- <function name> : name of the mapped function in global context
- <ID>			 : identifier of the function in the shared library
- <argument>		 : function's argument indentifier
- <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
+ <library>       : shared library file name (with extension)
+ <convention>    : calling convention of the library (stdcall | cdecl)
+ <function name> : name of the mapped function in current context
+ <variable name> : name of the mapped variable in current context
+ <ID>            : identifier of the function in the shared library
+ <VAR>           : identifier of the variable in the shared library
+ <argument>      : function's argument indentifier
+ <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
                    float! | float32! | c-string! | struct! [<members>] |
                    function! [<spec>]
 
@@ -3109,14 +3159,14 @@ will output:
 
 A more powerful macro version is possible, taking one or several parameters as input that get replaced in the emitted template.
 
-Syntax (declaration):
+<b>Syntax (declaration)</b>
 
     #define <name>(arg1 arg2 ...) <body>
 
     <name> : macro identifier
     <body> : macro body (block! or paren! value)
 
-Syntax (usage):
+<b>Syntax (usage)</b>
 
     <name>(value1 value2 ...)
     
@@ -3365,14 +3415,16 @@ As a dialect of Red, Red/System can call back a Red-level function, passing argu
 
 <b>Syntax</b>
 
- #call [<red-fun-name> <arg1>...<argn>]
+ #call [<Red-call> <arg1>...<argn>]
 
- <red-fun-name>  : a Red word referring to a function! value.
+ <Red-call>      : a Red word, or path (for refinements), referring to a function! value.
  <arg1>...<argn> : list of arguments.
 
 The arguments should be passed as pointers to Red values of the expected type, except for integer! and logic! datatypes, that can be passed inlined, without requiring any boxing. When required, for pointer arguments, a simple type casting is allowed.
 
 Once the Red function returns, the normal execution of Red/System code continues. The Red return value cannot be directly retrieved currently, but it should be accessible from Red arguments stack. The Red function <b>must</b> have all arguments typed, else a compilation error will occur.
+
+When a path is used as the function call, it refers to the function name, followed by refinements. The eventual refinements arguments are then, expected to be provided, following the mandatory ones.
 
 <b>Example</b>
 
@@ -3734,6 +3786,28 @@ will output:
 
 
 ===Document History
+
+*<b>31/03/2017 - revision 50</b>
+
+*>Adds description of get-path to get struct member address.
+
+
+
+*<b>29/03/2017 - revision 49</b>
+
+*>Adds description for variables importing from external libraries.
+
+*>Updates #call description to include refinements.
+
+*>Adds a section for `size?` description.
+
+
+
+*<b>11/03/2017 - revision 48</b>
+
+*>Additional explanations for `callback` attribute usage.
+
+
 
 *<b>10/10/2016 - revision 47</b>
 

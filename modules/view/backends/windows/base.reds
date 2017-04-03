@@ -162,7 +162,7 @@ render-text: func [
 		para	[red-object!]
 		color	[red-tuple!]
 		state	[red-block!]
-		int		[red-integer!]
+		handle	[red-handle!]
 		hFont	[handle!]
 		old		[integer!]
 		flags	[integer!]
@@ -189,9 +189,9 @@ render-text: func [
 			]
 			state: as red-block! values + FONT_OBJ_STATE
 			if TYPE_OF(state) = TYPE_BLOCK [
-				int: as red-integer! block/rs-head state
-				if TYPE_OF(int) = TYPE_INTEGER [
-					hFont: as handle! int/value
+				handle: as red-handle! block/rs-head state
+				if TYPE_OF(handle) = TYPE_HANDLE [
+					hFont: as handle! handle/value
 				]
 			]
 		]
@@ -616,7 +616,7 @@ update-base-text: func [
 		v-align [integer!]
 		h-align [integer!]
 		clr		[integer!]
-		int		[red-integer!]
+		handle	[red-handle!]
 		values	[red-value!]
 		color	[red-tuple!]
 		state	[red-block!]
@@ -637,9 +637,9 @@ update-base-text: func [
 
 		state: as red-block! values + FONT_OBJ_STATE
 		either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state
-			if TYPE_OF(int) = TYPE_INTEGER [
-				hFont: int/value
+			handle: as red-handle! block/rs-head state
+			if TYPE_OF(handle) = TYPE_HANDLE [
+				hFont: handle/value
 			]
 		][
 			hFont: as-integer make-font get-face-obj hWnd font

@@ -73,6 +73,7 @@ write %build/bin/sources.r set-cache [
 		%clipboard.reds
 		%crush.reds
 		%utils.reds
+		%call.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -123,6 +124,7 @@ write %build/bin/sources.r set-cache [
 			%url.reds
 			%vector.reds
 			%word.reds
+			%handle.reds
 		]
 		%platform/ [
 			%android.reds
@@ -135,6 +137,7 @@ write %build/bin/sources.r set-cache [
 			%image-gdiplus.reds
 			%win32-cli.reds
 			%win32-gui.reds
+			%win32-ansi.reds
 		]
 	]
 	%modules/ [

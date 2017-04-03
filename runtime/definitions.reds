@@ -161,11 +161,19 @@ Red/System [
 	#define GENERIC_READ 			80000000h
 	#define FILE_SHARE_READ			00000001h
 	#define FILE_SHARE_WRITE		00000002h
-	#define OPEN_ALWAYS				00000004h
-	#define OPEN_EXISTING			00000003h
+	#define FILE_SHARE_DELETE		00000004h
+	#define CREATE_NEW				00000001h
 	#define CREATE_ALWAYS			00000002h
+	#define OPEN_EXISTING			00000003h
+	#define OPEN_ALWAYS				00000004h
+	#define TRUNCATE_EXISTING		00000005h
 	#define FILE_ATTRIBUTE_NORMAL	00000080h
-	#define FILE_ATTRIBUTE_DIRECTORY 00000010h
+	#define FILE_ATTRIBUTE_DIRECTORY  00000010h
+	#define FILE_FLAG_SEQUENTIAL_SCAN 08000000h
+	
+	#define STD_INPUT_HANDLE		-10
+	#define STD_OUTPUT_HANDLE		-11
+	#define STD_ERROR_HANDLE		-12
 
 	#define SET_FILE_BEGIN			0
 	#define SET_FILE_CURRENT		1
@@ -185,6 +193,132 @@ Red/System [
 	#define BFFM_INITIALIZED		1
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
+
+	#define handle!				[pointer! [integer!]]
+
+	#enum brush-type! [
+		BRUSH_TYPE_NORMAL
+		BRUSH_TYPE_TEXTURE
+	]
+
+	tagPAINTSTRUCT: alias struct! [
+		hdc			 [handle!]
+		fErase		 [integer!]
+		left		 [integer!]
+		top			 [integer!]
+		right		 [integer!]
+		bottom		 [integer!]
+		fRestore	 [integer!]
+		fIncUpdate	 [integer!]
+		rgbReserved1 [integer!]
+		rgbReserved2 [integer!]
+		rgbReserved3 [integer!]
+		rgbReserved4 [integer!]
+		rgbReserved5 [integer!]
+		rgbReserved6 [integer!]
+		rgbReserved7 [integer!]
+		rgbReserved8 [integer!]
+	]
+	
+	POINT_2F: alias struct! [
+		x		[float32!]
+		y		[float32!]
+	]
+
+	PATHDATA: alias struct! [
+		count       [integer!]
+		points      [POINT_2F]
+		types       [byte-ptr!]
+	]
+
+	tagPOINT: alias struct! [
+		x		[integer!]
+		y		[integer!]	
+	]
+
+
+	gradient!: alias struct! [
+		extra           [integer!]                              ;-- used when pen width > 1
+		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
+		points-data     [tagPOINT]                              ;-- preallocated for performance reasons
+		matrix			[integer!]
+		colors			[int-ptr!]
+		colors-pos		[float32-ptr!]
+		spread			[integer!]
+		type            [integer!]                              ;-- gradient on fly (just before drawing figure)
+		count           [integer!]                              ;-- gradient stops count
+		data            [tagPOINT]                              ;-- figure coordinates
+		positions?      [logic!]                                ;-- true if positions are defined, false otherwise
+		created?        [logic!]                                ;-- true if gradient brush created, false otherwise
+		transformed?	[logic!]								;-- true if transformation applied
+	]
+
+	curve-info!: alias struct! [
+		type    [integer!]
+		control [tagPOINT]
+	]
+
+	arcPOINTS!: alias struct! [
+		start-x     [float!]
+		start-y     [float!]
+		end-x       [float!]
+		end-y       [float!]
+	]
+
+	other!: alias struct! [
+		gradient-pen			[gradient!]
+		gradient-fill			[gradient!]
+		gradient-pen?			[logic!]
+		gradient-fill?			[logic!]
+		matrix-elems			[float32-ptr!]		;-- elements of matrix allocated in draw-begin for performance reason
+		paint					[tagPAINTSTRUCT]
+		edges					[tagPOINT]					;-- polygone edges buffer
+		types					[byte-ptr!]					;-- point type buffer
+		last-point?				[logic!]
+		path-last-point			[tagPOINT]
+		prev-shape				[curve-info!]
+		connect-subpath			[integer!]
+		matrix-order			[integer!]
+		anti-alias?				[logic!]
+		GDI+?					[logic!]
+		D2D?					[logic!]
+		pattern-image-fill		[integer!]
+		pattern-image-pen		[integer!]
+	]
+
+	draw-ctx!: alias struct! [
+		dc				[int-ptr!]								;-- OS drawing object
+		hwnd			[int-ptr!]								;-- Window's handle
+		pen				[integer!]
+		brush			[integer!]
+		pen-join		[integer!]
+		pen-cap			[integer!]
+		pen-width		[float32!]
+		pen-style		[integer!]
+		pen-color		[integer!]								;-- 00bbggrr format
+		brush-color		[integer!]								;-- 00bbggrr format
+		font-color		[integer!]
+		bitmap			[int-ptr!]
+		graphics		[integer!]								;-- gdiplus graphics
+		gp-state		[integer!]
+		gp-pen			[integer!]								;-- gdiplus pen
+		gp-pen-type 	[brush-type!]							;-- gdiplus pen type (for texture, another set of transformation functions must be applied)
+		gp-pen-saved	[integer!]
+		gp-brush		[integer!]								;-- gdiplus brush
+		gp-brush-type 	[brush-type!]							;-- gdiplus brush type (for texture, another set of transformation functions must be applied)
+		gp-font			[integer!]								;-- gdiplus font
+		gp-font-brush	[integer!]
+		gp-matrix		[integer!]
+		gp-path			[integer!]
+		image-attr		[integer!]								;-- gdiplus image attributes
+		pen?			[logic!]
+		brush?			[logic!]
+		on-image?		[logic!]								;-- drawing on image?
+		alpha-pen?		[logic!]
+		alpha-brush?	[logic!]
+		font-color?		[logic!]
+		other 			[other!]
+	]
 ][
 	#define O_RDONLY	0
 	#define O_WRONLY	1
@@ -198,13 +332,15 @@ Red/System [
 	#define S_IROTH		4
 
 	#define	DT_DIR		#"^(04)"
-
+	
 	#case [
 		any [OS = 'FreeBSD OS = 'MacOSX] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h
 			#define O_APPEND	8
+			#define	O_NONBLOCK	4
+			#define	O_CLOEXEC	01000000h
 			
 			#define DIRENT_NAME_OFFSET 8
 		]
@@ -213,6 +349,8 @@ Red/System [
 			#define O_EXCL		128
 			#define O_TRUNC		512
 			#define O_APPEND	1024
+			#define	O_NONBLOCK	2048
+			#define	O_CLOEXEC	524288
 		]
 	]
 	

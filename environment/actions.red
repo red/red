@@ -147,7 +147,7 @@ remainder: make action! [[
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number! time!]
+		n		[number! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
@@ -256,13 +256,13 @@ back: make action! [[
 ]
 
 change: make action! [[
-		"Changes a value in a series and returns the series after the change."
+		"Changes a value in a series and returns the series after the change"
 		series [series!] "Series at point to change"
 		value [any-type!] "The new value"
-		/part "Limits the amount to change to a given length or position."
+		/part "Limits the amount to change to a given length or position"
 			range [number! series!]
 		/only "Changes a series as a series."
-		/dup "Duplicates the change a specified number of times."
+		/dup "Duplicates the change a specified number of times"
 			count [number!]
 	]
 	#get-definition ACT_CHANGE

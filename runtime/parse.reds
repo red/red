@@ -68,7 +68,7 @@ parser: context [
 			TYPE_BINARY [
 				int: as red-integer! base
 				int/header: TYPE_INTEGER
-				int/value: binary/rs-abs-at as red-binary! input p/input
+				int/value: binary/rs-abs-at as red-binary! input offset
 			]
 			TYPE_STRING 								;TBD: replace with ANY_STRING
 			TYPE_FILE
@@ -77,9 +77,9 @@ parser: context [
 			TYPE_EMAIL [
 				char: as red-char! base
 				char/header: TYPE_CHAR
-				char/value: string/rs-abs-at as red-string! input p/input
+				char/value: string/rs-abs-at as red-string! input offset
 			]
-			default [value: block/rs-abs-at input p/input]
+			default [value: block/rs-abs-at input offset]
 		]
 	]
 	
@@ -132,9 +132,10 @@ parser: context [
 		R_COLLECT:		-12
 		R_KEEP:			-13
 		R_KEEP_PAREN:	-14
-		R_AHEAD:		-15
-		R_CHANGE:		-16
-		R_CHANGE_ONLY:	-17
+		R_KEEP_PICK:	-15
+		R_AHEAD:		-16
+		R_CHANGE:		-17
+		R_CHANGE_ONLY:	-18
 	]
 	
 	triple!: alias struct! [
@@ -276,6 +277,7 @@ parser: context [
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
+		assert s/offset <= (s/tail - 2)
 		pos*: as positions! s/tail - 2
 		s: GET_BUFFER(input)
 		
@@ -680,6 +682,7 @@ parser: context [
 		if rules/head > 0 [
 			s: GET_BUFFER(rules)
 			s/tail: s/tail - 1
+			assert s/offset <= s/tail
 			p: as positions! s/tail
 			series/head: p/input
 			rules/head: p/rule
@@ -705,10 +708,10 @@ parser: context [
 		PARSE_SAVE_SERIES
 		saved: stack/top
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
+		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
 		res: stack/top - 1
 		if reset? [stack/top: saved]
-		PARSE_RESTORE_SERIES
 		res
 	]
 
@@ -780,7 +783,7 @@ parser: context [
 		max:	  -1
 		cnt:	   0
 		cnt-col:   0
-		state:    ST_NEXT_ACTION
+		state:    ST_PUSH_BLOCK
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
@@ -812,7 +815,7 @@ parser: context [
 					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
-					either zero? block/rs-length? rules [
+					either 3 = block/rs-length? rules [
 						state: ST_END
 					][
 						loop?: no
@@ -828,11 +831,9 @@ parser: context [
 						PARSE_TRACE(_pop)
 						s/tail: s/tail - 3
 						value: s/tail - 1
+						assert s/offset <= value
 						
-						state: either all [
-							0 < block/rs-length? rules 
-							TYPE_OF(value) = TYPE_INTEGER
-						][
+						state: either TYPE_OF(value) = TYPE_INTEGER [
 							ST_POP_RULE
 						][
 							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
@@ -863,12 +864,10 @@ parser: context [
 				]
 				ST_POP_RULE [
 					s: GET_BUFFER(rules)
+					assert s/offset <= (s/tail - 3)
 					value: s/tail - 1
 					
-					either any [
-						s/offset + rules/head = s/tail	;-- rules stack empty already
-						TYPE_OF(value) = TYPE_BLOCK    
-					][
+					either TYPE_OF(value) = TYPE_BLOCK [
 						state: either pop? [pop?: no ST_POP_BLOCK][ST_NEXT_ACTION]
 					][
 						pop?: yes
@@ -896,7 +895,7 @@ parser: context [
 								]
 								if any [						 ;-- don't loop if any:
 									break?						 ;-- a BREAK or REJECT command was issued
-									all [end? int/value = R_WHILE] ;-- don't loop on WHILE if no more input
+									end? 						 ;-- don't loop if no more input
 								][
 									loop?: no
 									break?: no
@@ -961,17 +960,16 @@ parser: context [
 									either p/input = input/head [
 										value: as red-value! none-value
 									][
+										offset: p/input
 										PARSE_PICK_INPUT
 									]
 									_context/set as red-word! p - 1 value
 								]
 							]
 							R_KEEP
-							R_KEEP_PAREN [
-								if all [
-									match?
-									any [int/value = R_KEEP_PAREN  p/input < input/head]
-								][
+							R_KEEP_PAREN
+							R_KEEP_PICK [
+								if match? [
 									blk: as red-block! stack/top - 1
 									assert any [
 										TYPE_OF(blk) = TYPE_WORD
@@ -987,13 +985,14 @@ parser: context [
 										]
 									]
 									value: stack/top	;-- refer last value from paren expression
+									offset: p/input		;-- required by PARSE_PICK_INPUT
+									
 									if int/value = R_KEEP [
-										w: as red-word! s/tail
 										case [
 											p/sub = R_COPY [			;-- KEEP COPY case
-												value: _context/get w
+												value: _context/get as red-word! s/tail
 											]
-											p/input + 1 < input/head [	;-- KEEP with matched size > 1
+											offset + 1 < input/head [	;-- KEEP with matched size > 1
 												PARSE_COPY_INPUT(value)
 											]
 											true [
@@ -1001,18 +1000,27 @@ parser: context [
 											]
 										]
 									]
-									either into? [
-										switch TYPE_OF(blk) [
-											TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-											TYPE_STRING
-											TYPE_FILE
-											TYPE_URL 
-											TYPE_TAG
-											TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
-											default  [block/insert blk value null yes null no]
+									if int/value <> R_KEEP_PICK [offset: input/head] ;-- ensures no looping
+									
+									until [
+										if int/value = R_KEEP_PICK [
+											PARSE_PICK_INPUT
+											offset: offset + 1
 										]
-									][
-										block/rs-append blk value
+										either into? [
+											switch TYPE_OF(blk) [
+												TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
+												TYPE_STRING
+												TYPE_FILE
+												TYPE_URL 
+												TYPE_TAG
+												TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
+												default  [block/insert blk value null yes null no]
+											]
+										][
+											block/rs-append blk value
+										]
+										offset = input/head
 									]
 								]
 							]
@@ -1125,6 +1133,7 @@ parser: context [
 						if pop? [
 							PARSE_TRACE(_pop)
 							s/tail: s/tail - 3			;-- pop rule stack frame
+							assert s/offset <= s/tail
 							if s/tail > s/offset [
 								p: as positions! s/tail - 2
 								p/sub: int/value		;-- save rule type in parent stack frame
@@ -1137,11 +1146,9 @@ parser: context [
 				ST_CHECK_PENDING [
 					s: GET_BUFFER(rules)
 					value: s/tail - 1
+					assert s/offset <= value
 					
-					state: either any [					;-- order of conditional expressions matters!
-						zero? block/rs-length? rules
-						TYPE_OF(value) <> TYPE_INTEGER
-					][
+					state: either TYPE_OF(value) <> TYPE_INTEGER [
 						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 					][
 						ST_POP_RULE
@@ -1260,6 +1267,7 @@ parser: context [
 					state: either cmd = tail [
 						s: GET_BUFFER(rules)
 						value: s/tail - 1
+						assert s/offset <= value
 						either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 					][
 						PARSE_TRACE(_fetch)
@@ -1333,7 +1341,8 @@ parser: context [
 							R_REMOVE	 [words/_remove]
 							R_WHILE		 [words/_while]
 							R_COLLECT	 [words/_collect]
-							R_KEEP		 [words/_keep]
+							R_KEEP
+							R_KEEP_PICK
 							R_KEEP_PAREN [words/_keep]
 							R_AHEAD		 [words/_ahead]
 							default		 [null]
@@ -1347,8 +1356,6 @@ parser: context [
 							TYPE_WORD	 [state: ST_WORD rule?: all [type <> R_COLLECT type <> R_KEEP]]
 							TYPE_DATATYPE
 							TYPE_TYPESET
-							TYPE_SET_WORD
-							TYPE_GET_WORD
 							TYPE_INTEGER [state: ST_DO_ACTION]
 							default [
 								either min = R_NONE [
@@ -1357,7 +1364,7 @@ parser: context [
 										PARSE_TRACE(_match)
 										ST_POP_RULE
 									][
-										ST_DO_ACTION
+										ST_DO_ACTION	;-- set/get-words are sinking here
 									]
 								][
 									match?: loop-token input value min max :cnt comp-op part
@@ -1365,7 +1372,8 @@ parser: context [
 									PARSE_TRACE(_match)
 									s: GET_BUFFER(rules)
 									PARSE_TRACE(_pop)
-									s/tail: s/tail - 3		;-- pop rule stack frame
+									s/tail: s/tail - 3	;-- pop rule stack frame
+									assert s/offset <= s/tail
 									state: ST_CHECK_PENDING
 								]
 								PARSE_CHECK_INPUT_EMPTY?
@@ -1376,6 +1384,7 @@ parser: context [
 				ST_FIND_ALTERN [
 					s: GET_BUFFER(rules)				;-- backtrack input
 					p: as positions! s/tail - 2
+					assert s/offset <= p
 					input/head: p/input
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag after backtracking
 					
@@ -1402,6 +1411,7 @@ parser: context [
 							cmd: tail
 							s: GET_BUFFER(rules)
 							value: s/tail - 1
+							assert s/offset <= value
 							state: either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_POP_BLOCK]
 						]
 						sym = words/skip [				;-- SKIP
@@ -1483,7 +1493,20 @@ parser: context [
 							if cnt-col = 0 [PARSE_ERROR [TO_ERROR(script parse-keep) words/_keep]]
 							value: cmd + 1
 							min:   R_NONE
-							type:  either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][R_KEEP]
+							type:  either TYPE_OF(value) = TYPE_PAREN [R_KEEP_PAREN][
+								w: as red-word! value
+								either all [
+									(as red-value! w) < tail
+									TYPE_OF(w) = TYPE_WORD
+									words/pick = symbol/resolve w/symbol
+								][
+									cmd: cmd + 1
+									value: cmd + 1
+									R_KEEP_PICK
+								][
+									R_KEEP
+								]
+							]
 							state: ST_PUSH_RULE
 						]
 						sym = words/fail [				;-- FAIL
@@ -1518,7 +1541,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either ANY_SERIES?(type) [
+							either all [ANY_SERIES?(type) type <> TYPE_IMAGE][
 								input: as red-series! block/rs-append series value
 								min:  R_NONE
 								type: R_INTO
@@ -1573,6 +1596,7 @@ parser: context [
 							]
 							PARSE_SAVE_SERIES
 							before: input/head
+							if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
 							actions/insert input value null as-logic max null no
 							input/head: saved + (input/head - before)
 							if s-top <> null [stack/top: s-top]
@@ -1614,6 +1638,7 @@ parser: context [
 									copy-cell as red-value! input base 	;@@ remove once OPTION? fixed
 									input/head: new/head
 									PARSE_SAVE_SERIES
+									if TYPE_OF(value) = TYPE_WORD [value: _context/get as red-word! value]
 									actions/change input value base as-logic max null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES

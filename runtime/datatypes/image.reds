@@ -355,7 +355,7 @@ image: context [
 
 	make: func [
 		proto	[red-image!]
-		spec	[red-object!]
+		spec	[red-value!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
@@ -366,6 +366,8 @@ image: context [
 			rgb		[byte-ptr!]
 			alpha	[byte-ptr!]
 			color	[red-tuple!]
+			x		[integer!]
+			y		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/make"]]
 
@@ -413,27 +415,32 @@ image: context [
 			default [return to proto spec type]
 		]
 
-		img/size: pair/y << 16 or pair/x
-		img/node: as node! OS-image/make-image pair/x pair/y rgb alpha color
+		x: pair/x
+		if negative? x [x: 0]
+		y: pair/y
+		if negative? y [y: 0]
+		img/size: y << 16 or x
+		img/node: as node! OS-image/make-image x y rgb alpha color
 		img
 	]
 
-	to: func [								;-- to image! face! only
+	to: func [											;-- to image! face! only
 		proto	[red-image!]
-		spec	[red-object!]
+		spec	[red-value!]
 		type	[integer!]
 		return:	[red-image!]
 		/local
 			ret [red-logic!]
 	][
-		if TYPE_OF(spec) = TYPE_IMAGE [		;-- copy it
+		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
 			return copy as red-image! spec proto null yes null
 		]
 		#either sub-system = 'gui [
+			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
 			#call [face? spec]
 			ret: as red-logic! stack/arguments
 			either ret/value [
-				return exec/gui/OS-to-image spec
+				return exec/gui/OS-to-image as red-object! spec
 			][
 				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
 			]
@@ -456,7 +463,6 @@ image: context [
 		/local
 			height	[integer!]
 			width	[integer!]
-			offset	[integer!]
 			alpha?	[logic!]
 			formed	[c-string!]
 			pixel	[integer!]
@@ -493,6 +499,7 @@ image: context [
 		bitmap: OS-image/lock-bitmap as-integer img/node no
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
+		data: data + img/head
 		size: as-integer end - data
 		
 		string/append-char GET_BUFFER(buffer) as-integer space
@@ -503,7 +510,6 @@ image: context [
 			part: part - 1
 		]
 		
-		offset: img/head
 		count: 0
 		while [data < end][
 			pixel: data/value

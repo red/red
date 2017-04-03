@@ -185,15 +185,15 @@ get-face-flags: func [
 
 face-handle?: func [
 	face	[red-object!]
-	return: [handle!]									;-- returns NULL is no handle
+	return: [handle!]									;-- returns NULL if no handle
 	/local
-		state [red-block!]
-		int	  [red-integer!]
+		state  [red-block!]
+		handle [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [return as handle! int/value]
+		handle: as red-handle! block/rs-head state
+		if TYPE_OF(handle) = TYPE_HANDLE [return as handle! handle/value]
 	]
 	null
 ]
@@ -202,14 +202,14 @@ get-face-handle: func [
 	face	[red-object!]
 	return: [handle!]
 	/local
-		state [red-block!]
-		int	  [red-integer!]
+		state  [red-block!]
+		handle [red-handle!]
 ][
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
-	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_INTEGER
-	as handle! int/value
+	handle: as red-handle! block/rs-head state
+	assert TYPE_OF(handle) = TYPE_HANDLE
+	as handle! handle/value
 ]
 
 get-window-pos: func [
@@ -286,16 +286,20 @@ update-scrollbars: func [
 		values	[red-value!]
 		str		[red-string!]
 		font	[red-object!]
+		para	[red-object!]
 		hFont	[handle!]
 		saved	[handle!]
 		rc		[RECT_STRUCT]
 		new		[RECT_STRUCT]
+		horz?	[logic!]
 ][
 	rc:  declare RECT_STRUCT
 	new: declare RECT_STRUCT
 	values: get-face-values hWnd
 	str: as red-string! values + FACE_OBJ_TEXT
-	
+	para: as red-object! values + FACE_OBJ_PARA
+	horz?: no
+
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
 		hFont: either TYPE_OF(font) = TYPE_OBJECT [
@@ -303,16 +307,50 @@ update-scrollbars: func [
 		][
 			GetStockObject DEFAULT_GUI_FONT
 		]
+		GetClientRect hWnd rc
 		saved: SelectObject hScreen hFont
 		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
+		horz?: any [
+			new/right  >= rc/right
+			all [zero? new/right 500 < string/rs-length? str]			;-- very long line
+		]
+
 		SelectObject hScreen saved
-		GetClientRect hWnd rc
-		
-		ShowScrollBar hWnd 0 new/right  >= rc/right		;-- SB_HORZ
 		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
 	][
-		ShowScrollBar hWnd 0 no							;-- SB_HORZ
 		ShowScrollBar hWnd 1 no							;-- SB_VERT
+	]
+	if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
+]
+
+set-hint-text: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		text	[red-string!]
+][
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	text: as red-string! block/select-word options word/load "hint" no
+	if TYPE_OF(text) = TYPE_STRING [
+		SendMessage hWnd 1501h 0 as-integer unicode/to-utf16 text		;-- EM_SETCUEBANNER
+	]
+]
+
+set-area-options: func [
+	hWnd		[handle!]
+	options		[red-block!]
+	/local
+		tabsize	[red-integer!]
+		size	[integer!]
+][
+	size: 16	;-- according to MSDN, 16 dialog units equals to 4 character average width, and this value is device independent.
+	SendMessage hWnd CBh 1 as-integer :size
+
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	tabsize: as red-integer! block/select-word options word/load "tabs" no
+	if TYPE_OF(tabsize) = TYPE_INTEGER [
+		size: tabsize/value * 4
+		SendMessage hWnd CBh 1 as-integer :size
 	]
 ]
 
@@ -448,8 +486,13 @@ free-handles: func [
 			;; handle user-provided classes too
 		]
 	]
-	DestroyWindow hWnd
-	
+	either sym = window [
+		SetWindowLong hWnd wc-offset - 4 -1
+		PostMessage hWnd WM_CLOSE 0 0
+	][
+		DestroyWindow hWnd
+	]
+
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
 ]
@@ -563,6 +606,11 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
+]
+
+cleanup: does [
+	unregister-classes hInstance
+	DX-cleanup
 ]
 
 find-last-window: func [
@@ -1082,9 +1130,9 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = area [
-			class: #u16 "RedField"
-			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_HSCROLL or WS_TABSTOP
+			class: #u16 "RedArea"
+			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
+			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
 			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
 		]
 		sym = text [
@@ -1160,7 +1208,7 @@ OS-make-view: func [
 		]
 	]
 
-	caption: either TYPE_OF(str) = TYPE_STRING [
+	caption: either all [TYPE_OF(str) = TYPE_STRING sym <> area][
 		unicode/to-utf16 str
 	][
 		null
@@ -1254,7 +1302,11 @@ OS-make-view: func [
 		][
 			init-drop-list handle data caption selected sym = drop-list
 		]
-		sym = area	 [update-scrollbars handle]
+		sym = field [set-hint-text handle as red-block! values + FACE_OBJ_OPTIONS]
+		sym = area	 [
+			set-area-options handle as red-block! values + FACE_OBJ_OPTIONS
+			change-text handle values sym
+		]
 		sym = window [init-window handle offset size bits]
 		true [0]
 	]
@@ -1411,6 +1463,21 @@ change-offset: func [
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
 ]
 
+extend-area-limit: func [
+	hWnd  [handle!]
+	extra [integer!]
+	/local
+		limit [integer!]
+		old	  [integer!]
+][
+	limit: as-integer SendMessage hWnd EM_GETLIMITTEXT 0 0
+	old:   as-integer SendMessage hWnd WM_GETTEXTLENGTH 0 0
+	
+	if extra + old > limit [
+		SendMessage hWnd EM_SETLIMITTEXT old + extra + 30'000 0
+	]
+]
+
 change-text: func [
 	hWnd	[handle!]
 	values	[red-value!]
@@ -1418,6 +1485,7 @@ change-text: func [
 	/local
 		text [c-string!]
 		str  [red-string!]
+		len  [integer!]
 ][
 	if type = base [
 		update-base hWnd null null values
@@ -1426,16 +1494,25 @@ change-text: func [
 	str: as red-string! values + FACE_OBJ_TEXT
 	text: null
 	switch TYPE_OF(str) [
-		TYPE_STRING [text: unicode/to-utf16 str yes]
-		TYPE_NONE	[text: #u16 "^@"]
+		TYPE_STRING [
+			text: unicode/to-utf16 str yes
+			len: string/rs-length? str
+		]
+		TYPE_NONE	[
+			text: #u16 "^@"
+			len: 1
+		]
 		default		[0]									;@@ Auto-convert?
 	]
 	unless null? text [
 		if type = group-box [
 			hWnd: as handle! GetWindowLong hWnd wc-offset - 4
 		]
+		if type = area [
+			extend-area-limit hWnd len
+			update-scrollbars hWnd
+		]
 		SetWindowText hWnd text
-		if type = area [update-scrollbars hWnd]
 	]
 ]
 
@@ -1898,9 +1975,8 @@ OS-destroy-view: func [
 	
 	obj: as red-object! values + FACE_OBJ_PARA
 	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
-	
+
 	if empty? [
-		clean-up
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
 	]

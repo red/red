@@ -231,7 +231,7 @@ _function: context [
 				either ctx = global-ctx [
 					call: as function! [] native/code
 					call
-					0										;FIXME: required to pass compilation
+					0									;FIXME: required to pass compilation
 				][
 					ocall: as function! [octx [node!]] native/code
 					ocall ctx
@@ -239,12 +239,12 @@ _function: context [
 				]
 			]
 			switch system/thrown [
-				RED_THROWN_ERROR	[throw RED_THROWN_ERROR] ;-- let exception pass through
-				RED_THROWN_BREAK	[fire [TO_ERROR(throw break)]]
-				RED_THROWN_CONTINUE	[fire [TO_ERROR(throw continue)]]
-				RED_THROWN_THROW	[throw RED_THROWN_THROW] ;-- let exception pass through
+				RED_THROWN_ERROR
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE
+				RED_THROWN_THROW	[re-throw]			;-- let exception pass through
 				RED_THROWN_RETURN	[stack/unwind-last]
-				default [0]									 ;-- else, do nothing
+				default [0]								;-- else, do nothing
 			]
 			system/thrown: 0
 		]
@@ -620,7 +620,6 @@ _function: context [
 	][
 		list: block/push* 8
 		ignore: block/clone spec no no
-		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no no null null no no no no

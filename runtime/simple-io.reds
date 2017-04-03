@@ -180,7 +180,6 @@ simple-io: context [
 					pad0		[integer!]
 					pad1		[integer!]
 				]
-				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [					;@@ the same as MacOSX
 					d_ino		[integer!]
 					d_reclen	[byte!]
@@ -227,7 +226,6 @@ simple-io: context [
 				;]
 				;;-- #endif
 
-				#define DIRENT_NAME_OFFSET 8
 				dirent!: alias struct! [
 					d_ino		[integer!]
 					d_reclen	[byte!]
@@ -762,6 +760,7 @@ simple-io: context [
 		append?  [logic!]
 		lines?	 [logic!]
 		unicode? [logic!]
+		block?	 [logic!]
 		return:	 [integer!]
 		/local
 			file	[integer!]
@@ -800,6 +799,7 @@ simple-io: context [
 			lineend: "^/"
 			lf-sz: 1
 		]
+		ret: 1
 		either lines? [
 			buffer: string/rs-make-at stack/push* 16
 			blk: as red-block! data
@@ -808,11 +808,12 @@ simple-io: context [
 			while [value < tail][
 				data: value-to-buffer value -1 :size binary? buffer
 				write-data file data size
-				write-data file as byte-ptr! lineend lf-sz
+				ret: write-data file as byte-ptr! lineend lf-sz
 				value: value + 1
 			]
 		][
 			ret: write-data file data size
+			if block? [ret: write-data file as byte-ptr! lineend lf-sz]
 		]
 		if filename <> null [close-file file]
 		ret
@@ -1060,7 +1061,9 @@ simple-io: context [
 			offset	[integer!]
 			buffer	[red-string!]
 			name	[c-string!]
+			block?	[logic!]
 	][
+		block?: no
 		offset: -1
 		limit: -1
 		if OPTION?(part) [
@@ -1079,15 +1082,16 @@ simple-io: context [
 
 		either all [lines? TYPE_OF(data) = TYPE_BLOCK][
 			buf: as byte-ptr! data
+			block?: yes
 		][
-			lines?: no
+			if lines? [block?: yes lines?: no]
 			len: 0
 			buffer: string/rs-make-at stack/push* 16
 			buf: value-to-buffer data limit :len binary? buffer
 		]
 
 		name: either null? filename [null][file/to-OS-path filename]
-		type: write-file name buf len offset binary? append? lines? yes
+		type: write-file name buf len offset binary? append? lines? yes block?
 		if negative? type [fire [TO_ERROR(access cannot-open) filename]]
 		type
 	]
@@ -1145,10 +1149,10 @@ simple-io: context [
 					val  [red-block!]
 					new? [logic!]
 			][
-				len: WideCharToMultiByte 65001 0 headers -1 null 0 null 0
+				len: WideCharToMultiByte CP_UTF8 0 headers -1 null 0 null 0
 				s: allocate len
 				ss: s
-				WideCharToMultiByte 65001 0 headers -1 s len null 0
+				WideCharToMultiByte CP_UTF8 0 headers -1 s len null 0
 
 				mp: map/make-at stack/push* null 20
 				p: s
@@ -1281,7 +1285,7 @@ simple-io: context [
 						tail:  s/tail
 
 						while [value < tail][
-							bstr-u: SysAllocString unicode/to-utf16 word/to-string as red-word! value
+							bstr-u: SysAllocString unicode/to-utf16 word/as-string as red-word! value
 							value: value + 1
 							bstr-m: SysAllocString unicode/to-utf16 as red-string! value
 							value: value + 1
@@ -1413,6 +1417,8 @@ simple-io: context [
 				]
 				"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
 					kCFBooleanTrue: "kCFBooleanTrue" [integer!]
+					kCFStreamPropertyHTTPShouldAutoredirect: "kCFStreamPropertyHTTPShouldAutoredirect" [integer!]
+					kCFStreamPropertyHTTPResponseHeader: "kCFStreamPropertyHTTPResponseHeader" [integer!]
 					CFReadStreamOpen: "CFReadStreamOpen" [
 						stream		[integer!]
 						return:		[integer!]
@@ -1565,20 +1571,22 @@ simple-io: context [
 					v		[c-string!]
 					w		[red-value!]
 					res		[red-value!]
+					sel_str [integer!]
 			][
 				sz: CFDictionaryGetCount dict
 				mp: map/make-at stack/push* null sz << 1
 				keys: as int-ptr! allocate sz << 2
 				vals: as int-ptr! allocate sz << 2
 				CFDictionaryGetKeysAndValues dict keys vals
+				sel_str: platform/sel_getUid "UTF8String"
 
 				i: 0
 				while [i < sz][
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! objc_msgSend [keys/i sel_getUid "UTF8String"]]		;-- fallback when CFStringGetCStringPtr failed
-					if v = null [v: as c-string! objc_msgSend [vals/i sel_getUid "UTF8String"]]
+					if k = null [k: as c-string! platform/objc_msgSend [keys/i sel_str]]		;-- fallback when CFStringGetCStringPtr failed
+					if v = null [v: as c-string! platform/objc_msgSend [vals/i sel_str]]
 
 					w: as red-value! word/push* symbol/make k
 					res: either zero? strncmp k "Set-Cookie" 10 [
@@ -1655,7 +1663,8 @@ simple-io: context [
 					CFHTTPMessageSetBody req body
 				]
 
-				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") CFSTR("application/x-www-form-urlencoded; charset=utf-8")
+				stream: CFString("application/x-www-form-urlencoded; charset=utf-8")
+				CFHTTPMessageSetHeaderFieldValue req CFSTR("Content-Type") stream
 				if header <> null [
 					s: GET_BUFFER(header)
 					value: s/offset + header/head
@@ -1663,7 +1672,7 @@ simple-io: context [
 
 					while [value < tail][
 						len: -1
-						cf-key: CFString((unicode/to-utf8 word/to-string as red-word! value :len))
+						cf-key: CFString((unicode/to-utf8 word/as-string as red-word! value :len))
 						value: value + 1
 						len: -1
 						cf-val: CFString((unicode/to-utf8 as red-string! value :len))
@@ -1673,11 +1682,12 @@ simple-io: context [
 						CFRelease cf-key
 					]
 				]
+				CFRelease stream
 
 				stream: CFReadStreamCreateForHTTPRequest 0 req
 				if zero? stream [return none-value]
 
-				CFReadStreamSetProperty stream CFSTR("kCFStreamPropertyHTTPShouldAutoredirect") kCFBooleanTrue
+				CFReadStreamSetProperty stream kCFStreamPropertyHTTPShouldAutoredirect kCFBooleanTrue
 				CFReadStreamOpen stream
 				buf: allocate 4096
 				bin: binary/make-at stack/push* 4096
@@ -1703,7 +1713,7 @@ simple-io: context [
 
 				if info? [
 					blk: block/push-only* 3
-					response: CFReadStreamCopyProperty stream CFSTR("kCFStreamPropertyHTTPResponseHeader")
+					response: CFReadStreamCopyProperty stream kCFStreamPropertyHTTPResponseHeader
 					len: CFHTTPMessageGetResponseStatusCode response
 					integer/make-in blk len
 					len: CFHTTPMessageCopyAllHeaderFields response
@@ -1940,7 +1950,8 @@ simple-io: context [
 					tail:  s/tail
 
 					while [value < tail][
-						str: word/to-string as red-word! value
+						str: word/as-string as red-word! value		;-- cast word! to string!
+						_series/copy as red-series! str as red-series! str null yes null
 						string/append-char GET_BUFFER(str) as-integer #":"
 						string/append-char GET_BUFFER(str) as-integer #" "
 						value: value + 1

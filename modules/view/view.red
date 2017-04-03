@@ -94,7 +94,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			tab "word       :" word				 lf
 			tab "target type:" mold type? target lf
 			tab "new value  :" mold type? new	 lf
-			tab "index      :" index			 lf
+			tab "index      :" index			 lf		;-- zero-based absolute index
 			tab "part       :" part				 lf
 			tab "auto-sync? :" system/view/auto-sync? lf
 			tab "forced?    :" forced?
@@ -111,19 +111,17 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			either word = 'pane [
 				case [
 					action = 'moved [
-						nb: part
-						faces: skip head target index	;-- zero-based absolute index				
-						until [
+						faces: skip head target index	;-- zero-based absolute index
+						loop part [
 							faces/1/parent: owner
 							faces: next faces
-							zero? nb: nb - 1
 						]
 						;unless forced? [show owner]
 						system/view/platform/on-change-facet owner word target action new index part
 					]
 					find [remove clear take change] action [
 						either owner/type = 'screen [
-							until [
+							loop part [
 								face: target/1
 								if face/type = 'window [
 									modal?: find-flag? face/flags 'modal
@@ -140,15 +138,13 @@ on-face-deep-change*: function [owner word target action new index part state fo
 									]
 								]
 								target: next target
-								zero? part: part - 1
 							]
 						][
-							until [
+							loop part [
 								face: target/1
 								face/parent: none
 								system/view/platform/destroy-view face no
 								target: next target
-								zero? part: part - 1
 							]
 						]
 					]
@@ -158,9 +154,8 @@ on-face-deep-change*: function [owner word target action new index part state fo
 								find [tab-panel window panel] owner/type
 								not find [cleared removed taken move] action 
 							][
-								nb: part
 								faces: skip head target index	;-- zero-based absolute index
-								until [
+								loop part [
 									face: faces/1
 									if owner/type = 'tab-panel [
 										face/parent: owner
@@ -170,7 +165,6 @@ on-face-deep-change*: function [owner word target action new index part state fo
 									]
 									show/with face owner
 									faces: next faces
-									zero? nb: nb - 1
 								]
 							]
 							unless forced? [show owner]
@@ -198,6 +192,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 			][
 				unless find [cleared removed taken] action [
 					if find [clear remove take] action [
+						index: 0
 						target: copy/part target part
 					]
 					reduce/into
@@ -209,10 +204,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!]][
+link-tabs-to-parent: function [face [object!] /init][
 	if faces: face/pane [
 		forall faces [
 			faces/1/parent: face
+			if init [show/with faces/1 face]
 		]
 	]
 ]
@@ -277,6 +273,7 @@ face!: object [				;-- keep in sync with facet! enum
 		if system/view/debug? [
 			print [
 				"-- on-change event --" lf
+				tab "face :" type		lf
 				tab "word :" word		lf
 				tab "old  :" type? old	lf
 				tab "new  :" type? new
@@ -288,8 +285,16 @@ face!: object [				;-- keep in sync with facet! enum
 					cause-error 'script 'bad-window []
 				]
 				same-pane?: all [block? old block? new same? head old head new]
-				if type = 'tab-panel [link-tabs-to-parent self]		;-- needs to be before `clear old`
-				if all [not same-pane? block? old not empty? old][clear head old]	;-- destroy old faces
+				if all [not same-pane? block? old not empty? old][
+					modify old 'owned none				;-- stop object events
+					foreach f head old [
+						f/parent: none
+						if all [block? f/state handle? f/state/1][
+							system/view/platform/destroy-view f no
+						]
+					]
+				]
+				if type = 'tab-panel [link-tabs-to-parent/init self] ;-- panels need to be SHOWn before parent
 			]
 			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
 			
@@ -298,6 +303,7 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
+			
 			if find [field text] type [
 				if word = 'text [
 					set-quiet 'data any [
@@ -357,7 +363,7 @@ font!: object [											;-- keep in sync with font-facet! enum
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
 
-			if all [block? state integer? state/1][ 
+			if all [block? state handle? state/1][ 
 				system/view/platform/update-font self (index? in self word) - 1
 				update-font-faces parent
 			]

@@ -39,5 +39,12 @@ Red [
 	]
 ]
 
+;-- command-line arguments processing
+
+#if config/dev-mode? [
+	system/script/args: #system [
+		#either type = 'exe [stack/push get-cmdline-args][none/push]
+	]
+]
 #if config/type = 'exe [extract-boot-args]
 

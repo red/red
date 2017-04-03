@@ -22,11 +22,6 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
-#define GENERIC_WRITE		40000000h
-#define GENERIC_READ 		80000000h
-#define FILE_SHARE_READ		00000001h
-#define FILE_SHARE_WRITE	00000002h
-#define OPEN_EXISTING		00000003h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
@@ -35,6 +30,59 @@ Red/System [
 #define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
 
 #define WEOF				FFFFh
+
+#define INFINITE				FFFFFFFFh
+#define HANDLE_FLAG_INHERIT		00000001h
+#define STARTF_USESTDHANDLES	00000100h
+#define STARTF_USESHOWWINDOW	00000001h
+
+#define ERROR_BROKEN_PIPE 109
+
+#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#enum spawn-mode [
+	P_WAIT:		0
+	P_NOWAIT:	1
+	P_OVERLAY:	2
+	P_NOWAITO:	3
+	P_DETACH:	4
+]
+
+process-info!: alias struct! [
+	hProcess	[integer!]
+	hThread		[integer!]
+	dwProcessId	[integer!]
+	dwThreadId	[integer!]
+]
+
+startup-info!: alias struct! [
+	cb				[integer!]
+	lpReserved		[c-string!]
+	lpDesktop		[c-string!]
+	lpTitle			[c-string!]
+	dwX				[integer!]
+	dwY				[integer!]
+	dwXSize			[integer!]
+	dwYSize			[integer!]
+	dwXCountChars	[integer!]
+	dwYCountChars	[integer!]
+	dwFillAttribute	[integer!]
+	dwFlags			[integer!]
+	wShowWindow-a	[byte!]           ; 16 bits integer needed here for windows WORD type
+	wShowWindow-b	[byte!]
+	cbReserved2-a	[byte!]
+	cbReserved2-b	[byte!]
+	lpReserved2		[byte-ptr!]
+	hStdInput		[integer!]
+	hStdOutput		[integer!]
+	hStdError		[integer!]
+]
+
+security-attributes!: alias struct! [
+	nLength				 [integer!]
+	lpSecurityDescriptor [integer!]
+	bInheritHandle		 [logic!]
+]
 
 platform: context [
 
@@ -161,6 +209,87 @@ platform: context [
 				str			[byte-ptr!]
 				return:		[integer!]
 			]
+			CreateProcessW: "CreateProcessW" [
+				lpApplicationName       [c-string!]
+				lpCommandLine           [c-string!]
+				lpProcessAttributes     [integer!]
+				lpThreadAttributes      [integer!]
+				bInheritHandles         [logic!]
+				dwCreationFlags         [integer!]
+				lpEnvironment           [integer!]
+				lpCurrentDirectory      [c-string!]
+				lpStartupInfo           [startup-info!]
+				lpProcessInformation    [process-info!]
+				return:                 [logic!]
+			]
+			WaitForSingleObject: "WaitForSingleObject" [
+				hHandle                 [integer!]
+				dwMilliseconds          [integer!]
+				return:                 [integer!]
+			]
+			GetExitCodeProcess: "GetExitCodeProcess" [
+				hProcess				[integer!]
+				lpExitCode				[int-ptr!]
+				return:                 [logic!]
+			]
+			CreatePipe: "CreatePipe" [
+				hReadPipe               [int-ptr!]
+				hWritePipe              [int-ptr!]
+				lpPipeAttributes        [security-attributes!]
+				nSize                   [integer!]
+				return:                 [logic!]
+			]
+			CreateFileW: "CreateFileW" [
+				lpFileName				[c-string!]
+				dwDesiredAccess			[integer!]
+				dwShareMode				[integer!]
+				lpSecurityAttributes	[security-attributes!]
+				dwCreationDisposition	[integer!]
+				dwFlagsAndAttributes	[integer!]
+				hTemplateFile			[integer!]
+				return:					[integer!]
+			]
+			CloseHandle: "CloseHandle" [
+				hObject                 [integer!]
+				return:                 [logic!]
+			]
+			GetStdHandle: "GetStdHandle" [
+				nStdHandle				[integer!]
+				return:					[integer!]
+			]
+			ReadFile: "ReadFile" [
+				hFile                   [integer!]
+				lpBuffer                [byte-ptr!]
+				nNumberOfBytesToRead    [integer!]
+				lpNumberOfBytesRead     [int-ptr!]
+				lpOverlapped            [integer!]
+				return:                 [logic!]
+			]
+			SetHandleInformation: "SetHandleInformation" [
+				hObject					[integer!]
+				dwMask					[integer!]
+				dwFlags					[integer!]
+				return:					[logic!]
+			]
+			GetLastError: "GetLastError" [
+				return:                 [integer!]
+			]
+			MultiByteToWideChar: "MultiByteToWideChar" [
+				CodePage				[integer!]
+				dwFlags					[integer!]
+				lpMultiByteStr			[byte-ptr!]
+				cbMultiByte				[integer!]
+				lpWideCharStr			[byte-ptr!]
+				cchWideChar				[integer!]
+				return:					[integer!]
+			]
+			SetFilePointer: "SetFilePointer" [
+				file		[integer!]
+				distance	[integer!]
+				pDistance	[int-ptr!]
+				dwMove		[integer!]
+				return:		[integer!]
+			]
 		]
 		"gdiplus.dll" stdcall [
 			GdiplusStartup: "GdiplusStartup" [
@@ -207,15 +336,8 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc
-			null
-			size
-			VA_COMMIT_RESERVE
-			prot
-
-		if ptr = null [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
-		]
+		ptr: VirtualAlloc null size VA_COMMIT_RESERVE prot
+		if ptr = null [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		ptr
 	]
 
@@ -226,7 +348,7 @@ platform: context [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
 		if negative? VirtualFree ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
+			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 

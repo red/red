@@ -6,11 +6,9 @@ Usage: red [command] [options] [file]
 Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
 
 [options]:
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
 
     -c, --compile                  : Generate an executable in the working
-                                     folder.
+                                     folder, using libRedRT. (developement mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -22,9 +20,6 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
 
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
                                      the generated binary file.
-
-    --no-runtime                   : Do not include runtime during Red/System
-                                     source compilation.
 
     -r, --release                  : Compile in release mode, linking everything
                                      together (default: development mode).
@@ -45,11 +40,24 @@ Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Win
     -V, --version                  : Output Red's executable version in x.y.z
                                      format.
 
+    --cli                          : Run the command-line REPL instead of the
+                                     graphical console.
+
+    --config [...]                 : Provides compilation settings as a block
+                                     of `name: value` pairs.
+
+    --no-runtime                   : Do not include runtime during Red/System
+                                     source compilation.
+
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
-                                     
+
 [command]:
+
+    build libRed [stdcall]         : Builds libRed library and unpacks the 
+                                     libRed/ folder locally.
+
     clear [<path>]                 : Delete all temporary files from current
                                      or target <path> folder.
 
@@ -65,4 +73,4 @@ Cross-compilation targets:
     Syllable     : Syllable OS, x86
     FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
-    Android-x86	 : Android, x86
+    Android-x86  : Android, x86

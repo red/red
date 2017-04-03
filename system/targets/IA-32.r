@@ -804,8 +804,8 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-init-path: func [name [word!]][
-		emit-variable name
+	emit-init-path: func [name [word! get-word!]][
+		emit-variable to word! name
 			#{A1}									;-- MOV eax, [name]			; global
 			#{8B83}									;-- MOV eax, [ebx+disp]		; PIC
 			#{8B45}									;-- MOV eax, [ebp+n]		; local
@@ -828,19 +828,27 @@ make-profilable make target-class [
 		set-width/type type/1						;-- adjust operations width to member value size
 		offset: emitter/member-offset? spec path/2
 		
-		either compiler/any-float? type [
-			either zero? offset [
-				emit-float #{DD00}					;-- FLD [eax]
-			][
-				emit-float #{DD80}					;-- FLD [eax+offset]
-				emit to-bin32 offset
-			]
+		either all [
+			get-word? first head path
+			tail? skip path 2
 		][
-			either zero? offset [
-				emit-poly [#{8A00} #{8B00}]			;-- MOV rA, [eax]
+			emit #{05}							 	;--	ADD eax, <offset>
+			emit to-bin32 offset
+		][
+			either compiler/any-float? type [
+				either zero? offset [
+					emit-float #{DD00}				;-- FLD [eax]
+				][
+					emit-float #{DD80}				;-- FLD [eax+offset]
+					emit to-bin32 offset
+				]
 			][
-				emit-poly [#{8A80} #{8B80}]			;-- MOV rA, [eax+offset]
-				emit to-bin32 offset
+				either zero? offset [
+					emit-poly [#{8A00} #{8B00}]		;-- MOV rA, [eax]
+				][
+					emit-poly [#{8A80} #{8B80}]		;-- MOV rA, [eax+offset]
+					emit to-bin32 offset
+				]
 			]
 		]
 		width: saved

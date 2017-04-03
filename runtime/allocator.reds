@@ -172,7 +172,13 @@ allocate-virtual: func [
 ][
 	size: round-to size + 4	platform/page-size	;-- account for header (one word)
 	memory/total: memory/total + size
-	ptr: platform/allocate-virtual size exec?
+	catch OS_ERROR_VMEM_ALL [
+		ptr: platform/allocate-virtual size exec?
+	]
+	if system/thrown > OS_ERROR_VMEM [
+		system/thrown: 0
+		fire [TO_ERROR(internal no-memory)]
+	]
 	ptr/value: size							;-- store size in header
 	ptr + 1									;-- return pointer after header
 ]
@@ -185,7 +191,13 @@ free-virtual: func [
 ][
 	ptr: ptr - 1							;-- return back to header
 	memory/total: memory/total - ptr/value
-	platform/free-virtual ptr
+	catch OS_ERROR_VMEM_ALL [
+		platform/free-virtual ptr
+	]
+	if system/thrown > OS_ERROR_VMEM [
+		system/thrown: 0
+		fire [TO_ERROR(internal wrong-mem)]
+	]
 ]
 
 ;-------------------------------------------

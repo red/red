@@ -379,7 +379,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz tables
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables relocs extra
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
@@ -438,6 +438,15 @@ context [
 						get-ceiling seg/9 
 					seg/6: sz
 					
+					if job/type = 'dll [
+						relocs: length? data-reloc
+						if find job/sections 'initfuncs [	 ;-- account for initfunc/termfuncs
+							relocs: relocs + 2
+						]
+						extra: 8 * relocs
+						seg/4: seg/4 + extra
+						seg/6: seg/6 + extra
+					]
 				]
 			]
 			tail? seg: skip seg 10
@@ -486,7 +495,7 @@ context [
 		job [object!]
 		/local relocs buffer base
 	][
-		data-reloc: either empty? relocs: collect-data-reloc job [
+		data-reloc: either empty? relocs: data-reloc [
 			[0 #{}]
 		][
 			buffer: make binary! 8 * length? relocs
@@ -869,7 +878,10 @@ context [
 		clear imports-refs
 		clear import-vars-refs
 		if dylink? [build-imports job]
-		if job/type = 'dll [build-exports job]
+		if job/type = 'dll [
+			build-exports job
+			data-reloc: collect-data-reloc job
+		]
 	
 		prepare-headers job
 		

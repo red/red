@@ -40,7 +40,7 @@ system: context [
 			#switch OS [
 				Windows  [SET_RETURN(words/_windows)]
 				Syllable [SET_RETURN(words/_syllable)]
-				MacOSX	 [SET_RETURN(words/_macosx)]
+				MacOSX	 [SET_RETURN(words/_macOS)]
 				#default [SET_RETURN(words/_linux)]
 			]
 		]
@@ -225,6 +225,7 @@ system: context [
 				bad-path:			["bad path:" arg1]
 				not-here:			[arg1 "not supported on your system"]
 				no-memory:			"not enough memory"
+				wrong-mem:			"failed to release memory"
 				stack-overflow:		"stack overflow"
 				;bad-series:		"invalid series"
 				;limit-hit:			["internal limit reached:" :arg1]
@@ -234,6 +235,7 @@ system: context [
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		"error object or fields were not valid"
 				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
+				red-system:			"contains Red/System code which requires compilation"
 			]
 		]
 
@@ -241,7 +243,7 @@ system: context [
 	
 	state: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
-			#system [logic/box stack/eval? null]
+			#system [logic/box stack/eval? null no]
 		]
 		
 		last-error: none
@@ -249,7 +251,7 @@ system: context [
 	]
 	
 	modules: make block! 8
-	codecs:  make map! 8
+	codecs:  make block! 8
 	schemes: context []
 	ports:	 context []
 	
@@ -279,9 +281,7 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
-		args: 			#system [
-			#either type = 'exe [stack/push get-cmdline-args][none/push]
-		]
+		args: 			none
 		do-arg: 		none
 		debug: 			none
 		secure: 		none
@@ -336,7 +336,10 @@ system: context [
 	]
 	
 	script: context [
-		title: header: parent: path: args: none
+		title: header: parent: path: none
+		args: #system [
+			#either type = 'exe [stack/push get-cmdline-args][none/push]
+		]
 	]
 	
 	standard: context [

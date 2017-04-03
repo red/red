@@ -837,7 +837,7 @@ win/pane: reduce [
 				if within? pos dropped/offset dropped/size [
 					face/offset: 550x540
 					dropped/draw/5: form 1 + to integer! dropped/draw/5
-					unless live? [show [dropped face]]
+					unless live? [show [face dropped]]
 				]
 			]
 		]
@@ -903,3 +903,4 @@ append win/pane make face! [
 dump-face win
 view/flags win [resize]
 system/view/debug?: no
+system/view/auto-sync?: yes

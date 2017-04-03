@@ -30,6 +30,7 @@ float: context [
 
 	DOUBLE_MAX: 0.0
 	+INF: 0.0											;-- rebol can't load INF, NaN
+	-INF: 0.0											;-- rebol can't load INF, NaN
 	QNaN: 0.0
 
 	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
@@ -38,6 +39,9 @@ float: context [
 
 	double-int-union: as int64! :+INF
 	double-int-union/int2: 7FF00000h
+	
+	double-int-union: as int64! :-INF
+	double-int-union/int2: FFF00000h
 
 	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
 	double-int-union/int2: 7FF80000h
@@ -226,8 +230,7 @@ float: context [
 			OP_MUL [left * right]
 			OP_DIV [
 				either all [0.0 = right not NaN? right][
-					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
+					either left >= 0.0 [+INF][-INF]
 				][
 					left / right
 				]
@@ -235,14 +238,14 @@ float: context [
 			OP_REM [
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
+					0.0									;-- pass the compiler's type-checking
 				][
 					left % right
 				]
 			]
 			default [
 				fire [TO_ERROR(script cannot-use) stack/get-call datatype/push TYPE_FLOAT]
-				0.0
+				0.0										;-- pass the compiler's type-checking
 			]
 		]
 	]
@@ -789,23 +792,17 @@ float: context [
 	]
 
 	even?: func [
-		int		[red-float!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;not as-logic float/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		not as-logic (as integer! fl/value) and 1
 	]
 
 	odd?: func [
-		int		[red-integer!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;as-logic int/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		as-logic (as integer! fl/value) and 1
 	]
 
 	#define FLOAT_TRUNC(x) [d: floor float/abs x either x < 0.0 [0.0 - d][d]]
@@ -913,8 +910,8 @@ float: context [
 			:remainder
 			:round
 			:subtract
-			null			;even?
-			null			;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

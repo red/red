@@ -24,7 +24,11 @@ Red/System [
 	either negative? next [
 		interpreter/eval as red-block! arg yes
 	][
-		blk/head: interpreter/eval-single arg
+		stack/keep
+		blk: as red-block! stack/push arg
+		pos: interpreter/eval-single arg
+		blk: as red-block! copy-cell as red-value! blk slot
+		blk/head: pos
 	]
 ]
 
@@ -461,12 +465,14 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
+			true? [logic!]
 	][
 		#typecheck [case all?]
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		if value = tail [RETURN_NONE]
-		
+
+		true?: false
 		while [value < tail][
 			value: interpreter/eval-next value tail no	;-- eval condition
 			if value = tail [break]
@@ -479,11 +485,12 @@ natives: context [
 					value: interpreter/eval-next value tail no
 				]
 				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
+				true?: yes
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
 		]
-		RETURN_NONE
+		unless true? [RETURN_NONE]
 	]
 	
 	do*: func [
@@ -500,6 +507,7 @@ natives: context [
 			slot   [red-value!]
 			blk	   [red-block!]
 			job	   [red-value!]
+			pos	   [integer!]
 	][
 		#typecheck [do expand? args next]
 		arg: stack/arguments
@@ -509,10 +517,7 @@ natives: context [
 		if OPTION?(do-arg) [
 			copy-cell do-arg #get system/script/args
 		]
-		if next > 0 [
-			slot: _context/get as red-word! stack/arguments + next
-			blk: as red-block! copy-cell arg slot
-		]
+		if next > 0 [slot: _context/get as red-word! stack/arguments + next]
 		
 		catch RED_THROWN_BREAK [
 			switch TYPE_OF(arg) [
@@ -523,16 +528,14 @@ natives: context [
 				]
 				TYPE_STRING [
 					str: as red-string! arg
-					#call [system/lexer/transcode str none none]
+					#call [system/lexer/transcode str none no]
 					DO_EVAL_BLOCK
 				]
 				TYPE_FILE [#call [do-file as red-file! arg]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
-				default [
-					interpreter/eval-expression arg arg + 1 no no
-				]
+				default [interpreter/eval-expression arg arg + 1 no no yes]
 			]
 		]
 		switch system/thrown [
@@ -540,9 +543,9 @@ natives: context [
 			RED_THROWN_CONTINUE
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
-				either stack/eval? cframe [				;-- if run from interpreter,
+				either stack/eval? cframe yes [			;-- if parent call is interpreted,
 					re-throw 							;-- let the exception pass through
-					0									;-- 0 to make compiler happy		
+					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
 				]
@@ -620,7 +623,7 @@ natives: context [
 			TYPE_LIT_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes no no case? <> -1
+				interpreter/eval-path value null null yes yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/set-many as red-object! w value only? some?
@@ -907,7 +910,7 @@ natives: context [
 				stack/keep									;-- preserve the reduced block on stack
 			]
 		][
-			interpreter/eval-expression arg arg + 1 no yes	;-- for non block! values
+			interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
 			if into? [actions/insert* -1 0 -1]
 		]
 		stack/unwind-last
@@ -1012,7 +1015,7 @@ natives: context [
 			into?: into >= 0
 			stack/mark-native words/_body
 			if into? [as red-block! stack/push arg + into]
-			interpreter/eval-expression arg arg + 1 no yes
+			interpreter/eval-expression arg arg + 1 no yes no
 			if into? [actions/insert* -1 0 -1]
 			stack/unwind-last
 		][
@@ -1206,9 +1209,9 @@ natives: context [
 			RED_THROWN_CONTINUE
 			RED_THROWN_RETURN
 			RED_THROWN_EXIT [
-				either stack/eval? cframe [				;-- if run from interpreter,
+				either stack/eval? cframe yes [			;-- if parent call is interpreted,
 					re-throw 							;-- let the exception pass through
-					0									;-- 0 to make compiler happy		
+					0									;-- 0 to make compiler happy
 				][
 					system/thrown						;-- request an early exit from caller
 				]
@@ -1451,12 +1454,12 @@ natives: context [
 	][
 		#typecheck -negative?-							;-- `negative?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add time! money! pair!
+		switch TYPE_OF(res) [							;@@ Add money! pair!
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: negative? num/value
 			]
-			TYPE_FLOAT	 [
+			TYPE_FLOAT TYPE_TIME [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
@@ -1476,12 +1479,12 @@ natives: context [
 	][
 		#typecheck -positive?-							;-- `positive?` would be replaced by lexer
 		res: as red-logic! stack/arguments
-		switch TYPE_OF(res) [							;@@ Add time! money! pair!
+		switch TYPE_OF(res) [							;@@ Add money! pair!
 			TYPE_INTEGER [
 				num: as red-integer! res
 				res/value: positive? num/value
 			]
-			TYPE_FLOAT	 [
+			TYPE_FLOAT TYPE_TIME [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
@@ -1708,6 +1711,38 @@ natives: context [
 		ret
 	]
 
+	zero?*: func [
+		check?  [logic!]
+		return: [red-logic!]
+		/local
+			i	 [red-integer!]
+			p	 [red-pair!]
+			ret  [red-logic!]
+	][
+		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		i: as red-integer! stack/arguments
+		ret: as red-logic! i
+		ret/value: switch TYPE_OF(i) [
+			TYPE_INTEGER
+			TYPE_FLOAT
+			TYPE_PERCENT
+			TYPE_TIME
+			TYPE_CHAR [
+				i/value = 0
+			]
+			TYPE_PAIR [
+				p: as red-pair! i
+				all [p/x = 0 p/y = 0]
+			]
+			TYPE_TUPLE [
+				tuple/all-zero? as red-tuple! i
+			]
+			default [false]
+		]
+		ret/header: TYPE_LOGIC
+		ret
+	]
+
 	log-2*: func [
 		check? [logic!]
 		/local
@@ -1836,7 +1871,7 @@ natives: context [
 				RED_THROWN_CONTINUE
 				RED_THROWN_RETURN
 				RED_THROWN_EXIT [
-					either stack/eval? cframe [			;-- if run from interpreter,					
+					either stack/eval? cframe yes [		;-- if parent call is interpreted,
 						re-throw 						;-- let the exception pass through
 					][
 						result: system/thrown			;-- request an early exit from caller
@@ -2047,6 +2082,9 @@ natives: context [
 				if ftime < 1.0 [ftime: 1.0]
 				time: as-integer ftime
 			]
+			TYPE_TIME [
+				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
+			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
 		val/header: TYPE_NONE
@@ -2072,6 +2110,10 @@ natives: context [
 		#typecheck [checksum _with]
 		arg: stack/arguments
 		len: -1
+		if TYPE_OF(arg) = TYPE_FILE [
+			arg: simple-io/read as red-file! arg null null yes no
+			;@@ optimization: free the data after checksum
+		]
 		switch TYPE_OF(arg) [
 			TYPE_STRING [
 				str: as red-string! arg
@@ -2085,10 +2127,11 @@ natives: context [
 				len: binary/rs-length? as red-binary! arg
 			]
 			default [
-				fire [TO_ERROR(script invalid-arg) data]
+				fire [TO_ERROR(script invalid-arg) stack/arguments]
 			]
 		]
 
+		arg: stack/arguments
 		method: as red-word! arg + 1
 		type: symbol/resolve method/symbol
 
@@ -2397,6 +2440,46 @@ natives: context [
 			fire [TO_ERROR(script not-same-class) datatype/push type2 datatype/push type]
 		]
 	]
+	
+	call*: func [
+		check?	[logic!]
+		wait	[integer!]
+		show	[integer!]
+		console	[integer!]
+		shell	[integer!]
+		input	[integer!]
+		output	[integer!]
+		error	[integer!]
+		return: [red-integer!]
+		/local
+			cmd	[red-string!]
+			in	[red-string!]
+			out [red-string!]
+			err	[red-string!]
+			new	[red-string!]
+	][
+		#typecheck [call wait show console shell input output error]
+		
+		cmd: as red-string! stack/arguments
+		if string/rs-tail? cmd [return integer/box 0]
+		
+		if TYPE_OF(cmd) = TYPE_FILE [
+			new: string/rs-make-at stack/push* string/rs-length? cmd
+			file/to-local-path as red-file! cmd new no
+			cmd: new
+		]
+		
+		in: as red-string! stack/arguments + input
+		unless OPTION?(in)[in: null]
+		
+		out: as red-string! stack/arguments + output
+		unless OPTION?(out)[out: null]
+		
+		err: as red-string! stack/arguments + error
+		unless OPTION?(err)[err: null]
+		
+		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
+	]
 
 	;--- Natives helper functions ---
 
@@ -2682,8 +2765,10 @@ natives: context [
 		assert TYPE_OF(word) = TYPE_WORD
 		
 		result: loop? series
-		if result [_context/set word actions/pick series 1 null]
-		series/head: series/head + 1
+		if result [
+			_context/set word actions/pick series 1 null
+			series/head: series/head + 1
+		]
 		result
 	]
 	
@@ -2871,6 +2956,8 @@ natives: context [
 			:now*
 			:sign?*
 			:as*
+			:call*
+			:zero?*
 		]
 	]
 

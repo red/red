@@ -14,7 +14,7 @@ prin-out: function [out data][
 	either block? data [
 		data: reduce data
 		forall data [
-			append out form data/1
+			append out data/1
 			unless tail? data [append out #" "]
 		]
 	][
@@ -31,7 +31,7 @@ fetch-help: function [
 	"Display helping information about words and other values"
 	word	[any-type!] "Word you are looking for"
 	return: [string!]
-	/local type info w attributes block ref out 
+	/local info w attributes block ref 
 ][
 	out: make string! 32
 	tab: tab4: "    "
@@ -82,6 +82,9 @@ Other useful functions:
 						]
 						datatype? get/any w [
 							print-out out [tab pad form :w 15]
+						]
+						any [object? get/any w map? get/any w] [
+							print-out out [tab pad form :w 15 mold words-of get/any w]
 						]
 						'else [
 							print-out out [tab pad form :w 15 ": " mold get/any w]
@@ -204,7 +207,7 @@ Other useful functions:
 					'else [:value]
 				]
 
-				desc: either string? desc [copy/part desc 47][mold/part/flat desc 47]
+				desc: either string? desc [mold/flat copy/part desc 47][mold/part/flat desc 47]
 
 				if 47 = length? desc [					;-- optimized for width = 78
 					clear skip tail desc -3

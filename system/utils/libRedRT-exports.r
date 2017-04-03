@@ -14,6 +14,7 @@
 	red/eval-path
 	red/select-key*
 	red/alloc-bytes
+	red/get-cmdline-args
 
 	red/redbin/boot-load
 
@@ -107,6 +108,7 @@
 	red/word/get-any
 	red/word/get-in
 	red/word/set-in
+	red/word/set-in-ctx
 	red/word/set
 	red/word/replace
 	red/word/from
@@ -294,6 +296,7 @@
 	red/natives/arctangent*
 	red/natives/arctangent2*
 	red/natives/NaN?*
+	red/natives/zero?*
 	red/natives/log-2*
 	red/natives/log-10*
 	red/natives/log-e*

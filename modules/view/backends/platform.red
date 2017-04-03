@@ -186,6 +186,7 @@ system/view/platform: context [
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h
 				EVT_FLAG_SHIFT_DOWN:	40000000h
+				EVT_FLAG_MENU_DOWN:		80000000h		;-- ALT key
 				;EVT_FLAG_KEY_SPECIAL:	80000000h		;@@ deprecated
 			]
 
@@ -306,6 +307,7 @@ system/view/platform: context [
 			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
+			_alt:			word/load "alt"
 			_away:			word/load "away"
 			_down:			word/load "down"
 			_up:			word/load "up"
@@ -375,6 +377,8 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-alt:		word/load "left-alt"
 			_right-alt:		word/load "right-alt"
+			_left-command:	word/load "left-command"
+			_right-command:	word/load "right-command"
 			_left-command:	word/load "left-command"
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
@@ -519,6 +523,8 @@ system/view/platform: context [
 			]
 		]
 	]
+	
+	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -598,21 +604,17 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	refresh-window: routine [hwnd [integer!]][
-		gui/OS-refresh-window hwnd
+	refresh-window: routine [h [handle!]][
+		gui/OS-refresh-window h/value
 	]
-
-	redraw: routine [face [object!]][
-		gui/OS-redraw face
-	]
-
-	show-window: routine [id [integer!]][
-		gui/OS-show-window id
+	
+	show-window: routine [id [handle!]][
+		gui/OS-show-window id/value
 		SET_RETURN(none-value)
 	]
 
-	make-view: routine [face [object!] parent [integer!] return: [integer!]][
-		gui/OS-make-view face parent
+	make-view: routine [face [object!] parent [handle!]][
+		handle/box gui/OS-make-view face parent/value
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
@@ -692,7 +694,7 @@ system/view/platform: context [
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
-			state:	reduce [0 0 none copy [1]]
+			state:	reduce [make-null-handle 0 none copy [1]]
 		]
 		
 		set fonts:

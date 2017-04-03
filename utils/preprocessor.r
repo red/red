@@ -218,7 +218,7 @@ preprocessor: context [
 						;(append rule '|)
 					;]
 				]
-				opt [/local some word!]
+				opt [/local any word!]
 			]
 		][
 			print [

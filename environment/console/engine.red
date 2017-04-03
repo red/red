@@ -31,7 +31,8 @@ system/state/trace?: no									;-- disable stack trace in console by default
 
 system/console: context [
 
-	prompt: "red>> "
+	prompt: ">> "
+	result: "=="
 	history: make block! 200
 	limit:	 67
 	catch?:	 no											;-- YES: force script to fallback into the console
@@ -41,9 +42,10 @@ system/console: context [
 	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
-		if args: system/options/args [
+		if args: system/script/args [
 			--catch: "--catch"
 			if system/console/catch?: make logic! pos: find args --catch [
+				remove find system/options/args --catch
 				remove/part pos 1 + length? --catch		;-- remove extra space too
 			]
 
@@ -60,11 +62,21 @@ system/console: context [
 					remove back tail file
 				]
 				file: to-red-file file
-				unless src: attempt [read file][
+				either src: attempt [read file][
+					system/options/script: file
+					remove system/options/args
+					args: system/script/args
+					remove/part args any [
+						find/tail next args pick {" } args/1 = #"^""
+						tail args
+					]
+					trim/head args
+				][
 					print "*** Error: cannot access argument file"
 					;quit/return -1
 				]
-				change-dir first split-path file
+				path: first split-path file
+				if path <> %./ [change-dir path]
 			]
 			src
 		]
@@ -99,7 +111,7 @@ system/console: context [
 				| #"]" (if zero? count/2 [count/1: count/1 - 1])
 				| #"(" (if zero? count/2 [count/3: count/3 + 1])
 				| #")" (if zero? count/2 [count/3: count/3 - 1])
-				| dbl-quote any [escaped | dbl-quote break | skip]
+				| dbl-quote if (zero? count/2) any [escaped | dbl-quote break | skip]
 				| #"{" (count/2: count/2 + 1) any [
 					escaped
 					| #"{" (count/2: count/2 + 1)
@@ -159,7 +171,7 @@ system/console: context [
 						clear back tail result
 						append result "..."
 					]
-					print ["==" result]
+					print [system/console/result result]
 				]
 			]
 			unless last-lf? [prin lf]
@@ -208,7 +220,7 @@ system/console: context [
 	]
 
 	launch: function [/local result][
-		either script: read-argument [
+		either script: src: read-argument [
 			parse script [some [[to "Red" pos: 3 skip any ws #"[" to end] | skip]]
 		
 			either script: pos [
@@ -220,7 +232,14 @@ system/console: context [
 						script: find/case script 'Red
 						block? script/2 
 					][
-						print "*** Error: not a Red program!"
+						print [
+							"*** Error:"
+							either find src "Red/System" [
+								"contains Red/System code which requires compilation!"
+							][
+								"not a Red program!"
+							]
+						]
 						;quit/return -2
 					][
 						expand-directives script
@@ -241,7 +260,7 @@ system/console: context [
 ;-- Console-oriented function definitions
 
 expand: func [
-	"Preprocess the argument block and display the output"
+	"Preprocess the argument block and display the output (console only)"
 	blk [block!] "Block to expand"
 ][
 	probe expand-directives/clean blk

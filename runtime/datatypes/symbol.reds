@@ -138,7 +138,7 @@ symbol: context [
 		either positive? sym/alias [sym/alias][id]
 	]
 
-	alias-id: func [
+	get-alias-id: func [
 		id		[integer!]
 		return:	[integer!]
 		/local

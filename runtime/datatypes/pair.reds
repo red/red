@@ -92,6 +92,20 @@ pair: context [
 		make-at stack/push* x y
 	]
 
+	get-value-int: func [
+		int		[red-integer!]
+		return: [integer!]
+		/local
+			fl	[red-float!]
+	][
+		either TYPE_OF(int) = TYPE_FLOAT [
+			fl: as red-float! int
+			as-integer fl/value
+		][
+			int/value
+		]
+	]
+
 	;-- Actions --
 	
 	make: func [
@@ -130,18 +144,8 @@ pair: context [
 				][
 					fire [TO_ERROR(syntax malconstruct) spec]
 				]
-				x: either TYPE_OF(int) = TYPE_FLOAT [
-					fl: as red-float! int
-					as-integer fl/value
-				][
-					int/value
-				]
-				y: either TYPE_OF(int2) = TYPE_FLOAT [
-					fl: as red-float! int2
-					as-integer fl/value
-				][
-					int2/value
-				]	
+				x: get-value-int int
+				y: get-value-int int2
 				push x y
 			]
 			TYPE_STRING [
@@ -292,7 +296,38 @@ pair: context [
 		if zero? diff [diff: left/x - right/x]
 		SIGN_COMPARE_RESULT(diff 0)
 	]
-	
+
+	round: func [
+		value		[red-value!]
+		scale		[red-integer!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			pair	[red-pair!]
+			_pad3	[integer!]
+			_pad2	[integer!]
+			_pad1	[integer!]
+			header	[integer!]
+			val		[red-integer!]
+	][
+		pair: as red-pair! value
+		header: TYPE_INTEGER
+		val: as red-integer! :header
+		val/value: pair/x
+		pair/x: get-value-int as red-integer!
+				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
+		header: TYPE_INTEGER
+		val/value: pair/y
+		pair/y: get-value-int as red-integer!
+				integer/round as red-value! val scale _even? down? half-down? floor? ceil? half-ceil?
+		value
+	]
+
 	remainder: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "pair/remainder"]]
 		as red-value! do-math OP_REM
@@ -407,7 +442,7 @@ pair: context [
 			:negate
 			null			;power
 			:remainder
-			null			;round
+			:round
 			:subtract
 			null			;even?
 			null			;odd?

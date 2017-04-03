@@ -208,7 +208,7 @@ _series: context [
 		s: GET_BUFFER(ser)
 
 		state/header: TYPE_LOGIC
-		state/value:  (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s))) = as byte-ptr! s/tail
+		state/value:  (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s))) >= as byte-ptr! s/tail
 		as red-value! state
 	]
 
