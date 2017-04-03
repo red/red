@@ -4334,7 +4334,7 @@ red: context [
 		foreach module needed [
 			saved: if script-path [copy script-path]
 			script-path: first split-path module
-			pc: next load-source/hidden module
+			pc: next preprocessor/expand load-source/hidden module job
 			unless job/red-help? [clear-docstrings pc]
 			comp-block
 			script-path: saved
