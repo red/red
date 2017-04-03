@@ -1126,10 +1126,10 @@ draw-rect: func [
 		do-draw ctx img draw no yes yes yes
 	][
 		system/thrown: 0
-		DC: _draw-ctx						;@@ should declare it on stack
+		DC: declare draw-ctx!								;@@ should declare it on stack
 		draw-begin DC ctx img no yes
 		integer/make-at as red-value! draw as-integer DC
-		make-event self 0 EVT_DRAW
+		make-event self 0 EVT_DRAWING
 		draw/header: TYPE_NONE
 		draw-end DC ctx no no yes
 	]

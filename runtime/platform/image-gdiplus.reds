@@ -506,9 +506,9 @@ OS-image: context [
 
 	encode: func [
 		image	[red-image!]
-		format	[integer!]
 		slot	[red-value!]
-		return: [red-binary!]
+		format	[integer!]
+		return: [red-value!]
 		/local
 			bin		[red-binary!]
 			s		[series!]
@@ -564,7 +564,7 @@ OS-image: context [
 		stream/Read IStm/ptr as byte-ptr! s/offset len :hr
 		stream/Release IStm/ptr
 		storage/Release ISto/ptr
-		bin
+		as red-value! bin
 	]
 
 	clone: func [

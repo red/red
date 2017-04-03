@@ -373,7 +373,7 @@ get-event-key: func [
 				]
 			]
 		]
-		EVT_WHEEL [_mouse-wheel]
+		EVT_WHEEL [_wheel]
 		default [as red-value! none-value]
 	]
 ]

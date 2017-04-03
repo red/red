@@ -14,6 +14,10 @@ d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 dw-locale-name: as c-string! 0
 
+dwrite-str-cache: as c-string! 0
+
+#define D2D_MAX_BRUSHES 64
+
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define FLT_MAX	[as float32! 3.402823466e38]
 

@@ -158,6 +158,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 								loop part [
 									face: faces/1
 									if owner/type = 'tab-panel [
+										face/visible?: no
 										face/parent: owner
 									]
 									if all [owner/type = 'window face/type = 'window][
@@ -206,7 +207,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 
 link-tabs-to-parent: function [face [object!] /init][
 	if faces: face/pane [
+		visible?: face/visible?
 		forall faces [
+			#if config/OS = 'Windows [				;@@ remove this system specific code
+				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
+			]
 			faces/1/parent: face
 			if init [show/with faces/1 face]
 		]
@@ -267,7 +272,6 @@ face!: object [				;-- keep in sync with facet! enum
 	actors:		none
 	extra:		none		;-- for storing optional user data
 	draw:		none
-	cursor:		none
 	
 	on-change*: function [word old new][
 		if system/view/debug? [
@@ -431,7 +435,7 @@ scroller!: object [
 				tab "new  :" type? :new
 			]
 		]
-		if all [parent block? parent/state integer? parent/state/1][
+		if all [parent block? parent/state handle? parent/state/1][
 			system/view/platform/update-scroller self (index? in self word) - 1
 		]
 	]
@@ -516,7 +520,7 @@ system/view: context [
 	evt-names: make hash! [
 		detect			on-detect
 		time			on-time
-		draw			on-draw
+		drawing			on-drawing
 		scroll			on-scroll
 		down			on-down
 		up				on-up
@@ -615,12 +619,6 @@ do-events: function [
 	:result
 ]
 
-exit-event-loop: function [
-	"exit current event loop"
-][
-	system/view/platform/exit-event-loop
-]
-
 do-safe: func [code [block!] /local result][
 	if error? set/any 'result try/all code [
 		print :result
@@ -681,10 +679,14 @@ show: function [
 				do-safe [face/actors/on-create face none]
 			]
 			p: either with [parent/state/1][0]
-			if all [face/type = 'tab-panel face/pane][
-				link-tabs-to-parent face
-				foreach f face/pane [show f]
+
+			#if config/OS = 'MacOSX [					;@@ remove this system specific code
+				if all [face/type = 'tab-panel face/pane][
+					link-tabs-to-parent face
+					foreach f face/pane [show f]
+				]
 			]
+
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
@@ -698,21 +700,29 @@ show: function [
 				]
 			]
 			
-			if face/type = 'window [
-				pane: system/view/screens/1/pane
-				if find-flag? face/flags 'modal [
-					foreach f head pane [
-						f/enable?: no
-						unless system/view/auto-sync? [show f]
-					]
+			switch face/type [
+				#if config/OS = 'Windows [				;@@ remove this system specific code
+					tab-panel [link-tabs-to-parent face]
 				]
-				append pane face
+				window	  [
+					pane: system/view/screens/1/pane
+					if find-flag? face/flags 'modal [
+						foreach f head pane [
+							f/enable?: no
+							unless system/view/auto-sync? [show f]
+						]
+					]
+					append pane face
+				]
 			]
 		]
 		face/state: reduce [obj 0 none false]
 	]
 
-	if face/pane [foreach f face/pane [show/with f face]]
+	if face/pane [
+		foreach f face/pane [show/with f face]
+		system/view/platform/refresh-window face/state/1
+	]
 	;check-all-reactions face
 	
 	if all [new? face/type = 'window face/visible?][

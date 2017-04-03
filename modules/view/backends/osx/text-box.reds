@@ -39,7 +39,6 @@ OS-text-box-background: func [
 ]
 
 OS-text-box-weight: func [
-	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -49,7 +48,6 @@ OS-text-box-weight: func [
 ]
 
 OS-text-box-italic: func [
-	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -95,7 +93,6 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
-	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]

@@ -3,13 +3,13 @@ Red [
 	Needs: 'View
 ]
 
-system/view/debug?: no
-live?: no system/view/auto-sync?: no
+system/view/debug?: yes
+live?: system/view/auto-sync?: no
 
 workstation?: system/view/platform/product = 1
 os-version: system/view/platform/version
 
-switch system/platform [
+#switch config/OS [
 	Windows [
 		print [
 			"Windows" switch os-version [
@@ -34,8 +34,6 @@ switch system/platform [
 				10.8.0	["Mountain Lion"]
 				10.7.0	["Lion"]
 				10.6.0	["Snow Leopard"]
-				10.5.0	["Leopard"]
-				10.4.0	["Tiger"]
 			] os-version
 			"build" system/view/platform/build
 		]

@@ -100,10 +100,10 @@ make-font: func [
 	blk: as red-block! values + FONT_OBJ_STATE
 	either TYPE_OF(blk) <> TYPE_BLOCK [
 		block/make-at blk 2
-		integer/make-in blk as-integer hFont
+		handle/make-in blk as-integer hFont
 	][
 		int: as red-integer! block/rs-head blk
-		int/header: TYPE_INTEGER
+		int/header: TYPE_HANDLE
 		int/value: as-integer hFont
 	]
 
@@ -124,7 +124,7 @@ get-font-handle: func [
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [
+		if TYPE_OF(int) = TYPE_HANDLE [
 			return as handle! int/value
 		]
 	]

@@ -323,6 +323,12 @@
 	red/natives/handle-thrown-error
 	red/natives/now*
 	red/natives/get-env*
+	red/natives/set-env*
+	red/natives/list-env*
+	red/natives/sign?*
+	red/natives/as*
+	red/natives/call*
+	red/natives/zero?*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!

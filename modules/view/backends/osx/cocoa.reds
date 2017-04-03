@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define RTLD_LAZY	1
-
 #define NSNotFound					7FFFFFFFh			;@@ should be NSIntegerMax
 
 #define OBJC_ASSOCIATION_ASSIGN		0
@@ -157,8 +155,6 @@ Red/System [
 
 #define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
 #define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
-#define kCFStringEncodingUTF8	08000100h
-#define CFString(cStr) [CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
 
 #define RedNSEventKey			4000FFF0h

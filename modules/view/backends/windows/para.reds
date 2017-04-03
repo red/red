@@ -19,7 +19,7 @@ update-area-para: func [
 		h	   [red-handle!]
 ][
 	parent: GetParent hWnd
-	free-handles hWnd
+	free-faces get-face-obj hWnd
 	hWnd: as handle! OS-make-view face as-integer parent
 	state: as red-block! (get-face-values hWnd) + FACE_OBJ_STATE
 	state/header: TYPE_BLOCK

@@ -60,9 +60,9 @@ tag!:			make datatype! #get-definition TYPE_TAG
 email!:			make datatype! #get-definition TYPE_EMAIL
 handle!:		make datatype! #get-definition TYPE_HANDLE
 
-;#if find config/modules 'view [
+#if find config/modules 'view [
 	event!: make datatype! #get-definition TYPE_EVENT
-;]
+]
 
 none:  			make none! 0
 true:  			make logic! 1

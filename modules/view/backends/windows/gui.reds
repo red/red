@@ -433,53 +433,78 @@ to-bgr: func [
 	]
 ]
 
-free-handles: func [
-	hWnd [handle!]
+free-faces: func [
+	face	[red-object!]
 	/local
-		values [red-value!]
-		type   [red-word!]
-		face   [red-object!]
-		tail   [red-object!]
-		pane   [red-block!]
-		state  [red-value!]
-		sym	   [integer!]
-		dc	   [integer!]
-		cam	   [camera!]
-		handle [handle!]
+		values	[red-value!]
+		type	[red-word!]
+		obj		[red-object!]
+		tail	[red-object!]
+		pane	[red-block!]
+		state	[red-value!]
+		rate	[red-value!]
+		sym		[integer!]
+		dc		[integer!]
+		flags	[integer!]
+		cam		[camera!]
+		handle	[handle!]
 ][
-	values: get-face-values hWnd
+	handle: face-handle? face
+	#if debug? = yes [if null? handle [probe "VIEW: WARNING: free null window handle!"]]
+
+	if null? handle [exit]
+
+	values: object/get-values face
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	rate: values + FACE_OBJ_RATE
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
+
+	obj: as red-object! values + FACE_OBJ_FONT
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+	
+	obj: as red-object! values + FACE_OBJ_PARA
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
-		face: as red-object! block/rs-head pane
+		obj: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
-		while [face < tail][
-			handle: face-handle? face
-			if handle <> null [free-handles handle]
-			face: face + 1
+		while [obj < tail][
+			free-faces obj
+			obj: obj + 1
 		]
 	]	
 	case [
 		sym = group-box [
 			;-- destroy the extra frame window
-			DestroyWindow as handle! GetWindowLong hWnd wc-offset - 4 as-integer hWnd
+			DestroyWindow as handle! GetWindowLong handle wc-offset - 4 as-integer handle
 		]
 		sym = camera [
-			cam: as camera! GetWindowLong hWnd wc-offset - 4
+			cam: as camera! GetWindowLong handle wc-offset - 4
 			unless null? cam [
 				teardown-graph cam
 				free-graph cam
 			]
 		]
 		any [sym = window sym = panel sym = base][
-			if zero? (WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) [
-				dc: GetWindowLong hWnd wc-offset - 4
-				unless zero? dc [DeleteDC as handle! dc]			;-- delete cached dc
+			if zero? (WS_EX_LAYERED and GetWindowLong handle GWL_EXSTYLE) [
+				dc: GetWindowLong handle wc-offset - 4
+				if dc <> 0 [DeleteDC as handle! dc]			;-- delete cached dc
 			]
-			dc: GetWindowLong hWnd wc-offset - 24
-			if dc <> 0 [d2d-release-target as int-ptr! dc]
+			flags: get-flags as red-block! values + FACE_OBJ_FLAGS
+			if flags and FACET_FLAGS_MODAL <> 0 [
+				SetActiveWindow GetWindow handle GW_OWNER
+			]
+			dc: GetWindowLong handle wc-offset - 24
+			if dc <> 0 [
+				either flags and FACET_FLAGS_EDITABLE <> 0 [
+					d2d-release-target as int-ptr! dc
+				][											;-- caret
+					DestroyCaret
+				]
+			]
 		]
 		true [
 			0
@@ -487,10 +512,10 @@ free-handles: func [
 		]
 	]
 	either sym = window [
-		SetWindowLong hWnd wc-offset - 4 -1
-		PostMessage hWnd WM_CLOSE 0 0
+		SetWindowLong handle wc-offset - 4 -1
+		PostMessage handle WM_CLOSE 0 0
 	][
-		DestroyWindow hWnd
+		DestroyWindow handle
 	]
 
 	state: values + FACE_OBJ_STATE
@@ -679,6 +704,7 @@ init-window: func [										;-- post-creation settings
 		owner	[handle!]
 		modes	[integer!]
 ][
+	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 24 0
 
 	modes: SWP_NOZORDER
@@ -1001,7 +1027,7 @@ set-cursor: func [
 			sym = _hand	  [32649]			;-- IDC_HAND
 			true		  [IDC_ARROW]
 		]
-		setClassLong hWnd -12 as-integer LoadCursor null cur
+		;setClassLong hWnd -12 as-integer LoadCursor null cur
 	]
 ]
 
@@ -1031,7 +1057,6 @@ OS-make-view: func [
 	return: [integer!]
 	/local
 		values	  [red-value!]
-		cursor	  [red-word!]
 		type	  [red-word!]
 		str		  [red-string!]
 		offset	  [red-pair!]
@@ -1075,7 +1100,6 @@ OS-make-view: func [
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:	  					values + FACE_OBJ_RATE
-	cursor:	  as red-word!		values + FACE_OBJ_CURSOR
 	
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
 
@@ -1214,9 +1238,9 @@ OS-make-view: func [
 		null
 	]
 
-	;if all [not DWM-enabled? not alpha? bits and FACET_FLAGS_D2D = 0][
-	;	ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
-	;]
+	unless any [DWM-enabled? alpha? bits and FACET_FLAGS_EDITABLE <> 0][
+			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+	]
 
 	if all [
 		parent <> 0
@@ -1242,7 +1266,6 @@ OS-make-view: func [
 	if null? handle [print-line "*** View Error: CreateWindowEx failed!"]
 
 	if any [win8+? not alpha?][BringWindowToTop handle]
-	set-cursor handle cursor
 	set-font handle face values
 
 	;-- store the face value in the extra space of the window struct
@@ -1952,30 +1975,8 @@ OS-update-view: func [
 OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
-	/local
-		handle [handle!]
-		values [red-value!]
-		obj	   [red-object!]
-		rate   [red-value!]
-		flags  [integer!]
 ][
-	handle: get-face-handle face
-	values: object/get-values face
-	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
-	if flags and FACET_FLAGS_MODAL <> 0 [
-		SetActiveWindow GetWindow handle GW_OWNER
-	]
-	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle none-value]
-
-	free-handles handle
-
-	obj: as red-object! values + FACE_OBJ_FONT
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
-	
-	obj: as red-object! values + FACE_OBJ_PARA
-	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
-
+	free-faces face
 	if empty? [
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0

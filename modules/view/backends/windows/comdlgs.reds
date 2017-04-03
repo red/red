@@ -124,7 +124,7 @@ OS-request-dir: func [
 		str: string/load as-c-string buffer lstrlen buffer UTF-16LE
 		string/append-char GET_BUFFER(str) as-integer #"/"
 		str/header: TYPE_FILE
-		;;; #call [to-red-file str]
+		#call [to-red-file str]
 		stack/arguments
 	]
 	free buffer
@@ -184,7 +184,7 @@ OS-request-file: func [
 	files: as red-value! either zero? ret [none-value][
 		len: lstrlen buffer
 		str: string/load as-c-string buffer len UTF-16LE
-		;;; #call [to-red-file str]
+		#call [to-red-file str]
 		str: as red-string! stack/arguments
 		as red-value! either multi? [
 			pbuf: buffer + (len + 1 * 2)

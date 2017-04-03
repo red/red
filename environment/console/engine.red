@@ -82,19 +82,19 @@ system/console: context [
 		]
 	]
 
-	;init-console: routine [
-	;	str [string!]
-	;	/local
-	;		ret
-	;][
-	;	#if OS = 'Windows [
-	;		;ret: AttachConsole -1
-	;		;if zero? ret [print-line "ReadConsole failed!" halt]
+	init-console: routine [
+		str [string!]
+		/local
+			ret
+	][
+		#if OS = 'Windows [
+			;ret: AttachConsole -1
+			;if zero? ret [print-line "ReadConsole failed!" halt]
 
-	;		ret: SetConsoleTitle as c-string! string/rs-head str
-	;		if zero? ret [print-line "SetConsoleTitle failed!" halt]
-	;	]
-	;]
+			ret: SetConsoleTitle as c-string! string/rs-head str
+			if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		]
+	]
 
 	count-delimiters: function [
 		buffer	[string!]

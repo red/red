@@ -514,8 +514,6 @@ Red/System [
 #define ETO_OPAQUE			2
 #define ETO_CLIPPED			4
 
-#define CF_TEXT				1
-#define CF_UNICODETEXT		13
 #define GA_ROOT				2
 
 #define GM_COMPATIBLE       1
@@ -1036,6 +1034,10 @@ XFORM!: alias struct! [
 		CloseClipboard: "CloseClipboard" [
 			return:		[integer!]
 		]
+		IsClipboardFormatAvailable: "IsClipboardFormatAvailable" [
+			format		[integer!]
+			return:		[logic!]
+		]
 		GetKeyState: "GetKeyState" [
 			nVirtKey	[integer!]
 			return:		[integer!]
@@ -1314,12 +1316,6 @@ XFORM!: alias struct! [
 		]
 		GetMessagePos: "GetMessagePos" [
 			return:		[integer!]
-		]
-		SetClassLong: "SetClassLongW" [
-			hWnd		[handle!]
-			nIndex		[integer!]
-			dwNewLong	[integer!]
-			return: 	[integer!]
 		]
 		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]

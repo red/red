@@ -27,7 +27,7 @@ packager: context [
 	
 	run: func [cmd [string!]][
 		trim/lines cmd
-		either verbose [?? cmd call/console cmd][call/wait cmd]
+		either verbose [call/console cmd][call/wait cmd]
 	]
 	
 	copy-files: func [src [file!] dst [file!]][	
@@ -66,9 +66,9 @@ packager: context [
 
 		copy-files file bin-dir/:name
 		delete file
-		copy-file %bridges/osx/Resources/AppIcon.icns res-dir/AppIcon.icns
+		copy-file %system/assets/osx/Resources/AppIcon.icns res-dir/AppIcon.icns
 
-		plist: read %bridges/osx/Info.plist
+		plist: read %system/assets/osx/Info.plist
 		replace/all/case plist "$Red-App-Name$" name
 		write/binary contents-dir/Info.plist plist
 

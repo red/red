@@ -99,7 +99,7 @@ face-handle?: func [
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [return as handle! int/value]
+		if TYPE_OF(int) = TYPE_HANDLE [return as handle! int/value]
 	]
 	null
 ]
@@ -114,7 +114,7 @@ get-face-handle: func [
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
 	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_INTEGER
+	assert TYPE_OF(int) = TYPE_HANDLE
 	int/value
 ]
 
@@ -1371,10 +1371,7 @@ set-hint-text: func [
 	]
 ]
 
-OS-redraw: func [face [red-object!] /local hWnd][
-	hWnd: face-handle? face
-	if hWnd <> null [objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
-]
+OS-redraw: func [hWnd [integer!]][objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
 
 OS-refresh-window: func [hWnd [integer!]][0]
 
@@ -1442,9 +1439,13 @@ OS-make-view: func [
 		][class: "RedScrollView"]
 		sym = text [class: "RedTextField"]
 		sym = field [class: "RedTextField"]
-		sym = button [class: "RedButton"]
+		sym = button [
+			class: "RedButton"
+			size/x: size/x + 12							;@@ hardcoded margins
+		]
 		sym = check [
 			class: "RedButton"
+			size/x: size/x + 12							;@@ hardcoded margins
 			flags: NSSwitchButton
 		]
 		sym = radio [

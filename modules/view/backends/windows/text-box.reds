@@ -156,13 +156,14 @@ OS-text-box-font-name: func [
 ]
 
 OS-text-box-font-size: func [
+	font	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	size	[float!]
 	/local
-		this	[this!]
-		dl		[IDWriteTextLayout]
+		this [this!]
+		dl	 [IDWriteTextLayout]
 ][
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
@@ -170,11 +171,12 @@ OS-text-box-font-size: func [
 ]
 
 OS-text-box-metrics: func [
-	layout	[handle!]
+	state	[red-block!]
 	arg0	[red-value!]
 	type	[integer!]
 	return: [red-value!]
 	/local
+		layout			[handle!]
 		this			[this!]
 		dl				[IDWriteTextLayout]
 		lineCount		[integer!]
@@ -199,6 +201,8 @@ OS-text-box-metrics: func [
 		values			[red-value!]
 		hr				[integer!]
 ][
+	int: as red-integer! block/rs-head state
+	layout: as handle! int/value
 	left: 0
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
@@ -249,7 +253,6 @@ OS-text-box-metrics: func [
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-			#if debug? = yes [if hr <> 0 [log-error hr]]
 
 			values: object/get-values as red-object! arg0
 			integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width

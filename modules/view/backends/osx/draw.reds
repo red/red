@@ -177,11 +177,11 @@ OS-draw-fill-pen: func [
 
 OS-draw-line-width: func [
 	dc	  [draw-ctx!]
-	width [red-integer!]
+	width [red-value!]
 	/local 
 		width-v	[float32!]
 ][
-	width-v: get-float32 width
+	width-v: get-float32 as red-integer! width
 	if dc/pen-width <> width-v [
 		dc/pen-width: width-v
 		CGContextSetLineWidth dc/raw width-v
@@ -880,7 +880,7 @@ fill-gradient-region: func [
 	CGContextRestoreGState ctx
 ]
 
-OS-draw-grad-pen: func [
+OS-draw-grad-pen-old: func [
 	dc			[draw-ctx!]
 	type		[integer!]
 	mode		[integer!]
@@ -977,6 +977,20 @@ OS-draw-grad-pen: func [
 	dc/grad-pen: CGGradientCreateWithColorComponents dc/colorspace color pos count
 ]
 
+OS-draw-grad-pen: func [
+	ctx			[draw-ctx!]
+	mode		[integer!]
+	stops		[red-value!]
+	count		[integer!]
+	skip-pos	[logic!]
+	positions	[red-value!]
+	focal?		[logic!]
+	spread		[integer!]
+	brush?		[logic!]
+][
+	0
+]
+
 ;transform-point: func [
 ;	ctx			[handle!]
 ;	point		[red-pair!]
@@ -1016,6 +1030,7 @@ OS-draw-grad-pen: func [
 
 OS-matrix-rotate: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
@@ -1034,6 +1049,7 @@ OS-matrix-rotate: func [
 
 OS-matrix-scale: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 ][
@@ -1050,6 +1066,7 @@ _OS-matrix-translate: func [
 
 OS-matrix-translate: func [
 	dc	[draw-ctx!]
+	pen [integer!]
 	x	[integer!]
 	y	[integer!]
 ][
@@ -1058,6 +1075,7 @@ OS-matrix-translate: func [
 
 OS-matrix-skew: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 	/local
@@ -1072,8 +1090,8 @@ OS-matrix-skew: func [
 	a: 0
 	m: as CGAffineTransform! :a
 	m/a: as float32! 1.0
-	m/b: as float32! either sx = sy [0.0][_tan degree-to-radians get-float sy TYPE_TANGENT]
-	m/c: as float32! _tan degree-to-radians get-float sx TYPE_TANGENT
+	m/b: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
+	m/c: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
 	m/d: as float32! 1.0
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
@@ -1082,6 +1100,7 @@ OS-matrix-skew: func [
 
 OS-matrix-transform: func [
 	dc			[draw-ctx!]
+	pen			[integer!]
 	rotate		[red-integer!]
 	scale		[red-integer!]
 	translate	[red-pair!]
@@ -1089,28 +1108,29 @@ OS-matrix-transform: func [
 		center	[red-pair!]
 ][
 	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-	OS-matrix-rotate dc rotate center
-	OS-matrix-scale dc scale scale + 1
+	OS-matrix-rotate dc pen rotate center
+	OS-matrix-scale dc pen scale scale + 1
 	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
-OS-matrix-push: func [dc [draw-ctx!]][
+OS-matrix-push: func [dc [draw-ctx!] state [int-ptr!]][
 	CGContextSaveGState dc/raw
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!]][
+OS-matrix-pop: func [dc [draw-ctx!] state [integer!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color:		0
 	dc/brush-color:		0
 ]
 
-OS-matrix-reset: func [dc [draw-ctx!] /local m [CGAffineTransform!]][
+OS-matrix-reset: func [dc [draw-ctx!] pen [integer!] /local m [CGAffineTransform!]][
 	m: as CGAffineTransform! (as int-ptr! dc) + 1
 	CGContextSetCTM dc/raw m/a m/b m/c m/d m/tx m/ty
 ]
 
 OS-matrix-invert: func [
-	dc [draw-ctx!]
+	dc	[draw-ctx!]
+	pen	[integer!]
 	/local
 		saved	[int-ptr!]
 		ty		[integer!]
@@ -1137,6 +1157,7 @@ OS-matrix-invert: func [
 
 OS-matrix-set: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	blk		[red-block!]
 	/local
 		ty	[integer!]
@@ -1158,6 +1179,13 @@ OS-matrix-set: func [
 	m/tx: get-float32 val + 4
 	m/ty: get-float32 val + 5
 	CGContextConcatCTM dc/raw m/a m/b m/c m/d m/tx m/ty
+]
+
+OS-set-matrix-order: func [
+	ctx		[draw-ctx!]
+	order	[integer!]
+][
+	0
 ]
 
 OS-set-clip: func [
@@ -1290,3 +1318,37 @@ OS-draw-shape-arc: func [
 ][
 	
 ]
+
+OS-draw-brush-bitmap: func [
+	ctx		[draw-ctx!]
+	img		[red-image!]
+	crop-1	[red-pair!]
+	crop-2	[red-pair!]
+	mode	[red-word!]
+	brush?	[logic!]
+	/local
+		x		[integer!]
+		y		[integer!]
+		width	[integer!]
+		height	[integer!]
+		texture	[integer!]
+		wrap	[integer!]
+		result	[integer!]
+][
+]
+
+OS-draw-brush-pattern: func [
+	ctx		[draw-ctx!]
+	size	[red-pair!]
+	crop-1	[red-pair!]
+	crop-2	[red-pair!]
+	mode	[red-word!]
+	block	[red-block!]
+	brush?	[logic!]
+	/local
+		pat-image	[red-image!]
+		bkg-alpha	[byte!]
+		p-alpha		[byte-ptr!]
+		p			[byte-ptr!]
+][]
+

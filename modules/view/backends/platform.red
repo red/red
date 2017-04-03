@@ -38,7 +38,6 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
-				FACE_OBJ_CURSOR
 			]
 			
 			#enum facet-flag! [
@@ -65,7 +64,6 @@ system/view/platform: context [
 				FACET_FLAG_ACTOR:		00100000h
 				FACET_FLAG_EXTRA:		00200000h
 				FACET_FLAG_DRAW:		00400000h
-				FACET_FLAG_CURSOR:		00800000h
 			]
 			
 			#enum flags-flag! [
@@ -172,11 +170,11 @@ system/view/platform: context [
 				EVT_MOVING
 				EVT_SIZING
 				EVT_TIME
-				EVT_DRAW
+				EVT_DRAWING
 				EVT_SCROLL
 			]
 			
-			#enum event-flag! [				
+			#enum event-flag! [
 				EVT_FLAG_AX2_DOWN:		00400000h
 				EVT_FLAG_AUX_DOWN:		00800000h
 				EVT_FLAG_ALT_DOWN:		01000000h
@@ -289,16 +287,9 @@ system/view/platform: context [
 			Direct2D:		symbol/make "Direct2D"
 
 			_arrow:			symbol/make "arrow"
-			_cross:			symbol/make "cross"
 			_hand:			symbol/make "hand"
 			_help:			symbol/make "help"
 			_I-beam:		symbol/make "I-beam"
-			_no:			symbol/make "no"
-			_wait:			symbol/make "wait"
-			_resize-ns:		symbol/make "resize-ns"
-			_resize-we:		symbol/make "resize-we"
-			_resize-nesw:	symbol/make "resize-nesw"
-			_resize-nwse:	symbol/make "resize-nwse"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
@@ -342,10 +333,9 @@ system/view/platform: context [
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
-			_draw:			word/load "draw"
+			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
 
-			_mouse-wheel:	word/load "mouse-wheel"
 			_track:			word/load "track"
 			_page-left:		word/load "page-left"
 			_page-right:	word/load "page-right"
@@ -377,8 +367,8 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-alt:		word/load "left-alt"
 			_right-alt:		word/load "right-alt"
-			_left-command:	word/load "left-command"
-			_right-command:	word/load "right-command"
+			_left-menu:		word/load "left-menu"
+			_right-menu:	word/load "right-menu"
 			_left-command:	word/load "left-command"
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
@@ -390,7 +380,7 @@ system/view/platform: context [
 			][
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
-					EVT_DRAW		 [_draw]
+					EVT_DRAWING		 [_drawing]
 					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
@@ -436,7 +426,7 @@ system/view/platform: context [
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
-					sym = _draw/symbol			[sym: EVT_DRAW]
+					sym = _drawing/symbol		[sym: EVT_DRAWING]
 					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
@@ -518,8 +508,7 @@ system/view/platform: context [
 			#switch OS [
 				Windows  [#include %windows/gui.reds]
 				MacOSX   [#include %osx/gui.reds]
-				Android  []
-				#default [#include %gtk3/gui.reds]					;-- Linux
+				#default []					;-- Linux
 			]
 		]
 	]
@@ -607,7 +596,12 @@ system/view/platform: context [
 	refresh-window: routine [h [handle!]][
 		gui/OS-refresh-window h/value
 	]
-	
+
+	redraw: routine [face [object!] /local h [integer!]][
+		h: as-integer gui/face-handle? face
+		if h <> 0 [gui/OS-redraw h]
+	]
+
 	show-window: routine [id [handle!]][
 		gui/OS-show-window id/value
 		SET_RETURN(none-value)
@@ -630,14 +624,6 @@ system/view/platform: context [
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
-	]
-
-	exit-event-loop: routine [][
-		#switch OS [
-			Windows  [gui/PostQuitMessage 0]
-			MacOSX   [gui/evt-loop-cnt: gui/evt-loop-cnt - 1]
-			#default [0]
-		]
 	]
 
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][
