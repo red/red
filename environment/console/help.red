@@ -207,7 +207,7 @@ Other useful functions:
 				type: type? :value
 				
 				clear find spec /local
-				ret: select/last spec quote return:
+				ret: select/same/last spec quote return:
 				parse spec [
 					any block!
 					copy desc any string!
