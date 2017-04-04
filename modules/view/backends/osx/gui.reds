@@ -36,6 +36,7 @@ log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
+mac-version:	0
 
 ;-- for IME support
 in-composition?: no
@@ -228,8 +229,9 @@ get-os-version: func [
 	Gestalt gestaltSystemVersionMinor :minor
 	Gestalt gestaltSystemVersionBugFix :bugfix
 
-	ver: as red-tuple! #get system/view/platform/version
+	mac-version: major * 100 + minor
 
+	ver: as red-tuple! #get system/view/platform/version
 	ver/header: TYPE_TUPLE or (3 << 19)
 	ver/array1: bugfix << 16 or (minor << 8) or major
 
@@ -256,6 +258,12 @@ init: func [
 		pool	 [integer!]
 		delegate [integer!]
 		lib		 [integer!]
+		dict	 [integer!]
+		y		 [integer!]
+		x		 [integer!]
+		sz		 [NSSize!]
+		dpi		 [integer!]
+		scaling  [float32!]
 		p-int	 [int-ptr!]
 ][
 	init-selectors
@@ -279,6 +287,21 @@ init: func [
 	rect: as NSRect! (as int-ptr! screen) + 1
 	screen-size-x: as-integer rect/w
 	screen-size-y: as-integer rect/h
+
+	dict: objc_msgSend [screen sel_getUid "deviceDescription"]
+	dpi: objc_msgSend [dict sel_getUid "objectForKey:" NSDeviceResolution]
+
+	x: objc_msgSend [dpi sel_getUid "sizeValue"]
+	y: system/cpu/edx
+	sz: as NSSize! :x
+
+	scaling: as float32! 1.0
+	if mac-version >= 1070 [
+		scaling: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
+	]
+
+	log-pixels-x: as-integer sz/w / scaling
+	log-pixels-y: as-integer sz/h / scaling
 
 	set-defaults
 

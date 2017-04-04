@@ -395,6 +395,7 @@ tagSIZE: alias struct! [
 	]
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
+		NSDeviceResolution: "NSDeviceResolution" [integer!]
 		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
 		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
 		NSFontAttributeName: "NSFontAttributeName" [integer!]

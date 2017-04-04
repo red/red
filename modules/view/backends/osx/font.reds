@@ -38,7 +38,11 @@ make-font: func [
 	values: object/get-values font
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	size: either TYPE_OF(int) <> TYPE_INTEGER [as float32! 0.0][as float32! int/value]
+	either TYPE_OF(int) <> TYPE_INTEGER [
+		size: as float32! 0.0
+	][
+		size: as float32! int/value * 96 / 72						;@@ hard coded
+	]
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
 	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value * 10][0]	;-- in tenth of degrees
@@ -88,7 +92,6 @@ make-font: func [
 		CFRelease sym
 	]
 	if null? hFont [							;-- use system font
-		#if debug? = yes [print-line ["cannot find font: " name]]
 		method: either traits and NSBoldFontMask <> 0 [
 			"boldSystemFontOfSize:"
 		][
