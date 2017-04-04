@@ -95,6 +95,14 @@ as-rgba: :as-ipv4
 
 ;-- Temporary definition --
 
+read-clipboard: routine [][
+	stack/set-last clipboard/read
+]
+
+write-clipboard: routine [data [string!]][
+	logic/box clipboard/write as red-value! data
+]
+
 write-stdout: routine [str [string!]][			;-- internal use only
 	simple-io/write null as red-value! str null null no no no
 ]
