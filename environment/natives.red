@@ -123,7 +123,7 @@ func: make native! [[
 ]
 
 function: make native! [[
-		"Defines a function, making all words found in body local"
+		"Defines a function, making all set-words found in body, local"
 		spec [block!]
 		body [block!]
 		/extern	"Exclude words that follow this refinement"
