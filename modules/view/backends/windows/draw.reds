@@ -422,7 +422,6 @@ draw-end: func [
 	unless zero? ctx/brush			[DeleteObject as handle! ctx/brush]
 	unless zero? ctx/other/gradient-pen/matrix		[ GdipDeleteMatrix ctx/other/gradient-pen/matrix ]
 	unless zero? ctx/other/gradient-fill/matrix		[ GdipDeleteMatrix ctx/other/gradient-fill/matrix ]
-	unless zero? as-integer ctx/other/matrix-elems	[ free as byte-ptr! ctx/other/matrix-elems ]
 	ptrn: as red-image! ctx/other/pattern-image-fill
 	unless null? ptrn/node [
 		OS-image/delete as red-image! ctx/other/pattern-image-fill
