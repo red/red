@@ -255,7 +255,7 @@ actions: context [
 		either into >= 0 [
 			buffer: as red-string! stack/arguments + into
 		][
-			buffer: string/rs-make-at stack/push* either [limit = 0][16][limit]
+			buffer: string/rs-make-at stack/push* either limit = 0 [16][limit]
 		]
 		limit: form stack/arguments buffer arg limit
 		
@@ -310,7 +310,7 @@ actions: context [
 		either into >= 0 [
 			buffer: as red-string! stack/arguments + into
 		][
-			buffer: string/rs-make-at stack/push* either [limit = 0][16][limit]
+			buffer: string/rs-make-at stack/push* either limit = 0 [16][limit]
 		]
 		limit: mold 
 			stack/arguments
