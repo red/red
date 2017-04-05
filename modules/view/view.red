@@ -770,6 +770,15 @@ request-dir: function [
 ][
 	system/view/platform/request-dir text name list keep multi
 ]
+
+set-focus: function [
+	"Sets the focus on the argument face"
+	face [object!]
+][
+	p: face/parent
+	while [p/type <> 'window][p: p/parent]
+	p/selected: face
+]
 	
 ;=== Global handlers ===
 
