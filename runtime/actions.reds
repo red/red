@@ -237,6 +237,7 @@ actions: context [
 
 	form*: func [
 		part	   [integer!]
+		into	   [integer!]
 		/local
 			arg	   [red-value!]
 			buffer [red-string!]
@@ -251,7 +252,11 @@ actions: context [
 		][0]
 		
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
+		either into >= 0 [
+			buffer: as red-string! stack/arguments + into
+		][
+			buffer: string/rs-make-at stack/push* either [limit = 0][16][limit]
+		]
 		limit: form stack/arguments buffer arg limit
 		
 		if all [part >= 0 negative? limit][
@@ -287,6 +292,7 @@ actions: context [
 		_all	[integer!]
 		flat	[integer!]
 		part	[integer!]
+		into	[integer!]
 		/local
 			arg	   [red-value!]
 			buffer [red-string!]
@@ -301,7 +307,11 @@ actions: context [
 		][0]
 
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
+		either into >= 0 [
+			buffer: as red-string! stack/arguments + into
+		][
+			buffer: string/rs-make-at stack/push* either [limit = 0][16][limit]
+		]
 		limit: mold 
 			stack/arguments
 			buffer
