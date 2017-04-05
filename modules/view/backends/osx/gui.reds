@@ -24,11 +24,14 @@ Red/System [
 #include %tab-panel.reds
 #include %comdlgs.reds
 
+win-cnt:		0
+loop-started?:	no
+close-window?:	no
+
 NSApp:			0
 NSAppDelegate:	0
 AppMainMenu:	0
 
-evt-loop-cnt:	0
 current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
 
 default-font:	0
@@ -45,6 +48,8 @@ caret-w:		as float32! 0.0
 caret-h:		as float32! 0.0
 caret-x:		as float32! 0.0
 caret-y:		as float32! 0.0
+
+win-array:		declare red-vector!
 
 red-face?: func [
 	handle	[integer!]
@@ -172,7 +177,8 @@ get-text-size: func [
 ]
 
 free-handles: func [
-	hWnd [integer!]
+	hWnd	[integer!]
+	force?	[logic!]
 	/local
 		values [red-value!]
 		type   [red-word!]
@@ -190,6 +196,12 @@ free-handles: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	if all [sym = window not force?][
+		close-window?: yes
+		vector/rs-append-int win-array hWnd
+		exit
+	]
+
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
 
@@ -199,13 +211,14 @@ free-handles: func [
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
 			handle: as-integer face-handle? face
-			if handle <> 0 [free-handles handle]
+			if handle <> 0 [free-handles handle force?]
 			face: face + 1
 		]
 	]
 
 	either sym = window [
 		objc_msgSend [hWnd sel_getUid "close"]
+		win-cnt: win-cnt - 1
 	][
 		objc_msgSend [hWnd sel_getUid "removeFromSuperview"]
 	]
@@ -266,6 +279,7 @@ init: func [
 		scaling  [float32!]
 		p-int	 [int-ptr!]
 ][
+	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
 	init-selectors
 
 	NSApp: objc_msgSend [objc_getClass "NSApplication" sel_getUid "sharedApplication"]
@@ -1581,6 +1595,8 @@ OS-make-view: func [
 		sym = window [
 			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
 			init-window obj caption bits rc
+			win-cnt: win-cnt + 1
+
 			if all [						;@@ application menu ?
 				zero? AppMainMenu
 				menu-bar? menu window
@@ -1588,7 +1604,6 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
-			evt-loop-cnt: evt-loop-cnt + 1
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]
@@ -1738,6 +1753,30 @@ OS-update-view: func [
 	int/value: 0										;-- reset flags
 ]
 
+unlink-sub-obj: func [
+	face  [red-object!]
+	obj   [red-object!]
+	field [integer!]
+	/local
+		values [red-value!]
+		parent [red-block!]
+		res	   [red-value!]
+][
+	values: object/get-values obj
+	parent: as red-block! values + field
+	
+	if TYPE_OF(parent) = TYPE_BLOCK [
+		res: block/find parent as red-value! face null no no yes no null null no no no no
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if all [
+			field = FONT_OBJ_PARENT
+			block/rs-tail? parent
+		][
+			free-font obj
+		]
+	]
+]
+
 OS-destroy-view: func [
 	face	[red-object!]
 	window? [logic!]
@@ -1755,13 +1794,13 @@ OS-destroy-view: func [
 		;;TBD
 	]
 
-	free-handles handle
-
 	obj: as red-object! values + FACE_OBJ_FONT
-	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
 
 	obj: as red-object! values + FACE_OBJ_PARA
-	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+
+	free-handles handle no
 ]
 
 OS-update-facet: func [

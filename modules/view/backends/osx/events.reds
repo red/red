@@ -617,6 +617,20 @@ process: func [
 	EVT_DISPATCH
 ]
 
+close-pending-windows: func [/local n [integer!] p [int-ptr!]][
+	n: vector/rs-length? win-array
+	if zero? n [exit]
+
+	p: as int-ptr! vector/rs-head win-array
+	while [n > 0][
+		free-handles p/value yes
+		p: p + 1
+		n: n - 1
+	]
+	vector/rs-clear win-array
+	close-window?: no
+]
+
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
@@ -626,11 +640,9 @@ do-events: func [
 		pool	[integer!]
 		timeout [integer!]
 		event	[integer!]
-		saved	[integer!]
 ][
 	msg?: no
-	saved: evt-loop-cnt
-	evt-loop-cnt: evt-loop-cnt + 1
+	either loop-started? [no-wait?: yes][loop-started?: yes]		;-- just keep one event loop
 
 	timeout: either no-wait? [0][
 		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
@@ -657,10 +669,12 @@ do-events: func [
 			]
 		]
 
+		if close-window? [close-pending-windows]
+
 		objc_msgSend [pool sel_getUid "drain"]
-		any [evt-loop-cnt <= saved no-wait?]
+		any [zero? win-cnt no-wait?]
 	]
 
-	evt-loop-cnt: evt-loop-cnt - 1
+	if zero? win-cnt [objc_msgSend [NSApp sel_getUid "stop:" 0]]
 	msg?
 ]

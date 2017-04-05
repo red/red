@@ -641,7 +641,6 @@ destroy-app: func [
 	app		[integer!]
 	return: [logic!]
 ][
-	objc_msgSend [NSApp sel_getUid "stop:" 0]
 	no
 ]
 
@@ -662,7 +661,7 @@ win-will-close: func [
 	cmd		[integer!]
 	notif	[integer!]
 ][
-	evt-loop-cnt: evt-loop-cnt - 1
+	0
 ]
 
 ;win-will-resize: func [								;-- use it to block resizing window
