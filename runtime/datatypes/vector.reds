@@ -392,9 +392,13 @@ vector: context [
 						]
 					]
 					TYPE_PERCENT [
-						pf: as pointer! [float!] p
-						fl: pf/value * 100.0
-						formed: float/form-float fl float/FORM_PERCENT
+						formed: either unit = 8 [
+							pf: as pointer! [float!] p
+							float/form-float pf/value * 100.0 float/FORM_PERCENT
+						][
+							pf32: as pointer! [float32!] p
+							float/form-float as-float pf32/value * as float32! 100.0 float/FORM_PERCENT_32
+						]
 					]
 				]
 				string/concatenate-literal buffer formed
