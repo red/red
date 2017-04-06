@@ -58,6 +58,7 @@ find-flag?: routine [
 		value  [red-value!]
 		tail   [red-value!]
 		bool   [red-logic!]
+		type   [integer!]
 		found? [logic!]
 ][
 	switch TYPE_OF(facet) [
@@ -71,7 +72,8 @@ find-flag?: routine [
 			tail:  block/rs-tail as red-block! facet
 			
 			while [all [not found? value < tail]][
-				if TYPE_OF(value) = TYPE_WORD [
+				type: TYPE_OF(value)
+				if any [type = TYPE_WORD type = TYPE_LIT_WORD][
 					word: as red-word! value
 					found?: EQUAL_WORDS?(flag word)
 				]
