@@ -675,6 +675,9 @@ do-events: func [
 		any [zero? win-cnt no-wait?]
 	]
 
-	if zero? win-cnt [objc_msgSend [NSApp sel_getUid "stop:" 0]]
+	if zero? win-cnt [
+		loop-started?: no
+		objc_msgSend [NSApp sel_getUid "stop:" 0]
+	]
 	msg?
 ]
