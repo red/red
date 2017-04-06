@@ -1250,6 +1250,9 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
+			all [type = ESC_CHAR cp = 7Fh][
+				concatenate-literal buffer "^^~"
+			]
 			all [
 				type = ESC_URL
 				cp < MAX_URL_CHARS

@@ -532,7 +532,7 @@ system/lexer: context [
 					| "line" (value: #"^(0A)")
 					| "page" (value: #"^(0C)")
 					| "esc"  (value: #"^(1B)")
-					| "del"	 (value: #"^(7F)")
+					| "del"	 (value: #"^~")
 				]
 				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
@@ -542,7 +542,7 @@ system/lexer: context [
 				[
 					#"/" 	(value: #"^/")
 					| #"-"	(value: #"^-")
-					| #"?" 	(value: #"^(del)")			;@@FIXME
+					| #"~" 	(value: #"^(del)")
 					| #"^^" (value: #"^^")				;-- caret escaping case
 					| #"{"	(value: #"{")
 					| #"}"	(value: #"}")
