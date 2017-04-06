@@ -1320,7 +1320,7 @@ red: context [
 		path [path! set-path!] set? [logic!] alt? [logic!]
 		/local pos words item blk get?
 	][
-		if set? [
+		either set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
 				emit [									;-- get arguments just below the stack record
@@ -1330,6 +1330,8 @@ red: context [
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
+		][
+			emit-open-frame 'eval-path
 		]
 		pos: tail output
 		
@@ -1352,13 +1354,12 @@ red: context [
 				get?: to logic! any [head? path get-word? item]
 				get-path-word item clear blk get?
 			]
-		]		
+		]
 		emit words
-		unless set? [emit 'stack/top]
 		
 		new-line/all pos no
 		new-line pos yes
-		if set? [emit-close-frame]
+		emit-close-frame
 	]
 	
 	emit-eval-path: func [/set][
