@@ -243,6 +243,7 @@ actions: context [
 			buffer [red-string!]
 			int    [red-integer!]
 			limit  [integer!]
+			size   [integer!]
 	][
 		arg: stack/arguments + part
 		
@@ -255,7 +256,8 @@ actions: context [
 		either into >= 0 [
 			buffer: as red-string! stack/arguments + into
 		][
-			buffer: string/rs-make-at stack/push* either limit = 0 [16][limit]
+			size: either limit = 0 [16][limit]
+			buffer: string/rs-make-at stack/push* size
 		]
 		limit: form stack/arguments buffer arg limit
 		
@@ -298,6 +300,7 @@ actions: context [
 			buffer [red-string!]
 			int    [red-integer!]
 			limit  [integer!]
+			size   [integer!]
 	][
 		arg: stack/arguments + part
 		
@@ -310,7 +313,8 @@ actions: context [
 		either into >= 0 [
 			buffer: as red-string! stack/arguments + into
 		][
-			buffer: string/rs-make-at stack/push* either limit = 0 [16][limit]
+			size: either limit = 0 [16][limit]
+			buffer: string/rs-make-at stack/push* size
 		]
 		limit: mold 
 			stack/arguments
