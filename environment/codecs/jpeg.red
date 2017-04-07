@@ -16,14 +16,14 @@ put system/codecs 'jpeg context [
 	mime-type: [image/jpeg]
 	suffixes: [%.jpg %.jpeg %.jpe %.jfif]
 	
-	encode: routine [img [image!]][
-		#if OS = 'Windows [
-			stack/set-last as cell! image/encode img IMAGE_JPEG
+	encode: routine [img [image!] where [any-type!]][
+		#if OS <> 'Linux [
+			stack/set-last as cell! image/encode img where IMAGE_JPEG
 		]
 	]
 
 	decode: routine [data [any-type!]][
-		#if OS = 'Windows [
+		#if OS <> 'Linux [
 			stack/set-last as cell! image/decode data
 		]
 	]

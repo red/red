@@ -7,19 +7,37 @@ system/view/debug?: yes
 live?: system/view/auto-sync?: no
 
 workstation?: system/view/platform/product = 1
+os-version: system/view/platform/version
 
-print [
-	"Windows" switch system/view/platform/version [
-		10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
-		6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
-		6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
-		6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
-		6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
-		5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
-		5.1.0	["XP"]
-		5.0.0	["2000"]
-	] 
-	"build" system/view/platform/build
+#switch config/OS [
+	Windows [
+		print [
+			"Windows" switch os-version [
+				10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
+				6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
+				6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
+				6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
+				6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
+				5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
+				5.1.0	["XP"]
+				5.0.0	["2000"]
+			] 
+			"build" system/view/platform/build
+		]
+	]
+	MacOSX [
+		print [
+			"macOS" switch os-version and 255.255.0 [
+				10.11.0	["El Capitan"]
+				10.10.0	["Yosemite"]
+				10.9.0	["Mavericks"]
+				10.8.0	["Mountain Lion"]
+				10.7.0	["Lion"]
+				10.6.0	["Snow Leopard"]
+			] os-version
+			"build" system/view/platform/build
+		]
+	]
 ]
 
 smiley: make image! [23x24 #{

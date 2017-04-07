@@ -23,6 +23,7 @@ redc: context [
 	win-version:	none								;-- Windows version extracted from "ver" command
 
 	Windows?:  system/version/4 = 3
+	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
 
 	if encap? [
@@ -423,13 +424,13 @@ redc: context [
 			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
-					;"Darwin"	OSX
+					"Darwin"	OSX
 					"MSDOS"		Windows
 					;"Linux"		Linux-GTK
 				] default-target
 			]
 			source: copy read-cache console/:con-ui
-			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 
 			files: [
@@ -498,7 +499,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows [ [[Needs: View]] ]
+			Windows MacOSX [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts

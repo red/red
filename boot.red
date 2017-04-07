@@ -34,7 +34,9 @@ Red [
 	#include %utils/preprocessor.r
 
 	;-- temporary code --
-	#if config/OS <> 'Windows [unset [event! image!]]
+	#if not find [Windows MacOSX] config/OS [
+		unset [event! image!]
+	]
 ]
 
 ;-- command-line arguments processing
