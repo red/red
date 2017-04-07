@@ -310,18 +310,17 @@ Red [
 	--test-- "to-url!-binary!"
 		--assert url? to url! #{616263}
 		--assert "abc" = form to url! #{616263}
-	   --test-- "to-url!-block!"
-		   --assert url? to url! []
-		   --assert "" = form to url! []
-	 --test-- "to-url!-block!"
-		--assert url? to url! [1 2]
-		--assert "12" = form to url! [1 2]
 	--test-- "to-url!-block!"
-		--assert url? to url! [1 2 3]
-		--assert "123" = form to url! [1 2 3]
-	--test-- "to-url!-block!"
-		--assert url? to url! ["a" "b"]
-		--assert "ab" = form to url! ["a" "b"]
+		--assert http:// 							= to-url [http]
+		--assert http://domain 						= to-url [http domain]
+		--assert http://domain.com 					= to-url [http domain.com]
+		--assert http://domain.com:8080 			= to-url [http domain.com 8080]
+		--assert http://domain.com:43/path 			= to-url [http domain.com 43 path]
+		--assert http://domain.com/path 			= to-url [http domain.com path]
+		--assert http://domain.com/file.red 		= to-url [http domain.com file.red]
+		--assert http://domain.com/path/file 		= to-url [http domain.com path file]
+		--assert http://domain.com/path/file#anchor = to-url [http domain.com path file #anchor]
+		--assert http://domain.com/path/file.red 	= to-url [http domain.com path file.red]
 	--test-- "to-url!-tuple!"
 		--assert url? to url! 1.1.1
 		--assert "1.1.1" = form to url! 1.1.1
