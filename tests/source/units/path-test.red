@@ -141,6 +141,23 @@ Red [
 			--assert a = 1
 		]
 
+	--test-- "issue #2525"
+		
+		u: %a/b
+		--assert %a/b/1 = u/1
+		--assert %a/b/c/1 = u/c/1
+
+		u: %a/b
+		--assert %a/b/c/d = u/c/d
+		--assert error? try [u/c/d: 123]
+
+		face2525: object [size: 80x24]
+		min-size: 345x50
+		--assert min-size/x + 10 = 355
+		face2525/size/y: min-size/y + 10
+		--assert face2525/size/y = 60
+
+
 ===end-group===
 
 ~~~end-file~~~
