@@ -529,6 +529,10 @@ emitter: make-profilable context [
 	]
 
 	size-of?: func [type [word! block!]][
+		if all [block? type type/1 = 'struct! 'value = last type][
+			print "Error: size-of? applied to struct by value!!"
+			halt
+		]
 		if block? type [type: type/1]
 		any [
 			select datatypes type						;-- search in base types
@@ -565,12 +569,16 @@ emitter: make-profilable context [
 		]
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type][
+	arguments-size?: func [locals [block!] /push /local size name type by-val?][
 		if push [clear stack]
 		size: 0
 		parse locals [opt block! any [set name word! set type block! (
+			by-val?: 'value = last type
 			if push [repend stack [name size + target/args-offset]]
-			size: size + max size-of? type/1 target/stack-width		
+			size: size + max size-of? type/1 either not by-val? [target/stack-width][
+				type: compiler/find-aliased type/1			
+				member-offset? type/2 none
+			]
 		)]]
 		size
 	]
@@ -629,7 +637,7 @@ emitter: make-profilable context [
 			]
 			locals-sz: abs locals-sz
 		]
-		if verbose >= 3 [print ["args+locals stack:" mold to-block stack]]
+		if verbose >= 2 [print ["args+locals stack:" mold to-block stack]]
 		target/emit-prolog name locals locals-sz
 		args-sz
 	]

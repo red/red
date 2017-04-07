@@ -181,7 +181,7 @@ system-dialect: make-profilable context [
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
-			| 'struct!  into [struct-syntax]
+			| 'struct!  into [struct-syntax] opt 'value
 		]
 
 		type-spec: [
@@ -192,7 +192,7 @@ system-dialect: make-profilable context [
 					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
 					all [enum-type? value pos/1: 'integer!]
 				][throw false]							;-- stop parsing if unresolved type			
-			)
+			) opt 'value
 		]		
 		
 		keywords: make hash! [
@@ -2788,8 +2788,11 @@ system-dialect: make-profilable context [
 		]
 
 		comp-call: func [
-			name [word!] args [block!] /sub
-			/local list type res align? left right dup var-arity? saved? arg expr spec
+			name [word!] args [block!]
+			/sub
+			/local
+				list type res align? left right dup var-arity? saved? arg expr spec fspec
+				ret-struct-value? bytes types
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2801,6 +2804,18 @@ system-dialect: make-profilable context [
 			order-args name list						;-- reorder argument according to cconv
 
 			spec: functions/:name
+			if ret-struct-value?: all [
+				not sub									;-- if the returned struct is not used,
+				type: select spec/4 return-def
+				'value = last type
+				any [
+					'struct! = type/1
+					'struct! = first type: resolve-aliased type
+				]
+			][
+				bytes: emitter/member-offset? type/2 none
+				emitter/target/emit-reserve-stack/save bytes ;-- reserve space on stack for the hidden pointer
+			]
 			align?: all [
 				args/1 <> #custom
 				any [
@@ -2811,14 +2826,23 @@ system-dialect: make-profilable context [
 			if align? [emitter/target/emit-stack-align-prolog args spec]
 			
 			if args/1 <> #custom [
-				type: functions/:name/2
+				type: second fspec: functions/:name
 				either type <> 'op [
+?? fspec
+?? list
+					all [
+						not empty? list
+						types: find/last fspec/4 return-def
+						types: back types
+					]
+?? types					
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
+							
+							emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
 						]
 					]
 				][										;-- nested calls as op argument require special handling
@@ -2845,12 +2869,13 @@ system-dialect: make-profilable context [
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if align? [emitter/target/emit-stack-align-epilog args]
+			if ret-struct-value? [emitter/target/emit-release-stack bytes]
 			res
 		]
 				
 		comp-path-assign: func [
 			set-path [set-path!] expr casted [block! none!]
-			/local type new value
+			/local type new value spec
 		][
 			value: unbox expr
 			if find [block! path! tag!] type?/word value [
@@ -2863,12 +2888,19 @@ system-dialect: make-profilable context [
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
 			]
-			unless get-variable-spec set-path/1 [
+			unless spec: get-variable-spec set-path/1 [
 				backtrack set-path
 				throw-error ["unknown path root variable:" set-path/1]
 			]
 			type: resolve-path-type set-path			;-- check path validity
-			new: resolve-aliased get-type expr		
+			new: resolve-aliased get-type expr
+			
+			all [
+				block? spec
+				'value = last spec						;-- for local structs only
+				not-initialized? set-path/1
+				init-local set-path/1 expr casted		;-- mark as initialized and infer type if required
+			]
 
 			if type <> any [casted new][
 				backtrack set-path
@@ -2889,7 +2921,8 @@ system-dialect: make-profilable context [
 			set-word [set-word!] expr casted [block! none!]
 			/local name type new value fun-name
 		][
-			name: to word! set-word		
+			name: to word! set-word
+			
 			if find aliased-types name [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
@@ -2950,7 +2983,10 @@ system-dialect: make-profilable context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			emitter/store name value type
+			
+			unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
+				emitter/store name value type
+			]
 		]
 		
 		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][

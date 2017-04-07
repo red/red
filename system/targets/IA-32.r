@@ -230,6 +230,27 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-reserve-stack: func [bytes [integer!] /save][
+		either bytes > 127 [
+			emit #{81EC}							;-- SUB esp, bytes	; 32-bit displacement
+			emit to-bin32 bytes
+		][
+			emit #{83EC}							;-- SUB esp, bytes	; 8-bit displacement
+			emit to-bin8 bytes
+		]
+		if save [emit #{}]							;-- MOV ??, esp
+	]
+	
+	emit-release-stack: func [bytes [integer!]][
+		either bytes > 127 [
+			emit #{81C4}							;-- ADD esp, bytes	; 32-bit displacement
+			emit to-bin32 bytes
+		][
+			emit #{83C4}							;-- ADD esp, bytes	; 8-bit displacement
+			emit to-bin8 bytes
+		]		
+	]
+	
 	emit-move-path-alt: does [
 		emit #{89C2}								;-- MOV edx, eax
 	]
@@ -1124,8 +1145,11 @@ make-profilable make target-class [
 				emit #{68}							;-- PUSH low part
 				emit copy/part value 4
 			]
-			word! [
+			word! [		
 				type: compiler/get-variable-spec value
+?? type				
+probe compiler/resolve-aliased type
+if type/1 = 'struct! [?? value]				
 				either compiler/any-float? type [
 					either cdecl [width: 8][			;-- promote to C double if required
 						set-width/type any [all [cast cast/type] type]
@@ -1737,13 +1761,7 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		either size > 127 [
-			emit #{81C4}							;-- ADD esp, size	; 32-bit
-			emit to-bin32 size
-		][
-			emit #{83C4}							;-- ADD esp, size	; 8-bit
-			emit to-bin8 size
-		]
+		emit-release-stack size
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -1754,7 +1772,7 @@ make-profilable make target-class [
 	
 	emit-argument: func [arg fspec [block!]][
 		if arg = #_ [exit]							;-- place-holder, no code to emit
-		
+
 		either all [
 			object? arg
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
@@ -1980,13 +1998,7 @@ make-profilable make target-class [
 
 		unless zero? locals-size [
 			locals-size: round/to/ceiling locals-size 4
-			either locals-size > 127 [
-				emit #{81EC}						;-- SUB esp, locals-size	; 32-bit
-				emit to-bin32 locals-size
-			][
-				emit #{83EC}						;-- SUB esp, locals-size	; 8-bit
-				emit to-char locals-size
-			]
+			emit-reserve-stack locals-size
 		]
 		if any [
 			fspec/5 = 'callback
