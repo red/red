@@ -1110,7 +1110,7 @@ red: context [
 	
 	check-func-name: func [name [word!] /local new pos][
 		if find functions name [
-			new: to word! append mold/flat name get-counter
+			new: to word! append append mold/flat name "||" get-counter
 			either pos: find-ssa name [
 				pos/2: new
 			][
