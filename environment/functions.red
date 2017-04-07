@@ -640,6 +640,7 @@ extract: function [
 	/into				 "Provide an output series instead of creating a new one"
 		output [series!] "Output series"
 ][
+	width: max 1 width
 	if pos [series: at series pos]
 	unless into [output: make series (length? series) / width]
 	
