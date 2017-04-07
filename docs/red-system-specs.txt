@@ -414,7 +414,7 @@ Syntax
  <c-string> : c-string variable
  <n>        : expression resulting in an integer! value
 
-Example
+Example:
 
  s: "hello"								;-- let's suppose s points to address 40000000h
 
@@ -1725,7 +1725,7 @@ The following elements are affected by namespace and become locally defined when
 
 * aliases
 
-<u>Example</u>:
+Example:
 
  b: 0
  
@@ -1757,7 +1757,7 @@ Even if they look like objects, namespaces only exist at compilation time, so th
 
 Nesting namespaces is allowed. When conflicting names are used for variables or functions, the nearest definition is used.
 
-<u>Example</u>:
+Example:
 
  a: context [
  	b: 123
@@ -1789,7 +1789,7 @@ From nested namespaces, in order to access an indentifier from global context wh
 
  <name> : identifer or access path
 
-<u>Example</u>:
+Example:
 
  b: 123
  
@@ -1813,9 +1813,9 @@ In order to limit source code verbosity, the namespace prefix can be omitted if 
  <names> : list of namespace identifiers
  <code>  : body block of code
 
-Note: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
+<u>Note</u>: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
 
-<u>Example</u>:
+Example:
 
  a: context [b: 0]
  c: context [b: 1 d: 123]
