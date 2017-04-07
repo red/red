@@ -321,6 +321,8 @@ block: context [
 		size	[integer!]
 		return: [red-block!]
 	][
+		if size < 0 [size: 1]
+		
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
 		blk/node: 	alloc-cells size
