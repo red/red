@@ -1230,6 +1230,7 @@ simple-io: context [
 				res: as red-value! none-value
 				len: -1
 				buf-ptr: 0
+				bstr-d: null
 				clsid: declare tagGUID
 				async: declare tagVARIANT
 				body:  declare tagVARIANT
@@ -1318,7 +1319,7 @@ simple-io: context [
 							SysFreeString as byte-ptr! buf-ptr
 						]
 					]
-					if method = HTTP_POST [SysFreeString bstr-d]
+					if all [method = HTTP_POST bstr-d <> null][SysFreeString bstr-d]
 					hr: http/ResponseBody IH/ptr body
 				]
 
