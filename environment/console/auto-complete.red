@@ -10,8 +10,34 @@ Red [
 	}
 ]
 
+has-common-part?: no
+
+common-substr: func [
+	blk		[block!]
+	/local a b
+][
+	has-common-part?: either 1 < length? blk [
+		sort blk
+		a: first blk
+		b: last blk
+		while [
+			all [
+				not tail? a
+				not tail? b
+				(first a) = first b		;@@ cannot use a/1 as 'a may be a file!
+			]
+		][
+			a: next a
+			b: next b
+		]
+		insert blk copy/part head a a
+		yes
+	][no]
+]
+
 red-complete-path: func [
-	str [string!]
+	str		 [string!]
+	console? [logic!]
 	/local s result word w1 ptr words first? sys-word w
 ][
 	result: make block! 4
@@ -50,15 +76,17 @@ red-complete-path: func [
 		]
 	]
 
-	if 1 = length? result [
+	if console? [common-substr result]
+	if any [1 = length? result has-common-part?] [
 		poke result 1 append copy/part s word result/1
 	]
 	result
 ]
 
 red-complete-file: func [
-	str [string!]
-	/local file result path word f files replace?
+	str		 [string!]
+	console? [logic!]
+	/local file result path word f files replace? change?
 ][
 	result: make block! 4
 	file: to file! next str
@@ -79,7 +107,8 @@ red-complete-file: func [
 			append result f
 		]
 	]
-	if 1 = length? result [
+	if console? [common-substr result]
+	if any [1 = length? result has-common-part?] [
 		poke result 1 append copy/part str either replace? [word][1] result/1
 	]
 	result
@@ -88,8 +117,11 @@ red-complete-file: func [
 red-complete-input: func [
 	str		 [string!]
 	console? [logic!]
-	/local word ptr result sys-word delim? len insert? start end delimiters d w
+	/local
+		word ptr result sys-word delim? len insert?
+		start end delimiters d w change?
 ][
+	has-common-part?: no
 	result: make block! 4
 	delimiters: [#"^-" #" " #"[" #"(" #":" #"'" #"{"]
 	delim?: no
@@ -110,7 +142,7 @@ red-complete-input: func [
 				1 < length? word
 			][
 				append result 'file
-				append result red-complete-file word
+				append result red-complete-file word console?
 			]
 			all [
 				#"/" <> word/1
@@ -118,7 +150,7 @@ red-complete-input: func [
 				#" " <> pick ptr -1
 			][
 				append result 'path
-				append result red-complete-path word
+				append result red-complete-path word console?
 			]
 			true [
 				append result 'word
@@ -131,14 +163,17 @@ red-complete-input: func [
 					]
 				]
 				if ptr: find result word [swap next result ptr]
+				if console? [common-substr next result]
 			]
 		]
 	]
 	if console? [result: next result]
-	if all [console? 1 = length? result][
-		either word = result/1 [
-			clear result
-		][
+
+	if all [console? any [has-common-part? 1 = length? result]][
+		if word = result/1 [
+			unless has-common-part? [clear result]
+		]
+		unless empty? result [
 			either any [insert? delim?] [
 				str: append copy/part str start result/1
 				poke result 1 tail str
