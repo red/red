@@ -1957,6 +1957,7 @@ OS-to-image: func [
 		height	[integer!]
 		bmp		[handle!]
 		bitmap	[integer!]
+		flags	[integer!]
 		img		[red-image!]
 		word	[red-word!]
 		size	[red-pair!]
@@ -1988,7 +1989,8 @@ OS-to-image: func [
 	either screen? [
 		BitBlt mdc 0 0 width height hScreen rect/left rect/top SRCCOPY
 	][
-		SendMessage hWnd 0317h as-integer mdc 62				;-- WM_PRINT
+		flags: either win8+? [2][0]
+		PrintWindow hWnd mdc flags
 	]
 
 	bitmap: 0

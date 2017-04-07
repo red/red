@@ -434,7 +434,7 @@ image: context [
 		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
 			return copy as red-image! spec proto null yes null
 		]
-		#either sub-system = 'gui [
+		#either modules contains 'View [
 			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
 			#call [face? spec]
 			ret: as red-logic! stack/arguments

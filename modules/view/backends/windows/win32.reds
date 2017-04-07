@@ -1510,6 +1510,11 @@ XFORM!: alias struct! [
 			y			[integer!]
 			return:		[integer!]
 		]
+		PrintWindow: "PrintWindow" [
+			hWnd		[handle!]
+			dc			[handle!]
+			flag		[integer!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		GetTextFace: 	"GetTextFaceW" [
