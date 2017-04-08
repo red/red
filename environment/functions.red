@@ -386,7 +386,7 @@ save: function [
 		if word? format [
 			either codec: select system/codecs format [
 				data: do [codec/encode value dst]
-				if dst [exit]
+				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
 			][exit]
 		]
 	][
@@ -399,7 +399,7 @@ save: function [
 		foreach [name codec] system/codecs [
 			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
 				data: do [codec/encode value dst]
-				if dst [exit]
+				if same? data dst [exit]
 				find-encoder?: yes
 			]
 		]
