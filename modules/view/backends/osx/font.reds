@@ -155,7 +155,6 @@ free-font: func [
 ][
 	hFont: get-font-handle font
 	if hFont <> null [
-		objc_msgSend [hFont sel_getUid "release"]
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]
