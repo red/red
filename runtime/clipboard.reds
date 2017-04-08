@@ -215,5 +215,18 @@ clipboard: context [
 			as logic! res
 		]
 	]
-	#default []											;-- Linux...
+	#default [
+		read: func [
+			return:		[red-value!]
+		][
+			none-value
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+		][
+			true
+		]
+	]											;-- Linux...
 ]]
