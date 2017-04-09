@@ -1519,6 +1519,7 @@ XFORM!: alias struct! [
 			hWnd		[handle!]
 			dc			[handle!]
 			flag		[integer!]
+			return:		[integer!]
 		]
 	]
 	"gdi32.dll" stdcall [
