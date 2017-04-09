@@ -167,8 +167,8 @@ OS-draw-fill-pen: func [
 ][
 	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen dc/grad-pen: -1]
 	either off? [dc/brush?: no][
+		dc/brush?: yes
 		if dc/brush-color <> color [
-			dc/brush?: yes
 			dc/brush-color: color
 			CG-set-color dc/raw color yes
 		]
