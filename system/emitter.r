@@ -13,7 +13,7 @@ emitter: make-profilable context [
 	code-buf:  make binary! 100'000
 	data-buf:  make binary! 100'000
 	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
-	stack: 	   make hash! 40			;-- [name offset ...]
+	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
@@ -177,6 +177,13 @@ emitter: make-profilable context [
 		]		
 		entry/2
 	]
+	
+	local-offset?: func [var [word!] /local pos][
+		all [
+			pos: select/skip stack var 2
+			pos/1
+		]
+	]
 
 	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
 		if all [with block? op][op: op/1]
@@ -326,7 +333,7 @@ emitter: make-profilable context [
 			type: new
 		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
-			find stack name								;-- local variable
+			local-offset? name							;-- local variable
 			find symbols name 							;-- known symbol
 		]
 		either all [
@@ -581,6 +588,12 @@ emitter: make-profilable context [
 			]
 		)]]
 		size
+	]
+	
+	push-struct: func [expr spec [block!] /local bytes][
+		target/emit-load expr
+		bytes: member-offset? spec/2 none
+		target/emit-push-struct round/ceiling bytes / target/stack-width
 	]
 	
 	init-loop-jumps: does [

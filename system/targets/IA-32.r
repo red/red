@@ -96,7 +96,7 @@ make-profilable make target-class [
 		if object? name [name: compiler/unbox name]
 		
 		case [
-			offset: select emitter/stack name [
+			offset: emitter/local-offset? name [
 				offset: stack-encode offset 			;-- local variable case
 				either block? lcode: adjust-disp32 lcode offset [
 					emit reduce bind lcode 'offset
@@ -686,7 +686,7 @@ make-profilable make target-class [
 						spec/2 = 'routine
 					]
 					all [
-						select emitter/stack value
+						emitter/local-offset? value
 						'function! = first compiler/get-type value
 					]
 				][
@@ -702,7 +702,7 @@ make-profilable make target-class [
 							#{8B45}					;-- MOV eax, [ebp+n]	; local	
 					]
 				][
-					either offset: select emitter/stack value [
+					either offset: emitter/local-offset? value [
 						offset: stack-encode offset	;-- n
 						emit adjust-disp32 pick [
 							#{8D55}					;-- LEA edx, [ebp+n]	; local
@@ -792,7 +792,7 @@ make-profilable make target-class [
 				]
 			]
 			get-word! [
-				either find emitter/stack to word! value [
+				either emitter/local-offset? to word! value [
 					emit-store name <last> none
 				][
 					value: emitter/get-symbol-ref to word! value	;-- symbol address
@@ -833,13 +833,27 @@ make-profilable make target-class [
 	]
 	
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved
+		path [path! set-path!] spec [block! none!] /short /local offset type saved name
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
-			spec: second compiler/resolve-type path/1
-			emit-init-path path/1
+			name: to word! path/1
+			spec: second compiler/resolve-type name
+			either all [
+				offset: emitter/local-offset? name
+				'value = last select compiler/locals name
+			][										;-- struct on stack case
+				either 127 < abs offset [
+					emit #{8D85}					;-- LEA eax, [ebp+n]	; 32-bit displacement
+					emit to-bin32 offset
+				][
+					emit #{8D45}					;-- LEA eax, [ebp+n]	; 8-bit displacement
+					emit to-bin8 offset
+				]
+			][
+				emit-init-path name
+			]
 		]
 		if short [return spec]
 		
@@ -1093,6 +1107,23 @@ make-profilable make target-class [
 		length? jmp
 	]
 	
+	emit-push-struct: func [slots [integer!]][		;-- number of 32-bit slots
+		either slots <= 5 [							;-- 5 is the breaking point where the loop takes less opcodes
+			repeat i slots - 1 [
+				emit #{FF70}						;-- PUSH [eax+i*<stack-width>] for i > 0
+				emit to-bin8 slots - i * stack-width
+			]
+			emit #{FF30}							;-- PUSH [eax]
+		][
+			emit-reserve-stack slots * stack-width
+			emit #{89C6}							;-- MOV esi, eax
+			emit #{89E7}							;-- MOV edi, esp
+			emit #{B9}								;-- MOV ecx, <size>
+			emit to-bin32 slots
+			emit #{F3A5}							;-- REP MOVS
+		]
+	]
+	
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
@@ -1147,9 +1178,6 @@ make-profilable make target-class [
 			]
 			word! [		
 				type: compiler/get-variable-spec value
-?? type				
-probe compiler/resolve-aliased type
-if type/1 = 'struct! [?? value]				
 				either compiler/any-float? type [
 					either cdecl [width: 8][			;-- promote to C double if required
 						set-width/type any [all [cast cast/type] type]
@@ -1168,7 +1196,7 @@ if type/1 = 'struct! [?? value]
 			]
 			get-word! [
 				value: to word! value
-				either offset: select emitter/stack value [
+				either offset: emitter/local-offset? value [
 					either 'function! = first compiler/get-type value [
 						emit-variable value
 							none

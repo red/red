@@ -2828,22 +2828,28 @@ system-dialect: make-profilable context [
 			if args/1 <> #custom [
 				type: second fspec: functions/:name
 				either type <> 'op [
-?? fspec
-?? list
 					all [
 						not empty? list
-						types: find/last fspec/4 return-def
+						not all [block? fspec/4/1 intersect fspec/4/1 [variadic typed]]
+						types: any [
+							find/last fspec/4 return-def
+							find/last fspec/4 /local
+							tail fspec/4
+						]
 						types: back types
 					]
-?? types					
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							
-							emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
+							either all [types 'value = last types/1][
+								emitter/push-struct expr compiler/resolve-aliased types/1
+							][
+								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
+							]
 						]
+						if types [types: skip types -2]
 					]
 				][										;-- nested calls as op argument require special handling
 					if any [string? list/1 string? list/2][
