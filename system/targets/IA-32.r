@@ -230,7 +230,8 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-reserve-stack: func [bytes [integer!] /save][
+	emit-reserve-stack: func [slots [integer!] /local bytes][
+		bytes: slots * stack-width
 		either bytes > 127 [
 			emit #{81EC}							;-- SUB esp, bytes	; 32-bit displacement
 			emit to-bin32 bytes
@@ -238,7 +239,6 @@ make-profilable make target-class [
 			emit #{83EC}							;-- SUB esp, bytes	; 8-bit displacement
 			emit to-bin8 bytes
 		]
-		if save [emit #{}]							;-- MOV ??, esp
 	]
 	
 	emit-release-stack: func [bytes [integer!]][
@@ -1115,7 +1115,7 @@ make-profilable make target-class [
 			]
 			emit #{FF30}							;-- PUSH [eax]
 		][
-			emit-reserve-stack slots * stack-width
+			emit-reserve-stack slots
 			emit #{89C6}							;-- MOV esi, eax
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{B9}								;-- MOV ecx, <size>
@@ -2025,8 +2025,7 @@ make-profilable make target-class [
 		emit-push 0									;-- reserve slot for catch resume address
 
 		unless zero? locals-size [
-			locals-size: round/to/ceiling locals-size 4
-			emit-reserve-stack locals-size
+			emit-reserve-stack round/to/ceiling locals-size stack-width
 		]
 		if any [
 			fspec/5 = 'callback
@@ -2045,10 +2044,32 @@ make-profilable make target-class [
 	]
 
 	emit-epilog: func [
-		name [word!] locals [block!] args-size [integer!] locals-size [integer!]
-		/local fspec attribs
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
+		/local fspec attribs vars
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
+		
+		if slots [
+			case [
+				slots = 1 [emit #{8B00}]			;-- MOV eax, [eax]
+				slots = 2 [
+					emit #{8B5004}					;-- MOV edx, [eax+4]
+					emit #{8B00}					;-- MOV eax, [eax]
+				]
+				'else [
+					vars: emitter/stack
+					if vars/1 <> <ptr> [
+						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+					]
+					emit #{89C6}					;-- MOV esi, eax
+					emit #{8B7D}					;-- MOV edi, [ebp+<ptr>]
+					emit to-bin8 vars/2
+					emit #{B9}						;-- MOV ecx, <size>
+					emit to-bin32 slots
+					emit #{F3A5}					;-- REP MOVS
+				]
+			]
+		]
 		
 		fspec: select compiler/functions name
 		if any [

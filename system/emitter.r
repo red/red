@@ -576,24 +576,41 @@ emitter: make-profilable context [
 		]
 	]
 	
+	struct-slots?: func [spec [block!] /direct][
+		unless direct [
+			if 'struct! <> spec/1 [spec: compiler/find-aliased spec/1]
+			spec: spec/2
+		]
+		round/ceiling (member-offset? spec none) / target/stack-width
+	]
+	
 	arguments-size?: func [locals [block!] /push /local size name type by-val?][
-		if push [clear stack]
 		size: 0
+		if push [
+			clear stack
+			if all [
+				ret: select locals compiler/return-def
+				'value = last ret
+				2 < struct-slots? ret
+			][
+				repend stack [<ptr> target/args-offset]
+				size: 4
+			]
+		]
 		parse locals [opt block! any [set name word! set type block! (
 			by-val?: 'value = last type
 			if push [repend stack [name size + target/args-offset]]
 			size: size + max size-of? type/1 either not by-val? [target/stack-width][
-				type: compiler/find-aliased type/1			
+				type: compiler/find-aliased type/1
 				member-offset? type/2 none
 			]
 		)]]
 		size
 	]
 	
-	push-struct: func [expr spec [block!] /local bytes][
+	push-struct: func [expr spec [block!]][
 		target/emit-load expr
-		bytes: member-offset? spec/2 none
-		target/emit-push-struct round/ceiling bytes / target/stack-width
+		target/emit-push-struct struct-slots?/direct spec/2
 	]
 	
 	init-loop-jumps: does [
@@ -644,8 +661,7 @@ emitter: make-profilable context [
 					sz: target/stack-slot-max			;-- type to be inferred
 				]
 				repend stack [
-					var
-					(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
+					var	(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
 				]
 			]
 			locals-sz: abs locals-sz
@@ -655,9 +671,16 @@ emitter: make-profilable context [
 		args-sz
 	]
 	
-	leave: func [name [word!] locals [block!] args-sz [integer!] locals-sz [integer!]][
+	leave: func [
+		name [word!] locals [block!] args-sz [integer!] locals-sz [integer!] rspec [block! none!]
+		/local slots
+	][
+		if rspec [
+			if verbose >= 2 [print ["returns struct-by-value:" mold rspec]]
+			slots: struct-slots?/direct rspec
+		]
 		unless empty? exits [resolve-exit-points]
-		target/emit-epilog name locals args-sz locals-sz
+		target/emit-epilog/with name locals args-sz locals-sz slots
 	]
 	
 	import: func [name [word!] reloc [block!] /var /local type][

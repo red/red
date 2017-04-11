@@ -2786,13 +2786,19 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+		
+		get-root-caller: has [list found?][
+			list: back tail expr-call-stack
+			while [found?: find calling-keywords list/1][list: back list]
+			all [not found? list/1]
+		]
 
 		comp-call: func [
 			name [word!] args [block!]
-			/sub
+			/sub										;FIXME: never used!
 			/local
 				list type res align? left right dup var-arity? saved? arg expr spec fspec
-				ret-struct-value? bytes types
+				ret-value? types slots caller
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2801,11 +2807,9 @@ system-dialect: make-profilable context [
 				check-arguments-type name args
 				args
 			]
-			order-args name list						;-- reorder argument according to cconv
-
 			spec: functions/:name
-			if ret-struct-value?: all [
-				not sub									;-- if the returned struct is not used,
+			
+			if all [
 				type: select spec/4 return-def
 				'value = last type
 				any [
@@ -2813,9 +2817,21 @@ system-dialect: make-profilable context [
 					'struct! = first type: resolve-aliased type
 				]
 			][
-				bytes: emitter/member-offset? type/2 none
-				emitter/target/emit-reserve-stack/save bytes ;-- reserve space on stack for the hidden pointer
+				if 2 < slots: emitter/struct-slots?/direct type/2 [
+					caller: either empty? expr-call-stack [none][get-root-caller]
+					
+					insert list switch/default type?/word caller [
+						none!	  [<ptr>]
+						set-word! [bind to word! caller caller]
+						word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+					][
+						throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
+					]
+				]
 			]
+			
+			order-args name list						;-- reorder argument according to cconv
+			
 			align?: all [
 				args/1 <> #custom
 				any [
@@ -2843,8 +2859,8 @@ system-dialect: make-profilable context [
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							either all [types 'value = last types/1][
-								emitter/push-struct expr compiler/resolve-aliased types/1
+							either all [types not tag? expr 'value = last types/1][
+								emitter/push-struct expr resolve-aliased types/1
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
 							]
@@ -2875,7 +2891,7 @@ system-dialect: make-profilable context [
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if align? [emitter/target/emit-stack-align-epilog args]
-			if ret-struct-value? [emitter/target/emit-release-stack bytes]
+			if ret-value? [emitter/target/emit-release-stack slots]
 			res
 		]
 				
@@ -3282,8 +3298,15 @@ system-dialect: make-profilable context [
 					emitter/target/emit-casting expr no	;-- insert runtime type casting when required
 					last-type: expr/type
 				]
+				ret: all [
+					'value = last ret
+					any [
+						all [ret/1 = 'struct! ret/2]
+						all [ret: resolve-aliased ret ret/1 = 'struct! ret/2]
+					]
+				]
 			]
-			emitter/leave name locals args-sz local-sz	;-- build function epilog
+			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
 			clear locals-init
 			locals: func-name: none
