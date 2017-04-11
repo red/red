@@ -1333,12 +1333,64 @@ OS-draw-shape-axis: func [
 	CGContextAddLineToPoint dc/raw dc/last-pt-x dc/last-pt-y
 ]
 
+draw-curve: func [
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
+	num		[integer!]				;--	number of points
+	/local
+		dx		[float32!]
+		dy		[float32!]
+		p3y		[float32!]
+		p3x		[float32!]
+		p2y		[float32!]
+		p2x		[float32!]
+		p1y		[float32!]
+		p1x		[float32!]
+		pf		[float32-ptr!]
+		pt		[red-pair!]
+][
+	pt: start + 1
+	p1x: as float32! start/x
+	p1y: as float32! start/y
+	p2x: as float32! pt/x
+	p2y: as float32! pt/y
+
+	if num = 3 [					;-- cubic Bézier
+		pt: start + 2
+		p3x: as float32! pt/x
+		p3y: as float32! pt/y
+	]
+	if rel? [
+		pf: :p1x
+		dx: dc/last-pt-x
+		dy: dc/last-pt-y
+		loop num [
+			pf/1: pf/1 + dx			;-- x
+			pf/2: pf/2 + dy			;-- y
+			pf: pf + 2
+		]
+	]
+	
+	either num = 3 [				;-- cubic Bézier
+		CGContextAddCurveToPoint dc/raw p1x p1y p2x p2y p3x p3y
+		dc/last-pt-x: p3x
+		dc/last-pt-y: p3y
+	][								;-- quadratic Bézier
+		CGContextAddQuadCurveToPoint dc/raw p1x p1y p2x p2y
+		dc/last-pt-x: p2x
+		dc/last-pt-y: p2y
+	]
+]
+
 OS-draw-shape-curve: func [
 	dc      [draw-ctx!]
 	start   [red-pair!]
 	end     [red-pair!]
 	rel?    [logic!]
 ][
+	draw-curve dc start end rel? 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -1347,7 +1399,7 @@ OS-draw-shape-qcurve: func [
 	end     [red-pair!]
 	rel?    [logic!]
 ][
-	;draw-curves dc start end rel? 2
+	draw-curve dc start end rel? 2
 ]
 
 OS-draw-shape-curv: func [
