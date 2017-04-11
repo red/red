@@ -1268,6 +1268,7 @@ OS-draw-shape-moveto: func [
 	]
 	dc/last-pt-x: x
 	dc/last-pt-y: y
+	dc/shape-curve?: no
 	CGContextMoveToPoint ctx x y
 ]
 
@@ -1312,6 +1313,7 @@ OS-draw-shape-line: func [
 	]
 	dc/last-pt-x: pt/x
 	dc/last-pt-y: pt/y
+	dc/shape-curve?: no
 	CGContextAddLines ctx edges nb
 ]
 
@@ -1330,6 +1332,7 @@ OS-draw-shape-axis: func [
 	][
 		dc/last-pt-y: either rel? [dc/last-pt-y + len][len]
 	]
+	dc/shape-curve?: no
 	CGContextAddLineToPoint dc/raw dc/last-pt-x dc/last-pt-y
 ]
 
@@ -1338,6 +1341,7 @@ draw-curve: func [
 	start	[red-pair!]
 	end		[red-pair!]
 	rel?	[logic!]
+	short?	[logic!]
 	num		[integer!]				;--	number of points
 	/local
 		dx		[float32!]
@@ -1356,29 +1360,47 @@ draw-curve: func [
 	p1y: as float32! start/y
 	p2x: as float32! pt/x
 	p2y: as float32! pt/y
-
 	if num = 3 [					;-- cubic Bézier
 		pt: start + 2
 		p3x: as float32! pt/x
 		p3y: as float32! pt/y
 	]
+
+	dx: dc/last-pt-x
+	dy: dc/last-pt-y
 	if rel? [
 		pf: :p1x
-		dx: dc/last-pt-x
-		dy: dc/last-pt-y
 		loop num [
 			pf/1: pf/1 + dx			;-- x
 			pf/2: pf/2 + dy			;-- y
 			pf: pf + 2
 		]
 	]
-	
+
+	if short? [
+		either dc/shape-curve? [
+			;-- The control point is assumed to be the reflection of the control point
+			;-- on the previous command relative to the current point
+			p1x: dx * 2.0 - dc/control-x
+			p1y: dy * 2.0 - dc/control-y		
+		][
+			;-- if previous command is not curve/curv/qcurve/qcurv, use current point
+			p1x: dx
+			p1y: dy
+		]
+	]
+
+	dc/shape-curve?: yes
 	either num = 3 [				;-- cubic Bézier
 		CGContextAddCurveToPoint dc/raw p1x p1y p2x p2y p3x p3y
+		dc/control-x: p2x
+		dc/control-y: p2y
 		dc/last-pt-x: p3x
 		dc/last-pt-y: p3y
 	][								;-- quadratic Bézier
 		CGContextAddQuadCurveToPoint dc/raw p1x p1y p2x p2y
+		dc/control-x: p1x
+		dc/control-y: p1y
 		dc/last-pt-x: p2x
 		dc/last-pt-y: p2y
 	]
@@ -1390,7 +1412,7 @@ OS-draw-shape-curve: func [
 	end     [red-pair!]
 	rel?    [logic!]
 ][
-	draw-curve dc start end rel? 3
+	draw-curve dc start end rel? no 3
 ]
 
 OS-draw-shape-qcurve: func [
@@ -1399,7 +1421,7 @@ OS-draw-shape-qcurve: func [
 	end     [red-pair!]
 	rel?    [logic!]
 ][
-	draw-curve dc start end rel? 2
+	draw-curve dc start end rel? no 2
 ]
 
 OS-draw-shape-curv: func [
@@ -1408,7 +1430,7 @@ OS-draw-shape-curv: func [
 	end     [red-pair!]
 	rel?    [logic!]
 ][
-	;draw-short-curves dc start end rel? 2
+	draw-curve dc start - 1 end rel? yes 3
 ]
 
 OS-draw-shape-qcurv: func [
@@ -1417,7 +1439,7 @@ OS-draw-shape-qcurv: func [
 	end     [red-pair!]
 	rel?    [logic!]
 ][
-	;draw-short-curves dc start end rel? 1
+	draw-curve dc start - 1 end rel? yes 2
 ]
 
 OS-draw-shape-arc: func [

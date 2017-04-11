@@ -118,6 +118,9 @@ Red/System [
 		on-image?		[logic!]					;-- drawing on image?
 		last-pt-x		[float32!]					;-- below used by shape
 		last-pt-y		[float32!]
+		control-x		[float32!]
+		control-y		[float32!]
+		shape-curve?	[logic!]
 	]
 ]
 
