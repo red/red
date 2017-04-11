@@ -132,20 +132,23 @@ Red [
 		   --assert 36000.0 = to float! 10:00
 ===end-group===
 ===start-group=== "to-pair!"
-	--test-- "to-pair!-integer!"
-		--assert 123x123 = to pair! 123
-	--test-- "to-pair!-integer!"
-		--assert 256x256 = to pair! 256
-;	--test-- "to-pair!-float!"
-;		--assert 1.5x1.5 = to pair! 1.5
-	--test-- "to-pair!-integer!"
-		--assert -1x-1 = to pair! -1
-;	   --test-- "to-pair!-float!"
-;		   --assert -1.5x-1.5 = to pair! -1.5
-	--test-- "to-pair!-pair!"
-		--assert 1x2 = to pair! 1x2
-	--test-- "to-pair!-block!"
-		--assert 1x2 = to pair! [1 2]
+
+	--test-- "to-pair!-integer!"			--assert 123x123 = to pair! 123
+	--test-- "to-pair!-integer!"			--assert 256x256 = to pair! 256
+;	--test-- "to-pair!-float!"				--assert 1.5x1.5 = to pair! 1.5
+	--test-- "to-pair!-integer!"			--assert -1x-1 = to pair! -1
+;	   --test-- "to-pair!-float!"			--assert -1.5x-1.5 = to pair! -1.5
+	--test-- "to-pair!-pair!"				--assert 1x2 = to pair! 1x2
+	--test-- "to-pair!-block!"				--assert 1x2 = to pair! [1 2]
+	;--test-- "to-pair!-float!-1"			
+		;--assert 2147483648.0x-2147483648.0 = to pair! 2147483648.0
+		;--assert float! = type? first to pair! 2147483648.0
+		;--assert float! = type? second to pair! 2147483648.0
+	;--test-- "to-pair!-float!-2"			
+		;--assert 2147483648.0x-2147483648.0 = to pair! 2147483648
+		;--assert float! = type? first to pair! 2147483648
+		;--assert float! = type? second to pair! 2147483648
+
 ===end-group===
 ===start-group=== "to-word!"
 	--test-- "to-word!-char!"
