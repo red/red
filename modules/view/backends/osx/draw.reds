@@ -1231,19 +1231,19 @@ OS-set-clip: func [
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
-    dc          [draw-ctx!]
-    /local
-        path    [integer!]
+	dc          [draw-ctx!]
+	/local
+		path    [integer!]
 ][
 	CGContextBeginPath dc/raw
 ]
 
 OS-draw-shape-endpath: func [
-    dc          [draw-ctx!]
-    close?      [logic!]
-    return:     [logic!]
-    /local
-        alpha   [byte!]
+	dc          [draw-ctx!]
+	close?      [logic!]
+	return:     [logic!]
+	/local
+		alpha   [byte!]
 ][
 	if close? [CGContextClosePath dc/raw]
 	do-draw-path dc
@@ -1251,13 +1251,13 @@ OS-draw-shape-endpath: func [
 ]
 
 OS-draw-shape-moveto: func [
-    dc      [draw-ctx!]
-    coord   [red-pair!]
-    rel?    [logic!]
-    /local
-    	ctx [handle!]
-    	x	[float32!]
-    	y	[float32!]
+	dc      [draw-ctx!]
+	coord   [red-pair!]
+	rel?    [logic!]
+	/local
+		ctx [handle!]
+		x	[float32!]
+		y	[float32!]
 ][
 	ctx: dc/raw
 	x: as float32! coord/x
@@ -1272,10 +1272,10 @@ OS-draw-shape-moveto: func [
 ]
 
 OS-draw-shape-line: func [
-    dc          [draw-ctx!]
-    start       [red-pair!]
-    end         [red-pair!]
-    rel?        [logic!]
+	dc          [draw-ctx!]
+	start       [red-pair!]
+	end         [red-pair!]
+	rel?        [logic!]
 	/local
 		pt		[CGPoint!]
 		nb		[integer!]
@@ -1316,57 +1316,65 @@ OS-draw-shape-line: func [
 ]
 
 OS-draw-shape-axis: func [
-    dc          [draw-ctx!]
-    start       [red-value!]
-    end         [red-value!]
-    rel?        [logic!]
-    hline       [logic!]
+	dc          [draw-ctx!]
+	start       [red-value!]
+	end         [red-value!]
+	rel?        [logic!]
+	hline?      [logic!]
+	/local
+		len		[float32!]
 ][
-	
+	len: get-float32 as red-integer! start
+	either hline? [
+		dc/last-pt-x: either rel? [dc/last-pt-x + len][len]
+	][
+		dc/last-pt-y: either rel? [dc/last-pt-y + len][len]
+	]
+	CGContextAddLineToPoint dc/raw dc/last-pt-x dc/last-pt-y
 ]
 
 OS-draw-shape-curve: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc      [draw-ctx!]
+	start   [red-pair!]
+	end     [red-pair!]
+	rel?    [logic!]
 ][
 ]
 
 OS-draw-shape-qcurve: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc      [draw-ctx!]
+	start   [red-pair!]
+	end     [red-pair!]
+	rel?    [logic!]
 ][
-    ;draw-curves dc start end rel? 2
+	;draw-curves dc start end rel? 2
 ]
 
 OS-draw-shape-curv: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc      [draw-ctx!]
+	start   [red-pair!]
+	end     [red-pair!]
+	rel?    [logic!]
 ][
-    ;draw-short-curves dc start end rel? 2
+	;draw-short-curves dc start end rel? 2
 ]
 
 OS-draw-shape-qcurv: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc      [draw-ctx!]
+	start   [red-pair!]
+	end     [red-pair!]
+	rel?    [logic!]
 ][
-    ;draw-short-curves dc start end rel? 1
+	;draw-short-curves dc start end rel? 1
 ]
 
 OS-draw-shape-arc: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-value!]
-    sweep?  [logic!]
-    large?  [logic!]
-    rel?    [logic!]
+	dc      [draw-ctx!]
+	start   [red-pair!]
+	end     [red-value!]
+	sweep?  [logic!]
+	large?  [logic!]
+	rel?    [logic!]
 ][
 	
 ]
