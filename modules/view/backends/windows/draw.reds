@@ -309,7 +309,6 @@ draw-begin: func [
 	ctx/other/path-last-point/y:			0
 	ctx/other/matrix-order:					GDIPLUS_MATRIXORDERAPPEND
 	ctx/other/connect-subpath:				0
-	ctx/other/last-point?:					no
 	ctx/other/anti-alias?:					no
 	ptrn:									as red-image! ctx/other/pattern-image-fill
 	ptrn/node:								null

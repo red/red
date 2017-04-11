@@ -116,6 +116,8 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]					;-- drawing on image?
+		last-pt-x		[float32!]					;-- below used by shape
+		last-pt-y		[float32!]
 	]
 ]
 

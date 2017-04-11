@@ -54,6 +54,8 @@ draw-begin: func [
 	ctx/pen?:			yes
 	ctx/brush?:			no
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
+	ctx/last-pt-x:		as float32! 0.0
+	ctx/last-pt-y:		as float32! 0.0
 
 	ctx/font-attrs: objc_msgSend [				;-- default font attributes
 		objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
@@ -1233,7 +1235,7 @@ OS-draw-shape-beginpath: func [
     /local
         path    [integer!]
 ][
-
+	CGContextBeginPath dc/raw
 ]
 
 OS-draw-shape-endpath: func [
@@ -1243,6 +1245,8 @@ OS-draw-shape-endpath: func [
     /local
         alpha   [byte!]
 ][
+	if close? [CGContextClosePath dc/raw]
+	do-draw-path dc
 	true
 ]
 
@@ -1250,8 +1254,21 @@ OS-draw-shape-moveto: func [
     dc      [draw-ctx!]
     coord   [red-pair!]
     rel?    [logic!]
+    /local
+    	ctx [handle!]
+    	x	[float32!]
+    	y	[float32!]
 ][
-	
+	ctx: dc/raw
+	x: as float32! coord/x
+	y: as float32! coord/y
+	if rel? [
+		x: dc/last-pt-x + x
+		y: dc/last-pt-y + y
+	]
+	dc/last-pt-x: x
+	dc/last-pt-y: y
+	CGContextMoveToPoint ctx x y
 ]
 
 OS-draw-shape-line: func [
@@ -1259,8 +1276,43 @@ OS-draw-shape-line: func [
     start       [red-pair!]
     end         [red-pair!]
     rel?        [logic!]
+	/local
+		pt		[CGPoint!]
+		nb		[integer!]
+		pair	[red-pair!]
+		ctx		[handle!]
+		x		[float32!]
+		y		[float32!]
 ][
+	ctx:	dc/raw
+	pt:		edges
+	pair:	start
+	nb:		0
 
+	x: dc/last-pt-x
+	y: dc/last-pt-y
+
+	pt/x: x
+	pt/y: y
+	nb: nb + 1
+	pt: pt + 1
+
+	while [all [pair <= end nb < max-edges]][
+		pt/x: as float32! pair/x
+		pt/y: as float32! pair/y
+		if rel? [
+			x: x + pt/x
+			y: y + pt/y
+			pt/x: x
+			pt/y: y
+		]
+		nb: nb + 1
+		pt: pt + 1
+		pair: pair + 1
+	]
+	dc/last-pt-x: pt/x
+	dc/last-pt-y: pt/y
+	CGContextAddLines ctx edges nb
 ]
 
 OS-draw-shape-axis: func [
