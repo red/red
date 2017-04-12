@@ -86,10 +86,10 @@ Red [
 	--test-- "to-integer!-17"			--assert -2147483647 == to integer! -2147483647.999999
 	--test-- "to-integer!-18"			--assert -2147483648 == to integer! -2147483647.9999999
 	--test-- "to-integer!-19"			--assert 2 == to integer! 1.9999999999999999
-	;--test-- "to-integer!-20"			--assert 34200.0 == to integer! 09:30
-	;--test-- "to-integer!-21"			--assert 32400.0 == to integer! 09:00
+	--test-- "to-integer!-20"			--assert 34200 == to integer! 09:30
+	--test-- "to-integer!-21"			--assert 32400 == to integer! 09:00
 	--test-- "to-integer!-22"			--assert 86399 == to integer! 23:59:59
-	--test-- "to-integer!-23"			--assert 86399 == to integer! 23:59:59.999999
+	--test-- "to-integer!-23"			--assert 86400 == to integer! 23:59:59.999999
 	
 ===end-group===
 
