@@ -399,7 +399,7 @@ integer: context [
 			]
 			TYPE_TIME [
 				t: as red-time! spec
-				int/value: as-integer t/time / time/oneE9
+				int/value: as-integer t/time / time/oneE9 + 0.5
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
