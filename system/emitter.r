@@ -327,7 +327,7 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal? saved
+		/local new new-global? ptr refs n-spec spec literal? saved slots
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
@@ -365,7 +365,19 @@ emitter: make-profilable context [
 			if new-global? [spec: store-value name value type] ;-- store new variable with value
 		]
 		if all [name not all [new-global? literal?]][	;-- emit dynamic loading code when required
-			target/emit-store name value spec
+			either all [
+				value = <last>
+				'value = last spec: compiler/last-type
+				any [
+					'struct! = spec/1
+					'struct! = first spec: compiler/resolve-aliased type
+				]
+			][
+				slots: struct-slots?/direct spec/2
+				target/emit-store/by-value name value spec slots ;-- struct-by-value case
+			][
+				target/emit-store name value spec
+			]
 		]
 	]
 		
@@ -593,7 +605,7 @@ emitter: make-profilable context [
 				'value = last ret
 				2 < struct-slots? ret
 			][
-				repend stack [<ptr> target/args-offset]
+				repend stack [<ret-ptr> target/args-offset]
 				size: 4
 			]
 		]
@@ -605,6 +617,7 @@ emitter: make-profilable context [
 				member-offset? type/2 none
 			]
 		)]]
+		if push [repend stack [<top> size + target/args-offset]] ;-- frame's top ptr
 		size
 	]
 	

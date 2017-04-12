@@ -86,6 +86,15 @@ make-profilable make target-class [
 		data
 	]
 	
+	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
+		if 4 = length? offset [
+			lcode: copy/deep lcode
+			code: either block? lcode [first back find lcode 'offset][lcode]
+			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
+		]
+		lcode
+	]
+
 	emit-variable: func [
 		name  [word! object!] 
 		gcode [binary! block! none!]					;-- global opcodes
@@ -661,19 +670,34 @@ make-profilable make target-class [
 			]
 			word! [
 				with-width-of value [
-					either compiler/any-float? compiler/get-variable-spec value [
-						load-float-variable value
-					][
-						either alt [
-							emit-variable-poly value
-								#{8A15} #{8B15}		;-- MOV rD, [value]		; global
-								#{8A93} #{8B93}		;-- MOV rD, [ebx+disp]	; PIC
-								#{8A55} #{8B55}		;-- MOV rD, [ebp+n]		; local
-						][
-							emit-variable-poly value
-								#{A0}   #{A1}		;-- MOV rA, [value]		; global
-								#{8A83} #{8B83}		;-- MOV rA, [ebx+disp]	; PIC
-								#{8A45} #{8B45}		;-- MOV rA, [ebp+n]		; local	
+					case [
+						compiler/any-float? compiler/get-variable-spec value [
+							load-float-variable value
+						]
+						all [
+							offset: emitter/local-offset? value
+							'value = last select compiler/locals value
+						][							;-- struct on stack case
+							either 127 < abs offset [
+								emit #{8D85}		;-- LEA eax, [ebp+n]	; 32-bit displacement
+								emit to-bin32 offset
+							][
+								emit #{8D45}		;-- LEA eax, [ebp+n]	; 8-bit displacement
+								emit to-bin8 offset
+							]
+						]
+						'else [
+							either alt [
+								emit-variable-poly value
+									#{8A15} #{8B15}	;-- MOV rD, [value]		; global
+									#{8A93} #{8B93}	;-- MOV rD, [ebx+disp]	; PIC
+									#{8A55} #{8B55}	;-- MOV rD, [ebp+n]		; local
+							][
+								emit-variable-poly value
+									#{A0}   #{A1}	;-- MOV rA, [value]		; global
+									#{8A83} #{8B83}	;-- MOV rA, [ebx+disp]	; PIC
+									#{8A45} #{8B45}	;-- MOV rA, [ebp+n]		; local	
+							]
 						]
 					]
 				]
@@ -752,6 +776,7 @@ make-profilable make target-class [
 	emit-store: func [
 		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
+		/by-value slots [integer!]
 		/local store-dword type
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
@@ -781,14 +806,33 @@ make-profilable make target-class [
 				store-float-variable name
 			]
 			word! [
-				either compiler/any-float? compiler/get-variable-spec name [
-					store-float-variable name
-				][
-					set-width name				
-					emit-variable-poly name
-						#{A2} 	#{A3}				;-- MOV [name], rA		; global
-						#{8883} #{8983}				;-- MOV [ebx+disp], rA	; PIC
-						#{8845} #{8945}				;-- MOV [ebp+n], rA		; local
+				case [
+					compiler/any-float? compiler/get-variable-spec name [
+						store-float-variable name
+					]
+					by-value [
+						if slots <= 2 [				;-- if > 2, copied already, do nothing
+							emit-variable name
+								#{8B35}				;-- MOV esi, [value1]	; global
+								#{8BB3}				;-- MOV esi, [ebx+disp]	; PIC	@@
+								#{8B75}				;-- MOV esi, [ebp+n]	; local
+
+							if slots = 2 [
+								set-width/type last spec/2
+								emit-poly [#{8856} #{8956}]	;-- MOV [esi+4], rD
+								emit #{04}
+							]
+							set-width/type spec/2/2
+							emit-poly [#{8806} #{8906}]	;-- MOV [esi], rA
+						]
+					]
+					'else [
+						set-width name
+						emit-variable-poly name
+							#{A2} 	#{A3}			;-- MOV [name], rA		; global
+							#{8883} #{8983}			;-- MOV [ebx+disp], rA	; PIC
+							#{8845} #{8945}			;-- MOV [ebp+n], rA		; local
+					]
 				]
 			]
 			get-word! [
@@ -807,7 +851,6 @@ make-profilable make target-class [
 						do store-dword
 						emit-reloc-addr value
 					]
-					
 				]
 			]
 			string!
@@ -1136,12 +1179,25 @@ make-profilable make target-class [
 		
 		switch type?/word value [
 			tag! [									;-- == <last>
-				either compiler/any-float? compiler/last-type [
-					set-width/type any [all [cast cast/type] compiler/last-type]
-					emit join #{83EC} to-bin8 width	;-- SUB esp, 8|4
-					emit-float #{DD1C24}			;-- FSTP [esp]
-				][
-					emit #{50}						;-- PUSH eax
+				either value = <last> [
+					either compiler/any-float? compiler/last-type [
+						set-width/type any [all [cast cast/type] compiler/last-type]
+						emit #{83EC}				;-- SUB esp, 8|4
+						emit to-bin8 width
+						emit-float #{DD1C24}		;-- FSTP [esp]
+					][
+						emit #{50}					;-- PUSH eax
+					]
+				][									;-- <ret-ptr> and <args-top> cases
+					either empty? emitter/stack [
+						emit-push 0					;-- return ptr is null -> no copy
+					][
+						offset: stack-encode either value = <ret-ptr> [args-offset][
+							emitter/local-offset? <top>
+						]
+						emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
+						emit offset
+					]
 				]
 			]
 			logic! [
@@ -1176,7 +1232,7 @@ make-profilable make target-class [
 				emit #{68}							;-- PUSH low part
 				emit copy/part value 4
 			]
-			word! [		
+			word! [
 				type: compiler/get-variable-spec value
 				either compiler/any-float? type [
 					either cdecl [width: 8][			;-- promote to C double if required
@@ -1800,7 +1856,7 @@ make-profilable make target-class [
 	
 	emit-argument: func [arg fspec [block!]][
 		if arg = #_ [exit]							;-- place-holder, no code to emit
-
+		
 		either all [
 			object? arg
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
@@ -2058,16 +2114,19 @@ make-profilable make target-class [
 				]
 				'else [
 					vars: emitter/stack
-					if vars/1 <> <ptr> [
+					unless find [<ret-ptr> <args-top>] vars/1 [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
-					emit #{89C6}					;-- MOV esi, eax
 					emit #{8B7D}					;-- MOV edi, [ebp+<ptr>]
 					emit to-bin8 vars/2
-					emit #{B9}						;-- MOV ecx, <size>
+					;@@ needs 32-bit disp also !!
+					emit #{83FF00}					;-- CMP edi, 0
+					emit #{7409}					;-- JEQ _null
+					emit #{89C6}					;-- 	MOV esi, eax
+					emit #{B9}						;-- 	MOV ecx, <size>
 					emit to-bin32 slots
-					emit #{F3A5}					;-- REP MOVS
-				]
+					emit #{F3A5}					;-- 	REP MOVS
+				]									;-- _null:
 			]
 		]
 		

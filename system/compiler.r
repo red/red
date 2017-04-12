@@ -2787,10 +2787,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-root-caller: has [list found?][
-			list: back tail expr-call-stack
+		get-caller: has [list found? /root][
+			list: back back tail expr-call-stack
+			unless root [return find calling-keywords list/1]
+			
 			while [found?: find calling-keywords list/1][list: back list]
-			all [not found? list/1]
+			all [not found? not tail? next list list/1]
 		]
 
 		comp-call: func [
@@ -2816,17 +2818,21 @@ system-dialect: make-profilable context [
 					'struct! = type/1
 					'struct! = first type: resolve-aliased type
 				]
+				2 < slots: emitter/struct-slots?/direct type/2
 			][
-				if 2 < slots: emitter/struct-slots?/direct type/2 [
-					caller: either empty? expr-call-stack [none][get-root-caller]
-					
-					insert list switch/default type?/word caller [
-						none!	  [<ptr>]
-						set-word! [bind to word! caller caller]
-						word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+				unless caller: get-caller [
+					caller: either tail? pc [
+						get-caller/root
 					][
-						throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
+						any [get-caller/root 'args-top] ;-- 'args-top is just for routing in SWITCH 
 					]
+				]
+				insert list switch/default type?/word caller [
+					none!	  [<ret-ptr>]
+					set-word! [bind to word! caller caller]
+					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+				][
+					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
 				]
 			]
 			
@@ -2859,7 +2865,7 @@ system-dialect: make-profilable context [
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							either all [types not tag? expr 'value = last types/1][
+							either all [types not tag? expr block? types/1 'value = last types/1][
 								emitter/push-struct expr resolve-aliased types/1
 							][
 								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
@@ -2883,6 +2889,7 @@ system-dialect: make-profilable context [
 				]
 			]
 			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
+			
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
