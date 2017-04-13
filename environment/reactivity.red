@@ -144,7 +144,7 @@ system/reactivity: context [
 	]
 	
 	is~: function [
-		"Defines a reactive relation which result is assigned to a word"
+		"Defines a reactive relation whose result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
 	][
