@@ -1218,6 +1218,7 @@ parser: context [
 						]
 						TYPE_INTEGER [
 							int:  as red-integer! value
+							if int/value < 0 [PARSE_ERROR [TO_ERROR(script out-of-range) int]]
 							int2: as red-integer! cmd + 1
 							if all [
 								int2 < tail
@@ -1232,6 +1233,9 @@ parser: context [
 								all [upper? int/value > int2/value]
 							][
 								PARSE_ERROR [TO_ERROR(script parse-rule) value]
+							]
+							if all [upper? int2/value < 0][
+								PARSE_ERROR [TO_ERROR(script out-of-range) int2]
 							]
 							state: either all [zero? int/value not upper?][
 								cmd: cmd + 1			;-- skip over sub-rule
