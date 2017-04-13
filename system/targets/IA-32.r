@@ -1047,11 +1047,19 @@ make-profilable make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset type2 spec
+		/local idx offset type2 spec by-val? slots
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
-		unless value = <last> [
+		by-val?: 'value = last compiler/last-type
+		
+		either value = <last> [
+			if by-val? [
+				slots: emitter/struct-slots? compiler/last-type
+				if slots = 2 [emit #{52}]			;-- PUSH edx				; saved edx struct member
+				emit #{89C2}						;-- MOV edx, eax
+			]
+		][
 			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
 			emit-load value
 			all [
@@ -1078,19 +1086,49 @@ make-profilable make target-class [
 				set-width/type type/1				;-- adjust operations width to member value size
 				offset: emitter/member-offset? parent path/2
 				
-				either compiler/any-float? type [
-					either zero? offset [
-						emit-float #{DD18}			;-- FSTP [eax]
-					][
-						emit-float #{DD98}			;-- FSTP [eax+offset]
-						emit to-bin32 offset
+				case [
+					by-val? [
+						case [
+							zero? offset [
+								emit #{8B00}		;-- MOV eax, [eax]
+							]
+							offset > 127 [
+								emit #{8B40}		;-- MOV eax, [eax+<offset>] ; 8-bit disp
+								emit to-bin8 offset
+							]
+							'else [
+								emit #{8B80}		;-- MOV eax, [eax+<offset>] ; 32-bit disp
+								emit to-bin32 offset
+							]
+						]
+						case/all [
+							slots <= 2 [
+								set-width/type type/2/2
+								emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
+							]
+							slots = 2 [
+								set-width/type last type/2
+								emit #{5A}					;-- POP edx
+								emit-poly [#{8850} #{8950}]	;-- MOV [eax+4], rD
+								emit #{04}
+							]
+						]
 					]
-				][
-					either zero? offset [
-						emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
-					][
-						emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
-						emit to-bin32 offset
+					compiler/any-float? type [
+						either zero? offset [
+							emit-float #{DD18}		;-- FSTP [eax]
+						][
+							emit-float #{DD98}		;-- FSTP [eax+offset]
+							emit to-bin32 offset
+						]
+					]
+					'else [
+						either zero? offset [
+							emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
+						][
+							emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
+							emit to-bin32 offset
+						]
 					]
 				]
 			]

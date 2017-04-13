@@ -2907,7 +2907,10 @@ system-dialect: make-profilable context [
 			/local type new value spec
 		][
 			value: unbox expr
-			if find [block! path! tag!] type?/word value [
+			if all [
+				find [block! path! tag!] type?/word value
+				'value <> last last-type				;-- struct by value has specific handling
+			][
 				emitter/target/emit-move-path-alt		;-- save assigned value
 			]
 			if all [
