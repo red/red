@@ -307,7 +307,7 @@ draw-begin: func [
 	ctx/other/prev-shape/type:				SHAPE_OTHER
 	ctx/other/path-last-point/x:			0
 	ctx/other/path-last-point/y:			0
-	ctx/other/matrix-order:					GDIPLUS_MATRIXORDERPREPEND
+	ctx/other/matrix-order:					GDIPLUS_MATRIXORDERAPPEND
 	ctx/other/connect-subpath:				0
 	ctx/other/anti-alias?:					no
 	ptrn:									as red-image! ctx/other/pattern-image-fill
@@ -3476,6 +3476,6 @@ OS-set-matrix-order: func [
 	case [
 		order = _append [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
 		order = prepend [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
-		true [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERPREPEND ]
+		true [ ctx/other/matrix-order: GDIPLUS_MATRIXORDERAPPEND ]
 	]
 ]
