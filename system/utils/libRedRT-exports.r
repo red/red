@@ -128,6 +128,7 @@
 	red/object/init-events
 	red/object/loc-fire-on-set*
 	red/object/fire-on-set*
+	red/object/get-values
 
 	red/integer/get-any*
 	red/integer/get*
@@ -321,6 +322,12 @@
 	red/natives/unset*
 	red/natives/handle-thrown-error
 	red/natives/now*
+	red/natives/get-env*
+	red/natives/set-env*
+	red/natives/list-env*
+	red/natives/sign?*
+	red/natives/as*
+	red/natives/call*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!

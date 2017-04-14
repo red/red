@@ -85,12 +85,14 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 #do keep [
 	list: make block! 50
 	to-list: [
-		bitset! binary! block! char! email! file! float! get-path!
-		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
-		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! word! image!
+		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
+		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
+		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
+		unset! url! word! image!
 	]
-	test-list: union to-list [handle! error! action! datatype! function! image! object! op! routine! vector!]
+	test-list: union to-list [
+		handle! error! action! native! datatype! function! image! object! op! routine! vector!
+	]
 	
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
@@ -381,10 +383,12 @@ save: function [
 	/as     "Specify the format of data; use NONE to save as plain text"
 		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
 ][
+	dst: either any [file? where url? where][where][none]
 	either as [
 		if word? format [
 			either codec: select system/codecs format [
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
 			][exit]
 		]
 	][
@@ -396,7 +400,8 @@ save: function [
 		find-encoder?: no
 		foreach [name codec] system/codecs [
 			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]
 				find-encoder?: yes
 			]
 		]
@@ -890,7 +895,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[number!] "Angle in radians"
+	number	[number!]
 	return:	[float!]
 ][
 	#system [

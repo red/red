@@ -1,9 +1,9 @@
 Red [
 	Title:   "Red TO action test script"
-	Author:  "Oldes"
+	Author:  ["Oldes" "Peter W A Wood"]
 	File: 	 convert-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -11,142 +11,153 @@ Red [
 
 ~~~start-file~~~ "to"
 
-
 ===start-group=== "to-char!"
-	--test-- "to-char!-char!"
-		--assert #"a" = to char! #"a"
-	--test-- "to-char!-string!"
-		--assert #"f" = to char! "foo"
-	--test-- "to-char!-integer!"
-		--assert #"{" = to char! 123
-	--test-- "to-char!-integer!"
-		--assert #"Ā" = to char! 256
-	--test-- "to-char!-float!"
-		--assert #"^A" = to char! 1.5
-	--test-- "to-char!-binary!"
-		--assert #"a" = to char! #{616263}
+
+	--test-- "to-char!-char!"			--assert #"a" = to char! #"a"
+	--test-- "to-char!-string!"			--assert #"f" = to char! "foo"
+	--test-- "to-char!-integer!"		--assert #"{" = to char! 123
+	--test-- "to-char!-integer!"		--assert #"Ā" = to char! 256
+	--test-- "to-char!-float!"			--assert #"^A" = to char! 1.5
+	--test-- "to-char!-binary!"			--assert #"a" = to char! #{616263}
+	
 ===end-group===
 
 ===start-group=== "to-string!"
-	--test-- "to-string!-char!"
-		--assert "a" = to string! #"a"
-	--test-- "to-string!-string!"
-		--assert "foo" = to string! "foo"
-	--test-- "to-string!-integer!"
-		--assert "123" = to string! 123
-	--test-- "to-string!-integer!"
-		--assert "256" = to string! 256
-	--test-- "to-string!-float!"
-		--assert "1.5" = to string! 1.5
-	--test-- "to-string!-integer!"
-		--assert "-1" = to string! -1
-	--test-- "to-string!-float!"
-		--assert "-1.5" = to string! -1.5
-	--test-- "to-string!-pair!"
-		--assert "1x2" = to string! 1x2
-	--test-- "to-string!-word!"
-		--assert "word" = to string! 'word
-	--test-- "to-string!-refinement!"
-		--assert "refinement" = to string! /refinement
-	--test-- "to-string!-path!"
-		--assert "path/foo" = to string! 'path/foo
-	--test-- "to-string!-url!"
-		--assert "http://red-lang.org" = to string! http://red-lang.org
-	--test-- "to-string!-file!"
-		--assert "/file/" = to string! %/file/
-	 --test-- "to-string!-issue!"
-		 --assert "FF00" = to string! #FF00
-	--test-- "to-string!-binary!"
-		--assert "" = to string! #{}
-	--test-- "to-string!-binary!"
-		--assert "abc" = to string! #{616263}
-	--test-- "to-string!-block!"
-		--assert "" = to string! []
-	--test-- "to-string!-block!"
-		--assert "12" = to string! [1 2]
-	--test-- "to-string!-block!"
-		--assert "123" = to string! [1 2 3]
-	--test-- "to-string!-block!"
-		--assert "ab" = to string! ["a" "b"]
-	--test-- "to-string!-tuple!"
-		--assert "1.1.1" = to string! 1.1.1
-	--test-- "to-string!-paren!"
-		--assert "" = to string! first [()]
-	--test-- "to-string!-paren!"
-		--assert "12" = to string! first [(1 2)]
-	--test-- "to-string!-tag!"
-		--assert "a" = to string! <a>
-	--test-- "to-string!-time!"
-		--assert "10:00:00" = to string! 10:00
-;	   --test-- "to-string!-date!"
-;		   --assert "16-Jun-2014/14:34:59+2:00" = to string! 16-Jun-2014/14:34:59+2:00
-	--test-- "to-string!-email!"
-		--assert "foo@boo" = to string! foo@boo
-	--test-- "to-string!-bitset!"
-		--assert "make bitset! #{00}" = to string! make bitset! #{00}
+
+	--test-- "to-string!-char!"			--assert "a" = to string! #"a"
+	--test-- "to-string!-string!"		--assert "foo" = to string! "foo"
+	--test-- "to-string!-integer!-1"	--assert "123" = to string! 123
+	--test-- "to-string!-integer!-2"	--assert "256" = to string! 256
+	--test-- "to-string!-float!"		--assert "1.5" = to string! 1.5
+	--test-- "to-string!-integer!"		--assert "-1" = to string! -1
+	--test-- "to-string!-float!"		--assert "-1.5" = to string! -1.5
+	--test-- "to-string!-pair!"			--assert "1x2" = to string! 1x2
+	--test-- "to-string!-word!"			--assert "word" = to string! 'word
+	--test-- "to-string!-refinement!"	--assert "refinement" = to string! /refinement
+	--test-- "to-string!-path!"			--assert "path/foo" = to string! 'path/foo
+	--test-- "to-string!-url!"			--assert "http://red-lang.org" = to string! http://red-lang.org
+	--test-- "to-string!-file!"			--assert "/file/" = to string! %/file/
+	 --test-- "to-string!-issue!"		--assert "FF00" = to string! #FF00
+	--test-- "to-string!-binary!-1"		--assert "" = to string! #{}
+	--test-- "to-string!-binary!-2"		--assert "abc" = to string! #{616263}
+	--test-- "to-string!-block!-1"		--assert "" = to string! []
+	--test-- "to-string!-block-2!"		--assert "12" = to string! [1 2]
+	--test-- "to-string!-block!-3"		--assert "123" = to string! [1 2 3]
+	--test-- "to-string!-block!-4"		--assert "ab" = to string! ["a" "b"]
+	--test-- "to-string!-tuple!"		--assert "1.1.1" = to string! 1.1.1
+	--test-- "to-string!-paren!-1"		--assert "" = to string! first [()]
+	--test-- "to-string!-paren!-2"		--assert "12" = to string! first [(1 2)]
+	--test-- "to-string!-tag!"			--assert "a" = to string! <a>
+	--test-- "to-string!-time!"			--assert "10:00:00" = to string! 10:00
+;	 --test-- "to-string!-date!"		--assert "16-Jun-2014/14:34:59+2:00" = to string! 16-Jun-2014/14:34:59+2:00
+	--test-- "to-string!-email!"		--assert "foo@boo" = to string! foo@boo
+	--test-- "to-string!-bitset!"		--assert "make bitset! #{00}" = to string! make bitset! #{00}
+	
 ===end-group===
+
 ===start-group=== "to-integer!"
-	--test-- "to-integer!-char!"
-		--assert 97 = to integer! #"a"
-	--test-- "to-integer!-integer!"
-		--assert 123 = to integer! 123
-	--test-- "to-integer!-integer!"
-		--assert 256 = to integer! 256
-	--test-- "to-integer!-float!"
-		--assert 1 = to integer! 1.5
-	--test-- "to-integer!-integer!"
-		--assert -1 = to integer! -1
-	--test-- "to-integer!-float!"
-		--assert -1 = to integer! -1.5
-	--test-- "to-integer!-issue!"
-		--assert 65280 = to integer! #FF00
-	--test-- "to-integer!-binary!"
-		--assert 0 = to integer! #{}
-	--test-- "to-integer!-binary!"
-		--assert 6382179 = to integer! #{616263}
-	--test-- "to-integer!-time!"
-		--assert 36000 = to integer! 10:00
+
+	--test-- "to-integer!-char!"		--assert 97 = to integer! #"a"
+	--test-- "to-integer!-integer!-1"	--assert 123 = to integer! 123
+	--test-- "to-integer!-integer!-2"	--assert 256 = to integer! 256
+	--test-- "to-integer!-float!-1"		--assert 1 = to integer! 1.5
+	--test-- "to-integer!-integer!-3"	--assert -1 = to integer! -1
+	--test-- "to-integer!-float!-2"		--assert -1 = to integer! -1.5
+	--test-- "to-integer!-issue!"		--assert 65280 = to integer! #FF00
+	--test-- "to-integer!-binary!"		--assert 0 = to integer! #{}
+	--test-- "to-integer!-binary!"		--assert 6382179 = to integer! #{616263}
+	--test-- "to-integer!-time!"		--assert 36000 = to integer! 10:00
+	--test-- "to-integer!-1"			--assert 1 == to integer! "1" 
+	--test-- "to-integer!-2"			--assert 1 == to integer! "1.0"
+	--test-- "to-integer!-3"			--assert 1 == to integer! #"^(01)" 
+	--test-- "to-integer!-4"			--assert 49 == to integer! #"1"		
+ 	--test-- "to-integer!-5"			--assert 128512 == to integer! #"😀"
+	--test-- "to-integer!-6"			--assert error? try [to integer! "😀"]	
+	--test-- "to-integer!-7"			--assert error? try [to integer! "a"]
+	--test-- "to-integer!-8"			--assert 1 == to integer! 1.00
+	--test-- "to-integer!-9"			--assert 1 == to integer! 1.999999999999999
+	--test-- "to-integer!-10"			--assert -1 == to integer! -1.9999999999
+	--test-- "to-integer!-11"			--assert 2147483647 == to integer! "2147483647"
+	--test-- "to-integer!-12"			--assert error? try [to integer! 2147483647.1]
+	--test-- "to-integer!-13"			--assert 2147483646 == to integer! 2147483646.999999
+	--test-- "to-integer!-14"			--assert 2147483647 == to integer! 2147483646.9999999
+	--test-- "to-integer!-15"			--assert -2147483648 == to integer! "-2147483648"
+	--test-- "to-integer!-16"			--assert error? try [to integer! -2147483648.1]
+	--test-- "to-integer!-17"			--assert -2147483647 == to integer! -2147483647.999999
+	--test-- "to-integer!-18"			--assert -2147483648 == to integer! -2147483647.9999999
+	--test-- "to-integer!-19"			--assert 2 == to integer! 1.9999999999999999
+	--test-- "to-integer!-20"			--assert 34200 == to integer! 09:30
+	--test-- "to-integer!-21"			--assert 32400 == to integer! 09:00
+	--test-- "to-integer!-22"			--assert 86399 == to integer! 23:59:59
+	--test-- "to-integer!-23"			--assert 86400 == to integer! 23:59:59.999999
+	
 ===end-group===
+
 ===start-group=== "to-float!"
-	--test-- "to-float!-char!"
-		--assert 97.0 = to float! #"a"
-	--test-- "to-float!-integer!"
-		--assert 123.0 = to float! 123
-	--test-- "to-float!-integer!"
-		--assert 256.0 = to float! 256
-	--test-- "to-float!-float!"
-		--assert 1.5 = to float! 1.5
-	--test-- "to-float!-integer!"
-		--assert -1.0 = to float! -1
-	--test-- "to-float!-float!"
-		--assert -1.5 = to float! -1.5
-	--test-- "to-float!-binary!"
-		--assert 0.0 = to float! #{}
-	--test-- "to-float!-binary!"
-		--assert 3.1532154e-317 = to float! #{616263}
-	--test-- "to-float!-block!"
-		--assert 100.0 = to float! [1 2]
-	--test-- "to-float!-paren!"
-		--assert 100.0 = to float! first [(1 2)]
-	   --test-- "to-float!-time!"
-		   --assert 36000.0 = to float! 10:00
+
+	--test-- "to-float!-char!"			--assert 97.0 = to float! #"a"
+	--test-- "to-float!-integer!"		--assert 123.0 = to float! 123
+	--test-- "to-float!-integer!"		--assert 256.0 = to float! 256
+	--test-- "to-float!-float!"			--assert 1.5 = to float! 1.5
+	--test-- "to-float!-integer!"		--assert -1.0 = to float! -1
+	--test-- "to-float!-float!"			--assert -1.5 = to float! -1.5
+	--test-- "to-float!-binary!"		--assert 0.0 = to float! #{}
+	--test-- "to-float!-binary!"		--assert 3.1532154e-317 = to float! #{616263}
+	--test-- "to-float!-block!"			--assert 100.0 = to float! [1 2]
+	--test-- "to-float!-paren!"			--assert 100.0 = to float! first [(1 2)]
+	--test-- "to-float!-time!"			 --assert 36000.0 = to float! 10:00
+	--test-- "to-float!-1"				--assert 1.0 == to float! 1
+	--test-- "to-float!-2"				--assert 1.0 == to float! "1"
+	--test-- "to-float!-3"				--assert 1.0 == to float! #"^(01)"
+	--test-- "to-float!-4"				--assert 49.0 == to float! #"1"
+	--test-- "to-float!-5"				--assert 2147483648.0 == to float! "2147483648"
+	--test-- "to-float!-6"				--assert -2147483649.0 == to float! "-2147483649"
+	--test-- "to-float!-7"				--assert 4.0 == to float! first 4x4
+	--test-- "to-float!-8"			
+		--assert all [
+			float! == type? to float! 09:30
+			34200.0 = to float! 09:30
+		]
+	--test-- "to-float!-9"
+		--assert all [
+			float! == type? to float! 09:00
+			32400.0 = to float! 09:00
+		]
+	--test-- "to-float!-10"	
+		--assert all [
+			float! == type? to float! 23:59:59.999999
+			86399.999999 = to float! 23:59:59.999999
+		]
+	
 ===end-group===
+
+===start-group=== "implicit to float!"
+
+	--test-- "implicit-to-float!-1"			--assert 2147483648.0 == 2147483648
+	--test-- "implicit-to-float!-2"			--assert -2147483649.0 == -2147483649
+
+===end-group===
+
 ===start-group=== "to-pair!"
-	--test-- "to-pair!-integer!"
-		--assert 123x123 = to pair! 123
-	--test-- "to-pair!-integer!"
-		--assert 256x256 = to pair! 256
-;	--test-- "to-pair!-float!"
-;		--assert 1.5x1.5 = to pair! 1.5
-	--test-- "to-pair!-integer!"
-		--assert -1x-1 = to pair! -1
-;	   --test-- "to-pair!-float!"
-;		   --assert -1.5x-1.5 = to pair! -1.5
-	--test-- "to-pair!-pair!"
-		--assert 1x2 = to pair! 1x2
-	--test-- "to-pair!-block!"
-		--assert 1x2 = to pair! [1 2]
+
+	--test-- "to-pair!-integer!"			--assert 123x123 = to pair! 123
+	--test-- "to-pair!-integer!"			--assert 256x256 = to pair! 256
+;	--test-- "to-pair!-float!"				--assert 1.5x1.5 = to pair! 1.5
+	--test-- "to-pair!-integer!"			--assert -1x-1 = to pair! -1
+;	   --test-- "to-pair!-float!"			--assert -1.5x-1.5 = to pair! -1.5
+	--test-- "to-pair!-pair!"				--assert 1x2 = to pair! 1x2
+	--test-- "to-pair!-block!"				--assert 1x2 = to pair! [1 2]
+	;--test-- "to-pair!-float!-1"			
+		;--assert 2147483648.0x-2147483648.0 = to pair! 2147483648.0
+		;--assert float! = type? first to pair! 2147483648.0
+		;--assert float! = type? second to pair! 2147483648.0
+	;--test-- "to-pair!-float!-2"			
+		;--assert 2147483648.0x-2147483648.0 = to pair! 2147483648
+		;--assert float! = type? first to pair! 2147483648
+		;--assert float! = type? second to pair! 2147483648
+
 ===end-group===
+
 ===start-group=== "to-word!"
 	--test-- "to-word!-char!"
 		--assert 'a = to word! #"a"
@@ -310,18 +321,17 @@ Red [
 	--test-- "to-url!-binary!"
 		--assert url? to url! #{616263}
 		--assert "abc" = form to url! #{616263}
-	   --test-- "to-url!-block!"
-		   --assert url? to url! []
-		   --assert "" = form to url! []
-	 --test-- "to-url!-block!"
-		--assert url? to url! [1 2]
-		--assert "12" = form to url! [1 2]
 	--test-- "to-url!-block!"
-		--assert url? to url! [1 2 3]
-		--assert "123" = form to url! [1 2 3]
-	--test-- "to-url!-block!"
-		--assert url? to url! ["a" "b"]
-		--assert "ab" = form to url! ["a" "b"]
+		--assert http:// 							= to-url [http]
+		--assert http://domain 						= to-url [http domain]
+		--assert http://domain.com 					= to-url [http domain.com]
+		--assert http://domain.com:8080 			= to-url [http domain.com 8080]
+		--assert http://domain.com:43/path 			= to-url [http domain.com 43 path]
+		--assert http://domain.com/path 			= to-url [http domain.com path]
+		--assert http://domain.com/file.red 		= to-url [http domain.com file.red]
+		--assert http://domain.com/path/file 		= to-url [http domain.com path file]
+		--assert http://domain.com/path/file#anchor = to-url [http domain.com path file #anchor]
+		--assert http://domain.com/path/file.red 	= to-url [http domain.com path file.red]
 	--test-- "to-url!-tuple!"
 		--assert url? to url! 1.1.1
 		--assert "1.1.1" = form to url! 1.1.1
