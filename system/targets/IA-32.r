@@ -1050,12 +1050,10 @@ make-profilable make target-class [
 		/local idx offset type2 spec by-val? slots
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
-
-		by-val?: 'value = last compiler/last-type
 		
 		either value = <last> [
-			if by-val? [
-				slots: emitter/struct-slots? compiler/last-type
+			if by-val?: 'value = last compiler/last-type [
+				if 2 < slots: emitter/struct-slots? compiler/last-type [exit]	; big struct by val do not need post-processing
 				if slots = 2 [emit #{52}]			;-- PUSH edx				; saved edx struct member
 				emit #{89C2}						;-- MOV edx, eax
 			]
@@ -1087,7 +1085,7 @@ make-profilable make target-class [
 				offset: emitter/member-offset? parent path/2
 				
 				case [
-					by-val? [
+					by-val? [						;-- small struct returned by value
 						case [
 							zero? offset [
 								emit #{8B00}		;-- MOV eax, [eax]
@@ -1101,17 +1099,14 @@ make-profilable make target-class [
 								emit to-bin32 offset
 							]
 						]
-						case/all [
-							slots <= 2 [
-								set-width/type type/2/2
-								emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
-							]
-							slots = 2 [
-								set-width/type last type/2
-								emit #{5A}					;-- POP edx
-								emit-poly [#{8850} #{8950}]	;-- MOV [eax+4], rD
-								emit #{04}
-							]
+						set-width/type type/2/2
+						emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
+
+						if slots = 2 [
+							set-width/type last type/2
+							emit #{5A}					;-- POP edx
+							emit-poly [#{8850} #{8950}]	;-- MOV [eax+4], rD
+							emit #{04}
 						]
 					]
 					compiler/any-float? type [

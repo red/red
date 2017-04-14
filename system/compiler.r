@@ -2827,9 +2827,10 @@ system-dialect: make-profilable context [
 						any [get-caller/root 'args-top] ;-- 'args-top is just for routing in SWITCH 
 					]
 				]
-				insert list switch/default type?/word caller [
+				insert/only list switch/default type?/word caller [
 					none!	  [<ret-ptr>]
 					set-word! [bind to word! caller caller]
+					set-path! [to path! caller]
 					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
 				][
 					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
