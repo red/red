@@ -180,7 +180,7 @@ ext-process: context [
 			file: platform/CreateFileW
 				as c-string! pbuf/buffer
 				GENERIC_WRITE
-				0
+				FILE_SHARE_READ or FILE_SHARE_WRITE
 				sa
 				OPEN_ALWAYS
 				FILE_ATTRIBUTE_NORMAL
@@ -359,12 +359,12 @@ ext-process: context [
 			]
 			if out-buf <> null [
 				platform/CloseHandle out-write
-				read-from-pipe out-read out-buf
+				if out-buf/count <> -1 [read-from-pipe out-read out-buf]
 				platform/CloseHandle out-read
 			]
 			if err-buf <> null [
 				platform/CloseHandle err-write
-				read-from-pipe err-read err-buf
+				if err-buf/count <> -1 [read-from-pipe err-read err-buf]
 				platform/CloseHandle err-read
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]

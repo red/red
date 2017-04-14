@@ -720,6 +720,9 @@ show: function [
 			]
 		]
 		face/state: reduce [obj 0 none false]
+		if all [object? face/actors in face/actors 'on-created][
+			do-safe [face/actors/on-created face none]	;@@ only called once
+		]
 	]
 
 	if face/pane [
@@ -730,9 +733,6 @@ show: function [
 	
 	if all [new? face/type = 'window face/visible?][
 		system/view/platform/show-window obj
-	]
-	if all [object? face/actors in face/actors 'on-created][
-		do-safe [face/actors/on-created face none]
 	]
 ]
 

@@ -268,11 +268,11 @@ check-special: func [
 				#"6" [return KEY_PAGE_DOWN]
 				#"7" [return KEY_HOME]
 				#"8" [return KEY_END]
-				default []
+				default [return KEY_NONE]
 			]
 		]
-		while [all [(as-integer c) <> -1 c <> #"~"]][
-			c: fd-read-char 50
+		if all [(as-integer c) <> -1 c <> #"~"][
+			fd-read-char 50
 		]
 	]
 	KEY_NONE

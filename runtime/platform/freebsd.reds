@@ -33,6 +33,7 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
+			environ: "environ" [integer!]
 		]
 	]
 

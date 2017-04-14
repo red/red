@@ -1103,13 +1103,16 @@ OS-matrix-skew: func [
 OS-matrix-transform: func [
 	dc			[draw-ctx!]
 	pen			[integer!]
-	rotate		[red-integer!]
+	center		[red-pair!]
 	scale		[red-integer!]
 	translate	[red-pair!]
 	/local
-		center	[red-pair!]
+		rotate	[red-integer!]
+		center? [logic!]
 ][
-	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
+	rotate: as red-integer! either center + 1 = scale [center][center + 1]
+	center?: rotate <> center
+
 	OS-matrix-rotate dc pen rotate center
 	OS-matrix-scale dc pen scale scale + 1
 	_OS-matrix-translate dc/raw translate/x translate/y

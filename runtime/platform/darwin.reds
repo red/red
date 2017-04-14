@@ -32,9 +32,13 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
+			_NSGetEnviron: "_NSGetEnviron" [
+				return: 	[int-ptr!]
+			]
 		]
 	]
-
+	
+	environ: 0
 	page-size: 0
 
 	#syscall [
@@ -89,7 +93,9 @@ platform: context [
 		]
 	]
 	
-	init: does [
+	init: func [/local ptr [int-ptr!]][
+		ptr: _NSGetEnviron
+		environ: ptr/value
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
 	]

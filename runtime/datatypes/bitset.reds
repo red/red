@@ -160,6 +160,10 @@ bitset: context [
 		if type = OP_UNIQUE [return set1]
 
 		set2: set1 + 1
+		if TYPE_OF(set2) <> TYPE_BITSET [
+			fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(set2)]
+		]
+
 		s1: GET_BUFFER(set1)
 		s2: GET_BUFFER(set2)
 		size1: as-integer s1/tail - s1/offset
