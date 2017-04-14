@@ -950,8 +950,8 @@ Red/System [
 							]
 							sym = transform [
 								DRAW_FETCH_OPT_TRANSFORM
-								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								DRAW_FETCH_OPT_VALUE(TYPE_PAIR)
+								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)
 								value: cmd + 1
 								loop 2 [DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)]
 								DRAW_FETCH_VALUE(TYPE_PAIR)
@@ -961,7 +961,7 @@ Red/System [
 									OS-matrix-transform
 										DC
 										sym
-										as red-integer! start
+										as red-pair! start
 										as red-integer! value
 										as red-pair! cmd - 1
 									parse-draw DC as red-block! cmd catch?
@@ -970,7 +970,7 @@ Red/System [
 									OS-matrix-transform
 										DC
 										sym
-										as red-integer! start
+										as red-pair! start
 										as red-integer! value
 										as red-pair! cmd
 								]

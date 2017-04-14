@@ -3334,37 +3334,44 @@ OS-matrix-skew: func [
 OS-matrix-transform: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
-	rotate		[red-integer!]
+	center		[red-pair!]
 	scale		[red-integer!]
 	translate	[red-pair!]
 	/local
-		center		[red-pair!]
+		rotate		[red-integer!]
 		m			[integer!]
 		gradient	[gradient!]
 		pen?		[logic!]
 		brush		[integer!]
+		center?		[logic!]
 ][
+	rotate: as red-integer! either center + 1 = scale [center][center + 1]
+	center?: rotate <> center
+
 	either pen-fill <> -1 [
 		;-- transform pen or fill
 		pen?: either pen-fill = pen [ true ][ false ]
 		;-- gradient
 		gradient: either pen? [ ctx/other/gradient-pen ][ ctx/other/gradient-fill ]
-		gradient-rotate ctx gradient as-float rotate/value
-		gradient-scale ctx gradient get-float scale get-float scale + 1
 		gradient-translate ctx gradient as-float translate/x as-float translate/y
+		gradient-scale ctx gradient get-float scale get-float scale + 1
+		gradient-rotate ctx gradient as-float rotate/value
 		;-- texture
 		brush: check-texture ctx pen?
-		texture-rotate as-float rotate/value brush
-		texture-scale get-float scale get-float scale + 1 brush
 		texture-translate as-float translate/x as-float translate/y brush
+		texture-scale get-float scale get-float scale + 1 brush
+		texture-rotate as-float rotate/value brush
 	][
 		;-- transform figure
-		center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
 		m: 0
 		GdipCreateMatrix :m
+
+		if center? [GdipTranslateMatrix m as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND]
 		GdipTranslateMatrix m as float32! translate/x as float32! translate/y GDIPLUS_MATRIX_PREPEND
 		GdipScaleMatrix m get-float32 scale get-float32 scale + 1 GDIPLUS_MATRIX_PREPEND
-		matrix-rotate ctx rotate center m
+		GdipRotateMatrix m get-float32 rotate GDIPLUS_MATRIX_PREPEND
+		if center? [GdipTranslateMatrix m as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND]
+
 		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
 		GdipDeleteMatrix m
 	]
