@@ -258,7 +258,6 @@ system/view/platform: context [
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
-			popup:			symbol/make "popup"
 			
 			ClearType:		symbol/make "ClearType"
 			_bold:			symbol/make "bold"
