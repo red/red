@@ -635,16 +635,19 @@ Red/System [
 							]
 							sym = curve [
 								DRAW_FETCH_SOME_PAIR
+								if (as-integer cmd - start) < 32 [throw-draw-error cmds cmd - 2 catch?]
 								OS-draw-shape-curve DC as red-pair! start as red-pair! cmd rel?
 								close?: yes
 							]
 							sym = curv [
 								DRAW_FETCH_SOME_PAIR
+								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-curv DC as red-pair! start as red-pair! cmd rel?
 								close?: yes
 							]
 							sym = qcurve [
 								DRAW_FETCH_SOME_PAIR
+								if (as-integer cmd - start) < 16 [throw-draw-error cmds cmd - 1 catch?]
 								OS-draw-shape-qcurve DC as red-pair! start as red-pair! cmd rel?
 								close?: yes
 							]
