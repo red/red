@@ -136,11 +136,12 @@ float: context [
 			]
 		]
 
-		p:  null
-		p1: null
 		s0: s
 		until [
+			p:    null
+			p1:   null
 			dot?: no
+
 			until [
 				if s/1 = #"." [dot?: yes]
 				if s/1 = #"e" [
@@ -191,7 +192,6 @@ float: context [
 					]
 				]
 			]
-
 			s0 <> s
 		]
 
