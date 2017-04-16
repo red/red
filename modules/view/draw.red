@@ -254,7 +254,7 @@ Red/System [
 
 		#define DRAW_FETCH_OPT_TRANSFORM [
 			value: start
-			DRAW_FETCH_OPT_VALUE(TYPE_WORD)
+			DRAW_FETCH_OPT_VALUE(TYPE_LIT_WORD)
 			either cmd = pos [
 				word: as red-word! value
 				sym: symbol/resolve word/symbol
