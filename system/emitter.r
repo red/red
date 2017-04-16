@@ -548,9 +548,9 @@ emitter: make-profilable context [
 	]
 
 	size-of?: func [type [word! block!]][
-		if all [block? type type/1 = 'struct! 'value = last type][
-			print "Error: size-of? applied to struct by value!!"
-			halt
+		if all [block? type 'value = last type type/1 = 'struct!][
+			type: compiler/find-aliased type/1
+			return member-offset? type/2 none
 		]
 		if block? type [type: type/1]
 		any [
@@ -596,7 +596,7 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type by-val?][
+	arguments-size?: func [locals [block!] /push /local size name type][
 		size: 0
 		if push [
 			clear stack
@@ -610,12 +610,8 @@ emitter: make-profilable context [
 			]
 		]
 		parse locals [opt block! any [set name word! set type block! (
-			by-val?: 'value = last type
 			if push [repend stack [name size + target/args-offset]]
-			size: size + max size-of? type/1 either not by-val? [target/stack-width][
-				type: compiler/find-aliased type/1
-				member-offset? type/2 none
-			]
+			size: size + max size-of? type/1 target/stack-width
 		)]]
 		if push [repend stack [<top> size + target/args-offset]] ;-- frame's top ptr
 		size
@@ -663,8 +659,8 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		locals-sz: 0
-		if pos: find locals /local [
+		locals-sz: either pos: find locals /local [
+			locals-sz: negate target/locals-offset
 			while [not tail? pos: next pos][
 				var: pos/1
 				either block? pos/2 [
@@ -673,15 +669,14 @@ emitter: make-profilable context [
 				][
 					sz: target/stack-slot-max			;-- type to be inferred
 				]
-				repend stack [
-					var	(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
-				]
+				repend stack [var (locals-sz: locals-sz - sz)] 	;-- store stack offsets
 			]
-			locals-sz: abs locals-sz
-		]
-		if verbose >= 2 [print ["args+locals stack:" mold to-block stack]]
+			abs locals-sz
+		][0]
+		if verbose >= 2 [print ["args+locals stack:" mold stack]]
+		
 		target/emit-prolog name locals locals-sz
-		args-sz
+		reduce [args-sz locals-sz]
 	]
 	
 	leave: func [

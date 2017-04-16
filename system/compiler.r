@@ -2024,13 +2024,13 @@ system-dialect: make-profilable context [
 			set [unused chunk] comp-block-chunked		;-- compile body block
 			catch-level: catch-level - 1
 
-			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]			
+			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]
 			chunk: emitter/chunks/join start chunk
 			
-			locals-size: either all [locals not empty? emitter/stack][
-				abs last emitter/stack
+			locals-size: either all [locals find locals /local][
+				(abs last emitter/stack) + emitter/size-of? last locals
 			][
-				emitter/target/locals-offset
+				0
 			]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
 			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
@@ -2930,7 +2930,7 @@ system-dialect: make-profilable context [
 			
 			all [
 				block? spec
-				'value = last spec						;-- for local structs only
+				'value = last spec						;-- for local struct by value only
 				not-initialized? set-path/1
 				init-local set-path/1 expr casted		;-- mark as initialized and infer type if required
 			]
