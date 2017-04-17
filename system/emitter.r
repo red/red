@@ -547,12 +547,20 @@ emitter: make-profilable context [
 		]
 	]
 
-	size-of?: func [type [word! block!]][
-		if all [block? type 'value = last type type/1 = 'struct!][
-			type: compiler/find-aliased type/1
+	size-of?: func [type [word! block!] /local t][
+		if all [
+			block? type
+			'value = last type
+			any [
+				'struct! = type/1
+				'struct! = first t: compiler/find-aliased type/1
+			]
+		][
+			if t [type: t]
 			return member-offset? type/2 none
 		]
 		if block? type [type: type/1]
+		
 		any [
 			select datatypes type						;-- search in base types
 			all [										;-- search if it's enumeration
@@ -664,7 +672,7 @@ emitter: make-profilable context [
 			while [not tail? pos: next pos][
 				var: pos/1
 				either block? pos/2 [
-					sz: max size-of? pos/2/1 target/stack-width	;-- type declared
+					sz: max size-of? pos/2 target/stack-width	;-- type declared
 					pos: next pos
 				][
 					sz: target/stack-slot-max			;-- type to be inferred

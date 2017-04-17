@@ -777,7 +777,7 @@ make-profilable make target-class [
 		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
 		/by-value slots [integer!]
-		/local store-dword type
+		/local store-dword type offset
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
@@ -812,18 +812,29 @@ make-profilable make target-class [
 					]
 					by-value [
 						if slots <= 2 [				;-- if > 2, copied already, do nothing
-							emit-variable name
-								#{8B35}				;-- MOV esi, [value1]	; global
-								#{8BB3}				;-- MOV esi, [ebx+disp]	; PIC	@@
-								#{8B75}				;-- MOV esi, [ebp+n]	; local
+							either offset: emitter/local-offset? name [
+								if slots = 2 [
+									set-width/type last spec/2
+									emit-poly [#{8895} #{8995}]	;-- MOV [ebp+n+4], rD
+									emit to-bin32 offset + 4
+								]
+								set-width/type spec/2/2
+								emit-poly [#{8885} #{8985}]		;-- MOV [ebp+n], rA
+								emit to-bin32 offset
+							][
+								emit-variable name
+									#{8B35}			;-- MOV esi, [value1]	; global
+									#{8BB3}			;-- MOV esi, [ebx+disp]	; PIC	@@
+									#{8B75}			;-- MOV esi, [ebp+n]	; local
 
-							if slots = 2 [
-								set-width/type last spec/2
-								emit-poly [#{8856} #{8956}]	;-- MOV [esi+4], rD
-								emit #{04}
+								if slots = 2 [
+									set-width/type last spec/2
+									emit-poly [#{8856} #{8956}]	;-- MOV [esi+4], rD
+									emit #{04}
+								]
+								set-width/type spec/2/2
+								emit-poly [#{8806} #{8906}]	;-- MOV [esi], rA
 							]
-							set-width/type spec/2/2
-							emit-poly [#{8806} #{8906}]	;-- MOV [esi], rA
 						]
 					]
 					'else [
@@ -1267,20 +1278,31 @@ make-profilable make target-class [
 			]
 			word! [
 				type: compiler/get-variable-spec value
-				either compiler/any-float? type [
-					either cdecl [width: 8][			;-- promote to C double if required
-						set-width/type any [all [cast cast/type] type]
+				case [
+					all [
+						'value = last type
+						offset: emitter/local-offset? value
+					][
+						emit #{8D85}				;-- LEA eax, [ebp+n]	; local struct
+						emit to-bin32 offset
+						emit #{50}					;-- PUSH eax
 					]
-					
-					emit #{83EC}					;-- SUB esp, 8|4
-					emit to-bin8 width
-					load-float-variable value
-					emit-float #{DD1C24}			;-- FSTP [esp]			; push double on stack
-				][
-					emit-variable value
-						#{FF35}						;-- PUSH [value]		; global
-						#{FFB3}						;-- PUSH [ebx+disp]		; PIC
-						#{FF75}						;-- PUSH [ebp+n]		; local
+					compiler/any-float? type [
+						either cdecl [width: 8][	;-- promote to C double if required
+							set-width/type any [all [cast cast/type] type]
+						]
+
+						emit #{83EC}				;-- SUB esp, 8|4
+						emit to-bin8 width
+						load-float-variable value
+						emit-float #{DD1C24}		;-- FSTP [esp]			; push double on stack
+					]
+					'else [
+						emit-variable value
+							#{FF35}					;-- PUSH [value]		; global
+							#{FFB3}					;-- PUSH [ebx+disp]		; PIC
+							#{FF75}					;-- PUSH [ebp+n]		; local
+					]
 				]
 			]
 			get-word! [
