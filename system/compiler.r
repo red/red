@@ -2811,6 +2811,7 @@ system-dialect: make-profilable context [
 			]
 			spec: functions/:name
 			
+			;-- returned struct by value handling --
 			if all [
 				type: select spec/4 return-def
 				'value = last type
@@ -2829,13 +2830,26 @@ system-dialect: make-profilable context [
 				]
 				insert/only list switch/default type?/word caller [
 					none!	  [<ret-ptr>]
-					set-word! [bind to word! caller caller]
-					set-path! [to path! caller]
+					set-word! [
+						unless get-variable-spec to word! caller [
+							backtrack caller
+							throw-error "variable not declared"
+						]
+						bind to word! caller caller
+					]
+					set-path! [
+						unless get-variable-spec caller/1 [
+							backtrack caller
+							throw-error ["unknown path root variable:" caller/1]
+						]
+						to path! caller
+					]
 					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
 				][
 					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
 				]
 			]
+			;--
 			
 			order-args name list						;-- reorder argument according to cconv
 			
