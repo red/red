@@ -2988,7 +2988,8 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
-				
+				if 'value = last new [new: head remove back tail copy new]
+
 				if type <> any [casted new][
 					backtrack set-word
 					throw-error [
