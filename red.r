@@ -21,6 +21,7 @@ redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
 	win-version:	none								;-- Windows version extracted from "ver" command
+	SSE3?:			yes
 
 	Windows?:  system/version/4 = 3
 	macOS?:    system/version/4 = 2
@@ -78,6 +79,8 @@ redc: context [
 					] kernel32 "WideCharToMultiByte"
 
 					_wsystem: make routine! [cmd [string!] return: [integer!]] libc "_wsystem"
+					
+					IsProcessorFeaturePresent: make routine! [feat [integer!] return: [integer!]] kernel32 "IsProcessorFeaturePresent"
 
 					gui-sys-call: func [cmd [string!] args [string!]][
 						ShellExecuteW
@@ -89,7 +92,9 @@ redc: context [
 					]
 					
 					sys-call: func [cmd [string!]][_wsystem utf8-to-utf16 cmd]
-
+					
+					SSE3?: to logic! IsProcessorFeaturePresent 13
+					
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
 						fail "SHGetFolderPath failed: can't determine temp folder path"
@@ -329,6 +334,9 @@ redc: context [
 			][
 				opts/legacy: copy [no-touch]
 			]
+		]
+		if all [Windows? not SSE3?][
+			opts/cpu-version: 1.0
 		]
 		if system/version/4 = 2 [						;-- macOS version extraction
 			out: make string! 128
