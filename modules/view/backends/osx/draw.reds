@@ -246,8 +246,8 @@ do-draw-path: func [
 	ctx: dc/raw
 	either dc/grad-pen = -1 [
 		mode: case [
-			all [dc/pen? dc/brush?] [kCGPathFillStroke]
-			dc/brush?				[kCGPathFill]
+			all [dc/pen? dc/brush?] [kCGPathEOFillStroke]
+			dc/brush?				[kCGPathEOFill]
 			dc/pen?					[kCGPathStroke]
 			true					[-1]
 		]
@@ -1281,43 +1281,32 @@ OS-draw-shape-line: func [
 	end         [red-pair!]
 	rel?        [logic!]
 	/local
-		pt		[CGPoint!]
-		nb		[integer!]
-		pair	[red-pair!]
 		ctx		[handle!]
+		dx		[float32!]
+		dy		[float32!]
 		x		[float32!]
 		y		[float32!]
 ][
-	ctx:	dc/raw
-	pt:		edges
-	pair:	start
-	nb:		0
+	ctx: dc/raw
+	dx: dc/last-pt-x
+	dy: dc/last-pt-y
 
-	x: dc/last-pt-x
-	y: dc/last-pt-y
-
-	pt/x: x
-	pt/y: y
-	nb: nb + 1
-	pt: pt + 1
-
-	while [all [pair <= end nb < max-edges]][
-		pt/x: as float32! pair/x
-		pt/y: as float32! pair/y
+	until [
+		x: as float32! start/x
+		y: as float32! start/y
 		if rel? [
-			x: x + pt/x
-			y: y + pt/y
-			pt/x: x
-			pt/y: y
+			x: x + dx
+			y: y + dy
+			dx: x
+			dy: y
 		]
-		nb: nb + 1
-		pt: pt + 1
-		pair: pair + 1
+		CGContextAddLineToPoint ctx x y
+		start: start + 1
+		start > end
 	]
-	dc/last-pt-x: pt/x
-	dc/last-pt-y: pt/y
+	dc/last-pt-x: x
+	dc/last-pt-y: y
 	dc/shape-curve?: no
-	CGContextAddLines ctx edges nb
 ]
 
 OS-draw-shape-axis: func [

@@ -49,7 +49,6 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-dev-mode?: no
 ]
 WindowsXP [
 	OS:			'Windows
