@@ -335,7 +335,7 @@ redc: context [
 				opts/legacy: copy [no-touch]
 			]
 		]
-		if all [Windows? not SSE3?][
+		if all [Windows? opts/OS = 'Windows not SSE3?][
 			opts/cpu-version: 1.0
 		]
 		if system/version/4 = 2 [						;-- macOS version extraction
