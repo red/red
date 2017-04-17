@@ -367,14 +367,14 @@ emitter: make-profilable context [
 		if all [name not all [new-global? literal?]][	;-- emit dynamic loading code when required
 			either all [
 				value = <last>
-				'value = last spec: compiler/last-type
+				'value = last type: compiler/last-type
 				any [
-					'struct! = spec/1
-					'struct! = first spec: compiler/resolve-aliased type
+					'struct! = type/1
+					'struct! = first type: compiler/resolve-aliased type
 				]
 			][
-				slots: struct-slots?/direct spec/2
-				target/emit-store/by-value name value spec slots ;-- struct-by-value case
+				slots: struct-slots?/direct type/2
+				target/emit-store/by-value name value type slots ;-- struct-by-value case
 			][
 				target/emit-store name value spec
 			]
