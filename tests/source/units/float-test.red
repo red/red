@@ -339,6 +339,8 @@ Red [
 ===start-group=== "round"
 	--test-- "round1"  --assert 1.375 = round/to 1.333 .125
 	--test-- "round2"  --assert 1.33  = round/to 1.333 .01
+	--test-- "round3"  --assert 1     = round/to 0.5 1
+	--test-- "round4"  --assert 0     = round/to 0.499 1
 
 	--test-- "round3"  --assert  1 = round/down  1.999
 	--test-- "round4"  --assert -1 = round/down -1.999
