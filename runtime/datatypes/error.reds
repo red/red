@@ -135,7 +135,9 @@ error: context [
 				type = TYPE_GET_WORD
 			][
 				buffer: string/rs-make-at stack/push* 16
+				stack/mark-native words/_body
 				actions/mold object/rs-select obj value buffer no no yes null 0 0
+				stack/unwind
 				copy-cell as red-value! buffer value
 				stack/pop 1
 			]
