@@ -451,6 +451,9 @@ bitset: context [
 							w/symbol = words/dash 
 						][
 							value: value + 2
+							if type <> TYPE_OF(value) [
+								fire [TO_ERROR(script invalid-arg) value]
+							]
 							type: TYPE_OF(value)
 							either all [
 								value < tail
