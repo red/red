@@ -467,6 +467,7 @@ bitset: context [
 									int: as red-integer! value
 									int/value
 								]
+								if min > size [fire [TO_ERROR(script past-end)]]
 								switch op [
 									OP_MAX	 []			;-- do nothing
 									OP_SET	 [process-range 	 bits min size op]
