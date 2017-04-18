@@ -339,8 +339,6 @@ Red [
 ===start-group=== "round"
 	--test-- "round1"  --assert 1.375 = round/to 1.333 .125
 	--test-- "round2"  --assert 1.33  = round/to 1.333 .01
-	--test-- "round3"  --assert 1     = round/to 0.5 1
-	--test-- "round4"  --assert 0     = round/to 0.499 1
 
 	--test-- "round3"  --assert  1 = round/down  1.999
 	--test-- "round4"  --assert -1 = round/down -1.999
@@ -363,6 +361,10 @@ Red [
 	--test-- "round15" --assert  1 = round  1.4999
 	--test-- "round16" --assert  2 = round  1.5
 	--test-- "round17" --assert -2 = round -1.5
+	
+	;-- for issue #2593 (ROUND rounds float down if scale is integer)
+	--test-- "round18"  --assert 1 = round/to 0.5 1
+	--test-- "round19"  --assert 0 = round/to 0.499 1
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"
