@@ -662,7 +662,7 @@ vector: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/make"]]
 
-		fill?: yes
+		fill?: no
 		size: 0
 		unit: 0
 		blk: as red-block! spec
@@ -673,6 +673,7 @@ vector: context [
 			TYPE_INTEGER
 			TYPE_FLOAT [size: GET_SIZE_FROM(spec)]
 			TYPE_BLOCK [
+				fill?: yes
 				size:  block/rs-length? as red-block! spec
 				either zero? size [
 					type: TYPE_INTEGER
