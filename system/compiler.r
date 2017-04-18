@@ -946,6 +946,9 @@ system-dialect: make-profilable context [
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
 			unless block? pos/2 [					;-- if not typed, infer type
+				if 'value = last get-type expr [
+					throw-error ["cannot infer type for:" mold name]
+				]
 				insert/only at pos 2 type: any [
 					casted
 					resolve-expr-type expr
