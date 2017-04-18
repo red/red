@@ -10,10 +10,6 @@ Red [
 	}
 ]
 
-routine: func [spec [block!] body [block!]][
-	cause-error 'internal 'routines []
-]
-
 also: func [
 	"Returns the first value, but also evaluates the second."
 	value1 [any-type!]
@@ -913,6 +909,74 @@ rejoin: function [
 	append either series? first block [copy first block] [
 		form first block
 	] next block
+]
+
+dirize: func [
+	"Returns a copy of the path turned into a directory"
+	path [file! string! url!]
+][
+	either #"/" <> pick path length? path [append copy path #"/"] [copy path]
+]
+
+clean-path: func [
+	"Cleans-up '.' and '..' in path; returns the cleaned path"
+	file [file! url! string!]
+	/only "Do not prepend current directory"
+	/dir "Add a trailing / if missing"
+	/local out cnt f
+][
+	case [
+		any [only not file? file] [file: copy file]
+		#"/" = first file [
+			file: next file
+			out: next what-dir
+			while [
+				all [
+					#"/" = first file
+					f: find/tail out #"/"
+				]
+			] [
+				file: next file
+				out: f
+			]
+			file: append clear out file
+		]
+		true [file: append what-dir file]
+	]
+	if all [dir not dir? file] [append file #"/"]
+	out: make file! length? file
+	cnt: 0
+	parse reverse file [
+		some [
+			"../" (cnt: cnt + 1)
+			| "./"
+			| #"/" (if any [not file? file #"/" <> last out] [append out #"/"])
+			| copy f [to #"/" | to end skip] (
+				either cnt > 0 [
+					cnt: cnt - 1
+				] [
+					unless find ["" "." ".."] to string! f [append out f]
+				]
+			)
+		]
+	]
+	if all [#"/" = last out #"/" <> last file] [remove back tail out]
+	reverse out
+]
+
+split-path: func [
+	"Splits a file or URL path. Returns a block containing path and target"
+	target [file! url!]
+	/local dir pos
+][
+	parse target [
+		[#"/" | 1 2 #"." opt #"/"] end (dir: dirize target) |
+		pos: any [thru #"/" [end | pos:]] (
+			all [empty? dir: copy/part target at head target index? pos dir: %./]
+			all [find [%. %..] pos: to file! pos insert tail pos #"/"]
+		)
+	]
+	reduce [dir pos]
 ]
 
 ;------------------------------------------
