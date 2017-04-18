@@ -178,7 +178,7 @@ emitter: make-profilable context [
 		entry/2
 	]
 	
-	local-offset?: func [var [word!] /local pos][
+	local-offset?: func [var [word! tag!] /local pos][
 		all [
 			pos: select/skip stack var 2
 			pos/1
@@ -604,7 +604,7 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type][
+	arguments-size?: func [locals [block!] /push /local size name type width offset][
 		size: 0
 		if push [
 			clear stack
@@ -617,9 +617,12 @@ emitter: make-profilable context [
 				size: 4
 			]
 		]
+		width: target/stack-width
+		offset: target/args-offset
+		
 		parse locals [opt block! any [set name word! set type block! (
-			if push [repend stack [name size + target/args-offset]]
-			size: size + max size-of? type/1 target/stack-width
+			if push [repend stack [name size + offset]]
+			size: size + max size-of? type width
 		)]]
 		if push [repend stack [<top> size + target/args-offset]] ;-- frame's top ptr
 		size
