@@ -23,7 +23,7 @@
 
 	--test-- "basic-8"	
 		--assert "make bitset! #{FF800000FFFF8000048900007FFFFFE0}"
-			 = mold charset [#"a" - #"z" 0 - 8 32 - #"0" "HELLO"]
+			 = mold charset [#"a" - #"z" 0 - 8 32 - 48 "HELLO"]
 
 	--test-- "basic-9"
 		bs: make bitset! [0 1 2 3]
