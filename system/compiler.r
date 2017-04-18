@@ -3778,6 +3778,7 @@ system-dialect: make-profilable context [
 		set-verbose-level opts/verbosity
 		output-logs
 		if any [opts/link? not opts/dev-mode?][clean-up]
+		set-verbose-level 0
 
 		reduce [
 			comp-time
