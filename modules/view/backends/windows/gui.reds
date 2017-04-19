@@ -1993,6 +1993,7 @@ OS-update-facet: func [
 	part   [integer!]
 	/local
 		word [red-word!]
+		pane [red-block!]
 		sym	 [integer!]
 		type [integer!]
 ][
@@ -2001,13 +2002,14 @@ OS-update-facet: func [
 	case [
 		sym = facets/pane [
 			sym: action/symbol 
+			pane: as red-block! value
 			case [
 				any [
 					sym = words/_remove/symbol
 					sym = words/_take/symbol
 					sym = words/_clear/symbol
 				][
-					change-faces-parent as red-block! value null new index part
+					change-faces-parent pane null new index part
 				]
 				any [
 					sym = words/_insert/symbol
@@ -2016,7 +2018,8 @@ OS-update-facet: func [
 					sym = words/_moved/symbol
 					sym = words/_changed/symbol
 				][
-					change-faces-parent as red-block! value face new index part
+					change-faces-parent pane face new index part
+					update-z-order pane null
 				]
 				true [0]
 			]
