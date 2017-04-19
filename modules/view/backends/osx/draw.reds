@@ -861,22 +861,21 @@ fill-gradient-region: func [
 		CGContextDrawLinearGradient
 			ctx
 			dc/grad-pen
-			dc/grad-x + dc/grad-start
-			dc/grad-y
-			dc/grad-x + dc/grad-stop
-			dc/grad-y
+			dc/grad-x1 + dc/grad-x2
+			dc/grad-y1
+			dc/grad-x1 + dc/grad-y2
+			dc/grad-y1
 			0
 	][
-		r: dc/grad-stop - dc/grad-start
 		CGContextDrawRadialGradient
 			ctx
 			dc/grad-pen
-			dc/grad-x
-			dc/grad-y
-			as float32! 0
-			dc/grad-x
-			dc/grad-y
-			r
+			dc/grad-x2
+			dc/grad-y2
+			as float32! 0.0
+			dc/grad-x1
+			dc/grad-y1
+			dc/grad-radius
 			0
 	]
 	CGContextRestoreGState ctx
@@ -885,14 +884,11 @@ fill-gradient-region: func [
 OS-draw-grad-pen-old: func [
 	dc			[draw-ctx!]
 	type		[integer!]
-	mode		[integer!]
+	spread		[integer!]
 	offset		[red-pair!]
 	count		[integer!]					;-- number of the colors
 	brush?		[logic!]
 	/local
-		start	[integer!]
-		stop	[integer!]
-		space	[integer!]
 		val		[integer!]
 		color	[pointer! [float32!]]
 		pos		[pointer! [float32!]]
@@ -906,17 +902,22 @@ OS-draw-grad-pen-old: func [
 		n		[integer!]
 		delta	[float32!]
 		p		[float32!]
-		scale?	[logic!]
 ][
 	dc/grad-type: type
-	dc/grad-mode: mode
-	dc/grad-x: as float32! offset/x			;-- save gradient offset for later use
-	dc/grad-y: as float32! offset/y
+	dc/grad-spread: spread
+	dc/grad-x1: as float32! offset/x			;-- save gradient offset for later use
+	dc/grad-y1: as float32! offset/y
 
 	int: as red-integer! offset + 1
-	dc/grad-start: as float32! int/value
+	dc/grad-x2: as float32! int/value
 	int: int + 1
-	dc/grad-stop: as float32! int/value
+	dc/grad-y2: as float32! int/value
+
+	if type = radial [
+		dc/grad-radius: dc/grad-y2 - dc/grad-x2
+		dc/grad-x2: dc/grad-x1
+		dc/grad-y2: dc/grad-y1
+	]
 
 	n: 0
 	while [
@@ -981,16 +982,100 @@ OS-draw-grad-pen-old: func [
 
 OS-draw-grad-pen: func [
 	ctx			[draw-ctx!]
-	mode		[integer!]
+	type		[integer!]
 	stops		[red-value!]
 	count		[integer!]
-	skip-pos	[logic!]
+	skip-pos?	[logic!]
 	positions	[red-value!]
 	focal?		[logic!]
 	spread		[integer!]
 	brush?		[logic!]
+	/local
+		f		[red-float!]
+		head	[red-value!]
+		next	[red-value!]
+		clr		[red-tuple!]
+		color	[float32-ptr!]
+		last-c	[float32-ptr!]
+		pos		[float32-ptr!]
+		last-p	[float32-ptr!]
+		delta	[float32!]
+		p		[float32!]
+		pt		[red-pair!]
+		val		[integer!]
 ][
-	0
+	ctx/grad-type: type
+	ctx/grad-spread: spread
+	ctx/grad-pos?: skip-pos?
+
+	either brush? [
+		ctx/grad-brush?: true
+	][
+		ctx/grad-pen?: true
+	]
+	;-- stops
+	color: colors + 4
+	pos: colors-pos + 1
+	delta: as float32! count - 1
+	delta: (as float32! 1.0) / delta
+	p: as float32! 0.0
+	head: stops
+	loop count [
+		clr: as red-tuple! either TYPE_OF(head) = TYPE_WORD [_context/get as red-word! head][head]
+		val: clr/array1
+		color/1: (as float32! val and FFh) / 255.0
+		color/2: (as float32! val >> 8 and FFh) / 255.0
+		color/3: (as float32! val >> 16 and FFh) / 255.0
+		color/4: (as float32! 255 - (val >>> 24)) / 255.0
+		next: head + 1
+		if TYPE_OF(next) = TYPE_FLOAT [head: next f: as red-float! head p: as float32! f/value]
+		pos/value: p
+		if next <> head [p: p + delta]
+		head: head + 1
+		color: color + 4
+		pos: pos + 1
+	]
+
+	last-p: pos - 1
+	last-c: color - 4
+	pos: pos - count
+	color: color - (count * 4)
+
+	if pos/value > as float32! 0.0 [			;-- first one should be always 0.0
+		colors-pos/value: as float32! 0.0
+		colors/1: color/1
+		colors/2: color/2
+		colors/3: color/3
+		colors/4: color/4
+		color: colors
+		pos: colors-pos
+		count: count + 1
+	]
+
+	if ctx/grad-pen <> -1 [CGGradientRelease ctx/grad-pen]
+	ctx/grad-pen: CGGradientCreateWithColorComponents ctx/colorspace color pos count
+
+	;-- positions
+	pt: as red-pair! positions
+	ctx/grad-x1: as float32! pt/x ctx/grad-y1: as float32! pt/y
+	either type = linear [
+		unless skip-pos? [
+			pt: pt + 1
+			ctx/grad-x2: as float32! pt/x ctx/grad-y2: as float32! pt/y
+		]
+	][
+		unless skip-pos? [
+			either type = radial [
+				ctx/grad-radius: get-float32 as red-integer! positions + 1
+				if focal? [
+					pt: as red-pair! ( positions + 2 )
+				]
+				ctx/grad-x2: as float32! pt/x ctx/grad-y2: as float32! pt/y
+			][
+				0	;@@ TBD diamond gradient
+			]
+		]
+	]
 ]
 
 ;transform-point: func [
