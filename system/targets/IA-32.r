@@ -239,6 +239,18 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-alloc-stack: does [
+		emit #{29C4}								;-- SUB esp, eax
+		emit #{83E4FC}								;-- AND esp, -4		; align to lower bound
+	]
+	
+	emit-free-stack: does [
+		emit #{F7D8}								;-- NEG eax
+		emit #{83E0FC}								;-- AND eax, -4
+		emit #{F7D8}								;-- NEG eax			; align to upper bound
+		emit #{01C4}								;-- ADD esp, eax
+	]
+	
 	emit-reserve-stack: func [slots [integer!] /local bytes][
 		bytes: slots * stack-width
 		either bytes > 127 [

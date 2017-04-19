@@ -144,7 +144,7 @@ system-dialect: make-profilable context [
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-			(to-word "%")		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+      (to-word "%")	[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -404,10 +404,42 @@ system-dialect: make-profilable context [
 							path
 						]
 					]
-					; add new special reflective system path here
 				]
 			]
 			none
+		]
+		
+		system-action?: func [path [path!] /local expr][
+			if path/1 = 'system [
+				switch/default path/2 [
+					stack [
+						switch/default path/3 [
+							allocate [
+								pc: next pc
+								fetch-expression/final/keep 'stack-alloc
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/allocate expects an integer! argument"
+								]
+								emitter/target/emit-alloc-stack
+								emitter/target/emit-get-stack
+								last-type: [pointer! [integer!]]
+								true
+							]
+							free [
+								pc: next pc
+								fetch-expression/final/keep 'stack-free
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/free expects an integer! argument"
+								]
+								emitter/target/emit-free-stack
+								true
+							]
+							;push []
+							;pop  []
+						][false]
+					]
+				][false]
+			]
 		]
 		
 		base-type?: func [value][
@@ -2556,6 +2588,9 @@ system-dialect: make-profilable context [
 						][
 							pc: next pc
 						]
+					]
+					system-action? path [
+						return <last>
 					]
 					all [
 						not get?
