@@ -454,7 +454,6 @@ bitset: context [
 							if type <> TYPE_OF(value) [
 								fire [TO_ERROR(script invalid-arg) value]
 							]
-							type: TYPE_OF(value)
 							either all [
 								value < tail
 								any [type = TYPE_CHAR type = TYPE_INTEGER]
