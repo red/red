@@ -2098,6 +2098,9 @@ system-dialect: make-profilable context [
 			chunk: emitter/chunks/join start chunk
 			
 			locals-size: either all [locals find locals /local][
+				unless block? last locals [
+					throw-error ["Type definition required for:" last locals]
+				]
 				(abs last emitter/stack) + emitter/size-of? last locals
 			][
 				0
