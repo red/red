@@ -2205,6 +2205,8 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
+			emit to-bin32 negate locals-size + 20	;-- account for 2 catch slots + 3 saved regs
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
