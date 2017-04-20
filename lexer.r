@@ -251,7 +251,7 @@ lexer: context [
 	
 	slash-rule: [s: [slash opt slash] e:]
 	
-	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
 	sticky-word-rule: [								;-- protect from sticky words typos
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
