@@ -658,7 +658,22 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][
+	calc-locals-offsets: func [spec [block!] /local total var sz][
+		total: negate target/locals-offset
+		while [not tail? spec: next spec][
+			var: spec/1
+			either block? spec/2 [
+				sz: max size-of? spec/2 target/stack-width	;-- type declared
+				spec: next spec
+			][
+				sz: target/stack-slot-max				;-- type to be inferred
+			]
+			repend stack [var (total: total - sz)] 		;-- store stack offsets
+		]
+		abs total
+	]
+	
+	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -670,20 +685,7 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		locals-sz: either pos: find locals /local [
-			locals-sz: negate target/locals-offset
-			while [not tail? pos: next pos][
-				var: pos/1
-				either block? pos/2 [
-					sz: max size-of? pos/2 target/stack-width	;-- type declared
-					pos: next pos
-				][
-					sz: target/stack-slot-max			;-- type to be inferred
-				]
-				repend stack [var (locals-sz: locals-sz - sz)] 	;-- store stack offsets
-			]
-			abs locals-sz
-		][0]
+		locals-sz: either pos: find locals /local [calc-locals-offsets pos][0]
 		if verbose >= 2 [print ["args+locals stack:" mold stack]]
 		
 		target/emit-prolog name locals locals-sz

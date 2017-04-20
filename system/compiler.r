@@ -216,6 +216,7 @@ system-dialect: make-profilable context [
 			continue	 [comp-continue]
 			catch		 [comp-catch]
 			declare		 [comp-declare]
+			use			 [comp-use]
 			null		 [comp-null]
 			context		 [comp-context]
 			with		 [comp-with]
@@ -1891,6 +1892,40 @@ system-dialect: make-profilable context [
 			]
 			pc: skip pc offset
 			value
+		]
+		
+		comp-use: has [spec use-init use-locals use-stack][
+			pc: next pc
+			unless all [block? spec: pc/1 not empty? spec][
+				backtrack 'use
+				throw-error "USE requires a spec block as first argument"
+			]
+			unless block? pc/2 [
+				backtrack 'use
+				throw-error "USE requires a body block as second argument"
+			]
+			unless locals [
+				backtrack 'use
+				throw-error "USE can only be used from inside a function's body"
+			]
+			
+			use-init:   tail locals-init
+			use-locals: tail locals
+			use-stack:  tail emitter/stack
+			
+			unless find locals /local [append locals /local]
+			append locals spec
+			emitter/calc-locals-offsets probe use-locals
+			
+			pc: next pc
+			fetch-into/root pc/1 [comp-dialect]
+			pc: next pc
+			
+			clear use-init
+			clear use-locals
+			clear use-stack
+			last-type: none-type
+			none
 		]
 		
 		comp-null: does [
