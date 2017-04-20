@@ -157,7 +157,7 @@ system/view/VID: context [
 	]
 	
 	fetch-options: function [
-		face [object!] opts [object!] style [block!] spec [block!] css [block!]
+		face [object!] opts [object!] style [block!] spec [block!] css [map!]
 		/extern focal-face
 		return: [block!]
 	][
@@ -298,7 +298,46 @@ system/view/VID: context [
 			]
 		]
 	]
-	
+
+	face-options: object [
+		type: offset: size: text: color: enable?: visible?: selected: image: 
+		rate: font: flags: options: para: data: extra: actors: draw: now?: none
+	]
+
+	set 'stylize function [
+		"Return a style sheet block built from VID-like specification"
+		spec 		  [block!]	"Dialect block of style description"
+		/master					"Put styles into master style sheet"
+		/styles 				"Use an existing styles list"
+			css 	  [map!] 	"Styles list"
+		/local tmp face args parent style
+		/extern face-options
+	] [
+		local-styles: case [
+			master 	(system/view/VID/styles)
+			styles 	(copy css)
+			true 	(make map! 2)
+		]
+		opts: make face-options []
+		while [spec: find spec set-word!] [
+			name: first spec
+			parent: first spec: next spec
+			style: any [
+				select local-styles parent
+				select system/view/VID/styles parent
+			]
+			unless tmp: find spec set-word! [tmp: tail spec]
+			args: copy/part spec tmp
+			face: make face! copy/deep style/template
+			spec: fetch-options face opts style spec local-styles
+			parse style/template: body-of face [
+				some [remove [set-word! [none! | function!]] | skip]
+			]
+			local-styles/:name: style
+		]
+		local-styles
+	]
+
 	set 'layout function [
 		"Return a face with a pane built from a VID description"
 		spec		  [block!]	"Dialect block of styles, attributes, and layouts"
@@ -312,27 +351,24 @@ system/view/VID: context [
 			panel	  [object!]
 			divides   [integer! none!]
 		/styles					"Use an existing styles list"
-			css		  [block!]	"Styles list"
+			css		  [map!]	"Styles list"
 		/local axis anti								;-- defined in a SET block
-		/extern focal-face
+		/extern focal-face face-options
 	][
 		background!:  make typeset! [image! file! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
-		local-styles: any [css make block! 2]			;-- panel-local styles definitions
+		local-styles: any [css make map! 2]				;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
+
+		opts: make face-options []
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
-		
-		opts: object [
-			type: offset: size: text: color: enable?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: now?: none
-		]
-		
+
 		reset: [
 			cursor: as-pair origin/:axis cursor/:anti + max-sz + spacing/:anti
 			if direction = 'below [cursor: reverse cursor]
@@ -378,6 +414,9 @@ system/view/VID: context [
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
 				]
+				styles	[
+					local-styles: extend local-styles get first spec: next spec
+				]
 			][
 				unless styling? [
 					name: none
@@ -404,9 +443,7 @@ system/view/VID: context [
 					parse value/template: body-of face [
 						some [remove [set-word! [none! | function!]] | skip]
 					]
-					either pos: find local-styles name [pos/2: value][ 
-						reduce/into [name value] tail local-styles
-					]
+					local-styles/:name: value
 					styling?: off
 				][
 					;-- update cursor position --
