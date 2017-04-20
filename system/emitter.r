@@ -13,7 +13,7 @@ emitter: make-profilable context [
 	code-buf:  make binary! 100'000
 	data-buf:  make binary! 100'000
 	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
-	stack: 	   make hash! 40			;-- [name offset ...]
+	stack: 	   make block! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
@@ -177,6 +177,13 @@ emitter: make-profilable context [
 		]		
 		entry/2
 	]
+	
+	local-offset?: func [var [word! tag!] /local pos][
+		all [
+			pos: select/skip stack var 2
+			pos/1
+		]
+	]
 
 	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
 		if all [with block? op][op: op/1]
@@ -320,13 +327,13 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal? saved
+		/local new new-global? ptr refs n-spec spec literal? saved slots
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
 		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
-			find stack name								;-- local variable
+			local-offset? name							;-- local variable
 			find symbols name 							;-- known symbol
 		]
 		either all [
@@ -358,7 +365,19 @@ emitter: make-profilable context [
 			if new-global? [spec: store-value name value type] ;-- store new variable with value
 		]
 		if all [name not all [new-global? literal?]][	;-- emit dynamic loading code when required
-			target/emit-store name value spec
+			either all [
+				value = <last>
+				'value = last type: compiler/last-type
+				any [
+					'struct! = type/1
+					'struct! = first type: compiler/resolve-aliased type
+				]
+			][
+				slots: struct-slots?/direct type/2
+				target/emit-store/by-value name value type slots ;-- struct-by-value case
+			][
+				target/emit-store name value spec
+			]
 		]
 	]
 		
@@ -528,8 +547,20 @@ emitter: make-profilable context [
 		]
 	]
 
-	size-of?: func [type [word! block!]][
+	size-of?: func [type [word! block!] /local t][
+		if all [
+			block? type
+			'value = last type
+			any [
+				'struct! = type/1
+				'struct! = first t: compiler/find-aliased type/1
+			]
+		][
+			if t [type: t]
+			return member-offset? type/2 none
+		]
 		if block? type [type: type/1]
+		
 		any [
 			select datatypes type						;-- search in base types
 			all [										;-- search if it's enumeration
@@ -565,14 +596,41 @@ emitter: make-profilable context [
 		]
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type][
-		if push [clear stack]
+	struct-slots?: func [spec [block!] /direct][
+		unless direct [
+			if 'struct! <> spec/1 [spec: compiler/find-aliased spec/1]
+			spec: spec/2
+		]
+		round/ceiling (member-offset? spec none) / target/stack-width
+	]
+	
+	arguments-size?: func [locals [block!] /push /local size name type width offset][
 		size: 0
+		if push [
+			clear stack
+			if all [
+				ret: select locals compiler/return-def
+				'value = last ret
+				2 < struct-slots? ret
+			][
+				repend stack [<ret-ptr> target/args-offset]
+				size: 4
+			]
+		]
+		width: target/stack-width
+		offset: target/args-offset
+		
 		parse locals [opt block! any [set name word! set type block! (
-			if push [repend stack [name size + target/args-offset]]
-			size: size + max size-of? type/1 target/stack-width		
+			if push [repend stack [name size + offset]]
+			size: size + max size-of? type width
 		)]]
+		if push [repend stack [<top> size + target/args-offset]] ;-- frame's top ptr
 		size
+	]
+	
+	push-struct: func [expr spec [block!]][
+		target/emit-load expr
+		target/emit-push-struct struct-slots?/direct spec/2
 	]
 	
 	init-loop-jumps: does [
@@ -600,7 +658,22 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][
+	calc-locals-offsets: func [spec [block!] /local total var sz][
+		total: negate target/locals-offset
+		while [not tail? spec: next spec][
+			var: spec/1
+			either block? spec/2 [
+				sz: max size-of? spec/2 target/stack-width	;-- type declared
+				spec: next spec
+			][
+				sz: target/stack-slot-max				;-- type to be inferred
+			]
+			repend stack [var (total: total - sz)] 		;-- store stack offsets
+		]
+		abs total
+	]
+	
+	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -612,31 +685,23 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		locals-sz: 0
-		if pos: find locals /local [
-			while [not tail? pos: next pos][
-				var: pos/1
-				either block? pos/2 [
-					sz: max size-of? pos/2/1 target/stack-width	;-- type declared
-					pos: next pos
-				][
-					sz: target/stack-slot-max			;-- type to be inferred
-				]
-				repend stack [
-					var
-					(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
-				]
-			]
-			locals-sz: abs locals-sz
-		]
-		if verbose >= 3 [print ["args+locals stack:" mold to-block stack]]
+		locals-sz: either pos: find locals /local [calc-locals-offsets pos][0]
+		if verbose >= 2 [print ["args+locals stack:" mold stack]]
+		
 		target/emit-prolog name locals locals-sz
-		args-sz
+		reduce [args-sz locals-sz]
 	]
 	
-	leave: func [name [word!] locals [block!] args-sz [integer!] locals-sz [integer!]][
+	leave: func [
+		name [word!] locals [block!] args-sz [integer!] locals-sz [integer!] rspec [block! none!]
+		/local slots
+	][
+		if rspec [
+			if verbose >= 2 [print ["returns struct-by-value:" mold rspec]]
+			slots: struct-slots?/direct rspec
+		]
 		unless empty? exits [resolve-exit-points]
-		target/emit-epilog name locals args-sz locals-sz
+		target/emit-epilog/with name locals args-sz locals-sz slots
 	]
 	
 	import: func [name [word!] reloc [block!] /var /local type][

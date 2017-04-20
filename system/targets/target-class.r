@@ -75,19 +75,10 @@ target-class: context [
 		][
 			to-bin32 offset
 		][
-			skip debase/base to-hex offset 16 3
+			to-bin8 offset
 		]
 	]
-		
-	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
-		if 4 = length? offset [
-			lcode: copy/deep lcode
-			code: either block? lcode [first back find lcode 'offset][lcode]
-			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
-		]
-		lcode
-	]
-
+	
 	emit: func [bin [binary! char! block!]][
 		if verbose >= 4 [print [">>>emitting code:" mold bin]]
 		append emitter/code-buf bin

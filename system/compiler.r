@@ -144,7 +144,7 @@ system-dialect: make-profilable context [
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-			(to-word "%")		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+      (to-word "%")	[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -181,7 +181,7 @@ system-dialect: make-profilable context [
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
-			| 'struct!  into [struct-syntax]
+			| 'struct!  into [struct-syntax] opt 'value
 		]
 
 		type-spec: [
@@ -192,7 +192,7 @@ system-dialect: make-profilable context [
 					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
 					all [enum-type? value pos/1: 'integer!]
 				][throw false]							;-- stop parsing if unresolved type			
-			)
+			) opt 'value
 		]		
 		
 		keywords: make hash! [
@@ -216,6 +216,7 @@ system-dialect: make-profilable context [
 			continue	 [comp-continue]
 			catch		 [comp-catch]
 			declare		 [comp-declare]
+			use			 [comp-use]
 			null		 [comp-null]
 			context		 [comp-context]
 			with		 [comp-with]
@@ -404,10 +405,42 @@ system-dialect: make-profilable context [
 							path
 						]
 					]
-					; add new special reflective system path here
 				]
 			]
 			none
+		]
+		
+		system-action?: func [path [path!] /local expr][
+			if path/1 = 'system [
+				switch/default path/2 [
+					stack [
+						switch/default path/3 [
+							allocate [
+								pc: next pc
+								fetch-expression/final/keep 'stack-alloc
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/allocate expects an integer! argument"
+								]
+								emitter/target/emit-alloc-stack
+								emitter/target/emit-get-stack
+								last-type: [pointer! [integer!]]
+								true
+							]
+							free [
+								pc: next pc
+								fetch-expression/final/keep 'stack-free
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/free expects an integer! argument"
+								]
+								emitter/target/emit-free-stack
+								true
+							]
+							;push []
+							;pop  []
+						][false]
+					]
+				][false]
+			]
 		]
 		
 		base-type?: func [value][
@@ -946,6 +979,9 @@ system-dialect: make-profilable context [
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
 			unless block? pos/2 [					;-- if not typed, infer type
+				if 'value = last get-type expr [
+					throw-error ["cannot infer type for:" mold name]
+				]
 				insert/only at pos 2 type: any [
 					casted
 					resolve-expr-type expr
@@ -1858,6 +1894,40 @@ system-dialect: make-profilable context [
 			value
 		]
 		
+		comp-use: has [spec use-init use-locals use-stack][
+			pc: next pc
+			unless all [block? spec: pc/1 not empty? spec][
+				backtrack 'use
+				throw-error "USE requires a spec block as first argument"
+			]
+			unless block? pc/2 [
+				backtrack 'use
+				throw-error "USE requires a body block as second argument"
+			]
+			unless locals [
+				backtrack 'use
+				throw-error "USE can only be used from inside a function's body"
+			]
+			
+			use-init:   tail locals-init
+			use-locals: tail locals
+			use-stack:  tail emitter/stack
+			
+			unless find locals /local [append locals /local]
+			append locals spec
+			emitter/calc-locals-offsets probe use-locals
+			
+			pc: next pc
+			fetch-into/root pc/1 [comp-dialect]
+			pc: next pc
+			
+			clear use-init
+			clear use-locals
+			clear use-stack
+			last-type: none-type
+			none
+		]
+		
 		comp-null: does [
 			pc: next pc
 			make action-class [action: 'null type: [any-pointer!] data: 0]
@@ -2024,13 +2094,16 @@ system-dialect: make-profilable context [
 			set [unused chunk] comp-block-chunked		;-- compile body block
 			catch-level: catch-level - 1
 
-			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]			
+			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]
 			chunk: emitter/chunks/join start chunk
 			
-			locals-size: either all [locals not empty? emitter/stack][
-				abs last emitter/stack
+			locals-size: either all [locals find locals /local][
+				unless block? last locals [
+					throw-error ["Type definition required for:" last locals]
+				]
+				(abs last emitter/stack) + emitter/size-of? last locals
 			][
-				emitter/target/locals-offset
+				0
 			]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
 			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
@@ -2554,6 +2627,9 @@ system-dialect: make-profilable context [
 							pc: next pc
 						]
 					]
+					system-action? path [
+						return <last>
+					]
 					all [
 						not get?
 						'function! = first type: resolve-path-type path 
@@ -2786,10 +2862,21 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+		
+		get-caller: has [list found? /root][
+			list: back back tail expr-call-stack
+			unless root [return find calling-keywords list/1]
+			
+			while [found?: find calling-keywords list/1][list: back list]
+			all [not found? not tail? next list list/1]
+		]
 
 		comp-call: func [
-			name [word!] args [block!] /sub
-			/local list type res align? left right dup var-arity? saved? arg expr spec
+			name [word!] args [block!]
+			/sub										;FIXME: never used!
+			/local
+				list type res align? left right dup var-arity? saved? arg expr spec fspec
+				ret-value? types slots caller
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2798,9 +2885,50 @@ system-dialect: make-profilable context [
 				check-arguments-type name args
 				args
 			]
-			order-args name list						;-- reorder argument according to cconv
-
 			spec: functions/:name
+			
+			;-- returned struct by value handling --
+			if all [
+				type: select spec/4 return-def
+				'value = last type
+				any [
+					'struct! = type/1
+					'struct! = first type: resolve-aliased type
+				]
+				2 < slots: emitter/struct-slots?/direct type/2
+			][
+				unless caller: get-caller [
+					caller: either tail? pc [
+						get-caller/root
+					][
+						any [get-caller/root 'args-top] ;-- 'args-top is just for routing in SWITCH 
+					]
+				]
+				insert/only list switch/default type?/word caller [
+					none!	  [<ret-ptr>]
+					set-word! [
+						unless get-variable-spec to word! caller [
+							backtrack caller
+							throw-error "variable not declared"
+						]
+						bind to word! caller caller
+					]
+					set-path! [
+						unless get-variable-spec caller/1 [
+							backtrack caller
+							throw-error ["unknown path root variable:" caller/1]
+						]
+						to path! caller
+					]
+					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+				][
+					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
+				]
+			]
+			;--
+			
+			order-args name list						;-- reorder argument according to cconv
+			
 			align?: all [
 				args/1 <> #custom
 				any [
@@ -2811,15 +2939,30 @@ system-dialect: make-profilable context [
 			if align? [emitter/target/emit-stack-align-prolog args spec]
 			
 			if args/1 <> #custom [
-				type: functions/:name/2
+				type: second fspec: functions/:name
 				either type <> 'op [
+					all [
+						not empty? list
+						not all [block? fspec/4/1 intersect fspec/4/1 [variadic typed]]
+						types: any [
+							find/last fspec/4 return-def
+							find/last fspec/4 /local
+							tail fspec/4
+						]
+						types: back types
+					]
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
+							either all [types not tag? expr block? types/1 'value = last types/1][
+								emitter/push-struct expr resolve-aliased types/1
+							][
+								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
+							]
 						]
+						if types [types: skip types -2]
 					]
 				][										;-- nested calls as op argument require special handling
 					if any [string? list/1 string? list/2][
@@ -2837,6 +2980,7 @@ system-dialect: make-profilable context [
 				]
 			]
 			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
+			
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
@@ -2845,15 +2989,19 @@ system-dialect: make-profilable context [
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if align? [emitter/target/emit-stack-align-epilog args]
+			if ret-value? [emitter/target/emit-release-stack slots]
 			res
 		]
 				
 		comp-path-assign: func [
 			set-path [set-path!] expr casted [block! none!]
-			/local type new value
+			/local type new value spec
 		][
 			value: unbox expr
-			if find [block! path! tag!] type?/word value [
+			if all [
+				find [block! path! tag!] type?/word value
+				'value <> last last-type				;-- struct by value has specific handling
+			][
 				emitter/target/emit-move-path-alt		;-- save assigned value
 			]
 			if all [
@@ -2863,12 +3011,19 @@ system-dialect: make-profilable context [
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
 			]
-			unless get-variable-spec set-path/1 [
+			unless spec: get-variable-spec set-path/1 [
 				backtrack set-path
 				throw-error ["unknown path root variable:" set-path/1]
 			]
 			type: resolve-path-type set-path			;-- check path validity
-			new: resolve-aliased get-type expr		
+			new: resolve-aliased get-type expr
+			
+			all [
+				block? spec
+				'value = last spec						;-- for local struct by value only
+				not-initialized? set-path/1
+				init-local set-path/1 expr casted		;-- mark as initialized and infer type if required
+			]
 
 			if type <> any [casted new][
 				backtrack set-path
@@ -2889,7 +3044,8 @@ system-dialect: make-profilable context [
 			set-word [set-word!] expr casted [block! none!]
 			/local name type new value fun-name
 		][
-			name: to word! set-word		
+			name: to word! set-word
+			
 			if find aliased-types name [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
@@ -2922,7 +3078,8 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
-				
+				if 'value = last new [new: head remove back tail copy new]
+
 				if type <> any [casted new][
 					backtrack set-word
 					throw-error [
@@ -2950,7 +3107,10 @@ system-dialect: make-profilable context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			emitter/store name value type
+			
+			unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
+				emitter/store name value type
+			]
 		]
 		
 		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][
@@ -3240,8 +3400,15 @@ system-dialect: make-profilable context [
 					emitter/target/emit-casting expr no	;-- insert runtime type casting when required
 					last-type: expr/type
 				]
+				ret: all [
+					'value = last ret
+					any [
+						all [ret/1 = 'struct! ret/2]
+						all [ret: resolve-aliased ret ret/1 = 'struct! ret/2]
+					]
+				]
 			]
-			emitter/leave name locals args-sz local-sz	;-- build function epilog
+			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
 			clear locals-init
 			locals: func-name: none
@@ -3684,6 +3851,7 @@ system-dialect: make-profilable context [
 		set-verbose-level opts/verbosity
 		output-logs
 		if any [opts/link? not opts/dev-mode?][clean-up]
+		set-verbose-level 0
 
 		reduce [
 			comp-time
