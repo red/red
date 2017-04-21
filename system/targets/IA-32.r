@@ -262,7 +262,8 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-release-stack: func [bytes [integer!]][
+	emit-release-stack: func [slots [integer!] /local bytes][
+		bytes: slots * stack-width
 		either bytes > 127 [
 			emit #{81C4}							;-- ADD esp, bytes	; 32-bit displacement
 			emit to-bin32 bytes
