@@ -1682,7 +1682,7 @@ Example:
  var: 2
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  ][
@@ -1691,7 +1691,7 @@ Example:
  ]
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  		var [integer!]
@@ -1699,6 +1699,53 @@ Example:
  	bar: 3
  	var: 10								;-- 'var is a local variable here
  	foo + var + bar						;-- will return 14
+ ]
+ 
++++USE keyword
+
+Inside a function body, it is possible to create arbitrary local contexts, with additional local variables thanks to the USE keyword:
+
+<b>Syntax</b>
+ 
+ use [<spec>][<code>]
+
+ <spec> : list of local variables followed by optional type specification
+ <code> : body block of code
+ 
+This creates a local context where new variables are available in the body block. Those variables are freed on exiting the body block. Using a variable name already existing in the function specification will result in a compilation error.
+
+Local variables listed in spec block follow the same syntax as local variables in function spec block. Variable names can be followed by a type specification, or let the compiler infer the type (except for structs by value, which must have a declared type). Local contexts created by USE can also be freely nested (as long as no variable names from outer local contexts are re-used).
+
+Examples:
+
+ f: func [
+ 	/local 
+ 		foo [integer!]
+ ][
+ 	foo: 1
+ 	use [bar][
+ 		bar: 2
+ 		use [baz][
+ 			baz: 3
+ 			print foo + bar + baz		;-- will output 6
+ 		]
+ 	]
+ ]
+
+ f: func [
+ 	cond    [logic!]
+ 	return: [integer!]
+ 	/local 
+ 		bar [integer!]
+ ][
+ 	bar: 3
+ 	if cond [
+ 		use [var][
+ 			var: 10						;-- 'var is a local variable here
+ 			bar: var + bar				;-- will return 14
+ 		]
+ 	]
+ 	bar
  ]
  
 ---Namespaces
@@ -3668,8 +3715,8 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     null		or			pop
     push		return		size?
     switch		throw		true
-    until		while		with
-    xor
+    until		use			while
+    with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -3796,6 +3843,7 @@ will output:
 
 *>Adds description of structs by value passing/returning.
 
+*>Adds USE keyword description.
 
 
 *<b>31/03/2017 - revision 50</b>
