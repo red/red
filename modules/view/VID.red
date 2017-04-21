@@ -201,6 +201,7 @@ system/view/VID: context [
 				| 'no-border  (set-flag opts 'flags 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
+				| 'init		  (opts/init: fetch-argument block! spec)
 				] to end
 			]
 			unless match? [
@@ -330,7 +331,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: now?: none
+			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		
 		reset: [
@@ -403,6 +404,11 @@ system/view/VID: context [
 					value: copy style
 					parse value/template: body-of face [
 						some [remove [set-word! [none! | function!]] | skip]
+					]
+					if opts/init [
+						either value/init [append value/init opts/init][
+							reduce/into [to-set-word 'init opts/init] tail value
+						]
 					]
 					either pos: find local-styles name [pos/2: value][ 
 						reduce/into [name value] tail local-styles
