@@ -501,6 +501,10 @@ system/view/platform: context [
 					x			[float32!]
 					return:		[float32!]
 				]
+				sqrtf:		"sqrtf" [
+					x			[float32!]
+					return:		[float32!]
+				]
 			]]
 
 			;#include %android/gui.reds

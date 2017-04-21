@@ -682,6 +682,10 @@ tagSIZE: alias struct! [
 			tx			[float32!]
 			ty			[float32!]
 		]
+		CGContextGetPathBoundingBox: "CGContextGetPathBoundingBox" [
+			ctx			[handle!]
+			return:		[NSRect! value]
+		]
 		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
 			x			[float32!]
 			y			[float32!]

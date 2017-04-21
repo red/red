@@ -167,7 +167,11 @@ OS-draw-fill-pen: func [
 	off?   [logic!]
 	alpha? [logic!]
 ][
-	if dc/grad-pen <> -1 [CGGradientRelease dc/grad-pen dc/grad-pen: -1]
+	if dc/grad-pen <> -1 [
+		CGGradientRelease dc/grad-pen
+		dc/grad-pos?: no
+		dc/grad-pen: -1
+	]
 	either off? [dc/brush?: no][
 		dc/brush?: yes
 		if dc/brush-color <> color [
@@ -187,6 +191,129 @@ OS-draw-line-width: func [
 	if dc/pen-width <> width-v [
 		dc/pen-width: width-v
 		CGContextSetLineWidth dc/raw width-v
+	]
+]
+
+get-shape-center: func [
+	start			[CGPoint!]
+	count			[integer!]
+	cx				[float32-ptr!]
+	cy				[float32-ptr!]
+	d				[float32-ptr!]
+	/local
+		point		[CGPoint!]
+		dx			[float32!]
+		dy			[float32!]
+		x0			[float32!]
+		y0			[float32!]
+		x1			[float32!]
+		y1			[float32!]
+		a			[float32!]
+		r			[float32!]
+		signedArea	[float32!]
+		centroid-x	[float32!]
+		centroid-y	[float32!]
+][
+	;-- implementation taken from http://stackoverflow.com/questions/2792443/finding-the-centroid-of-a-polygon
+	signedArea: as float32! 0.0
+	centroid-x: as float32! 0.0 centroid-y: as float32! 0.0
+	point: start
+	loop count [
+		x0: point/x
+		y0: point/y
+		point: point + 1
+		x1: point/x
+		y1: point/y
+		a: x0 * y1 - (x1 * y0)
+		signedArea: signedArea + a
+		centroid-x: centroid-x + ((x0 + x1) * a)
+		centroid-y: centroid-y + ((y0 + y1) * a)
+	]
+
+	signedArea: signedArea * as float32! 0.5
+	centroid-x: centroid-x / (signedArea * as float32! 6.0)
+	centroid-y: centroid-y / (signedArea * as float32! 6.0)
+
+	cx/value: centroid-x
+	cy/value: centroid-y
+
+	if d <> null [
+		;-- take biggest distance
+		d/value: as float32! 0.0
+		point: start
+		loop count [
+			dx: centroid-x - point/x
+			dy: centroid-y - point/y
+			r: sqrtf dx * dx + ( dy * dy )
+			if r > d/value [ d/value: r ]
+			point: point + 1
+		]
+	]
+]
+
+check-gradient-poly: func [
+	ctx			[draw-ctx!]
+	start		[CGPoint!]
+	count		[integer!]
+	/local
+		type	[integer!]
+		cx		[float32!]
+		cy		[float32!]
+		d		[float32!]
+		rc		[NSRect! value]
+][
+	cx: as float32! 0.0 cy: as float32! 0.0 d: as float32! 0.0
+	type: ctx/grad-type
+	either type = radial [
+		get-shape-center start count :cx :cy :d
+		ctx/grad-radius: d
+		ctx/grad-x1: cx
+		ctx/grad-y1: cy
+		ctx/grad-x2: ctx/grad-x1
+		ctx/grad-y2: ctx/grad-y1
+	][
+		rc: CGContextGetPathBoundingBox ctx/raw
+		ctx/grad-x1: rc/x
+		ctx/grad-x2: rc/x + rc/w
+		ctx/grad-y1: rc/y
+		ctx/grad-y2: rc/y
+	]
+]
+
+check-gradient-box: func [
+	ctx			[draw-ctx!]
+	upper-x		[float32!]
+	upper-y		[float32!]
+	lower-x		[float32!]
+	lower-y		[float32!]
+	/local
+		type	[integer!]
+		dx		[float32!]
+		dy		[float32!]
+][
+	type: ctx/grad-type
+	case [
+		any [
+			type = linear
+			type = diamond
+		][
+			ctx/grad-x1: upper-x
+			ctx/grad-x2: lower-x
+			ctx/grad-y1: upper-y
+			ctx/grad-y2: ctx/grad-y1
+		]
+		type = radial [
+			dx: lower-x - upper-x + as float32! 1.0
+			dy: lower-y - upper-y + as float32! 1.0
+			dx: dx / as float32! 2.0
+			dy: dy / as float32! 2.0
+			ctx/grad-x1: dx + upper-x
+			ctx/grad-y1: dy + upper-y
+			ctx/grad-x2: ctx/grad-x1
+			ctx/grad-y2: ctx/grad-y1
+			ctx/grad-radius: sqrtf dx * dx + ( dy * dy )
+		]
+		true []
 	]
 ]
 
@@ -233,6 +360,7 @@ OS-draw-box: func [
 	][
 		CGContextAddRect ctx x1 y1 x2 - x1 y2 - y1
 	]
+	if dc/grad-pos? [check-gradient-box dc x1 y1 x2 y2]
 	do-draw-path dc
 ]
 
@@ -282,6 +410,7 @@ OS-draw-triangle: func [
 	point/y: edges/y
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges 4
+	if dc/grad-pos? [check-gradient-poly dc edges 3]
 	do-draw-path dc
 ]
 
@@ -314,6 +443,7 @@ OS-draw-polygon: func [
 
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb + 1
+	if dc/grad-pos? [check-gradient-poly dc edges nb]
 	do-draw-path dc
 ]
 
@@ -861,10 +991,10 @@ fill-gradient-region: func [
 		CGContextDrawLinearGradient
 			ctx
 			dc/grad-pen
-			dc/grad-x1 + dc/grad-x2
+			dc/grad-x1
 			dc/grad-y1
-			dc/grad-x1 + dc/grad-y2
-			dc/grad-y1
+			dc/grad-x2
+			dc/grad-y2
 			0
 	][
 		CGContextDrawRadialGradient
@@ -1056,15 +1186,13 @@ OS-draw-grad-pen: func [
 	ctx/grad-pen: CGGradientCreateWithColorComponents ctx/colorspace color pos count
 
 	;-- positions
-	pt: as red-pair! positions
-	ctx/grad-x1: as float32! pt/x ctx/grad-y1: as float32! pt/y
-	either type = linear [
-		unless skip-pos? [
+	unless skip-pos? [
+		pt: as red-pair! positions
+		ctx/grad-x1: as float32! pt/x ctx/grad-y1: as float32! pt/y
+		either type = linear [
 			pt: pt + 1
 			ctx/grad-x2: as float32! pt/x ctx/grad-y2: as float32! pt/y
-		]
-	][
-		unless skip-pos? [
+		][
 			either type = radial [
 				ctx/grad-radius: get-float32 as red-integer! positions + 1
 				if focal? [
