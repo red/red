@@ -621,6 +621,7 @@ struct-local-foo2
 	sbvf2: func [s [tiny! value] v [integer!] return: [tiny! value] /local tmp [tiny! value]][
 		--assert v = 123
 		tmp/b1: s/b1
+		--assert (as int-ptr! :tmp) = :tmp/b1
 		--assert tmp/b1 = s/b1
 		tmp
 	]
@@ -638,6 +639,7 @@ struct-local-foo2
 		--assert v = 123
 		tmp/one: s/one + 1
 		tmp/two: s/two + 1
+		--assert (as int-ptr! :tmp) = :tmp/one
 		tmp
 	]
 
@@ -657,6 +659,7 @@ struct-local-foo2
 		tmp/one: s/one
 		tmp/two: s/two
 		tmp/three: s/three
+		--assert (as int-ptr! :tmp) = :tmp/one
 		tmp
 	]
 

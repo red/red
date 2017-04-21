@@ -710,11 +710,25 @@ system-dialect: make-profilable context [
 				string!	 [[c-string!]]
 				get-word! [
 					type: resolve-type to word! value
+					
 					switch/default type/1 [
 						function! [type]
 						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
 					][
-						throw-error ["invalid datatype for a get-word:" mold type]
+						with-alias-resolution off [
+							type: resolve-type to word! value
+						]
+						either all [
+							'value = last type
+							any [
+								'struct! = type/1
+								'struct! = first find-aliased type/1
+							]
+						][
+							type
+						][
+							throw-error ["invalid datatype for a get-word:" mold type]
+						]
 					]
 				]
 				logic!	 [[logic!]]
