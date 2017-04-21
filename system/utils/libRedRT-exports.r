@@ -176,11 +176,14 @@
 
 	red/natives/repeat-init*
 	red/natives/repeat-set
+	red/natives/remove-each-init
+	red/natives/remove-each-next
 	red/natives/foreach-next-block
 	red/natives/foreach-next
 	red/natives/forall-loop
 	red/natives/forall-next
 	red/natives/forall-end
+	red/natives/forall-end-adjust
 
 	red/actions/make*
 	red/actions/random*
