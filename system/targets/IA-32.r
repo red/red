@@ -251,25 +251,25 @@ make-profilable make target-class [
 		emit #{01C4}								;-- ADD esp, eax
 	]
 	
-	emit-reserve-stack: func [slots [integer!] /local bytes][
-		bytes: slots * stack-width
-		either bytes > 127 [
+	emit-reserve-stack: func [slots [integer!] /local size][
+		size: slots * stack-width
+		either size > 127 [
 			emit #{81EC}							;-- SUB esp, bytes	; 32-bit displacement
-			emit to-bin32 bytes
+			emit to-bin32 size
 		][
 			emit #{83EC}							;-- SUB esp, bytes	; 8-bit displacement
-			emit to-bin8 bytes
+			emit to-bin8 size
 		]
 	]
 	
-	emit-release-stack: func [slots [integer!] /local bytes][
-		bytes: slots * stack-width
-		either bytes > 127 [
+	emit-release-stack: func [slots [integer!] /bytes /local size][
+		size: either bytes [slots][slots * stack-width]
+		either size > 127 [
 			emit #{81C4}							;-- ADD esp, bytes	; 32-bit displacement
-			emit to-bin32 bytes
+			emit to-bin32 size
 		][
 			emit #{83C4}							;-- ADD esp, bytes	; 8-bit displacement
-			emit to-bin8 bytes
+			emit to-bin8 size
 		]		
 	]
 	
@@ -1246,15 +1246,19 @@ make-profilable make target-class [
 						emit #{50}					;-- PUSH eax
 					]
 				][									;-- <ret-ptr> and <args-top> cases
-					either empty? emitter/stack [
-						emit-push 0					;-- return ptr is null -> no copy
-					][
-						offset: stack-encode either value = <ret-ptr> [args-offset][
-							emitter/local-offset? <top>
+					;either empty? emitter/stack [
+					;	emit-push 0					;-- return ptr is null -> no copy
+					;][
+						either value = <ret-ptr> [
+							offset: stack-encode args-offset
+							emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
+							emit offset
+						][
+							emit #{8D8424}			;-- LEA eax, [esp+<args-top>]
+							emit to-bin32 to integer! value
+							emit #{50}				;-- PUSH eax
 						]
-						emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
-						emit offset
-					]
+					;]
 				]
 			]
 			logic! [
@@ -1913,7 +1917,7 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		emit-release-stack size
+		emit-release-stack/bytes size
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -2182,7 +2186,7 @@ make-profilable make target-class [
 				]
 				'else [
 					vars: emitter/stack
-					unless find [<ret-ptr> <args-top>] vars/1 [
+					unless tag? vars/1 [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
 					emit #{8B7D}					;-- MOV edi, [ebp+<ptr>]

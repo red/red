@@ -2877,9 +2877,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-caller: has [list found? /root][
+		get-caller: func [/root /local list found?][
+			if tail? next expr-call-stack [return none]
+			
 			list: back back tail expr-call-stack
-			unless root [return find calling-keywords list/1]
+			unless root [return any [all [find calling-keywords list/1 none] list/1]]
 			
 			while [found?: find calling-keywords list/1][list: back list]
 			all [not found? not tail? next list list/1]
@@ -2934,7 +2936,10 @@ system-dialect: make-profilable context [
 						]
 						to path! caller
 					]
-					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+					word!	  [
+						emitter/target/emit-reserve-stack slots
+						ret-value?: to tag! emitter/arguments-size? spec/4
+					]
 				][
 					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
 				]

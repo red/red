@@ -604,18 +604,15 @@ emitter: make-profilable context [
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset][
-		size: 0
+	arguments-size?: func [locals [block!] /push /local size name type width offset struct-ptr?][
+		size: pick [4 0] to logic! struct-ptr?: all [
+			ret: select locals compiler/return-def
+			'value = last ret
+			2 < struct-slots? ret
+		]
 		if push [
 			clear stack
-			if all [
-				ret: select locals compiler/return-def
-				'value = last ret
-				2 < struct-slots? ret
-			][
-				repend stack [<ret-ptr> target/args-offset]
-				size: 4
-			]
+			if struct-ptr? [repend stack [<ret-ptr> target/args-offset]]
 		]
 		width: target/stack-width
 		offset: target/args-offset
