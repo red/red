@@ -1929,7 +1929,7 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			emitter/calc-locals-offsets probe use-locals
+			emitter/calc-locals-offsets use-locals
 			
 			pc: next pc
 			fetch-into/root pc/1 [comp-dialect]
