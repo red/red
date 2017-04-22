@@ -1917,7 +1917,7 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		emit-release-stack/bytes size
+		if size > 0 [emit-release-stack/bytes size]
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
