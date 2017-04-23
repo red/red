@@ -1903,7 +1903,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-cdecl-pop: func [spec [block!] args [block!] /local size][
+	emit-cdecl-pop: func [spec [block!] args [block!] /local size slots][
 		size: emitter/arguments-size? spec/4
 		if all [
 			spec/2 = 'syscall
@@ -1916,6 +1916,16 @@ make-profilable make target-class [
 			if spec/2 = 'native [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
+		]
+		all [
+			spec/2 = 'import
+			compiler/job/OS <> 'Windows
+			slots: emitter/struct-slots?/check spec/4
+			not all [
+				compiler/job/OS = 'MacOSX			;-- on macOS, <ptr> is used for slots > 2 only
+				slots <= 2
+			]
+			size: size - stack-width				;-- hidden pointer is freed by callee
 		]
 		if size > 0 [emit-release-stack/bytes size]
 	]

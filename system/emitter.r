@@ -596,7 +596,15 @@ emitter: make-profilable context [
 		]
 	]
 	
-	struct-slots?: func [spec [block!] /direct][
+	struct-slots?: func [spec [block!] /direct /check][
+		if check [
+			unless all [
+				spec: select spec compiler/return-def
+				'value = last spec
+			][
+				return none
+			]
+		]
 		unless direct [
 			if 'struct! <> spec/1 [spec: compiler/find-aliased spec/1]
 			spec: spec/2
