@@ -47,7 +47,9 @@ EXPORT big returnBig(void) {
 	return t;
 }
 
-EXPORT huge returnHuge(void) {
+EXPORT huge returnHuge(int a, int b) {
 	huge t = { 111,222,3.5,444,555,6.789};
+	t.one = a;
+	t.two = b;
 	return t;
 }

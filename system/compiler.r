@@ -2877,10 +2877,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-caller: func [/root /local list found?][
-			if tail? next expr-call-stack [return none]
+		get-caller: func [name /root /local list found? stk][
+			stk: exclude expr-call-stack [as]
+			if tail? next stk [return none]
 			
-			list: back back tail expr-call-stack
+			list: back back find stk name
 			unless root [return any [all [find calling-keywords list/1 none] list/1]]
 			
 			while [found?: find calling-keywords list/1][list: back list]
@@ -2913,11 +2914,11 @@ system-dialect: make-profilable context [
 				]
 				2 < slots: emitter/struct-slots?/direct type/2
 			][
-				unless caller: get-caller [
+				unless caller: get-caller name [
 					caller: either tail? pc [
-						get-caller/root
+						get-caller/root name
 					][
-						any [get-caller/root 'args-top] ;-- 'args-top is just for routing in SWITCH 
+						any [get-caller/root name 'args-top] ;-- 'args-top is just for routing in SWITCH 
 					]
 				]
 				insert/only list switch/default type?/word caller [
