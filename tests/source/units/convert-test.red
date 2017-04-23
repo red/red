@@ -159,16 +159,13 @@ Red [
 ===end-group===
 
 ===start-group=== "to-word!"
-	--test-- "to-word!-char!"
-		--assert 'a = to word! #"a"
-	--test-- "to-word!-string!"
-		--assert 'foo = to word! "foo"
-	--test-- "to-word!-word!"
-		--assert 'word = to word! 'word
-	--test-- "to-word!-refinement!"
-		--assert 'refinement = to word! /refinement
-	--test-- "to-word!-issue!"
-		--assert 'FF00 = to word! #FF00
+	--test-- "to-word!-char!"				--assert 'a = to word! #"a"
+	--test-- "to-word!-string!"				--assert 'foo = to word! "foo"
+	--test-- "to-word!-word!"				--assert 'word = to word! 'word
+	--test-- "to-word!-refinement!"			--assert 'refinement = to word! /refinement
+	--test-- "to-word!-issue!"				--assert 'FF00 = to word! #FF00
+	;; #2619
+	;--test-- "to-word-1"					--assert error? try [to word! to issue! #"1"]
 ===end-group===
 ===start-group=== "to-refinement!"
 	--test-- "to-refinement!-char!"
@@ -252,7 +249,7 @@ Red [
 		   --assert "1.1.1" = form to path! 1.1.1
 	--test-- "to-path!-paren!"
 		--assert path? to path! first [()]
-	;	--assert "#[path! []]" = form to path! first [()]
+		;--assert "#[path! []]" = form to path! first [()]
 	--test-- "to-path!-paren!"
 		--assert path? to path! first [(1 2)]
 		--assert "1/2" = form to path! first [(1 2)]
@@ -416,16 +413,17 @@ Red [
 		--assert %make%20bitset!%20#%7B00%7D = to file! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-issue!"
-	--test-- "to-issue!-char!"
-		--assert #a = to issue! #"a"
-	--test-- "to-issue!-string!"
-		--assert #foo = to issue! "foo"
-	--test-- "to-issue!-word!"
-		--assert #word = to issue! 'word
-	--test-- "to-issue!-refinement!"
-		--assert #refinement = to issue! /refinement
-	--test-- "to-issue!-issue!"
-		--assert #FF00 = to issue! #FF00
+	--test-- "to-issue!-char!"				--assert #a = to issue! #"a"
+	--test-- "to-issue!-string!"			--assert #foo = to issue! "foo"
+	--test-- "to-issue!-word!"				--assert #word = to issue! 'word
+	--test-- "to-issue!-refinement!"		--assert #refinement = to issue! /refinement
+	--test-- "to-issue!-issue!"				--assert #FF00 = to issue! #FF00
+	--test-- "to-issue!-1"					--assert #1 = to issue! #"1"
+	;; #2619
+	;--test-- "to-issue!-2"					--assert #1 = to issue! "1"
+	;--test-- "to-issue!-3"					--assert #1 = to issue! 1
+	;--test-- "to-issue!-4"					--assert #1-big-issue = to issue! "1-big-issue" 
+		
 ===end-group===
 ===start-group=== "to-binary!"
 	--test-- "to-binary!-char!"
