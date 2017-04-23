@@ -2906,13 +2906,15 @@ system-dialect: make-profilable context [
 			
 			;-- returned struct by value handling --
 			if all [
-				type: select spec/4 return-def
-				'value = last type
+				slots: emitter/struct-slots?/check spec/4
 				any [
-					'struct! = type/1
-					'struct! = first type: resolve-aliased type
+					2 < slots
+					all [
+						spec/2 = 'import
+						spec/3 = 'cdecl
+						not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
+					]
 				]
-				2 < slots: emitter/struct-slots?/direct type/2
 			][
 				unless caller: get-caller name [
 					caller: either tail? pc [

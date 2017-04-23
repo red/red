@@ -606,7 +606,10 @@ emitter: make-profilable context [
 			]
 		]
 		unless direct [
-			if 'struct! <> spec/1 [spec: compiler/find-aliased spec/1]
+			if 'struct! <> spec/1 [
+				spec: compiler/find-aliased spec/1
+				if 'struct! <> spec/1 [return none]
+			]
 			spec: spec/2
 		]
 		round/ceiling (member-offset? spec none) / target/stack-width
