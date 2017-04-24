@@ -642,6 +642,7 @@ change-font: func [
 	face	[red-object!]
 	font	[red-object!]
 	type	[integer!]
+	return: [logic!]
 	/local
 		values	[red-value!]
 		nscolor	[integer!]
@@ -651,7 +652,7 @@ change-font: func [
 		view	[integer!]
 		storage [integer!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [exit]
+	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
 	attrs: make-font-attrs font face type
 	;objc_msgSend [attrs sel_getUid "autorelease"]
@@ -676,7 +677,7 @@ change-font: func [
 			]
 		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
-		if TYPE_OF(values) <> TYPE_STRING [exit]			;-- accept any-string! ?
+		if TYPE_OF(values) <> TYPE_STRING [return no]			;-- accept any-string! ?
 
 		title: to-NSString as red-string! values
 		str: objc_msgSend [
@@ -692,8 +693,8 @@ change-font: func [
 			]
 			true [0]
 		]
-		;objc_msgSend [title sel_getUid "release"]
 	]
+	yes
 ]
 
 change-offset: func [
@@ -743,6 +744,7 @@ change-visible: func [
 change-text: func [
 	hWnd	[integer!]
 	values	[red-value!]
+	face	[red-object!]
 	type	[integer!]
 	/local
 		len  [integer!]
@@ -761,25 +763,29 @@ change-text: func [
 		TYPE_NONE	[""]
 		default		[null]									;@@ Auto-convert?
 	]
-	unless null? cstr [
-		txt: CFString(cstr)
-		case [
-			type = area [
-				objc_msgSend [
-					objc_msgSend [hWnd sel_getUid "documentView"]
-					sel_getUid "setString:" txt
-				]
-			]
-			any [type = field type = text][
-				objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
-			]
-			any [type = button type = radio type = check] [
-				objc_msgSend [hWnd sel_getUid "setTitle:" txt]
-			]
-			true [0]
+
+	if null? cstr [exit]
+	
+	txt: CFString(cstr)
+	either type = area [
+		objc_msgSend [
+			objc_msgSend [hWnd sel_getUid "documentView"]
+			sel_getUid "setString:" txt
 		]
-		CFRelease txt
+	][
+		unless change-font hWnd face as red-object! values + FACE_OBJ_FONT type [
+			case [
+				any [type = field type = text][
+					objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
+				]
+				any [type = button type = radio type = check] [
+					objc_msgSend [hWnd sel_getUid "setTitle:" txt]
+				]
+				true [0]
+			]
+		]
 	]
+	CFRelease txt
 ]
 
 change-data: func [
@@ -1699,7 +1705,7 @@ OS-update-view: func [
 		change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
-		change-text hWnd values type
+		change-text hWnd values face type
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data hWnd values

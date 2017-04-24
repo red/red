@@ -686,16 +686,52 @@ tagSIZE: alias struct! [
 			ctx			[handle!]
 			return:		[NSRect! value]
 		]
-		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
+		CGAffineTransformMakeScale: "CGAffineTransformMakeScale" [
+			sx			[float32!]
+			sy			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformMakeTranslation: "CGAffineTransformMakeTranslation" [
 			x			[float32!]
 			y			[float32!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
+			pt			[CGPoint! value]
+			m			[CGAffineTransform! value]
+			return:		[CGPoint! value]
+		]
+		CGAffineTransformRotate: "CGAffineTransformRotate" [
+			m			[CGAffineTransform! value]
+			angle		[float32!]						;-- angle in radians
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformTranslate: "CGAffineTransformTranslate" [
+			m			[CGAffineTransform! value]
+			x			[float32!]
+			y			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformScale: "CGAffineTransformScale" [
+			m			[CGAffineTransform! value]
+			x			[float32!]
+			y			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGPathCreateMutable: "CGPathCreateMutable" [
 			return:		[integer!]
+		]
+		CGPathRelease: "CGPathRelease" [
+			path		[integer!]
+		]
+		CGPathAddRelativeArc: "CGPathAddRelativeArc" [
+			path		[integer!]
+			m			[int-ptr!]
+			x			[float32!]
+			y			[float32!]
+			radius		[float32!]
+			startAngle	[float32!]
+			delta		[float32!]
 		]
 		CGContextDrawImage: "CGContextDrawImage" [
 			ctx			[handle!]

@@ -630,7 +630,7 @@ Red/System [
 										opts: cmd
 									]
 								]
-								OS-draw-shape-arc DC as red-pair! start end sweep? large? rel?
+								OS-draw-shape-arc DC as red-pair! start sweep? large? rel?
 								close?: yes
 							]
 							sym = curve [
