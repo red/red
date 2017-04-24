@@ -53,3 +53,11 @@ EXPORT huge returnHuge(int a, int b) {
 	t.two = b;
 	return t;
 }
+
+EXPORT huge returnHuge2(huge h, int a, int b) {
+	huge t = { 111,222,3.5,444,555,6.789};
+	t.one = a;
+	t.two = b;
+	t.six = h.six;
+	return t;
+}
