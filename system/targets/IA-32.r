@@ -2071,16 +2071,16 @@ make-profilable make target-class [
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
-			offset: 4								;-- account for saved edi
-			if issue? args/1 [
+			offset: 4 + either issue? args/1 [		;-- account for saved edi
 				all [
 					args/1 = #variadic
 					fspec/3 <> 'cdecl
 					offset: offset + 12				;-- account for extra variadic slots
 				]
-				args: args/2
+				call-arguments-size? args/2
+			][
+				emitter/arguments-size? fspec/4
 			]
-			offset: offset + call-arguments-size? args
 			
 			unless zero? offset: offset // 16 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
