@@ -2207,11 +2207,14 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
+			mark: tail expr-call-stack
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
+			clear mark
+
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
@@ -3351,7 +3354,7 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		comp-block: func [/final /only /local expr save-pc][
+		comp-block: func [/final /only /local expr save-pc mark][
 			block-level: block-level + 1
 			save-pc: pc
 			pc: pc/1
@@ -3362,10 +3365,11 @@ system-dialect: make-profilable context [
 					throw-error "more than one expression found in parentheses"
 				]
 			][
+				mark: tail expr-call-stack
 				while [not tail? pc][
 					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 					expr: either final [fetch-expression/final none][fetch-expression none]
-					unless tail? pc [pop-calls]
+					clear mark
 				]
 			]
 			pc: next save-pc
