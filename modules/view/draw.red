@@ -1103,7 +1103,7 @@ Red/System [
 							]
 							sym = _font-name [
 								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name layout idx len as red-string! start
+								OS-text-box-font-name dc layout idx len as red-string! start
 							]
 							sym = _font-size [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)

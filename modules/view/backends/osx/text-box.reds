@@ -93,15 +93,25 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	name	[red-string!]
+	/local
+		desc	[integer!]
+		font	[integer!]
+		str		[integer!]
 ][
-	;n: -1
-	;this: as this! layout
-	;dl: as IDWriteTextLayout this/vtbl
-	;dl/SetFontFamilyName this unicode/to-utf16-len name :n yes pos len
+	desc: objc_msgSend [nsfont sel_getUid "fontDescriptor"]
+	str: to-CFString name
+	font: objc_msgSend [
+		objc_getClass "NSFont" sel_getUid "fontWithDescriptor:size:"
+		objc_msgSend [desc sel_getUid "fontDescriptorWithFamily:" str]
+		0
+	]
+	objc_msgSend [layout sel_addAttribute NSFontAttributeName font pos len]
+	CFRelease str
 ]
 
 OS-text-box-font-size: func [
@@ -113,7 +123,6 @@ OS-text-box-font-size: func [
 	/local
 		desc	[integer!]
 		font	[integer!]
-		attrs	[integer!]
 		x		[integer!]
 		y		[integer!]
 		temp	[CGPoint!]

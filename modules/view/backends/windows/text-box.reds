@@ -140,6 +140,7 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
+	font	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
