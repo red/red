@@ -735,6 +735,16 @@ OS-draw-shape-endpath: func [
 	result
 ]
 
+OS-draw-shape-close: func [
+	ctx		[draw-ctx!]
+][
+	either ctx/other/GDI+? [
+		GdipClosePathFigure ctx/gp-path
+	][
+		CloseFigure ctx/dc
+	]
+]
+
 OS-draw-shape-moveto: func [
 	ctx		[draw-ctx!]
 	coord	[red-pair!]

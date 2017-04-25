@@ -724,9 +724,15 @@ tagSIZE: alias struct! [
 		CGPathRelease: "CGPathRelease" [
 			path		[integer!]
 		]
+		CGPathMoveToPoint: "CGPathMoveToPoint" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			x			[float32!]
+			y			[float32!]
+		]
 		CGPathAddRelativeArc: "CGPathAddRelativeArc" [
 			path		[integer!]
-			m			[int-ptr!]
+			m			[CGAffineTransform!]
 			x			[float32!]
 			y			[float32!]
 			radius		[float32!]

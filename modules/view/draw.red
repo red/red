@@ -58,6 +58,7 @@ Red/System [
 		qcurve:			symbol/make "qcurve"
 		sweep:			symbol/make "sweep"
 		large:			symbol/make "large"
+		close-shape:	symbol/make "close"
 
 		_off:			symbol/make "off"
 		closed:			symbol/make "closed"
@@ -656,6 +657,7 @@ Red/System [
 								OS-draw-shape-qcurv DC as red-pair! start as red-pair! cmd rel?
 								close?: yes
 							]
+							sym = close-shape [OS-draw-shape-close DC]
 							true [ throw-draw-error cmds cmd catch? ]
 						]
 					]
