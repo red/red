@@ -824,7 +824,10 @@ make-profilable make target-class [
 						store-float-variable name
 					]
 					by-value [
-						if slots <= 2 [				;-- if > 2, copied already, do nothing
+						if all [
+							slots <= 2				  ;-- if > 2, copied already, do nothing
+							compiler/job/OS <> 'Linux ;-- Linux ABI uses pointers only
+						][
 							either offset: emitter/local-offset? name [
 								if slots = 2 [
 									set-width/type last spec/2
@@ -1077,7 +1080,11 @@ make-profilable make target-class [
 		
 		either value = <last> [
 			if by-val?: 'value = last compiler/last-type [
-				if 2 < slots: emitter/struct-slots? compiler/last-type [exit]	; big struct by val do not need post-processing
+				slots: emitter/struct-slots? compiler/last-type
+				if any [
+					2 < slots						;-- big struct by value do not need post-processing
+					compiler/job/OS = 'Linux		;-- Linux ABI uses pointers only
+				][exit]
 				if slots = 2 [emit #{52}]			;-- PUSH edx				; saved edx struct member
 				emit #{89C2}						;-- MOV edx, eax
 			]
