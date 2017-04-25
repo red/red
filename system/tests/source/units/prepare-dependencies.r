@@ -11,8 +11,8 @@ REBOL [
 
 install-libs: has [lib][
 	lib: switch/default system/version/4 [
+		2 [%libstructlib.dylib]
 		3 [%structlib.dll]
-		5 [%libstructlib.dylib]
 	][
 		%libstructlib.so
 	]
