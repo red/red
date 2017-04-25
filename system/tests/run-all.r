@@ -21,6 +21,7 @@ qt/script-header: "Red/System []"
 
 ;; make auto files if needed
 do %source/units/make-red-system-auto-tests.r
+do %source/units/prepare-dependencies.r
 
 ;; run the tests
 print ["Run-All    v" system/script/header/version]

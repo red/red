@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %struct-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -590,6 +590,21 @@ struct-local-foo2
 	big!:   alias struct! [one [integer!] two [integer!] three [float!]]
 	huge!:  alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
 
+	#switch OS [
+		Windows  [#define STRUCTLIB-file "structlib.dll"]
+		MacOSX	 [#define STRUCTLIB-file "libstructlib.dylib"]
+		#default [#define STRUCTLIB-file "libstructlib.so"]
+	]
+
+	#import [
+		STRUCTLIB-file cdecl [
+			returnTiny:  "returnTiny"  [return: [tiny! value]]
+			returnSmall: "returnSmall" [return: [small! value]]
+			returnBig:	 "returnBig"   [return: [big! value]]
+			returnHuge:  "returnHuge"  [a [integer!] b [integer!] return: [huge! value]]
+			returnHuge2: "returnHuge2" [h [huge! value] a [integer!] b [integer!] return: [huge! value]]
+		]
+	]
 	s1: declare tiny!
 	s2: declare small!
 	s3: declare big!
@@ -768,8 +783,42 @@ struct-local-foo2
 		--assert p-int/value = 20
 		pf: as pointer! [float!] :n3/s3/three
 		--assert pf/value = 1.5
-
+		
 	--test-- "svb11"
+		sv1: returnTiny
+		--assert sv1/b1 = #"z"
+	
+	--test-- "svb12"
+		sv2: returnSmall
+		--assert sv2/one = 111
+		--assert sv2/two = 222
+	
+	--test-- "svb13"
+		sv3: returnBig
+		--assert sv3/one = 111
+		--assert sv3/two = 222
+		--assert sv3/three = 3.14159
+	
+	--test-- "svb14"
+		sv4: declare huge!
+		sv4: returnHuge as-integer #"0" as-integer #"1"
+		--assert sv4/w1 = 48
+		--assert sv4/w2 = 49
+		--assert sv4/w3 = 3.5
+		--assert sv4/w4 = 444
+		--assert sv4/w5 = 555
+		--assert sv4/w6 = 6.789
+		
+	--test-- "svb15"
+		sv4: returnHuge2 sv4 as-integer #"0" as-integer #"1"
+		--assert sv4/w1 = 48
+		--assert sv4/w2 = 49
+		--assert sv4/w3 = 3.5
+		--assert sv4/w4 = 444
+		--assert sv4/w5 = 555
+		--assert sv4/w6 = 6.789
+
+	--test-- "svb50"
 		localsbvf: func [
 			/local 
 				sv1 [tiny! value]
@@ -867,6 +916,41 @@ struct-local-foo2
 				--assert p-int/value = 20
 				pf: as pointer! [float!] :n3/s3/three
 				--assert pf/value = 1.5
+				
+				
+			--test-- "loc-svb11"
+				sv1: returnTiny
+				--assert sv1/b1 = #"z"
+
+			--test-- "loc-svb12"
+				sv2: returnSmall
+				--assert sv2/one = 111
+				--assert sv2/two = 222
+
+			--test-- "loc-svb13"
+				sv3: returnBig
+				--assert sv3/one = 111
+				--assert sv3/two = 222
+				--assert sv3/three = 3.14159
+
+			--test-- "loc-svb14"
+				;sv4: declare huge!
+				sv4: returnHuge as-integer #"0" as-integer #"1"
+				--assert sv4/w1 = 48
+				--assert sv4/w2 = 49
+				--assert sv4/w3 = 3.5
+				--assert sv4/w4 = 444
+				--assert sv4/w5 = 555
+				--assert sv4/w6 = 6.789
+
+			--test-- "loc-svb15"
+				sv4: returnHuge2 sv4 as-integer #"0" as-integer #"1"
+				--assert sv4/w1 = 48
+				--assert sv4/w2 = 49
+				--assert sv4/w3 = 3.5
+				--assert sv4/w4 = 444
+				--assert sv4/w5 = 555
+				--assert sv4/w6 = 6.789
 		]
 		localsbvf
 
