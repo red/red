@@ -3019,7 +3019,7 @@ system-dialect: make-profilable context [
 		]
 				
 		comp-path-assign: func [
-			set-path [set-path!] expr casted [block! none!]
+			set-path [set-path!] expr casted [block! none!] store? [logic!]
 			/local type new value spec
 		][
 			value: unbox expr
@@ -3057,16 +3057,18 @@ system-dialect: make-profilable context [
 					"^/*** expected:" mold type
 					"^/*** found:" mold any [casted new]
 				]
-			]		
-			emitter/access-path set-path either any [block? value path? value][
-				 <last>
-			][
-				expr
+			]
+			if store? [
+				emitter/access-path set-path either any [block? value path? value][
+					 <last>
+				][
+					expr
+				]
 			]
 		]
 		
 		comp-variable-assign: func [
-			set-word [set-word!] expr casted [block! none!]
+			set-word [set-word!] expr casted [block! none!] store? [logic!]
 			/local name type new value fun-name
 		][
 			name: to word! set-word
@@ -3133,15 +3135,20 @@ system-dialect: make-profilable context [
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
 			
-			unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
-				emitter/store name value type
+			if store? [
+				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
+					emitter/store name value type
+				]
 			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec][
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store?][
+			store?: no
+			
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1
+				store?: yes
 				expr: expr/2							;-- switch to assigned expression
 				if set-word? variable [
 					new?: any [
@@ -3215,7 +3222,7 @@ system-dialect: make-profilable context [
 					spec/2 = 'import
 					spec/3 = 'cdecl
 					not find [Windows MacOSX] job/OS	;-- for Linux OS (and derivatives)
-					variable: none						;-- avoid emitting assignment code
+					store?: no							;-- avoid emitting assignment code
 				]
 				if all [
 					any [
@@ -3267,8 +3274,8 @@ system-dialect: make-profilable context [
 				]
 				unless boxed [boxed: expr]
 				switch type?/word variable [
-					set-word! [comp-variable-assign variable expr casting]
-					set-path! [comp-path-assign		variable boxed casting]
+					set-word! [comp-variable-assign variable expr casting store?]
+					set-path! [comp-path-assign		variable boxed casting store?]
 				]
 			]
 		]
