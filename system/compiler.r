@@ -3138,7 +3138,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec][
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1
@@ -3206,7 +3206,17 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if block? expr [							;-- if expr is a function call	
+			if block? expr [							;-- if expr is a function call
+				all [
+					variable
+					'value = last last-type				;-- for a struct passed by value
+					word? expr/1
+					spec: select functions expr/1
+					spec/2 = 'import
+					spec/3 = 'cdecl
+					not find [Windows MacOSX] job/OS	;-- for Linux OS (and derivatives)
+					variable: none						;-- avoid emitting assignment code
+				]
 				if all [
 					any [
 						keep?
