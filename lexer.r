@@ -229,12 +229,15 @@ lexer: context [
 	]
 	
 	lit-word-rule: [
-		#"'" (type: word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)				;-- path matched
-			| (
-				type: lit-word!
-				value: copy/part s e				;-- word matched
-			)
+		#"'" (type: word!) [
+			#"/" (type: lit-word! value: "/")
+			| s: begin-symbol-rule [
+				path-rule (type: lit-path!)				;-- path matched
+				| (
+					type: lit-word!
+					value: copy/part s e				;-- word matched
+				)
+			]
 		][s: #":" :s (throw-error) | none]
 	]
 	
