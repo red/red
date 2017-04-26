@@ -31,10 +31,10 @@ Red/System [
 ;;		  16  : FACE_OBJ_FLAGS        <- BOTTOM
 
 #include %win32.reds
+#include %direct2d.reds
 #include %classes.reds
 #include %events.reds
 
-#include %direct2d.reds
 #include %font.reds
 #include %para.reds
 #include %camera.reds

@@ -872,6 +872,9 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
+		target [int-ptr!]
+		this   [this!]
+		rt	   [ID2D1HwndRenderTarget]
 		res	   [integer!]
 		color  [integer!]
 		type   [integer!]
@@ -912,6 +915,17 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
+			if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+				if target <> null [
+					this: as this! target/value
+					rt: as ID2D1HwndRenderTarget this/vtbl
+					color: WIN32_LOWORD(lParam)
+					res: WIN32_HIWORD(lParam)
+					rt/Resize this as tagSIZE :color
+					InvalidateRect hWnd null 1
+				]
+			]
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
