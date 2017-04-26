@@ -1247,19 +1247,15 @@ make-profilable make target-class [
 						emit #{50}					;-- PUSH eax
 					]
 				][									;-- <ret-ptr> and <args-top> cases
-					;either empty? emitter/stack [
-					;	emit-push 0					;-- return ptr is null -> no copy
-					;][
-						either value = <ret-ptr> [
-							offset: stack-encode args-offset
-							emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
-							emit offset
-						][
-							emit #{8D8424}			;-- LEA eax, [esp+<args-top>]
-							emit to-bin32 to integer! value
-							emit #{50}				;-- PUSH eax
-						]
-					;]
+					either value = <ret-ptr> [
+						offset: stack-encode args-offset
+						emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
+						emit offset
+					][
+						emit #{8D8424}				;-- LEA eax, [esp+<args-top>]
+						emit to-bin32 to integer! value
+						emit #{50}					;-- PUSH eax
+					]
 				]
 			]
 			logic! [
@@ -2203,13 +2199,11 @@ make-profilable make target-class [
 					emit #{8B7D}					;-- MOV edi, [ebp+<ptr>]
 					emit to-bin8 vars/2
 					;@@ needs 32-bit disp also !!
-					emit #{83FF00}					;-- CMP edi, 0
-					emit #{7409}					;-- JEQ _null
-					emit #{89C6}					;-- 	MOV esi, eax
-					emit #{B9}						;-- 	MOV ecx, <size>
+					emit #{89C6}					;-- MOV esi, eax
+					emit #{B9}						;-- MOV ecx, <size>
 					emit to-bin32 slots
-					emit #{F3A5}					;-- 	REP MOVS
-				]									;-- _null:
+					emit #{F3A5}					;-- REP MOVS
+				]
 			]
 		]
 		
