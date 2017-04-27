@@ -58,7 +58,7 @@ help-ctx: context [
 		str
 	]
 	
-	VAL_FORM_LIMIT: does [system/console/limit - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	VAL_FORM_LIMIT: does [system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
@@ -279,7 +279,7 @@ help-ctx: context [
 		type [datatype!]
 		/local val
 	][
-		DOC_LIMIT: system/console/limit - HELP_COL_1_SIZE - RT_MARGIN
+		DOC_LIMIT: system/console/size/x - HELP_COL_1_SIZE - RT_MARGIN
 		fmt-doc: func [str][either str [ellipsize-at str DOC_LIMIT][""]]
 		found-at-least-one?: no
 		foreach word words-of system/words [
