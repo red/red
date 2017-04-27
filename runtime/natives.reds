@@ -1459,7 +1459,7 @@ natives: context [
 				num: as red-integer! res
 				res/value: negative? num/value
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
@@ -1484,7 +1484,7 @@ natives: context [
 				num: as red-integer! res
 				res/value: positive? num/value
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
@@ -1515,7 +1515,7 @@ natives: context [
 					i/value = 0 [ 0]
 				]
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! stack/arguments
 				ret: case [
 					f/value > 0.0 [ 1]
