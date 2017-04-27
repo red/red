@@ -1,6 +1,8 @@
 [
 	red/boot
 	red/get-build-date
+	red/string-float
+	red/string-number
 	red/copy-cell
 	;red/get-root
 	red/get-root-node2

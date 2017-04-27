@@ -385,6 +385,14 @@ integer: context [
 			pad3 [integer!]
 			pad4 [integer!]
 			val	 [red-value!]
+			s	 [red-string!]
+			len  [integer!]
+			dt	 [red-datatype!]
+			err? [red-logic!]
+			str  [series!]
+			unit [integer!]
+			tail [byte-ptr!]
+			v	 [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
@@ -418,9 +426,38 @@ integer: context [
 				val: as red-value! :pad4
 				copy-cell spec val					;-- save spec, load-value will change it
 
-				proto: load-value as red-string! spec
+				s: as red-string! spec
+				len: string/rs-length? s
+				dt: declare red-datatype!
+				dt/value: type
+				err?: declare red-logic!
+	
+				str:  GET_BUFFER(s)					;-- find real type
+				unit: GET_UNIT(str)
+				v:	  string/rs-head s
+				tail: v + (len << (unit >> 1))
+				until [
+					case [
+						v/value = #"." [
+							dt/value: TYPE_FLOAT
+							break
+						]
+						v/value = #"%" [
+							dt/value: TYPE_PERCENT
+							break
+						]
+						true []
+					]
+					v: v + 1
+					v = tail
+				]
+
+				proto: as red-value! string-number s len dt err?
 				
-				either TYPE_OF(proto) = TYPE_FLOAT [
+				either any [
+					TYPE_OF(proto) = TYPE_FLOAT 
+					TYPE_OF(proto) = TYPE_PERCENT 
+				][
 					fl: as red-float! proto
 					if overflow? fl [fire [TO_ERROR(script too-long)]]
 					int: as red-integer! proto

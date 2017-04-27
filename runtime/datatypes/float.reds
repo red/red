@@ -508,6 +508,14 @@ float: context [
 			_3	[integer!]
 			_4	[integer!]
 			val [red-value!]
+			s	[red-string!]
+			len [integer!]
+			dt	[red-datatype!]
+			err? [red-logic!]
+			str  [series!]
+			unit [integer!]
+			tail [byte-ptr!]
+			v	 [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
@@ -527,7 +535,34 @@ float: context [
 				val: as red-value! :_4
 				copy-cell spec val					;-- save spec, load-value will change it
 
-				proto: as red-float! load-value as red-string! spec
+				s: as red-string! spec
+				len: string/rs-length? s
+				dt: declare red-datatype!
+				dt/value: type
+				err?: declare red-logic!
+									
+				str:  GET_BUFFER(s)					;-- find real type
+				unit: GET_UNIT(str)
+				v:	  string/rs-head s
+				tail: v + (len << (unit >> 1))
+				until [
+					case [
+						v/value = #"." [
+							dt/value: TYPE_FLOAT
+							break
+						]
+						v/value = #"%" [
+							dt/value: TYPE_PERCENT
+							break
+						]
+						true []
+					]
+					v: v + 1
+					v = tail
+				]
+				
+				proto: string-float s len dt err?
+
 				switch TYPE_OF(proto) [
 					TYPE_FLOAT	
 					TYPE_PERCENT [0]				;-- most common case
@@ -554,6 +589,7 @@ float: context [
 			TYPE_PERCENT [
 				spec/header: type
 				proto: as red-float! spec
+				if TYPE_OF(spec) = TYPE_PERCENT [proto/value: proto/value / 100.0]
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 		]
