@@ -125,7 +125,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar!
+		series! number! immediate! scalar! all-word!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
