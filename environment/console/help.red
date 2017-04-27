@@ -1,48 +1,25 @@
 Red [
 	Title:	"Console help functions"
-	Author:	["Ingo Hohmann" "Nenad Rakocevic"]
+	Author:	["Oldes" "Gregg Irwin" "Ingo Hohmann" "Nenad Rakocevic"]
 	File:	%help.red
 	Tabs:	4
-	Rights:	"Copyright (C) 2014-2015 Ingo Hohmann, Nenad Rakocevic. All rights reserved."
+	Rights:	"Copyright (C) 2014-2017 All Mankind. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
-prin-out: function [out data][
-	either block? data [
-		data: reduce data
-		forall data [
-			append out data/1
-			unless tail? data [append out #" "]
-		]
-	][
-		append out data
-	]
-]
-
-print-out: function [out data][
-	prin-out out data
-	append out #"^/"
-]
-
-fetch-help: function [
-	"Display helping information about words and other values"
-	word	[any-type!] "Word you are looking for"
-	return: [string!]
-	/local info w attributes block ref 
-][
-	out: make string! 32
-	tab: tab4: "    "
-	tab8: "        "
-	
-	case [
-		unset? :word [									;-- HELP with no arguments
-			return {Use HELP or ? to see built-in info:
+help-ctx: context [
+	HELP-USAGE: {Use HELP or ? to see built-in info:
 
     help insert
     ? insert
+
+To see all functions containing a specific substring:
+
+    ? "file"
+    ? to-
 
 To see all words of a specific datatype:
 
@@ -59,226 +36,305 @@ Other useful functions:
     about - display version number and build date
     q or quit - leave the Red console
 }
-		]
-		all [word? :word datatype? get/any :word] [			;-- HELP <datatype!>
-			type: get/any :word
-			found?: no
-			foreach w sort words-of system/words [
-				if all [word? w type = type? get/any w][
-					found?: yes
-					case [
-						any-function? get/any w [
-							prin-out out [tab pad form w 15]
-							spec: spec-of get w
 
-							either any [
-								string? desc: spec/1
-								string? desc: spec/2	;-- attributes block case
-							][
-								print-out out ["^-=> " desc]
-							][
-								prin-out out lf
+	buffer: copy ""
+
+	interpunction: charset ";.?!"
+	dot: func[value [string!] return: [string!]][
+		unless find interpunction last value [append value #"."]
+		value
+	]
+
+	output: func[value][ buffer: insert buffer form reduce value ]
+
+	pad: func [val [string!] size] [head insert/dup tail val #" " size - length? val]
+
+	clip-str: func [str width [integer!]] [
+		if width < length? str [str: append copy/part str width "..."]
+		str
+	]
+
+	set 'a-an function [
+		"Prepends the appropriate variant of a or an into a string"
+		s [string!]
+	][
+		form reduce [pick ["an" "a"] make logic! find "aeiou" s/1 s]
+	]
+
+	form-type: func [value] [
+		a-an head clear back tail mold type? :value
+	]
+
+	form-value: function [value] [
+		type: type? :value
+		limit: system/console/size/x
+		clip-str case [
+			unset!    = type [ "" ]
+			image!    = type [ form reduce ["size:" value/size] ]
+			typeset!  = type [ mold/part to-block value limit]
+			;datatype! = type [ uppercase/part any [select datatypes to word! :value ""] 1 ] 
+			find any-object! type [ mold/part keys-of value limit]
+			find any-block!  type [ trim/lines mold/part :value limit ]
+			find any-function! type [
+				spec: copy/deep spec-of :value
+				either any [
+					string? value: spec/1
+					string? value: spec/2	;-- attributes block case
+				][	
+					dot	value
+				][
+					clear find spec /local
+					value: trim/lines mold spec
+				]
+				;@@ TODO: wrap long description lines
+			]
+			'else [mold :value]
+		] (limit - 38)
+	]
+
+	form-obj: function [
+		"Outputs information about an object"
+		obj [object!]
+		/weak "Provides sorting and does not displays unset values"
+		/match "Include only those that match a string or datatype"
+		 pattern
+		return: [string!]
+	][
+		out: copy ""
+		words: words-of obj
+		if weak [sort words]
+		foreach word words [
+			type: type? get/any word
+			if type <> unset! [value: get/any word]
+			str: form either any-function? :value [ reduce [word mold spec-of :value] ][ word ]
+			if any [
+				not match
+				all [
+					type <> unset!
+					either string? :pattern [
+						find str pattern
+					] [
+						type = get :pattern
+					]
+				]
+			][
+				unless all [weak type = unset!][
+					str: pad form word 18
+					insert tail out to string! reduce [
+						"   " str #" "
+						pad mold type 12 - ((length? str) - 18)
+						either type = unset! [""][form-value :value]
+						newline
+					]
+				]
+			]
+		]
+		out
+	]
+
+	out-description: func [des [block!]][
+		foreach line des [
+			uppercase/part trim/lines line 1
+			dot line
+		]
+		buffer: insert insert buffer #" " form des
+	]
+
+	set 'help function [
+		"Provide helping information about words and other values"
+		'word [any-type!] "Word you are looking for"
+		/into "Help text will be inserted into provided string instead of printed"
+			string [string!] "Returned series will be past the insertion"
+		/extern buffer ;defined so the buffer from help-ctx is used
+		/local desc ;must define it as there is no set word to be collected
+	][
+		if into [
+			_buffer: buffer ;store default help output buffer
+			buffer: string
+		]
+
+		catch [case/all [
+			unset? :word [									;-- HELP with no arguments
+				buffer: insert buffer HELP-USAGE
+				throw true
+			]
+
+			word? :word [
+				either value? :word [
+					value: get :word    ;lookup for word's value if any
+				][	word: mold :word ]  ;or use it as a string input
+			]
+
+			string? :word  [
+				types: form-obj/weak/match system/words :word
+				output either empty? types [
+					["No information on:" word]
+				][	["Found these related words:" newline types]]
+				throw true
+			]
+			
+			datatype? :value [
+				output [uppercase mold :word "is a datatype of value:" mold :value]
+				;if desc: select datatypes to word! :value [
+				;	output ["^/It is defined as" a-an desc]
+				;]
+				tmp: form-obj/match system/words :word
+				unless empty? tmp [
+					output ["^/^/Found these related words:^/" tmp]
+				]
+				throw true
+			]
+
+			not any [word? :word path? :word] [
+				output [mold :word "is" form-type :word]
+				throw true
+			]
+
+			path? :word [
+				if any [
+					error? set/any 'value try [get :word]
+					not value? :value
+				] [
+					output ["No information on" word "(path has no value)"]
+					throw true
+				]
+			]
+
+			any-function? :value [
+				spec: copy/deep spec-of :value
+				args: copy []
+				refs: none
+				type: type? :value
+				
+				clear find spec /local
+				ret: select/same/last spec quote return:
+				parse spec [
+					any block!
+					copy desc any string!
+					any [
+						set arg [word! | lit-word! | get-word!] 
+						set def opt block!
+						copy des any string! (
+							repend args [arg def des]
+						)
+						opt [set-word! block!]
+					]
+					opt [refinement! refs:]
+					to end
+				]
+				output "USAGE:^/    "
+				either op? :value [
+					output [args/1 word args/4]
+				] [
+					output [uppercase mold word]
+					foreach [arg def des] args [
+						buffer: insert buffer rejoin [#" " mold arg]
+					]
+				]
+
+				output "^/^/DESCRIPTION:^/"
+				unless empty? desc [
+					foreach line desc [
+						trim/head/tail line
+						unless empty? line [
+							output ["   " dot uppercase/part line 1 #"^/"]
+						]
+					]
+				]
+				output ["   " uppercase form word "is" a-an mold type "value."]
+				if ret [ output  ["^/    Returns value of type:" mold ret] ]
+
+				unless empty? args [
+					output "^/^/ARGUMENTS:"
+					foreach [arg def des] args [
+						output [
+							"^/   " pad mold arg 10
+							pad either def [mold def]["[any-type!]"] 10
+						]
+						out-description des
+					]
+				]
+
+				if refs [
+					output "^/^/REFINEMENTS:"
+					parse back refs [
+						any [
+							set tmp refinement! (output ["^/   " pad mold tmp 10])
+							opt [set tmp string! (output [" <-" tmp])]
+							any [
+								set arg [word! | lit-word! | get-word!] 
+								set def opt block! 
+								copy des any string! (
+									output [
+										"^/      "
+										pad form arg 7 
+										pad either def [mold def]["[any-type!]"] 10
+									]
+									out-description des
+								)
 							]
 						]
-						datatype? get/any w [
-							print-out out [tab pad form :w 15]
-						]
-						any [object? get/any w map? get/any w] [
-							print-out out [tab pad form :w 15 mold words-of get/any w]
-						]
-						'else [
-							print-out out [tab pad form :w 15 ": " mold get/any w]
-						]
 					]
 				]
+				throw true
 			]
-			unless found? [print-out out "No value of that type found in global space."]
-		]
-		string? :word [
-			foreach w sort words-of system/words [
-				if all [word? w any-function? get/any :w][
-					spec: spec-of get w
-					if any [find form w word find form spec word] [
-						prin-out out [tab w]
-
-						either any [
-							string? desc: spec/1
-							string? desc: spec/2		;-- attributes block case
-						][
-							print-out out ["^-=> " desc]
-						][
-							prin-out out lf
-						]
-					]
+			'else [
+				output [
+					uppercase mold word "is" form-type :value "of value:"
+					either any [object? value] [rejoin [#"^/" form-obj value]] [mold :value]
 				]
 			]
-			return out
-		]
-		not any [word? :word path? :word][				;-- all others except word!
-			type: type? :word
-			print-out out [mold :word "is" a-an form type type]
-			return out
-		]
-	]
-	
-	func-name: :word
-
-	argument-rule: [
-		set word [word! | lit-word! | get-word!]
-		(prin-out out [tab mold :word])
-		opt [set type block!  (prin-out out [#" " mold type])]
-		opt [set info string! (prin-out out [" =>" append form info dot])]
-		(prin-out out lf)
-	]
-	
-	case [
-		unset? get/any :word [
-			print-out out ["Word" :word "is not defined"]
-		]
-		all [
-			any [word? func-name path? func-name]
-			fun: get func-name
-			any-function? :fun
+		]]
+		either into [
+			also
+				buffer           ;returned value; on the tail!
+				buffer: _buffer  ;reverted use of the default buffer
 		][
-			prin-out out ["^/USAGE:^/" tab ]
-			unless op? :fun [prin-out out func-name prin-out out " "]
-
-			parse spec-of :fun [
-				start: [									;-- 1st pass
-					any [block! | string! ]
-					opt [
-						set w [word! | lit-word! | get-word!] (
-							either op? :fun [prin-out out [mold w func-name]][prin-out out mold w]
-						)
-					]
-					any [
-						/local to end
-						| set w [word! | lit-word! | get-word!] (prin-out out " " prin-out out w)
-						| set w refinement! (prin-out out " " prin-out out mold w)
-						| skip
-					]
-				]
-
-				:start										;-- 2nd pass
-				opt [set attributes block! (prin-out out ["^/^/ATTRIBUTES:^/" tab mold attributes])]
-				opt [set info string! (
-					print-out out [
-						"^/^/DESCRIPTION:^/" tab
-						append form info dot lf tab
-						func-name "is of type:" mold type? :fun
-					]
-				)]
-
-				(print-out out "^/ARGUMENTS:")
-				any [argument-rule]; (prin-out out lf)]
-
-				(print-out out "^/REFINEMENTS:")
-				any [
-					/local [
-						to ahead set-word! 'return set block block! 
-						(print-out out ["^/RETURN:^/" mold block])
-						| to end
-					]
-					| [
-						set ref refinement! (prin-out out [tab mold ref])
-						opt [set info string! (prin-out out [" =>" append form info dot])]
-						(tab: tab8 prin-out out lf)
-						any [argument-rule]
-						(tab: tab4)
-					]
-				]
-			]
-		]
-		all [any [word? word path? word] object? get word][
-			prin-out out #"`"
-			prin-out out form word
-			print-out out "` is an object! of value:"
-
-			foreach w words-of get word [
-				set/any 'value get/any in get word w
-
-				set/any 'desc case [
-					object? :value  [words-of value]
-					find [op! action! native! function! routine!] type?/word :value [
-						spec: spec-of :value
-						if string? spec/1 [spec: spec/1]
-						spec
-					]
-					'else [:value]
-				]
-
-				desc: either string? desc [mold/flat copy/part desc 47][mold/part/flat desc 47]
-
-				if 47 = length? desc [					;-- optimized for width = 78
-					clear skip tail desc -3
-					append desc "..."
-				]
-				print-out out [
-					tab
-					pad form/part w 16 16
-					pad mold type? get/any w 9
-					desc
-				]
-			]
-		]
-		'else [
-			value: get :word
-			print-out out [
-				word "is a" 
-				mold type? :value
-				"of value:"
-				mold either path? :value [get :value][:value]
-			]
+			buffer: head buffer
+			also
+				print buffer
+				clear buffer
 		]
 	]
-	out
-]
 
-help: function [
-	"Display helping information about words and other values"
-	'word [any-type!] "Word you are looking for"
-][
-	print fetch-help :word
-]
+	set '? :help
 
-?: :help
-
-a-an: function [s [string!]][
-	"Returns the appropriate variant of a or an"
-	pick ["an" "a"] make logic! find "aeiou" s/1
-]
-
-what: function ["Lists all functions"][
-	foreach w sort words-of system/words [
-		if all [word? w any-function? get/any :w][
-			prin pad form w 15
-			spec: spec-of get w
-			
-			either any [
-				string? desc: spec/1
-				string? desc: spec/2					;-- attributes block case
-			][
-				print [#":" desc]
-			][
-				prin lf
+	set 'what function ["Lists all functions"][
+		foreach w sort words-of system/words [
+			if all [word? w any-function? get/any :w][
+				prin pad form w 15
+				spec: spec-of get w
+				
+				either any [
+					string? desc: spec/1
+					string? desc: spec/2					;-- attributes block case
+				][
+					print [#":" desc]
+				][
+					prin lf
+				]
 			]
 		]
+		exit												;-- return unset value
 	]
-	exit												;-- return unset value
-]
 
-source: function [
-	"Print the source of a function"
-	'func-name [any-word!] "The name of the function"
-][
-	print either function? get/any func-name [
-		[append mold func-name #":" mold get func-name]
+	set 'source function [
+		"Print the source of a function"
+		'func-name [any-word!] "The name of the function"
 	][
-		type: mold type? get/any func-name
-		["Sorry," func-name "is" a-an type type "so no source is available"]
+		print either function? get/any func-name [
+			[append mold func-name #":" mold get func-name]
+		][
+			type: mold type? get/any func-name
+			["Sorry," func-name "is" a-an type "so no source is available"]
+		]
 	]
-]
 
-about: function ["Print Red version information"][
-	print ["Red" system/version #"-" system/build/date]
+	set 'about function ["Print Red version information"][
+		print [
+			"Red for" system/platform
+			'version system/version
+			'built system/build/date
+		]
+	]
 ]
