@@ -907,20 +907,7 @@ make-profilable make target-class [
 		unless spec [
 			name: to word! path/1
 			spec: second compiler/resolve-type name
-			either all [
-				offset: emitter/local-offset? name
-				'value = last select compiler/locals name
-			][										;-- struct on stack case
-				either 127 < abs offset [
-					emit #{8D85}					;-- LEA eax, [ebp+n]	; 32-bit displacement
-					emit to-bin32 offset
-				][
-					emit #{8D45}					;-- LEA eax, [ebp+n]	; 8-bit displacement
-					emit to-bin8 offset
-				]
-			][
-				emit-init-path name
-			]
+			emit-load name
 		]
 		if short [return spec]
 		
