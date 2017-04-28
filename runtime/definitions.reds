@@ -86,12 +86,6 @@ Red/System [
 #if OS = 'MacOSX [
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
-		a				[float32!]					;-- CTM
-		b				[float32!]
-		c				[float32!]
-		d				[float32!]
-		tx				[float32!]
-		ty				[float32!]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]
@@ -99,7 +93,6 @@ Red/System [
 		pen-color		[integer!]					;-- 00bbggrr format
 		brush-color		[integer!]					;-- 00bbggrr format
 		font-attrs		[integer!]
-		height			[float32!]
 		colorspace		[integer!]
 		grad-pen		[integer!]
 		grad-type		[integer!]
@@ -120,6 +113,13 @@ Red/System [
 		pen?			[logic!]
 		brush?			[logic!]
 		on-image?		[logic!]					;-- drawing on image?
+		pattern-blk		[int-ptr!]
+		pattern-mode	[integer!]
+		pattern-ver		[integer!]
+		pattern-draw	[integer!]
+		pattern-release [integer!]
+		pattern-w		[float32!]
+		pattern-h		[float32!]
 		last-pt-x		[float32!]					;-- below used by shape
 		last-pt-y		[float32!]
 		control-x		[float32!]

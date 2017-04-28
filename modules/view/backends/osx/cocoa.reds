@@ -207,6 +207,12 @@ CGPoint!: alias struct! [
 	y		[float32!]
 ]
 
+CGPatternCallbacks!: alias struct! [
+	version		[integer!]
+	drawPattern [integer!]
+	releaseInfo [integer!]
+]
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -436,8 +442,16 @@ tagSIZE: alias struct! [
 			y1			[float32!]
 			return:		[logic!]
 		]
+		CGColorSpaceCreatePattern: "CGColorSpaceCreatePattern" [
+			baseSpace	[integer!]
+			return:		[integer!]
+		]
 		CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
 			return:		[integer!]
+		]
+		CGContextSetFillColorSpace: "CGContextSetFillColorSpace" [
+			ctx			[handle!]
+			space		[integer!]
 		]
 		CGColorSpaceRelease: "CGColorSpaceRelease" [
 			colorspace	[integer!]
@@ -635,30 +649,46 @@ tagSIZE: alias struct! [
 			c			[handle!]
 			mode		[integer!]
 		]
+		CGContextSetStrokePattern: "CGContextSetStrokePattern" [
+			ctx			[handle!]
+			pattern		[integer!]
+			components	[float32-ptr!]
+		]
+		CGContextSetFillPattern: "CGContextSetFillPattern" [
+			ctx			[handle!]
+			pattern		[integer!]
+			components	[float32-ptr!]
+		]
+		CGPatternCreate: "CGPatternCreate" [
+			info		[int-ptr!]
+			rc			[NSRect! value]
+			matrix		[CGAffineTransform! value]
+			xStep		[float32!]
+			yStep		[float32!]
+			tiling		[integer!]
+			isColored	[logic!]
+			callbacks	[CGPatternCallbacks!]
+			return:		[integer!]
+		]
+		CGPatternRelease: "CGPatternRelease" [
+			pattern		[integer!]
+		]
 		CGContextConcatCTM: "CGContextConcatCTM" [
 			ctx			[handle!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			m			[CGAffineTransform! value]
 		]
 		CGContextSetCTM: "CGContextSetCTM" [
 			ctx			[handle!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			m			[CGAffineTransform! value]
 		]
 		CGContextGetCTM: "CGContextGetCTM" [
-			[custom]
-			;matrix		[CGAffineTransform!]
-			;c			[handle!]
+			ctx			[handle!]
+			return:		[CGAffineTransform! value]
 		]
-		CGAffineTransformInvert: "CGAffineTransformInvert" [[custom]]
+		CGAffineTransformInvert: "CGAffineTransformInvert" [
+			matrix		[CGAffineTransform! value]
+			return:		[CGAffineTransform! value]
+		]
 		CGContextRotateCTM: "CGContextRotateCTM" [
 			c			[handle!]
 			angle		[float32!]
@@ -685,6 +715,15 @@ tagSIZE: alias struct! [
 		CGContextGetPathBoundingBox: "CGContextGetPathBoundingBox" [
 			ctx			[handle!]
 			return:		[NSRect! value]
+		]
+		CGAffineTransformMake: "CGAffineTransformMake" [
+			a			[float32!]
+			b			[float32!]
+			c			[float32!]
+			d			[float32!]
+			tx			[float32!]
+			ty			[float32!]
+			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformMakeScale: "CGAffineTransformMakeScale" [
 			sx			[float32!]
