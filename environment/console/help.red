@@ -154,7 +154,7 @@ help-ctx: context [
 	][
 		;!! remove-each doesn't return a result
 		;!! Use `copy` on `spec-of` so `remove` doesn't mod it!
-		remove-each val blk: copy spec-of :fn [not any-word? val]
+		remove-each val blk: copy spec-of :fn [not all-word? val]
 		if not all [
 			remove find blk to set-word! 'return
 			clear find blk /local
