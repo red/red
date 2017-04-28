@@ -13,6 +13,8 @@ Red/System [
 #include %text-box.reds
 
 #define DRAW_FLOAT_MAX		[as float32! 3.4e38]
+#define F32_0				[as float32! 0.0]
+#define F32_1				[as float32! 1.0]	
 
 max-colors: 256												;-- max number of colors for gradient
 max-edges: 1000												;-- max number of edges for a polygon
@@ -25,7 +27,7 @@ draw-begin: func [
 	CGCtx		[handle!]
 	img			[red-image!]
 	on-graphic? [logic!]
-	paint?		[logic!]
+	pattern?	[logic!]
 	return: 	[draw-ctx!]
 	/local
 		rc		[NSRect!]
@@ -33,15 +35,16 @@ draw-begin: func [
 		saved	[int-ptr!]
 		m		[CGAffineTransform!]
 ][
-	CGContextSaveGState CGCtx
-	rc: as NSRect! img
-	ctx/height:	rc/y
+	unless pattern? [
+		CGContextSaveGState CGCtx
 
-	if on-graphic? [							;-- draw on image!, flip the CTM
-		CGContextTranslateCTM CGCtx as float32! 0.0 ctx/height
-		CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+		if on-graphic? [							;-- draw on image!, flip the CTM
+			rc: as NSRect! img
+			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
+			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+		]
+		CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 	]
-	CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 
 	ctx/raw:			CGCtx
 	ctx/pen-width:		as float32! 1.0
@@ -66,16 +69,6 @@ draw-begin: func [
 
 	CGContextSetMiterLimit CGCtx DRAW_FLOAT_MAX
 	OS-draw-anti-alias ctx yes
-
-	m: as CGAffineTransform! (as int-ptr! ctx) + 1
-	saved: system/stack/align
-	push 0
-	push 0
-	push CGCtx
-	push m
-	CGContextGetCTM 2							;-- save CTM
-	system/stack/top: saved
-
 	ctx
 ]
 
@@ -84,12 +77,14 @@ draw-end: func [
 	CGCtx		[handle!]
 	on-graphic? [logic!]
 	cache?		[logic!]
-	paint?		[logic!]
+	pattern?	[logic!]
 ][
-	if dc/font-attrs <> 0	[objc_msgSend [dc/font-attrs sel_getUid "release"]]
+	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_getUid "release"]]
 	CGColorSpaceRelease dc/colorspace
-	CGContextRestoreGState CGCtx
-	OS-draw-anti-alias dc yes
+	unless pattern? [
+		CGContextRestoreGState CGCtx
+		OS-draw-anti-alias dc yes
+	]
 ]
 
 OS-draw-anti-alias: func [
@@ -701,7 +696,6 @@ OS-draw-text: func [
 	][
 		draw-text-box ctx pos as red-object! text catch?
 	]
-	if dc/brush? [CG-set-color ctx dc/brush-color yes]
 ]
 
 _draw-arc: func [
@@ -1276,23 +1270,15 @@ OS-matrix-skew: func [
 	sx		[red-integer!]
 	sy		[red-integer!]
 	/local
-		ty	[integer!]
-		tx	[integer!]
-		d	[integer!]
-		c	[integer!]
-		b	[integer!]
-		a	[integer!]
-		m	[CGAffineTransform!]
+		m	[CGAffineTransform! value]
 ][
-	a: 0
-	m: as CGAffineTransform! :a
 	m/a: as float32! 1.0
 	m/b: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 	m/c: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
 	m/d: as float32! 1.0
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
-	CGContextConcatCTM dc/raw m/a m/b m/c m/d m/tx m/ty
+	CGContextConcatCTM dc/raw m
 ]
 
 OS-matrix-transform: func [
@@ -1323,36 +1309,27 @@ OS-matrix-pop: func [dc [draw-ctx!] state [integer!]][
 	dc/brush-color:		0
 ]
 
-OS-matrix-reset: func [dc [draw-ctx!] pen [integer!] /local m [CGAffineTransform!]][
-	m: as CGAffineTransform! (as int-ptr! dc) + 1
-	CGContextSetCTM dc/raw m/a m/b m/c m/d m/tx m/ty
+OS-matrix-reset: func [
+	dc [draw-ctx!]
+	pen [integer!]
+	/local
+		m [CGAffineTransform! value]
+][
+	m: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 as float32! 0.5 as float32! 0.5
+	CGContextSetCTM dc/raw m
 ]
 
 OS-matrix-invert: func [
 	dc	[draw-ctx!]
 	pen	[integer!]
 	/local
-		saved	[int-ptr!]
-		ty		[integer!]
-		tx		[integer!]
-		d		[integer!]
-		c		[integer!]
-		b		[integer!]
-		a		[integer!]
-		invert	[CGAffineTransform!]
-		m		[CGAffineTransform!]
+		ctx	[handle!]
+		m	[CGAffineTransform! value]
 ][
-	a: 0
-	invert: as CGAffineTransform! :a
-	m: as CGAffineTransform! (as int-ptr! dc) + 1
-	saved: system/stack/align
-	push 0										;-- padding
-	push m/ty push m/tx push m/d push m/c push m/b push m/a
-	push invert
-	CGAffineTransformInvert 6
-	system/stack/top: saved
-	m: invert
-	CGContextSetCTM dc/raw m/a m/b m/c m/d m/tx m/ty
+	ctx: dc/raw
+	m: CGContextGetCTM ctx
+	m: CGAffineTransformInvert m
+	CGContextSetCTM ctx m
 ]
 
 OS-matrix-set: func [
@@ -1360,25 +1337,17 @@ OS-matrix-set: func [
 	pen		[integer!]
 	blk		[red-block!]
 	/local
-		ty	[integer!]
-		tx	[integer!]
-		d	[integer!]
-		c	[integer!]
-		b	[integer!]
-		a	[integer!]
-		m	[CGAffineTransform!]
+		m	[CGAffineTransform! value]
 		val	[red-integer!]
 ][
 	val: as red-integer! block/rs-head blk
-	a: 0
-	m: as CGAffineTransform! :a
 	m/a: get-float32 val
 	m/b: get-float32 val + 1
 	m/c: get-float32 val + 2
 	m/d: get-float32 val + 3
 	m/tx: get-float32 val + 4
 	m/ty: get-float32 val + 5
-	CGContextConcatCTM dc/raw m/a m/b m/c m/d m/tx m/ty
+	CGContextConcatCTM dc/raw m
 ]
 
 OS-set-matrix-order: func [
@@ -1768,8 +1737,38 @@ OS-draw-brush-bitmap: func [
 ][
 ]
 
+draw-pattern-callback: func [
+	[cdecl]
+	info	[int-ptr!]
+	ctx		[handle!]
+	/local
+		dc	[draw-ctx!]
+		w	[float32!]
+		h	[float32!]
+		blk [red-block!]
+		m	[CGAffineTransform! value]
+		wrap [integer!]
+][
+	dc: as draw-ctx! info
+	wrap: dc/pattern-mode
+	blk: as red-block! dc/pattern-blk
+	w: dc/pattern-w
+	h: dc/pattern-h
+	do-draw ctx null blk no no yes yes
+	if wrap = flip-x [
+		CGContextScaleCTM ctx as float32! -1.0 F32_1
+		do-draw ctx null blk no no yes yes
+	]
+	if wrap = flip-y [
+		m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 w h
+		CGContextConcatCTM ctx m
+		do-draw ctx null blk no no yes yes
+	]
+	if wrap = flip-xy [w: w * 2 h: h * 2]
+]
+
 OS-draw-brush-pattern: func [
-	ctx		[draw-ctx!]
+	dc		[draw-ctx!]
 	size	[red-pair!]
 	crop-1	[red-pair!]
 	crop-2	[red-pair!]
@@ -1777,9 +1776,82 @@ OS-draw-brush-pattern: func [
 	block	[red-block!]
 	brush?	[logic!]
 	/local
-		pat-image	[red-image!]
-		bkg-alpha	[byte!]
-		p-alpha		[byte-ptr!]
-		p			[byte-ptr!]
-][]
+		x			[integer!]
+		y			[integer!]
+		w			[integer!]
+		h			[integer!]
+		wrap		[integer!]
+		ctx			[handle!]
+		pattern		[integer!]
+		space		[integer!]
+		rc			[NSRect! value]
+		m			[CGAffineTransform! value]
+		alpha		[float32!]
+		width		[float32!]
+		height		[float32!]
+		callbacks	[CGPatternCallbacks!]
+][
+	dc/pattern-blk: as int-ptr! block
+	ctx: dc/raw
+	alpha: as float32! 1.0
+	w: size/x
+	h: size/y
+	either crop-1 = null [
+		x: 0
+		y: 0
+	][
+		x: crop-1/x
+		y: crop-1/y
+	]
+	either crop-2 = null [
+		w: w - x
+		h: h - y
+	][
+		w: either ( x + crop-2/x ) > w [ w - x ][ crop-2/x ]
+		h: either ( y + crop-2/y ) > h [ h - y ][ crop-2/y ]
+	]
+
+	wrap: tile
+	unless mode = null [wrap: symbol/resolve mode/symbol]
+	dc/pattern-mode: wrap
+	case [
+		any [wrap = flip-x wrap = flip-y] [w: w * 2]
+		wrap = flip-xy [w: w * 2 h: h * 2]
+		true []
+	]
+
+	space: CGColorSpaceCreatePattern 0
+	CGContextSetFillColorSpace ctx space
+	CGColorSpaceRelease space
+
+	callbacks: as CGPatternCallbacks! :dc/pattern-ver
+	callbacks/version: 0
+	callbacks/drawPattern: as-integer :draw-pattern-callback
+	callbacks/releaseInfo: 0
+
+	width: as float32! w
+	height: as float32! h
+	dc/pattern-w: width
+	dc/pattern-h: height
+	rc/x: as float32! x
+	rc/y: as float32! y
+	rc/w: width
+	rc/h: height
+	m: CGAffineTransformMake F32_1 F32_0 F32_0 as float32! -1.0 as float32! 0 height
+	pattern: CGPatternCreate as int-ptr! dc rc m width height 0 yes callbacks
+	either brush? [
+		dc/brush?: yes
+		CGContextSetFillPattern ctx pattern :alpha
+	][
+		dc/pen?: yes
+		CGContextSetStrokePattern ctx pattern :alpha
+	]
+	CGPatternRelease pattern
+
+	if dc/grad-pen <> -1 [
+		CGGradientRelease dc/grad-pen
+		dc/grad-pos?: no
+		dc/grad-pen: -1
+	]
+]
 

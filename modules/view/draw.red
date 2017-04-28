@@ -1024,7 +1024,7 @@ Red/System [
 			paint?		[logic!]
 			catch?		[logic!]
 			/local
-				DC		[draw-ctx!]						;-- drawing context (opaque handle)
+				DC		[draw-ctx! value]				;-- drawing context (opaque handle)
 		][
 			if all [
 				null? handle
@@ -1032,18 +1032,15 @@ Red/System [
 			][exit]
 
 			system/thrown: 0
-
-			DC: as draw-ctx! allocate size? draw-ctx!	;-- allocate on heap to allow reentrancy 
+			DC/pen-join: 0					;@@ making compiler happy
 			draw-begin DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
 			]
 			draw-end DC handle on-graphic? cache? paint?
-			
 			if system/thrown = RED_THROWN_ERROR [
 				either catch? [system/thrown: 0][re-throw]
 			]
-			free as byte-ptr! DC
 		]
 
 		parse-text-styles: func [
