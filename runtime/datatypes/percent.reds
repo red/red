@@ -157,8 +157,8 @@ percent: context [
 			INHERIT_ACTION	;remainder
 			INHERIT_ACTION	;round
 			INHERIT_ACTION	;subtract
-			null			;even?
-			null			;odd?
+			INHERIT_ACTION	;even?
+			INHERIT_ACTION	;odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement
