@@ -2881,7 +2881,7 @@ system-dialect: make-profilable context [
 		]
 		
 		get-caller: func [name /root /local list found? stk][
-			stk: exclude expr-call-stack [as]
+			stk: exclude expr-call-stack [as #body #test]
 			if tail? next stk [return none]
 			
 			list: back back find stk name
