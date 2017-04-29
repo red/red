@@ -545,7 +545,17 @@ emitter: make-profilable context [
 				target/emit-load-path path type parent
 			]
 		][
-			if head? path [target/emit-init-path path/1]
+			if head? path [
+				either all [
+					compiler/locals
+					type: select compiler/locals to word! path/1
+					'value = last type
+				][
+					target/emit-load path/1
+				][
+					target/emit-init-path path/1
+				]
+			]
 			parent: resolve-path-head path parent
 			target/emit-access-path path parent
 			access-path/with next path value parent
