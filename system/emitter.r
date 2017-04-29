@@ -203,7 +203,7 @@ emitter: make-profilable context [
 		spec
 	]
 
-	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
+	store-global: func [value type [word!] spec [block! word! none!] /local size ptr by-val?][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -284,9 +284,14 @@ emitter: make-profilable context [
 			struct! [
 				ptr: tail data-buf
 				foreach [var type] spec [
+					by-val?: 'value = last type
 					if spec: compiler/find-aliased type/1 [type: spec]
-					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
-					store-global value type none
+					either all [by-val? type/1 = 'struct!][
+						store-global value type/1 type/2
+					][
+						type: either find [struct! c-string!] type/1 ['pointer!][type/1]
+						store-global value type spec
+					]
 				]
 			]
 			array! [
@@ -390,7 +395,7 @@ emitter: make-profilable context [
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
 			if var = name [break]
-			offset: offset + size-of? type/1
+			offset: offset + size-of? type
 		]
 		offset
 	]

@@ -917,9 +917,12 @@ make-profilable make target-class [
 		set-width/type type/1						;-- adjust operations width to member value size
 		offset: emitter/member-offset? spec path/2
 		
-		either all [
-			get-word? first head path
-			tail? skip path 2
+		either any [
+			all [type/1 = 'struct! 'value = last spec/(path/2)]
+			all [
+				get-word? first head path
+				tail? skip path 2
+			]
 		][
 			emit #{05}							 	;--	ADD eax, <offset>
 			emit to-bin32 offset
