@@ -589,6 +589,7 @@ struct-local-foo2
 	small!: alias struct! [one [integer!] two [integer!]]
 	big!:   alias struct! [one [integer!] two [integer!] three [float!]]
 	huge!:  alias struct! [w1 [integer!] w2 [integer!] w3 [float!] w4 [integer!] w5 [integer!] w6 [float!]]
+	super!: alias struct! [f1 [float!] f2 [float!] f3 [float!] f4 [float!] f5 [float!] f6 [float!]]
 
 	#switch OS [
 		Windows  [#define STRUCTLIB-file "structlib.dll"]
@@ -817,6 +818,146 @@ struct-local-foo2
 		--assert sv4/w4 = 444
 		--assert sv4/w5 = 555
 		--assert sv4/w6 = 6.789
+	
+	--test-- "svb16"
+		nested1!: alias struct! [
+			f1	[integer!]
+			sub [tiny! value]
+			f2	[integer!]
+		]
+		nest1: declare nested1!
+
+		--assert 12 = size? nested1!
+
+		nest1/f1: 121212
+		nest1/f2: 343434
+		nest1/sub/b1: #"B"
+
+		--assert nest1/f1 = 121212
+		--assert nest1/f2 = 343434
+		--assert nest1/sub/b1 = #"B"
+		
+	;--test-- "svb16.1"
+		;nest1/sub: sbvf2 nest1/sub 123
+		;--assert nest1/sub/b1 = #"A"
+		
+	--test-- "svb17"
+		nested2!: alias struct! [
+			f1	[integer!]
+			sub [small! value]
+			f2	[integer!]
+		]
+		nest2: declare nested2!
+
+		--assert 16 = size? nested2!
+
+		nest2/f1: 121212
+		nest2/f2: 343434
+		nest2/sub/one: 147
+		nest2/sub/two: 258
+
+		--assert nest2/f1 = 121212
+		--assert nest2/f2 = 343434
+		--assert nest2/sub/one = 147
+		--assert nest2/sub/two = 258
+	
+	--test-- "svb18"
+		nested3!: alias struct! [
+			f1	[integer!]
+			sub [big! value]
+			f2	[integer!]
+		]
+		nest3: declare nested3!
+		
+		--assert 24 = size? nested3!
+		
+		nest3/f1: 121212
+		nest3/f2: 343434
+		nest3/sub/one: 666
+		nest3/sub/two: 777
+		nest3/sub/three: 8.88
+				
+		--assert nest3/f1 = 121212
+		--assert nest3/f2 = 343434
+		--assert nest3/sub/one = 666
+		--assert nest3/sub/two = 777
+		--assert nest3/sub/three = 8.88
+		
+		--assert (as int-ptr! nest3) + 1 = :nest3/sub
+		--assert :nest3/sub     = :nest3/sub/one
+		--assert :nest3/sub + 1 = :nest3/sub/two
+		--assert :nest3/sub + 2 = :nest3/sub/three
+		--assert :nest3/sub + 4 = :nest3/f2
+
+	--test-- "svb19"
+		nested4!: alias struct! [
+			g1	[integer!]
+			sub [huge! value]
+			g2	[integer!]
+		]
+		nest4: declare nested4!
+		
+		--assert 40 = size? nested4!
+		
+		nest4/g1: 121212
+		nest4/g2: 343434
+		nest4/sub/w1: 100
+		nest4/sub/w2: 200
+		nest4/sub/w3: 300.0
+		nest4/sub/w4: 400
+		nest4/sub/w5: 500
+		nest4/sub/w6: 600.0		
+				
+		--assert nest4/g1 = 121212
+		--assert nest4/g2 = 343434
+		--assert nest4/sub/w1 = 100
+		--assert nest4/sub/w2 = 200
+		--assert nest4/sub/w3 = 300.0
+		--assert nest4/sub/w4 = 400
+		--assert nest4/sub/w5 = 500
+		--assert nest4/sub/w6 = 600.0
+
+		--assert (as int-ptr! nest4) + 1 = :nest4/sub
+		--assert :nest4/sub     = :nest4/sub/w1
+		--assert :nest4/sub + 1 = :nest4/sub/w2
+		--assert :nest4/sub + 2 = :nest4/sub/w3
+		--assert :nest4/sub + 4 = :nest4/sub/w4
+		--assert :nest4/sub + 8 = :nest4/g2
+
+	--test-- "svb20"
+		nested5!: alias struct! [
+			g1	[integer!]
+			sub [super! value]
+			g2	[integer!]
+		]
+		nest5: declare nested5!
+		
+		--assert 56 = size? nested5!
+		
+		nest5/g1: 121212
+		nest5/g2: 343434
+		nest5/sub/f1: 1.0
+		nest5/sub/f2: 2.0
+		nest5/sub/f3: 3.0
+		nest5/sub/f4: 4.0
+		nest5/sub/f5: 5.0
+		nest5/sub/f6: 6.0		
+				
+		--assert nest5/g1 = 121212
+		--assert nest5/g2 = 343434
+		--assert nest5/sub/f1 = 1.0
+		--assert nest5/sub/f2 = 2.0
+		--assert nest5/sub/f3 = 3.0
+		--assert nest5/sub/f4 = 4.0
+		--assert nest5/sub/f5 = 5.0
+		--assert nest5/sub/f6 = 6.0
+
+		--assert (as int-ptr! nest5) + 1 = :nest5/sub
+		--assert :nest5/sub      = :nest5/sub/f1
+		--assert :nest5/sub + 2  = :nest5/sub/f2
+		--assert :nest5/sub + 4  = :nest5/sub/f3
+		--assert :nest5/sub + 12 = :nest5/g2
+
 
 	--test-- "svb50"
 		localsbvf: func [
