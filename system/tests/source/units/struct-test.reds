@@ -837,9 +837,19 @@ struct-local-foo2
 		--assert nest1/f2 = 343434
 		--assert nest1/sub/b1 = #"B"
 		
-	;--test-- "svb16.1"
-		;nest1/sub: sbvf2 nest1/sub 123
-		;--assert nest1/sub/b1 = #"A"
+	--test-- "svb16.1"
+		nest1/sub: sbvf2 nest1/sub 123
+		--assert nest1/sub/b1 = #"B"
+		
+	--test-- "svb16.2"
+		nest1/sub: sbvf2 s1 123
+		--assert nest1/sub/b1 = #"A"
+		
+	--test-- "svb16.3"
+		nest1/sub: returnTiny
+		--assert nest1/sub/b1 = #"z"
+		--assert nest1/f1 = 121212
+		--assert nest1/f2 = 343434
 		
 	--test-- "svb17"
 		nested2!: alias struct! [
@@ -860,6 +870,23 @@ struct-local-foo2
 		--assert nest2/f2 = 343434
 		--assert nest2/sub/one = 147
 		--assert nest2/sub/two = 258
+
+	--test-- "svb17.1"
+		nest2/sub: sbvf4 nest2/sub 123
+		--assert nest2/sub/one = 148
+		--assert nest2/sub/two = 259
+		
+	--test-- "svb17.2"
+		nest2/sub: sbvf4 s2 123
+		--assert nest2/sub/one = 5
+		--assert nest2/sub/two = 6
+		
+	--test-- "svb17.3"
+		nest2/sub: returnSmall
+		--assert nest2/sub/one = 111
+		--assert nest2/sub/two = 222
+		--assert nest2/f1 = 121212
+		--assert nest2/f2 = 343434
 	
 	--test-- "svb18"
 		nested3!: alias struct! [
@@ -888,6 +915,30 @@ struct-local-foo2
 		--assert :nest3/sub + 1 = :nest3/sub/two
 		--assert :nest3/sub + 2 = :nest3/sub/three
 		--assert :nest3/sub + 4 = :nest3/f2
+
+	--test-- "svb18.1"
+		nest3/sub: sbvf6 nest3/sub 123
+		--assert nest3/sub/one = 666
+		--assert nest3/sub/two = 777
+		--assert nest3/sub/three = 8.88
+		p-int: :nest3/sub/two
+		--assert p-int/value = 777
+		
+	--test-- "svb18.2"
+		nest3/sub: sbvf6 s3 123
+		--assert nest3/sub/one = 123
+		--assert nest3/sub/two = 456
+		--assert nest3/sub/three = 3.14
+		p-int: :nest3/sub/two
+		--assert p-int/value = 456
+		
+	--test-- "svb18.3"
+		nest3/sub: returnBig
+		--assert nest3/sub/one = 111
+		--assert nest3/sub/two = 222
+		--assert nest3/sub/three = 3.14159
+		--assert nest3/f1 = 121212
+		--assert nest3/f2 = 343434
 
 	--test-- "svb19"
 		nested4!: alias struct! [
@@ -923,6 +974,26 @@ struct-local-foo2
 		--assert :nest4/sub + 2 = :nest4/sub/w3
 		--assert :nest4/sub + 4 = :nest4/sub/w4
 		--assert :nest4/sub + 8 = :nest4/g2
+		
+	--test-- "svb19.1"
+		nest4/sub: returnHuge as-integer #"0" as-integer #"1"
+		--assert nest4/sub/w1 = 48
+		--assert nest4/sub/w2 = 49
+		--assert nest4/sub/w3 = 3.5
+		--assert nest4/sub/w4 = 444
+		--assert nest4/sub/w5 = 555
+		--assert nest4/sub/w6 = 6.789
+			
+	--test-- "svb19.2"
+		nest4/sub: returnHuge2 nest4/sub as-integer #"0" as-integer #"1"
+		--assert nest4/sub/w1 = 48
+		--assert nest4/sub/w2 = 49
+		--assert nest4/sub/w3 = 3.5
+		--assert nest4/sub/w4 = 444
+		--assert nest4/sub/w5 = 555
+		--assert nest4/sub/w6 = 6.789
+		--assert nest4/g1 = 121212
+		--assert nest4/g2 = 343434
 
 	--test-- "svb20"
 		nested5!: alias struct! [
