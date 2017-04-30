@@ -1102,10 +1102,16 @@ make-profilable make target-class [
 				case [
 					by-val? [						;-- small struct returned by value
 						case [
+							all [type/1 = 'struct! 'value = last parent/(path/2)][
+								if offset <> 0 [
+									emit #{05}		;--	ADD eax, <offset>
+									emit to-bin32 offset
+								]
+							]
 							zero? offset [
 								emit #{8B00}		;-- MOV eax, [eax]
 							]
-							offset > 127 [
+							offset < 127 [
 								emit #{8B40}		;-- MOV eax, [eax+<offset>] ; 8-bit disp
 								emit to-bin8 offset
 							]
