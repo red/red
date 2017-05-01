@@ -1033,11 +1033,11 @@ Red/System [
 
 			system/thrown: 0
 			DC/pen-join: 0					;@@ making compiler happy
-			draw-begin DC handle img on-graphic? paint?
+			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
 			]
-			draw-end DC handle on-graphic? cache? paint?
+			draw-end :DC handle on-graphic? cache? paint?
 			if system/thrown = RED_THROWN_ERROR [
 				either catch? [system/thrown: 0][re-throw]
 			]

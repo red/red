@@ -84,8 +84,18 @@ Red/System [
 ]
 
 #if OS = 'MacOSX [
+	CGAffineTransform!: alias struct! [
+		a		[float32!]
+		b		[float32!]
+		c		[float32!]
+		d		[float32!]
+		tx		[float32!]
+		ty		[float32!]
+	]
+
 	draw-ctx!: alias struct! [
 		raw				[int-ptr!]					;-- OS drawing object: CGContext
+		matrix          [CGAffineTransform! value]
 		pen-join		[integer!]
 		pen-cap			[integer!]
 		pen-width		[float32!]

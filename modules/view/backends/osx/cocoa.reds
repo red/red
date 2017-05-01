@@ -174,15 +174,6 @@ objc_super!: alias struct! [
 	superclass	[integer!]
 ]
 
-CGAffineTransform!: alias struct! [
-	a		[float32!]
-	b		[float32!]
-	c		[float32!]
-	d		[float32!]
-	tx		[float32!]
-	ty		[float32!]
-]
-
 NSRect!: alias struct! [
 	x		[float32!]
 	y		[float32!]
@@ -739,6 +730,11 @@ tagSIZE: alias struct! [
 			pt			[CGPoint! value]
 			m			[CGAffineTransform! value]
 			return:		[CGPoint! value]
+		]
+		CGAffineTransformConcat: "CGAffineTransformConcat" [
+			m1			[CGAffineTransform! value]
+			m2			[CGAffineTransform! value]
+			return:		[CGAffineTransform! value]
 		]
 		CGAffineTransformRotate: "CGAffineTransformRotate" [
 			m			[CGAffineTransform! value]

@@ -47,6 +47,12 @@ draw-begin: func [
 	]
 
 	ctx/raw:			CGCtx
+	ctx/matrix/a:		F32_1
+	ctx/matrix/b:		F32_0
+	ctx/matrix/c:		F32_0
+	ctx/matrix/d:		F32_1
+	ctx/matrix/tx:		F32_0
+	ctx/matrix/ty:		F32_0
 	ctx/pen-width:		as float32! 1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
@@ -994,21 +1000,28 @@ fill-gradient-region: func [
 	dc		[draw-ctx!]
 	/local
 		ctx [handle!]
-		r	[float32!]
+		pt1	[CGPoint! value]
+		pt2	[CGPoint! value]
 ][
 	ctx: dc/raw
 	CGContextSaveGState ctx
 	CGContextClip ctx
 
+	;pt1/x: dc/grad-x1
+	;pt1/y: dc/grad-y1
+	;pt1: CGPointApplyAffineTransform pt1 dc/matrix
+	;pt2/x: dc/grad-x2
+	;pt2/y: dc/grad-y2
+	;pt2: CGPointApplyAffineTransform pt2 dc/matrix
+	CGContextConcatCTM dc/raw dc/matrix
+
 	either dc/grad-type = linear [
 		CGContextDrawLinearGradient
 			ctx
 			dc/grad-pen
-			dc/grad-x1
-			dc/grad-y1
-			dc/grad-x2
-			dc/grad-y2
-			0
+			;pt1/x pt1/y pt2/x pt2/y
+			dc/grad-x1 dc/grad-y1 dc/grad-x2 dc/grad-y2
+			3
 	][
 		CGContextDrawRadialGradient
 			ctx
@@ -1019,7 +1032,7 @@ fill-gradient-region: func [
 			dc/grad-x1
 			dc/grad-y1
 			dc/grad-radius
-			0
+			3
 	]
 	CGContextRestoreGState ctx
 ]
@@ -1227,14 +1240,20 @@ OS-matrix-rotate: func [
 	/local
 		ctx [handle!]
 		pt	[CGPoint!]
+		rad [float32!]
 ][
 	ctx: dc/raw
-	if angle <> as red-integer! center [
-		_OS-matrix-translate ctx center/x center/y
-	]
-	CGContextRotateCTM ctx (as float32! PI) / (as float32! 180.0) * get-float32 angle
-	if angle <> as red-integer! center [
-		_OS-matrix-translate ctx 0 - center/x 0 - center/y
+	rad: (as float32! PI) / (as float32! 180.0) * get-float32 angle
+	either pen = -1 [
+		if angle <> as red-integer! center [
+			_OS-matrix-translate ctx center/x center/y
+		]
+		CGContextRotateCTM ctx rad
+		if angle <> as red-integer! center [
+			_OS-matrix-translate ctx 0 - center/x 0 - center/y
+		]
+	][
+		dc/matrix: CGAffineTransformRotate dc/matrix rad
 	]
 ]
 
@@ -1244,7 +1263,11 @@ OS-matrix-scale: func [
 	sx		[red-integer!]
 	sy		[red-integer!]
 ][
-	CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
+	either pen = -1 [
+		CGContextScaleCTM dc/raw get-float32 sx get-float32 sy
+	][
+		dc/matrix: CGAffineTransformScale dc/matrix get-float32 sx get-float32 sy
+	]
 ]
 
 _OS-matrix-translate: func [
@@ -1261,7 +1284,11 @@ OS-matrix-translate: func [
 	x	[integer!]
 	y	[integer!]
 ][
-	CGContextTranslateCTM dc/raw as float32! x as float32! y
+	either pen = -1 [
+		CGContextTranslateCTM dc/raw as float32! x as float32! y
+	][
+		dc/matrix: CGAffineTransformTranslate dc/matrix as float32! x as float32! y
+	]
 ]
 
 OS-matrix-skew: func [
@@ -1278,7 +1305,11 @@ OS-matrix-skew: func [
 	m/d: as float32! 1.0
 	m/tx: as float32! 0.0
 	m/ty: as float32! 0.0
-	CGContextConcatCTM dc/raw m
+	either pen = -1 [
+		CGContextConcatCTM dc/raw m
+	][
+		dc/matrix: CGAffineTransformConcat dc/matrix m
+	]
 ]
 
 OS-matrix-transform: func [
@@ -1764,7 +1795,7 @@ draw-pattern-callback: func [
 		CGContextConcatCTM ctx m
 		do-draw ctx null blk no no yes yes
 	]
-	if wrap = flip-xy [w: w * 2 h: h * 2]
+	if wrap = flip-xy [0]
 ]
 
 OS-draw-brush-pattern: func [
