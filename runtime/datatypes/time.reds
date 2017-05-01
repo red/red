@@ -328,6 +328,26 @@ time: context [
 		as red-value! float/do-math OP_MUL
 	]
 	
+	even?: func [
+		tm		[red-time!]
+		return: [logic!]
+		/local
+			t [float!]
+	][
+		t: tm/time + 1E-6								;@@ 1E-6 is a temporary, empirical workaround
+		not as-logic (as integer! GET_SECONDS(t)) and 1
+	]
+
+	odd?: func [
+		tm		[red-time!]
+		return: [logic!]
+		/local
+			t [float!]
+	][
+		t: tm/time + 1E-6								;@@ 1E-6 is a temporary, empirical workaround
+		as-logic (as integer! GET_SECONDS(t)) and 1
+	]
+
 	round: func [
 		tm			[red-time!]
 		scale		[red-float!]
@@ -382,8 +402,8 @@ time: context [
 			INHERIT_ACTION	;remainder
 			:round
 			INHERIT_ACTION	;subtract
-			INHERIT_ACTION	;even?
-			INHERIT_ACTION	;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement
