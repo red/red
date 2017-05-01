@@ -2884,7 +2884,7 @@ system-dialect: make-profilable context [
 			stk: exclude expr-call-stack [as #body #test]
 			if tail? next stk [return none]
 			
-			list: back back find stk name
+			list: back find stk name
 			unless root [return any [all [find calling-keywords list/1 none] list/1]]
 			
 			while [found?: find calling-keywords list/1][list: back list]
