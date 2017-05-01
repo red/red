@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 20/04/2017
-	Revision: 51
+	Date: 01/05/2017
+	Revision: 52
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -509,7 +509,7 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
-              function! [<spec>]
+              struct! [<members>] value | function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
@@ -520,12 +520,24 @@ The returned value of DECLARE STRUCT! is the memory address of the newly created
  s: declare struct! [
  	a 	[integer!]
  	b	[c-string!]
- 	c 	[struct! [d [integer!]]]
+ 	c 	[struct! [d [integer!] e [float!]]]
  ]
  
-In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value pointer, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
+In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value <b>pointer</b>, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
 
  s/c: declare struct! [d [integer!]]
+ 
+It is possible to nest struct values (and not just pointers to struct values) by adding the <b>value</b> keyword at the tail of a nested struct type specification:
+
+ s2: declare struct! [
+ 	a 	[integer!]
+ 	b	[c-string!]
+ 	c 	[struct! [d [integer!] e [float!]] value]
+ ]
+ 
+In this case, the nested struct c storage space is reserved when allocating the space for the parent struct s2. The size of struct s2 is 20 bytes, while the size of s is 12 bytes.
+
+Struct pointers and struct values can be arbitrarily nested and mixed together.
  
 +++Accessing members
 
@@ -603,7 +615,7 @@ Aliasing syntax:
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
-              function! [<spec>]
+              struct! [<members>] value | function! [<spec>]
               
 Struct value declaration using an aliased definition:
 
@@ -631,6 +643,11 @@ Struct usage example:
  gift/first/title:  "Contact"
  gift/first/author: "Carl Sagan"
  gift/first/year:   1985
+
+ gift2: declare struct! [
+  	first  [book! value]				;-- inlined book! struct value
+  	second [book! value]				;-- inlined book! struct value
+ ]
 
 ---Pointer!
 
@@ -2680,6 +2697,37 @@ Ensures that native stack is properly aligned at the point of calling, according
  system/stack/align
 
  return: a pointer value of type: pointer! [integer!]
+ 
+---stack/allocate
+
+Reserves a storage space on stack (in stack slots unit) and returns a pointer the beginning of that space. This can be used to allocate arbitrary space for data structure on native stack. Such space will be automatically freed on a function exit.
+
+<b>Syntax</b>
+
+ <ptr>: system/stack/allocate <slots>
+
+ <ptr>  : variable of type: pointer! [integer!]
+ <slots>: expression returning an integer
+
+\note Stack slots unit
+Stack slots unit are system-dependent, on IA-32 and ARM, a slot is equal to 4 bytes.
+
+/note
+
+---stack/free
+
+Frees a storage space on stack (in stack slots unit). This is useful for manually controlling the release of a stack storage space allocated with <i>system/stack/allocate</i>, or from outside a function.
+
+<b>Syntax</b>
+
+ system/stack/free <slots>
+
+ <slots>: expression returning an integer
+
+\note Manual stack manipulations and exceptions
+Current exceptions implementation (catch/throw) cannot mix with manual stack manipulations, therefore all allocated spaces on stack <b>must</b> be freed before entering a <i>catch</i> body block, or using a <i>throw</i> keyword.
+
+/note
 
 ---pc
 
@@ -3753,13 +3801,7 @@ Both -** (internal representation for >>>) and /// (internal representation for 
  <little> : little endian (optional)
  <big>    : big endian (optional)
  
-*Add support for passing struct! by value when required. Possible syntax could be:
-
- struct [
-	[by-value]					;-- 'by-value keyword would force passing it
-	<members>					;-- by value.
- ]
-
+*<strike>Add support for passing struct! by value when required.</strike>
 
 ---C-strings
 
@@ -3838,6 +3880,13 @@ will output:
 
 
 ===Document History
+
+*<b>01/05/2017 - revision 52</b>
+
+*>Adds description of nested structs values.
+
+*>Adds stack/allocate and stack/free sections.
+
 
 *<b>20/04/2017 - revision 51</b>
 
