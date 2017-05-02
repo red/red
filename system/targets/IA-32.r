@@ -1293,8 +1293,10 @@ make-profilable make target-class [
 						'value = last type
 						offset: emitter/local-offset? value
 					][
-						emit #{8D85}				;-- LEA eax, [ebp+n]	; local struct
-						emit to-bin32 offset
+						emit-variable value
+							none
+							none
+							#{8D45}					;-- LEA eax, [ebp+n]	; local struct
 						emit #{50}					;-- PUSH eax
 					]
 					compiler/any-float? type [
