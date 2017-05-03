@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-#enum encoding! [
-	UTF-16LE:	-1
-	UTF-8:		 0
-	Latin1:		 1
-	UCS-2:		 2
-	UCS-4:		 4
-]
-
 unicode: context [
 	verbose: 0
 
@@ -75,8 +67,7 @@ unicode: context [
 				4
 			]
 			true [
-				print "*** Error: to-utf8 codepoint overflow"
-				halt
+				fire [TO_ERROR(script invalid-char) char/push cp]
 				0
 			]
 		]
@@ -97,7 +88,7 @@ unicode: context [
 		return:  [c-string!]
 		/local
 			s	 [series!]
-			node [node!]
+			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
@@ -113,10 +104,9 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		node: alloc-bytes unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
-		s: 	  as series! node/value
-		buf:  as byte-ptr! s/offset
-		
+		buf: allocate unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
+		beg: buf
+
 		p:	  string/rs-head str
 		tail: p + (part << (unit >> 1))
 		
@@ -137,8 +127,8 @@ unicode: context [
 		]
 		buf/1: null-byte
 
-		len/value: as-integer buf - (as byte-ptr! s/offset)
-		as-c-string s/offset
+		len/value: as-integer buf - beg
+		as-c-string beg
 	]
 	
 	Latin1-to-UCS2: func [
@@ -154,7 +144,7 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset
 		used: used << 1 
-		if used > s/size [								;-- ensure we have enough space
+		if used + 2 > s/size [							;-- ensure we have enough space
 			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
@@ -393,7 +383,7 @@ unicode: context [
 			cp: decode-utf8-char src :used
 			if cp = -1 [								;-- premature exit if buffer incomplete
 				s/tail: as cell! either unit = UCS-4 [buf4][buf1]	;-- position s/tail at end of loaded characters (no NUL terminator)
-				remain/value: count						;-- return the number of unprocessed bytes
+				if remain <> null [remain/value: count]				;-- return the number of unprocessed bytes
 				return node
 			]
 
@@ -570,7 +560,11 @@ unicode: context [
 		unit: scan-utf16 src size
 		
 		either null? str [
-			node: alloc-series size unit 0
+			node: either size = 0 [
+				alloc-series 1 2 0						;-- create an empty string
+			][
+				alloc-series size unit 0
+			]
 			s: as series! node/value
 		][
 			node: str/node
@@ -602,10 +596,9 @@ unicode: context [
 						either all [src/1 = #"^M" src/2 = null-byte][
 							size: size - 1
 						][
-							p/value: src/1
-							p: p + 1
-							p/value: null-byte
-							p: p + 1
+							p/1: src/1
+							p/2: src/2
+							p: p + 2
 						]
 						src: src + 2
 						cnt: cnt - 1
@@ -694,8 +687,6 @@ unicode: context [
 		return: [c-string!]
 		/local
 			s	 [series!]
-			s2	 [series!]
-			node [node!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]

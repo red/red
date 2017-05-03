@@ -10,54 +10,31 @@ Red [
 	}
 ]
 
-
-cos: routine [
-	"Returns the trigonometric cosine"
-	angle [float!] "Angle in radians"
-][
-	natives/cosine* no 1
-]
-
-sin: routine [
-	"Returns the trigonometric sine"
-	angle [float!] "Angle in radians"
-][
-	natives/sine* no 1
-]
-
-tan: routine [
-	"Returns the trigonometric tangent"
-	angle [float!] "Angle in radians"
-][
-	natives/tangent* no 1
-]
-
-acos: routine [
-	"Returns the trigonometric arccosine"
-	angle [float!] "Angle in radians"
-][
-	natives/arccosine* no 1
-]
-
-asin: routine [
-	"Returns the trigonometric arcsine"
-	angle [float!] "Angle in radians"
-][
-	natives/arcsine* no 1
-]
-
-atan: routine [
-	"Returns the trigonometric arctangent"
-	angle [float!] "Angle in radians"
-][
-	natives/arctangent* no 1
-]
-
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status"
 	status			[integer!] "Process termination value to return"
 ][
 	quit status
+]
+
+set-quiet: routine [
+	"Set an object's field to a value without triggering object's events"
+	word  [word!]
+	value [any-type!]
+][
+	_context/set word stack/arguments + 1
+]
+
+browse: routine [
+	"Open web browser to a URL"
+	url [url!]
+][
+	#either OS = 'Windows [
+		platform/ShellExecute 0 #u16 "open" unicode/to-utf16 as red-string! url 0 0 1
+		unset/push-last
+	][
+		fire [TO_ERROR(internal not-here) words/_browse]
+	]
 ]
 
 ;-- Following definitions are used to create op! corresponding operators
@@ -83,6 +60,10 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 	]
 ]
 
+create-dir: routine [path [file!]][			;@@ temporary, user should use `make-dir`
+	simple-io/make-dir file/to-OS-path path
+]
+
 exists?: routine [path [file!] return: [logic!]][
 	simple-io/file-exists? file/to-OS-path path
 ]
@@ -94,7 +75,7 @@ as-color: routine [
 	/local
 		arr1 [integer!]
 ][
-	arr1: (b << 16) or (g << 8) or r
+	arr1: (b % 256 << 16) or (g % 256 << 8) or (r % 256)
 	stack/set-last as red-value! tuple/push 3 arr1 0 0
 ]
 
@@ -111,3 +92,17 @@ as-ipv4: routine [
 ]
 
 as-rgba: :as-ipv4
+
+;-- Temporary definition --
+
+read-clipboard: routine [][
+	stack/set-last clipboard/read
+]
+
+write-clipboard: routine [data [string!]][
+	logic/box clipboard/write as red-value! data
+]
+
+write-stdout: routine [str [string!]][			;-- internal use only
+	simple-io/write null as red-value! str null null no no no
+]

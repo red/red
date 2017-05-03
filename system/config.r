@@ -26,6 +26,7 @@ REBOL [
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;	debug?:			 yes | no					;-- yes => emit debug information into binary
 ;;	debug-safe?:	 yes | no					;-- yes => try to avoid over-crashing on runtime debug reports
+;;	dev-mode?:		 yes | no					;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
 ;;  red-tracing?:	yes							;-- no => do not compile tracing code
@@ -55,6 +56,21 @@ WindowsXP [
 	type:		'exe
 	sub-system: 'GUI
 	legacy:		[no-touch]
+]
+MSDOS-Old [								; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'console
+	cpu-version: 1.0
+]
+;-------------------------
+Windows-Old [							; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'GUI
+	cpu-version: 1.0
 ]
 ;-------------------------
 WinDLL [
@@ -168,10 +184,14 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-;OSX [									; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'GUI
-;]
+OSX [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'GUI
+	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+	dev-mode?:	no
+]
 ;-------------------------

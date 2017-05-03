@@ -205,7 +205,6 @@ Red [
 	--test-- "issue-1834"
 	--assert #(a: 3) = extend/case extend/case make map! [a 1] [a 2] [a 3]
 
-
 ===end-group===
 
 ~~~end-file~~~

@@ -127,7 +127,7 @@ context [
 		]
 		sym-desc [
 			undef-non-lazy			#{00}		; reference to an external non-lazy (data) symbol
-			undef-lazy				#{01}		; external lazy symbol—that is, to a function call
+			undef-lazy				#{01}		; external lazy symbol-that is, to a function call
 			defined					#{02}		; symbol is defined in this module
 			priv-def				#{03}		; defined in module, but private
 			priv-def-non-lazy  		#{04}		; private, defined, non-lazy symbol
@@ -213,7 +213,7 @@ context [
 		addr			[integer!]	; virtual memory address of this section
 		size			[integer!]	; size in bytes of the virtual memory occupied by this section
 		offset			[integer!]	; offset to this section in the file
-		align			[integer!]	; section’s byte alignment as power of two
+		align			[integer!]	; section's byte alignment as power of two
 		reloff			[integer!]	; file offset of the first relocation entry for this section.
 		nreloc			[integer!]	; number of relocation entries located at reloff for this section.
 		flags			[integer!]
@@ -280,7 +280,8 @@ context [
 	  uthread		-			 -	 -   -	 -   - 		  -		   -	[]
 	]
 	
-	imports-refs:		make block! 10					;-- [ptr [refs] ...]
+	imports-refs:		make block! 10					;-- [ptr [refs] ...]  (functions)
+	import-vars-refs:	make block! 10					;-- [ptr [refs] ...]  (variables)
 	dylink?:			no								;-- yes => dynamic library linking required
 	segment-sz:			length? form-struct segment-command
 	section-sz:			length? form-struct section-header
@@ -288,6 +289,7 @@ context [
 	load-cmds-sz:		0
 	stub-size:			5								;-- imported functions slot size
 	segments:			none
+	data-reloc: 		none							;-- temporary info for data segment local relocation
 
 	;-- Mach-O structure builders --
 	
@@ -341,6 +343,9 @@ context [
 				flags/attr_pure_instructions
 					or flags/attr_some_instructions
 			]
+			pointers [
+				flags/non_lazy_symbol_pointers
+			]
 			jmptbl [
 				flags/attr_pure_instructions
 					or flags/attr_some_instructions
@@ -374,7 +379,7 @@ context [
 	
 	prepare-headers: func [
 		job [object!]
-		/local seg sec addr fpos get-value size sz header-sz hd-sz
+		/local seg sec addr fpos get-value size sz header-sz hd-sz tables relocs extra
 	][
 		get-value: func [n value][
 			switch/default seg/:n [? [value] page [defs/page-size]][seg/:n]
@@ -426,6 +431,23 @@ context [
 				if all [seg/2 = '__TEXT job/debug?][
 					process-debug-info job
 				]
+				if seg/2 = '__LINKEDIT [
+					tables: job/sections/symbols/1
+					seg/4: round/ceiling/to
+						sz: tables/2 + tables/3 + tables/4
+						get-ceiling seg/9 
+					seg/6: sz
+					
+					if job/type = 'dll [
+						relocs: length? data-reloc
+						if find job/sections 'initfuncs [	 ;-- account for initfunc/termfuncs
+							relocs: relocs + 2
+						]
+						extra: 8 * relocs
+						seg/4: seg/4 + extra
+						seg/6: seg/6 + extra
+					]
+				]
 			]
 			tail? seg: skip seg 10
 		]
@@ -450,22 +472,69 @@ context [
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 	
+	collect-data-reloc: func [job [object!] /local list syms spec][
+		list: make block! 100
+		syms: job/symbols
+
+		while [not tail? syms][
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][
+				append list spec/2
+			]
+		]
+		list
+	]
+	
+	build-data-reloc: func [
+		job [object!]
+		/local relocs buffer base
+	][
+		data-reloc: either empty? relocs: data-reloc [
+			[0 #{}]
+		][
+			buffer: make binary! 8 * length? relocs
+			base: get-section-addr '__data
+			foreach ptr relocs [
+				pointer/value: ptr + base
+				append buffer form-struct pointer
+				append buffer defs/reloc-bits
+			]
+			reduce [length? relocs buffer]
+		]
+	]
+	
 	resolve-import-refs: func [job [object!] /local code base][
 		code: job/sections/code/2
-		base: get-section-addr '__jump_table
-		if job/PIC? [base: base - get-section-addr '__text]
-
-		foreach [ptr reloc] imports-refs [
-			pointer/value: base + ptr
-			foreach ref reloc [
-				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
+		
+		if base: get-section-addr '__jump_table [
+			if job/PIC? [base: base - get-section-addr '__text]
+			foreach [ptr reloc] imports-refs [
+				pointer/value: base + ptr
+				foreach ref reloc [
+					change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
+				]
+			]
+		]
+		if base: get-section-addr '__pointers [
+			if job/PIC? [base: base - get-section-addr '__text]
+			foreach [ptr reloc] import-vars-refs [
+				pointer/value: base + ptr
+				foreach ref reloc [
+					change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
+				]
 			]
 		]
 	]
 
 	build-imports: func [
 		job [object!]
-		/local sym-tbl dy-sym-tbl lib cnt entry
+		/local sym-tbl dy-sym-tbl lib cnt cnt-var idx entry flag syms
 	][
 		sym-tbl:    make binary! 1024
 		dy-sym-tbl: make binary! 1024
@@ -473,9 +542,7 @@ context [
 		append str-tbl #{00000000}						;-- start with 4 null bytes @@
 		
 		insert find segments 'uthread [
-			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page [
-				section		__jump_table ?	 ?   ?   ?  -		  jmptbl   byte
-			]
+			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page []
 			segment			__LINKEDIT	 ?	 ?	 ?	 ?  [r]		  symbols  page [] 
 			dylinker		-			 -	 -   -	 -   - 		  -		   -	[]
 			symtab			-			 -	 -   -	 -   - 		  -		   -	[]
@@ -484,39 +551,74 @@ context [
 		]
 		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
 		
+		syms: make block! 1000
 		lib: 1											;-- one-based index
-		cnt: 0
 		foreach [name list] job/sections/import/3 [
+			linker/check-dup-symbols job list
 			name: to-c-string name
-			if name/1 <> slash [insert name "/usr/lib/"]
+			if name/1 <> slash [insert name "@loader_path/"]
 			insert find segments 'symtab compose [
-				  lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
+				lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
 			]
-			foreach [def reloc] list [		
-				entry: make-struct nlist none
-				entry/n-strx:  length? str-tbl
-				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
-				entry/n-sect:  0						;-- NO_SECT
-				entry/n-desc:  (to integer! defs/sym-desc/undef-lazy) or shift/left lib 8
-				entry/n-value: 0
-				append sym-tbl form-struct entry
-				
-				pointer/value: cnt
-				append dy-sym-tbl form-struct pointer
-				
+			foreach [def reloc] list [repend syms [def reloc lib]]
+			lib: lib + 1
+		]	
+		sort/case/skip/compare syms 3 func [a b][
+			to logic! any [
+				all [issue?  a issue?  b a < b]
+				all [string? a string? b a < b]
+				issue? a
+			]
+		]
+	
+		cnt: cnt-var: idx: 0
+		foreach [def reloc lib] syms [
+			flag: pick [undef-non-lazy undef-lazy] var?: issue? def
+
+			entry: make-struct nlist none
+			entry/n-strx:  length? str-tbl
+			entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
+			entry/n-sect:  0						;-- NO_SECT
+			entry/n-desc:  (to integer! defs/sym-desc/:flag) or shift/left lib 8
+			entry/n-value: 0
+			append sym-tbl form-struct entry
+
+			either var? [
+				repend import-vars-refs [cnt-var * 4 reloc]	;-- store symbol offset
+				cnt-var: cnt-var + 1
+			][
 				repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
-				
-				append str-tbl join "_" to-c-string def
 				cnt: cnt + 1
 			]
-			lib: lib + 1
+			pointer/value: idx
+			append dy-sym-tbl form-struct pointer
+			append str-tbl join "_" to-c-string def
+			idx: idx + 1
+		]
+		
+		unless empty? import-vars-refs [
+			append pick find segments '__IMPORT 9 [
+				section	__pointers ?	 ?   ?   ?  -		  pointers word
+			]
+			repend job/sections [
+				'pointers reduce [
+					'- head insert/dup make binary! cnt-var * 4 #{00000000} cnt-var
+				]
+			]
+		]
+		unless empty? imports-refs [
+			append pick find segments '__IMPORT 9 [
+				section	__jump_table ?	 ?   ?   ?  -		  jmptbl   byte
+			]
+			repend job/sections [
+				'jmptbl reduce [
+					'- head insert/dup make binary! cnt * stub-size #{F4F4F4F4F4} cnt
+				]
+			]
 		]
 		repend job/sections [
-			'jmptbl reduce [
-				'- head insert/dup make binary! cnt * stub-size #{F4F4F4F4F4} cnt
-			]
 			'symbols reduce [
-				reduce [cnt length? sym-tbl length? dy-sym-tbl length? str-tbl]
+				reduce [cnt + cnt-var length? sym-tbl length? dy-sym-tbl length? str-tbl cnt-var]
 				reduce [sym-tbl dy-sym-tbl str-tbl]
 			]
 		]
@@ -593,7 +695,8 @@ context [
 		str-tbl:   symbols/2/3
 		list: 	   make block! length? exports
 		
-		foreach sym sort exports [						;-- sorted symbols by name
+		sort/case/skip/compare exports 2 2				;-- sort all symbols lexicographically
+		foreach [sym ext-name] exports [
 			spec: job/symbols/:sym
 			data?: spec/1 = 'global
 			
@@ -607,16 +710,16 @@ context [
 			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
 			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
 			
-			append str-tbl join "_" to-c-string form sym
+			append str-tbl join "_" to-c-string ext-name
 		]
 		pad4 str-tbl
-		symbols/1/1: symbols/1/1 + length? exports
+		symbols/1/1: symbols/1/1 + ((length? exports) / 2)
 		symbols/1/2: length? sym-tbl
 		symbols/1/4: length? str-tbl
 		symbols/2/1: sym-tbl
 		symbols/2/3: str-tbl
 		
-		append symbols/1 length? exports
+		append symbols/1 (length? exports) / 2
 		append/only job/sections/export list
 	]
 	
@@ -625,7 +728,7 @@ context [
 		/local sc sym-info undef-syms-nb reloc reloffset
 	][
 		sym-info: job/sections/symbols/1
-		undef-syms-nb: sym-info/1 - any [sym-info/5 0]
+		undef-syms-nb: sym-info/1 - any [sym-info/6 0]
 		if reloc: select job/sections 'reloc-info [
 			reloffset: (third get-segment-info '__LINKEDIT)
 				+ sym-info/2 + sym-info/3 + sym-info/4
@@ -637,7 +740,7 @@ context [
 		sc/ilocalsym:	   0
 		sc/nlocalsym:	   0
 		sc/iextdefsym:	   either job/type = 'dll [undef-syms-nb][0]
-		sc/nextdefsym:	   either job/type = 'dll [sym-info/5][0]
+		sc/nextdefsym:	   either job/type = 'dll [sym-info/6][0]
 		sc/iundefsym:	   0
 		sc/nundefsym:	   undef-syms-nb
 		sc/tocoff:		   0
@@ -651,7 +754,7 @@ context [
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   either reloc [reloffset][0]
-		sc/nlocrel:		   either reloc [(length? reloc/2) / 8][0]
+		sc/nlocrel:		   either reloc [(length? reloc/2) / 8 + data-reloc/1][0]
 		sc: form-struct sc
 		sc
 	]
@@ -678,7 +781,7 @@ context [
 		lc/size:		(get-struct-size 'lddylib) + length? spec/2
 		lc/offset:		24
 		lc/timestamp:	2
-		lc/version:		to integer! pick [ #{00010000} #{007D0000}] alt	;-- 1.0.0 | 128.0.0
+		lc/version:		to integer! pick [ #{00010000} #{7FFD0000}] alt	;-- 1.0.0 | 32765.0.0 @@ use latest version
 		lc/compat:		to integer! #{00000000}	;-- 0.0.0		@@ should be configurable
 		lc: form-struct lc
 		append lc spec/2
@@ -705,7 +808,7 @@ context [
 		form-struct ut
 	]
 	
-	build-section-header: func [spec [block!] seg-name [word!] /local sh][
+	build-section-header: func [job [object!] spec [block!] seg-name [word!] /local sh][
 		sh: make-struct section-header none
 		sh/addr:		spec/3
 		sh/size:		spec/6
@@ -714,7 +817,7 @@ context [
 		sh/reloff:		0
 		sh/nreloc:		0
 		sh/flags:		get-flags spec/8
-		sh/reserved1:	0
+		sh/reserved1:	either spec/2 = '__jump_table [job/sections/symbols/1/5][0]
 		sh/reserved2:	either spec/2 = '__jump_table [stub-size][0]
 		sh: form-struct sh
 		change sh to-c-string spec/2
@@ -763,7 +866,7 @@ context [
 	build: func [
 		job [object!]
 		/local
-			base-address dynamic-linker out sections data
+			base-address dynamic-linker out sections data buffer
 	][
 		segments: copy/deep segments-layout
 		
@@ -773,12 +876,19 @@ context [
 		dylink?: not empty? job/sections/import/3
 		
 		clear imports-refs
+		clear import-vars-refs
 		if dylink? [build-imports job]
-		if job/type = 'dll [build-exports job]
+		if job/type = 'dll [
+			build-exports job
+			data-reloc: collect-data-reloc job
+		]
 	
 		prepare-headers job
 		
-		if job/type = 'dll [resolve-exports job]
+		if job/type = 'dll [
+			resolve-exports job
+			build-data-reloc job
+		]
 		
 		out: job/buffer
 		append out build-mach-header job
@@ -795,7 +905,7 @@ context [
 			]
 			unless empty? sections: seg/10 [
 				forskip sections 9 [
-					append out build-section-header sections seg/2
+					append out build-section-header job sections seg/2
 				]
 			]
 		]
@@ -813,14 +923,26 @@ context [
 		emit-page-aligned out data
 		
 		if dylink? [
-			emit-page-aligned out job/sections/jmptbl/2
+			if find job/sections 'pointers [
+				buffer: job/sections/pointers/2
+				either find job/sections 'jmptbl [
+					append out buffer
+				][
+					emit-page-aligned out buffer
+				]
+			]
+			if find job/sections 'jmptbl [
+				emit-page-aligned out job/sections/jmptbl/2
+			]
 		]
 		either job/type = 'dll [
 			either find job/sections 'initfuncs [
 				append out rejoin job/sections/symbols/2
-				emit-page-aligned out job/sections/reloc-info/2
+				append out job/sections/reloc-info/2
+				emit-page-aligned out data-reloc/2
 			][
-				emit-page-aligned out rejoin job/sections/symbols/2
+				append out rejoin job/sections/symbols/2
+				emit-page-aligned out data-reloc/2
 			]
 		][
 			emit-page-aligned out rejoin job/sections/symbols/2

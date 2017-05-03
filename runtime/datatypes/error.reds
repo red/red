@@ -78,7 +78,8 @@ error: context [
 			switch TYPE_OF(value) [
 				TYPE_WORD
 				TYPE_GET_WORD
-				TYPE_LIT_WORD [
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
 					if cnt = idx [return as red-word! value]
 					cnt: cnt + 1
 				]
@@ -90,8 +91,8 @@ error: context [
 	]
 	
 	create: func [
-		cat		[red-word!]
-		id		[red-word!]
+		cat		[red-value!]							;-- expects a word!
+		id		[red-value!]							;-- expects a word!
 		arg1 	[red-value!]
 		arg2 	[red-value!]
 		arg3 	[red-value!]
@@ -102,10 +103,10 @@ error: context [
 			blk	 [red-block!]
 	][
 		blk: block/push* 2
-		block/rs-append blk as red-value! cat
-		block/rs-append blk as red-value! id
+		block/rs-append blk cat
+		block/rs-append blk id
 	
-		err:  make null as red-value! blk
+		err:  make null as red-value! blk TYPE_ERROR
 		base: object/get-values err
 		
 		unless null? arg1 [copy-cell arg1 base + field-arg1]
@@ -134,7 +135,9 @@ error: context [
 				type = TYPE_GET_WORD
 			][
 				buffer: string/rs-make-at stack/push* 16
+				stack/mark-native words/_body
 				actions/mold object/rs-select obj value buffer no no yes null 0 0
+				stack/unwind
 				copy-cell as red-value! buffer value
 				stack/pop 1
 			]
@@ -146,13 +149,12 @@ error: context [
 	;-- Actions -- 
 
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-object!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-object!]
 		/local
 			new		[red-object!]
-			obj		[red-object!]
-			series	[red-series!]
 			errors	[red-object!]
 			base	[red-value!]
 			value	[red-value!]
@@ -173,7 +175,6 @@ error: context [
 			no
 			null
 		
-		series: as red-series! spec
 		new/header: TYPE_ERROR							;-- implicit reset of all header flags
 		new/class:  0
 		new/on-set: null
@@ -196,7 +197,8 @@ error: context [
 				][
 					fire [TO_ERROR(script out-of-range) spec]
 				]
-				word/make-at w/symbol base + field-type	;-- set 'type field
+				w: word/make-at w/symbol base + field-type	;-- set 'type field
+				_context/bind-word GET_CTX(errors) w
 				
 				errors: (as red-object! object/get-values errors) + cat
 				sym: as red-word! object/get-words errors
@@ -205,7 +207,8 @@ error: context [
 				if (sym + object/get-size errors) <= as red-value! w [
 					fire [TO_ERROR(script out-of-range) spec]
 				]
-				word/make-at w/symbol base + field-id	;-- set 'id field
+				w: word/make-at w/symbol base + field-id	;-- set 'id field
+				_context/bind-word GET_CTX(errors) w
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
@@ -247,8 +250,11 @@ error: context [
 					]
 				]
 			]
+			TYPE_STRING [
+				new: create TO_ERROR(user message) spec null null
+			]
 			default [
-				--NOT_IMPLEMENTED--
+				fire [TO_ERROR(script bad-make-arg) datatype/push TYPE_ERROR spec]
 			]
 		]
 		new

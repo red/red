@@ -54,8 +54,15 @@ hash!:			make datatype! #get-definition TYPE_HASH
 pair!:			make datatype! #get-definition TYPE_PAIR
 percent!:		make datatype! #get-definition TYPE_PERCENT
 tuple!:			make datatype! #get-definition TYPE_TUPLE
-event!:			make datatype! #get-definition TYPE_EVENT
 image!:			make datatype! #get-definition TYPE_IMAGE
+time!:			make datatype! #get-definition TYPE_TIME
+tag!:			make datatype! #get-definition TYPE_TAG
+email!:			make datatype! #get-definition TYPE_EMAIL
+handle!:		make datatype! #get-definition TYPE_HANDLE
+
+#if find config/modules 'view [
+	event!: make datatype! #get-definition TYPE_EVENT
+]
 
 none:  			make none! 0
 true:  			make logic! 1

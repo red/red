@@ -30,7 +30,6 @@ native: context [
 			ref		  [red-refinement!]
 			blk		  [red-value!]
 			vec		  [red-vector!]
-			bool	  [red-logic!]
 			s		  [series!]
 			ref-array [int-ptr!]
 			saved	  [node!]
@@ -138,9 +137,10 @@ native: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	   [red-value!]
-		spec	   [red-block!]
-		return:    [red-native!]						;-- return native cell pointer
+		proto	[red-value!]
+		spec	[red-block!]
+		type	[integer!]
+		return:	[red-native!]						;-- return native cell pointer
 		/local
 			list   [red-block!]
 			native [red-native!]

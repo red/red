@@ -25,9 +25,20 @@ object: context [
 	
 	check-owner: func [
 		slot [red-value!]
+		/local
+			ser  [red-series!]
+			type [integer!]
 	][
-		if TYPE_OF(path-parent) = TYPE_OBJECT [
-			ownership/check-slot path-parent field-parent slot
+		type: TYPE_OF(path-parent)
+		case [
+			type = TYPE_OBJECT [
+				ownership/check-slot path-parent field-parent slot
+			]	
+			ANY_SERIES?(type) [
+				ser: as red-series! path-parent
+				ownership/check as red-value! ser words/_poke null ser/head 1
+			]
+			true [0]									;-- ignore other types
 		]
 	]
 	
@@ -214,7 +225,6 @@ object: context [
 		obj		[red-object!]
 		return: [node!]
 		/local
-			int	 [red-integer!]
 			node [node!]
 			s	 [series!]
 	][
@@ -403,19 +413,19 @@ object: context [
 		ctx: GET_CTX(owner) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		assert TYPE_OF(fun) = TYPE_FUNCTION
-
-		stack/mark-func words/_on-deep-change*
-		stack/push as red-value! owner
-		stack/push as red-value! word
-		stack/push target
-		stack/push as red-value! action
-		stack/push new
-		integer/push pos
-		integer/push nb
-		if positive? count [_function/init-locals count]
-		_function/call fun owner/ctx
-		stack/unwind
+		if TYPE_OF(fun) = TYPE_FUNCTION [
+			stack/mark-func words/_on-deep-change*
+			stack/push as red-value! owner
+			stack/push as red-value! word
+			stack/push target
+			stack/push as red-value! action
+			stack/push new
+			integer/push pos
+			integer/push nb
+			if positive? count [_function/init-locals count]
+			_function/call fun owner/ctx
+			stack/unwind
+		]
 	]
 	
 	unchanged?: func [
@@ -746,6 +756,9 @@ object: context [
 		obj/ctx:	node
 		obj/class:	class
 		obj/on-set: null								;-- deferred setting, once object's body is evaluated
+		
+		s: as series! node/value
+		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
 	
@@ -757,11 +770,15 @@ object: context [
 		loc-d [integer!]
 		/local
 			obj [red-object!]
+			s	[series!]
 	][
 		obj: as red-object! stack/top - 1
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
+		
+		s: as series! ctx/value
+		copy-cell as red-value! obj s/offset + 1		;-- refresh back-reference
 	]
 	
 	push: func [
@@ -774,12 +791,16 @@ object: context [
 		return: [red-object!]
 		/local
 			obj	[red-object!]
+			s	[series!]
 	][
 		obj: as red-object! stack/push*
 		obj/header: TYPE_OBJECT
 		obj/ctx:	ctx
 		obj/class:	class
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
+		
+		s: as series! ctx/value
+		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
 	
@@ -787,11 +808,16 @@ object: context [
 		obj		[red-object!]
 		slots	[integer!]
 		return: [red-object!]
+		/local
+			s [series!]
 	][
 		obj/header: TYPE_OBJECT
 		obj/ctx:	_context/create slots no yes
 		obj/class:	0
 		obj/on-set: null
+		
+		s: as series! obj/ctx/value
+		copy-cell as red-value! obj s/offset + 1		;-- set back-reference
 		obj
 	]
 	
@@ -886,12 +912,14 @@ object: context [
 	make: func [
 		proto	[red-object!]
 		spec	[red-value!]
+		type	[integer!]
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
 			obj2 [red-object!]
 			ctx	 [red-context!]
 			blk	 [red-block!]
+			new? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
@@ -911,10 +939,14 @@ object: context [
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
-				_context/collect-set-words ctx blk
+				new?: _context/collect-set-words ctx blk
 				_context/bind blk ctx save-self-object obj yes
 				interpreter/eval blk no
-				obj/class: get-new-id
+				obj/class: either any [new? TYPE_OF(proto) <> TYPE_OBJECT][
+					get-new-id
+				][
+					proto/class
+				]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
@@ -944,6 +976,9 @@ object: context [
 		ctx: GET_CTX(obj)
 		
 		case [
+			field = words/class [
+				return as red-block! integer/box obj/class
+			]
 			field = words/words [
 				blk/node: ctx/symbols
 				blk: block/clone blk no no
@@ -1061,17 +1096,23 @@ object: context [
 		]
 		on-set?: parent/on-set <> null
 		
-		res: either value <> null [
+		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx
 			if on-set? [fire-on-set parent as red-word! element old value]
-			value
+			res: value
 		][
 			if on-set? [
 				copy-cell as red-value! parent as red-value! path-parent
 				copy-cell as red-value! word   as red-value! field-parent
 			]
-			_context/get-in word ctx
+			res: _context/get-in word ctx
+			if TYPE_OF(res) = TYPE_UNSET [
+				if all [path <> null TYPE_OF(path) <> TYPE_GET_PATH][
+					res: either null? path [element][path]
+					fire [TO_ERROR(script no-value) res]
+				]
+			]
 		]
 		if rebind? [
 			word/index: save-idx
@@ -1186,6 +1227,7 @@ object: context [
 			tail  [red-value!]
 			src	  [series!]
 			dst	  [series!]
+			s	  [series!]
 			node  [node!]
 			size  [integer!]
 			slots [integer!]
@@ -1209,29 +1251,42 @@ object: context [
 		new/class: obj/class
 		nctx: GET_CTX(new)
 		
+		s: as series! new/ctx/value
+		copy-cell as red-value! new s/offset + 1		;-- set back-reference
+
+		node:  save-self-object new
+		
+		if size <= 0 [return new]						;-- empty object!
+		
 		;-- process SYMBOLS
 		dst: as series! nctx/symbols/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/size: size
 		dst/tail: dst/offset + slots
 		_context/set-context-each dst new/ctx
-		
+
 		;-- process VALUES
 		src: as series! ctx/values/value
 		dst: as series! nctx/values/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
-		dst/size: size
 		dst/tail: dst/offset + slots
 		
 		value: dst/offset
 		tail:  dst/tail
-		node:  save-self-object new
 		
 		either deep? [
 			while [value < tail][
-				type: TYPE_OF(value)
-				case [
-					ANY_SERIES?(type) [
+				switch TYPE_OF(value) [
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_PATH				;-- any-path!
+					TYPE_LIT_PATH
+					TYPE_SET_PATH
+					TYPE_GET_PATH
+					TYPE_STRING				;-- any-string!
+					TYPE_FILE
+					TYPE_URL
+					TYPE_TAG
+					TYPE_EMAIL [
 						actions/copy 
 							as red-series! value
 							value						;-- overwrite the value
@@ -1239,10 +1294,10 @@ object: context [
 							yes
 							null
 					]
-					type = TYPE_FUNCTION [
+					TYPE_FUNCTION [
 						rebind as red-function! value nctx node
 					]
-					true [0]
+					default [0]
 				]
 				value: value + 1
 			]
@@ -1309,12 +1364,26 @@ object: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			sym [integer!]
+			sym  [integer!]
+			args [red-value!]
 	][
 		sym: symbol/resolve field/symbol
 		case [
 			sym = words/owner [
 				ownership/set-owner as red-value! obj obj null
+			]
+			sym = words/owned [
+				if TYPE_OF(value) = TYPE_NONE [
+					ownership/unbind as red-value! obj
+				]
+				if TYPE_OF(value) = TYPE_BLOCK [
+					args: block/rs-head as red-block! value
+					assert TYPE_OF(args) = TYPE_OBJECT	;@@ raise error on invalid block
+					ownership/set-owner 
+						as red-value! obj
+						as red-object! args
+						as red-word! args + 1
+				]
 			]
 			true [0]
 		]

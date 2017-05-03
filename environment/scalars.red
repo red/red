@@ -26,23 +26,25 @@ comma:		 #","
 dbl-quote:	 #"^""
 
 pi: 3.141592653589793
+tau: 6.283185307179586
 
 Rebol: false											;-- makes loading Rebol scripts easier
 
 ;-- warning: following typeset definitions are processed by the compiler, do not change them
 ;-- unless you know what you are doing!
 
-internal!:		make typeset! [unset! event!]
+internal!:		make typeset! [unset! handle! #if find config/modules 'view [event!]]
 number!:		make typeset! [integer! float! percent!]
-scalar!:		union number! make typeset! [char! pair! tuple!]
-any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]
+scalar!:		union number! make typeset! [char! pair! tuple! time!]
+any-word!:		make typeset! [word! set-word! get-word! lit-word!] ;-- any bindable word
+all-word!:		union any-word! make typeset! [refinement! issue!]	;-- all types of word nature
 any-list!:		make typeset! [block! paren! hash!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! any-list!
 any-function!:	make typeset! [native! action! op! function! routine!]
 any-object!:	make typeset! [object! error!]
-any-string!:	make typeset! [string! file! url!]
+any-string!:	make typeset! [string! file! url! tag! email!]
 series!:		union make typeset! [binary! image! vector!] union any-block! any-string!
-immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
+immediate!:		union scalar! union all-word! make typeset! [none! logic! datatype! typeset!]
 default!:		union series! union immediate! union any-object! union any-function! make typeset! [map! bitset!]
 any-type!:		union default! internal!

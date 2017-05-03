@@ -22,11 +22,6 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
-#define GENERIC_WRITE		40000000h
-#define GENERIC_READ 		80000000h
-#define FILE_SHARE_READ		00000001h
-#define FILE_SHARE_WRITE	00000002h
-#define OPEN_EXISTING		00000003h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
@@ -36,7 +31,62 @@ Red/System [
 
 #define WEOF				FFFFh
 
+#define INFINITE				FFFFFFFFh
+#define HANDLE_FLAG_INHERIT		00000001h
+#define STARTF_USESTDHANDLES	00000100h
+#define STARTF_USESHOWWINDOW	00000001h
+
+#define ERROR_BROKEN_PIPE 109
+
+#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#enum spawn-mode [
+	P_WAIT:		0
+	P_NOWAIT:	1
+	P_OVERLAY:	2
+	P_NOWAITO:	3
+	P_DETACH:	4
+]
+
+process-info!: alias struct! [
+	hProcess	[integer!]
+	hThread		[integer!]
+	dwProcessId	[integer!]
+	dwThreadId	[integer!]
+]
+
+startup-info!: alias struct! [
+	cb				[integer!]
+	lpReserved		[c-string!]
+	lpDesktop		[c-string!]
+	lpTitle			[c-string!]
+	dwX				[integer!]
+	dwY				[integer!]
+	dwXSize			[integer!]
+	dwYSize			[integer!]
+	dwXCountChars	[integer!]
+	dwYCountChars	[integer!]
+	dwFillAttribute	[integer!]
+	dwFlags			[integer!]
+	wShowWindow-a	[byte!]           ; 16 bits integer needed here for windows WORD type
+	wShowWindow-b	[byte!]
+	cbReserved2-a	[byte!]
+	cbReserved2-b	[byte!]
+	lpReserved2		[byte-ptr!]
+	hStdInput		[integer!]
+	hStdOutput		[integer!]
+	hStdError		[integer!]
+]
+
+security-attributes!: alias struct! [
+	nLength				 [integer!]
+	lpSecurityDescriptor [integer!]
+	bInheritHandle		 [logic!]
+]
+
 platform: context [
+
+	gui-print: 0										;-- `print` function used for gui-console
 
 	#enum file-descriptors! [
 		fd-stdout: 1									;@@ hardcoded, safe?
@@ -48,6 +98,13 @@ platform: context [
 		DebugEventCallback			[integer!]
 		SuppressBackgroundThread	[integer!]
 		SuppressExternalCodecs		[integer!]
+	]
+
+	tagSYSTEMTIME: alias struct! [
+		year-month	[integer!]
+		week-day	[integer!]
+		hour-minute	[integer!]
+		second		[integer!]
 	]
 
 	gdiplus-token: 0
@@ -62,24 +119,16 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
-			fflush: "fflush" [
-				fd			[integer!]
-				return:		[integer!]
-			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
 				return:		[integer!]
 			]
-			_get_osfhandle: "_get_osfhandle" [
-				fd			[integer!]
+			_fileno: "_fileno" [
+				file		[int-ptr!]
 				return:		[integer!]
 			]
-			;_open_osfhandle: "_open_osfhandle" [
-			;	handle		[integer!]
-			;	flags		[integer!]
-			;	return:		[integer!]
-			;]
+			__iob_func: "__iob_func" [return: [int-ptr!]]
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
@@ -94,6 +143,8 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			AllocConsole: "AllocConsole" [return: [logic!]]
+			FreeConsole: "FreeConsole" [return: [logic!]]
 			WriteConsole: 	 "WriteConsoleW" [
 				consoleOutput	[integer!]
 				buffer			[byte-ptr!]
@@ -127,25 +178,116 @@ platform: context [
 			GetCommandLine: "GetCommandLineW" [
 				return:			[byte-ptr!]
 			]
-			FormatMessage: "FormatMessageW" [
-				dwFlags			[integer!]
-				lpSource		[byte-ptr!]
-				dwMessageId		[integer!]
-				dwLanguageId	[integer!]
-				lpBuffer		[int-ptr!]
-				nSize			[integer!]
-				Argument		[integer!]
-				return:			[integer!]
+			GetEnvironmentStrings: "GetEnvironmentStringsW" [
+				return:		[c-string!]
 			]
-			LocalFree: "LocalFree" [
-				hMem			[integer!]
-				return:			[integer!]
+			GetEnvironmentVariable: "GetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				valsize		[integer!]
+				return:		[integer!]
+			]
+			SetEnvironmentVariable: "SetEnvironmentVariableW" [
+				name		[c-string!]
+				value		[c-string!]
+				return:		[logic!]
+			]
+			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
+				env			[c-string!]
+				return:		[logic!]
+			]
+			GetSystemTime: "GetSystemTime" [
+				time			[tagSYSTEMTIME]
+			]
+			GetLocalTime: "GetLocalTime" [
+				time			[tagSYSTEMTIME]
 			]
 			Sleep: "Sleep" [
 				dwMilliseconds	[integer!]
 			]
 			lstrlen: "lstrlenW" [
 				str			[byte-ptr!]
+				return:		[integer!]
+			]
+			CreateProcessW: "CreateProcessW" [
+				lpApplicationName       [c-string!]
+				lpCommandLine           [c-string!]
+				lpProcessAttributes     [integer!]
+				lpThreadAttributes      [integer!]
+				bInheritHandles         [logic!]
+				dwCreationFlags         [integer!]
+				lpEnvironment           [integer!]
+				lpCurrentDirectory      [c-string!]
+				lpStartupInfo           [startup-info!]
+				lpProcessInformation    [process-info!]
+				return:                 [logic!]
+			]
+			WaitForSingleObject: "WaitForSingleObject" [
+				hHandle                 [integer!]
+				dwMilliseconds          [integer!]
+				return:                 [integer!]
+			]
+			GetExitCodeProcess: "GetExitCodeProcess" [
+				hProcess				[integer!]
+				lpExitCode				[int-ptr!]
+				return:                 [logic!]
+			]
+			CreatePipe: "CreatePipe" [
+				hReadPipe               [int-ptr!]
+				hWritePipe              [int-ptr!]
+				lpPipeAttributes        [security-attributes!]
+				nSize                   [integer!]
+				return:                 [logic!]
+			]
+			CreateFileW: "CreateFileW" [
+				lpFileName				[c-string!]
+				dwDesiredAccess			[integer!]
+				dwShareMode				[integer!]
+				lpSecurityAttributes	[security-attributes!]
+				dwCreationDisposition	[integer!]
+				dwFlagsAndAttributes	[integer!]
+				hTemplateFile			[integer!]
+				return:					[integer!]
+			]
+			CloseHandle: "CloseHandle" [
+				hObject                 [integer!]
+				return:                 [logic!]
+			]
+			GetStdHandle: "GetStdHandle" [
+				nStdHandle				[integer!]
+				return:					[integer!]
+			]
+			ReadFile: "ReadFile" [
+				hFile                   [integer!]
+				lpBuffer                [byte-ptr!]
+				nNumberOfBytesToRead    [integer!]
+				lpNumberOfBytesRead     [int-ptr!]
+				lpOverlapped            [integer!]
+				return:                 [logic!]
+			]
+			SetHandleInformation: "SetHandleInformation" [
+				hObject					[integer!]
+				dwMask					[integer!]
+				dwFlags					[integer!]
+				return:					[logic!]
+			]
+			GetLastError: "GetLastError" [
+				return:                 [integer!]
+			]
+			MultiByteToWideChar: "MultiByteToWideChar" [
+				CodePage				[integer!]
+				dwFlags					[integer!]
+				lpMultiByteStr			[byte-ptr!]
+				cbMultiByte				[integer!]
+				lpWideCharStr			[byte-ptr!]
+				cchWideChar				[integer!]
+				return:					[integer!]
+			]
+			SetFilePointer: "SetFilePointer" [
+				file		[integer!]
+				distance	[integer!]
+				pDistance	[int-ptr!]
+				dwMove		[integer!]
 				return:		[integer!]
 			]
 		]
@@ -158,6 +300,17 @@ platform: context [
 			]
 			GdiplusShutdown: "GdiplusShutdown" [
 				token		[integer!]
+			]
+		]
+		"shell32.dll" stdcall [
+			ShellExecute: "ShellExecuteW" [
+				hwnd		 [integer!]
+				lpOperation	 [c-string!]
+				lpFile		 [c-string!]
+				lpParameters [integer!]
+				lpDirectory	 [integer!]
+				nShowCmd	 [integer!]
+				return:		 [integer!]
 			]
 		]
 	]
@@ -183,15 +336,8 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc
-			null
-			size
-			VA_COMMIT_RESERVE
-			prot
-
-		if ptr = null [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
-		]
+		ptr: VirtualAlloc null size VA_COMMIT_RESERVE prot
+		if ptr = null [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		ptr
 	]
 
@@ -202,17 +348,17 @@ platform: context [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
 		if negative? VirtualFree ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
+			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 
-	init-gdiplus: func [/local startup-input res][
+	init-gdiplus: func [/local startup-input][
 		startup-input: declare GdiplusStartupInput!
 		startup-input/GdiplusVersion: 1
 		startup-input/DebugEventCallback: 0
 		startup-input/SuppressBackgroundThread: 0
 		startup-input/SuppressExternalCodecs: 0
-		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
+		GdiplusStartup :gdiplus-token as-integer startup-input 0
 	]
 
 	shutdown-gdiplus: does [
@@ -242,15 +388,80 @@ platform: context [
 		SetCurrentDirectory path
 	]
 
+	set-env: func [
+		name	[c-string!]
+		value	[c-string!]
+		return: [logic!]			;-- true for success
+	][
+		SetEnvironmentVariable name value
+	]
+
+	get-env: func [
+		;; Returns size of retrieved value for success or zero if missing
+		;; If return size is greater than valsize then value contents are undefined
+		name	[c-string!]
+		value	[c-string!]
+		valsize [integer!]			;-- includes null terminator
+		return: [integer!]
+	][
+		GetEnvironmentVariable name value valsize
+	]
+
+	get-time: func [
+		utc?	 [logic!]
+		precise? [logic!]
+		return:  [float!]
+		/local
+			time	[tagSYSTEMTIME]
+			h		[integer!]
+			m		[integer!]
+			sec		[integer!]
+			milli	[integer!]
+			t		[float!]
+	][
+		time: declare tagSYSTEMTIME
+		either utc? [GetSystemTime time][GetLocalTime time]
+		h: time/hour-minute and FFFFh
+		m: time/hour-minute >>> 16
+		sec: time/second and FFFFh
+		milli: either precise? [time/second >>> 16][0]
+		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
+		t * 1E6				;-- nano second
+	]
+
+	open-console: func [return: [logic!]][
+		either AllocConsole [
+			stdin:  win32-startup-ctx/GetStdHandle WIN_STD_INPUT_HANDLE
+			stdout: win32-startup-ctx/GetStdHandle WIN_STD_OUTPUT_HANDLE
+			stderr: win32-startup-ctx/GetStdHandle WIN_STD_ERROR_HANDLE
+			yes
+		][
+			no
+		]
+	]
+
+	close-console: func [return: [logic!]][
+		FreeConsole
+	]
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
-	init: does [
+	init: func [/local h [int-ptr!]] [
 		init-gdiplus
-		#if unicode? = yes [
-			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
-			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
+		#either libRed? = no [
+			CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		][
+			#if export-ABI <> 'stdcall [
+				CoInitializeEx 0 COINIT_APARTMENTTHREADED
+			]
 		]
-		CoInitializeEx 0 COINIT_APARTMENTTHREADED
+		crypto/init-provider
+		#if sub-system = 'console [init-dos-console]
+		#if unicode? = yes [
+			h: __iob_func
+			_setmode _fileno h + 8 _O_U16TEXT				;@@ stdout, throw an error on failure
+			_setmode _fileno h + 16 _O_U16TEXT				;@@ stderr, throw an error on failure
+		]
 	]
 ]

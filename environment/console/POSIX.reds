@@ -211,7 +211,6 @@ fd-read: func [
 		c	[integer!]
 		len [integer!]
 		i	[integer!]
-		p	[byte-ptr!]
 ][
 	if 1 <> read stdin as byte-ptr! utf-char 1 [return -1]
 	c: as-integer utf-char/1
@@ -233,8 +232,7 @@ fd-read: func [
 		]
 		i: i + 1
 	]
-	c: unicode/decode-utf8-char utf-char :len
-	c
+	unicode/decode-utf8-char utf-char :len
 ]
 
 check-special: func [
@@ -270,11 +268,11 @@ check-special: func [
 				#"6" [return KEY_PAGE_DOWN]
 				#"7" [return KEY_HOME]
 				#"8" [return KEY_END]
-				default []
+				default [return KEY_NONE]
 			]
 		]
-		while [all [(as-integer c) <> -1 c <> #"~"]][
-			c: fd-read-char 50
+		if all [(as-integer c) <> -1 c <> #"~"][
+			fd-read-char 50
 		]
 	]
 	KEY_NONE
@@ -369,6 +367,7 @@ get-window-size: func [
 	/local
 		ws	 [winsize!]
 		here [integer!]
+		size [red-pair!]
 ][
 	ws: declare winsize!
 
@@ -390,6 +389,9 @@ get-window-size: func [
 			]
 		]
 	]
+	size: as red-pair! #get system/console/size
+	size/x: columns
+	size/y: ws/rowcol and FFFFh
 ]
 
 reset-cursor-pos: does [

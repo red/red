@@ -91,7 +91,7 @@ forever: make native! [[
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
-		series [series! map!]
+		series [series!]
 		body   [block!]
 	]
 	#get-definition NAT_FOREACH
@@ -105,6 +105,15 @@ forall: make native! [[
 	#get-definition NAT_FORALL
 ]
 
+remove-each: make native! [[
+		"Removes values for each block that returns true"
+		'word [word! block!] "Word or block of words to set each time"
+		data [series!] "The series to traverse (modified)"
+		body [block!] "Block to evaluate (return TRUE to remove)"
+	]
+	#get-definition NAT_REMOVE_EACH
+]
+
 func: make native! [[
 		"Defines a function with a given spec and body"
 		spec [block!]
@@ -114,7 +123,7 @@ func: make native! [[
 ]
 
 function: make native! [[
-		"Defines a function, making all words found in body local"
+		"Defines a function, making all set-words found in body, local"
 		spec [block!]
 		body [block!]
 		/extern	"Exclude words that follow this refinement"
@@ -158,8 +167,11 @@ case: make native! [[
 do: make native! [[
 		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
+		/expand "Expand directives before evaluation"
 		/args "If value is a script, this will set its system/script/args"
 			arg "Args passed to a script (normally a string)"
+		/next "Do next expression only, return it, update block word"
+			position [word!] "Word updated with new block position"
 	]
 	#get-definition NAT_DO
 ]
@@ -196,7 +208,7 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block! object! path! map!] "Word, object, map or block of words to set"
+		word	[any-word! block! object! path!] "Word, object, map path or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any  "Allow UNSET as a value rather than causing an error"
 		/case "Use case-sensitive comparison (path only)"
@@ -319,14 +331,15 @@ bind: make native! [[
 ]
 
 in: make native! [[
+		"Returns the given word bound to the object's context"
 		object [any-object!]
-		word   [any-word! block! paren!]
+		word   [any-word!]
 	]
 	#get-definition NAT_IN
 ]
 
 parse: make native! [[
-		input [series!]
+		input [binary! any-block! any-string!]
 		rules [block!]
 		/case
 		;/strict
@@ -421,30 +434,30 @@ dehex: make native! [[
 
 negative?: make native! [[
 		"Returns TRUE if the number is negative"
-		number [number!]
+		number [number! time!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
 		"Returns TRUE if the number is positive"
-		number [number!]
+		number [number! time!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series! char!]
-		value2 [number! series! char!]
+		value1 [number! series! char! time!]
+		value2 [number! series! char! time!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series! char!]
-		value2 [number! series! char!]
+		value1 [number! series! char! time!]
+		value2 [number! series! char! time!]
 	]
 	#get-definition NAT_MIN
 ]
@@ -538,6 +551,14 @@ NaN?: make native! [[
 		return: [logic!]
 	]
 	#get-definition NAT_NAN?
+]
+
+zero?: make native! [[
+		"Returns TRUE if the value is zero"
+		value	[number! pair! time! char! tuple!]
+		return: [logic!]
+	]
+	#get-definition NAT_ZERO?
 ]
 
 log-2: make native! [[
@@ -714,37 +735,9 @@ to-local-file: make native! [[
 	#get-definition NAT_TO_LOCAL_FILE
 ]
 
-request-file: make native! [[
-		"Asks user to select a file and returns full file path (or block of paths)"
-		/title	"Window title"
-			text [string!]
-		/file	"Default file name or directory"
-			name [string! file!]
-		/filter	"Block of filters (filter-name filter)"
-			list [block!]
-		/save	"File save mode"
-		/multi	"Allows multiple file selection, returned as a block"
-	]
-	#get-definition NAT_REQUEST_FILE
-]
-
-request-dir: make native! [[
-		"Asks user to select a directory and returns full directory path (or block of paths)"
-		/title	"Window title"
-			text [string!]
-		/dir	"Set starting directory"
-			name [string! file!]
-		/filter	"TBD: Block of filters (filter-name filter)"
-			list [block!]
-		/keep	"Keep previous directory path"
-		/multi	"TBD: Allows multiple file selection, returned as a block"
-	]
-	#get-definition NAT_REQUEST_DIR
-]
-
 wait: make native! [[
-		"Waits for a duration in seconds"
-		value [number! block! none!]
+		"Waits for a duration in seconds or specified time"
+		value [number! time! block! none!]
 		/all "Returns all in a block"
 		;/only "Only check for ports given in the block to this function"
 	]
@@ -752,11 +745,11 @@ wait: make native! [[
 ]
 
 checksum: make native! [[
-		"Computes a checksum, CRC, hash, or HMAC."
+		"Computes a checksum, CRC, hash, or HMAC"
 		data 	[binary! string! file!]
 		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
 		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
-			spec [any-string! integer!] "String for MD5/SHA* HMAC key, integer for hash table size"
+			spec [any-string! binary! integer!] "String or binary for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]
 	#get-definition NAT_CHECKSUM
@@ -775,7 +768,7 @@ new-line: make native! [[
 		value					 "Set TRUE for newline"
 		/all					 "Set/clear marker to end of series"
 		/skip					 "Set/clear marker periodically to the end of the series"
-		size 	 [integer!]
+			size [integer!]
 		return:  [block! paren!]
 	]
 	#get-definition NAT_NEW_LINE
@@ -788,6 +781,83 @@ new-line?: make native! [[
 	]
 	#get-definition NAT_NEW_LINE?
 ]
+
+context?: make native! [[
+		"Returns the context in which a word is bound"
+		word	[any-word!]		"Word to check"
+		return: [object! function! none!]
+	]
+	#get-definition NAT_CONTEXT?
+]
+
+set-env: make native! [[
+		"Sets the value of an operating system environment variable (for current process)"
+		var   [any-string! any-word!] "Variable to set"
+		value [string! none!] "Value to set, or NONE to unset it"
+	]
+	#get-definition NAT_SET_ENV
+]
+
+get-env: make native! [[
+		"Returns the value of an OS environment variable (for current process)"
+		var		[any-string! any-word!] "Variable to get"
+		return: [string! none!]
+	]
+	#get-definition NAT_GET_ENV
+]
+
+list-env: make native! [[
+		"Returns a map of OS environment variables (for current process)"
+		return: [map!]
+	]
+	#get-definition NAT_LIST_ENV
+]
+
+now: make native! [[
+		"Returns date and time"
+		/year		"Returns year only"
+		/month		"Returns month only"
+		/day		"Returns day of the month only"
+		/time		"Returns time only"
+		/zone		"Returns time zone offset from UCT (GMT) only"
+		/date		"Returns date only"
+		/weekday	"Returns day of the week as integer (Monday is day 1)"
+		/yearday	"Returns day of the year (Julian)"
+		/precise	"High precision time"
+		/utc		"Universal time (no zone)"
+		return: [time!]					;@@ add date! when we have it
+	]
+	#get-definition NAT_NOW
+]
+
+sign?: make native! [[
+		"Returns sign of N as 1, 0, or -1 (to use as a multiplier)"
+		number [number! time!]
+	]
+	#get-definition NAT_SIGN?
+]
+
+as: make native! [[
+		"Coerce a series into a compatible datatype without copying it"
+		type	[datatype! block! paren! any-path! any-string!] "The datatype or example value"
+		spec	[block! paren! any-path! any-string!] "The series to coerce"
+	]
+	#get-definition NAT_AS
+]
+
+call: make native! [[
+		"Executes a shell command to run another process"
+		cmd			[string! file!]			"A shell command or an executable file"
+		/wait								"Runs command and waits for exit"
+		/show								"Force the display of system's shell window (Windows only)"
+		/console							"Runs command with I/O redirected to console (CLI console only at present)"
+		/shell								"Forces command to be run from shell"
+		/input	in	[string! file! binary!]	"Redirects in to stdin"
+		/output	out	[string! file! binary!]	"Redirects stdout to out"
+		/error	err	[string! file! binary!]	"Redirects stderr to err"
+		return:		[integer!]				"0 if success, -1 if error, or a process ID"
+	]
+	#get-definition NAT_CALL
 
 detab: make native! [[
 		"Converts tabs in a string to spaces. (tab size 4)"

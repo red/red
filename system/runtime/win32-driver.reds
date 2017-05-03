@@ -25,6 +25,6 @@ driver-object!: alias struct! [
 	RegistryPath [byte-ptr!]					;-- Unicode string (UTF-16LE)
 	return: [integer!]
 ][
-	***-main
+	***-boot-rs
 	on-load DriverObject RegistryPath			;-- user code, must return a NTSTATUS value!
 ]

@@ -95,7 +95,6 @@ insert-tab: func [
 	index [integer!]
 	/local
 		item [TCITEM]
-		rect [RECT_STRUCT]
 ][
 	item: declare TCITEM
 	item/mask: TCIF_TEXT
@@ -121,10 +120,8 @@ set-tabs: func [
 		str	 [red-string!]
 		tail [red-string!]
 		int	 [red-integer!]
-		item [TCITEM]
 		nb	 [integer!]
 ][
-	item: declare TCITEM
 	data: as red-block! facets + FACE_OBJ_DATA
 	nb: 0
 	
@@ -213,7 +210,7 @@ update-tab-contents: func [
 				while [obj < tail][
 					if TYPE_OF(obj) = TYPE_OBJECT [
 						hWnd: get-face-handle obj
-						values: get-face-values hWnd
+						values: get-node-facet obj/ctx 0
 						init-panel values parent
 						either type = FACE_OBJ_SIZE [
 							change-size

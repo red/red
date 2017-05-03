@@ -232,9 +232,6 @@ string: context [
 		str 	[red-string!]
 		len		[integer!]
 		return: [logic!]
-		/local
-			s	   [series!]
-			offset [integer!]
 	][
 		_series/rs-skip as red-series! str len
 	]
@@ -303,10 +300,37 @@ string: context [
 		s/tail: s/offset
 		str/head: 0
 	]
+	
+	rs-find: func [
+		str		[red-string!]
+		cp		[integer!]
+		return: [integer!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			pos  [byte-ptr!]
+			head [byte-ptr!]
+			tail [byte-ptr!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		pos:  head
+		tail: as byte-ptr! s/tail
+		
+		while [pos < tail][
+			if cp = get-char pos unit [
+				return (as-integer pos - head) >> (log-b unit)
+			]
+			pos: pos + unit
+		]
+		-1
+	]
 
 	rs-find-char: func [
 		str		[red-string!]
 		cp		[integer!]
+		skip	[integer!]
 		case?	[logic!]				;-- case sensitive?
 		return: [logic!]
 		/local
@@ -318,6 +342,7 @@ string: context [
 	][
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
+		skip: unit * skip
 		head: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		while [head < tail][
@@ -327,7 +352,7 @@ string: context [
 				cp: case-folding/folding-case cp yes	;-- uppercase cp
 			]
 			if c1 = cp [return true]
-			head: head + unit
+			head: head + skip
 		]
 		false
 	]
@@ -757,6 +782,32 @@ string: context [
 			match?
 		]
 	]
+	
+	match-tag?: func [
+		str		[red-string!]
+		value	[red-value!]						;-- tag!
+		op		[integer!]
+		return:	[logic!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			c1	 [integer!]
+			c2	 [integer!]
+			len	 [integer!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		c1: get-char 
+			(as byte-ptr! s/offset) + (str/head << (log-b unit))
+			unit
+		
+		len: str/head + 1 + rs-length? as red-string! value
+		c2: get-char
+			(as byte-ptr! s/offset) + (len << (log-b unit))
+			unit
+		
+		all [c1 = as-integer #"<" c2 = as-integer #">"]
+	]
 
 	match?: func [
 		str	    [red-string!]
@@ -770,37 +821,50 @@ string: context [
 			unit [integer!]
 			c1	 [integer!]
 			c2	 [integer!]
+			res? [logic!]
 	][
-		either TYPE_OF(value) = TYPE_CHAR [
-			char: as red-char! value
-			c1: char/value
-			
-			s: GET_BUFFER(str)
-			unit: GET_UNIT(s)
-			c2: get-char 
-				(as byte-ptr! s/offset) + (str/head << (log-b unit))
-				unit
-			
-			if op <> COMP_STRICT_EQUAL [
-				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
-				c1: case-folding/folding-case c1 yes	;-- uppercase c1
-				c2: case-folding/folding-case c2 yes	;-- uppercase c2
+		type: TYPE_OF(value)
+		switch type [
+			TYPE_CHAR [
+				char: as red-char! value
+				c1: char/value
+
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				c2: get-char 
+					(as byte-ptr! s/offset) + (str/head << (log-b unit))
+					unit
+
+				if op <> COMP_STRICT_EQUAL [
+					if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+					if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+				]
+				c1 = c2
 			]
-			c1 = c2
-		][
-			type: TYPE_OF(value)
-			either all [								;@@ ANY_STRING
-				type <> TYPE_STRING
-				type <> TYPE_FILE
-				type <> TYPE_URL
-			][no][
-				zero? equal? str as red-string! value op yes
+			TYPE_TAG [
+				either match-tag? str value op [
+					str/head: str/head + 1
+					res?: zero? equal? str as red-string! value op yes
+					str/head: str/head - 1
+					res?
+				][no]
+			]
+			default  [
+				either all [								;@@ ANY_STRING - TAG
+					type <> TYPE_STRING
+					type <> TYPE_FILE
+					type <> TYPE_URL
+					type <> TYPE_EMAIL
+				][no][
+					zero? equal? str as red-string! value op yes
+				]
 			]
 		]
 	]
 
-	modify: func [
+	alter: func [
 		str1		[red-string!]						;-- string! to modify
 		str2		[red-string!]						;-- string! to modify to str1
 		part		[integer!]							;-- str2 characters to overwrite, -1 means all
@@ -813,6 +877,7 @@ string: context [
 			unit1 [integer!]
 			unit2 [integer!]
 			size  [integer!]
+			size1 [integer!]
 			size2 [integer!]
 			tail  [byte-ptr!]
 			p	  [byte-ptr!]
@@ -863,18 +928,16 @@ string: context [
 		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (log-b unit1)]	;-- make symbol! used as string! pass safely
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (log-b unit2)]	;-- make symbol! used as string! pass safely
 		
-		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + (unit1 / unit2 * size2)		;-- account for keep?
+		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
+		if all [part >= 0 part < size2][size2: part]
+		size: unit1 * size2
 
-		if s1/size < size [s1: expand-series s1 size * 2]
-		
-		if part >= 0 [
-			part: part << (log-b unit2)
-			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
-		]
+		size1: (as-integer s1/tail - s1/offset) + size
+		if s1/size < size1 [s1: expand-series s1 size1 * 2]
+
 		if type = TYPE_INSERT [
 			move-memory									;-- make space
-				(as byte-ptr! s1/offset) + h1 + offset + size2
+				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
@@ -887,7 +950,7 @@ string: context [
 		]
 		either all [keep? diff?][
 			p2: (as byte-ptr! s2/offset) + h2
-			limit: p2 + size2
+			limit: p2 + (size2 << (log-b unit2))
 			while [p2 < limit][
 				switch unit2 [
 					Latin1 [cp: as-integer p2/1]
@@ -903,10 +966,10 @@ string: context [
 				p2: p2 + unit2
 			]
 		][
-			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
-			p: p + size2
+			copy-memory	p (as byte-ptr! s2/offset) + h2 size
+			p: p + size
 		]
-		if type = TYPE_INSERT [p: tail + size2] 
+		if type = TYPE_INSERT [p: tail + size] 
 		if all [type = TYPE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]
@@ -918,7 +981,7 @@ string: context [
 		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 	][
-		modify str1 str2 part offset keep? TYPE_OVERWRITE
+		alter str1 str2 part offset keep? TYPE_OVERWRITE
 	]
 	
 	concatenate: func [									;-- append str2 to str1
@@ -929,7 +992,7 @@ string: context [
 		keep?	  [logic!]								;-- do not change str2 encoding
 		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
 	][
-		modify str1 str2 part offset keep? as-integer insert?
+		alter str1 str2 part offset keep? as-integer insert?
 	]
 
 	concatenate-literal: func [
@@ -968,17 +1031,17 @@ string: context [
 			zero? part
 		]
 	]
-
-	load-in: func [
+	
+	load-at: func [
 		src		 [c-string!]							;-- source string buffer
 		size	 [integer!]
-		blk		 [red-block!]
+		slot	 [red-value!]
 		encoding [integer!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
 	][
-		str: as red-string! either null = blk [stack/push*][ALLOC_TAIL(blk)]
+		str: as red-string! either slot = null [stack/push*][slot]
 		str/header:	TYPE_STRING							;-- implicit reset of all header flags
 		str/head:	0
 		str/cache:	null
@@ -992,6 +1055,16 @@ string: context [
 		]
 		str
 	]
+
+	load-in: func [
+		src		 [c-string!]							;-- source string buffer
+		size	 [integer!]
+		blk		 [red-block!]
+		encoding [integer!]
+		return:  [red-string!]
+	][
+		load-at src size ALLOC_TAIL(blk) encoding
+	]
 	
 	load: func [
 		src		 [c-string!]							;-- source string buffer
@@ -999,7 +1072,7 @@ string: context [
 		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size null encoding
+		load-at src size null encoding
 	]
 	
 	make-at: func [
@@ -1019,105 +1092,93 @@ string: context [
 	]
 	
 	push: func [
-		str [red-string!]
+		str		[red-string!]
+		return: [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/push"]]
 
-		copy-cell as red-value! str stack/push*
+		as red-string! copy-cell as red-value! str stack/push*
 	]
 	
 	;-- Actions -- 
 	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-string!]
+		proto	[red-string!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
-			str	 [red-string!]
 			size [integer!]
 			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/make"]]
 		
-		size: 1
-		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
+		either any [
+			TYPE_OF(spec) = TYPE_INTEGER
+			TYPE_OF(spec) = TYPE_FLOAT
+		][
+			size: GET_SIZE_FROM(spec)
+			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
+			proto/header: type								;-- implicit reset of all header flags
+			proto/head: 0
+			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+			proto/cache: null
+			proto
+		][
+			either type = TYPE_BINARY [
+				as red-string! binary/to as red-binary! proto spec type
+			][
+				to as red-value! proto spec type
 			]
-			default [--NOT_IMPLEMENTED--]
 		]
-		str: as red-string! stack/push*
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 	0
-		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
-		str/cache:	null
-		str
 	]
 
 	to: func [
-		type	[red-datatype!]
-		spec	[red-string!]
-		return: [red-value!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
 		/local
-			t	[integer!]
-			f	[red-float!]
-			int [red-integer!]
-			blk [red-block!]
-			ret [red-value!]
-			bin [byte-ptr!]
+			buffer [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
-
-		t: type/value
-		switch t [
-			TYPE_FILE
-			TYPE_URL [
-				set-type copy-cell as cell! spec as cell! type type/value
-				return as red-value! type
+		
+		switch TYPE_OF(spec) [
+			TYPE_ANY_STRING [
+				buffer: as red-string! _series/copy
+					as red-series! spec
+					as red-series! proto
+					null no null
 			]
 			TYPE_BINARY [
-				t: -1
-				bin: as byte-ptr! unicode/to-utf8 spec :t
-				return stack/set-last as cell! binary/load bin t
+				buffer: load
+					as-c-string binary/rs-head as red-binary! spec
+					binary/rs-length? as red-binary! spec
+					UTF-8
 			]
-			TYPE_ISSUE [
-				insert-char GET_BUFFER(spec) spec/head as-integer #"#"
+			TYPE_ANY_LIST [
+				buffer: make-at proto 16 1
+				insert buffer spec null no null yes
 			]
-			TYPE_WORD
-			TYPE_LIT_WORD
-			TYPE_SET_WORD [
-				ret: as red-value! word/box (symbol/make-alt spec)
-				set-type ret t
-				return ret
+			TYPE_REFINEMENT [
+				buffer: rs-make-at proto 16
+				either type = TYPE_STRING [
+					actions/form spec buffer null 0
+				][
+					refinement/mold as red-word! spec buffer yes yes yes null 0 0
+				]
 			]
-			default  [0]
-		]
-
-		blk: as red-block! type
-		#call [system/lexer/transcode spec none]
-
-		either zero? block/rs-length? blk [
-			ret: as red-value! blk
-			ret/header: TYPE_UNSET
-		][
-			ret: block/rs-head blk
-		]
-
-		either t = TYPE_FLOAT [
-			if TYPE_OF(ret) = TYPE_INTEGER [
-				int: as red-integer! ret
-				f: as red-float! ret
-				f/header: TYPE_FLOAT
-				f/value: integer/to-float int/value
+			TYPE_NONE [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_STRING spec]
 			]
-		][
-			if TYPE_OF(ret) <> t [
-				fire [TO_ERROR(script bad-to-arg) datatype/push t ret]
+			default [
+				buffer: rs-make-at proto 16
+				actions/form spec buffer null 0
 			]
 		]
-		if t = TYPE_ISSUE [remove-char spec spec/head]
-		stack/set-last ret
+		set-type as cell! buffer type
+		buffer
 	]
 
 	form: func [
@@ -1179,7 +1240,7 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			all [all? cp > 7Fh][
+			any [cp = 1Eh all [all? cp > 7Fh]][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp yes
@@ -1189,13 +1250,16 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
+			all [type = ESC_CHAR cp = 7Fh][
+				concatenate-literal buffer "^^~"
+			]
 			all [
 				type = ESC_URL
 				cp < MAX_URL_CHARS
 				escape-url-chars/idx = (as byte! ESC_URL)
 			][
 				append-char GET_BUFFER(buffer) as-integer #"%"
-				concatenate-literal buffer to-hex cp yes
+				concatenate-literal buffer byte-to-hex cp
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
@@ -1351,6 +1415,8 @@ string: context [
 					TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
 					TYPE_OF(str2) <> TYPE_FILE
 					TYPE_OF(str2) <> TYPE_URL
+					TYPE_OF(str2) <> TYPE_TAG
+					TYPE_OF(str2) <> TYPE_EMAIL
 				]
 			]
 		][RETURN_COMPARE_OTHER]
@@ -1488,6 +1554,7 @@ string: context [
 			int		[red-integer!]
 			char	[red-char!]
 			str2	[red-string!]
+			bits	[red-bitset!]
 			unit	[encoding!]
 			unit2	[encoding!]
 			head2	[integer!]
@@ -1497,9 +1564,12 @@ string: context [
 			c1		[integer!]
 			c2		[integer!]
 			step	[integer!]
+			sbits	[series!]
+			pbits	[byte-ptr!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
 			limit	[byte-ptr!]
 			part?	[logic!]
-			op		[integer!]
+			bs?		[logic!]
 			type	[integer!]
 			found?	[logic!]
 	][
@@ -1576,11 +1646,14 @@ string: context [
 			type = TYPE_STRING							;@@ use ANY_STRING?
 			type = TYPE_FILE
 			type = TYPE_URL
+			type = TYPE_TAG
+			type = TYPE_EMAIL
 		][not case?][no]
 		if same? [case?: no]
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
+		bs?: no
 		
 		;-- Value argument processing --
 		
@@ -1589,12 +1662,21 @@ string: context [
 				char: as red-char! value
 				c2: char/value
 				if case? [
-					c2: case-folding/folding-case c2 yes	;-- uppercase c2
+					c2: case-folding/folding-case c2 yes ;-- uppercase c2
 				]
+			]
+			TYPE_BITSET [
+				bits:  as red-bitset! value
+				sbits: GET_BUFFER(bits)
+				pbits: as byte-ptr! sbits/offset
+				bs?:   yes
+				case?: no
 			]
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
+			TYPE_TAG
+			TYPE_EMAIL
 			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
@@ -1635,10 +1717,13 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
-				found?: c1 = c2
-				
+				either bs? [
+					BS_TEST_BIT(pbits c1 found?)
+				][
+					found?: c1 = c2
+				]			
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
 					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
@@ -1748,12 +1833,19 @@ string: context [
 			head2  [integer!]
 			offset [integer!]
 			unit   [integer!]
+			type   [integer!]
 	][
 		result: find str value part only? case? same? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD TYPE_BINARY [
+				TYPE_STRING
+				TYPE_FILE
+				TYPE_URL
+				TYPE_TAG
+				TYPE_EMAIL
+				TYPE_WORD
+				TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1773,8 +1865,13 @@ string: context [
 			p: (as byte-ptr! s/offset) + ((str/head + offset) << (log-b unit))
 			
 			either p < as byte-ptr! s/tail [
+				type: switch TYPE_OF(str) [
+					TYPE_BINARY	[TYPE_INTEGER]
+					TYPE_VECTOR [as-integer str/cache]
+					default 	[TYPE_CHAR]
+				]
 				char: as red-char! result
-				char/header: either TYPE_OF(str) = TYPE_VECTOR [as-integer str/cache][TYPE_CHAR]
+				char/header: type
 				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
@@ -1947,7 +2044,12 @@ string: context [
 		index: either append? [len][str/head]
 		
 		while [not zero? cnt][							;-- /dup support
-			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+			type: TYPE_OF(value)
+			either any [								;@@ replace it with: typeset/any-list?
+				type = TYPE_BLOCK
+				type = TYPE_PAREN
+				type = TYPE_HASH
+			][
 				src: as red-block! value
 				s2: GET_BUFFER(src)
 				cell:  s2/offset + src/head
@@ -1977,11 +2079,13 @@ string: context [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
 						type = TYPE_URL
+						type = TYPE_TAG
+						type = TYPE_EMAIL
 					][
 						form-buf: as red-string! cell
 					][
 						;TBD: free previous form-buf node and series buffer
-						form-buf: string/rs-make-at form-slot 16
+						form-buf: rs-make-at form-slot 16
 						actions/form cell form-buf null 0
 					]
 					len: rs-length? form-buf
@@ -2257,6 +2361,7 @@ string: context [
 			vec		[red-vector!]
 			s		[series!]
 			unit	[integer!]
+			type	[integer!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2267,13 +2372,15 @@ string: context [
 		][
 			ownership/check as red-value! str words/_take null str/head 1
 			unit: GET_UNIT(s)
-			either TYPE_OF(str) = TYPE_VECTOR [
+			type: TYPE_OF(str)
+			either type = TYPE_VECTOR [
 				vec: as red-vector! str
 				str: as red-string! vector/get-value as byte-ptr! s/offset unit vec/type
-			][										;-- return char!
+			][
+				type: either type = TYPE_BINARY [TYPE_INTEGER][TYPE_CHAR]
 				char: as red-char! str
-				char/header: TYPE_CHAR
-				char/value:  string/get-char as byte-ptr! s/offset unit
+				char/header: type
+				char/value:  get-char as byte-ptr! s/offset unit
 			]
 			ownership/check as red-value! str words/_taken null str/head 0
 		]
@@ -2335,11 +2442,13 @@ string: context [
 					type = TYPE_STRING				;@@ replace with ANY_STRING?
 					type = TYPE_FILE 
 					type = TYPE_URL
+					type = TYPE_TAG
+					type = TYPE_EMAIL
 				][
 					form-buf: as red-string! cell
 				][
 					;TBD: free previous form-buf node and series buffer
-					form-buf: string/rs-make-at form-slot 16
+					form-buf: rs-make-at form-slot 16
 					actions/form cell form-buf null 0
 				]
 				either part? [
@@ -2378,6 +2487,7 @@ string: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
+			append?	[logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -2397,8 +2507,8 @@ string: context [
 		ser1: as red-series! stack/arguments
 		ser2: ser1 + 1
 		len: _series/get-length ser1 no
-		len: len + either op = OP_UNION [_series/get-length ser2 no][0]
-		new: as red-series! string/rs-make-at stack/push* len
+		if op = OP_UNION [len: len + _series/get-length ser2 no]
+		new: as red-series! rs-make-at stack/push* len
 		s2: GET_BUFFER(new)
 		n: 2
 
@@ -2409,16 +2519,18 @@ string: context [
 			tail: as byte-ptr! s/tail
 
 			while [head < tail] [			;-- iterate over first series
-				cp: string/get-char head unit
+				append?: no
+				cp: get-char head unit
 				if check? [
-					find?: string/rs-find-char as red-string! ser2 cp case?
+					find?: rs-find-char as red-string! ser2 cp step case?
 					if invert? [find?: not find?]
 				]
 				if all [
 					find?
-					not string/rs-find-char as red-string! new cp case?
+					not rs-find-char as red-string! new cp step case?
 				][
-					s2: string/append-char s2 cp
+					append?: yes
+					s2: append-char s2 cp
 				]
 
 				i: 1
@@ -2427,7 +2539,7 @@ string: context [
 					all [head < tail i < step]
 				][
 					i: i + 1
-					s2: string/append-char s2 string/get-char head unit
+					if append? [s2: append-char s2 get-char head unit]
 				]
 			]
 
@@ -2452,7 +2564,7 @@ string: context [
 			;-- General actions --
 			:make
 			INHERIT_ACTION	;random
-			null			;reflect
+			INHERIT_ACTION	;reflect
 			:to
 			:form
 			:mold

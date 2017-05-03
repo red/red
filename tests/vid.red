@@ -15,9 +15,7 @@ view [
 
 	button "China"
 	text "Red Language" 100 right
-	field 120 on-key [
-		if event/key = cr [probe do face/text clear face/text]
-	]
+	field 120 on-enter [probe do face/text clear face/text]
 	return
 	
 	group-box 3 [

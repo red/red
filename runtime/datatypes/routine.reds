@@ -50,6 +50,7 @@ routine: context [
 		body	 [red-block!]
 		code	 [integer!]
 		ret-type [integer!]
+		extern?	 [logic!]
 		return:	 [red-routine!]							;-- return function's local context
 		/local
 			cell   [red-routine!]
@@ -57,11 +58,13 @@ routine: context [
 			value  [red-value!]
 			args   [red-block!]
 			more   [series!]
+			flag   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
+		flag: either extern? [flag-extern-code][0]
 		cell: as red-routine! stack/push*
-		cell/header:   TYPE_ROUTINE						;-- implicit reset of all header flags
+		cell/header:   TYPE_ROUTINE or flag				;-- implicit reset of all header flags
 		cell/ret-type: ret-type
 		cell/spec:	   spec/node
 		cell/more:	   alloc-cells 4
@@ -111,8 +114,9 @@ routine: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
-			blk	[red-block!]
+			s	 [series!]
+			blk	 [red-block!]
+			body [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/mold"]]
 
@@ -125,7 +129,14 @@ routine: context [
 		part: block/mold blk buffer only? all? flat? arg part - 8 indent	;-- spec
 		
 		s: as series! fun/more/value
-		block/mold as red-block! s/offset buffer only? all? flat? arg part indent ;-- body
+		body: s/offset
+		either TYPE_OF(body) = TYPE_BLOCK [
+			block/mold as red-block! body buffer only? all? flat? arg part indent ;-- body
+		][
+			string/append-char GET_BUFFER(buffer) as-integer #" "
+			part: part - 1
+			actions/mold body buffer only? all? flat? arg part indent ;-- body
+		]
 	]
 
 	compare: func [

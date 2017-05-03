@@ -66,6 +66,7 @@ _print: func [
 	spaced?	[logic!]						;-- if TRUE, insert a space between items
 	/local 
 		fp		 [typed-float!]
+		fp32	 [typed-float32!]
 		unused	 [float!]
 		unused32 [float32!]
 		s		 [c-string!]
@@ -76,7 +77,7 @@ _print: func [
 			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
 			type-integer!  [prin-int list/value]
 			type-float!    [fp: as typed-float! list unused: prin-float fp/value]
-			type-float32!  [unused32: prin-float32 as-float32 list/value]
+			type-float32!  [fp32: as typed-float32! list unused32: prin-float32 fp32/value]
 			type-byte!     [prin-byte as-byte list/value]
 			type-c-string! [s: as-c-string list/value prin s]
 			default 	   [prin-hex list/value]
@@ -108,6 +109,7 @@ _print: func [
 		list: list + 1
 		zero? count
 	]
+	fflush 0
 ]
 
 ;-------------------------------------------
@@ -149,17 +151,22 @@ degree-to-radians: func [
 	val		[float!]
 	type	[integer!]
 	return: [float!]
+	/local
+		factor [float!]
 ][
 	val: val % 360.0
 	if any [val > 180.0 val < -180.0] [
-		val: val + either val < 0.0 [360.0][-360.0]
+		factor: either val < 0.0 [360.0][-360.0]
+		val: val + factor
 	]
 	if any [val > 90.0 val < -90.0] [
 		if type = TYPE_TANGENT [
-			val: val + either val < 0.0 [180.0][-180.0]
+			factor: either val < 0.0 [180.0][-180.0]
+			val: val + factor
 		]
 		if type = TYPE_SINE [
-			val: (either val < 0.0 [-180.0][180.0]) - val
+			factor: either val < 0.0 [-180.0][180.0]
+			val: factor - val
 		]
 	]
 	val: val * PI / 180.0			;-- to radians

@@ -96,38 +96,7 @@ percent: context [
 		fl
 	]
 
-	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-float!]
-		/local
-			int	 [red-integer!]
-			fl	 [red-float!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
-
-		switch TYPE_OF(spec) [
-			TYPE_PERCENT [
-				as red-float! spec
-			]
-			TYPE_INTEGER [
-				fl: as red-float! spec
-				int: as red-integer! spec
-				fl/value: integer/to-float int/value
-				fl/header: TYPE_PERCENT
-				fl
-			]
-			TYPE_FLOAT [
-				fl: as red-float! spec
-				fl/header: TYPE_PERCENT
-				fl
-			]
-			default [
-				--NOT_IMPLEMENTED--
-				as red-float! spec					;@@ just for making it compilable
-			]
-		]
-	]
+	;-- make: :to
 
 	form: func [
 		fl		   [red-float!]
@@ -169,7 +138,7 @@ percent: context [
 			TYPE_FLOAT
 			"percent!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			INHERIT_ACTION	;random
 			null			;reflect
 			INHERIT_ACTION	;to

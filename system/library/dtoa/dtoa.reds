@@ -474,7 +474,7 @@ red-dtoa: context [
 		sx: BIG_INT_X(s)
 		bx: BIG_INT_X(b)
 		;@@ do unsigned int division
-		q: float/to-integer floor (uint-to-float bx/n) / (uint-to-float sx/n + 1)			;-- ensure q <= true quotient
+		q: as-integer floor (uint-to-float bx/n) / (uint-to-float sx/n + 1)			;-- ensure q <= true quotient
 		n: n - 1
 		sxe: sx + n
 		bxe: bx + n
@@ -841,9 +841,9 @@ red-dtoa: context [
 			no
 		]
 
-		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((integer/to-float i) * 0.301029995663981)
+		ds: f - 1.5 * 0.289529654602168 + 0.1760912590558 + ((as-float i) * 0.301029995663981)
 		f: fsave
-		k: float/to-integer floor ds			;@@ Optimize it
+		k: as-integer floor ds			;@@ Optimize it
 
 		k_check: yes
 		if all [k >= 0 k <= TEN_PMAX] [
@@ -875,7 +875,7 @@ red-dtoa: context [
 			ki: k + 1
 			ds: TENS/ki
 			until [
-				L: float/to-integer floor (f / ds)
+				L: as-integer floor (f / ds)
 				f: f - (ds * uint-to-float L)
 				s/1: #"0" + as byte! L
 				s: s + 1
@@ -1425,10 +1425,10 @@ red-dtoa: context [
 		]
 
 		k: either nd < 16 [nd][16]
-		rv: integer/to-float y
+		rv: as-float y
 		if k > 9 [
 			j: k - 8
-			rv: TENS/j * rv + integer/to-float z
+			rv: TENS/j * rv + as-float z
 		]
 
 		if nd < 16 [
@@ -1747,7 +1747,7 @@ red-dtoa: context [
 					y <= (2 * 53 * EXP_MSK1)
 				][
 					if aadj <= 2147483647.0 [
-						z: float/to-integer floor aadj
+						z: as-integer floor aadj
 						if z <= 0 [z: 1]
 						aadj: uint-to-float z
 						aadj1: either dsign <> 0 [aadj][0.0 - aadj]

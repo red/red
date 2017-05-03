@@ -31,7 +31,7 @@ word: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		_context/add-global symbol/make str
+		_context/add-global-word symbol/make str yes yes
 	]
 	
 	make-at: func [
@@ -122,8 +122,12 @@ word: context [
 
 		ctx: TO_CTX(node)
 		idx: _context/find-word ctx sym no
-		s: as series! ctx/symbols/value
-		as red-word! s/offset + idx
+		either idx < 0 [
+			_context/add-global sym
+		][
+			s: as series! ctx/symbols/value
+			as red-word! s/offset + idx
+		]
 	]
 	
 	get-in: func [
@@ -153,6 +157,10 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
+		if null? ctx/values [
+			s: as series! ctx/symbols/value
+			fire [TO_ERROR(script not-defined) s/offset + index]
+		]
 		
 		value: either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + index
@@ -194,6 +202,20 @@ word: context [
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
+	set-in-ctx: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/top - 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]
 	
@@ -252,7 +274,7 @@ word: context [
 		value
 	]
 
-	to-string: func [
+	as-string: func [
 		w		[red-word!]
 		return: [red-string!]
 		/local
@@ -261,7 +283,9 @@ word: context [
 	][
 		s: GET_BUFFER(symbols)
 		str: as red-string! stack/push s/offset + w/symbol - 1
+		str/header: TYPE_STRING
 		str/head: 0
+		str/cache: null
 		str
 	]
 
@@ -305,6 +329,65 @@ word: context [
 		form w buffer arg part
 	]
 
+	to: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+		/local
+			char	[red-char!]
+			dt		[red-datatype!]
+			bool	[red-logic!]
+			name	[names!]
+			idx		[integer!]
+			buf1	[integer!]
+			data	[byte-ptr!]
+			cstr	[c-string!]
+			len		[integer!]
+			val		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_GET_WORD
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE [proto: spec]
+			TYPE_STRING [
+				len: 0
+				val: as red-value! :len
+				copy-cell spec val					;-- save spec, load-value will change it
+				proto: load-value as red-string! spec
+				unless any-word? TYPE_OF(proto) [fire [TO_ERROR(syntax bad-char) val]]
+			]
+			TYPE_CHAR [
+				char: as red-char! spec
+				buf1: 0
+				data: as byte-ptr! :buf1
+				len: unicode/cp-to-utf8 char/value data
+				idx: len + 1
+				data/idx: null-byte
+				make-at symbol/make as c-string! data proto
+			]
+			TYPE_DATATYPE [
+				dt: as red-datatype! spec
+				name: name-table + dt/value
+				copy-cell as cell! name/word proto
+			]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				cstr: either bool/value ["true"]["false"]
+				make-at symbol/make cstr proto
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
+		]
+
+		proto/header: type
+		proto
+	]
+
 	any-word?: func [									;@@ discard it when ANY_WORD? available
 		type	[integer!]
 		return: [logic!]
@@ -315,7 +398,7 @@ word: context [
 			type = TYPE_SET_WORD
 			type = TYPE_LIT_WORD
 			type = TYPE_REFINEMENT
-			type = TYPE_ISSUE
+			type = TYPE_ISSUE							;-- do not equal it to other word types
 		]
 	]
 	
@@ -333,7 +416,12 @@ word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
 		type: TYPE_OF(arg2)
-		unless any-word? type [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
+		if any [
+			all [type = TYPE_ISSUE TYPE_OF(arg1) <> TYPE_ISSUE]
+			not any-word? type
+		][
+			RETURN_COMPARE_OTHER						;@@ replace by ANY_WORD? when available
+		]
 		switch op [
 			COMP_EQUAL
 			COMP_NOT_EQUAL [
@@ -382,10 +470,10 @@ word: context [
 			TYPE_SYMBOL
 			"word!"
 			;-- General actions --
-			null			;make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

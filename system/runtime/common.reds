@@ -38,6 +38,8 @@ Red/System [
 
 #define byte-ptr!	  [pointer! [byte!]]
 #define int-ptr!	  [pointer! [integer!]]
+#define float32-ptr!  [pointer! [float32!]]
+
 #define make-c-string [as c-string! allocate]
 
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
@@ -70,7 +72,8 @@ space:	 #" "
 slash:	 #"/"
 esc:	 #"^["
 
-pi: 3.141592653589793
+pi:  3.141592653589793
+tau: 6.283185307179586
 
 str-array!: alias struct! [
 	item [c-string!]
@@ -82,6 +85,12 @@ typed-value!: alias struct! [
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
+typed-float32!: alias struct! [
+	type	 [integer!]	
+	value	 [float32!]
+	_padding [integer!]						;-- extra space for 64-bit values	
+]
+
 typed-float!: alias struct! [
 	type	 [integer!]	
 	value	 [float!]
@@ -90,6 +99,12 @@ typed-float!: alias struct! [
 re-throw: func [/local id [integer!]][
 	id: system/thrown						;-- system/* cannot be passed as argument for now
 	throw id								;-- let the exception pass through
+]
+
+#switch OS [
+	Windows  [#define LIBREDRT-file "libRedRT.dll"]
+	MacOSX	 [#define LIBREDRT-file "libRedRT.dylib"]
+	#default [#define LIBREDRT-file "libRedRT.so"]
 ]
 
 #include %system.reds
@@ -120,7 +135,7 @@ re-throw: func [/local id [integer!]][
 #if type = 'exe [
 	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 027Fh
+			system/fpu/control-word: 037Fh
 			system/fpu/update
 		]
 		ARM [
@@ -141,9 +156,6 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
-
-	#define RED_ERR_VMEM_RELEASE_FAILED		96
-	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
 	
 	__set-stack-on-crash: func [
 		return: [int-ptr!]
@@ -218,8 +230,6 @@ re-throw: func [/local id [integer!]][
 				34	["Bus error"]			;-- generic SIGBUS message
 
 				95	["no CATCH for THROW"]
-				96	["virtual memory release failed"]
-				97	["out of memory"]
 				98	["assertion failed"]
 				99	["unknown error"]
 
@@ -262,3 +272,13 @@ re-throw: func [/local id [integer!]][
 ]
 push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
+
+#if type = 'dll [
+	#if libRedRT? = yes [
+		#switch OS [								;-- init OS-specific handlers
+			Windows  [win32-startup-ctx/init]
+			Syllable []
+			#default [posix-startup-ctx/init]
+		]
+	]
+]

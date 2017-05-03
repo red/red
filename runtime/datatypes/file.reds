@@ -47,7 +47,7 @@ file: context [
 		s: GET_BUFFER(src)
 		if zero? len [len: 1]
 		str: string/rs-make-at stack/push* len << (GET_UNIT(s) >> 1)
-		file/to-local-path src str no
+		to-local-path src str no
 
 		#either OS = 'Windows [
 			ret: unicode/to-utf16 str
@@ -85,8 +85,6 @@ file: context [
 			s	 [series!]
 			p	 [byte-ptr!]
 			end  [byte-ptr!]
-			dir  [c-string!]
-			len  [integer!]
 			unit [integer!]
 			c	 [integer!]
 			d	 [integer!]
@@ -132,7 +130,6 @@ file: context [
 			s: string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
 			p: p + unit
 		]
-		out
 	]
 
 	normalize: func [
@@ -159,46 +156,6 @@ file: context [
 	]
 
 	;-- Actions --
-
-	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-file!]
-		/local
-			file [red-file!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/make"]]
-
-		file: as red-file! string/make proto spec type
-		set-type as red-value! file TYPE_FILE
-		file
-	]
-
-	to: func [
-		type	[red-datatype!]
-		spec	[red-file!]
-		return: [red-value!]
-		/local
-			t	[integer!]
-			f	[red-float!]
-			int [red-integer!]
-			blk [red-block!]
-			ret [red-value!]
-			bin [byte-ptr!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/to"]]
-
-		t: type/value
-		switch t [
-			TYPE_STRING
-			TYPE_URL [
-				set-type copy-cell as cell! spec as cell! type t
-			]
-			default  [--NOT_IMPLEMENTED--]
-		]
-		as red-value! type
-	]
 
 	mold: func [
 		file    [red-file!]
@@ -270,14 +227,8 @@ file: context [
 		as-arg	[red-value!]
 		return:	[red-value!]
 	][
-		if any [
-			OPTION?(part)
-			OPTION?(seek)
-			OPTION?(as-arg)
-		][
-			--NOT_IMPLEMENTED--
-		]
-		simple-io/read as red-file! src binary? lines?
+		if OPTION?(as-arg) [--NOT_IMPLEMENTED--]
+		simple-io/read as red-file! src part seek binary? lines?
 	]
 
 	write: func [
@@ -294,26 +245,25 @@ file: context [
 		return:	[red-value!]
 	][
 		if any [
-			OPTION?(seek)
 			OPTION?(allow)
 			OPTION?(as-arg)
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/write as red-file! dest data part binary? append?
+		simple-io/write as red-file! dest data part seek binary? append? lines?
 		as red-value! unset-value
 	]
 
 	init: does [
 		datatype/register [
 			TYPE_FILE
-			TYPE_STRING
+			TYPE_URL
 			"file!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
-			:to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -353,7 +303,7 @@ file: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			INHERIT_ACTION	;put
+			null			;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select

@@ -58,6 +58,9 @@ datatype: context [
 		name: name-table + type
 		name/buffer: as c-string! list/value			;-- store datatype string name
 		name/size: (length? name/buffer) - 1			;-- store string size (not counting terminal `!`)
+		if root <> null [								;-- checks if all datatypes have been loaded
+			name/word: word/load name/buffer
+		]
 		list: list + 1
 		count: count - 3								;-- skip the "header" data
 		
@@ -118,21 +121,7 @@ datatype: context [
 	]
 	
 	;-- Actions --
-	
-	make: func [
-		proto 	[red-value!]
-		spec	[red-value!]
-		return:	[red-datatype!]							;-- return datatype cell pointer
-		/local
-			int [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
-		
-		assert TYPE_OF(spec) = TYPE_INTEGER
-		int: as red-integer! spec
-		push int/value
-	]
-	
+
 	form: func [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
@@ -199,7 +188,7 @@ datatype: context [
 			TYPE_VALUE
 			"datatype!"
 			;-- General actions --
-			:make
+			null			;make
 			null			;random
 			null			;reflect
 			null			;to

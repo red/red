@@ -395,7 +395,7 @@ Red [
   --test-- "series-append-26"
   --assert #{6162} = append/part #{} #{616263} 2
   --assert #{6162} = append/part #{} "abc" 2
-  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A9} = append/part #{} "ébc" 2
   --assert #{C3A96263} = append #{} "ébc"
 
 ===end-group===
@@ -960,6 +960,7 @@ Red [
 		--assert "Xbab" = replace "abab" #"a" #"X"
 		--assert "XbXb" = replace/all "abab" #"a" #"X"
 		--assert "Xab" = replace "abab" "ab" "X"
+		--assert "abab" = replace/all "abab" #"a" #"a"
 
 	--test-- "replace-bin"
 		--assert #{FF0201} = replace #{010201} #{01} #{FF}
@@ -1478,6 +1479,9 @@ Red [
 		str: change "1234" [a b]
 		--assert "34" = str
 		--assert "ab34" = head str
+	--test-- "change-str-7"
+		str: "我ab/cd"
+		--assert "-cd" = back change/part skip str 3 "-" skip str 4
 
 	--test-- "change-bin-1"
 		bin: #{12345678}
@@ -1699,14 +1703,13 @@ Red [
 
 ===start-group=== "series-unicode"
 
-	--test-- "suc1"
-		;--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
-		;				read %tests/fixtures/chinese-characters.txt
+	;--test-- "suc1"
+	;	--assert equal? "爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"
+	;					read %tests/fixtures/chinese-characters.txt
 						
-	--test-- "suc2"
-		;--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
-		;				read/lines %tests/fixtures/chinese-characters.txt
+	;--test-- "suc2"
+	;	--assert equal? ["爊倍弊褊不瀍阊吊谍樊服复漍焊蔊昊瘊㬊阍"]
+	;					read/lines %tests/fixtures/chinese-characters.txt
 ===end-group===
 
 ~~~end-file~~~
-

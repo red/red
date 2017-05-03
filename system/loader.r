@@ -52,6 +52,9 @@ loader: make-profilable context [
 	init: does [
 		clear include-list
 		clear defs
+		clear ssp-stack
+		clear scripts-stk
+		current-script: line: none
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
 	
@@ -271,12 +274,15 @@ loader: make-profilable context [
 				  ] e: (
 				  	if paren? args [check-macro-parameters args]
 					if verbose > 0 [print [mold name #":" mold value]]
+					if find compiler/definitions name [
+						print ["*** Warning:" name "macro in R/S is redefined"]
+					]
 					append compiler/definitions name
 					case [
 						args [
 							do recurse
 							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
-							rule/5/3: to block! :args	
+							rule/5/3: to block! :args
 							rule/5/4: :value
 						]
 						block? value [
@@ -318,14 +324,14 @@ loader: make-profilable context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						either all [encap? own][
+						value: either all [encap? own][
 							mark: tail encap-fs/base
-							value: skip process/short/sub/own name 2	;-- skip Red/System header
+							process/short/sub/own name
 						][
 							name: push-system-path name
-							value: skip process/short/sub name 2		;-- skip Red/System header
+							process/short/sub name
 						]
-						e: change/part s value e
+						e: change/part s skip value 2 e	;-- skip Red/System header
 
 						value: either all [encap? own not empty? mark][
 							count-slash mark

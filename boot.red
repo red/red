@@ -10,25 +10,41 @@ Red [
 	}
 ]
 
-#include %environment/datatypes.red
-#include %environment/actions.red
-#include %environment/natives.red
-#include %environment/routines.red
-#include %environment/scalars.red
-#include %environment/colors.red
-#include %environment/functions.red
-#include %environment/system.red
-#include %environment/lexer.red
-#include %environment/operators.red
+#if any [not config/dev-mode? config/libRedRT?][
 
-#include %environment/codecs/png.red
-#include %environment/codecs/jpeg.red
-#include %environment/codecs/bmp.red
-#include %environment/codecs/gif.red
+	#include %environment/datatypes.red
+	#include %environment/actions.red
+	#include %environment/natives.red
+	#include %environment/routines.red
+	#include %environment/scalars.red
+	#include %environment/colors.red
+	#include %environment/functions.red
+	#include %environment/system.red
+	#include %environment/lexer.red
+	#include %environment/operators.red
 
-#register-intrinsics
+	#register-intrinsics
 
-extract-boot-args
+	#include %environment/codecs/png.red
+	#include %environment/codecs/jpeg.red
+	#include %environment/codecs/bmp.red
+	#include %environment/codecs/gif.red
 
-;-- temporary code --
-if system/platform <> 'Windows [unset [event! image!]]
+	#include %environment/reactivity.red				;-- requires SET intrinsic
+	#include %utils/preprocessor.r
+
+	;-- temporary code --
+	#if not find [Windows MacOSX] config/OS [
+		unset [event! image!]
+	]
+]
+
+;-- command-line arguments processing
+
+#if config/dev-mode? [
+	system/script/args: #system [
+		#either type = 'exe [stack/push get-cmdline-args][none/push]
+	]
+]
+#if config/type = 'exe [extract-boot-args]
+

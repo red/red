@@ -12,6 +12,18 @@ Red/System [
 
 _series: context [
 	verbose: 0
+	
+	rs-tail?: func [
+		ser		[red-series!]
+		return: [logic!]
+		/local
+			s	   [series!]
+			offset [integer!]
+	][
+		s: GET_BUFFER(ser)
+		offset: ser/head << (log-b GET_UNIT(s))
+		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
+	]
 
 	rs-skip: func [
 		ser 	[red-series!]
@@ -196,7 +208,7 @@ _series: context [
 		s: GET_BUFFER(ser)
 
 		state/header: TYPE_LOGIC
-		state/value:  (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s))) = as byte-ptr! s/tail
+		state/value:  (as byte-ptr! s/offset) + (ser/head << (log-b GET_UNIT(s))) >= as byte-ptr! s/tail
 		as red-value! state
 	]
 
@@ -483,7 +495,7 @@ _series: context [
 			index: target/head
 		]
 		ownership/check as red-value! target words/_moved null index items
-		as red-value! target
+		as red-value! origin
 	]
 	
 	change: func [
@@ -515,7 +527,6 @@ _series: context [
 			neg?	[logic!]
 			part?	[logic!]
 			blk?	[logic!]
-			saved	[integer!]
 			added	[integer!]
 			n		[integer!]
 			cnt		[integer!]
@@ -531,7 +542,6 @@ _series: context [
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		head: ser/head
-		saved: head
 		size: (as-integer s/tail - s/offset) >> (log-b unit)
 
 		type: TYPE_OF(ser)
@@ -778,7 +788,7 @@ _series: context [
 
 	remove: func [
 		ser	 	 [red-series!]
-		part-arg [red-value!]
+		part-arg [red-value!]							;-- null if no /part
 		return:	 [red-series!]
 		/local
 			s		[series!]
@@ -801,7 +811,7 @@ _series: context [
 		part: unit
 		items: 1
 
-		if OPTION?(part-arg) [
+		if part-arg <> null [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
 				int: as red-integer! part-arg
 				int/value
@@ -1098,6 +1108,7 @@ _series: context [
 		node:	alloc-bytes part
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
+		buffer/flags: buffer/flags and not flag-series-owned
 
 		unless zero? part [
 			offset: offset << (log-b unit)

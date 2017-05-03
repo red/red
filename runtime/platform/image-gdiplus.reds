@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Image routine functions using GDI+"
 	Author:  "Qingtian Xie"
-	File: 	 %image-gdiplus.red
+	File: 	 %image-gdiplus.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014 Qingtian Xie. All rights reserved."
 	License: {
@@ -51,12 +51,6 @@ Red/System [
 #define GpGraphics! int-ptr!
 
 OS-image: context [
-
-	#enum ImageLockMode! [
-		ImageLockModeRead:			1
-		ImageLockModeWrite:			2
-		ImageLockModeUserInputBuf:	4
-	]
 
 	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
 	CLSID_JPEG_ENCODER: [557CF401h 11D31A04h 0000739Ah 2EF31EF8h]
@@ -269,19 +263,13 @@ OS-image: context [
 		write?		[logic!]
 		return:		[integer!]
 		/local
-			rect	[RECT!]
 			data	[BitmapData!]
 			mode	[integer!]
 			res		[integer!]
 	][
-		rect: declare RECT!
 		data: as BitmapData! allocate size? BitmapData!
-		rect/left: 0
-		rect/top: 0
-		rect/right: width? handle
-		rect/bottom: height? handle
-		mode: either write? [ImageLockModeWrite][ImageLockModeRead]
-		res: GdipBitmapLockBits handle rect mode pixelformat data
+		mode: either write? [3][1]
+		res: GdipBitmapLockBits handle null mode pixelformat data
 		either zero? res [as-integer data][0]
 	]
 
@@ -307,7 +295,6 @@ OS-image: context [
 		return:		[int-ptr!]
 		/local
 			bitmap	[BitmapData!]
-			buf		[int-ptr!]
 	][
 		bitmap: as BitmapData! handle
 		stride/value: bitmap/stride
@@ -379,20 +366,29 @@ OS-image: context [
 	copy: func [
 		dst		[integer!]
 		src		[integer!]
-		bytes	[integer!]
+		pixels	[integer!]
+		lines	[integer!]
 		offset	[integer!]
 		format	[integer!]
 		/local
 			bmp-src [BitmapData!]
 			bmp-dst [BitmapData!]
 			palette [byte-ptr!]
-			bits	[integer!]
+			bytes	[integer!]
+			pbytes	[integer!]
+			stride	[integer!]
+			w		[integer!]
 	][
-		bits: format >> 8 and FFh 					;--number of bit per pixel
+		pbytes: format >> 8 and FFh / 8				;--number of bytes per pixel
 
 		bmp-src: as BitmapData! lock-bitmap-fmt src format no
 		bmp-dst: as BitmapData! lock-bitmap-fmt dst format yes
-		copy-memory bmp-dst/scan0 bmp-src/scan0 + (offset * bits / 8) bytes * bits / 8
+		stride: bmp-src/stride
+		w: bmp-src/width
+		bytes: stride * lines
+		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
+		offset: offset / w * stride + (offset % w * pbytes)
+		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
 		unlock-bitmap src as-integer bmp-src
 		unlock-bitmap dst as-integer bmp-dst
 
@@ -428,7 +424,7 @@ OS-image: context [
 		h: height? handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
-		copy bitmap handle w * h 0 format
+		copy bitmap handle 0 h 0 format
 
 		GdipDisposeImage handle 
 		bitmap
@@ -446,48 +442,39 @@ OS-image: context [
 			r		[integer!]
 			b		[integer!]
 			g		[integer!]
-			x		[integer!]
-			y		[integer!]
 			data	[BitmapData!]
 			scan0	[int-ptr!]
 			bitmap	[integer!]
-			pos		[integer!]
+			end		[int-ptr!]
 	][
+		if any [zero? width zero? height][return null]
 		bitmap: 0
-		GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap
+		if 0 <> GdipCreateBitmapFromScan0 width height 0 PixelFormat32bppARGB null :bitmap [
+			fire [TO_ERROR(script invalid-arg) pair/push width height]
+		]
 		data: as BitmapData! lock-bitmap-fmt bitmap PixelFormat32bppARGB yes
 		scan0: as int-ptr! data/scan0
+		end: scan0 + (width * height)
 
-		y: 0
 		either null? color [
-			while [y < height][
-				x: 0
-				while [x < width][
-					pos: data/stride >> 2 * y + x + 1
-					either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
-					either null? rgb [r: 255 g: 255 b: 255][
-						r: as-integer rgb/1
-						g: as-integer rgb/2
-						b: as-integer rgb/3
-						rgb: rgb + 3
-					]
-					scan0/pos: r << 16 or (g << 8) or b or (a << 24)
-					x: x + 1
+			while [scan0 < end][
+				either null? alpha [a: 255][a: 255 - as-integer alpha/1 alpha: alpha + 1]
+				either null? rgb [r: 255 g: 255 b: 255][
+					r: as-integer rgb/1
+					g: as-integer rgb/2
+					b: as-integer rgb/3
+					rgb: rgb + 3
 				]
-				y: y + 1
+				scan0/value: r << 16 or (g << 8) or b or (a << 24)
+				scan0: scan0 + 1
 			]
 		][
 			r: color/array1
 			a: either TUPLE_SIZE?(color) = 3 [255][255 - (r >>> 24)]
 			r: r >> 16 and FFh or (r and FF00h) or (r and FFh << 16) or (a << 24)
-			while [y < height][
-				x: 0
-				while [x < width][
-					pos: data/stride >> 2 * y + x + 1
-					scan0/pos: r
-					x: x + 1
-				]
-				y: y + 1
+			while [scan0 < end][
+				scan0/value: r
+				scan0: scan0 + 1
 			]
 		]
 
@@ -502,7 +489,6 @@ OS-image: context [
 		/local
 			hMem [integer!]
 			p	 [byte-ptr!]
-			hr	 [integer!]
 			s	 [integer!]
 			bmp  [integer!]
 	][
@@ -513,16 +499,16 @@ OS-image: context [
 
 		s: 0
 		bmp: 0
-		hr: CreateStreamOnHGlobal hMem true :s
+		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
 		bmp
 	]
 
 	encode: func [
 		image	[red-image!]
-		format	[integer!]
 		slot	[red-value!]
-		return: [red-binary!]
+		format	[integer!]
+		return: [red-value!]
 		/local
 			bin		[red-binary!]
 			s		[series!]
@@ -548,7 +534,7 @@ OS-image: context [
 		IStm: declare interface!
 		stat: declare tagSTATSTG
 		hr: StgCreateDocfile
-			#u16 "CompoundFile.cmp"
+			null
 			STGM_READWRITE or STGM_CREATE or STGM_SHARE_EXCLUSIVE or STGM_DELETEONRELEASE 
 			0
 			ISto
@@ -578,7 +564,7 @@ OS-image: context [
 		stream/Read IStm/ptr as byte-ptr! s/offset len :hr
 		stream/Release IStm/ptr
 		storage/Release ISto/ptr
-		bin
+		as red-value! bin
 	]
 
 	clone: func [
@@ -600,38 +586,40 @@ OS-image: context [
 			bmp		[integer!]
 			format	[integer!]
 	][
-		width: IMAGE_WIDTH(src/size)
-		height: IMAGE_WIDTH(src/size)
-		offset: src/head
-		x: offset % width
-		y: offset / width
-		handle: as-integer src/node
 		bmp: 0
+		if part <> 0 [
+			width: IMAGE_WIDTH(src/size)
+			height: IMAGE_HEIGHT(src/size)
+			offset: src/head
+			x: offset % width
+			y: offset / width
+			handle: as-integer src/node
 
-		either all [zero? offset not part?][
-			GdipCloneImage handle :bmp
-			dst/size: src/size
-		][
-			format: 0
-			GdipGetImagePixelFormat handle :format
-			either all [part? TYPE_OF(size) = TYPE_PAIR][
-				w: width - x
-				h: height - y
-				if size/x < w [w: size/x]
-				if size/y < h [h: size/y]
-				GdipCloneBitmapAreaI x y w h format handle :bmp
+			either all [zero? offset not part?][
+				GdipCloneImage handle :bmp
+				dst/size: src/size
 			][
-				either part < width [h: 1 w: part][
-					h: part / width
-					w: width
+				format: 0
+				GdipGetImagePixelFormat handle :format
+				either all [part? TYPE_OF(size) = TYPE_PAIR][
+					w: width - x
+					h: height - y
+					if size/x < w [w: size/x]
+					if size/y < h [h: size/y]
+					GdipCloneBitmapAreaI x y w h format handle :bmp
+				][
+					either part < width [h: 0 w: part][
+						h: part / width
+						w: part % width
+					]
+					if zero? part [w: 1]
+					GdipCreateBitmapFromScan0 w h 0 format null :bmp
+					either zero? part [w: 0 h: 0][
+						copy bmp handle w h offset format
+					]
 				]
-				if zero? part [w: 1]
-				GdipCreateBitmapFromScan0 w h 0 format null :bmp
-				either zero? part [w: 0 h: 0][
-					copy bmp handle w * h offset format
-				]
+				dst/size: h << 16 or w
 			]
-			dst/size: h << 16 or w
 		]
 
 		dst/header: TYPE_IMAGE

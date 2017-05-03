@@ -86,43 +86,43 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! pair!]
-		return:  [number! pair!]
+		value	 [number! pair! time!]
+		return:  [number! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair! tuple! vector!] "The dividend (numerator)"
-		value2	 [number! char! pair! tuple! vector!] "The divisor (denominator)"
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!] "The dividend (numerator)"
+		value2	 [number! char! pair! tuple! vector! time!] "The divisor (denominator)"
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! bitset! pair!]
-		return:  [number! bitset! pair!]
+		number 	 [number! bitset! pair! time!]
+		return:  [number! bitset! pair! time!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -138,16 +138,16 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair! tuple! vector!]
-		value2 	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1 	 [number! char! pair! tuple! vector! time!]
+		value2 	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number!]
+		n		[number! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
@@ -162,9 +162,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector!]
-		value2	 [number! char! pair! tuple! vector!]
-		return:  [number! char! pair! tuple! vector!]
+		value1	 [number! char! pair! tuple! vector! time!]
+		value2	 [number! char! pair! tuple! vector! time!]
+		return:  [number! char! pair! tuple! vector! time!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -226,14 +226,14 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series! bitset! map!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series! bitset! map!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_APPEND
 ]
@@ -241,7 +241,7 @@ append: make action! [[
 at: make action! [[
 		"Returns a series at a given index"
 		series	 [series!]
-		index 	 [integer!]
+		index 	 [integer! pair!]
 		return:  [series!]
 	]
 	#get-definition ACT_AT
@@ -256,13 +256,13 @@ back: make action! [[
 ]
 
 change: make action! [[
-		"Changes a value in a series and returns the series after the change."
+		"Changes a value in a series and returns the series after the change"
 		series [series!] "Series at point to change"
 		value [any-type!] "The new value"
-		/part "Limits the amount to change to a given length or position."
+		/part "Limits the amount to change to a given length or position"
 			range [number! series!]
 		/only "Changes a series as a series."
-		/dup "Duplicates the change a specified number of times."
+		/dup "Duplicates the change a specified number of times"
 			count [number!]
 	]
 	#get-definition ACT_CHANGE
@@ -337,14 +337,14 @@ index?: make action! [[
 
 insert: make action! [[
 		"Inserts value(s) at series index; returns series past the insertion"
-		series	   [series! bitset! map!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series! bitset! map!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_INSERT
 ]
@@ -378,8 +378,8 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple!]
-		index 	 [scalar! any-string! any-word! block! logic!]
+		series	 [series! bitset! pair! tuple! time!]
+		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
@@ -387,7 +387,7 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! bitset! tuple!]
+		series	 [series! bitset!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
 		return:  [series! bitset!]
@@ -468,7 +468,7 @@ sort: make action! [[
 skip: make action! [[
 		"Returns the series relative to the current index"
 		series	 [series!]
-		offset 	 [integer!]
+		offset 	 [integer! pair!]
 		return:  [series!]
 	]
 	#get-definition ACT_SKIP

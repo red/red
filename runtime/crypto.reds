@@ -20,6 +20,7 @@ crypto: context [
 	_sha384:	0
 	_sha512:	0
 	_hash:		0
+	errno:		as int-ptr! 0
 	
 	init: does [
 		_tcp:		symbol/make "tcp"
@@ -30,6 +31,7 @@ crypto: context [
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
 		_hash:		symbol/make "hash"
+		#if OS <> 'Windows [errno: get-errno-ptr]
 	]
 
 	#enum crypto-algorithm! [
@@ -43,8 +45,7 @@ crypto: context [
 		ALG_HASH
 	]
 
-	crc32-table: declare int-ptr!
-	crc32-table: null
+	crc32-table: as int-ptr! 0
 
 	make-crc32-table: func [
 		/local
@@ -239,7 +240,7 @@ crypto: context [
 		free odata
 		free ihash
 
-		ohash			;?? Who frees this?
+		ohash												;-- Caller MUST free this
 	]
 
 	HASH_STRING: func [
@@ -271,8 +272,76 @@ crypto: context [
 			sym = _hash
 		]
 	]
-	
-#switch OS [
+
+	#if OS <> 'Windows [
+	#import [
+		LIBC-file cdecl [
+			open2: "open" [
+				path	[c-string!]
+				flags	[integer!]
+				return: [integer!]
+			]
+			_read:	"read" [
+				fd		[integer!]
+				buf	    [byte-ptr!]
+				size	[integer!]
+				return:	[integer!]
+			]
+			_close:	"close" [
+				fd		[integer!]
+				return:	[integer!]
+			]
+		]
+	]
+
+	#case [
+		any [OS = 'FreeBSD OS = 'MacOSX] [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__error" [
+					return: [int-ptr!]
+				]
+			]]
+		]
+		true [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__errno_location" [
+					return: [int-ptr!]
+				]
+			]]
+		]
+	]
+
+	urandom: func [
+		buffer	[byte-ptr!]							;-- buffer to receive data
+		size	[integer!]							;-- size of the buffer
+		return: [logic!]
+		/local
+			fd	[integer!]
+			n	[integer!]
+	][
+		fd: open2 "/dev/urandom" O_RDONLY
+		if fd < 0 [return false]
+
+		;@@ cache fd
+		while [size > 0][
+			until [
+			 	n: _read fd buffer size
+			 	not all [n < 0 errno/value = 4]		;-- 4: EINTR
+			]
+			if n < 0 [
+				_close fd
+				return false
+			]
+			buffer: buffer + n
+			size: size - n
+		]
+		_close fd
+		true
+	]]
+
+	#switch OS [
 	Windows [
 		#import [
 			"advapi32.dll" stdcall [
@@ -316,6 +385,12 @@ crypto: context [
 					flags		[integer!]
 					return:		[integer!]
 				]
+				CryptGenRandom: "CryptGenRandom" [
+					handle		[integer!]
+					size		[integer!]
+					buffer		[byte-ptr!]
+					return:		[logic!]
+				]
 			]
 			#if debug? = yes [
 				"kernel32.dll" stdcall [
@@ -335,21 +410,30 @@ crypto: context [
 		#define CALG_SHA_256	        0000800Ch
 		#define CALG_SHA_384	        0000800Dh
 		#define CALG_SHA_512	        0000800Eh
-		
+
+		provider: 0
+		init-provider: does [CryptAcquireContext :provider null null PROV_RSA_AES CRYPT_VERIFYCONTEXT]
+
+		urandom: func [
+			buffer	[byte-ptr!]							;-- buffer to receive data
+			size	[integer!]							;-- size of the buffer
+			return: [logic!]
+		][
+			CryptGenRandom provider size buffer
+		]
+
 		get-digest: func [
 			data	[byte-ptr!]
 			len		[integer!]
 			type	[crypto-algorithm!]
 			return:	[byte-ptr!]							;-- caller should free it
 			/local
-				provider [integer!]
 				handle	[integer!]
 				hash	[byte-ptr!]
 				size	[integer!]
 		][
 			; The hash buffer needs to be big enough to hold the longest result.
 			hash: allocate 64							;-- caller should free it
-			provider: 0
 			handle: 0
 			size: alg-digest-size type
 			type: switch type [							;-- Convert type from enum to Windows code
@@ -364,15 +448,13 @@ crypto: context [
 				]
 			]
 			
-			CryptAcquireContext :provider null null PROV_RSA_AES CRYPT_VERIFYCONTEXT
 			CryptCreateHash provider type null 0 :handle
 			CryptHashData handle data len 0
 			CryptGetHashParam handle HP_HASHVAL hash :size 0
 			CryptDestroyHash handle
-			CryptReleaseContext provider 0
+			;CryptReleaseContext provider 0				;@@ release it when exit Red
 			hash
 		]
-
 	]
 	Linux [
 		;-- Using User-space interface for Kernel Crypto API
@@ -397,21 +479,63 @@ crypto: context [
 					addrlen	[int-ptr!]
 					return:	[integer!]
 				]
-				read:	"read" [
+				_write: "write" [
 					fd		[integer!]
-					buf	    [byte-ptr!]
-					size	[integer!]
-					return:	[integer!]
+					buffer	[c-string!]
+					count	[integer!]
+					return: [integer!]
 				]
-				close:	"close" [
-					fd		[integer!]
+				syscall: "syscall" [
+					[variadic]
 					return:	[integer!]
 				]
 			]
 		]
 
+		#define SYS_getrandom			355		;-- system call for x86
+		#define GRND_NONBLOCK			1
+		#define GRND_RANDOM				2
 		#define AF_ALG 					38
 		#define SOCK_SEQPACKET 			5
+
+		has_getrandom?: yes						;-- need linux kernel 3.17 or newer
+
+		getrandom: func [
+			buffer		[byte-ptr!]
+			size		[integer!]
+			blocking?	[logic!]
+			return:		[integer!]				;-- 1: success, 0: no getrandom(), -1: error
+			/local
+				n		[integer!]
+				flags	[integer!]
+				err		[integer!]
+		][
+			unless has_getrandom? [return 0]
+
+			flags: either blocking? [0][GRND_NONBLOCK]
+			while [size > 0][
+				n: syscall [SYS_getrandom buffer size flags]
+
+				err: errno/value
+				if n < 0 [
+					if any [err = ENOSYS err = EPERM][
+						has_getrandom?: no
+						return 0
+					]
+					if all [err = EAGAIN not blocking?][
+						return 0
+					]
+					if err = EINTR [
+						;@@ check SIGINT, that means it's from keyboard, should return -1
+						continue
+					]
+					return -1
+				]
+				buffer: buffer + n
+				size: size - n
+			]
+			1
+		]
 
 		;struct sockaddr_alg {					;-- 88 bytes
 		;    __u16   salg_family;
@@ -455,10 +579,10 @@ crypto: context [
 			fd: socket AF_ALG SOCK_SEQPACKET 0
 			sock-bind fd sa 88
 			opfd: accept fd null null
-			write opfd as c-string! data len
-			read opfd hash alg-digest-size type
-			close opfd
-			close fd
+			_write opfd as c-string! data len
+			_read opfd hash alg-digest-size type
+			_close opfd
+			_close fd
 			free sa
 			hash
 		]
@@ -525,12 +649,7 @@ crypto: context [
 			type		[integer!]
 			return:		[byte-ptr!]						;-- caller should free it
 			/local
-				fd		[integer!]
-				opfd	[integer!]
-				sa		[byte-ptr!]
-				alg		[c-string!]
 				hash	[byte-ptr!]
-				size	[integer!]
 		][
 			hash: allocate 64							;-- caller should free it
 			switch type [

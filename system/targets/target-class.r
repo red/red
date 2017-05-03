@@ -30,7 +30,8 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: emit-log-b: none
+	emit-throw:	on-init: emit-alt-last: emit-log-b:
+	emit-variable: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -74,19 +75,10 @@ target-class: context [
 		][
 			to-bin32 offset
 		][
-			skip debase/base to-hex offset 16 3
+			to-bin8 offset
 		]
 	]
-		
-	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
-		if 4 = length? offset [
-			lcode: copy/deep lcode
-			code: either block? lcode [first back find lcode 'offset][lcode]
-			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
-		]
-		lcode
-	]
-
+	
 	emit: func [bin [binary! char! block!]][
 		if verbose >= 4 [print [">>>emitting code:" mold bin]]
 		append emitter/code-buf bin
@@ -99,56 +91,6 @@ target-class: context [
 			append/only 							;-- record reloc reference
 				second last emitter/chunks/queue
 				back tail spec/3					
-		]
-	]
-
-	emit-variable: func [
-		name  [word! object!] 
-		gcode [binary! block! none!]				;-- global opcodes
-		pcode [binary! block! none!]				;-- PIC opcodes
-		lcode [binary! block!] 						;-- local opcodes
-		/local offset code
-	][
-		if object? name [name: compiler/unbox name]
-		
-		case [
-			offset: select emitter/stack name [
-				offset: stack-encode offset 			;-- local variable case
-				either block? lcode: adjust-disp32 lcode offset [
-					emit reduce bind lcode 'offset
-				][
-					emit lcode
-					emit offset
-				]
-			]
-			PIC? [										;-- global variable case (PIC version)
-				either block? pcode [
-					foreach code reduce pcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
-				][
-					emit pcode
-					emit-reloc-addr emitter/symbols/:name
-				]
-			]
-			'global [									;-- global variable case
-				either block? gcode [
-					foreach code reduce gcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
-				][
-					emit gcode
-					emit-reloc-addr emitter/symbols/:name
-				]
-			]
 		]
 	]
 	
@@ -182,7 +124,10 @@ target-class: context [
 	implicit-cast: func [arg /local right-width][
 		right-width: first get-width arg none
 		
-		if all [width = 4 right-width = 1][			;-- detect byte! -> integer! implicit casting
+		if any [
+			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
+			find [float! float32! float64!] first compiler/get-type arg
+		][
 			arg: make object! [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
@@ -284,10 +229,7 @@ target-class: context [
 				if name = 'not [res: compiler/get-type args/1]
 			]
 			op [
-				either any [
-					compiler/any-float? compiler/resolve-expr-type args/1
-					compiler/any-float? compiler/resolve-expr-type args/2
-				][
+				either compiler/any-float? compiler/resolve-expr-type args/1 [
 					emit-float-operation name args
 				][
 					emit-integer-operation name args

@@ -18,6 +18,7 @@ do-cache %system/utils/secure-clean-path.r
 do-cache %system/utils/unicode.r
 do-cache %system/linker.r
 do-cache %system/emitter.r
+do-cache %system/utils/libRedRT.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
@@ -30,7 +31,7 @@ system-dialect: make-profilable context [
 	options-class: context [
 		config-name:		none						;-- Preconfigured compilation target ID
 		OS:					none						;-- Operating System
-		OS-version:			none						;-- OS version
+		OS-version:			0							;-- OS version
 		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
@@ -46,12 +47,14 @@ system-dialect: make-profilable context [
 		runtime?:			yes							;-- include Red/System runtime
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
-		debug-safe?:		no							;-- try to avoid over-crashing on runtime debug reports
+		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
+		dev-mode?:		 	yes							;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
 		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
 		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
+		export-ABI:			none						;-- force a calling convention for exports
 		stack-align-16?:	no							;-- yes => align stack to 16 bytes
 		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
@@ -63,6 +66,12 @@ system-dialect: make-profilable context [
 		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 		gui-console?:		no							;-- yes => redirect printing to gui console (temporary)
+		libRed?: 			no
+		libRedRT?: 			no
+		libRedRT-update?:	no
+		modules:			none
+		show:				none
+		command-line:		none
 	]
 	
 	compiler: make-profilable context [
@@ -78,6 +87,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
+		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
 		verbose:  	 	 0								;-- logs verbosity level
@@ -134,7 +144,7 @@ system-dialect: make-profilable context [
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-			(to-word "%")		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+      (to-word "%")	[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -171,7 +181,7 @@ system-dialect: make-profilable context [
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
-			| 'struct!  into [struct-syntax]
+			| 'struct!  into [struct-syntax] opt 'value
 		]
 
 		type-spec: [
@@ -182,7 +192,7 @@ system-dialect: make-profilable context [
 					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
 					all [enum-type? value pos/1: 'integer!]
 				][throw false]							;-- stop parsing if unresolved type			
-			)
+			) opt 'value
 		]		
 		
 		keywords: make hash! [
@@ -206,6 +216,7 @@ system-dialect: make-profilable context [
 			continue	 [comp-continue]
 			catch		 [comp-catch]
 			declare		 [comp-declare]
+			use			 [comp-use]
 			null		 [comp-null]
 			context		 [comp-context]
 			with		 [comp-with]
@@ -394,10 +405,42 @@ system-dialect: make-profilable context [
 							path
 						]
 					]
-					; add new special reflective system path here
 				]
 			]
 			none
+		]
+		
+		system-action?: func [path [path!] /local expr][
+			if path/1 = 'system [
+				switch/default path/2 [
+					stack [
+						switch/default path/3 [
+							allocate [
+								pc: next pc
+								fetch-expression/final/keep 'stack-alloc
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/allocate expects an integer! argument"
+								]
+								emitter/target/emit-alloc-stack
+								emitter/target/emit-get-stack
+								last-type: [pointer! [integer!]]
+								true
+							]
+							free [
+								pc: next pc
+								fetch-expression/final/keep 'stack-free
+								if any [none? last-type last-type/1 <> 'integer!][
+									throw-error "system/stack/free expects an integer! argument"
+								]
+								emitter/target/emit-free-stack
+								true
+							]
+							;push []
+							;pop  []
+						][false]
+					]
+				][false]
+			]
 		]
 		
 		base-type?: func [value][
@@ -559,6 +602,8 @@ system-dialect: make-profilable context [
 		]
 		
 		resolve-type: func [name /with parent /local type local? pos mark][
+			if get-word? name [name: to word! name]
+			
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
@@ -592,24 +637,28 @@ system-dialect: make-profilable context [
 			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
+		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error p1][
 			path-error: [
 				pc: skip pc -2
-				throw-error "invalid path value"
+				throw-error ["invalid path value:" mold path]
 			]
-			either word? path/1 [
-				either parent [
-					resolve-struct-member-type prev path/1	;-- just check for correct member name
-					with-alias-resolution on [
-						type: resolve-type/with path/1 prev
-					]
-				][
-					with-alias-resolution on [
-						type: resolve-type path/1
-					]
+			
+			p1: to word! path/1
+			either parent [
+				resolve-struct-member-type prev p1	;-- just check for correct member name
+				with-alias-resolution on [
+					type: resolve-type/with p1 prev
 				]
 			][
-				type: reduce [type?/word path/1]
+				with-alias-resolution on [
+					type: resolve-type p1
+				]
+			]
+
+			all [
+				get-word? path/1 word? path/2
+				'function! <> first resolve-struct-member-type type/2 path/2
+				return [pointer! [integer!]]			;-- struct member get-path! -> int-ptr!
 			]
 			
 			unless type path-error
@@ -634,11 +683,7 @@ system-dialect: make-profilable context [
 
 				] path-error
 			][
-				either short [
-					resolve-path-type/parent/short next path second type
-				][
-					resolve-path-type/parent next path second type
-				]
+				resolve-path-type/parent next path second type
 			]
 		]
 		
@@ -651,13 +696,13 @@ system-dialect: make-profilable context [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
 					
 					either 'op = second get-function-spec value/1 [
-						either base-type? type: get-return-type value/1 [
+						either base-type? type: get-return-type/check value/1 [
 							type						;-- unique returned type, stop here
 						][
 							get-type value/2			;-- recursively search for left operand base type
 						]
 					][
-						get-return-type value/1
+						get-return-type/check value/1
 					]
 				]
 				object!  [value/type]
@@ -665,11 +710,25 @@ system-dialect: make-profilable context [
 				string!	 [[c-string!]]
 				get-word! [
 					type: resolve-type to word! value
+					
 					switch/default type/1 [
 						function! [type]
 						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
 					][
-						throw-error ["invalid datatype for a get-word:" mold type]
+						with-alias-resolution off [
+							type: resolve-type to word! value
+						]
+						either all [
+							'value = last type
+							any [
+								'struct! = type/1
+								'struct! = first find-aliased type/1
+							]
+						][
+							type
+						][
+							throw-error ["invalid datatype for a get-word:" mold type]
+						]
 					]
 				]
 				logic!	 [[logic!]]
@@ -808,6 +867,12 @@ system-dialect: make-profilable context [
 		
 		pop-calls: does [clear expr-call-stack]
 		
+		count-outer-loops: has [n][
+			n: 0
+			parse loop-stack [any ['loop (n: n + 1) | skip]]
+			n
+		]
+		
 		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
 			ctype: resolve-aliased obj/type
@@ -821,8 +886,8 @@ system-dialect: make-profilable context [
 			]
 			if any [
 				all [type/1 = 'function! not find [function! integer!] ctype/1]
-				all [find [float! float64!] ctype/1 not any-float? type]
-				all [find [float! float64!] type/1  not any-float? ctype]
+				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
+				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
@@ -846,7 +911,7 @@ system-dialect: make-profilable context [
 					]
 				]
 				integer! [
-					if find [byte! logic!] type/1 [
+					if find [byte! logic! float! float32! float64!] type/1 [
 						value: to integer! value
 					]
 				]
@@ -854,6 +919,11 @@ system-dialect: make-profilable context [
 					switch type/1 [
 						byte! 	 [value: value <> null]
 						integer! [value: value <> 0]
+					]
+				]
+				float! float32! [
+					if type/1 = 'integer! [
+						value: to decimal! value
 					]
 				]
 			]
@@ -923,6 +993,9 @@ system-dialect: make-profilable context [
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
 			unless block? pos/2 [					;-- if not typed, infer type
+				if 'value = last get-type expr [
+					throw-error ["cannot infer type for:" mold name]
+				]
 				insert/only at pos 2 type: any [
 					casted
 					resolve-expr-type expr
@@ -1414,6 +1487,7 @@ system-dialect: make-profilable context [
 				name specs pc/3 script
 				all [ns-path copy ns-path]
 				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
+				user-code?
 			]
 			pc: skip pc 3
 		]
@@ -1454,41 +1528,63 @@ system-dialect: make-profilable context [
 					expr
 				]
 			]
+			all [
+				block? expr
+				1 = length? expr
+				literal? expr/1
+				expr: expr/1							;-- unwrap literal value
+			]
 			expr
 		]
 		
-		process-export: has [defs cc ns func? spec][
+		flag-callback: func [name [word!] cc [word! none!] /local spec][
+			spec: second find-functions name
+			spec/3: any [cc job/export-ABI all [job/red-pass? spec/3] 'cdecl]
+			unless spec/5 = 'callback [append spec 'callback]
+		]
+		
+		process-export: has [defs cc ns entry spec list name sym][
+			if job/type = 'exe [
+				throw-error "#export directive requires a library compilation mode"
+			]
 			if word? pc/2 [
 				unless find [stdcall cdecl] cc: pc/2 [
 					throw-error ["invalid calling convention specifier:" cc]
 				]
 				pc: next pc
 			]
-			foreach name pc/2 [
-				func?: no
-				unless any [word? name path? name][
-					throw-error ["invalid exported symbol:" mold name]
+			list: pc/2
+			while [not tail? list][
+				sym: list/1
+				entry: none
+				unless any [word? sym path? sym][
+					throw-error ["invalid exported symbol:" mold sym]
 				]
-				if path? name [name: resolve-ns-path name]
+				if path? sym [sym: resolve-ns-path sym]
 				unless any [
-					find globals name
-					func?: find-functions name
+					find globals sym
+					entry: find-functions sym
 				][
-					throw-error ["undefined exported symbol:" mold name]
+					throw-error ["undefined exported symbol:" mold sym]
 				]
-				append exports name
-				
-				if func? [
-					spec: select functions name
-					spec/3: any [cc 'cdecl]
-					unless spec/5 = 'callback [append spec 'callback]
+				if entry [
+					flag-callback sym cc
+					sym: entry/1
 				]
+				either string? name: pick list 2 [
+					list: next list
+				][
+					name: form sym
+				]
+				repend exports [sym any [find/match name "exec/" name]]
+				list: next list
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos new? funcs err][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
+			err: ["invalid import specification at:" pos]
 			unless parse defs [
 				some [
 					pos: set lib string! (
@@ -1513,21 +1609,31 @@ system-dialect: make-profilable context [
 							)
 							pos: set id   string!
 							pos: set spec block!    (
-								check-specs/extend name spec
 								clear-docstrings spec
-								specs: copy specs
-								specs/1: name
-								add-function 'import specs cc
-								reloc: all [funcs: select imports lib select funcs id]
-								unless reloc [repend list [id reloc: make block! 1]]
-								emitter/import-function name reloc
+								either all [1 = length? spec not block? spec/1][
+									unless parse spec type-spec [throw-error err]
+									either ns-path [
+										add-ns-symbol specs/1
+										add-symbol ns-prefix to word! specs/1 none spec
+									][
+										add-symbol to word! specs/1 none spec
+									]
+									repend list [to issue! id reloc: make block! 1]
+									emitter/import/var name reloc
+								][
+									check-specs/extend name spec
+									specs: copy specs
+									specs/1: name
+									add-function 'import specs cc
+									reloc: all [funcs: select imports lib select funcs id]
+									unless reloc [repend list [id reloc: make block! 1]]
+									emitter/import name reloc
+								]
 							)
 						]
 					](if new? [repend imports [lib list]])
 				]
-			][
-				throw-error ["invalid import specification at:" pos]
-			]		
+			][throw-error err]
 		]
 		
 		process-syscall: func [defs [block!] /local name id spec pos][
@@ -1582,7 +1688,7 @@ system-dialect: make-profilable context [
 			unless red/process-get-directive code/2 pc [
 				throw-error ["cannot resolve path:" code/2]
 			]
-			fetch-expression
+			fetch-expression #get
 		]
 		
 		process-in: func [code [block!] /local value][
@@ -1593,7 +1699,7 @@ system-dialect: make-profilable context [
 			unless red/process-in-directive code/2 code/3 pc [
 				throw-error ["cannot resolve path:" code/2]
 			]
-			fetch-expression
+			fetch-expression #in
 		]
 		
 		process-check: func [code [block!] /local checks][
@@ -1627,7 +1733,7 @@ system-dialect: make-profilable context [
 			parse/all str [any [skip pos: (insert pos null) skip]]
 			append str null								;-- extra NUL for UTF-16 version
 			pc: next pc
-			fetch-expression
+			fetch-expression #u16
 		]
 		
 		comp-chunked: func [body [block!]][
@@ -1648,6 +1754,8 @@ system-dialect: make-profilable context [
 				#enum	   [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose   [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	   [process-u16 	  pc]
+				#user-code [user-code?: not user-code? pc: next pc]
+				#build-date[change pc mold now]
 				#script	   [							;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
@@ -1678,7 +1786,7 @@ system-dialect: make-profilable context [
 		
 		comp-comment: does [
 			pc: next pc
-			either block? pc/1 [pc: next pc][fetch-expression]
+			either block? pc/1 [pc: next pc][fetch-expression 'comment]
 			none
 		]
 		
@@ -1787,16 +1895,51 @@ system-dialect: make-profilable context [
 				offset: 3
 				[pc/2 pc/3]
 			][
-				unless all [word? pc/2 resolve-aliased reduce [pc/2]][
-					throw-error ["declaring literal for type" pc/2 "not supported"]
+				if path? value: pc/2 [value: to word! form value]
+				
+				unless all [word? value resolve-aliased reduce [value]][
+					throw-error ["declaring literal for type" value "not supported"]
 				]
-				value: pc/2
 				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
 				['struct! value]
 			]
 			pc: skip pc offset
 			value
+		]
+		
+		comp-use: has [spec use-init use-locals use-stack][
+			pc: next pc
+			unless all [block? spec: pc/1 not empty? spec][
+				backtrack 'use
+				throw-error "USE requires a spec block as first argument"
+			]
+			unless block? pc/2 [
+				backtrack 'use
+				throw-error "USE requires a body block as second argument"
+			]
+			unless locals [
+				backtrack 'use
+				throw-error "USE can only be used from inside a function's body"
+			]
+			
+			use-init:   tail locals-init
+			use-locals: tail locals
+			use-stack:  tail emitter/stack
+			
+			unless find locals /local [append locals /local]
+			append locals spec
+			emitter/calc-locals-offsets use-locals
+			
+			pc: next pc
+			fetch-into/root pc/1 [comp-dialect]
+			pc: next pc
+			
+			clear use-init
+			clear use-locals
+			clear use-stack
+			last-type: none-type
+			none
 		]
 		
 		comp-null: does [
@@ -1807,6 +1950,7 @@ system-dialect: make-profilable context [
 		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
+			if path? ctype [ctype: to word! form ctype]
 			
 			if any [
 				not find [word! block!] type?/word ctype
@@ -1818,7 +1962,7 @@ system-dialect: make-profilable context [
 				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
-			expr: fetch-expression
+			expr: fetch-expression 'as
 
 			if all [
 				block? ctype
@@ -1845,23 +1989,23 @@ system-dialect: make-profilable context [
 			either job/debug? [
 				line: calc-line
 				pc: next pc
-				expr: fetch-expression/final
+				expr: fetch-expression/final 'assert
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
 				insert/only pc next next compose [
-					2 (to pair! reduce [line 1])			;-- hidden line offset header
+					2 (to pair! reduce [line 1])		;-- hidden line offset header
 					***-on-quit 98 as integer! system/pc
 				]
-				set [unused chunk] comp-block-chunked		;-- compile TRUE block
-				emitter/set-signed-state expr				;-- properly set signed/unsigned state
+				set [unused chunk] comp-block-chunked	;-- compile TRUE block
+				emitter/set-signed-state expr			;-- properly set signed/unsigned state
 				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
 				emitter/merge chunk
 				last-type: none-type
 				<last>
 			][
 				pc: next pc
-				fetch-expression							;-- consume next expression
+				fetch-expression none					;-- consume next expression
 				none
 			]
 		]
@@ -1907,8 +2051,10 @@ system-dialect: make-profilable context [
 		
 		comp-size?: has [type expr][
 			pc: next pc
+			if path? expr: pc/1 [expr: to word! form expr]
+			
 			unless all [
-				word? expr: pc/1
+				word? expr
 				type: any [
 					all [base-type? expr expr]
 					all [enum-type? expr [integer!]]
@@ -1916,7 +2062,7 @@ system-dialect: make-profilable context [
 				]
 				pc: next pc
 			][
-				expr: fetch-expression/final	
+				expr: fetch-expression/final 'size?
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr
@@ -1936,7 +2082,7 @@ system-dialect: make-profilable context [
 						func-name
 					]
 				]
-				expr: fetch-expression/final/keep		;-- compile expression to return
+				expr: fetch-expression/final/keep 'return ;-- compile expression to return
 				type: check-expected-type/ret func-name expr ret
 				ret: either type [last-type: type <last>][none]
 			][
@@ -1946,9 +2092,9 @@ system-dialect: make-profilable context [
 			ret
 		]
 
-		comp-catch: has [offset locals-size unused chunk start end][
+		comp-catch: has [offset locals-size unused chunk start end cb? cnt][
 			pc: next pc
-			fetch-expression/keep/final
+			fetch-expression/keep/final 'catch
 			if any [not last-type last-type <> [integer!]][
 				backtrack 'catch
 				throw-error "CATCH expects a threshold value of type integer!"
@@ -1962,15 +2108,21 @@ system-dialect: make-profilable context [
 			set [unused chunk] comp-block-chunked		;-- compile body block
 			catch-level: catch-level - 1
 
-			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]			
+			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]
 			chunk: emitter/chunks/join start chunk
 			
-			locals-size: either all [locals not empty? emitter/stack][
-				abs last emitter/stack
+			locals-size: either all [locals find locals /local][
+				unless block? last locals [
+					throw-error ["Type definition required for:" last locals]
+				]
+				(abs last emitter/stack) + emitter/size-of? last locals
 			][
-				emitter/target/locals-offset
+				0
 			]
-			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals]
+			cb?: to logic! all [locals 'callback = last functions/:func-name]
+			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
+			
+			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals cb?]
 			chunk: emitter/chunks/join chunk end
 			emitter/merge chunk
 			
@@ -1978,16 +2130,25 @@ system-dialect: make-profilable context [
 			none
 		]
 
-		comp-block-chunked: func [/only /test name [word!] /local expr][
+		comp-block-chunked: func [/only /test name [word!] /bool /local expr][
 			emitter/chunks/start
 			expr: either only [
-				fetch-expression/final					;-- returns first expression
+				fetch-expression/final none				;-- returns first expression
 			][
 				comp-block/final						;-- returns last expression
 			]
 			if test [
 				check-conditional name expr				;-- verify conditional expression
 				expr: process-logic-encoding expr no
+			]
+			if bool [
+				if all [
+					block? expr
+					find comparison-op expr/1
+					last-type/1 = 'logic!
+				][
+					emitter/logic-to-integer expr/1
+				]
 			]
 			reduce [
 				expr 
@@ -2033,7 +2194,7 @@ system-dialect: make-profilable context [
 		
 		comp-if: has [expr unused chunk][		
 			pc: next pc
-			expr: fetch-expression/final				;-- compile expression
+			expr: fetch-expression/final 'if			;-- compile expression
 			check-conditional 'if expr					;-- verify conditional expression
 			expr: process-logic-encoding expr no
 			check-body pc/1								;-- check TRUE block
@@ -2046,11 +2207,14 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
-			expr: fetch-expression/final				;-- compile expression
+			mark: tail expr-call-stack
+			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
+			clear mark
+
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
@@ -2106,7 +2270,7 @@ system-dialect: make-profilable context [
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
-					append/only list body: comp-block-chunked
+					append/only list body: comp-block-chunked/bool
 					append/only types resolve-expr-type/quiet body/1
 				]
 				clear find expr-call-stack #body
@@ -2136,7 +2300,7 @@ system-dialect: make-profilable context [
 		
 		comp-switch: has [expr save-type spec value values body bodies list types default pos][
 			pc: next pc
-			expr: fetch-expression/keep/final			;-- compile argument
+			expr: fetch-expression/keep/final 'switch	;-- compile argument
 			if any [none? expr last-type = none-type][
 				throw-error "SWITCH argument has no return value"
 			]
@@ -2156,8 +2320,8 @@ system-dialect: make-profilable context [
 					(repend values [value none])		;-- [value body-offset ...]
 					pos: block! (
 						fetch-into pos [				;-- compile action body
-							body: comp-block-chunked
-							append/only list body/2		
+							body: comp-block-chunked/bool
+							append/only list body/2
 							append/only types resolve-expr-type/quiet body/1
 						]
 					)
@@ -2165,7 +2329,7 @@ system-dialect: make-profilable context [
 				opt [
 					'default pos: block! (
 						fetch-into pos [				;-- compile default body
-							default: comp-block-chunked
+							default: comp-block-chunked/bool
 							append/only types resolve-expr-type/quiet default/1
 						]
 					)
@@ -2220,8 +2384,9 @@ system-dialect: make-profilable context [
 		
 		comp-break: does [
 			if empty? loop-stack [throw-error "BREAK used with no loop"]
-			if 'while-cond = last loop-stack [
-				throw-error "BREAK cannot be used in WHILE condition block"
+			switch last loop-stack [
+				while-cond [throw-error "BREAK cannot be used in WHILE condition block"]
+				loop	   [emitter/target/emit-pop]
 			]
 			emitter/target/emit-jump-point last emitter/breaks
 			pc: next pc
@@ -2245,7 +2410,7 @@ system-dialect: make-profilable context [
 		comp-loop: has [expr body start][
 			pc: next pc
 			
-			fetch-expression/keep/final						;-- compile expression
+			fetch-expression/keep/final 'loop			;-- compile expression
 			if any [none? last-type last-type/1 <> 'integer!][
 				throw-error "LOOP requires an integer as argument"
 			]
@@ -2390,7 +2555,7 @@ system-dialect: make-profilable context [
 				if all [series? name value: system-reflexion? name][name: value]
 			]
 			
-			either none? value: fetch-expression [		;-- explicitly test for none!
+			either none? value: fetch-expression name [	;-- explicitly test for none!
 				none
 			][
 				new-line/all reduce [name value] no
@@ -2403,7 +2568,7 @@ system-dialect: make-profilable context [
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
 					pos: pc
-					expr: fetch-expression
+					expr: fetch-expression name
 					either attribute = 'typed [
 						if all [expr = <last> none? last-type/1][
 							pc: pos
@@ -2426,7 +2591,7 @@ system-dialect: make-profilable context [
 				reduce [name to-issue attribute args]
 			][									;-- fixed arity case
 				args: make block! n: entry/2/1
-				loop n [append/only args fetch-expression]	;-- fetch n arguments
+				loop n [append/only args fetch-expression name]	;-- fetch n arguments
 				new-line/all head insert/only args name no
 			]
 		]
@@ -2457,10 +2622,8 @@ system-dialect: make-profilable context [
 		
 		comp-path: has [path value ns type name get?][
 			path: pc/1
-			if #":" = first mold path/1 [
-				path/1: to word! path/1
-				get?: yes
-			]
+			if get?: get-word? path/1 [path/1: to word! path/1]
+			
 			either all [
 				not local-variable? path/1
 				path: resolve-ns-path path
@@ -2481,9 +2644,12 @@ system-dialect: make-profilable context [
 							pc: next pc
 						]
 					]
+					system-action? path [
+						return <last>
+					]
 					all [
 						not get?
-						'function! = first type: resolve-path-type/short path 
+						'function! = first type: resolve-path-type path 
 					][
 						name: to word! form path
 						check-specs name type/2
@@ -2495,6 +2661,12 @@ system-dialect: make-profilable context [
 					'else [
 						comp-word/path path/1				;-- check if root word is defined
 						last-type: resolve-path-type path
+						all [
+							get?
+							'struct! = first get-type path/1
+							'function! <> first resolve-path-type path 
+							path/1: to get-word! path/1		;-- reform the pseudo get-path (for forward propagation)
+						]
 					]
 				]
 				any [value path]
@@ -2707,10 +2879,24 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
+		
+		get-caller: func [name /root /local list found? stk][
+			stk: exclude expr-call-stack [as #body #test]
+			if tail? next stk [return none]
+			
+			list: back back find stk name
+			unless root [return any [all [find calling-keywords list/1 none] list/1]]
+			
+			while [found?: find calling-keywords list/1][list: back list]
+			all [not found? not tail? next list list/1]
+		]
 
 		comp-call: func [
-			name [word!] args [block!] /sub
-			/local list type res align? left right dup var-arity? saved? arg expr spec
+			name [word!] args [block!]
+			/sub										;FIXME: never used!
+			/local
+				list type res align? left right dup var-arity? saved? arg expr spec fspec
+				ret-value? types slots caller
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2719,9 +2905,55 @@ system-dialect: make-profilable context [
 				check-arguments-type name args
 				args
 			]
-			order-args name list						;-- reorder argument according to cconv
-
 			spec: functions/:name
+			
+			;-- returned struct by value handling --
+			if all [
+				slots: emitter/struct-slots?/check spec/4
+				any [
+					2 < slots
+					all [
+						spec/2 = 'import
+						spec/3 = 'cdecl
+						not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
+					]
+				]
+			][
+				unless caller: get-caller name [
+					caller: either tail? pc [
+						get-caller/root name
+					][
+						any [get-caller/root name 'args-top] ;-- 'args-top is just for routing in SWITCH 
+					]
+				]
+				insert/only list switch/default type?/word caller [
+					none!	  [<ret-ptr>]
+					set-word! [
+						unless get-variable-spec to word! caller [
+							backtrack caller
+							throw-error "variable not declared"
+						]
+						bind to word! caller caller
+					]
+					set-path! [
+						unless get-variable-spec caller/1 [
+							backtrack caller
+							throw-error ["unknown path root variable:" caller/1]
+						]
+						to path! caller
+					]
+					word!	  [
+						emitter/target/emit-reserve-stack slots
+						ret-value?: to tag! emitter/arguments-size? spec/4
+					]
+				][
+					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
+				]
+			]
+			;--
+			
+			order-args name list						;-- reorder argument according to cconv
+			
 			align?: all [
 				args/1 <> #custom
 				any [
@@ -2729,20 +2961,39 @@ system-dialect: make-profilable context [
 					all [spec/2 = 'routine external-call? spec]
 				]
 			]
-			if align? [emitter/target/emit-stack-align-prolog args]
+			if align? [emitter/target/emit-stack-align-prolog args spec]
 			
 			if args/1 <> #custom [
-				type: functions/:name/2
+				type: second fspec: functions/:name
 				either type <> 'op [
+					all [
+						not empty? list
+						not all [block? fspec/4/1 intersect fspec/4/1 [variadic typed]]
+						types: any [
+							find/last fspec/4 return-def
+							find/last fspec/4 /local
+							tail fspec/4
+						]
+						types: back types
+					]
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
 						if object? expr [cast expr]
 						if type <> 'inline [
-							emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
+							either all [types not tag? expr block? types/1 'value = last types/1][
+								emitter/push-struct expr resolve-aliased types/1
+							][
+								emitter/target/emit-argument expr fspec ;-- let target define how arguments are passed
+							]
 						]
+						if types [types: skip types -2]
 					]
 				][										;-- nested calls as op argument require special handling
+					if any [string? list/1 string? list/2][
+						backtrack first find/reverse pc string!
+						throw-error "literal string values cannot be used with operators"
+					]
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					left:  unbox list/1
 					right: unbox list/2
@@ -2753,6 +3004,8 @@ system-dialect: make-profilable context [
 					if saved? [emitter/target/emit-restore-last]
 				]
 			]
+			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
+			
 			res: emitter/target/emit-call name args to logic! sub
 
 			either res [
@@ -2761,15 +3014,19 @@ system-dialect: make-profilable context [
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if align? [emitter/target/emit-stack-align-epilog args]
+			if ret-value? [emitter/target/emit-release-stack slots]
 			res
 		]
 				
 		comp-path-assign: func [
-			set-path [set-path!] expr casted [block! none!]
-			/local type new value
+			set-path [set-path!] expr casted [block! none!] store? [logic!]
+			/local type new value spec
 		][
 			value: unbox expr
-			if find [block! path! tag!] type?/word value [
+			if all [
+				find [block! path! tag!] type?/word value
+				'value <> last last-type				;-- struct by value has specific handling
+			][
 				emitter/target/emit-move-path-alt		;-- save assigned value
 			]
 			if all [
@@ -2779,12 +3036,19 @@ system-dialect: make-profilable context [
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
 			]
-			unless get-variable-spec set-path/1 [
+			unless spec: get-variable-spec set-path/1 [
 				backtrack set-path
 				throw-error ["unknown path root variable:" set-path/1]
 			]
 			type: resolve-path-type set-path			;-- check path validity
-			new: resolve-aliased get-type expr		
+			new: resolve-aliased get-type expr
+			
+			all [
+				block? spec
+				'value = last spec						;-- for local struct by value only
+				not-initialized? set-path/1
+				init-local set-path/1 expr casted		;-- mark as initialized and infer type if required
+			]
 
 			if type <> any [casted new][
 				backtrack set-path
@@ -2793,19 +3057,22 @@ system-dialect: make-profilable context [
 					"^/*** expected:" mold type
 					"^/*** found:" mold any [casted new]
 				]
-			]		
-			emitter/access-path set-path either any [block? value path? value][
-				 <last>
-			][
-				expr
+			]
+			if store? [
+				emitter/access-path set-path either any [block? value path? value][
+					 <last>
+				][
+					expr
+				]
 			]
 		]
 		
 		comp-variable-assign: func [
-			set-word [set-word!] expr casted [block! none!]
+			set-word [set-word!] expr casted [block! none!] store? [logic!]
 			/local name type new value fun-name
 		][
-			name: to word! set-word		
+			name: to word! set-word
+			
 			if find aliased-types name [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
@@ -2838,7 +3105,8 @@ system-dialect: make-profilable context [
 				][
 					new: type
 				]
-				
+				if 'value = last new [new: head remove back tail copy new]
+
 				if type <> any [casted new][
 					backtrack set-word
 					throw-error [
@@ -2866,13 +3134,21 @@ system-dialect: make-profilable context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			emitter/store name value type
+			
+			if store? [
+				unless all [paren? value 'value = last value][ ;-- struct by value excluded from heap allocation
+					emitter/store name value type
+				]
+			]
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type spec store?][
+			store?: no
+			
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1
+				store?: yes
 				expr: expr/2							;-- switch to assigned expression
 				if set-word? variable [
 					new?: any [
@@ -2924,7 +3200,7 @@ system-dialect: make-profilable context [
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
+					emitter/target/emit-load expr		;-- emit code for single value
 					either all [boxed not decimal? unbox expr][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type
@@ -2937,7 +3213,17 @@ system-dialect: make-profilable context [
 			]
 			
 			;-- postprocessing result
-			if block? expr [							;-- if expr is a function call	
+			if block? expr [							;-- if expr is a function call
+				all [
+					variable
+					'value = last last-type				;-- for a struct passed by value
+					word? expr/1
+					spec: select functions expr/1
+					spec/2 = 'import
+					spec/3 = 'cdecl
+					not find [Windows MacOSX] job/OS	;-- for Linux OS (and derivatives)
+					store?: no							;-- avoid emitting assignment code
+				]
 				if all [
 					any [
 						keep?
@@ -2954,8 +3240,8 @@ system-dialect: make-profilable context [
 				]
 				if all [
 					variable boxed						;-- process casting if result assigned to variable
-					find [logic! integer!] last-type/1
-					find [logic! integer!] boxed/type	;-- fixes #967
+					find [logic! integer! float! float32! float64!] last-type/1
+					find [logic! integer! float! float32! float64!] boxed/type	;-- fixes #967
 					last-type/1 <> boxed/type
 				][
 					emitter/target/emit-casting boxed no ;-- insert runtime type casting if required
@@ -2988,8 +3274,8 @@ system-dialect: make-profilable context [
 				]
 				unless boxed [boxed: expr]
 				switch type?/word variable [
-					set-word! [comp-variable-assign variable expr casting]
-					set-path! [comp-path-assign		variable boxed casting]
+					set-word! [comp-variable-assign variable expr casting store?]
+					set-path! [comp-path-assign		variable boxed casting store?]
 				]
 			]
 		]
@@ -3037,15 +3323,23 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		fetch-expression: func [/final /keep /local expr pass value][
+		fetch-expression: func [
+			caller [any-word! issue! none! set-path!]
+			/final /keep /local expr pass value
+		][
 			check-infix-operators
 			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
 			if tail? pc [
-				pc: back pc
-				throw-error "missing argument"
+				either caller [
+					unless backtrack caller [pc: back pc]
+					throw-error [mold caller "is missing an argument"]
+				][
+					pc: back pc
+					throw-error "missing argument"
+				]
 			]
 			if job/debug? [store-dbg-lines]
 			
@@ -3077,21 +3371,22 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		comp-block: func [/final /only /local expr save-pc][
+		comp-block: func [/final /only /local expr save-pc mark][
 			block-level: block-level + 1
 			save-pc: pc
 			pc: pc/1
 
 			either only [
-				expr: either final [fetch-expression/final][fetch-expression]
+				expr: either final [fetch-expression/final none][fetch-expression none]
 				unless tail? pc [
 					throw-error "more than one expression found in parentheses"
 				]
 			][
+				mark: tail expr-call-stack
 				while [not tail? pc][
 					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
-					expr: either final [fetch-expression/final][fetch-expression]
-					unless tail? pc [pop-calls]
+					expr: either final [fetch-expression/final none][fetch-expression none]
+					clear mark
 				]
 			]
 			pc: next save-pc
@@ -3118,9 +3413,9 @@ system-dialect: make-profilable context [
 					]
 					paren? pc/1 [
 						;unless infix? at pc 2 [raise-paren-error]
-						expr: fetch-expression/final/keep
+						expr: fetch-expression/final/keep none
 					]
-					'else [expr: fetch-expression/final/keep]
+					'else [expr: fetch-expression/final/keep none]
 				]
 				pop-calls
 				emitter/target/on-root-level-entry
@@ -3148,15 +3443,22 @@ system-dialect: make-profilable context [
 					emitter/target/emit-casting expr no	;-- insert runtime type casting when required
 					last-type: expr/type
 				]
+				ret: all [
+					'value = last ret
+					any [
+						all [ret/1 = 'struct! ret/2]
+						all [ret: resolve-aliased ret ret/1 = 'struct! ret/2]
+					]
+				]
 			]
-			emitter/leave name locals args-sz local-sz	;-- build function epilog
+			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
 			clear locals-init
 			locals: func-name: none
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns nss] natives [
+			foreach [name spec body origin ns nss user?] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -3167,6 +3469,7 @@ system-dialect: make-profilable context [
 				script: origin
 				ns-path: ns
 				ns-stack: nss
+				user-code?: user?
 				comp-func-body name spec body
 			]
 		]
@@ -3216,7 +3519,7 @@ system-dialect: make-profilable context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 6 [
+				unless find/skip natives fun 7 [
 					repend code [
 						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
@@ -3233,6 +3536,7 @@ system-dialect: make-profilable context [
 			job: obj
 			pc: src
 			script: secure-clean-path file
+	
 			unless no-header [comp-header]
 			unless no-events [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
@@ -3248,9 +3552,13 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		finalize: does [
+		finalize: has [tmpl words][
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
+			
 			if job/type = 'dll [
+				if all [job/dev-mode? job/libRedRT?][
+					libRedRT/process job functions exports
+				]
 				if empty? exports [
 					throw-error "missing #export directive for library production"
 				]
@@ -3300,15 +3608,18 @@ system-dialect: make-profilable context [
 		]
 	]
 	
+	emit-func-prolog: func [name [word!] /local spec][
+		compiler/add-function 'native reduce [name none []] 'stdcall
+		spec: emitter/add-native name
+		spec/2: either name = '***-boot-rs [1][emitter/tail-ptr]
+		emitter/target/emit-prolog name [] 0
+	]
+	
 	emit-main-prolog: has [name spec][
 		either job/type = 'exe [
 			emitter/target/on-init
 		][												;-- wrap global code in a function
-			name: '***-main
-			compiler/add-function 'native reduce [name none []] 'stdcall
-			spec: emitter/add-native name
-			spec/2: 1
-			emitter/target/emit-prolog name [] 0
+			emit-func-prolog '***-boot-rs
 		]
 	]
 
@@ -3334,7 +3645,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script][
+	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script ext][
 		script: either encap? [
 			set-cache-base %system/runtime/
 			%common.reds
@@ -3344,6 +3655,13 @@ system-dialect: make-profilable context [
  		compiler/run/runtime job loader/process/own script script
  		
  		if red? [
+			if all [job/dev-mode? job/type = 'exe][
+				ext: switch/default job/OS [Windows [%.dll] MacOSX [%.dylib]][%.so]
+				compiler/process-import compose [
+					(join "libRedRT" ext) stdcall [__red-boot: "red/boot" []]
+				]
+				compiler/comp-call '__red-boot []
+			]
 			if payload [								;-- Redbin boot data handling
 				emitter/target/emit-load-literal [binary!] payload
 				emitter/target/emit-move-path-alt
@@ -3353,10 +3671,16 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
- 			set-cache-base %runtime/
- 			script: pick [%red.reds %../runtime/red.reds] encap?
- 			compiler/run job loader/process/own script script
+ 			if any [not job/dev-mode? job/libRedRT?][
+				set-cache-base %runtime/
+				script: pick [%red.reds %../runtime/red.reds] encap?
+				compiler/run job loader/process/own script script
+			]
  		]
+ 		if job/type = 'dll [
+			emitter/target/emit-epilog '***-boot-rs [] 0 0
+			emit-func-prolog '***-main
+		]
  		set-cache-base none
 	]
 	
@@ -3367,7 +3691,7 @@ system-dialect: make-profilable context [
 			switch job/type [
 				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
 				dll [emitter/target/emit-epilog '***-main [] 0 0]
-				drv [emitter/target/emit-epilog '***-main [] 0 0]
+				drv [emitter/target/emit-epilog '***-boot-rs [] 0 0]
 			]
 		]
 	]
@@ -3377,6 +3701,7 @@ system-dialect: make-profilable context [
 		compiler/ns-stack: 
 		compiler/locals: none
 		compiler/resolve-alias?:  yes
+		compiler/user-code?: no
 		
 		clear compiler/imports
 		clear compiler/exports
@@ -3508,6 +3833,8 @@ system-dialect: make-profilable context [
 			
 			set-verbose-level opts/verbosity
 			resources: either loaded [job-data/4][make block! 8]
+			if job/libRedRT-update? [libRedRT/init-extras]
+			
 			foreach file files [
 				either loaded [
 					src: loader/process/with job-data/1 file
@@ -3523,6 +3850,8 @@ system-dialect: make-profilable context [
 			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
 			set-verbose-level 0
+			
+			if job/libRedRT-update? [libRedRT/save-extras]
 		]
 		if verbose >= 5 [
 			print [
@@ -3530,7 +3859,7 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
-
+		
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
@@ -3544,13 +3873,13 @@ system-dialect: make-profilable context [
 						export [- - (compiler/exports)]
 					]
 				]
-				unless empty? resources [
-					if job/OS = 'Windows [
-						if icon: find resources 'icon [
-							insert skip icon 2 reduce ['group-icon icon/2]
-						]
-						append resources reduce ['manifest none]
+				if job/OS = 'Windows [
+					if icon: find resources 'icon [
+						insert skip icon 2 reduce ['group-icon icon/2]
 					]
+					append resources reduce ['manifest none]		;-- always use manifest file in DLL and EXE
+				]
+				unless empty? resources [
 					append job/sections compose/deep/only [
 						rsrc   [- - (resources)]
 					]
@@ -3564,7 +3893,8 @@ system-dialect: make-profilable context [
 		
 		set-verbose-level opts/verbosity
 		output-logs
-		if opts/link? [clean-up]
+		if any [opts/link? not opts/dev-mode?][clean-up]
+		set-verbose-level 0
 
 		reduce [
 			comp-time

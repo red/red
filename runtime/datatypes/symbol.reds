@@ -98,10 +98,11 @@ symbol: context [
 			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
+		
 		str: declare red-string!
-		str/node: unicode/load-utf8 s system/words/length? s
+		str/node:	unicode/load-utf8 s system/words/length? s
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
-		str/head: 0
+		str/head:	0
 		id: search str
 
 		if positive? id [return id]
@@ -137,7 +138,7 @@ symbol: context [
 		either positive? sym/alias [sym/alias][id]
 	]
 
-	alias-id: func [
+	get-alias-id: func [
 		id		[integer!]
 		return:	[integer!]
 		/local

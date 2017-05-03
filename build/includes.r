@@ -25,6 +25,7 @@ write %build/bin/sources.r set-cache [
 		%lexer.red
 		%natives.red
 		%operators.red
+		%reactivity.red
 		%routines.red
 		%scalars.red
 		%system.red
@@ -52,6 +53,7 @@ write %build/bin/sources.r set-cache [
 		%actions.reds
 		%allocator.reds
 		%debug-tools.reds
+		%definitions.reds
 		%case-folding.reds
 		%interpreter.reds
 		%macros.reds
@@ -68,8 +70,10 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
+		%clipboard.reds
 		%crush.reds
 		%utils.reds
+		%call.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -79,6 +83,7 @@ write %build/bin/sources.r set-cache [
 			%common.reds
 			%context.reds
 			%datatype.reds
+			%email.reds
 			%error.reds
 			%event.reds
 			%file.reds
@@ -111,12 +116,15 @@ write %build/bin/sources.r set-cache [
 			%string.reds
 			%structures.reds
 			%symbol.reds
+			%tag.reds
+			%time.reds
 			%typeset.reds
 			%tuple.reds
 			%unset.reds
 			%url.reds
 			%vector.reds
 			%word.reds
+			%handle.reds
 		]
 		%platform/ [
 			%android.reds
@@ -127,8 +135,10 @@ write %build/bin/sources.r set-cache [
 			%win32.reds
 			%COM.reds
 			%image-gdiplus.reds
+			%image-quartz.reds
 			%win32-cli.reds
 			%win32-gui.reds
+			%win32-ansi.reds
 		]
 	]
 	%modules/ [
@@ -136,14 +146,19 @@ write %build/bin/sources.r set-cache [
 			%view.red
 			%draw.red
 			%styles.red
+			%utils.red
 			%VID.red
 			%backends/ [
+				%keycodes.reds
 				%platform.red
 				%windows/ [
 					%base.reds
 					%button.reds
 					%camera.reds
 					%classes.reds
+					%comdlgs.reds
+					%direct2d.reds
+					%draw-d2d.reds
 					%draw.reds
 					%events.reds
 					%font.reds
@@ -153,15 +168,39 @@ write %build/bin/sources.r set-cache [
 					%para.reds
 					%tab-panel.reds
 					%text-list.reds
+					%text-box.reds
 					%win32.reds
+				]
+				%osx/ [
+					%camera.reds
+					%classes.reds
+					%cocoa.reds
+					%comdlgs.reds
+					%delegates.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gui.reds
+					%menu.reds
+					%para.reds
+					%selectors.reds
+					%tab-panel.reds
+					%text-box.reds
 				]
 			]
 		]
+	]
+	%libRed/ [
+		%libRed.def
+		%libRed.lib
+		%libRed.red
+		%red.h
 	]
 	%utils/ [
 		%extractor.r
 		%redbin.r
 		%call.r
+		%preprocessor.r
 	]
 	%system/ [
 		%compiler.r
@@ -173,6 +212,12 @@ write %build/bin/sources.r set-cache [
 			%red.ico
 			%red-3D.ico
 			%red-mono.ico
+			%osx/ [
+				%Info.plist
+				%Resources/ [
+					%AppIcon.icns
+				]
+			]
 		]
 		%runtime/ [
 			%android.reds
@@ -196,6 +241,7 @@ write %build/bin/sources.r set-cache [
 		]
 		%formats/ [
 			%ELF.r
+			%Mach-APP.r
 			%Mach-O.r
 			%PE.r
 		]
@@ -207,6 +253,8 @@ write %build/bin/sources.r set-cache [
 		%utils/ [
 			%IEEE-754.r
 			%int-to-bin.r
+			%libRedRT.r
+			%libRedRT-exports.r
 			%r2-forward.r
 			%secure-clean-path.r
 			%virtual-struct.r

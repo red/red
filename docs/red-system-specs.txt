@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 09/03/2016
-	Revision: 46
+	Date: 20/04/2017
+	Revision: 51
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -277,6 +277,7 @@ Examples:
  1.0
  -12345.6789
  3.14159265358979
+ 6.28318530717959
  -1E3
  +1.23456E-265
  
@@ -291,6 +292,7 @@ It is allowed to apply a type casting transformation on a float! value to conver
 Examples:
 
  pi: 3.14159265358979
+ tau: 6.283185307179586
  pi-32: as float32! pi
  print pi-32
 will output
@@ -414,7 +416,7 @@ Syntax
  <c-string> : c-string variable
  <n>        : expression resulting in an integer! value
 
-Example
+Example:
 
  s: "hello"								;-- let's suppose s points to address 40000000h
 
@@ -538,7 +540,6 @@ Member access is achieved using path notation. Syntax is:
  <member>  : a valid member identifier in <struct>
  <value>   : a value of same datatype as <member>
 
-
 From last example, that would give:
 
  foo: s/a								;-- reading member 'a in struct 's
@@ -547,12 +548,25 @@ From last example, that would give:
  bar: s/c/d								;-- deep read/write access is also possible
  
 <u>Note</u>: Accessing a function! pointer member will result in dereferencing the pointer.
- 
+
+It is also possible to acquire a pointer on a struct member using the get-path notation:
+
+ :<struct>/<member>
+
+ <struct>  : a valid struct variable
+ <member>  : a valid member identifier in <struct>
+
+The returned type is always `pointer! [integer!]` in such case. It can be freely type-casted to other pointer types.
+
+  p: :s/a
+  p/value								;-- returns the value of s/a
+  p/value: 456							;-- sets a new value in s/a
+
 +++Struct arithmetic
 
 It is possible to apply some simple math operations on struct variables, like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
 
-Syntax
+<b>Syntax</b>
 
  <struct> + <n>
  <struct> - <n>
@@ -560,7 +574,7 @@ Syntax
  <struct>	: struct variable
  <n>        : integer value
 
-Examples
+<b>Examples</b>
 
  p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
@@ -988,8 +1002,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
-<td class="deny">ERROR</td>
-<td class="allow">as integer!</td>
+<td class="allow">to integer!</td>
+<td class="allow">to integer!</td>
 <td class="allow">as integer!</td>
 </tr><tr>
 
@@ -1043,13 +1057,13 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>float!</th>
 <td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
+<td class="allow">as float!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">to float!</td>
+<td class="allow">as float! &sup2;</td>
 <td class="deny">ERROR</td>
 </tr>
 
@@ -1060,7 +1074,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
-<td class="allow">to float32!</td>
+<td class="allow">as float32! &sup2;</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 </tr>
@@ -1081,9 +1095,35 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 </div>
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
+&sup2; A data modification can occur.<br>
 
-<b>as</b> : indicates that data is left untouched, only the type label is changed.<br>
-<b>to</b> : indicates that a possible data modification can occur.<br>
+--- Size?
+
+<b>Syntax</b>
+
+ size? <type>
+ size? "<string>"
+
+ <type>     : an valid type name.
+ "<string>" : a c-string literal value.
+
+<b>Size?</b> returns the memory storage size in bytes required by a value of given type. When passed a c-string literal value, it will return the number of bytes in the c-string, including the ending null byte.
+
+<b>Example</b>
+
+ size? byte!				;-- will return 1
+ size? integer!				;-- will return 4
+ 
+ s!: alias struct! [
+ 	a [integer!]
+ 	b [float32!]
+ ]
+ size? s!					;-- will return 8
+
+\note Dynamic string use cases
+Size? can only be used on a literal c-string, when only a c-string pointer is available use <b>length?</b> function.
+
+/note
 
 ===Expressions
 
@@ -1203,7 +1243,8 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
  <datatype>	  : integer! | byte! | logic! | pointer! [integer! | byte!] |
-                float! | float32! | c-string! | struct! [<members>]
+                float! | float32! | c-string! | struct! [<members>] |
+                struct! [<members>] value
  <local>	  : local variable
  <body>		  : function's body code
  
@@ -1241,7 +1282,7 @@ Until this change has been decided, it may be wise to use the <b>func</b> keywor
  
 \note Arguments passing
 
-In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
+In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
 
 /note
 
@@ -1253,8 +1294,12 @@ Any function is able to return a value if necessary. This is trivially achieved 
 
 *the datatype of the function ending expression matches the one declared after the RETURN: statement
 
-\note Implementation-specific note
-Some language statements like ALIAS or FUNC, are handled by the compiler in such a way that there are transparent to surrounding code. This means that such statement could be added after a function ending expression without having impact on it, nor raising any compilation error. Such construction has not much sense and would be considered bad practice if used.
+\note Returning struct by value
+By default, a struct is returned by reference. To return a struct by value, a `value` keyword needs to be added in the return specification block. For example:
+
+    foo: func [return: [struct! [n [integer!] value]][...]
+
+On the implementation side, Red/System follows the common ABI used by mainstream C compilers, so that passing structs to/from a C library should work fine.
 
 /note
 
@@ -1318,13 +1363,17 @@ Example:
  foo :compare							;-- pass the function pointer
 
 \note Stdcall support
-The <b>stdcall</b> attribute is also accepted (it is already the default calling convention in Red/System), but will have no effect for internal functions. Imported functions with such attribute will be compiled as callbacks, but in such case, the more explicit <b>callback</b> attribute should be used. This attribute might be removed in the future.
+The <b>stdcall</b> attribute is also accepted (it is already the default calling convention in Red/System), but will have no effect for internal functions. Imported functions with such attribute will be compiled as callbacks, but in such case, the more explicit <b>callback</b> attribute should be used.
   
 /note
 
 +++Callback
 
 The purpose of the <b>callback</b> attribute is to manually force a callback compilation mode for a function that the compiler failed to infer as a callback. It can be used as a more meaningful replacement for <b>stdcall</b> when used on Windows.
+
+The compiler can correctly infer callbacks when a function pointer is passed as a get-word to an imported function call. Other cases of passing a Red/System function pointer cannot be properly detected as external callbacks.
+
+For example, if Red/System function pointers are passed to an external API in an indirect way (filling an array or a structure), and those functions will be later called by the external code (OS or a library), the <b>callback</b> attribute *must* be used in order for correct code to be generated. Moreover, if the external caller is using C calling convention, then the additional <b>cdecl</b> is required.
 
 +++Variadic
 
@@ -1635,7 +1684,7 @@ Example:
  var: 2
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  ][
@@ -1644,7 +1693,7 @@ Example:
  ]
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  		var [integer!]
@@ -1652,6 +1701,53 @@ Example:
  	bar: 3
  	var: 10								;-- 'var is a local variable here
  	foo + var + bar						;-- will return 14
+ ]
+ 
++++USE keyword
+
+Inside a function body, it is possible to create arbitrary local contexts, with additional local variables thanks to the USE keyword:
+
+<b>Syntax</b>
+ 
+ use [<spec>][<code>]
+
+ <spec> : list of local variables followed by optional type specification
+ <code> : body block of code
+ 
+This creates a local context where new variables are available in the body block. Those variables are freed on exiting the body block. Using a variable name already existing in the function specification will result in a compilation error.
+
+Local variables listed in spec block follow the same syntax as local variables in function spec block. Variable names can be followed by a type specification, or let the compiler infer the type (except for structs by value, which must have a declared type). Local contexts created by USE can also be freely nested (as long as no variable names from outer local contexts are re-used).
+
+Examples:
+
+ f: func [
+ 	/local 
+ 		foo [integer!]
+ ][
+ 	foo: 1
+ 	use [bar][
+ 		bar: 2
+ 		use [baz][
+ 			baz: 3
+ 			print foo + bar + baz		;-- will output 6
+ 		]
+ 	]
+ ]
+
+ f: func [
+ 	cond    [logic!]
+ 	return: [integer!]
+ 	/local 
+ 		bar [integer!]
+ ][
+ 	bar: 3
+ 	if cond [
+ 		use [var][
+ 			var: 10						;-- 'var is a local variable here
+ 			bar: var + bar				;-- will return 14
+ 		]
+ 	]
+ 	bar
  ]
  
 ---Namespaces
@@ -1683,7 +1779,7 @@ The following elements are affected by namespace and become locally defined when
 
 * aliases
 
-<u>Example</u>:
+Example:
 
  b: 0
  
@@ -1715,7 +1811,7 @@ Even if they look like objects, namespaces only exist at compilation time, so th
 
 Nesting namespaces is allowed. When conflicting names are used for variables or functions, the nearest definition is used.
 
-<u>Example</u>:
+Example:
 
  a: context [
  	b: 123
@@ -1747,7 +1843,7 @@ From nested namespaces, in order to access an indentifier from global context wh
 
  <name> : identifer or access path
 
-<u>Example</u>:
+Example:
 
  b: 123
  
@@ -1771,9 +1867,9 @@ In order to limit source code verbosity, the namespace prefix can be omitted if 
  <names> : list of namespace identifiers
  <code>  : body block of code
 
-Note: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
+<u>Note</u>: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
 
-<u>Example</u>:
+Example:
 
  a: context [b: 0]
  c: context [b: 1 d: 123]
@@ -2633,6 +2729,23 @@ Support for accessing more registers (like status registers) will be added in th
 
 /note
 
+---cpu/overflow?
+
+Checks if the last integer math operation has overflown.
+
+<b>Syntax</b>
+
+ system/cpu/overflow?
+
+ return: a value of type logic!.
+
+As many CPU operations can change this state, it is only reliable if used immediatly after a math operation.
+
+\note Overflow cpu flag
+This is not a direct check of the overflow flag, as some math operations on some CPUs are not setting that flag.
+
+/note
+
 
 ---fpu/type
 
@@ -2908,7 +3021,7 @@ As compiler directives apply globally to programs, they are not allowed inside c
 
 ---#import
 
-Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
+Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions and variables to Red/System current context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global or local contexts of your Red/System program, but be sure to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
 
 <u>Note</u>: this is not the same as dynamically loading a shared library from your Red/System code after your program has started. Such approach allows you to delay the loading of your libraries and to free them. Imports cannot be freed.
 
@@ -2922,16 +3035,22 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  			return: [<datatype>]		;-- optional part
  		]
  		...								;-- more functions mappings
+ 		<variable name>: "<VAR>" [
+ 			<datatype>
+ 		]
+ 		...								;-- more variables mappings
  	]
- 	...									;-- more libraries to load					
+ 	...									;-- more libraries to load
  ]
 
- <library>		 : shared library file name (with extension)
- <convention>	 : calling convention of the library (stdcall | cdecl)
- <function name> : name of the mapped function in global context
- <ID>			 : identifier of the function in the shared library
- <argument>		 : function's argument indentifier
- <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
+ <library>       : shared library file name (with extension)
+ <convention>    : calling convention of the library (stdcall | cdecl)
+ <function name> : name of the mapped function in current context
+ <variable name> : name of the mapped variable in current context
+ <ID>            : identifier of the function in the shared library
+ <VAR>           : identifier of the variable in the shared library
+ <argument>      : function's argument indentifier
+ <datatype>      : integer! | byte! | pointer! [integer! | byte!] |
                    float! | float32! | c-string! | struct! [<members>] |
                    function! [<spec>]
 
@@ -3094,14 +3213,14 @@ will output:
 
 A more powerful macro version is possible, taking one or several parameters as input that get replaced in the emitted template.
 
-Syntax (declaration):
+<b>Syntax (declaration)</b>
 
     #define <name>(arg1 arg2 ...) <body>
 
     <name> : macro identifier
     <body> : macro body (block! or paren! value)
 
-Syntax (usage):
+<b>Syntax (usage)</b>
 
     <name>(value1 value2 ...)
     
@@ -3350,14 +3469,16 @@ As a dialect of Red, Red/System can call back a Red-level function, passing argu
 
 <b>Syntax</b>
 
- #call [<red-fun-name> <arg1>...<argn>]
+ #call [<Red-call> <arg1>...<argn>]
 
- <red-fun-name>  : a Red word referring to a function! value.
+ <Red-call>      : a Red word, or path (for refinements), referring to a function! value.
  <arg1>...<argn> : list of arguments.
 
 The arguments should be passed as pointers to Red values of the expected type, except for integer! and logic! datatypes, that can be passed inlined, without requiring any boxing. When required, for pointer arguments, a simple type casting is allowed.
 
 Once the Red function returns, the normal execution of Red/System code continues. The Red return value cannot be directly retrieved currently, but it should be accessible from Red arguments stack. The Red function <b>must</b> have all arguments typed, else a compilation error will occur.
+
+When a path is used as the function call, it refers to the function name, followed by refinements. The eventual refinements arguments are then, expected to be provided, following the mandatory ones.
 
 <b>Example</b>
 
@@ -3596,8 +3717,8 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     null		or			pop
     push		return		size?
     switch		throw		true
-    until		while		with
-    xor
+    until		use			while
+    with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -3719,6 +3840,44 @@ will output:
 
 
 ===Document History
+
+*<b>20/04/2017 - revision 51</b>
+
+*>Adds description of structs by value passing/returning.
+
+*>Adds USE keyword description.
+
+
+*<b>31/03/2017 - revision 50</b>
+
+*>Adds description of get-path to get struct member address.
+
+
+
+*<b>29/03/2017 - revision 49</b>
+
+*>Adds description for variables importing from external libraries.
+
+*>Updates #call description to include refinements.
+
+*>Adds a section for `size?` description.
+
+
+
+*<b>11/03/2017 - revision 48</b>
+
+*>Additional explanations for `callback` attribute usage.
+
+
+
+*<b>10/10/2016 - revision 47</b>
+
+*>Allows integer to floats, and floats to integer direct type casting (using FPU for conversions).
+
+*>Adds description of system/cpu/overflow? accessor.
+
+*>Minor improvement of type casting matrix, "to" removed to avoid confusion.
+
 
 *<b>09/03/2016 - revision 46</b>
 

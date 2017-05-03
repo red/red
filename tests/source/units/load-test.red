@@ -62,8 +62,8 @@ Red [
 	--test-- "load-42"	--assert "-9.3e-9"		= mold load "-93E-10"
 	--test-- "load-43"	--assert "0.0"			= mold load "2183167012312112312312.23538020374420446192e-370"
 	--test-- "load-44"	--assert 1.3			== load "1,3"
-	;--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
-	;--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
+	--test-- "load-45"	--assert 2147483648.0	== load "2147483648"
+	--test-- "load-46"	--assert -2147483649.0	== load "-2147483649"
 
 ===end-group===
 
@@ -198,14 +198,54 @@ Red [
 					]
 				]
 			]
-			--assert 4 == length? lo2-blk
-			--assert 4 == length? fourth l02-blk
-			--assert 4 == length? fourth fourth lo2-blk
-			--assert 2 == length? fourth fourth fourth lo2-blk
-			do lo2-blk
-			--assert 1 == o/oo/ooo/a
 		}
+		--assert 4 == length? lo2-blk
+		--assert 4 == length? fourth lo2-blk
+		--assert 4 == length? fourth fourth lo2-blk
+		--assert 2 == length? fourth fourth fourth lo2-blk
+		--assert strict-equal?
+			first [o:]
+			first lo2-blk
+		--assert 'make == second lo2-blk
+		--assert 'object! == third lo2-blk
+		--assert strict-equal?
+			first [oo:]
+			first fourth lo2-blk
+		--assert 'make == second fourth lo2-blk
+		--assert 'object! == third fourth lo2-blk
+		--assert strict-equal?
+			first [ooo:]
+			first fourth fourth lo2-blk
+		--assert 'make == second fourth fourth lo2-blk
+		--assert 'object! == third fourth fourth lo2-blk
+		--assert strict-equal?
+			first [a:]
+			first fourth fourth fourth lo2-blk
+		--assert 1 == second fourth fourth fourth lo2-blk
 
 ===end-group===
+
+===start-group=== "load next tests"
+
+	--test-- "load-next-1"
+		s: "123 []hello"
+		--assert 123 	== load/next s 's
+		--assert [] 	== load/next s 's
+		--assert 'hello == load/next s 's
+		--assert [] 	== load/next s 's
+		--assert [] 	== load/next s 's
+		--assert (head s) == "123 []hello"
+
+	--test-- "load-next-2"
+		s: "{}()[]"
+		--assert "" 			 == load/next s 's
+		--assert (make paren! 0) == load/next s 's
+		--assert [] 			 == load/next s 's
+
+	--test-- "load-next-3"
+		s: "^-{}^/(^/)^M[^-]"
+		--assert "" 			 == load/next s 's
+		--assert (make paren! 0) == load/next s 's
+		--assert [] 			 == load/next s 's
 
 ~~~end-file~~~
