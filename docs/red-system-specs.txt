@@ -277,6 +277,7 @@ Examples:
  1.0
  -12345.6789
  3.14159265358979
+ 6.28318530717959
  -1E3
  +1.23456E-265
  
@@ -291,6 +292,7 @@ It is allowed to apply a type casting transformation on a float! value to conver
 Examples:
 
  pi: 3.14159265358979
+ tau: 6.283185307179586
  pi-32: as float32! pi
  print pi-32
 will output
