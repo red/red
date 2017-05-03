@@ -1744,7 +1744,7 @@ make-profilable make target-class [
 		
 		either slots <= 8 [							;-- 8 is max number of regs usable for the copy
 			reg: join #{00} to binary! to char! reg
-			bits: skip debase/base to-hex shift/logical 4092 (8 - slots) 16 2
+			bits: skip debase/base to-hex shift/logical 1020 (8 - slots) 16 2
 			bits: bits and #{FFFC}
 			emit-i32 join #{e890} bits				;-- LDM r0, {r2,rN}
 			emit-i32 join #{e880} or reg bits		;-- STM <dst>, {r2,rN}
