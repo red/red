@@ -334,6 +334,19 @@ Red [
 	--test-- "negate6" --assert  -1:0:0   = negate  1:0:0
 	--test-- "negate7" --assert   1:1:1.1 = negate -1:1:1.1
 	--test-- "negate8" --assert  -1:1:1.1 = negate  1:1:1.1
+	
+	--test-- "sign1" --assert 0 = sign? 0:0:0
+	--test-- "sign2" --assert 0 = sign? -0:0:0
+
+	--test-- "sign3" --assert 1 = sign? 0:0:1
+	--test-- "sign4" --assert 1 = sign? 0:1:0
+	--test-- "sign5" --assert 1 = sign? 1:0:0
+	--test-- "sign6" --assert 1 = sign? 1:1:1.1
+
+	--test-- "sign7"  --assert -1 = sign? -0:0:1
+	--test-- "sign8"  --assert -1 = sign? -0:1:0
+	--test-- "sign9"  --assert -1 = sign? -1:0:0
+	--test-- "sign10" --assert -1 = sign? -1:1:1.1
 ===end-group===
 
 ; mod, modulo
