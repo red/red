@@ -334,7 +334,8 @@ time: context [
 		/local
 			t [float!]
 	][
-		t: tm/time + 1E-6								;@@ 1E-6 is a temporary, empirical workaround
+		t: tm/time
+		either t >= 0.0 [t: t + 1E-6][t: t - 1E-6]		;@@ 1E-6 is a temporary, empirical workaround
 		not as-logic (as integer! GET_SECONDS(t)) and 1
 	]
 
@@ -344,7 +345,8 @@ time: context [
 		/local
 			t [float!]
 	][
-		t: tm/time + 1E-6								;@@ 1E-6 is a temporary, empirical workaround
+		t: tm/time
+		either t >= 0.0 [t: t + 1E-6][t: t - 1E-6]		;@@ 1E-6 is a temporary, empirical workaround
 		as-logic (as integer! GET_SECONDS(t)) and 1
 	]
 
