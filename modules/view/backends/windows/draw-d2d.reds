@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#include %text-box.reds
+
 draw-begin-d2d: func [
 	ctx			[draw-ctx!]
 	hWnd		[handle!]
@@ -22,33 +24,38 @@ draw-begin-d2d: func [
 		_22		[integer!]
 		_31		[integer!]
 		_32		[integer!]
-		color	[D3DCOLORVALUE]
 		m		[D2D_MATRIX_3X2_F]
 		bg-clr	[integer!]
 		brush	[integer!]
+		target	[int-ptr!]
+		brushes [int-ptr!]
 ][
-	this: as this! GetWindowLong hWnd wc-offset - 24
-	if null? this [
-		this: create-hwnd-render-target hWnd
-		SetWindowLong hWnd wc-offset - 24 as-integer this
-	]
+	target: get-hwnd-render-target hWnd
+
+	this: as this! target/value
 	ctx/dc: as handle! this
+	ctx/brushes: target
 
 	rt: as ID2D1HwndRenderTarget this/vtbl
+	rt/SetTextAntialiasMode this 1				;-- ClearType
+
 	rt/BeginDraw this
 	_11: 0 _12: 0 _21: 0 _22: 0 _31: 0 _32: 0
 	m: as D2D_MATRIX_3X2_F :_32
 	m/_11: as float32! 1.0
 	m/_22: as float32! 1.0
-	rt/SetTransform this m				;-- set to identity matrix
+	rt/SetTransform this m						;-- set to identity matrix
 
 	bg-clr: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
-	if bg-clr <> -1 [					;-- paint background
+	if bg-clr <> -1 [							;-- paint background
 		rt/Clear this to-dx-color bg-clr null
 	]
 
-	brush: 0
-	rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+	brush: select-brush target + 1 ctx/pen-color
+	if zero? brush [
+		rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+		put-brush target + 1 ctx/pen-color brush
+	]
 	ctx/pen: brush
 ]
 
@@ -58,7 +65,7 @@ clean-draw-d2d: func [
 		IUnk [IUnknown]
 		this [this!]
 ][
-	COM_SAFE_RELEASE_OBJ(IUnk ctx/pen)
+	;;TBD release all brushes when D2DERR_RECREATE_TARGET or exit the process
 ]
 
 draw-end-d2d: func [
@@ -67,7 +74,7 @@ draw-end-d2d: func [
 	/local
 		this [this!]
 		rt	 [ID2D1HwndRenderTarget]
-		hr [integer!]
+		hr	 [integer!]
 ][
 	this: as this! ctx/dc
 	rt: as ID2D1HwndRenderTarget this/vtbl
@@ -78,12 +85,31 @@ draw-end-d2d: func [
 	switch hr [
 		COM_S_OK [ValidateRect hWnd null]
 		D2DERR_RECREATE_TARGET [
-			rt/Release this
+			d2d-release-target ctx/brushes
 			ctx/dc: null
 			SetWindowLong hWnd wc-offset - 24 0
 		]
 		default [
 			0		;@@ TBD log error!!!
+		]
+	]
+]
+
+OS-draw-pen-d2d: func [
+	ctx		[draw-ctx!]
+	color	[integer!]
+	off?	[logic!]
+	/local
+		this	[this!]
+		brush	[ID2D1SolidColorBrush]
+][
+	if any [ctx/pen-color <> color ctx/pen? = off?][
+		ctx/pen?: not off?
+		ctx/pen-color: color
+		if ctx/pen? [
+			this: as this! ctx/pen
+			brush: as ID2D1SolidColorBrush this/vtbl
+			brush/SetColor this to-dx-color color null
 		]
 	]
 ]
@@ -111,4 +137,45 @@ OS-draw-circle-d2d: func [
 	if ctx/pen? [
 		rt/DrawEllipse this ellipse ctx/pen ctx/pen-width ctx/pen-style
 	]
+]
+
+OS-draw-text-d2d: func [
+	ctx		[draw-ctx!]
+	pos		[red-pair!]
+	text	[red-string!]
+	catch?	[logic!]
+	/local
+		this	[this!]
+		rt		[ID2D1HwndRenderTarget]
+		IUnk	[IUnknown]
+		values	[red-value!]
+		str		[red-string!]
+		size	[red-pair!]
+		int		[red-integer!]
+		state	[red-block!]
+		styles	[red-block!]
+		w		[integer!]
+		h		[integer!]
+		fmt		[this!]
+		layout	[this!]
+][
+	this: as this! ctx/dc
+	rt: as ID2D1HwndRenderTarget this/vtbl
+
+	either TYPE_OF(text) = TYPE_OBJECT [				;-- text-box!
+		values: object/get-values as red-object! text
+		state: as red-block! values + TBOX_OBJ_STATE
+
+		layout: either TYPE_OF(state) = TYPE_BLOCK [
+			int: as red-integer! block/rs-head state
+			as this! int/value
+		][
+			OS-text-box-layout as red-object! text ctx/brushes yes
+		]
+	][
+		0
+	]
+
+	txt-box-draw-background ctx/brushes pos layout
+	rt/DrawTextLayout this as float32! pos/x as float32! pos/y layout ctx/pen 0
 ]

@@ -389,7 +389,7 @@ ConsoleWndProc: func [
 		state	[integer!]
 		out		[ring-buffer!]
 		p-int	[int-ptr!]
-		limit	[red-integer!]
+		size	[red-pair!]
 		mbmp	[handle!]
 		saved	[handle!]
 		rc		[RECT_STRUCT]
@@ -408,6 +408,7 @@ ConsoleWndProc: func [
 			ReleaseDC hWnd dc
 			vt/hwnd: hWnd
 			init vt p-int/6 p-int/5 tm/tmAveCharWidth tm/tmHeight
+			max-win-width: vt/win-w
 			SetWindowLong hWnd wc-offset - 4 as-integer vt
 			free as byte-ptr! tm
 			return 1
@@ -446,8 +447,9 @@ ConsoleWndProc: func [
 			vt/win-h: WIN32_HIWORD(lParam)
 			vt/cols: vt/win-w - vt/pad-left / vt/char-w
 			vt/rows: vt/win-h / vt/char-h
-			limit: as red-integer! #get system/console/limit
-			limit/value: vt/cols - 13
+			size: as red-pair! #get system/console/size
+			size/x: vt/cols
+			size/y: vt/rows
 			OS-refresh vt null
 			return 0
 		]

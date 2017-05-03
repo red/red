@@ -83,6 +83,61 @@ Red/System [
 	EXTRACT_ARGB
 ]
 
+#if OS = 'MacOSX [
+	CGAffineTransform!: alias struct! [
+		a		[float32!]
+		b		[float32!]
+		c		[float32!]
+		d		[float32!]
+		tx		[float32!]
+		ty		[float32!]
+	]
+
+	draw-ctx!: alias struct! [
+		raw				[int-ptr!]					;-- OS drawing object: CGContext
+		matrix          [CGAffineTransform! value]
+		pen-join		[integer!]
+		pen-cap			[integer!]
+		pen-width		[float32!]
+		pen-style		[integer!]
+		pen-color		[integer!]					;-- 00bbggrr format
+		brush-color		[integer!]					;-- 00bbggrr format
+		font-attrs		[integer!]
+		colorspace		[integer!]
+		grad-pen		[integer!]
+		grad-type		[integer!]
+		grad-spread		[integer!]
+		grad-x1			[float32!]
+		grad-y1			[float32!]
+		grad-x2			[float32!]
+		grad-y2			[float32!]
+		grad-radius		[float32!]
+		grad-angle		[float32!]
+		grad-sx			[float32!]
+		grad-sy			[float32!]
+		grad-pos?		[logic!]
+		grad-rotate?	[logic!]
+		grad-scale?		[logic!]
+		grad-pen?		[logic!]
+		grad-brush?		[logic!]
+		pen?			[logic!]
+		brush?			[logic!]
+		on-image?		[logic!]					;-- drawing on image?
+		pattern-blk		[int-ptr!]
+		pattern-mode	[integer!]
+		pattern-ver		[integer!]
+		pattern-draw	[integer!]
+		pattern-release [integer!]
+		pattern-w		[float32!]
+		pattern-h		[float32!]
+		last-pt-x		[float32!]					;-- below used by shape
+		last-pt-y		[float32!]
+		control-x		[float32!]
+		control-y		[float32!]
+		shape-curve?	[logic!]
+	]
+]
+
 #either OS = 'Windows [
 
 	#define GENERIC_WRITE			40000000h
@@ -164,7 +219,6 @@ Red/System [
 		y		[integer!]	
 	]
 
-
 	gradient!: alias struct! [
 		extra           [integer!]                              ;-- used when pen width > 1
 		path-data       [PATHDATA]                              ;-- preallocated for performance reasons
@@ -227,6 +281,7 @@ Red/System [
 		brush-color		[integer!]								;-- 00bbggrr format
 		font-color		[integer!]
 		bitmap			[int-ptr!]
+		brushes			[int-ptr!]
 		graphics		[integer!]								;-- gdiplus graphics
 		gp-state		[integer!]
 		gp-pen			[integer!]								;-- gdiplus pen

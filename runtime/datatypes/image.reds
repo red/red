@@ -93,11 +93,10 @@ image: context [
 		handle  [integer!]
 		return: [red-image!]
 	][
-		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img/head: 0
-
 		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
 		img/node: as node! handle
+		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
 	
@@ -150,10 +149,12 @@ image: context [
 	
 	encode: func [
 		image	[red-image!]
+		dst		[red-value!]
 		format	[integer!]
-		return: [red-binary!]
+		return: [red-value!]
 	][
-		OS-image/encode image format stack/push*
+		if TYPE_OF(dst) = TYPE_NONE [dst: stack/push*]
+		OS-image/encode image dst format
 	]
 
 	decode: func [
@@ -434,7 +435,7 @@ image: context [
 		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
 			return copy as red-image! spec proto null yes null
 		]
-		#either sub-system = 'gui [
+		#either modules contains 'View [
 			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
 			#call [face? spec]
 			ret: as red-logic! stack/arguments

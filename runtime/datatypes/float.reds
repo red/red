@@ -18,6 +18,7 @@ float: context [
 	#enum form-type! [
 		FORM_FLOAT_32
 		FORM_FLOAT_64
+		FORM_PERCENT_32
 		FORM_PERCENT
 		FORM_TIME
 	]
@@ -93,8 +94,9 @@ float: context [
 			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
-			pretty? [logic!]
 			temp	[float!]
+			pretty? [logic!]
+			percent? [logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -109,14 +111,15 @@ float: context [
 			return "1.#NaN"
 		]
 
+		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return either type = FORM_PERCENT ["0%"]["0.0"]]
+			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
-			type = FORM_FLOAT_32 [
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
 				s/8: #"0"
 				s/9: #"0"
 				sprintf [s "%.7g" f]
@@ -133,11 +136,12 @@ float: context [
 			]
 		]
 
-		p:  null
-		p1: null
 		s0: s
 		until [
+			p:    null
+			p1:   null
 			dot?: no
+
 			until [
 				if s/1 = #"." [dot?: yes]
 				if s/1 = #"e" [
@@ -188,7 +192,6 @@ float: context [
 					]
 				]
 			]
-
 			s0 <> s
 		]
 
@@ -200,7 +203,7 @@ float: context [
 			s/1: #"^@"
 			p: p0
 		]
-		either type = FORM_PERCENT [
+		either percent? [
 			s/1: #"%"
 			s/2: #"^@"
 		][
@@ -835,7 +838,7 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: as-integer dec
+				int/value: as-integer dec + 0.5
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]

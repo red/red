@@ -1459,7 +1459,7 @@ natives: context [
 				num: as red-integer! res
 				res/value: negative? num/value
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
@@ -1484,7 +1484,7 @@ natives: context [
 				num: as red-integer! res
 				res/value: positive? num/value
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
@@ -1515,7 +1515,7 @@ natives: context [
 					i/value = 0 [ 0]
 				]
 			]
-			TYPE_FLOAT TYPE_TIME [
+			TYPE_FLOAT TYPE_TIME TYPE_PERCENT [
 				f: as red-float! stack/arguments
 				ret: case [
 					f/value > 0.0 [ 1]
@@ -1716,6 +1716,7 @@ natives: context [
 		return: [red-logic!]
 		/local
 			i	 [red-integer!]
+			f	 [red-float!]
 			p	 [red-pair!]
 			ret  [red-logic!]
 	][
@@ -1724,11 +1725,14 @@ natives: context [
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
 			TYPE_INTEGER
-			TYPE_FLOAT
-			TYPE_PERCENT
-			TYPE_TIME
 			TYPE_CHAR [
 				i/value = 0
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT
+			TYPE_TIME [
+				f: as red-float! i
+				f/value = 0.0
 			]
 			TYPE_PAIR [
 				p: as red-pair! i
@@ -2081,6 +2085,9 @@ natives: context [
 				ftime: val/value * #either OS = 'Windows [1000.0][1000000.0]
 				if ftime < 1.0 [ftime: 1.0]
 				time: as-integer ftime
+			]
+			TYPE_TIME [
+				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]

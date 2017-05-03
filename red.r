@@ -21,8 +21,10 @@ redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
 	win-version:	none								;-- Windows version extracted from "ver" command
+	SSE3?:			yes
 
 	Windows?:  system/version/4 = 3
+	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
 
 	if encap? [
@@ -77,6 +79,8 @@ redc: context [
 					] kernel32 "WideCharToMultiByte"
 
 					_wsystem: make routine! [cmd [string!] return: [integer!]] libc "_wsystem"
+					
+					IsProcessorFeaturePresent: make routine! [feat [integer!] return: [integer!]] kernel32 "IsProcessorFeaturePresent"
 
 					gui-sys-call: func [cmd [string!] args [string!]][
 						ShellExecuteW
@@ -88,7 +92,9 @@ redc: context [
 					]
 					
 					sys-call: func [cmd [string!]][_wsystem utf8-to-utf16 cmd]
-
+					
+					SSE3?: to logic! IsProcessorFeaturePresent 13
+					
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
 						fail "SHGetFolderPath failed: can't determine temp folder path"
@@ -329,6 +335,9 @@ redc: context [
 				opts/legacy: copy [no-touch]
 			]
 		]
+		if all [Windows? opts/OS = 'Windows not SSE3?][
+			opts/cpu-version: 1.0
+		]
 		if system/version/4 = 2 [						;-- macOS version extraction
 			out: make string! 128
 			call/output "sw_vers -productVersion" out
@@ -423,13 +432,13 @@ redc: context [
 			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
-					;"Darwin"	OSX
+					"Darwin"	OSX
 					"MSDOS"		Windows
 					;"Linux"		Linux-GTK
 				] default-target
 			]
 			source: copy read-cache console/:con-ui
-			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 
 			files: [
@@ -498,7 +507,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows [ [[Needs: View]] ]
+			Windows MacOSX [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts

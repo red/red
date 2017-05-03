@@ -228,42 +228,26 @@ set-int-path*: func [
 eval-path*: func [
 	parent  [red-value!]
 	element [red-value!]
-	top		[red-value!]
-	/local
-		slot   [red-value!]
-		result [red-value!]
 ][
-	slot: stack/push*									;-- reserve stack slot 
-	result: actions/eval-path parent element null null no ;-- no value to set
-	copy-cell result top								;-- set the stack as expected
-	stack/top: top + 1									;-- erase intermediary stack allocations
+	stack/set-last actions/eval-path parent element null null no ;-- no value to set
 ]
 
 eval-path: func [
 	parent  [red-value!]
 	element [red-value!]
 	return: [red-value!]
-	/local
-		top	   [red-value!]
-		result [red-value!]
 ][
-	stack/push actions/eval-path parent element null null no ;-- no value to set
+	actions/eval-path parent element null null no 		;-- pass the value reference directly (no copying!)
 ]
 
 eval-int-path*: func [
 	parent	[red-value!]
 	index	[integer!]
-	top		[red-value!]
-	return: [red-value!]
 	/local
-		int	   [red-value!]
-		result [red-value!]
+		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null null no	;-- no value to set
-	copy-cell result top								;-- set the stack as expected
-	stack/top: top + 1									;-- erase intermediary stack allocations
-	result
+	stack/set-last actions/eval-path parent int null null no ;-- no value to set
 ]
 
 eval-int-path: func [
@@ -271,16 +255,13 @@ eval-int-path: func [
 	index 	[integer!]
 	return: [red-value!]
 	/local
-		int	   [red-value!]
-		result [red-value!]
+		int	[red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null null no	;-- no value to set
-	stack/top: int										;-- erase intermediary stack allocations
-	result
+	actions/eval-path parent int null null no			;-- pass the value reference directly (no copying!)
 ]
 
-select-key*: func [									;-- called by compiler for SWITCH
+select-key*: func [										;-- called by compiler for SWITCH
 	sub?	[logic!]
 	fetch?	[logic!]
 	return: [red-value!]

@@ -50,7 +50,7 @@ red: context [
 	#switch OS [
 		Windows  [#include %platform/image-gdiplus.reds]
 		Syllable []
-		MacOSX	 []
+		MacOSX	 [#include %platform/image-quartz.reds]
 		FreeBSD  []
 		#default []
 	]
@@ -102,7 +102,8 @@ red: context [
 	#include %datatypes/email.reds
 	#include %datatypes/handle.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
-	
+	#if OS = 'MacOSX  [#include %datatypes/image.reds]	;-- temporary
+
 	;-- Debugging helpers --
 	
 	#include %debug-tools.reds
@@ -116,6 +117,7 @@ red: context [
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds							;-- temporary file IO support
+	#include %clipboard.reds
 	#include %redbin.reds
 	#include %utils.reds
 	#include %call.reds
@@ -183,6 +185,7 @@ red: context [
 		email/init
 		handle/init
 		#if OS = 'Windows [image/init]					;-- temporary
+		#if OS = 'MacOSX [image/init]					;-- temporary
 		
 		actions/init
 		
@@ -253,6 +256,7 @@ red: context [
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
+			#if OS = 'MacOSX [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

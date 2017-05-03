@@ -18,7 +18,7 @@ Red [
 unless system/console [
 	system/console: context [
 		history: make block! 200
-		limit: 72
+		size: 0x0
 	]
 ]
 ;; End patch
@@ -133,13 +133,17 @@ unless system/console [
 				line: input-line
 				string/rs-reset line
 
+				str2: as red-string! block/rs-head result
+				head: str2/head
+				str2/head: 0
 				either num = 1 [
-					str2: as red-string! block/rs-head result
-					head: str2/head
-					str2/head: 0
 					string/concatenate line str2 -1 0 yes no
 					line/head: head
 				][
+					string/rs-reset saved-line
+					string/concatenate saved-line str2 -1 0 yes no
+					saved-line/head: head
+					block/rs-next result				;-- skip first one
 					until [
 						string/concatenate line as red-string! block/rs-head result -1 0 yes no
 						string/append-char GET_BUFFER(line) 32

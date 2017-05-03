@@ -135,7 +135,9 @@ error: context [
 				type = TYPE_GET_WORD
 			][
 				buffer: string/rs-make-at stack/push* 16
+				stack/mark-native words/_body
 				actions/mold object/rs-select obj value buffer no no yes null 0 0
+				stack/unwind
 				copy-cell as red-value! buffer value
 				stack/pop 1
 			]
@@ -195,7 +197,8 @@ error: context [
 				][
 					fire [TO_ERROR(script out-of-range) spec]
 				]
-				word/make-at w/symbol base + field-type	;-- set 'type field
+				w: word/make-at w/symbol base + field-type	;-- set 'type field
+				_context/bind-word GET_CTX(errors) w
 				
 				errors: (as red-object! object/get-values errors) + cat
 				sym: as red-word! object/get-words errors
@@ -204,7 +207,8 @@ error: context [
 				if (sym + object/get-size errors) <= as red-value! w [
 					fire [TO_ERROR(script out-of-range) spec]
 				]
-				word/make-at w/symbol base + field-id	;-- set 'id field
+				w: word/make-at w/symbol base + field-id	;-- set 'id field
+				_context/bind-word GET_CTX(errors) w
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec

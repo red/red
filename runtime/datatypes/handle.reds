@@ -24,7 +24,22 @@ handle: context [
 		h/value: value
 		h
 	]
-	
+
+	make-in: func [
+		parent 	[red-block!]
+		value 	[integer!]
+		return: [red-handle!]
+		/local
+			h	[red-handle!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "handle/make-in"]]
+		
+		h: as red-handle! ALLOC_TAIL(parent)
+		h/header: TYPE_HANDLE
+		h/value: value
+		h
+	]
+
 	;-- Actions --
 
 	form: func [

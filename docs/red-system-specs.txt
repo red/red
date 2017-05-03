@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 31/03/2017
-	Revision: 50
+	Date: 01/05/2017
+	Revision: 52
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -414,7 +414,7 @@ Syntax
  <c-string> : c-string variable
  <n>        : expression resulting in an integer! value
 
-Example
+Example:
 
  s: "hello"								;-- let's suppose s points to address 40000000h
 
@@ -509,7 +509,7 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
-              function! [<spec>]
+              struct! [<members>] value | function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
@@ -520,12 +520,24 @@ The returned value of DECLARE STRUCT! is the memory address of the newly created
  s: declare struct! [
  	a 	[integer!]
  	b	[c-string!]
- 	c 	[struct! [d [integer!]]]
+ 	c 	[struct! [d [integer!] e [float!]]]
  ]
  
-In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value pointer, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
+In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value <b>pointer</b>, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
 
  s/c: declare struct! [d [integer!]]
+ 
+It is possible to nest struct values (and not just pointers to struct values) by adding the <b>value</b> keyword at the tail of a nested struct type specification:
+
+ s2: declare struct! [
+ 	a 	[integer!]
+ 	b	[c-string!]
+ 	c 	[struct! [d [integer!] e [float!]] value]
+ ]
+ 
+In this case, the nested struct c storage space is reserved when allocating the space for the parent struct s2. The size of struct s2 is 20 bytes, while the size of s is 12 bytes.
+
+Struct pointers and struct values can be arbitrarily nested and mixed together.
  
 +++Accessing members
 
@@ -603,7 +615,7 @@ Aliasing syntax:
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               float! | float32! | c-string! | struct! [<members>] |
-              function! [<spec>]
+              struct! [<members>] value | function! [<spec>]
               
 Struct value declaration using an aliased definition:
 
@@ -631,6 +643,11 @@ Struct usage example:
  gift/first/title:  "Contact"
  gift/first/author: "Carl Sagan"
  gift/first/year:   1985
+
+ gift2: declare struct! [
+  	first  [book! value]				;-- inlined book! struct value
+  	second [book! value]				;-- inlined book! struct value
+ ]
 
 ---Pointer!
 
@@ -1241,7 +1258,8 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
  <datatype>	  : integer! | byte! | logic! | pointer! [integer! | byte!] |
-                float! | float32! | c-string! | struct! [<members>]
+                float! | float32! | c-string! | struct! [<members>] |
+                struct! [<members>] value
  <local>	  : local variable
  <body>		  : function's body code
  
@@ -1279,7 +1297,7 @@ Until this change has been decided, it may be wise to use the <b>func</b> keywor
  
 \note Arguments passing
 
-In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
+In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference. Adding the `value` keyword after a struct! type specification, allows it to be passed by value (works also for returned value).
 
 /note
 
@@ -1291,8 +1309,12 @@ Any function is able to return a value if necessary. This is trivially achieved 
 
 *the datatype of the function ending expression matches the one declared after the RETURN: statement
 
-\note Implementation-specific note
-Some language statements like ALIAS or FUNC, are handled by the compiler in such a way that there are transparent to surrounding code. This means that such statement could be added after a function ending expression without having impact on it, nor raising any compilation error. Such construction has not much sense and would be considered bad practice if used.
+\note Returning struct by value
+By default, a struct is returned by reference. To return a struct by value, a `value` keyword needs to be added in the return specification block. For example:
+
+    foo: func [return: [struct! [n [integer!] value]][...]
+
+On the implementation side, Red/System follows the common ABI used by mainstream C compilers, so that passing structs to/from a C library should work fine.
 
 /note
 
@@ -1677,7 +1699,7 @@ Example:
  var: 2
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  ][
@@ -1686,7 +1708,7 @@ Example:
  ]
 
  f: func [
- 	return:    [integer!]
+ 	return: [integer!]
  	/local 
  		bar [integer!]
  		var [integer!]
@@ -1694,6 +1716,53 @@ Example:
  	bar: 3
  	var: 10								;-- 'var is a local variable here
  	foo + var + bar						;-- will return 14
+ ]
+ 
++++USE keyword
+
+Inside a function body, it is possible to create arbitrary local contexts, with additional local variables thanks to the USE keyword:
+
+<b>Syntax</b>
+ 
+ use [<spec>][<code>]
+
+ <spec> : list of local variables followed by optional type specification
+ <code> : body block of code
+ 
+This creates a local context where new variables are available in the body block. Those variables are freed on exiting the body block. Using a variable name already existing in the function specification will result in a compilation error.
+
+Local variables listed in spec block follow the same syntax as local variables in function spec block. Variable names can be followed by a type specification, or let the compiler infer the type (except for structs by value, which must have a declared type). Local contexts created by USE can also be freely nested (as long as no variable names from outer local contexts are re-used).
+
+Examples:
+
+ f: func [
+ 	/local 
+ 		foo [integer!]
+ ][
+ 	foo: 1
+ 	use [bar][
+ 		bar: 2
+ 		use [baz][
+ 			baz: 3
+ 			print foo + bar + baz		;-- will output 6
+ 		]
+ 	]
+ ]
+
+ f: func [
+ 	cond    [logic!]
+ 	return: [integer!]
+ 	/local 
+ 		bar [integer!]
+ ][
+ 	bar: 3
+ 	if cond [
+ 		use [var][
+ 			var: 10						;-- 'var is a local variable here
+ 			bar: var + bar				;-- will return 14
+ 		]
+ 	]
+ 	bar
  ]
  
 ---Namespaces
@@ -1725,7 +1794,7 @@ The following elements are affected by namespace and become locally defined when
 
 * aliases
 
-<u>Example</u>:
+Example:
 
  b: 0
  
@@ -1757,7 +1826,7 @@ Even if they look like objects, namespaces only exist at compilation time, so th
 
 Nesting namespaces is allowed. When conflicting names are used for variables or functions, the nearest definition is used.
 
-<u>Example</u>:
+Example:
 
  a: context [
  	b: 123
@@ -1789,7 +1858,7 @@ From nested namespaces, in order to access an indentifier from global context wh
 
  <name> : identifer or access path
 
-<u>Example</u>:
+Example:
 
  b: 123
  
@@ -1813,9 +1882,9 @@ In order to limit source code verbosity, the namespace prefix can be omitted if 
  <names> : list of namespace identifiers
  <code>  : body block of code
 
-Note: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
+<u>Note</u>: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
 
-<u>Example</u>:
+Example:
 
  a: context [b: 0]
  c: context [b: 1 d: 123]
@@ -2628,6 +2697,37 @@ Ensures that native stack is properly aligned at the point of calling, according
  system/stack/align
 
  return: a pointer value of type: pointer! [integer!]
+ 
+---stack/allocate
+
+Reserves a storage space on stack (in stack slots unit) and returns a pointer the beginning of that space. This can be used to allocate arbitrary space for data structure on native stack. Such space will be automatically freed on a function exit.
+
+<b>Syntax</b>
+
+ <ptr>: system/stack/allocate <slots>
+
+ <ptr>  : variable of type: pointer! [integer!]
+ <slots>: expression returning an integer
+
+\note Stack slots unit
+Stack slots unit are system-dependent, on IA-32 and ARM, a slot is equal to 4 bytes.
+
+/note
+
+---stack/free
+
+Frees a storage space on stack (in stack slots unit). This is useful for manually controlling the release of a stack storage space allocated with <i>system/stack/allocate</i>, or from outside a function.
+
+<b>Syntax</b>
+
+ system/stack/free <slots>
+
+ <slots>: expression returning an integer
+
+\note Manual stack manipulations and exceptions
+Current exceptions implementation (catch/throw) cannot mix with manual stack manipulations, therefore all allocated spaces on stack <b>must</b> be freed before entering a <i>catch</i> body block, or using a <i>throw</i> keyword.
+
+/note
 
 ---pc
 
@@ -3663,8 +3763,8 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     null		or			pop
     push		return		size?
     switch		throw		true
-    until		while		with
-    xor
+    until		use			while
+    with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -3701,13 +3801,7 @@ Both -** (internal representation for >>>) and /// (internal representation for 
  <little> : little endian (optional)
  <big>    : big endian (optional)
  
-*Add support for passing struct! by value when required. Possible syntax could be:
-
- struct [
-	[by-value]					;-- 'by-value keyword would force passing it
-	<members>					;-- by value.
- ]
-
+*<strike>Add support for passing struct! by value when required.</strike>
 
 ---C-strings
 
@@ -3786,6 +3880,20 @@ will output:
 
 
 ===Document History
+
+*<b>01/05/2017 - revision 52</b>
+
+*>Adds description of nested structs values.
+
+*>Adds stack/allocate and stack/free sections.
+
+
+*<b>20/04/2017 - revision 51</b>
+
+*>Adds description of structs by value passing/returning.
+
+*>Adds USE keyword description.
+
 
 *<b>31/03/2017 - revision 50</b>
 

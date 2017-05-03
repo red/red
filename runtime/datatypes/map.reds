@@ -70,7 +70,7 @@ map: context [
 					string/append-char GET_BUFFER(buffer) as-integer space
 					part: part - 1
 					
-					unless cycles/detect? value buffer :part mold? [
+					unless cycles/detect? next buffer :part mold? [
 						part: actions/mold next buffer only? all? flat? arg part tabs
 					]
 

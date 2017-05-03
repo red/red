@@ -114,7 +114,7 @@ system/reactivity: context [
 	set 'dump-reactions function [
 		"Output all the current reactive relations for debugging purpose"
 	][
-		limit: any [all [system/console system/console/limit] 72] - 10
+		limit: any [all [system/console system/console/size/x] 72] - 10
 		count: 0
 		
 		foreach [obj field reaction target] relations [
@@ -144,7 +144,7 @@ system/reactivity: context [
 	]
 	
 	is~: function [
-		"Defines a reactive relation which result is assigned to a word"
+		"Defines a reactive relation whose result is assigned to a word"
 		'field	 [set-word!]	"Set-word which will get set to the result of the reaction"
 		reaction [block!]		"Reactive relation"
 	][

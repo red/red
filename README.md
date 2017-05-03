@@ -158,7 +158,7 @@ Notes:
 - Wine has some [issues](https://github.com/red/red/issues/1618) with the GUI-Console. Install the `Consolas` font to fix the problem.
 
 
-Running Red from the sources
+Running Red from the sources (for contributors)
 ------------------------
 The compiler and linker are currently written in Rebol. Please follow the instructions for installing the compiler toolchain in order to run it from sources:
 

@@ -21,21 +21,18 @@ bitmap-3: make image! 30x30
 draw bitmap-3 [fill-pen blue pen off box 0x0 30x30 pen black triangle 10x0 0x30 30x30]
 bitmap-4: make image! 60x90
 draw bitmap-4 [
-    matrix-order prepend 
     line-width 1 
     pen off 
     fill-pen black push [clip 0x0 60x90 intersect push [fill-pen black line-width 1 pen off scale 1.0 1.5 push [fill-pen 109.105.92 line-width 1 pen off box 0x0 98x98] push [fill-pen 98.95.83 line-width 1 pen off translate 30x0 rotate 45.0 box 0x0 41x41] push [fill-pen 113.111.100 line-width 1 pen off rotate 45.0 box 0x0 98x0] push [fill-pen 113.111.100 line-width 1 pen off translate 0x60 rotate -45.0 box 0x0 98x0]]]
 ]
 bitmap-5: make image! 8x8
 draw bitmap-5 [
-    matrix-order prepend 
     line-width 1 
     pen off 
     fill-pen black push [clip 0x0 8x8 intersect push [fill-pen 64.60.63 line-width 1 pen off box 0x0 8x8] push [fill-pen black line-width 1 pen 30.41.45.0 line-width 1 shape [move 0x0 line 8x8 move 8x0 line 0x8]]]
 ]
 bitmap-6: make image! 50x90
 draw bitmap-6 [
-    matrix-order prepend 
     line-width 1 
     pen off 
     fill-pen black push [clip 0x0 50x90 intersect push [fill-pen 128.128.128 line-width 1 pen off box 0x0 50x90] push [fill-pen 192.192.192 line-width 1 pen off box 25x0 50x90]]
@@ -44,7 +41,6 @@ draw bitmap-6 [
 ;pattern-1-size: as-pair start-x + (4 * (width + step-x)) start-y + height + step-y
 pattern-1-size: as-pair 4 * (width + step-x) height
 pattern-1: compose/deep [
-    matrix-order prepend 
     pen off 
     ;fill-pen linear 240.16.144 0.0 0.192.240 1.0 (as-pair start-x start-y) (pattern-1-size) 
     fill-pen linear 240.16.144 0.0 0.192.240 1.0 0x0 (pattern-1-size) 
@@ -70,7 +66,6 @@ pattern-1: compose/deep [
     box 0x0 (pattern-1-size) 
 ]
 pattern-2: [
-    matrix-order prepend 
     line-width 1 
     pen off 
     fill-pen black push [
@@ -86,7 +81,6 @@ pattern-2: [
     ]
 ] 
 pattern-3: [
-    matrix-order prepend 
     line-width 1 
     pen off 
     fill-pen black push [
@@ -163,25 +157,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        fill-pen linear red green blue scale fill-pen 2 1 
+        fill-pen linear red green blue scale 'fill-pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 45"
-        fill-pen linear red green blue rotate fill-pen 45 
+        fill-pen linear red green blue rotate 'fill-pen 45 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        fill-pen linear red green blue translate fill-pen 50x0
+        fill-pen linear red green blue translate 'fill-pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 50x50"
-        fill-pen linear red green blue skew fill-pen 50 50
+        fill-pen linear red green blue skew 'fill-pen 50 50
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
@@ -240,25 +234,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        fill-pen radial red green blue scale fill-pen 2 1 
+        fill-pen radial red green blue scale 'fill-pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 15"
-        fill-pen radial red green blue rotate fill-pen 15 
+        fill-pen radial red green blue rotate 'fill-pen 15 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        fill-pen radial red green blue translate fill-pen 50x0
+        fill-pen radial red green blue translate 'fill-pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 15x15"
-        fill-pen radial red green blue skew fill-pen 15 15
+        fill-pen radial red green blue skew 'fill-pen 15 15
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
@@ -317,25 +311,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        fill-pen diamond red green blue scale fill-pen 2 1 
+        fill-pen diamond red green blue scale 'fill-pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 15"
-        fill-pen diamond red green blue rotate fill-pen 15 
+        fill-pen diamond red green blue rotate 'fill-pen 15 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        fill-pen diamond red green blue translate fill-pen 50x0
+        fill-pen diamond red green blue translate 'fill-pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         6
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 15x15"
-        fill-pen diamond red green blue skew fill-pen 15 15
+        fill-pen diamond red green blue skew 'fill-pen 15 15
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
@@ -395,25 +389,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        pen linear red green blue scale pen 2 1 
+        pen linear red green blue scale 'pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 45"
-        pen linear red green blue rotate pen 45 
+        pen linear red green blue rotate 'pen 45 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        pen linear red green blue translate pen 50x0
+        pen linear red green blue translate 'pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 50x50"
-        pen linear red green blue skew pen 50 50
+        pen linear red green blue skew 'pen 50 50
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
@@ -473,25 +467,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        pen radial red green blue scale pen 2 1 
+        pen radial red green blue scale 'pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 15"
-        pen radial red green blue rotate pen 15 
+        pen radial red green blue rotate 'pen 15 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        pen radial red green blue translate pen 50x0
+        pen radial red green blue translate 'pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 15x15"
-        pen radial red green blue skew pen 15 15
+        pen radial red green blue skew 'pen 15 15
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
@@ -551,25 +545,25 @@ drawings: [
 
         
         text ( as-pair start-x start-y + (2 * (height + step-y)) - 20 ) "no stops; scale 2 1"
-        pen diamond red green blue scale pen 2 1 
+        pen diamond red green blue scale 'pen 2 1 
         box 
             ( as-pair start-x start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; rotate 15"
-        pen diamond red green blue rotate pen 15 
+        pen diamond red green blue rotate 'pen 15 
         box 
             ( as-pair start-x + (1 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (1 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
         
         text ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; translate 50x0"
-        pen diamond red green blue translate pen 50x0
+        pen diamond red green blue translate 'pen 50x0
         box 
             ( as-pair start-x + (2 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (2 * (width + step-x)) start-y + height +(2 * (height + step-y)) )
 
         text ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) - 20 ) "no stops; skew 15x15"
-        pen diamond red green blue skew pen 15 15
+        pen diamond red green blue skew 'pen 15 15
         box 
             ( as-pair start-x + (3 * (width + step-x)) start-y + (2 * (height + step-y)) ) 
             ( as-pair start-x + width + (3 * (width + step-x)) start-y + height +(2 * (height + step-y)) )

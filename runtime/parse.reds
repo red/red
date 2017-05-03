@@ -995,32 +995,39 @@ parser: context [
 											offset + 1 < input/head [	;-- KEEP with matched size > 1
 												PARSE_COPY_INPUT(value)
 											]
-											true [
+											offset < input/head [
 												PARSE_PICK_INPUT		;-- KEEP with matched size = 1
 											]
+											true [value: null]
 										]
 									]
-									if int/value <> R_KEEP_PICK [offset: input/head] ;-- ensures no looping
+									either int/value <> R_KEEP_PICK [
+										offset: input/head	;-- ensures no looping
+									][
+										if offset >= input/head [value: null]
+									]
 									
-									until [
-										if int/value = R_KEEP_PICK [
-											PARSE_PICK_INPUT
-											offset: offset + 1
-										]
-										either into? [
-											switch TYPE_OF(blk) [
-												TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
-												TYPE_STRING
-												TYPE_FILE
-												TYPE_URL 
-												TYPE_TAG
-												TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
-												default  [block/insert blk value null yes null no]
+									if value <> null [
+										until [
+											if int/value = R_KEEP_PICK [
+												PARSE_PICK_INPUT
+												offset: offset + 1
 											]
-										][
-											block/rs-append blk value
+											either into? [
+												switch TYPE_OF(blk) [
+													TYPE_BINARY [binary/insert as red-binary! blk value null yes null no]
+													TYPE_STRING
+													TYPE_FILE
+													TYPE_URL 
+													TYPE_TAG
+													TYPE_EMAIL [string/insert as red-string! blk value null yes null no]
+													default  [block/insert blk value null yes null no]
+												]
+											][
+												block/rs-append blk value
+											]
+											offset = input/head
 										]
-										offset = input/head
 									]
 								]
 							]
@@ -1211,6 +1218,7 @@ parser: context [
 						]
 						TYPE_INTEGER [
 							int:  as red-integer! value
+							if int/value < 0 [PARSE_ERROR [TO_ERROR(script out-of-range) int]]
 							int2: as red-integer! cmd + 1
 							if all [
 								int2 < tail
@@ -1225,6 +1233,9 @@ parser: context [
 								all [upper? int/value > int2/value]
 							][
 								PARSE_ERROR [TO_ERROR(script parse-rule) value]
+							]
+							if all [upper? int2/value < 0][
+								PARSE_ERROR [TO_ERROR(script out-of-range) int2]
 							]
 							state: either all [zero? int/value not upper?][
 								cmd: cmd + 1			;-- skip over sub-rule

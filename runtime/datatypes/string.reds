@@ -1250,6 +1250,9 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
+			all [type = ESC_CHAR cp = 7Fh][
+				concatenate-literal buffer "^^~"
+			]
 			all [
 				type = ESC_URL
 				cp < MAX_URL_CHARS
@@ -2358,6 +2361,7 @@ string: context [
 			vec		[red-vector!]
 			s		[series!]
 			unit	[integer!]
+			type	[integer!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2368,12 +2372,14 @@ string: context [
 		][
 			ownership/check as red-value! str words/_take null str/head 1
 			unit: GET_UNIT(s)
-			either TYPE_OF(str) = TYPE_VECTOR [
+			type: TYPE_OF(str)
+			either type = TYPE_VECTOR [
 				vec: as red-vector! str
 				str: as red-string! vector/get-value as byte-ptr! s/offset unit vec/type
-			][										;-- return char!
+			][
+				type: either type = TYPE_BINARY [TYPE_INTEGER][TYPE_CHAR]
 				char: as red-char! str
-				char/header: TYPE_CHAR
+				char/header: type
 				char/value:  get-char as byte-ptr! s/offset unit
 			]
 			ownership/check as red-value! str words/_taken null str/head 0

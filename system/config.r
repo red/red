@@ -49,7 +49,6 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-dev-mode?: no
 ]
 WindowsXP [
 	OS:			'Windows
@@ -185,10 +184,14 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-;OSX [									; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'GUI
-;]
+OSX [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'GUI
+	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+	dev-mode?:	no
+]
 ;-------------------------

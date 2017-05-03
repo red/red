@@ -532,7 +532,7 @@ system/lexer: context [
 					| "line" (value: #"^(0A)")
 					| "page" (value: #"^(0C)")
 					| "esc"  (value: #"^(1B)")
-					| "del"	 (value: #"^(7F)")
+					| "del"	 (value: #"^~")
 				]
 				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
@@ -542,7 +542,7 @@ system/lexer: context [
 				[
 					#"/" 	(value: #"^/")
 					| #"-"	(value: #"^-")
-					| #"?" 	(value: #"^(del)")			;@@FIXME
+					| #"~" 	(value: #"^(del)")
 					| #"^^" (value: #"^^")				;-- caret escaping case
 					| #"{"	(value: #"{")
 					| #"}"	(value: #"}")
@@ -750,7 +750,7 @@ system/lexer: context [
 		sticky-word-rule: [								;-- protect from sticky words typos
 			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
-		hexa-rule: [2 8 hexa e: #"h"]
+		hexa-rule: [2 8 hexa e: #"h" ahead [integer-end | ws-no-count | end]]
 
 		tuple-value-rule: [byte 2 11 [#"." byte] e: (type: tuple!)]
 

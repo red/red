@@ -101,7 +101,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows]
+		View		%modules/view/view.red	  [Windows MacOSX]
 	]
 
 	func-constructors: [
@@ -1110,7 +1110,7 @@ red: context [
 	
 	check-func-name: func [name [word!] /local new pos][
 		if find functions name [
-			new: to word! append mold/flat name get-counter
+			new: to word! append append mold/flat name "||" get-counter
 			either pos: find-ssa name [
 				pos/2: new
 			][
@@ -1320,7 +1320,7 @@ red: context [
 		path [path! set-path!] set? [logic!] alt? [logic!]
 		/local pos words item blk get?
 	][
-		if set? [
+		either set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
 				emit [									;-- get arguments just below the stack record
@@ -1330,6 +1330,8 @@ red: context [
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
+		][
+			emit-open-frame 'eval-path
 		]
 		pos: tail output
 		
@@ -1352,13 +1354,12 @@ red: context [
 				get?: to logic! any [head? path get-word? item]
 				get-path-word item clear blk get?
 			]
-		]		
+		]
 		emit words
-		unless set? [emit 'stack/top]
 		
 		new-line/all pos no
 		new-line pos yes
-		if set? [emit-close-frame]
+		emit-close-frame
 	]
 	
 	emit-eval-path: func [/set][
@@ -2535,7 +2536,7 @@ red: context [
 			unless any [
 				all [ignore	find ignore word]
 				find words word
-			][			
+			][
 				append words word
 			]
 		]
@@ -3146,10 +3147,12 @@ red: context [
 				[[word/get-local  (ctx) (index)]]
 			] set?
 			
+			mark: none
 			either self? [
 				if all [not empty? locals-stack	container-obj?][
 					true-blk/1/2: 'octx
 				]
+				mark: tail output
 				emit first true-blk
 			][
 				emit compose [
@@ -3157,7 +3160,7 @@ red: context [
 				]
 			]
 			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
-				insert clear last output compose [
+				insert clear any [mark last output] compose [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
 				]
@@ -3175,15 +3178,15 @@ red: context [
 					breaks: [-10 -7 -4 -1]				;-- word is in global context
 					[decorate-symbol path/1]
 				]
-				repend last output compose [
+				repend any [mark last output] compose [
 					fire
 						(parent)
 						decorate-exec-ctx decorate-symbol last path
 				]
-				append last output [
+				append any [mark last output][
 					stack/reset
 				]
-				foreach pos breaks [new-line skip tail last output pos yes]
+				foreach pos breaks [new-line skip tail any [mark last output] pos yes]
 			]
 		]
 		mark: tail output
@@ -4332,7 +4335,7 @@ red: context [
 		foreach module needed [
 			saved: if script-path [copy script-path]
 			script-path: first split-path module
-			pc: next load-source/hidden module
+			pc: next preprocessor/expand load-source/hidden module job
 			unless job/red-help? [clear-docstrings pc]
 			comp-block
 			script-path: saved

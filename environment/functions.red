@@ -85,12 +85,14 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 #do keep [
 	list: make block! 50
 	to-list: [
-		bitset! binary! block! char! email! file! float! get-path!
-		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
-		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! word! image!
+		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
+		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
+		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
+		unset! url! word! image!
 	]
-	test-list: union to-list [handle! error! action! datatype! function! image! object! op! routine! vector!]
+	test-list: union to-list [
+		handle! error! action! native! datatype! function! image! object! op! routine! vector!
+	]
 	
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
@@ -123,7 +125,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar!
+		series! number! immediate! scalar! all-word!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
@@ -381,10 +383,12 @@ save: function [
 	/as     "Specify the format of data; use NONE to save as plain text"
 		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
 ][
+	dst: either any [file? where url? where][where][none]
 	either as [
 		if word? format [
 			either codec: select system/codecs format [
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
 			][exit]
 		]
 	][
@@ -396,7 +400,8 @@ save: function [
 		find-encoder?: no
 		foreach [name codec] system/codecs [
 			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]
 				find-encoder?: yes
 			]
 		]
@@ -568,10 +573,11 @@ list-dir: function [
 		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
 	]
 	list: read normalize-dir dir
+	limit: system/console/size/x - 13
 	max-sz: either n [
-		system/console/limit / n - n					;-- account for n extra spaces
+		limit / n - n					;-- account for n extra spaces
 	][
-		n: max 1 system/console/limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22				;-- account for n extra spaces
 		22 - n
 	]
 
@@ -640,6 +646,7 @@ extract: function [
 	/into				 "Provide an output series instead of creating a new one"
 		output [series!] "Output series"
 ][
+	width: max 1 width
 	if pos [series: at series pos]
 	unless into [output: make series (length? series) / width]
 	
@@ -703,7 +710,7 @@ collect: function [
 	
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
-		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | into rule | skip]
+		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | binary! | into rule | skip]
 	]
 	do body
 	either into [collected][head collected]
@@ -889,7 +896,7 @@ atan2: func [
 
 sqrt: func [
 	"Returns the square root of a number"
-	number	[number!] "Angle in radians"
+	number	[number!]
 	return:	[float!]
 ][
 	#system [

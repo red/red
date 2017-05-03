@@ -123,7 +123,7 @@ ext-process: context [
 			#either OS = 'Windows [
 				buffer: data/buffer
 				count: data/count
-				either any [console? shell? win-error?][
+				either any [console? win-shell? win-error?][
 					len: 0
 					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
@@ -143,7 +143,8 @@ ext-process: context [
 
 	#switch OS [
 	Windows   [											;-- Windows
-		win-error?: no
+		win-error?: no				;@@ make it local variable
+		win-shell?: no				;@@ make it local variable
 
 		init: does []
 
@@ -179,7 +180,7 @@ ext-process: context [
 			file: platform/CreateFileW
 				as c-string! pbuf/buffer
 				GENERIC_WRITE
-				0
+				FILE_SHARE_READ or FILE_SHARE_WRITE
 				sa
 				OPEN_ALWAYS
 				FILE_ATTRIBUTE_NORMAL
@@ -213,6 +214,7 @@ ext-process: context [
 				sa p-inf s-inf len success error str
 		][
 			win-error?: no
+			win-shell?: shell?
 			s-inf: declare startup-info!
 			p-inf: declare process-info!
 			sa: declare security-attributes!
@@ -330,6 +332,7 @@ ext-process: context [
 					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
 					copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
 					shell?: yes							;-- force /shell mode and try again
+					win-shell?: yes
 					
 					unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
 						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
@@ -356,12 +359,12 @@ ext-process: context [
 			]
 			if out-buf <> null [
 				platform/CloseHandle out-write
-				read-from-pipe out-read out-buf
+				if out-buf/count <> -1 [read-from-pipe out-read out-buf]
 				platform/CloseHandle out-read
 			]
 			if err-buf <> null [
 				platform/CloseHandle err-write
-				read-from-pipe err-read err-buf
+				if err-buf/count <> -1 [read-from-pipe err-read err-buf]
 				platform/CloseHandle err-read
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]

@@ -229,12 +229,15 @@ lexer: context [
 	]
 	
 	lit-word-rule: [
-		#"'" (type: word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)				;-- path matched
-			| (
-				type: lit-word!
-				value: copy/part s e				;-- word matched
-			)
+		#"'" (type: word!) [
+			#"/" (type: lit-word! value: "/")
+			| s: begin-symbol-rule [
+				path-rule (type: lit-path!)				;-- path matched
+				| (
+					type: lit-word!
+					value: copy/part s e				;-- word matched
+				)
+			]
 		][s: #":" :s (throw-error) | none]
 	]
 	
@@ -251,7 +254,7 @@ lexer: context [
 	
 	slash-rule: [s: [slash opt slash] e:]
 	
-	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
 	sticky-word-rule: [								;-- protect from sticky words typos
 		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
@@ -336,7 +339,7 @@ lexer: context [
 				| "line" (value: #"^(0A)")
 				| "page" (value: #"^(0C)")
 				| "esc"  (value: #"^(1B)")
-				| "del"	 (value: #"^(7F)")
+				| "del"	 (value: #"^~")
 			]
 			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					either rs? [
@@ -348,7 +351,7 @@ lexer: context [
 			[
 				#"/" 	(value: #"^/")
 				| #"-"	(value: #"^-")
-				| #"?" 	(value: #"^(del)")
+				| #"~" 	(value: #"^(del)")
 				| #"^^" (value: #"^^")				;-- caret escaping case
 				| #"{"	(value: #"{")
 				| #"}"	(value: #"}")

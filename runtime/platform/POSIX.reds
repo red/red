@@ -209,7 +209,6 @@ pollfd!: alias struct! [
 			timeout 		[integer!]
 			return: 		[integer!]
 		]
-		environ: "environ" [integer!]
 	]
 ]
 

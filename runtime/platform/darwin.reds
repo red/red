@@ -22,7 +22,6 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
-
 platform: context [
 
 	#include %POSIX.reds
@@ -33,18 +32,13 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
-			objc_getClass: "objc_getClass" [
-				class		[c-string!]
-				return:		[integer!]
+			_NSGetEnviron: "_NSGetEnviron" [
+				return: 	[int-ptr!]
 			]
-			sel_getUid: "sel_getUid" [
-				name		[c-string!]
-				return:		[integer!]
-			]
-			objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		]
 	]
-
+	
+	environ: 0
 	page-size: 0
 
 	#syscall [
@@ -99,7 +93,9 @@ platform: context [
 		]
 	]
 	
-	init: does [
+	init: func [/local ptr [int-ptr!]][
+		ptr: _NSGetEnviron
+		environ: ptr/value
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
 	]

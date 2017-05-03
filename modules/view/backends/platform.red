@@ -69,6 +69,9 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
+				FACET_FLAGS_EDITABLE:	00040000h
+				FACET_FLAGS_SCROLLABLE:	00080000h
+
 				FACET_FLAGS_D2D:		00100000h
 
 				FACET_FLAGS_POPUP:		01000000h
@@ -102,7 +105,33 @@ system/view/platform: context [
 				PARA_OBJ_WRAP?
 				PARA_OBJ_PARENT
 			]
-			
+
+			#enum text-box-facet! [
+				TBOX_OBJ_TEXT
+				TBOX_OBJ_SIZE
+				TBOX_OBJ_FONT
+				TBOX_OBJ_PARA
+				TBOX_OBJ_SPACING
+				TBOX_OBJ_TABS
+				TBOX_OBJ_STYLES
+				TBOX_OBJ_STATE
+				TBOX_OBJ_TARGET
+				TBOX_OBJ_FIXED?
+				TBOX_OBJ_WIDTH
+				TBOX_OBJ_HEIGHT
+				TBOX_OBJ_LINE_COUNT
+			]
+
+			#enum scroller-facet! [
+				SCROLLER_OBJ_POS
+				SCROLLER_OBJ_PAGE
+				SCROLLER_OBJ_MIN
+				SCROLLER_OBJ_MAX
+				SCROLLER_OBJ_VISIBLE?
+				SCROLLER_OBJ_VERTICAL?
+				SCROLLER_OBJ_PARENT
+			]
+
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP
@@ -116,10 +145,11 @@ system/view/platform: context [
 				EVT_DBL_CLICK
 				EVT_WHEEL
 				EVT_OVER								;-- last mouse event
-				
+
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				EVT_IME
 				EVT_FOCUS
 				EVT_UNFOCUS
 				EVT_ENTER
@@ -140,6 +170,8 @@ system/view/platform: context [
 				EVT_MOVING
 				EVT_SIZING
 				EVT_TIME
+				EVT_DRAWING
+				EVT_SCROLL
 			]
 			
 			#enum event-flag! [
@@ -220,18 +252,22 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
-			
+			caret:			symbol/make "caret"
+
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
-			popup:			symbol/make "popup"
 			
 			ClearType:		symbol/make "ClearType"
 			_bold:			symbol/make "bold"
 			_italic:		symbol/make "italic"
 			_underline:		symbol/make "underline"
 			_strike:		symbol/make "strike"
+			_border:		symbol/make "border"
+			_backdrop:		symbol/make "backdrop"
+			_font-name:		symbol/make "font-name"
+			_font-size:		symbol/make "font-size"
 			
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"
@@ -244,9 +280,19 @@ system/view/platform: context [
 			no-buttons:		symbol/make "no-buttons"
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
+			scrollable:		symbol/make "scrollable"
+			editable:		symbol/make "editable"
 
 			Direct2D:		symbol/make "Direct2D"
-			
+
+			_arrow:			symbol/make "arrow"
+			_hand:			symbol/make "hand"
+			_help:			symbol/make "help"
+			_I-beam:		symbol/make "I-beam"
+
+			on-over:		symbol/make "on-over"
+			_actors:		word/load "actors"
+
 			_text:			word/load "text"
 			_data:			word/load "data"
 			_control:		word/load "control"
@@ -268,6 +314,7 @@ system/view/platform: context [
 			_key:			word/load "key"
 			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			_ime:			word/load "ime"
 			_focus:			word/load "focus"
 			_unfocus:		word/load "unfocus"
 			_select:		word/load "select"
@@ -285,9 +332,14 @@ system/view/platform: context [
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
-			
+			_drawing:		word/load "drawing"
+			_scroll:		word/load "scroll"
+
+			_track:			word/load "track"
+			_page-left:		word/load "page-left"
+			_page-right:	word/load "page-right"
 			_page-up:		word/load "page-up"
-			_page_down:		word/load "page-down"
+			_page-down:		word/load "page-down"
 			_end:			word/load "end"
 			_home:			word/load "home"
 			_left:			word/load "left"
@@ -314,8 +366,8 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-alt:		word/load "left-alt"
 			_right-alt:		word/load "right-alt"
-			_left-command:	word/load "left-command"
-			_right-command:	word/load "right-command"
+			_left-menu:		word/load "left-menu"
+			_right-menu:	word/load "right-menu"
 			_left-command:	word/load "left-command"
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
@@ -327,6 +379,8 @@ system/view/platform: context [
 			][
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
+					EVT_DRAWING		 [_drawing]
+					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
 					EVT_MIDDLE_DOWN	 [_mid-down]
@@ -342,6 +396,7 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
+					EVT_IME			 [_ime]
 					EVT_FOCUS		 [_focus]
 					EVT_UNFOCUS		 [_unfocus]
 					EVT_SELECT	 	 [_select]
@@ -370,6 +425,8 @@ system/view/platform: context [
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
+					sym = _drawing/symbol		[sym: EVT_DRAWING]
+					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
 					sym = _mid-down/symbol		[sym: EVT_MIDDLE_DOWN]
@@ -385,6 +442,7 @@ system/view/platform: context [
 					sym = _key/symbol			[sym: EVT_KEY]
 					sym = _key-down/symbol		[sym: EVT_KEY_DOWN]
 					sym = _key-up/symbol		[sym: EVT_KEY_UP]
+					sym = _ime/symbol			[sym: EVT_IME]
 					sym = _focus/symbol			[sym: EVT_FOCUS]
 					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]
 					sym = _select/symbol		[sym: EVT_SELECT]
@@ -408,8 +466,53 @@ system/view/platform: context [
 				evt/type: sym
 			]
 
+			#import  [
+			LIBM-file cdecl [
+				fabsf: "fabsf" [
+					x			[float32!]
+					return:		[float32!]
+				]
+				sinf:		 "sinf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				cosf:		 "cosf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				tanf:		 "tanf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				asinf:		 "asinf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				acosf:		 "acosf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				atanf:		 "atanf" [
+					radians		[float32!]
+					return:		[float32!]
+				]
+				atan2f:		 "atan2f" [
+					y			[float32!]
+					x			[float32!]
+					return:		[float32!]
+				]
+				sqrtf:		"sqrtf" [
+					x			[float32!]
+					return:		[float32!]
+				]
+			]]
+
 			;#include %android/gui.reds
-			#include %windows/gui.reds
+			#switch OS [
+				Windows  [#include %windows/gui.reds]
+				MacOSX   [#include %osx/gui.reds]
+				#default []					;-- Linux
+			]
 		]
 	]
 	
@@ -496,7 +599,12 @@ system/view/platform: context [
 	refresh-window: routine [h [handle!]][
 		gui/OS-refresh-window h/value
 	]
-	
+
+	redraw: routine [face [object!] /local h [integer!]][
+		h: as-integer gui/face-handle? face
+		if h <> 0 [gui/OS-redraw h]
+	]
+
 	show-window: routine [id [handle!]][
 		gui/OS-show-window id/value
 		SET_RETURN(none-value)
@@ -510,14 +618,19 @@ system/view/platform: context [
 		gui/OS-do-draw image cmds
 	]
 
+	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
+		int: as red-integer! (object/get-values face) + gui/FACE_OBJ_DRAW
+		gui/OS-draw-face as draw-ctx! int/value cmds
+	]
+
 	do-event-loop: routine [no-wait? [logic!] /local bool [red-logic!]][
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
 	]
 
-	request-font: routine [font [object!] mono? [logic!]][
-		gui/OS-request-font font mono?
+	request-font: routine [font [object!] selected [object!] mono? [logic!]][
+		gui/OS-request-font font selected mono?
 	]
 
 	request-file: routine [
@@ -538,6 +651,25 @@ system/view/platform: context [
 		multi?	[logic!]
 	][
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
+	]
+
+	text-box-layout: routine [
+		box		[object!]
+	][
+		gui/OS-text-box-layout box null no
+	]
+
+	text-box-metrics: routine [
+		state	[block!]
+		arg0	[any-type!]
+		type	[integer!]
+	][
+		stack/set-last gui/OS-text-box-metrics state arg0 type
+	]
+
+	update-scroller: routine [scroller [object!] flags [integer!]][
+		gui/update-scroller scroller flags
+		SET_RETURN(none-value)
 	]
 
 	init: func [/local svs fonts][

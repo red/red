@@ -662,6 +662,7 @@ _function: context [
 				TYPE_WORD 	  [0]						;-- do nothing
 				TYPE_REFINEMENT
 				TYPE_GET_WORD
+				TYPE_LIT_WORD
 				TYPE_SET_WORD [
 					value/header: TYPE_WORD				;-- convert it to a word!
 				]
