@@ -53,18 +53,19 @@ Red [
 		--assert equal? pick tb3-t 2 59
 		--assert equal? pick tb3-t 3 59
 		
-	--test-- "tb-4"
-		tb4-t: -1:-0:-0
-		--assert equal? tb4-t/hour -1
-		--assert equal? tb4-t/minute 0
-		--assert equal? tb4-t/second 0
-		--assert equal? first tb4-t -1
-		--assert equal? second tb4-t 0
-		--assert equal? third tb4-t 0
-		--assert equal? tb4-t -1:0:0
-		--assert equal? pick tb4-t 1 0
-		--assert equal? pick tb4-t 2 0
-		--assert equal? pick tb4-t 3 0
+; Invalid syntax now (to be removed once that statement is verified)
+;	--test-- "tb-4"
+;		tb4-t: -1:-0:-0
+;		--assert equal? tb4-t/hour -1
+;		--assert equal? tb4-t/minute 0
+;		--assert equal? tb4-t/second 0
+;		--assert equal? first tb4-t -1
+;		--assert equal? second tb4-t 0
+;		--assert equal? third tb4-t 0
+;		--assert equal? tb4-t -1:0:0
+;		--assert equal? pick tb4-t 1 0
+;		--assert equal? pick tb4-t 2 0
+;		--assert equal? pick tb4-t 3 0
 
 		;red>> 2147483647:00
 		;== 2147483646:00:00.0
@@ -298,8 +299,57 @@ Red [
 ===end-group===
 
 
-;even?, odd?, mod, modulo, negate, sign?
+===start-group=== "even?/odd?"
+	--test-- "even1" --assert even? 0:0:0
+	--test-- "even2" --assert even? 0:0:2
+	--test-- "even3" --assert even? 1:1:2
+	--test-- "even4" --assert even? 0:0:2.99999999999999			; Limit before rounding affects result
+	--test-- "even5" --assert even? -0:0:2
 
+	--test-- "not-even1" --assert not even? 0:0:1
+	--test-- "not-even2" --assert not even? 0:0:3
+	--test-- "not-even3" --assert not even? 2:2:3
+	--test-- "not-even4" --assert not even? 0:0:1.99999999999999	; Limit before rounding affects result
+	--test-- "not-even5" --assert not even? -0:0:1
+
+	--test-- "odd1" --assert odd? 0:0:1
+	--test-- "odd2" --assert odd? 0:0:3
+	--test-- "odd3" --assert odd? 2:2:3
+	--test-- "odd4" --assert odd? 0:0:1.99999999999999				; Limit before rounding affects result
+	--test-- "odd5" --assert odd? -0:0:1
+
+	--test-- "not-odd1" --assert not odd? 0:0:0
+	--test-- "not-odd2" --assert not odd? 0:0:2
+	--test-- "not-odd3" --assert not odd? 1:1:2
+	--test-- "not-odd4" --assert not odd? 0:0:2.99999999999999		; Limit before rounding affects result
+	--test-- "not-odd5" --assert not odd? -0:0:2
+===end-group===
+
+===start-group=== "negate/sign?"
+	--test-- "negate1" --assert   0:0:1   = negate -0:0:1
+	--test-- "negate2" --assert   0:1:0   = negate -0:1:0
+	--test-- "negate3" --assert   1:0:0   = negate -1:0:0
+	--test-- "negate4" --assert  -0:0:1   = negate  0:0:1
+	--test-- "negate5" --assert  -0:1:0   = negate  0:1:0
+	--test-- "negate6" --assert  -1:0:0   = negate  1:0:0
+	--test-- "negate7" --assert   1:1:1.1 = negate -1:1:1.1
+	--test-- "negate8" --assert  -1:1:1.1 = negate  1:1:1.1
+	
+	--test-- "sign1" --assert 0 = sign? 0:0:0
+	--test-- "sign2" --assert 0 = sign? -0:0:0
+
+	--test-- "sign3" --assert 1 = sign? 0:0:1
+	--test-- "sign4" --assert 1 = sign? 0:1:0
+	--test-- "sign5" --assert 1 = sign? 1:0:0
+	--test-- "sign6" --assert 1 = sign? 1:1:1.1
+
+	--test-- "sign7"  --assert -1 = sign? -0:0:1
+	--test-- "sign8"  --assert -1 = sign? -0:1:0
+	--test-- "sign9"  --assert -1 = sign? -1:0:0
+	--test-- "sign10" --assert -1 = sign? -1:1:1.1
+===end-group===
+
+; mod, modulo
 
 ===start-group=== "max/min"
 
@@ -345,6 +395,9 @@ Red [
 ===end-group===
 
 ;===start-group=== "round"
+
+; round/to  0:0:1.4  1	; bogus result in 0.6.2
+
 ;	--test-- "round1"  --assert  = round/to 
 ;	--test-- "round2"  --assert  = round/to 
 ;
