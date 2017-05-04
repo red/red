@@ -1274,8 +1274,8 @@ make-profilable make target-class [
 								#{e08b0004}				;-- ADD r0, fp, r4	; arg, 32-bit displacement
 							] offset < 0
 						][
-							opcode: pick [#{e248b0} #{e288b0}] offset < 0
-							emit-i32 join opcode to-bin8 offset	;-- ADD/SUB sp, sp, size ; 8-bit displacement
+							opcode: pick [#{e24b00} #{e28b00}] offset < 0
+							emit-i32 join opcode to-bin8 abs offset	;-- ADD/SUB r0, fp, size ; 8-bit displacement
 						]
 					]
 					'else [
@@ -1472,7 +1472,9 @@ make-profilable make target-class [
 				tail? skip path 2
 			]
 		][
-			emit-op-imm32 #{e2800000} offset		  ;-- ADD r0, r0, #offset
+			if offset <> 0 [
+				emit-op-imm32 #{e2800000} offset	  ;-- ADD r0, r0, #offset
+			]
 		][
 			if width = 8 [							  ;-- 64-bit value case
 				emit-poly/with #{e5901000} offset + 4 ;-- LDR r1, [r0, offset+4]	; high bits
@@ -1586,17 +1588,42 @@ make-profilable make target-class [
 	
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset size by-val? slots
+		/local idx offset size slots
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
 		size: emitter/size-of? compiler/get-type value
 													;-- @@ separate 64/32-bit conventions, too messy...
 		either value = <last> [
-			if by-val?: 'value = last compiler/last-type [
+			if 'value = last compiler/last-type [
 				slots: emitter/struct-slots? compiler/last-type
 				if slots > 2  [exit]				;-- big struct by value do not need post-processing
 				emit-i32 #{e1a02000}				;-- MOV r2, r0
+				unless parent [parent: emit-access-path/short path parent]
+				type: compiler/resolve-type/with path/2 parent
+				offset: emitter/member-offset? parent path/2
+				
+				case [
+					all [type/1 = 'struct! 'value = last parent/(path/2)][
+						if offset <> 0 [
+							emit-op-imm32 #{e2800000} offset ;-- ADD r0, r0, #offset
+						]
+					]
+					offset < 255 [
+						emit-i32 join #{e59000} 	;-- LDR r0, [r0, #offset]	; 8-bit disp
+							to-bin8 offset
+					]
+					'else [
+						emit-load-imm32/reg offset 4
+						emit-i32 #{e7900004}		;-- LDR r0, [r0, r4]	; 32-bit displacement
+					]
+				]
+				if slots = 2 [
+					set-width/type last type/2
+					emit-poly #{e5801004}			;-- STR r1, [r0,#4]		; r1 = 2nd struct member
+				]
+				set-width/type type/2/2
+				emit-poly #{e5802000}				;-- STR r2, [r0]		; r1 = 1st struct member
 			]
 		][
 			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address
@@ -1624,46 +1651,19 @@ make-profilable make target-class [
 				set-width/type type/1				;-- adjust operations width to member value size
 				offset: emitter/member-offset? parent path/2
 
-				case [
-					by-val? [
-						;emit-i32 #{e5922000}		;-- LDR r2, [r2] 
-						case [
-							all [type/1 = 'struct! 'value = last parent/(path/2)][
-								if offset <> 0 [
-									emit-op-imm32 #{e2800000} offset ;-- ADD r0, r0, #offset
-								]
-							]
-							offset < 255 [
-								emit-i32 join #{e59000} ;-- LDR r0, [r0, #offset]	; 8-bit disp
-									to-bin8 offset
-							]
-							'else [
-								emit-load-imm32/reg offset 4
-								emit-i32 #{e7900004}	;-- LDR r0, [r0, r4]	; 32-bit displacement
-							]
-						]
-						if slots = 2 [
-							set-width/type last type/2
-							emit-poly #{e5801004}	;-- STR r1, [r0,#4]		; r1 = 2nd struct member
-						]
-						set-width/type type/2/2
-						emit-poly #{e5802000}		;-- STR r2, [r0]		; r1 = 1st struct member
+				either zero? offset [
+					either width = 8 [
+						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
+					][
+						emit-poly #{e5002000}		;-- STR r2, [r0]		; r2 = value
 					]
-					zero? offset [
-						either width = 8 [
-							emit-i32 #{e8820003}	;-- STM r2, {r0,r1}		; r2 = address
-						][
-							emit-poly #{e5002000}	;-- STR r2, [r0]		; r2 = value
-						]
-					]
-					'else [
-						emit-load-imm32/reg offset 3
-						either width = 8 [
-							emit-i32 #{e0822003}	;-- ADD r2, r2, r3
-							emit-i32 #{e8820003}	;-- STM r2, {r0,r1}		; r2 = address
-						][
-							emit-poly #{e7802003}	;-- STR r2, [r0, r3]	; r2 = value
-						]
+				][
+					emit-load-imm32/reg offset 3
+					either width = 8 [
+						emit-i32 #{e0822003}		;-- ADD r2, r2, r3
+						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
+					][
+						emit-poly #{e7802003}		;-- STR r2, [r0, r3]	; r2 = value
 					]
 				]
 			]
@@ -1736,31 +1736,26 @@ make-profilable make target-class [
 		4											;-- opcode length
 	]
 	
-	emit-copy-mem: func [
-		opcode [binary!] reg [integer!] slots [integer!] ;-- 32-bit slots
-		/local bits
-	][
-		emit-i32 opcode								;-- MOV r4, <dst>	; dst
-		
+	emit-copy-mem: func [slots [integer!] /local bits][ ;-- r0: src, ip: dst, 32-bit slots
 		either slots <= 8 [							;-- 8 is max number of regs usable for the copy
-			reg: join #{00} to binary! to char! reg
 			bits: skip debase/base to-hex shift/logical 1020 (8 - slots) 16 2
 			bits: bits and #{FFFC}
 			emit-i32 join #{e890} bits				;-- LDM r0, {r2,rN}
-			emit-i32 join #{e880} or reg bits		;-- STM <dst>, {r2,rN}
+			emit-i32 join #{e88c} bits				;-- STM <dst>, {r2,rN}
 		][
 			emit-i32 #{e1a03000}					;-- MOV r3, r0		; src
 			emit-load-imm32/reg slots 5				;-- MOV r5, <size>
 			emit-i32 #{e4931001}					;-- .loop:	LDR r1, [r3!], #1
-			emit-i32 #{e4841001}					;--			STR r1, [r4!], #1
+			emit-i32 #{e48c1001}					;--			STR r1, [ip!], #1
 			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
 			emit-i32 #{1afffffb}					;-- 		BNE .loop
 		]
 	]
 	
 	emit-push-struct: func [slots [integer!]][		;-- number of 32-bit slots
-		if slots > 8 [emit-reserve-stack slots]
-		emit-copy-mem #{e1a04000} 13 slots			;-- MOV r4, <dst>	; dst
+		emit-reserve-stack slots
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp	; dst
+		emit-copy-mem slots
 	]
 
 	emit-push: func [
@@ -2586,7 +2581,7 @@ make-profilable make target-class [
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
-		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		size: 0
 		if issue? tag: args/1 [
@@ -2608,7 +2603,7 @@ make-profilable make target-class [
 
 	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd5000}						;-- POP {ip,lr}			; use ip as replacement to sp
-		emit-i32 #{e1a0d00c}                        ;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
+		emit-i32 #{e1a0d00c}						;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
 	]
 	
 	emit-throw: func [value [integer! word!] /thru][
@@ -2766,7 +2761,7 @@ make-profilable make target-class [
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
 		 /with slots [integer! none!]
-		/local fspec attribs opcode
+		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
@@ -2782,8 +2777,8 @@ make-profilable make target-class [
 					unless tag? vars/1 [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
-					opcode: join #{e59b40} to-bin8 vars/2 ;-- LDR r4, [fp, 8]
-					emit-copy-mem opcode 4 slots
+					emit-i32 join #{e59bc0} to-bin8 vars/2 ;-- LDR ip, [fp, 8]
+					emit-copy-mem slots
 				]
 			]
 		]
