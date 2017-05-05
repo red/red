@@ -810,7 +810,12 @@ natives: context [
 				type = TYPE_FLOAT	[
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
 				]
-				type = TYPE_NONE	[res: type = TYPE_OF(arg2)]
+				any [
+					type = TYPE_NONE
+					type = TYPE_UNSET
+				][
+					res: type = TYPE_OF(arg2)
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
