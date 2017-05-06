@@ -292,18 +292,19 @@ interpreter: context [
 		fun: null
 		native?: op/header and flag-native-op <> 0
 
-		if all [
-			not native?
-			op/header and body-flag <> 0
-		][
-			node: as node! op/code
-			s: as series! node/value
-			more: s/offset
-			fun: as red-function! more + 3
+		unless native? [
+			either op/header and body-flag <> 0 [
+				node: as node! op/code
+				s: as series! node/value
+				more: s/offset
+				fun: as red-function! more + 3
 
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+				s: as series! fun/more/value
+				blk: as red-block! s/offset + 1
+				args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+			][
+				args: op/args
+			]
 
 			if null? args [
 				args: _function/preprocess-spec as red-native! op
@@ -315,7 +316,6 @@ interpreter: context [
 					op/args: args
 				]
 			]
-
 			s: as series! args/value
 			slot: s/offset + 1
 			bits: (as byte-ptr! slot) + 4
