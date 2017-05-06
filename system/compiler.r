@@ -2890,6 +2890,20 @@ system-dialect: make-profilable context [
 			while [found?: find calling-keywords list/1][list: back list]
 			all [not found? not tail? next list list/1]
 		]
+		
+		pass-struct-pointer?: func [spec [block!] slots [integer!]][
+			all [
+				spec/2 = 'import						 ;-- system ABI is enforced on imports only
+				spec/3 = 'cdecl							 ;-- stdcall applies to R/S or Windows ABI
+				any [
+					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
+					all [
+						not find [Windows MacOSX] job/OS ;-- fallback on Linux ABI
+						job/target <> 'ARM
+					]
+				]
+			]
+		]
 
 		comp-call: func [
 			name [word!] args [block!]
@@ -2911,18 +2925,8 @@ system-dialect: make-profilable context [
 			if all [
 				slots: emitter/struct-slots?/check spec/4
 				any [
-					2 < slots
-					all [
-						spec/2 = 'import
-						spec/3 = 'cdecl
-						any [
-							all [1 < slots job/target = 'ARM]
-							all [
-								not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
-								job/target <> 'ARM
-							]
-						]
-					]
+					2 < slots							;-- R/S and Windows ABI
+					pass-struct-pointer? spec slots		;-- check other cases
 				]
 			][
 				unless caller: get-caller name [
@@ -3225,18 +3229,7 @@ system-dialect: make-profilable context [
 					'value = last last-type				;-- for a struct passed by value
 					word? expr/1
 					spec: select functions expr/1
-					spec/2 = 'import
-					spec/3 = 'cdecl
-					any [
-						all [
-							job/target <> 'ARM
-							not find [Windows MacOSX] job/OS ;-- for Linux OS (and derivatives)
-						]
-						all [
-							job/target = 'ARM
-							1 < emitter/struct-slots?/check spec/4
-						]
-					]
+					pass-struct-pointer? spec emitter/struct-slots?/check spec/4
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [
