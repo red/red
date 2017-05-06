@@ -16,12 +16,14 @@ Red [
 
 help-ctx: context [
 	DOC_SEP: "=>"			; String separating value from doc string
-	DEF_SEP: #"|"			; String separating value from definition string
+	DEF_SEP: "|"			; String separating value from definition string
 	NO_DOC:  "" 			; What to show if there's no doc string "(undocumented)"
-	HELP_ARG_COL_SIZE: 8	; Minimum size of the function arg output column
+	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
 	HELP_COL_1_SIZE: 15		; Minimum size of the first output column
 	RT_MARGIN: 16			; How close we can get to the right console margin before we trim
+	DENT_1: "    "			; So CLI and GUI consoles are consistent, WRT tab size
+	DENT_2: "        " 
 	
 	;---------------------------------------------------------------------------
 	;-- Buffered output
@@ -167,14 +169,22 @@ help-ctx: context [
 		all [string? spec/1  copy spec/1]
 	]
 
+	; These are localized here, as their names may change in Red.
+	all-word!: make typeset! [word! set-word! lit-word! get-word! refinement! issue!]
+	all-word?: func [value [any-type!]][find all-word! type? :value]
+
 	func-spec-words: function [
 		"Returns all words from a function spec."
 		fn [any-function!]
-		/all "Include return:, /local and what follows"
+		/opt "Include refinements and their arguments"
+		/all "Include return:, /local and what follows; implies /opt"
 	][
 		;!! remove-each doesn't return a result
 		;!! Use `copy` on `spec-of` so `remove` doesn't mod it!
-		remove-each val blk: copy spec-of :fn [not all-word? val]
+		remove-each val blk: copy spec-of :fn [not all-word? val]	; Remove doc strings and type specs
+		if system/words/all [not opt  not all][
+			clear find blk refinement!
+		]
 		if not all [
 			remove find blk to set-word! 'return
 			clear find blk /local
@@ -303,7 +313,7 @@ help-ctx: context [
 		fmt-doc: func [str][either str [ellipsize-at str DOC_LIMIT][""]]
 		found-at-least-one?: no
 		foreach word words-of system/words [
-			col-1: rejoin [tab as-col-1 word]
+			col-1: rejoin [DENT_1 as-col-1 word]
 			; Act only on words that match the datatype spec'd.
 			; Unset values make us jump through some /any hoops.
 			set/any 'val get/any word
@@ -354,36 +364,36 @@ help-ctx: context [
 
 		_print "USAGE:"
 		_print either op? :fn [
-			[tab fn-as-obj/params/1/name word fn-as-obj/params/2/name]
+			[DENT_1 fn-as-obj/params/1/name word fn-as-obj/params/2/name]
 		][
-			[tab uppercase form word  mold/only/flat func-spec-words :fn]
+			[DENT_1 uppercase form word  mold/only/flat func-spec-words :fn]
 		]
 
 		if fn-as-obj/attr [
-			_print [newline "ATTRIBUTES:^/" tab mold fn-as-obj/attr]
+			_print [newline "ATTRIBUTES:^/" DENT_1 mold fn-as-obj/attr]
 		]
 			
 		_print [
 			newline "DESCRIPTION:" newline
-			tab any [fn-as-obj/desc NO_DOC] newline
-			tab word-is-value-str/only word
+			DENT_1 any [fn-as-obj/desc NO_DOC] newline
+			DENT_1 word-is-value-str/only word
 		]
 
 		if not empty? fn-as-obj/params [
 			_print [newline "ARGUMENTS:"] 
-			foreach param fn-as-obj/params [_prin tab print-param param]
+			foreach param fn-as-obj/params [_prin DENT_1 print-param param]
 		]
 		
 		if not empty? fn-as-obj/refinements [
 			_print [newline "REFINEMENTS:"] 
 			foreach rec fn-as-obj/refinements [
-				_print [tab mold/only rec/name tab DOC_SEP any [rec/desc NO_DOC]]
-				foreach param rec/params [_prin "^-^-" print-param param]
+				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP any [rec/desc NO_DOC]]
+				foreach param rec/params [_prin DENT_2 print-param param]
 			]
 		]
 
 		if not empty? fn-as-obj/returns [
-			_prin [newline "RETURNS:" newline tab]
+			_prin [newline "RETURNS:" newline DENT_1]
 			print-param/no-name fn-as-obj/returns
 		]
 				
@@ -406,7 +416,7 @@ help-ctx: context [
 
 		foreach obj-word words-of obj [
 			set/any 'value get/any obj-word
-			_print [tab as-col-1 obj-word  as-type-col :value  DEF_SEP  form-value :value]
+			_print [DENT_1 as-col-1 obj-word  as-type-col :value  DEF_SEP  form-value :value]
 		]
 	]
 
@@ -489,7 +499,7 @@ help-ctx: context [
 				all [spec  any-function? :val  find mold spec-of :val text]
 			][
 				found-at-least-one?: yes
-				_print [tab as-col-1 word  as-type-col :val  DEF_SEP  form-value :val]
+				_print [DENT_1 as-col-1 word  as-type-col :val  DEF_SEP  form-value :val]
 			]
 		]
 		if not found-at-least-one? [
