@@ -2880,7 +2880,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-caller: func [name /root /local list found? stk][
+		get-caller: func [name [word!] /root /local list found? stk][
 			stk: exclude expr-call-stack [as #body #test]
 			if tail? next stk [return none]
 			
@@ -2904,23 +2904,8 @@ system-dialect: make-profilable context [
 				]
 			]
 		]
-
-		comp-call: func [
-			name [word!] args [block!]
-			/local
-				list type res align? left right dup var-arity? saved? arg expr spec fspec
-				ret-value? types slots caller
-		][
-			name: decorate-fun name
-			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
-				args/2
-			][
-				check-arguments-type name args
-				args
-			]
-			spec: functions/:name
-			
-			;-- returned struct by value handling --
+		
+		process-returned-struct: func [name [word!] spec [block!] args [block!] /local alloc? slots caller][
 			if all [
 				slots: emitter/struct-slots?/check spec/4
 				any [
@@ -2935,14 +2920,14 @@ system-dialect: make-profilable context [
 						any [get-caller/root name 'args-top] ;-- 'args-top is just for routing in SWITCH 
 					]
 				]
-				insert/only list switch/default type?/word caller [
+				insert/only args switch/default type?/word caller [
 					none!	  [<ret-ptr>]
 					set-word! [
 						unless get-variable-spec to word! caller [
 							backtrack caller
 							throw-error "variable not declared"
 						]
-						bind to word! caller caller
+						bind to word! caller caller		;-- binding for future shadow objects support  
 					]
 					set-path! [
 						unless get-variable-spec caller/1 [
@@ -2952,15 +2937,30 @@ system-dialect: make-profilable context [
 						to path! caller
 					]
 					word!	  [
+						alloc?: yes
 						emitter/target/emit-reserve-stack slots
-						ret-value?: to tag! emitter/arguments-size? spec/4
+						to tag! emitter/arguments-size? spec/4
 					]
 				][
 					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
 				]
 			]
-			;--
-			
+			all [alloc? slots]							;-- return slots allocated on stack, or none
+		]
+
+		comp-call: func [
+			name [word!] args [block!]
+			/local
+				list type res align? left right dup var-arity? saved? arg expr spec fspec
+				types slots
+		][
+			name: decorate-fun name
+			list: either issue? args/1 [args/2][		;-- bypass type-checking for variable arity calls
+				check-arguments-type name args
+				args
+			]
+			spec: functions/:name
+			slots: process-returned-struct name spec list	
 			order-args name list						;-- reorder argument according to cconv
 			
 			align?: all [
@@ -3023,7 +3023,7 @@ system-dialect: make-profilable context [
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if align? [emitter/target/emit-stack-align-epilog args]
-			if ret-value? [emitter/target/emit-release-stack slots]
+			if slots  [emitter/target/emit-release-stack slots]
 			res
 		]
 				
