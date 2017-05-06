@@ -573,15 +573,14 @@ make-profilable make target-class [
 		head reverse spec
 	]
 	
-	arguments-on-stack?: func [args [block!] /cdecl /local total][
-		total: 0
-		forall args [
-			if args/1 <> #_ [						;-- bypass place-holder marker
-				total: total + argument-size? args/1 to logic! cdecl
-				if total > 16 [return args]
-			]
+	hidden-ptr?: func [fspec [block!] /local ret][
+		all [
+			fspec/2 = 'import
+			fspec/3 = 'cdecl
+			ret: select fspec/4 compiler/return-def
+			'value = last ret
+			1 < emitter/struct-slots? ret
 		]
-		none
 	]
 	
 	to-bin24: func [v [integer! char!]][
@@ -1356,7 +1355,7 @@ make-profilable make target-class [
 		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
 		/by-value slots [integer!]
-		/local store-qword store-word store-byte type
+		/local store-qword store-word store-byte type opcode
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
@@ -1402,10 +1401,12 @@ make-profilable make target-class [
 						either offset: emitter/local-offset? name [
 							if slots = 2 [
 								set-width/type last spec/2
-								emit-poly/with #{e58b1000} offset + 4 ;-- STR r1, [fp, #[-]n]
+								opcode: pick [#{e58b1000} #{e50b1000}] offset > 0
+								emit-poly/with opcode abs offset + 4 ;-- STR r1, [fp, #[-]n]
 							]
 							set-width/type spec/2/2
-							emit-poly/with #{e58b0000} offset		  ;-- STR r0, [fp, #[-]n]
+							opcode: pick [#{e58b0000} #{e50b0000}] offset > 0
+							emit-poly/with opcode abs offset	;-- STR r0, [fp, #[-]n]
 						][
 							emit-variable name
 								#{e5933000}			;-- LDR r3, [r3]		; global
@@ -2386,63 +2387,83 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-APCS-header: func [
-		args [block!] cconv [word!] attribs [block! none!]
-		/local reg bits offset type size stk freg
+	emit-AAPCS-header: func [
+		args [block!] fspec [block!] attribs [block! none!]
+		/calc
+		/local reg bits offset type size stk freg cconv types
 	][
 		either args/1 = #custom [
-			repeat reg min args/2/1 4 [
-				emit-i32 #{e8bd00} 					;-- POP {rn[,rn+1]}
-				emit-i32 to char! shift/left 1 reg - 1
+			unless calc [
+				repeat reg min args/2/1 4 [
+					emit-i32 #{e8bd00}				;-- POP {rn[,rn+1]}
+					emit-i32 to char! shift/left 1 reg - 1
+				]
 			]
 			stack-width * max 0 args/2/1 - 4		;-- return extra args on stack count
 		][
 			if issue? args/1 [args: args/2]
 			reg: freg: stk: 0
-		
-			foreach arg reverse args [				;-- arguments are on stack in reverse order	
+			cconv: fspec/3
+			types: fspec/4
+			args: reverse copy args					;-- arguments are on stack in reverse order
+			
+			if block? types/1 [types: next types]
+			
+			if hidden-ptr? fspec [
+				args: next args
+				unless calc [emit-i32 #{e8bd0001}]	;-- POP {r0}
+				reg: 1
+			]
+
+			foreach arg args [
 				if arg <> #_ [						;-- bypass place-holder marker
-					type: compiler/get-type arg
-					
+					type: any [
+						types/2
+						compiler/get-type arg		;-- fallback for [variadic]
+					]
 					either all [
 						compiler/job/ABI = 'hard-float
 						find [float! float64! float32!] type/1
 						any [none? attribs not find attribs 'variadic]	;-- 'typed is not using hf ABI
 					][
-						emit-pop-float/with freg type
-					 	freg: freg + 1
+						unless calc [emit-pop-float/with freg type]
+						freg: freg + 1
 					][
-						size: either all [
-							cconv = 'cdecl
-							type/1 = 'float32!
-						][
-							8						;-- promote to C double
-						][
-							emitter/size-of? type
-						]
-						if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
-															  ;-- ANY: workaround special variables from start.reds
-						set [bits offset] either 8 = size [
-							either reg <= 2 [
-								if odd? reg [
-									emit-load-imm32/reg 0 1
-									reg: reg + 1	;-- start 64-bit value on even register
-								]
-								[3 2]				;-- use 2 regs
+						foreach-member type [
+							size: either all [
+								cconv = 'cdecl
+								type/1 = 'float32!
 							][
-								[0 2]				;-- no space in regs to store a 64-bit value
+								8					;-- promote to C double
+							][
+								emitter/size-of? type
 							]
-						][
-							[1 1]					;-- use 1 reg
+							either reg >= 4 [			;-- account for extra args on stack
+								stk: stk + any [size 4] ;-- ANY: workaround special variables from start.reds
+							][
+								set [bits offset] either 8 = size [
+									either reg <= 2 [
+										if odd? reg [
+											unless calc [emit-load-imm32/reg 0 1]
+											reg: reg + 1 ;-- start 64-bit value on even register
+										]
+										[3 2]		;-- use 2 regs
+									][
+										stk: stk + 8
+										[0 2]		;-- no space in regs to store a 64-bit value
+									]
+								][
+									[1 1]			;-- use 1 reg
+								]
+								unless any [calc zero? bits][
+									emit-i32 #{e8bd00}		;-- POP {rn[,rn+1]}
+									emit-i32 to char! shift/left bits reg
+								]
+								reg: reg + offset
+							]
 						]
-
-						if all [reg < 4 not zero? bits][
-							emit-i32 #{e8bd00} 		;-- POP {rn[,rn+1]}
-							emit-i32 to char! shift/left bits reg
-						]
-
-						reg: reg + offset
 					]
+					types: skip types 2
 				]
 			]
 			stk										;-- return extra args on stack count
@@ -2468,7 +2489,7 @@ make-profilable make target-class [
 	]
 
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local extra][	; @@ check if it needs stack alignment too
-		extra: emit-APCS-header args fspec/3 attribs
+		extra: emit-AAPCS-header args fspec attribs
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
 		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
@@ -2492,7 +2513,7 @@ make-profilable make target-class [
 		if all [issue? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
 			emit-variadic-data args
 		]
-		extra: emit-APCS-header args fspec/3 attribs
+		extra: emit-AAPCS-header args fspec attribs
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
 		emit-i32 #{e59cc000}						;-- LDR ip, [ip]
@@ -2512,7 +2533,7 @@ make-profilable make target-class [
 				fspec/5 = 'callback
 				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 			][
-				extra: emit-APCS-header args fspec/3 attribs
+				extra: emit-AAPCS-header args fspec attribs
 			]
 			name: pick tail fspec -2
 			
@@ -2577,27 +2598,15 @@ make-profilable make target-class [
 		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
-	emit-stack-align-prolog: func [args [block!] fspec [block!] /local size tag][
+	emit-stack-align-prolog: func [args [block!] fspec [block!] /local size tag blk][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		size: 0
-		if issue? tag: args/1 [
-			args: args/2
-			if tag <> #variadic [size: size + 4]
-		]
-		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
-			size: size + either issue? tag [
-				call-arguments-size?/cdecl args
-			][
-				emitter/arguments-size? fspec/4
-			]
-		]
-		unless zero? size // 8 [
-			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
-		]
+		if issue? tag: args/1 [args: args/2]
+		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
+		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
 

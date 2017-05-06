@@ -158,6 +158,25 @@ target-class: context [
 		total
 	]
 	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		either 'value = last spec [
+			unless 'struct! = spec/1 [spec: compiler/find-aliased spec/1]
+			body: bind/copy body 'type
+			if block? spec/1 [spec: next spec]
+
+			foreach [name t] spec/2 [				;-- skip 'struct!
+				unless word? name [break]
+				either 'value = last type: t [
+					foreach-member type body
+				][
+					do body
+				]
+			]
+		][
+			do body
+		]
+	]
+	
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][

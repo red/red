@@ -2915,7 +2915,13 @@ system-dialect: make-profilable context [
 					all [
 						spec/2 = 'import
 						spec/3 = 'cdecl
-						not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
+						any [
+							all [1 < slots job/target = 'ARM]
+							all [
+								not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
+								job/target <> 'ARM
+							]
+						]
 					]
 				]
 			][
@@ -3221,7 +3227,16 @@ system-dialect: make-profilable context [
 					spec: select functions expr/1
 					spec/2 = 'import
 					spec/3 = 'cdecl
-					not find [Windows MacOSX] job/OS	;-- for Linux OS (and derivatives)
+					any [
+						all [
+							job/target <> 'ARM
+							not find [Windows MacOSX] job/OS ;-- for Linux OS (and derivatives)
+						]
+						all [
+							job/target = 'ARM
+							1 < emitter/struct-slots?/check spec/4
+						]
+					]
 					store?: no							;-- avoid emitting assignment code
 				]
 				if all [
