@@ -2907,7 +2907,6 @@ system-dialect: make-profilable context [
 
 		comp-call: func [
 			name [word!] args [block!]
-			/sub										;FIXME: never used!
 			/local
 				list type res align? left right dup var-arity? saved? arg expr spec fspec
 				ret-value? types slots caller
@@ -3016,7 +3015,7 @@ system-dialect: make-profilable context [
 			]
 			if all [user-code? spec/2 <> 'import][libRedRT/collect-extra name]
 			
-			res: emitter/target/emit-call name args to logic! sub
+			res: emitter/target/emit-call name args
 
 			either res [
 				last-type: res

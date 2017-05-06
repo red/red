@@ -201,7 +201,7 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
+	emit-call: func [name [word!] args [block!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -218,7 +218,7 @@ target-class: context [
 			]
 			native [
 				switch/default name [
-					log-b [								;@@ needs a new function type...
+					log-b [							;@@ needs a new function type...
 						emit-pop
 						emit-log-b compiler/last-type/1
 					]
@@ -253,9 +253,7 @@ target-class: context [
 				][
 					emit-integer-operation name args
 				]
-				if sub? [emitter/logic-to-integer name]
-				
-				unless find comparison-op name [		;-- comparison always return a logic!
+				unless find comparison-op name [	;-- comparison always return a logic!
 					res: any [
 						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
