@@ -23,6 +23,26 @@ help-ctx: context [
 	HELP_COL_1_SIZE: 15		; Minimum size of the first output column
 	RT_MARGIN: 16			; How close we can get to the right console margin before we trim
 	
+	;---------------------------------------------------------------------------
+	;-- Buffered output
+	
+	output-buffer: clear ""	; Where help-string output goes
+
+	_print: func [value][
+		_prin value
+		append output-buffer newline
+	]
+	_prin: func [value][
+		append output-buffer case [
+			string? :value [value]
+			block?  :value [form reduce value]
+			char?   :value [form value]
+			'else [mold :value]
+		]
+	]
+	
+	;---------------------------------------------------------------------------
+
 	; A few of these helper funcs are exported from the context, though may
 	; be better housed in a string formatting module at a later date.
 	
@@ -188,8 +208,8 @@ help-ctx: context [
 				push cur-frame: copy/deep refinement-frame-proto
 			]
 			emit: function [key val][
-		        pos: find/only/skip cur-frame key 2
-		        head change/only next pos val
+				pos: find/only/skip cur-frame key 2
+				head change/only next pos val
 			]
 		;!!
 		
@@ -267,12 +287,12 @@ help-ctx: context [
 
 	Other useful functions:
 
-	    ??     - Display a variable and its value
-	    probe  - Print a molded value
-	    source - Show a function's source code
-	    what   - Show a list of known functions or words
-	    about  - Display version number and build date
-	    quit   - Leave the Red console
+		??     - Display a variable and its value
+		probe  - Print a molded value
+		source - Show a function's source code
+		what   - Show a list of known functions or words
+		about  - Display version number and build date
+		quit   - Leave the Red console
 	}
 
 	show-datatype-help: function [
@@ -288,7 +308,7 @@ help-ctx: context [
 			; Unset values make us jump through some /any hoops.
 			set/any 'val get/any word
 			if all [not unset? :val  type = type? :val  (found-at-least-one?: yes)] [
-				print case [
+				_print case [
 					;?? What else can we show that is useful for datatypes?
 					;	Can't reflect on datatypes, as R3 could to some extent.
 					;	We would have to build our own typeset-match funcs to
@@ -300,14 +320,14 @@ help-ctx: context [
 			]
 		]
 		if not found-at-least-one? [
-			print ["No" type "values were found in the global context."]
+			_print ["No" type "values were found in the global context."]
 		]
 	]
 
 	; I wanted this to be local to show-function-help, but it fails when
 	; called with the refinment when compiled under 0.6.2.
 	print-param: func [param [block!] /no-name][
-		print [
+		_print [
 			either no-name [""] [as-arg-col mold param/name]
 			either param/type [mold/flat param/type][NO_DOC]
 			either param/desc [mold param/desc][NO_DOC]
@@ -332,38 +352,38 @@ help-ctx: context [
 			exit
 		]
 
-		print "USAGE:"
-		print either op? :fn [
+		_print "USAGE:"
+		_print either op? :fn [
 			[tab fn-as-obj/params/1/name word fn-as-obj/params/2/name]
 		][
 			[tab uppercase form word  mold/only/flat func-spec-words :fn]
 		]
 
 		if fn-as-obj/attr [
-			print [newline "ATTRIBUTES:^/" tab mold fn-as-obj/attr]
+			_print [newline "ATTRIBUTES:^/" tab mold fn-as-obj/attr]
 		]
 			
-		print [
+		_print [
 			newline "DESCRIPTION:" newline
 			tab any [fn-as-obj/desc NO_DOC] newline
 			tab word-is-value-str/only word
 		]
 
 		if not empty? fn-as-obj/params [
-			print [newline "ARGUMENTS:"] 
-			foreach param fn-as-obj/params [prin tab print-param param]
+			_print [newline "ARGUMENTS:"] 
+			foreach param fn-as-obj/params [_prin tab print-param param]
 		]
 		
 		if not empty? fn-as-obj/refinements [
-			print [newline "REFINEMENTS:"] 
+			_print [newline "REFINEMENTS:"] 
 			foreach rec fn-as-obj/refinements [
-				print [tab mold/only rec/name tab DOC_SEP any [rec/desc NO_DOC]]
-				foreach param rec/params [prin "^-^-" print-param param]
+				_print [tab mold/only rec/name tab DOC_SEP any [rec/desc NO_DOC]]
+				foreach param rec/params [_prin "^-^-" print-param param]
 			]
 		]
 
 		if not empty? fn-as-obj/returns [
-			prin [newline "RETURNS:" newline tab]
+			_prin [newline "RETURNS:" newline tab]
 			print-param/no-name fn-as-obj/returns
 		]
 				
@@ -376,34 +396,43 @@ help-ctx: context [
 		/local value
 	][
 		if not object? word [
-			print [uppercase form word "is an object! with the following words and values:"]
+			_print [uppercase form word "is an object! with the following words and values:"]
 		]
 		obj: either object? word [word][get word]
 		if not object? obj [
-			print "show-object-help only works on words that refer to objects."
+			_print "show-object-help only works on words that refer to objects."
 			exit
 		]
 
 		foreach obj-word words-of obj [
 			set/any 'value get/any obj-word
-			print [tab as-col-1 obj-word  as-type-col :value  DEF_SEP  form-value :value]
+			_print [tab as-col-1 obj-word  as-type-col :value  DEF_SEP  form-value :value]
 		]
 	]
 
-
 	set 'help function [
-		"Displays information about functions."
+		"Displays information about functions, values, objects, and datatypes."
 		'word [any-type!]
 	][
+		;print either unset? :word [help-string][help-string :word]
+		print help-string :word
+	]
+	set '? :help
+
+	set 'help-string function [
+		"Returns information about functions, values, objects, and datatypes."
+		'word [any-type!]
+	][
+		clear output-buffer
 		case [
 			;They just said HELP
-			unset? :word [print HELP-USAGE  exit]
+			unset? :word [_print HELP-USAGE]
 
 			; They gave us a string to find in func names or specs
-			string? :word [what/with/spec word]
+			string? :word [what/with/spec/buffer word]
 			
 			; They said HELP for something that doesn't exist
-			all [word? :word  unset? get/any :word] [what/with word]
+			all [word? :word  unset? get/any :word] [what/with/buffer word]
 
 			'else [
 				; Now we know we're either going to reflect help for a func,
@@ -414,24 +443,24 @@ help-ctx: context [
 				; the best output for a given type.
 				case [
 					all [word? :word  any-function? :value] [show-function-help :word]
-					any-function? :value [print mold :value]
+					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
- 					image? :value [
+					image? :value [
 						either in system 'view [view [image value]][
-							print form-value value
+							_print form-value value
 						]
 					]
 					all [path? :word  object? :value][show-object-help word]
-					any [word? :word  path? :word] [print word-is-value-str word]
- 					'else [print value-is-type-str :word]
+					any [word? :word  path? :word] [_print word-is-value-str word]
+					'else [_print value-is-type-str :word]
 				]
 			]
 		]
-		exit
+		output-buffer
 	]
-	set '? :help
-
+	set 'fetch-help :help-string			; alias for VS Code plug while it still uses the old name
+	
 	set 'source function [
 		"Print the source of a function"
 		'word [any-word!] "The name of the function"
@@ -448,7 +477,9 @@ help-ctx: context [
 		/with "Search all values that contain text in their name"
 			text [word! string!]
 		/spec "Search for text in value specs as well"
+		/buffer "Buffer and return output, rather than printing results"
 	][
+		;emit: either buffer [:_print][:print]
 		found-at-least-one?: no
 		foreach word sort get-sys-words either with [:set?][:any-function?] [
 			val: get word
@@ -458,13 +489,13 @@ help-ctx: context [
 				all [spec  any-function? :val  find mold spec-of :val text]
 			][
 				found-at-least-one?: yes
-				print [tab as-col-1 word  as-type-col :val  DEF_SEP  form-value :val]
+				_print [tab as-col-1 word  as-type-col :val  DEF_SEP  form-value :val]
 			]
 		]
 		if not found-at-least-one? [
-			print "No matching values were found in the global context."
+			_print "No matching values were found in the global context."
 		]
-		exit
+		either buffer [output-buffer][print output-buffer]	; Note ref to output-buffer in context
 	]
 
 	set 'about function ["Print Red version information"][
