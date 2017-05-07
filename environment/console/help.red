@@ -80,6 +80,8 @@ help-ctx: context [
 		str
 	]
 	
+	; This can no longer be determined statically. If we pad and align object
+	; words, they are no longer limited to HELP_COL_1_SIZE.
 	VAL_FORM_LIMIT: does [system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
@@ -122,8 +124,8 @@ help-ctx: context [
 		]
 	]
 
-	longest-word: function [obj [object!]][
-		if empty? words: words-of obj [return none]
+	longest-word: func [words [block! object!]][
+		if all [object? words  empty? words: words-of words] [return 0]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
