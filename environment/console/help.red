@@ -15,9 +15,9 @@ Red [
 ]
 
 help-ctx: context [
-	DOC_SEP: "=>"			; String separating value from doc string
-	DEF_SEP: "|"			; String separating value from definition string
-	NO_DOC:  "" 			; What to show if there's no doc string "(undocumented)"
+	DOC_SEP: copy "=>"		; String separating value from doc string
+	DEF_SEP: copy "|"		; String separating value from definition string
+	NO_DOC:  copy "" 		; What to show if there's no doc string "(undocumented)"
 	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
 	HELP_COL_1_SIZE: 15		; Minimum size of the first output column
@@ -87,9 +87,9 @@ help-ctx: context [
 	;!! issue seems to be using an inner func. If we don't capture that inner
 	;!! func, it's fine. For now I'm moving fmt out of form-value, rather than
 	;!! just letting it leak out by not capturing it.
-	fmt: func [v][
+	fmt: func [v /molded][
 		; Does it help to mold only part? Can't hurt I suppose.
-		if not string? :v [v: mold/flat/part :v VAL_FORM_LIMIT + 1]
+		if any [molded  not string? :v] [v: mold/flat/part :v VAL_FORM_LIMIT + 1]
 		ellipsize-at v VAL_FORM_LIMIT
 	]
 	;!!
@@ -109,6 +109,7 @@ help-ctx: context [
 			map? value           [fmt keys-of value]
 			image? value         [fmt reduce ["size:" value/size]]
 			typeset? value       [fmt to block! value]
+			string? value        [fmt/molded value]
 			'else                [fmt :value]
 		]
 	]
@@ -119,6 +120,13 @@ help-ctx: context [
 				if test get/any word [keep word]
 			]
 		]
+	]
+
+	longest-word: function [obj [object!]][
+		if empty? words: words-of obj [return none]
+		forall words [words/1: form words/1]
+		sort/compare words func [a b][(length? a) < (length? b)]
+		last words
 	]
 
 	set?: func [value [any-type!]][not unset? :value]
@@ -414,9 +422,19 @@ help-ctx: context [
 			exit
 		]
 
+		word-col-wd: length? longest-word obj
+
 		foreach obj-word words-of obj [
 			set/any 'value get/any obj-word
-			_print [DENT_1 as-col-1 obj-word  as-type-col :value  DEF_SEP  form-value :value]
+			_print [
+				DENT_1 pad form obj-word word-col-wd DEF_SEP as-type-col :value DEF_SEP
+				; Yes, we're checking against our output buffer for every value, even
+				; though it will only trigger for this context (help-ctx) and the 
+				; output-buffer word in it. If we don't check, the output is messed up.
+				; We're in the process of updating output-buffer after all. It's either
+				; this or use a separate buffer. The joys of self reflection.
+				either same? :value output-buffer [""][form-value :value]
+			]
 		]
 	]
 
