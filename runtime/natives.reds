@@ -814,7 +814,7 @@ natives: context [
 					type = TYPE_NONE
 					type = TYPE_UNSET
 				][
-					res: type = TYPE_OF(arg2)
+					res: true
 				]
 				true [
 					res: all [
