@@ -599,6 +599,7 @@ integer: context [
 			]
 			exp: exp >> 1
 			base: base * base
+			if system/cpu/overflow? [throw RED_INT_OVERFLOW]
 		]
 		res
 	]

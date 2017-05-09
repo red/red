@@ -1929,7 +1929,7 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			emitter/calc-locals-offsets probe use-locals
+			emitter/calc-locals-offsets use-locals
 			
 			pc: next pc
 			fetch-into/root pc/1 [comp-dialect]
@@ -2207,11 +2207,14 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
+			mark: tail expr-call-stack
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
+			clear mark
+
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
@@ -2877,9 +2880,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		get-caller: has [list found? /root][
-			list: back back tail expr-call-stack
-			unless root [return find calling-keywords list/1]
+		get-caller: func [name /root /local list found? stk][
+			stk: exclude expr-call-stack [as]
+			if tail? next stk [return none]
+			
+			list: back back find stk name
+			unless root [return any [all [find calling-keywords list/1 none] list/1]]
 			
 			while [found?: find calling-keywords list/1][list: back list]
 			all [not found? not tail? next list list/1]
@@ -2903,19 +2909,21 @@ system-dialect: make-profilable context [
 			
 			;-- returned struct by value handling --
 			if all [
-				type: select spec/4 return-def
-				'value = last type
+				slots: emitter/struct-slots?/check spec/4
 				any [
-					'struct! = type/1
-					'struct! = first type: resolve-aliased type
+					2 < slots
+					all [
+						spec/2 = 'import
+						spec/3 = 'cdecl
+						not find [Windows MacOSX] job/OS  ;-- fallback on Linux ABI
+					]
 				]
-				2 < slots: emitter/struct-slots?/direct type/2
 			][
-				unless caller: get-caller [
+				unless caller: get-caller name [
 					caller: either tail? pc [
-						get-caller/root
+						get-caller/root name
 					][
-						any [get-caller/root 'args-top] ;-- 'args-top is just for routing in SWITCH 
+						any [get-caller/root name 'args-top] ;-- 'args-top is just for routing in SWITCH 
 					]
 				]
 				insert/only list switch/default type?/word caller [
@@ -2934,7 +2942,10 @@ system-dialect: make-profilable context [
 						]
 						to path! caller
 					]
-					word!	  [emitter/target/emit-reserve-stack slots ret-value?: <args-top>]
+					word!	  [
+						emitter/target/emit-reserve-stack slots
+						ret-value?: to tag! emitter/arguments-size? spec/4
+					]
 				][
 					throw-error ["comp-call error: (should not happen) bad caller type:" mold caller]
 				]
@@ -3343,7 +3354,7 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		comp-block: func [/final /only /local expr save-pc][
+		comp-block: func [/final /only /local expr save-pc mark][
 			block-level: block-level + 1
 			save-pc: pc
 			pc: pc/1
@@ -3354,10 +3365,11 @@ system-dialect: make-profilable context [
 					throw-error "more than one expression found in parentheses"
 				]
 			][
+				mark: tail expr-call-stack
 				while [not tail? pc][
 					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 					expr: either final [fetch-expression/final none][fetch-expression none]
-					unless tail? pc [pop-calls]
+					clear mark
 				]
 			]
 			pc: next save-pc

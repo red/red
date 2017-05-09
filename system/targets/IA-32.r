@@ -251,25 +251,25 @@ make-profilable make target-class [
 		emit #{01C4}								;-- ADD esp, eax
 	]
 	
-	emit-reserve-stack: func [slots [integer!] /local bytes][
-		bytes: slots * stack-width
-		either bytes > 127 [
+	emit-reserve-stack: func [slots [integer!] /local size][
+		size: slots * stack-width
+		either size > 127 [
 			emit #{81EC}							;-- SUB esp, bytes	; 32-bit displacement
-			emit to-bin32 bytes
+			emit to-bin32 size
 		][
 			emit #{83EC}							;-- SUB esp, bytes	; 8-bit displacement
-			emit to-bin8 bytes
+			emit to-bin8 size
 		]
 	]
 	
-	emit-release-stack: func [slots [integer!] /local bytes][
-		bytes: slots * stack-width
-		either bytes > 127 [
+	emit-release-stack: func [slots [integer!] /bytes /local size][
+		size: either bytes [slots][slots * stack-width]
+		either size > 127 [
 			emit #{81C4}							;-- ADD esp, bytes	; 32-bit displacement
-			emit to-bin32 bytes
+			emit to-bin32 size
 		][
 			emit #{83C4}							;-- ADD esp, bytes	; 8-bit displacement
-			emit to-bin8 bytes
+			emit to-bin8 size
 		]		
 	]
 	
@@ -824,7 +824,10 @@ make-profilable make target-class [
 						store-float-variable name
 					]
 					by-value [
-						if slots <= 2 [				;-- if > 2, copied already, do nothing
+						if all [
+							slots <= 2				  ;-- if > 2, copied already, do nothing
+							compiler/job/OS <> 'Linux ;-- Linux ABI uses pointers only
+						][
 							either offset: emitter/local-offset? name [
 								if slots = 2 [
 									set-width/type last spec/2
@@ -1077,7 +1080,11 @@ make-profilable make target-class [
 		
 		either value = <last> [
 			if by-val?: 'value = last compiler/last-type [
-				if 2 < slots: emitter/struct-slots? compiler/last-type [exit]	; big struct by val do not need post-processing
+				slots: emitter/struct-slots? compiler/last-type
+				if any [
+					2 < slots						;-- big struct by value do not need post-processing
+					compiler/job/OS = 'Linux		;-- Linux ABI uses pointers only
+				][exit]
 				if slots = 2 [emit #{52}]			;-- PUSH edx				; saved edx struct member
 				emit #{89C2}						;-- MOV edx, eax
 			]
@@ -1246,15 +1253,19 @@ make-profilable make target-class [
 						emit #{50}					;-- PUSH eax
 					]
 				][									;-- <ret-ptr> and <args-top> cases
-					either empty? emitter/stack [
-						emit-push 0					;-- return ptr is null -> no copy
-					][
-						offset: stack-encode either value = <ret-ptr> [args-offset][
-							emitter/local-offset? <top>
+					;either empty? emitter/stack [
+					;	emit-push 0					;-- return ptr is null -> no copy
+					;][
+						either value = <ret-ptr> [
+							offset: stack-encode args-offset
+							emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
+							emit offset
+						][
+							emit #{8D8424}			;-- LEA eax, [esp+<args-top>]
+							emit to-bin32 to integer! value
+							emit #{50}				;-- PUSH eax
 						]
-						emit adjust-disp32 #{FF75} offset ;-- PUSH [ebp+<offset>]
-						emit offset
-					]
+					;]
 				]
 			]
 			logic! [
@@ -1899,7 +1910,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-cdecl-pop: func [spec [block!] args [block!] /local size][
+	emit-cdecl-pop: func [spec [block!] args [block!] /local size slots][
 		size: emitter/arguments-size? spec/4
 		if all [
 			spec/2 = 'syscall
@@ -1913,7 +1924,17 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		emit-release-stack size
+		all [
+			spec/2 = 'import
+			compiler/job/OS <> 'Windows
+			slots: emitter/struct-slots?/check spec/4
+			not all [
+				compiler/job/OS = 'MacOSX			;-- on macOS, <ptr> is used for slots > 2 only
+				slots <= 2
+			]
+			size: size - stack-width				;-- hidden pointer is freed by callee
+		]
+		if size > 0 [emit-release-stack/bytes size]
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -2057,16 +2078,16 @@ make-profilable make target-class [
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
-			offset: 4								;-- account for saved edi
-			if issue? args/1 [
+			offset: 4 + either issue? args/1 [		;-- account for saved edi
 				all [
 					args/1 = #variadic
 					fspec/3 <> 'cdecl
 					offset: offset + 12				;-- account for extra variadic slots
 				]
-				args: args/2
+				call-arguments-size? args/2
+			][
+				emitter/arguments-size? fspec/4
 			]
-			offset: offset + call-arguments-size? args
 			
 			unless zero? offset: offset // 16 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
@@ -2182,7 +2203,7 @@ make-profilable make target-class [
 				]
 				'else [
 					vars: emitter/stack
-					unless find [<ret-ptr> <args-top>] vars/1 [
+					unless tag? vars/1 [
 						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
 					]
 					emit #{8B7D}					;-- MOV edi, [ebp+<ptr>]

@@ -1716,6 +1716,7 @@ natives: context [
 		return: [red-logic!]
 		/local
 			i	 [red-integer!]
+			f	 [red-float!]
 			p	 [red-pair!]
 			ret  [red-logic!]
 	][
@@ -1724,11 +1725,14 @@ natives: context [
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
 			TYPE_INTEGER
-			TYPE_FLOAT
-			TYPE_PERCENT
-			TYPE_TIME
 			TYPE_CHAR [
 				i/value = 0
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT
+			TYPE_TIME [
+				f: as red-float! i
+				f/value = 0.0
 			]
 			TYPE_PAIR [
 				p: as red-pair! i

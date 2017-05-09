@@ -353,7 +353,7 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/pick"]]
 
-		if all [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
+		if any [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field tm index
 	]
 	

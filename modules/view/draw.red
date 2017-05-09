@@ -58,6 +58,7 @@ Red/System [
 		qcurve:			symbol/make "qcurve"
 		sweep:			symbol/make "sweep"
 		large:			symbol/make "large"
+		close-shape:	symbol/make "close"
 
 		_off:			symbol/make "off"
 		closed:			symbol/make "closed"
@@ -630,7 +631,7 @@ Red/System [
 										opts: cmd
 									]
 								]
-								OS-draw-shape-arc DC as red-pair! start end sweep? large? rel?
+								OS-draw-shape-arc DC as red-pair! start sweep? large? rel?
 								close?: yes
 							]
 							sym = curve [
@@ -656,6 +657,7 @@ Red/System [
 								OS-draw-shape-qcurv DC as red-pair! start as red-pair! cmd rel?
 								close?: yes
 							]
+							sym = close-shape [OS-draw-shape-close DC]
 							true [ throw-draw-error cmds cmd catch? ]
 						]
 					]
@@ -1103,7 +1105,7 @@ Red/System [
 							]
 							sym = _font-name [
 								DRAW_FETCH_VALUE(TYPE_STRING)
-								OS-text-box-font-name layout idx len as red-string! start
+								OS-text-box-font-name dc layout idx len as red-string! start
 							]
 							sym = _font-size [
 								DRAW_FETCH_VALUE_2(TYPE_INTEGER TYPE_FLOAT)

@@ -596,26 +596,34 @@ emitter: make-profilable context [
 		]
 	]
 	
-	struct-slots?: func [spec [block!] /direct][
+	struct-slots?: func [spec [block!] /direct /check][
+		if check [
+			unless all [
+				spec: select spec compiler/return-def
+				'value = last spec
+			][
+				return none
+			]
+		]
 		unless direct [
-			if 'struct! <> spec/1 [spec: compiler/find-aliased spec/1]
+			if 'struct! <> spec/1 [
+				spec: compiler/find-aliased spec/1
+				if 'struct! <> spec/1 [return none]
+			]
 			spec: spec/2
 		]
 		round/ceiling (member-offset? spec none) / target/stack-width
 	]
 	
-	arguments-size?: func [locals [block!] /push /local size name type width offset][
-		size: 0
+	arguments-size?: func [locals [block!] /push /local size name type width offset struct-ptr?][
+		size: pick [4 0] to logic! struct-ptr?: all [
+			ret: select locals compiler/return-def
+			'value = last ret
+			2 < struct-slots? ret
+		]
 		if push [
 			clear stack
-			if all [
-				ret: select locals compiler/return-def
-				'value = last ret
-				2 < struct-slots? ret
-			][
-				repend stack [<ret-ptr> target/args-offset]
-				size: 4
-			]
+			if struct-ptr? [repend stack [<ret-ptr> target/args-offset]]
 		]
 		width: target/stack-width
 		offset: target/args-offset

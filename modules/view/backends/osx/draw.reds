@@ -539,8 +539,27 @@ do-draw-ellipse: func [
 	y		[float32!]
 	w		[float32!]
 	h		[float32!]
+	/local
+		dx	[float32!]
+		dy	[float32!]
 ][
 	CGContextAddEllipseInRect dc/raw x y w h
+	if dc/grad-pos? [
+		either dc/grad-type = linear [
+			dc/grad-x1: x
+			dc/grad-x2: x + w
+			dc/grad-y1: y
+			dc/grad-y2: y
+		][
+			dx: w / as float32! 2.0
+			dy: h / as float32! 2.0
+			dc/grad-x1: x + dx			;-- center point
+			dc/grad-y1: y + dy
+			dc/grad-x2: dc/grad-x1
+			dc/grad-y2: dc/grad-y1
+			dc/grad-radius: either dx > dy [dx][dy]
+		]
+	]
 	do-draw-path dc
 ]
 
@@ -1206,43 +1225,6 @@ OS-draw-grad-pen: func [
 	]
 ]
 
-;transform-point: func [
-;	ctx			[handle!]
-;	point		[red-pair!]
-;	return:		[CGPoint!]
-;	/local
-;		saved	[int-ptr!]
-;		ty		[integer!]
-;		tx		[integer!]
-;		d		[integer!]
-;		c		[integer!]
-;		b		[integer!]
-;		a		[integer!]
-;		m		[CGAffineTransform!]
-;		py		[integer!]
-;		px		[integer!]
-;		pt		[CGPoint!]
-;][
-;	a: 0
-;	m: as CGAffineTransform! :a
-;	pt: edges
-;	pt/x: as float32! point/x
-;	pt/y: as float32! point/y
-
-;	saved: system/stack/align
-;	push 0
-;	push 0
-;	push ctx
-;	push m
-;	CGContextGetCTM 2
-;	system/stack/top: saved
-
-;	px: CGPointApplyAffineTransform pt/x pt/y m/a m/b m/c m/d m/tx m/ty
-;	py: system/cpu/edx
-;	pt: as CGPoint! :px
-;	pt
-;]
-
 OS-matrix-rotate: func [
 	dc		[draw-ctx!]
 	pen		[integer!]
@@ -1648,14 +1630,124 @@ OS-draw-shape-qcurv: func [
 ]
 
 OS-draw-shape-arc: func [
-	dc      [draw-ctx!]
-	start   [red-pair!]
-	end     [red-value!]
-	sweep?  [logic!]
-	large?  [logic!]
-	rel?    [logic!]
+	ctx		[draw-ctx!]
+	end		[red-pair!]
+	sweep?	[logic!]
+	large?	[logic!]
+	rel?	[logic!]
+	/local
+		item		[red-integer!]
+		center-x	[float32!]
+		center-y	[float32!]
+		cx			[float32!]
+		cy			[float32!]
+		cf			[float32!]
+		angle-len	[float32!]
+		radius-x	[float32!]
+		radius-y	[float32!]
+		theta		[float32!]
+		X1			[float32!]
+		Y1			[float32!]
+		p1-x		[float32!]
+		p1-y		[float32!]
+		p2-x		[float32!]
+		p2-y		[float32!]
+		cos-val		[float32!]
+		sin-val		[float32!]
+		rx2			[float32!]
+		ry2			[float32!]
+		dx			[float32!]
+		dy			[float32!]
+		sqrt-val	[float32!]
+		sign		[float32!]
+		rad-check	[float32!]
+		pi2			[float32!]
+		pt1			[CGPoint! value]
+		pt2			[CGPoint! value]
+		m			[CGAffineTransform! value]
+		path		[integer!]
 ][
-	
+	;-- parse arguments
+	p1-x: ctx/last-pt-x
+	p1-y: ctx/last-pt-y
+	p2-x: either rel? [ p1-x + as float32! end/x ][ as float32! end/x ]
+	p2-y: either rel? [ p1-y + as float32! end/y ][ as float32! end/y ]
+	ctx/last-pt-x: p2-x
+	ctx/last-pt-y: p2-y
+	item: as red-integer! end + 1
+	radius-x: fabsf get-float32 item
+	item: item + 1
+	radius-y: fabsf get-float32 item
+	item: item + 1
+	pi2: as float32! 2.0 * PI
+	theta: get-float32 item
+	theta: theta * as float32! (PI / 180.0)
+	theta: theta % pi2
+
+	;-- calculate center
+	dx: (p1-x - p2-x) / as float32! 2.0
+	dy: (p1-y - p2-y) / as float32! 2.0
+	cos-val: cosf theta
+	sin-val: sinf theta
+	X1: (cos-val * dx) + (sin-val * dy)
+	Y1: (cos-val * dy) - (sin-val * dx)
+	rx2: radius-x * radius-x
+	ry2: radius-y * radius-y
+	rad-check: ((X1 * X1) / rx2) + ((Y1 * Y1) / ry2)
+	if rad-check > as float32! 1.0 [
+		radius-x: radius-x * sqrtf rad-check
+		radius-y: radius-y * sqrtf rad-check
+		rx2: radius-x * radius-x
+		ry2: radius-y * radius-y
+	]
+	either large? = sweep? [sign: as float32! -1.0 ][sign: as float32! 1.0 ]
+	sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
+	either sqrt-val < as float32! 0.0 [cf: as float32! 0.0 ][ cf: sign * sqrtf sqrt-val ]
+	cx: cf * (radius-x * Y1 / radius-y)
+	cy: cf * (radius-y * X1 / radius-x) * (as float32! -1.0)
+	center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / as float32! 2.0)
+	center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / as float32! 2.0)
+
+	;-- transform our ellipse into the unit circle
+	m: CGAffineTransformMakeScale (as float32! 1.0) / radius-x (as float32! 1.0) / radius-y
+	m: CGAffineTransformRotate m (as float32! 0.0) - theta
+	m: CGAffineTransformTranslate m (as float32! 0.0) - center-x (as float32! 0.0) - center-y
+
+	pt1/x: p1-x pt1/y: p1-y
+	pt2/x: p2-x pt2/y: p2-y
+	pt1: CGPointApplyAffineTransform pt1 m
+	pt2: CGPointApplyAffineTransform pt2 m
+
+	;-- calculate angles
+	cx: atan2f pt1/y pt1/x
+	cy: atan2f pt2/y pt2/x
+	angle-len: cy - cx
+	either sweep? [
+		if angle-len < as float32! 0.0 [
+			angle-len: angle-len + pi2
+		]
+	][
+		if angle-len > as float32! 0.0 [
+			angle-len: angle-len - pi2
+		]
+	]
+
+	;-- construct the inverse transform
+	m: CGAffineTransformMakeTranslation center-x center-y
+	m: CGAffineTransformRotate m theta
+	m: CGAffineTransformScale m radius-x radius-y
+
+	path: CGPathCreateMutable
+	CGPathMoveToPoint path null center-x center-y
+	CGPathAddRelativeArc path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
+	CGContextAddPath ctx/raw path
+	CGPathRelease path
+]
+
+OS-draw-shape-close: func [
+	ctx		[draw-ctx!]
+][
+	CGContextClosePath ctx/raw
 ]
 
 OS-draw-brush-bitmap: func [

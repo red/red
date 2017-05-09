@@ -159,7 +159,11 @@ on-face-deep-change*: function [owner word target action new index part state fo
 								faces: skip head target index	;-- zero-based absolute index
 								loop part [
 									face: faces/1
-									unless face? face [
+									unless all [
+										object? face
+										in face 'type
+										word? face/type
+									][
 										cause-error 'script 'face-type reduce [face]
 									]
 									if owner/type = 'tab-panel [

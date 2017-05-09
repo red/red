@@ -735,6 +735,16 @@ OS-draw-shape-endpath: func [
 	result
 ]
 
+OS-draw-shape-close: func [
+	ctx		[draw-ctx!]
+][
+	either ctx/other/GDI+? [
+		GdipClosePathFigure ctx/gp-path
+	][
+		CloseFigure ctx/dc
+	]
+]
+
 OS-draw-shape-moveto: func [
 	ctx		[draw-ctx!]
 	coord	[red-pair!]
@@ -906,8 +916,7 @@ OS-draw-shape-qcurv: func [
 
 OS-draw-shape-arc: func [
 	ctx		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-value!]
+	end		[red-pair!]
 	sweep?	[logic!]
 	large?	[logic!]
 	rel?	[logic!]
@@ -954,9 +963,9 @@ OS-draw-shape-arc: func [
 		;-- parse arguments
 		p1-x: as float! ctx/other/path-last-point/x
 		p1-y: as float! ctx/other/path-last-point/y
-		p2-x: either rel? [ p1-x + as float! start/x ][ as float! start/x ]
-		p2-y: either rel? [ p1-y + as float! start/y ][ as float! start/y ]
-		item: as red-integer! start + 1
+		p2-x: either rel? [ p1-x + as float! end/x ][ as float! end/x ]
+		p2-y: either rel? [ p1-y + as float! end/y ][ as float! end/y ]
+		item: as red-integer! end + 1
 		radius-x: get-float item
 		item: item + 1
 		radius-y: get-float item
