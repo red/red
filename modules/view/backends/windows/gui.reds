@@ -1151,13 +1151,13 @@ OS-make-view: func [
 			class: #u16 "RedField"
 			flags: flags or WS_TABSTOP
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL]
-			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
 		sym = area [
 			class: #u16 "RedArea"
 			unless para? [flags: flags or ES_LEFT or ES_AUTOHSCROLL or WS_HSCROLL]
 			flags: flags or ES_MULTILINE or ES_AUTOVSCROLL or WS_VSCROLL or WS_TABSTOP
-			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: ws-flags or WS_EX_CLIENTEDGE]
+			if bits and FACET_FLAGS_NO_BORDER = 0 [ws-flags: WS_EX_CLIENTEDGE]
 		]
 		sym = text [
 			class: #u16 "RedFace"
@@ -1204,6 +1204,7 @@ OS-make-view: func [
 		sym = window [
 			class: #u16 "RedWindow"
 			flags: WS_BORDER or WS_CLIPCHILDREN
+			ws-flags: WS_EX_COMPOSITED
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
