@@ -293,6 +293,13 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 		]
 		if all [word <> 'state word <> 'extra][
+			all [
+				not empty? srs: system/reactivity/source
+				srs/1 = self
+				srs/2 = word
+				set-quiet in self word old				;-- force the old value
+				exit
+			]
 			if word = 'pane [
 				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []

@@ -20,6 +20,13 @@ reactor!: context [
 				tab "new  :" type? :new
 			]
 		]
+		all [
+			not empty? srs: system/reactivity/source
+			srs/1 = self
+			srs/2 = word
+			set-quiet in self word old					;-- force the old value
+			exit
+		]
 		unless all [block? :old block? :new same? head :old head :new][
 			if any [series? :old object? :old][modify old 'owned none]
 			if any [series? :new object? :new][modify new 'owned reduce [self word]]
@@ -39,10 +46,12 @@ deep-reactor!: make reactor! [
 
 
 system/reactivity: context [
-	relations:	make block! 1000		;@@ change it to hash! once stable
-	stack:		make block! 100			;@@ change it to hash! once stable ???
-	queue:		make block! 100
-	debug?: 	no
+	relations:	 make block! 1000		;@@ change it to hash! once stable
+	stack:		 make block! 100		;@@ change it to hash! once stable ???
+	queue:		 make block! 100
+	eat-events?: yes
+	debug?: 	 no
+	source:		 []
 	
 	eval: function [code [block!] /safe][
 		either safe [
@@ -61,19 +70,20 @@ system/reactivity: context [
 	eval-reaction: function [reactor [object!] reaction [block! function!] target][
 		append stack reactor
 		append/only stack :reaction
+		
 		either set-word? target [
 			set/any target eval/safe :reaction
 		][
 			eval/safe any [all [block? :reaction reaction] target]
 		]
-		clear back back tail stack
 	]
 	
-	on-stack?: function [reactor [object!] reaction [block! function!]][
-		p: stack
-		while [p: find/same/skip p reactor 2][
+	pending?: function [reactor [object!] reaction [block! function!] type [word!]][
+		step: pick [3 2] type = 'queue
+		p: get type
+		while [p: find/same/skip p reactor step][
 			if same? p/2 reaction [return yes]
-			p: skip p 2
+			p: skip p step
 		]
 		no
 	]
@@ -82,12 +92,15 @@ system/reactivity: context [
 		unless empty? pos: relations [
 			while [pos: find/same/skip pos reactor 4][
 				reaction: pos/3
-				
 				if all [
 					any [not only pos/2 = field]
-					any [empty? stack not on-stack? reactor :reaction]
+					any [empty? stack not pending? reactor :reaction 'stack]
 				][
 					either empty? stack [
+						if empty? source [
+							append source reactor
+							append source field
+						]
 						eval-reaction reactor :reaction pos/4
 						
 						unless empty? queue [
@@ -98,10 +111,20 @@ system/reactivity: context [
 								q: tail remove/part q 3	;-- new reactions could have been queued
 							]
 						]
+						clear stack
+						clear source
 					][
-						append queue reactor
-						append/only queue :reaction
-						append/only queue pos/4
+						unless all [
+							eat-events?
+							any [
+								pending? reactor :reaction 'stack
+								pending? reactor :reaction 'queue
+							]
+						][
+							append queue reactor
+							append/only queue :reaction
+							append/only queue pos/4
+						]
 					]
 				]
 				pos: skip pos 4
