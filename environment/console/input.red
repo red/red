@@ -420,7 +420,7 @@ unless system/console [
 						exit
 					]
 					default [
-						if c > 31 [
+						if any [c > 31 c = KEY_TAB][
 							#if OS = 'Windows [						;-- optimize for Windows
 								if all [D800h <= c c <= DF00h][		;-- USC-4
 									c: c and 03FFh << 10			;-- lead surrogate decoding
