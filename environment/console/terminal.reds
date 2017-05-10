@@ -287,6 +287,7 @@ terminal: context [
 			max		[integer!]
 			count	[integer!]
 			full?	[logic!]
+			skip    [integer!]
 	][
 		out: vt/out
 		full?: out/full?
@@ -307,14 +308,23 @@ terminal: context [
 		cp: 0
 
 		until [
-			if p <> tail [
+			if p < tail [
 				cp: string/get-char p unit
 				p: p + unit
 
-				either cp = 9 [
-					buf: string/concatenate-literal data "    "
-				][
-					buf: string/append-char buf cp
+				case [
+					cp = 9 [buf: string/concatenate-literal data "    "]
+					cp = 27 [
+						skip: parse-ansi-sequence p tail unit
+						either skip = 0 [ ;not valid sequence, so better to print it out
+							buf: string/append-char buf cp
+						][
+							p: p + skip
+						]
+					]
+					true [
+						buf: string/append-char buf cp
+					]
 				]
 			]
 			if any [cp = 10 p = tail][
@@ -1548,5 +1558,60 @@ terminal: context [
 			emit-c-string vt str str + 1 1 no yes
 		]
 		refresh vt
+	]
+
+	parse-ansi-sequence: func[
+		str 	[byte-ptr!]
+		tail	[byte-ptr!]
+		unit    [integer!]
+		return: [integer!]
+		/local
+			cp      [integer!]
+			bytes   [integer!]
+			state   [integer!]
+	][
+		cp: string/get-char str unit
+		if cp <> as-integer #"[" [
+			return 0
+		]
+		str: str + unit ;skipping the #"[" char
+		bytes:  unit
+		state:  1
+		
+		while [all [state > 0 str < tail]] [
+			cp: string/get-char str unit
+			str: str + unit
+			bytes: bytes + unit
+			switch state [
+				1 [
+					unless any [
+						cp = as-integer #";"
+						all [cp >= as-integer #"0" cp <= as-integer #"9"]
+					][state: -1]
+				]
+				2 [
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
+						cp = as-integer #";" [state: 3]
+						true [ state: -1 ]
+					]
+				]
+				3 [
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][state: 4]
+						cp = as-integer #";" [0] ;do nothing
+						true [ state: -1 ]
+					]
+				]
+				4 [
+					case [
+						all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
+						cp = as-integer #";" [state: 1]
+						true [ state: -1 ]
+					]
+				]
+			]
+		]
+		bytes
 	]
 ]
