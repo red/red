@@ -91,10 +91,12 @@ free-context: func [
 	FREE_REENTRANT(ctx/other/edges)
 	FREE_REENTRANT(ctx/other/paint)
 	FREE_REENTRANT(ctx/other/matrix-elems)
+	FREE_REENTRANT(ctx/other/gradient-fill/colors-pos)
 	FREE_REENTRANT(ctx/other/gradient-fill/colors)
 	FREE_REENTRANT(ctx/other/gradient-fill/data)
 	FREE_REENTRANT(ctx/other/gradient-fill/path-data)
 	FREE_REENTRANT(ctx/other/gradient-fill)
+	FREE_REENTRANT(ctx/other/gradient-pen/colors-pos)
 	FREE_REENTRANT(ctx/other/gradient-pen/colors)
 	FREE_REENTRANT(ctx/other/gradient-pen/data)
 	FREE_REENTRANT(ctx/other/gradient-pen/path-data)
@@ -395,6 +397,7 @@ draw-end: func [
 ][
 	if ctx/other/D2D? [
 		draw-end-d2d ctx hWnd
+		free-context ctx
 		exit
 	]
 

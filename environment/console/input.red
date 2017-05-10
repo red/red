@@ -309,8 +309,8 @@ unless system/console [
 				output?: yes
 				c: fd-read
 				n: 0
-				
-				if c = KEY_TAB [
+
+				if all [c = KEY_TAB not pasting?][
 					n: complete-line line
 					if n > 1 [
 						string/rs-reset line
@@ -485,7 +485,7 @@ unless system/console [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			init line hist					;-- enter raw mode
+			init		;-- enter raw mode
 		]
 	]
 ]

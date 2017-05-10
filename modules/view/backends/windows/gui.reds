@@ -1218,7 +1218,7 @@ OS-make-view: func [
 			if menu-bar? menu window [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
-			]			
+			]
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type

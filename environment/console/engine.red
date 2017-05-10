@@ -82,17 +82,28 @@ system/console: context [
 		]
 	]
 
-	init-console: routine [
+	init: routine [
 		str [string!]
 		/local
 			ret
 	][
-		#if OS = 'Windows [
+		#either OS = 'Windows [
 			;ret: AttachConsole -1
 			;if zero? ret [print-line "ReadConsole failed!" halt]
 
 			ret: SetConsoleTitle as c-string! string/rs-head str
 			if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		][
+			with terminal [
+				pasting?: no
+				emit-string "^[[?2004h"	;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+			]
+		]
+	]
+
+	terminate: routine [][
+		#if gui-console? = no [
+			terminal/emit-string "^[[?2004l"	;-- disable bracketed paste mode
 		]
 	]
 
