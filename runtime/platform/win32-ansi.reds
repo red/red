@@ -54,8 +54,13 @@ CONSOLE_SCREEN_BUFFER_INFO!: alias struct! [
 	bottom-maxWidth [integer!]
 	maxHeigth       [integer!]
 ]
+CONSOLE_CURSOR_INFO!: alias struct! [
+	size    [integer!]
+	visible [logic!]
+]
 
 csbi: declare CONSOLE_SCREEN_BUFFER_INFO!
+cci:  declare CONSOLE_CURSOR_INFO!
 
 saved-cursor: 0
 ;user can change default colors in properties and we must use this settings for correct reset
@@ -73,10 +78,20 @@ default-attributes: 0 ;this value holds default attributes and is used on `reset
 			position    [coord!]
 			return:     [integer!]
 		]
+		SetConsoleCursorInfo: "SetConsoleCursorInfo" [
+		;Sets the size and visibility of the cursor for the specified console screen buffer.
+			handle      [integer!] ;hConsoleOutput
+			info        [CONSOLE_CURSOR_INFO!]
+		]
 		GetConsoleScreenBufferInfo: "GetConsoleScreenBufferInfo" [
 			handle 		[integer!]
 			info        [CONSOLE_SCREEN_BUFFER_INFO!]
 			return:		[integer!]
+		]
+		GetConsoleCursorInfo: "GetConsoleCursorInfo" [
+		;Retrieves information about the size and visibility of the cursor for the specified console screen buffer.
+			handle      [integer!] ;hConsoleOutput
+			info        [CONSOLE_CURSOR_INFO!]
 		]
 		FillConsoleOutputCharacter: "FillConsoleOutputCharacterW" [
 			handle 		[integer!]
@@ -280,16 +295,9 @@ parse-ansi-sequence: func[
 						set-console-cursor 0
 						state: -1
 					]
-					cp = #"?" [	;@@ just for testing purposes
-						GetConsoleScreenBufferInfo stdout csbi
-						print-line "Screen buffer info:"
-						print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
-						print-line ["   cursor____ " LOWORD(csbi/cursor) "x" HIWORD(csbi/cursor)]
-						print-line ["   attribute_ " as int-ptr! LOWORD(csbi/attr-left) " " as int-ptr! default-attributes]
-						print-line ["   left______ " HIWORD(csbi/attr-left) " top: " LOWORD(csbi/top-right)]
-						print-line ["   right_____ " HIWORD(csbi/top-right) " bottom: " LOWORD(csbi/bottom-maxWidth)]
-						print-line ["   max_______ " HIWORD(csbi/bottom-maxWidth) "x" LOWORD(csbi/maxHeigth)]
-						state: -1
+					cp = #"?" [
+						value1: as integer! #"?"
+						state: 3
 					]
 					true [ state: -1 ]
 				]
@@ -355,6 +363,17 @@ parse-ansi-sequence: func[
 						]
 						state: -1
 					]
+					;cp = #"?" [	;@@ just for testing purposes
+					;	GetConsoleScreenBufferInfo stdout csbi
+					;	print-line "Screen buffer info:"
+					;	print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
+					;	print-line ["   cursor____ " LOWORD(csbi/cursor) "x" HIWORD(csbi/cursor)]
+					;	print-line ["   attribute_ " as int-ptr! LOWORD(csbi/attr-left) " " as int-ptr! default-attributes]
+					;	print-line ["   left______ " HIWORD(csbi/attr-left) " top: " LOWORD(csbi/top-right)]
+					;	print-line ["   right_____ " HIWORD(csbi/top-right) " bottom: " LOWORD(csbi/bottom-maxWidth)]
+					;	print-line ["   max_______ " HIWORD(csbi/bottom-maxWidth) "x" LOWORD(csbi/maxHeigth)]
+					;	state: -1
+					;]
 					true [ state: -1 ]
 				]
 			]
@@ -388,6 +407,18 @@ parse-ansi-sequence: func[
 						set-console-cursor (value1 and 0000FFFFh) or (value2 << 16)
 						state: -1
 					]
+					cp = #"l" [
+						if all [value1 = as integer! #"?" value2 = 25] [ ;Hides the cursor
+							cci/visible: false
+							SetConsoleCursorInfo stdout cci
+						]
+					]
+					cp = #"h" [
+						if all [value1 = as integer! #"?" value2 = 25] [ ;Shows the cursor
+							cci/visible: true
+							SetConsoleCursorInfo stdout cci
+						]
+					]
 					true [ state: -1 ]
 				]
 			]
@@ -397,4 +428,5 @@ parse-ansi-sequence: func[
 	bytes
 ]
 
+GetConsoleCursorInfo stdout cci
 console-store-default
