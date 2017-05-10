@@ -231,7 +231,7 @@ parse-ansi-sequence: func[
 	unit    [integer!]
 	return: [integer!]
 	/local
-		cp      [byte!]
+		cp      [integer!]
 		bytes   [integer!]
 		state   [integer!]
 		value1  [integer!]
@@ -242,60 +242,50 @@ parse-ansi-sequence: func[
 		col     [integer!]
 		row     [integer!]
 ][
-	switch unit [
-		Latin1 [
-			if str/2 <> #"[" [return 0]
-			str: str + 2
-			bytes: 2
-		]
-		UCS-2  [
-			if str/3 <> #"[" [return 0]
-			str: str + 4
-			bytes: 4
-		]
-		UCS-4  [
-			if str/5 <> #"[" [return 0]
-			str: str + 8
-			bytes: 8
-		]
+	str: str + unit ;first char is always #"^[" here
+	cp: string/get-char str unit
+	if cp <> as-integer #"[" [
+		return 0
 	]
-	state:   1
-	value1:  0
-	value2:  0
+	str: str + unit ;skipping the #"[" char
+	bytes:  unit + unit
+	state:  1
+	value1: 0
+	value2: 0
 	attribute: -1
 	until [
-		cp: str/1
+		cp: string/get-char str unit
 		str: str + unit
 		bytes: bytes + unit
 		switch state [
 			1 [ ;value1 start
 				case [
-					all [cp >= #"0" cp <= #"9"][
+					all [cp >= as-integer #"0" cp <= as-integer #"9"][
 						value1: ((value1 * 10) + (cp - #"0")) // FFFFh
 						state: 2
 					]
-					cp = #";" [] ;do nothing
-					cp = #"s" [	;-- Saves the current cursor position.
+					cp = as-integer #";" [] ;do nothing
+					cp = as-integer #"s" [	;-- Saves the current cursor position.
 						console-store-position
 						state: -1
 					]
-					cp = #"u" [ ;-- Returns the cursor to the position stored by the Save Cursor Position sequence.
+					cp = as-integer #"u" [ ;-- Returns the cursor to the position stored by the Save Cursor Position sequence.
 						set-console-cursor saved-cursor
 						state: -1
 					]
-					cp = #"K" [ ;-- Erase Line.
+					cp = as-integer #"K" [ ;-- Erase Line.
 						clear-screen ERASE_LINE_END
 						state: -1
 					]
-					cp = #"J" [ ;-- Clear screen from cursor down.
+					cp = as-integer #"J" [ ;-- Clear screen from cursor down.
 						clear-screen ERASE_DOWN
 						state: -1
 					]
-					any [cp = #"H" cp = #"f"] [
+					any [cp = as-integer #"H" cp = as-integer #"f"] [
 						set-console-cursor 0
 						state: -1
 					]
-					cp = #"?" [
+					cp = as-integer #"?" [
 						value1: as integer! #"?"
 						state: 3
 					]
@@ -304,18 +294,18 @@ parse-ansi-sequence: func[
 			]
 			2 [ ;value1 continue
 				case [
-					all [cp >= #"0" cp <= #"9"][
+					all [cp >= as-integer #"0" cp <= as-integer #"9"][
 						value1: ((value1 * 10) + (cp - #"0")) // FFFFh
 					]
-					cp = #";" [
+					cp = as-integer #";" [
 						state: 3
 					]
-					cp = #"m" [
+					cp = as-integer #"m" [
 						attribute: update-graphic-mode attribute value1
 						set-console-graphic attribute
 						state: -1
 					]
-					cp = #"A" [ ;-- Cursor Up.
+					cp = as-integer #"A" [ ;-- Cursor Up.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
 						row: HIWORD(cursor) - value1
@@ -323,7 +313,7 @@ parse-ansi-sequence: func[
 						set-console-cursor (cursor and 0000FFFFh) or (row << 16)
 						state: -1
 					]
-					cp = #"B" [ ;-- Cursor Down.
+					cp = as-integer #"B" [ ;-- Cursor Down.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
 						row: HIWORD(cursor) + value1
@@ -331,7 +321,7 @@ parse-ansi-sequence: func[
 						set-console-cursor (cursor and 0000FFFFh) or (row << 16)
 						state: -1
 					]
-					cp = #"C" [ ;-- Cursor Forward.
+					cp = as-integer #"C" [ ;-- Cursor Forward.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
 						col: LOWORD(cursor) + value1
@@ -339,7 +329,7 @@ parse-ansi-sequence: func[
 						set-console-cursor (cursor and FFFF0000h) or (col and 0000FFFFh)
 						state: -1
 					]
-					cp = #"D" [ ;-- Cursor Backward.
+					cp = as-integer #"D" [ ;-- Cursor Backward.
 						GetConsoleScreenBufferInfo stdout csbi
 						cursor: csbi/cursor
 						col: LOWORD(cursor) - value1
@@ -347,7 +337,7 @@ parse-ansi-sequence: func[
 						set-console-cursor (cursor and FFFF0000h) or (col and 0000FFFFh)
 						state: -1
 					]
-					cp = #"J" [
+					cp = as-integer #"J" [
 						case [
 							value1 = 1 [clear-screen ERASE_UP]
 							value1 = 2 [clear-screen ERASE_SCREEN]
@@ -355,7 +345,7 @@ parse-ansi-sequence: func[
 						]
 						state: -1
 					]
-					cp = #"K" [
+					cp = as-integer #"K" [
 						case [
 							value1 = 1 [clear-screen ERASE_LINE_START]
 							value1 = 2 [clear-screen ERASE_LINE]
@@ -363,7 +353,7 @@ parse-ansi-sequence: func[
 						]
 						state: -1
 					]
-					;cp = #"?" [	;@@ just for testing purposes
+					;cp = as-integer #"?" [	;@@ just for testing purposes
 					;	GetConsoleScreenBufferInfo stdout csbi
 					;	print-line "Screen buffer info:"
 					;	print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
@@ -379,41 +369,41 @@ parse-ansi-sequence: func[
 			]
 			3 [ ;value2 start
 				case [
-					all [cp >= #"0" cp <= #"9"][
+					all [cp >= as-integer #"0" cp <= as-integer #"9"][
 						value2: ((value2 * 10) + (cp - #"0")) // FFFFh
 						state: 4
 					]
-					cp = #";" [] ;do nothing
+					cp = as-integer #";" [] ;do nothing
 					true [ state: -1 ]
 				]
 			] ;value2 continue
 			4 [
 				case [
-					all [cp >= #"0" cp <= #"9"][
+					all [cp >= as-integer #"0" cp <= as-integer #"9"][
 						value2: ((value2 * 10) + (cp - #"0")) // FFFFh
 					]
-					cp = #"m" [
+					cp = as-integer #"m" [
 						attribute: update-graphic-mode update-graphic-mode attribute value1 value2
 						set-console-graphic attribute
 						state: -1 
 					]
-					cp = #";" [
+					cp = as-integer #";" [
 						attribute: update-graphic-mode update-graphic-mode attribute value1 value2
 						value1: 0
 						value2: 0
 						state: 1
 					]
-					any [cp = #"H" cp = #"f"] [ ;-- Cursor Position.
+					any [cp = as-integer #"H" cp = as-integer #"f"] [ ;-- Cursor Position.
 						set-console-cursor (value1 and 0000FFFFh) or (value2 << 16)
 						state: -1
 					]
-					cp = #"l" [
+					cp = as-integer #"l" [
 						if all [value1 = as integer! #"?" value2 = 25] [ ;Hides the cursor
 							cci/visible: false
 							SetConsoleCursorInfo stdout cci
 						]
 					]
-					cp = #"h" [
+					cp = as-integer #"h" [
 						if all [value1 = as integer! #"?" value2 = 25] [ ;Shows the cursor
 							cci/visible: true
 							SetConsoleCursorInfo stdout cci
