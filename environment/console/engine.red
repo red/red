@@ -96,15 +96,16 @@ system/console: context [
 		][
 			with terminal [
 				pasting?: no
-				emit-string "^[[?2004h"	;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+				emit-string "^[[?2004h"			;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
 			]
 		]
 	]
 
 	terminate: routine [][
+		#if OS <> 'Windows [
 		#if gui-console? = no [
 			terminal/emit-string "^[[?2004l"	;-- disable bracketed paste mode
-		]
+		]]
 	]
 
 	count-delimiters: function [

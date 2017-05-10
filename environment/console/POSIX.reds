@@ -188,7 +188,6 @@ saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
 relative-y:	0
-pasting?:	no
 
 fd-read-char: func [
 	timeout [integer!]

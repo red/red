@@ -81,6 +81,7 @@ unless system/console [
 		columns:	-1
 		rows:		-1
 		output?:	yes
+		pasting?:	no
 
 		string/rs-make-at as cell! saved-line 1
 
