@@ -285,6 +285,11 @@ parse-ansi-sequence: func[
 						set-console-cursor 0
 						state: -1
 					]
+					cp = as-integer #"m" [
+						attribute: update-graphic-mode attribute 0
+						set-console-graphic attribute
+						state: -1
+					]
 					cp = as-integer #"?" [
 						value1: as integer! #"?"
 						state: 3
