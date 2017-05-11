@@ -194,64 +194,6 @@ unless system/console [
 			pbuffer: buffer
 		]
 
-		process-ansi-sequence: func[
-			str 	[byte-ptr!]
-			tail	[byte-ptr!]
-			unit    [integer!]
-			print?	[logic!]
-			return: [integer!]
-			/local
-				cp      [integer!]
-				bytes   [integer!]
-				state   [integer!]
-		][
-			cp: string/get-char str unit
-			if all [
-				cp <> as-integer #"["
-				cp <> as-integer #"("
-			][return 0]
-			if print? [emit-red-char cp]
-			str: str + unit
-			bytes: unit
-			state: 1
-			while [all [state > 0 str < tail]] [
-				cp: string/get-char str unit
-				if print? [emit-red-char cp]
-				str: str + unit
-				bytes: bytes + unit
-				switch state [
-					1 [
-						unless any [
-							cp = as-integer #";"
-							all [cp >= as-integer #"0" cp <= as-integer #"9"]
-						][state: -1]
-					]
-					2 [
-						case [
-							all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
-							cp = as-integer #";" [state: 3]
-							true [ state: -1 ]
-						]
-					]
-					3 [
-						case [
-							all [cp >= as-integer #"0" cp <= as-integer #"9"][state: 4]
-							cp = as-integer #";" [0] ;do nothing
-							true [ state: -1 ]
-						]
-					]
-					4 [
-						case [
-							all [cp >= as-integer #"0" cp <= as-integer #"9"][0]
-							cp = as-integer #";" [state: 1]
-							true [ state: -1 ]
-						]
-					]
-				]
-			]
-			bytes
-		]
-
 		emit-red-string: func [
 			str			[red-string!]
 			size		[integer!]
@@ -267,6 +209,8 @@ unless system/console [
 				cnt		[integer!]
 				x		[integer!]
 				w		[integer!]
+				sn		[integer!]
+				skip    [integer!]
 		][
 			x:		0
 			w:		0
@@ -280,26 +224,44 @@ unless system/console [
 				tail: offset
 				offset: as byte-ptr! series/offset
 			]
+			sn: 0
 			until [
 				while [
 					all [offset < tail cnt < size]
 				][
-					cp: string/get-char offset unit
-					#either OS = 'Windows [
-						offset: offset + unit
+					either zero? sn [
+						cp: string/get-char offset unit
+						if cp = 9 [			;-- convert a tab to 4 spaces
+							offset: offset - unit
+							cp: 32
+							sn: 3
+						]
+						
 						either cp = as-integer #"^[" [
+							;output-to-screen
 							cnt: cnt - 1
-							offset: offset + process-ansi-sequence offset tail unit no
+							#either OS = 'Windows [
+								skip: process-ansi-sequence offset tail unit
+								if skip = 0 [
+									emit-red-char cp
+								]
+								offset: offset + skip
+							][
+								skip: process-ansi-sequence offset tail unit
+								while [skip > 0] [
+									emit-red-char cp
+									skip: skip - 1
+								]
+								offset: offset + unit + skip
+							]
 						][
 							emit-red-char cp
+							offset: offset + unit
 						]
 					][
 						emit-red-char cp
-						offset: offset + unit
-						if cp = as-integer #"^[" [
-							cnt: cnt - 1
-							offset: offset + process-ansi-sequence offset tail unit yes
-						]
+						sn: sn - 1
+						if zero? sn [offset: offset + unit]
 					]
 					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [

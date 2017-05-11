@@ -15,8 +15,6 @@ buffer:			as byte-ptr! 0
 pbuffer:		as byte-ptr! 0
 cbuffer:		as byte-ptr! 0
 
-#include %win32-ansi.reds
-
 ;-------------------------------------------
 ;-- check whether we are in console mode
 ;-------------------------------------------
@@ -74,15 +72,17 @@ print-screen: func [
 	/local
 		chars [integer!]
 		skip  [integer!]
+		tail  [byte-ptr!]
 ][
 	chars: 0
 	skip: 0
+	tail: str + size
 	either unit = Latin1 [
 		while [size > 0][
 			if str/1 = #"^[" [
 				putbuffer chars
 				chars: 0
-				skip: parse-ansi-sequence str Latin1
+				skip: process-ansi-sequence str tail Latin1
 			]
 			either skip = 0 [
 				buffer/1: str/1
@@ -106,7 +106,7 @@ print-screen: func [
 			if all [str/1 = #"^[" str/2 = null-byte] [
 				putbuffer chars
 				chars: 0
-				skip: parse-ansi-sequence str UCS-2
+				skip: process-ansi-sequence str tail UCS-2
 			]
 			either skip = 0 [
 				buffer/1: str/1

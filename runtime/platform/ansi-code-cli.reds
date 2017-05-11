@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "ANSI Escape sequences support in Windows CLI console"
 	Author:  "Oldes"
-	File: 	 %win32-ansi.reds
+	File: 	 %ansi-code-win32.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -226,8 +226,9 @@ update-graphic-mode: func[
 ]
 
 ;-- Based on http://ascii-table.com/ansi-escape-sequences.php and http://www.termsys.demon.co.uk/vtansi.htm
-parse-ansi-sequence: func[
+process-ansi-sequence: func[
 	str 	[byte-ptr!]
+	tail	[byte-ptr!] ;this is ignored in Windows CLI version
 	unit    [integer!]
 	return: [integer!]
 	/local
@@ -358,17 +359,6 @@ parse-ansi-sequence: func[
 						]
 						state: -1
 					]
-					;cp = as-integer #"?" [	;@@ just for testing purposes
-					;	GetConsoleScreenBufferInfo stdout csbi
-					;	print-line "Screen buffer info:"
-					;	print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
-					;	print-line ["   cursor____ " LOWORD(csbi/cursor) "x" HIWORD(csbi/cursor)]
-					;	print-line ["   attribute_ " as int-ptr! LOWORD(csbi/attr-left) " " as int-ptr! default-attributes]
-					;	print-line ["   left______ " HIWORD(csbi/attr-left) " top: " LOWORD(csbi/top-right)]
-					;	print-line ["   right_____ " HIWORD(csbi/top-right) " bottom: " LOWORD(csbi/bottom-maxWidth)]
-					;	print-line ["   max_______ " HIWORD(csbi/bottom-maxWidth) "x" LOWORD(csbi/maxHeigth)]
-					;	state: -1
-					;]
 					true [ state: -1 ]
 				]
 			]
@@ -379,6 +369,17 @@ parse-ansi-sequence: func[
 						state: 4
 					]
 					cp = as-integer #";" [] ;do nothing
+					cp = as-integer #"?" [	;@@ just for testing purposes
+						GetConsoleScreenBufferInfo stdout csbi
+						print-line "Screen buffer info:"
+						print-line ["   size______ " LOWORD(csbi/size) "x" HIWORD(csbi/size)]
+						print-line ["   cursor____ " LOWORD(csbi/cursor) "x" HIWORD(csbi/cursor)]
+						print-line ["   attribute_ " as int-ptr! LOWORD(csbi/attr-left) " " as int-ptr! default-attributes]
+						print-line ["   left______ " HIWORD(csbi/attr-left) " top: " LOWORD(csbi/top-right)]
+						print-line ["   right_____ " HIWORD(csbi/top-right) " bottom: " LOWORD(csbi/bottom-maxWidth)]
+						print-line ["   max_______ " HIWORD(csbi/bottom-maxWidth) "x" LOWORD(csbi/maxHeigth)]
+						state: -1
+					]
 					true [ state: -1 ]
 				]
 			] ;value2 continue

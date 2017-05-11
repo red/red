@@ -16,6 +16,9 @@ red: context [
 	#include %definitions.reds
 	#include %macros.reds
 	#include %tools.reds
+
+	;-- ANSI code --
+	#include %platform/ansi-code.reds
 	
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
@@ -107,7 +110,7 @@ red: context [
 	;-- Debugging helpers --
 	
 	#include %debug-tools.reds
-	
+
 	;-- Core --
 	#include %actions.reds
 	#include %natives.reds
