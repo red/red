@@ -285,11 +285,21 @@ unless system/console [
 					all [offset < tail cnt < size]
 				][
 					cp: string/get-char offset unit
-					emit-red-char cp
-					offset: offset + unit
-					if cp = as-integer #"^[" [
-						cnt: cnt - 1
-						offset: offset + process-ansi-sequence offset tail unit yes
+					#either OS = 'Windows [
+						offset: offset + unit
+						either cp = as-integer #"^[" [
+							cnt: cnt - 1
+							offset: offset + process-ansi-sequence offset tail unit no
+						][
+							emit-red-char cp
+						]
+					][
+						emit-red-char cp
+						offset: offset + unit
+						if cp = as-integer #"^[" [
+							cnt: cnt - 1
+							offset: offset + process-ansi-sequence offset tail unit yes
+						]
 					]
 					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [
