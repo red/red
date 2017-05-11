@@ -138,7 +138,8 @@ write %build/bin/sources.r set-cache [
 			%image-quartz.reds
 			%win32-cli.reds
 			%win32-gui.reds
-			%win32-ansi.reds
+			%ansi-code.reds
+			%ansi-code-cli.reds
 		]
 	]
 	%modules/ [
