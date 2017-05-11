@@ -210,7 +210,6 @@ unless system/console [
 				cp <> as-integer #"["
 				cp <> as-integer #"("
 			][return 0]
-
 			if print? [emit-red-char cp]
 			str: str + unit
 			bytes: unit
