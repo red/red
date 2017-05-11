@@ -194,7 +194,7 @@ unless system/console [
 			pbuffer: buffer
 		]
 
-		process-ansi-sequence: func[
+		process-ansi-sequence: func [
 			str 	[byte-ptr!]
 			tail	[byte-ptr!]
 			unit    [integer!]
@@ -268,6 +268,7 @@ unless system/console [
 				cnt		[integer!]
 				x		[integer!]
 				w		[integer!]
+				sn		[integer!]
 		][
 			x:		0
 			w:		0
@@ -281,16 +282,28 @@ unless system/console [
 				tail: offset
 				offset: as byte-ptr! series/offset
 			]
+			sn: 0
 			until [
 				while [
 					all [offset < tail cnt < size]
 				][
-					cp: string/get-char offset unit
-					emit-red-char cp
-					offset: offset + unit
-					if cp = as-integer #"^[" [
-						cnt: cnt - 1
-						offset: offset + process-ansi-sequence offset tail unit yes
+					either zero? sn [
+						cp: string/get-char offset unit
+						if cp = 9 [			;-- convert a tab to 4 spaces
+							offset: offset - unit
+							cp: 32
+							sn: 3
+						]
+						emit-red-char cp
+						offset: offset + unit
+						if cp = as-integer #"^[" [
+							cnt: cnt - 1
+							offset: offset + process-ansi-sequence offset tail unit yes
+						]
+					][
+						emit-red-char cp
+						sn: sn - 1
+						if zero? sn [offset: offset + unit]
 					]
 					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
 					cnt: switch w [
