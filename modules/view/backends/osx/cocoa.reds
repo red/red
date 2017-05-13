@@ -798,6 +798,13 @@ tagSIZE: alias struct! [
 			image		[integer!]
 		]
 	]
+	LIBM-file cdecl [
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
+		]
+	]
 ]
 
 #define BLOCK_FIELD_IS_OBJECT	3

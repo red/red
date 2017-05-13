@@ -297,6 +297,13 @@ init: func [
 
 	create-main-menu
 
+	;dlopen "./FScript.framework/FScript" 1
+	;objc_msgSend [
+	;	objc_msgSend [NSApp sel_getUid "mainMenu"]
+	;	sel_getUid "addItem:"
+	;	objc_msgSend [objc_msgSend [objc_getClass "FScriptMenuItem" sel_alloc] sel_init]
+	;]
+
 	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
 	rect: as NSRect! (as int-ptr! screen) + 1
 	screen-size-x: as-integer rect/w
@@ -1484,11 +1491,11 @@ OS-make-view: func [
 		sym = field [class: "RedTextField"]
 		sym = button [
 			class: "RedButton"
-			size/x: size/x + 12							;@@ hardcoded margins
+			size/x: size/x
 		]
 		sym = check [
 			class: "RedButton"
-			size/x: size/x + 12							;@@ hardcoded margins
+			size/x: size/x
 			flags: NSSwitchButton
 		]
 		sym = radio [
