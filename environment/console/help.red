@@ -179,9 +179,9 @@ help-ctx: context [
 		all [string? spec/1  copy spec/1]
 	]
 
-	; These are localized here, as their names may change in Red.
-	all-word!: make typeset! [word! set-word! lit-word! get-word! refinement! issue!]
-	all-word?: func [value [any-type!]][find all-word! type? :value]
+	; These are here because they are not standard in Red yet.
+	ext-word!: make typeset! [word! set-word! lit-word! get-word! refinement! issue!]
+	ext-word?: func [value [any-type!]][find ext-word! type? :value]
 
 	func-spec-words: function [
 		"Returns all words from a function spec."
@@ -191,7 +191,7 @@ help-ctx: context [
 	][
 		;!! remove-each doesn't return a result
 		;!! Use `copy` on `spec-of` so `remove` doesn't mod it!
-		remove-each val blk: copy spec-of :fn [not all-word? val]	; Remove doc strings and type specs
+		remove-each val blk: copy spec-of :fn [not ext-word? val]	; Remove doc strings and type specs
 		if system/words/all [not opt  not all][
 			clear find blk refinement!
 		]
