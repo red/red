@@ -355,11 +355,6 @@ help-ctx: context [
 	]
 	print-param: func [param [block!] /no-name][
 		_print either no-name [form-param/no-name param][form-param param]
-;		_print [
-;			either no-name [""] [as-arg-col mold param/name]
-;			either param/type [mold/flat param/type][NO_DOC]
-;			either param/desc [mold param/desc][NO_DOC]
-;		]
 	]
 
 	show-function-help: function [
@@ -411,8 +406,11 @@ help-ctx: context [
 		]
 
 		if not empty? fn-as-obj/returns [
-			_prin [newline "RETURNS:" newline DENT_1]
-			print-param/no-name fn-as-obj/returns
+;			_prin [newline "RETURNS:" newline DENT_1]
+;			print-param/no-name fn-as-obj/returns
+			_print [newline "RETURNS:"]
+			if fn-as-obj/returns/desc [_print [DENT_1 fn-as-obj/returns/desc]]
+			_print [DENT_1 mold/flat fn-as-obj/returns/type]
 		]
 				
 		exit
