@@ -179,9 +179,9 @@ help-ctx: context [
 		all [string? spec/1  copy spec/1]
 	]
 
-	; These are localized here, as their names may change in Red.
-	all-word!: make typeset! [word! set-word! lit-word! get-word! refinement! issue!]
-	all-word?: func [value [any-type!]][find all-word! type? :value]
+	; These are here because they are not standard in Red yet.
+	ext-word!: make typeset! [word! set-word! lit-word! get-word! refinement! issue!]
+	ext-word?: func [value [any-type!]][find ext-word! type? :value]
 
 	func-spec-words: function [
 		"Returns all words from a function spec."
@@ -191,7 +191,7 @@ help-ctx: context [
 	][
 		;!! remove-each doesn't return a result
 		;!! Use `copy` on `spec-of` so `remove` doesn't mod it!
-		remove-each val blk: copy spec-of :fn [not all-word? val]	; Remove doc strings and type specs
+		remove-each val blk: copy spec-of :fn [not ext-word? val]	; Remove doc strings and type specs
 		if system/words/all [not opt  not all][
 			clear find blk refinement!
 		]
@@ -252,7 +252,10 @@ help-ctx: context [
 			;	the param type spec, but they are just words in Red func specs.
 			param-type=: [
 				set =val block! (emit 'type =val) (
-					if not parse reduce =val [some [datatype! | typeset!]][
+					if not any [
+						parse reduce =val [some [datatype! | typeset!]]
+						parse =val ['function! block!]
+					][
 						print ["Looks like we have a bad type spec:" mold =val]
 					]
 				)
@@ -346,12 +349,15 @@ help-ctx: context [
 
 	; I wanted this to be local to show-function-help, but it fails when
 	; called with the refinment when compiled under 0.6.2.
-	print-param: func [param [block!] /no-name][
-		_print [
+	form-param: function [param [block!] /no-name][
+		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
-			either param/type [mold/flat param/type][NO_DOC]
+			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
 			either param/desc [mold param/desc][NO_DOC]
 		]
+	]
+	print-param: func [param [block!] /no-name][
+		_print either no-name [form-param/no-name param][form-param param]
 	]
 
 	show-function-help: function [
@@ -385,13 +391,13 @@ help-ctx: context [
 			
 		_print [
 			newline "DESCRIPTION:" newline
-			DENT_1 any [fn-as-obj/desc NO_DOC] newline
+			reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
 		if not empty? fn-as-obj/params [
 			_print [newline "ARGUMENTS:"] 
-			foreach param fn-as-obj/params [_prin DENT_1 print-param param]
+			foreach param fn-as-obj/params [_print [DENT_1 form-param param]]
 		]
 		
 		if not empty? fn-as-obj/refinements [
@@ -403,8 +409,9 @@ help-ctx: context [
 		]
 
 		if not empty? fn-as-obj/returns [
-			_prin [newline "RETURNS:" newline DENT_1]
-			print-param/no-name fn-as-obj/returns
+			_print [newline "RETURNS:"]
+			if fn-as-obj/returns/desc [_print [DENT_1 fn-as-obj/returns/desc]]
+			_print [DENT_1 mold/flat fn-as-obj/returns/type]
 		]
 				
 		exit
