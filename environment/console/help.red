@@ -346,12 +346,20 @@ help-ctx: context [
 
 	; I wanted this to be local to show-function-help, but it fails when
 	; called with the refinment when compiled under 0.6.2.
-	print-param: func [param [block!] /no-name][
-		_print [
+	form-param: func [param [block!] /no-name][
+		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either param/type [mold/flat param/type][NO_DOC]
 			either param/desc [mold param/desc][NO_DOC]
 		]
+	]
+	print-param: func [param [block!] /no-name][
+		_print either no-name [form-param/no-name param][form-param param]
+;		_print [
+;			either no-name [""] [as-arg-col mold param/name]
+;			either param/type [mold/flat param/type][NO_DOC]
+;			either param/desc [mold param/desc][NO_DOC]
+;		]
 	]
 
 	show-function-help: function [
@@ -391,7 +399,7 @@ help-ctx: context [
 
 		if not empty? fn-as-obj/params [
 			_print [newline "ARGUMENTS:"] 
-			foreach param fn-as-obj/params [_prin DENT_1 print-param param]
+			foreach param fn-as-obj/params [_print [DENT_1 form-param param]]
 		]
 		
 		if not empty? fn-as-obj/refinements [
