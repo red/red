@@ -2178,7 +2178,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!] /with slots [integer! none!]
-		/local fspec attribs vars
+		/local fspec attribs vars offset
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
@@ -2213,8 +2213,9 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			offset: locals-size + locals-offset
 			emit #{8DA5}							;-- LEA esp, [ebp-<offset>]
-			emit to-bin32 negate locals-size + 20	;-- account for 2 catch slots + 3 saved regs
+			emit to-bin32 negate offset + 12		;-- account for 3 saved regs
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx

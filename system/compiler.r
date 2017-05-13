@@ -87,6 +87,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
+		func-locals-sz:	 none							;-- currently compiled function locals size on stack
 		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
@@ -1908,7 +1909,7 @@ system-dialect: make-profilable context [
 			value
 		]
 		
-		comp-use: has [spec use-init use-locals use-stack][
+		comp-use: has [spec use-init use-locals use-stack size][
 			pc: next pc
 			unless all [block? spec: pc/1 not empty? spec][
 				backtrack 'use
@@ -1929,12 +1930,14 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			emitter/calc-locals-offsets use-locals
+			size: emitter/calc-locals-offsets use-locals
+			func-locals-sz: func-locals-sz + size
 			
 			pc: next pc
 			fetch-into/root pc/1 [comp-dialect]
 			pc: next pc
 			
+			func-locals-sz: func-locals-sz - size
 			clear use-init
 			clear use-locals
 			clear use-stack
@@ -2111,14 +2114,7 @@ system-dialect: make-profilable context [
 			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]
 			chunk: emitter/chunks/join start chunk
 			
-			locals-size: either all [locals find locals /local][
-				unless block? last locals [
-					throw-error ["Type definition required for:" last locals]
-				]
-				(abs last emitter/stack) + emitter/size-of? last locals
-			][
-				0
-			]
+			locals-size: any [all [locals func-locals-sz] 0]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
 			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
 			
@@ -3437,6 +3433,7 @@ system-dialect: make-profilable context [
 			locals: spec
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
+			func-locals-sz: local-sz
 			pc: body
 			
 			expr: comp-dialect							;-- compile function's body
@@ -3461,7 +3458,7 @@ system-dialect: make-profilable context [
 			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
 			clear locals-init
-			locals: func-name: none
+			locals: func-name: func-locals-sz: none
 		]
 		
 		comp-natives: does [			

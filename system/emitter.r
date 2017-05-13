@@ -681,8 +681,8 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
-	calc-locals-offsets: func [spec [block!] /local total var sz][
-		total: negate target/locals-offset
+	calc-locals-offsets: func [spec [block!] /local total var sz extra][
+		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][
 			var: spec/1
 			either block? spec/2 [
@@ -693,7 +693,7 @@ emitter: make-profilable context [
 			]
 			repend stack [var (total: total - sz)] 		;-- store stack offsets
 		]
-		abs total
+		(abs total) - extra
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
