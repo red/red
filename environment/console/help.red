@@ -349,10 +349,10 @@ help-ctx: context [
 
 	; I wanted this to be local to show-function-help, but it fails when
 	; called with the refinment when compiled under 0.6.2.
-	form-param: func [param [block!] /no-name][
+	form-param: function [param [block!] /no-name][
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
-			either param/type [mold/flat param/type][NO_DOC]
+			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
 			either param/desc [mold param/desc][NO_DOC]
 		]
 	]
