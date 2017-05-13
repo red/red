@@ -252,7 +252,10 @@ help-ctx: context [
 			;	the param type spec, but they are just words in Red func specs.
 			param-type=: [
 				set =val block! (emit 'type =val) (
-					if not parse reduce =val [some [datatype! | typeset!]][
+					if not any [
+						parse reduce =val [some [datatype! | typeset!]]
+						parse =val ['function! block!]
+					][
 						print ["Looks like we have a bad type spec:" mold =val]
 					]
 				)
