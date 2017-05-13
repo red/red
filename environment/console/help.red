@@ -388,7 +388,7 @@ help-ctx: context [
 			
 		_print [
 			newline "DESCRIPTION:" newline
-			DENT_1 any [fn-as-obj/desc NO_DOC] newline
+			reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
@@ -406,8 +406,6 @@ help-ctx: context [
 		]
 
 		if not empty? fn-as-obj/returns [
-;			_prin [newline "RETURNS:" newline DENT_1]
-;			print-param/no-name fn-as-obj/returns
 			_print [newline "RETURNS:"]
 			if fn-as-obj/returns/desc [_print [DENT_1 fn-as-obj/returns/desc]]
 			_print [DENT_1 mold/flat fn-as-obj/returns/type]
