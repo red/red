@@ -293,6 +293,7 @@ emitter: make-profilable context [
 						store-global value type spec
 					]
 				]
+				pad-data-buf target/struct-align-size
 			]
 			array! [
 				type: first compiler/get-type value/1
@@ -394,8 +395,11 @@ emitter: make-profilable context [
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
-			if var = name [break]
+			if var = name [return offset]
 			offset: offset + size-of? type
+		]
+		unless zero? over: offset // target/struct-align-size [
+			offset: offset + target/struct-align-size - over	 ;-- properly account for alignment
 		]
 		offset
 	]
