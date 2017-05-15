@@ -52,6 +52,7 @@ system/reactivity: context [
 	eat-events?: yes
 	debug?: 	 no
 	source:		 []
+	imm-path!:	 make typeset! [pair! tuple! time!]
 	
 	eval: function [code [block!] /safe][
 		either safe [
@@ -300,7 +301,7 @@ system/reactivity: context [
 							][
 								if any [
 									2 = length? item
-									not find [pair! tuple! time!] type?/word get in obj item/:part
+									not find imm-path! type? get in obj item/:part
 								][
 									part: part + 1
 								]
