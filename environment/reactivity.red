@@ -276,12 +276,12 @@ system/reactivity: context [
 							if unset? attempt [get/any item: saved][
 								cause-error 'script 'no-value [item]
 							]
-							obj: none
+							obj: get item/1
 							part: (length? item) - 1
 	
-							unless all [				;-- search for an object (deep first)
+							unless any [				;-- search for an object (deep first)
 								2 = length? item
-								object? obj: get item/1
+								object? :obj
 							][
 								until [
 									path: copy/part item part
@@ -295,7 +295,7 @@ system/reactivity: context [
 							]
 	
 							if all [
-								object? obj				;-- rough checks for reactive object
+								object? :obj			;-- rough checks for reactive object
 								in obj 'on-change*
 							][
 								part: part + 1
