@@ -84,9 +84,9 @@ handle: context [
 	]
 
 	compare: func [
-		value1	[red-handle!]						;-- first operand
-		value2	[red-handle!]						;-- second operand
-		op		[integer!]						;-- type of comparison
+		value1	[red-handle!]							;-- first operand
+		value2	[red-handle!]							;-- second operand
+		op		[integer!]								;-- type of comparison
 		return:	[integer!]
 		/local
 			left  [integer!]
