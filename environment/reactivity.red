@@ -298,7 +298,12 @@ system/reactivity: context [
 								object? :obj			;-- rough checks for reactive object
 								in obj 'on-change*
 							][
-								part: part + 1
+								if any [
+									2 = length? item
+									not find [pair! tuple! time!] type?/word get in obj item/:part
+								][
+									part: part + 1
+								]
 								repend relations [obj item/:part reaction ctx]
 								unless later [eval reaction]
 								found?: yes
