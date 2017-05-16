@@ -264,6 +264,15 @@ set-defaults: func [][
 	objc_msgSend [default-font sel_getUid "retain"]
 ]
 
+set-metrics: func [
+	/local
+		m	[red-hash!]
+		blk [red-block!]
+][
+	m: as red-hash! #get system/view/metrics
+	map/put m as red-value! _dpi as red-value! integer/push log-pixels-x no
+]
+
 init: func [
 	/local
 		screen	 [integer!]
@@ -328,6 +337,8 @@ init: func [
 
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
 	objc_msgSend [NSApp sel_getUid "finishLaunching"]
+
+	set-metrics
 ]
 
 set-logic-state: func [

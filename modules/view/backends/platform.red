@@ -373,6 +373,8 @@ system/view/platform: context [
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
 
+			_dpi:			word/load "DPI"
+
 			get-event-type: func [
 				evt		[red-event!]
 				return: [red-value!]
@@ -672,12 +674,21 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svs fonts][
-		#system [gui/init]
-		
-		system/view/metrics/dpi: 94						;@@ Needs to be calculated
+	init: func [/local svs fonts m][
+		system/view/metrics: m: make map! 32
 		system/view/screens: svs: make block! 6
-		
+
+		#system [gui/init]
+
+		#switch config/OS [
+			Windows [
+				m/button: [1x1 1x1]		;-- top right buttom left
+			]
+			MacOSX [
+				m/button: [4x6 7x6]
+			]
+		]
+
 		append svs make face! [							;-- default screen
 			type:	'screen
 			offset: 0x0
