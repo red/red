@@ -1533,32 +1533,14 @@ natives: context [
 		integer/box ret
 	]
 
-	max*: func [
-		check? [logic!]
-		/local
-			args	[red-value!]
-			result	[logic!]
-	][
+	max*: func [check? [logic!]][
 		#typecheck -max-								;-- `max` would be replaced by lexer
-		args: stack/arguments
-		result: actions/compare args args + 1 COMP_LESSER
-		if result [
-			stack/set-last args + 1
-		]
+		max-min true
 	]
 
-	min*: func [
-		check? [logic!]
-		/local
-			args	[red-value!]
-			result	[logic!]
-	][
+	min*: func [check? [logic!]][
 		#typecheck -min-								;-- `min` would be replaced by lexer
-		args: stack/arguments
-		result: actions/compare args args + 1 COMP_LESSER
-		unless result [
-			stack/set-last args + 1
-		]
+		max-min false
 	]
 
 	shift*: func [
@@ -2491,20 +2473,147 @@ natives: context [
 	]
 
 	;--- Natives helper functions ---
+	
+	max-min: func [
+		max? [logic!]
+		/local
+			arg		[red-value!]
+			arg2	[red-value!]
+			value	[red-value!]
+			p		[red-pair!]
+			p2		[red-pair!]
+			tp		[red-tuple!]
+			buf		[byte-ptr!]
+			buf2	[byte-ptr!]
+			i		[integer!]
+			n		[integer!]
+			size	[integer!]
+			type	[integer!]
+			type2	[integer!]
+			b		[byte!]
+			result	[logic!]
+			comp?	[logic!]
+	][
+		arg:	stack/arguments
+		arg2:	arg + 1
+		result: not max?								;-- false for max, true for min
+		type:	TYPE_OF(arg)
+		type2:	TYPE_OF(arg2)
+		comp?:	no
+		
+		if any [
+			all [type2 = TYPE_PAIR  any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+			all [type2 = TYPE_TUPLE any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+		][
+			value: arg
+			arg: arg2
+			arg2: value
+			n: type
+			type: type2
+			type2: n
+		]
+		
+		switch type [
+			TYPE_PAIR [
+				p:  as red-pair! arg
+				switch type2 [
+					TYPE_PAIR [
+						p2: as red-pair! arg2
+						either max? [
+							if p/x < p2/x [p/x: p2/x]
+							if p/y < p2/y [p/y: p2/y]
+						][
+							if p/x > p2/x [p/x: p2/x]
+							if p/y > p2/y [p/y: p2/y]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						i: arg-to-integer arg2
+						either max? [
+							if p/x < i [p/x: i]
+							if p/y < i [p/y: i]
+						][
+							if p/x > i [p/x: i]
+							if p/y > i [p/y: i]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_TUPLE [
+				tp: as red-tuple! arg
+				buf: (as byte-ptr! tp) + 4
+				size: TUPLE_SIZE?(tp)
+				n: 0
+				switch type2 [
+					TYPE_TUPLE [
+						tp: as red-tuple! arg2
+						buf2: (as byte-ptr! tp) + 4
+						if size <> TUPLE_SIZE?(tp) [
+							fire [TO_ERROR(script out-of-range) arg2]
+						]
+						either max? [
+							until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
+						][
+							until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						i: arg-to-integer arg2
+						b: either i > 255 [as-byte 255][either i < 0 [as-byte 0][as-byte i]]
+						either max? [
+							until [n: n + 1 if buf/n < b [buf/n: b] n = size]
+						][
+							until [n: n + 1 if buf/n > b [buf/n: b] n = size]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			default [comp?: yes]
+		]
+		if comp? [
+			result: actions/compare arg arg2 COMP_LESSER
+			if result = max? [stack/set-last arg2]
+		]
+	]
+	
+	arg-to-integer: func [
+		arg 	[red-value!]
+		return: [integer!]
+		/local
+			fl	[red-float!]
+			int	[red-integer!]
+	][
+		either TYPE_OF(arg) = TYPE_INTEGER [
+			int: as red-integer! arg
+			int/value
+		][
+			fl: as red-float! arg
+			if integer/overflow? fl [
+				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
+			]
+			as-integer fl/value
+		]
+	]
 
 	argument-as-float: func [
 		return: [red-float!]
 		/local
-			f	[red-float!]
-			n	[red-integer!]
+			fl	[red-float!]
+			int	[red-integer!]
 	][
-		f: as red-float! stack/arguments
-		if TYPE_OF(f) <> TYPE_FLOAT [
-			f/header: TYPE_FLOAT
-			n: as red-integer! f
-			f/value: as-float n/value
+		fl: as red-float! stack/arguments
+		if TYPE_OF(fl) <> TYPE_FLOAT [
+			fl/header: TYPE_FLOAT
+			int: as red-integer! fl
+			fl/value: as-float int/value
 		]
-		f
+		fl
 	]
 
 	degree-to-radians*: func [

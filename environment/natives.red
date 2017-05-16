@@ -448,16 +448,16 @@ positive?: make native! [[
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series! char! time!]
-		value2 [number! series! char! time!]
+		value1 [scalar! series!]
+		value2 [scalar! series!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series! char! time!]
-		value2 [number! series! char! time!]
+		value1 [scalar! series!]
+		value2 [scalar! series!]
 	]
 	#get-definition NAT_MIN
 ]
