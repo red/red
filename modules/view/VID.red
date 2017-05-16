@@ -31,12 +31,12 @@ system/view/VID: context [
 	]
 	
 	process-reactors: function [][
-		foreach [f blk] reactors [
+		foreach [f blk later?] reactors [
 			either f [
 				bind blk ctx: context [face: f]
-				react/with blk ctx
+				either later? [react/later/with blk ctx][react/with blk ctx]
 			][
-				react blk
+				either later? [react/later blk][react blk]
 			]
 		]
 		clear reactors
@@ -189,7 +189,6 @@ system/view/VID: context [
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
-				| 'react	  (append reactors reduce [face fetch-argument block! spec])
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
@@ -202,6 +201,10 @@ system/view/VID: context [
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
+				| 'react	  (
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [face fetch-argument block! spec later?]
+				)
 				] to end
 			]
 			unless match? [
@@ -374,7 +377,10 @@ system/view/VID: context [
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]
-				react	[repend reactors [none fetch-argument block! spec]]
+				react	[
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [none fetch-argument block! spec later?]
+				]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
