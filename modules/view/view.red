@@ -1005,8 +1005,11 @@ insert-event-func [
 		event/type = 'click
 		event/face/type = 'radio
 	][
-		foreach f event/face/parent/pane [if f/type = 'radio [f/data: off show f]]
+		foreach f event/face/parent/pane [
+			if all [f/type = 'radio f/data][f/data: off show f]
+		]
 		event/face/data: on
+		show event/face
 		event/type: 'change
 	]
 	event
