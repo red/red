@@ -15,6 +15,7 @@ system/view/VID: context [
 	
 	focal-face: none
 	reactors: make block! 20
+	debug?: yes
 	
 	default-font: [
 		name	system/view/fonts/system
@@ -83,6 +84,22 @@ system/view/VID: context [
 		]
 	]
 	
+	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer!]][
+		if any [
+			empty? pane
+			all [dir = 'across align = 'top]
+			all [dir = 'below  align = 'left]
+		][exit]											;-- no adjustment needed
+print [dir align]
+
+		axis: pick [y x] dir = 'across
+		foreach face pane [
+			offset: max-sz - face/size/:axis
+			if align = 'center [offset: offset / 2]
+			face/offset/:axis: face/offset/:axis + offset
+		]
+	]
+	
 	process-draw: function [code [block!]][
 		parse code rule: [
 			any [
@@ -122,7 +139,7 @@ system/view/VID: context [
 		]
 		obj: obj/:facet
 		
-		make logic! either all [blk: obj/:field facet = 'font field = 'style] [
+		make logic! either all [blk: obj/:field facet = 'font field = 'style][
 			unless block? blk [obj/:field: blk: reduce [blk]]
 			alter blk flag
 		][
@@ -325,12 +342,15 @@ system/view/VID: context [
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
+		align:		  'top
+		begin:		  none
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
 		
 		cursor:	origin: spacing: pick [0x0 10x10] tight
+		bound: origin
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
@@ -338,8 +358,23 @@ system/view/VID: context [
 		]
 		
 		reset: [
-			cursor: as-pair origin/:axis cursor/:anti + max-sz + spacing/:anti
+print "-- reset --"		
+?? cursor	
+bound: max bound cursor
+?? axis
+?? max-sz
+			if all [debug? begin not empty? begin][
+				sz: max-sz * pick [1x0 0x1] direction = 'below
+				repend panel/draw [
+					'line any [begin/1/offset 1x1] cursor
+					'line (any [begin/1/offset 1x1]) + sz cursor + sz
+				]
+			]
+			if begin [align-faces begin direction align max-sz]
+			begin: tail list
+			cursor: as-pair origin/:axis spacing/:anti + max bound/:anti cursor/:anti + max-sz 
 			if direction = 'below [cursor: reverse cursor]
+?? cursor
 			max-sz: 0
 		]
 		
@@ -347,6 +382,8 @@ system/view/VID: context [
 			focal-face: none
 			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
+		
+		if debug? [append panel/draw: make block! 30 [pen red]]
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -369,8 +406,58 @@ system/view/VID: context [
 			set [axis anti] pick [[x y][y x]] direction = 'across
 			
 			switch/default value [
-				across	[direction: value]				;@@ fix this
-				below	[direction: value]
+				across	[
+					if all [debug? begin not empty? begin][
+						sz: max-sz * pick [1x0 0x1] direction = 'below
+						repend panel/draw [
+							'line any [begin/1/offset 1x1] cursor
+							'line (any [begin/1/offset 1x1]) + sz cursor + sz
+						]
+					]
+					if begin [align-faces begin direction align max-sz]
+					align: any [
+						all [find [top center bottom] spec/2 first spec: next spec]
+						'top
+					]
+					if direction <> value [
+						;cursor/x: cursor/x - spacing/x
+						cursor/y: cursor/y + spacing/y
+					]
+					direction: value
+					begin: tail list
+print "** switching to across"
+?? bound
+?? cursor
+					bound: max bound cursor
+					?? bound
+					max-sz: 0
+				]
+				below	[
+					if all [debug? begin not empty? begin][
+						sz: max-sz * pick [1x0 0x1] direction = 'below
+						repend panel/draw [
+							'line any [begin/1/offset 1x1] cursor
+							'line (any [begin/1/offset 1x1]) + sz cursor + sz
+						]
+					]
+					if begin [align-faces begin direction align max-sz]
+					align: any [
+						all [find [left center right] spec/2 first spec: next spec]
+						'left
+					]
+					if direction <> value [
+						cursor/x: cursor/x + spacing/x
+						;cursor/y: cursor/y - spacing/y
+					]
+					direction: value
+					begin: tail list
+print "** switching to below"
+?? bound
+?? cursor					
+					bound: max bound cursor
+					?? bound
+					max-sz: 0
+				]
 				space	[spacing: fetch-argument pair! spec]
 				origin	[origin: cursor: fetch-argument pair! spec]
 				at		[at-offset: fetch-argument pair! spec]
