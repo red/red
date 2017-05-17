@@ -70,7 +70,8 @@ red: context [
 	max-depth:	   0
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
-	set 'float!	   'float								;-- type name not defined in Rebol
+	set 'float!	   'float								;-- type names not defined in Rebol
+	set 'handle!   'handle
 	comment-marker: '------------|
  
 	unboxed-set:   [integer! char! float! float32! logic!]
