@@ -240,6 +240,8 @@ Red/System [
 	NAT_AS
 	NAT_CALL
 	NAT_ZERO?
+	NAT_DETAB
+	NAT_ENTAB
 ]
 
 #enum math-op! [
@@ -365,6 +367,10 @@ Red/System [
 		char = 8287							;-- #"^(205F)"
 		char = 12288						;-- #"^(3000)"
 	]
+]
+
+#define TAB_CHAR?( char ) [
+		char = 9							;-- #"^-"
 ]
 
 #define ANY_SERIES?(type)	[

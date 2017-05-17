@@ -2472,6 +2472,165 @@ natives: context [
 		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
 	]
 
+	detab*: func [
+		check?  [logic!]
+		size-arg [integer!]
+		return: [red-string!]
+		/local
+			str       [red-string!]
+			buffer    [red-string!]
+			int       [red-integer!]
+			size      [integer!]
+			s         [series!]
+			p         [byte-ptr!]
+			n         [byte-ptr!]
+			p4        [int-ptr!]
+			tail      [byte-ptr!]
+			unit      [integer!]
+			cn        [integer!]
+			cp        [integer!]
+			csp       [integer!]
+			len       [integer!]
+			cnt       [integer!]
+	][
+		#typecheck [detab size-arg]
+		str: as red-string! stack/arguments
+		size: either positive? size-arg [
+			int: as red-integer! str + 1
+			int/value
+		][4]
+	
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		if p = tail [return str]						;-- empty string case
+
+		len: string/rs-length? str
+		stack/keep										;-- keep last value
+	
+		csp: as-integer #" "
+		cnt: 0											;-- superfluous?
+		n: p
+		while [n < tail][
+			cn: as-integer n/value
+			if TAB_CHAR?( cn ) [cnt: cnt + 1]
+			n: n + unit
+		]
+
+		buffer: string/rs-make-at stack/push* ( len + ( cnt * ( size - 1 ) ) ) * unit
+
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+
+			p: p + unit
+			either TAB_CHAR?( cp ) [
+				cnt: size
+				until [
+					string/append-char GET_BUFFER(buffer) csp unit
+					cnt: cnt - 1
+					zero? cnt
+				]
+			][
+				string/append-char GET_BUFFER(buffer) cp unit
+			]
+		]
+		stack/set-last as red-value! buffer
+		buffer
+	]
+
+	entab*: func [
+		check?  [logic!]
+		size-arg [integer!]
+		return: [red-string!]
+		/local
+			str       [red-string!]
+			buffer    [red-string!]
+			int       [red-integer!]
+			size      [integer!]
+			s         [series!]
+			p         [byte-ptr!]
+			n         [byte-ptr!]
+			tail      [byte-ptr!]
+			unit      [integer!]
+			cn        [integer!]
+			csp       [integer!]
+			ct        [integer!]
+			cnl       [integer!]
+			len       [integer!]
+			cnt       [integer!]
+	][
+		#typecheck [entab size-arg]
+		str: as red-string! stack/arguments
+		size: either positive? size-arg [
+			int: as red-integer! str + 1
+			int/value
+		][4]
+	
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		if p = tail [return str]						;-- empty string case
+
+		len: string/rs-length? str
+		stack/keep										;-- keep last value
+	
+		csp: as-integer #" "							;-- character space
+		ct: as-integer #"^-"							;-- character tab
+		cnl: as-integer #"^/"							;-- character newline / lf
+
+		buffer: string/rs-make-at stack/push* len * unit
+
+		cnt: 0											;-- superfluous?
+
+		n: p
+		while [n < tail][
+
+			;-- Count leading spaces, insert TAB for each tabsize:
+			cn: as-integer n/value
+			if cn = csp [
+				cnt: cnt + 1
+				if cnt >= size [
+					string/append-char GET_BUFFER(buffer) ct unit
+					cnt: 0
+				]
+				n: n + unit
+				continue
+			]
+
+			;-- Hitting a leading TAB resets space counter:
+			either TAB_CHAR?( cn ) [
+				string/append-char GET_BUFFER(buffer) ct unit
+				cnt: 0
+			][
+				;-- Incomplete tab space, pad with spaces:
+				while [cnt > 0][
+					string/append-char GET_BUFFER(buffer) csp unit
+					cnt: cnt - 1 
+				]
+
+				;-- Copy chars thru end-of-line (or end of buffer):
+				while [n < tail] [
+					cn: as-integer n/value
+					string/append-char GET_BUFFER(buffer) cn unit
+					if cn = cnl [
+						break
+					]
+					n: n + unit
+				]
+			]
+			n: n + unit
+		]
+
+		stack/set-last as red-value! buffer
+		buffer
+	]
+
 	;--- Natives helper functions ---
 	
 	max-min: func [
@@ -3076,6 +3235,8 @@ natives: context [
 			:as*
 			:call*
 			:zero?*
+      :detab*
+			:entab*
 		]
 	]
 
