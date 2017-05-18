@@ -13,9 +13,9 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	
-	focal-face: none
-	reactors: make block! 20
-	debug?: yes
+	focal-face:	none
+	reactors:	make block! 20
+	debug?: 	no
 	
 	default-font: [
 		name	system/view/fonts/system
@@ -89,13 +89,12 @@ system/view/VID: context [
 			empty? pane
 			all [dir = 'across align = 'top]
 			all [dir = 'below  align = 'left]
-		][exit]											;-- no adjustment needed
-print [dir align]
+		][exit]											;-- already aligned
 
 		axis: pick [y x] dir = 'across
 		foreach face pane [
 			offset: max-sz - face/size/:axis
-			if align = 'center [offset: offset / 2]
+			if find [center middle] align [offset: offset / 2]
 			face/offset/:axis: face/offset/:axis + offset
 		]
 	]
@@ -349,20 +348,14 @@ print [dir align]
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
 		
-		cursor:	origin: spacing: pick [0x0 10x10] tight
-		bound: origin
+		bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
 			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		
-		reset: [
-print "-- reset --"		
-?? cursor	
-bound: max bound cursor
-?? axis
-?? max-sz
+		re-align: [
 			if all [debug? begin not empty? begin][
 				sz: max-sz * pick [1x0 0x1] direction = 'below
 				repend panel/draw [
@@ -372,9 +365,17 @@ bound: max bound cursor
 			]
 			if begin [align-faces begin direction align max-sz]
 			begin: tail list
+		]
+		
+		reset: [
+			bound: max bound cursor
+			if zero? max-sz [							;-- if empty row/col, make some room
+				max-sz: spacing/:anti
+				cursor/:anti: cursor/:anti + max-sz
+			]
+			do re-align
 			cursor: as-pair origin/:axis spacing/:anti + max bound/:anti cursor/:anti + max-sz 
 			if direction = 'below [cursor: reverse cursor]
-?? cursor
 			max-sz: 0
 		]
 		
@@ -406,56 +407,24 @@ bound: max bound cursor
 			set [axis anti] pick [[x y][y x]] direction = 'across
 			
 			switch/default value [
-				across	[
-					if all [debug? begin not empty? begin][
-						sz: max-sz * pick [1x0 0x1] direction = 'below
-						repend panel/draw [
-							'line any [begin/1/offset 1x1] cursor
-							'line (any [begin/1/offset 1x1]) + sz cursor + sz
-						]
-					]
-					if begin [align-faces begin direction align max-sz]
+				below
+				across [
+					below?: value = 'below
+					do re-align
+					words: pick [[left center right][top middle bottom]] below?
 					align: any [
-						all [find [top center bottom] spec/2 first spec: next spec]
+						all [find words spec/2 first spec: next spec]
+						all [below? 'left]
 						'top
 					]
-					if direction <> value [
-						;cursor/x: cursor/x - spacing/x
-						cursor/y: cursor/y + spacing/y
+					all [
+						direction <> value 				;-- if direction changed
+						anti2: pick [y x] value = 'across
+						cursor/:anti2 <> origin/:anti2	;-- and if not close to opposite edge
+						cursor/:anti2: cursor/:anti2 + spacing/:anti2 ;-- ensure proper spacing when changing direction
 					]
 					direction: value
-					begin: tail list
-print "** switching to across"
-?? bound
-?? cursor
 					bound: max bound cursor
-					?? bound
-					max-sz: 0
-				]
-				below	[
-					if all [debug? begin not empty? begin][
-						sz: max-sz * pick [1x0 0x1] direction = 'below
-						repend panel/draw [
-							'line any [begin/1/offset 1x1] cursor
-							'line (any [begin/1/offset 1x1]) + sz cursor + sz
-						]
-					]
-					if begin [align-faces begin direction align max-sz]
-					align: any [
-						all [find [left center right] spec/2 first spec: next spec]
-						'left
-					]
-					if direction <> value [
-						cursor/x: cursor/x + spacing/x
-						;cursor/y: cursor/y - spacing/y
-					]
-					direction: value
-					begin: tail list
-print "** switching to below"
-?? bound
-?? cursor					
-					bound: max bound cursor
-					?? bound
 					max-sz: 0
 				]
 				space	[spacing: fetch-argument pair! spec]
@@ -513,13 +482,13 @@ print "** switching to below"
 						face/offset: at-offset
 						at-offset: none
 					][
-						either all [
+						either all [					;-- grid layout
 							divide?: all [divides divides <= length? list]
 							zero? index: (length? list) // divides
 						][
 							do reset
-						][
-							if cursor/:axis <> origin/:axis [
+						][								;-- flow layout
+							if all [max-sz > 0 cursor/:axis <> origin/:axis][
 								cursor/:axis: cursor/:axis + spacing/:axis
 							]
 						]
