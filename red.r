@@ -21,8 +21,10 @@ redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
 	win-version:	none								;-- Windows version extracted from "ver" command
+	SSE3?:			yes
 
 	Windows?:  system/version/4 = 3
+	macOS?:    system/version/4 = 2
 	load-lib?: any [encap? find system/components 'Library]
 
 	if encap? [
@@ -35,36 +37,64 @@ redc: context [
 			3 [											;-- Windows
 				either lib?: find system/components 'Library [
 					sys-path: to-rebol-file get-env "SystemRoot"
-					shell32: load/library sys-path/System32/shell32.dll
-					libc:  	 load/library sys-path/System32/msvcrt.dll
+					shell32:  load/library sys-path/System32/shell32.dll
+					kernel32: load/library sys-path/System32/kernel32.dll
+					libc:  	  load/library sys-path/System32/msvcrt.dll
 
 					CSIDL_COMMON_APPDATA: to integer! #{00000023}
 
 					SHGetFolderPath: make routine! [
-							hwndOwner 	[integer!]
-							nFolder		[integer!]
-							hToken		[integer!]
-							dwFlags		[integer!]
-							pszPath		[string!]
-							return: 	[integer!]
+						hwndOwner 	[integer!]
+						nFolder		[integer!]
+						hToken		[integer!]
+						dwFlags		[integer!]
+						pszPath		[string!]
+						return: 	[integer!]
 					] shell32 "SHGetFolderPathA"
 
-					ShellExecute: make routine! [
-							hwnd 		 [integer!]
-							lpOperation  [string!]
-							lpFile		 [string!]
-							lpParameters [string!]
-							lpDirectory  [integer!]
-							nShowCmd	 [integer!]
-							return:		 [integer!]
-					] shell32 "ShellExecuteA"
+					ShellExecuteW: make routine! [
+						hwnd 		 [integer!]
+						lpOperation  [string!]
+						lpFile		 [string!]
+						lpParameters [string!]
+						lpDirectory  [integer!]
+						nShowCmd	 [integer!]
+						return:		 [integer!]
+					] shell32 "ShellExecuteW"
+					
+					GetCommandLineW: make routine! compose/deep [
+						return: [integer!]
+					] kernel32 "GetCommandLineW"
 
-					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+					WideCharToMultiByte: make routine! [
+						CodePage				[integer!]
+						dwFlags					[integer!]
+						lpWideCharStr			[integer!]
+						cchWideChar				[integer!]
+						lpMultiByteStr			[string!]
+						cbMultiByte				[integer!]
+						lpDefaultChar			[integer!]
+						lpUsedDefaultChar		[integer!]
+						return:					[integer!]
+					] kernel32 "WideCharToMultiByte"
+
+					_wsystem: make routine! [cmd [string!] return: [integer!]] libc "_wsystem"
+					
+					IsProcessorFeaturePresent: make routine! [feat [integer!] return: [integer!]] kernel32 "IsProcessorFeaturePresent"
 
 					gui-sys-call: func [cmd [string!] args [string!]][
-						ShellExecute 0 "open" cmd args 0 1
+						ShellExecuteW
+							0
+							utf8-to-utf16 "open"
+							utf8-to-utf16 cmd
+							utf8-to-utf16 args
+							0 1
 					]
-
+					
+					sys-call: func [cmd [string!]][_wsystem utf8-to-utf16 cmd]
+					
+					SSE3?: to logic! IsProcessorFeaturePresent 13
+					
 					path: head insert/dup make string! 255 null 255
 					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
 						fail "SHGetFolderPath failed: can't determine temp folder path"
@@ -179,7 +209,7 @@ redc: context [
 				file? result
 			]
 			attempt [result: to-rebol-file filename]
-		] [
+		][
 			fail ["Invalid filename:" filename]
 		]
 		result
@@ -217,6 +247,53 @@ redc: context [
 		]
 		no
 	]
+	
+	split-tokens: has [args unescape len s e][
+		args: system/script/args
+		
+		unescape: to-paren [
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		]
+		parse/all args: copy args [						;-- preprocess escape chars
+			any [
+				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
+				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
+				| s: some #"\" e: {"} unescape :e
+				  thru #"\" s: any #"\" e: {"} unescape :e
+				| skip
+			]
+		]
+		remove system/options/args: collect [			;-- remove first entry
+			parse/all args [							;-- tokenize and collect
+				some [[
+					some #"^"" s: to #"^"" e: (keep copy/part s e) some #"^""
+					| #"{" s: to #"}" e: (keep copy/part s e) skip
+					| s: [
+						to #" "  e: (keep copy/part s e)
+						| to end e: (if s <> e [keep copy/part s e]) skip]
+					] any #" "
+				]
+			]
+		]
+	]
+	
+	fetch-cmdline: has [cmd buffer size][
+		either Windows? [
+			cmd: GetCommandLineW
+			size: WideCharToMultiByte 65001 0 cmd -1 "" 0 0 0  ;-- CP_UTF8
+			buffer: make string! size + 1
+			insert/dup buffer null size + 1
+
+			WideCharToMultiByte 65001 0 cmd -1 buffer size 0 0 ;-- CP_UTF8
+			while [find " ^@" last buffer][remove back tail buffer]
+			system/script/args: buffer
+			split-tokens
+		][
+		
+		]
+	]
 
 	safe-to-local-file: func [file [file! string!]][
 		if all [
@@ -227,6 +304,28 @@ redc: context [
 		]
 		file
 	]
+	
+	form-args: func [file /local args delim][
+		args: make string! 32
+
+		foreach arg find system/options/args file [
+			case [
+				find arg #" " [
+					delim: pick {'"} to logic! find arg #"^""
+					repend args [delim arg delim]
+				]
+				find arg #"^"" [
+					repend args [#"'" arg #"'"]
+				]
+				'else [
+					append args arg
+				]
+			]
+			append args #" "
+		]
+		remove back tail args
+		args
+	]
 
 	add-legacy-flags: func [opts [object!] /local out ver][
 		if all [Windows? win-version <= 60][
@@ -235,6 +334,9 @@ redc: context [
 			][
 				opts/legacy: copy [no-touch]
 			]
+		]
+		if all [Windows? opts/OS = 'Windows not SSE3?][
+			opts/cpu-version: 1.0
 		]
 		if system/version/4 = 2 [						;-- macOS version extraction
 			out: make string! 128
@@ -315,7 +417,7 @@ redc: context [
 
 	run-console: func [
 		gui? [logic!] /with file [string!]
-		/local opts result script filename exe console files source con-engine gui-target
+		/local opts result script filename exe console files source con-ui gui-target
 	][
 		script: temp-dir/red-console.red
 		filename: decorate-name pick [%gui-console %console] gui?
@@ -324,18 +426,19 @@ redc: context [
 		if Windows? [append exe %.exe]
 
 		unless exists? temp-dir [make-dir temp-dir]
+		
 		unless exists? exe [
 			console: %environment/console/
-			con-engine: pick [%gui-console.red %console.red] gui?
+			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
-					;"Darwin"	OSX
+					"Darwin"	OSX
 					"MSDOS"		Windows
 					;"Linux"		Linux-GTK
 				] default-target
 			]
-			source: copy read-cache console/:con-engine
-			if all [Windows? not gui?][insert find/tail source #"[" "Needs: 'View^/"]
+			source: copy read-cache console/:con-ui
+			if all [any [Windows? macOS?] not gui?][insert find/tail source #"[" "Needs: 'View^/"]
 			write script source
 
 			files: [
@@ -343,7 +446,7 @@ redc: context [
 				%wcwidth.reds %win32.reds %POSIX.reds %terminal.reds
 				%windows.reds
 			]
-			foreach file files [write temp-dir/:file read-cache console/:file]
+			foreach f files [write temp-dir/:f read-cache console/:f]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
@@ -363,7 +466,7 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result
 
 			delete script
-			foreach file files [delete temp-dir/:file]
+			foreach f files [delete temp-dir/:f]
 
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
@@ -373,12 +476,9 @@ redc: context [
 		exe: safe-to-local-file exe
 
 		either gui? [
-			gui-sys-call exe any [file make string! 1]
+			gui-sys-call exe any [all [file form-args file] ""]
 		][
-			if with [
-				repend exe [{ "} file {"}]
-				exe: safe-to-local-file exe
-			]
+			if with [repend exe [" " form-args file]]
 			sys-call exe								;-- replace the buggy CALL native
 		]
 		quit/return 0
@@ -407,8 +507,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			;Windows [ [[Needs: View]] ]
-			Windows [ [[]] ]
+			Windows MacOSX [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
@@ -422,7 +521,7 @@ redc: context [
 		show-stats result
 	]
 	
-	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date][
+	needs-libRedRT?: func [opts [object!] /local file path lib lib? get-date ts date current?][
 		unless opts/dev-mode? [return no]
 		
 		path: get-output-path opts
@@ -435,18 +534,22 @@ redc: context [
 		][%.so]
 		
 		if lib? [
+			date: modified? lib
+			current?: any [not encap? date > build-date]
+			
 			either all [load-lib? opts/OS = get-OS-name][
 				lib: load/library lib
 				get-date: make routine! [return: [string!]] lib "red/get-build-date"
-				print ["...using libRedRT built on" get-date]
+				ts: get-date
 				free lib
 			][
-				print ["...using libRedRT for" form opts/OS]
+				ts: date
 			]
+			if current? [print ["...using libRedRT built on" ts]]
 		]
-		
 		not all [
 			lib?
+			current?
 			exists? join path libRedRT/include-file
 			exists? join path libRedRT/defs-file
 		]
@@ -485,20 +588,20 @@ redc: context [
 		reduce [none none]
 	]
 	
-	do-build: func [args [block!] /local cmd][
-		if all [encap? not exists? %libRed/][
-			make-dir path: %libRed/
-			foreach file [
-				%libRed.def
-				%libRed.lib
-				%libRed.red
-				%red.h
-			][
-				write path/:file read-cache path/:file
-			]
-		]
+	do-build: func [args [block!] /local cmd src][
 		switch/default args/1 [
 			"libRed" [
+				if all [encap? not exists? %libRed/][
+					make-dir path: %libRed/
+					foreach file [
+						%libRed.def
+						%libRed.red
+						%red.h
+					][
+						write path/:file read-cache path/:file
+					]
+					write/binary path/libRed.lib read-cache path/libRed.lib
+				]
 				cmd: copy "-r libRed/libRed.red"
 				if all [not tail? next args args/2 = "stdcall"][
 					insert at cmd 3 " --config [export-ABI: 'stdcall]"
@@ -531,11 +634,13 @@ redc: context [
 	parse-options: func [
 		args [string! none!]
 		/local src opts output target verbose filename config config-name base-path type
-		mode target? gui? cmd spec cmds ws
+		mode target? gui? cmd spec cmds ws ssp
 	][
-	
-		cmds: any [args system/options/args system/script/args ""]
-		args: either block? cmds [cmds][parse-tokens cmds]
+		unless args [
+			if encap? [fetch-cmdline]					;-- Fetch real command-line in UTF8 format
+			args: any [system/options/args system/script/args ""] ;-- ssa for quick-test.r
+		]	
+		unless block? args [args: parse-tokens args]
 		
 		target: default-target
 		opts: make system-dialect/options-class [
@@ -548,6 +653,7 @@ redc: context [
 			if cmd: select [
 				"clear" do-clear
 				"build" do-build
+				"halt"	'halt
 			] first args [
 				return do reduce [cmd next args]
 			]
@@ -558,9 +664,9 @@ redc: context [
 				  ["-c" | "--compile"]			(type: 'exe)
 				| ["-r" | "--release"]			(type: 'exe opts/dev-mode?: no)
 				| ["-d" | "--debug-stabs" | "--debug"]	(opts/debug?: yes)
-				| ["-o" | "--output"]  			set output skip
-				| ["-t" | "--target"]  			set target skip (target?: yes)
-				| ["-v" | "--verbose"] 			set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-o" | "--output"]			[set output  skip | (fail "Missing output filename")]
+				| ["-t" | "--target"]			[set target  skip | (fail "Missing target")] (target?: yes)
+				| ["-v" | "--verbose"]			[set verbose skip | (fail "Missing verbosity")] ;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]				(mode: 'help)
 				| ["-V" | "--version"]			(mode: 'version)
 				| ["-u"	| "--update-libRedRT"]	(opts/libRedRT-update?: yes)
@@ -575,7 +681,7 @@ redc: context [
 				| "--catch"								;-- just pass-thru
 			]
 			set filename skip (src: load-filename filename)
-		]
+		]		
 
 		if mode [
 			switch mode [
@@ -590,14 +696,24 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
+		if target? [unless type [type: 'exe]]			;-- implies compilation
+		
 		base-path: either encap? [
 			system/options/path
 		][
-			system/script/parent/path
+			ssp: system/script/parent
+			any [
+				all [ssp ssp/path]
+				system/script/path
+			]
 		]
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
+
+		if all [target? none? opts/dev-mode?][
+			opts/dev-mode?: opts/OS = get-OS-name		;-- forces release mode if other OS
+		]
 
 		;; Process -o/--output (if any).
 		if output [
@@ -641,7 +757,7 @@ redc: context [
 				if load-lib? [build-compress-lib]
 				run-console gui?
 			][
-				fail "No source files specified."
+				return reduce [none none]
 			]
 		]
 
@@ -663,6 +779,8 @@ redc: context [
 			opts/command-line: spec
 		]
 		
+		if none? opts/dev-mode? [opts/dev-mode?: yes]	;-- fallback to dev mode if undefined
+		
 		reduce [src opts]
 	]
 	
@@ -678,7 +796,7 @@ redc: context [
 				result: red/compile src opts
 			]
 			print ["...compilation time :" format-time result/2 "ms"]
-			if opts/red-only? [exit]
+			if opts/red-only? [probe result/1 return none]
 		]
 
 	;--- 2nd pass: Red/System compiler ---
@@ -727,8 +845,7 @@ redc: context [
 			opts/libRedRT-update?: no
 		]
 		
-		result: compile src opts
-		show-stats result
+		if result: compile src opts [show-stats result]
 	]
 
 	set 'rc func [cmd [file! string! block!]][

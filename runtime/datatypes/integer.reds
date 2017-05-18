@@ -398,7 +398,7 @@ integer: context [
 			]
 			TYPE_TIME [
 				t: as red-time! spec
-				int/value: as-integer t/time / time/oneE9
+				int/value: as-integer t/time / time/oneE9 + 0.5
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
@@ -497,7 +497,7 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT TYPE_PERCENT [
 				f: as red-float! value1
 				left: value1/value
 				f/value: as-float left
@@ -592,9 +592,13 @@ integer: context [
 	][
 		res: 1
 		while [exp <> 0][
-			if as logic! exp and 1 [res: res * base]
+			if as logic! exp and 1 [
+				res: res * base
+				if system/cpu/overflow? [throw RED_INT_OVERFLOW]
+			]
 			exp: exp >> 1
 			base: base * base
+			if system/cpu/overflow? [throw RED_INT_OVERFLOW]
 		]
 		res
 	]
@@ -605,19 +609,25 @@ integer: context [
 			base [red-integer!]
 			exp  [red-integer!]
 			f	 [red-float!]
+			up?	 [logic!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
-		either any [
+		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value
-		][
+		]
+		unless up? [
+			catch RED_INT_OVERFLOW [
+				base/value: int-power base/value exp/value
+			]
+		]
+		if any [up? system/thrown = RED_INT_OVERFLOW][
+			system/thrown: 0
 			f: as red-float! base
 			f/value: as-float base/value
 			f/header: TYPE_FLOAT
 			float/power
-		][
-			base/value: int-power base/value exp/value
 		]
 		as red-value! base
 	]
@@ -636,13 +646,13 @@ integer: context [
 		as-logic int/value and 1
 	]
 
-	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+	#define INT_TRUNC [val: either num > 0 [n - r][r - n]]
 
 	#define INT_FLOOR [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [n - r][0 - m]
+			val: either num > 0 [n - r][0 - m]
 		]
 	]
 
@@ -650,7 +660,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num < 0 [r - n][m]
+			val: either num < 0 [r - n][m]
 		]
 	]
 
@@ -658,7 +668,7 @@ integer: context [
 		either m < 0 [
 			fire [TO_ERROR(math overflow)]
 		][
-			int/value: either num > 0 [m][0 - m]
+			val: either num > 0 [m][0 - m]
 		]
 	]
 
@@ -681,6 +691,7 @@ integer: context [
 			n		[integer!]
 			m		[integer!]
 			r		[integer!]
+			val		[integer!]
 	][
 		int: as red-integer! value
 		num: int/value
@@ -714,6 +725,7 @@ integer: context [
 			half-ceil?	[INT_CEIL ]
 			true		[INT_AWAY ]
 		]
+		int/value: val
 		value
 	]
 

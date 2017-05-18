@@ -144,7 +144,7 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset
 		used: used << 1 
-		if used > s/size [								;-- ensure we have enough space
+		if used + 2 > s/size [							;-- ensure we have enough space
 			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
@@ -560,7 +560,11 @@ unicode: context [
 		unit: scan-utf16 src size
 		
 		either null? str [
-			node: alloc-series size unit 0
+			node: either size = 0 [
+				alloc-series 1 2 0						;-- create an empty string
+			][
+				alloc-series size unit 0
+			]
 			s: as series! node/value
 		][
 			node: str/node

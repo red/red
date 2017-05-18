@@ -49,7 +49,6 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-dev-mode?: no
 ]
 WindowsXP [
 	OS:			'Windows
@@ -95,7 +94,6 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
-	;dev-mode?: no
 ]
 Linux-Old [
 	OS:			'Linux
@@ -175,7 +173,6 @@ Darwin [
 	sub-system: 'console
 	syscall:	'BSD
 	stack-align-16?: yes
-;dev-mode?: no
 ]
 DarwinSO [
 	OS:			'MacOSX
@@ -195,6 +192,6 @@ OSX [
 	syscall:	'BSD
 	stack-align-16?: yes
 	packager:	'Mach-APP
-dev-mode?: no
+	dev-mode?:	no
 ]
 ;-------------------------

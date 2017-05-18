@@ -36,12 +36,12 @@ draw-begin: func [
 	ctx			[draw-ctx!]
 	cr			[handle!]
 	img			[red-image!]
-	on-graphic? [logic!]
+	on-graphic?	[logic!]
 	paint?		[logic!]
-	return: 	[draw-ctx!]
+	return:		[draw-ctx!]
 ][
 	ctx/raw:			cr
-	ctx/pen-width:		1
+	ctx/pen-width:		1.0
 	ctx/pen-style:		0
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
@@ -135,14 +135,14 @@ OS-draw-fill-pen: func [
 
 OS-draw-line-width: func [
 	dc	  [draw-ctx!]
-	width [red-integer!]
+	width [red-value!]
 	/local
-		w [integer!]
+		w [float!]
 ][
-	w: width/value
+	w: get-float as red-integer! width
 	if dc/pen-width <> w [
 		dc/pen-width: w
-		cairo_set_line_width dc/raw as-float w
+		cairo_set_line_width dc/raw w
 	]
 ]
 
@@ -235,7 +235,7 @@ OS-draw-circle: func [
 ]
 
 OS-draw-ellipse: func [
-	dc	  	 [draw-ctx!]
+	dc		 [draw-ctx!]
 	upper	 [red-pair!]
 	diameter [red-pair!]
 ][
@@ -347,7 +347,7 @@ OS-draw-image: func [
 0
 ]
 
-OS-draw-grad-pen: func [
+OS-draw-grad-pen-old: func [
 	dc			[draw-ctx!]
 	type		[integer!]
 	mode		[integer!]
@@ -432,8 +432,23 @@ OS-draw-grad-pen: func [
 	dc/pattern: pattern
 ]
 
+OS-draw-grad-pen: func [
+	ctx			[draw-ctx!]
+	type		[integer!]
+	stops		[red-value!]
+	count		[integer!]
+	skip-pos?	[logic!]
+	positions	[red-value!]
+	focal?		[logic!]
+	spread		[integer!]
+	brush?		[logic!]
+][
+	
+]
+
 OS-matrix-rotate: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
@@ -451,6 +466,7 @@ OS-matrix-rotate: func [
 
 OS-matrix-scale: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 ][
@@ -459,6 +475,7 @@ OS-matrix-scale: func [
 
 OS-matrix-translate: func [
 	dc	[draw-ctx!]
+	pen	[integer!]
 	x	[integer!]
 	y	[integer!]
 ][
@@ -467,6 +484,7 @@ OS-matrix-translate: func [
 
 OS-matrix-skew: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
 	/local
@@ -479,22 +497,26 @@ OS-matrix-skew: func [
 	m: 0
 	u: as float32! 1.0
 	z: as float32! 0.0
-	x: as float32! _tan degree-to-radians get-float sx TYPE_TANGENT
-	y: as float32! either sx = sy [0.0][_tan degree-to-radians get-float sy TYPE_TANGENT]
+	x: as float32! tan degree-to-radians get-float sx TYPE_TANGENT
+	y: as float32! either sx = sy [0.0][tan degree-to-radians get-float sy TYPE_TANGENT]
 ]
 
 OS-matrix-transform: func [
 	dc			[draw-ctx!]
-	rotate		[red-integer!]
+	pen			[integer!]
+	center		[red-pair!]
 	scale		[red-integer!]
 	translate	[red-pair!]
 	/local
-		center	[red-pair!]
+		rotate	[red-integer!]
+		center? [logic!]
 ][
-	center: as red-pair! either rotate + 1 = scale [rotate][rotate + 1]
-	OS-matrix-rotate dc rotate center
-	OS-matrix-scale dc scale scale + 1
-	OS-matrix-translate dc translate/x translate/y
+	rotate: as red-integer! either center + 1 = scale [center][center + 1]
+	center?: rotate <> center
+
+	OS-matrix-rotate dc pen rotate center
+	OS-matrix-scale dc pen scale scale + 1
+	OS-matrix-translate dc pen translate/x translate/y
 ]
 
 OS-matrix-push: func [dc [draw-ctx!] /local state [integer!]][
@@ -503,14 +525,19 @@ OS-matrix-push: func [dc [draw-ctx!] /local state [integer!]][
 
 OS-matrix-pop: func [dc [draw-ctx!]][0]
 
-OS-matrix-reset: func [dc [draw-ctx!]][0]
+OS-matrix-reset: func [
+	dc [draw-ctx!]
+	pen [integer!]
+][]
 
-OS-matrix-invert: func [dc [draw-ctx!] /local m [integer!]][
-0
-]
+OS-matrix-invert: func [
+	dc	[draw-ctx!]
+	pen	[integer!]
+][]
 
 OS-matrix-set: func [
 	dc		[draw-ctx!]
+	pen		[integer!]
 	blk		[red-block!]
 	/local
 		m	[integer!]
@@ -518,6 +545,13 @@ OS-matrix-set: func [
 ][
 	m: 0
 	val: as red-integer! block/rs-head blk
+]
+
+OS-set-matrix-order: func [
+	ctx		[draw-ctx!]
+	order	[integer!]
+][
+	0
 ]
 
 OS-set-clip: func [
@@ -530,92 +564,114 @@ OS-set-clip: func [
 ;-- shape sub command --
 
 OS-draw-shape-beginpath: func [
-    dc          [draw-ctx!]
-    /local
-        path    [integer!]
+	dc			[draw-ctx!]
+	/local
+		path	[integer!]
 ][
 
 ]
 
 OS-draw-shape-endpath: func [
-    dc          [draw-ctx!]
-    close?      [logic!]
-    return:     [logic!]
-    /local
-        alpha   [byte!]
+	dc			[draw-ctx!]
+	close?		[logic!]
+	return:		[logic!]
+	/local
+		alpha	[byte!]
 ][
 	true
 ]
 
 OS-draw-shape-moveto: func [
-    dc      [draw-ctx!]
-    coord   [red-pair!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	coord	[red-pair!]
+	rel?	[logic!]
 ][
 	
 ]
 
 OS-draw-shape-line: func [
-    dc          [draw-ctx!]
-    start       [red-pair!]
-    end         [red-pair!]
-    rel?        [logic!]
+	dc			[draw-ctx!]
+	start		[red-pair!]
+	end			[red-pair!]
+	rel?		[logic!]
 ][
 
 ]
 
 OS-draw-shape-axis: func [
-    dc          [draw-ctx!]
-    start       [red-value!]
-    end         [red-value!]
-    rel?        [logic!]
-    hline       [logic!]
+	dc			[draw-ctx!]
+	start		[red-value!]
+	end			[red-value!]
+	rel?		[logic!]
+	hline		[logic!]
 ][
 	
 ]
 
 OS-draw-shape-curve: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
 ][
 ]
 
 OS-draw-shape-qcurve: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
 ][
-    ;draw-curves dc start end rel? 2
+	;draw-curves dc start end rel? 2
 ]
 
 OS-draw-shape-curv: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
 ][
-    ;draw-short-curves dc start end rel? 2
+	;draw-short-curves dc start end rel? 2
 ]
 
 OS-draw-shape-qcurv: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-pair!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	rel?	[logic!]
 ][
-    ;draw-short-curves dc start end rel? 1
+	;draw-short-curves dc start end rel? 1
 ]
 
 OS-draw-shape-arc: func [
-    dc      [draw-ctx!]
-    start   [red-pair!]
-    end     [red-value!]
-    sweep?  [logic!]
-    large?  [logic!]
-    rel?    [logic!]
+	dc		[draw-ctx!]
+	end		[red-pair!]
+	sweep?	[logic!]
+	large?	[logic!]
+	rel?	[logic!]
 ][
 	
 ]
+
+OS-draw-shape-close: func [
+	ctx		[draw-ctx!]
+][]
+
+OS-draw-brush-bitmap: func [
+	ctx		[draw-ctx!]
+	img		[red-image!]
+	crop-1	[red-pair!]
+	crop-2	[red-pair!]
+	mode	[red-word!]
+	brush?	[logic!]
+][]
+
+OS-draw-brush-pattern: func [
+	dc		[draw-ctx!]
+	size	[red-pair!]
+	crop-1	[red-pair!]
+	crop-2	[red-pair!]
+	mode	[red-word!]
+	block	[red-block!]
+	brush?	[logic!]
+][]

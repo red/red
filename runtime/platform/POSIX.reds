@@ -16,8 +16,6 @@ Red/System [
 
 #define RTLD_LAZY	1
 
-environ: as int-ptr! 0
-
 timeval!: alias struct! [
 	tv_sec	[integer!]
 	tv_usec [integer!]
@@ -38,6 +36,47 @@ tm!: alias struct! [
 	zone	[c-string!]		;-- Timezone abbreviation
 ]
 
+; Wordexp enums
+#define	WRDE_DOOFFS		1
+#define	WRDE_APPEND		2
+#define	WRDE_NOCMD		4
+#define	WRDE_REUSE		8
+#define	WRDE_SHOWERR	16
+#define	WRDE_UNDEF		32
+#define	__WRDE_FLAGS	63
+
+#define	WRDE_NOSPACE	1
+#define	WRDE_BADCHAR	2
+#define	WRDE_BADVAL		3
+#define	WRDE_CMDSUB		4
+#define	WRDE_SYNTAX		5
+
+; Wordexp types
+wordexp-type!: alias struct! [
+	we_wordc  [integer!]
+	we_wordv  [str-array!]
+	we_offs   [integer!]
+]
+
+pollfd!: alias struct! [
+	fd		[integer!]
+	events	[integer!]			;-- events / revents
+]
+
+#define POLLIN		0001h
+#define POLLPRI		0002h
+#define POLLOUT		0004h
+#define POLLERR		0008h
+#define POLLHUP		0010h
+#define POLLNVAL	0020h
+
+; Values for the second argument to fcntl
+#define F_DUPFD		0
+#define F_GETFD		1
+#define F_SETFD		2
+#define F_GETFL		3
+#define F_SETFL		4
+
 #import [
 	LIBC-file cdecl [
 		wprintf: "wprintf" [
@@ -48,16 +87,6 @@ tm!: alias struct! [
 			category	[integer!]
 			locale		[c-string!]
 			return:		[c-string!]
-		]
-		dlopen:	"dlopen" [
-			dllpath		[c-string!]
-			flags		[integer!]
-			return:		[integer!]
-		]
-		dlsym: "dlsym" [
-			handle		[integer!]
-			symbol		[c-string!]
-			return:		[int-ptr!]
 		]
 		getcwd: "getcwd" [
 			buf		[byte-ptr!]
@@ -98,6 +127,87 @@ tm!: alias struct! [
 		localtime: "localtime" [
 			tv_sec	[int-ptr!]
 			return: [tm!]
+		]
+		fork: "fork" [
+			return:        [integer!]
+		]
+		sleep: "sleep" [
+			nb             [integer!]
+			return:        [integer!]
+		]
+		execvp: "execvp" [
+			cmd            [c-string!]
+			args-list      [str-array!]
+			return:        [integer!]
+		]
+		wordexp: "wordexp" [
+			words          [c-string!]
+			pwordexp       [wordexp-type!]
+			flags          [integer!]
+			return:        [integer!]
+		]
+		wordfree: "wordfree" [
+			pwordexp       [wordexp-type!]
+			return:        [integer!]
+		]
+		wait-child: "wait" [
+			status         [int-ptr!]
+			return:        [integer!]
+		]
+		waitpid: "waitpid" [
+			pid            [integer!]
+			status         [int-ptr!]
+			options        [integer!]
+			return:        [integer!]
+		]
+		pipe: "pipe" [
+			pipedes        [int-ptr!]  "Pointer to a 2 integers array"
+			return:        [integer!]
+		]
+		dup2: "dup2" [
+			fd             [integer!]
+			fd2            [integer!]
+			return:        [integer!]
+		]
+		_open:	"open" [
+			filename	[c-string!]
+			flags		[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		io-open: "open" [
+			filename		[c-string!]
+			flags			[integer!]
+			return:			[integer!]
+		]
+		io-close: "close" [
+			fd             [integer!]
+			return:        [integer!]
+		]
+		io-read: "read" [
+			fd             [integer!]
+			buf            [byte-ptr!]
+			nbytes         [integer!]
+			return:        [integer!]  "Number of bytes read or error"
+		]
+		io-write: "write" [
+			fd             [integer!]
+			buf            [byte-ptr!]
+			nbytes         [integer!]
+			return:        [integer!]  "Number of bytes written or error"
+		]
+		fcntl: "fcntl" [
+			[variadic]
+			; fd           [integer!]    "File descriptor"
+			; cmd          [integer!]    "Command"
+			; ...                        "Optional arguments"
+			return:        [integer!]
+		]
+		poll: "poll" [
+			fds				[pollfd!]
+			nfds			[integer!]
+			timeout 		[integer!]
+			return: 		[integer!]
 		]
 	]
 ]

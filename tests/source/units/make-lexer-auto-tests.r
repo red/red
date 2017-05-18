@@ -47,8 +47,7 @@ append rebol-tests {do %../../../../quick-test/quick-unit-test.r^(0A)^(0A)}
 ;; add the actual tests and write out the files
 the-tests: read %lexer.tests
 append red-tests the-tests
-replace/all the-tests " none" ""
-replace/all the-tests "system/lexer/transcode" "lexer/process"
+replace/all the-tests "load/all" "lexer/process"
 replace/all the-tests "--assert [" "--assert [[] "
 replace/all the-tests {lexer/process "} {lexer/process "Red []}
 replace/all the-tests "lexer/process {" "lexer/process {Red []"

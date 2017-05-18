@@ -19,6 +19,19 @@ is-flipped: func [
 	true
 ]
 
+accepts-first-responder: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [logic!]
+	/local
+		type [integer!]
+][
+	type: 0
+	object_getInstanceVariable self IVAR_RED_DATA :type
+	type = base
+]
+
 become-first-responder: func [
 	[cdecl]
 	self	[integer!]
@@ -220,6 +233,10 @@ on-key-down: func [
 		either flags and 80000000h <> 0 [				;-- special key
 			make-event self key or flags EVT_KEY
 		][
+			if key = 8 [								;-- backspace
+				make-event self key or flags EVT_KEY
+				exit
+			]
 			key: objc_msgSend [event sel_getUid "characters"]
 			if all [
 				key <> 0
@@ -230,6 +247,44 @@ on-key-down: func [
 			]
 		]
 	]
+]
+
+key-down-base: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		flags		[integer!]
+][
+	flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
+	either flags and FACET_FLAGS_EDITABLE = 0 [
+		on-key-down self event
+	][
+		objc_msgSend [
+			objc_msgSend [self sel_getUid "inputContext"] sel_getUid "handleEvent:" event
+		]
+	]
+]
+
+win-level: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [integer!]
+][
+	objc_msgSend [
+		objc_msgSend [self sel_getUid "window"]
+		sel_getUid "level"
+	]
+]
+
+insert-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+][
 ]
 
 on-key-up: func [
@@ -280,6 +335,90 @@ button-click: func [
 		]
 		if change? [make-event self 0 EVT_CHANGE]
 	]
+]
+
+empty-func: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+][0]
+
+scroller-change: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+	/local
+		code		[integer!]
+		bar			[integer!]
+		direction	[integer!]
+		pos			[integer!]
+		view		[integer!]
+		min			[red-integer!]
+		max			[red-integer!]
+		page		[red-integer!]
+		range		[integer!]
+		n			[integer!]
+		frac		[float!]
+		values		[red-value!]
+][
+	view: objc_msgSend [self sel_getUid "documentView"]
+	bar: objc_msgSend [self sel_getUid "verticalScroller"]
+	direction: either bar = sender [0][1]
+	code: objc_msgSend [sender sel_getUid "hitPart"]
+	pos: 0
+	if code = 2 [			;-- track
+		frac: objc_msgSend_fpret [sender sel_getUid "doubleValue"]
+		n: objc_getAssociatedObject sender RedAttachedWidgetKey
+		if n <> 0 [
+			values: as red-value! objc_msgSend [n sel_getUid "unsignedIntValue"]
+			min:	as red-integer! values + SCROLLER_OBJ_MIN
+			max:	as red-integer! values + SCROLLER_OBJ_MAX
+			page:	as red-integer! values + SCROLLER_OBJ_PAGE
+			range:	max/value - page/value - min/value + 2
+			frac: frac * as float! range
+			frac: 0.5 + frac + as float! min/value
+			pos: as-integer frac
+			pos: pos << 4
+		]
+	]
+	make-event self direction << 3 or code or pos EVT_SCROLL
+]
+
+refresh-scrollview: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	draw?	[integer!]
+	/local
+		view [integer!]
+][
+	if draw? <> 0 [
+		view: objc_msgSend [self sel_getUid "documentView"]
+		objc_msgSend [view sel_getUid "setNeedsDisplay:" yes]
+	]
+	msg-send-super self cmd draw?
+]
+
+scroll-wheel: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		d	  [float32!]
+		flags [integer!]
+		delta [integer!]
+][
+	d: objc_msgSend_f32 [event sel_getUid "scrollingDeltaY"]
+	case [
+		all [d > as float32! -1.0 d < as float32! 0.0][delta: -1]
+		all [d > as float32! 0.0 d < as float32! 1.0][delta: 1]
+		true [delta: as-integer d]
+	]
+	flags: check-extra-keys event
+	make-event self delta or flags EVT_WHEEL
 ]
 
 slider-change: func [
@@ -502,7 +641,6 @@ destroy-app: func [
 	app		[integer!]
 	return: [logic!]
 ][
-	objc_msgSend [NSApp sel_getUid "stop:" 0]
 	no
 ]
 
@@ -523,7 +661,7 @@ win-will-close: func [
 	cmd		[integer!]
 	notif	[integer!]
 ][
-	nswindow-cnt: nswindow-cnt - 1
+	0
 ]
 
 ;win-will-resize: func [								;-- use it to block resizing window
@@ -616,6 +754,27 @@ tabview-should-select: func [
 	][
 		no
 	]
+]
+
+set-line-spacing: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	layout	[integer!]
+	idx		[integer!]
+	x		[float32!]
+	y		[float32!]
+	width	[float32!]
+	height	[float32!]
+	return: [float32!]
+	/local
+		d	[float32!]
+][
+	d: objc_msgSend_f32 [
+		objc_getAssociatedObject layout RedAttachedWidgetKey
+		sel_getUid "descender"
+	]
+	(as float32! 1.5) - d
 ]
 
 render-text: func [
@@ -716,6 +875,206 @@ paint-background: func [
 	CGContextFillRect ctx x y width height
 ]
 
+has-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [logic!]
+][
+	in-composition?
+]
+
+_marked-range-idx: 0
+_marked-range-len: 0
+
+marked-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	system/cpu/edx: _marked-range-len
+	system/cpu/eax: _marked-range-idx
+]
+
+selected-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	system/cpu/edx: 0
+	system/cpu/eax: 0
+]
+
+get-text-styles: func [
+	str		[integer!]
+	styles	[red-block!]
+][
+	
+]
+
+set-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+	idx1	[integer!]
+	len1	[integer!]
+	idx2	[integer!]
+	len2	[integer!]
+	/local
+		attr-str?	[logic!]
+		text		[integer!]
+		cstr		[c-string!]
+		key			[integer!]
+][
+	in-composition?: yes
+	attr-str?: as logic! objc_msgSend [
+		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
+	]
+	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
+	make-event self text EVT_IME
+	_marked-range-idx: idx1
+	_marked-range-len: objc_msgSend [text sel_getUid "length"]
+	if zero? _marked-range-len [
+		objc_msgSend [self sel_getUid "unmarkText"]
+	]
+]
+
+unmark-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+][
+	in-composition?: no
+	objc_msgSend [
+		objc_msgSend [self sel_getUid "inputContext"]
+		sel_getUid "discardMarkedText"
+	]
+]
+
+valid-attrs-marked-text: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	return: [integer!]
+][
+	objc_msgSend [
+		objc_getClass "NSArray" sel_getUid "arrayWithObjects:"
+		NSMarkedClauseSegmentAttributeName
+		NSGlyphInfoAttributeName
+		0
+	]
+]
+
+attr-str-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	idx		[integer!]
+	len		[integer!]
+	p-range	[int-ptr!]
+	return: [integer!]
+][
+	;probe "attr-str-range"
+	0
+]
+
+insert-text-range: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	str		[integer!]
+	idx		[integer!]
+	len		[integer!]
+	/local
+		attr-str?	[logic!]
+		text		[integer!]
+		cstr		[c-string!]
+		key			[integer!]
+][
+	objc_msgSend [self sel_getUid "unmarkText"]
+	attr-str?: as logic! objc_msgSend [
+		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
+	]
+	text: either attr-str? [objc_msgSend [str sel_getUid "string"]][str]
+	len: objc_msgSend [text sel_getUid "length"]
+	idx: 0
+	while [idx < len][
+		key: objc_msgSend [text sel_getUid "characterAtIndex:" idx]
+		make-event self key EVT_KEY
+		idx: idx + 1
+	]
+]
+
+char-idx-point: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	x		[float32!]
+	y		[float32!]
+	return: [integer!]
+][
+	;probe "char-idx-point"
+	0
+]
+
+first-rect-range: func [
+	[stdcall]
+	base		[integer!]
+	/local
+		pc		[int-ptr!]
+		rc		[NSRect!]
+		self	[integer!]
+		cmd		[integer!]
+		idx		[integer!]
+		len		[integer!]
+		p-range [int-ptr!]
+		y		[integer!]
+		x		[integer!]
+		pt		[CGPoint!]
+		sy		[float32!]
+][
+	pc: :base
+	rc: as NSRect! base
+	pc: pc + 1
+	self: pc/value
+
+	rc/x: caret-x
+	rc/y: caret-y + caret-h
+	rc/w: caret-w
+	rc/h: caret-h
+
+	x: objc_msgSend [self sel_getUid "convertPoint:toView:" rc/x rc/y 0]
+	y: system/cpu/edx
+	pt: as CGPoint! :x
+
+	x: objc_msgSend [
+		objc_msgSend [self sel_getUid "window"]
+		sel_getUid "convertBaseToScreen:" pt/x pt/y
+	]
+	y: system/cpu/edx
+	pt: as CGPoint! :x
+	rc/x: pt/x
+	rc/y: pt/y
+]
+
+do-cmd-selector: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sel		[integer!]
+	/local
+		event [integer!]
+][
+	event: objc_msgSend [NSApp sel_getUid "currentEvent"]
+	if all [
+		event <> 0
+		NSKeyDown = objc_msgSend [event sel_getUid "type"]
+	][
+		on-key-down self event
+	]
+]
+
 draw-rect: func [
 	[cdecl]
 	self	[integer!]
@@ -734,6 +1093,7 @@ draw-rect: func [
 		size	[red-pair!]
 		bmp		[integer!]
 		v1010?	[logic!]
+		DC		[draw-ctx!]
 ][
 	nsctx: objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
 	v1010?: as logic! objc_msgSend [nsctx sel_getUid "respondsToSelector:" sel_getUid "CGContext"]
@@ -758,7 +1118,18 @@ draw-rect: func [
 	]
 	render-text ctx vals as NSSize! (as int-ptr! self) + 8
 
-	do-draw ctx as red-image! (as int-ptr! self) + 8 draw no yes yes yes
+	img: as red-image! (as int-ptr! self) + 8				;-- view's size
+	either TYPE_OF(draw) = TYPE_BLOCK [
+		do-draw ctx img draw no yes yes yes
+	][
+		system/thrown: 0
+		DC: declare draw-ctx!								;@@ should declare it on stack
+		draw-begin DC ctx img no yes
+		integer/make-at as red-value! draw as-integer DC
+		make-event self 0 EVT_DRAWING
+		draw/header: TYPE_NONE
+		draw-end DC ctx no no yes
+	]
 ]
 
 return-field-editor: func [
@@ -817,10 +1188,6 @@ perform-key-equivalent: func [
 	as logic! msg-send-super self cmd event
 ]
 
-;app-send-event: func [
-	
-;]
-
 win-send-event: func [
 	[cdecl]
 	self	[integer!]
@@ -842,11 +1209,14 @@ win-send-event: func [
 	if type = NSKeyDown	[
 		find?: yes
 		responder: objc_msgSend [self sel_getUid "firstResponder"]
-		unless red-face? responder [
-			responder: objc_getAssociatedObject self RedFieldEditorKey
-			unless red-face? responder [find?: no]
+		object_getInstanceVariable responder IVAR_RED_DATA :type
+		if type <> base [
+			unless red-face? responder [
+				responder: objc_getAssociatedObject self RedFieldEditorKey
+				unless red-face? responder [find?: no]
+			]
+			if find? [on-key-down responder event]
 		]
-		if find? [on-key-down responder event]
 	]
 	msg-send-super self cmd event
 ]

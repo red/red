@@ -12,8 +12,6 @@ Red/System [
 
 #define RED_GTK_APP_ID	"org.red-lang.www"
 
-#define handle! [pointer! [integer!]]
-
 #define gobj_signal_connect(instance signal handler data) [
 	g_signal_connect_data instance signal as-integer handler data null 0
 ]

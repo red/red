@@ -130,13 +130,13 @@ show-context-menu: func [
 		if menu-bar? spec symbol/resolve w/symbol [
 			return no
 		]
-		hWnd: GetParent msg/hWnd
+		hWnd: GetParent msg/hWnd			;@@ why use parent?
 		if null? hWnd [hWnd: msg/hWnd]
 		menu-origin: msg/hWnd
 
 		hMenu: build-menu spec CreatePopupMenu
 		menu-ctx: hMenu
-		TrackPopupMenuEx hMenu 0 x y GetParent msg/hWnd null
+		TrackPopupMenuEx hMenu 0 x y hWnd null
 		return yes
 	]
 	no

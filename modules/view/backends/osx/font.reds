@@ -38,7 +38,11 @@ make-font: func [
 	values: object/get-values font
 
 	int: as red-integer! values + FONT_OBJ_SIZE
-	size: either TYPE_OF(int) <> TYPE_INTEGER [as float32! 0.0][as float32! int/value]
+	either TYPE_OF(int) <> TYPE_INTEGER [
+		size: as float32! 0.0
+	][
+		size: as float32! int/value * 96 / 72						;@@ hard coded
+	]
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
 	angle: either TYPE_OF(int) = TYPE_INTEGER [int/value * 10][0]	;-- in tenth of degrees
@@ -82,13 +86,12 @@ make-font: func [
 			sel_getUid "fontWithFamily:traits:weight:size:"
 			sym
 			traits
-			5								;-- ignored if use traits
+			5									;-- ignored if use traits
 			temp/x
 		]
 		CFRelease sym
 	]
-	if null? hFont 	[						;-- use system font
-		#if debug? = yes [print-line ["cannot find font: " name]]
+	if null? hFont [							;-- use system font
 		method: either traits and NSBoldFontMask <> 0 [
 			"boldSystemFontOfSize:"
 		][
@@ -97,14 +100,17 @@ make-font: func [
 		hFont: as handle! objc_msgSend [objc_getClass "NSFont" sel_getUid method temp/x]
 	]
 
-	either null? face [									;-- null => replace underlying font object 
-		int: as red-integer! block/rs-head as red-block! values + FONT_OBJ_STATE
-		int/header: TYPE_INTEGER
-		int/value: as-integer hFont
+	blk: as red-block! values + FONT_OBJ_STATE
+	either TYPE_OF(blk) <> TYPE_BLOCK [
+		block/make-at blk 2
+		handle/make-in blk as-integer hFont
 	][
-		blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
-		integer/make-in blk as-integer hFont
+		int: as red-integer! block/rs-head blk
+		int/header: TYPE_HANDLE
+		int/value: as-integer hFont
+	]
 
+	if face <> null [
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
@@ -121,7 +127,7 @@ get-font-handle: func [
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [
+		if TYPE_OF(int) = TYPE_HANDLE [
 			return as handle! int/value
 		]
 	]
@@ -149,7 +155,6 @@ free-font: func [
 ][
 	hFont: get-font-handle font
 	if hFont <> null [
-		objc_msgSend [hFont sel_getUid "release"]
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
 	]

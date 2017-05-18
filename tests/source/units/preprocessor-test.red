@@ -43,7 +43,15 @@ Red [
 ===start-group=== "Macros"
 
 	--test-- "macro-1"
-		#do [a: 12]
+		#do [
+			unless value? 'maximum-of [
+				maximum-of: function [list [block! paren!]][
+					m: list forall list [if list/1 > m/1 [m: list]]
+					m
+				]
+			]
+			a: 12
+		]
 
 		#macro add2: func [n][n + 2]
 		#macro foo: func [a b][add2 a + b]

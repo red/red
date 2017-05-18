@@ -1092,11 +1092,12 @@ string: context [
 	]
 	
 	push: func [
-		str [red-string!]
+		str		[red-string!]
+		return: [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/push"]]
 
-		copy-cell as red-value! str stack/push*
+		as red-string! copy-cell as red-value! str stack/push*
 	]
 	
 	;-- Actions -- 
@@ -1118,7 +1119,7 @@ string: context [
 			TYPE_OF(spec) = TYPE_FLOAT
 		][
 			size: GET_SIZE_FROM(spec)
-			if size < 0 [fire [TO_ERROR(script out-of-range) int]]
+			if size < 0 [fire [TO_ERROR(script out-of-range) spec]]
 			proto/header: type								;-- implicit reset of all header flags
 			proto/head: 0
 			proto/node: alloc-bytes size					;-- alloc enough space for at least a Latin1 string
@@ -1249,13 +1250,16 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
+			all [type = ESC_CHAR cp = 7Fh][
+				concatenate-literal buffer "^^~"
+			]
 			all [
 				type = ESC_URL
 				cp < MAX_URL_CHARS
 				escape-url-chars/idx = (as byte! ESC_URL)
 			][
 				append-char GET_BUFFER(buffer) as-integer #"%"
-				concatenate-literal buffer to-hex cp yes
+				concatenate-literal buffer byte-to-hex cp
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
@@ -1566,7 +1570,6 @@ string: context [
 			limit	[byte-ptr!]
 			part?	[logic!]
 			bs?		[logic!]
-			not?	[logic!]
 			type	[integer!]
 			found?	[logic!]
 	][
@@ -1665,7 +1668,6 @@ string: context [
 			TYPE_BITSET [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
-				not?:  FLAG_NOT?(sbits)
 				pbits: as byte-ptr! sbits/offset
 				bs?:   yes
 				case?: no
@@ -1715,14 +1717,13 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 yes	;-- uppercase c1
+					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
 					BS_TEST_BIT(pbits c1 found?)
-					if not? [found?: not found?]
 				][
 					found?: c1 = c2
-				]
+				]			
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
 					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
@@ -1832,6 +1833,7 @@ string: context [
 			head2  [integer!]
 			offset [integer!]
 			unit   [integer!]
+			type   [integer!]
 	][
 		result: find str value part only? case? same? any? with-arg skip last? reverse? no no
 		
@@ -1863,8 +1865,13 @@ string: context [
 			p: (as byte-ptr! s/offset) + ((str/head + offset) << (log-b unit))
 			
 			either p < as byte-ptr! s/tail [
+				type: switch TYPE_OF(str) [
+					TYPE_BINARY	[TYPE_INTEGER]
+					TYPE_VECTOR [as-integer str/cache]
+					default 	[TYPE_CHAR]
+				]
 				char: as red-char! result
-				char/header: either TYPE_OF(str) = TYPE_VECTOR [as-integer str/cache][TYPE_CHAR]
+				char/header: type
 				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
@@ -2354,6 +2361,7 @@ string: context [
 			vec		[red-vector!]
 			s		[series!]
 			unit	[integer!]
+			type	[integer!]
 	][
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
@@ -2364,12 +2372,14 @@ string: context [
 		][
 			ownership/check as red-value! str words/_take null str/head 1
 			unit: GET_UNIT(s)
-			either TYPE_OF(str) = TYPE_VECTOR [
+			type: TYPE_OF(str)
+			either type = TYPE_VECTOR [
 				vec: as red-vector! str
 				str: as red-string! vector/get-value as byte-ptr! s/offset unit vec/type
-			][										;-- return char!
+			][
+				type: either type = TYPE_BINARY [TYPE_INTEGER][TYPE_CHAR]
 				char: as red-char! str
-				char/header: TYPE_CHAR
+				char/header: type
 				char/value:  get-char as byte-ptr! s/offset unit
 			]
 			ownership/check as red-value! str words/_taken null str/head 0

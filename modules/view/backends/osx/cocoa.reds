@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#define RTLD_LAZY	1
+#define NSNotFound					7FFFFFFFh			;@@ should be NSIntegerMax
 
 #define OBJC_ASSOCIATION_ASSIGN		0
 #define OBJC_ASSOCIATION_RETAIN		0301h
@@ -155,8 +155,6 @@ Red/System [
 
 #define IVAR_RED_FACE	"red-face"				;-- struct! 16 bytes, for storing red face object
 #define IVAR_RED_DATA	"red-data"				;-- integer! 4 bytes, for storing extra red data
-#define kCFStringEncodingUTF8	08000100h
-#define CFString(cStr) [CFStringCreateWithCString 0 cStr kCFStringEncodingUTF8]
 #define NSString(cStr) [objc_msgSend [objc_getClass "NSString" sel_getUid "stringWithUTF8String:" cStr]] 
 
 #define RedNSEventKey			4000FFF0h
@@ -174,15 +172,6 @@ Red/System [
 objc_super!: alias struct! [
 	receiver	[integer!]
 	superclass	[integer!]
-]
-
-CGAffineTransform!: alias struct! [
-	a		[float32!]
-	b		[float32!]
-	c		[float32!]
-	d		[float32!]
-	tx		[float32!]
-	ty		[float32!]
 ]
 
 NSRect!: alias struct! [
@@ -207,6 +196,12 @@ NSSize!: alias struct! [
 CGPoint!: alias struct! [
 	x		[float32!]
 	y		[float32!]
+]
+
+CGPatternCallbacks!: alias struct! [
+	version		[integer!]
+	drawPattern [integer!]
+	releaseInfo [integer!]
 ]
 
 RECT_STRUCT: alias struct! [
@@ -292,6 +287,11 @@ tagSIZE: alias struct! [
 			cls			[integer!]
 			return:		[integer!]
 		]
+		class_addProtocol: "class_addProtocol" [
+			cls			[integer!]
+			protocol	[integer!]
+			return:		[logic!]
+		]
 		object_getClass: "object_getClass" [
 			id			[integer!]
 			return:		[integer!]
@@ -308,9 +308,13 @@ tagSIZE: alias struct! [
 			out			[int-ptr!]
 			return:		[integer!]
 		]
+		objc_getProtocol: "objc_getProtocol" [
+			name		[c-string!]
+			return:		[integer!]
+		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
-		objc_msgSend_f32: "objc_msgSend" [[variadic] return: [float32!]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
+		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]
 		objc_msgSend_stret: "objc_msgSend_stret" [[custom]]
 		_Block_object_assign: "_Block_object_assign" [
@@ -388,13 +392,17 @@ tagSIZE: alias struct! [
 	]
 	"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 		NSBeep: "NSBeep" []
+		NSDeviceResolution: "NSDeviceResolution" [integer!]
 		NSDefaultRunLoopMode: "NSDefaultRunLoopMode" [integer!]
 		NSModalPanelRunLoopMode: "NSModalPanelRunLoopMode" [integer!]
 		NSFontAttributeName: "NSFontAttributeName" [integer!]
 		NSParagraphStyleAttributeName: "NSParagraphStyleAttributeName" [integer!]
 		NSForegroundColorAttributeName: "NSForegroundColorAttributeName" [integer!]
+		NSBackgroundColorAttributeName: "NSBackgroundColorAttributeName" [integer!]
 		NSUnderlineStyleAttributeName: "NSUnderlineStyleAttributeName" [integer!]	
 		NSStrikethroughStyleAttributeName: "NSStrikethroughStyleAttributeName" [integer!]
+		NSMarkedClauseSegmentAttributeName: "NSMarkedClauseSegmentAttributeName" [integer!]
+		NSGlyphInfoAttributeName: "NSGlyphInfoAttributeName" [integer!]
 	]
 	"/System/Library/Frameworks/CoreServices.framework/CoreServices" cdecl [
 		Gestalt: "Gestalt" [
@@ -425,8 +433,16 @@ tagSIZE: alias struct! [
 			y1			[float32!]
 			return:		[logic!]
 		]
+		CGColorSpaceCreatePattern: "CGColorSpaceCreatePattern" [
+			baseSpace	[integer!]
+			return:		[integer!]
+		]
 		CGColorSpaceCreateDeviceRGB: "CGColorSpaceCreateDeviceRGB" [
 			return:		[integer!]
+		]
+		CGContextSetFillColorSpace: "CGContextSetFillColorSpace" [
+			ctx			[handle!]
+			space		[integer!]
 		]
 		CGColorSpaceRelease: "CGColorSpaceRelease" [
 			colorspace	[integer!]
@@ -624,30 +640,46 @@ tagSIZE: alias struct! [
 			c			[handle!]
 			mode		[integer!]
 		]
+		CGContextSetStrokePattern: "CGContextSetStrokePattern" [
+			ctx			[handle!]
+			pattern		[integer!]
+			components	[float32-ptr!]
+		]
+		CGContextSetFillPattern: "CGContextSetFillPattern" [
+			ctx			[handle!]
+			pattern		[integer!]
+			components	[float32-ptr!]
+		]
+		CGPatternCreate: "CGPatternCreate" [
+			info		[int-ptr!]
+			rc			[NSRect! value]
+			matrix		[CGAffineTransform! value]
+			xStep		[float32!]
+			yStep		[float32!]
+			tiling		[integer!]
+			isColored	[logic!]
+			callbacks	[CGPatternCallbacks!]
+			return:		[integer!]
+		]
+		CGPatternRelease: "CGPatternRelease" [
+			pattern		[integer!]
+		]
 		CGContextConcatCTM: "CGContextConcatCTM" [
 			ctx			[handle!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			m			[CGAffineTransform! value]
 		]
 		CGContextSetCTM: "CGContextSetCTM" [
 			ctx			[handle!]
-			a			[float32!]
-			b			[float32!]
-			c			[float32!]
-			d			[float32!]
-			tx			[float32!]
-			ty			[float32!]
+			m			[CGAffineTransform! value]
 		]
 		CGContextGetCTM: "CGContextGetCTM" [
-			[custom]
-			;matrix		[CGAffineTransform!]
-			;c			[handle!]
+			ctx			[handle!]
+			return:		[CGAffineTransform! value]
 		]
-		CGAffineTransformInvert: "CGAffineTransformInvert" [[custom]]
+		CGAffineTransformInvert: "CGAffineTransformInvert" [
+			matrix		[CGAffineTransform! value]
+			return:		[CGAffineTransform! value]
+		]
 		CGContextRotateCTM: "CGContextRotateCTM" [
 			c			[handle!]
 			angle		[float32!]
@@ -671,16 +703,76 @@ tagSIZE: alias struct! [
 			tx			[float32!]
 			ty			[float32!]
 		]
-		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
-			x			[float32!]
-			y			[float32!]
+		CGContextGetPathBoundingBox: "CGContextGetPathBoundingBox" [
+			ctx			[handle!]
+			return:		[NSRect! value]
+		]
+		CGAffineTransformMake: "CGAffineTransformMake" [
 			a			[float32!]
 			b			[float32!]
 			c			[float32!]
 			d			[float32!]
 			tx			[float32!]
 			ty			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformMakeScale: "CGAffineTransformMakeScale" [
+			sx			[float32!]
+			sy			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformMakeTranslation: "CGAffineTransformMakeTranslation" [
+			x			[float32!]
+			y			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGPointApplyAffineTransform: "CGPointApplyAffineTransform" [
+			pt			[CGPoint! value]
+			m			[CGAffineTransform! value]
+			return:		[CGPoint! value]
+		]
+		CGAffineTransformConcat: "CGAffineTransformConcat" [
+			m1			[CGAffineTransform! value]
+			m2			[CGAffineTransform! value]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformRotate: "CGAffineTransformRotate" [
+			m			[CGAffineTransform! value]
+			angle		[float32!]						;-- angle in radians
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformTranslate: "CGAffineTransformTranslate" [
+			m			[CGAffineTransform! value]
+			x			[float32!]
+			y			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGAffineTransformScale: "CGAffineTransformScale" [
+			m			[CGAffineTransform! value]
+			x			[float32!]
+			y			[float32!]
+			return:		[CGAffineTransform! value]
+		]
+		CGPathCreateMutable: "CGPathCreateMutable" [
 			return:		[integer!]
+		]
+		CGPathRelease: "CGPathRelease" [
+			path		[integer!]
+		]
+		CGPathMoveToPoint: "CGPathMoveToPoint" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			x			[float32!]
+			y			[float32!]
+		]
+		CGPathAddRelativeArc: "CGPathAddRelativeArc" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			x			[float32!]
+			y			[float32!]
+			radius		[float32!]
+			startAngle	[float32!]
+			delta		[float32!]
 		]
 		CGContextDrawImage: "CGContextDrawImage" [
 			ctx			[handle!]
@@ -704,6 +796,13 @@ tagSIZE: alias struct! [
 		]
 		CGImageRelease: "CGImageRelease" [
 			image		[integer!]
+		]
+	]
+	LIBM-file cdecl [
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
 		]
 	]
 ]
@@ -788,21 +887,18 @@ to-CFString: func [str [red-string!] return: [integer!] /local len][
 	CFStringCreateWithCString 0 unicode/to-utf8 str :len kCFStringEncodingUTF8
 ]
 
-to-NSColor: func [
-	color	[red-tuple!]
+rs-to-NSColor: func [
+	clr		[integer!]
 	return: [integer!]
 	/local
-		clr [integer!]
-		r	[float32!]
-		g	[float32!]
-		b	[float32!]
-		a	[float32!]
+		r	[integer!]
+		g	[integer!]
+		b	[integer!]
+		a	[integer!]
 		c	[NSColor!]
 ][
-	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
-
-	c: declare NSColor!
-	clr: color/array1
+	a: 0
+	c: as NSColor! :a
 	c/r: (as float32! clr and FFh) / 255.0
 	c/g: (as float32! clr >> 8 and FFh) / 255.0
 	c/b: (as float32! clr >> 16 and FFh) / 255.0
@@ -813,6 +909,14 @@ to-NSColor: func [
 		sel_getUid "colorWithDeviceRed:green:blue:alpha:"
 		c/r c/g c/b c/a
 	]
+]
+
+to-NSColor: func [
+	color	[red-tuple!]
+	return: [integer!]
+][
+	if TYPE_OF(color) <> TYPE_TUPLE [return 0]
+	rs-to-NSColor color/array1
 ]
 
 make-CGMatrix: func [

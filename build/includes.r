@@ -70,8 +70,10 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
+		%clipboard.reds
 		%crush.reds
 		%utils.reds
+		%call.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -122,6 +124,7 @@ write %build/bin/sources.r set-cache [
 			%url.reds
 			%vector.reds
 			%word.reds
+			%handle.reds
 		]
 		%platform/ [
 			%android.reds
@@ -132,8 +135,10 @@ write %build/bin/sources.r set-cache [
 			%win32.reds
 			%COM.reds
 			%image-gdiplus.reds
+			%image-quartz.reds
 			%win32-cli.reds
 			%win32-gui.reds
+			%win32-ansi.reds
 		]
 	]
 	%modules/ [
@@ -144,6 +149,7 @@ write %build/bin/sources.r set-cache [
 			%utils.red
 			%VID.red
 			%backends/ [
+				%keycodes.reds
 				%platform.red
 				%windows/ [
 					%base.reds
@@ -162,7 +168,24 @@ write %build/bin/sources.r set-cache [
 					%para.reds
 					%tab-panel.reds
 					%text-list.reds
+					%text-box.reds
 					%win32.reds
+				]
+				%osx/ [
+					%camera.reds
+					%classes.reds
+					%cocoa.reds
+					%comdlgs.reds
+					%delegates.reds
+					%draw.reds
+					%events.reds
+					%font.reds
+					%gui.reds
+					%menu.reds
+					%para.reds
+					%selectors.reds
+					%tab-panel.reds
+					%text-box.reds
 				]
 			]
 		]
@@ -189,6 +212,12 @@ write %build/bin/sources.r set-cache [
 			%red.ico
 			%red-3D.ico
 			%red-mono.ico
+			%osx/ [
+				%Info.plist
+				%Resources/ [
+					%AppIcon.icns
+				]
+			]
 		]
 		%runtime/ [
 			%android.reds
@@ -212,6 +241,7 @@ write %build/bin/sources.r set-cache [
 		]
 		%formats/ [
 			%ELF.r
+			%Mach-APP.r
 			%Mach-O.r
 			%PE.r
 		]

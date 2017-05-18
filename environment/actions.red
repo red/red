@@ -147,7 +147,7 @@ remainder: make action! [[
 
 round: make action! [[
 		"Returns the nearest integer. Halves round up (away from zero) by default"
-		n		[number! time!]
+		n		[number! time! pair!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
 		/even		"Halves round toward even results"
@@ -171,16 +171,16 @@ subtract: make action! [[
 
 even?: make action! [[
 		"Returns true if the number is evenly divisible by 2"
-		number 	 [number! char!]
-		return:  [number! char!]
+		number 	 [number! char! time!]
+		return:  [number! char! time!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
 odd?: make action! [[
 		"Returns true if the number has a remainder of 1 when divided by 2"
-		number 	 [number! char!]
-		return:  [number! char!]
+		number 	 [number! char! time!]
+		return:  [number! char! time!]
 	]
 	#get-definition ACT_ODD?
 ]
@@ -226,14 +226,14 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series! bitset! map!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series! bitset! map!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_APPEND
 ]
@@ -256,13 +256,13 @@ back: make action! [[
 ]
 
 change: make action! [[
-		"Changes a value in a series and returns the series after the change."
+		"Changes a value in a series and returns the series after the change"
 		series [series!] "Series at point to change"
 		value [any-type!] "The new value"
-		/part "Limits the amount to change to a given length or position."
+		/part "Limits the amount to change to a given length or position"
 			range [number! series!]
 		/only "Changes a series as a series."
-		/dup "Duplicates the change a specified number of times."
+		/dup "Duplicates the change a specified number of times"
 			count [number!]
 	]
 	#get-definition ACT_CHANGE
@@ -337,14 +337,14 @@ index?: make action! [[
 
 insert: make action! [[
 		"Inserts value(s) at series index; returns series past the insertion"
-		series	   [series! bitset! map!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series! bitset! map!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_INSERT
 ]

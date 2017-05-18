@@ -179,8 +179,8 @@ vector: context [
 		return: [integer!]
 	][
 		switch unit [
-			1 [p/value and FFh]
-			2 [p/value and FFFFh]
+			1 [p/value and FFh << 24 >> 24]
+			2 [p/value and FFFFh << 16 >> 16]
 			4 [p/value]
 		]
 	]
@@ -392,9 +392,13 @@ vector: context [
 						]
 					]
 					TYPE_PERCENT [
-						pf: as pointer! [float!] p
-						fl: pf/value * 100.0
-						formed: float/form-float fl float/FORM_PERCENT
+						formed: either unit = 8 [
+							pf: as pointer! [float!] p
+							float/form-float pf/value * 100.0 float/FORM_PERCENT
+						][
+							pf32: as pointer! [float32!] p
+							float/form-float as-float pf32/value * as float32! 100.0 float/FORM_PERCENT_32
+						]
 					]
 				]
 				string/concatenate-literal buffer formed
@@ -645,12 +649,15 @@ vector: context [
 			int	   [red-integer!]
 			fl	   [red-float!]
 			value  [red-value!]
+			blk    [red-block!]
 			sym    [integer!]
 			size   [integer!]
 			blk-sz [integer!]
 			unit   [integer!]
 			type   [integer!]
+			saved  [integer!]
 			fill?  [logic!]
+			err?   [logic!]
 			end	   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/make"]]
@@ -658,6 +665,8 @@ vector: context [
 		fill?: yes
 		size: 0
 		unit: 0
+		blk: as red-block! spec
+		saved: blk/head
 		type: TYPE_OF(spec)
 		
 		switch type [
@@ -693,10 +702,23 @@ vector: context [
 						block/rs-next as red-block! spec
 						value: block/rs-head as red-block! spec
 						int: as red-integer! value
-						unit: int/value >> 3
-						unless any [unit = 4 unit = 2 unit = 1 unit = 8][
+						unit: int/value
+						err?: no
+						switch type [
+							TYPE_CHAR
+							TYPE_INTEGER [
+								err?: all [unit <> 8 unit <> 16 unit <> 32]
+							]
+							TYPE_FLOAT
+							TYPE_PERCENT [
+								err?: all [unit <> 32 unit <> 64]
+							]
+						]
+						if err? [
+							blk/head: saved
 							fire [TO_ERROR(script bad-make-arg) proto spec]
 						]
+						unit: unit >> 3
 
 						;-- size or block values
 						block/rs-next as red-block! spec
@@ -714,12 +736,13 @@ vector: context [
 								spec: value
 								size: block/rs-length? as red-block! spec
 							][
+								blk/head: saved
 								fire [TO_ERROR(script invalid-spec-field) spec]
 							]
 						]
 					]
 					if zero? unit [
-						unit:  switch type [
+						unit: switch type [
 							TYPE_CHAR
 							TYPE_INTEGER [size? integer!]
 							TYPE_FLOAT
@@ -804,6 +827,7 @@ vector: context [
 				TYPE_CHAR		[part: part - 5 "char!"]
 				TYPE_INTEGER	[part: part - 8 "integer!"]
 				TYPE_FLOAT		[part: part - 6 "float!"]
+				TYPE_PERCENT	[part: part - 8 "percent!"]
 			]
 			string/append-char GET_BUFFER(buffer) as-integer space
 

@@ -1096,17 +1096,23 @@ object: context [
 		]
 		on-set?: parent/on-set <> null
 		
-		res: either value <> null [
+		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx
 			if on-set? [fire-on-set parent as red-word! element old value]
-			value
+			res: value
 		][
 			if on-set? [
 				copy-cell as red-value! parent as red-value! path-parent
 				copy-cell as red-value! word   as red-value! field-parent
 			]
-			_context/get-in word ctx
+			res: _context/get-in word ctx
+			if TYPE_OF(res) = TYPE_UNSET [
+				if all [path <> null TYPE_OF(path) <> TYPE_GET_PATH][
+					res: either null? path [element][path]
+					fire [TO_ERROR(script no-value) res]
+				]
+			]
 		]
 		if rebind? [
 			word/index: save-idx

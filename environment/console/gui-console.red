@@ -84,7 +84,6 @@ gui-console-ctx: context [
 	set-background: routine [color [tuple!]][terminal/set-background color/array1]
 
 	init: func [/local cfg-dir][
-		system/view/auto-sync?: no
 		cfg-dir: append to-red-file get-env "ALLUSERSPROFILE" %/Red/
 		unless exists? cfg-dir [make-dir cfg-dir]
 		cfg-path: append cfg-dir %console-cfg.red
@@ -104,43 +103,43 @@ gui-console-ctx: context [
 		]
 		apply-cfg
 		win/selected: console
-		system/view/auto-sync?: yes
 		win/visible?: yes
 	]
 	
 	display-about: function [][
 		lay: layout/tight [
+			title "About"
 			size 360x320
 			backdrop 58.58.60
-			style text: text 360 center 58.58.60 
-			style txt: text font-color white
-			style small: txt font [size: 8 color: white]
-			style link: text all-over 
+			style text:  text 360 center 58.58.60 
+			style txt:   text font-color white
+			style small: txt  font [size: 9 color: white]
+			style link:  text 100 all-over
 				on-down [browse face/data]
-				on-over [face/font/color: get pick [white orange] event/away?]
+				on-over [face/font/style: pick [#[none] underline] event/away?]
 			below
 			pad 0x15
 			txt bold "Red Programming Language" font [size: 15 color: white]
-			ver: txt font [size: 8 color: white]
+			ver: txt font [size: 9 color: white]
 			at 153x86 image fstk-logo
-			at 0x160 small 360x20 "Copyright 2011-2016 - Fullstack Technologies"
+			at 0x160 small 360x20 "Copyright 2011-2017 - Fullstack Technologies"
 			at 0x180 small 360x20 "and contributors."
-			at 0x230 link "http://red-lang.org" font-size 10 font-color white
-			at 0x260 link "http://github.com/red/red" font-size 10 font-color white
-			at 154x310 button "Ok" [unview win/selected: console]
-			do [ver/text: form reduce [system/version #"-" system/build]]
+			at 120x230 link "http://red-lang.org" font-size 10 font-color white
+			at 100x260 link "http://github.com/red/red" font-size 10 font-color white
+			at 154x300 button "Close" [unview win/selected: console]
+			do [ver/text: form reduce ["Build" system/version #"-" system/build/date]]
 		]
 		center-face/with lay win
 		view/flags lay [modal no-title]
 	]
 
 	apply-cfg: does [
-		win/offset:		 cfg/win-pos
-		win/size:		 cfg/win-size
 		console/font:	 make font! [name: cfg/font-name size: cfg/font-size anti-alias?: no]
 		set-font-color	 cfg/font-color
 		set-background	 cfg/background
 		set-buffer-lines cfg/buffer-lines
+		win/offset:		 cfg/win-pos
+		win/size:		 cfg/win-size
 	]
 
 	save-cfg: function [][
@@ -156,18 +155,43 @@ gui-console-ctx: context [
 
 	show-cfg-dialog: function [][
 		lay: layout [
-			text "Buffer Lines:" cfg-buffers:	field return
-			text "ForeColor:"	 cfg-forecolor: field return
-			text "BackColor:"	 cfg-backcolor: field return
+			title "Settings"
+			style bbox: base 20x20 draw [pen gray box 0x0 19x19] on-down [
+				set-background cfg-backcolor/data: face/color
+			]
+			style fbox: bbox on-down [
+				set-font-color cfg-forecolor/data: face/color
+			]
+			style hex-field: field 90 center font [name: font-name]
+			
+			group-box "Background color" [
+				pad 0x10
+				bbox #000000 bbox #002b36 bbox #073642 bbox #293955
+				bbox #eee8d5 bbox #fdf6e3 bbox #ffffff
+			]
+			pad 0x20 cfg-backcolor: hex-field return pad 0x-20
+			
+			group-box "Font color" [
+				pad 0x10
+				fbox #b98000 fbox #cb4b16 fbox #dc322f fbox #d33682
+				fbox #6c71c4 fbox #268bd2 fbox #2aa198
+				return
+				fbox #859900 fbox #82bb82 fbox #000000 fbox #657b83
+				fbox #839496 fbox #93a1a1 fbox #ffffff
+			]
+			pad 0x30 cfg-forecolor: hex-field return
+			
+			pad 150x-20 text "Buffer Lines" 80 
+			pad -20x0 cfg-buffers: hex-field 60 right return
+			
+			pad 90x20
 			button "OK" [
 				if cfg/buffer-lines <> cfg-buffers/data [
 					cfg/buffer-lines: cfg-buffers/data
 					set-buffer-lines cfg/buffer-lines
 				]
-				cfg/font-color:   cfg-forecolor/data
-				cfg/background:   cfg-backcolor/data
-				set-font-color    cfg-forecolor/data
-				set-background    cfg-backcolor/data
+				set-font-color cfg/font-color: cfg-forecolor/data
+				set-background cfg/background: cfg-backcolor/data
 				unview
 				win/selected: console
 			]

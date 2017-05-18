@@ -70,7 +70,9 @@ red: context [
 	max-depth:	   0
 	booting?:	   none									;-- YES: compiling boot script
 	nl: 		   newline
-	set 'float!	   'float								;-- type name not defined in Rebol
+	set 'float!	   'float								;-- type names not defined in Rebol
+	set 'handle!   'handle
+	comment-marker: '------------|
  
 	unboxed-set:   [integer! char! float! float32! logic!]
 	block-set:	   [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
@@ -137,7 +139,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" mold script-name
+			"^/*** in file:" to-local-file script-name
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
@@ -295,7 +297,7 @@ red: context [
 		]
 		if 50 < length? cmt [cmt: append copy/part cmt 50 "..."]
 		emit reduce [
-			'------------| (cmt)
+			comment-marker (cmt)
 		]
 	]
 	
@@ -525,7 +527,7 @@ red: context [
 		]
 		append/only body pick [
 			[re-throw]
-			[ctx/values: saved system/thrown: 0 stack/unwind-last exit]
+			[stack/unroll stack/FRAME_FUNCTION ctx/values: saved system/thrown: 0 exit]
 		] empty? locals-stack
 		
 		append body [
@@ -685,6 +687,24 @@ red: context [
 		][
 			none
 		]
+	]
+	
+	emit-argument-type-check: func [
+		index [integer!] name [word!] slot [block! word! path!]
+		/local spec count arg
+	][
+		spec: functions/:name/3
+		count: 0
+		forall spec [
+			if find [word! lit-word! get-word!] type?/word spec/1 [
+				either count = index [arg: spec/1 break][count: count + 1]
+			]
+		]
+
+		emit emit-type-checking/native arg spec
+		emit index
+		emit slot
+		insert-lf -7
 	]
 	
 	get-counter: does [s-counter: s-counter + 1]
@@ -1091,7 +1111,7 @@ red: context [
 	
 	check-func-name: func [name [word!] /local new pos][
 		if find functions name [
-			new: to word! append mold/flat name get-counter
+			new: to word! append append mold/flat name "||" get-counter
 			either pos: find-ssa name [
 				pos/2: new
 			][
@@ -1268,6 +1288,10 @@ red: context [
 	]
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity nat? proto entry][
+		if any [tail? pos not any-word? pos/1][
+			pc: back pc
+			throw-error "Non-compilable function definition"
+		]
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
@@ -1297,16 +1321,18 @@ red: context [
 		path [path! set-path!] set? [logic!] alt? [logic!]
 		/local pos words item blk get?
 	][
-		if set? [
+		either set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
 				emit [									;-- get arguments just below the stack record
 					if stack/arguments > stack/bottom [stack/push stack/arguments - 1]
 				]
-				insert-lf -4
+				insert-lf -5
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
+		][
+			emit-open-frame 'eval-path
 		]
 		pos: tail output
 		
@@ -1329,12 +1355,12 @@ red: context [
 				get?: to logic! any [head? path get-word? item]
 				get-path-word item clear blk get?
 			]
-		]		
+		]
 		emit words
 		
 		new-line/all pos no
 		new-line pos yes
-		if set? [emit-close-frame]
+		emit-close-frame
 	]
 	
 	emit-eval-path: func [/set][
@@ -1684,8 +1710,8 @@ red: context [
 	]
 	
 	inherit-functions: func [							 ;-- multiple inheritance case
-		new [object!] extend [object!] multi? [logic!]
-		/local symbol name
+		new [object!] extend [object!]
+		/local symbol name entry
 	][
 		foreach word next first extend [
 			if function! = get in extend word [
@@ -1695,9 +1721,9 @@ red: context [
 					name: decorate-obj-member word select objects new
 					select functions symbol
 				]
-				either multi? [							;-- not allowed for libRedRT client programs
+				either entry: find bodies symbol [		;-- not allowed for libRedRT client programs
 					append bodies name
-					append bodies bind/copy copy/part next find bodies symbol 8 new
+					append bodies bind/copy copy/part next entry 8 new
 				][
 					redirect-to literals [
 						emit compose [#define (decorate-func name) (decorate-func symbol)]
@@ -1715,7 +1741,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set? multi-inherit?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1873,15 +1899,14 @@ red: context [
 			]
 			insert-lf -3
 		]
-		multi-inherit?: not all [job/dev-mode? not job/libRedRT?]
 		
 		if proto [
-			if body? [inherit-functions obj last proto multi-inherit?]
+			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		if all [not body? not passive][
-			inherit-functions obj new multi-inherit?
+			inherit-functions obj new
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
@@ -1910,7 +1935,7 @@ red: context [
 					append obj-stack any [path name]	;-- from current objects stack
 				]
 				pc: next pc
-				comp-next-block
+				comp-next-block yes
 				obj-stack: saved						;-- restore objects stack
 			]
 			'else [
@@ -2130,6 +2155,7 @@ red: context [
 		
 		emit-open-frame 'loop
 		comp-expression/close-path						;@@ optimize case for literal counter
+		emit-argument-type-check 0 'loop 'stack/arguments
 		
 		emit compose [(set-name) integer/get*]
 		insert-lf -2
@@ -2184,7 +2210,13 @@ red: context [
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
-		add-symbol word: pc/1
+		unless any-word? word: pc/1 [
+			pc: back pc
+			throw-error "REPEAT expects a word as first argument"
+		]
+		emit-open-frame 'repeat
+		
+		add-symbol word
 		add-global word
 		name: decorate-symbol word
 		action: either local-word? word [
@@ -2200,6 +2232,7 @@ red: context [
 		
 		pc: next pc
 		comp-expression/close-path						;-- compile 2nd argument
+		emit-argument-type-check 1 'repeat 'stack/arguments
 		
 		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
 		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
@@ -2240,6 +2273,7 @@ red: context [
 		insert last output reduce [action name cnt]
 		new-line last output on
 		emit-close-frame
+		emit-close-frame
 		depth: depth - 1
 	]
 	
@@ -2266,10 +2300,9 @@ red: context [
 		]
 		pc: next pc
 		
+		emit-open-frame 'foreach
 		comp-expression/close-path						;-- compile series argument
-		;TBD: check if result is any-series!
-		emit 'stack/keep
-		insert-lf -1
+		emit-argument-type-check 1 'foreach 'stack/arguments
 		
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2287,6 +2320,7 @@ red: context [
 		push-call 'foreach
 		comp-sub-block 'foreach-body					;-- compile body
 		pop-call
+		emit-close-frame
 		emit-close-frame
 	]
 	
@@ -2334,11 +2368,12 @@ red: context [
 			add-global word
 		]
 		pc: next pc
-
+		
+		emit-open-frame 'remove-each
 		emit [integer/push 0]							;-- store number of words to set
 		insert-lf -2
 		comp-expression/close-path						;-- compile series argument
-		;TBD: check if result is any-series!
+		emit-argument-type-check 1 'remove-each [stack/arguments + 1]
 
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
@@ -2363,6 +2398,7 @@ red: context [
 			natives/remove-each-next (either blk [length? blk][1])
 		]
 		pop-call
+		emit-close-frame
 		emit-close-frame
 	]
 	
@@ -2453,7 +2489,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
+	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule counter][
 		if pos: find spec /extern [
 			either end: any [
 				find next pos refinement!
@@ -2476,7 +2512,7 @@ red: context [
 			while [not tail? pos][
 				either all [
 					find [word! lit-word! get-word!] type?/word pos/1
-					any [
+					any [ 
 						find/part spec to lit-word! pos/1 loc
 						find/part spec to get-word! pos/1 loc
 					]
@@ -2514,11 +2550,12 @@ red: context [
 				| pos: word! (
 					if all [
 						find word-iterators pos/1
-						pos/2
+						counter: pos/2
 					][
 						foreach word any [
-							all [block? pos/2 pos/2]
-							reduce [pos/2]
+							all [block? counter counter]
+							all [any-word? counter reduce [counter]]
+							[]
 						] make-local
 					]
 				)
@@ -2747,8 +2784,14 @@ red: context [
 		clear mark
 		
 		body: pc/1
-		unless block? body [
-			throw-error "SWITCH expects a block as second argument"
+		if any [not block? body empty? body][
+			append output arg
+			comp-expression								;-- compile cases argument
+			if default? [comp-expression]				;-- optionally compile /default argument
+			emit-native/with 'switch reduce [pick [2 -1] to logic! default?]
+			emit-close-frame
+			pop-call
+			exit
 		]
 		list: make block! 4
 		cnt: 1
@@ -2783,7 +2826,7 @@ red: context [
 				cnt: cnt + 1
 			) skip]
 		]
-		unless empty? body [pc: next pc]
+		pc: next pc
 		
 		append list 'default							;-- process default case
 		either default? [
@@ -3101,22 +3144,24 @@ red: context [
 			]
 			
 			true-blk: compose/deep pick [
-				[[word/set-in	 (ctx) (index)]]
-				[[word/get-local (ctx) (index)]]
+				[[word/set-in-ctx (ctx) (index)]]
+				[[word/get-local  (ctx) (index)]]
 			] set?
 			
+			mark: none
 			either self? [
 				if all [not empty? locals-stack	container-obj?][
 					true-blk/1/2: 'octx
 				]
+				mark: tail output
 				emit first true-blk
 			][
 				emit compose [
 					either (emit-deep-check path fpath) (true-blk)
 				]
 			]
-			if all [set? obj/5][						;-- detect on-set callback 
-				insert clear last output compose [
+			if all [set? obj/5 obj/5/1 <> -1][			;-- detect on-set callback 
+				insert clear any [mark last output] compose [
 					stack/keep							;-- save new value
 					word/replace (ctx) (get-word-index/with last path ctx)	;-- push old, set new
 				]
@@ -3134,15 +3179,15 @@ red: context [
 					breaks: [-10 -7 -4 -1]				;-- word is in global context
 					[decorate-symbol path/1]
 				]
-				repend last output compose [
+				repend any [mark last output] compose [
 					fire
 						(parent)
 						decorate-exec-ctx decorate-symbol last path
 				]
-				append last output [
+				append any [mark last output][
 					stack/reset
 				]
-				foreach pos breaks [new-line skip tail last output pos yes]
+				foreach pos breaks [new-line skip tail any [mark last output] pos yes]
 			]
 		]
 		mark: tail output
@@ -3249,7 +3294,13 @@ red: context [
 				emit-open-frame name
 			]
 			current-call: call							;-- for error reporting
+			pos: pc
 			comp-arguments spec/3 spec/2				;-- fetch arguments
+			
+			if all [path? call none? spec/4][
+				pc: back pos
+				throw-error [call/1 "has no refinement"]
+			]
 			
 			either compact? [
 				refs: either spec/4 [
@@ -3677,6 +3728,7 @@ red: context [
 					][-3]
 					cnt: cnt + 1
 				)
+				| refinement! (cnt: cnt + 1)
 				| skip
 			]
 		]
@@ -3698,6 +3750,7 @@ red: context [
 			-negative?-	negative?
 			-max-		max
 			-min-		min
+			-zero?-     zero?
 		] name [
 			name: pos
 		]
@@ -3713,6 +3766,7 @@ red: context [
 						pos/1: 'type-check-opt
 						pos/2: pick spec select refs to refinement! next form pos/2
 						remove at pos 8
+						new-line pos yes
 					) 2 skip
 					| skip
 				]
@@ -3726,6 +3780,9 @@ red: context [
 	][
 		switch/default type?/word spec [
 			path! [
+				unless parse spec [some word!][
+					throw-error ["invalid #get argument:" spec]
+				]
 				set [obj fpath] object-access? spec
 				ctx: second obj: find objects obj
 				unless idx: get-word-index/with last spec ctx [return none]
@@ -4032,6 +4089,9 @@ red: context [
 					pop-call
 					if tail? pc [emit-dyn-check]
 				]
+				if all [root 'stack/reset <> last output][
+					emit-stack-reset					;-- clear stack from last root expression result
+				]
 				exit
 			]
 
@@ -4060,7 +4120,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[comp-next-block]
+			paren!		[comp-next-block root]
 			set-path!	[comp-path/set? root]
 			path! 		[comp-path root]
 		][
@@ -4085,10 +4145,23 @@ red: context [
 		]
 	]
 	
-	comp-next-block: func [/with blk /local saved][
+	comp-next-block: func [root? [logic!] /with blk /local saved pos][
 		saved: pc
 		pc: any [blk pc/1]
+		
 		comp-block
+		
+		unless root? [
+			case [
+				'stack/reset = last output [remove back tail output]
+				all [
+					comment-marker = pick tail output -2
+					'stack/reset = pick tail output -3
+				][
+					remove skip tail output -3
+				]
+			]
+		]
 		pc: next saved
 	]
 	
@@ -4263,7 +4336,7 @@ red: context [
 		foreach module needed [
 			saved: if script-path [copy script-path]
 			script-path: first split-path module
-			pc: next load-source/hidden module
+			pc: next preprocessor/expand load-source/hidden module job
 			unless job/red-help? [clear-docstrings pc]
 			comp-block
 			script-path: saved

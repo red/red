@@ -15,6 +15,8 @@ Red/System [
 	EVT_DISPATCH										;-- allow DispatchMessage call only
 ]
 
+paint: declare tagPAINTSTRUCT							;-- moved here from 'draw.reds'
+
 gui-evt: declare red-event!								;-- low-level event value slot
 gui-evt/header: TYPE_EVENT
 
@@ -202,8 +204,10 @@ get-event-key: func [
 					VK_RCONTROL	[_right-control]
 					VK_CAPITAL	[_caps-lock]
 					VK_NUMLOCK	[_num-lock]
-					VK_LMENU	[_left-menu]
-					VK_RMENU	[_right-menu]
+					VK_LMENU	[_left-alt]
+					VK_RMENU	[_right-alt]
+					VK_LWIN		[_left-command]
+					VK_RWIN		[_right-command]
 					default		[
 						either evt/type = EVT_KEY [none-value][
 							char: as red-char! stack/push*
@@ -242,7 +246,7 @@ get-event-key: func [
 				]
 			]
 		]
-		EVT_WHEEL [_mouse-wheel]
+		EVT_WHEEL [_wheel]
 		default [as red-value! none-value]
 	]
 ]
@@ -307,6 +311,7 @@ get-event-flags: func [
 	if evt/flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
 	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
 	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
+	if evt/flags and EVT_FLAG_MENU_DOWN  <> 0 [block/rs-append blk as red-value! _alt]
 	as red-value! blk
 ]
 
@@ -366,6 +371,7 @@ check-extra-keys: func [
 	key: 0
 	if (GetAsyncKeyState VK_CONTROL)  and 8000h <> 0 [key: EVT_FLAG_CTRL_DOWN]
 	if (GetAsyncKeyState VK_SHIFT)    and 8000h <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
+	if (GetAsyncKeyState VK_MENU)     and 8000h <> 0 [key: key or EVT_FLAG_MENU_DOWN]	;-- ALT key
 	
 	unless only? [
 		if (GetAsyncKeyState 01h) and 8000h <> 0 [key: key or EVT_FLAG_DOWN] 	   ;-- VK_LBUTTON
@@ -432,8 +438,14 @@ make-event: func [
 		]
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
-			if key = VK_PROCESSKEY [return EVT_DISPATCH] ;-- IME-friendly exit
-			special-key: either char-key? as-byte key [-1][map-left-right key msg/lParam]
+			if key = VK_PROCESSKEY [			;-- IME-friendly exit
+				if ime-open? [special-key: -1]
+				return EVT_DISPATCH
+			]
+			special-key: either any [
+				ime-open?
+				char-key? as-byte key
+			][-1][map-left-right key msg/lParam]
 			gui-evt/flags: key or check-extra-keys no
 		]
 		EVT_KEY_UP [
@@ -444,7 +456,15 @@ make-event: func [
 		EVT_KEY [
 			char: msg/wParam
 			key: check-extra-keys no
-			if key and EVT_FLAG_CTRL_DOWN <> 0 [char: char + 64]
+			if all [
+				key and EVT_FLAG_CTRL_DOWN <> 0
+				96 < char char < 123					;-- #"a" <= char <= #"z"
+			][char: char + 64 special-key: -1]
+			if any [
+				key and EVT_FLAG_SHIFT_DOWN <> 0
+				special-key = VK_LMENU
+				special-key = VK_RMENU
+			][special-key: -1]
 			gui-evt/flags: char or key
 		]
 		EVT_SELECT [
@@ -581,7 +601,10 @@ process-command-event: func [
 					current-msg/hWnd: child	  				;-- force Edit handle
 					make-event current-msg -1 EVT_CHANGE
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
-					if type/symbol = area [update-scrollbars child]
+					if type/symbol = area [
+						extend-area-limit child 16
+						update-scrollbars child
+					]
 				]
 			]
 			0
@@ -849,11 +872,15 @@ WndProc: func [
 	lParam	[integer!]
 	return: [integer!]
 	/local
+		target [int-ptr!]
+		this   [this!]
+		rt	   [ID2D1HwndRenderTarget]
 		res	   [integer!]
 		color  [integer!]
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
+		values [red-value!]
 		font   [red-object!]
 		draw   [red-block!]
 		brush  [handle!]
@@ -867,7 +894,8 @@ WndProc: func [
 		miniz? [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
-		w-type: (as red-word! get-face-values hWnd) + FACE_OBJ_TYPE
+		values: get-face-values hWnd
+		w-type: (as red-word! values) + FACE_OBJ_TYPE
 		symbol/resolve w-type/symbol
 	]
 	switch msg [
@@ -879,7 +907,7 @@ WndProc: func [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
-				offset: (as red-pair! get-face-values hWnd) + FACE_OBJ_OFFSET
+				offset: (as red-pair! values) + FACE_OBJ_OFFSET
 				pt/x: winpos/x - offset/x - pt/x
 				pt/y: winpos/y - offset/y - pt/y
 				update-layered-window hWnd null pt winpos -1
@@ -887,6 +915,17 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
+			if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
+				if target <> null [
+					this: as this! target/value
+					rt: as ID2D1HwndRenderTarget this/vtbl
+					color: WIN32_LOWORD(lParam)
+					res: WIN32_HIWORD(lParam)
+					rt/Resize this as tagSIZE :color
+					InvalidateRect hWnd null 1
+				]
+			]
 			if type = window [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
@@ -904,8 +943,10 @@ WndProc: func [
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
 
+					values: values + FACE_OBJ_STATE
 					if all [
 						msg = WM_SIZE
+						TYPE_OF(values) = TYPE_BLOCK
 						any [zero? win-state wParam = SIZE_MAXIMIZED]
 					][
 						make-event current-msg 0 EVT_SIZE
@@ -999,7 +1040,7 @@ WndProc: func [
 			return 0
 		]
 		WM_ERASEBKGND [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if any [
 				TYPE_OF(draw) = TYPE_BLOCK				;-- draw background in draw to avoid flickering
 				render-base hWnd as handle! wParam
@@ -1008,7 +1049,7 @@ WndProc: func [
 			]
 		]
 		WM_PAINT [
-			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
+			draw: (as red-block! values) + FACE_OBJ_DRAW
 			if TYPE_OF(draw) = TYPE_BLOCK [
 				either zero? GetWindowLong hWnd wc-offset - 4 [
 					do-draw hWnd null draw no yes yes yes
@@ -1068,13 +1109,15 @@ WndProc: func [
 		]
 		WM_CLOSE [
 			if type = window [
-				SetFocus hWnd									;-- force focus on the closing window,
-				current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
-				res: make-event current-msg 0 EVT_CLOSE
-				if res  = EVT_DISPATCH [return 0]				;-- continue
-				;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
-				if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
-				return 0
+				either -1 = GetWindowLong hWnd wc-offset - 4 [clean-up][
+					SetFocus hWnd									;-- force focus on the closing window,
+					current-msg/hWnd: hWnd							;-- prevents late unfocus event generation.
+					res: make-event current-msg 0 EVT_CLOSE
+					if res  = EVT_DISPATCH [return 0]				;-- continue
+					;if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
+					if res  = EVT_NO_DISPATCH [clean-up PostQuitMessage 0]	;-- stop
+					return 0
+				]
 			]
 		]
 		default [0]
@@ -1172,19 +1215,14 @@ process: func [
 						default  [res: make-event msg 0 EVT_KEY] ;-- force a KEY event
 					]
 				]
-			]	
+			]
 			res
 		]
 		WM_SYSKEYUP
 		WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 		WM_SYSKEYDOWN	[make-event msg 0 EVT_KEY_DOWN]
 		WM_CHAR
-		WM_DEADCHAR		[
-			if special-key = VK_LMENU [
-				special-key: -1							;-- we prefer the translate char here, for ALT Key Codes, e.g ALT+0169
-			]
-			make-event msg 0 EVT_KEY
-		]
+		WM_DEADCHAR		[make-event msg 0 EVT_KEY]
 		WM_LBUTTONDBLCLK [
 			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null

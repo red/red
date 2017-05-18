@@ -81,9 +81,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/get"]]
 		
-		copy-cell
-			as cell! _context/get word
-			stack/push*
+		stack/push _context/get word
 	]
 	
 	;-- Actions --

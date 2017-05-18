@@ -31,12 +31,12 @@ system/view/VID: context [
 	]
 	
 	process-reactors: function [][
-		foreach [f blk] reactors [
+		foreach [f blk later?] reactors [
 			either f [
 				bind blk ctx: context [face: f]
-				react/with blk ctx
+				either later? [react/later/with blk ctx][react/with blk ctx]
 			][
-				react blk
+				either later? [react/later blk][react blk]
 			]
 		]
 		clear reactors
@@ -122,7 +122,7 @@ system/view/VID: context [
 		]
 		obj: obj/:facet
 		
-		make logic! either blk: obj/:field [
+		make logic! either all [blk: obj/:field facet = 'font field = 'style] [
 			unless block? blk [obj/:field: blk: reduce [blk]]
 			alter blk flag
 		][
@@ -184,12 +184,11 @@ system/view/VID: context [
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
-				| 'no-wrap	  (opt?: add-flag opts 'para 'wrap? no)
+				| 'no-wrap	  (add-flag opts 'para 'wrap? no opt?: yes)
 				| 'focus	  (focal-face: face)
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
-				| 'react	  (append reactors reduce [face fetch-argument block! spec])
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
@@ -199,8 +198,13 @@ system/view/VID: context [
 				   opt [rate! 'now (opts/now?: yes spec: next spec)]
 				| 'default 	  (opts/data: add-option opts append copy [default: ] fetch-value spec: next spec)
 				| 'no-border  (set-flag opts 'flags 'no-border)
-				| 'scrollable  (set-flag opts 'flags 'scrollable)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
+				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
+				| 'init		  (opts/init: fetch-argument block! spec)
+				| 'react	  (
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [face fetch-argument block! spec later?]
+				)
 				] to end
 			]
 			unless match? [
@@ -245,10 +249,10 @@ system/view/VID: context [
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
-							][make-actor opts style/default-actor spec/1 spec]
+							][make-actor opts style/default-actor value spec]
 							yes
 						]
-						get-word! [make-actor opts style/default-actor spec/1 spec]
+						get-word! [make-actor opts style/default-actor value spec]
 						char!	  [yes]
 					][no]
 				]
@@ -330,7 +334,7 @@ system/view/VID: context [
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
-			rate: font: flags: options: para: data: extra: actors: draw: now?: none
+			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		
 		reset: [
@@ -373,7 +377,10 @@ system/view/VID: context [
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]
-				react	[repend reactors [none fetch-argument block! spec]]
+				react	[
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [none fetch-argument block! spec later?]
+				]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
@@ -403,6 +410,11 @@ system/view/VID: context [
 					value: copy style
 					parse value/template: body-of face [
 						some [remove [set-word! [none! | function!]] | skip]
+					]
+					if opts/init [
+						either value/init [append value/init opts/init][
+							reduce/into [to-set-word 'init opts/init] tail value
+						]
 					]
 					either pos: find local-styles name [pos/2: value][ 
 						reduce/into [name value] tail local-styles

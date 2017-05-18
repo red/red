@@ -24,6 +24,29 @@ add-base-handler: func [class [integer!]][
 	flipp-coord class
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
+	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
+	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
+
+	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
+	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
+	class_addMethod class sel_getUid "hasMarkedText" as-integer :has-marked-text "B@:"
+	class_addMethod class sel_getUid "markedRange" as-integer :marked-range "{_NSRange=ii}@:"
+	class_addMethod class sel_getUid "selectedRange" as-integer :selected-range "{_NSRange=ii}@:"
+	class_addMethod class sel_getUid "setMarkedText:selectedRange:replacementRange:" as-integer :set-marked-text "v@:@{_NSRange=ii}{_NSRange=ii}"
+	class_addMethod class sel_getUid "unmarkText" as-integer :unmark-text "v@:"
+	class_addMethod class sel_getUid "validAttributesForMarkedText" as-integer :valid-attrs-marked-text "@@:"
+	class_addMethod class sel_getUid "attributedSubstringForProposedRange:actualRange:" as-integer :attr-str-range "@@:{_NSRange=ii}^{_NSRange=ii}"
+	class_addMethod class sel_getUid "insertText:replacementRange:" as-integer :insert-text-range "v@:@{_NSRange=ii}"
+	class_addMethod class sel_getUid "characterIndexForPoint:" as-integer :char-idx-point "I@:{_NSPoint=ff}"
+	class_addMethod class sel_getUid "firstRectForCharacterRange:actualRange:" as-integer :first-rect-range "{_NSRect=ffff}@:{_NSRange=ii}^{_NSRange=ii}"
+	class_addMethod class sel_getUid "doCommandBySelector:" as-integer :do-cmd-selector "v@::"
+	class_addMethod class sel_getUid "windowLevel" as-integer :win-level "i@:"
+]
+
+add-scrollview-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "setNeedsDisplay:" as-integer :refresh-scrollview "v@:B"
+	class_addMethod class sel_getUid "_doScroller:" as-integer :scroller-change "v@:@"
+	class_addMethod class sel_getUid "reflectScrolledClipView:" as-integer :empty-func "@:@"
 ]
 
 win-add-subview: func [
@@ -117,6 +140,10 @@ add-filedialog-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "filter-filetype:" as-integer :filter-filetype-action "v@:@"
 ]
 
+add-text-layout-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "layoutManager:lineSpacingAfterGlyphAtIndex:withProposedLineFragmentRect:" as-integer :set-line-spacing "f@:@I{_NSRect=ffff}"
+]
+
 add-app-delegate: func [class [integer!]][
 	class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
@@ -143,7 +170,7 @@ make-super-class: func [
 ][
 	new-class: objc_allocateClassPair objc_getClass base new 0
 	if flags and EXTRA_DATA_FLAG <> 0 [
-		class_addIvar new-class IVAR_RED_DATA  4 2 "i"
+		class_addIvar new-class IVAR_RED_DATA 4 2 "i"
 	]
 	if flags and STORE_FACE_FLAG <> 0 [
 		class_addIvar new-class IVAR_RED_FACE 16 2 "{red-face=iiii}"
@@ -167,6 +194,9 @@ make-super-class: func [
 		add-method: as add-method! method
 		add-method new-class
 	]
+	if all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"][
+		class_addProtocol new-class objc_getProtocol "NSTextInputClient"
+	]
 	objc_registerClassPair new-class
 ]
 
@@ -174,7 +204,7 @@ register-classes: does [
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
 	make-super-class "RedView"			"NSView"				as-integer :flipp-coord			0
-	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG
+	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG or EXTRA_DATA_FLAG
 	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG
 	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	STORE_FACE_FLAG
 	make-super-class "RedSlider"		"NSSlider"				as-integer :add-slider-handler	STORE_FACE_FLAG
@@ -186,7 +216,9 @@ register-classes: does [
 	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG
 	make-super-class "RedOpenPanel"		"NSOpenPanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
 	make-super-class "RedSavePanel"		"NSSavePanel"			as-integer :add-filedialog-handler EXTRA_DATA_FLAG
+	make-super-class "RedScrollBase"	"NSScrollView"			as-integer :add-scrollview-handler STORE_FACE_FLAG
 	make-super-class "RedScrollView"	"NSScrollView"			0	STORE_FACE_FLAG
 	make-super-class "RedBox"			"NSBox"					0	STORE_FACE_FLAG
 	make-super-class "RedProgress"		"NSProgressIndicator"	0	STORE_FACE_FLAG
+	make-super-class "RedLayoutManager" "NSLayoutManager"		as-integer :add-text-layout-handler 0
 ]

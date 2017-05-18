@@ -215,19 +215,29 @@ typeset: context [
 		sets	[red-typeset!]
 		value	[red-value!]
 		/local
-			type [red-datatype!]
+			dt	 [red-datatype!]
 			id   [integer!]
 			bits [byte-ptr!]
 			pos	 [byte-ptr!]
+			src	 [int-ptr!]
+			dst	 [int-ptr!]
 	][
-		type: as red-datatype! value
-		if TYPE_OF(type) = TYPE_WORD [
-			type: as red-datatype! word/get as red-word! type
+		dt: as red-datatype! value
+		if TYPE_OF(dt) = TYPE_WORD [
+			dt: as red-datatype! word/get as red-word! dt
 		]
-		if TYPE_OF(type) <> TYPE_DATATYPE [
+		if TYPE_OF(dt) = TYPE_TYPESET [
+			dst: (as int-ptr! sets) + 1					;-- skip header
+			src: (as int-ptr! dt) + 1					;-- skip header
+			dst/1: dst/1 or src/1
+			dst/2: dst/2 or src/2
+			dst/3: dst/3 or src/3
+			exit
+		]
+		if TYPE_OF(dt) <> TYPE_DATATYPE [
 			fire [TO_ERROR(script invalid-arg) value]
 		]
-		id: type/value
+		id: dt/value
 		assert id < 96
 		bits: (as byte-ptr! sets) + 4					;-- skip header
 		BS_SET_BIT(bits id)

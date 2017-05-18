@@ -960,6 +960,7 @@ Red [
 		--assert "Xbab" = replace "abab" #"a" #"X"
 		--assert "XbXb" = replace/all "abab" #"a" #"X"
 		--assert "Xab" = replace "abab" "ab" "X"
+		--assert "abab" = replace/all "abab" #"a" #"a"
 
 	--test-- "replace-bin"
 		--assert #{FF0201} = replace #{010201} #{01} #{FF}

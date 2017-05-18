@@ -18,6 +18,7 @@ float: context [
 	#enum form-type! [
 		FORM_FLOAT_32
 		FORM_FLOAT_64
+		FORM_PERCENT_32
 		FORM_PERCENT
 		FORM_TIME
 	]
@@ -30,6 +31,7 @@ float: context [
 
 	DOUBLE_MAX: 0.0
 	+INF: 0.0											;-- rebol can't load INF, NaN
+	-INF: 0.0											;-- rebol can't load INF, NaN
 	QNaN: 0.0
 
 	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
@@ -38,6 +40,9 @@ float: context [
 
 	double-int-union: as int64! :+INF
 	double-int-union/int2: 7FF00000h
+	
+	double-int-union: as int64! :-INF
+	double-int-union/int2: FFF00000h
 
 	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
 	double-int-union/int2: 7FF80000h
@@ -89,8 +94,9 @@ float: context [
 			dot?	[logic!]
 			d		[int64!]
 			w0		[integer!]
-			pretty? [logic!]
 			temp	[float!]
+			pretty? [logic!]
+			percent? [logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -105,14 +111,15 @@ float: context [
 			return "1.#NaN"
 		]
 
+		percent?: any [type = FORM_PERCENT type = FORM_PERCENT_32]
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return either type = FORM_PERCENT ["0%"]["0.0"]]
+			if temp < DBL_EPSILON [return either percent? ["0%"]["0.0"]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
-			type = FORM_FLOAT_32 [
+			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
 				s/8: #"0"
 				s/9: #"0"
 				sprintf [s "%.7g" f]
@@ -129,11 +136,12 @@ float: context [
 			]
 		]
 
-		p:  null
-		p1: null
 		s0: s
 		until [
+			p:    null
+			p1:   null
 			dot?: no
+
 			until [
 				if s/1 = #"." [dot?: yes]
 				if s/1 = #"e" [
@@ -184,7 +192,6 @@ float: context [
 					]
 				]
 			]
-
 			s0 <> s
 		]
 
@@ -196,7 +203,7 @@ float: context [
 			s/1: #"^@"
 			p: p0
 		]
-		either type = FORM_PERCENT [
+		either percent? [
 			s/1: #"%"
 			s/2: #"^@"
 		][
@@ -226,8 +233,7 @@ float: context [
 			OP_MUL [left * right]
 			OP_DIV [
 				either all [0.0 = right not NaN? right][
-					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
+					either left >= 0.0 [+INF][-INF]
 				][
 					left / right
 				]
@@ -235,14 +241,14 @@ float: context [
 			OP_REM [
 				either all [0.0 = right not NaN? right][
 					fire [TO_ERROR(math zero-divide)]
-					0.0						;-- pass the compiler's type-checking
+					0.0									;-- pass the compiler's type-checking
 				][
 					left % right
 				]
 			]
 			default [
 				fire [TO_ERROR(script cannot-use) stack/get-call datatype/push TYPE_FLOAT]
-				0.0
+				0.0										;-- pass the compiler's type-checking
 			]
 		]
 	]
@@ -789,23 +795,17 @@ float: context [
 	]
 
 	even?: func [
-		int		[red-float!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;not as-logic float/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		not as-logic (as integer! fl/value) and 1
 	]
 
 	odd?: func [
-		int		[red-integer!]
+		fl		[red-float!]
 		return: [logic!]
 	][
-		;requires conversion to integer
-		;as-logic int/value and 1
-		--NOT_IMPLEMENTED--
-		false
+		as-logic (as integer! fl/value) and 1
 	]
 
 	#define FLOAT_TRUNC(x) [d: floor float/abs x either x < 0.0 [0.0 - d][d]]
@@ -838,7 +838,7 @@ float: context [
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
-				int/value: as-integer dec
+				int/value: as-integer dec + 0.5
 				int/header: TYPE_INTEGER
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
@@ -913,8 +913,8 @@ float: context [
 			:remainder
 			:round
 			:subtract
-			null			;even?
-			null			;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

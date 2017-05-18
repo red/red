@@ -216,7 +216,7 @@ paste-from-clipboard: func [
 		hMem: clipboard
 		p: paste-data
 	][
-		unless OpenClipboard GetParent vt/hwnd [return false]
+		unless OpenClipboard vt/hwnd [return false]
 		hMem: GetClipboardData CF_UNICODETEXT
 	]
 
@@ -389,7 +389,7 @@ ConsoleWndProc: func [
 		state	[integer!]
 		out		[ring-buffer!]
 		p-int	[int-ptr!]
-		limit	[red-integer!]
+		size	[red-pair!]
 		mbmp	[handle!]
 		saved	[handle!]
 		rc		[RECT_STRUCT]
@@ -447,8 +447,9 @@ ConsoleWndProc: func [
 			vt/win-h: WIN32_HIWORD(lParam)
 			vt/cols: vt/win-w - vt/pad-left / vt/char-w
 			vt/rows: vt/win-h / vt/char-h
-			limit: as red-integer! #get system/console/limit
-			limit/value: vt/cols - 13
+			size: as red-pair! #get system/console/size
+			size/x: vt/cols
+			size/y: vt/rows
 			OS-refresh vt null
 			return 0
 		]

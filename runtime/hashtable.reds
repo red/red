@@ -594,15 +594,10 @@ _hashtable: context [
 				TYPE_FILE
 				TYPE_URL
 				TYPE_TAG
-				TYPE_EMAIL	[_series/copy as red-series! key as red-series! key null yes null]
-				TYPE_BLOCK
-				TYPE_PAREN
-				TYPE_HASH
-				TYPE_PATH
-				TYPE_GET_PATH
-				TYPE_SET_PATH
-				TYPE_LIT_PATH [fire [TO_ERROR(script invalid-type) datatype/push x]]
-				default		[0]
+				TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
+				TYPE_INTEGER TYPE_CHAR TYPE_FLOAT
+				TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
+				default		[fire [TO_ERROR(script invalid-type) datatype/push x]]
 			]
 		]
 

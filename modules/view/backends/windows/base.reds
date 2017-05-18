@@ -10,6 +10,73 @@ Red/System [
 	}
 ]
 
+#define BASE_FACE_CLIPPED 1
+#define BASE_FACE_CARET   2
+
+init-base-face: func [
+	handle		[handle!]
+	parent		[integer!]
+	values		[red-value!]
+	alpha?		[logic!]
+	/local
+		pt		[tagPOINT]
+		offset	[red-pair!]
+		size	[red-pair!]
+		show?	[red-logic!]
+		opts	[red-block!]
+		word	[red-word!]
+		len		[integer!]
+		sym		[integer!]
+		flags	[integer!]
+		face [red-object!]
+][
+	offset: as red-pair! values + FACE_OBJ_OFFSET
+	size:	as red-pair! values + FACE_OBJ_SIZE
+	show?:	as red-logic! values + FACE_OBJ_VISIBLE?
+	opts:	as red-block! values + FACE_OBJ_OPTIONS
+
+	SetWindowLong handle wc-offset - 4 0
+	SetWindowLong handle wc-offset - 16 parent
+	SetWindowLong handle wc-offset - 20 0
+	SetWindowLong handle wc-offset - 24 0
+	either alpha? [
+		pt: as tagPOINT (as int-ptr! offset) + 2
+		unless win8+? [
+			pt: position-base handle as handle! parent offset
+		]
+		update-base handle as handle! parent pt values
+		if all [show?/value IsWindowVisible as handle! parent][
+			ShowWindow handle SW_SHOWNA
+		]
+		unless win8+? [
+			process-layered-region handle size offset null offset null yes
+		]
+	][
+		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+	]
+
+	if TYPE_OF(opts) = TYPE_BLOCK [
+		word: as red-word! block/rs-head opts
+		len: block/rs-length? opts
+		if len % 2 <> 0 [exit]
+		flags: GetWindowLong handle wc-offset - 12
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = caret [
+					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
+					face: as red-object! word + 1
+					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
+					update-caret handle values
+				]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+]
+
 position-base: func [
 	base	[handle!]
 	parent	[handle!]
@@ -95,7 +162,7 @@ render-text: func [
 		para	[red-object!]
 		color	[red-tuple!]
 		state	[red-block!]
-		int		[red-integer!]
+		handle	[red-handle!]
 		hFont	[handle!]
 		old		[integer!]
 		flags	[integer!]
@@ -122,9 +189,9 @@ render-text: func [
 			]
 			state: as red-block! values + FONT_OBJ_STATE
 			if TYPE_OF(state) = TYPE_BLOCK [
-				int: as red-integer! block/rs-head state
-				if TYPE_OF(int) = TYPE_INTEGER [
-					hFont: as handle! int/value
+				handle: as red-handle! block/rs-head state
+				if TYPE_OF(handle) = TYPE_HANDLE [
+					hFont: as handle! handle/value
 				]
 			]
 		]
@@ -154,15 +221,17 @@ clip-layered-window: func [
 	/local
 		rgn		[handle!]
 		child	[handle!]
+		flags	[integer!]
 ][
+	flags: GetWindowLong hWnd wc-offset - 12
 	either any [
 		not zero? x
 		not zero? y
 		size/x <> new-width
 		size/y <> new-height
-		1 = GetWindowLong hWnd wc-offset - 12
+		BASE_FACE_CLIPPED and flags <> 0
 	][
-		SetWindowLong hWnd wc-offset - 12 1
+		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
 		rgn: CreateRectRgn x y new-width new-height
 		SetWindowRgn hWnd rgn false
 		child: as handle! GetWindowLong hWnd wc-offset - 20
@@ -170,7 +239,7 @@ clip-layered-window: func [
 			rgn: CreateRectRgn x y new-width new-height
 			SetWindowRgn child rgn false
 		]
-	][SetWindowLong hWnd wc-offset - 12 0]
+	][SetWindowLong hWnd wc-offset - 12 flags and FFFFFFFEh]
 ]
 
 process-layered-region: func [
@@ -398,8 +467,11 @@ BaseWndProc: func [
 		rt		[ID2D1HwndRenderTarget]
 		flags	[integer!]
 		w		[integer!]
+		len		[integer!]
+		hfont	[handle!]
 		draw	[red-block!]
 		DC		[draw-ctx!]
+		font	[red-object!]
 ][
 	switch msg [
 		WM_MOUSEACTIVATE [
@@ -440,11 +512,11 @@ BaseWndProc: func [
 				]
 			][
 				system/thrown: 0
-				DC: _draw-ctx						;@@ should declare it on stack
+				DC: declare draw-ctx!				;@@ should declare it on stack
 				draw-begin DC hWnd null no yes
 				integer/make-at as red-value! draw as-integer DC
 				current-msg/hWnd: hWnd
-				make-event current-msg 0 EVT_DRAW
+				make-event current-msg 0 EVT_DRAWING
 				draw/header: TYPE_NONE
 				draw-end DC hWnd no no yes
 			]
@@ -467,6 +539,32 @@ BaseWndProc: func [
 			return 0
 		]
 		default [0]
+	]
+	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+		switch msg [
+			WM_IME_SETCONTEXT [
+				either zero? wParam [
+					ImmReleaseContext hWnd hIMCtx
+				][
+					hIMCtx: ImmGetContext hWnd
+				]
+			]
+			010Dh [							;-- WM_IME_STARTCOMPOSITION
+				ime-open?: yes
+				font: as red-object! (get-face-values hWnd) + FACE_OBJ_FONT
+				if TYPE_OF(font) = TYPE_OBJECT [
+					hfont: get-font-handle font 0
+					if hfont <> null [
+						GetObject hFont 92 as byte-ptr! ime-font
+						ImmSetCompositionFontW hIMCtx ime-font
+					]
+				]
+			]
+			010Eh [							;-- WM_IME_ENDCOMPOSITION
+				ime-open?: no
+			]
+			default [0]
+		]
 	]
 	DefWindowProc hWnd msg wParam lParam
 ]
@@ -518,7 +616,7 @@ update-base-text: func [
 		v-align [integer!]
 		h-align [integer!]
 		clr		[integer!]
-		int		[red-integer!]
+		handle	[red-handle!]
 		values	[red-value!]
 		color	[red-tuple!]
 		state	[red-block!]
@@ -539,9 +637,9 @@ update-base-text: func [
 
 		state: as red-block! values + FONT_OBJ_STATE
 		either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state
-			if TYPE_OF(int) = TYPE_INTEGER [
-				hFont: int/value
+			handle: as red-handle! block/rs-head state
+			if TYPE_OF(handle) = TYPE_HANDLE [
+				hFont: handle/value
 			]
 		][
 			hFont: as-integer make-font get-face-obj hWnd font
@@ -622,6 +720,11 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
+	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+		InvalidateRect hWnd null 0
+		exit
+	]
+
 	flags: GetWindowLong hWnd GWL_EXSTYLE
 	if zero? (flags and WS_EX_LAYERED) [
 		graphic: GetWindowLong hWnd wc-offset - 4

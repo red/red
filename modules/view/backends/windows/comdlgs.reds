@@ -94,6 +94,7 @@ OS-request-dir: func [
 	/local
 		buffer	[byte-ptr!]
 		ret		[integer!]
+		len		[integer!]
 		path	[red-value!]
 		str		[red-string!]
 		pbuf	[byte-ptr!]
@@ -110,7 +111,7 @@ OS-request-dir: func [
 
 	bInfo/hwndOwner: GetForegroundWindow
 	bInfo/lpszTitle: either TYPE_OF(title) = TYPE_STRING [unicode/to-utf16 title][null]
-	bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI or BIF_SHAREABLE
+	bInfo/ulFlags: BIF_RETURNONLYFSDIRS or BIF_USENEWUI
 	bInfo/lpfn: as-integer :req-dir-callback
 	bInfo/lParam: either keep? [dir-keep][as-integer pbuf]
 
@@ -121,10 +122,13 @@ OS-request-dir: func [
 			dir-keep: ret
 		]
 		SHGetPathFromIDList ret buffer
-		str: string/load as-c-string buffer lstrlen buffer UTF-16LE
-		string/append-char GET_BUFFER(str) as-integer #"/"
+		len: lstrlen buffer
+		str: string/load as-c-string buffer len UTF-16LE
+		if (string/rs-abs-at str len - 1) <> as-integer #"\" [
+			string/append-char GET_BUFFER(str) as-integer #"\"
+		]
 		str/header: TYPE_FILE
-		;;; #call [to-red-file str]
+		#call [to-red-file str]
 		stack/arguments
 	]
 	free buffer
@@ -184,7 +188,7 @@ OS-request-file: func [
 	files: as red-value! either zero? ret [none-value][
 		len: lstrlen buffer
 		str: string/load as-c-string buffer len UTF-16LE
-		;;; #call [to-red-file str]
+		#call [to-red-file str]
 		str: as red-string! stack/arguments
 		as red-value! either multi? [
 			pbuf: buffer + (len + 1 * 2)

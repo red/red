@@ -27,8 +27,6 @@ OS-image: context [
 
 	#define kCGImageFormatARGB				8194	;-- kCGImageAlphaPremultipliedFirst or kCGBitmapByteOrder32Little
 
-	#define kCFStringEncodingUTF8			08000100h
-
 	#import [
 		"/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices" cdecl [
 			CGImageDestinationCreateWithURL: "CGImageDestinationCreateWithURL" [

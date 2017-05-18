@@ -17,6 +17,7 @@ make-font: func [
 	/local
 		values	[red-value!]
 		int		[red-integer!]
+		handle	[red-handle!]
 		value	[red-value!]
 		bool	[red-logic!]
 		style	[red-word!]
@@ -116,12 +117,13 @@ make-font: func [
 		name
 	
 	either null? face [									;-- null => replace underlying GDI font object 
-		int: as red-integer! block/rs-head as red-block! values + FONT_OBJ_STATE
-		int/header: TYPE_INTEGER
-		int/value: as-integer hFont
+		handle: as red-handle! block/rs-head as red-block! values + FONT_OBJ_STATE
+		handle/header: TYPE_HANDLE
+		handle/value: as-integer hFont
 	][
 		blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
-		integer/make-in blk as-integer hFont
+		handle: as red-handle! integer/make-in blk as-integer hFont
+		handle/header: TYPE_HANDLE
 		none/make-in blk								;-- DWrite font
 
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
@@ -135,10 +137,10 @@ set-font: func [
 	face   [red-object!]
 	values [red-value!]
 	/local
-		font  [red-object!]
-		state [red-block!]
-		int	  [red-integer!]
-		hFont [handle!]
+		font   [red-object!]
+		state  [red-block!]
+		handle [red-handle!]
+		hFont  [handle!]
 ][
 	font: as red-object! values + FACE_OBJ_FONT
 	if TYPE_OF(font) <> TYPE_OBJECT [
@@ -148,8 +150,8 @@ set-font: func [
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	
 	hFont: as handle! either TYPE_OF(state) = TYPE_BLOCK [
-		int: as red-integer! block/rs-head state
-		int/value
+		handle: as red-handle! block/rs-head state
+		handle/value
 	][
 		make-font face font
 	]
@@ -162,13 +164,13 @@ get-font-handle: func [
 	return: [handle!]
 	/local
 		state  [red-block!]
-		int	   [red-integer!]
+		handle [red-handle!]
 ][
 	state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
-		int: (as red-integer! block/rs-head state) + idx
-		if TYPE_OF(int) = TYPE_INTEGER [
-			return as handle! int/value
+		handle: (as red-handle! block/rs-head state) + idx
+		if TYPE_OF(handle) = TYPE_HANDLE [
+			return as handle! handle/value
 		]
 	]
 	null
@@ -212,9 +214,10 @@ update-font: func [
 ]
 
 OS-request-font: func [
-	font	[red-object!]
-	mono?	[logic!]
-	return: [red-object!]
+	font	 [red-object!]
+	selected [red-object!]
+	mono?	 [logic!]
+	return:  [red-object!]
 	/local
 		values	[red-value!]
 		str		[red-string!]

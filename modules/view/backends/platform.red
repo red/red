@@ -38,7 +38,6 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
-				FACE_OBJ_CURSOR
 			]
 			
 			#enum facet-flag! [
@@ -65,13 +64,13 @@ system/view/platform: context [
 				FACET_FLAG_ACTOR:		00100000h
 				FACET_FLAG_EXTRA:		00200000h
 				FACET_FLAG_DRAW:		00400000h
-				FACET_FLAG_CURSOR:		00800000h
 			]
 			
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
-				FACET_FLAGS_SCROLLABLE: 00080000h
+				FACET_FLAGS_EDITABLE:	00040000h
+				FACET_FLAGS_SCROLLABLE:	00080000h
 
 				FACET_FLAGS_D2D:		00100000h
 
@@ -126,6 +125,7 @@ system/view/platform: context [
 			#enum scroller-facet! [
 				SCROLLER_OBJ_POS
 				SCROLLER_OBJ_PAGE
+				SCROLLER_OBJ_MIN
 				SCROLLER_OBJ_MAX
 				SCROLLER_OBJ_VISIBLE?
 				SCROLLER_OBJ_VERTICAL?
@@ -145,10 +145,11 @@ system/view/platform: context [
 				EVT_DBL_CLICK
 				EVT_WHEEL
 				EVT_OVER								;-- last mouse event
-				
+
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				EVT_IME
 				EVT_FOCUS
 				EVT_UNFOCUS
 				EVT_ENTER
@@ -169,11 +170,11 @@ system/view/platform: context [
 				EVT_MOVING
 				EVT_SIZING
 				EVT_TIME
-				EVT_DRAW
+				EVT_DRAWING
 				EVT_SCROLL
 			]
 			
-			#enum event-flag! [				
+			#enum event-flag! [
 				EVT_FLAG_AX2_DOWN:		00400000h
 				EVT_FLAG_AUX_DOWN:		00800000h
 				EVT_FLAG_ALT_DOWN:		01000000h
@@ -183,6 +184,7 @@ system/view/platform: context [
 				EVT_FLAG_DBL_CLICK:		10000000h
 				EVT_FLAG_CTRL_DOWN:		20000000h
 				EVT_FLAG_SHIFT_DOWN:	40000000h
+				EVT_FLAG_MENU_DOWN:		80000000h		;-- ALT key
 				;EVT_FLAG_KEY_SPECIAL:	80000000h		;@@ deprecated
 			]
 
@@ -250,12 +252,12 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
-			
+			caret:			symbol/make "caret"
+
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
-			popup:			symbol/make "popup"
 			
 			ClearType:		symbol/make "ClearType"
 			_bold:			symbol/make "bold"
@@ -279,20 +281,14 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
+			editable:		symbol/make "editable"
 
 			Direct2D:		symbol/make "Direct2D"
 
 			_arrow:			symbol/make "arrow"
-			_cross:			symbol/make "cross"
 			_hand:			symbol/make "hand"
 			_help:			symbol/make "help"
 			_I-beam:		symbol/make "I-beam"
-			_no:			symbol/make "no"
-			_wait:			symbol/make "wait"
-			_resize-ns:		symbol/make "resize-ns"
-			_resize-we:		symbol/make "resize-we"
-			_resize-nesw:	symbol/make "resize-nesw"
-			_resize-nwse:	symbol/make "resize-nwse"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
@@ -301,6 +297,7 @@ system/view/platform: context [
 			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
+			_alt:			word/load "alt"
 			_away:			word/load "away"
 			_down:			word/load "down"
 			_up:			word/load "up"
@@ -317,6 +314,7 @@ system/view/platform: context [
 			_key:			word/load "key"
 			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			_ime:			word/load "ime"
 			_focus:			word/load "focus"
 			_unfocus:		word/load "unfocus"
 			_select:		word/load "select"
@@ -334,10 +332,9 @@ system/view/platform: context [
 			_two-tap:		word/load "two-tap"
 			_press-tap:		word/load "press-tap"
 			_time:			word/load "time"
-			_draw:			word/load "draw"
+			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
 
-			_mouse-wheel:	word/load "mouse-wheel"
 			_track:			word/load "track"
 			_page-left:		word/load "page-left"
 			_page-right:	word/load "page-right"
@@ -369,10 +366,14 @@ system/view/platform: context [
 			_right-control:	word/load "right-control"
 			_left-alt:		word/load "left-alt"
 			_right-alt:		word/load "right-alt"
+			_left-menu:		word/load "left-menu"
+			_right-menu:	word/load "right-menu"
 			_left-command:	word/load "left-command"
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
+
+			_dpi:			word/load "DPI"
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -380,7 +381,7 @@ system/view/platform: context [
 			][
 				as red-value! switch evt/type [
 					EVT_TIME		 [_time]
-					EVT_DRAW		 [_draw]
+					EVT_DRAWING		 [_drawing]
 					EVT_SCROLL		 [_scroll]
 					EVT_LEFT_DOWN	 [_down]
 					EVT_LEFT_UP		 [_up]
@@ -397,6 +398,7 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
+					EVT_IME			 [_ime]
 					EVT_FOCUS		 [_focus]
 					EVT_UNFOCUS		 [_unfocus]
 					EVT_SELECT	 	 [_select]
@@ -425,7 +427,7 @@ system/view/platform: context [
 				sym: symbol/resolve word/symbol
 				case [
 					sym = _time/symbol			[sym: EVT_TIME]
-					sym = _draw/symbol			[sym: EVT_DRAW]
+					sym = _drawing/symbol		[sym: EVT_DRAWING]
 					sym = _scroll/symbol		[sym: EVT_SCROLL]
 					sym = _down/symbol			[sym: EVT_LEFT_DOWN]
 					sym = _up/symbol			[sym: EVT_LEFT_UP]
@@ -442,6 +444,7 @@ system/view/platform: context [
 					sym = _key/symbol			[sym: EVT_KEY]
 					sym = _key-down/symbol		[sym: EVT_KEY_DOWN]
 					sym = _key-up/symbol		[sym: EVT_KEY_UP]
+					sym = _ime/symbol			[sym: EVT_IME]
 					sym = _focus/symbol			[sym: EVT_FOCUS]
 					sym = _unfocus/symbol		[sym: EVT_UNFOCUS]
 					sym = _select/symbol		[sym: EVT_SELECT]
@@ -500,17 +503,23 @@ system/view/platform: context [
 					x			[float32!]
 					return:		[float32!]
 				]
+				sqrtf:		"sqrtf" [
+					x			[float32!]
+					return:		[float32!]
+				]
 			]]
 
 			;#include %android/gui.reds
 			#switch OS [
 				Windows  [#include %windows/gui.reds]
 				MacOSX   [#include %osx/gui.reds]
-				Android  []
-				#default [#include %gtk3/gui.reds]					;-- Linux
+				Linux	 [#include %gtk3/gui.reds]
+				#default []
 			]
 		]
 	]
+	
+	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [
 		id		[integer!]
@@ -590,21 +599,22 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	refresh-window: routine [hwnd [integer!]][
-		gui/OS-refresh-window hwnd
+	refresh-window: routine [h [handle!]][
+		gui/OS-refresh-window h/value
 	]
 
-	redraw: routine [hwnd [integer!]][
-		gui/OS-redraw hwnd
+	redraw: routine [face [object!] /local h [integer!]][
+		h: as-integer gui/face-handle? face
+		if h <> 0 [gui/OS-redraw h]
 	]
 
-	show-window: routine [id [integer!]][
-		gui/OS-show-window id
+	show-window: routine [id [handle!]][
+		gui/OS-show-window id/value
 		SET_RETURN(none-value)
 	]
 
-	make-view: routine [face [object!] parent [integer!] return: [integer!]][
-		gui/OS-make-view face parent
+	make-view: routine [face [object!] parent [handle!]][
+		handle/box gui/OS-make-view face parent/value
 	]
 
 	draw-image: routine [image [image!] cmds [block!]][
@@ -620,14 +630,6 @@ system/view/platform: context [
 		bool: as red-logic! stack/arguments
 		bool/header: TYPE_LOGIC
 		bool/value:  gui/do-events no-wait?
-	]
-
-	exit-event-loop: routine [][
-		#switch OS [
-			Windows  [gui/PostQuitMessage 0]
-			MacOSX   [0]
-			#default [0]
-		]
 	]
 
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][
@@ -664,11 +666,8 @@ system/view/platform: context [
 		state	[block!]
 		arg0	[any-type!]
 		type	[integer!]
-		/local
-			int [red-integer!]
 	][
-		int: as red-integer! block/rs-head state
-		stack/set-last gui/OS-text-box-metrics as handle! int/value arg0 type
+		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 
 	update-scroller: routine [scroller [object!] flags [integer!]][
@@ -676,18 +675,30 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svs fonts][
-		#system [gui/init]
-		
-		system/view/metrics/dpi: 94						;@@ Needs to be calculated
+	init: func [/local svs fonts m][
+		system/view/metrics: m: make map! 32
 		system/view/screens: svs: make block! 6
-		
+
+		#system [gui/init]
+
+		#switch config/OS [
+			Windows [
+				m/button: [1x1 1x1]		;-- top right buttom left
+			]
+			MacOSX [
+				m/button: [4x6 7x6]
+			]
+			#default [
+				m/button: [1x1 1x1]
+			]
+		]
+
 		append svs make face! [							;-- default screen
 			type:	'screen
 			offset: 0x0
 			size:	get-screen-size 0
 			pane:	make block! 4
-			state:	reduce [0 0 none copy [1]]
+			state:	reduce [make-null-handle 0 none copy [1]]
 		]
 		
 		set fonts:

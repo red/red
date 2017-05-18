@@ -20,7 +20,7 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 2. In a code or text editor, write the following Hello World program:
 
         Red [
-        	Title: "Simple hello world script"
+            Title: "Simple hello world script"
         ]
 
         print "Hello World!"
@@ -38,27 +38,29 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
         $ red -c hello.red
         $ ./hello
 
-7. Want to cross-compile to another supported platform?
+7. Want to generate a compiled executable from that program with no dependencies?
 
-        $ red -c -t Windows hello.red
-        $ red -c -t Darwin hello.red
-        $ red -c -t Linux-ARM hello.red
+        $ red -r hello.red
+        $ ./hello
 
-**The command-line options are:**
+8. Want to cross-compile to another supported platform?
 
-    red [options] [file]
+        $ red -t Windows hello.red
+        $ red -t Darwin hello.red
+        $ red -t Linux-ARM hello.red
 
-**[file]**
+**The command-line syntax is:**
 
-Any Red or Red/System source file. If no file and no option is provided, the graphical console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (*it is expected to be a Red script with no Red/System code*).
+    red [command] [options] [file]
 
-**[options]**
+`[file]` any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
+Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
 
-    -c, --compile                  : Forces generation of an executable in
-                                     the working folder.
+`[options]`
+
+    -c, --compile                  : Generate an executable in the working
+                                     folder, using libRedRT. (developement mode)
 
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
@@ -71,21 +73,46 @@ Any Red or Red/System source file. If no file and no option is provided, the gra
     -o <file>, --output <file>     : Specify a non-default [path/][name] for
                                      the generated binary file.
 
-    -r, --no-runtime               : Do not include runtime during Red/System
-                                     source compilation.
+    -r, --release                  : Compile in release mode, linking everything
+                                     together (default: development mode).
+
+    -s, --show-expanded            : Output result of Red source code expansion by
+                                     the preprocessor.
 
     -t <ID>, --target <ID>         : Cross-compile to a different platform
                                      target than the current one (see targets
                                      table below).
 
+    -u, --update-libRedRT          : Rebuild libRedRT and compile the input script
+                                      (only for Red scripts with R/S code).
+
     -v <level>, --verbose <level>  : Set compilation verbosity level, 1-3 for
                                      Red, 4-11 for Red/System.
 
-    -V, --version                  : Output binary version string.
+    -V, --version                  : Output Red's executable version in x.y.z
+                                     format.
+
+    --config [...]                 : Provides compilation settings as a block
+                                     of `name: value` pairs.
+
+    --cli                          : Run the command-line REPL instead of the
+                                     graphical console.
+
+    --no-runtime                   : Do not include runtime during Red/System
+                                     source compilation.
 
     --red-only                     : Stop just after Red-level compilation.
                                      Use higher verbose level to see compiler
                                      output. (internal debugging purpose)
+                                     
+
+`[command]`
+
+    build libRed [stdcall]         : Builds libRed library and unpacks the 
+                                     libRed/ folder locally.
+
+    clear [<path>]                 : Delete all temporary files from current
+                                     or target <path> folder.
 
 Cross-compilation targets:
 
@@ -97,9 +124,9 @@ Cross-compilation targets:
     RPi          : GNU/Linux, ARMv5, armhf (hard-float)
     Darwin       : MacOSX Intel, console-only applications
     Syllable     : Syllable OS, x86
-    FreeBSD		 : FreeBSD, x86
+    FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
-    Android-x86	 : Android, x86
+    Android-x86  : Android, x86
 
 _Note_: Running the Red toolchain binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547).
 
@@ -131,7 +158,7 @@ Notes:
 - Wine has some [issues](https://github.com/red/red/issues/1618) with the GUI-Console. Install the `Consolas` font to fix the problem.
 
 
-Running Red from the sources
+Running Red from the sources (for contributors)
 ------------------------
 The compiler and linker are currently written in Rebol. Please follow the instructions for installing the compiler toolchain in order to run it from sources:
 
@@ -155,9 +182,10 @@ To see the intermediary Red/System code generated by the compiler, use:
 
 You can also compile the Red console from source:
 
-        >> do/args %red.r "%environment/console/console.red"
+        >> do/args %red.r "-r %environment/console/console.red"
 
 Note: the `-c` argument is not necessary when launching the Red toolchain from sources, as the default action is to compile the input script (the binary form default action is run the input script through the interpretor).
+The `-r` argument is needed when compiling the Red console to make additional runtime functions available.
 
 Contributing
 -------------------------

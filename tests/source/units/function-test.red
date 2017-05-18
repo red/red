@@ -296,13 +296,13 @@ Red [
 	--test-- "fun-ref-2"
 		blk: clean-strings spec-of :append	
 		--assert blk = [
-			series [series! bitset! map!] value [any-type!] /part length [number! series!]
-			/only /dup count [number!] return: [series! bitset! map!]
+			series [series! bitset!] value [any-type!] /part length [number! series!]
+			/only /dup count [number!] return: [series! bitset!]
 		]
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block! object! path! map!] value [any-type!] /any /case /only /some return: [any-type!]]
+		--assert blk = [word [any-word! block! object! path!] value [any-type!] /any /case /only /some return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<

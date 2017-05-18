@@ -7,6 +7,6 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.redlang.$Red-App-Name$</string>
+	<string>org.redlang.$Red-App-Name$</string>
 </dict>
 </plist>

@@ -323,3 +323,10 @@ red-time!: alias struct! [
 	padding	[integer!]								;-- for compatibility with date!
 	time	[float!]								;-- 64-bit float
 ]
+
+red-handle!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	value	[integer!]								;-- 32-bit signed integer value
+	_pad	[integer!]	
+]

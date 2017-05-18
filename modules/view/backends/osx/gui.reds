@@ -24,11 +24,14 @@ Red/System [
 #include %tab-panel.reds
 #include %comdlgs.reds
 
+win-cnt:		0
+loop-started?:	no
+close-window?:	no
+
 NSApp:			0
 NSAppDelegate:	0
 AppMainMenu:	0
 
-nswindow-cnt:	0
 current-widget: 0			;-- for mouse tracking: mouseEnter, mouseExit
 
 default-font:	0
@@ -36,6 +39,17 @@ log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
+mac-version:	0
+
+;-- for IME support
+in-composition?: no
+ime-str-styles: as red-block! 0
+caret-w:		as float32! 0.0
+caret-h:		as float32! 0.0
+caret-x:		as float32! 0.0
+caret-y:		as float32! 0.0
+
+win-array:		declare red-vector!
 
 red-face?: func [
 	handle	[integer!]
@@ -91,7 +105,7 @@ face-handle?: func [
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	if TYPE_OF(state) = TYPE_BLOCK [
 		int: as red-integer! block/rs-head state
-		if TYPE_OF(int) = TYPE_INTEGER [return as handle! int/value]
+		if TYPE_OF(int) = TYPE_HANDLE [return as handle! int/value]
 	]
 	null
 ]
@@ -106,7 +120,7 @@ get-face-handle: func [
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
 	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_INTEGER
+	assert TYPE_OF(int) = TYPE_HANDLE
 	int/value
 ]
 
@@ -163,7 +177,8 @@ get-text-size: func [
 ]
 
 free-handles: func [
-	hWnd [integer!]
+	hWnd	[integer!]
+	force?	[logic!]
 	/local
 		values [red-value!]
 		type   [red-word!]
@@ -181,6 +196,12 @@ free-handles: func [
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 
+	if all [sym = window not force?][
+		close-window?: yes
+		vector/rs-append-int win-array hWnd
+		exit
+	]
+
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
 
@@ -190,13 +211,14 @@ free-handles: func [
 		tail: as red-object! block/rs-tail pane
 		while [face < tail][
 			handle: as-integer face-handle? face
-			if handle <> 0 [free-handles handle]
+			if handle <> 0 [free-handles handle force?]
 			face: face + 1
 		]
 	]
 
 	either sym = window [
 		objc_msgSend [hWnd sel_getUid "close"]
+		win-cnt: win-cnt - 1
 	][
 		objc_msgSend [hWnd sel_getUid "removeFromSuperview"]
 	]
@@ -220,8 +242,9 @@ get-os-version: func [
 	Gestalt gestaltSystemVersionMinor :minor
 	Gestalt gestaltSystemVersionBugFix :bugfix
 
-	ver: as red-tuple! #get system/view/platform/version
+	mac-version: major * 100 + minor
 
+	ver: as red-tuple! #get system/view/platform/version
 	ver/header: TYPE_TUPLE or (3 << 19)
 	ver/array1: bugfix << 16 or (minor << 8) or major
 
@@ -241,6 +264,15 @@ set-defaults: func [][
 	objc_msgSend [default-font sel_getUid "retain"]
 ]
 
+set-metrics: func [
+	/local
+		m	[red-hash!]
+		blk [red-block!]
+][
+	m: as red-hash! #get system/view/metrics
+	map/put m as red-value! _dpi as red-value! integer/push log-pixels-x no
+]
+
 init: func [
 	/local
 		screen	 [integer!]
@@ -248,8 +280,15 @@ init: func [
 		pool	 [integer!]
 		delegate [integer!]
 		lib		 [integer!]
+		dict	 [integer!]
+		y		 [integer!]
+		x		 [integer!]
+		sz		 [NSSize!]
+		dpi		 [integer!]
+		scaling  [float32!]
 		p-int	 [int-ptr!]
 ][
+	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
 	init-selectors
 
 	NSApp: objc_msgSend [objc_getClass "NSApplication" sel_getUid "sharedApplication"]
@@ -267,15 +306,39 @@ init: func [
 
 	create-main-menu
 
+	;dlopen "./FScript.framework/FScript" 1
+	;objc_msgSend [
+	;	objc_msgSend [NSApp sel_getUid "mainMenu"]
+	;	sel_getUid "addItem:"
+	;	objc_msgSend [objc_msgSend [objc_getClass "FScriptMenuItem" sel_alloc] sel_init]
+	;]
+
 	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
 	rect: as NSRect! (as int-ptr! screen) + 1
 	screen-size-x: as-integer rect/w
 	screen-size-y: as-integer rect/h
 
+	dict: objc_msgSend [screen sel_getUid "deviceDescription"]
+	dpi: objc_msgSend [dict sel_getUid "objectForKey:" NSDeviceResolution]
+
+	x: objc_msgSend [dpi sel_getUid "sizeValue"]
+	y: system/cpu/edx
+	sz: as NSSize! :x
+
+	scaling: as float32! 1.0
+	if mac-version >= 1070 [
+		scaling: objc_msgSend_f32 [screen sel_getUid "backingScaleFactor"]
+	]
+
+	log-pixels-x: as-integer sz/w / scaling
+	log-pixels-y: as-integer sz/h / scaling
+
 	set-defaults
 
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
 	objc_msgSend [NSApp sel_getUid "finishLaunching"]
+
+	set-metrics
 ]
 
 set-logic-state: func [
@@ -317,7 +380,7 @@ get-flags: func [
 		default [return 0]
 	]
 	flags: 0
-	
+
 	until [
 		sym: symbol/resolve word/symbol
 		case [
@@ -330,6 +393,9 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
+			sym = editable	 [flags: flags or FACET_FLAGS_EDITABLE]
+			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
+			sym = Direct2D	 [0]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -465,6 +531,11 @@ change-size: func [
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		object_getInstanceVariable hWnd IVAR_RED_DATA :type
+		if type = caret [
+			caret-w: rc/x
+			caret-h: rc/y
+		]
 	]
 ]
 
@@ -589,6 +660,7 @@ change-font: func [
 	face	[red-object!]
 	font	[red-object!]
 	type	[integer!]
+	return: [logic!]
 	/local
 		values	[red-value!]
 		nscolor	[integer!]
@@ -598,10 +670,10 @@ change-font: func [
 		view	[integer!]
 		storage [integer!]
 ][
-	if TYPE_OF(font) <> TYPE_OBJECT [exit]
+	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
 	attrs: make-font-attrs font face type
-	objc_msgSend [attrs sel_getUid "autorelease"]
+	;objc_msgSend [attrs sel_getUid "autorelease"]
 
 	either type = area [
 		view: objc_msgSend [hWnd sel_getUid "documentView"]
@@ -623,7 +695,7 @@ change-font: func [
 			]
 		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
-		if TYPE_OF(values) <> TYPE_STRING [exit]			;-- accept any-string! ?
+		if TYPE_OF(values) <> TYPE_STRING [return no]			;-- accept any-string! ?
 
 		title: to-NSString as red-string! values
 		str: objc_msgSend [
@@ -639,8 +711,8 @@ change-font: func [
 			]
 			true [0]
 		]
-		objc_msgSend [title sel_getUid "release"]
 	]
+	yes
 ]
 
 change-offset: func [
@@ -652,9 +724,17 @@ change-offset: func [
 ][
 	rc: make-rect pos/x pos/y 0 0
 	either type = window [
+		rc/y: as float32! screen-size-y - pos/y
 		objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
 	][
 		objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
+		unless in-composition? [
+			object_getInstanceVariable hWnd IVAR_RED_DATA :type
+			if type = caret [
+				caret-x: rc/x
+				caret-y: rc/y
+			]
+		]
 	]
 ]
 
@@ -668,7 +748,13 @@ change-visible: func [
 			objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
 			objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
 		]
-		type = window [0]
+		type = window [
+			either show? [
+				objc_msgSend [hWnd sel_getUid "makeKeyAndOrderFront:" hWnd]
+			][
+				objc_msgSend [hWnd sel_getUid "orderOut:" hWnd]
+			]
+		]
 		true [objc_msgSend [hWnd sel_getUid "setHidden:" not show?]]
 	]
 ]
@@ -676,6 +762,7 @@ change-visible: func [
 change-text: func [
 	hWnd	[integer!]
 	values	[red-value!]
+	face	[red-object!]
 	type	[integer!]
 	/local
 		len  [integer!]
@@ -694,25 +781,29 @@ change-text: func [
 		TYPE_NONE	[""]
 		default		[null]									;@@ Auto-convert?
 	]
-	unless null? cstr [
-		txt: CFString(cstr)
-		case [
-			type = area [
-				objc_msgSend [
-					objc_msgSend [hWnd sel_getUid "documentView"]
-					sel_getUid "setString:" txt
-				]
-			]
-			any [type = field type = text][
-				objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
-			]
-			any [type = button type = radio type = check] [
-				objc_msgSend [hWnd sel_getUid "setTitle:" txt]
-			]
-			true [0]
+
+	if null? cstr [exit]
+	
+	txt: CFString(cstr)
+	either type = area [
+		objc_msgSend [
+			objc_msgSend [hWnd sel_getUid "documentView"]
+			sel_getUid "setString:" txt
 		]
-		CFRelease txt
+	][
+		unless change-font hWnd face as red-object! values + FACE_OBJ_FONT type [
+			case [
+				any [type = field type = text][
+					objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
+				]
+				any [type = button type = radio type = check] [
+					objc_msgSend [hWnd sel_getUid "setTitle:" txt]
+				]
+				true [0]
+			]
+		]
 	]
+	CFRelease txt
 ]
 
 change-data: func [
@@ -731,7 +822,7 @@ change-data: func [
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: word/symbol
-	
+
 	case [
 		all [
 			type = progress
@@ -765,7 +856,7 @@ change-data: func [
 			objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
 		]
 		any [type = drop-list type = drop-down][
-			init-combo-box 
+			init-combo-box
 				hWnd
 				as red-block! data
 				null
@@ -916,7 +1007,7 @@ init-combo-box: func [
 	][
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
-		
+
 		objc_msgSend [combo sel_getUid "removeAllItems"]
 
 		if str = tail [exit]
@@ -1002,6 +1093,77 @@ init-window: func [
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
 	objc_msgSend [window sel_getUid "makeMainWindow"]
+]
+
+transparent-base?: func [
+	color	[red-tuple!]
+	return: [logic!]
+][
+	either all [
+		TYPE_OF(color) = TYPE_TUPLE
+		TUPLE_SIZE?(color) = 3
+	][false][true]
+]
+
+init-base-face: func [
+	face	[red-object!]
+	hwnd	[integer!]
+	menu	[red-block!]
+	size	[red-pair!]
+	values	[red-value!]
+	bits	[integer!]
+	/local
+		color	[red-tuple!]
+		opts	[red-block!]
+		word	[red-word!]
+		id		[integer!]
+		obj		[integer!]
+		sym		[integer!]
+		len		[integer!]
+		rc		[NSRect!]
+][
+	color: as red-tuple! values + FACE_OBJ_COLOR
+	opts: as red-block! values + FACE_OBJ_OPTIONS
+
+	either bits and FACET_FLAGS_SCROLLABLE <> 0 [
+		rc: make-rect 0 0 size/x size/y
+		id: objc_getClass "RedBase"
+		obj: objc_msgSend [
+			objc_msgSend [id sel_getUid "alloc"]
+			sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h
+		]
+		store-face-to-obj obj id face
+
+		objc_msgSend [obj sel_getUid "setAutoresizingMask:" NSViewWidthSizable or NSViewHeightSizable]
+		objc_msgSend [hwnd sel_getUid "setHasVerticalScroller:" yes]
+		objc_msgSend [hwnd sel_getUid "setHasHorizontalScroller:" yes]
+		objc_msgSend [hwnd sel_getUid "setDocumentView:" obj]
+	][
+		obj: hwnd
+	]
+
+	object_setInstanceVariable obj IVAR_RED_DATA base					;-- set a flag as we handle keyboard event differently in base face
+
+	if TYPE_OF(opts) = TYPE_BLOCK [
+		word: as red-word! block/rs-head opts
+		len: block/rs-length? opts
+		if len % 2 <> 0 [exit]
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = caret [
+					object_setInstanceVariable obj IVAR_RED_DATA caret	;-- overwrite extra RED_DATA
+					change-offset obj as red-pair! values + FACE_OBJ_OFFSET base
+				]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+
+	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
+	if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
 ]
 
 make-area: func [
@@ -1119,7 +1281,7 @@ update-combo-box: func [
 					sym = words/_clear/symbol
 				][
 					ownership/unbind-each as red-block! value index part
-					
+
 					either all [
 						sym = words/_clear/symbol
 						zero? index
@@ -1139,7 +1301,7 @@ update-combo-box: func [
 					sym = words/_reverse/symbol
 				][
 					;ownership/unbind-each as red-block! value index part
-					
+
 					str: as red-string! either any [
 						null? new
 						TYPE_OF(new) = TYPE_BLOCK
@@ -1176,52 +1338,101 @@ update-scroller: func [
 		vertical?	[red-logic!]
 		int			[red-integer!]
 		values		[red-value!]
-		hWnd		[handle!]
-		nTrackPos	[integer!]
-		nPos		[integer!]
-		nPage		[integer!]
-		nMax		[integer!]
-		nMin		[integer!]
-		fMask		[integer!]
-		cbSize		[integer!]
+		container	[integer!]
+		bar			[integer!]
+		range		[integer!]
+		sel			[integer!]
+		pos			[integer!]
+		page		[integer!]
+		min			[integer!]
+		max			[integer!]
+		n			[integer!]
+		frac		[float!]
+		old-frac	[float!]
+		knob		[float32!]
+		pf32		[pointer! [float32!]]
+		old-knob	[float32!]
 ][
-	;values: object/get-values scroller
-	;parent: as red-object! values + SCROLLER_OBJ_PARENT
-	;vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
-	;int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
-	;hWnd: as handle! int/value
+	values: object/get-values scroller
+	parent: as red-object! values + SCROLLER_OBJ_PARENT
+	vertical?: as red-logic! values + SCROLLER_OBJ_VERTICAL?
+	int: as red-integer! block/rs-head as red-block! (object/get-values parent) + FACE_OBJ_STATE
+	container: int/value
 
-	;int: as red-integer! values + flag
+	if flag = SCROLLER_OBJ_VISIBLE? [
+		int: as red-integer! values + SCROLLER_OBJ_VISIBLE?
+		sel: either vertical?/value [sel_getUid "setHasVerticalScroller:"][sel_getUid "setHasHorizontalScroller:"]
+		objc_msgSend [container sel int/value]
+		exit
+	]
 
-	;if flag = SCROLLER_OBJ_VISIBLE? [
-	;	ShowScrollBar hWnd as-integer vertical?/value as logic! int/value
-	;	exit
-	;]
+	sel: either vertical?/value [sel_getUid "verticalScroller"][sel_getUid "horizontalScroller"]
+	bar: objc_msgSend [container sel]
 
-	;fMask: switch flag [
-	;	SCROLLER_OBJ_POS [nPos: int/value SIF_POS]
-	;	SCROLLER_OBJ_PAGE
-	;	SCROLLER_OBJ_MAX [
-	;		int: as red-integer! values + SCROLLER_OBJ_PAGE
-	;		nPage: int/value
-	;		int: as red-integer! values + SCROLLER_OBJ_MAX
-	;		nMin: 1
-	;		nMax: int/value
-	;	 	SIF_RANGE or SIF_PAGE
-	;	]
-	;	default [0]
-	;]
+	int: as red-integer! values + SCROLLER_OBJ_POS
+	pos: int/value
+	int: as red-integer! values + SCROLLER_OBJ_PAGE
+	page: int/value
+	int: as red-integer! values + SCROLLER_OBJ_MIN
+	min: int/value
+	int: as red-integer! values + SCROLLER_OBJ_MAX
+	max: int/value
 
-	;if fMask <> 0 [
-	;	fMask: fMask or SIF_DISABLENOSCROLL
-	;	cbSize: size? tagSCROLLINFO
-	;	SetScrollInfo hWnd as-integer vertical?/value as tagSCROLLINFO :cbSize yes
-	;]
+	n: objc_getAssociatedObject bar RedAttachedWidgetKey
+	if any [
+		zero? n
+		values <> as red-value! objc_msgSend [n sel_getUid "unsignedIntValue"]
+	][
+		n: objc_msgSend [
+			objc_getClass "NSNumber" sel_getUid "numberWithUnsignedInt:"
+			values
+		]
+		objc_setAssociatedObject bar RedAttachedWidgetKey n OBJC_ASSOCIATION_ASSIGN
+	]
+
+	n: max - page
+	if pos < n [n: pos]
+	if pos < min [pos: min]
+	range: max - min - page + 2
+	frac: either range <= 0 [as float! 1.0][
+		(as float! pos - min) / as float! range
+	]
+
+	sel: max - min
+	knob: either range <= 0 [as float32! 1.0][
+		(as float32! page) / as float32! sel
+	]
+
+	old-frac: objc_msgSend_fpret [bar sel_getUid "doubleValue"]
+	old-knob: objc_msgSend_f32 [bar sel_getUid "knobProportion"]
+
+	pf32: as pointer! [float32!] :sel
+	pf32/value: knob
+	objc_msgSend [bar sel_getUid "setDoubleValue:" frac]
+	objc_msgSend [bar sel_getUid "setKnobProportion:" pf32/value]
+	objc_msgSend [bar sel_getUid "setEnabled:" true]
+	if any [
+		knob <> old-knob
+		frac <> old-frac
+	][
+		objc_msgSend [container sel_getUid "flashScrollers"]
+	]
 ]
 
-OS-redraw: func [hWnd [integer!]][
-	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+set-hint-text: func [
+	hWnd		[integer!]
+	options		[red-block!]
+	/local
+		text	[red-string!]
+][
+	if TYPE_OF(options) <> TYPE_BLOCK [exit]
+	text: as red-string! block/select-word options word/load "hint" no
+	if TYPE_OF(text) = TYPE_STRING [
+		objc_msgSend [hWnd sel_getUid "setPlaceholderString:" to-NSString text]
+	]
 ]
+
+OS-redraw: func [hWnd [integer!]][objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
 
 OS-refresh-window: func [hWnd [integer!]][0]
 
@@ -1289,9 +1500,13 @@ OS-make-view: func [
 		][class: "RedScrollView"]
 		sym = text [class: "RedTextField"]
 		sym = field [class: "RedTextField"]
-		sym = button [class: "RedButton"]
+		sym = button [
+			class: "RedButton"
+			size/x: size/x
+		]
 		sym = check [
 			class: "RedButton"
+			size/x: size/x
 			flags: NSSwitchButton
 		]
 		sym = radio [
@@ -1307,7 +1522,9 @@ OS-make-view: func [
 		any [
 			sym = panel
 			sym = base
-		][class: "RedBase"]
+		][
+			class: either bits and FACET_FLAGS_SCROLLABLE = 0 ["RedBase"]["RedScrollBase"]
+		]
 		any [
 			sym = drop-down
 			sym = drop-list
@@ -1360,6 +1577,7 @@ OS-make-view: func [
 			objc_msgSend [id sel_getUid "setWraps:" no]
 			objc_msgSend [id sel_getUid "setScrollable:" yes]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setStringValue:" caption]]
+			set-hint-text obj as red-block! values + FACE_OBJ_OPTIONS
 		]
 		sym = area [
 			make-area face obj rc caption bits and FACET_FLAGS_NO_BORDER = 0
@@ -1392,8 +1610,7 @@ OS-make-view: func [
 			sym = panel
 			sym = base
 		][
-			if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
-			objc_msgSend [obj sel_getUid "setWantsLayer:" yes]
+			init-base-face face obj menu size values bits
 		]
 		sym = tab-panel [
 			set-tabs obj values
@@ -1402,6 +1619,8 @@ OS-make-view: func [
 		sym = window [
 			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
 			init-window obj caption bits rc
+			win-cnt: win-cnt + 1
+
 			if all [						;@@ application menu ?
 				zero? AppMainMenu
 				menu-bar? menu window
@@ -1409,7 +1628,6 @@ OS-make-view: func [
 				AppMainMenu: objc_msgSend [NSApp sel_getUid "mainMenu"]
 				build-menu menu AppMainMenu obj
 			]
-			nswindow-cnt: nswindow-cnt + 1
 		]
 		sym = slider [
 			len: either size/x > size/y [size/x][size/y]
@@ -1505,7 +1723,7 @@ OS-update-view: func [
 		change-size hWnd as red-pair! values + FACE_OBJ_SIZE type
 	]
 	if flags and FACET_FLAG_TEXT <> 0 [
-		change-text hWnd values type
+		change-text hWnd values face type
 	]
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data hWnd values
@@ -1559,6 +1777,30 @@ OS-update-view: func [
 	int/value: 0										;-- reset flags
 ]
 
+unlink-sub-obj: func [
+	face  [red-object!]
+	obj   [red-object!]
+	field [integer!]
+	/local
+		values [red-value!]
+		parent [red-block!]
+		res	   [red-value!]
+][
+	values: object/get-values obj
+	parent: as red-block! values + field
+	
+	if TYPE_OF(parent) = TYPE_BLOCK [
+		res: block/find parent as red-value! face null no no yes no null null no no no no
+		if TYPE_OF(res) <> TYPE_NONE [_series/remove as red-series! res null]
+		if all [
+			field = FONT_OBJ_PARENT
+			block/rs-tail? parent
+		][
+			free-font obj
+		]
+	]
+]
+
 OS-destroy-view: func [
 	face	[red-object!]
 	window? [logic!]
@@ -1576,13 +1818,13 @@ OS-destroy-view: func [
 		;;TBD
 	]
 
-	free-handles handle
-
 	obj: as red-object! values + FACE_OBJ_FONT
-	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
-	
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
+
 	obj: as red-object! values + FACE_OBJ_PARA
-	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+	if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj PARA_OBJ_PARENT]
+
+	free-handles handle no
 ]
 
 OS-update-facet: func [
@@ -1600,7 +1842,7 @@ OS-update-facet: func [
 		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
-	
+
 	case [
 		sym = facets/pane [0]
 		sym = facets/data [
@@ -1621,7 +1863,7 @@ OS-update-facet: func [
 					index: index / 2
 					part:   part / 2
 					if zero? part [exit]
-					
+
 					update-combo-box face value sym new index part yes
 				]
 				type = tab-panel [

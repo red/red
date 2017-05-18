@@ -351,6 +351,29 @@ get-event-key: func [
 				]
 			][res]
 		]
+		EVT_SCROLL [
+			code: evt/flags
+			either code and 8 = 0 [
+				switch code and 7 [
+					2 [_track]
+					1 [_page-up]
+					3 [_page-down]
+					4 [_up]
+					5 [_down]
+					default [_end]
+				]
+			][
+				switch code and 7 [
+					2 [_track]
+					1 [_page-left]
+					3 [_page-right]
+					4 [_left]
+					5 [_right]
+					default [_end]
+				]
+			]
+		]
+		EVT_WHEEL [_wheel]
 		default [as red-value! none-value]
 	]
 ]
@@ -379,7 +402,9 @@ get-event-picked: func [
 			]
 		]
 		EVT_MENU [word/push* evt/flags and FFFFh]
-		default	 [integer/push evt/flags and FFFFh]
+		EVT_SCROLL [integer/push evt/flags >>> 4]
+		EVT_IME [to-red-string evt/flags null]
+		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
 
@@ -592,6 +617,20 @@ process: func [
 	EVT_DISPATCH
 ]
 
+close-pending-windows: func [/local n [integer!] p [int-ptr!]][
+	n: vector/rs-length? win-array
+	if zero? n [exit]
+
+	p: as int-ptr! vector/rs-head win-array
+	while [n > 0][
+		free-handles p/value yes
+		p: p + 1
+		n: n - 1
+	]
+	vector/rs-clear win-array
+	close-window?: no
+]
+
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
@@ -603,7 +642,8 @@ do-events: func [
 		event	[integer!]
 ][
 	msg?: no
-	if nswindow-cnt > 1 [no-wait?: yes]					;-- should be only one loop
+	either loop-started? [no-wait?: yes][loop-started?: yes]		;-- just keep one event loop
+
 	timeout: either no-wait? [0][
 		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
 		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
@@ -629,8 +669,15 @@ do-events: func [
 			]
 		]
 
+		if close-window? [close-pending-windows]
+
 		objc_msgSend [pool sel_getUid "drain"]
-		any [nswindow-cnt < 1 no-wait?]
+		any [zero? win-cnt no-wait?]
+	]
+
+	if zero? win-cnt [
+		loop-started?: no
+		objc_msgSend [NSApp sel_getUid "stop:" 0]
 	]
 	msg?
 ]

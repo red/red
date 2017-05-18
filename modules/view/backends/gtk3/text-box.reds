@@ -107,6 +107,7 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -119,6 +120,7 @@ OS-text-box-font-name: func [
 ]
 
 OS-text-box-font-size: func [
+	nsfont	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -127,7 +129,7 @@ OS-text-box-font-size: func [
 ]
 
 OS-text-box-metrics: func [
-	layout	[handle!]
+	state	[red-block!]
 	arg0	[red-value!]
 	type	[integer!]
 	return: [red-value!]

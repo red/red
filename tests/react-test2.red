@@ -5,7 +5,7 @@ Red [
 	Needs:	 'View
 ]
 
-to-integer: function [str [string!]][
+to-int: function [str [string!]][
 	either empty? str [0][to integer! str]
 ]
 
@@ -15,6 +15,6 @@ view [
 	B: field "0" right bold
 	
 	text "0" 75 right bold react [
-		face/text: form (to-integer A/text) + (to-integer B/text)
+		face/text: form (to-int A/text) + (to-int B/text)
 	]
 ]

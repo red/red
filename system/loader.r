@@ -274,12 +274,15 @@ loader: make-profilable context [
 				  ] e: (
 				  	if paren? args [check-macro-parameters args]
 					if verbose > 0 [print [mold name #":" mold value]]
+					if find compiler/definitions name [
+						print ["*** Warning:" name "macro in R/S is redefined"]
+					]
 					append compiler/definitions name
 					case [
 						args [
 							do recurse
 							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
-							rule/5/3: to block! :args	
+							rule/5/3: to block! :args
 							rule/5/4: :value
 						]
 						block? value [

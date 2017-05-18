@@ -33,7 +33,7 @@ change-dir %../
 		  	foo: func [][a: 1]
 		  	if foo []
 		}
-		--assert-msg? "*** Compilation Error: return type missing in function: foo"
+		--assert-msg? "*** Compilation Error: IF requires a conditional expression"
 		--clean
   	
 		--compile-this "Red/System [] foo: func [][if exit []]"
