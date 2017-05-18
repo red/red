@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %VID.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2017 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -282,9 +282,9 @@ system/view/VID: context [
 		font: opts/font
 		if any [face-font: face/font font][
 			either face-font [
-				face-font: copy face-font		;-- @@ share font/state between faces ?
+				face-font: copy face-font				;-- @@ share font/state between faces ?
 				if font [
-					set/some face-font font		;-- overwrite face/font with opts/font
+					set/some face-font font				;-- overwrite face/font with opts/font
 					opts/font: face-font
 				]
 			][
@@ -515,7 +515,7 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
-		process-reactors						;-- Needs to be after [set name face]
+		process-reactors								;-- Needs to be after [set name face]
 		
 		either block? panel/pane [append panel/pane list][
 			unless only [panel/pane: list]
