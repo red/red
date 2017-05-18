@@ -347,6 +347,7 @@ system/view/VID: context [
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
+		below?: 	  no
 		
 		bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
@@ -365,6 +366,13 @@ system/view/VID: context [
 			]
 			if begin [align-faces begin direction align max-sz]
 			begin: tail list
+			
+			words: pick [[left center right][top middle bottom]] below?
+			align: any [								;-- set new alignment
+				all [find words spec/2 first spec: next spec] ;-- user-provided mode
+				all [below? 'left]						;-- default for below
+				'top									;-- default for across
+			]
 		]
 		
 		reset: [
@@ -411,12 +419,6 @@ system/view/VID: context [
 				across [
 					below?: value = 'below
 					do re-align
-					words: pick [[left center right][top middle bottom]] below?
-					align: any [
-						all [find words spec/2 first spec: next spec]
-						all [below? 'left]
-						'top
-					]
 					all [
 						direction <> value 				;-- if direction changed
 						anti2: pick [y x] value = 'across
