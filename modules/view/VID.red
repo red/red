@@ -370,6 +370,7 @@ system/view/VID: context [
 			words: pick [[left center right][top middle bottom]] below?
 			align: any [								;-- set new alignment
 				all [find words spec/2 first spec: next spec] ;-- user-provided mode
+				all [value = 'return align]				;-- keep the same mode on `return` with no modifier
 				all [below? 'left]						;-- default for below
 				'top									;-- default for across
 			]
