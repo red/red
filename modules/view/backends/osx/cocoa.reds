@@ -167,7 +167,6 @@ Red/System [
 #define RedAllOverFlagKey		4000FFFCh
 #define RedAttachedWidgetKey	4000FFFDh
 
-#define handle! [pointer! [integer!]]
 
 objc_super!: alias struct! [
 	receiver	[integer!]
