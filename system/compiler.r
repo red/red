@@ -48,7 +48,7 @@ system-dialect: make-profilable context [
 		use-natives?:		no							;-- force use of native functions instead of C bindings
 		debug?:				no							;-- emit debug information into binary
 		debug-safe?:		yes							;-- try to avoid over-crashing on runtime debug reports
-		dev-mode?:		 	yes							;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
+		dev-mode?:		 	none						;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
 		PIC?:				no							;-- generate Position Independent Code
 		base-address:		none						;-- base image memory address
@@ -87,6 +87,7 @@ system-dialect: make-profilable context [
 		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
+		func-locals-sz:	 none							;-- currently compiled function locals size on stack
 		user-code?:		 no
 		block-level: 	 0								;-- nesting level of input source block
 		catch-level:	 0								;-- nesting level of CATCH body block
@@ -1908,7 +1909,7 @@ system-dialect: make-profilable context [
 			value
 		]
 		
-		comp-use: has [spec use-init use-locals use-stack][
+		comp-use: has [spec use-init use-locals use-stack size][
 			pc: next pc
 			unless all [block? spec: pc/1 not empty? spec][
 				backtrack 'use
@@ -1929,12 +1930,14 @@ system-dialect: make-profilable context [
 			
 			unless find locals /local [append locals /local]
 			append locals spec
-			emitter/calc-locals-offsets use-locals
+			size: emitter/calc-locals-offsets use-locals
+			func-locals-sz: func-locals-sz + size
 			
 			pc: next pc
 			fetch-into/root pc/1 [comp-dialect]
 			pc: next pc
 			
+			func-locals-sz: func-locals-sz - size
 			clear use-init
 			clear use-locals
 			clear use-stack
@@ -2111,14 +2114,7 @@ system-dialect: make-profilable context [
 			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]
 			chunk: emitter/chunks/join start chunk
 			
-			locals-size: either all [locals find locals /local][
-				unless block? last locals [
-					throw-error ["Type definition required for:" last locals]
-				]
-				(abs last emitter/stack) + emitter/size-of? last locals
-			][
-				0
-			]
+			locals-size: any [all [locals func-locals-sz] 0]
 			cb?: to logic! all [locals 'callback = last functions/:func-name]
 			unless zero? cnt: count-outer-loops [locals-size: locals-size + (4 * cnt)]
 			
@@ -2209,11 +2205,9 @@ system-dialect: make-profilable context [
 		
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
-			mark: tail expr-call-stack
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
-			clear mark
 
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
@@ -2507,6 +2501,14 @@ system-dialect: make-profilable context [
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
+				if all [
+					2 <= length? expr-call-stack
+					not find calling-keywords value: first skip tail expr-call-stack -2
+					find functions value
+				][
+					backtrack name
+					throw-error "nested assignment in expression not supported"
+				]
 				n: to word! name
 				local?: local-variable? n
 				unless any [locals local?][store-ns-symbol n]
@@ -2515,10 +2517,7 @@ system-dialect: make-profilable context [
 					backtrack name
 					throw-error "cascading assignments not supported"
 				]
-				unless all [
-					local?
-					n = 'context						;-- explicitly allow 'context name for local variables
-				][
+				unless all [local? n = 'context][		;-- explicitly allow 'context name for local variables
 					check-keywords n					;-- forbid keywords redefinition
 				]
 				if find definitions n [
@@ -3332,8 +3331,9 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass value
+			/final /keep /local expr pass value mark
 		][
+			mark: tail expr-call-stack
 			check-infix-operators
 			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
@@ -3374,6 +3374,7 @@ system-dialect: make-profilable context [
 				unless find [none! tag!] type?/word expr [
 					comp-expression expr to logic! keep
 				]
+				clear mark
 			]
 			expr
 		]
@@ -3437,6 +3438,7 @@ system-dialect: make-profilable context [
 			locals: spec
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
+			func-locals-sz: local-sz
 			pc: body
 			
 			expr: comp-dialect							;-- compile function's body
@@ -3461,7 +3463,7 @@ system-dialect: make-profilable context [
 			emitter/leave name locals args-sz local-sz ret ;-- build function epilog
 			remove-func-pointers
 			clear locals-init
-			locals: func-name: none
+			locals: func-name: func-locals-sz: none
 		]
 		
 		comp-natives: does [			

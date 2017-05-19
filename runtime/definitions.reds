@@ -53,6 +53,7 @@ Red/System [
 #define default-offset		-1				;-- for offset value in alloc-series calls
 
 #define series!				series-buffer! 
+#define handle!				[pointer! [integer!]]
 
 
 ;=== Unicode support definitions ===
@@ -176,8 +177,6 @@ Red/System [
 	#define BFFM_INITIALIZED		1
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
-
-	#define handle!				[pointer! [integer!]]
 
 	#enum brush-type! [
 		BRUSH_TYPE_NORMAL

@@ -579,6 +579,15 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
+set-metrics: func [
+	/local
+		m	[red-hash!]
+		blk [red-block!]
+][
+	m: as red-hash! #get system/view/metrics
+	map/put m as red-value! _dpi as red-value! integer/push log-pixels-x no
+]
+
 init: func [
 	/local
 		ver   [red-tuple!]
@@ -631,6 +640,8 @@ init: func [
 	int: as red-integer! #get system/view/platform/product
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
+
+	set-metrics
 ]
 
 cleanup: does [

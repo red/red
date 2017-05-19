@@ -167,7 +167,6 @@ Red/System [
 #define RedAllOverFlagKey		4000FFFCh
 #define RedAttachedWidgetKey	4000FFFDh
 
-#define handle! [pointer! [integer!]]
 
 objc_super!: alias struct! [
 	receiver	[integer!]
@@ -796,6 +795,13 @@ tagSIZE: alias struct! [
 		]
 		CGImageRelease: "CGImageRelease" [
 			image		[integer!]
+		]
+	]
+	LIBM-file cdecl [
+		dlopen:	"dlopen" [
+			dllpath		[c-string!]
+			flags		[integer!]
+			return:		[integer!]
 		]
 	]
 ]

@@ -351,9 +351,7 @@ unless system/console [
 						string/rs-reset line
 						exit
 					]
-					if zero? n [
-						c: 32							;-- convert TAB to SPACE
-					]
+					if n = 1 [c: 32]						;-- convert TAB to SPACE
 				]
 
 				#if OS <> 'Windows [if c = 27 [c: check-special]]

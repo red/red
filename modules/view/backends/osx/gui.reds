@@ -264,6 +264,15 @@ set-defaults: func [][
 	objc_msgSend [default-font sel_getUid "retain"]
 ]
 
+set-metrics: func [
+	/local
+		m	[red-hash!]
+		blk [red-block!]
+][
+	m: as red-hash! #get system/view/metrics
+	map/put m as red-value! _dpi as red-value! integer/push log-pixels-x no
+]
+
 init: func [
 	/local
 		screen	 [integer!]
@@ -297,6 +306,13 @@ init: func [
 
 	create-main-menu
 
+	;dlopen "./FScript.framework/FScript" 1
+	;objc_msgSend [
+	;	objc_msgSend [NSApp sel_getUid "mainMenu"]
+	;	sel_getUid "addItem:"
+	;	objc_msgSend [objc_msgSend [objc_getClass "FScriptMenuItem" sel_alloc] sel_init]
+	;]
+
 	screen: objc_msgSend [objc_getClass "NSScreen" sel_getUid "mainScreen"]
 	rect: as NSRect! (as int-ptr! screen) + 1
 	screen-size-x: as-integer rect/w
@@ -321,6 +337,8 @@ init: func [
 
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
 	objc_msgSend [NSApp sel_getUid "finishLaunching"]
+
+	set-metrics
 ]
 
 set-logic-state: func [
@@ -1484,11 +1502,11 @@ OS-make-view: func [
 		sym = field [class: "RedTextField"]
 		sym = button [
 			class: "RedButton"
-			size/x: size/x + 12							;@@ hardcoded margins
+			size/x: size/x
 		]
 		sym = check [
 			class: "RedButton"
-			size/x: size/x + 12							;@@ hardcoded margins
+			size/x: size/x
 			flags: NSSwitchButton
 		]
 		sym = radio [

@@ -217,6 +217,7 @@ linker: context [
 			record/arity:	arity
 			record/args:	args-ptr
 			append buffer form-struct record
+			if job/verbosity >= 3 [print [to-hex record/address #":" name]]
 		]
 		data-buf: job/sections/data/2
 		set-ptr job '__debug-funcs length? data-buf		;-- patch __debug-funcs symbol to point to 1st record

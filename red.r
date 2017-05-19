@@ -696,10 +696,8 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		if target? [
-			unless type [type: 'exe]					;-- implies compilation
-			opts/dev-mode?: no							;-- forces release mode
-		]
+		if target? [unless type [type: 'exe]]			;-- implies compilation
+		
 		base-path: either encap? [
 			system/options/path
 		][
@@ -712,6 +710,10 @@ redc: context [
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
+
+		if all [target? none? opts/dev-mode?][
+			opts/dev-mode?: opts/OS = get-OS-name		;-- forces release mode if other OS
+		]
 
 		;; Process -o/--output (if any).
 		if output [
@@ -776,6 +778,8 @@ redc: context [
 			opts: make opts spec
 			opts/command-line: spec
 		]
+		
+		if none? opts/dev-mode? [opts/dev-mode?: yes]	;-- fallback to dev mode if undefined
 		
 		reduce [src opts]
 	]

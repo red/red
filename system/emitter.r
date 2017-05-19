@@ -293,6 +293,7 @@ emitter: make-profilable context [
 						store-global value type spec
 					]
 				]
+				pad-data-buf target/struct-align-size
 			]
 			array! [
 				type: first compiler/get-type value/1
@@ -394,8 +395,11 @@ emitter: make-profilable context [
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
-			if var = name [break]
+			if var = name [return offset]
 			offset: offset + size-of? type
+		]
+		unless zero? over: offset // target/struct-align-size [
+			offset: offset + target/struct-align-size - over	 ;-- properly account for alignment
 		]
 		offset
 	]
@@ -681,8 +685,8 @@ emitter: make-profilable context [
 		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
-	calc-locals-offsets: func [spec [block!] /local total var sz][
-		total: negate target/locals-offset
+	calc-locals-offsets: func [spec [block!] /local total var sz extra][
+		total: negate extra: target/locals-offset
 		while [not tail? spec: next spec][
 			var: spec/1
 			either block? spec/2 [
@@ -693,7 +697,7 @@ emitter: make-profilable context [
 			]
 			repend stack [var (total: total - sz)] 		;-- store stack offsets
 		]
-		abs total
+		(abs total) - extra
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][

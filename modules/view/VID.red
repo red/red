@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %VID.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2014-2017 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -13,8 +13,9 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	
-	focal-face: none
-	reactors: make block! 20
+	focal-face:	none
+	reactors:	make block! 20
+	debug?: 	no
 	
 	default-font: [
 		name	system/view/fonts/system
@@ -31,12 +32,12 @@ system/view/VID: context [
 	]
 	
 	process-reactors: function [][
-		foreach [f blk] reactors [
+		foreach [f blk later?] reactors [
 			either f [
 				bind blk ctx: context [face: f]
-				react/with blk ctx
+				either later? [react/later/with blk ctx][react/with blk ctx]
 			][
-				react blk
+				either later? [react/later blk][react blk]
 			]
 		]
 		clear reactors
@@ -83,6 +84,21 @@ system/view/VID: context [
 		]
 	]
 	
+	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer!]][
+		if any [
+			empty? pane
+			all [dir = 'across align = 'top]
+			all [dir = 'below  align = 'left]
+		][exit]											;-- already aligned
+
+		axis: pick [y x] dir = 'across
+		foreach face pane [
+			offset: max-sz - face/size/:axis
+			if find [center middle] align [offset: offset / 2]
+			face/offset/:axis: face/offset/:axis + offset
+		]
+	]
+	
 	process-draw: function [code [block!]][
 		parse code rule: [
 			any [
@@ -122,7 +138,7 @@ system/view/VID: context [
 		]
 		obj: obj/:facet
 		
-		make logic! either all [blk: obj/:field facet = 'font field = 'style] [
+		make logic! either all [blk: obj/:field facet = 'font field = 'style][
 			unless block? blk [obj/:field: blk: reduce [blk]]
 			alter blk flag
 		][
@@ -189,7 +205,6 @@ system/view/VID: context [
 				| 'font-name  (add-flag opts 'font 'name  fetch-argument string! spec)
 				| 'font-size  (add-flag opts 'font 'size  fetch-argument integer! spec)
 				| 'font-color (add-flag opts 'font 'color pre-load fetch-argument color! spec)
-				| 'react	  (append reactors reduce [face fetch-argument block! spec])
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
@@ -202,6 +217,10 @@ system/view/VID: context [
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
+				| 'react	  (
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [face fetch-argument block! spec later?]
+				)
 				] to end
 			]
 			unless match? [
@@ -263,9 +282,9 @@ system/view/VID: context [
 		font: opts/font
 		if any [face-font: face/font font][
 			either face-font [
-				face-font: copy face-font		;-- @@ share font/state between faces ?
+				face-font: copy face-font				;-- @@ share font/state between faces ?
 				if font [
-					set/some face-font font		;-- overwrite face/font with opts/font
+					set/some face-font font				;-- overwrite face/font with opts/font
 					opts/font: face-font
 				]
 			][
@@ -322,20 +341,49 @@ system/view/VID: context [
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
+		align:		  'top
+		begin:		  none
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
 		global?: 	  yes								;-- TRUE: panel options expected
+		below?: 	  no
 		
-		cursor:	origin: spacing: pick [0x0 10x10] tight
+		bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
 			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		
+		re-align: [
+			if all [debug? begin not empty? begin][
+				sz: max-sz * pick [1x0 0x1] direction = 'below
+				repend panel/draw [
+					'line any [begin/1/offset 1x1] cursor
+					'line (any [begin/1/offset 1x1]) + sz cursor + sz
+				]
+			]
+			if begin [align-faces begin direction align max-sz]
+			begin: tail list
+			
+			words: pick [[left center right][top middle bottom]] below?
+			align: any [								;-- set new alignment
+				all [find words spec/2 first spec: next spec] ;-- user-provided mode
+				all [value = 'return align]				;-- keep the same mode on `return` with no modifier
+				all [below? 'left]						;-- default for below
+				'top									;-- default for across
+			]
+		]
+		
 		reset: [
-			cursor: as-pair origin/:axis cursor/:anti + max-sz + spacing/:anti
+			bound: max bound cursor
+			if zero? max-sz [							;-- if empty row/col, make some room
+				max-sz: spacing/:anti
+				cursor/:anti: cursor/:anti + max-sz
+			]
+			do re-align
+			cursor: as-pair origin/:axis spacing/:anti + max bound/:anti cursor/:anti + max-sz 
 			if direction = 'below [cursor: reverse cursor]
 			max-sz: 0
 		]
@@ -344,6 +392,8 @@ system/view/VID: context [
 			focal-face: none
 			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
+		
+		if debug? [append panel/draw: make block! 30 [pen red]]
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
 			switch/default spec/1 [
@@ -366,15 +416,30 @@ system/view/VID: context [
 			set [axis anti] pick [[x y][y x]] direction = 'across
 			
 			switch/default value [
-				across	[direction: value]				;@@ fix this
-				below	[direction: value]
+				below
+				across [
+					below?: value = 'below
+					do re-align
+					all [
+						direction <> value 				;-- if direction changed
+						anti2: pick [y x] value = 'across
+						cursor/:anti2 <> origin/:anti2	;-- and if not close to opposite edge
+						cursor/:anti2: cursor/:anti2 + spacing/:anti2 ;-- ensure proper spacing when changing direction
+					]
+					direction: value
+					bound: max bound cursor
+					max-sz: 0
+				]
 				space	[spacing: fetch-argument pair! spec]
 				origin	[origin: cursor: fetch-argument pair! spec]
 				at		[at-offset: fetch-argument pair! spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]
-				react	[repend reactors [none fetch-argument block! spec]]
+				react	[
+					if later?: spec/2 = 'later [spec: next spec]
+					repend reactors [none fetch-argument block! spec later?]
+				]
 				style	[
 					unless set-word? name: first spec: next spec [throw-error spec]
 					styling?: yes
@@ -420,13 +485,13 @@ system/view/VID: context [
 						face/offset: at-offset
 						at-offset: none
 					][
-						either all [
+						either all [					;-- grid layout
 							divide?: all [divides divides <= length? list]
 							zero? index: (length? list) // divides
 						][
 							do reset
-						][
-							if cursor/:axis <> origin/:axis [
+						][								;-- flow layout
+							if all [max-sz > 0 cursor/:axis <> origin/:axis][
 								cursor/:axis: cursor/:axis + spacing/:axis
 							]
 						]
@@ -451,7 +516,7 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
-		process-reactors						;-- Needs to be after [set name face]
+		process-reactors								;-- Needs to be after [set name face]
 		
 		either block? panel/pane [append panel/pane list][
 			unless only [panel/pane: list]

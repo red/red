@@ -37,7 +37,6 @@ view [
 	base 255.0.0.138 50x50 draw [fill-pen blue circle 25x25 15]
 	across
 	return
-	pad 0x-140
 	
 	check "option 1" font-size 14
 	check "option 2" font-color orange
