@@ -52,16 +52,10 @@ system/view/VID: context [
 			][
 				min-sz: 0x0
 				foreach txt data [
-					if string? txt [
-						size: size-text/with face txt
-						if size/x > min-sz/x [min-sz/x: size/x]
-						if size/y > min-sz/y [min-sz/y: size/y]
-					]
+					if string? txt [min-sz: max min-sz size-text/with face txt]
 				]
 				if all [face/text face/type <> 'drop-list][
-					size: size-text face
-					if size/x > min-sz/x [min-sz/x: size/x]
-					if size/y > min-sz/y [min-sz/y: size/y]
+					min-sz: max min-sz size-text face
 				]
 				min-sz + 24x0							;@@ hardcoded offset for scrollbar
 			]
@@ -260,8 +254,7 @@ system/view/VID: context [
 									foreach p extract next value 2 [
 										layout/parent/styles reduce ['panel copy p] face divides css
 										p: last face/pane
-										if p/size/x > max-sz/x [max-sz/x: p/size/x]
-										if p/size/y > max-sz/y [max-sz/y: p/size/y]
+										max-sz: max max-sz p/size
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
@@ -294,7 +287,6 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
-		
 		set/some face opts
 		
 		if block? face/actors [face/actors: make object! face/actors]
@@ -506,11 +498,7 @@ system/view/VID: context [
 					]
 					append list face
 					if name [set name face]
-
-					box: face/offset + face/size + spacing
-					if box/x > pane-size/x [pane-size/x: box/x]
-					if box/y > pane-size/y [pane-size/y: box/y]
-					
+					pane-size: max pane-size face/offset + face/size + spacing
 					if opts/now? [do-actor face none 'time]
 				]
 			]
@@ -524,12 +512,7 @@ system/view/VID: context [
 		either size [panel/size: size][
 			if pane-size <> 0x0 [panel/size: pane-size - spacing + origin]
 		]
-		if image: panel/image [
-			x: image/size/x
-			y: image/size/y
-			if panel/size/x < x [panel/size/x: x]
-			if panel/size/y < y [panel/size/y: y]
-		]
+		if image: panel/image [panel/size: max panel/size image/size]
 
 		if all [focal-face not parent][panel/selected: focal-face]
 		
