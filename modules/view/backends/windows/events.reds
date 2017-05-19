@@ -503,7 +503,9 @@ make-event: func [
 		default	 [0]
 	]
 
+	stack/mark-native words/_anon
 	#call [system/view/awake gui-evt]
+	stack/unwind
 
 	res: as red-word! stack/arguments
 	if TYPE_OF(res) = TYPE_WORD [
