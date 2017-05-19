@@ -2205,11 +2205,9 @@ system-dialect: make-profilable context [
 		
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
-			mark: tail expr-call-stack
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
-			clear mark
 
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
@@ -2503,6 +2501,14 @@ system-dialect: make-profilable context [
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
+				if all [
+					2 <= length? expr-call-stack
+					not find calling-keywords value: first skip tail expr-call-stack -2
+					find functions value
+				][
+					backtrack name
+					throw-error "nested assignment in expression not supported"
+				]
 				n: to word! name
 				local?: local-variable? n
 				unless any [locals local?][store-ns-symbol n]
@@ -2511,10 +2517,7 @@ system-dialect: make-profilable context [
 					backtrack name
 					throw-error "cascading assignments not supported"
 				]
-				unless all [
-					local?
-					n = 'context						;-- explicitly allow 'context name for local variables
-				][
+				unless all [local? n = 'context][		;-- explicitly allow 'context name for local variables
 					check-keywords n					;-- forbid keywords redefinition
 				]
 				if find definitions n [
@@ -3328,8 +3331,9 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass value
+			/final /keep /local expr pass value mark
 		][
+			mark: tail expr-call-stack
 			check-infix-operators
 			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
@@ -3370,6 +3374,7 @@ system-dialect: make-profilable context [
 				unless find [none! tag!] type?/word expr [
 					comp-expression expr to logic! keep
 				]
+				clear mark
 			]
 			expr
 		]
