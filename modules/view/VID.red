@@ -52,7 +52,7 @@ system/view/VID: context [
 			][
 				min-sz: 0x0
 				foreach txt data [
-					if string? txt [min-sz: max min-sz size-text/with face txt]
+					if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
 				]
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
