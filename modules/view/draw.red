@@ -1030,9 +1030,8 @@ Red/System [
 				null? handle
 				any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds]
 			][exit]
-
+			
 			system/thrown: 0
-			DC/pen-join: 0					;@@ making compiler happy
 			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]
