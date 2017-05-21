@@ -568,7 +568,17 @@ system-dialect: make-profilable context [
 			]
 			first head types						;-- all types equal, return the first one
 		]
-						
+		
+		struct-by-value?: func [type [block!]][
+			all [
+				'value = last type
+				any [
+					'struct! = type/1
+					'struct! = first find-aliased type/1
+				]
+			]
+		]
+		
 		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
 			saved: resolve-alias?
 			resolve-alias?: mode	
@@ -719,13 +729,7 @@ system-dialect: make-profilable context [
 						with-alias-resolution off [
 							type: resolve-type to word! value
 						]
-						either all [
-							'value = last type
-							any [
-								'struct! = type/1
-								'struct! = first find-aliased type/1
-							]
-						][
+						either struct-by-value? type [
 							type
 						][
 							throw-error ["invalid datatype for a get-word:" mold type]
@@ -1448,6 +1452,21 @@ system-dialect: make-profilable context [
 			pick [cdecl stdcall] to logic! all [
 				not empty? specs
 				find-attribute specs 'cdecl
+			]
+		]
+		
+		init-struct-values: func [specs [block!] /local name type][
+			if specs: find/tail specs /local [
+				parse specs [
+					any [
+						set name word!
+						opt [set type block! (
+							if struct-by-value? type [
+								append locals-init name
+							]
+						)]
+					]
+				]
 			]
 		]
 		
@@ -3435,6 +3454,7 @@ system-dialect: make-profilable context [
 			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
 		][
+			init-struct-values spec
 			locals: spec
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
