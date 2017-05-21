@@ -578,7 +578,7 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-set-metrics: func [
+get-metrics: func [
 	/local
 		m	[red-hash!]
 		blk [red-block!]
@@ -640,7 +640,7 @@ init: func [
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
 
-	set-metrics
+	get-metrics
 ]
 
 cleanup: does [
