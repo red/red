@@ -846,7 +846,14 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfClipPrecision	[byte!]
 	lfQuality		[byte!]
 	lfPitchAndFamily[byte!]
-	lfFaceName		[integer!]							;@@ 64 bytes offset: 28
+	lfFaceName		[float!]							;@@ 64 bytes offset: 28
+	lfFaceName2		[float!]
+	lfFaceName3		[float!]
+	lfFaceName4		[float!]
+	lfFaceName5		[float!]
+	lfFaceName6		[float!]
+	lfFaceName7		[float!]
+	lfFaceName8		[float!]
 ]
 
 tagCHOOSEFONT: alias struct! [
