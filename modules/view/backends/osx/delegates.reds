@@ -558,14 +558,21 @@ number-of-rows: func [
 		head [red-value!]
 		tail [red-value!]
 		cnt  [integer!]
+		type [integer!]
 ][
 	blk: as red-block! (get-face-values obj) + FACE_OBJ_DATA
-	either TYPE_OF(blk) = TYPE_BLOCK [
+	type: TYPE_OF(blk)
+	either any [
+		type = TYPE_BLOCK
+		type = TYPE_HASH
+		type = TYPE_MAP
+	][
 		head: block/rs-head blk
 		tail: block/rs-tail blk
 		cnt: 0
 		while [head < tail][
-			if TYPE_OF(head) = TYPE_STRING [cnt: cnt + 1]
+			type: TYPE_OF(head)
+			if ANY_STRING?(type) [cnt: cnt + 1]
 			head: head + 1
 		]
 		cnt
@@ -585,13 +592,15 @@ object-for-table: func [
 		head [red-value!]
 		tail [red-value!]
 		idx  [integer!]
+		type [integer!]
 ][
 	data: (as red-block! get-face-values obj) + FACE_OBJ_DATA
 	head: block/rs-head data
 	tail: block/rs-tail data
 	idx: -1
 	while [all [row >= 0 head < tail]][
-		if TYPE_OF(head) = TYPE_STRING [row: row - 1]
+		type: TYPE_OF(head)
+		if ANY_STRING?(type) [row: row - 1]
 		head: head + 1
 		idx: idx + 1
 	]
