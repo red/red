@@ -166,6 +166,8 @@ system/view/VID: context [
 		value
 	]
 	
+	fetch-expr: func [code [word!]][do/next next get code code]
+	
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!]
 		/extern focal-face
@@ -189,7 +191,7 @@ system/view/VID: context [
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
-				| 'data		  (opts/data: fetch-value spec: next spec)
+				| 'data		  (opts/data: fetch-expr 'spec spec: back spec)
 				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
