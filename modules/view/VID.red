@@ -426,7 +426,7 @@ system/view/VID: context [
 				]
 				space	[spacing: fetch-argument pair! spec]
 				origin	[origin: cursor: fetch-argument pair! spec]
-				at		[at-offset: fetch-argument pair! spec]
+				at		[at-offset: fetch-expr 'spec spec: back spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]

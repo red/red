@@ -65,6 +65,7 @@ view [
 	] return
 	but1 "1" txt1 "1" base1 "1"
 	
+	at list/offset + 130x50 base 5x5 red
 	
 	do [append list/data "five"]
 ]
