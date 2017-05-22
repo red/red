@@ -2415,12 +2415,17 @@ red: context [
 		insert-lf -3
 	]
 	
-	comp-continue: does [
-		if empty? intersect iterators expr-stack [
+	comp-continue: has [loops][
+		if empty? loops: intersect expr-stack iterators [
 			pc: back pc
 			throw-error "CONTINUE used with no loop"
 		]
+		if 'forall = last loops [
+			emit 'natives/forall-next					;-- move series to next position
+			insert-lf -1
+		]
 		emit [stack/unroll-loop yes continue]
+		insert-lf -3
 		insert-lf -1
 	]
 	
