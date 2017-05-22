@@ -674,20 +674,21 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svs fonts m][
-		system/view/metrics: m: make map! 32
+	init: func [/local svm svs fonts][
+		system/view/metrics: svm: make map! 32
 		system/view/screens: svs: make block! 6
 
 		#system [gui/init]
 
-		#switch config/OS [
+		extend svm [#switch config/OS [
+			;-- Type -- Margins --- Paddings --
 			Windows [
-				m/button: [1x1 1x1]		;-- top right buttom left
+				button: [1x1 1x1	#[none] #[none]]	;-- LeftxRight TopxBottom
 			]
 			MacOSX [
-				m/button: [4x6 7x6]
+				button: [6x6 4x7	#[none] #[none]]
 			]
-		]
+		]]
 
 		append svs make face! [							;-- default screen
 			type:	'screen
