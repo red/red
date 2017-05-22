@@ -1025,15 +1025,16 @@ red: context [
 		no
 	]
 	
-	infix?: func [pos [block! paren!] /local specs][
+	infix?: func [pos [block! paren!] /local specs left][
 		all [
 			not tail? pos
 			word? pos/1
 			specs: select functions pos/1
 			'op! = specs/1
 			not all [									;-- check if a literal argument is not expected
-				word? pos/-1
-				specs: select functions pos/-1
+				word? left: pos/-1
+				not local-word? left
+				specs: select functions left
 				literal-first-arg? specs/3				;-- literal arg needed, disable infix mode
 			]
 		]
