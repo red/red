@@ -107,11 +107,10 @@ make-super-class: func [
 	system?	[logic!]
 	return: [integer!]
 	/local
-		wcex [WNDCLASSEX]
+		wcex [WNDCLASSEX value]
 		old	 [integer!]
 		inst [handle!]
 ][
-	wcex: declare WNDCLASSEX
 	inst: either system? [null][hInstance]
 
 	if 0 = GetClassInfoEx inst base wcex [
@@ -176,10 +175,9 @@ AreaWndProc: func [
 register-classes: func [
 	hInstance [handle!]
 	/local
-		wcex  [WNDCLASSEX]
+		wcex  [WNDCLASSEX value]
 		cur	  [handle!]
 ][
-	wcex: declare WNDCLASSEX
 	cur: LoadCursor null IDC_ARROW
 
 	wcex/cbSize: 		size? WNDCLASSEX
@@ -194,43 +192,24 @@ register-classes: func [
 	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedWindow"
 	wcex/hIconSm:		0
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
+	;wcex/hbrBackground: COLOR_WINDOW + 1
+	wcex/lpszClassName: #u16 "RedPanel"
+	RegisterClassEx		wcex
 
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:BaseWndProc
-	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
-	wcex/hIcon:			null
-	wcex/hCursor:		cur
-	wcex/hbrBackground:	COLOR_3DFACE + 1
-	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBase"
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:BaseInternalWndProc
-	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
-	wcex/hIcon:			null
-	wcex/hCursor:		cur
-	wcex/hbrBackground:	COLOR_3DFACE + 1
-	wcex/lpszMenuName:	null
 	wcex/lpszClassName: #u16 "RedBaseInternal"
+	RegisterClassEx		wcex
 
-	RegisterClassEx wcex
-
-	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:CameraWndProc
-	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
-	wcex/hInstance:		hInstance
 	wcex/hbrBackground:	COLOR_BACKGROUND + 1
 	wcex/lpszClassName: #u16 "RedCamera"
-
-	RegisterClassEx wcex
+	RegisterClassEx		wcex
 
 	;-- superclass existing classes to add 16 extra bytes
 	make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
@@ -239,14 +218,13 @@ register-classes: func [
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
-	make-super-class #u16 "RedPanel"	#u16 "RedWindow"		 0 no
 
 	OldFaceWndProc: make-super-class
 		#u16 "RedFace"
 		#u16 "STATIC"
 		as-integer :FaceWndProc
 		yes
-		
+
 	OldEditWndProc: make-super-class
 		#u16 "RedArea"
 		#u16 "EDIT"
