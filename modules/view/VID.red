@@ -88,7 +88,7 @@ system/view/VID: context [
 		axis: pick [y x] dir = 'across
 		foreach face pane [
 			offset: max-sz - face/size/:axis
-			if find [center middle] align [offset: offset / 2]
+			if find [center middle] align [offset: to integer! round offset / 2.0]
 			face/offset/:axis: face/offset/:axis + offset
 		]
 	]
