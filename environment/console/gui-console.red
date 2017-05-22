@@ -243,7 +243,7 @@ gui-console-ctx: context [
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
-					choose-font		[if font: request-font/mono [console/font: font]]
+					choose-font		[if font: request-font/font/mono console/font [console/font: font]]
 					settings		[show-cfg-dialog]
 				]
 			]

@@ -336,10 +336,14 @@ natives: context [
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
-				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
 					series/head: series/head + 1
+					if system/thrown = RED_THROWN_CONTINUE [
+						system/thrown: 0
+						continue
+					]
 				]
 				default	[re-throw]
 			]

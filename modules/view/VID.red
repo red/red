@@ -52,16 +52,10 @@ system/view/VID: context [
 			][
 				min-sz: 0x0
 				foreach txt data [
-					if string? txt [
-						size: size-text/with face txt
-						if size/x > min-sz/x [min-sz/x: size/x]
-						if size/y > min-sz/y [min-sz/y: size/y]
-					]
+					if any-string? txt [min-sz: max min-sz size-text/with face as string! txt]
 				]
 				if all [face/text face/type <> 'drop-list][
-					size: size-text face
-					if size/x > min-sz/x [min-sz/x: size/x]
-					if size/y > min-sz/y [min-sz/y: size/y]
+					min-sz: max min-sz size-text face
 				]
 				min-sz + 24x0							;@@ hardcoded offset for scrollbar
 			]
@@ -94,7 +88,7 @@ system/view/VID: context [
 		axis: pick [y x] dir = 'across
 		foreach face pane [
 			offset: max-sz - face/size/:axis
-			if find [center middle] align [offset: offset / 2]
+			if find [center middle] align [offset: to integer! round offset / 2.0]
 			face/offset/:axis: face/offset/:axis + offset
 		]
 	]
@@ -172,6 +166,8 @@ system/view/VID: context [
 		value
 	]
 	
+	fetch-expr: func [code [word!]][do/next next get code code]
+	
 	fetch-options: function [
 		face [object!] opts [object!] style [block!] spec [block!] css [block!]
 		/extern focal-face
@@ -195,7 +191,7 @@ system/view/VID: context [
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
 				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
-				| 'data		  (opts/data: fetch-value spec: next spec)
+				| 'data		  (opts/data: fetch-expr 'spec spec: back spec)
 				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
@@ -260,8 +256,7 @@ system/view/VID: context [
 									foreach p extract next value 2 [
 										layout/parent/styles reduce ['panel copy p] face divides css
 										p: last face/pane
-										if p/size/x > max-sz/x [max-sz/x: p/size/x]
-										if p/size/y > max-sz/y [max-sz/y: p/size/y]
+										max-sz: max max-sz p/size
 									]
 									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
 								]
@@ -294,7 +289,6 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
-		
 		set/some face opts
 		
 		if block? face/actors [face/actors: make object! face/actors]
@@ -432,7 +426,7 @@ system/view/VID: context [
 				]
 				space	[spacing: fetch-argument pair! spec]
 				origin	[origin: cursor: fetch-argument pair! spec]
-				at		[at-offset: fetch-argument pair! spec]
+				at		[at-offset: fetch-expr 'spec spec: back spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
 				return	[either divides [throw-error spec][do reset]]
@@ -506,11 +500,7 @@ system/view/VID: context [
 					]
 					append list face
 					if name [set name face]
-
-					box: face/offset + face/size + spacing
-					if box/x > pane-size/x [pane-size/x: box/x]
-					if box/y > pane-size/y [pane-size/y: box/y]
-					
+					pane-size: max pane-size face/offset + face/size + spacing
 					if opts/now? [do-actor face none 'time]
 				]
 			]
@@ -524,12 +514,7 @@ system/view/VID: context [
 		either size [panel/size: size][
 			if pane-size <> 0x0 [panel/size: pane-size - spacing + origin]
 		]
-		if image: panel/image [
-			x: image/size/x
-			y: image/size/y
-			if panel/size/x < x [panel/size/x: x]
-			if panel/size/y < y [panel/size/y: y]
-		]
+		if image: panel/image [panel/size: max panel/size image/size]
 
 		if all [focal-face not parent][panel/selected: focal-face]
 		

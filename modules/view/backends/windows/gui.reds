@@ -525,7 +525,7 @@ free-faces: func [
 set-defaults: func [
 	/local
 		hTheme	[handle!]
-		font	[tagLOGFONT]
+		font	[tagLOGFONT value]
 		name	[c-string!]
 		res		[integer!]
 		len		[integer!]
@@ -533,10 +533,9 @@ set-defaults: func [
 	if IsThemeActive [
 		hTheme: OpenThemeData null #u16 "Window"
 		if hTheme <> null [
-			font: declare tagLOGFONT
 			res: GetThemeSysFont hTheme 805 font		;-- TMT_MSGBOXFONT
 			if zero? res [
-				name: (as-c-string font) + 28
+				name: as-c-string :font/lfFaceName
 				len: utf16-length? name
 				res: len + 1 * 2
 				default-font-name: as c-string! allocate res
@@ -579,7 +578,7 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-set-metrics: func [
+get-metrics: func [
 	/local
 		m	[red-hash!]
 		blk [red-block!]
@@ -641,7 +640,7 @@ init: func [
 	int/header: TYPE_INTEGER
 	int/value:  as-integer version-info/wProductType
 
-	set-metrics
+	get-metrics
 ]
 
 cleanup: does [
