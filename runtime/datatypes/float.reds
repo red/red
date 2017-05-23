@@ -834,7 +834,7 @@ float: context [
 		e: 0
 		f: as red-float! value
 		dec: f/value
-		sc: 1.0
+		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
@@ -843,12 +843,9 @@ float: context [
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
 			sc: abs scale/value
+			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
+			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
-
-		if sc = 0.0 [
-			fire [TO_ERROR(math overflow)]
-		]
-
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
 		v: sc >= 1.0
