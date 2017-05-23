@@ -293,10 +293,16 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [any [calc-y? not opts/size] any [calc-y? opts/text opts/data] min-size: calc-size face][
-			if all [not calc-y? face/size/x < min-size/x][face/size/x: min-size/x + 10]	;@@ hardcoded margins
-			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
+		if all [calc-y? min-size: calc-size face][
+			face/size/x: max face/size/x min-size/x
 		]
+		all [
+			not any [opts/size find style/template 'size]
+			any [opts/text opts/data]
+			min-size: calc-size face
+			face/size: max face/size min-size
+		]
+		
 		spec
 	]
 	

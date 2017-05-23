@@ -681,7 +681,7 @@ system/view/platform: context [
 		#system [gui/init]
 
 		extend svm [#switch config/OS [
-			;-- Type -- Margins --- Paddings --
+			;-- Type --- Margins --- Paddings --
 			Windows [
 				button: [1x1 1x1	#[none] #[none]]	;-- LeftxRight TopxBottom
 			]
