@@ -240,6 +240,7 @@ Red/System [
 	NAT_AS
 	NAT_CALL
 	NAT_ZERO?
+	NAT_SIZE?
 ]
 
 #enum math-op! [
@@ -288,7 +289,7 @@ Red/System [
 	RED_THROWN_ERROR:				195939070		;-- #0BADCAFE (keep it positive)
 ]
 
-#define NATIVES_NB		100							;-- max number of natives (arbitrary set)
+#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 

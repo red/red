@@ -859,3 +859,11 @@ call: make native! [[
 	]
 	#get-definition NAT_CALL
 ]
+
+size?: make native! [[
+		"Returns the size of a file content"
+		file 	[file!]
+		return: [integer! none!]
+	]
+	#get-definition NAT_SIZE?
+]
