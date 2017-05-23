@@ -503,8 +503,11 @@ make-event: func [
 		default	 [0]
 	]
 
-	stack/mark-native words/_anon
-	#call [system/view/awake gui-evt]
+	stack/mark-try-all words/_anon
+	catch CATCH_ALL_EXCEPTIONS [
+		#call [system/view/awake gui-evt]
+	]
+	if system/thrown <> 0 [system/thrown: 0]
 	stack/unwind
 
 	res: as red-word! stack/arguments
@@ -1251,11 +1254,10 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg	  [tagMSG]
+		msg	  [tagMSG value]
 		state [integer!]
 		msg?  [logic!]
 ][
-	msg: declare tagMSG
 	msg?: no
 	exit-loop: 0
 	
