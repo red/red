@@ -299,8 +299,7 @@ system/view/VID: context [
 		all [
 			not any [opts/size find style/template 'size]
 			any [opts/text opts/data]
-			min-size: calc-size face
-			face/size: max face/size min-size
+			face/size: max face/size calc-size face
 		]
 		
 		spec
