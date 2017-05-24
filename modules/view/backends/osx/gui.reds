@@ -590,25 +590,35 @@ change-color: func [
 	color	[red-tuple!]
 	type	[integer!]
 	/local
-		clr [integer!]
+		clr  [integer!]
+		set? [logic!]
 ][
 	if TYPE_OF(color) <> TYPE_TUPLE [exit]
 	if transparent-color? color [
 		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
 		exit
 	]
-	either any [type = field type = text type = area type = window][
-		clr: to-NSColor color
-		if type = area [
+	set?: yes
+	case [
+		type = area [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
 			set-caret-color hWnd color/array1
 		]
-		if type = text [
+		type = text [
 			objc_msgSend [hWnd sel_getUid "setDrawsBackground:" yes]
 		]
+		any [type = check type = radio][
+			hWnd: objc_msgSend [hWnd sel_getUid "cell"]
+		]
+		any [type = field type = window][0]				;-- no special process
+		true [
+			set?: no
+			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		]
+	]
+	if set? [
+		clr: to-NSColor color
 		objc_msgSend [hWnd sel_getUid "setBackgroundColor:" clr]
-	][
-		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 ]
 
