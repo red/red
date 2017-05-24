@@ -215,7 +215,7 @@ interpreter: context [
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
-					TYPE_LOGIC	 [push float/get arg]
+					TYPE_FLOAT	 [push float/get arg]
 					default		 [push arg]
 				]
 			]

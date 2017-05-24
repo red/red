@@ -578,13 +578,10 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-get-metrics: func [
-	/local
-		m	[red-hash!]
-		blk [red-block!]
-][
-	m: as red-hash! #get system/view/metrics
-	map/put m as red-value! _dpi as red-value! integer/push log-pixels-x no
+get-metrics: func [][
+	copy-cell 
+		as red-value! integer/push log-pixels-x
+		#get system/view/metrics/dpi
 ]
 
 init: func [

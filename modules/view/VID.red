@@ -66,15 +66,7 @@ system/view/VID: context [
 				]
 				size-text/with face copy/part mark len
 			]
-			'else [
-				either face/text [
-					size: size-text face
-					if find [button radio check] face/type [size/x: size/x + size/y]
-					size
-				][
-					size-text/with face "X"
-				]
-			]
+			'else [either face/text [size-text face][size-text/with face "X"]]
 		]
 	]
 	
@@ -293,10 +285,19 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 		
-		if all [any [calc-y? not opts/size] any [calc-y? opts/text opts/data] min-size: calc-size face][
-			if all [not calc-y? face/size/x < min-size/x][face/size/x: min-size/x + 10]	;@@ hardcoded margins
-			if face/size/y < min-size/y [face/size/y: min-size/y + 10]	;@@ not taking widgets margins into account
+		if all [calc-y? min-size: calc-size face][
+			face/size/x: max face/size/x min-size/x
 		]
+		all [
+			pad: select system/view/metrics/paddings face/type
+			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+		]
+		all [
+			not any [opts/size find style/styled 'size]
+			any [face/text face/data]
+			face/size: max face/size (calc-size face) + any [pad 0x0]
+		]
+		
 		spec
 	]
 	
@@ -349,6 +350,7 @@ system/view/VID: context [
 			type: offset: size: text: color: enable?: visible?: selected: image: 
 			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
+		if empty? opt-words: [][append opt-words words-of opts] ;-- static cache
 		
 		re-align: [
 			if all [debug? begin not empty? begin][
@@ -472,6 +474,9 @@ system/view/VID: context [
 					either pos: find local-styles name [pos/2: value][ 
 						reduce/into [name value] tail local-styles
 					]
+					styled: make block! 4
+					foreach w opt-words [if get in opts w [append styled w]]
+					repend value [to-set-word 'styled styled]
 					styling?: off
 				][
 					;-- update cursor position --

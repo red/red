@@ -157,15 +157,15 @@ simple-io: context [
 				stat!: alias struct! [
 					st_dev		[integer!]
 					st_ino		[integer!]
-					st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]					;-- struct timespec inlined
+					atv_sec		[integer!]				;-- struct timespec inlined
 					atv_msec	[integer!]
-					mtv_sec		[integer!]					;-- struct timespec inlined
+					mtv_sec		[integer!]				;-- struct timespec inlined
 					mtv_msec	[integer!]
-					ctv_sec		[integer!]					;-- struct timespec inlined
+					ctv_sec		[integer!]				;-- struct timespec inlined
 					ctv_msec	[integer!]
 					st_size		[integer!]
 					st_size_h	[integer!]
@@ -176,11 +176,11 @@ simple-io: context [
 					st_gen		[integer!]
 					st_lspare	[integer!]
 					btm_sec     [integer!]
-					btm_msec    [integer!]                  ;-- struct timespec inlined
+					btm_msec    [integer!]				;-- struct timespec inlined
 					pad0		[integer!]
 					pad1		[integer!]
 				]
-				dirent!: alias struct! [					;@@ the same as MacOSX
+				dirent!: alias struct! [				;@@ the same as MacOSX
 					d_ino		[integer!]
 					d_reclen	[byte!]
 					_d_reclen_	[byte!]
@@ -193,15 +193,15 @@ simple-io: context [
 				stat!: alias struct! [
 					st_dev		[integer!]
 					st_ino		[integer!]
-					st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+					st_modelink	[integer!]				;-- st_mode & st_link are both 16bit fields
 					st_uid		[integer!]
 					st_gid		[integer!]
 					st_rdev		[integer!]
-					atv_sec		[integer!]					;-- struct timespec inlined
+					atv_sec		[integer!]				;-- struct timespec inlined
 					atv_msec	[integer!]
-					mtv_sec		[integer!]					;-- struct timespec inlined
+					mtv_sec		[integer!]				;-- struct timespec inlined
 					mtv_msec	[integer!]
-					ctv_sec		[integer!]					;-- struct timespec inlined
+					ctv_sec		[integer!]				;-- struct timespec inlined
 					ctv_msec	[integer!]
 					st_size		[integer!]
 					st_blocks	[integer!]
@@ -219,7 +219,7 @@ simple-io: context [
 				;	_d_ino_		[integer!]
 				;	d_seekoff	[integer!]
 				;	_d_seekoff_	[integer!]
-				;	d_reclen	[integer!]					;-- d_reclen & d_namlen
+				;	d_reclen	[integer!]				;-- d_reclen & d_namlen
 				;	;d_namlen	[integer!]
 				;	d_type		[byte!]
 				;	;d_name		[byte! [1024]]
@@ -287,7 +287,7 @@ simple-io: context [
 			]
 			OS = 'Android [ ; else
 				;https://android.googlesource.com/platform/bionic.git/+/master/libc/include/sys/stat.h
-				stat!: alias struct! [				;-- stat64 struct
+				stat!: alias struct! [					;-- stat64 struct
 					st_dev_h	  [integer!]
 					st_dev_l	  [integer!]
 					pad0		  [integer!]
@@ -328,7 +328,7 @@ simple-io: context [
 			]
 			true [ ; else
 				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
-				stat!: alias struct! [				;-- stat64 struct
+				stat!: alias struct! [					;-- stat64 struct
 					st_dev_l	  [integer!]
 					st_dev_h	  [integer!]
 					pad0		  [integer!]
@@ -492,7 +492,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			CreateDirectory path null
 		][
-			zero? mkdir path 511			;-- 0777
+			zero? mkdir path 511						;-- 0777
 		]
 	]
 
@@ -588,7 +588,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			-1 <> GetFileAttributesW path
 		][
-			-1 <> _access path 0				;-- F_OK: 0
+			-1 <> _access path 0						;-- F_OK: 0
 		]
 	]
 
@@ -601,10 +601,10 @@ simple-io: context [
 				SetFilePointer file offset null SET_FILE_BEGIN
 			]
 			OS = 'MacOSX [
-				lseek file offset 0 0				;@@ offset is 64bit
+				lseek file offset 0 0					;@@ offset is 64bit
 			]
 			true [
-				lseek file offset 0					;-- SEEK_SET
+				lseek file offset 0						;-- SEEK_SET
 			]
 		]
 	]
@@ -659,8 +659,8 @@ simple-io: context [
 	]
 
 	lines-to-block: func [
-		src		[byte-ptr!]					;-- UTF-8 input buffer
-		size	[integer!]					;-- size of src in bytes (excluding terminal NUL)
+		src		[byte-ptr!]								;-- UTF-8 input buffer
+		size	[integer!]								;-- size of src in bytes (excluding terminal NUL)
 		return: [red-block!]
 		/local
 			blk		[red-block!]
@@ -703,7 +703,7 @@ simple-io: context [
 			len		[integer!]
 			type	[integer!]
 	][
-		unless unicode? [		;-- only command line args need to be checked
+		unless unicode? [								;-- only command line args need to be checked
 			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
 			len: length? filename
 			if filename/len = #"^"" [filename/len: null-byte]
@@ -740,10 +740,10 @@ simple-io: context [
 		][
 			either lines? [lines-to-block buffer size][
 				str: as red-string! stack/push*
-				str/header: TYPE_STRING							;-- implicit reset of all header flags
+				str/header: TYPE_STRING					;-- implicit reset of all header flags
 				str/head: 0
 				str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
-				str/cache: null									;-- @@ cache small strings?
+				str/cache: null							;-- @@ cache small strings?
 				str
 			]
 		]
@@ -778,7 +778,7 @@ simple-io: context [
 		either null? filename [
 			file: stdout
 		][
-			unless unicode? [		;-- only command line args need to be checked
+			unless unicode? [							;-- only command line args need to be checked
 				if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
 				len: length? filename
 				if filename/len = #"^"" [filename/len: null-byte]
@@ -873,7 +873,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			blk: block/push-only* 1
 			if all [zero? len cp = #"/"][
-				len: 1 + GetLogicalDriveStrings 0 null		;-- add NUL terminal
+				len: 1 + GetLogicalDriveStrings 0 null	;-- add NUL terminal
 				buf: allocate len << 1
 				GetLogicalDriveStrings len buf
 				i: 0
@@ -909,7 +909,7 @@ simple-io: context [
 
 			name: (as byte-ptr! info) + 44
 			until [
-				unless any [		;-- skip over the . and .. dir case
+				unless any [							;-- skip over the . and .. dir case
 					name = null
 					all [
 						(string/get-char name UCS-2) = as-integer #"."
@@ -942,7 +942,7 @@ simple-io: context [
 				info <> null
 			][
 				name: (as byte-ptr! info) + DIRENT_NAME_OFFSET
-				unless any [		;-- skip over the . and .. dir case
+				unless any [							;-- skip over the . and .. dir case
 					name = null
 					all [
 						name/1 = #"."
@@ -1069,7 +1069,7 @@ simple-io: context [
 		if OPTION?(part) [
 			either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if negative? int/value [return -1]			;-- early exit if part <= 0
+				if negative? int/value [return -1]		;-- early exit if part <= 0
 				limit: int/value
 			][
 				ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
@@ -1157,7 +1157,7 @@ simple-io: context [
 				mp: map/make-at stack/push* null 20
 				p: s
 				while [s/1 <> null-byte][
-					if s/1 = #":" [					;-- key, maybe have duplicated key
+					if s/1 = #":" [						;-- key, maybe have duplicated key
 						new?: no
 						s/1: null-byte
 						w: as red-value! word/push* symbol/make as-c-string p
@@ -1177,7 +1177,7 @@ simple-io: context [
 						p: s + 2
 						until [
 							s: s + 1
-							if s/1 = #"^M" [		;-- value
+							if s/1 = #"^M" [			;-- value
 								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
 								either new? [
 									map/put mp w res no
@@ -1237,7 +1237,7 @@ simple-io: context [
 				VariantInit async
 				VariantInit body
 				async/data1: VT_BOOL
-				async/data3: 0					;-- VARIANT_FALSE
+				async/data3: 0							;-- VARIANT_FALSE
 
 				switch method [
 					HTTP_GET [
@@ -1508,7 +1508,7 @@ simple-io: context [
 
 			to-NSURL: func [
 				str		[red-string!]
-				file?	[logic!]					;-- local file path or url?
+				file?	[logic!]						;-- local file path or url?
 				return: [integer!]
 				/local
 					nsstr	[integer!]
@@ -1586,7 +1586,7 @@ simple-io: context [
 					i: i + 1
 					k: CFStringGetCStringPtr keys/i kCFStringEncodingMacRoman
 					v: CFStringGetCStringPtr vals/i kCFStringEncodingMacRoman
-					if k = null [k: as c-string! objc_msgSend [keys/i sel_str]]		;-- fallback when CFStringGetCStringPtr failed
+					if k = null [k: as c-string! objc_msgSend [keys/i sel_str]]	;-- fallback when CFStringGetCStringPtr failed
 					if v = null [v: as c-string! objc_msgSend [vals/i sel_str]]
 
 					w: as red-value! word/push* symbol/make k
@@ -1849,7 +1849,7 @@ simple-io: context [
 
 				p: s
 				while [s/1 <> null-byte][
-					if s/1 = #":" [					;-- key, maybe have duplicated key
+					if s/1 = #":" [						;-- key, maybe have duplicated key
 						new?: no
 						s/1: null-byte
 						w: as red-value! word/push* symbol/make as-c-string p
@@ -1869,7 +1869,7 @@ simple-io: context [
 						p: s + 2
 						until [
 							s: s + 1
-							if s/1 = #"^M" [		;-- value
+							if s/1 = #"^M" [			;-- value
 								res: as red-value! string/load as-c-string p as-integer s - p UTF-8
 								either new? [
 									map/put mp w res no
@@ -1951,7 +1951,7 @@ simple-io: context [
 					tail:  s/tail
 
 					while [value < tail][
-						str: word/as-string as red-word! value		;-- cast word! to string!
+						str: word/as-string as red-word! value	;-- cast word! to string!
 						_series/copy as red-series! str as red-series! str null yes null
 						string/append-char GET_BUFFER(str) as-integer #":"
 						string/append-char GET_BUFFER(str) as-integer #" "

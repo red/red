@@ -3194,46 +3194,16 @@ OS-set-clip: func [
 	]
 ]
 
-matrix-rotate: func [
-	ctx		[draw-ctx!]
-	angle	[red-integer!]
-	center	[red-pair!]
-	m		[integer!]
-	/local
-		mm	[integer!]
-		pts	[tagPOINT]
-][
-	ctx/other/GDI+?: yes
-	pts: ctx/other/edges
-	if angle <> as red-integer! center [
-		pts/x: center/x
-		pts/y: center/y
-		mm: ctx/gp-matrix
-		if zero? mm [
-			GdipCreateMatrix :mm
-			ctx/gp-matrix: mm
-		]
-		GdipGetWorldTransform ctx/graphics ctx/gp-matrix
-		GdipTransformMatrixPointsI ctx/gp-matrix pts 1
-
-		GdipTranslateMatrix m as float32! pts/x as float32! pts/y GDIPLUS_MATRIX_PREPEND
-	]
-	GdipRotateMatrix m get-float32 angle GDIPLUS_MATRIX_PREPEND
-	if angle <> as red-integer! center [
-		GdipTranslateMatrix m as float32! 0 - pts/x as float32! 0 - pts/y GDIPLUS_MATRIX_PREPEND
-	]
-]
-
 OS-matrix-rotate: func [
 	ctx			[draw-ctx!]
 	pen-fill	[integer!]
 	angle		[red-integer!]
 	center		[red-pair!]
 	/local
-		m			[integer!]
 		brush		[integer!]
 		gradient	[gradient!]
 		pen?		[logic!]
+		g			[integer!]
 ][
 	ctx/other/GDI+?: yes
 	either pen-fill <> -1 [
@@ -3247,11 +3217,14 @@ OS-matrix-rotate: func [
 		texture-rotate as-float angle/value brush
 	][
 		;-- rotate figure
-		m: 0
-		GdipCreateMatrix :m
-		matrix-rotate ctx angle center m
-		GdipMultiplyWorldTransform ctx/graphics m ctx/other/matrix-order
-		GdipDeleteMatrix m
+		g: ctx/graphics
+		if angle <> as red-integer! center [
+			GdipTranslateWorldTransform g as float32! center/x as float32! center/y GDIPLUS_MATRIX_PREPEND
+		]
+		GdipRotateWorldTransform g get-float32 angle GDIPLUS_MATRIX_PREPEND
+		if angle <> as red-integer! center [
+			GdipTranslateWorldTransform g as float32! 0 - center/x as float32! 0 - center/y GDIPLUS_MATRIX_PREPEND
+		]
 	]
 ]
 
