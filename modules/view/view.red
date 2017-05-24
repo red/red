@@ -518,6 +518,9 @@ system/view: context [
 		screen-size: 	none
 		dpi:			none
 		;scaling:		1x1
+		paddings:		make map! 32
+		margins:		make map! 32
+		misc:			make map! 32
 	]
 	
 	fonts: object [

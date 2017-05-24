@@ -373,8 +373,6 @@ system/view/platform: context [
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
 
-			_dpi:			word/load "DPI"
-
 			get-event-type: func [
 				evt		[red-event!]
 				return: [red-value!]
@@ -674,21 +672,28 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svm svs fonts][
-		system/view/metrics: svm: make map! 32
+	init: func [/local svs fonts][
 		system/view/screens: svs: make block! 6
 
 		#system [gui/init]
 
-		extend svm [#switch config/OS [
-			;-- Type --- Margins --- Paddings --
+		extend system/view/metrics/margins [#switch config/OS [
 			Windows [
-				button: [1x1 1x1	#[none] #[none]]	;-- LeftxRight TopxBottom
+				button: [1x1  1x1]						;-- LeftxRight TopxBottom
 			]
 			MacOSX [
-				button:	[6x6 4x7	7x7 4x7]
+				button:	[6x6  4x7]
 				check:	[20x0 3x1]
 				radio:	[20x0 1x1]
+			]
+		]]
+		extend system/view/metrics/paddings [#switch config/OS [
+			Windows [
+				check:	[16x0 0x0]						;-- 13 + 3 for text padding
+				radio:	[16x0 0x0]						;-- 13 + 3 for text padding
+			]
+			MacOSX [
+				button:	[7x7 4x7]
 			]
 		]]
 
