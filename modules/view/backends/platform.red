@@ -679,18 +679,20 @@ system/view/platform: context [
 
 		extend system/view/metrics/margins [#switch config/OS [
 			Windows [
-				button: [1x1  1x1]						;-- LeftxRight TopxBottom
+				button:		[1x1  1x1]					;-- LeftxRight TopxBottom
+				group-box:	[3x3  3x3  14]				;-- extra value for pad/top when titled
 			]
 			MacOSX [
-				button:	[6x6  4x7]
-				check:	[20x0 3x1]
-				radio:	[20x0 1x1]
+				button:		[6x6  4x7]
+				check:		[20x0 3x1]
+				radio:		[20x0 1x1]
 			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
 				check:	[16x0 0x0]						;-- 13 + 3 for text padding
 				radio:	[16x0 0x0]						;-- 13 + 3 for text padding
+				slider: [7x7  3x0]
 			]
 			MacOSX [
 				button:	[7x7 4x7]

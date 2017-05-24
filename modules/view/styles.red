@@ -73,7 +73,7 @@ Red [
 	]
 	group-box: [
 		default-actor: on-down						;@@ something better?
-		template: [type: 'group-box size: 200x200]
+		template: [type: 'group-box]
 	]
 	tab-panel: [
 		default-actor: on-select

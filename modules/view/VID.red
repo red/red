@@ -161,7 +161,7 @@ system/view/VID: context [
 	fetch-expr: func [code [word!]][do/next next get code code]
 	
 	fetch-options: function [
-		face [object!] opts [object!] style [block!] spec [block!] css [block!]
+		face [object!] opts [object!] style [block!] spec [block!] css [block!] styling? [logic!]
 		/extern focal-face
 		return: [block!]
 	][
@@ -233,7 +233,7 @@ system/view/VID: context [
 									divides: value
 								][
 									opts/size: as-pair value face/size/y
-									calc-y?: yes		;-- force size/y calculation
+									opts/size-x: value
 								]
 							]
 						]
@@ -264,8 +264,20 @@ system/view/VID: context [
 		]
 		unless opt? [spec: back spec]
 
-		if all [opts/image not opts/size][opts/size: opts/image/size]
-		
+		words: select style 'styled
+		if all [not opts/size-x	find words 'size-x][
+			opts/size-x: style/template/size/x
+		]
+
+		if all [oi: opts/image any [opts/size-x not opts/size]][
+			opts/size: either opts/size-x [
+				x: either zero? oi/size/x [1][oi/size/x]
+				as-pair opts/size/x opts/size * (oi/size/y / x)
+			][
+				oi/size
+			]
+		]
+
 		font: opts/font
 		if any [face-font: face/font font][
 			either face-font [
@@ -281,23 +293,32 @@ system/view/VID: context [
 				if none? face-font/:field [face-font/:field: get value]
 			]
 		]
-		set/some face opts
+		
+		set/some face opts								;-- merge default+styles and user options
 		
 		if block? face/actors [face/actors: make object! face/actors]
-		
-		if all [calc-y? min-size: calc-size face][
-			face/size/x: max face/size/x min-size/x
-		]
+
 		all [
 			pad: select system/view/metrics/paddings face/type
 			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
 		]
-		all [
-			not any [opts/size find style/styled 'size]
+		if all [
+			any [opts/size-x not opts/size not find words 'size]
 			any [face/text face/data]
-			face/size: max face/size (calc-size face) + any [pad 0x0]
+		][
+			min-sz: (calc-size face) + any [pad 0x0]
+			
+			face/size: either opts/size-x [				;-- x size provided by user
+				as-pair opts/size-x max face/size/y min-sz/y
+			][
+				max face/size min-sz
+			]
 		]
-		
+		all [											;-- account for hard margins
+			not styling?
+			mar: select system/view/metrics/margins face/type
+			face/size: face/size + as-pair mar/1/x + mar/1/y mar/2/x + mar/2/y
+		]
 		spec
 	]
 	
@@ -347,7 +368,7 @@ system/view/VID: context [
 		bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
-			type: offset: size: text: color: enable?: visible?: selected: image: 
+			type: offset: size: size-x: text: color: enable?: visible?: selected: image: 
 			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		if empty? opt-words: [][append opt-words words-of opts] ;-- static cache
@@ -449,14 +470,14 @@ system/view/VID: context [
 					]
 				]
 				unless style: any [
-					select local-styles value
+					styled?: select local-styles value
 					select system/view/VID/styles value
 				][
 					throw-error spec
 				]
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
-				spec: fetch-options face opts style spec local-styles
+				spec: fetch-options face opts style spec local-styles to-logic styling?
 				if style/init [do bind style/init 'face]
 				
 				either styling? [
