@@ -504,14 +504,14 @@ make-event: func [
 	]
 
 	stack/mark-try-all words/_anon
+	res: as red-word! stack/arguments
 	catch CATCH_ALL_EXCEPTIONS [
 		#call [system/view/awake gui-evt]
 		stack/unwind
 	]
 	stack/adjust-post-try
 	if system/thrown <> 0 [system/thrown: 0]
-
-	res: as red-word! stack/arguments
+	
 	if TYPE_OF(res) = TYPE_WORD [
 		sym: symbol/resolve res/symbol
 		case [
@@ -559,7 +559,7 @@ init-current-msg: func [
 	/local
 		pos [integer!]
 ][
-	current-msg: declare TAGmsg
+	current-msg: declare tagMSG
 	pos: GetMessagePos
 	current-msg/x: WIN32_LOWORD(pos)
 	current-msg/y: WIN32_HIWORD(pos)
@@ -1255,10 +1255,11 @@ do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
-		msg	  [tagMSG value]
+		msg	  [tagMSG]
 		state [integer!]
 		msg?  [logic!]
 ][
+	msg: declare tagMSG
 	msg?: no
 	exit-loop: 0
 	
