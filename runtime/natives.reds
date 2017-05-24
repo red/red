@@ -1711,7 +1711,7 @@ natives: context [
 			p	 [red-pair!]
 			ret  [red-logic!]
 	][
-		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		#typecheck -zero?- 								;-- `zero?` would be converted to `0 =` by lexer
 		i: as red-integer! stack/arguments
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
