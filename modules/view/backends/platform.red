@@ -686,7 +686,9 @@ system/view/platform: context [
 				button: [1x1 1x1	#[none] #[none]]	;-- LeftxRight TopxBottom
 			]
 			MacOSX [
-				button: [6x6 4x7	#[none] #[none]]
+				button:	[6x6 4x7	7x7 4x7]
+				check:	[20x0 3x1]
+				radio:	[20x0 1x1]
 			]
 		]]
 
