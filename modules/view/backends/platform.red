@@ -683,7 +683,7 @@ system/view/platform: context [
 				group-box:	[3x3  3x3  14]				;-- extra value for pad/top when titled
 			]
 			MacOSX [
-				button:		[6x6  4x7]
+				button:		[6x6  0x3]
 				check:		[20x0 3x1]
 				radio:		[20x0 1x1]
 			]
@@ -695,7 +695,7 @@ system/view/platform: context [
 				slider: [7x7  3x0]
 			]
 			MacOSX [
-				button:	[7x7 4x7]
+				button:	[7x7 0x0]
 			]
 		]]
 
