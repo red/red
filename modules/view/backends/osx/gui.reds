@@ -1523,8 +1523,8 @@ OS-make-view: func [
 		sym = window [class: "RedWindow"]
 		sym = tab-panel [
 			class: "RedTabView"
-			size/x: size/x + 5							;@@ hardcoded margins
-			size/y: size/y + 10
+			size/x: size/x
+			size/y: size/y
 		]
 		any [
 			sym = panel
@@ -1535,13 +1535,16 @@ OS-make-view: func [
 		any [
 			sym = drop-down
 			sym = drop-list
-		][class: "RedComboBox" size/y: 26]				;@@ set to default height
+		][
+			class: "RedComboBox"
+			if size/y < 26 [size/y: 26]					;@@ set to default height
+		]
 		sym = slider [class: "RedSlider"]
 		sym = progress [class: "RedProgress"]
 		sym = group-box [
 			class: "RedBox"
-			size/x: size/x + 6							;@@ hardcoded margins
-			size/y: size/y + 6
+			size/x: size/x
+			size/y: size/y
 		]
 		sym = camera [class: "RedCamera"]
 		true [											;-- search in user-defined classes
