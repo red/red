@@ -17,6 +17,8 @@ system/view/VID: context [
 	reactors:	make block! 20
 	debug?: 	no
 	
+	containers: [panel tab-panel group-box]
+	
 	default-font: [
 		name	system/view/fonts/system
 		size	system/view/fonts/size
@@ -298,15 +300,21 @@ system/view/VID: context [
 		
 		if block? face/actors [face/actors: make object! face/actors]
 
-		all [
+		;-- size adjustments --
+		all [											;-- account for hard paddings
 			pad: select system/view/metrics/paddings face/type
 			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
 		]
 		if any [opts/size-x not opts/size not find words 'size][
 			sz: any [face/size 0x0]
-			min-sz: (any [pad 0x0]) + any [
-				all [any [face/text series? face/data] calc-size face]
-				sz
+			min-sz: either find containers face/type [sz][
+				(any [pad 0x0]) + any [
+					all [
+						any [face/text series? face/data]
+						calc-size face
+					]
+					sz
+				]
 			]
 			face/size: either opts/size-x [				;-- x size provided by user
 				as-pair opts/size-x max sz/y min-sz/y
@@ -524,6 +532,11 @@ system/view/VID: context [
 							face/offset/:axis: list/:index/offset/:axis
 						]
 					]
+					all [								;-- account for hard margins
+						mar: select system/view/metrics/margins face/type
+						face/offset: face/offset - as-pair mar/1/x mar/2/x
+					]
+					
 					append list face
 					if name [set name face]
 					pane-size: max pane-size face/offset + face/size + spacing
