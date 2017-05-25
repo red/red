@@ -690,12 +690,12 @@ system/view/platform: context [
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
-				check:	[16x0 0x0]						;-- 13 + 3 for text padding
-				radio:	[16x0 0x0]						;-- 13 + 3 for text padding
-				slider: [7x7  3x0]
+				check:		[16x0 0x0]					;-- 13 + 3 for text padding
+				radio:		[16x0 0x0]					;-- 13 + 3 for text padding
+				;slider: 	[7x7  3x0]
 			]
 			MacOSX [
-				button:	[7x7 0x0]
+				button:		[7x7 0x0]
 			]
 		]]
 

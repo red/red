@@ -302,16 +302,16 @@ system/view/VID: context [
 			pad: select system/view/metrics/paddings face/type
 			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
 		]
-		if all [
-			any [opts/size-x not opts/size not find words 'size]
-			any [face/text face/data]
-		][
-			min-sz: (calc-size face) + any [pad 0x0]
-			
+		if any [opts/size-x not opts/size not find words 'size][
+			sz: any [face/size 0x0]
+			min-sz: (any [pad 0x0]) + any [
+				all [any [face/text series? face/data] calc-size face]
+				sz
+			]
 			face/size: either opts/size-x [				;-- x size provided by user
-				as-pair opts/size-x max face/size/y min-sz/y
+				as-pair opts/size-x max sz/y min-sz/y
 			][
-				max face/size min-sz
+				max sz min-sz
 			]
 		]
 		all [											;-- account for hard margins
