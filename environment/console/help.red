@@ -48,8 +48,11 @@ help-ctx: context [
 	; A few of these helper funcs are exported from the context, though may
 	; be better housed in a string formatting module at a later date.
 	
+	;!! This is a very simple function, and not always grammatically correct.
+	;   A more correct function would base the result on the vowel or consonant
+	;   *sound*, rather than the actual letter.
 	set 'a-an function [
-		"Returns the appropriate variant of a or an"
+		"Returns the appropriate variant of a or an (simple, vs 100% grammatically correct)"
 		str [string!]
 		/pre "Prepend to str"
 	][
