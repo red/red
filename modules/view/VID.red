@@ -373,7 +373,7 @@ system/view/VID: context [
 		global?: 	  yes								;-- TRUE: panel options expected
 		below?: 	  no
 		
-		bound: cursor: origin: spacing: pick [0x0 10x10] tight
+		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
 			type: offset: size: size-x: text: color: enable?: visible?: selected: image: 
@@ -418,6 +418,14 @@ system/view/VID: context [
 			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
 		
+		any [
+			all [										;-- account for container's hard paddings
+				svmp: select system/view/metrics/paddings panel/type ;-- top-left padding
+				bound: cursor: origin: origin + pad: as-pair svmp/1/x svmp/2/x
+			]
+			pad: 0x0
+		]
+		
 		if debug? [append panel/draw: make block! 30 [pen red]]
 		
 		while [all [global? not tail? spec]][			;-- process wrapping panel options
@@ -456,7 +464,7 @@ system/view/VID: context [
 					max-sz: 0
 				]
 				space	[spacing: fetch-argument pair! spec]
-				origin	[origin: cursor: fetch-argument pair! spec]
+				origin	[origin: cursor: pad + top-left: fetch-argument pair! spec]
 				at		[at-offset: fetch-expr 'spec spec: back spec]
 				pad		[cursor: cursor + fetch-argument pair! spec]
 				do		[do-safe bind fetch-argument block! spec panel]
@@ -551,7 +559,13 @@ system/view/VID: context [
 			unless only [panel/pane: list]
 		]
 		either size [panel/size: size][
-			if pane-size <> 0x0 [panel/size: pane-size - spacing + origin]
+			if pane-size <> 0x0 [
+				if svmp [
+					pad2: as-pair svmp/1/y svmp/2/y		;-- bottom-right padding
+					origin: either top-left = pad [pad2][max top-left pad2]
+				]
+				panel/size: pane-size - spacing + origin
+			]
 		]
 		if image: panel/image [panel/size: max panel/size image/size]
 

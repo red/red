@@ -165,14 +165,12 @@ gui-console-ctx: context [
 			style hex-field: field 90 center font [name: font-name]
 			
 			group-box "Background color" [
-				pad 0x10
 				bbox #000000 bbox #002b36 bbox #073642 bbox #293955
 				bbox #eee8d5 bbox #fdf6e3 bbox #ffffff
 			]
 			pad 0x20 cfg-backcolor: hex-field return pad 0x-20
 			
 			group-box "Font color" [
-				pad 0x10
 				fbox #b98000 fbox #cb4b16 fbox #dc322f fbox #d33682
 				fbox #6c71c4 fbox #268bd2 fbox #2aa198
 				return

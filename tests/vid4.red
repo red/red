@@ -27,7 +27,7 @@ view [
 	
 	camera 50x300
 	
-	tt: text-list 50x300 data ["one" "two" "three" "four"]
+	text-list 50x300 data ["one" "two" "three" "four"]
 	drop-list 50x300 data ["one" 4 "two" 5 "three" 6 "four" 7] 
 	drop-down 50x300 data ["one" "two" "three" "four"]
 	
