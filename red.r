@@ -8,7 +8,7 @@ REBOL [
 	Usage:   {
 		do/args %red.r "path/source.red"
 	}
-	Encap: [quiet secure none title "Red" no-window]
+	Encap: [quiet secure none cgi title "Red" no-window]
 ]
 
 unless value? 'encap-fs [do %system/utils/encap-fs.r]
