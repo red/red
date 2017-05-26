@@ -19,13 +19,13 @@ view [
 	tab-panel 300 ["tab1" [] "tab2" []]
 	slider 5% 300 ;blue
 	bar: progress 50% 300
-	base 255.0.0.138  300
+	base 255.0.0.138  300 "Base"
 	
-	button "Hello"    300
-	text   "World"	  300 cyan
-	check  "option 1" 300 yellow
-	radio  "option 2" 300 yellow
-	field  "edit me"  300
+	button "Button" 300
+	text   "Text"	300 cyan
+	check  "Check"  300 yellow
+	radio  "Radio"  300 yellow
+	field  "Field"  300
 	
 	camera 300x30
 	

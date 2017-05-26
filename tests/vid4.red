@@ -17,17 +17,17 @@ view [
 	tab-panel 100x300 ["tab1" [] "tab2" []]
 	slider 5% 50x300 ;blue
 	bar: progress 50% 50x300
-	base 255.0.0.138  50x300
+	base 255.0.0.138  50x300 "Base"
 	
-	button "Hello"    80x300
-	text   "World"	  50x300 cyan
-	check  "option 1" 50x300 yellow
-	radio  "option 2" 50x300 yellow
-	field  "edit me"  50x300
+	button "Button" 80x300
+	text   "Text"	50x300 cyan
+	check  "Check"  50x300 yellow
+	radio  "Radio"  50x300 yellow
+	field  "Field"  50x300
 	
 	camera 50x300
 	
-	text-list 50x300 data ["one" "two" "three" "four"]
+	tt: text-list 50x300 data ["one" "two" "three" "four"]
 	drop-list 50x300 data ["one" 4 "two" 5 "three" 6 "four" 7] 
 	drop-down 50x300 data ["one" "two" "three" "four"]
 	
