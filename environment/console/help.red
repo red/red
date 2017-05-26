@@ -82,7 +82,10 @@ help-ctx: context [
 	
 	; This can no longer be determined statically. If we pad and align object
 	; words, they are no longer limited to HELP_COL_1_SIZE.
-	VAL_FORM_LIMIT: does [system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	; The `max` check is there because the CLI console size is 0 on startup.
+	; It keeps the width from going negative if someone launches the CLI with
+	; a `help` call in their script on the command line.
+	VAL_FORM_LIMIT: does [max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
