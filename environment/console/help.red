@@ -128,7 +128,7 @@ help-ctx: context [
 	]
 
 	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return 0]
+		if all [object? words  empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
