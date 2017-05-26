@@ -253,6 +253,7 @@ system/view/platform: context [
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
+			scroller:		symbol/make "scroller"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -292,6 +293,7 @@ system/view/platform: context [
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
+			_scroller:		word/load "scroller"
 
 			_text:			word/load "text"
 			_data:			word/load "data"
@@ -679,21 +681,26 @@ system/view/platform: context [
 
 		extend system/view/metrics/margins [#switch config/OS [
 			Windows [
-				button: [1x1  1x1]						;-- LeftxRight TopxBottom
+				button:		[1x1  1x1]					;-- LeftxRight TopxBottom
+				tab-panel:	[0x2  0x1]
+				text-list:	[0x0  0x15]
 			]
 			MacOSX [
-				button:	[6x6  4x7]
-				check:	[20x0 3x1]
-				radio:	[20x0 1x1]
+				button:		[6x6  0x3]
 			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
-				check:	[16x0 0x0]						;-- 13 + 3 for text padding
-				radio:	[16x0 0x0]						;-- 13 + 3 for text padding
+				check:		[16x0 0x0]					;-- 13 + 3 for text padding
+				radio:		[16x0 0x0]					;-- 13 + 3 for text padding
+				;slider: 	[7x7  3x0]
+				group-box:	[3x3  3x3  14]				;-- extra value for pad/top when titled
+				tab-panel:	[0x2  0x1]
 			]
 			MacOSX [
-				button:	[7x7 4x7]
+				button:		[7x7 0x0]
+				check:		[20x0 3x1]
+				radio:		[20x0 1x1]
 			]
 		]]
 

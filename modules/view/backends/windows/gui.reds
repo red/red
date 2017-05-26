@@ -578,10 +578,20 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
-get-metrics: func [][
+get-metrics: func [
+	/local
+		svm	[red-hash!]
+		blk [red-block!]
+][
 	copy-cell 
 		as red-value! integer/push log-pixels-x
 		#get system/view/metrics/dpi
+	
+	svm: as red-hash! #get system/view/metrics/misc
+	map/put svm as red-value! _scroller as red-value! pair/push
+		GetSystemMetrics 2								;-- SM_CXVSCROLL
+		GetSystemMetrics 20								;-- SM_CYVSCROLL
+		no
 ]
 
 init: func [

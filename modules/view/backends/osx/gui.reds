@@ -590,25 +590,35 @@ change-color: func [
 	color	[red-tuple!]
 	type	[integer!]
 	/local
-		clr [integer!]
+		clr  [integer!]
+		set? [logic!]
 ][
 	if TYPE_OF(color) <> TYPE_TUPLE [exit]
 	if transparent-color? color [
 		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
 		exit
 	]
-	either any [type = field type = text type = area type = window][
-		clr: to-NSColor color
-		if type = area [
+	set?: yes
+	case [
+		type = area [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
 			set-caret-color hWnd color/array1
 		]
-		if type = text [
+		type = text [
 			objc_msgSend [hWnd sel_getUid "setDrawsBackground:" yes]
 		]
+		any [type = check type = radio][
+			hWnd: objc_msgSend [hWnd sel_getUid "cell"]
+		]
+		any [type = field type = window][0]				;-- no special process
+		true [
+			set?: no
+			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+		]
+	]
+	if set? [
+		clr: to-NSColor color
 		objc_msgSend [hWnd sel_getUid "setBackgroundColor:" clr]
-	][
-		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 	]
 ]
 
@@ -1499,11 +1509,9 @@ OS-make-view: func [
 		sym = field [class: "RedTextField"]
 		sym = button [
 			class: "RedButton"
-			size/x: size/x
 		]
 		sym = check [
 			class: "RedButton"
-			size/x: size/x
 			flags: NSSwitchButton
 		]
 		sym = radio [
@@ -1513,8 +1521,6 @@ OS-make-view: func [
 		sym = window [class: "RedWindow"]
 		sym = tab-panel [
 			class: "RedTabView"
-			size/x: size/x + 5							;@@ hardcoded margins
-			size/y: size/y + 10
 		]
 		any [
 			sym = panel
@@ -1525,13 +1531,14 @@ OS-make-view: func [
 		any [
 			sym = drop-down
 			sym = drop-list
-		][class: "RedComboBox" size/y: 26]				;@@ set to default height
+		][
+			class: "RedComboBox"
+			size/y: 26									;@@ set to default height
+		]
 		sym = slider [class: "RedSlider"]
 		sym = progress [class: "RedProgress"]
 		sym = group-box [
 			class: "RedBox"
-			size/x: size/x + 6							;@@ hardcoded margins
-			size/y: size/y + 6
 		]
 		sym = camera [class: "RedCamera"]
 		true [											;-- search in user-defined classes

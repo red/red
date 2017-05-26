@@ -21,7 +21,7 @@ Red [
 	]
 	button: [
 		default-actor: on-click
-		template: [type: 'button size: 60x32]
+		template: [type: 'button size: 60x23]
 	]
 	text: [
 		default-actor: on-change
@@ -45,7 +45,7 @@ Red [
 	]
 	progress: [
 		default-actor: on-change
-		template: [type: 'progress size: 140x16]
+		template: [type: 'progress size: 150x16]
 	]
 	slider: [
 		default-actor: on-change
@@ -73,11 +73,11 @@ Red [
 	]
 	group-box: [
 		default-actor: on-down						;@@ something better?
-		template: [type: 'group-box size: 200x200]
+		template: [type: 'group-box size: 50x50]
 	]
 	tab-panel: [
 		default-actor: on-select
-		template: [type: 'tab-panel]
+		template: [type: 'tab-panel size: 50x50]
 	]
 	h1:  [
 		default-actor: on-change
