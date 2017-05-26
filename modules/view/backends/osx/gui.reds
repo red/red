@@ -1509,11 +1509,9 @@ OS-make-view: func [
 		sym = field [class: "RedTextField"]
 		sym = button [
 			class: "RedButton"
-			size/x: size/x
 		]
 		sym = check [
 			class: "RedButton"
-			size/x: size/x
 			flags: NSSwitchButton
 		]
 		sym = radio [
@@ -1523,8 +1521,6 @@ OS-make-view: func [
 		sym = window [class: "RedWindow"]
 		sym = tab-panel [
 			class: "RedTabView"
-			size/x: size/x
-			size/y: size/y
 		]
 		any [
 			sym = panel
@@ -1537,14 +1533,12 @@ OS-make-view: func [
 			sym = drop-list
 		][
 			class: "RedComboBox"
-			if size/y < 26 [size/y: 26]					;@@ set to default height
+			size/y: 26									;@@ set to default height
 		]
 		sym = slider [class: "RedSlider"]
 		sym = progress [class: "RedProgress"]
 		sym = group-box [
 			class: "RedBox"
-			size/x: size/x
-			size/y: size/y
 		]
 		sym = camera [class: "RedCamera"]
 		true [											;-- search in user-defined classes
