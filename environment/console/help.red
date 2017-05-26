@@ -16,7 +16,7 @@ Red [
 
 help-ctx: context [
 	DOC_SEP: copy "=>"		; String separating value from doc string
-	DEF_SEP: copy "|"		; String separating value from definition string
+	DEF_SEP: copy ""		; String separating value from definition string
 	NO_DOC:  copy "" 		; What to show if there's no doc string "(undocumented)"
 	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
