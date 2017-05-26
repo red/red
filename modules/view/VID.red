@@ -59,7 +59,7 @@ system/view/VID: context [
 				if all [face/text face/type <> 'drop-list][
 					min-sz: max min-sz size-text face
 				]
-				min-sz + 24x0							;@@ hardcoded offset for scrollbar
+				min-sz + any [system/view/metrics/misc/scroller 0x0]
 			]
 			all [face/type = 'area string? face/text not empty? face/text][
 				len: 0
