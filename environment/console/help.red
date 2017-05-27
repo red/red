@@ -523,7 +523,6 @@ help-ctx: context [
 		/buffer "Buffer and return output, rather than printing results"
 	][
 		clear output-buffer
-		;emit: either buffer [:_print][:print]
 		found-at-least-one?: no
 		foreach word sort get-sys-words either with [:set?][:any-function?] [
 			val: get word
