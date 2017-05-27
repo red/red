@@ -810,17 +810,19 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file!] /local saved code new-path src][
+do-file: func [file [file! url!] /local saved code new-path src][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
 	]
 	code: expand-directives load/all src
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
-	new-path: first split-path clean-path file
-	change-dir new-path
+	if file? file [
+		new-path: first split-path clean-path file
+		change-dir new-path
+	]
 	set/any 'code do code
-	change-dir saved
+	if file? file [change-dir saved]
 	:code
 ]
 

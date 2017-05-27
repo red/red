@@ -535,7 +535,8 @@ natives: context [
 					#call [system/lexer/transcode str none no]
 					DO_EVAL_BLOCK
 				]
-				TYPE_FILE [#call [do-file as red-file! arg]]
+				TYPE_URL 
+				TYPE_FILE  [#call [do-file as red-file! arg]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
