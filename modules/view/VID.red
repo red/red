@@ -63,8 +63,12 @@ system/view/VID: context [
 			]
 			all [face/type = 'area string? face/text not empty? face/text][
 				len: 0
-				parse mark: face/text [
-					any [s: to [CR | end] e: (if len < new: offset? s e [len: new mark: s]) opt LF skip]
+				parse mark: face/text [					;-- find the longest line
+					any [
+						s: thru [CR | LF | end] e:
+						(if len < new: offset? s e [len: new mark: s])
+						opt LF skip
+					]
 				]
 				size-text/with face copy/part mark len
 			]
