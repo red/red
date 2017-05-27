@@ -1031,26 +1031,13 @@ evolve-base-face: func [
 	hWnd
 ]
 
-set-cursor: func [
-	sym		[integer!]
-	/local
-		cur [integer!]
-][
-	cur: case [
-		sym = _I-beam [IDC_IBEAM]
-		sym = _hand	  [32649]			;-- IDC_HAND
-		sym = _help   [32651]
-		true		  [IDC_ARROW]
-	]
-	SetCursor LoadCursor null cur
-]
-
 parse-common-opts: func [
 	hWnd	[handle!]
 	options [red-block!]
 	/local
 		word	[red-word!]
 		w		[red-word!]
+		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
 ][
@@ -1064,7 +1051,20 @@ parse-common-opts: func [
 			case [
 				sym = _cursor [
 					w: word + 1
-					SetWindowLong hWnd wc-offset - 28 symbol/resolve w/symbol
+					either TYPE_OF(w) = TYPE_IMAGE [
+						img: as red-image! w
+						GdipCreateHICONFromBitmap as-integer img/node :sym
+					][
+						sym: symbol/resolve w/symbol
+						sym: case [
+							sym = _I-beam [IDC_IBEAM]
+							sym = _hand	  [32649]			;-- IDC_HAND
+							sym = _help   [32651]
+							true		  [IDC_ARROW]
+						]
+						sym: as-integer LoadCursor null sym
+					]
+					SetWindowLong hWnd wc-offset - 28 sym
 				]
 				true [0]
 			]

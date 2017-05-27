@@ -1110,7 +1110,7 @@ WndProc: func [
 		WM_SETCURSOR [
 			res: GetWindowLong as handle! wParam wc-offset - 28
 			unless zero? res [
-				set-cursor res
+				SetCursor as handle! res
 				return 1
 			]
 		]

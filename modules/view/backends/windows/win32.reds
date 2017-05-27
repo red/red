@@ -1904,6 +1904,11 @@ XFORM!: alias struct! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateHICONFromBitmap: "GdipCreateHICONFromBitmap" [
+			bitmap		[integer!]
+			hIcon		[int-ptr!]
+			return:		[integer!]
+		]
 		GdipSetPixelOffsetMode: "GdipSetPixelOffsetMode" [
 			graphics	[integer!]
 			mode		[integer!]
