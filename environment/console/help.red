@@ -316,7 +316,7 @@ help-ctx: context [
 
 	Other useful functions:
 
-		??     - Display a variable and its value
+		??     - Display a word and the value it references
 		probe  - Print a molded value
 		source - Show a function's source code
 		what   - Show a list of known functions or words
