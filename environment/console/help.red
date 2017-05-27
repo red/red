@@ -16,7 +16,7 @@ Red [
 
 help-ctx: context [
 	DOC_SEP: copy "=>"		; String separating value from doc string
-	DEF_SEP: copy "|"		; String separating value from definition string
+	DEF_SEP: copy ""		; String separating value from definition string
 	NO_DOC:  copy "" 		; What to show if there's no doc string "(undocumented)"
 	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
@@ -48,8 +48,11 @@ help-ctx: context [
 	; A few of these helper funcs are exported from the context, though may
 	; be better housed in a string formatting module at a later date.
 	
+	;!! This is a very simple function, and not always grammatically correct.
+	;   A more correct function would base the result on the vowel or consonant
+	;   *sound*, rather than the actual letter.
 	set 'a-an function [
-		"Returns the appropriate variant of a or an"
+		"Returns the appropriate variant of a or an (simple, vs 100% grammatically correct)"
 		str [string!]
 		/pre "Prepend to str"
 	][
@@ -82,7 +85,10 @@ help-ctx: context [
 	
 	; This can no longer be determined statically. If we pad and align object
 	; words, they are no longer limited to HELP_COL_1_SIZE.
-	VAL_FORM_LIMIT: does [system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	; The `max` check is there because the CLI console size is 0 on startup.
+	; It keeps the width from going negative if someone launches the CLI with
+	; a `help` call in their script on the command line.
+	VAL_FORM_LIMIT: does [max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
@@ -125,7 +131,7 @@ help-ctx: context [
 	]
 
 	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return 0]
+		if all [object? words  empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
