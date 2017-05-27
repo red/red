@@ -111,12 +111,14 @@ gui-console-ctx: context [
 			title "About"
 			size 360x320
 			backdrop 58.58.60
+
 			style text:  text 360 center 58.58.60 
 			style txt:   text font-color white
 			style small: txt  font [size: 9 color: white]
 			style link:  text all-over
 				on-down [browse face/data]
 				on-over [face/font/style: either event/away? [none]['underline]]
+
 			below
 			pad 0x15
 			txt bold "Red Programming Language" font [size: 15 color: white]
