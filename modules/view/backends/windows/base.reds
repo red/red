@@ -116,7 +116,7 @@ render-base: func [
 		values	[red-value!]
 		img		[red-image!]
 		w		[red-word!]
-		rc		[RECT_STRUCT]
+		rc		[RECT_STRUCT value]
 		graphic	[integer!]
 		type	[integer!]
 		res		[logic!]
@@ -128,8 +128,7 @@ render-base: func [
 	w: as red-word! values + FACE_OBJ_TYPE
 	img: as red-image! values + FACE_OBJ_IMAGE
 
-	rc: declare RECT_STRUCT
-	GetClientRect hWnd rc
+	GetClientRect hWnd :rc
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipCreateFromHDC hDC :graphic
 		if zero? GdipDrawImageRectI
@@ -144,7 +143,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hDC rc
+		render-text values hDC :rc
 	][
 		res: true
 	]
@@ -620,7 +619,7 @@ update-base-text: func [
 		values	[red-value!]
 		color	[red-tuple!]
 		state	[red-block!]
-		rect	[RECT_STRUCT_FLOAT32]
+		rect	[RECT_STRUCT_FLOAT32 value]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
@@ -665,19 +664,19 @@ update-base-text: func [
 	]
 
 	GdipCreateFontFromDC as-integer dc :hFont
+	if clr >>> 24 = 0 [clr: 1 << 24 or clr]						;@@ workaround for bad text rendering
 	GdipCreateSolidFill to-gdiplus-color clr :hBrush
-	
+
 	GdipCreateStringFormat 80000000h 0 :format
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
 
-	rect: declare RECT_STRUCT_FLOAT32
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
 	rect/width: as float32! width
 	rect/height: as float32! height
 
-	GdipDrawString graphic unicode/to-utf16 text -1 hFont rect format hBrush
+	GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
 
 	GdipDeleteStringFormat format
 	GdipDeleteBrush hBrush
@@ -764,6 +763,10 @@ update-base: func [
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
+	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+	GdipSetCompositingMode graphic 0
+	GdipSetCompositingQuality graphic 2
+	GdipSetPixelOffsetMode graphic 2
 
 	if TYPE_OF(color) = TYPE_TUPLE [					;-- update background
 		alpha?: update-base-background graphic color width height

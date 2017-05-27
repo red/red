@@ -1899,6 +1899,21 @@ XFORM!: alias struct! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipSetPixelOffsetMode: "GdipSetPixelOffsetMode" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		GdipSetCompositingMode: "GdipSetCompositingMode" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		GdipSetCompositingQuality: "GdipSetCompositingQuality" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
 		GdipCreateImageAttributes: "GdipCreateImageAttributes" [
 			attr		[int-ptr!]
 			return:		[integer!]
