@@ -174,6 +174,7 @@ system/view/VID: context [
 		obj-spec!:	make typeset! [block! object!]
 		rate!:		make typeset! [integer! time!]
 		color!:		make typeset! [tuple! issue!]
+		cursor!:	make typeset! [word! lit-word!]
 		
 		set opts none
 		
@@ -206,6 +207,7 @@ system/view/VID: context [
 				| 'no-border  (set-flag opts 'flags 'no-border)
 				| 'space	  (opt?: no)				;-- avoid wrongly reducing that word
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
+				| 'cursor	  (add-option opts compose [cursor: (fetch-argument cursor! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
 				| 'react	  (
 					if later?: spec/2 = 'later [spec: next spec]

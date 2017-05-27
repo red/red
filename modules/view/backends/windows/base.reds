@@ -664,7 +664,6 @@ update-base-text: func [
 	]
 
 	GdipCreateFontFromDC as-integer dc :hFont
-	if clr >>> 24 = 0 [clr: 1 << 24 or clr]						;@@ workaround for bad text rendering
 	GdipCreateSolidFill to-gdiplus-color clr :hBrush
 
 	GdipCreateStringFormat 80000000h 0 :format
@@ -764,11 +763,11 @@ update-base: func [
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-	GdipSetCompositingMode graphic 0
-	GdipSetCompositingQuality graphic 2
-	GdipSetPixelOffsetMode graphic 2
+	GdipSetCompositingMode graphic 0				;-- over mode
+	GdipSetCompositingQuality graphic 2				;-- high quality
+	GdipSetPixelOffsetMode graphic 2				;-- high quality
 
-	if TYPE_OF(color) = TYPE_TUPLE [					;-- update background
+	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		alpha?: update-base-background graphic color width height
 	]
 	update-base-image graphic img width height

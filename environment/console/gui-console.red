@@ -115,7 +115,7 @@ gui-console-ctx: context [
 			style text:  text 360 center 58.58.60 
 			style txt:   text font-color white
 			style small: txt  font [size: 9 color: white]
-			style link:  text all-over
+			style link:  text cursor 'hand all-over
 				on-down [browse face/data]
 				on-over [face/font/style: either event/away? [none]['underline]]
 

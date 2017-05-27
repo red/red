@@ -1107,6 +1107,13 @@ WndProc: func [
 				]
 			]
 		]
+		WM_SETCURSOR [
+			res: GetWindowLong as handle! wParam wc-offset - 28
+			unless zero? res [
+				set-cursor res
+				return 1
+			]
+		]
 		WM_ENTERMENULOOP [
 			if zero? wParam [							;-- reset if entering menu bar
 				menu-origin: null

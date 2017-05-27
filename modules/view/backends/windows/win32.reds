@@ -255,6 +255,7 @@ Red/System [
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_CTLCOLOR			0019h
+#define WM_SETCURSOR		0020h
 #define WM_MOUSEACTIVATE	0021h
 #define WM_GETMINMAXINFO	0024h
 #define WM_SETFONT			0030h
@@ -1174,6 +1175,10 @@ XFORM!: alias struct! [
 			hInstance	 [handle!]
 			lpCursorName [integer!]
 			return: 	 [handle!]
+		]
+		SetCursor: "SetCursor" [
+			hCursor		[handle!]
+			return:		[handle!]			;-- return previous cursor, if there was one
 		]
 		CreateWindowEx: "CreateWindowExW" [
 			dwExStyle	 [integer!]

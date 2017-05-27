@@ -286,6 +286,7 @@ system/view/platform: context [
 
 			Direct2D:		symbol/make "Direct2D"
 
+			_cursor:		symbol/make "cursor"
 			_arrow:			symbol/make "arrow"
 			_hand:			symbol/make "hand"
 			_help:			symbol/make "help"
