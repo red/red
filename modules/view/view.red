@@ -913,7 +913,59 @@ set-focus: function [
 	while [p/type <> 'window][p: p/parent]
 	p/selected: face
 ]
+
+foreach-face: function [
+	"Evaluates body for each face in a face tree matching the condition"
+	face [object!]	"Root face of the face tree"
+	spec [block!]	"Condition applied to `face` object"
+	body [block! function!] "Body block (`face` object) or function `func [face [object!]]`"
+	/post 			"Evaluates body for current face after processing its children"
+	/sub post?		"-- used internaly only --"
+][
+	unless block? face/pane [return []]
+	unless sub [
+		bind spec 'face
+		if block? :body [bind body 'face]
+	]
+	if post [post?: yes]
+	exec: [either block? :body [do body][do repend clear [] ['body face]]]
 	
+	foreach face face/pane [
+		all [not post? do spec do exec]
+		if block? face/pane [
+			foreach-face/sub face spec :body post?
+		]
+		all [post? do spec do exec]
+	]
+]
+
+foreach-pane: function [
+	"Evaluates body for each face in a face tree matching the condition"
+	face [object!]	"Root face of the face tree"
+	spec [block!]	"Condition applied to `pane` block"
+	body [block! function!] "Body block (`pane` block, `face` object) or function `func [pane [block!] face [object!]]`"
+	/post 			"Evaluates body for current face after processing its children"
+	/sub post?		"-- used internaly only --"
+][
+	pane: face/pane
+	unless sub [
+		unless block? pane [exit]
+		bind spec 'pane
+		if block? :body [bind body 'pane]
+	]
+	if post [post?: yes]
+	exec: [either block? :body [do body][do repend clear [] ['body face]]]
+	
+	all [not post? do spec do exec]
+	foreach face pane [
+		if block? face/pane [
+			foreach-pane/sub face spec :body post?
+		]
+	]
+	all [post? do spec do exec]
+]
+
+
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
