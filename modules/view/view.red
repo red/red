@@ -929,7 +929,7 @@ foreach-face: function [
 		if block? :body [bind body 'face]
 	]
 	if post [post?: yes]
-	exec: [either block? :body [do body][do repend clear [] ['body face]]]
+	exec: [either block? :body [do body][body face]]
 	
 	foreach face face/pane [
 		unless post? [either spec [all [do spec do exec]][do exec]]
