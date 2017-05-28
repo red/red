@@ -919,7 +919,7 @@ foreach-face: function [
 	face [object!]	"Root face of the face tree"
 	body [block! function!] "Body block (`face` object) or function `func [face [object!]]`"
 	/with			"Filter faces according to a condition"
-		spec [block!] "Condition applied to face object"
+		spec [block! none!] "Condition applied to face object"
 	/post 			"Evaluates body for current face after processing its children"
 	/sub post?		"Do not rebind body and spec, internal use only"
 ][
