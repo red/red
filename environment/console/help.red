@@ -522,7 +522,7 @@ help-ctx: context [
 		/spec "Search for text in value specs as well"
 		/buffer "Buffer and return output, rather than printing results"
 	][
-		;emit: either buffer [:_print][:print]
+		clear output-buffer
 		found-at-least-one?: no
 		foreach word sort get-sys-words either with [:set?][:any-function?] [
 			val: get word
