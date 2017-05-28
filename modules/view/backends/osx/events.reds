@@ -219,6 +219,8 @@ check-extra-keys: func [
 	flags: objc_msgSend [event sel_getUid "modifierFlags"]
 	if NSControlKeyMask and flags <> 0 [key: EVT_FLAG_CTRL_DOWN]
 	if NSShiftKeyMask and flags <> 0 [key: key or EVT_FLAG_SHIFT_DOWN]
+	if NSAlternateKeyMask and flags <> 0 [key: key or EVT_FLAG_MENU_DOWN]
+	if NSCommandKeyMask and flags <> 0 [key: key or EVT_FLAG_CMD_DOWN]
 	key
 ]
 
@@ -423,6 +425,8 @@ get-event-flags: func [
 	if evt/flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
 	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
 	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
+	if evt/flags and EVT_FLAG_MENU_DOWN <> 0 [block/rs-append blk as red-value! _alt]
+	if evt/flags and EVT_FLAG_CMD_DOWN <> 0 [block/rs-append blk as red-value! _command]
 	as red-value! blk
 ]
 
@@ -432,23 +436,6 @@ get-event-flag: func [
 	return: [red-value!]
 ][
 	as red-value! logic/push flags and flag <> 0
-]
-
-decode-down-flags: func [
-	wParam  [integer!]
-	return: [integer!]
-	/local
-		flags [integer!]
-][
-	flags: 0
-	if wParam and 0001h <> 0 [flags: flags or EVT_FLAG_DOWN]
-	if wParam and 0002h <> 0 [flags: flags or EVT_FLAG_ALT_DOWN]
-	if wParam and 0004h <> 0 [flags: flags or EVT_FLAG_SHIFT_DOWN]
-	if wParam and 0008h <> 0 [flags: flags or EVT_FLAG_CTRL_DOWN]
-	if wParam and 0010h <> 0 [flags: flags or EVT_FLAG_MID_DOWN]
-	if wParam and 0020h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]
-	if wParam and 0040h <> 0 [flags: flags or EVT_FLAG_AUX_DOWN]	;-- needs an AUX2 flag
-	flags
 ]
 
 make-event: func [

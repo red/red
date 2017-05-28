@@ -1057,10 +1057,10 @@ parse-common-opts: func [
 					][
 						sym: symbol/resolve w/symbol
 						sym: case [
-							sym = _I-beam [IDC_IBEAM]
-							sym = _hand	  [32649]			;-- IDC_HAND
-							sym = _help   [32651]
-							true		  [IDC_ARROW]
+							sym = _I-beam	[IDC_IBEAM]
+							sym = _hand		[32649]			;-- IDC_HAND
+							sym = _cross	[32515]
+							true			[IDC_ARROW]
 						]
 						sym: as-integer LoadCursor null sym
 					]

@@ -175,16 +175,17 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
-				EVT_FLAG_AX2_DOWN:		00400000h
-				EVT_FLAG_AUX_DOWN:		00800000h
-				EVT_FLAG_ALT_DOWN:		01000000h
-				EVT_FLAG_MID_DOWN:		02000000h
-				EVT_FLAG_DOWN:			04000000h
-				EVT_FLAG_AWAY:			08000000h
-				EVT_FLAG_DBL_CLICK:		10000000h
-				EVT_FLAG_CTRL_DOWN:		20000000h
-				EVT_FLAG_SHIFT_DOWN:	40000000h
-				EVT_FLAG_MENU_DOWN:		80000000h		;-- ALT key
+				EVT_FLAG_AX2_DOWN:		00200000h
+				EVT_FLAG_AUX_DOWN:		00400000h
+				EVT_FLAG_ALT_DOWN:		00800000h
+				EVT_FLAG_MID_DOWN:		01000000h
+				EVT_FLAG_DOWN:			02000000h
+				EVT_FLAG_AWAY:			04000000h
+				EVT_FLAG_DBL_CLICK:		08000000h
+				EVT_FLAG_CTRL_DOWN:		10000000h
+				EVT_FLAG_SHIFT_DOWN:	20000000h
+				EVT_FLAG_MENU_DOWN:		40000000h		;-- ALT key
+				EVT_FLAG_CMD_DOWN:		80000000h		;-- Command/WIN key
 				;EVT_FLAG_KEY_SPECIAL:	80000000h		;@@ deprecated
 			]
 
@@ -289,8 +290,8 @@ system/view/platform: context [
 			_cursor:		symbol/make "cursor"
 			_arrow:			symbol/make "arrow"
 			_hand:			symbol/make "hand"
-			_help:			symbol/make "help"
 			_I-beam:		symbol/make "I-beam"
+			_cross:			symbol/make "cross"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
@@ -300,6 +301,7 @@ system/view/platform: context [
 			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
+			_command:		word/load "command"
 			_alt:			word/load "alt"
 			_away:			word/load "away"
 			_down:			word/load "down"
