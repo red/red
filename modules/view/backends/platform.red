@@ -689,14 +689,17 @@ system/view/platform: context [
 				text-list:	[0x0   0x15]
 			]
 			MacOSX [
-				button:		[6x6   0x3]
+				button:		[6x6   2x3]
+				group-box:	[3x3   0x4]
+				tab-panel:	[7x7   6x10]
+				drop-down:	[0x3   3x0]
+				drop-list:	[0x3   3x0]
 			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
 				check:		[16x0  0x0]					;-- 13 + 3 for text padding
 				radio:		[16x0  0x0]					;-- 13 + 3 for text padding
-				;slider: 	[7x7   3x0]
 				group-box:	[3x3  15x3]
 				tab-panel:	[0x2   0x1]
 			]
