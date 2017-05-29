@@ -722,7 +722,7 @@ system/view/platform: context [
 			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
 				Windows [
-					either system/view/platform/version/1 >= 6 [
+					either version/1 >= 6 [
 						["Consolas" "Arial" "Times"]
 					][
 						["Courier New" "Arial" "Times"]
