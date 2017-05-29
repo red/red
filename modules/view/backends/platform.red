@@ -718,9 +718,15 @@ system/view/platform: context [
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
-				Windows [["Courier New" "Arial" "Times"]
+				Windows [
+					either system/view/platform/version/1 >= 6 [
+						["Consolas" "Arial" "Times"]
+					][
+						["Courier New" "Arial" "Times"]
+					]
+				]
+				MacOSX [["Menlo" "Arial" "Times"]]
 			]
-		]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts
 	]
