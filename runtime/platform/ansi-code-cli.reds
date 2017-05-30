@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "ANSI Escape sequences support in Windows CLI console"
 	Author:  "Oldes"
-	File: 	 %ansi-code-win32.reds
+	File: 	 %ansi-code-cli.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
