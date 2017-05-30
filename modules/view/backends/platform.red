@@ -728,7 +728,7 @@ system/view/platform: context [
 						["Courier New" "Arial" "Times"]
 					]
 				]
-				MacOSX [["Menlo" "Arial" "Times"]]
+				macOS [["Menlo" "Arial" "Times"]]
 			]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts
