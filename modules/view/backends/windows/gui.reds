@@ -726,9 +726,7 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 24 0
 
 	modes: SWP_NOZORDER
-	
-	if bits and FACET_FLAGS_NO_TITLE  <> 0 [SetWindowLong handle GWL_STYLE WS_BORDER]
-	if bits and FACET_FLAGS_NO_BORDER <> 0 [SetWindowLong handle GWL_STYLE 0]
+
 	if bits and FACET_FLAGS_MODAL	  <> 0 [
 		modes: 0
 		owner: find-last-window
@@ -1126,7 +1124,8 @@ OS-make-view: func [
 		panel?	  [logic!]
 		alpha?	  [logic!]
 		para?	  [logic!]
-		pt		  [tagPOINT]
+		sz-x	  [integer!]
+		sz-y	  [integer!]
 ][
 	stack/mark-func words/_body
 
@@ -1153,7 +1152,8 @@ OS-make-view: func [
 	panel?:	  no
 	alpha?:   no
 	para?:	  TYPE_OF(para) = TYPE_OBJECT
-	
+	sz-x:	  size/x							;-- face/size may be changed when creating window
+	sz-y:	  size/y
 
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
 	if para? [flags: flags or get-para-flags sym para]
@@ -1252,7 +1252,7 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
 			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
-			
+
 			flags: either bits and FACET_FLAGS_RESIZE = 0 [
 				flags and (not WS_MAXIMIZEBOX)
 			][
@@ -1262,6 +1262,9 @@ OS-make-view: func [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
 			]
+
+			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
+			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1300,8 +1303,8 @@ OS-make-view: func [
 		flags
 		offset/x
 		offset/y
-		size/x
-		size/y
+		sz-x
+		sz-y
 		as int-ptr! parent
 		as handle! id
 		hInstance
@@ -1375,7 +1378,11 @@ OS-make-view: func [
 			set-area-options handle as red-block! values + FACE_OBJ_OPTIONS
 			change-text handle values sym
 		]
-		sym = window [init-window handle offset size bits]
+		sym = window [
+			size/x: sz-x
+			size/y: sz-y
+			init-window handle offset size bits
+		]
 		true [0]
 	]
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate handle rate]
