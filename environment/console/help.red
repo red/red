@@ -72,6 +72,10 @@ help-ctx: context [
 		pad mold type? :value HELP_TYPE_COL_SIZE
 	]
 
+	dot-str: func ["Add an ending dot if there isn't one" str [string!]][
+		append copy str either dot = last str [""][dot]
+	]
+	
 	set 'ellipsize-at func [
 		"Truncate and add ellipsis if str is longer than len"
 		str [string!] "(modified)"
@@ -140,7 +144,7 @@ help-ctx: context [
 	set?: func [value [any-type!]][not unset? :value]
 	
 	value-is-type-str: function [value][
-		rejoin [mold :value " is " a-an/pre mold type? :value]
+		rejoin [mold :value " is " a-an/pre mold type? :value " value."]
 	]
 
 	word-is-value-str: function [
@@ -150,7 +154,7 @@ help-ctx: context [
 		value: get/any word
 		rejoin [
 			uppercase mold :word " is " a-an/pre mold type? :value " value"
-			either only [""][append copy ": " mold :value]
+			either only [dot][append copy ": " mold :value]
 		]
 	]
 
@@ -173,7 +177,7 @@ help-ctx: context [
 			][
 				either string? pos/2 [[0 2]][[0 0]]	; no-type+doc or no-type+no-doc
 			]
-			reduce [word pos/:t pos/:d]
+			reduce [word pos/:t dot-str pos/:d]
 		]
 	]
 
@@ -182,7 +186,7 @@ help-ctx: context [
 		fn [any-function!]
 	][
 		spec: spec-of :fn
-		all [string? spec/1  copy spec/1]
+		all [string? spec/1  dot-str spec/1]
 	]
 
 	; These are here because they are not standard in Red yet.
@@ -359,7 +363,7 @@ help-ctx: context [
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
-			either param/desc [mold param/desc][NO_DOC]
+			either param/desc [dot-str mold param/desc][NO_DOC]
 		]
 	]
 	print-param: func [param [block!] /no-name][
@@ -397,7 +401,8 @@ help-ctx: context [
 			
 		_print [
 			newline "DESCRIPTION:" newline
-			reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
+			;reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
+			reduce either fn-as-obj/desc [[DENT_1 dot-str fn-as-obj/desc newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
@@ -409,14 +414,14 @@ help-ctx: context [
 		if not empty? fn-as-obj/refinements [
 			_print [newline "REFINEMENTS:"] 
 			foreach rec fn-as-obj/refinements [
-				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP any [rec/desc NO_DOC]]
+				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP either rec/desc [dot-str rec/desc][NO_DOC]]
 				foreach param rec/params [_prin DENT_2 print-param param]
 			]
 		]
 
 		if not empty? fn-as-obj/returns [
 			_print [newline "RETURNS:"]
-			if fn-as-obj/returns/desc [_print [DENT_1 fn-as-obj/returns/desc]]
+			if fn-as-obj/returns/desc [_print [DENT_1 dot-str fn-as-obj/returns/desc]]
 			_print [DENT_1 mold/flat fn-as-obj/returns/type]
 		]
 				
