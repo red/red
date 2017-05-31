@@ -521,6 +521,7 @@ system/view: context [
 		paddings:		make map! 32
 		margins:		make map! 32
 		misc:			make map! 32
+		colors:			make map! 10
 	]
 	
 	fonts: object [

@@ -678,7 +678,7 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svs fonts][
+	init: func [/local svs colors fonts][
 		system/view/screens: svs: make block! 6
 
 		#system [gui/init]
@@ -710,6 +710,18 @@ system/view/platform: context [
 				radio:		[20x0  1x1]
 			]
 		]]
+		
+		colors: system/view/metrics/colors
+		#switch config/OS [
+			Windows [
+				colors/tab-panel: white
+				;colors/window							;-- set in gui/init from OS metrics
+				;colors/panel							;-- set in gui/init from OS metrics
+			]
+			MacOSX [
+			
+			]
+		]
 
 		append svs make face! [							;-- default screen
 			type:	'screen

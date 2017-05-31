@@ -13,6 +13,81 @@ Red [
 system/view/VID: context [
 	styles: #include %styles.red
 	
+	GUI-rules: context [
+		debug?: yes
+		
+		processors: context [
+			;#include %generic-rules.red
+			;#include %backends/windows/rules.red
+			;#include %backends/osx/rules.red
+			
+			capitalize: function [
+				"Capitalize the first letter of all button text"
+				root [object!]
+			][
+				foreach-face/with root [
+					uppercase face/text
+				][
+					all [
+						face/type = 'button
+						face/text
+						not empty? face/text
+					]
+				]
+			]
+			color-backgrounds: function [
+				"Color the background of faces with no color, with parent's background color"
+				root [object!]
+			][
+				foreach-face/with root [face/color: face/parent/color][
+					all [
+						none? face/color
+						find [window panel group-box tab-panel] face/parent/type
+						find [text slider radio check group-box tab-panel] face/type
+					]
+				]
+			]
+			color-tabpanel-children: function [
+				"Color the background of faces with no color, with parent's background color"
+				root [object!]
+			][
+				foreach-face/with root [face/color: gp/color][
+					all [
+						none? face/color
+						face/parent/type = 'panel
+						gp: face/parent/parent
+						gp/type = 'tab-panel
+						find [text slider radio check group-box tab-panel] face/type
+					]
+				]
+			]
+		]
+		general: [
+			
+		]
+		OS: [
+			Windows [
+				;color-backgrounds
+				color-tabpanel-children
+			]
+			macOS [
+				capitalize
+			]
+		]
+		user: [
+		
+		]
+		
+		process: function [root [object!]][
+			actions: system/view/VID/GUI-rules/processors			
+			foreach name select OS system/platform [
+				if debug? [print ["Applying rule:" name]]
+				name: get in processors name
+				do [name root]
+			]
+		]
+	]
+	
 	focal-face:	none
 	reactors:	make block! 20
 	debug?: 	no
@@ -499,6 +574,7 @@ system/view/VID: context [
 				]
 				if style/template/type = 'window [throw-error spec]
 				face: make face! copy/deep style/template
+				face/parent: panel
 				spec: fetch-options face opts style spec local-styles to-logic styling?
 				if style/init [do bind style/init 'face]
 				
@@ -550,6 +626,7 @@ system/view/VID: context [
 						mar: select system/view/metrics/margins face/type
 						face/offset: face/offset - as-pair mar/1/x mar/2/x
 					]
+					unless face/color [face/color: system/view/metrics/colors/(face/type)]
 					
 					append list face
 					if name [set name face]
@@ -580,6 +657,12 @@ system/view/VID: context [
 		if options [set/some panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
-		either only [list][panel]
+		either only [list][	
+			if panel/type = 'window [
+				panel/parent: system/view/screens/1
+				system/view/VID/GUI-rules/process panel
+			]
+			panel
+		]
 	]
 ]
