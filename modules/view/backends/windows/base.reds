@@ -623,6 +623,9 @@ update-base-text: func [
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
+	;GdipSetCompositingMode graphic 0				;-- over mode
+	;GdipSetCompositingQuality graphic 2			;-- high quality
+	;GdipSetPixelOffsetMode graphic 2				;-- high quality
 	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
@@ -763,9 +766,6 @@ update-base: func [
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
 	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
-	GdipSetCompositingMode graphic 0				;-- over mode
-	GdipSetCompositingQuality graphic 2				;-- high quality
-	GdipSetPixelOffsetMode graphic 2				;-- high quality
 
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		alpha?: update-base-background graphic color width height
