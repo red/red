@@ -11,17 +11,24 @@ Red/System [
 ]
 
 dos-console?:	yes
-buffer:			as byte-ptr! 0
-pbuffer:		as byte-ptr! 0
-cbuffer:		as byte-ptr! 0
+out-buffer:	 allocate 1024
+out-buffer-head: out-buffer
+out-buffer-tail: out-buffer + 1024
+out-buffer-flush: func [/local n chars][
+	n: 0
+	chars: as integer! (out-buffer - out-buffer-head)
+	either dos-console? [
+		WriteConsole stdout out-buffer-head chars >> 1 :n null
+	][
+		WriteFile stdout as c-string! out-buffer-head chars :n 0
+	]
+	out-buffer: out-buffer-head
+]
 
 ;-------------------------------------------
 ;-- check whether we are in console mode
 ;-------------------------------------------
 init-dos-console: func [/local n [integer!]][
-	cbuffer:		allocate 128
-	buffer:			allocate 1024
-	pbuffer:		buffer ;this stores buffer's head position
 	n: 0
 	dos-console?: 0 < GetConsoleMode stdout :n
 ]
@@ -40,60 +47,31 @@ putwchar: func [
 	wchar
 ]
 
-;-------------------------------------------
-;-- putbuffer use windows api internal
-;-------------------------------------------
-putbuffer: func [
-	chars	[integer!]
-	return: [integer!]
-	/local
-		n	[integer!]
-][
-	n: 0
-	WriteConsole stdout pbuffer chars :n null
-	buffer: pbuffer
-	n
-]
-
-write-file: func [
-	chars	 [integer!]
-	/local n [integer!]
-][
-	n: 0
-	WriteFile stdout as c-string! pbuffer chars :n 0
-	buffer: pbuffer
-]
-
 print-screen: func [
 	str		[byte-ptr!]
 	size	[integer!]
 	unit	[integer!]					;-- not support UCS-4
 	lf?		[logic!]
 	/local
-		chars [integer!]
 		skip  [integer!]
 		tail  [byte-ptr!]
 ][
-	chars: 0
 	skip: 0
 	tail: str + size
 	either unit = Latin1 [
 		while [size > 0][
 			if str/1 = #"^[" [
-				putbuffer chars
-				chars: 0
+				out-buffer-flush
 				skip: process-ansi-sequence str tail Latin1
 			]
 			either skip = 0 [
-				buffer/1: str/1
-				buffer/2: null-byte ;this should be always 0 in Latin1
+				out-buffer/1: str/1
+				out-buffer/2: null-byte ;this should be always 0 in Latin1
 				str: str + 1
 				size: size - 1
-				chars: chars + 1
-				buffer: buffer + 2
-				if chars = 510 [  ; if the buffer has 1024 bytes, it has room for 512 chars
-					putbuffer chars
-					chars: 0
+				out-buffer: out-buffer + 2
+				if out-buffer >= out-buffer-tail [
+					out-buffer-flush
 				]
 			][
 				str: str + skip
@@ -104,20 +82,17 @@ print-screen: func [
 	][ ;UCS2 Version
 		while [size > 0][
 			if all [str/1 = #"^[" str/2 = null-byte] [
-				putbuffer chars
-				chars: 0
+				out-buffer-flush
 				skip: process-ansi-sequence str tail UCS-2
 			]
 			either skip = 0 [
-				buffer/1: str/1
-				buffer/2: str/2
-				chars: chars + 1
-				buffer: buffer + 2
+				out-buffer/1: str/1
+				out-buffer/2: str/2
+				out-buffer: out-buffer + 2
 				str: str + 2
 				size: size - 2
-				if chars = 510 [  ; if the buffer has 1024 bytes, it has room for 512 chars
-					putbuffer chars
-					chars: 0
+				if out-buffer >= out-buffer-tail [
+					out-buffer-flush
 				]
 			][
 				str: str + skip
@@ -126,14 +101,10 @@ print-screen: func [
 			]
 		]
 	]
+	out-buffer-flush
 	if lf? [
-		buffer/1: #"^M"
-		buffer/2: null-byte
-		buffer/3: #"^/"
-		buffer/4: null-byte
-		chars: chars + 2
+		WriteConsole stdout as byte-ptr! "^M^@^/^@" 2 :skip null
 	]
-	putbuffer chars
 ]
 
 print-file: func [
@@ -145,31 +116,24 @@ print-file: func [
 		n		[integer!]
 		p4		[int-ptr!]
 		cp		[integer!]							;-- codepoint
-		chars	[integer!]
 ][
-	chars: 0
 	while [size > 0][
 		cp: switch unit [
 			Latin1 [as-integer p/value]
 			UCS-2  [(as-integer p/2) << 8 + p/1]
 			UCS-4  [p4: as int-ptr! p p4/value]
 		]
-		n: unicode/cp-to-utf8 cp buffer
-		chars: chars + n
-		buffer: buffer + n
+		;make sure we have enough space to hold the UCS-4 char
+		if (out-buffer + 4) >= out-buffer-tail [ out-buffer-flush ]
+		n: unicode/cp-to-utf8 cp out-buffer
+		out-buffer: out-buffer + n
 		p: p + unit
 		size: size - unit
-		if chars > 1020 [
-			write-file chars
-			chars: 0
-		]
 	]
+	out-buffer-flush
 	if lf? [
-		buffer/1: #"^M"
-		buffer/2: #"^/"
-		chars: chars + 2
+		WriteFile stdout "^M^/" 2 :n 0
 	]
-	write-file chars
 ]
 
 print-str: func [
@@ -183,10 +147,6 @@ print-str: func [
 	][
 		print-file str size unit lf?
 	]
-]
-
-wflush: func [len [integer!]][
-	print-str cbuffer len * 2 UCS-2 no
 ]
 
 ;-------------------------------------------
@@ -299,27 +259,37 @@ prin*: func [s [c-string!] return: [c-string!] /local p n][
 	s
 ]
 
-prin-int*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%i" i]
+prin-int*: func [i [integer!] return: [integer!] /local n][
+	n: swprintf [out-buffer #u16 "%i" i]
+	out-buffer: out-buffer + (n << 1)
+	out-buffer-flush
 	i
 ]
 
-prin-2hex*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%02X" i]
+prin-2hex*: func [i [integer!] return: [integer!] /local n][
+	n: swprintf [out-buffer #u16 "%02X" i]
+	out-buffer: out-buffer + (n << 1)
+	out-buffer-flush
 	i
 ]
 
-prin-hex*: func [i [integer!] return: [integer!]][
-	wflush swprintf [cbuffer #u16 "%08X" i]
+prin-hex*: func [i [integer!] return: [integer!] /local n][
+	n: swprintf [out-buffer #u16 "%08X" i]
+	out-buffer: out-buffer + (n << 1)
+	out-buffer-flush
 	i
 ]
 
-prin-float*: func [f [float!] return: [float!]][
-	wflush swprintf [cbuffer #u16 "%.16g" f]
+prin-float*: func [f [float!] return: [float!] /local n][
+	n: swprintf [out-buffer #u16 "%.16g" f]
+	out-buffer: out-buffer + (n << 1)
+	out-buffer-flush
 	f
 ]
 
-prin-float32*: func [f [float32!] return: [float32!]][
-	wflush swprintf [cbuffer #u16 "%.7g" as-float f]
+prin-float32*: func [f [float32!] return: [float32!] /local n][
+	n: swprintf [out-buffer #u16 "%.7g" as-float f]
+	out-buffer: out-buffer + (n << 1)
+	out-buffer-flush
 	f
 ]
