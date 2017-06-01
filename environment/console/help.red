@@ -372,9 +372,9 @@ help-ctx: context [
 
 	show-function-help: function [
 		"Displays help information about a function."
-		word [word!]
+		word [word! path!]
 	][
-		fn: either word? :word [get :word][:word]
+		fn: either any-function? :word [:word][get :word]
 		if not any-function? :fn [
 			print "show-function-help only works on words that refer to functions."
 			exit
@@ -490,7 +490,7 @@ help-ctx: context [
 				; The order in which we check values is important, to get 
 				; the best output for a given type.
 				case [
-					all [word? :word  any-function? :value] [show-function-help :word]
+					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
