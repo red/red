@@ -79,7 +79,7 @@ system/view/VID: context [
 		]
 		
 		process: function [root [object!]][
-			actions: system/view/VID/GUI-rules/processors			
+			actions: system/view/VID/GUI-rules/processors
 			foreach name select OS system/platform [
 				if debug? [print ["Applying rule:" name]]
 				name: get in processors name
@@ -657,7 +657,7 @@ system/view/VID: context [
 		if options [set/some panel make object! user-opts]
 		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
 		
-		either only [list][	
+		either only [list][
 			if panel/type = 'window [
 				panel/parent: system/view/screens/1
 				system/view/VID/GUI-rules/process panel

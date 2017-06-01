@@ -997,6 +997,10 @@ XFORM!: alias struct! [
 			index		[integer!]
 			return:		[integer!]
 		]
+		GetSysColor: "GetSysColor" [
+			nIndex		[integer!]
+			return:		[integer!]
+		]
 		SystemParametersInfo: "SystemParametersInfoW" [
 			action		[integer!]
 			iParam		[integer!]

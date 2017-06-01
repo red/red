@@ -296,6 +296,8 @@ system/view/platform: context [
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
 			_scroller:		word/load "scroller"
+			_window:		word/load "window"
+			_panel:			word/load "panel"
 
 			_text:			word/load "text"
 			_data:			word/load "data"

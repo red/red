@@ -589,9 +589,22 @@ get-metrics: func [
 		#get system/view/metrics/dpi
 	
 	svm: as red-hash! #get system/view/metrics/misc
+	
 	map/put svm as red-value! _scroller as red-value! pair/push
 		GetSystemMetrics 2								;-- SM_CXVSCROLL
 		GetSystemMetrics 20								;-- SM_CYVSCROLL
+		no
+		
+	map/put 
+		as red-hash! #get system/view/metrics/colors
+		as red-value! _window as red-value! tuple/push
+			3 (GetSysColor 5) 0 0							;-- COLOR_WINDOW
+		no
+		
+	map/put 
+		as red-hash! #get system/view/metrics/colors
+		as red-value! _panel as red-value! tuple/push
+			3 (GetSysColor 15) 0 0							;-- COLOR_3DFACE
 		no
 ]
 
