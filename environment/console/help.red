@@ -21,7 +21,7 @@ help-ctx: context [
 	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
 	HELP_COL_1_SIZE: 15		; Minimum size of the first output column
-	RT_MARGIN: 16			; How close we can get to the right console margin before we trim
+	RT_MARGIN: 5			; How close we can get to the right console margin before we trim
 	DENT_1: "    "			; So CLI and GUI consoles are consistent, WRT tab size
 	DENT_2: "        " 
 	
