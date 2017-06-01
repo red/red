@@ -513,13 +513,17 @@ help-ctx: context [
 		"Print the source of a function"
 		'word [any-word!] "The name of the function"
 	][
-		print either function? val: get/any word [
-			[append mold word #":" mold :val]
-		][
-			["Sorry," word "is" a-an/pre mold type? :val "so source is not available"]
+		val: get/any word
+		print case [
+			function? :val [[append mold word #":" mold :val]]
+			routine? :val [[
+				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
+				append mold word #":" mold :val
+			]]
+			'else [[uppercase mold word "is" a-an/pre mold type? :val "so source is not available."]]
 		]
 	]
-
+	
 	set 'what function [
 		"Lists all functions, or search for values"
 		/with "Search all values that contain text in their name"
