@@ -621,6 +621,7 @@ system/view/platform: context [
 
 	draw-image: routine [image [image!] cmds [block!]][
 		gui/OS-do-draw image cmds
+		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
 	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
