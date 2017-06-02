@@ -51,7 +51,12 @@ system/view/VID: context [
 				"Color the background of faces with no color, with parent's background color"
 				root [object!]
 			][
-				foreach-face/with root [face/color: gp/color][
+				foreach-face/with root [
+					face/color: any [
+						gp/color
+						system/view/metrics/colors/tab-panel
+					]
+				][
 					all [
 						none? face/color
 						face/parent/type = 'panel
@@ -67,7 +72,7 @@ system/view/VID: context [
 		]
 		OS: [
 			Windows [
-				;color-backgrounds
+				color-backgrounds
 				color-tabpanel-children
 			]
 			macOS [
@@ -634,7 +639,9 @@ system/view/VID: context [
 						mar: select system/view/metrics/margins face/type
 						face/offset: face/offset - as-pair mar/1/x mar/2/x
 					]
-					unless face/color [face/color: system/view/metrics/colors/(face/type)]
+					unless any [face/color panel/type = 'tab-panel][
+						face/color: system/view/metrics/colors/(face/type)
+					]
 					
 					append list face
 					if name [set name face]
