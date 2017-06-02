@@ -17,7 +17,7 @@ capitalize: function [
 	root [object!]
 ][
 	foreach-face/with root [
-		uppercase face/text
+		uppercase/part face/text 1
 	][
 		all [
 			face/type = 'button
