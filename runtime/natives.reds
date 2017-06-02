@@ -2687,10 +2687,11 @@ natives: context [
 	][
 	
 		type: TYPE_OF(series)
+		#if OS <> 'Linux [
 		if type = TYPE_IMAGE [
 			img: as red-image! series
 			return img/head < image/length? img
-		]
+		]]
 		s: GET_BUFFER(series)
 		either any [									;@@ replace with any-block?
 			type = TYPE_BLOCK
