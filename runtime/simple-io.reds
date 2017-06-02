@@ -209,10 +209,41 @@ simple-io: context [
 					st_flags	[integer!]
 					st_gen		[integer!]
 					st_lspare	[integer!]
-					st_qspare_1 [integer!]
+					st_qspare_1 [integer!]				;-- int64
 					st_qspare_2 [integer!]
+					st_qspare_3 [integer!]				;-- int64
+					st_qspare_4 [integer!]
 				]
 				;;-- #if __DARWIN_64_BIT_INO_T
+				;stat!: alias struct! [				;-- __DARWIN_STRUCT_STAT64
+				;	st_dev		[integer!]
+				;	st_modelink	[integer!]			;-- st_mode & st_link are both 16bit fields
+				;	st_ino_1	[integer!]			;-- int64
+				;	st_ino_2	[integer!]
+				;	st_uid		[integer!]
+				;	st_gid		[integer!]
+				;	st_rdev		[integer!]
+				;	atv_sec		[integer!]
+				;	atv_msec	[integer!]
+				;	mtv_sec		[integer!]
+				;	mtv_msec	[integer!]
+				;	ctv_sec		[integer!]
+				;	ctv_msec	[integer!]
+				;	birth_sec	[integer!]
+				;	birth_msec	[integer!]
+				;	st_size_1	[integer!]			;-- int64
+				;	st_size		[integer!]
+				;	st_blocks_1	[integer!]			;-- int64
+				;	st_blocks_2	[integer!]
+				;	st_blksize	[integer!]
+				;	st_flags	[integer!]
+				;	st_gen		[integer!]
+				;	st_lspare	[integer!]
+				;	st_qspare_1 [integer!]			;-- int64
+				;	st_qspare_2 [integer!]
+				;	st_qspare_3 [integer!]			;-- int64
+				;	st_qspare_4 [integer!]
+				;]
 				;#define DIRENT_NAME_OFFSET	21
 				;dirent!: alias struct! [
 				;	d_ino		[integer!]
@@ -562,19 +593,18 @@ simple-io: context [
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
-		/local s
+		/local
+			s	 [stat! value]
 	][
 		#case [
 			OS = 'Windows [
 				GetFileSize file null
 			]
 			any [OS = 'MacOSX OS = 'FreeBSD OS = 'Android] [
-				s: declare stat!
 				_stat file s
 				s/st_size
 			]
 			true [ ; else
-				s: declare stat!
 				_stat 3 file s
 				s/st_size
 			]
