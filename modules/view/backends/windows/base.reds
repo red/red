@@ -254,6 +254,7 @@ process-layered-region: func [
 		y	  [integer!]
 		w	  [integer!]
 		h	  [integer!]
+		rc	  [RECT_STRUCT value]
 		owner [handle!]
 		type  [red-word!]
 		value [red-value!]
@@ -263,7 +264,7 @@ process-layered-region: func [
 	x: origin/x
 	y: origin/y
 	either null? rect [
-		rect: declare RECT_STRUCT
+		rect: :rc
 		owner: as handle! GetWindowLong hWnd wc-offset - 16
 		assert owner <> null
 		GetClientRect owner rect
@@ -273,20 +274,18 @@ process-layered-region: func [
 	]
 
 	if layer? [
+		w: x + size/x - rect/right
+		w: either positive? w [size/x - w][size/x]
 		either negative? x [
 			x: either x + size/x < 0 [size/x][0 - x]
-			w: size/x
 		][
-			w: x + size/x - rect/right
-			w: either positive? w [size/x - w][size/x]
 			x: 0
 		]
+		h: y + size/y - rect/bottom
+		h: either positive? h [size/y - h][size/y]
 		either negative? y [
 			y: either y + size/y < 0 [size/y][0 - y]
-			h: size/y
 		][
-			h: y + size/y - rect/bottom
-			h: either positive? h [size/y - h][size/y]
 			y: 0
 		]
 		clip-layered-window hWnd size x y w h
