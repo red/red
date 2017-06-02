@@ -11,7 +11,7 @@ Red [
 ]
 
 
-cancel-captions: ["cancel" "delete"]
+cancel-captions: ["cancel" "delete" "remove"]
 
 color-backgrounds: function [
 	"Color the background of faces with no color, with parent's background color"
