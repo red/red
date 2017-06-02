@@ -166,6 +166,13 @@ system/view/VID: context [
 		]
 	]
 	
+	resize-child-panels: function [tab [object!]][		;-- ensures child panels fit accurately in tab-panels
+		pad: system/view/metrics/paddings/tab-panel
+		tp-size: tab/size - as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
+		
+		foreach pane tab/pane [pane/size: tp-size]
+	]
+	
 	process-draw: function [code [block!]][
 		parse code rule: [
 			any [
@@ -331,9 +338,9 @@ system/view/VID: context [
 									foreach p extract next value 2 [
 										layout/parent/styles reduce ['panel copy p] face divides css
 										p: last face/pane
-										max-sz: max max-sz p/size
+										max-sz: max max-sz p/offset + p/size
 									]
-									unless opts/size [opts/size: max-sz + 0x25] ;@@ extract the right metrics from OS
+									unless opts/size [opts/size: max-sz]
 								]
 							][make-actor opts style/default-actor value spec]
 							yes
@@ -408,6 +415,7 @@ system/view/VID: context [
 			mar: select system/view/metrics/margins face/type
 			face/size: face/size + as-pair mar/1/x + mar/1/y mar/2/x + mar/2/y
 		]
+		if face/type = 'tab-panel [resize-child-panels face]
 		spec
 	]
 	

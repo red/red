@@ -690,6 +690,7 @@ system/view/platform: context [
 				button:		[1x1   1x1]					;-- LeftxRight TopxBottom
 				tab-panel:	[0x2   0x1]
 				text-list:	[0x0   0x15]
+				group-box:	[0x0   0x1]
 			]
 			MacOSX [
 				button:		[6x6   2x3]
@@ -703,8 +704,8 @@ system/view/platform: context [
 			Windows [
 				check:		[16x0  0x0]					;-- 13 + 3 for text padding
 				radio:		[16x0  0x0]					;-- 13 + 3 for text padding
-				group-box:	[3x3  15x3]
-				tab-panel:	[0x2   0x1]
+				group-box:	[3x3  15x4]
+				tab-panel:	[1x3  25x0]
 			]
 			MacOSX [
 				button:		[7x7   0x0]
