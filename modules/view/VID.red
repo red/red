@@ -609,6 +609,7 @@ system/view/VID: context [
 			]
 			spec: next spec
 		]
+		do re-align
 		process-reactors								;-- Needs to be after [set name face]
 		
 		either block? panel/pane [append panel/pane list][
