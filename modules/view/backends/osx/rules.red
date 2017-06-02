@@ -38,7 +38,7 @@ Cancel-OK: function [
 	][
 		either all [
 			face/type = 'button
-			find ok-captions opposite face/text
+			find ok-captions face/text
 		][
 			last-but: none
 			pos-x: face/offset/x
