@@ -1789,7 +1789,9 @@ red: context [
 								append words either func? [function!][none]
 							]
 						]
-					) | skip
+					) 
+					| #include (comp-include/only pos)
+					| skip
 				]
 			]
 
@@ -3941,47 +3943,51 @@ red: context [
 			no
 		]
 	]
+	
+	comp-include: func [pc [block!] /only /local file saved version mark script-file cache?][
+		unless file? file: pc/2 [
+			throw-error ["#include requires a file argument:" pc/2]
+		]
+		cache?: in-cache? file
+		append include-stk script-path
 
-	comp-directive: has [file saved version mark script-file cache?][
+		script-path: either all [not booting? relative-path? file][
+			file: clean-path join any [script-path main-path] file
+			first split-path file
+		][
+			none
+		]
+
+		unless any [cache? booting? exists? file][
+			throw-error ["include file not found:" pc/2]
+		]
+		either find included-list file [
+			script-path: take/last include-stk
+			remove/part pc 2
+		][
+			script-file: file
+			if all [slash <> first file	script-path][
+				script-file: clean-path join script-path file
+			]
+			append script-stk script-file
+			emit reduce [						;-- force a newline at head
+				#script script-file
+			]
+			saved: script-name
+			insert skip pc 2 #pop-path
+			src: load-source/header file
+			src: preprocessor/expand src job
+			change/part pc next src 2			;@@ Header skipped, should be processed
+			script-name: saved
+			append included-list file
+			unless any [only empty? expr-stack][comp-expression]
+		]
+	]
+
+	comp-directive: has [mark][
 		switch pc/1 [
 			#include [
-				unless file? file: pc/2 [
-					throw-error ["#include requires a file argument:" pc/2]
-				]
-				cache?: in-cache? file
-				append include-stk script-path
-				
-				script-path: either all [not booting? relative-path? file][
-					file: clean-path join any [script-path main-path] file
-					first split-path file
-				][
-					none
-				]
-				
-				unless any [cache? booting? exists? file][
-					throw-error ["include file not found:" pc/2]
-				]
-				either find included-list file [
-					script-path: take/last include-stk
-					remove/part pc 2
-				][
-					script-file: file
-					if all [slash <> first file	script-path][
-						script-file: clean-path join script-path file
-					]
-					append script-stk script-file
-					emit reduce [						;-- force a newline at head
-						#script script-file
-					]
-					saved: script-name
-					insert skip pc 2 #pop-path
-					src: load-source/header file
-					src: preprocessor/expand src job
-					change/part pc next src 2			;@@ Header skipped, should be processed
-					script-name: saved
-					append included-list file
-					unless empty? expr-stack [comp-expression]
-				]
+				comp-include pc
 				true
 			]
 			#pop-path [
