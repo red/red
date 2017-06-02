@@ -21,6 +21,9 @@ system/view/VID: context [
 			;#include %backends/windows/rules.red
 			;#include %backends/osx/rules.red
 			
+			ok-captions: ["ok" "save" "apply"]
+			cancel-captions: ["cancel" "delete"]
+			
 			capitalize: function [
 				"Capitalize the first letter of all button text"
 				root [object!]
@@ -66,6 +69,68 @@ system/view/VID: context [
 					]
 				]
 			]
+			OK-Cancel: function [
+				"Put Cancel buttons last"
+				root [object!]
+			][
+				foreach-face/with root [
+					pos-x: face/offset/x
+					face/offset/x: f/offset/x
+					f/offset/x: pos-x
+				][
+					either all [
+						face/type = 'button
+						find cancel-captions face/text
+					][
+						last-but: none
+						pos-x: face/offset/x
+						pos-y: face/offset/y
+						
+						foreach f face/parent/pane [
+							all [
+								f <> face
+								f/type = 'button
+								5 > absolute f/offset/y - pos-y
+								pos-x < f/offset/x
+								pos-x: f/offset/x
+								last-but: f
+							]
+						]
+						last-but
+					][no]
+				]
+			]
+			Cancel-OK: function [
+				"Put OK buttons last"
+				root [object!]
+			][
+				foreach-face/with root [
+					pos-x: face/offset/x
+					face/offset/x: f/offset/x
+					f/offset/x: pos-x
+				][
+					either all [
+						face/type = 'button
+						find ok-captions opposite face/text
+					][
+						last-but: none
+						pos-x: face/offset/x
+						pos-y: face/offset/y
+
+						foreach f face/parent/pane [
+							all [
+								f <> face
+								f/type = 'button
+								5 > absolute f/offset/y - pos-y
+								pos-x < f/offset/x
+								pos-x: f/offset/x
+								last-but: f
+							]
+						]
+						last-but
+					][no]
+				]
+			]
 		]
 		general: [
 			
@@ -74,9 +139,11 @@ system/view/VID: context [
 			Windows [
 				color-backgrounds
 				color-tabpanel-children
+				OK-Cancel
 			]
 			macOS [
 				capitalize
+				Cancel-OK
 			]
 		]
 		user: [
