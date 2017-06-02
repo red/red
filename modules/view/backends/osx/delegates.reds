@@ -1123,7 +1123,9 @@ draw-rect: func [
 	if TYPE_OF(img) = TYPE_IMAGE [
 		CG-draw-image ctx img/size 0 0 size/x size/y
 	]
-	render-text ctx vals as NSSize! (as int-ptr! self) + 8
+	if (object_getClass self) = objc_getClass "RedBase" [
+		render-text ctx vals as NSSize! (as int-ptr! self) + 8
+	]
 
 	img: as red-image! (as int-ptr! self) + 8				;-- view's size
 	either TYPE_OF(draw) = TYPE_BLOCK [

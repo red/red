@@ -1620,6 +1620,10 @@ OS-make-view: func [
 		sym = window [
 			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
 			init-window obj caption bits rc
+			store-face-to-obj
+				objc_msgSend [obj sel_getUid "contentView"]
+				objc_getClass "RedView"
+				face
 			win-cnt: win-cnt + 1
 
 			if all [						;@@ application menu ?

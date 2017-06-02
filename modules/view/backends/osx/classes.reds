@@ -20,6 +20,11 @@ Red/System [
 
 add-method!: alias function! [class [integer!]]
 
+add-content-view-handler: func [class [integer!]][
+	flipp-coord class
+	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
+]
+
 add-base-handler: func [class [integer!]][
 	flipp-coord class
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
@@ -203,7 +208,7 @@ make-super-class: func [
 register-classes: does [
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
-	make-super-class "RedView"			"NSView"				as-integer :flipp-coord			0
+	make-super-class "RedView"			"NSView"				as-integer :add-content-view-handler STORE_FACE_FLAG
 	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG or EXTRA_DATA_FLAG
 	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG
 	make-super-class "RedButton"		"NSButton"				as-integer :add-button-handler	STORE_FACE_FLAG
