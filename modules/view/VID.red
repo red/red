@@ -14,127 +14,17 @@ system/view/VID: context [
 	styles: #include %styles.red
 	
 	GUI-rules: context [
-		debug?: yes
+		debug?: no
 		
 		processors: context [
-			;#include %generic-rules.red
-			;#include %backends/windows/rules.red
-			;#include %backends/osx/rules.red
-			
-			ok-captions: ["ok" "save" "apply"]
-			cancel-captions: ["cancel" "delete"]
-			
-			capitalize: function [
-				"Capitalize the first letter of all button text"
-				root [object!]
-			][
-				foreach-face/with root [
-					uppercase face/text
-				][
-					all [
-						face/type = 'button
-						face/text
-						not empty? face/text
-					]
-				]
-			]
-			color-backgrounds: function [
-				"Color the background of faces with no color, with parent's background color"
-				root [object!]
-			][
-				foreach-face/with root [face/color: face/parent/color][
-					all [
-						none? face/color
-						find [window panel group-box tab-panel] face/parent/type
-						find [text slider radio check group-box tab-panel] face/type
-					]
-				]
-			]
-			color-tabpanel-children: function [
-				"Color the background of faces with no color, with parent's background color"
-				root [object!]
-			][
-				foreach-face/with root [
-					face/color: any [
-						gp/color
-						system/view/metrics/colors/tab-panel
-					]
-				][
-					all [
-						none? face/color
-						face/parent/type = 'panel
-						gp: face/parent/parent
-						gp/type = 'tab-panel
-						find [text slider radio check group-box tab-panel] face/type
-					]
-				]
-			]
-			OK-Cancel: function [
-				"Put Cancel buttons last"
-				root [object!]
-			][
-				foreach-face/with root [
-					pos-x: face/offset/x
-					face/offset/x: f/offset/x
-					f/offset/x: pos-x
-				][
-					either all [
-						face/type = 'button
-						find cancel-captions face/text
-					][
-						last-but: none
-						pos-x: face/offset/x
-						pos-y: face/offset/y
-						
-						foreach f face/parent/pane [
-							all [
-								f <> face
-								f/type = 'button
-								5 > absolute f/offset/y - pos-y
-								pos-x < f/offset/x
-								pos-x: f/offset/x
-								last-but: f
-							]
-						]
-						last-but
-					][no]
-				]
-			]
-			Cancel-OK: function [
-				"Put OK buttons last"
-				root [object!]
-			][
-				foreach-face/with root [
-					pos-x: face/offset/x
-					face/offset/x: f/offset/x
-					f/offset/x: pos-x
-				][
-					either all [
-						face/type = 'button
-						find ok-captions opposite face/text
-					][
-						last-but: none
-						pos-x: face/offset/x
-						pos-y: face/offset/y
-
-						foreach f face/parent/pane [
-							all [
-								f <> face
-								f/type = 'button
-								5 > absolute f/offset/y - pos-y
-								pos-x < f/offset/x
-								pos-x: f/offset/x
-								last-but: f
-							]
-						]
-						last-but
-					][no]
-				]
+			#include %rules.red
+			#switch config/OS [
+				Windows [#include %backends/windows/rules.red]
+				MacOSX	[#include %backends/osx/rules.red]
 			]
 		]
-		general: [
-			
-		]
+		
+		general: []
 		OS: [
 			Windows [
 				color-backgrounds
@@ -146,16 +36,17 @@ system/view/VID: context [
 				Cancel-OK
 			]
 		]
-		user: [
-		
-		]
+		user: []
 		
 		process: function [root [object!]][
 			actions: system/view/VID/GUI-rules/processors
-			foreach name select OS system/platform [
-				if debug? [print ["Applying rule:" name]]
-				name: get in processors name
-				do [name root]
+			
+			foreach list reduce [general select OS system/platform user][
+				foreach name list [
+					if debug? [print ["Applying rule:" name]]
+					name: get in processors name
+					do [name root]
+				]
 			]
 		]
 	]
