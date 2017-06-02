@@ -309,7 +309,7 @@ red-image!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- series's head index (zero-based)
 	node	[node!]									;-- internal buffer or platform-specific handle
-	size	[integer!]								;-- pair of size
+	size	[integer!]								;-- platform-specific: macOS: CGImageRef | Windows: pair of size
 ]
 
 red-date!: alias struct! [

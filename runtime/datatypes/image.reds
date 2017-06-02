@@ -10,6 +10,12 @@ Red/System [
 	}
 ]
 
+#define IMAGE_ENSURE_BUFFER(img) [
+	#if OS = 'MacOSX [
+		if null? img/node [img/node: as node! OS-image/load-nsdata img/size no yes]
+	]
+]
+
 image: context [
 	verbose: 0
 
@@ -22,7 +28,8 @@ image: context [
 			data	[int-ptr!]
 	][
 		stride: 0
-		bitmap/value: OS-image/lock-bitmap as-integer img/node yes
+		IMAGE_ENSURE_BUFFER(img)
+		bitmap/value: OS-image/lock-bitmap img yes
 		OS-image/get-data bitmap/value :stride
 	]
 	
@@ -31,7 +38,7 @@ image: context [
 		bitmap	  [integer!]
 		modified? [logic!]
 	][
-		OS-image/unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap img bitmap
 		if modified? [
 			ownership/check as red-value! img words/_poke as red-value! img -1 -1
 		]
@@ -44,6 +51,7 @@ image: context [
 		/local
 			pixel [integer!]
 	][
+		IMAGE_ENSURE_BUFFER(img)
 		pixel: OS-image/get-pixel as-integer img/node offset
 		tuple/rs-make [
 			pixel and 00FF0000h >> 16
@@ -94,8 +102,13 @@ image: context [
 		return: [red-image!]
 	][
 		img/head: 0
-		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
-		img/node: as node! handle
+		#either OS = 'MacOSX [
+			img/size: handle
+			img/node: null
+		][
+			img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
+			img/node: as node! handle
+		]
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
@@ -136,7 +149,7 @@ image: context [
 			img   [red-image!]
 			hr    [integer!]
 	][
-		hr: OS-image/load-image file/to-OS-path src
+		hr: OS-image/load-image src
 		if hr = -1 [fire [TO_ERROR(access cannot-open) src]]
 		img: as red-image! slot
 		init-image img hr
@@ -184,7 +197,7 @@ image: context [
 			pixel	[integer!]
 			data	[int-ptr!]
 	][
-		sz: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		sz: length? img
 		bytes: case [
 			type = EXTRACT_ALPHA [sz]
 			type = EXTRACT_RGB	 [sz * 3]
@@ -198,7 +211,7 @@ image: context [
 		p: as byte-ptr! s/offset
 
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node no
+		bitmap: OS-image/lock-bitmap img no
 		data: OS-image/get-data bitmap :stride
 
 		either type = EXTRACT_ARGB [
@@ -219,7 +232,7 @@ image: context [
 				i: i + 1
 			]
 		]
-		OS-image/unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap img bitmap
 		bin
 	]
 
@@ -244,12 +257,12 @@ image: context [
 			type	[integer!]
 			mask	[integer!]
 	][
-		sz: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		sz: length? img
 		if zero? sz [return bin]
 
 		offset: img/head
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node yes
+		bitmap: OS-image/lock-bitmap img yes
 		data: OS-image/get-data bitmap :stride
 		end: data + sz
 
@@ -308,7 +321,7 @@ image: context [
 				]
 			]
 		]
-		OS-image/unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap img bitmap
 		ownership/check as red-value! img words/_poke as red-value! bin img/head 0
 		bin
 	]
@@ -419,8 +432,12 @@ image: context [
 		if negative? x [x: 0]
 		y: pair/y
 		if negative? y [y: 0]
-		img/size: y << 16 or x
 		img/node: as node! OS-image/make-image x y rgb alpha color
+		#either OS = 'MacOSX [
+			img/size: OS-image/ctx-to-cgimage as-integer img/node
+		][
+			img/size: y << 16 or x
+		]
 		img
 	]
 
@@ -490,13 +507,14 @@ image: context [
 		string/concatenate-literal buffer formed
 		part: part - system/words/length? formed
 
+		IMAGE_ENSURE_BUFFER(img)
 		if null? img/node [							;-- empty image
 			string/concatenate-literal buffer " #{}]"
 			return part - 5
 		]
 
 		stride: 0
-		bitmap: OS-image/lock-bitmap as-integer img/node no
+		bitmap: OS-image/lock-bitmap img no
 		data: OS-image/get-data bitmap :stride
 		end: data + (width * height)
 		data: data + img/head
@@ -520,7 +538,7 @@ image: context [
 			if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 			part: part - 6
 			if all [OPTION?(arg) part <= 0][
-				OS-image/unlock-bitmap as-integer img/node bitmap
+				OS-image/unlock-bitmap img bitmap
 				return part
 			]
 			if pixel >>> 24 <> 255 [alpha?: yes]
@@ -545,14 +563,14 @@ image: context [
 				if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
 				part: part - 2
 				if all [OPTION?(arg) part <= 0][
-					OS-image/unlock-bitmap as-integer img/node bitmap
+					OS-image/unlock-bitmap img bitmap
 					return part
 				]
 				data: data + 1
 			]
 			string/append-char GET_BUFFER(buffer) as-integer #"}"
 		]
-		OS-image/unlock-bitmap as-integer img/node bitmap
+		OS-image/unlock-bitmap img bitmap
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 2												;-- #"}" and #"]"
 	]
@@ -641,6 +659,7 @@ image: context [
 			g: as-integer p/2
 			b: as-integer p/3
 			a: either TUPLE_SIZE?(color) > 3 [255 - as-integer p/4][255]
+			IMAGE_ENSURE_BUFFER(img)
 			OS-image/set-pixel as-integer img/node offset a << 24 or (r << 16) or (g << 8) or b
 		]
 		ownership/check as red-value! img words/_poke data offset 1
@@ -752,14 +771,14 @@ image: context [
 					res: 1
 				][
 					type: 0
-					bmp1: OS-image/lock-bitmap as-integer arg1/node no
-					bmp2: OS-image/lock-bitmap as-integer arg2/node no
+					bmp1: OS-image/lock-bitmap arg1 no
+					bmp2: OS-image/lock-bitmap arg2 no
 					res: compare-memory
 						as byte-ptr! OS-image/get-data bmp1 :type
 						as byte-ptr! OS-image/get-data bmp2 :type
 						IMAGE_WIDTH(arg1/size) * IMAGE_HEIGHT(arg2/size) * 4
-					OS-image/unlock-bitmap as-integer arg1/node bmp1
-					OS-image/unlock-bitmap as-integer arg2/node bmp2
+					OS-image/unlock-bitmap arg1 bmp1
+					OS-image/unlock-bitmap arg2 bmp2
 				]
 			]
 			default [
@@ -823,7 +842,7 @@ image: context [
 		state: as red-logic! img
 
 		state/header: TYPE_LOGIC
-		state/value:  IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) <= img/head 
+		state/value:  img/head >= length? img
 		as red-value! state
 	]
 
@@ -835,7 +854,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/tail"]]
 
 		img: as red-image! stack/arguments
-		img/head: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
+		img/head: length? img
 		img
 	]
 
@@ -857,7 +876,7 @@ image: context [
 		#if debug? = yes [if verbose > 0 [print-line "image/copy"]]
 
 		offset: img/head
-		part: IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) - offset
+		part: (length? img) - offset
 		part?: no
 
 		if OPTION?(part-arg) [

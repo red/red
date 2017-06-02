@@ -21,6 +21,7 @@ simple-io: context [
 	]
 
 	#either OS = 'Windows [
+		stat!: alias struct! [val [integer!]]
 
 		WIN32_FIND_DATA: alias struct! [
 			dwFileAttributes	[integer!]

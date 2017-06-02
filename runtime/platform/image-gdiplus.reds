@@ -50,6 +50,9 @@ Red/System [
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
 
+#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_HEIGHT(size) (size >> 16)
+
 OS-image: context [
 
 	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
@@ -273,19 +276,27 @@ OS-image: context [
 		either zero? res [as-integer data][0]
 	]
 
+	unlock-bitmap-fmt: func [
+		img			[integer!]
+		data		[integer!]
+	][
+		GdipBitmapUnlockBits img as BitmapData! data
+		free as byte-ptr! data
+	]
+
 	lock-bitmap: func [
-		handle		[integer!]
+		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
 	][
-		lock-bitmap-fmt handle PixelFormat32bppARGB write?
+		lock-bitmap-fmt as-integer img/node PixelFormat32bppARGB write?
 	]	
 
 	unlock-bitmap: func [
-		handle		[integer!]
+		img			[red-image!]
 		data		[integer!]
 	][
-		GdipBitmapUnlockBits handle as BitmapData! data
+		GdipBitmapUnlockBits as-integer img/node as BitmapData! data
 		free as byte-ptr! data
 	]
 
@@ -389,8 +400,8 @@ OS-image: context [
 		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
 		offset: offset / w * stride + (offset % w * pbytes)
 		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
-		unlock-bitmap src as-integer bmp-src
-		unlock-bitmap dst as-integer bmp-dst
+		unlock-bitmap-fmt src as-integer bmp-src
+		unlock-bitmap-fmt dst as-integer bmp-dst
 
 		if format and PixelFormatIndexed <> 0 [		;-- indexed image, need to set palette
 			bytes: 0
@@ -403,7 +414,7 @@ OS-image: context [
 	]
 
 	load-image: func [
-		filename	[c-string!]				;-- UTF-16 string
+		src			[red-string!]
 		return:		[integer!]
 		/local
 			handle	[integer!]
@@ -414,7 +425,7 @@ OS-image: context [
 			h		[integer!]
 	][
 		handle: 0
-		res: GdipCreateBitmapFromFile filename :handle
+		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
 		unless zero? res [return -1]
 
 		format: 0
@@ -478,7 +489,7 @@ OS-image: context [
 			]
 		]
 
-		unlock-bitmap bitmap as-integer data
+		unlock-bitmap-fmt bitmap as-integer data
 		bitmap
 	]
 

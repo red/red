@@ -2689,7 +2689,7 @@ natives: context [
 		type: TYPE_OF(series)
 		if type = TYPE_IMAGE [
 			img: as red-image! series
-			return IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size) > img/head
+			return img/head < image/length? img
 		]
 		s: GET_BUFFER(series)
 		either any [									;@@ replace with any-block?
