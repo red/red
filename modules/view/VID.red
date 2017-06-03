@@ -40,6 +40,7 @@ system/view/VID: context [
 		user: []
 		
 		process: function [root [object!]][
+			unless active? [exit]
 			actions: system/view/VID/GUI-rules/processors
 			
 			foreach list reduce [general select OS system/platform user][
@@ -72,9 +73,7 @@ system/view/VID: context [
 		]
 	]
 	
-	process-reactors: function [][
-		unless active? [exit]
-		
+	process-reactors: function [][		
 		foreach [f blk later?] reactors [
 			either f [
 				bind blk ctx: context [face: f]
