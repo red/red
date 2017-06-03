@@ -1316,8 +1316,8 @@ OS-make-view: func [
 		flags
 		offset/x
 		offset/y
-		sz-x
-		sz-y
+		size/x
+		size/y
 		as int-ptr! parent
 		as handle! id
 		hInstance
