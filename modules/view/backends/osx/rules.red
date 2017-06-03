@@ -11,13 +11,44 @@ Red [
 ]
 
 ok-captions: ["ok" "save" "apply"]
+no-capital:  [#"a" | "an" | "the" | "and" | "or"]
+
+title-ize: function [text [string!] return: [string!]][
+	parse text [
+		any #" " some [no-capital | p: (uppercase/part p 1) thru #" "]
+	]
+	text
+]
+
+sentence-ize: function [text [string!] return: [string!]][
+	parse text [
+		any #" " h: some [
+			end
+			| remove #"^^" thru #" "					;-- ^ in front of a word to escaped lowercasing
+			| s: [thru #" " | to end] e: (lowercase/part s e)
+		]
+	]
+	uppercase/part h 1
+]
 
 capitalize: function [
-	"Capitalize the first letter of all button text"
+	"Capitalize widget text according to macOS guidelines"
+	; https://developer.apple.com/library/content/documentation/UserExperience/Conceptual/OSXHIGuidelines/TerminologyWording.html
 	root [object!]
 ][
 	foreach-face/with root [
-		uppercase/part face/text 1
+		if face/menu [
+			parse rule: [some [
+				pos: string! (title-ize pos/1)
+				| into rule
+				| skip
+			]]
+		]
+		either find [radio check] face/type [
+			sentence-ize face/text
+		][
+			title-ize face/text
+		]
 	][
 		all [
 			face/type = 'button
