@@ -21,7 +21,7 @@ color-backgrounds: function [
 		all [
 			none? face/color
 			find [window panel group-box tab-panel] face/parent/type
-			find [text slider radio check group-box tab-panel] face/type
+			find [text slider radio check group-box tab-panel panel] face/type
 		]
 	]
 ]

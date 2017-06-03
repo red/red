@@ -26,7 +26,7 @@ view [
 		but "A" but "B" but "C"
 		but "D" but "E"	but "F"
 	]
-	tab-panel [
+	tab-panel blue [
 		"tab1" [at 10x10 base 0.2.233.188 15x15 at 50x50 button "one"]
 		"tab2" [at 80x10 text "two"]
 	]
