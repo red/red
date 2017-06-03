@@ -606,7 +606,7 @@ system/view/VID: context [
 					
 					append list face
 					if name [set name face]
-					pane-size: max pane-size face/offset + face/size + spacing
+					pane-size: max pane-size face/offset + face/size
 					if opts/now? [do-actor face none 'time]
 				]
 			]
@@ -624,7 +624,7 @@ system/view/VID: context [
 					pad2: as-pair svmp/1/y svmp/2/y		;-- bottom-right padding
 					origin: either top-left = pad [pad2][max top-left pad2]
 				]
-				panel/size: pane-size - spacing + origin
+				panel/size: pane-size + origin
 			]
 		]
 		if image: panel/image [panel/size: max panel/size image/size]
