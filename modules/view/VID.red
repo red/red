@@ -414,7 +414,7 @@ system/view/VID: context [
 		/local axis anti								;-- defined in a SET block
 		/extern focal-face
 	][
-		background!:  make typeset! [image! file! tuple! word! issue!]
+		background!:  make typeset! [image! file! url! tuple! word! issue!]
 		list:		  make block! 4						;-- panel's pane block
 		local-styles: any [css make block! 2]			;-- panel-local styles definitions
 		pane-size:	  0x0								;-- panel's content dynamic size
