@@ -14,7 +14,8 @@ system/view/VID: context [
 	styles: #include %styles.red
 	
 	GUI-rules: context [
-		debug?: no
+		active?: yes
+		debug?:  no
 		
 		processors: context [
 			#include %rules.red
@@ -72,6 +73,8 @@ system/view/VID: context [
 	]
 	
 	process-reactors: function [][
+		unless active? [exit]
+		
 		foreach [f blk later?] reactors [
 			either f [
 				bind blk ctx: context [face: f]
