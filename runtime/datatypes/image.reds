@@ -28,7 +28,6 @@ image: context [
 			data	[int-ptr!]
 	][
 		stride: 0
-		IMAGE_ENSURE_BUFFER(img)
 		bitmap/value: OS-image/lock-bitmap img yes
 		OS-image/get-data bitmap/value :stride
 	]
@@ -434,7 +433,7 @@ image: context [
 		if negative? y [y: 0]
 		img/node: as node! OS-image/make-image x y rgb alpha color
 		#either OS = 'MacOSX [
-			img/size: OS-image/ctx-to-cgimage as-integer img/node
+			img/size: OS-image/CGBitmapContextCreateImage as-integer img/node
 		][
 			img/size: y << 16 or x
 		]

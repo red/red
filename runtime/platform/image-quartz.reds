@@ -119,36 +119,8 @@ OS-image: context [
 				image		[integer!]
 				return:		[integer!]
 			]
-			CGImageRetain: "CGImageRetain" [
-				image		[integer!]
-				return:		[integer!]
-			]
 			CGImageRelease: "CGImageRelease" [
 				image		[integer!]
-			]
-			CGImageCreate: "CGImageCreate" [
-				width		[integer!]
-				height		[integer!]
-				bits-part	[integer!]
-				bits-pixel	[integer!]
-				bytes-row	[integer!]
-				color-space [integer!]
-				bmp-info	[integer!]
-				provider	[integer!]
-				decode		[float32-ptr!]
-				interpolate [logic!]
-				intent		[integer!]
-				return:		[integer!]
-			]
-			CGDataProviderCreateWithData: "CGDataProviderCreateWithData" [
-				info		[int-ptr!]
-				data		[byte-ptr!]
-				size		[integer!]
-				releaseData [integer!]
-				return:		[integer!]
-			]
-			CGDataProviderRelease: "CGDataProviderRelease" [
-				provider	[integer!]
 			]
 		]
 		"/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation" cdecl [
@@ -208,16 +180,11 @@ OS-image: context [
 		return:		[integer!]
 		/local
 			bmp-ctx [integer!]
-			cgimage [integer!]
 	][
 		either null? img/node [
 			bmp-ctx: OS-image/load-nsdata img/size no yes
-			if write? [
-				img/node: as node! bmp-ctx
-				cgimage: ctx-to-cgimage bmp-ctx
-				CGImageRelease img/size
-				img/size: cgimage
-			]
+			if write? [img/node: as node! bmp-ctx]
+			bmp-ctx
 		][
 			as-integer img/node
 		]
@@ -226,7 +193,9 @@ OS-image: context [
 	unlock-bitmap: func [					;-- do nothing on Quartz backend
 		img			[red-image!]
 		data		[integer!]
-	][]
+	][
+		if null? img/node [CGContextRelease data]
+	]
 
 	get-data: func [
 		handle		[integer!]
@@ -363,26 +332,6 @@ OS-image: context [
 		img-data: CGImageSourceCreateWithURL path 0
 		CFRelease path
 		CGImageSourceCreateImageAtIndex img-data 0 0
-	]
-
-	ctx-to-cgimage: func [
-		ctx		[integer!]		;-- bitmap conetxt
-		return:	[integer!]
-		/local
-			height	[integer!]
-			width	[integer!]
-			data	[integer!]
-			img		[integer!]
-	][
-		width: CGBitmapContextGetWidth ctx
-		height: CGBitmapContextGetHeight ctx
-		data: CGDataProviderCreateWithData null CGBitmapContextGetData ctx width * height * 4 0
-		img: CGImageCreate
-			width height 8 32 width * 4
-			CGBitmapContextGetColorSpace ctx kCGImageFormatARGB
-			data null true 0 ;-- kCGRenderingIntentDefault
-		CGDataProviderRelease data
-		img
 	]
 
 	make-image: func [
