@@ -21,12 +21,12 @@ Red/System [
 add-method!: alias function! [class [integer!]]
 
 add-content-view-handler: func [class [integer!]][
-	flipp-coord class
+	flip-coord class
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
 ]
 
 add-base-handler: func [class [integer!]][
-	flipp-coord class
+	flip-coord class
 	class_addMethod class sel_getUid "drawRect:" as-integer :draw-rect "v@:{_NSRect=ffff}"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
@@ -159,7 +159,7 @@ add-panel-delegate: func [class [integer!]][
 	class_addMethod class sel_windowWillClose as-integer :dialog-proc "v@:@"
 ]
 
-flipp-coord: func [class [integer!]][
+flip-coord: func [class [integer!]][
 	class_addMethod class sel_getUid "isFlipped" as-integer :is-flipped "B@:"
 ]
 
@@ -208,6 +208,7 @@ make-super-class: func [
 register-classes: does [
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
+	make-super-class "NSViewFlip"		"NSView"				as-integer :flip-coord			0
 	make-super-class "RedView"			"NSView"				as-integer :add-content-view-handler STORE_FACE_FLAG
 	make-super-class "RedBase"			"NSView"				as-integer :add-base-handler	STORE_FACE_FLAG or EXTRA_DATA_FLAG
 	make-super-class "RedWindow"		"NSWindow"				as-integer :add-window-handler	STORE_FACE_FLAG

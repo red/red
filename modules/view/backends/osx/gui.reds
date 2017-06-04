@@ -972,11 +972,14 @@ same-type?: func [
 
 set-content-view: func [
 	obj		[integer!]
+	red?	[logic!]				;-- red view?
 	/local
 		rect [NSRect!]
 		view [integer!]
+		cls  [c-string!]
 ][
-	view: objc_msgSend [objc_getClass "RedView" sel_getUid "alloc"]
+	cls: either red? ["RedView"]["NSViewFlip"]
+	view: objc_msgSend [objc_getClass cls sel_getUid "alloc"]
 	rect: make-rect 0 0 0 0
 	view: objc_msgSend [view sel_getUid "initWithFrame:" rect/x rect/y rect/w rect/h]
 	objc_msgSend [obj sel_getUid "setContentView:" view]
@@ -1077,7 +1080,7 @@ init-window: func [
 		rect/x rect/y rect/w rect/h flags 2 0
 	]
 
-	set-content-view window
+	set-content-view window yes
 
 	if bits and FACET_FLAGS_NO_BORDER = 0 [
 		sel_Hidden: sel_getUid "setHidden:"
@@ -1660,7 +1663,7 @@ OS-make-view: func [
 			objc_msgSend [obj sel_getUid "setDoubleValue:" flt]
 		]
 		sym = group-box [
-			set-content-view obj
+			set-content-view obj no
 			either zero? caption [
 				objc_msgSend [obj sel_getUid "setTitlePosition:" NSNoTitle]
 			][
