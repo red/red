@@ -27,8 +27,6 @@ Red [
 	]
 ]
 
-system/state/trace?: no									;-- disable stack trace in console by default
-
 system/console: context [
 
 	prompt: ">> "

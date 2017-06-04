@@ -299,12 +299,14 @@ stack: context [										;-- call stack
 	]
 	
 	trace: func [
+		level	[integer!]
 		int		[red-integer!]
 		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
 		/local
 			value [red-value!]
+			fun	  [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]
@@ -319,15 +321,19 @@ stack: context [										;-- call stack
 			sym: base/header >> 8 and FFFFh
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
-				if base > cbottom [
-					string/concatenate-literal buffer " "
-					part: part - 4
+				fun: _context/get-global sym
+				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
+					part: word/form 
+						word/make-at sym value
+						buffer
+						null
+						part
+					
+					if base >= cbottom [
+						string/concatenate-literal buffer " "
+						part: part - 1
+					]
 				]
-				part: word/form 
-					word/make-at sym value
-					buffer
-					null
-					part
 			]
 			base: base + 1
 			base >= top									;-- defensive test

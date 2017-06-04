@@ -247,7 +247,7 @@ system: context [
 		]
 		
 		last-error: none
-		trace?: yes
+		trace: 1										;-- 0: disabled
 	]
 	
 	modules: make block! 8

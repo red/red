@@ -272,7 +272,7 @@ error: context [
 			value	[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
-			bool	[red-logic!]
+			int		[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
 		
@@ -313,15 +313,12 @@ error: context [
 			part: part - 3
 		]
 		
-		bool: as red-logic! #get system/state/trace?
-		if all [
-			TYPE_OF(bool) = TYPE_LOGIC
-			bool/value
-		][
+		int: as red-integer! #get system/state/trace
+		if all [TYPE_OF(int) = TYPE_INTEGER int/value > 0][
 			value: base + field-stack
 			if TYPE_OF(value) = TYPE_INTEGER [
 				string/concatenate-literal buffer "^/*** Stack: "
-				part: stack/trace as red-integer! value buffer part - 12
+				part: stack/trace int/value as red-integer! value buffer part - 12
 			]
 		]
 		part
