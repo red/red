@@ -40,6 +40,13 @@ Red [
 	]
 ]
 
+
+system/options/cache: either system/platform = 'Windows [
+	append to-red-file get-env "ALLUSERSPROFILE" %/Red/
+][
+	append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
+]
+
 ;-- command-line arguments processing
 
 #if config/dev-mode? [
