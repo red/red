@@ -11,7 +11,7 @@ Red [
 ]
 
 ok-captions: ["ok" "save" "apply"]
-no-capital:  [#"a" | "an" | "the" | "and" | "or"]
+no-capital:  ["a " | "an " | "the " | "and " | "or "]
 
 title-ize: function [text [string!] return: [string!]][
 	parse text [
