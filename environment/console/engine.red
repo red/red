@@ -92,10 +92,13 @@ system/console: context [
 			ret: SetConsoleTitle as c-string! string/rs-head str
 			if zero? ret [print-line "SetConsoleTitle failed!" halt]
 		][
-			with terminal [
-				pasting?: no
-				emit-string "^[[?2004h"			;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
-			]
+			#if OS <> 'Windows [
+			#if gui-console? = no [
+				with terminal [
+					pasting?: no
+					emit-string "^[[?2004h"		;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+				]
+			]]
 		]
 	]
 
