@@ -282,6 +282,7 @@ system: context [
 		path: 			what-dir
 		script: 		none
 		cache:			none
+		thru-cache:		none
 		args: 			none
 		do-arg: 		none
 		debug: 			none
