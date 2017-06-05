@@ -564,7 +564,7 @@ lexer: context [
 			][
 				reform ["Invalid" mold type "value"]
 			]
-			either object? red [join "^/*** in file:" to-local-file red/script-name][""]
+			either all [red object? red][join "^/*** in file:" to-local-file red/script-name][""]
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
