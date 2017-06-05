@@ -305,10 +305,10 @@ redc: context [
 		file
 	]
 	
-	form-args: func [file /local args delim][
+	form-args: func [file /local args delim pos pos2 flag][
 		args: make string! 32
 
-		foreach arg find system/options/args file [
+		foreach arg pos: find system/options/args file [
 			case [
 				find arg #" " [
 					delim: pick {'"} to logic! find arg #"^""
@@ -324,6 +324,11 @@ redc: context [
 			append args #" "
 		]
 		remove back tail args
+		all [
+			pos2: find system/options/args flag: "--catch"
+			positive? offset? pos2 pos
+			insert insert args flag #" "
+		]
 		args
 	]
 
