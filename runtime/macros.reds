@@ -554,6 +554,9 @@ Red/System [
 	either a < b [-1][either a > b [1][0]]
 ]
 
+#define IMAGE_WIDTH(size)  (size and FFFFh) 
+#define IMAGE_HEIGHT(size) (size >> 16)
+
 #if debug? = yes [
 	#define dump4	[dump-hex4 as int-ptr!]
 	#define dump1	[dump-hex  as byte-ptr!]

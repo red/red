@@ -1121,13 +1121,9 @@ draw-rect: func [
 		paint-background ctx clr/array1 x y width height
 	]
 	if TYPE_OF(img) = TYPE_IMAGE [
-		either null? img/node [
-			CG-draw-image ctx img/size 0 0 size/x size/y
-		][
-			bmp: CGBitmapContextCreateImage as-integer img/node
-			CG-draw-image ctx bmp 0 0 size/x size/y
-			CGImageRelease bmp
-		]
+		bmp: CGBitmapContextCreateImage as-integer img/node 
+		CG-draw-image ctx bmp 0 0 size/x size/y
+		CGImageRelease bmp
 	]
 	if (object_getClass self) = objc_getClass "RedBase" [
 		render-text ctx vals as NSSize! (as int-ptr! self) + 8

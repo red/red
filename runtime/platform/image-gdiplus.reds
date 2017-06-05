@@ -50,9 +50,6 @@ Red/System [
 #define GpImage!	int-ptr!
 #define GpGraphics! int-ptr!
 
-#define IMAGE_WIDTH(size)  (size and FFFFh) 
-#define IMAGE_HEIGHT(size) (size >> 16)
-
 OS-image: context [
 
 	CLSID_BMP_ENCODER:  [557CF400h 11D31A04h 0000739Ah 2EF31EF8h]
@@ -414,7 +411,7 @@ OS-image: context [
 	]
 
 	load-image: func [
-		src			[red-string!]
+		filename	[c-string!]				;-- UTF-16 string
 		return:		[integer!]
 		/local
 			handle	[integer!]
@@ -425,7 +422,7 @@ OS-image: context [
 			h		[integer!]
 	][
 		handle: 0
-		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
+		res: GdipCreateBitmapFromFile filename :handle
 		unless zero? res [return -1]
 
 		format: 0

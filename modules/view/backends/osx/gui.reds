@@ -554,16 +554,12 @@ change-image: func [
 				objc_msgSend [hWnd sel_getUid "setImage:" 0]
 				exit
 			]
-			either null? image/node [
-				cg-image: image/size
-			][
-				cg-image: CGBitmapContextCreateImage as-integer image/node
-			]
+			cg-image: CGBitmapContextCreateImage as-integer image/node
 			id: objc_msgSend [objc_getClass "NSImage" sel_getUid "alloc"]
 			id: objc_msgSend [id sel_getUid "initWithCGImage:size:" cg-image 0 0]
 			objc_msgSend [hWnd sel_getUid "setImage:" id]
 			objc_msgSend [id sel_getUid "release"]
-			if image/node <> null [CGImageRelease cg-image]
+			CGImageRelease cg-image
 		]
 		true [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
@@ -1919,8 +1915,7 @@ OS-do-draw: func [
 		rc	[NSRect!]
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
-	IMAGE_ENSURE_BUFFER(img)
-	do-draw img/node as red-image! rc cmds yes yes yes yes
+	do-draw img/node as red-image! rc cmds yes no no no
 ]
 
 OS-draw-face: func [

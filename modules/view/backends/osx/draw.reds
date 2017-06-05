@@ -961,12 +961,11 @@ OS-draw-image: func [
 		ww		[float32!]
 		crop2	[red-pair!]
 ][
-	img: image/size
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
-			width:  IMAGE_WIDTH(img)
-			height: IMAGE_HEIGHT(img)
+			width:  IMAGE_WIDTH(image/size)
+			height: IMAGE_HEIGHT(image/size)
 		]
 		start + 1 = end [					;-- two control points
 			width: end/x - x
@@ -976,10 +975,7 @@ OS-draw-image: func [
 		true [0]							;@@ TBD four control points
 	]
 
-	if image/node <> null [
-		img: CGBitmapContextCreateImage as-integer image/node
-	]
-
+	img: CGBitmapContextCreateImage as-integer image/node
 	if crop1 <> null [
 		crop2: crop1 + 1
 		w: as float32! crop2/x
@@ -992,7 +988,7 @@ OS-draw-image: func [
 			as float32! crop1/y
 			w
 			h
-		if image/node <> null [CGImageRelease img]
+		CGImageRelease img
 		img: sub-img
 	]
 

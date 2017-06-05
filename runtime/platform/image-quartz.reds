@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define IMAGE_WIDTH(image)  (OS-image/CGImageGetWidth image) 
-#define IMAGE_HEIGHT(image) (OS-image/CGImageGetHeight image)
-
 OS-image: context [
 
 	NSRect!: alias struct! [
@@ -80,10 +77,6 @@ OS-image: context [
 				ctx			[integer!]
 				return:		[byte-ptr!]
 			]
-			CGBitmapContextGetColorSpace: "CGBitmapContextGetColorSpace" [
-				ctx			[integer!]
-				return:		[integer!]
-			]
 			CGContextRelease: "CGContextRelease" [
 				ctx			[integer!]
 			]
@@ -94,11 +87,6 @@ OS-image: context [
 				w			[float32!]
 				h			[float32!]
 				src			[integer!]
-			]
-			CGImageSourceCreateWithURL: "CGImageSourceCreateWithURL" [
-				url			[integer!]
-				options		[integer!]
-				return:		[integer!]
 			]
 			CGImageSourceCreateWithData: "CGImageSourceCreateWithData" [
 				data		[integer!]
@@ -164,38 +152,28 @@ OS-image: context [
 		handle		[integer!]
 		return:		[integer!]
 	][
-		CGImageGetWidth handle
+		CGBitmapContextGetWidth handle
 	]
 
 	height?: func [
 		handle		[integer!]
 		return:		[integer!]
 	][
-		CGImageGetHeight handle
+		CGBitmapContextGetHeight handle
 	]
 
 	lock-bitmap: func [						;-- do nothing on Quartz backend
 		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
-		/local
-			bmp-ctx [integer!]
 	][
-		either null? img/node [
-			bmp-ctx: OS-image/load-nsdata img/size no yes
-			if write? [img/node: as node! bmp-ctx]
-			bmp-ctx
-		][
-			as-integer img/node
-		]
+		as integer! img/node
 	]
 
 	unlock-bitmap: func [					;-- do nothing on Quartz backend
 		img			[red-image!]
 		data		[integer!]
-	][
-		if null? img/node [CGContextRelease data]
-	]
+	][]
 
 	get-data: func [
 		handle		[integer!]
@@ -277,7 +255,6 @@ OS-image: context [
 	load-nsdata: func [
 		data		[integer!]
 		release?	[logic!]
-		cgimage?	[logic!]
 		return: 	[integer!]
 		/local
 			color-space [integer!]
@@ -289,12 +266,9 @@ OS-image: context [
 			image-data	[integer!]
 			image		[integer!]
 	][
-		either cgimage? [
-			image: data
-		][
-			image-data: CGImageSourceCreateWithData data 0
-			image: CGImageSourceCreateImageAtIndex image-data 0 0
-		]
+		image-data: CGImageSourceCreateWithData data 0
+		image: CGImageSourceCreateImageAtIndex image-data 0 0
+
 		color-space: CGColorSpaceCreateDeviceRGB
 		width: CGImageGetWidth image
 		height: CGImageGetHeight image
@@ -305,11 +279,9 @@ OS-image: context [
 		CGContextDrawImage ctx rect/x rect/y rect/w rect/h image
 
 		CGColorSpaceRelease color-space
-		unless cgimage? [
-			CGImageRelease image
-			if release? [CFRelease data]
-			CFRelease image-data
-		]
+		CGImageRelease image
+		if release? [CFRelease data]
+		CFRelease image-data
 		ctx
 	]
 
@@ -318,20 +290,34 @@ OS-image: context [
 		len		[integer!]
 		return: [integer!]
 	][
-		load-nsdata CFDataCreate 0 data len yes no
+		load-nsdata CFDataCreate 0 data len yes
 	]
 
-	load-image: func [			;-- load image from external resource: file!
-		src			[red-string!]
+	load-image: func [
+		filename	[c-string!]
 		return:		[integer!]
 		/local
-			img-data [integer!]
-			path	 [integer!]
+			data	[byte-ptr!]
+			size	[integer!]
+			bmp		[integer!]
+			file	[integer!]
+			result	[integer!]
 	][
-		path: simple-io/to-NSURL src yes
-		img-data: CGImageSourceCreateWithURL path 0
-		CFRelease path
-		CGImageSourceCreateImageAtIndex img-data 0 0
+		size: 0
+		data: null
+		file: simple-io/open-file filename simple-io/RIO_READ no
+		if file < 0 [return -1]
+		size: simple-io/file-size? file
+		if size <= 0 [simple-io/close-file file return -1]
+		data: allocate size
+		result: simple-io/read-data file data size
+		simple-io/close-file file
+
+		if any [result < 0 null? data][return -1]
+
+		bmp: load-binary data size
+		free data
+		bmp
 	]
 
 	make-image: func [
