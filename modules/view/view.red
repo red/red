@@ -795,7 +795,12 @@ view: function [
 	unless spec/offset [center-face spec]
 	show spec
 	
-	either no-wait [spec][do-events ()]					;-- return unset! value by default
+	either no-wait [
+		do-events/no-wait
+		spec											;-- return root face
+	][
+		do-events ()									;-- return unset! value by default
+	]
 	
 ]
 
