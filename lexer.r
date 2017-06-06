@@ -568,6 +568,7 @@ lexer: context [
 				all [
 					value? 'red
 					object? red
+					red/script-name
 					join "^/*** in file: " to-local-file red/script-name
 				]
 				""
