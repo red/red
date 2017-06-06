@@ -859,10 +859,11 @@ read-thru: function [
 ][
 	path: path-thru url
 	either all [not update exists? path] [
-		either binary [read/binary path][read path]
+		data: either binary [read/binary path][read path]
 	][
-		write/binary path file: either binary [read/binary url][read url]
+		write/binary path data: either binary [read/binary url][read url]
 	]
+	data
 ]
 
 load-thru: function [
