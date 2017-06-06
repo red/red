@@ -28,8 +28,6 @@ set-quiet: routine [
 browse: routine [
 	"Open web browser to a URL"
 	url [url!]
-	/local
-		s [c-string!] cmd [byte-ptr!] len [integer!]
 ][
 	#switch OS [
 		Windows [
@@ -37,7 +35,7 @@ browse: routine [
 			unset/push-last
 		]
 		MacOSX [
-			;use [s [c-string!] cmd [byte-ptr!] len [integer!]][
+			use [s [c-string!] cmd [byte-ptr!] len [integer!]][
 				len: -1
 				s: unicode/to-utf8 as red-string! url :len
 				cmd: allocate 6 + len
@@ -45,7 +43,7 @@ browse: routine [
 				copy-memory cmd + 5 as byte-ptr! s len + 1
 				ext-process/OS-call as-c-string cmd no no no yes null null null
 				free cmd
-			;]
+			]
 		]
 		#default [fire [TO_ERROR(internal not-here) words/_browse]]
 	]
