@@ -706,6 +706,7 @@ system/view/platform: context [
 				radio:		[16x0  0x0]					;-- 13 + 3 for text padding
 				group-box:	[3x3  15x4]
 				tab-panel:	[1x3  25x0]
+				button:		[8x8   0x0]
 			]
 			MacOSX [
 				button:		[7x7   0x0]
