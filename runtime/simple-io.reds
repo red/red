@@ -83,6 +83,14 @@ simple-io: context [
 					overlapped	[int-ptr!]
 					return:		[integer!]
 				]
+				DeleteFile: "DeleteFileW" [
+					filename	[c-string!]
+					return:		[integer!]
+				]
+				RemoveDirectory: "RemoveDirectoryW" [
+					filename	[c-string!]
+					return:		[integer!]
+				]
 				FindFirstFile: "FindFirstFileW" [
 					filename	[c-string!]
 					filedata	[WIN32_FIND_DATA]
@@ -497,6 +505,10 @@ simple-io: context [
 					file		[integer!]
 					return:		[integer!]
 				]
+				_remove: "remove" [
+					pathname	[c-string!]
+					return: 	[integer!]
+				]
 				strncmp: "strncmp" [
 					str1		[c-string!]
 					str2		[c-string!]
@@ -877,6 +889,22 @@ simple-io: context [
 					all [cp2 = 46 any [cp3 = 47 cp3 = 92 len = 2]]
 				]
 			]
+		]
+	]
+	
+	delete: func [
+		filename [red-file!]
+		return:  [logic!]
+		/local
+			name [c-string!]
+			res  [integer!]	
+	][
+		name: file/to-OS-path filename
+		#either OS = 'Windows [
+			res: either dir? filename [RemoveDirectory name][DeleteFile name]
+			res <> 0
+		][
+			0 = _remove name
 		]
 	]
 
