@@ -1928,7 +1928,7 @@ system-dialect: make-profilable context [
 			value
 		]
 		
-		comp-use: has [spec use-init use-locals use-stack size][
+		comp-use: has [spec use-init use-locals use-stack size slots][
 			pc: next pc
 			unless all [block? spec: pc/1 not empty? spec][
 				backtrack 'use
@@ -1950,6 +1950,7 @@ system-dialect: make-profilable context [
 			unless find locals /local [append locals /local]
 			append locals spec
 			size: emitter/calc-locals-offsets use-locals
+			emitter/target/emit-reserve-stack slots: size / 4
 			func-locals-sz: func-locals-sz + size
 			
 			pc: next pc
@@ -1957,6 +1958,8 @@ system-dialect: make-profilable context [
 			pc: next pc
 			
 			func-locals-sz: func-locals-sz - size
+			emitter/target/emit-release-stack slots
+			
 			clear use-init
 			clear use-locals
 			clear use-stack
