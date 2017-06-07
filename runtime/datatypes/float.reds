@@ -262,6 +262,7 @@ float: context [
 			type1 [integer!]
 			type2 [integer!]
 			int   [red-integer!]
+			word  [red-word!]
 			op1	  [float!]
 			op2	  [float!]
 			t1?	  [logic!]
@@ -287,6 +288,10 @@ float: context [
 			TYPE_TUPLE [return as red-float! tuple/do-math type]
 			TYPE_PAIR  [
 				if type1 <> TYPE_TIME [
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push TYPE_PAIR]
+					]
 					op1: left/value
 					copy-cell as red-value! right as red-value! left
 					right/header: type1

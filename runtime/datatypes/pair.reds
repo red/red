@@ -23,6 +23,7 @@ pair: context [
 			fl	  [red-float!]
 			x	  [integer!]
 			y	  [integer!]
+			f	  [float!]
 	][
 		left: as red-pair! stack/arguments
 		right: left + 1
@@ -43,6 +44,26 @@ pair: context [
 				fl: as red-float! right
 				x: as-integer fl/value
 				y: x
+			]
+			TYPE_PERCENT [
+				fl: as red-float! right
+				f: fl/value
+				switch type [
+					OP_MUL [
+						left/x: as-integer (as-float left/x) * f
+						left/y: as-integer (as-float left/y) * f
+						return left
+					]
+					OP_DIV [
+						left/x: as-integer (as-float left/x) / f
+						left/y: as-integer (as-float left/y) / f
+						return left
+					]
+					default [
+						x: as-integer fl/value
+						y: x
+					]
+				]
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
