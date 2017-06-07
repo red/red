@@ -143,7 +143,7 @@ integer: context [
 			return "-2147483648"
 		]
 		n: negative? i
-		if n [i: negate i]
+		if n [i: 0 - i]
 		c: 11
 		while [i <> 0][
 			s/c: #"0" + (i // 10)
@@ -212,7 +212,7 @@ integer: context [
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
-			pair	[red-pair!]
+			word	[red-word!]
 			value	[integer!]
 			size	[integer!]
 			n		[integer!]
@@ -241,37 +241,28 @@ integer: context [
 				left/value: do-math-op left/value right/value type
 			]
 			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
-			TYPE_PAIR  [
-				value: left/value
-				copy-cell as red-value! right as red-value! left
-				pair: as red-pair! left
-				switch type [
-					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
-					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
-					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
-						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
-					]
-				]
-			]
+			TYPE_PAIR
 			TYPE_TUPLE [
-				value: left/value
+				value: left/value						;-- swap them!
 				copy-cell as red-value! right as red-value! left
-				tp: (as byte-ptr! left) + 4
-				size: TUPLE_SIZE?(right)
-				n: 0
-				until [
-					n: n + 1
-					v: as-integer tp/n
-					switch type [
-						OP_ADD [v: v + value]
-						OP_MUL [v: v * value]
-						OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
-							ERR_EXPECT_ARGUMENT(TYPE_PERCENT 1)
-						]
+				right/header: TYPE_INTEGER
+				right/value: value
+				
+				either TYPE_OF(left) = TYPE_PAIR [
+					if type = OP_DIV [
+						fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]
 					]
-					either v > 255 [v: 255][if negative? v [v: 0]]
-					tp/n: as byte! v
-					n = size
+					if type = OP_SUB [
+						pair/negate						;-- negates the pair! now in stack/arguments
+						type: OP_ADD
+					]
+					pair/do-math type
+				][
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push TYPE_INTEGER]
+					]
+					tuple/do-math type
 				]
 			]
 			default [
