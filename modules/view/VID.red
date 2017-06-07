@@ -324,6 +324,7 @@ system/view/VID: context [
 		if all [not opts/size-x	find words 'size-x][
 			opts/size-x: style/template/size/x
 		]
+		user-size?: opts/size
 
 		if all [oi: opts/image any [opts/size-x not opts/size]][
 			opts/size: either opts/size-x [
@@ -359,7 +360,7 @@ system/view/VID: context [
 			pad: select system/view/metrics/paddings face/type
 			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
 		]
-		if any [opts/size-x not opts/size not find words 'size][
+		if all [not user-size? any [opts/size-x not find words 'size]][
 			sz: any [face/size 0x0]
 			min-sz: either find containers face/type [sz][
 				(any [pad 0x0]) + any [
