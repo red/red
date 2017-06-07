@@ -283,8 +283,18 @@ float: context [
 			type1 = TYPE_TIME
 		]
 
-		if type2 = TYPE_TUPLE [
-			return as red-float! tuple/do-math type
+		switch type2 [
+			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_PAIR  [
+				if type1 <> TYPE_TIME [
+					op1: left/value
+					copy-cell as red-value! right as red-value! left
+					right/header: type1
+					right/value: op1
+					return as red-float! pair/do-math type
+				]
+			]
+			default [0]
 		]
 
 		if any [

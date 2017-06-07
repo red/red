@@ -20,6 +20,7 @@ pair: context [
 			left  [red-pair!]
 			right [red-pair!]
 			int	  [red-integer!]
+			fl	  [red-float!]
 			x	  [integer!]
 			y	  [integer!]
 	][
@@ -36,6 +37,11 @@ pair: context [
 			TYPE_INTEGER [
 				int: as red-integer! right
 				x: int/value
+				y: x
+			]
+			TYPE_FLOAT [
+				fl: as red-float! right
+				x: as-integer fl/value
 				y: x
 			]
 			default [
