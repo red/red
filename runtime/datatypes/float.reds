@@ -328,7 +328,7 @@ float: context [
 			left/header: TYPE_TIME
 			left/value: left/value * time/oneE9
 		]
-		if pct? [left/header: TYPE_PERCENT]
+		if all [pct? not t2?][left/header: TYPE_PERCENT]
 		left
 	]
 	
