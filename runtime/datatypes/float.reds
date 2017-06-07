@@ -287,12 +287,18 @@ float: context [
 			return as red-float! tuple/do-math type
 		]
 
-		unless any [						;@@ replace by typeset check when possible
-			type2 = TYPE_INTEGER
-			type2 = TYPE_CHAR
-			type2 = TYPE_FLOAT
-			type2 = TYPE_PERCENT
-			type2 = TYPE_TIME
+		if any [
+			not any [						;@@ replace by typeset check when possible
+				type2 = TYPE_INTEGER
+				type2 = TYPE_CHAR
+				type2 = TYPE_FLOAT
+				type2 = TYPE_PERCENT
+				type2 = TYPE_TIME
+			]
+			all [
+				any [type1 = TYPE_TIME type1 = TYPE_PERCENT]
+				type2 = TYPE_CHAR
+			]
 		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
 
 		if type1 = TYPE_INTEGER [
