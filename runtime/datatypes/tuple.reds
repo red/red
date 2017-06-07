@@ -141,6 +141,7 @@ tuple: context [
 			right [red-tuple!]
 			int   [red-integer!]
 			fl    [red-float!]
+			word  [red-word!]
 			tp1   [byte-ptr!]
 			tp2   [byte-ptr!]
 			size  [integer!]
@@ -161,6 +162,10 @@ tuple: context [
 
 		swap?: no
 		if TYPE_OF(left) <> TYPE_TUPLE [
+			if any [type = OP_SUB type = OP_DIV][
+				word: either type = OP_SUB [words/_subtract][words/_divide]
+				fire [TO_ERROR(script not-related) word datatype/push TYPE_OF(left)]
+			]
 			int: as red-integer! left
 			left: right
 			right: as red-tuple! int
