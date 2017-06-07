@@ -1097,7 +1097,7 @@ block: context [
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
-				negate int/value
+				0 - int/value
 			]
 			TYPE_FLOAT [
 				d: as red-float! res
@@ -1162,7 +1162,7 @@ block: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					len2: negate len2
+					len2: 0 - len2
 					blk/head: blk/head - len2
 					len: either negative? blk/head [blk/head: 0 0][len2]
 					head: head - len

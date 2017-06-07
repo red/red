@@ -1930,7 +1930,7 @@ string: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					len2: negate len2
+					len2: 0 - len2
 					str/head: str/head - len2
 					len: either negative? str/head [str/head: 0 0][len2]
 					buffer: buffer - (len << mult)

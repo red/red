@@ -101,7 +101,7 @@ murmur3-x86-32: func [
 
 	;-- body
 	blocks: as int-ptr! (data + (nblocks * 4))
-	i: negate nblocks
+	i: 0 - nblocks
 	while [negative? i][
 		p: blocks + i
 		k1: p/value						;@@ do endian-swapping if needed
