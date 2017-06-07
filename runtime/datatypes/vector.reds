@@ -702,26 +702,33 @@ vector: context [
 						block/rs-next as red-block! spec
 						value: block/rs-head as red-block! spec
 						int: as red-integer! value
-						unit: int/value
-						err?: no
-						switch type [
-							TYPE_CHAR
-							TYPE_INTEGER [
-								err?: all [unit <> 8 unit <> 16 unit <> 32]
+						either TYPE_OF(int) <> TYPE_INTEGER [
+							if type <> TYPE_PERCENT [
+								fire [TO_ERROR(script invalid-spec-field) spec]
 							]
-							TYPE_FLOAT
-							TYPE_PERCENT [
-								err?: all [unit <> 32 unit <> 64]
+							unit: 64
+						][
+							unit: int/value
+							err?: no
+							switch type [
+								TYPE_CHAR
+								TYPE_INTEGER [
+									err?: all [unit <> 8 unit <> 16 unit <> 32]
+								]
+								TYPE_FLOAT [
+									err?: all [unit <> 32 unit <> 64]
+								]
+								TYPE_PERCENT [unit: 64]
 							]
-						]
-						if err? [
-							blk/head: saved
-							fire [TO_ERROR(script bad-make-arg) proto spec]
+							if err? [
+								blk/head: saved
+								fire [TO_ERROR(script bad-make-arg) proto spec]
+							]
+							block/rs-next as red-block! spec
 						]
 						unit: unit >> 3
 
 						;-- size or block values
-						block/rs-next as red-block! spec
 						value: block/rs-head as red-block! spec
 						either TYPE_OF(value) = TYPE_INTEGER [
 							int: as red-integer! value
