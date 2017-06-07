@@ -130,7 +130,7 @@ negate: make action! [[
 power: make action! [[
 		"Returns a number raised to a given power (exponent)"
 		number	 [number!] "Base value"
-		exponent [number!] "The power (index) to raise the base value by"
+		exponent [integer! float!] "The power (index) to raise the base value by"
 		return:	 [number!]
 	]
 	#get-definition ACT_POWER
