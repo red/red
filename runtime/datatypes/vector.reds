@@ -439,16 +439,21 @@ vector: context [
 		unit: GET_UNIT(s)
 		len: rs-length? left
 		p: (as byte-ptr! s/offset) + (left/head << (log-b unit))
-		i: 0
 		type: TYPE_OF(right)
+		i: 0
 
 		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
-			either type = TYPE_INTEGER [
-				int: as red-integer! right
-				f2: as-float int/value
-			][
-				fl: as red-float! right
-				f2: fl/value
+			switch type [
+				TYPE_INTEGER [
+					int: as red-integer! right
+					f2: as-float int/value
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					fl: as red-float! right
+					f2: fl/value
+				]
+				default [--NOT_IMPLEMENTED--]
 			]
 			while [i < len][
 				f1: get-value-float p unit
@@ -460,17 +465,22 @@ vector: context [
 					pf32: as pointer! [float32!] p
 					pf32/value: as float32! f1
 				]
-				i:  i  + 1
-				p:  p  + unit
+				i: i + 1
+				p: p + unit
 			]
 		][
-			either type = TYPE_INTEGER [
-				int: as red-integer! right
-				v2: int/value
-			][
-				fl: as red-float! right
-				f1: fl/value
-				v2: as-integer f1
+			switch type [
+				TYPE_INTEGER [
+					int: as red-integer! right
+					v2: int/value
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					fl: as red-float! right
+					f1: fl/value
+					v2: as-integer f1
+				]
+				default [--NOT_IMPLEMENTED--]
 			]
 			while [i < len][
 				v1: get-value-int as int-ptr! p unit
@@ -480,8 +490,8 @@ vector: context [
 					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
 					4 [p4: as int-ptr! p p4/value: v1]
 				]
-				i:  i  + 1
-				p:  p  + unit
+				i: i + 1
+				p: p + unit
 			]
 		]
 		as red-value! left
