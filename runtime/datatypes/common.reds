@@ -542,6 +542,8 @@ words: context [
 	_body:			as red-word! 0
 	_end:			as red-word! 0
 	_not-found:		as red-word! 0
+	_subtract:		as red-word! 0
+	_divide:		as red-word! 0
 	
 	_to:			as red-word! 0
 	_thru:			as red-word! 0
@@ -782,9 +784,11 @@ words: context [
 		_body:			word/load "<body>"				;-- internal usage
 		_not-found:		word/load "<not-found>"			;-- internal usage
 		_end:			_context/add-global end
+		_subtract:		word/load "subtract"
+		_divide:		word/load "divide"
 		
-		_on-parse-event: word/load "on-parse-event"
-		_on-change*:	 word/load "on-change*"
+		_on-parse-event:  word/load "on-parse-event"
+		_on-change*:	  word/load "on-change*"
 		_on-deep-change*: word/load "on-deep-change*"
 		
 		_type:			word/load "type"
