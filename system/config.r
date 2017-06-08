@@ -32,6 +32,7 @@ REBOL [
 ;;  red-tracing?:	yes							;-- no => do not compile tracing code
 ;;  red-help?:		no							;-- yes => keep doc-strings from boot.red
 ;;	gui-console?:	no							;-- yes => redirect printing to gui console (temporary)
+;;	GUI-engine:		'native						;-- native | test | GTK | ...
 ;;  legacy:			block! of words				;-- flags for OS legacy features support
 ;;		- stat32								;-- use the older stat struct for 32-bit file access.
 ;;-------------------------------------------
@@ -42,6 +43,7 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
+	GUI-engine:	'test
 ]
 ;-------------------------
 Windows [
@@ -49,6 +51,7 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
+	GUI-engine:	'test
 ]
 WindowsXP [
 	OS:			'Windows

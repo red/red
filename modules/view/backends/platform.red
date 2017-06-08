@@ -514,11 +514,17 @@ system/view/platform: context [
 				]
 			]]
 
-			;#include %android/gui.reds
-			#switch OS [
-				Windows  [#include %windows/gui.reds]
-				MacOSX   [#include %osx/gui.reds]
-				#default []					;-- Linux
+			#switch GUI-engine [
+				native [
+					;#include %android/gui.reds
+					#switch OS [
+						Windows  [#include %windows/gui.reds]
+						MacOSX   [#include %osx/gui.reds]
+						#default []					;-- Linux
+					]
+				]
+				test [#include %test/gui.reds]
+				;GTK [#include %GTK/gui.reds]
 			]
 		]
 	]
