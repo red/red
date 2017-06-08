@@ -183,6 +183,7 @@ system-dialect: make-profilable context [
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax] opt 'value
+			| 'handle!
 		]
 
 		type-spec: [
