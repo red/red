@@ -14,6 +14,12 @@ Red/System [
 #include %draw.reds
 #include %events.reds
 
+handle-counter: as handle! 0
+
+make-handle: func [return: [handle!]][
+	handle-counter: handle-counter + 1
+	handle-counter
+]
 
 get-face-obj: func [
 	hWnd	[handle!]
@@ -162,7 +168,7 @@ make-font: func [
 	font [red-object!]
 	return: [handle!]
 ][
-	as handle! 0
+	make-handle
 ]
 
 get-font-handle: func [
@@ -252,36 +258,8 @@ OS-make-view: func [
 	face	[red-object!]
 	parent	[integer!]
 	return: [integer!]
-	/local
-		values	  [red-value!]
-		type	  [red-word!]
-		str		  [red-string!]
-		offset	  [red-pair!]
-		size	  [red-pair!]
-		data	  [red-block!]
-		menu	  [red-block!]
-		show?	  [red-logic!]
-		enable?	  [red-logic!]
-		selected  [red-integer!]
-		para	  [red-object!]
-		rate	  [red-value!]
 ][
-	values: object/get-values face
-
-	type:	  as red-word!		values + FACE_OBJ_TYPE
-	str:	  as red-string!	values + FACE_OBJ_TEXT
-	offset:   as red-pair!		values + FACE_OBJ_OFFSET
-	size:	  as red-pair!		values + FACE_OBJ_SIZE
-	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
-	enable?:  as red-logic!		values + FACE_OBJ_ENABLE?
-	data:	  as red-block!		values + FACE_OBJ_DATA
-	menu:	  as red-block!		values + FACE_OBJ_MENU
-	selected: as red-integer!	values + FACE_OBJ_SELECTED
-	para:	  as red-object!	values + FACE_OBJ_PARA
-	rate:	  					values + FACE_OBJ_RATE
-	
-
-	123
+	as-integer make-handle
 ]
 
 
@@ -313,30 +291,16 @@ OS-update-view: func [
 	face [red-object!]
 	/local
 		ctx		[red-context!]
-		values	[red-value!]
 		state	[red-block!]
-		menu	[red-block!]
-		word	[red-word!]
 		int		[red-integer!]
-		int2	[red-integer!]
-		bool	[red-logic!]
 		s		[series!]
-		hWnd	[handle!]
-		flags	[integer!]
-		type	[integer!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
-	values: s/offset
-
-	state: as red-block! values + FACE_OBJ_STATE
-	word: as red-word! values + FACE_OBJ_TYPE
-	type: symbol/resolve word/symbol
+	state: as red-block! s/offset + FACE_OBJ_STATE
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
 	int: int + 1
-	flags: int/value
-	
 	int/value: 0										;-- reset flags
 ]
 
