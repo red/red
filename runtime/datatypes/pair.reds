@@ -48,7 +48,7 @@ pair: context [
 			TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
-				switch type [
+				switch op [
 					OP_MUL [
 						left/x: as-integer (as-float left/x) * f
 						left/y: as-integer (as-float left/y) * f
