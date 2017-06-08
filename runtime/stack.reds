@@ -768,5 +768,9 @@ stack: context [										;-- call stack
 				(as-integer ctop + 2 - cbottom) >> 4
 			print-line ["ctop: " ctop]
 		]
+		dump-size: does [
+			print-line ["Arguments: " as-integer ( top - bottom)  "/" as-integer (a-end - bottom)]
+			print-line ["Call.....: " as-integer (ctop - cbottom) "/" as-integer (c-end - cbottom)]
+		]
 	]
 ]
