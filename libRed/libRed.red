@@ -431,6 +431,35 @@ Red [
 		tuple/make-rgba ring/alloc r g b a
 	]
 	
+	;redTupleN
+	
+	redBinary: func [
+		src		[byte-ptr!]
+		bytes	[integer!]
+		return: [red-binary!]
+		/local
+			bin [red-binary!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-binary!)
+		bin: binary/make-at ring/alloc bytes
+		binary/rs-append bin src bytes
+		bin
+	]
+	
+	;redImage: func [
+	;	src		[byte-ptr!]
+	;	bytes	[integer!]
+	;	format	[integer!]
+	;][
+	;	
+	;]
+	
+	;redVector: func [
+	;	
+	;][
+	;	
+	;]
+	
 	redSymbol: func [
 		s		[c-string!]
 		return: [integer!]								;-- symbol ID, -1 if error
@@ -1044,6 +1073,7 @@ Red [
 		redPair
 		redTuple
 		redTuple4
+		redBinary
 		redString
 		redSymbol
 		redWord

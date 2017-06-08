@@ -20,6 +20,7 @@ redFloat
 redPair
 redTuple
 redTuple4
+redBinary
 redString
 redSymbol
 redWord

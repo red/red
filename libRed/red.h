@@ -41,6 +41,7 @@ typedef red_value red_integer;
 typedef red_value red_float;
 typedef red_value red_pair;
 typedef red_value red_tuple;
+typedef red_value red_binary;
 typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
@@ -73,6 +74,7 @@ EXTERN_C
 	red_pair	redPair(long x, long y);
 	red_tuple	redTuple(long r, long g, long b);
 	red_tuple	redTuple4(long r, long g, long b, long a);
+	red_binary	redBinary(const char* buffer, long bytes);
 	red_string	redString(const char* string);
 	red_word	redWord(const char* word);
 	red_block	redBlock(red_value v, ...);
