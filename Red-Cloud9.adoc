@@ -1,0 +1,60 @@
+Install Red in Cloud9 IDE
+-------------------------
+
+* Create a new workspace in Cloud9, then choose Window, then New Terminal.
+* Enter the folllowing in the terminal to install 32-bit supporting libraries:
++
+[source,shell]
+----
+sudo dpkg --add-architecture i386
+sudo apt-get update
+sudo apt-get install libc6:i386 libcurl3:i386
+----
+
+Go to: link:http://www.red-lang.org/p/download.html[Red download page]
+
+* In the Automated builds, master branch section, Alternate-Click the GNU/Linux (*) link.
+* Select `Copy Link Location`
+* Go back to the linux shell in your Cloud9 workspace and enter the following:
+
+
++
+[source,shell]
+----
+curl -O "paste the copied link between quotes"
+----
+
+* Type `ls` to see the filename of the download and use the `mv` command to rename the file if you wish:
++
+[source,shell]
+----
+mv red-02may17-243916e red
+----
+* Set permissions for the Red binary:
++
+[source,shell]
+----
+chmod +rwx red
+----
+
+* Launch Red repl:
++
+[source,shell]
+----
+./red
+----
+
+
++
+
+* Compile scripts as you would in a normal linux environment:
++
+[source,shell]
+----
+red -c my-example.red
+----
+
+
+
+
+
