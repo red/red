@@ -21,8 +21,8 @@ change-dir %../
 	      count           [integer!]
 	      list            [typed-value!]
 	    ][
-	      pi: declare pointer! [integer!]
-	      pi: as pointer! [integer!] list/value
+	      pt: declare pointer! [integer!]
+	      pt: as pointer! [integer!] list/value
 	    ]
 	    f [:i]
 	  }
@@ -32,8 +32,8 @@ change-dir %../
 	--test-- "pointer error 2"
 	--compile-this {
 	    Red/System [] 
-	    p-i: declare pointer! [integer!]
-	    p-i: :i
+	    p-t: declare pointer! [integer!]
+	    p-t: :i
 	  }
 	--assert-msg? "*** Compilation Error: undefined symbol: i"
 	  --clean
