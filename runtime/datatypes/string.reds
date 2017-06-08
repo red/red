@@ -64,13 +64,21 @@ string: context [
 	]
 
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+	char-pp!: alias struct! [v [c-string!]]
 
 	to-float: func [
 		s		[byte-ptr!]
+		len 	[integer!]
+		err? 	[red-logic!]
 		return: [float!]
 		/local
 			s0	[byte-ptr!]
+			s1   [char-pp!]
+			f	[float!]
 	][
+		s1: declare char-pp!
+		s1/v: "0000000000000000000000000000000"		;-- 32 bytes including NUL
+
 		s0: s
 		if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
 		if s/3 = #"#" [										;-- 1.#NaN, -1.#INF" or "1.#INF
@@ -83,7 +91,16 @@ string: context [
 				return float/QNaN
 			]
 		]
-		strtod s0 null
+		err?/value: true
+		f: strtod s0 as byte-ptr! s1
+		if any [ 
+			s1/v/1 = #"^(00)" 
+			all [
+				s1/v/1 = #"%"
+				s1/v/2 = #"^(00)" 
+			]
+		][ err?/value: false ]
+		f
 	]
 
 	byte-to-hex: func [

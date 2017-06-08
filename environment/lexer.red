@@ -146,113 +146,36 @@ system/lexer: context [
 		ret
 	]
 
-	make-number: routine [
+	string-number: routine [
 		start  [string!]
-		end	   [string!]
+		len	   [integer!]
 		type   [datatype!]
-		/local
-			str  [series!]
-			c	 [integer!]
-			n	 [integer!]
-			m	 [integer!]
-			len  [integer!]
-			unit [integer!]
-			p	 [byte-ptr!]
-			neg? [logic!]
+		/local 
+			err?	[red-logic!]
+			v 		[red-value!]
 	][
-		if type/value <> TYPE_INTEGER [
-			make-float start end type					;-- float! escape path
-			exit
+		err?: declare red-logic!
+		v: as red-value! red/string-number start len type err?
+		if err?/value [
+			fire [TO_ERROR(script bad-to-arg) datatype/push type/value v]
 		]
-		str:  GET_BUFFER(start)
-		unit: GET_UNIT(str)
-		p:	  string/rs-head start
-		len:  end/head - start/head
-		neg?: no
-
-		c: string/get-char p unit
-		if any [
-			c = as-integer #"+" 
-			c = as-integer #"-"
-		][
-			neg?: c = as-integer #"-"
-			p: p + unit
-			len: len - 1
-		]
-		n: 0
-		until [
-			c: (string/get-char p unit) - #"0"
-			if c >= 0 [									;-- skip #"'"
-				m: n * 10
-				
-				if system/cpu/overflow? [
-					type/value: TYPE_FLOAT
-					make-float start end type			;-- fallback to float! loading
-					exit
-				]
-				n: m
-
-				if all [neg? n = 2147483640 c = 8][
-					integer/box 80000000h				;-- special exit trap for -2147483648
-					exit
-				]
-
-				m: n + c
-				
-				if system/cpu/overflow? [
-					type/value: TYPE_FLOAT
-					make-float start end type			;-- fallback to float! loading
-					exit
-				]
-				n: m
-			]
-			p: p + unit
-			len: len - 1
-			zero? len
-		]
-		integer/box either neg? [0 - n][n]
+		v
 	]
 
-	make-float: routine [
-		start [string!]
-		end	  [string!]
-		type  [datatype!]
-		/local
-			str  [series!]
-			cp	 [integer!]
-			unit [integer!]
-			len  [integer!]
-			p	 [byte-ptr!]
-			tail [byte-ptr!]
-			cur	 [byte-ptr!]
-			s0	 [byte-ptr!]
-			f	 [float!]
+	string-float: routine [
+		start  [string!]
+		len	   [integer!]
+		type   [datatype!]
+		/local 
+			err?	[red-logic!]
+			f 		[red-float!]
 	][
-		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
-
-		str:  GET_BUFFER(start)
-		unit: GET_UNIT(str)
-		p:	  string/rs-head start
-		len:  end/head - start/head
-		tail: p + (len << (unit >> 1))
-
-		if len > 31 [cur: allocate len + 1]
-		s0:   cur
-
-		until [											;-- convert to ascii string
-			cp: string/get-char p unit
-			if cp <> as-integer #"'" [					;-- skip #"'"
-				if cp = as-integer #"," [cp: as-integer #"."]
-				cur/1: as-byte cp
-				cur: cur + 1
-			]
-			p: p + unit
-			p = tail
+		err?: declare red-logic!
+		f: red/string-float start len type err?
+		if err?/value [
+			fire [TO_ERROR(script bad-to-arg) datatype/push type/value f]
 		]
-		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		f: string/to-float s0
-		if len > 31 [free s0]
-		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
+		f
 	]
 
 	make-hexa: routine [
@@ -341,6 +264,22 @@ system/lexer: context [
 		set-type
 			as red-value! word/box (symbol/make-alt src) ;-- word/box puts it in stack/arguments
 			type/value
+	]
+
+	make-float: func [
+		start [string!]
+		end	  [string!]
+		type  [datatype!]
+	][
+		string-float start (index? end) - (index? start) type
+	]
+
+	make-number: func [
+		start  [string!]
+		end	   [string!]
+		type   [datatype!]
+	][
+		string-number start (index? end) - (index? start) type
 	]
 
 	to-word: func [

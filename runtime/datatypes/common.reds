@@ -23,6 +23,127 @@ names!: alias struct! [
 name-table:	  as names! 0	 						;-- datatype names table
 action-table: as int-ptr! 0							;-- actions jump table
 
+string-float: func [
+	start [red-string!]
+	len   [integer!]
+	type  [red-datatype!]
+	err?  [red-logic!]
+	return: [red-float!]		
+	/local
+		str  [series!]
+		cp	 [integer!]
+		unit [integer!]
+		p	 [byte-ptr!]
+		tail [byte-ptr!]
+		cur	 [byte-ptr!]
+		s0	 [byte-ptr!]
+		f	 [float!]
+		l 	 [byte-ptr!]
+][
+	cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
+
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	tail: p + (len << (unit >> 1))
+	l: 	  tail - 1 
+	if l/value = #"%" [type/value: TYPE_PERCENT]	;-- detect percent
+
+	if len > 31 [cur: allocate len + 1]
+	s0:   cur
+
+	until [											;-- convert to ascii string
+		cp: string/get-char p unit
+		if cp <> as-integer #"'" [					;-- skip #"'"
+			if cp = as-integer #"," [cp: as-integer #"."]
+			cur/1: as-byte cp
+			cur: cur + 1
+		]
+		p: p + unit
+		p = tail
+	]
+	cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
+	err?: declare red-logic!
+	err?/value: false
+	f: string/to-float s0 len err?
+	if len > 31 [free s0]
+	if err?/value [
+		fire [TO_ERROR(script bad-to-arg) datatype/push type/value start]
+	]
+	either type/value = TYPE_FLOAT [float/box f][ percent/box f / 100.0]
+]
+
+string-number: func [
+	start  [red-string!]
+	len    [integer!]	
+	type   [red-datatype!]
+	err?   [red-logic!]
+	/local
+		str  [series!]
+		c	 [integer!]
+		n	 [integer!]
+		m	 [integer!]
+		l 	 [integer!]
+		unit [integer!]
+		p	 [byte-ptr!]
+		neg? [logic!]
+][
+	l: len
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	neg?: no
+	if type/value <> TYPE_INTEGER [
+		string-float start len type err?					;-- float! escape path
+		exit
+	]
+
+	c: string/get-char p unit
+	if any [
+		c = as-integer #"+" 
+		c = as-integer #"-"
+	][
+		neg?: c = as-integer #"-"
+		p: p + unit
+		len: len - 1
+	]
+	n: 0
+	until [
+		c: (string/get-char p unit) - #"0"
+		if any [c < 0 c > 9][
+			fire [TO_ERROR(script bad-to-arg) datatype/push type/value start]
+		]
+		if c >= 0 [									;-- skip #"'"
+			m: n * 10
+			
+			if system/cpu/overflow? [
+				type/value: TYPE_FLOAT
+				string-float start l type	err?		;-- fallback to float! loading
+				exit
+			]
+			n: m
+
+			if all [neg? n = 2147483640 c = 8][
+				integer/box 80000000h				;-- special exit trap for -2147483648
+				exit
+			]
+
+			m: n + c
+			
+			if system/cpu/overflow? [
+				type/value: TYPE_FLOAT
+				string-float start l type err?			;-- fallback to float! loading
+				exit
+			]
+			n: m
+		]
+		p: p + unit
+		len: len - 1
+		zero? len
+	]
+	integer/box either neg? [0 - n][n]
+]
+
 get-build-date: func [return: [c-string!]][			;-- used by red.r
 	#build-date
 ]

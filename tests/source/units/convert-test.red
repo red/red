@@ -90,6 +90,8 @@ Red [
 	--test-- "to-integer!-21"			--assert 32400 == to integer! 09:00
 	--test-- "to-integer!-22"			--assert 86399 == to integer! 23:59:59
 	--test-- "to-integer!-23"			--assert 86400 == to integer! 23:59:59.999999
+	--test-- "to-integer!-24"			--assert 14 == to integer! 1423.5%
+	--test-- "to-integer!-25"			--assert 14 == to integer! "1423.5%"
 	
 ===end-group===
 
@@ -128,6 +130,8 @@ Red [
 			float! == type? to float! 23:59:59.999999
 			86399.999999 = to float! 23:59:59.999999
 		]
+	--test-- "to-float!-11"				--assert 14.235 == to float! 1423.5%
+	--test-- "to-float!-12"				--assert 14.235 == to float! "1423.5%"
 	
 ===end-group===
 
