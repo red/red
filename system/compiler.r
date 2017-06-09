@@ -1631,7 +1631,10 @@ system-dialect: make-profilable context [
 							pos: set id   string!
 							pos: set spec block!    (
 								clear-docstrings spec
-								either all [1 = length? spec not block? spec/1][
+								either any [
+									all [1 = length? spec not block? spec/1]
+									all [2 = length? spec find [pointer! struct!] spec/1 block? spec/2]
+								][
 									unless parse spec type-spec [throw-error err]
 									either ns-path [
 										add-ns-symbol specs/1
