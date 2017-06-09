@@ -586,7 +586,6 @@ OS-image: context [
 			color-space [integer!]
 			width		[integer!]
 			height		[integer!]
-			bytes-row	[integer!]
 			rect		[NSRect!]
 			ctx			[integer!]
 	][
@@ -594,9 +593,8 @@ OS-image: context [
 		width: CGImageGetWidth as int-ptr! img
 		height: CGImageGetHeight as int-ptr! img
 
-		bytes-row: width * 4
 		rect: make-rect 0 0 width height
-		ctx: CGBitmapContextCreate null width height 8 bytes-row color-space 2101h
+		ctx: CGBitmapContextCreate null width height 32 width * 16 color-space 2101h
 		CGContextDrawImage ctx rect/x rect/y rect/w rect/h img
 		CGColorSpaceRelease color-space
 		as int-ptr! ctx

@@ -965,16 +965,19 @@ same-type?: func [
 
 set-content-view: func [
 	obj		[integer!]
-	red?	[logic!]				;-- red view?
+	face	[red-object!]
 	/local
 		rect [NSRect!]
 		view [integer!]
 		cls  [c-string!]
+		id	 [integer!]
 ][
-	cls: either red? ["RedView"]["NSViewFlip"]
-	view: objc_msgSend [objc_getClass cls sel_getUid "alloc"]
+	cls: either null? face ["NSViewFlip"]["RedView"]
+	id: objc_getClass cls
+	view: objc_msgSend [id sel_getUid "alloc"]
 	rect: make-rect 0 0 0 0
 	view: objc_msgSend [view sel_getUid "initWithFrame:" rect/x rect/y rect/w rect/h]
+	if face <> null [store-face-to-obj view id face]
 	objc_msgSend [obj sel_getUid "setContentView:" view]
 ]
 
@@ -1052,6 +1055,7 @@ init-combo-box: func [
 ]
 
 init-window: func [
+	face	[red-object!]
 	window	[integer!]
 	title	[integer!]
 	bits	[integer!]
@@ -1073,7 +1077,7 @@ init-window: func [
 		rect/x rect/y rect/w rect/h flags 2 0
 	]
 
-	set-content-view window yes
+	set-content-view window face
 
 	if bits and FACET_FLAGS_NO_BORDER = 0 [
 		sel_Hidden: sel_getUid "setHidden:"
@@ -1622,11 +1626,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
-			init-window obj caption bits rc
-			store-face-to-obj
-				objc_msgSend [obj sel_getUid "contentView"]
-				objc_getClass "RedView"
-				face
+			init-window face obj caption bits rc
 			win-cnt: win-cnt + 1
 
 			if all [						;@@ application menu ?
@@ -1656,7 +1656,7 @@ OS-make-view: func [
 			objc_msgSend [obj sel_getUid "setDoubleValue:" flt]
 		]
 		sym = group-box [
-			set-content-view obj no
+			set-content-view obj null
 			either zero? caption [
 				objc_msgSend [obj sel_getUid "setTitlePosition:" NSNoTitle]
 			][
