@@ -10,32 +10,19 @@ Red/System [
 	}
 ]
 
-#enum event-action! [
-	EVT_NO_DISPATCH										;-- no further msg processing allowed
-	EVT_DISPATCH										;-- allow DispatchMessage call only
-]
 
-gui-evt: declare red-event!								;-- low-level event value slot
-gui-evt/header: TYPE_EVENT
+flags-blk: declare red-block!							;-- static block value for event/flags
+flags-blk/header:	TYPE_BLOCK
+flags-blk/head:		0
+flags-blk/node:		alloc-cells 4
 
-make-at: func [
-	handle  [handle!]
-	face	[red-object!]
-	return: [red-object!]
-][
-	;face/header:		  GetWindowLong handle wc-offset
-	;face/ctx:	 as node! GetWindowLong handle wc-offset + 4
-	;face/class:			  GetWindowLong handle wc-offset + 8
-	;face/on-set: as node! GetWindowLong handle wc-offset + 12
-	;face
-	null
-]
-
-push-face: func [
-	handle  [handle!]
-	return: [red-object!]
-][
-	make-at handle as red-object! stack/push*
+fake-event!: alias struct! [
+	handle	[handle!]
+	face	[red-object! value]
+	type	[integer!]									;-- event type
+	time	[integer!]
+	x		[integer!]
+	y		[integer!]
 ]
 
 get-event-window: func [
@@ -48,36 +35,51 @@ get-event-window: func [
 get-event-face: func [
 	evt		[red-event!]
 	return: [red-value!]
+	/local
+		msg [fake-event!]
 ][
-	null
+	msg: as fake-event! evt/msg
+	as red-value! msg/face
 ]
 
 get-event-offset: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	null
+	as red-value! pair/push 10 10
 ]
 
 get-event-key: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	null
+	as red-value! char/push evt/flags and FFFFh
 ]
 
 get-event-picked: func [
 	evt		[red-event!]
 	return: [red-value!]
 ][
-	null
+	as red-value! integer/push 1
 ]
 
 get-event-flags: func [
 	evt		[red-event!]
 	return: [red-value!]
+	/local
+		blk [red-block!]
 ][
-	null
+	blk: flags-blk
+	block/rs-clear blk	
+	if evt/flags and EVT_FLAG_AWAY		 <> 0 [block/rs-append blk as red-value! _away]
+	if evt/flags and EVT_FLAG_DOWN		 <> 0 [block/rs-append blk as red-value! _down]
+	if evt/flags and EVT_FLAG_MID_DOWN	 <> 0 [block/rs-append blk as red-value! _mid-down]
+	if evt/flags and EVT_FLAG_ALT_DOWN	 <> 0 [block/rs-append blk as red-value! _alt-down]
+	if evt/flags and EVT_FLAG_AUX_DOWN	 <> 0 [block/rs-append blk as red-value! _aux-down]
+	if evt/flags and EVT_FLAG_CTRL_DOWN	 <> 0 [block/rs-append blk as red-value! _control]
+	if evt/flags and EVT_FLAG_SHIFT_DOWN <> 0 [block/rs-append blk as red-value! _shift]
+	if evt/flags and EVT_FLAG_MENU_DOWN  <> 0 [block/rs-append blk as red-value! _alt]
+	as red-value! blk
 ]
 
 get-event-flag: func [
@@ -85,9 +87,30 @@ get-event-flag: func [
 	flag	[integer!]
 	return: [red-value!]
 ][
-	null
+	as red-value! logic/push flags and flag <> 0
 ]
 
+OS-make-event: func [
+	name	[red-word!]
+	face	[red-object!]
+	flags	[integer!]
+	return: [red-event!]
+	/local
+		event [red-event!]
+		evt	  [fake-event!]
+][
+	event: declare red-event!
+	evt:   declare fake-event!
+	
+	event/header: TYPE_EVENT
+	event/flags: flags
+	set-event-type event name
+	
+	event/msg: as byte-ptr! evt
+	copy-cell as red-value! face as red-value! evt/face
+	
+	event
+]
 
 do-events: func [
 	no-wait? [logic!]

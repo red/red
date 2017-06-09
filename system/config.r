@@ -43,7 +43,6 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
-	;GUI-engine:	'test
 ]
 ;-------------------------
 Windows [
@@ -51,7 +50,6 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-	;GUI-engine:	'test
 ]
 WindowsXP [
 	OS:			'Windows

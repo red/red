@@ -533,13 +533,6 @@ system/view/platform: context [
 		]
 	]
 	
-	#switch config/GUI-engine [
-		native [
-			#if config/OS = 'Android [#include %android/gui.red]
-		]
-		test [#include %test/gui.red]
-	]
-	
 	make-null-handle: routine [][handle/box 0]
 
 	get-screen-size: routine [
@@ -773,4 +766,9 @@ system/view/platform: context [
 	product: none
 	
 	init
+]
+
+#switch config/GUI-engine [
+	native [#if config/OS = 'Android [#include %android/gui.red]]
+	test   [#include %test/gui.red]
 ]
