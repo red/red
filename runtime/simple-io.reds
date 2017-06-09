@@ -1610,7 +1610,12 @@ simple-io: context [
 					][
 						s: p1 + 20
 						if s > p2 [p2: strchr s #","]
-						s: p2 + 2
+						either null? p2 [				;-- end of the string
+							p2: strchr s null-byte
+							s: p2
+						][
+							s: p2 + 2
+						]
 					]
 					string/load-in p as-integer p2 - p blk UTF-8
 					s/1 = null-byte

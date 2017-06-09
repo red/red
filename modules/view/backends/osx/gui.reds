@@ -923,38 +923,6 @@ change-selection: func [
 	]
 ]
 
-setup-tracking-area: func [
-	obj		[integer!]
-	face	[red-object!]
-	rc		[NSRect!]
-	flags	[integer!]
-	/local
-		actors	[red-object!]
-		track	[integer!]
-		options [integer!]
-][
-	actors: as red-object! object/rs-select face as red-value! _actors
-	if TYPE_OF(actors) <> TYPE_OBJECT [exit]
-	if -1 = _context/find-word GET_CTX(actors) on-over yes [exit]
-
-	rc/x: as float32! 0
-	rc/y: as float32! 0
-	options: NSTrackingMouseEnteredAndExited or
-		NSTrackingActiveInKeyWindow or
-		NSTrackingInVisibleRect or
-		NSTrackingEnabledDuringMouseDrag
-	;if flags and FACET_FLAGS_ALL_OVER <> 0 [
-	;	options: options or NSTrackingMouseMoved
-	;]
-	track: objc_msgSend [
-		objc_msgSend [objc_getClass "NSTrackingArea" sel_getUid "alloc"]
-		sel_getUid "initWithRect:options:owner:userInfo:"
-		rc/x rc/y rc/w rc/h options obj 0
-	]
-	objc_msgSend [obj sel_getUid "addTrackingArea:" track]
-	objc_setAssociatedObject obj RedAllOverFlagKey track OBJC_ASSOCIATION_RETAIN
-]
-
 same-type?: func [
 	obj		[integer!]
 	name	[c-string!]
