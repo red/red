@@ -238,6 +238,7 @@
 	red/actions/modify*
 	red/actions/read*
 	red/actions/write*
+	red/actions/delete*
 
 	red/natives/if*
 	red/natives/unless*
