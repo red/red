@@ -1738,7 +1738,7 @@ OS-draw-shape-arc: func [
 	m: CGAffineTransformScale m radius-x radius-y
 
 	path: CGPathCreateMutable
-	CGPathMoveToPoint path null center-x center-y
+	;CGPathMoveToPoint path null center-x center-y
 	CGPathAddRelativeArc path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
 	CGContextAddPath ctx/raw path
 	CGPathRelease path
