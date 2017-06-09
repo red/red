@@ -1420,6 +1420,9 @@ parse-common-opts: func [
 		img		[red-image!]
 		len		[integer!]
 		sym		[integer!]
+		cur		[c-string!]
+		hcur	[integer!]
+		nsimg	[integer!]
 ][
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
@@ -1432,15 +1435,26 @@ parse-common-opts: func [
 					w: word + 1
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
+						nsimg: objc_msgSend [
+							objc_getClass "NSImage" sel_alloc
+							sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
+						]
+						hcur: objc_msgSend [
+							objc_getClass "NSCursor" sel_alloc
+							sel_getUid "initWithImage:hotSpot:" nsimg 0 0
+						]
+						objc_msgSend [nsimg sel_release]
 					][
 						sym: symbol/resolve w/symbol
-						sym: case [
-							sym = _I-beam	[0]
-							sym = _hand		[0]
-							sym = _cross	[0]
-							true			[0]
+						cur: case [
+							sym = _I-beam	["IBeamCursor"]
+							sym = _hand		["pointingHandCursor"]
+							sym = _cross	["crosshairCursor"]
+							true			["arrowCursor"]
 						]
+						hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
 					]
+					if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
 				]
 				sym = _height [
 					w: word + 1

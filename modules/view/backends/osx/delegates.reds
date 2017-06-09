@@ -42,6 +42,23 @@ become-first-responder: func [
 	msg-send-super-logic self cmd
 ]
 
+reset-cursor-rects: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	/local
+		cur [integer!]
+		rc	[NSRect! value]
+][
+	cur: objc_getAssociatedObject self RedCursorKey
+	if cur <> 0 [
+		rc: objc_msgSend_rect [self sel_getUid "bounds"]
+		objc_msgSend [
+			self sel_getUid "addCursorRect:cursor:" rc/x rc/y rc/w rc/h cur
+		]
+	]
+]
+
 mouse-entered: func [
 	[cdecl]
 	self	[integer!]

@@ -192,6 +192,7 @@ make-super-class: func [
 		class_addMethod new-class sel_getUid "otherMouseDown:" as-integer :mouse-events "v@:@"
 		class_addMethod new-class sel_getUid "otherMouseUp:" as-integer :mouse-events "v@:@"
 		class_addMethod new-class sel_getUid "otherMouseDragged:" as-integer :mouse-events "v@:@"
+		class_addMethod new-class sel_getUid "resetCursorRects" as-integer :reset-cursor-rects "v@:"
 
 		class_addMethod new-class sel_getUid "keyUp:" as-integer :on-key-up "v@:@"
 	]

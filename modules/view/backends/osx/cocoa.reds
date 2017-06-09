@@ -166,6 +166,7 @@ Red/System [
 #define RedFieldEditorKey		4000FFFBh
 #define RedAllOverFlagKey		4000FFFCh
 #define RedAttachedWidgetKey	4000FFFDh
+#define RedCursorKey			4000FFFEh
 
 
 objc_super!: alias struct! [
@@ -316,6 +317,7 @@ tagSIZE: alias struct! [
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]
 		objc_msgSend_stret: "objc_msgSend_stret" [[custom]]
+		objc_msgSend_rect: "objc_msgSend_stret" [[variadic] return: [NSRect! value]]
 		_Block_object_assign: "_Block_object_assign" [
 			destAddr	[integer!]
 			obj			[integer!]
