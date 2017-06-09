@@ -2060,8 +2060,8 @@ OS-draw-brush-bitmap: func [
 		wrap	[integer!]
 		result	[integer!]
 ][
-	width:  OS-image/width? as-integer img/node
-	height: OS-image/height? as-integer img/node
+	width:  OS-image/width? img/node
+	height: OS-image/height? img/node
 	either crop-1 = null [
 		x: 0
 		y: 0
@@ -2129,7 +2129,7 @@ OS-draw-brush-pattern: func [
 		p/value: as-byte 255
 		p: p + 1
 	]
-	pat-image/node:   as node! OS-image/make-image size/x size/y null p-alpha null
+	pat-image/node: OS-image/make-image size/x size/y null p-alpha null
 	free p-alpha
 	do-draw null pat-image block no no no no
 	OS-draw-brush-bitmap ctx pat-image crop-1 crop-2 mode brush?

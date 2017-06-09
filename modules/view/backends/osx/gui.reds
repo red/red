@@ -541,7 +541,6 @@ change-image: func [
 	image	[red-image!]
 	type	[integer!]
 	/local
-		cg-image [integer!]
 		id		 [integer!]
 ][
 	case [
@@ -554,12 +553,10 @@ change-image: func [
 				objc_msgSend [hWnd sel_getUid "setImage:" 0]
 				exit
 			]
-			cg-image: CGBitmapContextCreateImage as-integer image/node
 			id: objc_msgSend [objc_getClass "NSImage" sel_getUid "alloc"]
-			id: objc_msgSend [id sel_getUid "initWithCGImage:size:" cg-image 0 0]
+			id: objc_msgSend [id sel_getUid "initWithCGImage:size:" OS-image/to-cgimage image 0 0]
 			objc_msgSend [hWnd sel_getUid "setImage:" id]
 			objc_msgSend [id sel_getUid "release"]
-			CGImageRelease cg-image
 		]
 		true [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
@@ -1913,9 +1910,12 @@ OS-do-draw: func [
 	cmds	[red-block!]
 	/local
 		rc	[NSRect!]
+		ctx [int-ptr!]
 ][
 	rc: make-rect IMAGE_WIDTH(img/size) IMAGE_HEIGHT(img/size) 0 0
-	do-draw img/node as red-image! rc cmds yes no no no
+	ctx: OS-image/to-bitmap-ctx OS-image/to-cgimage img
+	do-draw ctx as red-image! rc cmds yes no no no
+	OS-image/ctx-to-image img as-integer ctx
 ]
 
 OS-draw-face: func [

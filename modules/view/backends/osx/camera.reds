@@ -147,7 +147,7 @@ still-image-handler: func [
 	]
 	image/init-image
 		as red-image! values + FACE_OBJ_IMAGE
-		OS-image/load-nsdata data no
+		OS-image/load-nsdata as int-ptr! data
 ]
 
 snap-camera: func [				;-- capture an image of current preview window

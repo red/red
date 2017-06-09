@@ -90,12 +90,12 @@ image: context [
 
 	init-image: func [
 		img		[red-image!]
-		handle  [integer!]
+		handle  [node!]
 		return: [red-image!]
 	][
 		img/head: 0
 		img/size: (OS-image/height? handle) << 16 or OS-image/width? handle
-		img/node: as node! handle
+		img/node: handle
 		img/header: TYPE_IMAGE							;-- implicit reset of all header flags
 		img
 	]
@@ -106,7 +106,7 @@ image: context [
 		height	[integer!]
 		return: [red-image!]
 	][
-		init-image as red-image! stack/push* OS-image/resize img width height
+		init-image as red-image! stack/push* as node! OS-image/resize img width height
 	]
 
 	load-binary: func [
@@ -134,10 +134,10 @@ image: context [
 		return:	[red-image!]
 		/local
 			img   [red-image!]
-			hr    [integer!]
+			hr    [int-ptr!]
 	][
-		hr: OS-image/load-image file/to-OS-path src
-		if hr = -1 [fire [TO_ERROR(access cannot-open) src]]
+		hr: OS-image/load-image src
+		if null? hr [fire [TO_ERROR(access cannot-open) src]]
 		img: as red-image! slot
 		init-image img hr
 		img
@@ -420,7 +420,7 @@ image: context [
 		y: pair/y
 		if negative? y [y: 0]
 		img/size: y << 16 or x
-		img/node: as node! OS-image/make-image x y rgb alpha color
+		img/node: OS-image/make-image x y rgb alpha color
 		img
 	]
 

@@ -2192,7 +2192,7 @@ OS-to-image: func [
 	GdipCreateBitmapFromHBITMAP bmp 0 :bitmap
 
 	either zero? bitmap [img: as red-image! none-value][
-		img: image/init-image as red-image! stack/push* bitmap
+		img: image/init-image as red-image! stack/push* as int-ptr! bitmap
 	]
 
     if screen? [DeleteDC mdc]				;-- we delete it in Draw when print window

@@ -975,7 +975,7 @@ OS-draw-image: func [
 		true [0]							;@@ TBD four control points
 	]
 
-	img: CGBitmapContextCreateImage as-integer image/node
+	img: OS-image/to-cgimage image
 	if crop1 <> null [
 		crop2: crop1 + 1
 		w: as float32! crop2/x
