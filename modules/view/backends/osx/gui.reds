@@ -1443,6 +1443,56 @@ set-hint-text: func [
 	]
 ]
 
+parse-common-opts: func [
+	hWnd	[integer!]
+	options [red-block!]
+	/local
+		word	[red-word!]
+		w		[red-word!]
+		img		[red-image!]
+		len		[integer!]
+		sym		[integer!]
+][
+	if TYPE_OF(options) = TYPE_BLOCK [
+		word: as red-word! block/rs-head options
+		len: block/rs-length? options
+		if len % 2 <> 0 [exit]
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = _cursor [
+					w: word + 1
+					either TYPE_OF(w) = TYPE_IMAGE [
+						img: as red-image! w
+					][
+						sym: symbol/resolve w/symbol
+						sym: case [
+							sym = _I-beam	[0]
+							sym = _hand		[0]
+							sym = _cross	[0]
+							true			[0]
+						]
+					]
+				]
+				sym = _height [
+					w: word + 1
+					sym: symbol/resolve w/symbol
+					sym: case [
+						sym = _regular	[0]			;-- 32
+						sym = _small	[1]			;-- 28
+						sym = _mini		[2]			;-- 16
+						true			[0]
+					]
+					objc_msgSend [hWnd sel_getUid "setControlSize:" sym]
+				]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+]
+
 OS-redraw: func [hWnd [integer!]][objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]]
 
 OS-refresh-window: func [hWnd [integer!]][0]
@@ -1675,6 +1725,8 @@ OS-make-view: func [
 		]
 		true [0]
 	]
+
+	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS
 
 	unless show?/value [change-visible obj no sym]
 
