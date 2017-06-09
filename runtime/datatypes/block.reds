@@ -1007,6 +1007,7 @@ block: context [
 			slot: s/offset + blk/head + 1
 			if slot >= s/tail [slot: alloc-tail s]
 			copy-cell value slot
+			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
 	]
