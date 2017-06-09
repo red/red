@@ -592,7 +592,7 @@ system/view: context [
 		]
 	]
 	
-	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
+	awake: function [event [event!] /with face /local result][	;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
