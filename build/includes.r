@@ -194,6 +194,7 @@ write %build/bin/sources.r set-cache [
 					%draw.reds
 					%events.reds
 					%gui.reds
+					%gui.red
 					%text-box.reds
 				]
 			]
