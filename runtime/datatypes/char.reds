@@ -28,6 +28,7 @@ char: context [
 			TYPE_INTEGER
 			TYPE_CHAR	[rv: right/value]
 			TYPE_FLOAT	[f: as red-float! right rv: as-integer f/value]
+			TYPE_VECTOR [return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! char]
 			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]]
 		]
 

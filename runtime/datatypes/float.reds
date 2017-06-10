@@ -299,6 +299,9 @@ float: context [
 					return as red-float! pair/do-math type
 				]
 			]
+			TYPE_VECTOR [
+				return as red-float! stack/set-last vector/do-math-scalar type as red-vector! right as red-value! left
+			]
 			default [0]
 		]
 

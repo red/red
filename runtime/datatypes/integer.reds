@@ -207,7 +207,7 @@ integer: context [
 	]
 
 	do-math: func [
-		type		[math-op!]
+		op			[math-op!]
 		return:		[red-value!]
 		/local
 			left	[red-integer!]
@@ -234,13 +234,14 @@ integer: context [
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
 			TYPE_OF(right) = TYPE_TIME
+			TYPE_OF(right) = TYPE_VECTOR
 		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: do-math-op left/value right/value type
+				left/value: do-math-op left/value right/value op
 			]
-			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
+			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
 			TYPE_PAIR
 			TYPE_TUPLE [
 				value: left/value						;-- swap them!
@@ -249,21 +250,24 @@ integer: context [
 				right/value: value
 				
 				either TYPE_OF(left) = TYPE_PAIR [
-					if type = OP_DIV [
+					if op = OP_DIV [
 						fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]
 					]
-					if type = OP_SUB [
+					if op = OP_SUB [
 						pair/negate						;-- negates the pair! now in stack/arguments
-						type: OP_ADD
+						op: OP_ADD
 					]
-					pair/do-math type
+					pair/do-math op
 				][
-					if any [type = OP_SUB type = OP_DIV][
-						word: either type = OP_SUB [words/_subtract][words/_divide]
+					if any [op = OP_SUB op = OP_DIV][
+						word: either op = OP_SUB [words/_subtract][words/_divide]
 						fire [TO_ERROR(script not-related) word datatype/push TYPE_INTEGER]
 					]
-					tuple/do-math type
+					tuple/do-math op
 				]
+			]
+			TYPE_VECTOR [
+				return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! left
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
