@@ -257,11 +257,20 @@ get-os-version: func [
 	int/value:  0
 ]
 
-set-defaults: func [][
+set-defaults: func [/local n [float32!]][
 	default-font: objc_msgSend [
 		objc_getClass "NSFont" sel_getUid "systemFontOfSize:" 0
 	]
 	objc_msgSend [default-font sel_getUid "retain"]
+
+	to-red-string
+		objc_msgSend [default-font sel_getUid "familyName"]
+		#get system/view/fonts/system
+
+	n: objc_msgSend_f32 [default-font sel_getUid "pointSize"]
+	integer/make-at 
+		#get system/view/fonts/size
+		as-integer n
 ]
 
 get-metrics: func [][
