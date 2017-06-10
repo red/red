@@ -1154,7 +1154,7 @@ draw-rect: func [
 		integer/make-at as red-value! draw as-integer DC
 		make-event self 0 EVT_DRAWING
 		draw/header: TYPE_NONE
-		draw-end DC ctx no no yes
+		draw-end DC ctx no no no
 	]
 ]
 
