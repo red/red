@@ -2168,7 +2168,8 @@ OS-to-image: func [
 		rect/top: 0
 		dc: hScreen
 	][
-		hWnd: get-face-handle face
+		hWnd: face-handle? face
+		if null? hWnd [return as red-image! none-value]
 		GetWindowRect hWnd rect
 		width: rect/right - rect/left
 		height: rect/bottom - rect/top
