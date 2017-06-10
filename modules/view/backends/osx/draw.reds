@@ -412,6 +412,7 @@ OS-draw-triangle: func [
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges 4
 	if dc/grad-pos? [check-gradient-poly dc edges 3]
+	CGContextClosePath ctx
 	do-draw-path dc
 ]
 
@@ -445,6 +446,7 @@ OS-draw-polygon: func [
 	CGContextBeginPath ctx
 	CGContextAddLines ctx edges nb + 1
 	if dc/grad-pos? [check-gradient-poly dc edges nb]
+	CGContextClosePath ctx
 	do-draw-path dc
 ]
 
@@ -702,6 +704,7 @@ OS-draw-text: func [
 	][
 		draw-text-box ctx pos as red-object! text catch?
 	]
+	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
 ]
 
 _draw-arc: func [

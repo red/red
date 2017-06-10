@@ -1146,11 +1146,11 @@ draw-rect: func [
 
 	img: as red-image! (as int-ptr! self) + 8				;-- view's size
 	either TYPE_OF(draw) = TYPE_BLOCK [
-		do-draw ctx img draw no yes yes yes
+		do-draw ctx img draw no yes no yes
 	][
 		system/thrown: 0
 		DC: declare draw-ctx!								;@@ should declare it on stack
-		draw-begin DC ctx img no yes
+		draw-begin DC ctx img no no
 		integer/make-at as red-value! draw as-integer DC
 		make-event self 0 EVT_DRAWING
 		draw/header: TYPE_NONE
