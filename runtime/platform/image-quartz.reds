@@ -10,13 +10,13 @@ Red/System [
 	}
 ]
 
-#define IMG_NODE_USE_BUFFER		1
+#define IMG_NODE_HAS_BUFFER		1
 #define IMG_NODE_MODIFIED		2
 
 OS-image: context [
 
 	img-node!: alias struct! [
-		flags	[integer!]	;-- bit 0: if set, use buffer | bit 1: if set, buffer has been modified
+		flags	[integer!]	;-- bit 0: if set, has buffer | bit 1: if set, buffer has been modified
 		handle	[int-ptr!]
 		buffer	[int-ptr!]
 		size	[integer!]
@@ -220,7 +220,7 @@ OS-image: context [
 	][
 		inode: as img-node! (as series! img/node/value) + 1
 		if zero? inode/flags [
-			inode/flags: IMG_NODE_USE_BUFFER
+			inode/flags: IMG_NODE_HAS_BUFFER
 			inode/buffer: OS-image/data-to-image inode/handle yes yes
 		]
 		if write? [inode/flags: inode/flags or IMG_NODE_MODIFIED]
@@ -267,6 +267,7 @@ OS-image: context [
 			buf		[int-ptr!]
 	][
 		node: as img-node! bitmap
+		node/flags: node/flags or IMG_NODE_MODIFIED
 		buf: node/buffer + index
 		buf/value: color
 		color
@@ -345,7 +346,7 @@ OS-image: context [
 
 	unpremultiply-data: func [
 		buf			[int-ptr!]
-		data		[float32-ptr!]			;-- rgba 128bit float32
+		data		[float32-ptr!]			;-- pre-multiplied RGBA 128bit float32
 		num			[integer!]				;-- number of pixel
 		return:		[int-ptr!]
 		/local
@@ -481,7 +482,9 @@ OS-image: context [
 		path: simple-io/to-NSURL src yes
 		img-data: CGImageSourceCreateWithURL path 0
 		CFRelease path
+		if zero? img-data [return null]
 		h: as int-ptr! CGImageSourceCreateImageAtIndex img-data 0 0
+		CFRelease img-data
 		either null? h [null][
 			make-node h null 0 CGImageGetWidth h CGImageGetHeight h
 		]
@@ -537,7 +540,7 @@ OS-image: context [
 				y: y + 1
 			]
 		]
-		make-node null scan0 IMG_NODE_USE_BUFFER or IMG_NODE_MODIFIED width height
+		make-node null scan0 IMG_NODE_HAS_BUFFER or IMG_NODE_MODIFIED width height
 	]
 
 	make-cgimage: func [
@@ -574,7 +577,7 @@ OS-image: context [
 			cgimage: make-cgimage img
 			if inode/handle <> null [CGImageRelease as-integer inode/handle]
 			inode/handle: cgimage
-			inode/flags: IMG_NODE_USE_BUFFER
+			inode/flags: IMG_NODE_HAS_BUFFER
 		]
 		as-integer inode/handle
 	]
@@ -614,7 +617,7 @@ OS-image: context [
 		if inode/flags <> 0 [
 			data: as float32-ptr! CGBitmapContextGetData ctx
 			unpremultiply-data inode/buffer data IMAGE_WIDTH(img/size) * IMAGE_HEIGHT(img/size)
-			inode/flags: IMG_NODE_USE_BUFFER
+			inode/flags: IMG_NODE_HAS_BUFFER
 		]
 		CGContextRelease ctx
 	]
