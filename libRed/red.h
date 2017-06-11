@@ -131,7 +131,7 @@ EXTERN_C_END
 typedef enum
 {
 	RED_IMAGE_FORMAT_RGB,
-	RED_IMAGE_FORMAT_RGBA
+	RED_IMAGE_FORMAT_ARGB
 } RedImageFormat;
 
 /* Red Types */
