@@ -629,7 +629,7 @@ do-events: func [
 		event	[integer!]
 ][
 	msg?: no
-	either loop-started? [no-wait?: yes][loop-started?: yes]		;-- just keep one event loop
+	either any [loop-started? no-wait?][no-wait?: yes][loop-started?: yes]		;-- just keep one event loop
 
 	timeout: either no-wait? [0][
 		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
