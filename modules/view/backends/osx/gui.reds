@@ -1151,7 +1151,7 @@ init-base-face: func [
 	]
 
 	if TYPE_OF(menu) = TYPE_BLOCK [set-context-menu obj menu]
-	if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
+	;if transparent-base? color [objc_msgSend [obj sel_getUid "setWantsLayer:" yes]]
 ]
 
 make-area: func [
@@ -1427,6 +1427,7 @@ parse-common-opts: func [
 		word	[red-word!]
 		w		[red-word!]
 		img		[red-image!]
+		bool	[red-logic!]
 		len		[integer!]
 		sym		[integer!]
 		cur		[c-string!]
@@ -1475,6 +1476,10 @@ parse-common-opts: func [
 						true			[0]
 					]
 					objc_msgSend [hWnd sel_getUid "setControlSize:" sym]
+				]
+				sym = _accelerated [
+					bool: as red-logic! word + 1
+					if bool/value [objc_msgSend [hWnd sel_getUid "setWantsLayer:" yes]]
 				]
 				true [0]
 			]

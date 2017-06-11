@@ -290,6 +290,7 @@ system/view/platform: context [
 			editable:		symbol/make "editable"
 
 			Direct2D:		symbol/make "Direct2D"
+			_accelerated:	symbol/make "accelerated"
 
 			_cursor:		symbol/make "cursor"
 			_arrow:			symbol/make "arrow"
