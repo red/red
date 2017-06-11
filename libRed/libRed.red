@@ -52,6 +52,11 @@ Red [
 		VARIANT
 	]
 	
+	#enum image-formats! [
+		RGB_BUFFER
+		RGBA_BUFFER
+	]
+	
 	#define TRAP_ERRORS(name body) [
 		last-error: null
 		stack/mark-try-all name
@@ -446,13 +451,45 @@ Red [
 		bin
 	]
 	
-	;redImage: func [
-	;	src		[byte-ptr!]
-	;	bytes	[integer!]
-	;	format	[integer!]
-	;][
-	;	
-	;]
+	redImage: func [
+		width	[integer!]
+		height	[integer!]
+		src		[byte-ptr!]
+		format	[integer!]
+		return:	[red-image!]
+		/local
+			img	[red-image!]
+			rgb		[byte-ptr!]
+			sz		[integer!]
+			stride	[integer!]
+			bitmap	[integer!]
+			data	[int-ptr!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-image!)
+		
+		if negative? width  [width: 0]
+		if negative? height [height: 0]
+		sz: width * height
+		if zero? sz [return as red-image! none-value]
+		
+		img: as red-image! ring/alloc
+		img/header: TYPE_IMAGE
+		img/head: 0
+		img/size: height << 16 or width
+		
+		rgb: null
+		if format = RGB_BUFFER [rgb: src]
+		img/node: OS-image/make-image width height rgb null null
+		
+		if format = RGBA_BUFFER [
+			stride: 0
+			bitmap: OS-image/lock-bitmap img yes
+			data: OS-image/get-data bitmap :stride
+			copy-memory as byte-ptr! data src sz * 4
+			OS-image/unlock-bitmap img bitmap
+		]
+		img
+	]
 	
 	;redVector: func [
 	;	
@@ -1074,6 +1111,7 @@ Red [
 		redTuple
 		redTuple4
 		redBinary
+		redImage
 		redString
 		redSymbol
 		redWord

@@ -42,6 +42,7 @@ typedef red_value red_float;
 typedef red_value red_pair;
 typedef red_value red_tuple;
 typedef red_value red_binary;
+typedef red_value red_image;
 typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
@@ -75,6 +76,7 @@ EXTERN_C
 	red_tuple	redTuple(long r, long g, long b);
 	red_tuple	redTuple4(long r, long g, long b, long a);
 	red_binary	redBinary(const char* buffer, long bytes);
+	red_image	redImage(long width, long height, const void* buffer, long format);
 	red_string	redString(const char* string);
 	red_word	redWord(const char* word);
 	red_block	redBlock(red_value v, ...);
@@ -124,6 +126,13 @@ EXTERN_C
 	void		redOpenLogFile(const char *name);
 	void		redCloseLogFile(void);
 EXTERN_C_END
+
+/* Image buffer formats */
+typedef enum
+{
+	RED_IMAGE_FORMAT_RGB,
+	RED_IMAGE_FORMAT_RGBA
+} RedImageFormat;
 
 /* Red Types */
 typedef enum

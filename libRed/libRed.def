@@ -21,6 +21,7 @@ redPair
 redTuple
 redTuple4
 redBinary
+redImage
 redString
 redSymbol
 redWord

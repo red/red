@@ -389,6 +389,7 @@ image: context [
 		rgb:   null
 		alpha: null
 		color: null
+		
 		switch TYPE_OF(spec) [
 			TYPE_PAIR [
 				pair: as red-pair! spec
