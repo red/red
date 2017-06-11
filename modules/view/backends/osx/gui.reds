@@ -1936,21 +1936,27 @@ OS-to-image: func [
 	face	[red-object!]
 	return: [red-image!]
 	/local
-		hWnd 	[handle!]
-		dc		[handle!]
-		mdc		[handle!]
-		rect	[RECT_STRUCT]
-		width	[integer!]
-		height	[integer!]
-		bmp		[handle!]
-		bitmap	[integer!]
-		img		[red-image!]
-		word	[red-word!]
-		type	[integer!]
-		size	[red-pair!]
-		screen? [logic!]
+		view [integer!]
+		data [integer!]
+		rc	 [NSRect! value]
+		bmp  [integer!]
+		img  [integer!]
+		ret  [red-image!]
 ][
-	as red-image! none-value
+	view: as-integer face-handle? face
+	either zero? view [as red-image! none-value][
+		rc: objc_msgSend_rect [view sel_getUid "bounds"]
+		data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+		img: objc_msgSend [
+			objc_msgSend [objc_getClass "NSImage" sel_alloc]
+			sel_getUid "initWithData:" data
+		]
+		bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+		ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
+		objc_msgSend [bmp sel_getUid "retain"]
+		objc_msgSend [img sel_release]
+		ret
+	]
 ]
 
 OS-do-draw: func [

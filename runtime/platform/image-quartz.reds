@@ -471,6 +471,13 @@ OS-image: context [
 		make-node h null 0 CGImageGetWidth h CGImageGetHeight h
 	]
 
+	load-cgimage: func [
+		h		[int-ptr!]
+		return:	[node!]
+	][
+		make-node h null 0 CGImageGetWidth h CGImageGetHeight h
+	]
+
 	load-image: func [			;-- load image from external resource: file!
 		src			[red-string!]
 		return:		[node!]
