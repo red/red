@@ -831,7 +831,7 @@ OS-draw-arc: func [
 				i = 4
 			]
 		][
-			CGContextAddArc ctx cx cy rad-x angle-begin angle-end 0
+			CGContextAddArc ctx cx cy rad-x angle-begin angle-end as-integer sweep < 0
 		]
 	]
 	either closed? [
