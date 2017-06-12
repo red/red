@@ -80,23 +80,23 @@ Red [
 		template: [type: 'tab-panel size: 50x50]
 	]
 	h1:  [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24 font: make font! [size: 32]]
 	]
 	h2:  [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24 font: make font! [size: 26]]
 	]
 	h3:  [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24 font: make font! [size: 22]]
 	]
 	h4:  [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24 font: make font! [size: 17]]
 	]
 	h5:  [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24 font: make font! [size: 13]]
 	]
 	box: [
