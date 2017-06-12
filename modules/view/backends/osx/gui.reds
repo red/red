@@ -869,12 +869,7 @@ change-data: func [
 			objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
 		]
 		any [type = drop-list type = drop-down][
-			init-combo-box
-				hWnd
-				as red-block! data
-				null
-				as red-integer! values + FACE_OBJ_SELECTED
-				type = drop-list
+			init-combo-box hWnd as red-block! data null type = drop-list
 		]
 		true [0]										;-- default, do nothing
 	]
@@ -979,7 +974,6 @@ init-combo-box: func [
 	combo		[integer!]
 	data		[red-block!]
 	caption		[integer!]
-	selected	[red-integer!]
 	drop-list?	[logic!]
 	/local
 		str	 [red-string!]
@@ -1010,16 +1004,6 @@ init-combo-box: func [
 	]
 
 	len: objc_msgSend [combo sel_getUid "numberOfItems"]
-
-	if TYPE_OF(selected) = TYPE_INTEGER [
-		if len > 0 [
-			if selected/value < len [len: selected/value]
-			objc_msgSend [combo sel_getUid "selectItemAtIndex:" len - 1]
-			val: objc_msgSend [combo sel_getUid "objectValueOfSelectedItem"]
-			objc_msgSend [combo sel_getUid "setObjectValue:" val]
-		]
-	]
-
 	if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
 
 	either drop-list? [
@@ -1516,7 +1500,6 @@ OS-make-view: func [
 		menu	  [red-block!]
 		show?	  [red-logic!]
 		open?	  [red-logic!]
-		selected  [red-integer!]
 		para	  [red-object!]
 		rate	  [red-value!]
 		flags	  [integer!]
@@ -1543,7 +1526,6 @@ OS-make-view: func [
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU
-	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
 	rate:						values + FACE_OBJ_RATE
 
@@ -1713,7 +1695,7 @@ OS-make-view: func [
 			sym = drop-down
 			sym = drop-list
 		][
-			init-combo-box obj data caption selected sym = drop-list
+			init-combo-box obj data caption sym = drop-list
 			objc_msgSend [obj sel_getUid "setDelegate:" obj]
 		]
 		sym = camera [
@@ -1723,6 +1705,7 @@ OS-make-view: func [
 	]
 
 	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS
+	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
 
 	unless show?/value [change-visible obj no sym]
 
