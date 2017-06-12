@@ -101,10 +101,11 @@ system/console: context [
 		]
 	]
 
-	terminate: routine [][						;-- used only in quit function, already exclude Windows in quit
+	terminate: routine [][
+		#if OS <> 'Windows [
 		#if gui-console? = no [
 			terminal/emit-string "^[[?2004l"	;-- disable bracketed paste mode
-		]
+		]]
 	]
 
 	count-delimiters: function [
