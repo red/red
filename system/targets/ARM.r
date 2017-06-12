@@ -1090,6 +1090,7 @@ make-profilable make target-class [
 	emit-get-overflow: does [
 		either last-math-op = '* [
 			emit-i32 #{e3550000}					;-- CMP   r5, #0
+			emit-i32 #{13750001}					;-- CMPNE r5, #-1
 			emit-i32 #{13a00001}					;-- MOVNE r0, #1
 			emit-i32 #{03a00000}					;-- MOVE  r0, #0
 		][
