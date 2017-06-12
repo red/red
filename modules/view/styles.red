@@ -24,7 +24,7 @@ Red [
 		template: [type: 'button size: 60x23]
 	]
 	text: [
-		default-actor: on-change
+		default-actor: on-down
 		template: [type: 'text size: 80x24]
 	]
 	field: [
