@@ -1481,6 +1481,7 @@ OS-show-window: func [
 	hWnd [integer!]
 ][
 	make-event hWnd 0 EVT_SIZE
+	change-selection hWnd (as red-integer! get-face-values hWnd) + FACE_OBJ_SELECTED window
 ]
 
 OS-make-view: func [
