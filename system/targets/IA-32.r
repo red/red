@@ -1367,7 +1367,7 @@ make-profilable make target-class [
 			]
 			object! [
 				type: compiler/get-type value/data
-				float?: find [float! float64! float32!] value/type/1
+				float?: compiler/any-float? value/type
 				
 				conv-int-float?: any [
 					all [float?	type/1 = 'integer!]
@@ -1382,7 +1382,10 @@ make-profilable make target-class [
 					emit-load value/data
 				]
 				either keep [emit-casting value no][
-					unless all [float? decimal? value/data][
+					unless all [
+						float?
+						any [decimal? value/data compiler/any-float? type]
+					][
 						emit-casting/push value no
 					]
 				]
@@ -1877,9 +1880,6 @@ make-profilable make target-class [
 				]
 			]
 			reg [
-				if all [object? args/2 block? right][
-					emit-casting args/2 no
-				]
 				if path? right [emit-push/keep args/2] ;-- late path loading
 			]
 		]
