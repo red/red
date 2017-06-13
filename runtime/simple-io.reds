@@ -1584,7 +1584,6 @@ simple-io: context [
 					path: CFURLCreateWithString 0 url 0
 					CFRelease url
 				]
-				objc_msgSend [nsstr sel_getUid "release"]
 				path
 			]
 

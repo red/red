@@ -822,9 +822,8 @@ get-super-obj: func [
 	id		[integer!]
 	return: [objc_super!]
 	/local
-		super [objc_super!]
+		super [objc_super! value]
 ][
-	super: declare objc_super!
 	super/receiver: id
 	super/superclass: objc_msgSend [id sel_getUid "superclass"]
 	super
@@ -835,9 +834,8 @@ msg-send-super-logic: func [
 	sel		[integer!]
 	return: [logic!]
 	/local
-		super [objc_super!]
+		super [objc_super! value]
 ][
-	super: declare objc_super!
 	super/receiver: id
 	super/superclass: objc_msgSend [id sel_getUid "superclass"]
 	as logic! objc_msgSendSuper [super sel]
@@ -849,9 +847,8 @@ msg-send-super: func [
 	arg		[integer!]
 	return: [integer!]
 	/local
-		super [objc_super!]
+		super [objc_super! value]
 ][
-	super: declare objc_super!
 	super/receiver: id
 	super/superclass: objc_msgSend [id sel_getUid "superclass"]
 	objc_msgSendSuper [super sel arg]
