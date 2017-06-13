@@ -2079,7 +2079,6 @@ string: context [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
 						type = TYPE_URL
-						type = TYPE_TAG
 						type = TYPE_EMAIL
 					][
 						form-buf: as red-string! cell
