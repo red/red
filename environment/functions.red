@@ -186,6 +186,9 @@ replace: function [
 	value
 	/all
 ][
+	if system/words/all [char? :pattern any-string? series][
+		pattern: form pattern
+	]
 	many?: any [
 		system/words/all [series? :pattern any-string? series]
 		binary? series
