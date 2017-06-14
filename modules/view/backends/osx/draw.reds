@@ -1433,10 +1433,9 @@ OS-set-clip: func [
 
 OS-draw-shape-beginpath: func [
 	dc          [draw-ctx!]
-	/local
-		path    [integer!]
 ][
-	CGContextBeginPath dc/raw
+	dc/path: CGPathCreateMutable
+	CGPathMoveToPoint dc/path null F32_0 F32_0
 ]
 
 OS-draw-shape-endpath: func [
@@ -1444,10 +1443,13 @@ OS-draw-shape-endpath: func [
 	close?      [logic!]
 	return:     [logic!]
 	/local
-		alpha   [byte!]
+		path	[integer!]
 ][
-	if close? [CGContextClosePath dc/raw]
+	path: dc/path
+	if close? [CGPathCloseSubpath path]
+	CGContextAddPath dc/raw path
 	do-draw-path dc
+	CGPathRelease path
 	true
 ]
 
@@ -1456,11 +1458,9 @@ OS-draw-shape-moveto: func [
 	coord   [red-pair!]
 	rel?    [logic!]
 	/local
-		ctx [handle!]
-		x	[float32!]
-		y	[float32!]
+		x		[float32!]
+		y		[float32!]
 ][
-	ctx: dc/raw
 	x: as float32! coord/x
 	y: as float32! coord/y
 	if rel? [
@@ -1470,7 +1470,7 @@ OS-draw-shape-moveto: func [
 	dc/last-pt-x: x
 	dc/last-pt-y: y
 	dc/shape-curve?: no
-	CGContextMoveToPoint ctx x y
+	CGPathMoveToPoint dc/path null x y
 ]
 
 OS-draw-shape-line: func [
@@ -1479,13 +1479,13 @@ OS-draw-shape-line: func [
 	end         [red-pair!]
 	rel?        [logic!]
 	/local
-		ctx		[handle!]
+		path	[integer!]
 		dx		[float32!]
 		dy		[float32!]
 		x		[float32!]
 		y		[float32!]
 ][
-	ctx: dc/raw
+	path: dc/path
 	dx: dc/last-pt-x
 	dy: dc/last-pt-y
 
@@ -1498,7 +1498,7 @@ OS-draw-shape-line: func [
 			dx: x
 			dy: y
 		]
-		CGContextAddLineToPoint ctx x y
+		CGPathAddLineToPoint path null x y
 		start: start + 1
 		start > end
 	]
@@ -1523,7 +1523,7 @@ OS-draw-shape-axis: func [
 		dc/last-pt-y: either rel? [dc/last-pt-y + len][len]
 	]
 	dc/shape-curve?: no
-	CGContextAddLineToPoint dc/raw dc/last-pt-x dc/last-pt-y
+	CGPathAddLineToPoint dc/path null dc/last-pt-x dc/last-pt-y
 ]
 
 draw-curve: func [
@@ -1582,13 +1582,13 @@ draw-curve: func [
 
 	dc/shape-curve?: yes
 	either num = 3 [				;-- cubic Bézier
-		CGContextAddCurveToPoint dc/raw p1x p1y p2x p2y p3x p3y
+		CGPathAddCurveToPoint dc/path null p1x p1y p2x p2y p3x p3y
 		dc/control-x: p2x
 		dc/control-y: p2y
 		dc/last-pt-x: p3x
 		dc/last-pt-y: p3y
 	][								;-- quadratic Bézier
-		CGContextAddQuadCurveToPoint dc/raw p1x p1y p2x p2y
+		CGPathAddQuadCurveToPoint dc/path null p1x p1y p2x p2y
 		dc/control-x: p1x
 		dc/control-y: p1y
 		dc/last-pt-x: p2x
@@ -1739,18 +1739,13 @@ OS-draw-shape-arc: func [
 	m: CGAffineTransformMakeTranslation center-x center-y
 	m: CGAffineTransformRotate m theta
 	m: CGAffineTransformScale m radius-x radius-y
-
-	path: CGPathCreateMutable
-	;CGPathMoveToPoint path null center-x center-y
-	CGPathAddRelativeArc path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
-	CGContextAddPath ctx/raw path
-	CGPathRelease path
+	CGPathAddRelativeArc ctx/path :m as float32! 0.0 as float32! 0.0 as float32! 1.0 cx angle-len
 ]
 
 OS-draw-shape-close: func [
 	ctx		[draw-ctx!]
 ][
-	CGContextClosePath ctx/raw
+	CGPathCloseSubpath ctx/path
 ]
 
 OS-draw-brush-bitmap: func [

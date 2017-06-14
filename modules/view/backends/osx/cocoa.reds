@@ -760,7 +760,16 @@ tagSIZE: alias struct! [
 		CGPathRelease: "CGPathRelease" [
 			path		[integer!]
 		]
+		CGPathCloseSubpath: "CGPathCloseSubpath" [
+			path		[integer!]
+		]
 		CGPathMoveToPoint: "CGPathMoveToPoint" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			x			[float32!]
+			y			[float32!]
+		]
+		CGPathAddLineToPoint: "CGPathAddLineToPoint" [
 			path		[integer!]
 			m			[CGAffineTransform!]
 			x			[float32!]
@@ -774,6 +783,24 @@ tagSIZE: alias struct! [
 			radius		[float32!]
 			startAngle	[float32!]
 			delta		[float32!]
+		]
+		CGPathAddCurveToPoint: "CGPathAddCurveToPoint" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			cp1x		[float32!]
+			cp1y		[float32!]
+			cp2x		[float32!]
+			cp2y		[float32!]
+			x			[float32!]
+			y			[float32!]
+		]
+		CGPathAddQuadCurveToPoint: "CGPathAddQuadCurveToPoint" [
+			path		[integer!]
+			m			[CGAffineTransform!]
+			cp1x		[float32!]
+			cp1y		[float32!]
+			x			[float32!]
+			y			[float32!]
 		]
 		CGContextDrawImage: "CGContextDrawImage" [
 			ctx			[handle!]

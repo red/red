@@ -135,6 +135,7 @@ Red/System [
 		last-pt-y		[float32!]
 		control-x		[float32!]
 		control-y		[float32!]
+		path			[integer!]
 		shape-curve?	[logic!]
 	]
 ]
