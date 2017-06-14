@@ -245,20 +245,20 @@ OS-image: context [
 	]
 
 	get-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		return:		[integer!]
 		/local
 			node	[img-node!]
 			buf		[int-ptr!]
 	][
-		node: as img-node! bitmap
+		node: as img-node! (as series! bitmap/value) + 1
 		buf: node/buffer + index
 		buf/value
 	]
 
 	set-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		color		[integer!]
 		return:		[integer!]
@@ -266,7 +266,7 @@ OS-image: context [
 			node	[img-node!]
 			buf		[int-ptr!]
 	][
-		node: as img-node! bitmap
+		node: as img-node! (as series! bitmap/value) + 1
 		node/flags: node/flags or IMG_NODE_MODIFIED
 		buf: node/buffer + index
 		buf/value: color

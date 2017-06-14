@@ -310,29 +310,29 @@ OS-image: context [
 	]
 
 	get-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		return:		[integer!]
 		/local
 			width	[integer!]
 			arbg	[integer!]
 	][
-		width: width? as int-ptr! bitmap
+		width: width? bitmap
 		arbg: 0
-		GdipBitmapGetPixel bitmap index % width index / width :arbg
+		GdipBitmapGetPixel as-integer bitmap index % width index / width :arbg
 		arbg
 	]
 
 	set-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		color		[integer!]
 		return:		[integer!]
 		/local
 			width	[integer!]
 	][
-		width: width? as int-ptr! bitmap
-		GdipBitmapSetPixel bitmap index % width index / width color
+		width: width? bitmap
+		GdipBitmapSetPixel as-integer bitmap index % width index / width color
 	]
 
 	delete: func [img [red-image!]][
