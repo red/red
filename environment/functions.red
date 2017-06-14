@@ -845,7 +845,7 @@ path-thru: function [
 ]
 
 exists-thru?: function [
-	"Return strue if the remote file is present in the local disk cache"
+	"Returns true if the remote file is present in the local disk cache"
 	url [url! file!] "Remote file address"
 ][
 	exists? any [all [file? url url] path-thru url]
