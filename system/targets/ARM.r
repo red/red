@@ -411,11 +411,11 @@ make-profilable make target-class [
 			#{11a01006}			; MOVNE r1, r6			; 	remainder: abs(dividend)
 			#{03a00001}			; MOVEQ r0, #1			; if dividend = divisor, quotient: 1
 			#{03a01000}			; MOVEQ r1, #0			;	remainder: 0
-			#{ea00001f}			; B .epilog				; finish
+			#{ea00001a}			; B .epilog				; finish
 							; .ispowerof2
 			#{e2453001}			; SUB r3, r5, #1		; r3: abs(divisor) - 1
 			#{e1130005}			; TST r3, r5			; if abs(divisor) is a power of 2 (divisor & (divisor - 1))
-			#{1a00000e}			; BNE .notpowerof2
+			#{1a000009}			; BNE .notpowerof2
 			#{e1a03000}			; MOV r3, r0			; save dividend
 							; .powerof2
 			#{31a000c0}			; MOVCC r0, r0, ASR#1	; divide by 2 (but not on first pass)
@@ -426,11 +426,6 @@ make-profilable make target-class [
 			#{e0461001}			; SUB r1, r6, r1		; compute remainder = (dividend - (dividend and -divisor))
 			#{e3530102}			; CMP r3, #1<<31		; if r3 = -2^31 (special case for -2^31)
 			#{020cc102}			; ANDEQ ip, ip, #1<<31	; set dividend's sign flag to 0 (let divisor's sign matter only)
-			#{0a000012}			; BEQ .epilog			; 	finish
-			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
-			#{0a000010}			; BEQ .epilog			; 	finish
-			#{e3530000}			; CMP r3, #0			; if dividend < 0
-			#{40411005}			; SUBMI r1, r1, r5		;	adjust remainder (remainder = remainder - abs(divisor))
 			#{ea00000d}			; B .epilog
 							; .notpowerof2
 			#{e1b02005}			; MOVS r2, r5			; r2: abs(divisor)
