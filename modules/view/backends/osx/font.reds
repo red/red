@@ -87,7 +87,7 @@ make-font: func [
 		sym: objc_msgSend [default-font sel_getUid "familyName"]
 	]
 	manager: objc_msgSend [objc_getClass "NSFontManager" sel_getUid "sharedFontManager"]
-	loop 2 [
+	until [
 		hFont: as handle! objc_msgSend [
 			manager
 			sel_getUid "fontWithFamily:traits:weight:size:"
@@ -96,12 +96,14 @@ make-font: func [
 			5									;-- ignored if use traits
 			temp/x
 		]
+		unless sys? [CFRelease sym]
 		if null? hFont [
-			sym: objc_msgSend [default-font sel_getUid "familyName"]
-		][
-			unless sys? [CFRelease sym]
-			break
+			either sys? [sym: CFString("Helvetica") sys?: no][
+				sym: objc_msgSend [default-font sel_getUid "familyName"]
+				sys?: yes
+			]
 		]
+		hFont <> null
 	]
 
 	blk: as red-block! values + FONT_OBJ_STATE
