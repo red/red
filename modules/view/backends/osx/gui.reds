@@ -1489,30 +1489,30 @@ OS-make-view: func [
 	parent	[integer!]
 	return: [integer!]
 	/local
-		values	  [red-value!]
-		type	  [red-word!]
-		str		  [red-string!]
-		tail	  [red-string!]
-		offset	  [red-pair!]
-		size	  [red-pair!]
-		data	  [red-block!]
-		int		  [red-integer!]
-		img		  [red-image!]
-		menu	  [red-block!]
-		show?	  [red-logic!]
-		open?	  [red-logic!]
-		para	  [red-object!]
-		rate	  [red-value!]
-		flags	  [integer!]
-		bits	  [integer!]
-		sym		  [integer!]
-		id		  [integer!]
-		class	  [c-string!]
-		caption   [integer!]
-		len		  [integer!]
-		obj		  [integer!]
-		rc		  [NSRect!]
-		flt		  [float!]
+		values	[red-value!]
+		type	[red-word!]
+		str		[red-string!]
+		tail	[red-string!]
+		offset	[red-pair!]
+		size	[red-pair!]
+		data	[red-block!]
+		int		[red-integer!]
+		img		[red-image!]
+		menu	[red-block!]
+		show?	[red-logic!]
+		open?	[red-logic!]
+		rate	[red-value!]
+		font	[red-object!]
+		flags	[integer!]
+		bits	[integer!]
+		sym		[integer!]
+		id		[integer!]
+		class	[c-string!]
+		caption [integer!]
+		len		[integer!]
+		obj		[integer!]
+		rc		[NSRect!]
+		flt		[float!]
 ][
 	stack/mark-func words/_body
 
@@ -1527,7 +1527,7 @@ OS-make-view: func [
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU
-	para:	  as red-object!	values + FACE_OBJ_PARA
+	font:	  as red-object!	values + FACE_OBJ_FONT
 	rate:						values + FACE_OBJ_RATE
 
 	bits: 	  get-flags as red-block! values + FACE_OBJ_FLAGS
@@ -1603,6 +1603,8 @@ OS-make-view: func [
 		sym = text [
 			objc_msgSend [obj sel_getUid "setEditable:" false]
 			objc_msgSend [obj sel_getUid "setBordered:" false]
+			id: objc_msgSend [obj sel_getUid "cell"]
+			objc_msgSend [id sel_getUid "setWraps:" no]
 			objc_msgSend [obj sel_getUid "setDrawsBackground:" false]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setStringValue:" caption]]
 		]
@@ -1707,10 +1709,11 @@ OS-make-view: func [
 
 	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS
 	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
+	change-para obj face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible obj no sym]
 
-	change-font obj face as red-object! values + FACE_OBJ_FONT sym
+	change-font obj face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate obj rate]
 	if sym <> base [change-color obj as red-tuple! values + FACE_OBJ_COLOR sym]
 
@@ -1799,9 +1802,14 @@ OS-update-view: func [
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font hWnd face as red-object! values + FACE_OBJ_FONT type
 	]
-	;if flags and FACET_FLAG_PARA <> 0 [
-	;	update-para face 0
-	;]
+	if flags and FACET_FLAG_PARA <> 0 [
+		change-para
+			hWnd
+			face
+			as red-object! values + FACE_OBJ_PARA
+			as red-object! values + FACE_OBJ_FONT
+			type
+	]
 	if flags and FACET_FLAG_MENU <> 0 [
 		menu: as red-block! values + FACE_OBJ_MENU
 		if menu-bar? menu window [
