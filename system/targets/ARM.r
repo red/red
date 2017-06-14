@@ -379,7 +379,7 @@ make-profilable make target-class [
 		;-- registers usage:
 		;-- 	- on entering: r0: dividend, r1: divisor, r4: mode (0: division, 1: modulo, 2: remainder)
 		;--		- on exit: r0: quotient, r1: remainder or r0: modulo/remainder
-		;--		- registers modified: r0-r3, r5-r6, ip
+		;--		- registers modified: r0-r3, r5-r7, ip
 		
 		if verbose >= 3 [print "^/>>>emitting DIVIDE intrinsic"]
 		
@@ -1085,10 +1085,9 @@ make-profilable make target-class [
 	
 	emit-get-overflow: does [
 		either last-math-op = '* [
-			emit-i32 #{e3550000}					;-- CMP   r5, #0
-			emit-i32 #{13750001}					;-- CMPNE r5, #-1
+			emit-i32 #{e1550fc0}					;-- CMP   r5, r0, ASR #31
 			emit-i32 #{13a00001}					;-- MOVNE r0, #1
-			emit-i32 #{03a00000}					;-- MOVE  r0, #0
+			emit-i32 #{03a00000}					;-- MOVEQ r0, #0
 		][
 			emit-i32 #{63a00001}					;-- MOVVS r0, #1
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0
@@ -2066,6 +2065,7 @@ make-profilable make target-class [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
+							emit-i32 #{e3a05000}	;-- MOV   r5, #0 ; reset for overflow checking
 							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][
