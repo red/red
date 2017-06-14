@@ -972,8 +972,8 @@ OS-draw-shape-arc: func [
 		radius-y: get-float item
 		item: item + 1
 		theta: get-float item
-		if radius-x < 0.0 [ radius-x: radius-x * -1]
-		if radius-y < 0.0 [ radius-x: radius-x * -1]
+		if radius-x < 0.0 [ radius-x: radius-x * -1.0]
+		if radius-y < 0.0 [ radius-x: radius-x * -1.0]
 
 		;-- calculate center
 		dx: (p1-x - p2-x) / 2.0
@@ -995,7 +995,7 @@ OS-draw-shape-arc: func [
 		sqrt-val: ((rx2 * ry2) - (rx2 * Y1 * Y1) - (ry2 * X1 * X1)) / ((rx2 * Y1 * Y1) + (ry2 * X1 * X1))
 		cf: either sqrt-val < 0.0 [ 0.0 ][ sign * sqrt sqrt-val ]
 		cx: cf * (radius-x * Y1 / radius-y)
-		cy: cf * (radius-y * X1 / radius-x) * (-1)
+		cy: cf * (radius-y * X1 / radius-x) * -1.0
 		center-x: (cos-val * cx) - (sin-val * cy) + ((p1-x + p2-x) / 2.0)
 		center-y: (sin-val * cx) + (cos-val * cy) + ((p1-y + p2-y) / 2.0)
 
@@ -1005,13 +1005,10 @@ OS-draw-shape-arc: func [
 		angle-2: radian-to-degrees atan (float/abs ((p2-y - center-y) / (p2-x - center-x)))
 		angle-2: adjust-angle (p2-x - center-x) (p2-y - center-y) angle-2
 		angle-len: angle-2 - angle-1
-		sign: either angle-len >= 0.0 [ 1.0 ][ -1.0 ]
-		if large? [
-			either sign < 0.0 [
-				angle-len: 360.0 + angle-len
-			][
-				angle-len: angle-len - 360.0
-			]
+		either sweep? [
+			if angle-len < 0.0 [angle-len: 360.0 + angle-len]
+		][
+			if angle-len > 0.0 [angle-len: angle-len - 360.0]
 		]
 		angle-1: angle-1 - theta
 
@@ -1030,7 +1027,7 @@ OS-draw-shape-arc: func [
 			m: 0
 
 			GdipCreateMatrix :m
-			GdipTranslateMatrix m as float32! (center-x * -1) as float32! (center-y * -1) GDIPLUS_MATRIX_APPEND
+			GdipTranslateMatrix m as float32! (center-x * -1.0) as float32! (center-y * -1.0) GDIPLUS_MATRIX_APPEND
 			GdipRotateMatrix m as float32! theta GDIPLUS_MATRIX_APPEND
 			GdipTranslateMatrix m as float32! center-x as float32! center-y GDIPLUS_MATRIX_APPEND
 			GdipTransformPath path m
@@ -1057,9 +1054,9 @@ OS-draw-shape-arc: func [
 			]
 
 			xform: declare XFORM!
-			set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1 center-y * -1
+			set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1.0 center-y * -1.0
 			SetWorldTransform dc xform
-			set-matrix xform cos-val sin-val sin-val * -1 cos-val center-x center-y
+			set-matrix xform cos-val sin-val sin-val * -1.0 cos-val center-x center-y
 			ModifyWorldTransform dc xform MWT_RIGHTMULTIPLY
 
 			prev-dir: GetArcDirection dc
