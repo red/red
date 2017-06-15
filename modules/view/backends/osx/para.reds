@@ -43,11 +43,9 @@ change-para: func [
 		]
 		true [0]
 	]
-	if flags and 20h <> 0 [			;-- wrap line
-		if any [type = field type = text][
-			cell: objc_msgSend [hWnd sel_getUid "cell"]
-			objc_msgSend [cell sel_getUid "setWraps:" yes]
-		]
+	if any [type = field type = text][
+		cell: objc_msgSend [hWnd sel_getUid "cell"]
+		objc_msgSend [cell sel_getUid "setWraps:" flags and 20h <> 0]
 	]
 	yes
 ]
