@@ -1411,21 +1411,28 @@ OS-set-clip: func [
 		rc	[NSRect!]
 ][
 	ctx: dc/raw
-	if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
-	if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
+	either rect? [
+		if upper/x > lower/x [t: upper/x upper/x: lower/x lower/x: t]
+		if upper/y > lower/y [t: upper/y upper/y: lower/y lower/y: t]
 
-	p1: 0
-	rc: as NSRect! :p1
-	x1: upper/x
-	y1: upper/y
-	x2: lower/x
-	y2: lower/y
-	rc/x: as float32! x1
-	rc/y: as float32! y1
-	rc/w: as float32! x2 - x1
-	rc/h: as float32! y2 - y1
-	;CGContextBeginPath ctx
-	CGContextAddRect ctx rc/x rc/y rc/w rc/h
+		p1: 0
+		rc: as NSRect! :p1
+		x1: upper/x
+		y1: upper/y
+		x2: lower/x
+		y2: lower/y
+		rc/x: as float32! x1
+		rc/y: as float32! y1
+		rc/w: as float32! x2 - x1
+		rc/h: as float32! y2 - y1
+		;CGContextBeginPath ctx
+		CGContextAddRect ctx rc/x rc/y rc/w rc/h
+	][
+		t: dc/path
+		CGPathCloseSubpath t
+		CGContextAddPath ctx t
+		CGPathRelease t
+	]
 	CGContextClip ctx
 ]
 
