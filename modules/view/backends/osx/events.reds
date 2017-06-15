@@ -508,7 +508,10 @@ process-mouse-tracking: func [
 		while [all [v <> 0 not red-face? v]][
 			v: objc_msgSend [v sel_getUid "superview"]
 		]
-		if v <> 0 [
+		if all [
+			v <> 0
+			zero? objc_getAssociatedObject v RedEnableKey
+		][
 			objc_msgSend [v sel_getUid "mouseMoved:" event]
 		]
 		if v <> current-widget [

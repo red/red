@@ -772,6 +772,20 @@ change-visible: func [
 	]
 ]
 
+change-enabled: func [
+	hWnd	 [integer!]
+	enabled? [logic!]
+	type	 [integer!]
+	/local
+		obj  [integer!]
+][
+	unless any [type = base type = window type = panel][
+		objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
+	]
+	either enabled? [obj: 0][obj: hWnd]
+	objc_setAssociatedObject hWnd RedEnableKey obj OBJC_ASSOCIATION_ASSIGN
+]
+
 change-text: func [
 	hWnd	[integer!]
 	values	[red-value!]
@@ -1712,6 +1726,7 @@ OS-make-view: func [
 	change-para obj face as red-object! values + FACE_OBJ_PARA font sym
 
 	unless show?/value [change-visible obj no sym]
+	unless open?/value [change-enabled obj no sym]
 
 	change-font obj face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate obj rate]
@@ -1773,9 +1788,7 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_ENABLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_ENABLE?
-		if type <> window [
-			objc_msgSend [hWnd sel_getUid "setEnabled:" bool/value]
-		]
+		change-enabled hWnd bool/value type
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [
 		bool: as red-logic! values + FACE_OBJ_VISIBLE?

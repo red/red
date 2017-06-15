@@ -167,6 +167,7 @@ Red/System [
 #define RedAllOverFlagKey		4000FFFCh
 #define RedAttachedWidgetKey	4000FFFDh
 #define RedCursorKey			4000FFFEh
+#define RedEnableKey			4000FFFFh
 
 
 objc_super!: alias struct! [

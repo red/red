@@ -65,8 +65,10 @@ mouse-entered: func [
 	cmd		[integer!]
 	event	[integer!]
 ][
-	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	make-event self 0 EVT_OVER
+	if zero? objc_getAssociatedObject self RedEnableKey [
+		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
+		make-event self 0 EVT_OVER
+	]
 ]
 
 mouse-exited: func [
@@ -75,8 +77,10 @@ mouse-exited: func [
 	cmd		[integer!]
 	event	[integer!]
 ][
-	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	make-event self EVT_FLAG_AWAY EVT_OVER
+	if zero? objc_getAssociatedObject self RedEnableKey [
+		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
+		make-event self EVT_FLAG_AWAY EVT_OVER
+	]
 ]
 
 mouse-moved: func [
@@ -87,10 +91,12 @@ mouse-moved: func [
 	/local
 		flags [integer!]
 ][
-	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
-	if flags and FACET_FLAGS_ALL_OVER <> 0 [
-		make-event self 0 EVT_OVER
+	if zero? objc_getAssociatedObject self RedEnableKey [
+		objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
+		flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
+		if flags and FACET_FLAGS_ALL_OVER <> 0 [
+			make-event self 0 EVT_OVER
+		]
 	]
 ]
 
@@ -195,9 +201,12 @@ mouse-events: func [
 		NSRightMouseDragged	
 		NSOtherMouseDragged	[
 			opt: (get-face-values self) + FACE_OBJ_OPTIONS
-			either any [
-				TYPE_OF(opt) = TYPE_BLOCK
-				0 <> objc_getAssociatedObject self RedAllOverFlagKey
+			either all [
+				zero? objc_getAssociatedObject self RedEnableKey
+				any [
+					TYPE_OF(opt) = TYPE_BLOCK
+					0 <> objc_getAssociatedObject self RedAllOverFlagKey
+				]
 			][
 				make-event self flags EVT_OVER
 			][
