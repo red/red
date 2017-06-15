@@ -1618,7 +1618,6 @@ OS-make-view: func [
 			objc_msgSend [obj sel_getUid "setEditable:" false]
 			objc_msgSend [obj sel_getUid "setBordered:" false]
 			id: objc_msgSend [obj sel_getUid "cell"]
-			objc_msgSend [id sel_getUid "setWraps:" no]
 			objc_msgSend [obj sel_getUid "setDrawsBackground:" false]
 			if caption <> 0 [objc_msgSend [obj sel_getUid "setStringValue:" caption]]
 		]
