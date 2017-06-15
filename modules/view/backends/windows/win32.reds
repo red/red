@@ -1232,6 +1232,10 @@ XFORM!: alias struct! [
 			bEnable		[logic!]
 			return:		[logic!]
 		]
+		IsWindowEnabled: "IsWindowEnabled" [
+			hWnd		[handle!]
+			return:		[logic!]
+		]
 		InvalidateRect: "InvalidateRect" [
 			hWnd		[handle!]
 			lpRect		[RECT_STRUCT]

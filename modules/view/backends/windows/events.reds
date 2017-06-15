@@ -1180,13 +1180,16 @@ process: func [
 			
 			evt?: all [hover-saved <> null hover-saved <> new]
 			
-			if evt? [
+			if all [evt? IsWindowEnabled hover-saved] [
 				msg/hWnd: hover-saved
 				make-event msg EVT_FLAG_AWAY EVT_OVER
 			]
-			if any [
-				evt?
-				(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
+			if all [
+				IsWindowEnabled new
+				any [
+					evt?
+					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
+				]
 			][
 				msg/hWnd: new
 				make-event msg 0 EVT_OVER
