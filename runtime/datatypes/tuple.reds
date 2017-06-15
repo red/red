@@ -48,7 +48,7 @@ tuple: context [
 			len	   [integer!]
 	][
 		s: GET_BUFFER(bin)
-		len: (as-integer s/tail - s/offset) + bin/head
+		len: (as-integer s/tail - s/offset) - bin/head
 		if len > 12 [len: 12]							;-- take first 12 bytes only
 		
 		p: (as byte-ptr! s/offset) + bin/head
