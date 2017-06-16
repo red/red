@@ -858,13 +858,13 @@ render-text: func [
 	flags: either TYPE_OF(para) = TYPE_OBJECT [		;@@ TBD set alignment attribute
 		get-para-flags base para
 	][
-		1 or 4										;-- center
+		2 or 4										;-- center
 	]
 
 	m: make-CGMatrix 1 0 0 -1 0 0
 	case [
-		flags and 1 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
-		flags and 2 <> 0 [m/tx: sz/w - rc/x]
+		flags and 1 <> 0 [m/tx: sz/w - rc/x]
+		flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
 		true [0]
 	]
 
@@ -881,6 +881,14 @@ render-text: func [
 	line: CTLineCreateWithAttributedString attr
 	CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
 	CTLineDraw line ctx
+
+	if 0 <> objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName] [
+		m/ty: m/ty - temp + (rc/y / as float32! 2.0)
+		CGContextTranslateCTM ctx m/tx m/ty
+		CGContextMoveToPoint ctx as float32! 0.0 as float32! 0.0
+		CGContextAddLineToPoint ctx rc/x as float32! 0.0
+		CGContextStrokePath ctx
+	]
 
 	CFRelease str
 	CFRelease attr
