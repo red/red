@@ -2137,7 +2137,29 @@ make-profilable make target-class [
 						if load? [emit-load/alt args/2]
 					]
 				]
-				call-divide mod?
+				either compiler/job/cpu-version < 7.0 [
+					call-divide mod?
+				][
+					either mod? [
+						emit-i32 #{e713f110}		;-- SDIV r3, r0, r1
+						emit-i32 #{e0640193}		;-- MLS r4, r3, r1, r0	; r4 = r0 - r3 * r1
+						if mod? <> 'rem [			;-- modulo, not remainder
+						;-- Adjust modulo result to be mathematically correct:
+						;-- 	if modulo < 0 [
+						;--			if divisor < 0  [divisor: negate divisor]
+						;--			modulo: modulo + divisor
+						;--		]
+							emit-i32 #{e3540000}	;-- CMP r4, #0
+							emit-i32 #{aa000002}	;-- BGE .exit
+							emit-i32 #{e3510000}	;-- CMP r1, #0
+							emit-i32 #{42611000}	;-- RSBMI r1, r1, #0
+							emit-i32 #{e0844001}	;-- ADD r4, r4, r1
+						]							;-- .exit:
+						emit-i32 #{e1a00004}		;-- MOV r0, r4	; r0: modulo or remainder
+					][
+						emit-i32 #{e710f110}		;-- SDIV r0, r0, r1
+					]
+				]
 				
 				if any [							;-- in case r1 was saved on stack
 					all [b = 'imm any [mod? not c]]
