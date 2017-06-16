@@ -823,7 +823,7 @@ change-text: func [
 				any [type = field type = text][
 					objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
 				]
-				any [type = button type = radio type = check] [
+				any [type = button type = radio type = check type = window type = group-box][
 					objc_msgSend [hWnd sel_getUid "setTitle:" txt]
 				]
 				true [0]
