@@ -1942,14 +1942,16 @@ OS-to-image: func [
 	/local
 		view [integer!]
 		data [integer!]
-		rc	 [NSRect! value]
+		rc	 [NSRect!]
+		sz	 [red-pair!]
 		bmp  [integer!]
 		img  [integer!]
 		ret  [red-image!]
 ][
 	view: as-integer face-handle? face
 	either zero? view [as red-image! none-value][
-		rc: objc_msgSend_rect [view sel_getUid "bounds"]
+		sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+		rc: make-rect 0 0 sz/x sz/y
 		data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
 		img: objc_msgSend [
 			objc_msgSend [objc_getClass "NSImage" sel_alloc]
