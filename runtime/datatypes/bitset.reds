@@ -907,7 +907,7 @@ bitset: context [
 			op [integer!]
 	][
 		unless OPTION?(part) [
-			print-line "Remove Error: /part is required for bitset argument"
+			fire [TO_ERROR(script missing-arg)]
 		]
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
