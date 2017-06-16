@@ -1494,7 +1494,7 @@ OS-refresh-window: func [hWnd [integer!]][0]
 OS-show-window: func [
 	hWnd [integer!]
 ][
-	make-event hWnd 0 EVT_SIZE
+	;make-event hWnd 0 EVT_SIZE
 	change-selection hWnd (as red-integer! get-face-values hWnd) + FACE_OBJ_SELECTED window
 ]
 
