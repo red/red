@@ -1127,7 +1127,7 @@ parser: context [
 									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									PARSE_SAVE_SERIES
-									new: as red-series! actions/change input value base only? null
+									new: actions/change input value base only? null
 									if s-top <> null [stack/top: s-top]
 									PARSE_RESTORE_SERIES
 									input/head: new/head

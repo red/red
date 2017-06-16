@@ -386,7 +386,7 @@ natives: context [
 		value: stack/arguments
 		body: as red-block! stack/arguments + 2
 
-		part: as red-integer! integer/push 0			;-- store number of words to set
+		part: integer/push 0							;-- store number of words to set
 		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
 		stack/push value								;-- (required by foreach-next)
 
