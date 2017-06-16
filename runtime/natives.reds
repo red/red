@@ -2371,7 +2371,7 @@ natives: context [
 		][
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
-			name: as red-string! s/offset + w/symbol - 1
+			name: word/as-string as red-word! name
 		]
 		PLATFORM_TO_CSTR(cstr name len)
 		
@@ -2381,10 +2381,10 @@ natives: context [
 			platform/get-env cstr buffer len
 			PLATFORM_LOAD_STR(name buffer (len - 1))
 			free as byte-ptr! buffer
-			stack/set-last as red-value! name	
 		][
 			name/header: TYPE_NONE
 		]
+		stack/set-last as red-value! name	
 	]
 
 	list-env*: func [
