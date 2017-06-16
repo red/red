@@ -744,8 +744,8 @@ _draw-arc: func [
 			alpha: alpha - (pi32 * as float32! 2.0)
 		]
 	]
-	delta: beta - alpha / 2.0
-	bcp: as float32! (4.0 / 3.0 * (1.0 - cosf delta) / sinf delta)
+	delta: beta - alpha / as float32! 2.0
+	bcp: as float32! (4.0 / 3.0 * (1.0 - cos as float! delta) / sin as float! delta)
 
 	sin-a: sinf alpha
 	sin-b: sinf beta
@@ -806,7 +806,8 @@ OS-draw-arc: func [
 	angle-begin: rad * as float32! begin/value
 	angle: begin + 1
 	sweep: angle/value
-	angle-end: rad * as float32! (begin/value + sweep)
+	i: begin/value + sweep
+	angle-end: rad * as float32! i
 
 	closed?: angle < end
 

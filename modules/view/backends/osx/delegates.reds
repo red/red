@@ -881,18 +881,18 @@ render-text: func [
 	line: CTLineCreateWithAttributedString attr
 	CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
 	CTLineDraw line ctx
+	CFRelease str
+	CFRelease attr
+	CFRelease line
 
-	if 0 <> objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName] [
+	attr: objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName]
+	if as logic! objc_msgSend [attr sel_getUid "boolValue"][
 		m/ty: m/ty - temp + (rc/y / as float32! 2.0)
 		CGContextTranslateCTM ctx m/tx m/ty
 		CGContextMoveToPoint ctx as float32! 0.0 as float32! 0.0
 		CGContextAddLineToPoint ctx rc/x as float32! 0.0
 		CGContextStrokePath ctx
 	]
-
-	CFRelease str
-	CFRelease attr
-	CFRelease line
 	objc_msgSend [attrs sel_getUid "release"]
 	CGContextRestoreGState ctx
 ]
