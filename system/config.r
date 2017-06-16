@@ -137,6 +137,7 @@ Linux-ARM [
 	format:		'ELF
 	target:		'ARM
 	type:		'exe
+	cpu-version: 7.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux.so.3"
 ]
@@ -147,6 +148,7 @@ RPi [
 	target:		'ARM
 	ABI:		'hard-float
 	type:		'exe
+	cpu-version: 7.0
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux-armhf.so.3"
 ]
