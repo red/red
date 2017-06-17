@@ -1550,7 +1550,7 @@ will output:
 
 +++Custom
 
-It is sometimes desirable to have full control over the native stack layout of a function call, for example, when the function call needs to be dynamically constructed. The <b>custom</b> attribute allows you to manually <b>push</b> values on stack and still generate a correct function call with adequate stack cleanups. This is most useful with imported C functiosn that relies on <b>cdecl</b> convention, which requires the caller to clean-up the stack. The <b>custom</b> attribute will take care of it in a cross-platform way.
+It is sometimes desirable to have full control over the native stack layout of a function call, for example, when the function call needs to be dynamically constructed. The <b>custom</b> attribute allows you to manually <b>push</b> values on stack and still generate a correct function call with adequate stack cleanups. This is mostly useful with imported C functions that rely on <b>cdecl</b> convention, which requires the caller to clean-up the stack. The <b>custom</b> attribute will take care of it in a cross-platform way.
 
 Example:
 
