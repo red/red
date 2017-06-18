@@ -2115,4 +2115,62 @@ Red [
 
 ===end-group===
 
+===start-group=== "reflection"
+
+	--test-- "or1"
+		or1: make object! [a: 1 b: 2.1 c: "three"]
+		--assert [a b c] = words-of or1
+		--assert [1 2.1 "three"] = values-of or1
+		--assert [a: 1 b: 2.1 c: "three"] = body-of or1
+
+===end-group===
+
+===start-group=== "set"
+
+	--test-- "os1"
+		os1: make object! [a: 1 b: 2 c: 3]
+		set os1 none
+		--assert equal? reduce [none none none] values-of os1
+		
+	--test-- "os2"
+		os2: make object! [a: 1 b: 2 c: 3]
+		set os2 [1.2 2.3 3.4]
+		--assert equal? [1.2 2.3 3.4] values-of os2	
+
+===end-group===
+
+===start-group=== "find & select"
+
+	--test-- "ofs"
+		ofs1: make object! [a: 1]
+		--assert find ofs1 'a
+		--assert 1 = select ofs1 'a
+		
+	--test-- "ofs2"
+		ofs2: make object! [a: none]
+		--assert find ofs2 'a
+		--assert none = select ofs2 'a
+		
+	--test-- "ofs3"
+		ofs3: make object! [a: 1]
+		--assert not find ofs3 'b
+		--assert not select ofs3 'b			
+
+===end-group===
+
+===start-group=== "on change"
+
+	--test-- "ooc1"
+		ooc1: make object! [
+			on-change*: func [word old new] [
+				if word = 'a [ b: 3 * a]
+			]
+			a: 1
+			b: a * 2
+		]
+		ooc1/a: 3
+		--assert ooc1/b = 9
+		
+===end-group===
+
 ~~~end-file~~~
