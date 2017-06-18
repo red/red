@@ -2713,6 +2713,11 @@ Red [
 		--assert [] = parse "" [collect [keep to end]]
 		--assert [] = parse "" [collect [keep pick to end]]
 
+	--test-- "#2818"
+		--assert parse "abc" [to [s: "bc"] 2 skip]
+		--assert parse "abc" [to [s: () "bc"] 2 skip]
+		--assert parse "abc" [to [s: (123) "bc"] 2 skip]
+
 ===end-group===
     
 ~~~end-file~~~
