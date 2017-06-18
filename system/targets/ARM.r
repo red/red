@@ -1472,7 +1472,7 @@ make-profilable make target-class [
 				do store-word
 			]
 			string! paren! [
-				if spec [emit-load-literal-ptr spec/2]
+				if all [spec not PIC?][emit-load-literal-ptr spec/2]
 				do store-word
 			]
 		]
