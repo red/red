@@ -808,6 +808,7 @@ parser: context [
 					]
 					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
+					match?: yes							;-- resets match? flag to default (fixes #2818)
 					
 					;#if debug? = yes [check-infinite-loop input rules rule saved?]
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag
