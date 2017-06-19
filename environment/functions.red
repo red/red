@@ -173,7 +173,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either only [
+	head either any [only not block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
