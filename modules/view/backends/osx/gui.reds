@@ -914,8 +914,7 @@ change-selection: func [
 		type = text-list [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
-			if sz < 0 [exit]
-			if sz < idx [idx: sz]			;-- select the last one
+			if any [sz < 0 sz < idx][exit]
 			idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
 			objc_msgSend [
 				hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
@@ -924,8 +923,7 @@ change-selection: func [
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
-			if sz < 0 [exit]
-			if sz < idx [idx: sz]
+			if any [sz < 0 sz < idx][exit]
 			objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
 			idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
 			objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]

@@ -19,11 +19,8 @@ select-tab: func [
 ][
 	nb: objc_msgSend [hWnd sel_getUid "numberOfTabViewItems"]
 	idx: int/value
-	case [
-		idx < 1  [idx: 1]
-		idx > nb [idx: nb]
-		true	 [0]
-	]
+	if any [idx < 1 idx > nb][exit]
+
 	int/value: idx
 	objc_msgSend [hWnd sel_getUid "selectTabViewItemAtIndex:" idx - 1]
 ]

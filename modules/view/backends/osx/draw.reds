@@ -85,7 +85,7 @@ draw-end: func [
 	cache?		[logic!]
 	pattern?	[logic!]
 ][
-	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_getUid "release"]]
+	if dc/font-attrs <> 0 [objc_msgSend [dc/font-attrs sel_release]]
 	CGColorSpaceRelease dc/colorspace
 	unless pattern? [
 		CGContextRestoreGState CGCtx
@@ -149,6 +149,25 @@ CG-set-color: func [
 	]
 ]
 
+_set-font-color: func [
+	dc		[draw-ctx!]
+	color	[integer!]
+	/local
+		clr [integer!]
+][
+	if 2 >= objc_msgSend [dc/font-attrs sel_getUid "count"][
+		clr: rs-to-NSColor color
+		objc_msgSend [dc/font-attrs sel_release]
+		dc/font-attrs: objc_msgSend [				;-- default font attributes
+			objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
+			sel_getUid "initWithObjectsAndKeys:"
+			default-font NSFontAttributeName
+			clr NSForegroundColorAttributeName
+			0
+		]
+	]
+]
+
 OS-draw-pen: func [
 	dc	   [draw-ctx!]
 	color  [integer!]									;-- aabbggrr format
@@ -159,6 +178,7 @@ OS-draw-pen: func [
 	if all [not off? dc/pen-color <> color][
 		dc/pen-color: color
 		CG-set-color dc/raw color no
+		_set-font-color dc color
 	]
 ]
 
@@ -618,7 +638,7 @@ OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
 ][
-	objc_msgSend [dc/font-attrs sel_getUid "release"]
+	objc_msgSend [dc/font-attrs sel_release]
 	dc/font-attrs: make-font-attrs font as red-object! none-value -1
 ]
 
