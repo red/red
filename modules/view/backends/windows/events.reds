@@ -1289,7 +1289,9 @@ do-events: func [
 		]
 		if no-wait? [return msg?]
 	]
-	exit-loop: exit-loop - 1
-	if exit-loop > 0 [PostQuitMessage 0]
+	unless no-wait? [
+		exit-loop: exit-loop - 1
+		if exit-loop > 0 [PostQuitMessage 0]
+	]
 	msg?
 ]
