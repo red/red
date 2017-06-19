@@ -511,8 +511,8 @@ take: make action! [[
 ]
 
 trim: make action! [[
-		"Removes space from a string or NONE from a block or object"
-		series	[series! object! error! map!]
+		"Removes space from a string or NONE from a block"
+		series	[string! block! hash!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
