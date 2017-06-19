@@ -1026,8 +1026,11 @@ insert-event-func [
 	all [
 		event/type = 'key
 		find "^M^/" event/key
-		find [field drop-down] event/face/type
-		event/type: 'enter
+		switch event/face/type [ 
+			field 
+			drop-down [event/type: 'enter]
+			button	  [event/type: 'click]
+		]
 	]
 	event
 ]
