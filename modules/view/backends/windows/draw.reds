@@ -2086,7 +2086,6 @@ OS-draw-brush-bitmap: func [
 	]
 	texture: 0
 	result: GdipCreateTexture2I as-integer img/node wrap x y width height :texture
-	ctx/brush?: brush?
 	either brush? [
 		ctx/gp-brush:       texture
 		ctx/gp-brush-type:  BRUSH_TYPE_TEXTURE
@@ -3079,8 +3078,7 @@ OS-draw-grad-pen: func [
 		last-c/value: color/value
 		count: count + 1
 	]
-	ctx/brush?:       brush?
-	gradient: either ctx/brush? [ ctx/other/gradient-fill ][ ctx/other/gradient-pen ]
+	gradient: either brush? [ ctx/other/gradient-fill ][ ctx/other/gradient-pen ]
 	gradient/count:     count
 	gradient/created?:  false
 	gradient/positions?: false
