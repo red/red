@@ -236,7 +236,7 @@ system/view/VID: context [
 			match?: parse spec [[
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
-				| ['bold | 'italic | 'underline] (opt?: add-flag opts 'font 'style value)
+				| ['bold | 'italic | 'underline | 'strike] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-value spec: next spec)
 				| 'data		  (opts/data: fetch-expr 'spec spec: back spec)
 				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
