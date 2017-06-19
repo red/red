@@ -1816,7 +1816,7 @@ make-profilable make target-class [
 
 	emit-float-operation: func [
 		name [word!] args [block!] 
-		/local a b left right spec load-from-stack reversed? type
+		/local a b left right spec reversed? type
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
@@ -1828,12 +1828,7 @@ make-profilable make target-class [
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
 		set-width left
-		
-		load-from-stack: [
-			emit-float #{DD0424}					;-- FLD [esp]
-			emit #{83C4} 							;-- ADD esp, 8|4
-			emit to-bin8 width		
-		]
+
 		switch a [									;-- load left operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
@@ -1880,6 +1875,12 @@ make-profilable make target-class [
 				]
 			]
 			reg [
+				all [
+					object? args/2
+					block? right
+					not find [float! float32!] compiler/get-type right
+					emit-casting args/2 no			;-- load b on FPU stack
+				]
 				if path? right [emit-push/keep args/2] ;-- late path loading
 			]
 		]
