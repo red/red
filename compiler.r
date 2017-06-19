@@ -1955,9 +1955,12 @@ red: context [
 		event: 'on-change*
 		if pos: find spec event [
 			pos: (index? pos) - 1					;-- 0-based contexts arrays
-			entry: any [
+			unless entry: any [
 				find functions decorate-obj-member event ctx
 				all [proto find functions decorate-obj-member event select objects proto/1]
+			][
+				pc: back pc
+				throw-error ["invalid" event "event definition in object" name]
 			]
 			unless zero? loc-s: second check-spec entry/2/3 [
 				loc-s: loc-s + 1					;-- account for /local
@@ -1966,9 +1969,12 @@ red: context [
 		event: 'on-deep-change*
 		if pos2: find spec event [
 			pos2: (index? pos2) - 1					;-- 0-based contexts arrays
-			entry: any [
+			unless entry: any [
 				find functions decorate-obj-member event ctx
 				all [proto find functions decorate-obj-member event select objects proto/1]
+			][
+				pc: back pc
+				throw-error ["invalid" event "event definition in object" name]
 			]
 			unless zero? loc-d: second check-spec entry/2/3 [
 				loc-d: loc-d + 1					;-- account for /local

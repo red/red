@@ -289,6 +289,7 @@ object: context [
 			loc-s	[integer!]
 			loc-d	[integer!]
 			sym		[integer!]
+			type	[integer!]
 	][
 		s:		 as series! ctx/symbols/value
 		head:	 as red-word! s/offset
@@ -312,10 +313,18 @@ object: context [
 		s: as series! ctx/values/value
 		if idx-s >= 0 [
 			fun: as red-function! s/offset + idx-s
+			type: TYPE_OF(fun)
+			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
+				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
+			]
 			loc-s: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
+			type: TYPE_OF(fun)
+			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
+				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
+			]
 			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
 		]
 		make-callback-node ctx idx-s loc-s idx-d loc-d
