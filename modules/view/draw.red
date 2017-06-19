@@ -704,8 +704,8 @@ Red/System [
 				m-order		[integer!]
 				pen-clr		[integer!]
 				brush-clr	[integer!]
-				line-join	[integer!]
-				line-cap	[integer!]
+				pen-join	[integer!]
+				pen-cap		[integer!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
@@ -716,8 +716,8 @@ Red/System [
 			#if OS = 'Windows [
 				pen-clr: DC/pen-color
 				brush-clr: DC/brush-color
-				line-join: DC/pen-join
-				line-cap: DC/pen-cap
+				pen-join: DC/pen-join
+				pen-cap: DC/pen-cap
 			]
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
@@ -1027,8 +1027,8 @@ Red/System [
 			#if OS = 'Windows [
 				DC/pen-color: pen-clr
 				DC/brush-color: brush-clr
-				DC/pen-join: line-join
-				DC/pen-cap: line-cap
+				DC/pen-join: pen-join
+				DC/pen-cap: pen-cap
 				update-gdiplus-modes DC
 			]
 		]
