@@ -723,6 +723,8 @@ system/view/platform: context [
 				button:		[7x7   0x0]
 				check:		[20x0  3x1]
 				radio:		[20x0  1x1]
+				text:		[3x3   0x0]
+				field:		[3x3   0x0]
 			]
 		]]
 		
