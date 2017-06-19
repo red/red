@@ -738,17 +738,15 @@ show: function [
 			]
 		]
 		face/state: reduce [obj 0 none false]
-		if all [object? face/actors in face/actors 'on-created][
-			do-safe [face/actors/on-created face none]	;@@ only called once
-		]
 	]
 
 	if face/pane [
 		foreach f face/pane [show/with f face]
 		system/view/platform/refresh-window face/state/1
 	]
-	;check-all-reactions face
-	
+	if all [new? object? face/actors in face/actors 'on-created][
+		do-safe [face/actors/on-created face none]		;@@ only called once
+	]
 	if all [new? face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
