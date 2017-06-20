@@ -357,18 +357,13 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			flags [integer!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
 			error/set-where err as red-value! get-call
 			set-stack err
-		
-			all?: (error/get-type err) = words/errors/throw/symbol
-			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-
 			extra: top
-			unroll-frames flags no
+			unroll-frames FRAME_TRY no
 
 			ctop: ctop - 1
 			assert ctop >= cbottom
