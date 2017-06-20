@@ -238,10 +238,21 @@ error: context [
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_type]
 						]
+						cat: object/rs-find errors value
+						if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_type]]
+						
 						value: block/select-word blk words/_id no
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_id]
 						]
+						errors: (as red-object! object/get-values errors) + cat
+						if value < block/rs-tail blk [
+							cat: object/rs-find errors value
+							if cat = -1 [
+								fire [TO_ERROR(script invalid-spec-field) words/_id]
+							]
+						]
+						
 						_context/bind blk GET_CTX(new) new/ctx yes
 						interpreter/eval blk no
 					]
@@ -282,15 +293,18 @@ error: context [
 		
 		errors: as red-object! #get system/catalog/errors
 		errors: as red-object! object/rs-select errors base + field-type
+		if TYPE_Of(errors) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-type]]
 		
 		str: as red-string! object/rs-select errors as red-value! words/_type
 		assert TYPE_OF(str) = TYPE_STRING
+		
 		string/concatenate buffer str -1 0 yes no
 		part: part - string/rs-length? str
 		string/concatenate-literal buffer ": "
 		part: part - 2
 		
 		value: object/rs-select errors base + field-id
+		if TYPE_Of(value) = TYPE_NONE [fire [TO_ERROR(internal invalid-error) base + field-id]]
 		
 		either TYPE_OF(value) = TYPE_STRING [
 			str: as red-string! value

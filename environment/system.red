@@ -233,7 +233,7 @@ system: context [
 				too-deep:			"block or paren series is too deep to display"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
-				invalid-error:		"error object or fields were not valid"
+				invalid-error:		["invalid error object field value:" :arg1]
 				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
 			]
