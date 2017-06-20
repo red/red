@@ -217,19 +217,14 @@ error: context [
 				switch TYPE_OF(value) [
 					TYPE_WORD [
 						cat: object/rs-find errors value
-						
-						if cat = -1 [
-							fire [TO_ERROR(script invalid-spec-field) words/_type]
-						]
+						if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_type]]
 						copy-cell value base + field-type
 						
 						errors: (as red-object! object/get-values errors) + cat
 						value: value + 1
 						if value < block/rs-tail blk [
 							cat: object/rs-find errors value
-							if cat = -1 [
-								fire [TO_ERROR(script invalid-spec-field) words/_id]
-							]
+							if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 							copy-cell value base + field-id
 						]
 					]
