@@ -1213,7 +1213,7 @@ OS-make-view: func [
 			sym = group-box
 		][
 			class: #u16 "RedPanel"
-			init-panel values as handle! parent
+			;init-panel values as handle! parent
 			panel?: yes
 		]
 		sym = tab-panel [
@@ -1326,7 +1326,7 @@ OS-make-view: func [
 	][
 		parent: as-integer evolve-base-face as handle! parent
 	]
-
+?? parent
 	handle: CreateWindowEx
 		ws-flags
 		class
@@ -1358,7 +1358,7 @@ OS-make-view: func [
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [
-			selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
+			;selected/header: TYPE_NONE					;-- no selection allowed before tabs are created
 			set-tabs handle values
 		]
 		sym = group-box [
@@ -1381,7 +1381,7 @@ OS-make-view: func [
 			SetWindowLong handle wc-offset - 4 as-integer hWnd
 		]
 		panel? [
-			adjust-parent handle as handle! parent offset/x offset/y
+			;adjust-parent handle as handle! parent offset/x offset/y
 			SetWindowLong handle wc-offset - 24 0
 		]
 		sym = slider [

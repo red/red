@@ -620,7 +620,7 @@ system/view: context [
 	
 	capturing?: no										;-- enable capturing events (on-detect)
 	auto-sync?: yes										;-- refresh faces on changes automatically
-	debug?: 	no										;-- output verbose logs
+	debug?: 	yes										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
 ]
 
@@ -666,6 +666,7 @@ show: function [
 	face [object! block!] "Face object to display"
 	/with				  "Link the face to a parent face"
 		parent [object!]  "Parent face to link to"
+	/create
 ][
 	if block? face [
 		foreach f face [
@@ -686,9 +687,12 @@ show: function [
 			clear pending
 		]
 		if face/state/2 <> 0 [system/view/platform/update-view face]
-	][
-		new?: yes
 		
+		if face/pane [
+			foreach f face/pane [show/with f face]
+			system/view/platform/refresh-window face/state/1
+		]
+	][
 		if face/type <> 'screen [
 			if all [not parent not object? face/parent face/type <> 'window][
 				cause-error 'script 'not-linked []
@@ -699,15 +703,14 @@ show: function [
 			if all [object? face/actors in face/actors 'on-create][
 				do-safe [face/actors/on-create face none]
 			]
-			p: either with [parent/state/1][0]
+			
+			p: either all [with parent/state][parent/state/1][0]
 
-			#if config/OS = 'MacOSX [					;@@ remove this system specific code
-				if all [face/type = 'tab-panel face/pane][
-					link-tabs-to-parent face
-					foreach f face/pane [show f]
-				]
+			if all [face/type = 'tab-panel face/pane][
+				link-tabs-to-parent face
+				foreach f face/pane [show/create/with f face/parent]
 			]
-
+			
 			obj: system/view/platform/make-view face p
 			if with [face/parent: parent]
 			
@@ -721,34 +724,30 @@ show: function [
 				]
 			]
 			
-			switch face/type [
-				#if config/OS = 'Windows [				;@@ remove this system specific code
-					tab-panel [link-tabs-to-parent face]
-				]
-				window	  [
-					pane: system/view/screens/1/pane
-					if find-flag? face/flags 'modal [
-						foreach f head pane [
-							f/enable?: no
-							unless system/view/auto-sync? [show f]
-						]
+			if face/type = 'window [
+				pane: system/view/screens/1/pane
+				if find-flag? face/flags 'modal [
+					foreach f head pane [
+						f/enable?: no
+						unless system/view/auto-sync? [show f]
 					]
-					append pane face
 				]
+				append pane face
 			]
 		]
 		face/state: reduce [obj 0 none false]
-	]
-
-	if face/pane [
-		foreach f face/pane [show/with f face]
-		system/view/platform/refresh-window face/state/1
-	]
-	if all [new? object? face/actors in face/actors 'on-created][
-		do-safe [face/actors/on-created face none]		;@@ only called once
-	]
-	if all [new? face/type = 'window face/visible?][
-		system/view/platform/show-window obj
+		if create [exit]
+		
+		if face/pane [
+			foreach f face/pane [unless f/state [show/with f face]]
+			system/view/platform/refresh-window face/state/1
+		]
+		if all [object? face/actors in face/actors 'on-created][
+			do-safe [face/actors/on-created face none]		;@@ only called once
+		]
+		if all [face/type = 'window face/visible?][
+			system/view/platform/show-window obj
+		]
 	]
 ]
 
