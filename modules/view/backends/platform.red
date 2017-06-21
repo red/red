@@ -725,6 +725,7 @@ system/view/platform: context [
 				radio:		[20x0  1x1]
 				text:		[3x3   0x0]
 				field:		[3x3   0x0]
+				group-box:	[0x8  4x18]
 			]
 		]]
 		
