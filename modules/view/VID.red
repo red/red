@@ -641,7 +641,7 @@ system/view/VID: context [
 				panel/size: pane-size + origin
 			]
 		]
-		if image: panel/image [panel/size: max panel/size image/size]
+		if all [not size image: panel/image][panel/size: max panel/size image/size]
 
 		if all [focal-face not parent][panel/selected: focal-face]
 		
