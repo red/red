@@ -636,7 +636,7 @@ system/view/VID: context [
 			if pane-size <> 0x0 [
 				if svmp [
 					pad2: as-pair svmp/1/y svmp/2/y		;-- bottom-right padding
-					origin: either top-left = pad [pad2][max top-left pad2]
+					origin: either top-left + pad = origin [top-left + pad2][max top-left pad2]
 				]
 				panel/size: pane-size + origin
 			]
