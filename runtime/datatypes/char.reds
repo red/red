@@ -241,7 +241,7 @@ char: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			INHERIT_ACTION	;absolute
 			:add
 			:divide
 			:multiply

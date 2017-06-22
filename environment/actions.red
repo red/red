@@ -86,8 +86,8 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! pair! time!]
-		return:  [number! pair! time!]
+		value	 [number! char! pair! time!]
+		return:  [number! char! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
