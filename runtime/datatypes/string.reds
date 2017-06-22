@@ -1206,7 +1206,8 @@ string: context [
 		p	  [byte-ptr!]
 		tail  [byte-ptr!]
 		unit  [integer!]
-		curly [int-ptr!]
+		c-beg [int-ptr!]
+		c-end [int-ptr!]
 		quote [int-ptr!]
 		nl	  [int-ptr!]
 		/local
@@ -1220,8 +1221,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
 			switch cp [
-				#"{"    [if curly/value >= 0 [curly/value: curly/value + 1]]
-				#"}"    [curly/value: curly/value - 1]
+				#"{"    [c-beg/value: c-beg/value + 1]
+				#"}"    [c-end/value: c-end/value - 1]
 				#"^""   [quote/value: quote/value + 1]
 				#"^/"   [nl/value: 	  nl/value + 1]
 				default [0]
@@ -1287,7 +1288,8 @@ string: context [
 			p4	   [int-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
-			curly  [integer!]
+			c-beg  [integer!]
+			c-end  [integer!]
 			quote  [integer!]
 			nl	   [integer!]
 			open   [byte!]
@@ -1312,14 +1314,15 @@ string: context [
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
-		curly: 0
+		c-beg: 0
+		c-end: 0
 		quote: 0
 		nl:    0
-		sniff-chars p tail unit :curly :quote :nl
+		sniff-chars p tail unit :c-beg :c-end :quote :nl
 
 		either any [
 			nl >= 3
-			negative? curly
+			all [c-beg > 0 c-end > 0 c-beg + c-end <> 0]
 			positive? quote
 			BRACES_THRESHOLD <= rs-length? str
 		][
@@ -1341,7 +1344,7 @@ string: context [
 			either open =  #"{" [
 				switch cp [
 					#"{" #"}" [
-						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
+						if c-beg + c-end <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^""	[append-char GET_BUFFER(buffer) cp]
