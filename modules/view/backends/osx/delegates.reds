@@ -676,7 +676,17 @@ destroy-app: func [
 	app		[integer!]
 	return: [logic!]
 ][
-	no
+	yes
+]
+
+should-terminate: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	app		[integer!]
+	return: [integer!]
+][
+	0			;-- NSTerminateCancel, so we don't exit the console
 ]
 
 win-should-close: func [

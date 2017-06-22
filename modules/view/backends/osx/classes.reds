@@ -150,7 +150,8 @@ add-text-layout-handler: func [class [integer!]][
 ]
 
 add-app-delegate: func [class [integer!]][
-	class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
+	;class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
+	class_addMethod class sel_getUid "applicationShouldTerminate:" as-integer :should-terminate "i12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
 ]
 
