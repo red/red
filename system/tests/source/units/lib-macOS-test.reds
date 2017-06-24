@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Red/System lib osx test script"
+	Title:   "Red/System lib macOS test script"
 	Author:  "Peter W A Wood"
 	File: 	 %lib-test-source.reds
 	Rights:  "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."

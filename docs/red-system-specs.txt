@@ -1533,7 +1533,7 @@ Example:
 A custom call requires an integer number that is consumed internally by the compiler. That integer specifies the number of arguments pushed on stack (which will be cleaned up when the call returns).
 
 \note Stack alignment
-Stack alignment constraints are not enforced by the <b>custom</b> attribute, so be sure to respect the platform-specific conventions with regards to alignment (mainly concerns MacOSX and ARM-based platforms). In order to do it in a clean and cross-platform way, use the <b>system/stack/align</b> call.
+Stack alignment constraints are not enforced by the <b>custom</b> attribute, so be sure to respect the platform-specific conventions with regards to alignment (mainly concerns macOS and ARM-based platforms). In order to do it in a clean and cross-platform way, use the <b>system/stack/align</b> call.
 
 /note
 

@@ -42,7 +42,7 @@ unless exists? build-root-dir [
 		4 [[%aapt %zipalign]]								;-- Linux
 		2 [[%aapt %zipalign]]								;-- macOS
 	]
-	sys: select [3 %win/ 4 %linux/ 2 %osx/] OS
+	sys: select [3 %win/ 4 %linux/ 2 %macOS/] OS
 	
 	foreach file files [
 		prin rejoin [tab file "..."]
