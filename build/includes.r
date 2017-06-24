@@ -222,7 +222,7 @@ write %build/bin/sources.r set-cache [
 			%red.ico
 			%red-3D.ico
 			%red-mono.ico
-			%osx/ [
+			%macOS/ [
 				%Info.plist
 				%Resources/ [
 					%AppIcon.icns
