@@ -173,7 +173,7 @@ write %build/bin/sources.r set-cache [
 					%text-box.reds
 					%win32.reds
 				]
-				%osx/ [
+				%macOS/ [
 					%camera.reds
 					%classes.reds
 					%cocoa.reds

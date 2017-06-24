@@ -34,7 +34,7 @@ Red [
 	#include %utils/preprocessor.r
 
 	;-- temporary code --
-	#if not find [Windows MacOSX] config/OS [
+	#if not find [Windows macOS] config/OS [
 		unset [event! image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]

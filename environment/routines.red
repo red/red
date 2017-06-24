@@ -34,7 +34,7 @@ browse: routine [
 			platform/ShellExecute 0 #u16 "open" unicode/to-utf16 as red-string! url 0 0 1
 			unset/push-last
 		]
-		MacOSX [
+		macOS [
 			use [s [c-string!] cmd [byte-ptr!] len [integer!]][
 				len: -1
 				s: unicode/to-utf8 as red-string! url :len

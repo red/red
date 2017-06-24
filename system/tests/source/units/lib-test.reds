@@ -110,7 +110,7 @@ lt-int!: alias struct! [
 	Windows [
 		#include %lib-win32-test.reds   
 	]
-	MacOSX [
+	macOS [
 		#include %lib-osx-test.reds
 	]
 ]

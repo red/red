@@ -157,7 +157,7 @@ redc: context [
 	
 	get-OS-name: does [
 		switch/default system/version/4 [
-			2 ['MacOSX]
+			2 ['macOS]
 			3 ['Windows]
 			4 ['Linux]
 		]['Linux]										;-- usage related to lib suffixes
@@ -437,7 +437,7 @@ redc: context [
 			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
-					"Darwin"	OSX
+					"Darwin"	macOS
 					"MSDOS"		Windows
 					;"Linux"		Linux-GTK
 				] default-target
@@ -512,7 +512,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows MacOSX [ [[Needs: View]] ]
+			Windows macOS [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
@@ -535,7 +535,7 @@ redc: context [
 		
 		lib?: exists? lib: join file switch/default opts/OS [
 			Windows [%.dll]
-			MacOSX	[%.dylib]
+			macOS	[%.dylib]
 		][%.so]
 		
 		if lib? [

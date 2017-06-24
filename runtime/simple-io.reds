@@ -189,7 +189,7 @@ simple-io: context [
 					pad0		[integer!]
 					pad1		[integer!]
 				]
-				dirent!: alias struct! [				;@@ the same as MacOSX
+				dirent!: alias struct! [				;@@ the same as macOS
 					d_ino		[integer!]
 					d_reclen	[byte!]
 					_d_reclen_	[byte!]
@@ -198,7 +198,7 @@ simple-io: context [
 					;d_name		[byte! [256]]
 				]
 			]
-			OS = 'MacOSX [
+			OS = 'macOS [
 				stat!: alias struct! [
 					st_dev		[integer!]
 					st_ino		[integer!]
@@ -407,7 +407,7 @@ simple-io: context [
 		]
 
 		#case [
-			any [OS = 'MacOSX OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -435,7 +435,7 @@ simple-io: context [
 
 		]
 
-		#either OS = 'MacOSX [
+		#either OS = 'macOS [
 			#import [
 				LIBC-file cdecl [
 					lseek: "lseek" [
@@ -613,7 +613,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'MacOSX OS = 'FreeBSD OS = 'Android] [
+			any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
 				_stat file s
 				s/st_size
 			]
@@ -643,7 +643,7 @@ simple-io: context [
 			OS = 'Windows [
 				SetFilePointer file offset null SET_FILE_BEGIN
 			]
-			OS = 'MacOSX [
+			OS = 'macOS [
 				lseek file offset 0 0					;@@ offset is 64bit
 			]
 			true [
@@ -1011,7 +1011,7 @@ simple-io: context [
 						]
 					]
 				][
-					#either OS = 'MacOSX [
+					#either OS = 'macOS [
 						len: as-integer info/d_namlen
 					][
 						len: length? as-c-string name
@@ -1416,7 +1416,7 @@ simple-io: context [
 				res
 			]
 		]
-		MacOSX [
+		macOS [
 			#either OS-version > 10.7 [
 				#define CFNetwork.lib "/System/Library/Frameworks/CFNetwork.framework/CFNetwork"
 			][

@@ -1,5 +1,5 @@
 REBOL [
-	Title:   "Mac OSX Bundle packager"
+	Title:   "macOS Bundle packager"
 	Author:  "Xie Qingtian"
 	File: 	 %Mach-APP.r
 	Tabs:	 4
@@ -66,9 +66,9 @@ packager: context [
 
 		copy-files file bin-dir/:name
 		delete file
-		copy-file %system/assets/osx/Resources/AppIcon.icns res-dir/AppIcon.icns
+		copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
 
-		plist: read %system/assets/osx/Info.plist
+		plist: read %system/assets/macOS/Info.plist
 		replace/all/case plist "$Red-App-Name$" name
 		write/binary contents-dir/Info.plist plist
 

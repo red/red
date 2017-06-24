@@ -25,7 +25,7 @@ os-version: system/view/platform/version
 			"build" system/view/platform/build
 		]
 	]
-	MacOSX [
+	macOS [
 		print [
 			"macOS" switch os-version and 255.255.0 [
 				10.11.0	["El Capitan"]

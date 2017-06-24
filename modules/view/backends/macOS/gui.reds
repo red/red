@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"MacOSX GUI backend"
+	Title:	"macOS GUI backend"
 	Author: "Qingtian Xie"
 	File: 	%gui.reds
 	Tabs: 	4

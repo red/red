@@ -21,7 +21,7 @@ system/view/VID: context [
 			#include %rules.red
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
-				MacOSX	[#include %backends/osx/rules.red]
+				macOS	[#include %backends/macOS/rules.red]
 			]
 		]
 		

@@ -1479,7 +1479,7 @@ terminal: context [
 		#switch OS [
 			Windows  [#include %windows.reds]
 			Android  []
-			MacOSX   []
+			macOS    []
 			FreeBSD  []
 			Syllable []
 			#default []									;-- Linux

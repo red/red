@@ -1918,7 +1918,7 @@ make-profilable make target-class [
 			compiler/job/OS <> 'Windows
 			slots: emitter/struct-slots?/check spec/4
 			not all [
-				compiler/job/OS = 'MacOSX			;-- on macOS, <ptr> is used for slots > 2 only
+				compiler/job/OS = 'macOS			;-- on macOS, <ptr> is used for slots > 2 only
 				slots <= 2
 			]
 			size: size - stack-width				;-- hidden pointer is freed by callee
@@ -2016,7 +2016,7 @@ make-profilable make target-class [
 		cdecl?: fspec/3 = 'cdecl
 		if all [issue? args/1 not cdecl?][emit-variadic-data args]
 
-		either compiler/job/OS = 'MacOSX [
+		either compiler/job/OS = 'macOS [
 			either PIC? [
 				emit #{8D83}						;-- LEA eax, [ebx+disp]	; PIC
 			][

@@ -101,7 +101,7 @@ re-throw: func [/local id [integer!]][
 
 #switch OS [
 	Windows  [#define LIBREDRT-file "libRedRT.dll"]
-	MacOSX	 [#define LIBREDRT-file "libRedRT.dylib"]
+	macOS	 [#define LIBREDRT-file "libRedRT.dylib"]
 	#default [#define LIBREDRT-file "libRedRT.so"]
 ]
 
@@ -123,7 +123,7 @@ re-throw: func [/local id [integer!]][
 		]
 	]
 	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %darwin.reds]
+	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
 	#default [#include %linux.reds]

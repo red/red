@@ -524,7 +524,7 @@ system/view/platform: context [
 					;#include %android/gui.reds
 					#switch OS [
 						Windows  [#include %windows/gui.reds]
-						MacOSX   [#include %osx/gui.reds]
+						macOS    [#include %macOS/gui.reds]
 						#default []					;-- Linux
 					]
 				]
@@ -703,7 +703,7 @@ system/view/platform: context [
 				text-list:	[0x0   0x15]
 				group-box:	[0x0   0x1]
 			]
-			MacOSX [
+			macOS [
 				button:		[6x6   2x3]
 				group-box:	[3x3   0x4]
 				tab-panel:	[7x7   6x10]
@@ -719,7 +719,7 @@ system/view/platform: context [
 				tab-panel:	[1x3  25x0]
 				button:		[8x8   0x0]
 			]
-			MacOSX [
+			macOS [
 				button:		[7x7   0x0]
 				check:		[20x0  3x1]
 				radio:		[20x0  1x1]
@@ -736,7 +736,7 @@ system/view/platform: context [
 				;colors/window							;-- set in gui/init from OS metrics
 				;colors/panel							;-- set in gui/init from OS metrics
 			]
-			MacOSX [
+			macOS [
 			
 			]
 		]

@@ -2923,7 +2923,7 @@ system-dialect: make-profilable context [
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
 					all [
-						not find [Windows MacOSX] job/OS ;-- fallback on Linux ABI
+						not find [Windows macOS] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
 					]
 				]
@@ -3533,7 +3533,7 @@ system-dialect: make-profilable context [
 				Windows [
 					[handle [integer!]]
 				]
-				MacOSX [
+				macOS [
 					pick [
 						[
 							argc	[integer!]
@@ -3696,7 +3696,7 @@ system-dialect: make-profilable context [
  		
  		if red? [
 			if all [job/dev-mode? job/type = 'exe][
-				ext: switch/default job/OS [Windows [%.dll] MacOSX [%.dylib]][%.so]
+				ext: switch/default job/OS [Windows [%.dll] macOS [%.dylib]][%.so]
 				compiler/process-import compose [
 					(join "libRedRT" ext) stdcall [__red-boot: "red/boot" []]
 				]
@@ -3856,7 +3856,7 @@ system-dialect: make-profilable context [
 				job/need-main?							;-- pass-thru if set in config file
 				all [
 					job/type = 'exe
-					not find [Windows MacOSX] job/OS
+					not find [Windows macOS] job/OS
 				]
 			]
 			

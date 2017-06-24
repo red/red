@@ -10,7 +10,7 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
+;;	OS:				'Windows | 'Linux | 'macOS | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
@@ -168,7 +168,7 @@ FreeBSD [
 ]
 ;-------------------------
 Darwin [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'console
@@ -176,7 +176,7 @@ Darwin [
 	stack-align-16?: yes
 ]
 DarwinSO [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'dll
 	sub-system: 'console
@@ -185,8 +185,8 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-OSX [
-	OS:			'MacOSX
+macOS [
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'GUI

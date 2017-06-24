@@ -84,7 +84,7 @@ Red/System [
 	EXTRACT_ARGB
 ]
 
-#if OS = 'MacOSX [
+#if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
 		a		[float32!]
 		b		[float32!]
@@ -317,7 +317,7 @@ Red/System [
 	#define	DT_DIR		#"^(04)"
 	
 	#case [
-		any [OS = 'FreeBSD OS = 'MacOSX] [
+		any [OS = 'FreeBSD OS = 'macOS] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h

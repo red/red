@@ -295,7 +295,7 @@ crypto: context [
 	]
 
 	#case [
-		any [OS = 'FreeBSD OS = 'MacOSX] [
+		any [OS = 'FreeBSD OS = 'macOS] [
 			#import [
 			LIBC-file cdecl [
 				get-errno-ptr: "__error" [
@@ -587,10 +587,10 @@ crypto: context [
 			hash
 		]
 	]
-	#default [											;-- MacOSX,Android,Syllable,FreeBSD
+	#default [											;-- macOS,Android,Syllable,FreeBSD
 		;-- Using OpenSSL Crypto library
 		#switch OS [
-			MacOSX [
+			macOS [
 				#define LIBCRYPTO-file "libcrypto.dylib"
 			]
 			FreeBSD [

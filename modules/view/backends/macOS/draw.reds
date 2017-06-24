@@ -1,5 +1,5 @@
 Red/System [
-	Title:	"OSX Draw dialect backend"
+	Title:	"macOS Draw dialect backend"
 	Author: "Qingtian Xie"
 	File: 	%draw.reds
 	Tabs: 	4
