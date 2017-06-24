@@ -113,7 +113,6 @@ either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
 ][
 	print ["The test output was logged to" qt/log-file]
-	ask "hit enter to finish"
 	print ""
 	qt/test-run/failures
 ]
