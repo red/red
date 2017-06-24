@@ -122,7 +122,7 @@ Cross-compilation targets:
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
     RPi          : GNU/Linux, ARMv5, armhf (hard-float)
-    Darwin       : MacOSX Intel, console-only applications
+    Darwin       : macOS Intel, console-only applications
     Syllable     : Syllable OS, x86
     FreeBSD      : FreeBSD, x86
     Android      : Android, ARMv5
