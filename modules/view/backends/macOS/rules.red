@@ -10,8 +10,9 @@ Red [
 	}
 ]
 
-ok-captions: ["ok" "save" "apply"]
-no-capital:  ["a " | "an " | "the " | "and " | "or "]
+cancel-captions: ["cancel" "delete" "remove"]
+ok-captions: 	 ["ok" "save" "apply"]
+no-capital:  	 ["a " | "an " | "the " | "and " | "or "]
 
 title-ize: function [text [string!] return: [string!]][
 	parse text [
@@ -79,6 +80,7 @@ Cancel-OK: function [
 				all [
 					f <> face
 					f/type = 'button
+					find cancel-captions f/text
 					5 > absolute f/offset/y - pos-y
 					pos-x < f/offset/x
 					pos-x: f/offset/x
