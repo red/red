@@ -1419,6 +1419,7 @@ set-hint-text: func [
 parse-common-opts: func [
 	hWnd	[integer!]
 	options [red-block!]
+	type	[integer!]
 	/local
 		word	[red-word!]
 		w		[red-word!]
@@ -1429,7 +1430,9 @@ parse-common-opts: func [
 		cur		[c-string!]
 		hcur	[integer!]
 		nsimg	[integer!]
+		btn?	[logic!]
 ][
+	btn?: yes
 	if TYPE_OF(options) = TYPE_BLOCK [
 		word: as red-word! block/rs-head options
 		len: block/rs-length? options
@@ -1472,6 +1475,7 @@ parse-common-opts: func [
 						true			[0]
 					]
 					objc_msgSend [hWnd sel_getUid "setControlSize:" sym]
+					btn?: no
 				]
 				sym = _accelerated [
 					bool: as red-logic! word + 1
@@ -1482,6 +1486,11 @@ parse-common-opts: func [
 			word: word + 2
 			len: len - 2
 		]
+	]
+
+	if type = button [
+		len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
+		objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
 	]
 ]
 
@@ -1611,6 +1620,8 @@ OS-make-view: func [
 		obj: objc_msgSend [obj sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h]
 	]
 
+	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS sym
+
 	case [
 		sym = text [
 			objc_msgSend [obj sel_getUid "setEditable:" false]
@@ -1636,15 +1647,6 @@ OS-make-view: func [
 			make-text-list face obj rc
 		]
 		any [sym = button sym = check sym = radio][
-			len: either any [
-				size/y > 32
-				TYPE_OF(img) = TYPE_IMAGE
-			][
-				NSRegularSquareBezelStyle
-			][
-				NSRoundedBezelStyle
-			]
-			objc_msgSend [obj sel_getUid "setBezelStyle:" len]
 			if sym <> button [
 				objc_msgSend [obj sel_getUid "setButtonType:" flags]
 				set-logic-state obj as red-logic! data no
@@ -1718,7 +1720,6 @@ OS-make-view: func [
 		true [0]
 	]
 
-	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS
 	change-selection obj as red-integer! values + FACE_OBJ_SELECTED sym
 	change-para obj face as red-object! values + FACE_OBJ_PARA font sym
 
