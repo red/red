@@ -299,6 +299,7 @@ Red/System [
 #define WM_MOVING			0216h
 #define WM_ENTERSIZEMOVE	0231h
 #define WM_EXITSIZEMOVE		0232h
+#define WM_DROPFILES		0233h
 #define WM_IME_SETCONTEXT	0281h
 #define WM_IME_NOTIFY		0282h
 #define WM_COPY				0301h
@@ -2707,6 +2708,19 @@ XFORM!: alias struct! [
 			pidl		[integer!]
 			pszPath		[byte-ptr!]
 			return:		[logic!]
+		]
+		DragAcceptFiles: "DragAcceptFiles" [
+			hWnd	[handle!]
+			fAccept [logic!]
+		]
+		DragQueryFile: "DragQueryFileW" [
+			hDrop    [integer!]
+			iFile    [integer!]  ;Index of the file to query. If the value of this parameter is 0xFFFFFFFF, DragQueryFile returns a count of the files dropped.
+			lpszFile [byte-ptr!] ;The address of a buffer that receives the file name of a dropped file when the function returns.
+								 ; This file name is a null-terminated string. If this parameter is NULL, DragQueryFile returns
+								 ; the required size, in characters, of this buffer.
+			cch      [integer!]  ;The size, in characters, of the lpszFile buffer.
+			return:  [integer!]  ;A nonzero value indicates a successful call.
 		]
 	]
 	"ole32.dll" stdcall [

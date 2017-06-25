@@ -554,6 +554,7 @@ system/view: context [
 		drag-start		on-drag-start
 		drag			on-drag
 		drop			on-drop
+		drop-files		on-drop-files
 		click			on-click
 		dbl-click		on-dbl-click
 		over			on-over

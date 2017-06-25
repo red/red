@@ -261,6 +261,12 @@ get-event-picked: func [
 		msg	[tagMSG]
 		gi	[GESTUREINFO]
 		zd	[float!]
+		i   [integer!]
+		num [integer!]
+		sz  [integer!]
+		blk [red-block!]
+		buf [byte-ptr!]
+		bsz [integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -291,6 +297,29 @@ get-event-picked: func [
 		EVT_SCROLL [
 			msg: as tagMSG evt/msg
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
+		]
+		EVT_DROP_FILES [
+			msg: as tagMSG evt/msg
+			num: DragQueryFile msg/wParam FFFFFFFFh null 0 ;sets number of dropped files
+			blk: block/push* num ;creates block which will hold file names (as strings)
+			bsz: 64           ;initial temp buffer size
+			buf: allocate bsz ;allocates temp buffer used to query dropped file names
+			i: 0
+			while [i < num][
+				sz: 1 + DragQueryFile msg/wParam i null 0 ;returns the required size, in characters
+				if sz > bsz [
+					;reallocating temp buffer to hold result
+					free buf
+					bsz: sz
+					buf: allocate bsz
+				]
+				if 0 <> DragQueryFile msg/wParam i buf bsz [
+					string/load-in as c-string! buf sz - 1 blk UTF-16LE
+				]
+				i: i + 1
+			]
+			free buf
+			blk
 		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]
@@ -1143,6 +1172,9 @@ WndProc: func [
 				]
 			]
 		]
+		;WM_DROPFILES [
+		;	print-line "DROP FILES!! events.reds WndProc"
+		;]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
@@ -1164,6 +1196,10 @@ process: func [
 		evt?   [logic!]
 ][
 	switch msg/msg [
+		WM_DROPFILES [
+			make-event msg 0 EVT_DROP_FILES
+			EVT_DISPATCH
+		]
 		WM_MOUSEMOVE [
 			lParam: msg/lParam
 			x: WIN32_LOWORD(lParam)

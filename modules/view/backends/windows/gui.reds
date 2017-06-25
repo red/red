@@ -752,6 +752,8 @@ init-window: func [										;-- post-creation settings
 	SetWindowLong handle wc-offset - 4 0
 	SetWindowLong handle wc-offset - 24 0
 
+	DragAcceptFiles handle true
+
 	modes: SWP_NOZORDER
 
 	if bits and FACET_FLAGS_MODAL	  <> 0 [

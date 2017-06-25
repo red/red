@@ -172,6 +172,8 @@ system/view/platform: context [
 				EVT_TIME
 				EVT_DRAWING
 				EVT_SCROLL
+
+				EVT_DROP_FILES
 			]
 			
 			#enum event-flag! [
@@ -346,6 +348,7 @@ system/view/platform: context [
 			_time:			word/load "time"
 			_drawing:		word/load "drawing"
 			_scroll:		word/load "scroll"
+			_drop-files:	word/load "drop-files"
 
 			_track:			word/load "track"
 			_page-left:		word/load "page-left"
@@ -425,6 +428,7 @@ system/view/platform: context [
 					EVT_ROTATE		 [_rotate]
 					EVT_TWO_TAP		 [_two-tap]
 					EVT_PRESS_TAP	 [_press-tap]
+					EVT_DROP_FILES	 [_drop-files]
 				]
 			]
 			
@@ -471,6 +475,7 @@ system/view/platform: context [
 					sym = _rotate/symbol		[sym: EVT_ROTATE]
 					sym = _two-tap/symbol		[sym: EVT_TWO_TAP]
 					sym = _press-tap/symbol		[sym: EVT_PRESS_TAP]
+					sym = _drop-files/symbol 	[sym: EVT_DROP_FILES]
 					true [
 						fire [TO_ERROR(script not-event-type) word]
 					]
