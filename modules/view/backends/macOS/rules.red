@@ -60,7 +60,7 @@ capitalize: function [
 ]
 
 adjust-buttons: function [
-	"Switch to standard button
+	"Use standard button classes when buttons are narrow enough"
 	root [object!]
 ][
 	foreach-face/with root [
