@@ -21,6 +21,8 @@ int main() {
 	int o_b_2 = redSymbol("o_b_2");
 	int print = redSymbol("print");
 	int	  o_b = redSymbol("o_b");
+	int	    b = redSymbol("b");
+	red_value  obj;
 
 	redSet(o_b, redLoadPath("o/b"));
 	redDo("?? o_b");
@@ -53,6 +55,11 @@ int main() {
 
 	redSetPath(redGet(o_b), redInteger(123));
 	redProbe(redGetPath(redGet(o_b)));
+
+	obj = redGet(redSymbol("o"));
+	redProbe(redGetField(obj, b));
+	redSetField(obj, b, redInteger(99));
+	redProbe(redGetField(obj, b));
 
 	red_binary bin = redBinary(buffer, 5);
 	redProbe(bin);
