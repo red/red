@@ -67,9 +67,9 @@ adjust-buttons: function [
 		y: face/size/y
 		face/options: compose [height: (
 			case [
-				y <= 20	[face/size/y: 16 'mini]			;-- 16 + 4
-				y <= 28 [face/size/y: 28 'small]
-				y <= 40 [face/size/y: 32 'regular]		;-- 32 + 8
+				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
+				y <= 19 [face/size/y: 28 + 10 'small]		;-- 28, margins: 4x6
+				y <= 29	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
 			]
 		)]
 	][
