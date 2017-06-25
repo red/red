@@ -59,6 +59,29 @@ capitalize: function [
 	]
 ]
 
+adjust-buttons: function [
+	"Switch to standard button
+	root [object!]
+][
+	foreach-face/with root [
+		y: face/size/y
+		face/options: compose [height: (
+			case [
+				y <= 20	[face/size/y: 16 'mini]			;-- 16 + 4
+				y <= 28 [face/size/y: 28 'small]
+				y <= 40 [face/size/y: 32 'regular]		;-- 32 + 8
+			]
+		)]
+	][
+		all [
+			face/type = 'button
+			face/size
+			face/size/y < 40
+			not empty? face/text
+		]
+	]
+]
+
 Cancel-OK: function [
 	"Put OK buttons last"
 	root [object!]

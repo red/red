@@ -33,6 +33,7 @@ system/view/VID: context [
 				OK-Cancel
 			]
 			macOS [
+				adjust-buttons
 				capitalize
 				Cancel-OK
 			]
