@@ -118,6 +118,10 @@ Public Declare Function redGet Lib "libRed.dll" (ByVal id As Long) As Long
 Public Declare Function redSetPath Lib "libRed.dll" (ByVal path As Long, ByVal value As Long) As Long
 Public Declare Function redGetPath Lib "libRed.dll" (ByVal path As Long) As Long
 
+'--- Access to a Red object/map/struct field ---
+Public Declare Function redSetField Lib "libRed.dll" (ByVal obj As Long, ByVal field as Long, ByVal value As Long) As Long
+Public Declare Function redGetField Lib "libRed.dll" (ByVal obj As Long, ByVal field as Long) As Long
+
 '--- libRed settings ---
 Public Declare Sub redSetEncoding Lib "libRed.dll" (ByVal encIn As Long, ByVal encOut As Long)
 

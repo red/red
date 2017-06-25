@@ -39,6 +39,8 @@ redSet
 redGet
 redSetPath
 redGetPath
+redSetField
+redGetField
 redRoutine
 redTypeOf
 redCall

@@ -116,6 +116,10 @@ EXTERN_C
 	red_value	redSetPath(red_path path, red_value value);
 	red_value	redGetPath(red_path path);
 
+/* Access to a Red object/map/struct field */
+	red_value	redSetField(red_value obj, long field, red_value value);
+	red_value	redGetField(red_value obj, long field);
+
 /* Debugging */
 	void		redPrint(red_value value);
 	red_value	redProbe(red_value value);

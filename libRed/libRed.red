@@ -89,40 +89,42 @@ Red [
 	encoding-out: UTF8
 
 	names: context [
-		action:		word/load "action"
-		print:		word/load "print"
-		extern:		word/load "extern"
-		redDo:		word/load "redDo"
-		redDoFile:	word/load "redDoFile"
-		redDoBlock:	word/load "redDoBlock"
-		redCall:	word/load "redCall"
-		redLDPath:	word/load "redLoadPath"
-		redSetPath: word/load "redSetPath"
-		redGetPath: word/load "redGetPath"
-		redRoutine: word/load "redRoutine"
-		redString:	word/load "redString"
-		redWord:	word/load "redWord"
-		redCInt32:	word/load "redCInt32"
-		redCDouble:	word/load "redCDouble"
-		redCString:	word/load "redCString"
-		redVString:	word/load "redVString"
+		action:		 word/load "action"
+		print:		 word/load "print"
+		extern:		 word/load "extern"
+		redDo:		 word/load "redDo"
+		redDoFile:	 word/load "redDoFile"
+		redDoBlock:	 word/load "redDoBlock"
+		redCall:	 word/load "redCall"
+		redLDPath:	 word/load "redLoadPath"
+		redSetPath:  word/load "redSetPath"
+		redGetPath:  word/load "redGetPath"
+		redSetField: word/load "redSetField"
+		redGetField: word/load "redGetField"
+		redRoutine:  word/load "redRoutine"
+		redString:	 word/load "redString"
+		redWord:	 word/load "redWord"
+		redCInt32:	 word/load "redCInt32"
+		redCDouble:	 word/load "redCDouble"
+		redCString:	 word/load "redCString"
+		redVString:	 word/load "redVString"
 		
-		redAppend:	word/load "redAppend"
-		redChange:	word/load "redChange"
-		redClear:	word/load "redClear"
-		redCopy:	word/load "redCopy"
-		redFind:	word/load "redFind"
-		redIndex?:	word/load "redIndex?"
-		redLength?:	word/load "redLength?"
-		redMake:	word/load "redMake"
-		redMold:	word/load "redMold"
-		redPick:	word/load "redPick"
-		redPoke:	word/load "redPoke"
-		redPut:		word/load "redPut"
-		redRemove:	word/load "redRemove"
-		redSelect:	word/load "redSelect"
-		redSkip:	word/load "redSkip"
-		redTo:		word/load "redTo"
+		redAppend:	 word/load "redAppend"
+		redChange:	 word/load "redChange"
+		redClear:	 word/load "redClear"
+		redCopy:	 word/load "redCopy"
+		redFind:	 word/load "redFind"
+		redIndex?:	 word/load "redIndex?"
+		redLength?:	 word/load "redLength?"
+		redMake:	 word/load "redMake"
+		redMold:	 word/load "redMold"
+		redPick:	 word/load "redPick"
+		redPoke:	 word/load "redPoke"
+		redPut:		 word/load "redPut"
+		redRemove:	 word/load "redRemove"
+		redSelect:	 word/load "redSelect"
+		redSkip:	 word/load "redSkip"
+		redTo:		 word/load "redTo"
 		
 		redOpenLogFile: word/load "redOpenLogFile"
 	]
@@ -727,6 +729,40 @@ Red [
 		ring/store do-safe cmd-blk names/redGetPath
 	]
 	
+	redSetField: func [
+		obj 	[red-value!]
+		field	[integer!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
+		TRAP_ERRORS(names/redSetField [
+			stack/push obj
+			word/push* field
+			stack/push value
+			actions/eval-path* yes
+			stack/unwind-last
+		])
+	]
+	
+	redGetField: func [
+		obj 	[red-value!]
+		field	[integer!]
+		return: [red-value!]
+		/local
+			res [red-value!]
+	][
+		CHECK_LIB_OPENED_RETURN(red-value!)
+		TRAP_ERRORS(names/redGetField [
+			stack/push obj
+			word/push* field
+			actions/eval-path* no
+			stack/unwind-last
+		])
+	]
+	
 	redTypeOf: func [
 		value	[red-value!]
 		return: [integer!]
@@ -1129,6 +1165,8 @@ Red [
 		redGet
 		redSetPath
 		redGetPath
+		redSetField
+		redGetField
 		redRoutine
 		redTypeOf
 		redCall
