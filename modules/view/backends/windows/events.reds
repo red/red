@@ -1172,9 +1172,6 @@ WndProc: func [
 				]
 			]
 		]
-		;WM_DROPFILES [
-		;	print-line "DROP FILES!! events.reds WndProc"
-		;]
 		default [0]
 	]
 	if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
