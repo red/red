@@ -698,10 +698,10 @@ system/view/platform: context [
 
 		extend system/view/metrics/margins [#switch config/OS [
 			Windows [
-				button:		[1x1   1x1]					;-- LeftxRight TopxBottom
-				tab-panel:	[0x2   0x1]
-				text-list:	[0x0   0x15]
-				group-box:	[0x0   0x1]
+				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
+				tab-panel:		[0x2   0x1]
+				text-list:		[0x0   0x15]
+				group-box:		[0x0   0x1]
 			]
 			macOS [
 				button:			[2x2   2x3]
@@ -716,11 +716,11 @@ system/view/platform: context [
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
-				check:		[16x0  0x0]					;-- 13 + 3 for text padding
-				radio:		[16x0  0x0]					;-- 13 + 3 for text padding
-				group-box:	[3x3  10x3]
-				tab-panel:	[1x3  25x0]
-				button:		[8x8   0x0]
+				check:			[16x0  0x0]				;-- 13 + 3 for text padding
+				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
+				group-box:		[3x3  10x3]
+				tab-panel:		[1x3  25x0]
+				button:			[8x8   0x0]
 			]
 			macOS [
 				button:			[11x11 0x0]
