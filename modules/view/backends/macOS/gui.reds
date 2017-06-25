@@ -220,7 +220,7 @@ free-handles: func [
 		objc_msgSend [hWnd sel_getUid "close"]
 		win-cnt: win-cnt - 1
 	][
-		objc_msgSend [hWnd sel_getUid "removeFromSuperview"]
+		unless close-window? [objc_msgSend [hWnd sel_getUid "removeFromSuperview"]]
 	]
 
 	state: values + FACE_OBJ_STATE
