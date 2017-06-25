@@ -64,7 +64,7 @@ adjust-buttons: function [
 	root [object!]
 ][
 	foreach-face/with root [
-		y: face/size/y
+		y: face/size/y - 5									;-- remove default button's margins
 		face/options: compose [height: (
 			case [
 				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
@@ -76,7 +76,7 @@ adjust-buttons: function [
 		all [
 			face/type = 'button
 			face/size
-			face/size/y <= 37								;-- average [29 45]
+			face/size/y <= 32								;-- average [29 45] - 5
 			not empty? face/text
 		]
 	]
