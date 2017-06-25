@@ -69,14 +69,14 @@ adjust-buttons: function [
 			case [
 				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
 				y <= 19 [face/size/y: 28 + 10 'small]		;-- 28, margins: 4x6
-				y <= 29	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
+				y <= 37	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
 			]
 		)]
 	][
 		all [
 			face/type = 'button
 			face/size
-			face/size/y < 40
+			face/size/y <= 37								;-- average [29 45]
 			not empty? face/text
 		]
 	]
