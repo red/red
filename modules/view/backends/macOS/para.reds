@@ -38,7 +38,7 @@ change-para: func [
 				change-font hWnd face font type
 			][
 				flags: get-para-flags type para
-				objc_msgSend [hWnd sel_getUid "setAlignment:" flags and 0Fh]
+				objc_msgSend [hWnd sel_getUid "setAlignment:" flags and 3]
 			]
 		]
 		true [0]

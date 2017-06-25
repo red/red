@@ -192,6 +192,7 @@ make-font-attrs: func [
 		values	[red-value!]
 		blk		[red-block!]
 		style	[red-word!]
+		o-para	[red-object!]
 		nsfont	[integer!]
 		nscolor [integer!]
 		len		[integer!]
@@ -233,11 +234,18 @@ make-font-attrs: func [
 	under: CFNumberCreate 0 15 :under
 	strike: CFNumberCreate 0 15 :strike
 
+	len: -1
+	if TYPE_OF(face) = TYPE_OBJECT [
+		o-para: as red-object! (object/get-values face) + FACE_OBJ_PARA
+		if TYPE_OF(o-para) = TYPE_OBJECT [len: 3 and get-para-flags type o-para]
+	]
+	if all [type = button len = -1][len: NSTextAlignmentCenter]
+
 	para: 0
-	if type = button [
+	if len <> -1 [
 		para: objc_msgSend [objc_getClass "NSParagraphStyle" sel_getUid "defaultParagraphStyle"]
 		para: objc_msgSend [para sel_getUid "mutableCopy"]
-		objc_msgSend [para sel_getUid "setAlignment:" NSTextAlignmentCenter]
+		objc_msgSend [para sel_getUid "setAlignment:" len]
 	]
 
 	attrs: objc_msgSend [objc_getClass "NSDictionary" sel_getUid "alloc"]
