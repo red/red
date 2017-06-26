@@ -876,10 +876,14 @@ msg-send-super: func [
 	return: [integer!]
 	/local
 		super [objc_super! value]
+		cls   [integer!]
 ][
-	super/receiver: id
-	super/superclass: objc_msgSend [id sel_getUid "superclass"]
-	objc_msgSendSuper [super sel arg]
+	cls: objc_msgSend [id sel_getUid "superclass"]
+	either cls = nsview-id [0][
+		super/receiver: id
+		super/superclass: cls
+		objc_msgSendSuper [super sel arg]
+	]
 ]
 
 to-red-string: func [
