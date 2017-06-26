@@ -2722,6 +2722,10 @@ XFORM!: alias struct! [
 			cch      [integer!]  ;The size, in characters, of the lpszFile buffer.
 			return:  [integer!]  ;A nonzero value indicates a successful call.
 		]
+		DragFinish: "DragFinish" [
+			;Releases memory that the system allocated for use in transferring file names to the application.
+			hDrop    [integer!]
+		]
 	]
 	"ole32.dll" stdcall [
 		CoTaskMemFree: "CoTaskMemFree" [

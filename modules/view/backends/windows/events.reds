@@ -319,6 +319,8 @@ get-event-picked: func [
 				i: i + 1
 			]
 			free buf
+			DragFinish msg/wParam ;- this will prevent receiving any content from multiple `event/picked`
+			                      ;- calls but better to do it than have some memory leak
 			blk
 		]
 		default	 [integer/push evt/flags << 16 >> 16]
