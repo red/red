@@ -229,27 +229,23 @@ error: context [
 						]
 					]
 					TYPE_SET_WORD [
-						value: block/select-word blk words/_type no
-						if TYPE_OF(value) = TYPE_NONE [
-							fire [TO_ERROR(script missing-spec-field) words/_type]
+						_context/bind blk GET_CTX(new) new/ctx yes
+						interpreter/eval blk no
+
+						value: object/rs-select new as red-value! words/_type
+						if TYPE_OF(value) <> TYPE_WORD [
+							fire [TO_ERROR(script invalid-spec-field) words/_type]
 						]
 						cat: object/rs-find errors value
 						if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_type]]
-						
-						value: block/select-word blk words/_id no
-						if TYPE_OF(value) = TYPE_NONE [
-							fire [TO_ERROR(script missing-spec-field) words/_id]
+
+						value: object/rs-select new as red-value! words/_id
+						if TYPE_OF(value) <> TYPE_WORD [
+							fire [TO_ERROR(script invalid-spec-field) words/_id]
 						]
 						errors: (as red-object! object/get-values errors) + cat
-						if value < block/rs-tail blk [
-							cat: object/rs-find errors value
-							if cat = -1 [
-								fire [TO_ERROR(script invalid-spec-field) words/_id]
-							]
-						]
-						
-						_context/bind blk GET_CTX(new) new/ctx yes
-						interpreter/eval blk no
+						cat: object/rs-find errors value
+						if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					default [
 						fire [TO_ERROR(internal invalid-error)]
