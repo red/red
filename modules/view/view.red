@@ -690,8 +690,9 @@ show: function [
 		new?: yes
 		
 		if face/type <> 'screen [
-			if all [not parent not object? face/parent face/type <> 'window][
-				cause-error 'script 'not-linked []
+			if face/type <> 'window [
+				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
+				unless parent [cause-error 'script 'not-linked []]
 			]
 			if any [series? face/extra object? face/extra][
 				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
