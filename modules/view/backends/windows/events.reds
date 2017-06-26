@@ -306,15 +306,15 @@ get-event-picked: func [
 			buf: allocate bsz ;allocates temp buffer used to query dropped file names
 			i: 0
 			while [i < num][
-				sz: 1 + DragQueryFile msg/wParam i null 0 ;returns the required size, in characters
-				if sz > bsz [
+				sz: DragQueryFile msg/wParam i null 0 ;returns the required size, in characters
+				if sz >= bsz [
 					;reallocating temp buffer to hold result
 					free buf
-					bsz: sz
+					bsz: sz + 1
 					buf: allocate bsz
 				]
 				if 0 <> DragQueryFile msg/wParam i buf bsz [
-					string/load-in as c-string! buf sz - 1 blk UTF-16LE
+					string/load-in as c-string! buf sz blk UTF-16LE
 				]
 				i: i + 1
 			]
