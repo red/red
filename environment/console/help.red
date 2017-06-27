@@ -119,7 +119,7 @@ help-ctx: context [
 			]
 			any-object? value    [fmt words-of value]
 			map? value           [fmt keys-of value]
-			image? value         [fmt reduce ["size:" value/size]]
+			image? value         [fmt form reduce ["size:" value/size]]
 			typeset? value       [fmt to block! value]
 			string? value        [fmt/molded value]
 			'else                [fmt :value]
