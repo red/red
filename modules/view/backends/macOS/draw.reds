@@ -62,6 +62,7 @@ draw-begin: func [
 	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
+	ctx/grad-pos?:		no
 	ctx/colorspace:		CGColorSpaceCreateDeviceRGB
 	ctx/last-pt-x:		as float32! 0.0
 	ctx/last-pt-y:		as float32! 0.0
@@ -1081,6 +1082,11 @@ OS-draw-grad-pen-old: func [
 		n		[integer!]
 		delta	[float32!]
 		p		[float32!]
+		angle	[float32!]
+		sx		[float32!]
+		sy		[float32!]
+		rotate? [logic!]
+		scale?	[logic!]
 ][
 	dc/grad-type: type
 	dc/grad-spread: spread
@@ -1088,17 +1094,23 @@ OS-draw-grad-pen-old: func [
 	dc/grad-y1: as float32! offset/y
 
 	int: as red-integer! offset + 1
-	dc/grad-x2: as float32! int/value
+	sx: as float32! int/value
 	int: int + 1
-	dc/grad-y2: as float32! int/value
+	sy: as float32! int/value
 
-	if type = radial [
-		dc/grad-radius: dc/grad-y2 - dc/grad-x2
+	dc/grad-y2: dc/grad-y1
+	either type = linear [
+		dc/grad-x2: dc/grad-x1 + sy
+		dc/grad-x1: dc/grad-x1 + sx
+	][
+		dc/grad-radius: sy - sx
 		dc/grad-x2: dc/grad-x1
-		dc/grad-y2: dc/grad-y1
 	]
 
 	n: 0
+	rotate?: no
+	scale?: no
+	sy: as float32! 1.0
 	while [
 		int: int + 1
 		n < 3
@@ -1109,11 +1121,18 @@ OS-draw-grad-pen-old: func [
 			default			[break]
 		]
 		switch n [
-			0	[if p <> as float32! 0.0 [dc/grad-angle: p dc/grad-rotate?: yes]]
-			1	[if p <> as float32! 1.0 [dc/grad-sx: p dc/grad-scale?: yes]]
-			2	[if p <> as float32! 1.0 [dc/grad-sy: p dc/grad-scale?: yes]]
+			0	[if p <> F32_0 [angle: p rotate?: yes]]
+			1	[if p <> F32_1 [sx: p scale?: yes]]
+			2	[if p <> F32_1 [sy: p scale?: yes]]
 		]
 		n: n + 1
+	]
+	if rotate? [
+		p: (as float32! PI) / (as float32! 180.0)
+		dc/matrix: CGAffineTransformRotate dc/matrix p * angle
+	]
+	if scale? [
+		dc/matrix: CGAffineTransformScale dc/matrix sx sy
 	]
 
 	color: colors + 4
