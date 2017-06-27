@@ -1012,7 +1012,6 @@ OS-draw-image: func [
 			as float32! crop1/y
 			w
 			h
-		CGImageRelease img
 		img: sub-img
 	]
 
