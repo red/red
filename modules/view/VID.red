@@ -339,7 +339,13 @@ system/view/VID: context [
 			opts/size-x: style/template/size/x
 		]
 		user-size?: opts/size
-
+		
+		all [											;-- handle `image data`
+			face/type = 'base
+			image? opts/data
+			opts/image: opts/data
+			opts/data: none
+		]
 		if all [oi: opts/image any [opts/size-x not opts/size]][
 			opts/size: either opts/size-x [
 				x: either zero? oi/size/x [1][oi/size/x]
