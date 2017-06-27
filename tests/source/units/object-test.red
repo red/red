@@ -993,6 +993,7 @@ Red [
 		--assert 's = in ino1/o/o/o 's
 		
 	--test-- "in5"
+		a: 0
 		in5-f: func[] [make object! [a: 1]]
 		--assert 1 = get in in5-f 'a	
 	
@@ -2170,6 +2171,48 @@ Red [
 		]
 		ooc1/a: 3
 		--assert ooc1/b = 9
+		
+===end-group===
+
+===start-group=== "on deep change"
+
+	--test-- "oodc1"
+		oodc1: make object! [
+			on-deep-change*: func [
+				owner word target action new index part
+			][
+				a: length? b
+			]
+			a: 0
+			b: [1 2 3 4 5]
+		]
+		append oodc1/b 6
+		--assert oodc1/a = 6
+		append oodc1/b [7 8 9]
+		--assert oodc1/a = 9
+		append/only oodc1/b [10 11 12]
+		--assert oodc1/a = 10
+		append oodc1/b/10 13
+		--assert oodc1/a = 10
+	
+	--test-- "oodc2"
+		oodc2: make object! [
+			on-deep-change*: func [
+				owner word target action new index part
+			][
+				if equal? mold owner mold make object! [a: 0 b: [1 2 3 4 5 6]] [a: a + 1]
+				if equal? word 'b [a: a + 10]
+				if equal? target [1 2 3 4 5 6] [a: a + 100]
+				if equal? action 'insert [a: a + 1000]
+				if equal? new 6 [a: a + 10000]
+				if equal? index 5 [a: a + 100000]
+				if equal? part 1 [a: a + 1000000]				 
+			]
+			a: 0
+			b: [1 2 3 4 5]
+		]
+		append oodc2/b 6
+		--assert oodc2/a = 1111111
 		
 ===end-group===
 
