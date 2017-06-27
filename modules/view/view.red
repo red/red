@@ -706,7 +706,7 @@ show: function [
 			#if config/OS = 'macOS [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][
 					link-tabs-to-parent face
-					foreach f face/pane [show/create f]
+					foreach f face/pane [show/force f]
 				]
 			]
 
