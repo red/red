@@ -223,7 +223,9 @@ interpreter: context [
 		]
 		case [
 			extern? [
+				stack/mark-native words/_body
 				arg: as red-value! call
+				stack/unwind
 				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
 					system/stack/top: saved
 				][
