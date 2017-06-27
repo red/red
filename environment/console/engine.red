@@ -70,7 +70,7 @@ system/console: context [
 					]
 					trim/head args
 				][
-					print "*** Error: cannot access argument file"
+					print ["*** Error: cannot access argument file:^/" file]
 					;quit/return -1
 				]
 				path: first split-path file
