@@ -593,6 +593,9 @@ system/view/VID: context [
 					repend value [to-set-word 'styled styled]
 					styling?: off
 				][
+					poke blk: [style: _] 2 to lit-word! value
+					add-option face blk
+				
 					;-- update cursor position --
 					either at-offset [
 						face/offset: at-offset
