@@ -459,7 +459,7 @@ image: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
-		mold?	[logic!]
+		indent	[integer!]
 		return: [integer!]
 		/local
 			height	[integer!]
@@ -508,7 +508,7 @@ image: context [
 		part: part - 2	
 		if size > 30 [
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
+			part: object/do-indent buffer indent part - 1
 		]
 		
 		count: 0
@@ -518,7 +518,10 @@ image: context [
 			string/concatenate-literal buffer string/byte-to-hex pixel and FF00h >> 8
 			string/concatenate-literal buffer string/byte-to-hex pixel and FFh
 			count: count + 1
-			if count % 10 = 0 [string/append-char GET_BUFFER(buffer) as-integer lf]
+			if count % 10 = 0 [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: object/do-indent buffer indent part - 1
+			]
 			part: part - 6
 			if all [OPTION?(arg) part <= 0][
 				OS-image/unlock-bitmap img bitmap
@@ -529,7 +532,7 @@ image: context [
 		]
 		if all [size > 30 count % 10 <> 0] [
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
+			part: object/do-indent buffer indent part - 1
 		]
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
 
@@ -567,7 +570,7 @@ image: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/form"]]
 
-		serialize img buffer no no no arg part no
+		serialize img buffer no no no arg part 0
 	]
 
 	mold: func [
@@ -583,7 +586,7 @@ image: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "image/mold"]]
 
-		serialize img buffer only? all? flat? arg part yes
+		serialize img buffer only? all? flat? arg part indent + 1
 	]
 
 	length?: func [
