@@ -76,8 +76,9 @@ adjust-buttons: function [
 		all [
 			face/type = 'button
 			face/size
-			face/size/y <= 32								;-- average [29 45] - 5
+			face/size/y <= 42								;-- 37 + 5
 			not empty? face/text
+			not all [face/options face/options/height]
 		]
 	]
 ]
