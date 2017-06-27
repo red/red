@@ -1477,7 +1477,10 @@ parse-common-opts: func [
 						sym = _mini		[2]			;-- 16
 						true			[0]
 					]
-					objc_msgSend [hWnd sel_getUid "setControlSize:" sym]
+					objc_msgSend [
+						objc_msgSend [hWnd sel_getUid "cell"]
+						sel_getUid "setControlSize:" sym
+					]
 					btn?: no
 				]
 				sym = _accelerated [
