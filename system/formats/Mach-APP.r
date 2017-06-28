@@ -39,9 +39,17 @@ packager: context [
 		]
 	]
 	
-	copy-file: func [src [file!] dst [file!]][
+	copy-file: func [src [file!] dst [file!] /keep "keep file attributes"][
 		if slash = last dst [dst: join dst last split-path src]
-		write/binary dst read-binary-cache src
+		either keep [
+			run reform [
+				either Windows? ["copy"]["cp"]
+				to-OS-file src
+				to-OS-file dst
+			]
+		][
+			write/binary dst read-binary-cache src
+		]
 	]
 
 	process: func [
@@ -64,7 +72,7 @@ packager: context [
 		make-dir/deep bin-dir
 		make-dir/deep res-dir
 
-		copy-file file bin-dir/:name
+		copy-file/keep file bin-dir/:name
 		delete file
 		copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
 
