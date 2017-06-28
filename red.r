@@ -850,7 +850,15 @@ redc: context [
 			opts/libRedRT-update?: no
 		]
 		
-		if result: compile src opts [show-stats result]
+		if result: compile src opts [
+			show-stats result
+			if all [word: in opts 'packager get word][
+				file: join %system/formats/ [opts/packager %.r]
+				unless exists?-cache file [fail ["Packager:" opts/packager "not found!"]]
+				do bind load-cache file 'self
+				packager/process opts src result/4
+			]
+		]
 	]
 
 	set 'rc func [cmd [file! string! block!]][

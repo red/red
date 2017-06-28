@@ -50,9 +50,9 @@ packager: context [
 			paths src-dir name app-dir contents-dir bin-dir raw-dir res-dir
 			plist
 	][		
-		paths: 	 split-path src
+		paths: 	 split-path file
 		src-dir: paths/1
-		name:	 copy/part paths/2 find/last paths/2 #"."
+		name:	 paths/2
 
 		app-dir: rejoin [src-dir name %.app]
 		log ["generating bundle:" app-dir]
@@ -64,7 +64,7 @@ packager: context [
 		make-dir/deep bin-dir
 		make-dir/deep res-dir
 
-		copy-files file bin-dir/:name
+		copy-file file bin-dir/:name
 		delete file
 		copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
 
