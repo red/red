@@ -63,6 +63,8 @@ packager: context [
 		name:	 paths/2
 
 		app-dir: rejoin [src-dir name %.app]
+		if exists? app-dir [delete-dir app-dir]
+
 		log ["generating bundle:" app-dir]
 
 		append app-dir slash
