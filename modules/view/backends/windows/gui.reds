@@ -1503,7 +1503,6 @@ change-offset: func [
 		child	[handle!]
 		size	[red-pair!]
 		flags	[integer!]
-		style	[integer!]
 		param	[integer!]
 		_y		[integer!]
 		_x		[integer!]
@@ -1519,8 +1518,10 @@ change-offset: func [
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	header: 0
 	pt: as red-pair! :header
+	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
 
 	if all [					;-- caret widget
+		layer?
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
@@ -1533,9 +1534,6 @@ change-offset: func [
 	if type = window [window-border-info? hWnd :x :y null null]
 
 	if all [not win8+? type = base][
-		style: GetWindowLong hWnd GWL_EXSTYLE
-		layer?: style and WS_EX_LAYERED > 0
-
 		values: get-face-values hWnd
 		size: as red-pair! values + FACE_OBJ_SIZE
 		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
