@@ -125,6 +125,7 @@ make-font: func [
 
 get-font-handle: func [
 	font	[red-object!]
+	idx		[integer!]
 	return: [handle!]
 	/local
 		state  [red-block!]
