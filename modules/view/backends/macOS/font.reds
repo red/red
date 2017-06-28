@@ -149,7 +149,7 @@ get-font: func [
 		hFont [handle!]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return null]
-	hFont: get-font-handle font
+	hFont: get-font-handle font 0
 	if null? hFont [hFont: make-font face font]
 	hFont
 ]
@@ -160,7 +160,7 @@ free-font: func [
 		state [red-block!]
 		hFont [handle!]
 ][
-	hFont: get-font-handle font
+	hFont: get-font-handle font 0
 	if hFont <> null [
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
