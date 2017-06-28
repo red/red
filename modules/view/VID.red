@@ -128,21 +128,23 @@ system/view/VID: context [
 		axis:  pick [y x] dir = 'across
 
 		foreach face pane [
-			unless top-left? [
-				offset: max-sz - face/size/:axis
-				if find [center middle] align [offset: to integer! round offset / 2.0]
-				face/offset/:axis: face/offset/:axis + offset
-			]
-			if all [									;-- account for hard margins
-				edge?
-				type: any [face/options/height face/type]
-				mar: select system/view/metrics/margins type
-			][
-				face/offset/:axis: face/offset/:axis + any [
-					either dir = 'across [
-						switch align [top [negate mar/2/x] middle [0] bottom [mar/2/y]]
-					][
-					 	switch align [left [negate mar/1/x] center [0] right [mar/1/y]]
+			unless face/options/at-offset [				;-- exclude absolute-positioned faces
+				unless top-left? [
+					offset: max-sz - face/size/:axis
+					if find [center middle] align [offset: to integer! round offset / 2.0]
+					face/offset/:axis: face/offset/:axis + offset
+				]
+				if all [								;-- account for hard margins
+					edge?
+					type: any [face/options/height face/type]
+					mar: select system/view/metrics/margins type
+				][
+					face/offset/:axis: face/offset/:axis + any [
+						either dir = 'across [
+							switch align [top [negate mar/2/x] middle [0] bottom [mar/2/y]]
+						][
+							switch align [left [negate mar/1/x] center [0] right [mar/1/y]]
+						]
 					]
 				]
 			]
@@ -617,7 +619,7 @@ system/view/VID: context [
 				
 					;-- update cursor position --
 					either at-offset [
-						face/offset: at-offset
+						face/options/at-offset: face/offset: at-offset
 						at-offset: none
 						all [							;-- account for hard margins
 							mar: select system/view/metrics/margins face/type
