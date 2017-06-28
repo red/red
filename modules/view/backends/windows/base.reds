@@ -765,11 +765,11 @@ update-base: func [
 	hBitmap: CreateCompatibleBitmap hScreen width height
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
-	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 
 	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		alpha?: update-base-background graphic color width height
 	]
+	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
 	update-base-text hWnd graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no yes
