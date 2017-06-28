@@ -63,8 +63,10 @@ adjust-buttons: function [
 	"Use standard button classes when buttons are narrow enough"
 	root [object!]
 ][
+	def-margins: 4x5
+	
 	foreach-face/with root [
-		y: face/size/y - 5									;-- remove default button's margins
+		y: face/size/y - def-margins/y						;-- remove default button's margins
 		face/options: compose [height: (
 			case [
 				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
@@ -72,6 +74,18 @@ adjust-buttons: function [
 				y <= 37	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
 			]
 		)]
+		align: face/options/vid-align
+		axis:  pick [y x] find [left center right] align
+		mar:   select system/view/metrics/margins face/options/height
+		
+		face/offset/:axis: face/offset/:axis - def-margins/:axis + switch align [ ;-- correct alignment
+			top		[negate mar/2/x]
+			bottom	[mar/2/y]
+			left	[negate mar/1/x]
+			right	[mar/1/y]]
+			center
+			middle	[0]
+		]
 	][
 		all [
 			face/type = 'button
