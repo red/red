@@ -67,7 +67,7 @@ adjust-buttons: function [
 	
 	foreach-face/with root [
 		y: face/size/y - def-margins/y						;-- remove default button's margins
-		face/options: compose [height: (
+		face/options: compose [class: (
 			case [
 				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
 				y <= 19 [face/size/y: 28 + 10 'small]		;-- 28, margins: 4x6
@@ -76,13 +76,13 @@ adjust-buttons: function [
 		)]
 		align: face/options/vid-align
 		axis:  pick [y x] find [left center right] align
-		mar:   select system/view/metrics/margins face/options/height
+		marg:  select system/view/metrics/margins face/options/class
 		
 		face/offset/:axis: face/offset/:axis - def-margins/:axis + switch align [ ;-- correct alignment
-			top		[negate mar/2/x]
-			bottom	[mar/2/y]
-			left	[negate mar/1/x]
-			right	[mar/1/y]]
+			top		[negate marg/2/x]
+			bottom	[marg/2/y]
+			left	[negate marg/1/x]
+			right	[marg/1/y]
 			center
 			middle	[0]
 		]
@@ -92,7 +92,7 @@ adjust-buttons: function [
 			face/size
 			face/size/y <= 42								;-- 37 + 5
 			not empty? face/text
-			not all [face/options face/options/height]
+			not all [face/options face/options/class]
 		]
 	]
 ]

@@ -270,7 +270,7 @@ system/view/platform: context [
 			_backdrop:		symbol/make "backdrop"
 			_font-name:		symbol/make "font-name"
 			_font-size:		symbol/make "font-size"
-			_height:		symbol/make "height"
+			_class:			symbol/make "class"
 			_regular:		symbol/make "regular"
 			_small:			symbol/make "small"
 			_mini:			symbol/make "mini"

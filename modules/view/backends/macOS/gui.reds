@@ -1468,7 +1468,7 @@ parse-common-opts: func [
 					]
 					if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
 				]
-				sym = _height [
+				sym = _class [
 					w: word + 1
 					sym: symbol/resolve w/symbol
 					sym: case [

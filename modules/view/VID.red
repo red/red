@@ -136,7 +136,7 @@ system/view/VID: context [
 				]
 				if all [								;-- account for hard margins
 					edge?
-					type: any [face/options/height face/type]
+					type: any [face/options/class face/type]
 					mar: select system/view/metrics/margins type
 				][
 					face/offset/:axis: face/offset/:axis + any [
