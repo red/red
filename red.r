@@ -570,7 +570,6 @@ redc: context [
 				"...output file      :" to-local-file result/4 lf
 			]
 		]
-		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
 	
 	do-clear: func [args [block!] /local path file][
@@ -858,6 +857,7 @@ redc: context [
 				do bind load-cache file 'self
 				packager/process opts src result/4
 			]
+			unless Windows? [print ""]					;-- extra LF for more readable output
 		]
 	]
 
