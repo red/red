@@ -118,17 +118,34 @@ system/view/VID: context [
 	]
 	
 	align-faces: function [pane [block!] dir [word!] align [word!] max-sz [integer!]][
-		if any [
-			empty? pane
-			all [dir = 'across align = 'top]
-			all [dir = 'below  align = 'left]
-		][exit]											;-- already aligned
+		if empty? pane [exit]
 
-		axis: pick [y x] dir = 'across
+		edge?: any [
+			all [dir = 'across align <> 'middle]
+			all [dir = 'below  align <> 'center]
+		]
+		top-left?: find [top left] align
+		axis:  pick [y x] dir = 'across
+
 		foreach face pane [
-			offset: max-sz - face/size/:axis
-			if find [center middle] align [offset: to integer! round offset / 2.0]
-			face/offset/:axis: face/offset/:axis + offset
+			unless top-left? [
+				offset: max-sz - face/size/:axis
+				if find [center middle] align [offset: to integer! round offset / 2.0]
+				face/offset/:axis: face/offset/:axis + offset
+			]
+			if all [									;-- account for hard margins
+				edge?
+				type: any [face/options/height face/type]
+				mar: select system/view/metrics/margins type
+			][
+				face/offset/:axis: face/offset/:axis + any [
+					either dir = 'across [
+						switch align [top [negate mar/2/x] middle [0] bottom [mar/2/y]]
+					][
+					 	switch align [left [negate mar/1/x] center [0] right [mar/1/y]]
+					]
+				]
+			]
 		]
 	]
 	
@@ -442,7 +459,7 @@ system/view/VID: context [
 		pane-size:	  0x0								;-- panel's content dynamic size
 		direction: 	  'across
 		align:		  'top
-		begin:		  none
+		begin:		  tail list
 		size:		  none								;-- user-set panel's size
 		max-sz:		  0									;-- maximum width/height of current column/row
 		current:	  0									;-- layout's cursor position
@@ -465,7 +482,7 @@ system/view/VID: context [
 					'line (any [begin/1/offset 1x1]) + sz cursor + sz
 				]
 			]
-			if begin [align-faces begin direction align max-sz]
+			align-faces begin direction align max-sz
 			begin: tail list
 			
 			words: pick [[left center right][top middle bottom]] below?
@@ -619,10 +636,6 @@ system/view/VID: context [
 							index: index + 1
 							face/offset/:axis: list/:index/offset/:axis
 						]
-					]
-					all [								;-- account for hard margins
-						mar: select system/view/metrics/margins face/type
-						face/offset: face/offset - as-pair mar/1/x mar/2/x
 					]
 					unless any [face/color panel/type = 'tab-panel][
 						face/color: system/view/metrics/colors/(face/type)
