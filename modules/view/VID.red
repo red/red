@@ -610,13 +610,19 @@ system/view/VID: context [
 					repend value [to-set-word 'styled styled]
 					styling?: off
 				][
-					poke blk: [style: _] 2 to lit-word! value
+					blk: [style: _ vid-align: _ at-offset: #[none]]
+					blk/2: value
+					blk/4: align
 					add-option face blk
 				
 					;-- update cursor position --
 					either at-offset [
 						face/offset: at-offset
 						at-offset: none
+						all [							;-- account for hard margins
+							mar: select system/view/metrics/margins face/type
+							face/offset: face/offset - as-pair mar/1/x mar/2/x
+						]
 					][
 						either all [					;-- grid layout
 							divide?: all [divides divides <= length? list]
