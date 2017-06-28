@@ -1031,22 +1031,20 @@ fill-gradient-region: func [
 	CGContextSaveGState ctx
 	CGContextClip ctx
 
-	;pt1/x: dc/grad-x1
-	;pt1/y: dc/grad-y1
-	;pt1: CGPointApplyAffineTransform pt1 dc/matrix
-	;pt2/x: dc/grad-x2
-	;pt2/y: dc/grad-y2
-	;pt2: CGPointApplyAffineTransform pt2 dc/matrix
-	CGContextConcatCTM dc/raw dc/matrix
-
 	either dc/grad-type = linear [
+		pt1/x: dc/grad-x1
+		pt1/y: dc/grad-y1
+		pt1: CGPointApplyAffineTransform pt1 dc/matrix
+		pt2/x: dc/grad-x2
+		pt2/y: dc/grad-y2
+		pt2: CGPointApplyAffineTransform pt2 dc/matrix
 		CGContextDrawLinearGradient
 			ctx
 			dc/grad-pen
-			;pt1/x pt1/y pt2/x pt2/y
-			dc/grad-x1 dc/grad-y1 dc/grad-x2 dc/grad-y2
+			pt1/x pt1/y pt2/x pt2/y
 			3
 	][
+		CGContextConcatCTM dc/raw dc/matrix
 		CGContextDrawRadialGradient
 			ctx
 			dc/grad-pen
