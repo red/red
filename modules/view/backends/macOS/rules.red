@@ -63,28 +63,33 @@ adjust-buttons: function [
 	"Use standard button classes when buttons are narrow enough"
 	root [object!]
 ][
-	def-margins: 4x5
+	def-margins: 2x2
+	def-margin-yy: 5
+	opts: [class: _]
 	
 	foreach-face/with root [
-		y: face/size/y - def-margins/y						;-- remove default button's margins
-		face/options: compose [class: (
-			case [
-				y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
-				y <= 19 [face/size/y: 28 + 10 'small]		;-- 28, margins: 4x6
-				y <= 37	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
-			]
-		)]
-		align: face/options/vid-align
-		axis:  pick [y x] find [left center right] align
-		marg:  select system/view/metrics/margins face/options/class
+		y: face/size/y - def-margin-yy					;-- remove default button's margins
+		opts/2: case [
+			y <= 15 [face/size/y: 16 + 1  'mini]		;-- 16, margins: 0x1
+			y <= 19 [face/size/y: 28 + 10 'small]		;-- 28, margins: 4x6
+			y <= 37	[face/size/y: 32 + 13 'regular]		;-- 32, margins: 6x7
+		]
+		system/view/VID/add-option face opts
 		
-		face/offset/:axis: face/offset/:axis - def-margins/:axis + switch align [ ;-- correct alignment
-			top		[negate marg/2/x]
-			bottom	[marg/2/y]
-			left	[negate marg/1/x]
-			right	[marg/1/y]
-			center
-			middle	[0]
+		unless any [
+			face/options/at-offset
+			find [center middle] align: face/options/vid-align
+		][
+			axis:  pick [x y] to-logic find [left center right] align
+			marg:  select system/view/metrics/margins face/options/class
+			def-marg: def-margins/:axis
+		
+			face/offset/:axis: face/offset/:axis + switch align [ ;-- adjust to alignment
+				top		[def-marg - marg/2/x]
+				bottom	[marg/2/y - def-marg]
+				left	[def-marg - marg/1/x]
+				right	[marg/1/y - def-marg]
+			]
 		]
 	][
 		all [

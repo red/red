@@ -705,9 +705,9 @@ system/view/platform: context [
 			]
 			macOS [
 				button:			[2x2   2x3]
-				button-regular:	[6x6   4x7]
-				button-small:	[5x5   4x6]
-				button-mini:	[1x1   0x1]
+				regular:		[6x6   4x7]
+				small:			[5x5   4x6]
+				mini:			[1x1   0x1]
 				group-box:		[3x3   0x4]
 				tab-panel:		[7x7   6x10]
 				drop-down:		[0x3   3x0]
