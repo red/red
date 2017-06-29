@@ -40,6 +40,9 @@ Red [
 	]
 ]
 
+;-- initialize some system words
+
+system/version: load system/version
 
 system/options/cache: either system/platform = 'Windows [
 	append to-red-file get-env "ALLUSERSPROFILE" %/Red/
@@ -55,4 +58,3 @@ system/options/cache: either system/platform = 'Windows [
 	]
 ]
 #if config/type = 'exe [extract-boot-args]
-
