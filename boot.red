@@ -38,16 +38,16 @@ Red [
 		unset [event! image!]
 		image?: func ["Returns true if the value is this type" value [any-type!]][false]
 	]
-]
-
-;-- initialize some system words
-
-system/version: load system/version
-
-system/options/cache: either system/platform = 'Windows [
-	append to-red-file get-env "ALLUSERSPROFILE" %/Red/
-][
-	append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
+	
+	;-- initialize some system words
+	
+	system/version: load system/version
+	
+	system/options/cache: either system/platform = 'Windows [
+		append to-red-file get-env "ALLUSERSPROFILE" %/Red/
+	][
+		append any [attempt [to-red-file get-env "HOME"] %/tmp] %/.red/
+	]
 ]
 
 ;-- command-line arguments processing
