@@ -211,7 +211,13 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			either extern? [push arg][
+			either extern? [
+				#either libRed? = yes [
+					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
+				][
+					push arg
+				]
+			][
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
