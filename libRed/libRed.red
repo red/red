@@ -57,6 +57,11 @@ Red [
 		RGBA_BUFFER
 	]
 	
+	#define CHECK_VALID_CSTR_PTR(p name)		  [if p < as-c-string   4096 [return as red-value! make-error name]]
+	#define CHECK_VALID_BYTE_PTR(p name)		  [if p < as byte-ptr!  4096 [return as red-value! make-error name]]
+	#define CHECK_VALID_BYTE_PTR_RET(p type name) [if p < as byte-ptr!  4096 [return as type make-error name]]
+	#define CHECK_VALID_CSTR_PTR_RET_INT(p name)  [if p < as-c-string   4096 [return -3]]
+	
 	#define TRAP_ERRORS(name body) [
 		last-error: null
 		stack/mark-try-all name
@@ -102,6 +107,8 @@ Red [
 		redSetField: word/load "redSetField"
 		redGetField: word/load "redGetField"
 		redRoutine:  word/load "redRoutine"
+		redBinary:	 word/load "redBinary"
+		redImage:	 word/load "redImage"
 		redString:	 word/load "redString"
 		redWord:	 word/load "redWord"
 		redCInt32:	 word/load "redCInt32"
@@ -254,6 +261,7 @@ Red [
 			blk [red-block!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(src names/redDo)
 		blk: as red-block! load-string src names/redDo
 		if TYPE_OF(blk) = TYPE_BLOCK [do-safe blk names/redDo]
 		ring/store stack/arguments
@@ -267,6 +275,7 @@ Red [
 			file [red-file!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(src names/redDoFile)
 		file: as red-file! import-string src names/redDoFile yes
 		file/header: TYPE_FILE
 		if last-error <> null [return last-error]
@@ -313,6 +322,7 @@ Red [
 			script [red-file!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(name names/redOpenLogFile)
 		script: as red-file! import-string name names/redOpenLogFile yes
 		script/header: TYPE_FILE
 		if last-error <> null [return last-error]
@@ -405,6 +415,7 @@ Red [
 		return: [red-value!] "String! or error! value"
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(s names/redString)
 		ring/store import-string s names/redString yes
 	]
 	
@@ -448,6 +459,7 @@ Red [
 			bin [red-binary!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-binary!)
+		CHECK_VALID_BYTE_PTR_RET(src red-binary! names/redBinary)
 		bin: binary/make-at ring/alloc bytes
 		binary/rs-append bin src bytes
 		bin
@@ -460,7 +472,7 @@ Red [
 		format	[integer!]
 		return:	[red-image!]
 		/local
-			img	[red-image!]
+			img		[red-image!]
 			rgb		[byte-ptr!]
 			sz		[integer!]
 			stride	[integer!]
@@ -468,6 +480,7 @@ Red [
 			data	[int-ptr!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-image!)
+		CHECK_VALID_BYTE_PTR_RET(src red-image! names/redImage)
 		
 		if negative? width  [width: 0]
 		if negative? height [height: 0]
@@ -506,6 +519,8 @@ Red [
 			word [red-word!]
 	][
 		CHECK_LIB_OPENED_RETURN_INT
+		CHECK_VALID_CSTR_PTR_RET_INT(s names/redSymbol)
+		
 		either encoding-in = UTF8 [
 			symbol/make s
 		][
@@ -522,6 +537,8 @@ Red [
 			res	[red-value!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(s names/redWord)
+		
 		either encoding-in = UTF8 [
 			as red-value! word/make-at symbol/make s ring/alloc
 		][
@@ -598,6 +615,8 @@ Red [
 			blk	[red-block!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(src names/redLDPath)
+		
 		blk: as red-block! load-string src names/redLDPath
 		ring/store either TYPE_OF(blk) = TYPE_BLOCK [
 			block/rs-head blk
@@ -1050,6 +1069,9 @@ Red [
 			res	 [red-value!]
 	][
 		CHECK_LIB_OPENED_RETURN(red-value!)
+		CHECK_VALID_CSTR_PTR(desc names/redRoutine)
+		CHECK_VALID_BYTE_PTR(ptr names/redRoutine)
+		
 		spec: as red-block! load-string desc names/redRoutine
 		either TYPE_OF(spec) <> TYPE_BLOCK [
 			as red-value! spec
