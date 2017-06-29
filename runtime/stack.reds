@@ -581,6 +581,10 @@ stack: context [										;-- call stack
 		TYPE_OF(value)
 	]
 	
+	get-top: func [return: [red-value!]][
+		either top = bottom [top][top - 1]
+	]
+	
 	func?: func [
 		return: [logic!]
 		/local
