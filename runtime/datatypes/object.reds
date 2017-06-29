@@ -781,7 +781,7 @@ object: context [
 			obj [red-object!]
 			s	[series!]
 	][
-		obj: as red-object! stack/top - 1
+		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]

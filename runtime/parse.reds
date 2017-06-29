@@ -710,7 +710,7 @@ parser: context [
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
-		res: stack/top - 1
+		res: stack/get-top
 		if reset? [stack/top: saved]
 		res
 	]
@@ -971,7 +971,7 @@ parser: context [
 							R_KEEP_PAREN
 							R_KEEP_PICK [
 								if match? [
-									blk: as red-block! stack/top - 1
+									blk: as red-block! stack/get-top
 									assert any [
 										TYPE_OF(blk) = TYPE_WORD
 										TYPE_OF(blk) = TYPE_GET_WORD
@@ -1083,7 +1083,7 @@ parser: context [
 							]
 							R_COLLECT [
 								cnt-col: cnt-col - 1
-								value: stack/top - 1
+								value: stack/get-top
 
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK

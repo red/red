@@ -67,7 +67,7 @@ Red [
 		stack/mark-try-all name
 		catch RED_THROWN_ERROR body
 		stack/adjust-post-try
-		res: stack/top - 1
+		res: stack/get-top
 		if all [system/thrown > 0 TYPE_OF(res) = TYPE_ERROR][last-error: res]
 		system/thrown: 0
 		ring/store res

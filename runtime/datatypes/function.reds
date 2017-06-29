@@ -917,7 +917,7 @@ _function: context [
 			fire [TO_ERROR(script bad-func-def)	list]
 		]
 		push spec body null 0 null
-		as red-function! stack/top - 1
+		as red-function! stack/get-top
 	]
 	
 	reflect: func [

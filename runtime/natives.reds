@@ -402,7 +402,7 @@ natives: context [
 			null
 			0
 			null
-		stack/set-last stack/top - 1
+		stack/set-last stack/get-top
 	]
 	
 	function*: func [check? [logic!]][
@@ -1843,7 +1843,7 @@ natives: context [
 			err	[red-object!]
 			id  [integer!]
 	][
-		err: as red-object! stack/top - 1
+		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
 		id: error/get-type err
 		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
@@ -2034,7 +2034,7 @@ natives: context [
 				]
 			]
 			system/thrown: 0
-			stack/set-last stack/top - 1
+			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
 		]
 	]
