@@ -378,7 +378,7 @@ time: context [
 		if any [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field tm index
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_TIME

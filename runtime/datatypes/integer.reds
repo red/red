@@ -235,6 +235,7 @@ integer: context [
 			TYPE_OF(right) = TYPE_TUPLE
 			TYPE_OF(right) = TYPE_TIME
 			TYPE_OF(right) = TYPE_VECTOR
+			TYPE_OF(right) = TYPE_DATE
 		]
 
 		switch TYPE_OF(right) [
@@ -268,6 +269,17 @@ integer: context [
 			]
 			TYPE_VECTOR [
 				return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! left
+			]
+			TYPE_DATE [
+				either op = OP_ADD [
+					value: left/value						;-- swap them!
+					copy-cell as red-value! right as red-value! left
+					right/header: TYPE_INTEGER
+					right/value: value
+					date/do-math op
+				][
+					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+				]
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]

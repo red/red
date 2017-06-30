@@ -12,7 +12,12 @@ Red/System [
 
 date: context [
 	verbose: 0
-	
+
+	#define GET_YEAR(date)   (date >> 16)
+	#define GET_MONTH(date) (date >> 12 and 0Fh)
+	#define GET_DAY(date) (date >> 7 and 1Fh)
+	#define GET_TIMEZONE(date) (date and 7Fh)
+
 	box: func [
 		year	[integer!]
 		month	[integer!]
@@ -25,6 +30,60 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: (year << 16) or (month << 12) or (day << 7)
 		dt
+	]
+
+	days-to-date: func [
+		days	[integer!]
+		return: [integer!]
+		/local
+			y	[integer!]
+			m	[integer!]
+			d	[integer!]
+			dd [integer!]
+			mi	[integer!]
+	][
+		y: 10000 * days + 14780 / 3652425
+		dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
+		if dd < 0 [
+			y: y - 1
+			dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
+		]
+		mi: 100 * dd + 52 / 3060
+		m: mi + 2 % 12 + 1
+		y: y + (mi + 2 / 12)
+		d: dd - (mi * 306 + 5 / 10) + 1
+		y << 16 or (m << 12) or (d << 7)
+	]
+
+	date-to-days: func [
+		date	[integer!]
+		return: [integer!]
+		/local
+			y	[integer!]
+			m	[integer!]
+			d	[integer!]
+	][
+		y: GET_YEAR(date)
+		m: GET_MONTH(date)
+		d: GET_DAY(date)
+		365 * y + (y / 4) - (y / 100) + (y / 400) + ((m * 306 + 5) / 10) + (d - 1)
+	]
+
+	get-utc-time: func [
+		tm		[float!]
+		tz		[integer!]
+		return: [float!]
+		/local
+			m	[integer!]
+			h	[integer!]
+			hh	[float!]
+			mm	[float!]
+	][
+		h: tz << 25 >> 27		;-- keep signed
+		m: tz and 03h * 15
+		hh: (as float! h) * time/h-factor
+		mm: (as float! m) * time/m-factor
+		tm + hh + mm
 	]
 
 	;-- Actions --
@@ -138,7 +197,83 @@ date: context [
 		if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
 		part - 5										;-- 4 + separator
 	]
-	
+
+	do-math: func [
+		type	  [integer!]
+		return:	  [red-date!]
+		/local
+			left  [red-date!]
+			right [red-date!]
+			int   [red-integer!]
+			tm	  [red-time!]
+			days  [integer!]
+			tz	  [integer!]
+			ft	  [float!]
+			d	  [integer!]
+			dd	  [integer!]
+			tt	  [float!]
+			h	  [float!]
+			word  [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
+		left:  as red-date! stack/arguments
+		right: as red-date! left + 1
+
+		switch TYPE_OF(right) [
+			TYPE_INTEGER [
+				int: as red-integer! right
+				dd: int/value
+				tt: 0.0
+			]
+			TYPE_TIME [
+				tm: as red-time! right
+				dd: 0
+				tt: tm/time
+			]
+			TYPE_DATE [
+				dd: date-to-days right/date
+				tt: right/time
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+			]
+		]
+
+		h: tt / time/h-factor
+		d: (as-integer h) / 24
+		h: as float! d
+		tt: tt - (h * time/h-factor)
+		dd: dd + d
+
+		tz: GET_TIMEZONE(left/date)
+		days: date-to-days left/date
+		ft: left/time
+		switch type [
+			OP_ADD [
+				days: days + dd
+				ft: ft + tt
+			]
+			OP_SUB [
+				days: days - dd
+				ft: ft - tt
+			]
+			default [0]
+		]
+		left/date: tz or days-to-date days
+		left/time: ft
+		left
+	]
+
+	add: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "date/add"]]
+		as red-value! do-math OP_ADD
+	]
+
+	subtract: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "date/subtract"]]
+		as red-value! do-math OP_ADD
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_DATE
@@ -156,14 +291,14 @@ date: context [
 			null			;compare
 			;-- Scalar actions --
 			null			;absolute
-			null			;add
+			:add
 			null			;divide
 			null			;multiply
 			null			;negate
 			null			;power
 			null			;remainder
 			null			;round
-			null			;subtract
+			:subtract
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
