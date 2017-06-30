@@ -700,18 +700,18 @@ system/view/platform: context [
 			Windows [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
 				tab-panel:		[0x2   0x1]
-				text-list:		[0x0   0x15]
+				text-list:		[0x0  0x15]
 				group-box:		[0x0   0x1]
 			]
 			macOS [
-				button:			[2x2   2x3]
+				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
 				regular:		[6x6   4x7]
 				small:			[5x5   4x6]
 				mini:			[1x1   0x1]
 				group-box:		[3x3   0x4]
-				tab-panel:		[7x7   6x10]
-				drop-down:		[0x3   3x0]
-				drop-list:		[0x3   3x0]
+				tab-panel:		[7x7  6x10]
+				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
