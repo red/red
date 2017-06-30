@@ -12,15 +12,11 @@ Red/System [
 
 date: context [
 	verbose: 0
-
-	#define GET_YEAR(date)   (date >> 16)
-	#define GET_MONTH(date) (date >> 12 and 0Fh)
-	#define GET_DAY(date) (date >> 7 and 1Fh)
-	#define GET_TIMEZONE(date) (date and 7Fh)
-
+	
 	#define DATE_GET_YEAR(d)	(d >> 16)
 	#define DATE_GET_MONTH(d)	((d >> 12) and 0Fh)
 	#define DATE_GET_DAY(d)		((d >> 7) and 1Fh)
+	#define DATE_GET_ZONE(d) 	(d and 7Fh)
 	#define DATE_GET_HOURS(t)   (floor t / time/h-factor)
 	#define DATE_GET_MINUTES(t) (floor t / time/oneE9 // 3600.0 / 60.0)
 	#define DATE_GET_SECONDS(t) (t / time/oneE9 // 60.0)
@@ -93,9 +89,9 @@ date: context [
 			m	[integer!]
 			d	[integer!]
 	][
-		y: GET_YEAR(date)
-		m: GET_MONTH(date)
-		d: GET_DAY(date)
+		y: DATE_GET_YEAR(date)
+		m: DATE_GET_MONTH(date)
+		d: DATE_GET_DAY(date)
 		365 * y + (y / 4) - (y / 100) + (y / 400) + ((m * 306 + 5) / 10) + (d - 1)
 	]
 
@@ -283,7 +279,7 @@ date: context [
 		tt: tt - (h * time/h-factor)
 		dd: dd + d
 
-		tz: GET_TIMEZONE(left/date)
+		tz: DATE_GET_ZONE(left/date)
 		days: date-to-days left/date
 		ft: left/time
 		switch type [
