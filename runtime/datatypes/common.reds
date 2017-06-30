@@ -516,6 +516,13 @@ words: context [
 	alpha:			-1
 	argb:			-1
 	
+	year:			-1
+	month:			-1
+	day:			-1
+	zone:			-1
+	weekday:		-1
+	julian:			-1
+	time:			-1
 	hour:			-1
 	minute:			-1
 	second:			-1
@@ -712,6 +719,13 @@ words: context [
 		alpha:			symbol/make "alpha"
 		argb:			symbol/make "argb"
 		
+		year:			symbol/make "year"
+		month:			symbol/make "month"
+		day:			symbol/make "day"
+		zone:			symbol/make "zone"
+		weekday:		symbol/make "weekday"
+		julian:			symbol/make "julian"
+		time:			symbol/make "time"
 		hour:			symbol/make "hour"
 		minute:			symbol/make "minute"
 		second:			symbol/make "second"

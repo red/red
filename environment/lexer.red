@@ -410,7 +410,7 @@ system/lexer: context [
 			four half non-zero path-end base base64-char slash-end not-url-char
 			email-end pair-end file-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -474,13 +474,14 @@ system/lexer: context [
 			cs/25: charset {^{"[]();:}					;-- pair-end
 			cs/26: charset {^{[]();:}					;-- file-end
 			cs/27: charset "/-"							;-- date-sep
+			cs/28: charset "/T"							;-- time-sep
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep
+			pair-end file-end date-sep time-sep
 		] cs
 
 		byte: [
@@ -780,7 +781,13 @@ system/lexer: context [
 			day-year-rule sep: date-sep (sep: sep/1)
 			s: 1 2 digit e: sep (month: make-number s e integer!)
 			day-year-rule
-			(value: make date! [year month day])
+			(date: make date! [year month day])
+			opt [
+				time-sep (neg?: no)
+				s: positive-integer-rule (value: make-number s e integer!)
+				#":" [time-rule (?? value date/time: value) | (throw-error [date! pos])]
+			]
+			(value: date)
 		]
 		
 		positive-integer-rule: [digit any digit e: (type: integer!)]

@@ -1,7 +1,7 @@
 Red/System [
 	Title:	 "Date! datatype runtime functions"
 	Author:	 "Nenad Rakocevic"
-	File: 	 %data.reds
+	File: 	 %date.reds
 	Tabs:	 4
 	Rights:	 "Copyright (C) 2011-2017 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -18,6 +18,35 @@ date: context [
 	#define GET_DAY(date) (date >> 7 and 1Fh)
 	#define GET_TIMEZONE(date) (date and 7Fh)
 
+	#define DATE_GET_YEAR(d)	(d >> 16)
+	#define DATE_GET_MONTH(d)	((d >> 12) and 0Fh)
+	#define DATE_GET_DAY(d)		((d >> 7) and 1Fh)
+	#define DATE_GET_HOURS(t)   (floor t / time/h-factor)
+	#define DATE_GET_MINUTES(t) (floor t / time/oneE9 // 3600.0 / 60.0)
+	#define DATE_GET_SECONDS(t) (t / time/oneE9 // 60.0)
+	
+	push-field: func [
+		dt		[red-date!]
+		field	[integer!]
+		return: [red-value!]
+		/local
+			d [integer!]
+			t [float!]
+	][
+		d: dt/date
+		t: dt/time
+		as red-value! switch field [
+			1 [integer/push DATE_GET_YEAR(d)]
+			2 [integer/push DATE_GET_MONTH(d)]
+			3 [integer/push DATE_GET_DAY(d)]
+			5 [time/push t]
+			6 [integer/push as-integer DATE_GET_HOURS(t)]
+			7 [integer/push as-integer DATE_GET_MINUTES(t)]
+			8 [float/push DATE_GET_SECONDS(t)]
+			default [assert false]
+		]
+	]
+	
 	box: func [
 		year	[integer!]
 		month	[integer!]
@@ -29,6 +58,7 @@ date: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: (year << 16) or (month << 12) or (day << 7)
+		dt/time: 0.0
 		dt
 	]
 
@@ -172,17 +202,19 @@ date: context [
 			blk	   [red-block!]
 			month  [red-string!]
 			len	   [integer!]
+			d	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/mold"]]
 		
-		formed: integer/form-signed (dt/date >> 7) and 1Fh
+		d: dt/date
+		formed: integer/form-signed DATE_GET_DAY(d)
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 		
 		string/append-char GET_BUFFER(buffer) as-integer #"-"
 		
 		blk: as red-block! #get system/locale/months
-		month: as red-string! (block/rs-head blk) + ((dt/date >> 12) and 0Fh) - 1
+		month: as red-string! (block/rs-head blk) + DATE_GET_MONTH(d) - 1
 		;if month > block/rs-tail [...]					;@@ fire error
 		;if TYPE_OF(month) <> TYPE_STRING [...]			;@@ fire error
 		
@@ -191,11 +223,17 @@ date: context [
 		
 		string/append-char GET_BUFFER(buffer) as-integer #"-"
 		
-		formed: integer/form-signed dt/date >> 16
+		formed: integer/form-signed DATE_GET_YEAR(d)
 		string/concatenate-literal buffer formed
 		len: 4 - length? formed
 		if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
-		part - 5										;-- 4 + separator
+		part: part - 5									;-- 4 + separator
+		
+		if dt/time <> 0.0 [
+			string/append-char GET_BUFFER(buffer) as-integer #"/"
+			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
+		]
+		part
 	]
 
 	do-math: func [
@@ -274,6 +312,86 @@ date: context [
 		as red-value! do-math OP_ADD
 	]
 
+	eval-path: func [
+		dt		[red-date!]								;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			word   [red-word!]
+			int	   [red-integer!]
+			fl	   [red-float!]
+			tm	   [red-time!]
+			field  [integer!]
+			sym	   [integer!]
+			v	   [integer!]
+			d	   [integer!]
+			fval   [float!]
+			error? [logic!]
+	][
+		error?: no
+
+		switch TYPE_OF(element) [
+			TYPE_INTEGER [
+				int: as red-integer! element
+				field: int/value
+				if any [field < 1 field > 5][error?: yes]
+			]
+			TYPE_WORD [
+				word: as red-word! element
+				sym: symbol/resolve word/symbol
+				case [
+					sym = words/year   [field: 1]
+					sym = words/month  [field: 2]
+					sym = words/day	   [field: 3]
+					sym = words/zone   [field: 4]
+					sym = words/time   [field: 5]
+					sym = words/hour   [field: 6]
+					sym = words/minute [field: 7]
+					sym = words/second [field: 8]
+					sym = words/weekday[field: 9]
+					sym = words/julian [field: 10]
+					true 			   [error?: yes]
+				]
+			]
+			default [error?: yes]
+		]
+		if error? [fire [TO_ERROR(script invalid-path) stack/arguments element]]
+
+		either value <> null [
+			if all [1 <= field field <= 3][
+				if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
+				int: as red-integer! value
+				v: int/value
+			]
+			if all [6 <= field field <= 8][
+				return time/eval-path as red-time! dt element value path case?
+			]
+			d: dt/date
+			switch field [
+				1 [dt/date: d and FFFFh or (v << 16)]
+				2 [if v <= 0 [v: 12 + v] dt/date: d and FFFF0FFFh or (v and 0Fh << 12)]
+				3 [if v <= 0 [v: 31 + v] dt/date: d and FFFE0FFFh or (v and 1Fh << 7)]
+				5 [
+					either TYPE_OF(value) = TYPE_TIME [
+						tm: as red-time! value
+						dt/time: tm/time
+					][
+						return time/eval-path as red-time! dt element value path case?
+					]
+				]
+				default [assert false]
+			]
+			value
+		][
+			value: push-field dt field
+			stack/pop 1									;-- avoids moving stack up
+			value
+		]
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_DATE
@@ -286,7 +404,7 @@ date: context [
 			null			;to
 			:form
 			:mold
-			null			;eval-path
+			:eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --
