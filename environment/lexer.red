@@ -785,7 +785,7 @@ system/lexer: context [
 			opt [
 				time-sep (neg?: no)
 				s: positive-integer-rule (value: make-number s e integer!)
-				#":" [time-rule (?? value date/time: value) | (throw-error [date! pos])]
+				#":" [time-rule (date/time: value) | (throw-error [date! pos])]
 			]
 			(value: date)
 		]
