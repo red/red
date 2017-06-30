@@ -369,7 +369,7 @@ date: context [
 			switch field [
 				1 [dt/date: d and FFFFh or (v << 16)]
 				2 [if v <= 0 [v: 12 + v] dt/date: d and FFFF0FFFh or (v and 0Fh << 12)]
-				3 [if v <= 0 [v: 31 + v] dt/date: d and FFFE0FFFh or (v and 1Fh << 7)]
+				3 [if v <= 0 [v: 31 + v] dt/date: d and FFFFF07Fh or (v and 1Fh << 7)]
 				5 [
 					either TYPE_OF(value) = TYPE_TIME [
 						tm: as red-time! value
