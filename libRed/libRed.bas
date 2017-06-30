@@ -53,6 +53,7 @@ Public Enum RedTypes
     red_email
     red_image
     red_event
+    red_date
 End Enum
 
 Public Enum RedEncodings

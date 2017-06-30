@@ -59,6 +59,7 @@ Red/System [
 	TYPE_EMAIL											;-- 2D		45
 	TYPE_HANDLE											;-- 2E		46
 	TYPE_IMAGE											;-- 2F		47
+	TYPE_DATE											;-- 30		48
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
