@@ -111,6 +111,72 @@ date: context [
 		mm: (as float! m) * time/m-factor
 		tm + hh + mm
 	]
+	
+	do-math: func [
+		type	  [integer!]
+		return:	  [red-date!]
+		/local
+			left  [red-date!]
+			right [red-date!]
+			int   [red-integer!]
+			tm	  [red-time!]
+			days  [integer!]
+			tz	  [integer!]
+			ft	  [float!]
+			d	  [integer!]
+			dd	  [integer!]
+			tt	  [float!]
+			h	  [float!]
+			word  [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
+		left:  as red-date! stack/arguments
+		right: as red-date! left + 1
+
+		switch TYPE_OF(right) [
+			TYPE_INTEGER [
+				int: as red-integer! right
+				dd: int/value
+				tt: 0.0
+			]
+			TYPE_TIME [
+				tm: as red-time! right
+				dd: 0
+				tt: tm/time
+			]
+			TYPE_DATE [
+				dd: date-to-days right/date
+				tt: right/time
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+			]
+		]
+
+		h: tt / time/h-factor
+		d: (as-integer h) / 24
+		h: as float! d
+		tt: tt - (h * time/h-factor)
+		dd: dd + d
+
+		tz: DATE_GET_ZONE(left/date)
+		days: date-to-days left/date
+		ft: left/time
+		switch type [
+			OP_ADD [
+				days: days + dd
+				ft: ft + tt
+			]
+			OP_SUB [
+				days: days - dd
+				ft: ft - tt
+			]
+			default [0]
+		]
+		left/date: tz or days-to-date days
+		left/time: ft
+		left
+	]
 
 	;-- Actions --
 
@@ -230,72 +296,6 @@ date: context [
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 		]
 		part
-	]
-
-	do-math: func [
-		type	  [integer!]
-		return:	  [red-date!]
-		/local
-			left  [red-date!]
-			right [red-date!]
-			int   [red-integer!]
-			tm	  [red-time!]
-			days  [integer!]
-			tz	  [integer!]
-			ft	  [float!]
-			d	  [integer!]
-			dd	  [integer!]
-			tt	  [float!]
-			h	  [float!]
-			word  [red-word!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
-		left:  as red-date! stack/arguments
-		right: as red-date! left + 1
-
-		switch TYPE_OF(right) [
-			TYPE_INTEGER [
-				int: as red-integer! right
-				dd: int/value
-				tt: 0.0
-			]
-			TYPE_TIME [
-				tm: as red-time! right
-				dd: 0
-				tt: tm/time
-			]
-			TYPE_DATE [
-				dd: date-to-days right/date
-				tt: right/time
-			]
-			default [
-				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
-			]
-		]
-
-		h: tt / time/h-factor
-		d: (as-integer h) / 24
-		h: as float! d
-		tt: tt - (h * time/h-factor)
-		dd: dd + d
-
-		tz: DATE_GET_ZONE(left/date)
-		days: date-to-days left/date
-		ft: left/time
-		switch type [
-			OP_ADD [
-				days: days + dd
-				ft: ft + tt
-			]
-			OP_SUB [
-				days: days - dd
-				ft: ft - tt
-			]
-			default [0]
-		]
-		left/date: tz or days-to-date days
-		left/time: ft
-		left
 	]
 
 	add: func [return: [red-value!]][
