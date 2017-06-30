@@ -410,7 +410,7 @@ system/lexer: context [
 			four half non-zero path-end base base64-char slash-end not-url-char
 			email-end pair-end file-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -473,13 +473,14 @@ system/lexer: context [
 			cs/24: union cs/8 union cs/14 charset "<^/" ;-- email-end
 			cs/25: charset {^{"[]();:}					;-- pair-end
 			cs/26: charset {^{[]();:}					;-- file-end
+			cs/27: charset "/-"							;-- date-sep
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end
+			pair-end file-end date-sep
 		] cs
 
 		byte: [
@@ -767,6 +768,21 @@ system/lexer: context [
 			] (type: time!)
 		]
 		
+		day-year-rule: [
+			s: [
+				4 digit e: (year: make-number s e integer!)
+				| 1 2 digit e: (day: make-number s e integer!)
+			]
+		]
+		
+		date-rule: [
+			(type: date!)
+			day-year-rule sep: date-sep (sep: sep/1)
+			s: 1 2 digit e: sep (month: make-number s e integer!)
+			day-year-rule
+			(value: make date! [year month day])
+		]
+		
 		positive-integer-rule: [digit any digit e: (type: integer!)]
 
 		integer-number-rule: [
@@ -901,6 +917,7 @@ system/lexer: context [
 				| hexa-rule			(store stack make-hexa s e)
 				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| email-rule		(store stack do make-file)
+				| date-rule			if (value) (store stack value)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
 				| tag-rule			(store stack do make-string)
