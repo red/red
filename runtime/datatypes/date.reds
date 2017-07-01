@@ -261,7 +261,35 @@ date: context [
 		]
 		as red-value! box year month day
 	]
-		
+
+	random: func [
+		dt		[red-date!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			d	[integer!]
+			n	[integer!]
+			dd	[integer!]	
+			s	[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
+
+		d: date-to-days dt/date
+		either seed? [
+			_random/srand d
+			dt/header: TYPE_UNSET
+		][
+			s: (as-float _random/rand) / 2147483647.0
+			n: _random/rand % d + 1
+			if d < 0 [n: 0 - n]
+			dt/date: days-to-date n DATE_GET_ZONE(dt/date)
+			dt/time: s * 24.0 * time/h-factor
+		]
+		as red-value! dt
+	]
+
 	form: func [
 		dt		[red-date!]
 		buffer	[red-string!]
@@ -420,7 +448,7 @@ date: context [
 			"date!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
