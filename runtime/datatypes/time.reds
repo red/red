@@ -26,6 +26,9 @@ time: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
 	
+	get-hour:   func [tm [float!] return: [integer!]][as-integer GET_HOURS(tm)]	
+	get-minute: func [tm [float!] return: [integer!]][as-integer GET_MINUTES(tm)]
+	
 	push-field: func [
 		tm		[red-time!]
 		field	[integer!]

@@ -786,6 +786,13 @@ system/lexer: context [
 				time-sep (neg?: no)
 				s: positive-integer-rule (value: make-number s e integer!)
 				#":" [time-rule (date/time: value) | (throw-error [date! pos])]
+				opt #"Z"
+				opt [
+					[#"-" (neg?: yes) | #"+" (neg?: no)]
+					s: 1 2 digit e: (hour: make-number s e integer! minute: none)
+					opt [#":" s: 1 2 digit e: (minute: make-number s e integer!)]
+					(date/zone: as-pair hour any [minute 0])
+				]
 			]
 			(value: date)
 		]

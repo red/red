@@ -16,8 +16,9 @@ date: context [
 	#define DATE_GET_YEAR(d)		 (d >> 16)
 	#define DATE_GET_MONTH(d)		 ((d >> 12) and 0Fh)
 	#define DATE_GET_DAY(d)			 ((d >> 7) and 1Fh)
-	#define DATE_GET_ZONE(d)		 (d and 7Fh)
-	#define DATE_GET_ZONE_HOURS(d)	 (d and 7Fh >> 2)
+	#define DATE_GET_ZONE(d)		 (d and 7Fh)		;-- sign included
+	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
+	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
 	#define DATE_GET_HOURS(t)		 (floor t / time/h-factor)
 	#define DATE_GET_MINUTES(t)		 (floor t / time/oneE9 // 3600.0 / 60.0)
@@ -26,6 +27,7 @@ date: context [
 	#define DATE_SET_YEAR(d year)	 (d and 0000FFFFh or (year << 16))
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
+	#define DATE_SET_ZONE(d zone)	 (d and FFFFFFC0h or (zone and 7Fh))
 	
 	push-field: func [
 		dt		[red-date!]
@@ -43,7 +45,7 @@ date: context [
 			3 [integer/push DATE_GET_DAY(d)]
 			4 [
 				time/push
-					(as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
+					(as-float DATE_GET_ZONE_HOURS(d)) * 3600.0	;@@ TBD: add sign support
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 			]
@@ -53,7 +55,7 @@ date: context [
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push 0]							;@@ TBD
-			default [assert false]
+		   default [assert false]
 		]
 	]
 	
@@ -364,8 +366,12 @@ date: context [
 			formed [c-string!]
 			blk	   [red-block!]
 			month  [red-string!]
+			hour   [integer!]
+			mn	   [integer!]
 			len	   [integer!]
 			d	   [integer!]
+			zone   [integer!]
+			sign   [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/mold"]]
 		
@@ -395,6 +401,30 @@ date: context [
 		if dt/time <> 0.0 [
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
+
+			zone: DATE_GET_ZONE(d)
+			if zone <> 0 [
+				sign: either as-logic zone >> 6 [#"-"][#"+"]
+				string/append-char GET_BUFFER(buffer) as-integer sign
+				hour: DATE_GET_ZONE_HOURS(d)
+				if hour < 10 [
+					string/append-char GET_BUFFER(buffer) as-integer #"0"
+					part: part - 1
+				]
+				formed: integer/form-signed hour
+				string/concatenate-literal buffer formed
+				part: part - 1 - length? formed			;@@ optimize by removing length?
+				
+				string/append-char GET_BUFFER(buffer) as-integer #":"
+				mn: DATE_GET_ZONE_MINUTES(d)
+				if mn < 10 [
+					string/append-char GET_BUFFER(buffer) as-integer #"0"
+					part: part - 1
+				]
+				formed: integer/form-signed mn
+				string/concatenate-literal buffer formed
+				part: part - 1 - length? formed			;@@ optimize by removing length?
+			]
 		]
 		part
 	]
@@ -421,10 +451,13 @@ date: context [
 			int	   [red-integer!]
 			fl	   [red-float!]
 			tm	   [red-time!]
+			p	   [red-pair!]
 			field  [integer!]
 			sym	   [integer!]
 			v	   [integer!]
 			d	   [integer!]
+			h	   [integer!]
+			m	   [integer!]
 			fval   [float!]
 			error? [logic!]
 	][
@@ -471,6 +504,29 @@ date: context [
 				1 [dt/date: DATE_SET_YEAR(d v)]
 				2 [dt/date: days-to-date v + date-to-days DATE_SET_MONTH(d 0) 0]
 				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) 0]
+				4 [
+					switch TYPE_OF(value) [
+						TYPE_INTEGER [
+							int: as red-integer! value
+							h: int/value
+							m: 0
+						]
+						TYPE_TIME [
+							tm: as red-time! value
+							h: time/get-hour tm/time
+							m: time/get-minute tm/time
+						]
+						TYPE_PAIR [
+							p: as red-pair! value
+							h: p/x
+							m: p/y
+						]
+						default [fire [TO_ERROR(script invalid-arg) value]]
+					]
+					if h < 0 [h: 0 - h and 0Fh or 10h]	;-- properly set the sign bit
+					v: h << 2 or (m / 15 and 03h)
+					dt/date: DATE_SET_ZONE(d v)
+				]
 				5 [
 					either TYPE_OF(value) = TYPE_TIME [
 						tm: as red-time! value
@@ -490,9 +546,9 @@ date: context [
 	]
 
 	compare: func [
-		value1    [red-date!]						;-- first operand
-		value2    [red-date!]						;-- second operand
-		op	      [integer!]						;-- type of comparison
+		value1    [red-date!]							;-- first operand
+		value2    [red-date!]							;-- second operand
+		op	      [integer!]							;-- type of comparison
 		return:   [integer!]
 		/local
 			type	[integer!]
