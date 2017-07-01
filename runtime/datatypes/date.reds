@@ -21,6 +21,10 @@ date: context [
 	#define DATE_GET_MINUTES(t) (floor t / time/oneE9 // 3600.0 / 60.0)
 	#define DATE_GET_SECONDS(t) (t / time/oneE9 // 60.0)
 	
+	#define DATE_SET_YEAR(d year)	(d and 0000FFFFh or (year << 16))
+	#define DATE_SET_MONTH(d month)	(d and FFFF0FFFh or (month and 0Fh << 12))
+	#define DATE_SET_DAY(d day)		(d and FFFFF07Fh or (day and 1Fh << 7))
+	
 	push-field: func [
 		dt		[red-date!]
 		field	[integer!]
@@ -39,6 +43,7 @@ date: context [
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
+			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 			default [assert false]
 		]
 	]
@@ -420,9 +425,9 @@ date: context [
 			]
 			d: dt/date
 			switch field [
-				1 [dt/date: d and FFFFh or (v << 16)]
-				2 [if v <= 0 [v: 12 + v] dt/date: d and FFFF0FFFh or (v and 0Fh << 12)]
-				3 [if v <= 0 [v: 31 + v] dt/date: d and FFFFF07Fh or (v and 1Fh << 7)]
+				1 [dt/date: DATE_SET_YEAR(d v)]
+				2 [dt/date: days-to-date v + date-to-days DATE_SET_MONTH(d 0) 0]
+				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) 0]
 				5 [
 					either TYPE_OF(value) = TYPE_TIME [
 						tm: as red-time! value
