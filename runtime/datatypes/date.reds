@@ -488,7 +488,39 @@ date: context [
 			value
 		]
 	]
-	
+
+	compare: func [
+		value1    [red-date!]						;-- first operand
+		value2    [red-date!]						;-- second operand
+		op	      [integer!]						;-- type of comparison
+		return:   [integer!]
+		/local
+			type	[integer!]
+			res		[integer!]
+			t1		[float!]
+			t2		[float!]
+			eq?		[logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
+
+		type: TYPE_OF(value2)
+		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
+
+		t1: dt-to-nanosec value1/date value1/time yes
+		t2: dt-to-nanosec value2/date value2/time yes
+		eq?: float/almost-equal t1 t2
+		switch op [
+			COMP_EQUAL
+			COMP_NOT_EQUAL [res: as-integer not eq?]
+			COMP_SAME
+			COMP_STRICT_EQUAL [res: as-integer t1 <> t2]
+			default [
+				either eq? [res: 0][res: SIGN_COMPARE_RESULT(t1 t2)]
+			]
+		]
+		res
+	]
+
 	pick: func [
 		dt		[red-date!]
 		index	[integer!]
@@ -515,7 +547,7 @@ date: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			:add
