@@ -278,7 +278,7 @@ integer: context [
 					right/value: value
 					date/do-math op
 				][
-					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
+					fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_INTEGER]
 				]
 			]
 			default [

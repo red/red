@@ -60,25 +60,31 @@ date: context [
 
 	days-to-date: func [
 		days	[integer!]
+		tz		[integer!]
 		return: [integer!]
 		/local
 			y	[integer!]
 			m	[integer!]
 			d	[integer!]
-			dd [integer!]
+			dd	[integer!]
 			mi	[integer!]
+			f	[float!]
 	][
-		y: 10000 * days + 14780 / 3652425
+		;@@ use int64 once we have it
+		f: 10000.0 * days
+		y: as-integer (f + 14780.0 / 3652425.0)
+
 		dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
 		if dd < 0 [
 			y: y - 1
 			dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
 		]
+
 		mi: 100 * dd + 52 / 3060
 		m: mi + 2 % 12 + 1
 		y: y + (mi + 2 / 12)
 		d: dd - (mi * 306 + 5 / 10) + 1
-		y << 16 or (m << 12) or (d << 7)
+		y << 16 or (m << 12) or (d << 7) or tz
 	]
 
 	date-to-days: func [
@@ -92,6 +98,8 @@ date: context [
 		y: DATE_GET_YEAR(date)
 		m: DATE_GET_MONTH(date)
 		d: DATE_GET_DAY(date)
+		m: (m + 9) % 12
+		y: y - (m / 10)
 		365 * y + (y / 4) - (y / 100) + (y / 400) + ((m * 306 + 5) / 10) + (d - 1)
 	]
 
@@ -127,13 +135,14 @@ date: context [
 			dd	  [integer!]
 			tt	  [float!]
 			h	  [float!]
-			word  [red-word!]
+			days? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
 		left:  as red-date! stack/arguments
 		right: as red-date! left + 1
+		days?: no						;-- return days?
 
-		switch TYPE_OF(right) [
+		switch TYPE_OF(right) [			;-- left value is always a date!, only need to check right value
 			TYPE_INTEGER [
 				int: as red-integer! right
 				dd: int/value
@@ -145,6 +154,10 @@ date: context [
 				tt: tm/time
 			]
 			TYPE_DATE [
+				if type = OP_ADD [
+					fire [TO_ERROR(script not-related) words/_add datatype/push TYPE_DATE]
+				]
+				days?: yes
 				dd: date-to-days right/date
 				tt: right/time
 			]
@@ -152,12 +165,6 @@ date: context [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-
-		h: tt / time/h-factor
-		d: (as-integer h) / 24
-		h: as float! d
-		tt: tt - (h * time/h-factor)
-		dd: dd + d
 
 		tz: DATE_GET_ZONE(left/date)
 		days: date-to-days left/date
@@ -173,8 +180,26 @@ date: context [
 			]
 			default [0]
 		]
-		left/date: tz or days-to-date days
-		left/time: ft
+
+		;-- normalize time
+		h: ft / time/h-factor
+		d: (as-integer h) / 24
+		days: days + d
+		h: as float! (d * 24)
+		ft: ft - (h * time/h-factor)
+		if ft < 0.0 [
+			days: days - 1
+			ft: 24.0 * time/h-factor + ft
+		]
+
+		either days? [
+			int: as red-integer! left
+			int/header: TYPE_INTEGER
+			int/value: days
+		][
+			left/date: days-to-date days tz
+			left/time: ft
+		]
 		left
 	]
 
@@ -305,7 +330,7 @@ date: context [
 
 	subtract: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "date/subtract"]]
-		as red-value! do-math OP_ADD
+		as red-value! do-math OP_SUB
 	]
 
 	eval-path: func [

@@ -300,7 +300,41 @@ time: context [
 			value
 		]
 	]
-	
+
+	add: func [
+		return:	[red-value!]
+		/local
+			left	[red-time!]
+			right	[red-time!]
+			val		[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/add"]]
+		right: as red-time! stack/arguments + 1
+		either TYPE_OF(right) = TYPE_DATE [
+			left: right - 1								;-- swap them!
+			val: left/time
+			copy-cell as red-value! right as red-value! left
+			right/header: TYPE_TIME
+			right/time: val
+			as red-value! date/do-math OP_ADD
+		][
+			as red-value! float/do-math OP_MUL
+		]
+	]
+
+	subtract: func [
+		return:	[red-value!]
+		/local
+			slot [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/subtract"]]
+		slot: stack/arguments + 1
+		if TYPE_OF(slot) = TYPE_DATE [
+			fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_TIME]
+		]
+		as red-value! float/do-math OP_MUL
+	]
+
 	divide: func [
 		return: [red-value!]
 		/local
@@ -396,14 +430,14 @@ time: context [
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			INHERIT_ACTION	;absolute
-			INHERIT_ACTION	;add
+			:add
 			:divide
 			:multiply
 			INHERIT_ACTION	;negate
 			null			;power
 			INHERIT_ACTION	;remainder
 			:round
-			INHERIT_ACTION	;subtract
+			:subtract
 			:even?
 			:odd?
 			;-- Bitwise actions --
