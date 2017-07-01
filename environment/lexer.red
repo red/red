@@ -777,24 +777,35 @@ system/lexer: context [
 		]
 		
 		date-rule: [
-			(type: date!)
 			day-year-rule sep: date-sep (sep: sep/1)
 			s: 1 2 digit e: sep (month: make-number s e integer!)
 			day-year-rule
-			(date: make date! [year month day])
+			(type: date! date: make date! [year month day])
 			opt [
 				time-sep (neg?: no)
 				s: positive-integer-rule (value: make-number s e integer!)
-				#":" [time-rule (date/time: value) | (throw-error [date! pos])]
-				opt #"Z"
+				#":" [time-rule (date/time: value) | (throw-error [type pos])]
 				opt [
-					[#"-" (neg?: yes) | #"+" (neg?: no)]
+					#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)]
 					s: 1 2 digit e: (hour: make-number s e integer! minute: none)
 					opt [#":" s: 1 2 digit e: (minute: make-number s e integer!)]
 					(date/zone: as-pair hour any [minute 0])
 				]
 			]
 			(value: date)
+			| s: 8 digit #"T" (						;-- yyyymmddThhmmssZ ISO format
+				type: date!
+				year:  make-number s e: skip s 4 integer!
+				month: make-number e e: skip e 2 integer!
+				day:   make-number e e: skip e 2 integer!
+				date:  make date! [year month day]
+			) s: 6 digit #"Z" (
+				hour: make-number s e: skip s 2 integer!
+				mn:	  make-number e e: skip e 2 integer!
+				sec:  make-number e e: skip e 2 integer!
+				date/time: make-hms hour mn sec
+				(value: date)
+			)
 		]
 		
 		positive-integer-rule: [digit any digit e: (type: integer!)]
