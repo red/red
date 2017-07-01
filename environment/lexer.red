@@ -437,6 +437,9 @@ system/lexer: context [
 			if type = file! [parse new [any [s: #"\" change s #"/" | skip]]]
 			new
 		]
+		
+		month-rule: [(m: none)]							;-- dynamically filled
+		mon-rule:   [(m: none)]							;-- dynamically filled
 
 		if cs/1 = '- [
 			cs/1:  charset "0123465798"					;-- digit
@@ -475,6 +478,18 @@ system/lexer: context [
 			cs/26: charset {^{[]();:}					;-- file-end
 			cs/27: charset "/-"							;-- date-sep
 			cs/28: charset "/T"							;-- time-sep
+			
+			list: system/locale/months
+			while [not tail? list][
+				append month-rule list/1
+				append/only month-rule p: copy quote (m: ?)
+				unless tail? next list [append month-rule '|]
+				p/2: index? list
+				append mon-rule copy/part list/1 3
+				append/only mon-rule p
+				unless tail? next list [append mon-rule '|]
+				list: next list
+			]
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
@@ -777,9 +792,12 @@ system/lexer: context [
 		]
 		
 		date-rule: [
-			day-year-rule sep: date-sep (sep: sep/1)
-			s: 1 2 digit e: sep (month: make-number s e integer!)
-			day-year-rule
+			day-year-rule sep: date-sep (sep: sep/1) [
+				s: 1 2 digit e: (month: make-number s e integer!)
+				| month-rule 	(month: m)
+				| mon-rule  	(month: m)
+			]
+			sep day-year-rule
 			(type: date! date: make date! [year month day])
 			opt [
 				time-sep (neg?: no)
@@ -792,7 +810,7 @@ system/lexer: context [
 							mn:   make-number e e: skip e 2 integer!
 						)
 						| 1 2 digit e: (hour: make-number s e integer! mn: none)
-						opt [#":" s: 1 2 digit e: (mn: make-number s e integer!)]
+						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
 					(date/zone: as-pair either neg? [negate hour][hour] any [mn 0])
 				]
