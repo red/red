@@ -13,17 +13,19 @@ Red/System [
 date: context [
 	verbose: 0
 	
-	#define DATE_GET_YEAR(d)	(d >> 16)
-	#define DATE_GET_MONTH(d)	((d >> 12) and 0Fh)
-	#define DATE_GET_DAY(d)		((d >> 7) and 1Fh)
-	#define DATE_GET_ZONE(d) 	(d and 7Fh)
-	#define DATE_GET_HOURS(t)   (floor t / time/h-factor)
-	#define DATE_GET_MINUTES(t) (floor t / time/oneE9 // 3600.0 / 60.0)
-	#define DATE_GET_SECONDS(t) (t / time/oneE9 // 60.0)
+	#define DATE_GET_YEAR(d)		 (d >> 16)
+	#define DATE_GET_MONTH(d)		 ((d >> 12) and 0Fh)
+	#define DATE_GET_DAY(d)			 ((d >> 7) and 1Fh)
+	#define DATE_GET_ZONE(d)		 (d and 7Fh)
+	#define DATE_GET_ZONE_HOURS(d)	 (d and 7Fh >> 2)
+	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
+	#define DATE_GET_HOURS(t)		 (floor t / time/h-factor)
+	#define DATE_GET_MINUTES(t)		 (floor t / time/oneE9 // 3600.0 / 60.0)
+	#define DATE_GET_SECONDS(t)		 (t / time/oneE9 // 60.0)
 	
-	#define DATE_SET_YEAR(d year)	(d and 0000FFFFh or (year << 16))
-	#define DATE_SET_MONTH(d month)	(d and FFFF0FFFh or (month and 0Fh << 12))
-	#define DATE_SET_DAY(d day)		(d and FFFFF07Fh or (day and 1Fh << 7))
+	#define DATE_SET_YEAR(d year)	 (d and 0000FFFFh or (year << 16))
+	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
+	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
 	
 	push-field: func [
 		dt		[red-date!]
@@ -39,11 +41,18 @@ date: context [
 			1 [integer/push DATE_GET_YEAR(d)]
 			2 [integer/push DATE_GET_MONTH(d)]
 			3 [integer/push DATE_GET_DAY(d)]
+			4 [
+				time/push
+					(as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
+					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
+					/ time/nano
+			]
 			5 [time/push t]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
+		   10 [integer/push 0]							;@@ TBD
 			default [assert false]
 		]
 	]
@@ -391,7 +400,7 @@ date: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				field: int/value
-				if any [field < 1 field > 5][error?: yes]
+				if any [field < 1 field > 10][error?: yes]
 			]
 			TYPE_WORD [
 				word: as red-word! element
@@ -446,6 +455,18 @@ date: context [
 		]
 	]
 	
+	pick: func [
+		dt		[red-date!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/pick"]]
+
+		if any [index < 1 index > 10][fire [TO_ERROR(script out-of-range) boxed]]
+		push-field dt index
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_DATE
@@ -493,7 +514,7 @@ date: context [
 			null			;length?
 			null			;move
 			null			;next
-			null			;pick
+			:pick
 			null			;poke
 			null			;put
 			null			;remove
