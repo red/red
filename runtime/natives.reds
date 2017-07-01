@@ -2435,6 +2435,7 @@ natives: context [
 				int/value: date/julian-date dt/date
 				exit
 			]
+			true [exit]
 		]
 		if n > 0 [
 			stack/set-last date/eval-path dt as red-value! integer/push n null null yes

@@ -38,7 +38,7 @@ date: context [
 			t [float!]
 	][
 		d: dt/date
-		t: dt/time
+		t: to-local-time dt/time DATE_GET_ZONE(d)
 		as red-value! switch field [
 			1 [integer/push DATE_GET_YEAR(d)]
 			2 [integer/push DATE_GET_MONTH(d)]
@@ -137,9 +137,10 @@ date: context [
 		0
 	]
 
-	to-local-time: func [
+	convert-time: func [
 		tm		[float!]
 		tz		[integer!]
+		to-utc? [logic!]
 		return: [float!]
 		/local
 			m	[integer!]
@@ -151,8 +152,26 @@ date: context [
 		m: tz and 03h * 15
 		hh: (as float! h) * time/h-factor
 		mm: (as float! m) * time/m-factor
-		tm + hh + mm
+		either to-utc? [tm: tm - hh - mm][tm: tm + hh + mm]
+		tm
 	]
+
+	to-local-time: func [
+		tm		[float!]
+		tz		[integer!]
+		return: [float!]
+	][
+		convert-time tm tz no
+	]
+
+	to-utc-time: func [
+		tm		[float!]
+		tz		[integer!]
+		return: [float!]
+	][
+		convert-time tm tz yes
+	]
+
 
 	difference?: func [
 		dt1		[red-date!]
@@ -252,6 +271,33 @@ date: context [
 			left/time: ft
 		]
 		left
+	]
+
+	set-time: func [
+		dt	[red-date!]
+		tm	[float!]
+		/local
+			h	[float!]
+			d	[integer!]
+			dd	[integer!] 
+			tz	[integer!]
+	][
+		tz: DATE_GET_ZONE(dt/date)
+		dd: date-to-days dt/date
+		tm: to-utc-time tm tz
+
+		;-- normalize time
+		h: tm / time/h-factor
+		d: (as-integer h) / 24
+		dd: dd + d
+		h: as float! (d * 24)
+		tm: tm - (h * time/h-factor)
+		if tm < 0.0 [
+			dd: dd - 1
+			tm: 24.0 * time/h-factor + tm
+		]
+		dt/date: days-to-date dd tz
+		dt/time: tm
 	]
 
 	;-- Actions --
@@ -503,7 +549,9 @@ date: context [
 				v: int/value
 			]
 			if all [6 <= field field <= 8][
-				return time/eval-path as red-time! dt element value path case?
+				time/eval-path as red-time! dt element value path case?
+				set-time dt dt/time
+				return value
 			]
 			d: dt/date
 			switch field [
@@ -538,8 +586,9 @@ date: context [
 						tm: as red-time! value
 						dt/time: tm/time
 					][
-						return time/eval-path as red-time! dt element value path case?
+						time/eval-path as red-time! dt as red-value! integer/push 3 value path case?	;-- set seconds
 					]
+					set-time dt dt/time
 				]
 				default [assert false]
 			]
