@@ -2405,20 +2405,40 @@ natives: context [
 		day		[integer!]
 		time	[integer!]
 		zone	[integer!]
-		date	[integer!]
+		_date	[integer!]
 		weekday	[integer!]
 		yearday	[integer!]
 		precise	[integer!]
 		utc		[integer!]
 		/local
 			dt	[red-date!]
+			int [red-integer!]
+			n	[integer!]
 	][
 		#typecheck [now year month day time zone date weekday yearday precise utc]
-		if time = -1 [--NOT_IMPLEMENTED--]
 
 		dt: as red-date! stack/arguments
-		dt/header: TYPE_TIME
-		dt/time: platform/get-time utc >= 0 precise >= 0
+		dt/header: TYPE_DATE
+		dt/date: platform/get-date utc >= 0
+		dt/time: platform/get-time yes precise >= 0
+		n: 0
+		case [
+			year    > -1 [n: 1]
+			month   > -1 [n: 2]
+			day     > -1 [n: 3]
+			zone    > -1 [n: 4]
+			time    > -1 [n: 5]
+			weekday > -1 [n: 9]
+			_date   > -1 [dt/time: 0.0 exit]
+			yearday > -1 [
+				int/header: TYPE_INTEGER
+				int/value: date/julian-date dt/date
+				exit
+			]
+		]
+		if n > 0 [
+			stack/set-last date/eval-path dt as red-value! integer/push n null null yes
+		]
 	]
 	
 	as*: func [

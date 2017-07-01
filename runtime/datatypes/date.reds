@@ -122,17 +122,22 @@ date: context [
 	dt-to-nanosec: func [
 		date	[integer!]
 		tm		[float!]
-		utc?	[logic!]
 		return: [float!]
 		/local
 			h	[integer!]
 	][
 		h: 24 * date-to-days date
-		if utc? [tm: get-utc-time tm DATE_GET_ZONE(date)]
 		(as float! h) * time/h-factor + tm
 	]
 
-	get-utc-time: func [
+	julian-date: func [
+		date	[integer!]
+		return: [integer!]
+	][
+		0
+	]
+
+	to-local-time: func [
 		tm		[float!]
 		tz		[integer!]
 		return: [float!]
@@ -158,8 +163,8 @@ date: context [
 			t2	[float!]
 			t	[red-time!]
 	][
-		t1: dt-to-nanosec dt1/date dt1/time yes
-		t2: dt-to-nanosec dt2/date dt2/time yes
+		t1: dt-to-nanosec dt1/date dt1/time
+		t2: dt-to-nanosec dt2/date dt2/time
 		t: as red-time! dt1
 		t/header: TYPE_TIME
 		t/time: t1 - t2
@@ -399,10 +404,11 @@ date: context [
 		part: part - 5									;-- 4 + separator
 		
 		if dt/time <> 0.0 [
+			zone: DATE_GET_ZONE(d)
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
+			dt/time: to-local-time dt/time zone
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 
-			zone: DATE_GET_ZONE(d)
 			if zone <> 0 [
 				sign: either as-logic zone >> 6 [#"-"][#"+"]
 				string/append-char GET_BUFFER(buffer) as-integer sign
@@ -562,8 +568,8 @@ date: context [
 		type: TYPE_OF(value2)
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
 
-		t1: dt-to-nanosec value1/date value1/time yes
-		t2: dt-to-nanosec value2/date value2/time yes
+		t1: dt-to-nanosec value1/date value1/time
+		t2: dt-to-nanosec value2/date value2/time
 		eq?: float/almost-equal t1 t2
 		switch op [
 			COMP_EQUAL
