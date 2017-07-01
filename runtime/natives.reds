@@ -1261,6 +1261,10 @@ natives: context [
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
+			TYPE_DATE	 [
+				if op <> OP_DIFFERENCE [ERR_EXPECT_ARGUMENT(type 1)]
+				date/difference? as red-date! set1 as red-date! set2
+			]
 			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]

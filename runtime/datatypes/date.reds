@@ -117,6 +117,19 @@ date: context [
 		365 * y + (y / 4) - (y / 100) + (y / 400) + ((m * 306 + 5) / 10) + (d - 1)
 	]
 
+	dt-to-nanosec: func [
+		date	[integer!]
+		tm		[float!]
+		utc?	[logic!]
+		return: [float!]
+		/local
+			h	[integer!]
+	][
+		h: 24 * date-to-days date
+		if utc? [tm: get-utc-time tm DATE_GET_ZONE(date)]
+		(as float! h) * time/h-factor + tm
+	]
+
 	get-utc-time: func [
 		tm		[float!]
 		tz		[integer!]
@@ -133,7 +146,24 @@ date: context [
 		mm: (as float! m) * time/m-factor
 		tm + hh + mm
 	]
-	
+
+	difference?: func [
+		dt1		[red-date!]
+		dt2		[red-date!]
+		return: [red-time!]
+		/local
+			t1	[float!]
+			t2	[float!]
+			t	[red-time!]
+	][
+		t1: dt-to-nanosec dt1/date dt1/time yes
+		t2: dt-to-nanosec dt2/date dt2/time yes
+		t: as red-time! dt1
+		t/header: TYPE_TIME
+		t/time: t1 - t2
+		t
+	]
+
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-date!]
@@ -283,6 +313,7 @@ date: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
+			y	[integer!]
 			d	[integer!]
 			n	[integer!]
 			dd	[integer!]	
@@ -290,15 +321,18 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
-		d: date-to-days dt/date
+		d: dt/date
 		either seed? [
 			_random/srand d
 			dt/header: TYPE_UNSET
 		][
+			y: DATE_GET_YEAR(d)
+			n: _random/rand % y + 1			
+			if y < 0 [n: 0 - n]
+			dd: _random/rand % (d and FFFFh)
+			dt/date: n << 16 or (dd and 80h) or DATE_GET_ZONE(d)
+
 			s: (as-float _random/rand) / 2147483647.0
-			n: _random/rand % d + 1
-			if d < 0 [n: 0 - n]
-			dt/date: days-to-date n DATE_GET_ZONE(dt/date)
 			dt/time: s * 24.0 * time/h-factor
 		]
 		as red-value! dt
