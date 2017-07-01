@@ -786,14 +786,19 @@ system/lexer: context [
 				s: positive-integer-rule (value: make-number s e integer!)
 				#":" [time-rule (date/time: value) | (throw-error [type pos])]
 				opt [
-					#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)]
-					s: 1 2 digit e: (hour: make-number s e integer! minute: none)
-					opt [#":" s: 1 2 digit e: (minute: make-number s e integer!)]
-					(date/zone: as-pair hour any [minute 0])
+					#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
+						s: 4 digit (
+							hour: make-number s e: skip s 2 integer!
+							mn:   make-number e e: skip e 2 integer!
+						)
+						| 1 2 digit e: (hour: make-number s e integer! mn: none)
+						opt [#":" s: 1 2 digit e: (mn: make-number s e integer!)]
+					]
+					(date/zone: as-pair either neg? [negate hour][hour] any [mn 0])
 				]
 			]
 			(value: date)
-			| s: 8 digit #"T" (						;-- yyyymmddThhmmssZ ISO format
+			| s: 8 digit #"T" (							;-- yyyymmddThhmmssZ ISO format
 				type: date!
 				year:  make-number s e: skip s 4 integer!
 				month: make-number e e: skip e 2 integer!
