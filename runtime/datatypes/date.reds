@@ -616,11 +616,13 @@ date: context [
 						tm: as red-time! value
 						dt/time: tm/time
 					][
+						stack/keep
 						time/eval-path as red-time! dt as red-value! integer/push 3 value path case?	;-- set seconds
 					]
 					set-time dt dt/time
 				]
 				6 7 8 [
+					stack/keep
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time
 					return value

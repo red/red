@@ -2438,6 +2438,7 @@ natives: context [
 			true [exit]
 		]
 		if n > 0 [
+			stack/keep
 			stack/set-last date/eval-path dt as red-value! integer/push n null null yes
 		]
 	]
