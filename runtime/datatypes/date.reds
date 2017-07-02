@@ -54,9 +54,18 @@ date: context [
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
-		   10 [integer/push 0]							;@@ TBD
+		   10 [integer/push (date-to-days d) - (Jan-1st-of d) + 1]
 		   default [assert false]
 		]
+	]
+	
+	Jan-1st-of: func [
+		d		[integer!]
+		return: [integer!]								;-- in days
+	][
+		d: DATE_SET_DAY(d 1)
+		d: DATE_SET_MONTH(d 1)
+		date-to-days d
 	]
 	
 	make-in: func [
@@ -273,14 +282,8 @@ date: context [
 		days: date-to-days left/date
 		ft: left/time
 		switch type [
-			OP_ADD [
-				days: days + dd
-				ft: ft + tt
-			]
-			OP_SUB [
-				days: days - dd
-				ft: ft - tt
-			]
+			OP_ADD [days: days + dd ft: ft + tt]
+			OP_SUB [days: days - dd	ft: ft - tt]
 			default [0]
 		]
 
@@ -575,15 +578,10 @@ date: context [
 		if error? [fire [TO_ERROR(script invalid-path) stack/arguments element]]
 
 		either value <> null [
-			if all [1 <= field field <= 3][
+			if any [all [1 <= field field <= 3] field = 9 field = 10][
 				if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
 				int: as red-integer! value
 				v: int/value
-			]
-			if all [6 <= field field <= 8][
-				time/eval-path as red-time! dt element value path case?
-				set-time dt dt/time
-				return value
 			]
 			d: dt/date
 			switch field [
@@ -622,6 +620,13 @@ date: context [
 					]
 					set-time dt dt/time
 				]
+				6 7 8 [
+					time/eval-path as red-time! dt element value path case?
+					set-time dt dt/time
+					return value
+				]
+				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) 0]
+				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 0]
 				default [assert false]
 			]
 			value
