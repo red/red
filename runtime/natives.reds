@@ -2431,8 +2431,9 @@ natives: context [
 			weekday > -1 [n: 9]
 			_date   > -1 [dt/time: 0.0 exit]
 			yearday > -1 [
+				int: as red-integer! dt
 				int/header: TYPE_INTEGER
-				int/value: date/julian-date dt/date
+				int/value: date/get-julian-day dt/date
 				exit
 			]
 			true [exit]

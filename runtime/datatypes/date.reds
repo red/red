@@ -54,7 +54,7 @@ date: context [
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
-		   10 [integer/push (date-to-days d) - (Jan-1st-of d) + 1]
+		   10 [integer/push get-julian-day d]
 		   default [assert false]
 		]
 	]
@@ -172,11 +172,11 @@ date: context [
 		(as float! h) * time/h-factor + tm
 	]
 
-	julian-date: func [
+	get-julian-day: func [
 		date	[integer!]
 		return: [integer!]
 	][
-		0
+		(date-to-days date) - (Jan-1st-of date) + 1
 	]
 
 	convert-time: func [
