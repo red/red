@@ -2420,8 +2420,7 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
-		dt/time: platform/get-time yes precise >= 0
-		if utc < 0 [dt/time: date/to-local-time dt/time DATE_GET_ZONE(dt/date)]
+		dt/time: platform/get-time utc >= 0 precise >= 0
 		n: 0
 		case [
 			year    > -1 [n: 1]
