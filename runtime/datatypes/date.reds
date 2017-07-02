@@ -190,7 +190,8 @@ date: context [
 			hh	[float!]
 			mm	[float!]
 	][
-		h: tz << 25 >> 27								;-- keep signed
+		h: DATE_GET_ZONE_HOURS(tz)
+		if DATE_GET_ZONE_SIGN(tz) [h: 0 - h]
 		m: tz and 03h * 15
 		hh: (as float! h) * time/h-factor
 		mm: (as float! m) * time/m-factor
@@ -487,6 +488,7 @@ date: context [
 		
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
+			dt/time: to-local-time dt/time zone
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 

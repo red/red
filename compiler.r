@@ -1537,6 +1537,10 @@ red: context [
 			output: saved
 	]
 	
+	encode-UTC-time: func [time [time! none!] zone [time! none!]][
+		 1E9 * to decimal! either time [either zone [time - zone][time]][0.0]
+	]
+	
 	encode-date: func [value [date!] /local zone date][
 		zone: value/zone
 		date:  (shift/left value/year 16)
@@ -1665,7 +1669,7 @@ red: context [
 				]
 				date? :value [
 					emit 'date/push 				
-					emit reduce [encode-date value (to decimal! any [value/time 0.0]) * 1E9]
+					emit reduce [encode-date value encode-UTC-time value/time value/zone]
 					insert-lf -4
 				]
 				'else [
