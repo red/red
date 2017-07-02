@@ -506,7 +506,7 @@ get-date: func [
 		h		[integer!]
 ][
 	gettimeofday time 0
-	tm: gmtime as int-ptr! time
+	tm: either utc? [gmtime as int-ptr! time][localtime as int-ptr! time]
 	y: tm/year + 1900
 	m: tm/mon + 1
 	d: tm/mday

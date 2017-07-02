@@ -440,18 +440,18 @@ platform: context [
 		precise? [logic!]
 		return:  [float!]
 		/local
-			time	[tagSYSTEMTIME value]
+			tm	[tagSYSTEMTIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
 			milli	[integer!]
 			t		[float!]
 	][
-		either utc? [GetSystemTime time][GetLocalTime time]
-		h: time/hour-minute and FFFFh
-		m: time/hour-minute >>> 16
-		sec: time/second and FFFFh
-		milli: either precise? [time/second >>> 16][0]
+		either utc? [GetSystemTime tm][GetLocalTime tm]
+		h: tm/hour-minute and FFFFh
+		m: tm/hour-minute >>> 16
+		sec: tm/second and FFFFh
+		milli: either precise? [tm/second >>> 16][0]
 		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
 		t * 1E6											;-- nano second
 	]
@@ -469,7 +469,7 @@ platform: context [
 			d		[integer!]
 			h		[integer!]
 	][
-		GetSystemTime tm
+		either utc? [GetSystemTime tm][GetLocalTime tm]
 		y: tm/year-month and FFFFh
 		m: tm/year-month >>> 16
 		d: tm/week-day >>> 16
