@@ -61,6 +61,7 @@
 	red/block/push
 	red/char/push
 	red/datatype/push
+	red/date/push
 	;red/event/push
 	red/email/push
 	red/file/push
