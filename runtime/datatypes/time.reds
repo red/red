@@ -53,7 +53,7 @@ time: context [
 		/local
 			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "time/make-in"]]
 
 		cell: ALLOC_TAIL(parent)
 		cell/header: TYPE_TIME

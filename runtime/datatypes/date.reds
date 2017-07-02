@@ -59,6 +59,25 @@ date: context [
 		]
 	]
 	
+	make-in: func [
+		parent	[red-block!]
+		date	[integer!]
+		high	[integer!]
+		low		[integer!]
+		return: [red-date!]
+		/local
+			cell [cell!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/make-in"]]
+
+		cell: ALLOC_TAIL(parent)
+		cell/header: TYPE_DATE
+		cell/data1:  date
+		cell/data2:  low
+		cell/data3:  high
+		as red-date! cell
+	]
+	
 	box: func [
 		year	[integer!]
 		month	[integer!]
@@ -71,6 +90,20 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: (year << 16) or (month << 12) or (day << 7)
 		dt/time: 0.0
+		dt
+	]
+	
+	push: func [
+		date	[integer!]
+		time	[float!]
+		return: [red-date!]
+		/local
+			dt	[red-date!]
+	][
+		dt: as red-date! stack/push*
+		dt/header: TYPE_DATE
+		dt/date: date
+		dt/time: time
 		dt
 	]
 

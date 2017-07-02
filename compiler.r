@@ -261,6 +261,7 @@ red: context [
 			set-word!
 			pair!
 			time!
+			date!
 		] type?/word :expr
 	]
 	
@@ -1535,6 +1536,17 @@ red: context [
 			do body
 			output: saved
 	]
+	
+	encode-date: func [value [date!] /local zone date][
+		zone: value/zone
+		date:  (shift/left value/year 16)
+			or (shift/left value/month 12)
+			or (shift/left value/day 7)
+			or (shift/left abs zone/hour 2)
+			or (to-integer zone/minute / 15)
+		if negative? zone [date: date or 32]
+		date
+	]
 
 	emit-float: func [value [decimal!] /local bin][
 		bin: IEEE-754/to-binary64 value
@@ -1650,6 +1662,11 @@ red: context [
 					emit 'time/push
 					emit (to decimal! value) * 1E9
 					insert-lf -2
+				]
+				date? :value [
+					emit 'date/push 				
+					emit reduce [encode-date value (to decimal! any [value/time 0.0]) * 1E9]
+					insert-lf -4
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]

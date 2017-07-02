@@ -36,6 +36,14 @@ lexer: context [
 	otag: 	none
 	ot:		none
 	ct:		none
+	sep:	none
+	year:	none
+	month:	none
+	day:	none
+	hour:	none
+	mn:		none
+	sec:	none
+	date:	none
 	
 	;====== Parsing rules ======
 
@@ -102,6 +110,8 @@ lexer: context [
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
+	date-sep:		charset "/-"
+	time-sep:		charset "T/"
 	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
@@ -277,7 +287,83 @@ lexer: context [
 			]
 		] (type: time!)
 	]
+
+	month-rule: [(m: none)
+		  "January"		(m: 1)
+		| "February"	(m: 2)
+		| "March"		(m: 3)
+		| "April"		(m: 4)
+		| "May"			(m: 5)
+		| "June"		(m: 6)
+		| "July"		(m: 7)
+		| "August"		(m: 8)
+		| "September"	(m: 9)
+		| "October"		(m: 10)
+		| "November"	(m: 11)
+		| "December"	(m: 12)
+	]
+	mon-rule: [(m: none)
+		  "Jan" (m: 1)
+		| "Feb" (m: 2)
+		| "Mar" (m: 3)
+		| "Apr" (m: 4)
+		| "May" (m: 5)
+		| "Jun" (m: 6)
+		| "Jul" (m: 7)
+		| "Aug" (m: 8)
+		| "Sep" (m: 9)
+		| "Oct" (m: 10)
+		| "Nov" (m: 11)
+		| "Dec" (m: 12)
+	]
 	
+	day-year-rule: [
+		s: [
+			4 digit e: (year: load-number copy/part s e no)
+			| 1 2 digit e: (day: load-number copy/part s e no)
+		]
+	]
+
+	date-rule: [
+		day-year-rule sep: date-sep (sep: sep/1) [
+			s: 1 2 digit e: (month: load-number copy/part s e no)
+			| month-rule 	(month: m)
+			| mon-rule  	(month: m)
+		]
+		sep day-year-rule
+		(type: date! date: make date! reduce [year month day])
+		opt [
+			time-sep (neg?: no)
+			s: positive-integer-rule (value: load-number copy/part s e no)
+			#":" [time-rule (date/time: value) | (pos: s throw-error)]
+			opt [
+				#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
+					s: 4 digit (
+						hour: load-number copy/part s e: skip s 2 neg?
+						mn:   load-number copy/part e e: skip e 2 no
+					)
+					| 1 2 digit e: (hour: load-number copy/part s e no mn: none)
+					opt [#":" s: 2 digit e: (mn: load-number copy/part s e no)]
+				]
+				(date/zone: as-time hour any [mn 0] 0 neg?)
+			]
+		]
+		(value: date)
+		| s: 8 digit #"T" (							;-- yyyymmddThhmmssZ ISO format
+			type: date!
+			year:  load-number copy/part s e: skip s 4 no
+			month: load-number copy/part e e: skip e 2 no
+			day:   load-number copy/part e e: skip e 2 no
+			date:  make date! [year month day]
+		) s: 6 digit #"Z" (
+			hour: load-number copy/part s e: skip s 4 no
+			mn:	  load-number copy/part e e: skip e 2 no
+			sec:  load-number copy/part e e: skip e 2 no
+			date/time: as-time hour mn sec no
+			(value: date)
+		)
+	]
+
 	positive-integer-rule: [digit any digit e: (type: integer!)]
 	
 	integer-number-rule: [
@@ -485,6 +571,7 @@ lexer: context [
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| binary-rule	  (stack/push load-binary s e base)
 			| email-rule	  (stack/push to email! value)
+			| date-rule		  (stack/push value)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)
