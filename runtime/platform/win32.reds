@@ -419,7 +419,7 @@ platform: context [
 	set-env: func [
 		name	[c-string!]
 		value	[c-string!]
-		return: [logic!]			;-- true for success
+		return: [logic!]								;-- true for success
 	][
 		SetEnvironmentVariable name value
 	]
@@ -429,7 +429,7 @@ platform: context [
 		;; If return size is greater than valsize then value contents are undefined
 		name	[c-string!]
 		value	[c-string!]
-		valsize [integer!]			;-- includes null terminator
+		valsize [integer!]								;-- includes null terminator
 		return: [integer!]
 	][
 		GetEnvironmentVariable name value valsize
@@ -452,8 +452,8 @@ platform: context [
 		m: time/hour-minute >>> 16
 		sec: time/second and FFFFh
 		milli: either precise? [time/second >>> 16][0]
-		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
-		t * 1E6				;-- nano second
+		t: as-float h * 3600 + (m * 60) + sec * 1000 ;+ milli
+		t * 1E6											;-- nano second
 	]
 
 	get-date: func [
@@ -477,10 +477,10 @@ platform: context [
 		either utc? [h: 0][
 			res: GetTimeZoneInformation tzone
 			bias: tzone/Bias
-			if res = 2 [bias: bias + tzone/DaylightBias]	;-- TIME_ZONE_ID_DAYLIGHT: 2
+			if res = 2 [bias: bias + tzone/DaylightBias] ;-- TIME_ZONE_ID_DAYLIGHT: 2
 			bias: 0 - bias
 			h: bias / 60
-			if h < 0 [h: 0 - h and 0Fh or 10h]	;-- properly set the sign bit
+			if h < 0 [h: 0 - h and 0Fh or 10h]			;-- properly set the sign bit
 			h: h << 2 or (bias // 60 / 15 and 03h)
 		]
 		y << 16 or (m << 12) or (d << 7) or h

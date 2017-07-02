@@ -38,7 +38,7 @@ date: context [
 			t [float!]
 	][
 		d: dt/date
-		t: to-local-time dt/time DATE_GET_ZONE(d)
+		t: dt/time
 		as red-value! switch field [
 			1 [integer/push DATE_GET_YEAR(d)]
 			2 [integer/push DATE_GET_MONTH(d)]
@@ -49,7 +49,7 @@ date: context [
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 			]
-			5 [time/push to-utc-time t DATE_GET_ZONE(d)]
+			5 [time/push t]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
@@ -321,7 +321,6 @@ date: context [
 	][
 		tz: DATE_GET_ZONE(dt/date)
 		dd: date-to-days dt/date
-		tm: to-utc-time tm tz
 
 		;-- normalize time
 		h: tm / time/h-factor
@@ -488,7 +487,6 @@ date: context [
 		
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
-			dt/time: to-local-time dt/time zone
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 
