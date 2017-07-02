@@ -49,7 +49,7 @@ date: context [
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 			]
-			5 [time/push t]
+			5 [time/push to-utc-time t DATE_GET_ZONE(d)]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
@@ -181,7 +181,7 @@ date: context [
 			hh	[float!]
 			mm	[float!]
 	][
-		h: tz << 25 >> 27		;-- keep signed
+		h: tz << 25 >> 27								;-- keep signed
 		m: tz and 03h * 15
 		hh: (as float! h) * time/h-factor
 		mm: (as float! m) * time/m-factor
@@ -485,7 +485,6 @@ date: context [
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
-			dt/time: to-local-time dt/time zone
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 
 			if zone <> 0 [

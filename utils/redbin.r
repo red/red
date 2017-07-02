@@ -146,13 +146,13 @@ context [
 	]
 	
 	emit-time: func [value [time!]][
-		emit-float/with (to decimal! value) * 1E9 'TYPE_TIME
+		emit-float/with 1E9 * to decimal! value 'TYPE_TIME
 	]
 	
 	emit-date: func [value [date!]][
 		emit-type 'TYPE_DATE
 		emit red/encode-date value
-		emit-float-bin to-decimal any [value/time 0.0]
+		emit-float-bin 1E9 * either value/time [to decimal! value/time][0.0]
 	]
 
 	emit-char: func [value [integer!]][

@@ -1544,7 +1544,7 @@ red: context [
 			or (shift/left value/day 7)
 			or (shift/left abs zone/hour 2)
 			or (to-integer zone/minute / 15)
-		if negative? zone [date: date or 32]
+		if negative? zone [date: date or 64]
 		date
 	]
 
