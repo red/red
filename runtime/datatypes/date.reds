@@ -557,16 +557,21 @@ date: context [
 			len	   [integer!]
 			d	   [integer!]
 			zone   [integer!]
+			year   [integer!]
+			sep	   [integer!]
 			sign   [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/mold"]]
 		
 		d: dt/date
+		year: DATE_GET_YEAR(d)
+		sep: as-integer either year < 0 [#"/"][#"-"]
+		
 		formed: integer/form-signed DATE_GET_DAY(d)
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"-"
+		string/append-char GET_BUFFER(buffer) sep
 		
 		blk: as red-block! #get system/locale/months
 		month: as red-string! (block/rs-head blk) + DATE_GET_MONTH(d) - 1
@@ -576,9 +581,9 @@ date: context [
 		string/concatenate buffer month 3 0 yes no
 		part: part - 4									;-- 3 + separator
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"-"
+		string/append-char GET_BUFFER(buffer) sep
 		
-		formed: integer/form-signed DATE_GET_YEAR(d)
+		formed: integer/form-signed year
 		string/concatenate-literal buffer formed
 		len: 4 - length? formed
 		if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
