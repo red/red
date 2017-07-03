@@ -28,6 +28,11 @@ date: context [
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
 	#define DATE_SET_ZONE(d zone)	 (d and FFFFFFC0h or (zone and 7Fh))
+	#define DATE_ADJUST_ZONE_SIGN(i) (i: 0 - i and 0Fh or 10h)
+	
+	throw-error: func [spec [red-value!]][
+		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
+	]
 	
 	push-field: func [
 		dt		[red-date!]
@@ -101,14 +106,16 @@ date: context [
 		year	[integer!]
 		month	[integer!]
 		day		[integer!]
+		time 	[float!]
+		zone	[integer!]
 		return: [red-date!]
 		/local
 			dt	[red-date!]
 	][
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
-		dt/date: (year << 16) or (month << 12) or (day << 7)
-		dt/time: 0.0
+		dt/date: (year << 16) or (month << 12) or (day << 7) or zone
+		dt/time: time
 		dt
 	]
 	
@@ -359,26 +366,45 @@ date: context [
 			v	  [red-value!]
 			int	  [red-integer!]
 			fl	  [red-float!]
+			tm	  [red-time!]
+			cnt   [integer!]
+			i	  [integer!]
 			year  [integer!]
 			month [integer!]
 			day   [integer!]
-			idx   [integer!]
-			i	  [integer!]
+			hour  [integer!]
+			mn	  [integer!]
+			sec   [integer!]
+			zone  [integer!]
+			t	  [float!]
+			ftime [float!]
+			sec-t [float!]
+			zone-t[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/make"]]
 		
 		if TYPE_OF(spec) = TYPE_DATE [return spec]
+		
 		year:   0
 		month:  1
 		day:    1
+		ftime:	0.0
+		hour:	0
+		mn:		0
+		sec:	0
+		sec-t:	0.0
+		zone:	0
+		zone-t:	0.0
 		
 		switch TYPE_OF(spec) [
 			TYPE_BLOCK [
 				value: block/rs-head as red-block! spec
 				tail:  block/rs-tail as red-block! spec
 				
-				idx: 1
+				cnt: 0
 				while [value < tail][
+					i: 0
+					t: 0.0
 					v: either TYPE_OF(value) = TYPE_WORD [
 						_context/get as red-word! value
 					][
@@ -393,16 +419,55 @@ date: context [
 							fl: as red-float! v
 							i: as-integer fl/value
 						]
-						default [0]						;@@ fire error
+						TYPE_TIME [
+							if cnt < 3 [throw-error spec]
+							tm: as red-time! v
+							t: tm/time
+						]
+						default [throw-error spec]
 					]
-					switch idx [1 [year: i] 2 [month: i] 3 [day: i]]
-					idx: idx + 1
+					switch cnt [
+						0 [year:  i]
+						1 [month: i]
+						2 [day:	  i]
+						3 [hour:  i ftime:	t]
+						4 [mn:	  i zone-t:	t]
+						5 [sec:	  i sec-t:	t]
+						6 [zone:  i zone-t:	t]
+						default [throw-error spec]
+					]
+					cnt: cnt + 1
 					value: value + 1
 				]
+				if any [
+					all [cnt < 3 cnt > 7]				;-- nb of args out of range
+					all [cnt = 4 hour <> 0]				;-- time expected to be a time! value
+					all [cnt = 5 hour <> 0]				;-- time expected to be a time! value
+				][throw-error spec]
+				
+				if any [cnt = 5 cnt = 7][
+					zone: either all [
+						any [all [cnt = 5 mn = 0] all [cnt = 7 zone = 0]]
+						zone-t <> 0.0
+					][
+						i: as-integer DATE_GET_HOURS(zone-t)
+						if i < 0 [DATE_ADJUST_ZONE_SIGN(i)]
+						i << 2 and 7Fh or ((as-integer DATE_GET_MINUTES(zone-t)) / 15)
+					][
+						if all [cnt = 5 mn <> 0][zone: mn]
+						if zone < 0 [DATE_ADJUST_ZONE_SIGN(zone)]
+						zone << 2 and 7Fh
+					]
+				]
+				if any [cnt = 6 cnt = 7][
+					t: ((as-float hour) * 3600.0) + ((as-float mn) * 60.0)
+					t: either sec-t = 0.0 [t + as-float sec][t + sec-t]
+					ftime: t * 1E9
+				]	
 			]
-			default [0]									;@@ fire error
+			default [throw-error spec]
 		]
-		as red-value! box year month day
+		as red-value! box year month day ftime zone
 	]
 
 	random: func [
@@ -642,7 +707,7 @@ date: context [
 						]
 						default [fire [TO_ERROR(script invalid-arg) value]]
 					]
-					if h < 0 [h: 0 - h and 0Fh or 10h]	;-- properly set the sign bit
+					if h < 0 [DATE_ADJUST_ZONE_SIGN(h)]
 					v: h << 2 or (m / 15 and 03h)
 					dt/date: DATE_SET_ZONE(d v)
 				]
