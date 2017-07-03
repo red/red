@@ -565,7 +565,7 @@ date: context [
 		
 		d: dt/date
 		year: DATE_GET_YEAR(d)
-		sep: as-integer either year < 0 [#"/"][#"-"]
+		sep: either year < 0 [as-integer #"/"][as-integer #"-"]
 		
 		formed: integer/form-signed DATE_GET_DAY(d)
 		string/concatenate-literal buffer formed
