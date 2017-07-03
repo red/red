@@ -521,6 +521,7 @@ words: context [
 	day:			-1
 	zone:			-1
 	weekday:		-1
+	yearday:		-1
 	julian:			-1
 	time:			-1
 	hour:			-1
@@ -725,6 +726,7 @@ words: context [
 		day:			symbol/make "day"
 		zone:			symbol/make "zone"
 		weekday:		symbol/make "weekday"
+		yearday:		symbol/make "yearday"
 		julian:			symbol/make "julian"
 		time:			symbol/make "time"
 		hour:			symbol/make "hour"

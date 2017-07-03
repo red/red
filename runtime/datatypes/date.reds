@@ -54,7 +54,7 @@ date: context [
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
-		   10 [integer/push get-julian-day d]
+		   10 [integer/push get-yearday d]
 		   default [assert false]
 		]
 	]
@@ -182,7 +182,7 @@ date: context [
 		(as float! h) * time/h-factor + tm
 	]
 
-	get-julian-day: func [
+	get-yearday: func [
 		date	[integer!]
 		return: [integer!]
 	][
@@ -603,6 +603,7 @@ date: context [
 					sym = words/minute [field: 7]
 					sym = words/second [field: 8]
 					sym = words/weekday[field: 9]
+					sym = words/yearday[field: 10]
 					sym = words/julian [field: 10]
 					true 			   [error?: yes]
 				]

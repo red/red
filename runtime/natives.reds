@@ -2433,7 +2433,7 @@ natives: context [
 			yearday > -1 [
 				int: as red-integer! dt
 				int/header: TYPE_INTEGER
-				int/value: date/get-julian-day dt/date
+				int/value: date/get-yearday dt/date
 				exit
 			]
 			true [exit]
