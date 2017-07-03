@@ -333,7 +333,7 @@ lexer: context [
 			) fail?
 		]
 		sep day-year-rule
-		(type: date! date: make date! reduce [year month day])
+		(type: date! date: make date! reduce [year month day] day: month: year: none)
 		opt [
 			time-sep (neg?: no)
 			s: positive-integer-rule (value: load-number copy/part s e no)
