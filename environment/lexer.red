@@ -787,10 +787,11 @@ system/lexer: context [
 		]
 		
 		day-year-rule: [
-			s: [
-				4 digit e: (year: make-number s e integer!)
-				| 1 2 digit e: (day: make-number s e integer!)
-			]
+			s: 4 digit e: (year: make-number s e integer!)
+			| 1 2 digit e: (
+				value: make-number s e integer!
+				either day [year: value + pick [2000 1900] now/year - 2000 >= value][day: value]
+			)
 		]
 		
 		date-rule: [
@@ -800,7 +801,7 @@ system/lexer: context [
 				| case off mon-rule   (month: m)
 			]
 			sep day-year-rule
-			if (not all [day month year]) fail
+			[if (not all [day month year]) fail | none]
 			(type: date! date: make date! [year month day] day: month: year: none)
 			opt [
 				time-sep (neg?: no)

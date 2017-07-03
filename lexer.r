@@ -319,10 +319,11 @@ lexer: context [
 	]
 	
 	day-year-rule: [
-		s: [
-			4 digit e: (year: load-number copy/part s e no)
-			| 1 2 digit e: (day: load-number copy/part s e no)
-		]
+		s: 4 digit e: (year: load-number copy/part s e no)
+		| 1 2 digit e: (
+			value: load-number copy/part s e no
+			either day [year: value + pick [2000 1900] now/year - 2000 >= value][day: value]
+		)
 	]
 
 	date-rule: [
@@ -332,8 +333,13 @@ lexer: context [
 				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
 			) fail?
 		]
-		sep day-year-rule
-		(type: date! date: make date! reduce [year month day] day: month: year: none)
+		sep day-year-rule (
+			fail?: either all [day month year][
+				type: date!
+				date: make date! reduce [year month day]
+				day: month: year: none
+			][[end skip]]
+		) fail?
 		opt [
 			time-sep (neg?: no)
 			s: positive-integer-rule (value: load-number copy/part s e no)
