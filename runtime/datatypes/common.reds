@@ -459,6 +459,7 @@ words: context [
 	opt:			-1
 	not*:			-1
 	quote:			-1
+	case*:			-1
 	reject:			-1
 	set:			-1
 	skip:			-1
@@ -658,6 +659,7 @@ words: context [
 		opt:			symbol/make "opt"
 		not*:			symbol/make "not"
 		quote:			symbol/make "quote"
+		case*:			symbol/make "case"
 		reject:			symbol/make "reject"
 		set:			symbol/make "set"
 		skip:			symbol/make "skip"
