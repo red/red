@@ -576,9 +576,9 @@ date: context [
 		
 		blk: as red-block! #get system/locale/months
 		month: as red-string! (block/rs-head blk) + DATE_GET_MONTH(d) - 1
-		;if month > block/rs-tail [...]					;@@ fire error
-		;if TYPE_OF(month) <> TYPE_STRING [...]			;@@ fire error
-		
+		if any [month > block/rs-tail blk TYPE_OF(month) <> TYPE_STRING][
+			fire [TO_ERROR(script invalid-months)]
+		]
 		string/concatenate buffer month 3 0 yes no
 		part: part - 4									;-- 3 + separator
 		

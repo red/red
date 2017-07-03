@@ -131,6 +131,7 @@ system: context [
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
 				bad-to-arg:			["cannot MAKE/TO" :arg1 "from:" :arg2]
+				invalid-months:		"invalid system/locale/month list"
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
