@@ -373,6 +373,7 @@ date: context [
 			month [integer!]
 			day   [integer!]
 			hour  [integer!]
+			min	  [integer!]
 			mn	  [integer!]
 			sec   [integer!]
 			zone  [integer!]
@@ -390,7 +391,7 @@ date: context [
 		day:    1
 		ftime:	0.0
 		hour:	0
-		mn:		0
+		min:	0
 		sec:	0
 		sec-t:	0.0
 		zone:	0
@@ -431,7 +432,7 @@ date: context [
 						1 [month: i]
 						2 [day:	  i]
 						3 [hour:  i ftime:	t]
-						4 [mn:	  i zone-t:	t]
+						4 [min:	  i zone-t:	t]
 						5 [sec:	  i sec-t:	t]
 						6 [zone:  i zone-t:	t]
 						default [throw-error spec]
@@ -446,21 +447,21 @@ date: context [
 				][throw-error spec]
 				
 				if any [cnt = 5 cnt = 7][
-					zone: either all [
-						any [all [cnt = 5 mn = 0] all [cnt = 7 zone = 0]]
+					either all [
+						any [all [cnt = 5 min = 0] all [cnt = 7 zone = 0]]
 						zone-t <> 0.0
 					][
 						i: as-integer DATE_GET_HOURS(zone-t)
-						if i < 0 [DATE_ADJUST_ZONE_SIGN(i)]
-						i << 2 and 7Fh or ((as-integer DATE_GET_MINUTES(zone-t)) / 15)
+						mn: (as-integer DATE_GET_MINUTES(zone-t)) / 15
 					][
-						if all [cnt = 5 mn <> 0][zone: mn]
-						if zone < 0 [DATE_ADJUST_ZONE_SIGN(zone)]
-						zone << 2 and 7Fh
+						i: either all [cnt = 5 min <> 0][min][zone]
+						mn: 0
 					]
+					if i < 0 [DATE_ADJUST_ZONE_SIGN(i)]
+					zone: i << 2 and 7Fh or mn
 				]
 				if any [cnt = 6 cnt = 7][
-					t: ((as-float hour) * 3600.0) + ((as-float mn) * 60.0)
+					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
 					t: either sec-t = 0.0 [t + as-float sec][t + sec-t]
 					ftime: t * 1E9
 				]	
@@ -480,7 +481,7 @@ date: context [
 			y	[integer!]
 			d	[integer!]
 			n	[integer!]
-			dd	[integer!]	
+			dd	[integer!]
 			s	[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
@@ -491,7 +492,7 @@ date: context [
 			dt/header: TYPE_UNSET
 		][
 			y: DATE_GET_YEAR(d)
-			n: _random/rand % y + 1			
+			n: _random/rand % y + 1
 			if y < 0 [n: 0 - n]
 			dd: _random/rand % (d and FFFFh)
 			dt/date: n << 16 or (dd and 80h) or DATE_GET_ZONE(d)
