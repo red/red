@@ -68,6 +68,16 @@ date: context [
 		date-to-days d
 	]
 	
+	to-epoch: func [
+		dt		[red-date!]
+		return: [integer!]
+		/local
+			base [integer!]
+	][
+		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 16) * 86400
+		base + ((to-utc-time dt/time DATE_GET_ZONE(dt/date)) / 1E9)
+	]
+	
 	make-in: func [
 		parent	[red-block!]
 		date	[integer!]
@@ -426,6 +436,30 @@ date: context [
 		]
 		as red-value! dt
 	]
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]							;-- epoch time
+		type	[integer!]
+		return: [red-value!]
+		/local
+			dt	 [red-date!]
+			int  [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/to"]]
+
+		if TYPE_OF(spec) = TYPE_DATE [return spec]
+		
+		if TYPE_OF(spec) <> TYPE_INTEGER [
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
+		]
+		int: as red-integer! spec
+		dt: as red-date! proto
+		dt/header: TYPE_DATE
+		dt/date: days-to-date (int/value / 86400) + Jan-1st-of 1970 << 16  0
+		dt/time: (as-float int/value % 86400) * 1E9
+		as red-value! dt
+	]
 
 	form: func [
 		dt		[red-date!]
@@ -692,7 +726,7 @@ date: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

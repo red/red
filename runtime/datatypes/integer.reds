@@ -403,10 +403,6 @@ integer: context [
 			TYPE_CHAR [
 				int/value: spec/data2
 			]
-			TYPE_TIME [
-				t: as red-time! spec
-				int/value: as-integer t/time / time/oneE9 + 0.5
-			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				fl: as red-float! spec
@@ -418,6 +414,13 @@ integer: context [
 			]
 			TYPE_ISSUE [
 				int/value: from-issue as red-word! spec
+			]
+			TYPE_TIME [
+				t: as red-time! spec
+				int/value: as-integer t/time / time/oneE9 + 0.5
+			]
+			TYPE_DATE [
+				int/value: date/to-epoch as red-date! spec
 			]
 			TYPE_ANY_STRING [
 				pad4: 0
