@@ -58,12 +58,11 @@ Red/System [
 	TYPE_TAG											;-- 2C		44
 	TYPE_EMAIL											;-- 2D		45
 	TYPE_HANDLE											;-- 2E		46
-	TYPE_IMAGE											;-- 2F		47
-	TYPE_DATE											;-- 30		48
+	TYPE_DATE											;-- 2F		47
+	TYPE_IMAGE											;-- 30		48		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
-	
 ]
 
 #enum actions! [
