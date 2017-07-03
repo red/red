@@ -796,8 +796,8 @@ system/lexer: context [
 		date-rule: [
 			day-year-rule sep: date-sep (sep: sep/1) [
 				s: 1 2 digit e: (month: make-number s e integer!)
-				| month-rule 	(month: m)
-				| mon-rule  	(month: m)
+				| case off month-rule (month: m)
+				| case off mon-rule   (month: m)
 			]
 			sep day-year-rule
 			(type: date! date: make date! [year month day])

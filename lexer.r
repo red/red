@@ -63,9 +63,10 @@ lexer: context [
 		| #"0"
 	]
 
-	hexa:  union digit charset "ABCDEF"
-	hexa-char: union hexa charset "abcdef"
-	base64-char: union digit charset [#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="]
+	hexa:		 union digit charset "ABCDEF"
+	hexa-char:	 union hexa charset "abcdef"
+	alpha:		 charset [#"A" - #"Z" #"a" - #"z"]
+	base64-char: union digit union alpha charset "+/="
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -327,8 +328,9 @@ lexer: context [
 	date-rule: [
 		day-year-rule sep: date-sep (sep: sep/1) [
 			s: 1 2 digit e: (month: load-number copy/part s e no)
-			| month-rule 	(month: m)
-			| mon-rule  	(month: m)
+			| some alpha e: (
+				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
+			) fail?
 		]
 		sep day-year-rule
 		(type: date! date: make date! reduce [year month day])
