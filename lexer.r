@@ -401,7 +401,7 @@ lexer: context [
 	
 	email-rule: [
 		(stop: [not-email-char])
-		s: some UTF8-filtered-char #"@" (type: email!)
+		s: opt [some UTF8-filtered-char] #"@" (type: email!)
 		any UTF8-filtered-char e: (value: dehex copy/part s e)
 	]
 
