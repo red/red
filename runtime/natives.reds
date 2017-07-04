@@ -2421,6 +2421,8 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
+		if _date > -1 [dt/time: 0.0 exit]
+		
 		tm: platform/get-time yes precise >= 0
 		date/normalize-time 0 :tm DATE_GET_ZONE(dt/date)
 		dt/time: tm
@@ -2432,7 +2434,6 @@ natives: context [
 			zone    > -1 [n: 4]
 			time    > -1 [n: 5]
 			weekday > -1 [n: 9]
-			_date   > -1 [dt/time: 0.0 exit]
 			yearday > -1 [
 				int: as red-integer! dt
 				int/header: TYPE_INTEGER
