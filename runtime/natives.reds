@@ -2413,6 +2413,7 @@ natives: context [
 		/local
 			dt	[red-date!]
 			int [red-integer!]
+			tm	[float!]
 			n	[integer!]
 	][
 		#typecheck [now year month day time zone _date weekday yearday precise utc]
@@ -2420,7 +2421,9 @@ natives: context [
 		dt: as red-date! stack/arguments
 		dt/header: TYPE_DATE
 		dt/date: platform/get-date utc >= 0
-		dt/time: platform/get-time yes precise >= 0
+		tm: platform/get-time yes precise >= 0
+		date/normalize-time 0 :tm DATE_GET_ZONE(dt/date)
+		dt/time: tm
 		n: 0
 		case [
 			year    > -1 [n: 1]

@@ -447,7 +447,7 @@ platform: context [
 			milli	[integer!]
 			t		[float!]
 	][
-		either utc? [GetSystemTime tm][GetLocalTime tm]
+		GetSystemTime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh

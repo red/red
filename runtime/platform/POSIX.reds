@@ -475,7 +475,7 @@ get-time: func [
 		t		[float!]
 ][
 	gettimeofday time 0
-	tm: either utc? [gmtime as int-ptr! time][localtime as int-ptr! time]
+	tm: gmtime as int-ptr! time
 	micro: 0.0
 	if precise? [micro: as-float time/tv_usec]
 	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec * 1000
