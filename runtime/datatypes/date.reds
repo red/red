@@ -367,6 +367,7 @@ date: context [
 			int	  [red-integer!]
 			fl	  [red-float!]
 			tm	  [red-time!]
+			dt	  [red-date!]
 			cnt   [integer!]
 			i	  [integer!]
 			year  [integer!]
@@ -377,6 +378,7 @@ date: context [
 			mn	  [integer!]
 			sec   [integer!]
 			zone  [integer!]
+			d	  [integer!]
 			t	  [float!]
 			ftime [float!]
 			sec-t [float!]
@@ -468,7 +470,15 @@ date: context [
 			]
 			default [throw-error spec]
 		]
-		as red-value! box year month day ftime zone
+		dt: box year month day ftime zone
+		d: days-to-date date-to-days dt/date 0
+		if any [
+			year  <> DATE_GET_YEAR(d)
+			month <> DATE_GET_MONTH(d)
+			day   <> DATE_GET_DAY(d)
+		][throw-error spec]
+		
+		as red-value! dt
 	]
 
 	random: func [

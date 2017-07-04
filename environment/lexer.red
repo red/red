@@ -801,9 +801,11 @@ system/lexer: context [
 				| case off mon-rule   (month: m)
 			]
 			sep day-year-rule
-			[if (not all [day month year]) fail | none]
-			(type: date! date: make date! [year month day] day: month: year: none)
-			opt [
+			[if (not all [day month year]) fail | none] (
+				type: date!
+				if error? try [date: make date! [year month day]][throw-error [type pos]]
+				day: month: year: none
+			) opt [
 				time-sep (neg?: no)
 				s: positive-integer-rule (value: make-number s e integer!)
 				#":" [time-rule (date/time: value) | (throw-error [type pos])]

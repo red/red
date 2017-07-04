@@ -327,7 +327,7 @@ lexer: context [
 	]
 
 	date-rule: [
-		day-year-rule sep: date-sep (sep: sep/1) [
+		pos: day-year-rule sep: date-sep (sep: sep/1) [
 			s: 1 2 digit e: (month: load-number copy/part s e no)
 			| some alpha e: (
 				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
@@ -337,13 +337,14 @@ lexer: context [
 			fail?: either all [day month year][
 				type: date!
 				date: make date! reduce [year month day]
+				if any [date/year <> year date/month <> month date/day <> day][throw-error]
 				day: month: year: none
 			][[end skip]]
 		) fail?
 		opt [
 			time-sep (neg?: no)
 			s: positive-integer-rule (value: load-number copy/part s e no)
-			#":" [time-rule (date/time: value) | (pos: s throw-error)]
+			#":" [time-rule (date/time: value) | (throw-error)]
 			opt [
 				#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
 					s: 4 digit (
