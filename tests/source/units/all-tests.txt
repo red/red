@@ -35,6 +35,7 @@ throw-test.red
 vector-test.red
 map-test.red
 pair-test.red
+date-test.red
 convert-test.red
 checksum-test.red
 reactivity-test.red
