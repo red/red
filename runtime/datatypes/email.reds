@@ -83,6 +83,7 @@ email: context [
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 
+			value/header: TYPE_STRING
 		]
 		
 		slots: either part = null [2][3]
