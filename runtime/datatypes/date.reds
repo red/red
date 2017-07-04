@@ -677,6 +677,7 @@ date: context [
 			h	   [integer!]
 			m	   [integer!]
 			fval   [float!]
+			tt	   [float!]
 			error? [logic!]
 	][
 		error?: no
@@ -741,7 +742,9 @@ date: context [
 					]
 					if h < 0 [DATE_ADJUST_ZONE_SIGN(h)]
 					v: h << 2 or (m / 15 and 03h)
+					tt: to-local-time dt/time DATE_GET_ZONE(dt/date)
 					dt/date: DATE_SET_ZONE(d v)
+					dt/time: to-utc-time tt v
 				]
 				5 [
 					either TYPE_OF(value) = TYPE_TIME [
@@ -757,7 +760,6 @@ date: context [
 					stack/keep
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time
-					return value
 				]
 				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) 0]
 				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 0]
