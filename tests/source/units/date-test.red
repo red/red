@@ -54,10 +54,10 @@ Red [
 	
 	--test-- "rfmt-12" --assert 5-Sep-2012/6:00:00		  = load "5/9/2012/6:0"
 	--test-- "rfmt-13" --assert 5-Sep-2012/6:00:00		  = load "5/9/2012/6:00"
-	--test-- "rfmt-14" --assert 5-Sep-2012/6:00:00  	  = probe load "5/9/2012/6:00+8"
+	--test-- "rfmt-14" --assert 5-Sep-2012/6:00:00+08:00  = load "5/9/2012/6:00+8"
 	--test-- "rfmt-15" --assert 5-Sep-2012/6:00:00	 	  = load "5/9/2012/6:0"
-	--test-- "rfmt-16" --assert 4-Apr-2000/6:00:00+08:00  = probe load "4/Apr/2000/6:00+8:00"
-	--test-- "rfmt-17" --assert 2-Oct-1999/2:00:00-04:00  = load "1999-10-2/2:00-4:00"
+	--test-- "rfmt-16" --assert 4-Apr-2000/6:00:00+08:00  = load "4/Apr/2000/6:00+8:00"
+	--test-- "rfmt-17" --assert 2-Oct-1999/2:00:00-4:00   = load "1999-10-2/2:00-4:00"
 	--test-- "rfmt-18" --assert 1-Jan-1990/12:20:25-06:00 = load "1/1/1990/12:20:25-6"
 
 ===end-group===

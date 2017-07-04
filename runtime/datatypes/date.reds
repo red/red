@@ -190,7 +190,6 @@ date: context [
 		tz: DATE_GET_ZONE(date)
 		hz: DATE_GET_ZONE_HOURS(tz)
 		if DATE_GET_ZONE_SIGN(tz) [hz: 0 - hz]
-		mn: DATE_GET_ZONE_MINUTES(tz)
 		mn: 60 * (24 * (date-to-days date) + hz)
 		(as-float mn + DATE_GET_ZONE_MINUTES(tz)) * time/m-factor + tm
 	]
@@ -781,8 +780,6 @@ date: context [
 		/local
 			type	[integer!]
 			res		[integer!]
-			t1		[float!]
-			t2		[float!]
 			eq?		[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
@@ -790,16 +787,17 @@ date: context [
 		type: TYPE_OF(value2)
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
 
-		t1: dt-to-nanosec value1/date value1/time
-		t2: dt-to-nanosec value2/date value2/time
-		eq?: float/almost-equal t1 t2
+		eq?: all [
+			(value1/date >> 7) = (value2/date >> 7)		;-- remove TZ
+			value1/time = value2/time					;-- in UTC already
+		]	
 		switch op [
-			COMP_EQUAL
-			COMP_NOT_EQUAL [res: as-integer not eq?]
 			COMP_SAME
-			COMP_STRICT_EQUAL [res: as-integer t1 <> t2]
+			COMP_EQUAL
+			COMP_NOT_EQUAL
+			COMP_STRICT_EQUAL [res: as-integer not eq?]
 			default [
-				either eq? [res: 0][res: SIGN_COMPARE_RESULT(t1 t2)]
+				either eq? [res: 0][res: SIGN_COMPARE_RESULT(value1/time value2/time)]
 			]
 		]
 		res
