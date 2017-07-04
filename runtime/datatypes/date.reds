@@ -183,15 +183,10 @@ date: context [
 		tm		[float!]
 		return: [float!]
 		/local
-			tz	[integer!]
-			hz	[integer!]
-			mn	[integer!]
+			h	[integer!]
 	][
-		tz: DATE_GET_ZONE(date)
-		hz: DATE_GET_ZONE_HOURS(tz)
-		if DATE_GET_ZONE_SIGN(tz) [hz: 0 - hz]
-		mn: 60 * (24 * (date-to-days date) + hz)
-		(as-float mn + DATE_GET_ZONE_MINUTES(tz)) * time/m-factor + tm
+		h: 24 * date-to-days date
+		(as float! h) * time/h-factor + tm
 	]
 
 	get-yearday: func [
