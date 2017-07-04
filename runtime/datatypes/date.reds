@@ -43,7 +43,7 @@ date: context [
 			t [float!]
 	][
 		d: dt/date
-		t: dt/time
+		t: to-local-time dt/time DATE_GET_ZONE(d)
 		as red-value! switch field [
 			1 [integer/push DATE_GET_YEAR(d)]
 			2 [integer/push DATE_GET_MONTH(d)]
@@ -54,7 +54,7 @@ date: context [
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 			]
-			5 [time/push t]
+			5 [time/push to-utc-time t DATE_GET_ZONE(d)]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
@@ -183,10 +183,16 @@ date: context [
 		tm		[float!]
 		return: [float!]
 		/local
-			h	[integer!]
+			tz	[integer!]
+			hz	[integer!]
+			mn	[integer!]
 	][
-		h: 24 * date-to-days date
-		(as float! h) * time/h-factor + tm
+		tz: DATE_GET_ZONE(date)
+		hz: DATE_GET_ZONE_HOURS(tz)
+		if DATE_GET_ZONE_SIGN(tz) [hz: 0 - hz]
+		mn: DATE_GET_ZONE_MINUTES(tz)
+		mn: 60 * (24 * (date-to-days date) + hz)
+		(as-float mn + DATE_GET_ZONE_MINUTES(tz)) * time/m-factor + tm
 	]
 
 	get-yearday: func [
@@ -209,7 +215,7 @@ date: context [
 	][
 		h: DATE_GET_ZONE_HOURS(tz)
 		if DATE_GET_ZONE_SIGN(tz) [h: 0 - h]
-		m: tz and 03h * 15
+		m: DATE_GET_ZONE_MINUTES(tz)
 		hh: (as float! h) * time/h-factor
 		mm: (as float! m) * time/m-factor
 		either to-utc? [tm: tm - hh - mm][tm: tm + hh + mm]
@@ -232,7 +238,37 @@ date: context [
 		convert-time tm tz yes
 	]
 
+	normalize-time: func [
+		days	[integer!]
+		ft-ptr	[float-ptr!]
+		tz		[integer!]
+		return:	[integer!]							;-- days
+		/local
+			ft	  [float!]
+			d	  [integer!]
+			hz	  [integer!]
+			htz	  [float!]
+			tt	  [float!]
+			h	  [float!]
+	][
+		hz: DATE_GET_ZONE_HOURS(tz)
+		if DATE_GET_ZONE_SIGN(tz) [hz: 0 - hz]
+		htz: as-float hz
+		ft: ft-ptr/value
 
+		h: ft / time/h-factor
+		d: (as-integer h + htz) / 24
+		days: days + d
+		h: as float! (d * 24)
+		ft: ft - (h * time/h-factor)
+		if ft + (htz * time/h-factor) < 0.0 [
+			days: days - 1
+			ft: 24.0 * time/h-factor + ft
+		]
+		ft-ptr/value: ft
+		days
+	]
+	
 	difference?: func [
 		dt1		[red-date!]
 		dt2		[red-date!]
@@ -261,10 +297,8 @@ date: context [
 			days  [integer!]
 			tz	  [integer!]
 			ft	  [float!]
-			d	  [integer!]
 			dd	  [integer!]
 			tt	  [float!]
-			h	  [float!]
 			days? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
@@ -304,18 +338,8 @@ date: context [
 			OP_SUB [days: days - dd	ft: ft - tt]
 			default [0]
 		]
-
-		;-- normalize time
-		h: ft / time/h-factor
-		d: (as-integer h) / 24
-		days: days + d
-		h: as float! (d * 24)
-		ft: ft - (h * time/h-factor)
-		if ft < 0.0 [
-			days: days - 1
-			ft: 24.0 * time/h-factor + ft
-		]
-
+		days: normalize-time days :ft tz
+		
 		either days? [
 			int: as red-integer! left
 			int/header: TYPE_INTEGER
@@ -331,24 +355,14 @@ date: context [
 		dt	[red-date!]
 		tm	[float!]
 		/local
-			h	[float!]
 			d	[integer!]
 			dd	[integer!] 
 			tz	[integer!]
 	][
 		tz: DATE_GET_ZONE(dt/date)
 		dd: date-to-days dt/date
-
-		;-- normalize time
-		h: tm / time/h-factor
-		d: (as-integer h) / 24
-		dd: dd + d
-		h: as float! (d * 24)
-		tm: tm - (h * time/h-factor)
-		if tm < 0.0 [
-			dd: dd - 1
-			tm: 24.0 * time/h-factor + tm
-		]
+		tm: to-utc-time tm tz
+		dd: normalize-time dd :tm tz
 		dt/date: days-to-date dd tz
 		dt/time: tm
 	]
@@ -470,6 +484,7 @@ date: context [
 			]
 			default [throw-error spec]
 		]
+		ftime: to-utc-time ftime zone
 		dt: box year month day ftime zone
 		d: days-to-date date-to-days dt/date 0
 		if any [
@@ -602,6 +617,7 @@ date: context [
 		
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
+			dt/time: to-local-time dt/time zone
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
 
