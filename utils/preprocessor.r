@@ -284,7 +284,9 @@ preprocessor: context [
 				| #system-global skip
 				
 				| s: #include (
-					if all [active? not Rebol system/state/interpreted?][s/1: 'do]
+					either all [active? not Rebol system/state/interpreted?][s/1: 'do][
+						attempt [expand red/load-source/hidden s/2 job]	;-- just preprocess it, real inclusion occurs later
+					]
 				)
 				| s: #if (set [cond e] eval next s s/1) :e [set then block! | (syntax-error s e)] e: (
 					if active? [either cond [change/part s then e][remove/part s e]]
