@@ -321,7 +321,7 @@ time: context [
 			right/time: val
 			as red-value! date/do-math OP_ADD
 		][
-			as red-value! float/do-math OP_MUL
+			as red-value! float/do-math OP_ADD
 		]
 	]
 
@@ -335,7 +335,7 @@ time: context [
 		if TYPE_OF(slot) = TYPE_DATE [
 			fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_TIME]
 		]
-		as red-value! float/do-math OP_MUL
+		as red-value! float/do-math OP_SUB
 	]
 
 	divide: func [
