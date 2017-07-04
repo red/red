@@ -54,7 +54,7 @@ date: context [
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 			]
-			5 [time/push to-utc-time t DATE_GET_ZONE(d)]
+			5 [time/push t]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
 			7 [integer/push as-integer DATE_GET_MINUTES(t)]
 			8 [float/push DATE_GET_SECONDS(t)]
