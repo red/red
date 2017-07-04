@@ -203,14 +203,15 @@ preprocessor: context [
 		s/1
 	]
 	
-	register-macro: func [spec [block!] /local cnt rule p name macro pos][
+	register-macro: func [spec [block!] /local cnt rule p name macro pos valid? named?][
+		named?: set-word? spec/1
 		cnt: 0
 		rule: make block! 10
-		unless parse spec/3 [
+		valid?: parse spec/3 [
 			any [
 				opt string!
 				opt block!
-				word! (cnt: cnt + 1)
+				[word! (cnt: cnt + 1) | /local any word!]
 				opt [
 					p: block! :p into [some word!]
 						;(append/only rule make block! 1)
@@ -218,16 +219,16 @@ preprocessor: context [
 						;(append rule '|)
 					;]
 				]
-				opt [/local any word!]
 			]
-		][
+		]
+		if any [not valid? all [not named? cnt <> 2]][
 			print [
 				"*** Macro Error: invalid specification^/"
 				"*** Where:" mold copy/part spec 3
 			]
 			do-quit
 		]
-		either set-word? spec/1 [						;-- named macro
+		either named? [									;-- named macro
 			repend rule [
 				name: to lit-word! spec/1
 				to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
