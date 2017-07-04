@@ -795,6 +795,7 @@ system/lexer: context [
 		]
 		
 		date-rule: [
+			ahead [digit date-sep | 2 digit date-sep | 4 digit date-sep] ;-- quick lookhead
 			day-year-rule sep: date-sep (sep: sep/1) [
 				s: 1 2 digit e: (month: make-number s e integer!)
 				| case off month-rule (month: m)

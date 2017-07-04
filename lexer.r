@@ -327,7 +327,8 @@ lexer: context [
 	]
 
 	date-rule: [
-		pos: day-year-rule sep: date-sep (sep: sep/1) [
+		pos: [digit date-sep | 2 digit date-sep | 4 digit date-sep] :pos  ;-- quick lookhead
+		day-year-rule sep: date-sep (sep: sep/1) [
 			s: 1 2 digit e: (month: load-number copy/part s e no)
 			| some alpha e: (
 				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
