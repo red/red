@@ -84,7 +84,7 @@ date: context [
 			base [integer!]
 	][
 		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 16) * 86400
-		base + ((to-utc-time dt/time DATE_GET_ZONE(dt/date)) / 1E9)
+		base + (dt/time / 1E9)
 	]
 	
 	make-in: func [
