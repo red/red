@@ -779,7 +779,7 @@ date: context [
 				]
 				9  [
 					days: date-to-days d
-					dt/date: days-to-date days + (v % 7) - (days + 2 % 7 + 1) DATE_GET_ZONE(d)
+					dt/date: days-to-date days + (v - 1 % 7) - (days + 2 % 7) DATE_GET_ZONE(d)
 				]
 				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)]
 				default [assert false]
