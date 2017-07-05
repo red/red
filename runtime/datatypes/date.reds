@@ -28,7 +28,8 @@ date: context [
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
 	#define DATE_SET_ZONE(d zone)	 (d and FFFFFFC0h or (zone and 7Fh))
-	#define DATE_ADJUST_ZONE_SIGN(i) (i: 0 - i and 0Fh or 10h)
+	#define DATE_ADJUST_ZONE_SIGN(i) (i: 0 - i and 3Fh or 40h)
+	#define DATE_SET_ZONE_NEG(z) 	 (z or 40h)
 	
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
@@ -40,6 +41,7 @@ date: context [
 		return: [red-value!]
 		/local
 			d [integer!]
+			s [integer!]
 			t [float!]
 	][
 		d: dt/date
@@ -49,10 +51,12 @@ date: context [
 			2 [integer/push DATE_GET_MONTH(d)]
 			3 [integer/push DATE_GET_DAY(d)]
 			4 [
-				time/push
-					(as-float DATE_GET_ZONE_HOURS(d)) * 3600.0	;@@ TBD: add sign support
+				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0	;@@ TBD: add sign support
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
+				
+				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
+				time/push t
 			]
 			5 [time/push t]
 			6 [integer/push as-integer DATE_GET_HOURS(t)]
@@ -665,6 +669,7 @@ date: context [
 			fl	   [red-float!]
 			tm	   [red-time!]
 			p	   [red-pair!]
+			days   [integer!]
 			field  [integer!]
 			sym	   [integer!]
 			v	   [integer!]
@@ -674,6 +679,7 @@ date: context [
 			m	   [integer!]
 			fval   [float!]
 			tt	   [float!]
+			neg?   [logic!]
 			error? [logic!]
 	][
 		error?: no
@@ -749,8 +755,9 @@ date: context [
 						]
 						default [fire [TO_ERROR(script invalid-arg) value]]
 					]
-					if h < 0 [DATE_ADJUST_ZONE_SIGN(h)]
+					neg?: either h < 0 [h: 0 - h yes][no]
 					v: h << 2 or (m / 15 and 03h)
+					if neg? [v: DATE_SET_ZONE_NEG(v)]
 					tt: to-local-time dt/time DATE_GET_ZONE(dt/date)
 					dt/date: DATE_SET_ZONE(d v)
 					dt/time: to-utc-time tt v
@@ -770,7 +777,10 @@ date: context [
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time field = 6
 				]
-				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) DATE_GET_ZONE(d)]
+				9  [
+					days: date-to-days d
+					dt/date: days-to-date days + (v % 7) - (days + 2 % 7 + 1) DATE_GET_ZONE(d)
+				]
 				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)]
 				default [assert false]
 			]
@@ -800,7 +810,7 @@ date: context [
 		eq?: all [
 			(value1/date >> 7) = (value2/date >> 7)		;-- remove TZ
 			value1/time = value2/time					;-- in UTC already
-		]	
+		]
 		switch op [
 			COMP_SAME
 			COMP_EQUAL

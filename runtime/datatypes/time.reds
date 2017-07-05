@@ -26,8 +26,16 @@ time: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
 	
-	get-hour:   func [tm [float!] return: [integer!]][as-integer GET_HOURS(tm)]	
-	get-minute: func [tm [float!] return: [integer!]][as-integer GET_MINUTES(tm)]
+	get-hour: func [tm [float!] return: [integer!]][
+		tm: tm / h-factor
+		tm: either tm < 0.0 [ceil tm][floor tm]
+		as-integer tm
+	]
+	get-minute: func [tm [float!] return: [integer!]][
+		tm: tm / oneE9 // 3600.0 / 60.0
+		tm: either tm < 0.0 [0.0 - ceil tm][floor tm]	;-- abs(min)
+		as-integer tm
+	]
 	
 	push-field: func [
 		tm		[red-time!]
