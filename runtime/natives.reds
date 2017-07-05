@@ -2444,7 +2444,7 @@ natives: context [
 		]
 		if n > 0 [
 			stack/keep
-			stack/set-last date/eval-path dt as red-value! integer/push n null null yes
+			stack/set-last date/push-field dt n
 		]
 	]
 	
