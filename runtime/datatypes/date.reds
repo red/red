@@ -667,6 +667,7 @@ date: context [
 			field  [integer!]
 			sym	   [integer!]
 			v	   [integer!]
+			y	   [integer!]
 			d	   [integer!]
 			h	   [integer!]
 			m	   [integer!]
@@ -713,8 +714,16 @@ date: context [
 			d: dt/date
 			switch field [
 				1 [dt/date: DATE_SET_YEAR(d v)]
-				2 [dt/date: days-to-date v + date-to-days DATE_SET_MONTH(d 0) 0]
-				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) 0]
+				2 [
+					y: v / 12
+					if any [y < 0 v = 0][y: y - 1]
+					y: DATE_GET_YEAR(d) + y
+					d: DATE_SET_YEAR(d y)
+					v: v % 12
+					if v <= 0 [v: 12 + v]
+					dt/date: DATE_SET_MONTH(d v)
+				]
+				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)]
 				4 [
 					switch TYPE_OF(value) [
 						TYPE_INTEGER [
@@ -755,8 +764,8 @@ date: context [
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time
 				]
-				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) 0]
-				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 0]
+				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) DATE_GET_ZONE(d)]
+				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)]
 				default [assert false]
 			]
 			value
