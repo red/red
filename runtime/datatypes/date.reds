@@ -396,6 +396,7 @@ date: context [
 			ftime [float!]
 			sec-t [float!]
 			zone-t[float!]
+			neg?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/make"]]
 		
@@ -472,8 +473,9 @@ date: context [
 						i: either all [cnt = 5 min <> 0][min][zone]
 						mn: 0
 					]
-					if i < 0 [DATE_ADJUST_ZONE_SIGN(i)]
+					neg?: either i < 0 [i: 0 - i yes][no]
 					zone: i << 2 and 7Fh or mn
+					if neg? [zone: DATE_SET_ZONE_NEG(zone)]
 				]
 				if any [cnt = 6 cnt = 7][
 					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
