@@ -732,6 +732,11 @@ date: context [
 							h: int/value
 							m: 0
 						]
+						TYPE_FLOAT [
+							fl: as red-float! value
+							h: as-integer fl/value
+							m: as-integer fl/value - as-float h
+						]
 						TYPE_TIME [
 							tm: as red-time! value
 							h: time/get-hour tm/time
