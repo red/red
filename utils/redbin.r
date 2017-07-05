@@ -152,7 +152,7 @@ context [
 	emit-date: func [value [date!]][
 		emit-type 'TYPE_DATE
 		emit red/encode-date value
-		emit-float-bin 1E9 * either value/time [to decimal! value/time][0.0]
+		emit-float-bin encode-UTC-time value/time value/zone
 	]
 
 	emit-char: func [value [integer!]][
