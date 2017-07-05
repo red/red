@@ -64,22 +64,66 @@ Red [
 
 ===start-group=== "comparisons"
 
-	--test-- "cmp1"
-		--assert 3-Jul-2017/9:41:40+2:00 = 3-Jul-2017/5:41:40-2:00
+	--test-- "cmp1"	 --assert 3-Jul-2017/9:41:40+2:00 = 3-Jul-2017/5:41:40-2:00
+	--test-- "cmp2"	 --assert 10/5/1970 < 1/1/1980
+	--test-- "cmp3"	 --assert not 10/5/1970 >= 1/1/1980
+	--test-- "cmp4"	 --assert 10/5/1970/10:10:10 < 1/1/1980
+	--test-- "cmp5"	 --assert 10/5/1970/10:10:10 < 1/1/1980/2:2:2
+	--test-- "cmp6"	 --assert 10/5/1970/10:10:10+4:00 < 1/1/1980/2:2:2+8:00
+	--test-- "cmp7"	 --assert not 10/5/1970/10:10:10 >= 1/1/1980
+	--test-- "cmp8"	 --assert not 10/5/1970/10:10:10 >= 1/1/1980/2:2:2
+	--test-- "cmp9"	 --assert not 10/5/1970/10:10:10+4:00 >= 1/1/1980/2:2:2+8:00
+	--test-- "cmp10" --assert 10/5/-1970 < 1/1/1950
+	--test-- "cmp11" --assert 10/5/-1970 < 1/1/-1950
+	--test-- "cmp12" --assert 10/5/-1970/10:10:10+4:00 < 1/1/1950/2:2:2+8:00
+	--test-- "cmp13" --assert 10/5/-1970/10:10:10+4:00 < 1/1/-1950/2:2:2+8:00
+	--test-- "cmp14" --assert not 10/5/-1970 >= 1/1/1950
+	--test-- "cmp15" --assert not 10/5/-1970 >= 1/1/-1950
+	--test-- "cmp16" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/1950/2:2:2+8:00
+	--test-- "cmp17" --assert not 10/5/-1970/10:10:10+4:00 >= 1/1/-1950/2:2:2+8:00
+	
+	--test-- "cmp30"
+		--assert [
+			10/May/-1970
+			10/May/-1970/10:10:10+04:00
+			1/Jan/-1950/2:02:02+08:00
+			1/Jan/-1950
+			1-Jan-0001
+			1-Jan-1950/2:02:02+08:00
+			10-May-1970/10:10:10
+			10-May-1970/10:10:10
+			1-Jan-1980/2:02:02
+			5-Oct-1999
+			1-Jan-2017
+			3-Jul-2017/5:41:40-02:00
+		] = sort [
+			1/1/0001
+			1/1/2017
+			5/10/1999
+			1/1/1950/2:2:2+8:00
+			10/5/-1970
+			1/1/-1950/2:2:2+8:00
+			10/5/-1970/10:10:10+4:00
+			1/1/1980/2:2:2
+			10/5/1970/10:10:10
+			3-Jul-2017/5:41:40-2:00
+			1/1/-1950
+			10/5/1970/10:10:10
+		]
 
 ===end-group===
 
 ===start-group=== "MAKE date!"
-comment {
-	probe make date! [1978 2 3 5:0:0 8]
-	probe make date! [1978 2 3 5:0:0]
-	probe make date! [1978 2 3 5:0:0 8]
-	probe make date! [1978 2 3 5 20 30]
-	probe make date! [1978 2 3 5 20 30 -4]
-	probe make date! [1978 2 3 5 20 30 4]
-	;probe make date! [1978 2 3 5]
-	;probe make date! [1978 2 3 5 20]
-}
+
+	--test-- "make1"	--assert 3-Feb-1978				  = make date! [1978 2 3]
+	--test-- "make2"	--assert 3-Feb-1978/5:00:00+08:00 = make date! [1978 2 3 5:0:0 8]
+	--test-- "make3"	--assert 3-Feb-1978/5:00:00 	  = make date! [1978 2 3 5:0:0]
+	--test-- "make4"	--assert 3-Feb-1978/5:20:30 	  = make date! [1978 2 3 5 20 30]
+	--test-- "make5"	--assert 3-Feb-1978/5:20:30-4:00  = make date! [1978 2 3 5 20 30 -4]
+	--test-- "make6"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [1978 2 3 5 20 30 4]
+	--test-- "make7"	--assert error? try [make date! [1978 2 3 5]]
+	--test-- "make8"	--assert error? try [make date! [1978 2 3 5 20]]
+
 ===end-group===
 
 ===start-group=== "path accessors"
