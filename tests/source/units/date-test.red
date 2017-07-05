@@ -69,6 +69,19 @@ Red [
 
 ===end-group===
 
+===start-group=== "MAKE date!"
+comment {
+	probe make date! [1978 2 3 5:0:0 8]
+	probe make date! [1978 2 3 5:0:0]
+	probe make date! [1978 2 3 5:0:0 8]
+	probe make date! [1978 2 3 5 20 30]
+	probe make date! [1978 2 3 5 20 30 -4]
+	probe make date! [1978 2 3 5 20 30 4]
+	;probe make date! [1978 2 3 5]
+	;probe make date! [1978 2 3 5 20]
+}
+===end-group===
+
 ===start-group=== "path accessors"
 	d: 5-Jul-2017/12:41:40+08:00
 	
