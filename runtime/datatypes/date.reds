@@ -798,25 +798,35 @@ date: context [
 		op	      [integer!]							;-- type of comparison
 		return:   [integer!]
 		/local
-			type	[integer!]
-			res		[integer!]
-			eq?		[logic!]
+			type [integer!]
+			res	 [integer!]
+			d1	 [integer!]
+			d2	 [integer!]
+			t1	 [float!]
+			t2	 [float!]
+			eq?	 [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/compare"]]
 
 		type: TYPE_OF(value2)
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
-		eq?: all [
-			(value1/date >> 7) = (value2/date >> 7)		;-- remove TZ
-			(floor value1/time + 0.5) = floor value2/time + 0.5		;-- in UTC already, round to integer
-		]
+		d1: value1/date >> 7							;-- remove TZ
+		d2: value2/date >> 7
+		t1: floor value1/time + 0.5						;-- in UTC already, round to integer
+		t2: floor value2/time + 0.5
+		
+		eq?: all [d1 = d2 t1 = t2]
+		
 		switch op [
 			COMP_SAME
 			COMP_EQUAL
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
 			default [
-				either eq? [res: 0][res: SIGN_COMPARE_RESULT(value1/time value2/time)]
+				either eq? [res: 0][
+					res: SIGN_COMPARE_RESULT(d1 d2)
+					if res = 0 [res: SIGN_COMPARE_RESULT(t1 t2)]
+				]
 			]
 		]
 		res
