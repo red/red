@@ -806,10 +806,9 @@ date: context [
 
 		type: TYPE_OF(value2)
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
-
 		eq?: all [
 			(value1/date >> 7) = (value2/date >> 7)		;-- remove TZ
-			value1/time = value2/time					;-- in UTC already
+			(floor value1/time + 0.5) = floor value2/time + 0.5		;-- in UTC already, round to integer
 		]
 		switch op [
 			COMP_SAME
