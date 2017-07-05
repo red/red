@@ -346,8 +346,9 @@ date: context [
 	]
 
 	set-time: func [
-		dt	[red-date!]
-		tm	[float!]
+		dt	 [red-date!]
+		tm	 [float!]
+		utc? [logic!]									;-- convert input time to UTC
 		/local
 			d	[integer!]
 			dd	[integer!] 
@@ -355,7 +356,7 @@ date: context [
 	][
 		tz: DATE_GET_ZONE(dt/date)
 		dd: date-to-days dt/date
-		tm: to-utc-time tm tz
+		if utc? [tm: to-utc-time tm tz]
 		dd: normalize-time dd :tm tz
 		dt/date: days-to-date dd tz
 		dt/time: tm
@@ -757,12 +758,12 @@ date: context [
 						stack/keep
 						time/eval-path as red-time! dt as red-value! integer/push 3 value path case?	;-- set seconds
 					]
-					set-time dt dt/time
+					set-time dt dt/time yes
 				]
 				6 7 8 [
 					stack/keep
 					time/eval-path as red-time! dt element value path case?
-					set-time dt dt/time
+					set-time dt dt/time field = 6
 				]
 				9  [d: date-to-days d dt/date: days-to-date d + (v % 7) - (d + 2 % 7 + 1) DATE_GET_ZONE(d)]
 				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)]
