@@ -355,7 +355,7 @@ lexer: context [
 					| 1 2 digit e: (hour: load-number copy/part s e no mn: none)
 					opt [#":" s: 2 digit e: (mn: load-number copy/part s e no)]
 				]
-				(date/zone: as-time hour any [mn 0] 0 neg?)
+				(date/zone: as-time hour any [mn 0] 0 neg?) ;@@TBD: add special encoding for 15/45 mn
 			]
 		]
 		(value: date)
