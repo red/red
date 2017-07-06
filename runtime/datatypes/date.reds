@@ -20,8 +20,6 @@ date: context [
 	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
-	#define DATE_GET_HOURS(t)		 (floor t / time/h-factor)
-	#define DATE_GET_MINUTES(t)		 (floor t / time/oneE9 // 3600.0 / 60.0)
 	#define DATE_GET_SECONDS(t)		 (t / time/oneE9 // 60.0)
 	
 	#define DATE_SET_YEAR(d year)	 (d and 0000FFFFh or (year << 16))
@@ -59,8 +57,8 @@ date: context [
 				time/push t
 			]
 			5 [time/push t]
-			6 [integer/push as-integer DATE_GET_HOURS(t)]
-			7 [integer/push as-integer DATE_GET_MINUTES(t)]
+			6 [integer/push time/get-hours t]
+			7 [integer/push time/get-minutes t]
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push get-yearday d]

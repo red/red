@@ -28,7 +28,7 @@ time: context [
 	
 	get-hours: func [tm [float!] return: [integer!]][
 		tm: tm / h-factor
-		tm: either tm < 0.0 [ceil tm][floor tm]
+		tm: either tm < 0.0 [ceil tm - nano][floor tm + nano]
 		as-integer tm
 	]
 	get-minutes: func [tm [float!] return: [integer!]][
