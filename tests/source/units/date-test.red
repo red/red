@@ -521,13 +521,22 @@ Red [
 	--test-- "conv-1"	--assert 1/1/1969 = to-date -31536000
 	--test-- "conv-1"	--assert 1/1/2000 = to-date 946684800
 	--test-- "conv-1"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
-	
+
 ===end-group===
 
 ===start-group=== "date misc"
 
-	;sort [1/1/2017 5/10/1999]
-	;random tests
+	--test-- "misc-1"
+		--assert "1-Jan-0001" = mold 1/1/0001
+		--assert "1-Jan-0001" = mold load "1/1/0001"
+
+	--test-- "misc-2"
+		;d: 1/1/0000	;@@ not supported by compiler yet
+		d: 1/1/0001
+		d: d - 366
+		--assert "31/Dec/-1" = mold d
+
+	;random action tests
 
 ===end-group===
 
