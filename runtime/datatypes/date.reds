@@ -71,11 +71,11 @@ date: context [
 		   12 [integer/push (get-yearday d) / 7 + 1]
 		   13 [
 		   		wd: 0
-		   		d1: W1-1-of d :wd
+		   		d1: W1-1-of d :wd						;-- first day of first week
 		   		days: date-to-days d
 		   		w: either days >= d1 [
 		   			y: 1 + DATE_GET_YEAR(d)
-		   			d2: W1-1-of DATE_SET_YEAR(d y) :wd
+		   			d2: W1-1-of DATE_SET_YEAR(d y) :wd	;-- first day of first week of next year
 		   			either days < d2 [days - d1 / 7 + 1][1]
 		   		][
 		   			switch wd [
@@ -100,7 +100,7 @@ date: context [
 	
 	Jan-1st-of: func [
 		d		[integer!]
-		return: [integer!]								;-- in days
+		return: [integer!]								;-- returns Jan-1st(d) in Gregorian days
 	][
 		d: DATE_SET_DAY(d 1)
 		d: DATE_SET_MONTH(d 1)
@@ -109,8 +109,8 @@ date: context [
 	
 	W1-1-of: func [										;-- 1st day of W1
 		d		[integer!]
-		weekday [int-ptr!]								;-- returns weekday of Jan-1st
-		return: [integer!]								;-- in days
+		weekday [int-ptr!]								;-- set to weekday of Jan-1st
+		return: [integer!]								;-- returns W1-1 in Gregorian days
 		/local
 			days [integer!]
 			wd	 [integer!]
