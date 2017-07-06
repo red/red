@@ -50,7 +50,7 @@ date: context [
 			1 [integer/push DATE_GET_YEAR(d)]
 			2 [integer/push DATE_GET_MONTH(d)]
 			3 [integer/push DATE_GET_DAY(d)]
-			4 [
+			4 11 [
 				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0	;@@ TBD: add sign support
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
@@ -64,8 +64,7 @@ date: context [
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push get-yearday d]
-		   12 
-		   13 [integer/push (get-yearday d) / 7 + 1]
+		   12 13 [integer/push (get-yearday d) / 7 + 1]
 		   default [assert false]
 		]
 	]
@@ -830,7 +829,6 @@ date: context [
 			]
 			value
 		][
-			if field = 11 [fire [TO_ERROR(script invalid-path) element path]] ;-- /timezone is write-only
 			value: push-field dt field
 			stack/pop 1									;-- avoids moving stack up
 			value
