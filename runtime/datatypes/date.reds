@@ -367,6 +367,64 @@ date: context [
 		dt/date: days-to-date dd tz
 		dt/time: tm
 	]
+	
+	set-timezone: func [
+		dt 	  [red-date!]
+		value [red-value!]
+		both? [logic!]
+		/local
+			int	   [red-integer!]
+			fl	   [red-float!]
+			tm	   [red-time!]
+			p	   [red-pair!]
+			d	   [integer!]
+			h	   [integer!]
+			m	   [integer!]
+			v	   [integer!]
+			delta  [float!]
+			tt	   [float!]
+			neg?   [logic!]
+	][
+		switch TYPE_OF(value) [
+			TYPE_INTEGER [
+				int: as red-integer! value
+				h: int/value
+				m: 0
+			]
+			TYPE_FLOAT [
+				fl: as red-float! value
+				h: as-integer fl/value
+				m: as-integer fl/value - as-float h
+			]
+			TYPE_TIME [
+				tm: as red-time! value
+				h: time/get-hour tm/time
+				m: time/get-minute tm/time
+			]
+			TYPE_PAIR [
+				p: as red-pair! value
+				h: p/x
+				m: p/y
+			]
+			default [fire [TO_ERROR(script invalid-arg) value]]
+		]
+		d: dt/date
+		m: m / 15 and 03h
+		neg?: either h < 0 [h: 0 - h yes][no]
+		v: h << 2 or m
+		if neg? [v: DATE_SET_ZONE_NEG(v)]
+
+		either both? [									;-- /timezone
+			dt/date: DATE_SET_ZONE(d v)
+			delta: ((as float! h) * time/h-factor) + ((as float! m) * time/m-factor)
+			if neg? [delta: 0.0 - delta]
+			set-time dt dt/time + delta yes
+		][												;-- /zone
+			tt: to-local-time dt/time DATE_GET_ZONE(d)
+			dt/date: DATE_SET_ZONE(d v)
+			dt/time: to-utc-time tt v
+		]
+	]
 
 	;-- Actions --
 
@@ -670,21 +728,15 @@ date: context [
 		/local
 			word   [red-word!]
 			int	   [red-integer!]
-			fl	   [red-float!]
 			tm	   [red-time!]
-			p	   [red-pair!]
 			days   [integer!]
 			field  [integer!]
 			sym	   [integer!]
 			v	   [integer!]
 			y	   [integer!]
 			d	   [integer!]
-			h	   [integer!]
 			m	   [integer!]
-			delta  [float!]
 			fval   [float!]
-			tt	   [float!]
-			neg?   [logic!]
 			error? [logic!]
 	][
 		error?: no
@@ -741,46 +793,7 @@ date: context [
 				3 [										 ;-- /day:
 					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)
 				]
-				4 11 [									;-- /zone: /timezone:
-					switch TYPE_OF(value) [
-						TYPE_INTEGER [
-							int: as red-integer! value
-							h: int/value
-							m: 0
-						]
-						TYPE_FLOAT [
-							fl: as red-float! value
-							h: as-integer fl/value
-							m: as-integer fl/value - as-float h
-						]
-						TYPE_TIME [
-							tm: as red-time! value
-							h: time/get-hour tm/time
-							m: time/get-minute tm/time
-						]
-						TYPE_PAIR [
-							p: as red-pair! value
-							h: p/x
-							m: p/y
-						]
-						default [fire [TO_ERROR(script invalid-arg) value]]
-					]
-					m: m / 15 and 03h
-					neg?: either h < 0 [h: 0 - h yes][no]
-					v: h << 2 or m
-					if neg? [v: DATE_SET_ZONE_NEG(v)]
-
-					either field = 4 [					;-- /zone
-						tt: to-local-time dt/time DATE_GET_ZONE(dt/date)
-						dt/date: DATE_SET_ZONE(d v)
-						dt/time: to-utc-time tt v
-					][									;-- /timezone
-						dt/date: DATE_SET_ZONE(d v)
-						delta: ((as float! h) * time/h-factor) + ((as float! m) * time/m-factor)
-						if neg? [delta: 0.0 - delta]
-						set-time dt dt/time + delta yes
-					]
-				]
+				4 11 [set-timezone dt value field = 11] ;-- /zone: /timezone:
 				5 [										;-- /time:
 					either TYPE_OF(value) = TYPE_TIME [
 						tm: as red-time! value
