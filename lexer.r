@@ -36,6 +36,14 @@ lexer: context [
 	otag: 	none
 	ot:		none
 	ct:		none
+	sep:	none
+	year:	none
+	month:	none
+	day:	none
+	hour:	none
+	mn:		none
+	sec:	none
+	date:	none
 	
 	;====== Parsing rules ======
 
@@ -55,9 +63,10 @@ lexer: context [
 		| #"0"
 	]
 
-	hexa:  union digit charset "ABCDEF"
-	hexa-char: union hexa charset "abcdef"
-	base64-char: union digit charset [#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="]
+	hexa:		 union digit charset "ABCDEF"
+	hexa-char:	 union hexa charset "abcdef"
+	alpha:		 charset [#"A" - #"Z" #"a" - #"z"]
+	base64-char: union digit union alpha charset "+/="
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -102,6 +111,8 @@ lexer: context [
 	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
 	file-end:		charset {^{[]();}
+	date-sep:		charset "/-"
+	time-sep:		charset "T/"
 	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
@@ -277,7 +288,93 @@ lexer: context [
 			]
 		] (type: time!)
 	]
+
+	month-rule: [(m: none)
+		  "January"		(m: 1)
+		| "February"	(m: 2)
+		| "March"		(m: 3)
+		| "April"		(m: 4)
+		| "May"			(m: 5)
+		| "June"		(m: 6)
+		| "July"		(m: 7)
+		| "August"		(m: 8)
+		| "September"	(m: 9)
+		| "October"		(m: 10)
+		| "November"	(m: 11)
+		| "December"	(m: 12)
+	]
+	mon-rule: [(m: none)
+		  "Jan" (m: 1)
+		| "Feb" (m: 2)
+		| "Mar" (m: 3)
+		| "Apr" (m: 4)
+		| "May" (m: 5)
+		| "Jun" (m: 6)
+		| "Jul" (m: 7)
+		| "Aug" (m: 8)
+		| "Sep" (m: 9)
+		| "Oct" (m: 10)
+		| "Nov" (m: 11)
+		| "Dec" (m: 12)
+	]
 	
+	day-year-rule: [
+		(neg?: no) opt [#"-" (neg?: yes)]
+		s: 4 digit e: (year: load-number copy/part s e if neg? [year: 65536 - year])
+		| 1 2 digit e: (
+			value: load-number copy/part s e no
+			either day [year: value + pick [2000 1900] now/year - 2000 >= value][day: value]
+		)
+	]
+
+	date-rule: [
+		pos: [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep] :pos  ;-- quick lookhead
+		day-year-rule sep: date-sep (sep: sep/1) [
+			s: 1 2 digit e: (month: load-number copy/part s e no)
+			| some alpha e: (
+				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
+			) fail?
+		]
+		sep day-year-rule (
+			fail?: either all [day month year][
+				type: date!
+				date: make date! reduce [year month day]
+				if any [date/year <> year date/month <> month date/day <> day][throw-error]
+				day: month: year: none
+			][[end skip]]
+		) fail?
+		opt [
+			time-sep (neg?: no)
+			s: positive-integer-rule (value: load-number copy/part s e)
+			#":" [time-rule (date/time: value) | (throw-error)]
+			opt [
+				#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
+					s: 4 digit (
+						hour: load-number copy/part s e: skip s 2
+						mn:   load-number copy/part e e: skip e 2
+					)
+					| 1 2 digit e: (hour: load-number copy/part s e mn: none)
+					opt [#":" s: 2 digit e: (mn: load-number copy/part s e)]
+				]
+				(date/zone: as-time hour any [mn 0] 0 neg?) ;@@TBD: add special encoding for 15/45 mn
+			]
+		]
+		(value: date)
+		| s: 8 digit #"T" (							;-- yyyymmddThhmmssZ ISO format
+			type: date!
+			year:  load-number copy/part s e: skip s 4
+			month: load-number copy/part e e: skip e 2
+			day:   load-number copy/part e e: skip e 2
+			date:  make date! [year month day]
+		) s: 6 digit #"Z" (
+			hour: load-number copy/part s e: skip s 4
+			mn:	  load-number copy/part e e: skip e 2
+			sec:  load-number copy/part e e: skip e 2
+			date/time: as-time hour mn sec no
+			(value: date)
+		)
+	]
+
 	positive-integer-rule: [digit any digit e: (type: integer!)]
 	
 	integer-number-rule: [
@@ -485,6 +582,7 @@ lexer: context [
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| binary-rule	  (stack/push load-binary s e base)
 			| email-rule	  (stack/push to email! value)
+			| date-rule		  (stack/push value)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tag-rule		  (stack/push to tag!		 copy/part s e)

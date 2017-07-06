@@ -1261,6 +1261,10 @@ natives: context [
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
+			TYPE_DATE	 [
+				if op <> OP_DIFFERENCE [ERR_EXPECT_ARGUMENT(type 1)]
+				date/difference? as red-date! set1 as red-date! set2
+			]
 			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]
@@ -2401,20 +2405,47 @@ natives: context [
 		day		[integer!]
 		time	[integer!]
 		zone	[integer!]
-		date	[integer!]
+		_date	[integer!]
 		weekday	[integer!]
 		yearday	[integer!]
 		precise	[integer!]
 		utc		[integer!]
 		/local
 			dt	[red-date!]
+			int [red-integer!]
+			tm	[float!]
+			n	[integer!]
 	][
-		#typecheck [now year month day time zone date weekday yearday precise utc]
-		if time = -1 [--NOT_IMPLEMENTED--]
+		#typecheck [now year month day time zone _date weekday yearday precise utc]
 
 		dt: as red-date! stack/arguments
-		dt/header: TYPE_TIME
-		dt/time: platform/get-time utc >= 0 precise >= 0
+		dt/header: TYPE_DATE
+		dt/date: platform/get-date utc >= 0
+		if _date > -1 [dt/time: 0.0 exit]
+		
+		tm: platform/get-time yes precise >= 0
+		date/normalize-time 0 :tm DATE_GET_ZONE(dt/date)
+		dt/time: tm
+		n: 0
+		case [
+			year    > -1 [n: 1]
+			month   > -1 [n: 2]
+			day     > -1 [n: 3]
+			zone    > -1 [n: 4]
+			time    > -1 [n: 5]
+			weekday > -1 [n: 9]
+			yearday > -1 [
+				int: as red-integer! dt
+				int/header: TYPE_INTEGER
+				int/value: date/get-yearday dt/date
+				exit
+			]
+			true [exit]
+		]
+		if n > 0 [
+			stack/keep
+			stack/set-last date/push-field dt n
+		]
 	]
 	
 	as*: func [

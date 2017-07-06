@@ -396,8 +396,8 @@ intersect: make native! [[
 
 difference: make native! [[
 		"Returns the special difference of two data sets"
-		set1 [block! hash! string! bitset! typeset!]
-		set2 [block! hash! string! bitset! typeset!]
+		set1 [block! hash! string! bitset! typeset! date!]
+		set2 [block! hash! string! bitset! typeset! date!]
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]

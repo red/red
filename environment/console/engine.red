@@ -179,12 +179,16 @@ system/console: context [
 					print result
 				]
 				not unset? :result [
-					limit: size/x - 13
-					if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
-						clear back tail result
-						append result "..."
+					if error? set/any 'err try [		;-- catch eventual MOLD errors
+						limit: size/x - 13
+						if limit = length? result: mold/part :result limit [ ;-- optimized for width = 72
+							clear back tail result
+							append result "..."
+						]
+						print [system/console/result result]
+					][
+						print :err
 					]
-					print [system/console/result result]
 				]
 			]
 			unless last-lf? [prin lf]

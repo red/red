@@ -136,6 +136,7 @@ parser: context [
 		R_AHEAD:		-16
 		R_CHANGE:		-17
 		R_CHANGE_ONLY:	-18
+		R_CASE:			-19
 	]
 	
 	triple!: alias struct! [
@@ -1137,6 +1138,10 @@ parser: context [
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
 							]
+							R_CASE [
+								t: as triple! s/tail - 3
+								comp-op: t/max			;-- restore previous matching mode
+							]
 						]
 						if pop? [
 							PARSE_TRACE(_pop)
@@ -1732,6 +1737,22 @@ parser: context [
 							]
 							min:   R_NONE
 							type:  R_COLLECT
+							state: ST_PUSH_RULE
+						]
+						sym = words/case* [				;-- CASE
+							cmd: cmd + 1
+							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+								PARSE_ERROR [TO_ERROR(script parse-end) words/case*]
+							]
+							max: comp-op
+							bool: as red-logic! _context/get as red-word! cmd
+							type: TYPE_OF(bool)
+							comp-op: either any [
+								type = TYPE_NONE
+								all [type = TYPE_LOGIC not bool/value]
+							][COMP_EQUAL][COMP_STRICT_EQUAL]
+							min:   R_NONE
+							type:  R_CASE
 							state: ST_PUSH_RULE
 						]
 						sym = words/reject [			;-- REJECT

@@ -94,9 +94,9 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! char! pair! tuple! vector! time! date!]
+		value2	 [number! char! pair! tuple! vector! time! date!]
+		return:  [number! char! pair! tuple! vector! time! date!]
 	]
 	#get-definition ACT_ADD
 ]
@@ -162,9 +162,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! char! pair! tuple! vector! time! date!]
+		value2	 [number! char! pair! tuple! vector! time! date!]
+		return:  [number! char! pair! tuple! vector! time! date!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -378,7 +378,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple! time!]
+		series	 [series! bitset! pair! tuple! date! time!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]

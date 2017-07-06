@@ -26,6 +26,17 @@ time: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
 	
+	get-hour: func [tm [float!] return: [integer!]][
+		tm: tm / h-factor
+		tm: either tm < 0.0 [ceil tm][floor tm]
+		as-integer tm
+	]
+	get-minute: func [tm [float!] return: [integer!]][
+		tm: tm / oneE9 // 3600.0 / 60.0
+		tm: either tm < 0.0 [0.0 - ceil tm][floor tm]	;-- abs(min)
+		as-integer tm
+	]
+	
 	push-field: func [
 		tm		[red-time!]
 		field	[integer!]
@@ -50,7 +61,7 @@ time: context [
 		/local
 			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "time/make-in"]]
 
 		cell: ALLOC_TAIL(parent)
 		cell/header: TYPE_TIME
@@ -300,7 +311,41 @@ time: context [
 			value
 		]
 	]
-	
+
+	add: func [
+		return:	[red-value!]
+		/local
+			left	[red-time!]
+			right	[red-time!]
+			val		[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/add"]]
+		right: as red-time! stack/arguments + 1
+		either TYPE_OF(right) = TYPE_DATE [
+			left: right - 1								;-- swap them!
+			val: left/time
+			copy-cell as red-value! right as red-value! left
+			right/header: TYPE_TIME
+			right/time: val
+			as red-value! date/do-math OP_ADD
+		][
+			as red-value! float/do-math OP_ADD
+		]
+	]
+
+	subtract: func [
+		return:	[red-value!]
+		/local
+			slot [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/subtract"]]
+		slot: stack/arguments + 1
+		if TYPE_OF(slot) = TYPE_DATE [
+			fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_TIME]
+		]
+		as red-value! float/do-math OP_SUB
+	]
+
 	divide: func [
 		return: [red-value!]
 		/local
@@ -378,7 +423,7 @@ time: context [
 		if any [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field tm index
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_TIME
@@ -396,14 +441,14 @@ time: context [
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			INHERIT_ACTION	;absolute
-			INHERIT_ACTION	;add
+			:add
 			:divide
 			:multiply
 			INHERIT_ACTION	;negate
 			null			;power
 			INHERIT_ACTION	;remainder
 			:round
-			INHERIT_ACTION	;subtract
+			:subtract
 			:even?
 			:odd?
 			;-- Bitwise actions --

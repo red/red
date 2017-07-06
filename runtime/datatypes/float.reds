@@ -513,7 +513,6 @@ float: context [
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
-			if s < 0.0 [s: 0.0 - s]
 			f/value: s * f/value
 		]
 		f

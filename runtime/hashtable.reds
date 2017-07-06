@@ -205,6 +205,7 @@ _hashtable: context [
 					(as byte-ptr! s/offset) + sym/head
 					(as-integer s/tail - s/offset) - sym/head
 			]
+			TYPE_DATE
 			TYPE_POINT
 			TYPE_TYPESET [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
@@ -595,7 +596,7 @@ _hashtable: context [
 				TYPE_URL
 				TYPE_TAG
 				TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
-				TYPE_INTEGER TYPE_CHAR TYPE_FLOAT
+				TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
 				TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
 				default		[fire [TO_ERROR(script invalid-type) datatype/push x]]
 			]
