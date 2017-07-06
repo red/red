@@ -406,9 +406,8 @@ date: context [
 			default [fire [TO_ERROR(script invalid-arg) value]]
 		]
 		d: dt/date
-		m: m / 15 and 03h
 		neg?: either h < 0 [h: 0 - h yes][no]
-		v: h << 2 or m
+		v: h << 2 or (m / 15 and 03h)
 		if neg? [v: DATE_SET_ZONE_NEG(v)]
 
 		either both? [									;-- /timezone
