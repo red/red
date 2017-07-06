@@ -38,9 +38,15 @@ date: context [
 		field	[integer!]
 		return: [red-value!]
 		/local
-			d [integer!]
-			s [integer!]
-			t [float!]
+			d	 [integer!]
+			s	 [integer!]
+			w	 [integer!]
+			wd	 [integer!]
+			days [integer!]
+			d1	 [integer!]
+			d2	 [integer!]
+			y	 [integer!]
+			t	 [float!]
 	][
 		d: dt/date
 		t: to-local-time dt/time DATE_GET_ZONE(d)
@@ -49,7 +55,7 @@ date: context [
 			2 [integer/push DATE_GET_MONTH(d)]
 			3 [integer/push DATE_GET_DAY(d)]
 			4 11 [
-				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0	;@@ TBD: add sign support
+				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
 				
@@ -62,9 +68,34 @@ date: context [
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push get-yearday d]
-		   12 13 [integer/push (get-yearday d) / 7 + 1]
+		   12 [integer/push (get-yearday d) / 7 + 1]
+		   13 [
+		   		wd: 0
+		   		d1: W1-1-of d :wd
+		   		days: date-to-days d
+		   		w: either days >= d1 [
+		   			y: 1 + DATE_GET_YEAR(d)
+		   			d2: W1-1-of DATE_SET_YEAR(d y) :wd
+		   			either days < d2 [days - d1 / 7 + 1][1]
+		   		][
+		   			switch wd [
+		   				1 2 3 4 [1]
+		   				5		[53]
+		   				6		[either leap-year? DATE_GET_YEAR(d) - 1 [53][52]]
+		   				7		[52]
+		   			]
+		   		]
+		   		integer/push w
+		   	]
 		   default [assert false]
 		]
+	]
+	
+	leap-year?: func [
+		year	[integer!]
+		return: [logic!]
+	][
+		any [all [year and 3 = 0 year % 100 <> 0] year % 400 = 0]
 	]
 	
 	Jan-1st-of: func [
@@ -74,6 +105,20 @@ date: context [
 		d: DATE_SET_DAY(d 1)
 		d: DATE_SET_MONTH(d 1)
 		date-to-days d
+	]
+	
+	W1-1-of: func [										;-- 1st day of W1
+		d		[integer!]
+		weekday [int-ptr!]								;-- returns weekday of Jan-1st
+		return: [integer!]								;-- in days
+		/local
+			days [integer!]
+			wd	 [integer!]
+	][
+		days: Jan-1st-of d
+		wd: days + 2 % 7 + 1
+		weekday/value: wd
+		either wd < 5 [days + wd - 7][days + 8 - wd]	;-- adjust to closest Monday
 	]
 	
 	to-epoch: func [
