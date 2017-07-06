@@ -27,7 +27,7 @@ date: context [
 	#define DATE_SET_YEAR(d year)	 (d and 0000FFFFh or (year << 16))
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
-	#define DATE_SET_ZONE(d zone)	 (d and FFFFFFC0h or (zone and 7Fh))
+	#define DATE_SET_ZONE(d zone)	 (d and FFFFFF80h or (zone and 7Fh))
 	#define DATE_ADJUST_ZONE_SIGN(i) (i: 0 - i and 3Fh or 40h)
 	#define DATE_SET_ZONE_NEG(z) 	 (z or 40h)
 	
@@ -679,6 +679,7 @@ date: context [
 			d	   [integer!]
 			h	   [integer!]
 			m	   [integer!]
+			delta  [float!]
 			fval   [float!]
 			tt	   [float!]
 			neg?   [logic!]
@@ -690,23 +691,24 @@ date: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				field: int/value
-				if any [field < 1 field > 10][error?: yes]
+				if any [field < 1 field > 11][error?: yes]
 			]
 			TYPE_WORD [
 				word: as red-word! element
 				sym: symbol/resolve word/symbol
 				case [
-					sym = words/year   [field: 1]
-					sym = words/month  [field: 2]
-					sym = words/day	   [field: 3]
-					sym = words/zone   [field: 4]
-					sym = words/time   [field: 5]
-					sym = words/hour   [field: 6]
-					sym = words/minute [field: 7]
-					sym = words/second [field: 8]
-					sym = words/weekday[field: 9]
-					sym = words/yearday[field: 10]
-					sym = words/julian [field: 10]
+					sym = words/year   	 [field: 1]
+					sym = words/month  	 [field: 2]
+					sym = words/day	   	 [field: 3]
+					sym = words/zone   	 [field: 4]
+					sym = words/time   	 [field: 5]
+					sym = words/hour   	 [field: 6]
+					sym = words/minute 	 [field: 7]
+					sym = words/second 	 [field: 8]
+					sym = words/weekday	 [field: 9]
+					sym = words/yearday	 [field: 10]
+					sym = words/julian 	 [field: 10]
+					sym = words/timezone [field: 11]
 					true 			   [error?: yes]
 				]
 			]
@@ -733,7 +735,7 @@ date: context [
 					dt/date: DATE_SET_MONTH(d v)
 				]
 				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)]
-				4 [
+				4 11 [
 					switch TYPE_OF(value) [
 						TYPE_INTEGER [
 							int: as red-integer! value
@@ -757,12 +759,21 @@ date: context [
 						]
 						default [fire [TO_ERROR(script invalid-arg) value]]
 					]
+					m: m / 15 and 03h
 					neg?: either h < 0 [h: 0 - h yes][no]
-					v: h << 2 or (m / 15 and 03h)
+					v: h << 2 or m
 					if neg? [v: DATE_SET_ZONE_NEG(v)]
-					tt: to-local-time dt/time DATE_GET_ZONE(dt/date)
-					dt/date: DATE_SET_ZONE(d v)
-					dt/time: to-utc-time tt v
+
+					either field = 4 [					;-- /zone
+						tt: to-local-time dt/time DATE_GET_ZONE(dt/date)
+						dt/date: DATE_SET_ZONE(d v)
+						dt/time: to-utc-time tt v
+					][									;-- /timezone
+						dt/date: DATE_SET_ZONE(d v)
+						delta: ((as float! h) * time/h-factor) + ((as float! m) * time/m-factor)
+						if neg? [delta: 0.0 - delta]
+						set-time dt dt/time + delta yes
+					]
 				]
 				5 [
 					either TYPE_OF(value) = TYPE_TIME [
@@ -788,6 +799,7 @@ date: context [
 			]
 			value
 		][
+			if field = 11 [fire [TO_ERROR(script invalid-path) element path]] ;-- /timezone is write-only
 			value: push-field dt field
 			stack/pop 1									;-- avoids moving stack up
 			value

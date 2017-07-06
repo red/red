@@ -528,6 +528,7 @@ words: context [
 	hour:			-1
 	minute:			-1
 	second:			-1
+	timezone:		-1
 	
 	user:			-1
 	host:			-1
@@ -734,6 +735,7 @@ words: context [
 		hour:			symbol/make "hour"
 		minute:			symbol/make "minute"
 		second:			symbol/make "second"
+		timezone:		symbol/make "timezone"
 		
 		user:			symbol/make "user"
 		host:			symbol/make "host"
