@@ -671,10 +671,14 @@ date: context [
 		string/append-char GET_BUFFER(buffer) sep
 		
 		formed: integer/form-signed year
+		part: either year > 0 [
+			len: 4 - length? formed
+			if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
+			part - 5									;-- 4 + separator
+		][
+			part - length? formed
+		]
 		string/concatenate-literal buffer formed
-		len: 4 - length? formed
-		if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
-		part: part - 5									;-- 4 + separator
 		
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
