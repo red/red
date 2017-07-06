@@ -521,6 +521,8 @@ words: context [
 	month:			-1
 	day:			-1
 	zone:			-1
+	week:			-1
+	isoweek:		-1
 	weekday:		-1
 	yearday:		-1
 	julian:			-1
@@ -728,6 +730,8 @@ words: context [
 		month:			symbol/make "month"
 		day:			symbol/make "day"
 		zone:			symbol/make "zone"
+		isoweek:		symbol/make "isoweek"
+		week:			symbol/make "week"
 		weekday:		symbol/make "weekday"
 		yearday:		symbol/make "yearday"
 		julian:			symbol/make "julian"

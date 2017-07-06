@@ -64,6 +64,8 @@ date: context [
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push get-yearday d]
+		   12 
+		   13 [integer/push (get-yearday d) / 7 + 1]
 		   default [assert false]
 		]
 	]
@@ -691,7 +693,7 @@ date: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				field: int/value
-				if any [field < 1 field > 11][error?: yes]
+				if any [field < 1 field > 13][error?: yes]
 			]
 			TYPE_WORD [
 				word: as red-word! element
@@ -709,6 +711,8 @@ date: context [
 					sym = words/yearday	 [field: 10]
 					sym = words/julian 	 [field: 10]
 					sym = words/timezone [field: 11]
+					sym = words/week 	 [field: 12]
+					sym = words/isoweek	 [field: 13]
 					true 			   [error?: yes]
 				]
 			]
@@ -717,15 +721,15 @@ date: context [
 		if error? [fire [TO_ERROR(script invalid-path) stack/arguments element]]
 
 		either value <> null [
-			if any [all [1 <= field field <= 3] field = 9 field = 10][
+			if any [all [1 <= field field <= 3] field = 9 field = 10 field = 12 field = 13][
 				if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
 				int: as red-integer! value
 				v: int/value
 			]
 			d: dt/date
 			switch field [
-				1 [dt/date: DATE_SET_YEAR(d v)]
-				2 [
+				1 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
+				2 [										;-- /month:
 					y: v / 12
 					if any [y < 0 v = 0][y: y - 1]
 					y: DATE_GET_YEAR(d) + y
@@ -734,8 +738,10 @@ date: context [
 					if v <= 0 [v: 12 + v]
 					dt/date: DATE_SET_MONTH(d v)
 				]
-				3 [dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)]
-				4 11 [
+				3 [										 ;-- /day:
+					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)
+				]
+				4 11 [									;-- /zone: /timezone:
 					switch TYPE_OF(value) [
 						TYPE_INTEGER [
 							int: as red-integer! value
@@ -775,7 +781,7 @@ date: context [
 						set-time dt dt/time + delta yes
 					]
 				]
-				5 [
+				5 [										;-- /time:
 					either TYPE_OF(value) = TYPE_TIME [
 						tm: as red-time! value
 						dt/time: tm/time
@@ -785,16 +791,24 @@ date: context [
 					]
 					set-time dt dt/time yes
 				]
-				6 7 8 [
+				6 7 8 [									;-- /hour: /minute: /second:
 					stack/keep
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time field = 6
 				]
-				9  [
+				9  [									;-- /weekday:
 					days: date-to-days d
 					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d)
 				]
-				10 [dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)]
+				10 [									;-- /yearday: /julian: 
+					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)
+				]
+				12 13 [									;-- /week: /isoweek:
+					m: either field = 12 [1][0]
+					days: Jan-1st-of d
+					v: v * 7 - (days + 2 % 7 + m)
+					dt/date: days-to-date v + days DATE_GET_ZONE(d)
+				]
 				default [assert false]
 			]
 			value
