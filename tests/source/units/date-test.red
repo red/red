@@ -373,6 +373,67 @@ Red [
 		d/zone: 6:24
 		--assert d/zone = 6:15
 		--assert "5-Jul-2017/12:41:40+06:15" = mold d
+		
+	--test-- "pw-zone7"
+		d: 6-Jul-2017/1:51:42-09:00
+		d/zone: -9:00
+		--assert d/zone = -9:00
+		--assert "6-Jul-2017/1:51:42-09:00" = mold d
+		
+	--test-- "pw-zone8"
+		d: 6-Jul-2017/1:51:42+2:00
+		d/zone: -9:00
+		--assert d/zone = -9:00
+		--assert "6-Jul-2017/1:51:42-09:00" = mold d
+	
+	
+	--test-- "pw-timezone1"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: 1
+		--assert d/timezone = 1:00
+		--assert d = 5-Jul-2017/5:41:40+01:00
+
+	--test-- "pw-timezone2"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: 2:45
+		--assert d/timezone = 2:45
+		--assert "5-Jul-2017/7:26:40+02:45" = mold d
+
+	--test-- "pw-timezone3"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: 3.14
+		--assert d/timezone = 3:00
+		--assert d = 5-Jul-2017/7:41:40+03:00
+
+	--test-- "pw-timezone4"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: -4
+		--assert d/timezone = -4:00
+		--assert d = 5-Jul-2017/0:41:40-04:00
+
+	--test-- "pw-timezone5"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: -5:15
+		--assert d/timezone = -5:15
+		--assert "4-Jul-2017/23:26:40-05:15" = mold d
+
+	--test-- "pw-timezone6"
+		d: 5-Jul-2017/12:41:40+08:00
+		d/timezone: 6:24
+		--assert d/timezone = 6:15
+		--assert "5-Jul-2017/11:05:40+06:15" = mold d
+
+	--test-- "pw-timezone7"
+		d: 6-Jul-2017/1:51:42-09:00
+		d/timezone: -9:00
+		--assert d/timezone = -9:00
+		--assert "6-Jul-2017/1:51:42-09:00" = mold d
+		
+	--test-- "pw-timezone8"
+		d: 6-Jul-2017/1:51:42+2:00
+		d/timezone: -9:00
+		--assert d/timezone = -9:00
+		--assert "5-Jul-2017/14:51:42-09:00" = mold d
 	
 	
 	--test-- "pw-time1"
