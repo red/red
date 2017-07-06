@@ -26,15 +26,15 @@ time: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
 	
-	get-hour: func [tm [float!] return: [integer!]][
+	get-hours: func [tm [float!] return: [integer!]][
 		tm: tm / h-factor
 		tm: either tm < 0.0 [ceil tm][floor tm]
 		as-integer tm
 	]
-	get-minute: func [tm [float!] return: [integer!]][
-		tm: tm / oneE9 // 3600.0 / 60.0
-		tm: either tm < 0.0 [0.0 - ceil tm][floor tm]	;-- abs(min)
-		as-integer tm
+	get-minutes: func [tm [float!] return: [integer!]][
+		if tm < 0.0 [tm: 0.0 - tm]
+		tm: floor tm + 0.5
+		as-integer floor tm / oneE9 // 3600.0 / 60.0
 	]
 	
 	push-field: func [

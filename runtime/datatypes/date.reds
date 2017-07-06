@@ -381,7 +381,7 @@ date: context [
 			m	   [integer!]
 			v	   [integer!]
 			delta  [float!]
-			tt	   [float!]
+			t	   [float!]
 			neg?   [logic!]
 	][
 		switch TYPE_OF(value) [
@@ -397,8 +397,8 @@ date: context [
 			]
 			TYPE_TIME [
 				tm: as red-time! value
-				h: time/get-hour tm/time
-				m: time/get-minute tm/time
+				h: time/get-hours tm/time
+				m: time/get-minutes tm/time
 			]
 			TYPE_PAIR [
 				p: as red-pair! value
@@ -419,9 +419,9 @@ date: context [
 			if neg? [delta: 0.0 - delta]
 			set-time dt dt/time + delta yes
 		][												;-- /zone
-			tt: to-local-time dt/time DATE_GET_ZONE(d)
+			t: to-local-time dt/time DATE_GET_ZONE(d)
 			dt/date: DATE_SET_ZONE(d v)
-			dt/time: to-utc-time tt v
+			dt/time: to-utc-time t v
 		]
 	]
 
@@ -526,8 +526,8 @@ date: context [
 						any [all [cnt = 5 min = 0] all [cnt = 7 zone = 0]]
 						zone-t <> 0.0
 					][
-						i: as-integer DATE_GET_HOURS(zone-t)
-						mn: (as-integer DATE_GET_MINUTES(zone-t)) / 15
+						i: time/get-hours zone-t
+						mn: (time/get-minutes zone-t) / 15
 					][
 						i: either all [cnt = 5 min <> 0][min][zone]
 						mn: 0
