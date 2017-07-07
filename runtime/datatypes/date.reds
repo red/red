@@ -842,6 +842,10 @@ date: context [
 				]
 				6 7 8 [									;-- /hour: /minute: /second:
 					stack/keep
+					if TYPE_OF(element) = TYPE_INTEGER [
+						int: as red-integer! element
+						int/value: int/value - 5		;-- normalize accessor for time!
+					]
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time field = 6
 				]
