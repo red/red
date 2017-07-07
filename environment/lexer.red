@@ -790,7 +790,7 @@ system/lexer: context [
 			s: opt #"-"	4 digit e: (year: make-number s e integer!)
 			| 1 2 digit e: (
 				value: make-number s e integer!
-				either day [year: value + pick [2000 1900] now/year - 2000 >= value][day: value]
+				either day [year: value + pick [2000 1900] 50 > value][day: value]
 			)
 		]
 		

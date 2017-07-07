@@ -323,7 +323,7 @@ lexer: context [
 		s: 4 digit e: (year: load-number copy/part s e if neg? [year: 65536 - year])
 		| 1 2 digit e: (
 			value: load-number copy/part s e no
-			either day [year: value + pick [2000 1900] now/year - 2000 >= value][day: value]
+			either day [year: value + pick [2000 1900] 50 > value][day: value]
 		)
 	]
 
