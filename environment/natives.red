@@ -825,7 +825,7 @@ now: make native! [[
 		/yearday	"Returns day of the year (Julian)"
 		/precise	"High precision time"
 		/utc		"Universal time (no zone)"
-		return: [time!]					;@@ add date! when we have it
+		return: [date! time! integer!]
 	]
 	#get-definition NAT_NOW
 ]
