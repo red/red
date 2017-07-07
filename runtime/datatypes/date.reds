@@ -113,12 +113,14 @@ date: context [
 		return: [integer!]								;-- returns W1-1 in Gregorian days
 		/local
 			days [integer!]
+			base [integer!]
 			wd	 [integer!]
 	][
 		days: Jan-1st-of d
 		wd: days + 2 % 7 + 1
 		weekday/value: wd
-		either wd < 5 [days + 1 - wd][days + 8 - wd]	;-- adjust to closest Monday
+		base: either wd < 5 [1][8]						;-- before Friday, go prev Monday, from Friday, go to next one
+		days + base - wd								;-- adjust to closest Monday
 	]
 	
 	to-epoch: func [
