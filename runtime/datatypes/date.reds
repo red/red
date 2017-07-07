@@ -836,14 +836,9 @@ date: context [
 				]
 				4 11 [set-timezone dt value field = 11] ;-- /zone: /timezone:
 				5 [										;-- /time:
-					either TYPE_OF(value) = TYPE_TIME [
-						tm: as red-time! value
-						dt/time: tm/time
-					][
-						stack/keep
-						time/eval-path as red-time! dt as red-value! integer/push 3 value path case?	;-- set seconds
-					]
-					set-time dt dt/time yes
+					if TYPE_OF(value) <> TYPE_TIME [fire [TO_ERROR(script invalid-arg) value]]
+					tm: as red-time! value
+					set-time dt tm/time yes
 				]
 				6 7 8 [									;-- /hour: /minute: /second:
 					stack/keep
