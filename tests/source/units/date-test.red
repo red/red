@@ -30,7 +30,7 @@ Red [
 	--test-- "cfmt-12" --assert "5-Sep-2012/6:00:00"		= mold 5/9/2012/6:0
 	--test-- "cfmt-13" --assert "5-Sep-2012/6:00:00"		= mold 5/9/2012/6:00
 	--test-- "cfmt-14" --assert "5-Sep-2012/6:00:00+08:00"	= mold 5/9/2012/6:00+8
-	--test-- "cfmt-15" --assert "5-Sep-2012/6:00:00"		= mold 5/9/2012/6:0
+	--test-- "cfmt-15" --assert "5-Sep-2012/6:00:00+04:30"	= mold 5/9/2012/6:0+0430
 	--test-- "cfmt-16" --assert "4-Apr-2000/6:00:00+08:00"	= mold 4/Apr/2000/6:00+8:00
 	--test-- "cfmt-17" --assert "2-Oct-1999/2:00:00-04:00"	= mold 1999-10-2/2:00-4:00
 	--test-- "cfmt-18" --assert "1-Jan-1990/12:20:25-06:00"	= mold 1/1/1990/12:20:25-6
@@ -125,6 +125,15 @@ Red [
 	--test-- "make8"	--assert error? try [make date! [1978 2 3 5 20]]
 	--test-- "make9"	--assert 3-Mar-1973/9:46:40 = make date! reduce [1970 1 1 to-time 100000000 0]
 	--test-- "make10"	--assert 1-Mar-1981 = make date! reduce [1981 2 29]
+	
+	--test-- "make11"	--assert 3-Feb-1978				  = make date! [3 2 1978]
+	--test-- "make12"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [3 2 1978 5 20 30 4]
+	--test-- "make11"	--assert 1-Jan-0001 			  = make date! [1 1 1]
+	--test-- "make11"	--assert 1-Jan-0002 			  = make date! [1 1 2]
+	;--test-- "make11"	--assert 30-Jan-0002			  = make date! [30 1 2]
+	;--test-- "make11"	--assert 1-Feb-0002				  = make date! [32 1 2]
+	;--test-- "make11"	--assert 9-Apr-0002				  = make date! [99 1 2]
+	--test-- "make11"	--assert 2-Jan-0100				  = make date! [100 1 2]
 	
 ===end-group===
 

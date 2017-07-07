@@ -338,7 +338,7 @@ lexer: context [
 		sep day-year-rule (
 			fail?: either all [day month year][
 				type: date!
-				date: make date! reduce [year month day]
+				date: make date! reduce [day month year]
 				if any [date/year <> year date/month <> month date/day <> day][throw-error]
 				day: month: year: none
 			][[end skip]]

@@ -547,9 +547,9 @@ date: context [
 						default [throw-error spec]
 					]
 					switch cnt [
-						0 [year:  i]
+						0 [day:	  i]
 						1 [month: i]
-						2 [day:	  i]
+						2 [year:  i]
 						3 [hour:  i ftime:	t]
 						4 [min:	  i zone-t:	t]
 						5 [sec:	  i sec-t:	t]
@@ -588,6 +588,8 @@ date: context [
 			]
 			default [throw-error spec]
 		]
+		if all [day >= 100 day > year][i: year year: day day: i]	;-- allow year to be first
+		
 		ftime: to-utc-time ftime zone
 		dt: box year month day ftime zone
 		set-time dt dt/time no
