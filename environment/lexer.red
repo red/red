@@ -804,7 +804,8 @@ system/lexer: context [
 			sep day-year-rule
 			[if (not all [day month year]) fail | none] (
 				type: date!
-				if error? try [date: make date! [year month day]][throw-error [type pos]]
+				date: make date! [year month day]
+				if any [date/year <> year date/month <> month date/day <> day][throw-error [type pos]]
 				day: month: year: none
 			) opt [
 				time-sep (neg?: no)

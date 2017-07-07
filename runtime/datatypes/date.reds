@@ -584,19 +584,14 @@ date: context [
 					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
 					t: either sec-t = 0.0 [t + as-float sec][t + sec-t]
 					ftime: t * 1E9
-				]	
+				]
 			]
 			default [throw-error spec]
 		]
 		ftime: to-utc-time ftime zone
 		dt: box year month day ftime zone
+		set-time dt dt/time no
 		d: days-to-date date-to-days dt/date 0
-		if any [
-			year  <> DATE_GET_YEAR(d)
-			month <> DATE_GET_MONTH(d)
-			day   <> DATE_GET_DAY(d)
-		][throw-error spec]
-		
 		as red-value! dt
 	]
 
