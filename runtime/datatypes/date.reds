@@ -118,7 +118,7 @@ date: context [
 		days: Jan-1st-of d
 		wd: days + 2 % 7 + 1
 		weekday/value: wd
-		either wd < 5 [days + wd - 7][days + 8 - wd]	;-- adjust to closest Monday
+		either wd < 5 [days + 1 - wd][days + 8 - wd]	;-- adjust to closest Monday
 	]
 	
 	to-epoch: func [
@@ -780,8 +780,7 @@ date: context [
 			v	   [integer!]
 			y	   [integer!]
 			d	   [integer!]
-			m	   [integer!]
-			fval   [float!]
+			wd	   [integer!]
 			error? [logic!]
 	][
 		error?: no
@@ -861,11 +860,14 @@ date: context [
 				10 [									;-- /yearday: /julian: 
 					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)
 				]
-				12 13 [									;-- /week: /isoweek:
-					m: either field = 12 [1][0]
+				12 [									;-- /week:
 					days: Jan-1st-of d
-					v: v * 7 - (days + 2 % 7 + m)
+					v: v * 7 - (days + 2 % 7 + 1)
 					dt/date: days-to-date v + days DATE_GET_ZONE(d)
+				]
+				13 [									;-- /isoweek:
+					wd: 0
+					dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d)
 				]
 				default [assert false]
 			]
