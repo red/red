@@ -569,20 +569,90 @@ Red [
 ===start-group=== "date conversions"
 
 	--test-- "conv-1"	--assert 1499229700 = to-integer 5-Jul-2017/12:41:40+8:00
-	--test-- "conv-1"	--assert 1499258500 = to-integer 5-Jul-2017/12:41:40
-	--test-- "conv-1"	--assert 1499272900 = to-integer 5-Jul-2017/12:41:40-4:00
-	--test-- "conv-1"	--assert 0 = to-integer 1/1/1970
-	--test-- "conv-1"	--assert -31536000  = to-integer 1/1/1969
-	--test-- "conv-1"	--assert 946684800  = to-integer 1/1/2000
+	--test-- "conv-2"	--assert 1499258500 = to-integer 5-Jul-2017/12:41:40
+	--test-- "conv-3"	--assert 1499272900 = to-integer 5-Jul-2017/12:41:40-4:00
+	--test-- "conv-4"	--assert 0 = to-integer 1/1/1970
+	--test-- "conv-5"	--assert -31536000  = to-integer 1/1/1969
+	--test-- "conv-6"	--assert 946684800  = to-integer 1/1/2000
 	
-	--test-- "conv-1"	--assert 5-Jul-2017/4:41:40  = to-date 1499229700
-	--test-- "conv-1"	--assert 5-Jul-2017/12:41:40 = to-date 1499258500
-	--test-- "conv-1"	--assert 5-Jul-2017/16:41:40 = to-date 1499272900
-	--test-- "conv-1"	--assert 1/1/1970 = to-date 0
-	--test-- "conv-1"	--assert 1/1/1969 = to-date -31536000
-	--test-- "conv-1"	--assert 1/1/2000 = to-date 946684800
-	--test-- "conv-1"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
+	--test-- "conv-7"	--assert 5-Jul-2017/4:41:40  = to-date 1499229700
+	--test-- "conv-8"	--assert 5-Jul-2017/12:41:40 = to-date 1499258500
+	--test-- "conv-9"	--assert 5-Jul-2017/16:41:40 = to-date 1499272900
+	--test-- "conv-10"	--assert 1/1/1970 = to-date 0
+	--test-- "conv-11"	--assert 1/1/1969 = to-date -31536000
+	--test-- "conv-12"	--assert 1/1/2000 = to-date 946684800
+	--test-- "conv-13"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
 
+===end-group===
+
+===start-group=== "ISO weeks accuracy"
+
+	--test-- "iwr-1"	d: 7-Jan-2019 	--assert d/isoweek = 2
+	--test-- "iwr-2"	d: 6-Jan-2019 	--assert d/isoweek = 1
+	--test-- "iwr-3"	d: 31-Dec-2018	--assert d/isoweek = 1
+	--test-- "iwr-4"	d: 30-Dec-2018	--assert d/isoweek = 52
+	--test-- "iwr-5"	d: 1-Jan-2018 	--assert d/isoweek = 1
+	--test-- "iwr-6"	d: 31-Dec-2017	--assert d/isoweek = 52
+	--test-- "iwr-7"	d: 3-Jul-2017 	--assert d/isoweek = 27
+	--test-- "iwr-8"	d: 1-Jan-2017 	--assert d/isoweek = 52
+	--test-- "iwr-9"	d: 2-Jan-2017 	--assert d/isoweek = 1
+	--test-- "iwr-10"	d: 30-Dec-2016	--assert d/isoweek = 52
+	--test-- "iwr-11"	d: 26-Dec-2016	--assert d/isoweek = 52
+	--test-- "iwr-12"	d: 25-Dec-2016	--assert d/isoweek = 51
+	--test-- "iwr-13"	d: 4-Jan-2016 	--assert d/isoweek = 1
+	--test-- "iwr-14"	d: 3-Jan-2016 	--assert d/isoweek = 53
+	--test-- "iwr-15"	d: 31-Dec-2015	--assert d/isoweek = 53
+	--test-- "iwr-16"	d: 28-Dec-2015	--assert d/isoweek = 53
+	--test-- "iwr-17"	d: 27-Dec-2015	--assert d/isoweek = 52
+	--test-- "iwr-18"	d: 5-Jan-2015 	--assert d/isoweek = 2
+	--test-- "iwr-19"	d: 4-Jan-2015 	--assert d/isoweek = 1
+	--test-- "iwr-20"	d: 31-Dec-2014	--assert d/isoweek = 1
+	--test-- "iwr-21"	d: 29-Dec-2014	--assert d/isoweek = 1
+	--test-- "iwr-22"	d: 28-Dec-2014	--assert d/isoweek = 52
+	--test-- "iwr-23"	d: 6-Jan-2014 	--assert d/isoweek = 2
+	--test-- "iwr-24"	d: 5-Jan-2014 	--assert d/isoweek = 1
+	--test-- "iwr-25"	d: 31-Dec-2013	--assert d/isoweek = 1
+	--test-- "iwr-26"	d: 30-Dec-2013	--assert d/isoweek = 1
+	--test-- "iwr-27"	d: 29-Dec-2013	--assert d/isoweek = 52
+	--test-- "iwr-28"	d: 7-Jan-2013 	--assert d/isoweek = 2
+	--test-- "iwr-29"	d: 6-Jan-2013 	--assert d/isoweek = 1
+	--test-- "iwr-30"	d: 1-Jan-2013 	--assert d/isoweek = 1
+	--test-- "iwr-31"	d: 31-Dec-2012	--assert d/isoweek = 1
+	--test-- "iwr-32"	d: 30-Dec-2012	--assert d/isoweek = 52
+	--test-- "iwr-33"	d: 24-Dec-2012	--assert d/isoweek = 52
+	--test-- "iwr-34"	d: 23-Dec-2012	--assert d/isoweek = 51
+	--test-- "iwr-35"	d: 2-Jan-2012 	--assert d/isoweek = 1
+	--test-- "iwr-36"	d: 1-Jan-2012 	--assert d/isoweek = 52
+	--test-- "iwr-37"	d: 31-Dec-2011	--assert d/isoweek = 52
+	--test-- "iwr-38"	d: 26-Dec-2011	--assert d/isoweek = 52
+	--test-- "iwr-39"	d: 25-Dec-2011	--assert d/isoweek = 51
+	
+	--test-- "iww-1"	d: 3-Jul-2019	d/isoweek: 2	--assert d = 7-Jan-2019 
+	--test-- "iww-3"	d: 3-Jul-2019	d/isoweek: 1	--assert d = 31-Dec-2018
+	--test-- "iww-4"	d: 3-Jul-2018	d/isoweek: 52	--assert d = 24-Dec-2018
+	--test-- "iww-5"	d: 3-Jul-2018	d/isoweek: 1	--assert d = 1-Jan-2018 
+	--test-- "iww-6"	d: 3-Jul-2017	d/isoweek: 52	--assert d = 25-Dec-2017
+	--test-- "iww-7"	d: 3-Jul-2017	d/isoweek: 27	--assert d = 3-Jul-2017
+	--test-- "iww-9"	d: 3-Jul-2017	d/isoweek: 1	--assert d = 2-Jan-2017
+	--test-- "iww-11"	d: 3-Jul-2016	d/isoweek: 52	--assert d = 26-Dec-2016
+	--test-- "iww-12"	d: 3-Jul-2016	d/isoweek: 51	--assert d = 19-Dec-2016
+	--test-- "iww-13"	d: 3-Jul-2016	d/isoweek: 1	--assert d = 4-Jan-2016 
+	--test-- "iww-16"	d: 3-Jul-2015	d/isoweek: 53	--assert d = 28-Dec-2015
+	--test-- "iww-17"	d: 3-Jul-2015	d/isoweek: 52	--assert d = 21-Dec-2015
+	--test-- "iww-18"	d: 3-Jul-2015	d/isoweek: 2	--assert d = 5-Jan-2015
+	--test-- "iww-21"	d: 3-Jul-2015	d/isoweek: 1	--assert d = 29-Dec-2014
+	--test-- "iww-22"	d: 3-Jul-2014	d/isoweek: 52	--assert d = 22-Dec-2014
+	--test-- "iww-23"	d: 3-Jul-2014	d/isoweek: 2	--assert d = 6-Jan-2014
+	--test-- "iww-26"	d: 3-Jul-2014	d/isoweek: 1	--assert d = 30-Dec-2013
+	--test-- "iww-27"	d: 3-Jul-2013	d/isoweek: 52	--assert d = 23-Dec-2013
+	--test-- "iww-28"	d: 3-Jul-2013	d/isoweek: 2	--assert d = 7-Jan-2013
+	--test-- "iww-31"	d: 3-Jul-2013	d/isoweek: 1	--assert d = 31-Dec-2012
+	--test-- "iww-33"	d: 3-Jul-2012	d/isoweek: 52	--assert d = 24-Dec-2012
+	--test-- "iww-34"	d: 3-Jul-2012	d/isoweek: 51	--assert d = 17-Dec-2012
+	--test-- "iww-35"	d: 3-Jul-2012	d/isoweek: 1	--assert d = 2-Jan-2012 
+	--test-- "iww-38"	d: 3-Jul-2011	d/isoweek: 52	--assert d = 26-Dec-2011
+	--test-- "iww-39"	d: 3-Jul-2011	d/isoweek: 51	--assert d = 19-Dec-2011
+	
 ===end-group===
 
 ===start-group=== "date misc"
