@@ -392,7 +392,7 @@ date: context [
 			d [integer!]
 	][
 		d: dt/date
-		y: v / 12
+		y: v - 1 / 12
 		if any [y < 0 v <= 0][y: y - 1]
 		y: DATE_GET_YEAR(d) + y
 		d: DATE_SET_YEAR(d y)
