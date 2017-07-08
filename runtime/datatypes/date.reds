@@ -152,23 +152,6 @@ date: context [
 		as red-date! cell
 	]
 	
-	box: func [
-		year	[integer!]
-		month	[integer!]
-		day		[integer!]
-		time 	[float!]
-		zone	[integer!]
-		return: [red-date!]
-		/local
-			dt	[red-date!]
-	][
-		dt: as red-date! stack/arguments
-		dt/header: TYPE_DATE
-		dt/date: (year << 16) or (month << 12) or (day << 7) or zone
-		dt/time: time
-		dt
-	]
-	
 	push: func [
 		date	[integer!]
 		time	[float!]
@@ -394,6 +377,23 @@ date: context [
 		]
 		left
 	]
+	
+	set-month: func [
+		dt	[red-date!]
+		v	[integer!]
+		/local
+			y [integer!]
+			d [integer!]
+	][
+		d: dt/date
+		y: v / 12
+		if any [y < 0 v <= 0][y: y - 1]
+		y: DATE_GET_YEAR(d) + y
+		d: DATE_SET_YEAR(d y)
+		v: v % 12
+		if v <= 0 [v: 12 + v]
+		dt/date: DATE_SET_MONTH(d v)
+	]
 
 	set-time: func [
 		dt	 [red-date!]
@@ -589,11 +589,13 @@ date: context [
 			default [throw-error spec]
 		]
 		if all [day >= 100 day > year][i: year year: day day: i]	;-- allow year to be first
-		
-		ftime: to-utc-time ftime zone
-		dt: box year month day ftime zone
-		set-time dt dt/time no
-		d: days-to-date date-to-days dt/date 0
+
+		dt: as red-date! stack/arguments
+		dt/header: TYPE_DATE
+		dt/date: DATE_SET_YEAR(0 year)
+		set-month dt month
+		dt/date: days-to-date day + date-to-days dt/date zone
+		set-time dt ftime yes
 		as red-value! dt
 	]
 
@@ -777,7 +779,6 @@ date: context [
 			field  [integer!]
 			sym	   [integer!]
 			v	   [integer!]
-			y	   [integer!]
 			d	   [integer!]
 			wd	   [integer!]
 			error? [logic!]
@@ -824,16 +825,8 @@ date: context [
 			d: dt/date
 			switch field [
 				1 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
-				2 [										;-- /month:
-					y: v / 12
-					if any [y < 0 v <= 0][y: y - 1]
-					y: DATE_GET_YEAR(d) + y
-					d: DATE_SET_YEAR(d y)
-					v: v % 12
-					if v <= 0 [v: 12 + v]
-					dt/date: DATE_SET_MONTH(d v)
-				]
-				3 [										 ;-- /day:
+				2 [set-month dt v]						;-- /month:
+				3 [										;-- /day:
 					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)
 				]
 				4 11 [set-timezone dt value field = 11] ;-- /zone: /timezone:
