@@ -903,6 +903,7 @@ date: context [
 				]
 				default [assert false]
 			]
+			object/check-owner as red-value! dt
 			value
 		][
 			value: push-field dt field
