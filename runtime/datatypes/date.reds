@@ -494,6 +494,7 @@ date: context [
 			sec   [integer!]
 			zone  [integer!]
 			d	  [integer!]
+			h	  [integer!]
 			t	  [float!]
 			ftime [float!]
 			sec-t [float!]
@@ -596,10 +597,20 @@ date: context [
 		
 		unless norm? [
 			d: dt/date
+			h: time/get-hours ftime
+			if any [cnt = 4 cnt = 5][min: time/get-minutes ftime]
 			if any [
 				year  <> DATE_GET_YEAR(d)
 				month <> DATE_GET_MONTH(d)
 				day   <> DATE_GET_DAY(d)
+				all [ftime <> 0.0 any [
+					h < 0 h > 23
+					min <> time/get-minutes dt/time
+				]]
+				all [ftime = 0.0 any [
+					hour <> time/get-hours dt/time
+					min  <> time/get-minutes dt/time
+				]]
 			][throw-error spec]
 		]
 		as red-value! dt

@@ -124,15 +124,18 @@ Red [
 	--test-- "make7"	--assert error? try [make date! [1978 2 3 5]]
 	--test-- "make8"	--assert error? try [make date! [1978 2 3 5 20]]
 	--test-- "make10"	--assert error? try [make date! [1981 2 29]]
+	--test-- "make11"	--assert error? try [make date! [1 2 2017 23 70 0 4:30]]
+	--test-- "make12"	--assert error? try [make date! [1 2 2017 23:70:0 4:30]]
+	--test-- "make13"	--assert error? try [make date! [1 2 2017 23:20:70 4:30]]
 	
-	--test-- "make11"	--assert 3-Feb-1978				  = make date! [3 2 1978]
-	--test-- "make12"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [3 2 1978 5 20 30 4]
-	--test-- "make11"	--assert 1-Jan-0001 			  = make date! [1 1 1]
-	--test-- "make11"	--assert 1-Jan-0002 			  = make date! [1 1 2]
-	;--test-- "make11"	--assert 30-Jan-0002			  = make date! [30 1 2]
-	;--test-- "make11"	--assert 1-Feb-0002				  = make date! [32 1 2]
-	;--test-- "make11"	--assert 9-Apr-0002				  = make date! [99 1 2]
-	--test-- "make11"	--assert 2-Jan-0100				  = make date! [100 1 2]
+	--test-- "make14"	--assert 3-Feb-1978				  = make date! [3 2 1978]
+	--test-- "make15"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [3 2 1978 5 20 30 4]
+	--test-- "make16"	--assert 1-Jan-0001 			  = make date! [1 1 1]
+	--test-- "make17"	--assert 1-Jan-0002 			  = make date! [1 1 2]
+	--test-- "make18"	--assert 30-Jan-0002			  = make date! [30 1 2]
+	--test-- "make19"	--assert error? try [make date! [32 1 2]]
+	--test-- "make20"	--assert error? try [make date! [99 1 2]]
+	--test-- "make21"	--assert 2-Jan-0100				  = make date! [100 1 2]
 	
 ===end-group===
 
