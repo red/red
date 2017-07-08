@@ -689,6 +689,7 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: days-to-date (int/value / 86400) + Jan-1st-of 1970 << 16  0
 		dt/time: (as-float int/value % 86400) * 1E9
+		if int/value < 0 [set-time dt dt/time no]
 		as red-value! dt
 	]
 
