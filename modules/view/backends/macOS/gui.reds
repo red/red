@@ -1945,29 +1945,38 @@ OS-to-image: func [
 	face	[red-object!]
 	return: [red-image!]
 	/local
-		view [integer!]
-		data [integer!]
-		rc	 [NSRect!]
-		sz	 [red-pair!]
-		bmp  [integer!]
-		img  [integer!]
-		ret  [red-image!]
+		view	[integer!]
+		data	[integer!]
+		rc		[NSRect!]
+		sz		[red-pair!]
+		bmp		[integer!]
+		img		[integer!]
+		ret		[red-image!]
+		screen? [logic!]
+		word	[red-word!]
 ][
-	view: as-integer face-handle? face
-	either zero? view [as red-image! none-value][
-		sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-		rc: make-rect 0 0 sz/x sz/y
-		data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-		img: objc_msgSend [
-			objc_msgSend [objc_getClass "NSImage" sel_alloc]
-			sel_getUid "initWithData:" data
-		]
-		bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	screen?: screen = symbol/resolve word/symbol
+	either screen? [
+		bmp: CGWindowListCreateImage FF800000h FF800000h 7F800000h 7F800000h 1 0 0		;-- -INF & INF
 		ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-		objc_msgSend [bmp sel_getUid "retain"]
-		objc_msgSend [img sel_release]
-		ret
+	][
+		view: as-integer face-handle? face
+		either zero? view [ret: as red-image! none-value][
+			sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+			rc: make-rect 0 0 sz/x sz/y
+			data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+			img: objc_msgSend [
+				objc_msgSend [objc_getClass "NSImage" sel_alloc]
+				sel_getUid "initWithData:" data
+			]
+			bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
+			objc_msgSend [bmp sel_getUid "retain"]
+			objc_msgSend [img sel_release]
+		]
 	]
+	ret
 ]
 
 OS-do-draw: func [

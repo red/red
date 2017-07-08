@@ -418,6 +418,17 @@ tagSIZE: alias struct! [
 			key			[integer!]
 			return:		[integer!]
 		]
+		CGWindowListCreateImage: "CGWindowListCreateImage" [
+			;bounds		[NSRect! value]
+			x			[integer!]
+			y			[integer!]
+			w			[integer!]
+			h			[integer!]
+			listOption	[integer!]
+			windowID	[integer!]
+			imageOption [integer!]
+			return:		[integer!]
+		]
 		CTLineCreateWithAttributedString: "CTLineCreateWithAttributedString" [
 			aStr		[integer!]
 			return:		[integer!]
