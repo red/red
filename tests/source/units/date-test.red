@@ -113,7 +113,7 @@ Red [
 
 ===end-group===
 
-===start-group=== "MAKE date!"
+===start-group=== "dates creation"
 
 	--test-- "make1"	--assert 3-Feb-1978				  = make date! [1978 2 3]
 	--test-- "make2"	--assert 3-Feb-1978/5:00:00+08:00 = make date! [1978 2 3 5:0:0 8]
@@ -123,8 +123,7 @@ Red [
 	--test-- "make6"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [1978 2 3 5 20 30 4]
 	--test-- "make7"	--assert error? try [make date! [1978 2 3 5]]
 	--test-- "make8"	--assert error? try [make date! [1978 2 3 5 20]]
-	--test-- "make9"	--assert 3-Mar-1973/9:46:40 = make date! reduce [1970 1 1 to-time 100000000 0]
-	--test-- "make10"	--assert 1-Mar-1981 = make date! reduce [1981 2 29]
+	--test-- "make10"	--assert error? try [make date! [1981 2 29]]
 	
 	--test-- "make11"	--assert 3-Feb-1978				  = make date! [3 2 1978]
 	--test-- "make12"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [3 2 1978 5 20 30 4]
@@ -593,6 +592,9 @@ Red [
 	--test-- "conv-11"	--assert 1/1/1969 = to-date -31536000
 	--test-- "conv-12"	--assert 1/1/2000 = to-date 946684800
 	--test-- "conv-13"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
+	
+	--test-- "conv-20"	--assert 3-Mar-1973/9:46:40 = to-date reduce [1970 1 1 to-time 100000000 0]
+	--test-- "conv-21"	--assert 1-Mar-1981 = to-date [1981 2 29]
 
 ===end-group===
 

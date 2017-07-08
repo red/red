@@ -468,13 +468,12 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
-
-	;-- Actions --
-
-	make: func [
+	
+	create: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
 		spec	[red-value!]
 		type	[integer!]
+		norm?	[logic!]								;-- yes: normalize, no: error on invalid input
 		return: [red-value!]
 		/local
 			value [red-value!]
@@ -501,8 +500,6 @@ date: context [
 			zone-t[float!]
 			neg?  [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "date/make"]]
-		
 		if TYPE_OF(spec) = TYPE_DATE [return spec]
 		
 		year:   0
@@ -596,7 +593,29 @@ date: context [
 		set-month dt month
 		dt/date: days-to-date day + date-to-days dt/date zone
 		set-time dt ftime yes
+		
+		unless norm? [
+			d: dt/date
+			if any [
+				year  <> DATE_GET_YEAR(d)
+				month <> DATE_GET_MONTH(d)
+				day   <> DATE_GET_DAY(d)
+			][throw-error spec]
+		]
 		as red-value! dt
+	]
+
+	;-- Actions --
+
+	make: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "date/make"]]
+		
+		create proto spec type no
 	]
 
 	random: func [
@@ -642,10 +661,11 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/to"]]
 
-		if TYPE_OF(spec) = TYPE_DATE [return spec]
-		
-		if TYPE_OF(spec) <> TYPE_INTEGER [
-			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [0]
+			TYPE_DATE	 [return spec]
+			TYPE_BLOCK	 [return create proto spec type yes]
+			default 	 [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]]
 		]
 		int: as red-integer! spec
 		dt: as red-date! proto
