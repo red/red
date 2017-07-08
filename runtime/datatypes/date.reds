@@ -826,7 +826,7 @@ date: context [
 				1 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
 				2 [										;-- /month:
 					y: v / 12
-					if any [y < 0 v = 0][y: y - 1]
+					if any [y < 0 v <= 0][y: y - 1]
 					y: DATE_GET_YEAR(d) + y
 					d: DATE_SET_YEAR(d y)
 					v: v % 12

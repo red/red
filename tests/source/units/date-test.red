@@ -182,7 +182,7 @@ Red [
 		d: 5-Jul-2017/12:41:40+08:00
 		d/month: -2
 		--assert d/month = 10
-		--assert d = 5-Oct-2017/12:41:40+08:00
+		--assert d = 5-Oct-2016/12:41:40+08:00
 		
 	--test-- "pw-month3"
 		d: 5-Jul-2017/12:41:40+08:00
