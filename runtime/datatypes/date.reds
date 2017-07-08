@@ -68,7 +68,13 @@ date: context [
 			8 [float/push DATE_GET_SECONDS(t)]
 			9 [integer/push (date-to-days d) + 2 % 7 + 1]
 		   10 [integer/push get-yearday d]
-		   12 [integer/push (get-yearday d) / 7 + 1]
+		   12 [
+				wd: (Jan-1st-of d) + 3 % 7				;-- start the week on Sunday
+				days: 7 - wd
+				d: get-yearday d
+				d: either d <= days [1][d + wd - 1 / 7 + 1]
+				integer/push d
+			]
 		   13 [
 		   		wd: 0
 		   		d1: W1-1-of d :wd						;-- first day of first week
@@ -884,8 +890,11 @@ date: context [
 				]
 				12 [									;-- /week:
 					days: Jan-1st-of d
-					v: v * 7 - (days + 2 % 7 + 1)
-					dt/date: days-to-date v + days DATE_GET_ZONE(d)
+					if v > 1 [
+						wd: days + 3 % 7				;-- start the week on Sunday
+						days: days + (v - 2 * 7) + 7 - wd
+					]
+					dt/date: days-to-date days DATE_GET_ZONE(d)
 				]
 				13 [									;-- /isoweek:
 					wd: 0
