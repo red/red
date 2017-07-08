@@ -286,7 +286,7 @@ date: context [
 	][
 		hz: DATE_GET_ZONE_HOURS(tz)
 		if DATE_GET_ZONE_SIGN(tz) [hz: 0 - hz]
-		htz: as-float hz
+		htz: (as-float hz) + ((as-float DATE_GET_ZONE_MINUTES(tz)) / 60.0)
 		ft: ft-ptr/value
 
 		h: ft / time/h-factor
