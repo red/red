@@ -595,9 +595,11 @@ Red [
 	--test-- "conv-11"	--assert 1/1/1969 = to-date -31536000
 	--test-- "conv-12"	--assert 1/1/2000 = to-date 946684800
 	--test-- "conv-13"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
+	--test-- "conv-14"	--assert 31-Dec-1969/23:59:59 = to-date -1
 	
 	--test-- "conv-20"	--assert 3-Mar-1973/9:46:40 = to-date reduce [1970 1 1 to-time 100000000 0]
 	--test-- "conv-21"	--assert 1-Mar-1981 = to-date [1981 2 29]
+	--test-- "conv-22"	--assert 2-Feb-2017/0:10:00+04:30 = to date! [1 2 2017 23 70 0 4:30]
 
 ===end-group===
 
