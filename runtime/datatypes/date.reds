@@ -642,10 +642,10 @@ date: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			y	[integer!]
 			d	[integer!]
 			n	[integer!]
 			dd	[integer!]
+			tz	[integer!]
 			s	[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
@@ -655,14 +655,14 @@ date: context [
 			_random/srand d
 			dt/header: TYPE_UNSET
 		][
-			y: DATE_GET_YEAR(d)
-			n: _random/rand % y + 1
-			if y < 0 [n: 0 - n]
-			dd: _random/rand % (d and FFFFh)
-			dt/date: n << 16 or (dd and 80h) or DATE_GET_ZONE(d)
+			tz: DATE_GET_ZONE(d)
+			dd: date-to-days d
+			n: _random/rand % dd + 1
+			if dd < 0 [n: 0 - n]
+			dt/date: days-to-date n tz
 
 			s: (as-float _random/rand) / 2147483647.0
-			dt/time: s * 24.0 * time/h-factor
+			dt/time: to-utc-time 24.0 * s * time/h-factor tz
 		]
 		as red-value! dt
 	]
