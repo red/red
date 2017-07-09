@@ -685,7 +685,39 @@ Red [
 		d: d - 366
 		--assert "31/Dec/-1" = mold d
 
-	;random action tests
+	--test-- "misc-3"
+		res: make block! 10
+		random/seed 1
+		loop 10 [append res random 1/1/9999]
+		--assert res = [
+			4-May-1485 
+			28-Jul-6609 
+			14-Jan-9528 
+			20-May-6200 
+			14-Dec-8121 
+			17-Apr-0909 
+			18-Jan-0386 
+			13-Mar-9178 
+			26-Sep-3370 
+			23-Mar-2377
+		]
+		
+	--test-- "misc-4"
+		res: make block! 10
+		random/seed 2
+		loop 10 [append res random 1/1/9999/23:59:59]
+		--assert res = load {
+			3-Mar-0000/13:44:24+09:45
+			14-Jan-2046/9:34:48-12:15
+			19-Nov-4262/9:41:12-01:30
+			12-Feb-1864/3:26:00-14:30
+			29-Jul-4351/8:14:00+09:30
+			18-Dec-1884/22:30:48-07:00
+			21-May-5509/0:14:24-03:00
+			23-Apr-4622/4:22:48+05:30
+			22-Feb-1583/16:36:48-14:45
+			26-Feb-6712/17:07:12-10:00
+		}
 
 ===end-group===
 
