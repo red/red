@@ -44,6 +44,7 @@ lexer: context [
 	mn:		none
 	sec:	none
 	date:	none
+	ee:		none
 	
 	;====== Parsing rules ======
 
@@ -328,51 +329,70 @@ lexer: context [
 	]
 
 	date-rule: [
-		pos: [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep] :pos  ;-- quick lookhead
-		day-year-rule sep: date-sep (sep: sep/1) [
-			s: 1 2 digit e: (month: load-number copy/part s e no)
-			| some alpha e: (
-				fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
+		pos: [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep | 8 digit #"T"] :pos [ ;-- quick lookhead
+			s: 8 digit ee: #"T" (							;-- yyyymmddT		
+				year:  load-number copy/part s 4
+				month: load-number copy/part skip s 4 2
+				day:   load-number copy/part skip s 6 2
+				date:  make date! reduce [day month year]
+			) :ee
+			| day-year-rule sep: date-sep (sep: sep/1) [
+				s: 1 2 digit e: (month: load-number copy/part s e no)
+				| some alpha e: (
+					fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
+				) fail?
+			]
+			sep day-year-rule (
+				fail?: either all [day month year][
+					date: make date! reduce [day month year]
+					none
+				][[end skip]]
 			) fail?
-		]
-		sep day-year-rule (
-			fail?: either all [day month year][
-				type: date!
-				date: make date! reduce [day month year]
-				if any [date/year <> year date/month <> month date/day <> day][throw-error]
-				day: month: year: none
-			][[end skip]]
-		) fail?
-		opt [
-			time-sep (neg?: no)
-			s: positive-integer-rule (value: load-number copy/part s e)
-			#":" [time-rule (date/time: value) | (throw-error)]
+			| s: 4 digit #"-" (
+				year: load-number copy/part s 4
+				date: make date! reduce [1 1 year]
+			)[
+				;"W" s: 2 digit (ee: none) opt [#"-" ee: non-zero] (	;-- yyyy-Www
+				;	date/isoweek: load-number s skip s 3
+				;	if ee [date/weekday: to integer! s/5 - #"0"]		;-- yyyy-Www-d
+				;)
+				;|
+				s: 3 digit (date: date + (load-number copy/part s 3) - 1) ;-- yyyy-ddd
+			] (month: -1)
+		](
+			type: date!
+			if all [
+				month <> -1 any [date/year <> year date/month <> month date/day <> day]
+			][throw-error]
+			day: month: year: none
+		) opt [
+			time-sep (ee: no) [
+				s: 6 digit opt [#"." 1 9 digit ee:] (	;-- Thhmmss[.sss]
+					hour: load-number copy/part s 2
+					mn:	  load-number copy/part skip s 2 2
+					sec: load-number either ee [copy/part skip s 4 ee][copy/part skip s 4 2]
+					date/time: as-time hour mn sec no
+				)
+				| 4 digit (								;-- Thhmm
+					hour: load-number copy/part s 2
+					mn:	  load-number copy/part skip s 2 2
+					date/time: as-time hour mn 0 no
+				)
+				| s: positive-integer-rule (value: load-number copy/part s e)
+				#":" [(neg?: no) time-rule (date/time: value) | (throw-error)]
+			]
 			opt [
 				#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
-					s: 4 digit (
+					s: 4 digit (						;-- +/-hhmm
 						hour: load-number copy/part s e: skip s 2
 						mn:   load-number copy/part e e: skip e 2
 					)
-					| 1 2 digit e: (hour: load-number copy/part s e mn: none)
+					| 1 2 digit e: (hour: load-number copy/part s e mn: none) ;-- +/-h, +/-hh
 					opt [#":" s: 2 digit e: (mn: load-number copy/part s e)]
 				]
 				(date/zone: as-time hour any [mn 0] 0 neg?) ;@@TBD: add special encoding for 15/45 mn
 			]
-		]
-		(value: date)
-		| s: 8 digit #"T" (							;-- yyyymmddThhmmssZ ISO format
-			type: date!
-			year:  load-number copy/part s e: skip s 4
-			month: load-number copy/part e e: skip e 2
-			day:   load-number copy/part e e: skip e 2
-			date:  make date! [year month day]
-		) s: 6 digit #"Z" (
-			hour: load-number copy/part s e: skip s 4
-			mn:	  load-number copy/part e e: skip e 2
-			sec:  load-number copy/part e e: skip e 2
-			date/time: as-time hour mn sec no
-			(value: date)
-		)
+		] (value: date)
 	]
 
 	positive-integer-rule: [digit any digit e: (type: integer!)]

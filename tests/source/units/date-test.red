@@ -35,6 +35,23 @@ Red [
 	--test-- "cfmt-17" --assert "2-Oct-1999/2:00:00-04:00"	= mold 1999-10-2/2:00-4:00
 	--test-- "cfmt-18" --assert "1-Jan-1990/12:20:25-06:00"	= mold 1/1/1990/12:20:25-6
 	
+	--test-- "cfmt-19" --assert "7-Jul-2017/8:22:23"		= mold 2017-07-07T08:22:23+00:00
+	--test-- "cfmt-20" --assert "7-Jul-2017/8:22:23"		= mold 2017-07-07T08:22:23Z
+	--test-- "cfmt-21" --assert "7-Jul-2017/8:22:23"		= mold 20170707T082223Z
+	--test-- "cfmt-22" --assert "7-Jul-2017/8:22:00"		= mold 20170707T0822Z
+	--test-- "cfmt-23" --assert "7-Jul-2017/8:22:23+05:30"	= mold 20170707T082223+0530
+	
+	;@@ yyyy-Www format not yet supported by compiler
+	
+	;--test-- "cfmt-24" --assert "2-Jan-2017" 				= mold 2017-W01
+	;--test-- "cfmt-25" --assert "9-Jun-2017" 				= mold 2017-W23-5
+	--test-- "cfmt-26" --assert "1-Jan-2017" 				= mold 2017-001
+	--test-- "cfmt-27" --assert "2-Jun-2017" 				= mold 2017-153
+	;--test-- "cfmt-28" --assert "2-Jan-2017/10:50:00"		= mold 2017-W01T10:50
+	;--test-- "cfmt-29" --assert "9-Jun-2017/10:50:00-04:00"	= mold 2017-W23-5T10:50:00-4:00
+	--test-- "cfmt-30" --assert "1-Jan-2017/10:50:00" 		= mold 2017-001T10:50
+	--test-- "cfmt-31" --assert "2-Jun-2017/10:50:00-04:00" = mold 2017-153T10:50:00-4:00
+	
 ===end-group===
 
 ===start-group=== "input formats (run-time lexer)"
@@ -59,6 +76,21 @@ Red [
 	--test-- "rfmt-16" --assert 4-Apr-2000/6:00:00+08:00  = load "4/Apr/2000/6:00+8:00"
 	--test-- "rfmt-17" --assert 2-Oct-1999/2:00:00-4:00   = load "1999-10-2/2:00-4:00"
 	--test-- "rfmt-18" --assert 1-Jan-1990/12:20:25-06:00 = load "1/1/1990/12:20:25-6"
+
+	--test-- "rfmt-19" --assert 7-Jul-2017/8:22:23		  = load "2017-07-07T08:22:23+00:00"
+	--test-- "rfmt-20" --assert 7-Jul-2017/8:22:23		  = load "2017-07-07T08:22:23Z"
+	--test-- "rfmt-21" --assert 7-Jul-2017/8:22:23		  = load "20170707T082223Z"
+	--test-- "rfmt-22" --assert 7-Jul-2017/8:22:00		  = load "20170707T0822Z"
+	--test-- "rfmt-23" --assert 7-Jul-2017/8:22:23+05:30  = load "20170707T082223+0530"
+	
+	--test-- "rfmt-24" --assert 2-Jan-2017 				  = load "2017-W01"
+	--test-- "rfmt-25" --assert 9-Jun-2017 				  = load "2017-W23-5"
+	--test-- "rfmt-26" --assert 1-Jan-2017 				  = load "2017-001"
+	--test-- "rfmt-27" --assert 2-Jun-2017 				  = load "2017-153"
+	--test-- "rfmt-28" --assert 2-Jan-2017/10:50:00		  = load "2017-W01T10:50"
+	--test-- "rfmt-29" --assert 9-Jun-2017/10:50:00-04:00 = load "2017-W23-5T10:50:00-4:00"
+	--test-- "rfmt-30" --assert 1-Jan-2017/10:50:00		  = load "2017-001T10:50"
+	--test-- "rfmt-31" --assert 2-Jun-2017/10:50:00-04:00 = load "2017-153T10:50:00-4:00"
 
 ===end-group===
 

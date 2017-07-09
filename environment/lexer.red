@@ -795,48 +795,71 @@ system/lexer: context [
 		]
 		
 		date-rule: [
-			ahead [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep] ;-- quick lookhead
-			day-year-rule sep: date-sep (sep: sep/1) [
-				s: 1 2 digit e: (month: make-number s e integer!)
-				| case off month-rule (month: m)
-				| case off mon-rule   (month: m)
-			]
-			sep day-year-rule
-			[if (not all [day month year]) fail | none] (
+			ahead [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep | 8 digit #"T"][ ;-- quick lookhead
+				s: 8 digit ee: #"T" (							;-- yyyymmddT
+					year:  make-number s e: skip s 4 integer!
+					month: make-number e e: skip e 2 integer!
+					day:   make-number e e: skip e 2 integer!
+					date:  make date! [day month year]
+				) :ee
+				| day-year-rule sep: date-sep (sep: sep/1) [
+					s: 1 2 digit e: (month: make-number s e integer!)
+					| case off month-rule (month: m)
+					| case off mon-rule   (month: m)
+				]
+				sep day-year-rule [if (not all [day month year]) fail | none] (
+					date: make date! [day month year]
+				)
+				| s: 4 digit #"-" (
+					year: make-number s skip s 4 integer!
+					date: make date! [1 1 year]
+				)[
+					"W" s: 2 digit (ee: none) opt [#"-" ee: non-zero] (	;-- yyyy-Www
+						date/isoweek: make-number s skip s 2 integer!
+						if ee [date/weekday: to integer! ee/1 - #"0"]	;-- yyyy-Www-d
+					)
+					| s: 3 digit (date/yearday: make-number s skip s 3 integer!) ;-- yyyy-ddd
+				] (month: -1)
+			](
 				type: date!
-				date: make date! [day month year]
-				if any [date/year <> year date/month <> month date/day <> day][throw-error [type pos]]
+				if all [
+					month <> -1 any [date/year <> year date/month <> month date/day <> day]
+				][throw-error [type pos]]
 				day: month: year: none
 			) opt [
-				time-sep (neg?: no)
-				s: positive-integer-rule (value: make-number s e integer!)
-				#":" [time-rule (date/time: value) | (throw-error [type pos])]
+				time-sep (ee: no) [
+					s: 6 digit opt [#"." 1 9 digit ee:] (		;-- Thhmmss[.sss]
+						hour: make-number s e: skip s 2 integer!
+						mn:	  make-number e e: skip e 2 integer!
+						date/time: either ee [
+							sec: make-number e ee float!
+							make-hmsf hour mn sec
+						][
+							sec: make-number e e: skip e 2 integer!
+							make-hms hour mn sec
+						]
+					)
+					| 4 digit (									;-- Thhmm
+						hour: make-number s e: skip s 2 integer!
+						mn:	  make-number e e: skip e 2 integer!
+						date/time: make-hms hour mn 0
+					)
+					| s: positive-integer-rule (value: make-number s e integer!)
+					#":" [(neg?: no) time-rule (date/time: value) | (throw-error [type pos])]
+				]
 				opt [
 					#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
-						s: 4 digit (
+						s: 4 digit (							;-- +/-hhmm
 							hour: make-number s e: skip s 2 integer!
 							mn:   make-number e e: skip e 2 integer!
 						)
-						| 1 2 digit e: (hour: make-number s e integer! mn: none)
+						| 1 2 digit e: (hour: make-number s e integer! mn: none) ;-- +/-h, +/-hh
 						opt [#":" s: 2 digit e: (mn: make-number s e integer!)]
 					]
 					(date/zone: as-pair either neg? [negate hour][hour] any [mn 0])
 				]
 			]
 			(value: date)
-			| s: 8 digit #"T" (							;-- yyyymmddThhmmssZ ISO format
-				type: date!
-				year:  make-number s e: skip s 4 integer!
-				month: make-number e e: skip e 2 integer!
-				day:   make-number e e: skip e 2 integer!
-				date:  make date! [year month day]
-			) s: 6 digit #"Z" (
-				hour: make-number s e: skip s 2 integer!
-				mn:	  make-number e e: skip e 2 integer!
-				sec:  make-number e e: skip e 2 integer!
-				date/time: make-hms hour mn sec
-				(value: date)
-			)
 		]
 		
 		positive-integer-rule: [digit any digit e: (type: integer!)]
