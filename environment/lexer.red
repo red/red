@@ -858,8 +858,7 @@ system/lexer: context [
 					]
 					(date/zone: as-pair either neg? [negate hour][hour] any [mn 0])
 				]
-			]
-			(value: date)
+			] sticky-word-rule (value: date)
 		]
 		
 		positive-integer-rule: [digit any digit e: (type: integer!)]

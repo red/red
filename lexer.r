@@ -392,7 +392,7 @@ lexer: context [
 				]
 				(date/zone: as-time hour any [mn 0] 0 neg?) ;@@TBD: add special encoding for 15/45 mn
 			]
-		] (value: date)
+		] sticky-word-rule (value: date)
 	]
 
 	positive-integer-rule: [digit any digit e: (type: integer!)]
