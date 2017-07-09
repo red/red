@@ -707,7 +707,7 @@ Red [
 		random/seed 2
 		loop 10 [append res random 1/1/9999/23:59:59]
 		--assert res = load {
-			3-Mar-0000/13:44:24+09:45
+			3-Mar-0000/13:44:24+09:45					;@@ :45 TZ not supported by compiler
 			14-Jan-2046/9:34:48-12:15
 			19-Nov-4262/9:41:12-01:30
 			12-Feb-1864/3:26:00-14:30
