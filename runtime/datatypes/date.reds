@@ -655,14 +655,14 @@ date: context [
 			_random/srand d
 			dt/header: TYPE_UNSET
 		][
-			y: DATE_GET_YEAR(d)
-			n: _random/rand % y + 1
-			if y < 0 [n: 0 - n]
-			dd: _random/rand % (d and FFFFh)
-			dt/date: n << 16 or (dd and 80h) or DATE_GET_ZONE(d)
-
-			s: (as-float _random/rand) / 2147483647.0
-			dt/time: s * 24.0 * time/h-factor
+			dt/date: days-to-date _random/rand % date-to-days d DATE_GET_ZONE(d)
+			if dt/time <> 0.0 [
+				dt/date: DATE_SET_ZONE(dt/date _random/rand)
+				s: (as-float _random/rand) / 2147483647.0 * 3600.0
+				s: (floor s) / 3600.0
+				dt/time: s * 24.0 * time/h-factor
+				set-time dt dt/time yes
+			]
 		]
 		as red-value! dt
 	]
@@ -751,7 +751,7 @@ date: context [
 		string/append-char GET_BUFFER(buffer) sep
 		
 		formed: integer/form-signed year
-		part: either year > 0 [
+		part: either year >= 0 [
 			len: 4 - length? formed
 			if len > 0 [loop len [string/append-char GET_BUFFER(buffer) as-integer #"0"]]
 			part - 5									;-- 4 + separator
