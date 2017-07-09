@@ -573,6 +573,7 @@ process-command-event: func [
 	/local
 		type   [red-word!]
 		values [red-value!]
+		int	   [red-integer!]
 		idx	   [integer!]
 		res	   [integer!]
 		saved  [handle!]
@@ -633,11 +634,21 @@ process-command-event: func [
 		]
 		CBN_SELCHANGE [
 			current-msg/hWnd: child			;-- force ListBox or Combobox handle
-			type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+			values: get-face-values child
+
+			type: as red-word! values + FACE_OBJ_TYPE
 			res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
 			idx: as-integer SendMessage child res 0 0
+
+			int: as red-integer! values + FACE_OBJ_SELECTED
+			if all [
+				TYPE_OF(int) = TYPE_INTEGER
+				idx + 1 = int/value
+			][exit]							;-- do not send event if select the same item
 			res: make-event current-msg idx EVT_SELECT
-			get-selected current-msg idx + 1
+			int/header: TYPE_INTEGER
+			int/value: idx + 1
+
 			if res = EVT_DISPATCH [
 				make-event current-msg 0 EVT_CHANGE
 			]

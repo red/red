@@ -642,10 +642,10 @@ date: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			y	[integer!]
 			d	[integer!]
 			n	[integer!]
 			dd	[integer!]
+			tz	[integer!]
 			s	[float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
