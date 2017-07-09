@@ -282,6 +282,8 @@ red: context [
 	tuple-value?:	func [value][value/1 = #"~"]
 	percent-value?: func [value][#"%" = last value]
 	
+	date-special?:  func [value][all [block? value value/1 = #!date!]]
+	
 	map-value?: func [value][all [block? value value/1 = #!map!]]
 	
 	insert-lf: func [pos][
@@ -1541,13 +1543,13 @@ red: context [
 		 1E9 * to decimal! either time [either zone [time - zone][time]][0.0]
 	]
 	
-	encode-date: func [value [date!] /local zone date][
-		zone: value/zone
+	encode-date: func [value [date!] /with zone /local date][
+		unless zone [zone: value/zone]
 		date:  (shift/left value/year 16)
 			or (shift/left value/month 12)
 			or (shift/left value/day 7)
 			or (shift/left abs zone/hour 2)
-			or (to-integer zone/minute / 15)
+			or (abs to-integer zone/minute / 15)
 		if negative? zone [date: date or 64]
 		date
 	]
@@ -1569,7 +1571,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? name w make-block type idx
+		/local value char? special? percent? map? tuple? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1581,7 +1583,8 @@ red: context [
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
-		
+		dt-special?: date-special? value
+
 		either any [
 			all [
 				issue? :value
@@ -1594,6 +1597,7 @@ red: context [
 			]
 			scalar? :value
 			map?
+			dt-special?
 		][
 			case [
 				char? [
@@ -1667,8 +1671,15 @@ red: context [
 					emit (to decimal! value) * 1E9
 					insert-lf -2
 				]
+				dt-special? [
+					emit 'date/push
+					zone: value/3
+					value: value/2
+					emit reduce [encode-date/with value zone encode-UTC-time value/time zone]
+					insert-lf -4
+				]
 				date? :value [
-					emit 'date/push 				
+					emit 'date/push
 					emit reduce [encode-date value encode-UTC-time value/time value/zone]
 					insert-lf -4
 				]

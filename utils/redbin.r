@@ -149,10 +149,10 @@ context [
 		emit-float/with 1E9 * to decimal! value 'TYPE_TIME
 	]
 	
-	emit-date: func [value [date!]][
+	emit-date: func [value [date!] /with zone][
 		emit-type 'TYPE_DATE
-		emit red/encode-date value
-		emit-float-bin encode-UTC-time value/time value/zone
+		emit red/encode-date/with value zone
+		emit-float-bin encode-UTC-time value/time any [zone value/zone]
 	]
 
 	emit-char: func [value [integer!]][
@@ -289,6 +289,10 @@ context [
 			blk/1 = #!map! [
 				remove blk
 				'map
+			]
+			blk/1 = #!date! [
+				emit-date/with blk/2 blk/3
+				exit
 			]
 			'else [type?/word :blk]
 		]

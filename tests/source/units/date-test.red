@@ -52,6 +52,16 @@ Red [
 	--test-- "cfmt-30" --assert "1-Jan-2017/10:50:00" 		= mold 2017-001T10:50
 	--test-- "cfmt-31" --assert "2-Jun-2017/10:50:00-04:00" = mold 2017-153T10:50:00-4:00
 	
+	
+	--test-- "cfmt-40" --assert "3-Mar-0000/13:44:24+09:15"		= mold 3-Mar-0000/13:44:24+09:15
+	--test-- "cfmt-41" --assert "3-Mar-2017/13:44:24-02:15"		= mold 3-Mar-2017/13:44:24-02:15
+	--test-- "cfmt-42" --assert "3-Mar-2017/13:44:24-02:00"		= mold 3-Mar-2017/13:44:24-02:00
+	--test-- "cfmt-43" --assert "[3-Mar-0000/13:44:24+09:15]"	= mold [3-Mar-0000/13:44:24+09:15]
+	--test-- "cfmt-44" --assert "[3-Mar-2017/13:44:24+09:00]"	= mold [3-Mar-2017/13:44:24+09:00]
+	--test-- "cfmt-45" --assert "[3-Mar-2017/13:44:24-02:00]"	= mold [3-Mar-2017/13:44:24-02:00]
+	--test-- "cfmt-46" --assert "[3-Mar-2017/13:44:24-02:15]"	= mold [3-Mar-2017/13:44:24-02:15]
+	--test-- "cfmt-47" --assert "[3-Mar-2017/13:44:24]"			= mold [3-Mar-2017/13:44:24]
+
 ===end-group===
 
 ===start-group=== "input formats (run-time lexer)"
@@ -834,8 +844,8 @@ Red [
 		res: make block! 10
 		random/seed 2
 		loop 10 [append res random 1/1/9999/23:59:59]
-		--assert res = load {
-			3-Mar-0000/13:44:24+09:45					;@@ :45 TZ not supported by compiler
+		--assert res = [
+			3-Mar-0000/13:44:24+09:45
 			14-Jan-2046/9:34:48-12:15
 			19-Nov-4262/9:41:12-01:30
 			12-Feb-1864/3:26:00-14:30
@@ -845,7 +855,7 @@ Red [
 			23-Apr-4622/4:22:48+05:30
 			22-Feb-1583/16:36:48-14:45
 			26-Feb-6712/17:07:12-10:00
-		}
+		]
 
 ===end-group===
 

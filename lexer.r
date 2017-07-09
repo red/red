@@ -389,8 +389,13 @@ lexer: context [
 					)
 					| 1 2 digit e: (hour: load-number copy/part s e mn: none) ;-- +/-h, +/-hh
 					opt [#":" s: 2 digit e: (mn: load-number copy/part s e)]
-				]
-				(date/zone: as-time hour any [mn 0] 0 neg?) ;@@TBD: add special encoding for 15/45 mn
+				](
+					either all [mn find [15 45] mn: round/floor/to mn 15][
+						date: reduce [#!date! date as-time hour mn 0 neg?] ;-- special encoding for 15/45
+					][
+						date/zone: as-time hour any [mn 0] 0 neg?
+					]
+				)
 			]
 		] sticky-word-rule (value: date)
 	]
