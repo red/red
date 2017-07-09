@@ -680,9 +680,8 @@ Red [
 		--assert "1-Jan-0001" = mold load "1/1/0001"
 
 	--test-- "misc-2"
-		;d: 1/1/0000	;@@ not supported by compiler yet
-		d: 1/1/0001
-		d: d - 366
+		d: 1/1/0000
+		d: d - 1
 		--assert "31/Dec/-1" = mold d
 
 	--test-- "misc-3"
