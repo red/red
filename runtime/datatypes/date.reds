@@ -26,7 +26,6 @@ date: context [
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
 	#define DATE_SET_ZONE(d zone)	 (d and FFFFFF80h or (zone and 7Fh))
-	#define DATE_ADJUST_ZONE_SIGN(i) (i: 0 - i and 3Fh or 40h)
 	#define DATE_SET_ZONE_NEG(z) 	 (z or 40h)
 	
 	throw-error: func [spec [red-value!]][
@@ -247,8 +246,8 @@ date: context [
 			mm	[float!]
 	][
 		h: DATE_GET_ZONE_HOURS(tz)
-		if DATE_GET_ZONE_SIGN(tz) [h: 0 - h]
 		m: DATE_GET_ZONE_MINUTES(tz)
+		if DATE_GET_ZONE_SIGN(tz) [h: 0 - h m: 0 - m]
 		hh: (as float! h) * time/h-factor
 		mm: (as float! m) * time/m-factor
 		either to-utc? [tm: tm - hh - mm][tm: tm + hh + mm]
