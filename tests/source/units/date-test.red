@@ -185,6 +185,8 @@ Red [
 	--test-- "pathr-9"  --assert d/weekday = 3
 	--test-- "pathr-10" --assert d/yearday = 186
 	--test-- "pathr-11" --assert d/yearday = d/julian
+	--test-- "pathr-12" --assert d/week	   = 27
+	--test-- "pathr-13" --assert d/isoweek = 27
 	
 	--test-- "pw-year"
 		d: 5-Jul-2017/12:41:40+08:00
@@ -579,6 +581,32 @@ Red [
 		--assert d/yearday = 266
 		--assert d = 22-Sep-2016/12:41:40+08:00
 		
+		
+	--test-- "pw-week1"
+		d: 5-Jul-2017/12:41:40+8:00
+		d/week: 100
+		--assert d/week = 48
+		--assert d = 25-Nov-2018/12:41:40+08:00
+
+	--test-- "pw-week2"
+		d: 5-Jul-2017/12:41:40+8:00
+		d/week: 500
+		--assert d/week = 31
+		--assert d = 26-Jul-2026/12:41:40+08:00
+
+	--test-- "pw-week3"
+		d: 5-Jul-2017/12:41:40+8:00
+		d/week: 0
+		--assert d/week = 1
+		--assert d = 1-Jan-2017/12:41:40+08:00
+
+	--test-- "pw-week4"
+		d: 5-Jul-2017/12:41:40+8:00
+		d/week: -100
+		--assert d/week = 1
+	--assert d = 1-Jan-2017/12:41:40+08:00
+	
+	
 	--test-- "julianday" --assert d/yearday = d/julian
 
 ===end-group===
@@ -633,6 +661,75 @@ Red [
 	--test-- "conv-21"	--assert 1-Mar-1981 = to-date [1981 2 29]
 	--test-- "conv-22"	--assert 2-Feb-2017/0:10:00+04:30 = to date! [1 2 2017 23 70 0 4:30]
 
+===end-group===
+
+===start-group=== "weeks accuracy"
+
+	--test-- "wr-1"		d: 13-Jan-2019 	--assert d/week = 3
+	--test-- "wr-2"		d: 12-Jan-2019 	--assert d/week = 2
+	--test-- "wr-3"		d: 6-Jan-2019 	--assert d/week = 2
+	--test-- "wr-4"		d: 5-Jan-2019 	--assert d/week = 1
+	--test-- "wr-5"		d: 14-Jan-2018 	--assert d/week = 3
+	--test-- "wr-6"		d: 13-Jan-2018 	--assert d/week = 2
+	--test-- "wr-7"		d: 7-Jan-2018 	--assert d/week = 2
+	--test-- "wr-8"		d: 6-Jan-2018 	--assert d/week = 1
+	--test-- "wr-9"		d: 15-Jan-2017 	--assert d/week = 3
+	--test-- "wr-10"	d: 14-Jan-2017 	--assert d/week = 2
+	--test-- "wr-11"	d: 8-Jan-2017 	--assert d/week = 2
+	--test-- "wr-12"	d: 7-Jan-2017 	--assert d/week = 1
+	--test-- "wr-13"	d: 10-Jan-2016 	--assert d/week = 3
+	--test-- "wr-14"	d: 9-Jan-2016 	--assert d/week = 2
+	--test-- "wr-15"	d: 3-Jan-2016	--assert d/week = 2
+	--test-- "wr-16"	d: 2-Jan-2016	--assert d/week = 1
+	--test-- "wr-17"	d: 11-Jan-2015 	--assert d/week = 3
+	--test-- "wr-18"	d: 10-Jan-2015 	--assert d/week = 2
+	--test-- "wr-19"	d: 4-Jan-2015	--assert d/week = 2
+	--test-- "wr-20"	d: 3-Jan-2015	--assert d/week = 1
+	--test-- "wr-21"	d: 12-Jan-2014 	--assert d/week = 3
+	--test-- "wr-22"	d: 11-Jan-2014 	--assert d/week = 2
+	--test-- "wr-23"	d: 5-Jan-2014	--assert d/week = 2
+	--test-- "wr-24"	d: 4-Jan-2014	--assert d/week = 1
+	--test-- "wr-25"	d: 13-Jan-2013 	--assert d/week = 3
+	--test-- "wr-26"	d: 12-Jan-2013 	--assert d/week = 2
+	--test-- "wr-27"	d: 6-Jan-2013	--assert d/week = 2
+	--test-- "wr-28"	d: 5-Jan-2013	--assert d/week = 1
+	--test-- "wr-29"	d: 15-Jan-2012 	--assert d/week = 3
+	--test-- "wr-30"	d: 14-Jan-2012 	--assert d/week = 2
+	--test-- "wr-31"	d: 8-Jan-2012	--assert d/week = 2
+	--test-- "wr-32"	d: 7-Jan-2012	--assert d/week = 1
+	--test-- "wr-33"	d: 9-Jan-2011 	--assert d/week = 3
+	--test-- "wr-34"	d: 8-Jan-2011 	--assert d/week = 2
+	--test-- "wr-35"	d: 2-Jan-2011	--assert d/week = 2
+	--test-- "wr-36"	d: 1-Jan-2011	--assert d/week = 1
+
+	--test-- "ww-1"		d: 3-Jul-2019	d/week: 3	--assert d = 13-Jan-2019
+	--test-- "ww-3"		d: 3-Jul-2019	d/week: 2	--assert d = 6-Jan-2019
+	--test-- "ww-4"		d: 3-Jul-2019	d/week: 1	--assert d = 1-Jan-2019
+	--test-- "ww-5"		d: 3-Jul-2018	d/week: 3	--assert d = 14-Jan-2018
+	--test-- "ww-7"		d: 3-Jul-2018	d/week: 2	--assert d = 7-Jan-2018
+	--test-- "ww-8"		d: 3-Jul-2018	d/week: 1	--assert d = 1-Jan-2018
+	--test-- "ww-9"		d: 3-Jul-2017	d/week: 3	--assert d = 15-Jan-2017
+	--test-- "ww-11"	d: 3-Jul-2017	d/week: 2	--assert d = 8-Jan-2017
+	--test-- "ww-12"	d: 3-Jul-2017	d/week: 1	--assert d = 1-Jan-2017
+	--test-- "ww-13"	d: 3-Jul-2016	d/week: 3	--assert d = 10-Jan-2016
+	--test-- "ww-15"	d: 3-Jul-2016	d/week: 2	--assert d = 3-Jan-2016
+	--test-- "ww-16"	d: 3-Jul-2016	d/week: 1	--assert d = 1-Jan-2016
+	--test-- "ww-17"	d: 3-Jul-2015	d/week: 3	--assert d = 11-Jan-2015
+	--test-- "ww-19"	d: 3-Jul-2015	d/week: 2	--assert d = 4-Jan-2015
+	--test-- "ww-20"	d: 3-Jul-2015	d/week: 1	--assert d = 1-Jan-2015
+	--test-- "ww-21"	d: 3-Jul-2014	d/week: 3	--assert d = 12-Jan-2014
+	--test-- "ww-23"	d: 3-Jul-2014	d/week: 2	--assert d = 5-Jan-2014
+	--test-- "ww-24"	d: 3-Jul-2014	d/week: 1	--assert d = 1-Jan-2014
+	--test-- "ww-25"	d: 3-Jul-2013	d/week: 3	--assert d = 13-Jan-2013
+	--test-- "ww-27"	d: 3-Jul-2013	d/week: 2	--assert d = 6-Jan-2013
+	--test-- "ww-28"	d: 3-Jul-2013	d/week: 1	--assert d = 1-Jan-2013
+	--test-- "ww-29"	d: 3-Jul-2012	d/week: 3	--assert d = 15-Jan-2012
+	--test-- "ww-31"	d: 3-Jul-2012	d/week: 2	--assert d = 8-Jan-2012
+	--test-- "ww-32"	d: 3-Jul-2012	d/week: 1	--assert d = 1-Jan-2012
+	--test-- "ww-33"	d: 3-Jul-2011	d/week: 3	--assert d = 9-Jan-2011
+	--test-- "ww-35"	d: 3-Jul-2011	d/week: 2	--assert d = 2-Jan-2011
+	--test-- "ww-36"	d: 3-Jul-2011	d/week: 1	--assert d = 1-Jan-2011
+	
 ===end-group===
 
 ===start-group=== "ISO weeks accuracy"
