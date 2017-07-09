@@ -521,7 +521,7 @@ date: context [
 		zone-t:	0.0
 		
 		switch TYPE_OF(spec) [
-			TYPE_BLOCK [
+			TYPE_ANY_LIST [
 				value: block/rs-head as red-block! spec
 				tail:  block/rs-tail as red-block! spec
 				
