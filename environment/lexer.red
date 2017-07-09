@@ -787,7 +787,7 @@ system/lexer: context [
 		]
 		
 		day-year-rule: [
-			s: opt #"-"	4 digit e: (year: make-number s e integer!)
+			s: opt #"-" 3 4 digit e: (year: make-number s e integer!)
 			| 1 2 digit e: (
 				value: make-number s e integer!
 				either day [year: value + pick [2000 1900] 50 > value][day: value]
@@ -795,7 +795,7 @@ system/lexer: context [
 		]
 		
 		date-rule: [
-			ahead [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep | 8 digit #"T"][ ;-- quick lookhead
+			ahead [opt #"-" 1 4 digit date-sep | 8 digit #"T"][ ;-- quick lookhead
 				s: 8 digit ee: #"T" (							;-- yyyymmddT
 					year:  make-number s e: skip s 4 integer!
 					month: make-number e e: skip e 2 integer!

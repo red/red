@@ -321,7 +321,7 @@ lexer: context [
 	
 	day-year-rule: [
 		(neg?: no) opt [#"-" (neg?: yes)]
-		s: 4 digit e: (year: load-number copy/part s e if neg? [year: 65536 - year])
+		s: 3 4 digit e: (year: load-number copy/part s e if neg? [year: 65536 - year])
 		| 1 2 digit e: (
 			value: load-number copy/part s e no
 			either day [year: value + pick [2000 1900] 50 > value][day: value]
@@ -329,8 +329,8 @@ lexer: context [
 	]
 
 	date-rule: [
-		pos: [digit date-sep | 2 digit date-sep | opt #"-" 4 digit date-sep | 8 digit #"T"] :pos [ ;-- quick lookhead
-			s: 8 digit ee: #"T" (							;-- yyyymmddT		
+		pos: [opt #"-" 1 4 digit date-sep | 8 digit #"T"] :pos [ ;-- quick lookhead
+			s: 8 digit ee: #"T" (							;-- yyyymmddT
 				year:  load-number copy/part s 4
 				month: load-number copy/part skip s 4 2
 				day:   load-number copy/part skip s 6 2
