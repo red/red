@@ -191,10 +191,10 @@ Red [
 		d/year:	1981
 		--assert d/year = 1981
 		
-		;d: 5-Jul-2017/12:41:40+08:00
-		;d/year: 0
-		;--assert d/year = 0
-		;--assert d = 5-Jul-0000/12:52:06+08:00
+		d: 5-Jul-2017/12:41:40+08:00
+		d/year: 0
+		--assert d/year = 0
+		--assert d = 5-Jul-0000/12:41:40+08:00
 		
 		d: 5-Jul-2017/12:41:40+08:00
 		d/year: -150
