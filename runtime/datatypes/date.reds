@@ -725,6 +725,7 @@ date: context [
 			zone   [integer!]
 			year   [integer!]
 			sep	   [integer!]
+			saved   [float!]
 			sign   [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/mold"]]
@@ -761,9 +762,11 @@ date: context [
 		
 		if dt/time <> 0.0 [
 			zone: DATE_GET_ZONE(d)
+			saved: dt/time
 			dt/time: to-local-time dt/time zone
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			part: time/mold as red-time! dt buffer only? all? flat? arg part - 1 indent
+			dt/time: saved
 
 			if zone <> 0 [
 				sign: either as-logic zone >> 6 [#"-"][#"+"]
