@@ -283,6 +283,7 @@ get-text-size: func [
 
 update-scrollbars: func [
 	hWnd [handle!]
+	text [c-string!] ;utf16 encoded string or null
 	/local
 		values	[red-value!]
 		str		[red-string!]
@@ -293,6 +294,10 @@ update-scrollbars: func [
 		rc		[RECT_STRUCT]
 		new		[RECT_STRUCT]
 		horz?	[logic!]
+		size    [integer!]
+		txt-start [c-string!]
+		txt-pos   [c-string!]
+		c1 c2 height
 ][
 	rc:  declare RECT_STRUCT
 	new: declare RECT_STRUCT
@@ -310,18 +315,37 @@ update-scrollbars: func [
 		]
 		GetClientRect hWnd rc
 		saved: SelectObject hScreen hFont
-		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
-		horz?: any [
-			new/right  >= rc/right
-			all [zero? new/right 500 < string/rs-length? str]			;-- very long line
+		if text = null [ text: unicode/to-utf16 str ]
+
+		txt-pos:   text
+		txt-start: text
+		height: 0
+
+		forever [
+			c1: txt-pos/1
+			c2: txt-pos/2
+			if c2 = null-byte [
+				if any [c1 = #"^/" c1 = null-byte] [
+					size: GetTabbedTextExtent hScreen txt-start (as integer! (txt-pos - txt-start)) / 2 0 null
+					height: height + WIN32_HIWORD(size)
+					if (size and FFFFh) >= rc/right [
+						horz?: yes
+						if height >= rc/bottom [ break ] ;no need to continue
+					]
+					if c1 = null-byte [ break ]
+					txt-start: txt-pos + 2
+				]
+			]
+			txt-pos: txt-pos + 2
 		]
 
 		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
+		ShowScrollBar hWnd 1 height >= rc/bottom	;-- SB_VERT
+		ShowScrollBar hWnd 0 horz?                  ;-- SB_HORZ
 	][
-		ShowScrollBar hWnd 1 no							;-- SB_VERT
+		ShowScrollBar hWnd 3 no						;-- SB_BOTH
 	]
-	if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
+	;if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
 ]
 
 set-hint-text: func [
@@ -1469,7 +1493,7 @@ change-size: func [
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 		]
-		type = area		 [update-scrollbars hWnd]
+		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		true	  		 [0]
 	]
@@ -1625,9 +1649,12 @@ change-text: func [
 		]
 		if type = area [
 			extend-area-limit hWnd len
-			update-scrollbars hWnd
+			;update-scrollbars hWnd text
 		]
 		SetWindowText hWnd text
+		if type = area [
+			update-scrollbars hWnd text
+		]
 	]
 ]
 
