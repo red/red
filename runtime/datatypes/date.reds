@@ -135,7 +135,7 @@ date: context [
 			base [integer!]
 	][
 		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 16) * 86400
-		base + (dt/time / 1E9)
+		base + (as-integer dt/time / 1E9)
 	]
 	
 	make-in: func [
@@ -414,7 +414,7 @@ date: context [
 		if utc? [tm: to-utc-time tm tz]
 		dd: normalize-time dd :tm tz
 		dt/date: days-to-date dd tz
-		dt/time: tm
+		dt/time: ROUND_TIME_DECIMALS(tm)
 	]
 	
 	set-timezone: func [
