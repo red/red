@@ -4088,7 +4088,7 @@ red: context [
 				true
 			]
 			#build-date [
-				change pc mold now
+				change pc probe now
 				comp-expression
 				true
 			]
