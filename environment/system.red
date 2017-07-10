@@ -51,6 +51,22 @@ system: context [
 		actions:
 		natives: none
 		
+		accessors: [
+			date!	[
+				year month day zone time hour minute second weekday yearday
+				julian timezone week isoweek
+			]
+			email!	[user host]
+			event!	[
+				type face window offset key picked flags away? down? mid-down?
+				alt-down? aux-down? ctrl? shift?
+			]
+			image!	[size rgb argb alpha]
+			pair!	[x y]
+			;point!	[x y z]
+			time!	[hour minute second]
+		]
+		
 		errors: context [
 			throw: object [
 				code:				0
