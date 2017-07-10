@@ -41,14 +41,13 @@ Red [
 	--test-- "cfmt-22" --assert "7-Jul-2017/8:22:00"		= mold 20170707T0822Z
 	--test-- "cfmt-23" --assert "7-Jul-2017/8:22:23+05:30"	= mold 20170707T082223+0530
 	
-	;@@ yyyy-Www format not yet supported by compiler
 	
-	;--test-- "cfmt-24" --assert "2-Jan-2017" 				= mold 2017-W01
-	;--test-- "cfmt-25" --assert "9-Jun-2017" 				= mold 2017-W23-5
+	--test-- "cfmt-24" --assert "2-Jan-2017" 				= mold 2017-W01
+	--test-- "cfmt-25" --assert "9-Jun-2017" 				= mold 2017-W23-5
 	--test-- "cfmt-26" --assert "1-Jan-2017" 				= mold 2017-001
 	--test-- "cfmt-27" --assert "2-Jun-2017" 				= mold 2017-153
-	;--test-- "cfmt-28" --assert "2-Jan-2017/10:50:00"		= mold 2017-W01T10:50
-	;--test-- "cfmt-29" --assert "9-Jun-2017/10:50:00-04:00"	= mold 2017-W23-5T10:50:00-4:00
+	--test-- "cfmt-28" --assert "2-Jan-2017/10:50:00"		= mold 2017-W01T10:50
+	--test-- "cfmt-29" --assert "9-Jun-2017/10:50:00-04:00"	= mold 2017-W23-5T10:50:00-4:00
 	--test-- "cfmt-30" --assert "1-Jan-2017/10:50:00" 		= mold 2017-001T10:50
 	--test-- "cfmt-31" --assert "2-Jun-2017/10:50:00-04:00" = mold 2017-153T10:50:00-4:00
 	

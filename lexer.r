@@ -352,12 +352,11 @@ lexer: context [
 				year: load-number copy/part s 4
 				date: make date! reduce [1 1 year]
 			)[
-				;"W" s: 2 digit (ee: none) opt [#"-" ee: non-zero] (	;-- yyyy-Www
-				;	date/isoweek: load-number s skip s 3
-				;	if ee [date/weekday: to integer! s/5 - #"0"]		;-- yyyy-Www-d
-				;)
-				;|
-				s: 3 digit (date: date + (load-number copy/part s 3) - 1) ;-- yyyy-ddd
+				"W" s: 2 digit (ee: none) opt [#"-" ee: non-zero] (	;-- yyyy-Www
+					date: to-iso-week date load-number copy/part s 2
+					if ee [date: to-weekday date to integer! s/4 - #"0"] ;-- yyyy-Www-d
+				)
+				| s: 3 digit (date: date + (load-number copy/part s 3) - 1) ;-- yyyy-ddd
 			] (month: -1)
 		](
 			type: date!
@@ -799,6 +798,17 @@ lexer: context [
 		if any [all [h <> 0 m < 0] all [s s < 0]][type: time! throw-error]
 		t: to time! reduce [abs h abs m abs s]
 		either neg? [negate t][t]
+	]
+	
+	to-weekday: func [d [date!] wd [integer!]][
+		if negative? wd: wd - d/weekday [wd: 7 + wd]
+		d + wd
+	]
+	
+	to-iso-week: func [d [date!] w [integer!] /local wd d1][
+		d1: make date! reduce [1 1 d/year]
+		wd: d1/weekday
+		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
 	]
 	
 	load-tuple: func [s [string!] /local new byte p e][
