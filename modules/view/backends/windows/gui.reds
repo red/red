@@ -1649,12 +1649,9 @@ change-text: func [
 		]
 		if type = area [
 			extend-area-limit hWnd len
-			;update-scrollbars hWnd text
-		]
-		SetWindowText hWnd text
-		if type = area [
 			update-scrollbars hWnd text
 		]
+		SetWindowText hWnd text
 	]
 ]
 
