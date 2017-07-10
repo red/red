@@ -346,7 +346,7 @@ update-scrollbars: func [
 					width: size and FFFFh
 					if width >= right [
 						either wrap? [
-							size: DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
+							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
 							height: height - h + rect/bottom
 						][
 							horz?: yes
