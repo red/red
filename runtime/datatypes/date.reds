@@ -851,7 +851,7 @@ date: context [
 			]
 			default [error?: yes]
 		]
-		if error? [fire [TO_ERROR(script invalid-path) stack/arguments element]]
+		if error? [fire [TO_ERROR(script invalid-path) path element]]
 
 		either value <> null [
 			if any [all [1 <= field field <= 3] field = 9 field = 10 field = 12 field = 13][
