@@ -10,6 +10,9 @@ Red/System [
 	}
 ]
 
+#define TIME_EPSILON		 	2.2204460492503131E-15	;-- 10 ULP
+#define ROUND_TIME_DECIMALS(t)	(floor t + 0.5 - TIME_EPSILON)
+
 time: context [
 	verbose: 0
 	
@@ -33,7 +36,7 @@ time: context [
 	]
 	get-minutes: func [tm [float!] return: [integer!]][
 		if tm < 0.0 [tm: 0.0 - tm]
-		tm: floor tm + 0.5
+		tm: ROUND_TIME_DECIMALS(tm)
 		as-integer floor tm / oneE9 // 3600.0 / 60.0
 	]
 	
@@ -46,8 +49,8 @@ time: context [
 	][
 		t: tm/time
 		as red-value! switch field [
-			1 [integer/push as-integer GET_HOURS(t)]
-			2 [integer/push as-integer GET_MINUTES(t)]
+			1 [integer/push time/get-hours t]
+			2 [integer/push time/get-minutes t]
 			3 [float/push GET_SECONDS(t)]
 			default [assert false]
 		]
