@@ -125,6 +125,7 @@ map: context [
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
+			kkey	[red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
@@ -153,9 +154,10 @@ map: context [
 				]
 			][
 				either key = null [
-					preprocess-key cell
+					copy-cell cell kkey
+					preprocess-key kkey
 					s: as series! map/node/value
-					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -496,6 +498,7 @@ map: context [
 			val		[red-value!]
 			s		[series!]
 			size	[int-ptr!]
+			k		[red-value! value]
 	][
 		table: parent/table
 		key: _hashtable/get table element 0 0 case? no no
@@ -512,9 +515,10 @@ map: context [
 				value
 			][
 				either key = null [
-					preprocess-key element
+					copy-cell element k
+					preprocess-key k
 					s: as series! parent/node/value
-					key: copy-cell element as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1
