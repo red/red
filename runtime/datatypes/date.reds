@@ -958,7 +958,7 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/pick"]]
 
-		if any [index < 1 index > 10][fire [TO_ERROR(script out-of-range) boxed]]
+		if any [index < 1 index > 13][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field dt index
 	]
 	
