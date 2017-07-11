@@ -53,15 +53,15 @@ system: context [
 		
 		accessors: [
 			date!	[
-				year month day zone time hour minute second weekday yearday
-				julian timezone week isoweek
+				date year month day zone time hour minute second weekday yearday
+				timezone week isoweek julian
 			]
 			email!	[user host]
 			event!	[
 				type face window offset key picked flags away? down? mid-down?
 				alt-down? aux-down? ctrl? shift?
 			]
-			image!	[size rgb argb alpha]
+			image!	[size argb rgb alpha]
 			pair!	[x y]
 			;point!	[x y z]
 			time!	[hour minute second]
