@@ -213,8 +213,8 @@ Red [
 		--assert "5/Jul/-150/12:41:40+08:00" = mold d
 		
 		d: 5-Jul-2017/12:41:40+08:00
-		d/year: 12345678
-		--assert "5-Jul-24910/12:41:40+08:00" = mold d
+		d/year: 123456
+		--assert "5/Jul/-7616/12:41:40+08:00" = mold d
 	
 	
 	--test-- "pw-month1"
@@ -238,6 +238,11 @@ Red [
 		d: 5-Jul-2017/12:41:40+08:00
 		d/month: 0
 		--assert d = 5-Dec-2016/12:41:40+08:00
+	
+	--test-- "pw-month5"
+		d: 31-jan-2017
+		d/month: 2
+		--assert d = 3-Mar-2017
 	
 	
 	--test-- "pw-day1"
@@ -405,12 +410,6 @@ Red [
 		d/zone: 2:45
 		--assert d/zone = 2:45
 		--assert "5-Jul-2017/12:41:40+02:45" = mold d
-	
-	--test-- "pw-zone3"
-		d: 5-Jul-2017/12:41:40+08:00
-		d/zone: 3.14
-		--assert d/zone = 3:00
-		--assert d = 5-Jul-2017/12:41:40+3:00
 		
 	--test-- "pw-zone4"
 		d: 5-Jul-2017/12:41:40+08:00
@@ -454,12 +453,6 @@ Red [
 		d/timezone: 2:45
 		--assert d/timezone = 2:45
 		--assert "5-Jul-2017/7:26:40+02:45" = mold d
-
-	--test-- "pw-timezone3"
-		d: 5-Jul-2017/12:41:40+08:00
-		d/timezone: 3.14
-		--assert d/timezone = 3:00
-		--assert d = 5-Jul-2017/7:41:40+03:00
 
 	--test-- "pw-timezone4"
 		d: 5-Jul-2017/12:41:40+08:00
@@ -660,9 +653,9 @@ Red [
 	--test-- "conv-7"	--assert 5-Jul-2017/4:41:40  = to-date 1499229700
 	--test-- "conv-8"	--assert 5-Jul-2017/12:41:40 = to-date 1499258500
 	--test-- "conv-9"	--assert 5-Jul-2017/16:41:40 = to-date 1499272900
-	--test-- "conv-10"	--assert 1/1/1970 = to-date 0
-	--test-- "conv-11"	--assert 1/1/1969 = to-date -31536000
-	--test-- "conv-12"	--assert 1/1/2000 = to-date 946684800
+	--test-- "conv-10"	--assert 1/1/1970/0:00:0 = to-date 0
+	--test-- "conv-11"	--assert 1/1/1969/0:00:0 = to-date -31536000
+	--test-- "conv-12"	--assert 1/1/2000/0:00:0 = to-date 946684800
 	--test-- "conv-13"	--assert 31-Dec-1999/23:00:34 = to-date 946681234
 	--test-- "conv-14"	--assert 31-Dec-1969/23:59:59 = to-date -1
 	

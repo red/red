@@ -483,7 +483,7 @@ platform: context [
 			if h < 0 [h: 0 - h and 0Fh or 10h]			;-- properly set the sign bit
 			h: h << 2 or (bias // 60 / 15 and 03h)
 		]
-		y << 16 or (m << 12) or (d << 7) or h
+		y << 17 or (m << 12) or (d << 7) or h
 	]
 
 	open-console: func [return: [logic!]][

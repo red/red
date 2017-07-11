@@ -176,7 +176,7 @@ system/console: context [
 			
 			case [
 				error? :result [
-					print result
+					print [result lf]
 				]
 				not unset? :result [
 					if error? set/any 'err try [		;-- catch eventual MOLD errors

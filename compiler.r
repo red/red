@@ -1545,12 +1545,13 @@ red: context [
 	
 	encode-date: func [value [date!] /with zone /local date][
 		unless zone [zone: value/zone]
-		date:  (shift/left value/year 16)
+		date:  (shift/left value/year 17)
 			or (shift/left value/month 12)
 			or (shift/left value/day 7)
 			or (shift/left abs zone/hour 2)
 			or (abs to-integer zone/minute / 15)
-		if negative? zone [date: date or 64]
+		if negative? zone [date: date or 64]			;-- zone negative bit
+		if value/time [date: date or 65536]				;-- time? flag
 		date
 	]
 
@@ -4088,7 +4089,7 @@ red: context [
 				true
 			]
 			#build-date [
-				change pc mold now
+				change pc now
 				comp-expression
 				true
 			]

@@ -102,6 +102,48 @@ time: context [
 		make-at time stack/push*
 	]
 	
+	serialize: func [
+		time 	[float!]
+		buffer	[red-string!]
+		part 	[integer!]
+		return: [integer!]
+		/local
+			formed [c-string!]
+			len	   [integer!]
+	][
+		if time < 0.0 [
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+			time: float/abs time
+		]
+		time: time + 1.0								;-- fix issue #2134
+		formed: integer/form-signed as-integer GET_HOURS(time)
+		string/concatenate-literal buffer formed
+		part: part - length? formed						;@@ optimize by removing length?
+
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+
+		formed: integer/form-signed as-integer GET_MINUTES(time)
+		len: length? formed								;@@ optimize by removing length?
+		if len = 1 [
+			string/append-char GET_BUFFER(buffer) as-integer #"0"
+			len: 2
+		]
+		string/concatenate-literal buffer formed
+		part: part - 1 - len
+
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+
+		time: GET_SECONDS(time)
+		formed: either time < 1E-6 ["00"][float/form-float time float/FORM_TIME]
+		len: length? formed								;@@ optimize by removing length?
+		if any [len = 1 formed/2 = #"."][
+			string/append-char GET_BUFFER(buffer) as-integer #"0"
+			len: len + 1
+		]
+		string/concatenate-literal buffer formed
+		part - 1 - len
+	]
+	
 	;-- Actions --
 	
 	;make: :to
@@ -184,7 +226,7 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/form"]]
 
-		mold t buffer no no no arg part 0
+		serialize t/time buffer part
 	]
 	
 	mold: func [
@@ -197,46 +239,10 @@ time: context [
 		part 	[integer!]
 		indent	[integer!]
 		return: [integer!]
-		/local
-			formed [c-string!]
-			time   [float!]
-			len	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/mold"]]
 		
-		time: t/time
-		if time < 0.0 [
-			string/append-char GET_BUFFER(buffer) as-integer #"-"
-			time: float/abs time
-		]
-
-		time: time + 1.0								;-- fix issue #2134
-		formed: integer/form-signed as-integer GET_HOURS(time)
-		string/concatenate-literal buffer formed
-		part: part - length? formed						;@@ optimize by removing length?
-
-		string/append-char GET_BUFFER(buffer) as-integer #":"
-
-		formed: integer/form-signed as-integer GET_MINUTES(time)
-		len: length? formed								;@@ optimize by removing length?
-		if len = 1 [
-			string/append-char GET_BUFFER(buffer) as-integer #"0"
-			len: 2
-		]
-		string/concatenate-literal buffer formed
-		part: part - 1 - len
-		
-		string/append-char GET_BUFFER(buffer) as-integer #":"
-
-		time: GET_SECONDS(time)
-		formed: either time < 1E-6 ["00"][float/form-float time float/FORM_TIME]
-		len: length? formed								;@@ optimize by removing length?
-		if any [len = 1 formed/2 = #"."][
-			string/append-char GET_BUFFER(buffer) as-integer #"0"
-			len: len + 1
-		]
-		string/concatenate-literal buffer formed
-		part - 1 - len
+		serialize t/time buffer part
 	]
 	
 	eval-path: func [
