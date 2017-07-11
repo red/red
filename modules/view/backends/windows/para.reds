@@ -15,16 +15,13 @@ update-area-para: func [
 	face	[red-object!]
 	/local
 		parent [handle!]
-		state  [red-block!]
 		h	   [red-handle!]
 ][
 	parent: GetParent hWnd
-	free-faces get-face-obj hWnd
+	DestroyWindow hWnd
 	hWnd: as handle! OS-make-view face as-integer parent
-	state: as red-block! (get-face-values hWnd) + FACE_OBJ_STATE
-	state/header: TYPE_BLOCK
-	
-	h: as red-handle! block/rs-head state
+
+	h: as red-handle! block/rs-head as red-block! (get-face-values hWnd) + FACE_OBJ_STATE
 	h/header: TYPE_HANDLE
 	h/value:  as-integer hWnd
 ]
