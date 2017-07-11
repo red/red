@@ -50,10 +50,11 @@ date: context [
 		d: dt/date
 		t: to-local-time dt/time DATE_GET_ZONE(d)
 		as red-value! switch field [
-			1 [integer/push DATE_GET_YEAR(d)]
-			2 [integer/push DATE_GET_MONTH(d)]
-			3 [integer/push DATE_GET_DAY(d)]
-			4 11 [
+			1 [dt/time: 0.0 dt/date: d and FFFFFF80h]
+			2 [integer/push DATE_GET_YEAR(d)]
+			3 [integer/push DATE_GET_MONTH(d)]
+			4 [integer/push DATE_GET_DAY(d)]
+			5 12 [
 				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
 					/ time/nano
@@ -61,20 +62,20 @@ date: context [
 				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
 				time/push t
 			]
-			5 [time/push t]
-			6 [integer/push time/get-hours t]
-			7 [integer/push time/get-minutes t]
-			8 [float/push DATE_GET_SECONDS(t)]
-			9 [integer/push (date-to-days d) + 2 % 7 + 1]
-		   10 [integer/push get-yearday d]
-		   12 [
+			6 [time/push t]
+			7 [integer/push time/get-hours t]
+			8 [integer/push time/get-minutes t]
+			9 [float/push DATE_GET_SECONDS(t)]
+		   10 [integer/push (date-to-days d) + 2 % 7 + 1]
+		   11 [integer/push get-yearday d]
+		   13 [
 				wd: (Jan-1st-of d) + 3 % 7				;-- start the week on Sunday
 				days: 7 - wd
 				d: get-yearday d
 				d: either d <= days [1][d + wd - 1 / 7 + 1]
 				integer/push d
 			]
-		   13 [
+		   14 [
 		   		wd: 0
 		   		d1: W1-1-of d :wd						;-- first day of first week
 		   		days: date-to-days d
@@ -811,6 +812,7 @@ date: context [
 			word   [red-word!]
 			int	   [red-integer!]
 			tm	   [red-time!]
+			dt2	   [red-date!]
 			days   [integer!]
 			field  [integer!]
 			sym	   [integer!]
@@ -825,26 +827,27 @@ date: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				field: int/value
-				if any [field < 1 field > 13][error?: yes]
+				if any [field < 1 field > 14][error?: yes]
 			]
 			TYPE_WORD [
 				word: as red-word! element
 				sym: symbol/resolve word/symbol
 				case [
-					sym = words/year   	 [field: 1]
-					sym = words/month  	 [field: 2]
-					sym = words/day	   	 [field: 3]
-					sym = words/zone   	 [field: 4]
-					sym = words/time   	 [field: 5]
-					sym = words/hour   	 [field: 6]
-					sym = words/minute 	 [field: 7]
-					sym = words/second 	 [field: 8]
-					sym = words/weekday	 [field: 9]
-					sym = words/yearday	 [field: 10]
-					sym = words/julian 	 [field: 10]
-					sym = words/timezone [field: 11]
-					sym = words/week 	 [field: 12]
-					sym = words/isoweek	 [field: 13]
+					sym = words/date   	 [field: 1]
+					sym = words/year   	 [field: 2]
+					sym = words/month  	 [field: 3]
+					sym = words/day	   	 [field: 4]
+					sym = words/zone   	 [field: 5]
+					sym = words/time   	 [field: 6]
+					sym = words/hour   	 [field: 7]
+					sym = words/minute 	 [field: 8]
+					sym = words/second 	 [field: 9]
+					sym = words/weekday	 [field: 10]
+					sym = words/yearday	 [field: 11]
+					sym = words/julian 	 [field: 11]
+					sym = words/timezone [field: 12]
+					sym = words/week 	 [field: 13]
+					sym = words/isoweek	 [field: 14]
 					true 			   [error?: yes]
 				]
 			]
@@ -853,41 +856,47 @@ date: context [
 		if error? [fire [TO_ERROR(script invalid-path) path element]]
 
 		either value <> null [
-			if any [all [1 <= field field <= 3] field = 9 field = 10 field = 12 field = 13][
+			if any [all [2 <= field field <= 4] field = 10 field = 11 field = 13 field = 14][
 				if TYPE_OF(value) <> TYPE_INTEGER [fire [TO_ERROR(script invalid-arg) value]]
 				int: as red-integer! value
 				v: int/value
 			]
 			d: dt/date
 			switch field [
-				1 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
-				2 [set-month dt v]						;-- /month:
-				3 [										;-- /day:
+				1 [
+					if TYPE_OF(value) <> TYPE_DATE [fire [TO_ERROR(script invalid-arg) value]]
+					dt2: as red-date! value
+					v: DATE_GET_ZONE(d)
+					dt/date: DATE_SET_ZONE(dt2/date v)
+				]
+				2 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
+				3 [set-month dt v]						;-- /month:
+				4 [										;-- /day:
 					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)
 				]
-				4 11 [set-timezone dt value field = 11] ;-- /zone: /timezone:
-				5 [										;-- /time:
+				5 12 [set-timezone dt value field = 12] ;-- /zone: /timezone:
+				6 [										;-- /time:
 					if TYPE_OF(value) <> TYPE_TIME [fire [TO_ERROR(script invalid-arg) value]]
 					tm: as red-time! value
 					set-time dt tm/time yes
 				]
-				6 7 8 [									;-- /hour: /minute: /second:
+				7 8 9 [									;-- /hour: /minute: /second:
 					stack/keep
 					if TYPE_OF(element) = TYPE_INTEGER [
 						int: as red-integer! element
-						int/value: int/value - 5		;-- normalize accessor for time!
+						int/value: int/value - 6		;-- normalize accessor for time!
 					]
 					time/eval-path as red-time! dt element value path case?
-					set-time dt dt/time field = 6
+					set-time dt dt/time field = 7
 				]
-				9  [									;-- /weekday:
+				10  [									;-- /weekday:
 					days: date-to-days d
 					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d)
 				]
-				10 [									;-- /yearday: /julian: 
+				11 [									;-- /yearday: /julian: 
 					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)
 				]
-				12 [									;-- /week:
+				13 [									;-- /week:
 					days: Jan-1st-of d
 					if v > 1 [
 						wd: days + 3 % 7				;-- start the week on Sunday
@@ -895,7 +904,7 @@ date: context [
 					]
 					dt/date: days-to-date days DATE_GET_ZONE(d)
 				]
-				13 [									;-- /isoweek:
+				14 [									;-- /isoweek:
 					wd: 0
 					dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d)
 				]
@@ -958,7 +967,7 @@ date: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/pick"]]
 
-		if any [index < 1 index > 13][fire [TO_ERROR(script out-of-range) boxed]]
+		if any [index < 1 index > 14][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field dt index
 	]
 	

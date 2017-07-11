@@ -517,6 +517,7 @@ words: context [
 	alpha:			-1
 	argb:			-1
 	
+	date:			-1
 	year:			-1
 	month:			-1
 	day:			-1
@@ -726,6 +727,7 @@ words: context [
 		alpha:			symbol/make "alpha"
 		argb:			symbol/make "argb"
 		
+		date:			symbol/make "date"
 		year:			symbol/make "year"
 		month:			symbol/make "month"
 		day:			symbol/make "day"
