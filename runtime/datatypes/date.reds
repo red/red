@@ -65,7 +65,7 @@ date: context [
 				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
 				time/push t
 			]
-			6 [time/push t]
+			6 [either DATE_GET_TIME_FLAG(d) [time/push t][none/push]]
 			7 [integer/push time/get-hours t]
 			8 [integer/push time/get-minutes t]
 			9 [float/push DATE_GET_SECONDS(t)]
