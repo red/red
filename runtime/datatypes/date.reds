@@ -397,7 +397,7 @@ date: context [
 		d: DATE_SET_YEAR(d y)
 		v: v % 12
 		if v <= 0 [v: 12 + v]
-		dt/date: DATE_SET_MONTH(d v)
+		dt/date: days-to-date date-to-days DATE_SET_MONTH(d v) DATE_GET_ZONE(d)
 	]
 
 	set-time: func [
