@@ -426,7 +426,6 @@ date: context [
 			int	   [red-integer!]
 			fl	   [red-float!]
 			tm	   [red-time!]
-			p	   [red-pair!]
 			d	   [integer!]
 			h	   [integer!]
 			m	   [integer!]
@@ -450,11 +449,6 @@ date: context [
 				tm: as red-time! value
 				h: time/get-hours tm/time
 				m: time/get-minutes tm/time
-			]
-			TYPE_PAIR [
-				p: as red-pair! value
-				h: p/x
-				m: p/y
 			]
 			default [fire [TO_ERROR(script invalid-arg) value]]
 		]
