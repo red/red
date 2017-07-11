@@ -296,7 +296,7 @@ update-scrollbars: func [
 		size    [integer!]
 		txt-start [c-string!]
 		txt-pos   [c-string!]
-		value     [red-value!]
+		bool      [red-logic!]
 		wrap?     [logic!]
 		chars     [integer!]
 		c1 c2 h height width right bottom
@@ -323,11 +323,8 @@ update-scrollbars: func [
 		if text = null [ text: unicode/to-utf16 str ]
 
 		if TYPE_OF(para) = TYPE_OBJECT [
-			value: object/rs-select para as red-value! word/load "wrap?"
-			wrap?: all [
-				TYPE_OF(value) = TYPE_LOGIC
-				logic/get value
-			]
+			bool: as red-logic! (object/get-values para) + PARA_OBJ_WRAP?
+			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
 		]
 
 		txt-pos:   text
