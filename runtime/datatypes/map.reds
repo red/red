@@ -25,6 +25,25 @@ map: context [
 		size/value
 	]
 
+	preprocess-key: func [
+		key		[red-value!]
+	][
+		switch TYPE_OF(key) [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL
+			TYPE_TAG
+			TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
+			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
+		]
+	]
+
 	serialize: func [
 		map		[red-hash!]
 		buffer	[red-string!]
@@ -114,7 +133,7 @@ map: context [
 
 		s: GET_BUFFER(map)
 		size: as-integer s/tail + size - s/offset
-		if size > s/size [s: expand-series s size]
+		if size > s/size [expand-series s size]
 
 		s: GET_BUFFER(src)
 		cell: s/offset + src/head
@@ -134,6 +153,7 @@ map: context [
 				]
 			][
 				either key = null [
+					preprocess-key cell
 					s: as series! map/node/value
 					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
@@ -492,6 +512,7 @@ map: context [
 				value
 			][
 				either key = null [
+					preprocess-key element
 					s: as series! parent/node/value
 					key: copy-cell element as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
