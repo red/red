@@ -277,13 +277,17 @@ image: context [
 				]
 			]
 		][
-			either type = TYPE_TUPLE [
-				tp: as red-tuple! bin
-				color: tp/array1
-				if TUPLE_SIZE?(tp) = 3 [color: color and 00FFFFFFh]
-			][
-				int: as red-integer! bin
-				color: int/value
+			switch type [
+				TYPE_TUPLE [
+					tp: as red-tuple! bin
+					color: tp/array1
+					if TUPLE_SIZE?(tp) = 3 [color: color and 00FFFFFFh]
+				]
+				TYPE_INTEGER [
+					int: as red-integer! bin
+					color: int/value
+				]
+				default [fire [TO_ERROR(script invalid-arg) bin]]
 			]
 			either method = EXTRACT_ARGB [
 				mask: 255 - (color >>> 24) << 24
