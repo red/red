@@ -13,7 +13,7 @@ Red/System [
 date: context [
 	verbose: 0
 	
-	#define DATE_GET_YEAR(d)		 (d >> 16)
+	#define DATE_GET_YEAR(d)		 (d >> 17)
 	#define DATE_GET_MONTH(d)		 ((d >> 12) and 0Fh)
 	#define DATE_GET_DAY(d)			 ((d >> 7) and 1Fh)
 	#define DATE_GET_ZONE(d)		 (d and 7Fh)		;-- sign included
@@ -21,12 +21,15 @@ date: context [
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
 	#define DATE_GET_SECONDS(t)		 (t / time/oneE9 // 60.0)
+	#define DATE_GET_TIME_FLAG(d)	 (as-logic d >> 16 and 01h)
 	
-	#define DATE_SET_YEAR(d year)	 (d and 0000FFFFh or (year << 16))
+	#define DATE_SET_YEAR(d year)	 (d and 0001FFFFh or (year << 17))
 	#define DATE_SET_MONTH(d month)	 (d and FFFF0FFFh or (month and 0Fh << 12))
 	#define DATE_SET_DAY(d day)		 (d and FFFFF07Fh or (day and 1Fh << 7))
 	#define DATE_SET_ZONE(d zone)	 (d and FFFFFF80h or (zone and 7Fh))
 	#define DATE_SET_ZONE_NEG(z) 	 (z or 40h)
+	#define DATE_SET_TIME_FLAG(d)	 (d or 00010000h)
+	#define DATE_CLEAR_TIME_FLAG(d)	 (d and FFFEFFFFh)
 	
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]
@@ -50,7 +53,7 @@ date: context [
 		d: dt/date
 		t: to-local-time dt/time DATE_GET_ZONE(d)
 		as red-value! switch field [
-			1 [dt/time: 0.0 dt/date: d and FFFFFF80h]
+			1 [dt/time: 0.0 dt/date: d and FFFEFF80h]
 			2 [integer/push DATE_GET_YEAR(d)]
 			3 [integer/push DATE_GET_MONTH(d)]
 			4 [integer/push DATE_GET_DAY(d)]
@@ -135,7 +138,7 @@ date: context [
 		/local
 			base [integer!]
 	][
-		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 16) * 86400
+		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 17) * 86400
 		base + (as-integer dt/time / 1E9)
 	]
 	
@@ -175,6 +178,7 @@ date: context [
 	days-to-date: func [
 		days	[integer!]
 		tz		[integer!]
+		time?	[logic!]
 		return: [integer!]
 		/local
 			y	[integer!]
@@ -198,7 +202,8 @@ date: context [
 		m: mi + 2 % 12 + 1
 		y: y + (mi + 2 / 12)
 		d: dd - (mi * 306 + 5 / 10) + 1
-		y << 16 or (m << 12) or (d << 7) or tz
+		d: y << 17 or (m << 12) or (d << 7) or tz
+		d and FFFEFFFFh or ((as-integer time?) << 16)
 	]
 
 	date-to-days: func [
@@ -333,11 +338,13 @@ date: context [
 			dd	  [integer!]
 			tt	  [float!]
 			days? [logic!]
+			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/do-math"]]
 		left:  as red-date! stack/arguments
 		right: as red-date! left + 1
 		days?: no						;-- return days?
+		time?: DATE_GET_TIME_FLAG(left/date)
 
 		switch TYPE_OF(right) [			;-- left value is always a date!, only need to check right value
 			TYPE_INTEGER [
@@ -346,6 +353,7 @@ date: context [
 				tt: 0.0
 			]
 			TYPE_TIME [
+				time?: yes
 				tm: as red-time! right
 				dd: 0
 				tt: tm/time
@@ -378,7 +386,7 @@ date: context [
 			int/header: TYPE_INTEGER
 			int/value: days
 		][
-			left/date: days-to-date days tz
+			left/date: days-to-date days tz time?
 			left/time: ft
 		]
 		left
@@ -398,7 +406,10 @@ date: context [
 		d: DATE_SET_YEAR(d y)
 		v: v % 12
 		if v <= 0 [v: 12 + v]
-		dt/date: days-to-date date-to-days DATE_SET_MONTH(d v) DATE_GET_ZONE(d)
+		dt/date: days-to-date
+			date-to-days DATE_SET_MONTH(d v)
+			DATE_GET_ZONE(d)
+			DATE_GET_TIME_FLAG(dt/date)
 	]
 
 	set-time: func [
@@ -414,7 +425,7 @@ date: context [
 		dd: date-to-days dt/date
 		if utc? [tm: to-utc-time tm tz]
 		dd: normalize-time dd :tm tz
-		dt/date: days-to-date dd tz
+		dt/date: days-to-date dd tz DATE_GET_TIME_FLAG(dt/date)
 		dt/time: ROUND_TIME_DECIMALS(tm)
 	]
 	
@@ -424,7 +435,6 @@ date: context [
 		both? [logic!]
 		/local
 			int	   [red-integer!]
-			fl	   [red-float!]
 			tm	   [red-time!]
 			d	   [integer!]
 			h	   [integer!]
@@ -439,11 +449,6 @@ date: context [
 				int: as red-integer! value
 				h: int/value
 				m: 0
-			]
-			TYPE_FLOAT [
-				fl: as red-float! value
-				h: as-integer fl/value
-				m: as-integer fl/value - as-float h
 			]
 			TYPE_TIME [
 				tm: as red-time! value
@@ -592,7 +597,7 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: DATE_SET_YEAR(0 year)
 		set-month dt month
-		dt/date: days-to-date day + date-to-days dt/date zone
+		dt/date: days-to-date day + date-to-days dt/date zone cnt > 3
 		set-time dt ftime yes
 		
 		unless norm? [
@@ -636,11 +641,12 @@ date: context [
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			d	[integer!]
-			n	[integer!]
-			dd	[integer!]
-			tz	[integer!]
-			s	[float!]
+			d	  [integer!]
+			n	  [integer!]
+			dd	  [integer!]
+			tz	  [integer!]
+			s	  [float!]
+			time? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "date/random"]]
 
@@ -649,8 +655,9 @@ date: context [
 			_random/srand d
 			dt/header: TYPE_UNSET
 		][
-			dt/date: days-to-date _random/rand % date-to-days d DATE_GET_ZONE(d)
-			if dt/time <> 0.0 [
+			time?: DATE_GET_TIME_FLAG(d)
+			dt/date: days-to-date _random/rand % date-to-days d DATE_GET_ZONE(d) time?
+			if time? [
 				dt/date: DATE_SET_ZONE(dt/date _random/rand)
 				s: (as-float _random/rand) / 2147483647.0 * 3600.0
 				s: (floor s) / 3600.0
@@ -681,7 +688,7 @@ date: context [
 		int: as red-integer! spec
 		dt: as red-date! proto
 		dt/header: TYPE_DATE
-		dt/date: days-to-date (int/value / 86400) + Jan-1st-of 1970 << 16  0
+		dt/date: days-to-date (int/value / 86400) + (Jan-1st-of 1970 << 17) 0 yes
 		dt/time: (as-float int/value % 86400) * 1E9
 		if int/value < 0 [set-time dt dt/time no]
 		as red-value! dt
@@ -754,7 +761,7 @@ date: context [
 		]
 		string/concatenate-literal buffer formed
 		
-		if dt/time <> 0.0 [
+		if DATE_GET_TIME_FLAG(d) [
 			zone: DATE_GET_ZONE(d)
 			string/append-char GET_BUFFER(buffer) as-integer #"/"
 			time/serialize to-local-time dt/time zone buffer part
@@ -813,6 +820,7 @@ date: context [
 			v	   [integer!]
 			d	   [integer!]
 			wd	   [integer!]
+			time?  [logic!]
 			error? [logic!]
 	][
 		error?: no
@@ -856,6 +864,7 @@ date: context [
 				v: int/value
 			]
 			d: dt/date
+			time?: DATE_GET_TIME_FLAG(d)
 			switch field [
 				1 [
 					if TYPE_OF(value) <> TYPE_DATE [fire [TO_ERROR(script invalid-arg) value]]
@@ -866,13 +875,25 @@ date: context [
 				2 [dt/date: DATE_SET_YEAR(d v)]			;-- /year:
 				3 [set-month dt v]						;-- /month:
 				4 [										;-- /day:
-					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d)
+					dt/date: days-to-date v + date-to-days DATE_SET_DAY(d 0) DATE_GET_ZONE(d) time?
 				]
-				5 12 [set-timezone dt value field = 12] ;-- /zone: /timezone:
+				5 12 [									;-- /zone: /timezone:
+					dt/date: DATE_SET_TIME_FLAG(d)
+					set-timezone dt value field = 12
+				]
 				6 [										;-- /time:
-					if TYPE_OF(value) <> TYPE_TIME [fire [TO_ERROR(script invalid-arg) value]]
-					tm: as red-time! value
-					set-time dt tm/time yes
+					switch TYPE_OF(value) [
+						TYPE_NONE [
+							dt/date: DATE_CLEAR_TIME_FLAG(d)
+							dt/time: 0.0
+						]
+						TYPE_TIME [
+							dt/date: DATE_SET_TIME_FLAG(d)
+							tm: as red-time! value
+							set-time dt tm/time yes
+						]
+						default [fire [TO_ERROR(script invalid-arg) value]]
+					]
 				]
 				7 8 9 [									;-- /hour: /minute: /second:
 					stack/keep
@@ -882,13 +903,14 @@ date: context [
 					]
 					time/eval-path as red-time! dt element value path case?
 					set-time dt dt/time field = 7
+					dt/date: DATE_SET_TIME_FLAG(dt/date)
 				]
 				10  [									;-- /weekday:
 					days: date-to-days d
-					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d)
+					dt/date: days-to-date days + (v - 1) - (days + 2 % 7) DATE_GET_ZONE(d) time?
 				]
 				11 [									;-- /yearday: /julian: 
-					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d)
+					dt/date: days-to-date v + (Jan-1st-of d) - 1 DATE_GET_ZONE(d) time?
 				]
 				13 [									;-- /week:
 					days: Jan-1st-of d
@@ -896,11 +918,11 @@ date: context [
 						wd: days + 3 % 7				;-- start the week on Sunday
 						days: days + (v - 2 * 7) + 7 - wd
 					]
-					dt/date: days-to-date days DATE_GET_ZONE(d)
+					dt/date: days-to-date days DATE_GET_ZONE(d) time?
 				]
 				14 [									;-- /isoweek:
 					wd: 0
-					dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d)
+					dt/date: days-to-date v - 1 * 7 + W1-1-of d :wd DATE_GET_ZONE(d) time?
 				]
 				default [assert false]
 			]
@@ -931,8 +953,8 @@ date: context [
 
 		type: TYPE_OF(value2)
 		if type <> TYPE_DATE [RETURN_COMPARE_OTHER]
-		d1: value1/date >> 7							;-- remove TZ
-		d2: value2/date >> 7
+		d1: DATE_CLEAR_TIME_FLAG(value1/date) >> 7		;-- remove TZ, clear time? flag
+		d2: DATE_CLEAR_TIME_FLAG(value2/date) >> 7
 		t1: floor value1/time + 0.5						;-- in UTC already, round to integer
 		t2: floor value2/time + 0.5
 		
