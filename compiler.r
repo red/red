@@ -4088,7 +4088,7 @@ red: context [
 				true
 			]
 			#build-date [
-				change pc probe now
+				change pc now
 				comp-expression
 				true
 			]
