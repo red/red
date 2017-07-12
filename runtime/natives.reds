@@ -2429,12 +2429,12 @@ natives: context [
 		dt/time: tm
 		n: 0
 		case [
-			year    > -1 [n: 1]
-			month   > -1 [n: 2]
-			day     > -1 [n: 3]
-			zone    > -1 [n: 4]
-			time    > -1 [n: 5]
-			weekday > -1 [n: 9]
+			year    > -1 [n: 2]
+			month   > -1 [n: 3]
+			day     > -1 [n: 4]
+			zone    > -1 [n: 5]
+			time    > -1 [n: 6]
+			weekday > -1 [n: 10]
 			yearday > -1 [
 				int: as red-integer! dt
 				int/header: TYPE_INTEGER
