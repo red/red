@@ -118,12 +118,12 @@ select-camera: func [
 
 toggle-preview: func [
 	camera		[integer!]
-	enable?		[logic!]
+	enabled?	[logic!]
 	/local
 		session [integer!]
 ][
 	session: objc_getAssociatedObject camera RedCameraSessionKey
-	either enable? [
+	either enabled? [
 		objc_msgSend [session sel_getUid "startRunning"]
 	][
 		objc_msgSend [session sel_getUid "stopRunning"]

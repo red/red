@@ -133,7 +133,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 										pane: target
 										until [
 											pane: back pane
-											pane/1/enable?: yes
+											pane/1/enabled?: yes
 											unless system/view/auto-sync? [show pane/1]
 											any [head? pane find-flag? pane/1/flags 'modal]
 										]
@@ -266,7 +266,7 @@ face!: object [				;-- keep in sync with facet! enum
 	color:		none
 	menu:		none
 	data:		none
-	enable?:	yes
+	enabled?:	yes
 	visible?:	yes
 	selected:	none
 	flags:		none
@@ -731,7 +731,7 @@ show: function [
 					pane: system/view/screens/1/pane
 					if find-flag? face/flags 'modal [
 						foreach f head pane [
-							f/enable?: no
+							f/enabled?: no
 							unless system/view/auto-sync? [show f]
 						]
 					]

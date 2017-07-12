@@ -1132,7 +1132,7 @@ OS-make-view: func [
 		data	  [red-block!]
 		menu	  [red-block!]
 		show?	  [red-logic!]
-		enable?	  [red-logic!]
+		enabled?  [red-logic!]
 		selected  [red-integer!]
 		para	  [red-object!]
 		rate	  [red-value!]
@@ -1164,7 +1164,7 @@ OS-make-view: func [
 	offset:   as red-pair!		values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
-	enable?:  as red-logic!		values + FACE_OBJ_ENABLE?
+	enabled?: as red-logic!		values + FACE_OBJ_ENABLED?
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
@@ -1187,7 +1187,7 @@ OS-make-view: func [
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
 	if para? [flags: flags or get-para-flags sym para]
 	
-	if all [TYPE_OF(enable?) = TYPE_LOGIC not enable?/value][
+	if all [TYPE_OF(enabled?) = TYPE_LOGIC not enabled?/value][
 		flags: flags or WS_DISABLED
 	]
 
@@ -1638,7 +1638,7 @@ change-enabled: func [
 	/local
 		bool [red-logic!]
 ][
-	bool: as red-logic! values + FACE_OBJ_ENABLE?
+	bool: as red-logic! values + FACE_OBJ_ENABLED?
 	either type = caret [
 		either bool/value [update-caret hWnd values][DestroyCaret]
 		change-visible hWnd bool/value caret
@@ -2003,7 +2003,7 @@ OS-update-view: func [
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data	hWnd values
 	]
-	if flags and FACET_FLAG_ENABLE? <> 0 [
+	if flags and FACET_FLAG_ENABLED? <> 0 [
 		change-enabled hWnd values type
 	]
 	if flags and FACET_FLAG_VISIBLE? <> 0 [

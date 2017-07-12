@@ -23,7 +23,7 @@ system/view/platform: context [
 				FACE_OBJ_COLOR
 				FACE_OBJ_MENU
 				FACE_OBJ_DATA
-				FACE_OBJ_ENABLE?
+				FACE_OBJ_ENABLED?
 				FACE_OBJ_VISIBLE?
 				FACE_OBJ_SELECTED
 				FACE_OBJ_FLAGS
@@ -49,7 +49,7 @@ system/view/platform: context [
 				FACET_FLAG_COLOR:		00000020h
 				FACET_FLAG_MENU:		00000040h
 				FACET_FLAG_DATA:		00000080h
-				FACET_FLAG_ENABLE?:		00000100h
+				FACET_FLAG_ENABLED?:	00000100h
 				FACET_FLAG_VISIBLE?:	00000200h
 				FACET_FLAG_SELECTED:	00000400h
 				FACET_FLAG_FLAGS:		00000800h
@@ -205,7 +205,7 @@ system/view/platform: context [
 				color:		symbol/make "color"
 				menu:		symbol/make "menu"
 				data:		symbol/make "data"
-				enable?:	symbol/make "enable?"
+				enabled?:	symbol/make "enabled?"
 				visible?:	symbol/make "visible?"
 				selected:	symbol/make "selected"
 				flags:		symbol/make "flags"

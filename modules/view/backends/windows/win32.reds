@@ -1943,7 +1943,7 @@ XFORM!: alias struct! [
 		GdipSetImageAttributesColorKeys: "GdipSetImageAttributesColorKeys" [
 			attr		[integer!]
 			type		[integer!]
-			enable?		[logic!]
+			enabled?	[logic!]
 			colorLow	[integer!]
 			colorHigh	[integer!]
 			return:		[integer!]

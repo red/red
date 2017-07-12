@@ -272,7 +272,7 @@ system/view/VID: context [
 				| 'loose	  (add-option opts [drag-on: 'down])
 				| 'all-over   (set-flag opts 'flags 'all-over)
 				| 'hidden	  (opts/visible?: no)
-				| 'disabled	  (opts/enable?: no)
+				| 'disabled	  (opts/enabled?: no)
 				| 'select	  (opts/selected: fetch-argument integer! spec)
 				| 'rate		  (opts/rate: fetch-argument rate! spec)
 				   opt [rate! 'now (opts/now?: yes spec: next spec)]
@@ -471,7 +471,7 @@ system/view/VID: context [
 		top-left: bound: cursor: origin: spacing: pick [0x0 10x10] tight
 		
 		opts: object [
-			type: offset: size: size-x: text: color: enable?: visible?: selected: image: 
+			type: offset: size: size-x: text: color: enabled?: visible?: selected: image: 
 			rate: font: flags: options: para: data: extra: actors: draw: now?: init: none
 		]
 		if empty? opt-words: [][append opt-words words-of opts] ;-- static cache
