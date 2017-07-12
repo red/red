@@ -306,7 +306,7 @@ update-scrollbars: func [
 	str:  as red-string! values + FACE_OBJ_TEXT
 	para: as red-object! values + FACE_OBJ_PARA
 	horz?: no
-	wrap?: yes
+	wrap?: no
 
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
