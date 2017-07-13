@@ -126,26 +126,31 @@ system/view/VID: context [
 		]
 		top-left?: find [top left] align
 		axis:  pick [y x] dir = 'across
+		svmm: system/view/metrics/margins
 
 		foreach face pane [
 			unless face/options/at-offset [				;-- exclude absolute-positioned faces
-				unless top-left? [
-					offset: max-sz - face/size/:axis
-					if find [center middle] align [offset: to integer! round offset / 2.0]
-					face/offset/:axis: face/offset/:axis + offset
-				]
-				if all [								;-- account for hard margins
-					edge?
-					type: any [face/options/class face/type]
-					mar: select system/view/metrics/margins type
-				][
-					face/offset/:axis: face/offset/:axis + any [
-						either dir = 'across [
-							switch align [top [negate mar/2/x] middle [0] bottom [mar/2/y]]
-						][
-							switch align [left [negate mar/1/x] center [0] right [mar/1/y]]
+				offset: either top-left? [0][max-sz - face/size/:axis]
+				mar: select system/view/metrics/margins face/type
+				if type: face/options/class [mar: select mar type]
+				if mar [
+					offset: offset + either dir = 'across [
+						switch align [
+							top	   [negate mar/2/x]
+							middle [to integer! round mar/2/x + mar/2/y / 2.0]
+							bottom [mar/2/y]
+						]
+					][
+						switch align [
+							left   [negate mar/1/x]
+							center [to integer! round mar/1/x + mar/1/y / 2.0]
+							right  [mar/1/y]
 						]
 					]
+				]
+				if offset <> 0 [
+					if find [center middle] align [offset: to integer! round offset / 2.0]
+					face/offset/:axis: face/offset/:axis + offset
 				]
 			]
 		]
