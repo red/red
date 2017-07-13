@@ -680,9 +680,13 @@ paint-background: func [
 		color  [integer!]
 ][
 	color: to-bgr as node! GetWindowLong hWnd wc-offset + 4 FACE_OBJ_COLOR
-	if color = -1 [return false]
-
-	hBrush: CreateSolidBrush color
+	either color = -1 [
+		either (GetWindowLong hWnd GWL_STYLE) and WS_CHILD = 0 [
+			hBrush: GetSysColorBrush COLOR_3DFACE
+		][return false]
+	][
+		hBrush: CreateSolidBrush color
+	]
 	GetClientRect hWnd rect
 	FillRect hDC rect hBrush
 	DeleteObject hBrush
