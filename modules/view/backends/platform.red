@@ -734,6 +734,18 @@ system/view/platform: context [
 				group-box:		[0x8  4x18]
 			]
 		]]
+		extend system/view/metrics/def-heights [#switch config/OS [
+			Windows []
+			macOS	[
+				check:		21
+				radio:		21
+				text:		18
+				field:		21
+				drop-down:	21
+				drop-list:	21
+				progress:	21
+			]
+		]]
 		
 		colors: system/view/metrics/colors
 		#switch config/OS [

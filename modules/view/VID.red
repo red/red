@@ -592,8 +592,11 @@ system/view/VID: context [
 					throw-error spec
 				]
 				if style/template/type = 'window [throw-error spec]
+				
 				face: make face! copy/deep style/template
+				if h: select system/view/metrics/def-heights face/type [face/size/y: h]
 				face/parent: panel
+				
 				spec: fetch-options face opts style spec local-styles to-logic styling?
 				if style/init [do bind style/init 'face]
 				

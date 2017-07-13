@@ -520,6 +520,7 @@ system/view: context [
 		;scaling:		1x1
 		paddings:		make map! 32
 		margins:		make map! 32
+		def-heights:	make map! 32
 		misc:			make map! 32
 		colors:			make map! 10
 	]
