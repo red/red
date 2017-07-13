@@ -437,21 +437,21 @@ image: context [
 		/local
 			ret [red-logic!]
 	][
-		if TYPE_OF(spec) = TYPE_IMAGE [					;-- copy it
-			return copy as red-image! spec proto null yes null
-		]
-		#either modules contains 'View [
-			spec: stack/push spec						;-- store spec to avoid corrution (#2460)
-			#call [face? spec]
-			ret: as red-logic! stack/arguments
-			either ret/value [
-				return exec/gui/OS-to-image as red-object! spec
-			][
-				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+		switch TYPE_OF(spec) [
+			TYPE_IMAGE [					;-- copy it
+				return copy as red-image! spec proto null yes null
 			]
-		][
-			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
+			TYPE_OBJECT [
+				#either modules contains 'View [
+					spec: stack/push spec						;-- store spec to avoid corrution (#2460)
+					#call [face? spec]
+					ret: as red-logic! stack/arguments
+					if ret/value [return exec/gui/OS-to-image as red-object! spec]
+				][0]
+			]
+			default [0]
 		]
+		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_IMAGE spec]
 		as red-image! proto
 	]
 
