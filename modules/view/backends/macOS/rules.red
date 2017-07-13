@@ -66,6 +66,7 @@ adjust-buttons: function [
 	def-margins: 2x2
 	def-margin-yy: 5
 	opts: [class: _]
+	svmm: system/view/metrics/margins
 	
 	foreach-face/with root [
 		y: face/size/y - def-margin-yy					;-- remove default button's margins
@@ -79,10 +80,10 @@ adjust-buttons: function [
 
 		unless face/options/at-offset [
 			axis:  pick [x y] to-logic find [left center right] align
-			marg:  select system/view/metrics/margins face/options/class
+			marg:  select svmm face/options/class
 			def-marg: def-margins/:axis
 
-			face/offset/:axis: face/offset/:axis + probe switch align [ ;-- adjust to alignment
+			face/offset/:axis: face/offset/:axis + switch align [ ;-- adjust to alignment
 				top		[def-marg - marg/2/x]
 				middle  [negate marg/2/y / 2]
 				bottom	[marg/2/y - def-marg - marg/2/x]
