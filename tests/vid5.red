@@ -7,8 +7,9 @@ Red [
 
 system/view/VID/debug?: yes
 view [
-    across top	  base 1x50 button "OK" field drop-down check return
-    across middle base 1x50 button "OK" field drop-down check return
-    across bottom base 1x50 button "OK" field drop-down check
+	at 1x110 base 1100x1 black
+    across top	  base 1x60 button 50x50 button "OK" text "text" cyan field drop-down drop-list check yellow radio yellow progress slider return
+    across middle base 1x60 button 50x50 button "OK" text "text" cyan field drop-down drop-list check yellow radio yellow progress slider return
+    across bottom base 1x60 button 50x50 button "OK" text "text" cyan field drop-down drop-list check yellow radio yellow progress slider 
 ]
 system/view/VID/debug?: no
