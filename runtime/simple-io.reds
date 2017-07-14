@@ -1168,7 +1168,7 @@ simple-io: context [
 				GetTypeInfo				[integer!]
 				GetIDsOfNames			[integer!]
 				Invoke					[integer!]
-				SetProxy				[integer!]
+				SetProxy				[function! [this [this!] setting [integer!] server [integer!] server2 [integer!] server3 [integer!] server4 [integer!] bypass [integer!] bypass2 [integer!] bypass3 [integer!] bypass4 [integer!] return: [integer!]]]
 				SetCredentials			[integer!]
 				Open					[function! [this [this!] method [byte-ptr!] url [byte-ptr!] async1 [integer!] async2 [integer!] async3 [integer!] async4 [integer!] return: [integer!]]]
 				SetRequestHeader		[function! [this [this!] header [byte-ptr!] value [byte-ptr!] return: [integer!]]]
@@ -1267,9 +1267,9 @@ simple-io: context [
 				/local
 					action	[c-string!]
 					hr 		[integer!]
-					clsid	[tagGUID]
-					async 	[tagVARIANT]
-					body 	[tagVARIANT]
+					clsid	[tagGUID value]
+					async 	[tagVARIANT value]
+					body 	[tagVARIANT value]
 					IH		[interface!]
 					http	[IWinHttpRequest]
 					bstr-d	[byte-ptr!]
@@ -1285,16 +1285,14 @@ simple-io: context [
 					res		[red-value!]
 					blk		[red-block!]
 					len		[integer!]
+					proxy	[tagVARIANT value]
 			][
 				res: as red-value! none-value
 				len: -1
 				buf-ptr: 0
 				bstr-d: null
-				clsid: declare tagGUID
-				async: declare tagVARIANT
-				body:  declare tagVARIANT
-				VariantInit async
-				VariantInit body
+				VariantInit :async
+				VariantInit :body
 				async/data1: VT_BOOL
 				async/data3: 0							;-- VARIANT_FALSE
 
@@ -1323,14 +1321,18 @@ simple-io: context [
 				IH: declare interface!
 				http: null
 
-				hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" clsid
+				hr: CLSIDFromProgID #u16 "WinHttp.WinHttpRequest.5.1" :clsid
 
 				if hr >= 0 [
-					hr: CoCreateInstance as int-ptr! clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
+					hr: CoCreateInstance as int-ptr! :clsid 0 CLSCTX_INPROC_SERVER IID_IWinHttpRequest IH
 				]
 
 				if hr >= 0 [
 					http: as IWinHttpRequest IH/ptr/vtbl
+					;VariantInit :proxy
+					;proxy/data1: VT_BSTR
+					;proxy/data3: as-integer SysAllocString #u16 "127.0.0.1:1235"
+					;http/SetProxy IH/ptr 2 proxy/data1 proxy/data2 proxy/data3 proxy/data4 0 0 0 0
 					bstr-m: SysAllocString action
 					bstr-u: SysAllocString unicode/to-utf16 as red-string! url
 					hr: http/Open IH/ptr bstr-m bstr-u async/data1 async/data2 async/data3 async/data4
@@ -1379,7 +1381,7 @@ simple-io: context [
 						]
 					]
 					if all [method = HTTP_POST bstr-d <> null][SysFreeString bstr-d]
-					hr: http/ResponseBody IH/ptr body
+					hr: http/ResponseBody IH/ptr :body
 				]
 
 				if hr >= 0 [				
