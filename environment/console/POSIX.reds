@@ -188,6 +188,7 @@ saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
 relative-y:	0
+init?:		no
 
 fd-read-char: func [
 	timeout [integer!]
@@ -495,6 +496,10 @@ init: func [
 		poller/events: OS_POLLIN
 
 		buffer: allocate buf-size
+		unless init? [
+			emit-string "^[[?2004h"		;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+			init?: yes
+		]
 	]
 ]
 

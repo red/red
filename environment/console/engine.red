@@ -92,20 +92,14 @@ system/console: context [
 			ret: SetConsoleTitle as c-string! string/rs-head str
 			if zero? ret [print-line "SetConsoleTitle failed!" halt]
 		][
-			#if gui-console? = no [
-				with terminal [
-					console?: 1 = isatty stdin
-					pasting?: no
-					if console? [emit-string "^[[?2004h"]		;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
-				]
-			]
+			#if gui-console? = no [terminal/pasting?: no]
 		]
 	]
 
 	terminate: routine [][
 		#if OS <> 'Windows [
 		#if gui-console? = no [
-			if terminal/console? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
 		]]
 	]
 
