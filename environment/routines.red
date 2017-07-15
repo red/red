@@ -25,30 +25,6 @@ set-quiet: routine [
 	_context/set word stack/arguments + 1
 ]
 
-browse: routine [
-	"Open web browser to a URL"
-	url [url!]
-][
-	#switch OS [
-		Windows [
-			platform/ShellExecute 0 #u16 "open" unicode/to-utf16 as red-string! url 0 0 1
-			unset/push-last
-		]
-		macOS [
-			use [s [c-string!] cmd [byte-ptr!] len [integer!]][
-				len: -1
-				s: unicode/to-utf8 as red-string! url :len
-				cmd: allocate 6 + len
-				copy-memory cmd as byte-ptr! "open " 5
-				copy-memory cmd + 5 as byte-ptr! s len + 1
-				ext-process/OS-call as-c-string cmd no no no yes null null null
-				free cmd
-			]
-		]
-		#default [fire [TO_ERROR(internal not-here) words/_browse]]
-	]
-]
-
 ;-- Following definitions are used to create op! corresponding operators
 shift-right:   routine [data [integer!] bits [integer!]][natives/shift* no -1 -1]
 shift-left:	   routine [data [integer!] bits [integer!]][natives/shift* no  1 -1]

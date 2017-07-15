@@ -867,3 +867,10 @@ size?: make native! [[
 	]
 	#get-definition NAT_SIZE?
 ]
+
+browse: make native! [[
+		"Open web browser to a URL or file mananger to a local file."
+		url 	[url! file!]
+	]
+	#get-definition NAT_BROWSE
+]

@@ -2525,6 +2525,40 @@ natives: context [
 		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
 	]
 
+	browse*: func [
+		check?	[logic!]
+		/local
+			url [red-string!]
+			src [red-string!]
+	][
+		#typecheck browse
+
+		src: as red-string! stack/arguments
+		either TYPE_OF(src) = TYPE_FILE [
+			url: string/rs-make-at stack/push* string/rs-length? src
+			file/to-local-path as red-file! src url no
+		][url: src]
+
+		#switch OS [
+			Windows [
+				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
+				unset/push-last
+			]
+			macOS [
+				use [s [c-string!] cmd [byte-ptr!] len [integer!]][
+					len: -1
+					s: unicode/to-utf8 url :len
+					cmd: allocate 6 + len
+					copy-memory cmd as byte-ptr! "open " 5
+					copy-memory cmd + 5 as byte-ptr! s len + 1
+					ext-process/OS-call as-c-string cmd no no no yes null null null
+					free cmd
+				]
+			]
+			#default [fire [TO_ERROR(internal not-here) words/_browse]]
+		]
+	]
+
 	;--- Natives helper functions ---
 	
 	max-min: func [
@@ -3130,6 +3164,7 @@ natives: context [
 			:call*
 			:zero?*
 			:size?*
+			:browse*
 		]
 	]
 

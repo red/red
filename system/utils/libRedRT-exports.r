@@ -334,6 +334,7 @@
 	red/natives/call*
 	red/natives/zero?*
 	red/natives/size?*
+	red/natives/browse*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!

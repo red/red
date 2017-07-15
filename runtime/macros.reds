@@ -241,6 +241,7 @@ Red/System [
 	NAT_CALL
 	NAT_ZERO?
 	NAT_SIZE?
+	NAT_BROWSE
 ]
 
 #enum math-op! [
