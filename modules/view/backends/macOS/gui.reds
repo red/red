@@ -1973,7 +1973,7 @@ OS-to-image: func [
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 	screen?: screen = symbol/resolve word/symbol
 	either screen? [
-		bmp: CGWindowListCreateImage FF800000h FF800000h 7F800000h 7F800000h 1 0 0		;-- -INF & INF
+		bmp: CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 		ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
 	][
 		view: as-integer face-handle? face
