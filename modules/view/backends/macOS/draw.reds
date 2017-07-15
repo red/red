@@ -1086,6 +1086,7 @@ OS-draw-grad-pen-old: func [
 		rotate? [logic!]
 		scale?	[logic!]
 ][
+	dc/matrix: CGAffineTransformMake F32_1 F32_0 F32_0 F32_1 F32_0 F32_0
 	dc/grad-type: type
 	dc/grad-spread: spread
 	dc/grad-x1: as float32! offset/x			;-- save gradient offset for later use
