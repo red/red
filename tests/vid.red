@@ -67,5 +67,5 @@ view [
 	
 	at (list/offset + 130x50) base 5x5 red
 	
-	do [append list/data "five"]
+	do [append list/data "five" win: self]
 ]
