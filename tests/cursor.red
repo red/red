@@ -5,7 +5,7 @@ Red [
 	Needs:	 'View
 ]
 
-img: draw 20x20 [anti-alias on fill-pen red triangle 10x0 19x19 0x19]
+img: draw 20x20 [fill-pen red triangle 10x0 19x19 0x19]
 forall img [if img/1 = 255.255.255.0 [img/1: transparent]]
 
 view [
