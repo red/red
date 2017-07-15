@@ -621,9 +621,9 @@ system/view/VID: context [
 					styling?: off
 				][
 					blk: [style: _ vid-align: _ at-offset: #[none]]
-					blk/2: value
-					blk/4: align
-					add-option face blk
+					blk/2: to-lit-word value
+					blk/4: to-lit-word align
+					add-option face new-line/all blk no
 				
 					;-- update cursor position --
 					either at-offset [
