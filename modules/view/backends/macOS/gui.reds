@@ -1463,11 +1463,11 @@ parse-common-opts: func [
 					either TYPE_OF(w) = TYPE_IMAGE [
 						img: as red-image! w
 						nsimg: objc_msgSend [
-							objc_getClass "NSImage" sel_alloc
+							OBJC_ALLOC("NSImage")
 							sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
 						]
 						hcur: objc_msgSend [
-							objc_getClass "NSCursor" sel_alloc
+							OBJC_ALLOC("NSCursor")
 							sel_getUid "initWithImage:hotSpot:" nsimg 0 0
 						]
 						objc_msgSend [nsimg sel_release]
