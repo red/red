@@ -2946,6 +2946,7 @@ OS-draw-grad-pen-old: func [
 		GdipCreatePathGradientFromPath n :brush
 		GdipDeletePath n
 		GdipSetPathGradientCenterColor brush color/value
+		GdipSetPathGradientCenterPointI brush as tagPOINT :offset/x
 		reverse-int-array color count
 		n: count - 1
 		start: 2
