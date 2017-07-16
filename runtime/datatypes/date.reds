@@ -53,7 +53,7 @@ date: context [
 		d: dt/date
 		t: to-local-time dt/time DATE_GET_ZONE(d)
 		as red-value! switch field [
-			1 [dt/time: 0.0 dt/date: d and FFFEFF80h]
+			1 [push d and FFFEFF80h 0.0]
 			2 [integer/push DATE_GET_YEAR(d)]
 			3 [integer/push DATE_GET_MONTH(d)]
 			4 [integer/push DATE_GET_DAY(d)]
