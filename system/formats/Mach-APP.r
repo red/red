@@ -78,7 +78,7 @@ packager: context [
 		delete file
 		copy-file %system/assets/macOS/Resources/AppIcon.icns res-dir/AppIcon.icns
 
-		plist: read %system/assets/macOS/Info.plist
+		plist: read-cache %system/assets/macOS/Info.plist
 		replace/all/case plist "$Red-App-Name$" name
 		write/binary contents-dir/Info.plist plist
 
