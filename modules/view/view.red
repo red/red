@@ -37,6 +37,20 @@ size-text: function [
 	system/view/platform/size-text face text
 ]
 
+metrics?: function [
+	"Returns a pair! value in the type metrics for the argument face"
+	face [object!]			"Face object to query"
+	type [word!]			"Metrics type: 'paddings or 'margins"
+][
+	res: select system/view/metrics/:type face/type
+	all [
+		face/options
+		type: face/options/class
+		res: res/type
+	]
+	res
+]
+
 set-flag: function [
 	face  [object!]
 	facet [word!]
