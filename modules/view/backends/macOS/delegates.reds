@@ -530,7 +530,7 @@ text-did-change: func [
 	notif	[integer!]
 ][
 	set-text self objc_msgSend [self sel_getUid "stringValue"]
-	make-event self 0 EVT_CHANGE
+	if loop-started? [make-event self 0 EVT_CHANGE]
 	msg-send-super self cmd notif
 ]
 
@@ -550,7 +550,7 @@ area-text-change: func [
 	notif	[integer!]
 ][
 	set-text self objc_msgSend [self sel_getUid "string"]
-	make-event self 0 EVT_CHANGE
+	if loop-started? [make-event self 0 EVT_CHANGE]
 ]
 
 selection-change: func [
@@ -563,7 +563,7 @@ selection-change: func [
 		res [integer!]
 ][
 	idx: objc_msgSend [self sel_getUid "indexOfSelectedItem"]
-	if idx >= 0 [
+	if all [loop-started? idx >= 0][
 		res: make-event self idx + 1 EVT_SELECT
 		set-selected self idx + 1
 		set-text self objc_msgSend [self sel_getUid "itemObjectValueAtIndex:" idx]
