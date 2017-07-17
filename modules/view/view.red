@@ -46,7 +46,8 @@ metrics?: function [
 	all [
 		face/options
 		type: face/options/class
-		res: res/type
+		res: find res type
+		res: next res
 	]
 	res
 ]
