@@ -109,7 +109,7 @@ gui-console-ctx: context [
 	display-about: function [][
 		lay: layout/tight [
 			title "About"
-			size 360x320
+			size 360x330
 			backdrop 58.58.60
 
 			style text:  text 360 center 58.58.60 
