@@ -1184,7 +1184,7 @@ make-area: func [
 	rc/x: as float32! 0.0
 	rc/y: as float32! 0.0
 
-	x: either border? [NSGrooveBorder][NSNoBorder]
+	x: either border? [NSBezelBorder][NSNoBorder]
 	objc_msgSend [container sel_getUid "setBorderType:" x]
 	objc_msgSend [container sel_getUid "setAutohidesScrollers:" yes]
 	objc_msgSend [container sel_getUid "setHasVerticalScroller:" yes]
