@@ -723,10 +723,7 @@ system/view/platform: context [
 				button:			[8x8   0x0]
 			]
 			macOS [
-				button:			[11x11 0x0]
-				button-regular:	[14x14 0x0]
-				button-small:	[11x11 0x0]
-				button-mini:	[11x11 0x0]
+				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
 				check:			[20x0  3x1]
 				radio:			[20x0  1x1]
 				text:			[3x3   0x0]
