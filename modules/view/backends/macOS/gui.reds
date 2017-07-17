@@ -269,7 +269,9 @@ set-defaults: func [/local n [float32!]][
 		#get system/view/fonts/system
 
 	n: objc_msgSend_f32 [default-font sel_getUid "pointSize"]
-	integer/make-at 
+	n: n * as float32! 0.75
+	n: n + as float32! 0.5
+	integer/make-at
 		#get system/view/fonts/size
 		as-integer n
 ]

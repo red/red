@@ -42,7 +42,7 @@ make-font: func [
 	either TYPE_OF(int) <> TYPE_INTEGER [
 		size: as float32! 0.0
 	][
-		size: as float32! int/value * 96 / 72						;@@ hard coded
+		size: as float32! int/value * 94 / 72						;@@ hard coded
 	]
 
 	int: as red-integer! values + FONT_OBJ_ANGLE
