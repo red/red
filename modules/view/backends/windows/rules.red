@@ -51,7 +51,7 @@ OK-Cancel: function [
 	root [object!]
 ][
 	foreach-face/with root [
-		pos-x: face/offset/x
+		pos-x: face/offset/x							;-- swap the "Cancel" button with last one
 		face/offset/x: f/offset/x
 		f/offset/x: pos-x
 	][
@@ -64,7 +64,7 @@ OK-Cancel: function [
 			pos-y: face/offset/y
 
 			foreach f face/parent/pane [
-				all [
+				all [									;-- search for last button on right
 					f <> face
 					f/type = 'button
 					5 > absolute f/offset/y - pos-y
