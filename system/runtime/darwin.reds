@@ -86,7 +86,9 @@ siginfo!: alias struct! [
 	]
 ]
 
-#define UCTX_INSTRUCTION(ctx) [ctx/mcontext/eip]
+#define UCTX_INSTRUCTION(ctx)		[ctx/mcontext/eip]
+#define UCTX_GET_STACK_TOP(ctx)		[ctx/mcontext/esp]
+#define UCTX_GET_STACK_FRAME(ctx)	[ctx/mcontext/ebp]
 
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack
@@ -117,9 +119,13 @@ siginfo!: alias struct! [
 			apple	[struct! [s [c-string!]]]
 			pvars	[program-vars!]
 		][
-			***-main
-			posix-startup-ctx/init
-			on-load argc argv envp apple pvars
+			#either red-pass? = no [					;-- only for pure R/S DLLs
+				***-boot-rs
+				on-load argc argv envp apple pvars
+				***-main
+			][
+				on-load argc argv envp apple pvars
+			]
 		]
 	]
 	exe [

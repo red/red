@@ -30,7 +30,7 @@ lit-path: context [
 	]
 	
 	push: func [
-		p [red-lit-path!]
+		p [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-path/push"]]
 
@@ -40,20 +40,6 @@ lit-path: context [
 
 
 	;--- Actions ---
-	
-	make: func [
-		proto 	 [red-value!]
-		spec	 [red-value!]
-		return:	 [red-lit-path!]
-		/local
-			path [red-lit-path!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/make"]]
-
-		path: as red-lit-path! block/make proto spec
-		path/header: TYPE_LIT_PATH
-		path
-	]
 	
 	form: func [
 		p		[red-lit-path!]
@@ -84,33 +70,6 @@ lit-path: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"'"
 		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
-	
-	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
-		op		   [integer!]							;-- type of comparison
-		return:	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/compare"]]
-
-		if TYPE_OF(value2) <> TYPE_LIT_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
-	]
-	
-	copy: func [
-		path    [red-path!]
-		new		[red-lit-path!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/copy"]]
-
-		path: as red-path! block/copy as red-block! path as red-lit-path! new arg deep? types
-		path/header: TYPE_LIT_PATH
-		as red-series! path
-	]
 
 	init: does [
 		datatype/register [
@@ -118,15 +77,15 @@ lit-path: context [
 			TYPE_PATH
 			"lit-path!"
 			;-- General actions --
-			:make
+			INHERIT_ACTION	;make
 			null			;random
-			null			;reflect
-			null			;to
+			INHERIT_ACTION	;reflect
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
@@ -148,19 +107,20 @@ lit-path: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -175,7 +135,7 @@ lit-path: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

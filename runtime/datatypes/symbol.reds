@@ -56,7 +56,7 @@ symbol: context [
 			s	 [series!]
 			len	 [integer!]
 	][
-		len: 1 + length? src							;-- account for terminal NUL
+		len: length? src
 		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
 		s: as series! node/value
 		dst: as c-string! s/offset
@@ -71,9 +71,11 @@ symbol: context [
 		/local
 			sym	[red-symbol!]
 			id	[integer!]
+			len [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
 
+		len: -1											;-- convert all chars
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		id: search str
 		if positive? id [return id]
@@ -81,7 +83,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node
-		sym/cache:  unicode/to-utf8 str
+		sym/cache:  unicode/to-utf8 str :len
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
@@ -96,10 +98,11 @@ symbol: context [
 			id   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
+		
 		str: declare red-string!
-		str/node: unicode/load-utf8 s 1 + system/words/length? s
+		str/node:	unicode/load-utf8 s system/words/length? s
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
-		str/head: 0
+		str/head:	0
 		id: search str
 
 		if positive? id [return id]
@@ -135,7 +138,7 @@ symbol: context [
 		either positive? sym/alias [sym/alias][id]
 	]
 
-	alias-id: func [
+	get-alias-id: func [
 		id		[integer!]
 		return:	[integer!]
 		/local
@@ -211,6 +214,7 @@ symbol: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

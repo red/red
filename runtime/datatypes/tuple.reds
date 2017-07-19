@@ -13,6 +13,107 @@ Red/System [
 tuple: context [
 	verbose: 0
 
+	rs-make: func [
+		[variadic]
+		count	[integer!]
+		list	[int-ptr!]
+		return: [red-tuple!]
+		/local
+			tuple	[red-tuple!]
+			tp		[byte-ptr!]
+			i		[integer!]
+	][
+		tuple: as red-tuple! stack/push*
+		tuple/header: TYPE_TUPLE or either count > 2 [count << 19][3 << 19]
+
+		tp: (as byte-ptr! tuple) + 4
+		i: 0
+		while [i < count][
+			i: i + 1
+			tp/i: as-byte list/value
+			list: list + 1
+		]
+		while [i < 3][i: i + 1 tp/i: null-byte]
+		tuple
+	]
+	
+	from-binary: func [
+		bin		[red-binary!]
+		tp		[red-tuple!]
+		return: [red-tuple!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			dst	   [byte-ptr!]
+			len	   [integer!]
+	][
+		s: GET_BUFFER(bin)
+		len: (as-integer s/tail - s/offset) - bin/head
+		if len > 12 [len: 12]							;-- take first 12 bytes only
+		
+		p: (as byte-ptr! s/offset) + bin/head
+		dst: (as byte-ptr! tp) + 4
+
+		loop len [
+			dst/value: p/value
+			p: p + 1
+			dst: dst + 1
+		]
+
+		while [len < 3][dst/value: null-byte len: 3 dst: dst + 1]
+
+		tp/header: TYPE_TUPLE or (len << 19)
+		tp
+	]
+
+	from-issue: func [
+		issue	[red-word!]
+		tp		[red-tuple!]
+		return: [red-tuple!]
+		/local
+			len  [integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			s	 [series!]
+			unit [integer!]
+	][
+		str: as red-string! stack/push as red-value! symbol/get issue/symbol
+		str/head: 0								;-- /head = -1 (casted from symbol!)
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		len: string/rs-length? str
+		if len > 24 [len: 24]
+
+		str/node: binary/decode-16 
+			(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			len
+			unit
+		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
+		tp: from-binary as red-binary! str tp
+		stack/pop 1
+		tp
+	]
+	
+	make-rgba: func [
+		slot	[red-value!]
+		r		[integer!]
+		g		[integer!]
+		b		[integer!]
+		a		[integer!]								;-- a = -1 => RGB else RGBA
+		return: [red-tuple!]
+		/local
+			tp	 [red-tuple!]
+			size [integer!]
+	][
+		size: either a = -1 [a: 0 3][4]
+		tp: as red-tuple! slot
+		tp/header: TYPE_TUPLE or (size << 19)
+		tp/array1: (r << 24) or (g << 16 and 00FF0000h) or (b << 8 and FF00h) or (a and FFh)
+		tp/array2: 0
+		tp/array3: 0
+		tp
+	]
+
 	push: func [
 		size	[integer!]
 		arr1	[integer!]
@@ -40,6 +141,7 @@ tuple: context [
 			right [red-tuple!]
 			int   [red-integer!]
 			fl    [red-float!]
+			word  [red-word!]
 			tp1   [byte-ptr!]
 			tp2   [byte-ptr!]
 			size  [integer!]
@@ -53,13 +155,17 @@ tuple: context [
 			swap? [logic!]
 			float? [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
+		#if debug? = yes [if verbose > 0 [print-line "tuple/do-math"]]
 
 		left:  as red-tuple! stack/arguments
 		right: as red-tuple! left + 1
 
 		swap?: no
 		if TYPE_OF(left) <> TYPE_TUPLE [
+			if any [type = OP_SUB type = OP_DIV][
+				word: either type = OP_SUB [words/_subtract][words/_divide]
+				fire [TO_ERROR(script not-related) word datatype/push TYPE_OF(left)]
+			]
 			int: as red-integer! left
 			left: right
 			right: as red-tuple! int
@@ -71,7 +177,7 @@ tuple: context [
 		switch TYPE_OF(right) [
 			TYPE_TUPLE [
 				tp2: (as byte-ptr! right) + 4
-				size2: TUPLE_SIZE(right)
+				size2: TUPLE_SIZE?(right)
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
@@ -89,31 +195,22 @@ tuple: context [
 		]
 
 		tp1: (as byte-ptr! left) + 4
-		size1: TUPLE_SIZE(left)
+		size1: TUPLE_SIZE?(left)
 		n: 0
 		either float? [
 			until [
 				n: n + 1
-				f1: integer/to-float as-integer tp1/n
-				f1: switch type [
-					OP_ADD [f1 + f2]
-					OP_SUB [f1 - f2]
-					OP_MUL [f1 * f2]
-					OP_DIV
-					OP_REM [
-						if 0.0 = f2 [fire [TO_ERROR(math zero-divide)]]
-						either type = OP_DIV [f1 / f2][f1 % f2]
-					]
-					default [ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2) 0.0]
-				]
-				v1: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
+				v1: as-integer tp1/n
+				f1: as-float v1
+				f1: float/do-math-op f1 f2 type
+				v1: as-integer f1
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size1
 			]
 		][
 			size: either size1 < size2 [
-				tp1/1: as byte! size2
+				SET_TUPLE_SIZE(left size2)
 				size2
 			][size1]
 			until [
@@ -122,26 +219,7 @@ tuple: context [
 					v: either n <= size2 [as-integer tp2/n][0]
 				]
 				v1: either n <= size1 [as-integer tp1/n][0]
-				v1: switch type [
-					OP_ADD [v1 + v]
-					OP_SUB [v1 - v]
-					OP_MUL [v1 * v]
-					OP_AND [v1 and v]
-					OP_OR  [v1 or v]
-					OP_XOR [v1 xor v]
-					OP_REM [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 % v]
-					]
-					OP_DIV [
-						either zero? v [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][v1 / v]
-					]
-				]
+				v1: integer/do-math-op v1 v type
 				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
 				tp1/n: as byte! v1
 				n = size
@@ -154,56 +232,14 @@ tuple: context [
 	;-- Actions --
 
 	make: func [
-		proto	 [red-value!]	
-		spec	 [red-value!]
-		return:	 [red-tuple!]
-		/local
-			blk   [red-block!]
-			tuple [red-tuple!]
-			tp    [byte-ptr!]
-			n	  [integer!]
-			i	  [integer!]
-			s	  [series!]
-			int   [red-integer!]
+		proto 	[red-tuple!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-tuple!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "tuple/make"]]
-
-		switch TYPE_OF(spec) [
-			TYPE_TUPLE [
-				as red-tuple! spec
-			]
-			TYPE_BLOCK [
-				blk: as red-block! spec
-				tuple: as red-tuple! stack/push*
-				tuple/header: TYPE_TUPLE
-				tp: (as byte-ptr! tuple) + 4
-				n: block/rs-length? blk
-				if n > 12 [
-					fire [TO_ERROR(script bad-make-arg) proto spec]
-				]
-				tuple/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
-				s: GET_BUFFER(blk)
-				int: as red-integer! s/offset + blk/head
-				i: 0
-				while [i < n][
-					i: i + 1
-					if any [
-						int/value > 255
-						int/value < 0
-					][fire [TO_ERROR(script bad-make-arg) proto spec]]
-					tp/i: as byte! int/value
-					int: int + 1
-				]
-				while [i < 3][i: i + 1 tp/i: null-byte]
-				tuple
-			]
-			default [
-				fire [TO_ERROR(script bad-make-arg) proto spec]
-				null
-			]
-		]
+		to proto spec -1
 	]
-	
+
 	random: func [
 		tp		[red-tuple!]
 		seed?	[logic!]
@@ -224,7 +260,7 @@ tuple: context [
 			tp/header: TYPE_UNSET
 		][
 			array: (as byte-ptr! tp) + 4
-			size: TUPLE_SIZE(tp)
+			size: TUPLE_SIZE?(tp)
 			n: 0
 			until [
 				n: n + 1
@@ -233,6 +269,84 @@ tuple: context [
 			]
 		]
 		as red-value! tp
+	]
+	
+	to: func [
+		proto 	[red-tuple!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-tuple!]
+		/local
+			int  [red-integer!]
+			blk  [red-block!]
+			char [red-char!]
+			fl	 [red-float!]
+			tp   [byte-ptr!]
+			i	 [integer!]
+			n	 [integer!]
+			byte [integer!]
+			s	 [series!]
+			val	 [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/to"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_ANY_LIST [
+				blk: as red-block! spec
+				n: block/rs-length? blk
+				if n > 12 [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+				]
+				tp: (as byte-ptr! proto) + 4
+				s: GET_BUFFER(blk)
+				int: as red-integer! s/offset + blk/head
+				i: 0
+				while [i < n][
+					i: i + 1
+					switch TYPE_OF(int) [
+						TYPE_INTEGER [byte: int/value]
+						TYPE_CHAR	 [
+							char: as red-char! int
+							byte: char/value
+						]
+						TYPE_FLOAT 	 [
+							fl: as red-float! int
+							byte: as-integer fl/value
+						]
+						default [
+							fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+						]
+					]
+					if any [byte > 255 byte < 0][
+						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]
+					]
+					tp/i: as byte! byte
+					int: int + 1
+				]
+				while [i < 3][i: i + 1 tp/i: null-byte]
+				proto/header: TYPE_TUPLE or (i << 19)
+			]
+			TYPE_BINARY	  [
+				proto: from-binary as red-binary! spec proto
+			]
+			TYPE_ISSUE [
+				from-issue as red-word! spec proto
+			]
+			TYPE_ANY_STRING [
+				i: 0
+				val: as red-value! :i
+				copy-cell spec val					;-- save spec, load-value will change it
+
+				proto: as red-tuple! load-value as red-string! spec
+				
+				if TYPE_OF(proto) <> TYPE_TUPLE [ 
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE val]
+				]
+			]
+			TYPE_TUPLE [return as red-tuple! spec]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TUPLE spec]]
+		]
+		proto
 	]
 
 	form: func [
@@ -250,7 +364,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/form"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 		
 		n: 0
 		until [
@@ -329,8 +443,8 @@ tuple: context [
 		if TYPE_OF(tp2) <> TYPE_TUPLE [RETURN_COMPARE_OTHER]
 		p1: (as byte-ptr! tp1) + 4
 		p2: (as byte-ptr! tp2) + 4
-		sz1: TUPLE_SIZE(tp1)
-		sz2: TUPLE_SIZE(tp2)
+		sz1: TUPLE_SIZE?(tp1)
+		sz2: TUPLE_SIZE?(tp2)
 		sz: either sz1 > sz2 [sz1][sz2]
 
 		i: 0
@@ -387,12 +501,29 @@ tuple: context [
 	length?: func [
 		tp		[red-tuple!]
 		return: [integer!]
-		/local
-			value  [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
-		TUPLE_SIZE(tp)
+		TUPLE_SIZE?(tp)
+	]
+
+	all-zero?: func [ ;ugly name, but needed because of the `zero?` macro
+		tp		[red-tuple!]
+		return: [logic!]
+		/local
+			value	[byte-ptr!]
+			size	[integer!]
+			n		[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/zero?"]]
+		value: (as byte-ptr! tp) + 4
+		size: TUPLE_SIZE?(tp)
+		n: 1
+		while [n <= size] [
+			if value/n <> as byte! 0 [return false]
+			n: n + 1
+		]
+		true
 	]
 
 	pick: func [
@@ -407,7 +538,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/pick"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -416,7 +547,7 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 			null
 		][
-			as red-value! integer/box as-integer value/index
+			as red-value! integer/push as-integer value/index
 		]
 	]
 
@@ -435,7 +566,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/poke"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: TUPLE_SIZE(tp)
+		size: TUPLE_SIZE?(tp)
 
 		either any [
 			index <= 0
@@ -444,10 +575,21 @@ tuple: context [
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
 			int: as red-integer! data
-			v: int/value
-			either v > 255 [v: 255][if negative? v [v: 0]]
-			value/index: as byte! v
+			either TYPE_OF(int) = TYPE_NONE [
+				v: size - index + 1
+				size: either index > 3 [index - 1][3]
+				loop v [
+					value/index: as byte! 0
+					index: index + 1
+				]
+				SET_TUPLE_SIZE(tp size)
+			][
+				v: int/value
+				either v > 255 [v: 255][if negative? v [v: 0]]
+				value/index: as byte! v
+			]
 		]
+		object/check-owner as red-value! tp
 		as red-value! data
 	]
 
@@ -461,13 +603,12 @@ tuple: context [
 			tmp  [byte!]
 			size [integer!]
 			n	 [integer!]
-			m	 [integer!]
 			tp   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
 
 		tp: (as byte-ptr! tuple) + 4
-		size: TUPLE_SIZE(tuple)
+		size: TUPLE_SIZE?(tuple)
 		part: size
 		if OPTION?(part-arg) [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -490,6 +631,7 @@ tuple: context [
 			n: n + 1
 			size: size - 1
 		]
+		object/check-owner as red-value! tuple
 		as red-value! tuple
 	]
 
@@ -502,7 +644,7 @@ tuple: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
@@ -538,9 +680,10 @@ tuple: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			:pick
-			:poke
+			null			;poke
 			null			;put
 			null			;remove
 			:reverse

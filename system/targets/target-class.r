@@ -30,7 +30,8 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: none
+	emit-throw:	on-init: emit-alt-last: emit-log-b:
+	emit-variable: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -68,16 +69,16 @@ target-class: context [
 	]
 	
 	stack-encode: func [offset [integer!]][
-		either any [								;-- local variable case
+		either any [								;-- local variables only
 			offset < -128
 			offset > 127
 		][
 			to-bin32 offset
 		][
-			skip debase/base to-hex offset 16 3
+			to-bin8 offset
 		]
 	]
-
+	
 	emit: func [bin [binary! char! block!]][
 		if verbose >= 4 [print [">>>emitting code:" mold bin]]
 		append emitter/code-buf bin
@@ -90,61 +91,6 @@ target-class: context [
 			append/only 							;-- record reloc reference
 				second last emitter/chunks/queue
 				back tail spec/3					
-		]
-	]
-
-	emit-variable: func [
-		name  [word! object!] 
-		gcode [binary! block! none!]				;-- global opcodes
-		pcode [binary! block! none!]				;-- PIC opcodes
-		lcode [binary! block!] 						;-- local opcodes
-		/local offset byte code
-	][
-		if object? name [name: compiler/unbox name]
-		
-		case [
-			offset: select emitter/stack name [
-				offset: stack-encode offset 			;-- local variable case
-				if 4 = length? offset [
-					lcode: copy/deep lcode
-					code: either block? lcode [first back find lcode 'offset][lcode]
-					change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
-				]
-				either block? lcode [
-					emit reduce bind lcode 'offset
-				][
-					emit lcode
-					emit offset
-				]
-			]
-			PIC? [										;-- global variable case (PIC version)
-				either block? pcode [
-					foreach code reduce pcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
-				][
-					emit pcode
-					emit-reloc-addr emitter/symbols/:name
-				]
-			]
-			'global [									;-- global variable case
-				either block? gcode [
-					foreach code reduce gcode [
-						either code = 'address [
-							emit-reloc-addr emitter/symbols/:name
-						][
-							emit code
-						]
-					]
-				][
-					emit gcode
-					emit-reloc-addr emitter/symbols/:name
-				]
-			]
 		]
 	]
 	
@@ -178,7 +124,10 @@ target-class: context [
 	implicit-cast: func [arg /local right-width][
 		right-width: first get-width arg none
 		
-		if all [width = 4 right-width = 1][			;-- detect byte! -> integer! implicit casting
+		if any [
+			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
+			find [float! float32! float64!] first compiler/get-type arg
+		][
 			arg: make object! [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
@@ -209,6 +158,25 @@ target-class: context [
 		total
 	]
 	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		either 'value = last spec [
+			unless 'struct! = spec/1 [spec: compiler/find-aliased spec/1]
+			body: bind/copy body 'type
+			if block? spec/1 [spec: next spec]
+
+			foreach [name t] spec/2 [				;-- skip 'struct!
+				unless word? name [break]
+				either 'value = last type: t [
+					foreach-member type body
+				][
+					do body
+				]
+			]
+		][
+			do body
+		]
+	]
+	
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
@@ -233,7 +201,7 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
+	emit-call: func [name [word!] args [block!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -249,7 +217,14 @@ target-class: context [
 				emit-call-import args fspec spec attribs
 			]
 			native [
-				emit-call-native args fspec spec attribs
+				switch/default name [
+					log-b [							;@@ needs a new function type...
+						emit-pop
+						emit-log-b compiler/last-type/1
+					]
+				][
+					emit-call-native args fspec spec attribs
+				]
 			]
 			routine [
 				emit-call-native/routine args fspec spec attribs name
@@ -273,17 +248,12 @@ target-class: context [
 				if name = 'not [res: compiler/get-type args/1]
 			]
 			op [
-				either any [
-					compiler/any-float? compiler/resolve-expr-type args/1
-					compiler/any-float? compiler/resolve-expr-type args/2
-				][
+				either compiler/any-float? compiler/resolve-expr-type args/1 [
 					emit-float-operation name args
 				][
 					emit-integer-operation name args
 				]
-				if sub? [emitter/logic-to-integer name]
-				
-				unless find comparison-op name [		;-- comparison always return a logic!
+				unless find comparison-op name [	;-- comparison always return a logic!
 					res: any [
 						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	

@@ -21,6 +21,7 @@ qt/script-header: "Red/System []"
 
 ;; make auto files if needed
 do %source/units/make-red-system-auto-tests.r
+do %source/units/prepare-dependencies.r
 
 ;; run the tests
 print ["Run-All    v" system/script/header/version]
@@ -53,8 +54,7 @@ print ["This test started at" start-time]
   --run-script-quiet %source/compiler/namespace-test.r
   --run-script-quiet %source/compiler/compiles-ok-test.r
   --run-script-quiet %source/compiler/dylib-test.r
-  ;--run-test-file-quiet %source/compiler/define-test.reds
-
+  --run-test-file-quiet %source/compiler/define-test.reds
 ===end-group===
 
 ===start-group=== "Datatype tests"
@@ -106,15 +106,11 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/conditional-test.reds
 ===end-group===
 
-;===start-group=== "Runtime tests"
-;===end-group===
+===start-group=== "System tests"
+  --run-test-file-quiet %source/units/system-test.reds
+===end-group===
 
 ===start-group=== "Auto-tests"
-  --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/dylib-auto-test.reds
 
 ===end-group===

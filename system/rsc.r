@@ -83,7 +83,7 @@ rsc: context [
 
 		parse args [
 			any [
-				  ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
+				  "--no-runtime"		    (opts/runtime?: no)		;@@ overridable by config!
 				| ["-g" | "--debug-stabs"]  (opts/debug?: yes)		;@@ overridable by config!
 				| ["-l" | "--literal-pool"] (opts/literal-pool?: yes)
 				| ["-o" | "--output"]  		set output skip

@@ -16,9 +16,10 @@ hash: context [
 	;--- Actions ---
 
 	make: func [
-		proto		[red-value!]
-		spec		[red-value!]
-		return:		[red-hash!]
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-hash!]
 		/local
 			hash	[red-hash!]
 			size	[integer!]
@@ -30,7 +31,6 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/make"]]
 
 		blk?: no
-		size: 1
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
@@ -41,17 +41,34 @@ hash: context [
 				size: block/rs-length? as red-block! spec
 				blk?: yes
 			]
-			default [--NOT_IMPLEMENTED--]
+			default [
+				return to proto spec type
+			]
 		]
-		blk: block/make-at as red-block! stack/push* size
-		if blk? [
-			block/copy as red-block! spec blk null no null
+
+		unless positive? size [size: 1]
+		either type = -1 [							;-- called by TO
+			blk: as red-block! spec
+		][
+			blk: block/make-at as red-block! stack/push* size
+			if blk? [block/copy as red-block! spec blk null no null]
 		]
-		table: _hashtable/init size blk HASH_TABLE_HASH
+		table: _hashtable/init size blk HASH_TABLE_HASH 1
 		hash: as red-hash! blk
-		hash/header: TYPE_HASH							;-- implicit reset of all header flags
+		hash/header: TYPE_HASH						;-- implicit reset of all header flags
 		hash/table: table
 		hash
+	]
+
+	to: func [
+		proto	[red-block!]
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-hash!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "hash/to"]]
+
+		make proto (as red-value! block/to proto spec TYPE_BLOCK) -1
 	]
 
 	mold: func [
@@ -68,14 +85,13 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/mold"]]
 
 		string/concatenate-literal buffer "make hash! "
-		block/mold as red-block! hash buffer only? all? flat? arg part - 11 indent
+		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
 	]
 
 	clear: func [
 		hash	[red-hash!]
 		return:	[red-value!]
 		/local
-			s	[series!]
 			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/clear"]]
@@ -101,7 +117,7 @@ hash: context [
 
 		block/copy as red-block! hash new part-arg deep? types
 		size: block/rs-length? new
-		table: _hashtable/init size new HASH_TABLE_HASH
+		table: _hashtable/init size new HASH_TABLE_HASH 1
 		hash: as red-hash! new
 		hash/header: TYPE_HASH							;-- implicit reset of all header flags
 		hash/table: table
@@ -160,7 +176,7 @@ hash: context [
 			:make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			INHERIT_ACTION	;eval-path
@@ -187,7 +203,7 @@ hash: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			:clear
 			:copy
 			INHERIT_ACTION	;find
@@ -196,10 +212,11 @@ hash: context [
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			null			;put
+			INHERIT_ACTION	;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -214,7 +231,7 @@ hash: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

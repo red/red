@@ -1,10 +1,10 @@
 REBOL [
-	Title:		"Red/System ARM code emitter"
-	Author:		"Andreas Bolka, Nenad Rakocevic"
-	File:		%ARM.r
+	Title:	 "Red/System ARM code emitter"
+	Author:	 "Andreas Bolka, Nenad Rakocevic"
+	File:	 %ARM.r
 	Tabs:	 4
-	Rights:		"Copyright (C) 2011-2015 Andreas Bolka, Nenad Rakocevic. All rights reserved."
-	License:	"BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
+	Rights:	 "Copyright (C) 2011-2017 Andreas Bolka, Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 make-profilable make target-class [
@@ -19,6 +19,7 @@ make-profilable make target-class [
 	branch-offset-size:	4							;-- size of branch instruction
 	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	insn-size:			4
+	last-math-op:		none						;-- save last math op type for overflow checking
 
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
@@ -364,7 +365,7 @@ make-profilable make target-class [
 	
 	emit-reloc-addr: func [spec [block!] /only][
 		unless only [append spec emitter/tail-ptr]	;-- save reloc position
-		unless empty? emitter/chunks/queue [				
+		unless empty? emitter/chunks/queue [
 			append/only 							;-- record reloc reference
 				second last emitter/chunks/queue
 				either only [spec][back tail spec]
@@ -378,63 +379,57 @@ make-profilable make target-class [
 		;-- registers usage:
 		;-- 	- on entering: r0: dividend, r1: divisor, r4: mode (0: division, 1: modulo, 2: remainder)
 		;--		- on exit: r0: quotient, r1: remainder or r0: modulo/remainder
-		;--		- registers modified: r0-r3, r5, ip
+		;--		- registers modified: r0-r3, r5-r7, ip
 		
 		if verbose >= 3 [print "^/>>>emitting DIVIDE intrinsic"]
 		
 		base: emitter/tail-ptr
 		
-		foreach opcode [	
-							; .divide	
+		foreach opcode [
+							; .divide
 			#{e3510000}			; CMP r1, #0			; if divisor = 0
 			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 			#{092d0001}			; PUSHEQ {r0}
-			#{0a000000}			; BEQ ***-on-quit		; call runtime error handler
-			#{e1500001}			; CMP r0, r1			; if dividend = divisor
-			#{0a00000b}			; BEQ .equal
-			#{e1a03000}			; MOV r3, r0			; r3: dividend
+			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
+
+			#{e1a06000}			; MOV r6, r0			; r6: dividend
 			#{e1a05001}			; MOV r5, r1			; r5: divisor
+			#{e1a07001}			; MOV r7, r1			; r7: divisor
 			#{e3500000}			; CMP r0, #0			; if dividend < 0
-			#{42603000}			; RSBMI r3, r0, #0		;	r3: -dividend
+			#{42606000}			; RSBMI r6, r0, #0		;	r6: -dividend
 			#{e3510000}			; CMP r1, #0			; if divisor < 0
 			#{42615000}			; RSBMI r5, r1, #0		;	r5: -divisor
-			#{e3500102}			; CMP r0, #1<<31		; if r3 = -2^31 (special case for -2^31)
+			#{e201c102}			; AND ip, r1, #1<<31	; flag negative divisor:  ip: r1 and #80000000
+			#{e18cc0a0}			; ORR ip, ip, r0 LSR#1  ; flag negative dividend: ip: ip or r0>>1
+			
+			#{e3500102}			; CMP r0, #1<<31		; if r0 = -2^31 (special case for -2^31)
 			#{0a000006}			; BEQ .ispowerof2		; or
-			#{e1530005}			; CMP r3, r5			; if r3 <= divisor
-			#{8a000004}			; BHI .ispowerof2			
-			#{e1a01000}			; MOV r1, r0			; remainder: dividend
-			#{e3a00000}			; MOV r0, #0			; quotient: 0
-							; .equal
+			#{e1560005}			; CMP r6, r5			; if r6 <= divisor
+			#{8a000004}			; BHI .ispowerof2		; if dividend > divisor, proceed with division
+			#{13a00000}			; MOVNE r0, #0			; if dividend < divisor, quotient: 0
+			#{11a01006}			; MOVNE r1, r6			; 	remainder: abs(dividend)
 			#{03a00001}			; MOVEQ r0, #1			; if dividend = divisor, quotient: 1
 			#{03a01000}			; MOVEQ r1, #0			;	remainder: 0
-			#{ea000024}			; B .divide_end			; jump to remainder epilog
+			#{ea00001a}			; B .epilog				; finish
 							; .ispowerof2
-			#{e2413001}			; SUB r3, r1, #1		; r3: divisor - 1
-			#{e1130001}			; TST r3, r1			; if divisor is a power of 2 (divisor & (divisor - 1))
-			#{1a00000c}			; BNE .notpowerof2
+			#{e2453001}			; SUB r3, r5, #1		; r3: abs(divisor) - 1
+			#{e1130005}			; TST r3, r5			; if abs(divisor) is a power of 2 (divisor & (divisor - 1))
+			#{1a000009}			; BNE .notpowerof2
 			#{e1a03000}			; MOV r3, r0			; save dividend
-			#{e1a02001}			; MOV r2, r1			; save divisor
 							; .powerof2
 			#{31a000c0}			; MOVCC r0, r0, ASR#1	; divide by 2 (but not on first pass)
 			#{e1b010a1}			; MOVS r1, r1, LSR#1	; until power of 2 reached (carry set)
 			#{3afffffc}			; BCC .powerof2
-			#{e2621000}			; RSB r1, r2, #0		; 2's complement of divisor
-			#{e0031001}			; AND r1, r3, r1		; r1: dividend and -divisor
-			#{e0431001}			; SUB r1, r3, r1		; compute remainder = (dividend - (dividend and -divisor))
+			#{e2651000}			; RSB r1, r5, #0		; 2's complement of abs(divisor)
+			#{e0061001}			; AND r1, r6, r1		; r1: dividend and -divisor
+			#{e0461001}			; SUB r1, r6, r1		; compute remainder = (dividend - (dividend and -divisor))
 			#{e3530102}			; CMP r3, #1<<31		; if r3 = -2^31 (special case for -2^31)
-			#{0a000017}			; BEQ .divide_end		; 	jump to end
-			#{e3530000}			; CMP r3, #0			; if dividend < 0
-			#{40411002}			; SUBMI r1, r1, r2		;	adjust remainder (remainder = remainder - divisor)
-			#{ea000014}			; B .divide_end
+			#{020cc102}			; ANDEQ ip, ip, #1<<31	; set dividend's sign flag to 0 (let divisor's sign matter only)
+			#{ea00000d}			; B .epilog
 							; .notpowerof2
-			#{e1b02001}			; MOVS r2, r1			; r2: divisor
-			#{e212c102}			; ANDS ip, r2, #1<<31	; if r2 < 0, ip: #80000000
-			#{42622000}			; RSBMI r2, r2, #0		; if r2 < 0, r2: -r2 (2's complement)
-			#{e1b01000}			; MOVS r1, r0			; r1: dividend
-			#{e03cc041}			; EORS ip, ip, r1 ASR#32 ; if r1 < 0, ip: ip xor r1>>32
-			#{22611000}			; RSBCS r1, r1, #0		; if r1 < 0, r1: -r1 (2's complement)
-			
+			#{e1b02005}			; MOVS r2, r5			; r2: abs(divisor)
+			#{e1b01006}			; MOVS r1, r6			; r1: abs(dividend)
 			#{e3a00000}			; MOV r0, #0     		; clear R0 to accumulate result
 			#{e3a03001}			; MOV r3, #1     		; set bit 0 in R3, which will be shifted left then right
 							; .start
@@ -456,30 +451,27 @@ make-profilable make target-class [
 							; .epilog					; back to where it started, and we can end
 			#{e1b0c08c}			; MOVS ip, ip, LSL#1	; C: bit 31, N: bit 30
 			#{22600000}			; RSBCS	r0, r0, #0		; if C = 1, r0: -r0 (2's complement)
-			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)								
+			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)
+			#{42600000}			; RSBMI	r0, r0, #0		; if N = 1, r0: -r0 (2's complement)
 							; .divide_end				; r0: quotient, r1: remainder
 			#{e3340000}			; TEQ r4, #0			; if not modulo/remainder op,
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
 			
 			;-- Adjust modulo result to be mathematically correct:
-			;-- 	if modulo < 0 [
-			;--			if divisor < 0 [divisor: negate divisor]
-			;--			modulo: modulo + divisor
-			;--		]
+			;-- 	if modulo < 0 [modulo: modulo + abs(divisor)]
+			
 			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
-			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
+			#{e3340002}			; TEQ r4, #2			; if remainder mode
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
 			#{e3500000}			; CMP r0, #0	 		; if r0 >= 0, (modulo)
 			#{51a0f00e}			; MOVPL pc, lr			; 	return from sub-routine
-			#{e3520000}			; CMP r2, #0	 		; if r2 < 0 (divisor)
-			#{41e00000}			; RSBMI	r0, r0, #0		;	r0: -r0 (2's complement)
-			#{e0800002}			; ADD r0, r0, r2		; r0: r0 + r2
+			#{e0800005}			; ADD r0, r0, r5		; r0: r0 + r5 (abs(divisor))
 			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
  		][
  			emit-i32 opcode
  		]
  		;-- link it with runtime error handler
- 		append emitter/symbols/***-on-quit/3 base + (4 * insn-size)
+ 		append emitter/symbols/***-on-div-error/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
@@ -572,15 +564,14 @@ make-profilable make target-class [
 		head reverse spec
 	]
 	
-	arguments-on-stack?: func [args [block!] /cdecl /local total][
-		total: 0
-		forall args [
-			if args/1 <> #_ [						;-- bypass place-holder marker
-				total: total + argument-size? args/1 to logic! cdecl
-				if total > 16 [return args]
-			]
+	hidden-ptr?: func [fspec [block!] /local ret][
+		all [
+			fspec/2 = 'import
+			fspec/3 = 'cdecl
+			ret: select fspec/4 compiler/return-def
+			'value = last ret
+			1 < emitter/struct-slots? ret
 		]
-		none
 	]
 	
 	to-bin24: func [v [integer! char!]][
@@ -720,7 +711,7 @@ make-profilable make target-class [
 	][
 		if object? name [name: compiler/unbox name]
 
-		either offset: select emitter/stack name [	;-- local variable case
+		either offset: emitter/local-offset? name [	;-- local variable case
 			emit-load-local/float lcode offset
 		][											;-- global variable case
 			pools/collect/spec/with 0 name #{e59f3000}	;-- LDR r3, [pc, #offset]
@@ -739,7 +730,7 @@ make-profilable make target-class [
 	][
 		if object? name [name: compiler/unbox name]
 
-		either offset: select emitter/stack name [	;-- local variable case
+		either offset: emitter/local-offset? name [	;-- local variable case
 			emit-load-local lcode offset
 		][											;-- global variable case
 			opcode: #{e59f0000}
@@ -763,7 +754,7 @@ make-profilable make target-class [
 	][
 		if object? name [name: compiler/unbox name]
 		
-		either offset: select emitter/stack name [	;-- local variable case
+		either offset: emitter/local-offset? name [	;-- local variable case
 			emit-load-local l-low offset
 			emit-load-local l-high offset + 4
 		][
@@ -794,7 +785,7 @@ make-profilable make target-class [
 			if all [
 				PIC?
 				none? p-code
-				none? select emitter/stack name
+				none? emitter/local-offset? name
 			][										;-- no specific PIC opcode case (LDM/STM)
 				emit-i32 pick [
 					#{e0811009}						;-- ADD r1, sb
@@ -844,6 +835,38 @@ make-profilable make target-class [
 			emit-i32 #{e8bd0002}		   			;-- POP {r1}
 		]
 	]
+	
+	emit-alloc-stack: does [
+		emit-i32 #{e240d000}						;-- SUB sp, r0
+		emit-i32 #{e20dd0fc}						;-- AND sp, #-4 ; align to lower bound
+	]
+
+	emit-free-stack: does [
+		emit-i32 #{e1e00000}						;-- NEG r0			; MVN r0, r0
+		emit-i32 #{e3c00003}						;-- AND r0, #-4
+		emit-i32 #{e1e00000}						;-- NEG r0			; align to upper bound
+		emit-i32 #{e08dd000}						;-- ADD sp, sp, r0
+	]
+
+	emit-reserve-stack: func [slots [integer!] /local size][
+		size: slots * stack-width
+		either size > 255 [
+			emit-load-imm32/reg size 4
+			emit-i32 #{e04dd004}					;-- SUB sp, sp, r4	; 32-bit displacement
+		][
+			emit-i32 join #{e24dd0}	to-bin8 size	;-- SUB sp, sp, size ; 8-bit displacement
+		]
+	]
+
+	emit-release-stack: func [slots [integer!] /bytes /local size][
+		size: either bytes [slots][slots * stack-width]
+		either size > 255 [
+			emit-load-imm32/reg size 4
+			emit-i32 #{e08dd004}					;-- ADD sp, sp, r4	; 32-bit displacement
+		][
+			emit-i32 join #{e28dd0}	to-bin8 size	;-- ADD sp, sp, size ; 8-bit displacement
+		]
+	]
 
 	emit-casting: func [value [object!] alt? [logic!] /local old type][
 		type: compiler/get-type value/data	
@@ -874,8 +897,56 @@ make-profilable make target-class [
 					#{e20000ff}						;-- AND r0, r0, #ff
 				] alt?
 			]
-			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
-				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
+			all [value/type/1 = 'integer! find [float! float64! float32!] type/1][
+				if verbose >= 3 [print [">>>converting from" type/1 "to integer!"]]
+				either type/1 = 'float32! [
+					either alt? [
+						emit-i32 #{ee011a10}		;-- FMSR   s2, r1
+						emit-i32 #{eebd1ac1}		;-- FTOSIS s2, s2
+					][
+						emit-i32 #{ee000a10}		;-- FMSR   s0, r0
+						emit-i32 #{eebd0ac0}		;-- FTOSIS s0, s0
+					]
+				][
+					emit-i32 #{ec410b10}			;-- FMDRR d0, r1, r0
+					either alt? [
+						emit-i32 #{eebd1bc0}		;-- FTOSID s2, d0
+					][
+						emit-i32 #{eebd0bc0}		;-- FTOSID s0, d0
+					]
+				]
+				either alt? [
+					emit-i32 #{ee111a10}			;-- FMRS   r1, s2
+				][
+					emit-i32 #{ee100a10}			;-- FMRS   r0, s0
+				]
+			]
+			all [find [float! float64! float32!] value/type/1 type/1 = 'integer!][
+				if verbose >= 3 [print [">>>converting from integer! to" value/type/1]]
+				either alt? [
+					emit-i32 #{ee011a10}			;-- FMSR s1, r1
+				][
+					emit-i32 #{ee000a10}			;-- FMSR s0, r0
+				]
+				either value/type/1 = 'float32! [
+					either alt? [
+						emit-i32 #{eeb81ac1}		;-- FSITOS s1, s1
+						emit-i32 #{ee111a10}		;-- FMRS r1, s1
+					][
+						emit-i32 #{eeb80ac0}		;-- FSITOS s0, s0
+						emit-i32 #{ee100a10}		;-- FMRS r0, s0
+					]
+				][
+					either alt? [
+						emit-i32 #{eeb80bc1}		;-- FSITOD d0, s1
+					][
+						emit-i32 #{eeb80bc0}		;-- FSITOD d0, s0
+					]
+					emit-i32 #{ec510b10}			;-- FMRRD r0, r1, d0
+				]
+			]
+			all [find [float! float64!] value/type/1 type/1 = 'float32!][
+				if verbose >= 3 [print ">>>converting from float32! to float!"]
 				either alt? [
 					emit-i32 #{ee001a10}			;-- FMSR s0, r1
 				][
@@ -1007,6 +1078,17 @@ make-profilable make target-class [
 	
 	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
+	emit-get-overflow: does [
+		either last-math-op = '* [
+			emit-i32 #{e1550fc0}					;-- CMP   r5, r0, ASR #31
+			emit-i32 #{13a00001}					;-- MOVNE r0, #1
+			emit-i32 #{03a00000}					;-- MOVEQ r0, #0
+		][
+			emit-i32 #{63a00001}					;-- MOVVS r0, #1
+			emit-i32 #{73a00000}					;-- MOVVC r0, #0
+		]
+	]
+	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
@@ -1034,7 +1116,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit-i32 #{e8bd0001}						;-- POP {r0}
 	]
-	
+
+	emit-log-b: func [type][
+		emit-i32 #{e16f0f10}						;-- CLZ r0, r0
+		emit-i32 #{e260001f}						;-- RSB r0, r0, #31
+	]
+
 	emit-pop-float: func [idx [integer!] /with type [block!]][
 		if with [width: select emitter/datatypes type/1]
 		emit-float
@@ -1047,12 +1134,11 @@ make-profilable make target-class [
 	
 	emit-push-float: func [idx [integer!] type [block!]][
 		width: select emitter/datatypes type/1
+		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+			to char! width
 		emit-float
 			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
 			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
-
-		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
-			to char! width
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -1130,7 +1216,7 @@ make-profilable make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type offset spec
+		/local type offset spec original opcode
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
@@ -1156,14 +1242,57 @@ make-profilable make target-class [
 			]
 			word! [
 				type: compiler/get-variable-spec value
-				either find [float! float64!] type/1 [
-					emit-variable-poly value
-						#{e8900003} 				;-- LDM r0, {r0,r1}		; global
-						none
-						#{e59b0000}					;-- LDR r0, [fp, #[-]n]	; local, low bits @@ test!!
-					
-					if offset: select emitter/stack value [
-						emit-load-local #{e59b1000} offset + 4	;-- LDR r1, [fp, #[-]n+4]	; local, high bits
+				case [
+					find [float! float64!] type/1 [
+						emit-variable-poly value
+							#{e8900003} 				;-- LDM r0, {r0,r1}		; global
+							none
+							#{e59b0000}					;-- LDR r0, [fp, #[-]n]	; local, low bits @@ test!!
+
+						if offset: emitter/local-offset? value [
+							emit-load-local #{e59b1000} offset + 4	;-- LDR r1, [fp, #[-]n+4]	; local, high bits
+						]
+					]
+					all [
+						offset: emitter/local-offset? value
+						'value = last select compiler/locals value
+					][									;-- struct on stack case
+						either 255 < abs offset [
+							emit-load-imm32/reg offset 4
+							emit-i32 pick [
+								#{e04b0004}				;-- SUB r0, fp, r4	; local, 32-bit displacement
+								#{e08b0004}				;-- ADD r0, fp, r4	; arg, 32-bit displacement
+							] offset < 0
+						][
+							opcode: pick [#{e24b00} #{e28b00}] offset < 0
+							emit-i32 join opcode to-bin8 abs offset	;-- ADD/SUB r0, fp, size ; 8-bit displacement
+						]
+					]
+					'else [
+						either alt [
+							emit-variable-poly/alt value
+								#{e5911000}				;-- LDR r1, [r1]		; global
+								#{e7911009}				;-- LDR r1, [r1, sb]	; PIC
+								#{e59b1000}				;-- LDR r1, [fp, #[-]n]	; local
+						][
+							emit-variable-poly value
+								#{e5900000} 			;-- LDR r0, [r0]		; global
+								#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
+								#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
+						]
+					]
+				]
+			]
+			get-word! [
+				value: to word! original: value
+				either any [
+					all [
+						spec: select compiler/functions value
+						spec/2 = 'routine
+					]
+					all [
+						emitter/local-offset? value
+						'function! = first compiler/get-type value
 					]
 				][
 					either alt [
@@ -1177,19 +1306,18 @@ make-profilable make target-class [
 							#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
 							#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
 					]
-				]
-			]
-			get-word! [
-				either offset: select emitter/stack to word! value [
-					emit-i32 either negative? offset [
-						#{e24b00}					;-- SUB r0, fp, n
-					][
-						#{e28b00}					;-- ADD r0, fp, n
-					]
-					emit-i32 to-bin8 abs offset
 				][
-					pools/collect/spec 0 value
-					if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					either offset: emitter/local-offset? value [
+						emit-i32 either negative? offset [
+							#{e24b00}					;-- SUB r0, fp, n
+						][
+							#{e28b00}					;-- ADD r0, fp, n
+						]
+						emit-i32 to-bin8 abs offset
+					][
+						pools/collect/spec 0 original
+						if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
+					]
 				]
 			]
 			string! [
@@ -1217,7 +1345,8 @@ make-profilable make target-class [
 	emit-store: func [
 		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
-		/local store-qword store-word store-byte type
+		/by-value slots [integer!]
+		/local store-qword store-word store-byte type opcode
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
@@ -1258,50 +1387,92 @@ make-profilable make target-class [
 				]
 			]
 			word! [
-				set-width name
-				switch width [
-					1 [do store-byte]
-					4 [do store-word]
-					8 [do store-qword]
+				either by-value [
+					if slots <= 2 [				 	;-- if > 2, copied already, do nothing
+						either offset: emitter/local-offset? name [
+							if slots = 2 [
+								set-width/type last spec/2
+								opcode: pick [#{e58b1000} #{e50b1000}] offset > 0
+								emit-poly/with opcode abs offset + 4 ;-- STR r1, [fp, #[-]n]
+							]
+							set-width/type spec/2/2
+							opcode: pick [#{e58b0000} #{e50b0000}] offset > 0
+							emit-poly/with opcode abs offset	;-- STR r0, [fp, #[-]n]
+						][
+							emit-variable name
+								#{e5933000}			;-- LDR r3, [r3]		; global
+								#{e7933009}			;-- LDR r3, [r3, sb]	; PIC
+								#{e59b3000}			;-- LDR r3, [fp, #[-]n]	; local
+								
+							if slots = 2 [
+								set-width/type last spec/2
+								emit-poly #{e5831004} ;-- STR r1, [r3,#4]
+							]
+							set-width/type spec/2/2
+							emit-poly #{e5830000}	;-- STR r0, [r3]
+						]
+					]
+				][
+					set-width name
+					switch width [
+						1 [do store-byte]
+						4 [do store-word]
+						8 [do store-qword]
+					]
 				]
 			]
 			get-word! [
-				unless find emitter/stack to word! value [
+				unless emitter/local-offset? to word! value [
 					pools/collect/spec 0 value
 					if PIC? [emit-i32 #{e0800009}]	;-- ADD r0, sb
 				]
 				do store-word
 			]
 			string! paren! [
+				if spec [emit-load-literal-ptr spec/2]
 				do store-word
 			]
 		]
 	]
 	
-	emit-init-path: func [name [word!]][
-		emit-load-symbol name
+	emit-init-path: func [name [word! get-word!]][
+		emit-load-symbol to word! name
 	]
 
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved
+		path [path! set-path!] spec [block! none!] /short /local offset type saved name
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
-			spec: second compiler/resolve-type path/1
-			emit-load path/1
+			name: to word! path/1
+			spec: second compiler/resolve-type name
+			emit-load name
 		]
 		if short [return spec]
 
 		saved: width
-		type: first compiler/resolve-type/with path/2 spec
-		set-width/type type							;-- adjust operations width to member value size
+		type: compiler/resolve-type/with path/2 spec
+		set-width/type type/1						;-- adjust operations width to member value size
 
 		offset: emitter/member-offset? spec path/2
-		if width = 8 [								;-- 64-bit value case
-			emit-poly/with #{e5901000} offset + 4	;-- LDR r1, [r0, offset+4]	; high bits
+		
+		either any [
+			all [type/1 = 'struct! 'value = last spec/(path/2)]
+			all [
+				get-word? first head path
+				tail? skip path 2
+			]
+		][
+			if offset <> 0 [
+				emit-op-imm32 #{e2800000} offset	  ;-- ADD r0, r0, #offset
+			]
+		][
+			if width = 8 [							  ;-- 64-bit value case
+				emit-poly/with #{e5901000} offset + 4 ;-- LDR r1, [r0, offset+4]	; high bits
+			]
+			emit-poly/with #{e5900000} offset		  ;-- LDR[B] r0, [r0, offset]
 		]
-		emit-poly/with #{e5900000} offset			;-- LDR[B] r0, [r0, offset]
 		width: saved
 	]
 	
@@ -1407,18 +1578,57 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset size][
+	emit-store-path: func [
+		path [set-path!] type [word!] value parent [block! none!]
+		/local idx offset size slots
+	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
 		size: emitter/size-of? compiler/get-type value
 													;-- @@ separate 64/32-bit conventions, too messy...
-		unless value = <last> [
+		either value = <last> [
+			if 'value = last compiler/last-type [
+				slots: emitter/struct-slots? compiler/last-type
+				if slots > 2  [exit]				;-- big struct by value do not need post-processing
+				emit-i32 #{e1a02000}				;-- MOV r2, r0
+				unless parent [parent: emit-access-path/short path parent]
+				type: compiler/resolve-type/with path/2 parent
+				offset: emitter/member-offset? parent path/2
+				
+				case [
+					all [type/1 = 'struct! 'value = last parent/(path/2)][
+						if offset <> 0 [
+							emit-op-imm32 #{e2800000} offset ;-- ADD r0, r0, #offset
+						]
+					]
+					offset < 255 [
+						emit-i32 join #{e59000} 	;-- LDR r0, [r0, #offset]	; 8-bit disp
+							to-bin8 offset
+					]
+					'else [
+						emit-load-imm32/reg offset 4
+						emit-i32 #{e7900004}		;-- LDR r0, [r0, r4]	; 32-bit displacement
+					]
+				]
+				if slots = 2 [
+					set-width/type last type/2
+					emit-poly #{e5801004}			;-- STR r1, [r0,#4]		; r1 = 2nd struct member
+				]
+				set-width/type type/2/2
+				emit-poly #{e5802000}				;-- STR r2, [r0]		; r1 = 1st struct member
+			]
+		][
 			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address
 			emit-load value							; @@ generates duplicate value loading sometimes
+			all [
+				object? value
+				not all [decimal? value/data 'float32! = value/type/1]
+				emit-casting value no
+			]
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
-			if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
+			if size <> 8 [emit-swap-regs/alt]		;-- save value/restore address
 		]
 
 		switch type [
@@ -1429,10 +1639,11 @@ make-profilable make target-class [
 					parent: emit-access-path/short path parent
 					if size = 8 [emit-swap-regs/alt] ;-- save value/restore address
 				]
-				type: first compiler/resolve-type/with path/2 parent
-				set-width/type type					;-- adjust operations width to member value size
+				type: compiler/resolve-type/with path/2 parent
+				set-width/type type/1				;-- adjust operations width to member value size
+				offset: emitter/member-offset? parent path/2
 
-				either zero? offset: emitter/member-offset? parent path/2 [
+				either zero? offset [
 					either width = 8 [
 						emit-i32 #{e8820003}		;-- STM r2, {r0,r1}		; r2 = address
 					][
@@ -1463,7 +1674,7 @@ make-profilable make target-class [
 	patch-jump-back: func [buffer [binary!] offset [integer!]][
 		change 
 			at buffer offset
-			reverse to-bin24 shift negate offset 2
+			reverse to-bin24 shift negate offset + 4 2
 	]
 	
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
@@ -1516,12 +1727,34 @@ make-profilable make target-class [
 		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
 	]
+	
+	emit-copy-mem: func [slots [integer!] /local bits][ ;-- r0: src, ip: dst, 32-bit slots
+		either slots <= 8 [							;-- 8 is max number of regs usable for the copy
+			bits: skip debase/base to-hex shift/logical 1020 (8 - slots) 16 2
+			bits: bits and #{FFFC}
+			emit-i32 join #{e890} bits				;-- LDM r0, {r2,rN}
+			emit-i32 join #{e88c} bits				;-- STM <dst>, {r2,rN}
+		][
+			emit-i32 #{e1a03000}					;-- MOV r3, r0		; src
+			emit-load-imm32/reg slots 5				;-- MOV r5, <size>
+			emit-i32 #{e4931001}					;-- .loop:	LDR r1, [r3!], #1
+			emit-i32 #{e48c1001}					;--			STR r1, [ip!], #1
+			emit-i32 #{e2555001}					;-- 		SUBS r5, r5, 1
+			emit-i32 #{1afffffb}					;-- 		BNE .loop
+		]
+	]
+	
+	emit-push-struct: func [slots [integer!]][		;-- number of 32-bit slots
+		emit-reserve-stack slots
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp	; dst
+		emit-copy-mem slots
+	]
 
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl
-		/local push-last push-last64 spec type
+		/local push-last push-last64 spec type conv-int-float? float?
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -1532,10 +1765,19 @@ make-profilable make target-class [
 		switch type?/word value [
 			tag! [									;-- == <last>
 				type: either cast [cast/type][compiler/last-type]
-				do either find [float! float64!] type/1 [
-					push-last64
+				either value = <last> [
+					do either find [float! float64!] type/1 [
+						push-last64
+					][
+						push-last
+					]
 				][
-					push-last
+					either value = <ret-ptr> [
+						emit-op-imm32 #{e28b0000} args-offset ;-- ADD r0, fp, <args-top>
+					][
+						emit-op-imm32 #{e28d0000} to integer! value ;-- ADD r0, sp, <offset>
+					]
+					do push-last
 				]
 			]
 			logic! [
@@ -1564,15 +1806,25 @@ make-profilable make target-class [
 			]
 			word! [
 				type: compiler/get-variable-spec value
-				either any [
-					find [float! float64!] type/1 
-					all [cast find [float! float64!] cast/type/1]
-				][
-					emit-load value
-					do push-last64
-				][
-					emit-load-symbol value
-					do push-last
+				case [
+					all [
+						'value = last type
+						offset: emitter/local-offset? value
+					][
+						emit-load to get-word! value
+						do push-last				;-- PUSH &value
+					]
+					any [
+						find [float! float64!] type/1 
+						all [cast find [float! float64!] cast/type/1]
+					][
+						emit-load value
+						do push-last64
+					]
+					'else [
+						emit-load-symbol value
+						do push-last
+					]
 				]
 			]
 			get-word! [
@@ -1594,13 +1846,37 @@ make-profilable make target-class [
 				emit-push <last>
 			]
 			object! [
-				unless path? value/data [
+				type: compiler/get-type value/data
+				float?: find [float! float64! float32!] value/type/1
+				
+				conv-int-float?: any [
+					all [float? type/1 = 'integer!]
+					all [
+						find [float! float64! float32!] type/1
+						value/type/1 = 'integer!
+					]
+				]
+				all [
+					conv-int-float?
+					not find [block! tag!] type?/word value/data
+					emit-load value/data
+				]
+				unless all [float? decimal? value/data][
 					emit-casting value no
 				]
-				either cdecl [
-					emit-push/with/cdecl value/data value
+
+				either conv-int-float? [
+					either find [float! float64!] value/type/1 [
+						do push-last64
+					][
+						do push-last
+					]
 				][
-					emit-push/with value/data value
+					either cdecl [
+						emit-push/with/cdecl value/data value
+					][
+						emit-push/with value/data value
+					]
 				]
 			]
 		]
@@ -1692,14 +1968,16 @@ make-profilable make target-class [
 					]
 					;2 []							;-- 16-bit not supported
 					4 [
-						emit-load-imm32/reg arg2 1	;-- r1: arg2	
+						emit-load-imm32/reg arg2 1	;-- r1: arg2
 						emit-i32 #{e1500001}		;-- CMP r0, r1		; not commutable op
 					]
 				]
 			]
 			ref [
+				emit-i32 #{e92d0001}				;-- PUSH {r0}
 				emit-load/alt args/2
 				if object? args/2 [emit-casting args/2 yes]
+				emit-pop
 				do op-poly
 			]
 			reg [
@@ -1747,12 +2025,12 @@ make-profilable make target-class [
 			]
 		]
 		;-- r0 = a, r1 = b
-		switch name [
+		switch last-math-op: name [
 			+ [
-				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1	; commutable op
+				op-poly: [emit-i32 #{e0900001}]		;-- ADDS r0, r0, r1	; commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2800000} arg2 ;-- ADD r0, r0, #value
+						emit-op-imm32 #{e2900000} arg2 ;-- ADDS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1762,10 +2040,10 @@ make-profilable make target-class [
 				]
 			]
 			- [
-				op-poly: [emit-i32 #{e0400001}] 	;-- SUB r0, r0, r1	; not commutable op
+				op-poly: [emit-i32 #{e0500001}] 	;-- SUBS r0, r0, r1	; not commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2400000} arg2 ;-- SUB r0, r0, #value
+						emit-op-imm32 #{e2500000} arg2 ;-- SUBS r0, r0, #value
 					]
 					ref [
 						emit-load/alt arg2
@@ -1775,14 +2053,15 @@ make-profilable make target-class [
 				]
 			]
 			* [
-				op-poly: [emit-i32 #{e0000091}]		;-- MUL r0, r0, r1 	; commutable op
+				op-poly: [emit-i32 #{e0d50091}]		;-- SMULLS r0, r5, r0, r1 ; commutable op
 				switch b [
 					imm [
 						either all [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
-							emit-i32 #{e1a00000}	;-- LSL r0, r0, #log2(b)
+							emit-i32 #{e3a05000}	;-- MOV   r5, #0 ; reset for overflow checking
+							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][
 							emit-load-imm32/reg args/2 1	;-- MOV r1, #value
@@ -1819,12 +2098,10 @@ make-profilable make target-class [
 				]
 			]
 		]
-		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
-		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
-		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
+		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
@@ -1886,8 +2163,10 @@ make-profilable make target-class [
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion if required
 
 		;-- Operator and second operand processing
-		either all [object? args/2 find [imm reg] b][
-			emit-casting args/2 yes					;-- do runtime conversion if required
+		unless all [
+			object? args/2
+			find [imm reg] b
+			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
 		][
 			implicit-cast right
 		]
@@ -1902,7 +2181,21 @@ make-profilable make target-class [
 	emit-vfp-casting: func [value [object!] /right [logic!] /local type][
 		type: compiler/get-type value/data	
 		case [
-			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
+			all [find [float! float64!] value/type/1 type/1 = 'integer!][
+				either right [
+					emit-i32 #{eeb81bc1}			;-- FSITOD d1, s2
+				][
+					emit-i32 #{eeb80bc0}			;-- FSITOD d0, s0
+				]
+			]
+			all [value/type/1 = 'float32! type/1 = 'integer!][
+				either right [
+					emit-i32 #{eeb81ac1}			;-- FSITOS s2, s2
+				][
+					emit-i32 #{eeb80ac0}			;-- FSITOS s0, s0
+				]
+			]
+			all [find [float! float64!] value/type/1 type/1 = 'float32!][
 				either right [
 					emit-i32 #{eeb71ac1}			;-- FCVTDS d1, s2
 				][
@@ -2023,6 +2316,21 @@ make-profilable make target-class [
 		]
 		width: saved
 		
+		if any [
+			all [b = 'reg all [path? left block? right]]
+			;all [a = 'reg b = 'ref path? left]
+		][											;-- exchange s0/s2 or d0/d1
+			either width = 4 [
+				emit-i32 #{eeb02a40}				;-- FCPYS  s4, s0
+				emit-i32 #{eeb00a41}				;-- FCPYS  s0, s2
+				emit-i32 #{eeb01a42}				;-- FCPYS  s2, s4
+			][
+				emit-i32 #{eeb02b40}				;-- FCPYD  d2, d0
+				emit-i32 #{eeb00b41}				;-- FCPYD  d0, d1
+				emit-i32 #{eeb01b42}				;-- FCPYD  d1, d2
+			]
+		]
+		
 		case [
 			find comparison-op name [
 				emit-float 							;-- load immediate from data segment
@@ -2071,83 +2379,109 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-APCS-header: func [
-		args [block!] cconv [word!] attribs [block! none!]
-		/local reg bits offset type size stk freg
+	emit-AAPCS-header: func [
+		args [block!] fspec [block!] attribs [block! none!]
+		/calc
+		/local reg bits offset type size stk freg cconv types
 	][
 		either args/1 = #custom [
-			repeat reg min args/2/1 4 [
-				emit-i32 #{e8bd00} 					;-- POP {rn[,rn+1]}
-				emit-i32 to char! shift/left 1 reg - 1
+			unless calc [
+				repeat reg min args/2/1 4 [
+					emit-i32 #{e8bd00}				;-- POP {rn[,rn+1]}
+					emit-i32 to char! shift/left 1 reg - 1
+				]
 			]
 			stack-width * max 0 args/2/1 - 4		;-- return extra args on stack count
 		][
 			if issue? args/1 [args: args/2]
 			reg: freg: stk: 0
-		
-			foreach arg reverse args [				;-- arguments are on stack in reverse order	
+			cconv: fspec/3
+			types: fspec/4
+			args: reverse copy args					;-- arguments are on stack in reverse order
+			
+			if block? types/1 [types: next types]
+			
+			if hidden-ptr? fspec [
+				args: next args
+				unless calc [emit-i32 #{e8bd0001}]	;-- POP {r0}
+				reg: 1
+			]
+
+			foreach arg args [
 				if arg <> #_ [						;-- bypass place-holder marker
-					type: compiler/get-type arg
-					
+					type: any [
+						types/2
+						compiler/get-type arg		;-- fallback for [variadic]
+					]
 					either all [
 						compiler/job/ABI = 'hard-float
 						find [float! float64! float32!] type/1
 						any [none? attribs not find attribs 'variadic]	;-- 'typed is not using hf ABI
 					][
-						emit-pop-float/with freg type
-					 	freg: freg + 1
+						unless calc [emit-pop-float/with freg type]
+						freg: freg + 1
 					][
-						size: either all [
-							cconv = 'cdecl
-							type/1 = 'float32!
-						][
-							8						;-- promote to C double
-						][
-							emitter/size-of? type
-						]
-						if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
-															  ;-- ANY: workaround special variables from start.reds
-						set [bits offset] either 8 = size [
-							either reg <= 2 [
-								if odd? reg [
-									emit-load-imm32/reg 0 1
-									reg: reg + 1	;-- start 64-bit value on even register
-								]
-								[3 2]				;-- use 2 regs
+						foreach-member type [
+							size: either all [
+								cconv = 'cdecl
+								type/1 = 'float32!
 							][
-								[0 2]				;-- no space in regs to store a 64-bit value
+								8					;-- promote to C double
+							][
+								emitter/size-of? type
 							]
-						][
-							[1 1]					;-- use 1 reg
+							either reg >= 4 [			;-- account for extra args on stack
+								stk: stk + any [size 4] ;-- ANY: workaround special variables from start.reds
+							][
+								set [bits offset] either 8 = size [
+									either reg <= 2 [
+										if odd? reg [
+											unless calc [emit-load-imm32/reg 0 1]
+											reg: reg + 1 ;-- start 64-bit value on even register
+										]
+										[3 2]		;-- use 2 regs
+									][
+										stk: stk + 8
+										[0 2]		;-- no space in regs to store a 64-bit value
+									]
+								][
+									[1 1]			;-- use 1 reg
+								]
+								unless any [calc zero? bits][
+									emit-i32 #{e8bd00}		;-- POP {rn[,rn+1]}
+									emit-i32 to char! shift/left bits reg
+								]
+								reg: reg + offset
+							]
 						]
-
-						if all [reg < 4 not zero? bits][
-							emit-i32 #{e8bd00} 		;-- POP {rn[,rn+1]}
-							emit-i32 to char! shift/left bits reg
-						]
-
-						reg: reg + offset
 					]
+					types: skip types 2
 				]
 			]
 			stk										;-- return extra args on stack count
 		]
 	]
 	
-	emit-hf-return: func [spec [block!] /local type][
+	emit-hf-return: func [spec [block!] /reverse /local type][
 		if all [
 			compiler/job/ABI = 'hard-float
 			find [float! float64! float32!] type: select spec first [return:]
 		][
 			width: select emitter/datatypes type/1
-			emit-float
-				#{ec510b10}							;-- FMRRD r0, r1, d0
-				#{ee100a10}							;-- FMRS r0, s0
+			either reverse [
+				emit-float
+					#{ec410b10}						;-- FMDRR d0, r0, r1, d0
+					#{ee000a10}						;-- FMSR s0, r0
+			][
+				emit-float
+					#{ec510b10}						;-- FMRRD r0, r1, d0
+					#{ee100a10}						;-- FMRS r0, s0
+			]
 		]
 	]
 
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local extra][	; @@ check if it needs stack alignment too
-		extra: emit-APCS-header args fspec/3 attribs
+		extra: emit-AAPCS-header args fspec attribs
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
 		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
@@ -2157,8 +2491,21 @@ make-profilable make target-class [
 		emit-hf-return fspec/4
 	]
 	
+	emit-variadic-data: func [args [block!] /local total][
+		emit-push call-arguments-size? args/2		;-- push arguments total size in bytes 
+													;-- (required to clear stack on stdcall return)
+		emit-i32 #{e28dc004}						;-- ADD ip, sp, #4	; skip last pushed value
+		emit-i32 #{e92d1000}						;-- PUSH {ip}		; push arguments list pointer
+		total: length? args/2
+		if args/1 = #typed [total: total / 3]		;-- typed args have 3 components
+		emit-push total								;-- push arguments count
+	]
+	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
-		extra: emit-APCS-header args fspec/3 attribs
+		if all [issue? args/1 args/1 <> #custom fspec/3 <> 'cdecl][
+			emit-variadic-data args
+		]
+		extra: emit-AAPCS-header args fspec attribs
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
 		emit-i32 #{e59cc000}						;-- LDR ip, [ip]
@@ -2178,7 +2525,7 @@ make-profilable make target-class [
 				fspec/5 = 'callback
 				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 			][
-				extra: emit-APCS-header args fspec/3 attribs
+				extra: emit-AAPCS-header args fspec attribs
 			]
 			name: pick tail fspec -2
 			
@@ -2199,15 +2546,7 @@ make-profilable make target-class [
 			]
 			if cb? [emit-hf-return fspec/4]
 		][
-			if issue? args/1 [							;-- variadic call
-				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
-														;-- (required to clear stack on stdcall return)
-				emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
-				emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
-				total: length? args/2
-				if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
-				emit-push total							;-- push arguments count
-			]
+			if all [issue? args/1 fspec/3 <> 'cdecl][emit-variadic-data args]
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
 		]
@@ -2251,29 +2590,21 @@ make-profilable make target-class [
 		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
-	emit-stack-align-prolog: func [args [block!] /local size tag][
+	emit-stack-align-prolog: func [args [block!] fspec [block!] /local size tag blk][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
-		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		size: 0
-		if issue? tag: args/1 [
-			args: args/2
-			unless tag = #variadic [size: size + 4]
-		]
-		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
-			size: size + call-arguments-size?/cdecl args
-		]
-		unless zero? size // 8 [
-			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
-		]
+		if issue? tag: args/1 [args: args/2]
+		size: max 16 emit-AAPCS-header/calc args fspec all [block? blk: fspec/4/1 blk]
+		unless zero? size // 8 [emit-i32 #{e24dd004}] ;-- SUB sp, sp, #4	; ensure call will be 8-bytes aligned
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
 
 	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd5000}						;-- POP {ip,lr}			; use ip as replacement to sp
-		emit-i32 #{e1a0d00c}                        ;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
+		emit-i32 #{e1a0d00c}						;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
 	]
 	
 	emit-throw: func [value [integer! word!] /thru][
@@ -2310,19 +2641,35 @@ make-profilable make target-class [
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			12
 		][
-			emit-load-local #{e50b0000}	-4			;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
 			emit-op-imm32 #{e28f0000} body-size		;-- ADD r0, pc, #value
-			emit-load-local #{e50b0000}	-8			;-- STR r0, [fp, -8]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
 			12
 		]
 	]
 
-	emit-close-catch: func [offset [integer!] global? [logic!]][
-		if global? [
+	emit-close-catch: func [offset [integer!] global? [logic!] callback? [logic!]][
+		either global? [
 			emit-i32 #{e3a00000}					;-- MOV r0, 0
 			emit-i32 #{e58b0000}					;-- STR r0, [fp, 0]
 			emit-i32 #{e58b0004}					;-- STR r0, [fp, 4]
 			emit-i32 #{e24bd008}					;-- SUB sp, fp, 8
+		][
+			emit-i32 #{e3a00000}					;-- MOV r0, 0
+			emit-i32 #{e50b0004}					;-- STR r0, [fp, -4]
+			emit-i32 #{e50b0008}					;-- STR r0, [fp, -8]
+			;offset: offset + 8						;-- account for the 2 catch slots on stack 
+			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			
+			if callback? [offset: offset + (9 * 4) + (8 * 8)] ;-- skip saved regs: {r4-r11, lr}, {d8-d15}
+			offset: offset + (2 * 8)				;-- account for the 2 catch slots + 2 saved slots
+			
+			either offset > 255 [
+				emit-load-imm32/reg offset 4
+				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
+			][
+				emit-i32 join #{e24dd0}	to char! offset ;-- SUB sp, sp, locals-size
+			]
 		]
 	]
 
@@ -2408,21 +2755,34 @@ make-profilable make target-class [
 		emit-push 0									;-- reserve slot for catch resume address
 		
 		unless zero? locals-size [
-			locals-size: round/to/ceiling locals-size 4
-			either locals-size > 255 [
-				emit-load-imm32/reg locals-size 4
-				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
-			][
-				emit-i32 join #{e24dd0}	to char! locals-size ;-- SUB sp, sp, locals-size
-			]
+			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
 	]
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
+		 /with slots [integer! none!]
 		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
+		
+		if slots [
+			case [
+				slots = 1 [emit-i32 #{e5900000}]	;-- LDR r0, [r0]
+				slots = 2 [
+					emit-i32 #{e5901004}			;-- LDR r1, [r0, 4]
+					emit-i32 #{e5900000}			;-- LDR r0, [r0]
+				]
+				'else [
+					vars: emitter/stack
+					unless tag? vars/1 [
+						compiler/throw-error ["Function" name "has no return pointer in" mold locals]
+					]
+					emit-i32 join #{e59bc0} to-bin8 vars/2 ;-- LDR ip, [fp, 8]
+					emit-copy-mem slots
+				]
+			]
+		]
 		
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
@@ -2449,7 +2809,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
-			emit-hf-return fspec/4
+			emit-hf-return/reverse fspec/4
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr

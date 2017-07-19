@@ -4,6 +4,13 @@
 # (http://docs.travis-ci.com/).
 #
 
+sudo: required
+dist: trusty
+
+os:
+  - linux
+  - osx
+  
 # Only use continuous integration on the master branch
 branches: 
     only: 
@@ -26,16 +33,16 @@ env:
     - TEST_SUITE=system/tests
 
 before_install:
-    - sudo apt-get update
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo dpkg --add-architecture i386; fi
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update ; fi
 
 install:
     # 32b "multiarch" libraries are necessary to run 32b binaries on the 64b
     # Travis VM.
-    - sudo apt-get install -y libc6:i386
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libc6:i386 libcurl3:i386; fi
     # Rebol 2 is necessary for building Red.
-    - wget http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz
-    - tar xvfz rebol-core-278-4-2.tar.gz -C /tmp
-    - sudo mv /tmp/releases/rebol-core/rebol /usr/local/bin/rebol2
+    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget http://static.red-lang.org/tmp/rebol; chmod +x rebol; sudo mv ./rebol /usr/local/bin/rebol2; fi
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget http://static.red-lang.org/tmp/rebol-osx; chmod +x rebol-osx; sudo mv ./rebol-osx /usr/local/bin/rebol2; fi
 
 script:
     - rebol2 -qws ${TEST_SUITE}/run-all.r --batch

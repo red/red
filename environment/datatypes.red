@@ -29,7 +29,7 @@ set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
 refinement!:	make datatype! #get-definition TYPE_REFINEMENT
-;binary!:		make datatype! #get-definition TYPE_BINARY
+binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
@@ -54,6 +54,16 @@ hash!:			make datatype! #get-definition TYPE_HASH
 pair!:			make datatype! #get-definition TYPE_PAIR
 percent!:		make datatype! #get-definition TYPE_PERCENT
 tuple!:			make datatype! #get-definition TYPE_TUPLE
+image!:			make datatype! #get-definition TYPE_IMAGE
+time!:			make datatype! #get-definition TYPE_TIME
+tag!:			make datatype! #get-definition TYPE_TAG
+email!:			make datatype! #get-definition TYPE_EMAIL
+handle!:		make datatype! #get-definition TYPE_HANDLE
+date!:			make datatype! #get-definition TYPE_DATE
+
+#if find config/modules 'view [
+	event!: make datatype! #get-definition TYPE_EVENT
+]
 
 none:  			make none! 0
 true:  			make logic! 1

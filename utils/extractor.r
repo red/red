@@ -16,6 +16,7 @@ REBOL [
 ]
 
 context [
+	scalars: none
 	definitions: make block! 100
 	data: load-cache %runtime/macros.reds
 	
@@ -41,6 +42,10 @@ context [
 	
 	data: none
 	
-	scalars: context [typeset!: block!]					;-- fake a convenient definition
-	scalars: make scalars copy skip load-cache %environment/scalars.red 2
+	set 'typeset! block!								;-- fake a convenient definition
+
+	init: func [job [object!] /local src] [
+		src: preprocessor/expand load-cache %environment/scalars.red job
+		scalars: make object! copy skip src 2
+	]
 ]

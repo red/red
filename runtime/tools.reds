@@ -19,7 +19,7 @@ round-to: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
-	(size - 1 + scale) and (negate scale)
+	(size - 1 + scale) and (0 - scale)
 ]
 
 ;-------------------------------------------
@@ -31,5 +31,5 @@ round-to-next: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
-	(size + scale) and (negate scale)
+	(size + scale) and (0 - scale)
 ]

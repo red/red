@@ -7,43 +7,67 @@ REBOL [
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
+;-- Patch NEW-LINE and NEW-LINE? natives to accept paren! --
+append first find third :new-line  block! paren!
+append first find third :new-line? block! paren!
+
+
 lexer: context [
 	verbose: 0
 	
+	old-line: none
 	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
+	mark:	none									;-- use for keeping input cursor at same position
 	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
+	series: none									;-- temporary hold last stack series
 	value:	none									;-- new value
 	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
+	base:	16										;-- binary base
+	otag: 	none
+	ot:		none
+	ct:		none
+	sep:	none
+	year:	none
+	month:	none
+	day:	none
+	hour:	none
+	mn:		none
+	sec:	none
+	date:	none
+	ee:		none
 	
 	;====== Parsing rules ======
 
-	four:  charset "01234"
-	half:  charset "012345"
-    non-zero: charset "123456789"
-    digit: union non-zero charset "0"
-    dot: #"."
-    comma: #","
+	four:	  charset "01234"
+	half:	  charset "012345"
+	non-zero: charset "123456789"
+	digit:	  union non-zero charset "0"
+	dot:	  #"."
+	comma:	  #","
 
 	byte: [
 		"25" half
-		| "2" four digit
-		| "1" digit digit
-		| non-zero digit
-		| digit
+		| #"2" four digit
+		| #"1" digit digit
+		| opt #"0" non-zero digit
+		| 0 2 #"0" digit
+		| #"0"
 	]
 
-	hexa:  union digit charset "ABCDEF"
-	hexa-char: union hexa charset "abcdef"
+	hexa:		 union digit charset "ABCDEF"
+	hexa-char:	 union hexa charset "abcdef"
+	alpha:		 charset [#"A" - #"Z" #"a" - #"z"]
+	base64-char: union digit union alpha charset "+/="
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -72,17 +96,25 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-char:	charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"@:;}
+	not-file-char:	charset {[](){}"@:;}
 	not-url-char:	charset {[](){}";}
-	not-str-char:   #"^""
-	not-mstr-char:  #"}"
-	caret-char:	    charset [#"^(40)" - #"^(5F)"]
+	not-email-char:	union not-file-char union ws-ASCII charset "<^/"
+	not-str-char:	#"^""
+	not-mstr-char:	#"}"
+	not-tag-1st:	complement union ws-ASCII charset "=><"
+	not-tag-char:	complement charset ">"
+	tag-char:		charset "<>"
+	caret-char:		charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]();x}
+	pair-end:		charset {^{"[]();:}
+	integer-end:	charset {^{"[]();:xX}
 	path-end:		charset {^{"[]();}
-	stop: 		    none
+	file-end:		charset {^{[]();}
+	date-sep:		charset "/-"
+	time-sep:		charset "T/"
+	stop:			none
 
 	control-char: reduce [ 							;-- Control characters
 		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
@@ -101,10 +133,10 @@ lexer: context [
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		pos: #"^/" (
+		#"^/" (
 			if count? [
-				line: line + 1 
-				append/only lines to block! stack/tail?
+				line: line + 1
+				stack/nl?: yes
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
@@ -112,20 +144,20 @@ lexer: context [
 			#{85}									;-- U+0085 (Newline)
 			| #{A0}									;-- U+00A0 (No-break space)
 		]
-		| #{E1} [
-			#{9A80}									;-- U+1680 (Ogham space mark)
-			| #{A08E}								;-- U+180E (Mongolian vowel separator)
-		]
-		| #{E2} [
-			#{80} [
-				ws-U+2k								;-- U+2000-U+200A range
-				| #{A8}								;-- U+2028 (Line separator)
-				| #{A9}								;-- U+2029 (Paragraph separator)
-				| #{AF}								;-- U+202F (Narrow no-break space)
-			]
-			| #{819F}								;-- U+205F (Medium mathematical space)
-		]
-		| #{E38080}									;-- U+3000 (Ideographic space)
+		;| #{E1} [
+		;	#{9A80}									;-- U+1680 (Ogham space mark)
+		;	| #{A08E}								;-- U+180E (Mongolian vowel separator)
+		;]
+		;| #{E2} [
+		;	#{80} [
+		;		ws-U+2k								;-- U+2000-U+200A range
+		;		| #{A8}								;-- U+2028 (Line separator)
+		;		| #{A9}								;-- U+2029 (Paragraph separator)
+		;		| #{AF}								;-- U+202F (Narrow no-break space)
+		;	]
+		;	| #{819F}								;-- U+205F (Medium mathematical space)
+		;]
+		;| #{E38080}									;-- U+3000 (Ideographic space)
 	]
 	
 	newline-char: [
@@ -144,8 +176,12 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: [not-word-char | ws-no-count | control-char])
-		some UTF8-filtered-char e:
+		(stop: [not-word-char | ws-no-count | control-char | tag-char] otag: #"<" ot: none)
+		some [
+			otag ot: [#"/" (otag: [end skip] ot: back ot) :ot | none] ;-- a</b>
+			| #">" ct: (if ot [otag: [end skip] ct: back ot]) :ct	  ;-- a<b>
+			| UTF8-filtered-char
+		] e:
 	]
 	
 	begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -156,7 +192,7 @@ lexer: context [
 	
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
-			stack/push path!
+			stack/allocate block! 4
 			stack/push to type copy/part s e		;-- push 1st path element
 		)
 		some [
@@ -183,7 +219,7 @@ lexer: context [
 	
 	word-rule: 	[
 		(type: word!)
-		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		#"%" [ws-no-count | pos: file-end :pos | end] (value: "%")	;-- special case for remainder op!
 		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
@@ -205,18 +241,21 @@ lexer: context [
 	]
 	
 	lit-word-rule: [
-		#"'" (type: word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)				;-- path matched
-			| (
-				type: lit-word!
-				value: copy/part s e				;-- word matched
-			)
+		#"'" (type: word!) [
+			#"/" (type: lit-word! value: "/")
+			| s: begin-symbol-rule [
+				path-rule (type: lit-path!)				;-- path matched
+				| (
+					type: lit-word!
+					value: copy/part s e				;-- word matched
+				)
+			]
 		][s: #":" :s (throw-error) | none]
 	]
 	
 	map-rule: [
-		"#(" (stack/push block!) any-value #")" (
-			stack/push/head #!map!
+		"#(" (stack/allocate block! 10) any-value #")" (
+			stack/prefix #!map!
 			value: stack/pop block!
 		)
 	]
@@ -227,47 +266,164 @@ lexer: context [
 	
 	slash-rule: [s: [slash opt slash] e:]
 	
-	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+	hexa-rule: [2 8 hexa e: #"h" pos: [integer-end | ws-no-count | end ] :pos (type: integer!)]
 
-	sticky-word-rule: [
-		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip])
-		] :pos
-		fail?
+	sticky-word-rule: [								;-- protect from sticky words typos
+		mark: [integer-end | ws-no-count | end | (pos: s throw-error)] :mark
 	]
 
 	tuple-value-rule: [
 		(type: tuple!)
-		byte dot byte 1 8 [dot byte] e:
+		byte dot byte 1 12 [dot byte] e:
 	]
 
-	tuple-rule: [
-		tuple-value-rule
-		sticky-word-rule
+	tuple-rule: [tuple-value-rule sticky-word-rule]
+	
+	time-rule: [
+		s: positive-integer-rule [
+			decimal-number-rule (value: as-time 0 value load-number copy/part s e neg?) ;-- mm:ss.dd
+			| (value2: load-number copy/part s e) [
+				#":" s: positive-integer-rule opt decimal-number-rule
+				  (value: as-time value value2 load-number copy/part s e neg?)	;-- hh:mm:ss[.dd]
+				| (value: as-time value value2 0 neg?)							;-- hh:mm
+			]
+		] (type: time!)
 	]
-		
+
+	month-rule: [(m: none)
+		  "January"		(m: 1)
+		| "February"	(m: 2)
+		| "March"		(m: 3)
+		| "April"		(m: 4)
+		| "May"			(m: 5)
+		| "June"		(m: 6)
+		| "July"		(m: 7)
+		| "August"		(m: 8)
+		| "September"	(m: 9)
+		| "October"		(m: 10)
+		| "November"	(m: 11)
+		| "December"	(m: 12)
+	]
+	mon-rule: [(m: none)
+		  "Jan" (m: 1)
+		| "Feb" (m: 2)
+		| "Mar" (m: 3)
+		| "Apr" (m: 4)
+		| "May" (m: 5)
+		| "Jun" (m: 6)
+		| "Jul" (m: 7)
+		| "Aug" (m: 8)
+		| "Sep" (m: 9)
+		| "Oct" (m: 10)
+		| "Nov" (m: 11)
+		| "Dec" (m: 12)
+	]
+	
+	day-year-rule: [
+		(neg?: no) opt [#"-" (neg?: yes)]
+		s: 3 4 digit e: (year: load-number copy/part s e if neg? [year: 65536 - year])
+		| 1 2 digit e: (
+			value: load-number copy/part s e no
+			either day [year: value + pick [2000 1900] 50 > value][day: value]
+		)
+	]
+
+	date-rule: [
+		pos: [opt #"-" 1 4 digit date-sep | 8 digit #"T"] :pos [ ;-- quick lookhead
+			s: 8 digit ee: #"T" (							;-- yyyymmddT
+				year:  load-number copy/part s 4
+				month: load-number copy/part skip s 4 2
+				day:   load-number copy/part skip s 6 2
+				date:  make date! reduce [day month year]
+			) :ee
+			| day-year-rule sep: date-sep (sep: sep/1) [
+				s: 1 2 digit e: (month: load-number copy/part s e no)
+				| some alpha e: (
+					fail?: either all [parse/all copy/part s e [month-rule | mon-rule] m][month: m none][[end skip]]
+				) fail?
+			]
+			sep day-year-rule (
+				fail?: either all [day month year][
+					date: make date! reduce [day month year]
+					none
+				][[end skip]]
+			) fail?
+			| s: 4 digit #"-" (
+				year: load-number copy/part s 4
+				date: make date! reduce [1 1 year]
+			)[
+				"W" s: 2 digit (ee: none) opt [#"-" ee: non-zero] (	;-- yyyy-Www
+					date: to-iso-week date load-number copy/part s 2
+					if ee [date: to-weekday date to integer! s/4 - #"0"] ;-- yyyy-Www-d
+				)
+				| s: 3 digit (date: date + (load-number copy/part s 3) - 1) ;-- yyyy-ddd
+			] (month: -1)
+		](
+			type: date!
+			if all [
+				month <> -1 any [date/year <> year date/month <> month date/day <> day]
+			][throw-error]
+			day: month: year: none
+		) opt [
+			time-sep (ee: no) [
+				s: 6 digit opt [#"." 1 9 digit ee:] (	;-- Thhmmss[.sss]
+					hour: load-number copy/part s 2
+					mn:	  load-number copy/part skip s 2 2
+					sec: load-number either ee [copy/part skip s 4 ee][copy/part skip s 4 2]
+					date/time: as-time hour mn sec no
+				)
+				| 4 digit (								;-- Thhmm
+					hour: load-number copy/part s 2
+					mn:	  load-number copy/part skip s 2 2
+					date/time: as-time hour mn 0 no
+				)
+				| s: positive-integer-rule (value: load-number copy/part s e)
+				#":" [(neg?: no) time-rule (date/time: value) | (throw-error)]
+			]
+			opt [
+				#"Z" | [#"-" (neg?: yes) | #"+" (neg?: no)][
+					s: 4 digit (						;-- +/-hhmm
+						hour: load-number copy/part s e: skip s 2
+						mn:   load-number copy/part e e: skip e 2
+					)
+					| 1 2 digit e: (hour: load-number copy/part s e mn: none) ;-- +/-h, +/-hh
+					opt [#":" s: 2 digit e: (mn: load-number copy/part s e)]
+				](
+					either all [mn find [15 45] mn: round/floor/to mn 15][
+						date: reduce [#!date! date as-time hour mn 0 neg?] ;-- special encoding for 15/45
+					][
+						date/zone: as-time hour any [mn 0] 0 neg?
+					]
+				)
+			]
+		] sticky-word-rule (value: date)
+	]
+
+	positive-integer-rule: [digit any digit e: (type: integer!)]
+	
 	integer-number-rule: [
+		opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e:
 		(type: integer!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 	]
 	
 	integer-rule: [
-		decimal-special	e:								;-- escape path for NaN, INFs
+		pos: decimal-special e:								;-- escape path for NaN, INFs
 		(type: issue! value: load-number copy/part s e)
-		|	integer-number-rule
+		|	(neg?: no) integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 			opt [#"%" e: (type: issue!)]
 			sticky-word-rule
 			(value: load-number copy/part s e)
 			opt [
-				#"x" (
+				[#"x" | #"X"] (
 					type: pair!
 					value2: to pair! reduce [value 0]
 				)
-				s: integer-number-rule
+				[s: integer-number-rule | (type: pair! throw-error)]
+				mark: [pair-end | ws-no-count | end | (type: pair! throw-error)] :mark
 				(value2/2: load-number copy/part s e value: value2)
 			]
+			opt [#":" [time-rule | (throw-error)]]
 	]
 
 	decimal-special: [
@@ -291,9 +447,9 @@ lexer: context [
 		sticky-word-rule
 	]
 		
-	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
+	block-rule: [#"[" (stack/allocate block! 10) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/push paren!) any-value	#")" (value: stack/pop paren!)]
+	paren-rule: [#"(" (stack/allocate paren! 10) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -304,7 +460,7 @@ lexer: context [
 				| "line" (value: #"^(0A)")
 				| "page" (value: #"^(0C)")
 				| "esc"  (value: #"^(1B)")
-				| "del"	 (value: #"^(7F)")
+				| "del"	 (value: #"^~")
 			]
 			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					either rs? [
@@ -316,7 +472,7 @@ lexer: context [
 			[
 				#"/" 	(value: #"^/")
 				| #"-"	(value: #"^-")
-				| #"?" 	(value: #"^(del)")
+				| #"~" 	(value: #"^(del)")
 				| #"^^" (value: #"^^")				;-- caret escaping case
 				| #"{"	(value: #"{")
 				| #"}"	(value: #"}")
@@ -344,28 +500,66 @@ lexer: context [
 		(cnt: 1 fail?: none)
 		any [[
 				counted-newline 
-				| "^^{" | "^^}"
+				| "^^^^"
+				| "^^{"
+				| "^^}"
 				| #"{" (cnt: cnt + 1)
 				| e: #"}" (if zero? cnt: cnt - 1 [fail?: [end skip]])
 				| UTF8-char
 			] fail?
 		]
-		#"}"
+		#"}" (old-line: line)
 	]
 	
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
 	
 	string-rule: [line-string | multiline-string]
 	
-	binary-rule: [
-		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}"
+	tag-rule: [
+		#"<" s: not-tag-1st (type: tag!)
+		 any [#"^"" thru #"^"" | #"'" thru #"'" | not-tag-char] e: #">"
 	]
 	
+	email-rule: [
+		(stop: [not-email-char])
+		s: opt [some UTF8-filtered-char] #"@" (type: email!)
+		any UTF8-filtered-char e: (value: dehex copy/part s e)
+	]
+
+	base-2-rule: [
+		"2#{" (type: binary!) [
+			s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+			e: #"}" (base: 2)
+			| (pos: skip s -3 throw-error)
+		]
+	]
+	
+	base-16-rule: [
+		opt "16" "#{" (type: binary!) [
+			s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+			e: #"}" (base: 16)
+			| (pos: skip s -2 throw-error)
+		]
+	]
+
+	base-64-rule: [
+		"64#{" (type: binary!) [
+			s: any [counted-newline | base64-char | ws-no-count | comment-rule]
+			e: #"}" (
+				cnt: offset? s e
+				if all [0 < cnt cnt < 4][pos: skip s -4 throw-error]
+				base: 64
+			)
+			| (pos: skip s -4 throw-error)
+		]
+	]
+
+	binary-rule: [[base-16-rule | base-64-rule | base-2-rule] (old-line: line)]
+
 	file-rule: [
-		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
-			#"^"" s: any UTF8-filtered-char e: #"^""
+		pos: #"%" (type: file! stop: [not-file-char | ws-no-count]) [
+			#"{" (throw-error)
+			| line-string
 			| s: any UTF8-filtered-char e:
 		]
 	]
@@ -392,42 +586,49 @@ lexer: context [
 	
 	comment-rule: [#";" [to #"^/" | to end]]
 	
-	wrong-delimiters: [
-		pos: [
-			  #"]" (value: #"[") | #")" (value: #"(")
-			| #"[" (value: #"]") | #"(" (value: #")")
-		] :pos
-		(throw-error/with ["missing matching" value])
+	wrong-end: [(
+			ending: either 1 < length? stack/stk [
+				value: switch type?/word stack/top [
+					block! [#"]"]
+					paren! [#")"]
+				]
+				first [(throw-error/with ["missing" mold value "character"])]
+			][none]
+		)
+		ending
 	]
 
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
+			| tuple-rule	  (stack/push load-tuple	 copy/part s e)
+			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| binary-rule	  (stack/push load-binary s e base)
+			| email-rule	  (stack/push to email! value)
+			| date-rule		  (stack/push value)
 			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
-			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
-			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| tag-rule		  (stack/push to tag!		 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
-			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
+			| slash-rule	  (stack/push to word!		 copy/part s e)
 			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| binary-rule	  (stack/push load-binary s e)
 			| map-rule		  (stack/push value)
-			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
+			| issue-rule	  (stack/push to issue!		 copy/part s e)
 		]
 	]
 	
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
-		pos: thru "Red" opt ["/System" (rs?: yes stack/push 'Red/System)]
+		pos: thru "Red" (rs?: no) opt ["/System" (rs?: yes stack/push 'Red/System)]
 		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
@@ -436,38 +637,45 @@ lexer: context [
 		pos: opt UTF-8-BOM
 		header
 		any-value
-		opt wrong-delimiters
+		opt wrong-end
 	]
 	
 	;====== Helper functions ======
 	
 	stack: context [
 		stk: []
+		nl?: no
 		
-		push: func [value /head][
-			either any [value = block! value = paren! value = path!][
-				if value = path! [value: block!]
-				insert/only tail stk value: make value 1
-				value
+		allocate: func [type [datatype!] size [integer!] /local new pos][
+			pos: insert/only tail stk new: make type size
+			if nl? [new-line back pos yes nl?: no]
+			new
+		]
+		
+		prefix: func [value][insert/only last stk :value]
+		
+		push: func [value][
+			value: insert/only tail last stk :value
+			if nl? [new-line back value yes nl?: no]
+			value
+		]
+		
+		pop: func [type [datatype!] /local pos][
+			pos: back tail stk
+			nl?: new-line? pos
+			
+			either any [type = path! type = set-path!][
+				change/only pos to type pos/1
 			][
-				either head [
-					insert/only last stk :value
-				][
-					insert/only tail last stk :value
+				if type <> type? pos/1 [
+					throw-error/with ["invalid" mold type "closing delimiter"]
 				]
 			]
+			also pos/1 remove pos
 		]
 		
-		pop: func [type [datatype!]][
-			if any [type = path! type = set-path!][type: block!]
-			
-			if type <> type? last stk [
-				throw-error/with ["invalid" mold type "closing delimiter"]
-			]
-			also last stk remove back tail stk
-		]
+		top: does [last stk]
 		
-		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
 	
@@ -478,16 +686,21 @@ lexer: context [
 			][
 				reform ["Invalid" mold type "value"]
 			]
+			any [
+				all [
+					value? 'red
+					object? red
+					red/script-name
+					join "^/*** in file: " to-local-file red/script-name
+				]
+				""
+			]
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
 		either encap? [quit][halt]
 	]
 
-	add-line-markers: func [blk [block!]][	
-		foreach pos lines [new-line pos yes]
-		clear lines
-	]
 	
 	pad-head: func [s [string!]][
 		head insert/dup s #"0" 8 - length? s
@@ -580,6 +793,30 @@ lexer: context [
 	decode-hexa: func [s [string!]][
 		to integer! debase/base s 16
 	]
+	
+	as-time: func [h [integer!] m [integer!] s [integer! decimal!] neg? [logic!] /local t][
+		if any [all [h <> 0 m < 0] all [s s < 0]][type: time! throw-error]
+		t: to time! reduce [abs h abs m abs s]
+		either neg? [negate t][t]
+	]
+	
+	to-weekday: func [d [date!] wd [integer!]][
+		if negative? wd: wd - d/weekday [wd: 7 + wd]
+		d + wd
+	]
+	
+	to-iso-week: func [d [date!] w [integer!] /local wd d1][
+		d1: make date! reduce [1 1 d/year]
+		wd: d1/weekday
+		d1 + (w - 1 * 7 + (either wd < 5 [1][8]) - wd)
+	]
+	
+	load-tuple: func [s [string!] /local new byte p e][
+		new: join make issue! 1 + length? s #"~"
+		byte: [p: 1 3 digit e: (append new skip to-hex load copy/part p e 6)]
+		unless parse s [byte 2 11 [dot byte]][throw-error]
+		new
+	]
 
 	load-number: func [s [string!]][
 		switch/default type [
@@ -590,7 +827,7 @@ lexer: context [
 				if neg? [append s #"-"]
 			]
 		][
-			unless integer? s: to integer! s [throw-error]
+			unless find [integer! decimal!] type?/word s: to integer! s [throw-error]
 		]
 		s
 	]
@@ -613,32 +850,32 @@ lexer: context [
 		new
 	]
 	
-	load-binary: func [s [string!] e [string!] /local new byte][
-		new: make binary! (offset? s e) / 2			;-- allocated size above final size
+	load-binary: func [s [string!] e [string!] base [integer!] /local new str][
+		new: make string! offset? s e				;-- allocated size above final size
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa-char (insert tail new debase/base byte 16)
+				copy str some base64-char (insert tail new str)
 				| ws | comment-rule
 				| #"}" end skip
 			]
 		]
+		new: debase/base new base
+		if none? new [throw-error]
 		new
 	]
 
 	load-file: func [s [string!]][
-		to file! dehex s
+		parse s [any [#"%" [2 hexa | (pos: skip pos negate 1 + length? s throw-error)] | skip]]
+		to file! replace/all dehex s #"\" #"/"
 	]
 	
 	process: func [src [string! binary!] /local blk][
-		line: 1
+		old-line: line: 1
 		count?: yes
+		blk: stack/allocate block! 100				;-- root block
 		
-		blk: stack/push block!						;-- root block
-
 		unless parse/all/case src program [throw-error]
-		
-		add-line-markers blk
 		stack/reset
 		blk
 	]

@@ -23,7 +23,9 @@ context [
 	UTF8-char:	lexer/UTF8-char
 	chars: 		make block!  10'000
 	decoded: 	make string! 10'000
-	
+	nl-flag:	to-integer #{80000000}					;-- header's new-line flag
+	nl?:		no
+
 	profile: func [blk /local pos][
 		foreach item blk [
 			unless pos: find/skip stats type? :item 2 [
@@ -52,7 +54,7 @@ context [
 		]
 	]
 	
-	decode-UTF8: func [str [string! file! url!] /local upper s e cp unit new][
+	decode-UTF8: func [str [string! file! url! tag! email!] /local upper s e cp unit new][
 		upper: 0
 
 		parse/all/case str [
@@ -84,12 +86,17 @@ context [
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
 	
 	emit-type: func [type [word!] /unit n [integer!]][
-		emit select extracts/definitions type
+		emit extracts/definitions/:type or either nl? [nl-flag][0]
+	]
+	
+	emit-float-bin: func [f [decimal!] /local bin][
+		bin: IEEE-754/to-binary64 f
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
 	]
 	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
-		unless ctx [emit -1 return -1]				;-- -1 for global context
-		entry: find contexts ctx
+		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]				;-- -1 for global context
 		either pos: find entry/2 to word! word [
 			emit entry/3
 			(index? pos) - 1
@@ -114,12 +121,10 @@ context [
 		emit to integer! value
 	]
 	
-	emit-float: func [value [decimal!] /local bin][
+	emit-float: func [value [decimal!] /with type /local bin][
 		pad buffer 8
-		emit-type 'TYPE_FLOAT
-		bin: IEEE-754/to-binary64 value
-		emit to integer! copy/part bin 4
-		emit to integer! skip bin 4
+		emit-type any [type 'TYPE_FLOAT]
+		emit-float-bin value
 	]
 	
 	emit-fp-special: func [value [issue!]][
@@ -137,9 +142,17 @@ context [
 		pad buffer 8
 		emit-type 'TYPE_PERCENT
 		value: to decimal! to string! copy/part value back tail value
-		bin: IEEE-754/to-binary64 value / 100.0
-		emit to integer! copy/part bin 4
-		emit to integer! skip bin 4
+		emit-float-bin value / 100.0
+	]
+	
+	emit-time: func [value [time!]][
+		emit-float/with 1E9 * to decimal! value 'TYPE_TIME
+	]
+	
+	emit-date: func [value [date!] /with zone][
+		emit-type 'TYPE_DATE
+		emit red/encode-date/with value zone
+		emit-float-bin encode-UTC-time value/time any [zone value/zone]
 	]
 
 	emit-char: func [value [integer!]][
@@ -158,18 +171,11 @@ context [
 		emit value/y
 	]
 
-	emit-tuple: func [value [tuple!] /local bin size n][
-		bin: make binary! 12
-		bin: insert/dup bin null 3
-		size: length? value
-		emit extracts/definitions/TYPE_TUPLE or shift/left size 8 ;-- header
-		n: 0
-		until [
-			n: n + 1
-			insert bin to-bin8 value/:n
-			n = size
-		]
-		bin: tail bin
+	emit-tuple: func [value [issue!] /local bin header][
+		bin: tail reverse debase/base next value 16
+		header: extracts/definitions/TYPE_TUPLE or shift/left length? head bin 8
+		if nl? [header: header or nl-flag]
+		emit header
 		emit to integer! skip bin -4
 		emit to integer! copy/part skip bin -8 4
 		emit to integer! copy/part head bin 4
@@ -198,19 +204,25 @@ context [
 		]
 		index - 1
 	]
-	
-	emit-string: func [str [any-string!] /root /local type unit][
+
+	emit-string: func [str [any-string!] /root /local type unit header][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
+			tag!	TYPE_TAG
 			url!	TYPE_URL
+			email!	TYPE_EMAIL
+			binary! TYPE_BINARY
 		] type?/word str
 
-		set [str unit] decode-UTF8 str
-		emit extracts/definitions/:type or shift/left unit 8 ;-- header
+		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
+		header: extracts/definitions/:type or shift/left unit 8
+		if nl? [header: header or nl-flag]
+
+		emit header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
-		append buffer str
+		append buffer to string! str
 		pad buffer 4
 
 		if root [
@@ -252,19 +264,20 @@ context [
 		
 		header: extracts/definitions/:type
 		if set? [header: header or shift/left 1 27]
+		if nl? [header: header or nl-flag]
 		emit header
 		emit-symbol word
 		idx: emit-ctx-info word ctx
 		emit any [ctx-idx idx]
 		if root [
 			if debug? [print [index ": word :" mold word]]
-			index: index + 1
+			unless set? [index: index + 1]
 		]
 	]
 	
 	emit-block: func [
 		blk [any-block!] /with main-ctx [word!] /sub
-		/local type item binding ctx idx emit?
+		/local type item binding ctx idx emit? multi-line?
 	][
 		if profile? [profile blk]
 		
@@ -276,6 +289,10 @@ context [
 			blk/1 = #!map! [
 				remove blk
 				'map
+			]
+			blk/1 = #!date! [
+				emit-date/with blk/2 blk/3
+				exit
 			]
 			'else [type?/word :blk]
 		]
@@ -293,10 +310,13 @@ context [
 		unless type = 'map [emit (index? blk) - 1]		;-- head field
 		emit length? blk
 		if all [not sub debug?][
-			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
+			print [index ": block" length? blk #":" trim/lines copy/part mold/flat blk 60]
 		]
-		
+		nl?: no
+		multi-line?: any [block? blk paren? blk]
+
 		forall blk [
+			if multi-line? [nl?: new-line? blk]
 			item: blk/1
 			either any-block? :item [
 				either with [
@@ -306,9 +326,29 @@ context [
 				]
 			][
 				emit?: case [
-					unicode-char? :item [
-						emit-char to integer! next item
-						no
+					issue? :item [
+						case [
+							unicode-char? :item [
+								emit-char to integer! next item
+								no
+							]
+							tuple-value? :item [
+								emit-tuple item
+								no
+							]
+							percent-value? :item [
+								emit-percent item
+								no
+							]
+							float-special? :item [
+								emit-fp-special item
+								no
+							]
+							'else [
+								emit-issue item
+								no
+							]
+						]
 					]
 					any-word? :item [
 						ctx: main-ctx
@@ -322,14 +362,6 @@ context [
 						]
 						yes
 					]
-					percent-value? :item [
-						emit-percent item
-						no
-					]
-					float-special? :item [
-						emit-fp-special item
-						no
-					]
 					'else [yes]
 				]
 				
@@ -342,21 +374,26 @@ context [
 						get-word! [emit-word :item ctx idx]
 						file!
 						url!
-						string!	  [emit-string item]
-						issue!	  [emit-issue item]
+						tag!
+						email!
+						string!
+						binary!   [emit-string item]
 						integer!  [emit-integer item]
 						decimal!  [emit-float item]
 						char!	  [emit-char to integer! item]
 						pair!	  [emit-pair item]
-						tuple!	  [emit-tuple item]
-						datatype! [emit-datatype item]
+						datatype! [emit-datatype get-RS-type-ID/word item]
 						logic!	  [emit-logic item]
+						time!	  [emit-time item]
+						date!	  [emit-date item]
 						none! 	  [emit-none]
 						unset! 	  [emit-unset]
 					]
 				]
 			]
 		]
+		nl?: no
+		if type = 'map [insert blk #!map!]
 		unless sub [index: index + 1]
 		index - 1										;-- return the block index
 	]
@@ -374,7 +411,7 @@ context [
 		emit length? spec
 		foreach word spec [emit-symbol word]
 		if root [
-			if debug? [print [index ": context :" copy/part mold/flat spec 50 "," stack? "," self?]]
+			if debug? [print [index ": context :" trim/lines copy/part mold/flat spec 50 "," stack? "," self?]]
 			index: index + 1
 		]
 		index - 1
@@ -387,7 +424,6 @@ context [
 		clear sym-string
 		clear symbols
 		clear contexts
-		index: 0
 	]
 	
 	finish: func [spec [block!] /local flags compress? data out len][
@@ -404,13 +440,18 @@ context [
 		]
 		insert buffer header
 		
-		if compress?: find spec 'compress [
-			flags: flags or #{02}
-			out: make binary! len: length? buffer
+		if all [
+			compress?: find spec 'compress
+			128 < len: length? buffer
+		][
+			out: make binary! len
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
-			clear buffer
-			insert/part buffer out len
+			if len > 0 [
+				flags: flags or #{02}
+				clear buffer
+				insert/part buffer out len
+			]
 		]
 		
 		clear header

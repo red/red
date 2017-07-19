@@ -10,7 +10,7 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
+;;	OS:				'Windows | 'Linux | 'macOS | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
@@ -24,10 +24,15 @@ REBOL [
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;	debug?:			 yes | no					;-- yes => emit debug information into binary
+;;	debug-safe?:	 yes | no					;-- yes => try to avoid over-crashing on runtime debug reports
+;;	dev-mode?:		 yes | no					;-- yes => turn on developer mode (pre-build runtime, default), no => build a single binary
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
-;;  red-tracing?:	 yes						;-- no => do not compile tracing code
-;;  red-help?:		 no							;-- yes => keep doc-strings from boot.red
+;;  red-tracing?:	yes							;-- no => do not compile tracing code
+;;  red-help?:		no							;-- yes => keep doc-strings from boot.red
+;;	gui-console?:	no							;-- yes => redirect printing to gui console (temporary)
+;;	GUI-engine:		'native						;-- native | test | GTK | ...
 ;;  legacy:			block! of words				;-- flags for OS legacy features support
 ;;		- stat32								;-- use the older stat struct for 32-bit file access.
 ;;-------------------------------------------
@@ -45,6 +50,28 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
+]
+WindowsXP [
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'GUI
+	legacy:		[no-touch]
+]
+MSDOS-Old [								; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'console
+	cpu-version: 1.0
+]
+;-------------------------
+Windows-Old [							; pre-Pentium 4 target
+	OS:			'Windows
+	format: 	'PE
+	type:		'exe
+	sub-system: 'GUI
+	cpu-version: 1.0
 ]
 ;-------------------------
 WinDLL [
@@ -141,7 +168,7 @@ FreeBSD [
 ]
 ;-------------------------
 Darwin [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'console
@@ -149,7 +176,7 @@ Darwin [
 	stack-align-16?: yes
 ]
 DarwinSO [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'dll
 	sub-system: 'console
@@ -158,10 +185,14 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-;OSX [									; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'GUI
-;]
+macOS [
+	OS:			'macOS
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'GUI
+	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+	dev-mode?:	no
+]
 ;-------------------------

@@ -2,7 +2,7 @@ REBOL [
 	Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.3.0
+	Version: 0.5.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -24,7 +24,7 @@ run-all-script: func [
 
 batch-mode: false
 each-mode: false
-binary?: false
+binary-compiler?: false
 args: any [system/script/args system/options/args]
 if args  [
 	;; should we run non-interactively?
@@ -36,7 +36,7 @@ if args  [
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
 	if find system/script/args "--binary" [
-		binary?: true
+		binary-compiler?: true
 		bin-compiler: select args "--binary"
 		if any [
 			bin-compiler = "--batch"
@@ -67,15 +67,15 @@ system/options/quiet: true
 store-current-dir: what-dir
 
 do %quick-test/quick-test.r
-qt/tests-dir: clean-path %/tests/
 
-if binary? [
-	qt/binary?: binary?
+if binary-compiler? [
+	qt/binary-compiler?: binary-compiler?
 	if bin-compiler [qt/bin-compiler: bin-compiler]
 ]
 
 qt/tests-dir: clean-path %system/tests/
 do %system/tests/source/units/make-red-system-auto-tests.r
+do %system/tests/source/units/prepare-dependencies.r
 
 qt/tests-dir: clean-path %tests/
 do %tests/source/units/run-all-init.r
@@ -88,7 +88,7 @@ print ["This test started at" start-time]
 
 ***start-run-quiet*** "Complete Red Test Suite"
 qt/script-header: "Red []"
-do %tests/source/units/run-all-extra-tests.r
+do %tests/source/units/run-pre-extra-tests.r
 either each-mode [
     do %tests/source/units/auto-tests/run-each-comp.r
     do %tests/source/units/auto-tests/run-each-interp.r
@@ -97,6 +97,7 @@ either each-mode [
     --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
     --run-test-file-quiet %source/units/auto-tests/run-all-interp.red    
 ]
+do %tests/source/units/run-post-extra-tests.r
 
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 

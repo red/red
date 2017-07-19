@@ -17,27 +17,33 @@ char: context [
 		op		[math-op!]
 		return: [red-value!]
 		/local
-			right [red-float!]
+			right [red-char!]
 			char  [red-char!]
+			f	  [red-float!]
+			rv	  [integer!]
 	][
-		right: as red-float! stack/arguments + 1
-		if TYPE_OF(right) = TYPE_FLOAT [
-			char: as red-char! right
-			char/header: TYPE_CHAR
-			char/value: float/to-integer right/value
+		char:  as red-char! stack/arguments
+		right: char + 1
+		switch TYPE_OF(right) [
+			TYPE_INTEGER
+			TYPE_CHAR	[rv: right/value]
+			TYPE_FLOAT	[f: as red-float! right rv: as-integer f/value]
+			TYPE_VECTOR [return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! char]
+			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]]
 		]
-		char: as red-char! integer/do-math op
-		char/header: TYPE_CHAR
-		
+
+		rv: integer/do-math-op char/value rv op
 		if any [
-			char/value > 0010FFFFh
-			negative? char/value
+			rv > 0010FFFFh
+			negative? rv
 		][
 			fire [TO_ERROR(math overflow)]
 		]
+
+		char/value: rv
 		as red-value! char
 	]
-	
+
 	make-in: func [
 		parent	[red-block!]
 		value	[integer!]
@@ -68,30 +74,54 @@ char: context [
 	
 	;-- Actions --
 	
-	make: func [
-		proto 	  [red-value!]
-		spec	  [red-value!]	
-		return:	  [red-char!]
+	;-- make: :to
+
+	to: func [
+		proto 	[red-char!]							;-- overwrite this slot with result
+		spec	[red-value!]
+		type	[integer!]
+		return: [red-char!]
 		/local
-			char  [red-char!]
-			int	  [red-integer!]
-			value [integer!]
+			fl	 [red-float!]
+			ser  [red-series!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			unit [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "char/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "char/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				value: int/value
+			TYPE_INTEGER
+			TYPE_CHAR [
+				proto/value: spec/data2
 			]
-			default [--NOT_IMPLEMENTED--]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				proto/value: as-integer fl/value
+			]
+			TYPE_BINARY [							;-- first character in UTF-8 encoding
+				p: binary/rs-head as red-binary! spec
+				unit: unicode/utf8-char-size? as-integer p/value
+				proto/value: unicode/decode-utf8-char as c-string! p :unit
+			]
+			TYPE_ANY_STRING [						;-- to char! FIRST series!
+				ser: as red-series! spec
+				s: GET_BUFFER(ser)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (ser/head << (unit >> 1))
+				if p >= as byte-ptr! s/tail [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_CHAR spec]
+				]
+				proto/value: either unit = 1 [as-integer p/value][string/get-char p unit]
+			]
+			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_CHAR spec]]
 		]
-		char: as red-char! stack/push*
-		char/header: TYPE_CHAR
-		char/value: value
-		char
+
+		proto/header: TYPE_CHAR
+		proto
 	]
-	
+
 	form: func [
 		c	    [red-char!]
 		buffer  [red-string!]
@@ -201,17 +231,17 @@ char: context [
 			TYPE_INTEGER
 			"char!"
 			;-- General actions --
-			:make
+			:to				;make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			INHERIT_ACTION	;absolute
 			:add
 			:divide
 			:multiply
@@ -240,6 +270,7 @@ char: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

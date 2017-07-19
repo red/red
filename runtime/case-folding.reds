@@ -1129,7 +1129,6 @@ case-folding: context [
 		op		 [integer!]
 		flags	 [integer!]
 		return:  [integer!]
-
 	][
 		p1/value - p2/value
 	]
@@ -1229,6 +1228,7 @@ case-folding: context [
 			char  [red-char!]
 			str	  [red-string!]
 			str2  [red-string!]
+			w	  [red-word!]
 			unit  [integer!]
 			unit2 [integer!]
 			s	  [series!]
@@ -1245,8 +1245,8 @@ case-folding: context [
 			str: as red-string! arg
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			len: (as-integer s/tail - (as red-value! p)) >> (unit >> 1)
+			p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+			len: (as-integer s/tail - (as red-value! p)) >> (log-b unit)
 			if positive? part [ 
 				limit: arg + part
 				len: either TYPE_OF(limit) = TYPE_INTEGER [
@@ -1265,9 +1265,7 @@ case-folding: context [
 				if negative? len [len: 0]
 			]
 
-
 			i: 0
-
 			while [i < len][
 				cp: switch unit [
 					Latin1 [as-integer p/value]
@@ -1278,11 +1276,13 @@ case-folding: context [
 				unit2: GET_UNIT(s)
 				if unit2 > unit [
 					unit: unit2
-					p: (as byte-ptr! s/offset) + (str/head + i << (unit >> 1))
+					p: (as byte-ptr! s/offset) + (str/head + i << (log-b unit))
 				]
 				i: i + 1
 				p: p + unit
 			]
+			w: either upper? [words/_uppercase][words/_lowercase]
+			ownership/check as red-value! str w null str/head len
 		]
 		arg
 	]

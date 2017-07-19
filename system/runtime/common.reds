@@ -13,7 +13,6 @@ Red/System [
 #define zero? 		  [0 =]
 #define positive?	  [0 < ]				;-- space required after the lesser-than symbol
 #define negative?	  [0 > ]
-#define negate		  [0 -]
 #define null?		  [null =]
 
 #define halt		  [quit 0]
@@ -38,6 +37,9 @@ Red/System [
 
 #define byte-ptr!	  [pointer! [byte!]]
 #define int-ptr!	  [pointer! [integer!]]
+#define float-ptr!    [pointer! [float!]]
+#define float32-ptr!  [pointer! [float32!]]
+
 #define make-c-string [as c-string! allocate]
 
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
@@ -82,6 +84,12 @@ typed-value!: alias struct! [
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
+typed-float32!: alias struct! [
+	type	 [integer!]	
+	value	 [float32!]
+	_padding [integer!]						;-- extra space for 64-bit values	
+]
+
 typed-float!: alias struct! [
 	type	 [integer!]	
 	value	 [float!]
@@ -90,6 +98,12 @@ typed-float!: alias struct! [
 re-throw: func [/local id [integer!]][
 	id: system/thrown						;-- system/* cannot be passed as argument for now
 	throw id								;-- let the exception pass through
+]
+
+#switch OS [
+	Windows  [#define LIBREDRT-file "libRedRT.dll"]
+	macOS	 [#define LIBREDRT-file "libRedRT.dylib"]
+	#default [#define LIBREDRT-file "libRedRT.so"]
 ]
 
 #include %system.reds
@@ -110,7 +124,7 @@ re-throw: func [/local id [integer!]][
 		]
 	]
 	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %darwin.reds]
+	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
 	#default [#include %linux.reds]
@@ -118,10 +132,9 @@ re-throw: func [/local id [integer!]][
 
 
 #if type = 'exe [
-	#switch target [
+	#switch target [						;-- do not raise exceptions as we use some C functions may cause exception
 		IA-32 [
-			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
-												;-- and overflow raise exceptions.
+			system/fpu/control-word: 037Fh
 			system/fpu/update
 		]
 		ARM [
@@ -142,9 +155,33 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
+	
+	__set-stack-on-crash: func [
+		return: [int-ptr!]
+		/local address frame top
+	][
+		top: system/stack/frame				;-- skip the set-stack-on-crash stack frame 
+		frame: as int-ptr! top/value
+		top: top + 1
+		address: as int-ptr! top/value
+		top: frame + 2
 
-	#define RED_ERR_VMEM_RELEASE_FAILED		96
-	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+		system/debug: declare __stack!		;-- allocate a __stack! struct
+		system/debug/frame: frame
+		system/debug/top: top
+		address
+	]
+	
+	#if target = 'ARM [
+		***-on-div-error: func [			;-- special error handler wrapper for _div_ intrinsic
+			code [integer!]
+			/local
+				address [int-ptr!]
+		][
+			address: __set-stack-on-crash
+			***-on-quit code as-integer address
+		]
+	]
 
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
@@ -192,8 +229,6 @@ re-throw: func [/local id [integer!]][
 				34	["Bus error"]			;-- generic SIGBUS message
 
 				95	["no CATCH for THROW"]
-				96	["virtual memory release failed"]
-				97	["out of memory"]
 				98	["assertion failed"]
 				99	["unknown error"]
 
@@ -205,7 +240,9 @@ re-throw: func [/local id [integer!]][
 			print msg
 
 			#either debug? = yes [
-				__print-debug-line as byte-ptr! address
+				if null? system/debug [__set-stack-on-crash]
+				__print-debug-line  as byte-ptr! address
+				__print-debug-stack as byte-ptr! address
 			][
 				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]
@@ -234,3 +271,13 @@ re-throw: func [/local id [integer!]][
 ]
 push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
+
+#if type = 'dll [
+	#if libRedRT? = yes [
+		#switch OS [								;-- init OS-specific handlers
+			Windows  [win32-startup-ctx/init]
+			Syllable []
+			#default [posix-startup-ctx/init]
+		]
+	]
+]

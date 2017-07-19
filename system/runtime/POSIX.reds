@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+#define OS_DIR_SEP 47						;-- #"/"
+
 #import [									;-- mandatory C bindings
 	LIBC-file cdecl [
 		sigaction: "sigaction" [
@@ -55,6 +57,10 @@ posix-startup-ctx: context [
 	][
 		error: 99								;-- default unknown error
 		code: info/code
+		
+		system/debug: declare __stack!			;-- allocate a __stack! struct
+		system/debug/frame: as int-ptr! UCTX_GET_STACK_FRAME(ctx)
+		system/debug/top: 	as int-ptr! UCTX_GET_STACK_TOP(ctx)
 
 		error: switch signal [
 			SIGILL [
@@ -105,7 +111,10 @@ posix-startup-ctx: context [
 		***-on-quit error UCTX_INSTRUCTION(ctx)
 	]
 
-	init: does [
+	init: func [
+		/local
+			__sigaction-options [sigaction!]
+	][
 		__sigaction-options: declare sigaction!
 
 		__sigaction-options/sigaction: 	as-integer :***-on-signal
@@ -118,15 +127,19 @@ posix-startup-ctx: context [
 	]
 ]
 
-#if OS <> 'MacOSX [								;-- OS X has it's own start code
+#if OS <> 'macOS [								;-- macOS has it's own start code
 	#switch type [
 		dll [
 			***-dll-entry-point: func [
 				[cdecl]
 			][
-				***-main
-				posix-startup-ctx/init
-				on-load
+				#either red-pass? = no [		;-- only for pure R/S DLLs
+					***-boot-rs
+					on-load
+					***-main
+				][
+					on-load
+				]
 			]
 		]
 		exe [

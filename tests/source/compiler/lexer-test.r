@@ -179,7 +179,7 @@ do %../../../lexer.r
 	    1: 1
 	  }
 	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid word! value"
+	--assert-printed? "*** Syntax Error: Invalid integer! value"
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
 	  

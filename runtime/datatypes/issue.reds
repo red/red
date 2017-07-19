@@ -14,28 +14,25 @@ issue: context [
 	verbose: 0
 	
 	load-in: func [
-		str 	 [c-string!]
-		blk		 [red-block!]
-		return:	 [red-word!]
+		str 	[c-string!]
+		blk		[red-block!]
+		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "issue/load"]]
-		
-		cell: word/load-in str blk
+		cell: as red-word! ALLOC_TAIL(blk)
 		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: symbol/make str yes
+		cell/index:  -1
 		cell
 	]
 	
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
-		/local 
-			cell [red-word!]
 	][
-		cell: word/load str
-		cell/header: TYPE_ISSUE							;-- implicit reset of all header flags
-		cell
+		load-in str root
 	]
 	
 	push: func [
@@ -48,7 +45,7 @@ issue: context [
 	]
 	
 	;-- Actions --
-	
+
 	mold: func [
 		w	    [red-word!]
 		buffer	[red-string!]
@@ -67,18 +64,15 @@ issue: context [
 	]
 	
 	compare: func [
-		arg1	[red-word!]								;-- first operand
-		arg2	[red-word!]								;-- second operand
-		op		[integer!]								;-- type of comparison
-		return:	[integer!]
+		arg1	 [red-word!]							;-- first operand
+		arg2	 [red-word!]							;-- second operand
+		op		 [integer!]								;-- type of comparison
+		return:	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "issue/compare"]]
-
-		either op = COMP_STRICT_EQUAL [
-			all [TYPE_OF(arg2) = TYPE_ISSUE arg1/symbol = arg2/symbol]
-		][
-			word/compare arg1 arg2 op
-		]
+		
+		if TYPE_OF(arg2) <> TYPE_ISSUE [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
+		word/compare arg1 arg2 op
 	]
 	
 	init: does [
@@ -87,10 +81,10 @@ issue: context [
 			TYPE_WORD
 			"issue!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path
@@ -126,6 +120,7 @@ issue: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke

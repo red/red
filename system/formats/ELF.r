@@ -24,6 +24,7 @@ context [
 
 		base-address	(to-integer #{08048000})
 		page-size		4096
+		rpath			"$ORIGIN"
 
 		;; ELF Constants
 
@@ -87,14 +88,18 @@ context [
 		dt-syment		11			;; size of one symbol table entry (in bytes)
 		dt-init			12			;; address of the initialization function
 		dt-fini			13			;; address of the termination function
+		dt-rpath		15			;; library search path (deprecated)
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
+		dt-runpath		29			;; library search path
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
+		r-386-rel		8			;; relocation relative to image's base
 
 		r-arm-abs32		2			;; direct 32-bit relocation
+		r-arm-rel		23			;; relocation relative to image's base
 
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
@@ -224,7 +229,7 @@ context [
 		offset			[integer!]
 		info-sym		[char!]
 		info-type		[char!]
-		info-unused		[short]
+		info-addend		[short]
 	] none
 
 	stab-entry: make-struct [
@@ -280,9 +285,9 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size
+			data-size data-reloc
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset
+			relro-offset pos list
 	] [
 		base-address: case [
 			job/type = 'dll [0]
@@ -290,9 +295,16 @@ context [
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
+		;-- (hack) Move libRedRT in first position to avoid "system" symbol
+		;-- to be bound to libC instead! (TBD: find a cleaner way)
+		if pos: find list: job/sections/import/3 "libRedRT.so" [
+			insert list take/part pos 2
+		]
+		
 		set [libraries imports] collect-import-names job
 		exports: collect-exports job
 		natives: collect-natives job
+		data-reloc: collect-data-reloc job
 
 		structure: copy default-structure
 
@@ -325,7 +337,9 @@ context [
 
 		data-size: size-of job/sections/data/2
 		if job/debug? [
-			data-size: data-size + linker/get-debug-lines-size job
+			data-size: data-size 
+				+ (linker/get-debug-lines-size job)
+				+  linker/get-debug-funcs-size job
 		]
 		if zero? data-size [
 			remove-elements structure [".data"]
@@ -350,7 +364,7 @@ context [
 			"phdr"			size [program-header	length? segments]
 			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
 			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
-			".rel.text"		size [elf-relocation	length? imports]
+			".rel.text"		size [elf-relocation	(length? imports) + (length? data-reloc)]
 			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? imports]
 			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
@@ -358,7 +372,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -415,22 +429,27 @@ context [
 				section-index-of sections ".data"
 		]
 
-		set-data ".rel.text"
-			[build-reltext job/target imports get-address ".data.rel.ro"]
+		set-data ".rel.text" [
+			build-reltext
+				job/target
+				imports
+				get-address ".data.rel.ro"
+				data-reloc
+				any [attempt [get-address ".data"] 0]	;-- in case .data segment is absent
+				get-address ".text"
+		]
 
 		set-data ".data" [
 			if job/debug? [
-				linker/build-debug-lines
-					job
-					get-address ".text"
-					machine-word
+				linker/build-debug-lines job get-address ".text"
+				linker/build-debug-func-names job get-address ".text"
 			]
 			job/sections/data/2
 		]
 
 		set-data ".data.rel.ro"
 			[build-relro imports]
-
+		
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
@@ -638,18 +657,56 @@ context [
 		target-arch [word!]
 		symbols [block!]
 		relro-address [integer!]
-		/local rel-type result entry
+		relocs [block!]
+		data-address [integer!]
+		code-address [integer!]
+		/local rel-type result entry len
 	] [
 		rel-type: select reduce [
-			'ia-32 defs/r-386-32
-			'arm defs/r-arm-abs32
+			'IA-32	defs/r-386-32
+			'ARM	defs/r-arm-abs32
 		] target-arch
-		result: copy []
-		repeat i length? symbols [ ;; 1..n, 0 is undef
+		result: make block! (length? relocs) + len: length? symbols
+		
+		repeat i len [ 									;-- 1..n, 0 is undef
 			entry: make-struct elf-relocation none
-			entry/offset: rel-address-of/index relro-address (i - 1)
-			entry/info-sym: rel-type
-			entry/info-type: i
+			entry/offset:		rel-address-of/index relro-address (i - 1)
+			entry/info-sym:		rel-type
+			entry/info-type:	i // 256
+			entry/info-addend:	shift/logical i 8
+			append result entry
+		]
+		
+		rel-type: select reduce [
+			'IA-32	defs/r-386-rel
+			'ARM	defs/r-arm-rel
+		] target-arch
+		
+		foreach ptr relocs [
+			entry: make-struct elf-relocation none
+			entry/offset:		data-address + ptr
+			entry/info-sym:		rel-type
+			entry/info-type:	0
+			entry/info-addend:	0
+			append result entry
+		]
+		result
+	]
+	
+	build-reldata: func [
+		target-arch [word!]
+		relocs [block!]
+		data-address [integer!]
+		/local rel-type result entry len
+	][
+		result: make block! (length? relocs) / 2
+		
+		foreach [name spec] relocs [
+			entry: make-struct elf-relocation none
+			entry/offset: spec/2
+			entry/info-sym: defs/stn-undef
+			entry/info-type: 0
+			entry/info-addend: 0
 			append result entry
 		]
 		result
@@ -680,6 +737,7 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
+		repend entries ['rpath strtab-index-of dynstr defs/rpath]
 
 		if job-type = 'dll [
 			if spec: select symbols '***-dll-entry-point [
@@ -801,6 +859,25 @@ context [
 	]
 
 	;; -- Job helpers --
+	
+	collect-data-reloc: func [job [object!] /local list syms spec][
+		list: make block! 100
+		syms: job/symbols
+		
+		while [not tail? syms][
+			spec: syms/2
+			syms: skip syms 2
+			if all [
+				not tail? syms
+				syms/1 = <data>	
+				block? syms/2/4
+				syms/2/4/1 - 1 = spec/2
+			][
+				append list spec/2
+			]
+		]
+		list
+	]
 
 	collect-import-names: func [job [object!] /local libraries symbols] [
 		libraries: copy []
@@ -819,9 +896,9 @@ context [
 		the object size is not yet stored in the symbol or exports table, we
 		have to compute it here.}
 		job [object!]
-		/local current-tail code-tail data-tail symbol-offset symbol-size
+		/local current-tail code-tail data-tail symbol-offset symbol-size ext-name
 	] [
-		if  not find job/sections 'export [return make block! 0]
+		unless find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2
@@ -829,7 +906,7 @@ context [
 			foreach [meta symbol] reverse copy job/symbols [
 				catch [
 					case [
-						find [import native-ref] meta/1 [
+						find [import import-var native-ref] meta/1 [
 							throw 'continue
 						]
 						'global = meta/1 [
@@ -848,12 +925,12 @@ context [
 							make error! reform ["Unhandled symbol type:" meta/1]
 						]
 					]
-					if find job/sections/export/3 symbol [
+					if ext-name: select job/sections/export/3 symbol [
 						keep compose/deep [
-							(form symbol) [
-								type (meta/1)
-								offset (symbol-offset)
-								size (symbol-size)
+							(ext-name) [
+								type	(meta/1)
+								offset	(symbol-offset)
+								size	(symbol-size)
 							]
 						]
 					]
@@ -878,6 +955,7 @@ context [
 	] [
 		rel: make-struct machine-word none
 		foreach [libname libimports] job/sections/import/3 [
+			linker/check-dup-symbols job libimports
 			foreach [symbol callsites] libimports [
 				rel/value: rel-address-of/symbol relro-offset symbols symbol
 				foreach callsite callsites [
@@ -966,7 +1044,7 @@ context [
 	]
 
 	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
-		size: 9
+		size: 10
 		if job-type = 'dll [
 			if find symbols '***-dll-entry-point [
 				size: size + 1
@@ -1088,7 +1166,7 @@ context [
 
 	;; -- Helpers for creating/using ELF structures --
 
-	strtab-index-of: func [strtab [binary!] string [string!]] [
+	strtab-index-of: func [strtab [binary!] string [string! issue!]] [
 		-1 + index? find strtab to-c-string string
 	]
 
@@ -1100,13 +1178,13 @@ context [
 
 	rel-address-of: func [
 		base [integer!]
-		/symbol syms [block!] sym [string!]
+		/symbol syms [block!] sym [string! issue!]
 		/index ind [integer!]
 	] [
 		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
 	]
 
-	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
+	to-c-string: func [data [string! binary! issue!]] [join as-binary data #{00}]
 
 	to-elf-strtab: func [items [block!]] [
 		join #{00} map-each item items [to-c-string form item]

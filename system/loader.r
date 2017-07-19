@@ -21,6 +21,7 @@ loader: make-profilable context [
 	hex-delim: 	  charset "[]()/"
 	non-cbracket: complement charset "}^/"
 
+	scripts-stk:  make block! 10
 	current-script: none
 	line: none
 
@@ -51,6 +52,9 @@ loader: make-profilable context [
 	init: does [
 		clear include-list
 		clear defs
+		clear ssp-stack
+		clear scripts-stk
+		current-script: line: none
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
 	
@@ -164,8 +168,8 @@ loader: make-profilable context [
 						][
 							all [
 								path: find [path! set-path!] type?/word value
-								find [word! set-word!] to word! type
-								type: get path/1
+								type: find [word! set-word!] to word! type
+								type: get pick head path index? type
 							]
 							to type value				;-- get/set => convert value
 						]
@@ -270,12 +274,15 @@ loader: make-profilable context [
 				  ] e: (
 				  	if paren? args [check-macro-parameters args]
 					if verbose > 0 [print [mold name #":" mold value]]
+					if find compiler/definitions name [
+						print ["*** Warning:" name "macro in R/S is redefined"]
+					]
 					append compiler/definitions name
 					case [
 						args [
 							do recurse
 							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
-							rule/5/3: to block! :args	
+							rule/5/3: to block! :args
 							rule/5/4: :value
 						]
 						block? value [
@@ -317,27 +324,30 @@ loader: make-profilable context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						either all [encap? own][
+						value: either all [encap? own][
 							mark: tail encap-fs/base
-							value: skip process/short/sub/own name 2	;-- skip Red/System header
+							process/short/sub/own name
 						][
 							name: push-system-path name
-							value: skip process/short/sub name 2		;-- skip Red/System header
+							process/short/sub name
 						]
-						e: change/part s value e
+						e: change/part s skip value 2 e	;-- skip Red/System header
 
 						value: either all [encap? own not empty? mark][
 							count-slash mark
 						][
 							0
 						]
+						name: system/script/path/:name
+						
 						insert e reduce [
 							#pop-path value
-							#script current-script	;-- put back the parent origin
+							#script last scripts-stk	;-- put back the parent origin
 						]
-						insert s reduce [			;-- mark code origin	
+						insert s reduce [				;-- mark code origin
 							#script name
 						]
+						append scripts-stk name
 						current-script: name
 					]
 				) :s
@@ -375,6 +385,7 @@ loader: make-profilable context [
 					][
 						pop-system-path
 					]
+					take/last scripts-stk
 					s: remove/part s 2
 				) :s
 				| line-rule
@@ -406,14 +417,28 @@ loader: make-profilable context [
 		change stack/1 length? stack/1				;-- update root header size	
 		insert src stack/1							;-- return source with hidden root header
 	]
+	
+	prefix-cache: func [file [file!] /local path][
+		path: either empty? ssp-stack [system/script/path][first ssp-stack]
+		path: skip system/script/path length? path
+		secure-clean-path join path file
+	]
 
 	process: func [
 		input [file! string! block!] /sub /with name [file!] /short /own
-		/local src err path ssp pushed? raw
+		/local src err path ssp pushed? raw cache? new
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 		
-		if own [raw: input]
+		cache?: all [
+			encap?
+			file? input
+			any [
+				exists?-cache input
+				exists?-cache new: prefix-cache input
+			]
+		]
+		if any [own cache?][raw: input]
 		
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
@@ -432,22 +457,25 @@ loader: make-profilable context [
 				]
 				pushed?: yes
 			]
+			
 			if error? set/any 'err try [			;-- read source file
-				src: as-string either all [encap? own][
+				src: as-string either any [cache? all [encap? own]][
+					if all [cache? new][raw: new]
 					read-binary-cache raw
 				][
 					read/binary input
 				]
 			][
-				throw-error ["file access error:" mold disarm err]
+				throw-error ["file access error:" mold input]
 			]
 		]
 		unless short [
 			current-script: case [
 				file? input [input]
 				with		[name]
-				'else		['in-memory]
+				'else		[any [select input #script 'in-memory]]
 			]
+			append clear scripts-stk current-script
 		]
 		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
