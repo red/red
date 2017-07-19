@@ -839,3 +839,38 @@ free-big: func [
 	
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
+
+#if libRed? = yes [
+
+	;-- Intermediary buffer used for holding Red values passed as arguments to an external
+	;-- routine.
+	
+	ext-ring: context [
+		head: as cell! 0
+		tail: as cell! 0
+		pos:  as cell! 0
+		size: 50
+		
+		store: func [
+			value	[cell!]
+			return: [cell!]
+		][
+			copy-cell value alloc
+		]
+		
+		alloc: func [return: [cell!]][
+			pos: pos + 1
+			if pos = tail [pos: head]
+			pos
+		]
+		
+		init: does [
+			head: as cell! allocate size * size? cell!
+			tail: head + size
+			pos:  head
+		]
+		
+		destroy: does [free as byte-ptr! head]
+	]
+	
+]

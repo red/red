@@ -51,7 +51,7 @@ logic: context [
 			arg	 [red-logic!]
 			type [integer!]
 	][
-		arg: as red-logic! stack/top - 1
+		arg: as red-logic! stack/get-top
 		type: TYPE_OF(arg)
 
 		any [

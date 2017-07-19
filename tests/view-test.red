@@ -25,7 +25,7 @@ os-version: system/view/platform/version
 			"build" system/view/platform/build
 		]
 	]
-	MacOSX [
+	macOS [
 		print [
 			"macOS" switch os-version and 255.255.0 [
 				10.11.0	["El Capitan"]
@@ -557,7 +557,7 @@ win/pane: reduce [
 					on-change: func [face [object!] event [event! none!]][
 						;print ["slider changed:" face/data]
 						progress/data: face/data
-						progress-text/text: form to percent! (round face/data * 100) / 100.0
+						progress-text/text: form round to-percent face/data
 						unless live? [show [progress progress-text]]
 					]
 				]

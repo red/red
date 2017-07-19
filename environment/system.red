@@ -40,7 +40,7 @@ system: context [
 			#switch OS [
 				Windows  [SET_RETURN(words/_windows)]
 				Syllable [SET_RETURN(words/_syllable)]
-				MacOSX	 [SET_RETURN(words/_macOS)]
+				macOS	 [SET_RETURN(words/_macOS)]
 				#default [SET_RETURN(words/_linux)]
 			]
 		]
@@ -50,6 +50,22 @@ system: context [
 		datatypes:
 		actions:
 		natives: none
+		
+		accessors: [
+			date!	[
+				date year month day zone time hour minute second weekday yearday
+				timezone week isoweek julian
+			]
+			email!	[user host]
+			event!	[
+				type face window offset key picked flags away? down? mid-down?
+				alt-down? aux-down? ctrl? shift?
+			]
+			image!	[size argb rgb alpha]
+			pair!	[x y]
+			;point!	[x y z]
+			time!	[hour minute second]
+		]
 		
 		errors: context [
 			throw: object [
@@ -131,6 +147,7 @@ system: context [
 				bad-bad:			[:arg1 "error:" :arg2]
 				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
 				bad-to-arg:			["cannot MAKE/TO" :arg1 "from:" :arg2]
+				invalid-months:		"invalid system/locale/month list"
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
@@ -233,7 +250,7 @@ system: context [
 				too-deep:			"block or paren series is too deep to display"
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
-				invalid-error:		"error object or fields were not valid"
+				invalid-error:		["invalid error object field value:" :arg1]
 				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
 			]
@@ -247,7 +264,7 @@ system: context [
 		]
 		
 		last-error: none
-		trace?: yes
+		trace: 1										;-- 0: disabled
 	]
 	
 	modules: make block! 8
@@ -281,6 +298,8 @@ system: context [
 		home: 			none
 		path: 			what-dir
 		script: 		none
+		cache:			none
+		thru-cache:		none
 		args: 			none
 		do-arg: 		none
 		debug: 			none

@@ -365,7 +365,7 @@ make-profilable make target-class [
 	
 	emit-reloc-addr: func [spec [block!] /only][
 		unless only [append spec emitter/tail-ptr]	;-- save reloc position
-		unless empty? emitter/chunks/queue [				
+		unless empty? emitter/chunks/queue [
 			append/only 							;-- record reloc reference
 				second last emitter/chunks/queue
 				either only [spec][back tail spec]
@@ -379,63 +379,57 @@ make-profilable make target-class [
 		;-- registers usage:
 		;-- 	- on entering: r0: dividend, r1: divisor, r4: mode (0: division, 1: modulo, 2: remainder)
 		;--		- on exit: r0: quotient, r1: remainder or r0: modulo/remainder
-		;--		- registers modified: r0-r3, r5, ip
+		;--		- registers modified: r0-r3, r5-r7, ip
 		
 		if verbose >= 3 [print "^/>>>emitting DIVIDE intrinsic"]
 		
 		base: emitter/tail-ptr
 		
-		foreach opcode [	
-							; .divide	
+		foreach opcode [
+							; .divide
 			#{e3510000}			; CMP r1, #0			; if divisor = 0
 			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
 			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
 			#{092d0001}			; PUSHEQ {r0}
 			#{0a000000}			; BEQ ***-on-div-error	; call runtime error handler
-			#{e1500001}			; CMP r0, r1			; if dividend = divisor
-			#{0a00000b}			; BEQ .equal
-			#{e1a03000}			; MOV r3, r0			; r3: dividend
+
+			#{e1a06000}			; MOV r6, r0			; r6: dividend
 			#{e1a05001}			; MOV r5, r1			; r5: divisor
+			#{e1a07001}			; MOV r7, r1			; r7: divisor
 			#{e3500000}			; CMP r0, #0			; if dividend < 0
-			#{42603000}			; RSBMI r3, r0, #0		;	r3: -dividend
+			#{42606000}			; RSBMI r6, r0, #0		;	r6: -dividend
 			#{e3510000}			; CMP r1, #0			; if divisor < 0
 			#{42615000}			; RSBMI r5, r1, #0		;	r5: -divisor
-			#{e3500102}			; CMP r0, #1<<31		; if r3 = -2^31 (special case for -2^31)
+			#{e201c102}			; AND ip, r1, #1<<31	; flag negative divisor:  ip: r1 and #80000000
+			#{e18cc0a0}			; ORR ip, ip, r0 LSR#1  ; flag negative dividend: ip: ip or r0>>1
+			
+			#{e3500102}			; CMP r0, #1<<31		; if r0 = -2^31 (special case for -2^31)
 			#{0a000006}			; BEQ .ispowerof2		; or
-			#{e1530005}			; CMP r3, r5			; if r3 <= divisor
-			#{8a000004}			; BHI .ispowerof2			
-			#{e1a01000}			; MOV r1, r0			; remainder: dividend
-			#{e3a00000}			; MOV r0, #0			; quotient: 0
-							; .equal
+			#{e1560005}			; CMP r6, r5			; if r6 <= divisor
+			#{8a000004}			; BHI .ispowerof2		; if dividend > divisor, proceed with division
+			#{13a00000}			; MOVNE r0, #0			; if dividend < divisor, quotient: 0
+			#{11a01006}			; MOVNE r1, r6			; 	remainder: abs(dividend)
 			#{03a00001}			; MOVEQ r0, #1			; if dividend = divisor, quotient: 1
 			#{03a01000}			; MOVEQ r1, #0			;	remainder: 0
-			#{ea000024}			; B .divide_end			; jump to remainder epilog
+			#{ea00001a}			; B .epilog				; finish
 							; .ispowerof2
-			#{e2413001}			; SUB r3, r1, #1		; r3: divisor - 1
-			#{e1130001}			; TST r3, r1			; if divisor is a power of 2 (divisor & (divisor - 1))
-			#{1a00000c}			; BNE .notpowerof2
+			#{e2453001}			; SUB r3, r5, #1		; r3: abs(divisor) - 1
+			#{e1130005}			; TST r3, r5			; if abs(divisor) is a power of 2 (divisor & (divisor - 1))
+			#{1a000009}			; BNE .notpowerof2
 			#{e1a03000}			; MOV r3, r0			; save dividend
-			#{e1a02001}			; MOV r2, r1			; save divisor
 							; .powerof2
 			#{31a000c0}			; MOVCC r0, r0, ASR#1	; divide by 2 (but not on first pass)
 			#{e1b010a1}			; MOVS r1, r1, LSR#1	; until power of 2 reached (carry set)
 			#{3afffffc}			; BCC .powerof2
-			#{e2621000}			; RSB r1, r2, #0		; 2's complement of divisor
-			#{e0031001}			; AND r1, r3, r1		; r1: dividend and -divisor
-			#{e0431001}			; SUB r1, r3, r1		; compute remainder = (dividend - (dividend and -divisor))
+			#{e2651000}			; RSB r1, r5, #0		; 2's complement of abs(divisor)
+			#{e0061001}			; AND r1, r6, r1		; r1: dividend and -divisor
+			#{e0461001}			; SUB r1, r6, r1		; compute remainder = (dividend - (dividend and -divisor))
 			#{e3530102}			; CMP r3, #1<<31		; if r3 = -2^31 (special case for -2^31)
-			#{0a000017}			; BEQ .divide_end		; 	jump to end
-			#{e3530000}			; CMP r3, #0			; if dividend < 0
-			#{40411002}			; SUBMI r1, r1, r2		;	adjust remainder (remainder = remainder - divisor)
-			#{ea000014}			; B .divide_end
+			#{020cc102}			; ANDEQ ip, ip, #1<<31	; set dividend's sign flag to 0 (let divisor's sign matter only)
+			#{ea00000d}			; B .epilog
 							; .notpowerof2
-			#{e1b02001}			; MOVS r2, r1			; r2: divisor
-			#{e212c102}			; ANDS ip, r2, #1<<31	; if r2 < 0, ip: #80000000
-			#{42622000}			; RSBMI r2, r2, #0		; if r2 < 0, r2: -r2 (2's complement)
-			#{e1b01000}			; MOVS r1, r0			; r1: dividend
-			#{e03cc041}			; EORS ip, ip, r1 ASR#32 ; if r1 < 0, ip: ip xor r1>>32
-			#{22611000}			; RSBCS r1, r1, #0		; if r1 < 0, r1: -r1 (2's complement)
-			
+			#{e1b02005}			; MOVS r2, r5			; r2: abs(divisor)
+			#{e1b01006}			; MOVS r1, r6			; r1: abs(dividend)
 			#{e3a00000}			; MOV r0, #0     		; clear R0 to accumulate result
 			#{e3a03001}			; MOV r3, #1     		; set bit 0 in R3, which will be shifted left then right
 							; .start
@@ -457,24 +451,21 @@ make-profilable make target-class [
 							; .epilog					; back to where it started, and we can end
 			#{e1b0c08c}			; MOVS ip, ip, LSL#1	; C: bit 31, N: bit 30
 			#{22600000}			; RSBCS	r0, r0, #0		; if C = 1, r0: -r0 (2's complement)
-			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)								
+			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)
+			#{42600000}			; RSBMI	r0, r0, #0		; if N = 1, r0: -r0 (2's complement)
 							; .divide_end				; r0: quotient, r1: remainder
 			#{e3340000}			; TEQ r4, #0			; if not modulo/remainder op,
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
 			
 			;-- Adjust modulo result to be mathematically correct:
-			;-- 	if modulo < 0 [
-			;--			if divisor < 0 [divisor: negate divisor]
-			;--			modulo: modulo + divisor
-			;--		]
+			;-- 	if modulo < 0 [modulo: modulo + abs(divisor)]
+			
 			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
-			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
+			#{e3340002}			; TEQ r4, #2			; if remainder mode
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
 			#{e3500000}			; CMP r0, #0	 		; if r0 >= 0, (modulo)
 			#{51a0f00e}			; MOVPL pc, lr			; 	return from sub-routine
-			#{e3520000}			; CMP r2, #0	 		; if r2 < 0 (divisor)
-			#{41e00000}			; RSBMI	r0, r0, #0		;	r0: -r0 (2's complement)
-			#{e0800002}			; ADD r0, r0, r2		; r0: r0 + r2
+			#{e0800005}			; ADD r0, r0, r5		; r0: r0 + r5 (abs(divisor))
 			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
  		][
  			emit-i32 opcode
@@ -1089,9 +1080,9 @@ make-profilable make target-class [
 	
 	emit-get-overflow: does [
 		either last-math-op = '* [
-			emit-i32 #{e3550000}					;-- CMP   r5, #0
+			emit-i32 #{e1550fc0}					;-- CMP   r5, r0, ASR #31
 			emit-i32 #{13a00001}					;-- MOVNE r0, #1
-			emit-i32 #{03a00000}					;-- MOVE  r0, #0
+			emit-i32 #{03a00000}					;-- MOVEQ r0, #0
 		][
 			emit-i32 #{63a00001}					;-- MOVVS r0, #1
 			emit-i32 #{73a00000}					;-- MOVVC r0, #0
@@ -2069,6 +2060,7 @@ make-profilable make target-class [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
+							emit-i32 #{e3a05000}	;-- MOV   r5, #0 ; reset for overflow checking
 							emit-i32 #{e1b00000}	;-- LSLS r0, r0, #log2(b)
 								or to-shift-imm c
 						][

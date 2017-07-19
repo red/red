@@ -314,8 +314,8 @@ red-image!: alias struct! [
 
 red-date!: alias struct! [
 	header 	[integer!]								;-- cell header
-	date	[integer!]								;-- year:16 (signed), month:4, day:5, TZ:7 (signed) 
-	time	[float!]								;-- 64-bit float
+	date	[integer!]								;-- year:15 (signed), time?:1, month:4, day:5, TZ:7 (5 + 2, signed)
+	time	[float!]								;-- 64-bit float, UTC time
 ]
 
 red-time!: alias struct! [

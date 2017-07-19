@@ -1367,7 +1367,7 @@ make-profilable make target-class [
 			]
 			object! [
 				type: compiler/get-type value/data
-				float?: find [float! float64! float32!] value/type/1
+				float?: compiler/any-float? value/type
 				
 				conv-int-float?: any [
 					all [float?	type/1 = 'integer!]
@@ -1382,7 +1382,10 @@ make-profilable make target-class [
 					emit-load value/data
 				]
 				either keep [emit-casting value no][
-					unless all [float? decimal? value/data][
+					unless all [
+						float?
+						any [decimal? value/data compiler/any-float? type]
+					][
 						emit-casting/push value no
 					]
 				]
@@ -1813,7 +1816,7 @@ make-profilable make target-class [
 
 	emit-float-operation: func [
 		name [word!] args [block!] 
-		/local a b left right spec load-from-stack reversed? type
+		/local a b left right spec reversed? type
 	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
@@ -1825,12 +1828,7 @@ make-profilable make target-class [
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
 		set-width left
-		
-		load-from-stack: [
-			emit-float #{DD0424}					;-- FLD [esp]
-			emit #{83C4} 							;-- ADD esp, 8|4
-			emit to-bin8 width		
-		]
+
 		switch a [									;-- load left operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
@@ -1877,8 +1875,11 @@ make-profilable make target-class [
 				]
 			]
 			reg [
-				if all [object? args/2 block? right][
-					emit-casting args/2 no
+				all [
+					object? args/2
+					block? right
+					not find [float! float32!] compiler/get-type right
+					emit-casting args/2 no			;-- load b on FPU stack
 				]
 				if path? right [emit-push/keep args/2] ;-- late path loading
 			]
@@ -1917,7 +1918,7 @@ make-profilable make target-class [
 			compiler/job/OS <> 'Windows
 			slots: emitter/struct-slots?/check spec/4
 			not all [
-				compiler/job/OS = 'MacOSX			;-- on macOS, <ptr> is used for slots > 2 only
+				compiler/job/OS = 'macOS			;-- on macOS, <ptr> is used for slots > 2 only
 				slots <= 2
 			]
 			size: size - stack-width				;-- hidden pointer is freed by callee
@@ -2015,7 +2016,7 @@ make-profilable make target-class [
 		cdecl?: fspec/3 = 'cdecl
 		if all [issue? args/1 not cdecl?][emit-variadic-data args]
 
-		either compiler/job/OS = 'MacOSX [
+		either compiler/job/OS = 'macOS [
 			either PIC? [
 				emit #{8D83}						;-- LEA eax, [ebx+disp]	; PIC
 			][

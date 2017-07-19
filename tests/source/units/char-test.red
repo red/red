@@ -1,5 +1,5 @@
 Red [
-	Title:   "Red/System char! datatype test script"
+	Title:   "Red char! datatype test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %char-test.red
 	Version: "0.2.0"

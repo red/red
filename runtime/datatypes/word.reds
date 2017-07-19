@@ -198,7 +198,7 @@ word: context [
 			value  [red-value!]
 			values [series!]
 	][
-		value: stack/top - 1
+		value: stack/get-top
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		stack/push values/offset + index
@@ -213,7 +213,7 @@ word: context [
 			value  [red-value!]
 			values [series!]
 	][
-		value: stack/top - 1
+		value: stack/get-top
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index

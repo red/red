@@ -295,7 +295,7 @@ crypto: context [
 	]
 
 	#case [
-		any [OS = 'FreeBSD OS = 'MacOSX] [
+		any [OS = 'FreeBSD OS = 'macOS] [
 			#import [
 			LIBC-file cdecl [
 				get-errno-ptr: "__error" [
@@ -341,8 +341,8 @@ crypto: context [
 		true
 	]]
 
-	#switch OS [
-	Windows [
+	#case [
+	OS = 'Windows [
 		#import [
 			"advapi32.dll" stdcall [
 				CryptAcquireContext: "CryptAcquireContextW" [
@@ -456,7 +456,7 @@ crypto: context [
 			hash
 		]
 	]
-	Linux [
+	all [OS = 'Linux target <> 'ARM][
 		;-- Using User-space interface for Kernel Crypto API
 		;-- Exists in kernel starting from Linux 2.6.38
 		#import [
@@ -587,17 +587,17 @@ crypto: context [
 			hash
 		]
 	]
-	#default [											;-- MacOSX,Android,Syllable,FreeBSD
+	true [											;-- macOS,Android,Syllable,FreeBSD,Linux-ARM
 		;-- Using OpenSSL Crypto library
 		#switch OS [
-			MacOSX [
+			macOS [
 				#define LIBCRYPTO-file "libcrypto.dylib"
 			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.7"
 			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so"
+				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
 			]
 		]
 		#import [

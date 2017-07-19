@@ -599,7 +599,7 @@ struct-local-foo2
 	
 	#switch OS [
 		Windows  [#define STRUCTLIB-file "structlib.dll"]
-		MacOSX	 [#define STRUCTLIB-file "libstructlib.dylib"]
+		macOS	 [#define STRUCTLIB-file "libstructlib.dylib"]
 		#default [#define STRUCTLIB-file "libstructlib.so"]
 	]
 

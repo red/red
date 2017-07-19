@@ -336,10 +336,14 @@ natives: context [
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
-				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
 					series/head: series/head + 1
+					if system/thrown = RED_THROWN_CONTINUE [
+						system/thrown: 0
+						continue
+					]
 				]
 				default	[re-throw]
 			]
@@ -398,7 +402,7 @@ natives: context [
 			null
 			0
 			null
-		stack/set-last stack/top - 1
+		stack/set-last stack/get-top
 	]
 	
 	function*: func [check? [logic!]][
@@ -531,7 +535,8 @@ natives: context [
 					#call [system/lexer/transcode str none no]
 					DO_EVAL_BLOCK
 				]
-				TYPE_FILE [#call [do-file as red-file! arg]]
+				TYPE_URL 
+				TYPE_FILE  [#call [do-file as red-file! arg]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
@@ -1256,6 +1261,10 @@ natives: context [
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
+			TYPE_DATE	 [
+				if op <> OP_DIFFERENCE [ERR_EXPECT_ARGUMENT(type 1)]
+				date/difference? as red-date! set1 as red-date! set2
+			]
 			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]
@@ -1707,7 +1716,7 @@ natives: context [
 			p	 [red-pair!]
 			ret  [red-logic!]
 	][
-		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		#typecheck -zero?- 								;-- `zero?` would be converted to `0 =` by lexer
 		i: as red-integer! stack/arguments
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
@@ -1732,6 +1741,22 @@ natives: context [
 		]
 		ret/header: TYPE_LOGIC
 		ret
+	]
+	
+	size?*: func [
+		check?  [logic!]
+		/local
+			name [red-file!]
+			fd	 [integer!]
+	][
+		name: as red-file! stack/arguments
+		fd: simple-io/open-file file/to-OS-path name simple-io/RIO_READ yes
+		either fd < 0 [
+			none/push-last
+		][
+			integer/box simple-io/file-size? fd
+			simple-io/close-file fd
+		]
 	]
 
 	log-2*: func [
@@ -1822,7 +1847,7 @@ natives: context [
 			err	[red-object!]
 			id  [integer!]
 	][
-		err: as red-object! stack/top - 1
+		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
 		id: error/get-type err
 		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
@@ -2013,7 +2038,7 @@ natives: context [
 				]
 			]
 			system/thrown: 0
-			stack/set-last stack/top - 1
+			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
 		]
 	]
@@ -2350,7 +2375,7 @@ natives: context [
 		][
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
-			name: as red-string! s/offset + w/symbol - 1
+			name: word/as-string as red-word! name
 		]
 		PLATFORM_TO_CSTR(cstr name len)
 		
@@ -2360,10 +2385,10 @@ natives: context [
 			platform/get-env cstr buffer len
 			PLATFORM_LOAD_STR(name buffer (len - 1))
 			free as byte-ptr! buffer
-			stack/set-last as red-value! name	
 		][
 			name/header: TYPE_NONE
 		]
+		stack/set-last as red-value! name	
 	]
 
 	list-env*: func [
@@ -2380,20 +2405,48 @@ natives: context [
 		day		[integer!]
 		time	[integer!]
 		zone	[integer!]
-		date	[integer!]
+		_date	[integer!]
 		weekday	[integer!]
 		yearday	[integer!]
 		precise	[integer!]
 		utc		[integer!]
 		/local
 			dt	[red-date!]
+			int [red-integer!]
+			tm	[float!]
+			n	[integer!]
 	][
-		#typecheck [now year month day time zone date weekday yearday precise utc]
-		if time = -1 [--NOT_IMPLEMENTED--]
+		#typecheck [now year month day time zone _date weekday yearday precise utc]
 
 		dt: as red-date! stack/arguments
-		dt/header: TYPE_TIME
-		dt/time: platform/get-time utc >= 0 precise >= 0
+		dt/header: TYPE_DATE
+		dt/date: platform/get-date utc >= 0
+		if _date > -1 [dt/time: 0.0 exit]
+		dt/date: DATE_SET_TIME_FLAG(dt/date)
+		
+		tm: platform/get-time yes precise >= 0
+		date/normalize-time 0 :tm DATE_GET_ZONE(dt/date)
+		dt/time: tm
+		n: 0
+		case [
+			year    > -1 [n: 2]
+			month   > -1 [n: 3]
+			day     > -1 [n: 4]
+			zone    > -1 [n: 5]
+			time    > -1 [n: 6]
+			weekday > -1 [n: 10]
+			yearday > -1 [
+				int: as red-integer! dt
+				int/header: TYPE_INTEGER
+				int/value: date/get-yearday dt/date
+				exit
+			]
+			true [exit]
+		]
+		if n > 0 [
+			stack/keep
+			stack/set-last date/push-field dt n
+		]
 	]
 	
 	as*: func [
@@ -2470,6 +2523,40 @@ natives: context [
 		unless OPTION?(err)[err: null]
 		
 		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
+	]
+
+	browse*: func [
+		check?	[logic!]
+		/local
+			url [red-string!]
+			src [red-string!]
+	][
+		#typecheck browse
+
+		src: as red-string! stack/arguments
+		either TYPE_OF(src) = TYPE_FILE [
+			url: string/rs-make-at stack/push* string/rs-length? src
+			file/to-local-path as red-file! src url no
+		][url: src]
+
+		#switch OS [
+			Windows [
+				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
+				unset/push-last
+			]
+			macOS [
+				use [s [c-string!] cmd [byte-ptr!] len [integer!]][
+					len: -1
+					s: unicode/to-utf8 url :len
+					cmd: allocate 6 + len
+					copy-memory cmd as byte-ptr! "open " 5
+					copy-memory cmd + 5 as byte-ptr! s len + 1
+					ext-process/OS-call as-c-string cmd no no no yes null null null
+					free cmd
+				]
+			]
+			#default [fire [TO_ERROR(internal not-here) words/_browse]]
+		]
 	]
 
 	;--- Natives helper functions ---
@@ -3076,6 +3163,8 @@ natives: context [
 			:as*
 			:call*
 			:zero?*
+			:size?*
+			:browse*
 		]
 	]
 

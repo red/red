@@ -56,7 +56,7 @@ empty?: func [
 
 ??: func [
 	"Prints a word and the value it refers to (molded)"
-	'value [word!]
+	'value [word! path!]
 ][
 	prin mold :value
 	prin ": "
@@ -91,7 +91,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
 		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
 		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
-		unset! url! word! image!
+		unset! url! word! image! date!
 	]
 	test-list: union to-list [
 		handle! error! action! native! datatype! function! image! object! op! routine! vector!
@@ -173,7 +173,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either only [
+	head either any [only not block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -186,6 +186,9 @@ replace: function [
 	value
 	/all
 ][
+	if system/words/all [char? :pattern any-string? series][
+		pattern: form pattern
+	]
 	many?: any [
 		system/words/all [series? :pattern any-string? series]
 		binary? series
@@ -459,13 +462,14 @@ cause-error: function [
 ]
 
 pad: func [
-	"Pad a string on right side with spaces"
-	str		[string!]		"String to pad"
+	"Pad a FORMed value on right side with spaces"
+	str						"Value to pad, FORM it if not a string"
 	n		[integer!]		"Total size (in characters) of the new string"
 	/left					"Pad the string on left side"
 	/with c	[char!]			"Pad with char"
 	return:	[string!]		"Modified input string at head"
 ][
+	unless string? str [str: form str]
 	head insert/dup
 		any [all [left str] tail str]
 		any [c #" "]
@@ -810,18 +814,82 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file!] /local saved code new-path src][
+do-file: func [file [file! url!] /local saved code new-path src][
 	saved: system/options/path
 	unless src: find/case read file "Red" [
 		cause-error 'syntax 'no-header reduce [file]
 	]
 	code: expand-directives load/all src
 	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
-	new-path: first split-path clean-path file
-	change-dir new-path
+	if file? file [
+		new-path: first split-path clean-path file
+		change-dir new-path
+	]
 	set/any 'code do code
-	change-dir saved
+	if file? file [change-dir saved]
 	:code
+]
+
+;clear-cache: function [/only url][
+;
+;]
+
+path-thru: function [
+	"Returns the local disk cache path of a remote file"
+	url [url!]		"Remote file address"
+	return: [file!]
+][
+	so: system/options
+	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
+	
+	if pos: find/tail file: to-file url "//" [file: pos]
+	path: first split-path file: append copy so/thru-cache file
+	unless exists? path [make-dir/deep path]
+	file
+]
+
+exists-thru?: function [
+	"Returns true if the remote file is present in the local disk cache"
+	url [url! file!] "Remote file address"
+][
+	exists? any [all [file? url url] path-thru url]
+]
+
+read-thru: function [
+	"Reads a remote file through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+	/binary		"Use binary mode"
+][
+	path: path-thru url
+	either all [not update exists? path] [
+		data: either binary [read/binary path][read path]
+	][
+		write/binary path data: either binary [read/binary url][read url]
+	]
+	data
+]
+
+load-thru: function [
+	"Loads a remote file through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+	/as			"Specify the type of data; use NONE to load as code"
+		type [word! none!] "E.g. json, html, jpeg, png, etc"
+][
+	path: path-thru url
+	if all [not update exists? path][url: path]
+	file: either as [load/as url type][load url]
+	if url? url [either as [save/as path file type][save path file]]
+	file
+]
+
+do-thru: function [
+	"Evaluates a remote Red script through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+][
+	do either update [load-thru/update url][load-thru url]
 ]
 
 cos: func [

@@ -16,12 +16,12 @@ Red [
 
 help-ctx: context [
 	DOC_SEP: copy "=>"		; String separating value from doc string
-	DEF_SEP: copy "|"		; String separating value from definition string
+	DEF_SEP: copy ""		; String separating value from definition string
 	NO_DOC:  copy "" 		; What to show if there's no doc string "(undocumented)"
 	HELP_ARG_COL_SIZE: 12	; Minimum size of the function arg output column
 	HELP_TYPE_COL_SIZE: 12	; Minimum size of the datatype output column. 12 = "refinement!" + 1
 	HELP_COL_1_SIZE: 15		; Minimum size of the first output column
-	RT_MARGIN: 16			; How close we can get to the right console margin before we trim
+	RT_MARGIN: 5			; How close we can get to the right console margin before we trim
 	DENT_1: "    "			; So CLI and GUI consoles are consistent, WRT tab size
 	DENT_2: "        " 
 	
@@ -48,8 +48,11 @@ help-ctx: context [
 	; A few of these helper funcs are exported from the context, though may
 	; be better housed in a string formatting module at a later date.
 	
+	;!! This is a very simple function, and not always grammatically correct.
+	;   A more correct function would base the result on the vowel or consonant
+	;   *sound*, rather than the actual letter.
 	set 'a-an function [
-		"Returns the appropriate variant of a or an"
+		"Returns the appropriate variant of a or an (simple, vs 100% grammatically correct)"
 		str [string!]
 		/pre "Prepend to str"
 	][
@@ -69,6 +72,10 @@ help-ctx: context [
 		pad mold type? :value HELP_TYPE_COL_SIZE
 	]
 
+	dot-str: func ["Add an ending dot if there isn't one" str [string!]][
+		append copy str either dot = last str [""][dot]
+	]
+	
 	set 'ellipsize-at func [
 		"Truncate and add ellipsis if str is longer than len"
 		str [string!] "(modified)"
@@ -82,7 +89,10 @@ help-ctx: context [
 	
 	; This can no longer be determined statically. If we pad and align object
 	; words, they are no longer limited to HELP_COL_1_SIZE.
-	VAL_FORM_LIMIT: does [system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
+	; The `max` check is there because the CLI console size is 0 on startup.
+	; It keeps the width from going negative if someone launches the CLI with
+	; a `help` call in their script on the command line.
+	VAL_FORM_LIMIT: does [max 0 system/console/size/x - HELP_TYPE_COL_SIZE - HELP_COL_1_SIZE - RT_MARGIN]
 	;!! This behaves differently when compiled. Interpreted, output for 'system
 	;!! is properly formatted and truncated. Compiled, it's very slow to return
 	;!! and system/words and system/codecs (e.g.) are emitted full length. The
@@ -109,7 +119,7 @@ help-ctx: context [
 			]
 			any-object? value    [fmt words-of value]
 			map? value           [fmt keys-of value]
-			image? value         [fmt reduce ["size:" value/size]]
+			image? value         [fmt form reduce ["size:" value/size]]
 			typeset? value       [fmt to block! value]
 			string? value        [fmt/molded value]
 			'else                [fmt :value]
@@ -125,7 +135,7 @@ help-ctx: context [
 	]
 
 	longest-word: func [words [block! object!]][
-		if all [object? words  empty? words: words-of words] [return 0]
+		if all [object? words  empty? words: words-of words] [return ""]
 		forall words [words/1: form words/1]
 		sort/compare words func [a b][(length? a) < (length? b)]
 		last words
@@ -134,7 +144,7 @@ help-ctx: context [
 	set?: func [value [any-type!]][not unset? :value]
 	
 	value-is-type-str: function [value][
-		rejoin [mold :value " is " a-an/pre mold type? :value]
+		rejoin [mold :value " is " a-an/pre mold type? :value " value."]
 	]
 
 	word-is-value-str: function [
@@ -144,7 +154,7 @@ help-ctx: context [
 		value: get/any word
 		rejoin [
 			uppercase mold :word " is " a-an/pre mold type? :value " value"
-			either only [""][append copy ": " mold :value]
+			either only [dot][append copy ": " mold :value]
 		]
 	]
 
@@ -167,7 +177,7 @@ help-ctx: context [
 			][
 				either string? pos/2 [[0 2]][[0 0]]	; no-type+doc or no-type+no-doc
 			]
-			reduce [word pos/:t pos/:d]
+			reduce [word pos/:t dot-str pos/:d]
 		]
 	]
 
@@ -176,7 +186,7 @@ help-ctx: context [
 		fn [any-function!]
 	][
 		spec: spec-of :fn
-		all [string? spec/1  copy spec/1]
+		all [string? spec/1  dot-str spec/1]
 	]
 
 	; These are here because they are not standard in Red yet.
@@ -310,7 +320,7 @@ help-ctx: context [
 
 	Other useful functions:
 
-		??     - Display a variable and its value
+		??     - Display a word and the value it references
 		probe  - Print a molded value
 		source - Show a function's source code
 		what   - Show a list of known functions or words
@@ -353,7 +363,7 @@ help-ctx: context [
 		form reduce [
 			either no-name [""] [as-arg-col mold param/name]
 			either type: select/skip param 'type 2 [mold/flat type][NO_DOC]
-			either param/desc [mold param/desc][NO_DOC]
+			either param/desc [dot-str mold param/desc][NO_DOC]
 		]
 	]
 	print-param: func [param [block!] /no-name][
@@ -362,9 +372,9 @@ help-ctx: context [
 
 	show-function-help: function [
 		"Displays help information about a function."
-		word [word!]
+		word [word! path!]
 	][
-		fn: either word? :word [get :word][:word]
+		fn: either any-function? :word [:word][get :word]
 		if not any-function? :fn [
 			print "show-function-help only works on words that refer to functions."
 			exit
@@ -391,7 +401,8 @@ help-ctx: context [
 			
 		_print [
 			newline "DESCRIPTION:" newline
-			reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
+			;reduce either fn-as-obj/desc [[DENT_1 any [fn-as-obj/desc NO_DOC] newline]][""]
+			reduce either fn-as-obj/desc [[DENT_1 dot-str fn-as-obj/desc newline]][""]
 			DENT_1 word-is-value-str/only word
 		]
 
@@ -403,14 +414,14 @@ help-ctx: context [
 		if not empty? fn-as-obj/refinements [
 			_print [newline "REFINEMENTS:"] 
 			foreach rec fn-as-obj/refinements [
-				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP any [rec/desc NO_DOC]]
+				_print [DENT_1 as-arg-col mold/only rec/name DOC_SEP either rec/desc [dot-str rec/desc][NO_DOC]]
 				foreach param rec/params [_prin DENT_2 print-param param]
 			]
 		]
 
 		if not empty? fn-as-obj/returns [
 			_print [newline "RETURNS:"]
-			if fn-as-obj/returns/desc [_print [DENT_1 fn-as-obj/returns/desc]]
+			if fn-as-obj/returns/desc [_print [DENT_1 dot-str fn-as-obj/returns/desc]]
 			_print [DENT_1 mold/flat fn-as-obj/returns/type]
 		]
 				
@@ -479,7 +490,7 @@ help-ctx: context [
 				; The order in which we check values is important, to get 
 				; the best output for a given type.
 				case [
-					all [word? :word  any-function? :value] [show-function-help :word]
+					all [any [word? :word path? :word] any-function? :value] [show-function-help :word]
 					any-function? :value [_print mold :value]
 					datatype? :value [show-datatype-help :value]
 					object? :value [show-object-help :value]
@@ -500,15 +511,19 @@ help-ctx: context [
 	
 	set 'source function [
 		"Print the source of a function"
-		'word [any-word!] "The name of the function"
+		'word [any-word! any-path!] "The name of the function"
 	][
-		print either function? val: get/any word [
-			[append mold word #":" mold :val]
-		][
-			["Sorry," word "is" a-an/pre mold type? :val "so source is not available"]
+		val: get/any word
+		print case [
+			function? :val [[append mold word #":" mold :val]]
+			routine? :val [[
+				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
+				append mold word #":" mold :val
+			]]
+			'else [[uppercase mold word "is" a-an/pre mold type? :val "so source is not available."]]
 		]
 	]
-
+	
 	set 'what function [
 		"Lists all functions, or search for values"
 		/with "Search all values that contain text in their name"
@@ -516,7 +531,7 @@ help-ctx: context [
 		/spec "Search for text in value specs as well"
 		/buffer "Buffer and return output, rather than printing results"
 	][
-		;emit: either buffer [:_print][:print]
+		clear output-buffer
 		found-at-least-one?: no
 		foreach word sort get-sys-words either with [:set?][:any-function?] [
 			val: get word

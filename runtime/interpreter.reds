@@ -211,11 +211,17 @@ interpreter: context [
 		
 		while [count >= 0][
 			arg: stack/arguments + count
-			either extern? [push arg][
+			either extern? [
+				#either libRed? = yes [
+					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
+				][
+					push arg
+				]
+			][
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
-					TYPE_LOGIC	 [push float/get arg]
+					TYPE_FLOAT	 [push float/get arg]
 					default		 [push arg]
 				]
 			]
@@ -223,7 +229,9 @@ interpreter: context [
 		]
 		case [
 			extern? [
+				stack/mark-native words/_body
 				arg: as red-value! call
+				stack/unwind
 				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
 					system/stack/top: saved
 				][

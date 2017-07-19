@@ -23,7 +23,7 @@ system/view/platform: context [
 				FACE_OBJ_COLOR
 				FACE_OBJ_MENU
 				FACE_OBJ_DATA
-				FACE_OBJ_ENABLE?
+				FACE_OBJ_ENABLED?
 				FACE_OBJ_VISIBLE?
 				FACE_OBJ_SELECTED
 				FACE_OBJ_FLAGS
@@ -49,7 +49,7 @@ system/view/platform: context [
 				FACET_FLAG_COLOR:		00000020h
 				FACET_FLAG_MENU:		00000040h
 				FACET_FLAG_DATA:		00000080h
-				FACET_FLAG_ENABLE?:		00000100h
+				FACET_FLAG_ENABLED?:	00000100h
 				FACET_FLAG_VISIBLE?:	00000200h
 				FACET_FLAG_SELECTED:	00000400h
 				FACET_FLAG_FLAGS:		00000800h
@@ -175,16 +175,17 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
-				EVT_FLAG_AX2_DOWN:		00400000h
-				EVT_FLAG_AUX_DOWN:		00800000h
-				EVT_FLAG_ALT_DOWN:		01000000h
-				EVT_FLAG_MID_DOWN:		02000000h
-				EVT_FLAG_DOWN:			04000000h
-				EVT_FLAG_AWAY:			08000000h
-				EVT_FLAG_DBL_CLICK:		10000000h
-				EVT_FLAG_CTRL_DOWN:		20000000h
-				EVT_FLAG_SHIFT_DOWN:	40000000h
-				EVT_FLAG_MENU_DOWN:		80000000h		;-- ALT key
+				EVT_FLAG_AX2_DOWN:		00200000h
+				EVT_FLAG_AUX_DOWN:		00400000h
+				EVT_FLAG_ALT_DOWN:		00800000h
+				EVT_FLAG_MID_DOWN:		01000000h
+				EVT_FLAG_DOWN:			02000000h
+				EVT_FLAG_AWAY:			04000000h
+				EVT_FLAG_DBL_CLICK:		08000000h
+				EVT_FLAG_CTRL_DOWN:		10000000h
+				EVT_FLAG_SHIFT_DOWN:	20000000h
+				EVT_FLAG_MENU_DOWN:		40000000h		;-- ALT key
+				EVT_FLAG_CMD_DOWN:		80000000h		;-- Command/WIN key
 				;EVT_FLAG_KEY_SPECIAL:	80000000h		;@@ deprecated
 			]
 
@@ -204,7 +205,7 @@ system/view/platform: context [
 				color:		symbol/make "color"
 				menu:		symbol/make "menu"
 				data:		symbol/make "data"
-				enable?:	symbol/make "enable?"
+				enabled?:	symbol/make "enabled?"
 				visible?:	symbol/make "visible?"
 				selected:	symbol/make "selected"
 				flags:		symbol/make "flags"
@@ -253,6 +254,7 @@ system/view/platform: context [
 			group-box:		symbol/make "group-box"
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
+			scroller:		symbol/make "scroller"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -268,6 +270,10 @@ system/view/platform: context [
 			_backdrop:		symbol/make "backdrop"
 			_font-name:		symbol/make "font-name"
 			_font-size:		symbol/make "font-size"
+			_class:			symbol/make "class"
+			_regular:		symbol/make "regular"
+			_small:			symbol/make "small"
+			_mini:			symbol/make "mini"
 			
 			all-over:		symbol/make "all-over"
 			over:			symbol/make "over"
@@ -284,19 +290,25 @@ system/view/platform: context [
 			editable:		symbol/make "editable"
 
 			Direct2D:		symbol/make "Direct2D"
+			_accelerated:	symbol/make "accelerated"
 
+			_cursor:		symbol/make "cursor"
 			_arrow:			symbol/make "arrow"
 			_hand:			symbol/make "hand"
-			_help:			symbol/make "help"
 			_I-beam:		symbol/make "I-beam"
+			_cross:			symbol/make "cross"
 
 			on-over:		symbol/make "on-over"
 			_actors:		word/load "actors"
+			_scroller:		word/load "scroller"
+			_window:		word/load "window"
+			_panel:			word/load "panel"
 
 			_text:			word/load "text"
 			_data:			word/load "data"
 			_control:		word/load "control"
 			_shift:			word/load "shift"
+			_command:		word/load "command"
 			_alt:			word/load "alt"
 			_away:			word/load "away"
 			_down:			word/load "down"
@@ -372,8 +384,6 @@ system/view/platform: context [
 			_right-command:	word/load "right-command"
 			_caps-lock:		word/load "caps-lock"
 			_num-lock:		word/load "num-lock"
-
-			_dpi:			word/load "DPI"
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -509,12 +519,18 @@ system/view/platform: context [
 				]
 			]]
 
-			;#include %android/gui.reds
-			#switch OS [
-				Windows  [#include %windows/gui.reds]
-				MacOSX   [#include %osx/gui.reds]
-				Linux	 [#include %gtk3/gui.reds]
-				#default []
+			#switch GUI-engine [
+				native [
+					;#include %android/gui.reds
+					#switch OS [
+						Windows  [#include %windows/gui.reds]
+						macOS    [#include %macOS/gui.reds]
+						Linux	 [#include %gtk3/gui.reds]
+						#default []					;-- Linux
+					]
+				]
+				test [#include %test/gui.reds]
+				;GTK [#include %GTK/gui.reds]
 			]
 		]
 	]
@@ -619,6 +635,7 @@ system/view/platform: context [
 
 	draw-image: routine [image [image!] cmds [block!]][
 		gui/OS-do-draw image cmds
+		ownership/check as red-value! image words/_poke as red-value! image -1 -1
 	]
 
 	draw-face: routine [face [object!] cmds [block!] /local int [red-integer!]][
@@ -675,21 +692,68 @@ system/view/platform: context [
 		SET_RETURN(none-value)
 	]
 
-	init: func [/local svs fonts m][
-		system/view/metrics: m: make map! 32
+	init: func [/local svs colors fonts][
 		system/view/screens: svs: make block! 6
 
 		#system [gui/init]
 
+		extend system/view/metrics/margins [#switch config/OS [
+			Windows [
+				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
+				tab-panel:		[0x2   0x1]
+				text-list:		[0x0  0x15]
+				group-box:		[0x0   0x1]
+			]
+			macOS [
+				button:			[2x2   2x3 regular 6x6 4x7 small 5x5 4x6 mini 1x1 0x1]
+				regular:		[6x6   4x7]
+				small:			[5x5   4x6]
+				mini:			[1x1   0x1]
+				group-box:		[3x3   0x4]
+				tab-panel:		[7x7  6x10]
+				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
+			]
+		]]
+		extend system/view/metrics/paddings [#switch config/OS [
+			Windows [
+				check:			[16x0  0x0]				;-- 13 + 3 for text padding
+				radio:			[16x0  0x0]				;-- 13 + 3 for text padding
+				group-box:		[3x3  10x3]
+				tab-panel:		[1x3  25x0]
+				button:			[8x8   0x0]
+			]
+			macOS [
+				button:			[11x11 0x0 regular 14x14 0x0 small 11x11 0x0 mini 11x11 0x0]
+				check:			[20x0  3x1]
+				radio:			[20x0  1x1]
+				text:			[3x3   0x0]
+				field:			[3x3   0x0]
+				group-box:		[0x8  4x18]
+			]
+		]]
+		extend system/view/metrics/def-heights [#switch config/OS [
+			Windows []
+			macOS	[
+				check:		21
+				radio:		21
+				text:		18
+				field:		21
+				drop-down:	21
+				drop-list:	21
+				progress:	21
+			]
+		]]
+		
+		colors: system/view/metrics/colors
 		#switch config/OS [
 			Windows [
-				m/button: [1x1 1x1]		;-- top right buttom left
+				colors/tab-panel: white
+				;colors/window							;-- set in gui/init from OS metrics
+				;colors/panel							;-- set in gui/init from OS metrics
 			]
-			MacOSX [
-				m/button: [4x6 7x6]
-			]
-			#default [
-				m/button: [1x1 1x1]
+			macOS [
+			
 			]
 		]
 
@@ -704,9 +768,15 @@ system/view/platform: context [
 		set fonts:
 			bind [fixed sans-serif serif] system/view/fonts
 			switch system/platform [
-				Windows [["Courier New" "Arial" "Times"]
+				Windows [
+					either version/1 >= 6 [
+						["Consolas" "Arial" "Times"]
+					][
+						["Courier New" "Arial" "Times"]
+					]
+				]
+				macOS [["Menlo" "Arial" "Times"]]
 			]
-		]
 		
 		set [font-fixed font-sans-serif font-serif] reduce fonts
 	]
@@ -716,4 +786,9 @@ system/view/platform: context [
 	product: none
 	
 	init
+]
+
+#switch config/GUI-engine [
+	native [#if config/OS = 'Android [#include %android/gui.red]]
+	test   [#include %test/gui.red]
 ]

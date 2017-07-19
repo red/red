@@ -69,6 +69,7 @@ system-dialect: make-profilable context [
 		libRed?: 			no
 		libRedRT?: 			no
 		libRedRT-update?:	no
+		GUI-engine:			'native						;-- native | test | GTK | ...
 		modules:			none
 		show:				none
 		command-line:		none
@@ -568,7 +569,17 @@ system-dialect: make-profilable context [
 			]
 			first head types						;-- all types equal, return the first one
 		]
-						
+		
+		struct-by-value?: func [type [block!]][
+			all [
+				'value = last type
+				any [
+					'struct! = type/1
+					'struct! = first find-aliased type/1
+				]
+			]
+		]
+		
 		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
 			saved: resolve-alias?
 			resolve-alias?: mode	
@@ -719,13 +730,7 @@ system-dialect: make-profilable context [
 						with-alias-resolution off [
 							type: resolve-type to word! value
 						]
-						either all [
-							'value = last type
-							any [
-								'struct! = type/1
-								'struct! = first find-aliased type/1
-							]
-						][
+						either struct-by-value? type [
 							type
 						][
 							throw-error ["invalid datatype for a get-word:" mold type]
@@ -1451,6 +1456,21 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		init-struct-values: func [specs [block!] /local name type][
+			if specs: find/tail specs /local [
+				parse specs [
+					any [
+						set name word!
+						opt [set type block! (
+							if struct-by-value? type [
+								append locals-init name
+							]
+						)]
+					]
+				]
+			]
+		]
+		
 		fetch-func: func [name /local specs type cc attribs][
 			name: to word! name
 			store-ns-symbol name
@@ -1611,7 +1631,10 @@ system-dialect: make-profilable context [
 							pos: set id   string!
 							pos: set spec block!    (
 								clear-docstrings spec
-								either all [1 = length? spec not block? spec/1][
+								either any [
+									all [1 = length? spec not block? spec/1]
+									all [2 = length? spec find [pointer! struct!] spec/1 block? spec/2]
+								][
 									unless parse spec type-spec [throw-error err]
 									either ns-path [
 										add-ns-symbol specs/1
@@ -1909,7 +1932,7 @@ system-dialect: make-profilable context [
 			value
 		]
 		
-		comp-use: has [spec use-init use-locals use-stack size][
+		comp-use: has [spec use-init use-locals use-stack size slots][
 			pc: next pc
 			unless all [block? spec: pc/1 not empty? spec][
 				backtrack 'use
@@ -1931,6 +1954,7 @@ system-dialect: make-profilable context [
 			unless find locals /local [append locals /local]
 			append locals spec
 			size: emitter/calc-locals-offsets use-locals
+			emitter/target/emit-reserve-stack slots: size / 4
 			func-locals-sz: func-locals-sz + size
 			
 			pc: next pc
@@ -1938,6 +1962,8 @@ system-dialect: make-profilable context [
 			pc: next pc
 			
 			func-locals-sz: func-locals-sz - size
+			emitter/target/emit-release-stack slots
+			
 			clear use-init
 			clear use-locals
 			clear use-stack
@@ -2205,11 +2231,9 @@ system-dialect: make-profilable context [
 		
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret mark][
 			pc: next pc
-			mark: tail expr-call-stack
 			expr: fetch-expression/final 'either		;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr no
-			clear mark
 
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
@@ -2503,6 +2527,14 @@ system-dialect: make-profilable context [
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
+				if all [
+					2 <= length? expr-call-stack
+					not find calling-keywords value: first skip tail expr-call-stack -2
+					find functions value
+				][
+					backtrack name
+					throw-error "nested assignment in expression not supported"
+				]
 				n: to word! name
 				local?: local-variable? n
 				unless any [locals local?][store-ns-symbol n]
@@ -2511,10 +2543,7 @@ system-dialect: make-profilable context [
 					backtrack name
 					throw-error "cascading assignments not supported"
 				]
-				unless all [
-					local?
-					n = 'context						;-- explicitly allow 'context name for local variables
-				][
+				unless all [local? n = 'context][		;-- explicitly allow 'context name for local variables
 					check-keywords n					;-- forbid keywords redefinition
 				]
 				if find definitions n [
@@ -2894,7 +2923,7 @@ system-dialect: make-profilable context [
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
 					all [
-						not find [Windows MacOSX] job/OS ;-- fallback on Linux ABI
+						not find [Windows macOS] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
 					]
 				]
@@ -3205,8 +3234,12 @@ system-dialect: make-profilable context [
 					all [set-path? variable not path? expr]	;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load expr		;-- emit code for single value
-					either all [boxed not decimal? unbox expr][
+					either boxed [
+						emitter/target/emit-load/with expr boxed ;-- emit code for single value
+					][
+						emitter/target/emit-load expr	;-- emit code for single value
+					]
+					either all [boxed not decimal? unbox expr not decimal? boxed/data][
 						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 						boxed/type
 					][
@@ -3328,8 +3361,9 @@ system-dialect: make-profilable context [
 		
 		fetch-expression: func [
 			caller [any-word! issue! none! set-path!]
-			/final /keep /local expr pass value
+			/final /keep /local expr pass value mark
 		][
+			mark: tail expr-call-stack
 			check-infix-operators
 			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
@@ -3370,6 +3404,7 @@ system-dialect: make-profilable context [
 				unless find [none! tag!] type?/word expr [
 					comp-expression expr to logic! keep
 				]
+				clear mark
 			]
 			expr
 		]
@@ -3430,6 +3465,7 @@ system-dialect: make-profilable context [
 			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
 		][
+			init-struct-values spec
 			locals: spec
 			func-name: name
 			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
@@ -3497,7 +3533,7 @@ system-dialect: make-profilable context [
 				Windows [
 					[handle [integer!]]
 				]
-				MacOSX [
+				macOS [
 					pick [
 						[
 							argc	[integer!]
@@ -3660,7 +3696,7 @@ system-dialect: make-profilable context [
  		
  		if red? [
 			if all [job/dev-mode? job/type = 'exe][
-				ext: switch/default job/OS [Windows [%.dll] MacOSX [%.dylib]][%.so]
+				ext: switch/default job/OS [Windows [%.dll] macOS [%.dylib]][%.so]
 				compiler/process-import compose [
 					(join "libRedRT" ext) stdcall [__red-boot: "red/boot" []]
 				]
@@ -3820,7 +3856,7 @@ system-dialect: make-profilable context [
 				job/need-main?							;-- pass-thru if set in config file
 				all [
 					job/type = 'exe
-					not find [Windows MacOSX] job/OS
+					not find [Windows macOS] job/OS
 				]
 			]
 			

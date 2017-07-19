@@ -13,7 +13,6 @@ Red/System [
 #define zero? 		  [0 =]
 #define positive?	  [0 < ]				;-- space required after the lesser-than symbol
 #define negative?	  [0 > ]
-#define negate		  [0 -]
 #define null?		  [null =]
 
 #define halt		  [quit 0]
@@ -38,6 +37,7 @@ Red/System [
 
 #define byte-ptr!	  [pointer! [byte!]]
 #define int-ptr!	  [pointer! [integer!]]
+#define float-ptr!    [pointer! [float!]]
 #define float32-ptr!  [pointer! [float32!]]
 
 #define make-c-string [as c-string! allocate]
@@ -102,7 +102,7 @@ re-throw: func [/local id [integer!]][
 
 #switch OS [
 	Windows  [#define LIBREDRT-file "libRedRT.dll"]
-	MacOSX	 [#define LIBREDRT-file "libRedRT.dylib"]
+	macOS	 [#define LIBREDRT-file "libRedRT.dylib"]
 	#default [#define LIBREDRT-file "libRedRT.so"]
 ]
 
@@ -124,7 +124,7 @@ re-throw: func [/local id [integer!]][
 		]
 	]
 	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %darwin.reds]
+	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
 	#default [#include %linux.reds]

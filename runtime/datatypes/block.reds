@@ -1007,6 +1007,7 @@ block: context [
 			slot: s/offset + blk/head + 1
 			if slot >= s/tail [slot: alloc-tail s]
 			copy-cell value slot
+			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
 	]
@@ -1097,7 +1098,7 @@ block: context [
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
-				negate int/value
+				0 - int/value
 			]
 			TYPE_FLOAT [
 				d: as red-float! res
@@ -1162,7 +1163,7 @@ block: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					len2: negate len2
+					len2: 0 - len2
 					blk/head: blk/head - len2
 					len: either negative? blk/head [blk/head: 0 0][len2]
 					head: head - len

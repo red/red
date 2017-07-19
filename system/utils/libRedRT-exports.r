@@ -61,6 +61,7 @@
 	red/block/push
 	red/char/push
 	red/datatype/push
+	red/date/push
 	;red/event/push
 	red/email/push
 	red/file/push
@@ -238,6 +239,7 @@
 	red/actions/modify*
 	red/actions/read*
 	red/actions/write*
+	red/actions/delete*
 
 	red/natives/if*
 	red/natives/unless*
@@ -299,7 +301,6 @@
 	red/natives/arctangent*
 	red/natives/arctangent2*
 	red/natives/NaN?*
-	red/natives/zero?*
 	red/natives/log-2*
 	red/natives/log-10*
 	red/natives/log-e*
@@ -331,6 +332,9 @@
 	red/natives/sign?*
 	red/natives/as*
 	red/natives/call*
+	red/natives/zero?*
+	red/natives/size?*
+	red/natives/browse*
 ][
 	red/stack/arguments		cell!
 	red/stack/top			cell!

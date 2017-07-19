@@ -262,6 +262,7 @@ float: context [
 			type1 [integer!]
 			type2 [integer!]
 			int   [red-integer!]
+			word  [red-word!]
 			op1	  [float!]
 			op2	  [float!]
 			t1?	  [logic!]
@@ -283,16 +284,39 @@ float: context [
 			type1 = TYPE_TIME
 		]
 
-		if type2 = TYPE_TUPLE [
-			return as red-float! tuple/do-math type
+		switch type2 [
+			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_PAIR  [
+				if type1 <> TYPE_TIME [
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push TYPE_PAIR]
+					]
+					op1: left/value
+					copy-cell as red-value! right as red-value! left
+					right/header: type1
+					right/value: op1
+					return as red-float! pair/do-math type
+				]
+			]
+			TYPE_VECTOR [
+				return as red-float! stack/set-last vector/do-math-scalar type as red-vector! right as red-value! left
+			]
+			default [0]
 		]
 
-		unless any [						;@@ replace by typeset check when possible
-			type2 = TYPE_INTEGER
-			type2 = TYPE_CHAR
-			type2 = TYPE_FLOAT
-			type2 = TYPE_PERCENT
-			type2 = TYPE_TIME
+		if any [
+			not any [						;@@ replace by typeset check when possible
+				type2 = TYPE_INTEGER
+				type2 = TYPE_CHAR
+				type2 = TYPE_FLOAT
+				type2 = TYPE_PERCENT
+				type2 = TYPE_TIME
+			]
+			all [
+				any [type1 = TYPE_TIME type1 = TYPE_PERCENT]
+				type2 = TYPE_CHAR
+			]
 		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
 
 		if type1 = TYPE_INTEGER [
@@ -328,7 +352,7 @@ float: context [
 			left/header: TYPE_TIME
 			left/value: left/value * time/oneE9
 		]
-		if pct? [left/header: TYPE_PERCENT]
+		if all [pct? not t2?][left/header: TYPE_PERCENT]
 		left
 	]
 	
@@ -489,7 +513,6 @@ float: context [
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
-			if s < 0.0 [s: 0.0 - s]
 			f/value: s * f/value
 		]
 		f
@@ -834,7 +857,7 @@ float: context [
 		e: 0
 		f: as red-float! value
 		dec: f/value
-		sc: 1.0
+		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
@@ -843,12 +866,9 @@ float: context [
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
 			sc: abs scale/value
+			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
+			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
-
-		if sc = 0.0 [
-			fire [TO_ERROR(math overflow)]
-		]
-
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
 		v: sc >= 1.0

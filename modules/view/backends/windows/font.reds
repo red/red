@@ -17,7 +17,6 @@ make-font: func [
 	/local
 		values	[red-value!]
 		int		[red-integer!]
-		handle	[red-handle!]
 		value	[red-value!]
 		bool	[red-logic!]
 		style	[red-word!]
@@ -115,17 +114,19 @@ make-font: func [
 		quality
 		0												;-- DEFAULT_PITCH
 		name
-	
-	either null? face [									;-- null => replace underlying GDI font object 
-		handle: as red-handle! block/rs-head as red-block! values + FONT_OBJ_STATE
-		handle/header: TYPE_HANDLE
-		handle/value: as-integer hFont
-	][
-		blk: block/make-at as red-block! values + FONT_OBJ_STATE 2
-		handle: as red-handle! integer/make-in blk as-integer hFont
-		handle/header: TYPE_HANDLE
-		none/make-in blk								;-- DWrite font
 
+	blk: as red-block! values + FONT_OBJ_STATE
+	either TYPE_OF(blk) <> TYPE_BLOCK [
+		block/make-at blk 2
+		handle/make-in blk as-integer hFont
+		none/make-in blk								;-- DWrite font
+	][
+		int: as red-integer! block/rs-head blk
+		int/header: TYPE_HANDLE
+		int/value: as-integer hFont
+	]
+
+	if face <> null [
 		blk: block/make-at as red-block! values + FONT_OBJ_PARENT 4
 		block/rs-append blk as red-value! face
 	]
@@ -174,6 +175,19 @@ get-font-handle: func [
 		]
 	]
 	null
+]
+
+get-hfont: func [				;-- get or create a HFONT handle from font! object
+	face	[red-object!]
+	font	[red-object!]
+	return: [handle!]
+	/local
+		hFont [handle!]
+][
+	if TYPE_OF(font) <> TYPE_OBJECT [return null]
+	hFont: get-font-handle font 0
+	if null? hFont [hFont: make-font face font]
+	hFont
 ]
 
 free-font: func [
@@ -225,6 +239,7 @@ OS-request-font: func [
 		cf		[tagCHOOSEFONT]
 		logfont [tagLOGFONT]
 		size	[integer!]
+		hfont	[handle!]
 		name	[c-string!]
 		bold?	[logic!]
 ][
@@ -235,9 +250,15 @@ OS-request-font: func [
 	zero-memory as byte-ptr! logfont 92
 
 	name: as c-string! (as byte-ptr! logfont) + 28
-	copy-memory as byte-ptr! name as byte-ptr! #u16 "Courier New" 22
-	logfont/lfHeight: -11 * log-pixels-y / 72
-	logfont/lfCharSet: #"^(01)"							;-- default
+
+	hfont: get-hfont null selected
+	either null? hfont [
+		copy-memory as byte-ptr! name as byte-ptr! #u16 "Courier New" 22
+		logfont/lfHeight: -11 * log-pixels-y / 72
+		logfont/lfCharSet: #"^(01)"						;-- default
+	][
+		GetObject hfont 92 as byte-ptr! logfont
+	]
 
 	cf/lStructSize: size
 	cf/hwndOwner: GetForegroundWindow

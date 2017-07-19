@@ -102,7 +102,7 @@ red: context [
 	
 	standard-modules: [
 	;-- Name ------ Entry file -------------- OS availability -----
-		View		%modules/view/view.red	  [Windows MacOSX Linux]
+		View		%modules/view/view.red	  [Windows macOS Linux]
 	]
 
 	func-constructors: [
@@ -261,6 +261,7 @@ red: context [
 			set-word!
 			pair!
 			time!
+			date!
 		] type?/word :expr
 	]
 	
@@ -280,6 +281,8 @@ red: context [
 	float-special?: func [value][value/1 = #"."]
 	tuple-value?:	func [value][value/1 = #"~"]
 	percent-value?: func [value][#"%" = last value]
+	
+	date-special?:  func [value][all [block? value value/1 = #!date!]]
 	
 	map-value?: func [value][all [block? value value/1 = #!map!]]
 	
@@ -1025,15 +1028,16 @@ red: context [
 		no
 	]
 	
-	infix?: func [pos [block! paren!] /local specs][
+	infix?: func [pos [block! paren!] /local specs left][
 		all [
 			not tail? pos
 			word? pos/1
 			specs: select functions pos/1
 			'op! = specs/1
 			not all [									;-- check if a literal argument is not expected
-				word? pos/-1
-				specs: select functions pos/-1
+				word? left: pos/-1
+				not local-word? left
+				specs: select functions left
 				literal-first-arg? specs/3				;-- literal arg needed, disable infix mode
 			]
 		]
@@ -1534,6 +1538,22 @@ red: context [
 			do body
 			output: saved
 	]
+	
+	encode-UTC-time: func [time [time! none!] zone [time! none!]][
+		 1E9 * to decimal! either time [either zone [time - zone][time]][0.0]
+	]
+	
+	encode-date: func [value [date!] /with zone /local date][
+		unless zone [zone: value/zone]
+		date:  (shift/left value/year 17)
+			or (shift/left value/month 12)
+			or (shift/left value/day 7)
+			or (shift/left abs zone/hour 2)
+			or (abs to-integer zone/minute / 15)
+		if negative? zone [date: date or 64]			;-- zone negative bit
+		if value/time [date: date or 65536]				;-- time? flag
+		date
+	]
 
 	emit-float: func [value [decimal!] /local bin][
 		bin: IEEE-754/to-binary64 value
@@ -1552,7 +1572,7 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? map? tuple? name w make-block type idx
+		/local value char? special? percent? map? tuple? dt-special? name w make-block type idx zone
 	][
 		make-block: [
 			value: to block! value
@@ -1564,7 +1584,8 @@ red: context [
 		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		map?: map-value? :value
-		
+		dt-special?: date-special? value
+
 		either any [
 			all [
 				issue? :value
@@ -1577,6 +1598,7 @@ red: context [
 			]
 			scalar? :value
 			map?
+			dt-special?
 		][
 			case [
 				char? [
@@ -1649,6 +1671,18 @@ red: context [
 					emit 'time/push
 					emit (to decimal! value) * 1E9
 					insert-lf -2
+				]
+				dt-special? [
+					emit 'date/push
+					zone: value/3
+					value: value/2
+					emit reduce [encode-date/with value zone encode-UTC-time value/time zone]
+					insert-lf -4
+				]
+				date? :value [
+					emit 'date/push
+					emit reduce [encode-date value encode-UTC-time value/time value/zone]
+					insert-lf -4
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -1788,7 +1822,9 @@ red: context [
 								append words either func? [function!][none]
 							]
 						]
-					) | skip
+					) 
+					| #include (comp-include/only pos)
+					| skip
 				]
 			]
 
@@ -1952,9 +1988,12 @@ red: context [
 		event: 'on-change*
 		if pos: find spec event [
 			pos: (index? pos) - 1					;-- 0-based contexts arrays
-			entry: any [
+			unless entry: any [
 				find functions decorate-obj-member event ctx
 				all [proto find functions decorate-obj-member event select objects proto/1]
+			][
+				pc: back pc
+				throw-error ["invalid" event "event definition in object" name]
 			]
 			unless zero? loc-s: second check-spec entry/2/3 [
 				loc-s: loc-s + 1					;-- account for /local
@@ -1963,9 +2002,12 @@ red: context [
 		event: 'on-deep-change*
 		if pos2: find spec event [
 			pos2: (index? pos2) - 1					;-- 0-based contexts arrays
-			entry: any [
+			unless entry: any [
 				find functions decorate-obj-member event ctx
 				all [proto find functions decorate-obj-member event select objects proto/1]
+			][
+				pc: back pc
+				throw-error ["invalid" event "event definition in object" name]
 			]
 			unless zero? loc-d: second check-spec entry/2/3 [
 				loc-d: loc-d + 1					;-- account for /local
@@ -2415,12 +2457,17 @@ red: context [
 		insert-lf -3
 	]
 	
-	comp-continue: does [
-		if empty? intersect iterators expr-stack [
+	comp-continue: has [loops][
+		if empty? loops: intersect expr-stack iterators [
 			pc: back pc
 			throw-error "CONTINUE used with no loop"
 		]
+		if 'forall = last loops [
+			emit 'natives/forall-next					;-- move series to next position
+			insert-lf -1
+		]
 		emit [stack/unroll-loop yes continue]
+		insert-lf -3
 		insert-lf -1
 	]
 	
@@ -3935,47 +3982,51 @@ red: context [
 			no
 		]
 	]
+	
+	comp-include: func [pc [block!] /only /local file saved version mark script-file cache?][
+		unless file? file: pc/2 [
+			throw-error ["#include requires a file argument:" pc/2]
+		]
+		cache?: in-cache? file
+		append include-stk script-path
 
-	comp-directive: has [file saved version mark script-file cache?][
+		script-path: either all [not booting? relative-path? file][
+			file: clean-path join any [script-path main-path] file
+			first split-path file
+		][
+			none
+		]
+
+		unless any [cache? booting? exists? file][
+			throw-error ["include file not found:" pc/2]
+		]
+		either find included-list file [
+			script-path: take/last include-stk
+			remove/part pc 2
+		][
+			script-file: file
+			if all [slash <> first file	script-path][
+				script-file: clean-path join script-path file
+			]
+			append script-stk script-file
+			emit reduce [						;-- force a newline at head
+				#script script-file
+			]
+			saved: script-name
+			insert skip pc 2 #pop-path
+			src: load-source/header file
+			src: preprocessor/expand src job
+			change/part pc next src 2			;@@ Header skipped, should be processed
+			script-name: saved
+			append included-list file
+			unless any [only empty? expr-stack][comp-expression]
+		]
+	]
+
+	comp-directive: has [mark][
 		switch pc/1 [
 			#include [
-				unless file? file: pc/2 [
-					throw-error ["#include requires a file argument:" pc/2]
-				]
-				cache?: in-cache? file
-				append include-stk script-path
-				
-				script-path: either all [not booting? relative-path? file][
-					file: clean-path join any [script-path main-path] file
-					first split-path file
-				][
-					none
-				]
-				
-				unless any [cache? booting? exists? file][
-					throw-error ["include file not found:" pc/2]
-				]
-				either find included-list file [
-					script-path: take/last include-stk
-					remove/part pc 2
-				][
-					script-file: file
-					if all [slash <> first file	script-path][
-						script-file: clean-path join script-path file
-					]
-					append script-stk script-file
-					emit reduce [						;-- force a newline at head
-						#script script-file
-					]
-					saved: script-name
-					insert skip pc 2 #pop-path
-					src: load-source/header file
-					src: preprocessor/expand src job
-					change/part pc next src 2			;@@ Header skipped, should be processed
-					script-name: saved
-					append included-list file
-					unless empty? expr-stack [comp-expression]
-				]
+				comp-include pc
 				true
 			]
 			#pop-path [
@@ -4038,7 +4089,7 @@ red: context [
 				true
 			]
 			#build-date [
-				change pc mold now
+				change pc now
 				comp-expression
 				true
 			]
