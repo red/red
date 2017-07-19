@@ -20,18 +20,6 @@ css-style: {
 	.italic {
 		font-style: italic;
 	}
-
-	.underline {
-		text-decoration-line: underline;
-	}
-
-	.strike {
-		text-decoration-line: line-through;
-	}
-
-	progress, trough {
-		min-height: 2em;
-	}
 }
 
 style-init: func [

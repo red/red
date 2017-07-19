@@ -405,7 +405,7 @@ OS-make-view: func [
 	offset:   as red-pair!		values + FACE_OBJ_OFFSET
 	size:	  as red-pair!		values + FACE_OBJ_SIZE
 	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
-	open?:	  as red-logic!		values + FACE_OBJ_ENABLE?
+	open?:	  as red-logic!		values + FACE_OBJ_ENABLED?
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
 	menu:	  as red-block!		values + FACE_OBJ_MENU

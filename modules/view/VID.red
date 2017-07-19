@@ -22,6 +22,8 @@ system/view/VID: context [
 			#switch config/OS [
 				Windows [#include %backends/windows/rules.red]
 				macOS	[#include %backends/macOS/rules.red]
+				Linux []
+				#default []
 			]
 		]
 		
@@ -690,7 +692,7 @@ system/view/VID: context [
 		either only [list][
 			if panel/type = 'window [
 				panel/parent: system/view/screens/1
-				system/view/VID/GUI-rules/process panel
+				;system/view/VID/GUI-rules/process panel
 			]
 			panel
 		]

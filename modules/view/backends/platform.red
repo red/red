@@ -714,6 +714,8 @@ system/view/platform: context [
 				drop-down:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 				drop-list:		[0x3   2x3 regular 0x3 2x3 small 0x3 1x3 mini 0x2 1x3]
 			]
+			Linux []
+			#default []
 		]]
 		extend system/view/metrics/paddings [#switch config/OS [
 			Windows [
@@ -731,6 +733,8 @@ system/view/platform: context [
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
 			]
+			Linux []
+			#default []
 		]]
 		extend system/view/metrics/def-heights [#switch config/OS [
 			Windows []
@@ -743,6 +747,8 @@ system/view/platform: context [
 				drop-list:	21
 				progress:	21
 			]
+			Linux []
+			#default []
 		]]
 		
 		colors: system/view/metrics/colors
@@ -752,9 +758,9 @@ system/view/platform: context [
 				;colors/window							;-- set in gui/init from OS metrics
 				;colors/panel							;-- set in gui/init from OS metrics
 			]
-			macOS [
-			
-			]
+			macOS []
+			Linux []
+			#default []
 		]
 
 		append svs make face! [							;-- default screen
