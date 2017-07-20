@@ -289,6 +289,7 @@ object: context [
 			loc-s	[integer!]
 			loc-d	[integer!]
 			sym		[integer!]
+			type	[integer!]
 	][
 		s:		 as series! ctx/symbols/value
 		head:	 as red-word! s/offset
@@ -312,10 +313,18 @@ object: context [
 		s: as series! ctx/values/value
 		if idx-s >= 0 [
 			fun: as red-function! s/offset + idx-s
+			type: TYPE_OF(fun)
+			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
+				fire [TO_ERROR(script bad-field-set) words/_on-change* datatype/push type]
+			]
 			loc-s: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
 		]
 		if idx-d >= 0 [
 			fun: as red-function! s/offset + idx-d
+			type: TYPE_OF(fun)
+			if all [type <> TYPE_FUNCTION type <> TYPE_ROUTINE][
+				fire [TO_ERROR(script bad-field-set) words/_on-deep-change* datatype/push type]
+			]
 			loc-d: _function/calc-arity null fun 0		;-- passing a null path triggers short code branch
 		]
 		make-callback-node ctx idx-s loc-s idx-d loc-d
@@ -772,7 +781,7 @@ object: context [
 			obj [red-object!]
 			s	[series!]
 	][
-		obj: as red-object! stack/top - 1
+		obj: as red-object! stack/get-top
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) idx-s loc-s idx-d loc-d
 		if idx-d <> -1 [ownership/set-owner as red-value! obj obj null]
@@ -1096,17 +1105,23 @@ object: context [
 		]
 		on-set?: parent/on-set <> null
 		
-		res: either value <> null [
+		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
 			_context/set-in word value ctx
 			if on-set? [fire-on-set parent as red-word! element old value]
-			value
+			res: value
 		][
 			if on-set? [
 				copy-cell as red-value! parent as red-value! path-parent
 				copy-cell as red-value! word   as red-value! field-parent
 			]
-			_context/get-in word ctx
+			res: _context/get-in word ctx
+			if TYPE_OF(res) = TYPE_UNSET [
+				if all [path <> null TYPE_OF(path) <> TYPE_GET_PATH][
+					res: either null? path [element][path]
+					fire [TO_ERROR(script no-value) res]
+				]
+			]
 		]
 		if rebind? [
 			word/index: save-idx

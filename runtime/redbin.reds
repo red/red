@@ -221,7 +221,7 @@ redbin: context [
 		offset: data/3
 		either offset = -1 [
 			new/ctx: global-ctx
-			w: _context/add-global sym/1
+			w: _context/add-global-word sym/1 yes no
 			new/index: w/index
 		][
 			obj: as red-object! block/rs-abs-at root offset + root-offset
@@ -380,6 +380,10 @@ redbin: context [
 				cell: as cell! time/make-in parent data/2 data/3
 				data + 3
 			]
+			TYPE_DATE	[
+				cell: as cell! date/make-in parent data/2 data/3 data/4
+				data + 4
+			]
 			TYPE_CHAR		[
 				cell: as cell! char/make-in parent data/2
 				data + 2
@@ -443,6 +447,7 @@ redbin: context [
 			count		[integer!]
 			i			[integer!]
 			s			[series!]
+			not-set?	[logic!]
 	][
 		;----------------
 		;-- decode header
@@ -490,9 +495,13 @@ redbin: context [
 		#if debug? = yes [if verbose > 0 [i: 0]]
 		
 		while [p < end][
-			#if debug? = yes [if verbose > 0 [print [i #":"]]]
+			#if debug? = yes [
+				p4: as int-ptr! p
+				not-set?: p4/1 and REDBIN_SET_MASK = 0
+				if verbose > 0 [print [i #":"]]
+			]
 			p: as byte-ptr! decode-value as int-ptr! p table parent
-			#if debug? = yes [if verbose > 0 [i: i + 1 print lf]]
+			#if debug? = yes [if verbose > 0 [if not-set? [i: i + 1] print lf]]
 		]
 		
 		root-base: (block/rs-head parent) + root-offset

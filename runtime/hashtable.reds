@@ -101,7 +101,7 @@ murmur3-x86-32: func [
 
 	;-- body
 	blocks: as int-ptr! (data + (nblocks * 4))
-	i: negate nblocks
+	i: 0 - nblocks
 	while [negative? i][
 		p: blocks + i
 		k1: p/value						;@@ do endian-swapping if needed
@@ -205,6 +205,7 @@ _hashtable: context [
 					(as byte-ptr! s/offset) + sym/head
 					(as-integer s/tail - s/offset) - sym/head
 			]
+			TYPE_DATE
 			TYPE_POINT
 			TYPE_TYPESET [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
@@ -240,9 +241,8 @@ _hashtable: context [
 			either h/type = HASH_TABLE_MAP [
 				key: get node value 0 0 yes no no
 				either key = null [
-					if null = put node value [
-						fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
-					]
+					map/preprocess-key value
+					put node value
 				][
 					copy-cell value + 1 key + 1
 					move-memory 
@@ -582,29 +582,6 @@ _hashtable: context [
 		s: as series! h/blk/value
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
-
-		if type = HASH_TABLE_MAP [
-			x: TYPE_OF(key)
-			switch x [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_SET_WORD
-				TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
-				TYPE_STRING
-				TYPE_FILE
-				TYPE_URL
-				TYPE_TAG
-				TYPE_EMAIL	[_series/copy as red-series! key as red-series! key null yes null]
-				TYPE_BLOCK
-				TYPE_PAREN
-				TYPE_HASH
-				TYPE_PATH
-				TYPE_GET_PATH
-				TYPE_SET_PATH
-				TYPE_LIT_PATH [fire [TO_ERROR(script invalid-type) datatype/push x]]
-				default		[0]
-			]
-		]
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset

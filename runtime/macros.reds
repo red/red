@@ -57,11 +57,12 @@ Red/System [
 	TYPE_TIME											;-- 2B		43
 	TYPE_TAG											;-- 2C		44
 	TYPE_EMAIL											;-- 2D		45
-	TYPE_IMAGE											;-- 2E		46
-	TYPE_EVENT											;-- 2F		47
+	TYPE_HANDLE											;-- 2E		46
+	TYPE_DATE											;-- 2F		47
+	TYPE_IMAGE											;-- 30		48		;-- needs to be last
+	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
-	
 ]
 
 #enum actions! [
@@ -237,6 +238,10 @@ Red/System [
 	NAT_NOW
 	NAT_SIGN?
 	NAT_AS
+	NAT_CALL
+	NAT_ZERO?
+	NAT_SIZE?
+	NAT_BROWSE
 ]
 
 #enum math-op! [
@@ -272,16 +277,20 @@ Red/System [
 
 #enum exceptions! [
 	RED_NO_EXCEPTION
-	;RED_INT_OVERFLOW:		1000
-	RED_THROWN_THROW:		195939000
+	OS_ERROR_VMEM:					100000000
+	OS_ERROR_VMEM_RELEASE_FAILED:	100000001
+	OS_ERROR_VMEM_OUT_OF_MEMORY:	100000002
+	OS_ERROR_VMEM_ALL:				100000010
+	RED_INT_OVERFLOW:				190000000
+	RED_THROWN_THROW:				195939000
 	RED_THROWN_EXIT
 	RED_THROWN_RETURN
 	RED_THROWN_CONTINUE
 	RED_THROWN_BREAK
-	RED_THROWN_ERROR:		195939070				;-- #0BADCAFE (keep it positive)
+	RED_THROWN_ERROR:				195939070		;-- #0BADCAFE (keep it positive)
 ]
 
-#define NATIVES_NB		100							;-- max number of natives (arbitrary set)
+#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 

@@ -2,18 +2,26 @@ EXPORTS
 redOpen
 redDo
 redDoBlock
+redDoFile
 redClose
 
 redSetEncoding
 redOpenLogFile
 redCloseLogFile
-redOpenDebugConsole
-redCloseDebugConsole
+redOpenLogWindow
+redCloseLogWindow
 
+redUnset
 redNone
 redLogic
+redDatatype
 redInteger
 redFloat
+redPair
+redTuple
+redTuple4
+redBinary
+redImage
 redString
 redSymbol
 redWord
@@ -31,6 +39,8 @@ redSet
 redGet
 redSetPath
 redGetPath
+redSetField
+redGetField
 redRoutine
 redTypeOf
 redCall
@@ -40,9 +50,10 @@ redChange
 redClear
 redCopy
 redFind
-redIndex?
-redLength?
+redIndex
+redLength
 redMake
+redMold
 redPick
 redPoke
 redPut

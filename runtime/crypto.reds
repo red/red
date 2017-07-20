@@ -20,6 +20,7 @@ crypto: context [
 	_sha384:	0
 	_sha512:	0
 	_hash:		0
+	errno:		as int-ptr! 0
 	
 	init: does [
 		_tcp:		symbol/make "tcp"
@@ -30,6 +31,7 @@ crypto: context [
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
 		_hash:		symbol/make "hash"
+		#if OS <> 'Windows [errno: get-errno-ptr]
 	]
 
 	#enum crypto-algorithm! [
@@ -292,6 +294,25 @@ crypto: context [
 		]
 	]
 
+	#case [
+		any [OS = 'FreeBSD OS = 'macOS] [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__error" [
+					return: [int-ptr!]
+				]
+			]]
+		]
+		true [
+			#import [
+			LIBC-file cdecl [
+				get-errno-ptr: "__errno_location" [
+					return: [int-ptr!]
+				]
+			]]
+		]
+	]
+
 	urandom: func [
 		buffer	[byte-ptr!]							;-- buffer to receive data
 		size	[integer!]							;-- size of the buffer
@@ -307,7 +328,7 @@ crypto: context [
 		while [size > 0][
 			until [
 			 	n: _read fd buffer size
-			 	not all [n < 0 errno = 4]			;-- 4: EINTR
+			 	not all [n < 0 errno/value = 4]		;-- 4: EINTR
 			]
 			if n < 0 [
 				_close fd
@@ -320,8 +341,8 @@ crypto: context [
 		true
 	]]
 
-	#switch OS [
-	Windows [
+	#case [
+	OS = 'Windows [
 		#import [
 			"advapi32.dll" stdcall [
 				CryptAcquireContext: "CryptAcquireContextW" [
@@ -435,7 +456,7 @@ crypto: context [
 			hash
 		]
 	]
-	Linux [
+	all [OS = 'Linux target <> 'ARM][
 		;-- Using User-space interface for Kernel Crypto API
 		;-- Exists in kernel starting from Linux 2.6.38
 		#import [
@@ -466,7 +487,7 @@ crypto: context [
 				]
 				syscall: "syscall" [
 					[variadic]
-					return:		[integer!]
+					return:	[integer!]
 				]
 			]
 		]
@@ -487,6 +508,7 @@ crypto: context [
 			/local
 				n		[integer!]
 				flags	[integer!]
+				err		[integer!]
 		][
 			unless has_getrandom? [return 0]
 
@@ -494,15 +516,16 @@ crypto: context [
 			while [size > 0][
 				n: syscall [SYS_getrandom buffer size flags]
 
+				err: errno/value
 				if n < 0 [
-					if any [errno = ENOSYS errno = EPERM][
+					if any [err = ENOSYS err = EPERM][
 						has_getrandom?: no
 						return 0
 					]
-					if all [errno = EAGAIN not blocking?][
+					if all [err = EAGAIN not blocking?][
 						return 0
 					]
-					if errno = EINTR [
+					if err = EINTR [
 						;@@ check SIGINT, that means it's from keyboard, should return -1
 						continue
 					]
@@ -564,17 +587,17 @@ crypto: context [
 			hash
 		]
 	]
-	#default [											;-- MacOSX,Android,Syllable,FreeBSD
+	true [											;-- macOS,Android,Syllable,FreeBSD,Linux-ARM
 		;-- Using OpenSSL Crypto library
 		#switch OS [
-			MacOSX [
+			macOS [
 				#define LIBCRYPTO-file "libcrypto.dylib"
 			]
 			FreeBSD [
 				#define LIBCRYPTO-file "libcrypto.so.7"
 			]
 			#default [
-				#define LIBCRYPTO-file "libcrypto.so"
+				#define LIBCRYPTO-file "libcrypto.so.1.0.0"
 			]
 		]
 		#import [

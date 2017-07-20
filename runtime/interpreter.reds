@@ -50,7 +50,7 @@ Red/System [
 	switch TYPE_OF(value) [
 		TYPE_WORD [
 			#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
-			pc: eval-expression pc end no yes
+			pc: eval-expression pc end no yes no
 		]
 		TYPE_GET_WORD [
 			#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
@@ -168,11 +168,11 @@ interpreter: context [
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [
-			RED_THROWN_ERROR	[throw RED_THROWN_ERROR] ;-- let exception pass through
-			RED_THROWN_BREAK	[fire [TO_ERROR(throw break)]]
-			RED_THROWN_CONTINUE	[fire [TO_ERROR(throw continue)]]
-			RED_THROWN_THROW	[throw RED_THROWN_THROW] ;-- let exception pass through
-			default [0]									 ;-- else, do nothing
+			RED_THROWN_ERROR
+			RED_THROWN_BREAK
+			RED_THROWN_CONTINUE
+			RED_THROWN_THROW	[re-throw]				;-- let exception pass through
+			default [0]									;-- else, do nothing
 		]
 		system/thrown: 0
 	]
@@ -184,11 +184,15 @@ interpreter: context [
 			arg		[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
+			fl		[red-float!]
 			s		[series!]
 			ret		[integer!]
+			retf	[float!]
 			count	[integer!]
+			cnt 	[integer!]
+			saved	[int-ptr!]
 			extern?	[logic!]
-			call
+			call callf
 	][
 		extern?: rt/header and flag-extern-code <> 0
 		
@@ -197,12 +201,27 @@ interpreter: context [
 		call: as function! [return: [integer!]] native/code
 		count: (routine/get-arity rt) - 1				;-- zero-based stack access
 		
+		#if stack-align-16? = yes [						;@@ 64-bit alignment required on ARM
+			if extern? [
+				saved: system/stack/align
+				cnt: 4 - (count + 1 and 3)
+				while [cnt > 0][push 0 cnt: cnt - 1]
+			]
+		]
+		
 		while [count >= 0][
 			arg: stack/arguments + count
-			either extern? [push arg][
+			either extern? [
+				#either libRed? = yes [
+					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
+				][
+					push arg
+				]
+			][
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
+					TYPE_FLOAT	 [push float/get arg]
 					default		 [push arg]
 				]
 			]
@@ -210,22 +229,36 @@ interpreter: context [
 		]
 		case [
 			extern? [
+				stack/mark-native words/_body
 				arg: as red-value! call
-				pop count + 1
+				stack/unwind
+				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
+					system/stack/top: saved
+				][
+					pop count + 1
+				]
 				stack/set-last arg
 			]
 			positive? rt/ret-type [
-				ret: call
 				switch rt/ret-type [
 					TYPE_LOGIC	[
+						ret: call
 						bool: as red-logic! stack/arguments
 						bool/header: TYPE_LOGIC
 						bool/value: ret <> 0
 					]
 					TYPE_INTEGER [
+						ret: call
 						int: as red-integer! stack/arguments
 						int/header: TYPE_INTEGER
 						int/value: ret
+					]
+					TYPE_FLOAT [
+						callf: as function! [return: [float!]] native/code
+						retf: callf
+						fl: as red-float! stack/arguments
+						fl/header: TYPE_FLOAT
+						fl/value: retf
 					]
 					default [assert false]				;-- should never happen
 				]
@@ -262,23 +295,24 @@ interpreter: context [
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
-		pc: eval-expression pc end yes yes				;-- eval right operand
+		pc: eval-expression pc end yes yes no			;-- eval right operand
 		op: as red-op! value
 		fun: null
 		native?: op/header and flag-native-op <> 0
 
-		if all [
-			not native?
-			op/header and body-flag <> 0
-		][
-			node: as node! op/code
-			s: as series! node/value
-			more: s/offset
-			fun: as red-function! more + 3
+		unless native? [
+			either op/header and body-flag <> 0 [
+				node: as node! op/code
+				s: as series! node/value
+				more: s/offset
+				fun: as red-function! more + 3
 
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+				s: as series! fun/more/value
+				blk: as red-block! s/offset + 1
+				args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+			][
+				args: op/args
+			]
 
 			if null? args [
 				args: _function/preprocess-spec as red-native! op
@@ -290,7 +324,6 @@ interpreter: context [
 					op/args: args
 				]
 			]
-
 			s: as series! args/value
 			slot: s/offset + 1
 			bits: (as byte-ptr! slot) + 4
@@ -492,7 +525,14 @@ interpreter: context [
 									arg:  stack/top - 1
 									type: TYPE_OF(arg)
 									BS_TEST_BIT(bits type set?)
-									unless set? [ERR_EXPECT_ARGUMENT(type index)]
+									unless set? [
+										fire [
+											TO_ERROR(script expect-arg)
+											stack/get-call
+											datatype/push type
+											value
+										]
+									]
 									index: index + 1
 								]
 							][
@@ -639,15 +679,17 @@ interpreter: context [
 		parent	[red-value!]
 		return: [red-value!]
 		/local
-			name [red-word!]
-			obj  [red-object!]
-			fun	 [red-function!]
-			int	 [red-integer!]
-			s	 [series!]
-			ctx	 [node!]
+			name  [red-word!]
+			obj   [red-object!]
+			fun	  [red-function!]
+			int	  [red-integer!]
+			saved [red-value!]
+			s	  [series!]
+			ctx	  [node!]
 	][
 		name: as red-word! either null? slot [pc - 1][slot]
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		saved: stack/push value							;-- prevent word's value slot to be corrupted #2199
 		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
@@ -696,6 +738,7 @@ interpreter: context [
 				]
 				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end path slot
+				value: saved				
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -706,6 +749,9 @@ interpreter: context [
 				]
 			]
 		]
+		
+		stack/pop 1										;-- slide down the returned value
+		copy-cell stack/top stack/top - 1				;-- replacing the saved value slot
 		pc
 	]
 	
@@ -714,6 +760,7 @@ interpreter: context [
 		end	  	  [red-value!]
 		prefix?	  [logic!]								;-- TRUE => don't check for infix
 		sub?	  [logic!]
+		passive?  [logic!]
 		return:   [red-value!]
 		/local
 			next   [red-word!]
@@ -721,8 +768,7 @@ interpreter: context [
 			left   [red-value!]
 			w	   [red-word!]
 			op	   [red-value!]
-			s-arg  [red-value!]
-			s-top  [red-value!]
+			sym	   [integer!]
 			infix? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
@@ -754,7 +800,7 @@ interpreter: context [
 					word/push as red-word! pc
 					pc: pc + 1
 					if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
-					pc: eval-expression pc end no yes
+					pc: eval-expression pc end no yes no
 					word/set
 					either sub? [stack/unwind][stack/unwind-last]
 					#if debug? = yes [
@@ -769,12 +815,10 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
-				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				s-arg: stack/arguments
-				s-top: stack/top
-				pc: eval-path value pc end yes no sub? no
-				stack/arguments: s-arg					;-- restores the stack
-				stack/top: s-top
+				stack/mark-interp-native words/_set-path
+				pc: eval-expression pc end no yes no	;-- yes: push value on top of stack
+				pc: eval-path value pc end yes yes sub? no
+				either sub? [stack/unwind][stack/unwind-last]
 			]
 			TYPE_GET_WORD [
 				value: _context/get as red-word! pc
@@ -862,9 +906,41 @@ interpreter: context [
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
+				either passive? [
+					either sub? [
+						stack/push pc						;-- nested expression: push value
+					][
+						stack/set-last pc					;-- root expression: return value
+					]
+					pc: pc + 1
+				][
+					value: pc + 1
+					if value >= end [value: end]
+					pc: eval-code pc value end sub? null null null
+				]
+			]
+			TYPE_ISSUE [
 				value: pc + 1
-				if value >= end [value: end]
-				pc: eval-code pc value end sub? null null null
+				if all [
+					value < end
+					TYPE_OF(value) = TYPE_BLOCK
+				][
+					w: as red-word! pc
+					sym: symbol/resolve w/symbol
+					
+					if any [
+						sym = words/system
+						sym = words/system-global
+					][
+						fire [TO_ERROR(internal red-system)]
+					]
+				]
+				either sub? [
+					stack/push pc						;-- nested expression: push value
+				][
+					stack/set-last pc					;-- root expression: return value
+				]
+				pc: pc + 1
 			]
 			default [
 				either sub? [
@@ -914,7 +990,7 @@ interpreter: context [
 		return: [red-value!]							;-- return start of next expression
 	][
 		stack/mark-interp-native words/_body			;-- outer stack frame
-		value: eval-expression value tail no sub?
+		value: eval-expression value tail no sub? no
 		either sub? [stack/unwind][stack/unwind-last]
 		value
 	]
@@ -937,7 +1013,7 @@ interpreter: context [
 		][
 			while [value < tail][
 				#if debug? = yes [if verbose > 0 [log "root loop..."]]
-				value: eval-expression value tail no no
+				value: eval-expression value tail no no no
 				if value + 1 < tail [stack/reset]
 			]
 		]

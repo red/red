@@ -17,27 +17,33 @@ char: context [
 		op		[math-op!]
 		return: [red-value!]
 		/local
-			right [red-float!]
+			right [red-char!]
 			char  [red-char!]
+			f	  [red-float!]
+			rv	  [integer!]
 	][
-		right: as red-float! stack/arguments + 1
-		if TYPE_OF(right) = TYPE_FLOAT [
-			char: as red-char! right
-			char/header: TYPE_CHAR
-			char/value: as-integer right/value
+		char:  as red-char! stack/arguments
+		right: char + 1
+		switch TYPE_OF(right) [
+			TYPE_INTEGER
+			TYPE_CHAR	[rv: right/value]
+			TYPE_FLOAT	[f: as red-float! right rv: as-integer f/value]
+			TYPE_VECTOR [return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! char]
+			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]]
 		]
-		char: as red-char! integer/do-math op
-		char/header: TYPE_CHAR
-		
+
+		rv: integer/do-math-op char/value rv op
 		if any [
-			char/value > 0010FFFFh
-			negative? char/value
+			rv > 0010FFFFh
+			negative? rv
 		][
 			fire [TO_ERROR(math overflow)]
 		]
+
+		char/value: rv
 		as red-value! char
 	]
-	
+
 	make-in: func [
 		parent	[red-block!]
 		value	[integer!]
@@ -235,7 +241,7 @@ char: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			INHERIT_ACTION	;absolute
 			:add
 			:divide
 			:multiply

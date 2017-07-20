@@ -8,7 +8,7 @@ REBOL [
 ]
 
 utf8-to-utf16: func [s [string!] /length /local m cp result cnt][
-	result: make string! (length? s) * 2
+	result: make string! (1 + length? s) * 2
 	cnt: 0
 	while [not tail? s][
 		cp: first s

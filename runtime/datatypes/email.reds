@@ -50,7 +50,6 @@ email: context [
 			part  [red-value!]
 			w	  [red-word!]
 			sym	  [integer!]
-			saved [integer!]
 			pos	  [integer!]
 			slots [integer!]
 	][
@@ -68,8 +67,8 @@ email: context [
 		
 		pos: string/rs-find parent as-integer #"@"
 		if pos = -1 [pos: string/rs-length? parent]
-		saved: parent/head
-
+		parent: string/push parent
+		
 		part: either sym = words/user [
 			as red-value! integer/push pos
 		][
@@ -84,11 +83,11 @@ email: context [
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 
+			value/header: TYPE_STRING
 		]
 		
-		slots: either part = null [1][2]
+		slots: either part = null [2][3]
 		stack/pop slots									;-- avoid moving stack top
-		parent/head: saved
 		value
 	]
 

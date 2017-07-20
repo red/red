@@ -85,7 +85,7 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/mold"]]
 
 		string/concatenate-literal buffer "make hash! "
-		block/mold as red-block! hash buffer only? all? flat? arg part - 11 indent
+		block/mold as red-block! hash buffer no all? flat? arg part - 11 indent
 	]
 
 	clear: func [
@@ -231,7 +231,7 @@ hash: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

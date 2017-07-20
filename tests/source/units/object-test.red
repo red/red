@@ -993,6 +993,7 @@ Red [
 		--assert 's = in ino1/o/o/o 's
 		
 	--test-- "in5"
+		a: 0
 		in5-f: func[] [make object! [a: 1]]
 		--assert 1 = get in in5-f 'a	
 	
@@ -2115,5 +2116,142 @@ Red [
 
 ===end-group===
 
-~~~end-file~~~
+===start-group=== "reflection"
 
+	--test-- "or1"
+		or1: make object! [a: 1 b: 2.1 c: "three"]
+		--assert [a b c] = words-of or1
+		--assert [1 2.1 "three"] = values-of or1
+		--assert [a: 1 b: 2.1 c: "three"] = body-of or1
+
+===end-group===
+
+===start-group=== "set"
+
+	--test-- "os1"
+		os1: make object! [a: 1 b: 2 c: 3]
+		set os1 none
+		--assert equal? reduce [none none none] values-of os1
+		
+	--test-- "os2"
+		os2: make object! [a: 1 b: 2 c: 3]
+		set os2 [1.2 2.3 3.4]
+		--assert equal? [1.2 2.3 3.4] values-of os2
+		
+	--test-- "os3"
+		os3-a: make object! [x: 1 y: 2 z: 3]
+		os3-b: make object! [x: 11 y: 22 z: 33]
+		set os3-a os3-b
+		--assert equal? words-of os3-a [x y z]
+		--assert equal? values-of os3-a [11 22 33]
+		
+	--test-- "os4"
+		os4-a: make object! [x: 1 y: 2 z: "string 1"]
+		os4-b: make object! [x: 11 y: 22 z: "string 2"]
+		set os4-a os4-b
+		--assert equal? words-of os4-a [x y z]
+		--assert equal? values-of os4-a [11 22 "string 2"]
+		append os4-a/z "2"
+		--assert equal? os4-b/z "string 22"
+		
+	--test-- "os5"
+		os5-a: make object! [x: 1 y: 2 z: 3]
+		set/only os5-a [1 2 3]
+		--assert equal? values-of os5-a [[1 2 3] [1 2 3] [1 2 3]]
+		
+	--test-- "os6"
+		os6-a: make object! [x: 1 y: 2 z: 3]
+		os6-b: make object! [x: 11 y: 22 z: 33]
+		set/only os6-a os6-b
+		--assert equal? words-of os6-a [x y z]
+		--assert equal? os6-a/x make os6-b []
+		--assert equal? os6-a/y make os6-b []
+		--assert equal? os6-a/z make os6-b []
+		
+	--test-- "os7"
+		os7-a: make object! [z: 1 y: 2 x: 3]
+		set os7-a [11 22 33]
+		--assert equal? os7-a/z 11
+		--assert equal? os7-a/y 22
+		--assert equal? os7-a/x 33
+	 	
+				
+===end-group===
+
+===start-group=== "find & select"
+
+	--test-- "ofs"
+		ofs1: make object! [a: 1]
+		--assert find ofs1 'a
+		--assert 1 = select ofs1 'a
+		
+	--test-- "ofs2"
+		ofs2: make object! [a: none]
+		--assert find ofs2 'a
+		--assert none = select ofs2 'a
+		
+	--test-- "ofs3"
+		ofs3: make object! [a: 1]
+		--assert not find ofs3 'b
+		--assert not select ofs3 'b			
+
+===end-group===
+
+===start-group=== "on change"
+
+	--test-- "ooc1"
+		ooc1: make object! [
+			on-change*: func [word old new] [
+				if word = 'a [ b: 3 * a]
+			]
+			a: 1
+			b: a * 2
+		]
+		ooc1/a: 3
+		--assert ooc1/b = 9
+		
+===end-group===
+
+===start-group=== "on deep change"
+
+	--test-- "oodc1"
+		oodc1: make object! [
+			on-deep-change*: func [
+				owner word target action new index part
+			][
+				a: length? b
+			]
+			a: 0
+			b: [1 2 3 4 5]
+		]
+		append oodc1/b 6
+		--assert oodc1/a = 6
+		append oodc1/b [7 8 9]
+		--assert oodc1/a = 9
+		append/only oodc1/b [10 11 12]
+		--assert oodc1/a = 10
+		append oodc1/b/10 13
+		--assert oodc1/a = 10
+	
+	--test-- "oodc2"
+		oodc2: make object! [
+			on-deep-change*: func [
+				owner word target action new index part
+			][
+				if equal? mold owner mold make object! [a: 0 b: [1 2 3 4 5 6]] [a: a + 1]
+				if equal? word 'b [a: a + 10]
+				if equal? target [1 2 3 4 5 6] [a: a + 100]
+				if equal? action 'insert [a: a + 1000]
+				if equal? new 6 [a: a + 10000]
+				if equal? index 5 [a: a + 100000]
+				if equal? part 1 [a: a + 1000000]				 
+			]
+			a: 0
+			b: [1 2 3 4 5]
+		]
+		append oodc2/b 6
+		--assert oodc2/a = 1111111
+		
+===end-group===
+
+~~~end-file~~~

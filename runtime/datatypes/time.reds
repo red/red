@@ -10,6 +10,9 @@ Red/System [
 	}
 ]
 
+#define TIME_EPSILON		 	2.2204460492503131E-15	;-- 10 ULP
+#define ROUND_TIME_DECIMALS(t)	(floor t + 0.5 - TIME_EPSILON)
+
 time: context [
 	verbose: 0
 	
@@ -26,6 +29,17 @@ time: context [
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
 	
+	get-hours: func [tm [float!] return: [integer!]][
+		tm: tm / h-factor
+		tm: either tm < 0.0 [ceil tm - nano][floor tm + nano]
+		as-integer tm
+	]
+	get-minutes: func [tm [float!] return: [integer!]][
+		if tm < 0.0 [tm: 0.0 - tm]
+		tm: ROUND_TIME_DECIMALS(tm)
+		as-integer floor tm / oneE9 // 3600.0 / 60.0
+	]
+	
 	push-field: func [
 		tm		[red-time!]
 		field	[integer!]
@@ -35,8 +49,8 @@ time: context [
 	][
 		t: tm/time
 		as red-value! switch field [
-			1 [integer/push as-integer GET_HOURS(t)]
-			2 [integer/push as-integer GET_MINUTES(t)]
+			1 [integer/push time/get-hours t]
+			2 [integer/push time/get-minutes t]
 			3 [float/push GET_SECONDS(t)]
 			default [assert false]
 		]
@@ -50,7 +64,7 @@ time: context [
 		/local
 			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "time/make-in"]]
 
 		cell: ALLOC_TAIL(parent)
 		cell/header: TYPE_TIME
@@ -86,6 +100,48 @@ time: context [
 		#if debug? = yes [if verbose > 0 [print-line "time/push"]]
 		
 		make-at time stack/push*
+	]
+	
+	serialize: func [
+		time 	[float!]
+		buffer	[red-string!]
+		part 	[integer!]
+		return: [integer!]
+		/local
+			formed [c-string!]
+			len	   [integer!]
+	][
+		if time < 0.0 [
+			string/append-char GET_BUFFER(buffer) as-integer #"-"
+			time: float/abs time
+		]
+		time: time + 1.0								;-- fix issue #2134
+		formed: integer/form-signed as-integer GET_HOURS(time)
+		string/concatenate-literal buffer formed
+		part: part - length? formed						;@@ optimize by removing length?
+
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+
+		formed: integer/form-signed as-integer GET_MINUTES(time)
+		len: length? formed								;@@ optimize by removing length?
+		if len = 1 [
+			string/append-char GET_BUFFER(buffer) as-integer #"0"
+			len: 2
+		]
+		string/concatenate-literal buffer formed
+		part: part - 1 - len
+
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+
+		time: GET_SECONDS(time)
+		formed: either time < 1E-6 ["00"][float/form-float time float/FORM_TIME]
+		len: length? formed								;@@ optimize by removing length?
+		if any [len = 1 formed/2 = #"."][
+			string/append-char GET_BUFFER(buffer) as-integer #"0"
+			len: len + 1
+		]
+		string/concatenate-literal buffer formed
+		part - 1 - len
 	]
 	
 	;-- Actions --
@@ -170,7 +226,7 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/form"]]
 
-		mold t buffer no no no arg part 0
+		serialize t/time buffer part
 	]
 	
 	mold: func [
@@ -183,46 +239,10 @@ time: context [
 		part 	[integer!]
 		indent	[integer!]
 		return: [integer!]
-		/local
-			formed [c-string!]
-			time   [float!]
-			len	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/mold"]]
 		
-		time: t/time
-		if time < 0.0 [
-			string/append-char GET_BUFFER(buffer) as-integer #"-"
-			time: float/abs time
-		]
-
-		time: time + 1.0								;-- fix issue #2134
-		formed: integer/form-signed as-integer GET_HOURS(time)
-		string/concatenate-literal buffer formed
-		part: part - length? formed						;@@ optimize by removing length?
-
-		string/append-char GET_BUFFER(buffer) as-integer #":"
-
-		formed: integer/form-signed as-integer GET_MINUTES(time)
-		len: length? formed								;@@ optimize by removing length?
-		if len = 1 [
-			string/append-char GET_BUFFER(buffer) as-integer #"0"
-			len: 2
-		]
-		string/concatenate-literal buffer formed
-		part: part - 1 - len
-		
-		string/append-char GET_BUFFER(buffer) as-integer #":"
-
-		time: GET_SECONDS(time)
-		formed: either time < 1E-6 ["00"][float/form-float time float/FORM_TIME]
-		len: length? formed								;@@ optimize by removing length?
-		if any [len = 1 formed/2 = #"."][
-			string/append-char GET_BUFFER(buffer) as-integer #"0"
-			len: len + 1
-		]
-		string/concatenate-literal buffer formed
-		part - 1 - len
+		serialize t/time buffer part
 	]
 	
 	eval-path: func [
@@ -300,7 +320,41 @@ time: context [
 			value
 		]
 	]
-	
+
+	add: func [
+		return:	[red-value!]
+		/local
+			left	[red-time!]
+			right	[red-time!]
+			val		[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/add"]]
+		right: as red-time! stack/arguments + 1
+		either TYPE_OF(right) = TYPE_DATE [
+			left: right - 1								;-- swap them!
+			val: left/time
+			copy-cell as red-value! right as red-value! left
+			right/header: TYPE_TIME
+			right/time: val
+			as red-value! date/do-math OP_ADD
+		][
+			as red-value! float/do-math OP_ADD
+		]
+	]
+
+	subtract: func [
+		return:	[red-value!]
+		/local
+			slot [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "time/subtract"]]
+		slot: stack/arguments + 1
+		if TYPE_OF(slot) = TYPE_DATE [
+			fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_TIME]
+		]
+		as red-value! float/do-math OP_SUB
+	]
+
 	divide: func [
 		return: [red-value!]
 		/local
@@ -328,6 +382,28 @@ time: context [
 		as red-value! float/do-math OP_MUL
 	]
 	
+	even?: func [
+		tm		[red-time!]
+		return: [logic!]
+		/local
+			t [float!]
+	][
+		t: tm/time
+		either t >= 0.0 [t: t + 1E-6][t: t - 1E-6]		;@@ 1E-6 is a temporary, empirical workaround
+		not as-logic (as integer! GET_SECONDS(t)) and 1
+	]
+
+	odd?: func [
+		tm		[red-time!]
+		return: [logic!]
+		/local
+			t [float!]
+	][
+		t: tm/time
+		either t >= 0.0 [t: t + 1E-6][t: t - 1E-6]		;@@ 1E-6 is a temporary, empirical workaround
+		as-logic (as integer! GET_SECONDS(t)) and 1
+	]
+
 	round: func [
 		tm			[red-time!]
 		scale		[red-float!]
@@ -353,10 +429,10 @@ time: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "time/pick"]]
 
-		if all [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
+		if any [index < 1 index > 3][fire [TO_ERROR(script out-of-range) boxed]]
 		push-field tm index
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_TIME
@@ -374,16 +450,16 @@ time: context [
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			INHERIT_ACTION	;absolute
-			INHERIT_ACTION	;add
+			:add
 			:divide
 			:multiply
 			INHERIT_ACTION	;negate
 			null			;power
 			INHERIT_ACTION	;remainder
 			:round
-			INHERIT_ACTION	;subtract
-			null			;even?
-			null			;odd?
+			:subtract
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

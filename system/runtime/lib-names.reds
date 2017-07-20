@@ -19,7 +19,7 @@ Red/System [
 	  #define LIBC-file	"libc.so.2"
 	  #define LIBM-file "libm.so.2"  
 	]
-	MacOSX	 [
+	macOS	 [
 	  #define LIBC-file	"libc.dylib"
 	  #define LIBM-file	"libc.dylib"
 	]

@@ -1007,12 +1007,13 @@ terminal: context [
 			cut-red-string out/data string/rs-length? str out2
 			cut-red-string str -1 null
 
+			str2: as red-string! block/rs-head result
+			vt/cursor: vt/prompt-len + str2/head
+			str2/head: 0
 			either num = 1 [
-				str2: as red-string! block/rs-head result
-				vt/cursor: vt/prompt-len + str2/head
-				str2/head: 0
 				string/concatenate str str2 -1 0 yes no
 			][
+				block/rs-next result
 				until [
 					string/concatenate str as red-string! block/rs-head result -1 0 yes no
 					string/append-char GET_BUFFER(str) 32
@@ -1025,8 +1026,7 @@ terminal: context [
 			emit-string vt str yes yes
 			if num > 1 [
 				cut-red-string str -1 null
-				line/head: 0
-				string/concatenate str line -1 0 yes no
+				string/concatenate str str2 -1 0 yes no
 				head: str/head
 				str/head: 0
 				emit-string vt str no no
@@ -1479,7 +1479,7 @@ terminal: context [
 		#switch OS [
 			Windows  [#include %windows.reds]
 			Android  []
-			MacOSX   []
+			macOS    []
 			FreeBSD  []
 			Syllable []
 			#default []									;-- Linux

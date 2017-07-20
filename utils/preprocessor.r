@@ -203,14 +203,15 @@ preprocessor: context [
 		s/1
 	]
 	
-	register-macro: func [spec [block!] /local cnt rule p name macro pos][
+	register-macro: func [spec [block!] /local cnt rule p name macro pos valid? named?][
+		named?: set-word? spec/1
 		cnt: 0
 		rule: make block! 10
-		unless parse spec/3 [
+		valid?: parse spec/3 [
 			any [
 				opt string!
 				opt block!
-				word! (cnt: cnt + 1)
+				[word! (cnt: cnt + 1) | /local any word!]
 				opt [
 					p: block! :p into [some word!]
 						;(append/only rule make block! 1)
@@ -218,16 +219,16 @@ preprocessor: context [
 						;(append rule '|)
 					;]
 				]
-				opt [/local some word!]
 			]
-		][
+		]
+		if any [not valid? all [not named? cnt <> 2]][
 			print [
 				"*** Macro Error: invalid specification^/"
 				"*** Where:" mold copy/part spec 3
 			]
 			do-quit
 		]
-		either set-word? spec/1 [						;-- named macro
+		either named? [									;-- named macro
 			repend rule [
 				name: to lit-word! spec/1
 				to-paren compose [change/part s do-macro (:name) s (cnt) (cnt + 1)]
@@ -270,7 +271,7 @@ preprocessor: context [
 	expand: func [
 		code [block!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr
+		/local rule e pos cond value then else cases body keep? expr src
 	][	
 		either clean [reset job][exec/config: job]
 
@@ -283,7 +284,12 @@ preprocessor: context [
 				| #system-global skip
 				
 				| s: #include (
-					if all [active? not Rebol system/state/interpreted?][s/1: 'do]
+					either all [active? not Rebol system/state/interpreted?][s/1: 'do][
+						attempt [
+						 	src: red/load-source/hidden clean-path join red/main-path s/2
+							expand src job				;-- just preprocess it, real inclusion occurs later
+						]
+					]
 				)
 				| s: #if (set [cond e] eval next s s/1) :e [set then block! | (syntax-error s e)] e: (
 					if active? [either cond [change/part s then e][remove/part s e]]

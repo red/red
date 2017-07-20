@@ -29,7 +29,7 @@ system: declare struct! [							;-- trimmed down temporary system definition
 
 #switch OS [
 	Windows []										;-- nothing to do, initialization occurs in DLL init entry point
-	MacOSX  []										;-- nothing to do @@
+	macOS   []										;-- nothing to do @@
 	FreeBSD [
 		#import [ LIBC-file cdecl [
 			***__atexit: "atexit" [fun [pointer! [byte!]]]

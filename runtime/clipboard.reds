@@ -129,10 +129,47 @@ clipboard: context [
 			true
 		]
 	]
-	MacOSX [
+	macOS [
 		#import [
+			LIBC-file cdecl [
+				objc_getClass: "objc_getClass" [
+					class		[c-string!]
+					return:		[integer!]
+				]
+				sel_getUid: "sel_getUid" [
+					name		[c-string!]
+					return:		[integer!]
+				]
+				objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+			]
 			"/System/Library/Frameworks/AppKit.framework/Versions/Current/AppKit" cdecl [
 				NSBeep: "NSBeep" []
+			]
+		]
+
+		to-red-string: func [
+			nsstr	[integer!]
+			slot	[red-value!]
+			return: [red-string!]
+			/local
+				str  [red-string!]
+				size [integer!]
+				cstr [c-string!]
+		][
+			size: objc_msgSend [nsstr sel_getUid "lengthOfBytesUsingEncoding:" 4]
+			cstr: as c-string! objc_msgSend [nsstr sel_getUid "UTF8String"]
+			if null? slot [slot: stack/push*]
+			str: string/make-at slot size Latin1
+			unicode/load-utf8-stream cstr size str null
+			str
+		]
+
+		to-NSString: func [str [red-string!] return: [integer!] /local len][
+			len: -1
+			objc_msgSend [
+				objc_getClass "NSString"
+				sel_getUid "stringWithUTF8String:"
+				unicode/to-utf8 str :len
 			]
 		]
 
@@ -178,5 +215,18 @@ clipboard: context [
 			as logic! res
 		]
 	]
-	#default []											;-- Linux...
+	#default [
+		read: func [
+			return:		[red-value!]
+		][
+			none-value
+		]
+
+		write: func [
+			data		[red-value!]
+			return:		[logic!]
+		][
+			true
+		]
+	]											;-- Linux...
 ]]

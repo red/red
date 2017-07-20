@@ -299,12 +299,14 @@ stack: context [										;-- call stack
 	]
 	
 	trace: func [
+		level	[integer!]
 		int		[red-integer!]
 		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
 		/local
 			value [red-value!]
+			fun	  [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]
@@ -319,15 +321,19 @@ stack: context [										;-- call stack
 			sym: base/header >> 8 and FFFFh
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
-				if base > cbottom [
-					string/concatenate-literal buffer " "
-					part: part - 4
+				fun: _context/get-global sym
+				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
+					part: word/form 
+						word/make-at sym value
+						buffer
+						null
+						part
+					
+					if base >= cbottom [
+						string/concatenate-literal buffer " "
+						part: part - 1
+					]
 				]
-				part: word/form 
-					word/make-at sym value
-					buffer
-					null
-					part
 			]
 			base: base + 1
 			base >= top									;-- defensive test
@@ -351,18 +357,13 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			flags [integer!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
 			error/set-where err as red-value! get-call
 			set-stack err
-		
-			all?: (error/get-type err) = words/errors/throw/symbol
-			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-
 			extra: top
-			unroll-frames flags no
+			unroll-frames FRAME_TRY no
 
 			ctop: ctop - 1
 			assert ctop >= cbottom
@@ -395,20 +396,17 @@ stack: context [										;-- call stack
 		
 		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
-			ctop: ctop - 1
-			if any [
-				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
-				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
-			][
+			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 			]
+			ctop: ctop - 1
 			any [
 				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_LOOP)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
@@ -446,10 +444,10 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop <= cbottom
-				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!			
+				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom ctop/header and FLAG_IN_FUNC = 0][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
@@ -489,11 +487,11 @@ stack: context [										;-- call stack
 			]
 			ctop: ctop - 1
 			any [
-				ctop < cbottom
+				ctop <= cbottom
 				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!
 			]
 		]
-		either ctop < cbottom [
+		either all [ctop <= cbottom NOT_CALL_STACK_TYPE?(ctop FRAME_CATCH)][
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
@@ -517,6 +515,7 @@ stack: context [										;-- call stack
 	
 	eval?: func [
 		ptr		[byte-ptr!]
+		parent? [logic!]
 		return: [logic!]
 		/local
 			cframe [call-frame!]
@@ -525,7 +524,7 @@ stack: context [										;-- call stack
 		until [
 			cframe: cframe - 1
 			if FLAG_INTERPRET and cframe/header = FLAG_INTERPRET [return yes]
-			cframe <= cbottom
+			any [parent? cframe <= cbottom]
 		]
 		no
 	]
@@ -580,6 +579,10 @@ stack: context [										;-- call stack
 	][
 		value: top - 1
 		TYPE_OF(value)
+	]
+	
+	get-top: func [return: [red-value!]][
+		either top = bottom [top][top - 1]
 	]
 	
 	func?: func [

@@ -361,6 +361,10 @@ Red [
 	--test-- "round15" --assert  1 = round  1.4999
 	--test-- "round16" --assert  2 = round  1.5
 	--test-- "round17" --assert -2 = round -1.5
+	
+	;-- for issue #2593 (ROUND rounds float down if scale is integer)
+	--test-- "round18"  --assert 1 = round/to 0.5 1
+	--test-- "round19"  --assert 0 = round/to 0.499 1
 ===end-group===
 
 ===start-group=== "various regression tests from bugtracker"
@@ -402,9 +406,9 @@ Red [
 	--test-- "special-arithmetic-6"  --assert "-1.#INF" = to string! 9999999.9 - 1.#INF
 	--test-- "special-arithmetic-7"  --assert "1.#INF"  = to string! 1.#INF + 1.#INF
 	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
-	--test-- "special-arithmetic-2"  --assert error? try [to string! 1.0 / 0.0]
-	--test-- "special-arithmetic-3"  --assert error? try [to string! -1.0 / 0.0]
-	--test-- "special-arithmetic-4"  --assert error? try [to string! 0.0 / 0.0]
+	--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
+	--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
+	--test-- "special-arithmetic-4"  --assert "1.#INF"  = to string! 0.0 / 0.0
 	--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
 	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
 	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF

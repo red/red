@@ -10,7 +10,7 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
+;;	OS:				'Windows | 'Linux | 'macOS | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
@@ -32,6 +32,7 @@ REBOL [
 ;;  red-tracing?:	yes							;-- no => do not compile tracing code
 ;;  red-help?:		no							;-- yes => keep doc-strings from boot.red
 ;;	gui-console?:	no							;-- yes => redirect printing to gui console (temporary)
+;;	GUI-engine:		'native						;-- native | test | GTK | ...
 ;;  legacy:			block! of words				;-- flags for OS legacy features support
 ;;		- stat32								;-- use the older stat struct for 32-bit file access.
 ;;-------------------------------------------
@@ -49,7 +50,6 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
-dev-mode?: no
 ]
 WindowsXP [
 	OS:			'Windows
@@ -168,7 +168,7 @@ FreeBSD [
 ]
 ;-------------------------
 Darwin [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'console
@@ -176,7 +176,7 @@ Darwin [
 	stack-align-16?: yes
 ]
 DarwinSO [
-	OS:			'MacOSX
+	OS:			'macOS
 	format: 	'Mach-O
 	type:		'dll
 	sub-system: 'console
@@ -185,10 +185,14 @@ DarwinSO [
 	PIC?:		yes
 ]
 ;-------------------------
-;OSX [									; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'GUI
-;]
+macOS [
+	OS:			'macOS
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'GUI
+	syscall:	'BSD
+	stack-align-16?: yes
+	packager:	'Mach-APP
+	dev-mode?:	no
+]
 ;-------------------------

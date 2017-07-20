@@ -7,19 +7,37 @@ system/view/debug?: yes
 live?: system/view/auto-sync?: no
 
 workstation?: system/view/platform/product = 1
+os-version: system/view/platform/version
 
-print [
-	"Windows" switch system/view/platform/version [
-		10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
-		6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
-		6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
-		6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
-		6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
-		5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
-		5.1.0	["XP"]
-		5.0.0	["2000"]
-	] 
-	"build" system/view/platform/build
+#switch config/OS [
+	Windows [
+		print [
+			"Windows" switch os-version [
+				10.0.0	[pick ["10"			 "10 Server"	 ] workstation?]
+				6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
+				6.2.0	[pick ["8"			 "Server 2012"	 ] workstation?]
+				6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
+				6.0.0	[pick ["Vista"		 "Server 2008"	 ] workstation?]
+				5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
+				5.1.0	["XP"]
+				5.0.0	["2000"]
+			] 
+			"build" system/view/platform/build
+		]
+	]
+	macOS [
+		print [
+			"macOS" switch os-version and 255.255.0 [
+				10.11.0	["El Capitan"]
+				10.10.0	["Yosemite"]
+				10.9.0	["Mavericks"]
+				10.8.0	["Mountain Lion"]
+				10.7.0	["Lion"]
+				10.6.0	["Snow Leopard"]
+			] os-version
+			"build" system/view/platform/build
+		]
+	]
 ]
 
 smiley: make image! [23x24 #{
@@ -539,7 +557,7 @@ win/pane: reduce [
 					on-change: func [face [object!] event [event! none!]][
 						;print ["slider changed:" face/data]
 						progress/data: face/data
-						progress-text/text: form to percent! (round face/data * 100) / 100.0
+						progress-text/text: form round to-percent face/data
 						unless live? [show [progress progress-text]]
 					]
 				]
@@ -817,7 +835,7 @@ win/pane: reduce [
 				if within? pos dropped/offset dropped/size [
 					face/offset: 550x540
 					dropped/draw/5: form 1 + to integer! dropped/draw/5
-					unless live? [show dropped]
+					unless live? [show [face dropped]]
 				]
 			]
 		]
@@ -883,3 +901,4 @@ append win/pane make face! [
 dump-face win
 view/flags win [resize]
 system/view/debug?: no
+system/view/auto-sync?: yes

@@ -53,13 +53,13 @@ unicode: context [
 				buf/2: as-byte cp and 3Fh or 80h
 				2
 			]
-			cp < 0000FFFFh [
+			cp <= 0000FFFFh [
 				buf/1: as-byte cp >> 12 or E0h
 				buf/2: as-byte cp >> 6 and 3Fh or 80h
 				buf/3: as-byte cp	   and 3Fh or 80h
 				3
 			]
-			cp < 0010FFFFh [
+			cp <= 0010FFFFh [
 				buf/1: as-byte cp >> 18 or F0h
 				buf/2: as-byte cp >> 12 and 3Fh or 80h
 				buf/3: as-byte cp >> 6  and 3Fh or 80h
@@ -144,7 +144,7 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset
 		used: used << 1 
-		if used > s/size [								;-- ensure we have enough space
+		if used + 2 > s/size [							;-- ensure we have enough space
 			s: expand-series s used + 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
@@ -560,7 +560,11 @@ unicode: context [
 		unit: scan-utf16 src size
 		
 		either null? str [
-			node: alloc-series size unit 0
+			node: either size = 0 [
+				alloc-series 1 2 0						;-- create an empty string
+			][
+				alloc-series size unit 0
+			]
 			s: as series! node/value
 		][
 			node: str/node

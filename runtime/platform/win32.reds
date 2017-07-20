@@ -22,11 +22,6 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
-#define GENERIC_WRITE		40000000h
-#define GENERIC_READ 		80000000h
-#define FILE_SHARE_READ		00000001h
-#define FILE_SHARE_WRITE	00000002h
-#define OPEN_EXISTING		00000003h
 
 #define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
 #define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
@@ -35,6 +30,59 @@ Red/System [
 #define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
 
 #define WEOF				FFFFh
+
+#define INFINITE				FFFFFFFFh
+#define HANDLE_FLAG_INHERIT		00000001h
+#define STARTF_USESTDHANDLES	00000100h
+#define STARTF_USESHOWWINDOW	00000001h
+
+#define ERROR_BROKEN_PIPE 109
+
+#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#enum spawn-mode [
+	P_WAIT:		0
+	P_NOWAIT:	1
+	P_OVERLAY:	2
+	P_NOWAITO:	3
+	P_DETACH:	4
+]
+
+process-info!: alias struct! [
+	hProcess	[integer!]
+	hThread		[integer!]
+	dwProcessId	[integer!]
+	dwThreadId	[integer!]
+]
+
+startup-info!: alias struct! [
+	cb				[integer!]
+	lpReserved		[c-string!]
+	lpDesktop		[c-string!]
+	lpTitle			[c-string!]
+	dwX				[integer!]
+	dwY				[integer!]
+	dwXSize			[integer!]
+	dwYSize			[integer!]
+	dwXCountChars	[integer!]
+	dwYCountChars	[integer!]
+	dwFillAttribute	[integer!]
+	dwFlags			[integer!]
+	wShowWindow-a	[byte!]           ; 16 bits integer needed here for windows WORD type
+	wShowWindow-b	[byte!]
+	cbReserved2-a	[byte!]
+	cbReserved2-b	[byte!]
+	lpReserved2		[byte-ptr!]
+	hStdInput		[integer!]
+	hStdOutput		[integer!]
+	hStdError		[integer!]
+]
+
+security-attributes!: alias struct! [
+	nLength				 [integer!]
+	lpSecurityDescriptor [integer!]
+	bInheritHandle		 [logic!]
+]
 
 platform: context [
 
@@ -57,6 +105,30 @@ platform: context [
 		week-day	[integer!]
 		hour-minute	[integer!]
 		second		[integer!]
+	]
+
+	tagTIME_ZONE_INFORMATION: alias struct! [
+		Bias				[integer!]
+		StandardName1		[float!]			;-- StandardName: 64 bytes
+		StandardName2		[float!]
+		StandardName3		[float!]
+		StandardName4		[float!]
+		StandardName5		[float!]
+		StandardName6		[float!]
+		StandardName7		[float!]
+		StandardName8		[float!]
+		StandardDate		[tagSYSTEMTIME value]
+		StandardBias		[integer!]
+		DaylightName1		[float!]			;-- DaylightName: 64 bytes
+		DaylightName2		[float!]
+		DaylightName3		[float!]
+		DaylightName4		[float!]
+		DaylightName5		[float!]
+		DaylightName6		[float!]
+		DaylightName7		[float!]
+		DaylightName8		[float!]
+		DaylightDate		[tagSYSTEMTIME value]
+		DaylightBias		[integer!]
 	]
 
 	gdiplus-token: 0
@@ -154,11 +226,96 @@ platform: context [
 			GetLocalTime: "GetLocalTime" [
 				time			[tagSYSTEMTIME]
 			]
+			GetTimeZoneInformation: "GetTimeZoneInformation" [
+				tz				[tagTIME_ZONE_INFORMATION]
+				return:			[integer!]
+			]
 			Sleep: "Sleep" [
 				dwMilliseconds	[integer!]
 			]
 			lstrlen: "lstrlenW" [
 				str			[byte-ptr!]
+				return:		[integer!]
+			]
+			CreateProcessW: "CreateProcessW" [
+				lpApplicationName       [c-string!]
+				lpCommandLine           [c-string!]
+				lpProcessAttributes     [integer!]
+				lpThreadAttributes      [integer!]
+				bInheritHandles         [logic!]
+				dwCreationFlags         [integer!]
+				lpEnvironment           [integer!]
+				lpCurrentDirectory      [c-string!]
+				lpStartupInfo           [startup-info!]
+				lpProcessInformation    [process-info!]
+				return:                 [logic!]
+			]
+			WaitForSingleObject: "WaitForSingleObject" [
+				hHandle                 [integer!]
+				dwMilliseconds          [integer!]
+				return:                 [integer!]
+			]
+			GetExitCodeProcess: "GetExitCodeProcess" [
+				hProcess				[integer!]
+				lpExitCode				[int-ptr!]
+				return:                 [logic!]
+			]
+			CreatePipe: "CreatePipe" [
+				hReadPipe               [int-ptr!]
+				hWritePipe              [int-ptr!]
+				lpPipeAttributes        [security-attributes!]
+				nSize                   [integer!]
+				return:                 [logic!]
+			]
+			CreateFileW: "CreateFileW" [
+				lpFileName				[c-string!]
+				dwDesiredAccess			[integer!]
+				dwShareMode				[integer!]
+				lpSecurityAttributes	[security-attributes!]
+				dwCreationDisposition	[integer!]
+				dwFlagsAndAttributes	[integer!]
+				hTemplateFile			[integer!]
+				return:					[integer!]
+			]
+			CloseHandle: "CloseHandle" [
+				hObject                 [integer!]
+				return:                 [logic!]
+			]
+			GetStdHandle: "GetStdHandle" [
+				nStdHandle				[integer!]
+				return:					[integer!]
+			]
+			ReadFile: "ReadFile" [
+				hFile                   [integer!]
+				lpBuffer                [byte-ptr!]
+				nNumberOfBytesToRead    [integer!]
+				lpNumberOfBytesRead     [int-ptr!]
+				lpOverlapped            [integer!]
+				return:                 [logic!]
+			]
+			SetHandleInformation: "SetHandleInformation" [
+				hObject					[integer!]
+				dwMask					[integer!]
+				dwFlags					[integer!]
+				return:					[logic!]
+			]
+			GetLastError: "GetLastError" [
+				return:                 [integer!]
+			]
+			MultiByteToWideChar: "MultiByteToWideChar" [
+				CodePage				[integer!]
+				dwFlags					[integer!]
+				lpMultiByteStr			[byte-ptr!]
+				cbMultiByte				[integer!]
+				lpWideCharStr			[byte-ptr!]
+				cchWideChar				[integer!]
+				return:					[integer!]
+			]
+			SetFilePointer: "SetFilePointer" [
+				file		[integer!]
+				distance	[integer!]
+				pDistance	[int-ptr!]
+				dwMove		[integer!]
 				return:		[integer!]
 			]
 		]
@@ -207,15 +364,8 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc
-			null
-			size
-			VA_COMMIT_RESERVE
-			prot
-
-		if ptr = null [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
-		]
+		ptr: VirtualAlloc null size VA_COMMIT_RESERVE prot
+		if ptr = null [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		ptr
 	]
 
@@ -226,7 +376,7 @@ platform: context [
 		ptr [int-ptr!]									;-- address of memory region to release
 	][
 		if negative? VirtualFree ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
+			 throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 
@@ -269,7 +419,7 @@ platform: context [
 	set-env: func [
 		name	[c-string!]
 		value	[c-string!]
-		return: [logic!]			;-- true for success
+		return: [logic!]								;-- true for success
 	][
 		SetEnvironmentVariable name value
 	]
@@ -279,7 +429,7 @@ platform: context [
 		;; If return size is greater than valsize then value contents are undefined
 		name	[c-string!]
 		value	[c-string!]
-		valsize [integer!]			;-- includes null terminator
+		valsize [integer!]								;-- includes null terminator
 		return: [integer!]
 	][
 		GetEnvironmentVariable name value valsize
@@ -290,21 +440,50 @@ platform: context [
 		precise? [logic!]
 		return:  [float!]
 		/local
-			time	[tagSYSTEMTIME]
+			tm	[tagSYSTEMTIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
 			milli	[integer!]
 			t		[float!]
 	][
-		time: declare tagSYSTEMTIME
-		either utc? [GetSystemTime time][GetLocalTime time]
-		h: time/hour-minute and FFFFh
-		m: time/hour-minute >>> 16
-		sec: time/second and FFFFh
-		milli: either precise? [time/second >>> 16][0]
+		GetSystemTime tm
+		h: tm/hour-minute and FFFFh
+		m: tm/hour-minute >>> 16
+		sec: tm/second and FFFFh
+		milli: either precise? [tm/second >>> 16][0]
 		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
-		t * 1E6				;-- nano second
+		t * 1E6											;-- nano second
+	]
+
+	get-date: func [
+		utc?	[logic!]
+		return:	[integer!]
+		/local
+			tm		[tagSYSTEMTIME value]
+			tzone	[tagTIME_ZONE_INFORMATION value]
+			bias	[integer!]
+			res		[integer!]
+			y		[integer!]
+			m		[integer!]
+			d		[integer!]
+			h		[integer!]
+	][
+		either utc? [GetSystemTime tm][GetLocalTime tm]
+		y: tm/year-month and FFFFh
+		m: tm/year-month >>> 16
+		d: tm/week-day >>> 16
+
+		either utc? [h: 0][
+			res: GetTimeZoneInformation tzone
+			bias: tzone/Bias
+			if res = 2 [bias: bias + tzone/DaylightBias] ;-- TIME_ZONE_ID_DAYLIGHT: 2
+			bias: 0 - bias
+			h: bias / 60
+			if h < 0 [h: 0 - h and 0Fh or 10h]			;-- properly set the sign bit
+			h: h << 2 or (bias // 60 / 15 and 03h)
+		]
+		y << 17 or (m << 12) or (d << 7) or h
 	]
 
 	open-console: func [return: [logic!]][

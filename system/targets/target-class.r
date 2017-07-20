@@ -75,19 +75,10 @@ target-class: context [
 		][
 			to-bin32 offset
 		][
-			skip debase/base to-hex offset 16 3
+			to-bin8 offset
 		]
 	]
-		
-	adjust-disp32: func [lcode [binary! block!] offset [binary!] /local code byte][
-		if 4 = length? offset [
-			lcode: copy/deep lcode
-			code: either block? lcode [first back find lcode 'offset][lcode]
-			change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
-		]
-		lcode
-	]
-
+	
 	emit: func [bin [binary! char! block!]][
 		if verbose >= 4 [print [">>>emitting code:" mold bin]]
 		append emitter/code-buf bin
@@ -167,6 +158,25 @@ target-class: context [
 		total
 	]
 	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		either 'value = last spec [
+			unless 'struct! = spec/1 [spec: compiler/find-aliased spec/1]
+			body: bind/copy body 'type
+			if block? spec/1 [spec: next spec]
+
+			foreach [name t] spec/2 [				;-- skip 'struct!
+				unless word? name [break]
+				either 'value = last type: t [
+					foreach-member type body
+				][
+					do body
+				]
+			]
+		][
+			do body
+		]
+	]
+	
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
@@ -191,7 +201,7 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
+	emit-call: func [name [word!] args [block!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -208,7 +218,7 @@ target-class: context [
 			]
 			native [
 				switch/default name [
-					log-b [								;@@ needs a new function type...
+					log-b [							;@@ needs a new function type...
 						emit-pop
 						emit-log-b compiler/last-type/1
 					]
@@ -243,9 +253,7 @@ target-class: context [
 				][
 					emit-integer-operation name args
 				]
-				if sub? [emitter/logic-to-integer name]
-				
-				unless find comparison-op name [		;-- comparison always return a logic!
+				unless find comparison-op name [	;-- comparison always return a logic!
 					res: any [
 						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	

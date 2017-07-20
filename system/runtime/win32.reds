@@ -23,6 +23,8 @@ Red/System [
 
 #define OS_DIR_SEP				 92		;-- #"\"
 
+#define CP_UTF8					 65001
+
 #if use-natives? = yes [
 	#import [
 		"kernel32.dll" stdcall [
@@ -36,110 +38,6 @@ Red/System [
 		written: declare struct! [value [integer!]]
 		WriteFile stdout s length? s written 0
 		s
-	]
-]
-
-#if debug? = yes [
-	#import [
-		"kernel32.dll" stdcall [
-			OutputDebugStringA: "OutputDebugStringA" [
-				msg		[c-string!]
-			]
-			OutputDebugStringW: "OutputDebugStringW" [
-				msg		[c-string!]
-			]
-			GetLastError: "GetLastError" [
-				return: [integer!]
-			]
-			FormatMessage: "FormatMessageW" [
-				dwFlags			[integer!]
-				lpSource		[byte-ptr!]
-				dwMessageId		[integer!]
-				dwLanguageId	[integer!]
-				lpBuffer		[int-ptr!]
-				nSize			[integer!]
-				Argument		[integer!]
-				return:			[integer!]
-			]
-			LocalFree: "LocalFree" [
-				hMem			[integer!]
-				return:			[integer!]
-			]
-			DebugBreak: "DebugBreak" []
-		]
-	]
-
-	debug-buffer: as byte-ptr! 0
-
-	dbg-print: func [
-		[typed]
-		count	[integer!]						;-- typed values count
-		list	[typed-value!]					;-- pointer on first typed value
-		/local
-			fp		 [typed-float!]
-			fp32	 [typed-float32!]
-			f		 [float!]
-			f32		 [float32!]
-			s		 [c-string!]
-			n		 [integer!]
-			buf		 [byte-ptr!]
-	][
-		buf: debug-buffer
-		until [
-			n: switch list/type [
-				type-logic!	   [
-					s: either as-logic list/value ["true"]["false"]
-					sprintf [buf "%s " s]
-				]
-				type-integer!  [sprintf [buf "%i " list/value]]
-				type-float!    [
-					fp: as typed-float! list
-					f: fp/value
-					sprintf [buf "%.16g " f]
-				]
-				type-float32!  [
-					fp32: as typed-float32! list
-					f32: fp32/value 
-					sprintf [buf "%.7g " f32]
-				]
-				type-byte!     [
-					buf/1: as-byte list/value
-					buf/2: #" "
-					buf/3: #"^@"
-					2
-				]
-				type-c-string! [
-					s: as-c-string list/value
-					sprintf [buf "%s " s]
-				]
-				default 	   [sprintf [buf "%08X " list/value]]
-			]
-			count: count - 1
-			list: list + 1
-			buf: buf + n
-			zero? count
-		]
-		OutputDebugStringA as c-string! debug-buffer
-	]
-
-	log-error: func [
-		err-code	[integer!]				;-- -1: get last error
-		/local
-			n		[integer!]
-			format	[integer!]
-			buf		[byte-ptr!]
-			s		[c-string!]
-	][
-		buf: debug-buffer
-		if err-code = -1 [err-code: GetLastError]
-
-		format: 0
-		n: FormatMessage 1300h null err-code 0 :format 0 0
-		either n > 0 [s: as c-string! format][s: #u16 "???"]
-
-		swprintf [buf #u16 "[Red] ErrorCode: %I32u (0x%08I32X) %s" err-code err-code s]
-		if n > 0 [LocalFree format]
-		OutputDebugStringW as c-string! debug-buffer
 	]
 ]
 
@@ -175,7 +73,7 @@ win32-startup-ctx: context [
 	
 	#import [
 		"kernel32.dll" stdcall [
-			GetCommandLine: "GetCommandLineA" [
+			GetCommandLine: "GetCommandLineW" [
 				return:		[c-string!]
 			]
 			SetErrorMode: "SetErrorMode" [
@@ -196,6 +94,28 @@ win32-startup-ctx: context [
 				written		[int-ptr!]
 				overlapped	[integer!]
 				return:		[integer!]
+			]
+			LocalFree: "LocalFree" [
+				hMem		[int-ptr!]
+				return:		[int-ptr!]
+			]
+			WideCharToMultiByte: "WideCharToMultiByte" [
+				CodePage			[integer!]
+				dwFlags				[integer!]
+				lpWideCharStr		[c-string!]
+				cchWideChar			[integer!]
+				lpMultiByteStr		[byte-ptr!]
+				cbMultiByte			[integer!]
+				lpDefaultChar		[c-string!]
+				lpUsedDefaultChar	[integer!]
+				return:				[integer!]
+			]
+		]
+		"shell32.dll" stdcall [
+			CommandLineToArgvW: "CommandLineToArgvW" [
+				lpCmdLine	[byte-ptr!]
+				pNumArgs	[int-ptr!]
+				return:		[int-ptr!]
 			]
 		]
 	]
@@ -264,9 +184,7 @@ win32-startup-ctx: context [
 	init: does [
 		SetUnhandledExceptionFilter :exception-filter
 		SetErrorMode 1								;-- probably superseded by SetUnhandled...
-
-		#if debug? = yes [debug-buffer: allocate 4096 * 16]
-
+		
 		;-- Runtime globals --
 		stdin:  GetStdHandle WIN_STD_INPUT_HANDLE
 		stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
@@ -278,49 +196,47 @@ win32-startup-ctx: context [
 	]
 
 	;-------------------------------------------
-	;-- Retrieve command-line information from stack
+	;-- Retrieve command-line information
 	;-------------------------------------------
-	on-start: func [/local c argv s][
-		c: 1											;-- account for executable name
-		argv: as pointer! [integer!] allocate 256 * 4	;-- max argc = 256
+	on-start: func [/local c n argv args len src dst][
+		c: 0
+		args: CommandLineToArgvW as byte-ptr! GetCommandLine :c
+		
+		argv: as int-ptr! allocate c + 1 * size? int-ptr!
+		src: args
+		dst: argv
 
-		s: GetCommandLine
-		argv/1: as-integer s
+		either null? src [
+			probe "CommandLineToArgvW failed!"
+		][
+			n: c
+			while [n > 0][
+				len: WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 null 0 null 0
+				dst/value: as-integer allocate len
+				WideCharToMultiByte CP_UTF8 0 as-c-string src/value -1 as byte-ptr! dst/value len null 0
 
-		;-- Build argv array in a newly allocated buffer, but reuse GetCommandLine buffer
-		;-- to store tokenized strings by replacing each new first space byte by a null byte
-		;-- to avoid allocating a new buffer for each new token. Might create side-effects
-		;-- if GetCommandLine buffer is shared, but side-effects should be rare and minor issues.
-
-		while [s/1 <> null-byte][					;-- iterate other all command line bytes
-			if s/1 = #" " [							;-- space detected
-				s/1: null-byte						;-- mark previous token's end
-				until [s: s + 1 s/1 <> #" "]		;-- consume extra spaces
-				either s/1 = null-byte [			;-- end of string?
-					s: s - 1						;-- adjust s so that main loop test exits
-				][
-					c: c + 1						;-- one more token
-					argv/c: as-integer s			;-- save new token start address in argv array
-				]
+				dst: dst + 1
+				src: src + 1
+				n: n - 1
 			]
-			if s/1 = #"^"" [
-				until [s: s + 1 s/1 = #"^""]		;-- skip "..."
-			]
-			s: s + 1
+			LocalFree args
 		]
-		system/args-count: c
-		c: c + 1									;-- add a null entry at argv's end to match UNIX layout
-		argv/c: 0									;-- end of argv array marker
-
+		dst/value: 0
+		
 		system/args-list: as str-array! argv
+		system/args-count: c
 		system/env-vars: null
-
 		memory-blocks/argv: argv
 	]
 	
-	on-quit: does [
+	on-quit: func [/local arg][
 		if memory-blocks/argv <> null [
-			free as byte-ptr! memory-blocks/argv	;-- free call is safe here (defined in all cases)
+			arg: memory-blocks/argv
+			while [arg/value <> 0][
+				free as byte-ptr! arg/value
+				arg: arg + 1
+			]
+			free as byte-ptr! memory-blocks/argv
 		]
 	]
 	

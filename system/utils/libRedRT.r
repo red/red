@@ -35,7 +35,7 @@ libRedRT: context [
 	
 	get-include-file: func [job][
 		data: read get-path include-file
-		replace/all data "$ROOT-PATH$" form system/script/path
+		replace/all data "$ROOT-PATH$" remove mold system/script/path
 		load data
 	]
 	

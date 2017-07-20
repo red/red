@@ -58,10 +58,12 @@ image!:			make datatype! #get-definition TYPE_IMAGE
 time!:			make datatype! #get-definition TYPE_TIME
 tag!:			make datatype! #get-definition TYPE_TAG
 email!:			make datatype! #get-definition TYPE_EMAIL
+handle!:		make datatype! #get-definition TYPE_HANDLE
+date!:			make datatype! #get-definition TYPE_DATE
 
-;#if find config/modules 'view [
+#if find config/modules 'view [
 	event!: make datatype! #get-definition TYPE_EVENT
-;]
+]
 
 none:  			make none! 0
 true:  			make logic! 1

@@ -61,41 +61,62 @@ Red/System [
 	get-cmdline-args: func [
 		return: [red-value!]
 		/local
-			str	 [red-string!]
-			args [str-array!]
-			new	 [c-string!]
-			dst	 [c-string!]
-			tail [c-string!]
-			s	 [c-string!]
-			size [integer!]
+			str		[red-string!]
+			args	[str-array!]
+			src		[c-string!]
+			s		[series!]
+			cnt		[integer!]
+			size	[integer!]
+			cp		[integer!]
+			offset	[integer!]
+			delim	[integer!]
+			end?	[logic!]
+			ws?		[logic!]
+			dq?		[logic!]
 	][
-		size: 10'000									;-- enough?
-		new: as-c-string allocate size
-		args: system/args-list 
-		dst: new
-		tail: new + size - 2							;-- leaving space for a terminal null
-
+		cnt: 0
+		size: 4'000									;-- enough?
+		str: string/rs-make-at ALLOC_TAIL(root) size
+		s: GET_BUFFER(str)
+		args: system/args-list
+		
 		until [
-			s: args/item
-
-			dst/1: #"^""
-			dst: dst + 1
+			src: args/item
+			ws?: no
+			dq?: no
+			offset: string/rs-abs-length? str
+			
 			until [
-				dst/1: s/1
-				dst: dst + 1
-				s: s + 1
-				any [s/1 = null-byte dst = tail]
+				cnt: unicode/utf8-char-size? as-integer src/1
+				cp: unicode/decode-utf8-char src :cnt
+				switch cp [
+					#" "	[ws?: yes]
+					#"^""	[dq?: yes]
+					default [0]
+				]
+				s: string/append-char s cp
+				src: src + cnt
+				size: size - 1
+				any [src/1 = null-byte zero? size]
 			]
-			dst/1: #"^""
-			dst/2: #" "
-			dst: dst + 2
-			args: args + 1 
-			any [args/item = null dst >= tail]
+			
+			case [
+				ws? [
+					delim: as-integer either dq? [#"'"][#"^""]
+					s: string/insert-char s offset delim
+					s: string/append-char s delim
+				]
+				dq? [
+					s: string/insert-char s offset as-integer #"'"
+					s: string/append-char s delim  as-integer #"'"
+				]
+				true [0]
+			]
+			args: args + 1
+			end?: null? args/item
+			unless end? [s: string/append-char s as-integer #" "] ;-- add a space as separation
+			end?
 		]
-		dst: dst - 1
-		dst/1: null-byte
-		str: string/load new length? new UTF-8
-		free as byte-ptr! new
 		as red-value! str
 	]
 
@@ -110,14 +131,7 @@ Red/System [
 			blk		[red-block!]
 			len		[integer!]
 	][
-		env: platform/environ
-		if null? env [
-			handle: platform/dlopen LIBC-file RTLD_LAZY
-			p-int: platform/dlsym handle "environ"
-			env: as int-ptr! p-int/value
-			platform/environ: env
-		]
-
+		env: as int-ptr! platform/environ
 		blk: null
 		len: 0
 

@@ -13,7 +13,6 @@ Red/System [
 #define zero? 		  [0 =]
 #define positive?	  [0 < ]				;-- space required after the lesser-than symbol
 #define negative?	  [0 > ]
-#define negate		  [0 -]
 #define null?		  [null =]
 
 #define halt		  [quit 0]
@@ -38,6 +37,9 @@ Red/System [
 
 #define byte-ptr!	  [pointer! [byte!]]
 #define int-ptr!	  [pointer! [integer!]]
+#define float-ptr!    [pointer! [float!]]
+#define float32-ptr!  [pointer! [float32!]]
+
 #define make-c-string [as c-string! allocate]
 
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
@@ -100,7 +102,7 @@ re-throw: func [/local id [integer!]][
 
 #switch OS [
 	Windows  [#define LIBREDRT-file "libRedRT.dll"]
-	MacOSX	 [#define LIBREDRT-file "libRedRT.dylib"]
+	macOS	 [#define LIBREDRT-file "libRedRT.dylib"]
 	#default [#define LIBREDRT-file "libRedRT.so"]
 ]
 
@@ -122,7 +124,7 @@ re-throw: func [/local id [integer!]][
 		]
 	]
 	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %darwin.reds]
+	macOS	 [#include %darwin.reds]
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
 	#default [#include %linux.reds]
@@ -153,9 +155,6 @@ re-throw: func [/local id [integer!]][
 	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
 	;-- Run-time error handling --
-
-	#define RED_ERR_VMEM_RELEASE_FAILED		96
-	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
 	
 	__set-stack-on-crash: func [
 		return: [int-ptr!]
@@ -230,8 +229,6 @@ re-throw: func [/local id [integer!]][
 				34	["Bus error"]			;-- generic SIGBUS message
 
 				95	["no CATCH for THROW"]
-				96	["virtual memory release failed"]
-				97	["out of memory"]
 				98	["assertion failed"]
 				99	["unknown error"]
 

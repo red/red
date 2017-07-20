@@ -53,9 +53,24 @@ url: context [
 	]
 
 	;-- Actions --
+	
+	make: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-url!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
+		
+		either all [type = TYPE_URL TYPE_OF(spec) = TYPE_BLOCK][ ;-- file! inherits from url!
+			to proto spec type
+		][
+			as red-url! string/make as red-string! proto spec type
+		]
+	]
 
 	mold: func [
-		url    [red-url!]
+		url     [red-url!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -106,6 +121,63 @@ url: context [
 
 		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
+	
+	to: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
+		/local
+			buffer [red-string!]
+			blk	   [red-block!]
+			value  [red-value!]
+			tail   [red-value!]
+			s	   [series!]
+			sep	   [byte!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
+
+		either all [type = TYPE_URL TYPE_OF(spec) = TYPE_BLOCK][ ;-- file! inherits from url!
+			buffer: string/make-at proto 16 1
+			buffer/header: TYPE_URL
+			
+			blk: as red-block! spec
+			s: GET_BUFFER(blk)
+			value: s/offset + blk/head
+			tail: s/tail
+			if value = tail [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_URL spec]
+			]
+			actions/form value buffer null 0
+			value: value + 1
+			string/concatenate-literal buffer "://"
+			if value = tail [return buffer]
+			
+			actions/form value buffer null 0
+			value: value + 1
+			if value = tail [return buffer]
+			
+			if TYPE_OF(value) = TYPE_INTEGER [
+				string/concatenate-literal buffer ":"
+				actions/form value buffer null 0
+				value: value + 1
+				if value = tail [return buffer]
+			]
+			string/append-char GET_BUFFER(buffer) as-integer #"/"
+			until [
+				actions/form value buffer null 0
+				value: value + 1
+				if value + 1 <= tail [
+					sep: either TYPE_OF(value) = TYPE_ISSUE [#"#"][#"/"]
+					string/append-char GET_BUFFER(buffer) as-integer sep
+				]
+				value = tail
+			]
+			buffer
+		][
+			string/to proto spec type
+		]
+	]
 
 	eval-path: func [
 		parent	[red-string!]							;-- implicit type casting
@@ -117,12 +189,17 @@ url: context [
 		/local
 			s	[series!] 
 			new [red-string!]
+			unit [integer!]
 	][
 		either value <> null [							;-- set-path
 			fire [TO_ERROR(script bad-path-set) path element]
 		][
 			s: GET_BUFFER(parent)
-			new: string/make-at stack/push* 16 + string/rs-length? parent GET_UNIT(s)
+			unit: GET_UNIT(s)
+			new: string/make-at stack/push* 16 + string/rs-length? parent unit
+			if (as-integer #"/") <> string/get-char (as byte-ptr! s/tail) - unit unit [
+				string/concatenate-literal new "/"
+			]
 			actions/form element new null 0
 			string/concatenate new parent -1 0 yes yes
 			set-type as red-value! new TYPE_OF(parent)
@@ -228,10 +305,10 @@ url: context [
 			TYPE_STRING
 			"url!"
 			;-- General actions --
-			INHERIT_ACTION	;make
+			:make
 			null			;random
 			null			;reflect
-			INHERIT_ACTION	;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
 			:eval-path
@@ -271,7 +348,7 @@ url: context [
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
-			INHERIT_ACTION	;put
+			null			;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select

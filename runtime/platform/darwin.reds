@@ -22,8 +22,7 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
-
-platform: context [
+platform: context [ 
 
 	#include %POSIX.reds
 
@@ -33,26 +32,14 @@ platform: context [
 				property	[integer!]
 				return:		[integer!]
 			]
-			objc_getClass: "objc_getClass" [
-				class		[c-string!]
-				return:		[integer!]
+			_NSGetEnviron: "_NSGetEnviron" [
+				return: 	[int-ptr!]
 			]
-			sel_getUid: "sel_getUid" [
-				name		[c-string!]
-				return:		[integer!]
-			]
-			objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
 		]
 	]
-
+	
+	environ: 0
 	page-size: 0
-
-	true-value: 0						;-- Core Foundation: True value
-
-	init-cf-bool: does [
-		dlopen "/System/Library/Frameworks/Foundation.framework/Versions/Current/Foundation" RTLD_LAZY
-		true-value: objc_msgSend [objc_getClass "NSNumber" sel_getUid "numberWithBool:" 1]
-	]
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -91,9 +78,7 @@ platform: context [
 			-1									;-- portable value
 			0
 
-		if -1 = as-integer ptr [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
-		]
+		if -1 = as-integer ptr [throw OS_ERROR_VMEM_OUT_OF_MEMORY]
 		as int-ptr! ptr
 	]
 
@@ -103,14 +88,15 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? munmap as byte-ptr! ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
+		if -1 = munmap as byte-ptr! ptr ptr/value [
+			throw OS_ERROR_VMEM_RELEASE_FAILED
 		]
 	]
 	
-	init: does [
+	init: func [/local ptr [int-ptr!]][
+		ptr: _NSGetEnviron
+		environ: ptr/value
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
-		init-cf-bool
 	]
 ]

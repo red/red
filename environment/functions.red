@@ -40,6 +40,9 @@ quit: func [
 	"Stops evaluation and exits the program"
 	/return status	[integer!] "Return an exit status"
 ][
+	#if config/OS <> 'Windows [
+		if system/console [system/console/terminate]
+	]
 	quit-return any [status 0]
 ]
 
@@ -53,7 +56,7 @@ empty?: func [
 
 ??: func [
 	"Prints a word and the value it refers to (molded)"
-	'value [word!]
+	'value [word! path!]
 ][
 	prin mold :value
 	prin ": "
@@ -85,12 +88,14 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 #do keep [
 	list: make block! 50
 	to-list: [
-		bitset! binary! block! char! email! error! file! float! get-path!
-		get-word! hash! integer! issue! lit-path! lit-word! logic! map! native! none!
-		pair! paren! path! percent! refinement! set-path! set-word! string! tag! time! typeset!
-		tuple! unset! url! word! image!
+		bitset! binary! block! char! email! file! float! get-path! get-word! hash!
+		integer! issue! lit-path! lit-word! logic! map! none! pair! paren! path!
+		percent! refinement! set-path! set-word! string! tag! time! typeset! tuple!
+		unset! url! word! image! date!
 	]
-	test-list: union to-list [action! datatype! function! image! object! op! routine! vector!]
+	test-list: union to-list [
+		handle! error! action! native! datatype! function! image! object! op! routine! vector!
+	]
 	
 	;-- Generates all accessor functions (spec-of, body-of, words-of,...)
 	
@@ -123,7 +128,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 	docstring: "Returns true if the value is any type of "
 	foreach name [
 		any-list! any-block! any-function! any-object! any-path! any-string! any-word!
-		series! number! immediate! scalar!
+		series! number! immediate! scalar! all-word!
 	][
 		repend list [
 			load head change back tail form name "?:" 'func
@@ -168,7 +173,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either only [
+	head either any [only not block? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -181,6 +186,9 @@ replace: function [
 	value
 	/all
 ][
+	if system/words/all [char? :pattern any-string? series][
+		pattern: form pattern
+	]
 	many?: any [
 		system/words/all [series? :pattern any-string? series]
 		binary? series
@@ -196,7 +204,9 @@ replace: function [
 				pos: insert pos value
 			]
 		][
-			while [pos: find pos :pattern][pos/1: value]
+			while [pos: find pos :pattern][
+				pos: change pos value
+			]
 		]
 	][
 		if pos: find series :pattern [
@@ -205,16 +215,6 @@ replace: function [
 		]
 	]
 	series
-]
-
-zero?: func [
-	value [number! pair!]
-][
-	either pair! = type? value [
-		make logic! all [value/1 = 0 value/2 = 0]
-	][
-		value = 0
-	]
 ]
 
 math: function [
@@ -263,11 +263,11 @@ on-parse-event: func [
 		]
 		fetch [
 			print [
-				p-indent "match:" mold/part rule  50 newline
-				p-indent "input:" mold/part input 50 p-indent
+				p-indent "match:" mold/flat/part rule 50 newline
+				p-indent "input:" mold/flat/part input 50 p-indent
 			]
 		]
-		match [print [p-indent "==>" either match? ["matched"]["not matched"]]]
+		match [print [p-indent "==>" pick ["matched" "not matched"]  match?]]
 		end   [print ["return:" match?]]
 	]
 	true
@@ -308,6 +308,7 @@ load: function [
 	source [file! url! string! binary!]
 	/header "TBD"
 	/all    "Load all values, returns a block. TBD: Don't evaluate Red header"
+	/trap	"Load all values, returns [[values] position error]"
 	/next	"Load the next value only, updates source series word"
 		position [word!] "Word updated with new series position"
 	/part
@@ -338,7 +339,7 @@ load: function [
 			]
 		]
 	]
-	unless out [out: make block! 100]
+	unless out [out: make block! 10]
 	
 	switch/default type?/word source [
 		file!	[
@@ -366,13 +367,15 @@ load: function [
 		binary! [source: to string! source]				;-- For text: UTF-8 encoding TBD: load image in binary form
 	][source]
 
-	case [
-		part  [system/lexer/transcode/part source out length]
-		next  [set position system/lexer/transcode/one source out]
-		'else [system/lexer/transcode source out]
+	result: case [
+		part  [system/lexer/transcode/part source out trap length]
+		next  [set position system/lexer/transcode/one source out trap]
+		'else [system/lexer/transcode source out trap]
 	]
-	unless :all [if 1 = length? out [out: out/1]]
-	out 
+	either trap [result][
+		unless :all [if 1 = length? out [out: out/1]]
+		out
+	]
 ]
 
 save: function [
@@ -386,10 +389,12 @@ save: function [
 	/as     "Specify the format of data; use NONE to save as plain text"
 		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
 ][
+	dst: either any [file? where url? where][where][none]
 	either as [
 		if word? format [
 			either codec: select system/codecs format [
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
 			][exit]
 		]
 	][
@@ -401,7 +406,8 @@ save: function [
 		find-encoder?: no
 		foreach [name codec] system/codecs [
 			if (find codec/suffixes suffix) [		;@@ temporary required until dyn-stack implemented
-				data: do [codec/encode value]
+				data: do [codec/encode value dst]
+				if same? data dst [exit]
 				find-encoder?: yes
 			]
 		]
@@ -456,13 +462,14 @@ cause-error: function [
 ]
 
 pad: func [
-	"Pad a string on right side with spaces"
-	str		[string!]		"String to pad"
+	"Pad a FORMed value on right side with spaces"
+	str						"Value to pad, FORM it if not a string"
 	n		[integer!]		"Total size (in characters) of the new string"
 	/left					"Pad the string on left side"
 	/with c	[char!]			"Pad with char"
 	return:	[string!]		"Modified input string at head"
 ][
+	unless string? str [str: form str]
 	head insert/dup
 		any [all [left str] tail str]
 		any [c #" "]
@@ -573,10 +580,11 @@ list-dir: function [
 		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
 	]
 	list: read normalize-dir dir
+	limit: system/console/size/x - 13
 	max-sz: either n [
-		system/console/limit / n - n					;-- account for n extra spaces
+		limit / n - n					;-- account for n extra spaces
 	][
-		n: max 1 system/console/limit / 22				;-- account for n extra spaces
+		n: max 1 limit / 22				;-- account for n extra spaces
 		22 - n
 	]
 
@@ -645,6 +653,7 @@ extract: function [
 	/into				 "Provide an output series instead of creating a new one"
 		output [series!] "Output series"
 ][
+	width: max 1 width
 	if pos [series: at series pos]
 	unless into [output: make series (length? series) / width]
 	
@@ -658,18 +667,43 @@ extract: function [
 extract-boot-args: function [
 	"Process command-line arguments and store values in system/options (internal usage)"
 ][
-	unless args: system/options/args [exit]				;-- non-executable case
-	pos: find next args get pick [dbl-quote space] args/1 = dbl-quote
-	
-	either pos [
-		system/options/boot: copy/part next args pos
-		if pos/1 = dbl-quote [pos: next pos]
-		if pos/2 = space [pos: skip pos 2]
-		remove/part args pos
-		if empty? trim/head args [system/options/args: none]
+	unless args: system/script/args [exit]				;-- non-executable case
+
+	;-- extract system/options/boot
+	either args/1 = dbl-quote [
+		until [args: next args args/1 <> dbl-quote]
+		system/options/boot: copy/part args pos: find args dbl-quote
+		until [pos: next pos pos/1 <> dbl-quote]
 	][
-		system/options/boot: args
-		system/options/args: none
+		pos: either pos: find/tail args space [back pos][tail args]
+		system/options/boot: copy/part args pos
+	]
+	;-- clean-up system/script/args
+	remove/part args: head args pos
+	
+	;-- set system/options/args
+	either empty? trim/head args [system/script/args: none][
+		unescape: quote (
+			if odd? len: offset? s e [len: len - 1]
+			e: skip e negate len / 2
+			e: remove/part s e
+		)
+		parse args: copy args [							;-- preprocess escape chars
+			any [
+				s: {'"} thru {"'} e: (s/1: #"{" e/-1: #"}")
+				| s: #"'" [to #"'" e: (s/1: #"{" e/1: #"}") | to end]
+				| s: some #"\" e: {"} unescape :e
+				  thru [s: some #"\" e: {"}] unescape :e
+				| skip
+			]
+		]
+		system/options/args: parse head args [			;-- tokenize and collect
+			collect some [[
+				some #"^"" keep copy s to #"^"" some #"^""
+				| #"{" keep copy s to #"}" skip
+				| keep copy s [to #" " | to end]] any #" "
+			]
+		]
 	]
 ]
 
@@ -683,7 +717,7 @@ collect: function [
 	
 	unless collected [collected: make block! 16]
 	parse body rule: [									;-- selective binding (needs BIND/ONLY support)
-		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | into rule | skip]
+		any [pos: ['keep | 'collected] (pos/1: bind pos/1 'keep) | any-string! | binary! | into rule | skip]
 	]
 	do body
 	either into [collected][head collected]
@@ -720,10 +754,14 @@ clean-path: func [
 	file [file! url! string!]
 	/only "Do not prepend current directory"
 	/dir "Add a trailing / if missing"
-	/local out cnt f
+	/local out cnt f not-file?
 ][
-	case [
-		any [only not file? file] [file: copy file]
+	not-file?: not file? file
+	
+	file: case [
+		any [only not-file?][
+			copy file
+		]
 		#"/" = first file [
 			file: next file
 			out: next what-dir
@@ -732,32 +770,32 @@ clean-path: func [
 					#"/" = first file
 					do [f: find/tail out #"/"]
 				]
-			] [
+			][
 				file: next file
 				out: f
 			]
-			file: append clear out file
+			 append clear out file
 		]
-		true [file: append what-dir file]
+		'else [append what-dir file]
 	]
-	if all [dir not dir? file] [append file #"/"]
+	if all [dir not dir? file][append file #"/"]
+	
 	out: make file! length? file
 	cnt: 0
+	
 	parse reverse file [
 		some [
 			"../" (cnt: cnt + 1)
 			| "./"
-			| #"/" (if any [not file? file #"/" <> last out] [append out #"/"])
-			| copy f [to #"/" | to end skip] (
-				either cnt > 0 [
-					cnt: cnt - 1
-				] [
-					unless find ["" "." ".."] to string! f [append out f]
+			| #"/" (if any [not-file? not dir? out][append out #"/"])
+			| copy f thru #"/" (
+				either cnt > 0 [cnt: cnt - 1][
+					unless find ["" "." ".."] as string! f [append out f]
 				]
 			)
 		]
 	]
-	if all [#"/" = last out #"/" <> last file] [remove back tail out]
+	if all [dir? out #"/" <> last file][take/last out]
 	reverse out
 ]
 
@@ -776,14 +814,82 @@ split-path: func [
 	reduce [dir pos]
 ]
 
-do-file: func [file [file!] /local saved code new-path][
+do-file: func [file [file! url!] /local saved code new-path src][
 	saved: system/options/path
-	code: expand-directives load/all file
-	new-path: first split-path clean-path file
-	change-dir new-path
+	unless src: find/case read file "Red" [
+		cause-error 'syntax 'no-header reduce [file]
+	]
+	code: expand-directives load/all src
+	if code/1 = 'Red/System [cause-error 'internal 'red-system []]
+	if file? file [
+		new-path: first split-path clean-path file
+		change-dir new-path
+	]
 	set/any 'code do code
-	change-dir saved
+	if file? file [change-dir saved]
 	:code
+]
+
+;clear-cache: function [/only url][
+;
+;]
+
+path-thru: function [
+	"Returns the local disk cache path of a remote file"
+	url [url!]		"Remote file address"
+	return: [file!]
+][
+	so: system/options
+	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
+	
+	if pos: find/tail file: to-file url "//" [file: pos]
+	path: first split-path file: append copy so/thru-cache file
+	unless exists? path [make-dir/deep path]
+	file
+]
+
+exists-thru?: function [
+	"Returns true if the remote file is present in the local disk cache"
+	url [url! file!] "Remote file address"
+][
+	exists? any [all [file? url url] path-thru url]
+]
+
+read-thru: function [
+	"Reads a remote file through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+	/binary		"Use binary mode"
+][
+	path: path-thru url
+	either all [not update exists? path] [
+		data: either binary [read/binary path][read path]
+	][
+		write/binary path data: either binary [read/binary url][read url]
+	]
+	data
+]
+
+load-thru: function [
+	"Loads a remote file through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+	/as			"Specify the type of data; use NONE to load as code"
+		type [word! none!] "E.g. json, html, jpeg, png, etc"
+][
+	path: path-thru url
+	if all [not update exists? path][url: path]
+	file: either as [load/as url type][load url]
+	if url? url [either as [save/as path file type][save path file]]
+	file
+]
+
+do-thru: function [
+	"Evaluates a remote Red script through local disk cache"
+	url [url!]	"Remote file address"
+	/update		"Force a cache update"
+][
+	do either update [load-thru/update url][load-thru url]
 ]
 
 cos: func [
@@ -846,6 +952,30 @@ atan: func [
 	]
 ]
 
+atan2: func [
+	"Returns the angle of the point y/x in radians"
+	y		[number!]
+	x		[number!]
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 2
+		natives/arctangent2* no 1
+	]
+]
+
+
+sqrt: func [
+	"Returns the square root of a number"
+	number	[number!]
+	return:	[float!]
+][
+	#system [
+		stack/arguments: stack/arguments - 1
+		natives/square-root* no
+	]
+]
+
 ;--- Temporary definition, use at your own risks! ---
 rejoin: function [
 	"Reduces and joins a block of values."
@@ -862,7 +992,5 @@ rejoin: function [
 ;------------------------------------------
 
 keys-of:	:words-of
-atan2:		:arctangent2
-sqrt:		:square-root
 object:		:context
 halt:		:quit										;-- default behavior unless console is loaded

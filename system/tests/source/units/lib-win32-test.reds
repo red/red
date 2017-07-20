@@ -27,7 +27,7 @@ lib-win-int-ptr!: alias struct! [
 	--test-- "libWin32-1"
 		lw1-name: "****************"
 		lw1-len: declare lib-win-int-ptr!
-		lw1-len/int: 15
+		lw1-len/int: 16
 		--assert get-computer-name lw1-name lw1-len
 		--assert lw1-name/1 <> #"*"
   

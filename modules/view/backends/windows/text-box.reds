@@ -16,8 +16,9 @@ Red/System [
 #define TBOX_METRICS_LINE_HEIGHT	2
 #define TBOX_METRICS_METRICS		3
 
+hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
-max-line-cnt:  0
+max-line-cnt: 0
 
 OS-text-box-color: func [
 	dc		[handle!]
@@ -140,6 +141,7 @@ OS-text-box-border: func [
 ]
 
 OS-text-box-font-name: func [
+	font	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
@@ -156,13 +158,14 @@ OS-text-box-font-name: func [
 ]
 
 OS-text-box-font-size: func [
+	font	[handle!]
 	layout	[handle!]
 	pos		[integer!]
 	len		[integer!]
 	size	[float!]
 	/local
-		this	[this!]
-		dl		[IDWriteTextLayout]
+		this [this!]
+		dl	 [IDWriteTextLayout]
 ][
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
@@ -170,11 +173,12 @@ OS-text-box-font-size: func [
 ]
 
 OS-text-box-metrics: func [
-	layout	[handle!]
+	state	[red-block!]
 	arg0	[red-value!]
 	type	[integer!]
 	return: [red-value!]
 	/local
+		layout			[handle!]
 		this			[this!]
 		dl				[IDWriteTextLayout]
 		lineCount		[integer!]
@@ -199,6 +203,8 @@ OS-text-box-metrics: func [
 		values			[red-value!]
 		hr				[integer!]
 ][
+	int: as red-integer! block/rs-head state
+	layout: as handle! int/value
 	left: 0
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
@@ -249,7 +255,6 @@ OS-text-box-metrics: func [
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-			#if debug? = yes [if hr <> 0 [log-error hr]]
 
 			values: object/get-values as red-object! arg0
 			integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width
@@ -275,6 +280,7 @@ OS-text-box-layout: func [
 		state	[red-block!]
 		styles	[red-block!]
 		vec		[red-vector!]
+		obj		[red-object!]
 		w		[integer!]
 		h		[integer!]
 		fmt		[this!]
@@ -282,7 +288,17 @@ OS-text-box-layout: func [
 ][
 	values: object/get-values box
 	if null? target [
-		hWnd: get-face-handle as red-object! values + TBOX_OBJ_TARGET
+		hWnd: null
+		obj: as red-object! values + TBOX_OBJ_TARGET
+		if TYPE_OF(obj) = TYPE_OBJECT [
+			hWnd: face-handle? obj
+		]
+		if null? hWnd [
+			if null? hidden-hwnd [
+				hidden-hwnd: CreateWindowEx WS_EX_TOOLWINDOW #u16 "RedBaseInternal" null WS_POPUP 0 0 2 2 null null hInstance null
+			]
+			hWnd: hidden-hwnd
+		]
 		target: get-hwnd-render-target hWnd
 	]
 

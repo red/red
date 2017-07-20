@@ -31,7 +31,7 @@ word: context [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
-		_context/add-global-word symbol/make str yes
+		_context/add-global-word symbol/make str yes yes
 	]
 	
 	make-at: func [
@@ -157,6 +157,10 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
+		if null? ctx/values [
+			s: as series! ctx/symbols/value
+			fire [TO_ERROR(script not-defined) s/offset + index]
+		]
 		
 		value: either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + index
@@ -194,10 +198,24 @@ word: context [
 			value  [red-value!]
 			values [series!]
 	][
-		value: stack/top - 1
+		value: stack/get-top
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		stack/push values/offset + index
+		copy-cell value values/offset + index
+	]
+	
+	set-in-ctx: func [
+		node	[node!]
+		index	[integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		value: stack/get-top
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
 		copy-cell value values/offset + index
 	]
 	
@@ -256,7 +274,7 @@ word: context [
 		value
 	]
 
-	to-string: func [
+	as-string: func [
 		w		[red-word!]
 		return: [red-string!]
 		/local

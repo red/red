@@ -18,7 +18,6 @@ dwrite-str-cache: as c-string! 0
 
 #define D2D_MAX_BRUSHES 64
 
-#define float32-ptr! [pointer! [float32!]]
 #define D2DERR_RECREATE_TARGET 8899000Ch
 #define FLT_MAX	[as float32! 3.402823466e38]
 
@@ -736,6 +735,12 @@ DX-init: func [
 	dwrite-str-cache: as-c-string s/offset
 ]
 
+DX-cleanup: func [/local unk [IUnknown]][
+	COM_SAFE_RELEASE(unk dwrite-factory)
+	COM_SAFE_RELEASE(unk d2d-factory)
+	free as byte-ptr! dw-locale-name
+]
+
 to-dx-color: func [
 	color	[integer!]
 	clr-ptr [D3DCOLORVALUE]
@@ -885,7 +890,7 @@ create-text-format: func [
 	return: [integer!]
 	/local
 		values	[red-value!]
-		h-font	[red-integer!]
+		h-font	[red-handle!]
 		int		[red-integer!]
 		value	[red-value!]
 		w		[red-word!]
@@ -914,8 +919,8 @@ create-text-format: func [
 			none/make-in blk
 		]
 
-		h-font: (as red-integer! block/rs-head blk) + 1
-		if TYPE_OF(h-font) = TYPE_INTEGER [
+		h-font: (as red-handle! block/rs-head blk) + 1
+		if TYPE_OF(h-font) = TYPE_HANDLE [
 			return h-font/value
 		]
 
