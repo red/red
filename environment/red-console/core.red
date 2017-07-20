@@ -365,7 +365,7 @@ terminal!: object [
 		switch/default char [
 			#"^M" [									;-- ENTER key
 				caret/visible?: no
-				exit-event-loop
+				;exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
 			#"^-" [				;TBD autocompletion
