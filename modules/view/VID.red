@@ -311,6 +311,7 @@ system/view/VID: context [
 						opt?: switch/default type?/word value: pre-load value [
 							pair!	 [unless opts/size  [opts/size:  value]]
 							string!	 [unless opts/text  [opts/text:  value]]
+							logic!
 							percent! [unless opts/data  [opts/data:  value]]
 							image!	 [unless opts/image [opts/image: value]]
 							tuple!	 [
