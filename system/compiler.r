@@ -3582,7 +3582,7 @@ system-dialect: make-profilable context [
 			runtime: to logic! runtime
 			allow-runtime?: all [not no-events job/runtime?]
 			
-			unless any [no-header job/red-pass?][process-config pc/2]
+			unless job/red-pass? [process-config pc/2]
 			unless no-header [comp-header]
 			if allow-runtime? [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
@@ -3767,6 +3767,7 @@ system-dialect: make-profilable context [
 	process-config: func [header [block!] /local spec][
 		if spec: select header first [config:][
 			do bind spec job
+			emitter/target/PIC?: job/PIC?
 			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
 		]
 	]
