@@ -15,31 +15,30 @@ Red/System [
 
 time: context [
 	verbose: 0
-	
-	nano:  1E-9
-	oneE9: 1E9
-	h-factor: 3600.0 * oneE9
-	m-factor: 60.0 * oneE9
-	
+
+	h-factor: 3600.0
+	m-factor: 60.0
+
 	#define GET_HOURS(time)   (floor time / h-factor)
-	#define GET_MINUTES(time) (floor time / oneE9 // 3600.0 / 60.0)
-	#define GET_SECONDS(time) (time / oneE9 // 60.0)
-	
+	#define GET_MINUTES(time) (floor time // 3600.0 / 60.0)
+	#define GET_SECONDS(time) (time // 60.0)
+
 	throw-error: func [spec [red-value!]][
 		fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TIME spec]
 	]
-	
+
 	get-hours: func [tm [float!] return: [integer!]][
 		tm: tm / h-factor
-		tm: either tm < 0.0 [ceil tm - nano][floor tm + nano]
+		tm: either tm < 0.0 [ceil tm][floor tm]
 		as-integer tm
 	]
+
 	get-minutes: func [tm [float!] return: [integer!]][
 		if tm < 0.0 [tm: 0.0 - tm]
 		tm: ROUND_TIME_DECIMALS(tm)
-		as-integer floor tm / oneE9 // 3600.0 / 60.0
+		as-integer floor tm // 3600.0 / 60.0
 	]
-	
+
 	push-field: func [
 		tm		[red-time!]
 		field	[integer!]
@@ -115,7 +114,7 @@ time: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"-"
 			time: float/abs time
 		]
-		time: time + 1.0								;-- fix issue #2134
+
 		formed: integer/form-signed as-integer GET_HOURS(time)
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
@@ -174,12 +173,12 @@ time: context [
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
-				tm/time: (as-float int/value) * oneE9
+				tm/time: as-float int/value
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				fl: as red-float! spec
-				tm/time: fl/value * oneE9
+				tm/time: fl/value
 			]
 			TYPE_ANY_LIST [
 				blk: as red-block! spec
@@ -203,7 +202,7 @@ time: context [
 					int: int + 1
 					i: i + 1
 				]
-				tm/time: t * oneE9
+				tm/time: t
 			]
 			TYPE_ANY_STRING [
 				i: 0
@@ -309,7 +308,7 @@ time: context [
 						]
 						default [fire [TO_ERROR(script invalid-arg) value]]
 					]
-					t/time: time - (GET_SECONDS(time) - fval * oneE9)
+					t/time: time - (GET_SECONDS(time) - fval)
 				]
 				default [assert false]
 			]
@@ -415,9 +414,7 @@ time: context [
 		half-ceil?	[logic!]
 		return:		[red-value!]
 	][
-		tm/time: tm/time * nano
 		float/round as red-value! tm scale _even? down? half-down? floor? ceil? half-ceil?
-		tm/time: tm/time * oneE9
 		as red-value! tm
 	]
 	

@@ -446,14 +446,18 @@ platform: context [
 			sec		[integer!]
 			milli	[integer!]
 			t		[float!]
+			mi		[float!]
 	][
 		GetSystemTime tm
 		h: tm/hour-minute and FFFFh
 		m: tm/hour-minute >>> 16
 		sec: tm/second and FFFFh
 		milli: either precise? [tm/second >>> 16][0]
-		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
-		t * 1E6											;-- nano second
+		mi: as float! milli
+		mi: mi / 1000.0
+		t: as-float h * 3600 + (m * 60) + sec
+		t: t + mi
+		t
 	]
 
 	get-date: func [

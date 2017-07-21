@@ -20,7 +20,7 @@ date: context [
 	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
-	#define DATE_GET_SECONDS(t)		 (t / time/oneE9 // 60.0)
+	#define DATE_GET_SECONDS(t)		 (t // 60.0)
 	#define DATE_GET_TIME_FLAG(d)	 (as-logic d >> 16 and 01h)
 	
 	#define DATE_SET_YEAR(d year)	 (d and 0001FFFFh or (year << 17))
@@ -60,7 +60,6 @@ date: context [
 			5 12 [
 				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
 					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
-					/ time/nano
 				
 				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
 				time/push t
@@ -139,7 +138,7 @@ date: context [
 			base [integer!]
 	][
 		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 17) * 86400
-		base + (as-integer dt/time / 1E9)
+		base + as-integer dt/time
 	]
 	
 	make-in: func [
@@ -585,8 +584,7 @@ date: context [
 				]
 				if any [cnt = 6 cnt = 7][
 					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
-					t: either sec-t = 0.0 [t + as-float sec][t + sec-t]
-					ftime: t * 1E9
+					ftime: either sec-t = 0.0 [t + as-float sec][t + sec-t]
 				]
 			]
 			default [throw-error spec]
@@ -689,7 +687,7 @@ date: context [
 		dt: as red-date! proto
 		dt/header: TYPE_DATE
 		dt/date: days-to-date (int/value / 86400) + (Jan-1st-of 1970 << 17) 0 yes
-		dt/time: (as-float int/value % 86400) * 1E9
+		dt/time: (as-float int/value % 86400)
 		if int/value < 0 [set-time dt dt/time no]
 		as red-value! dt
 	]

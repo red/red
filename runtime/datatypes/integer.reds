@@ -417,7 +417,7 @@ integer: context [
 			]
 			TYPE_TIME [
 				t: as red-time! spec
-				int/value: as-integer t/time / time/oneE9 + 0.5
+				int/value: as-integer t/time + 0.5
 			]
 			TYPE_DATE [
 				int/value: date/to-epoch as red-date! spec
