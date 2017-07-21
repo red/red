@@ -1565,7 +1565,7 @@ system-dialect: make-profilable context [
 		]
 		
 		process-export: has [defs cc ns entry spec list name sym][
-			if job/type = 'exe [
+			if all [job/type = 'exe job/OS <> 'FreeBSD][
 				throw-error "#export directive requires a library compilation mode"
 			]
 			if word? pc/2 [
