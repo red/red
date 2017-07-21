@@ -3,8 +3,6 @@ There are many ways to contribute to Red in addition to making [donations](http:
 There are seven different ways to contribute to the Red project:
 * Make fixes and enhancements to the Red and Red/System core and runtimes
 * Write and maintain Red mezzanine functions, modules, objects and schemes   
-* Write and maintain Red library functions
-* Write and maintain Red/System library functions
 * Write and maintain documentation and documentation systems
 * Write and maintain Red and Red/System tests
 * Use Red and Red/System and submit meaningful bug reports
@@ -118,12 +116,6 @@ Red [ … ]
 
 ```
 
-Wherever possible large volume tests should be generated to reduce the work required to maintain the tests. Currently test generators should be written in Rebol 2 and should be capable of being run under Rebol Core 2.7.8. At some point in the future, all test generators will have to be ported to Red.
-
-Test generators need to provide a mechanism where by they automatically generate a revised set of tests if the generator has been updated. Please study the mechanisms used in [Red run-all.r](https://github.com/red/red/blob/master/tests/run-all.r), [Red/System run-all.r](https://github.com/red/red/blob/master/system/tests/run-all.r), [Red make-equal-auto-test.r](https://github.com/red/red/blob/master/tests/source/units/make-equal-auto-test.r), [Red make-interpreter-auto-test.r](https://github.com/red/red/blob/master/tests/source/units/make-interpreter-auto-test.r) and [Red/System make-dylib-auto-test.r](https://github.com/red/red/blob/master/system/tests/source/units/make-dylib-auto-test.r).
-
-Test generators should generate tests into the auto-tests sub-directory of the relevant test source directory.
-
 ### Red and Red/System core and runtimes
 Contributions to the Red and Red/System core and runtimes should:
 
@@ -137,20 +129,11 @@ In the Red project, mezzanine code refers to functions, modules, objects and sch
 
 The process for code to be included as Red mezzanine is as follows:
 
-1. Submit a pull request of the code for inclusion the Red library.
+1. Submit a pull request of the code for inclusion with Red.
 2. Once the code is included in the Red library, submit a proposal for its inclusion within the Red mezzanine code via a Red project GitHub issue.
 3. If the proposal is accepted by the Red project team, submit a pull request with your code included as mezzanine code and a revised set of tests.
 
 At the current stage of Red's development, mezzanine code is not yet being accepted so please do not submit proposals until they are.
-
-### Red and Red/System library functions
-These are modules, objects, functions and schemes written in Red, Red/System or both, that are included in the official Red repository but not included in the binary distributions. Contributions should:
-
-1. Conform to coding and testing standards.
-2. Use Doc-Strings to document their API.
-3. Reside in Red/library or Red/system/library.
-4. Hand-written tests and test generators should reside in Red/tests/source/library or Red/system/tests/source/library.
-5. Tests should be generated in Red/tests/source/library/auto-tests or Red/system/tests/source/library/auto-tests. (auto-tests are not part of the repository).
 
 ### Documentation and documentation systems
 At the moment, the content and format of Red documentation has still to be decided, as has the mechanism for automatically generating API documentation from the source. Please contact the Red team if you would like to volunteer. A reliable way to contact the Red team is via the [Red Group](https://groups.google.com/forum/?hl=en#!forum/red-lang).
