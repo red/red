@@ -3571,16 +3571,22 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		run: func [obj [object!] src [block!] file [file!] /no-header /runtime /no-events][
-			runtime: to logic! runtime
+		run: func [
+			obj [object!] src [block!] file [file!]
+			/no-header /runtime /no-events
+			/locals allow-runtime?
+		][
 			job: obj
 			pc: src
 			script: secure-clean-path file
-	
+			runtime: to logic! runtime
+			allow-runtime?: all [not no-events job/runtime?]
+			
+			unless any [no-header job/red-pass?][process-config pc/2]
 			unless no-header [comp-header]
-			unless no-events [emitter/target/on-global-prolog runtime job/type]
+			if allow-runtime? [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
-			unless no-events [
+			if allow-runtime? [
 				case [
 					runtime [
 						emitter/target/on-global-epilog yes	job/type ;-- postpone epilog event after comp-runtime-epilog
@@ -3756,6 +3762,13 @@ system-dialect: make-profilable context [
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
 		clear emitter/symbols
+	]
+	
+	process-config: func [header [block!] /local spec][
+		if spec: select header first [config:][
+			do bind spec job
+			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
+		]
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
