@@ -2923,7 +2923,7 @@ system-dialect: make-profilable context [
 				any [
 					all [1 < slots job/target = 'ARM]	 ;-- ARM requires it only for struct > 4 bytes
 					all [
-						not find [Windows macOS] job/OS	 ;-- fallback on Linux ABI
+						not find [Windows macOS FreeBSD] job/OS	 ;-- fallback on Linux ABI
 						job/target <> 'ARM
 					]
 				]

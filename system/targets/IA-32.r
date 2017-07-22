@@ -1918,8 +1918,8 @@ make-profilable make target-class [
 			compiler/job/OS <> 'Windows
 			slots: emitter/struct-slots?/check spec/4
 			not all [
-				compiler/job/OS = 'macOS			;-- on macOS, <ptr> is used for slots > 2 only
-				slots <= 2
+				find [macOS FreeBSD] compiler/job/OS ;-- for those OS,
+				slots <= 2							;-- <ptr> is used for slots > 2 only
 			]
 			size: size - stack-width				;-- hidden pointer is freed by callee
 		]
