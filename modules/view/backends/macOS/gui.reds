@@ -1055,14 +1055,16 @@ init-window: func [
 	/local
 		flags		[integer!]
 		sel_Hidden	[integer!]
+		main-win?	[logic!]
 ][
 	flags: 0
-	if bits and FACET_FLAGS_NO_BORDER = 0 [
+	main-win?: yes
+	either bits and FACET_FLAGS_NO_BORDER = 0 [
 		flags: NSClosableWindowMask
 		if bits and FACET_FLAGS_RESIZE <> 0 [flags: flags or NSResizableWindowMask]
-		if bits and FACET_FLAGS_NO_TITLE = 0 [flags: flags or NSTitledWindowMask]
+		either bits and FACET_FLAGS_NO_TITLE = 0 [flags: flags or NSTitledWindowMask][main-win?: no]
 		if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or NSMiniaturizableWindowMask]
-	]
+	][main-win?: no]
 	window: objc_msgSend [
 		window
 		sel_getUid "initWithContentRect:styleMask:backing:defer:"
@@ -1095,7 +1097,7 @@ init-window: func [
 	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
-	objc_msgSend [window sel_getUid "makeMainWindow"]
+	if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
 ]
 
 transparent-base?: func [

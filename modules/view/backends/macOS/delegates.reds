@@ -686,7 +686,7 @@ should-terminate: func [
 	app		[integer!]
 	return: [integer!]
 ][
-	0			;-- NSTerminateCancel, so we don't exit the console
+	#either sub-system = 'gui [1][0]	;-- 0: NSTerminateCancel, so we don't exit the console
 ]
 
 win-should-close: func [
