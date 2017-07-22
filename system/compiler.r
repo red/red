@@ -3764,10 +3764,12 @@ system-dialect: make-profilable context [
 		clear emitter/symbols
 	]
 	
-	process-config: func [header [block!] /local spec][
+	process-config: func [header [block!] /local spec old-PIC?][
 		if spec: select header first [config:][
 			do bind spec job
+			old-PIC?: emitter/target/PIC?
 			emitter/target/PIC?: job/PIC?
+			if all [job/PIC? not old-PIC?][emitter/target/on-init]
 			if job/command-line [do bind job/command-line job]		;-- ensures cmd-line options have priority
 		]
 	]
