@@ -127,7 +127,8 @@ float: context [
 			type = FORM_TIME [									;-- microsecond precision
 				s/10: #"0"
 				s/11: #"0"
-				sprintf [s "%.6g" f]
+				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
+				sprintf [s s0 f]
 			]
 			true [
 				s/17: #"0"
@@ -184,7 +185,7 @@ float: context [
 					][
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.7g"]
+							type = FORM_TIME	 ["%.6g"]
 							true				 ["%.14g"]
 						]
 						sprintf [s0 s f]
