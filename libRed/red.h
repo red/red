@@ -76,7 +76,7 @@ EXTERN_C
 	red_tuple	redTuple(long r, long g, long b);
 	red_tuple	redTuple4(long r, long g, long b, long a);
 	red_binary	redBinary(const char* buffer, long bytes);
-#if defined(_WIN32) || (defined(__APPLE__)
+#if defined(_WIN32) || defined(__APPLE__)
 	red_image	redImage(long width, long height, const void* buffer, long format);
 #endif
 	red_string	redString(const char* string);
