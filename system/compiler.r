@@ -2286,14 +2286,14 @@ system-dialect: make-profilable context [
 					append/only list comp-block-chunked/only/test 'case
 					cases: pc							;-- set cursor after the expression
 				]
-				clear find expr-call-stack #test
+				clear find/last expr-call-stack #test
 				
 				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked/bool
 					append/only types resolve-expr-type/quiet body/1
 				]
-				clear find expr-call-stack #body
+				clear find/last expr-call-stack #body
 				tail? cases: next cases
 			]
 			
