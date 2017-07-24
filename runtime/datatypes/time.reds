@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define TIME_EPSILON		 	2.2204460492503131E-15	;-- 10 ULP
-#define ROUND_TIME_DECIMALS(t)	(floor t + 0.5 - TIME_EPSILON)
-
 time: context [
 	verbose: 0
 
@@ -35,7 +32,6 @@ time: context [
 
 	get-minutes: func [tm [float!] return: [integer!]][
 		if tm < 0.0 [tm: 0.0 - tm]
-		tm: ROUND_TIME_DECIMALS(tm)
 		as-integer floor tm // 3600.0 / 60.0
 	]
 

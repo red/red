@@ -425,7 +425,7 @@ date: context [
 		if utc? [tm: to-utc-time tm tz]
 		dd: normalize-time dd :tm tz
 		dt/date: days-to-date dd tz DATE_GET_TIME_FLAG(dt/date)
-		dt/time: ROUND_TIME_DECIMALS(tm)
+		dt/time: tm
 	]
 	
 	set-timezone: func [
