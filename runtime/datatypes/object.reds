@@ -924,17 +924,20 @@ object: context [
 		type	[integer!]
 		return:	[red-object!]
 		/local
-			obj	 [red-object!]
-			obj2 [red-object!]
-			ctx	 [red-context!]
-			blk	 [red-block!]
-			new? [logic!]
+			obj		[red-object!]
+			obj2	[red-object!]
+			ctx		[red-context!]
+			blk		[red-block!]
+			p-obj?  [logic!]
+			new?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
 		
-		either TYPE_OF(proto) = TYPE_OBJECT [
+		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
+		
+		either p-obj? [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
@@ -950,15 +953,10 @@ object: context [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
 				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
-				if TYPE_OF(proto) = TYPE_OBJECT [		;-- clone and rebind proto's series
-					duplicate proto/ctx obj/ctx no
-				]
+				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
-				obj/class: either any [new? TYPE_OF(proto) <> TYPE_OBJECT][
-					get-new-id
-				][
-					proto/class
-				]
+				
+				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
