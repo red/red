@@ -2254,4 +2254,15 @@ Red [
 		
 ===end-group===
 
+
+===start-group=== "regression tests"
+
+	--test-- "issue #2920"
+		a: context [e: 1 d: [e]]
+		b: make a [e: 2]
+		--assert 1 = do a/d
+		--assert 2 = do b/d
+
+===end-group===
+
 ~~~end-file~~~
