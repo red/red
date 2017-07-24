@@ -136,9 +136,11 @@ date: context [
 		return: [integer!]
 		/local
 			base [integer!]
+			tm	 [integer!]
 	][
 		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 17) * 86400
-		base + as-integer dt/time
+		tm: as-integer (dt/time + 0.5)
+		base + tm
 	]
 	
 	make-in: func [
@@ -311,15 +313,18 @@ date: context [
 		dt2		[red-date!]
 		return: [red-time!]
 		/local
-			t1	[float!]
-			t2	[float!]
 			t	[red-time!]
+			d1	[integer!]
+			d2	[integer!]
+			tm	[float!]
 	][
-		t1: dt-to-nanosec dt1/date dt1/time
-		t2: dt-to-nanosec dt2/date dt2/time
+		d1: date-to-days dt1/date
+		d2: date-to-days dt2/date
+		d1: d1 - d2 * 24
+		tm: dt1/time - dt2/time
 		t: as red-time! dt1
 		t/header: TYPE_TIME
-		t/time: t1 - t2
+		t/time: (as float! d1) * time/h-factor + tm
 		t
 	]
 
