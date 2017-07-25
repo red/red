@@ -58,11 +58,13 @@ date: context [
 			3 [integer/push DATE_GET_MONTH(d)]
 			4 [integer/push DATE_GET_DAY(d)]
 			5 12 [
-				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
-					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
-				
-				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
-				time/push t
+				either DATE_GET_TIME_FLAG(d) [
+					t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
+						+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
+
+					if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
+					time/push t
+				][none/push]
 			]
 			6 [either DATE_GET_TIME_FLAG(d) [time/push t][none/push]]
 			7 [integer/push time/get-hours t]
