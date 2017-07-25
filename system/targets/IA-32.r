@@ -1502,7 +1502,7 @@ make-profilable make target-class [
 	
 	emit-math-op: func [
 		name [word!] a [word!] b [word!] args [block!]
-		/local mod? scale c type arg2 op-poly
+		/local mod? scale c type arg2 op-poly load?
 	][
 		;-- eax = a, edx = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
@@ -1510,6 +1510,12 @@ make-profilable make target-class [
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		arg2: compiler/unbox args/2
+		load?: not all [
+			object? args/2
+			b = 'ref
+			args/2/type/1 = 'integer!
+			compiler/any-float? compiler/get-variable-spec args/2/data
+		]
 		
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
@@ -1550,7 +1556,7 @@ make-profilable make target-class [
 						]
 					]
 					ref [
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 						do op-poly
 					]
 					reg [do op-poly]
@@ -1569,7 +1575,7 @@ make-profilable make target-class [
 						]
 					]
 					ref [
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 						do op-poly
 					]
 					reg [do op-poly]
@@ -1603,7 +1609,7 @@ make-profilable make target-class [
 					]
 					ref [
 						emit #{52}					;-- PUSH edx	; save edx from corruption
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 						do op-poly
 						emit #{5A}					;-- POP edx
 					]
@@ -1631,7 +1637,7 @@ make-profilable make target-class [
 					]
 					ref [
 						emit #{52}					;-- PUSH edx	; save edx from corruption
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 						emit #{89D1}				;-- MOV ecx, edx
 						do op-poly
 					]
@@ -1742,6 +1748,13 @@ make-profilable make target-class [
 		][
 			emit-casting args/2 yes					;-- do runtime conversion on edx if required
 		][
+			all [
+				object? args/2
+				b = 'ref
+				args/2/type/1 = 'integer!
+				compiler/any-float? compiler/get-variable-spec args/2/data
+				emit-load/alt args/2/data
+			]
 			implicit-cast right
 		]
 		case [
