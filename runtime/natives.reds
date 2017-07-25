@@ -2104,7 +2104,7 @@ natives: context [
 				time: as-integer ftime
 			]
 			TYPE_TIME [
-				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
+				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
