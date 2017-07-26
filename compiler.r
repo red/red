@@ -949,7 +949,10 @@ red: context [
 		select objects obj
 	]
 	
-	obj-func-path?: func [path [path!] /local fpath base symbol found? fun origin name obj][
+	obj-func-path?: func [
+		path [path!]
+		/local fpath base symbol found? fun origin name obj info ctx
+	][
 		either path/1 = 'self [
 			found?: bind? path/1
 			path: copy path
@@ -958,7 +961,17 @@ red: context [
 			fpath: head clear next copy path
 		][
 			set [found? fpath base] search-obj to path! path
-			unless found? [return none]
+			unless found? [
+				if all [
+					not empty? ctx-stack
+					info: find-binding path/1
+					ctx: find objects info/1
+				][
+					path: head insert copy path to word! form ctx/-2
+					set [found? fpath base] search-obj to path! path
+				]
+				unless found? [return none]
+			]
 
 			fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
 				pick path 1 + (length? fpath) - (length? obj-stack)
