@@ -174,7 +174,6 @@ preprocessor: context [
 		depth: depth + 1
 		saved: s
 		parse next pos [arity [s: macros | skip]]		;-- resolve nested macros first
-		s: saved
 		
 		cmd: make block! 1
 		append cmd name
@@ -193,6 +192,7 @@ preprocessor: context [
 			do-quit
 		]
 		if trace? [print ["preproc: ==" mold :res]]
+		s: saved										;-- restored here as `do cmd` could call expand
 		s/1: :res
 		
 		if positive? depth: depth - 1 [
