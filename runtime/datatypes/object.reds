@@ -379,7 +379,7 @@ object: context [
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		assert TYPE_OF(fun) = TYPE_FUNCTION
+		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
 		
 		stack/mark-func words/_on-change*
 		stack/push as red-value! word
