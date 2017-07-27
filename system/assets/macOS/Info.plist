@@ -6,6 +6,8 @@
 	<string>$Red-App-Name$</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.0</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.redlang.$Red-App-Name$</string>
 </dict>

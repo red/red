@@ -124,10 +124,11 @@ float: context [
 				s/9: #"0"
 				sprintf [s "%.7g" f]
 			]
-			type = FORM_TIME [									;-- nanosecond precision
+			type = FORM_TIME [									;-- microsecond precision
 				s/10: #"0"
 				s/11: #"0"
-				sprintf [s "%.9g" f]
+				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
+				sprintf [s s0 f]
 			]
 			true [
 				s/17: #"0"
@@ -184,7 +185,7 @@ float: context [
 					][
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.7g"]
+							type = FORM_TIME	 ["%.6g"]
 							true				 ["%.14g"]
 						]
 						sprintf [s0 s f]
@@ -342,16 +343,10 @@ float: context [
 		
 		t1?: all [type1 = TYPE_TIME type2 <> TYPE_TIME]
 		t2?: all [type1 <> TYPE_TIME type2 = TYPE_TIME]
-		
-		if t1? [op1: op1 * time/nano]
-		if t2? [op2: op2 * time/nano]
 
 		left/value: do-math-op op1 op2 type
 		
-		if any [t1? t2?][
-			left/header: TYPE_TIME
-			left/value: left/value * time/oneE9
-		]
+		if any [t1? t2?][left/header: TYPE_TIME]
 		if all [pct? not t2?][left/header: TYPE_PERCENT]
 		left
 	]
@@ -508,7 +503,6 @@ float: context [
 
 		either seed? [
 			s: f/value
-			if TYPE_OF(f) = TYPE_TIME [s: s / time/oneE9]
 			_random/srand as-integer s
 			f/header: TYPE_UNSET
 		][
@@ -543,7 +537,7 @@ float: context [
 			]
 			TYPE_TIME [
 				tm: as red-time! spec
-				proto/value: tm/time / time/oneE9
+				proto/value: tm/time
 			]
 			TYPE_ANY_STRING [
 				_4: 0

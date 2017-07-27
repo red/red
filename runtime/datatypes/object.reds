@@ -619,6 +619,7 @@ object: context [
 	duplicate: func [
 		src    [node!]									;-- src context
 		dst	   [node!]									;-- dst context (extension of src)
+		copy?  [logic!]									;-- TRUE for compiler, FALSE otherwise
 		/local
 			from   [red-context!]
 			to	   [red-context!]
@@ -641,14 +642,13 @@ object: context [
 		while [value < tail][
 			type: TYPE_OF(value)
 			either ANY_SERIES?(type) [					;-- copy series value in extended object
-				actions/copy
-					as red-series! value
-					target
-					null
-					yes
-					null
+				actions/copy as red-series! value target null yes null
+				
+				if ANY_BLOCK?(type) [
+					_context/bind as red-block! target to dst yes
+				]
 			][
-				copy-cell value target					;-- just propagate the old value by default
+				if copy? [copy-cell value target]		;-- just propagate the old value
 			]
 			value: value + 1
 			target: target + 1
@@ -924,17 +924,20 @@ object: context [
 		type	[integer!]
 		return:	[red-object!]
 		/local
-			obj	 [red-object!]
-			obj2 [red-object!]
-			ctx	 [red-context!]
-			blk	 [red-block!]
-			new? [logic!]
+			obj		[red-object!]
+			obj2	[red-object!]
+			ctx		[red-context!]
+			blk		[red-block!]
+			p-obj?  [logic!]
+			new?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
 		
-		either TYPE_OF(proto) = TYPE_OBJECT [
+		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
+		
+		either p-obj? [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
@@ -949,13 +952,11 @@ object: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes
+				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
+				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
 				interpreter/eval blk no
-				obj/class: either any [new? TYPE_OF(proto) <> TYPE_OBJECT][
-					get-new-id
-				][
-					proto/class
-				]
+				
+				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
@@ -1263,7 +1264,7 @@ object: context [
 		s: as series! new/ctx/value
 		copy-cell as red-value! new s/offset + 1		;-- set back-reference
 
-		node:  save-self-object new
+		node: save-self-object new
 		
 		if size <= 0 [return new]						;-- empty object!
 		

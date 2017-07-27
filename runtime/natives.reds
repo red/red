@@ -91,6 +91,8 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
+			bool  [red-logic!]
+			type  [integer!]
 	][
 		#typecheck any
 		value: block/rs-head as red-block! stack/arguments
@@ -98,7 +100,10 @@ natives: context [
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
-			if logic/true? [exit]
+			
+			bool: as red-logic! stack/arguments
+			type: TYPE_OF(bool)
+			unless any [type = TYPE_NONE all [type = TYPE_LOGIC not bool/value]][exit]
 		]
 		RETURN_NONE
 	]
@@ -2099,7 +2104,7 @@ natives: context [
 				time: as-integer ftime
 			]
 			TYPE_TIME [
-				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
+				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]

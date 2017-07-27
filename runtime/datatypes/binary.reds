@@ -225,7 +225,7 @@ binary: context [
 			string/rs-length? str
 			unit
 		stack/pop 1
-		if null? str/node [fire [TO_ERROR(script invalid-data) issue]]
+		if null? bin/node [fire [TO_ERROR(script invalid-data) issue]]
 	]
 
 	equal?: func [
@@ -627,7 +627,7 @@ binary: context [
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c
-				if hex > 15 [return null]
+				if hex > 15 [return null]		;@@ release node!!!
 				accum: accum << 4 + hex
 				if count and 1 = 1 [
 					bin/value: as byte! accum

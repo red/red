@@ -496,7 +496,7 @@ change-rate: func [
 		TYPE_TIME [
 			tm: as red-time! rate
 			if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-			ts: tm/time / 1E9
+			ts: tm/time
 		]
 		TYPE_NONE [exit]
 		default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
@@ -943,9 +943,15 @@ change-selection: func [
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
 			if any [sz < 0 sz < idx][exit]
-			objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
-			idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
-			objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
+			either type = drop-list [
+				objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx + 1]
+				idx: objc_msgSend [hWnd sel_getUid "titleOfSelectedItem"]
+				objc_msgSend [hWnd sel_getUid "setTitle:" idx]
+			][
+				objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
+				idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
+				objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
+			]
 		]
 		type = tab-panel [select-tab hWnd int]
 		type = window [
@@ -988,17 +994,22 @@ insert-list-item: func [
 	hWnd  [integer!]
 	item  [red-string!]
 	pos	  [integer!]
+	list? [logic!]
 	/local
 		len [integer!]
+		sel [integer!]
 ][
 	unless TYPE_OF(item) = TYPE_STRING [exit]
 
 	len: objc_msgSend [hWnd sel_getUid "numberOfItems"]
-	if pos > len [pos: len]
-	objc_msgSend [
-		hWnd sel_getUid "insertItemWithObjectValue:atIndex:"
-		to-CFString item pos
+	sel: either list? [
+		pos: pos + 1
+		sel_getUid "insertItemWithTitle:atIndex:"
+	][
+		sel_getUid "insertItemWithObjectValue:atIndex:"
 	]
+	if pos > len [pos: len]
+	objc_msgSend [hWnd sel to-NSString item pos]
 ]
 
 init-combo-box: func [
@@ -1007,41 +1018,48 @@ init-combo-box: func [
 	caption		[integer!]
 	drop-list?	[logic!]
 	/local
-		str	 [red-string!]
-		tail [red-string!]
-		len  [integer!]
-		val  [integer!]
+		str		[red-string!]
+		tail	[red-string!]
+		len		[integer!]
+		val		[integer!]
+		sel-add [integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
 		TYPE_OF(data) = TYPE_HASH
 		TYPE_OF(data) = TYPE_MAP
 	][
+		objc_msgSend [combo sel_getUid "removeAllItems"]
+		either drop-list? [
+			sel-add: sel_getUid "addItemWithTitle:"
+			objc_msgSend [combo sel-add NSString("")]
+		][
+			sel-add: sel_getUid "addItemWithObjectValue:"
+		]
+
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
-
-		objc_msgSend [combo sel_getUid "removeAllItems"]
 
 		if str = tail [exit]
 
 		while [str < tail][
 			if TYPE_OF(str) = TYPE_STRING [
 				len: -1
-				val: CFString((unicode/to-utf8 str :len))
-				objc_msgSend [combo sel_getUid "addItemWithObjectValue:" val]
+				val: NSString((unicode/to-utf8 str :len))
+				objc_msgSend [combo sel-add val]
 			]
 			str: str + 1
 		]
 	]
 
-	len: objc_msgSend [combo sel_getUid "numberOfItems"]
-	if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
-
 	either drop-list? [
-		objc_msgSend [combo sel_getUid "setEditable:" false]
+		objc_msgSend [combo sel_getUid "selectItemAtIndex:" -1]
 	][
-		if caption <> 0 [
+		either caption <> 0 [
 			objc_msgSend [combo sel_getUid "setStringValue:" caption]
+		][
+			len: objc_msgSend [combo sel_getUid "numberOfItems"]
+			if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
 		]
 	]
 ]
@@ -1055,14 +1073,16 @@ init-window: func [
 	/local
 		flags		[integer!]
 		sel_Hidden	[integer!]
+		main-win?	[logic!]
 ][
 	flags: 0
-	if bits and FACET_FLAGS_NO_BORDER = 0 [
+	main-win?: yes
+	either bits and FACET_FLAGS_NO_BORDER = 0 [
 		flags: NSClosableWindowMask
 		if bits and FACET_FLAGS_RESIZE <> 0 [flags: flags or NSResizableWindowMask]
-		if bits and FACET_FLAGS_NO_TITLE = 0 [flags: flags or NSTitledWindowMask]
+		either bits and FACET_FLAGS_NO_TITLE = 0 [flags: flags or NSTitledWindowMask][main-win?: no]
 		if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or NSMiniaturizableWindowMask]
-	]
+	][main-win?: no]
 	window: objc_msgSend [
 		window
 		sel_getUid "initWithContentRect:styleMask:backing:defer:"
@@ -1095,7 +1115,7 @@ init-window: func [
 	objc_msgSend [window sel_getUid "setAcceptsMouseMovedEvents:" yes]
 	objc_msgSend [window sel_getUid "becomeFirstResponder"]
 	objc_msgSend [window sel_getUid "makeKeyAndOrderFront:" 0]
-	objc_msgSend [window sel_getUid "makeMainWindow"]
+	if main-win? [objc_msgSend [window sel_getUid "makeMainWindow"]]
 ]
 
 transparent-base?: func [
@@ -1269,10 +1289,10 @@ update-combo-box: func [
 	new	  [red-value!]
 	index [integer!]
 	part  [integer!]
-	drop? [logic!]										;-- TRUE: drop-list or drop-down widgets
+	list? [logic!]										;-- TRUE: drop-list or drop-down widgets
 	/local
 		hWnd [integer!]
-		msg  [integer!]
+		nstr [integer!]
 		str  [red-string!]
 ][
 	hWnd: get-face-handle face
@@ -1291,8 +1311,14 @@ update-combo-box: func [
 						zero? index
 					][
 						objc_msgSend [hWnd sel_getUid "removeAllItems"]
-						objc_msgSend [hWnd sel_getUid "setStringValue:" NSString("")]
+						nstr: NSString("")
+						either list? [
+							objc_msgSend [hWnd sel_getUid "setTitle:" nstr]
+						][
+							objc_msgSend [hWnd sel_getUid "setStringValue:" nstr]
+						]
 					][
+						if list? [index: index + 1]
 						loop part [
 							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
 						]
@@ -1318,7 +1344,7 @@ update-combo-box: func [
 						if sym <> words/_insert/symbol [
 							objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
 						]
-						insert-list-item hWnd str index
+						insert-list-item hWnd str index list?
 						if sym = words/_reverse/symbol [index: index + 1]
 						str: str + 1
 					]
@@ -1328,7 +1354,7 @@ update-combo-box: func [
 		]
 		TYPE_STRING [
 			objc_msgSend [hWnd sel_getUid "removeItemAtIndex:" index]
-			insert-list-item hWnd as red-string! value index
+			insert-list-item hWnd as red-string! value index list?
 		]
 		default [assert false]			;@@ raise a runtime error
 	]
@@ -1608,12 +1634,11 @@ OS-make-view: func [
 		][
 			class: either bits and FACET_FLAGS_SCROLLABLE = 0 ["RedBase"]["RedScrollBase"]
 		]
-		any [
-			sym = drop-down
-			sym = drop-list
-		][
+		sym = drop-down [
 			class: "RedComboBox"
-			if size/y > 26 [size/y: 26]
+		]
+		sym = drop-list [
+			class: "RedPopUpButton"
 		]
 		sym = slider [class: "RedSlider"]
 		sym = progress [class: "RedProgress"]
@@ -1642,8 +1667,15 @@ OS-make-view: func [
 		0
 	]
 	rc: make-rect offset/x offset/y size/x size/y
-	if sym <> window [
-		obj: objc_msgSend [obj sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h]
+	case [
+		sym = window [
+			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
+			init-window face obj caption bits rc
+		]
+		sym = drop-list [
+			objc_msgSend [obj sel_getUid "initWithFrame:pullsDown:" rc/x rc/y rc/w rc/h yes]
+		]
+		true [objc_msgSend [obj sel_getUid "initWithFrame:" rc/x rc/y rc/w rc/h]]
 	]
 
 	parse-common-opts obj as red-block! values + FACE_OBJ_OPTIONS sym
@@ -1695,8 +1727,6 @@ OS-make-view: func [
 			objc_msgSend [obj sel_getUid "setDelegate:" obj]
 		]
 		sym = window [
-			rc: make-rect offset/x screen-size-y - offset/y - size/y size/x size/y
-			init-window face obj caption bits rc
 			win-cnt: win-cnt + 1
 
 			if all [						;@@ application menu ?
@@ -1733,12 +1763,14 @@ OS-make-view: func [
 				objc_msgSend [obj sel_getUid "setTitle:" caption]
 			]
 		]
-		any [
-			sym = drop-down
-			sym = drop-list
-		][
-			init-combo-box obj data caption sym = drop-list
+		sym = drop-down [
+			init-combo-box obj data caption no
 			objc_msgSend [obj sel_getUid "setDelegate:" obj]
+		]
+		sym = drop-list [
+			init-combo-box obj data caption yes
+			objc_msgSend [obj sel_getUid "setTarget:" obj]
+			objc_msgSend [obj sel_getUid "setAction:" sel_getUid "popup-button-action:"]
 		]
 		sym = camera [
 			init-camera obj rc data

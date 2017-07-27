@@ -20,7 +20,7 @@ date: context [
 	#define DATE_GET_ZONE_SIGN(d)	 (as-logic d and 40h >>	6)
 	#define DATE_GET_ZONE_HOURS(d)	 (d and 3Fh >> 2)	;-- sign excluded
 	#define DATE_GET_ZONE_MINUTES(d) (d and 03h * 15)
-	#define DATE_GET_SECONDS(t)		 (t / time/oneE9 // 60.0)
+	#define DATE_GET_SECONDS(t)		 (t // 60.0)
 	#define DATE_GET_TIME_FLAG(d)	 (as-logic d >> 16 and 01h)
 	
 	#define DATE_SET_YEAR(d year)	 (d and 0001FFFFh or (year << 17))
@@ -58,12 +58,13 @@ date: context [
 			3 [integer/push DATE_GET_MONTH(d)]
 			4 [integer/push DATE_GET_DAY(d)]
 			5 12 [
-				t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
-					+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
-					/ time/nano
-				
-				if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
-				time/push t
+				either DATE_GET_TIME_FLAG(d) [
+					t: (as-float DATE_GET_ZONE_HOURS(d)) * 3600.0
+						+ ((as-float DATE_GET_ZONE_MINUTES(d)) * 60.0)
+
+					if DATE_GET_ZONE_SIGN(d) [t: 0.0 - t]
+					time/push t
+				][none/push]
 			]
 			6 [either DATE_GET_TIME_FLAG(d) [time/push t][none/push]]
 			7 [integer/push time/get-hours t]
@@ -137,9 +138,11 @@ date: context [
 		return: [integer!]
 		/local
 			base [integer!]
+			tm	 [integer!]
 	][
 		base: (date-to-days dt/date) - (Jan-1st-of 1970 << 17) * 86400
-		base + (as-integer dt/time / 1E9)
+		tm: as-integer (dt/time + 0.5)
+		base + tm
 	]
 	
 	make-in: func [
@@ -312,15 +315,18 @@ date: context [
 		dt2		[red-date!]
 		return: [red-time!]
 		/local
-			t1	[float!]
-			t2	[float!]
 			t	[red-time!]
+			d1	[integer!]
+			d2	[integer!]
+			tm	[float!]
 	][
-		t1: dt-to-nanosec dt1/date dt1/time
-		t2: dt-to-nanosec dt2/date dt2/time
+		d1: date-to-days dt1/date
+		d2: date-to-days dt2/date
+		d1: d1 - d2 * 24
+		tm: dt1/time - dt2/time
 		t: as red-time! dt1
 		t/header: TYPE_TIME
-		t/time: t1 - t2
+		t/time: (as float! d1) * time/h-factor + tm
 		t
 	]
 
@@ -426,7 +432,7 @@ date: context [
 		if utc? [tm: to-utc-time tm tz]
 		dd: normalize-time dd :tm tz
 		dt/date: days-to-date dd tz DATE_GET_TIME_FLAG(dt/date)
-		dt/time: ROUND_TIME_DECIMALS(tm)
+		dt/time: tm
 	]
 	
 	set-timezone: func [
@@ -585,8 +591,7 @@ date: context [
 				]
 				if any [cnt = 6 cnt = 7][
 					t: ((as-float hour) * 3600.0) + ((as-float min) * 60.0)
-					t: either sec-t = 0.0 [t + as-float sec][t + sec-t]
-					ftime: t * 1E9
+					ftime: either sec-t = 0.0 [t + as-float sec][t + sec-t]
 				]
 			]
 			default [throw-error spec]
@@ -689,7 +694,7 @@ date: context [
 		dt: as red-date! proto
 		dt/header: TYPE_DATE
 		dt/date: days-to-date (int/value / 86400) + (Jan-1st-of 1970 << 17) 0 yes
-		dt/time: (as-float int/value % 86400) * 1E9
+		dt/time: (as-float int/value % 86400)
 		if int/value < 0 [set-time dt dt/time no]
 		as red-value! dt
 	]

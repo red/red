@@ -61,7 +61,7 @@ preprocessor: context [
 		do-quit
 	]
 	
-	do-safe: func [code [block!] /manual /with cmd [issue!] /local res t? src][
+	do-safe: func [code [block! paren!] /manual /with cmd [issue!] /local res t? src][
 		if t?: all [trace? not with][
 			print [
 				"preproc: matched" mold/flat copy/part get code/2 get code/3 lf
@@ -89,14 +89,14 @@ preprocessor: context [
 		either unset? get/any 'res [[]][:res]
 	]
 	
-	do-code: func [code [block!] cmd [issue!] /local p][
+	do-code: func [code [block! paren!] cmd [issue!] /local p][
 		clear syms
 		parse code [any [
 			p: set-word! (unless in exec p/1 [append syms p/1])
 			| skip
 		]]
 		unless empty? syms [exec: make exec append syms none]
-		do-safe/with bind code exec cmd
+		do-safe/with bind to block! code exec cmd
 	]
 	
 	count-args: func [spec [block!] /local total][
@@ -128,7 +128,7 @@ preprocessor: context [
 		arity
 	]
 	
-	fetch-next: func [code [block!] /local base arity value path][
+	fetch-next: func [code [block! paren!] /local base arity value path][
 		base: code
 		arity: 1
 		
@@ -159,7 +159,7 @@ preprocessor: context [
 		code
 	]
 	
-	eval: func [code [block!] cmd [issue!] /local after expr][
+	eval: func [code [block! paren!] cmd [issue!] /local after expr][
 		after: fetch-next code
 		expr: copy/part code after
 		if trace? [print ["preproc:" mold cmd mold expr]]
@@ -174,7 +174,6 @@ preprocessor: context [
 		depth: depth + 1
 		saved: s
 		parse next pos [arity [s: macros | skip]]		;-- resolve nested macros first
-		s: saved
 		
 		cmd: make block! 1
 		append cmd name
@@ -193,6 +192,7 @@ preprocessor: context [
 			do-quit
 		]
 		if trace? [print ["preproc: ==" mold :res]]
+		s: saved										;-- restored here as `do cmd` could call expand
 		s/1: :res
 		
 		if positive? depth: depth - 1 [

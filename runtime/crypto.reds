@@ -594,7 +594,7 @@ crypto: context [
 				#define LIBCRYPTO-file "libcrypto.dylib"
 			]
 			FreeBSD [
-				#define LIBCRYPTO-file "libcrypto.so.7"
+				#define LIBCRYPTO-file "libcrypto.so.8"
 			]
 			#default [
 				#define LIBCRYPTO-file "libcrypto.so.1.0.0"

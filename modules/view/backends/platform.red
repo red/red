@@ -729,6 +729,7 @@ system/view/platform: context [
 				text:			[3x3   0x0]
 				field:			[3x3   0x0]
 				group-box:		[0x8  4x18]
+				drop-list:		[14x26 0x0 regular 14x26 0x0 small 11x22 0x0 mini 11x22 0x0]
 			]
 		]]
 		extend system/view/metrics/def-heights [#switch config/OS [

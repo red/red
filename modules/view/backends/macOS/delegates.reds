@@ -240,6 +240,29 @@ red-timer-action: func [
 	make-event self 0 EVT_TIME
 ]
 
+popup-button-action: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	sender	[integer!]
+	/local
+		idx [integer!]
+		res [integer!]
+		str [integer!]
+][
+	idx: objc_msgSend [self sel_getUid "indexOfSelectedItem"]		;-- 1-based index
+	str: objc_msgSend [self sel_getUid "titleOfSelectedItem"]
+	if idx > 0 [
+		res: make-event self idx EVT_SELECT
+		set-selected self idx
+		set-text self str
+		if res = EVT_DISPATCH [
+			make-event self idx EVT_CHANGE
+		]
+	]
+	objc_msgSend [self sel_getUid "setTitle:" str]
+]
+
 on-key-down: func [
 	[cdecl]
 	self	[integer!]
@@ -686,7 +709,7 @@ should-terminate: func [
 	app		[integer!]
 	return: [integer!]
 ][
-	0			;-- NSTerminateCancel, so we don't exit the console
+	#either sub-system = 'gui [1][0]	;-- 0: NSTerminateCancel, so we don't exit the console
 ]
 
 win-should-close: func [

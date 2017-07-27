@@ -37,6 +37,13 @@ Red [
 		--assert ["*test12*" #if #either #switch #case #do] 
 			= load {["*test12*" #if #either #switch #case #do]}
 		#process on
+	
+	--test-- "#do keep"
+		probe #do keep [1]
+		--assert 1 = #do keep [1]	
+	
+	--test-- "#do : issue #2924"
+		--assert 2 = (#do keep [2])
 
 ===end-group===
 

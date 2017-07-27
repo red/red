@@ -361,6 +361,18 @@ Red/System [
 	--test-- "fl-cast-9"
 		c: as integer! foo37 789.0
 		--assert c = 789
+		
+	--test-- "fl-cast-10"
+		tm: 100.9
+		--assert 200 = (100 + as-integer tm)
+	
+	--test-- "fl-cast-11"
+		to-epoch: func [tm [float!] return: [integer!] /local base [integer!] f [float!]][
+			base: 100
+			f: tm + 0.5
+			base + as-integer f
+		]
+		--assert 201 = to-epoch 100.9
 
 ===end-group===
 
