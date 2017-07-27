@@ -837,12 +837,12 @@ make-profilable make target-class [
 	]
 	
 	emit-alloc-stack: does [
-		emit-i32 #{e240d000}						;-- SUB sp, r0
+		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		emit-i32 #{e20dd0fc}						;-- AND sp, #-4 ; align to lower bound
 	]
 
 	emit-free-stack: does [
-		emit-i32 #{e1e00000}						;-- NEG r0			; MVN r0, r0
+		emit-i32 #{e1e00100}						;-- NEG r0, LSL #2	; MVN r0, r0, LSL #2
 		emit-i32 #{e3c00003}						;-- AND r0, #-4
 		emit-i32 #{e1e00000}						;-- NEG r0			; align to upper bound
 		emit-i32 #{e08dd000}						;-- ADD sp, sp, r0
