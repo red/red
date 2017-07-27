@@ -59,10 +59,13 @@ url: context [
 		spec	[red-value!]
 		type	[integer!]
 		return:	[red-url!]
+		/local
+			type2 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
 		
-		either all [type = TYPE_URL TYPE_OF(spec) = TYPE_BLOCK][ ;-- file! inherits from url!
+		type2: TYPE_OF(spec)
+		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
 			to proto spec type
 		][
 			as red-url! string/make as red-string! proto spec type
@@ -132,12 +135,14 @@ url: context [
 			blk	   [red-block!]
 			value  [red-value!]
 			tail   [red-value!]
+			type2  [integer!]
 			s	   [series!]
 			sep	   [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
 
-		either all [type = TYPE_URL TYPE_OF(spec) = TYPE_BLOCK][ ;-- file! inherits from url!
+		type2: TYPE_OF(spec)
+		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
 			buffer: string/make-at proto 16 1
 			buffer/header: TYPE_URL
 			
