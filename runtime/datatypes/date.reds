@@ -685,10 +685,10 @@ date: context [
 		#if debug? = yes [if verbose > 0 [print-line "date/to"]]
 
 		switch TYPE_OF(spec) [
-			TYPE_INTEGER [0]
-			TYPE_DATE	 [return spec]
-			TYPE_BLOCK	 [return create proto spec type yes]
-			default 	 [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]]
+			TYPE_INTEGER  [0]
+			TYPE_DATE	  [return spec]
+			TYPE_ANY_LIST [return create proto spec type yes]
+			default 	  [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_DATE spec]]
 		]
 		int: as red-integer! spec
 		dt: as red-date! proto
