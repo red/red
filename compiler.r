@@ -2910,6 +2910,7 @@ red: context [
 		unless block? pc/1 [
 			throw-error "CASE expects a block as argument"
 		]
+		if empty? pc/1 [emit 'none/push insert-lf -1 exit]
 		
 		saved: pc
 		pc: pc/1
