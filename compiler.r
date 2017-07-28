@@ -2756,7 +2756,8 @@ red: context [
 	]
 	
 	comp-routine: has [name word spec spec* body spec-idx body-idx original ctx ret][
-		name: check-func-name get-prefix-func to word! original: pc/-1
+		unless set-word? original: pc/-1 [throw-error "a routine must have a name"]
+		name: check-func-name get-prefix-func to word! original
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -3648,6 +3649,7 @@ red: context [
 				word? pc/1
 				any-function? pc/1
 			][
+				if pc/1 = 'routine! [throw-error "MAKE routine! is not supported"]
 				fetch-functions skip pc -2				;-- extract functions definitions
 				pc: back pc
 				comp-word/final
