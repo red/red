@@ -723,6 +723,7 @@ bitset: context [
 			int [red-integer!]
 	][
 		switch TYPE_OF(element) [
+			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either value <> null [
