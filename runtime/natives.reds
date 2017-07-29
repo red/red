@@ -430,7 +430,8 @@ natives: context [
 		/local blk [red-block!]
 	][
 		#typecheck has
-		blk: as red-block! stack/arguments
+		blk: block/clone as red-block! stack/arguments no no
+		blk: as red-block! copy-cell as red-value! blk stack/arguments
 		block/insert-value blk as red-value! refinements/local
 		blk/head: blk/head - 1
 		func* check?
