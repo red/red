@@ -764,10 +764,10 @@ unset: make native! [[
 
 new-line: make native! [[
 		"Sets or clears the new-line marker within a block or paren"
-		position [block! paren!] "Position to change marker (modified)"
-		value					 "Set TRUE for newline"
-		/all					 "Set/clear marker to end of series"
-		/skip					 "Set/clear marker periodically to the end of the series"
+		position [any-list!] "Position to change marker (modified)"
+		value				 "Set TRUE for newline"
+		/all				 "Set/clear marker to end of series"
+		/skip				 "Set/clear marker periodically to the end of the series"
 			size [integer!]
 		return:  [block! paren!]
 	]
