@@ -185,7 +185,21 @@ replace: function [
 	pattern
 	value
 	/all
+	/deep
 ][
+	if system/words/all [deep any-list? series][
+		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
+		parse series rule: [
+			some [
+				s: pattern e: (
+					s: change/part s value e
+					unless all [return series]
+				) :s
+				| into rule | skip
+			]
+		]
+		return series
+	]
 	if system/words/all [char? :pattern any-string? series][
 		pattern: form pattern
 	]
