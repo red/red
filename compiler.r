@@ -1304,34 +1304,50 @@ red: context [
 		repend functions [name reduce [any [kind 'function!] arity spec refs]]
 	]
 	
-	fetch-functions: func [pos [block!] /local name type spec refs arity nat? proto entry][
+	fetch-functions: func [
+		pos [block!]
+		/local name type spec refs arity nat? proto entry saved defer invalid-spec
+	][
 		if any [tail? pos not any-word? pos/1][
 			pc: back pc
 			throw-error "Non-compilable function definition"
 		]
+		invalid-spec: [throw-error ["invalid argument function to make op!:" mold copy/part at pos 4 2]]
+		
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
 			native! [nat?: yes if find intrinsics name [type: 'intrinsic!]]
 			action! [append actions name]
-			op!     [repend op-actions [name proto: get-prefix-func to word! pos/4]]
-		]
-		spec: either pos/3 = 'op! [
-			either entry: find functions proto [
-				if all [proto <> to word! pos/4 1 < length? obj-stack][
-					append entry/2 select objects do obj-stack	;-- append context name if method
+			op!     [
+				if find [has does] pos/4 invalid-spec
+				either find [func function] pos/4 [		;-- anon function case
+					unless block? spec: pos/5 invalid-spec
+					defer: name
+				][
+					repend op-actions [name proto: get-prefix-func to word! pos/4]
 				]
-				entry/2/3
-			][
-				throw-error ["Cannot MAKE OP! from unknown function:" mold pos/4]
 			]
-		][
-			clean-lf-deep pos/4/1
+		]
+		unless spec [
+			spec: either pos/3 = 'op! [
+				either entry: find functions proto [
+					if 1 < length? obj-stack [
+						append entry/2 select objects do obj-stack	;-- append context name if method
+					]
+					entry/2/3
+				][
+					throw-error ["Cannot MAKE OP! from unknown function:" mold pos/4]
+				]
+			][
+				clean-lf-deep pos/4/1
+			]
 		]
 		if nat? [prepare-typesets name spec]
 		set [refs arity] make-refs-table spec
 		repend functions [name reduce [type arity spec refs]]
+		defer
 	]
 	
 	emit-path: func [
@@ -3662,9 +3678,20 @@ red: context [
 				any-function? pc/1
 			][
 				if pc/1 = 'routine! [throw-error "MAKE routine! is not supported"]
-				fetch-functions skip pc -2				;-- extract functions definitions
+				defer: fetch-functions skip pc -2		;-- extract functions definitions
 				pc: back pc
 				comp-word/final
+				if defer [								;-- make op! func ... post-processing
+					repend op-actions [
+						defer
+						name: to word! next next form first find/last skip tail output -10 get-word!
+					]
+					all [
+						entry: find functions name
+						1 < length? obj-stack
+						append entry/2 select objects do obj-stack	;-- append context name if method
+					]
+				]
 			]
 			all [
 				not literal
