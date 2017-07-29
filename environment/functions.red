@@ -181,11 +181,12 @@ repend: func [
 ]
 
 replace: function [
-	series [series!]
-	pattern
-	value
-	/all
-	/deep
+	"Replaces values in a series, in place"
+	series [series!] "The series to be modified"
+	pattern "Specific value or parse rule pattern to match"
+	value "New value, replaces pattern in the series"
+	/all  "Replace all occurrences, not just the first"
+	/deep "Replace pattern in all sub-lists as well"
 ][
 	if system/words/all [deep any-list? series][
 		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
