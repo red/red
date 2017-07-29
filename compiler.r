@@ -2338,20 +2338,32 @@ red: context [
 	]
 		
 	comp-foreach: has [word blk cond ctx idx][
-		either block? pc/1 [
-			;TBD: raise error if not a block of words only
-			foreach word blk: pc/1 [
-				add-symbol word
+		case [
+			block? pc/1 [
+				;TBD: raise error if not a block of words only
+				foreach word blk: pc/1 [
+					add-symbol word
+					add-global word
+				]
+				idx: either ctx: find-contexts to word! blk/1 [
+					redbin/emit-block/with blk ctx
+				][
+					redbin/emit-block blk
+				]
+			]
+			word? pc/1 [
+				add-symbol word: pc/1
 				add-global word
 			]
-			idx: either ctx: find-contexts to word! blk/1 [
-				redbin/emit-block/with blk ctx
-			][
-				redbin/emit-block blk
+			'else [										;-- fallback option
+				emit-open-frame 'foreach
+				comp-expression
+				comp-expression
+				comp-expression
+				emit-native 'foreach
+				emit-close-frame
+				exit
 			]
-		][
-			add-symbol word: pc/1
-			add-global word
 		]
 		pc: next pc
 		
