@@ -507,7 +507,7 @@ system/lexer: context [
 			| "1" digit digit
 			| opt #"0" non-zero digit
 			| 0 2 #"0" digit
-			| #"0"
+			| 1 2 #"0"
 		]
 
 		;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
