@@ -108,6 +108,10 @@ add-slider-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "slider-change:" as-integer :slider-change "v@:@"
 ]
 
+add-droplist-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "popup-button-action:" as-integer :popup-button-action "v@:@"
+]
+
 add-text-field-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "textDidChange:" as-integer :text-did-change "v@:@"
 	class_addMethod class sel_getUid "textDidEndEditing:" as-integer :text-did-end-editing "v@:@"
@@ -219,6 +223,7 @@ register-classes: does [
 	make-super-class "RedTextField"		"NSTextField"			as-integer :add-text-field-handler STORE_FACE_FLAG
 	make-super-class "RedTextView"		"NSTextView"			as-integer :add-area-handler STORE_FACE_FLAG
 	make-super-class "RedComboBox"		"NSComboBox"			as-integer :add-combo-box-handler STORE_FACE_FLAG
+	make-super-class "RedPopUpButton"	"NSPopUpButton"			as-integer :add-droplist-handler STORE_FACE_FLAG
 	make-super-class "RedTableView"		"NSTableView"			as-integer :add-table-view-handler STORE_FACE_FLAG
 	make-super-class "RedCamera"		"NSView"				as-integer :add-camera-handler STORE_FACE_FLAG
 	make-super-class "RedTabView"		"NSTabView"				as-integer :add-tabview-handler STORE_FACE_FLAG

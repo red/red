@@ -444,9 +444,15 @@ _series: context [
 
 			index: target/head - items
 		][												;-- different series case
+			type2: TYPE_OF(target)
+			if any [
+				all [ANY_BLOCK?(type1)  ANY_STRING?(type2)]
+				all [ANY_STRING?(type1)	ANY_BLOCK?(type2)]
+			][
+				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
+			]
 			ownership/check as red-value! target words/_move null origin/head items
 			
-			type2: TYPE_OF(target)
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
 			if unit <> unit2 [

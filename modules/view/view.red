@@ -810,7 +810,7 @@ view: function [
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set spec make object! opts]
-	if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
+	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]

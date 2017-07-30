@@ -744,7 +744,9 @@ process-custom-draw: func [
 				][
 					rc/left: rc/left + 16
 				]
-				DrawText DC unicode/to-utf16 txt -1 rc flags
+				if TYPE_OF(txt) = TYPE_STRING [
+					DrawText DC unicode/to-utf16 txt -1 rc flags
+				]
 				SetBkMode DC old
 				return CDRF_SKIPDEFAULT
 			]

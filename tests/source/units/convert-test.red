@@ -333,11 +333,10 @@ Red [
 		--assert url? to url! 1.1.1
 		--assert "1.1.1" = form to url! 1.1.1
 	   --test-- "to-url!-paren!"
-		   --assert url? to url! first [()]
-		   --assert "" = form to url! first [()]
+		   --assert error? try [to url! first [()]]
 	   --test-- "to-url!-paren!"
 		--assert url? to url! first [(1 2)]
-		--assert "12" = form to url! first [(1 2)]
+		--assert "1://2" = form to url! first [(1 2)]
 	--test-- "to-url!-tag!"
 		--assert url? to url! <a>
 		--assert "a" = form to url! <a>

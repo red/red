@@ -477,19 +477,27 @@ get-time: func [
 	gettimeofday time 0
 	tm: gmtime as int-ptr! time
 	micro: 0.0
-	if precise? [micro: as-float time/tv_usec]
-	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec * 1000
-	t * 1E3 + micro * 1E3			;-- nano second
+	if precise? [
+		micro: as-float time/tv_usec
+		micro: micro / 1E6
+	]
+	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec
+	t + micro
 ]
 
 get-timezone: func [
 	return: [integer!]
 	/local
 		t	[integer!]
+		t2	[integer!]
+		tm	[tm!]
 ][
 	t: 0
 	time :t
-	t: as-integer difftime mktime localtime :t mktime gmtime :t
+	tm: localtime :t
+	tm/isdst: 0
+	t2: mktime tm
+	t: as-integer difftime t2 mktime gmtime :t
 	t / 60
 ]
 

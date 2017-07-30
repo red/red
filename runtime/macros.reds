@@ -412,6 +412,14 @@ Red/System [
 	]
 ]
 
+#define ANY_LIST(type)	[
+	any [
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_HASH
+	]
+]
+
 #define ANY_PATH?(type)	[
 	any [
 		type = TYPE_PATH

@@ -837,12 +837,12 @@ make-profilable make target-class [
 	]
 	
 	emit-alloc-stack: does [
-		emit-i32 #{e240d000}						;-- SUB sp, r0
+		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		emit-i32 #{e20dd0fc}						;-- AND sp, #-4 ; align to lower bound
 	]
 
 	emit-free-stack: does [
-		emit-i32 #{e1e00000}						;-- NEG r0			; MVN r0, r0
+		emit-i32 #{e1e00100}						;-- NEG r0, LSL #2	; MVN r0, r0, LSL #2
 		emit-i32 #{e3c00003}						;-- AND r0, #-4
 		emit-i32 #{e1e00000}						;-- NEG r0			; align to upper bound
 		emit-i32 #{e08dd000}						;-- ADD sp, sp, r0
@@ -1988,7 +1988,7 @@ make-profilable make target-class [
 	
 	emit-math-op: func [
 		name [word!] a [word!] b [word!] args [block!]
-		/local mod? scale c type arg2 op-poly
+		/local mod? scale c type arg2 op-poly load?
 	][
 		;-- r0 = a, r1 = b
 		if find mod-rem-op name [					;-- work around unaccepted '// and '%
@@ -1996,6 +1996,12 @@ make-profilable make target-class [
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		arg2: compiler/unbox args/2
+		load?: not all [
+			object? args/2
+			b = 'ref
+			args/2/type/1 = 'integer!
+			compiler/any-float? compiler/get-variable-spec args/2/data
+		]
 
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
@@ -2033,7 +2039,7 @@ make-profilable make target-class [
 						emit-op-imm32 #{e2900000} arg2 ;-- ADDS r0, r0, #value
 					]
 					ref [
-						emit-load/alt arg2
+						if load? [emit-load/alt arg2]
 						do op-poly
 					]
 					reg [do op-poly]
@@ -2046,7 +2052,7 @@ make-profilable make target-class [
 						emit-op-imm32 #{e2500000} arg2 ;-- SUBS r0, r0, #value
 					]
 					ref [
-						emit-load/alt arg2
+						if load? [emit-load/alt arg2]
 						do op-poly
 					]
 					reg [do op-poly]
@@ -2070,7 +2076,7 @@ make-profilable make target-class [
 					]
 					ref [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 						do op-poly
 						emit-i32 #{e8bd0002}		;-- POP {r1}
 					]
@@ -2085,7 +2091,7 @@ make-profilable make target-class [
 					]
 					ref [
 						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
-						emit-load/alt args/2
+						if load? [emit-load/alt args/2]
 					]
 				]
 				call-divide mod?
@@ -2168,7 +2174,19 @@ make-profilable make target-class [
 			find [imm reg] b
 			args/2/type/1 <> 'integer!				;-- skip explicit casting to integer! (implicit)
 		][
-			implicit-cast right
+			either all [
+				object? args/2
+				b = 'ref
+				args/2/type/1 = 'integer!
+				compiler/any-float? compiler/get-variable-spec args/2/data
+			][
+				emit-i32 #{e1a04000}				;-- MOV r4, r0	; save a
+				emit-load/alt args/2/data
+				implicit-cast right
+				emit-i32 #{e1a00004}				;-- MOV r0, r4	; restore a
+			][
+				implicit-cast right
+			]
 		]
 		case [
 			find comparison-op name [emit-comparison-op name a b args]

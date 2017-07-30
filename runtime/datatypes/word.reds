@@ -288,6 +288,29 @@ word: context [
 		str/cache: null
 		str
 	]
+	
+	check-1st-char: func [
+		w [red-word!]
+		/local
+			sym [red-symbol!]
+			buf	[series!]
+			s   [c-string!]
+			cp  [integer!]
+			c   [byte!]
+	][
+		sym: symbol/get w/symbol
+		buf: as series! sym/node/value
+		cp: string/get-char as byte-ptr! buf/offset GET_UNIT(buf)
+		if cp > 127 [exit]
+		c: as-byte cp
+		
+		s: {/\^^,[](){}"#%$@:;'0123465798}
+		until [
+			if c = s/1 [fire [TO_ERROR(syntax bad-char) w]]
+			s: s + 1
+			s/1 = null-byte
+		]
+	]
 
 	;-- Actions --
 	
@@ -353,8 +376,11 @@ word: context [
 			TYPE_SET_WORD
 			TYPE_GET_WORD
 			TYPE_LIT_WORD
-			TYPE_REFINEMENT
-			TYPE_ISSUE [proto: spec]
+			TYPE_REFINEMENT [proto: spec]
+			TYPE_ISSUE [
+				check-1st-char as red-word! spec
+				proto: spec
+			]
 			TYPE_STRING [
 				len: 0
 				val: as red-value! :len

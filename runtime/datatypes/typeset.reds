@@ -391,7 +391,13 @@ typeset: context [
 			COMP_EQUAL
 			COMP_SAME
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL
+			COMP_NOT_EQUAL [
+				res: as-integer any [
+					set1/array1 <> set2/array1
+					set1/array2 <> set2/array2
+					set1/array3 <> set2/array3
+				]
+			]
 			COMP_SORT
 			COMP_CASE_SORT [
 				res: SIGN_COMPARE_RESULT((rs-length? set1) (rs-length? set2))

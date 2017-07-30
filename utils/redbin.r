@@ -146,7 +146,7 @@ context [
 	]
 	
 	emit-time: func [value [time!]][
-		emit-float/with 1E9 * to decimal! value 'TYPE_TIME
+		emit-float/with to decimal! value 'TYPE_TIME
 	]
 	
 	emit-date: func [value [date!] /with zone][

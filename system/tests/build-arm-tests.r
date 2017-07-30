@@ -86,6 +86,14 @@ write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
 if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
+;; get the correct structlib
+structlib-version: switch target [
+	"Linux-ARM" [%libstructlib-armsf.so]
+	"Android" [%libstructlib-android.so]
+	"RPi" [%libstructlib-armhf.so]
+]
+write/binary arm-dir/libstructlib.so read/binary join %source/units/libs/ structlib-version
+
 ;; get the list of test source files
 test-files: copy []
 all-tests: read %run-all.r

@@ -501,7 +501,8 @@ Red [
 		binary/rs-append bin src bytes
 		bin
 	]
-	
+
+#if find [Windows macOS] OS [
 	redImage: func [
 		width	[integer!]
 		height	[integer!]
@@ -542,6 +543,7 @@ Red [
 		]
 		img
 	]
+]
 	
 	;redVector: func [
 	;	
@@ -1282,7 +1284,9 @@ Red [
 		redTuple
 		redTuple4
 		redBinary
+#if find [Windows macOS] OS [
 		redImage
+]
 		redString
 		redSymbol
 		redWord

@@ -181,11 +181,26 @@ repend: func [
 ]
 
 replace: function [
-	series [series!]
-	pattern
-	value
-	/all
+	"Replaces values in a series, in place"
+	series [series!] "The series to be modified"
+	pattern "Specific value or parse rule pattern to match"
+	value "New value, replaces pattern in the series"
+	/all  "Replace all occurrences, not just the first"
+	/deep "Replace pattern in all sub-lists as well"
 ][
+	if system/words/all [deep any-list? series][
+		pattern: to block! either word? p: pattern [to lit-word! pattern][pattern]
+		parse series rule: [
+			some [
+				s: pattern e: (
+					s: change/part s value e
+					unless all [return series]
+				) :s
+				| into rule | skip
+			]
+		]
+		return series
+	]
 	if system/words/all [char? :pattern any-string? series][
 		pattern: form pattern
 	]
@@ -489,7 +504,7 @@ mod: func [
 ]
 
 modulo: func [
-	"{Wrapper for MOD that handles errors like REMAINDER. Negligible values (compared to A and B) are rounded to zero"
+	"Wrapper for MOD that handles errors like REMAINDER. Negligible values (compared to A and B) are rounded to zero"
 	a		[number! char! pair! tuple! vector! time!]
 	b		[number! char! pair! tuple! vector! time!]
 	return: [number! char! pair! tuple! vector! time!]
