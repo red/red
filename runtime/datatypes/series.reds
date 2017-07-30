@@ -551,27 +551,11 @@ _series: context [
 		size: (as-integer s/tail - s/offset) >> (log-b unit)
 
 		type: TYPE_OF(ser)
-		blk?: any [
-			type = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-			type = TYPE_PATH				;@@ replace it with: typeset/any-block?
-			type = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-			type = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-		]
+		blk?: ANY_BLOCK?(type)
 
 		values?: either all [only? blk?][no][
 			n: TYPE_OF(value)
-			any [
-				n = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-				n = TYPE_PATH				;@@ replace it with: typeset/any-block?
-				n = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-				n = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-			]
+			ANY_BLOCK?(n)
 		]
 
 		items: either values? [
