@@ -198,6 +198,7 @@ red: context [
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
+		collector/keep root/node						;-- mark root series permanently
 
 		case-folding/init
 		symbol/table: _hashtable/init 1000 symbols HASH_TABLE_SYMBOL 1

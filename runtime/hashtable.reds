@@ -160,9 +160,9 @@ _hashtable: context [
 	][
 		s: as series! table/value
 		h: as hashtable! s/offset
-		collector/keep h/indexes
-		collector/keep h/flags
-		collector/keep h/keys
+		if h/indexes <> null [collector/keep h/indexes]
+		if h/flags <> null 	 [collector/keep h/flags]
+		if h/keys <> null 	 [collector/keep h/keys]
 	]
 
 	round-up: func [

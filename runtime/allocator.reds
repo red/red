@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define flag-gc-mark		08000000h		;-- mark as referenced for the GC (mark phase)
-#define flag-series-big		01000000h		;-- 1 = big, 0 = series
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --
@@ -426,82 +424,81 @@ free-series-frame: func [
 ;-- Update moved series internal pointers
 ;-------------------------------------------
 update-series: func [
-	series	[series-buffer!]				;-- start of series region with nodes to re-sync
+	s		[series!]						;-- start of series region with nodes to re-sync
 	offset	[integer!]
+	size	[integer!]
+	/local
+		tail [byte-ptr!]
 ][
+	tail: (as byte-ptr! s) + size
 	until [
-		series/flags: series/flags and not flag-gc-mark
+		;-- clear mark flag
+		s/flags: s/flags and not flag-gc-mark
+		
 		;-- update the node pointer to the new series address
-		series/node/value: as-integer series
-	
+		s/node/value: as-integer s
+		
 		;-- update offset and tail pointers
-		series/offset: as cell! (as byte-ptr! series/offset) - offset
-		series/tail:   as cell! (as byte-ptr! series/tail) - offset
+		s/offset: as cell! (as byte-ptr! s/offset) - offset
+		s/tail:   as cell! (as byte-ptr! s/tail) - offset
 		
 		;-- advance to the next series buffer
-		series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
-		
-		;-- exit when a freed series is met (<=> end of region)
-		zero? (series/flags and flag-gc-mark)
+		s: as series! (as byte-ptr! s + 1) + s/size
+
+		;-- exit when a freed series is met or top of heap is reached
+		any [tail <= as byte-ptr! s s/flags and flag-gc-mark = 0]
 	]
 ]
 
 ;-------------------------------------------
 ;-- Compact a series frame by moving down in-use series buffer regions
 ;-------------------------------------------
-#define SM1_INIT		1					;-- enter the state machine
-#define SM1_GAP			2					;-- begin of contiguous region of freed buffers (hole)
-#define SM1_GAP_END		3					;-- end of freed buffers region 
-#define SM1_USED		4					;-- begin of contiguous region of buffers in use
-#define SM1_USED_END	5					;-- end of used buffers region 
-
 compact-series-frame: func [
 	frame [series-frame!]					;-- series frame to compact
-	/local heap series state
-		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
+	/local
+		s	  [series!]
+		heap  [series!]
+		src	  [byte-ptr!]
+		dst	  [byte-ptr!]
+		size  [integer!]
+		tail? [logic!]
 ][
-	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
-	free?: zero? (series/flags and flag-gc-mark)  ;-- true: series is not used
-	series/flags: series/flags and not flag-gc-mark
+	s: as series! frame + 1					;-- point to first series buffer
 	heap: frame/heap
-		
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
-	state: SM1_INIT
 
 	until [
-		if all [state = SM1_INIT free?][
-			dst: as byte-ptr! series		 ;-- start of gap region
-			state: SM1_GAP
+		tail?: no
+		if s/flags and flag-gc-mark = 0 [	;-- if live, search for a gap
+			dst: as byte-ptr! s
+			until [							;-- search for a live series
+				s: as series! (as byte-ptr! s + 1) + s/size
+				tail?: s >= heap
+				any [tail? s/flags and flag-gc-mark <> 0]
+			]
 		]
-		if all [state = SM1_GAP not free?][ ;-- search for first used series (<=> end of gap)
-			state: SM1_GAP_END
+		unless tail? [
+			src: as byte-ptr! s
+			until [							;-- search for a gap
+				s: as series! (as byte-ptr! s + 1) + s/size
+				tail?: s >= heap
+				any [tail? s/flags and flag-gc-mark = 0]
+			]
+			unless tail? [
+				if dst <> null [
+					assert dst < src			;-- regions are moved down in memory
+					assert src < as byte-ptr! s ;-- src should point at least at series - series/size
+					size: as-integer s - src
+					move-memory dst	src size
+					update-series as series! dst as-integer src - dst size
+				]
+			]
 		]
-		if state = SM1_GAP_END [
-			src: as byte-ptr! series		 ;-- start of new "alive" region
-			state: SM1_USED
-		]
-	 	;-- point to next series buffer
-		series: as series-buffer! (as byte-ptr! series) + series/size  + size? series-buffer!
-		free?: zero? (series/flags and flag-gc-mark)  ;-- true: series is not used
-		series/flags: series/flags and not flag-gc-mark
-
-		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
-			state: SM1_USED_END
-		]
-		if state = SM1_USED_END [
-			assert dst < src				 ;-- regions are moved down in memory
-			assert src < as byte-ptr! series ;-- src should point at least at series - series/size
-			copy-memory dst	src as-integer series - src			
-			update-series as series-buffer! dst as-integer src - dst
-			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
-			state: SM1_GAP
-		]
-		series >= heap						;-- exit state machine
+		tail?
 	]
-	
-	unless null? dst [						;-- no compaction occurred, all series were in use
-		frame/heap: as series-buffer! dst	;-- set new heap after last moved region
+	if dst <> null [						;-- no compaction occurred, all series were in use
+		frame/heap: s						;-- set new heap after last moved region
 	]
 ]
 

@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %collector.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2015 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2015-2017 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/red/red/blob/master/BSL-License.txt
@@ -34,8 +34,8 @@ collector: context [
 		/local
 			ctx  [red-context!]
 	][
-		unless keep node [exit]		
-		ctx: TO_CTX(node)		
+		unless keep node [exit]
+		ctx: TO_CTX(node)
 		keep ctx/symbols
 		unless ON_STACK?(ctx) [mark-block-node ctx/values]
 	]
@@ -54,7 +54,7 @@ collector: context [
 			native	[red-native!]
 			s		[series!]
 	][
-		while [value < tail][	
+		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 
 				TYPE_GET_WORD
@@ -62,8 +62,14 @@ collector: context [
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT [
 					word: as red-word! value
-					if word/ctx <> null [				
-						mark-context word/ctx
+					if word/ctx <> null [
+						;print-symbol word
+						;print "^/"
+						either word/symbol = words/self [
+							mark-block-node word/ctx
+						][
+							mark-context word/ctx
+						]
 					]
 				]
 				TYPE_BLOCK
@@ -84,6 +90,7 @@ collector: context [
 							]
 						]
 					]
+					;if series/extra <> 0 [keep as node! series/extra]
 				]
 				TYPE_STRING
 				TYPE_URL 
@@ -94,7 +101,7 @@ collector: context [
 					keep series/node
 				]
 				TYPE_OBJECT [
-					obj: as red-object! value					
+					obj: as red-object! value
 					mark-context obj/ctx
 					if obj/on-set <> null [keep obj/on-set]
 				]
@@ -158,6 +165,7 @@ collector: context [
 		mark-block root
 		probe "sweeping..."
 		collect-frames
+		probe "done!"
 	]
 	
 ]
