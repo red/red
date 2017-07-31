@@ -585,6 +585,9 @@ date: context [
 						i: either all [cnt = 5 min <> 0][min][zone]
 						mn: 0
 					]
+					if all [cnt = 7 zone-t = 0.0 any [zone > 15 zone < -15]][
+						throw-error spec
+					]
 					neg?: either i < 0 [i: 0 - i yes][no]
 					zone: i << 2 and 7Fh or mn
 					if neg? [zone: DATE_SET_ZONE_NEG(zone)]
@@ -602,8 +605,8 @@ date: context [
 		dt/header: TYPE_DATE
 		dt/date: DATE_SET_YEAR(0 year)
 		set-month dt month
-		dt/date: days-to-date day + date-to-days dt/date zone cnt > 3
-		set-time dt ftime yes
+		dt/date: days-to-date day + date-to-days dt/date 0 cnt > 3
+		set-time dt ftime no
 		
 		unless norm? [
 			d: dt/date
@@ -623,6 +626,9 @@ date: context [
 				]]
 			][throw-error spec]
 		]
+		dt/date: DATE_SET_ZONE(dt/date zone)
+		set-time dt dt/time yes
+		
 		as red-value! dt
 	]
 
