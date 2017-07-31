@@ -192,7 +192,7 @@ date: context [
 			f	[float!]
 	][
 		;@@ use int64 once we have it
-		f: 10000.0 * days
+		f: 10000.0 * as-float days
 		y: as-integer (f + 14780.0 / 3652425.0)
 
 		dd: days - (365 * y + (y / 4) - (y / 100) + (y / 400))
