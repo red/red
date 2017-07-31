@@ -20,6 +20,47 @@ gtk-app-activate: func [
 	probe "active"
 ]
 
+set-selected: func [
+	obj [handle!]
+	ctx [node!]
+	idx [integer!]
+	/local
+		int [red-integer!]
+][
+	int: as red-integer! get-node-facet ctx FACE_OBJ_SELECTED
+	int/header: TYPE_INTEGER
+	int/value: idx
+]
+
+set-text: func [
+	obj		[handle!]
+	ctx		[node!]
+	text	[c-string!]
+	/local
+		size [integer!]
+		str	 [red-string!]
+		face [red-object!]
+		out	 [c-string!]
+][
+	size: length? text
+	if size >= 0 [
+		str: as red-string! get-node-facet ctx FACE_OBJ_TEXT
+		if TYPE_OF(str) <> TYPE_STRING [
+			str/node: unicode/load-utf8 text size
+		]
+		if size = 0 [
+			string/rs-reset str
+			exit
+		]
+		
+		face: push-face obj
+		if TYPE_OF(face) = TYPE_OBJECT [
+			ownership/bind as red-value! str face _text
+		]
+		stack/pop 1
+	]
+]
+
 button-clicked: func [
 	[cdecl]
 	widget	[handle!]
@@ -90,7 +131,7 @@ window-removed-event: func [
 	count/value: count/value - 1
 ]
 
-value-changed: func [
+range-value-changed: func [
 	[cdecl]
 	range	[handle!]
 	ctx		[node!]
@@ -123,4 +164,25 @@ value-changed: func [
 	pos/value: val / max
 	make-event range 0 EVT_CHANGE
 	;]
+]
+
+combo-selection-changed: func [
+	[cdecl]
+	combo	[handle!]
+	ctx		[node!]
+	/local
+		idx [integer!]
+		res [integer!]
+		text [c-string!]
+][
+	idx: gtk_combo_box_get_active combo
+	if idx >= 0 [
+		res: make-event combo idx + 1 EVT_SELECT
+		set-selected combo ctx idx + 1
+		text: gtk_combo_box_text_get_active_text combo
+		set-text combo ctx text
+		if res = EVT_DISPATCH [
+			make-event combo idx + 1 EVT_CHANGE
+		]
+	]
 ]

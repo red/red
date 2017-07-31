@@ -305,6 +305,52 @@ store-face-to-obj: func [
 	g_object_set_qdata obj red-face-id as int-ptr! storage
 ]
 
+init-combo-box: func [
+	combo		[handle!]
+	data		[red-block!]
+	caption		[c-string!]
+	drop-list?	[logic!] ;to remove if unused
+	/local
+		str	 [red-string!]
+		tail [red-string!]
+		len  [integer!]
+		val  [c-string!]
+][
+	if any [
+		TYPE_OF(data) = TYPE_BLOCK
+		TYPE_OF(data) = TYPE_HASH
+		TYPE_OF(data) = TYPE_MAP
+	][
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+
+		;remove all items
+		gtk_combo_box_text_remove_all combo
+
+		if str = tail [exit]
+
+		while [str < tail][
+			if TYPE_OF(str) = TYPE_STRING [
+				len: -1
+				val: unicode/to-utf8 str :len
+				gtk_combo_box_text_append_text combo val
+			]
+			str: str + 1
+		]
+	]
+
+	;len: objc_msgSend [combo sel_getUid "numberOfItems"]
+	;if zero? len [objc_msgSend [combo sel_getUid "setStringValue:" NSString("")]]
+
+	;either drop-list? [
+	;	objc_msgSend [combo sel_getUid "setEditable:" false]
+	;][
+	;	if caption <> 0 [
+	;		objc_msgSend [combo sel_getUid "setStringValue:" caption]
+	;	]
+	;]
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -454,7 +500,7 @@ OS-make-view: func [
 			gtk_scale_set_has_origin widget no
 			gtk_scale_set_draw_value widget no
 			; insert value-changed handler
-			gobj_signal_connect(widget "value-changed" :value-changed face/ctx)
+			gobj_signal_connect(widget "value-changed" :range-value-changed face/ctx)
 		]
 		sym = text [
 			widget: gtk_label_new caption
@@ -467,6 +513,15 @@ OS-make-view: func [
 		]
 		sym = area [
 			widget: gtk_text_view_new
+		]
+		any [
+			sym = drop-list
+			sym = drop-down
+		][
+			widget: either sym = drop-list [gtk_combo_box_text_new][gtk_combo_box_text_new_with_entry]
+			init-combo-box widget data caption sym = drop-list
+			gtk_combo_box_set_active widget 0
+			gobj_signal_connect(widget "changed" :combo-selection-changed face/ctx)
 		]
 		true [
 			;-- search in user-defined classes
