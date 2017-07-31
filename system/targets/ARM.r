@@ -550,8 +550,21 @@ make-profilable make target-class [
 	
 	count-floats: func [spec [block!] /local cnt][
 		cnt: 0
-		parse spec [any [into ['float! | 'float64! | 'float32!] (cnt: cnt + 1) | skip]]		
+		parse spec [any [into ['float! | 'float64! | 'float32!] (cnt: cnt + 1) | skip]]
 		cnt
+	]
+	
+	count-regs: func [spec [block!] /local cnt][
+		cnt: 0
+		parse spec [
+			any [
+				into [['float! | 'float64!] (
+					cnt: cnt + pick [3 2] odd? cnt	;-- account for 64-bit alignment
+				)]
+				| skip (cnt: cnt + 1)
+			]
+		]
+		min 4 cnt
 	]
 	
 	extract-arguments: func [spec [block!] /local cnt][
@@ -2442,7 +2455,8 @@ make-profilable make target-class [
 						foreach-member type [
 							size: either all [
 								cconv = 'cdecl
-								type/1 = 'float32!
+								find [float! float64!] type/1
+								'float32! = compiler/get-type arg
 							][
 								8					;-- promote to C double
 							][
@@ -2752,6 +2766,7 @@ make-profilable make target-class [
 					]
 				]
 			][
+				args-nb: max args-nb count-regs extract-arguments args ;-- count registers accurately
 				repeat i args-nb [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
 					emit-i32 to char! shift/left 1 args-nb - i	;-- push in reverse order
