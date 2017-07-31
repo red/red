@@ -163,6 +163,7 @@ _hashtable: context [
 		if h/indexes <> null [collector/keep h/indexes]
 		if h/flags <> null 	 [collector/keep h/flags]
 		if h/keys <> null 	 [collector/keep h/keys]
+		if h/blk <> null 	 [collector/mark-block-node h/blk]
 	]
 
 	round-up: func [

@@ -34,10 +34,11 @@ collector: context [
 		/local
 			ctx  [red-context!]
 	][
-		unless keep node [exit]
-		ctx: TO_CTX(node)
-		keep ctx/symbols
-		unless ON_STACK?(ctx) [mark-block-node ctx/values]
+		if keep node [
+			ctx: TO_CTX(node)
+			keep ctx/symbols
+			unless ON_STACK?(ctx) [mark-block-node ctx/values]
+		]
 	]
 
 	mark-values: func [
@@ -80,7 +81,6 @@ collector: context [
 				TYPE_SET_PATH [
 					series: as red-series! value
 					if series/node <> null [			;-- can happen in routine
-						keep series/node
 						mark-block as red-block! value
 
 						if TYPE_OF(value) = TYPE_PATH [
@@ -90,8 +90,8 @@ collector: context [
 							]
 						]
 					]
-					;if series/extra <> 0 [keep as node! series/extra]
 				]
+				TYPE_SYMBOL
 				TYPE_STRING
 				TYPE_URL 
 				TYPE_FILE
@@ -156,13 +156,28 @@ collector: context [
 		/local
 			s [series!]
 	][
-		s: GET_BUFFER(blk)
-		mark-values s/offset s/tail
+		if keep blk/node [
+			s: GET_BUFFER(blk)
+			mark-values s/offset s/tail
+		]
 	]
 	
-	do-cycle: does [
+	do-cycle: func [/local s [series!]][
 		probe "marking..."
+s: GET_BUFFER(symbols)	
+dump4 s
 		mark-block root
+		mark-block symbols
+dump4 s
+		
+		
+		keep stack/arg-stk/node
+		keep stack/call-stk/node
+		mark-values stack/bottom stack/top - 1
+		
+		keep case-folding/upper-to-lower/node
+		keep case-folding/lower-to-upper/node
+		
 		probe "sweeping..."
 		collect-frames
 		probe "done!"

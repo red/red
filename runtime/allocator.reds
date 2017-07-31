@@ -490,16 +490,18 @@ compact-series-frame: func [
 					assert dst < src			;-- regions are moved down in memory
 					assert src < as byte-ptr! s ;-- src should point at least at series - series/size
 					size: as-integer s - src
+?? size					
 					move-memory dst	src size
 					update-series as series! dst as-integer src - dst size
+					frame/heap: as series! dst + size
 				]
 			]
 		]
 		tail?
 	]
-	if dst <> null [						;-- no compaction occurred, all series were in use
-		frame/heap: s						;-- set new heap after last moved region
-	]
+	;if dst <> null [						;-- no compaction occurred, all series were in use
+	;	frame/heap: s						;-- set new heap after last moved region
+	;]
 ]
 
 collect-frames: func [
@@ -508,10 +510,33 @@ collect-frames: func [
 ][
 	frame: memory/s-head
 	until [
+probe ["before " frame]
+dump-frame frame
 		compact-series-frame frame
+probe ["after " frame]
+dump-frame frame
+probe "=========================================="
 		frame: frame/next
 		frame = null
 	]
+]
+
+dump-frame: func [
+	frame [series-frame!]					;-- series frame to compact
+	/local
+		s	  [series!]
+		heap  [series!]
+][
+	s: as series! frame + 1					;-- point to first series buffer
+	heap: frame/heap
+
+	until [
+		either s/flags and flag-gc-mark = 0 [prin "x "][prin "o "]
+		probe [s ": unit=" GET_UNIT(s) " size=" s/size]
+		s: as series! (as byte-ptr! s + 1) + s/size
+		s >= heap
+	]
+
 ]
 
 ;-------------------------------------------
