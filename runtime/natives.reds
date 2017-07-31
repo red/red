@@ -2073,6 +2073,7 @@ natives: context [
 		off? [integer!]
 	][
 		collector/do-cycle
+		unset/push-last		
 	]
 
 	to-local-file*: func [

@@ -164,15 +164,11 @@ collector: context [
 	
 	do-cycle: func [/local s [series!]][
 		probe "marking..."
-s: GET_BUFFER(symbols)	
-dump4 s
 		mark-block root
 		mark-block symbols
-dump4 s
 		
-		
-		keep stack/arg-stk/node
-		keep stack/call-stk/node
+		keep arg-stk/node
+		keep call-stk/node
 		mark-values stack/bottom stack/top - 1
 		
 		keep case-folding/upper-to-lower/node

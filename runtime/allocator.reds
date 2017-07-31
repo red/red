@@ -507,12 +507,11 @@ collect-frames: func [
 ][
 	frame: memory/s-head
 	until [
-probe ["before " frame]
-dump-frame frame
+;probe ["before " frame]
+;dump-frame frame
 		compact-series-frame frame
-probe ["after " frame]
-dump-frame frame
-probe "=========================================="
+;probe ["after " frame]
+;dump-frame frame
 		frame: frame/next
 		frame = null
 	]

@@ -127,6 +127,9 @@ red: context [
 	root:	 	as red-block! 0							;-- root block
 	symbols: 	as red-block! 0 						;-- symbols table
 	global-ctx: as node! 0								;-- global context
+	arg-stk:	as red-block!	0						;-- argument stack (should never be relocated)
+	call-stk:	as red-block!	0						;-- call stack (should never be relocated)
+
 	verbosity:  0
 
 	;-- Booting... --
@@ -198,6 +201,8 @@ red: context [
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 2000
 		global-ctx: _context/create 2000 no no
+		arg-stk:	block/make-in root 1024
+		call-stk:	block/make-in root 512
 
 		case-folding/init
 		symbol/table: _hashtable/init 2000 symbols HASH_TABLE_SYMBOL 1

@@ -30,8 +30,6 @@ stack: context [										;-- call stack
 		ctx	   [node!]									;-- context for function's name
 	]
 	
-	arg-stk:		as red-block!	0					;-- argument stack (should never be relocated)
-	call-stk:		as red-block!	0					;-- call stack (should never be relocated)
 	args-series:	as series!		0
 	calls-series:	as series!		0
 	a-end: 			as red-value!	0
@@ -85,12 +83,6 @@ stack: context [										;-- call stack
 	]
 	
 	init: does [
-		arg-stk:  block/make-in root 1024
-		call-stk: block/make-in root 512
-
-		set-flag arg-stk/node  flag-series-fixed or flag-series-nogc
-		set-flag call-stk/node flag-series-fixed or flag-series-nogc
-
 		;-- Shortcuts for stack buffers simpler and faster access
 		;-- (stack buffers are not resizable with such approach
 		;-- this can be made more flexible (but slower) if necessary
