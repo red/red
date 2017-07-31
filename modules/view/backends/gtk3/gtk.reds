@@ -271,6 +271,31 @@ tagSIZE: alias struct! [
 		gtk_text_view_new: "gtk_text_view_new" [
 			return:		[handle!]
 		]
+		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
+			return:		[handle!]
+		]
+		gtk_combo_box_text_new_with_entry: "gtk_combo_box_text_new_with_entry"  [
+			return:		[handle!]
+		]
+		gtk_combo_box_text_append_text: "gtk_combo_box_text_append_text" [
+			combo		[handle!]
+			item 		[c-string!]
+		]
+		gtk_combo_box_text_remove_all: "gtk_combo_box_text_remove_all" [
+			combo		[handle!]
+		]
+		gtk_combo_box_get_active: "gtk_combo_box_get_active" [
+			combo		[handle!]
+			return: 	[integer!]
+		]
+		gtk_combo_box_set_active: "gtk_combo_box_set_active" [
+			combo		[handle!]
+			item		[integer!]
+		]
+		gtk_combo_box_text_get_active_text: "gtk_combo_box_text_get_active_text"  [
+			combo		[handle!]
+			return:		[c-string!]
+		]
 		gtk_css_provider_new: "gtk_css_provider_new" [
 			return:		[handle!]
 		]
