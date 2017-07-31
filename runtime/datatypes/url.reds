@@ -230,7 +230,7 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		part: simple-io/request-http HTTP_GET as red-url! src null null binary? lines? info?
+		part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
 		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
 		part
 	]
@@ -266,19 +266,13 @@ url: context [
 			blk: as red-block! data
 			either 0 = block/rs-length? blk [
 				header: null
-				action: HTTP_GET
+				action: words/get
 			][
 				method: as red-word! block/rs-head blk
 				if TYPE_OF(method) <> TYPE_WORD [
 					fire [TO_ERROR(script invalid-arg) method]
 				]
-				sym: symbol/resolve method/symbol
-				action: case [
-					sym = words/get  [HTTP_GET]
-					sym = words/put  [HTTP_PUT]
-					sym = words/post [HTTP_POST]
-					true [--NOT_IMPLEMENTED-- 0]
-				]
+				action: symbol/resolve method/symbol
 				either block/rs-next blk [null][
 					header: as red-block! block/rs-head blk
 					if TYPE_OF(header) <> TYPE_BLOCK [
@@ -289,9 +283,9 @@ url: context [
 			]
 		][
 			header: null
-			action: HTTP_POST
+			action: words/post
 		]
-		
+
 		if all [
 			data <> null
 			TYPE_OF(data) <> TYPE_BLOCK
