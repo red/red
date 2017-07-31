@@ -196,7 +196,7 @@ replace: function [
 					s: change/part s value e
 					unless all [return series]
 				) :s
-				| into rule | skip
+				| ahead any-list! into rule | skip
 			]
 		]
 		return series
