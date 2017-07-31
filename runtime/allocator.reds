@@ -471,7 +471,7 @@ compact-series-frame: func [
 	until [
 		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- if live, search for a gap
-			dst: as byte-ptr! s
+			if dst = null [dst: as byte-ptr! s]
 			until [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
@@ -485,28 +485,25 @@ compact-series-frame: func [
 				tail?: s >= heap
 				any [tail? s/flags and flag-gc-mark = 0]
 			]
-			unless tail? [
-				if dst <> null [
-					assert dst < src			;-- regions are moved down in memory
-					assert src < as byte-ptr! s ;-- src should point at least at series - series/size
-					size: as-integer s - src
-?? size					
-					move-memory dst	src size
-					update-series as series! dst as-integer src - dst size
-					frame/heap: as series! dst + size
-				]
+			if dst <> null [
+				assert dst < src			;-- regions are moved down in memory
+				assert src < as byte-ptr! s ;-- src should point at least at series - series/size
+				size: as-integer s - src
+				move-memory dst	src size
+				update-series as series! dst as-integer src - dst size
+				dst: dst + size
 			]
 		]
 		tail?
 	]
-	;if dst <> null [						;-- no compaction occurred, all series were in use
-	;	frame/heap: s						;-- set new heap after last moved region
-	;]
+	if dst <> null [						;-- no compaction occurred, all series were in use
+		frame/heap: as series! dst			;-- set new heap after last moved region
+	]
 ]
 
 collect-frames: func [
 	/local
-		frame [series-frame!]					;-- series frame to compact
+		frame [series-frame!]
 ][
 	frame: memory/s-head
 	until [
