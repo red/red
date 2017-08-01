@@ -52,7 +52,7 @@ set-text: func [
 			string/rs-reset str
 			exit
 		]
-		str/node: unicode/load-utf8 text size
+		unicode/load-utf8-buffer text size GET_BUFFER(str) null no
 		
 		face: push-face obj
 		if TYPE_OF(face) = TYPE_OBJECT [
