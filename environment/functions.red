@@ -34,7 +34,7 @@ attempt: func [
 	]
 ]
 
-comment: func [value][]
+comment: func ['value][]
 
 quit: func [
 	"Stops evaluation and exits the program"
