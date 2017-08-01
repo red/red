@@ -46,12 +46,13 @@ set-text: func [
 	if size >= 0 [
 		str: as red-string! get-node-facet ctx FACE_OBJ_TEXT
 		if TYPE_OF(str) <> TYPE_STRING [
-			str/node: unicode/load-utf8 text size
+			string/make-at as red-value! str size UCS-2
 		]
 		if size = 0 [
 			string/rs-reset str
 			exit
 		]
+		unicode/load-utf8-buffer text size GET_BUFFER(str) null no
 		
 		face: push-face obj
 		if TYPE_OF(face) = TYPE_OBJECT [
