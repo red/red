@@ -283,6 +283,7 @@ get-text-size: func [
 
 update-scrollbars: func [
 	hWnd [handle!]
+	text [c-string!] ;utf16 encoded string or null
 	/local
 		values	[red-value!]
 		str		[red-string!]
@@ -290,16 +291,22 @@ update-scrollbars: func [
 		para	[red-object!]
 		hFont	[handle!]
 		saved	[handle!]
-		rc		[RECT_STRUCT]
-		new		[RECT_STRUCT]
+		rect	[RECT_STRUCT]
 		horz?	[logic!]
+		size    [integer!]
+		txt-start [c-string!]
+		txt-pos   [c-string!]
+		bool      [red-logic!]
+		wrap?     [logic!]
+		chars     [integer!]
+		c1 c2 h height width right bottom
 ][
-	rc:  declare RECT_STRUCT
-	new: declare RECT_STRUCT
+	rect: declare RECT_STRUCT
 	values: get-face-values hWnd
-	str: as red-string! values + FACE_OBJ_TEXT
+	str:  as red-string! values + FACE_OBJ_TEXT
 	para: as red-object! values + FACE_OBJ_PARA
 	horz?: no
+	wrap?: no
 
 	either TYPE_OF(str) = TYPE_STRING [
 		font: as red-object! values + FACE_OBJ_FONT
@@ -308,20 +315,54 @@ update-scrollbars: func [
 		][
 			GetStockObject DEFAULT_GUI_FONT
 		]
-		GetClientRect hWnd rc
+		GetClientRect hWnd rect
+		bottom: rect/bottom
+		right:  rect/right
+
 		saved: SelectObject hScreen hFont
-		DrawText hScreen unicode/to-utf16 str -1 new DT_CALCRECT or DT_EXPANDTABS
-		horz?: any [
-			new/right  >= rc/right
-			all [zero? new/right 500 < string/rs-length? str]			;-- very long line
+		if text = null [ text: unicode/to-utf16 str ]
+
+		if TYPE_OF(para) = TYPE_OBJECT [
+			bool: as red-logic! (object/get-values para) + PARA_OBJ_WRAP?
+			wrap?: all [TYPE_OF(bool) = TYPE_LOGIC  bool/value] ;@@ no word wrap by default?
+		]
+
+		txt-pos:   text
+		txt-start: text
+		height: 0
+
+		forever [
+			c1: txt-pos/1
+			c2: txt-pos/2
+			if c2 = null-byte [
+				if any [c1 = #"^/" c1 = null-byte] [
+					chars: (as integer! (txt-pos - txt-start)) / 2
+					size: GetTabbedTextExtent hScreen txt-start chars 0 null
+					h: WIN32_HIWORD(size)
+					height: height + h
+					width: size and FFFFh
+					if width >= right [
+						either wrap? [
+							DrawText hScreen txt-start chars rect DT_CALCRECT or DT_EXPANDTABS or DT_WORDBREAK 
+							height: height - h + rect/bottom
+						][
+							horz?: yes
+						]
+						if height >= bottom [ break ] ;no need to continue
+					]
+					if c1 = null-byte [ break ]
+					txt-start: txt-pos + 2
+				]
+			]
+			txt-pos: txt-pos + 2
 		]
 
 		SelectObject hScreen saved
-		ShowScrollBar hWnd 1 new/bottom >= rc/bottom	;-- SB_VERT
+		ShowScrollBar hWnd 1 height >= bottom	;-- SB_VERT
+		ShowScrollBar hWnd 0 horz?              ;-- SB_HORZ
 	][
-		ShowScrollBar hWnd 1 no							;-- SB_VERT
+		ShowScrollBar hWnd 3 no					;-- SB_BOTH
 	]
-	if TYPE_OF(para) <> TYPE_OBJECT [ShowScrollBar hWnd 0 horz?]		;-- SB_HORZ
 ]
 
 set-hint-text: func [
@@ -1469,7 +1510,7 @@ change-size: func [
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 		]
-		type = area		 [update-scrollbars hWnd]
+		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
 		true	  		 [0]
 	]
@@ -1625,7 +1666,7 @@ change-text: func [
 		]
 		if type = area [
 			extend-area-limit hWnd len
-			update-scrollbars hWnd
+			update-scrollbars hWnd text
 		]
 		SetWindowText hWnd text
 	]

@@ -610,7 +610,7 @@ process-command-event: func [
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 					if type/symbol = area [
 						extend-area-limit child 16
-						update-scrollbars child
+						update-scrollbars child null
 					]
 				]
 			]
