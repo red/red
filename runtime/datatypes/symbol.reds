@@ -12,7 +12,7 @@ Red/System [
 
 symbol: context [
 	verbose: 0
-	table: declare node!
+	table: as node! 0
 	
 	is-any-type?: func [
 		word	[red-word!]

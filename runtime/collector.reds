@@ -165,8 +165,10 @@ collector: context [
 	do-cycle: func [/local s [series!]][
 		probe "marking..."
 		mark-block root
-		mark-block symbols
-		
+		;mark-block symbols
+		_hashtable/mark symbol/table		;-- will mark symbols
+		_hashtable/mark ownership/table
+
 		keep arg-stk/node
 		keep call-stk/node
 		mark-values stack/bottom stack/top - 1

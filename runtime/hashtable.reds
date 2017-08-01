@@ -158,12 +158,13 @@ _hashtable: context [
 			s [series!]
 			h [hashtable!]
 	][
+		collector/keep table
 		s: as series! table/value
 		h: as hashtable! s/offset
-		if h/indexes <> null [collector/keep h/indexes]
-		if h/flags <> null 	 [collector/keep h/flags]
-		if h/keys <> null 	 [collector/keep h/keys]
-		if h/blk <> null 	 [collector/mark-block-node h/blk]
+		if h/type = HASH_TABLE_HASH [collector/keep h/indexes]
+		collector/keep h/flags
+		collector/keep h/keys
+		if h/type <> HASH_TABLE_INTEGER [collector/mark-block-node h/blk]
 	]
 
 	round-up: func [
@@ -298,16 +299,15 @@ _hashtable: context [
 		h/flags: alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
 		h/keys: alloc-bytes h/n-buckets * size? int-ptr!
 
+		if type = HASH_TABLE_HASH [
+			h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
+			ss: as series! h/indexes/value
+			ss/tail: as cell! (as byte-ptr! ss/offset) + ss/size
+		]
 		either any [type = HASH_TABLE_INTEGER blk = null][
 			h/blk: alloc-cells size
 		][
 			h/blk: blk/node
-
-			if type = HASH_TABLE_HASH [
-				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
-				ss: as series! h/indexes/value
-				ss/tail: as cell! (as byte-ptr! ss/offset) + ss/size
-			]
 			put-all node blk/head skip
 		]
 		node
