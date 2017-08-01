@@ -164,7 +164,7 @@ _hashtable: context [
 		if h/type = HASH_TABLE_HASH [collector/keep h/indexes]
 		collector/keep h/flags
 		collector/keep h/keys
-		if h/type <> HASH_TABLE_INTEGER [collector/mark-block-node h/blk]
+		either h/type = HASH_TABLE_INTEGER [collector/keep h/blk][collector/mark-block-node h/blk]
 	]
 
 	round-up: func [
