@@ -2069,11 +2069,13 @@ natives: context [
 	]
 	
 	recycle*: func [
-		on?  [integer!]
-		off? [integer!]
+		check? [logic!]
+		on?    [integer!]
+		off?   [integer!]
 	][
+		#typecheck [on? off?]
 		collector/do-cycle
-		unset/push-last		
+		unset/push-last
 	]
 
 	to-local-file*: func [
