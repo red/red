@@ -854,7 +854,8 @@ dump-face: function [
 ][
 	depth: ""
 	print [
-		depth "Style:" face/type "Offset:" face/offset "Size:" face/size
+		depth "Type:" face/type "Style:" if face/options [face/options/style]
+		"Offset:" face/offset "Size:" face/size
 		"Text:" if face/text [mold/part face/text 20]
 	]
 	append depth "    "
