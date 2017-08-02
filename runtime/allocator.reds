@@ -432,21 +432,11 @@ update-series: func [
 ][
 	tail: (as byte-ptr! s) + size
 	until [
-		;-- clear mark flag
-		s/flags: s/flags and not flag-gc-mark
-		
-		;-- update the node pointer to the new series address
-		s/node/value: as-integer s
-		
-		;-- update offset and tail pointers
-		s/offset: as cell! (as byte-ptr! s/offset) - offset
+		s/node/value: as-integer s			;-- update the node pointer to the new series address
+		s/offset: as cell! (as byte-ptr! s/offset) - offset	;-- update offset and tail pointers
 		s/tail:   as cell! (as byte-ptr! s/tail) - offset
-		
-		;-- advance to the next series buffer
 		s: as series! (as byte-ptr! s + 1) + s/size
-
-		;-- exit when a freed series is met or top of heap is reached
-		any [tail <= as byte-ptr! s s/flags and flag-gc-mark = 0]
+		tail <= as byte-ptr! s
 	]
 ]
 
@@ -472,23 +462,29 @@ compact-series-frame: func [
 		tail?: no
 		if s/flags and flag-gc-mark = 0 [	;-- if live, search for a gap
 			if dst = null [dst: as byte-ptr! s]
+			;probe ["search live from: " s]
 			until [							;-- search for a live series
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
 				any [tail? s/flags and flag-gc-mark <> 0]
 			]
+			;probe ["live found at: " s]
 		]
 		unless tail? [
 			src: as byte-ptr! s
+			;probe ["search gap from: " s]
 			until [							;-- search for a gap
+				s/flags: s/flags and not flag-gc-mark	;-- clear mark flag
 				s: as series! (as byte-ptr! s + 1) + s/size
 				tail?: s >= heap
-				any [tail? s/flags and flag-gc-mark = 0]
+				any [s/flags and flag-gc-mark = 0 tail?]
 			]
+			;probe ["gap found at: " s]
 			if dst <> null [
 				assert dst < src			;-- regions are moved down in memory
 				assert src < as byte-ptr! s ;-- src should point at least at series - series/size
-				size: as-integer s - src
+				size: as-integer (as byte-ptr! s) - src
+				;probe ["move src=" src ", dst=" dst ", size=" size]
 				move-memory dst	src size
 				update-series as series! dst as-integer src - dst size
 				dst: dst + size
@@ -507,33 +503,83 @@ collect-frames: func [
 ][
 	frame: memory/s-head
 	until [
-;probe ["before " frame]
-;dump-frame frame
+;if frame = memory/s-head [
+;	probe ["before " frame]
+;	dump-frame frame
+;]
+;?? frame
+probe "before"
+check-series frame
 		compact-series-frame frame
-;probe ["after " frame]
-;dump-frame frame
+probe "after"
+check-series frame
+;if frame = memory/s-head [
+;	probe ["after " frame]
+;	dump-frame frame
+;]
 		frame: frame/next
 		frame = null
 	]
 ]
 
-dump-frame: func [
-	frame [series-frame!]					;-- series frame to compact
-	/local
-		s	  [series!]
-		heap  [series!]
-][
-	s: as series! frame + 1					;-- point to first series buffer
-	heap: frame/heap
+#if debug? = yes [
 
-	until [
-		either s/flags and flag-gc-mark = 0 [prin "x "][prin "o "]
-		probe [s ": unit=" GET_UNIT(s) " size=" s/size]
-		s: as series! (as byte-ptr! s + 1) + s/size
-		s >= heap
+	dump-frame: func [
+		frame [series-frame!]				;-- series frame to compact
+		/local
+			s	  [series!]
+			heap  [series!]
+	][
+		s: as series! frame + 1				;-- point to first series buffer
+		heap: frame/heap
+
+		until [
+			either s/flags and flag-gc-mark = 0 [prin "x "][prin "o "]
+			probe [s ": unit=" GET_UNIT(s) " size=" s/size]
+			s: as series! (as byte-ptr! s + 1) + s/size
+			s >= heap
+		]
+
+	]
+	
+	check-frames: func [
+		/local
+			frame [series-frame!]
+	][
+		frame: memory/s-head
+		until [
+			check-series frame
+			frame: frame/next
+			frame = null
+		]
 	]
 
+	check-series: func [
+		frame [series-frame!]				;-- series frame to compact
+		/local
+			s	  [series!]
+			heap  [series!]
+	][
+		s: as series! frame + 1				;-- point to first series buffer
+		heap: frame/heap
+
+		until [
+			if any [
+				(as byte-ptr! s/offset) <> as byte-ptr! s + 1
+				(as byte-ptr! s/tail) < as byte-ptr! s
+				(as byte-ptr! s/tail) > ((as byte-ptr! s/offset) + s/size)
+			][
+				probe "Corrupted series detected:"
+				dump4 s
+				halt
+			]
+			s: as series! (as byte-ptr! s + 1) + s/size
+			s >= heap
+		]
+
+	]
 ]
+
 
 ;-------------------------------------------
 ;-- Allocate a series from the active series frame, return the series

@@ -34,6 +34,7 @@ collector: context [
 		/local
 			ctx  [red-context!]
 	][
+		probe "context"
 		if keep node [
 			ctx: TO_CTX(node)
 			keep ctx/symbols
@@ -67,6 +68,7 @@ collector: context [
 						;print-symbol word
 						;print "^/"
 						either word/symbol = words/self [
+							probe "self"
 							mark-block-node word/ctx
 						][
 							mark-context word/ctx
@@ -81,11 +83,13 @@ collector: context [
 				TYPE_SET_PATH [
 					series: as red-series! value
 					if series/node <> null [			;-- can happen in routine
+						probe ["any-block, type: " TYPE_OF(value)]
 						mark-block as red-block! value
 
 						if TYPE_OF(value) = TYPE_PATH [
 							path: as red-path! value
 							if path/args <> null [
+								probe "path/args"
 								mark-block-node path/args
 							]
 						]
@@ -97,16 +101,19 @@ collector: context [
 				TYPE_FILE
 				TYPE_VECTOR
 				TYPE_BITSET [
+					probe ["bitset, type: " TYPE_OF(value)]
 					series: as red-series! value
 					keep series/node
 				]
 				TYPE_OBJECT [
+					probe "object"
 					obj: as red-object! value
 					mark-context obj/ctx
 					if obj/on-set <> null [keep obj/on-set]
 				]
 				TYPE_HASH
 				TYPE_MAP [
+					probe "hash"
 					hash: as red-hash! value
 					keep hash/node
 					_hashtable/mark hash/table			;@@ check if previously marked
@@ -114,12 +121,14 @@ collector: context [
 				TYPE_FUNCTION [
 					fun: as red-function! value
 					mark-context fun/ctx
+					probe "function"
 					mark-block-node fun/spec
 					mark-block-node fun/more
 				]
 				TYPE_ROUTINE [
 					routine: as red-routine! value
 					;mark-block-node routine/symbols	;-- unused for now
+					probe "routine"
 					mark-block-node routine/spec
 					mark-block-node routine/more
 				]
@@ -128,9 +137,11 @@ collector: context [
 				TYPE_OP [
 					native: as red-native! value
 					if native/args <> null [
+						probe "native"
 						mark-block-node native/args
 					]
 					if native/spec <> null [			;@@ should not happen!
+						probe "native"
 						mark-block-node native/spec
 					]
 				]
@@ -164,11 +175,14 @@ collector: context [
 	
 	do-cycle: func [/local s [series!]][
 		probe "marking..."
+		check-frames
+		
 		mark-block root
 		;mark-block symbols
 		_hashtable/mark symbol/table		;-- will mark symbols
 		_hashtable/mark ownership/table
 
+		probe "marking stack"
 		keep arg-stk/node
 		keep call-stk/node
 		mark-values stack/bottom stack/top - 1
