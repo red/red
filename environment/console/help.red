@@ -512,15 +512,16 @@ help-ctx: context [
 	set 'source function [
 		"Print the source of a function"
 		'word [any-word! any-path!] "The name of the function"
+		/local val
 	][
-		val: get/any word
+		set/any 'val get/any word
 		print case [
 			function? :val [[append mold word #":" mold :val]]
 			routine? :val [[
 				";" uppercase mold :word "is a routine! value; its body is Red/System code.^/"
 				append mold word #":" mold :val
 			]]
-			'else [[uppercase mold word "is" a-an/pre mold type? :val "so source is not available."]]
+			'else [[uppercase mold word "is" a-an/pre mold type? :val "value, so source is not available."]]
 		]
 	]
 	
