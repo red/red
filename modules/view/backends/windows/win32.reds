@@ -128,6 +128,7 @@ Red/System [
 #define LBS_NOTIFY			1
 #define LBS_MULTIPLESEL		8
 #define LBS_SORT			2
+#define LBS_NOINTEGRALHEIGHT  0100h
 
 #define PBS_VERTICAL		04h
 

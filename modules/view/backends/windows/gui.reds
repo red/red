@@ -1278,7 +1278,7 @@ OS-make-view: func [
 		]
 		sym = text-list [
 			class: #u16 "RedListBox"
-			flags: flags or LBS_NOTIFY or WS_HSCROLL or WS_VSCROLL
+			flags: flags or LBS_NOTIFY or WS_HSCROLL or WS_VSCROLL or LBS_NOINTEGRALHEIGHT
 		]
 		sym = drop-down [
 			class: #u16 "RedCombo"
