@@ -129,6 +129,7 @@ red: context [
 	global-ctx: as node! 0								;-- global context
 	arg-stk:	as red-block!	0						;-- argument stack (should never be relocated)
 	call-stk:	as red-block!	0						;-- call stack (should never be relocated)
+	stk-bottom: system/stack/top
 
 	verbosity:  0
 

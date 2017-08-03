@@ -93,6 +93,8 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	s-size	 [integer!]						;-- current size for new series frame	(1)
 	s-max	 [integer!]						;-- max size for new series frames		(1)
 	b-head	 [big-frame!]					;-- head of big frames list
+	stk-refs [int-ptr!]						;-- buffer to stack references to update during GC
+	stk-sz	 [integer!]						;-- size of stack references buffer in 64-bits slots
 ]
 
 
@@ -101,6 +103,8 @@ init-mem: does [
 	memory/s-start: _1MB
 	memory/s-max: 	_2MB
 	memory/s-size: 	memory/s-start
+	memory/stk-sz: 1000
+	memory/stk-refs: as int-ptr! allocate memory/stk-sz * 2 * size? int-ptr!
 ]
 
 ;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
@@ -497,29 +501,76 @@ compact-series-frame: func [
 	]
 ]
 
+compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][as-integer a - b]
+
+extract-stack-refs: func [
+	store? [logic!]
+	/local
+		frame [series-frame!]
+		low high top stk p refs refs-end size
+][
+	frame: memory/s-head
+	while [frame/next <> null][frame: frame/next]
+	
+	low:  as int-ptr! memory/s-head
+	high: as int-ptr! frame/tail
+	top: system/stack/top
+	stk: stk-bottom
+	refs: memory/stk-refs
+	refs-end: refs + (memory/stk-sz * 8)
+	
+	probe ["native stack slots: " (as-integer stk - top) >> 2]
+	until [
+		stk: stk - 1
+		p: as int-ptr! stk/value  
+		if all [
+			low <= p p <= high
+			not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)]
+		][
+			probe ["stack pointer: " p " : " as byte-ptr! p/value]
+			if store? [
+				either refs < refs-end [
+					refs/1: as-integer p	;-- pointer inside a frame
+					refs/2: as-integer stk	;-- pointer address on stack
+					refs: refs + 2
+				][
+					probe "*** Error: stack pointers buffer overflow!"
+				]
+			]
+		]
+		stk = top
+	]
+	if store? [
+		size: (as-integer refs - memory/stk-refs) / 2
+		qsort as byte-ptr! memory/stk-refs size 8 :compare-refs
+
+		refs-end: refs
+		refs: memory/stk-refs
+		until [
+			probe [#"[" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
+			refs: refs + 2
+			refs = refs-end
+		]
+	]
+]
+
 collect-frames: func [
 	/local
 		frame [series-frame!]
 ][
+	extract-stack-refs yes
 	frame: memory/s-head
 	until [
-;if frame = memory/s-head [
-;	probe ["before " frame]
-;	dump-frame frame
-;]
-;?? frame
-probe "before"
-check-series frame
+		probe "before"
+		check-series frame
 		compact-series-frame frame
-probe "after"
-check-series frame
-;if frame = memory/s-head [
-;	probe ["after " frame]
-;	dump-frame frame
-;]
+		probe "after"
+		check-series frame
+		
 		frame: frame/next
 		frame = null
 	]
+	extract-stack-refs no
 ]
 
 #if debug? = yes [

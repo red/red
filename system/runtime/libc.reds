@@ -65,6 +65,12 @@ Red/System [
 			endptr		[byte-ptr!]
 			return:		[float!]
 		]
+		qsort:		"qsort" [
+			base		[byte-ptr!]
+			nitems		[integer!]
+			width		[integer!]
+			cmpfunc		[function! [a [int-ptr!] b [int-ptr!] return: [integer!]]]
+		]
 	]
 
 	LIBM-file cdecl [
