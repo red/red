@@ -174,15 +174,14 @@ collector: context [
 	]
 	
 	do-cycle: func [/local s [series!]][
-		probe "marking..."
+		;probe "marking..."
 		check-frames
 		
 		mark-block root
-		;mark-block symbols
 		_hashtable/mark symbol/table		;-- will mark symbols
 		_hashtable/mark ownership/table
 
-		probe "marking stack"
+		;probe "marking stack"
 		keep arg-stk/node
 		keep call-stk/node
 		mark-values stack/bottom stack/top - 1
@@ -190,9 +189,9 @@ collector: context [
 		keep case-folding/upper-to-lower/node
 		keep case-folding/lower-to-upper/node
 		
-		probe "sweeping..."
+		;probe "sweeping..."
 		collect-frames
-		probe "done!"
+		;probe "done!"
 	]
 	
 ]

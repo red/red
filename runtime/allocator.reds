@@ -94,6 +94,7 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	s-max	 [integer!]						;-- max size for new series frames		(1)
 	b-head	 [big-frame!]					;-- head of big frames list
 	stk-refs [int-ptr!]						;-- buffer to stack references to update during GC
+	stk-tail [int-ptr!]						;-- tail pointer on stack references buffer
 	stk-sz	 [integer!]						;-- size of stack references buffer in 64-bits slots
 ]
 
@@ -448,15 +449,21 @@ update-series: func [
 ;-- Compact a series frame by moving down in-use series buffer regions
 ;-------------------------------------------
 compact-series-frame: func [
-	frame [series-frame!]					;-- series frame to compact
+	frame	[series-frame!]					;-- series frame to compact
+	refs	[int-ptr!]
+	return: [int-ptr!]						;-- returns the next stack pointer to process
 	/local
+		tail  [int-ptr!]
+		ptr	  [int-ptr!]
 		s	  [series!]
 		heap  [series!]
 		src	  [byte-ptr!]
 		dst	  [byte-ptr!]
+		delta [integer!]
 		size  [integer!]
 		tail? [logic!]
 ][
+	tail: memory/stk-tail
 	s: as series! frame + 1					;-- point to first series buffer
 	heap: frame/heap
 	src: null								;-- src will point to start of buffer region to move down
@@ -487,10 +494,21 @@ compact-series-frame: func [
 			if dst <> null [
 				assert dst < src			;-- regions are moved down in memory
 				assert src < as byte-ptr! s ;-- src should point at least at series - series/size
+				
 				size: as-integer (as byte-ptr! s) - src
+				delta: as-integer src - dst
 				;probe ["move src=" src ", dst=" dst ", size=" size]
 				move-memory dst	src size
-				update-series as series! dst as-integer src - dst size
+				update-series as series! dst delta size
+				
+				if refs < tail [			;-- update pointers on native stack
+					while [all [refs < tail (as byte-ptr! refs/1) < src]][refs: refs + 2]
+					while [all [refs < tail (as byte-ptr! refs/1) < (src + size)]][
+						ptr: as int-ptr! refs/2
+						ptr/value: ptr/value - delta
+						refs: refs + 2
+					]
+				]
 				dst: dst + size
 			]
 		]
@@ -499,6 +517,7 @@ compact-series-frame: func [
 	if dst <> null [						;-- no compaction occurred, all series were in use
 		frame/heap: as series! dst			;-- set new heap after last moved region
 	]
+	refs
 ]
 
 compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][as-integer a - b]
@@ -507,19 +526,25 @@ extract-stack-refs: func [
 	store? [logic!]
 	/local
 		frame [series-frame!]
-		low high top stk p refs refs-end size
+		low	  [int-ptr!]
+		high  [int-ptr!]
+		top	  [int-ptr!]
+		stk	  [int-ptr!]
+		p	  [int-ptr!]
+		refs  [int-ptr!]
+		tail  [int-ptr!]
 ][
 	frame: memory/s-head
-	while [frame/next <> null][frame: frame/next]
+	while [frame/next <> null][frame: frame/next] ;@@ assumes frames addresses are in increasing order
 	
-	low:  as int-ptr! memory/s-head
+	low:  as int-ptr! memory/s-head + 1
 	high: as int-ptr! frame/tail
-	top: system/stack/top
-	stk: stk-bottom
+	top:  system/stack/top
+	stk:  stk-bottom
 	refs: memory/stk-refs
-	refs-end: refs + (memory/stk-sz * 8)
+	tail: refs + (memory/stk-sz * 8)
 	
-	probe ["native stack slots: " (as-integer stk - top) >> 2]
+	;probe ["native stack slots: " (as-integer stk - top) >> 2]
 	until [
 		stk: stk - 1
 		p: as int-ptr! stk/value  
@@ -527,9 +552,9 @@ extract-stack-refs: func [
 			low <= p p <= high
 			not all [(as byte-ptr! stack/bottom) <= p p <= (as byte-ptr! stack/top)]
 		][
-			probe ["stack pointer: " p " : " as byte-ptr! p/value]
+			;probe ["stack pointer: " p " : " as byte-ptr! p/value]
 			if store? [
-				either refs < refs-end [
+				either refs < tail [
 					refs/1: as-integer p	;-- pointer inside a frame
 					refs/2: as-integer stk	;-- pointer address on stack
 					refs: refs + 2
@@ -540,31 +565,39 @@ extract-stack-refs: func [
 		]
 		stk = top
 	]
+	memory/stk-tail: refs
+	
 	if store? [
-		size: (as-integer refs - memory/stk-refs) / 2
-		qsort as byte-ptr! memory/stk-refs size 8 :compare-refs
+		qsort
+			as byte-ptr! memory/stk-refs
+			(as-integer refs - memory/stk-refs) / 2
+			8
+			:compare-refs
 
-		refs-end: refs
-		refs: memory/stk-refs
-		until [
-			probe [#"[" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
-			refs: refs + 2
-			refs = refs-end
-		]
+		;tail: refs
+		;refs: memory/stk-refs
+		;until [
+		;	probe [#"[" as int-ptr! refs/1 #":" as int-ptr! refs/2 #"]"]
+		;	refs: refs + 2
+		;	refs = tail
+		;]
 	]
 ]
 
 collect-frames: func [
 	/local
 		frame [series-frame!]
+		refs  [int-ptr!]
 ][
 	extract-stack-refs yes
+	refs: memory/stk-refs
 	frame: memory/s-head
+	
 	until [
-		probe "before"
+		;probe "before"
 		check-series frame
-		compact-series-frame frame
-		probe "after"
+		refs: compact-series-frame frame refs
+		;probe "after"
 		check-series frame
 		
 		frame: frame/next
