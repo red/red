@@ -27,6 +27,9 @@ exit-loop:		0
 red-face-id:	0
 gtk-style-id:	0
 
+none-type: 		as red-word! symbol/make "none"
+group-radio:	as handle! 0
+
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -98,6 +101,25 @@ get-face-handle: func [
 	int: as red-integer! block/rs-head state
 	assert TYPE_OF(int) = TYPE_INTEGER
 	as handle! int/value
+]
+
+parent-type?: func [
+	parent	[handle!]
+	return:	[red-word!]
+	/local
+		qdata	[handle!]
+		p-face	[red-object!]
+		p-type	[red-word!]
+][
+	p-type: none-type
+	qdata: g_object_get_qdata parent red-face-id
+	if qdata <> as handle! 0 [
+		p-face: as red-object! qdata
+		if TYPE_OF(p-face) = TYPE_OBJECT [
+			p-type: as red-word! get-node-facet p-face/ctx FACE_OBJ_TYPE
+		]
+	]
+	p-type
 ]
 
 get-child-from-xy: func [
@@ -432,12 +454,14 @@ OS-make-view: func [
 		open?	  [red-logic!]
 		selected  [red-integer!]
 		para	  [red-object!]
+		p-type	  [red-word!]
 		flags	  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
 		caption   [c-string!]
 		len		  [integer!]
 		widget	  [handle!]
+		buffer	  [handle!]
 		container [handle!]
 		value	  [integer!]
 		vertical? [logic!]
@@ -470,6 +494,16 @@ OS-make-view: func [
 	case [
 		sym = check [
 			widget: gtk_check_button_new_with_label caption
+			set-logic-state widget as red-logic! data no
+			gobj_signal_connect(widget "clicked" :button-clicked null)
+			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
+		]
+		sym = radio [
+			widget: either group-radio = as handle! 0 [
+				gtk_radio_button_new_with_label null caption
+			][
+				gtk_radio_button_new_with_label_from_widget group-radio caption
+			]
 			set-logic-state widget as red-logic! data no
 			gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
@@ -507,12 +541,19 @@ OS-make-view: func [
 		]
 		sym = field [
 			widget: gtk_entry_new
+			buffer: gtk_entry_get_buffer widget
+			gtk_entry_buffer_set_text buffer caption -1
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
 		]
 		sym = area [
 			widget: gtk_text_view_new
+			buffer: gtk_text_view_get_buffer widget
+			gtk_text_buffer_set_text buffer caption -1
+		]
+		sym = group-box [
+			widget: gtk_box_new 0 0 ; horizontal and 0 as padding
 		]
 		any [
 			sym = drop-list
@@ -529,15 +570,23 @@ OS-make-view: func [
 		]
 	]
 
+	; save the previous group-radio state as a global variable
+	group-radio: either sym = radio [widget][as handle! 0] 
+
 	create-widget-style widget face
 
 	if all [
 		sym <> window
 		parent <> 0
 	][
-		gtk_widget_set_size_request widget size/x size/y
-		container: gtk_container_get_children as handle! parent
-		gtk_fixed_put as handle! container/value widget offset/x offset/y
+		p-type: parent-type? as handle! parent
+		either group-box = symbol/resolve p-type/symbol [
+			gtk_box_pack_start as handle! parent widget yes yes 0
+		][
+			gtk_widget_set_size_request widget size/x size/y
+			container: gtk_container_get_children as handle! parent
+			gtk_fixed_put as handle! container/value widget offset/x offset/y
+		]
 	]
 
 	;-- store the face value in the extra space of the window struct

@@ -199,6 +199,25 @@ tagSIZE: alias struct! [
 			container	[handle!]
 			return:		[int-ptr!]
 		]
+		gtk_box_new: "gtk_box_new" [
+			orientation	[integer!]
+			padding		[integer!]
+			return:		[handle!]
+		]
+		gtk_box_pack_start: "gtk_box_pack_start" [
+			box		[handle!]
+			child	[handle!]
+			expand	[logic!]
+			fill	[logic!]
+			padding	[integer!]
+		]
+		gtk_box_pack_end: "gtk_box_pack_end" [
+			box		[handle!]
+			child	[handle!]
+			expand	[logic!]
+			fill	[logic!]
+			padding	[integer!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
@@ -213,6 +232,16 @@ tagSIZE: alias struct! [
 			return:		[handle!]
 		]
 		gtk_check_button_new_with_label: "gtk_check_button_new_with_label" [
+			label		[c-string!]
+			return:		[handle!]
+		]
+		gtk_radio_button_new_with_label: "gtk_radio_button_new_with_label" [
+			group		[handle!]
+			label		[c-string!]
+			return:		[handle!]
+		]
+		gtk_radio_button_new_with_label_from_widget: "gtk_radio_button_new_with_label_from_widget" [
+			group		[handle!]
 			label		[c-string!]
 			return:		[handle!]
 		]
@@ -242,6 +271,15 @@ tagSIZE: alias struct! [
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
 		]
+		gtk_entry_get_buffer: "gtk_entry_get_buffer" [
+			entry		[handle!]
+			return:		[handle!]
+		]
+		gtk_entry_buffer_set_text: "gtk_entry_buffer_set_text" [
+			buffer		[handle!]
+			text		[c-string!]
+			len			[integer!]
+		]
 		gtk_scale_new_with_range: "gtk_scale_new_with_range" [
 			vertical?	[logic!]
 			min			[float!]
@@ -270,6 +308,15 @@ tagSIZE: alias struct! [
 		]
 		gtk_text_view_new: "gtk_text_view_new" [
 			return:		[handle!]
+		]
+		gtk_text_view_get_buffer: "gtk_text_view_get_buffer" [
+			view		[handle!]
+			return:		[handle!]
+		]
+		gtk_text_buffer_set_text: "gtk_text_buffer_set_text" [
+			buffer		[handle!]
+			text		[c-string!]
+			len			[integer!]
 		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]
