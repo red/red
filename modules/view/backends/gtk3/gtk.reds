@@ -218,6 +218,10 @@ tagSIZE: alias struct! [
 			fill	[logic!]
 			padding	[integer!]
 		]
+		gtk_frame_new: "gtk_frame_new" [
+			label		[c-string!]
+			return: 	[handle!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
