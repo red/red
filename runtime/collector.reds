@@ -175,7 +175,6 @@ collector: context [
 	
 	do-cycle: func [/local s [series!]][
 		;probe "marking..."
-		check-frames
 		
 		mark-block root
 		_hashtable/mark symbol/table		;-- will mark symbols

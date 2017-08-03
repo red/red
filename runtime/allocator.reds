@@ -595,10 +595,10 @@ collect-frames: func [
 	
 	until [
 		;probe "before"
-		check-series frame
+		#if debug? = yes [check-series frame]
 		refs: compact-series-frame frame refs
 		;probe "after"
-		check-series frame
+		#if debug? = yes [check-series frame]
 		
 		frame: frame/next
 		frame = null
