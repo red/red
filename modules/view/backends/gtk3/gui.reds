@@ -553,7 +553,9 @@ OS-make-view: func [
 			gtk_text_buffer_set_text buffer caption -1
 		]
 		sym = group-box [
-			widget: gtk_box_new 0 0 ; horizontal and 0 as padding
+			widget: gtk_frame_new caption
+			container: gtk_fixed_new
+			gtk_container_add widget container
 		]
 		any [
 			sym = drop-list
@@ -579,14 +581,9 @@ OS-make-view: func [
 		sym <> window
 		parent <> 0
 	][
-		p-type: parent-type? as handle! parent
-		either group-box = symbol/resolve p-type/symbol [
-			gtk_box_pack_start as handle! parent widget yes yes 0
-		][
-			gtk_widget_set_size_request widget size/x size/y
-			container: gtk_container_get_children as handle! parent
-			gtk_fixed_put as handle! container/value widget offset/x offset/y
-		]
+		gtk_widget_set_size_request widget size/x size/y
+		container: gtk_container_get_children as handle! parent
+		gtk_fixed_put as handle! container/value widget offset/x offset/y
 	]
 
 	;-- store the face value in the extra space of the window struct
