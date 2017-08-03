@@ -199,25 +199,6 @@ tagSIZE: alias struct! [
 			container	[handle!]
 			return:		[int-ptr!]
 		]
-		gtk_box_new: "gtk_box_new" [
-			orientation	[integer!]
-			padding		[integer!]
-			return:		[handle!]
-		]
-		gtk_box_pack_start: "gtk_box_pack_start" [
-			box		[handle!]
-			child	[handle!]
-			expand	[logic!]
-			fill	[logic!]
-			padding	[integer!]
-		]
-		gtk_box_pack_end: "gtk_box_pack_end" [
-			box		[handle!]
-			child	[handle!]
-			expand	[logic!]
-			fill	[logic!]
-			padding	[integer!]
-		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]
 			return: 	[handle!]
