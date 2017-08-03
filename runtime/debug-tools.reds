@@ -25,18 +25,23 @@ print-symbol: func [
 memory-info: func [
 	blk		[red-block!]
 	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
+	return:	[integer!]						;-- total bytes used (verbose = 1)
 	/local
-		n-frame s-frame b-frame free-nodes base list nodes series bigs
+		n-frame s-frame b-frame free-nodes base list nodes series bigs used
 ][
 	assert all [1 <= verbose verbose <= 3]
+	used: 0
 
 ;-- Node frames stats --
-	nodes: block/make-in blk 8
+	if verbose > 1 [nodes: block/make-in blk 8]
 	n-frame: memory/n-head
 
 	while [n-frame <> null][
+		free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
+		if verbose = 1 [
+			used: used + ((n-frame/nodes - free-nodes) * 4)
+		]
 		if verbose >= 2 [
-			free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 			list: block/make-in nodes 8
 			integer/make-in list n-frame/nodes - free-nodes
 			integer/make-in list free-nodes
@@ -46,30 +51,38 @@ memory-info: func [
 	]
 
 ;-- Series frames stats --
-	series: block/make-in blk 8
+	if verbose > 1 [series: block/make-in blk 8]
 	s-frame: memory/s-head
 
 	while [s-frame <> null][
+		base: (as byte-ptr! s-frame) + size? series-frame!	
+		if verbose = 1 [
+			used: used + (as-integer (as byte-ptr! s-frame/heap) - base)
+		]
 		if verbose >= 2 [
-			base: (as byte-ptr! s-frame) + size? series-frame!
 			list: block/make-in series 8
 			integer/make-in list as-integer s-frame/tail - as byte-ptr! s-frame/heap
 			integer/make-in list as-integer (as byte-ptr! s-frame/heap) - base
-			integer/make-in list  as-integer s-frame/tail - base
+			integer/make-in list as-integer s-frame/tail - base
 		]
 		s-frame: s-frame/next
 	]
 
 ;-- Big frames stats --
-	bigs: block/make-in blk 8
+	if verbose > 1 [bigs: block/make-in blk 8]
 	b-frame: memory/b-head
 
 	while [b-frame <> null][
+		if verbose = 1 [
+			used: used + b-frame/size
+		]
 		if verbose >= 2 [
 			integer/make-in bigs b-frame/size
 		]
 		b-frame: b-frame/next
 	]
+	
+	used
 ]
 
 ;===========================================

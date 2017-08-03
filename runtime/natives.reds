@@ -1064,7 +1064,7 @@ natives: context [
 				stack/set-last as red-value! blk
 			]
 			true [
-				integer/box memory/total
+				integer/box memory-info null 1
 			]
 		]
 	]
