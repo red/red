@@ -867,12 +867,6 @@ set-window-info: func [
 		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
 		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
 		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
-		if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: cx ret?: yes]
-		if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: cy ret?: yes]
-
-		pair: as red-pair! values + FACE_OBJ_OFFSET
-		if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x + x ret?: yes]
-		if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y + y ret?: yes]
 	]
 	ret?
 ]
@@ -911,6 +905,7 @@ WndProc: func [
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
+		delta  [tagPOINT value]
 		offset [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
@@ -930,11 +925,10 @@ WndProc: func [
 		WM_WINDOWPOSCHANGED [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
-				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
-				update-layered-window hWnd null pt winpos -1
+				delta/x: winpos/x - offset/x
+				delta/y: winpos/y - offset/y
+				update-layered-window hWnd null delta winpos -1
 			]
 		]
 		WM_MOVE
