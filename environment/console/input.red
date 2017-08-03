@@ -83,7 +83,9 @@ unless system/console [
 		output?:	yes
 		pasting?:	no
 
-		string/rs-make-at as cell! saved-line 1
+		copy-cell
+			as red-value! string/rs-make-at ALLOC_TAIL(root) 1
+			as red-value! saved-line
 
 		widechar?: func [
 			str			[red-string!]
