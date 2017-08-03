@@ -822,20 +822,6 @@ delta-size: func [
 	pt
 ]
 
-update-pair-facet: func [
-	hWnd   [handle!]
-	type   [integer!]
-	lParam [integer!]
-	/local
-		pair [red-pair!]
-][
-	current-msg/hWnd: hWnd
-	pair: as red-pair! get-facet current-msg type
-	pair/header: TYPE_PAIR								;-- forces pair! in case user changed it
-	pair/x: WIN32_LOWORD(lParam)
-	pair/y: WIN32_HIWORD(lParam)
-]
-
 set-window-info: func [
 	hWnd	[handle!]
 	lParam	[integer!]
@@ -948,15 +934,25 @@ WndProc: func [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
 					miniz?: no
+					delta/x: WIN32_LOWORD(lParam)
+					delta/y: WIN32_HIWORD(lParam)
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
 							WIN32_HIWORD(lParam) < -9999
 							WIN32_LOWORD(lParam) < -9999
 						][miniz?: yes]
+						pos: GetWindowLong hWnd wc-offset - 8 
+						delta/x: delta/x - WIN32_LOWORD(pos)
+						delta/y: delta/y - WIN32_HIWORD(pos)
 						FACE_OBJ_OFFSET
 					][FACE_OBJ_SIZE]
-					update-pair-facet hWnd type lParam
 					if miniz? [return 0]
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: delta/x
+					offset/y: delta/y
+
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
