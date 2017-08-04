@@ -164,6 +164,7 @@ terminal!: object [
 	]
 
 	update-caret: func [/local len n s h lh offset][
+		unless line [exit]
 		n: top
 		h: 0
 		len: length? skip lines top
@@ -424,6 +425,7 @@ terminal!: object [
 	]
 
 	paint: func [/local str cmds y n h cnt delta num end styles][
+		unless line [exit]
 		cmds: [text 0x0 text-box]
 		cmds/3: box
 		end: target/size/y

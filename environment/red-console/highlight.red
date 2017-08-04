@@ -14,11 +14,11 @@ highlight: context [
 	throw-error: function [spec [block!] /missing][
 		type: spec/1									;-- preserve lit-words from double reduction
 	]
-
+	
 	add-styles: function [
-		src	[string!]
-		dst	[block! none!]
-		theme [map!]
+		src		[string!]
+		dst		[block! none!]
+		theme	[map!]
 		/part	
 			length [integer! string!]
 		return: [block!]
@@ -128,7 +128,7 @@ highlight: context [
 					| "esc"  (value: #"^(1B)")
 					| "del"	 (value: #"^(7F)")
 				]
-				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				| pos: [2 6 hexa-char] (				;-- Unicode values allowed up to 10FFFFh
 					type: 'char!
 				)
 			] #")"
@@ -147,7 +147,7 @@ highlight: context [
 		]
 
 		char-rule: [
-			{#"} s: [
+			{#"} [
 				 escaped-char
 				| ahead [non-printable-char | not-str-char]
 				  (throw-error [char! skip s -2])
@@ -176,7 +176,7 @@ highlight: context [
 				| "^^{"
 				| "^^}"
 				| #"{" (cnt: cnt + 1)
-				| e: #"}" if (zero? cnt: cnt - 1) break
+				| #"}" if (zero? cnt: cnt - 1) break
 				| escaped-char
 				| skip
 			]
@@ -190,55 +190,51 @@ highlight: context [
 		
 		tag-rule: [
 			#"<" not [#"=" | #">" | #"<" | ws] (type: 'tag!)
-			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
+			 some [#"^"" thru #"^"" | #"'" thru #"'" | #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]
 		
 		email-rule: [
-			s: some [ahead email-end break | skip] #"@"
-			any [ahead email-end break | skip] e:
+			some [ahead email-end break | skip] #"@"
+			any [ahead email-end break | skip]
 			(type: 'email!)
 		]
 
 		base-2-rule: [
-			"2#{" (type: 'binary!) [
-				s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
-				| (throw-error [binary! skip s -3])
+			"2#{" [
+				any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] #"}"
+				| break
 			] (base: 2)
 		]
 
 		base-16-rule: [
-			opt "16" "#{" (type: 'binary!) [
-				s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
-				| (throw-error [binary! skip s -2])
+			opt "16" "#{" [
+				any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] #"}"
+				| break
 			] (base: 16)
 		]
 
 		base-64-rule: [
-			"64#{" (type: 'binary! cnt: 0) [
-				s: any [counted-newline | base64-char | ws-no-count (cnt: cnt + 1) | comment-rule] e: #"}"
-				| (throw-error [binary! skip s -4])
-			](
-				cnt: (offset? s e) - cnt
-				if all [0 < cnt cnt < 4][throw-error [binary! skip s -4]]
-				base: 64
-			)
+			"64#{" (cnt: 0) [
+				any [counted-newline | base64-char | ws-no-count (cnt: cnt + 1) | comment-rule] #"}"
+				| break
+			] (base: 64)
 		]
 
 		binary-rule: [base-16-rule | base-64-rule | base-2-rule]
 
 		file-rule: [
-			s: #"%" [
+			#"%" [
 				#"{" (throw-error [file! s])
 				| line-string (type: 'file!)
-				| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
+				| any [ahead [not-file-char | ws-no-count] break | skip]
 				  (type: 'file!)
 			]
 		]
 
 		url-rule: [
 			#":" not [not-url-char | ws-no-count | end]
-			any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
+			any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip]
 			(type: 'url!)
 		]
 
@@ -248,7 +244,7 @@ highlight: context [
 				| #"<" ot: [ahead #"/" (ot: back ot) :ot break | none]	;-- a</b>
 				| #">" if (ot) [(ot: back ot) :ot break]				;-- a<b>
 				| skip
-			] e:
+			]
 		]
 
 		begin-symbol-rule: [							;-- 1st char in symbols is restricted
@@ -263,11 +259,11 @@ highlight: context [
 			)
 			some [
 				slash
-				s: [
+				[
 					integer-number-rule
 					| begin-symbol-rule			(type: 'word!)
 					| paren-rule
-					| #":" s: begin-symbol-rule	(type: 'get-word!)
+					| #":" begin-symbol-rule	(type: 'get-word!)
 					;@@ add more datatypes here
 					| (throw-error [path! path])
 					  reject
@@ -291,7 +287,7 @@ highlight: context [
 
 		word-rule: 	[
 			(type: 'word!) special-words	opt [#":" (type: 'set-word!)]
-			| path: s: begin-symbol-rule (type: 'word!) [
+			| path: begin-symbol-rule (type: 'word!) [
 				url-rule
 				| path-rule							;-- path matched
 				| opt [#":" (type: 'set-word!)]
@@ -301,7 +297,7 @@ highlight: context [
 		get-word-rule: [
 			#":" (type: 'get-word!) [
 				special-words
-				| s: begin-symbol-rule [
+				| begin-symbol-rule [
 					path-rule (type: 'get-path!)
 					| (type: 'get-word!)	;-- get-word matched
 				]
@@ -312,7 +308,7 @@ highlight: context [
 			#"'" (type: 'lit-word!) [
 				special-words (to-word stack value type)
 				| [
-					s: begin-symbol-rule [
+					begin-symbol-rule [
 						path-rule (type: 'lit-path!)			 ;-- path matched
 						| (type: 'lit-word!) ;-- lit-word matched
 					]
@@ -322,7 +318,7 @@ highlight: context [
 		]
 
 		issue-rule: [
-			#"#" (type: 'issue!) s: symbol-rule (
+			#"#" (type: 'issue!) symbol-rule (
 				if (index? s) = index? e [throw-error [type skip s -4]]
 			)
 		]
@@ -330,41 +326,41 @@ highlight: context [
 
 		refinement-rule: [
 			slash [
-				some slash (type: 'word!) e:				;--  ///... case
-				| ahead [not-word-char | ws-no-count | control-char] (type: 'word!) e: ;-- / case
-				| symbol-rule (type: 'refinement! s: next s)
+				some slash (type: 'word!)				;--  ///... case
+				| ahead [not-word-char | ws-no-count | control-char] (type: 'word!) ;-- / case
+				| symbol-rule (type: 'refinement! next s)
 			]
 		]
 		
 		sticky-word-rule: [								;-- protect from sticky words typos
 			ahead [integer-end | ws-no-count | end | (throw-error [type s])]
 		]
-		hexa-rule: [2 8 hexa e: #"h"]
+		hexa-rule: [2 8 hexa #"h"]
 
-		tuple-value-rule: [byte 2 11 [dot byte] e: (type: 'tuple!)]
+		tuple-value-rule: [byte 2 11 [dot byte] (type: 'tuple!)]
 
 		tuple-rule: [tuple-value-rule sticky-word-rule]
 		
 		time-rule: [
-			s: positive-integer-rule [
+			positive-integer-rule [
 				float-number-rule ;-- mm:ss.dd
 				| [
-					#":" s: positive-integer-rule opt float-number-rule	;-- hh:mm:ss[.dd]
+					#":" positive-integer-rule opt float-number-rule	;-- hh:mm:ss[.dd]
 					| (type: 'time!)						;-- hh:mm
 				]
 			] (type: 'time!)
 		]
 		
-		positive-integer-rule: [(type: 'integer!) digit any digit e:]
+		positive-integer-rule: [(type: 'integer!) digit any digit]
 
 		integer-number-rule: [
-			opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] e: (type: 'integer!)
+			opt [#"-" (neg?: yes) | #"+" (neg?: no)] digit any [digit | #"'" digit] (type: 'integer!)
 		]
 
 		integer-rule: [
 			float-special	;-- escape path for NaN, INFs
 			| (neg?: no) integer-number-rule
-			  opt [float-number-rule | float-exp-rule e: (type: 'float!)]
+			  opt [float-number-rule | float-exp-rule (type: 'float!)]
 			  opt [#"%" (type: 'percent!)]
 			  sticky-word-rule
 			  opt [
@@ -375,17 +371,17 @@ highlight: context [
 		]
 
 		float-special: [
-			s: opt #"-" "1.#" [
+			opt #"-" "1.#" [
 				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
 				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
-			] e: (type: 'float!)
+			] (type: 'float!)
 		]
 
 		float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
 
 		float-number-rule: [
 			[dot | comma] digit any [digit | #"'" digit]
-			opt float-exp-rule e: (type: 'float!)
+			opt float-exp-rule (type: 'float!)
 		]
 
 		float-rule: [
@@ -462,7 +458,7 @@ highlight: context [
 				| comment-rule
 				| tuple-rule
 				| hexa-rule
-				| binary-rule
+				| binary-rule (type: 'binary!)
 				| email-rule
 				| integer-rule
 				| float-rule
