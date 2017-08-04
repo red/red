@@ -618,7 +618,9 @@ terminal: context [
 		char-y	[integer!]
 		/local
 			out		[ring-buffer!]
+			buf		[red-value!]
 	][
+		buf: as red-value! allocate 4 * size? red-value!
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
@@ -631,9 +633,14 @@ terminal: context [
 		vt/win-h: win-y
 		update-font vt char-x char-y
 		vt/out: out
-		vt/in: as red-string! #get system/console/line
-		vt/buffer: as red-string! #get system/console/buffer
-		vt/history: as red-block! #get system/console/history
+		copy-cell #get system/console/line buf
+		vt/in: as red-string! buf
+		buf: buf + 1
+		copy-cell #get system/console/buffer buf
+		vt/buffer: as red-string! buf
+		buf: buf + 1
+		copy-cell #get system/console/history buf
+		vt/history: as red-block! buf
 		vt/history-max: 200
 		vt/history-pos: 0
 		vt/history-beg: 1
@@ -642,7 +649,9 @@ terminal: context [
 		vt/caret?: no
 		vt/ask?: no
 		vt/input?: no
-		vt/prompt: as red-string! #get system/console/prompt
+		buf: buf + 1
+		copy-cell #get system/console/prompt buf
+		vt/prompt: as red-string! buf
 		vt/prompt-len: string/rs-length? vt/prompt
 
 		reset-vt vt
@@ -658,6 +667,7 @@ terminal: context [
 		unless null? vt [
 			OS-close vt
 			ring: vt/out
+			free as byte-ptr! vt/in
 			free as byte-ptr! ring/lines
 			free as byte-ptr! ring
 			free as byte-ptr! vt
