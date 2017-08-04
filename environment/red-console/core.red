@@ -16,6 +16,8 @@ terminal!: object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	mouse-up?:	yes
+	ime-open?:	no
+	ime-pos:	0
 
 	top:		1								;-- index of the first visible line in the line buffer
 	line:		none							;-- current editing line
@@ -57,6 +59,7 @@ terminal!: object [
 	)
 
 	draw: get 'system/view/platform/draw-face
+	redraw: get 'system/view/platform/redraw
 
 	print: func [value [any-type!] /local str s cnt][
 		if block? value [value: reduce value]
@@ -70,7 +73,7 @@ terminal!: object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 200 [
-					show target
+					redraw target
 					loop 3 [do-events/no-wait]
 					cnt: 0
 				]
@@ -85,7 +88,7 @@ terminal!: object [
 			add-line str
 		]
 		calc-top
-		show target
+		redraw target
 		do-events/no-wait
 		()				;-- return unset!
 	]
@@ -143,6 +146,8 @@ terminal!: object [
 		if scroller [
 			page-cnt: y / line-h
 			scroller/page-size: page-cnt
+			scroller/max-size: line-cnt - 1 + page-cnt
+			scroller/position: scroller/position
 		]
 	]
 
@@ -155,11 +160,11 @@ terminal!: object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			mouse-wheel [event/picked * 3]
+			mouse-wheel [event/picked]
 		][0]
 		if n <> 0 [
 			scroll-lines n
-			show target
+			redraw target
 		]
 	]
 
@@ -228,7 +233,7 @@ terminal!: object [
 
 	mouse-up: func [event [event!]][
 		mouse-up?: yes
-		show target
+		redraw target
 	]
 
 	mouse-move: func [event [event!]][
@@ -237,7 +242,7 @@ terminal!: object [
 		clear skip selects 2
 		offset-to-line event/offset
 		mouse-to-caret event
-		show target
+		redraw target
 	]
 
 	move-caret: func [n][
@@ -352,6 +357,20 @@ terminal!: object [
 		]
 	]
 
+	process-ime-input: func [event [event!] /local text][
+		text: event/picked
+		either ime-open? [
+			change/part skip line ime-pos text pos - ime-pos
+		][
+			ime-pos: pos
+			insert skip line pos text
+			ime-open?: yes
+		]
+		pos: ime-pos + length? text
+		calc-top/edit
+		redraw target
+	]
+
 	process-shortcuts: function [event [event!]][
 		if find event/flags 'control [
 			switch event/key [
@@ -361,6 +380,11 @@ terminal!: object [
 	]
 
 	press-key: func [event [event!] /local char][
+		if ime-open? [
+			remove/part skip line ime-pos pos - ime-pos
+			pos: ime-pos
+			ime-open?: no
+		]
 		if process-shortcuts event [exit]
 		char: event/key
 		switch/default char [
@@ -386,7 +410,7 @@ terminal!: object [
 		target/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
-		show target
+		redraw target
 	]
 
 	paint-selects: func [
@@ -484,6 +508,9 @@ console!: make face! [
 		]
 		on-key: func [face [object!] event [event!]][
 			extra/press-key event
+		]
+		on-ime: func [face [object!] event [event!]][
+			extra/process-ime-input event
 		]
 		on-down: func [face [object!] event [event!]][
 			extra/mouse-down event

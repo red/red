@@ -28,7 +28,7 @@ ask: function [
 	con/pos: 0
 	con/calc-top
 	con/ask?: yes
-	show con/target
+	con/redraw con/target
 	do-events
 	con/ask?: no
 	line
@@ -178,7 +178,7 @@ red-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
-				clear head system/view/screens/1/pane
+				;clear head system/view/screens/1/pane
 				if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: func [face [object!] event [event!]][
