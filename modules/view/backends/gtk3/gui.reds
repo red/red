@@ -374,6 +374,37 @@ init-combo-box: func [
 	;]
 ]
 
+
+init-text-list: func [
+	widget	 [handle!]
+	data	 [red-block!]
+	/local
+		str		  [red-string!]
+		tail	  [red-string!]
+		val		  [c-string!]
+		len		  [integer!]
+][
+	if any [
+		TYPE_OF(data) = TYPE_BLOCK
+		TYPE_OF(data) = TYPE_HASH
+		TYPE_OF(data) = TYPE_MAP
+	][
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+
+		if str = tail [exit]
+
+		while [str < tail][
+			if TYPE_OF(str) = TYPE_STRING [
+				len: -1
+				val: unicode/to-utf8 str :len
+				gtk_container_add widget gtk_label_new val
+			]
+			str: str + 1
+		]
+	]
+]
+
 update-scroller: func [
 	scroller [red-object!]
 	flag	 [integer!]
@@ -462,6 +493,7 @@ OS-make-view: func [
 		caption   [c-string!]
 		len		  [integer!]
 		widget	  [handle!]
+		widget2	  [handle!]
 		buffer	  [handle!]
 		container [handle!]
 		value	  [integer!]
@@ -470,6 +502,8 @@ OS-make-view: func [
 	stack/mark-func words/_body
 
 	values: object/get-values face
+
+	widget2: as handle! 0; widget version with possible scrollview
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -570,6 +604,13 @@ OS-make-view: func [
 		sym = tab-panel [
 			widget: gtk_notebook_new ; To be completed
 		]
+		sym = text-list [
+			widget: gtk_list_box_new
+			init-text-list widget data
+			gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
+			widget2: gtk_scrolled_window_new null null
+			gtk_container_add widget2 widget
+		]
 		any [
 			sym = drop-list
 			sym = drop-down
@@ -595,14 +636,15 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: widget-face-symbol? as handle! parent
+		if widget2 = as handle! 0 [widget2: widget]
 		either p-sym = panel [
 			container: as handle! parent
-			gtk_widget_set_size_request widget size/x size/y
-			gtk_fixed_put as handle! container widget offset/x offset/y
+			gtk_widget_set_size_request widget2 size/x size/y
+			gtk_fixed_put as handle! container widget2 offset/x offset/y
 		][
 			container: gtk_container_get_children as handle! parent
-			gtk_widget_set_size_request widget size/x size/y
-			gtk_fixed_put as handle! container/value widget offset/x offset/y
+			gtk_widget_set_size_request widget2 size/x size/y
+			gtk_fixed_put as handle! container/value widget2 offset/x offset/y
 		]
 	]
 

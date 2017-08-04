@@ -221,6 +221,31 @@ tagSIZE: alias struct! [
 			x			[integer!]
 			y			[integer!]
 		]
+		gtk_list_box_new: "gtk_list_box_new" [
+			return:		[handle!]
+		]
+		gtk_list_box_select_row: "gtk_list_box_select_row" [
+			listbox		[handle!]
+			row			[handle!]
+		]
+		gtk_list_box_get_selected_row: "gtk_list_box_get_selected_row" [
+			listbox		[handle!]
+			return:		[handle!]
+		]
+		gtk_list_box_get_row_at_index: "gtk_list_box_get_row_at_index" [
+			listbox		[handle!]
+			index		[integer!]
+			return:		[handle!]
+		]
+		gtk_list_box_row_get_index: "gtk_list_box_row_get_index" [
+			row			[handle!]
+			return:		[integer!]
+		]
+		gtk_scrolled_window_new: "gtk_scrolled_window_new" [
+			hadj		[handle!]
+			vadj		[handle!]
+			return:		[handle!]
+		]
 		gtk_button_new_with_label: "gtk_button_new_with_label" [
 			label		[c-string!]
 			return:		[handle!]
