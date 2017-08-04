@@ -169,21 +169,45 @@ range-value-changed: func [
 
 combo-selection-changed: func [
 	[cdecl]
-	combo	[handle!]
+	widget	[handle!]
 	ctx		[node!]
 	/local
 		idx [integer!]
 		res [integer!]
 		text [c-string!]
 ][
-	idx: gtk_combo_box_get_active combo
+	idx: gtk_combo_box_get_active widget
 	if idx >= 0 [
-		res: make-event combo idx + 1 EVT_SELECT
-		set-selected combo ctx idx + 1
-		text: gtk_combo_box_text_get_active_text combo
-		set-text combo ctx text
+		res: make-event widget idx + 1 EVT_SELECT
+		set-selected widget ctx idx + 1
+		text: gtk_combo_box_text_get_active_text widget
+		set-text widget ctx text
 		if res = EVT_DISPATCH [
-			make-event combo idx + 1 EVT_CHANGE
+			make-event widget idx + 1 EVT_CHANGE
+		]
+	]
+]
+
+text-list-selected-rows-changed: func [
+	[cdecl]
+	widget	[handle!]
+	ctx		[node!]
+	/local
+		idx [integer!]
+		sel [handle!]
+		res [integer!]
+		text [c-string!]
+][
+	; From now, only single-selection mode
+	sel: gtk_list_box_get_selected_row widget
+	idx: gtk_list_box_row_get_index sel
+	if idx >= 0 [
+		res: make-event widget idx + 1 EVT_SELECT
+		set-selected widget ctx idx + 1
+		text: gtk_label_get_text gtk_bin_get_child sel
+		set-text widget ctx text
+		if res = EVT_DISPATCH [
+			make-event widget idx + 1 EVT_CHANGE
 		]
 	]
 ]

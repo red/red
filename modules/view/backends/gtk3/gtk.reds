@@ -221,6 +221,10 @@ tagSIZE: alias struct! [
 			x			[integer!]
 			y			[integer!]
 		]
+		gtk_bin_get_child: "gtk_bin_get_child" [
+			bin			[handle!]
+			return:		[handle!]
+		]
 		gtk_list_box_new: "gtk_list_box_new" [
 			return:		[handle!]
 		]
@@ -286,6 +290,10 @@ tagSIZE: alias struct! [
 		gtk_label_new: "gtk_label_new" [
 			label		[c-string!]
 			return:		[handle!]
+		]
+		gtk_label_get_text: "gtk_label_get_text" [
+			label		[handle!]
+			return:		[c-string!]
 		]
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]

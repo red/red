@@ -610,6 +610,7 @@ OS-make-view: func [
 			gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
 			widget2: gtk_scrolled_window_new null null
 			gtk_container_add widget2 widget
+			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed face/ctx)
 		]
 		any [
 			sym = drop-list
