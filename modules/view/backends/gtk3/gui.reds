@@ -28,6 +28,11 @@ red-face-id:	0
 gtk-style-id:	0
 
 group-radio:	as handle! 0
+tabs: context [
+	nb: 	0
+	cur: 	0
+	data:	as red-block! 0
+]
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -102,7 +107,7 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
-widget-face-symbol?: func [
+get-widget-face-symbol: func [
 	widget	[handle!]
 	return:	[integer!]
 	/local
@@ -603,6 +608,9 @@ OS-make-view: func [
 		]
 		sym = tab-panel [
 			widget: gtk_notebook_new ; To be completed
+			tabs/data: data
+			tabs/cur: 0
+			tabs/nb: block/rs-length? data
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
@@ -636,16 +644,34 @@ OS-make-view: func [
 		sym <> window
 		parent <> 0
 	][
-		p-sym: widget-face-symbol? as handle! parent
+		p-sym: get-widget-face-symbol as handle! parent
 		if widget2 = as handle! 0 [widget2: widget]
-		either p-sym = panel [
-			container: as handle! parent
-			gtk_widget_set_size_request widget2 size/x size/y
-			gtk_fixed_put as handle! container widget2 offset/x offset/y
-		][
-			container: gtk_container_get_children as handle! parent
-			gtk_widget_set_size_request widget2 size/x size/y
-			gtk_fixed_put as handle! container/value widget2 offset/x offset/y
+		case [
+			p-sym = panel [
+				container: as handle! parent
+				gtk_widget_set_size_request widget2 size/x size/y
+				gtk_fixed_put as handle! container widget2 offset/x offset/y
+			]
+			p-sym = tab-panel [
+				container: as handle! parent
+				; widget is necessarily a panel and then same as widget2
+				str:  (as red-string! block/rs-head tabs/data) + tabs/cur
+				caption: either TYPE_OF(str) = TYPE_STRING [
+					len: -1
+					unicode/to-utf8 str :len
+				][
+					"Tab"
+				]
+				buffer: gtk_label_new caption
+				gtk_notebook_append_page container widget buffer
+				tabs/cur: tabs/cur + 1
+				if tabs/cur = tabs/nb [tabs/cur: 0 tabs/nb: 0]
+			]
+			true [
+				container: gtk_container_get_children as handle! parent
+				gtk_widget_set_size_request widget2 size/x size/y
+				gtk_fixed_put as handle! container/value widget2 offset/x offset/y
+			]
 		]
 	]
 

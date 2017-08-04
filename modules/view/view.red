@@ -745,7 +745,7 @@ show: function [
 			]
 			
 			switch face/type [
-				#if config/OS = 'Windows [				;@@ remove this system specific code
+				#if any [config/OS = 'Windows  config/OS = 'Linux] [				;@@ remove this system specific code
 					tab-panel [link-tabs-to-parent face]
 				]
 				window	  [
