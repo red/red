@@ -822,20 +822,6 @@ delta-size: func [
 	pt
 ]
 
-update-pair-facet: func [
-	hWnd   [handle!]
-	type   [integer!]
-	lParam [integer!]
-	/local
-		pair [red-pair!]
-][
-	current-msg/hWnd: hWnd
-	pair: as red-pair! get-facet current-msg type
-	pair/header: TYPE_PAIR								;-- forces pair! in case user changed it
-	pair/x: WIN32_LOWORD(lParam)
-	pair/y: WIN32_HIWORD(lParam)
-]
-
 set-window-info: func [
 	hWnd	[handle!]
 	lParam	[integer!]
@@ -867,12 +853,6 @@ set-window-info: func [
 		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
 		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
 		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
-		if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: cx ret?: yes]
-		if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: cy ret?: yes]
-
-		pair: as red-pair! values + FACE_OBJ_OFFSET
-		if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x + x ret?: yes]
-		if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y + y ret?: yes]
 	]
 	ret?
 ]
@@ -911,6 +891,7 @@ WndProc: func [
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
+		delta  [tagPOINT value]
 		offset [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
@@ -930,11 +911,10 @@ WndProc: func [
 		WM_WINDOWPOSCHANGED [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
-				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
-				update-layered-window hWnd null pt winpos -1
+				delta/x: winpos/x - offset/x
+				delta/y: winpos/y - offset/y
+				update-layered-window hWnd null delta winpos -1
 			]
 		]
 		WM_MOVE
@@ -954,15 +934,25 @@ WndProc: func [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
 					miniz?: no
+					delta/x: WIN32_LOWORD(lParam)
+					delta/y: WIN32_HIWORD(lParam)
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
 							WIN32_HIWORD(lParam) < -9999
 							WIN32_LOWORD(lParam) < -9999
 						][miniz?: yes]
+						pos: GetWindowLong hWnd wc-offset - 8 
+						delta/x: delta/x - WIN32_LOWORD(pos)
+						delta/y: delta/y - WIN32_HIWORD(pos)
 						FACE_OBJ_OFFSET
 					][FACE_OBJ_SIZE]
-					update-pair-facet hWnd type lParam
 					if miniz? [return 0]
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: delta/x
+					offset/y: delta/y
+
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type

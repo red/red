@@ -20,6 +20,7 @@ Red/System [
 ;;		-16 : base-layered: owner handle
 ;;		-12 : base-layered: clipped? flag, caret? flag
 ;;		 -8  : base-layered: screen pos Y
+;;				window: caption height & left border width
 ;;		 -4  : camera (camera!)
 ;;				console (terminal!)
 ;;				base: bitmap cache | base-layered: screen pos X
@@ -755,13 +756,10 @@ window-border-info?: func [
 	width	[int-ptr!]
 	height	[int-ptr!]
 	/local
-		win		[RECT_STRUCT]
-		client	[RECT_STRUCT]
+		win		[RECT_STRUCT value]
+		client	[RECT_STRUCT value]
 		pt		[tagPOINT]
 ][
-	client: declare RECT_STRUCT
-	win:	declare RECT_STRUCT	
-
 	GetClientRect handle client
 	if zero? client/right [exit]
 
@@ -779,8 +777,6 @@ window-border-info?: func [
 
 init-window: func [										;-- post-creation settings
 	handle  [handle!]
-	offset	[red-pair!]
-	size	[red-pair!]
 	bits	[integer!]
 	/local
 		x		[integer!]
@@ -800,21 +796,6 @@ init-window: func [										;-- post-creation settings
 		owner: find-last-window
 		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
 	]
-
-	x: 0
-	y: 0
-	cx: 0
-	cy: 0
-	window-border-info? handle :x :y :cx :cy
-
-	SetWindowPos								;-- adjust window size/pos to account for edges
-		handle
-		as handle! 0							;-- HWND_TOP
-		offset/x + x
-		offset/y + y
-		size/x + cx
-		size/y + cy
-		modes
 ]
 
 set-selected-focus: func [
@@ -1193,8 +1174,7 @@ OS-make-view: func [
 		panel?	  [logic!]
 		alpha?	  [logic!]
 		para?	  [logic!]
-		sz-x	  [integer!]
-		sz-y	  [integer!]
+		rc		  [RECT_STRUCT value]
 ][
 	stack/mark-func words/_body
 
@@ -1222,8 +1202,6 @@ OS-make-view: func [
 	panel?:	  no
 	alpha?:   no
 	para?:	  TYPE_OF(para) = TYPE_OBJECT
-	sz-x:	  size/x							;-- face/size may be changed when creating window
-	sz-y:	  size/y
 
 	if all [show?/value sym <> window][flags: flags or WS_VISIBLE]
 	if para? [flags: flags or get-para-flags sym para]
@@ -1318,18 +1296,16 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_BORDER or WS_CLIPCHILDREN
+			flags: WS_THICKFRAME or WS_CAPTION or WS_CLIPCHILDREN
 			;ws-flags: WS_EX_COMPOSITED
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
 			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
-
-			flags: either bits and FACET_FLAGS_RESIZE = 0 [
-				flags and (not WS_MAXIMIZEBOX)
-			][
-				flags or WS_THICKFRAME
+			if bits and FACET_FLAGS_RESIZE = 0 [
+				flags: flags and (not WS_MAXIMIZEBOX)
 			]
+
 			if menu-bar? menu window [
 				flags: flags or WS_SYSMENU
 				id: as-integer build-menu menu CreateMenu
@@ -1337,6 +1313,13 @@ OS-make-view: func [
 
 			if bits and FACET_FLAGS_NO_TITLE  <> 0 [flags: WS_POPUP or WS_BORDER]
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
+			rc/left: 0
+			rc/top: 0
+			rc/right: size/x
+			rc/bottom: size/y
+			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
+			size/x: rc/right - rc/left
+			size/y: rc/bottom - rc/top
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1451,9 +1434,10 @@ OS-make-view: func [
 			change-text handle values sym
 		]
 		sym = window [
-			size/x: sz-x
-			size/y: sz-y
-			init-window handle offset size bits
+			init-window handle bits
+			value: 0 - rc/left
+			bits: 0 - rc/top
+			SetWindowLong handle wc-offset - 8 bits << 16 or value
 		]
 		true [0]
 	]

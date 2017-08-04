@@ -47,12 +47,10 @@ red-complete-path: func [
 		word: attempt [to word! copy/part str ptr]
 		if none? word [return result]
 		either first? [
-			if value? word [
-				w1: get word
-				first?: no
-			]
+			w1: get/any word
+			first?: no
 		][
-			w1: get in w1 word
+			if w1: in w1 word [w1: get/any w1]
 		]
 		str: either object? w1 [next ptr][""]
 	]
