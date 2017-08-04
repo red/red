@@ -27,7 +27,6 @@ exit-loop:		0
 red-face-id:	0
 gtk-style-id:	0
 
-none-type: 		as red-word! symbol/make "none"
 group-radio:	as handle! 0
 
 log-pixels-x:	0
@@ -103,23 +102,25 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
-parent-type?: func [
-	parent	[handle!]
-	return:	[red-word!]
+widget-face-symbol?: func [
+	widget	[handle!]
+	return:	[integer!]
 	/local
 		qdata	[handle!]
-		p-face	[red-object!]
-		p-type	[red-word!]
+		face	[red-object!]
+		type	[red-word!]
+		sym		[integer!]
 ][
-	p-type: none-type
-	qdata: g_object_get_qdata parent red-face-id
+	sym: -1
+	qdata: g_object_get_qdata widget red-face-id
 	if qdata <> as handle! 0 [
-		p-face: as red-object! qdata
-		if TYPE_OF(p-face) = TYPE_OBJECT [
-			p-type: as red-word! get-node-facet p-face/ctx FACE_OBJ_TYPE
+		face: as red-object! qdata
+		if TYPE_OF(face) = TYPE_OBJECT [
+			type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+			sym: symbol/resolve type/symbol
 		]
 	]
-	p-type
+	sym
 ]
 
 get-child-from-xy: func [
@@ -454,10 +455,10 @@ OS-make-view: func [
 		open?	  [red-logic!]
 		selected  [red-integer!]
 		para	  [red-object!]
-		p-type	  [red-word!]
 		flags	  [integer!]
 		bits	  [integer!]
 		sym		  [integer!]
+		p-sym	  [integer!]
 		caption   [c-string!]
 		len		  [integer!]
 		widget	  [handle!]
@@ -554,8 +555,20 @@ OS-make-view: func [
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
+			gtk_frame_set_shadow_type widget 3
+			gtk_frame_set_label_align widget 0.5 0.5; Todo: does not seem to work
 			container: gtk_fixed_new
 			gtk_container_add widget container
+		]
+		sym = panel [
+			widget: gtk_fixed_new ; To be completed
+			unless null? caption [
+				buffer: gtk_label_new caption
+				gtk_container_add widget buffer
+			]
+		]
+		sym = tab-panel [
+			widget: gtk_notebook_new ; To be completed
 		]
 		any [
 			sym = drop-list
@@ -581,9 +594,16 @@ OS-make-view: func [
 		sym <> window
 		parent <> 0
 	][
-		gtk_widget_set_size_request widget size/x size/y
-		container: gtk_container_get_children as handle! parent
-		gtk_fixed_put as handle! container/value widget offset/x offset/y
+		p-sym: widget-face-symbol? as handle! parent
+		either p-sym = panel [
+			container: as handle! parent
+			gtk_widget_set_size_request widget size/x size/y
+			gtk_fixed_put as handle! container widget offset/x offset/y
+		][
+			container: gtk_container_get_children as handle! parent
+			gtk_widget_set_size_request widget size/x size/y
+			gtk_fixed_put as handle! container/value widget offset/x offset/y
+		]
 	]
 
 	;-- store the face value in the extra space of the window struct

@@ -203,6 +203,15 @@ tagSIZE: alias struct! [
 			label		[c-string!]
 			return: 	[handle!]
 		]
+		gtk_frame_set_label_align: "gtk_frame_set_label_align" [
+			frame		[handle!]
+			xalign		[float!]
+			yalign		[float!]
+		]
+		gtk_frame_set_shadow_type: "gtk_frame_set_shadow_type" [
+			frame		[handle!]
+			shadow		[integer!]
+		]
 		gtk_fixed_new: "gtk_fixed_new" [
 			return:		[handle!]
 		]
@@ -327,6 +336,19 @@ tagSIZE: alias struct! [
 		gtk_combo_box_text_get_active_text: "gtk_combo_box_text_get_active_text"  [
 			combo		[handle!]
 			return:		[c-string!]
+		]
+		gtk_notebook_new: "gtk_notebook_new" [
+			return:		[handle!]
+		]
+		gtk_notebook_append_page: "gtk_notebook_append_page" [
+			nb			[handle!]
+			pane		[handle!]
+			label		[handle!]
+			return: 	[integer!]
+		]
+		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
+			nb			[handle!]
+			return: 	[integer!]	
 		]
 		gtk_css_provider_new: "gtk_css_provider_new" [
 			return:		[handle!]
