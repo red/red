@@ -234,7 +234,7 @@ float: context [
 			OP_MUL [left * right]
 			OP_DIV [
 				either all [0.0 = right not NaN? right][
-					either left >= 0.0 [+INF][-INF]
+					either left > 0.0 [+INF][either left = 0.0 [QNaN][-INF]]
 				][
 					left / right
 				]
