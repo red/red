@@ -97,35 +97,35 @@ red-string!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-file!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-url!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-tag!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-email!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-binary!: alias struct! [
@@ -146,7 +146,7 @@ red-symbol!: alias struct! [
 	header 	[integer!]								;-- cell header
 	alias	[integer!]								;-- Alias symbol index
 	node	[node!]									;-- string series node pointer
-	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+	cache	[node!]									;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-integer!: alias struct! [

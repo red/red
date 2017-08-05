@@ -77,17 +77,34 @@ unicode: context [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		return:  [c-string!]
+		/local
+			node [node!]
 	][
-		io-to-utf8 str len no
+		node: str-to-utf8 str len no
+		as-c-string (as series! node/value) + 1
 	]
-
+	
 	io-to-utf8: func [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		convert? [logic!]			;-- convert line terminators to OS specific
 		return:  [c-string!]
 		/local
+			node [node!]		
+	][
+		node: str-to-utf8 str len convert?
+		as-c-string (as series! node/value) + 1
+	]
+
+	str-to-utf8: func [
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		convert? [logic!]			;-- convert line terminators to OS specific
+		return:  [node!]
+		/local
 			s	 [series!]
+			ser	 [series!]
+			node [node!]
 			beg  [byte-ptr!]
 			buf	 [byte-ptr!]
 			p	 [byte-ptr!]
@@ -104,7 +121,9 @@ unicode: context [
 		unless len/value = -1 [
 			if len/value < part [part: len/value]
 		]
-		buf: allocate unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
+		node: alloc-bytes unit << 1 * (1 + part)
+		ser: as series! node/value
+		buf: as byte-ptr! ser + 1
 		beg: buf
 
 		p:	  string/rs-head str
@@ -128,7 +147,7 @@ unicode: context [
 		buf/1: null-byte
 
 		len/value: as-integer buf - beg
-		as-c-string beg
+		node
 	]
 	
 	Latin1-to-UCS2: func [
@@ -555,7 +574,7 @@ unicode: context [
 	][
 		if null? src [
 			assert not null? str
-			src: str/cache								;-- import UTF-16 string from cache
+			src: as-c-string (as series! str/cache/value) + 1 ;-- import UTF-16 string from cache
 		]
 		unit: scan-utf16 src size
 		
@@ -687,6 +706,7 @@ unicode: context [
 		return: [c-string!]
 		/local
 			s	 [series!]
+			head [byte-ptr!]
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
@@ -706,8 +726,8 @@ unicode: context [
 		src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: src + (part << (unit >> 1))
 
-		get-cache str size + count-extras src tail unit
-		dst:  as byte-ptr! str/cache
+		head: as byte-ptr! get-cache str size + count-extras src tail unit
+		dst: head
 
 		switch unit [
 			Latin1 [
@@ -783,10 +803,10 @@ unicode: context [
 		len/value: part
 		
 		#if debug? = yes [
-			s: (as series! str/cache) - 1
-			assert (as byte-ptr! str/cache) + s/size > dst	;-- detect buffer overflow
+			s: as series! str/cache/value
+			assert head + s/size > dst					;-- detect buffer overflow
 		]
-		str/cache
+		as-c-string head
 	]
 	
 	get-cache: func [
@@ -798,15 +818,13 @@ unicode: context [
 			s	 [series!]
 	][
 		either null? str/cache [
-			node: alloc-bytes size
-			s: as series! node/value
-			str/cache: as-c-string s/offset
+			str/cache: alloc-bytes size
+			s: as series! str/cache/value
 		][
-			s: (as series! str/cache) - 1
+			s: as series! str/cache/value
 			if s/size < size [s: expand-series s size]
-			str/cache: as-c-string s + 1
 		]
-		str/cache
+		as-c-string s + 1
 	]
 	
 ]

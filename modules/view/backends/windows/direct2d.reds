@@ -14,7 +14,7 @@ d2d-factory:	as this! 0
 dwrite-factory: as this! 0
 dw-locale-name: as c-string! 0
 
-dwrite-str-cache: as c-string! 0
+dwrite-str-cache: as node! 0
 
 #define D2D_MAX_BRUSHES 64
 
@@ -695,8 +695,6 @@ put-brush: func [
 
 DX-init: func [
 	/local
-		node				[node!]
-		s					[series!]
 		hr					[integer!]
 		factory 			[integer!]
 		dll					[handle!]
@@ -724,9 +722,7 @@ DX-init: func [
 	hr: DWriteCreateFactory 0 IID_IDWriteFactory :factory		;-- DWRITE_FACTORY_TYPE_SHARED: 0
 	assert zero? hr
 	dwrite-factory: as this! factory
-	node: alloc-bytes 1024
-	s: as series! node/value
-	dwrite-str-cache: as-c-string s/offset
+	dwrite-str-cache: alloc-bytes 1024
 ]
 
 DX-cleanup: func [/local unk [IUnknown]][

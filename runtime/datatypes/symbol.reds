@@ -49,7 +49,7 @@ symbol: context [
 	
 	duplicate: func [
 		src		 [c-string!]
-		return:  [c-string!]
+		return:  [node!]
 		/local
 			node [node!]
 			dst  [c-string!]
@@ -62,7 +62,7 @@ symbol: context [
 		dst: as c-string! s/offset
 		
 		copy-memory as byte-ptr! dst as byte-ptr! src len
-		dst
+		node
 	]
 	
 	make-alt: func [
@@ -83,7 +83,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node
-		sym/cache:  unicode/to-utf8 str :len
+		sym/cache:  unicode/str-to-utf8 str :len no
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
@@ -110,7 +110,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node
-		sym/cache:  duplicate s
+		sym/cache:  str/cache
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
