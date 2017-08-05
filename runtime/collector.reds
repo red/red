@@ -118,11 +118,15 @@ collector: context [
 					mark-context obj/ctx
 					if obj/on-set <> null [keep obj/on-set]
 				]
-				TYPE_HASH
-				TYPE_MAP [
+				TYPE_HASH [
 					;probe "hash"
 					hash: as red-hash! value
 					keep hash/node
+					_hashtable/mark hash/table			;@@ check if previously marked
+				]
+				TYPE_MAP [
+					;probe "map"
+					hash: as red-hash! value
 					_hashtable/mark hash/table			;@@ check if previously marked
 				]
 				TYPE_FUNCTION [
