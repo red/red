@@ -99,6 +99,13 @@ collector: context [
 				TYPE_STRING
 				TYPE_URL 
 				TYPE_FILE
+				TYPE_TAG 
+				TYPE_EMAIL [
+					;probe ["string, type: " TYPE_OF(value)]
+					series: as red-series! value
+					keep series/node
+					if series/extra <> 0 [keep as node! series/extra]
+				]
 				TYPE_VECTOR
 				TYPE_BITSET [
 					;probe ["bitset, type: " TYPE_OF(value)]
