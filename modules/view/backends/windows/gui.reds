@@ -20,7 +20,6 @@ Red/System [
 ;;		-16 : base-layered: owner handle
 ;;		-12 : base-layered: clipped? flag, caret? flag
 ;;		 -8  : base-layered: screen pos Y
-;;				window: caption height & left border width
 ;;		 -4  : camera (camera!)
 ;;				console (terminal!)
 ;;				base: bitmap cache | base-layered: screen pos X
@@ -1435,9 +1434,8 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle bits
-			value: 0 - rc/left
-			bits: 0 - rc/top
-			SetWindowLong handle wc-offset - 8 bits << 16 or value
+			offset/x: offset/x - rc/left
+			offset/y: offset/y - rc/top
 		]
 		true [0]
 	]

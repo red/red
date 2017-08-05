@@ -891,7 +891,6 @@ WndProc: func [
 		nmhdr  [tagNMHDR]
 		gi	   [GESTUREINFO]
 		pt	   [tagPOINT]
-		delta  [tagPOINT value]
 		offset [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
@@ -911,10 +910,11 @@ WndProc: func [
 		WM_WINDOWPOSCHANGED [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
+				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				delta/x: winpos/x - offset/x
-				delta/y: winpos/y - offset/y
-				update-layered-window hWnd null delta winpos -1
+				pt/x: winpos/x - offset/x - pt/x
+				pt/y: winpos/y - offset/y - pt/y
+				update-layered-window hWnd null pt winpos -1
 			]
 		]
 		WM_MOVE
@@ -934,26 +934,22 @@ WndProc: func [
 				if null? current-msg [init-current-msg]
 				if wParam <> SIZE_MINIMIZED [
 					miniz?: no
-					delta/x: WIN32_LOWORD(lParam)
-					delta/y: WIN32_HIWORD(lParam)
 					type: either msg = WM_MOVE [
 						if all [						;@@ MINIMIZED window, @@ find a better way to detect it
 							WIN32_HIWORD(lParam) < -9999
 							WIN32_LOWORD(lParam) < -9999
 						][miniz?: yes]
-						pos: GetWindowLong hWnd wc-offset - 8 
-						delta/x: delta/x - WIN32_LOWORD(pos)
-						delta/y: delta/y - WIN32_HIWORD(pos)
 						FACE_OBJ_OFFSET
 					][FACE_OBJ_SIZE]
 					if miniz? [return 0]
 
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
-					offset/x: delta/x
-					offset/y: delta/y
+					offset/x: WIN32_LOWORD(lParam)
+					offset/y: WIN32_HIWORD(lParam)
 
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
 
