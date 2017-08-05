@@ -143,7 +143,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hDC :rc
+		render-text values hWnd hDC :rc
 	][
 		res: true
 	]
@@ -152,6 +152,7 @@ render-base: func [
 
 render-text: func [
 	values	[red-value!]
+	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
 	return: [logic!]
@@ -168,6 +169,7 @@ render-text: func [
 		res		[logic!]
 		len		[integer!]
 		str		[c-string!]
+		graphic	[integer!]
 ][
 	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
@@ -184,6 +186,14 @@ render-text: func [
 				TYPE_OF(color) = TYPE_TUPLE
 				color/array1 <> 0
 			][
+				if color/array1 >>> 24 > 0 [				;-- has alpha channel
+					graphic: 0
+					GdipCreateFromHDC hDC :graphic
+					GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+					update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top
+					GdipDeleteGraphics graphic
+					return true
+				]
 				SetTextColor hDC color/array1 and 00FFFFFFh
 			]
 			state: as red-block! values + FONT_OBJ_STATE
