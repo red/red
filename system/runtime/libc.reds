@@ -69,7 +69,7 @@ Red/System [
 			base		[byte-ptr!]
 			nitems		[integer!]
 			width		[integer!]
-			cmpfunc		[function! [a [int-ptr!] b [int-ptr!] return: [integer!]]]
+			cmpfunc		[function! [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]]]
 		]
 	]
 

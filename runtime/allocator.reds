@@ -520,7 +520,9 @@ compact-series-frame: func [
 	refs
 ]
 
-compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][as-integer a - b]
+compare-refs: func [[cdecl] a [int-ptr!] b [int-ptr!] return: [integer!]][
+	a/value - b/value
+]
 
 extract-stack-refs: func [
 	store? [logic!]
@@ -570,7 +572,7 @@ extract-stack-refs: func [
 	if store? [
 		qsort
 			as byte-ptr! memory/stk-refs
-			(as-integer refs - memory/stk-refs) / 2
+			(as-integer refs - memory/stk-refs) >> 2 / 2
 			8
 			:compare-refs
 
