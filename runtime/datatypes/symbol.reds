@@ -47,7 +47,7 @@ symbol: context [
 		id
 	]
 	
-	duplicate: func [
+	internalize: func [
 		src		 [c-string!]
 		return:  [node!]
 		/local
@@ -56,8 +56,8 @@ symbol: context [
 			s	 [series!]
 			len	 [integer!]
 	][
-		len: length? src
-		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
+		len: 1 + length? src
+		node: alloc-bytes len 							;@@ TBD: mark this buffer as protected!
 		s: as series! node/value
 		dst: as c-string! s/offset
 		
@@ -110,7 +110,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node
-		sym/cache:  str/cache
+		sym/cache:  internalize s
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
