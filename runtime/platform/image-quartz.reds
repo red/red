@@ -211,7 +211,7 @@ OS-image: context [
 		IMAGE_HEIGHT(inode/size)
 	]
 
-	lock-bitmap: func [						;-- do nothing on Quartz backend
+	lock-bitmap: func [
 		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
@@ -253,6 +253,10 @@ OS-image: context [
 			buf		[int-ptr!]
 	][
 		node: as img-node! (as series! bitmap/value) + 1
+		if zero? node/flags [
+			node/flags: IMG_NODE_HAS_BUFFER
+			node/buffer: OS-image/data-to-image node/handle yes yes
+		]
 		buf: node/buffer + index
 		buf/value
 	]
@@ -267,6 +271,10 @@ OS-image: context [
 			buf		[int-ptr!]
 	][
 		node: as img-node! (as series! bitmap/value) + 1
+		if zero? node/flags [
+			node/flags: IMG_NODE_HAS_BUFFER
+			node/buffer: OS-image/data-to-image node/handle yes yes
+		]
 		node/flags: node/flags or IMG_NODE_MODIFIED
 		buf: node/buffer + index
 		buf/value: color
