@@ -166,11 +166,13 @@ mouse-events: func [
 		evt		[integer!]
 		flags	[integer!]
 		state	[integer!]
+		drag?	[logic!]
 ][
 	p: as int-ptr! event
 	flags: check-extra-keys event
 	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
-	state: switch p/2 [
+	drag?: no
+	switch p/2 [
 		NSLeftMouseDown		[
 			evt: objc_msgSend [event sel_getUid "clickCount"]
 			evt: switch evt [
@@ -178,42 +180,43 @@ mouse-events: func [
 				2 [EVT_DBL_CLICK]
 				default [-1]
 			]
-			either evt = -1 [EVT_DISPATCH][make-event self flags evt]
+			state: either evt = -1 [EVT_DISPATCH][make-event self flags evt]
 		]
 		NSLeftMouseUp		[
-			either 2 > objc_msgSend [event sel_getUid "clickCount"][
+			state: either 2 > objc_msgSend [event sel_getUid "clickCount"][
 				make-event self flags EVT_LEFT_UP
 			][
 				EVT_DISPATCH
 			]
 		]
-		NSRightMouseDown	[make-event self flags EVT_RIGHT_DOWN]
-		NSRightMouseUp		[make-event self flags EVT_RIGHT_UP]
+		NSRightMouseDown	[state: make-event self flags EVT_RIGHT_DOWN]
+		NSRightMouseUp		[state: make-event self flags EVT_RIGHT_UP]
 		NSOtherMouseDown	[
 			evt: either 2 < objc_msgSend [event sel_getUid "buttonNumber"][EVT_AUX_DOWN][EVT_MIDDLE_DOWN]
-			make-event self flags evt
+			state: make-event self flags evt
 		]
 		NSOtherMouseUp		[
 			evt: either 2 < objc_msgSend [event sel_getUid "buttonNumber"][EVT_AUX_UP][EVT_MIDDLE_UP]
-			make-event self flags evt
+			state: make-event self flags evt
 		]
-		NSLeftMouseDragged	
-		NSRightMouseDragged	
-		NSOtherMouseDragged	[
-			opt: (get-face-values self) + FACE_OBJ_OPTIONS
-			either all [
-				zero? objc_getAssociatedObject self RedEnableKey
-				any [
-					TYPE_OF(opt) = TYPE_BLOCK
-					0 <> objc_getAssociatedObject self RedAllOverFlagKey
-				]
-			][
-				make-event self flags EVT_OVER
-			][
-				EVT_DISPATCH
+		NSLeftMouseDragged	[drag?: yes flags: flags or EVT_FLAG_DOWN]
+		NSRightMouseDragged [drag?: yes flags: flags or EVT_FLAG_ALT_DOWN]
+		NSOtherMouseDragged	[drag?: yes flags: flags or EVT_FLAG_MID_DOWN]
+		default [state: EVT_DISPATCH]
+	]
+	if drag? [
+		opt: (get-face-values self) + FACE_OBJ_OPTIONS
+		state: either all [
+			zero? objc_getAssociatedObject self RedEnableKey
+			any [
+				TYPE_OF(opt) = TYPE_BLOCK
+				0 <> objc_getAssociatedObject self RedAllOverFlagKey
 			]
+		][
+			make-event self flags EVT_OVER
+		][
+			EVT_DISPATCH
 		]
-		default [EVT_DISPATCH]
 	]
 	if state = EVT_DISPATCH [msg-send-super self cmd event]
 ]
@@ -476,11 +479,14 @@ slider-change: func [
 	cmd		[integer!]
 	sender	[integer!]
 	/local
+		values	[red-value!]
 		pos		[red-float!]
+		opt		[red-value!]
 		val		[float!]
 		divisor [float!]
 ][
-	pos: (as red-float! get-face-values self) + FACE_OBJ_DATA
+	values: get-face-values self
+	pos: (as red-float! values) + FACE_OBJ_DATA
 
 	if all [
 		TYPE_OF(pos) <> TYPE_FLOAT
@@ -491,6 +497,15 @@ slider-change: func [
 	val: objc_msgSend_fpret [self sel_getUid "floatValue"]
 	divisor: objc_msgSend_fpret [self sel_getUid "maxValue"]
 	pos/value: val / divisor
+
+	opt: values + FACE_OBJ_OPTIONS
+	if all [
+		zero? objc_getAssociatedObject self RedEnableKey
+		any [
+			TYPE_OF(opt) = TYPE_BLOCK
+			0 <> objc_getAssociatedObject self RedAllOverFlagKey
+		]
+	][make-event self EVT_FLAG_DOWN EVT_OVER]
 	make-event self 0 EVT_CHANGE
 ]
 
@@ -1149,6 +1164,50 @@ do-cmd-selector: func [
 	][
 		on-key-down self event
 	]
+]
+
+hit-test: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	x		[integer!]
+	y		[integer!]
+	return: [integer!]
+	/local
+		img		[red-image!]
+		sz		[red-pair!]
+		pt		[CGPoint! value]
+		super	[objc_super! value]
+		v		[integer!]
+		pixel	[integer!]
+		w		[integer!]
+		h		[integer!]
+		ratio	[float32!]
+		vals	[red-value!]
+][
+	super/receiver: self
+	super/superclass: objc_msgSend [self sel_getUid "superclass"]
+	v: objc_msgSendSuper [super cmd x y]
+	if v = self [
+		vals: get-face-values self
+		img: (as red-image! vals) + FACE_OBJ_IMAGE
+		sz: (as red-pair! vals) + FACE_OBJ_SIZE
+		if TYPE_OF(img) = TYPE_IMAGE [
+			pt: objc_msgSend_pt [
+				self sel_getUid "convertPoint:fromView:" x y
+				objc_msgSend [self sel_getUid "superview"]
+			]
+			w: IMAGE_WIDTH(img/size)
+			h: IMAGE_HEIGHT(img/size)
+			ratio: (as float32! w) / (as float32! sz/x)
+			x: as-integer pt/x * ratio
+			ratio: (as float32! h) / (as float32! sz/y)
+			y: as-integer pt/y * ratio
+			pixel: OS-image/get-pixel img/node y * w + x
+			if pixel >>> 24 = 0 [v: 0]
+		]
+	]
+	v
 ]
 
 draw-rect: func [

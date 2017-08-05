@@ -38,12 +38,13 @@ draw-begin: func [
 	unless pattern? [
 		CGContextSaveGState CGCtx
 
-		if on-graphic? [							;-- draw on image!, flip the CTM
+		either on-graphic? [							;-- draw on image!, flip the CTM
 			rc: as NSRect! img
 			CGContextTranslateCTM CGCtx as float32! 0.0 rc/y
 			CGContextScaleCTM CGCtx as float32! 1.0 as float32! -1.0
+		][
+			CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 		]
-		CGContextTranslateCTM CGCtx as float32! 0.5 as float32! 0.5
 	]
 
 	ctx/raw:			CGCtx
@@ -210,6 +211,7 @@ OS-draw-line-width: func [
 		width-v	[float32!]
 ][
 	width-v: get-float32 as red-integer! width
+	if width-v <= F32_0 [width-v: F32_1]
 	if dc/pen-width <> width-v [
 		dc/pen-width: width-v
 		CGContextSetLineWidth dc/raw width-v
