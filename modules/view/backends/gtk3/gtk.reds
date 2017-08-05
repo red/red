@@ -379,6 +379,21 @@ tagSIZE: alias struct! [
 			label		[handle!]
 			return: 	[integer!]
 		]
+		gtk_notebook_get_current_page: "gtk_notebook_get_current_page" [
+			nb			[handle!]
+			return: 	[integer!]
+		]
+
+		gtk_notebook_get_nth_page: "gtk_notebook_get_nth_page" [
+			nb			[handle!]
+			index	 	[integer!]
+			return: 	[handle!]
+		]
+		gtk_notebook_get_tab_label_text: "gtk_notebook_get_tab_label_text" [
+			nb			[handle!]
+			page		[handle!]
+			return:		[c-string!]
+		]
 		gtk_notebook_get_n_pages: "gtk_notebook_get_n_pages" [
 			nb			[handle!]
 			return: 	[integer!]	

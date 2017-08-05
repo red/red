@@ -211,3 +211,24 @@ text-list-selected-rows-changed: func [
 		]
 	]
 ]
+
+tab-panel-switch-page: func [
+	[cdecl]
+	widget	[handle!]
+	page	[handle!]
+	idx		[integer!]
+	ctx		[node!]
+	/local
+		res  [integer!]
+		text [c-string!]
+][
+	if idx >= 0 [
+		res: make-event widget idx + 1 EVT_SELECT
+		set-selected widget ctx idx + 1
+		text: gtk_notebook_get_tab_label_text widget page
+		set-text widget ctx text
+		if res = EVT_DISPATCH [
+			make-event widget idx + 1 EVT_CHANGE
+		]
+	]
+]

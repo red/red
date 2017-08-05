@@ -31,7 +31,6 @@ group-radio:	as handle! 0
 tabs: context [
 	nb: 	0
 	cur: 	0
-	data:	as red-block! 0
 ]
 
 log-pixels-x:	0
@@ -40,10 +39,20 @@ screen-size-x:	0
 screen-size-y:	0
 
 get-face-values: func [
-	handle	[integer!]
+	handle	[handle!]
 	return: [red-value!]
+	/local
+		face	[red-object!]
+		qdata	[handle!]
+		values	[red-value!]
 ][
-	null
+	values: as red-value! 0
+	qdata: g_object_get_qdata handle red-face-id
+    if qdata <> as handle! 0 [
+        face: as red-object! qdata
+		values: object/get-values face
+	]
+	values
 ]
 
 get-node-values: func [
@@ -107,25 +116,26 @@ get-face-handle: func [
 	as handle! int/value
 ]
 
-get-widget-face-symbol: func [
-	widget	[handle!]
-	return:	[integer!]
-	/local
-		qdata	[handle!]
-		face	[red-object!]
-		type	[red-word!]
-		sym		[integer!]
+get-widget-symbol: func [
+    widget    [handle!]
+    return:    [integer!]
+    /local
+        type    [red-word!]
+		values	[red-value!]
 ][
-	sym: -1
-	qdata: g_object_get_qdata widget red-face-id
-	if qdata <> as handle! 0 [
-		face: as red-object! qdata
-		if TYPE_OF(face) = TYPE_OBJECT [
-			type: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-			sym: symbol/resolve type/symbol
-		]
-	]
-	sym
+	values: get-face-values widget
+    type: as red-word! values + FACE_OBJ_TYPE
+    symbol/resolve type/symbol
+]
+
+get-widget-data: func [
+    widget    [handle!]
+    return:    [red-block!]
+	/local
+		values	[red-value!]
+][
+	values: get-face-values widget
+    as red-block! values + FACE_OBJ_DATA
 ]
 
 get-child-from-xy: func [
@@ -172,7 +182,7 @@ to-bgr: func [
 ]
 
 free-handles: func [
-	hWnd [integer!]
+	hWnd [handle!]
 	/local
 		values [red-value!]
 		type   [red-word!]
@@ -221,7 +231,7 @@ init: func [][
 ]
 
 set-selected-focus: func [
-	hWnd [integer!]
+	hWnd [handle!]
 	/local
 		face   [red-object!]
 		values [red-value!]
@@ -600,17 +610,17 @@ OS-make-view: func [
 			gtk_container_add widget container
 		]
 		sym = panel [
-			widget: gtk_fixed_new ; To be completed
+			widget: gtk_fixed_new
 			unless null? caption [
 				buffer: gtk_label_new caption
 				gtk_container_add widget buffer
 			]
 		]
 		sym = tab-panel [
-			widget: gtk_notebook_new ; To be completed
-			tabs/data: data
+			widget: gtk_notebook_new
 			tabs/cur: 0
 			tabs/nb: block/rs-length? data
+			gobj_signal_connect(widget "switch-page" :tab-panel-switch-page face/ctx)
 		]
 		sym = text-list [
 			widget: gtk_list_box_new
@@ -644,7 +654,7 @@ OS-make-view: func [
 		sym <> window
 		parent <> 0
 	][
-		p-sym: get-widget-face-symbol as handle! parent
+		p-sym: get-widget-symbol as handle! parent
 		if widget2 = as handle! 0 [widget2: widget]
 		case [
 			p-sym = panel [
@@ -655,7 +665,8 @@ OS-make-view: func [
 			p-sym = tab-panel [
 				container: as handle! parent
 				; widget is necessarily a panel and then same as widget2
-				str:  (as red-string! block/rs-head tabs/data) + tabs/cur
+				data: get-widget-data container
+				str:  (as red-string! block/rs-head data) + tabs/cur
 				caption: either TYPE_OF(str) = TYPE_STRING [
 					len: -1
 					unicode/to-utf8 str :len
@@ -786,12 +797,12 @@ OS-destroy-view: func [
 	face   [red-object!]
 	empty? [logic!]
 	/local
-		handle [integer!]
+		handle [handle!]
 		values [red-value!]
 		obj	   [red-object!]
 		flags  [integer!]
 ][
-	handle: as-integer get-face-handle face
+	handle: get-face-handle face
 	values: object/get-values face
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
