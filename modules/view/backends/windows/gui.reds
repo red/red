@@ -2121,7 +2121,11 @@ OS-update-facet: func [
 			sym: action/symbol
 			case [
 				type = text-list [
-					update-list face value sym new index part no
+					either sym = words/_sort/symbol [
+						OS-update-view face
+					][
+						update-list face value sym new index part no
+					]
 				]
 				any [
 					type = drop-list
