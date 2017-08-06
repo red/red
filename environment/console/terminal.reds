@@ -94,6 +94,7 @@ terminal: context [
 		s-t-idx [integer!]					;-- offset of the last selected line
 		limit	[integer!]
 		full?	[logic!]					;-- buffer is full or not
+		offset	[integer!]
 		data	[red-string!]
 		end		[red-value!]
 	]
@@ -328,7 +329,7 @@ terminal: context [
 				delta: n - node/nlines
 				node/nlines: n
 				out/last: cursor
-				out/end: buf/tail
+				out/offset: (as-integer buf/tail - buf/offset) >> 4
 				either count = max [
 					full?: yes
 					buf/tail: buf/offset
@@ -980,9 +981,9 @@ terminal: context [
 			if any [len > n len = -1][len: n]
 		]
 		s: GET_BUFFER(str)
-		if out <> null [s/tail: out/end]
+		if out <> null [s/tail: s/offset + out/offset]
 		s/tail: as cell! (as byte-ptr! s/tail) - (len << (GET_UNIT(s) >> 1))
-		if out <> null [out/end: s/tail]
+		if out <> null [out/offset: (as-integer s/tail - s/offset) >> 4]
 	]
 
 	complete-line: func [
