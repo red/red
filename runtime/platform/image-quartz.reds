@@ -684,28 +684,11 @@ OS-image: context [
 		part?	[logic!]
 		return: [red-image!]
 		/local
-			x		[integer!]
-			y		[integer!]
-			w		[integer!]
-			h		[integer!]
-			offset	[integer!]
-			handle	[integer!]
-			width	[integer!]
-			height	[integer!]
-			bmp		[integer!]
-			format	[integer!]
+			inode	[img-node!]
 	][
-		width: IMAGE_WIDTH(src/size)
-		height: IMAGE_WIDTH(src/size)
-		offset: src/head
-		x: offset % width
-		y: offset / width
-		handle: as-integer src/node
-		bmp: 0
-
-		dst/header: TYPE_IMAGE
-		dst/head: 0
-		dst/node: as node! bmp
+		copy-cell as red-value! src as red-value! dst
+		inode: as img-node! (as series! dst/node/value) + 1
+		inode/flags: IMG_NODE_MODIFIED
 		dst
 	]
 ]
