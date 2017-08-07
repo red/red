@@ -550,8 +550,21 @@ make-profilable make target-class [
 	
 	count-floats: func [spec [block!] /local cnt][
 		cnt: 0
-		parse spec [any [into ['float! | 'float64! | 'float32!] (cnt: cnt + 1) | skip]]		
+		parse spec [any [into ['float! | 'float64! | 'float32!] (cnt: cnt + 1) | skip]]
 		cnt
+	]
+	
+	count-regs: func [spec [block!] /local cnt][
+		cnt: 0
+		parse spec [
+			any [
+				into [['float! | 'float64!] (
+					cnt: cnt + pick [3 2] odd? cnt	;-- account for 64-bit alignment
+				)]
+				| skip (cnt: cnt + 1)
+			]
+		]
+		min 4 cnt
 	]
 	
 	extract-arguments: func [spec [block!] /local cnt][
@@ -837,12 +850,12 @@ make-profilable make target-class [
 	]
 	
 	emit-alloc-stack: does [
-		emit-i32 #{e240d000}						;-- SUB sp, r0
+		emit-i32 #{e04dd100}						;-- SUB sp, r0, LSL #2
 		emit-i32 #{e20dd0fc}						;-- AND sp, #-4 ; align to lower bound
 	]
 
 	emit-free-stack: does [
-		emit-i32 #{e1e00000}						;-- NEG r0			; MVN r0, r0
+		emit-i32 #{e1e00100}						;-- NEG r0, LSL #2	; MVN r0, r0, LSL #2
 		emit-i32 #{e3c00003}						;-- AND r0, #-4
 		emit-i32 #{e1e00000}						;-- NEG r0			; align to upper bound
 		emit-i32 #{e08dd000}						;-- ADD sp, sp, r0
@@ -2442,7 +2455,8 @@ make-profilable make target-class [
 						foreach-member type [
 							size: either all [
 								cconv = 'cdecl
-								type/1 = 'float32!
+								find [float! float64!] type/1
+								'float32! = compiler/get-type arg
 							][
 								8					;-- promote to C double
 							][
@@ -2752,6 +2766,7 @@ make-profilable make target-class [
 					]
 				]
 			][
+				args-nb: max args-nb count-regs extract-arguments args ;-- count registers accurately
 				repeat i args-nb [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
 					emit-i32 to char! shift/left 1 args-nb - i	;-- push in reverse order

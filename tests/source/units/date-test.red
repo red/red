@@ -167,7 +167,6 @@ Red [
 	--test-- "make10"	--assert error? try [make date! [1981 2 29]]
 	--test-- "make11"	--assert error? try [make date! [1 2 2017 23 70 0 4:30]]
 	--test-- "make12"	--assert error? try [make date! [1 2 2017 23:70:0 4:30]]
-	--test-- "make13"	--assert error? try [make date! [1 2 2017 23:20:70 4:30]]
 	
 	--test-- "make14"	--assert 3-Feb-1978				  = make date! [3 2 1978]
 	--test-- "make15"	--assert 3-Feb-1978/5:20:30+4:00  = make date! [3 2 1978 5 20 30 4]

@@ -163,6 +163,7 @@ error: context [
 			sym		[red-word!]
 			w		[red-word!]
 			cat		[integer!]
+			cat2	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/make"]]
 
@@ -203,7 +204,7 @@ error: context [
 				errors: (as red-object! object/get-values errors) + cat
 				sym: as red-word! object/get-words errors
 				
-				w: sym + (int/value // 100)
+				w: sym + (int/value // 100 + 2)
 				if (sym + object/get-size errors) <= as red-value! w [
 					fire [TO_ERROR(script out-of-range) spec]
 				]
@@ -223,8 +224,8 @@ error: context [
 						errors: (as red-object! object/get-values errors) + cat
 						value: value + 1
 						if value < block/rs-tail blk [
-							cat: object/rs-find errors value
-							if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
+							cat2: object/rs-find errors value
+							if cat2 = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 							copy-cell value base + field-id
 						]
 					]
@@ -244,13 +245,16 @@ error: context [
 							fire [TO_ERROR(script invalid-spec-field) words/_id]
 						]
 						errors: (as red-object! object/get-values errors) + cat
-						cat: object/rs-find errors value
-						if cat = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
+						cat2: object/rs-find errors value
+						if cat2 = -1 [fire [TO_ERROR(script invalid-spec-field) words/_id]]
 					]
 					default [
 						fire [TO_ERROR(internal invalid-error)]
 					]
 				]
+				int: as red-integer! base + field-code
+				int/header: TYPE_INTEGER
+				int/value: cat * 100 + cat2 - 2
 			]
 			TYPE_STRING [
 				new: create TO_ERROR(user message) spec null null

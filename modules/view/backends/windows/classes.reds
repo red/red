@@ -161,11 +161,18 @@ AreaWndProc: func [
 				CloseClipboard
 			]
 		]
-		WM_CHAR [				;-- stop beep when pressing enter in field
-			if all [
-				wParam = 0Dh	;-- VK_RETURN
-				zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE)
-			][return 0]
+		WM_CHAR [
+			either zero? (ES_MULTILINE and GetWindowLong hWnd GWL_STYLE) [ ;field
+				;-- stop beep when pressing enter in field
+				if wParam = 0Dh	[ return 0 ];-- VK_RETURN
+			][
+				;-- stop beep when pressing CTRL+A in area and select all
+				;based on: https://stackoverflow.com/a/25355868/494472
+				if wParam = 1 [
+					SendMessage hwnd EM_SETSEL 0 -1 ;-- select all
+					return 1;
+				]
+			]
 		]
 		default [0]
 	]

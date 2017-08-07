@@ -315,6 +315,7 @@ tagSIZE: alias struct! [
 			return:		[integer!]
 		]
 		objc_msgSend: "objc_msgSend" [[variadic] return: [integer!]]
+		objc_msgSend_pt: "objc_msgSend" [[variadic] return: [CGPoint! value]]
 		objc_msgSendSuper: "objc_msgSendSuper" [[variadic] return: [integer!]]
 		objc_msgSend_f32: "objc_msgSend_fpret" [[variadic] return: [float32!]]
 		objc_msgSend_fpret: "objc_msgSend_fpret" [[variadic] return: [float!]]

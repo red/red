@@ -408,7 +408,7 @@ Red [
 	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
 	--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
 	--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
-	--test-- "special-arithmetic-4"  --assert "1.#INF"  = to string! 0.0 / 0.0
+	--test-- "special-arithmetic-4"  --assert "1.#NaN"  = to string! 0.0 / 0.0
 	--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
 	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
 	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF

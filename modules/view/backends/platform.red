@@ -700,7 +700,6 @@ system/view/platform: context [
 			Windows [
 				button:			[1x1   1x1]				;-- LeftxRight TopxBottom
 				tab-panel:		[0x2   0x1]
-				text-list:		[0x0  0x15]
 				group-box:		[0x0   0x1]
 			]
 			macOS [

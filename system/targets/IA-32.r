@@ -240,11 +240,13 @@ make-profilable make target-class [
 	]
 	
 	emit-alloc-stack: does [
+		emit #{C1E002}								;-- SHL eax, 2
 		emit #{29C4}								;-- SUB esp, eax
 		emit #{83E4FC}								;-- AND esp, -4		; align to lower bound
 	]
 	
 	emit-free-stack: does [
+		emit #{C1E002}								;-- SHL eax, 2
 		emit #{F7D8}								;-- NEG eax
 		emit #{83E0FC}								;-- AND eax, -4
 		emit #{F7D8}								;-- NEG eax			; align to upper bound

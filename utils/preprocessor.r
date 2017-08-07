@@ -271,7 +271,7 @@ preprocessor: context [
 	expand: func [
 		code [block!] job [object! none!]
 		/clean
-		/local rule e pos cond value then else cases body keep? expr src
+		/local rule e pos cond value then else cases body keep? expr src saved
 	][	
 		either clean [reset job][exec/config: job]
 
@@ -284,10 +284,17 @@ preprocessor: context [
 				| #system-global skip
 				
 				| s: #include (
-					either all [active? not Rebol system/state/interpreted?][s/1: 'do][
-						attempt [
-						 	src: red/load-source/hidden clean-path join red/main-path s/2
-							expand src job				;-- just preprocess it, real inclusion occurs later
+					if active? [
+						either all [not Rebol system/state/interpreted?][
+							saved: s
+							attempt [expand load s/2 job]	;-- just preprocess it
+							s: saved
+							s/1: 'do
+						][
+							attempt [
+								src: red/load-source/hidden clean-path join red/main-path s/2
+								expand src job				;-- just preprocess it, real inclusion occurs later
+							]
 						]
 					]
 				)

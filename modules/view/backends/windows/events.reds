@@ -610,7 +610,7 @@ process-command-event: func [
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
 					if type/symbol = area [
 						extend-area-limit child 16
-						update-scrollbars child
+						update-scrollbars child null
 					]
 				]
 			]
@@ -744,7 +744,9 @@ process-custom-draw: func [
 				][
 					rc/left: rc/left + 16
 				]
-				DrawText DC unicode/to-utf16 txt -1 rc flags
+				if TYPE_OF(txt) = TYPE_STRING [
+					DrawText DC unicode/to-utf16 txt -1 rc flags
+				]
 				SetBkMode DC old
 				return CDRF_SKIPDEFAULT
 			]
@@ -820,20 +822,6 @@ delta-size: func [
 	pt
 ]
 
-update-pair-facet: func [
-	hWnd   [handle!]
-	type   [integer!]
-	lParam [integer!]
-	/local
-		pair [red-pair!]
-][
-	current-msg/hWnd: hWnd
-	pair: as red-pair! get-facet current-msg type
-	pair/header: TYPE_PAIR								;-- forces pair! in case user changed it
-	pair/x: WIN32_LOWORD(lParam)
-	pair/y: WIN32_HIWORD(lParam)
-]
-
 set-window-info: func [
 	hWnd	[handle!]
 	lParam	[integer!]
@@ -865,12 +853,6 @@ set-window-info: func [
 		if pair/y > info/ptMaxSize.y [info/ptMaxSize.y: cy ret?: yes]
 		if pair/x > info/ptMaxTrackSize.x [info/ptMaxTrackSize.x: cx ret?: yes]
 		if pair/y > info/ptMaxTrackSize.y [info/ptMaxTrackSize.y: cy ret?: yes]
-		if pair/x < info/ptMinTrackSize.x [info/ptMinTrackSize.x: cx ret?: yes]
-		if pair/y < info/ptMinTrackSize.y [info/ptMinTrackSize.y: cy ret?: yes]
-
-		pair: as red-pair! values + FACE_OBJ_OFFSET
-		if pair/x < info/ptMaxPosition.x [info/ptMaxPosition.x: pair/x + x ret?: yes]
-		if pair/y < info/ptMaxPosition.y [info/ptMaxPosition.y: pair/y + y ret?: yes]
 	]
 	ret?
 ]
@@ -959,9 +941,15 @@ WndProc: func [
 						][miniz?: yes]
 						FACE_OBJ_OFFSET
 					][FACE_OBJ_SIZE]
-					update-pair-facet hWnd type lParam
 					if miniz? [return 0]
+
+					offset: as red-pair! values + type
+					offset/header: TYPE_PAIR
+					offset/x: WIN32_LOWORD(lParam)
+					offset/y: WIN32_HIWORD(lParam)
+
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type
 

@@ -435,10 +435,16 @@ system/view/VID: context [
 		unless any [name block? body][throw-error spec]
 		unless obj/actors [obj/actors: make block! 4]
 		
+		spec: [face [object!] event [event! none!]]
+		if all [block? body body/1 = 'local block? body/2][
+			append spec: copy spec /local
+			append spec body/2
+		]
+		
 		append obj/actors load append form name #":"	;@@ to set-word!
 		append obj/actors either get-word? body [body][
 			reduce [
-				'func [face [object!] event [event! none!]]
+				'func spec
 				copy/deep body
 			]
 		]
@@ -686,7 +692,7 @@ system/view/VID: context [
 		if all [focal-face not parent][panel/selected: focal-face]
 		
 		if options [set/some panel make object! user-opts]
-		if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
+		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 		
 		either only [list][
 			if panel/type = 'window [

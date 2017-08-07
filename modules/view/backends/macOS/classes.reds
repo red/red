@@ -31,6 +31,7 @@ add-base-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
 	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
+	class_addMethod class sel_getUid "hitTest:" as-integer :hit-test "@@:{_NSPoint=ff}"
 
 	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
 	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"

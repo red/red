@@ -489,10 +489,15 @@ get-timezone: func [
 	return: [integer!]
 	/local
 		t	[integer!]
+		t2	[integer!]
+		tm	[tm!]
 ][
 	t: 0
 	time :t
-	t: as-integer difftime mktime localtime :t mktime gmtime :t
+	tm: localtime :t
+	tm/isdst: 0
+	t2: mktime tm
+	t: as-integer difftime t2 mktime gmtime :t
 	t / 60
 ]
 

@@ -46,6 +46,7 @@ Red/System [
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
+#define DT_WORDBREAK			0010h
 #define DT_SINGLELINE			0020h
 #define DT_EXPANDTABS			0040h
 #define DT_CALCRECT				0400h
@@ -127,6 +128,7 @@ Red/System [
 #define LBS_NOTIFY			1
 #define LBS_MULTIPLESEL		8
 #define LBS_SORT			2
+#define LBS_NOINTEGRALHEIGHT  0100h
 
 #define PBS_VERTICAL		04h
 
@@ -221,6 +223,7 @@ Red/System [
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
 
+#define EM_SETSEL			000000B1h
 #define EM_SETLIMITTEXT		000000C5h
 #define EM_GETLIMITTEXT		000000D5h
 #define ES_LEFT				00000000h

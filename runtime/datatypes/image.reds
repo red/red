@@ -684,6 +684,7 @@ image: context [
 				sym: symbol/resolve w/symbol
 				case [
 					sym = words/size [
+						if set? [fire [TO_ERROR(script invalid-path) path element]]
 						pair/push IMAGE_WIDTH(parent/size) IMAGE_HEIGHT(parent/size)
 					]
 					sym = words/argb [
@@ -708,13 +709,13 @@ image: context [
 						]
 					]
 					true [
-						fire [TO_ERROR(script invalid-path) stack/arguments element]
+						fire [TO_ERROR(script invalid-path) path element]
 						null
 					]
 				]
 			]
 			default [
-				fire [TO_ERROR(script invalid-path) stack/arguments element]
+				fire [TO_ERROR(script invalid-path) path element]
 				null
 			]
 		]

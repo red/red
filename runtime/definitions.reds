@@ -66,16 +66,6 @@ Red/System [
 	UCS-4:		 4
 ]
 
-;=== Simple I/O definitions ===
-
-#enum http-verb! [
-	HTTP_GET
-	HTTP_PUT
-	HTTP_POST
-	HTTP_DEL
-	HTTP_HEAD
-]
-
 ;== Image definitions ===
 
 #enum extract-type! [

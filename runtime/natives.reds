@@ -430,7 +430,8 @@ natives: context [
 		/local blk [red-block!]
 	][
 		#typecheck has
-		blk: as red-block! stack/arguments
+		blk: block/clone as red-block! stack/arguments no no
+		blk: as red-block! copy-cell as red-value! blk stack/arguments
 		block/insert-value blk as red-value! refinements/local
 		blk/head: blk/head - 1
 		func* check?
@@ -897,6 +898,7 @@ natives: context [
 			value [red-value!]
 			tail  [red-value!]
 			arg	  [red-value!]
+			type  [integer!]
 			into? [logic!]
 			blk?  [logic!]
 	][
@@ -925,7 +927,18 @@ natives: context [
 				stack/keep									;-- preserve the reduced block on stack
 			]
 		][
-			interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+			type: TYPE_OF(arg)
+			either any [
+				type = TYPE_FUNCTION
+				type = TYPE_NATIVE
+				type = TYPE_ACTION
+				type = TYPE_OP
+				type = TYPE_ROUTINE
+			][
+				stack/set-last arg
+			][
+				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+			]
 			if into? [actions/insert* -1 0 -1]
 		]
 		stack/unwind-last

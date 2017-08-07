@@ -444,9 +444,15 @@ _series: context [
 
 			index: target/head - items
 		][												;-- different series case
+			type2: TYPE_OF(target)
+			if any [
+				all [ANY_BLOCK?(type1)  ANY_STRING?(type2)]
+				all [ANY_STRING?(type1)	ANY_BLOCK?(type2)]
+			][
+				fire [TO_ERROR(script move-bad) datatype/push type1 datatype/push type2]
+			]
 			ownership/check as red-value! target words/_move null origin/head items
 			
-			type2: TYPE_OF(target)
 			s2:    GET_BUFFER(target)
 			unit2: GET_UNIT(s2)
 			if unit <> unit2 [
@@ -545,27 +551,11 @@ _series: context [
 		size: (as-integer s/tail - s/offset) >> (log-b unit)
 
 		type: TYPE_OF(ser)
-		blk?: any [
-			type = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-			type = TYPE_PATH				;@@ replace it with: typeset/any-block?
-			type = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-			type = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-			type = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-		]
+		blk?: ANY_BLOCK?(type)
 
 		values?: either all [only? blk?][no][
 			n: TYPE_OF(value)
-			any [
-				n = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
-				n = TYPE_PATH				;@@ replace it with: typeset/any-block?
-				n = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
-				n = TYPE_PAREN				;@@ replace it with: typeset/any-block?
-				n = TYPE_HASH				;@@ replace it with: typeset/any-block?	
-			]
+			ANY_BLOCK?(n)
 		]
 
 		items: either values? [

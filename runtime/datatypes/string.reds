@@ -18,9 +18,9 @@ string: context [
 	#define MAX_URL_CHARS 		7Fh
 
 	#enum modification-type! [
-		TYPE_APPEND
-		TYPE_INSERT
-		TYPE_OVERWRITE
+		MODE_APPEND
+		MODE_INSERT
+		MODE_OVERWRITE
 	]
 
 	#enum escape-type! [
@@ -865,12 +865,12 @@ string: context [
 	]
 
 	alter: func [
-		str1		[red-string!]						;-- string! to modify
-		str2		[red-string!]						;-- string! to modify to str1
-		part		[integer!]							;-- str2 characters to overwrite, -1 means all
-		offset		[integer!]							;-- offset from head in codepoints
-		keep?		[logic!]							;-- do not change str2 encoding
-		type		[integer!]							;-- type of modification: append,insert and overwrite
+		str1	[red-string!]							;-- string! to modify
+		str2	[red-string!]							;-- string! to modify to str1
+		part	[integer!]								;-- str2 characters to overwrite, -1 means all
+		offset	[integer!]								;-- offset from head in codepoints
+		keep?	[logic!]								;-- do not change str2 encoding
+		mode	[integer!]								;-- type of modification: append, insert or overwrite
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -931,11 +931,12 @@ string: context [
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
 		size: unit1 * size2
+		if size <= 0 [exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
 		if s1/size < size1 [s1: expand-series s1 size1 * 2]
 
-		if type = TYPE_INSERT [
+		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
@@ -943,7 +944,7 @@ string: context [
 		]
 
 		tail: as byte-ptr! s1/tail
-		p: either type = TYPE_APPEND [
+		p: either mode = MODE_APPEND [
 			tail
 		][
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
@@ -957,7 +958,7 @@ string: context [
 					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
 					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
-				s1: either type = TYPE_APPEND [
+				s1: either mode = MODE_APPEND [
 					append-char s1 cp
 				][
 					poke-char s1 p cp
@@ -969,8 +970,8 @@ string: context [
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size
 			p: p + size
 		]
-		if type = TYPE_INSERT [p: tail + size] 
-		if all [type = TYPE_OVERWRITE p < tail][p: tail]
+		if mode = MODE_INSERT [p: tail + size] 
+		if all [mode = MODE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]
 
@@ -981,7 +982,7 @@ string: context [
 		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 	][
-		alter str1 str2 part offset keep? TYPE_OVERWRITE
+		alter str1 str2 part offset keep? MODE_OVERWRITE
 	]
 	
 	concatenate: func [									;-- append str2 to str1
