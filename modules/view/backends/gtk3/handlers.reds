@@ -232,3 +232,24 @@ tab-panel-switch-page: func [
 		]
 	]
 ]
+
+; Do not use key-press-event since character would not be printed!
+field-key-release-event: func [
+	[cdecl]
+	widget	[handle!]
+	event-key	[GdkEventKey!]
+	ctx		[node!]
+][
+	print "key-release: "
+	print-line event-key/keyval
+
+]
+
+field-move-focus: func [
+	[cdecl]
+	widget	[handle!]
+	event	[handle!]
+	ctx		[node!] 
+][
+	print-line "move-focus"
+]

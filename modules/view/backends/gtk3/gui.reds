@@ -593,6 +593,12 @@ OS-make-view: func [
 			widget: gtk_entry_new
 			buffer: gtk_entry_get_buffer widget
 			gtk_entry_buffer_set_text buffer caption -1
+			gobj_signal_connect(widget "key-release-event" :field-key-release-event face/ctx)
+			;gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
+			gtk_widget_set_can_focus widget yes
+			;This depends on version >= 3.2
+			;gtk_widget_set_focus_on_click widget yes
+			gobj_signal_connect(widget "move-focus" :field-move-focus face/ctx)
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
@@ -601,6 +607,8 @@ OS-make-view: func [
 			widget: gtk_text_view_new
 			buffer: gtk_text_view_get_buffer widget
 			gtk_text_buffer_set_text buffer caption -1
+			widget2: gtk_scrolled_window_new null null
+			gtk_container_add widget2 widget
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
@@ -656,12 +664,8 @@ OS-make-view: func [
 	][
 		p-sym: get-widget-symbol as handle! parent
 		if widget2 = as handle! 0 [widget2: widget]
+		; TODO: case to replace with either if no more choice
 		case [
-			p-sym = panel [
-				container: as handle! parent
-				gtk_widget_set_size_request widget2 size/x size/y
-				gtk_fixed_put as handle! container widget2 offset/x offset/y
-			]
 			p-sym = tab-panel [
 				container: as handle! parent
 				; widget is necessarily a panel and then same as widget2
@@ -679,9 +683,10 @@ OS-make-view: func [
 				if tabs/cur = tabs/nb [tabs/cur: 0 tabs/nb: 0]
 			]
 			true [
-				container: gtk_container_get_children as handle! parent
+				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
 				gtk_widget_set_size_request widget2 size/x size/y
-				gtk_fixed_put as handle! container/value widget2 offset/x offset/y
+				gtk_fixed_put container widget2 offset/x offset/y
+				print ["x: " offset/x "y: " offset/y "w: " size/x "h: " size/y lf]
 			]
 		]
 	]

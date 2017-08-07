@@ -35,6 +35,21 @@ tagSIZE: alias struct! [
 	height	[integer!]
 ]
 
+GdkEventKey!: alias struct! [
+  type          [integer!]
+  window        [int-ptr!]
+  send_event    [byte!]
+  time          [integer!]
+  state         [integer!]
+  keyval        [integer!]
+  length        [integer!]
+  string        [c-string!]
+  keycode       [integer!]      ;-- keycode & group & is_modifier
+  ;guint16 hardware_keycode;
+  ;guint8 group;
+  ;guint is_modifier : 1;
+]
+
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
 	;#define LIBGLIB-file	"libglib-2.0-0.dll"
@@ -190,6 +205,14 @@ tagSIZE: alias struct! [
 			widget		[handle!]
 			width		[integer!]
 			height		[integer!]
+		]
+		gtk_widget_set_can_focus: "gtk_widget_set_can_focus" [
+			widget		[handle!]
+			focus		[logic!]
+		]
+		gtk_widget_set_focus_on_click: "gtk_widget_set_focus_on_click" [
+			widget		[handle!]
+			focus		[logic!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
