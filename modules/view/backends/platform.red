@@ -648,6 +648,14 @@ system/view/platform: context [
 		bool/value:  gui/do-events no-wait?
 	]
 
+	exit-event-loop: routine [][
+		#switch OS [
+			Windows  [gui/PostQuitMessage 0]
+			MacOSX   [gui/evt-loop-cnt: gui/evt-loop-cnt - 1]
+			#default [0]
+		]
+	]
+
 	request-font: routine [font [object!] selected [object!] mono? [logic!]][
 		gui/OS-request-font font selected mono?
 	]

@@ -10,22 +10,22 @@ Red [
 	}
 ]
 
-#system-global [
-	#if OS = 'Windows [
-		#import [
-			"kernel32.dll" stdcall [
-				AttachConsole: 	 "AttachConsole" [
-					processID		[integer!]
-					return:			[integer!]
-				]
-				SetConsoleTitle: "SetConsoleTitleA" [
-					title			[c-string!]
-					return:			[integer!]
-				]
-			]
-		]
-	]
-]
+;#system-global [
+;	#if OS = 'Windows [
+;		#import [
+;			"kernel32.dll" stdcall [
+;				AttachConsole: 	 "AttachConsole" [
+;					processID		[integer!]
+;					return:			[integer!]
+;				]
+;				SetConsoleTitle: "SetConsoleTitleA" [
+;					title			[c-string!]
+;					return:			[integer!]
+;				]
+;			]
+;		]
+;	]
+;]
 
 system/console: context [
 
@@ -37,7 +37,7 @@ system/console: context [
 	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
 	ws:		 charset " ^/^M^-"
 
-	gui?: #system [logic/box #either gui-console? = yes [yes][no]]
+	gui?:	yes  ;#system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
 		if args: system/script/args [
@@ -80,27 +80,28 @@ system/console: context [
 		]
 	]
 
-	init: routine [
+	init: function [
 		str [string!]
 		/local
 			ret
 	][
-		#either OS = 'Windows [
-			;ret: AttachConsole -1
-			;if zero? ret [print-line "ReadConsole failed!" halt]
+		0
+		;#either OS = 'Windows [
+		;	;ret: AttachConsole -1
+		;	;if zero? ret [print-line "ReadConsole failed!" halt]
 
-			ret: SetConsoleTitle as c-string! string/rs-head str
-			if zero? ret [print-line "SetConsoleTitle failed!" halt]
-		][
-			#if gui-console? = no [terminal/pasting?: no]
-		]
+		;	ret: SetConsoleTitle as c-string! string/rs-head str
+		;	if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		;][
+		;	#if gui-console? = no [terminal/pasting?: no]
+		;]
 	]
 
-	terminate: routine [][
-		#if OS <> 'Windows [
-		#if gui-console? = no [
-			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		]]
+	terminate: function [][
+		;#if OS <> 'Windows [
+		;#if gui-console? = no [
+		;	if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+		;]]
 	]
 
 	count-delimiters: function [
@@ -168,7 +169,6 @@ system/console: context [
 
 		unless any [error? code tail? code][
 			set/any 'result try-do code
-			
 			case [
 				error? :result [
 					print [result lf]

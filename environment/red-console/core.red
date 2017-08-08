@@ -1,11 +1,12 @@
 Red [
 	Title:	 "Red Console Widget"
 	Author:	 "Qingtian Xie"
-	File:	 %console.red
+	File:	 %core.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
 ]
 
+do [
 terminal!: object [
 	lines:		make block! 1000				;-- line buffer
 	nlines:		make block! 1000				;-- line count of each line
@@ -160,7 +161,7 @@ terminal!: object [
 			page-up		[scroller/page-size]
 			page-down	[0 - scroller/page-size]
 			track		[scroller/position - event/picked]
-			mouse-wheel [event/picked]
+			wheel		[event/picked]
 		][0]
 		if n <> 0 [
 			scroll-lines n
@@ -390,7 +391,7 @@ terminal!: object [
 		switch/default char [
 			#"^M" [									;-- ENTER key
 				caret/visible?: no
-				;exit-event-loop
+				system/view/platform/exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
 			#"^-" [				;TBD autocompletion
@@ -496,7 +497,7 @@ console!: make face! [
 			extra/caret/rate: 2
 			face/rate: none
 		]
-		on-draw: func [face [object!] event [event!]][
+		on-drawing: func [face [object!] event [event!]][
 			probe "on-draw"
 			extra/paint
 		]
@@ -504,6 +505,7 @@ console!: make face! [
 			extra/scroll event
 		]
 		on-wheel: func [face [object!] event [event!]][
+			probe "on-wheel"
 			extra/scroll event
 		]
 		on-key: func [face [object!] event [event!]][
@@ -548,7 +550,6 @@ console!: make face! [
 		scroller/position: 1
 		scroller/max-size: 2
 		terminal/scroller: scroller
-		print: get 'terminal/print
 	]
 
 	apply-cfg: func [cfg][
@@ -562,4 +563,6 @@ console!: make face! [
 	]
 
 	extra: make terminal! []
+]
+
 ]

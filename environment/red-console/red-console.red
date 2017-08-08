@@ -21,7 +21,7 @@ ask: function [
 ][
 	line: make string! 8
 	line: insert line question
-
+	do [
 	con: red-console-ctx/console/extra
 	con/add-line line
 	con/line: line
@@ -31,13 +31,16 @@ ask: function [
 	con/redraw con/target
 	do-events
 	con/ask?: no
+	]
 	line
 ]
+
+do [
 
 red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
-	font-name:	pick ["Fixedsys" "Consolas"] make logic! find [5.1.0 5.0.0] system/view/platform/version
+	font-name:	font-fixed
 
 	tips: make tips! [visible?: no]
 	console: make console! []
@@ -87,25 +90,28 @@ red-console-ctx: context [
 
 	display-about: function [][
 		lay: layout/tight [
-			size 360x320
+			title "About"
+			size 360x330
 			backdrop 58.58.60
-			style text: text 360 center 58.58.60 
-			style txt: text font-color white
-			style small: txt font [size: 8 color: white]
-			style link: text all-over 
+
+			style text:  text 360 center 58.58.60 
+			style txt:   text font-color white
+			style small: txt  font [size: 9 color: white]
+			style link:  text cursor 'hand all-over
 				on-down [browse face/data]
-				on-over [face/font/color: get pick [white orange] event/away?]
+				on-over [face/font/style: either event/away? [none]['underline]]
+
 			below
 			pad 0x15
 			txt bold "Red Programming Language" font [size: 15 color: white]
-			ver: txt font [size: 8 color: white]
+			ver: txt font [size: 9 color: white]
 			at 153x86 image fstk-logo
-			at 0x160 small 360x20 "Copyright 2011-2016 - Fullstack Technologies"
+			at 0x160 small 360x20 "Copyright 2011-2017 - Fullstack Technologies"
 			at 0x180 small 360x20 "and contributors."
 			at 0x230 link "http://red-lang.org" font-size 10 font-color white
 			at 0x260 link "http://github.com/red/red" font-size 10 font-color white
-			at 154x310 button "Ok" [unview win/selected: console]
-			do [ver/text: form reduce [system/version #"-" system/build]]
+			at 154x300 button "Close" [unview win/selected: console]
+			do [ver/text: form reduce ["Build" system/version #"-" system/build/date]]
 		]
 		center-face/with lay win
 		view/flags lay [modal no-title]
@@ -172,7 +178,7 @@ red-console-ctx: context [
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
-					choose-font		[if font: request-font/mono [console/font: font]]
+					choose-font		[if font: request-font/font/mono console/font [console/font: font]]
 					settings		[show-cfg-dialog]
 				]
 			]
@@ -184,6 +190,7 @@ red-console-ctx: context [
 			on-resizing: func [face [object!] event [event!]][
 				;console/size: event/offset
 				console/resize event/offset
+				system/console/size: event/offset
 				unless system/view/auto-sync? [show face]
 			]
 		]
@@ -193,7 +200,11 @@ red-console-ctx: context [
 
 	load-cfg: func [/local cfg-dir][
 		system/view/auto-sync?: no
-		cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
+		#either config/OS = 'Windows [
+			cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
+		][
+			cfg-dir: append to-red-file get-env "HOME" %/.Red-Console/
+		]
 		unless exists? cfg-dir [make-dir cfg-dir]
 		cfg-path: append cfg-dir %console-cfg.red
 		
@@ -220,6 +231,8 @@ red-console-ctx: context [
 	]
 
 	launch: func [/local svs][
+		print: get 'console/extra/print
+
 		setup-faces
 		win/visible?: no
 
@@ -236,3 +249,5 @@ red-console-ctx: context [
 ]
 
 red-console-ctx/launch
+
+]
