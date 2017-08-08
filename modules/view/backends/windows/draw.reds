@@ -149,6 +149,7 @@ update-gdiplus-modes: func [ctx [draw-ctx!] ][
 update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 	handle: 0
 	ctx/gp-brush-type: BRUSH_TYPE_NORMAL
+	ctx/other/gradient-fill?: false
 	unless zero? ctx/gp-brush [
 		GdipDeleteBrush ctx/gp-brush
 		ctx/gp-brush: 0
@@ -161,6 +162,7 @@ update-gdiplus-brush: func [ctx [draw-ctx!] /local handle [integer!]][
 
 update-gdiplus-pen: func [ctx [draw-ctx!] /local handle [integer!]][
 	ctx/gp-pen-type: BRUSH_TYPE_NORMAL
+	ctx/other/gradient-pen?: false
 	either ctx/pen? [
 		if ctx/gp-pen-saved <> 0 [
 			ctx/gp-pen: ctx/gp-pen-saved
