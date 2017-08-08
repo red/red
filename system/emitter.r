@@ -333,13 +333,13 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal? saved slots
+		/local new new-global? ptr refs n-spec spec literal? saved slots local?
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
 		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
-			local-offset? name							;-- local variable
+			local?: local-offset? name					;-- local variable
 			find symbols name 							;-- known symbol
 		]
 		either all [
@@ -356,7 +356,7 @@ emitter: make-profilable context [
 			if all [paren? value not word? value/1][
 				type: [array!]
 			]
-			if any [not new-global?	string? value paren? value][
+			if any [all [not new-global? not local?] string? value paren? value][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 			]
