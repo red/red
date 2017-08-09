@@ -27,6 +27,8 @@ Red [
 ;	]
 ;]
 
+do [
+
 system/console: context [
 
 	prompt: ">> "
@@ -292,3 +294,5 @@ cd:	function [
 
 dir:	:ls
 q: 		:quit
+
+]

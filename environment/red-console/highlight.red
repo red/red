@@ -190,7 +190,7 @@ highlight: context [
 		
 		tag-rule: [
 			#"<" not [#"=" | #">" | #"<" | ws] (type: 'tag!)
-			 some [#"^"" thru #"^"" | #"'" thru #"'" | #">" break | skip]
+			 some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]
 		

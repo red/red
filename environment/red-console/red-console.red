@@ -19,6 +19,9 @@ ask: function [
 	question [string!]
 	return:  [string!]
 ][
+	unless red-console-ctx/console/state [
+		return "quit"
+	]
 	line: make string! 8
 	line: insert line question
 	do [
@@ -184,7 +187,7 @@ red-console-ctx: context [
 			]
 			on-close: func [face [object!] event [event!]][
 				save-cfg
-				;clear head system/view/screens/1/pane
+				clear head system/view/screens/1/pane
 				if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: func [face [object!] event [event!]][
