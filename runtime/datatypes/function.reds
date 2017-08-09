@@ -974,14 +974,13 @@ _function: context [
 		return: [integer!]
 		/local
 			s	  [series!]
-			blk	  [red-block!]
+			blk	  [red-block! value]
 			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/mold"]]
 
 		string/concatenate-literal buffer "func "
 		
-		blk: as red-block! stack/push*
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
