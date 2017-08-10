@@ -7,6 +7,7 @@ Red [
 ]
 
 do [
+
 terminal!: object [
 	lines:		make block! 1000				;-- line buffer
 	nlines:		make block! 1000				;-- line count of each line
@@ -34,9 +35,9 @@ terminal!: object [
 	delta-cnt:	0
 
 	box:		make text-box! []
-	caret:		none
-	scroller:	none
-	target:		none
+	caret:		none							;-- caret face
+	scroller:	none							;-- scroller face
+	target:		none							;-- target base face
 	tips:		none
 
 	tab-size:	4
@@ -91,6 +92,7 @@ terminal!: object [
 		calc-top
 		redraw target
 		do-events/no-wait
+		last-lf?: yes
 		()				;-- return unset!
 	]
 
@@ -128,7 +130,7 @@ terminal!: object [
 		target/color: background
 	]
 
-	update-cfg: func [font cfg][
+	update-cfg: func [font [object!] cfg [block!]][
 		box/state: none					;TBD release resources in text-box!
 		box/font: font
 		max-lines: cfg/buffer-lines
@@ -137,6 +139,7 @@ terminal!: object [
 		box/tabs: tab-size * box/width
 		line-h: box/line-height 1
 		caret/size/y: line-h
+		update-theme
 	]
 
 	resize: func [new-size [pair!] /local y][
@@ -482,87 +485,6 @@ terminal!: object [
 		update-caret
 		update-scroller line-cnt - num
 	]
-]
-
-console!: make face! [
-	type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
-	flags: [Direct2D editable scrollable all-over]
-	menu: [
-		"Copy^-Ctrl+C"		 copy
-		"Paste^-Ctrl+V"		 paste
-		"Select All^-Ctrl+A" select-all
-	]
-	actors: object [
-		on-time: func [face [object!] event [event!]][
-			extra/caret/rate: 2
-			face/rate: none
-		]
-		on-drawing: func [face [object!] event [event!]][
-			probe "on-draw"
-			extra/paint
-		]
-		on-scroll: func [face [object!] event [event!]][
-			extra/scroll event
-		]
-		on-wheel: func [face [object!] event [event!]][
-			probe "on-wheel"
-			extra/scroll event
-		]
-		on-key: func [face [object!] event [event!]][
-			extra/press-key event
-		]
-		on-ime: func [face [object!] event [event!]][
-			extra/process-ime-input event
-		]
-		on-down: func [face [object!] event [event!]][
-			extra/mouse-down event
-		]
-		on-up: func [face [object!] event [event!]][
-			extra/mouse-up event
-		]
-		on-over: func [face [object!] event [event!]][
-			extra/mouse-move event
-		]
-		on-menu: func [face [object!] event [event!]][
-			switch event/picked [
-				copy		[probe 'TBD]
-				paste		['TBD]
-				select-all	['TBD]
-			]
-		]
-	]
-
-	resize: func [new-size][
-		self/size: new-size
-		extra/resize new-size
-	]
-
-	init: func [/local terminal box scroller][
-		terminal: extra
-		terminal/target: self
-		box: terminal/box
-		box/fixed?: yes
-		box/target: self
-		box/styles: make block! 200
-		scroller: get-scroller self 'horizontal
-		scroller/visible?: no
-		scroller: get-scroller self 'vertical
-		scroller/position: 1
-		scroller/max-size: 2
-		terminal/scroller: scroller
-	]
-
-	apply-cfg: func [cfg][
-		self/font:	make font! [
-			name:  cfg/font-name
-			size:  cfg/font-size
-			color: cfg/font-color
-		]
-		extra/update-cfg self/font cfg
-		extra/update-theme
-	]
-
-	extra: make terminal! []
 ]
 
 ]

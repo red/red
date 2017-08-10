@@ -41,7 +41,7 @@ ask: function [
 red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
-	font-name:	font-fixed
+	font:		make font! [name: font-fixed size: 11 color: 0.0.0]
 	terminal:	make terminal! []
 
 	console: make face! [
@@ -90,11 +90,6 @@ red-console-ctx: context [
 			]
 		]
 
-		resize: func [new-size][
-			self/size: new-size
-			terminal/resize new-size
-		]
-
 		init: func [/local box scroller][
 			terminal/target: self
 			box: terminal/box
@@ -107,16 +102,6 @@ red-console-ctx: context [
 			scroller/position: 1
 			scroller/max-size: 2
 			terminal/scroller: scroller
-		]
-
-		apply-cfg: func [cfg][
-			self/font:	make font! [
-				name:  cfg/font-name
-				size:  cfg/font-size
-				color: cfg/font-color
-			]
-			terminal/update-cfg self/font cfg
-			terminal/update-theme
 		]
 	]
 
@@ -221,9 +206,15 @@ red-console-ctx: context [
 	]
 
 	apply-cfg: does [
-		win/offset:	cfg/win-pos
-		win/size:	cfg/win-size
-		console/apply-cfg cfg
+		win/offset:   cfg/win-pos
+		win/size:     cfg/win-size
+		font: make font! [
+			name:  cfg/font-name
+			size:  cfg/font-size
+			color: cfg/font-color
+		]
+		console/font: font
+		terminal/update-cfg font cfg
 	]
 
 	save-cfg: function [][
@@ -235,6 +226,34 @@ red-console-ctx: context [
 		cfg/font-name: console/font/name
 		cfg/font-size: console/font/size
 		save/header cfg-path cfg [Purpose: "Red REPL Console Configuration File"]
+	]
+
+	load-cfg: func [/local cfg-dir][
+		system/view/auto-sync?: no
+		#either config/OS = 'Windows [
+			cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
+		][
+			cfg-dir: append to-red-file get-env "HOME" %/.Red-Console/
+		]
+		unless exists? cfg-dir [make-dir cfg-dir]
+		cfg-path: append cfg-dir %console-cfg.red
+		
+		cfg: either exists? cfg-path [skip load cfg-path 2][
+			compose [
+				win-pos:	  (win/offset)
+				win-size:	  (win/size)
+
+				font-name:	  (font/name)
+				font-size:	  11
+				font-color:	  0.0.0
+				background:	  252.252.252
+
+				buffer-lines: 10000
+			]
+		]
+		apply-cfg
+		win/selected: console
+		system/view/auto-sync?: yes
 	]
 
 	setup-faces: does [
@@ -264,10 +283,11 @@ red-console-ctx: context [
 				clear head system/view/screens/1/pane
 				if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
-			on-resizing: func [face [object!] event [event!]][
-				;console/size: event/offset
-				console/resize event/offset
-				system/console/size: event/offset
+			on-resizing: function [face [object!] event [event!]][
+				new-sz: event/offset
+				console/size: new-sz
+				terminal/resize new-sz
+				system/console/size: new-sz
 				unless system/view/auto-sync? [show face]
 			]
 		]
@@ -275,40 +295,13 @@ red-console-ctx: context [
 		terminal/tips: tips
 	]
 
-	load-cfg: func [/local cfg-dir][
-		system/view/auto-sync?: no
-		#either config/OS = 'Windows [
-			cfg-dir: append to-red-file get-env "APPDATA" %/Red-Console/
-		][
-			cfg-dir: append to-red-file get-env "HOME" %/.Red-Console/
-		]
-		unless exists? cfg-dir [make-dir cfg-dir]
-		cfg-path: append cfg-dir %console-cfg.red
-		
-		cfg: either exists? cfg-path [skip load cfg-path 2][
-			compose [
-				win-pos:	  (win/offset)
-				win-size:	  (win/size)
-
-				font-name:	  (font-name)
-				font-size:	  11
-				font-color:	  0.0.0
-				background:	  252.252.252
-
-				buffer-lines: 10000
-			]
-		]
-		apply-cfg
-		win/selected: console
-		system/view/auto-sync?: yes
-	]
-
 	win: layout/tight [						;-- main window
-		title  "Red Console"
+		title "Red Console"
+		size  640x480
 	]
 
 	launch: func [/local svs][
-		print: get 'terminal/print
+		set 'print :terminal/print			;-- rewrite print
 
 		setup-faces
 		win/visible?: no
