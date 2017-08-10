@@ -28,7 +28,6 @@ init-base-face: func [
 		len		[integer!]
 		sym		[integer!]
 		flags	[integer!]
-		face [red-object!]
 ][
 	offset: as red-pair! values + FACE_OBJ_OFFSET
 	size:	as red-pair! values + FACE_OBJ_SIZE
@@ -65,7 +64,6 @@ init-base-face: func [
 			case [
 				sym = caret [
 					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
-					face: as red-object! word + 1
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
 				]

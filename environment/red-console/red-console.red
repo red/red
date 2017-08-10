@@ -15,6 +15,8 @@ Red [
 #include %tips.red
 #include %core.red
 
+do [
+
 ask: function [
 	question [string!]
 	return:  [string!]
@@ -24,29 +26,100 @@ ask: function [
 	]
 	line: make string! 8
 	line: insert line question
-	do [
-	con: red-console-ctx/console/extra
-	con/add-line line
-	con/line: line
-	con/pos: 0
-	con/calc-top
-	con/ask?: yes
-	con/redraw con/target
+	vt: red-console-ctx/terminal
+	vt/add-line line
+	vt/line: line
+	vt/pos: 0
+	vt/calc-top
+	vt/ask?: yes
+	vt/redraw vt/target
 	do-events
-	con/ask?: no
-	]
+	vt/ask?: no
 	line
 ]
-
-do [
 
 red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
 	font-name:	font-fixed
+	terminal:	make terminal! []
 
-	tips: make tips! [visible?: no]
-	console: make console! []
+	console: make face! [
+		type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
+		flags: [Direct2D editable scrollable all-over]
+		menu: [
+			"Copy^-Ctrl+C"		 copy
+			"Paste^-Ctrl+V"		 paste
+			"Select All^-Ctrl+A" select-all
+		]
+		actors: object [
+			on-time: func [face [object!] event [event!]][
+				caret/rate: 2
+				face/rate: none
+			]
+			on-drawing: func [face [object!] event [event!]][
+				terminal/paint
+			]
+			on-scroll: func [face [object!] event [event!]][
+				terminal/scroll event
+			]
+			on-wheel: func [face [object!] event [event!]][
+				terminal/scroll event
+			]
+			on-key: func [face [object!] event [event!]][
+				terminal/press-key event
+			]
+			on-ime: func [face [object!] event [event!]][
+				terminal/process-ime-input event
+			]
+			on-down: func [face [object!] event [event!]][
+				terminal/mouse-down event
+			]
+			on-up: func [face [object!] event [event!]][
+				terminal/mouse-up event
+			]
+			on-over: func [face [object!] event [event!]][
+				terminal/mouse-move event
+			]
+			on-menu: func [face [object!] event [event!]][
+				switch event/picked [
+					copy		[probe 'TBD]
+					paste		['TBD]
+					select-all	['TBD]
+				]
+			]
+		]
+
+		resize: func [new-size][
+			self/size: new-size
+			terminal/resize new-size
+		]
+
+		init: func [/local box scroller][
+			terminal/target: self
+			box: terminal/box
+			box/fixed?: yes
+			box/target: self
+			box/styles: make block! 200
+			scroller: get-scroller self 'horizontal
+			scroller/visible?: no
+			scroller: get-scroller self 'vertical
+			scroller/position: 1
+			scroller/max-size: 2
+			terminal/scroller: scroller
+		]
+
+		apply-cfg: func [cfg][
+			self/font:	make font! [
+				name:  cfg/font-name
+				size:  cfg/font-size
+				color: cfg/font-color
+			]
+			terminal/update-cfg self/font cfg
+			terminal/update-theme
+		]
+	]
+
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
 		options: reduce ['caret console]
@@ -56,6 +129,7 @@ red-console-ctx: context [
 			]
 		]
 	]
+	tips: make tips! [visible?: no]
 
 	fstk-logo: load/as 64#{iVBORw0KGgoAAAANSUhEUgAAAD4AAAA/CAIAAAA3/+y2AAAACXBIWXMAABJ
 		 0AAASdAHeZh94AAAGr0lEQVR4nNVaTW8kVxU9975XVf0xthNDBMoi4m8EwTZZsEAiG9jwM9jzE/gB
@@ -197,8 +271,8 @@ red-console-ctx: context [
 				unless system/view/auto-sync? [show face]
 			]
 		]
-		console/extra/caret: caret
-		console/extra/tips: tips
+		terminal/caret: caret
+		terminal/tips: tips
 	]
 
 	load-cfg: func [/local cfg-dir][
@@ -234,7 +308,7 @@ red-console-ctx: context [
 	]
 
 	launch: func [/local svs][
-		print: get 'console/extra/print
+		print: get 'terminal/print
 
 		setup-faces
 		win/visible?: no
