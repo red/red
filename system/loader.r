@@ -260,7 +260,7 @@ loader: make-profilable context [
 			set [s e] saved
 		]
 		condition: [
-			opt 'not ['find | 'any | 'all] [block! | word!] skip
+			opt 'not ['find block! skip | ['any | 'all] block!]
 			| set name word! set opr skip set value any-type!
 		]
 		
