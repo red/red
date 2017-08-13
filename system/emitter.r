@@ -702,7 +702,7 @@ emitter: make-profilable context [
 		(abs total) - extra
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
+	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz extras pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -714,10 +714,10 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		locals-sz: either pos: find locals /local [calc-locals-offsets pos][0]
-		if verbose >= 2 [print ["args+locals stack:" mold stack]]
+		set [locals-sz extras] target/emit-prolog name locals
+		if verbose >= 2 [print ["args+locals stack:" mold emitter/stack]]
+		if extras <> 0 [args-sz: negate extras * target/stack-width]
 		
-		target/emit-prolog name locals locals-sz
 		reduce [args-sz locals-sz]
 	]
 	
