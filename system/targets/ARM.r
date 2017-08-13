@@ -2775,7 +2775,7 @@ make-profilable make target-class [
 			][
 				args-nb: any [
 					all [attribs find attribs 'variadic 4] ;-- push all 4 regs and let user code deal with it
-				 	max args-nb count-regs extract-arguments args ;-- count registers accurately
+				 	min 4 max args-nb count-regs extract-arguments args ;-- count registers accurately
 				]
 				repeat i args-nb [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
