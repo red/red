@@ -536,6 +536,7 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
+		eh/entry:			either target-type = 'exe [text-address][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -547,10 +548,6 @@ context [
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
 		;; Target-specific header fields.
-		
-		eh/entry: either target-type = 'exe [
-			either PIC? [text-address - defs/base-address][text-address]
-		][0]
 
 		eh/ident-osabi: switch/default target-os [
 			FreeBSD      [9]
