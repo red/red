@@ -293,9 +293,8 @@ context [
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list
 	] [
-		base-address: case [
-			job/type = 'dll [0]
-			true			[any [job/base-address defs/base-address]]
+		base-address: either any [job/type = 'dll job/PIC?][0][
+			any [job/base-address defs/base-address]
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
@@ -409,6 +408,7 @@ context [
 				job/os
 				job/target
 				job/type
+				job/PIC?
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -519,6 +519,7 @@ context [
 		target-os [word!]
 		target-arch [word!]
 		target-type [word!]
+		PIC?		[logic!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -535,7 +536,6 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
-		eh/entry:			either target-type = 'exe [text-address][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -547,6 +547,10 @@ context [
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
 		;; Target-specific header fields.
+		
+		eh/entry: either target-type = 'exe [
+			either PIC? [text-address - defs/base-address][text-address]
+		][0]
 
 		eh/ident-osabi: switch/default target-os [
 			FreeBSD      [9]
@@ -556,7 +560,7 @@ context [
 		eh/type: select reduce [
 			'exe defs/et-exec
 			'dll defs/et-dyn
-		] target-type
+		] either PIC? ['dll][target-type]
 
 		switch target-arch [
 			ia-32	[
