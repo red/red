@@ -39,7 +39,11 @@ context [
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
-
+		
+		ef-arm-abi		83886080	;; ABI version: 05000000h
+		ef-arm-hard		1024		;; Hard floating point required (400h)
+		ef-arm-soft		512			;; Soft floating point required (200h)
+		
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
 		pt-interp		3			;; dynamic linker ("interpreter") path name
@@ -285,7 +289,7 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size data-reloc
+			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset pos list
 	] [
@@ -345,7 +349,7 @@ context [
 			remove-elements structure [".data"]
 		]
 		
-		dynamic-size: calc-dynamic-size job/type job/symbols
+		dynamic-size: calc-dynamic-size job/type job/target job/symbols
 
 		segments: collect-structure-names structure 'segment
 		sections: collect-structure-names structure 'section
@@ -453,6 +457,7 @@ context [
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
+				job/target
 				job/symbols
 				get-address ".text"
 				get-address ".hash"
@@ -530,7 +535,7 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
-		eh/entry:			text-address
+		eh/entry:			either target-type = 'exe [text-address][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -559,7 +564,7 @@ context [
 			]
 			arm		[
 				eh/machine: defs/em-arm
-				eh/flags: to-integer #{05000002} ;; EABI v5
+				eh/flags: defs/ef-arm-abi or defs/ef-arm-soft
 			]
 		]
 
@@ -718,17 +723,18 @@ context [
 	]
 
 	build-dynamic: func [
-		job-type [word!]
-		symbols [hash!]
-		text-address [integer!]
-		hash-address [integer!]
-		dynstr-address [integer!]
-		dynstr-size [integer!]
-		dynsym-address [integer!]
+		job-type		[word!]
+		target			[word!]
+		symbols			[hash!]
+		text-address	[integer!]
+		hash-address	[integer!]
+		dynstr-address	[integer!]
+		dynstr-size 	[integer!]
+		dynsym-address	[integer!]
 		reltext-address [integer!]
-		reltext-size [integer!]
-		dynstr [binary!]
-		libraries [block!]
+		reltext-size 	[integer!]
+		dynstr			[binary!]
+		libraries		[block!]
 		/local entries spec
 	] [
 		entries: copy []
@@ -737,7 +743,9 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
-		repend entries ['rpath strtab-index-of dynstr defs/rpath]
+		if target <> 'ARM [
+			repend entries ['rpath strtab-index-of dynstr defs/rpath]
+		]
 
 		if job-type = 'dll [
 			if spec: select symbols '***-dll-entry-point [
@@ -747,7 +755,7 @@ context [
 				repend entries ['fini text-address + spec/2 - 1]
 			]
 		]
-				
+		
 		;; Static _DYNAMIC entries:
 		append entries reduce [
 			'hash	hash-address
@@ -1042,18 +1050,27 @@ context [
 			reduce ['type meta/1 'flags meta/2 'align meta/3]
 			any [select commands reduce [name 'meta] []]
 	]
-
-	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
-		size: 10
-		if job-type = 'dll [
-			if find symbols '***-dll-entry-point [
-				size: size + 1
-			]
-			if find symbols 'on-unload [
-				size: size + 1
-			]
+	
+	calc-dynamic-size: func [
+		job-type	[word!]
+		target		[word!]
+		symbols		[hash!]
+		/local entries spec
+	][
+		  (any [all [job-type = 'dll select symbols '***-dll-entry-point 1] 0])
+		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
+		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
+		+ length? [
+			hash
+			strtab
+			symtab
+			strsz
+			syment
+			rel
+			relsz
+			relent
+			null
 		]
-		size
 	]
 
 	complete-sizes: func [
