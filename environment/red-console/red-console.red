@@ -45,8 +45,9 @@ red-console-ctx: context [
 	terminal:	make terminal! []
 
 	console: make face! [
-		type: 'base color: 0.0.128 offset: 0x0 size: 400x400 cursor: 'I-beam
-		flags: [Direct2D editable scrollable all-over]
+		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
+		flags:   [Direct2D editable scrollable all-over]
+		options: [cursor: I-beam]
 		menu: [
 			"Copy^-Ctrl+C"		 copy
 			"Paste^-Ctrl+V"		 paste
@@ -97,7 +98,7 @@ red-console-ctx: context [
 			box/target: self
 			box/styles: make block! 200
 			scroller: get-scroller self 'horizontal
-			scroller/visible?: no
+			scroller/visible?: no						;-- hide horizontal bar
 			scroller: get-scroller self 'vertical
 			scroller/position: 1
 			scroller/max-size: 2
@@ -281,7 +282,6 @@ red-console-ctx: context [
 			on-close: func [face [object!] event [event!]][
 				save-cfg
 				clear head system/view/screens/1/pane
-				if event/type = 'menu [clear head system/view/screens/1/pane]
 			]
 			on-resizing: function [face [object!] event [event!]][
 				new-sz: event/offset
@@ -304,7 +304,7 @@ red-console-ctx: context [
 		set 'print :terminal/print			;-- rewrite print
 
 		setup-faces
-		win/visible?: no
+		win/visible?: no					;-- hide it first to avoid flicker
 
 		view/flags/no-wait win [resize]		;-- create window instance
 		console/init

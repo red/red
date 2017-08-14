@@ -1,5 +1,5 @@
 Red [
-	Title:	 "Red Console Widget"
+	Title:	 "Red Console Core Data Structure"
 	Author:	 "Qingtian Xie"
 	File:	 %core.red
 	Tabs:	 4
@@ -10,8 +10,8 @@ do [
 
 terminal!: object [
 	lines:		make block! 1000				;-- line buffer
-	nlines:		make block! 1000				;-- line count of each line
-	heights:	make block! 1000				;-- height of each line
+	nlines:		make block! 1000				;-- line count of each line, will change according to window width
+	heights:	make block! 1000				;-- height of each (wrapped) line, in pixels
 	selects:	make block! 8					;-- selected texts: [start-linenum idx end-linenum idx]
 
 	max-lines:	1000							;-- maximum size of the line buffer
@@ -96,7 +96,7 @@ terminal!: object [
 		()				;-- return unset!
 	]
 
-	reset-block: func [blk [block!] /advance /local s][
+	reset-buffer: func [blk [block!] /advance /local s][
 		s: either advance [next blk][blk]
 		blk: head blk
 		move/part s blk max-lines
@@ -111,9 +111,9 @@ terminal!: object [
 			line-cnt: line-cnt - delta-cnt
 			if top <> 1 [top: top - 1]
 			either max-lines = index? lines [
-				lines: reset-block/advance lines
-				nlines: reset-block nlines
-				heights: reset-block heights
+				lines: reset-buffer/advance lines
+				nlines: reset-buffer nlines
+				heights: reset-buffer heights
 			][
 				lines: next lines
 				nlines: next nlines
@@ -308,14 +308,14 @@ terminal!: object [
 		top: n
 	]
 
-	calc-last-line: func [/local n cnt h num][
+	calc-last-line: func [/local n cnt h total][
 		n: length? lines
 		box/text: head last lines
 		box/layout
-		num: line-cnt
+		total: line-cnt
 		h: box/height
 		cnt: box/line-count
-		either n > length? nlines [
+		either n > length? nlines [			;-- add a new line
 			append heights h
 			append nlines cnt
 			line-cnt: line-cnt + cnt
@@ -324,7 +324,7 @@ terminal!: object [
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
 		]
-		n: line-cnt - num - delta-cnt
+		n: line-cnt - total - delta-cnt
 		delta-cnt: 0
 		n
 	]
