@@ -20,5 +20,7 @@
 	<string>org.redlang.$Red-App-Name$</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.8.0</string>
+    <key>NSHighResolutionCapable</key>
+    <string>YES</string>
 </dict>
 </plist>
