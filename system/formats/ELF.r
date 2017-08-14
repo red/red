@@ -92,6 +92,7 @@ context [
 		dt-syment		11			;; size of one symbol table entry (in bytes)
 		dt-init			12			;; address of the initialization function
 		dt-fini			13			;; address of the termination function
+		dt-soname		14			;; library name
 		dt-rpath		15			;; library search path (deprecated)
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
@@ -291,13 +292,15 @@ context [
 			structure segments sections commands layout
 			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset pos list
+			relro-offset pos list soname
 	] [
 		base-address: either any [job/type = 'dll job/PIC?][0][
 			any [job/base-address defs/base-address]
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
-
+	
+		soname: append form last split-path job/build-basename ".so"
+		
 		;-- (hack) Move libRedRT in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
 		if pos: find list: job/sections/import/3 "libRedRT.so" [
@@ -375,7 +378,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -466,6 +469,7 @@ context [
 				get-address ".rel.text" get-size ".rel.text"
 				get-data ".dynstr"
 				libraries
+				soname
 		]
 
 		set-data ".stab" [
@@ -736,6 +740,7 @@ context [
 		reltext-size 	[integer!]
 		dynstr			[binary!]
 		libraries		[block!]
+		soname			[string!]
 		/local entries spec
 	] [
 		entries: copy []
@@ -749,6 +754,8 @@ context [
 		]
 
 		if job-type = 'dll [
+			repend entries ['soname strtab-index-of dynstr soname]
+			
 			if spec: select symbols '***-dll-entry-point [
 				repend entries ['init text-address + spec/2 - 1]
 			]
@@ -1059,6 +1066,7 @@ context [
 		/local entries spec
 	][
 		  (any [all [job-type = 'dll select symbols '***-dll-entry-point 1] 0])
+		+ (any [all [job-type = 'dll 1] 0])
 		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
 		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
 		+ length? [
