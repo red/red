@@ -205,6 +205,12 @@ GdkEventKey!: alias struct! [
 		; 	widget 		[handle!]
 		; 	return:		[integer!]
 		; ]
+		gtk_main_iteration: "gtk_main_iteration" [
+			return: 	[logic!]
+		]
+		gtk_events_pending: "gtk_events_pending" [
+			return: 	[logic!]
+		]
 		gtk_window_new: "gtk_window_new" [
 			type		[integer!]
 			return:		[handle!]
