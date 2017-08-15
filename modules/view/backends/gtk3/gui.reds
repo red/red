@@ -508,7 +508,7 @@ OS-make-view: func [
 		caption   [c-string!]
 		len		  [integer!]
 		widget	  [handle!]
-		widget2	  [handle!]
+		_widget	  [handle!]
 		buffer	  [handle!]
 		container [handle!]
 		value	  [integer!]
@@ -518,7 +518,7 @@ OS-make-view: func [
 
 	values: object/get-values face
 
-	widget2: as handle! 0; widget version with possible scrollview
+	_widget: as handle! 0; widget version with possible scrollview
 
 	type:	  as red-word!		values + FACE_OBJ_TYPE
 	str:	  as red-string!	values + FACE_OBJ_TEXT
@@ -592,7 +592,7 @@ OS-make-view: func [
 		sym = field [
 			widget: gtk_entry_new
 			buffer: gtk_entry_get_buffer widget
-			gtk_entry_buffer_set_text buffer caption -1
+			unless null? caption [gtk_entry_buffer_set_text buffer caption -1]
 			gobj_signal_connect(widget "key-release-event" :field-key-release-event face/ctx)
 			;gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
 			gtk_widget_set_can_focus widget yes
@@ -607,8 +607,8 @@ OS-make-view: func [
 			widget: gtk_text_view_new
 			buffer: gtk_text_view_get_buffer widget
 			gtk_text_buffer_set_text buffer caption -1
-			widget2: gtk_scrolled_window_new null null
-			gtk_container_add widget2 widget
+			_widget: gtk_scrolled_window_new null null
+			gtk_container_add _widget widget
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
@@ -634,8 +634,8 @@ OS-make-view: func [
 			widget: gtk_list_box_new
 			init-text-list widget data
 			gtk_list_box_select_row widget gtk_list_box_get_row_at_index widget 0
-			widget2: gtk_scrolled_window_new null null
-			gtk_container_add widget2 widget
+			_widget: gtk_scrolled_window_new null null
+			gtk_container_add _widget widget
 			gobj_signal_connect(widget "selected-rows-changed" :text-list-selected-rows-changed face/ctx)
 		]
 		any [
@@ -663,12 +663,12 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		if widget2 = as handle! 0 [widget2: widget]
+		if _widget = as handle! 0 [_widget: widget]
 		; TODO: case to replace with either if no more choice
 		case [
 			p-sym = tab-panel [
 				container: as handle! parent
-				; widget is necessarily a panel and then same as widget2
+				; widget is necessarily a panel and then same as _widget
 				data: get-widget-data container
 				str:  (as red-string! block/rs-head data) + tabs/cur
 				caption: either TYPE_OF(str) = TYPE_STRING [
@@ -684,8 +684,8 @@ OS-make-view: func [
 			]
 			true [
 				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
-				gtk_widget_set_size_request widget2 size/x size/y
-				gtk_fixed_put container widget2 offset/x offset/y
+				gtk_widget_set_size_request _widget size/x size/y
+				gtk_fixed_put container _widget offset/x offset/y
 				print ["x: " offset/x "y: " offset/y "w: " size/x "h: " size/y lf]
 			]
 		]

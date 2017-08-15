@@ -200,7 +200,7 @@ text-list-selected-rows-changed: func [
 ][
 	; From now, only single-selection mode
 	sel: gtk_list_box_get_selected_row widget
-	idx: gtk_list_box_row_get_index sel
+	idx: either null? sel [-1][gtk_list_box_row_get_index sel]
 	if idx >= 0 [
 		res: make-event widget idx + 1 EVT_SELECT
 		set-selected widget ctx idx + 1

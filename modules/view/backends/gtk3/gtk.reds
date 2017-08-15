@@ -49,6 +49,12 @@ GdkEventKey!: alias struct! [
   ;guint8 group;
   ;guint is_modifier : 1;
 ]
+#enum GtkFileChooserAction! [
+  GTK_FILE_CHOOSER_ACTION_OPEN
+  GTK_FILE_CHOOSER_ACTION_SAVE
+  GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER
+  GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
+]
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -171,6 +177,38 @@ GdkEventKey!: alias struct! [
 			app			[handle!]
 			return:		[handle!]
 		]
+		gtk_application_add_window: "gtk_application_add_window" [
+			app			[handle!]
+			window		[handle!]
+		]
+		gtk_application_remove_window: "gtk_application_remove_window" [
+			app			[handle!]
+			window		[handle!]
+		]
+		gtk_file_chooser_dialog_new: "gtk_file_chooser_dialog_new" [
+			[variadic]
+			return:		[handle!]
+		]
+		gtk_dialog_run: "gtk_dialog_run" [
+			widget 		[handle!]
+			return:		[integer!]
+		]
+		gtk_file_chooser_get_filename: "gtk_file_chooser_get_filename" [
+			widget 		[handle!]
+			return:		[c-string!]
+		]
+		; gtk_file_chooser_native_new: "gtk_file_chooser_native_new" [
+		; 	[variadic]
+		; 	return:		[handle!]
+		; ]
+		; gtk_native_dialog_run: "gtk_native_dialog_run" [
+		; 	widget 		[handle!]
+		; 	return:		[integer!]
+		; ]
+		gtk_window_new: "gtk_window_new" [
+			type		[integer!]
+			return:		[handle!]
+		]
 		gtk_window_set_title: "gtk_window_set_title" [
 			window		[handle!]
 			title		[c-string!]
@@ -192,11 +230,32 @@ GdkEventKey!: alias struct! [
 			window		[handle!]
 			return:		[logic!]
 		]
+		gtk_window_set_modal: "gtk_window_set_modal" [
+			window		[handle!]
+			setting		[logic!]
+		]
+		gtk_window_set_transient_for: "gtk_window_set_transient_for" [
+			window		[handle!]
+			parent		[handle!]
+		]
+		gtk_window_iconify: "gtk_window_iconify" [
+			window		[handle!]
+		]
+		gtk_window_close: "gtk_window_close" [
+			window		[handle!]
+		]
+		gtk_window_set_destroy_with_parent: "gtk_window_set_destroy_with_parent" [
+			window		[handle!]
+			setting		[logic!]
+		]
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
 		gtk_widget_show_all: "gtk_widget_show_all" [
-			window		[handle!]
+			widget		[handle!]
+		]
+		gtk_widget_hide: "gtk_widget_hide" [
+			widget		[handle!]
 		]
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
 			widget		[handle!]
@@ -213,6 +272,9 @@ GdkEventKey!: alias struct! [
 		gtk_widget_set_focus_on_click: "gtk_widget_set_focus_on_click" [
 			widget		[handle!]
 			focus		[logic!]
+		]
+		gtk_widget_destroy: "gtk_widget_destroy" [
+			widget 	[handle!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
