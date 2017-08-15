@@ -27,7 +27,7 @@ _request-file: func [
 		ret		[red-value!]
 ][
 	ret: as red-value! none-value
-	window: gtk_window_new GTKApp
+	;window: gtk_window_new GTKApp
 	;print "GTKApp"
 	;if GTKApp = (as handle! 0) [print  " not"] 
 	;print [" alive" lf]
