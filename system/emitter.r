@@ -400,6 +400,11 @@ emitter: make-profilable context [
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
+			all [
+				find [float! float64!] type/1
+				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
+				offset: offset + 8 - over 						;-- properly account for alignment
+			]
 			if var = name [return offset]
 			offset: offset + size-of? type
 		]
