@@ -361,7 +361,10 @@ emitter: make-profilable context [
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 			]
 			if all [spec compiler/job/PIC? not libc-init?][
-				if 0 <> compiler/unbox value [			;-- do not add PIC offset to NULL values
+				unless any [							;-- do not add PIC offset to literal values
+					integer? value
+					all [object? value integer? value/data]
+				][
 					target/emit-load-literal-ptr spec/2 
 				]
 				if new-global? [
