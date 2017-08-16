@@ -244,7 +244,7 @@ highlight: context [
 				| #"<" ot: [ahead #"/" (ot: back ot) :ot break | none]	;-- a</b>
 				| #">" if (ot) [(ot: back ot) :ot break]				;-- a<b>
 				| skip
-			]
+			] e:
 		]
 
 		begin-symbol-rule: [							;-- 1st char in symbols is restricted

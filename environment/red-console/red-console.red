@@ -301,7 +301,7 @@ red-console-ctx: context [
 	]
 
 	launch: func [/local svs][
-		set 'print :terminal/print			;-- rewrite print
+		set 'print :terminal/print			;-- custom print
 
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker

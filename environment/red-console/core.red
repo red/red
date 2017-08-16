@@ -74,7 +74,7 @@ terminal!: object [
 				calc-top
 				str: skip s 1
 				cnt: cnt + 1
-				if cnt = 200 [
+				if cnt = 100 [
 					redraw target
 					loop 3 [do-events/no-wait]
 					cnt: 0
