@@ -13,12 +13,12 @@ Red/System [
 #include %gtk.reds
 #include %events.reds
 
+#include %style.reds
 #include %font.reds
 #include %para.reds
 #include %draw.reds
 
 #include %handlers.reds
-#include %style.reds
 #include %comdlgs.reds
 
 GTKApp:			as handle! 0
@@ -228,6 +228,446 @@ init: func [][
 	screen-size-y: gdk_screen_height
 
 	style-init
+]
+
+
+change-rate: func [
+	hWnd [handle!]
+	rate [red-value!]
+	/local
+		int		[red-integer!]
+		tm		[red-time!]
+		timer	[integer!]
+		ts		[float!]
+][
+	; timer: objc_getAssociatedObject hWnd RedTimerKey
+
+	; if timer <> 0 [								;-- cancel a preexisting timer
+	; 	objc_msgSend [timer sel_getUid "invalidate"]
+	; 	objc_setAssociatedObject hWnd RedTimerKey 0 OBJC_ASSOCIATION_ASSIGN
+	; ]
+
+	; switch TYPE_OF(rate) [
+	; 	TYPE_INTEGER [
+	; 		int: as red-integer! rate
+	; 		if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+	; 		ts: 1.0 / as-float int/value
+	; 	]
+	; 	TYPE_TIME [
+	; 		tm: as red-time! rate
+	; 		if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+	; 		ts: tm/time / 1E9
+	; 	]
+	; 	TYPE_NONE [exit]
+	; 	default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
+	; ]
+
+	; timer: objc_msgSend [
+	; 	objc_getClass "NSTimer"
+	; 	sel_getUid "scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:"
+	; 	ts hWnd sel-on-timer 0 yes
+	; ]
+	; objc_setAssociatedObject hWnd RedTimerKey timer OBJC_ASSOCIATION_ASSIGN
+	0
+]
+
+change-size: func [
+	hWnd [handle!]
+	size [red-pair!]
+	type [integer!]
+	/local
+		h		[integer!]
+		w		[integer!]
+		y		[integer!]
+		x		[integer!]
+		;rc		[NSRect!]
+		;frame	[NSRect!]
+		saved	[int-ptr!]
+		method	[integer!]
+][
+	; rc: make-rect size/x size/y 0 0
+	; if all [type = button size/y > 32][
+	; 	objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
+	; ]
+	; either type = window [
+	; 	x: 0
+	; 	frame: as NSRect! :x
+	; 	method: sel_getUid "frame"
+	; 	saved: system/stack/align
+	; 	push 0
+	; 	push method push hWnd push frame
+	; 	objc_msgSend_stret 3
+	; 	system/stack/top: saved
+	; 	frame/y: frame/y + frame/h - rc/y
+	; 	objc_msgSend [hWnd sel_getUid "setFrame:display:animate:" frame/x frame/y rc/x rc/y yes yes]
+	; ][
+	; 	objc_msgSend [hWnd sel_getUid "setFrameSize:" rc/x rc/y]
+	; 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	; 	object_getInstanceVariable hWnd IVAR_RED_DATA :type
+	; 	if type = caret [
+	; 		caret-w: rc/x
+	; 		caret-h: rc/y
+	; 	]
+	; ]
+	0
+]
+
+change-image: func [
+	hWnd	[integer!]
+	image	[red-image!]
+	type	[integer!]
+	/local
+		id		 [integer!]
+][
+	; case [
+	; 	type = camera [
+	; 		snap-camera hWnd
+	; 		until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
+	; 	]
+	; 	any [type = button type = check type = radio][
+	; 		if TYPE_OF(image) <> TYPE_IMAGE [
+	; 			objc_msgSend [hWnd sel_getUid "setImage:" 0]
+	; 			exit
+	; 		]
+	; 		id: objc_msgSend [objc_getClass "NSImage" sel_getUid "alloc"]
+	; 		id: objc_msgSend [id sel_getUid "initWithCGImage:size:" OS-image/to-cgimage image 0 0]
+	; 		objc_msgSend [hWnd sel_getUid "setImage:" id]
+	; 		objc_msgSend [id sel_getUid "release"]
+	; 	]
+	; 	true [
+	; 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	; 	]
+	; ]
+	0
+]
+
+change-color: func [
+	hWnd	[integer!]
+	color	[red-tuple!]
+	type	[integer!]
+	/local
+		clr  [integer!]
+		set? [logic!]
+		t	 [integer!]
+][
+	t: TYPE_OF(color)
+	if all [t <> TYPE_NONE t <> TYPE_TUPLE][exit]
+	; if transparent-color? color [
+	; 	objc_msgSend [hWnd sel_getUid "setDrawsBackground:" no]
+	; 	exit
+	; ]
+	; set?: yes
+	case [
+	; 	type = area [
+	; 		hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
+	; 		clr: either t = TYPE_NONE [00FFFFFFh][color/array1]
+	; 		set-caret-color hWnd clr
+	; 		if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
+	; 	]
+		type = text [
+	; 		if t = TYPE_NONE [
+	; 			clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "controlColor"]
+	; 			set?: no
+	; 		]
+	; 		objc_msgSend [hWnd sel_getUid "setDrawsBackground:" set?]
+		]
+	; 	any [type = check type = radio][
+	; 		hWnd: objc_msgSend [hWnd sel_getUid "cell"]
+	; 		if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "controlColor"]]
+	; 	]
+	; 	type = field [
+	; 		if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "textBackgroundColor"]]
+	; 	]
+	; 	type = window [
+	; 		if t = TYPE_NONE [clr: objc_msgSend [objc_getClass "NSColor" sel_getUid "windowBackgroundColor"]]
+	; 	]
+	; 	true [
+	; 		set?: no
+	; 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	; 	]
+	]
+	; if set? [
+	; 	if t = TYPE_TUPLE [clr: to-NSColor color]
+	; 	objc_msgSend [hWnd sel_getUid "setBackgroundColor:" clr]
+	; ]
+	0
+]
+
+update-z-order: func [
+	parent	[integer!]
+	pane	[red-block!]
+	type	[integer!]
+	/local
+		face [red-object!]
+		tail [red-object!]
+		hWnd [handle!]
+		parr [int-ptr!]
+		arr  [integer!]
+		nb   [integer!]
+		s	 [series!]
+][
+	; s: GET_BUFFER(pane)
+	; face: as red-object! s/offset + pane/head
+	; tail: as red-object! s/tail
+	; nb: (as-integer tail - face) >> 4
+
+	; parr: as int-ptr! allocate nb * 4
+	; nb: 0
+	; while [face < tail][
+	; 	if TYPE_OF(face) = TYPE_OBJECT [
+	; 		hWnd: face-handle? face
+	; 		if hWnd <> null [
+	; 			nb: nb + 1
+	; 			parr/nb: as-integer hWnd
+	; 		]
+	; 	]
+	; 	face: face + 1
+	; ]
+	; arr: objc_msgSend [
+	; 	objc_getClass "NSArray"
+	; 	sel_getUid "arrayWithObjects:count:"
+	; 	parr nb
+	; ]
+	; free as byte-ptr! parr
+	; if type = window [parent: objc_msgSend [parent sel_getUid "contentView"]]
+	; objc_msgSend [parent sel_getUid "setSubviews:" arr]
+0
+]
+
+change-font: func [
+	hWnd	[handle!]
+	face	[red-object!]
+	font	[red-object!]
+	type	[integer!]
+	return: [logic!]
+	/local
+		css		 [c-string!]
+		provider [handle!]
+][
+	if TYPE_OF(font) <> TYPE_OBJECT [return no]
+
+	provider: get-font-provider hWnd
+
+	css: as c-string! make-font face font
+
+	gtk_css_provider_load_from_data provider css -1 null
+
+	yes
+]
+
+change-offset: func [
+	hWnd [handle!]
+	pos  [red-pair!]
+	type [integer!]
+	;/local
+		;rc [NSRect!]
+][
+	; rc: make-rect pos/x pos/y 0 0
+	; either type = window [
+	; 	rc/y: as float32! screen-size-y - pos/y
+	; 	objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
+	; ][
+	; 	objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
+	; 	unless in-composition? [
+	; 		object_getInstanceVariable hWnd IVAR_RED_DATA :type
+	; 		if type = caret [
+	; 			caret-x: rc/x
+	; 			caret-y: rc/y
+	; 		]
+	; 	]
+	; ]
+	0
+]
+
+change-visible: func [
+	hWnd  [integer!]
+	show? [logic!]
+	type  [integer!]
+][
+	; case [
+	; 	any [type = button type = check type = radio][
+	; 		objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
+	; 		objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
+	; 	]
+	; 	type = window [
+	; 		either show? [
+	; 			objc_msgSend [hWnd sel_getUid "makeKeyAndOrderFront:" hWnd]
+	; 		][
+	; 			objc_msgSend [hWnd sel_getUid "orderOut:" hWnd]
+	; 		]
+	; 	]
+	; 	true [objc_msgSend [hWnd sel_getUid "setHidden:" not show?]]
+	; ]
+	0
+]
+
+change-enabled: func [
+	hWnd	 [integer!]
+	enabled? [logic!]
+	type	 [integer!]
+	/local
+		obj  [integer!]
+][
+	; unless any [type = base type = window type = panel][
+	; 	objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
+	; ]
+	; either enabled? [obj: 0][obj: hWnd]
+	; objc_setAssociatedObject hWnd RedEnableKey obj OBJC_ASSOCIATION_ASSIGN
+0
+]
+
+change-text: func [
+	hWnd	[handle!]
+	values	[red-value!]
+	face	[red-object!]
+	type	[integer!]
+	/local
+		len  [integer!]
+		cstr [c-string!]
+		str  [red-string!]
+][
+	; if type = base [
+	; 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
+	; 	exit
+	; ]
+
+	str: as red-string! values + FACE_OBJ_TEXT
+	cstr: switch TYPE_OF(str) [
+		TYPE_STRING [len: -1 unicode/to-utf8 str :len]
+		TYPE_NONE	[""]
+		default		[null]									;@@ Auto-convert?
+	]
+
+	if null? cstr [exit]
+	
+	either type = area [
+	; 	objc_msgSend [
+	; 		objc_msgSend [hWnd sel_getUid "documentView"]
+	; 		sel_getUid "setString:" txt
+		0
+	;	]
+	][
+		;unless change-font hWnd face as red-object! values + FACE_OBJ_FONT type [
+			case [
+				type = text [
+					gtk_label_set_text hWnd cstr
+					;objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
+				]
+				any [type = button type = radio type = check type = window type = group-box][
+					;objc_msgSend [hWnd sel_getUid "setTitle:" txt]
+				]
+				true [0]
+			]
+		;]
+	]
+]
+
+change-data: func [
+	hWnd   [handle!]
+	values [red-value!]
+	/local
+		data 	[red-value!]
+		word 	[red-word!]
+		size	[red-pair!]
+		f		[red-float!]
+		str		[red-string!]
+		caption [c-string!]
+		type	[integer!]
+		len		[integer!]
+][
+	data: as red-value! values + FACE_OBJ_DATA
+	word: as red-word! values + FACE_OBJ_TYPE
+	type: word/symbol
+
+	; case [
+	; 	all [
+	; 		type = progress
+	; 		TYPE_OF(data) = TYPE_PERCENT
+	; 	][
+	; 		f: as red-float! data
+	; 		objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * 100.0]
+	; 	]
+	; 	all [
+	; 		type = slider
+	; 		TYPE_OF(data) = TYPE_PERCENT
+	; 	][
+	; 		f: as red-float! data
+	; 		size: as red-pair! values + FACE_OBJ_SIZE
+	; 		len: either size/x > size/y [size/x][size/y]
+	; 		objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
+	; 	]
+	; 	type = check [
+	; 		set-logic-state hWnd as red-logic! data yes
+	; 	]
+	; 	type = radio [
+	; 		set-logic-state hWnd as red-logic! data no
+	; 	]
+	; 	type = tab-panel [
+	; 		set-tabs hWnd get-face-values hWnd
+	; 	]
+	; 	all [
+	; 		type = text-list
+	; 		TYPE_OF(data) = TYPE_BLOCK
+	; 	][
+	; 		objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
+	; 	]
+	; 	any [type = drop-list type = drop-down][
+	; 		init-combo-box hWnd as red-block! data null type = drop-list
+	; 	]
+	; 	true [0]										;-- default, do nothing
+	; ]
+	0
+]
+
+change-selection: func [
+	hWnd   [handle!]
+	int	   [red-integer!]								;-- can be also none! | object!
+	type   [integer!]
+	/local
+		idx [integer!]
+		sz	[integer!]
+		wnd [integer!]
+][
+	; if type <> window [
+	; 	idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
+	; 	if idx < 0 [exit]								;-- @@ should unselect the items ?
+	; ]
+	; case [
+	; 	type = camera [
+	; 		either TYPE_OF(int) = TYPE_NONE [
+	; 			toggle-preview hWnd false
+	; 		][
+	; 			select-camera hWnd idx
+	; 			toggle-preview hWnd true
+	; 		]
+	; 	]
+	; 	type = text-list [
+	; 		hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
+	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
+	; 		if any [sz < 0 sz < idx][exit]
+	; 		idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
+	; 		objc_msgSend [
+	; 			hWnd sel_getUid "selectRowIndexes:byExtendingSelection:" idx no
+	; 		]
+	; 		objc_msgSend [idx sel_getUid "release"]
+	; 	]
+	; 	any [type = drop-list type = drop-down][
+	; 		sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
+	; 		if any [sz < 0 sz < idx][exit]
+	; 		objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx]
+	; 		idx: objc_msgSend [hWnd sel_getUid "objectValueOfSelectedItem"]
+	; 		objc_msgSend [hWnd sel_getUid "setObjectValue:" idx]
+	; 	]
+	; 	type = tab-panel [select-tab hWnd int]
+	; 	type = window [
+	; 		wnd: either TYPE_OF(int) = TYPE_OBJECT [
+	; 			as-integer face-handle? as red-object! int
+	; 		][0]
+	; 		objc_msgSend [hWnd sel_getUid "makeFirstResponder:" wnd]
+	; 	]
+	; 	true [0]										;-- default, do nothing
+	; ]
+	0
 ]
 
 set-selected-focus: func [
@@ -500,6 +940,7 @@ OS-make-view: func [
 		show?	  [red-logic!]
 		open?	  [red-logic!]
 		selected  [red-integer!]
+		font	  [red-object!]
 		para	  [red-object!]
 		flags	  [integer!]
 		bits	  [integer!]
@@ -528,6 +969,7 @@ OS-make-view: func [
 	open?:	  as red-logic!		values + FACE_OBJ_ENABLED?
 	data:	  as red-block!		values + FACE_OBJ_DATA
 	img:	  as red-image!		values + FACE_OBJ_IMAGE
+	font:	  as red-object!	values + FACE_OBJ_FONT
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
@@ -656,7 +1098,10 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	create-widget-style widget face
+	;create-widget-style widget face
+	make-font-provider widget
+	change-font widget face font sym
+
 
 	if all [
 		sym <> window
@@ -686,7 +1131,7 @@ OS-make-view: func [
 				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
 				gtk_widget_set_size_request _widget size/x size/y
 				gtk_fixed_put container _widget offset/x offset/y
-				print ["x: " offset/x "y: " offset/y "w: " size/x "h: " size/y lf]
+				;print ["x: " offset/x "y: " offset/y "w: " size/x "h: " size/y lf]
 			]
 		]
 	]
@@ -712,7 +1157,7 @@ OS-update-view: func [
 		int2	[red-integer!]
 		bool	[red-logic!]
 		s		[series!]
-		widget	[integer!]
+		widget	[handle!]
 		flags	[integer!]
 		type	[integer!]
 ][
@@ -725,7 +1170,7 @@ OS-update-view: func [
 	type: symbol/resolve word/symbol
 	s: GET_BUFFER(state)
 	int: as red-integer! s/offset
-	widget: int/value
+	widget: as handle! int/value
 	int: int + 1
 	flags: int/value
 
@@ -735,9 +1180,10 @@ OS-update-view: func [
 	;if flags and FACET_FLAG_SIZE <> 0 [
 	;	change-size widget as red-pair! values + FACE_OBJ_SIZE type
 	;]
-	;if flags and FACET_FLAG_TEXT <> 0 [
-	;	change-text widget values type
-	;]
+	if flags and FACET_FLAG_TEXT <> 0 [
+		change-text widget values face type
+		gtk_widget_queue_draw widget
+	]
 	;if flags and FACET_FLAG_DATA <> 0 [
 	;	change-data	as handle! widget values
 	;]
@@ -759,12 +1205,12 @@ OS-update-view: func [
 	;		get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
 	if flags and FACET_FLAG_DRAW  <> 0 [
-		gtk_widget_queue_draw as handle! widget
+		gtk_widget_queue_draw widget
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		if type = base [
 	;		update-base as handle! widget null null values
-			gtk_widget_queue_draw as handle! widget
+			gtk_widget_queue_draw widget
 	;	][
 	;		InvalidateRect as handle! widget null 1
 		]
@@ -776,10 +1222,10 @@ OS-update-view: func [
 	;			null
 	;	]
 	;]
-	;if flags and FACET_FLAG_FONT <> 0 [
-	;	set-font as handle! widget face values
+	if flags and FACET_FLAG_FONT <> 0 [
+		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	;	InvalidateRect as handle! widget null 1
-	;]
+	]
 	;if flags and FACET_FLAG_PARA <> 0 [
 	;	update-para face 0
 	;	InvalidateRect as handle! widget null 1

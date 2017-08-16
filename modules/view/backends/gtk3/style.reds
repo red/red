@@ -117,7 +117,8 @@ set-widget-style: func [
 		blk      [red-block!]
 		len      [integer!]
 		sym      [integer!]
-		class    [c-string!]
+		str      [red-string!]
+		name     [c-string!]
 		size     [red-integer!]
 		css      [c-string!]
 		color    [red-tuple!]
@@ -131,6 +132,7 @@ set-widget-style: func [
 		values: object/get-values font
 
 		;name:
+		str: 	as red-string!	values + FONT_OBJ_NAME
 		size:	as red-integer!	values + FONT_OBJ_SIZE
 		style:	as red-word!	values + FONT_OBJ_STYLE
 		;angle:
@@ -140,6 +142,12 @@ set-widget-style: func [
 		css:		g_strdup_printf ["* {"]
 		context:	gtk_widget_get_style_context widget
 		provider:	get-style-provider widget
+
+		if TYPE_OF(str) = TYPE_STRING [
+			len: -1
+			name: unicode/to-utf8 str :len
+			css: g_strdup_printf [{%s font-family: "%s";} css name]
+		]
 
 		if TYPE_OF(size) = TYPE_INTEGER [
 			css: add-to-string css "%s font-size: %dpt;" as handle! size/value
@@ -158,14 +166,15 @@ set-widget-style: func [
 		unless zero? len [
 			loop len [
 				sym: symbol/resolve style/symbol
-				class: case [
-					sym = _bold      ["bold"]
-					sym = _italic    ["italic"]
-					sym = _underline ["underline"]
-					sym = _strike    ["strike"]
+				case [ ;OLD -> class: case [
+					sym = _bold      ["bold" css: g_strdup_printf ["%s font-weight: bold;" css]]
+					sym = _italic    ["italic" css: g_strdup_printf ["%s font-style: italic;" css]]
+					sym = _underline ["underline" css: g_strdup_printf ["%s text-decoration-line: underline;" css]]
+					sym = _strike    ["strike" css: g_strdup_printf ["%s text-decoration-line: line-through;" css]]
 					true             [""]
 				]
-				unless 0 = length? class [gtk_style_context_add_class context class]
+				style: style + 1
+				;unless 0 = length? class [gtk_style_context_add_class context class]
 			]
 		]
 
@@ -176,6 +185,8 @@ set-widget-style: func [
 		]
 
 		css: add-to-string css "%s}" null
+
+		print ["css: " css lf]
 
 		gtk_css_provider_load_from_data provider css -1 null
 

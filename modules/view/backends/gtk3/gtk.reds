@@ -85,6 +85,12 @@ GdkEventKey!: alias struct! [
 			quark		[integer!]
 			return:		[int-ptr!]
 		]
+		g_object_set: "g_object_set" [
+			[variadic]
+		]
+		g_object_get: "g_object_get" [
+			[variadic]
+		]
 		g_signal_connect_data: "g_signal_connect_data" [
 			instance	[int-ptr!]
 			signal		[c-string!]
@@ -383,8 +389,12 @@ GdkEventKey!: alias struct! [
 			return:		[handle!]
 		]
 		gtk_label_get_text: "gtk_label_get_text" [
-			label		[handle!]
+			widget		[handle!]
 			return:		[c-string!]
+		]
+		gtk_label_set_text: "gtk_label_set_text" [
+			widget		[handle!]
+			label		[c-string!]
 		]
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
@@ -435,6 +445,10 @@ GdkEventKey!: alias struct! [
 			buffer		[handle!]
 			text		[c-string!]
 			len			[integer!]
+		]
+		gtk_text_buffer_create_tag: "gtk_text_buffer_create_tag" [
+			[variadic]
+			return: 	[handle!]
 		]
 		gtk_combo_box_text_new: "gtk_combo_box_text_new" [
 			return:		[handle!]

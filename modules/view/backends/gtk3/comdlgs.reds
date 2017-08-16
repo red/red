@@ -34,12 +34,13 @@ _request-file: func [
 		cstr: gtk_file_chooser_get_filename widget 
 		size: length? cstr
 		str: string/load cstr size UTF-8
+		if dir? [string/append-char GET_BUFFER(str) as-integer #"/"]
  		ret: as red-value! str
 		set-type ret TYPE_FILE
 	]
 	gtk_widget_destroy widget
 	; This trick really matters to end the loop when in the red-console 
-	while [gtk_events_pending][gtk_main_iteration]
+		while [gtk_events_pending][gtk_main_iteration]
 	ret
 ]
 
