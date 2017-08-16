@@ -2810,7 +2810,7 @@ natives: context [
 	][
 		i: 1
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_HASH type = TYPE_MAP]
+		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP]
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
