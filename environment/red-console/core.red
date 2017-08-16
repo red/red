@@ -375,10 +375,8 @@ terminal!: object [
 	]
 
 	process-shortcuts: function [event [event!]][
-		if find event/flags 'control [
-			switch event/key [
-				#"C"		[probe "copy"]
-			]
+		switch event/key [
+			#"^C"	[probe "copy"]
 		]
 	]
 
@@ -389,6 +387,7 @@ terminal!: object [
 			ime-open?: no
 		]
 		if process-shortcuts event [exit]
+
 		char: event/key
 		switch/default char [
 			#"^M" [									;-- ENTER key

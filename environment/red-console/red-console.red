@@ -187,12 +187,9 @@ red-console-ctx: context [
 			button "OK" [
 				if cfg/buffer-lines <> cfg-buffers/data [
 					cfg/buffer-lines: cfg-buffers/data
-					set-buffer-lines cfg/buffer-lines
 				]
 				cfg/font-color:   cfg-forecolor/data
 				cfg/background:   cfg-backcolor/data
-				set-font-color    cfg-forecolor/data
-				set-background    cfg-backcolor/data
 				unview
 				win/selected: console
 			]
