@@ -1035,8 +1035,10 @@ Red/System [
 			#if OS = 'Windows [
 				DC/pen-join: pen-join
 				DC/pen-cap: pen-cap
-				OS-draw-pen DC pen-clr pen? a-pen?
-				OS-draw-fill-pen DC brush-clr brush? a-brush?
+				unless DC/other/D2D? [
+					OS-draw-pen DC pen-clr pen? a-pen?
+					OS-draw-fill-pen DC brush-clr brush? a-brush?
+				]
 			]
 		]
 
