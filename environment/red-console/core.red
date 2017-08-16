@@ -71,7 +71,6 @@ terminal!: object [
 			cnt: 0
 			until [
 				add-line copy/part str s
-				calc-top
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
@@ -89,7 +88,6 @@ terminal!: object [
 		][
 			add-line str
 		]
-		calc-top
 		redraw target
 		do-events/no-wait
 		last-lf?: yes
@@ -122,6 +120,7 @@ terminal!: object [
 		][
 			full?: max-lines = length? lines
 		]
+		calc-top
 	]
 
 	update-theme: func [][

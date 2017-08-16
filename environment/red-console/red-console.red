@@ -27,10 +27,9 @@ ask: function [
 	line: make string! 8
 	line: insert line question
 	vt: red-console-ctx/terminal
-	vt/add-line line
 	vt/line: line
 	vt/pos: 0
-	vt/calc-top
+	vt/add-line line
 	vt/ask?: yes
 	vt/redraw vt/target
 	do-events
@@ -275,7 +274,12 @@ red-console-ctx: context [
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
-					choose-font		[if font: request-font/font/mono console/font [console/font: font]]
+					choose-font		[
+						if font: request-font/font/mono font [
+							console/font: font
+							terminal/update-cfg font cfg
+						]
+					]
 					settings		[show-cfg-dialog]
 				]
 			]
