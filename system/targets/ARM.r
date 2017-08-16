@@ -78,7 +78,6 @@ make-profilable make target-class [
 						word!	  [emitter/symbols/:s]
 						block!	  [s]
 					]
-					
 					emit-reloc-addr spec/3
 				]				
 				emit to-bin32 value					;-- emit value
@@ -1743,8 +1742,8 @@ make-profilable make target-class [
 	]
 	
 	emit-copy-mem: func [slots [integer!] /local bits][ ;-- r0: src, ip: dst, 32-bit slots
-		either slots <= 8 [							;-- 8 is max number of regs usable for the copy
-			bits: skip debase/base to-hex shift/logical 1020 (8 - slots) 16 2
+		either slots <= 7 [							;-- 7 is max number of regs usable for the copy
+			bits: skip debase/base to-hex shift/logical 508 (7 - slots) 16 2
 			bits: bits and #{FFFC}
 			emit-i32 join #{e890} bits				;-- LDM r0, {r2,rN}
 			emit-i32 join #{e88c} bits				;-- STM <dst>, {r2,rN}
