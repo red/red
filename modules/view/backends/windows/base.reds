@@ -539,6 +539,19 @@ BaseWndProc: func [
 				return 0
 			]
 		]
+		WM_NCHITTEST [
+			w: DefWindowProc hWnd msg wParam lParam
+			flags: GetWindowLong hWnd wc-offset - 28
+			if flags <> 0 [							;-- has custom cursor
+				either w = 1 [						;-- client area
+					flags: flags or 80000000h
+				][
+					flags: flags and 7FFFFFFFh
+				]
+				SetWindowLong hWnd wc-offset - 28 flags
+			]
+			return w
+		]
 		0317h	;-- WM_PRINT
 		0318h [ ;-- WM_PRINTCLIENT
 			draw: (as red-block! get-face-values hWnd) + FACE_OBJ_DRAW
