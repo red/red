@@ -202,8 +202,27 @@ emitter: make-profilable context [
 		append symbols new-line spec yes
 		spec
 	]
+	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		all [
+			'value = last spec
+			'struct! <> spec/1
+			spec: compiler/find-aliased spec/1
+		]
+		body: bind/copy body 'type
+		if block? spec/1 [spec: next spec]
 
-	store-global: func [value type [word!] spec [block! word! none!] /local size ptr by-val?][
+		foreach [name t] spec [							;-- skip 'struct!
+			unless word? name [break]
+			either 'value = last type: t [
+				foreach-member type body
+			][
+				do body
+			]
+		]
+	]
+
+	store-global: func [value type [word!] spec [block! word! none!] /local size ptr by-val? pad-size][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -217,7 +236,6 @@ emitter: make-profilable context [
 		size: size-of? type
 		ptr: tail data-buf
 		
-	
 		switch/default type [
 			integer! [
 				case [
@@ -282,6 +300,9 @@ emitter: make-profilable context [
 				store-global value type none
 			]
 			struct! [
+				pad-size: target/ptr-size
+				foreach-member spec [if find [float! float64!] type/1 [pad-size: 8 exit]]
+				pad-data-buf pad-size
 				ptr: tail data-buf
 				foreach [var type] spec [
 					by-val?: 'value = last type

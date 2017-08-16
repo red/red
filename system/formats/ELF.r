@@ -268,7 +268,7 @@ context [
 		]
 
 		segment "rw"				[load	  	[r w]				page] [
-			section ".data"			[progbits 	[write alloc]		word]
+			section ".data"			[progbits 	[write alloc]		dword]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]
@@ -1086,7 +1086,7 @@ context [
 		structure [block!] commands [block!] /local total size name children
 	] [
 		;; This could be inlined into LAYOUT-BINARY, but having it explicit as
-		;; a second pass makes makes things more clear.
+		;; a second pass makes things more clear.
 		total: 0
 		parse structure [
 			any [
@@ -1103,7 +1103,7 @@ context [
 					(
 						size: find-size commands name
 						;; Ensure all leaf nodes are padded to 32-bit multiples.
-						if not zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
+						unless zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
 							repend commands [name 'pad pad]
 						]
 						total: total + size + pad
@@ -1184,9 +1184,10 @@ context [
 
 	lookup-align: func [align [word!]] [
 		select reduce [
-			'byte 1
-			'word size-of machine-word
-			'page defs/page-size
+			'byte	1
+			'word	size-of machine-word
+			'dword	2 * size-of machine-word
+			'page	defs/page-size
 		] align
 	]
 
