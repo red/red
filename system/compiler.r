@@ -2082,14 +2082,15 @@ system-dialect: make-profilable context [
 			pc: next pc
 			if path? expr: pc/1 [expr: to word! form expr]
 			
-			unless all [
+			either all [
 				word? expr
 				type: any [
 					all [base-type? expr expr]
 					all [enum-type? expr [integer!]]
 					find-aliased expr
 				]
-				pc: next pc
+			][
+				pc: either expr = 'pointer! [skip pc 2][next pc]
 			][
 				expr: fetch-expression/final 'size?
 				type: resolve-expr-type expr
