@@ -27,6 +27,7 @@ make-font: func [
 		size     [red-integer!]
 		css      [c-string!]
 		color    [red-tuple!]
+		bgcolor  [red-tuple!]
 		rgba     [c-string!]
 		hFont    [handle!]
 		int      [red-integer!]
@@ -41,7 +42,20 @@ make-font: func [
 	color:	as red-tuple!	values + FONT_OBJ_COLOR
 	;anti-alias?:
 
+	; release first
+	hFont: get-font-handle font
+	unless null? hFont [g_free hFont]
+
 	css:		g_strdup_printf ["* {"]
+
+	unless null? face [
+		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
+		if TYPE_OF(bgcolor) = TYPE_TUPLE [
+			rgba: to-css-rgba bgcolor
+			css: add-to-string css "%s background-color: %s;" as handle! rgba
+			g_free as handle! rgba
+		]
+	]
 
 	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
