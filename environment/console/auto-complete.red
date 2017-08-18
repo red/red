@@ -118,7 +118,7 @@ red-complete-file: func [
 ]
 
 red-complete-input: func [
-	str		 [string!]
+	str		 [string!]			;-- should be `tail str`
 	console? [logic!]
 	/local
 		word ptr result sys-word delim? len insert?

@@ -202,7 +202,7 @@ red-console-ctx: context [
 		view/flags lay [modal]
 	]
 
-	apply-cfg: does [
+	apply-cfg: function [][
 		win/offset:   cfg/win-pos
 		win/size:     cfg/win-size
 		font: make font! [
@@ -211,6 +211,9 @@ red-console-ctx: context [
 			color: cfg/font-color
 		]
 		console/font: font
+		ft: copy font
+		ft/color: white
+		tips/font: ft
 		terminal/update-cfg font cfg
 	]
 
@@ -294,6 +297,7 @@ red-console-ctx: context [
 		]
 		terminal/caret: caret
 		terminal/tips: tips
+		tips/parent: win
 	]
 
 	win: layout/tight [						;-- main window

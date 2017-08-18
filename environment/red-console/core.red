@@ -380,6 +380,39 @@ terminal!: object [
 		]
 	]
 
+	do-completion: func [
+		line	[string!]
+		char	[char!]
+		/local
+			p-idx candidates saved saved-pos
+	][
+		p-idx: index? line
+		candidates: red-complete-input skip line pos yes
+		case [
+			empty? candidates [
+				insert skip line pos char
+				pos: pos + 1
+			]
+			1 = length? candidates [
+				clear head line
+				pos: (index? candidates/1) - p-idx
+				append line head candidates/1
+			]
+			true [
+				saved: at copy head line p-idx
+				saved-pos: pos
+				clear line
+				foreach s next candidates [
+					append line s
+					append line #" "
+				]
+				pos: saved-pos
+				line: saved
+				add-line saved
+			]
+		]
+	]
+
 	press-key: func [event [event!] /local char][
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
@@ -395,10 +428,7 @@ terminal!: object [
 				system/view/platform/exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
-			#"^-" [				;TBD autocompletion
-				insert skip line pos char
-				pos: pos + 1
-			]
+			#"^-" [unless empty? line [do-completion line char]]
 			left  [move-caret -1]
 			right [move-caret 1]
 			up	  []
@@ -413,6 +443,15 @@ terminal!: object [
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
 		redraw target
+	]
+
+	show-tips: function [candidates [block!]][
+		offset: caret/offset
+		offset/y: offset/y + line-h
+		tips/offset: offset
+		tips/paint next candidates
+		tips/visible?: yes
+		set-focus tips
 	]
 
 	paint-selects: func [
