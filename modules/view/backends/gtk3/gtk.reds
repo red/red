@@ -469,6 +469,14 @@ GtkTextIter!: alias struct! [
 		gtk_progress_bar_new: "gtk_progress_bar_new" [
 			return:		[handle!]
 		]
+		gtk_progress_bar_set_fraction: "gtk_progress_bar_set_fraction" [
+			progress	[handle!]
+			val			[float!]
+		]
+		gtk_progress_bar_get_fraction: "gtk_progress_bar_get_fraction" [
+			progress	[handle!]
+			return:			[float!]
+		]
 		gtk_text_view_new: "gtk_text_view_new" [
 			return:		[handle!]
 		]

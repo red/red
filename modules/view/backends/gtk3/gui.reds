@@ -34,7 +34,7 @@ tabs: context [
 ]
 
 pango-context:	as handle! 0
-gtk-settings:	as handle! 0
+gtk-font:		"Sans 10"
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -168,7 +168,6 @@ get-text-size: func [
 		df		[c-string!]
 ][
 	if pango-context = as handle! 0 [pango-context: gdk_pango_context_get]
-	if gtk-settings = as handle! 0 [gtk-settings: gtk_settings_get_default]
 	size: declare tagSIZE
 
 	text: either TYPE_OF(str) = TYPE_STRING [
@@ -179,11 +178,8 @@ get-text-size: func [
 	]
 
 	width: 0 height: 0
-	fd: either TYPE_OF(font) = TYPE_NONE [
-		df: "Sans"
-		;g_object_get [gtk-settings "gtk-font-name" df null]
-		;print ["default font: " df lf]
-		pango_font_description_from_string df
+	fd: either TYPE_OF(font) = TYPE_NONE [ 
+		pango_font_description_from_string gtk-font
 	][
 		font-description font
 	]
@@ -615,29 +611,29 @@ change-data: func [
 	word: as red-word! values + FACE_OBJ_TYPE
 	type: word/symbol
 
-	; case [
-	; 	all [
-	; 		type = progress
-	; 		TYPE_OF(data) = TYPE_PERCENT
-	; 	][
-	; 		f: as red-float! data
-	; 		objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * 100.0]
-	; 	]
-	; 	all [
-	; 		type = slider
-	; 		TYPE_OF(data) = TYPE_PERCENT
-	; 	][
-	; 		f: as red-float! data
-	; 		size: as red-pair! values + FACE_OBJ_SIZE
-	; 		len: either size/x > size/y [size/x][size/y]
-	; 		objc_msgSend [hWnd sel_getUid "setDoubleValue:" f/value * (as-float len)]
-	; 	]
-	; 	type = check [
-	; 		set-logic-state hWnd as red-logic! data yes
-	; 	]
-	; 	type = radio [
-	; 		set-logic-state hWnd as red-logic! data no
-	; 	]
+	case [
+		all [
+			type = progress
+			TYPE_OF(data) = TYPE_PERCENT
+		][
+			f: as red-float! data
+			gtk_progress_bar_set_fraction hWnd  f/value
+		]
+		all [
+			type = slider
+			TYPE_OF(data) = TYPE_PERCENT
+		][
+			f: as red-float! data
+			size: as red-pair! values + FACE_OBJ_SIZE
+			len: either size/x > size/y [size/x][size/y]
+			gtk_range_set_value hWnd f/value * (as-float len)
+		]
+		type = check [
+			set-logic-state hWnd as red-logic! data yes
+		]
+		type = radio [
+			set-logic-state hWnd as red-logic! data no
+		]
 	; 	type = tab-panel [
 	; 		set-tabs hWnd get-face-values hWnd
 	; 	]
@@ -647,11 +643,11 @@ change-data: func [
 	; 	][
 	; 		objc_msgSend [objc_msgSend [hWnd sel_getUid "documentView"] sel_getUid "reloadData"]
 	; 	]
-	; 	any [type = drop-list type = drop-down][
-	; 		init-combo-box hWnd as red-block! data null type = drop-list
-	; 	]
-	; 	true [0]										;-- default, do nothing
-	; ]
+		any [type = drop-list type = drop-down][
+			init-combo-box hWnd as red-block! data null type = drop-list
+		]
+		true [0]										;-- default, do nothing
+	]
 	0
 ]
 
@@ -799,6 +795,22 @@ get-position-value: func [
 		f: pos/value * (as-float maximun)
 	]
 	as-integer f
+]
+
+get-fraction-value: func [
+	pos		[red-float!]
+	return: [float!]
+	/local
+		f	[float!]
+][
+	f: 0.0
+	if any [
+		TYPE_OF(pos) = TYPE_FLOAT
+		TYPE_OF(pos) = TYPE_PERCENT
+	][
+		f: pos/value
+	]
+	f
 ]
 
 get-screen-size: func [
@@ -989,7 +1001,9 @@ OS-make-view: func [
 		buffer	  [handle!]
 		container [handle!]
 		value	  [integer!]
+		fvalue	  [float!]
 		vertical? [logic!]
+		rfvalue	  [red-float!]
 ][
 	stack/mark-func words/_body
 
@@ -1080,6 +1094,8 @@ OS-make-view: func [
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
+			fvalue: get-fraction-value as red-float! data
+			gtk_progress_bar_set_fraction widget fvalue
 		]
 		sym = area [
 			widget: gtk_text_view_new
@@ -1221,11 +1237,11 @@ OS-update-view: func [
 		change-text widget values face type
 		gtk_widget_queue_draw widget
 	]
-	;if flags and FACET_FLAG_DATA <> 0 [
-	;	change-data	as handle! widget values
-	;]
+	if flags and FACET_FLAG_DATA <> 0 [
+		change-data	widget values
+	]
 	;if flags and FACET_FLAG_ENABLE? <> 0 [
-	;	change-enabled as handle! widget values
+	;	change-enabled widget values
 	;]
 	;if flags and FACET_FLAG_VISIBLE? <> 0 [
 	;	bool: as red-logic! values + FACE_OBJ_VISIBLE?
@@ -1237,7 +1253,7 @@ OS-update-view: func [
 	;]
 	;if flags and FACET_FLAG_FLAGS <> 0 [
 	;	SetWindowLong
-	;		as handle! widget
+	;		widget
 	;		wc-offset + 16
 	;		get-flags as red-block! values + FACE_OBJ_FLAGS
 	;]
@@ -1246,10 +1262,10 @@ OS-update-view: func [
 	]
 	if flags and FACET_FLAG_COLOR <> 0 [
 		if type = base [
-	;		update-base as handle! widget null null values
+	;		update-base widget null null values
 			gtk_widget_queue_draw widget
 	;	][
-	;		InvalidateRect as handle! widget null 1
+	;		InvalidateRect widget null 1
 		]
 	]
 	;if flags and FACET_FLAG_PANE <> 0 [
@@ -1261,17 +1277,16 @@ OS-update-view: func [
 	;]
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
-	;	InvalidateRect as handle! widget null 1
 	]
 	;if flags and FACET_FLAG_PARA <> 0 [
 	;	update-para face 0
-	;	InvalidateRect as handle! widget null 1
+	;	InvalidateRect widget null 1
 	;]
 	;if flags and FACET_FLAG_MENU <> 0 [
 	;	menu: as red-block! values + FACE_OBJ_MENU
 	;	if menu-bar? menu window [
-	;		DestroyMenu GetMenu as handle! widget
-	;		SetMenu as handle! widget build-menu menu CreateMenu
+	;		DestroyMenu GetMenu widget
+	;		SetMenu widget build-menu menu CreateMenu
 	;	]
 	;]
 	;if flags and FACET_FLAG_IMAGE <> 0 [
