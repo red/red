@@ -579,7 +579,10 @@ system/view/platform: context [
 		pair: as red-pair! stack/arguments
 		pair/header: TYPE_PAIR
 		
-		gui/get-text-size text hFont pair
+		#switch OS [
+			Linux [gui/get-text-size text font pair]
+			#default [gui/get-text-size text hFont pair]
+		]
 	]
 	
 	on-change-facet: routine [
