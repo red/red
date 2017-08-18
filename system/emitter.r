@@ -222,7 +222,10 @@ emitter: make-profilable context [
 		]
 	]
 
-	store-global: func [value type [word!] spec [block! word! none!] /local size ptr by-val? pad-size][
+	store-global: func [
+		value type [word!] spec [block! word! none!]
+		/local size ptr by-val? pad-size list t f64?
+	][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -239,11 +242,12 @@ emitter: make-profilable context [
 		switch/default type [
 			integer! [
 				case [
-					decimal? value [value: to integer! value]
+					find [char! decimal!] type?/word value [value: to integer! value]
+					find [true false] value [value: to integer! get value]
 					not integer? value [value: 0]
 				]
 				pad-data-buf target/default-align
-				ptr: tail data-buf			
+				ptr: tail data-buf
 				value: debase/base to-hex value 16
 				either target/little-endian? [
 					value: tail value
@@ -267,7 +271,7 @@ emitter: make-profilable context [
 				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
 			]
 			float32! [	
-				pad-data-buf target/default-align			
+				pad-data-buf target/default-align
 				ptr: tail data-buf
 				value: compiler/unbox value
 				unless decimal? value [value: 0.0]
@@ -319,9 +323,38 @@ emitter: make-profilable context [
 			array! [
 				type: first compiler/get-type value/1
 				store-global length? value 'integer! none	;-- store array size first
-				if any [type = 'float! type = 'float64!] [pad-data-buf 8]
-				ptr: tail data-buf							;-- ensure array pointer skips size info
-				foreach item value [store-global item type none]
+				if find [float! float64!] type [pad-data-buf 8]
+				ptr: tail data-buf							;-- ensures array pointer skips size info
+				f64?: no
+				foreach item value [						;-- mixed types, use 32/64-bit for each slot
+					unless word? item [
+						t: first compiler/get-type item 
+						if all [not f64? find [float! float64!] t][f64?: yes]
+						if type <> t [type: 'integer!]
+					]
+				]
+				either find value string! [
+					list: collect [
+						foreach item value [				 ;-- store array
+							either decimal? item [
+								store-global item 'float! none
+							][
+								either string? item [
+									keep item
+									keep store-global 0 'integer! none
+								][
+									store-global item 'integer! none
+								]
+								if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
+							]
+						]
+					]
+					foreach [str ref] list [				 ;-- store strings
+						store-value/ref none str [c-string!] reduce [ref + 1]
+					]
+				][
+					foreach item value [store-global item type none]
+				]
 			]
 			binary! [
 				pad-data-buf 8								;-- forces 64-bit alignment

@@ -745,7 +745,11 @@ system-dialect: make-profilable context [
 						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
 						pointer! [reduce [value/1 value/2]]
 					][
-						next next reduce ['array! length? value	'pointer! get-type value/1]	;-- hide array size
+						all [
+							find [float! float64! c-string!] first type: get-type value/1
+							type: [integer!]
+						]
+						next next reduce ['array! length? value 'pointer! type]	;-- hide array size
 					]
 				]
 				none!	 [none-type]					;-- no type case (func with no return value)
@@ -1057,7 +1061,7 @@ system-dialect: make-profilable context [
 		
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
-			unless 'array! = first head type [type: copy type]
+			if 'array! <> first head type [type: copy type]
 			append globals reduce [name type]
 			type
 		]
@@ -2090,7 +2094,7 @@ system-dialect: make-profilable context [
 					find-aliased expr
 				]
 			][
-				pc: either expr = 'pointer! [skip pc 2][next pc]
+				pc: either all [expr = 'pointer! block? pc/2][skip pc 2][next pc]
 			][
 				expr: fetch-expression/final 'size?
 				type: resolve-expr-type expr
