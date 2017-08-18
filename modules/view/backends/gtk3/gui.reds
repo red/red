@@ -33,6 +33,9 @@ tabs: context [
 	cur: 	0
 ]
 
+pango-context:	as handle! 0
+gtk-settings:	as handle! 0
+
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -151,14 +154,47 @@ get-child-from-xy: func [
 
 get-text-size: func [
 	str		[red-string!]
-	hFont	[handle!]
+	font	[red-object!]
 	pair	[red-pair!]
 	return: [tagSIZE]
 	/local
-		saved [handle!]
-		size  [tagSIZE]
+		text	[c-string!]
+		len		[integer!]
+		width	[integer!]
+		height	[integer!]
+		pl		[handle!]
+		size	[tagSIZE]
+		fd		[handle!]
+		df		[c-string!]
 ][
+	if pango-context = as handle! 0 [pango-context: gdk_pango_context_get]
+	if gtk-settings = as handle! 0 [gtk-settings: gtk_settings_get_default]
 	size: declare tagSIZE
+
+	text: either TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		unicode/to-utf8 str :len
+	][
+		null
+	]
+
+	width: 0 height: 0
+	fd: either TYPE_OF(font) = TYPE_NONE [
+		df: "Sans"
+		;g_object_get [gtk-settings "gtk-font-name" df null]
+		;print ["default font: " df lf]
+		pango_font_description_from_string df
+	][
+		font-description font
+	]
+	pl: pango_layout_new pango-context
+	pango_layout_set_text pl text -1
+	pango_layout_set_font_description pl fd
+	pango_layout_get_pixel_size pl :width :height
+	
+	size/width: width
+	size/height: height
+	;print ["text: " text " w: " width " h: " height lf]
 	if pair <> null [
 		pair/x: size/width
 		pair/y: size/height
@@ -342,7 +378,7 @@ change-image: func [
 ]
 
 change-color: func [
-	hWnd	[integer!]
+	hWnd	[handle!]
 	color	[red-tuple!]
 	type	[integer!]
 	/local
@@ -1048,9 +1084,10 @@ OS-make-view: func [
 		sym = area [
 			widget: gtk_text_view_new
 			buffer: gtk_text_view_get_buffer widget
-			gtk_text_buffer_set_text buffer caption -1
+			unless null? caption [gtk_text_buffer_set_text buffer caption -1]
 			_widget: gtk_scrolled_window_new null null
 			gtk_container_add _widget widget
+			gobj_signal_connect(buffer "changed" :area-changed widget)
 		]
 		sym = group-box [
 			widget: gtk_frame_new caption
@@ -1098,7 +1135,7 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	;create-widget-style widget face
+	;OLD: create-widget-style widget face
 	make-font-provider widget
 	change-font widget face font sym
 

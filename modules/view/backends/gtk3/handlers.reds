@@ -253,3 +253,27 @@ field-move-focus: func [
 ][
 	print-line "move-focus"
 ]
+
+area-changed: func [
+	[cdecl]
+	buffer	[handle!]
+	widget	[handle!]
+	/local
+		text	[c-string!]
+		face	[red-object!]
+		qdata	[handle!]
+		start	[GtkTextIter!]
+		end		[GtkTextIter!]
+][
+	start: as GtkTextIter! allocate (size? GtkTextIter!) 
+	end: as GtkTextIter! allocate (size? GtkTextIter!) 
+	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
+	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
+	free as byte-ptr! start free as byte-ptr! end 
+	qdata: g_object_get_qdata widget red-face-id
+    if qdata <> as handle! 0 [
+        face: as red-object! qdata
+		set-text widget face/ctx text
+		make-event widget 0 EVT_CHANGE
+	]
+]

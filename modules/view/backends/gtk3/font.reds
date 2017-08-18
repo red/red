@@ -10,6 +10,64 @@ Red/System [
 	}
 ]
 
+#enum pango-style! [
+  PANGO_STYLE_NORMAL
+  PANGO_STYLE_OBLIQUE
+  PANGO_STYLE_ITALIC
+]
+
+#enum pango-variant! [
+  PANGO_VARIANT_NORMAL
+  PANGO_VARIANT_SMALL_CAPS
+]
+
+#enum pango-weight! [
+  PANGO_WEIGHT_THIN: 100
+  PANGO_WEIGHT_ULTRALIGHT: 200
+  PANGO_WEIGHT_LIGHT: 300
+  PANGO_WEIGHT_SEMILIGHT: 350
+  PANGO_WEIGHT_BOOK: 380
+  PANGO_WEIGHT_NORMAL: 400
+  PANGO_WEIGHT_MEDIUM: 500
+  PANGO_WEIGHT_SEMIBOLD: 600
+  PANGO_WEIGHT_BOLD: 700
+  PANGO_WEIGHT_ULTRABOLD: 800
+  PANGO_WEIGHT_HEAVY: 900
+  PANGO_WEIGHT_ULTRAHEAVY: 1000
+]
+
+#enum pango-stretch! [
+  PANGO_STRETCH_ULTRA_CONDENSED
+  PANGO_STRETCH_EXTRA_CONDENSED
+  PANGO_STRETCH_CONDENSED
+  PANGO_STRETCH_SEMI_CONDENSED
+  PANGO_STRETCH_NORMAL
+  PANGO_STRETCH_SEMI_EXPANDED
+  PANGO_STRETCH_EXPANDED
+  PANGO_STRETCH_EXTRA_EXPANDED
+  PANGO_STRETCH_ULTRA_EXPANDED
+]
+
+#enum pango-font-mask! [
+  PANGO_FONT_MASK_FAMILY: 1
+  PANGO_FONT_MASK_STYLE: 2
+  PANGO_FONT_MASK_VARIANT: 4
+  PANGO_FONT_MASK_WEIGHT: 8
+  PANGO_FONT_MASK_STRETCH: 16
+  PANGO_FONT_MASK_SIZE: 32
+  PANGO_FONT_MASK_GRAVITY: 64
+]
+
+#define PANGO_SCALE 1024
+#define PANGO_SCALE_XX_SMALL 0.5787037037037
+#define PANGO_SCALE_X_SMALL  0.6444444444444
+#define PANGO_SCALE_SMALL    0.8333333333333
+#define PANGO_SCALE_MEDIUM   1.0
+#define PANGO_SCALE_LARGE    1.2
+#define PANGO_SCALE_X_LARGE  1.4399999999999
+#define PANGO_SCALE_XX_LARGE 1.728
+
+
 ;; The idea: font-handle (which is required in view.red) is the css string which is (the only object) not related to the widget
 
 make-font: func [
@@ -191,6 +249,83 @@ update-font: func [
 		]
 		default [0]
 	]
+]
+
+;convert font to pango_font_description (used for get-text-size)
+font-description: func [
+	font [red-object!]
+	return: [handle!]
+	/local
+		values   [red-value!]
+		style    [red-word!]
+		blk      [red-block!]
+		len      [integer!]
+		sym      [integer!]
+		str      [red-string!]
+		name     [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
+		color    [red-tuple!]
+		bgcolor  [red-tuple!]
+		rgba     [c-string!]
+		fsty     [integer!]
+		fd	     [handle!]
+
+][
+	values: object/get-values font
+
+	;name:
+	str: 	as red-string!	values + FONT_OBJ_NAME
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	style:	as red-word!	values + FONT_OBJ_STYLE
+	;angle:
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+	;anti-alias?:
+
+
+
+	fd: pango_font_description_new
+
+	if TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+		pango_font_description_set_family fd name
+	]
+
+	if TYPE_OF(size) = TYPE_INTEGER [
+		pango_font_description_set_size fd size/value * PANGO_SCALE
+	]
+
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD	[1]
+		default		[0]
+	]
+
+	fsty: PANGO_STYLE_NORMAL
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [ 
+				sym = _bold      [pango_font_description_set_weight fd PANGO_WEIGHT_BOLD]
+				sym = _italic    [fsty: PANGO_STYLE_ITALIC]
+				sym = _underline []
+				sym = _strike    []
+				true             []
+			]
+			style: style + 1
+		]
+	]
+
+	pango_font_description_set_style fd fsty
+	pango_font_description_set_stretch fd PANGO_STRETCH_NORMAL
+	pango_font_description_set_variant fd PANGO_VARIANT_NORMAL
+	
+	fd
 ]
 
 OS-request-font: func [

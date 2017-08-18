@@ -33,6 +33,7 @@ style-init: func [
 	gtk_css_provider_load_from_data provider css-style -1 null
 
 	gtk_style_context_add_provider_for_screen screen provider GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+
 ]
 
 add-to-string: func [

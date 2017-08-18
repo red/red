@@ -49,6 +49,24 @@ GdkEventKey!: alias struct! [
   ;guint8 group;
   ;guint is_modifier : 1;
 ]
+
+GtkTextIter!: alias struct! [ 
+  dummy1  [handle!]
+  dummy2  [handle!]
+  dummy3 [integer!]
+  dummy4 [integer!]
+  dummy5 [integer!]
+  dummy6 [integer!]
+  dummy7 [integer!]
+  dummy8 [integer!]
+  dummy9  [handle!]
+  dummy10  [handle!]
+  dummy11 [integer!]
+  dummy12 [integer!]
+  dummy13 [integer!]
+  dummy14  [handle!]
+]
+
 #enum GtkFileChooserAction! [
   GTK_FILE_CHOOSER_ACTION_OPEN
   GTK_FILE_CHOOSER_ACTION_SAVE
@@ -151,6 +169,18 @@ GdkEventKey!: alias struct! [
 		]
 		g_free: "g_free" [
 			pointer		[handle!]
+		]
+		g_string_new: "g_string_new" [
+			return:		[handle!]
+		]
+		g_string_append: "g_string_append" [
+			str		[handle!]
+			text	[c-string!]
+		]
+		g_string_free: "g_string_free" [
+			str		[handle!]
+			free	[logic!]
+			return:	[c-string!]
 		]
 	;; ]
 	;; LIBGIO-file cdecl [
@@ -287,6 +317,11 @@ GdkEventKey!: alias struct! [
 		]
 		gtk_widget_destroy: "gtk_widget_destroy" [
 			widget 	[handle!]
+		]
+		gtk_widget_create_pango_layout: "gtk_widget_create_pango_layout" [
+			widget 	[handle!]
+			text	[c-string!]
+			return:	[handle!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
@@ -446,6 +481,18 @@ GdkEventKey!: alias struct! [
 			text		[c-string!]
 			len			[integer!]
 		]
+		gtk_text_buffer_get_text: "gtk_text_buffer_get_text" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+			exclude		[logic!]
+			return:		[c-string!]
+		]
+		gtk_text_buffer_get_bounds: "gtk_text_buffer_get_bounds" [
+			buffer		[handle!]
+			start		[handle!]
+			end			[handle!]
+		]
 		gtk_text_buffer_create_tag: "gtk_text_buffer_create_tag" [
 			[variadic]
 			return: 	[handle!]
@@ -526,10 +573,77 @@ GdkEventKey!: alias struct! [
 			context		[handle!]
 			class		[c-string!]
 		]
+		gtk_style_context_to_string: "gtk_style_context_to_string" [
+			context		[handle!]
+			type		[integer!]
+			return:		[c-string!]
+		]
+		gtk_style_context_get: "gtk_style_context_get" [
+			[variadic]
+		]
 		gtk_widget_get_style_context: "gtk_widget_get_style_context" [
 			widget		[handle!]
 			return:		[handle!]
 		]
+		pango_layout_new: "pango_layout_new" [
+			context		[handle!]
+			return:		[handle!]
+		]
+   		pango_layout_set_text: "pango_layout_set_text" [
+			layout		[handle!]
+			text		[c-string!]
+			len			[integer!]
+		]
+   		pango_layout_set_font_description: "pango_layout_set_font_description" [
+			layout		[handle!]
+			fontdesc	[handle!]
+		]
+   		pango_layout_get_pixel_size: "pango_layout_get_pixel_size" [
+			layout		[handle!]
+			width		[int-ptr!]
+			height		[int-ptr!]
+		]
+		pango_font_description_new: "pango_font_description_new" [
+			return: 	[handle!]
+		]
+		pango_font_description_free: "pango_font_description_free" [
+			fontdesc 	[handle!]
+		]
+		pango_font_description_from_string: "pango_font_description_from_string" [
+			str			[c-string!]
+			return:		[handle!]
+		]
+		pango_font_description_set_family: "pango_font_description_set_family" [
+			fontdesc 	[handle!]
+			name		[c-string!]
+		]
+		pango_font_description_set_size: "pango_font_description_set_size" [
+			fontdesc 	[handle!]
+			size		[integer!]
+		]
+		pango_font_description_set_weight: "pango_font_description_set_weight" [
+			fontdesc 	[handle!]
+			weight		[integer!]
+		]
+		pango_font_description_set_style: "pango_font_description_set_style" [
+			fontdesc 	[handle!]
+			style		[integer!]
+		]
+		pango_font_description_set_stretch: "pango_font_description_set_stretch" [
+			fontdesc 	[handle!]
+			stretch		[integer!]
+		]
+		pango_font_description_set_variant: "pango_font_description_set_variant" [
+			fontdesc 	[handle!]
+			variant		[integer!]
+		]
+		gdk_pango_context_get: "gdk_pango_context_get" [
+			return:		[handle!]
+		]
+		gtk_settings_get_default: "gtk_settings_get_default" [
+			return: 	[handle!]
+		]
+
 	;; LIBCAIRO-file cdecl [
 		cairo_line_to: "cairo_line_to" [
 			cr			[handle!]
