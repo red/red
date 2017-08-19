@@ -1014,6 +1014,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		preprocess-array: func [list [block!]][
+			parse list [some [p: word! (check-enum-symbol p) | skip]]
+			to paren! list
+		]
+		
 		order-ctx-candidates: func [a b][				;-- order by increasing path size,
 			to logic! not all [							;-- and word! before path!.
 				path? a
@@ -3397,7 +3402,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
-				block!		[also to paren! pc/1 pc: next pc]
+				block!		[also preprocess-array pc/1 pc: next pc]
 				issue!		[comp-directive]
 			][
 				throw-error "datatype not allowed"
