@@ -50,6 +50,12 @@ GdkEventKey!: alias struct! [
   ;guint is_modifier : 1;
 ]
 
+#enum GdkModifierType! [
+  GDK_SHIFT_MASK: 1
+  GDK_LOCK_MASK: 2
+  GDK_CONTROL_MASK: 4
+]
+
 GtkTextIter!: alias struct! [ 
   dummy1  [handle!]
   dummy2  [handle!]
@@ -335,6 +341,10 @@ GtkTextIter!: alias struct! [
 			label		[c-string!]
 			return: 	[handle!]
 		]
+		gtk_frame_set_label: "gtk_frame_set_label" [
+			frame		[handle!]
+			label		[c-string!]
+		]
 		gtk_frame_set_label_align: "gtk_frame_set_label_align" [
 			frame		[handle!]
 			xalign		[float!]
@@ -385,6 +395,10 @@ GtkTextIter!: alias struct! [
 		gtk_button_new_with_label: "gtk_button_new_with_label" [
 			label		[c-string!]
 			return:		[handle!]
+		]
+		gtk_button_set_label: "gtk_button_set_label" [
+			button		[handle!]
+			label		[c-string!]
 		]
 		gtk_check_button_new_with_label: "gtk_check_button_new_with_label" [
 			label		[c-string!]

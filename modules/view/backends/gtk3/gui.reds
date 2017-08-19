@@ -18,6 +18,7 @@ Red/System [
 #include %para.reds
 #include %draw.reds
 
+;#include %gdkkeysyms.reds
 #include %handlers.reds
 #include %comdlgs.reds
 
@@ -554,9 +555,10 @@ change-text: func [
 	face	[red-object!]
 	type	[integer!]
 	/local
-		len  [integer!]
-		cstr [c-string!]
-		str  [red-string!]
+		len    [integer!]
+		cstr   [c-string!]
+		str    [red-string!]
+		buffer [handle!]
 ][
 	; if type = base [
 	; 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
@@ -569,7 +571,6 @@ change-text: func [
 		TYPE_NONE	[""]
 		default		[null]									;@@ Auto-convert?
 	]
-
 	if null? cstr [exit]
 	
 	either type = area [
@@ -583,10 +584,19 @@ change-text: func [
 			case [
 				type = text [
 					gtk_label_set_text hWnd cstr
-					;objc_msgSend [hWnd sel_getUid "setStringValue:" txt]
 				]
-				any [type = button type = radio type = check type = window type = group-box][
-					;objc_msgSend [hWnd sel_getUid "setTitle:" txt]
+				type = field [
+					buffer: gtk_entry_get_buffer hWnd
+					gtk_entry_buffer_set_text buffer cstr -1
+				]
+				any [type = button type = radio type = check] [
+					gtk_button_set_label hWnd cstr
+				]
+				type = window [
+					gtk_window_set_title hWnd cstr
+				] 
+				type = group-box [
+					gtk_frame_set_label hWnd cstr
 				]
 				true [0]
 			]
@@ -629,10 +639,10 @@ change-data: func [
 			gtk_range_set_value hWnd f/value * (as-float len)
 		]
 		type = check [
-			set-logic-state hWnd as red-logic! data yes
+			;set-logic-state hWnd as red-logic! data yes
 		]
 		type = radio [
-			set-logic-state hWnd as red-logic! data no
+			;set-logic-state hWnd as red-logic! data no
 		]
 	; 	type = tab-panel [
 	; 		set-tabs hWnd get-face-values hWnd
