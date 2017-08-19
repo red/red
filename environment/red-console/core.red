@@ -34,6 +34,11 @@ terminal!: object [
 	screen-cnt: 0								;-- number of lines on screen
 	delta-cnt:	0
 
+	history:	system/console/history
+	hist-idx:	0
+	hist-line:	none							;-- for saving the current editing line
+	hist-pos:	0								;-- current editing line's caret position
+
 	box:		make text-box! []
 	caret:		none							;-- caret face
 	scroller:	none							;-- scroller face
@@ -413,6 +418,30 @@ terminal!: object [
 		]
 	]
 
+	fetch-history: func [direction [word!] /local max str p][
+		if zero? hist-idx [
+			hist-line: at copy head line index? line
+			hist-pos: pos
+		]
+
+		max: length? history
+		case [
+			direction = 'prev [hist-idx: hist-idx + 1]
+			direction = 'next [hist-idx: hist-idx - 1]
+		]
+		if hist-idx < 0 [hist-idx: 0 exit]
+		if hist-idx > max [hist-idx: max]
+		either zero? hist-idx [str: hist-line p: hist-pos][
+			str: pick history hist-idx
+			p: length? str
+		]
+
+		clear line
+		append line str
+		pos: p
+		redraw target
+	]
+
 	press-key: func [event [event!] /local char][
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
@@ -425,14 +454,15 @@ terminal!: object [
 		switch/default char [
 			#"^M" [									;-- ENTER key
 				caret/visible?: no
+				insert history line
 				system/view/platform/exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
 			#"^-" [unless empty? line [do-completion line char]]
 			left  [move-caret -1]
 			right [move-caret 1]
-			up	  []
-			down  []
+			up	  [fetch-history 'prev]
+			down  [fetch-history 'next]
 		][
 			if all [char? char char > 31][
 				insert skip line pos char
