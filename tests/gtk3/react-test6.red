@@ -12,7 +12,7 @@ view [
 		return
 
 	txt "Size in pixels" text "0x0"
-		react [[f/text f/font] face/text: form size-text f]
+		react [[f/text f/font] face/text: form size-text f print ["size: " form size-text f f/text lf]]
 		return
 	
 	txt "Font name" drop-list 120
@@ -20,7 +20,7 @@ view [
 		react [f/font/name: pick face/data any [face/selected 3] print ["changed:" mold face/text]]
 		return
 		
-	txt "Font size" s: field "15" react [f/font/size: s/data]
+	txt "Font size" s: field "15" react [f/font/size: s/data print ["text " face/text lf]]
 	button "+" bold 40 [s/data: s/data + 1]
 	button "-" bold 40 [s/data: max 1 s/data - 1]
 	return
