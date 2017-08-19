@@ -895,7 +895,7 @@ system-dialect: make-profilable context [
 				] 'as
 			]
 			if any [
-				all [type/1 = 'function! not find [function! integer!] ctype/1]
+				all [type/1 = 'function! not find [function! pointer! integer!] ctype/1]
 				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
 				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
