@@ -639,10 +639,10 @@ change-data: func [
 			gtk_range_set_value hWnd f/value * (as-float len)
 		]
 		type = check [
-			;set-logic-state hWnd as red-logic! data yes
+			set-logic-state hWnd as red-logic! data yes
 		]
 		type = radio [
-			;set-logic-state hWnd as red-logic! data no
+			set-logic-state hWnd as red-logic! data no
 		]
 	; 	type = tab-panel [
 	; 		set-tabs hWnd get-face-values hWnd
@@ -1047,7 +1047,8 @@ OS-make-view: func [
 		sym = check [
 			widget: gtk_check_button_new_with_label caption
 			set-logic-state widget as red-logic! data no
-			gobj_signal_connect(widget "clicked" :button-clicked null)
+			;@@ No click event for check
+			;gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = radio [
@@ -1057,7 +1058,8 @@ OS-make-view: func [
 				gtk_radio_button_new_with_label_from_widget group-radio caption
 			]
 			set-logic-state widget as red-logic! data no
-			gobj_signal_connect(widget "clicked" :button-clicked null)
+			;@@ Line below removed because it generates an error and there is no click event for radio 
+			;gobj_signal_connect(widget "clicked" :button-clicked null)
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = button [
