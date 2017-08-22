@@ -651,7 +651,7 @@ system/view/platform: context [
 	exit-event-loop: routine [][
 		#switch OS [
 			Windows  [gui/PostQuitMessage 0]
-			MacOSX   [gui/evt-loop-cnt: gui/evt-loop-cnt - 1]
+			macOS    [gui/post-quit-msg]
 			#default [0]
 		]
 	]

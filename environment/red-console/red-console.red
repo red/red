@@ -270,12 +270,13 @@ red-console-ctx: context [
 			]
 		]
 		win/actors: object [
-			on-menu: func [face [object!] event [event!]][
+			on-menu: func [face [object!] event [event!] /local ft][
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
 					choose-font		[
-						if font: request-font/font/mono font [
+						if ft: request-font/font/mono font [
+							font: ft
 							console/font: font
 							terminal/update-cfg font cfg
 						]
