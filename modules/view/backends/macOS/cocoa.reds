@@ -169,6 +169,8 @@ Red/System [
 #define RedCursorKey			4000FFFEh
 #define RedEnableKey			4000FFFFh
 
+#define QuitMsgData				12321
+
 #define OBJC_ALLOC(class) [objc_msgSend [objc_getClass class sel_alloc]]
 
 objc_super!: alias struct! [
