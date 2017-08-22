@@ -283,17 +283,41 @@ init: func [][
 	style-init
 ]
 
-adjust-sizes: func [
+diff-size?:  func [
 	hWnd 	[handle!]
 	return: [integer!]
 	/local
-		widget		[handle!]
-		child		[handle!]
-		container	[handle!]
 		rect 		[RECT_STRUCT]
 		sx 			[integer!]
 		sy 			[integer!]
 		dx			[integer!]
+		widget		[handle!]
+][
+	widget: g_object_get_qdata hWnd _widget-id
+	if null? widget [widget: hWnd]
+
+	rect: 	as RECT_STRUCT allocate (size? RECT_STRUCT)
+	gtk_widget_get_allocation widget as handle! rect
+	sx: 0 sy: 0
+	gtk_widget_get_size_request widget :sx :sy
+	print ["widget->rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom "," sx "x" sy lf]
+	
+	; return: difference between allocated and requested widths
+	dx: rect/right - sx
+	free as byte-ptr! rect
+
+	dx
+]
+
+adjust-sizes: func [
+	hWnd 	[handle!]
+	/local
+		widget		[handle!]
+		child		[handle!]
+		container	[handle!]
+		dx			[integer!]
+		ox			[integer!]
+		oy			[integer!]
 		offset		[red-pair!]
 		pane 		[red-block!]
 		type		[red-word!]
@@ -307,37 +331,33 @@ adjust-sizes: func [
 	pane: 	as red-block! values + FACE_OBJ_PANE
 
 	sym: 	symbol/resolve type/symbol
-
-	rect: 	as RECT_STRUCT allocate (size? RECT_STRUCT)
-
-	widget: g_object_get_qdata hWnd _widget-id
-	if null? widget [widget: hWnd]
-	gtk_widget_get_allocation widget as handle! rect
-	sx: 0 sy: 0
-	gtk_widget_get_size_request widget :sx :sy
-	;print ["widget->rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom "," sx "x" sy lf]
+	
 	if TYPE_OF(pane) = TYPE_BLOCK [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
+		print-line type/symbol
 		container: g_object_get_qdata get-face-handle face gtk-fixed-id
-		dx: 0
+		dx: 0 ox: 0 oy: 0
+		print-line "Pane"
 		while [face < tail][
 			child: get-face-handle face
 			unless null? container [
-				offset:   as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
+				offset: as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
+				if ox > offset/x [dx: 0]
 				widget: g_object_get_qdata child _widget-id
 				if null? widget [widget: child]
-				gtk_fixed_move container widget offset/x + dx offset/y 
+				print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]
+				gtk_fixed_move container widget offset/x + dx  offset/y
+				ox: offset/x oy: offset/y 
 			]
-			dx: dx + adjust-sizes child
-
+			
+			dx: dx + diff-size? child
+			print ["next dx: " dx lf]
+			adjust-sizes child
 			face: face + 1
 		]
+		print-line "Pane end"
 	]
-	free as byte-ptr! rect
-
-	; return: difference between allocated and requested widths
-	either sx = -1 [0][rect/right - sx]
 ]
 
 change-rate: func [
@@ -1057,6 +1077,7 @@ OS-show-window: func [
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
 	adjust-sizes as handle! hWnd
+	gtk_widget_queue_draw as handle! hWnd
 ]
 
 OS-make-view: func [
