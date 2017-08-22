@@ -707,36 +707,65 @@ will-finish: func [
 	0
 ]
 
-;dealloc-app: func [
-;	[cdecl]
-;	self	[integer!]
-;	cmd		[integer!]
-;][
-;	msg-send-super-logic self cmd
-;]
+win-send-event: func [
+	self	[integer!]
+	type	[integer!]
+	event	[integer!]
+	return: [logic!]
+	/local
+		responder	[integer!]
+		find?		[logic!]
+		send?		[logic!]
+][
+	send?: yes
+	case [
+		type = NSKeyUp [
+			responder: objc_msgSend [self sel_getUid "firstResponder"]
+			object_getInstanceVariable responder IVAR_RED_DATA :type
+			if type = base [
+				on-key-up responder 0 event
+				send?: no
+			]
+		]
+		type = NSKeyDown [
+			find?: yes
+			responder: objc_msgSend [self sel_getUid "firstResponder"]
+			object_getInstanceVariable responder IVAR_RED_DATA :type
+			if type <> base [
+				unless red-face? responder [
+					responder: objc_getAssociatedObject self RedFieldEditorKey
+					unless red-face? responder [find?: no]
+				]
+				if find? [on-key-down responder event]
+			]
+		]
+		true [0]
+	]
+	send?
+]
 
 app-send-event: func [
 	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
+	self		[integer!]
+	cmd			[integer!]
+	event		[integer!]
 	/local
-		p-int		[int-ptr!]
-		type		[integer!]
-		window		[integer!]
-		n-win		[integer!]
-		flags		[integer!]
-		faces		[red-block!]
-		face		[red-object!]
-		start		[red-object!]
-		check?		[logic!]
-		active?		[logic!]
-		down?		[logic!]
-		y			[integer!]
-		x			[integer!]
-		point		[CGPoint!]
-		view		[integer!]
-		state		[integer!]
+		p-int	[int-ptr!]
+		type	[integer!]
+		window	[integer!]
+		n-win	[integer!]
+		flags	[integer!]
+		faces	[red-block!]
+		face	[red-object!]
+		start	[red-object!]
+		check?	[logic!]
+		active?	[logic!]
+		down?	[logic!]
+		y		[integer!]
+		x		[integer!]
+		point	[CGPoint!]
+		view	[integer!]
+		state	[integer!]
 ][
 	window: objc_msgSend [event sel_getUid "window"]
 	p-int: as int-ptr! event
@@ -806,7 +835,12 @@ app-send-event: func [
 			]
 		]
 	]
-	if state >= EVT_DISPATCH [msg-send-super self cmd event]
+	if all [
+		state >= EVT_DISPATCH
+		any [zero? window win-send-event window type event]
+	][
+		msg-send-super self cmd event
+	]
 	if close-window? [
 		close-pending-windows
 		if zero? win-cnt [
@@ -1430,37 +1464,4 @@ perform-key-equivalent: func [
 		]
 	]
 	as logic! msg-send-super self cmd event
-]
-
-win-send-event: func [
-	[cdecl]
-	self	[integer!]
-	cmd		[integer!]
-	event	[integer!]
-	/local
-		p-int		[int-ptr!]
-		type		[integer!]
-		view		[integer!]
-		responder	[integer!]
-		find?		[logic!]
-][
-	p-int: as int-ptr! event
-	type: p-int/2
-	;view: objc_msgSend [self sel_getUid "contentView"]
-	;p-int: as int-ptr! self
-	;view: p-int/7
-
-	if type = NSKeyDown	[
-		find?: yes
-		responder: objc_msgSend [self sel_getUid "firstResponder"]
-		object_getInstanceVariable responder IVAR_RED_DATA :type
-		if type <> base [
-			unless red-face? responder [
-				responder: objc_getAssociatedObject self RedFieldEditorKey
-				unless red-face? responder [find?: no]
-			]
-			if find? [on-key-down responder event]
-		]
-	]
-	msg-send-super self cmd event
 ]
