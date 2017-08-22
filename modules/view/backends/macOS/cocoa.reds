@@ -217,7 +217,7 @@ RECT_STRUCT: alias struct! [
 
 tagPOINT: alias struct! [
 	x		[integer!]
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagSIZE: alias struct! [
