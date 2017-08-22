@@ -299,22 +299,19 @@ init: func [
 ][
 	vector/make-at as red-value! win-array 8 TYPE_INTEGER 4
 	init-selectors
+	register-classes
+	nsview-id: objc_getClass "NSView"
 
-	NSApp: objc_msgSend [objc_getClass "NSApplication" sel_getUid "sharedApplication"]
-
+	NSApp: objc_msgSend [objc_getClass "RedApplication" sel_getUid "sharedApplication"]
 	pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 	objc_msgSend [pool sel_getUid "init"]
-
-	get-os-version
-	register-classes
-
-	nsview-id: objc_getClass "NSView"
 
 	delegate: objc_msgSend [objc_getClass "RedAppDelegate" sel_getUid "alloc"]
 	delegate: objc_msgSend [delegate sel_getUid "init"]
 	NSAppDelegate: delegate
 	objc_msgSend [NSApp sel_getUid "setDelegate:" delegate]
 
+	get-os-version
 	create-main-menu
 
 	;dlopen "./FScript.framework/FScript" 1
@@ -347,7 +344,6 @@ init: func [
 	set-defaults
 
 	objc_msgSend [NSApp sel_getUid "setActivationPolicy:" 0]
-	objc_msgSend [NSApp sel_getUid "finishLaunching"]
 
 	get-metrics
 ]

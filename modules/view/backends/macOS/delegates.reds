@@ -707,6 +707,115 @@ will-finish: func [
 	0
 ]
 
+;dealloc-app: func [
+;	[cdecl]
+;	self	[integer!]
+;	cmd		[integer!]
+;][
+;	msg-send-super-logic self cmd
+;]
+
+app-send-event: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		p-int		[int-ptr!]
+		type		[integer!]
+		window		[integer!]
+		n-win		[integer!]
+		flags		[integer!]
+		faces		[red-block!]
+		face		[red-object!]
+		start		[red-object!]
+		check?		[logic!]
+		active?		[logic!]
+		down?		[logic!]
+		y			[integer!]
+		x			[integer!]
+		point		[CGPoint!]
+		view		[integer!]
+		state		[integer!]
+][
+	window: objc_msgSend [event sel_getUid "window"]
+	p-int: as int-ptr! event
+
+	type: p-int/2
+	switch type [
+		NSMouseMoved
+		NSLeftMouseDragged
+		NSRightMouseDragged
+		NSOtherMouseDragged [
+			check?: yes
+			window: process-mouse-tracking window event
+		]
+		NSApplicationDefined [
+			x: objc_msgSend [event sel_getUid "data1"]
+			if x = QuitMsgData [
+				objc_msgSend [NSApp sel_getUid "stop:" NSApp]
+				exit
+			]
+		]
+		default [0]
+	]
+
+	state: EVT_DISPATCH
+	if window <> 0 [
+		down?: no active?: no check?: no
+
+		if any [
+			type = NSLeftMouseDown type = NSRightMouseDown type = NSOtherMouseDown
+		][
+			active?: yes down?: yes check?: yes
+		]
+		if any [
+			type = NSLeftMouseUp type = NSRightMouseUp type = NSOtherMouseUp
+		][
+			active?: yes check?: yes
+		]
+		switch type [
+			NSMouseEntered
+			NSMouseExited
+			NSKeyDown
+			NSKeyUp
+			NSScrollWheel [check?: yes]
+			default [0]
+		]
+
+		if all [check? red-face? window][
+			faces: as red-block! #get system/view/screens
+			face: as red-object! block/rs-head faces		;-- screen 1 TBD multi-screen support
+			faces: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
+			if 1 >= block/rs-length? faces [state: EVT_DISPATCH]
+
+			start: as red-object! block/rs-head faces
+			face:  as red-object! block/rs-tail faces
+			while [
+				face: face - 1
+				face >= start
+			][
+				flags: get-flags as red-block! get-node-facet face/ctx FACE_OBJ_FLAGS
+				if all [
+					window <> get-face-handle face
+					flags and FACET_FLAGS_MODAL <> 0
+				][
+					if down? [NSBeep]
+					state: EVT_NO_DISPATCH
+				]
+			]
+		]
+	]
+	if state >= EVT_DISPATCH [msg-send-super self cmd event]
+	if close-window? [
+		close-pending-windows
+		if zero? win-cnt [
+			loop-started?: no
+			post-quit-msg
+		]
+	]
+]
+
 destroy-app: func [
 	[cdecl]
 	self	[integer!]
@@ -714,7 +823,7 @@ destroy-app: func [
 	app		[integer!]
 	return: [logic!]
 ][
-	yes
+	no
 ]
 
 should-terminate: func [
