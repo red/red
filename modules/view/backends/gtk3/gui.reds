@@ -10,6 +10,7 @@ Red/System [
 	}
 ]
 
+#include %../keycodes.reds
 #include %gtk.reds
 #include %events.reds
 
@@ -26,6 +27,8 @@ GTKApp:			as handle! 0
 GTKApp-Ctx: 	0
 exit-loop:		0
 red-face-id:	0
+_widget-id:		1
+gtk-fixed-id:	2
 gtk-style-id:	0
 
 group-radio:	as handle! 0
@@ -37,10 +40,27 @@ tabs: context [
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
 
+;last-widget:	as handle! 0
+
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
+
+get-face-object: func [
+	handle	[handle!]
+	return: [red-object!]
+	/local
+		face	[red-object!]
+		qdata	[handle!]
+][
+	face: as red-object! 0
+	qdata: g_object_get_qdata handle red-face-id
+    if qdata <> as handle! 0 [
+        face: as red-object! qdata
+	]
+	face
+]
 
 get-face-values: func [
 	handle	[handle!]
@@ -263,6 +283,62 @@ init: func [][
 	style-init
 ]
 
+adjust-sizes: func [
+	hWnd 	[handle!]
+	return: [integer!]
+	/local
+		widget		[handle!]
+		child		[handle!]
+		container	[handle!]
+		rect 		[RECT_STRUCT]
+		sx 			[integer!]
+		sy 			[integer!]
+		dx			[integer!]
+		offset		[red-pair!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+][
+	values: get-face-values hWnd
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+
+	sym: 	symbol/resolve type/symbol
+
+	rect: 	as RECT_STRUCT allocate (size? RECT_STRUCT)
+
+	widget: g_object_get_qdata hWnd _widget-id
+	if null? widget [widget: hWnd]
+	gtk_widget_get_allocation widget as handle! rect
+	sx: 0 sy: 0
+	gtk_widget_get_size_request widget :sx :sy
+	;print ["widget->rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom "," sx "x" sy lf]
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		container: g_object_get_qdata get-face-handle face gtk-fixed-id
+		dx: 0
+		while [face < tail][
+			child: get-face-handle face
+			unless null? container [
+				offset:   as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
+				widget: g_object_get_qdata child _widget-id
+				if null? widget [widget: child]
+				gtk_fixed_move container widget offset/x + dx offset/y 
+			]
+			dx: dx + adjust-sizes child
+
+			face: face + 1
+		]
+	]
+	free as byte-ptr! rect
+
+	; return: difference between allocated and requested widths
+	either sx = -1 [0][rect/right - sx]
+]
 
 change-rate: func [
 	hWnd [handle!]
@@ -318,6 +394,7 @@ change-size: func [
 		saved	[int-ptr!]
 		method	[integer!]
 ][
+	print-line "change-size"
 	; rc: make-rect size/x size/y 0 0
 	; if all [type = button size/y > 32][
 	; 	objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
@@ -495,6 +572,7 @@ change-offset: func [
 	;/local
 		;rc [NSRect!]
 ][
+	print "change offset"
 	; rc: make-rect pos/x pos/y 0 0
 	; either type = window [
 	; 	rc/y: as float32! screen-size-y - pos/y
@@ -978,6 +1056,7 @@ OS-show-window: func [
 ][
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
+	adjust-sizes as handle! hWnd
 ]
 
 OS-make-view: func [
@@ -1014,6 +1093,7 @@ OS-make-view: func [
 		fvalue	  [float!]
 		vertical? [logic!]
 		rfvalue	  [red-float!]
+		rect 	  [RECT_STRUCT]
 ][
 	stack/mark-func words/_body
 
@@ -1103,6 +1183,8 @@ OS-make-view: func [
 			;This depends on version >= 3.2
 			;gtk_widget_set_focus_on_click widget yes
 			gobj_signal_connect(widget "move-focus" :field-move-focus face/ctx)
+			;gobj_signal_connect(widget "size-allocate" :field-size-allocate face/ctx)
+			;last-widget: widget
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
@@ -1173,7 +1255,7 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		if _widget = as handle! 0 [_widget: widget]
+		either _widget = as handle! 0 [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
 		; TODO: case to replace with either if no more choice
 		case [
 			p-sym = tab-panel [
@@ -1194,9 +1276,11 @@ OS-make-view: func [
 			]
 			true [
 				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
+				;save gtk_fixed container for adjustment since size/x and size/y have to updated in a second pass
+				g_object_set_qdata widget gtk-fixed-id container
+
 				gtk_widget_set_size_request _widget size/x size/y
 				gtk_fixed_put container _widget offset/x offset/y
-				;print ["x: " offset/x "y: " offset/y "w: " size/x "h: " size/y lf]
 			]
 		]
 	]
@@ -1239,12 +1323,12 @@ OS-update-view: func [
 	int: int + 1
 	flags: int/value
 
-	;if flags and FACET_FLAG_OFFSET <> 0 [
-	;	change-offset widget as red-pair! values + FACE_OBJ_OFFSET type
-	;]
-	;if flags and FACET_FLAG_SIZE <> 0 [
-	;	change-size widget as red-pair! values + FACE_OBJ_SIZE type
-	;]
+	if flags and FACET_FLAG_OFFSET <> 0 [
+		change-offset widget as red-pair! values + FACE_OBJ_OFFSET type
+	]
+	if flags and FACET_FLAG_SIZE <> 0 [
+		change-size widget as red-pair! values + FACE_OBJ_SIZE type
+	]
 	if flags and FACET_FLAG_TEXT <> 0 [
 		change-text widget values face type
 		gtk_widget_queue_draw widget

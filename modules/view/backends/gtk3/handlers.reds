@@ -236,13 +236,44 @@ tab-panel-switch-page: func [
 ; Do not use key-press-event since character would not be printed!
 field-key-release-event: func [
 	[cdecl]
-	widget	[handle!]
+	widget		[handle!]
 	event-key	[GdkEventKey!]
-	ctx		[node!]
+	ctx			[node!]
+	/local
+		res		[integer!]
+		key		[integer!]
+		flags	[integer!]
 ][
-	print "key-release: "
-	print-line event-key/keyval
+	;print "key-release: "
+	;print [ "keyval: " event-key/keyval  " -> " gdk_keyval_name event-key/keyval  "(" event-key/keyval  " -> " gdk_keyval_to_lower event-key/keyval ") et state: " event-key/state lf]
+	;print [ "keycode: " as integer! event-key/keycode1 " " as integer! event-key/keycode2 lf]
 
+	if event-key/keyval > FFFFh [exit]
+	key: translate-key event-key/keyval
+	flags: 0 ;either char-key? as-byte key [0][80000000h]	;-- special key or not
+	flags: flags or check-extra-keys event-key/state
+
+	print ["key: " key " flags: " flags " key or flags: " key or flags lf]
+
+	res: make-event widget key or flags EVT_KEY_DOWN
+	if res <> EVT_NO_DISPATCH [
+	; 	either flags and 80000000h <> 0 [				;-- special key
+	; 		make-event widget key or flags EVT_KEY
+	; 	][
+	; 		if key = 8 [								;-- backspace
+	 			make-event widget key or flags EVT_KEY
+	; 			exit
+	; 		]
+	; 		key: objc_msgSend [event sel_getUid "characters"]
+	; 		if all [
+	; 			key <> 0
+	; 			0 < objc_msgSend [key sel_getUid "length"]
+	; 		][
+	; 			key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
+	; 			make-event widget key or flags EVT_KEY
+	; 		]
+	; 	]
+	]
 ]
 
 field-move-focus: func [
@@ -252,6 +283,19 @@ field-move-focus: func [
 	ctx		[node!] 
 ][
 	print-line "move-focus"
+]
+
+field-size-allocate: func [
+	[cdecl]
+	widget	[handle!]
+	event	[handle!]
+	ctx		[node!] 
+	/local
+		rect [RECT_STRUCT]
+][
+	print-line "size-allocate"
+	rect: as RECT_STRUCT event
+	print [" rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom lf]
 ]
 
 area-changed: func [

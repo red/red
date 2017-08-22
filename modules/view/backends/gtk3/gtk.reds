@@ -44,16 +44,18 @@ GdkEventKey!: alias struct! [
   keyval        [integer!]
   length        [integer!]
   string        [c-string!]
-  keycode       [integer!]      ;-- keycode & group & is_modifier
-  ;guint16 hardware_keycode;
-  ;guint8 group;
-  ;guint is_modifier : 1;
+  keycode1      [byte!]
+  keycode2		[byte!]
+  group			[byte!]
+  is_modifier 	[integer!]
 ]
 
 #enum GdkModifierType! [
   GDK_SHIFT_MASK: 1
   GDK_LOCK_MASK: 2
   GDK_CONTROL_MASK: 4
+  GDK_MOD1_MASK: 8
+  GDK_MOD5_MASK: 128
 ]
 
 GtkTextIter!: alias struct! [ 
@@ -137,6 +139,17 @@ GtkTextIter!: alias struct! [
 		]
 		gdk_screen_get_default: "gdk_screen_get_default" [
 			return:		[handle!]
+		]
+		gdk_keymap_get_default: "gdk_keymap_get_default" [
+			return: 	[handle!]
+		]
+		gdk_keyval_name: "gdk_keyval_name" [
+			code		[integer!]
+			return:		[c-string!]
+		]
+		gdk_keyval_to_upper: "gdk_keyval_to_upper" [
+			code		[integer!]
+			return:		[integer!]
 		]
 	;; ]
 	;; LIBGLIB-file cdecl [
@@ -299,6 +312,9 @@ GtkTextIter!: alias struct! [
 		gtk_widget_queue_draw: "gtk_widget_queue_draw" [
 			widget		[handle!]
 		]
+		gtk_widget_queue_resize_no_redraw: "gtk_widget_queue_resize_no_redraw" [
+			widget		[handle!]
+		]
 		gtk_widget_show_all: "gtk_widget_show_all" [
 			widget		[handle!]
 		]
@@ -312,6 +328,24 @@ GtkTextIter!: alias struct! [
 			widget		[handle!]
 			width		[integer!]
 			height		[integer!]
+		]
+		gtk_widget_get_size_request: "gtk_widget_get_size_request" [
+			widget		[handle!]
+			width		[int-ptr!]
+			height		[int-ptr!]
+		]
+		gtk_widget_size_allocate: "gtk_widget_size_allocate" [
+			widget		[handle!]
+			alloc		[handle!]
+		]
+		gtk_widget_compute_expand: "gtk_widget_compute_expand" [
+			widget		[handle!]
+			direction	[integer!]
+			return: 	[logic!]
+		]
+		gtk_widget_get_allocation: "gtk_widget_get_allocation" [
+			widget		[handle!]
+			alloc		[handle!]
 		]
 		gtk_widget_set_can_focus: "gtk_widget_set_can_focus" [
 			widget		[handle!]
@@ -359,6 +393,23 @@ GtkTextIter!: alias struct! [
 		]
 		gtk_fixed_put: "gtk_fixed_put" [
 			fixed		[handle!]
+			widget		[handle!]
+			x			[integer!]
+			y			[integer!]
+		]
+		gtk_fixed_move: "gtk_fixed_move" [
+			fixed		[handle!]
+			widget		[handle!]
+			x			[integer!]
+			y			[integer!]
+		]
+		gtk_layout_new: "gtk_layout_new" [
+			hadj		[handle!]
+			vadj		[handle!]
+			return:		[handle!]
+		]
+		gtk_layout_put: "gtk_layout_put" [
+			layout		[handle!]
 			widget		[handle!]
 			x			[integer!]
 			y			[integer!]
