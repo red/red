@@ -53,13 +53,13 @@ unicode: context [
 				buf/2: as-byte cp and 3Fh or 80h
 				2
 			]
-			cp < 0000FFFFh [
+			cp <= 0000FFFFh [
 				buf/1: as-byte cp >> 12 or E0h
 				buf/2: as-byte cp >> 6 and 3Fh or 80h
 				buf/3: as-byte cp	   and 3Fh or 80h
 				3
 			]
-			cp < 0010FFFFh [
+			cp <= 0010FFFFh [
 				buf/1: as-byte cp >> 18 or F0h
 				buf/2: as-byte cp >> 12 and 3Fh or 80h
 				buf/3: as-byte cp >> 6  and 3Fh or 80h

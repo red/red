@@ -39,7 +39,11 @@ context [
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
-
+		
+		ef-arm-abi		83886080	;; ABI version: 05000000h
+		ef-arm-hard		1024		;; Hard floating point required (400h)
+		ef-arm-soft		512			;; Soft floating point required (200h)
+		
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
 		pt-interp		3			;; dynamic linker ("interpreter") path name
@@ -88,6 +92,7 @@ context [
 		dt-syment		11			;; size of one symbol table entry (in bytes)
 		dt-init			12			;; address of the initialization function
 		dt-fini			13			;; address of the termination function
+		dt-soname		14			;; library name
 		dt-rpath		15			;; library search path (deprecated)
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
@@ -263,7 +268,7 @@ context [
 		]
 
 		segment "rw"				[load	  	[r w]				page] [
-			section ".data"			[progbits 	[write alloc]		word]
+			section ".data"			[progbits 	[write alloc]		dword]
 			section ".data.rel.ro"	[progbits 	[write alloc]		word]
 			segment "dynamic"		[dynamic  	[r w]				word] [
 				section ".dynamic"	[dynamic  	[write alloc]		word]
@@ -285,16 +290,17 @@ context [
 			base-address dynamic-linker
 			libraries imports exports natives
 			structure segments sections commands layout
-			data-size data-reloc
+			data-size data-reloc dynamic-size
 			get-address get-offset get-size get-meta get-data set-data
-			relro-offset pos list
+			relro-offset pos list soname
 	] [
-		base-address: case [
-			job/type = 'dll [0]
-			true			[any [job/base-address defs/base-address]]
+		base-address: either any [job/type = 'dll job/PIC?][0][
+			any [job/base-address defs/base-address]
 		]
 		dynamic-linker: any [job/dynamic-linker ""]
-
+	
+		soname: append form last split-path job/build-basename ".so"
+		
 		;-- (hack) Move libRedRT in first position to avoid "system" symbol
 		;-- to be bound to libC instead! (TBD: find a cleaner way)
 		if pos: find list: job/sections/import/3 "libRedRT.so" [
@@ -345,7 +351,7 @@ context [
 			remove-elements structure [".data"]
 		]
 		
-		dynamic-size: calc-dynamic-size job/type job/symbols
+		dynamic-size: calc-dynamic-size job/type job/target job/symbols
 
 		segments: collect-structure-names structure 'segment
 		sections: collect-structure-names structure 'section
@@ -372,7 +378,7 @@ context [
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath)])
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2) (defs/rpath) (soname)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -405,6 +411,7 @@ context [
 				job/os
 				job/target
 				job/type
+				job/PIC?
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -453,6 +460,7 @@ context [
 		set-data ".dynamic" [
 			build-dynamic
 				job/type
+				job/target
 				job/symbols
 				get-address ".text"
 				get-address ".hash"
@@ -461,6 +469,7 @@ context [
 				get-address ".rel.text" get-size ".rel.text"
 				get-data ".dynstr"
 				libraries
+				soname
 		]
 
 		set-data ".stab" [
@@ -514,6 +523,7 @@ context [
 		target-os [word!]
 		target-arch [word!]
 		target-type [word!]
+		PIC?		[logic!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -530,7 +540,7 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/version:			defs/ev-current
-		eh/entry:			text-address
+		eh/entry:			either target-type = 'exe [text-address][0]
 		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
@@ -551,7 +561,7 @@ context [
 		eh/type: select reduce [
 			'exe defs/et-exec
 			'dll defs/et-dyn
-		] target-type
+		] either PIC? ['dll][target-type]
 
 		switch target-arch [
 			ia-32	[
@@ -559,7 +569,7 @@ context [
 			]
 			arm		[
 				eh/machine: defs/em-arm
-				eh/flags: to-integer #{05000002} ;; EABI v5
+				eh/flags: defs/ef-arm-abi or defs/ef-arm-soft
 			]
 		]
 
@@ -718,17 +728,19 @@ context [
 	]
 
 	build-dynamic: func [
-		job-type [word!]
-		symbols [hash!]
-		text-address [integer!]
-		hash-address [integer!]
-		dynstr-address [integer!]
-		dynstr-size [integer!]
-		dynsym-address [integer!]
+		job-type		[word!]
+		target			[word!]
+		symbols			[hash!]
+		text-address	[integer!]
+		hash-address	[integer!]
+		dynstr-address	[integer!]
+		dynstr-size 	[integer!]
+		dynsym-address	[integer!]
 		reltext-address [integer!]
-		reltext-size [integer!]
-		dynstr [binary!]
-		libraries [block!]
+		reltext-size 	[integer!]
+		dynstr			[binary!]
+		libraries		[block!]
+		soname			[string!]
 		/local entries spec
 	] [
 		entries: copy []
@@ -737,9 +749,13 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
-		repend entries ['rpath strtab-index-of dynstr defs/rpath]
+		if target <> 'ARM [
+			repend entries ['rpath strtab-index-of dynstr defs/rpath]
+		]
 
 		if job-type = 'dll [
+			repend entries ['soname strtab-index-of dynstr soname]
+			
 			if spec: select symbols '***-dll-entry-point [
 				repend entries ['init text-address + spec/2 - 1]
 			]
@@ -747,7 +763,7 @@ context [
 				repend entries ['fini text-address + spec/2 - 1]
 			]
 		]
-				
+		
 		;; Static _DYNAMIC entries:
 		append entries reduce [
 			'hash	hash-address
@@ -860,20 +876,22 @@ context [
 
 	;; -- Job helpers --
 	
-	collect-data-reloc: func [job [object!] /local list syms spec][
+	collect-data-reloc: func [job [object!] /local list syms][
 		list: make block! 100
 		syms: job/symbols
 		
 		while [not tail? syms][
-			spec: syms/2
 			syms: skip syms 2
 			if all [
 				not tail? syms
 				syms/1 = <data>	
 				block? syms/2/4
-				syms/2/4/1 - 1 = spec/2
 			][
-				append list spec/2
+				append list either syms/2/4/1 - 1 = syms/-1/2 [
+					syms/-1/2							;-- pointer slot to value slot
+				][
+					syms/2/4/1 - 1						;-- literal pointer in array to c-string buffer
+				]
 			]
 		]
 		list
@@ -1042,25 +1060,35 @@ context [
 			reduce ['type meta/1 'flags meta/2 'align meta/3]
 			any [select commands reduce [name 'meta] []]
 	]
-
-	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
-		size: 10
-		if job-type = 'dll [
-			if find symbols '***-dll-entry-point [
-				size: size + 1
-			]
-			if find symbols 'on-unload [
-				size: size + 1
-			]
+	
+	calc-dynamic-size: func [
+		job-type	[word!]
+		target		[word!]
+		symbols		[hash!]
+		/local entries spec
+	][
+		  (any [all [job-type = 'dll select symbols '***-dll-entry-point 1] 0])
+		+ (any [all [job-type = 'dll 1] 0])
+		+ (any [all [job-type = 'dll select symbols 'on-unload 1] 0])
+		+ (any [all [target <> 'ARM 1] 0])				;-- dt-rpath
+		+ length? [
+			hash
+			strtab
+			symtab
+			strsz
+			syment
+			rel
+			relsz
+			relent
+			null
 		]
-		size
 	]
 
 	complete-sizes: func [
 		structure [block!] commands [block!] /local total size name children
 	] [
 		;; This could be inlined into LAYOUT-BINARY, but having it explicit as
-		;; a second pass makes makes things more clear.
+		;; a second pass makes things more clear.
 		total: 0
 		parse structure [
 			any [
@@ -1077,7 +1105,7 @@ context [
 					(
 						size: find-size commands name
 						;; Ensure all leaf nodes are padded to 32-bit multiples.
-						if not zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
+						unless zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
 							repend commands [name 'pad pad]
 						]
 						total: total + size + pad
@@ -1158,9 +1186,10 @@ context [
 
 	lookup-align: func [align [word!]] [
 		select reduce [
-			'byte 1
-			'word size-of machine-word
-			'page defs/page-size
+			'byte	1
+			'word	size-of machine-word
+			'dword	2 * size-of machine-word
+			'page	defs/page-size
 		] align
 	]
 

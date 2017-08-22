@@ -127,7 +127,7 @@ posix-startup-ctx: context [
 	]
 ]
 
-#if OS <> 'MacOSX [								;-- OS X has it's own start code
+#if OS <> 'macOS [								;-- macOS has it's own start code
 	#switch type [
 		dll [
 			***-dll-entry-point: func [

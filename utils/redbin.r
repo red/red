@@ -89,6 +89,12 @@ context [
 		emit extracts/definitions/:type or either nl? [nl-flag][0]
 	]
 	
+	emit-float-bin: func [f [decimal!] /local bin][
+		bin: IEEE-754/to-binary64 f
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
+	]
+	
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
 		if any [not ctx	none? entry: find contexts ctx][emit -1 return -1]				;-- -1 for global context
 		either pos: find entry/2 to word! word [
@@ -118,9 +124,7 @@ context [
 	emit-float: func [value [decimal!] /with type /local bin][
 		pad buffer 8
 		emit-type any [type 'TYPE_FLOAT]
-		bin: IEEE-754/to-binary64 value
-		emit to integer! copy/part bin 4
-		emit to integer! skip bin 4
+		emit-float-bin value
 	]
 	
 	emit-fp-special: func [value [issue!]][
@@ -138,13 +142,17 @@ context [
 		pad buffer 8
 		emit-type 'TYPE_PERCENT
 		value: to decimal! to string! copy/part value back tail value
-		bin: IEEE-754/to-binary64 value / 100.0
-		emit to integer! copy/part bin 4
-		emit to integer! skip bin 4
+		emit-float-bin value / 100.0
 	]
 	
 	emit-time: func [value [time!]][
-		emit-float/with (to decimal! value) * 1E9 'TYPE_TIME
+		emit-float/with to decimal! value 'TYPE_TIME
+	]
+	
+	emit-date: func [value [date!] /with zone][
+		emit-type 'TYPE_DATE
+		emit red/encode-date/with value zone
+		emit-float-bin encode-UTC-time value/time any [zone value/zone]
 	]
 
 	emit-char: func [value [integer!]][
@@ -282,6 +290,10 @@ context [
 				remove blk
 				'map
 			]
+			blk/1 = #!date! [
+				emit-date/with blk/2 blk/3
+				exit
+			]
 			'else [type?/word :blk]
 		]
 		emit-type select [
@@ -373,6 +385,7 @@ context [
 						datatype! [emit-datatype get-RS-type-ID/word item]
 						logic!	  [emit-logic item]
 						time!	  [emit-time item]
+						date!	  [emit-date item]
 						none! 	  [emit-none]
 						unset! 	  [emit-unset]
 					]

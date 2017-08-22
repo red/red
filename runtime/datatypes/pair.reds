@@ -14,14 +14,16 @@ pair: context [
 	verbose: 0
 	
 	do-math: func [
-		type	  [integer!]
+		op		  [integer!]
 		return:	  [red-pair!]
 		/local
 			left  [red-pair!]
 			right [red-pair!]
 			int	  [red-integer!]
+			fl	  [red-float!]
 			x	  [integer!]
 			y	  [integer!]
+			f	  [float!]
 	][
 		left: as red-pair! stack/arguments
 		right: left + 1
@@ -38,21 +40,37 @@ pair: context [
 				x: int/value
 				y: x
 			]
+			TYPE_FLOAT [
+				fl: as red-float! right
+				x: as-integer fl/value
+				y: x
+			]
+			TYPE_PERCENT [
+				fl: as red-float! right
+				f: fl/value
+				switch op [
+					OP_MUL [
+						left/x: as-integer (as-float left/x) * f
+						left/y: as-integer (as-float left/y) * f
+						return left
+					]
+					OP_DIV [
+						left/x: as-integer (as-float left/x) / f
+						left/y: as-integer (as-float left/y) / f
+						return left
+					]
+					default [
+						x: as-integer fl/value
+						y: x
+					]
+				]
+			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
-		
-		switch type [
-			OP_ADD [left/x: left/x + x  left/y: left/y + y]
-			OP_SUB [left/x: left/x - x  left/y: left/y - y]
-			OP_MUL [left/x: left/x * x  left/y: left/y * y]
-			OP_DIV [left/x: left/x / x  left/y: left/y / y]
-			OP_REM [left/x: left/x % x  left/y: left/y % y]
-			OP_AND [left/x: left/x and x  left/y: left/y and y]
-			OP_OR  [left/x: left/x or  x  left/y: left/y or  y]
-			OP_XOR [left/x: left/x xor x  left/y: left/y xor y]
-		]
+		left/x: integer/do-math-op left/x x op
+		left/y: integer/do-math-op left/y y op
 		left
 	]
 	

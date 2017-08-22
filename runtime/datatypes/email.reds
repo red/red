@@ -55,14 +55,18 @@ email: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "email/eval-path"]]
 
-		either TYPE_OF(element) = TYPE_WORD [
-			w: as red-word! element
-			sym: symbol/resolve w/symbol
-			if all [sym <> words/user sym <> words/host][
-				fire [TO_ERROR(script invalid-path) stack/arguments element]
+		switch TYPE_OF(element) [
+			TYPE_WORD [
+				w: as red-word! element
+				sym: symbol/resolve w/symbol
+				if all [sym <> words/user sym <> words/host][
+					fire [TO_ERROR(script invalid-path) path element]
+				]
 			]
-		][
-			fire [TO_ERROR(script invalid-path) stack/arguments element]
+			TYPE_INTEGER [
+				return string/eval-path parent element value path case?
+			]
+			default [fire [TO_ERROR(script invalid-path) path element]]
 		]
 		
 		pos: string/rs-find parent as-integer #"@"
@@ -83,6 +87,7 @@ email: context [
 		][
 			value: stack/push*
 			_series/copy as red-series! parent as red-series! value part no	null 
+			value/header: TYPE_STRING
 		]
 		
 		slots: either part = null [2][3]

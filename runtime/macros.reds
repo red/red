@@ -58,11 +58,11 @@ Red/System [
 	TYPE_TAG											;-- 2C		44
 	TYPE_EMAIL											;-- 2D		45
 	TYPE_HANDLE											;-- 2E		46
-	TYPE_IMAGE											;-- 2F		47
+	TYPE_DATE											;-- 2F		47
+	TYPE_IMAGE											;-- 30		48		;-- needs to be last
 	TYPE_EVENT											
 	TYPE_CLOSURE
 	TYPE_PORT
-	
 ]
 
 #enum actions! [
@@ -240,6 +240,8 @@ Red/System [
 	NAT_AS
 	NAT_CALL
 	NAT_ZERO?
+	NAT_SIZE?
+	NAT_BROWSE
 ]
 
 #enum math-op! [
@@ -288,7 +290,7 @@ Red/System [
 	RED_THROWN_ERROR:				195939070		;-- #0BADCAFE (keep it positive)
 ]
 
-#define NATIVES_NB		100							;-- max number of natives (arbitrary set)
+#define NATIVES_NB		110							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		62							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
@@ -406,6 +408,14 @@ Red/System [
 		type = TYPE_GET_PATH
 		type = TYPE_SET_PATH
 		type = TYPE_LIT_PATH
+	]
+]
+
+#define ANY_LIST(type)	[
+	any [
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_HASH
 	]
 ]
 

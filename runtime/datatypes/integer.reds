@@ -143,7 +143,7 @@ integer: context [
 			return "-2147483648"
 		]
 		n: negative? i
-		if n [i: negate i]
+		if n [i: 0 - i]
 		c: 11
 		while [i <> 0][
 			s/c: #"0" + (i // 10)
@@ -207,12 +207,12 @@ integer: context [
 	]
 
 	do-math: func [
-		type		[math-op!]
+		op			[math-op!]
 		return:		[red-value!]
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
-			pair	[red-pair!]
+			word	[red-word!]
 			value	[integer!]
 			size	[integer!]
 			n		[integer!]
@@ -234,45 +234,51 @@ integer: context [
 			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_TUPLE
 			TYPE_OF(right) = TYPE_TIME
-			TYPE_OF(right) = TYPE_HANDLE
+			TYPE_OF(right) = TYPE_VECTOR
+			TYPE_OF(right) = TYPE_DATE
 		]
 
 		switch TYPE_OF(right) [
 			TYPE_INTEGER TYPE_CHAR [
-				left/value: do-math-op left/value right/value type
+				left/value: do-math-op left/value right/value op
 			]
-			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math type]
-			TYPE_PAIR  [
-				value: left/value
+			TYPE_FLOAT TYPE_PERCENT TYPE_TIME [float/do-math op]
+			TYPE_PAIR
+			TYPE_TUPLE [
+				value: left/value						;-- swap them!
 				copy-cell as red-value! right as red-value! left
-				pair: as red-pair! left
-				switch type [
-					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
-					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
-					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
-						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
+				right/header: TYPE_INTEGER
+				right/value: value
+				
+				either TYPE_OF(left) = TYPE_PAIR [
+					if op = OP_DIV [
+						fire [TO_ERROR(script not-related) words/_divide datatype/push TYPE_INTEGER]
 					]
+					if op = OP_SUB [
+						pair/negate						;-- negates the pair! now in stack/arguments
+						op: OP_ADD
+					]
+					pair/do-math op
+				][
+					if any [op = OP_SUB op = OP_DIV][
+						word: either op = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push TYPE_INTEGER]
+					]
+					tuple/do-math op
 				]
 			]
-			TYPE_TUPLE [
-				value: left/value
-				copy-cell as red-value! right as red-value! left
-				tp: (as byte-ptr! left) + 4
-				size: TUPLE_SIZE?(right)
-				n: 0
-				until [
-					n: n + 1
-					v: as-integer tp/n
-					switch type [
-						OP_ADD [v: v + value]
-						OP_MUL [v: v * value]
-						OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
-							ERR_EXPECT_ARGUMENT(TYPE_PERCENT 1)
-						]
-					]
-					either v > 255 [v: 255][if negative? v [v: 0]]
-					tp/n: as byte! v
-					n = size
+			TYPE_VECTOR [
+				return stack/set-last vector/do-math-scalar op as red-vector! right as red-value! left
+			]
+			TYPE_DATE [
+				either op = OP_ADD [
+					value: left/value						;-- swap them!
+					copy-cell as red-value! right as red-value! left
+					right/header: TYPE_INTEGER
+					right/value: value
+					date/do-math op
+				][
+					fire [TO_ERROR(script not-related) words/_subtract datatype/push TYPE_INTEGER]
 				]
 			]
 			default [
@@ -397,10 +403,6 @@ integer: context [
 			TYPE_CHAR [
 				int/value: spec/data2
 			]
-			TYPE_TIME [
-				t: as red-time! spec
-				int/value: as-integer t/time / time/oneE9 + 0.5
-			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
 				fl: as red-float! spec
@@ -412,6 +414,13 @@ integer: context [
 			]
 			TYPE_ISSUE [
 				int/value: from-issue as red-word! spec
+			]
+			TYPE_TIME [
+				t: as red-time! spec
+				int/value: as-integer t/time + 0.5
+			]
+			TYPE_DATE [
+				int/value: date/to-epoch as red-date! spec
 			]
 			TYPE_ANY_STRING [
 				pad4: 0

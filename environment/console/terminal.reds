@@ -149,6 +149,7 @@ terminal: context [
 	v-terminal: 0
 	extra-table: [0]						;-- extra unicode check table for Windows
 	stub-table: [0 0]
+	data-blk: declare red-value!
 
 	#include %wcwidth.reds
 
@@ -617,12 +618,12 @@ terminal: context [
 		char-x	[integer!]
 		char-y	[integer!]
 		/local
-			out		[ring-buffer!]
+			out	[ring-buffer!]
 	][
 		out: as ring-buffer! allocate size? ring-buffer!
 		out/max: 10000
 		out/lines: as line-node! allocate out/max * size? line-node!
-		out/data: as red-string! string/rs-make-at ALLOC_TAIL(root) 10000
+		out/data: as red-string! string/rs-make-at data-blk 10000
 
 		vt/bg-color: 00FCFCFCh
 		vt/font-color: 00000000h
@@ -1479,7 +1480,7 @@ terminal: context [
 		#switch OS [
 			Windows  [#include %windows.reds]
 			Android  []
-			MacOSX   []
+			macOS    []
 			FreeBSD  []
 			Syllable []
 			#default []									;-- Linux

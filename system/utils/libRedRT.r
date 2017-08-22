@@ -212,7 +212,7 @@ libRedRT: context [
 		foreach [new old] aliased [
 			spec: copy/deep functions/:old/4
 			clear find spec /local
-			repend list [to set-word! new form old spec]
+			repend list [to set-word! new form undecorate old spec]
 			new-line skip tail list -3 yes
 		]
 		

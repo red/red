@@ -27,8 +27,6 @@ Red [
 	]
 ]
 
-system/state/trace?: no									;-- disable stack trace in console by default
-
 system/console: context [
 
 	prompt: ">> "
@@ -72,7 +70,7 @@ system/console: context [
 					]
 					trim/head args
 				][
-					print "*** Error: cannot access argument file"
+					print ["*** Error: cannot access argument file:^/" file]
 					;quit/return -1
 				]
 				path: first split-path file
@@ -82,18 +80,27 @@ system/console: context [
 		]
 	]
 
-	init-console: routine [
+	init: routine [
 		str [string!]
 		/local
 			ret
 	][
-		#if OS = 'Windows [
+		#either OS = 'Windows [
 			;ret: AttachConsole -1
 			;if zero? ret [print-line "ReadConsole failed!" halt]
 
 			ret: SetConsoleTitle as c-string! string/rs-head str
 			if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		][
+			#if gui-console? = no [terminal/pasting?: no]
 		]
+	]
+
+	terminate: routine [][
+		#if OS <> 'Windows [
+		#if gui-console? = no [
+			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+		]]
 	]
 
 	count-delimiters: function [
@@ -164,15 +171,19 @@ system/console: context [
 			
 			case [
 				error? :result [
-					print result
+					print [result lf]
 				]
 				not unset? :result [
-					limit: size/x - 13
-					if limit = length? result: mold/part :result limit [	;-- optimized for width = 72
-						clear back tail result
-						append result "..."
+					if error? set/any 'err try [		;-- catch eventual MOLD errors
+						limit: size/x - 13
+						if limit = length? result: mold/part :result limit [ ;-- optimized for width = 72
+							clear back tail result
+							append result "..."
+						]
+						print [system/console/result result]
+					][
+						print :err
 					]
-					print [system/console/result result]
 				]
 			]
 			unless last-lf? [prin lf]

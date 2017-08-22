@@ -17,7 +17,7 @@ Red/System [
 #define OS_POLLIN 		1
 
 #case [
-	any [OS = 'MacOSX OS = 'FreeBSD] [
+	any [OS = 'macOS OS = 'FreeBSD] [
 		#define TIOCGWINSZ		40087468h
 		#define TERM_TCSADRAIN	1
 		#define TERM_VTIME		18
@@ -188,6 +188,7 @@ saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
 relative-y:	0
+init?:		no
 
 fd-read-char: func [
 	timeout [integer!]
@@ -240,6 +241,7 @@ check-special: func [
 	/local
 		c  [byte!]
 		c2 [byte!]
+		c3 [byte!]
 ][
 	c: fd-read-char 50
 	if (as-integer c) > 127 [return 27]
@@ -272,7 +274,11 @@ check-special: func [
 			]
 		]
 		if all [(as-integer c) <> -1 c <> #"~"][
-			fd-read-char 50
+			c3: fd-read-char 50
+		]
+
+		if all [c2 = #"2" c = #"0" #"~" = fd-read-char 50][
+			pasting?: c3 = #"0"
 		]
 	]
 	KEY_NONE
@@ -441,8 +447,6 @@ output-to-screen: does [
 ]
 
 init: func [
-	line 	 [red-string!]
-	hist-blk [red-block!]
 	/local
 		term [termios!]
 		cc	 [byte-ptr!]
@@ -478,7 +482,7 @@ init: func [
 			TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
 		)
 		#case [
-			any [OS = 'MacOSX OS = 'FreeBSD] [
+			any [OS = 'macOS OS = 'FreeBSD] [
 				cc: (as byte-ptr! term) + (4 * size? integer!)
 			]
 			true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]
@@ -492,6 +496,10 @@ init: func [
 		poller/events: OS_POLLIN
 
 		buffer: allocate buf-size
+		unless init? [
+			emit-string "^[[?2004h"		;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+			init?: yes
+		]
 	]
 ]
 

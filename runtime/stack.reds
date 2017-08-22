@@ -299,12 +299,14 @@ stack: context [										;-- call stack
 	]
 	
 	trace: func [
+		level	[integer!]
 		int		[red-integer!]
 		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
 		/local
 			value [red-value!]
+			fun	  [red-value!]
 			top	  [call-frame!]
 			base  [call-frame!]
 			sym	  [integer!]
@@ -319,15 +321,19 @@ stack: context [										;-- call stack
 			sym: base/header >> 8 and FFFFh
 			
 			if all [sym <> body-symbol sym <> anon-symbol][
-				if base > cbottom [
-					string/concatenate-literal buffer " "
-					part: part - 4
+				fun: _context/get-global sym
+				if any [level > 1 TYPE_OF(fun) = TYPE_FUNCTION][
+					part: word/form 
+						word/make-at sym value
+						buffer
+						null
+						part
+					
+					if base >= cbottom [
+						string/concatenate-literal buffer " "
+						part: part - 1
+					]
 				]
-				part: word/form 
-					word/make-at sym value
-					buffer
-					null
-					part
 			]
 			base: base + 1
 			base >= top									;-- defensive test
@@ -351,18 +357,13 @@ stack: context [										;-- call stack
 		err [red-object!]
 		/local
 			extra [red-value!]
-			flags [integer!]
 			all?  [logic!]
 	][
 		if ctop > cbottom [
 			error/set-where err as red-value! get-call
 			set-stack err
-		
-			all?: (error/get-type err) = words/errors/throw/symbol
-			flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
-
 			extra: top
-			unroll-frames flags no
+			unroll-frames FRAME_TRY no
 
 			ctop: ctop - 1
 			assert ctop >= cbottom
@@ -578,6 +579,10 @@ stack: context [										;-- call stack
 	][
 		value: top - 1
 		TYPE_OF(value)
+	]
+	
+	get-top: func [return: [red-value!]][
+		either top = bottom [top][top - 1]
 	]
 	
 	func?: func [

@@ -124,10 +124,11 @@ float: context [
 				s/9: #"0"
 				sprintf [s "%.7g" f]
 			]
-			type = FORM_TIME [									;-- nanosecond precision
+			type = FORM_TIME [									;-- microsecond precision
 				s/10: #"0"
 				s/11: #"0"
-				sprintf [s "%.9g" f]
+				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
+				sprintf [s s0 f]
 			]
 			true [
 				s/17: #"0"
@@ -184,7 +185,7 @@ float: context [
 					][
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
-							type = FORM_TIME	 ["%.7g"]
+							type = FORM_TIME	 ["%.6g"]
 							true				 ["%.14g"]
 						]
 						sprintf [s0 s f]
@@ -233,7 +234,7 @@ float: context [
 			OP_MUL [left * right]
 			OP_DIV [
 				either all [0.0 = right not NaN? right][
-					either left >= 0.0 [+INF][-INF]
+					either left > 0.0 [+INF][either left = 0.0 [QNaN][-INF]]
 				][
 					left / right
 				]
@@ -262,6 +263,7 @@ float: context [
 			type1 [integer!]
 			type2 [integer!]
 			int   [red-integer!]
+			word  [red-word!]
 			op1	  [float!]
 			op2	  [float!]
 			t1?	  [logic!]
@@ -283,16 +285,39 @@ float: context [
 			type1 = TYPE_TIME
 		]
 
-		if type2 = TYPE_TUPLE [
-			return as red-float! tuple/do-math type
+		switch type2 [
+			TYPE_TUPLE [return as red-float! tuple/do-math type]
+			TYPE_PAIR  [
+				if type1 <> TYPE_TIME [
+					if any [type = OP_SUB type = OP_DIV][
+						word: either type = OP_SUB [words/_subtract][words/_divide]
+						fire [TO_ERROR(script not-related) word datatype/push TYPE_PAIR]
+					]
+					op1: left/value
+					copy-cell as red-value! right as red-value! left
+					right/header: type1
+					right/value: op1
+					return as red-float! pair/do-math type
+				]
+			]
+			TYPE_VECTOR [
+				return as red-float! stack/set-last vector/do-math-scalar type as red-vector! right as red-value! left
+			]
+			default [0]
 		]
 
-		unless any [						;@@ replace by typeset check when possible
-			type2 = TYPE_INTEGER
-			type2 = TYPE_CHAR
-			type2 = TYPE_FLOAT
-			type2 = TYPE_PERCENT
-			type2 = TYPE_TIME
+		if any [
+			not any [						;@@ replace by typeset check when possible
+				type2 = TYPE_INTEGER
+				type2 = TYPE_CHAR
+				type2 = TYPE_FLOAT
+				type2 = TYPE_PERCENT
+				type2 = TYPE_TIME
+			]
+			all [
+				any [type1 = TYPE_TIME type1 = TYPE_PERCENT]
+				type2 = TYPE_CHAR
+			]
 		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
 
 		if type1 = TYPE_INTEGER [
@@ -318,17 +343,11 @@ float: context [
 		
 		t1?: all [type1 = TYPE_TIME type2 <> TYPE_TIME]
 		t2?: all [type1 <> TYPE_TIME type2 = TYPE_TIME]
-		
-		if t1? [op1: op1 * time/nano]
-		if t2? [op2: op2 * time/nano]
 
 		left/value: do-math-op op1 op2 type
 		
-		if any [t1? t2?][
-			left/header: TYPE_TIME
-			left/value: left/value * time/oneE9
-		]
-		if pct? [left/header: TYPE_PERCENT]
+		if any [t1? t2?][left/header: TYPE_TIME]
+		if all [pct? not t2?][left/header: TYPE_PERCENT]
 		left
 	]
 	
@@ -484,12 +503,10 @@ float: context [
 
 		either seed? [
 			s: f/value
-			if TYPE_OF(f) = TYPE_TIME [s: s / time/oneE9]
 			_random/srand as-integer s
 			f/header: TYPE_UNSET
 		][
 			s: (as-float _random/rand) / 2147483647.0
-			if s < 0.0 [s: 0.0 - s]
 			f/value: s * f/value
 		]
 		f
@@ -520,7 +537,7 @@ float: context [
 			]
 			TYPE_TIME [
 				tm: as red-time! spec
-				proto/value: tm/time / time/oneE9
+				proto/value: tm/time
 			]
 			TYPE_ANY_STRING [
 				_4: 0
@@ -834,7 +851,7 @@ float: context [
 		e: 0
 		f: as red-float! value
 		dec: f/value
-		sc: 1.0
+		sc: either TYPE_OF(f) = TYPE_PERCENT [0.01][1.0]
 		if OPTION?(scale) [
 			if TYPE_OF(scale) = TYPE_INTEGER [
 				int: as red-integer! value
@@ -843,12 +860,9 @@ float: context [
 				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
 			]
 			sc: abs scale/value
+			if TYPE_OF(f) = TYPE_PERCENT [sc: sc / 100.0]
+			if sc = 0.0 [fire [TO_ERROR(math overflow)]]
 		]
-
-		if sc = 0.0 [
-			fire [TO_ERROR(math overflow)]
-		]
-
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
 
 		v: sc >= 1.0

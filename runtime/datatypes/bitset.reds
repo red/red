@@ -723,6 +723,7 @@ bitset: context [
 			int [red-integer!]
 	][
 		switch TYPE_OF(element) [
+			TYPE_CHAR
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either value <> null [
@@ -907,7 +908,7 @@ bitset: context [
 			op [integer!]
 	][
 		unless OPTION?(part) [
-			print-line "Remove Error: /part is required for bitset argument"
+			fire [TO_ERROR(script missing-arg)]
 		]
 		s: GET_BUFFER(bits)
 		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]

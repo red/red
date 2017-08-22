@@ -36,7 +36,7 @@ Red/System [
 			print-line "on-exit-thread executed"
 		]
 	]
-	MacOSX [
+	macOS [
 		;-- Raised when the DLL is loaded ('load/library from REBOL)
 		on-load: func [
 			argc	[integer!]

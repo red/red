@@ -190,48 +190,62 @@ interpreter: context [
 			retf	[float!]
 			count	[integer!]
 			cnt 	[integer!]
+			args	[integer!]
 			saved	[int-ptr!]
 			extern?	[logic!]
-			call callf
+			call callf callex
 	][
 		extern?: rt/header and flag-extern-code <> 0
 		
 		s: as series! rt/more/value
 		native: as red-native! s/offset + 2
-		call: as function! [return: [integer!]] native/code
-		count: (routine/get-arity rt) - 1				;-- zero-based stack access
+		args: routine/get-arity rt
+		count: args - 1				;-- zero-based stack access
 		
-		#if stack-align-16? = yes [						;@@ 64-bit alignment required on ARM
-			if extern? [
+		either extern? [
+			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
+			callex: as function! [[cdecl custom] return: [integer!]] native/code
+			stack/mark-native words/_body
+			
+			#if stack-align-16? = yes [
 				saved: system/stack/align
 				cnt: 4 - (count + 1 and 3)
 				while [cnt > 0][push 0 cnt: cnt - 1]
 			]
-		]
-		
-		while [count >= 0][
-			arg: stack/arguments + count
-			either extern? [push arg][
+			#if target = 'ARM [
+				saved: system/stack/align
+			]
+			while [count >= 0][
+				arg: stack/arguments + count
+				#either libRed? = yes [
+					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
+				][
+					push arg
+				]
+				count: count - 1
+			]
+			arg: as red-value! callex args
+			#either any [stack-align-16? = yes target = 'ARM][	;@@ 64-bit alignment required on ARM
+				system/stack/top: saved
+			][
+				pop args
+			]
+			stack/unwind
+			stack/set-last arg
+		][
+			call: as function! [return: [integer!]] native/code
+			
+			while [count >= 0][
+				arg: stack/arguments + count
 				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
 					TYPE_LOGIC	 [push logic/get arg]
 					TYPE_INTEGER [push integer/get arg]
-					TYPE_LOGIC	 [push float/get arg]
+					TYPE_FLOAT	 [push float/get arg]
 					default		 [push arg]
 				]
+				count: count - 1
 			]
-			count: count - 1
-		]
-		case [
-			extern? [
-				arg: as red-value! call
-				#either stack-align-16? = yes [			;@@ 64-bit alignment required on ARM
-					system/stack/top: saved
-				][
-					pop count + 1
-				]
-				stack/set-last arg
-			]
-			positive? rt/ret-type [
+			either positive? rt/ret-type [
 				switch rt/ret-type [
 					TYPE_LOGIC	[
 						ret: call
@@ -254,8 +268,7 @@ interpreter: context [
 					]
 					default [assert false]				;-- should never happen
 				]
-			]
-			true [call]
+			][call]
 		]
 	]
 	
@@ -292,18 +305,19 @@ interpreter: context [
 		fun: null
 		native?: op/header and flag-native-op <> 0
 
-		if all [
-			not native?
-			op/header and body-flag <> 0
-		][
-			node: as node! op/code
-			s: as series! node/value
-			more: s/offset
-			fun: as red-function! more + 3
+		unless native? [
+			either op/header and body-flag <> 0 [
+				node: as node! op/code
+				s: as series! node/value
+				more: s/offset
+				fun: as red-function! more + 3
 
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+				s: as series! fun/more/value
+				blk: as red-block! s/offset + 1
+				args: either TYPE_OF(blk) = TYPE_BLOCK [blk/node][null]
+			][
+				args: op/args
+			]
 
 			if null? args [
 				args: _function/preprocess-spec as red-native! op
@@ -315,7 +329,6 @@ interpreter: context [
 					op/args: args
 				]
 			]
-
 			s: as series! args/value
 			slot: s/offset + 1
 			bits: (as byte-ptr! slot) + 4

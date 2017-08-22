@@ -396,8 +396,8 @@ intersect: make native! [[
 
 difference: make native! [[
 		"Returns the special difference of two data sets"
-		set1 [block! hash! string! bitset! typeset!]
-		set2 [block! hash! string! bitset! typeset!]
+		set1 [block! hash! string! bitset! typeset! date!]
+		set2 [block! hash! string! bitset! typeset! date!]
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
@@ -448,16 +448,16 @@ positive?: make native! [[
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series! char! time!]
-		value2 [number! series! char! time!]
+		value1 [scalar! series!]
+		value2 [scalar! series!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series! char! time!]
-		value2 [number! series! char! time!]
+		value1 [scalar! series!]
+		value2 [scalar! series!]
 	]
 	#get-definition NAT_MIN
 ]
@@ -763,21 +763,21 @@ unset: make native! [[
 ]
 
 new-line: make native! [[
-		"Sets or clears the new-line marker within a block or paren"
-		position [block! paren!] "Position to change marker (modified)"
-		value					 "Set TRUE for newline"
-		/all					 "Set/clear marker to end of series"
-		/skip					 "Set/clear marker periodically to the end of the series"
+		"Sets or clears the new-line marker within a list series"
+		position [any-list!] "Position to change marker (modified)"
+		value				 "Set TRUE for newline"
+		/all				 "Set/clear marker to end of series"
+		/skip				 "Set/clear marker periodically to the end of the series"
 			size [integer!]
-		return:  [block! paren!]
+		return:  [any-list!]
 	]
 	#get-definition NAT_NEW_LINE
 ]
 
 new-line?: make native! [[
-		"Returns the state of the new-line marker within a block or paren"
-		position [block! paren!] "Position to change marker"
-		return:  [block! paren!]
+		"Returns the state of the new-line marker within a list series"
+		position [any-list!] "Position to change marker"
+		return:  [any-list!]
 	]
 	#get-definition NAT_NEW_LINE?
 ]
@@ -825,7 +825,7 @@ now: make native! [[
 		/yearday	"Returns day of the year (Julian)"
 		/precise	"High precision time"
 		/utc		"Universal time (no zone)"
-		return: [time!]					;@@ add date! when we have it
+		return: [date! time! integer!]
 	]
 	#get-definition NAT_NOW
 ]
@@ -858,4 +858,19 @@ call: make native! [[
 		return:		[integer!]				"0 if success, -1 if error, or a process ID"
 	]
 	#get-definition NAT_CALL
+]
+
+size?: make native! [[
+		"Returns the size of a file content"
+		file 	[file!]
+		return: [integer! none!]
+	]
+	#get-definition NAT_SIZE?
+]
+
+browse: make native! [[
+		"Open web browser to a URL or file mananger to a local file."
+		url 	[url! file!]
+	]
+	#get-definition NAT_BROWSE
 ]

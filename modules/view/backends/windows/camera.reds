@@ -265,7 +265,7 @@ build-preview-graph: func [
 
 toggle-preview: func [
 	handle		[handle!]
-	enable?		[logic!]
+	enabled?	[logic!]
 	/local
 		this	[interface!]
 		cam		[camera!]
@@ -281,7 +281,7 @@ toggle-preview: func [
 	hr: graph/QueryInterface cam/graph IID_IMediaControl this
 	if hr >= 0 [
 		mc: as IMediaControl this/ptr/vtbl
-		either enable? [
+		either enabled? [
 			hr: mc/Run this/ptr
 			if hr < 0 [mc/Stop this/ptr]
 		][

@@ -41,6 +41,8 @@ typedef red_value red_integer;
 typedef red_value red_float;
 typedef red_value red_pair;
 typedef red_value red_tuple;
+typedef red_value red_binary;
+typedef red_value red_image;
 typedef red_value red_string;
 typedef red_value red_word;
 typedef red_value red_block;
@@ -73,6 +75,10 @@ EXTERN_C
 	red_pair	redPair(long x, long y);
 	red_tuple	redTuple(long r, long g, long b);
 	red_tuple	redTuple4(long r, long g, long b, long a);
+	red_binary	redBinary(const char* buffer, long bytes);
+#if defined(_WIN32) || defined(__APPLE__)
+	red_image	redImage(long width, long height, const void* buffer, long format);
+#endif
 	red_string	redString(const char* string);
 	red_word	redWord(const char* word);
 	red_block	redBlock(red_value v, ...);
@@ -112,6 +118,10 @@ EXTERN_C
 	red_value	redSetPath(red_path path, red_value value);
 	red_value	redGetPath(red_path path);
 
+/* Access to a Red object/map/struct field */
+	red_value	redSetField(red_value obj, long field, red_value value);
+	red_value	redGetField(red_value obj, long field);
+
 /* Debugging */
 	void		redPrint(red_value value);
 	red_value	redProbe(red_value value);
@@ -122,6 +132,13 @@ EXTERN_C
 	void		redOpenLogFile(const char *name);
 	void		redCloseLogFile(void);
 EXTERN_C_END
+
+/* Image buffer formats */
+typedef enum
+{
+	RED_IMAGE_FORMAT_RGB,
+	RED_IMAGE_FORMAT_ARGB
+} RedImageFormat;
 
 /* Red Types */
 typedef enum
@@ -173,7 +190,8 @@ typedef enum
 	RED_TYPE_TAG,
 	RED_TYPE_EMAIL,
 	RED_TYPE_IMAGE,
-	RED_TYPE_EVENT
+	RED_TYPE_EVENT,
+	RED_TYPE_DATE,
 	// RED_TYPE_CLOSURE,
 	// RED_TYPE_PORT
 } RedType;

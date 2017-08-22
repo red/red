@@ -91,6 +91,8 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
+			bool  [red-logic!]
+			type  [integer!]
 	][
 		#typecheck any
 		value: block/rs-head as red-block! stack/arguments
@@ -98,7 +100,10 @@ natives: context [
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
-			if logic/true? [exit]
+			
+			bool: as red-logic! stack/arguments
+			type: TYPE_OF(bool)
+			unless any [type = TYPE_NONE all [type = TYPE_LOGIC not bool/value]][exit]
 		]
 		RETURN_NONE
 	]
@@ -336,10 +341,14 @@ natives: context [
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
 				RED_THROWN_BREAK	[system/thrown: 0 break?: yes break]
-				RED_THROWN_CONTINUE	[system/thrown: 0 continue]
+				RED_THROWN_CONTINUE	
 				0 [
 					series: as red-series! _context/get w
 					series/head: series/head + 1
+					if system/thrown = RED_THROWN_CONTINUE [
+						system/thrown: 0
+						continue
+					]
 				]
 				default	[re-throw]
 			]
@@ -398,7 +407,7 @@ natives: context [
 			null
 			0
 			null
-		stack/set-last stack/top - 1
+		stack/set-last stack/get-top
 	]
 	
 	function*: func [check? [logic!]][
@@ -421,7 +430,8 @@ natives: context [
 		/local blk [red-block!]
 	][
 		#typecheck has
-		blk: as red-block! stack/arguments
+		blk: block/clone as red-block! stack/arguments no no
+		blk: as red-block! copy-cell as red-value! blk stack/arguments
 		block/insert-value blk as red-value! refinements/local
 		blk/head: blk/head - 1
 		func* check?
@@ -531,7 +541,8 @@ natives: context [
 					#call [system/lexer/transcode str none no]
 					DO_EVAL_BLOCK
 				]
-				TYPE_FILE [#call [do-file as red-file! arg]]
+				TYPE_URL 
+				TYPE_FILE  [#call [do-file as red-file! arg]]
 				TYPE_ERROR [
 					stack/throw-error as red-object! arg
 				]
@@ -810,7 +821,12 @@ natives: context [
 				type = TYPE_FLOAT	[
 					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
 				]
-				type = TYPE_NONE	[res: type = TYPE_OF(arg2)]
+				any [
+					type = TYPE_NONE
+					type = TYPE_UNSET
+				][
+					res: true
+				]
 				true [
 					res: all [
 						arg1/data1 = arg2/data1
@@ -882,6 +898,7 @@ natives: context [
 			value [red-value!]
 			tail  [red-value!]
 			arg	  [red-value!]
+			type  [integer!]
 			into? [logic!]
 			blk?  [logic!]
 	][
@@ -910,7 +927,18 @@ natives: context [
 				stack/keep									;-- preserve the reduced block on stack
 			]
 		][
-			interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+			type: TYPE_OF(arg)
+			either any [
+				type = TYPE_FUNCTION
+				type = TYPE_NATIVE
+				type = TYPE_ACTION
+				type = TYPE_OP
+				type = TYPE_ROUTINE
+			][
+				stack/set-last arg
+			][
+				interpreter/eval-expression arg arg + 1 no yes no ;-- for non block! values
+			]
 			if into? [actions/insert* -1 0 -1]
 		]
 		stack/unwind-last
@@ -1251,6 +1279,10 @@ natives: context [
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
+			TYPE_DATE	 [
+				if op <> OP_DIFFERENCE [ERR_EXPECT_ARGUMENT(type 1)]
+				date/difference? as red-date! set1 as red-date! set2
+			]
 			default 	 [ERR_EXPECT_ARGUMENT(type 1)]
 		]
 	]
@@ -1528,32 +1560,14 @@ natives: context [
 		integer/box ret
 	]
 
-	max*: func [
-		check? [logic!]
-		/local
-			args	[red-value!]
-			result	[logic!]
-	][
+	max*: func [check? [logic!]][
 		#typecheck -max-								;-- `max` would be replaced by lexer
-		args: stack/arguments
-		result: actions/compare args args + 1 COMP_LESSER
-		if result [
-			stack/set-last args + 1
-		]
+		max-min true
 	]
 
-	min*: func [
-		check? [logic!]
-		/local
-			args	[red-value!]
-			result	[logic!]
-	][
+	min*: func [check? [logic!]][
 		#typecheck -min-								;-- `min` would be replaced by lexer
-		args: stack/arguments
-		result: actions/compare args args + 1 COMP_LESSER
-		unless result [
-			stack/set-last args + 1
-		]
+		max-min false
 	]
 
 	shift*: func [
@@ -1720,7 +1734,7 @@ natives: context [
 			p	 [red-pair!]
 			ret  [red-logic!]
 	][
-		#typecheck -zero?- ;-- `zero?` would be converted to `0 =` by lexer
+		#typecheck -zero?- 								;-- `zero?` would be converted to `0 =` by lexer
 		i: as red-integer! stack/arguments
 		ret: as red-logic! i
 		ret/value: switch TYPE_OF(i) [
@@ -1745,6 +1759,22 @@ natives: context [
 		]
 		ret/header: TYPE_LOGIC
 		ret
+	]
+	
+	size?*: func [
+		check?  [logic!]
+		/local
+			name [red-file!]
+			fd	 [integer!]
+	][
+		name: as red-file! stack/arguments
+		fd: simple-io/open-file file/to-OS-path name simple-io/RIO_READ yes
+		either fd < 0 [
+			none/push-last
+		][
+			integer/box simple-io/file-size? fd
+			simple-io/close-file fd
+		]
 	]
 
 	log-2*: func [
@@ -1835,7 +1865,7 @@ natives: context [
 			err	[red-object!]
 			id  [integer!]
 	][
-		err: as red-object! stack/top - 1
+		err: as red-object! stack/get-top
 		assert TYPE_OF(err) = TYPE_ERROR
 		id: error/get-type err
 		either id = words/errors/throw/symbol [			;-- check if error is of type THROW
@@ -2026,7 +2056,7 @@ natives: context [
 				]
 			]
 			system/thrown: 0
-			stack/set-last stack/top - 1
+			stack/set-last stack/get-top
 			stack/top: stack/arguments + 1
 		]
 	]
@@ -2087,7 +2117,7 @@ natives: context [
 				time: as-integer ftime
 			]
 			TYPE_TIME [
-				time: as-integer (val/value / #either OS = 'Windows [1E6][1E3])
+				time: as-integer (val/value * #either OS = 'Windows [1E3][1E6])
 			]
 			default [fire [TO_ERROR(script invalid-arg) val]]
 		]
@@ -2363,7 +2393,7 @@ natives: context [
 		][
 			w: as red-word! name
 			s: GET_BUFFER(symbols)
-			name: as red-string! s/offset + w/symbol - 1
+			name: word/as-string as red-word! name
 		]
 		PLATFORM_TO_CSTR(cstr name len)
 		
@@ -2373,10 +2403,10 @@ natives: context [
 			platform/get-env cstr buffer len
 			PLATFORM_LOAD_STR(name buffer (len - 1))
 			free as byte-ptr! buffer
-			stack/set-last as red-value! name	
 		][
 			name/header: TYPE_NONE
 		]
+		stack/set-last as red-value! name	
 	]
 
 	list-env*: func [
@@ -2393,20 +2423,48 @@ natives: context [
 		day		[integer!]
 		time	[integer!]
 		zone	[integer!]
-		date	[integer!]
+		_date	[integer!]
 		weekday	[integer!]
 		yearday	[integer!]
 		precise	[integer!]
 		utc		[integer!]
 		/local
 			dt	[red-date!]
+			int [red-integer!]
+			tm	[float!]
+			n	[integer!]
 	][
-		#typecheck [now year month day time zone date weekday yearday precise utc]
-		if time = -1 [--NOT_IMPLEMENTED--]
+		#typecheck [now year month day time zone _date weekday yearday precise utc]
 
 		dt: as red-date! stack/arguments
-		dt/header: TYPE_TIME
-		dt/time: platform/get-time utc >= 0 precise >= 0
+		dt/header: TYPE_DATE
+		dt/date: platform/get-date utc >= 0
+		if _date > -1 [dt/time: 0.0 exit]
+		dt/date: DATE_SET_TIME_FLAG(dt/date)
+		
+		tm: platform/get-time yes precise >= 0
+		date/normalize-time 0 :tm DATE_GET_ZONE(dt/date)
+		dt/time: tm
+		n: 0
+		case [
+			year    > -1 [n: 2]
+			month   > -1 [n: 3]
+			day     > -1 [n: 4]
+			zone    > -1 [n: 5]
+			time    > -1 [n: 6]
+			weekday > -1 [n: 10]
+			yearday > -1 [
+				int: as red-integer! dt
+				int/header: TYPE_INTEGER
+				int/value: date/get-yearday dt/date
+				exit
+			]
+			true [exit]
+		]
+		if n > 0 [
+			stack/keep
+			stack/set-last date/push-field dt n
+		]
 	]
 	
 	as*: func [
@@ -2485,21 +2543,182 @@ natives: context [
 		ext-process/call cmd wait > -1 show > -1 console > -1 shell > -1 in out err
 	]
 
+	browse*: func [
+		check?	[logic!]
+		/local
+			url [red-string!]
+			src [red-string!]
+	][
+		#typecheck browse
+
+		src: as red-string! stack/arguments
+		either TYPE_OF(src) = TYPE_FILE [
+			url: string/rs-make-at stack/push* string/rs-length? src
+			file/to-local-path as red-file! src url no
+		][url: src]
+
+		#switch OS [
+			Windows [
+				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
+				unset/push-last
+			]
+			macOS [
+				use [s [c-string!] cmd [byte-ptr!] len [integer!]][
+					len: -1
+					s: unicode/to-utf8 url :len
+					cmd: allocate 6 + len
+					copy-memory cmd as byte-ptr! "open " 5
+					copy-memory cmd + 5 as byte-ptr! s len + 1
+					ext-process/OS-call as-c-string cmd no no no yes null null null
+					free cmd
+				]
+			]
+			#default [fire [TO_ERROR(internal not-here) words/_browse]]
+		]
+	]
+
 	;--- Natives helper functions ---
+	
+	max-min: func [
+		max? [logic!]
+		/local
+			arg		[red-value!]
+			arg2	[red-value!]
+			value	[red-value!]
+			p		[red-pair!]
+			p2		[red-pair!]
+			tp		[red-tuple!]
+			buf		[byte-ptr!]
+			buf2	[byte-ptr!]
+			i		[integer!]
+			n		[integer!]
+			size	[integer!]
+			type	[integer!]
+			type2	[integer!]
+			b		[byte!]
+			result	[logic!]
+			comp?	[logic!]
+	][
+		arg:	stack/arguments
+		arg2:	arg + 1
+		result: not max?								;-- false for max, true for min
+		type:	TYPE_OF(arg)
+		type2:	TYPE_OF(arg2)
+		comp?:	no
+		
+		if any [
+			all [type2 = TYPE_PAIR  any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+			all [type2 = TYPE_TUPLE any [type = TYPE_INTEGER type = TYPE_FLOAT]]
+		][
+			value: arg
+			arg: arg2
+			arg2: value
+			n: type
+			type: type2
+			type2: n
+		]
+		
+		switch type [
+			TYPE_PAIR [
+				p:  as red-pair! arg
+				switch type2 [
+					TYPE_PAIR [
+						p2: as red-pair! arg2
+						either max? [
+							if p/x < p2/x [p/x: p2/x]
+							if p/y < p2/y [p/y: p2/y]
+						][
+							if p/x > p2/x [p/x: p2/x]
+							if p/y > p2/y [p/y: p2/y]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						i: arg-to-integer arg2
+						either max? [
+							if p/x < i [p/x: i]
+							if p/y < i [p/y: i]
+						][
+							if p/x > i [p/x: i]
+							if p/y > i [p/y: i]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			TYPE_TUPLE [
+				tp: as red-tuple! arg
+				buf: (as byte-ptr! tp) + 4
+				size: TUPLE_SIZE?(tp)
+				n: 0
+				switch type2 [
+					TYPE_TUPLE [
+						tp: as red-tuple! arg2
+						buf2: (as byte-ptr! tp) + 4
+						if size <> TUPLE_SIZE?(tp) [
+							fire [TO_ERROR(script out-of-range) arg2]
+						]
+						either max? [
+							until [n: n + 1 if buf/n < buf2/n [buf/n: buf2/n] n = size]
+						][
+							until [n: n + 1 if buf/n > buf2/n [buf/n: buf2/n] n = size]
+						]
+					]
+					TYPE_FLOAT
+					TYPE_INTEGER [
+						i: arg-to-integer arg2
+						b: either i > 255 [as-byte 255][either i < 0 [as-byte 0][as-byte i]]
+						either max? [
+							until [n: n + 1 if buf/n < b [buf/n: b] n = size]
+						][
+							until [n: n + 1 if buf/n > b [buf/n: b] n = size]
+						]
+						if arg <> stack/arguments [stack/set-last arg]
+					]
+					default [comp?: yes]
+				]
+			]
+			default [comp?: yes]
+		]
+		if comp? [
+			result: actions/compare arg arg2 COMP_LESSER
+			if result = max? [stack/set-last arg2]
+		]
+	]
+	
+	arg-to-integer: func [
+		arg 	[red-value!]
+		return: [integer!]
+		/local
+			fl	[red-float!]
+			int	[red-integer!]
+	][
+		either TYPE_OF(arg) = TYPE_INTEGER [
+			int: as red-integer! arg
+			int/value
+		][
+			fl: as red-float! arg
+			if integer/overflow? fl [
+				fire [TO_ERROR(script type-limit) datatype/push TYPE_INTEGER]
+			]
+			as-integer fl/value
+		]
+	]
 
 	argument-as-float: func [
 		return: [red-float!]
 		/local
-			f	[red-float!]
-			n	[red-integer!]
+			fl	[red-float!]
+			int	[red-integer!]
 	][
-		f: as red-float! stack/arguments
-		if TYPE_OF(f) <> TYPE_FLOAT [
-			f/header: TYPE_FLOAT
-			n: as red-integer! f
-			f/value: as-float n/value
+		fl: as red-float! stack/arguments
+		if TYPE_OF(fl) <> TYPE_FLOAT [
+			fl/header: TYPE_FLOAT
+			int: as red-integer! fl
+			fl/value: as-float int/value
 		]
-		f
+		fl
 	]
 
 	degree-to-radians*: func [
@@ -2591,7 +2810,7 @@ natives: context [
 	][
 		i: 1
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_HASH type = TYPE_MAP]
+		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP]
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
@@ -2962,6 +3181,8 @@ natives: context [
 			:as*
 			:call*
 			:zero?*
+			:size?*
+			:browse*
 		]
 	]
 

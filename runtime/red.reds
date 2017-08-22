@@ -20,7 +20,7 @@ red: context [
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
-		MacOSX	 [#include %platform/darwin.reds]
+		macOS	 [#include %platform/darwin.reds]
 		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
@@ -50,7 +50,7 @@ red: context [
 	#switch OS [
 		Windows  [#include %platform/image-gdiplus.reds]
 		Syllable []
-		MacOSX	 [#include %platform/image-quartz.reds]
+		macOS	 [#include %platform/image-quartz.reds]
 		FreeBSD  []
 		#default []
 	]
@@ -101,8 +101,9 @@ red: context [
 	#include %datatypes/tag.reds
 	#include %datatypes/email.reds
 	#include %datatypes/handle.reds
+	#include %datatypes/date.reds
 	#if OS = 'Windows [#include %datatypes/image.reds]	;-- temporary
-	#if OS = 'MacOSX  [#include %datatypes/image.reds]	;-- temporary
+	#if OS = 'macOS   [#include %datatypes/image.reds]	;-- temporary
 
 	;-- Debugging helpers --
 	
@@ -184,8 +185,9 @@ red: context [
 		tag/init
 		email/init
 		handle/init
+		date/init
 		#if OS = 'Windows [image/init]					;-- temporary
-		#if OS = 'MacOSX [image/init]					;-- temporary
+		#if OS = 'macOS   [image/init]					;-- temporary
 		
 		actions/init
 		
@@ -255,8 +257,9 @@ red: context [
 			tag/verbose:		verbosity
 			email/verbose:		verbosity
 			handle/verbose:		verbosity
+			date/verbose:		verbosity
 			#if OS = 'Windows [image/verbose: verbosity]
-			#if OS = 'MacOSX [image/verbose: verbosity]
+			#if OS = 'macOS   [image/verbose: verbosity]
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

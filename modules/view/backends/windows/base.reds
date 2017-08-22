@@ -116,7 +116,7 @@ render-base: func [
 		values	[red-value!]
 		img		[red-image!]
 		w		[red-word!]
-		rc		[RECT_STRUCT]
+		rc		[RECT_STRUCT value]
 		graphic	[integer!]
 		type	[integer!]
 		res		[logic!]
@@ -128,8 +128,7 @@ render-base: func [
 	w: as red-word! values + FACE_OBJ_TYPE
 	img: as red-image! values + FACE_OBJ_IMAGE
 
-	rc: declare RECT_STRUCT
-	GetClientRect hWnd rc
+	GetClientRect hWnd :rc
 	if TYPE_OF(img) = TYPE_IMAGE [
 		GdipCreateFromHDC hDC :graphic
 		if zero? GdipDrawImageRectI
@@ -144,7 +143,7 @@ render-base: func [
 	if all [
 		group-box <> type
 		window <> type
-		render-text values hDC rc
+		render-text values hWnd hDC :rc
 	][
 		res: true
 	]
@@ -153,6 +152,7 @@ render-base: func [
 
 render-text: func [
 	values	[red-value!]
+	hWnd	[handle!]
 	hDC		[handle!]
 	rc		[RECT_STRUCT]
 	return: [logic!]
@@ -169,6 +169,7 @@ render-text: func [
 		res		[logic!]
 		len		[integer!]
 		str		[c-string!]
+		graphic	[integer!]
 ][
 	;unless winxp? [return render-text-d2d values hDC rc]
 	res: false
@@ -185,6 +186,14 @@ render-text: func [
 				TYPE_OF(color) = TYPE_TUPLE
 				color/array1 <> 0
 			][
+				if color/array1 >>> 24 > 0 [				;-- has alpha channel
+					graphic: 0
+					GdipCreateFromHDC hDC :graphic
+					GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
+					update-base-text hWnd graphic hDC text font para rc/right - rc/left rc/bottom - rc/top
+					GdipDeleteGraphics graphic
+					return true
+				]
 				SetTextColor hDC color/array1 and 00FFFFFFh
 			]
 			state: as red-block! values + FONT_OBJ_STATE
@@ -255,6 +264,7 @@ process-layered-region: func [
 		y	  [integer!]
 		w	  [integer!]
 		h	  [integer!]
+		rc	  [RECT_STRUCT value]
 		owner [handle!]
 		type  [red-word!]
 		value [red-value!]
@@ -264,7 +274,7 @@ process-layered-region: func [
 	x: origin/x
 	y: origin/y
 	either null? rect [
-		rect: declare RECT_STRUCT
+		rect: :rc
 		owner: as handle! GetWindowLong hWnd wc-offset - 16
 		assert owner <> null
 		GetClientRect owner rect
@@ -274,20 +284,18 @@ process-layered-region: func [
 	]
 
 	if layer? [
+		w: x + size/x - rect/right
+		w: either positive? w [size/x - w][size/x]
 		either negative? x [
 			x: either x + size/x < 0 [size/x][0 - x]
-			w: size/x
 		][
-			w: x + size/x - rect/right
-			w: either positive? w [size/x - w][size/x]
 			x: 0
 		]
+		h: y + size/y - rect/bottom
+		h: either positive? h [size/y - h][size/y]
 		either negative? y [
 			y: either y + size/y < 0 [size/y][0 - y]
-			h: size/y
 		][
-			h: y + size/y - rect/bottom
-			h: either positive? h [size/y - h][size/y]
 			y: 0
 		]
 		clip-layered-window hWnd size x y w h
@@ -477,6 +485,7 @@ BaseWndProc: func [
 		WM_MOUSEACTIVATE [
 			flags: GetWindowLong hWnd GWL_EXSTYLE
 			if flags and WS_EX_LAYERED > 0 [
+				SetForegroundWindow GetParent hWnd
 				return 3							;-- do not make it activated when click it
 			]
 		]
@@ -620,10 +629,13 @@ update-base-text: func [
 		values	[red-value!]
 		color	[red-tuple!]
 		state	[red-block!]
-		rect	[RECT_STRUCT_FLOAT32]
+		rect	[RECT_STRUCT_FLOAT32 value]
 ][
 	if TYPE_OF(text) <> TYPE_STRING [exit]
 
+	;GdipSetCompositingMode graphic 0				;-- over mode
+	;GdipSetCompositingQuality graphic 2			;-- high quality
+	;GdipSetPixelOffsetMode graphic 2				;-- high quality
 	GdipSetTextRenderingHint graphic TextRenderingHintAntiAliasGridFit
 
 	format: 0
@@ -666,18 +678,17 @@ update-base-text: func [
 
 	GdipCreateFontFromDC as-integer dc :hFont
 	GdipCreateSolidFill to-gdiplus-color clr :hBrush
-	
+
 	GdipCreateStringFormat 80000000h 0 :format
 	GdipSetStringFormatAlign format h-align
 	GdipSetStringFormatLineAlign format v-align
 
-	rect: declare RECT_STRUCT_FLOAT32
 	rect/x: as float32! 0.0
 	rect/y: as float32! 0.0
 	rect/width: as float32! width
 	rect/height: as float32! height
 
-	GdipDrawString graphic unicode/to-utf16 text -1 hFont rect format hBrush
+	GdipDrawString graphic unicode/to-utf16 text -1 hFont :rect format hBrush
 
 	GdipDeleteStringFormat format
 	GdipDeleteBrush hBrush
@@ -765,9 +776,10 @@ update-base: func [
 	SelectObject hBackDC hBitmap
 	GdipCreateFromHDC hBackDC :graphic
 
-	if TYPE_OF(color) = TYPE_TUPLE [					;-- update background
+	if TYPE_OF(color) = TYPE_TUPLE [				;-- update background
 		alpha?: update-base-background graphic color width height
 	]
+	GdipSetSmoothingMode graphic GDIPLUS_ANTIALIAS
 	update-base-image graphic img width height
 	update-base-text hWnd graphic hBackDC text font para width height
 	do-draw null as red-image! graphic cmds yes no no yes

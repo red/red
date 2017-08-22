@@ -8,7 +8,7 @@ REBOL [
 	Usage:   {
 		do/args %red.r "path/source.red"
 	}
-	Encap: [quiet secure none title "Red" no-window]
+	Encap: [quiet secure none cgi title "Red" no-window]
 ]
 
 unless value? 'encap-fs [do %system/utils/encap-fs.r]
@@ -157,7 +157,7 @@ redc: context [
 	
 	get-OS-name: does [
 		switch/default system/version/4 [
-			2 ['MacOSX]
+			2 ['macOS]
 			3 ['Windows]
 			4 ['Linux]
 		]['Linux]										;-- usage related to lib suffixes
@@ -305,10 +305,10 @@ redc: context [
 		file
 	]
 	
-	form-args: func [file /local args delim][
+	form-args: func [file /local args delim pos pos2 flag][
 		args: make string! 32
 
-		foreach arg find system/options/args file [
+		foreach arg pos: find system/options/args file [
 			case [
 				find arg #" " [
 					delim: pick {'"} to logic! find arg #"^""
@@ -324,6 +324,11 @@ redc: context [
 			append args #" "
 		]
 		remove back tail args
+		all [
+			pos2: find system/options/args flag: "--catch"
+			positive? offset? pos2 pos
+			insert insert args flag #" "
+		]
 		args
 	]
 
@@ -432,7 +437,7 @@ redc: context [
 			con-ui: pick [%gui-console.red %console.red] gui?
 			if gui? [
 				gui-target: select [
-					"Darwin"	OSX
+					"Darwin"	macOS
 					"MSDOS"		Windows
 					;"Linux"		Linux-GTK
 				] default-target
@@ -507,7 +512,7 @@ redc: context [
 		]
 		
 		script: switch/default opts/OS [	;-- empty script for the lib
-			Windows MacOSX [ [[Needs: View]] ]
+			Windows macOS [ [[Needs: View]] ]
 		][ [[]] ]
 		
 		result: red/compile script opts
@@ -530,7 +535,7 @@ redc: context [
 		
 		lib?: exists? lib: join file switch/default opts/OS [
 			Windows [%.dll]
-			MacOSX	[%.dylib]
+			macOS	[%.dylib]
 		][%.so]
 		
 		if lib? [
@@ -565,7 +570,6 @@ redc: context [
 				"...output file      :" to-local-file result/4 lf
 			]
 		]
-		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
 	
 	do-clear: func [args [block!] /local path file][
@@ -696,10 +700,8 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		if target? [
-			unless type [type: 'exe]					;-- implies compilation
-			opts/dev-mode?: no							;-- forces release mode
-		]
+		if target? [unless type [type: 'exe]]			;-- implies compilation
+		
 		base-path: either encap? [
 			system/options/path
 		][
@@ -712,6 +714,10 @@ redc: context [
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
+
+		if all [target? none? opts/dev-mode?][
+			opts/dev-mode?: opts/OS = get-OS-name		;-- forces release mode if other OS
+		]
 
 		;; Process -o/--output (if any).
 		if output [
@@ -777,6 +783,8 @@ redc: context [
 			opts/command-line: spec
 		]
 		
+		if none? opts/dev-mode? [opts/dev-mode?: yes]	;-- fallback to dev mode if undefined
+		
 		reduce [src opts]
 	]
 	
@@ -841,7 +849,16 @@ redc: context [
 			opts/libRedRT-update?: no
 		]
 		
-		if result: compile src opts [show-stats result]
+		if result: compile src opts [
+			show-stats result
+			if all [word: in opts 'packager get word][
+				file: join %system/formats/ [opts/packager %.r]
+				unless exists?-cache file [fail ["Packager:" opts/packager "not found!"]]
+				do bind load-cache file 'self
+				packager/process opts src result/4
+			]
+			unless Windows? [print ""]					;-- extra LF for more readable output
+		]
 	]
 
 	set 'rc func [cmd [file! string! block!]][

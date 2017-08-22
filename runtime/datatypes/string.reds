@@ -18,9 +18,9 @@ string: context [
 	#define MAX_URL_CHARS 		7Fh
 
 	#enum modification-type! [
-		TYPE_APPEND
-		TYPE_INSERT
-		TYPE_OVERWRITE
+		MODE_APPEND
+		MODE_INSERT
+		MODE_OVERWRITE
 	]
 
 	#enum escape-type! [
@@ -865,12 +865,12 @@ string: context [
 	]
 
 	alter: func [
-		str1		[red-string!]						;-- string! to modify
-		str2		[red-string!]						;-- string! to modify to str1
-		part		[integer!]							;-- str2 characters to overwrite, -1 means all
-		offset		[integer!]							;-- offset from head in codepoints
-		keep?		[logic!]							;-- do not change str2 encoding
-		type		[integer!]							;-- type of modification: append,insert and overwrite
+		str1	[red-string!]							;-- string! to modify
+		str2	[red-string!]							;-- string! to modify to str1
+		part	[integer!]								;-- str2 characters to overwrite, -1 means all
+		offset	[integer!]								;-- offset from head in codepoints
+		keep?	[logic!]								;-- do not change str2 encoding
+		mode	[integer!]								;-- type of modification: append, insert or overwrite
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -931,11 +931,12 @@ string: context [
 		size2: (as-integer s2/tail - s2/offset) - h2 >> (log-b unit2)
 		if all [part >= 0 part < size2][size2: part]
 		size: unit1 * size2
+		if size <= 0 [exit]
 
 		size1: (as-integer s1/tail - s1/offset) + size
 		if s1/size < size1 [s1: expand-series s1 size1 * 2]
 
-		if type = TYPE_INSERT [
+		if mode = MODE_INSERT [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size
 				(as byte-ptr! s1/offset) + h1 + offset
@@ -943,7 +944,7 @@ string: context [
 		]
 
 		tail: as byte-ptr! s1/tail
-		p: either type = TYPE_APPEND [
+		p: either mode = MODE_APPEND [
 			tail
 		][
 			(as byte-ptr! s1/offset) + (offset << (log-b unit1)) + h1
@@ -957,7 +958,7 @@ string: context [
 					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
 					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
-				s1: either type = TYPE_APPEND [
+				s1: either mode = MODE_APPEND [
 					append-char s1 cp
 				][
 					poke-char s1 p cp
@@ -969,8 +970,8 @@ string: context [
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size
 			p: p + size
 		]
-		if type = TYPE_INSERT [p: tail + size] 
-		if all [type = TYPE_OVERWRITE p < tail][p: tail]
+		if mode = MODE_INSERT [p: tail + size] 
+		if all [mode = MODE_OVERWRITE p < tail][p: tail]
 		s1/tail: as cell! p
 	]
 
@@ -981,7 +982,7 @@ string: context [
 		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 	][
-		alter str1 str2 part offset keep? TYPE_OVERWRITE
+		alter str1 str2 part offset keep? MODE_OVERWRITE
 	]
 	
 	concatenate: func [									;-- append str2 to str1
@@ -1206,7 +1207,8 @@ string: context [
 		p	  [byte-ptr!]
 		tail  [byte-ptr!]
 		unit  [integer!]
-		curly [int-ptr!]
+		c-beg [int-ptr!]
+		c-end [int-ptr!]
 		quote [int-ptr!]
 		nl	  [int-ptr!]
 		/local
@@ -1220,8 +1222,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
 			switch cp [
-				#"{"    [if curly/value >= 0 [curly/value: curly/value + 1]]
-				#"}"    [curly/value: curly/value - 1]
+				#"{"    [c-beg/value: c-beg/value + 1]
+				#"}"    [c-end/value: c-end/value - 1]
 				#"^""   [quote/value: quote/value + 1]
 				#"^/"   [nl/value: 	  nl/value + 1]
 				default [0]
@@ -1287,7 +1289,8 @@ string: context [
 			p4	   [int-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
-			curly  [integer!]
+			c-beg  [integer!]
+			c-end  [integer!]
 			quote  [integer!]
 			nl	   [integer!]
 			open   [byte!]
@@ -1312,14 +1315,15 @@ string: context [
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
-		curly: 0
+		c-beg: 0
+		c-end: 0
 		quote: 0
 		nl:    0
-		sniff-chars p tail unit :curly :quote :nl
+		sniff-chars p tail unit :c-beg :c-end :quote :nl
 
 		either any [
 			nl >= 3
-			negative? curly
+			all [c-beg > 0 c-end > 0 c-beg + c-end <> 0]
 			positive? quote
 			BRACES_THRESHOLD <= rs-length? str
 		][
@@ -1341,7 +1345,7 @@ string: context [
 			either open =  #"{" [
 				switch cp [
 					#"{" #"}" [
-						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
+						if c-beg + c-end <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^""	[append-char GET_BUFFER(buffer) cp]
@@ -1930,7 +1934,7 @@ string: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					len2: negate len2
+					len2: 0 - len2
 					str/head: str/head - len2
 					len: either negative? str/head [str/head: 0 0][len2]
 					buffer: buffer - (len << mult)
@@ -2079,7 +2083,6 @@ string: context [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
 						type = TYPE_URL
-						type = TYPE_TAG
 						type = TYPE_EMAIL
 					][
 						form-buf: as red-string! cell

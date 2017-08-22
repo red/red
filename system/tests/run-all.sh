@@ -4,7 +4,7 @@ echo "Red/System test log\n" > quick-test.log
 failures=0;
 for exe in *;
  do
-  if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ] && [ "$exe" != "libtest-dll1.so" ] && [ "$exe" != "libtest-dll2.so" ]
+  if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ] && [ "$exe" != "libtest-dll1.so" ] && [ "$exe" != "libtest-dll2.so" ] && [ "$exe" != "libstructlib.so" ]
    then
      chmod +x $exe;
      printf "$exe is running \r";

@@ -19,6 +19,7 @@ init-text-list: func [
 		tail	  [red-string!]
 		c-str	  [c-string!]
 		str-saved [c-string!]
+		type	  [integer!]
 		len		  [integer!]
 		value	  [integer!]
 ][
@@ -33,7 +34,8 @@ init-text-list: func [
 		str:  as red-string! block/rs-head data
 		tail: as red-string! block/rs-tail data
 		while [str < tail][
-			if TYPE_OF(str) = TYPE_STRING [
+			type: TYPE_OF(str)
+			if ANY_STRING?(type) [
 				c-str: unicode/to-utf16 str
 				value: string/rs-length? str
 				if len < value [len: value str-saved: c-str]
@@ -69,6 +71,7 @@ init-drop-list: func [
 	/local
 		str	 [red-string!]
 		tail [red-string!]
+		type [integer!]
 ][
 	if any [
 		TYPE_OF(data) = TYPE_BLOCK
@@ -81,7 +84,8 @@ init-drop-list: func [
 		SendMessage hWnd CB_RESETCONTENT 0 0
 		
 		while [str < tail][
-			if TYPE_OF(str) = TYPE_STRING [
+			type: TYPE_OF(str)
+			if ANY_STRING?(type) [
 				SendMessage 
 					hWnd
 					CB_ADDSTRING
@@ -225,7 +229,7 @@ update-list: func [
 				true [0]
 			]
 		]
-		TYPE_STRING [
+		TYPE_ANY_STRING [
 			if any [sym = words/_lowercase/symbol sym = words/_uppercase/symbol][
 				sel: as red-integer! (object/get-values face) + FACE_OBJ_SELECTED
 				index: sel/value - 1

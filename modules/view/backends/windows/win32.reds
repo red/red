@@ -46,6 +46,7 @@ Red/System [
 
 #define DT_CENTER				0001h
 #define DT_VCENTER				0004h
+#define DT_WORDBREAK			0010h
 #define DT_SINGLELINE			0020h
 #define DT_EXPANDTABS			0040h
 #define DT_CALCRECT				0400h
@@ -127,6 +128,7 @@ Red/System [
 #define LBS_NOTIFY			1
 #define LBS_MULTIPLESEL		8
 #define LBS_SORT			2
+#define LBS_NOINTEGRALHEIGHT  0100h
 
 #define PBS_VERTICAL		04h
 
@@ -221,6 +223,7 @@ Red/System [
 #define BS_GROUPBOX			00000007h
 #define BS_AUTORADIOBUTTON	00000009h
 
+#define EM_SETSEL			000000B1h
 #define EM_SETLIMITTEXT		000000C5h
 #define EM_GETLIMITTEXT		000000D5h
 #define ES_LEFT				00000000h
@@ -255,6 +258,7 @@ Red/System [
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_CTLCOLOR			0019h
+#define WM_SETCURSOR		0020h
 #define WM_MOUSEACTIVATE	0021h
 #define WM_GETMINMAXINFO	0024h
 #define WM_SETFONT			0030h
@@ -846,7 +850,14 @@ tagLOGFONT: alias struct! [								;-- 92 bytes
 	lfClipPrecision	[byte!]
 	lfQuality		[byte!]
 	lfPitchAndFamily[byte!]
-	lfFaceName		[integer!]							;@@ 64 bytes offset: 28
+	lfFaceName		[float!]							;@@ 64 bytes offset: 28
+	lfFaceName2		[float!]
+	lfFaceName3		[float!]
+	lfFaceName4		[float!]
+	lfFaceName5		[float!]
+	lfFaceName6		[float!]
+	lfFaceName7		[float!]
+	lfFaceName8		[float!]
 ]
 
 tagCHOOSEFONT: alias struct! [
@@ -987,6 +998,10 @@ XFORM!: alias struct! [
 		]
 		GetSystemMetrics: "GetSystemMetrics" [
 			index		[integer!]
+			return:		[integer!]
+		]
+		GetSysColor: "GetSysColor" [
+			nIndex		[integer!]
 			return:		[integer!]
 		]
 		SystemParametersInfo: "SystemParametersInfoW" [
@@ -1168,6 +1183,10 @@ XFORM!: alias struct! [
 			lpCursorName [integer!]
 			return: 	 [handle!]
 		]
+		SetCursor: "SetCursor" [
+			hCursor		[handle!]
+			return:		[handle!]			;-- return previous cursor, if there was one
+		]
 		CreateWindowEx: "CreateWindowExW" [
 			dwExStyle	 [integer!]
 			lpClassName	 [c-string!]
@@ -1214,6 +1233,10 @@ XFORM!: alias struct! [
 		EnableWindow: "EnableWindow" [
 			hWnd		[handle!]
 			bEnable		[logic!]
+			return:		[logic!]
+		]
+		IsWindowEnabled: "IsWindowEnabled" [
+			hWnd		[handle!]
 			return:		[logic!]
 		]
 		InvalidateRect: "InvalidateRect" [
@@ -1892,6 +1915,26 @@ XFORM!: alias struct! [
 		]
 	]
 	"gdiplus.dll" stdcall [
+		GdipCreateHICONFromBitmap: "GdipCreateHICONFromBitmap" [
+			bitmap		[integer!]
+			hIcon		[int-ptr!]
+			return:		[integer!]
+		]
+		GdipSetPixelOffsetMode: "GdipSetPixelOffsetMode" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		GdipSetCompositingMode: "GdipSetCompositingMode" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		GdipSetCompositingQuality: "GdipSetCompositingQuality" [
+			graphics	[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
 		GdipCreateImageAttributes: "GdipCreateImageAttributes" [
 			attr		[int-ptr!]
 			return:		[integer!]
@@ -1903,7 +1946,7 @@ XFORM!: alias struct! [
 		GdipSetImageAttributesColorKeys: "GdipSetImageAttributesColorKeys" [
 			attr		[integer!]
 			type		[integer!]
-			enable?		[logic!]
+			enabled?	[logic!]
 			colorLow	[integer!]
 			colorHigh	[integer!]
 			return:		[integer!]

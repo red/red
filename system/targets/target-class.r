@@ -10,7 +10,7 @@ REBOL [
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
-	branch-offset-size: locals-offset: none						   ; TBD: document once stabilized
+	branch-offset-size: locals-offset: def-locals-offset: none	   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
@@ -158,6 +158,25 @@ target-class: context [
 		total
 	]
 	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		either 'value = last spec [
+			unless 'struct! = spec/1 [spec: compiler/find-aliased spec/1]
+			body: bind/copy body 'type
+			if block? spec/1 [spec: next spec]
+
+			foreach [name t] spec/2 [				;-- skip 'struct!
+				unless word? name [break]
+				either 'value = last type: t [
+					foreach-member type body
+				][
+					do body
+				]
+			]
+		][
+			do body
+		]
+	]
+	
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
@@ -182,7 +201,7 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
+	emit-call: func [name [word!] args [block!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -199,7 +218,7 @@ target-class: context [
 			]
 			native [
 				switch/default name [
-					log-b [								;@@ needs a new function type...
+					log-b [							;@@ needs a new function type...
 						emit-pop
 						emit-log-b compiler/last-type/1
 					]
@@ -234,9 +253,7 @@ target-class: context [
 				][
 					emit-integer-operation name args
 				]
-				if sub? [emitter/logic-to-integer name]
-				
-				unless find comparison-op name [		;-- comparison always return a logic!
+				unless find comparison-op name [	;-- comparison always return a logic!
 					res: any [
 						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	

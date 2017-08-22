@@ -37,6 +37,26 @@ size-text: function [
 	system/view/platform/size-text face text
 ]
 
+metrics?: function [
+	"Returns a pair! value in the type metrics for the argument face"
+	face [object!]			"Face object to query"
+	type [word!]			"Metrics type: 'paddings or 'margins"
+	/total					"Return the addition of metrics along an axis"
+		axis [word!]		"Axis to use for addition: 'x or 'y"
+][
+	res: select system/view/metrics/:type face/type
+	all [
+		face/options
+		type: face/options/class
+		res: find res type
+		res: next res
+	]
+	either total [
+		axis: any [select [x 1 y 2] axis 1]
+		res/:axis/x + res/:axis/y
+	][res]
+]
+
 set-flag: function [
 	face  [object!]
 	facet [word!]
@@ -133,7 +153,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 										pane: target
 										until [
 											pane: back pane
-											pane/1/enable?: yes
+											pane/1/enabled?: yes
 											unless system/view/auto-sync? [show pane/1]
 											any [head? pane find-flag? pane/1/flags 'modal]
 										]
@@ -266,7 +286,7 @@ face!: object [				;-- keep in sync with facet! enum
 	color:		none
 	menu:		none
 	data:		none
-	enable?:	yes
+	enabled?:	yes
 	visible?:	yes
 	selected:	none
 	flags:		none
@@ -293,6 +313,13 @@ face!: object [				;-- keep in sync with facet! enum
 			]
 		]
 		if all [word <> 'state word <> 'extra][
+			all [
+				not empty? srs: system/reactivity/source
+				srs/1 = self
+				srs/2 = word
+				set-quiet in self word old				;-- force the old value
+				exit
+			]
 			if word = 'pane [
 				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []
@@ -511,6 +538,11 @@ system/view: context [
 		screen-size: 	none
 		dpi:			none
 		;scaling:		1x1
+		paddings:		make map! 32
+		margins:		make map! 32
+		def-heights:	make map! 32
+		misc:			make map! 32
+		colors:			make map! 10
 	]
 	
 	fonts: object [
@@ -581,7 +613,7 @@ system/view: context [
 		]
 	]
 	
-	awake: function [event [event!] /with face result][	;@@ temporary until event:// is implemented
+	awake: function [event [event!] /with face /local result][	;@@ temporary until event:// is implemented
 		unless face [unless face: event/face [exit]]	;-- filter out unbound events
 		
 		unless with [									;-- protect following code from recursion
@@ -624,7 +656,7 @@ do-events: function [
 	/local result
 ][
 	win: last system/view/screens/1/pane
-	win/state/4: not no-wait							;-- mark the window from which the event loop starts
+	unless win/state/4 [win/state/4: not no-wait]		;-- mark the window from which the event loop starts
 	set/any 'result system/view/platform/do-event-loop no-wait
 	:result
 ]
@@ -655,6 +687,7 @@ show: function [
 	face [object! block!] "Face object to display"
 	/with				  "Link the face to a parent face"
 		parent [object!]  "Parent face to link to"
+	/force				  "For internal use only!"
 ][
 	if block? face [
 		foreach f face [
@@ -679,8 +712,9 @@ show: function [
 		new?: yes
 		
 		if face/type <> 'screen [
-			if all [not parent not object? face/parent face/type <> 'window][
-				cause-error 'script 'not-linked []
+			if all [not force face/type <> 'window][
+				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
+				unless parent [cause-error 'script 'not-linked []]
 			]
 			if any [series? face/extra object? face/extra][
 				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
@@ -690,10 +724,10 @@ show: function [
 			]
 			p: either with [parent/state/1][0]
 
-			#if config/OS = 'MacOSX [					;@@ remove this system specific code
+			#if config/OS = 'macOS [					;@@ remove this system specific code
 				if all [face/type = 'tab-panel face/pane][
 					link-tabs-to-parent face
-					foreach f face/pane [show f]
+					foreach f face/pane [show/force f]
 				]
 			]
 
@@ -718,7 +752,7 @@ show: function [
 					pane: system/view/screens/1/pane
 					if find-flag? face/flags 'modal [
 						foreach f head pane [
-							f/enable?: no
+							f/enabled?: no
 							unless system/view/auto-sync? [show f]
 						]
 					]
@@ -727,17 +761,15 @@ show: function [
 			]
 		]
 		face/state: reduce [obj 0 none false]
-		if all [object? face/actors in face/actors 'on-created][
-			do-safe [face/actors/on-created face none]	;@@ only called once
-		]
 	]
 
 	if face/pane [
 		foreach f face/pane [show/with f face]
 		system/view/platform/refresh-window face/state/1
 	]
-	;check-all-reactions face
-	
+	if all [new? object? face/actors in face/actors 'on-created][
+		do-safe [face/actors/on-created face none]		;@@ only called once
+	]
 	if all [new? face/type = 'window face/visible?][
 		system/view/platform/show-window obj
 	]
@@ -778,13 +810,18 @@ view: function [
 	if block? spec [spec: either tight [layout/tight spec][layout spec]]
 	if spec/type <> 'window [cause-error 'script 'not-window []]
 	if options [set spec make object! opts]
-	if flags [spec/flags: either spec/flags [unique union spec/flags flgs][flgs]]
+	if flags [spec/flags: either spec/flags [unique union to-block spec/flags to-block flgs][flgs]]
 	
 	unless spec/text   [spec/text: "Red: untitled"]
 	unless spec/offset [center-face spec]
 	show spec
 	
-	either no-wait [spec][do-events ()]					;-- return unset! value by default
+	either no-wait [
+		do-events/no-wait
+		spec											;-- return root face
+	][
+		do-events ()									;-- return unset! value by default
+	]
 	
 ]
 
@@ -817,7 +854,8 @@ dump-face: function [
 ][
 	depth: ""
 	print [
-		depth "Style:" face/type "Offset:" face/offset "Size:" face/size
+		depth "Type:" face/type "Style:" if face/options [face/options/style]
+		"Offset:" face/offset "Size:" face/size
 		"Text:" if face/text [mold/part face/text 20]
 	]
 	append depth "    "
@@ -903,7 +941,31 @@ set-focus: function [
 	while [p/type <> 'window][p: p/parent]
 	p/selected: face
 ]
+
+foreach-face: function [
+	"Evaluates body for each face in a face tree matching the condition"
+	face [object!]	"Root face of the face tree"
+	body [block! function!] "Body block (`face` object) or function `func [face [object!]]`"
+	/with			"Filter faces according to a condition"
+		spec [block! none!] "Condition applied to face object"
+	/post 			"Evaluates body for current face after processing its children"
+	/sub post?		"Do not rebind body and spec, internal use only"
+][
+	unless block? face/pane [exit]
+	unless sub [
+		all [spec bind spec 'face]
+		if block? :body [bind body 'face]
+	]
+	if post [post?: yes]
+	exec: [either block? :body [do body][body face]]
 	
+	foreach face face/pane [
+		unless post? [either spec [all [do spec do exec]][do exec]]
+		if block? face/pane [foreach-face/with/sub face :body spec post?]
+		if post? [either spec [all [do spec do exec]][do exec]]
+	]
+]
+
 ;=== Global handlers ===
 
 ;-- Dragging face handler --
@@ -986,8 +1048,11 @@ insert-event-func [
 	all [
 		event/type = 'key
 		find "^M^/" event/key
-		find [field drop-down] event/face/type
-		event/type: 'enter
+		switch event/face/type [ 
+			field 
+			drop-down [event/type: 'enter]
+			button	  [event/type: 'click]
+		]
 	]
 	event
 ]
@@ -998,8 +1063,11 @@ insert-event-func [
 		event/type = 'click
 		event/face/type = 'radio
 	][
-		foreach f event/face/parent/pane [if f/type = 'radio [f/data: off show f]]
+		foreach f event/face/parent/pane [
+			if all [f/type = 'radio f/data][f/data: off show f]
+		]
 		event/face/data: on
+		show event/face
 		event/type: 'change
 	]
 	event

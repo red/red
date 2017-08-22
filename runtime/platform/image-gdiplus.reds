@@ -236,24 +236,24 @@ OS-image: context [
 	]
 
 	width?: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		return:		[integer!]
 		/local
 			width	[integer!]
 	][
 		width: 0
-		GdipGetImageWidth handle :width
+		GdipGetImageWidth as-integer handle :width
 		width
 	]
 
 	height?: func [
-		handle		[integer!]
+		handle		[int-ptr!]
 		return:		[integer!]
 		/local
 			height	[integer!]
 	][
 		height: 0
-		GdipGetImageHeight handle :height
+		GdipGetImageHeight as-integer handle :height
 		height
 	]
 
@@ -273,19 +273,27 @@ OS-image: context [
 		either zero? res [as-integer data][0]
 	]
 
+	unlock-bitmap-fmt: func [
+		img			[integer!]
+		data		[integer!]
+	][
+		GdipBitmapUnlockBits img as BitmapData! data
+		free as byte-ptr! data
+	]
+
 	lock-bitmap: func [
-		handle		[integer!]
+		img			[red-image!]
 		write?		[logic!]
 		return:		[integer!]
 	][
-		lock-bitmap-fmt handle PixelFormat32bppARGB write?
+		lock-bitmap-fmt as-integer img/node PixelFormat32bppARGB write?
 	]	
 
 	unlock-bitmap: func [
-		handle		[integer!]
+		img			[red-image!]
 		data		[integer!]
 	][
-		GdipBitmapUnlockBits handle as BitmapData! data
+		GdipBitmapUnlockBits as-integer img/node as BitmapData! data
 		free as byte-ptr! data
 	]
 
@@ -302,7 +310,7 @@ OS-image: context [
 	]
 
 	get-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		return:		[integer!]
 		/local
@@ -311,12 +319,12 @@ OS-image: context [
 	][
 		width: width? bitmap
 		arbg: 0
-		GdipBitmapGetPixel bitmap index % width index / width :arbg
+		GdipBitmapGetPixel as-integer bitmap index % width index / width :arbg
 		arbg
 	]
 
 	set-pixel: func [
-		bitmap		[integer!]
+		bitmap		[node!]
 		index		[integer!]				;-- zero-based
 		color		[integer!]
 		return:		[integer!]
@@ -324,7 +332,7 @@ OS-image: context [
 			width	[integer!]
 	][
 		width: width? bitmap
-		GdipBitmapSetPixel bitmap index % width index / width color
+		GdipBitmapSetPixel as-integer bitmap index % width index / width color
 	]
 
 	delete: func [img [red-image!]][
@@ -389,8 +397,8 @@ OS-image: context [
 		if pixels <> 0 [bytes: stride / pbytes - w + pixels * pbytes + bytes]
 		offset: offset / w * stride + (offset % w * pbytes)
 		copy-memory bmp-dst/scan0 bmp-src/scan0 + offset bytes
-		unlock-bitmap src as-integer bmp-src
-		unlock-bitmap dst as-integer bmp-dst
+		unlock-bitmap-fmt src as-integer bmp-src
+		unlock-bitmap-fmt dst as-integer bmp-dst
 
 		if format and PixelFormatIndexed <> 0 [		;-- indexed image, need to set palette
 			bytes: 0
@@ -403,8 +411,8 @@ OS-image: context [
 	]
 
 	load-image: func [
-		filename	[c-string!]				;-- UTF-16 string
-		return:		[integer!]
+		src			[red-string!]
+		return:		[int-ptr!]
 		/local
 			handle	[integer!]
 			res		[integer!]
@@ -414,20 +422,20 @@ OS-image: context [
 			h		[integer!]
 	][
 		handle: 0
-		res: GdipCreateBitmapFromFile filename :handle
-		unless zero? res [return -1]
+		res: GdipCreateBitmapFromFile file/to-OS-path src :handle
+		unless zero? res [return null]
 
 		format: 0
 		bitmap: 0
 		GdipGetImagePixelFormat handle :format
-		w: width? handle
-		h: height? handle
+		w: width? as int-ptr! handle
+		h: height? as int-ptr! handle
 		GdipCreateBitmapFromScan0 w h 0 format null :bitmap
 
 		copy bitmap handle 0 h 0 format
 
 		GdipDisposeImage handle 
-		bitmap
+		as int-ptr! bitmap
 	]
 
 	make-image: func [
@@ -436,7 +444,7 @@ OS-image: context [
 		rgb		[byte-ptr!]
 		alpha	[byte-ptr!]
 		color	[red-tuple!]
-		return: [integer!]
+		return: [int-ptr!]
 		/local
 			a		[integer!]
 			r		[integer!]
@@ -478,14 +486,14 @@ OS-image: context [
 			]
 		]
 
-		unlock-bitmap bitmap as-integer data
-		bitmap
+		unlock-bitmap-fmt bitmap as-integer data
+		as int-ptr! bitmap
 	]
 
 	load-binary: func [
 		data	[byte-ptr!]
 		len		[integer!]
-		return: [integer!]
+		return: [node!]
 		/local
 			hMem [integer!]
 			p	 [byte-ptr!]
@@ -501,7 +509,7 @@ OS-image: context [
 		bmp: 0
 		CreateStreamOnHGlobal hMem true :s
 		GdipCreateBitmapFromStream s :bmp
-		bmp
+		as node! bmp
 	]
 
 	encode: func [

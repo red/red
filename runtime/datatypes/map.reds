@@ -25,6 +25,25 @@ map: context [
 		size/value
 	]
 
+	preprocess-key: func [
+		key		[red-value!]
+	][
+		switch TYPE_OF(key) [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL
+			TYPE_TAG
+			TYPE_EMAIL	 [_series/copy as red-series! key as red-series! key null yes null]
+			TYPE_INTEGER TYPE_CHAR TYPE_FLOAT TYPE_DATE
+			TYPE_PERCENT TYPE_TUPLE TYPE_PAIR TYPE_TIME [0]
+			default		[fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(key)]]
+		]
+	]
+
 	serialize: func [
 		map		[red-hash!]
 		buffer	[red-string!]
@@ -106,6 +125,7 @@ map: context [
 			key		[red-value!]
 			val		[red-value!]
 			psize	[int-ptr!]
+			kkey	[red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
 
@@ -114,7 +134,7 @@ map: context [
 
 		s: GET_BUFFER(map)
 		size: as-integer s/tail + size - s/offset
-		if size > s/size [s: expand-series s size]
+		if size > s/size [expand-series s size]
 
 		s: GET_BUFFER(src)
 		cell: s/offset + src/head
@@ -134,8 +154,10 @@ map: context [
 				]
 			][
 				either key = null [
+					copy-cell cell kkey
+					preprocess-key kkey
 					s: as series! map/node/value
-					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell kkey as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1
@@ -476,6 +498,7 @@ map: context [
 			val		[red-value!]
 			s		[series!]
 			size	[int-ptr!]
+			k		[red-value! value]
 	][
 		table: parent/table
 		key: _hashtable/get table element 0 0 case? no no
@@ -492,8 +515,10 @@ map: context [
 				value
 			][
 				either key = null [
+					copy-cell element k
+					preprocess-key k
 					s: as series! parent/node/value
-					key: copy-cell element as cell! alloc-tail-unit s (size? cell!) << 1
+					key: copy-cell k as cell! alloc-tail-unit s (size? cell!) << 1
 					_hashtable/put table key
 				][
 					val: key + 1

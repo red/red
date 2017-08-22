@@ -129,7 +129,7 @@ clipboard: context [
 			true
 		]
 	]
-	MacOSX [
+	macOS [
 		#import [
 			LIBC-file cdecl [
 				objc_getClass: "objc_getClass" [

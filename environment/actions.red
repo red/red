@@ -86,17 +86,17 @@ modify: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number! pair! time!]
-		return:  [number! pair! time!]
+		value	 [number! char! pair! time!]
+		return:  [number! char! pair! time!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! char! pair! tuple! vector! time! date!]
+		value2	 [number! char! pair! tuple! vector! time! date!]
+		return:  [number! char! pair! tuple! vector! time! date!]
 	]
 	#get-definition ACT_ADD
 ]
@@ -130,7 +130,7 @@ negate: make action! [[
 power: make action! [[
 		"Returns a number raised to a given power (exponent)"
 		number	 [number!] "Base value"
-		exponent [number!] "The power (index) to raise the base value by"
+		exponent [integer! float!] "The power (index) to raise the base value by"
 		return:	 [number!]
 	]
 	#get-definition ACT_POWER
@@ -162,9 +162,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple! vector! time!]
-		value2	 [number! char! pair! tuple! vector! time!]
-		return:  [number! char! pair! tuple! vector! time!]
+		value1	 [number! char! pair! tuple! vector! time! date!]
+		value2	 [number! char! pair! tuple! vector! time! date!]
+		return:  [number! char! pair! tuple! vector! time! date!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -378,7 +378,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple! time!]
+		series	 [series! bitset! pair! tuple! date! time!]
 		index 	 [scalar! any-string! any-word! block! logic! time!]
 		return:  [any-type!]
 	]
@@ -511,8 +511,8 @@ take: make action! [[
 ]
 
 trim: make action! [[
-		"Removes space from a string or NONE from a block or object"
-		series	[series! object! error! map!]
+		"Removes space from a string or NONE from a block"
+		series	[string! block! hash!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"
@@ -528,12 +528,18 @@ trim: make action! [[
 
 ;create
 ;close
-;delete
+
+delete: make action! [[
+		"Deletes the specified file or empty folder"
+		file [file!]
+	]
+	#get-definition ACT_DELETE
+]
 ;open
 ;open?
 ;query
 read: make action! [[
-		"Read from a file, URL, or other port"
+		"Reads from a file, URL, or other port"
 		source	[file! url!]
 		/part	"Partial read a given number of units (source relative)"
 			length [number!]

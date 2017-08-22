@@ -700,14 +700,33 @@ Red/System [
 				grad?	[logic!]
 				rect?   [logic!]
 				state	[integer!]
-				clip-mode    [integer!]
-				m-order [integer!]
+				clip-mode	[integer!]
+				m-order		[integer!]
+				pen-clr		[integer!]
+				brush-clr	[integer!]
+				pen-join	[integer!]
+				pen-cap		[integer!]
+				pen?		[logic!]
+				brush?		[logic!]
+				a-pen?		[logic!]
+				a-brush?	[logic!]
 		][
 			cmd:  block/rs-head cmds
 			tail: block/rs-tail cmds
 
 			state: 0
 			clip-mode: replace
+
+			#if OS = 'Windows [
+				pen-clr: DC/pen-color
+				brush-clr: DC/brush-color
+				pen-join: DC/pen-join
+				pen-cap: DC/pen-cap
+				pen?: DC/pen?
+				brush?: DC/brush?
+				a-pen?: DC/alpha-pen?
+				a-brush?: DC/alpha-brush?
+			]
 			while [cmd < tail][
 				switch TYPE_OF(cmd) [
 					TYPE_WORD [
@@ -1013,6 +1032,12 @@ Red/System [
 				]
 				cmd: cmd + 1
 			]
+			#if OS = 'Windows [
+				DC/pen-join: pen-join
+				DC/pen-cap: pen-cap
+				OS-draw-pen DC pen-clr pen? a-pen?
+				OS-draw-fill-pen DC brush-clr brush? a-brush?
+			]
 		]
 
 		do-draw: func [
@@ -1030,9 +1055,8 @@ Red/System [
 				null? handle
 				any [TYPE_OF(cmds) <> TYPE_BLOCK zero? block/rs-length? cmds]
 			][exit]
-
+			
 			system/thrown: 0
-			DC/pen-join: 0					;@@ making compiler happy
 			draw-begin :DC handle img on-graphic? paint?
 			if TYPE_OF(cmds) = TYPE_BLOCK [
 				catch RED_THROWN_ERROR [parse-draw DC cmds catch?]

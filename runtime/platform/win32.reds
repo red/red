@@ -107,6 +107,30 @@ platform: context [
 		second		[integer!]
 	]
 
+	tagTIME_ZONE_INFORMATION: alias struct! [
+		Bias				[integer!]
+		StandardName1		[float!]			;-- StandardName: 64 bytes
+		StandardName2		[float!]
+		StandardName3		[float!]
+		StandardName4		[float!]
+		StandardName5		[float!]
+		StandardName6		[float!]
+		StandardName7		[float!]
+		StandardName8		[float!]
+		StandardDate		[tagSYSTEMTIME value]
+		StandardBias		[integer!]
+		DaylightName1		[float!]			;-- DaylightName: 64 bytes
+		DaylightName2		[float!]
+		DaylightName3		[float!]
+		DaylightName4		[float!]
+		DaylightName5		[float!]
+		DaylightName6		[float!]
+		DaylightName7		[float!]
+		DaylightName8		[float!]
+		DaylightDate		[tagSYSTEMTIME value]
+		DaylightBias		[integer!]
+	]
+
 	gdiplus-token: 0
 	page-size: 4096
 
@@ -201,6 +225,10 @@ platform: context [
 			]
 			GetLocalTime: "GetLocalTime" [
 				time			[tagSYSTEMTIME]
+			]
+			GetTimeZoneInformation: "GetTimeZoneInformation" [
+				tz				[tagTIME_ZONE_INFORMATION]
+				return:			[integer!]
 			]
 			Sleep: "Sleep" [
 				dwMilliseconds	[integer!]
@@ -391,7 +419,7 @@ platform: context [
 	set-env: func [
 		name	[c-string!]
 		value	[c-string!]
-		return: [logic!]			;-- true for success
+		return: [logic!]								;-- true for success
 	][
 		SetEnvironmentVariable name value
 	]
@@ -401,7 +429,7 @@ platform: context [
 		;; If return size is greater than valsize then value contents are undefined
 		name	[c-string!]
 		value	[c-string!]
-		valsize [integer!]			;-- includes null terminator
+		valsize [integer!]								;-- includes null terminator
 		return: [integer!]
 	][
 		GetEnvironmentVariable name value valsize
@@ -412,21 +440,54 @@ platform: context [
 		precise? [logic!]
 		return:  [float!]
 		/local
-			time	[tagSYSTEMTIME]
+			tm	[tagSYSTEMTIME value]
 			h		[integer!]
 			m		[integer!]
 			sec		[integer!]
 			milli	[integer!]
 			t		[float!]
+			mi		[float!]
 	][
-		time: declare tagSYSTEMTIME
-		either utc? [GetSystemTime time][GetLocalTime time]
-		h: time/hour-minute and FFFFh
-		m: time/hour-minute >>> 16
-		sec: time/second and FFFFh
-		milli: either precise? [time/second >>> 16][0]
-		t: as-float h * 3600 + (m * 60) + sec * 1000 + milli
-		t * 1E6				;-- nano second
+		GetSystemTime tm
+		h: tm/hour-minute and FFFFh
+		m: tm/hour-minute >>> 16
+		sec: tm/second and FFFFh
+		milli: either precise? [tm/second >>> 16][0]
+		mi: as float! milli
+		mi: mi / 1000.0
+		t: as-float h * 3600 + (m * 60) + sec
+		t: t + mi
+		t
+	]
+
+	get-date: func [
+		utc?	[logic!]
+		return:	[integer!]
+		/local
+			tm		[tagSYSTEMTIME value]
+			tzone	[tagTIME_ZONE_INFORMATION value]
+			bias	[integer!]
+			res		[integer!]
+			y		[integer!]
+			m		[integer!]
+			d		[integer!]
+			h		[integer!]
+	][
+		either utc? [GetSystemTime tm][GetLocalTime tm]
+		y: tm/year-month and FFFFh
+		m: tm/year-month >>> 16
+		d: tm/week-day >>> 16
+
+		either utc? [h: 0][
+			res: GetTimeZoneInformation tzone
+			bias: tzone/Bias
+			if res = 2 [bias: bias + tzone/DaylightBias] ;-- TIME_ZONE_ID_DAYLIGHT: 2
+			bias: 0 - bias
+			h: bias / 60
+			if h < 0 [h: 0 - h and 0Fh or 10h]			;-- properly set the sign bit
+			h: h << 2 or (bias // 60 / 15 and 03h)
+		]
+		y << 17 or (m << 12) or (d << 7) or h
 	]
 
 	open-console: func [return: [logic!]][

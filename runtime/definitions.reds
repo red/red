@@ -53,6 +53,7 @@ Red/System [
 #define default-offset		-1				;-- for offset value in alloc-series calls
 
 #define series!				series-buffer! 
+#define handle!				[pointer! [integer!]]
 
 
 ;=== Unicode support definitions ===
@@ -65,16 +66,6 @@ Red/System [
 	UCS-4:		 4
 ]
 
-;=== Simple I/O definitions ===
-
-#enum http-verb! [
-	HTTP_GET
-	HTTP_PUT
-	HTTP_POST
-	HTTP_DEL
-	HTTP_HEAD
-]
-
 ;== Image definitions ===
 
 #enum extract-type! [
@@ -83,7 +74,7 @@ Red/System [
 	EXTRACT_ARGB
 ]
 
-#if OS = 'MacOSX [
+#if OS = 'macOS [
 	CGAffineTransform!: alias struct! [
 		a		[float32!]
 		b		[float32!]
@@ -112,12 +103,7 @@ Red/System [
 		grad-x2			[float32!]
 		grad-y2			[float32!]
 		grad-radius		[float32!]
-		grad-angle		[float32!]
-		grad-sx			[float32!]
-		grad-sy			[float32!]
 		grad-pos?		[logic!]
-		grad-rotate?	[logic!]
-		grad-scale?		[logic!]
 		grad-pen?		[logic!]
 		grad-brush?		[logic!]
 		pen?			[logic!]
@@ -134,6 +120,7 @@ Red/System [
 		last-pt-y		[float32!]
 		control-x		[float32!]
 		control-y		[float32!]
+		path			[integer!]
 		shape-curve?	[logic!]
 	]
 ]
@@ -176,8 +163,6 @@ Red/System [
 	#define BFFM_INITIALIZED		1
 	#define BFFM_SELCHANGED			2
 	#define BFFM_SETSELECTION		1127
-
-	#define handle!				[pointer! [integer!]]
 
 	#enum brush-type! [
 		BRUSH_TYPE_NORMAL
@@ -317,7 +302,7 @@ Red/System [
 	#define	DT_DIR		#"^(04)"
 	
 	#case [
-		any [OS = 'FreeBSD OS = 'MacOSX] [
+		any [OS = 'FreeBSD OS = 'macOS] [
 			#define O_CREAT		0200h
 			#define O_TRUNC		0400h
 			#define O_EXCL		0800h

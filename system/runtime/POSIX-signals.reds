@@ -15,21 +15,21 @@ Red/System [
 ;;  http://fxr.watson.org/fxr/source/bsd/sys/signal.h?v=xnu-1456.1.26;im=excerpts
 
 #define SIGBUS [                            ;-- Bus access error
-	#switch OS [MacOSX [10] FreeBSD [10] #default [7]]
+	#switch OS [macOS [10] FreeBSD [10] #default [7]]
 ]
 #define SIGILL       4                      ;-- Illegal instruction
 #define SIGFPE       8                      ;-- Floating point error
 #define SIGSEGV     11                      ;-- Segmentation violation
 #define SIGWINCH	28						;-- Console window resizing
 
-#define SA_SIGINFO   [#switch OS [MacOSX [0040h] FreeBSD [0040h] #default [00000004h]]]
-#define SA_RESTART   [#switch OS [MacOSX [0002h] FreeBSD [0002h] #default [10000000h]]]
+#define SA_SIGINFO   [#switch OS [macOS [0040h] FreeBSD [0040h] #default [00000004h]]]
+#define SA_RESTART   [#switch OS [macOS [0002h] FreeBSD [0002h] #default [10000000h]]]
 
 #define ILL_ILLOPC   1
-#define ILL_ILLOPN   [#switch OS [MacOSX [4] #default [2]]]
-#define ILL_ILLADR   [#switch OS [MacOSX [5] #default [3]]]
-#define ILL_ILLTRP   [#switch OS [MacOSX [2] #default [4]]]
-#define ILL_PRVOPC   [#switch OS [MacOSX [3] #default [5]]]
+#define ILL_ILLOPN   [#switch OS [macOS [4] #default [2]]]
+#define ILL_ILLADR   [#switch OS [macOS [5] #default [3]]]
+#define ILL_ILLTRP   [#switch OS [macOS [2] #default [4]]]
+#define ILL_PRVOPC   [#switch OS [macOS [3] #default [5]]]
 #define ILL_PRVREG   6
 #define ILL_COPROC   7
 #define ILL_BADSTK   8
@@ -43,11 +43,11 @@ Red/System [
 #define SEGV_MAPERR  1
 #define SEGV_ACCERR  2
 
-#define FPE_INTDIV   [#switch OS [MacOSX [7] FreeBSD [2] #default [1]]]
-#define FPE_INTOVF   [#switch OS [MacOSX [8] FreeBSD [1] #default [2]]]
-#define FPE_FLTDIV   [#switch OS [MacOSX [1] #default [3]]]
-#define FPE_FLTOVF   [#switch OS [MacOSX [2] #default [4]]]
-#define FPE_FLTUND   [#switch OS [MacOSX [3] #default [5]]]
-#define FPE_FLTRES   [#switch OS [MacOSX [4] #default [6]]]
-#define FPE_FLTINV   [#switch OS [MacOSX [5] #default [7]]]
-#define FPE_FLTSUB   [#switch OS [MacOSX [6] #default [8]]]
+#define FPE_INTDIV   [#switch OS [macOS [7] FreeBSD [2] #default [1]]]
+#define FPE_INTOVF   [#switch OS [macOS [8] FreeBSD [1] #default [2]]]
+#define FPE_FLTDIV   [#switch OS [macOS [1] #default [3]]]
+#define FPE_FLTOVF   [#switch OS [macOS [2] #default [4]]]
+#define FPE_FLTUND   [#switch OS [macOS [3] #default [5]]]
+#define FPE_FLTRES   [#switch OS [macOS [4] #default [6]]]
+#define FPE_FLTINV   [#switch OS [macOS [5] #default [7]]]
+#define FPE_FLTSUB   [#switch OS [macOS [6] #default [8]]]

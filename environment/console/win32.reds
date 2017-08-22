@@ -315,8 +315,6 @@ output-to-screen: func [/local n][
 ]
 
 init: func [
-	line 		[red-string!]
-	hist-blk	[red-block!]
 	/local
 		mode	[integer!]
 ][

@@ -380,6 +380,10 @@ redbin: context [
 				cell: as cell! time/make-in parent data/2 data/3
 				data + 3
 			]
+			TYPE_DATE	[
+				cell: as cell! date/make-in parent data/2 data/3 data/4
+				data + 4
+			]
 			TYPE_CHAR		[
 				cell: as cell! char/make-in parent data/2
 				data + 2

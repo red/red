@@ -104,25 +104,19 @@ loader: make-profilable context [
 	]
 
 	check-condition: func [type [word!] payload [block!]][
-		if any [
-			not any [word? payload/1 lit-word? payload/1]
-			not in job payload/1
-			all [type <> 'switch not find [= <> < > <= >= contains] payload/2]
-		][
-			throw-error rejoin ["invalid #" type " condition"]
-		]
-		either type = 'switch [
-			any [
-				select payload/2 job/(payload/1)
-				select payload/2 #default
+		case [
+			type = 'switch [
+				any [
+					select payload/2 job/(payload/1)
+					select payload/2 #default
+				]
 			]
-		][
-			payload: either payload/2 = 'contains [
-				compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
-			][
-				copy/part payload 3
+			payload/2 = 'contains [
+				do bind/copy 
+					compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
+					job
 			]
-			do bind payload job
+			'else [do bind/copy payload job]
 		]
 	]
 	
@@ -229,7 +223,8 @@ loader: make-profilable context [
 		src [block!]
 		/own
 		/local blk rule name value args s e opr then-block else-block cases body p
-			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
+			saved stack header mark idx prev enum-value enum-name enum-names line-rule
+			recurse condition
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -264,6 +259,11 @@ loader: make-profilable context [
 			]
 			set [s e] saved
 		]
+		condition: [
+			opt 'not ['find block! skip | ['any | 'all] block!]
+			| set name word! set opr skip set value any-type!
+		]
+		
 		parse/case src blk: [
 			s: (do store-line)
 			some [
@@ -351,15 +351,15 @@ loader: make-profilable context [
 						current-script: name
 					]
 				) :s
-				| s: #if set name word! set opr skip set value any-type! set then-block block! e: (
-					either check-condition 'if reduce [name opr get/any 'value][
+				| s: #if condition set then-block block! e: (
+					either check-condition 'if copy/part next s back e [
 						change/part s then-block e
 					][
 						remove/part s e
 					]
 				) :s
-				| s: #either set name word! set opr skip set value any-type! set then-block block! set else-block block! e: (
-					either check-condition 'either reduce [name opr get/any 'value][
+				| s: #either condition set then-block block! set else-block block! e: (
+					either check-condition 'either copy/part next s skip e -2 [
 						change/part s then-block e
 					][
 						change/part s else-block e

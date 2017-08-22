@@ -120,6 +120,15 @@ pollfd!: alias struct! [
 			tz		[integer!]			;-- obsolete
 			return: [integer!]			;-- 0: success -1: failure
 		]
+		difftime: "difftime" [
+			end		[integer!]
+			begin	[integer!]
+			return: [float!]
+		]
+		time: "time" [
+			ptr		[int-ptr!]
+			return: [integer!]
+		]
 		gmtime: "gmtime" [
 			tv_sec	[int-ptr!]
 			return: [tm!]
@@ -127,6 +136,10 @@ pollfd!: alias struct! [
 		localtime: "localtime" [
 			tv_sec	[int-ptr!]
 			return: [tm!]
+		]
+		mktime: "mktime" [
+			tm		[tm!]
+			return: [integer!]
 		]
 		fork: "fork" [
 			return:        [integer!]
@@ -456,16 +469,61 @@ get-time: func [
 	precise? [logic!]
 	return:  [float!]
 	/local
-		time	[timeval!]
+		time	[timeval! value]
 		tm		[tm!]
 		micro	[float!]
 		t		[float!]
 ][
-	time: declare timeval!
+	gettimeofday time 0
+	tm: gmtime as int-ptr! time
+	micro: 0.0
+	if precise? [
+		micro: as-float time/tv_usec
+		micro: micro / 1E6
+	]
+	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec
+	t + micro
+]
+
+get-timezone: func [
+	return: [integer!]
+	/local
+		t	[integer!]
+		t2	[integer!]
+		tm	[tm!]
+][
+	t: 0
+	time :t
+	tm: localtime :t
+	tm/isdst: 0
+	t2: mktime tm
+	t: as-integer difftime t2 mktime gmtime :t
+	t / 60
+]
+
+get-date: func [
+	utc?	[logic!]
+	return:	[integer!]
+	/local
+		time	[timeval! value]
+		tm		[tm!]
+		bias	[integer!]
+		y		[integer!]
+		m		[integer!]
+		d		[integer!]
+		h		[integer!]
+][
 	gettimeofday time 0
 	tm: either utc? [gmtime as int-ptr! time][localtime as int-ptr! time]
-	micro: 0.0
-	if precise? [micro: as-float time/tv_usec]
-	t: as-float tm/hour * 3600 + (tm/min * 60) + tm/sec * 1000
-	t * 1E3 + micro * 1E3			;-- nano second
+	y: tm/year + 1900
+	m: tm/mon + 1
+	d: tm/mday
+
+	either utc? [h: 0][
+		bias: get-timezone
+		h: bias / 60
+		if h < 0 [h: 0 - h and 0Fh or 10h]	;-- properly set the sign bit
+		h: h << 2 or (bias // 60 / 15 and 03h)
+	]
+	y << 17 or (m << 12) or (d << 7) or h
 ]

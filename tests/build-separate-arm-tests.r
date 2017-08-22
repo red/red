@@ -65,12 +65,6 @@ all-tests: read/lines %source/units/all-tests.txt
 foreach test all-tests [
 	append file-list copy test
 	replace test "auto-tests/" ""
-	unless any [
-		find test "routine"
-		find test "evaluation"
-	][
-		append file-list join "auto-tests/interp-" test
-	]
 ]
 
 foreach file file-list [

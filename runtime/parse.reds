@@ -136,6 +136,7 @@ parser: context [
 		R_AHEAD:		-16
 		R_CHANGE:		-17
 		R_CHANGE_ONLY:	-18
+		R_CASE:			-19
 	]
 	
 	triple!: alias struct! [
@@ -710,7 +711,7 @@ parser: context [
 		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
-		res: stack/top - 1
+		res: stack/get-top
 		if reset? [stack/top: saved]
 		res
 	]
@@ -808,6 +809,7 @@ parser: context [
 					]
 					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
+					match?: yes							;-- resets match? flag to default (fixes #2818)
 					
 					;#if debug? = yes [check-infinite-loop input rules rule saved?]
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag
@@ -970,7 +972,7 @@ parser: context [
 							R_KEEP_PAREN
 							R_KEEP_PICK [
 								if match? [
-									blk: as red-block! stack/top - 1
+									blk: as red-block! stack/get-top
 									assert any [
 										TYPE_OF(blk) = TYPE_WORD
 										TYPE_OF(blk) = TYPE_GET_WORD
@@ -1082,7 +1084,7 @@ parser: context [
 							]
 							R_COLLECT [
 								cnt-col: cnt-col - 1
-								value: stack/top - 1
+								value: stack/get-top
 
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
@@ -1135,6 +1137,10 @@ parser: context [
 								s/tail: s/tail - 3		;-- pop rule stack frame
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
+							]
+							R_CASE [
+								t: as triple! s/tail - 3
+								comp-op: t/max			;-- restore previous matching mode
 							]
 						]
 						if pop? [
@@ -1731,6 +1737,22 @@ parser: context [
 							]
 							min:   R_NONE
 							type:  R_COLLECT
+							state: ST_PUSH_RULE
+						]
+						sym = words/case* [				;-- CASE
+							cmd: cmd + 1
+							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
+								PARSE_ERROR [TO_ERROR(script parse-end) words/case*]
+							]
+							max: comp-op
+							bool: as red-logic! _context/get as red-word! cmd
+							type: TYPE_OF(bool)
+							comp-op: either any [
+								type = TYPE_NONE
+								all [type = TYPE_LOGIC not bool/value]
+							][COMP_EQUAL][COMP_STRICT_EQUAL]
+							min:   R_NONE
+							type:  R_CASE
 							state: ST_PUSH_RULE
 						]
 						sym = words/reject [			;-- REJECT

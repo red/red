@@ -22,7 +22,7 @@ Red/System [
 #define SYSCALL_MMAP		197
 #define SYSCALL_MUNMAP		73
 
-platform: context [
+platform: context [ 
 
 	#include %POSIX.reds
 
