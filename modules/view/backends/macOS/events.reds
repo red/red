@@ -88,13 +88,13 @@ keycode-table: [
 	RED_VK_ESCAPE			;-- 0x35
 	RED_VK_APPS				;-- 0x36	Right Command
 	RED_VK_LWIN				;-- 0x37	Left Command
-	RED_VK_SHIFT			;-- 0x38	Left Shift
+	RED_VK_LSHIFT			;-- 0x38	Left Shift
 	RED_VK_CAPITAL			;-- 0x39	Caps Lock
-	RED_VK_MENU				;-- 0x3A	Left Option
-	RED_VK_CONTROL			;-- 0x3B	Left Ctrl
-	RED_VK_SHIFT			;-- 0x3C	Right Shift
-	RED_VK_MENU				;-- 0x3D	Right Option
-	RED_VK_CONTROL			;-- 0x3E	Right Ctrl
+	RED_VK_LMENU			;-- 0x3A	Left Option
+	RED_VK_LCONTROL			;-- 0x3B	Left Ctrl
+	RED_VK_RSHIFT			;-- 0x3C	Right Shift
+	RED_VK_RMENU			;-- 0x3D	Right Option
+	RED_VK_RCONTROL			;-- 0x3E	Right Ctrl
 	RED_VK_UNKNOWN			;-- 0x3F	fn
 	RED_VK_F17				;-- 0x40
 	RED_VK_DECIMAL			;-- 0x41	Num Pad .
@@ -297,7 +297,6 @@ get-event-key: func [
 		code		[integer!]
 		char		[red-char!]
 		res			[red-value!]
-		special?	[logic!]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -305,9 +304,8 @@ get-event-key: func [
 		EVT_KEY_DOWN [
 			res: null
 			code: evt/flags
-			special?: code and 80000000h <> 0
 			code: code and FFFFh
-			if special? [
+			if special-key = -1 [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
 					RED_VK_NEXT		[_page-down]
@@ -343,7 +341,7 @@ get-event-key: func [
 				]
 			]
 			either null? res [
-				either all [special? evt/type = EVT_KEY][
+				either all [special-key = -1 evt/type = EVT_KEY][
 					none-value
 				][
 					char: as red-char! stack/push*
