@@ -257,22 +257,7 @@ field-key-release-event: func [
 
 	res: make-event widget key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
-	; 	either flags and 80000000h <> 0 [				;-- special key
-	; 		make-event widget key or flags EVT_KEY
-	; 	][
-	; 		if key = 8 [								;-- backspace
-	 			make-event widget key or flags EVT_KEY
-	; 			exit
-	; 		]
-	; 		key: objc_msgSend [event sel_getUid "characters"]
-	; 		if all [
-	; 			key <> 0
-	; 			0 < objc_msgSend [key sel_getUid "length"]
-	; 		][
-	; 			key: objc_msgSend [key sel_getUid "characterAtIndex:" 0]
-	; 			make-event widget key or flags EVT_KEY
-	; 		]
-	; 	]
+	 	make-event widget key or flags EVT_KEY
 	]
 ]
 
@@ -283,19 +268,6 @@ field-move-focus: func [
 	ctx		[node!] 
 ][
 	print-line "move-focus"
-]
-
-field-size-allocate: func [
-	[cdecl]
-	widget	[handle!]
-	event	[handle!]
-	ctx		[node!] 
-	/local
-		rect [RECT_STRUCT]
-][
-	print-line "size-allocate"
-	rect: as RECT_STRUCT event
-	print [" rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom lf]
 ]
 
 area-changed: func [

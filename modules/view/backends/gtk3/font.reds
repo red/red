@@ -104,7 +104,7 @@ make-font: func [
 	hFont: get-font-handle font
 	unless null? hFont [g_free hFont]
 
-	css:		g_strdup_printf ["* {"]
+	css:	g_strdup_printf ["* {"]
 
 	unless null? face [
 		bgcolor: as red-tuple!	(object/get-values face) + FACE_OBJ_COLOR
@@ -138,7 +138,7 @@ make-font: func [
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
-			case [ ;OLD -> class: case [
+			case [
 				sym = _bold      ["bold" css: g_strdup_printf ["%s font-weight: bold;" css]]
 				sym = _italic    ["italic" css: g_strdup_printf ["%s font-style: italic;" css]]
 				sym = _underline ["underline" css: g_strdup_printf ["%s text-decoration-line: underline;" css]]
@@ -157,8 +157,6 @@ make-font: func [
 
 	css: add-to-string css "%s}" null
 
-	;print ["css: " css lf]
-
 	hFont: as handle! css
 
 	blk: as red-block! values + FONT_OBJ_STATE
@@ -176,7 +174,6 @@ make-font: func [
 		block/rs-append blk as red-value! face
 	]
 
-;	]
 	hFont
 ]
 
@@ -281,8 +278,6 @@ font-description: func [
 	;angle:
 	color:	as red-tuple!	values + FONT_OBJ_COLOR
 	;anti-alias?:
-
-
 
 	fd: pango_font_description_new
 

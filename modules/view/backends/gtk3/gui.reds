@@ -1232,13 +1232,11 @@ OS-make-view: func [
 			buffer: gtk_entry_get_buffer widget
 			unless null? caption [gtk_entry_buffer_set_text buffer caption -1]
 			gobj_signal_connect(widget "key-release-event" :field-key-release-event face/ctx)
-			;gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
+			;Do not work: gobj_signal_connect(widget "key-press-event" :field-key-press-event face/ctx)
 			gtk_widget_set_can_focus widget yes
 			;This depends on version >= 3.2
 			;gtk_widget_set_focus_on_click widget yes
 			gobj_signal_connect(widget "move-focus" :field-move-focus face/ctx)
-			;gobj_signal_connect(widget "size-allocate" :field-size-allocate face/ctx)
-			;last-widget: widget
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
@@ -1299,7 +1297,6 @@ OS-make-view: func [
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
-	;OLD: create-widget-style widget face
 	make-font-provider widget
 	change-font widget face font sym
 
