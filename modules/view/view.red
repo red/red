@@ -643,9 +643,6 @@ system/view: context [
 	auto-sync?: yes										;-- refresh faces on changes automatically
 	debug?: 	no										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
-	#if config/OS = 'Linux [
-		gtk-auto-adjust?: yes							;-- do not apply automatically gtk3 adjustment 
-	]
 ]
 
 #include %backends/platform.red
