@@ -155,6 +155,31 @@ button-mouse-down: func [
 	]
 ]
 
+mouse-events-base: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		p		[int-ptr!]
+		flags	[integer!]
+		super	[objc_super! value]
+		cls		[integer!]
+][
+	p: as int-ptr! event
+	flags: check-extra-keys event
+	objc_setAssociatedObject self RedNSEventKey event OBJC_ASSOCIATION_ASSIGN
+	switch p/2 [
+		NSRightMouseDown [make-event self flags EVT_RIGHT_DOWN]
+		NSRightMouseUp	 [make-event self flags EVT_RIGHT_UP]
+		default			 [0]
+	]
+	cls: objc_msgSend [self sel_getUid "superclass"]
+	super/receiver: self
+	super/superclass: cls
+	objc_msgSendSuper [super cmd event]
+]
+
 mouse-events: func [
 	[cdecl]
 	self	[integer!]
