@@ -35,6 +35,13 @@ tagSIZE: alias struct! [
 	height	[integer!]
 ]
 
+tagRECT: alias struct! [
+	x		[integer!]
+	y		[integer!]	
+	width	[integer!]
+	height	[integer!]
+]
+
 GdkEventKey!: alias struct! [
   type          [integer!]
   window        [int-ptr!]

@@ -287,7 +287,7 @@ diff-size?:  func [
 	hWnd 	[handle!]
 	return: [integer!]
 	/local
-		rect 		[RECT_STRUCT]
+		rect 		[tagRECT]
 		sx 			[integer!]
 		sy 			[integer!]
 		dx			[integer!]
@@ -296,14 +296,14 @@ diff-size?:  func [
 	widget: g_object_get_qdata hWnd _widget-id
 	if null? widget [widget: hWnd]
 
-	rect: 	as RECT_STRUCT allocate (size? RECT_STRUCT)
+	rect: 	as tagRECT allocate (size? tagRECT)
 	gtk_widget_get_allocation widget as handle! rect
 	sx: 0 sy: 0
 	gtk_widget_get_size_request widget :sx :sy
-	print ["widget->rect:" rect/left "x" rect/top  "x" rect/right "x" rect/bottom "," sx "x" sy lf]
+	print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height "," sx "x" sy lf]
 	
 	; return: difference between allocated and requested widths
-	dx: rect/right - sx
+	dx: rect/width - sx
 	free as byte-ptr! rect
 
 	dx
@@ -1073,11 +1073,16 @@ OS-refresh-window: func [hWnd [integer!]][0]
 
 OS-show-window: func [
 	hWnd	[integer!]
+	/local
+		auto-adjust?	[red-logic!]
 ][
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
-	adjust-sizes as handle! hWnd
-	gtk_widget_queue_draw as handle! hWnd
+	auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
+	if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
+		adjust-sizes as handle! hWnd
+		gtk_widget_queue_draw as handle! hWnd
+	]
 ]
 
 OS-make-view: func [
@@ -1297,7 +1302,7 @@ OS-make-view: func [
 			]
 			true [
 				container:  as handle! either p-sym = panel [parent][buffer: gtk_container_get_children as handle! parent buffer/value]
-				;save gtk_fixed container for adjustment since size/x and size/y have to updated in a second pass
+				;save gtk_fixed container for adjustment since size/x and size/y are not the real sizes in gtk and need to be updated in a second pass
 				g_object_set_qdata widget gtk-fixed-id container
 
 				gtk_widget_set_size_request _widget size/x size/y
