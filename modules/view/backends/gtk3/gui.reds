@@ -283,81 +283,109 @@ init: func [][
 	style-init
 ]
 
-diff-size?:  func [
-	hWnd 	[handle!]
-	return: [integer!]
-	/local
-		rect 		[tagRECT]
-		sx 			[integer!]
-		sy 			[integer!]
-		dx			[integer!]
-		widget		[handle!]
+get-symbol-name: function [
+	sym 	[integer!]
+	return: [c-string!]
 ][
-	widget: g_object_get_qdata hWnd _widget-id
-	if null? widget [widget: hWnd]
-
-	rect: 	as tagRECT allocate (size? tagRECT)
-	gtk_widget_get_allocation widget as handle! rect
-	sx: 0 sy: 0
-	gtk_widget_get_size_request widget :sx :sy
-	print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height "," sx "x" sy lf]
-	
-	; return: difference between allocated and requested widths
-	dx: rect/width - sx
-	free as byte-ptr! rect
-
-	dx
+	case [
+		sym = check ["check"]
+		sym = radio ["radio"] 
+		sym = button ["button"]
+		sym = base  ["base"]
+		sym = window ["window"]
+		sym = slider ["slider"]
+		sym = text ["text"]
+		sym = field ["field"]
+		sym = progress ["progress"]
+		sym = area ["area"]
+		sym = group-box ["group-box"]
+		sym = panel ["panel"]
+		sym = tab-panel ["tab-panel"]
+		sym = text-list ["text-list"]
+		sym = drop-list ["drop-list"]
+		sym = drop-down ["drop-down"]
+		true ["other widget"]
+	]
 ]
-
+; this adjustment is supposed to fix only horizontally consecutive widgets in the same pane  
 adjust-sizes: func [
 	hWnd 	[handle!]
 	/local
 		widget		[handle!]
 		child		[handle!]
 		container	[handle!]
+		rect 		[tagRECT]
 		dx			[integer!]
+		dy			[integer!]
 		ox			[integer!]
 		oy			[integer!]
+		sx			[integer!]
+		sy			[integer!]
 		offset		[red-pair!]
+		size		[red-pair!]
 		pane 		[red-block!]
 		type		[red-word!]
 		sym			[integer!]
 		face 		[red-object!]
 		tail 		[red-object!]
 		values		[red-value!]
+		overlap?	[logic!]
+		; these ones would be removed
+		debug		[logic!]
+		cpt 		[integer!]
 ][
+	; to remove when saitsfactory enough development
+	debug: no
+
 	values: get-face-values hWnd
 	type: 	as red-word! values + FACE_OBJ_TYPE
 	pane: 	as red-block! values + FACE_OBJ_PANE
 
 	sym: 	symbol/resolve type/symbol
+
+	rect: 	as tagRECT allocate (size? tagRECT)
 	
 	if TYPE_OF(pane) = TYPE_BLOCK [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
-		print-line type/symbol
+		if debug [print ["Parent type: " get-symbol-name sym lf]]
 		container: g_object_get_qdata get-face-handle face gtk-fixed-id
-		dx: 0 ox: 0 oy: 0
-		print-line "Pane"
+		dx: 0 dy: 0
+		ox: 0 oy: 0 sx: 0 sy: 0
+		cpt: 0
 		while [face < tail][
+			cpt: cpt + 1
 			child: get-face-handle face
-			unless null? container [
-				offset: as red-pair! (object/get-values face) + FACE_OBJ_OFFSET
-				if ox > offset/x [dx: 0]
+			values: object/get-values face
+			offset: as red-pair! values + FACE_OBJ_OFFSET
+			size: as red-pair! values + FACE_OBJ_SIZE
+			type: 	as red-word! values + FACE_OBJ_TYPE
+			sym: 	symbol/resolve type/symbol
+			overlap?: all [ox + dx + sx > offset/x oy + sy > offset/y] 
+			if debug [print ["Child" cpt " type: " get-symbol-name sym lf]]
+			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
+			if any [ox > offset/x not overlap?] [dx: 0]
+			unless null? container [	
 				widget: g_object_get_qdata child _widget-id
 				if null? widget [widget: child]
-				print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]
+				if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
 				gtk_fixed_move container widget offset/x + dx  offset/y
-				ox: offset/x oy: offset/y 
+				gtk_widget_get_allocation widget as handle! rect
+				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
+				if debug [ print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height lf]]
 			]
-			
-			dx: dx + diff-size? child
-			print ["next dx: " dx lf]
+			; save previous offset and size coordinates
+			ox: offset/x oy: offset/y sx: size/x sy: size/y 
+			if debug [print ["red->rect:" offset/x "x" offset/y  "x" size/x "x" size/y lf]]
+			dx: dx + rect/width - sx
+			dy: dy + rect/height - sy
+			if debug [ print ["next dx: " dx lf]]
 			adjust-sizes child
 			face: face + 1
 		]
-		print-line "Pane end"
+		if debug [print-line "Pane end"]
 	]
+	free as byte-ptr! rect
 ]
 
 change-rate: func [
@@ -1078,11 +1106,11 @@ OS-show-window: func [
 ][
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
-	auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
-	if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
+	;auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
+	;if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
 		adjust-sizes as handle! hWnd
 		gtk_widget_queue_draw as handle! hWnd
-	]
+	;]
 ]
 
 OS-make-view: func [
