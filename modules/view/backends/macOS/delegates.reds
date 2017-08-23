@@ -277,12 +277,12 @@ on-key-down: func [
 ][
 	key: objc_msgSend [event sel_getUid "keyCode"]
 	key: either key >= 80h [0][translate-key key]
-	flags: either char-key? as-byte key [0][80000000h]	;-- special key or not
-	flags: flags or check-extra-keys event
+	special-key: either char-key? as-byte key [0][-1]	;-- special key or not
+	flags: check-extra-keys event
 
 	res: make-event self key or flags EVT_KEY_DOWN
 	if res <> EVT_NO_DISPATCH [
-		either flags and 80000000h <> 0 [				;-- special key
+		either special-key = -1 [						;-- special key
 			make-event self key or flags EVT_KEY
 		][
 			if key = 8 [								;-- backspace
@@ -350,10 +350,33 @@ on-key-up: func [
 ][
 	key: objc_msgSend [event sel_getUid "keyCode"]
 	key: either key >= 80h [0][translate-key key]
-	flags: either char-key? as-byte key [0][80000000h]	;-- special key or not
-	flags: flags or check-extra-keys event
-	make-event self key or flags EVT_KEY_UP
-	;msg-send-super self cmd event
+	special-key: either char-key? as-byte key [0][-1]	;-- special key or not
+	flags: check-extra-keys event
+	if all [
+		EVT_DISPATCH = make-event self key or flags EVT_KEY_UP
+		cmd <> 0
+	][
+		msg-send-super self cmd event
+	]
+]
+
+on-flags-changed: func [
+	[cdecl]
+	self	[integer!]
+	cmd		[integer!]
+	event	[integer!]
+	/local
+		key		[integer!]
+		flags	[integer!]
+		evt		[integer!]
+][
+	special-key: -1
+	key: translate-key objc_msgSend [event sel_getUid "keyCode"]
+	flags: check-extra-keys event
+	evt: either zero? flags [EVT_KEY_UP][EVT_KEY_DOWN]
+	if EVT_DISPATCH = make-event self key or flags evt [
+		msg-send-super self cmd event
+	]
 ]
 
 button-click: func [
