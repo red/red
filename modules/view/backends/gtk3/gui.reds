@@ -29,6 +29,8 @@ exit-loop:		0
 red-face-id:	0
 _widget-id:		1
 gtk-fixed-id:	2
+red-timer-id:	3
+
 gtk-style-id:	0
 
 group-radio:	as handle! 0
@@ -55,9 +57,11 @@ get-face-object: func [
 		qdata	[handle!]
 ][
 	face: as red-object! 0
-	qdata: g_object_get_qdata handle red-face-id
-    if qdata <> as handle! 0 [
-        face: as red-object! qdata
+	unless null? handle [
+		qdata: g_object_get_qdata handle red-face-id
+		if qdata <> as handle! 0 [
+			face: as red-object! qdata
+		]
 	]
 	face
 ]
@@ -71,10 +75,12 @@ get-face-values: func [
 		values	[red-value!]
 ][
 	values: as red-value! 0
-	qdata: g_object_get_qdata handle red-face-id
-    if qdata <> as handle! 0 [
-        face: as red-object! qdata
-		values: object/get-values face
+	unless null? handle [
+		qdata: g_object_get_qdata handle red-face-id
+		if qdata <> as handle! 0 [
+			face: as red-object! qdata
+			values: object/get-values face
+		]
 	]
 	values
 ]
@@ -241,6 +247,7 @@ free-handles: func [
 		type   [red-word!]
 		face   [red-object!]
 		tail   [red-object!]
+		rate   [red-value!]
 		pane   [red-block!]
 		state  [red-value!]
 		sym	   [integer!]
@@ -249,6 +256,9 @@ free-handles: func [
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
+
+	rate: values + FACE_OBJ_RATE
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
 
 	pane: as red-block! values + FACE_OBJ_PANE
 	if TYPE_OF(pane) = TYPE_BLOCK [
@@ -394,38 +404,38 @@ change-rate: func [
 	/local
 		int		[red-integer!]
 		tm		[red-time!]
-		timer	[integer!]
 		ts		[float!]
+		timer	[integer!]
+		data	[handle!]
 ][
-	; timer: objc_getAssociatedObject hWnd RedTimerKey
+	unless null? hWnd [
+		data: g_object_get_qdata hWnd red-timer-id
+		timer: either data = as handle! 0 [0][as integer! data]
 
-	; if timer <> 0 [								;-- cancel a preexisting timer
-	; 	objc_msgSend [timer sel_getUid "invalidate"]
-	; 	objc_setAssociatedObject hWnd RedTimerKey 0 OBJC_ASSOCIATION_ASSIGN
-	; ]
+		print ["timer: " timer lf]
+		
+		if timer <> 0 [								;-- cancel a preexisting timeout
+			g_source_remove timer
+		]
 
-	; switch TYPE_OF(rate) [
-	; 	TYPE_INTEGER [
-	; 		int: as red-integer! rate
-	; 		if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-	; 		ts: 1.0 / as-float int/value
-	; 	]
-	; 	TYPE_TIME [
-	; 		tm: as red-time! rate
-	; 		if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
-	; 		ts: tm/time / 1E9
-	; 	]
-	; 	TYPE_NONE [exit]
-	; 	default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
-	; ]
+		switch TYPE_OF(rate) [
+			TYPE_INTEGER [
+				int: as red-integer! rate
+				if int/value <= 0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+				ts: 1.0 / as-float int/value
+			]
+			TYPE_TIME [
+				tm: as red-time! rate
+				if tm/time <= 0.0 [fire [TO_ERROR(script invalid-facet-type) rate]]
+				ts: tm/time / 1E9
+			]
+			TYPE_NONE [exit]
+			default	  [fire [TO_ERROR(script invalid-facet-type) rate]]
+		]
 
-	; timer: objc_msgSend [
-	; 	objc_getClass "NSTimer"
-	; 	sel_getUid "scheduledTimerWithTimeInterval:target:selector:userInfo:repeats:"
-	; 	ts hWnd sel-on-timer 0 yes
-	; ]
-	; objc_setAssociatedObject hWnd RedTimerKey timer OBJC_ASSOCIATION_ASSIGN
-	0
+		timer: g_timeout_add as integer! ts as integer! :red-timer-action hWnd
+		g_object_set_qdata hWnd red-timer-id as int-ptr! timer
+	]
 ]
 
 change-size: func [
@@ -699,35 +709,31 @@ change-text: func [
 	]
 	if null? cstr [exit]
 	
-	either type = area [
-	; 	objc_msgSend [
-	; 		objc_msgSend [hWnd sel_getUid "documentView"]
-	; 		sel_getUid "setString:" txt
-		0
-	;	]
-	][
-		;unless change-font hWnd face as red-object! values + FACE_OBJ_FONT type [
-			case [
-				type = text [
-					gtk_label_set_text hWnd cstr
-				]
-				type = field [
-					buffer: gtk_entry_get_buffer hWnd
-					gtk_entry_buffer_set_text buffer cstr -1
-				]
-				any [type = button type = radio type = check] [
-					gtk_button_set_label hWnd cstr
-				]
-				type = window [
-					gtk_window_set_title hWnd cstr
-				] 
-				type = group-box [
-					gtk_frame_set_label hWnd cstr
-				]
-				true [0]
+	;unless change-font hWnd face as red-object! values + FACE_OBJ_FONT type [
+		case [
+			type = area [
+				buffer: gtk_text_view_get_buffer hWnd
+			 	gtk_text_buffer_set_text buffer cstr -1
 			]
-		;]
-	]
+			type = text [
+				gtk_label_set_text hWnd cstr
+			]
+			type = field [
+				buffer: gtk_entry_get_buffer hWnd
+				gtk_entry_buffer_set_text buffer cstr -1
+			]
+			any [type = button type = radio type = check] [
+				gtk_button_set_label hWnd cstr
+			]
+			type = window [
+				gtk_window_set_title hWnd cstr
+			] 
+			type = group-box [
+				gtk_frame_set_label hWnd cstr
+			]
+			true [0]
+		]
+	;]
 ]
 
 change-data: func [
@@ -1135,6 +1141,7 @@ OS-make-view: func [
 		para	  [red-object!]
 		flags	  [integer!]
 		bits	  [integer!]
+		rate	  [red-value!]
 		sym		  [integer!]
 		p-sym	  [integer!]
 		caption   [c-string!]
@@ -1167,6 +1174,7 @@ OS-make-view: func [
 	menu:	  as red-block!		values + FACE_OBJ_MENU
 	selected: as red-integer!	values + FACE_OBJ_SELECTED
 	para:	  as red-object!	values + FACE_OBJ_PARA
+	rate: 	  as red-value!		values + FACE_OBJ_RATE
 
 	sym: 	  symbol/resolve type/symbol
 
@@ -1339,6 +1347,17 @@ OS-make-view: func [
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
 	store-face-to-obj widget face
+
+	; change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
+	; change-para widget face as red-object! values + FACE_OBJ_PARA font sym
+
+	; unless show?/value [change-visible widget no sym]
+	; unless open?/value [change-enabled widget no sym]
+
+	; change-font widget face font sym
+	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
+	; if sym <> base [change-color widget as red-tuple! values + FACE_OBJ_COLOR sym]
+
 
 	stack/unwind
 	as-integer widget

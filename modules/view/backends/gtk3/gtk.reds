@@ -136,6 +136,15 @@ GtkTextIter!: alias struct! [
 		g_object_unref: "g_object_unref" [
 			object		[int-ptr!]
 		]
+		g_source_remove: "g_source_remove" [
+			timer		[integer!]
+		]
+		g_timeout_add: "g_timeout_add" [
+			ts 			[integer!]
+			handler		[integer!]
+			data		[int-ptr!]
+			return: 	[integer!]
+		]
 	;; ]
 	;; LIBGDK-file cdecl [
 		gdk_screen_width: "gdk_screen_width" [
@@ -841,6 +850,15 @@ GtkTextIter!: alias struct! [
 		]
 		cairo_pattern_destroy: "cairo_pattern_destroy" [
 			pattern		[handle!]
+		]
+		cairo_rotate: "cairo_rotate" [
+			cr			[handle!]
+			angle 		[float!]
+		]
+		cairo_translate: "cairo_translate" [
+			cr			[handle!]
+			x 			[float!]
+			y 			[float!]
 		]
 	]
 ]

@@ -293,3 +293,12 @@ area-changed: func [
 		make-event widget 0 EVT_CHANGE
 	]
 ]
+
+red-timer-action: func [
+	[cdecl]
+	self	[handle!]
+	return: [logic!]
+][
+	make-event self 0 EVT_TIME
+	yes
+]

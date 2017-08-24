@@ -452,16 +452,15 @@ OS-matrix-rotate: func [
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
-		m	[integer!]
-		pts [tagPOINT]
+		cr 	[handle!]
+		rad [float!]
 ][
-	if angle <> as red-integer! center [
-0
-	]
-	;GdipRotateWorldTransform dc/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
-	if angle <> as red-integer! center [
-0
-	]
+	cr: dc/raw
+	rad: PI / 180.0 * get-float angle
+	cairo_translate cr as float! center/x as float! center/y
+	cairo_rotate cr rad
+	do-paint dc
+	cairo_translate cr as float! (0 - center/x) as float! (0 - center/y)
 ]
 
 OS-matrix-scale: func [
