@@ -959,28 +959,13 @@ win-did-resize: func [
 	cmd		[integer!]
 	notif	[integer!]
 	/local
-		ws		[NSRect!]
-		sz		[red-pair!]
-		h		[integer!]
-		w		[integer!]
-		y		[integer!]
-		x		[integer!]
-		rc		[NSRect!]
-		saved	[int-ptr!]
-		method	[integer!]
+		sz	[red-pair!]
+		v	[integer!]
+		rc	[NSRect! value]
 ][
-	x: 0
-	rc: as NSRect! :x
 	make-event self 0 EVT_SIZING
-
-	ws: as NSRect! (as int-ptr! self) + 2
-	method: sel_getUid "contentRectForFrameRect:"
-	saved: system/stack/align
-	push 0
-	push ws/h push ws/w push ws/y push ws/x
-	push method push self push rc
-	objc_msgSend_stret 7
-	system/stack/top: saved
+	v: objc_msgSend [self sel_getUid "contentView"]
+	rc: objc_msgSend_rect [v sel_getUid "frame"]
 	sz: (as red-pair! get-face-values self) + FACE_OBJ_SIZE		;-- update face/size
 	sz/x: as-integer rc/w
 	sz/y: as-integer rc/h
