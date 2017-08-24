@@ -1258,6 +1258,7 @@ insert-text-range: func [
 		cstr		[c-string!]
 		key			[integer!]
 ][
+	special-key: 0
 	objc_msgSend [self sel_getUid "unmarkText"]
 	attr-str?: as logic! objc_msgSend [
 		str sel_getUid "isKindOfClass:" objc_getClass "NSAttributedString"
