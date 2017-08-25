@@ -3007,7 +3007,58 @@ Initialize the FPU.
 Only needed for Intel platforms, does nothing on ARM (for now).
 
 /note
+
+
+---image/base
+
+Returns the base address of the executable image in memory.
+
+<b>Syntax</b>
+
+ system/image/base
+
+ return: a value of type pointer! [integer!].
+
+---image/code
+
+Returns the CODE segment offset from image's base.
+
+<b>Syntax</b>
+
+ system/image/code
+
+ return: a value of type integer!.
+
+---image/code-size
+
+Returns the CODE segment size.
+
+<b>Syntax</b>
+
+ system/image/code-size
  
+ return: a value of type integer!.
+
+---image/data
+
+Returns the DATA segment offset from image's base.
+
+<b>Syntax</b>
+
+ system/image/data
+
+ return: a value of type integer!.
+ 
+---image/data-size
+
+Returns the DATA segment size.
+
+<b>Syntax</b>
+
+ system/image/data-size
+
+ return: a value of type integer!.
+
 
 ---alias
 
