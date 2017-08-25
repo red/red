@@ -507,6 +507,14 @@ context [
 				get-data ".text"
 				relro-offset
 		]
+		
+		linker/set-image-info
+			job
+			any [job/base-address defs/base-address]
+			get-offset ".text"
+			get-size   ".text"
+			get-offset ".data"
+			get-size   ".data"
 
 		;; Concatenate the layout data into the output binary.
 		job/buffer: copy #{}

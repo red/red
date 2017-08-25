@@ -915,6 +915,14 @@ context [
 		if dylink? [resolve-import-refs job]
 		resolve-data-refs job
 		
+		linker/set-image-info
+			job
+			base-address
+			first  get-segment-info '__TEXT
+			second get-segment-info '__TEXT
+			first  get-segment-info '__DATA
+			second get-segment-info '__DATA
+		
 		emit-page-aligned out job/sections/code/2
 		
 		data: job/sections/data/2
