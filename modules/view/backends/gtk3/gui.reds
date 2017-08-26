@@ -42,6 +42,7 @@ tabs: context [
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
 
+; Temporary, will be removed...
 last-widget:	as handle! 0
 
 log-pixels-x:	0

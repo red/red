@@ -389,6 +389,7 @@ area-changed: func [
 		start	[GtkTextIter!]
 		end		[GtkTextIter!]
 ][
+	; Weirdly, GtkTextIter introduced since I did not simplest solution to get the full content of a GtkTextBuffer!
 	start: as GtkTextIter! allocate (size? GtkTextIter!) 
 	end: as GtkTextIter! allocate (size? GtkTextIter!) 
 	gtk_text_buffer_get_bounds buffer as handle! start as handle! end
@@ -399,7 +400,6 @@ area-changed: func [
         face: as red-object! qdata
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
-		make-event widget 0 EVT_KEY_UP
 	]
 ]
 
