@@ -323,6 +323,87 @@ font-description: func [
 	fd
 ]
 
+#enum cairo_font_slant_t! [
+	CAIRO_FONT_SLANT_NORMAL
+	CAIRO_FONT_SLANT_ITALIC
+	CAIRO_FONT_SLANT_OBLIQUE
+]
+
+#enum cairo_font_weight_t! [
+	CAIRO_FONT_WEIGHT_NORMAL
+ 	CAIRO_FONT_WEIGHT_BOLD
+]
+
+select-cairo-font: func [
+	cr		[handle!]
+	font 	[red-object!]
+	/local
+		values   [red-value!]
+		style    [red-word!]
+		blk      [red-block!]
+		len      [integer!]
+		sym      [integer!]
+		str      [red-string!]
+		name     [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
+		color    [red-tuple!]
+		bgcolor  [red-tuple!]
+		rgba     [c-string!]
+		slant    [integer!]
+		weight   [integer!]
+][
+	values: object/get-values font
+
+	;name:
+	str: 	as red-string!	values + FONT_OBJ_NAME
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	style:	as red-word!	values + FONT_OBJ_STYLE
+	;angle:
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+	;anti-alias?:
+
+	if TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+ 	]
+
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD	[1]
+		default		[0]
+	]
+
+	slant: CAIRO_FONT_SLANT_NORMAL
+	weight: CAIRO_FONT_WEIGHT_NORMAL
+	
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [ 
+				sym = _bold      [weight: CAIRO_FONT_WEIGHT_BOLD]
+				sym = _italic    [slant: CAIRO_FONT_SLANT_ITALIC]
+				sym = _underline []
+				sym = _strike    []
+				true             []
+			]
+			style: style + 1
+		]
+	]
+
+	;cairo_select_font_face cr name slant weight
+	cairo_select_font_face cr "Arial" 0 0
+
+	if TYPE_OF(size) = TYPE_INTEGER [
+		print ["size: " size/value lf]
+		cairo_set_font_size cr size/value
+	]
+]
+
 OS-request-font: func [
 	font		[red-object!]
 	selected	[red-object!]

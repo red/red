@@ -42,7 +42,7 @@ tabs: context [
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
 
-;last-widget:	as handle! 0
+last-widget:	as handle! 0
 
 log-pixels-x:	0
 log-pixels-y:	0
@@ -245,13 +245,9 @@ free-handles: func [
 	/local
 		values [red-value!]
 		type   [red-word!]
-		face   [red-object!]
-		tail   [red-object!]
 		rate   [red-value!]
-		pane   [red-block!]
 		state  [red-value!]
 		sym	   [integer!]
-		dc	   [integer!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -260,18 +256,108 @@ free-handles: func [
 	rate: values + FACE_OBJ_RATE
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
 
-	pane: as red-block! values + FACE_OBJ_PANE
-	if TYPE_OF(pane) = TYPE_BLOCK [
-		face: as red-object! block/rs-head pane
-		tail: as red-object! block/rs-tail pane
-		while [face < tail][
-			;@@ TBD
-			face: face + 1
-		]
-	]
+	g_object_set_qdata hWnd red-face-id null
+	g_object_set_qdata hWnd _widget-id null
+	g_object_set_qdata hWnd gtk-fixed-id null
+	g_object_set_qdata hWnd red-timer-id null
+
+	;gtk_widget_destroy manages eveything for free from the gtk side!
+	gtk_widget_destroy hWnd
 
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
+]
+
+; Debug function to show children tree
+debug-show-children: func [
+	hWnd 	[handle!]
+	parent? [logic!]
+	/local
+		widget		[handle!]
+		child		[handle!]
+		container	[handle!]
+		rect 		[tagRECT]
+		sx			[integer!]
+		sy			[integer!]
+		offset		[red-pair!]
+		size		[red-pair!]
+		pane 		[red-block!]
+		type		[red-word!]
+		sym			[integer!]
+		face 		[red-object!]
+		tail 		[red-object!]
+		values		[red-value!]
+		overlap?	[logic!]
+		; these ones would be removed
+		debug		[logic!]
+		cpt 		[integer!]
+][
+	; to remove when saitsfactory enough development
+	debug: yes
+
+	values: get-face-values hWnd
+	type: 	as red-word! values + FACE_OBJ_TYPE
+	pane: 	as red-block! values + FACE_OBJ_PANE
+
+	either parent? [
+		face: 	as red-object! values + FACE_OBJ_PARENT
+		either TYPE_OF(face) = TYPE_NONE [
+			print-line "parent face: none"
+			print ["parent handle: " hWnd lf]
+		][
+			values: object/get-values face
+			type: 	as red-word! values + FACE_OBJ_TYPE
+			pane: 	as red-block! values + FACE_OBJ_PANE
+			widget: face-handle? face
+			print ["from parent handle: " widget lf]
+		]
+	][print ["parent handle: " hWnd lf]]
+
+	sym: 	symbol/resolve type/symbol
+
+	rect: 	as tagRECT allocate (size? tagRECT)
+	
+	if TYPE_OF(pane) = TYPE_BLOCK [
+		face: as red-object! block/rs-head pane
+		tail: as red-object! block/rs-tail pane
+		if debug [print ["Pane type: " get-symbol-name sym lf]]
+		if TYPE_OF(face) <> TYPE_OBJECT [print-line "not face object"]
+		widget: face-handle? face
+		
+		either null? widget [print-line "null container" container: null][container: g_object_get_qdata widget gtk-fixed-id]
+		print ["container handle: " container lf]
+		
+		 sx: 0 sy: 0
+		cpt: 0
+		while [face < tail][
+			cpt: cpt + 1
+			print-line cpt
+			child: face-handle? face
+			print ["child handle: " child lf]
+			values: object/get-values face
+			offset: as red-pair! values + FACE_OBJ_OFFSET
+			size: as red-pair! values + FACE_OBJ_SIZE
+			type: 	as red-word! values + FACE_OBJ_TYPE
+			sym: 	symbol/resolve type/symbol
+			 
+			if debug [print ["Child" cpt " type: " get-symbol-name sym lf]]
+			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
+		
+			unless null? container [	
+				widget: g_object_get_qdata child _widget-id
+				if null? widget [widget: child]
+
+				gtk_widget_get_allocation widget as handle! rect
+				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
+				if debug [ print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height lf]]
+			] 
+			if debug [print ["red->rect:" offset/x "x" offset/y  "x" size/x "x" size/y lf]]
+			either null? child [print-line "null child"][debug-show-children child no]
+			face: face + 1
+		]
+		if debug [print-line "Pane end"]
+	]
+	free as byte-ptr! rect
 ]
 
 init: func [][
@@ -359,7 +445,8 @@ adjust-sizes: func [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Parent type: " get-symbol-name sym lf]]
-		container: g_object_get_qdata get-face-handle face gtk-fixed-id
+		child: get-face-handle face
+		container: either null? child [null][g_object_get_qdata child gtk-fixed-id]
 		dx: 0 dy: 0
 		ox: 0 oy: 0 sx: 0 sy: 0
 		cpt: 0
@@ -412,7 +499,7 @@ change-rate: func [
 		data: g_object_get_qdata hWnd red-timer-id
 		timer: either data = as handle! 0 [0][as integer! data]
 
-		print ["timer: " timer lf]
+		;print ["timer: " timer lf]
 		
 		if timer <> 0 [								;-- cancel a preexisting timeout
 			g_source_remove timer
@@ -696,10 +783,10 @@ change-text: func [
 		str    [red-string!]
 		buffer [handle!]
 ][
-	; if type = base [
-	; 	objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
-	; 	exit
-	; ]
+	if type = base [
+		gtk_widget_queue_draw hWnd
+		exit
+	]
 
 	str: as red-string! values + FACE_OBJ_TEXT
 	cstr: switch TYPE_OF(str) [
@@ -733,6 +820,7 @@ change-text: func [
 			]
 			true [0]
 		]
+		gtk_widget_queue_draw hWnd
 	;]
 ]
 
@@ -1103,7 +1191,12 @@ update-scroller: func [
 
 OS-redraw: func [hWnd [integer!]][gtk_widget_queue_draw as handle! hWnd]
 
-OS-refresh-window: func [hWnd [integer!]][0]
+OS-refresh-window: func [hWnd [integer!]][
+	;print-line "REFFRREEEESSSSHHHHH" 
+	;debug-show-children last-widget no
+	;gtk_widget_queue_draw as handle! hWnd
+	OS-show-window hWnd
+]
 
 OS-show-window: func [
 	hWnd	[integer!]
@@ -1116,6 +1209,7 @@ OS-show-window: func [
 	;if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
 		adjust-sizes as handle! hWnd
 		gtk_widget_queue_draw as handle! hWnd
+		;debug-show-children as handle! hWnd no
 	;]
 ]
 
@@ -1214,6 +1308,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			widget: gtk_application_window_new GTKApp
+			last-widget: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
@@ -1306,9 +1401,10 @@ OS-make-view: func [
 	group-radio: either sym = radio [widget][as handle! 0] 
 
 	make-font-provider widget
-	change-font widget face font sym
+	if sym <> base [change-font widget face font sym]
 
-
+	;print [ "New widget " get-symbol-name sym "->" widget lf]
+	
 	if all [
 		sym <> window
 		parent <> 0
@@ -1357,7 +1453,6 @@ OS-make-view: func [
 	; change-font widget face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
 	; if sym <> base [change-color widget as red-tuple! values + FACE_OBJ_COLOR sym]
-
 
 	stack/unwind
 	as-integer widget
@@ -1434,13 +1529,15 @@ OS-update-view: func [
 	;		InvalidateRect widget null 1
 		]
 	]
-	;if flags and FACET_FLAG_PANE <> 0 [
+	if flags and FACET_FLAG_PANE <> 0 [
+		0
+		;print [ "flag-pane" get-symbol-name type lf]
 	;	if tab-panel <> type [				;-- tab-panel/pane has custom z-order handling
 	;		update-z-order 
 	;			as red-block! values + gui/FACE_OBJ_PANE
 	;			null
 	;	]
-	;]
+	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type
 	]
@@ -1480,7 +1577,10 @@ OS-destroy-view: func [
 		;SetActiveWindow GetWindow handle GW_OWNER
 	]
 
-	free-handles handle
+	;print ["DDDEEEEestroy" lf]
+
+
+	free-handles handle 
 
 	obj: as red-object! values + FACE_OBJ_FONT
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
@@ -1505,7 +1605,7 @@ OS-update-facet: func [
 		hWnd [handle!]
 ][
 	sym: symbol/resolve facet/symbol
-	
+
 	case [
 		sym = facets/pane [0]
 		sym = facets/data [0]

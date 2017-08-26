@@ -91,6 +91,98 @@ button-toggled: func [
 	make-event button 0 EVT_CHANGE
 ]
 
+
+cairo-render-text: func [
+	cr		[handle!]
+	values	[red-value!]
+	;sz		[NSSize!]
+	/local
+		text	[red-string!]
+		font	[red-object!]
+		para	[red-object!]
+		flags	[integer!]
+		len      [integer!]
+		str		[c-string!]
+		attr	[integer!]
+		nscolor [integer!]
+		attrs	[integer!]
+		line	[integer!]
+		wt		[float!]
+		ht		[float!]
+		temp	[float!]
+		;rc		[NSRect!]
+		extents	[cairo_text_extents_t!]
+		;m		[CGAffineTransform!]
+][
+	text: as red-string! values + FACE_OBJ_TEXT
+	if TYPE_OF(text) <> TYPE_STRING [exit]
+
+	if TYPE_OF(text) = TYPE_STRING [
+		len: -1
+		str: unicode/to-utf8 text :len
+		extents: as cairo_text_extents_t! allocate (size? cairo_text_extents_t!)
+		cairo_text_extents cr str as handle! extents
+		wt: extents/width ht: extents/height
+		free as byte-ptr! extents
+	]
+
+	set-source-color cr 0
+
+	font: as red-object! values + FACE_OBJ_FONT
+	either TYPE_OF(font) = TYPE_OBJECT [
+		  select-cairo-font cr font
+	][
+		0
+	]
+
+	para: as red-object! values + FACE_OBJ_PARA
+	flags: either TYPE_OF(para) = TYPE_OBJECT [		;@@ TBD set alignment attribute
+		get-para-flags base para
+	][
+		2 or 4										;-- center
+	]
+
+	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
+	cairo_move_to cr 20.0 20.0  
+print [ "hi-str: <" str ">" lf]
+	cairo_show_text cr str 
+
+	; m: make-CGMatrix 1 0 0 -1 0 0
+	; case [
+	; 	flags and 1 <> 0 [m/tx: sz/w - rc/x]
+	; 	flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
+	; 	true [0]
+	; ]
+
+	; case [
+	; 	flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / 2]
+	; 	flags and 8 <> 0 [m/ty: sz/h - rc/y]
+	; 	true [0]
+	; ]
+	; temp: objc_msgSend_f32 [
+	; 	objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+	; 	sel_getUid "ascender"
+	; ]
+	; m/ty: m/ty + temp
+	; line: CTLineCreateWithAttributedString attr
+	; CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
+	; CTLineDraw line ctx
+	; CFRelease str
+	; CFRelease attr
+	; CFRelease line
+
+	; attr: objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName]
+	; if as logic! objc_msgSend [attr sel_getUid "boolValue"][
+	; 	m/ty: m/ty - temp + (rc/y / as float32! 2.0)
+	; 	CGContextTranslateCTM ctx m/tx m/ty
+	; 	CGContextMoveToPoint ctx as float32! 0.0 as float32! 0.0
+	; 	CGContextAddLineToPoint ctx rc/x as float32! 0.0
+	; 	CGContextStrokePath ctx
+	; ]
+	; objc_msgSend [attrs sel_getUid "release"]
+	; CGContextRestoreGState ctx
+]
+
 base-draw: func [
 	[cdecl]
 	widget	[handle!]
@@ -106,10 +198,26 @@ base-draw: func [
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
 	if TYPE_OF(clr) = TYPE_TUPLE [
+		0
+		;print ["color" (clr/array1 and 00FFFFFFh) lf]
 		set-source-color cr clr/array1
 		cairo_paint cr								;-- paint background
 	]
-	do-draw cr null draw no yes yes yes
+	
+	either TYPE_OF(draw) = TYPE_BLOCK [
+		do-draw cr null draw no yes yes yes
+	][
+		; system/thrown: 0
+		; DC: declare draw-ctx!								;@@ should declare it on stack
+		; draw-begin DC ctx img no no
+		; integer/make-at as red-value! draw as-integer DC
+		; make-event self 0 EVT_DRAWING
+		; draw/header: TYPE_NONE
+		; draw-end DC ctx no no no
+		cairo-render-text cr vals
+		0
+	]
+	;print ["base-draw " widget lf]
 	false
 ]
 

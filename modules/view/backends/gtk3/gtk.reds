@@ -89,6 +89,15 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
+cairo_text_extents_t!: alias struct! [ 
+ 	x_bearing	[float!]
+ 	y_bearing	[float!]
+ 	width		[float!]
+ 	height		[float!]
+ 	x_advance	[float!]
+ 	y_advance	[float!]
+]
+
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
 	;#define LIBGLIB-file	"libglib-2.0-0.dll"
@@ -191,6 +200,11 @@ GtkTextIter!: alias struct! [
 		g_list_length: "g_list_length" [
 			list		[int-ptr!]
 			return:		[integer!]
+		]
+		g_list_nth_data: "g_list_nth_data" [
+			list		[int-ptr!]
+			nth 		[integer!]
+			return:		[handle!]
 		]
 		g_ascii_dtostr: "g_ascii_dtostr" [
 			buffer		[c-string!]
@@ -386,6 +400,11 @@ GtkTextIter!: alias struct! [
 		gtk_container_get_children: "gtk_container_get_children" [
 			container	[handle!]
 			return:		[int-ptr!]
+		]
+		gtk_container_foreach: "gtk_container_foreach" [
+			container	[handle!]
+			handler		[integer!]
+			data		[int-ptr!]
 		]
 		gtk_frame_new: "gtk_frame_new" [
 			label		[c-string!]
@@ -859,6 +878,36 @@ GtkTextIter!: alias struct! [
 			cr			[handle!]
 			x 			[float!]
 			y 			[float!]
+		]
+		cairo_scale: "cairo_scale" [
+			cr			[handle!]
+			x 			[float!]
+			y 			[float!]
+		]
+		cairo_identity_matrix: "cairo_identity_matrix" [
+			cr			[handle!]
+		]
+		cairo_stroke_preserve: "cairo_stroke_preserve" [
+			cr			[handle!]
+		]
+		cairo_select_font_face: "cairo_select_font_face" [
+			cr			[handle!]
+			family		[c-string!]
+			slant		[integer!]
+			weight		[integer!]
+		]
+		cairo_set_font_size: "cairo_set_font_size" [
+			cr			[handle!]
+			size		[integer!]
+		]
+		cairo_text_extents: "cairo_text_extents" [
+			cr			[handle!]
+			text 		[c-string!]
+			extents		[handle!]
+		]
+		cairo_show_text: "cairo_show_text" [
+			cr			[handle!]
+			text 		[c-string!]
 		]
 	]
 ]

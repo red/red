@@ -77,9 +77,9 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 			cairo_set_source cr dc/pattern
 		]
 		cairo_fill_preserve cr
+		unless dc/pen? [set-source-color cr dc/pen-color cairo_stroke cr]
 		cairo_restore cr
 	]
-	if dc/pen? [cairo_stroke cr]
 ]
 
 OS-draw-anti-alias: func [
@@ -230,7 +230,7 @@ OS-draw-circle: func [
 ][
 	x: as-float center/x
 	y: as-float center/y
-	cairo_arc dc/raw x y as-float radius/value 0.0 2.0 * pi
+	cairo_arc dc/raw x y as-float radius/value 0.0 2.0 * pi + 1
 	do-paint dc
 ]
 
@@ -263,6 +263,7 @@ OS-draw-text: func [
 		str		[c-string!]
 		len		[integer!]
 ][
+	print-line "draw text"
 0
 ]
 
@@ -468,8 +469,12 @@ OS-matrix-scale: func [
 	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
+	/local
+		cr [handle!]
 ][
-0
+	cr: dc/raw
+	cairo_scale cr as-float sx/value as-float sy/value
+	do-paint dc
 ]
 
 OS-matrix-translate: func [
@@ -477,8 +482,12 @@ OS-matrix-translate: func [
 	pen	[integer!]
 	x	[integer!]
 	y	[integer!]
+	/local
+		cr [handle!]
 ][
-0
+	cr: dc/raw
+	cairo_translate cr as-float x as-float y
+	do-paint dc
 ]
 
 OS-matrix-skew: func [
@@ -527,7 +536,13 @@ OS-matrix-pop: func [dc [draw-ctx!]][0]
 OS-matrix-reset: func [
 	dc [draw-ctx!]
 	pen [integer!]
-][]
+	/local
+		cr [handle!]
+][
+	cr: dc/raw
+	cairo_identity_matrix cr
+	do-paint dc
+]
 
 OS-matrix-invert: func [
 	dc	[draw-ctx!]
