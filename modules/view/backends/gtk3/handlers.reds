@@ -399,6 +399,7 @@ area-changed: func [
         face: as red-object! qdata
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
+		make-event widget 0 EVT_KEY_UP
 	]
 ]
 
