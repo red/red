@@ -2604,6 +2604,10 @@ system-dialect: make-profilable context [
 				fetch: [
 					pos: pc
 					expr: fetch-expression name
+					if none? first get-type expr [
+						pc: pos
+						throw-error "expression is missing a return value"
+					]
 					either attribute = 'typed [
 						if all [expr = <last> none? last-type/1][
 							pc: pos
