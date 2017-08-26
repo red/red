@@ -89,14 +89,23 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
-cairo_text_extents_t!: alias struct! [ 
- 	x_bearing	[float!]
- 	y_bearing	[float!]
- 	width		[float!]
- 	height		[float!]
- 	x_advance	[float!]
- 	y_advance	[float!]
-]
+; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
+; cairo_text_extents_t!: alias struct! [ 
+;  	x_bearing	[float!]
+;  	y_bearing	[float!]
+;  	width		[float!]
+;  	height		[float!]
+;  	x_advance	[float!]
+;  	y_advance	[float!]
+; ]
+
+; cairo_font_extents_t!: alias struct! [
+;  	ascent			[float!]
+;  	descent			[float!]
+;  	height			[float!]
+;  	max_x_advance	[float!]
+;  	max_y_advance	[float!]
+; ]
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -890,24 +899,45 @@ cairo_text_extents_t!: alias struct! [
 		cairo_stroke_preserve: "cairo_stroke_preserve" [
 			cr			[handle!]
 		]
-		cairo_select_font_face: "cairo_select_font_face" [
-			cr			[handle!]
-			family		[c-string!]
-			slant		[integer!]
-			weight		[integer!]
+		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
+		; cairo_select_font_face: "cairo_select_font_face" [
+		; 	cr			[handle!]
+		; 	family		[c-string!]
+		; 	slant		[integer!]
+		; 	weight		[integer!]
+		; ]
+		; cairo_set_font_size: "cairo_set_font_size" [
+		; 	cr			[handle!]
+		; 	size		[integer!]
+		; ]
+		; cairo_text_extents: "cairo_text_extents" [
+		; 	cr			[handle!]
+		; 	text 		[c-string!]
+		; 	extents		[handle!]
+		; ]
+		; cairo_font_extents: "cairo_font_extents" [
+		; 	cr			[handle!]
+		; 	extents		[handle!]
+		; ]
+		; cairo_show_text: "cairo_show_text" [
+		; 	cr			[handle!]
+		; 	text 		[c-string!]
+		; ]
+		pango_cairo_create_context: "pango_cairo_create_context" [
+			cr 			[handle!]
+			return: 	[handle!]
 		]
-		cairo_set_font_size: "cairo_set_font_size" [
-			cr			[handle!]
-			size		[integer!]
+		pango_cairo_create_layout: "pango_cairo_create_layout" [
+			cr 			[handle!]
+			return: 	[handle!]
 		]
-		cairo_text_extents: "cairo_text_extents" [
-			cr			[handle!]
-			text 		[c-string!]
-			extents		[handle!]
+		pango_cairo_update_layout: "pango_cairo_update_layout" [
+			cr 			[handle!]
+			layout 		[handle!]
 		]
-		cairo_show_text: "cairo_show_text" [
-			cr			[handle!]
-			text 		[c-string!]
+		pango_cairo_show_layout: "pango_cairo_show_layout" [
+			cr 			[handle!]
+			layout 		[handle!]
 		]
 	]
 ]

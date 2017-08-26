@@ -92,7 +92,7 @@ button-toggled: func [
 ]
 
 
-cairo-render-text: func [
+render-text: func [
 	cr		[handle!]
 	values	[red-value!]
 	;sz		[NSSize!]
@@ -103,37 +103,18 @@ cairo-render-text: func [
 		flags	[integer!]
 		len      [integer!]
 		str		[c-string!]
-		attr	[integer!]
-		nscolor [integer!]
-		attrs	[integer!]
 		line	[integer!]
-		wt		[float!]
-		ht		[float!]
+		x		[float!]
+		y		[float!]
 		temp	[float!]
-		;rc		[NSRect!]
-		extents	[cairo_text_extents_t!]
-		;m		[CGAffineTransform!]
+		;te		[cairo_text_extents_t!]
+		;fe		[cairo_font_extents_t!]
+		pc	 	[handle!]
+		lpc		[handle!]
+		fd 		[handle!]
 ][
 	text: as red-string! values + FACE_OBJ_TEXT
 	if TYPE_OF(text) <> TYPE_STRING [exit]
-
-	if TYPE_OF(text) = TYPE_STRING [
-		len: -1
-		str: unicode/to-utf8 text :len
-		extents: as cairo_text_extents_t! allocate (size? cairo_text_extents_t!)
-		cairo_text_extents cr str as handle! extents
-		wt: extents/width ht: extents/height
-		free as byte-ptr! extents
-	]
-
-	set-source-color cr 0
-
-	font: as red-object! values + FACE_OBJ_FONT
-	either TYPE_OF(font) = TYPE_OBJECT [
-		  select-cairo-font cr font
-	][
-		0
-	]
 
 	para: as red-object! values + FACE_OBJ_PARA
 	flags: either TYPE_OF(para) = TYPE_OBJECT [		;@@ TBD set alignment attribute
@@ -142,45 +123,53 @@ cairo-render-text: func [
 		2 or 4										;-- center
 	]
 
-	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
-	cairo_move_to cr 20.0 20.0  
-print [ "hi-str: <" str ">" lf]
-	cairo_show_text cr str 
+	; The pango_cairo way
 
-	; m: make-CGMatrix 1 0 0 -1 0 0
-	; case [
-	; 	flags and 1 <> 0 [m/tx: sz/w - rc/x]
-	; 	flags and 2 <> 0 [temp: sz/w - rc/x m/tx: temp / 2]
-	; 	true [0]
-	; ]
+	pc: pango_cairo_create_context cr
+	lpc: pango_cairo_create_layout cr
 
-	; case [
-	; 	flags and 4 <> 0 [temp: sz/h - rc/y m/ty: temp / 2]
-	; 	flags and 8 <> 0 [m/ty: sz/h - rc/y]
-	; 	true [0]
-	; ]
-	; temp: objc_msgSend_f32 [
-	; 	objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
-	; 	sel_getUid "ascender"
-	; ]
-	; m/ty: m/ty + temp
-	; line: CTLineCreateWithAttributedString attr
-	; CGContextSetTextMatrix ctx m/a m/b m/c m/d m/tx m/ty
-	; CTLineDraw line ctx
-	; CFRelease str
-	; CFRelease attr
-	; CFRelease line
+	font: as red-object! values + FACE_OBJ_FONT
+	fd: font-description font
+	pango_layout_set_font_description lpc fd
+	if TYPE_OF(text) = TYPE_STRING [
+		len: -1
+		str: unicode/to-utf8 text :len
+	]
+	pango_layout_set_text lpc str -1
+	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
+	pango_cairo_update_layout cr lpc
+	pango_cairo_show_layout cr lpc
 
-	; attr: objc_msgSend [attrs sel_getUid "objectForKey:" NSStrikethroughStyleAttributeName]
-	; if as logic! objc_msgSend [attr sel_getUid "boolValue"][
-	; 	m/ty: m/ty - temp + (rc/y / as float32! 2.0)
-	; 	CGContextTranslateCTM ctx m/tx m/ty
-	; 	CGContextMoveToPoint ctx as float32! 0.0 as float32! 0.0
-	; 	CGContextAddLineToPoint ctx rc/x as float32! 0.0
-	; 	CGContextStrokePath ctx
-	; ]
-	; objc_msgSend [attrs sel_getUid "release"]
-	; CGContextRestoreGState ctx
+; @@ The cairo way (alternative) does not work for me after too many attempt
+; 	if TYPE_OF(text) = TYPE_STRING [
+; 		len: -1
+; 		str: unicode/to-utf8 text :len
+; 		te: as cairo_text_extents_t! allocate (size? cairo_text_extents_t!)
+; 		cairo_text_extents cr str as handle! te
+; 		fe: as cairo_font_extents_t! allocate (size? cairo_font_extents_t!)
+; 		cairo_font_extents cr as handle! fe
+; 		x: 0.5 - te/x_bearing - (te/width / 2.0)
+; 		y: 0.5 - fe/descent + (fe/height / 2.0)
+; 		free as byte-ptr! te
+; 		free as byte-ptr! fe
+; 	]
+
+; 	cairo_scale cr 170.0 40.0
+; 	;set-source-color cr 0
+; 	cairo_set_source_rgba cr 0.0 0.0 0.0 0.5
+
+; 	font: as red-object! values + FACE_OBJ_FONT
+; 	either TYPE_OF(font) = TYPE_OBJECT [
+; 		  select-cairo-font cr font
+; 	][
+; 		0
+; 	]
+
+; 	;cairo_move_to(cr, w/2 - extents.width/2, h/2);
+; 	cairo_move_to cr x y  
+; print [ "hi-str: <" str ">" lf]
+; 	cairo_show_text cr str 
+
 ]
 
 base-draw: func [
@@ -197,12 +186,15 @@ base-draw: func [
 	vals: get-node-values ctx
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
+	
 	if TYPE_OF(clr) = TYPE_TUPLE [
 		0
 		;print ["color" (clr/array1 and 00FFFFFFh) lf]
 		set-source-color cr clr/array1
 		cairo_paint cr								;-- paint background
 	]
+
+	render-text cr vals
 	
 	either TYPE_OF(draw) = TYPE_BLOCK [
 		do-draw cr null draw no yes yes yes
@@ -214,7 +206,6 @@ base-draw: func [
 		; make-event self 0 EVT_DRAWING
 		; draw/header: TYPE_NONE
 		; draw-end DC ctx no no no
-		cairo-render-text cr vals
 		0
 	]
 	;print ["base-draw " widget lf]
