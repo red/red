@@ -124,12 +124,12 @@ render-text: func [
 	]
 
 	; The pango_cairo way
-
 	pc: pango_cairo_create_context cr
 	lpc: pango_cairo_create_layout cr
 
 	font: as red-object! values + FACE_OBJ_FONT
 	fd: font-description font
+	; DEBUG: print-line "after font-description"
 	pango_layout_set_font_description lpc fd
 	if TYPE_OF(text) = TYPE_STRING [
 		len: -1
@@ -194,7 +194,7 @@ base-draw: func [
 		cairo_paint cr								;-- paint background
 	]
 
-	render-text cr vals
+	;render-text cr vals
 	
 	either TYPE_OF(draw) = TYPE_BLOCK [
 		do-draw cr null draw no yes yes yes
