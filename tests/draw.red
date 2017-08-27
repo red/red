@@ -1,5 +1,8 @@
 Red [
-	Title: "Tests for draw dialect"
+	Title:	"Tests for draw dialect"
+	Author: "Fyodor Shchukin"
+	File:	%draw.red
+	Tabs:	4
 ]
 
 view [
