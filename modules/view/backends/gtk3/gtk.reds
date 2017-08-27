@@ -817,6 +817,22 @@ GtkTextIter!: alias struct! [
 		cairo_save: "cairo_save" [
 			cr			[handle!]
 		]
+		cairo_scale: "cairo_scale" [
+			cr			[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_translate: "cairo_translate" [
+			cr			[handle!]
+			x			[float!]
+			y			[float!]
+		]
+		cairo_toy_font_face_create: "cairo_toy_font_face_create" [
+			family		[c-string!]
+			slant		[integer!]
+			weight		[integer!]
+			return:		[handle!]
+		]
 		cairo_restore: "cairo_restore" [
 			cr			[handle!]
 		]
@@ -840,6 +856,18 @@ GtkTextIter!: alias struct! [
 			surface		[handle!]
 			x			[float!]
 			y			[float!]
+		]
+		cairo_set_font_face: "cairo_set_font_face" [
+			cr			[handle!]
+			font_face	[handle!]
+		]
+		cairo_set_font_size: "cairo_set_font_size" [
+			cr			[handle!]
+			size		[float!]
+		]
+		cairo_show_text: "cairo_show_text" [
+			cr          [handle!]
+			utf8		[c-string!]
 		]
 		cairo_get_source: "cairo_get_source" [
 			cr			[handle!]

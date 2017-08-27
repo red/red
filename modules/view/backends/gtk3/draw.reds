@@ -189,12 +189,14 @@ OS-draw-polygon: func [
 	dc	  [draw-ctx!]
 	start [red-pair!]
 	end	  [red-pair!]
-	/local
-		pair  [red-pair!]
-		point [tagPOINT]
-		nb	  [integer!]
 ][
-0
+	until [
+		cairo_line_to dc/raw as-float start/x as-float start/y
+		start: start + 1
+		start > end
+	]
+	cairo_close_path dc/raw
+	do-paint dc
 ]
 
 OS-draw-spline: func [
@@ -203,21 +205,72 @@ OS-draw-spline: func [
 	end		[red-pair!]
 	closed? [logic!]
 	/local
-		pair  [red-pair!]
-		point [tagPOINT]
-		nb	  [integer!]
+		ctx		[handle!]
+		p		[red-pair!]
+		p0		[red-pair!]
+		p1		[red-pair!]
+		p2		[red-pair!]
+		p3		[red-pair!]
+		x		[float32!]
+		y		[float32!]
+		delta	[float32!]
+		t		[float32!]
+		t2		[float32!]
+		t3		[float32!]
+		i		[integer!]
+		n		[integer!]
+		count	[integer!]
+		num		[integer!]
 ][
-0
-]
+	comment {
+	; this is copy from macOS/draw.reds impl
+	; seems not to work now..
 
-do-draw-ellipse: func [
-	dc		[draw-ctx!]
-	x		[integer!]
-	y		[integer!]
-	width	[integer!]
-	height	[integer!]
-][
-0
+	ctx: dc/raw
+
+	count: (as-integer end - start) >> 4
+	num: count + 1 + 2
+
+	p: start
+
+	cairo_move_to ctx as-float p/x as-float p/y
+
+	i: 0
+	delta: (as float32! 1.0) / (as float32! 25.0)
+
+	while [i < count][						;-- CatmullRom Spline, tension = 0.5
+		p0: p + (i % num)
+		p1: p + (i + 1 % num)
+		p2: p + (i + 2 % num)
+		p3: p + (i + 3 % num)
+
+		t: as float32! 0.0
+		n: 0
+		until [
+			t: t + delta
+			t2: t * t
+			t3: t2 * t
+
+			x: (as float32! 2.0) * p1/x + (p2/x - p0/x * t) +
+			   (((as float32! 2.0) * p0/x - ((as float32! 5.0) * p1/x) + ((as float32! 4.0) * p2/x) - p3/x) * t2) +
+			   ((as float32! 3.0) * (p1/x - p2/x) + p3/x - p0/x * t3) * 0.5
+			y: (as float32! 2.0) * p1/y + (p2/y - p0/y * t) +
+			   (((as float32! 2.0) * p0/y - ((as float32! 5.0) * p1/y) + ((as float32! 4.0) * p2/y) - p3/y) * t2) +
+			   ((as float32! 3.0) * (p1/y - p2/y) + p3/y - p0/y * t3) * 0.5
+
+			cairo_line_to ctx as-float x as-float y
+
+			n: n + 1
+			n = 25
+		]
+		i: i + 4 
+	]
+	if closed? [
+		cairo_close_path dc/raw
+	]
+	do-paint dc
+
+	} ; comment
 ]
 
 OS-draw-circle: func [
@@ -225,12 +278,49 @@ OS-draw-circle: func [
 	center [red-pair!]
 	radius [red-integer!]
 	/local
-		x [float!]
-		y [float!]
+		ctx   [handle!]
+		rad-x [integer!]
+		rad-y [integer!]
+		w	  [float!]
+		h	  [float!]
+		f	  [red-float!]
 ][
-	x: as-float center/x
-	y: as-float center/y
-	cairo_arc dc/raw x y as-float radius/value 0.0 2.0 * pi + 1
+	ctx: dc/raw
+
+	either TYPE_OF(radius) = TYPE_INTEGER [
+		either center + 1 = radius [					;-- center, radius
+			rad-x: radius/value
+			rad-y: rad-x
+		][
+			rad-y: radius/value							;-- center, radius-x, radius-y
+			radius: radius - 1
+			rad-x: radius/value
+		]
+		w: as float! rad-x * 2
+		h: as float! rad-y * 2
+	][
+		f: as red-float! radius
+		either center + 1 = radius [
+			rad-x: as-integer f/value + 0.75
+			rad-y: rad-x
+			w: as float! f/value * 2.0
+			h: w
+		][
+			rad-y: as-integer f/value + 0.75
+			h: as float! f/value * 2.0
+			f: f - 1
+			rad-x: as-integer f/value + 0.75
+			w: as float! f/value * 2.0
+		]
+	]
+
+	cairo_save ctx
+	cairo_translate ctx as-float center/x
+						as-float center/y
+	cairo_scale ctx as-float rad-x
+					as-float rad-y
+	cairo_arc ctx 0.0 0.0 1.0 0.0 2.0 * pi
+	cairo_restore ctx
 	do-paint dc
 ]
 
@@ -238,21 +328,48 @@ OS-draw-ellipse: func [
 	dc		 [draw-ctx!]
 	upper	 [red-pair!]
 	diameter [red-pair!]
+	/local
+		ctx   [handle!]
+		rad-x [integer!]
+		rad-y [integer!]
 ][
-0
+	ctx: dc/raw
+	rad-x: diameter/x / 2
+	rad-y: diameter/y / 2
+
+	cairo_save ctx
+	cairo_translate ctx as-float upper/x + rad-x
+						as-float upper/y + rad-y
+	cairo_scale ctx as-float rad-x
+					as-float rad-y
+	cairo_arc ctx 0.0 0.0 1.0 0.0 2.0 * pi
+	cairo_restore ctx
+	do-paint dc
 ]
 
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
 	/local
-		vals  [red-value!]
-		state [red-block!]
-		int   [red-integer!]
-		color [red-tuple!]
-		hFont [draw-ctx!]
+		ctx   [handle!]
+		len   [integer!]
+		face  [handle!]
+		; vals  [red-value!]
+		; state [red-block!]
+		; int   [red-integer!]
+		; color [red-tuple!]
+		; hFont [draw-ctx!]
 ][
-0
+	ctx: dc/raw
+	len: -1
+	face: cairo_toy_font_face_create 
+		;unicode/to-utf8 font/name :len  ; family string
+		"Impact"
+		0								; slant  normal\italic
+		0								; weight normal\bold
+	cairo_set_font_face ctx face
+	;cairo_set_font_size ctx as-float font/size
+	cairo_set_font_size ctx as-float 15 
 ]
 
 OS-draw-text: func [
@@ -260,11 +377,17 @@ OS-draw-text: func [
 	pos		[red-pair!]
 	text	[red-string!]
 	/local
+		ctx		[handle!]
+		len     [integer!]
 		str		[c-string!]
-		len		[integer!]
 ][
-	print-line "draw text"
-0
+	ctx: dc/raw
+	len: -1
+	str: unicode/to-utf8 text :len
+	cairo_move_to ctx as-float pos/x
+					  as-float pos/y
+	cairo_show_text ctx str
+	do-paint dc
 ]
 
 OS-draw-arc: func [
@@ -272,25 +395,47 @@ OS-draw-arc: func [
 	center [red-pair!]
 	end	   [red-value!]
 	/local
+		ctx			[handle!]
 		radius		[red-pair!]
 		angle		[red-integer!]
-		rad-x		[integer!]
-		rad-y		[integer!]
-		start-x		[integer!]
-		start-y 	[integer!]
-		end-x		[integer!]
-		end-y		[integer!]
+		begin		[red-integer!]
+		cx			[float!]
+		cy			[float!]
+		rad-x		[float!]
+		rad-y		[float!]
 		angle-begin [float!]
-		angle-len	[float!]
-		rad-x-float	[float!]
-		rad-y-float	[float!]
-		rad-x-2		[float!]
-		rad-y-2		[float!]
-		rad-x-y		[float!]
-		tan-2		[float!]
+		angle-end	[float!]
+		rad			[float!]
+		sweep		[integer!]
+		i			[integer!]
 		closed?		[logic!]
 ][
-0
+	ctx: dc/raw
+	cx: as float! center/x
+	cy: as float! center/y
+	rad: PI / 180.0
+
+	radius: center + 1
+	rad-x: as float! radius/x
+	rad-y: as float! radius/y
+	begin: as red-integer! radius + 1
+	angle-begin: rad * as float! begin/value
+	angle: begin + 1
+	sweep: angle/value
+	i: begin/value + sweep
+	angle-end: rad * as float! i
+
+	closed?: angle < end
+
+	cairo_save ctx
+	cairo_translate ctx cx    cy
+	cairo_scale     ctx rad-x rad-y
+	cairo_arc ctx 0.0 0.0 1.0 angle-begin angle-end
+	if closed? [
+		cairo_close_path ctx
+	]
+	cairo_restore ctx
+	do-paint dc
 ]
 
 OS-draw-curve: func [
@@ -298,14 +443,28 @@ OS-draw-curve: func [
 	start [red-pair!]
 	end	  [red-pair!]
 	/local
-		pair  [red-pair!]
-		point [tagPOINT]
+		ctx   [handle!]
 		p2	  [red-pair!]
 		p3	  [red-pair!]
-		nb	  [integer!]
-		count [integer!]
 ][
-0
+	ctx: dc/raw
+
+	if (as-integer end - start) >> 4 = 3    ; four input points 
+	[
+		cairo_move_to ctx as-float start/x 
+						  as-float start/y
+		start: start + 1
+	]
+
+	p2: start + 1
+	p3: start + 2
+	cairo_curve_to ctx as-float start/x
+					   as-float start/y
+					   as-float p2/x
+					   as-float p2/y
+					   as-float p3/x
+					   as-float p3/y
+	do-paint dc
 ]
 
 OS-draw-line-join: func [
