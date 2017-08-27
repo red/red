@@ -102,16 +102,65 @@ get-event-key: func [
 	evt		[red-event!]
 	return: [red-value!]
 	/local
-		char [red-char!]
+		char 		[red-char!]
+		code 		[integer!]
+		res	 		[red-value!]
+		special?	[logic!]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
 		EVT_KEY_UP
 		EVT_KEY_DOWN [
-			char: as red-char! stack/push*
-			char/header: TYPE_CHAR
-			char/value: evt/flags and FFFFh
-			as red-value! char
+			res: null
+			code: evt/flags
+			special?: code and 80000000h <> 0
+			code: code and FFFFh
+			print ["code " code lf]
+			if special? [
+				res: as red-value! switch code [
+					RED_VK_PRIOR	[_page-up]
+					RED_VK_NEXT		[_page-down]
+					RED_VK_END		[_end]
+					RED_VK_HOME		[_home]
+					RED_VK_LEFT		[_left]
+					RED_VK_UP		[_up]
+					RED_VK_RIGHT	[_right]
+					RED_VK_DOWN		[_down]
+					RED_VK_INSERT	[_insert]
+					RED_VK_DELETE	[_delete]
+					RED_VK_F1		[_F1]
+					RED_VK_F2		[_F2]
+					RED_VK_F3		[_F3]
+					RED_VK_F4		[_F4]
+					RED_VK_F5		[_F5]
+					RED_VK_F6		[_F6]
+					RED_VK_F7		[_F7]
+					RED_VK_F8		[_F8]
+					RED_VK_F9		[_F9]
+					RED_VK_F10		[_F10]
+					RED_VK_F11		[_F11]
+					RED_VK_F12		[_F12]
+					RED_VK_LSHIFT	[_left-shift]
+					RED_VK_RSHIFT	[_right-shift]
+					RED_VK_LCONTROL	[_left-control]
+					RED_VK_RCONTROL	[_right-control]
+					RED_VK_LMENU	[_left-alt]
+					RED_VK_RMENU	[_right-alt]
+					RED_VK_LWIN		[_left-command]
+					RED_VK_APPS		[_right-command]
+					default			[null]
+				]
+			]
+			either null? res [
+				either all [special? evt/type = EVT_KEY][
+					none-value
+				][
+					char: as red-char! stack/push*
+					char/header: TYPE_CHAR
+					char/value: code
+					as red-value! char
+				]
+			][res]
 		]
 		default [as red-value! none-value]
 	]
@@ -203,7 +252,7 @@ make-event: func [
 ][
 	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
-	gui-evt/flags: 0
+	gui-evt/flags: flags
 
 	state: EVT_DISPATCH
 
@@ -274,4 +323,41 @@ do-events: func [
 	;g_main_context_release GTKApp-Ctx			;@@ release it?
 	;g_object_unref GTKApp
 	msg?
+]
+
+check-extra-keys: func [
+	state	[integer!]
+	return: [integer!]
+	/local
+		key		[integer!]
+][
+	key: 0
+	if state and GDK_SHIFT_MASK <> 0 [key: EVT_FLAG_SHIFT_DOWN]
+	if state and GDK_CONTROL_MASK <> 0 [key: key or EVT_FLAG_CTRL_DOWN]
+	if any [state and GDK_MOD1_MASK <> 0  state and GDK_MOD5_MASK <> 0][key: key or EVT_FLAG_MENU_DOWN]
+	key
+]
+
+translate-key: func [
+	keycode [integer!]
+	return: [integer!]
+	/local
+		key 		[integer!]
+		special?	[logic!]
+][
+	print ["keycode: " keycode]
+	keycode: gdk_keyval_to_upper keycode
+	print [" keycode2: " keycode]
+	special?: no
+	key: case [
+		all[keycode >= 30h keycode <= 5Ah][keycode]; RED_VK_0 to RED_VK_Z
+		all[keycode >= FFBEh keycode <= FFC8h][special?: yes keycode + RED_VK_F1 - FFBEh];RED_VK_F1 to RED_VK_F11
+		keycode = FFBFh [special?: yes RED_VK_F12]
+		keycode = FF0Dh	[special?: yes RED_VK_RETURN]
+		;@@ To complete!
+		true [RED_VK_UNKNOWN]
+	]
+	if special? [key: key or 80000000h]
+	print [" key: " key " F1" RED_VK_F1 lf]
+	key
 ]

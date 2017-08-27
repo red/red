@@ -77,9 +77,9 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 			cairo_set_source cr dc/pattern
 		]
 		cairo_fill_preserve cr
+		unless dc/pen? [set-source-color cr dc/pen-color cairo_stroke cr]
 		cairo_restore cr
 	]
-	if dc/pen? [cairo_stroke cr]
 ]
 
 OS-draw-anti-alias: func [
@@ -612,16 +612,15 @@ OS-matrix-rotate: func [
 	angle	[red-integer!]
 	center	[red-pair!]
 	/local
-		m	[integer!]
-		pts [tagPOINT]
+		cr 	[handle!]
+		rad [float!]
 ][
-	if angle <> as red-integer! center [
-0
-	]
-	;GdipRotateWorldTransform dc/graphics get-float32 angle GDIPLUS_MATRIXORDERAPPEND
-	if angle <> as red-integer! center [
-0
-	]
+	cr: dc/raw
+	rad: PI / 180.0 * get-float angle
+	cairo_translate cr as float! center/x as float! center/y
+	cairo_rotate cr rad
+	do-paint dc
+	cairo_translate cr as float! (0 - center/x) as float! (0 - center/y)
 ]
 
 OS-matrix-scale: func [
@@ -629,8 +628,12 @@ OS-matrix-scale: func [
 	pen		[integer!]
 	sx		[red-integer!]
 	sy		[red-integer!]
+	/local
+		cr [handle!]
 ][
-0
+	cr: dc/raw
+	cairo_scale cr as-float sx/value as-float sy/value
+	do-paint dc
 ]
 
 OS-matrix-translate: func [
@@ -638,8 +641,12 @@ OS-matrix-translate: func [
 	pen	[integer!]
 	x	[integer!]
 	y	[integer!]
+	/local
+		cr [handle!]
 ][
-0
+	cr: dc/raw
+	cairo_translate cr as-float x as-float y
+	do-paint dc
 ]
 
 OS-matrix-skew: func [
@@ -688,7 +695,13 @@ OS-matrix-pop: func [dc [draw-ctx!]][0]
 OS-matrix-reset: func [
 	dc [draw-ctx!]
 	pen [integer!]
-][]
+	/local
+		cr [handle!]
+][
+	cr: dc/raw
+	cairo_identity_matrix cr
+	do-paint dc
+]
 
 OS-matrix-invert: func [
 	dc	[draw-ctx!]
