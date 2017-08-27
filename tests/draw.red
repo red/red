@@ -121,8 +121,53 @@ view [
 		text 5x55 "text"
 	]
 
+	base 50x60 100.70.70 draw [
+		line-width 3
+		fill-pen 120.20.20 
+
+		text 5x55 "..."
+	]
+
+	return
 
 	; . . .
+
+	base 230x2 0.0.0
+
+	return
+
+	base 50x60 70.70.100 draw [
+		text 5x55 "rotate"
+
+		line-width 3
+		fill-pen 120.20.20 
+
+		box 15x15 35x35
+		rotate 45 25x25
+		box 15x15 35x35
+	]
+
+	base 50x60 70.70.100 draw [
+		text 5x55 "scale"
+
+		line-width 3
+		fill-pen 120.20.20 
+
+		box 10x10 40x40
+		scale 0.5 0.5
+		box 10x10 40x40
+	]
+
+	base 50x60 70.70.100 draw [
+		text 5x55 "translate"
+
+		line-width 3
+		fill-pen 120.20.20 
+
+		box 10x10 30x30
+		translate 10x10
+		box 10x10 30x30
+	]
 ]
 
 font-A: make font! [
