@@ -1295,14 +1295,16 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_THICKFRAME or WS_CAPTION or WS_CLIPCHILDREN
+			flags: WS_CAPTION or WS_CLIPCHILDREN
 			;ws-flags: WS_EX_COMPOSITED
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
 			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
-			if bits and FACET_FLAGS_RESIZE = 0 [
+			either bits and FACET_FLAGS_RESIZE = 0 [
 				flags: flags and (not WS_MAXIMIZEBOX)
+			][
+				flags: flags or WS_THICKFRAME
 			]
 
 			if menu-bar? menu window [
