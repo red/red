@@ -921,6 +921,7 @@ make-profilable make target-class [
 		
 		either any [
 			all [type/1 = 'struct! 'value = last spec/(path/2)]
+			type/1 = 'bytes!
 			all [
 				get-word? first head path
 				tail? skip path 2
@@ -1055,7 +1056,7 @@ make-profilable make target-class [
 		if verbose >= 3 [print [">>>loading path:" mold path]]
 
 		switch type [
-			c-string! [emit-c-string-path path parent]
+			c-string! bytes! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
 			struct!   [emit-access-path   path parent]
 		]
@@ -1092,7 +1093,7 @@ make-profilable make target-class [
 		]
 
 		switch type [
-			c-string! [emit-c-string-path path parent]
+			c-string! bytes! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
 			struct!   [
 				unless parent [parent: emit-access-path/short path parent]

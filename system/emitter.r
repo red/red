@@ -48,6 +48,7 @@ emitter: make-profilable context [
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 		function!	4	-				;-- 32-bit, 8 for 64-bit
+		bytes!		1   -
 	]
 	
 	datatype-ID: [
@@ -62,6 +63,7 @@ emitter: make-profilable context [
 		int-ptr!	8
 		function!	9
 		struct!		1000
+		bytes!		7
 	]
 	
 	chunks: context [
@@ -311,11 +313,17 @@ emitter: make-profilable context [
 				foreach [var type] spec [
 					by-val?: 'value = last type
 					if spec: compiler/find-aliased type/1 [type: spec]
-					either all [by-val? type/1 = 'struct!][
-						store-global value type/1 type/2
-					][
-						type: either find [struct! c-string!] type/1 ['pointer!][type/1]
-						store-global value type spec
+					case [
+						all [by-val? type/1 = 'struct!][
+							store-global value type/1 type/2
+						]
+						type/1 = 'bytes! [
+							store-global value type/1 type
+						]
+						true [
+							type: either find [struct! c-string!] type/1 ['pointer!][type/1]
+							store-global value type spec
+						]
 					]
 				]
 				pad-data-buf target/struct-align-size
@@ -362,6 +370,15 @@ emitter: make-profilable context [
 				append ptr value
 				pad-data-buf target/ptr-size
 			]
+			bytes! [
+				size: spec/2
+				if size < 0 [
+					compiler/throw-error ["bytes! type expected value > 0 but received: " size]
+				]
+				ptr: tail data-buf
+				insert/dup ptr #"^@" size
+			]
+
 		][
 			compiler/throw-error ["store-global unexpected type:" type]
 		]
@@ -642,7 +659,10 @@ emitter: make-profilable context [
 			if t [type: t]
 			return member-offset? type/2 none
 		]
-		if block? type [type: type/1]
+		if block? type [
+			if type/1 = 'bytes! [return type/2]
+			type: type/1
+		]
 		
 		any [
 			select datatypes type						;-- search in base types
