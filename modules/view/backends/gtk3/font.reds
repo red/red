@@ -261,16 +261,21 @@ font-description: func [
 		str      [red-string!]
 		name     [c-string!]
 		size     [red-integer!]
+		fsize	 [integer!]
 		css      [c-string!]
 		color    [red-tuple!]
 		bgcolor  [red-tuple!]
 		rgba     [c-string!]
-		fsty     [integer!]
+		fweight  [integer!]
+		fstyle   [integer!]
 		fd	     [handle!]
 
 ][
+	; default font if font is none. TODO: better than gtk-font would be to get the default font system or from red side
+	if TYPE_OF(font) = TYPE_NONE [
+		return pango_font_description_from_string gtk-font
+	]
 	values: object/get-values font
-
 	;name:
 	str: 	as red-string!	values + FONT_OBJ_NAME
 	size:	as red-integer!	values + FONT_OBJ_SIZE
@@ -281,15 +286,15 @@ font-description: func [
 
 	fd: pango_font_description_new
 
+	name: "Arial" ; @@ to change to default font name  
 	if TYPE_OF(str) = TYPE_STRING [
 		len: -1
 		name: unicode/to-utf8 str :len
-		pango_font_description_set_family fd name
 	]
+	pango_font_description_set_family fd name
 
-	if TYPE_OF(size) = TYPE_INTEGER [
-		pango_font_description_set_size fd size/value * PANGO_SCALE
-	]
+	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][16]
+	pango_font_description_set_size fd fsize * PANGO_SCALE
 
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [
@@ -301,13 +306,14 @@ font-description: func [
 		default		[0]
 	]
 
-	fsty: PANGO_STYLE_NORMAL
+	fstyle: PANGO_STYLE_NORMAL
+	fweight: PANGO_WEIGHT_NORMAL
 	unless zero? len [
 		loop len [
 			sym: symbol/resolve style/symbol
 			case [ 
-				sym = _bold      [pango_font_description_set_weight fd PANGO_WEIGHT_BOLD]
-				sym = _italic    [fsty: PANGO_STYLE_ITALIC]
+				sym = _bold      [fweight: PANGO_WEIGHT_BOLD]
+				sym = _italic    [fstyle: PANGO_STYLE_ITALIC]
 				sym = _underline []
 				sym = _strike    []
 				true             []
@@ -316,7 +322,8 @@ font-description: func [
 		]
 	]
 
-	pango_font_description_set_style fd fsty
+	pango_font_description_set_weight fd fweight
+	pango_font_description_set_style fd fstyle
 	pango_font_description_set_stretch fd PANGO_STRETCH_NORMAL
 	pango_font_description_set_variant fd PANGO_VARIANT_NORMAL
 	

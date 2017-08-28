@@ -60,7 +60,7 @@ get-face-object: func [
 	face: as red-object! 0
 	unless null? handle [
 		qdata: g_object_get_qdata handle red-face-id
-		if qdata <> as handle! 0 [
+		unless null? qdata [
 			face: as red-object! qdata
 		]
 	]
@@ -78,7 +78,7 @@ get-face-values: func [
 	values: as red-value! 0
 	unless null? handle [
 		qdata: g_object_get_qdata handle red-face-id
-		if qdata <> as handle! 0 [
+		unless null? qdata [
 			face: as red-object! qdata
 			values: object/get-values face
 		]
@@ -195,7 +195,7 @@ get-text-size: func [
 		fd		[handle!]
 		df		[c-string!]
 ][
-	if pango-context = as handle! 0 [pango-context: gdk_pango_context_get]
+	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
 
 	text: either TYPE_OF(str) = TYPE_STRING [
@@ -206,11 +206,17 @@ get-text-size: func [
 	]
 
 	width: 0 height: 0
-	fd: either TYPE_OF(font) = TYPE_NONE [ 
-		pango_font_description_from_string gtk-font
-	][
-		font-description font
-	]
+
+	; @@ TO REMOVE since font-description manages directly none value for font
+	;fd: either TYPE_OF(font) = TYPE_NONE [ 
+	;	pango_font_description_from_string gtk-font
+	;][
+	;	font-description font
+	;]
+
+	; The lines above replaced with
+	fd: font-description font
+
 	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl fd
@@ -318,7 +324,7 @@ debug-show-children: func [
 
 	rect: 	as tagRECT allocate (size? tagRECT)
 	
-	if TYPE_OF(pane) = TYPE_BLOCK [
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Pane type: " get-symbol-name sym lf]]
@@ -442,7 +448,7 @@ adjust-sizes: func [
 
 	rect: 	as tagRECT allocate (size? tagRECT)
 	
-	if TYPE_OF(pane) = TYPE_BLOCK [
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Parent type: " get-symbol-name sym lf]]
@@ -498,7 +504,7 @@ change-rate: func [
 ][
 	unless null? hWnd [
 		data: g_object_get_qdata hWnd red-timer-id
-		timer: either data = as handle! 0 [0][as integer! data]
+		timer: either null? data [0][as integer! data]
 
 		;print ["timer: " timer lf]
 		
@@ -1289,7 +1295,7 @@ OS-make-view: func [
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = radio [
-			widget: either group-radio = as handle! 0 [
+			widget: either null? group-radio [
 				gtk_radio_button_new_with_label null caption
 			][
 				gtk_radio_button_new_with_label_from_widget group-radio caption
@@ -1309,6 +1315,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			widget: gtk_application_window_new GTKApp
+			; @@ DEBUG: temporary code
 			last-widget: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
@@ -1411,7 +1418,7 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		either _widget = as handle! 0 [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
+		either null? _widget [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
 		; TODO: case to replace with either if no more choice
 		case [
 			p-sym = tab-panel [

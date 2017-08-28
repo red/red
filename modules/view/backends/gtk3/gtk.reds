@@ -911,16 +911,6 @@ GtkTextIter!: alias struct! [
 			cr			[handle!]
 			angle 		[float!]
 		]
-		cairo_translate: "cairo_translate" [
-			cr			[handle!]
-			x 			[float!]
-			y 			[float!]
-		]
-		cairo_scale: "cairo_scale" [
-			cr			[handle!]
-			x 			[float!]
-			y 			[float!]
-		]
 		cairo_identity_matrix: "cairo_identity_matrix" [
 			cr			[handle!]
 		]

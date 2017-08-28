@@ -124,7 +124,6 @@ render-text: func [
 	]
 
 	; The pango_cairo way
-
 	pc: pango_cairo_create_context cr
 	lpc: pango_cairo_create_layout cr
 
@@ -387,7 +386,7 @@ area-changed: func [
 	text: gtk_text_buffer_get_text buffer as handle! start as handle! end no
 	free as byte-ptr! start free as byte-ptr! end 
 	qdata: g_object_get_qdata widget red-face-id
-    if qdata <> as handle! 0 [
+    unless null? qdata [
         face: as red-object! qdata
 		set-text widget face/ctx text
 		make-event widget 0 EVT_CHANGE
