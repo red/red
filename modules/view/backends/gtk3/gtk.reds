@@ -89,6 +89,17 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
+#enum cairo_font_slant_t! [
+	CAIRO_FONT_SLANT_NORMAL
+	CAIRO_FONT_SLANT_ITALIC
+	CAIRO_FONT_SLANT_OBLIQUE
+]
+
+#enum cairo_font_weight_t! [
+	CAIRO_FONT_WEIGHT_NORMAL
+ 	CAIRO_FONT_WEIGHT_BOLD
+]
+
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
 ; cairo_text_extents_t!: alias struct! [ 
 ;  	x_bearing	[float!]
@@ -926,12 +937,12 @@ GtkTextIter!: alias struct! [
 			cr			[handle!]
 		]
 		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
-		; cairo_select_font_face: "cairo_select_font_face" [
-		; 	cr			[handle!]
-		; 	family		[c-string!]
-		; 	slant		[integer!]
-		; 	weight		[integer!]
-		; ]
+		cairo_select_font_face: "cairo_select_font_face" [
+			cr			[handle!]
+			family		[c-string!]
+			slant		[integer!]
+			weight		[integer!]
+		]
 		; cairo_set_font_size: "cairo_set_font_size" [
 		; 	cr			[handle!]
 		; 	size		[integer!]

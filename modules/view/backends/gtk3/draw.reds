@@ -352,29 +352,82 @@ OS-draw-ellipse: func [
 	do-paint dc
 ]
 
+; put this into draw-ctx! ?
+font-size: 11
+
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
 	/local
-		ctx   [handle!]
-		len   [integer!]
-		face  [handle!]
-		; vals  [red-value!]
-		; state [red-block!]
-		; int   [red-integer!]
-		; color [red-tuple!]
-		; hFont [draw-ctx!]
+		cr       [handle!]
+		values   [red-value!]
+		style    [red-word!]
+		blk      [red-block!]
+		len      [integer!]
+		sym      [integer!]
+		str      [red-string!]
+		name     [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
+		color    [red-tuple!]
+		bgcolor  [red-tuple!]
+		rgba     [c-string!]
+		slant    [integer!]
+		weight   [integer!]
 ][
-	ctx: dc/raw
-	len: -1
-	face: cairo_toy_font_face_create 
-		;unicode/to-utf8 font/name :len  ; family string
-		"sans-serif"
-		1								; slant  normal\italic
-		1								; weight normal\bold
-	cairo_set_font_face ctx face
-	;cairo_set_font_size ctx as-float font/size
-	cairo_set_font_size ctx as-float 15 
+	cr: dc/raw
+
+	values: object/get-values font
+
+	;name:
+	str: 	as red-string!	values + FONT_OBJ_NAME
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	style:	as red-word!	values + FONT_OBJ_STYLE
+	;angle:
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+	;anti-alias?:
+
+	dc/font-color: color/array1
+
+	if TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+ 	]
+
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD	[1]
+		default		[0]
+	]
+
+	slant: CAIRO_FONT_SLANT_NORMAL
+	weight: CAIRO_FONT_WEIGHT_NORMAL
+  
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [ 
+				sym = _bold      [weight: CAIRO_FONT_WEIGHT_BOLD]
+				sym = _italic    [slant: CAIRO_FONT_SLANT_ITALIC]
+				sym = _underline []
+				sym = _strike    []
+				true             []
+			]
+			style: style + 1
+		]
+	]
+
+	;cairo_select_font_face cr name slant weight
+	cairo_select_font_face cr name slant weight
+
+	if TYPE_OF(size) = TYPE_INTEGER [
+		cairo_set_font_size cr as-float size/value
+		font-size: size/value
+	]
 ]
 
 OS-draw-text: func [
@@ -390,9 +443,14 @@ OS-draw-text: func [
 	len: -1
 	str: unicode/to-utf8 text :len
 	cairo_move_to ctx as-float pos/x
-					  as-float pos/y
+					  as-float pos/y + font-size
+
+	set-source-color dc/raw dc/font-color
 	cairo_show_text ctx str
+
 	do-paint dc
+
+	set-source-color dc/raw dc/pen-color	;-- backup pen color
 ]
 
 OS-draw-arc: func [
