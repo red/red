@@ -5,22 +5,22 @@ Red [
 	Tabs:	4
 ]
 
-view [
+l: layout [
 	title "Draw test"
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 200.50.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
-		line 10x10 40x30
+		line 10x10 40x30 10x30
 		line 10x40 40x40
 
 		text 5x55 "line"
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		triangle 10x10 40x10 25x40
 
@@ -28,8 +28,8 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		box 10x10 40x20
 		box 20x30 30x40
@@ -38,8 +38,8 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		polygon 10x10 40x10 40x40 20x30
 
@@ -49,8 +49,8 @@ view [
 	return
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		circle 25x25 15
 		circle 25x25 10 5
@@ -59,8 +59,8 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		ellipse 10x10 5x10
 		ellipse 35x10 5x10
@@ -70,8 +70,8 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		;arc <center> <radius> <begin> <sweep> closed
 		arc 25x25 15x15 0 180 closed
@@ -81,11 +81,11 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
+		curve 10x5  45x5        45x40
 		curve 10x10 40x10 10x40 40x40
-		curve 10x10 20x40       10x40
 
 		text 5x55 "curve"
 	]
@@ -93,8 +93,8 @@ view [
 	return
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		spline 10x10 40x40 40x40 10x40
 
@@ -102,8 +102,8 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		;image
 
@@ -111,21 +111,60 @@ view [
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		text 5x55 "text"
 
 		text 10x20 "Red"
-		;font font-A 
+		font font-A 
 		text 10x30 "Red"
-
-		text 5x55 "text"
 	]
 
 	base 50x60 100.70.70 draw [
-		line-width 3
-		fill-pen 120.20.20 
+		text 5x55 "pen flat"
 
-		text 5x55 "..."
+		line 10x10 10x40
+		box 15x10 20x40
+
+		pen off
+		fill-pen 20.20.170.128
+		box 25x10 30x40
+
+		pen 255.255.255.100 
+		line-width 1 
+		triangle 35x10 40x40 35x40
+
+		fill-pen off
+		triangle 35x10 40x10 40x40
+	]
+
+	return
+
+	base 50x60 100.70.70 draw [
+		text 5x55 "pen gradient"
+
+		pen linear red green blue
+		line-width 5
+		fill-pen no
+		box 10x10 40x40
+	]
+
+	base 50x60 100.70.70 draw [
+		text 5x55 "fill gradient"
+
+		fill-pen linear red green blue
+		box 10x10 40x40
+	]
+
+	base 50x60 100.70.70 draw [
+		text 5x55 "line join"
+		
+		line-width 3
+
+		line-join miter
+		line 10x40 15x20 20x40
+		line-join round
+		line 20x40 25x20 30x40
+		line-join bevel
+		line 30x40 35x20 40x40
 	]
 
 	return
@@ -139,8 +178,8 @@ view [
 	base 50x60 70.70.100 draw [
 		text 5x55 "rotate"
 
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		box 15x15 35x35
 		rotate 45 25x25
@@ -150,8 +189,8 @@ view [
 	base 50x60 70.70.100 draw [
 		text 5x55 "scale"
 
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		box 10x10 40x40
 		scale 0.5 0.5
@@ -161,8 +200,19 @@ view [
 	base 50x60 70.70.100 draw [
 		text 5x55 "translate"
 
-		line-width 3
-		fill-pen 120.20.20 
+		line-width 2
+		fill-pen 170.20.20.128 
+
+		box 10x10 30x30
+		translate 10x10
+		box 10x10 30x30
+	]
+
+	base 50x60 70.70.100 draw [
+		text 5x55 "translate"
+
+		line-width 2
+		fill-pen 170.20.20.128 
 
 		box 10x10 30x30
 		translate 10x10
@@ -177,4 +227,6 @@ font-A: make font! [
 	style: [bold italic underline]
 	anti-alias?: yes
 ]
+
+view l
 

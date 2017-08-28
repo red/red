@@ -847,6 +847,10 @@ GtkTextIter!: alias struct! [
 			cr			[handle!]
 			width		[float!]
 		]
+		cairo_set_line_join: "cairo_set_line_join" [
+			cr			[handle!]
+			line_join	[integer!]
+		]
 		cairo_set_source: "cairo_set_source" [
 			cr			[handle!]
 			source		[handle!]

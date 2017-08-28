@@ -77,8 +77,21 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 			cairo_set_source cr dc/pattern
 		]
 		cairo_fill_preserve cr
-		unless dc/pen? [set-source-color cr dc/pen-color cairo_stroke cr]
+		unless dc/pen? [
+			set-source-color cr dc/pen-color 
+			cairo_stroke cr
+		]
 		cairo_restore cr
+	]
+	if dc/pen? [
+		cairo_set_line_join cr 
+			case [
+				dc/pen-join = miter			[0]
+				dc/pen-join = _round		[1]
+				dc/pen-join = bevel			[2]
+				dc/pen-join = miter-bevel	[0]
+			]
+		cairo_stroke cr
 	]
 ]
 
@@ -101,7 +114,7 @@ OS-draw-line: func [
 		cairo_line_to cr as-float point/x as-float point/y
 		point: point + 1
 	]
-	cairo_stroke cr
+	do-paint dc
 ]
 
 OS-draw-pen: func [
@@ -617,10 +630,11 @@ OS-matrix-rotate: func [
 ][
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
-	cairo_translate cr as float! center/x as float! center/y
+	cairo_translate cr as float! center/x 
+					   as float! center/y
 	cairo_rotate cr rad
-	do-paint dc
-	cairo_translate cr as float! (0 - center/x) as float! (0 - center/y)
+	cairo_translate cr as float! (0 - center/x) 
+					   as float! (0 - center/y)
 ]
 
 OS-matrix-scale: func [
@@ -632,8 +646,8 @@ OS-matrix-scale: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_scale cr as-float sx/value as-float sy/value
-	do-paint dc
+	cairo_scale cr as-float sx/value
+				   as-float sy/value
 ]
 
 OS-matrix-translate: func [
@@ -645,8 +659,8 @@ OS-matrix-translate: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_translate cr as-float x as-float y
-	do-paint dc
+	cairo_translate cr as-float x 
+					   as-float y
 ]
 
 OS-matrix-skew: func [
@@ -700,7 +714,6 @@ OS-matrix-reset: func [
 ][
 	cr: dc/raw
 	cairo_identity_matrix cr
-	do-paint dc
 ]
 
 OS-matrix-invert: func [
