@@ -217,66 +217,65 @@ OS-draw-spline: func [
 		p1		[red-pair!]
 		p2		[red-pair!]
 		p3		[red-pair!]
-		x		[float32!]
-		y		[float32!]
-		delta	[float32!]
-		t		[float32!]
-		t2		[float32!]
-		t3		[float32!]
+		x		[float!]
+		y		[float!]
+		delta	[float!]
+		t		[float!]
+		t2		[float!]
+		t3		[float!]
 		i		[integer!]
-		n		[integer!]
 		count	[integer!]
 		num		[integer!]
 ][
-	comment {
-	; this is copy from macOS/draw.reds impl
-	; seems not to work now..
+	; !!! seems there is some bug in R/S @ Linux
 
 	ctx: dc/raw
 
+	x: 0.0
+	y: 0.0
+
 	count: (as-integer end - start) >> 4
-	num: count + 1 + 2
+	num: count + 1
 
 	p: start
 
 	cairo_move_to ctx as-float p/x as-float p/y
 
 	i: 0
-	delta: (as float32! 1.0) / (as float32! 25.0)
+	delta: 1.0 / 25.0
 
 	while [i < count][						;-- CatmullRom Spline, tension = 0.5
+		;print ["i = " i lf]
+
 		p0: p + (i % num)
 		p1: p + (i + 1 % num)
 		p2: p + (i + 2 % num)
 		p3: p + (i + 3 % num)
 
-		t: as float32! 0.0
-		n: 0
-		until [
+		t: 0.0
+		loop 25 [
+			;print ["loop" lf]
+
 			t: t + delta
 			t2: t * t
 			t3: t2 * t
+			
+			comment {
+			x: 2.0 * p1/x + (p2/x - p0/x * t) +
+			   ((2.0 * p0/x - (5.0 * p1/x) + (4.0 * p2/x) - p3/x) * t2) +
+			   (3.0 * (p1/x - p2/x) + p3/x - p0/x * t3) * 0.5
+			y: 2.0 * p1/y + (p2/y - p0/y * t) +
+			   ((2.0 * p0/y - (5.0 * p1/y) + (4.0 * p2/y) - p3/y) * t2) +
+			   (3.0 * (p1/y - p2/y) + p3/y - p0/y * t3) * 0.5 }
 
-			x: (as float32! 2.0) * p1/x + (p2/x - p0/x * t) +
-			   (((as float32! 2.0) * p0/x - ((as float32! 5.0) * p1/x) + ((as float32! 4.0) * p2/x) - p3/x) * t2) +
-			   ((as float32! 3.0) * (p1/x - p2/x) + p3/x - p0/x * t3) * 0.5
-			y: (as float32! 2.0) * p1/y + (p2/y - p0/y * t) +
-			   (((as float32! 2.0) * p0/y - ((as float32! 5.0) * p1/y) + ((as float32! 4.0) * p2/y) - p3/y) * t2) +
-			   ((as float32! 3.0) * (p1/y - p2/y) + p3/y - p0/y * t3) * 0.5
-
-			cairo_line_to ctx as-float x as-float y
-
-			n: n + 1
-			n = 25
+			cairo_line_to ctx x y
 		]
-		i: i + 4 
+		i: i + 1 
 	]
 	if closed? [
 		cairo_close_path dc/raw
 	]
 	do-paint dc
-
-	} ; comment
 ]
 
 OS-draw-circle: func [
@@ -370,9 +369,9 @@ OS-draw-font: func [
 	len: -1
 	face: cairo_toy_font_face_create 
 		;unicode/to-utf8 font/name :len  ; family string
-		"Impact"
-		0								; slant  normal\italic
-		0								; weight normal\bold
+		"sans-serif"
+		1								; slant  normal\italic
+		1								; weight normal\bold
 	cairo_set_font_face ctx face
 	;cairo_set_font_size ctx as-float font/size
 	cairo_set_font_size ctx as-float 15 

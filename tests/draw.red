@@ -96,7 +96,7 @@ l: layout [
 		line-width 2
 		fill-pen 170.20.20.128 
 
-		spline 10x10 40x40 40x40 10x40
+		spline 10x10 40x10 40x40 10x40
 
 		text 5x55 "spline"
 	]
@@ -114,6 +114,7 @@ l: layout [
 		text 5x55 "text"
 
 		text 10x20 "Red"
+		pen red						; test if pen color
 		font font-A 
 		text 10x30 "Red"
 	]
@@ -143,7 +144,7 @@ l: layout [
 
 		pen linear red green blue
 		line-width 5
-		fill-pen no
+		fill-pen off 
 		box 10x10 40x40
 	]
 
