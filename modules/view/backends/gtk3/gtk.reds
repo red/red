@@ -843,6 +843,10 @@ GtkTextIter!: alias struct! [
 			blue		[float!]
 			alpha		[float!]
 		]
+		cairo_set_line_cap: "cairo_set_line_cap" [
+			cr			[handle!]
+			line_cap	[integer!]
+		]
 		cairo_set_line_width: "cairo_set_line_width" [
 			cr			[handle!]
 			width		[float!]

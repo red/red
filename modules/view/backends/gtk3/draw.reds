@@ -84,13 +84,6 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 		cairo_restore cr
 	]
 	if dc/pen? [
-		cairo_set_line_join cr 
-			case [
-				dc/pen-join = miter			[0]
-				dc/pen-join = _round		[1]
-				dc/pen-join = bevel			[2]
-				dc/pen-join = miter-bevel	[0]
-			]
 		cairo_stroke cr
 	]
 ]
@@ -488,6 +481,14 @@ OS-draw-line-join: func [
 ][
 	if dc/pen-join <> style [
 		dc/pen-join: style
+		cairo_set_line_join dc/raw 
+			case [
+				style = miter		[0]
+				style = _round		[1]
+				style = bevel		[2]
+				style = miter-bevel	[0]
+				true				[0]
+			]
 	]
 ]
 	
@@ -499,6 +500,13 @@ OS-draw-line-cap: func [
 ][
 	if dc/pen-cap <> style [
 		dc/pen-cap: style
+		cairo_set_line_cap dc/raw
+			case [
+				style = flat		[0]
+				style = _round		[1]
+				style = square		[2]
+				true				[0]
+			]
 	]
 ]
 

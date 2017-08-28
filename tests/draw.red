@@ -157,7 +157,7 @@ l: layout [
 	base 50x60 100.70.70 draw [
 		text 5x55 "line join"
 		
-		line-width 3
+		line-width 5
 
 		line-join miter
 		line 10x40 15x20 20x40
@@ -165,6 +165,19 @@ l: layout [
 		line 20x40 25x20 30x40
 		line-join bevel
 		line 30x40 35x20 40x40
+	]
+
+	base 50x60 100.70.70 draw [
+		text 5x55 "line cap"
+		
+		line-width 7
+
+		line-cap flat
+		line 15x15 15x35
+		line-cap square
+		line 25x15 25x35
+		line-cap round
+		line 35x15 35x35
 	]
 
 	return
