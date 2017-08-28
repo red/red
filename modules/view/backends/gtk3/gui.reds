@@ -60,7 +60,7 @@ get-face-object: func [
 	face: as red-object! 0
 	unless null? handle [
 		qdata: g_object_get_qdata handle red-face-id
-		if qdata <> as handle! 0 [
+		unless null? qdata [
 			face: as red-object! qdata
 		]
 	]
@@ -78,7 +78,7 @@ get-face-values: func [
 	values: as red-value! 0
 	unless null? handle [
 		qdata: g_object_get_qdata handle red-face-id
-		if qdata <> as handle! 0 [
+		unless null? qdata [
 			face: as red-object! qdata
 			values: object/get-values face
 		]
@@ -195,7 +195,7 @@ get-text-size: func [
 		fd		[handle!]
 		df		[c-string!]
 ][
-	if pango-context = as handle! 0 [pango-context: gdk_pango_context_get]
+	if null? pango-context [pango-context: gdk_pango_context_get]
 	size: declare tagSIZE
 
 	text: either TYPE_OF(str) = TYPE_STRING [
@@ -504,7 +504,7 @@ change-rate: func [
 ][
 	unless null? hWnd [
 		data: g_object_get_qdata hWnd red-timer-id
-		timer: either data = as handle! 0 [0][as integer! data]
+		timer: either null? data [0][as integer! data]
 
 		;print ["timer: " timer lf]
 		
@@ -1295,7 +1295,7 @@ OS-make-view: func [
 			gobj_signal_connect(widget "toggled" :button-toggled face/ctx)
 		]
 		sym = radio [
-			widget: either group-radio = as handle! 0 [
+			widget: either null? group-radio [
 				gtk_radio_button_new_with_label null caption
 			][
 				gtk_radio_button_new_with_label_from_widget group-radio caption
@@ -1418,7 +1418,7 @@ OS-make-view: func [
 		parent <> 0
 	][
 		p-sym: get-widget-symbol as handle! parent
-		either _widget = as handle! 0 [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
+		either null? _widget [_widget: widget][g_object_set_qdata widget _widget-id _widget ]
 		; TODO: case to replace with either if no more choice
 		case [
 			p-sym = tab-panel [
