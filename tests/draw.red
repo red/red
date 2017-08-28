@@ -243,16 +243,16 @@ l: layout [
 ]
 
 font-label: make font! [
-	name: "monospace"
-	size: 8
+	name: "Arial"
+	size: 11
 	color: white
-	anti-alias?: yes
+	anti-alias?: no 
 ]
 
 font-A: make font! [
-	name: "Comic Sans MS"
-	size: 10
-	color: aqua
+	name: "Times New Roman"
+	size: 15
+	color: red
 	style: [bold italic underline]
 	anti-alias?: yes
 ]

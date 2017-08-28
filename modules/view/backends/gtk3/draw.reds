@@ -421,7 +421,6 @@ OS-draw-font: func [
 		]
 	]
 
-	;cairo_select_font_face cr name slant weight
 	cairo_select_font_face cr name slant weight
 
 	if TYPE_OF(size) = TYPE_INTEGER [
