@@ -206,11 +206,17 @@ get-text-size: func [
 	]
 
 	width: 0 height: 0
-	fd: either TYPE_OF(font) = TYPE_NONE [ 
-		pango_font_description_from_string gtk-font
-	][
-		font-description font
-	]
+	
+	; @@ TO REMOVE since font-description manages directly none value for font
+	;fd: either TYPE_OF(font) = TYPE_NONE [ 
+	;	pango_font_description_from_string gtk-font
+	;][
+	;	font-description font
+	;]
+
+	; The lines above replaced with
+	fd: font-description font
+
 	pl: pango_layout_new pango-context
 	pango_layout_set_text pl text -1
 	pango_layout_set_font_description pl fd

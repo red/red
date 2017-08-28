@@ -271,8 +271,11 @@ font-description: func [
 		fd	     [handle!]
 
 ][
+	; default font if font is none. TODO: better than gtk-font would be to get the default font system or from red side
+	if TYPE_OF(font) = TYPE_NONE [
+		return pango_font_description_from_string gtk-font
+	]
 	values: object/get-values font
-
 	;name:
 	str: 	as red-string!	values + FONT_OBJ_NAME
 	size:	as red-integer!	values + FONT_OBJ_SIZE
@@ -288,12 +291,10 @@ font-description: func [
 		len: -1
 		name: unicode/to-utf8 str :len
 	]
-
 	pango_font_description_set_family fd name
 
 	fsize: either TYPE_OF(size) = TYPE_INTEGER [size/value][16]
 	pango_font_description_set_size fd fsize * PANGO_SCALE
-	;DEBUG: print ["font name: <" name "> size: " fsize  lf]
 
 	len: switch TYPE_OF(style) [
 		TYPE_BLOCK [
@@ -325,7 +326,7 @@ font-description: func [
 	pango_font_description_set_style fd fstyle
 	pango_font_description_set_stretch fd PANGO_STRETCH_NORMAL
 	pango_font_description_set_variant fd PANGO_VARIANT_NORMAL
-	; DEBUG: print-line "HERE"
+	
 	fd
 ]
 
