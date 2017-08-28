@@ -206,7 +206,7 @@ get-text-size: func [
 	]
 
 	width: 0 height: 0
-	
+
 	; @@ TO REMOVE since font-description manages directly none value for font
 	;fd: either TYPE_OF(font) = TYPE_NONE [ 
 	;	pango_font_description_from_string gtk-font
@@ -324,7 +324,7 @@ debug-show-children: func [
 
 	rect: 	as tagRECT allocate (size? tagRECT)
 	
-	if TYPE_OF(pane) = TYPE_BLOCK [
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Pane type: " get-symbol-name sym lf]]
@@ -448,7 +448,7 @@ adjust-sizes: func [
 
 	rect: 	as tagRECT allocate (size? tagRECT)
 	
-	if TYPE_OF(pane) = TYPE_BLOCK [
+	if all [TYPE_OF(pane) = TYPE_BLOCK 0 <> block/rs-length? pane] [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Parent type: " get-symbol-name sym lf]]
@@ -1315,6 +1315,7 @@ OS-make-view: func [
 		]
 		sym = window [
 			widget: gtk_application_window_new GTKApp
+			; @@ DEBUG: temporary code
 			last-widget: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
