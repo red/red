@@ -12,6 +12,9 @@ Red/System [
 
 #include %text-box.reds
 
+max-edges: 1000												;-- max pre-allocated points
+edges: as red-pair! allocate max-edges * (size? red-pair!)	;-- pre-allocated points
+
 set-source-color: func [
 	cr			[handle!]
 	color		[integer!]
@@ -224,56 +227,73 @@ OS-draw-spline: func [
 		t2		[float!]
 		t3		[float!]
 		i		[integer!]
+		n		[integer!]
 		count	[integer!]
 		num		[integer!]
 ][
-	; !!! seems there is some bug in R/S @ Linux
-
 	ctx: dc/raw
-
-	x: 0.0
-	y: 0.0
 
 	count: (as-integer end - start) >> 4
 	num: count + 1
 
-	p: start
+	p: edges
+	unless closed? [
+		p/x: start/x			;-- duplicate first point
+		p/y: start/y
+		p: p + 1
+	]
+	while [start <= end][
+		p/x: start/x
+		p/y: start/y
+		p: p + 1
+		start: start + 1
+	]
+	unless closed? [
+		p/x: end/x				;-- duplicate end point
+		p/y: end/y
+	]
 
-	cairo_move_to ctx as-float p/x as-float p/y
+	either closed? [
+		count: count + 1
+	][
+		num: num + 2
+	]
+
+	p: edges
 
 	i: 0
 	delta: 1.0 / 25.0
 
 	while [i < count][						;-- CatmullRom Spline, tension = 0.5
-		;print ["i = " i lf]
-
 		p0: p + (i % num)
 		p1: p + (i + 1 % num)
 		p2: p + (i + 2 % num)
 		p3: p + (i + 3 % num)
 
 		t: 0.0
-		loop 25 [
-			;print ["loop" lf]
-
+		n: 0
+		until [
 			t: t + delta
 			t2: t * t
 			t3: t2 * t
 			
-			comment {
-			x: 2.0 * p1/x + (p2/x - p0/x * t) +
-			   ((2.0 * p0/x - (5.0 * p1/x) + (4.0 * p2/x) - p3/x) * t2) +
-			   (3.0 * (p1/x - p2/x) + p3/x - p0/x * t3) * 0.5
-			y: 2.0 * p1/y + (p2/y - p0/y * t) +
-			   ((2.0 * p0/y - (5.0 * p1/y) + (4.0 * p2/y) - p3/y) * t2) +
-			   (3.0 * (p1/y - p2/y) + p3/y - p0/y * t3) * 0.5 }
+			x:
+			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
+			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
+			   (3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+			y:
+			   2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
+			   ((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
+			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
 
 			cairo_line_to ctx x y
+			n: n + 1
+			n = 25
 		]
 		i: i + 1 
 	]
 	if closed? [
-		cairo_close_path dc/raw
+		cairo_close_path ctx 
 	]
 	do-paint dc
 ]
