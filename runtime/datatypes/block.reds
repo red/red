@@ -1056,6 +1056,8 @@ block: context [
 			num  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
+			v1	 [red-value!]
+			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
 	][
@@ -1063,29 +1065,27 @@ block: context [
 
 		stack/mark-func words/_body						;@@ find something more adequate
 
-		all?: flags and sort-all-mask = sort-all-mask
-		if all? [
-			num: flags >>> 2
-			blk1: make-at as red-block! ALLOC_TAIL(root) num
-			blk2: make-at as red-block! ALLOC_TAIL(root) num
-			s1: GET_BUFFER(blk1)
-			s2: GET_BUFFER(blk2)
-			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 num << 4
-			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 num << 4
-			s1/tail: s1/tail + num
-			s2/tail: s2/tail + num
-			value1: as red-value! blk1
-			value2: as red-value! blk2
+		either flags and sort-reverse-mask = 0 [
+			v2: stack/push value2
+			v1: stack/push value1
+		][
+			v1: stack/push value1
+			v2: stack/push value2
 		]
 
-		flags: flags and sort-reverse-mask
-		either zero? flags [
-			stack/push value2
-			stack/push value1
-		][
-			stack/push value1
-			stack/push value2
+		all?: flags and sort-all-mask = sort-all-mask
+		num: flags >>> 2
+		if all [all? num > 0][
+			blk1: make-at as red-block! v1 1
+			blk2: make-at as red-block! v2 1
+			s1: GET_BUFFER(blk1)
+			s2: GET_BUFFER(blk2)
+			s1/offset: value1
+			s2/offset: value2
+			s1/tail: value1 + num
+			s2/tail: value2 + num
 		]
+
 		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
@@ -1208,10 +1208,6 @@ block: context [
 						]
 					]
 					flags: offset - 1 << 1 or flags
-				]
-				TYPE_BLOCK [
-					blk2: as red-block! part
-					;TBD handles block! value
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
