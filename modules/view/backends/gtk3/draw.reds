@@ -379,8 +379,8 @@ OS-draw-ellipse: func [
 	do-paint dc
 ]
 
-; put this into draw-ctx! ?
-font-size: 11
+; move this to draw-ctx?
+font-size: 10.0						;-- used to find top line
 
 OS-draw-font: func [
 	dc		[draw-ctx!]
@@ -401,6 +401,7 @@ OS-draw-font: func [
 		rgba     [c-string!]
 		slant    [integer!]
 		weight   [integer!]
+		extents  [cairo_font_extents_t!]
 ][
 	cr: dc/raw
 
@@ -451,8 +452,17 @@ OS-draw-font: func [
 	cairo_select_font_face cr name slant weight
 
 	if TYPE_OF(size) = TYPE_INTEGER [
-		cairo_set_font_size cr as-float size/value
-		font-size: size/value
+		extents: declare cairo_font_extents_t!
+		cairo_font_extents cr extents
+
+		font-size: as-float size/value
+		cairo_set_font_size cr font-size * ((extents/ascent + extents/descent) / extents/ascent)
+
+		;	This technique is little more correct for me. 
+		;	This Red example will show the difference:
+		;
+		;		f: make font! [name: "Arial" size: 120]	
+		;		view [base 140x140 draw [font f text 10x10 "A" pen white box 0x10 140x130]]
 	]
 ]
 
@@ -469,7 +479,7 @@ OS-draw-text: func [
 	len: -1
 	str: unicode/to-utf8 text :len
 	cairo_move_to ctx as-float pos/x
-					  as-float pos/y + font-size
+					  (as-float pos/y) + font-size
 
 	set-source-color dc/raw dc/font-color
 	cairo_show_text ctx str

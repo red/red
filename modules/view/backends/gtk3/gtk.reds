@@ -110,13 +110,13 @@ GtkTextIter!: alias struct! [
 ;  	y_advance	[float!]
 ; ]
 
-; cairo_font_extents_t!: alias struct! [
-;  	ascent			[float!]
-;  	descent			[float!]
-;  	height			[float!]
-;  	max_x_advance	[float!]
-;  	max_y_advance	[float!]
-; ]
+cairo_font_extents_t!: alias struct! [
+	ascent			[float!]
+	descent			[float!]
+	height			[float!]
+	max_x_advance	[float!]
+	max_y_advance	[float!]
+]
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -952,10 +952,10 @@ GtkTextIter!: alias struct! [
 		; 	text 		[c-string!]
 		; 	extents		[handle!]
 		; ]
-		; cairo_font_extents: "cairo_font_extents" [
-		; 	cr			[handle!]
-		; 	extents		[handle!]
-		; ]
+		cairo_font_extents: "cairo_font_extents" [
+			cr			[handle!]
+			extents		[cairo_font_extents_t!]
+		]
 		; cairo_show_text: "cairo_show_text" [
 		; 	cr			[handle!]
 		; 	text 		[c-string!]
