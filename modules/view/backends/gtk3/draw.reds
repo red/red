@@ -12,9 +12,6 @@ Red/System [
 
 #include %text-box.reds
 
-max-edges: 1000												;-- max pre-allocated points
-edges: as red-pair! allocate max-edges * (size? red-pair!)	;-- pre-allocated points
-
 set-source-color: func [
 	cr			[handle!]
 	color		[integer!]
@@ -208,72 +205,24 @@ OS-draw-polygon: func [
 	do-paint dc
 ]
 
-OS-draw-spline: func [
-	dc		[draw-ctx!]
-	start	[red-pair!]
-	end		[red-pair!]
-	closed? [logic!]
+spline-delta: 1.0 / 25.0
+
+do-spline-step: func [
+	ctx		[handle!]
+	p0		[red-pair!]
+	p1		[red-pair!]
+	p2		[red-pair!]
+	p3		[red-pair!]
 	/local
-		ctx		[handle!]
-		p		[red-pair!]
-		p0		[red-pair!]
-		p1		[red-pair!]
-		p2		[red-pair!]
-		p3		[red-pair!]
-		x		[float!]
-		y		[float!]
-		delta	[float!]
 		t		[float!]
 		t2		[float!]
 		t3		[float!]
-		i		[integer!]
-		n		[integer!]
-		count	[integer!]
-		num		[integer!]
+		x		[float!]
+		y		[float!]
 ][
-	ctx: dc/raw
-
-	count: (as-integer end - start) >> 4
-	num: count + 1
-
-	p: edges
-	unless closed? [
-		p/x: start/x			;-- duplicate first point
-		p/y: start/y
-		p: p + 1
-	]
-	while [start <= end][
-		p/x: start/x
-		p/y: start/y
-		p: p + 1
-		start: start + 1
-	]
-	unless closed? [
-		p/x: end/x				;-- duplicate end point
-		p/y: end/y
-	]
-
-	either closed? [
-		count: count + 1
-	][
-		num: num + 2
-	]
-
-	p: edges
-
-	i: 0
-	delta: 1.0 / 25.0
-
-	while [i < count][						;-- CatmullRom Spline, tension = 0.5
-		p0: p + (i % num)
-		p1: p + (i + 1 % num)
-		p2: p + (i + 2 % num)
-		p3: p + (i + 3 % num)
-
 		t: 0.0
-		n: 0
-		until [
-			t: t + delta
+		loop 25 [
+			t: t + spline-delta
 			t2: t * t
 			t3: t2 * t
 			
@@ -287,14 +236,67 @@ OS-draw-spline: func [
 			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
 
 			cairo_line_to ctx x y
-			n: n + 1
-			n = 25
 		]
-		i: i + 1 
+]
+
+OS-draw-spline: func [
+	dc		[draw-ctx!]
+	start	[red-pair!]
+	end		[red-pair!]
+	closed? [logic!]
+	/local
+		ctx		[handle!]
+		point	[red-pair!]
+		stop	[red-pair!]
+][
+	ctx: dc/raw
+
+	either closed? [
+		do-spline-step ctx
+			end
+			start
+			start + 1
+			start + 2
+	][
+		do-spline-step ctx 
+			start
+			start
+			start + 1
+			start + 2
 	]
-	if closed? [
+	
+	point: start
+	stop: end - 3
+
+	while [point <= stop] [
+		do-spline-step ctx
+			point
+			point + 1
+			point + 2
+			point + 3
+		point: point + 1
+	]
+
+	either closed? [
+		do-spline-step ctx
+			end - 2
+			end - 1
+			end
+			start
+		do-spline-step ctx
+			end - 1
+			end
+			start
+			start + 1
 		cairo_close_path ctx 
+	][
+		do-spline-step ctx
+			end - 2
+			end - 1
+			end
+			end
 	]
+
 	do-paint dc
 ]
 
