@@ -249,6 +249,11 @@ OS-draw-spline: func [
 		point	[red-pair!]
 		stop	[red-pair!]
 ][
+	if (as-integer end - start) >> 4 = 1 [		;-- two points input
+		OS-draw-line dc start end				;-- draw a line
+		exit
+	]
+
 	ctx: dc/raw
 
 	either closed? [
