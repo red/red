@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-inflate: context [
+deflate: context [
 
 	init?: no
 
@@ -624,8 +624,6 @@ inflate: context [
 
 
 	;-- gzip-uncompress function
-	#include %infcrc32.reds
-
 	#define FTEXT       1
 	#define FHCRC       2
 	#define FEXTRA      4
@@ -746,7 +744,7 @@ inflate: context [
 		a: as-integer (src + sourceLen - start - 8)
 		c: as integer! start/value
 		start: start - 1
-		res: inflate/uncompress dst destLen start a
+		res: deflate/uncompress dst destLen start a
 		if res <> 0 [
 			return -3
 		]
@@ -755,7 +753,7 @@ inflate: context [
 			return -3
 		]
 		;--check CRC32 checksum
-		c: CRC32 dst dlen
+		c: CRC32 dst dlen    ;this func is in the crypto.reds
 		if crc <> c [
 			probe "crc <> c"
 			return -3
@@ -764,7 +762,6 @@ inflate: context [
 	]
 	
 	;--zlib-uncompress function
-	#include %adler32.reds
     zlib-uncompress: func[
         dest        [byte-ptr!]
         destLen     [int-ptr!]
@@ -821,11 +818,11 @@ inflate: context [
         a: as integer! src/b        
         a32: 256 * a32 + a   
         ;--inflate
-        res: inflate/uncompress dst destLen (src + 1) (sourceLen - 6)    
+        res: deflate/uncompress dst destLen (src + 1) (sourceLen - 6)    
         if res <> 0 [
             return -3
         ]
-        c: inf-adler32 dst destLen/value
+        c: adler32 dst destLen/value  ;this func is in the crypto.reds
         ;--chcek adler32 checksum
         if a32 <> c [
             return -3
