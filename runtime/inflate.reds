@@ -601,17 +601,14 @@ deflate: context [
 				0 [
 					;--decompress uncompressed block
 					res: inflate-uncompressed-block d
-					probe "decompress uncompressed block"
 				]
 				1 [
 					;--decompress block with fixed huffman trees
 					inflate-fixed-block d
-					probe "use the fixed tree"
 				]
 				2 [
 					;--decompress block with dynamic huffman trees
 					inflata-dynamic-block d
-					probe "use the dynamic tree"
 				]
 				default [0]
 			]
@@ -629,7 +626,7 @@ deflate: context [
 	#define FEXTRA      4
 	#define FNAME       8
 	#define FCOMMENT    16
-
+	#include %crypto.reds
 	gzip-uncompress: func [
 		dest        [byte-ptr!]
 		destLen     [int-ptr!]
@@ -680,7 +677,6 @@ deflate: context [
 		start: src + 10
 		;--skip extra data if present
 		if (flga and FEXTRA) <> 0 [
-			probe "enter fextra"
 			xlen: as integer! start/2
 			b: as integer! start/1
 			xlen: xlen * 256 + b
@@ -688,7 +684,6 @@ deflate: context [
 		]
 		;--skip file comment if present
 		if (flga and FNAME) <> 0 [
-			probe "fname"
 			c: 0
 			until [
 				c: as integer! start/value
@@ -697,7 +692,6 @@ deflate: context [
 			]
 		]
 		if (flga and FCOMMENT) <> 0 [
-			probe "fcomment"
 			c: 0
 			until [
 					c: as integer! start/value
@@ -707,11 +701,10 @@ deflate: context [
 		]
 		;--check header crc if present
 		if (flga and FHCRC) <> 0 [
-			probe "fhcrc"
 			hcrc: as integer! start/2
 			a: as integer! start/1
 			hcrc: 256 * hcrc + a
-			i: CRC32 src size? (start - src)
+			i: crypto/CRC32 src size? (start - src)
 			if (hcrc <> (i and FFFFh)) [
 				return -3
 			]
@@ -749,13 +742,11 @@ deflate: context [
 			return -3
 		]
 		if (destLen/value) <> dlen [
-			probe "<>dlen"
 			return -3
 		]
 		;--check CRC32 checksum
 		c: CRC32 dst dlen    ;this func is in the crypto.reds
 		if crc <> c [
-			probe "crc <> c"
 			return -3
 		]
 		return 0
@@ -822,7 +813,7 @@ deflate: context [
         if res <> 0 [
             return -3
         ]
-        c: adler32 dst destLen/value  ;this func is in the crypto.reds
+        c: crypto/adler32 dst destLen/value  ;this func is in the crypto.reds
         ;--chcek adler32 checksum
         if a32 <> c [
             return -3
