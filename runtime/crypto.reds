@@ -273,7 +273,7 @@ crypto: context [
 		]
 	]
 
-	#define A32-BASE 65531
+	#define A32-BASE 65521
 	#define A32-NMAX 5552
 
 	adler32: func[
@@ -299,40 +299,40 @@ crypto: context [
 			]
 			i: k / 16
 			until [
-				s1: s1 + buf/1
+				s1: s1 + (as-integer buf/1)
 				s2: s2 + s1
-				s1: s1 + buf/2
+				s1: s1 + (as-integer buf/2)
 				s2: s2 + s1
-				s1: s1 + buf/3
+				s1: s1 + (as-integer buf/3)
 				s2: s2 + s1
-				s1: s1 + buf/4
+				s1: s1 + (as-integer buf/4)
 				s2: s2 + s1
-				s1: s1 + buf/5
+				s1: s1 + (as-integer buf/5)
 				s2: s2 + s1
-				s1: s1 + buf/6
+				s1: s1 + (as-integer buf/6)
 				s2: s2 + s1
-				s1: s1 + buf/7
+				s1: s1 + (as-integer buf/7)
 				s2: s2 + s1
-				s1: s1 + buf/8
+				s1: s1 + (as-integer buf/8)
 				s2: s2 + s1
-				s1: s1 + buf/9
+				s1: s1 + (as-integer buf/9)
 				s2: s2 + s1
-				s1: s1 + buf/10
+				s1: s1 + (as-integer buf/10)
 				s2: s2 + s1
-				s1: s1 + buf/11
+				s1: s1 + (as-integer buf/11)
 				s2: s2 + s1
-				s1: s1 + buf/12
+				s1: s1 + (as-integer buf/12)
 				s2: s2 + s1
-				s1: s1 + buf/13
+				s1: s1 + (as-integer buf/13)
 				s2: s2 + s1
-				s1: s1 + buf/14
+				s1: s1 + (as-integer buf/14)
 				s2: s2 + s1
-				s1: s1 + buf/15
+				s1: s1 + (as-integer buf/15)
 				s2: s2 + s1
-				s1: s1 + buf/16
+				s1: s1 + (as-integer buf/16)
 				s2: s2 + s1
-				buf: buf + 16
 				i: i - 1
+				buf: buf + 16
 				i = 0
 			]
 			i: k % 16
@@ -340,12 +340,14 @@ crypto: context [
 				k: as integer! buf/value
 				s1: s1 + k
 				buf: buf + 1
-				s2: s2 + 1
+				s2: s2 + s1
 				i: i - 1
 				i = 0
 			]
+
 			s1: s1 % A32-BASE
-			S2: S2 % A32-BASE
+			s2: s2 % A32-BASE
+
 			length: length - k
 		]
 		k: s2 << 16
