@@ -649,8 +649,6 @@ deflate: context [
 			c       [integer!]
 			flga    [integer!]
 	][  
-		src: as byte-ptr! system/stack/allocate 1000
-		dst: as byte-ptr! system/stack/allocate 1000
 		src: source
 		dst: dest
 		;--check format
@@ -770,8 +768,6 @@ deflate: context [
             c       [integer!]
             res     [integer!]
     ][  
-        src: as byte-ptr! system/stack/allocate 1000
-        dst: as byte-ptr! system/stack/allocate 1000
         src: source
         dst: dest
         ;--get header bytes
