@@ -89,6 +89,17 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
+#enum cairo_font_slant_t! [
+	CAIRO_FONT_SLANT_NORMAL
+	CAIRO_FONT_SLANT_ITALIC
+	CAIRO_FONT_SLANT_OBLIQUE
+]
+
+#enum cairo_font_weight_t! [
+	CAIRO_FONT_WEIGHT_NORMAL
+ 	CAIRO_FONT_WEIGHT_BOLD
+]
+
 ; @@ cairo structures to remove if pango_cairo is enough to draw text on cairo
 ; cairo_text_extents_t!: alias struct! [ 
 ;  	x_bearing	[float!]
@@ -99,13 +110,13 @@ GtkTextIter!: alias struct! [
 ;  	y_advance	[float!]
 ; ]
 
-; cairo_font_extents_t!: alias struct! [
-;  	ascent			[float!]
-;  	descent			[float!]
-;  	height			[float!]
-;  	max_x_advance	[float!]
-;  	max_y_advance	[float!]
-; ]
+cairo_font_extents_t!: alias struct! [
+	ascent			[float!]
+	descent			[float!]
+	height			[float!]
+	max_x_advance	[float!]
+	max_y_advance	[float!]
+]
 
 #either OS = 'Windows [
 	;#define LIBGOBJECT-file "libgobject-2.0-0.dll"
@@ -843,9 +854,17 @@ GtkTextIter!: alias struct! [
 			blue		[float!]
 			alpha		[float!]
 		]
+		cairo_set_line_cap: "cairo_set_line_cap" [
+			cr			[handle!]
+			line_cap	[integer!]
+		]
 		cairo_set_line_width: "cairo_set_line_width" [
 			cr			[handle!]
 			width		[float!]
+		]
+		cairo_set_line_join: "cairo_set_line_join" [
+			cr			[handle!]
+			line_join	[integer!]
 		]
 		cairo_set_source: "cairo_set_source" [
 			cr			[handle!]
@@ -918,12 +937,12 @@ GtkTextIter!: alias struct! [
 			cr			[handle!]
 		]
 		; Related to draw text with cairo (no succes for base widget) replaced by pango_cairo
-		; cairo_select_font_face: "cairo_select_font_face" [
-		; 	cr			[handle!]
-		; 	family		[c-string!]
-		; 	slant		[integer!]
-		; 	weight		[integer!]
-		; ]
+		cairo_select_font_face: "cairo_select_font_face" [
+			cr			[handle!]
+			family		[c-string!]
+			slant		[integer!]
+			weight		[integer!]
+		]
 		; cairo_set_font_size: "cairo_set_font_size" [
 		; 	cr			[handle!]
 		; 	size		[integer!]
@@ -933,10 +952,10 @@ GtkTextIter!: alias struct! [
 		; 	text 		[c-string!]
 		; 	extents		[handle!]
 		; ]
-		; cairo_font_extents: "cairo_font_extents" [
-		; 	cr			[handle!]
-		; 	extents		[handle!]
-		; ]
+		cairo_font_extents: "cairo_font_extents" [
+			cr			[handle!]
+			extents		[cairo_font_extents_t!]
+		]
 		; cairo_show_text: "cairo_show_text" [
 		; 	cr			[handle!]
 		; 	text 		[c-string!]

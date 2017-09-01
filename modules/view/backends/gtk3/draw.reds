@@ -77,8 +77,14 @@ do-paint: func [dc [draw-ctx!] /local cr [handle!]][
 			cairo_set_source cr dc/pattern
 		]
 		cairo_fill_preserve cr
-		unless dc/pen? [set-source-color cr dc/pen-color cairo_stroke cr]
+		unless dc/pen? [
+			set-source-color cr dc/pen-color 
+			cairo_stroke cr
+		]
 		cairo_restore cr
+	]
+	if dc/pen? [
+		cairo_stroke cr
 	]
 ]
 
@@ -101,7 +107,7 @@ OS-draw-line: func [
 		cairo_line_to cr as-float point/x as-float point/y
 		point: point + 1
 	]
-	cairo_stroke cr
+	do-paint dc
 ]
 
 OS-draw-pen: func [
@@ -199,6 +205,40 @@ OS-draw-polygon: func [
 	do-paint dc
 ]
 
+spline-delta: 1.0 / 25.0
+
+do-spline-step: func [
+	ctx		[handle!]
+	p0		[red-pair!]
+	p1		[red-pair!]
+	p2		[red-pair!]
+	p3		[red-pair!]
+	/local
+		t		[float!]
+		t2		[float!]
+		t3		[float!]
+		x		[float!]
+		y		[float!]
+][
+		t: 0.0
+		loop 25 [
+			t: t + spline-delta
+			t2: t * t
+			t3: t2 * t
+			
+			x:
+			   2.0 * (as-float p1/x) + ((as-float p2/x) - (as-float p0/x) * t) +
+			   ((2.0 * (as-float p0/x) - (5.0 * (as-float p1/x)) + (4.0 * (as-float p2/x)) - (as-float p3/x)) * t2) +
+			   (3.0 * ((as-float p1/x) - (as-float p2/x)) + (as-float p3/x) - (as-float p0/x) * t3) * 0.5
+			y:
+			   2.0 * (as-float p1/y) + ((as-float p2/y) - (as-float p0/y) * t) +
+			   ((2.0 * (as-float p0/y) - (5.0 * (as-float p1/y)) + (4.0 * (as-float p2/y)) - (as-float p3/y)) * t2) +
+			   (3.0 * ((as-float p1/y) - (as-float p2/y)) + (as-float p3/y) - (as-float p0/y) * t3) * 0.5
+
+			cairo_line_to ctx x y
+		]
+]
+
 OS-draw-spline: func [
 	dc		[draw-ctx!]
 	start	[red-pair!]
@@ -206,71 +246,63 @@ OS-draw-spline: func [
 	closed? [logic!]
 	/local
 		ctx		[handle!]
-		p		[red-pair!]
-		p0		[red-pair!]
-		p1		[red-pair!]
-		p2		[red-pair!]
-		p3		[red-pair!]
-		x		[float32!]
-		y		[float32!]
-		delta	[float32!]
-		t		[float32!]
-		t2		[float32!]
-		t3		[float32!]
-		i		[integer!]
-		n		[integer!]
-		count	[integer!]
-		num		[integer!]
+		point	[red-pair!]
+		stop	[red-pair!]
 ][
-	comment {
-	; this is copy from macOS/draw.reds impl
-	; seems not to work now..
+	if (as-integer end - start) >> 4 = 1 [		;-- two points input
+		OS-draw-line dc start end				;-- draw a line
+		exit
+	]
 
 	ctx: dc/raw
 
-	count: (as-integer end - start) >> 4
-	num: count + 1 + 2
-
-	p: start
-
-	cairo_move_to ctx as-float p/x as-float p/y
-
-	i: 0
-	delta: (as float32! 1.0) / (as float32! 25.0)
-
-	while [i < count][						;-- CatmullRom Spline, tension = 0.5
-		p0: p + (i % num)
-		p1: p + (i + 1 % num)
-		p2: p + (i + 2 % num)
-		p3: p + (i + 3 % num)
-
-		t: as float32! 0.0
-		n: 0
-		until [
-			t: t + delta
-			t2: t * t
-			t3: t2 * t
-
-			x: (as float32! 2.0) * p1/x + (p2/x - p0/x * t) +
-			   (((as float32! 2.0) * p0/x - ((as float32! 5.0) * p1/x) + ((as float32! 4.0) * p2/x) - p3/x) * t2) +
-			   ((as float32! 3.0) * (p1/x - p2/x) + p3/x - p0/x * t3) * 0.5
-			y: (as float32! 2.0) * p1/y + (p2/y - p0/y * t) +
-			   (((as float32! 2.0) * p0/y - ((as float32! 5.0) * p1/y) + ((as float32! 4.0) * p2/y) - p3/y) * t2) +
-			   ((as float32! 3.0) * (p1/y - p2/y) + p3/y - p0/y * t3) * 0.5
-
-			cairo_line_to ctx as-float x as-float y
-
-			n: n + 1
-			n = 25
-		]
-		i: i + 4 
+	either closed? [
+		do-spline-step ctx
+			end
+			start
+			start + 1
+			start + 2
+	][
+		do-spline-step ctx 
+			start
+			start
+			start + 1
+			start + 2
 	]
-	if closed? [
-		cairo_close_path dc/raw
+	
+	point: start
+	stop: end - 3
+
+	while [point <= stop] [
+		do-spline-step ctx
+			point
+			point + 1
+			point + 2
+			point + 3
+		point: point + 1
 	]
+
+	either closed? [
+		do-spline-step ctx
+			end - 2
+			end - 1
+			end
+			start
+		do-spline-step ctx
+			end - 1
+			end
+			start
+			start + 1
+		cairo_close_path ctx 
+	][
+		do-spline-step ctx
+			end - 2
+			end - 1
+			end
+			end
+	]
+
 	do-paint dc
-
-	} ; comment
 ]
 
 OS-draw-circle: func [
@@ -347,29 +379,91 @@ OS-draw-ellipse: func [
 	do-paint dc
 ]
 
+; move this to draw-ctx?
+font-size: 10.0						;-- used to find top line
+
 OS-draw-font: func [
 	dc		[draw-ctx!]
 	font	[red-object!]
 	/local
-		ctx   [handle!]
-		len   [integer!]
-		face  [handle!]
-		; vals  [red-value!]
-		; state [red-block!]
-		; int   [red-integer!]
-		; color [red-tuple!]
-		; hFont [draw-ctx!]
+		cr       [handle!]
+		values   [red-value!]
+		style    [red-word!]
+		blk      [red-block!]
+		len      [integer!]
+		sym      [integer!]
+		str      [red-string!]
+		name     [c-string!]
+		size     [red-integer!]
+		css      [c-string!]
+		color    [red-tuple!]
+		bgcolor  [red-tuple!]
+		rgba     [c-string!]
+		slant    [integer!]
+		weight   [integer!]
+		extents  [cairo_font_extents_t!]
 ][
-	ctx: dc/raw
-	len: -1
-	face: cairo_toy_font_face_create 
-		;unicode/to-utf8 font/name :len  ; family string
-		"Impact"
-		0								; slant  normal\italic
-		0								; weight normal\bold
-	cairo_set_font_face ctx face
-	;cairo_set_font_size ctx as-float font/size
-	cairo_set_font_size ctx as-float 15 
+	cr: dc/raw
+
+	values: object/get-values font
+
+	;name:
+	str: 	as red-string!	values + FONT_OBJ_NAME
+	size:	as red-integer!	values + FONT_OBJ_SIZE
+	style:	as red-word!	values + FONT_OBJ_STYLE
+	;angle:
+	color:	as red-tuple!	values + FONT_OBJ_COLOR
+	;anti-alias?:
+
+	dc/font-color: color/array1
+
+	if TYPE_OF(str) = TYPE_STRING [
+		len: -1
+		name: unicode/to-utf8 str :len
+ 	]
+
+	len: switch TYPE_OF(style) [
+		TYPE_BLOCK [
+			blk: as red-block! style
+			style: as red-word! block/rs-head blk
+			block/rs-length? blk
+		]
+		TYPE_WORD	[1]
+		default		[0]
+	]
+
+	slant: CAIRO_FONT_SLANT_NORMAL
+	weight: CAIRO_FONT_WEIGHT_NORMAL
+  
+	unless zero? len [
+		loop len [
+			sym: symbol/resolve style/symbol
+			case [ 
+				sym = _bold      [weight: CAIRO_FONT_WEIGHT_BOLD]
+				sym = _italic    [slant: CAIRO_FONT_SLANT_ITALIC]
+				sym = _underline []
+				sym = _strike    []
+				true             []
+			]
+			style: style + 1
+		]
+	]
+
+	cairo_select_font_face cr name slant weight
+
+	if TYPE_OF(size) = TYPE_INTEGER [
+		extents: declare cairo_font_extents_t!
+		cairo_font_extents cr extents
+
+		font-size: as-float size/value
+		cairo_set_font_size cr font-size * ((extents/ascent + extents/descent) / extents/ascent)
+
+		;	This technique is little more correct for me. 
+		;	This Red example will show the difference:
+		;
+		;		f: make font! [name: "Arial" size: 120]	
+		;		view [base 140x140 draw [font f text 10x10 "A" pen white box 0x10 140x130]]
+	]
 ]
 
 OS-draw-text: func [
@@ -385,9 +479,14 @@ OS-draw-text: func [
 	len: -1
 	str: unicode/to-utf8 text :len
 	cairo_move_to ctx as-float pos/x
-					  as-float pos/y
+					  (as-float pos/y) + font-size
+
+	set-source-color dc/raw dc/font-color
 	cairo_show_text ctx str
+
 	do-paint dc
+
+	set-source-color dc/raw dc/pen-color	;-- backup pen color
 ]
 
 OS-draw-arc: func [
@@ -475,6 +574,14 @@ OS-draw-line-join: func [
 ][
 	if dc/pen-join <> style [
 		dc/pen-join: style
+		cairo_set_line_join dc/raw 
+			case [
+				style = miter		[0]
+				style = _round		[1]
+				style = bevel		[2]
+				style = miter-bevel	[0]
+				true				[0]
+			]
 	]
 ]
 	
@@ -486,6 +593,13 @@ OS-draw-line-cap: func [
 ][
 	if dc/pen-cap <> style [
 		dc/pen-cap: style
+		cairo_set_line_cap dc/raw
+			case [
+				style = flat		[0]
+				style = _round		[1]
+				style = square		[2]
+				true				[0]
+			]
 	]
 ]
 
@@ -617,10 +731,11 @@ OS-matrix-rotate: func [
 ][
 	cr: dc/raw
 	rad: PI / 180.0 * get-float angle
-	cairo_translate cr as float! center/x as float! center/y
+	cairo_translate cr as float! center/x 
+					   as float! center/y
 	cairo_rotate cr rad
-	do-paint dc
-	cairo_translate cr as float! (0 - center/x) as float! (0 - center/y)
+	cairo_translate cr as float! (0 - center/x) 
+					   as float! (0 - center/y)
 ]
 
 OS-matrix-scale: func [
@@ -632,8 +747,8 @@ OS-matrix-scale: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_scale cr as-float sx/value as-float sy/value
-	do-paint dc
+	cairo_scale cr as-float sx/value
+				   as-float sy/value
 ]
 
 OS-matrix-translate: func [
@@ -645,8 +760,8 @@ OS-matrix-translate: func [
 		cr [handle!]
 ][
 	cr: dc/raw
-	cairo_translate cr as-float x as-float y
-	do-paint dc
+	cairo_translate cr as-float x 
+					   as-float y
 ]
 
 OS-matrix-skew: func [
@@ -700,7 +815,6 @@ OS-matrix-reset: func [
 ][
 	cr: dc/raw
 	cairo_identity_matrix cr
-	do-paint dc
 ]
 
 OS-matrix-invert: func [
