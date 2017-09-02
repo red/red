@@ -554,6 +554,10 @@ cairo_font_extents_t!: alias struct! [
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
 		]
+		gtk_entry_set_width_chars: "gtk_entry_set_width_chars" [
+			entry		[handle!]
+			nchars		[integer!]
+		]
 		gtk_entry_get_buffer: "gtk_entry_get_buffer" [
 			entry		[handle!]
 			return:		[handle!]
