@@ -643,6 +643,12 @@ system/view: context [
 	auto-sync?: yes										;-- refresh faces on changes automatically
 	debug?: 	no										;-- output verbose logs
 	silent?:	no										;-- do not report errors (livecoding)
+
+	#if config/OS = 'Linux [
+		; @@ TEMPORARY: just the time to develop para aand fix 
+		gtk-auto-adjust?: yes
+	]
+
 ]
 
 #include %backends/platform.red

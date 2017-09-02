@@ -1212,12 +1212,13 @@ OS-show-window: func [
 ][
 	gtk_widget_show_all as handle! hWnd
 	gtk_widget_grab_focus as handle! hWnd
-	;auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
-	;if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
+
+	; @@ TEMPORARY: TO BE REMOVED BUT USEFUL NOW FOR COMPARING THE EFFECT OF ADJUST-SIZES IN RED TEST WITHOUT RECOMPILING CONSOLE
+	auto-adjust?: as red-logic! #get system/view/gtk-auto-adjust?
+	if all [TYPE_OF(auto-adjust?) = TYPE_LOGIC auto-adjust?/value] [
 		adjust-sizes as handle! hWnd
 		gtk_widget_queue_draw as handle! hWnd
-		;debug-show-children as handle! hWnd no
-	;]
+	]
 ]
 
 OS-make-view: func [
