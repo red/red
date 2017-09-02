@@ -1,7 +1,7 @@
 Red/System [
-	Title:	"inflate API"
+	Title:	"Decompression Algorithm for the Deflate Compressed Data Format"
 	Author: "Yongzhao Huang"
-	File: 	%infalte.reds
+	File: 	%inflate.reds
 	Tabs:	4
 	Rights: "Copyright (C) 2017 Yongzhao Huang. All rights reserved."
 	License: {
@@ -173,7 +173,7 @@ deflate: context [
 			l 		[integer!]
 			k 		[integer!]
 	][
-		offs: system/stack/allocate 16 * size? integer!
+		offs: system/stack/allocate 16
 
 		;--clear code length count table
 		i: 1
@@ -239,10 +239,10 @@ deflate: context [
 		_bitcount: d/bitcount
 		d/bitcount: d/bitcount - 1
 		if _bitcount = 0 [
-        ;--load next tag
-        d/tag: as integer! d/source/value
-		d/source: d/source + 1
-        d/bitcount: 7
+			;--load next tag
+			d/tag: as integer! d/source/value
+			d/source: d/source + 1
+			d/bitcount: 7
 		]
 		;--shift bit out of tag
 		j: d/tag
@@ -331,7 +331,7 @@ deflate: context [
 		l 			[integer!]
 		buf			[int-ptr!]
 	][
-		buf: system/stack/allocate (304 * size? integer!) + 320
+		buf: system/stack/allocate 384
 		code-tree/table: buf
 		code-tree/trans: buf + 16
 
@@ -522,7 +522,7 @@ deflate: context [
 
 	;--inflate a block of data compressed with dynamic huffman trees
 	inflata-dynamic-block: func [d [DATA!] /local buf [int-ptr!]][
-		buf: system/stack/allocate 608 * size? integer!
+		buf: system/stack/allocate 608
 
 		;init-TREE d/ltree
 		d/ltree/table: buf
@@ -619,199 +619,212 @@ deflate: context [
 		]
 		return 0
 	]
-] ;-- end inflate contex
+] ;-- end inflate context
 
-	;-- gzip-uncompress function
-	#define FTEXT       1
-	#define FHCRC       2
-	#define FEXTRA      4
-	#define FNAME       8
-	#define FCOMMENT    16
-	#include %crypto.reds
-	gzip-uncompress: func [
-		dest        [byte-ptr!]
-		destLen     [int-ptr!]
-		source      [byte-ptr!]
-		sourceLen   [integer!]
-		return:     [integer!]
-		/local
-			src     [byte-ptr!]
-			dst     [byte-ptr!]
-			start   [byte-ptr!]
-			dlen    [integer!]
-			crc   	[integer!]
-			flg     [byte!]
-			xlen    [integer!]
-			hcrc    [integer!]
-			i       [integer!]
-			res     [integer!]
-			a       [integer!]
-			b       [integer!]
-			c       [integer!]
-			flga    [integer!]
-	][  
-		src: source
-		dst: dest
-		;--check format
-		;--check id bytes
-		a: as integer! src/1
-		b: as integer! src/2
-		if  any[(a <> 1Fh) b <> 8Bh] [
+
+;-- gzip-uncompress function
+#define GZIP_FTEXT		1
+#define GZIP_FHCRC		2
+#define GZIP_FEXTRA		4
+#define GZIP_FNAME		8
+#define GZIP_FCOMMENT	16
+
+gzip-uncompress: func [
+	dest		[byte-ptr!]
+	destLen		[int-ptr!]
+	source		[byte-ptr!]
+	sourceLen	[integer!]
+	return:		[integer!]
+	/local
+		src		[byte-ptr!]
+		dst		[byte-ptr!]
+		start	[byte-ptr!]
+		dlen	[integer!]
+		crc		[integer!]
+		flg		[byte!]
+		xlen	[integer!]
+		hcrc	[integer!]
+		i		[integer!]
+		res		[integer!]
+		a		[integer!]
+		b		[integer!]
+		c		[integer!]
+		flga	[integer!]
+][
+	src: source
+	dst: dest
+	;--check format
+	;--check id bytes
+	a: as integer! src/1
+	b: as integer! src/2
+	if  any[(a <> 1Fh) b <> 8Bh] [
+		return -3
+	]
+	;--check method is deflate
+	a: as integer! src/3
+	if a <> 8 [
+		return -3
+	]
+	;--get flag byte
+	flg: src/4
+	flga: as integer! flg
+	;--check that reserved bits are zero
+	if (flga and E0h) <> 0 [
+		return -3
+	]
+	;--find start of compressed data
+	;--skip base header of 10 bytes
+	start: src + 10
+	;--skip extra data if present
+	if (flga and GZIP_FEXTRA) <> 0 [
+		xlen: as integer! start/2
+		b: as integer! start/1
+		xlen: xlen * 256 + b
+		start: start + xlen + 2
+	]
+
+	;--skip file comment if present
+	if (flga and GZIP_FNAME) <> 0 [
+		c: 0
+		until [
+			c: as integer! start/value
+			start: start + 1
+			c = 0
+		]
+	]
+	if (flga and GZIP_FCOMMENT) <> 0 [
+		c: 0
+		until [
+			c: as integer! start/value
+			start: start + 1
+			c = 0
+		]
+	]
+
+	;--check header crc if present
+	if (flga and GZIP_FHCRC) <> 0 [
+		hcrc: as integer! start/2
+		a: as integer! start/1
+		hcrc: 256 * hcrc + a
+		i: crypto/CRC32 src size? (start - src)
+		if (hcrc <> (i and FFFFh)) [
 			return -3
 		]
-		;--check method is deflate
-		a: as integer! src/3
-		if a <> 8 [
-			return -3
-		]
-		;--get flag byte
-		flg: src/4
-		flga: as integer! flg
-		;--check that reserved bits are zero
-		if (flga and E0h) <> 0 [
-			return -3
-		]
-		;--find start of compressed data
-		;--skip base header of 10 bytes
-		start: src + 10
-		;--skip extra data if present
-		if (flga and FEXTRA) <> 0 [
-			xlen: as integer! start/2
-			b: as integer! start/1
-			xlen: xlen * 256 + b
-			start: start + xlen + 2
-		]
-		;--skip file comment if present
-		if (flga and FNAME) <> 0 [
-			c: 0
-			until [
-				c: as integer! start/value
-				start: start + 1
-				c = 0
-			]
-		]
-		if (flga and FCOMMENT) <> 0 [
-			c: 0
-			until [
-					c: as integer! start/value
-					start: start + 1
-					c = 0
-				]
-		]
-		;--check header crc if present
-		if (flga and FHCRC) <> 0 [
-			hcrc: as integer! start/2
-			a: as integer! start/1
-			hcrc: 256 * hcrc + a
-			i: crypto/CRC32 src size? (start - src)
-			if (hcrc <> (i and FFFFh)) [
-				return -3
-			]
-			start: start + 2
-		]
-		;--get decompressed length
-		dlen: as integer! src/sourceLen
-		b: as integer!  (sourceLen - 1)
-		a: as integer!  src/b
-		dlen: 256 * dlen + a
-		b: as integer!  sourceLen - 2
-		a: as integer!  src/b
-		dlen: 256 * dlen + a
-		b: as integer!  sourceLen - 3
-		a: as integer!  src/b
-		dlen: 256 * dlen + a
-		;--get crc32 of decompressed data
-		b: as integer!  sourceLen - 4
-		crc: as integer! src/b
-		b: as integer!  sourceLen - 5
-		a: as integer!  src/b
-		crc: 256 * crc + a
-		b: as integer!  sourceLen - 6
-		a: as integer!  src/b
-		crc: 256 * crc + a
-		b: as integer!  sourceLen - 7
-		a: as integer!  src/b
-		crc: 256 * crc + a
-		;--decompress data
-		a: as-integer (src + sourceLen - start - 8)
-		res: deflate/uncompress dst destLen start a
-		if res <> 0 [
-			return -3
-		]
-		if (destLen/value) <> dlen [
-			return -3
-		]
-		;--check CRC32 checksum
-		c: CRC32 dst dlen    ;this func is in the crypto.reds
-		if crc <> c [
-			return -3
-		]
+		start: start + 2
+	]
+
+	;--get decompressed length
+	dlen: as integer! src/sourceLen
+	b: sourceLen - 1
+	a: as integer! src/b
+	dlen: 256 * dlen + a
+	b: sourceLen - 2
+	a: as integer! src/b
+	dlen: 256 * dlen + a
+	b: sourceLen - 3
+	a: as integer! src/b
+	dlen: 256 * dlen + a
+	if null? dest [
+		destLen/value: dlen
 		return 0
 	]
-	
-	;--zlib-uncompress function
-    zlib-uncompress: func[
-        dest        [byte-ptr!]
-        destLen     [int-ptr!]
-        source      [byte-ptr!]
-        sourceLen   [integer!]
-        return:     [integer!]
-        /local
-            src     [byte-ptr!]
-            dst     [byte-ptr!]
-            a32     [integer!]
-            cmf     [byte!]
-            flg     [byte!]
-            a       [integer!]
-            b       [integer!]
-            c       [integer!]
-            res     [integer!]
-    ][  
-        src: source
-        dst: dest
-        ;--get header bytes
-        cmf: src/1
-        flg: src/2
-        ;--check format
-        ;--check checksum
-        a: as integer! cmf
-        b: as integer! flg
-        if ((256 * a + flg) % 31) <> 0 [
-            return -3
-        ]
-        ;--check method is deflate
-        if (a and 0Fh) <> 8 [
-            return -3
-        ]
-        ;--check window size is valid
-        if (a >> 4) > 7 [
-            return -3
-        ]
-        ;--check there is no preset dictionary
-        if (b and 20h) <> 0 [
-            return -3
-        ]
-        ;--get adler32 checksum
-        b: sourceLen - 3
-        a32: as integer! src/b
-        b: sourceLen - 2
-        a: as integer! src/b
-        a32: 256 * a32 + a
-        b: sourceLen - 1
-        a: as integer! src/b        
-        a32: 256 * a32 + a
-        b: sourceLen 
-        a: as integer! src/b        
-        a32: 256 * a32 + a   
-        ;--inflate
-        res: deflate/uncompress dst destLen (src + 2) (sourceLen - 6)    
-        if res <> 0 [
-            return -3
-        ]
-        c: crypto/adler32 dst destLen/value  ;this func is in the crypto.reds
-        ;--chcek adler32 checksum
-        if a32 <> c [
-            return -3
-        ]
-        return 0
-    ]
+
+	;--get crc32 of decompressed data
+	b: sourceLen - 4
+	crc: as integer! src/b
+	b: sourceLen - 5
+	a: as integer! src/b
+	crc: 256 * crc + a
+	b: sourceLen - 6
+	a: as integer! src/b
+	crc: 256 * crc + a
+	b: sourceLen - 7
+	a: as integer! src/b
+	crc: 256 * crc + a
+
+	;--decompress data
+	a: as-integer (src + sourceLen - start - 8)
+	res: deflate/uncompress dst destLen start a
+	if res <> 0 [
+		return -3
+	]
+	if (destLen/value) <> dlen [
+		return -3
+	]
+
+	;--check CRC32 checksum
+	c: crypto/CRC32 dst dlen    ;this func is in the crypto.reds
+	if crc <> c [
+		return -3
+	]
+	return 0
+]
+
+;--zlib-uncompress function
+zlib-uncompress: func[
+	dest		[byte-ptr!]
+	destLen		[int-ptr!]
+	source		[byte-ptr!]
+	sourceLen	[integer!]
+	return:		[integer!]
+	/local
+		src		[byte-ptr!]
+		dst		[byte-ptr!]
+		a32		[integer!]
+		cmf		[byte!]
+		flg		[byte!]
+		a		[integer!]
+		b		[integer!]
+		c		[integer!]
+		res		[integer!]
+][
+	src: source
+	dst: dest
+	;--get header bytes
+	cmf: src/1
+	flg: src/2
+	;--check format
+	;--check checksum
+	a: as integer! cmf
+	b: as integer! flg
+	if ((256 * a + flg) % 31) <> 0 [
+		return -3
+	]
+	;--check method is deflate
+	if (a and 0Fh) <> 8 [
+		return -3
+	]
+	;--check window size is valid
+	if (a >> 4) > 7 [
+		return -3
+	]
+	;--check there is no preset dictionary
+	if (b and 20h) <> 0 [
+		return -3
+	]
+	;--get adler32 checksum
+	b: sourceLen - 3
+	a32: as integer! src/b
+	b: sourceLen - 2
+	a: as integer! src/b
+	a32: 256 * a32 + a
+	b: sourceLen - 1
+	a: as integer! src/b
+	a32: 256 * a32 + a
+	b: sourceLen
+	a: as integer! src/b
+	a32: 256 * a32 + a
+
+	;--inflate
+	res: deflate/uncompress dst destLen (src + 2) (sourceLen - 6)
+	if res <> 0 [
+		return -3
+	]
+
+	c: crypto/adler32 dst destLen/value  ;this func is in the crypto.reds
+	;--chcek adler32 checksum
+	if a32 <> c [
+		return -3
+	]
+	return 0
+]

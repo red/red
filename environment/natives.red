@@ -869,8 +869,17 @@ size?: make native! [[
 ]
 
 browse: make native! [[
-		"Open web browser to a URL or file mananger to a local file."
-		url 	[url! file!]
+		"Open web browser to a URL or file mananger to a local file"
+		url		[url! file!]
 	]
 	#get-definition NAT_BROWSE
+]
+
+decompress: make native! [[
+		"Decompresses data. Data in GZIP format (RFC 1952) by default"
+		data		  [binary!]
+		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
+		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+	]
+	#get-definition NAT_DECOMPRESS
 ]

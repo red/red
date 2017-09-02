@@ -242,6 +242,7 @@ Red/System [
 	NAT_ZERO?
 	NAT_SIZE?
 	NAT_BROWSE
+	NAT_DECOMPRESS
 ]
 
 #enum math-op! [
