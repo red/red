@@ -89,6 +89,64 @@ GtkTextIter!: alias struct! [
   GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER
 ]
 
+
+#enum pango-style! [
+  PANGO_STYLE_NORMAL
+  PANGO_STYLE_OBLIQUE
+  PANGO_STYLE_ITALIC
+]
+
+#enum pango-variant! [
+  PANGO_VARIANT_NORMAL
+  PANGO_VARIANT_SMALL_CAPS
+]
+
+#enum pango-weight! [
+  PANGO_WEIGHT_THIN: 100
+  PANGO_WEIGHT_ULTRALIGHT: 200
+  PANGO_WEIGHT_LIGHT: 300
+  PANGO_WEIGHT_SEMILIGHT: 350
+  PANGO_WEIGHT_BOOK: 380
+  PANGO_WEIGHT_NORMAL: 400
+  PANGO_WEIGHT_MEDIUM: 500
+  PANGO_WEIGHT_SEMIBOLD: 600
+  PANGO_WEIGHT_BOLD: 700
+  PANGO_WEIGHT_ULTRABOLD: 800
+  PANGO_WEIGHT_HEAVY: 900
+  PANGO_WEIGHT_ULTRAHEAVY: 1000
+]
+
+#enum pango-stretch! [
+  PANGO_STRETCH_ULTRA_CONDENSED
+  PANGO_STRETCH_EXTRA_CONDENSED
+  PANGO_STRETCH_CONDENSED
+  PANGO_STRETCH_SEMI_CONDENSED
+  PANGO_STRETCH_NORMAL
+  PANGO_STRETCH_SEMI_EXPANDED
+  PANGO_STRETCH_EXPANDED
+  PANGO_STRETCH_EXTRA_EXPANDED
+  PANGO_STRETCH_ULTRA_EXPANDED
+]
+
+#enum pango-font-mask! [
+  PANGO_FONT_MASK_FAMILY: 1
+  PANGO_FONT_MASK_STYLE: 2
+  PANGO_FONT_MASK_VARIANT: 4
+  PANGO_FONT_MASK_WEIGHT: 8
+  PANGO_FONT_MASK_STRETCH: 16
+  PANGO_FONT_MASK_SIZE: 32
+  PANGO_FONT_MASK_GRAVITY: 64
+]
+
+#define PANGO_SCALE 1024
+#define PANGO_SCALE_XX_SMALL 0.5787037037037
+#define PANGO_SCALE_X_SMALL  0.6444444444444
+#define PANGO_SCALE_SMALL    0.8333333333333
+#define PANGO_SCALE_MEDIUM   1.0
+#define PANGO_SCALE_LARGE    1.2
+#define PANGO_SCALE_X_LARGE  1.4399999999999
+#define PANGO_SCALE_XX_LARGE 1.728
+
 #enum cairo_font_slant_t! [
 	CAIRO_FONT_SLANT_NORMAL
 	CAIRO_FONT_SLANT_ITALIC
@@ -310,6 +368,15 @@ cairo_font_extents_t!: alias struct! [
 		; 	widget 		[handle!]
 		; 	return:		[integer!]
 		; ]
+		gtk_font_chooser_dialog_new: "gtk_font_chooser_dialog_new" [
+			title 		[c-string!]
+			win 		[handle!]
+			return: 	[handle!]
+		]
+		gtk_font_chooser_get_font_desc: "gtk_font_chooser_get_font_desc" [
+			font-sel 	[handle!]
+			return: 	[handle!]
+		]
 		gtk_main_iteration: "gtk_main_iteration" [
 			return: 	[logic!]
 		]
@@ -749,25 +816,49 @@ cairo_font_extents_t!: alias struct! [
 			fontdesc 	[handle!]
 			name		[c-string!]
 		]
+		pango_font_description_get_family: "pango_font_description_get_family" [
+			fontdesc 	[handle!]
+			return:		[c-string!]
+		]
 		pango_font_description_set_size: "pango_font_description_set_size" [
 			fontdesc 	[handle!]
 			size		[integer!]
+		]
+		pango_font_description_get_size: "pango_font_description_get_size" [
+			fontdesc 	[handle!]
+			return:		[integer!]
 		]
 		pango_font_description_set_weight: "pango_font_description_set_weight" [
 			fontdesc 	[handle!]
 			weight		[integer!]
 		]
+		pango_font_description_get_weight: "pango_font_description_get_weight" [
+			fontdesc 	[handle!]
+			return:		[integer!]
+		]
 		pango_font_description_set_style: "pango_font_description_set_style" [
 			fontdesc 	[handle!]
 			style		[integer!]
+		]
+		pango_font_description_get_style: "pango_font_description_get_style"  [
+			fontdesc 	[handle!]
+			return:		[integer!]
 		]
 		pango_font_description_set_stretch: "pango_font_description_set_stretch" [
 			fontdesc 	[handle!]
 			stretch		[integer!]
 		]
+		pango_font_description_get_stretch: "pango_font_description_get_stretch" [
+			fontdesc 	[handle!]
+			return:		[integer!]
+		]
 		pango_font_description_set_variant: "pango_font_description_set_variant" [
 			fontdesc 	[handle!]
 			variant		[integer!]
+		]
+		pango_font_description_get_variant: "pango_font_description_get_variant" [
+			fontdesc 	[handle!]
+			return:		[integer!]
 		]
 		gdk_pango_context_get: "gdk_pango_context_get" [
 			return:		[handle!]
