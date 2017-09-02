@@ -230,17 +230,19 @@ deflate: context [
 		return: 	[integer!]
 
 		/local
-			bit 	[integer!]
-			j 		[integer!]
-			l		[int-ptr!]
+			bit 	 	[integer!]
+			j 			[integer!]
+			l			[int-ptr!]
+			_bitcount	[integer!]
 	][
 		;--check if tag is empty
+		_bitcount: d/bitcount
 		d/bitcount: d/bitcount - 1
-		if d/bitcount = 0 [
-			;--load next tag
-			d/source: d/source + 1
-			d/tag: as integer! d/source/value
-			d/bitcount: 8
+		if _bitcount = 0 [
+        ;--load next tag
+        d/tag: as integer! d/source/value
+		d/source: d/source + 1
+        d/bitcount: 7
 		]
 		;--shift bit out of tag
 		j: d/tag
@@ -587,7 +589,7 @@ deflate: context [
 
 		;--initialise data
 		d/source: source
-		d/bitcount: 1
+		d/bitcount: 0
 		d/dest: dest
 		d/destLen: destLen
 		destLen/value: 0
@@ -617,8 +619,7 @@ deflate: context [
 		]
 		return 0
 	]
-] ;-- end inflate context
-
+] ;-- end inflate contex
 
 	;-- gzip-uncompress function
 	#define FTEXT       1
@@ -805,7 +806,7 @@ deflate: context [
         a: as integer! src/b        
         a32: 256 * a32 + a   
         ;--inflate
-        res: deflate/uncompress dst destLen (src + 1) (sourceLen - 6)    
+        res: deflate/uncompress dst destLen (src + 2) (sourceLen - 6)    
         if res <> 0 [
             return -3
         ]
