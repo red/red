@@ -734,8 +734,6 @@ deflate: context [
 		crc: 256 * crc + a
 		;--decompress data
 		a: as-integer (src + sourceLen - start - 8)
-		c: as integer! start/value
-		start: start - 1
 		res: deflate/uncompress dst destLen start a
 		if res <> 0 [
 			return -3
