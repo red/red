@@ -1348,6 +1348,7 @@ OS-make-view: func [
 			;This depends on version >= 3.2
 			;gtk_widget_set_focus_on_click widget yes
 			gobj_signal_connect(widget "move-focus" :field-move-focus face/ctx)
+			gtk_entry_set_width_chars widget 0
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
