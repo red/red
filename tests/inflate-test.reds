@@ -41,7 +41,7 @@ Red/System [
 	srcLen32: fread buffer32 size? byte! 10000 file32
 	src32: allocate 1000
 	src32: buffer32
-	src32: src32 + 15   ;this according to the gzip format,we just need the compressed part
+	src32: src32 + 16   ;this according to the gzip format,we just need the compressed part
 	dst32: allocate 100000
 	dstLen32: 1024
 	res: 2
@@ -74,7 +74,7 @@ Red/System [
 	srcLen22: fread buffer22 size? byte! 10000 file22
 	src22: allocate 1000
 	src22: buffer22
-	src22: src22 + 16   ;this according to the gzip format,we just need the compressed part
+	src22: src22 + 17   ;this according to the gzip format,we just need the compressed part
 	dst22: allocate 100000
 	dstLen22: 1024
 	res: 2
