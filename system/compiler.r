@@ -167,7 +167,7 @@ system-dialect: make-profilable context [
 		
 		user-functions: tail functions					;-- marker for user functions
 		
-		action-class: context [action: type: data: none]
+		action-class: context [action: type: keep?: data: none]
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
@@ -1985,7 +1985,7 @@ system-dialect: make-profilable context [
 			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
-		comp-as: has [ctype ptr? expr type][
+		comp-as: has [ctype ptr? expr type k?][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			if path? ctype [ctype: to word! form ctype]
@@ -2000,6 +2000,7 @@ system-dialect: make-profilable context [
 				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
+			if pc/1 = 'keep [k?: yes pc: next pc]
 			expr: fetch-expression 'as
 
 			if all [
@@ -2019,6 +2020,7 @@ system-dialect: make-profilable context [
 			make action-class [
 				action: 'type-cast
 				type: blockify ctype
+				keep?: k?
 				data: expr
 			]
 		]

@@ -28,6 +28,8 @@ Red/System [
 #define as-float	  [as float!]
 #define as-float32	  [as float32!]
 #define as-c-string	  [as c-string!]
+#define keep-float	  [as float! keep]
+#define keep-float32  [as float32! keep]
  
 #define null-byte	  #"^(00)"
 #define yes			  true
