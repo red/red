@@ -491,14 +491,14 @@ deflate: context [
 			a 			[integer!]
 	][
 		;--get length
-		length: as integer! d/source/3
-		length: 256 * length + (as-integer d/source/2)
+		length: as integer! d/source/2
+		length: 256 * length + (as-integer d/source/1)
 		;--get one's complement of length
-		invlength: as integer! d/source/5
-		invlength: 256 * invlength + (as-integer d/source/4)
+		invlength: as integer! d/source/4
+		invlength: 256 * invlength + (as-integer d/source/3)
 
 		;--check length
-		d/source: d/source + 5
+		d/source: d/source + 4
 		;--copy block
 		i: length
 		until [
