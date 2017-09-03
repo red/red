@@ -683,13 +683,13 @@ simple-io: context [
 		size	[integer!]
 		return:	[integer!]
 		/local
-			read-sz [integer!]
-			res		[integer!]
+			len [integer!]
+			res [integer!]
 	][
 		#either OS = 'Windows [
-			read-sz: -1
-			res: ReadFile file buffer size :read-sz null
-			res: either zero? res [-1][1]
+			len: 0
+			res: ReadFile file buffer size :len null
+			res: either zero? res [-1][len]
 		][
 			res: _read file buffer size
 		]
@@ -708,7 +708,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			len: 0
 			ret: WriteFile file data size :len null
-			ret: either zero? ret [-1][1]
+			ret: either zero? ret [-1][len]
 		][
 			ret: _write file data size
 		]
