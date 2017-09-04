@@ -299,43 +299,43 @@ crypto: context [
 			]
 			i: k / 16
 			if i <> 0 [
-			until [
-				s1: s1 + (as-integer buf/1)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/2)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/3)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/4)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/5)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/6)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/7)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/8)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/9)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/10)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/11)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/12)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/13)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/14)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/15)
-				s2: s2 + s1
-				s1: s1 + (as-integer buf/16)
-				s2: s2 + s1
-				i: i - 1
-				buf: buf + 16
-				i = 0
-			]
+				until [
+					s1: s1 + (as-integer buf/1)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/2)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/3)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/4)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/5)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/6)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/7)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/8)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/9)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/10)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/11)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/12)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/13)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/14)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/15)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/16)
+					s2: s2 + s1
+					i: i - 1
+					buf: buf + 16
+					i = 0
+				]
 			]
 			i: k % 16
 			until [
