@@ -39,4 +39,5 @@ date-test.red
 convert-test.red
 checksum-test.red
 reactivity-test.red
+decompress-test.red
 auto-tests/lexer-auto-test.red
