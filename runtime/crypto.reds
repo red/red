@@ -298,7 +298,6 @@ crypto: context [
 				k: A32-NMAX
 			]
 			i: k / 16
-			if i <> 0 [
 			until [
 				s1: s1 + (as-integer buf/1)
 				s2: s2 + s1
@@ -335,7 +334,6 @@ crypto: context [
 				i: i - 1
 				buf: buf + 16
 				i = 0
-			]
 			]
 			i: k % 16
 			until [
