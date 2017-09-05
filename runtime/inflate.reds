@@ -219,8 +219,6 @@ deflate: context [
 			i = (num + 1)
 
 		]
-
-		free as byte-ptr! offs
 	]
 
 
