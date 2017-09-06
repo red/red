@@ -727,6 +727,7 @@ OS-draw-text: func [
 	][
 		draw-text-box ctx pos as red-object! text catch?
 	]
+	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
 ]
 
