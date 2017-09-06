@@ -747,8 +747,8 @@ wait: make native! [[
 checksum: make native! [[
 		"Computes a checksum, CRC, hash, or HMAC"
 		data 	[binary! string! file!]
-		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
-		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
+		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP ADLER32 hash"
+		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32/ADLER32 methods"
 			spec [any-string! binary! integer!] "String or binary for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]

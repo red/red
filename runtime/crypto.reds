@@ -16,6 +16,7 @@ crypto: context [
 	_md5:		0
 	_sha1:		0
 	_crc32: 	0
+	_adler32:	0
 	_sha256:	0
 	_sha384:	0
 	_sha512:	0
@@ -27,6 +28,7 @@ crypto: context [
 		_md5:		symbol/make "md5"
 		_sha1:		symbol/make "sha1"
 		_crc32: 	symbol/make "crc32"
+		_adler32:	symbol/make "adler32"
 		_sha256:	symbol/make "sha256"
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
@@ -160,7 +162,7 @@ crypto: context [
 		alg-sym		[integer!]	"Algorithm symbol value. e.g., _crc32"
 		return:		[byte-ptr!]
 	][
-		either any [alg-sym = _crc32  alg-sym = _tcp  alg-sym = _hash][
+		either any [alg-sym = _crc32  alg-sym = _tcp  alg-sym = _hash alg-sym = _adler32][
 			print-line "The selected algorithm doesn't support HMAC calculation"
 			return as byte-ptr! ""
 		][
@@ -264,6 +266,7 @@ crypto: context [
 		any [
 			sym = _tcp
 			sym = _crc32
+			sym = _adler32
 			sym = _md5
 			sym = _sha1
 			sym = _sha256
