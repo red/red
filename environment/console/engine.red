@@ -163,7 +163,7 @@ system/console: context [
 		]
 	]
 
-	do-command: function [][
+	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
 
 		unless any [error? code tail? code][
