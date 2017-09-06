@@ -59,7 +59,7 @@ draw-begin: func [
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
 	ctx/pen-cap:		flat
-	ctx/brush-color:	0
+	ctx/brush-color:	-1
 	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
