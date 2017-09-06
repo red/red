@@ -56,6 +56,7 @@ write %build/bin/sources.r set-cache [
 		%definitions.reds
 		%case-folding.reds
 		%interpreter.reds
+		%inflate.reds
 		%macros.reds
 		%natives.reds
 		%parse.reds
