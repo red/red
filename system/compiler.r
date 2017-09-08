@@ -895,7 +895,10 @@ system-dialect: make-profilable context [
 				] 'as
 			]
 			if any [
-				all [type/1 = 'function! not find [function! integer!] ctype/1]
+				all [type/1 = 'function! not any [
+					find [function! integer!] ctype/1
+					all [ctype/1 = 'pointer! block? ctype/2 find [integer! byte!] ctype/2/1] ;allow casting to int-ptr! and byte-ptr!
+				]]
 				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
 				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
@@ -908,7 +911,7 @@ system-dialect: make-profilable context [
 				backtrack value
 				throw-error [
 					"type casting from" type/1
-					"to" ctype/1 "is not allowed"
+					"to" mold/only ctype "is not allowed"
 				]
 			]	
 			unless literal? value [return value]	;-- shield the following literal conversions
