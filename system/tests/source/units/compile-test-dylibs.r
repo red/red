@@ -2,8 +2,8 @@ REBOL [
 	Title:   "Compiles Red/System test dylibs"
 	Author:  "Peter W A Wood"
 	Version: 0.1.0
-	Rights:  "Copyright (C) 2014 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2014-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 compile-test-dylibs: func [
@@ -15,9 +15,9 @@ compile-test-dylibs: func [
 	if all [
 		not value? 'win-call
     	system/version/4 = 3
-    	system/version/3 = 8              
+    	system/version/3 = 8
 	][
-		do %../../quick-test/call.r					               
+		do %../../utils/call.r
 		set 'call :win-call
 	]	
 
@@ -35,7 +35,7 @@ compile-test-dylibs: func [
 			to-local-file system/options/boot " -sc "
             to-local-file clean-path %../../red.r
             " -dlib  -t " target " -o " lib " "
-    		to-local-file clean-path join %source/units/ dll	
+    		to-local-file clean-path join %source/units/ dll
     	]
 		clear output
 		call/output cmd output

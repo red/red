@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Bruno Anselme & Peter W A Wood"
 	File: 	 %call-test.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014 Bruno Anselme & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2014-2015 Bruno Anselme & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ~~~start-file~~~ "Red call test"

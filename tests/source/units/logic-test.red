@@ -4,8 +4,8 @@ Red [
 	File: 	 %logic-test.red
 	Version: "0.1.0"
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -255,7 +255,7 @@ Red [
   --test-- "logic-any-8"
     a: any [false 1 < 2]
   --assert a
-   comment { 
+ 
   --test-- "logic-any-9"
     a: any [true 1 = 2]
   --assert a
@@ -281,7 +281,7 @@ Red [
   --assert a
   
   --test-- "logic-any-15"
-  --assert not log-foo any [1 = 2]
+  --assert none = any [1 = 2]
   
   --test-- "logic-any-16"
   --assert log-foo any [1 < 2 3 <> 4]
@@ -294,13 +294,13 @@ Red [
   --assert a 
 
   --test-- "logic-any-19"
-    a: log-foo any [1 = 2]
+    a: log-foo (none <> any [1 = 2])
   --assert not a 
 
   --test-- "logic-any-20"
     a: log-foo any [1 < 2 3 <> 4]
   --assert a
-}
+  
   --test-- "logic-any-21"
     a: any [log-foo true]
   --assert a

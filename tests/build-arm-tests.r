@@ -15,9 +15,9 @@ system/options/quiet: true
 ;; use win-call if running Rebol 2.7.8 under Windows
 if all [
     system/version/4 = 3
-    system/version/3 = 8              
+    system/version/3 = 8
 ][
-		do %../quick-test/call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 ]
 
@@ -91,4 +91,4 @@ if system/version/4 <> 3 [
 ;; tidy up
 system/options/quiet: store-quiet-mode
 
-print ["Red/System ARM tests built in" arm-dir]  
+print ["Red ARM tests built in" arm-dir]  

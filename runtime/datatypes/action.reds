@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %action.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -27,26 +27,32 @@ action: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	   [red-value!]
-		spec   	   [red-block!]
-		return:    [red-action!]							;-- return action cell pointer
+		proto	[red-value!]
+		spec	[red-block!]
+		type	[integer!]
+		return:	[red-action!]							;-- return action cell pointer
 		/local
+			list   [red-block!]
 			action [red-action!]
 			s	   [series!]
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
 		
-		assert TYPE_OF(spec) = TYPE_BLOCK
+		if TYPE_OF(spec) <> TYPE_BLOCK [throw-make proto spec]
 		s: GET_BUFFER(spec)
-		spec: as red-block! s/offset
+		list: as red-block! s/offset
+		if list + list/head + 2 <> s/tail [throw-make proto spec]
 		
 		action: as red-action! stack/push*
 		action/header:	TYPE_ACTION						;-- implicit reset of all header flags
-		action/spec:    spec/node						; @@ copy spec block if not at head
+		action/spec:    list/node						; @@ copy spec block if not at head
 		action/args: 	null
-			
-		index: integer/get s/offset + 1					;-- action IDs are one-based
+		
+		list: list + 1
+		if TYPE_OF(list) <> TYPE_INTEGER [throw-make proto spec]
+		index: integer/get as red-value! list			;-- action IDs are one-based
+		if any [index < 1 index > ACTIONS_NB][throw-make proto spec]
 		action/code: actions/table/index
 		
 		action
@@ -58,8 +64,6 @@ action: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/form"]]
 
@@ -111,6 +115,7 @@ action: context [
 		if type <> TYPE_ACTION [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -169,9 +174,11 @@ action: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

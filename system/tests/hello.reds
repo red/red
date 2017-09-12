@@ -3,8 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %hello.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Version: 1.0.2.4
+	Company: "FullStack Technologies"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 #either OS = 'Windows [

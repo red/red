@@ -4,8 +4,8 @@ REBOL [
 	File: 	 %quick-test.r
 	Version: 0.12.0
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
@@ -38,7 +38,7 @@ qt: make object! [
   version: system/script/header/version
   
   ;; switch for binary compiler usage
-  binary?: false
+  binary-compiler?: false
 
   ;; check if call-show? is enabled for call
   either any [
@@ -73,9 +73,9 @@ qt: make object! [
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
     windows-os?
-    system/version/3 = 8              
+    system/version/3 = 8
   ][
-		do %call.r					               
+		do %../utils/call.r
 		set 'call :win-call
 	]
 	
@@ -160,7 +160,7 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  	compile: func [
+  compile: func [
   		src [file!]
   		/bin
   		/lib
@@ -201,7 +201,7 @@ qt: make object! [
     parse read src red?-rule
  
     ;; compose and write compilation script
-    either binary? [
+    either binary-compiler? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
@@ -225,6 +225,7 @@ qt: make object! [
     	  do/args (reduce base-dir/red.r) (join " -o " [
     	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
     	  ])
+    	  echo none
     	]
     	either lib [
     		replace comp "###lib###" join "-dlib -t " [target " "]
@@ -247,6 +248,7 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
+    recycle
     either compile-ok? [
       exe
     ][
@@ -355,7 +357,8 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     do call* exec output
-    if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    ;;if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    recycle
     if all [
       source-file?
       not pgm
@@ -376,11 +379,11 @@ qt: make object! [
     src [file!]
     /local               
       cmd                             ;; command to run
+      output
       test-name                     
   ][
     source-file?: false
-    cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    do call* cmd make string! 1024
+    do join tests-dir src
   ]
   
   run-unit-test-quiet: func [
@@ -389,6 +392,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
+    file/reset
     source-file?: false
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."
@@ -669,6 +673,8 @@ qt: make object! [
   	  /local
   	  	f
   ][
+  	foreach file read runnable-dir [attempt [delete runnable-dir/:file]]
+  	
   	f: to string! now/time/precise
   	f: replace/all f ":" ""
   	f: replace/all f "." ""

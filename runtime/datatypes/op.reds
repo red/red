@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %op.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -24,12 +24,52 @@ op: context [
 		;...TBD
 	]
 	
+	binary?: func [										;-- check if arity is binary
+		spec	[node!]
+		return: [logic!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			word  [red-word!]
+			s	  [series!]
+			arity [integer!]
+			sym	  [integer!]
+	][
+		s: as series! spec/value
+		value: s/offset
+		tail:  s/tail
+		arity: 0
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					arity: arity + 1
+				]
+				TYPE_REFINEMENT [
+					word: as red-word! value
+					sym: symbol/resolve word/symbol
+					either any [
+						sym = refinements/local/symbol
+						sym = refinements/extern/symbol
+					][break][return no]
+				]
+				TYPE_SET_WORD [break]
+				default [0]
+			]
+			value: value + 1
+		]
+		arity = 2
+	]
+	
 	;-- Actions -- 
 	
 	make: func [
-		proto		[red-value!]
-		spec		[red-block!]						;-- type casted to red-block! to avoid an additional var
-		return:		[red-op!]
+		proto	[red-value!]
+		spec	[red-block!]							;-- type casted to red-block! to avoid an additional var
+		dtype	[integer!]
+		return:	[red-op!]
 		/local
 			op		[red-op!]
 			blk		[red-block!]
@@ -45,30 +85,35 @@ op: context [
 
 		flag: 0
 		type: TYPE_OF(spec)
-		assert any [
-			TYPE_OF(spec) = TYPE_BLOCK
-			TYPE_OF(spec) = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
-			TYPE_OF(spec) = TYPE_NATIVE
-			TYPE_OF(spec) = TYPE_OP
-			TYPE_OF(spec) = TYPE_FUNCTION
-			TYPE_OF(spec) = TYPE_ROUTINE
-		]
+		unless any [
+			type = TYPE_BLOCK
+			type = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
+			type = TYPE_NATIVE
+			type = TYPE_OP
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
+		][fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(spec)]]
+		
 		node: switch type [
 			TYPE_BLOCK [
 				s: GET_BUFFER(spec)
 				blk: as red-block! s/offset
+				if blk + blk/head + 2 <> s/tail [throw-make proto spec]
 				blk/node
 			]
 			TYPE_ACTION
 			TYPE_NATIVE
 			TYPE_OP [
-				native: as red-native! spec
+				if type = TYPE_NATIVE [flag: flag-native-op]
+				native: as red-native! spec				
+				unless binary? native/spec [fire [TO_ERROR(script bad-op-spec)]]
 				code: native/code
 				native/spec
 			]
 			TYPE_FUNCTION
 			TYPE_ROUTINE [
 				fun: as red-function! spec
+				unless binary? fun/spec [fire [TO_ERROR(script bad-op-spec)]]
 				s: as series! fun/more/value
 				;@@ check if slot #4 is already set!
 				copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
@@ -145,6 +190,7 @@ op: context [
 		if type <> TYPE_OP [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
 			COMP_SORT
@@ -203,9 +249,11 @@ op: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

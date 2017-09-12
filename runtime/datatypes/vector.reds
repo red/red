@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %vector.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -17,7 +17,7 @@ vector: context [
 		vec 	[red-vector!]
 		return: [integer!]
 	][
-		string/get-length as red-string! vec no
+		_series/get-length as red-series! vec no
 	]
 	
 	rs-skip: func [
@@ -25,7 +25,7 @@ vector: context [
 		len		[integer!]
 		return: [logic!]
 	][
-		string/rs-skip as red-string! vec len
+		_series/rs-skip as red-series! vec len
 	]
 	
 	rs-next: func [
@@ -34,7 +34,7 @@ vector: context [
 		/local
 			s [series!]
 	][
-		rs-skip vec 1
+		_series/rs-skip as red-series! vec 1
 	]
 	
 	rs-head: func [
@@ -44,7 +44,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		(as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1))
+		(as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s)))
 	]
 	
 	rs-tail: func [
@@ -64,7 +64,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		(as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1)) >= as byte-ptr! s/tail
+		(as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) >= as byte-ptr! s/tail
 	]
 
 	rs-clear: func [
@@ -73,7 +73,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		s/tail: as cell! (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1))
+		s/tail: as cell! (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s)))
 	]
 	
 	rs-append-int: func [
@@ -99,12 +99,45 @@ vector: context [
 			p	 [byte-ptr!]
 			unit [integer!]
 	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
 		assert TYPE_OF(value) = vec/type
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		p: alloc-tail-unit s either unit = 6 [8][unit]
+		p: alloc-tail-unit s unit
 		set-value p value unit
 		value
+	]
+
+	rs-overwrite: func [
+		vec		[red-vector!]
+		offset	[integer!]								;-- offset from head in elements
+		value	[red-value!]
+		return: [series!]
+		/local
+			s	  [series!]
+			p	  [byte-ptr!]
+			unit  [integer!]
+	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
+		set-value p value unit
+
+		if p >= (as byte-ptr! s/tail) [
+			s/tail: as cell! (as byte-ptr! s/tail) + unit
+		]
+		s
 	]
 	
 	rs-insert: func [
@@ -116,23 +149,25 @@ vector: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			unit  [integer!]
-			unit2 [integer!]
 	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		unit2: either unit = 6 [8][unit]
 
-		if ((as byte-ptr! s/tail) + unit2) > ((as byte-ptr! s + 1) + s/size) [
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
-		p: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 
 		move-memory										;-- make space
-			p + unit2
+			p + unit
 			p
 			as-integer (as byte-ptr! s/tail) - p
 
-		s/tail: as cell! (as byte-ptr! s/tail) + unit2
+		s/tail: as cell! (as byte-ptr! s/tail) + unit
 
 		set-value p value unit
 		s
@@ -144,9 +179,26 @@ vector: context [
 		return: [integer!]
 	][
 		switch unit [
-			1 [p/value and FFh]
-			2 [p/value and FFFFh]
+			1 [p/value and FFh << 24 >> 24]
+			2 [p/value and FFFFh << 16 >> 16]
 			4 [p/value]
+		]
+	]
+
+	get-value-float: func [
+		p		[byte-ptr!]
+		unit	[integer!]
+		return: [float!]
+		/local
+			pf	 [pointer! [float!]]
+			pf32 [pointer! [float32!]]
+	][
+		either unit = 4 [
+			pf32: as pointer! [float32!] p
+			as-float pf32/value
+		][
+			pf: as pointer! [float!] p
+			pf/value
 		]
 	]
 
@@ -158,8 +210,6 @@ vector: context [
 		/local
 			int    [red-integer!]
 			float  [red-float!]
-			pf	   [pointer! [float!]]
-			pf32   [pointer! [float32!]]
 	][
 		switch type [
 			TYPE_CHAR
@@ -169,16 +219,11 @@ vector: context [
 				int/value: get-value-int as int-ptr! p unit
 				as red-value! int				
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				float: as red-float! stack/push*
-				float/header: TYPE_FLOAT
-				float/value: either unit = 6 [
-								pf: as pointer! [float!] p
-								pf/value
-							][
-								pf32: as pointer! [float32!] p
-								as-float pf32/value
-							]
+				float/header: type
+				float/value: get-value-float p unit
 				as red-value! float
 			]
 		]
@@ -206,9 +251,10 @@ vector: context [
 					4 [int/value]
 				]
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				f: as red-float! value
-				either unit = 6 [
+				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f/value
 				][
@@ -236,6 +282,313 @@ vector: context [
 			rs-append vec value
 			value: value + 1
 		]
+	]
+
+	to-block: func [
+		vec		[red-vector!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			type [integer!]
+			p	 [byte-ptr!]
+			end  [byte-ptr!]
+			int  [red-integer!]
+			f	 [red-float!]
+			slot [red-value!]
+	][
+		type: vec/type
+		block/make-at blk rs-length? vec
+		s: GET_BUFFER(blk)
+		slot: s/offset
+		s/tail: slot + rs-length? vec
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (vec/head << (log-b unit))
+		end: as byte-ptr! s/tail
+
+		while [p < end][
+			switch type [
+				TYPE_INTEGER
+				TYPE_CHAR [
+					int: as red-integer! slot
+					int/value: get-value-int as int-ptr! p unit
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					f: as red-float! slot
+					f/value: get-value-float p unit
+				]
+			]
+			slot/header: type
+			slot: slot + 1
+			p: p + unit
+		]
+		blk
+	]
+
+	serialize: func [
+		vec		[red-vector!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		mold?	[logic!]
+		return: [integer!]
+		/local
+			s		[series!]
+			p		[byte-ptr!]
+			end		[byte-ptr!]
+			unit	[integer!]
+			pf		[pointer! [float!]]
+			pf32	[pointer! [float32!]]
+			fl		[float!]
+			formed	[c-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "vector/serialize"]]
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (vec/head << (log-b unit))
+		end: as byte-ptr! s/tail
+
+		while [p < end][
+			if all [OPTION?(arg) part <= 0][return part]
+
+			either vec/type = TYPE_CHAR [
+				part: either mold? [
+					string/concatenate-literal buffer {#"}
+					string/append-escaped-char
+							buffer
+							get-value-int as int-ptr! p unit
+							string/ESC_CHAR
+							all?
+					string/append-char GET_BUFFER(buffer) as-integer #"^""
+					part - 4
+				][
+					string/append-escaped-char
+							buffer
+							get-value-int as int-ptr! p unit
+							string/ESC_CHAR
+							all?
+					part - 1
+				]
+			][
+				switch vec/type [
+					TYPE_INTEGER [
+						formed: integer/form-signed get-value-int as int-ptr! p unit
+					]
+					TYPE_FLOAT [
+						formed: either unit = 8 [
+							pf: as pointer! [float!] p
+							float/form-float pf/value float/FORM_FLOAT_64
+						][
+							pf32: as pointer! [float32!] p
+							float/form-float as-float pf32/value float/FORM_FLOAT_32
+						]
+					]
+					TYPE_PERCENT [
+						formed: either unit = 8 [
+							pf: as pointer! [float!] p
+							float/form-float pf/value * 100.0 float/FORM_PERCENT
+						][
+							pf32: as pointer! [float32!] p
+							float/form-float as-float pf32/value * as float32! 100.0 float/FORM_PERCENT_32
+						]
+					]
+				]
+				string/concatenate-literal buffer formed
+				part: part - system/words/length? formed	;@@ optimize by removing length?
+			]
+			if p + unit < end [
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - 1
+			]
+			p: p + unit
+		]
+		part	
+	]
+
+	do-math-scalar: func [
+		op		[math-op!]
+		left	[red-vector!]
+		right	[red-value!]
+		return: [red-value!]
+		/local
+			type	[integer!]
+			s		[series!]
+			unit	[integer!]
+			len		[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			i		[integer!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			f1		[float!]
+			f2		[float!]
+			pf		[pointer! [float!]]
+			pf32	[pointer! [float32!]]
+			int		[red-integer!]
+			fl		[red-float!]
+	][
+		s: GET_BUFFER(left)
+		unit: GET_UNIT(s)
+		len: rs-length? left
+		p: (as byte-ptr! s/offset) + (left/head << (log-b unit))
+		type: TYPE_OF(right)
+		i: 0
+
+		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
+			switch type [
+				TYPE_INTEGER [
+					int: as red-integer! right
+					f2: as-float int/value
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					fl: as red-float! right
+					f2: fl/value
+				]
+				default [--NOT_IMPLEMENTED--]
+			]
+			while [i < len][
+				f1: get-value-float p unit
+				f1: float/do-math-op f1 f2 op
+				either unit = 8 [
+					pf: as pointer! [float!] p
+					pf/value: f1
+				][
+					pf32: as pointer! [float32!] p
+					pf32/value: as float32! f1
+				]
+				i: i + 1
+				p: p + unit
+			]
+		][
+			switch type [
+				TYPE_INTEGER [
+					int: as red-integer! right
+					v2: int/value
+				]
+				TYPE_FLOAT
+				TYPE_PERCENT [
+					fl: as red-float! right
+					f1: fl/value
+					v2: as-integer f1
+				]
+				default [--NOT_IMPLEMENTED--]
+			]
+			while [i < len][
+				v1: get-value-int as int-ptr! p unit
+				v1: integer/do-math-op v1 v2 op
+				switch unit [
+					1 [p/value: as-byte v1]
+					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+					4 [p4: as int-ptr! p p4/value: v1]
+				]
+				i: i + 1
+				p: p + unit
+			]
+		]
+		as red-value! left
+	]
+
+	do-math: func [
+		type		[math-op!]
+		return:		[red-value!]
+		/local
+			left	[red-vector!]
+			right	[red-vector!]
+			s1		[series!]
+			s2		[series!]
+			unit	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			i		[integer!]
+			node	[node!]
+			buffer	[series!]
+			p		[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			p4		[int-ptr!]
+			f1		[float!]
+			f2		[float!]
+			pf		[pointer! [float!]]
+			pf32	[pointer! [float32!]]
+	][
+		left: as red-vector! stack/arguments
+		right: left + 1
+
+		if TYPE_OF(right) <> TYPE_VECTOR [
+			return do-math-scalar type left as red-value! right
+		]
+
+		if left/type <> right/type [fire [TO_ERROR(script not-same-type)]]
+
+		s1: GET_BUFFER(left)
+		s2: GET_BUFFER(right)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		unit: either unit1 > unit2 [unit1][unit2]
+
+		len1: rs-length? left
+		len2: rs-length? right
+		if len1 > len2 [len1: len2]
+
+		p1: (as byte-ptr! s1/offset) + (left/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (right/head << (log-b unit2))
+
+		node: alloc-bytes len1 << (log-b unit)
+		buffer: as series! node/value
+		buffer/flags: buffer/flags and flag-unit-mask or unit
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len1 << (log-b unit))
+
+		i: 0
+		p:  as byte-ptr! buffer/offset
+		either any [left/type = TYPE_FLOAT left/type = TYPE_PERCENT] [
+			while [i < len1][
+				f1: get-value-float p1 unit1
+				f2: get-value-float p2 unit2
+				f1: float/do-math-op f1 f2 type
+				either unit = 8 [
+					pf: as pointer! [float!] p
+					pf/value: f1
+				][
+					pf32: as pointer! [float32!] p
+					pf32/value: as float32! f1
+				]
+				i:  i  + 1
+				p:  p  + unit
+				p1: p1 + unit1
+				p2: p2 + unit2
+			]
+		][
+			while [i < len1][
+				v1: get-value-int as int-ptr! p1 unit1
+				v2: get-value-int as int-ptr! p2 unit2
+				v1: integer/do-math-op v1 v2 type
+				switch unit [
+					1 [p/value: as-byte v1]
+					2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+					4 [p4: as int-ptr! p p4/value: v1]
+				]
+				i:  i  + 1
+				p:  p  + unit
+				p1: p1 + unit1
+				p2: p2 + unit2
+			]
+		]
+		left/node: node
+		left/head: 0
+		as red-value! left
 	]
 	
 	clone: func [
@@ -288,7 +641,6 @@ vector: context [
 		vec/type:	type
 		
 		s: GET_BUFFER(vec)
-		if unit = 8 [unit: 6]
 		s/flags: s/flags and flag-unit-mask or unit
 		vec
 	]
@@ -298,33 +650,38 @@ vector: context [
 	make: func [
 		proto	[red-value!]
 		spec	[red-value!]
+		dtype	[integer!]
 		return:	[red-vector!]
 		/local
-			s	  [series!]
-			w	  [red-word!]
-			vec	  [red-vector!]
-			int	  [red-integer!]
-			value [red-value!]
-			sym   [integer!]
-			size  [integer!]
+			s	   [series!]
+			w	   [red-word!]
+			vec	   [red-vector!]
+			int	   [red-integer!]
+			fl	   [red-float!]
+			value  [red-value!]
+			blk    [red-block!]
+			sym    [integer!]
+			size   [integer!]
 			blk-sz [integer!]
-			unit  [integer!]
-			type  [integer!]
-			fill? [logic!]
-			end   [byte-ptr!]
+			unit   [integer!]
+			type   [integer!]
+			saved  [integer!]
+			fill?  [logic!]
+			err?   [logic!]
+			end	   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/make"]]
 
 		fill?: yes
 		size: 0
 		unit: 0
+		blk: as red-block! spec
+		saved: blk/head
 		type: TYPE_OF(spec)
 		
 		switch type [
-			TYPE_INTEGER [
-				int: as red-integer! spec
-				size: int/value
-			]
+			TYPE_INTEGER
+			TYPE_FLOAT [type: TYPE_INTEGER size: GET_SIZE_FROM(spec)]
 			TYPE_BLOCK [
 				size:  block/rs-length? as red-block! spec
 				either zero? size [
@@ -334,7 +691,7 @@ vector: context [
 					type:  TYPE_OF(value)
 					if type = TYPE_WORD [
 						if size < 2 [
-							fire [TO_ERROR(script invalid-spec-field) spec]
+							fire [TO_ERROR(script bad-make-arg) proto spec]
 						]
 
 						;-- data type
@@ -344,17 +701,44 @@ vector: context [
 							sym = words/integer!	[TYPE_INTEGER]
 							sym = words/char!		[TYPE_CHAR]
 							sym = words/float!		[TYPE_FLOAT]
-							true					[TYPE_INTEGER]
+							sym = words/percent!	[TYPE_PERCENT]
+							true					[
+								fire [TO_ERROR(script bad-make-arg) proto spec]
+								0
+							]
 						]
 
 						;-- bit size
 						block/rs-next as red-block! spec
 						value: block/rs-head as red-block! spec
 						int: as red-integer! value
-						unit: int/value >> 3
+						either TYPE_OF(int) <> TYPE_INTEGER [
+							if type <> TYPE_PERCENT [
+								fire [TO_ERROR(script invalid-spec-field) spec]
+							]
+							unit: 64
+						][
+							unit: int/value
+							err?: no
+							switch type [
+								TYPE_CHAR
+								TYPE_INTEGER [
+									err?: all [unit <> 8 unit <> 16 unit <> 32]
+								]
+								TYPE_FLOAT [
+									err?: all [unit <> 32 unit <> 64]
+								]
+								TYPE_PERCENT [unit: 64]
+							]
+							if err? [
+								blk/head: saved
+								fire [TO_ERROR(script bad-make-arg) proto spec]
+							]
+							block/rs-next as red-block! spec
+						]
+						unit: unit >> 3
 
 						;-- size or block values
-						block/rs-next as red-block! spec
 						value: block/rs-head as red-block! spec
 						either TYPE_OF(value) = TYPE_INTEGER [
 							int: as red-integer! value
@@ -369,15 +753,17 @@ vector: context [
 								spec: value
 								size: block/rs-length? as red-block! spec
 							][
+								blk/head: saved
 								fire [TO_ERROR(script invalid-spec-field) spec]
 							]
 						]
 					]
 					if zero? unit [
-						unit:  switch type [
+						unit: switch type [
 							TYPE_CHAR
 							TYPE_INTEGER [size? integer!]
-							TYPE_FLOAT	 [size? float!]
+							TYPE_FLOAT
+							TYPE_PERCENT [size? float!]
 							default [
 								fire [TO_ERROR(script invalid-type) datatype/push type]
 								0
@@ -408,78 +794,6 @@ vector: context [
 		]
 		vec
 	]
-
-	serialize: func [
-		vec		[red-vector!]
-		buffer	[red-string!]
-		only?	[logic!]
-		all?	[logic!]
-		flat?	[logic!]
-		arg		[red-value!]
-		part	[integer!]
-		mold?	[logic!]
-		return: [integer!]
-		/local
-			s		[series!]
-			p		[byte-ptr!]
-			end		[byte-ptr!]
-			unit	[integer!]
-			pf		[pointer! [float!]]
-			pf32	[pointer! [float32!]]
-			formed	[c-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "vector/serialize"]]
-
-		s: GET_BUFFER(vec)
-		unit: GET_UNIT(s)
-		if unit = 6 [unit: 8]
-		p: (as byte-ptr! s/offset) + vec/head
-		end: as byte-ptr! s/tail
-		
-		while [p < end][
-			if all [OPTION?(arg) part <= 0][return part]
-
-			either vec/type = TYPE_CHAR [
-				part: either mold? [
-					string/concatenate-literal buffer {#"}
-					string/append-escaped-char
-							buffer
-							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
-							all?
-					string/append-char GET_BUFFER(buffer) as-integer #"^""
-					part - 4
-				][
-					string/append-escaped-char
-							buffer
-							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
-							all?
-					part - 1
-				]
-			][
-				either vec/type = TYPE_FLOAT [
-					formed: either unit = 8 [
-						pf: as pointer! [float!] p
-						float/form-float pf/value no
-					][
-						pf32: as pointer! [float32!] p
-						float/form-float as-float pf32/value yes
-					]
-				][
-					formed: integer/form-signed get-value-int as int-ptr! p unit
-				]
-				string/concatenate-literal buffer formed
-				part: part - system/words/length? formed	;@@ optimize by removing length?
-			]
-			if p + unit < end [
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
-			]
-			p: p + unit
-		]
-		part	
-	]
 	
 	form: func [
 		vec		[red-vector!]
@@ -504,41 +818,148 @@ vector: context [
 		indent	[integer!]
 		return:	[integer!]
 		/local
-			s	 [series!]
-			unit [integer!]
+			formed [c-string!]
+			s	   [series!]
+			unit   [integer!]
+			type   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/mold"]]
 		
 		string/concatenate-literal buffer "make vector! ["
 		part: part - 14
 
-		string/concatenate-literal buffer switch vec/type [
-			TYPE_CHAR		[part: part - 5 "char!"]
-			TYPE_INTEGER	[part: part - 8 "integer!"]
-			TYPE_FLOAT		[part: part - 6 "float!"]
-		]
-		string/append-char GET_BUFFER(buffer) as-integer space
-
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		if unit = 6 [unit: 8]
-		formed: integer/form-signed unit << 3
-		string/concatenate-literal buffer formed
-		string/append-char GET_BUFFER(buffer) as-integer space
-		part: part - system/words/length? formed
+		type: vec/type
 
-		formed: integer/form-signed rs-length? vec
-		string/concatenate-literal buffer formed
-		string/append-char GET_BUFFER(buffer) as-integer space
-		part: part - system/words/length? formed
+		either any [
+			all [unit = 4 any [type = TYPE_CHAR type = TYPE_INTEGER]]
+			all [unit = 8 any [type = TYPE_FLOAT type = TYPE_PERCENT]]
+		][
+			part: serialize vec buffer only? all? flat? arg part yes
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		][
+			string/concatenate-literal buffer switch type [
+				TYPE_CHAR		[part: part - 5 "char!"]
+				TYPE_INTEGER	[part: part - 8 "integer!"]
+				TYPE_FLOAT		[part: part - 6 "float!"]
+				TYPE_PERCENT	[part: part - 8 "percent!"]
+			]
+			string/append-char GET_BUFFER(buffer) as-integer space
 
-		string/append-char GET_BUFFER(buffer) as-integer #"["
-		part: part - 4									;-- 3 spaces + "["
+			formed: integer/form-signed unit << 3
+			string/concatenate-literal buffer formed
+			string/append-char GET_BUFFER(buffer) as-integer space
+			part: part - system/words/length? formed
 
-		part: serialize vec buffer only? all? flat? arg part yes
+			string/append-char GET_BUFFER(buffer) as-integer #"["
+			part: part - 4									;-- 3 spaces + "["
 
-		string/concatenate-literal buffer "]]"
-		part - 2
+			part: serialize vec buffer only? all? flat? arg part yes
+
+			string/concatenate-literal buffer "]]"
+			part - 2
+		]
+	]
+
+	compare: func [
+		vec1	[red-vector!]
+		vec2	[red-vector!]
+		op		[integer!]
+		return:	[integer!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			unit1	[integer!]
+			unit2	[integer!]
+			type	[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			end 	[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			f1		[float!]
+			f2		[float!]
+			same?	[logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
+
+		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
+		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
+
+		same?: all [
+			vec1/node = vec2/node
+			vec1/head = vec2/head
+		]
+		if op = COMP_SAME [return either same? [0][-1]]
+		if all [
+			same?
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+		][return 0]
+		
+		s1: GET_BUFFER(vec1)
+		s2: GET_BUFFER(vec2)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		len1: rs-length? vec1
+		len2: rs-length? vec2
+
+		end: as byte-ptr! s2/tail
+
+		either len1 <> len2 [							;-- shortcut exit for different sizes
+			if any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][return 1]
+
+			if len2 > len1 [
+				end: end - (len2 - len1 << (log-b unit2))
+			]
+		][
+			if zero? len1 [return 0]					;-- shortcut exit for empty vector!
+		]
+
+		type: vec1/type
+		p1: (as byte-ptr! s1/offset) + (vec1/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (vec2/head << (log-b unit2))
+
+		switch type [
+			TYPE_CHAR
+			TYPE_INTEGER [
+				until [
+					v1: get-value-int as int-ptr! p1 unit1
+					v2: get-value-int as int-ptr! p2 unit2
+					p1: p1 + unit1
+					p2: p2 + unit2
+					any [
+						v1 <> v2
+						p2 >= end
+					]
+				]
+				if v1 = v2 [v1: len1 v2: len2]
+				SIGN_COMPARE_RESULT(v1 v2)
+			]
+			TYPE_FLOAT
+			TYPE_PERCENT [
+				until [
+					f1: get-value-float p1 unit1
+					f2: get-value-float p2 unit2
+					p1: p1 + unit1
+					p2: p2 + unit2
+					any [
+						f1 <> f2
+						p2 >= end
+					]
+				]
+				either f1 = f2 [
+					SIGN_COMPARE_RESULT(len1 len2)
+				][
+					SIGN_COMPARE_RESULT(f1 f2)
+				]
+			]
+		]
 	]
 
 	;--- Modifying actions ---
@@ -556,16 +977,13 @@ vector: context [
 			cell	  [red-value!]
 			limit	  [red-value!]
 			int		  [red-integer!]
-			char	  [red-char!]
 			sp		  [red-vector!]
 			s		  [series!]
 			s2		  [series!]
 			dup-n	  [integer!]
 			cnt		  [integer!]
 			part	  [integer!]
-			len		  [integer!]
 			added	  [integer!]
-			vec-type  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/insert"]]
@@ -573,7 +991,6 @@ vector: context [
 		dup-n: 1
 		cnt:   1
 		part: -1
-		vec-type: vec/type
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -581,13 +998,14 @@ vector: context [
 				int/value
 			][
 				sp: as red-vector! part-arg
+				src: as red-block! value
 				unless all [
-					TYPE_OF(sp) = TYPE_VECTOR
-					sp/node = vec/node
+					TYPE_OF(sp) = TYPE_OF(src)
+					sp/node = src/node
 				][
-					fire [TO_ERROR(script invalid-part) part-arg]
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
-				sp/head + 1								;-- /head is 0-based
+				sp/head - src/head
 			]
 		]
 		if OPTION?(dup-arg) [
@@ -599,7 +1017,7 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		tail?: any [
-			(as-integer s/tail - s/offset) / GET_UNIT(s) = vec/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec/head
 			append?
 		]
 
@@ -616,9 +1034,6 @@ vector: context [
 			added: 0
 			
 			while [all [cell < limit added <> part]][	;-- multiple values case
-				if TYPE_OF(cell) <> vec-type [
-					fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(cell)]
-				]
 				either tail? [
 					rs-append vec cell
 				][
@@ -633,99 +1048,31 @@ vector: context [
 			added: added * dup-n
 			vec/head: vec/head + added
 			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head * GET_UNIT(s)) <= as byte-ptr! s/tail
+			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
 	]
 
-	do-math: func [
-		type		[math-op!]
-		return:		[red-value!]
+	change-range: func [
+		vec		[red-vector!]
+		cell	[red-value!]
+		limit	[red-value!]
+		part?	[logic!]
+		return: [integer!]
 		/local
-			left	[red-vector!]
-			right	[red-vector!]
-			s1		[series!]
-			s2		[series!]
-			unit	[integer!]
-			unit1	[integer!]
-			unit2	[integer!]
-			len		[integer!]
-			len1	[integer!]
-			len2	[integer!]
-			v1		[integer!]
-			v2		[integer!]
-			i		[integer!]
-			node	[node!]
-			buffer	[series!]
-			p		[byte-ptr!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
-			p4		[int-ptr!]
+			added [integer!]
 	][
-		left: as red-vector! stack/arguments
-		right: left + 1
-
-		assert TYPE_OF(right) = TYPE_VECTOR
-
-		s1: GET_BUFFER(left)
-		s2: GET_BUFFER(right)
-		unit1: GET_UNIT(s1)
-		unit2: GET_UNIT(s2)
-		len1: rs-length? left
-		len2: rs-length? right
-
-		p1: (as byte-ptr! s1/offset) + (left/head * unit1)
-		p2: (as byte-ptr! s2/offset) + (right/head * unit2)
-		either len1 > len2 [len: len1][
-			len: len2
-			len2: len1							;-- set len2 to minimum length
-			p: p1 p1: p2 p2: p
-			unit: unit1 unit1: unit2 unit2: unit
-		]
-		unit: either unit1 > unit2 [unit1][unit2]
-		node: alloc-bytes unit * len
-		buffer: as series! node/value
-		buffer/flags: buffer/flags and flag-unit-mask or unit
-		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (unit * len)
-
-		i: 0
-		p:  as byte-ptr! buffer/offset
-		while [i < len][
-			v1: get-value-int as int-ptr! p1 unit1
-			if i < len2 [
-				v2: get-value-int as int-ptr! p2 unit2
-				v1: switch type [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
-				p2: p2 + unit2
+		added: 0
+		while [cell < limit][
+			either part? [
+				rs-insert vec vec/head + added cell
+			][
+				rs-overwrite vec vec/head + added cell
 			]
-			p4: as int-ptr! p
-			p4/value: switch unit [
-				1 [v1 and FFh or (p4/value and FFFFFF00h)]
-				2 [v1 and FFFFh or (p4/value and FFFF0000h)]
-				4 [v1]
-			]
-			i:  i  + 1
-			p:  p  + unit
-			p1: p1 + unit1
+			added: added + 1
+			cell: cell + 1
 		]
-		left/node: node
-		left/head: 0
-		as red-value! left
+		added
 	]
 
 	add: func [return: [red-value!]][
@@ -775,14 +1122,14 @@ vector: context [
 			"vector!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			:form
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			:add
@@ -804,21 +1151,23 @@ vector: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			null			;find
+			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
-			INHERIT_ACTION	;insert
+			:insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			null			;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
-			null			;select
+			INHERIT_ACTION	;select
 			INHERIT_ACTION	;sort
 			INHERIT_ACTION	;skip
 			null			;swap
@@ -830,7 +1179,7 @@ vector: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query

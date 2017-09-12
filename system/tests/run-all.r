@@ -21,13 +21,14 @@ qt/script-header: "Red/System []"
 
 ;; make auto files if needed
 do %source/units/make-red-system-auto-tests.r
+do %source/units/prepare-dependencies.r
 
 ;; run the tests
-print rejoin ["Run-All    v" system/script/header/version]
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL       " system/version]
-
+print ["Run-All    v" system/script/header/version]
+print ["Quick-Test v" qt/version]
+print ["REBOL       " system/version]
 start-time: now/precise
+print ["This test started at" start-time]
 
 ;; any .reds test with more than one space between --run-test-file-quiet and 
 ;;  the filename will be excluded from the ARM tests
@@ -53,8 +54,7 @@ start-time: now/precise
   --run-script-quiet %source/compiler/namespace-test.r
   --run-script-quiet %source/compiler/compiles-ok-test.r
   --run-script-quiet %source/compiler/dylib-test.r
-  ;--run-test-file-quiet %source/compiler/define-test.reds
-
+  --run-test-file-quiet %source/compiler/define-test.reds
 ===end-group===
 
 ===start-group=== "Datatype tests"
@@ -87,9 +87,10 @@ start-time: now/precise
   --run-test-file-quiet %source/units/switch-test.reds
 ===end-group===
 
-===start-group=== "Special natives tests"
+===start-group=== "Exceptions tests"
   --run-test-file-quiet %source/units/exit-test.reds
   --run-test-file-quiet %source/units/return-test.reds
+  --run-test-file-quiet %source/units/exceptions-test.reds
 ===end-group===
 
 ===start-group=== "Math operators tests"
@@ -105,16 +106,11 @@ start-time: now/precise
   --run-test-file-quiet %source/units/conditional-test.reds
 ===end-group===
 
-===start-group=== "Runtime tests"
-  --run-test-file-quiet %source/runtime/common-test.reds
+===start-group=== "System tests"
+  --run-test-file-quiet %source/units/system-test.reds
 ===end-group===
 
 ===start-group=== "Auto-tests"
-  --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/dylib-auto-test.reds
 
 ===end-group===
@@ -123,6 +119,7 @@ start-time: now/precise
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
+print ["The test finished at" end-time]
 system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]

@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %get-word.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -81,9 +81,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/get"]]
 		
-		copy-cell
-			as cell! _context/get word
-			stack/push*
+		stack/push _context/get word
 	]
 	
 	;-- Actions --
@@ -105,39 +103,21 @@ get-word: context [
 		word/form w buffer arg part - 1
 	]
 	
-	compare: func [
-		arg1	[red-word!]								;-- first operand
-		arg2	[red-word!]								;-- second operand
-		op		[integer!]								;-- type of comparison
-		return:	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "get-word/compare"]]
-
-		either op = COMP_STRICT_EQUAL [
-			as-integer any [
-				TYPE_OF(arg2) <> TYPE_GET_WORD
-				arg1/symbol <> arg2/symbol
-			]
-		][
-			word/compare arg1 arg2 op
-		]
-	]
-	
 	init: does [
 		datatype/register [
 			TYPE_GET_WORD
 			TYPE_WORD
 			"get-word!"
 			;-- General actions --
-			null			;make
+			INHERIT_ACTION	;make
 			null			;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			INHERIT_ACTION	;form
 			:mold
 			null			;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
@@ -168,9 +148,11 @@ get-word: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

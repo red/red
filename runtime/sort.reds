@@ -3,10 +3,10 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%sort.reds
 	Tabs:	4
-	Rights: "Copyright (C) 2014 Xie Qingtian. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Qsort: ported from Bentley & McIlroy's "Engineering a Sort Function".
@@ -163,7 +163,7 @@ _sort: context [
 			]
 			m: base + (num / 2 * width)
 			a: base
-			b: base + ((num - 1) * width)
+			b: base + (num - 1 * width)
 			if num > 40 [
 				part: num / 8 * width
 				a: med3 a a + part a + (2 * part) op cmpfunc
@@ -171,20 +171,16 @@ _sort: context [
 				b: med3 b - (2 * part) b - part b op cmpfunc
 			]
 			m: med3 a m b op cmpfunc
-			
+
 			SORT_SWAP(base m)
 			a: base + width
 			b: a
 			c: base + ((num - 1) * width)
 			d: c
 			until [
-				while [
+				while [b <= c][
 					result: cmp b base op flags
-					all [
-						b <= c
-						result <= 0
-					]
-				][
+					if result > 0 [break]
 					if zero? result [
 						swapped?: true
 						SORT_SWAP(a b)
@@ -192,13 +188,9 @@ _sort: context [
 					]
 					b: b + width
 				]
-				while [
+				while [b <= c][
 					result: cmp c base op flags
-					all [
-						b <= c
-						result >= 0
-					]
-				][
+					if result < 0 [break]
 					if zero? result [
 						swapped?: true
 						SORT_SWAP(c d)

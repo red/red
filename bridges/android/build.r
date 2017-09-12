@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %build.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2013-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 verbose: no
@@ -40,9 +40,9 @@ unless exists? build-root-dir [
 	files: switch OS [
 		3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
 		4 [[%aapt %zipalign]]								;-- Linux
-		2 [[%aapt %zipalign]]								;-- OSX
+		2 [[%aapt %zipalign]]								;-- macOS
 	]
-	sys: select [3 %win/ 4 %linux/ 2 %osx/] OS
+	sys: select [3 %win/ 4 %linux/ 2 %macOS/] OS
 	
 	foreach file files [
 		prin rejoin [tab file "..."]

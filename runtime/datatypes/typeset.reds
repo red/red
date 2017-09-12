@@ -6,23 +6,13 @@ Red/System [
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
 typeset: context [
 	verbose: 0
 
-	#enum typeset-op! [
-		OP_MAX											;-- calculate highest value
-		OP_SET											;-- set value bits
-		OP_TEST											;-- test if value bits are set
-		OP_UNION
-		OP_AND
-		OP_OR
-		OP_XOR
-	]
-	
 	rs-clear: func [
 		sets 	[red-typeset!]
 		return: [red-typeset!]
@@ -138,6 +128,13 @@ typeset: context [
 					ts/array2: ts/array2 or ts2/array2
 					ts/array3: ts/array3 or ts2/array3
 				]
+				TYPE_WORD [
+					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
+				]
+				TYPE_BLOCK [0]								;-- <type!> [<extra>], just skip it
+				default [
+					fire [TO_ERROR(script invalid-type-spec) value]
+				]
 			]
 			pos: pos + 1
 		]
@@ -152,6 +149,8 @@ typeset: context [
 			set2  [red-typeset!]
 	][
 		set1: as red-typeset! stack/arguments
+		if type = OP_UNIQUE [return set1]
+
 		set2: set1 + 1
 		res: as red-typeset! stack/push*
 		res/header: TYPE_TYPESET
@@ -167,27 +166,26 @@ typeset: context [
 				res/array2: set1/array2 or set2/array2
 				res/array3: set1/array3 or set2/array3
 			]
+			OP_INTERSECT
 			OP_AND	[
 				res/array1: set1/array1 and set2/array1
 				res/array2: set1/array2 and set2/array2
 				res/array3: set1/array3 and set2/array3
 			]
+			OP_DIFFERENCE
 			OP_XOR	[
 				res/array1: set1/array1 xor set2/array1
 				res/array2: set1/array2 xor set2/array2
 				res/array3: set1/array3 xor set2/array3
 			]
+			OP_EXCLUDE [
+				res/array1: set1/array1 and (not set2/array1)
+				res/array2: set1/array2 and (not set2/array2)
+				res/array3: set1/array3 and (not set2/array3)
+			]
 		]
 		stack/set-last as red-value! res
 		res
-	]
-
-	union: func [
-		case?	[logic!]
-		skip	[red-value!]
-		return: [red-typeset!]
-	][
-		do-bitwise OP_UNION
 	]
 
 	and~: func [return:	[red-value!]][
@@ -217,62 +215,103 @@ typeset: context [
 		sets	[red-typeset!]
 		value	[red-value!]
 		/local
-			type [red-datatype!]
+			dt	 [red-datatype!]
 			id   [integer!]
 			bits [byte-ptr!]
 			pos	 [byte-ptr!]
+			src	 [int-ptr!]
+			dst	 [int-ptr!]
 	][
-		type: as red-datatype! value
-		if TYPE_OF(type) = TYPE_WORD [
-			type: as red-datatype! word/get as red-word! type
+		dt: as red-datatype! value
+		if TYPE_OF(dt) = TYPE_WORD [
+			dt: as red-datatype! word/get as red-word! dt
 		]
-		if TYPE_OF(type) <> TYPE_DATATYPE [
+		if TYPE_OF(dt) = TYPE_TYPESET [
+			dst: (as int-ptr! sets) + 1					;-- skip header
+			src: (as int-ptr! dt) + 1					;-- skip header
+			dst/1: dst/1 or src/1
+			dst/2: dst/2 or src/2
+			dst/3: dst/3 or src/3
+			exit
+		]
+		if TYPE_OF(dt) <> TYPE_DATATYPE [
 			fire [TO_ERROR(script invalid-arg) value]
 		]
-		id: type/value
+		id: dt/value
 		assert id < 96
 		bits: (as byte-ptr! sets) + 4					;-- skip header
 		BS_SET_BIT(bits id)
 	]
 
+	to-block: func [
+		sets	[red-typeset!]
+		blk		[red-block!]
+		return: [red-block!]
+		/local
+			array	[byte-ptr!]
+			id		[integer!]
+			name	[names!]
+			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
+			set?	[logic!]							;-- required by BS_TEST_BIT
+	][
+		array: (as byte-ptr! sets) + 4
+		block/make-at blk 4
+		id: 1
+		until [
+			BS_TEST_BIT(array id set?)
+			if set? [
+				name: name-table + id
+				block/rs-append blk as red-value! name/word
+			]
+			id: id + 1
+			id > datatype/top-id
+		]
+		blk
+	]
+
 	;-- Actions --
 
-	make: func [
-		proto	[red-value!]
+	;make: :to
+	
+	to: func [
+		proto 	[red-value!]							;-- overwrite this slot with result
 		spec	[red-value!]
-		return: [red-typeset!]
+		type	[integer!]
+		return: [red-value!]
 		/local
 			sets [red-typeset!]
-			type [red-value!]
+			dt 	 [red-value!]
 			blk	 [red-block!]
 			i	 [integer!]
 			end  [red-value!]
 			s	 [series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "typeset/to"]]
+
+		if TYPE_OF(spec) = TYPE_TYPESET [return spec]
 
 		sets: as red-typeset! stack/push*
 		sets/header: TYPE_TYPESET						;-- implicit reset of all header flags
 		rs-clear sets
-		
+
 		either TYPE_OF(spec) = TYPE_BLOCK [
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
 			i: blk/head
 			end: s/tail
-			type: s/offset + i
+			dt: s/offset + i
 
-			while [type < end][
-				set-type sets type
+			while [dt < end][
+				set-type sets dt
 				i: i + 1
-				type: s/offset + i
+				dt: s/offset + i
 			]
 		][
-
-			fire [TO_ERROR(script bad-make-arg) proto spec]
+			fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_TYPESET spec]
 		]		
-		sets
+		as red-value! sets
 	]
+
 
 	form: func [
 		sets	[red-typeset!]
@@ -283,9 +322,8 @@ typeset: context [
 		/local
 			array	[byte-ptr!]
 			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
-			value	[integer!]
+			name	[names!]
 			id		[integer!]
-			base	[integer!]
 			cnt		[integer!]
 			s		[series!]
 			part?	[logic!]
@@ -351,8 +389,15 @@ typeset: context [
 		if type <> TYPE_TYPESET [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_SAME
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL
+			COMP_NOT_EQUAL [
+				res: as-integer any [
+					set1/array1 <> set2/array1
+					set1/array2 <> set2/array2
+					set1/array3 <> set2/array3
+				]
+			]
 			COMP_SORT
 			COMP_CASE_SORT [
 				res: SIGN_COMPARE_RESULT((rs-length? set1) (rs-length? set2))
@@ -385,6 +430,7 @@ typeset: context [
 		part	 [red-value!]
 		only?	 [logic!]
 		case?	 [logic!]
+		same?	 [logic!]
 		any?	 [logic!]
 		with-arg [red-string!]
 		skip	 [red-integer!]
@@ -419,10 +465,10 @@ typeset: context [
 			TYPE_VALUE
 			"typeset!"
 			;-- General actions --
-			:make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
@@ -458,9 +504,11 @@ typeset: context [
 			null			;index?
 			null			;insert
 			null			;length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			null			;select

@@ -3,8 +3,8 @@ REBOL [
 	Author:       "Peter W A Wood"
 	File: 	      %generate-reds-api.r
 	Version:      0.1.0
-	Rights:       "Copyright (C) 2012 Peter W A Wood. All rights reserved."
-	License:      "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:       "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."
+	License:      "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	Description:  {Extracts the doc-strings from a Red/System file or files and
 	               calls a supplied emitter to generate a document.}
 	Arguments:     {title - the title of the API

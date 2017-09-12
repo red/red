@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %append-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -97,17 +97,16 @@ Red [
 		append/dup ad4-s #" " 10
 	--assert 11 = length? ad4-s
 	--assert "           " = ad4-s
-	
-	;; test append/dup5 is premature at this stage
-	comment {
+;; this test is premature before the introduction of a garbage collector
+comment { 	
 	--test-- "append/dup5"
 		ad5-s: copy " "
 		append/dup ad5-s #" " 2147483647
 	--assert 2147483647 = length? ad5-s
-	}
+}
 ===end-group===
 
-;; these tests are premature at this stage
+;; these tests are premature before the introduction of a garbage collector
 comment { 
 ===start-group=== "big strings" 
 	
@@ -117,7 +116,7 @@ comment {
 			append bg1-s #"a"
 		]
 	--assert 2147483647 = length? bg1-s
-		clear bg-1
+		clear bg1-s
 	
 	--test-- "bg2"
 		bg2-s: copy ""
@@ -145,7 +144,6 @@ comment {
 		
 ===end-group===
 }
-
 
 ~~~end-file~~~
 

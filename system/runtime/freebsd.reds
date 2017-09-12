@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %freebsd.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -87,7 +87,9 @@ siginfo!: alias struct! [
 	]
 ]
 
-#define UCTX_INSTRUCTION(ctx) [ctx/mc_eip]
+#define UCTX_INSTRUCTION(ctx)		[ctx/mc_eip]
+#define UCTX_GET_STACK_TOP(ctx)		[ctx/mc_esp]
+#define UCTX_GET_STACK_FRAME(ctx)	[ctx/mc_ebp]
 
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack

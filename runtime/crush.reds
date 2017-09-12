@@ -6,7 +6,7 @@ Red/System [
 	Rights:  "Copyright (C) 2015 Nenad Rakocevic & Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Thanks for Ilya Muravyov making it in the Public Domain.
@@ -52,6 +52,8 @@ crush: context [							;-- LZ77
 	#define CRUSH_HASH1_SHIFT	7           ;-- (CRUSH_HASH1_BITS + (CRUSH_HASH1_LEN - 1)) / CRUSH_HASH1_LEN
 	#define CRUSH_HASH2_SHIFT	5           ;-- (CRUSH_HASH2_BITS + (CRUSH_HASH2_LEN - 1)) / CRUSH_HASH2_LEN
 
+	crush-error?: no
+
 	crush!: alias struct! [
 		bit-buf		[integer!]
 		bit-count	[integer!]
@@ -79,18 +81,16 @@ crush: context [							;-- LZ77
 		size	[integer!]
 		return: [byte-ptr!]
 		/local
-			buf			[byte-ptr!]
 			index		[integer!]
-			buf-size	[integer!]
 	][
-		buf: crush/buf
-		buf-size: crush/buf-size
 		index: crush/index
-
-		assert index + size <= buf-size
+		if index + size >= crush/buf-size [
+			crush-error?: yes
+			return crush/buf - size
+		]
 
 		crush/index: index + size
-		buf + index
+		crush/buf + index
 	]
 
 	put-bits: func [
@@ -206,16 +206,19 @@ crush: context [							;-- LZ77
 			continue?	[logic!]
 			crush		[crush!]
 	][
+		output: as int-ptr! outbuf
+		if length < 128 [return -1]		;-- don't compress if size is too small
+
 		hash-size: CRUSH_HASH1_SIZE + CRUSH_HASH2_SIZE
 		head: as int-ptr! allocate hash-size * size? integer!
 		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer!
-		buf: allocate CRUSH_BUF_SIZE
+		buf: allocate CRUSH_BUF_SIZE + CRUSH_MAX_MATCH
 
+		crush-error?: no
 		crush: declare crush!
-		init crush length null
-		output: as int-ptr! outbuf
-		output/3: length				;-- save orignal file size
-		crush/buf: outbuf + 12			;-- skip header
+		init crush length - 8 null
+		output/2: length				;-- save orignal file size
+		crush/buf: outbuf + 8			;-- skip header
 
 		size: CRUSH_BUF_SIZE
 		while [length > 0][
@@ -385,9 +388,11 @@ crush: context [							;-- LZ77
 		free as byte-ptr! prev
 		free buf
 
+		if crush-error? [return -1]
+
 		head: as int-ptr! outbuf
-		head/2: crush/index				;-- save size of compressed data
-		crush/index + 12
+		head/1: crush/index				;-- save size of compressed data
+		crush/index + 8
 	]
 
 	decompress: func [
@@ -395,7 +400,6 @@ crush: context [							;-- LZ77
 		written [int-ptr!]
 		return: [byte-ptr!]
 		/local
-			i			[integer!]
 			s			[integer!]
 			ss			[integer!]
 			p			[integer!]
@@ -410,9 +414,9 @@ crush: context [							;-- LZ77
 			crush		[crush!]
 	][
 		head: as int-ptr! data
-		length: head/2
+		length: head/1
 		crush: declare crush!
-		init crush head/3 data + 12					;-- skip size of data
+		init crush head/2 + 8 data + 8					;-- skip size of data
 
 		head: as int-ptr! crush/input
 		while [

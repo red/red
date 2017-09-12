@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %tools.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -19,7 +19,7 @@ round-to: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
-	(size - 1 + scale) and (negate scale)
+	(size - 1 + scale) and (0 - scale)
 ]
 
 ;-------------------------------------------
@@ -31,5 +31,5 @@ round-to-next: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
-	(size + scale) and (negate scale)
+	(size + scale) and (0 - scale)
 ]

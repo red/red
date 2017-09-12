@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %switch-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015, Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -79,16 +79,6 @@ Red [
 		]
     	--assert sb6-j = "boron"
 	
-	--test-- "switch-basic-7"
-		sb7-i: [a b c]
-		sb7-j: "REBOL"
-		switch sb7-i [
-			[c b a] 			[sb7-j: "Earl"]
-			[a b c]				[sb7-j: "Red"]
-			[b c a]				[sb7-j: "Peter"]
-		]
-	    --assert sb7-j = "Red"
-	
 	--test-- "switch-basic-8"
 		sb8-i: %Nenad
 		sb8-j: "REBOL"
@@ -128,16 +118,6 @@ Red [
 			(2 3 1)		[sb11-j: "Peter"]
 		]
         --assert sb11-j = "Red"
-	
-	--test-- "switch-basic-12"
-		sb12-i: [2]
-		sb12-j: "REBOL"
-		switch sb12-i [
-			[1] 			[sb12-j: "Earl"]
-			[2]				[sb12-j: "Red"]
-			[3]				[sb12-j: "Peter"]
-		]
-        --assert sb12-j = "Red"
 	
 	--test-- "switch-basic-13"
 		sb13-i: first [(2)]

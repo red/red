@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %none.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -52,14 +52,14 @@ none: context [
 		
 	;-- Actions -- 
 
-	make: func [
+	to: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
 		return:	 [red-none!]
 		/local
 			cell [red-none!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "none/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "none/to"]]
 
 		cell: as red-none! stack/push*
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
@@ -109,9 +109,10 @@ none: context [
 		type: TYPE_OF(arg2)
 		if type <> TYPE_NONE [RETURN_COMPARE_OTHER]
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_SAME 
 			COMP_STRICT_EQUAL
-			COMP_NOT_EQUAL [res: as-integer type <> TYPE_NONE]
+			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [res: 0]
 			default [
@@ -134,6 +135,7 @@ none: context [
 		part		[red-value!]
 		only?		[logic!]
 		case?		[logic!]
+		same?		[logic!]
 		any?		[logic!]
 		with-arg	[red-string!]
 		skip		[red-integer!]
@@ -195,10 +197,10 @@ none: context [
 			TYPE_VALUE
 			"none!"
 			;-- General actions --
-			:make
+			:to				;make
 			null			;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path
@@ -234,9 +236,11 @@ none: context [
 			null			;index?
 			null			;insert
 			:length?
+			null			;move
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			:remove
 			null			;reverse
 			:select

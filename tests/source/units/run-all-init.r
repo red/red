@@ -4,7 +4,7 @@ REBOL [
 	Version: 0.1.0
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Purpose: {Defines tests to be run in red/run-all.r and red/tests/run-all.r}
 ]
 

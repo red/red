@@ -3,8 +3,8 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %find-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include  %../../../quick-test/quick-test.red
@@ -110,6 +110,21 @@ Red [
 		--assert "Abcde" = find/case "aAbcde" "A"
 	--test-- "find/case-3"
 		--assert none = find/case "è" "E"
+===end-group===
+
+===start-group=== "find/same"
+	--test-- "find/same-1"
+		--assert "Abcde" = find/same "aAbcde" "A"
+	--test-- "find/same-2"
+		obj1: context [a: 1 b: 2]
+		obj2: context [a: 1 b: 2]
+		blk: reduce [1 obj1 2 obj2 3]
+		res: skip blk 3
+		--assert res = find/same blk obj2
+	--test-- "find/same-3"
+		hs: make hash! blk
+		res: skip hs 3
+		--assert res = find/same hs obj2
 ===end-group===
 
 ===start-group=== "find/any"      ; not yet implemented
@@ -313,5 +328,11 @@ Red [
 		--assert "78" = find/last/tail "123456378" "3"
 ===end-group===
 
-~~~end-file~~~
+===start-group=== "find datatype!"
+	--test-- "find datatype! -1"
+		--assert [1] = find [a 1] integer!
+	--test-- "find datatype! -2"
+		--assert none = find [a] integer!
+===end-group===
 
+~~~end-file~~~

@@ -3,10 +3,10 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%random.reds
 	Tabs:	4
-	Rights: "Copyright (C) 2014 Xie Qingtian. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Reference: http://en.wikipedia.org/wiki/Mersenne_twister
@@ -24,7 +24,7 @@ _random: context [
 	#define	MT_RANDOM_STATE_HALF_SIZE 	397
 
 	idx: 0
-	table: declare int-ptr!
+	table: as int-ptr! 0
 
 	srand: func [
 		seed [integer!]
@@ -91,6 +91,14 @@ _random: context [
 	
 	init: does [
 		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!
-		srand 314159
+		srand 19650218
+		hash-secret: as-integer :hash-secret
+		;#either OS = 'Linux [
+		;	if 1 > crypto/getrandom as byte-ptr! :hash-secret 4 no [	;-- fall back on using /dev/urandom
+		;		crypto/urandom as byte-ptr! :hash-secret 4
+		;	]
+		;][
+		;	crypto/urandom as byte-ptr! :hash-secret 4
+		;]
 	]
 ]

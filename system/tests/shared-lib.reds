@@ -2,8 +2,8 @@ Red/System [
 	Title:   "Red/System shared library sample script"
 	Author:  "Nenad Rakocevic"
 	File: 	 %shared-lib.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 	Note: {
 		Compile this script from red-system folder with:
 		
@@ -36,7 +36,7 @@ Red/System [
 			print-line "on-exit-thread executed"
 		]
 	]
-	MacOSX [
+	macOS [
 		;-- Raised when the DLL is loaded ('load/library from REBOL)
 		on-load: func [
 			argc	[integer!]
@@ -74,6 +74,7 @@ foo: func [
 	a		[integer!]
 	return: [integer!]
 ][
+	?? i
 	a + 1
 ]
 
@@ -84,9 +85,9 @@ bar: func [][1 / 0]
 
 ;-- This compiler directive defines what symbols (global variable or function)
 ;-- will be exposed by the DLL to the host program.
-#export [foo bar i]
+;#export [foo bar i]
 
 ;-- Alternatively, you can force a calling convention on exported
 ;-- functions, only stdcall and cdecl are supported. Cdecl is the default one.
 
-; #export stdcall [foo bar i]
+#export stdcall [foo bar i]

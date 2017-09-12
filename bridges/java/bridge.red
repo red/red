@@ -3,10 +3,10 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %bridge.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -557,7 +557,7 @@ java-invoke: routine [
 		type-string	 [
 			buffer: jni/CallObjectMethodA 4
 			str: jni/GetStringUTFChars env buffer null
-			value: as red-value! string/load str 1 + length? str UTF-8
+			value: as red-value! string/load str length? str UTF-8
 			jni/ReleaseStringUTFChars env buffer str
 			jni/DeleteLocalRef env buffer
 		]

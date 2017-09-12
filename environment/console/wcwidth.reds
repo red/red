@@ -3,10 +3,10 @@ Red/System [
 	Author: "Xie Qingtian"
 	File: 	%win32.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Xie Qingtian. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		This code was originally derived directly from C code of the same name, 
@@ -65,79 +65,22 @@ combining-table: [
 	000E0100h 000E01EFh
 ]
 
-#if OS = 'None [
-ambiguous-table: [						;-- CJK legacy encodings, no need for now
-	00A1h 00A1h 00A4h 00A4h 00A7h 00A8h
-	00AAh 00AAh 00AEh 00AEh 00B0h 00B4h
-	00B6h 00BAh 00BCh 00BFh 00C6h 00C6h
-	00D0h 00D0h 00D7h 00D8h 00DEh 00E1h
-	00E6h 00E6h 00E8h 00EAh 00ECh 00EDh
-	00F0h 00F0h 00F2h 00F3h 00F7h 00FAh
-	00FCh 00FCh 00FEh 00FEh 0101h 0101h
-	0111h 0111h 0113h 0113h 011Bh 011Bh
-	0126h 0127h 012Bh 012Bh 0131h 0133h
-	0138h 0138h 013Fh 0142h 0144h 0144h
-	0148h 014Bh 014Dh 014Dh 0152h 0153h
-	0166h 0167h 016Bh 016Bh 01CEh 01CEh
-	01D0h 01D0h 01D2h 01D2h 01D4h 01D4h
-	01D6h 01D6h 01D8h 01D8h 01DAh 01DAh
-	01DCh 01DCh 0251h 0251h 0261h 0261h
-	02C4h 02C4h 02C7h 02C7h 02C9h 02CBh
-	02CDh 02CDh 02D0h 02D0h 02D8h 02DBh
-	02DDh 02DDh 02DFh 02DFh 0391h 03A1h
-	03A3h 03A9h 03B1h 03C1h 03C3h 03C9h
-	0401h 0401h 0410h 044Fh 0451h 0451h
-	2010h 2010h 2013h 2016h 2018h 2019h
-	201Ch 201Dh 2020h 2022h 2024h 2027h
-	2030h 2030h 2032h 2033h 2035h 2035h
-	203Bh 203Bh 203Eh 203Eh 2074h 2074h
-	207Fh 207Fh 2081h 2084h 20ACh 20ACh
-	2103h 2103h 2105h 2105h 2109h 2109h
-	2113h 2113h 2116h 2116h 2121h 2122h
-	2126h 2126h 212Bh 212Bh 2153h 2154h
-	215Bh 215Eh 2160h 216Bh 2170h 2179h
-	2190h 2199h 21B8h 21B9h 21D2h 21D2h
-	21D4h 21D4h 21E7h 21E7h 2200h 2200h
-	2202h 2203h 2207h 2208h 220Bh 220Bh
-	220Fh 220Fh 2211h 2211h 2215h 2215h
-	221Ah 221Ah 221Dh 2220h 2223h 2223h
-	2225h 2225h 2227h 222Ch 222Eh 222Eh
-	2234h 2237h 223Ch 223Dh 2248h 2248h
-	224Ch 224Ch 2252h 2252h 2260h 2261h
-	2264h 2267h 226Ah 226Bh 226Eh 226Fh
-	2282h 2283h 2286h 2287h 2295h 2295h
-	2299h 2299h 22A5h 22A5h 22BFh 22BFh
-	2312h 2312h 2460h 24E9h 24EBh 254Bh
-	2550h 2573h 2580h 258Fh 2592h 2595h
-	25A0h 25A1h 25A3h 25A9h 25B2h 25B3h
-	25B6h 25B7h 25BCh 25BDh 25C0h 25C1h
-	25C6h 25C8h 25CBh 25CBh 25CEh 25D1h
-	25E2h 25E5h 25EFh 25EFh 2605h 2606h
-	2609h 2609h 260Eh 260Fh 2614h 2615h
-	261Ch 261Ch 261Eh 261Eh 2640h 2640h
-	2642h 2642h 2660h 2661h 2663h 2665h
-	2667h 266Ah 266Ch 266Dh 266Fh 266Fh
-	273Dh 273Dh 2776h 277Fh E000h F8FFh
-	FFFDh FFFDh 000F0000h 000FFFFDh 00100000h 0010FFFDh
-]]
-
 in-table?: func [
 	cp		[integer!]
 	table	[int-ptr!]
+	max		[integer!]
 	return: [logic!]
 	/local
 		a	[integer!]
 		b	[integer!]
-		max [integer!]
 ][
-	max: size? table
 	if any [cp < table/1 cp > table/max][return no]
 
 	a: -1
 	until [
 		a: a + 2
 		b: a + 1
-		if all [cp > table/a cp < table/b][return yes]
+		if all [cp >= table/a cp <= table/b][return yes]
 		b = max
 	]
 	no
@@ -151,26 +94,94 @@ wcwidth?: func [
 	if any [						;-- tests for 8-bit control characters
 		cp < 32
 		all [cp >= 7Fh cp < A0h]
-	][return -1]
+	][return 1]
 
-	if in-table? cp combining-table [return 0]
+	if in-table? cp combining-table size? combining-table [return 0]
 
-	if all [
-		cp >= 1100h
-		any [
-			cp <= 115Fh									;-- Hangul Jamo init. consonants
-			cp = 2329h
-			cp = 232Ah
-			all [cp >= 2E80h cp <= A4CFh cp <> 303Fh]	;-- CJK ... Yi
-			all [cp >= AC00h cp <= D7A3h]				;-- Hangul Syllables
-			all [cp >= F900h cp <= FAFFh]				;-- CJK Compatibility Ideographs
-			all [cp >= FE10h cp <= FE19h]				;-- Vertical forms
-			all [cp >= FE30h cp <= FE6Fh]				;-- CJK Compatibility Forms
-			all [cp >= FF00h cp <= FF60h]				;-- Fullwidth Forms
-			all [cp >= FFE0h cp <= FFE6h]
-			all [cp >= 00020000h cp <= 0002FFFDh]
-			all [cp >= 00030000h cp <= 0003FFFDh]
+	if any [
+		all [
+			cp >= 1100h
+			any [
+				cp <= 115Fh									;-- Hangul Jamo init. consonants
+				cp = 2329h
+				cp = 232Ah
+				all [cp >= 2E80h cp <= A4CFh cp <> 303Fh]	;-- CJK ... Yi
+				all [cp >= AC00h cp <= D7A3h]				;-- Hangul Syllables
+				all [cp >= F900h cp <= FAFFh]				;-- CJK Compatibility Ideographs
+				all [cp >= FE10h cp <= FE19h]				;-- Vertical forms
+				all [cp >= FE30h cp <= FE6Fh]				;-- CJK Compatibility Forms
+				all [cp >= FF00h cp <= FF60h]				;-- Fullwidth Forms
+				all [cp >= FFE0h cp <= FFE6h]
+				all [cp >= 00020000h cp <= 0002FFFDh]
+				all [cp >= 00030000h cp <= 0003FFFDh]
+			]
 		]
+		cp = 0D0Ah
 	][return 2]
 	1
+]
+
+#if OS = 'Windows [
+	ambiguous-table: [
+		00A1h 00A1h 00A4h 00A4h 00A7h 00A8h
+		00AAh 00AAh 00AEh 00AEh 00B0h 00B4h
+		00B6h 00BAh 00BCh 00BFh 00C6h 00C6h
+		00D0h 00D0h 00D7h 00D8h 00DEh 00E1h
+		00E6h 00E6h 00E8h 00EAh 00ECh 00EDh
+		00F0h 00F0h 00F2h 00F3h 00F7h 00FAh
+		00FCh 00FCh 00FEh 00FEh 0101h 0101h
+		0111h 0111h 0113h 0113h 011Bh 011Bh
+		0126h 0127h 012Bh 012Bh 0131h 0133h
+		0138h 0138h 013Fh 0142h 0144h 0144h
+		0148h 014Bh 014Dh 014Dh 0152h 0153h
+		0166h 0167h 016Bh 016Bh 01CEh 01CEh
+		01D0h 01D0h 01D2h 01D2h 01D4h 01D4h
+		01D6h 01D6h 01D8h 01D8h 01DAh 01DAh
+		01DCh 01DCh 0251h 0251h 0261h 0261h
+		02C4h 02C4h 02C7h 02C7h 02C9h 02CBh
+		02CDh 02CDh 02D0h 02D0h 02D8h 02DBh
+		02DDh 02DDh 02DFh 02DFh 0391h 03A1h
+		03A3h 03A9h 03B1h 03C1h 03C3h 03C9h
+		0401h 0401h 0410h 044Fh 0451h 0451h
+		2010h 2010h 2013h 2016h 2018h 2019h
+		201Ch 201Dh 2020h 2022h 2024h 2027h
+		2030h 2030h 2032h 2033h 2035h 2035h
+		203Bh 203Bh 203Eh 203Eh 2074h 2074h
+		207Fh 207Fh 2081h 2084h 20ACh 20ACh
+		2103h 2103h 2105h 2105h 2109h 2109h
+		2113h 2113h 2116h 2116h 2121h 2122h
+		2126h 2126h 212Bh 212Bh 2153h 2154h
+		215Bh 215Eh 2160h 216Bh 2170h 2179h
+		2190h 2199h 21B8h 21B9h 21D2h 21D2h
+		21D4h 21D4h 21E7h 21E7h 2200h 2200h
+		2202h 2203h 2207h 2208h 220Bh 220Bh
+		220Fh 220Fh 2211h 2211h 2215h 2215h
+		221Ah 221Ah 221Dh 2220h 2223h 2223h
+		2225h 2225h 2227h 222Ch 222Eh 222Eh
+		2234h 2237h 223Ch 223Dh 2248h 2248h
+		224Ch 224Ch 2252h 2252h 2260h 2261h
+		2264h 2267h 226Ah 226Bh 226Eh 226Fh
+		2282h 2283h 2286h 2287h 2295h 2295h
+		2299h 2299h 22A5h 22A5h 22BFh 22BFh
+		2312h 2312h 2460h 24E9h 24EBh 254Bh
+		2550h 2573h 2580h 258Fh 2592h 2595h
+		25A0h 25A1h 25A3h 25A9h 25B2h 25B3h
+		25B6h 25B7h 25BCh 25BDh 25C0h 25C1h
+		25C6h 25C8h 25CBh 25CBh 25CEh 25D1h
+		25E2h 25E5h 25EFh 25EFh 2605h 2606h
+		2609h 2609h 260Eh 260Fh 2614h 2615h
+		261Ch 261Ch 261Eh 261Eh 2640h 2640h
+		2642h 2642h 2660h 2661h 2663h 2665h
+		2667h 266Ah 266Ch 266Dh 266Fh 266Fh
+		273Dh 273Dh 2776h 277Fh E000h F8FFh
+		FFFDh FFFDh 000F0000h 000FFFFDh 00100000h 0010FFFDh
+	]
+
+	cjk-wcwidth?: func [
+		cp		[integer!]
+		return: [integer!]
+	][
+		if in-table? cp ambiguous-table size? ambiguous-table [return 2]
+		wcwidth? cp
+	]
 ]

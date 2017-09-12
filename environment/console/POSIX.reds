@@ -3,10 +3,10 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%POSIX.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Freely inspired by linenoise fork from msteveb:
@@ -17,7 +17,7 @@ Red/System [
 #define OS_POLLIN 		1
 
 #case [
-	any [OS = 'MacOSX OS = 'FreeBSD] [
+	any [OS = 'macOS OS = 'FreeBSD] [
 		#define TIOCGWINSZ		40087468h
 		#define TERM_TCSADRAIN	1
 		#define TERM_VTIME		18
@@ -153,6 +153,10 @@ winsize!: alias struct! [
 
 #import [
 	LIBC-file cdecl [
+		isatty: "isatty" [
+			fd		[integer!]
+			return:	[integer!]
+		]
 		read: "read" [
 			fd		[integer!]
 			buf		[byte-ptr!]
@@ -184,6 +188,7 @@ saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
 relative-y:	0
+init?:		no
 
 fd-read-char: func [
 	timeout [integer!]
@@ -207,7 +212,6 @@ fd-read: func [
 		c	[integer!]
 		len [integer!]
 		i	[integer!]
-		p	[byte-ptr!]
 ][
 	if 1 <> read stdin as byte-ptr! utf-char 1 [return -1]
 	c: as-integer utf-char/1
@@ -229,8 +233,7 @@ fd-read: func [
 		]
 		i: i + 1
 	]
-	c: unicode/decode-utf8-char utf-char :len
-	c
+	unicode/decode-utf8-char utf-char :len
 ]
 
 check-special: func [
@@ -238,12 +241,13 @@ check-special: func [
 	/local
 		c  [byte!]
 		c2 [byte!]
+		c3 [byte!]
 ][
 	c: fd-read-char 50
-	if (as-integer c) < 0 [return 27]
+	if (as-integer c) > 127 [return 27]
 
 	c2: fd-read-char 50
-	if (as-integer c) < 0 [return as-integer c2]
+	if (as-integer c2) > 127 [return as-integer c2]
 
 	if any [c = #"[" c = #"O"][
 		switch c2 [
@@ -266,11 +270,15 @@ check-special: func [
 				#"6" [return KEY_PAGE_DOWN]
 				#"7" [return KEY_HOME]
 				#"8" [return KEY_END]
-				default []
+				default [return KEY_NONE]
 			]
 		]
-		while [all [(as-integer c) <> -1 c <> #"~"]][
-			c: fd-read-char 50
+		if all [(as-integer c) <> -1 c <> #"~"][
+			c3: fd-read-char 50
+		]
+
+		if all [c2 = #"2" c = #"0" #"~" = fd-read-char 50][
+			pasting?: c3 = #"0"
 		]
 	]
 	KEY_NONE
@@ -365,6 +373,7 @@ get-window-size: func [
 	/local
 		ws	 [winsize!]
 		here [integer!]
+		size [red-pair!]
 ][
 	ws: declare winsize!
 
@@ -386,6 +395,9 @@ get-window-size: func [
 			]
 		]
 	]
+	size: as red-pair! #get system/console/size
+	size/x: columns
+	size/y: ws/rowcol and FFFFh
 ]
 
 reset-cursor-pos: does [
@@ -435,58 +447,67 @@ output-to-screen: does [
 ]
 
 init: func [
-	line 	 [red-string!]
-	hist-blk [red-block!]
 	/local
 		term [termios!]
 		cc	 [byte-ptr!]
 		so	 [sigaction!]
 		mask [integer!]
 ][
+	console?: 1 = isatty stdin
 	relative-y: 0
 	utf-char: as-c-string allocate 10
+	
+	if console? [
+		so: declare sigaction!						;-- install resizing signal trap
+		mask: (as-integer so) + 4
+		sigemptyset mask
+		so/sigaction: as-integer :on-resize
+		so/flags: 0
+		sigaction SIGWINCH so as sigaction! 0
 
-	copy-cell as red-value! line as red-value! input-line
-	copy-cell as red-value! hist-blk as red-value! history
+		term: declare termios!
+		tcgetattr stdin saved-term					;@@ check returned value
 
-	so: declare sigaction!						;-- install resizing signal trap
-	mask: (as-integer so) + 4
-	sigemptyset mask
-	so/sigaction: as-integer :on-resize
-	so/flags: 0
-	sigaction SIGWINCH so as sigaction! 0
+		copy-memory 
+			as byte-ptr! term
+			as byte-ptr! saved-term
+			size? term
 
-	term: declare termios!
-	tcgetattr stdin saved-term					;@@ check returned value
-
-	copy-memory 
-		as byte-ptr! term
-		as byte-ptr! saved-term
-		size? term
-
-	term/c_iflag: term/c_iflag and not (
-		TERM_BRKINT or TERM_ICRNL or TERM_INPCK or TERM_ISTRIP or TERM_IXON
-	)
-	term/c_oflag: term/c_oflag and not TERM_OPOST
-	term/c_cflag: term/c_cflag or TERM_CS8
-	term/c_lflag: term/c_lflag and not (
-		TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
-	)
-	#case [
-		any [OS = 'MacOSX OS = 'FreeBSD] [
-			cc: (as byte-ptr! term) + (4 * size? integer!)
+		term/c_iflag: term/c_iflag and not (
+			TERM_BRKINT or TERM_ICRNL or TERM_INPCK or TERM_ISTRIP or TERM_IXON
+		)
+		term/c_oflag: term/c_oflag and not TERM_OPOST
+		term/c_cflag: term/c_cflag or TERM_CS8
+		term/c_lflag: term/c_lflag and not (
+			TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
+		)
+		#case [
+			any [OS = 'macOS OS = 'FreeBSD] [
+				cc: (as byte-ptr! term) + (4 * size? integer!)
+			]
+			true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]
 		]
-		true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]
+		cc/TERM_VMIN:  as-byte 1
+		cc/TERM_VTIME: as-byte 0
+
+		tcsetattr stdin TERM_TCSADRAIN term
+
+		poller/fd: stdin
+		poller/events: OS_POLLIN
+
+		buffer: allocate buf-size
+		unless init? [
+			emit-string "^[[?2004h"		;-- enable bracketed paste mode: https://cirw.in/blog/bracketed-paste
+			init?: yes
+		]
 	]
-	cc/TERM_VMIN:  as-byte 1
-	cc/TERM_VTIME: as-byte 0
-
-	tcsetattr stdin TERM_TCSADRAIN term
-
-	poller/fd: stdin
-	poller/events: OS_POLLIN
-
-	buffer: allocate buf-size
+	#if OS = 'macOS [
+		#if modules contains 'View [
+			with gui [
+				if NSApp <> 0 [do-events yes]
+			]
+		]
+	]
 ]
 
 restore: does [

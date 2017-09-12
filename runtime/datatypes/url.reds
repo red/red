@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Xie Qingtian"
 	File: 	 %url.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2014 Xie Qingtian. All rights reserved."
+	Rights:  "Copyright (C) 2014-2015 Xie Qingtian. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
 
@@ -53,24 +53,27 @@ url: context [
 	]
 
 	;-- Actions --
-
+	
 	make: func [
-		proto	 [red-value!]
-		spec	 [red-value!]
-		type	 [integer!]
-		return:	 [red-url!]
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-url!]
 		/local
-			url [red-url!]
+			type2 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "url/make"]]
-
-		url: as red-url! string/make proto spec type
-		set-type as red-value! url TYPE_URL
-		url
+		
+		type2: TYPE_OF(spec)
+		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
+			to proto spec type
+		][
+			as red-url! string/make as red-string! proto spec type
+		]
 	]
 
 	mold: func [
-		url    [red-url!]
+		url     [red-url!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -99,13 +102,13 @@ url: context [
 
 		s: GET_BUFFER(url)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (url/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (url/head << (log-b unit))
 		head: p
 
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
@@ -119,22 +122,180 @@ url: context [
 			p: p + unit
 		]
 
-		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
+		return part - ((as-integer tail - head) >> (log-b unit)) - 1
+	]
+	
+	to: func [
+		proto	[red-value!]
+		spec	[red-value!]
+		type	[integer!]
+		return:	[red-string!]
+		/local
+			buffer [red-string!]
+			blk	   [red-block!]
+			value  [red-value!]
+			tail   [red-value!]
+			type2  [integer!]
+			s	   [series!]
+			sep	   [byte!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "url/to"]]
+
+		type2: TYPE_OF(spec)
+		either all [type = TYPE_URL ANY_LIST(type2)][ ;-- file! inherits from url!
+			buffer: string/make-at proto 16 1
+			buffer/header: TYPE_URL
+			
+			blk: as red-block! spec
+			s: GET_BUFFER(blk)
+			value: s/offset + blk/head
+			tail: s/tail
+			if value = tail [
+				fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_URL spec]
+			]
+			actions/form value buffer null 0
+			value: value + 1
+			string/concatenate-literal buffer "://"
+			if value = tail [return buffer]
+			
+			actions/form value buffer null 0
+			value: value + 1
+			if value = tail [return buffer]
+			
+			if TYPE_OF(value) = TYPE_INTEGER [
+				string/concatenate-literal buffer ":"
+				actions/form value buffer null 0
+				value: value + 1
+				if value = tail [return buffer]
+			]
+			string/append-char GET_BUFFER(buffer) as-integer #"/"
+			until [
+				actions/form value buffer null 0
+				value: value + 1
+				if value + 1 <= tail [
+					sep: either TYPE_OF(value) = TYPE_ISSUE [#"#"][#"/"]
+					string/append-char GET_BUFFER(buffer) as-integer sep
+				]
+				value = tail
+			]
+			buffer
+		][
+			string/to proto spec type
+		]
 	]
 
-	copy: func [
-		url    [red-url!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
+	eval-path: func [
+		parent	[red-string!]							;-- implicit type casting
+		element	[red-value!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+		/local
+			s	[series!] 
+			new [red-string!]
+			unit [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "url/copy"]]
+		either value <> null [							;-- set-path
+			fire [TO_ERROR(script bad-path-set) path element]
+		][
+			s: GET_BUFFER(parent)
+			unit: GET_UNIT(s)
+			new: string/make-at stack/push* 16 + string/rs-length? parent unit
+			if (as-integer #"/") <> string/get-char (as byte-ptr! s/tail) - unit unit [
+				string/concatenate-literal new "/"
+			]
+			actions/form element new null 0
+			string/concatenate new parent -1 0 yes yes
+			set-type as red-value! new TYPE_OF(parent)
+		]
+		as red-value! new
+	]
 
-		url: as red-url! string/copy as red-string! url new arg deep? types
-		url/header: TYPE_URL
-		as red-series! url
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
+		part
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		info?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[red-value!]
+		/local
+			blk		[red-block!]
+			method	[red-word!]
+			header	[red-block!]
+			action	[integer!]
+			sym		[integer!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+
+		either TYPE_OF(data) = TYPE_BLOCK [
+			blk: as red-block! data
+			either 0 = block/rs-length? blk [
+				header: null
+				action: words/get
+			][
+				method: as red-word! block/rs-head blk
+				if TYPE_OF(method) <> TYPE_WORD [
+					fire [TO_ERROR(script invalid-arg) method]
+				]
+				action: symbol/resolve method/symbol
+				either block/rs-next blk [null][
+					header: as red-block! block/rs-head blk
+					if TYPE_OF(header) <> TYPE_BLOCK [
+						fire [TO_ERROR(script invalid-arg) header]
+					]
+				]
+				data: as red-value! either block/rs-next blk [null][block/rs-head blk]
+			]
+		][
+			header: null
+			action: words/post
+		]
+
+		if all [
+			data <> null
+			TYPE_OF(data) <> TYPE_BLOCK
+			TYPE_OF(data) <> TYPE_STRING
+		][
+			fire [TO_ERROR(script invalid-arg) data]
+		]
+		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
+		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
+		part
 	]
 
 	init: does [
@@ -144,12 +305,12 @@ url: context [
 			"url!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
-			null			;to
+			:to
 			INHERIT_ACTION	;form
 			:mold
-			INHERIT_ACTION	;eval-path
+			:eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
@@ -173,18 +334,20 @@ url: context [
 			null			;append
 			INHERIT_ACTION	;at
 			INHERIT_ACTION	;back
-			null			;change
+			INHERIT_ACTION	;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
 			INHERIT_ACTION	;insert
 			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;move
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
+			null			;put
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
@@ -199,14 +362,14 @@ url: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

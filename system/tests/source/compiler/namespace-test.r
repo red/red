@@ -2,8 +2,8 @@ REBOL [
 	Title:   "Red/System namespace compiler test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %namespace-test.r
-	Rights:  "Copyright (C) 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 change-dir %../
@@ -28,21 +28,23 @@ change-dir %../
  
 ===end-group===
 
-===start-group=== "pointers"
-  --test-- "nmcp1"
-  --compile-this {
-    Red/System [] 
-    p-i: declare pointer! [integer!]
-    nmcp1-ctx: context [
-      i: 12345
-    ]
-    p-i: :mmcp1-ctx/i                  ;-- getting a pointer to a varibale using
-                                      ;--  path notation is not supported
-                                      ;-- use a local function to get such
-                                      ;--  a pointer                              
-  }
-  --assert-msg? "get-path! syntax is not supported"
-===end-group===
+;; This feature is now supported and requires some unit tests
+;;
+;===start-group=== "pointers"
+;  --test-- "nmcp1"
+;  --compile-this {
+;    Red/System [] 
+;    p-i: declare pointer! [integer!]
+;    nmcp1-ctx: context [
+;      i: 12345
+;    ]
+;    p-i: :mmcp1-ctx/i                  ;-- getting a pointer to a varibale using
+;                                      ;--  path notation is not supported
+;                                      ;-- use a local function to get such
+;                                      ;--  a pointer                              
+;  }
+;  --assert-msg? "get-path! syntax is not supported"
+;===end-group===
 
 ===start-group=== "context as local variable"
   --test-- "nmclv1"

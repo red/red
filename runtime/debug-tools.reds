@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug-tools.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -86,7 +86,7 @@ memory-info: func [
 		val-table: ctx/values
 		
 		s: as series! sym-table/value
-		len: (as-integer s/tail - s/offset) >> 4
+		len: (as-integer s/tail - s/offset) >> 4 + 1
 		symbol: s/offset
 		
 		s: as series! val-table/value
@@ -152,7 +152,7 @@ memory-info: func [
 	;-------------------------------------------
 	list-series-buffers: func [
 		frame	[series-frame!]
-		/local series alt? size block count head tail
+		/local series size count head tail
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!

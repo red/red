@@ -3,10 +3,10 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %structures.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/red/red/blob/master/red-system/runtime/BSL-License.txt
 	}
 	Note: {
 		Putting all aliases in this file for early inclusion in %red.reds solves
@@ -48,21 +48,21 @@ red-series!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- series's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- datatype-specific extra value
 ]
 
 red-block!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- block's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (reserved for block-derivative types)
 ]
 
 red-paren!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- paren's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-path!: alias struct! [
@@ -76,21 +76,21 @@ red-lit-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-set-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-get-path!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- path's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	extra	[integer!]								;-- (unused, for compatibility with block!)
 ]
 
 red-string!: alias struct! [
@@ -108,6 +108,20 @@ red-file!: alias struct! [
 ]
 
 red-url!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
+red-tag!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
+red-email!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
@@ -197,6 +211,13 @@ red-point!: alias struct! [
 	z		[integer!]								;-- stores an integer! or float32! value
 ]
 
+red-pair!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	x		[integer!]								;-- 32-bit signed integer or float32!
+	y		[integer!]								;-- 32-bit signed integer or float32!
+]
+
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
 	args	[node!]									;-- list of typed arguments (including optional ones)
@@ -213,7 +234,7 @@ red-native!: alias struct! [
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	args	[node!]									;-- list of typed arguments (including optional ones)
+	args	[node!]									;-- list of typed arguments
 	spec	[node!]									;-- op spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
@@ -231,16 +252,24 @@ red-function!: alias struct! [
 ]
 
 red-routine!: alias struct! [
-	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- routine cleaned-up spec block reference
-	spec	[node!]									;-- routine spec block buffer reference	
-	more	[node!]									;-- additional members storage block:
+	header   [integer!]								;-- cell header
+	ret-type [integer!]								;-- return type (-1 if no return: in spec block)
+	spec	 [node!]								;-- routine spec block buffer reference	
+	more	 [node!]								;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	compiled body (binary!)
+	;	fun		 [red-routine!]						;--		(optional) copy of parent routine! value (used by op!)
 ]
 
 red-typeset!: alias struct! [
+	header  [integer!]								;-- cell header
+	array1  [integer!]
+	array2  [integer!]
+	array3  [integer!]
+]
+
+red-tuple!: alias struct! [
 	header  [integer!]								;-- cell header
 	array1  [integer!]
 	array2  [integer!]
@@ -267,4 +296,37 @@ red-hash!: alias struct! [
 	;	n-occupied	[integer!]
 	;	n-buckets	[integer!]
 	;	upper-bound	[integer!]
+]
+
+red-event!: alias struct! [
+	header	[integer!]								;-- cell header
+	type	[integer!]								;-- symbol ID
+	msg		[byte-ptr!]								;-- low-level OS-specific structure
+	flags	[integer!]								;-- bit array
+]
+
+red-image!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- series's head index (zero-based)
+	node	[node!]									;-- internal buffer or platform-specific handle
+	size	[integer!]								;-- pair of size
+]
+
+red-date!: alias struct! [
+	header 	[integer!]								;-- cell header
+	date	[integer!]								;-- year:15 (signed), time?:1, month:4, day:5, TZ:7 (5 + 2, signed)
+	time	[float!]								;-- 64-bit float, UTC time
+]
+
+red-time!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- for compatibility with date!
+	time	[float!]								;-- 64-bit float
+]
+
+red-handle!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	value	[integer!]								;-- 32-bit signed integer value
+	_pad	[integer!]	
 ]
