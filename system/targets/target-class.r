@@ -141,6 +141,7 @@ target-class: context [
 					type: compiler/get-type arg
 					any [
 						all [cdecl type/1 = 'float32! 8]	;-- promote to C double
+						all [type/1 = 'bytes! ptr-size ]    ;-- promote bytes! as byte-ptr!
 						emitter/size-of? type
 					]
 				]
