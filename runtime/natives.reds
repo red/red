@@ -2334,8 +2334,9 @@ natives: context [
 		stack/set-last s/offset + 1						;-- return back-reference
 	]
 
-  first+*: func [
+	first+*: func [
 		/local
+			type  [integer!]
 			value [red-value!]
 			str   [red-string!]
 			s     [series!]
@@ -2344,8 +2345,10 @@ natives: context [
 			blk   [red-block!]
 	][
 		value: _context/get as red-word! stack/arguments
-		switch TYPE_OF(value) [
+		type: TYPE_OF(value)
+		switch type [
 			TYPE_STRING
+			TYPE_BINARY
 			TYPE_URL
 			TYPE_FILE [
 				str: as red-string! value
@@ -2356,7 +2359,7 @@ natives: context [
 					RETURN_NONE
 				][
 					char: as red-char! stack/arguments
-					char/header: TYPE_CHAR
+					char/header: either type = TYPE_BINARY [TYPE_INTEGER][TYPE_CHAR]
 					char/value: string/get-char 
 						(as byte-ptr! s/offset) + (str/head << (unit >> 1))
 						unit
@@ -2379,13 +2382,12 @@ natives: context [
 					blk/head: blk/head + 1
 				]
 			]
-			;-- TODO: TYPE_BINARY
 			default [
-				fire [
-					TO_ERROR(script invalid-type)
-					datatype/push TYPE_OF(value)
-				]
-			]
+ 				fire [
+ 					TO_ERROR(script invalid-type)
+ 					datatype/push TYPE_OF(value)
+ 				]
+ 			]
 		]
 	]
 	;--- Natives helper functions ---
