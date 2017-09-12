@@ -405,7 +405,10 @@ system/view/VID: context [
 			pad: select system/view/metrics/paddings face/type
 			pad: as-pair pad/1/x + pad/1/y pad/2/x + pad/2/y
 		]
-		if all [not user-size? any [opts/size-x not find words 'size]][
+		if all [
+			any [not user-size? all [user-size? opts/size-x]]
+			any [opts/size-x not find words 'size]
+		][
 			sz: any [face/size 0x0]
 			min-sz: either find containers face/type [sz][
 				(any [pad 0x0]) + any [
