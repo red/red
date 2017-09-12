@@ -308,7 +308,6 @@ preprocessor: context [
 				| s: #switch (set [cond e] eval next s s/1) :e [set cases block! | (syntax-error s e)] e: (
 					if active? [
 						body: any [select cases cond select cases #default]
-						unless block? body [syntax-error body next body]
 						either body [change/part s body e][remove/part s e]
 					]
 				) :s
@@ -316,7 +315,6 @@ preprocessor: context [
 					if active? [
 						until [
 							set [cond cases] eval cases s/1
-							unless block? cases [syntax-error cases next cases]
 							any [cond tail? cases: next cases]
 						]
 						either cond [change/part s cases/1 e][remove/part s e]
