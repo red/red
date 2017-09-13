@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 01/05/2017
-	Revision: 52
+	Date: 13/09/2017
+	Revision: 53
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -813,9 +813,9 @@ A pointer can also point to a one-dimensional array of values literally specifie
  <variable>: [<items>]
 
  <variable> : a pointer of same type as the array items.
- <items>    : is a non-empty list of integer!, byte!, float! literal values.
+ <items>    : is a non-empty list of integer!, byte!, float!, logic! literal values.
  
-The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit word just preceding the beginning of the array.
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit slot, just preceding the beginning of the array (at index 0). Mixing the different allowed types in the same array is permitted (enumerations can also be used). In such case, the size of each array's slot is either 32-bit, or 64-bit if a float64! value is present.
 
 Examples:
 
@@ -827,11 +827,34 @@ Examples:
  sz: as int-ptr! s
  probe sz/0								;-- outputs 5
  probe s/5								;-- outputs o
+
+ a: ["hello" "Red" "world"]
+ probe a/0								;-- outputs 3
+ probe as-c-string a/2					;-- outputs Red
+
+ c: [456 "hello" "Red" "world" #"e" true]
+ probe c/0								;-- outputs 6
+ probe c/1
+ probe as-c-string c/3					;-- outputs Red
+ probe as-byte c/5						;-- outputs e
+ probe as-logic c/6						;-- outputs true
+
+ e: [1.23e10 "Hello" 789 "World!" 3.14]
+ pf: as float-ptr! e
+ probe pf/1								;-- outputs 1.23e+010
+ probe as-c-string e/3					;-- outputs Hello
+ probe e/5								;-- outputs 789
+ probe as-c-string e/7					;-- outputs World!
+ probe pf/5								;-- outputs 3.14
  
-<u>Note</u>: In this last example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+<u>Notes</u>: 
+
+* In the second example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+
+* In the last example, pay attention to the different pointer indexes used, depending on the size (32-bit or 64-bit) of referenced value.
 
 \note Write access to arrays
-Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future array! first-class datatype.
+Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future <b>array!</b> first-class datatype.
 
 /note
 
@@ -952,22 +975,28 @@ It is allowed to get a pointer on a local variable, however, <u>special attentio
 
 ---Type Casting
 
-Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
+Casting is achieved using the `<b>as</b>` keyword followed by the target type and the value to cast.
  
 Type casting is possible between value of compatible types. Compatible types are defined in the following type casting reference matrix. A run-time type conversion might be generated for some types combinations.
 
-<u>Note</u>: Trying to assign a value to a variable of different type without a proper type casting, will result in a compilation error.
-
 <b>Syntax</b>
 
- as <new-type> value
- as [<new-type>] value					;-- alternative syntax
+ as <new-type> <expr>
+ as [<new-type>] <expr>					;-- alternative syntax
+ as <new-type> keep <expr>
 
+ <expr>     : any valid R/S expression.
  <new-type> : integer! | byte! |  logic! | c-string! | float! | float32! |
               pointer! [integer!] | struct! [<members>] |
               <alias-name>
- 
-<u>Note</u>: Multiple nested type castings are not allowed and will raise a compilation error.
+
+<u>Notes</u>:
+
+* The optional <b>keep</b> keyword ensures that all bits are preserved, and that only the type is changed.
+
+* Multiple nested type castings are not allowed and will raise a compilation error.
+
+* Trying to assign a value to a variable of different type without a proper type casting, will result in a compilation error.
 
 Example:
 
@@ -1055,7 +1084,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
+<td class="allow">as pointer!</td>
 </tr><tr>
 
 <th>struct!</th>
@@ -3931,6 +3960,17 @@ will output:
 
 
 ===Document History
+
+*<b>13/09/2017 - revision 53</b>
+
+*>Extends the description of literal arrays to heterogeneous arrays.
+
+*>Adds `keep` option description to `as`.
+
+*>Allow function! to pointer! in the type casting matrix.
+
+
+
 
 *<b>01/05/2017 - revision 52</b>
 
