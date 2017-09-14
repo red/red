@@ -984,7 +984,7 @@ _function: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
-		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
+		part: block/mold blk buffer no all? flat? arg part - 5 indent	;-- spec
 		
 		s: as series! fun/more/value
 		value: s/offset
@@ -992,7 +992,7 @@ _function: context [
 			string/concatenate-literal buffer " none"
 			part - 5
 		][
-			block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
+			block/mold as red-block! s/offset buffer no all? flat? arg part indent	;-- body
 		]
 	]
 
