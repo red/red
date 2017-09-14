@@ -410,7 +410,7 @@ system/lexer: context [
 			four half non-zero path-end base base64-char slash-end not-url-char
 			email-end pair-end file-end err
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -479,6 +479,7 @@ system/lexer: context [
 				cs/26: charset {^{[]();:}					;-- file-end
 				cs/27: charset "/-"							;-- date-sep
 				cs/28: charset "/T"							;-- time-sep
+				cs/29: charset "=><[](){};^""				;-- not-tag-1st
 
 				list: system/locale/months
 				while [not tail? list][
@@ -498,7 +499,7 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep time-sep
+			pair-end file-end date-sep time-sep not-tag-1st
 		] cs
 
 		byte: [
@@ -614,7 +615,7 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 		
 		tag-rule: [
-			#"<" not [#"=" | #">" | #"<" | ws] (type: tag!)
+			#"<" not [not-tag-1st | ws] (type: tag!)
 			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]
