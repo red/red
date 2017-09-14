@@ -923,6 +923,7 @@ natives: context [
 		either blk? [
 			while [value < tail][
 				value: interpreter/eval-next value tail yes
+				clear-newline stack/arguments + 1
 				either into? [actions/insert* -1 0 -1][block/append*]
 				stack/keep									;-- preserve the reduced block on stack
 			]
