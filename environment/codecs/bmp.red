@@ -23,8 +23,8 @@ put system/codecs 'bmp context [
 	]
 
 	decode: routine [data [any-type!]][
-		#if OS <> 'Linux [
+		;#if OS <> 'Linux [
 			stack/set-last as cell! image/decode data
-		]
+		;]
 	]
 ]

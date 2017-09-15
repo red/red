@@ -5,6 +5,8 @@ Red [
 	Needs:	 'View
 ]
 system/view/debug?: no ;yes
+system/view/gtk-auto-adjust?: yes
+
 view [
 	title "VID test"
 	;below
@@ -15,7 +17,7 @@ view [
 
 	button "China"
 	text "Red Language" 100 right bold font [color: red]
-	field 120 on-enter [probe do face/text clear face/text]
+	field 120 on-enter [probe do face/text clear face/text print "ici"] on-key [print [event/type event/key event/shift? event/ctrl? lf] ]
 	return
 	
 	group-box 3 [
@@ -23,8 +25,9 @@ view [
 		
 		base 0.233.1.177 "ok" 25x25
 		text "in panel"
+		text ""
 		
-		but "A" but "B" but "C"
+		but "A" but "B" but "C" 
 		but "D" but "E"	but "F"
 	]
 	tab-panel [

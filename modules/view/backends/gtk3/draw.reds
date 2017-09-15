@@ -603,6 +603,55 @@ OS-draw-line-cap: func [
 	]
 ]
 
+; OS-draw-image: func [
+; 	dc			[draw-ctx!]
+; 	image		[red-image!]
+; 	start		[red-pair!]
+; 	end			[red-pair!]
+; 	key-color	[red-tuple!]
+; 	border?		[logic!]
+; 	crop1		[red-pair!]
+; 	pattern		[red-word!]
+; 	/local
+; 		x		[integer!]
+; 		y		[integer!]
+; 		width	[integer!]
+; 		height	[integer!]
+; ][
+; 0
+; ]
+
+
+GDK-draw-image: func [
+	dc			[handle!]
+	image		[integer!]
+	x			[integer!]
+	y			[integer!]
+	; width		[integer!]
+	; height		[integer!]
+	;/local
+	;	rc		[NSRect!]
+	;	ty		[float32!]
+][
+	; rc: make-rect x y width height
+	; ty: rc/y + rc/h
+	; ;-- flip coords
+	; ;; drawing an image or PDF by calling Core Graphics functions directly,
+	; ;; we must flip the CTM.
+	; ;; http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
+	; CGContextTranslateCTM dc as float32! 0.0 ty
+	; CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
+
+	; CGContextDrawImage dc rc/x as float32! 0.0 rc/w rc/h image
+
+	; ;-- flip back
+	; CGContextScaleCTM dc as float32! 1.0 as float32! -1.0
+	; CGContextTranslateCTM dc as float32! 0.0 (as float32! 0.0) - ty
+	gdk_cairo_set_source_pixbuf dc as handle! image x y
+	cairo_paint dc
+	;0
+]
+
 OS-draw-image: func [
 	dc			[draw-ctx!]
 	image		[red-image!]
@@ -613,12 +662,47 @@ OS-draw-image: func [
 	crop1		[red-pair!]
 	pattern		[red-word!]
 	/local
+		img		[integer!]
+		sub-img [integer!]
 		x		[integer!]
 		y		[integer!]
 		width	[integer!]
 		height	[integer!]
+		w		[float!]
+		h		[float!]
+		ww		[float!]
+		crop2	[red-pair!]
 ][
-0
+	print ["OS-draw-image" lf]
+	either null? start [x: 0 y: 0][x: start/x y: start/y]
+	case [
+		start = end [
+			width:  IMAGE_WIDTH(image/size)
+			height: IMAGE_HEIGHT(image/size)
+		]
+		start + 1 = end [					;-- two control points
+			width: end/x - x
+			height: end/y - y
+		]
+		start + 2 = end [0]					;@@ TBD three control points
+		true [0]							;@@ TBD four control points
+	]
+
+	img: OS-image/to-pixbuf image
+	if crop1 <> null [
+		crop2: crop1 + 1
+		w: as float! crop2/x
+		h: as float! crop2/y
+		ww: w / h * (as float! height)
+		width: as-integer ww
+		; create new pixbuf
+		sub-img: as-integer gdk_pixbuf_scale_simple as handle! img width height 0 ; to correct parameters!!!
+		;sub-img: as-integer gdk_pixbuf_new 0 yes 8 width height
+		;gdk_pixbuf_scale as handle! img as handle! sub-img 0 0 width height 0.0 0.0 1.0 1.0 0 ; to correct parameters!!!
+	]
+
+	GDK-draw-image dc/raw img x y
+	if crop1 <> null [g_object_unref as handle! sub-img]
 ]
 
 OS-draw-grad-pen-old: func [

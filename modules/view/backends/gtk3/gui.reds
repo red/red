@@ -143,8 +143,12 @@ get-face-handle: func [
 	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
 	assert TYPE_OF(state) = TYPE_BLOCK
 	int: as red-integer! block/rs-head state
-	assert TYPE_OF(int) = TYPE_INTEGER
-	as handle! int/value
+	;assert TYPE_OF(int) = TYPE_INTEGER
+	either TYPE_OF(int) = TYPE_INTEGER [
+		as handle! int/value
+	][
+		null
+	]
 ]
 
 get-widget-symbol: func [
@@ -460,31 +464,33 @@ adjust-sizes: func [
 		while [face < tail][
 			cpt: cpt + 1
 			child: get-face-handle face
-			values: object/get-values face
-			offset: as red-pair! values + FACE_OBJ_OFFSET
-			size: as red-pair! values + FACE_OBJ_SIZE
-			type: 	as red-word! values + FACE_OBJ_TYPE
-			sym: 	symbol/resolve type/symbol
-			overlap?: all [ox + dx + sx > offset/x oy + sy > offset/y] 
-			if debug [print ["Child" cpt " type: " get-symbol-name sym lf]]
-			; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
-			if any [ox > offset/x not overlap?] [dx: 0]
-			unless null? container [	
-				widget: g_object_get_qdata child _widget-id
-				if null? widget [widget: child]
-				if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
-				gtk_fixed_move container widget offset/x + dx  offset/y
-				gtk_widget_get_allocation widget as handle! rect
-				; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
-				if debug [ print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height lf]]
+			unless null? child [
+				values: object/get-values face
+				offset: as red-pair! values + FACE_OBJ_OFFSET
+				size: as red-pair! values + FACE_OBJ_SIZE
+				type: 	as red-word! values + FACE_OBJ_TYPE
+				sym: 	symbol/resolve type/symbol
+				overlap?: all [ox + dx + sx > offset/x oy + sy > offset/y] 
+				if debug [print ["Child" cpt " type: " get-symbol-name sym lf]]
+				; if next widget is on the right of the previous one or there is no overlapping dx becomes 0 
+				if any [ox > offset/x not overlap?] [dx: 0]
+				unless null? container [	
+					widget: g_object_get_qdata child _widget-id
+					if null? widget [widget: child]
+					if debug [ print ["move child: " offset/x "+" dx "("  offset/x + dx ")" " " offset/y lf]]
+					gtk_fixed_move container widget offset/x + dx  offset/y
+					gtk_widget_get_allocation widget as handle! rect
+					; rmk: rect/x and rect/y are absolute coordinates when offset/x and offset/y are relative coordinates
+					if debug [ print ["widget->rect:" rect/x "x" rect/y  "x" rect/width "x" rect/height lf]]
+				]
+				; save previous offset and size coordinates
+				ox: offset/x oy: offset/y sx: size/x sy: size/y 
+				if debug [print ["red->rect:" offset/x "x" offset/y  "x" size/x "x" size/y lf]]
+				dx: dx + rect/width - sx
+				dy: dy + rect/height - sy
+				if debug [ print ["next dx: " dx lf]]
+				adjust-sizes child
 			]
-			; save previous offset and size coordinates
-			ox: offset/x oy: offset/y sx: size/x sy: size/y 
-			if debug [print ["red->rect:" offset/x "x" offset/y  "x" size/x "x" size/y lf]]
-			dx: dx + rect/width - sx
-			dy: dy + rect/height - sy
-			if debug [ print ["next dx: " dx lf]]
-			adjust-sizes child
 			face: face + 1
 		]
 		if debug [print-line "Pane end"]
@@ -546,7 +552,7 @@ change-size: func [
 		saved	[int-ptr!]
 		method	[integer!]
 ][
-	print-line "change-size"
+	;; print-line "change-size"
 	; rc: make-rect size/x size/y 0 0
 	; if all [type = button size/y > 32][
 	; 	objc_msgSend [hWnd sel_getUid "setBezelStyle:" NSRegularSquareBezelStyle]
@@ -575,32 +581,24 @@ change-size: func [
 ]
 
 change-image: func [
-	hWnd	[integer!]
+	hWnd	[handle!]
 	image	[red-image!]
 	type	[integer!]
 	/local
-		id		 [integer!]
+		img	 [handle!]
 ][
-	; case [
-	; 	type = camera [
-	; 		snap-camera hWnd
-	; 		until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
-	; 	]
-	; 	any [type = button type = check type = radio][
-	; 		if TYPE_OF(image) <> TYPE_IMAGE [
-	; 			objc_msgSend [hWnd sel_getUid "setImage:" 0]
-	; 			exit
-	; 		]
-	; 		id: objc_msgSend [objc_getClass "NSImage" sel_getUid "alloc"]
-	; 		id: objc_msgSend [id sel_getUid "initWithCGImage:size:" OS-image/to-cgimage image 0 0]
-	; 		objc_msgSend [hWnd sel_getUid "setImage:" id]
-	; 		objc_msgSend [id sel_getUid "release"]
-	; 	]
-	; 	true [
-	; 		objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
-	; 	]
-	; ]
-	0
+	case [
+		; type = camera [
+		; 	snap-camera hWnd
+		; 	until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
+		; ]
+		any [type = button type = check type = radio][
+			if TYPE_OF(image) = TYPE_IMAGE [
+				img: gtk_image_new_from_pixbuf as handle! OS-image/to-pixbuf image
+				gtk_button_set_image hWnd img
+			]
+		]
+	]
 ]
 
 change-color: func [
@@ -724,7 +722,7 @@ change-offset: func [
 	;/local
 		;rc [NSRect!]
 ][
-	print "change offset"
+	;; print "change offset"
 	; rc: make-rect pos/x pos/y 0 0
 	; either type = window [
 	; 	rc/y: as float32! screen-size-y - pos/y
@@ -1309,6 +1307,9 @@ OS-make-view: func [
 		sym = button [
 			widget: gtk_button_new_with_label caption
 			gobj_signal_connect(widget "clicked" :button-clicked null)
+			if TYPE_OF(img) = TYPE_IMAGE [
+				change-image widget img sym
+			]
 		]
 		sym = base [
 			widget: gtk_drawing_area_new
@@ -1353,6 +1354,10 @@ OS-make-view: func [
 		]
 		sym = progress [
 			widget: gtk_progress_bar_new
+			if size/y > size/x [
+				gtk_orientable_set_orientation widget 1
+				gtk_progress_bar_set_inverted widget yes
+			]
 			fvalue: get-fraction-value as red-float! data
 			gtk_progress_bar_set_fraction widget fvalue
 		]
@@ -1640,8 +1645,31 @@ OS-to-image: func [
 		type	[integer!]
 		size	[red-pair!]
 		screen? [logic!]
+		ret		[red-image!]
 ][
-	as red-image! none-value
+	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
+	screen?: screen = symbol/resolve word/symbol
+	either screen? [
+		; get pixbuf from screen_root_window
+		bmp: as handle! 0;gdk_pixbuf_get_from_window gdk_screen_get_root_window gdk_screen_get_default 0 0 screen-size-x screen-size-y; CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
+		ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
+	][
+		;view: as-integer face-handle? face
+		;either zero? view [ret: as red-image! none-value][
+		;	sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+		;	rc: make-rect 0 0 sz/x sz/y
+			; data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+			; img: objc_msgSend [
+			; 	objc_msgSend [objc_getClass "NSImage" sel_alloc]
+			; 	sel_getUid "initWithData:" data
+			; ]
+			bmp: as handle! 0; objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+			ret: image/init-image as red-image! stack/push* OS-image/load-pixbuf bmp
+			; objc_msgSend [bmp sel_getUid "retain"]
+			; objc_msgSend [img sel_release]
+		;]
+	]
+	ret
 ]
 
 OS-do-draw: func [

@@ -5,6 +5,8 @@ Red [
 	Needs:	 View
 ]
 
+system/view/debug?: no
+
 view [
 	style txt: text right
 	txt "Text" f: area 200x80 
@@ -20,9 +22,9 @@ view [
 		react [f/font/name: pick face/data any [face/selected 3] print ["changed:" mold face/text]]
 		return
 		
-	txt "Font size" s: field "15" react [f/font/size: s/data print ["text " face/text lf]]
+	txt "Font size" s: field "15" 80x10 react [f/font/size: s/data print ["text " face/text lf]]
 	button "+" bold 40 [s/data: s/data + 1]
-	button "-" bold 40 [s/data: max 1 s/data - 1]
+	button "-" bold 40 [s/data: max 1 s/data - 1 s/size/x: s/size/x - 1 "s/size: " print s/size/x ]
 	return
 ]
 

@@ -181,16 +181,22 @@ base-draw: func [
 		vals [red-value!]
 		draw [red-block!]
 		clr  [red-tuple!]
+		img  [red-image!]
 ][
 	vals: get-node-values ctx
 	draw: as red-block! vals + FACE_OBJ_DRAW
 	clr:  as red-tuple! vals + FACE_OBJ_COLOR
+	img:  as red-image! vals + FACE_OBJ_IMAGE
 	
 	if TYPE_OF(clr) = TYPE_TUPLE [
-		0
+		;0
 		;print ["color" (clr/array1 and 00FFFFFFh) lf]
 		set-source-color cr clr/array1
 		cairo_paint cr								;-- paint background
+	]
+
+	if TYPE_OF(img) = TYPE_IMAGE [
+		GDK-draw-image cr OS-image/to-pixbuf img 0 0
 	]
 
 	render-text cr vals

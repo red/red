@@ -573,6 +573,10 @@ cairo_font_extents_t!: alias struct! [
 			button		[handle!]
 			label		[c-string!]
 		]
+		gtk_button_set_image: "gtk_button_set_image" [
+			button 		[handle!]
+			image 		[handle!]
+		]
 		gtk_check_button_new_with_label: "gtk_check_button_new_with_label" [
 			label		[c-string!]
 			return:		[handle!]
@@ -605,6 +609,14 @@ cairo_font_extents_t!: alias struct! [
 		]
 		gtk_drawing_area_new: "gtk_drawing_area_new" [
 			return:		[handle!]
+		]
+		gtk_image_new_from_pixbuf: "gtk_image_new_from_pixbuf" [
+			pixbuf 		[handle!]
+			return: 	[handle!]
+		]
+		gtk_image_new_from_file: "gtk_image_new_from_file" [
+			filename 	[c-string!]
+			return: 	[handle!]
 		]
 		gtk_label_new: "gtk_label_new" [
 			label		[c-string!]
@@ -666,7 +678,15 @@ cairo_font_extents_t!: alias struct! [
 		]
 		gtk_progress_bar_get_fraction: "gtk_progress_bar_get_fraction" [
 			progress	[handle!]
-			return:			[float!]
+			return:		[float!]
+		]
+		gtk_progress_bar_set_inverted: "gtk_progress_bar_set_inverted" [
+			progress 	[handle!]
+			inv 		[logic!]
+		]
+		gtk_orientable_set_orientation: "gtk_orientable_set_orientation" [
+			widget 		[handle!]
+			orient		[integer!]
 		]
 		gtk_text_view_new: "gtk_text_view_new" [
 			return:		[handle!]
@@ -1055,6 +1075,44 @@ cairo_font_extents_t!: alias struct! [
 		; 	cr			[handle!]
 		; 	text 		[c-string!]
 		; ]
+		gdk_cairo_set_source_pixbuf: "gdk_cairo_set_source_pixbuf" [
+			cr 			[handle!]
+			pixbuf 		[handle!]
+			x 			[integer!]
+			y 			[integer!]
+		]
+		gdk_pixbuf_new: "gdk_pixbuf_new" [
+			colorsp 	[integer!]
+			alpha 		[logic!]
+			bits 		[integer!]
+			width 		[integer!]
+			height 		[integer!]
+			return: 	[handle!]
+		]
+		gdk_pixbuf_copy: "gdk_pixbuf_copy" [
+			pixbuf 		[handle!]
+			return: 	[handle!]
+		]
+		gdk_pixbuf_scale: "gdk_pixbuf_scale" [
+			src			[handle!]
+			dest		[handle!]
+			dest_x		[integer!]
+			dest_y		[integer!]
+			dest_width	[integer!]
+			dest_height	[integer!]
+			offset_x	[float!]
+			offset_y	[float!]
+			scale_x		[float!]
+			scale_y		[float!]
+			interp_type	[integer!]
+		]
+		gdk_pixbuf_scale_simple: "gdk_pixbuf_scale_simple"  [
+			src			[handle!]
+			dest_width	[integer!]
+			dest_height	[integer!]
+			interp_type	[integer!]
+			return: 	[handle!]
+		]
 		pango_cairo_create_context: "pango_cairo_create_context" [
 			cr 			[handle!]
 			return: 	[handle!]
