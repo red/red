@@ -133,24 +133,6 @@ face-handle?: func [
 	null
 ]
 
-get-face-handle: func [
-	face	[red-object!]
-	return: [handle!]
-	/local
-		state [red-block!]
-		int	  [red-integer!]
-][
-	state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
-	assert TYPE_OF(state) = TYPE_BLOCK
-	int: as red-integer! block/rs-head state
-	;assert TYPE_OF(int) = TYPE_INTEGER
-	either TYPE_OF(int) = TYPE_INTEGER [
-		as handle! int/value
-	][
-		null
-	]
-]
-
 get-widget-symbol: func [
     widget    [handle!]
     return:    [integer!]
@@ -253,27 +235,27 @@ to-bgr: func [
 
 free-handles: func [
 	hWnd [handle!]
+	values [red-value!]
 	/local
-		values [red-value!]
 		type   [red-word!]
 		rate   [red-value!]
 		state  [red-value!]
 		sym	   [integer!]
 ][
-	values: get-face-values hWnd
-	type: as red-word! values + FACE_OBJ_TYPE
-	sym: symbol/resolve type/symbol
+	;type: as red-word! values + FACE_OBJ_TYPE
+	;sym: symbol/resolve type/symbol
+	;print ["destroying " get-symbol-name sym lf]
+	;either null? hWnd [print ["null handle" lf]][
+		rate: values + FACE_OBJ_RATE
+		if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
+		g_object_set_qdata hWnd red-face-id null
+		g_object_set_qdata hWnd _widget-id null
+		g_object_set_qdata hWnd gtk-fixed-id null
+		g_object_set_qdata hWnd red-timer-id null
 
-	rate: values + FACE_OBJ_RATE
-	if TYPE_OF(rate) <> TYPE_NONE [change-rate hWnd none-value]
-
-	g_object_set_qdata hWnd red-face-id null
-	g_object_set_qdata hWnd _widget-id null
-	g_object_set_qdata hWnd gtk-fixed-id null
-	g_object_set_qdata hWnd red-timer-id null
-
-	;gtk_widget_destroy manages eveything for free from the gtk side!
-	gtk_widget_destroy hWnd
+		;gtk_widget_destroy manages eveything for free from the gtk side!
+		gtk_widget_destroy hWnd
+	;]
 
 	state: values + FACE_OBJ_STATE
 	state/header: TYPE_NONE
@@ -441,7 +423,7 @@ adjust-sizes: func [
 		debug		[logic!]
 		cpt 		[integer!]
 ][
-	; to remove when saitsfactory enough development
+	; to remove when satisfactory enough development
 	debug: no
 
 	values: get-face-values hWnd
@@ -456,14 +438,14 @@ adjust-sizes: func [
 		face: as red-object! block/rs-head pane
 		tail: as red-object! block/rs-tail pane
 		if debug [print ["Parent type: " get-symbol-name sym lf]]
-		child: get-face-handle face
+		child: face-handle? face
 		container: either null? child [null][g_object_get_qdata child gtk-fixed-id]
 		dx: 0 dy: 0
 		ox: 0 oy: 0 sx: 0 sy: 0
 		cpt: 0
 		while [face < tail][
 			cpt: cpt + 1
-			child: get-face-handle face
+			child: face-handle? face
 			unless null? child [
 				values: object/get-values face
 				offset: as red-pair! values + FACE_OBJ_OFFSET
@@ -1583,8 +1565,9 @@ OS-destroy-view: func [
 		obj	   [red-object!]
 		flags  [integer!]
 ][
-	handle: get-face-handle face
+	handle: face-handle? face
 	values: object/get-values face
+	FACE_OBJ_STATE
 	flags: get-flags as red-block! values + FACE_OBJ_FLAGS
 	if flags and FACET_FLAGS_MODAL <> 0 [
 		0
@@ -1592,10 +1575,10 @@ OS-destroy-view: func [
 		;SetActiveWindow GetWindow handle GW_OWNER
 	]
 
-	;print ["DDDEEEEestroy" lf]
+	;; print ["DDDEEEEestroy" lf]
 
 
-	free-handles handle 
+	free-handles handle values
 
 	obj: as red-object! values + FACE_OBJ_FONT
 	;if TYPE_OF(obj) = TYPE_OBJECT [unlink-sub-obj face obj FONT_OBJ_PARENT]
