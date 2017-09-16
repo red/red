@@ -1772,6 +1772,24 @@ red: context [
 		name
 	]
 	
+	rebind-body: func [
+		symbol [word!] entry [block!] ctx [object!]
+		/local rule pos self*
+	][
+		self*: in ctx 'self
+
+		;-- rebind the new body to the parent object's context
+		entry: bind/copy copy/part next entry 8 ctx
+		
+		if object? shadow: select shadow-funcs decorate-func/strict symbol [
+			;-- rebind the body to the function's context
+			bind entry/2 shadow
+			;-- rebind 'self words in body block to new object
+			parse entry/2 rule: [any [pos: 'self (pos/1: self*) | into rule | skip]]
+		]
+		entry
+	]
+	
 	inherit-functions: func [							 ;-- multiple inheritance case
 		new [object!] extend [object!]
 		/local symbol name entry
@@ -1786,7 +1804,7 @@ red: context [
 				]
 				either entry: find bodies symbol [		;-- not allowed for libRedRT client programs
 					append bodies name
-					append bodies bind/copy copy/part next entry 8 new
+					append bodies rebind-body symbol entry new	;-- merge the entry block
 				][
 					redirect-to literals [
 						emit compose [#define (decorate-func name) (decorate-func symbol)]
@@ -1804,7 +1822,7 @@ red: context [
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
 			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
-			event pos2 loc-s loc-d shadow-path saved-pc saved set?
+			event pos2 loc-s loc-d shadow-path saved-pc saved set? rebind?
 	][
 		saved-pc: pc
 		either set-path? original: pc/-1 [
@@ -1968,7 +1986,7 @@ red: context [
 		if proto [
 			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx 'true]
-			insert-lf -3
+			insert-lf -4
 		]
 		if all [not body? not passive][
 			inherit-functions obj new
@@ -2009,7 +2027,8 @@ red: context [
 		]
 		pos: none
 		
-		defer: reduce ['object/init-push ctx id]		;-- deferred emission
+		rebind?: to word! form to logic! proto
+		defer: reduce ['object/init-push ctx id rebind?] ;-- deferred emission
 		new-line defer yes
 		
 		;-- events definitions processing
