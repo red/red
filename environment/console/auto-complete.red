@@ -47,26 +47,26 @@ red-complete-path: func [
 		word: attempt [to word! copy/part str ptr]
 		if none? word [return result]
 		either first? [
-			w1: get/any word
+			set/any 'w1 get/any word
 			first?: no
 		][
-			if w1: in w1 word [w1: get/any w1]
+			if w1: in :w1 word [set/any 'w1 get/any w1]
 		]
-		str: either object? w1 [next ptr][""]
+		str: either object? :w1 [next ptr][""]
 	]
 	case [
-		any [function? w1 action? w1 native? w1 routine? w1] [
+		any [function? :w1 action? :w1 native? :w1 routine? :w1] [
 			word: find/last/tail s #"/"
 			words: make block! 4
 			foreach w spec-of w1 [
 				if refinement? w [append words w]
 			]
 		]
-		object? w1 [
+		object? :w1 [
 			word: str
 			words: words-of w1
 		]
-		words: select system/catalog/accessors type?/word w1 [
+		words: select system/catalog/accessors type?/word :w1 [
 			word: find/last/tail s #"/"
 		]
 	]
