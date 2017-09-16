@@ -1578,19 +1578,23 @@ natives: context [
 		/local
 			data [red-integer!]
 			bits [red-integer!]
+			pos	 [integer!]
 	][
 		#typecheck [shift left logical]
 		data: as red-integer! stack/arguments
 		bits: data + 1
+		pos: bits/value
+		if pos < 0 [pos: 0]
+		
 		case [
 			left >= 0 [
-				data/value: data/value << bits/value
+				data/value: data/value << pos
 			]
 			logical >= 0 [
-				data/value: data/value >>> bits/value
+				either pos > 31 [data/value: 0][data/value: data/value >>> pos]
 			]
 			true [
-				data/value: data/value >> bits/value
+				data/value: data/value >> pos
 			]
 		]
 	]
