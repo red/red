@@ -31,7 +31,7 @@ The Red toolchain comes as a single **one-megabyte** executable file that you ca
 
         $ red hello.red
 
-5. You should see the "Hello World!" output.
+5. You should see the _Hello World!_ output.
 
 6. Want to generate a compiled executable from that program?
 
