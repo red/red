@@ -800,9 +800,15 @@ float: context [
 			base [red-float!]
 			exp  [red-float!]
 			int	 [red-integer!]
+			type [integer!]
 	][
 		base: as red-float! stack/arguments
 		exp: base + 1
+		type: TYPE_OF(exp)
+		
+		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
+			ERR_EXPECT_ARGUMENT(type 1)
+		]
 		if TYPE_OF(exp) = TYPE_INTEGER [
 			int: as red-integer! exp
 			exp/value: as-float int/value
