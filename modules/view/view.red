@@ -1091,6 +1091,12 @@ insert-event-func [
 		
 		if facet [system/reactivity/check/only face facet]
 	]
+	if event/face/type = 'window [
+		switch event/type [
+			move moving 	[system/reactivity/check/only event/face 'offset]
+			resize resizing [system/reactivity/check/only event/face 'size]
+		]
+	]
 	none
 ]
 
