@@ -297,6 +297,7 @@ parse-trace: func [
 		limit [integer!]
 	return: [logic! block!]
 ][
+	clear p-indent
 	either case [
 		parse/case/trace input rules :on-parse-event
 	][
