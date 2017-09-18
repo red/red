@@ -1579,6 +1579,7 @@ natives: context [
 			data [red-integer!]
 			bits [red-integer!]
 			pos	 [integer!]
+			res	 [integer!]
 	][
 		#typecheck [shift left logical]
 		data: as red-integer! stack/arguments
@@ -1586,17 +1587,22 @@ natives: context [
 		pos: bits/value
 		if pos < 0 [pos: 0]
 		
-		case [
+		res: case [
 			left >= 0 [
-				data/value: data/value << pos
+				either pos > 31 [0][data/value << pos]
 			]
 			logical >= 0 [
-				either pos > 31 [data/value: 0][data/value: data/value >>> pos]
+				either pos > 31 [0][data/value >>> pos]
 			]
 			true [
-				data/value: data/value >> pos
+				either pos > 31 [
+					either data/value < 0 [-1][0]
+				][
+					data/value >> pos
+				]
 			]
 		]
+		data/value: res
 	]
 
 	to-hex*: func [
