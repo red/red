@@ -56,6 +56,58 @@ GdkEventKey!: alias struct! [
   group			[byte!]
   is_modifier 	[integer!]
 ]
+GdkEventMotion!: alias struct! [
+  type 			[integer!]
+  window		[int-ptr!]
+  send_event	[byte!]
+  time 			[integer!]
+  x				[float!]
+  y				[float!]
+  axes			[float-ptr!]
+  state			[integer!]
+  is_hint1		[byte!] 
+  is_hint2		[byte!] 
+  device		[int-ptr!]
+  x_root		[float!]
+  y_root		[float!]
+]
+
+GdkEventButton!: alias struct! [
+  type 			[integer!]
+  window		[int-ptr!]
+  send_event	[byte!]
+  time 			[integer!]
+  x				[float!]
+  y				[float!]
+  axes			[float-ptr!]
+  state			[integer!]
+  button		[integer!] 
+  device		[int-ptr!]
+  x_root		[float!]
+  y_root		[float!]
+]
+
+; @@ TO REMOVE IF UNUSED
+; GdkEventCrossing!: alias struct! [
+;   type 			[integer!]
+;   window		[int-ptr!]
+;   send_event	[byte!]
+;   subwindow		[int-ptr!]
+;   time 			[integer!]
+;   x				[float!]
+;   y				[float!]
+;   x_root		[float!]
+;   y_root		[float!]
+;   axes			[float-ptr!]
+;   state			[integer!]
+;   is_hint1		[byte!] 
+;   is_hint2		[byte!] 
+;   device		[int-ptr!]
+;   mode			[integer!]
+;   detail		[integer!]
+;   focus 		[logic!]
+;   state 		[integer!]
+; ]
 
 #enum GdkModifierType! [
   GDK_SHIFT_MASK: 1
@@ -63,6 +115,49 @@ GdkEventKey!: alias struct! [
   GDK_CONTROL_MASK: 4
   GDK_MOD1_MASK: 8
   GDK_MOD5_MASK: 128
+  GDK_BUTTON1_MASK: 256
+  GDK_BUTTON2_MASK: 512
+  GDK_BUTTON3_MASK: 1024
+  GDK_BUTTON4_MASK: 2048
+  GDK_BUTTON5_MASK: 4096
+]
+
+#enum GdkEventMask! [
+  GDK_EXPOSURE_MASK:             2
+  GDK_POINTER_MOTION_MASK:       4
+  GDK_POINTER_MOTION_HINT_MASK:  8
+  GDK_BUTTON_MOTION_MASK:        16
+  GDK_BUTTON1_MOTION_MASK:       32
+  GDK_BUTTON2_MOTION_MASK:       64
+  GDK_BUTTON3_MOTION_MASK:       128
+  GDK_BUTTON_PRESS_MASK:         256
+  GDK_BUTTON_RELEASE_MASK:       512
+  GDK_KEY_PRESS_MASK:            1024
+  GDK_KEY_RELEASE_MASK:          2048
+  GDK_ENTER_NOTIFY_MASK:         4096
+  GDK_LEAVE_NOTIFY_MASK:         8192
+  GDK_FOCUS_CHANGE_MASK:         16384
+  GDK_STRUCTURE_MASK:            32768
+  GDK_PROPERTY_CHANGE_MASK:      65536
+  GDK_VISIBILITY_NOTIFY_MASK:    131072
+  GDK_PROXIMITY_IN_MASK:         262144
+  GDK_PROXIMITY_OUT_MASK:        524288
+  GDK_SUBSTRUCTURE_MASK:         1048576
+  GDK_SCROLL_MASK:               2097152
+  GDK_TOUCH_MASK:                4194304
+  GDK_SMOOTH_SCROLL_MASK:        8388608
+  GDK_TOUCHPAD_GESTURE_MASK:     16777216
+  GDK_TABLET_PAD_MASK:           33554432
+  ;;GDK_ALL_EVENTS_MASK:           fffffffeh
+]
+
+#enum GdkDragAction! [
+  GDK_ACTION_DEFAULT: 1
+  GDK_ACTION_COPY: 2
+  GDK_ACTION_MOVE: 4
+  GDK_ACTION_LINK: 8
+  GDK_ACTION_PRIVATE: 16
+  GDK_ACTION_ASK: 32
 ]
 
 GtkTextIter!: alias struct! [ 
@@ -253,6 +348,10 @@ cairo_font_extents_t!: alias struct! [
 		gdk_keyval_to_upper: "gdk_keyval_to_upper" [
 			code		[integer!]
 			return:		[integer!]
+		]
+		gdk_atom_intern_static_string: "gdk_atom_intern_static_string" [
+			name 		[c-string!]
+			return:		[handle!]
 		]
 	;; ]
 	;; LIBGLIB-file cdecl [
@@ -479,6 +578,10 @@ cairo_font_extents_t!: alias struct! [
 			widget 	[handle!]
 			text	[c-string!]
 			return:	[handle!]
+		]
+		gtk_widget_add_events: "gtk_widget_add_events" [
+			widget 	[handle!]
+			mask 	[integer!]
 		]
 		gtk_container_add: "gtk_container_add" [
 			container	[handle!]
@@ -803,6 +906,16 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_get_style_context: "gtk_widget_get_style_context" [
 			widget		[handle!]
 			return:		[handle!]
+		]
+		gtk_drag_source_set: "gtk_drag_source_set" [
+			widget 		[handle!]
+			start_mask 	[integer!]
+            targets 	[handle!]
+        	n_targets 	[integer!]
+    		actions		[integer!]
+		]
+		gtk_drag_source_add_image_targets: "gtk_drag_source_add_image_targets" [
+			widget		[handle!]
 		]
 		pango_layout_new: "pango_layout_new" [
 			context		[handle!]

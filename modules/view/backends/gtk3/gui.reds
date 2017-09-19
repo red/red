@@ -38,10 +38,21 @@ tabs: context [
 	nb: 	0
 	cur: 	0
 ]
+; used to save old position of pointer in widget-motion-notify-event handler
+motion: context [
+	state:	no
+	x_root:	0.0
+	y_root:	0.0
+	offset:	as red-pair! 0 ;offset
+	cpt:	0
+	sens:	3
+]
 
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
 
+; Do not KNOW about this one 
+main-window:	as handle! 0
 ; Temporary, will be removed...
 last-widget:	as handle! 0
 
@@ -701,25 +712,18 @@ change-offset: func [
 	hWnd [handle!]
 	pos  [red-pair!]
 	type [integer!]
-	;/local
-		;rc [NSRect!]
+	/local
+		container 	[handle!]
 ][
-	;; print "change offset"
-	; rc: make-rect pos/x pos/y 0 0
-	; either type = window [
+	either type = window [
 	; 	rc/y: as float32! screen-size-y - pos/y
 	; 	objc_msgSend [hWnd sel_getUid "setFrameTopLeftPoint:" rc/x rc/y]
-	; ][
-	; 	objc_msgSend [hWnd sel_getUid "setFrameOrigin:" rc/x rc/y]
-	; 	unless in-composition? [
-	; 		object_getInstanceVariable hWnd IVAR_RED_DATA :type
-	; 		if type = caret [
-	; 			caret-x: rc/x
-	; 			caret-y: rc/y
-	; 		]
-	; 	]
-	; ]
-	0
+		0
+	][
+		;OS-refresh-window as integer! main-window
+		container: either null? hWnd [null][g_object_get_qdata hWnd gtk-fixed-id]
+		unless null? container [gtk_fixed_move container hWnd pos/x pos/y]
+	]
 ]
 
 change-visible: func [
@@ -1176,12 +1180,105 @@ update-scroller: func [
 	;]
 ]
 
+
+parse-common-opts: func [
+	hWnd	[handle!]
+	face 	[red-object!]
+	options [red-block!]
+	type	[integer!]
+	/local
+		word	[red-word!]
+		w		[red-word!]
+		img		[red-image!]
+		bool	[red-logic!]
+		len		[integer!]
+		sym		[integer!]
+		cur		[c-string!]
+		hcur	[integer!]
+		nsimg	[integer!]
+		btn?	[logic!]
+][
+	btn?: yes
+	if TYPE_OF(options) = TYPE_BLOCK [
+		word: as red-word! block/rs-head options
+		len: block/rs-length? options
+		if len % 2 <> 0 [exit]
+		while [len > 0][
+			sym: symbol/resolve word/symbol
+			case [
+				sym = (symbol/make "drag-on") [
+					;gtk_drag_source_set hWnd GDK_BUTTON1_MASK null 0 GDK_ACTION_MOVE
+					;gtk_drag_source_add_image_targets hWnd
+					gtk_widget_add_events hWnd GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK 
+					gobj_signal_connect(hWnd "motion-notify-event" :widget-motion-notify-event face/ctx)
+					gobj_signal_connect(hWnd "button-press-event" :widget-button-press-event face/ctx)
+					gobj_signal_connect(hWnd "button-release-event" :widget-button-release-event face/ctx)
+				]
+				; sym = _cursor [
+				; 	w: word + 1
+				; 	either TYPE_OF(w) = TYPE_IMAGE [
+				; 		img: as red-image! w
+				; 		nsimg: objc_msgSend [
+				; 			OBJC_ALLOC("NSImage")
+				; 			sel_getUid "initWithCGImage:size:" OS-image/to-cgimage img 0 0
+				; 		]
+				; 		pt/x: as float32! IMAGE_WIDTH(img/size) / 2
+				; 		pt/y: as float32! IMAGE_HEIGHT(img/size) / 2
+				; 		hcur: objc_msgSend [
+				; 			OBJC_ALLOC("NSCursor")
+				; 			sel_getUid "initWithImage:hotSpot:" nsimg pt/x pt/y
+				; 		]
+				; 		objc_msgSend [nsimg sel_release]
+				; 	][
+				; 		sym: symbol/resolve w/symbol
+				; 		cur: case [
+				; 			sym = _I-beam	["IBeamCursor"]
+				; 			sym = _hand		["pointingHandCursor"]
+				; 			sym = _cross	["crosshairCursor"]
+				; 			true			["arrowCursor"]
+				; 		]
+				; 		hcur: objc_msgSend [objc_getClass "NSCursor" sel_getUid cur]
+				; 	]
+				; 	if hcur <> 0 [objc_setAssociatedObject hWnd RedCursorKey hcur OBJC_ASSOCIATION_ASSIGN]
+				; ]
+				; sym = _class [
+				; 	w: word + 1
+				; 	sym: symbol/resolve w/symbol
+				; 	sym: case [
+				; 		sym = _regular	[0]			;-- 32
+				; 		sym = _small	[1]			;-- 28
+				; 		sym = _mini		[2]			;-- 16
+				; 		true			[0]
+				; 	]
+				; 	objc_msgSend [
+				; 		objc_msgSend [hWnd sel_getUid "cell"]
+				; 		sel_getUid "setControlSize:" sym
+				; 	]
+				; 	btn?: no
+				; ]
+				; sym = _accelerated [
+				; 	bool: as red-logic! word + 1
+				; 	if bool/value [objc_msgSend [hWnd sel_getUid "setWantsLayer:" yes]]
+				; ]
+				true [0]
+			]
+			word: word + 2
+			len: len - 2
+		]
+	]
+
+	; if type = button [
+	; 	len: either btn? [NSRegularSquareBezelStyle][NSRoundedBezelStyle]
+	; 	objc_msgSend [hWnd sel_getUid "setBezelStyle:" len]
+	; ]
+]
+
 OS-redraw: func [hWnd [integer!]][gtk_widget_queue_draw as handle! hWnd]
 
 OS-refresh-window: func [hWnd [integer!]][
 	;print-line "REFFRREEEESSSSHHHHH" 
-	;debug-show-children last-widget no
-	;gtk_widget_queue_draw as handle! hWnd
+	;debug-show-children main-window no
+	;gtk_widget_queue_draw main-window
 	OS-show-window hWnd
 ]
 
@@ -1300,7 +1397,7 @@ OS-make-view: func [
 		sym = window [
 			widget: gtk_application_window_new GTKApp
 			; @@ DEBUG: temporary code
-			last-widget: widget
+			main-window: widget
 			unless null? caption [gtk_window_set_title widget caption]
 			gtk_window_set_default_size widget size/x size/y
 			gtk_container_add widget gtk_fixed_new
@@ -1393,6 +1490,9 @@ OS-make-view: func [
 			fire [TO_ERROR(script face-type) type]
 		]
 	]
+
+	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
+
 
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
@@ -1576,8 +1676,7 @@ OS-destroy-view: func [
 	]
 
 	;; print ["DDDEEEEestroy" lf]
-
-
+	
 	free-handles handle values
 
 	obj: as red-object! values + FACE_OBJ_FONT

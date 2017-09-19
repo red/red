@@ -32,6 +32,23 @@ set-selected: func [
 	int/value: idx
 ]
 
+set-offset: func [
+	obj [handle!]
+	ctx [node!]
+	x 	[integer!]
+	y	[integer!]
+	return: [red-pair!]
+	/local
+		offset 	[red-pair!]
+		face 	[red-object!]
+][
+	offset: as red-pair! get-node-facet ctx FACE_OBJ_OFFSET
+	offset/header: TYPE_PAIR
+	offset/x: x
+	offset/y: y
+	offset
+]
+
 set-text: func [
 	obj		[handle!]
 	ctx		[node!]
@@ -406,4 +423,75 @@ red-timer-action: func [
 ][
 	make-event self 0 EVT_TIME
 	yes
+]	
+
+widget-motion-notify-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventMotion!]
+	ctx 	[node!]
+	return: [logic!]
+	/local
+		offset 	[red-pair!]
+		x 		[float!]
+		y 		[float!]
+][
+	;print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	either motion/state [
+		if 0 = (motion/cpt % motion/sens) [
+			;print [ "MOTION: " motion/offset/x "x" motion/offset/y ", (" motion/x_root "," motion/y_root  "), x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+			x: (as float! motion/offset/x) + event/x_root - motion/x_root
+			y: (as float! motion/offset/y) + event/y_root - motion/y_root
+			;print [ x "," y lf]
+			offset: set-offset widget ctx  as integer! x as integer! y
+			;motion/x: event/x
+			;motion/y: event/y 
+			change-offset widget offset 0 ; the last 2 info are unused 
+		]
+		motion/cpt: motion/cpt + 1
+		yes
+	][no]
 ]
+
+widget-button-press-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventButton!]
+	ctx 	[node!]
+	return: [logic!]
+	/local
+		offset 	[red-pair!]
+][
+	; print [ "BUTTON-PRESS: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	motion/state: yes
+	motion/cpt: 0
+	motion/x_root: event/x_root
+	motion/y_root: event/y_root
+	offset: as red-pair! get-node-facet ctx FACE_OBJ_OFFSET
+	; copy of current offset when button pressed
+	motion/offset: pair/push offset/x  offset/y
+	yes
+]
+
+widget-button-release-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventButton!]
+	ctx 	[node!]
+	return: [logic!]
+][
+	; print [ "BUTTON-RELEASE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	motion/state: no
+	yes
+]
+
+;; TO REMOVE!
+; widget-enter-notify-event: func [
+; 	[cdecl]
+; 	widget 	[handle!] 
+; 	event	[GdkEventCrossing!]
+; 	ctx 	[node!]
+; ][
+; 	print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+; 	motion/state: yes
+; ]
