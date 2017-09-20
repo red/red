@@ -648,7 +648,7 @@ change-color: func [
 ]
 
 update-z-order: func [
-	parent	[integer!]
+	parent	[handle!]
 	pane	[red-block!]
 	type	[integer!]
 	/local
@@ -660,23 +660,23 @@ update-z-order: func [
 		nb   [integer!]
 		s	 [series!]
 ][
-	; s: GET_BUFFER(pane)
-	; face: as red-object! s/offset + pane/head
-	; tail: as red-object! s/tail
-	; nb: (as-integer tail - face) >> 4
+	s: GET_BUFFER(pane)
+	face: as red-object! s/offset + pane/head
+	tail: as red-object! s/tail
+	nb: (as-integer tail - face) >> 4
 
-	; parr: as int-ptr! allocate nb * 4
-	; nb: 0
-	; while [face < tail][
-	; 	if TYPE_OF(face) = TYPE_OBJECT [
-	; 		hWnd: face-handle? face
-	; 		if hWnd <> null [
-	; 			nb: nb + 1
-	; 			parr/nb: as-integer hWnd
-	; 		]
-	; 	]
-	; 	face: face + 1
-	; ]
+	parr: as int-ptr! allocate nb * 4
+	nb: 0
+	while [face < tail][
+		if TYPE_OF(face) = TYPE_OBJECT [
+			hWnd: face-handle? face
+			if hWnd <> null [
+				nb: nb + 1
+				parr/nb: as-integer hWnd
+			]
+		]
+		face: face + 1
+	]
 	; arr: objc_msgSend [
 	; 	objc_getClass "NSArray"
 	; 	sel_getUid "arrayWithObjects:count:"
@@ -728,40 +728,31 @@ change-offset: func [
 ]
 
 change-visible: func [
-	hWnd  [integer!]
+	hWnd  [handle!]
 	show? [logic!]
 	type  [integer!]
 ][
-	; case [
-	; 	any [type = button type = check type = radio][
-	; 		objc_msgSend [hWnd sel_getUid "setEnabled:" show?]
-	; 		objc_msgSend [hWnd sel_getUid "setTransparent:" not show?]
-	; 	]
-	; 	type = window [
-	; 		either show? [
-	; 			objc_msgSend [hWnd sel_getUid "makeKeyAndOrderFront:" hWnd]
-	; 		][
-	; 			objc_msgSend [hWnd sel_getUid "orderOut:" hWnd]
-	; 		]
-	; 	]
-	; 	true [objc_msgSend [hWnd sel_getUid "setHidden:" not show?]]
-	; ]
-	0
+	case [
+		type = window [
+			; either show? [
+			; 	objc_msgSend [hWnd sel_getUid "makeKeyAndOrderFront:" hWnd]
+			; ][
+			; 	objc_msgSend [hWnd sel_getUid "orderOut:" hWnd]
+			; ]
+			0
+		]
+		true [gtk_widget_set_visible hWnd show?]
+	]
 ]
 
 change-enabled: func [
-	hWnd	 [integer!]
+	hWnd	 [handle!]
 	enabled? [logic!]
 	type	 [integer!]
 	/local
 		obj  [integer!]
 ][
-	; unless any [type = base type = window type = panel][
-	; 	objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
-	; ]
-	; either enabled? [obj: 0][obj: hWnd]
-	; objc_setAssociatedObject hWnd RedEnableKey obj OBJC_ASSOCIATION_ASSIGN
-0
+	gtk_widget_set_sensitive hWnd enabled?
 ]
 
 change-text: func [
@@ -1543,8 +1534,8 @@ OS-make-view: func [
 	; change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	; change-para widget face as red-object! values + FACE_OBJ_PARA font sym
 
-	; unless show?/value [change-visible widget no sym]
-	; unless open?/value [change-enabled widget no sym]
+	unless show?/value [change-visible widget no sym]
+	unless open?/value [change-enabled widget no sym]
 
 	; change-font widget face font sym
 	if TYPE_OF(rate) <> TYPE_NONE [change-rate widget rate]
@@ -1597,13 +1588,14 @@ OS-update-view: func [
 	if flags and FACET_FLAG_DATA <> 0 [
 		change-data	widget values
 	]
-	;if flags and FACET_FLAG_ENABLE? <> 0 [
-	;	change-enabled widget values
-	;]
-	;if flags and FACET_FLAG_VISIBLE? <> 0 [
-	;	bool: as red-logic! values + FACE_OBJ_VISIBLE?
-	;	change-visible widget bool/value type
-	;]
+	if flags and FACET_FLAG_ENABLED? <> 0 [
+		bool: as red-logic! values + FACE_OBJ_ENABLED?
+		change-enabled widget bool/value type
+	]
+	if flags and FACET_FLAG_VISIBLE? <> 0 [
+		bool: as red-logic! values + FACE_OBJ_VISIBLE?
+		change-visible widget bool/value type
+	]
 	;if flags and FACET_FLAG_SELECTED <> 0 [
 	;	int2: as red-integer! values + FACE_OBJ_SELECTED
 	;	change-selection widget int2 values
@@ -1625,14 +1617,9 @@ OS-update-view: func [
 	;		InvalidateRect widget null 1
 		]
 	]
-	if flags and FACET_FLAG_PANE <> 0 [
+	if all [flags and FACET_FLAG_PANE <> 0 type <> tab-panel][
+		;update-z-order hWnd as red-block! values + FACE_OBJ_PANE type
 		0
-		;print [ "flag-pane" get-symbol-name type lf]
-	;	if tab-panel <> type [				;-- tab-panel/pane has custom z-order handling
-	;		update-z-order 
-	;			as red-block! values + gui/FACE_OBJ_PANE
-	;			null
-	;	]
 	]
 	if flags and FACET_FLAG_FONT <> 0 [
 		change-font widget face as red-object! values + FACE_OBJ_FONT type

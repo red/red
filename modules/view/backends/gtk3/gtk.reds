@@ -528,6 +528,17 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_hide: "gtk_widget_hide" [
 			widget		[handle!]
 		]
+		gtk_widget_show: "gtk_widget_show" [
+			widget		[handle!]
+		]
+		gtk_widget_set_visible: "gtk_widget_set_visible" [
+			widget		[handle!]
+			state 		[logic!]
+		]
+		gtk_widget_set_sensitive: "gtk_widget_set_sensitive" [
+			widget		[handle!]
+			state 		[logic!]
+		]
 		gtk_widget_grab_focus: "gtk_widget_grab_focus" [
 			widget		[handle!]
 		]
