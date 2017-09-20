@@ -80,6 +80,9 @@ get-event-offset: func [
 		][
 			offset: as red-pair! stack/push*
 			offset/header: TYPE_PAIR
+			offset/x: motion/x_new
+			offset/y: motion/y_new
+			;;print ["event-offset: " offset/x "x" offset/y lf]
 			as red-value! offset
 		]
 		any [

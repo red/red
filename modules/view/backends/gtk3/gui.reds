@@ -40,12 +40,14 @@ tabs: context [
 ]
 ; used to save old position of pointer in widget-motion-notify-event handler
 motion: context [
-	state:	no
-	x_root:	0.0
-	y_root:	0.0
-	offset:	as red-pair! 0 ;offset
-	cpt:	0
-	sens:	3
+	state:		no
+	x_root:		0.0
+	y_root:		0.0
+	offset_old:	as red-pair! 0 ;offset
+	x_new:	 	0
+	y_new:		0
+	cpt:		0
+	sens:		3
 ]
 
 pango-context:	as handle! 0

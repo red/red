@@ -673,7 +673,7 @@ OS-draw-image: func [
 		ww		[float!]
 		crop2	[red-pair!]
 ][
-	print ["OS-draw-image" lf]
+	;; print ["OS-draw-image" lf]
 	either null? start [x: 0 y: 0][x: start/x y: start/y]
 	case [
 		start = end [
