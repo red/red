@@ -32,23 +32,6 @@ set-selected: func [
 	int/value: idx
 ]
 
-set-offset: func [
-	obj [handle!]
-	ctx [node!]
-	x 	[integer!]
-	y	[integer!]
-	return: [red-pair!]
-	/local
-		offset 	[red-pair!]
-		face 	[red-object!]
-][
-	offset: as red-pair! get-node-facet ctx FACE_OBJ_OFFSET
-	offset/header: TYPE_PAIR
-	offset/x: x
-	offset/y: y
-	offset
-]
-
 set-text: func [
 	obj		[handle!]
 	ctx		[node!]
@@ -442,10 +425,7 @@ widget-motion-notify-event: func [
 ][
 	;print [ "MOTION: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
 	either motion/state [
-		if 0 = (motion/cpt % motion/sens) [
-			;print [ "MOTION: " motion/offset/x "x" motion/offset/y ", (" motion/x_root "," motion/y_root  "), x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-			; x: (as float! motion/offset_old/x) + event/x_root - motion/x_root
-			; y: (as float! motion/offset_old/y) + event/y_root - motion/y_root
+		if 0 = (motion/cpt % motion/sensitiv) [
 			x:  event/x_root - motion/x_root
 			y:  event/y_root - motion/y_root
 			motion/x_new: as-integer x + either x > 0.0 [0.5][-0.5] 
@@ -473,9 +453,6 @@ widget-button-press-event: func [
 	motion/cpt: 0
 	motion/x_root: event/x_root
 	motion/y_root: event/y_root
-	offset: as red-pair! get-node-facet ctx FACE_OBJ_OFFSET
-	; copy of current offset when button pressed
-	motion/offset_old: pair/push offset/x  offset/y
 	motion/x_new: 0
 	motion/y_new: 0
 	make-event widget 0 EVT_LEFT_DOWN

@@ -151,15 +151,6 @@ GdkEventButton!: alias struct! [
   ;;GDK_ALL_EVENTS_MASK:           fffffffeh
 ]
 
-#enum GdkDragAction! [
-  GDK_ACTION_DEFAULT: 1
-  GDK_ACTION_COPY: 2
-  GDK_ACTION_MOVE: 4
-  GDK_ACTION_LINK: 8
-  GDK_ACTION_PRIVATE: 16
-  GDK_ACTION_ASK: 32
-]
-
 GtkTextIter!: alias struct! [ 
   dummy1  [handle!]
   dummy2  [handle!]
@@ -906,16 +897,6 @@ cairo_font_extents_t!: alias struct! [
 		gtk_widget_get_style_context: "gtk_widget_get_style_context" [
 			widget		[handle!]
 			return:		[handle!]
-		]
-		gtk_drag_source_set: "gtk_drag_source_set" [
-			widget 		[handle!]
-			start_mask 	[integer!]
-            targets 	[handle!]
-        	n_targets 	[integer!]
-    		actions		[integer!]
-		]
-		gtk_drag_source_add_image_targets: "gtk_drag_source_add_image_targets" [
-			widget		[handle!]
 		]
 		pango_layout_new: "pango_layout_new" [
 			context		[handle!]

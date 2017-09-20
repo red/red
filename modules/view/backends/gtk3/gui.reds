@@ -43,11 +43,10 @@ motion: context [
 	state:		no
 	x_root:		0.0
 	y_root:		0.0
-	offset_old:	as red-pair! 0 ;offset
 	x_new:	 	0
 	y_new:		0
 	cpt:		0
-	sens:		3
+	sensitiv:	3
 ]
 
 pango-context:	as handle! 0
@@ -1209,8 +1208,6 @@ parse-common-opts: func [
 			sym: symbol/resolve word/symbol
 			case [
 				sym = (symbol/make "drag-on") [
-					;gtk_drag_source_set hWnd GDK_BUTTON1_MASK null 0 GDK_ACTION_MOVE
-					;gtk_drag_source_add_image_targets hWnd
 					gtk_widget_add_events hWnd GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK 
 					gobj_signal_connect(hWnd "motion-notify-event" :widget-motion-notify-event face/ctx)
 					gobj_signal_connect(hWnd "button-press-event" :widget-button-press-event face/ctx)
