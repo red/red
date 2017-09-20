@@ -48,6 +48,9 @@ motion: context [
 	cpt:		0
 	sensitiv:	3
 ]
+; to put in other place (usually platform.red) if useful
+_drag-on:		symbol/make "drag-on"
+_on-over:		word/load "on-over"
 
 pango-context:	as handle! 0
 gtk-font:		"Sans 10"
@@ -1172,6 +1175,30 @@ update-scroller: func [
 	;]
 ]
 
+connect-mouse-events: function [
+	hWnd 	[handle!]
+	face 	[red-object!]
+	actors	[red-object!]
+	type	[integer!]
+	/local
+		widget [handle!]
+][
+	if all [
+		not null? actors/ctx
+		(object/rs-find actors  as red-value!  _on-over) <> -1
+	][
+		widget: either type = text [
+			g_object_get_qdata hWnd _widget-id
+		][hWnd]
+		
+		;print [ "Mouse events " get-symbol-name type "->" widget lf]
+		gtk_widget_add_events widget GDK_ENTER_NOTIFY_MASK or GDK_LEAVE_NOTIFY_MASK
+		gobj_signal_connect(widget "enter-notify-event" :widget-enter-notify-event face/ctx)
+		gobj_signal_connect(widget "leave-notify-event" :widget-leave-notify-event face/ctx)		
+	] 
+]
+
+
 
 parse-common-opts: func [
 	hWnd	[handle!]
@@ -1198,7 +1225,7 @@ parse-common-opts: func [
 		while [len > 0][
 			sym: symbol/resolve word/symbol
 			case [
-				sym = (symbol/make "drag-on") [
+				sym = _drag-on [
 					gtk_widget_add_events hWnd GDK_BUTTON_PRESS_MASK or GDK_BUTTON1_MOTION_MASK or GDK_BUTTON_RELEASE_MASK ;or GDK_ENTER_NOTIFY_MASK 
 					gobj_signal_connect(hWnd "motion-notify-event" :widget-motion-notify-event face/ctx)
 					gobj_signal_connect(hWnd "button-press-event" :widget-button-press-event face/ctx)
@@ -1408,6 +1435,8 @@ OS-make-view: func [
 		]
 		sym = text [
 			widget: gtk_label_new caption
+			_widget: gtk_event_box_new null null
+			gtk_container_add _widget widget
 		]
 		sym = field [
 			widget: gtk_entry_new
@@ -1483,7 +1512,6 @@ OS-make-view: func [
 
 	parse-common-opts widget face as red-block! values + FACE_OBJ_OPTIONS sym
 
-
 	; save the previous group-radio state as a global variable
 	group-radio: either sym = radio [widget][as handle! 0] 
 
@@ -1527,9 +1555,12 @@ OS-make-view: func [
 		]
 	]
 
+	connect-mouse-events widget face as red-object! values + FACE_OBJ_ACTORS sym
+
 	;-- store the face value in the extra space of the window struct
 	assert TYPE_OF(face) = TYPE_OBJECT					;-- detect corruptions caused by CreateWindow unwanted events
 	store-face-to-obj widget face
+	if sym = text [store-face-to-obj _widget face]
 
 	; change-selection widget as red-integer! values + FACE_OBJ_SELECTED sym
 	; change-para widget face as red-object! values + FACE_OBJ_PARA font sym

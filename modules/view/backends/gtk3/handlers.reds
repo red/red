@@ -408,6 +408,30 @@ red-timer-action: func [
 	yes
 ]	
 
+widget-enter-notify-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventCrossing!]
+	ctx 	[node!]
+	return: [logic!]
+][
+	;print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	make-event widget 0 EVT_OVER
+	no
+]
+
+widget-leave-notify-event: func [
+	[cdecl]
+	widget 	[handle!] 
+	event	[GdkEventCrossing!]
+	ctx 	[node!]
+	return: [logic!]
+][
+	;print [ "LEAVE: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
+	make-event widget EVT_FLAG_AWAY EVT_OVER
+	no
+]
+
 widget-motion-notify-event: func [
 	[cdecl]
 	widget 	[handle!] 
@@ -471,14 +495,3 @@ widget-button-release-event: func [
 	make-event widget 0 EVT_LEFT_UP
 	yes
 ]
-
-;; TO REMOVE!
-; widget-enter-notify-event: func [
-; 	[cdecl]
-; 	widget 	[handle!] 
-; 	event	[GdkEventCrossing!]
-; 	ctx 	[node!]
-; ][
-; 	print [ "ENTER: x: " event/x " y: " event/y " x_root: " event/x_root " y_root: " event/y_root lf]
-; 	motion/state: yes
-; ]

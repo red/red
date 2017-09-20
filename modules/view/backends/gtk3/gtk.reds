@@ -87,27 +87,26 @@ GdkEventButton!: alias struct! [
   y_root		[float!]
 ]
 
-; @@ TO REMOVE IF UNUSED
-; GdkEventCrossing!: alias struct! [
-;   type 			[integer!]
-;   window		[int-ptr!]
-;   send_event	[byte!]
-;   subwindow		[int-ptr!]
-;   time 			[integer!]
-;   x				[float!]
-;   y				[float!]
-;   x_root		[float!]
-;   y_root		[float!]
-;   axes			[float-ptr!]
-;   state			[integer!]
-;   is_hint1		[byte!] 
-;   is_hint2		[byte!] 
-;   device		[int-ptr!]
-;   mode			[integer!]
-;   detail		[integer!]
-;   focus 		[logic!]
-;   state 		[integer!]
-; ]
+GdkEventCrossing!: alias struct! [
+  type 			[integer!]
+  window		[int-ptr!]
+  send_event	[byte!]
+  subwindow		[int-ptr!]
+  time 			[integer!]
+  x				[float!]
+  y				[float!]
+  x_root		[float!]
+  y_root		[float!]
+  axes			[float-ptr!]
+  state			[integer!]
+  is_hint1		[byte!] 
+  is_hint2		[byte!] 
+  device		[int-ptr!]
+  mode			[integer!]
+  detail		[integer!]
+  focus 		[logic!]
+  state 		[integer!]
+]
 
 #enum GdkModifierType! [
   GDK_SHIFT_MASK: 1
@@ -734,6 +733,9 @@ cairo_font_extents_t!: alias struct! [
 		gtk_label_set_text: "gtk_label_set_text" [
 			widget		[handle!]
 			label		[c-string!]
+		]
+		gtk_event_box_new: "gtk_event_box_new" [
+			return: 	[handle!]
 		]
 		gtk_entry_new: "gtk_entry_new" [
 			return:		[handle!]
