@@ -50,6 +50,17 @@ Red/System [
 	free word
 ]
 
+draw-state!: alias struct! [
+	gstate		[integer!]
+	pen-clr		[integer!]
+	brush-clr	[integer!]
+	pen-join	[integer!]
+	pen-cap		[integer!]
+	pen?		[logic!]
+	brush?		[logic!]
+	a-pen?		[logic!]
+	a-brush?	[logic!]
+]
 
 alloc-context: func [
 	ctx				[draw-ctx!]
@@ -3359,13 +3370,27 @@ OS-matrix-transform: func [
 	]
 ]
 
-OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!] /local s][
+OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!] /local s][
 	s: 0
 	GdipSaveGraphics ctx/graphics :s
-	state/value: s
+	state/gstate: s
+	state/pen-clr: ctx/pen-color
+	state/brush-clr: ctx/brush-color
+	state/pen-join: ctx/pen-join
+	state/pen-cap: ctx/pen-cap
+	state/pen?: ctx/pen?
+	state/brush?: ctx/brush?
+	state/a-pen?: ctx/alpha-pen?
+	state/a-brush?: ctx/alpha-brush?
 ]
 
-OS-matrix-pop: func [ctx [draw-ctx!] state [integer!]][GdipRestoreGraphics ctx/graphics state]
+OS-matrix-pop: func [ctx [draw-ctx!] state [draw-state!]][
+	GdipRestoreGraphics ctx/graphics state/gstate
+	ctx/pen-join: state/pen-join
+	ctx/pen-cap: state/pen-cap
+	OS-draw-pen ctx state/pen-clr not state/pen? state/a-pen?
+	OS-draw-fill-pen ctx state/brush-clr not state/brush? state/a-brush?
+]
 
 OS-matrix-reset: func [
 	ctx			[draw-ctx!]

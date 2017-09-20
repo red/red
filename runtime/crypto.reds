@@ -279,7 +279,7 @@ crypto: context [
 	#define A32-BASE 65521
 	#define A32-NMAX 5552
 
-	adler32: func[
+	adler32: func [
 		data    [byte-ptr!]
 		length  [integer!]
 		return: [integer!]

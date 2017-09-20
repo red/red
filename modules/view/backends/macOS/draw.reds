@@ -22,6 +22,8 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
+draw-state!: alias struct! [unused [integer!]]
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	CGCtx		[handle!]
@@ -1374,11 +1376,11 @@ OS-matrix-transform: func [
 	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] state [int-ptr!]][
+OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!] state [integer!]][
+OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color:		0
 	dc/brush-color:		0
