@@ -1575,7 +1575,7 @@ OS-make-view: func [
 		rc		[NSRect!]
 		flt		[float!]
 ][
-	stack/mark-func words/_body
+	stack/mark-native words/_body
 
 	values: object/get-values face
 

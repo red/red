@@ -1175,7 +1175,7 @@ OS-make-view: func [
 		para?	  [logic!]
 		rc		  [RECT_STRUCT value]
 ][
-	stack/mark-func words/_body
+	stack/mark-native words/_body
 
 	values: object/get-values face
 

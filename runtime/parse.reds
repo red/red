@@ -639,7 +639,7 @@ parser: context [
 		/local
 			loop? [logic!]
 	][
-		stack/mark-func words/_body						;@@ find something more adequate
+		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		
 		stack/push as red-value! event
 		logic/push match?

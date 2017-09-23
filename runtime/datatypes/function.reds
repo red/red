@@ -37,7 +37,7 @@ _function: context [
 		fun:  as red-function! base - 4
  		path: as red-path! base - 3
  		
-		stack/mark-func words/_anon
+		stack/mark-func-body words/_anon
 		
 		s: as series! fun/spec/value
 		

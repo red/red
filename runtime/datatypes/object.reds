@@ -381,7 +381,7 @@ object: context [
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
 		
-		stack/mark-func words/_on-change*
+		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
 		stack/push old
 		stack/push new
@@ -423,7 +423,7 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
-			stack/mark-func words/_on-deep-change*
+			stack/mark-func words/_on-deep-change* fun/ctx
 			stack/push as red-value! owner
 			stack/push as red-value! word
 			stack/push target

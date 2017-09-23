@@ -1112,6 +1112,7 @@ string: context [
 			bool [red-logic!]
 			int  [red-integer!]
 			d    [red-float!]
+			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
 			str1 [red-string!]
@@ -1126,7 +1127,8 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
 
-		stack/mark-func words/_body						;@@ find something more adequate
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
 
 		unit: flags >>> 2 and 7
 		c1: get-char value1 unit
@@ -1153,7 +1155,7 @@ string: context [
 			s2/tail: as red-value! (value2 + (num << (log-b unit)))
 		]
 
-		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		_function/call f global-ctx						;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 

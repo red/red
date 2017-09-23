@@ -1061,6 +1061,7 @@ block: context [
 			bool [red-logic!]
 			int  [red-integer!]
 			d    [red-float!]
+			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
 			blk1 [red-block!]
@@ -1072,7 +1073,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
-		stack/mark-func words/_body						;@@ find something more adequate
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
 
 		either flags and sort-reverse-mask = 0 [
 			v2: stack/push value2
@@ -1095,7 +1097,7 @@ block: context [
 			s2/tail: value2 + num
 		]
 
-		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		_function/call f global-ctx						;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 
