@@ -1022,7 +1022,7 @@ system/lexer: context [
 		any-value: [pos: any [some ws | literal-value]]
 		red-rules: [any-value any ws opt wrong-end]
 
-		if pre-load [do [pre-load src part]]
+		if pre-load [do [pre-load src length]]
 		
 		set/any 'err try [
 			unless either part [
