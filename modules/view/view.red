@@ -662,10 +662,7 @@ do-events: function [
 ]
 
 do-safe: func [code [block!] /local result][
-	if error? set/any 'result try/all code [
-		print :result
-		result: none
-	]
+	if error? set/any 'result try/all code [print :result]
 	get/any 'result
 ]
 
@@ -713,8 +710,8 @@ show: function [
 		
 		if face/type <> 'screen [
 			if all [not force face/type <> 'window][
-				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
 				unless parent [cause-error 'script 'not-linked []]
+				if all [object? face/parent face/parent/type <> 'tab-panel][face/parent: none]
 			]
 			if any [series? face/extra object? face/extra][
 				modify face/extra 'owned none			;@@ TBD: unflag object's fields (ownership)
