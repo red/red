@@ -34,6 +34,7 @@ case-folding-test.red
 throw-test.red
 vector-test.red
 map-test.red
+hash-test.red
 pair-test.red
 date-test.red
 convert-test.red
