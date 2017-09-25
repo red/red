@@ -219,6 +219,8 @@ _function: context [
 		/local
 			s	   [series!]
 			native [red-native!]
+			saved  [node!]
+			fctx   [red-context!]
 			call ocall
 	][
 		s: as series! fun/more/value
@@ -227,6 +229,8 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
+			fctx: GET_CTX(fun)
+			saved: fctx/values
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
 					call: as function! [] native/code
@@ -238,6 +242,8 @@ _function: context [
 					0
 				]
 			]
+			fctx/values: saved
+			
 			switch system/thrown [
 				RED_THROWN_ERROR
 				RED_THROWN_BREAK
