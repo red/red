@@ -247,6 +247,7 @@ system/view/VID: context [
 		opt?: 	 yes
 		divides: none
 		calc-y?: no
+		do-with: none
 		
 		obj-spec!:	make typeset! [block! object!]
 		rate!:		make typeset! [integer! time!]
@@ -287,6 +288,7 @@ system/view/VID: context [
 				| 'hint	  	  (add-option opts compose [hint: (fetch-argument string! spec)])
 				| 'cursor	  (add-option opts compose [cursor: (pre-load fetch-argument cursor! spec)])
 				| 'init		  (opts/init: fetch-argument block! spec)
+				| 'with		  (do-with: fetch-argument block! spec)
 				| 'react	  (
 					if later?: spec/2 = 'later [spec: next spec]
 					repend reactors [face fetch-argument block! spec later?]
@@ -431,6 +433,7 @@ system/view/VID: context [
 			face/size: face/size + as-pair mar/1/x + mar/1/y mar/2/x + mar/2/y
 		]
 		if face/type = 'tab-panel [resize-child-panels face]
+		if do-with [do bind do-with face]
 		spec
 	]
 	
