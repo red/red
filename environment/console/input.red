@@ -241,6 +241,9 @@ unless system/console [
 						either cp = as-integer #"^[" [
 							offset: offset + unit
 							#either OS = 'Windows [
+								if output? [
+									output-to-screen pbuffer: buffer ;flush current buffered content
+								]
 								skip: process-ansi-sequence offset tail unit
 								either skip = 0 [
 									;sequence was not valid, so we will display the starting char
