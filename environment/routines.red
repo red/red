@@ -19,10 +19,14 @@ quit-return: routine [
 
 set-quiet: routine [
 	"Set an object's field to a value without triggering object's events"
-	word  [word!]
+	word
 	value [any-type!]
+	/local
+		type [integer!]
 ][
-	_context/set word stack/arguments + 1
+	type: TYPE_OF(word)
+	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(TYPE_WORD 0)]
+	_context/set as red-word! word stack/arguments + 1
 ]
 
 ;-- Following definitions are used to create op! corresponding operators

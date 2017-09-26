@@ -439,6 +439,15 @@ Red/System [
 	]
 ]
 
+#define ANY_WORD?(type) [
+	any [
+		type = TYPE_WORD
+		type = TYPE_SET_WORD
+		type = TYPE_GET_WORD
+		type = TYPE_LIT_WORD
+	]
+]
+
 #define TYPE_ANY_STRING [					;-- To be used in SWITCH cases
 	TYPE_STRING
 	TYPE_FILE
