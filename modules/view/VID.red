@@ -263,7 +263,7 @@ system/view/VID: context [
 				  ['left | 'center | 'right]	 (opt?: add-flag opts 'para 'align value)
 				| ['top  | 'middle | 'bottom]	 (opt?: add-flag opts 'para 'v-align value)
 				| ['bold | 'italic | 'underline | 'strike] (opt?: add-flag opts 'font 'style value)
-				| 'extra	  (opts/extra: fetch-value spec: next spec)
+				| 'extra	  (opts/extra: fetch-expr 'spec spec: back spec)
 				| 'data		  (opts/data: fetch-expr 'spec spec: back spec)
 				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
