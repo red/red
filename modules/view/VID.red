@@ -265,7 +265,7 @@ system/view/VID: context [
 				| ['bold | 'italic | 'underline | 'strike] (opt?: add-flag opts 'font 'style value)
 				| 'extra	  (opts/extra: fetch-expr 'spec spec: back spec)
 				| 'data		  (opts/data: fetch-expr 'spec spec: back spec)
-				| 'draw		  (opts/draw: process-draw fetch-argument block! spec)
+				| 'draw		  (opts/draw: process-draw fetch-expr 'spec spec: back spec)
 				| 'font		  (opts/font: make any [opts/font font!] fetch-argument obj-spec! spec)
 				| 'para		  (opts/para: make any [opts/para para!] fetch-argument obj-spec! spec)
 				| 'wrap		  (opt?: add-flag opts 'para 'wrap? yes)
