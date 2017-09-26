@@ -62,7 +62,7 @@ print-screen: func [
 		while [size > 0][
 			if str/1 = #"^[" [
 				out-buffer-flush
-				skip: process-ansi-sequence str tail Latin1
+				skip: process-ansi-sequence (str + 1) tail Latin1
 			]
 			either skip = 0 [
 				out-buffer/1: str/1
@@ -74,8 +74,8 @@ print-screen: func [
 					out-buffer-flush
 				]
 			][
-				str: str + skip
-				size: size - skip
+				str: str + skip + 1
+				size: size - skip - 1
 				skip: 0
 			]
 		]
@@ -83,7 +83,7 @@ print-screen: func [
 		while [size > 0][
 			if all [str/1 = #"^[" str/2 = null-byte] [
 				out-buffer-flush
-				skip: process-ansi-sequence str tail UCS-2
+				skip: process-ansi-sequence (str + 2) tail UCS-2
 			]
 			either skip = 0 [
 				out-buffer/1: str/1
@@ -95,8 +95,8 @@ print-screen: func [
 					out-buffer-flush
 				]
 			][
-				str: str + skip
-				size: size - skip
+				str: str + skip + 2
+				size: size - skip - 2
 				skip: 0
 			]
 		]
