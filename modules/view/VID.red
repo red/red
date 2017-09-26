@@ -527,6 +527,7 @@ system/view/VID: context [
 			focal-face: none
 			panel: make face! system/view/VID/styles/window/template  ;-- absolute path to avoid clashing with /styles
 		]
+		either block? panel/pane [list: panel/pane][panel/pane: list]
 		
 		any [
 			all [										;-- account for container's hard paddings
@@ -678,9 +679,6 @@ system/view/VID: context [
 		do re-align
 		process-reactors								;-- Needs to be after [set name face]
 		
-		either block? panel/pane [append panel/pane list][
-			unless only [panel/pane: list]
-		]
 		either size [panel/size: size][
 			if pane-size <> 0x0 [
 				if svmp [
@@ -697,7 +695,10 @@ system/view/VID: context [
 		if options [set/some panel make object! user-opts]
 		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
 		
-		either only [list][
+		either only [
+			panel/pane: none
+			list
+		][
 			if panel/type = 'window [
 				panel/parent: system/view/screens/1
 				system/view/VID/GUI-rules/process panel
