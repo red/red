@@ -243,13 +243,12 @@ process-ansi-sequence: func[
 		col     [integer!]
 		row     [integer!]
 ][
-	str: str + unit ;first char is always #"^[" here
 	cp: string/get-char str unit
 	if cp <> as-integer #"[" [
 		return 0
 	]
 	str: str + unit ;skipping the #"[" char
-	bytes:  unit + unit
+	bytes:  unit
 	state:  1
 	value1: 0
 	value2: 0

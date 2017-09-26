@@ -211,6 +211,7 @@ unless system/console [
 				w		[integer!]
 				sn		[integer!]
 				skip    [integer!]
+				advance?[logic!]
 		][
 			x:		0
 			w:		0
@@ -236,23 +237,32 @@ unless system/console [
 							cp: 32
 							sn: 3
 						]
-						
+						advance?: true
 						either cp = as-integer #"^[" [
-							;output-to-screen
-							cnt: cnt - 1
+							offset: offset + unit
 							#either OS = 'Windows [
 								skip: process-ansi-sequence offset tail unit
-								if skip = 0 [
+								either skip = 0 [
+									;sequence was not valid, so we will display the starting char
 									emit-red-char cp
+								][
+									;there was just ansi sequncce, so do not move cursor!
+									advance?: false
 								]
 								offset: offset + skip
 							][
-								skip: process-ansi-sequence offset tail unit
-								while [skip > 0] [
-									emit-red-char cp
-									skip: skip - 1
+								;on POSIX terminal is ANSI sequence processed by default, so
+								;we must print it, but do not move cursor's position
+								emit-red-char cp
+								skip: process-ansi-sequence offset tail unit ;just return's number of bytes which sequence has
+								if skip > 0 [
+									advance?: false ;do not move cursor!
+									while [skip > 0] [
+										emit-red-char string/get-char offset unit
+										offset: offset + unit
+										skip: skip - unit
+									]
 								]
-								offset: offset + unit + skip
 							]
 						][
 							emit-red-char cp
@@ -263,11 +273,13 @@ unless system/console [
 						sn: sn - 1
 						if zero? sn [offset: offset + unit]
 					]
-					w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
-					cnt: switch w [
-						1  [cnt + 1]
-						2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
-						default [0]
+					if advance? [
+						w: either all [0001F300h <= cp cp <= 0001F5FFh][2][wcwidth? cp]
+						cnt: switch w [
+							1  [cnt + 1]
+							2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
+							default [0]
+						]
 					]
 				]
 				bytes: bytes + cnt
