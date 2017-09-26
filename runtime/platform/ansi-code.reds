@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "ANSI Escape sequences support in Windows CLI console"
+	Title:   "ANSI Escape sequences support"
 	Author:  "Oldes"
 	File: 	 %ansi-code.reds
 	Tabs:	 4
@@ -10,10 +10,13 @@ Red/System [
 	}
 ]
 
-#either sub-system = 'console [
-	#include %ansi-code-cli.reds
-][
-	process-ansi-sequence: func [
+#case [
+	all [sub-system = 'console OS = 'Windows] [
+		#include %ansi-code-cli.reds
+	]
+	true [
+		;this version is simplified version, which is just used to get number of chars which valid escape sequence has 
+		process-ansi-sequence: func [
 			str 	[byte-ptr!]
 			tail	[byte-ptr!]
 			unit    [integer!]
@@ -68,5 +71,5 @@ Red/System [
 			]
 			bytes
 		]
-
+	]
 ]
