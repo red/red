@@ -182,6 +182,23 @@ parser: context [
 		]
 	]
 	
+	compare-values: func [
+		value2	[red-value!]
+		value	[red-value!]
+		comp-op [integer!]
+		return: [logic!]
+		/local
+			type [integer!]
+	][
+		if comp-op = COMP_STRICT_EQUAL [
+			type: TYPE_OF(value)
+			if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
+				comp-op: COMP_STRICT_EQUAL_WORD
+			]
+		]
+		actions/compare value2 value comp-op
+	]
+	
 	advance: func [
 		str		[red-string!]
 		value	[red-value!]							;-- char! or string! value
@@ -412,7 +429,7 @@ parser: context [
 			value: head
 			
 			while [value < tail][
-				if actions/compare value token comp-op [
+				if compare-values value token comp-op [
 					return adjust-input-index input pos* 1 ((as-integer value - head) >> 4)
 				]
 				value: value + 1
@@ -550,7 +567,7 @@ parser: context [
 			]
 		][
 			until [										;-- ANY-BLOCK input matching
-				match?:	actions/compare block/rs-head input token comp-op	;@@ sub-optimal!!
+				match?:	compare-values block/rs-head input token comp-op	;@@ sub-optimal!!
 				end?: any [
 					all [match? block/rs-next input]	;-- consume matched input
 					all [positive? part input/head >= part]
@@ -1337,7 +1354,7 @@ parser: context [
 								value2: s/offset + input/head
 								end?: value2 >= s/tail
 								either end? [match?: false][
-									match?: actions/compare value2 value comp-op
+									match?: compare-values value2 value comp-op
 									if match? [input/head: input/head + 1] ;-- consume matched input
 								]
 								all [match? end?]

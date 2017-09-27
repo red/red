@@ -437,6 +437,7 @@ word: context [
 			str2 [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
+		
 		type: TYPE_OF(arg2)
 		if any [
 			all [type = TYPE_ISSUE TYPE_OF(arg1) <> TYPE_ISSUE]
@@ -455,6 +456,9 @@ word: context [
 					type <> TYPE_OF(arg1)
 					arg1/symbol <> arg2/symbol
 				]
+			]
+			COMP_STRICT_EQUAL_WORD [
+				res: as-integer arg1/symbol <> arg2/symbol
 			]
 			default [
 				s: GET_BUFFER(symbols)

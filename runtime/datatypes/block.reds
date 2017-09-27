@@ -476,7 +476,7 @@ block: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(blk1)
@@ -486,7 +486,7 @@ block: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL
 			][return 1]
 		]
 

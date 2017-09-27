@@ -274,6 +274,7 @@ Red/System [
 	COMP_SORT
 	COMP_CASE_SORT
 	COMP_SAME
+	COMP_STRICT_EQUAL_WORD							;-- same as STRICT_EQUAL, but relaxed type matching for words
 ]
 
 #enum exceptions! [
