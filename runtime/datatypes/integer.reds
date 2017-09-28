@@ -619,10 +619,17 @@ integer: context [
 			base [red-integer!]
 			exp  [red-integer!]
 			f	 [red-float!]
+			type [integer!]
 			up?	 [logic!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
+		type: TYPE_OF(exp)
+		
+		if all [type <> TYPE_INTEGER type <> TYPE_FLOAT][
+			ERR_EXPECT_ARGUMENT(type 1)
+		]
+		
 		up?: any [
 			TYPE_OF(exp) = TYPE_FLOAT
 			negative? exp/value

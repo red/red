@@ -242,6 +242,7 @@ Red/System [
 	NAT_ZERO?
 	NAT_SIZE?
 	NAT_BROWSE
+	NAT_DECOMPRESS
 ]
 
 #enum math-op! [
@@ -273,6 +274,7 @@ Red/System [
 	COMP_SORT
 	COMP_CASE_SORT
 	COMP_SAME
+	COMP_STRICT_EQUAL_WORD							;-- same as STRICT_EQUAL, but relaxed type matching for words
 ]
 
 #enum exceptions! [
@@ -435,6 +437,15 @@ Red/System [
 		type = TYPE_URL
 		type = TYPE_TAG
 		type = TYPE_EMAIL
+	]
+]
+
+#define ANY_WORD?(type) [
+	any [
+		type = TYPE_WORD
+		type = TYPE_SET_WORD
+		type = TYPE_GET_WORD
+		type = TYPE_LIT_WORD
 	]
 ]
 

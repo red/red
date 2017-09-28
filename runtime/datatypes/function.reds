@@ -37,7 +37,7 @@ _function: context [
 		fun:  as red-function! base - 4
  		path: as red-path! base - 3
  		
-		stack/mark-func words/_anon
+		stack/mark-func-body words/_anon
 		
 		s: as series! fun/spec/value
 		
@@ -219,6 +219,8 @@ _function: context [
 		/local
 			s	   [series!]
 			native [red-native!]
+			saved  [node!]
+			fctx   [red-context!]
 			call ocall
 	][
 		s: as series! fun/more/value
@@ -227,6 +229,8 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
+			fctx: GET_CTX(fun)
+			saved: fctx/values
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
 					call: as function! [] native/code
@@ -238,6 +242,8 @@ _function: context [
 					0
 				]
 			]
+			fctx/values: saved
+			
 			switch system/thrown [
 				RED_THROWN_ERROR
 				RED_THROWN_BREAK
@@ -984,7 +990,7 @@ _function: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
-		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
+		part: block/mold blk buffer no all? flat? arg part - 5 indent	;-- spec
 		
 		s: as series! fun/more/value
 		value: s/offset
@@ -992,7 +998,7 @@ _function: context [
 			string/concatenate-literal buffer " none"
 			part - 5
 		][
-			block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
+			block/mold as red-block! s/offset buffer no all? flat? arg part indent	;-- body
 		]
 	]
 

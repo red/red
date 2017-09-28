@@ -923,6 +923,7 @@ natives: context [
 		either blk? [
 			while [value < tail][
 				value: interpreter/eval-next value tail yes
+				clear-newline stack/arguments + 1
 				either into? [actions/insert* -1 0 -1][block/append*]
 				stack/keep									;-- preserve the reduced block on stack
 			]
@@ -1577,21 +1578,31 @@ natives: context [
 		/local
 			data [red-integer!]
 			bits [red-integer!]
+			pos	 [integer!]
+			res	 [integer!]
 	][
 		#typecheck [shift left logical]
 		data: as red-integer! stack/arguments
 		bits: data + 1
-		case [
+		pos: bits/value
+		if pos < 0 [pos: 0]
+		
+		res: case [
 			left >= 0 [
-				data/value: data/value << bits/value
+				either pos > 31 [0][data/value << pos]
 			]
 			logical >= 0 [
-				data/value: data/value >>> bits/value
+				either pos > 31 [0][data/value >>> pos]
 			]
 			true [
-				data/value: data/value >> bits/value
+				either pos > 31 [
+					either data/value < 0 [-1][0]
+				][
+					data/value >> pos
+				]
 			]
 		]
+		data/value: res
 	]
 
 	to-hex*: func [
@@ -2176,7 +2187,7 @@ natives: context [
 		;-- Trying to use /with in combination with TCP or CRC32 is an error.
 		if all [
 			_with >= 0
-			any [type = crypto/_crc32  type = crypto/_tcp]
+			any [type = crypto/_crc32 type = crypto/_tcp type = crypto/_adler32]
 		][
 			ERR_INVALID_REFINEMENT_ARG((refinement/load "with") method)
 		]
@@ -2185,6 +2196,7 @@ natives: context [
 		;	we process them and exit. No other dispatching needed.
 		if type = crypto/_crc32 [integer/box crypto/CRC32 data len   exit]
 		if type = crypto/_tcp   [integer/box crypto/CRC_IP data len  exit]
+		if type = crypto/_adler32 [integer/box crypto/adler32 data len exit]
 
 		
 		either _with >= 0 [								;-- /with was used
@@ -2577,6 +2589,54 @@ natives: context [
 		]
 	]
 
+	decompress*: func [
+		check?	 [logic!]
+		zlib	 [integer!]
+		_deflate [integer!]
+		/local
+			arg		[red-binary!]
+			sz		[red-integer!]
+			src		[byte-ptr!]
+			srclen	[integer!]
+			res		[integer!]
+			dst		[red-binary! value]
+			dstlen	[integer!]
+			s		[series!]
+			buf		[byte-ptr!]
+	][
+		#typecheck [decompress zlib _deflate]
+		arg: as red-binary! stack/arguments
+		src: binary/rs-head arg
+		srclen: binary/rs-length? arg
+
+		case [
+			zlib > 0 [
+				sz: as red-integer! arg + zlib
+				dstlen: sz/value
+			]
+			_deflate > 0 [
+				sz: as red-integer! arg + _deflate
+				dstlen: sz/value
+			]
+			true [
+				dstlen: 0
+				gzip-uncompress null :dstlen src srclen
+			]
+		]
+
+		binary/make-at as red-value! dst dstlen
+		s: GET_BUFFER(dst)
+		buf: as byte-ptr! s/offset
+		res: case [
+			zlib > 0		[zlib-uncompress buf :dstlen src srclen]
+			_deflate > 0	[deflate/uncompress buf :dstlen src srclen]
+			true			[gzip-uncompress buf :dstlen src srclen]
+		]
+		if res <> 0 [fire [TO_ERROR(script invalid-data)]]
+		s/tail: as cell! (buf + dstlen)
+		stack/set-last as red-value! dst
+	]
+
 	;--- Natives helper functions ---
 	
 	max-min: func [
@@ -2810,7 +2870,7 @@ natives: context [
 	][
 		i: 1
 		type: TYPE_OF(value)
-		block?: any [type = TYPE_BLOCK type = TYPE_HASH type = TYPE_MAP]
+		block?: any [type = TYPE_BLOCK type = TYPE_PAREN type = TYPE_HASH type = TYPE_MAP]
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
@@ -3183,6 +3243,7 @@ natives: context [
 			:zero?*
 			:size?*
 			:browse*
+			:decompress*
 		]
 	]
 

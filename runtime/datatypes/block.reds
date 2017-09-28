@@ -476,7 +476,7 @@ block: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(blk1)
@@ -486,7 +486,7 @@ block: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL
 			][return 1]
 		]
 
@@ -994,19 +994,28 @@ block: context [
 		/local
 			slot  [red-value!]
 			s	  [series!]
+			hash? [logic!]
+			hash  [red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/put"]]
-		
+
+		hash?: TYPE_OF(blk) = TYPE_HASH
+		hash: as red-hash! blk
 		blk: as red-block! find blk field null no case? no no null null no no no no
 		
 		either TYPE_OF(blk) = TYPE_NONE [
 			copy-cell field ALLOC_TAIL(blk)
-			copy-cell value ALLOC_TAIL(blk)
+			value: copy-cell value ALLOC_TAIL(blk)
+			if hash? [
+				_hashtable/put hash/table value - 1
+				_hashtable/put hash/table value
+			]
 		][
 			s: GET_BUFFER(blk)
 			slot: s/offset + blk/head + 1
 			if slot >= s/tail [slot: alloc-tail s]
 			copy-cell value slot
+			if hash? [_hashtable/put hash/table slot]
 			ownership/check as red-value! blk words/_put slot blk/head + 1 1
 		]
 		value
@@ -1052,41 +1061,43 @@ block: context [
 			bool [red-logic!]
 			int  [red-integer!]
 			d    [red-float!]
+			f	 [red-function!]
 			all? [logic!]
 			num  [integer!]
 			blk1 [red-block!]
 			blk2 [red-block!]
+			v1	 [red-value!]
+			v2	 [red-value!]
 			s1   [series!]
 			s2   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
 
-		stack/mark-func words/_body						;@@ find something more adequate
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+
+		either flags and sort-reverse-mask = 0 [
+			v2: stack/push value2
+			v1: stack/push value1
+		][
+			v1: stack/push value1
+			v2: stack/push value2
+		]
 
 		all?: flags and sort-all-mask = sort-all-mask
-		if all? [
-			num: flags >>> 2
-			blk1: make-at as red-block! ALLOC_TAIL(root) num
-			blk2: make-at as red-block! ALLOC_TAIL(root) num
+		num: flags >>> 2
+		if all [all? num > 0][
+			blk1: make-at as red-block! v1 1
+			blk2: make-at as red-block! v2 1
 			s1: GET_BUFFER(blk1)
 			s2: GET_BUFFER(blk2)
-			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 num << 4
-			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 num << 4
-			s1/tail: s1/tail + num
-			s2/tail: s2/tail + num
-			value1: as red-value! blk1
-			value2: as red-value! blk2
+			s1/offset: value1
+			s2/offset: value2
+			s1/tail: value1 + num
+			s2/tail: value2 + num
 		]
 
-		flags: flags and sort-reverse-mask
-		either zero? flags [
-			stack/push value2
-			stack/push value1
-		][
-			stack/push value1
-			stack/push value2
-		]
-		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		_function/call f global-ctx						;FIXME: hardcoded origin context
 		stack/unwind
 		stack/pop 1
 
@@ -1208,10 +1219,6 @@ block: context [
 						]
 					]
 					flags: offset - 1 << 1 or flags
-				]
-				TYPE_BLOCK [
-					blk2: as red-block! part
-					;TBD handles block! value
 				]
 				default [
 					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)

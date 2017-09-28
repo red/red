@@ -294,6 +294,7 @@ libRedRT: context [
 			lits
 			red/s-counter
 			red/needed
+			red/shadow-funcs
 		]
 		replace/all tmpl "% " {%"" }
 		replace/all tmpl ">>>" {">>>"}

@@ -52,7 +52,6 @@ system/reactivity: context [
 	eat-events?: yes
 	debug?: 	 no
 	source:		 []
-	imm-path!:	 make typeset! [pair! tuple! time!]
 	
 	eval: function [code [block!] /safe][
 		either safe [
@@ -277,16 +276,14 @@ system/reactivity: context [
 							if unset? attempt [get/any item: saved][
 								cause-error 'script 'no-value [item]
 							]
-							obj: get item/1
-							part: (length? item) - 1
-	
-							unless any [				;-- search for an object (deep first)
-								2 = length? item
-								object? :obj
+							either 2 = length? item [
+								obj: get item/1
+								part: 1
 							][
-								until [
-									path: copy/part item part
+								part: length? item
+								until [					;-- search for an object (deep first)
 									part: part - 1
+									path: copy/part item part
 									any [
 										tail? path
 										object? obj: attempt [get path]
@@ -294,17 +291,11 @@ system/reactivity: context [
 									]
 								]
 							]
-	
 							if all [
 								object? :obj			;-- rough checks for reactive object
 								in obj 'on-change*
 							][
-								if any [
-									2 = length? item
-									not find imm-path! type? get in obj item/:part
-								][
-									part: part + 1
-								]
+								part: part + 1
 								repend relations [obj item/:part reaction ctx]
 								unless later [eval reaction]
 								found?: yes

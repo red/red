@@ -17,7 +17,8 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
-	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
+	locals-offset:		8							;-- current offset from frame pointer to local variables (catch ID + addr)
+	def-locals-offset:	8							;-- default offset from frame pointer to local variables
 	insn-size:			4
 	last-math-op:		none						;-- save last math op type for overflow checking
 
@@ -77,7 +78,6 @@ make-profilable make target-class [
 						word!	  [emitter/symbols/:s]
 						block!	  [s]
 					]
-					
 					emit-reloc-addr spec/3
 				]				
 				emit to-bin32 value					;-- emit value
@@ -882,7 +882,8 @@ make-profilable make target-class [
 	]
 
 	emit-casting: func [value [object!] alt? [logic!] /local old type][
-		type: compiler/get-type value/data	
+		if value/keep? [exit]
+		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
@@ -1742,8 +1743,8 @@ make-profilable make target-class [
 	]
 	
 	emit-copy-mem: func [slots [integer!] /local bits][ ;-- r0: src, ip: dst, 32-bit slots
-		either slots <= 8 [							;-- 8 is max number of regs usable for the copy
-			bits: skip debase/base to-hex shift/logical 1020 (8 - slots) 16 2
+		either slots <= 7 [							;-- 7 is max number of regs usable for the copy
+			bits: skip debase/base to-hex shift/logical 508 (7 - slots) 16 2
 			bits: bits and #{FFFC}
 			emit-i32 join #{e890} bits				;-- LDM r0, {r2,rN}
 			emit-i32 join #{e88c} bits				;-- STM <dst>, {r2,rN}
@@ -2413,16 +2414,29 @@ make-profilable make target-class [
 	emit-AAPCS-header: func [
 		args [block!] fspec [block!] attribs [block! none!]
 		/calc
-		/local reg bits offset type size stk freg cconv types
+		/local reg bits offset type size stk freg cconv types nb
 	][
 		either args/1 = #custom [
 			unless calc [
-				repeat reg min args/2/1 4 [
-					emit-i32 #{e8bd00}				;-- POP {rn[,rn+1]}
-					emit-i32 to char! shift/left 1 reg - 1
+				either integer? nb: args/2/1 [
+					repeat reg min nb 4 [
+						emit-i32 #{e8bd00}			;-- POP {rn[,rn+1]}
+						emit-i32 to char! shift/left 1 reg - 1
+					]
+					stack-width * max 0 args/2/1 - 4 ;-- return extra args on stack count
+				][
+					emit-load nb
+					emit-i32 #{e1b0c000}			;-- MOVS ip, r0
+					emit-i32 #{c8bd0001}			;-- POPGT {r0}
+					emit-i32 #{e25cc001}			;-- SUBS ip, 1
+					emit-i32 #{c8bd0002}			;-- POPGT {r1}
+					emit-i32 #{e25cc001}			;-- SUBS ip, 1
+					emit-i32 #{c8bd0004}			;-- POPGT {r2}
+					emit-i32 #{e25cc001}			;-- SUBS ip, 1
+					emit-i32 #{c8bd0008}			;-- POPGT {r3}
+					0
 				]
 			]
-			stack-width * max 0 args/2/1 - 4		;-- return extra args on stack count
 		][
 			if issue? args/1 [args: args/2]
 			reg: freg: stk: 0
@@ -2706,15 +2720,15 @@ make-profilable make target-class [
 	]
 
 	emit-prolog: func [
-		name locals [block!] locals-size [integer!]
-		/local args-nb attribs args reg freg fargs-nb
+		name locals [block!]
+		/local args-nb attribs args reg freg fargs-nb cb? locals-size pos
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
 		attribs: compiler/get-attributes fspec/4
 		
-		if any [
+		if cb?: any [
 			fspec/5 = 'callback
 			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 		][
@@ -2742,13 +2756,6 @@ make-profilable make target-class [
 			;;	structs aligned at max aligned, padded to multiple of alignment
 			
 			args-nb: fspec/1
-			
-			if all [4 < args-nb name <> '***_start][
-				compiler/throw-error "[ARM emitter] more than 4 arguments in callbacks, not yet supported"
-			]
-			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
-			emit-i32 #{ed2d8b10}					;-- FSTMD sp!, {d8-d15}
-
 			args: fspec/4
 			either all [compiler/job/ABI = 'hard-float not empty? args][
 				reg: freg: 1
@@ -2766,16 +2773,14 @@ make-profilable make target-class [
 					]
 				]
 			][
-				args-nb: max args-nb count-regs extract-arguments args ;-- count registers accurately
+				args-nb: any [
+					all [attribs find attribs 'variadic 4] ;-- push all 4 regs and let user code deal with it
+				 	min 4 max args-nb count-regs extract-arguments args ;-- count registers accurately
+				]
 				repeat i args-nb [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
 					emit-i32 to char! shift/left 1 args-nb - i	;-- push in reverse order
 				]
-			]
-			if PIC? [
-				emit-i32 #{e1a0900f}				;-- MOV sb, pc
-				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
-				emit-i32 #{e0499000}				;-- SUB sb, r0
 			]
 		]
 			
@@ -2787,17 +2792,38 @@ make-profilable make target-class [
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 		emit-push 0									;-- reserve slot for catch resume address
 		
+		locals-offset: def-locals-offset
+		if cb? [
+			if all [not zero? args-nb even? args-nb][
+				locals-offset: locals-offset + 4
+				emit-i32 #{e92d0001}				;-- PUSH {r0} ; ensures stack is aligned for FSTMD
+			]
+			;-- d8-d15 do not need saving as they are not used for now
+			emit-i32 #{e92d07f0}					;-- STMFD sp!, {r4-r10}
+			locals-offset: locals-offset + 28		;-- 7 * 4
+			if PIC? [
+				emit-i32 #{e1a0900f}				;-- MOV sb, pc
+				pools/collect emitter/tail-ptr + 1 + 2 ;-- +1 adjustment for CALL first opcode
+				emit-i32 #{e0499000}				;-- SUB sb, r0
+			]
+		]
+		
+		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
+		
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
+		reduce [locals-size any [args-nb 0]]
 	]
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
 		 /with slots [integer! none!]
-		/local fspec attribs
+		/local fspec attribs cb?
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
+
+		fspec: select/only compiler/functions name
 		
 		if slots [
 			case [
@@ -2816,40 +2842,40 @@ make-profilable make target-class [
 				]
 			]
 		]
-		
-		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
-		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
-
-		either compiler/check-variable-arity? locals [
-			emit-i32 #{e8bd0004}					;-- POP {r2}		; skip arguments count
-			emit-i32 #{e8bd0004}					;-- POP {r2}		; skip arguments pointer
-			emit-i32 #{e8bd0004}					;-- POP {r2}		; get stack offset
-			emit-i32 #{e08dd002}					;-- ADD sp, sp, r2	; skip arguments list (clears stack)
-		][
-			unless zero? args-size [
-				emit-op-imm32
-					#{e28dd000}						;-- ADD sp, sp, args-size
-					round/to/ceiling args-size 4
-			]
-		]
-		
-		fspec: select/only compiler/functions name
-		
-		either any [
+		if cb?: any [
 			fspec/5 = 'callback
 			all [
 				attribs: compiler/get-attributes fspec/4
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			emit-i32 join #{e24bd0} to-bin8 locals-offset ;-- SUB sp, fp, offset
+			emit-i32 #{e8bd07f0}					;-- LDMFD sp!, {r4-r10}
+		]
+		
+		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
+		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
+
+		either all [not cb? compiler/check-variable-arity? locals][		; R/S ABI only
+			emit-i32 #{e8bd0004}					;-- POP {r2}		; skip arguments count
+			emit-i32 #{e8bd0004}					;-- POP {r2}		; skip arguments pointer
+			emit-i32 #{e8bd0004}					;-- POP {r2}		; get stack offset
+			emit-i32 #{e08dd002}					;-- ADD sp, sp, r2	; skip arguments list (clears stack)
+		][
+			if any [fspec/3 <> 'cdecl negative? args-size][
+				unless zero? args-size [
+					emit-op-imm32
+						#{e28dd000}					;-- ADD sp, sp, args-size
+						round/to/ceiling abs args-size 4
+				]
+			]
+		]
+		either cb? [
 			emit-hf-return/reverse fspec/4
-			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
-			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr
 		][
 			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
-
 		pools/mark-entry-point name
 	]
 ]

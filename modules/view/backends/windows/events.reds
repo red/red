@@ -1133,6 +1133,8 @@ WndProc: func [
 			]
 			return 0
 		]
+		WM_LBUTTONDOWN	 [SetCapture hWnd return 0]
+		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_GETMINMAXINFO [								;@@ send before WM_NCCREATE
 			if all [type = window set-window-info hWnd lParam][return 0]
 		]

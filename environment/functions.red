@@ -173,7 +173,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either any [only not block? series][
+	head either any [only not any-list? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -297,6 +297,7 @@ parse-trace: func [
 		limit [integer!]
 	return: [logic! block!]
 ][
+	clear p-indent
 	either case [
 		parse/case/trace input rules :on-parse-event
 	][
@@ -568,8 +569,10 @@ normalize-dir: function [
 	dir
 ]
 
-what-dir: func [/local path][
+what-dir: func [
 	"Returns the active directory path"
+	/local path
+][
 	path: to-red-file get-current-dir
 	unless dir? path [append path #"/"]
 	path

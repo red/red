@@ -529,7 +529,7 @@ system/view/platform: context [
 					]
 				]
 				test [#include %test/gui.reds]
-				;GTK [#include %GTK/gui.reds]
+				GTK [#include %GTK/gui.reds]
 			]
 		]
 	]

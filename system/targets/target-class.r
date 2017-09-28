@@ -10,7 +10,7 @@ REBOL [
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
-	branch-offset-size: locals-offset: none						   ; TBD: document once stabilized
+	branch-offset-size: locals-offset: def-locals-offset: none	   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
@@ -128,7 +128,7 @@ target-class: context [
 			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
 			find [float! float32! float64!] first compiler/get-type arg
 		][
-			arg: make object! [action: 'type-cast type: [integer!] data: arg]
+			arg: make compiler/action-class [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
 	]

@@ -52,31 +52,48 @@ issue: context [
 		type	[integer!]
 		return: [red-value!]
 		/local
-			str [red-string!]
-			w	[red-word!]
-			sym [integer!]
+			char	[red-char!]
+			str		[red-string!]
+			w		[red-word!]
+			sym 	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "issue/to"]]
 
-		either TYPE_OF(spec) = TYPE_STRING [
-			str: as red-string! spec
-			if str/head > 0 [
-				str: as red-string! _series/copy
-					as red-series! spec
-					as red-series! proto
-					null no null
+		switch TYPE_OF(spec) [
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_GET_WORD
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT
+			TYPE_ISSUE [
+				proto: spec
 			]
-			sym: symbol/make-alt str					;-- convert before altering proto slot
+			TYPE_CHAR
+			TYPE_STRING	[
+				either TYPE_OF(spec) = TYPE_CHAR [
+					char: as red-char! spec
+					str: string/make-at stack/push* 1 Latin1
+					string/append-char GET_BUFFER(str) char/value
+				][
+					str: as red-string! spec
+					if str/head > 0 [
+						str: as red-string! _series/copy
+							as red-series! spec
+							as red-series! proto
+							null no null
+					]
+				]
+				sym: symbol/make-alt str					;-- convert before altering proto slot
 
-			w: as red-word! proto
-			w/header: type
-			w/ctx: global-ctx
-			w/symbol: sym
-			w/index: -1
-			proto
-		][
-			word/to proto spec type
+				w: as red-word! proto
+				w/ctx: global-ctx
+				w/symbol: sym
+				w/index: -1
+			]
+			default [word/to proto spec type]
 		]
+		proto/header: type
+		proto
 	]
 
 	mold: func [

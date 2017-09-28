@@ -1155,6 +1155,14 @@ context [
 		resolve-import-refs job							;-- resolve DLL imports references
 		resolve-data-refs job							;-- resolve data references
 
+		linker/set-image-info
+			job
+			base-address
+			(section-addr?/memory job 'code) - base-address
+			length? job/sections/code/2
+			(section-addr?/memory job 'data) - base-address
+			length? job/sections/data/2
+
 		foreach [name spec] job/sections [
 			pad: pad-size? spec/2
 			append job/buffer spec/2

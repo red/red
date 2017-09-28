@@ -202,8 +202,30 @@ emitter: make-profilable context [
 		append symbols new-line spec yes
 		spec
 	]
+	
+	foreach-member: func [spec [block!] body [block!] /local type][
+		all [
+			'value = last spec
+			'struct! <> spec/1
+			spec: compiler/find-aliased spec/1
+		]
+		body: bind/copy body 'type
+		if block? spec/1 [spec: next spec]
 
-	store-global: func [value type [word!] spec [block! word! none!] /local size ptr by-val?][
+		foreach [name t] spec [							;-- skip 'struct!
+			unless word? name [break]
+			either 'value = last type: t [
+				foreach-member type body
+			][
+				do body
+			]
+		]
+	]
+
+	store-global: func [
+		value type [word!] spec [block! word! none!]
+		/local size ptr by-val? pad-size list t f64?
+	][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -217,15 +239,15 @@ emitter: make-profilable context [
 		size: size-of? type
 		ptr: tail data-buf
 		
-	
 		switch/default type [
 			integer! [
 				case [
-					decimal? value [value: to integer! value]
+					find [char! decimal!] type?/word value [value: to integer! value]
+					find [true false] value [value: to integer! get value]
 					not integer? value [value: 0]
 				]
 				pad-data-buf target/default-align
-				ptr: tail data-buf			
+				ptr: tail data-buf
 				value: debase/base to-hex value 16
 				either target/little-endian? [
 					value: tail value
@@ -249,7 +271,7 @@ emitter: make-profilable context [
 				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
 			]
 			float32! [	
-				pad-data-buf target/default-align			
+				pad-data-buf target/default-align
 				ptr: tail data-buf
 				value: compiler/unbox value
 				unless decimal? value [value: 0.0]
@@ -282,6 +304,9 @@ emitter: make-profilable context [
 				store-global value type none
 			]
 			struct! [
+				pad-size: target/ptr-size
+				foreach-member spec [if find [float! float64!] type/1 [pad-size: 8 exit]]
+				pad-data-buf pad-size
 				ptr: tail data-buf
 				foreach [var type] spec [
 					by-val?: 'value = last type
@@ -298,9 +323,38 @@ emitter: make-profilable context [
 			array! [
 				type: first compiler/get-type value/1
 				store-global length? value 'integer! none	;-- store array size first
-				if any [type = 'float! type = 'float64!] [pad-data-buf 8]
-				ptr: tail data-buf							;-- ensure array pointer skips size info
-				foreach item value [store-global item type none]
+				if find [float! float64!] type [pad-data-buf 8]
+				ptr: tail data-buf							;-- ensures array pointer skips size info
+				f64?: no
+				foreach item value [						;-- mixed types, use 32/64-bit for each slot
+					unless word? item [
+						t: first compiler/get-type item 
+						if all [not f64? find [float! float64!] t][f64?: yes]
+						if type <> t [type: 'integer!]
+					]
+				]
+				either find value string! [
+					list: collect [
+						foreach item value [				 ;-- store array
+							either decimal? item [
+								store-global item 'float! none
+							][
+								either string? item [
+									keep item
+									keep store-global 0 'integer! none
+								][
+									store-global item 'integer! none
+								]
+								if f64? [store-global to integer! #{CAFEBABE} 'integer! none]
+							]
+						]
+					]
+					foreach [str ref] list [				 ;-- store strings
+						store-value/ref none str [c-string!] reduce [ref + 1]
+					]
+				][
+					foreach item value [store-global item type none]
+				]
 			]
 			binary! [
 				pad-data-buf 8								;-- forces 64-bit alignment
@@ -333,13 +387,13 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal? saved slots
+		/local new new-global? ptr refs n-spec spec literal? saved slots local?
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
 		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
-			local-offset? name							;-- local variable
+			local?: local-offset? name					;-- local variable
 			find symbols name 							;-- known symbol
 		]
 		either all [
@@ -356,12 +410,17 @@ emitter: make-profilable context [
 			if all [paren? value not word? value/1][
 				type: [array!]
 			]
-			if any [not new-global?	string? value paren? value][
+			if any [all [not new-global? not local?] string? value paren? value][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: store-value/ref name value type refs  ;-- store it with hardcoded pointer address
 			]
 			if all [spec compiler/job/PIC? not libc-init?][
-				target/emit-load-literal-ptr spec/2
+				unless any [							;-- do not add PIC offset to literal values
+					integer? value
+					all [object? value integer? value/data]
+				][
+					target/emit-load-literal-ptr spec/2 
+				]
 				if new-global? [
 					target/emit-store saved value n-spec ;-- store it in pointer variable
 				]
@@ -394,6 +453,11 @@ emitter: make-profilable context [
 				find [integer! c-string! pointer! struct! logic!] type/1
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
+			]
+			all [
+				find [float! float64!] type/1
+				not zero? over: offset // target/struct-align-size ;-- align only if < 32-bit aligned (ARM/typed-float!)
+				offset: offset + 8 - over 						;-- properly account for alignment
 			]
 			if var = name [return offset]
 			offset: offset + size-of? type
@@ -700,7 +764,7 @@ emitter: make-profilable context [
 		(abs total) - extra
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
+	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz extras pos][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -712,10 +776,10 @@ emitter: make-profilable context [
 		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
-		locals-sz: either pos: find locals /local [calc-locals-offsets pos][0]
-		if verbose >= 2 [print ["args+locals stack:" mold stack]]
+		set [locals-sz extras] target/emit-prolog name locals
+		if verbose >= 2 [print ["args+locals stack:" mold emitter/stack]]
+		if extras <> 0 [args-sz: negate extras * target/stack-width]
 		
-		target/emit-prolog name locals locals-sz
 		reduce [args-sz locals-sz]
 	]
 	

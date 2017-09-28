@@ -293,7 +293,8 @@ make-profilable make target-class [
 	]
 	
 	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
-		type: compiler/get-type value/data	
+		if value/keep? [exit]
+		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
@@ -2159,7 +2160,7 @@ make-profilable make target-class [
 		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
+	emit-prolog: func [name [word!] locals [block!] /local fspec attribs offset locals-size][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
@@ -2173,6 +2174,8 @@ make-profilable make target-class [
 		]
 		emit-push 0									;-- reserve slot for catch resume address
 
+		locals-size: either pos: find locals /local [emitter/calc-locals-offsets pos][0]
+		
 		unless zero? locals-size [
 			emit-reserve-stack (round/to/ceiling locals-size stack-width) / stack-width
 		]
@@ -2190,6 +2193,7 @@ make-profilable make target-class [
 				emit to-bin32 emitter/tail-ptr + 1 - offset	;-- +1 adjustment for CALL first opcode
 			]
 		]
+		reduce [locals-size 0]
 	]
 
 	emit-epilog: func [

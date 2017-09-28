@@ -1100,7 +1100,88 @@ string: context [
 
 		as red-string! copy-cell as red-value! str stack/push*
 	]
-	
+
+	compare-call: func [								;-- Wrap red function!
+		value1   [byte-ptr!]
+		value2   [byte-ptr!]
+		fun		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			res  [red-value!]
+			bool [red-logic!]
+			int  [red-integer!]
+			d    [red-float!]
+			f	 [red-function!]
+			all? [logic!]
+			num  [integer!]
+			str1 [red-string!]
+			str2 [red-string!]
+			v1	 [red-value!]
+			v2	 [red-value!]
+			s1   [series!]
+			s2   [series!]
+			unit [integer!]
+			c1	 [integer!]
+			c2	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/compare-call"]]
+
+		f: as red-function! fun
+		stack/mark-func words/_body	f/ctx				;@@ find something more adequate
+
+		unit: flags >>> 2 and 7
+		c1: get-char value1 unit
+		c2: get-char value2 unit
+
+		either flags and sort-reverse-mask = 0 [
+			v2: as red-value! char/push c2
+			v1: as red-value! char/push c1
+		][
+			v1: as red-value! char/push c1
+			v2: as red-value! char/push c2
+		]
+
+		all?: flags and sort-all-mask = sort-all-mask
+		num: flags >>> 5
+		if all [all? num > 0][
+			str1: make-at v1 1 unit
+			str2: make-at v2 1 unit
+			s1: GET_BUFFER(str1)
+			s2: GET_BUFFER(str2)
+			s1/offset: as red-value! value1
+			s2/offset: as red-value! value2
+			s1/tail: as red-value! (value1 + (num << (log-b unit)))
+			s2/tail: as red-value! (value2 + (num << (log-b unit)))
+		]
+
+		_function/call f global-ctx						;FIXME: hardcoded origin context
+		stack/unwind
+		stack/pop 1
+
+		res: stack/top
+		switch TYPE_OF(res) [
+			TYPE_LOGIC [
+				bool: as red-logic! res
+				either bool/value [1][-1]
+			]
+			TYPE_INTEGER [
+				int: as red-integer! res
+				0 - int/value
+			]
+			TYPE_FLOAT [
+				d: as red-float! res
+				case [
+					d/value > 0.0 [-1]
+					d/value < 0.0 [1]
+					true [0]
+				]
+			]
+			TYPE_NONE [-1]
+			default [1]
+		]
+	]
+
 	;-- Actions -- 
 	
 	make: func [
@@ -1888,7 +1969,7 @@ string: context [
 		str			[red-string!]
 		case?		[logic!]
 		skip		[red-integer!]
-		compare		[red-function!]
+		comparator	[red-function!]
 		part		[red-value!]
 		all?		[logic!]
 		reverse?	[logic!]
@@ -1908,6 +1989,7 @@ string: context [
 			op		[integer!]
 			flags	[integer!]
 			mult	[integer!]
+			offset	[integer!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
@@ -1955,7 +2037,6 @@ string: context [
 			if step > 1 [len: len / step]
 		]
 
-		if unit = 6 [unit: 8]
 		cmp: either all [
 			TYPE_OF(str) = TYPE_VECTOR
 			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
@@ -1977,6 +2058,34 @@ string: context [
 			either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
+
+		if OPTION?(comparator) [
+			switch TYPE_OF(comparator) [
+				TYPE_FUNCTION [
+					flags: unit << 2 or flags
+					if all [all? OPTION?(skip)] [
+						flags: flags or sort-all-mask
+						flags: step << 5 or flags
+					]
+					cmp: as-integer :compare-call
+					op: as-integer comparator
+				]
+				TYPE_INTEGER [
+					int: as red-integer! comparator
+					offset: int/value
+					if any [offset < 1 offset > step][
+						fire [
+							TO_ERROR(script out-of-range)
+							comparator
+						]
+					]
+					flags: offset - 1 << 1 or flags
+				]
+				default [
+					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
+				]
+			]
+		]
 		_sort/qsort buffer len unit * step op flags cmp
 		ownership/check as red-value! str words/_sort null str/head 0
 		str

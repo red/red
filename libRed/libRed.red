@@ -1208,7 +1208,7 @@ Red [
 			][
 				block/insert-value spec as red-value! extern-blk
 			]
-			_context/set name as red-value! routine/push spec null as-integer ptr 0 true
+			ring/store _context/set name as red-value! routine/push spec null as-integer ptr 0 true
 		]
 	]
 	

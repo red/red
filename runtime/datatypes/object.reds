@@ -381,7 +381,7 @@ object: context [
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
 		
-		stack/mark-func words/_on-change*
+		stack/mark-func words/_on-change* fun/ctx
 		stack/push as red-value! word
 		stack/push old
 		stack/push new
@@ -423,7 +423,7 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
-			stack/mark-func words/_on-deep-change*
+			stack/mark-func words/_on-deep-change* fun/ctx
 			stack/push as red-value! owner
 			stack/push as red-value! word
 			stack/push target
@@ -735,7 +735,8 @@ object: context [
 		spec/node: fun/spec
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx node yes					;-- rebind new body to object
+		_context/bind blk ctx node yes					;-- rebind new body to object's context
+		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
