@@ -11,6 +11,7 @@ Red [
 ]
 
 #include %../console/engine.red
+#include %../console/auto-complete.red
 #include %highlight.red
 #include %tips.red
 #include %core.red

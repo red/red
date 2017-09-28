@@ -386,30 +386,30 @@ terminal!: object [
 	]
 
 	do-completion: func [
-		line	[string!]
+		str		[string!]
 		char	[char!]
 		/local
 			p-idx candidates saved saved-pos
 	][
-		p-idx: index? line
-		candidates: red-complete-input skip line pos yes
+		p-idx: index? str
+		candidates: red-complete-input skip str pos yes
 		case [
 			empty? candidates [
-				insert skip line pos char
+				insert skip str pos char
 				pos: pos + 1
 			]
 			1 = length? candidates [
-				clear head line
+				clear head str
 				pos: (index? candidates/1) - p-idx
-				append line head candidates/1
+				append str head candidates/1
 			]
 			true [
-				saved: at copy head line p-idx
+				saved: at copy head str p-idx
 				saved-pos: pos
-				clear line
+				clear str
 				foreach s next candidates [
-					append line s
-					append line #" "
+					append str s
+					append str #" "
 				]
 				pos: saved-pos
 				line: saved
