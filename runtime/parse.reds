@@ -1283,6 +1283,7 @@ parser: context [
 							if cmd >= tail [cmd: tail - 1]	;-- avoid a "past end" state
 							PARSE_SET_INPUT_LENGTH(len)
 							if negative? len [input/head: input/head + len]
+							end?: any [zero? len all [positive? part input/head >= part]]
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
