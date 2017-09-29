@@ -39,6 +39,7 @@ red: context [
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
+	#include %platform/print.reds
 	
 	;--------------------------------------------
 	;-- Import OS dependent image functions
@@ -133,6 +134,7 @@ red: context [
 	;-- Booting... --
 	
 	init: does [
+		print-ctx/init
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context

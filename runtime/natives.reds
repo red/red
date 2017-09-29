@@ -677,10 +677,6 @@ natives: context [
 			arg		[red-value!]
 			str		[red-string!]
 			blk		[red-block!]
-			series	[series!]
-			offset	[byte-ptr!]
-			size	[integer!]
-			unit	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		#typecheck -prin-									;-- `prin` would be replaced by lexer
@@ -701,33 +697,7 @@ natives: context [
 			TYPE_OF(str) = TYPE_STRING
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
-		series: GET_BUFFER(str)
-		unit: GET_UNIT(series)
-		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
-		size: as-integer (as byte-ptr! series/tail) - offset
-
-		either lf? [
-			switch unit [
-				Latin1 [platform/print-line-Latin1 as c-string! offset size]
-				UCS-2  [platform/print-line-UCS2 				offset size]
-				UCS-4  [platform/print-line-UCS4   as int-ptr!  offset size]
-
-				default [									;@@ replace by an assertion
-					print-line ["Error: unknown string encoding: " unit]
-				]
-			]
-		][
-			switch unit [
-				Latin1 [platform/print-Latin1 as c-string! offset size]
-				UCS-2  [platform/print-UCS2   			   offset size]
-				UCS-4  [platform/print-UCS4   as int-ptr!  offset size]
-
-				default [									;@@ replace by an assertion
-					print-line ["Error: unknown string encoding: " unit]
-				]
-			]
-			fflush 0
-		]
+		print-ctx/red-print str lf?
 		last-lf?: no
 		stack/set-last unset-value
 	]

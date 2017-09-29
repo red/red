@@ -10,24 +10,22 @@ Red [
 	}
 ]
 
-;#system-global [
-;	#if OS = 'Windows [
-;		#import [
-;			"kernel32.dll" stdcall [
-;				AttachConsole: 	 "AttachConsole" [
-;					processID		[integer!]
-;					return:			[integer!]
-;				]
-;				SetConsoleTitle: "SetConsoleTitleA" [
-;					title			[c-string!]
-;					return:			[integer!]
-;				]
-;			]
-;		]
-;	]
-;]
-
-do [
+#system-global [
+	#if OS = 'Windows [
+		#import [
+			"kernel32.dll" stdcall [
+				AttachConsole: 	 "AttachConsole" [
+					processID		[integer!]
+					return:			[integer!]
+				]
+				SetConsoleTitle: "SetConsoleTitleA" [
+					title			[c-string!]
+					return:			[integer!]
+				]
+			]
+		]
+	]
+]
 
 system/console: context [
 
@@ -82,28 +80,27 @@ system/console: context [
 		]
 	]
 
-	init: function [
+	init: routine [
 		str [string!]
 		/local
 			ret
 	][
-		0
-		;#either OS = 'Windows [
-		;	;ret: AttachConsole -1
-		;	;if zero? ret [print-line "ReadConsole failed!" halt]
+		#either OS = 'Windows [
+			;ret: AttachConsole -1
+			;if zero? ret [print-line "ReadConsole failed!" halt]
 
-		;	ret: SetConsoleTitle as c-string! string/rs-head str
-		;	if zero? ret [print-line "SetConsoleTitle failed!" halt]
-		;][
-		;	#if gui-console? = no [terminal/pasting?: no]
-		;]
+			ret: SetConsoleTitle as c-string! string/rs-head str
+			if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		][
+			#if gui-console? = no [terminal/pasting?: no]
+		]
 	]
 
-	terminate: function [][
-		;#if OS <> 'Windows [
-		;#if gui-console? = no [
-		;	if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
-		;]]
+	terminate: routine [][
+		#if OS <> 'Windows [
+		#if gui-console? = no [
+			if terminal/init? [terminal/emit-string "^[[?2004l"]	;-- disable bracketed paste mode
+		]]
 	]
 
 	count-delimiters: function [
@@ -294,5 +291,3 @@ cd:	function [
 
 dir:	:ls
 q: 		:quit
-
-]
