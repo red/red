@@ -379,9 +379,9 @@ object: context [
 		ctx: GET_CTX(obj) 
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
-		if TYPE_OF(fun) <> TYPE_FUNCTION [fire [TO_ERROR(script invalid-arg) fun]]
+		assert TYPE_OF(fun) = TYPE_FUNCTION
 		
-		stack/mark-func words/_on-change* fun/ctx
+		stack/mark-func words/_on-change*
 		stack/push as red-value! word
 		stack/push old
 		stack/push new
@@ -423,7 +423,7 @@ object: context [
 		s: as series! ctx/values/value
 		fun: as red-function! s/offset + index
 		if TYPE_OF(fun) = TYPE_FUNCTION [
-			stack/mark-func words/_on-deep-change* fun/ctx
+			stack/mark-func words/_on-deep-change*
 			stack/push as red-value! owner
 			stack/push as red-value! word
 			stack/push target
@@ -619,7 +619,6 @@ object: context [
 	duplicate: func [
 		src    [node!]									;-- src context
 		dst	   [node!]									;-- dst context (extension of src)
-		copy?  [logic!]									;-- TRUE for compiler, FALSE otherwise
 		/local
 			from   [red-context!]
 			to	   [red-context!]
@@ -642,13 +641,14 @@ object: context [
 		while [value < tail][
 			type: TYPE_OF(value)
 			either ANY_SERIES?(type) [					;-- copy series value in extended object
-				actions/copy as red-series! value target null yes null
-				
-				if ANY_BLOCK?(type) [
-					_context/bind as red-block! target to dst yes
-				]
+				actions/copy
+					as red-series! value
+					target
+					null
+					yes
+					null
 			][
-				if copy? [copy-cell value target]		;-- just propagate the old value
+				copy-cell value target					;-- just propagate the old value by default
 			]
 			value: value + 1
 			target: target + 1
@@ -735,8 +735,7 @@ object: context [
 		spec/node: fun/spec
 		
 		blk: block/clone as red-block! more yes yes
-		_context/bind blk ctx node yes					;-- rebind new body to object's context
-		_context/bind blk GET_CTX(fun) null no			;-- rebind new body to function's context
+		_context/bind blk ctx node yes					;-- rebind new body to object
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -925,20 +924,19 @@ object: context [
 		type	[integer!]
 		return:	[red-object!]
 		/local
-			obj		[red-object!]
-			obj2	[red-object!]
-			ctx		[red-context!]
-			blk		[red-block!]
-			p-obj?  [logic!]
-			new?	[logic!]
+			obj	 [red-object!]
+			obj2 [red-object!]
+			ctx	 [red-context!]
+			blk	 [red-block!]
+			new? [logic!]
+			; ----- Modified
+			idx  	[integer!] 
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
 		obj: as red-object! stack/push*
 		
-		p-obj?: TYPE_OF(proto) = TYPE_OBJECT
-		
-		either p-obj? [
+		either TYPE_OF(proto) = TYPE_OBJECT [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
@@ -953,11 +951,21 @@ object: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				new?: _context/collect-set-words ctx blk
-				_context/bind blk ctx save-self-object obj yes	;-- bind spec block
-				if p-obj? [duplicate proto/ctx obj/ctx no]		;-- clone and rebind proto's series
+				_context/bind blk ctx save-self-object obj yes
 				interpreter/eval blk no
-				
-				obj/class: either any [new? not p-obj?][get-new-id][proto/class]
+				idx: _context/find-word ctx words/proto no
+				if idx >= 0 
+				[
+					obj2: as red-object! (_context/get-value-in idx ctx)
+                    if TYPE_OF(obj2) <> TYPE_OBJECT [
+                        fire [TO_ERROR(syntax malconstruct) spec]
+					]
+				]
+				obj/class: either any [new? TYPE_OF(proto) <> TYPE_OBJECT][
+					get-new-id
+				][
+					proto/class
+				]
 				obj/on-set: on-set-defined? ctx
 				if on-deep? obj [ownership/set-owner as red-value! obj obj null]
 			]
@@ -1087,6 +1095,8 @@ object: context [
 			save-idx [integer!]
 			on-set?  [logic!]
 			rebind?	 [logic!]
+			; ----- Modified:
+			orig-ctx [red-context!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
@@ -1094,23 +1104,34 @@ object: context [
 		if TYPE_OF(word) <> TYPE_WORD [fire [TO_ERROR(script invalid-path) path element]]
 
 		ctx: GET_CTX(parent)
+		orig-ctx: ctx
 
 		rebind?: word/ctx <> parent/ctx
 		if rebind? [									;-- bind the word to object's context
 			save-idx: word/index
-			save-ctx: word/ctx
+			save-ctx: word/ctx			
 			word/index: _context/find-word ctx word/symbol yes
-			if word/index = -1 [
-				fire [TO_ERROR(script invalid-path) path element]
+			while [word/index = -1] [
+				word/index: _context/find-word ctx words/proto no
+				if word/index = -1 [
+					fire [TO_ERROR(script invalid-path) path element]
+				]
+				parent: as red-object! _context/get-value-in word/index ctx
+				ctx: GET_CTX(parent)
+				word/index: _context/find-word ctx word/symbol yes
 			]
 			word/ctx: parent/ctx
 		]
 		on-set?: parent/on-set <> null
 		
 		either value <> null [
-			if on-set? [old: stack/push _context/get-in word ctx]
-			_context/set-in word value ctx
-			if on-set? [fire-on-set parent as red-word! element old value]
+			either orig-ctx <> ctx [
+				_context/add-with orig-ctx word value
+			] [
+				if on-set? [old: stack/push _context/get-in word ctx]
+				_context/set-in word value ctx
+				if on-set? [fire-on-set parent as red-word! element old value]
+			]
 			res: value
 		][
 			if on-set? [
@@ -1265,7 +1286,7 @@ object: context [
 		s: as series! new/ctx/value
 		copy-cell as red-value! new s/offset + 1		;-- set back-reference
 
-		node: save-self-object new
+		node:  save-self-object new
 		
 		if size <= 0 [return new]						;-- empty object!
 		
