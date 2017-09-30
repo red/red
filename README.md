@@ -1,209 +1,109 @@
-[![Join the chat at https://gitter.im/red/red](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/red/red?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Travis build](https://travis-ci.org/red/red.svg?branch=master)](https://travis-ci.org/red/red)
-[![Build status](https://ci.appveyor.com/api/projects/status/mie736c6x4268boo/branch/master?svg=true)](https://ci.appveyor.com/project/red/red/branch/master)
+# Implementation of a dynamic prototype-based programming in Red
 
-Red Programming Language
-------------------------
+Red implement a prototype-based programming (*value-share*), i.e., the clones will be created from a prototype, but after creation they stand on their own feet (*creation-time sharing*). 
 
-**Red** is a new programming language strongly inspired by [Rebol](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing modern support for concurrency and multi-core CPUs.
+See the [paper][1] of this link.
 
-Red has its own complete cross-platform toolchain, featuring two compilers, an interpreter and a linker, not depending on any third-party library, except for a Rebol2 interpreter, required during the bootstrap phase. Once complete, Red will be [self-hosted](http://en.wikipedia.org/wiki/Self-hosting).
+[1]: (]http://www.idt.mdh.se/kurser/cd5130/msl/2003lp4/reports/prototypebased.pf]
 
-The Red software stack also contains another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
+This addon of Red tries to implement a dynamic prototype-based programming (*property-share*), transparent to users and usual rules of Red.
 
-Making a Red "Hello World"
-------------------------
-The Red toolchain comes as a single **one-megabyte** executable file that you can download from [here](http://www.red-lang.org/p/download.html) for the big-3 platforms.
+This implementation following the concepts of the Self implementation of the object oriented programming language. Then, it uses *objects* and *slots* concept, i.e., it does not distinct variables from methods to be more flexible. Thus it also follow the philosophy of Red.
 
-1. Put the downloaded **red** binary in the working folder.
+However, to explain the implementation, the difference between variables (properties) and methods (functions) is necessary.
 
-2. In a code or text editor, write the following Hello World program:
+## Properties (variables)
 
-        Red [
-            Title: "Simple hello world script"
-        ]
+### Delegation (1): to share the value of a property
 
-        print "Hello World!"
+The delegation is clean and follow the rules of Red. The only difference is the slot `_proto` (or any other name decided by the main contributors of Red as `_is`) to clone an object when we declare as prototype-based object from any other `object!` (with or whithout prototype). 
 
-3. Save it under the name: **hello.red**
+	a: make object! [x: 1 y: 2 z: 3]	  ; any object can be a prototype
+	
+	; clone (child) creation
+	b: make object! [_proto: a x: 10]  
+	
+	b/x ; => 10
+	b/y ; => 2
+	
+	a/y: 20
+	b/y ; => 20
 
-4. From a terminal (works from DOS too), run it with:
+It is not necessary the slot `_proto` to clone a _siblind_ prototype following the rules of Red, but copy all other variables of the siblind object, if this conduct is not desirable then the user can use the usual creation of a prototype-based object.
 
-        $ red hello.red
+	a: make object! [x: 1 y: 2 z: 3]	  ; any object could be a prototype
+	b: make object! [_proto: a x: 10]  
+	
+	; clone (siblind) creation
+	c: make b [z: 30]  
+	
+	c/x ; => 10  ; copy of b
+	c/y ; => 2   ; from a
+	b/x: 20
+	c/x ; => 10
+	
+	; or
+	c: make object! [_proto: a x: 300] ; override x from b
+	
+	c/x ; => 300  ; from c
+	c/y ; => 2    ; from a
+	
+#### CPU cost	
 
-5. You should see the _Hello World!_ output.
+The cpu cost of this implementation to other users of `object!` is zero. However, a bad programming conduct could lead to crash the system
 
-6. Want to generate a compiled executable from that program?
 
-        $ red -c hello.red
-        $ ./hello
+	b: make object! [_proto: 5 x: 10]
+	
+	b/x ; => 10
+	b/y
+	*** Runtime Error 1: access violation
+	*** at: 000370EAh
 
-7. Want to generate a compiled executable from that program with no dependencies?
+To avoid it, is necessary check `_proto` as a valid `object!`. There are two possibilities:
 
-        $ red -r hello.red
-        $ ./hello
+1. _Zero cost for object users and high cost for prototype users_
+	It is possible checking the validity of `_proto` in the delegation process, but the pay for the prototype users is in all delegations (variable access) of a prototype-based object.
+	
+2. _Cost sharing for all users_
+	The checking of validity of `_proto` is placed in the creation of `object!`. 
+	
+	I implement this option because the cost for all users is low only when `make` the object. After that, no aditional cost for any users at this moment.
 
-8. Want to cross-compile to another supported platform?
+### Delegation (2): new value of a property
 
-        $ red -t Windows hello.red
-        $ red -t Darwin hello.red
-        $ red -t Linux-ARM hello.red
+Logically, any object can change the values of their properties but the question is if an object can modify the value of a prototype property or if can add new properties. This feature could be resolve with three mechanisms, from low to high cpu cost:
 
-**The command-line syntax is:**
+1. _Objects can modify the slot values of the prototypes but no add new properties_
 
-    red [command] [options] [file]
+	It is the more easy to implement without any aditional cost to the users. However, I think, this is a very risky option.  
 
-`[file]` any Red or Red/System source file. If no file and no option is provided, the graphical interactive console will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
+2. _Objects can not add or modify properties of theirs prototypes_
 
-Note: On Non-Windows platforms, the REPL runs by default in CLI mode. But on Windows, the default is to run in GUI mode. To run it in the command line mode, invoke the red binary with the option `--cli`.
+	This could be the default mechanism when the objects are static after creation. An object only can modify their properties. This idea is nowdays in the background of Red because a `extend` function is not posible to add properties to the objects.	
 
-`[options]`
+3. _Objects can override properties of the prototypes, creating property if it is necessary_
+	An object can add properties presents in their prototypes but can no add new properties (when `extend` will be implemented in Red, they will can).
+	
+I implement this last option because is safe, flexible and the cpu cost is the same as the previous option.
 
-    -c, --compile                  : Generate an executable in the working
-                                     folder, using libRedRT. (developement mode)
+	a: make object! [x: 1 y: 2 z: 3]
+	b: make object! [_proto: a x: 10]  
+	
+	b/y: 20  ; b now is object! [_proto: a x: 10 y: 20]
 
-    -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
-                                     is supported for Linux targets.
+	b/w: 30
+	*** Script Error: cannot access w in path b/w:
+	*** Where: set-path
+	*** Stack:
+	
 
-    -dlib, --dynamic-lib           : Generate a shared library from the source
-                                     file.
+### Remove properties
 
-    -h, --help                     : Output this help text.
+In this moment Red does not implement a function to remove slots of an object. Then, it is not implemented but when it will be implemented to `object!`, it could be used in prototype-based programming with any change.
 
-    -o <file>, --output <file>     : Specify a non-default [path/][name] for
-                                     the generated binary file.
+> The mechanism of *property-share* uses about 20 lines of code and with very low cpu cost to the object users without prototype-based programming.
 
-    -r, --release                  : Compile in release mode, linking everything
-                                     together (default: development mode).
+## Methods (functions)
 
-    -s, --show-expanded            : Output result of Red source code expansion by
-                                     the preprocessor.
-
-    -t <ID>, --target <ID>         : Cross-compile to a different platform
-                                     target than the current one (see targets
-                                     table below).
-
-    -u, --update-libRedRT          : Rebuild libRedRT and compile the input script
-                                      (only for Red scripts with R/S code).
-
-    -v <level>, --verbose <level>  : Set compilation verbosity level, 1-3 for
-                                     Red, 4-11 for Red/System.
-
-    -V, --version                  : Output Red's executable version in x.y.z
-                                     format.
-
-    --config [...]                 : Provides compilation settings as a block
-                                     of `name: value` pairs.
-
-    --cli                          : Run the command-line REPL instead of the
-                                     graphical console.
-
-    --no-runtime                   : Do not include runtime during Red/System
-                                     source compilation.
-
-    --red-only                     : Stop just after Red-level compilation.
-                                     Use higher verbose level to see compiler
-                                     output. (internal debugging purpose)
-                                     
-
-`[command]`
-
-    build libRed [stdcall]         : Builds libRed library and unpacks the 
-                                     libRed/ folder locally.
-
-    clear [<path>]                 : Delete all temporary files from current
-                                     or target <path> folder.
-
-Cross-compilation targets:
-
-    MSDOS        : Windows, x86, console (+ GUI) applications
-    Windows      : Windows, x86, GUI applications
-    WindowsXP    : Windows, x86, GUI applications, no touch API
-    Linux        : GNU/Linux, x86
-    Linux-ARM    : GNU/Linux, ARMv5, armel (soft-float)
-    RPi          : GNU/Linux, ARMv5, armhf (hard-float)
-    Darwin       : macOS Intel, console-only applications
-    macOS        : macOS Intel, applications bundles
-    Syllable     : Syllable OS, x86
-    FreeBSD      : FreeBSD, x86
-    Android      : Android, ARMv5
-    Android-x86  : Android, x86
-
-_Note_: Running the Red toolchain binary from a $PATH currently requires a wrapping shell script (see relevant tickets: [#543](https://github.com/red/red/issues/543) and [#1547](https://github.com/red/red/issues/1547)).
-
-Running the Red REPL
------------------------
-
-1. Just run the `red` binary with no option to access the [REPL](http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop).
-
-        ---== Red 0.6.3 ==-- 
-        Type HELP for starting information. 
-
-        >>
-
-1. You can use it to test rapidly some Red code:
-
-        >> 1 + 2
-        == 3
-
-        >> inc: func [n][n + 1]
-        == func [n][n + 1]
-
-        >> inc 123
-        == 124
-
-  
-Notes:
-
-- On Windows, the REPL runs by default in GUI mode. To run it in the command line, invoke the red binary as `red --cli`.
-- Wine has some [issues](https://github.com/red/red/issues/1618) with the GUI-Console. Install the `Consolas` font to fix the problem.
-
-
-Running Red from the sources (for contributors)
-------------------------
-The compiler and linker are currently written in Rebol. Please follow the instructions for installing the compiler toolchain in order to run it from sources:
-
-1. Clone this git repository or download an archive (`ZIP` button above or from [tagged packages](https://github.com/red/red/tags)).
-
-1. Download a Rebol interpreter suitable for your OS: [Windows](http://www.rebol.com/downloads/v278/rebol-core-278-3-1.exe), [Linux](http://www.maxvessi.net/rebsite/Linux/) (or [Linux](http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz)), [Mac OS X](http://www.rebol.com/downloads/v278/rebol-core-278-2-5.tar.gz), [FreeBSD](http://www.rebol.com/downloads/v278/rebol-core-278-7-2.tar.gz), [OpenBSD](http://www.rebol.com/downloads/v278/rebol-core-278-9-4.tar.gz), [Solaris](http://www.rebol.com/downloads/v276/rebol-core-276-10-1.gz).
-
-1. Extract the `rebol` binary, put it in root folder, that's all!
-
-1. Let's test it: run `./rebol`, you'll see a `>>` prompt appear. Windows users need to double-click on the `rebol.exe` file to run it.
-
-1. From the REBOL console type:
-
-        >> do/args %red.r "%tests/hello.red"
-
-The compilation process should finish with a `...output file size` message. The resulting binary is in the working folder. Windows users need to open a DOS console and run `hello.exe` from there.
-
-To see the intermediary Red/System code generated by the compiler, use:
-
-        >> do/args %red.r "-v 2 %tests/hello.red"
-
-You can also compile the Red console from source:
-
-        >> do/args %red.r "-r %environment/console/console.red"
-
-Note: the `-c` argument is not necessary when launching the Red toolchain from sources, as the default action is to compile the input script (the toolchain in binary form default action is to run the input script through the interpreter).
-The `-r` argument is needed when compiling the Red console to make additional runtime functions available.
-
-Contributing
--------------------------
-If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/Contributor-Guidelines) first.
-
-It is usually a good idea to inform the Red team about what changes you are going to make in order to ensure that someone is not already working on the same thing. You can reach us through the [mailing-list](https://groups.google.com/forum/?hl=en#!forum/red-lang) or our [chat room](https://gitter.im/red/red).
-
-Satisfied with the results of your change and want to issue a pull request on Github?
-
-Make sure the changes pass all the existing tests, add relevant tests to the test-suite and please test on as many platforms as you can. You can run all the tests using (from Rebol console, at repository root):
-
-        >> do %run-all.r
-
-Anti-virus false positive
--------------------------
-Some anti-virus programs are a bit too sensitive and can wrongly report an alert on some binaries generated by Red, if that happens to you, please fill a ticket [here](https://github.com/red/red/issues), so we can report the false positive.
-
-License
--------------------------
-Both Red and Red/System are published under [BSD](http://www.opensource.org/licenses/bsd-3-clause) license, runtime is under [BSL](http://www.boost.org/users/license.html) license. BSL is a bit more permissive license than BSD, more suitable for the runtime parts.
+**To be implemented**
