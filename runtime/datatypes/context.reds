@@ -298,6 +298,27 @@ _context: context [
 		]
 	]
 
+	; As get-in but only with index
+	get-value-in: func [
+		index	   [integer!]
+		ctx	   	   [red-context!]
+		return:	   [red-value!]
+		/local
+			values [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-value-in"]]
+
+		if index = -1 [
+			fire [TO_ERROR(script not-in-context) index]
+		]
+		either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + index
+		][
+			values: as series! ctx/values/value
+			values/offset + index
+		]
+	]
+	
 	get: func [
 		word	[red-word!]
 		return:	[red-value!]
