@@ -34,12 +34,6 @@ set-type: func [										;@@ convert to macro?
 	cell/header: cell/header and type-mask or type
 ]
 
-clear-newline: func [
-	cell [red-value!]
-][
-	cell/header: cell/header and flag-nl-mask
-]
-
 alloc-at-tail: func [
 	blk		[red-block!]
 	return: [cell!]
@@ -450,6 +444,8 @@ words: context [
 	values:			-1
 	owner:			-1
 	owned:			-1
+	proto:			-1
+
 	
 	windows:		-1
 	syllable:		-1
@@ -698,6 +694,7 @@ words: context [
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
 		owned:			symbol/make "owned"
+		proto:			symbol/make "_proto"
 
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"
