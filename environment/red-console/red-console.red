@@ -16,8 +16,6 @@ Red [
 #include %tips.red
 #include %core.red
 
-do [
-
 ask: function [
 	question [string!]
 	return:  [string!]
@@ -37,6 +35,8 @@ ask: function [
 	vt/ask?: no
 	line
 ]
+
+do [
 
 red-console-ctx: context [
 	cfg-path:	none

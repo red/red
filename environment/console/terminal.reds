@@ -648,7 +648,7 @@ terminal: context [
 
 		reset-vt vt
 		OS-init vt
-		platform/gui-print: as-integer :vprint
+		print-ctx/add as int-ptr! :red-print as int-ptr! :rs-print
 	]
 
 	close: func [
@@ -1529,7 +1529,7 @@ terminal: context [
 		vt/in
 	]
 
-	vprint: func [
+	rs-print: func [
 		str		[byte-ptr!]
 		size	[integer!]
 		unit	[integer!]
@@ -1549,5 +1549,21 @@ terminal: context [
 			emit-c-string vt str str + 1 1 no yes
 		]
 		refresh vt
+	]
+
+	red-print: func [
+		str		[red-string!]
+		lf?		[logic!]
+		/local
+			series	[series!]
+			offset	[byte-ptr!]
+			size	[integer!]
+			unit	[integer!]
+	][
+		series: GET_BUFFER(str)
+		unit: GET_UNIT(series)
+		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
+		size: as-integer (as byte-ptr! series/tail) - offset
+		rs-print offset size unit lf?
 	]
 ]

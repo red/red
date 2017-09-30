@@ -6,8 +6,6 @@ Red [
 	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
 ]
 
-do [
-
 terminal!: object [
 	lines:		make block! 1000				;-- line buffer
 	nlines:		make block! 1000				;-- line count of each line, will change according to window width
@@ -552,6 +550,4 @@ terminal!: object [
 		update-caret
 		update-scroller line-cnt - num
 	]
-]
-
 ]
