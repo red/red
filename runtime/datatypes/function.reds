@@ -490,29 +490,6 @@ _function: context [
 		list/node
 	]
 	
-	find-local-ref: func [
-		spec	[red-block!]
-		return: [logic!]								;-- return TRUE if /local is found
-		/local
-			value [red-value!]
-			tail  [red-value!]
-			ref	  [red-refinement!]
-			sym	  [integer!]
-	][
-		value: block/rs-head spec
-		tail:  block/rs-tail spec
-		sym: refinements/local/symbol
-		
-		while [value < tail][
-			if TYPE_OF(value) = TYPE_REFINEMENT [
-				ref: as red-refinement! value
-				if sym = symbol/resolve ref/symbol [return yes]
-			]
-			value: value + 1
-		]
-		no
-	]
-	
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]
@@ -682,7 +659,7 @@ _function: context [
 		collect-deep list ignore body
 		
 		if 0 < block/rs-length? list [
-			unless find-local-ref spec [
+			unless local-ref? spec [
 				block/rs-append spec as red-value! refinements/local
 			]
 			block/rs-append-block spec list
@@ -815,6 +792,50 @@ _function: context [
 			]
 		]
 		check-duplicates spec
+	]
+	
+	local-ref?: func [
+		spec	[red-block!]
+		return: [logic!]
+	][
+		0 <> count-locals spec/node spec/head
+	]
+
+
+	count-locals: func [
+		node	[node!]
+		offset	[integer!]
+		return: [integer!]
+		/local
+			value  [red-value!]
+			tail   [red-value!]
+			ref	   [red-refinement!]
+			s	   [series!]
+			sym	   [integer!]
+			cnt	   [integer!]
+			count? [logic!]
+	][
+		s: as series! node/value
+		value:  s/offset + offset
+		tail:   s/tail
+		sym: 	refinements/local/symbol
+		count?: no
+		cnt:	0
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_REFINEMENT [
+					unless count? [
+						ref: as red-refinement! value
+						if sym = symbol/resolve ref/symbol [count?: yes]
+					]
+				]
+				TYPE_WORD [if count? [cnt: cnt + 1]]
+				default	  [0]
+			]
+			value: value + 1
+		]
+		cnt
 	]
 	
 	init-locals: func [

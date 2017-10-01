@@ -2609,7 +2609,7 @@ red: context [
 		]
 		unless zero? locals-nb [						;-- init local words on stack
 			append init compose [
-				_function/init-locals (1 + locals-nb)
+				_function/init-locals (1 + locals-nb)	;-- +1 for /local refinement
 			]
 		]
 		name: decorate-symbol name
