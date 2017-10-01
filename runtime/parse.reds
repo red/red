@@ -88,7 +88,7 @@ parser: context [
 			if OPTION?(fun) [
 				rule/head: (as-integer cmd - block/rs-head rule) >> 4
 				if negative? rule/head [rule/head: 0]
-				unless fire-event fun words/event match? rule input [
+				unless fire-event fun words/event match? rule input fun-locs saved? [
 					return as red-value! logic/push match?
 				]
 			]
@@ -652,19 +652,33 @@ parser: context [
 		match? 	[logic!]
 		rule	[red-block!]
 		input   [red-series!]
+		locals	[integer!]
+		saved?	[logic!]
 		return: [logic!]
 		/local
 			loop? [logic!]
+			len	  [integer!]
+			saved [red-value!]
+			res	  [red-value!]
 	][
-		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
+		PARSE_SAVE_SERIES
+		saved: stack/top
 		
+		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
 		logic/push match?
 		stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		_function/call fun global-ctx					;FIXME: hardcoded origin context
+		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		
+		catch RED_THROWN_ERROR [_function/call fun global-ctx]	;FIXME: hardcoded origin context
+
+		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
+		if system/thrown <> 0 [reset saved? re-throw]
+		res: stack/get-top
+		stack/top: saved
+
 		stack/unwind
 		loop?: logic/top-true?
 		stack/pop 1
@@ -774,6 +788,7 @@ parser: context [
 			cnt-col	 [integer!]
 			saved	 [integer!]
 			before   [integer!]
+			fun-locs [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -801,7 +816,10 @@ parser: context [
 		max:	  -1
 		cnt:	   0
 		cnt-col:   0
+		fun-locs:  0
 		state:    ST_PUSH_BLOCK
+
+		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
