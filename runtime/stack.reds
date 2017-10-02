@@ -127,6 +127,7 @@ stack: context [										;-- call stack
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
 		ctop/ctx:	 fun/ctx
+		ctop/fctx:	 null
 		ctop/saved:  null
 		ctop: ctop + 1
 		arguments: top								;-- top of stack becomes frame base
