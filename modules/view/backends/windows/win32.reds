@@ -921,6 +921,14 @@ DwmIsCompositionEnabled!: alias function! [
 	return:		[integer!]
 ]
 
+GetDpiForMonitor!: alias function! [
+	hmonitor	[handle!]
+	dpiType		[integer!]
+	dpiX		[int-ptr!]
+	dpiY		[int-ptr!]
+	return:		[integer!]
+]
+
 XFORM!: alias struct! [
     eM11        [float32!]
     eM12        [float32!]
@@ -992,6 +1000,11 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		MonitorFromPoint: "MonitorFromPoint" [
+			pt			[tagPOINT value]
+			flags		[integer!]
+			return:		[handle!]
+		]
 		GetKeyboardLayout: "GetKeyboardLayout" [
 			idThread	[integer!]
 			return:		[integer!]

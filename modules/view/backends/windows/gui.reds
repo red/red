@@ -634,6 +634,32 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
+get-dpi: func [
+	/local
+		dll		[handle!]
+		fun1	[GetDpiForMonitor!]
+		monitor [handle!]
+		pt		[tagPOINT value]
+		dpi?	[logic!]
+][
+	dpi?: no
+	if win8+? [
+		dll: LoadLibraryA "shcore.dll"
+		if dll <> null [
+			pt/x: 1 pt/y: 1
+			monitor: MonitorFromPoint pt 2
+			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
+			fun1 monitor 0 :log-pixels-x :log-pixels-y
+			FreeLibrary dll
+			dpi?: yes
+		]
+	]
+	unless dpi? [
+		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
+		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
+	]
+]
+
 get-metrics: func [
 	/local
 		svm	[red-hash!]
@@ -700,9 +726,7 @@ init: func [
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
 
-	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
-	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-
+	get-dpi
 	unless winxp? [DX-init]
 	set-defaults
 
