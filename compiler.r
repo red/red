@@ -998,7 +998,7 @@ red: context [
 				if all [
 					not empty? ctx-stack
 					info: find-binding path/1
-					ctx: find objects info/1
+					ctx: find/skip skip objects 2 info/1 6
 				][
 					path: head insert copy path to word! form ctx/-2
 					set [found? fpath base] search-obj to path! path
