@@ -759,7 +759,7 @@ bitblt-memory-dc: func [
 	hWnd	[handle!]
 	alpha?	[logic!]
 	/local
-		rect	[RECT_STRUCT]
+		rect	[RECT_STRUCT value]
 		width	[integer!]
 		height	[integer!]
 		hBackDC [handle!]
@@ -769,7 +769,6 @@ bitblt-memory-dc: func [
 ][
 	dc: BeginPaint hWnd paint
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
-	rect: declare RECT_STRUCT
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
