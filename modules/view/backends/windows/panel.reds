@@ -17,11 +17,9 @@ init-panel: func [
 		parent	  [red-object!]
 		type	  [red-word!]
 		pair	  [red-pair!]
-		win-rect  [RECT_STRUCT]
-		calc-rect [RECT_STRUCT]
+		win-rect  [RECT_STRUCT value]
+		calc-rect [RECT_STRUCT value]
 ][
-	win-rect:  declare RECT_STRUCT
-	calc-rect: declare RECT_STRUCT
 	parent: as red-object! values + FACE_OBJ_PARENT
 
 	if TYPE_OF(parent) = TYPE_OBJECT [
@@ -36,12 +34,12 @@ init-panel: func [
 			SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
 
 			pair: as red-pair! values + FACE_OBJ_OFFSET
-			pair/x: calc-rect/left - win-rect/left - 3
-			pair/y: calc-rect/top  - win-rect/top - 1
+			pair/x: calc-rect/left - win-rect/left * 100 / dpi-factor - 3
+			pair/y: calc-rect/top  - win-rect/top * 100 / dpi-factor - 1
 
 			pair: as red-pair! values + FACE_OBJ_SIZE
-			pair/x: calc-rect/right  - calc-rect/left + 4
-			pair/y: calc-rect/bottom - calc-rect/top + 3
+			pair/x: calc-rect/right  - calc-rect/left * 100 / dpi-factor + 4
+			pair/y: calc-rect/bottom - calc-rect/top * 100 / dpi-factor + 3
 		]
 	]
 ]

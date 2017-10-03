@@ -68,6 +68,7 @@ hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 
+dpi-factor:		100
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
@@ -75,6 +76,20 @@ screen-size-y:	0
 default-font-name: as c-string! 0
 
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
+
+dpi-scale: func [
+	num		[integer!]
+	return: [integer!]
+][
+	num * dpi-factor / 100
+]
+
+dpi-unscale: func [
+	num		[integer!]
+	return: [integer!]
+][
+	num * 100 / dpi-factor
+]
 
 clean-up: does [
 	current-msg: null
@@ -650,6 +665,7 @@ get-dpi: func [
 			monitor: MonitorFromPoint pt 2
 			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
 			fun1 monitor 0 :log-pixels-x :log-pixels-y
+			dpi-factor: log-pixels-x * 100 / 96
 			FreeLibrary dll
 			dpi?: yes
 		]
@@ -1381,10 +1397,10 @@ OS-make-view: func [
 		class
 		caption
 		flags
-		offset/x
-		offset/y
-		size/x
-		size/y
+		dpi-scale offset/x
+		dpi-scale offset/y
+		dpi-scale size/x
+		dpi-scale size/y
 		as int-ptr! parent
 		as handle! id
 		hInstance
@@ -1419,8 +1435,8 @@ OS-make-view: func [
 				flags
 				0
 				0
-				size/x
-				size/y
+				dpi-scale size/x
+				dpi-scale size/y
 				handle
 				null
 				hInstance
@@ -1484,6 +1500,8 @@ change-size: func [
 		layer?	[logic!]
 		values	[red-value!]
 		pos		[red-pair!]
+		sz-x	[integer!]
+		sz-y	[integer!]
 ][
 	cx: 0
 	cy: 0
@@ -1501,11 +1519,13 @@ change-size: func [
 		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
 	]
 
+	sz-x: dpi-scale size/x
+	sz-y: dpi-scale size/y
 	SetWindowPos 
 		hWnd
 		as handle! 0
 		0 0
-		size/x + cx size/y + cy
+		sz-x + cx sz-y + cy
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
 
 	if layer? [
@@ -1514,7 +1534,7 @@ change-size: func [
 	]
 	case [
 		any [type = slider type = progress][
-			max: either size/x > size/y [size/x][size/y]
+			max: either sz-x > sz-y [sz-x][sz-y]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 		]
@@ -1526,9 +1546,9 @@ change-size: func [
 
 set-ime-pos: func [
 	hWnd	[handle!]
-	pos		[red-pair!]
+	pos-x	[integer!]
+	pos-y	[integer!]
 	/local
-
 		left	[integer!]
 		top		[integer!]
 		right	[integer!]
@@ -1538,8 +1558,8 @@ set-ime-pos: func [
 		dwStyle	[integer!]
 ][
 	dwStyle: 2			;-- CFS_POINT
-	x: pos/x
-	y: pos/y
+	x: pos-x
+	y: pos-y
 	ImmSetCompositionWindow hIMCtx as tagCOMPOSITIONFORM :dwStyle
 ]
 
@@ -1563,19 +1583,23 @@ change-offset: func [
 		layer?	[logic!]
 		x		[integer!]
 		y		[integer!]
+		pos-x	[integer!]
+		pos-y	[integer!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	header: 0
 	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
 
+	pos-x: dpi-scale pos/x
+	pos-y: dpi-scale pos/y
 	if all [					;-- caret widget
 		layer?
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
-		SetCaretPos pos/x pos/y
-		set-ime-pos hWnd pos
+		SetCaretPos pos-x pos-y
+		set-ime-pos hWnd pos-x pos-y
 	]
 
 	x: 0
@@ -1590,38 +1614,39 @@ change-offset: func [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
 
-			pt/x: pos/x
-			pt/y: pos/y
+			pt/x: pos-x
+			pt/y: pos-y
 			ClientToScreen owner (as tagPOINT pt) + 1
 			offset: as tagPOINT pt
 			offset/x: pt/x - GetWindowLong hWnd wc-offset - 4
 			offset/y: pt/y - GetWindowLong hWnd wc-offset - 8
-			pos: pt
-			SetWindowLong hWnd wc-offset - 4 pos/x
-			SetWindowLong hWnd wc-offset - 8 pos/y
+			pos-x: pt/x
+			pos-y: pt/y
+			SetWindowLong hWnd wc-offset - 4 pos-x
+			SetWindowLong hWnd wc-offset - 8 pos-y
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [
 				SetWindowPos
 					child
 					as handle! 0
-					pos/x pos/y
+					pos-x pos-y
 					0 0
 					flags
 			]
 		][
 			param: GetWindowLong hWnd wc-offset - 12
 			offset: as tagPOINT pt
-			offset/x: pos/x - WIN32_LOWORD(param)
-			offset/y: pos/y - WIN32_HIWORD(param)
+			offset/x: pos-x - WIN32_LOWORD(param)
+			offset/y: pos-y - WIN32_HIWORD(param)
 			update-layered-window hWnd null offset null -1
-			SetWindowLong hWnd wc-offset - 12 pos/y << 16 or (pos/x and FFFFh)
+			SetWindowLong hWnd wc-offset - 12 pos-y << 16 or (pos-x and FFFFh)
 		]
 	]
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		pos/x + x pos/y + y
+		x + pos-x y + pos-y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]
