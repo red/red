@@ -120,11 +120,11 @@ get-event-offset: func [
 				y: pt/y
 				pt: get-window-pos msg/hWnd
 				ClientToScreen msg/hWnd pt
-				offset/x: x - pt/x
-				offset/y: y - pt/y
+				offset/x: x - pt/x * 100 / dpi-factor
+				offset/y: y - pt/y * 100 / dpi-factor
 			][
-				offset/x: WIN32_LOWORD(value)
-				offset/y: WIN32_HIWORD(value)
+				offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
+				offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
 			]
 			as red-value! offset
 		]
@@ -742,7 +742,7 @@ process-custom-draw: func [
 				either sym = button [
 					flags: flags or DT_CENTER
 				][
-					rc/left: rc/left + 16
+					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
 					DrawText DC unicode/to-utf16 txt -1 rc flags
@@ -912,8 +912,8 @@ WndProc: func [
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
+				pt/x: winpos/x - pt/x - dpi-scale offset/x
+				pt/y: winpos/y - pt/y - dpi-scale offset/y
 				update-layered-window hWnd null pt winpos -1
 			]
 		]
@@ -945,8 +945,8 @@ WndProc: func [
 
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam)
-					offset/y: WIN32_HIWORD(lParam)
+					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/hWnd: hWnd
