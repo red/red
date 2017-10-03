@@ -450,6 +450,8 @@ words: context [
 	values:			-1
 	owner:			-1
 	owned:			-1
+	proto:			-1
+
 	
 	windows:		-1
 	syllable:		-1
@@ -698,6 +700,7 @@ words: context [
 		values:			symbol/make "values"
 		owner:			symbol/make "owner"
 		owned:			symbol/make "owned"
+		proto:			symbol/make "_proto"
 
 		_true:			symbol/make "true"
 		_false:			symbol/make "false"
