@@ -854,12 +854,11 @@ object: context [
 		s: as series! ctx/symbols/value
 		base: s/tail - s/offset
 		
-		s: as series! ctx/values/value
-		values: s/offset
-		
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
 				id: _context/add ctx as red-word! cell
+				s: as series! ctx/values/value
+				values: s/offset
 
 				value: cell + 1							;-- fetch next value to assign
 				while [all [
@@ -907,7 +906,7 @@ object: context [
 			ctx	 [red-context!]
 	][
 		obj: as red-object! stack/push*
-		make-at obj 4								;-- arbitrary value
+		make-at obj 4									;-- arbitrary value
 		obj/class: get-new-id
 		obj/on-set: null
 		ctx: GET_CTX(obj)
