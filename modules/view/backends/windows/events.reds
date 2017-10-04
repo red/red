@@ -881,7 +881,7 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
-		rc	   [RECT_STRUCT value]
+		rc	   [RECT_STRUCT]
 		values [red-value!]
 		font   [red-object!]
 		parent [red-object!]
@@ -1060,6 +1060,7 @@ WndProc: func [
 			if TYPE_OF(parent) = TYPE_OBJECT [
 				w-type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
 				if tab-panel = symbol/resolve w-type/symbol [
+					rc: rc-cache
 					GetClientRect hWnd rc
 					FillRect as handle! wParam rc GetSysColorBrush COLOR_WINDOW
 					return 1
@@ -1146,6 +1147,19 @@ WndProc: func [
 					return 0
 				]
 			]
+		]
+		WM_DPICHANGED [
+			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
+			log-pixels-y: log-pixels-y
+			dpi-factor: log-pixels-x * 100 / 96
+			rc: as RECT_STRUCT lParam
+			SetWindowPos 
+				hWnd
+				as handle! 0
+				rc/left rc/top
+				rc/right - rc/left rc/bottom - rc/top
+				SWP_NOZORDER or SWP_NOACTIVATE
+			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		default [0]
 	]

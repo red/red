@@ -75,6 +75,7 @@ screen-size-x:	0
 screen-size-y:	0
 default-font-name: as c-string! 0
 
+rc-cache:		declare RECT_STRUCT
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
 
 dpi-scale: func [
