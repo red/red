@@ -11,7 +11,7 @@ Red [
 ]
 
 debug-print: routine [str [string!]][
-	print-ctx/red-print-cli str yes
+	#if sub-system = 'console [print-ctx/red-print-cli str yes]
 ]
 
 #include %../console/engine.red

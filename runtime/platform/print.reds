@@ -37,7 +37,7 @@ print-ctx: context [
 
 	init: does [
 		prints: as print! allocate MAX_RED_PRINTS * size? print!
-		add as int-ptr! :red-print-cli null
+		#if sub-system = 'console [add as int-ptr! :red-print-cli null]
 	]
 
 	add: func [
@@ -93,6 +93,7 @@ print-ctx: context [
 		]
 	]
 
+	#if sub-system = 'console [
 	red-print-cli: func [
 		str		[red-string!]
 		lf?		[logic!]
@@ -129,5 +130,5 @@ print-ctx: context [
 			]
 			fflush 0
 		]
-	]
+	]]
 ]
