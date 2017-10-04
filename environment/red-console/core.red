@@ -42,6 +42,7 @@ object [
 	tab-size:	4
 	background: none
 	select-bg:	none							;-- selected text background color
+	pad-left:	3
 
 	theme: #(
 		background	[252.252.252]
@@ -61,6 +62,7 @@ object [
 
 	print: func [value [string!] /local str s cnt][
 		;if block? value [value: reduce value]
+		unless console/state [exit]
 		str: value
 		s: find str lf
 		either s [
@@ -177,6 +179,7 @@ object [
 			n: n + 1
 		]
 		offset: box/offset? pos + index? line
+		offset/x: offset/x + pad-left
 		offset/y: offset/y + h + scroll-y
 		if ask? [
 			either offset/y < console/size/y [
@@ -214,6 +217,7 @@ object [
 		offset: event/offset
 		if any [offset/y < line-y offset/y > (line-y + last heights)][exit]
 
+		offset/x: offset/x - pad-left
 		offset/y: offset/y - line-y
 		box/text: head line
 		box/layout
@@ -372,7 +376,8 @@ object [
 
 	process-shortcuts: function [event [event!]][
 		switch event/key [
-			#"^C"	[probe "copy"]
+			#"^C"	[debug-print "TBD: copy"]
+			#"^V"	[debug-print "TBD: paste"]
 		]
 	]
 
@@ -513,6 +518,7 @@ object [
 	paint: func [/local str cmds y n h cnt delta num end styles][
 		unless line [exit]
 		cmds: [text 0x0 text-box]
+		cmds/2/x: pad-left
 		cmds/3: box
 		end: console/size/y
 		y: scroll-y

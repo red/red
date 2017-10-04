@@ -212,10 +212,9 @@ OS-text-box-metrics: func [
 	as red-value! switch type [
 		TBOX_METRICS_OFFSET? [
 			x: as float32! 0.0 y: as float32! 0.0
-			;int: as red-integer! arg0
-			hr: as-integer arg0
+			int: as red-integer! arg0
 			hit: as DWRITE_HIT_TEST_METRICS :left
-			dl/HitTestTextPosition this hr - 1 no :x :y hit
+			dl/HitTestTextPosition this int/value - 1 no :x :y hit
 			if y < as float32! 0.0 [y: as float32! 0.0]
 			pair/push as-integer x + as float32! 0.5 as-integer y
 		]
@@ -242,7 +241,8 @@ OS-text-box-metrics: func [
 			lineCount: 0
 			dl/GetLineMetrics this line-metrics max-line-cnt :lineCount
 			lm: line-metrics
-			hr: as-integer arg0
+			int: as red-integer! arg0
+			hr: int/value
 			while [
 				hr: hr - lm/length
 				lineCount: lineCount - 1

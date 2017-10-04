@@ -558,6 +558,16 @@ BaseWndProc: func [
 			do-draw hWnd as red-image! wParam draw no no no yes
 			return 0
 		]
+		WM_SETCURSOR [
+			w: GetWindowLong as handle! wParam wc-offset - 28
+			if all [
+				w <> 0
+				w and 80000000h <> 0					;-- inside client area
+			][
+				SetCursor as handle! (w and 7FFFFFFFh)
+				return 1
+			]
+		]
 		default [0]
 	]
 	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [

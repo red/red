@@ -10,6 +10,10 @@ Red [
 	Rights:  "Copyright (C) 2016-2017 Qingtian Xie. All rights reserved."
 ]
 
+debug-print: routine [str [string!]][
+	print-ctx/red-print-cli str yes
+]
+
 #include %../console/engine.red
 #include %../console/auto-complete.red
 #include %highlight.red
@@ -82,7 +86,7 @@ red-console-ctx: context [
 
 	caret: make face! [
 		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2
-		options: reduce ['caret console]
+		options: compose [caret (console) cursor: I-beam]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = 0.0.0.1 [255.255.255.254][0.0.0.1]
