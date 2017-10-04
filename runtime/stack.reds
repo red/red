@@ -120,7 +120,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-		if ctop = c-end [
+		if ctop >= c-end [
 			top: top - 4								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
@@ -144,7 +144,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark-func"]]
 
-		if ctop = c-end [
+		if ctop >= c-end [
 			top: top - 4								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
@@ -419,7 +419,7 @@ stack: context [										;-- call stack
 			natives/print* no
 			quit -2
 		]
-		stack/push as red-value! err
+		push as red-value! err
 		throw RED_THROWN_ERROR
 	]
 	
@@ -589,7 +589,7 @@ stack: context [										;-- call stack
 		cell: top
 		top: top + 1
 		if top >= a-end [
-			top: top - 4								;-- make space within the stack for error processing
+			top: top - 5								;-- make space within the stack for error processing
 			fire [TO_ERROR(internal stack-overflow)]
 		]
 		cell
