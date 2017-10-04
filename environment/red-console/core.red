@@ -6,7 +6,7 @@ Red [
 	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
 ]
 
-terminal!: object [
+object [
 	lines:		make block! 1000				;-- line buffer
 	nlines:		make block! 1000				;-- line count of each line, will change according to window width
 	heights:	make block! 1000				;-- height of each (wrapped) line, in pixels
@@ -37,11 +37,7 @@ terminal!: object [
 	hist-line:	none							;-- for saving the current editing line
 	hist-pos:	0								;-- current editing line's caret position
 
-	box:		make text-box! []
-	caret:		none							;-- caret face
-	scroller:	none							;-- scroller face
-	target:		none							;-- target base face
-	tips:		none
+	box:		make text-box! [target: console]
 
 	tab-size:	4
 	background: none
@@ -63,12 +59,9 @@ terminal!: object [
 		comment!	[128.128.128]
 	)
 
-	draw: get 'system/view/platform/draw-face
-	redraw: get 'system/view/platform/redraw
-
-	print: func [value [any-type!] /local str s cnt][
-		if block? value [value: reduce value]
-		str: form value
+	print: func [value [string!] /local str s cnt][
+		;if block? value [value: reduce value]
+		str: value
 		s: find str lf
 		either s [
 			cnt: 0
@@ -77,7 +70,7 @@ terminal!: object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
-					redraw target
+					system/view/platform/redraw console
 					loop 3 [do-events/no-wait]
 					cnt: 0
 				]
@@ -91,7 +84,7 @@ terminal!: object [
 		][
 			add-line str
 		]
-		redraw target
+		system/view/platform/redraw console
 		do-events/no-wait
 		last-lf?: yes
 		()				;-- return unset!
@@ -129,7 +122,7 @@ terminal!: object [
 	update-theme: func [][
 		background: first select theme 'background
 		select-bg:  reduce ['backdrop first select theme 'selected]
-		target/color: background
+		console/color: background
 	]
 
 	update-cfg: func [font [object!] cfg [block!]][
@@ -170,7 +163,7 @@ terminal!: object [
 		][0]
 		if n <> 0 [
 			scroll-lines n
-			redraw target
+			system/view/platform/redraw console
 		]
 	]
 
@@ -186,7 +179,7 @@ terminal!: object [
 		offset: box/offset? pos + index? line
 		offset/y: offset/y + h + scroll-y
 		if ask? [
-			either offset/y < target/size/y [
+			either offset/y < console/size/y [
 				caret/offset: offset
 				unless caret/visible? [caret/visible?: yes]
 			][
@@ -239,7 +232,7 @@ terminal!: object [
 
 	mouse-up: func [event [event!]][
 		mouse-up?: yes
-		redraw target
+		system/view/platform/redraw console
 	]
 
 	mouse-move: func [event [event!]][
@@ -248,7 +241,7 @@ terminal!: object [
 		clear skip selects 2
 		offset-to-line event/offset
 		mouse-to-caret event
-		redraw target
+		system/view/platform/redraw console
 	]
 
 	move-caret: func [n][
@@ -374,7 +367,7 @@ terminal!: object [
 		]
 		pos: ime-pos + length? text
 		calc-top/edit
-		redraw target
+		system/view/platform/redraw console
 	]
 
 	process-shortcuts: function [event [event!]][
@@ -437,7 +430,7 @@ terminal!: object [
 		clear line
 		append line str
 		pos: p
-		redraw target
+		system/view/platform/redraw console
 	]
 
 	press-key: func [event [event!] /local char][
@@ -467,10 +460,10 @@ terminal!: object [
 				pos: pos + 1
 			]
 		]
-		target/rate: 6
+		console/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
-		redraw target
+		system/view/platform/redraw console
 	]
 
 	show-tips: function [candidates [block!]][
@@ -521,7 +514,7 @@ terminal!: object [
 		unless line [exit]
 		cmds: [text 0x0 text-box]
 		cmds/3: box
-		end: target/size/y
+		end: console/size/y
 		y: scroll-y
 		n: top
 		num: line-cnt
@@ -533,7 +526,7 @@ terminal!: object [
 			box/layout
 			clear styles
 			cmds/2/y: y
-			draw target cmds
+			system/view/platform/draw-face console cmds
 
 			h: box/height
 			cnt: box/line-count

@@ -37,7 +37,7 @@ system/console: context [
 	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
 	ws:		 charset " ^/^M^-"
 
-	gui?:	yes  ;#system [logic/box #either gui-console? = yes [yes][no]]
+	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
 	read-argument: function [][
 		if args: system/script/args [

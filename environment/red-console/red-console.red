@@ -1,5 +1,5 @@
 Red [
-	Title:	 "Red RPEL Console"
+	Title:	 "Red Console"
 	Author:	 "Qingtian Xie"
 	File:	 %console.red
 	Tabs:	 4
@@ -7,42 +7,19 @@ Red [
 	Version: 0.0.1
 	Needs:	 View
 	Config:	 [gui-console?: yes red-help?: yes]
-	Rights:  "Copyright (C) 2016 Qingtian Xie. All rights reserved."
+	Rights:  "Copyright (C) 2016-2017 Qingtian Xie. All rights reserved."
 ]
 
 #include %../console/engine.red
 #include %../console/auto-complete.red
 #include %highlight.red
 #include %tips.red
-#include %core.red
-
-ask: function [
-	question [string!]
-	return:  [string!]
-][
-	unless red-console-ctx/console/state [
-		return "quit"
-	]
-	line: make string! 8
-	line: insert line question
-	vt: red-console-ctx/terminal
-	vt/line: line
-	vt/pos: 0
-	vt/add-line line
-	vt/ask?: yes
-	vt/redraw vt/target
-	do-events
-	vt/ask?: no
-	line
-]
-
-do [
 
 red-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
-	font:		make font! [name: font-fixed size: 11 color: 0.0.0]
-	terminal:	make terminal! []
+	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
+	scroller:	make scroller! []
 
 	console: make face! [
 		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
@@ -91,18 +68,15 @@ red-console-ctx: context [
 			]
 		]
 
-		init: func [/local box scroller][
-			terminal/target: self
+		init: func [/local box][
 			box: terminal/box
 			box/fixed?: yes
-			box/target: self
 			box/styles: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar
 			scroller: get-scroller self 'vertical
 			scroller/position: 1
 			scroller/max-size: 2
-			terminal/scroller: scroller
 		]
 	]
 
@@ -116,6 +90,8 @@ red-console-ctx: context [
 		]
 	]
 	tips: make tips! [visible?: no]
+
+	terminal: #include %core.red
 
 	fstk-logo: load/as 64#{iVBORw0KGgoAAAANSUhEUgAAAD4AAAA/CAIAAAA3/+y2AAAACXBIWXMAABJ
 		 0AAASdAHeZh94AAAGr0lEQVR4nNVaTW8kVxU9975XVf0xthNDBMoi4m8EwTZZsEAiG9jwM9jzE/gB
@@ -297,8 +273,6 @@ red-console-ctx: context [
 				unless system/view/auto-sync? [show face]
 			]
 		]
-		terminal/caret: caret
-		terminal/tips: tips
 		tips/parent: win
 	]
 
@@ -308,8 +282,6 @@ red-console-ctx: context [
 	]
 
 	launch: func [/local svs][
-		set 'print :terminal/print			;-- custom print
-
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
 
@@ -325,6 +297,34 @@ red-console-ctx: context [
 	]
 ]
 
-red-console-ctx/launch
-
+ask: function [
+	question [string!]
+	return:  [string!]
+][
+	unless red-console-ctx/console/state [
+		return "quit"
+	]
+	line: make string! 8
+	line: insert line question
+	;vt: red-console-ctx/terminal
+	red-console-ctx/terminal/line: line
+	red-console-ctx/terminal/pos: 0
+	red-console-ctx/terminal/add-line line
+	red-console-ctx/terminal/ask?: yes
+	system/view/platform/redraw red-console-ctx/console
+	do-events
+	red-console-ctx/terminal/ask?: no
+	line
 ]
+
+#system [
+	red-print: func [
+		str		[red-string!]
+		lf?		[logic!]
+	][
+		#call [red-console-ctx/terminal/print str]
+	]
+	print-ctx/add as int-ptr! :red-print null
+]
+
+red-console-ctx/launch
