@@ -3432,7 +3432,7 @@ red: context [
 					decorate-exec-ctx decorate-symbol name
 					get-func-ctx original ctx-name
 				]
-				insert-lf -2
+				insert-lf -3
 			][
 				emit-open-frame/with name spec/1 ctx-name
 			]
