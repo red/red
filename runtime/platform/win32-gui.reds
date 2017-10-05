@@ -10,56 +10,43 @@ Red/System [
 	}
 ]
 
-vprint!: alias function! [
-	str		[byte-ptr!]
-	size	[integer!]
-	unit	[integer!]
-	nl?		[logic!]
-]
-
 ;-------------------------------------------
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
 sprintf-buf: as byte-ptr! "0000000000000000000000000000000"			;-- 32 bytes wide, big enough.
 
-prin*: func [s [c-string!] return: [c-string!] /local vprint][
-	vprint: as vprint! gui-print
-	vprint as byte-ptr! s -1 Latin1 no
+prin*: func [s [c-string!] return: [c-string!]][
+	dyn-print/rs-print as byte-ptr! s -1 Latin1 no
 	s
 ]
 
-prin-int*: func [i [integer!] return: [integer!] /local vprint][
+prin-int*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%i" i]
-	vprint: as vprint! gui-print
-	vprint sprintf-buf -1 Latin1 no
+	dyn-print/rs-print sprintf-buf -1 Latin1 no
 	i
 ]
 
-prin-2hex*: func [i [integer!] return: [integer!] /local vprint][
+prin-2hex*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%02X" i]
-	vprint: as vprint! gui-print
-	vprint sprintf-buf -1 Latin1 no
+	dyn-print/rs-print sprintf-buf -1 Latin1 no
 	i
 ]
 
-prin-hex*: func [i [integer!] return: [integer!] /local vprint][
+prin-hex*: func [i [integer!] return: [integer!]][
 	sprintf [sprintf-buf "%08X" i]
-	vprint: as vprint! gui-print
-	vprint sprintf-buf -1 Latin1 no
+	dyn-print/rs-print sprintf-buf -1 Latin1 no
 	i
 ]
 
-prin-float*: func [f [float!] return: [float!] /local vprint][
+prin-float*: func [f [float!] return: [float!]][
 	sprintf [sprintf-buf "%.16g" f]
-	vprint: as vprint! gui-print
-	vprint sprintf-buf -1 Latin1 no
+	dyn-print/rs-print sprintf-buf -1 Latin1 no
 	f
 ]
 
-prin-float32*: func [f [float32!] return: [float32!] /local vprint][
+prin-float32*: func [f [float32!] return: [float32!]][
 	sprintf [sprintf-buf "%.7g" as-float f]
-	vprint: as vprint! gui-print
-	vprint sprintf-buf -1 Latin1 no
+	dyn-print/rs-print sprintf-buf -1 Latin1 no
 	f
 ]

@@ -71,7 +71,8 @@ dyn-print: context [
 		red-print	[int-ptr!]			;-- function pointer for Red print
 		rs-print	[int-ptr!]			;-- function pointer for Red/System print
 	][
-		
+		remove-print red-print red-prints :red-cnt 
+		remove-print rs-print rs-prints :rs-cnt 
 	]
 
 	red-print: func [
@@ -114,18 +115,32 @@ dyn-print: context [
 		#if sub-system = 'console [add as int-ptr! :red-print-cli null]
 	]
 
-	;get-free-slot: func [
-	;	return: [print!]
-	;	/local
-	;		p	[print!]
-	;][
-	;	p: prints
-	;	loop prints-cnt [
-	;		if p/id = -1 [return p]
-	;		p: p + 1
-	;	]
-	;	p + prints-cnt
-	;]
+	remove-print: func [
+		ptr			[int-ptr!]
+		prints		[ptr-array!]
+		cnt			[int-ptr!]
+		/local
+			n		[integer!]
+			p		[ptr-array!]
+			end		[ptr-array!]
+	][
+		if ptr <> null [
+			n: cnt/value
+			p: prints
+			end: p + n
+			loop n [
+				if p/ptr = ptr [
+					move-memory
+						as byte-ptr! p
+						as byte-ptr! (p + 1)
+						as-integer end - p - 1
+					cnt/value: n - 1
+					break
+				]
+				p: p + 1
+			]
+		]
+	]
 
 	#if sub-system = 'console [
 	red-print-cli: func [
