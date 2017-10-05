@@ -458,7 +458,14 @@ word: context [
 				]
 			]
 			COMP_STRICT_EQUAL_WORD [
-				res: as-integer arg1/symbol <> arg2/symbol
+				either any [
+					all [TYPE_OF(arg1) = TYPE_WORD type = TYPE_LIT_WORD]
+					all [TYPE_OF(arg1) = TYPE_LIT_WORD type = TYPE_WORD]
+				][
+					res: as-integer arg1/symbol <> arg2/symbol
+				][
+					res: as-integer any [type <> TYPE_OF(arg1) arg1/symbol <> arg2/symbol]
+				]
 			]
 			default [
 				s: GET_BUFFER(symbols)
