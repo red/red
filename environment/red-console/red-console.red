@@ -1,5 +1,5 @@
 Red [
-	Title:	 "Red Console"
+	Title:	 "Red GUI Console"
 	Author:	 "Qingtian Xie"
 	File:	 %console.red
 	Tabs:	 4
@@ -10,8 +10,18 @@ Red [
 	Rights:  "Copyright (C) 2016-2017 Qingtian Xie. All rights reserved."
 ]
 
-debug-print: routine [str [string!]][
-	#if sub-system = 'console [print-ctx/red-print-cli str yes]
+debug-print: routine [arg [any-type!] /local blk [red-block!]][
+	#if sub-system = 'console [
+		if TYPE_OF(arg) = TYPE_BLOCK [
+			block/rs-clear natives/buffer-blk
+			stack/push as red-value! natives/buffer-blk
+			natives/reduce* no 1
+			blk: as red-block! arg
+			blk/head: 0						;-- head changed by reduce/into
+		]
+		actions/form* -1
+		dyn-print/red-print-cli as red-string! stack/arguments yes
+	]
 ]
 
 #include %../console/engine.red
@@ -322,13 +332,13 @@ ask: function [
 ]
 
 #system [
-	red-print: func [
+	red-print-gui: func [
 		str		[red-string!]
 		lf?		[logic!]
 	][
 		#call [red-console-ctx/terminal/print str]
 	]
-	print-ctx/add as int-ptr! :red-print null
+	dyn-print/add as int-ptr! :red-print-gui null
 ]
 
 red-console-ctx/launch

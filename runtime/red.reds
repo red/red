@@ -33,13 +33,13 @@ red: context [
 	;-- Datatypes --
 	
 	#include %datatypes/structures.reds
+	#include %print.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
 	#include %case-folding.reds
 	#include %sort.reds
 	#include %hashtable.reds
 	#include %ownership.reds
-	#include %platform/print.reds
 	
 	;--------------------------------------------
 	;-- Import OS dependent image functions
@@ -134,7 +134,7 @@ red: context [
 	;-- Booting... --
 	
 	init: does [
-		print-ctx/init
+		dyn-print/init
 		platform/init
 		_random/init
 		init-mem										;@@ needs a local context

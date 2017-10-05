@@ -648,7 +648,7 @@ terminal: context [
 
 		reset-vt vt
 		OS-init vt
-		print-ctx/add as int-ptr! :red-print as int-ptr! :rs-print
+		dyn-print/add as int-ptr! :red-print as int-ptr! :rs-print
 	]
 
 	close: func [

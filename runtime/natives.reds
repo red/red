@@ -697,7 +697,7 @@ natives: context [
 			TYPE_OF(str) = TYPE_STRING
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
-		print-ctx/red-print str lf?
+		dyn-print/red-print str lf?
 		last-lf?: no
 		stack/set-last unset-value
 	]
