@@ -291,8 +291,8 @@ get-text-size: func [
 
 	SelectObject hScreen saved
 	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+		pair/x: size/width * 100 / dpi-factor
+		pair/y: size/height * 100 / dpi-factor
 	]
 	size
 ]

@@ -279,7 +279,7 @@ draw-begin: func [
 	return: 	[draw-ctx!]
 	/local
 		dc		 [handle!]
-		rect	 [RECT_STRUCT]
+		rect	 [RECT_STRUCT value]
 		width	 [integer!]
 		height	 [integer!]
 		hBitmap  [handle!]
@@ -331,7 +331,6 @@ draw-begin: func [
 	ptrn:									as red-image! ctx/other/pattern-image-pen
 	ptrn/node:								null
 
-	rect: declare RECT_STRUCT
 	either null? hWnd [
 		ctx/on-image?: yes
 		either on-graphic? [
@@ -376,10 +375,13 @@ draw-begin: func [
 			graphics: 0
 			GdipCreateFromHDC dc :graphics
 			SelectObject dc GetStockObject NULL_BRUSH
-			if dpi-factor <> 100 [
-				ratio: (as float32! dpi-factor) / (as float32! 100.0)
-				GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
-			]
+		]
+	]
+
+	if any [hWnd <> null on-graphic?][
+		if dpi-factor <> 100 [
+			ratio: (as float32! dpi-factor) / (as float32! 100.0)
+			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
 		]
 	]
 
