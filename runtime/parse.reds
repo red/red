@@ -1252,6 +1252,7 @@ parser: context [
 								new/node = input/node
 							][
 								input/head: new/head
+								PARSE_CHECK_INPUT_EMPTY?
 								state: ST_NEXT_ACTION
 							][
 								PARSE_ERROR [TO_ERROR(script parse-invalid-ref) value]
