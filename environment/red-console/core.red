@@ -385,7 +385,7 @@ object [
 		str		[string!]
 		char	[char!]
 		/local
-			p-idx candidates saved saved-pos
+			p-idx candidates str2
 	][
 		p-idx: index? str
 		candidates: red-complete-input skip str pos yes
@@ -400,16 +400,9 @@ object [
 				append str head candidates/1
 			]
 			true [
-				saved: at copy head str p-idx
-				saved-pos: pos
-				clear str
-				foreach s next candidates [
-					append str s
-					append str #" "
-				]
-				pos: saved-pos
-				line: saved
-				add-line saved
+				str2: form next candidates
+				poke lines length? lines str2
+				add-line line
 			]
 		]
 	]
