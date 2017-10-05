@@ -985,13 +985,14 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		remove-func-pointers: has [vars name][
+		remove-func-pointers: has [vars name type][
 			vars: any [find/tail locals /local []]
 			forall vars [
 				if all [
 					word? vars/1
 					block? vars/2
-					vars/2/1 = 'function!
+					type: resolve-aliased vars/2
+					type/1 = 'function!
 				][
 					name: decorate-function vars/1
 					remove/part find functions name 2
