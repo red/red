@@ -38,6 +38,7 @@ object [
 	hist-pos:	0								;-- current editing line's caret position
 
 	clipboard:	none
+	clip-buf:	make string! 20
 	box:		make text-box! [target: console]
 
 	tab-size:	4
@@ -376,8 +377,45 @@ object [
 	]
 
 
-	copy-selection: func [][
-		debug-print "TBD: copy"
+	copy-selection: func [
+		/local start-n end-n start-idx end-idx len n str swap?
+	][
+		if any [empty? selects 3 > length? selects][exit]
+
+		swap?: selects/1 > selects/3
+		if swap? [move/part skip selects 2 selects 2]				;-- swap start and end
+		set [start-n start-idx end-n end-idx] selects
+		if all [start-n = end-n start-idx = end-idx][				;-- select nothing
+			if swap? [move/part skip selects 2 selects 2]
+			exit
+		]
+
+		clear clip-buf
+		either start-n = end-n [
+			len: end-idx - start-idx
+			if len < 0 [start-idx: end-idx len: 0 - len]
+			insert/part clip-buf at head pick lines start-n start-idx len
+		][
+			n: start-n
+			until [
+				str: head pick lines n
+				case [
+					n = start-n [
+						append clip-buf at str start-idx
+						append clip-buf #"^/"
+					]
+					n = end-n	[append/part clip-buf str end-idx - 1]
+					true		[
+						append clip-buf str
+						append clip-buf #"^/"
+					]
+				]
+				n: n + 1
+				n > end-n
+			]
+		]
+		if swap? [move/part skip selects 2 selects 2]
+		write-clipboard clip-buf
 	]
 
 	paste: func [/resume /local nl? start end][
