@@ -1,16 +1,20 @@
 Red [
 	Title:	 "Red GUI Console"
 	Author:	 "Qingtian Xie"
-	File:	 %console.red
+	File:	 %red-console.red
 	Tabs:	 4
 	Icon:	 %app.ico
 	Version: 0.0.1
 	Needs:	 View
 	Config:	 [gui-console?: yes red-help?: yes]
-	Rights:  "Copyright (C) 2016-2017 Qingtian Xie. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/red/red/blob/master/BSL-License.txt
+	}
 ]
 
 debug-print: routine [arg [any-type!] /local blk [red-block!]][
+	"Output debug info to CLI console only"
 	#if sub-system = 'console [
 		if TYPE_OF(arg) = TYPE_BLOCK [
 			block/rs-clear natives/buffer-blk
@@ -24,6 +28,7 @@ debug-print: routine [arg [any-type!] /local blk [red-block!]][
 	]
 ]
 
+#include %../console/help.red
 #include %../console/engine.red
 #include %../console/auto-complete.red
 #include %highlight.red
@@ -251,13 +256,19 @@ red-console-ctx: context [
 		append win/pane reduce [console tips caret]
 		win/menu: [
 			"File" [
-				"About"				about-msg
+				"Open..."			open-file
 				---
 				"Quit"				quit
 			]
 			"Options" [
 				"Choose Font..."	choose-font
-				"Settings..."		settings
+				;"Settings..."		settings
+			]
+			"Plugins" [
+				"Add..."			add-plugin
+			]
+			"Help" [
+				"About"				about-msg
 			]
 		]
 		win/actors: object [
@@ -341,7 +352,7 @@ ask: function [
 		str		[red-string!]
 		lf?		[logic!]
 	][
-		#call [red-console-ctx/terminal/vprint str]
+		#call [red-console-ctx/terminal/vprint str lf?]
 	]
 	dyn-print/add as int-ptr! :red-print-gui null
 ]

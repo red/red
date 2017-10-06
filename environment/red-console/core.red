@@ -37,8 +37,9 @@ object [
 	hist-line:	none							;-- for saving the current editing line
 	hist-pos:	0								;-- current editing line's caret position
 
-	clipboard:	none
-	clip-buf:	make string! 20
+	prin-buf:	make string! 50					;-- buffer for prin
+	clip-buf:	make string! 20					;-- buffer for copy into clipboard
+	clipboard:	none							;-- data in clipboard for pasting
 	box:		make text-box! [target: console]
 
 	tab-size:	4
@@ -67,10 +68,12 @@ object [
 		loop 3 [do-events/no-wait]
 	]
 
-	vprint: func [value [string!] /local str s cnt][
-		;if block? value [value: reduce value]
+	vprin: func [str [string!]][
+		append prin-buf str
+	]
+
+	vprint: func [str [string!] lf? [logic!] /local s cnt][
 		unless console/state [exit]
-		str: value
 		s: find str lf
 		either s [
 			cnt: 0
@@ -84,16 +87,15 @@ object [
 				]
 				not s: find str lf
 			]
-			either lf = last str [
+			either str/1 = lf [
 				add-line ""
 			][
-				add-line copy str
+				either lf? [add-line copy str][vprin str]
 			]
 		][
-			add-line str
+			either lf? [add-line str][vprin str]
 		]
 		refresh
-		last-lf?: yes
 		()				;-- return unset!
 	]
 
@@ -106,6 +108,10 @@ object [
 	]
 
 	add-line: func [str][
+		unless empty? prin-buf [
+			str: append copy prin-buf str
+			clear prin-buf
+		]
 		append lines str
 		either full? [
 			delta-cnt: first nlines
