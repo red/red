@@ -1044,7 +1044,7 @@ get-screen-size: func [
 ][
 	screen-size-x: GetDeviceCaps hScreen HORZRES
 	screen-size-y: GetDeviceCaps hScreen VERTRES
-	pair/push screen-size-x screen-size-y
+	pair/push screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
 ]
 
 dwm-composition-enabled?: func [
