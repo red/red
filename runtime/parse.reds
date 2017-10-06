@@ -852,6 +852,7 @@ parser: context [
 				]
 				ST_POP_BLOCK [
 					either 3 = block/rs-length? rules [
+						PARSE_TRACE(_pop)
 						state: ST_END
 					][
 						loop?: no
