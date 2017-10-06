@@ -75,8 +75,8 @@ red-console-ctx: context [
 			]
 			on-menu: func [face [object!] event [event!]][
 				switch event/picked [
-					copy		[probe 'TBD]
-					paste		['TBD]
+					copy		[terminal/copy-selection]
+					paste		[terminal/paste]
 					select-all	['TBD]
 				]
 			]
@@ -320,13 +320,18 @@ ask: function [
 	]
 	line: make string! 8
 	line: insert line question
+	
 	;vt: red-console-ctx/terminal
 	red-console-ctx/terminal/line: line
 	red-console-ctx/terminal/pos: 0
 	red-console-ctx/terminal/add-line line
 	red-console-ctx/terminal/ask?: yes
 	system/view/platform/redraw red-console-ctx/console
-	do-events
+	either red-console-ctx/terminal/paste/resume [
+		do-events/no-wait
+	][
+		do-events
+	]
 	red-console-ctx/terminal/ask?: no
 	line
 ]
@@ -336,7 +341,7 @@ ask: function [
 		str		[red-string!]
 		lf?		[logic!]
 	][
-		#call [red-console-ctx/terminal/print str]
+		#call [red-console-ctx/terminal/vprint str]
 	]
 	dyn-print/add as int-ptr! :red-print-gui null
 ]

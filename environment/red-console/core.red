@@ -37,6 +37,7 @@ object [
 	hist-line:	none							;-- for saving the current editing line
 	hist-pos:	0								;-- current editing line's caret position
 
+	clipboard:	none
 	box:		make text-box! [target: console]
 
 	tab-size:	4
@@ -60,7 +61,7 @@ object [
 		comment!	[128.128.128]
 	)
 
-	print: func [value [string!] /local str s cnt][
+	vprint: func [value [string!] /local str s cnt][
 		;if block? value [value: reduce value]
 		unless console/state [exit]
 		str: value
@@ -374,10 +375,35 @@ object [
 		system/view/platform/redraw console
 	]
 
+
+	copy-selection: func [][
+		debug-print "TBD: copy"
+	]
+
+	paste: func [/resume /local nl? start end][
+		unless resume [clipboard: read-clipboard]
+		if all [clipboard not empty? clipboard][
+			start: clipboard
+			end: find clipboard #"^M"
+			either end [nl?: yes][nl?: no end: tail clipboard]
+			insert/part skip line pos start end
+			pos: pos + offset? start end
+			clipboard: skip end either end/2 = #"^/" [2][1]
+			if nl? [
+				caret/visible?: no
+				insert history line
+				system/view/platform/exit-event-loop
+			]
+			calc-top/edit
+			system/view/platform/redraw console
+		]
+		not empty? clipboard
+	]
+
 	process-shortcuts: function [event [event!]][
 		switch event/key [
-			#"^C"	[debug-print "TBD: copy"]
-			#"^V"	[debug-print "TBD: paste"]
+			#"^C"	[copy-selection]
+			#"^V"	[paste]
 		]
 	]
 
