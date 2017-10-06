@@ -663,7 +663,8 @@ parser: context [
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
-		
+		stack/top: stack/top + 1						;-- keep last value from paren expression
+
 		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
 		logic/push match?
@@ -676,12 +677,10 @@ parser: context [
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
-		res: stack/get-top
-		stack/top: saved
 
-		stack/unwind
 		loop?: logic/top-true?
-		stack/pop 1
+		stack/unwind
+		stack/top: saved
 		loop?
 	]
 	
