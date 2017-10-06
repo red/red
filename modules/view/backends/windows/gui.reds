@@ -1214,6 +1214,8 @@ OS-make-view: func [
 		panel?	  [logic!]
 		alpha?	  [logic!]
 		para?	  [logic!]
+		off-x	  [integer!]
+		off-y	  [integer!]
 		rc		  [RECT_STRUCT value]
 ][
 	stack/mark-native words/_body
@@ -1357,11 +1359,11 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
 			rc/left: 0
 			rc/top: 0
-			rc/right: size/x
-			rc/bottom: size/y
+			rc/right:  dpi-scale size/x
+			rc/bottom: dpi-scale size/y
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
-			size/x: rc/right - rc/left
-			size/y: rc/bottom - rc/top
+			rc/right: rc/right - rc/left
+			rc/bottom: rc/bottom - rc/top
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1383,7 +1385,7 @@ OS-make-view: func [
 	]
 
 	unless any [DWM-enabled? alpha? bits and FACET_FLAGS_EDITABLE <> 0][
-			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+		ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 	]
 
 	if all [
@@ -1393,15 +1395,22 @@ OS-make-view: func [
 		parent: as-integer evolve-base-face as handle! parent
 	]
 
+	off-x:	dpi-scale offset/x
+	off-y:	dpi-scale offset/y
+	if sym <> window [
+		rc/right:	dpi-scale size/x
+		rc/bottom:	dpi-scale size/y
+	]
+
 	handle: CreateWindowEx
 		ws-flags
 		class
 		caption
 		flags
-		dpi-scale offset/x
-		dpi-scale offset/y
-		dpi-scale size/x
-		dpi-scale size/y
+		off-x
+		off-y
+		rc/right
+		rc/bottom
 		as int-ptr! parent
 		as handle! id
 		hInstance
@@ -1436,8 +1445,8 @@ OS-make-view: func [
 				flags
 				0
 				0
-				dpi-scale size/x
-				dpi-scale size/y
+				rc/right
+				rc/bottom
 				handle
 				null
 				hInstance
@@ -1477,8 +1486,8 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle bits
-			offset/x: offset/x - rc/left
-			offset/y: offset/y - rc/top
+			offset/x: off-x - rc/left * 100 / dpi-factor
+			offset/y: off-y - rc/top * 100 / dpi-factor
 		]
 		true [0]
 	]
