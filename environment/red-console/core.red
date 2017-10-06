@@ -62,6 +62,11 @@ object [
 		comment!	[128.128.128]
 	)
 
+	refresh: does [
+		system/view/platform/redraw console
+		loop 3 [do-events/no-wait]
+	]
+
 	vprint: func [value [string!] /local str s cnt][
 		;if block? value [value: reduce value]
 		unless console/state [exit]
@@ -74,8 +79,7 @@ object [
 				str: skip s 1
 				cnt: cnt + 1
 				if cnt = 100 [
-					system/view/platform/redraw console
-					loop 3 [do-events/no-wait]
+					refresh
 					cnt: 0
 				]
 				not s: find str lf
@@ -88,8 +92,7 @@ object [
 		][
 			add-line str
 		]
-		system/view/platform/redraw console
-		do-events/no-wait
+		refresh
 		last-lf?: yes
 		()				;-- return unset!
 	]
@@ -430,7 +433,7 @@ object [
 			if nl? [
 				caret/visible?: no
 				insert history line
-				system/view/platform/exit-event-loop
+				unless resume [system/view/platform/exit-event-loop]
 			]
 			calc-top/edit
 			system/view/platform/redraw console
