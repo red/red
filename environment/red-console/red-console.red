@@ -220,7 +220,7 @@ ask: function [
 	rs-print-gui: func [
 		cstr	[c-string!]
 		size	[integer!]
-		nl?		[logic!]
+		lf?		[logic!]
 		/local
 			str [red-string!]
 	][
