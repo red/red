@@ -1529,7 +1529,7 @@ terminal: context [
 		vt/in
 	]
 
-	rs-print: func [
+	vprint: func [
 		str		[byte-ptr!]
 		size	[integer!]
 		unit	[integer!]
@@ -1551,6 +1551,14 @@ terminal: context [
 		refresh vt
 	]
 
+	rs-print: func [
+		str		[byte-ptr!]
+		size	[integer!]
+		nl?		[logic!]
+	][
+		vprint str size Latin1 nl?
+	]
+
 	red-print: func [
 		str		[red-string!]
 		lf?		[logic!]
@@ -1564,6 +1572,6 @@ terminal: context [
 		unit: GET_UNIT(series)
 		offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
 		size: as-integer (as byte-ptr! series/tail) - offset
-		rs-print offset size unit lf?
+		vprint offset size unit lf?
 	]
 ]

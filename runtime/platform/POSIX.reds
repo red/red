@@ -79,10 +79,6 @@ pollfd!: alias struct! [
 
 #import [
 	LIBC-file cdecl [
-		wprintf: "wprintf" [
-			[variadic]
-			return: 	[integer!]
-		]
 		setlocale: "setlocale" [
 			category	[integer!]
 			locale		[c-string!]
@@ -366,6 +362,13 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
+sprintf-buf: as c-string! "0000000000000000000000000000000" ;-- 32 bytes wide, big enough.
+
+flush: func [len [integer!]][
+	printf sprintf-buf
+	dyn-print/rs-print sprintf-buf len no
+]
+
 prin*: func [
 	s		[c-string!]
 	return: [c-string!]
@@ -383,31 +386,32 @@ prin*: func [
 		]
 		p: p + 1
 	]
+	dyn-print/rs-print s as-integer p - s no
 	s
 ]
 
 prin-int*: func [i [integer!] return: [integer!]][
-	printf ["%i" i]										;-- UTF-8 literal string
+	flush sprintf [sprintf-buf "%i" i]
 	i
 ]
 
 prin-2hex*: func [i [integer!] return: [integer!]][
-	printf ["%02X" i]									;-- UTF-8 literal string
+	flush sprintf [sprintf-buf "%02X" i]
 	i
 ]
 
 prin-hex*: func [i [integer!] return: [integer!]][
-	printf ["%08X" i]									;-- UTF-8 literal string
+	flush sprintf [sprintf-buf "%08X" i]
 	i
 ]
 
 prin-float*: func [f [float!] return: [float!]][
-	printf ["%.16g" f]									;-- UTF-8 literal string
+	flush sprintf [sprintf-buf "%.16g" f]
 	f
 ]
 
 prin-float32*: func [f [float32!] return: [float32!]][
-	printf ["%.7g" as-float f]							;-- UTF-8 literal string
+	flush sprintf [sprintf-buf "%.7g" as-float f]
 	f
 ]
 

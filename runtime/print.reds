@@ -18,9 +18,8 @@ dyn-print: context [
 	]
 
 	rs-print!: alias function! [
-		str		[byte-ptr!]
+		str		[c-string!]			;-- UTF-8 string
 		size	[integer!]
-		unit	[integer!]
 		nl?		[logic!]
 	]
 
@@ -91,9 +90,8 @@ dyn-print: context [
 	]
 
 	rs-print: func [
-		str		[byte-ptr!]
+		str		[c-string!]
 		size	[integer!]
-		unit	[integer!]
 		nl?		[logic!]
 		/local
 			p	[ptr-array!]
@@ -102,7 +100,7 @@ dyn-print: context [
 		p: rs-prints
 		loop rs-cnt [
 			ff: as rs-print! p/ptr
-			ff str size unit nl?
+			ff str size nl?
 			p: p + 1
 		]
 	]

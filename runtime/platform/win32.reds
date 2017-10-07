@@ -86,8 +86,6 @@ security-attributes!: alias struct! [
 
 platform: context [
 
-	gui-print: 0										;-- `print` function used for gui-console
-
 	#enum file-descriptors! [
 		fd-stdout: 1									;@@ hardcoded, safe?
 		fd-stderr: 2									;@@ hardcoded, safe?
@@ -136,13 +134,6 @@ platform: context [
 
 	#import [
 		LIBC-file cdecl [
-			;putwchar: "putwchar" [
-			;	wchar		[integer!]					;-- wchar is 16-bit on Windows
-			;]
-			wprintf: "wprintf" [
-				[variadic]
-				return: 	[integer!]
-			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
@@ -343,15 +334,7 @@ platform: context [
 		]
 	]
 
-	#either sub-system = 'gui [
-		#either gui-console? = yes [
-			#include %win32-gui.reds
-		][
-			#include %win32-cli.reds
-		]
-	][
-		#include %win32-cli.reds
-	]
+	#include %win32-print.reds
 
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS

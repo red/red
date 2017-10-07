@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Red runtime win32 command line print functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %win32-cli.reds
+	File: 	 %win32-print.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -21,7 +21,7 @@ cbuffer:		as byte-ptr! 0
 ;-- check whether we are in console mode
 ;-------------------------------------------
 init-dos-console: func [/local n [integer!]][
-	cbuffer:		allocate 128
+	cbuffer:		allocate 64
 	buffer:			allocate 1024
 	pbuffer:		buffer ;this stores buffer's head position
 	n: 0
@@ -185,8 +185,16 @@ print-str: func [
 	]
 ]
 
-wflush: func [len [integer!]][
+wflush: func [len [integer!] /local p [byte-ptr!] i [integer!]][
 	print-str cbuffer len * 2 UCS-2 no
+	p: cbuffer
+	i: 1
+	while [i < len][	;-- cbuffer contains numbers only, it's safe to convert widechar to char
+		p: p + 1
+		i: i + 1
+		p/value: p/i
+	]
+	dyn-print/rs-print as c-string! cbuffer len no
 ]
 
 ;-------------------------------------------
@@ -285,17 +293,27 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
-prin*: func [s [c-string!] return: [c-string!] /local p n][
+prin*: func [
+	s		[c-string!]
+	return: [c-string!]
+	/local
+		p	[c-string!]
+		n	[integer!]
+		c	[integer!]
+][
 	either dos-console? [
 		p: s
 		while [p/1 <> null-byte][
 			putwchar as-integer p/1
 			p: p + 1
 		]
+		n: as-integer p - s
 	][
-		n: 0
-		WriteFile stdout s length? s :n 0
+		n: length? s
+		c: 0
+		WriteFile stdout s n :c 0
 	]
+	dyn-print/rs-print s n no
 	s
 ]
 

@@ -216,7 +216,29 @@ ask: function [
 	][
 		#call [red-console-ctx/terminal/vprint str lf?]
 	]
-	dyn-print/add as int-ptr! :red-print-gui null
+
+	rs-print-gui: func [
+		cstr	[c-string!]
+		size	[integer!]
+		nl?		[logic!]
+		/local
+			str [red-string!]
+	][
+		str: declare red-string!
+		if negative? size [size: length? cstr]
+		either TYPE_OF(str) = TYPE_STRING [
+			string/rs-reset str
+			unicode/load-utf8-buffer cstr size GET_BUFFER(str) null yes
+		][
+			str/header: TYPE_STRING
+			str/head: 0
+			str/node: unicode/load-utf8-buffer cstr size null null yes
+			str/cache: null
+		]
+		red-print-gui str lf?
+	]
+
+	dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
 ]
 
 red-console-ctx/launch
