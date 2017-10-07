@@ -520,6 +520,7 @@ object [
 			#"^M" [									;-- ENTER key
 				caret/visible?: no
 				insert history line
+				hist-idx: 0
 				system/view/platform/exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]

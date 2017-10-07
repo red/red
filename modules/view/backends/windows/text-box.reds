@@ -169,7 +169,7 @@ OS-text-box-font-size: func [
 ][
 	this: as this! layout
 	dl: as IDWriteTextLayout this/vtbl
-	dl/SetFontSize this ConvertPointSizeToDIP(size) pos len
+	dl/SetFontSize this as float32! 94.0 * size / 72.0 pos len
 ]
 
 OS-text-box-metrics: func [

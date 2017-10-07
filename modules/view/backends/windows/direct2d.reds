@@ -662,7 +662,7 @@ GetUserDefaultLocaleName!: alias function! [
 	return:			[integer!]
 ]
 
-#define ConvertPointSizeToDIP(size)		(as float32! 94.0 / 72.0 * size)
+#define ConvertPointSizeToDIP(size)		(as float32! 96 * size / 72)
 
 select-brush: func [
 	target		[int-ptr!]
@@ -898,7 +898,6 @@ create-text-format: func [
 		blk		[red-block!]
 		weight	[integer!]
 		style	[integer!]
-		f		[float!]
 		size	[float32!]
 		len		[integer!]
 		sym		[integer!]
@@ -928,8 +927,7 @@ create-text-format: func [
 
 		int: as red-integer! values + FONT_OBJ_SIZE
 		len: either TYPE_OF(int) <> TYPE_INTEGER [10][int/value]
-		f: as-float len
-		size: ConvertPointSizeToDIP(f)
+		size: ConvertPointSizeToDIP(len)
 
 		str: as red-string! values + FONT_OBJ_NAME
 		name: either TYPE_OF(str) = TYPE_STRING [
@@ -964,8 +962,7 @@ create-text-format: func [
 		save?: no
 		int: as red-integer! #get system/view/fonts/size
 		str: as red-string!  #get system/view/fonts/system
-		f: as-float int/value
-		size: ConvertPointSizeToDIP(f)
+		size: ConvertPointSizeToDIP(int/value)
 		name: unicode/to-utf16 str
 	]
 
@@ -1045,7 +1042,7 @@ set-line-spacing: func [
 	lm: as DWRITE_LINE_METRICS :left
 	dl/GetLineMetrics layout lm 1 :lineCount
 	tf: as IDWriteTextFormat fmt/vtbl
-	tf/SetLineSpacing fmt 1 lm/height lm/baseline
+	tf/SetLineSpacing fmt 1 lm/height + as float32! 1.0 lm/baseline
 ]
 
 create-text-layout: func [
