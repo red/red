@@ -50,6 +50,7 @@ object [
 	select-bg:	none							;-- selected text background color
 	pad-left:	3
 
+	color?:		no
 	theme: #(
 		background	[252.252.252]
 		selected	[200.200.255]				;-- selected text background color
@@ -597,7 +598,7 @@ object [
 		styles: box/styles
 		foreach str at lines top [
 			box/text: head str
-			highlight/add-styles head str clear styles theme
+			if color? [highlight/add-styles head str clear styles theme]
 			paint-selects styles n
 			box/layout
 			clear styles
