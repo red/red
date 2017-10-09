@@ -869,9 +869,9 @@ get-scroller: function [
 ][
 	make scroller! [
 		position: 1
-		page: 10
-		minimum: 1
-		maximum: 100
+		page: 1
+		min-size:	1			;-- minimum value
+		max-size:	1			;-- maximum value
 		parent: face
 		vertical?: orientation = 'vertical
 	]

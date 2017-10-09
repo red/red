@@ -11,7 +11,7 @@ Red [
 
 object [
 	lines:		make block! 1000				;-- line buffer
-	nlines:		make block! 1000				;-- line count of each line, will change according to window width
+	nlines:		make block! 1000				;-- line count of each line, changed according to window width
 	heights:	make block! 1000				;-- height of each (wrapped) line, in pixels
 	selects:	make block! 8					;-- selected texts: [start-linenum idx end-linenum idx]
 
@@ -298,8 +298,7 @@ object [
 			if delta <= 0 [
 				n: n + 1
 				if delta < 0 [
-					delta: delta + cnt * line-h
-					scroll-y: 0 - delta
+					scroll-y: delta * line-h
 				]
 			]
 			if zero? n [n: 1 scroll-y: 0]
@@ -351,8 +350,11 @@ object [
 		]
 		if n <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
 		delta: screen-cnt + n - page-cnt
-
-		if delta >= 0 [
+		if screen-cnt < page-cnt [
+			screen-cnt: screen-cnt + n
+			if screen-cnt > page-cnt [screen-cnt: page-cnt]
+		]
+		if delta > 0 [
 			either edit [
 				n: line-cnt - page-cnt
 				if scroller/position < n [
@@ -361,7 +363,7 @@ object [
 					scroll-lines page-cnt - 1
 				]
 			][
-				scroll-lines -1 - delta
+				scroll-lines 0 - delta
 			]
 		]
 	]
@@ -477,8 +479,9 @@ object [
 				append str head candidates/1
 			]
 			true [
-				str2: form next candidates
+				str2: insert form next candidates system/console/prompt
 				poke lines length? lines str2
+				calc-top
 				add-line line
 			]
 		]
@@ -514,6 +517,7 @@ object [
 			pos: ime-pos
 			ime-open?: no
 		]
+
 		if process-shortcuts event [exit]
 
 		char: event/key
@@ -530,6 +534,7 @@ object [
 			right [move-caret 1]
 			up	  [fetch-history 'prev]
 			down  [fetch-history 'next]
+			left-control [show-tips event/offset]
 		][
 			if all [char? char char > 31][
 				insert skip line pos char
@@ -542,13 +547,19 @@ object [
 		system/view/platform/redraw console
 	]
 
-	show-tips: function [candidates [block!]][
-		offset: caret/offset
-		offset/y: offset/y + line-h
-		tips/offset: offset
-		tips/paint next candidates
-		tips/visible?: yes
-		set-focus tips
+	show-tips: function [offset [pair!]][
+		if any [offset < 0x0 offset > box/size][exit]
+
+		;w: to word! name
+		;if any-function? get/any w [
+		;	desp: next fetch-help w
+		;]
+		;offset: caret/offset
+		;offset/y: offset/y + line-h
+		;tips/offset: offset
+		;tips/paint next candidates
+		;tips/visible?: yes
+		;set-focus tips
 	]
 
 	paint-selects: func [
@@ -617,6 +628,7 @@ object [
 		]
 		line-y: y - h
 		screen-cnt: y / line-h
+		if screen-cnt > page-cnt [screen-cnt: page-cnt]
 		update-caret
 		update-scroller line-cnt - num
 	]
