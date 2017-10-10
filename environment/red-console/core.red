@@ -18,6 +18,7 @@ object [
 	max-lines:	1000							;-- maximum size of the line buffer
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
+	prin?:		no								;-- start prin?
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
@@ -40,9 +41,8 @@ object [
 	hist-line:	none							;-- for saving the current editing line
 	hist-pos:	0								;-- current editing line's caret position
 
-	prin-buf:	make string! 50					;-- buffer for prin
-	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	clipboard:	none							;-- data in clipboard for pasting
+	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	box:		make text-box! [target: console]
 
 	tab-size:	4
@@ -73,7 +73,8 @@ object [
 	]
 
 	vprin: func [str [string!]][
-		append prin-buf str
+		append last lines str
+		calc-top
 	]
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt][
@@ -94,11 +95,12 @@ object [
 			either str/1 = lf [
 				add-line ""
 			][
-				either lf? [add-line copy str][vprin str]
+				either any [lf? not prin?][add-line copy str][vprin str]
 			]
 		][
-			either lf? [add-line str][vprin str]
+			either any [lf? not prin?][add-line str][vprin str]
 		]
+		prin?: not lf?
 		refresh
 		()				;-- return unset!
 	]
@@ -111,11 +113,7 @@ object [
 		blk
 	]
 
-	add-line: func [str][
-		unless empty? prin-buf [
-			str: append copy prin-buf str
-			clear prin-buf
-		]
+	add-line: func [str [string!]][
 		append lines str
 		either full? [
 			delta-cnt: first nlines
@@ -526,6 +524,7 @@ object [
 				caret/visible?: no
 				insert history line
 				hist-idx: 0
+				prin?: no
 				system/view/platform/exit-event-loop
 			]
 			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
