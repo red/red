@@ -101,26 +101,25 @@ object [
 			either any [lf? not prin?][add-line str][vprin str]
 		]
 		prin?: not lf?
-		refresh
+		if system/console/running? [refresh]
 		()				;-- return unset!
 	]
 
-	reset-buffer: func [blk [block!] /advance /local s][
-		s: either advance [next blk][blk]
+	reset-buffer: func [blk [block!] /advance /local src][
+		src: blk
 		blk: head blk
-		move/part s blk max-lines
-		clear s
+		move/part src blk max-lines
+		clear src
 		blk
 	]
 
 	add-line: func [str [string!]][
-		append lines str
 		either full? [
 			delta-cnt: first nlines
 			line-cnt: line-cnt - delta-cnt
 			if top <> 1 [top: top - 1]
-			either max-lines = index? lines [
-				lines: reset-buffer/advance lines
+			either max-lines + 1 = index? lines [
+				lines: reset-buffer lines
 				nlines: reset-buffer nlines
 				heights: reset-buffer heights
 			][
@@ -128,10 +127,64 @@ object [
 				nlines: next nlines
 				heights: next heights
 			]
+			append lines str
+			calc-top/new
 		][
+			append lines str
 			full?: max-lines = length? lines
+			calc-top
 		]
-		calc-top
+	]
+
+	calc-last-line: func [new? [logic!] /local n cnt h total][
+		n: length? lines
+		box/text: head last lines
+		box/layout
+		total: line-cnt
+		h: box/height
+		cnt: box/line-count
+		either any [new? n > length? nlines][			;-- add a new line
+			append heights h
+			append nlines cnt
+			line-cnt: line-cnt + cnt
+		][
+			poke heights n h
+			line-cnt: line-cnt + cnt - pick nlines n
+			poke nlines n cnt
+		]
+		n: line-cnt - total - delta-cnt
+		delta-cnt: 0
+		n
+	]
+
+	calc-top: func [/edit /new /local delta n][
+		n: calc-last-line new
+		if n < 0 [
+			delta: scroller/position + n
+			scroller/position: either delta < 1 [1][delta]
+		]
+		if n <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
+		delta: screen-cnt + n - page-cnt
+		if screen-cnt < page-cnt [
+			screen-cnt: screen-cnt + n
+			if screen-cnt > page-cnt [screen-cnt: page-cnt]
+		]
+		n: line-cnt - page-cnt
+		if delta >= 0 [
+			either edit [reset-top][scroll-lines 0 - delta]
+		]
+	]
+
+	reset-top: func [/force /local n][
+		n: line-cnt - page-cnt
+		if any [
+			scroller/position < n
+			all [full? force]
+		][
+			top: length? lines
+			scroller/position: scroller/max-size - page-cnt + 1
+			scroll-lines page-cnt - 1
+		]
 	]
 
 	update-theme: func [][
@@ -317,53 +370,6 @@ object [
 			if n > len [n: len scroll-y: 0]
 		]
 		top: n
-	]
-
-	calc-last-line: func [/local n cnt h total][
-		n: length? lines
-		box/text: head last lines
-		box/layout
-		total: line-cnt
-		h: box/height
-		cnt: box/line-count
-		either n > length? nlines [			;-- add a new line
-			append heights h
-			append nlines cnt
-			line-cnt: line-cnt + cnt
-		][
-			poke heights n h
-			line-cnt: line-cnt + cnt - pick nlines n
-			poke nlines n cnt
-		]
-		n: line-cnt - total - delta-cnt
-		delta-cnt: 0
-		n
-	]
-
-	calc-top: func [/edit /local delta n][
-		n: calc-last-line
-		if n < 0 [
-			delta: scroller/position + n
-			scroller/position: either delta < 1 [1][delta]
-		]
-		if n <> 0 [scroller/max-size: line-cnt - 1 + page-cnt]
-		delta: screen-cnt + n - page-cnt
-		if screen-cnt < page-cnt [
-			screen-cnt: screen-cnt + n
-			if screen-cnt > page-cnt [screen-cnt: page-cnt]
-		]
-		if delta > 0 [
-			either edit [
-				n: line-cnt - page-cnt
-				if scroller/position < n [
-					top: length? lines
-					scroller/position: scroller/max-size - page-cnt + 1
-					scroll-lines page-cnt - 1
-				]
-			][
-				scroll-lines 0 - delta
-			]
-		]
 	]
 
 	update-scroller: func [delta /reposition /local n end][

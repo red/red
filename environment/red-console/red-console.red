@@ -194,18 +194,19 @@ ask: function [
 	line: make string! 8
 	line: insert line question
 	
-	;vt: red-console-ctx/terminal
-	red-console-ctx/terminal/line: line
-	red-console-ctx/terminal/pos: 0
-	red-console-ctx/terminal/add-line line
-	red-console-ctx/terminal/ask?: yes
+	vt: red-console-ctx/terminal
+	vt/line: line
+	vt/pos: 0
+	vt/add-line line
+	vt/ask?: yes
+	vt/reset-top/force
 	system/view/platform/redraw red-console-ctx/console
-	either red-console-ctx/terminal/paste/resume [
+	either vt/paste/resume [
 		do-events/no-wait
 	][
 		do-events
 	]
-	red-console-ctx/terminal/ask?: no
+	vt/ask?: no
 	line
 ]
 

@@ -29,13 +29,14 @@ Red [
 
 system/console: context [
 
-	prompt: ">> "
-	result: "=="
-	history: make block! 200
-	size:	 0x0
-	catch?:	 no											;-- YES: force script to fallback into the console
-	count:	 [0 0 0]									;-- multiline counters for [squared curly parens]
-	ws:		 charset " ^/^M^-"
+	prompt:		">> "
+	result:		"=="
+	history:	make block! 200
+	size:		0x0
+	running?:	no
+	catch?:		no										;-- YES: force script to fallback into the console
+	count:		[0 0 0]									;-- multiline counters for [squared curly parens]
+	ws:			charset " ^/^M^-"
 
 	gui?:	#system [logic/box #either gui-console? = yes [yes][no]]
 	
@@ -133,6 +134,7 @@ system/console: context [
 	]
 	
 	try-do: func [code /local result return: [any-type!]][
+		running?: yes
 		set/any 'result try/all [
 			either 'halt-request = set/any 'result catch/name code 'console [
 				print "(halted)"						;-- return an unset value
@@ -140,6 +142,7 @@ system/console: context [
 				:result
 			]
 		]
+		running?: no
 		:result
 	]
 
