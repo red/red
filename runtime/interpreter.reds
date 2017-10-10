@@ -182,6 +182,7 @@ interpreter: context [
 		/local
 			native	[red-native!]
 			arg		[red-value!]
+			base	[red-value!]
 			bool	[red-logic!]
 			int		[red-integer!]
 			fl		[red-float!]
@@ -201,13 +202,13 @@ interpreter: context [
 			call callf callex
 	][
 		extern?: rt/header and flag-extern-code <> 0
-		
 		s: as series! rt/more/value
 		native: as red-native! s/offset + 2
 		args: routine/get-arity rt
 		count: args - 1				;-- zero-based stack access
 		
 		either extern? [
+			base: stack/arguments
 			;@@ cdecl is hardcoded in the caller, needs to be dynamic!
 			callex: as function! [[cdecl custom] return: [integer!]] native/code
 			stack/mark-native words/_body
@@ -221,7 +222,7 @@ interpreter: context [
 				saved: system/stack/align
 			]
 			while [count >= 0][
-				arg: stack/arguments + count
+				arg: base + count
 				#either libRed? = yes [
 					push red/ext-ring/store arg			;-- copy the exported values to libRed's buffer
 				][
