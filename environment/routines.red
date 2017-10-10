@@ -12,14 +12,14 @@ Red [
 
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status"
-	status			[integer!] "Process termination value to return"
+	status [integer!] "Process termination value to return"
 ][
 	quit status
 ]
 
 set-quiet: routine [
 	"Set an object's field to a value without triggering object's events"
-	word
+	word  [any-type!]
 	value [any-type!]
 	/local
 		type [integer!]

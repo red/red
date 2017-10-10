@@ -2854,6 +2854,7 @@ red: context [
 			process-routine-calls body ctx/1 spec select-object ctx/1
 		]
 		clear find spec*: copy spec /local
+		parse spec* [any [word! [pos: block! | (insert/only pos [any-type!])] | skip]]
 		spec-idx: redbin/emit-block spec*
 		body-idx: either job/red-store-bodies? [
 			reduce [redbin/emit-block body]

@@ -185,9 +185,14 @@ interpreter: context [
 			bool	[red-logic!]
 			int		[red-integer!]
 			fl		[red-float!]
+			value	[red-value!]
+			tail	[red-value!]
+			dt		[red-datatype!]
+			w		[red-word!]
 			s		[series!]
 			ret		[integer!]
 			retf	[float!]
+			sym		[integer!]
 			count	[integer!]
 			cnt 	[integer!]
 			args	[integer!]
@@ -234,16 +239,43 @@ interpreter: context [
 			stack/set-last arg
 		][
 			call: as function! [return: [integer!]] native/code
+
+			s: as series! rt/spec/value
+			value: s/offset
+			tail:  s/tail
 			
-			while [count >= 0][
-				arg: stack/arguments + count
-				switch TYPE_OF(arg) [					;@@ always unbox regardless of the spec block
-					TYPE_LOGIC	 [push logic/get arg]
-					TYPE_INTEGER [push integer/get arg]
-					TYPE_FLOAT	 [push float/get arg]
-					default		 [push arg]
+			until [										;-- scan forward for end of arguments
+				switch TYPE_OF(value) [
+					TYPE_SET_WORD
+					TYPE_REFINEMENT [break]
+					default			[0]
 				]
-				count: count - 1
+				value: value + 1
+				value >= tail
+			]
+
+			while [count >= 0][							;-- push arguments in reverse order
+				value: value - 1
+				if TYPE_OF(value) =	TYPE_BLOCK [
+					w: as red-word! block/rs-head as red-block! value
+					assert TYPE_OF(w) = TYPE_WORD
+					sym: w/symbol
+					arg: stack/arguments + count
+					
+					if sym <> words/any-type! [			;-- type-checking argument
+						dt: as red-datatype! _context/get w
+						if TYPE_OF(arg) <> dt/value [
+							ERR_EXPECT_ARGUMENT(dt/value count)
+						]
+					]
+					case [
+						sym = words/logic!	 [push logic/get arg]
+						sym = words/integer! [push integer/get arg]
+						sym = words/float!	 [push float/get arg]
+						true		 		 [push arg]
+					]
+					count: count - 1
+				]
 			]
 			either positive? rt/ret-type [
 				switch rt/ret-type [
