@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+xform: declare XFORM!
+
 #define	SHAPE_OTHER				0
 #define	SHAPE_CURVE				1
 #define	SHAPE_QCURVE			2
@@ -277,13 +279,14 @@ draw-begin: func [
 	return: 	[draw-ctx!]
 	/local
 		dc		 [handle!]
-		rect	 [RECT_STRUCT]
+		rect	 [RECT_STRUCT value]
 		width	 [integer!]
 		height	 [integer!]
 		hBitmap  [handle!]
 		hBackDC  [handle!]
 		graphics [integer!]
 		ptrn	 [red-image!]
+		ratio	 [float32!]
 ][
 	zero-memory as byte-ptr! ctx size? draw-ctx!
 	alloc-context ctx
@@ -328,7 +331,6 @@ draw-begin: func [
 	ptrn:									as red-image! ctx/other/pattern-image-pen
 	ptrn/node:								null
 
-	rect: declare RECT_STRUCT
 	either null? hWnd [
 		ctx/on-image?: yes
 		either on-graphic? [
@@ -372,6 +374,14 @@ draw-begin: func [
 
 			graphics: 0
 			GdipCreateFromHDC dc :graphics
+			SelectObject dc GetStockObject NULL_BRUSH
+		]
+	]
+
+	if any [hWnd <> null on-graphic?][
+		if dpi-factor <> 100 [
+			ratio: (as float32! dpi-factor) / (as float32! 100.0)
+			GdipScaleWorldTransform graphics ratio ratio GDIPLUS_MATRIX_PREPEND
 		]
 	]
 
@@ -966,7 +976,6 @@ OS-draw-shape-arc: func [
 		center		[red-pair!]
 		m			[integer!]
 		path		[integer!]
-		xform		[XFORM!]
 		arc-dir		[integer!]
 		prev-dir	[integer!]
 		pt			[tagPOINT]
@@ -1066,7 +1075,6 @@ OS-draw-shape-arc: func [
 				arc-points/end-y: p2-y
 			]
 
-			xform: declare XFORM!
 			set-matrix xform 1.0 0.0 0.0 1.0 center-x * -1.0 center-y * -1.0
 			SetWorldTransform dc xform
 			set-matrix xform cos-val sin-val sin-val * -1.0 cos-val center-x center-y
@@ -1111,7 +1119,10 @@ OS-draw-anti-alias: func [
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintAntiAliasGridFit
 	][
 		ctx/other/GDI+?: no
-		if ctx/on-image? [ctx/other/anti-alias?: yes ctx/other/GDI+?: yes]			;-- always use GDI+ to draw on image
+		if any [ctx/on-image? dpi-factor <> 100][	;-- always use GDI+ to draw on image
+			ctx/other/anti-alias?: yes
+			ctx/other/GDI+?: yes
+		]
 		GdipSetSmoothingMode ctx/graphics GDIPLUS_HIGHSPPED
 		GdipSetTextRenderingHint ctx/graphics TextRenderingHintSystemDefault
 	]
@@ -1587,18 +1598,19 @@ OS-draw-text: func [
 	][
 		tm: as tagTEXTMETRIC ctx/other/gradient-pen/colors
 		GetTextMetrics ctx/dc tm
-		y: pos/y
+		x: dpi-scale pos/x
+		y: dpi-scale pos/y
 		p: str
 		while [len > 0][
 			if all [p/1 = #"^/" p/2 = #"^@"][
-				ExtTextOut ctx/dc pos/x y ETO_CLIPPED null str (as-integer p - str) / 2 null
+				ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null
 				y: y + tm/tmHeight
 				str: p + 2
 			]
 			p: p + 2
 			len: len - 1
 		]
-		if p > str [ExtTextOut ctx/dc pos/x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
+		if p > str [ExtTextOut ctx/dc x y ETO_CLIPPED null str (as-integer p - str) / 2 null]
 	]
 ]
 

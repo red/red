@@ -787,7 +787,7 @@ binary: context [
 				from-integer p4/1 proto
 			]
 			TYPE_IMAGE [
-				#either OS = 'Windows [
+				#either find [Windows macOS Android] OS [
 					proto: image/extract-data as red-image! spec EXTRACT_ARGB
 				][
 					proto

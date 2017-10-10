@@ -663,7 +663,8 @@ parser: context [
 	][
 		PARSE_SAVE_SERIES
 		saved: stack/top
-		
+		stack/top: stack/top + 1						;-- keep last value from paren expression
+
 		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
 		logic/push match?
@@ -676,12 +677,10 @@ parser: context [
 
 		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
 		if system/thrown <> 0 [reset saved? re-throw]
-		res: stack/get-top
-		stack/top: saved
 
-		stack/unwind
 		loop?: logic/top-true?
-		stack/pop 1
+		stack/unwind
+		stack/top: saved
 		loop?
 	]
 	
@@ -853,6 +852,7 @@ parser: context [
 				]
 				ST_POP_BLOCK [
 					either 3 = block/rs-length? rules [
+						PARSE_TRACE(_pop)
 						state: ST_END
 					][
 						loop?: no
@@ -1252,6 +1252,7 @@ parser: context [
 								new/node = input/node
 							][
 								input/head: new/head
+								PARSE_CHECK_INPUT_EMPTY?
 								state: ST_NEXT_ACTION
 							][
 								PARSE_ERROR [TO_ERROR(script parse-invalid-ref) value]

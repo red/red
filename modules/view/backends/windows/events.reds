@@ -120,11 +120,11 @@ get-event-offset: func [
 				y: pt/y
 				pt: get-window-pos msg/hWnd
 				ClientToScreen msg/hWnd pt
-				offset/x: x - pt/x
-				offset/y: y - pt/y
+				offset/x: x - pt/x * 100 / dpi-factor
+				offset/y: y - pt/y * 100 / dpi-factor
 			][
-				offset/x: WIN32_LOWORD(value)
-				offset/y: WIN32_HIWORD(value)
+				offset/x: WIN32_LOWORD(value) * 100 / dpi-factor
+				offset/y: WIN32_HIWORD(value) * 100 / dpi-factor
 			]
 			as red-value! offset
 		]
@@ -742,7 +742,7 @@ process-custom-draw: func [
 				either sym = button [
 					flags: flags or DT_CENTER
 				][
-					rc/left: rc/left + 16
+					rc/left: rc/left + dpi-scale 16
 				]
 				if TYPE_OF(txt) = TYPE_STRING [
 					DrawText DC unicode/to-utf16 txt -1 rc flags
@@ -759,7 +759,7 @@ bitblt-memory-dc: func [
 	hWnd	[handle!]
 	alpha?	[logic!]
 	/local
-		rect	[RECT_STRUCT]
+		rect	[RECT_STRUCT value]
 		width	[integer!]
 		height	[integer!]
 		hBackDC [handle!]
@@ -769,7 +769,6 @@ bitblt-memory-dc: func [
 ][
 	dc: BeginPaint hWnd paint
 	hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
-	rect: declare RECT_STRUCT
 	GetClientRect hWnd rect
 	width: rect/right - rect/left
 	height: rect/bottom - rect/top
@@ -882,7 +881,7 @@ WndProc: func [
 		type   [integer!]
 		pos	   [integer!]
 		handle [handle!]
-		rc	   [RECT_STRUCT value]
+		rc	   [RECT_STRUCT]
 		values [red-value!]
 		font   [red-object!]
 		parent [red-object!]
@@ -912,8 +911,8 @@ WndProc: func [
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
 				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - offset/x - pt/x
-				pt/y: winpos/y - offset/y - pt/y
+				pt/x: winpos/x - pt/x - dpi-scale offset/x
+				pt/y: winpos/y - pt/y - dpi-scale offset/y
 				update-layered-window hWnd null pt winpos -1
 			]
 		]
@@ -945,8 +944,8 @@ WndProc: func [
 
 					offset: as red-pair! values + type
 					offset/header: TYPE_PAIR
-					offset/x: WIN32_LOWORD(lParam)
-					offset/y: WIN32_HIWORD(lParam)
+					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
+					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
 					current-msg/hWnd: hWnd
@@ -1061,6 +1060,7 @@ WndProc: func [
 			if TYPE_OF(parent) = TYPE_OBJECT [
 				w-type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
 				if tab-panel = symbol/resolve w-type/symbol [
+					rc: rc-cache
 					GetClientRect hWnd rc
 					FillRect as handle! wParam rc GetSysColorBrush COLOR_WINDOW
 					return 1
@@ -1150,6 +1150,19 @@ WndProc: func [
 					return 0
 				]
 			]
+		]
+		WM_DPICHANGED [
+			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
+			log-pixels-y: log-pixels-y
+			dpi-factor: log-pixels-x * 100 / 96
+			rc: as RECT_STRUCT lParam
+			SetWindowPos 
+				hWnd
+				as handle! 0
+				rc/left rc/top
+				rc/right - rc/left rc/bottom - rc/top
+				SWP_NOZORDER or SWP_NOACTIVATE
+			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		default [0]
 	]
