@@ -546,10 +546,6 @@ change-image: func [
 		id		 [integer!]
 ][
 	case [
-		type = camera [
-			snap-camera hWnd
-			until [TYPE_OF(image) = TYPE_IMAGE]			;-- wait
-		]
 		any [type = button type = check type = radio][
 			if TYPE_OF(image) <> TYPE_IMAGE [
 				objc_msgSend [hWnd sel_getUid "setImage:" 0]
@@ -560,6 +556,7 @@ change-image: func [
 			objc_msgSend [hWnd sel_getUid "setImage:" id]
 			objc_msgSend [id sel_getUid "release"]
 		]
+		type = camera [snap-camera hWnd]
 		true [
 			objc_msgSend [hWnd sel_getUid "setNeedsDisplay:" yes]
 		]
@@ -907,7 +904,6 @@ change-selection: func [
 ][
 	if type <> window [
 		idx: either TYPE_OF(int) = TYPE_INTEGER [int/value - 1][-1]
-		if idx < 0 [exit]								;-- @@ should unselect the items ?
 	]
 	case [
 		type = camera [
@@ -1992,28 +1988,39 @@ OS-to-image: func [
 		bmp		[integer!]
 		img		[integer!]
 		ret		[red-image!]
-		screen? [logic!]
+		type	[integer!]
 		word	[red-word!]
 ][
 	word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
-	screen?: screen = symbol/resolve word/symbol
-	either screen? [
-		bmp: CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
-		ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-	][
-		view: as-integer face-handle? face
-		either zero? view [ret: as red-image! none-value][
-			sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
-			rc: make-rect 0 0 sz/x sz/y
-			data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
-			img: objc_msgSend [
-				objc_msgSend [objc_getClass "NSImage" sel_alloc]
-				sel_getUid "initWithData:" data
-			]
-			bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+	type: symbol/resolve word/symbol
+	case [
+		type = screen [
+			bmp: CGWindowListCreateImage 0 0 7F800000h 7F800000h 1 0 0		;-- INF
 			ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
-			objc_msgSend [bmp sel_getUid "retain"]
-			objc_msgSend [img sel_release]
+		]
+		type = camera [
+			view: as-integer face-handle? face
+			either zero? view [ret: as red-image! none-value][
+				ret: as red-image! (object/get-values face) + FACE_OBJ_IMAGE
+				ret/header: TYPE_NONE						;@@ TBD release old image?
+				change-image view ret type
+			]
+		]
+		true [
+			view: as-integer face-handle? face
+			either zero? view [ret: as red-image! none-value][
+				sz: as red-pair! (object/get-values face) + FACE_OBJ_SIZE
+				rc: make-rect 0 0 sz/x sz/y
+				data: objc_msgSend [view sel_getUid "dataWithPDFInsideRect:" rc/x rc/y rc/w rc/h]
+				img: objc_msgSend [
+					objc_msgSend [objc_getClass "NSImage" sel_alloc]
+					sel_getUid "initWithData:" data
+				]
+				bmp: objc_msgSend [img sel_getUid "CGImageForProposedRect:context:hints:" 0 0 0]
+				ret: image/init-image as red-image! stack/push* OS-image/load-cgimage as int-ptr! bmp
+				objc_msgSend [bmp sel_getUid "retain"]
+				objc_msgSend [img sel_release]
+			]
 		]
 	]
 	ret
