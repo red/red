@@ -40,14 +40,13 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
 	either alpha? [
-		pt: as tagPOINT (as int-ptr! offset) + 2
 		either win8+? [
 			pt/x: dpi-scale offset/x
 			pt/y: dpi-scale offset/y
 		][
 			pt: position-base handle as handle! parent offset
 		]
-		update-base handle as handle! parent pt values
+		update-base handle as handle! parent :pt values
 		if all [show?/value IsWindowVisible as handle! parent][
 			ShowWindow handle SW_SHOWNA
 		]
@@ -84,7 +83,7 @@ position-base: func [
 	base	[handle!]
 	parent	[handle!]
 	offset	[red-pair!]
-	return: [tagPOINT]
+	return: [tagPOINT value]
 	/local
 		pt	[tagPOINT value]
 ][
