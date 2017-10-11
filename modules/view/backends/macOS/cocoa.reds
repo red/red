@@ -861,6 +861,15 @@ objc_block_descriptor: declare struct! [
 	dispose_helper	[function! [src [int-ptr!]]]
 ]
 
+block_literal!: alias struct! [
+	isa			[integer!]
+	flags		[integer!]
+	reserved	[integer!]
+	invoke		[int-ptr!]
+	descriptor	[int-ptr!]
+	value		[int-ptr!]
+]
+
 get-super-obj: func [
 	id		[integer!]
 	return: [objc_super!]
