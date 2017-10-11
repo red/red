@@ -458,13 +458,6 @@ object [
 		not empty? clipboard
 	]
 
-	process-shortcuts: function [event [event!]][
-		switch event/key [
-			#"^C"	[copy-selection]
-			#"^V"	[paste]
-		]
-	]
-
 	do-completion: func [
 		str		[string!]
 		char	[char!]
@@ -516,7 +509,10 @@ object [
 		system/view/platform/redraw console
 	]
 
-	delete-text: func [/local selected? start-n start-idx end-n end-idx n][
+	delete-text: func [
+		ctrl? [logic!]
+		/local selected? start-n start-idx end-n end-idx n idx
+	][
 		selected?: no
 		if all [
 			not empty? selects
@@ -532,17 +528,33 @@ object [
 			]
 			clear selects
 		]
-		if all [not selected? pos <> 0][pos: pos - 1 remove skip line pos]
+		if all [not selected? pos <> 0][
+			if #" " = pick line pos [ctrl?: no]
+			either ctrl? [
+				idx: index? line
+				start-idx: find/reverse/tail skip line pos #" "
+				either all [start-idx (index? start-idx) > idx][
+					n: pos + idx - index? start-idx
+				][
+					start-idx: line
+					n: pos
+				]
+				pos: pos - n
+				remove/part start-idx n
+			][
+				pos: pos - 1 remove skip line pos
+			]
+		]
+		yes
 	]
 
 	press-key: func [event [event!] /local char][
+		unless ask? [exit]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
 			pos: ime-pos
 			ime-open?: no
 		]
-
-		if process-shortcuts event [exit]
 
 		char: event/key
 		switch/default char [
@@ -553,13 +565,15 @@ object [
 				prin?: no
 				system/view/platform/exit-event-loop
 			]
-			#"^H" [delete-text]
+			#"^H" [delete-text no]
 			#"^-" [unless empty? line [do-completion line char]]
 			left  [move-caret -1]
 			right [move-caret 1]
 			up	  [fetch-history 'prev]
 			down  [fetch-history 'next]
-			left-control [show-tips event/offset]
+			#"^C" [copy-selection exit]
+			#"^V" [paste exit]
+			#"^~" [delete-text yes]					;-- Ctrl + Backspace
 		][
 			if all [char? char char > 31][
 				insert skip line pos char
@@ -570,21 +584,6 @@ object [
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
 		system/view/platform/redraw console
-	]
-
-	show-tips: function [offset [pair!]][
-		if any [offset < 0x0 offset > box/size][exit]
-
-		;w: to word! name
-		;if any-function? get/any w [
-		;	desp: next fetch-help w
-		;]
-		;offset: caret/offset
-		;offset/y: offset/y + line-h
-		;tips/offset: offset
-		;tips/paint next candidates
-		;tips/visible?: yes
-		;set-focus tips
 	]
 
 	paint-selects: func [
