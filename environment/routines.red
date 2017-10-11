@@ -66,7 +66,16 @@ as-color: routine [
 	b [integer!]
 	/local
 		arr1 [integer!]
+		err	 [integer!]
 ][
+	err: case [
+		r < 0 [r]
+		g < 0 [g]
+		b < 0 [b]
+		true  [0]
+	]
+	if err <> 0 [fire [TO_ERROR(script invalid-arg) integer/push err]]
+	
 	arr1: (b % 256 << 16) or (g % 256 << 8) or (r % 256)
 	stack/set-last as red-value! tuple/push 3 arr1 0 0
 ]
@@ -78,7 +87,17 @@ as-ipv4: routine [
 	d [integer!]
 	/local
 		arr1 [integer!]
+		err	 [integer!]
 ][
+	err: case [
+		a < 0 [a]
+		b < 0 [b]
+		c < 0 [c]
+		d < 0 [d]
+		true  [0]
+	]
+	if err <> 0 [fire [TO_ERROR(script invalid-arg) integer/push err]]
+	
 	arr1: (d << 24) or (c << 16) or (b << 8) or a
 	stack/set-last as red-value! tuple/push 4 arr1 0 0
 ]
