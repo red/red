@@ -611,19 +611,12 @@ natives: context [
 		/local
 			w	   [red-word!]
 			value  [red-value!]
-			res	   [red-value!]
 			blk	   [red-block!]
-			obj	   [red-object!]
-			ctx	   [red-context!]
-			old	   [red-value!]
-			slot   [red-value!]
-			type   [integer!]
-			s	   [series!]
-			node   [node!]
 			only?  [logic!]
 			some?  [logic!]
 	][
 		#typecheck [set any? case? _only? _some?]
+		
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
 		only?: _only? <> -1
@@ -652,19 +645,7 @@ natives: context [
 				stack/set-last value
 			]
 			default [
-				node: w/ctx
-				ctx: TO_CTX(node)
-				s: as series! ctx/self/value
-				obj: as red-object! s/offset + 1
-				
-				either all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
-					slot: _context/get w
-					old: stack/push slot
-					copy-cell value slot
-					object/fire-on-set obj w old value
-				][
-					_context/set w value
-				]
+				set-word w value
 				stack/set-last value
 			]
 		]
@@ -2859,6 +2840,32 @@ natives: context [
 		]
 	]
 	
+	set-word: func [
+		w	  [red-word!]
+		value [red-value!]
+		/local
+			ctx	 [red-context!]
+			obj	 [red-object!]
+			slot [red-value!]
+			old	 [red-value!]
+			node [node!]
+			s	 [series!]
+	][
+		node: w/ctx
+		ctx: TO_CTX(node)
+		s: as series! ctx/self/value
+		obj: as red-object! s/offset + 1
+
+		either all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
+			slot: _context/get w
+			old: stack/push slot
+			copy-cell value slot
+			object/fire-on-set obj w old value
+		][
+			_context/set w value
+		]
+	]
+	
 	set-many: func [
 		words [red-block!]
 		value [red-value!]
@@ -2891,7 +2898,7 @@ natives: context [
 				][
 					fire [TO_ERROR(script invalid-arg) w]
 				]
-				_context/set w v
+				set-word w v
 			]
 			i: i + 1
 		]
