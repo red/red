@@ -319,7 +319,7 @@ natives: context [
 		/local
 			w	   [red-word!]
 			body   [red-block!]
-			saved  [red-value!]
+			saved  [red-series!]
 			series [red-series!]
 			type   [integer!]
 			break? [logic!]
@@ -328,15 +328,21 @@ natives: context [
 		w:    as red-word!  stack/arguments
 		body: as red-block! stack/arguments + 1
 		
-		saved: word/get w							;-- save series (for resetting on end)
+		saved: as red-series! word/get w				;-- save series (for resetting on end)
 		type: TYPE_OF(saved)
 		unless ANY_SERIES?(type) [ERR_EXPECT_ARGUMENT(type 0)]
 		
-		w: word/push w								;-- word argument
+		w: word/push w									;-- word argument
 		break?: no
 		
 		stack/mark-loop words/_body
-		while [loop? as red-series! _context/get w][
+		while [
+			series: as red-series! _context/get w
+			if series/node <> saved/node [
+				fire [TO_ERROR(script bad-loop-series) series]
+			]
+			loop? series
+		][
 			stack/reset
 			catch RED_THROWN_BREAK	[interpreter/eval body no]
 			switch system/thrown [
@@ -354,7 +360,7 @@ natives: context [
 			]
 		]
 		stack/unwind-last
-		unless break? [_context/set w saved]
+		unless break? [_context/set w as red-value! saved]
 	]
 	
 	remove-each*: func [
@@ -2829,7 +2835,6 @@ natives: context [
 			type [integer!]
 			img  [red-image!]
 	][
-	
 		type: TYPE_OF(series)
 		if type = TYPE_IMAGE [
 			img: as red-image! series
@@ -3059,12 +3064,15 @@ natives: context [
 		return: [logic!]
 		/local
 			series [red-series!]
+			saved  [red-series!]
 			word   [red-word!]
 	][
 		word: as red-word! stack/arguments - 1
 		assert TYPE_OF(word) = TYPE_WORD
 
 		series: as red-series! _context/get word
+		saved: as red-series! stack/arguments - 2
+		if series/node <> saved/node [fire [TO_ERROR(script bad-loop-series) series]]
 		loop? series
 	]
 	
