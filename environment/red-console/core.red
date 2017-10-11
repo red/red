@@ -274,6 +274,7 @@ object [
 		box/text: head pick lines n
 		box/layout
 		start: pick heights n
+		offset/x: offset/x - pad-left 
 		offset/y: y + start - h
 		append selects n
 		append selects box/index? offset
@@ -314,7 +315,7 @@ object [
 		system/view/platform/redraw console
 	]
 
-	move-caret: func [n][
+	move-caret: func [n [integer!]][
 		pos: pos + n
 		if negative? pos [pos: 0]
 		if pos > length? line [pos: pos - n]
@@ -515,6 +516,25 @@ object [
 		system/view/platform/redraw console
 	]
 
+	delete-text: func [/local selected? start-n start-idx end-n end-idx n][
+		selected?: no
+		if all [
+			not empty? selects
+			2 < length? selects
+		][
+			set [start-n start-idx end-n end-idx] selects
+			if all [start-n = length? lines start-n = end-n][
+				selected?: yes
+				n: absolute end-idx - start-idx
+				if start-idx < end-idx [pos: pos - n]
+				start-idx: min start-idx end-idx
+				remove/part at head line start-idx n
+			]
+			clear selects
+		]
+		if all [not selected? pos <> 0][pos: pos - 1 remove skip line pos]
+	]
+
 	press-key: func [event [event!] /local char][
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
@@ -533,7 +553,7 @@ object [
 				prin?: no
 				system/view/platform/exit-event-loop
 			]
-			#"^H" [if pos <> 0 [pos: pos - 1 remove skip line pos]]
+			#"^H" [delete-text]
 			#"^-" [unless empty? line [do-completion line char]]
 			left  [move-caret -1]
 			right [move-caret 1]
