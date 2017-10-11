@@ -362,7 +362,7 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
-sprintf-buf: as c-string! "0000000000000000000000000000000" ;-- 32 bytes wide, big enough.
+sprintf-buf: "0000000000000000000000000000000" ;-- 32 bytes wide, big enough.
 
 flush: func [len [integer!]][
 	printf sprintf-buf

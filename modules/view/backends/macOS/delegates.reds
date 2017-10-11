@@ -49,10 +49,19 @@ reset-cursor-rects: func [
 	/local
 		cur [integer!]
 		sz	[CGPoint! value]
+		rc	[NSRect! value]
 ][
 	cur: objc_getAssociatedObject self RedCursorKey
 	if cur <> 0 [
-		sz: objc_msgSend_pt [self sel_getUid "contentSize"]
+		either zero? objc_msgSend [
+			self sel_getUid "respondsToSelector:" sel_getUid "contentSize"
+		][
+			rc: objc_msgSend_rect [self sel_getUid "bounds"]
+			sz/x: rc/w
+			sz/y: rc/h
+		][
+			sz: objc_msgSend_pt [self sel_getUid "contentSize"]
+		]
 		objc_msgSend [
 			self sel_getUid "addCursorRect:cursor:" 0 0 sz/x sz/y cur
 		]
