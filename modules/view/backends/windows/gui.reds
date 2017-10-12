@@ -666,7 +666,6 @@ get-dpi: func [
 			monitor: MonitorFromPoint pt 2
 			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
 			fun1 monitor 0 :log-pixels-x :log-pixels-y
-			dpi-factor: log-pixels-x * 100 / 96
 			FreeLibrary dll
 			dpi?: yes
 		]
@@ -675,6 +674,7 @@ get-dpi: func [
 		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
 		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
 	]
+	dpi-factor: log-pixels-x * 100 / 96
 ]
 
 get-metrics: func [
