@@ -260,22 +260,25 @@ get-event-picked: func [
 		pct [red-float!]
 		msg	[tagMSG]
 		gi	[GESTUREINFO]
+		pt	[tagPOINT value]
+		idx	[integer!]
 		zd	[float!]
 ][
+	msg: as tagMSG evt/msg
+	
 	as red-value! switch evt/type [
 		EVT_ZOOM
 		EVT_PAN
 		EVT_ROTATE
 		EVT_TWO_TAP
 		EVT_PRESS_TAP [
-			msg: as tagMSG evt/msg
 			gi: get-gesture-info msg/lParam
 			either evt/type = EVT_ZOOM [
 				res: as red-value! either zoom-distance = -1 [none/push][
 					pct: as red-float! stack/push*
 					pct/header: TYPE_PERCENT
 					zd: as-float zoom-distance
-					pct/value: 1.0 + ((as-float gi/ullArgumentH) - zd / zd)				
+					pct/value: 1.0 + ((as-float gi/ullArgumentH) - zd / zd)
 					pct
 				]
 				zoom-distance: gi/ullArgumentH
@@ -287,10 +290,20 @@ get-event-picked: func [
 				int
 			]
 		]
-		EVT_MENU [word/push* evt/flags and FFFFh]
+		EVT_MENU   [word/push* evt/flags and FFFFh]
 		EVT_SCROLL [
-			msg: as tagMSG evt/msg
 			integer/push get-track-pos msg/hWnd msg/msg = WM_VSCROLL
+		]
+		EVT_LEFT_DOWN
+		EVT_MIDDLE_DOWN
+		EVT_RIGHT_DOWN
+		EVT_AUX_DOWN
+		EVT_DBL_CLICK [
+			pt/x: WIN32_LOWORD(msg/lParam)
+			pt/y: WIN32_HIWORD(msg/lParam)
+			ClientToScreen msg/hWnd pt
+			idx: LBItemFromPt msg/hWnd pt/x pt/y no
+			either idx >= 0 [integer/push idx + 1][none/push]
 		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]

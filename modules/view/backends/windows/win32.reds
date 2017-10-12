@@ -2721,6 +2721,13 @@ XFORM!: alias struct! [
 			hbmMask		[integer!]
 			return:		[integer!]
 		]
+		LBItemFromPt: "LBItemFromPt" [
+			hLB			[handle!]
+			x			[integer!]
+			y			[integer!]
+			bAutoScroll [logic!]
+			return:		[integer!]
+		]
 	]
 	"shell32.dll" stdcall [
 		SHBrowseForFolder: "SHBrowseForFolderW" [
