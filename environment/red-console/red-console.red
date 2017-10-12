@@ -153,7 +153,7 @@ red-console-ctx: context [
 				clear head system/view/screens/1/pane
 			]
 			on-resizing: function [face [object!] event [event!]][
-				new-sz: event/offset
+				new-sz: face/size
 				console/size: new-sz
 				terminal/resize new-sz
 				system/console/size: new-sz

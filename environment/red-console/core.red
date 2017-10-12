@@ -315,7 +315,32 @@ object [
 		system/view/platform/redraw console
 	]
 
-	move-caret: func [n [integer!]][
+	jump-word: func [left? [logic!] return: [integer!] /local start n][
+		either left? [
+			start: find/reverse/tail skip line pos #" "
+			either start [
+				n: (index? start) - pos - index? line
+				if all [zero? n pos <> 0][n: -1]
+			][n: pos]
+		][
+			start: find skip line pos #" "
+			unless start [start: tail line]
+			n: (index? start) - pos - index? line
+			if all [zero? n pos <> length? line][n: 1]
+		]
+		n
+	]
+
+	select-text: func [n [integer!]][
+		
+	]
+
+	move-caret: func [n [integer!] /event e [event!] /local left? idx][
+		if event [
+			left?: n = -1
+			if e/ctrl? [n: jump-word left?]
+			if e/shift? [select-text n]
+		]
 		pos: pos + n
 		if negative? pos [pos: 0]
 		if pos > length? line [pos: pos - n]
@@ -565,10 +590,10 @@ object [
 				prin?: no
 				system/view/platform/exit-event-loop
 			]
-			#"^H" [delete-text no]
+			#"^H" [delete-text event/ctrl?]
 			#"^-" [unless empty? line [do-completion line char]]
-			left  [move-caret -1]
-			right [move-caret 1]
+			left  [move-caret/event -1 event]
+			right [move-caret/event 1 event]
 			up	  [fetch-history 'prev]
 			down  [fetch-history 'next]
 			#"^C" [copy-selection exit]
