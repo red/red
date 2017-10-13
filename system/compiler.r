@@ -35,6 +35,7 @@ system-dialect: make-profilable context [
 		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
+		encap?:				no							;-- yes = use encapping instead of compilation
 		build-prefix:		%builds/					;-- prefix to use for output file name (none: no prefix)
 		build-basename:		none						;-- base name to use for output file name (none: derive from input name)
 		build-suffix:		none						;-- suffix to use for output file name (none: derive from output type)

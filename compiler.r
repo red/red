@@ -65,6 +65,7 @@ red: context [
 	types-cache:   make hash!  100						;-- store compiled typesets [types array name...]
 	last-type:	   none
 	return-def:    to-set-word 'return					;-- return: keyword
+	encapped:	   make block! 1
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
 	max-depth:	   0
@@ -4443,6 +4444,26 @@ red: context [
 		]
 	]
 	
+	encap-preprocess: func [code [block!] /local prolog rule p][
+		prolog: make block! 1
+		parse code rule: [
+			any [
+				p: set-word! 'routine block! block! (
+					insert/part tail prolog p 4
+					p: remove/part p 4
+				) :p
+				| p: [#system | #system-global] block! (
+					insert/part tail prolog p 2
+					p: remove/part p 2
+				) :p
+				| p: #include (pc: p comp-include/only p)
+				| p: [block! | paren!] :p into rule
+				| skip
+			]
+		]
+		reduce [prolog code]
+	]
+	
 	comp-bodies: has [pos][
 		obj-stack: to path! 'func-objs
 		pos: tail objects
@@ -4621,6 +4642,15 @@ red: context [
 		if all [job/dev-mode? not job/libRedRT?][
 			replace out <imports> libRedRT/get-include-file job
 		]
+		
+		if job/encap? [
+			code: encap-preprocess code
+			code: compose/deep [
+				(code/1)
+				do [(code/2)]
+			]
+		]
+		
 		set [user mods main] comp-source code
 		
 		;-- assemble all parts together in right order
