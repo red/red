@@ -19,6 +19,7 @@ object [
 	full?:		no								;-- is line buffer full?
 	ask?:		no								;-- is it in ask loop
 	prin?:		no								;-- start prin?
+	newline?:	no								;-- start a new line?
 	mouse-up?:	yes
 	ime-open?:	no
 	ime-pos:	0
@@ -44,6 +45,8 @@ object [
 	clipboard:	none							;-- data in clipboard for pasting
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	box:		make text-box! [target: console]
+
+	windows:	none							;-- all the windows opened
 
 	tab-size:	4
 	background: none
@@ -83,6 +86,8 @@ object [
 
 	vprint: func [str [string!] lf? [logic!] /local s cnt][
 		unless console/state [exit]
+
+		if all [not lf? newline?][newline?: no add-line make string! 8]
 		s: find str lf
 		either s [
 			cnt: 0
@@ -99,14 +104,15 @@ object [
 			either str/1 = lf [
 				add-line ""
 			][
-				either any [lf? not prin?][add-line copy str][vprin str]
+				either all [lf? not prin?][add-line copy str][vprin str]
 			]
 		][
-			either any [lf? not prin?][add-line str][vprin str]
+			either all [lf? not prin?][add-line str][vprin str]
 		]
 		prin?: not lf?
 		if system/console/running? [
 			system/view/platform/redraw console
+			if 1 = length? windows [loop 3 [do-ask-loop/no-wait]]
 		]
 		()				;-- return unset!
 	]
@@ -596,6 +602,7 @@ object [
 				insert history line
 				hist-idx: 0
 				prin?: no
+				newline?: yes
 				system/view/platform/exit-event-loop
 			]
 			#"^H" [delete-text event/ctrl?]

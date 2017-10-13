@@ -88,6 +88,7 @@ gui-console-ctx: context [
 		]
 
 		init: func [/local box][
+			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
 			box/fixed?: yes
 			box/styles: make block! 200
