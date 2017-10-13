@@ -107,8 +107,22 @@ find-flag?: routine [
 	bool/value:	 found?
 ]
 
+debug-info?: func [face [object!] return: [logic!]][
+	all [
+		system/view/debug?
+		not all [
+			value? 'gui-console-ctx
+			any [
+				same? face gui-console-ctx/console
+				same? face gui-console-ctx/win
+				same? face gui-console-ctx/caret
+			]
+		]
+	]
+]
+
 on-face-deep-change*: function [owner word target action new index part state forced?][
-	if system/view/debug? [
+	if debug-info? owner [
 		print [
 			"-- on-deep-change event --" 		 lf
 			tab "owner      :" owner/type		 lf
@@ -303,7 +317,7 @@ face!: object [				;-- keep in sync with facet! enum
 	draw:		none
 	
 	on-change*: function [word old new][
-		if system/view/debug? [
+		if debug-info? self [
 			print [
 				"-- on-change event --" lf
 				tab "face :" type		lf
@@ -463,14 +477,6 @@ scroller!: object [
 	parent:		none
 
 	on-change*: function [word old new][
-		if system/view/debug? [
-			print [
-				"-- scroller on-change event --" lf
-				tab "word :" word			 lf
-				tab "old  :" type? :old		 lf
-				tab "new  :" type? :new
-			]
-		]
 		if all [parent block? parent/state handle? parent/state/1][
 			system/view/platform/update-scroller self (index? in self word) - 1
 		]
@@ -672,7 +678,7 @@ do-actor: function [face [object!] event [event! none!] type [word!] /local resu
 		act: in face/actors name: select system/view/evt-names type
 		act: get act
 	][
-		if system/view/debug? [print ["calling actor:" name]]
+		if debug-info? face [print ["calling actor:" name]]
 		
 		set/any 'result do-safe [do [act face event]]	;-- compiler can't call act, hence DO
 	]
@@ -693,7 +699,7 @@ show: function [
 		]
 		exit
 	]
-	if system/view/debug? [print ["show:" face/type " with?:" with]]
+	if debug-info? face [print ["show:" face/type " with?:" with]]
 	
 	either all [face/state face/state/1][
 		pending: face/state/3
@@ -1026,6 +1032,7 @@ insert-event-func [
 			any [
 				event/face = gui-console-ctx/console
 				event/face = gui-console-ctx/win
+				event/face = gui-console-ctx/caret
 			]
 		]
 	][

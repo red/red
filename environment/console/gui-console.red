@@ -226,6 +226,8 @@ gui-console-ctx: context [
 		]
 	]
 
+	caret: none
+
 	win: make face! [
 		type: 'window offset: 640x400 size: 640x400 visible?: no
 		text: "Red Console"

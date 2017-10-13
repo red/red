@@ -67,9 +67,13 @@ object [
 		comment!	[128.128.128]
 	)
 
+	do-ask-loop: function [/no-wait][
+		system/view/platform/do-event-loop no-wait
+	]
+
 	refresh: does [
 		system/view/platform/redraw console
-		loop 3 [do-events/no-wait]
+		do-ask-loop/no-wait
 	]
 
 	vprin: func [str [string!]][
@@ -101,7 +105,9 @@ object [
 			either any [lf? not prin?][add-line str][vprin str]
 		]
 		prin?: not lf?
-		if system/console/running? [refresh]
+		if system/console/running? [
+			system/view/platform/redraw console
+		]
 		()				;-- return unset!
 	]
 
@@ -219,7 +225,7 @@ object [
 	]
 
 	scroll: func [event /local key n][
-		unless ask? [exit]
+		if empty? lines [exit]
 		key: event/key
 		n: switch/default key [ 
 			up			[1]
@@ -294,6 +300,7 @@ object [
 	]
 
 	mouse-down: func [event [event!]][
+		if empty? lines [exit]
 		mouse-up?: no
 		clear selects
 
@@ -302,12 +309,13 @@ object [
 	]
 
 	mouse-up: func [event [event!]][
+		if empty? lines [exit]
 		mouse-up?: yes
 		system/view/platform/redraw console
 	]
 
 	mouse-move: func [event [event!]][
-		if any [mouse-up? empty? selects][exit]
+		if any [empty? lines mouse-up? empty? selects][exit]
 
 		clear skip selects 2
 		offset-to-line event/offset
@@ -647,7 +655,7 @@ object [
 	]
 
 	paint: func [/local str cmds y n h cnt delta num end styles][
-		unless line [exit]
+		if empty? lines [exit]
 		cmds: [text 0x0 text-box]
 		cmds/2/x: pad-left
 		cmds/3: box
