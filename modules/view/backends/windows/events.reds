@@ -910,9 +910,8 @@ WndProc: func [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
-				offset: (as red-pair! values) + FACE_OBJ_OFFSET
-				pt/x: winpos/x - pt/x - dpi-scale offset/x
-				pt/y: winpos/y - pt/y - dpi-scale offset/y
+				pt/x: winpos/x - pt/x - GetWindowLong hWnd wc-offset - 8
+				pt/y: winpos/y - pt/y - GetWindowLong hWnd wc-offset - 12
 				update-layered-window hWnd null pt winpos -1
 			]
 		]
@@ -947,7 +946,11 @@ WndProc: func [
 					offset/x: WIN32_LOWORD(lParam) * 100 / dpi-factor
 					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
-					modal-loop-type: either msg = WM_MOVE [EVT_MOVING][EVT_SIZING]
+					modal-loop-type: either msg = WM_MOVE [
+						SetWindowLong hWnd wc-offset - 8 WIN32_LOWORD(lParam)
+						SetWindowLong hWnd wc-offset - 12 WIN32_HIWORD(lParam)
+						EVT_MOVING
+					][EVT_SIZING]
 					current-msg/hWnd: hWnd
 					current-msg/lParam: lParam
 					make-event current-msg 0 modal-loop-type

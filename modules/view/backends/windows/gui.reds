@@ -12,24 +12,27 @@ Red/System [
 
 ;; ===== Extra slots usage in Window structs =====
 ;;
-;;		-60 :							<- TOP
-;;		-28 : Cursor handle
-;;		-24 : Direct2D target interface
-;;				base-layered: caret's owner handle
-;;		-20 : evolved-base-layered: child handle
-;;		-16 : base-layered: owner handle
-;;		-12 : base-layered: clipped? flag, caret? flag
+;;		-60  :							<- TOP
+;;		-28  : Cursor handle
+;;		-24  : Direct2D target interface
+;;			   base-layered: caret's owner handle
+;;		-20  : evolved-base-layered: child handle
+;;		-16  : base-layered: owner handle
+;;			 :
+;;		-12  : base-layered: clipped? flag, caret? flag
+;;			   window: pos Y in pixel
 ;;		 -8  : base-layered: screen pos Y
+;;			   window: pos X in pixel
 ;;		 -4  : camera (camera!)
-;;				console (terminal!)
-;;				base: bitmap cache | base-layered: screen pos X
-;;				draw (old-dc)
-;;				group-box (frame hWnd)
-;;		  0   : |
-;;		  4   : |__ face!
-;;		  8   : |
-;;		  12  : |
-;;		  16  : FACE_OBJ_FLAGS        <- BOTTOM
+;;			   console (terminal!)
+;;			   base: bitmap cache | base-layered: screen pos X
+;;			   draw (old-dc)
+;;			   group-box (frame hWnd)
+;;		  0  : |
+;;		  4  : |__ face!
+;;		  8  : |
+;;		  12 : |
+;;		  16 : FACE_OBJ_FLAGS        <- BOTTOM
 
 #include %win32.reds
 #include %direct2d.reds
@@ -1488,6 +1491,8 @@ OS-make-view: func [
 			init-window handle bits
 			offset/x: off-x - rc/left * 100 / dpi-factor
 			offset/y: off-y - rc/top * 100 / dpi-factor
+			SetWindowLong handle wc-offset - 8 off-x - rc/left
+			SetWindowLong handle wc-offset - 12 off-y - rc/top
 		]
 		true [0]
 	]
@@ -1923,7 +1928,8 @@ change-parent: func [
 		bool		[red-logic!]
 		type		[red-word!]
 		values		[red-value!]
-		pt			[tagPOINT]
+		offset		[red-pair!]
+		pt			[tagPOINT value]
 		x			[integer!]
 		y			[integer!]
 		sym			[integer!]
@@ -1957,11 +1963,14 @@ change-parent: func [
 			SetWindowLong hWnd wc-offset - 16 as-integer handle
 			x: GetWindowLong hWnd wc-offset - 4
 			y: GetWindowLong hWnd wc-offset - 8
-			pt: position-base hWnd handle as red-pair! values + FACE_OBJ_OFFSET
+			offset: as red-pair! values + FACE_OBJ_OFFSET
+			pt/x: dpi-scale offset/x
+			pt/y: dpi-scale offset/y
+			position-base hWnd handle :pt
 			SetWindowPos hWnd null pt/x pt/y 0 0 SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 			pt/x: pt/x - x
 			pt/y: pt/y - y
-			update-layered-window hWnd null pt null -1
+			update-layered-window hWnd null :pt null -1
 			exit
 		][
 			SetParent hWnd handle

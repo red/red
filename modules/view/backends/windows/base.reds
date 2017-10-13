@@ -39,11 +39,10 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
 	either alpha? [
-		either win8+? [
-			pt/x: dpi-scale offset/x
-			pt/y: dpi-scale offset/y
-		][
-			pt: position-base handle as handle! parent offset
+		pt/x: dpi-scale offset/x
+		pt/y: dpi-scale offset/y
+		unless win8+? [
+			position-base handle as handle! parent :pt
 		]
 		update-base handle as handle! parent :pt values
 		if all [show?/value IsWindowVisible as handle! parent][
@@ -80,17 +79,11 @@ init-base-face: func [
 position-base: func [
 	base	[handle!]
 	parent	[handle!]
-	offset	[red-pair!]
-	return: [tagPOINT value]
-	/local
-		pt	[tagPOINT value]
+	pt		[tagPOINT]
 ][
-	pt/x: offset/x
-	pt/y: offset/y
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 4 dpi-scale pt/x
-	SetWindowLong base wc-offset - 8 dpi-scale pt/y
-	pt
+	SetWindowLong base wc-offset - 4 pt/x
+	SetWindowLong base wc-offset - 8 pt/y
 ]
 
 layered-win?: func [
@@ -221,7 +214,7 @@ render-text: func [
 
 clip-layered-window: func [
 	hWnd		[handle!]
-	size		[red-pair!]
+	size		[tagSIZE]
 	x			[integer!]
 	y			[integer!]
 	new-width	[integer!]
@@ -235,8 +228,8 @@ clip-layered-window: func [
 	either any [
 		not zero? x
 		not zero? y
-		size/x <> new-width
-		size/y <> new-height
+		size/width <> new-width
+		size/height <> new-height
 		BASE_FACE_CLIPPED and flags <> 0
 	][
 		SetWindowLong hWnd wc-offset - 12 flags or BASE_FACE_CLIPPED
@@ -264,6 +257,7 @@ process-layered-region: func [
 		w	  [integer!]
 		h	  [integer!]
 		rc	  [RECT_STRUCT value]
+		sz	  [tagSIZE]
 		owner [handle!]
 		type  [red-word!]
 		value [red-value!]
@@ -282,22 +276,25 @@ process-layered-region: func [
 		y: y + dpi-scale pos/y
 	]
 
+	sz: as tagSIZE :rc
+	sz/width: dpi-scale size/x
+	sz/height: dpi-scale size/y
 	if layer? [
-		w: x + size/x - rect/right
-		w: either positive? w [size/x - w][size/x]
+		w: x + sz/width - rect/right
+		w: either positive? w [sz/width - w][sz/width]
 		either negative? x [
-			x: either x + size/x < 0 [size/x][0 - x]
+			x: either x + sz/width < 0 [sz/width][0 - x]
 		][
 			x: 0
 		]
-		h: y + size/y - rect/bottom
-		h: either positive? h [size/y - h][size/y]
+		h: y + sz/height - rect/bottom
+		h: either positive? h [sz/height - h][sz/height]
 		either negative? y [
-			y: either y + size/y < 0 [size/y][0 - y]
+			y: either y + sz/height < 0 [sz/height][0 - y]
 		][
 			y: 0
 		]
-		clip-layered-window hWnd size x y w h
+		clip-layered-window hWnd sz x y w h
 	]
 
 	if all [
@@ -341,6 +338,7 @@ update-layered-window: func [
 		x		[integer!]
 		y		[integer!]
 		rect	[RECT_STRUCT value]
+		sz		[tagSIZE]
 		border	[integer!]
 		width	[integer!]
 		height	[integer!]
@@ -376,8 +374,8 @@ update-layered-window: func [
 		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			x: (dpi-scale offset/x) + GetWindowLong hWnd wc-offset - 4
-			y: (dpi-scale offset/y) + GetWindowLong hWnd wc-offset - 8
+			x: offset/x + GetWindowLong hWnd wc-offset - 4
+			y: offset/y + GetWindowLong hWnd wc-offset - 8
 			unless all [zero? offset/x zero? offset/y][
 				hdwp: DeferWindowPos
 					hdwp
@@ -407,16 +405,19 @@ update-layered-window: func [
 				GetClientRect winpos/hWnd rect
 				border: winpos/cx - rect/right >> 1
 				size: as red-pair! values + FACE_OBJ_SIZE
-				width: size/x
-				height: size/y
-				if x + size/x + border > (winpos/x + winpos/cx) [
-					width: size/x - (x + size/x - (winpos/x + winpos/cx)) - border
+				sz: as tagSIZE :rect
+				sz/width: dpi-scale size/x
+				sz/height: dpi-scale size/y
+				width: sz/width
+				height: sz/height
+				if x + sz/width + border > (winpos/x + winpos/cx) [
+					width: sz/width - (x + sz/width - (winpos/x + winpos/cx)) - border
 				]
-				if y + size/y + border > (winpos/y + winpos/cy) [
-					height: size/y - (y + size/y - (winpos/y + winpos/cy)) - border
+				if y + sz/height + border > (winpos/y + winpos/cy) [
+					height: sz/height - (y + sz/height - (winpos/y + winpos/cy)) - border
 				]
 
-				clip-layered-window hWnd size 0 0 width height
+				clip-layered-window hWnd sz 0 0 width height
 			]
 		][
 			bool: as red-logic! values + FACE_OBJ_VISIBLE?
