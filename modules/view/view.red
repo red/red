@@ -501,10 +501,20 @@ text-box!: object [
 	target:		none					;-- face!, image!, etc.
 	fixed?:		no						;-- fixed line height
 
-	;-- read only properties
-	width:		none					;-- actual width
-	height:		none					;-- actual height
+	;-- internal use only
+	width:		none
+	height:		none
 	line-count: none
+
+	;;
+	;; public query functions
+	;;
+	text-size?: function [return: [pair!]][			;-- TBD: remove width and height, use this function instead
+		"Return the size of the text, maybe different than the text box size"
+		as-pair width height
+	]
+
+	line-count?: func [return: [integer!]][line-count]
 
 	offset?: function [
 		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"

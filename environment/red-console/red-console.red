@@ -191,7 +191,6 @@ ask: function [
 	question [string!]
 	return:  [string!]
 ][
-	unless gui-console-ctx/console/state [return "quit"]
 	gui-console-ctx/show-caret
 
 	line: make string! 8
@@ -210,6 +209,7 @@ ask: function [
 		do-events
 	]
 	vt/ask?: no
+	unless gui-console-ctx/console/state [line: "quit"]
 	line
 ]
 

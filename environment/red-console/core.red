@@ -74,6 +74,16 @@ object [
 		system/view/platform/do-event-loop no-wait
 	]
 
+	exit-ask-loop: function [/escape][
+		caret/visible?: no
+		insert history line
+		if escape [append line #"^["]
+		hist-idx: 0
+		prin?: no
+		newline?: yes
+		system/view/platform/exit-event-loop
+	]
+
 	refresh: does [
 		system/view/platform/redraw console
 		do-ask-loop/no-wait
@@ -345,11 +355,21 @@ object [
 		n
 	]
 
-	select-text: func [n [integer!]][
-		
+	select-text: func [n [integer!] /local start end start-idx end-idx c][
+		if zero? n [exit]
+
+		c: length? lines			;-- index of current editing line
+		set [start start-idx end end-idx] selects
+		if all [start <> c end = c][start: c start-idx: end-idx]
+		if start <> c [start: c start-idx: pos + index? line end: c]
+		end-idx: pos + n + index? line
+		reduce/into [start start-idx end end-idx] clear selects
 	]
 
 	move-caret: func [n [integer!] /event e [event!] /local left? idx][
+		idx: pos + n
+		if any [negative? idx idx > length? line][exit]
+
 		if event [
 			left?: n = -1
 			if e/ctrl? [n: jump-word left?]
@@ -550,6 +570,7 @@ object [
 
 	delete-text: func [
 		ctrl? [logic!]
+		/selected
 		/local selected? start-n start-idx end-n end-idx n idx
 	][
 		selected?: no
@@ -567,7 +588,7 @@ object [
 			]
 			clear selects
 		]
-		if all [not selected? pos <> 0][
+		if all [not selected not selected? pos <> 0][
 			if #" " = pick line pos [ctrl?: no]
 			either ctrl? [
 				idx: index? line
@@ -597,14 +618,7 @@ object [
 
 		char: event/key
 		switch/default char [
-			#"^M" [									;-- ENTER key
-				caret/visible?: no
-				insert history line
-				hist-idx: 0
-				prin?: no
-				newline?: yes
-				system/view/platform/exit-event-loop
-			]
+			#"^M" [exit-ask-loop]					;-- ENTER key
 			#"^H" [delete-text event/ctrl?]
 			#"^-" [unless empty? line [do-completion line char]]
 			left  [move-caret/event -1 event]
@@ -613,8 +627,10 @@ object [
 			down  [fetch-history 'next]
 			#"^C" [copy-selection exit]
 			#"^V" [paste exit]
+			#"^[" [exit-ask-loop/escape]
 			#"^~" [delete-text yes]					;-- Ctrl + Backspace
 		][
+			unless empty? selects [delete-text/selected no]
 			if all [char? char char > 31][
 				insert skip line pos char
 				pos: pos + 1

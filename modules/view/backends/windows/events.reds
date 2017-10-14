@@ -461,7 +461,7 @@ make-event: func [
 				96 < char char < 123					;-- #"a" <= char <= #"z"
 			][char: char + 64 special-key: -1]
 			if any [
-				key and EVT_FLAG_SHIFT_DOWN <> 0
+				all [ime-open? key and EVT_FLAG_SHIFT_DOWN <> 0]
 				special-key = VK_LMENU
 				special-key = VK_RMENU
 			][special-key: -1]
