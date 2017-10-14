@@ -202,6 +202,7 @@ ask: function [
 	vt/add-line line
 	vt/ask?: yes
 	vt/reset-top/force
+	vt/clear-stack
 	system/view/platform/redraw gui-console-ctx/console
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait

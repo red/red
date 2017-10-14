@@ -46,6 +46,9 @@ object [
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
 	box:		make text-box! [target: console]
 
+	undo-stack: make block! 60
+	redo-stack: make block! 20
+
 	windows:	none							;-- all the windows opened
 
 	tab-size:	4
@@ -497,13 +500,14 @@ object [
 		write-clipboard clip-buf
 	]
 
-	paste: func [/resume /local nl? start end][
+	paste: func [/resume /local nl? start end idx][
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
 			end: find clipboard #"^M"
 			either end [nl?: yes][nl?: no end: tail clipboard]
 			insert/part skip line pos start end
+			idx: pos
 			pos: pos + offset? start end
 			clipboard: skip end either end/2 = #"^/" [2][1]
 			if nl? [
@@ -513,8 +517,31 @@ object [
 			]
 			calc-top/edit
 			system/view/platform/redraw console
+			if empty? clipboard [
+				reduce/into [idx pos - idx] undo-stack
+			]
 		]
 		not empty? clipboard
+	]
+
+	cut: func [][
+		copy-selection
+		delete-text/selected no
+	]
+
+	undo: func [/local idx data][
+		if empty? undo-stack [exit]
+		set [idx data] undo-stack
+		remove/part undo-stack 2
+
+		either integer? data [
+			remove/part skip line idx data
+			pos: idx
+		][									;-- else insert string? or char?
+			insert skip line idx data
+			data: either string? data [length? data][1]
+			pos: idx + data
+		]
 	]
 
 	do-completion: func [
@@ -569,11 +596,13 @@ object [
 	]
 
 	delete-text: func [
-		ctrl? [logic!]
+		ctrl?	[logic!]
 		/selected
-		/local selected? start-n start-idx end-n end-idx n idx
+		return: [logic!]
+		/local selected? start-n start-idx end-n end-idx n idx s del?
 	][
 		selected?: no
+		del?: no
 		if all [
 			not empty? selects
 			2 < length? selects
@@ -582,9 +611,19 @@ object [
 			if all [start-n = length? lines start-n = end-n][
 				selected?: yes
 				n: absolute end-idx - start-idx
-				if start-idx < end-idx [pos: pos - n]
-				start-idx: min start-idx end-idx
-				remove/part at head line start-idx n
+				idx: min start-idx end-idx
+				idx: idx - index? line
+				if negative? idx [
+					n: n + idx
+					idx: 0
+				]
+				if n > 0 [
+					if start-idx < end-idx [pos: pos - n]
+					s: copy/part skip line idx n
+					reduce/into [idx s] undo-stack
+					remove/part skip line idx n
+					del?: yes
+				]
 			]
 			clear selects
 		]
@@ -600,12 +639,16 @@ object [
 					n: pos
 				]
 				pos: pos - n
-				remove/part start-idx n
+				s: take/part start-idx n
+				reduce/into [pos s] undo-stack
 			][
-				pos: pos - 1 remove skip line pos
+				pos: pos - 1
+				s: take skip line pos
+				reduce/into [pos s] undo-stack
 			]
+			del?: yes
 		]
-		yes
+		del?
 	]
 
 	press-key: func [event [event!] /local char][
@@ -627,12 +670,15 @@ object [
 			down  [fetch-history 'next]
 			#"^C" [copy-selection exit]
 			#"^V" [paste exit]
+			#"^X" [cut]
+			#"^Z" [undo]
 			#"^[" [exit-ask-loop/escape]
 			#"^~" [delete-text yes]					;-- Ctrl + Backspace
 		][
 			unless empty? selects [delete-text/selected no]
 			if all [char? char char > 31][
 				insert skip line pos char
+				reduce/into [pos 1] undo-stack
 				pos: pos + 1
 			]
 		]
@@ -640,6 +686,11 @@ object [
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
 		calc-top/edit
 		system/view/platform/redraw console
+	]
+
+	clear-stack: does [
+		clear undo-stack
+		clear redo-stack
 	]
 
 	paint-selects: func [
