@@ -518,6 +518,7 @@ object [
 			calc-top/edit
 			system/view/platform/redraw console
 			if empty? clipboard [
+				clear redo-stack
 				reduce/into [idx pos - idx] undo-stack
 			]
 		]
@@ -529,17 +530,19 @@ object [
 		delete-text/selected no
 	]
 
-	undo: func [/local idx data][
-		if empty? undo-stack [exit]
-		set [idx data] undo-stack
-		remove/part undo-stack 2
+	undo: func [s1 [block!] s2 [block!] /local idx data s][
+		if empty? s1 [exit]
+		set [idx data] s1
+		remove/part s1 2
 
 		either integer? data [
-			remove/part skip line idx data
+			s: take/part skip line idx data
+			reduce/into [idx s] s2
 			pos: idx
 		][									;-- else insert string? or char?
 			insert skip line idx data
 			data: either string? data [length? data][1]
+			reduce/into [idx data] s2
 			pos: idx + data
 		]
 	]
@@ -556,11 +559,13 @@ object [
 			empty? candidates [
 				insert skip str pos char
 				pos: pos + 1
+				clear redo-stack
 			]
 			1 = length? candidates [
 				clear head str
 				pos: (index? candidates/1) - p-idx
 				append str head candidates/1
+				clear redo-stack
 			]
 			true [
 				str2: insert form next candidates system/console/prompt
@@ -587,6 +592,7 @@ object [
 		either zero? hist-idx [str: hist-line p: hist-pos][
 			str: pick history hist-idx
 			p: length? str
+			clear redo-stack
 		]
 
 		clear line
@@ -648,6 +654,7 @@ object [
 			]
 			del?: yes
 		]
+		if del? [clear redo-stack]
 		del?
 	]
 
@@ -672,7 +679,8 @@ object [
 			#"^C"	[copy-selection exit]
 			#"^V"	[paste exit]
 			#"^X"	[cut]
-			#"^Z"	[undo]
+			#"^Z"	[undo undo-stack redo-stack]
+			#"^Y"	[undo redo-stack undo-stack]
 			#"^["	[exit-ask-loop/escape]
 			#"^~"	[delete-text yes]				;-- Ctrl + Backspace
 		][
@@ -680,6 +688,7 @@ object [
 			if all [char? char char > 31][
 				insert skip line pos char
 				reduce/into [pos 1] undo-stack
+				clear redo-stack
 				pos: pos + 1
 			]
 		]
