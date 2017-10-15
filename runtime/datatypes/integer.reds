@@ -386,11 +386,7 @@ integer: context [
 			int  [red-integer!]
 			fl	 [red-float!]
 			t	 [red-time!]
-			pad1 [integer!]
-			pad2 [integer!]
-			pad3 [integer!]
-			pad4 [integer!]
-			val	 [red-value!]
+			val	 [red-value! value]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
@@ -423,8 +419,6 @@ integer: context [
 				int/value: date/to-epoch as red-date! spec
 			]
 			TYPE_ANY_STRING [
-				pad4: 0
-				val: as red-value! :pad4
 				copy-cell spec val					;-- save spec, load-value will change it
 
 				proto: load-value as red-string! spec
