@@ -115,7 +115,7 @@ gui-console-ctx: context [
 
 	#include %settings.red
 
-	show-caret: does [unless caret/visible? [caret/visible?: yes]]
+	show-caret: func [][unless caret/visible? [caret/visible?: yes]]
 
 	setup-faces: does [
 		append win/pane reduce [console tips caret]

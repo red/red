@@ -77,17 +77,19 @@ object [
 		system/view/platform/do-event-loop no-wait
 	]
 
-	exit-ask-loop: function [/escape][
+	exit-ask-loop: func [/escape][
+		clear selects
 		caret/visible?: no
-		insert history line
-		if escape [append line #"^["]
-		hist-idx: 0
+		either escape [append line #"^["][
+			if line <> first history [insert history line]
+			hist-idx: 0	
+		]
 		prin?: no
 		newline?: yes
 		system/view/platform/exit-event-loop
 	]
 
-	refresh: does [
+	refresh: func [][
 		system/view/platform/redraw console
 		do-ask-loop/no-wait
 	]
@@ -330,6 +332,7 @@ object [
 	mouse-up: func [event [event!]][
 		if empty? lines [exit]
 		mouse-up?: yes
+		if 2 = length? selects [clear selects]
 		system/view/platform/redraw console
 	]
 
@@ -376,7 +379,7 @@ object [
 		if event [
 			left?: n = -1
 			if e/ctrl? [n: jump-word left?]
-			if e/shift? [select-text n]
+			either e/shift? [select-text n][clear selects]
 		]
 		pos: pos + n
 		if negative? pos [pos: 0]
@@ -518,6 +521,7 @@ object [
 			calc-top/edit
 			system/view/platform/redraw console
 			if empty? clipboard [
+				clear selects
 				clear redo-stack
 				reduce/into [idx pos - idx] undo-stack
 			]
@@ -545,6 +549,7 @@ object [
 			reduce/into [idx data] s2
 			pos: idx + data
 		]
+		clear selects
 	]
 
 	do-completion: func [
@@ -574,6 +579,7 @@ object [
 				add-line line
 			]
 		]
+		clear selects
 	]
 
 	fetch-history: func [direction [word!] /local max str p][
@@ -593,6 +599,7 @@ object [
 			str: pick history hist-idx
 			p: length? str
 			clear redo-stack
+			clear selects
 		]
 
 		clear line
@@ -631,7 +638,6 @@ object [
 					del?: yes
 				]
 			]
-			clear selects
 		]
 		if all [not selected not selected? pos <> 0][
 			if #" " = pick line pos [ctrl?: no]
@@ -654,7 +660,7 @@ object [
 			]
 			del?: yes
 		]
-		if del? [clear redo-stack]
+		if del? [clear selects clear redo-stack]
 		del?
 	]
 
@@ -691,6 +697,7 @@ object [
 				clear redo-stack
 				pos: pos + 1
 			]
+			clear selects
 		]
 		console/rate: 6
 		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
@@ -698,7 +705,7 @@ object [
 		system/view/platform/redraw console
 	]
 
-	clear-stack: does [
+	clear-stack: func [][
 		clear undo-stack
 		clear redo-stack
 	]

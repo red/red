@@ -1489,6 +1489,9 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle bits
+			with clipboard [
+				if null? main-hWnd [main-hWnd: handle]
+			]
 			offset/x: off-x - rc/left * 100 / dpi-factor
 			offset/y: off-y - rc/top * 100 / dpi-factor
 			SetWindowLong handle wc-offset - 8 off-x - rc/left

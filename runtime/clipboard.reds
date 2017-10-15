@@ -16,7 +16,7 @@ clipboard: context [
 		#import [
 			"User32.dll" stdcall [
 				OpenClipboard: "OpenClipboard" [
-					hWnd		[integer!]
+					hWnd		[int-ptr!]
 					return:		[logic!]
 				]
 				SetClipboardData: "SetClipboardData" [
@@ -74,6 +74,8 @@ clipboard: context [
 		#define CF_UNICODETEXT		13
 		#define CF_DIBV5			17
 
+		main-hWnd: as int-ptr! 0
+
 		read: func [
 			return:		[red-value!]
 			/local
@@ -85,7 +87,7 @@ clipboard: context [
 			p: null
 			val: as red-value! none-value
 
-			unless OpenClipboard 0 [return val]
+			unless OpenClipboard main-hWnd [return val]
 
 			hMem: GetClipboardData CF_UNICODETEXT
 			if hMem <> 0 [
@@ -108,16 +110,16 @@ clipboard: context [
 				p		[byte-ptr!]
 				p1		[byte-ptr!]
 		][
-			unless OpenClipboard 0 [return false]
+			unless OpenClipboard main-hWnd [return false]
 			EmptyClipboard
 
 			switch TYPE_OF(data) [
 				TYPE_STRING [
 					len: -1
 					p1: as byte-ptr! unicode/to-utf16-len as red-string! data :len yes
-					hMem: GlobalAlloc 42h len * 2 + 4
+					hMem: GlobalAlloc 2 len * 2 + 2
 					p: GlobalLock hMem
-					copy-memory p p1 len * 2
+					copy-memory p p1 len * 2 + 2
 					GlobalUnlock hMem
 				]
 				TYPE_IMAGE	[0]
