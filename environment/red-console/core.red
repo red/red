@@ -661,19 +661,20 @@ object [
 
 		char: event/key
 		switch/default char [
-			#"^M" [exit-ask-loop]					;-- ENTER key
-			#"^H" [delete-text event/ctrl?]
-			#"^-" [unless empty? line [do-completion line char]]
-			left  [move-caret/event -1 event]
-			right [move-caret/event 1 event]
-			up	  [fetch-history 'prev]
-			down  [fetch-history 'next]
-			#"^C" [copy-selection exit]
-			#"^V" [paste exit]
-			#"^X" [cut]
-			#"^Z" [undo]
-			#"^[" [exit-ask-loop/escape]
-			#"^~" [delete-text yes]					;-- Ctrl + Backspace
+			#"^M"	[exit-ask-loop]					;-- ENTER key
+			#"^H"	[delete-text event/ctrl?]
+			#"^-"	[unless empty? line [do-completion line char]]
+			left	[move-caret/event -1 event]
+			right	[move-caret/event 1 event]
+			up		[fetch-history 'prev]
+			down	[fetch-history 'next]
+			insert	[if event/shift? [paste exit]]
+			#"^C"	[copy-selection exit]
+			#"^V"	[paste exit]
+			#"^X"	[cut]
+			#"^Z"	[undo]
+			#"^["	[exit-ask-loop/escape]
+			#"^~"	[delete-text yes]				;-- Ctrl + Backspace
 		][
 			unless empty? selects [delete-text/selected no]
 			if all [char? char char > 31][
