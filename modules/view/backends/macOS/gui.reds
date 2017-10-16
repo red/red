@@ -916,6 +916,10 @@ change-selection: func [
 		]
 		type = text-list [
 			hWnd: objc_msgSend [hWnd sel_getUid "documentView"]
+			if idx = -1 [
+				objc_msgSend [hWnd sel_getUid "deselectAll:" hWnd]
+				exit
+			]
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfRows"]
 			if any [sz < 0 sz < idx][exit]
 			idx: objc_msgSend [objc_getClass "NSIndexSet" sel_getUid "indexSetWithIndex:" idx]
