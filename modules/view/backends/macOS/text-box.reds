@@ -178,8 +178,8 @@ OS-text-box-metrics: func [
 		TBOX_METRICS_OFFSET?
 		TBOX_METRICS_LINE_HEIGHT [
 			xx: 0 _x: 0
-			;int: as red-integer! arg0
-			idx: (as-integer arg0) - 1
+			int: as red-integer! arg0
+			idx: int/value - 1
 			len: objc_msgSend [ts sel_getUid "length"]
 			if idx < 0 [idx: 0]
 			last?: idx >= len
