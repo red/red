@@ -504,6 +504,7 @@ object [
 	]
 
 	paste: func [/resume /local nl? start end idx][
+		delete-text/selected no
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
