@@ -682,6 +682,8 @@ object [
 			up		[fetch-history 'prev]
 			down	[fetch-history 'next]
 			insert	[if event/shift? [paste exit]]
+			home	[pos: 0]
+			end		[pos: length? line]
 			#"^C"	[copy-selection exit]
 			#"^V"	[paste exit]
 			#"^X"	[cut]
