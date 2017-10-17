@@ -122,7 +122,7 @@ gui-console-ctx: context [
 		append win/pane reduce [console tips caret]
 		win/menu: [
 			"File" [
-				"Open..."			open-file
+				"Run..."			run-file
 				---
 				"Quit"				quit
 			]
@@ -130,18 +130,19 @@ gui-console-ctx: context [
 				"Choose Font..."	choose-font
 				;"Settings..."		settings
 			]
-			"Plugins" [
-				"Add..."			add-plugin
-			]
+			;"Plugins" [
+			;	"Add..."			add-plugin
+			;]
 			"Help" [
 				"About"				about-msg
 			]
 		]
 		win/actors: object [
-			on-menu: func [face [object!] event [event!] /local ft][
+			on-menu: func [face [object!] event [event!] /local ft f][
 				switch event/picked [
 					about-msg		[display-about]
 					quit			[self/on-close face event]
+					run-file		[if f: request-file [terminal/run-file f]]
 					choose-font		[
 						if ft: request-font/font/mono font [
 							font: ft

@@ -693,6 +693,11 @@ object [
 		add-line line
 	]
 
+	run-file: func [f [file!]][
+		append clear line rejoin ["do " mold f]
+		exit-ask-loop
+	]
+
 	press-key: func [event [event!] /local char ctrl?][
 		unless ask? [exit]
 		if ime-open? [
