@@ -469,9 +469,13 @@ object [
 
 
 	copy-selection: func [
+		return: [logic!]
 		/local start-n end-n start-idx end-idx len n str swap?
 	][
-		if any [empty? selects 3 > length? selects][exit]
+		if any [empty? selects 3 > length? selects][				;-- empty selection, copy the whole line
+			write-clipboard line
+			return no
+		]
 
 		swap?: selects/1 > selects/3
 		if swap? [move/part skip selects 2 selects 2]				;-- swap start and end
@@ -507,6 +511,7 @@ object [
 		]
 		if swap? [move/part skip selects 2 selects 2]
 		write-clipboard clip-buf
+		yes
 	]
 
 	paste: func [/resume /local nl? start end idx][
@@ -537,8 +542,11 @@ object [
 	]
 
 	cut: func [][
-		copy-selection
-		delete-text/selected no
+		either copy-selection [
+			delete-text/selected no
+		][
+			clear line pos: 0
+		]
 	]
 
 	undo: func [s1 [block!] s2 [block!] /local idx data s][
@@ -685,7 +693,7 @@ object [
 		add-line line
 	]
 
-	press-key: func [event [event!] /local char][
+	press-key: func [event [event!] /local char ctrl?][
 		unless ask? [exit]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
@@ -693,15 +701,16 @@ object [
 			ime-open?: no
 		]
 
+		ctrl?: event/ctrl?
 		char: event/key
 		switch/default char [
 			#"^M"	[exit-ask-loop]					;-- ENTER key
-			#"^H"	[delete-text event/ctrl?]
+			#"^H"	[delete-text ctrl?]
 			#"^-"	[unless empty? line [do-completion line char]]
 			left	[move-caret/event -1 event]
 			right	[move-caret/event 1 event]
-			up		[fetch-history 'prev]
-			down	[fetch-history 'next]
+			up		[either ctrl? [scroll-lines  1][fetch-history 'prev]]
+			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
 			#"^A" home	[pos: 0]
 			#"^E" end	[pos: length? line]
