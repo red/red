@@ -665,6 +665,20 @@ object [
 		del?
 	]
 
+	clean: func [][
+		full?:		no
+		top:		1
+		scroll-y:	0
+		line-y:		0
+		line-cnt:	0
+		screen-cnt: 0
+		clear lines
+		clear nlines
+		clear heights
+		clear selects
+		add-line line
+	]
+
 	press-key: func [event [event!] /local char][
 		unless ask? [exit]
 		if ime-open? [
@@ -683,8 +697,8 @@ object [
 			up		[fetch-history 'prev]
 			down	[fetch-history 'next]
 			insert	[if event/shift? [paste exit]]
-			home	[pos: 0]
-			end		[pos: length? line]
+			#"^A" home	[pos: 0]
+			#"^E" end	[pos: length? line]
 			#"^C"	[copy-selection exit]
 			#"^V"	[paste exit]
 			#"^X"	[cut]
@@ -692,6 +706,8 @@ object [
 			#"^Y"	[undo redo-stack undo-stack]
 			#"^["	[exit-ask-loop/escape]
 			#"^~"	[delete-text yes]				;-- Ctrl + Backspace
+			#"^L"	[clean]
+			#"^K"	[clear line pos: 0]				;-- delete the whole line
 		][
 			unless empty? selects [delete-text/selected no]
 			if all [char? char char > 31][
