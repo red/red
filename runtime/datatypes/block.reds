@@ -1608,6 +1608,7 @@ block: context [
 		blk2: blk1 + 1
 		len: rs-length? blk1
 		if op = OP_UNION [len: len + rs-length? blk2]
+		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2
