@@ -698,7 +698,7 @@ object [
 		exit-ask-loop
 	]
 
-	press-key: func [event [event!] /local char ctrl?][
+	press-key: func [event [event!] /local char ctrl? shift?][
 		unless ask? [exit]
 		if ime-open? [
 			remove/part skip line ime-pos pos - ime-pos
@@ -707,6 +707,7 @@ object [
 		]
 
 		ctrl?: event/ctrl?
+		shift?: event/shift?
 		char: event/key
 		switch/default char [
 			#"^M"	[exit-ask-loop]					;-- ENTER key
@@ -717,8 +718,11 @@ object [
 			up		[either ctrl? [scroll-lines  1][fetch-history 'prev]]
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
-			#"^A" home	[pos: 0]
-			#"^E" end	[pos: length? line]
+			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
+			#"^E" end	[
+				if shift? [select-text (length? line) - pos]
+				pos: length? line
+			]
 			#"^C"	[copy-selection exit]
 			#"^V"	[paste exit]
 			#"^X"	[cut]
