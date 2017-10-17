@@ -45,9 +45,10 @@ gui-console-ctx: context [
 		flags:   [Direct2D editable scrollable all-over]
 		options: [cursor: I-beam]
 		menu: [
-			"Copy^-Ctrl+C"		 copy
-			"Paste^-Ctrl+V"		 paste
-			"Select All^-Ctrl+A" select-all
+			"Copy^-Ctrl+C"		copy
+			"Paste^-Shift+Ins"	paste
+			---
+			"Select All"		select-all
 		]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
@@ -82,7 +83,7 @@ gui-console-ctx: context [
 				switch event/picked [
 					copy		[terminal/copy-selection]
 					paste		[terminal/paste]
-					select-all	['TBD]
+					select-all	[terminal/select-all]
 				]
 			]
 		]

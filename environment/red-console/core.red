@@ -361,6 +361,12 @@ object [
 		n
 	]
 
+	select-all: func [][
+		if empty? lines [exit]
+		reduce/into [1 1 line-cnt 1 + length? head line] clear selects
+		system/view/platform/redraw console
+	]
+
 	select-text: func [n [integer!] /local start end start-idx end-idx c][
 		if zero? n [exit]
 
