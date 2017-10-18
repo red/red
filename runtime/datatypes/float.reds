@@ -518,13 +518,14 @@ float: context [
 		type	[integer!]								;-- target type
 		return:	[red-float!]
 		/local
-			int [red-integer!]
-			tm	[red-time!]
-			_1	[integer!]
-			_2	[integer!]
-			_3	[integer!]
-			_4	[integer!]
-			val [red-value!]
+			int	 [red-integer!]
+			tm	 [red-time!]
+			str  [red-string!]
+			p	 [byte-ptr!]
+			err	 [integer!]
+			unit [integer!]
+			len	 [integer!]
+			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/to"]]
 
@@ -540,23 +541,15 @@ float: context [
 				proto/value: tm/time
 			]
 			TYPE_ANY_STRING [
-				_4: 0
-				val: as red-value! :_4
-				copy-cell spec val					;-- save spec, load-value will change it
-
-				proto: as red-float! load-value as red-string! spec
-				switch TYPE_OF(proto) [
-					TYPE_FLOAT	
-					TYPE_PERCENT [0]				;-- most common case
-					TYPE_INTEGER [
-						int: as red-integer! proto
-						proto/value: as float! int/value
-					]
-					default [
-						fire [TO_ERROR(script bad-to-arg) datatype/push type val]
-					]
-				]
-				proto/header: type
+				err: 0
+				str: as red-string! spec
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+				len: (as-integer s/tail - p) >> log-b unit
+				
+				proto/value: tokenizer/scan-float p len unit :err
+				if err <> 0 [fire [TO_ERROR(script bad-to-arg) datatype/push type spec]]
 			]
 			TYPE_BINARY [
 				proto/value: from-binary as red-binary! spec

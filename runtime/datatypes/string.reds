@@ -67,6 +67,7 @@ string: context [
 
 	to-float: func [
 		s		[byte-ptr!]
+		e		[int-ptr!]
 		return: [float!]
 		/local
 			s0	[byte-ptr!]
@@ -83,7 +84,7 @@ string: context [
 				return float/QNaN
 			]
 		]
-		strtod s0 null
+		strtod s0 as byte-ptr! e
 	]
 
 	byte-to-hex: func [

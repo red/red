@@ -117,6 +117,7 @@ red: context [
 	#include %crypto.reds
 	#include %stack.reds
 	#include %interpreter.reds
+	#include %tokenizer.reds
 	#include %simple-io.reds							;-- temporary file IO support
 	#include %clipboard.reds
 	#include %redbin.reds

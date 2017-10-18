@@ -385,8 +385,14 @@ integer: context [
 		/local
 			int  [red-integer!]
 			fl	 [red-float!]
+			str	 [red-string!]
 			t	 [red-time!]
-			val	 [red-value! value]
+			p	 [byte-ptr!]
+			err	 [integer!]
+			i	 [integer!]
+			unit [integer!]
+			len	 [integer!]
+			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 		
@@ -419,21 +425,17 @@ integer: context [
 				int/value: date/to-epoch as red-date! spec
 			]
 			TYPE_ANY_STRING [
-				copy-cell spec val					;-- save spec, load-value will change it
-
-				proto: load-value as red-string! spec
-				
-				either TYPE_OF(proto) = TYPE_FLOAT [
-					fl: as red-float! proto
-					if overflow? fl [fire [TO_ERROR(script too-long)]]
-					int: as red-integer! proto
-					int/header: TYPE_INTEGER
-					int/value: as-integer fl/value
-				][
-					if TYPE_OF(proto) <> TYPE_INTEGER [ 
-						fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER val]
-					]
+				err: 0
+				str: as red-string! spec
+				s: GET_BUFFER(str)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (str/head << log-b unit)
+				len: (as-integer s/tail - p) >> log-b unit
+				i: tokenizer/scan-integer p len unit :err
+				if err <> 0 [
+					fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]
 				]
+				int/value: i
 			]
 			default [fire [TO_ERROR(script bad-to-arg) datatype/push TYPE_INTEGER spec]]
 		]
