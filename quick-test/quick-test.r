@@ -199,7 +199,6 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
- 
     ;; compose and write compilation script
     either binary-compiler? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
@@ -232,7 +231,6 @@ qt: make object! [
     	][
     		replace comp "###lib###" ""
     	]
-    
     	replace comp "***src***"  clean-path src
     	write comp-r comp
 
@@ -241,7 +239,6 @@ qt: make object! [
     	do call* cmd make string! 1024	;; redirect output to anonymous
     											;; buffer
     ]
-    
     ;; collect compiler output & tidy up
     if exists? comp-echo [
     	comp-output: read comp-echo

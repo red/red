@@ -68,8 +68,8 @@ foreach [file-in file-out] file-list [
 	rebuild: false
 	either not exists? file-out [
 		rebuild: true
-	][
-		if 0:00 < difference modified? file-in modified? file-out [
+	][	
+		if 0:00 < difference (modified? file-in) (modified? file-out) [
 			rebuild: true
 		]
 	]

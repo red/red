@@ -12,12 +12,7 @@
 ~~~start-file~~~ "functions"
 
 ===start-group=== "routine tests"
-
-	--test-- "routine-1" 
-		rt-1: try [routine [1] [2]]
-		--assert error? rt-1
-		--assert none <> find (to string! rt-1) "*** Internal Error: routines require compilation"
-
+; already exists in routine-test.red
 ===end-group===
 
 ===start-group=== "also tests"
@@ -84,58 +79,57 @@
 
 ===start-group=== "probe tests"
 	
-	--test-- "probe-1" --assert 1 = probe 1
-	--test-- "probe-2" --assert [1] = probe [1]
-	--test-- "probe-3" --assert :prin = probe :prin
-	--test-- "probe-4" --assert "1" = probe "1"
-	--test-- "probe-5" --assert [] = probe []
+	--test-- "probe-test-1" --assert 1 = probe 1
+	--test-- "probe-test-2" --assert [1] = probe [1]
+	--test-- "probe-test-3" --assert :prin = probe :prin
+	--test-- "probe-test-4" --assert "1" = probe "1"
+	--test-- "probe-test-5" --assert [] = probe []
 
 ===end-group===
 
 ===start-group=== "quote tests"
 	
-	--test-- "quote-1" --assert 1 = quote 1
+	--test-- "quote-test-1" --assert 1 = quote 1
 
 ===end-group===
 
 ===start-group=== "first tests"
-	--test-- "first-1" --assert #"a" = first "abcde"
-	--test-- "first-2" --assert 1 = first [1 2 3 4 5]
-	--test-- "first-3" --assert 1 = first 1.2.3.4.5
-	--test-- "first-4" --assert 1 = first 1x2
-	--test-- "first-5" --assert 12 = first 12:13:14.15
+	--test-- "first-test-1" --assert #"a" = first "abcde"
+	--test-- "first-test-2" --assert 1 = first [1 2 3 4 5]
+	--test-- "first-test-3" --assert 1 = first 1.2.3.4.5
+	--test-- "first-test-4" --assert 1 = first 1x2
+	--test-- "first-test-5" --assert 12 = first 12:13:14.15
 ===end-group===
 
 ===start-group=== "second tests"
-	--test-- "second-1" --assert #"b" = second "abcde"
-	--test-- "second-2" --assert 2 = second [1 2 3 4 5]
-	--test-- "second-3" --assert 2 = second 1.2.3.4.5
-	--test-- "second-4" --assert 2 = second 1x2
-	--test-- "second-5" --assert 13 = second 12:13:14.15
+	--test-- "second-test-1" --assert #"b" = second "abcde"
+	--test-- "second-test-2" --assert 2 = second [1 2 3 4 5]
+	--test-- "second-test-3" --assert 2 = second 1.2.3.4.5
+	--test-- "second-test-4" --assert 2 = second 1x2
+	--test-- "second-test-5" --assert 13 = second 12:13:14.15
 ===end-group===
 
 ===start-group=== "third tests"
-	--test-- "third-1" --assert #"c" = third "abcde"
-	--test-- "third-2" --assert 3 = third [1 2 3 4 5]
-	--test-- "third-3" --assert 3 = third 1.2.3.4.5
-	--test-- "third-4" --assert 14.15 = third 12:13:14.15
+	--test-- "third-test-1" --assert #"c" = third "abcde"
+	--test-- "third-test-2" --assert 3 = third [1 2 3 4 5]
+	--test-- "third-test-3" --assert 3 = third 1.2.3.4.5
+	--test-- "third-test-4" --assert 14 = third 12:13:14
 ===end-group===
 
 ===start-group=== "fourth tests"
-	--test-- "fourth-1" --assert #"d" = fourth "abcde"
-	--test-- "fourth-2" --assert 4 = fourth [1 2 3 4 5]
-	--test-- "fourth-3" --assert 4 = fourth 1.2.3.4.5
+	--test-- "fourth-test-1" --assert #"d" = fourth "abcde"
+	--test-- "fourth-test-2" --assert 4 = fourth [1 2 3 4 5]
+	--test-- "fourth-test-3" --assert 4 = fourth 1.2.3.4.5
 ===end-group===
 
 ===start-group=== "fifth tests"
-	--test-- "fifth-1" --assert #"e" = fifth "abcde"
-	--test-- "fifth-2" --assert 5 = fifth [1 2 3 4 5]
-	--test-- "fifth-3" --assert 5 = fifth 1.2.3.4.5
+	--test-- "fifth-test-1" --assert #"e" = fifth "abcde"
+	--test-- "fifth-test-2" --assert 5 = fifth [1 2 3 4 5]
 ===end-group===
 
 ===start-group=== "last tests"
-	--test-- "last-1" --assert #"e" = last "abcde"
-	--test-- "last-2" --assert 5 = last [1 2 3 4 5]
+	--test-- "last-test-1" --assert #"e" = last "abcde"
+	--test-- "last-test-2" --assert 5 = last [1 2 3 4 5]
 ===end-group===
 
 ===start-group=== "context tests"
@@ -148,19 +142,19 @@
 ===end-group===
 
 ===start-group=== "alter tests"
-	--test-- "alter-1"
+	--test-- "alter-test-1"
 		alter-1: copy "abc"
 		alter-result-1: alter alter-1 "d"
 			--assert true = alter-result-1
 			--assert "abcd" = alter-1
 		
-	--test-- "alter-2"
+	--test-- "alter-test-2"
 		alter-2: copy "abc"
 		alter-result-2: alter alter-2 "bc"
 			--assert false = alter-result-2
 			--assert "ac" = alter-2
 
-	--test-- "alter-3"
+	--test-- "alter-test-3"
 		alter-3: [1 2 3]
 		alter-result-3: alter alter-3 [1 2]
 			--assert false = alter-result-3
@@ -316,12 +310,12 @@
 
 ===start-group=== "what-dir tests"
 	--test-- "what-dir test"
-		--assert not none? find what-dir "/environment/"
+		--assert not none? what-dir
 ===end-group===
 
 ===start-group=== "change-dir tests"
 	--test-- "change-dir test"
-		--assert not none? find change-dir %. "/environment/"
+		--assert what-dir = (change-dir %.)
 		--assert error? try [change-dir %a]
 ===end-group===
 
@@ -384,7 +378,7 @@
 ===start-group=== "clean-path tests"
 	--test-- "clean-path test"
 		--assert %/red-lang.com = clean-path http://red-lang.com
-		--assert not none? find (clean-path %a) "/environment/"
+		--assert (rejoin [what-dir %a]) = clean-path %a
 		--assert %"" = clean-path/only %a
 		--assert %/red-lang.com/ = clean-path/only/dir http://red-lang.com
 ===end-group===
