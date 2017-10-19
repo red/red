@@ -586,41 +586,6 @@ change-dir: function [
 	system/options/path: dir
 ]
 
-list-dir: function [
-	"Displays a list of files and directories from given folder or current one"
-	dir [any-type!]  "Folder to list"
-	/col			 "Forces the display in a given number of columns"
-		n [integer!] "Number of columns"
-][
-	unless value? 'dir [dir: %.]
-	
-	unless find [file! word! path!] type?/word :dir [
-		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
-	]
-	list: read normalize-dir dir
-	limit: system/console/size/x - 13
-	max-sz: either n [
-		limit / n - n					;-- account for n extra spaces
-	][
-		n: max 1 limit / 22				;-- account for n extra spaces
-		22 - n
-	]
-
-	while [not tail? list][
-		loop n [
-			if max-sz <= length? name: list/1 [
-				name: append copy/part name max-sz - 4 "..."
-			]
-			prin tab
-			prin pad form name max-sz
-			prin " "
-			if tail? list: next list [exit]
-		]
-		prin lf
-	]
-	()
-]
-
 make-dir: function [
 	"Creates the specified directory. No error if already exists"
 	path [file!]
