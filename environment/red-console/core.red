@@ -625,6 +625,7 @@ object [
 
 	delete-text: func [
 		ctrl?	[logic!]
+		/backward
 		/selected
 		return: [logic!]
 		/local selected? start-n start-idx end-n end-idx n idx s del?
@@ -654,7 +655,7 @@ object [
 				]
 			]
 		]
-		if all [not selected not selected? pos <> 0][
+		if all [not selected not selected? not backward pos <> 0][
 			if #" " = pick line pos [ctrl?: no]
 			either ctrl? [
 				idx: index? line
@@ -673,6 +674,11 @@ object [
 				s: take skip line pos
 				reduce/into [pos s] undo-stack
 			]
+			del?: yes
+		]
+		if all [not selected not selected? pos < length? line][
+			s: take skip line pos
+			reduce/into [pos s] undo-stack
 			del?: yes
 		]
 		if del? [clear selects clear redo-stack]
@@ -718,6 +724,7 @@ object [
 			up		[either ctrl? [scroll-lines  1][fetch-history 'prev]]
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
+			delete	[delete-text/backward ctrl?]
 			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
 			#"^E" end	[
 				if shift? [select-text (length? line) - pos]
