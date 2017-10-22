@@ -515,7 +515,7 @@ object [
 	]
 
 	paste: func [/resume /local nl? start end idx][
-		delete-text/selected no
+		delete-selected
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
@@ -543,7 +543,7 @@ object [
 
 	cut: func [][
 		either copy-selection [
-			delete-text/selected no
+			delete-selected
 		][
 			clear line pos: 0
 		]
@@ -623,14 +623,10 @@ object [
 		system/view/platform/redraw console
 	]
 
-	delete-text: func [
-		ctrl?	[logic!]
-		/backward
-		/selected
+	delete-selected: func [
 		return: [logic!]
-		/local selected? start-n start-idx end-n end-idx n idx s del?
+		/local start-n start-idx end-n end-idx n idx s del?
 	][
-		selected?: no
 		del?: no
 		if all [
 			not empty? selects
@@ -638,7 +634,6 @@ object [
 		][
 			set [start-n start-idx end-n end-idx] selects
 			if all [start-n = length? lines start-n = end-n][
-				selected?: yes
 				n: absolute end-idx - start-idx
 				idx: min start-idx end-idx
 				idx: idx - index? line
@@ -651,11 +646,23 @@ object [
 					s: copy/part skip line idx n
 					reduce/into [idx s] undo-stack
 					remove/part skip line idx n
+					clear selects clear redo-stack
 					del?: yes
 				]
 			]
 		]
-		if all [not selected not selected? not backward pos <> 0][
+		del?
+	]
+
+	delete-text: func [
+		ctrl?	[logic!]
+		/backward
+		/local n idx s del?
+	][
+		if delete-selected [exit]
+
+		del?: no
+		if all [not backward pos <> 0][
 			if #" " = pick line pos [ctrl?: no]
 			either ctrl? [
 				idx: index? line
@@ -676,13 +683,12 @@ object [
 			]
 			del?: yes
 		]
-		if all [not selected not selected? pos < length? line][
+		if all [backward pos < length? line][
 			s: take skip line pos
 			reduce/into [pos s] undo-stack
 			del?: yes
 		]
 		if del? [clear selects clear redo-stack]
-		del?
 	]
 
 	clean: func [][
@@ -740,7 +746,7 @@ object [
 			#"^L"	[clean]
 			#"^K"	[clear line pos: 0]				;-- delete the whole line
 		][
-			unless empty? selects [delete-text/selected no]
+			unless empty? selects [delete-selected]
 			if all [char? char char > 31][
 				insert skip line pos char
 				reduce/into [pos 1] undo-stack

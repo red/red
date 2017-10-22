@@ -13,18 +13,22 @@ Red [
 	}
 ]
 
-debug-print: routine [arg [any-type!] /local blk [red-block!]][
-	"Output debug info to CLI console only"
-	#if sub-system = 'console [
-		if TYPE_OF(arg) = TYPE_BLOCK [
-			block/rs-clear natives/buffer-blk
-			stack/push as red-value! natives/buffer-blk
-			natives/reduce* no 1
-			blk: as red-block! arg
-			blk/head: 0						;-- head changed by reduce/into
+#if config/debug? [
+	debug-print: routine [
+		"Output debug info to CLI console only"
+		arg [any-type!] /local blk [red-block!]
+	][
+		#if sub-system = 'console [
+			if TYPE_OF(arg) = TYPE_BLOCK [
+				block/rs-clear natives/buffer-blk
+				stack/push as red-value! natives/buffer-blk
+				natives/reduce* no 1
+				blk: as red-block! arg
+				blk/head: 0						;-- head changed by reduce/into
+			]
+			actions/form* -1
+			dyn-print/red-print-cli as red-string! stack/arguments yes
 		]
-		actions/form* -1
-		dyn-print/red-print-cli as red-string! stack/arguments yes
 	]
 ]
 
