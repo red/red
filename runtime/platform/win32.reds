@@ -131,6 +131,14 @@ platform: context [
 		DaylightBias		[integer!]
 	]
 
+	OVERLAPPED: alias struct! [
+		Internal		[int-ptr!]
+		InternalHigh	[int-ptr!]
+		Offset			[integer!]				;-- or Pointer [int-ptr!]
+		OffsetHigh		[integer!]
+		hEvent			[int-ptr!]
+	]
+
 	gdiplus-token: 0
 	page-size: 4096
 
@@ -317,6 +325,28 @@ platform: context [
 				pDistance	[int-ptr!]
 				dwMove		[integer!]
 				return:		[integer!]
+			]
+			CreateIoCompletionPort: "CreateIoCompletionPort" [
+				FileHandle		[int-ptr!]
+				ExistingPort	[int-ptr!]
+				CompletionKey	[int-ptr!]
+				nThreads		[integer!]
+				return:			[int-ptr!]
+			]
+			GetQueuedCompletionStatus: "GetQueuedCompletionStatus" [
+				CompletionPort		[int-ptr!]
+				lpNumberOfBytes		[int-ptr!]
+				lpCompletionKey		[int-ptr!]
+				lpOverlapped		[OVERLAPPED]
+				dwMilliseconds		[integer!]
+				return:				[logic!]
+			]
+			PostQueuedCompletionStatus: "PostQueuedCompletionStatus" [
+				CompletionPort		[int-ptr!]
+				nTransferred		[integer!]
+				dwCompletionKey		[int-ptr!]
+				lpOverlapped		[OVERLAPPED]
+				return:				[logic!]
 			]
 		]
 		"gdiplus.dll" stdcall [
