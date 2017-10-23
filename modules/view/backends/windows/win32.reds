@@ -543,6 +543,11 @@ Red/System [
 #define WRAP_MODE_TILE_FLIP_XY  3
 #define WRAP_MODE_CLAMP         4
 
+#define BASE_FACE_CLIPPED	1
+#define BASE_FACE_CARET		2
+#define BASE_FACE_D2D		4
+#define BASE_FACE_IME		8
+
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]
 	left		[integer!]

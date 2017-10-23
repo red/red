@@ -46,8 +46,8 @@ gui-console-ctx: context [
 
 	console:	make face! [
 		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
-		flags:   [Direct2D editable scrollable all-over]
-		options: [cursor: I-beam]
+		flags:   [scrollable all-over]
+		options: [cursor: I-beam rich-text?: yes]
 		menu: [
 			"Copy^-Ctrl+C"		copy
 			"Paste^-Shift+Ins"	paste
@@ -95,7 +95,6 @@ gui-console-ctx: context [
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
-			box/fixed?: yes
 			box/styles: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar

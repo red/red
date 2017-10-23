@@ -18,16 +18,14 @@ Red/System [
 ;;			   base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle
 ;;		-16  : base-layered: owner handle
-;;			 :
-;;		-12  : base-layered: clipped? flag, caret? flag
-;;			   window: pos Y in pixel
-;;		 -8  : base-layered: screen pos Y
-;;			   window: pos X in pixel
-;;		 -4  : camera (camera!)
-;;			   console (terminal!)
-;;			   base: bitmap cache | base-layered: screen pos X
-;;			   draw (old-dc)
-;;			   group-box (frame hWnd)
+;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
+;;		 -8  : base: pos X/Y in pixel
+;;			   window: pos X/Y in pixel
+;;		 -4  : camera: camera!
+;;			   console: terminal!
+;;			   base: bitmap cache
+;;			   draw: old-dc
+;;			   group-box: frame hWnd
 ;;		  0  : |
 ;;		  4  : |__ face!
 ;;		  8  : |
@@ -574,7 +572,7 @@ free-faces: func [
 			]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
-				either flags and FACET_FLAGS_EDITABLE <> 0 [
+				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 					d2d-release-target as int-ptr! dc
 				][											;-- caret
 					DestroyCaret
@@ -910,12 +908,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = editable   [flags: flags or FACET_FLAGS_EDITABLE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			all [
-				sym = Direct2D
-				d2d-factory <> null
-			]				 [flags: flags or FACET_FLAGS_D2D]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1387,7 +1380,7 @@ OS-make-view: func [
 		null
 	]
 
-	unless any [DWM-enabled? alpha? bits and FACET_FLAGS_EDITABLE <> 0][
+	unless any [alpha? not winxp?][
 		ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 	]
 

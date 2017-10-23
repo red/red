@@ -317,7 +317,7 @@ draw-begin: func [
 	ctx/other/gradient-fill/transformed?:	false
 	ctx/other/gradient-pen?:				false
 	ctx/other/gradient-fill?:				false
-	ctx/other/D2D?:							(get-face-flags hWnd) and FACET_FLAGS_D2D <> 0
+	ctx/other/D2D?:							(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
 	ctx/other/GDI+?:						no
 	ctx/other/last-point?:					no
 	ctx/other/prev-shape/type:				SHAPE_OTHER

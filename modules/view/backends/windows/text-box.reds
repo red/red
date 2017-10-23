@@ -14,7 +14,8 @@ Red/System [
 #define TBOX_METRICS_OFFSET?		0
 #define TBOX_METRICS_INDEX?			1
 #define TBOX_METRICS_LINE_HEIGHT	2
-#define TBOX_METRICS_METRICS		3
+#define TBOX_METRICS_SIZE			3
+#define TBOX_METRICS_LINE_COUNT		4
 
 hidden-hwnd:  as handle! 0
 line-metrics: as DWRITE_LINE_METRICS 0
@@ -255,11 +256,12 @@ OS-text-box-metrics: func [
 		default [
 			metrics: as DWRITE_TEXT_METRICS :left
 			hr: dl/GetMetrics this metrics
-
-			values: object/get-values as red-object! arg0
-			integer/make-at values + TBOX_OBJ_WIDTH as-integer metrics/width
-			integer/make-at values + TBOX_OBJ_HEIGHT as-integer metrics/height
-			integer/make-at values + TBOX_OBJ_LINE_COUNT metrics/lineCount
+			integer/push either type = TBOX_METRICS_SIZE [
+				x: either null? arg0 [metrics/width][metrics/height]
+				as-integer x
+			][
+				metrics/lineCount
+			]
 		]
 	]
 ]
@@ -276,7 +278,6 @@ OS-text-box-layout: func [
 		str		[red-string!]
 		size	[red-pair!]
 		int		[red-integer!]
-		fixed?	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
 		vec		[red-vector!]
@@ -312,13 +313,15 @@ OS-text-box-layout: func [
 		COM_SAFE_RELEASE(IUnk layout)
 		int: int + 1
 		fmt: as this! int/value
+		int: int + 1
+		int/value: 0
 	][
-		fixed?: as red-logic! values + TBOX_OBJ_FIXED?
 		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-		if fixed?/value [set-line-spacing fmt]
-		block/make-at state 2
+		set-line-spacing fmt
+		block/make-at state 4
 		none/make-in state							;-- 1: text layout
-		integer/make-in state as-integer fmt		;-- 2: text format
+		handle/make-in state as-integer fmt			;-- 2: text format
+		logic/make-in state false
 	]
 
 	set-text-format fmt as red-object! values + TBOX_OBJ_PARA
@@ -332,7 +335,7 @@ OS-text-box-layout: func [
 		w: 0 h: 0
 	]
 	layout: create-text-layout str fmt w h
-	integer/make-at block/rs-head state as-integer layout
+	handle/make-at block/rs-head state as-integer layout
 
 	styles: as red-block! values + TBOX_OBJ_STYLES
 	if all [

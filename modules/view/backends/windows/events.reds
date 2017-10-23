@@ -917,7 +917,7 @@ WndProc: func [
 		]
 		WM_MOVE
 		WM_SIZE [
-			if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+			if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
 				target: as int-ptr! GetWindowLong hWnd wc-offset - 24
 				if target <> null [
 					this: as this! target/value

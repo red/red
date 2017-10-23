@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define BASE_FACE_CLIPPED 1
-#define BASE_FACE_CARET   2
-
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
@@ -67,6 +64,12 @@ init-base-face: func [
 					SetWindowLong handle wc-offset - 12 flags or BASE_FACE_CARET
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
+				]
+				sym = rich-text? [
+					show?: as red-logic! word + 1
+					if show?/value [
+						SetWindowLong handle wc-offset - 12 flags or BASE_FACE_D2D or BASE_FACE_IME
+					]
 				]
 				true [0]
 			]
@@ -492,7 +495,7 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
 				unless zero? GetWindowLong hWnd wc-offset + 4 [
 					update-base hWnd null null get-face-values hWnd
 				]
@@ -571,7 +574,7 @@ BaseWndProc: func [
 		]
 		default [0]
 	]
-	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
 				either zero? wParam [
@@ -753,7 +756,7 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
-	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
 		InvalidateRect hWnd null 0
 		exit
 	]

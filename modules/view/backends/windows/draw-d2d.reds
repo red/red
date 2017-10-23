@@ -147,16 +147,10 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		IUnk	[IUnknown]
 		values	[red-value!]
-		str		[red-string!]
-		size	[red-pair!]
 		int		[red-integer!]
 		state	[red-block!]
-		styles	[red-block!]
-		w		[integer!]
-		h		[integer!]
-		fmt		[this!]
+		bool	[red-logic!]
 		layout	[this!]
 ][
 	this: as this! ctx/dc
@@ -167,8 +161,13 @@ OS-draw-text-d2d: func [
 		state: as red-block! values + TBOX_OBJ_STATE
 
 		layout: either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state
-			as this! int/value
+			bool: as red-logic! (block/rs-tail state) - 1
+			either bool/value [
+				OS-text-box-layout as red-object! text ctx/brushes yes
+			][
+				int: as red-integer! block/rs-head state
+				as this! int/value
+			]
 		][
 			OS-text-box-layout as red-object! text ctx/brushes yes
 		]

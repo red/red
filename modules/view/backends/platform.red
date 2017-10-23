@@ -69,10 +69,7 @@ system/view/platform: context [
 			#enum flags-flag! [
 				FACET_FLAGS_ALL_OVER:	00000001h
 
-				FACET_FLAGS_EDITABLE:	00040000h
-				FACET_FLAGS_SCROLLABLE:	00080000h
-
-				FACET_FLAGS_D2D:		00100000h
+				FACET_FLAGS_SCROLLABLE:	00040000h
 
 				FACET_FLAGS_POPUP:		01000000h
 				FACET_FLAGS_MODAL:		02000000h
@@ -114,9 +111,8 @@ system/view/platform: context [
 				TBOX_OBJ_SPACING
 				TBOX_OBJ_TABS
 				TBOX_OBJ_STYLES
-				TBOX_OBJ_STATE
 				TBOX_OBJ_TARGET
-				TBOX_OBJ_FIXED?
+				TBOX_OBJ_STATE
 				TBOX_OBJ_WIDTH
 				TBOX_OBJ_HEIGHT
 				TBOX_OBJ_LINE_COUNT
@@ -255,6 +251,7 @@ system/view/platform: context [
 			camera:			symbol/make "camera"
 			caret:			symbol/make "caret"
 			scroller:		symbol/make "scroller"
+			rich-text?:		symbol/make "rich-text?"
 
 			---:			symbol/make "---"
 			done:			symbol/make "done"
@@ -287,9 +284,7 @@ system/view/platform: context [
 			modal:			symbol/make "modal"
 			popup:			symbol/make "popup"
 			scrollable:		symbol/make "scrollable"
-			editable:		symbol/make "editable"
 
-			Direct2D:		symbol/make "Direct2D"
 			_accelerated:	symbol/make "accelerated"
 
 			_cursor:		symbol/make "cursor"
@@ -680,17 +675,22 @@ system/view/platform: context [
 		stack/set-last gui/OS-request-dir title dir filter keep? multi?
 	]
 
-	text-box-layout: routine [
-		box		[object!]
-	][
-		gui/OS-text-box-layout box null no
-	]
-
 	text-box-metrics: routine [
-		state	[block!]
+		box		[object!]
 		arg0	[any-type!]
 		type	[integer!]
+		/local
+			state	[red-block!]
+			bool	[red-logic!]
+			layout? [logic!]
 	][
+		layout?: yes
+		state: as red-block! (object/get-values box) + gui/TBOX_OBJ_STATE
+		if TYPE_OF(state) = TYPE_BLOCK [
+			bool: as red-logic! (block/rs-tail state) - 1
+			layout?: bool/value
+		]
+		if layout? [gui/OS-text-box-layout box null no]
 		stack/set-last gui/OS-text-box-metrics state arg0 type
 	]
 

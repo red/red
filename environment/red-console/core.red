@@ -166,10 +166,9 @@ object [
 	calc-last-line: func [new? [logic!] /local n cnt h total][
 		n: length? lines
 		box/text: head last lines
-		box/layout
 		total: line-cnt
-		h: box/height
-		cnt: box/line-count
+		h: box/height?
+		cnt: box/line-count?
 		either any [new? n > length? nlines][			;-- add a new line
 			append heights h
 			append nlines cnt
@@ -225,9 +224,8 @@ object [
 		box/font: font
 		max-lines: cfg/buffer-lines
 		box/text: "X"
-		box/layout
-		box/tabs: tab-size * box/width
-		line-h: box/line-height 1
+		box/tabs: tab-size * box/width?
+		line-h: box/line-height? 1
 		caret/size/y: line-h
 		update-theme
 	]
@@ -299,7 +297,6 @@ object [
 		]
 		if n > length? lines [n: length? lines]
 		box/text: head pick lines n
-		box/layout
 		start: pick heights n
 		offset/x: offset/x - pad-left 
 		offset/y: y + start - h
@@ -314,7 +311,6 @@ object [
 		offset/x: offset/x - pad-left
 		offset/y: offset/y - line-y
 		box/text: head line
-		box/layout
 		pos: (box/index? offset) - (index? line)
 		if pos < 0 [pos: 0]
 		update-caret
@@ -815,13 +811,12 @@ object [
 			box/text: head str
 			if color? [highlight/add-styles head str clear styles theme]
 			paint-selects styles n
-			box/layout
 			clear styles
 			cmds/2/y: y
 			system/view/platform/draw-face console cmds
 
-			h: box/height
-			cnt: box/line-count
+			h: box/height?
+			cnt: box/line-count?
 			poke heights n h
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
