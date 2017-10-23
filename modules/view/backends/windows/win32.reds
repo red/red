@@ -511,6 +511,8 @@ Red/System [
 #define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
 #define WIN32_HIWORD(param) (param >> 16)
 
+#define WIN32_MAKE_LPARAM(low high) [high << 16 or (low and FFFFh)]
+
 #define IS_EXTENDED_KEY		01000000h
 
 #define ANSI_FIXED_FONT		11

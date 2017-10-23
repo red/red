@@ -910,8 +910,9 @@ WndProc: func [
 			if all [not win8+? type = window][
 				winpos: as tagWINDOWPOS lParam
 				pt: screen-to-client hWnd winpos/x winpos/y
-				pt/x: winpos/x - pt/x - GetWindowLong hWnd wc-offset - 8
-				pt/y: winpos/y - pt/y - GetWindowLong hWnd wc-offset - 12
+				pos: GetWindowLong hWnd wc-offset - 8
+				pt/x: winpos/x - pt/x - WIN32_LOWORD(pos)
+				pt/y: winpos/y - pt/y - WIN32_HIWORD(pos)
 				update-layered-window hWnd null pt winpos -1
 			]
 		]
@@ -947,8 +948,7 @@ WndProc: func [
 					offset/y: WIN32_HIWORD(lParam) * 100 / dpi-factor
 
 					modal-loop-type: either msg = WM_MOVE [
-						SetWindowLong hWnd wc-offset - 8 WIN32_LOWORD(lParam)
-						SetWindowLong hWnd wc-offset - 12 WIN32_HIWORD(lParam)
+						SetWindowLong hWnd wc-offset - 8 lParam
 						EVT_MOVING
 					][EVT_SIZING]
 					current-msg/hWnd: hWnd

@@ -35,9 +35,9 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	pt/x: dpi-scale offset/x
+	pt/y: dpi-scale offset/y
 	either alpha? [
-		pt/x: dpi-scale offset/x
-		pt/y: dpi-scale offset/y
 		unless win8+? [
 			position-base handle as handle! parent :pt
 		]
@@ -49,7 +49,7 @@ init-base-face: func [
 			process-layered-region handle size offset null offset null yes
 		]
 	][
-		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -85,8 +85,7 @@ position-base: func [
 	pt		[tagPOINT]
 ][
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 4 pt/x
-	SetWindowLong base wc-offset - 8 pt/y
+	SetWindowLong base wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 ]
 
 layered-win?: func [
@@ -377,8 +376,9 @@ update-layered-window: func [
 		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			x: offset/x + GetWindowLong hWnd wc-offset - 4
-			y: offset/y + GetWindowLong hWnd wc-offset - 8
+			border: GetWindowLong hWnd wc-offset - 8
+			x: offset/x + WIN32_LOWORD(border)
+			y: offset/y + WIN32_HIWORD(border)
 			unless all [zero? offset/x zero? offset/y][
 				hdwp: DeferWindowPos
 					hdwp
@@ -387,8 +387,7 @@ update-layered-window: func [
 					x y
 					0 0
 					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-				SetWindowLong hWnd wc-offset - 4 x
-				SetWindowLong hWnd wc-offset - 8 y
+				SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(x y)
 				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
 				if hWnd <> null [
 					hdwp: DeferWindowPos
