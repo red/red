@@ -37,10 +37,6 @@ move-file: func [
 ][
 	new-file: join %auto-tests/run-all/ second split-path to file! file
 	src: read/lines to file! file
-	if not none? (find new-file "../environment/") [
-		replace new-file "../environment/" ""
-	]
-	new-file: join %auto-tests/run-all/ new-file
 	new-src: copy []
 	foreach line src [
 		replace line "~~~end-file~~~" ""
