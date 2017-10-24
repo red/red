@@ -547,13 +547,20 @@ text-box!: object [
 	][
 		system/view/platform/text-box-metrics self 0 4
 	]
-	;;--
 
-	on-change*: function [word old new][
-		if word <> 'state [
-			if all [block? state not last state][
-				change back tail state true
-			]
+	on-change*: func [word old new][
+		unless all [block? :old block? :new same? head :old head :new][
+			if any [series? :old object? :old][modify old 'owned none]
+			if any [series? :new object? :new][modify new 'owned reduce [self word]]
+		]
+		if all [state not last state][
+			change back tail state true
+		]
+	]
+
+	on-deep-change*: func [owner word target action new index part][
+		if all [state not last state][
+			change back tail state true
 		]
 	]
 ]

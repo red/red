@@ -204,12 +204,13 @@ object [
 	reset-top: func [/force /local n][
 		n: line-cnt - page-cnt
 		if any [
-			scroller/position < n
+			scroller/position <= n
 			all [full? force]
 		][
+			n: last nlines
 			top: length? lines
-			scroller/position: scroller/max-size - page-cnt + 1
-			scroll-lines page-cnt - 1
+			scroller/position: scroller/max-size - page-cnt - n + 2
+			scroll-lines page-cnt - n
 		]
 	]
 
@@ -762,7 +763,7 @@ object [
 		clear redo-stack
 	]
 
-	paint-selects: func [
+	mark-selects: func [
 		styles n
 		/local start-n end-n start-idx end-idx len swap?
 	][
@@ -810,8 +811,7 @@ object [
 		foreach str at lines top [
 			box/text: head str
 			if color? [highlight/add-styles head str clear styles theme]
-			paint-selects styles n
-			clear styles
+			mark-selects styles n
 			cmds/2/y: y
 			system/view/platform/draw-face console cmds
 
@@ -820,6 +820,7 @@ object [
 			poke heights n h
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
+			clear styles
 
 			n: n + 1
 			y: y + h

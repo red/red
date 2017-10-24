@@ -278,6 +278,7 @@ OS-text-box-layout: func [
 		str		[red-string!]
 		size	[red-pair!]
 		int		[red-integer!]
+		bool	[red-logic!]
 		state	[red-block!]
 		styles	[red-block!]
 		vec		[red-vector!]
@@ -313,11 +314,11 @@ OS-text-box-layout: func [
 		COM_SAFE_RELEASE(IUnk layout)
 		int: int + 1
 		fmt: as this! int/value
-		int: int + 1
-		int/value: 0
+		bool: as red-logic! int + 1
+		bool/value: false
 	][
 		fmt: as this! create-text-format as red-object! values + TBOX_OBJ_FONT
-		set-line-spacing fmt
+		;set-line-spacing fmt
 		block/make-at state 4
 		none/make-in state							;-- 1: text layout
 		handle/make-in state as-integer fmt			;-- 2: text format
