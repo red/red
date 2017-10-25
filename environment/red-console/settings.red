@@ -43,6 +43,18 @@ fstk-logo: load/as 64#{iVBORw0KGgoAAAANSUhEUgAAAD4AAAA/CAIAAAA3/+y2AAAACXBIWXMAA
 	wAAAABJRU5ErkJggg==
 } 'png
 
+set-background: function [color [tuple!]][
+	console/color: color
+	system/view/platform/redraw console
+]
+
+set-font-color: function [color [tuple!]][
+	font: console/font
+	font/color: color
+	terminal/foreground: color
+	system/view/platform/redraw console
+]
+
 display-about: function [][
 	lay: layout/tight [
 		title "About"
@@ -74,23 +86,51 @@ display-about: function [][
 
 show-cfg-dialog: function [][
 	lay: layout [
-		text "Buffer Lines:" cfg-buffers:	field return
-		text "ForeColor:"	 cfg-forecolor: field return
-		text "BackColor:"	 cfg-backcolor: field return
+		title "Settings"
+		style bbox: base 20x20 draw [pen gray box 0x0 19x19] on-down [
+			set-background cfg-backcolor/data: face/color
+		]
+		style fbox: bbox on-down [
+			set-font-color cfg-forecolor/data: face/color
+		]
+		style hex-field: field 90 center font [name: font/name]
+		
+		group-box "Background color" [
+			bbox #000000 bbox #002b36 bbox #073642 bbox #293955
+			bbox #eee8d5 bbox #fdf6e3 bbox #ffffff
+			cfg-backcolor: hex-field
+		]
+		return
+		
+		group-box "Font color" [
+			fbox #b98000 fbox #cb4b16 fbox #dc322f fbox #d33682
+			fbox #6c71c4 fbox #268bd2 fbox #2aa198
+			cfg-forecolor: hex-field
+			return
+			fbox #859900 fbox #82bb82 fbox #000000 fbox #657b83
+			fbox #839496 fbox #93a1a1 fbox #ffffff
+		]
+		return
+		
+		pad 150x10 text "Buffer Lines" 80 
+		pad -17x0 cfg-buffers: hex-field right return
+		
+		pad 90x20
 		button "OK" [
 			if cfg/buffer-lines <> cfg-buffers/data [
 				cfg/buffer-lines: cfg-buffers/data
+				terminal/max-lines: cfg/buffer-lines
 			]
-			cfg/font-color:   cfg-forecolor/data
-			cfg/background:   cfg-backcolor/data
+			set-font-color cfg/font-color: cfg-forecolor/data
+			set-background cfg/background: cfg-backcolor/data
 			unview
 			win/selected: console
 		]
 		button "Cancel" [unview win/selected: console]
 	]
-	cfg-buffers/data: cfg/buffer-lines
-	cfg-forecolor/data: cfg/font-color
-	cfg-backcolor/data: cfg/background
+	cfg-buffers/data:	cfg/buffer-lines
+	cfg-forecolor/data:	cfg/font-color
+	cfg-backcolor/data:	cfg/background
 	center-face/with lay win
 	view/flags lay [modal]
 ]

@@ -131,7 +131,7 @@ gui-console-ctx: context [
 			]
 			"Options" [
 				"Choose Font..."	choose-font
-				;"Settings..."		settings
+				"Settings..."		settings
 			]
 			;"Plugins" [
 			;	"Add..."			add-plugin

@@ -52,12 +52,14 @@ object [
 	windows:	none							;-- all the windows opened
 
 	tab-size:	4
+	foreground: 0.0.0
 	background: none
 	select-bg:	none							;-- selected text background color
 	pad-left:	3
 
 	color?:		no
 	theme: #(
+		foreground	[0.0.0]
 		background	[252.252.252]
 		selected	[200.200.255]				;-- selected text background color
 		string!		[120.120.61]
@@ -215,6 +217,7 @@ object [
 	]
 
 	update-theme: func [][
+		foreground: first select theme 'foreground
 		background: first select theme 'background
 		select-bg:  reduce ['backdrop first select theme 'selected]
 		console/color: background
@@ -228,6 +231,8 @@ object [
 		box/tabs: tab-size * box/width?
 		line-h: box/line-height? 1
 		caret/size/y: line-h
+		if cfg/background [change theme/background cfg/background]
+		if font/color [change theme/foreground font/color]
 		update-theme
 	]
 
@@ -800,9 +805,10 @@ object [
 
 	paint: func [/local str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
-		cmds: [text 0x0 text-box]
-		cmds/2/x: pad-left
-		cmds/3: box
+		cmds: [pen color text 0x0 text-box]
+		cmds/2: foreground
+		cmds/4/x: pad-left
+		cmds/5: box
 		end: console/size/y
 		y: scroll-y
 		n: top
@@ -812,7 +818,7 @@ object [
 			box/text: head str
 			if color? [highlight/add-styles head str clear styles theme]
 			mark-selects styles n
-			cmds/2/y: y
+			cmds/4/y: y
 			system/view/platform/draw-face console cmds
 
 			h: box/height?

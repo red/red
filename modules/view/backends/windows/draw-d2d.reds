@@ -29,6 +29,8 @@ draw-begin-d2d: func [
 		brush	[integer!]
 		target	[int-ptr!]
 		brushes [int-ptr!]
+		pbrush	[ID2D1SolidColorBrush]
+		d3d-clr [D3DCOLORVALUE]
 ][
 	target: get-hwnd-render-target hWnd
 
@@ -52,9 +54,14 @@ draw-begin-d2d: func [
 	]
 
 	brush: select-brush target + 1 ctx/pen-color
-	if zero? brush [
-		rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+	d3d-clr: to-dx-color ctx/pen-color null
+	either zero? brush [
+		rt/CreateSolidColorBrush this d3d-clr null :brush
 		put-brush target + 1 ctx/pen-color brush
+	][
+		this: as this! brush
+		pbrush: as ID2D1SolidColorBrush this/vtbl
+		pbrush/SetColor this d3d-clr
 	]
 	ctx/pen: brush
 ]
