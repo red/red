@@ -153,6 +153,7 @@ system: context [
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				too-long:			"Content too long"
 				invalid-char:		["Invalid char! value:" :arg1]
+				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -251,7 +252,7 @@ system: context [
 				feature-na:			"feature not available"
 				not-done:			"reserved for future use (or not yet implemented)"
 				invalid-error:		["invalid error object field value:" :arg1]
-				routines:			"routines require compilation, from OS shell: `red -c <script.red>`"
+				routines:			"routines require compilation, from OS shell: `red -r <script.red>`"
 				red-system:			"contains Red/System code which requires compilation"
 			]
 		]

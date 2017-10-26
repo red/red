@@ -163,7 +163,7 @@ system/console: context [
 		]
 	]
 
-	do-command: function [][
+	do-command: function [/local result err][
 		if error? code: try [load/all buffer][print code]
 
 		unless any [error? code tail? code][
@@ -270,6 +270,41 @@ system/console: context [
 ]
 
 ;-- Console-oriented function definitions
+
+list-dir: function [
+	"Displays a list of files and directories from given folder or current one"
+	dir [any-type!]  "Folder to list"
+	/col			 "Forces the display in a given number of columns"
+		n [integer!] "Number of columns"
+][
+	unless value? 'dir [dir: %.]
+	
+	unless find [file! word! path!] type?/word :dir [
+		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
+	]
+	list: read normalize-dir dir
+	limit: system/console/size/x - 13
+	max-sz: either n [
+		limit / n - n					;-- account for n extra spaces
+	][
+		n: max 1 limit / 22				;-- account for n extra spaces
+		22 - n
+	]
+
+	while [not tail? list][
+		loop n [
+			if max-sz <= length? name: list/1 [
+				name: append copy/part name max-sz - 4 "..."
+			]
+			prin tab
+			prin pad form name max-sz
+			prin " "
+			if tail? list: next list [exit]
+		]
+		prin lf
+	]
+	()
+]
 
 expand: func [
 	"Preprocess the argument block and display the output (console only)"

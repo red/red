@@ -169,6 +169,8 @@ Red/System [
 #define RedCursorKey			4000FFFEh
 #define RedEnableKey			4000FFFFh
 
+#define QuitMsgData				12321
+
 #define OBJC_ALLOC(class) [objc_msgSend [objc_getClass class sel_alloc]]
 
 objc_super!: alias struct! [
@@ -215,7 +217,7 @@ RECT_STRUCT: alias struct! [
 
 tagPOINT: alias struct! [
 	x		[integer!]
-	y		[integer!]	
+	y		[integer!]
 ]
 
 tagSIZE: alias struct! [
@@ -857,6 +859,15 @@ objc_block_descriptor: declare struct! [
 	size			[integer!]
 	copy_helper		[function! [dst [int-ptr!] src [int-ptr!]]]
 	dispose_helper	[function! [src [int-ptr!]]]
+]
+
+block_literal!: alias struct! [
+	isa			[integer!]
+	flags		[integer!]
+	reserved	[integer!]
+	invoke		[int-ptr!]
+	descriptor	[int-ptr!]
+	value		[int-ptr!]
 ]
 
 get-super-obj: func [

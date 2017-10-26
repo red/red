@@ -97,52 +97,30 @@ system/lexer: context [
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
-		if ret/node = null [ret/header: TYPE_NONE]			;-- return NONE!
+		if ret/node = null [ret/header: TYPE_NONE]		;-- return NONE!
 	]
 
 	make-tuple: routine [
 		start  [string!]
 		end	   [string!]
 		/local
-			str  [series!]
-			c	 [integer!]
-			n	 [integer!]
-			m	 [integer!]
+			s    [series!]
+			err	 [integer!]
 			len  [integer!]
 			unit [integer!]
-			size [integer!]
 			p	 [byte-ptr!]
 			tp	 [byte-ptr!]
 			ret  [red-value!]
 	][
-		str:  GET_BUFFER(start)
-		unit: GET_UNIT(str)
+		s:	  GET_BUFFER(start)
+		unit: GET_UNIT(s)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		ret: stack/arguments
-		tp: (as byte-ptr! ret) + 4
-
-		n: 0
-		size: 0
-		until [
-			c: string/get-char p unit
-			either c = as-integer #"." [
-				size: size + 1
-				tp/size: as byte! n
-				n: 0
-			][
-				m: n * 10
-				n: m
-				m: n + c - #"0"
-				n: m
-			]
-			p: p + unit
-			len: len - 1
-			zero? len
-		]
-		size: size + 1									;-- last number
-		tp/size: as byte! n
-		ret/header: TYPE_TUPLE or (size << 19)
+		ret:  stack/arguments
+		err:  0
+		
+		tokenizer/scan-tuple p len unit	:err ret
+		assert err = 0									;-- pre-checked validity
 		ret
 	]
 
@@ -151,66 +129,31 @@ system/lexer: context [
 		end	   [string!]
 		type   [datatype!]
 		/local
-			str  [series!]
-			c	 [integer!]
-			n	 [integer!]
-			m	 [integer!]
+			s	 [series!]
 			len  [integer!]
 			unit [integer!]
 			p	 [byte-ptr!]
-			neg? [logic!]
+			err	 [integer!]
+			i	 [integer!]
 	][
 		if type/value <> TYPE_INTEGER [
 			make-float start end type					;-- float! escape path
 			exit
 		]
-		str:  GET_BUFFER(start)
-		unit: GET_UNIT(str)
+		s:	  GET_BUFFER(start)
+		unit: GET_UNIT(s)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		neg?: no
+		err:  0
 
-		c: string/get-char p unit
-		if any [
-			c = as-integer #"+" 
-			c = as-integer #"-"
-		][
-			neg?: c = as-integer #"-"
-			p: p + unit
-			len: len - 1
-		]
-		n: 0
-		until [
-			c: (string/get-char p unit) - #"0"
-			if c >= 0 [									;-- skip #"'"
-				m: n * 10
-				
-				if system/cpu/overflow? [
-					type/value: TYPE_FLOAT
-					make-float start end type			;-- fallback to float! loading
-					exit
-				]
-				n: m
-
-				if all [neg? n = 2147483640 c = 8][
-					integer/box 80000000h				;-- special exit trap for -2147483648
-					exit
-				]
-
-				m: n + c
-				
-				if system/cpu/overflow? [
-					type/value: TYPE_FLOAT
-					make-float start end type			;-- fallback to float! loading
-					exit
-				]
-				n: m
-			]
-			p: p + unit
-			len: len - 1
-			zero? len
-		]
-		integer/box either neg? [0 - n][n]
+		i: tokenizer/scan-integer p len unit :err
+		
+		if err <> 0 [
+			type/value: TYPE_FLOAT
+			make-float start end type			;-- fallback to float! loading
+			exit
+		]			
+		integer/box i
 	]
 
 	make-float: routine [
@@ -218,40 +161,21 @@ system/lexer: context [
 		end	  [string!]
 		type  [datatype!]
 		/local
-			str  [series!]
-			cp	 [integer!]
+			s	 [series!]
 			unit [integer!]
 			len  [integer!]
 			p	 [byte-ptr!]
-			tail [byte-ptr!]
-			cur	 [byte-ptr!]
-			s0	 [byte-ptr!]
+			err	 [integer!]
 			f	 [float!]
 	][
-		cur: as byte-ptr! "0000000000000000000000000000000"		;-- 32 bytes including NUL
-
-		str:  GET_BUFFER(start)
-		unit: GET_UNIT(str)
+		s:	  GET_BUFFER(start)
+		unit: GET_UNIT(s)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		tail: p + (len << (unit >> 1))
-
-		if len > 31 [cur: allocate len + 1]
-		s0:   cur
-
-		until [											;-- convert to ascii string
-			cp: string/get-char p unit
-			if cp <> as-integer #"'" [					;-- skip #"'"
-				if cp = as-integer #"," [cp: as-integer #"."]
-				cur/1: as-byte cp
-				cur: cur + 1
-			]
-			p: p + unit
-			p = tail
-		]
-		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		f: string/to-float s0
-		if len > 31 [free s0]
+		err:  0
+		
+		f: tokenizer/scan-float p len unit :err
+		
 		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
 	]
 
@@ -408,9 +332,9 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base base64-char slash-end not-url-char
-			email-end pair-end file-end
+			email-end pair-end file-end err
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - - - - - - - - - -] ;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		old-line: line: 1
@@ -479,6 +403,7 @@ system/lexer: context [
 				cs/26: charset {^{[]();:}					;-- file-end
 				cs/27: charset "/-"							;-- date-sep
 				cs/28: charset "/T"							;-- time-sep
+				cs/29: charset "=><[](){};^""				;-- not-tag-1st
 
 				list: system/locale/months
 				while [not tail? list][
@@ -498,7 +423,7 @@ system/lexer: context [
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
 			four half non-zero path-end base64-char slash-end not-url-char email-end
-			pair-end file-end date-sep time-sep
+			pair-end file-end date-sep time-sep not-tag-1st
 		] cs
 
 		byte: [
@@ -614,7 +539,7 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 		
 		tag-rule: [
-			#"<" not [#"=" | #">" | #"<" | ws] (type: tag!)
+			#"<" not [not-tag-1st | ws] (type: tag!)
 			 s: some [#"^"" thru #"^"" | #"'" thru #"'" | e: #">" break | skip]
 			(if e/1 <> #">" [throw-error [tag! back s]])
 		]
@@ -1021,7 +946,7 @@ system/lexer: context [
 		any-value: [pos: any [some ws | literal-value]]
 		red-rules: [any-value any ws opt wrong-end]
 
-		if pre-load [do [pre-load src part]]
+		if pre-load [do [pre-load src length]]
 		
 		set/any 'err try [
 			unless either part [

@@ -22,6 +22,8 @@ edges: as CGPoint! allocate max-edges * (size? CGPoint!)	;-- polygone edges buff
 colors: as pointer! [float32!] allocate 5 * max-colors * (size? float32!)
 colors-pos: colors + (4 * max-colors)
 
+draw-state!: alias struct! [unused [integer!]]
+
 draw-begin: func [
 	ctx			[draw-ctx!]
 	CGCtx		[handle!]
@@ -59,7 +61,7 @@ draw-begin: func [
 	ctx/pen-color:		0						;-- default: black
 	ctx/pen-join:		miter
 	ctx/pen-cap:		flat
-	ctx/brush-color:	0
+	ctx/brush-color:	-1
 	ctx/grad-pen:		-1
 	ctx/pen?:			yes
 	ctx/brush?:			no
@@ -727,6 +729,7 @@ OS-draw-text: func [
 	][
 		draw-text-box ctx pos as red-object! text catch?
 	]
+	CG-set-color ctx dc/pen-color no				;-- drawing text will change pen color, so reset it
 	CG-set-color ctx dc/brush-color yes				;-- drawing text will change brush color, so reset it
 ]
 
@@ -1373,11 +1376,11 @@ OS-matrix-transform: func [
 	_OS-matrix-translate dc/raw translate/x translate/y
 ]
 
-OS-matrix-push: func [dc [draw-ctx!] state [int-ptr!]][
+OS-matrix-push: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextSaveGState dc/raw
 ]
 
-OS-matrix-pop: func [dc [draw-ctx!] state [integer!]][
+OS-matrix-pop: func [dc [draw-ctx!] state [draw-state!]][
 	CGContextRestoreGState dc/raw
 	dc/pen-color:		0
 	dc/brush-color:		0

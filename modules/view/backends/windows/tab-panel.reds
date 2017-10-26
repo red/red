@@ -85,7 +85,12 @@ adjust-parent: func [									;-- prevent tabcontrol from having children
 	if tab-panel = symbol/resolve type/symbol [
 		SetParent hWnd GetParent parent
 		pos: as red-pair! values + FACE_OBJ_OFFSET
-		SetWindowPos hWnd null pos/x + x pos/y + y 0 0 SWP_NOSIZE or SWP_NOZORDER
+		SetWindowPos
+			hWnd
+			null
+			dpi-scale pos/x + x dpi-scale pos/y + y
+			0 0
+			SWP_NOSIZE or SWP_NOZORDER
 	]
 ]
 

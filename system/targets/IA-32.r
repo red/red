@@ -293,7 +293,8 @@ make-profilable make target-class [
 	]
 	
 	emit-casting: func [value [object!] alt? [logic!] /push /local type old][
-		type: compiler/get-type value/data	
+		if value/keep? [exit]
+		type: compiler/get-type value/data
 		case [
 			value/type/1 = 'logic! [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]

@@ -173,7 +173,7 @@ repend: func [
 	value
 	/only "Appends a block value as a block"
 ][
-	head either any [only not block? series][
+	head either any [only not any-list? series][
 		insert/only tail series reduce :value
 	][
 		reduce/into :value tail series					;-- avoids wasting an intermediary block
@@ -297,6 +297,7 @@ parse-trace: func [
 		limit [integer!]
 	return: [logic! block!]
 ][
+	clear p-indent
 	either case [
 		parse/case/trace input rules :on-parse-event
 	][
@@ -568,8 +569,10 @@ normalize-dir: function [
 	dir
 ]
 
-what-dir: func [/local path][
+what-dir: func [
 	"Returns the active directory path"
+	/local path
+][
 	path: to-red-file get-current-dir
 	unless dir? path [append path #"/"]
 	path
@@ -581,41 +584,6 @@ change-dir: function [
 ][
 	unless exists? dir: normalize-dir dir [cause-error 'access 'cannot-open [dir]]
 	system/options/path: dir
-]
-
-list-dir: function [
-	"Displays a list of files and directories from given folder or current one"
-	dir [any-type!]  "Folder to list"
-	/col			 "Forces the display in a given number of columns"
-		n [integer!] "Number of columns"
-][
-	unless value? 'dir [dir: %.]
-	
-	unless find [file! word! path!] type?/word :dir [
-		cause-error 'script 'expect-arg ['list-dir type? :dir 'dir]
-	]
-	list: read normalize-dir dir
-	limit: system/console/size/x - 13
-	max-sz: either n [
-		limit / n - n					;-- account for n extra spaces
-	][
-		n: max 1 limit / 22				;-- account for n extra spaces
-		22 - n
-	]
-
-	while [not tail? list][
-		loop n [
-			if max-sz <= length? name: list/1 [
-				name: append copy/part name max-sz - 4 "..."
-			]
-			prin tab
-			prin pad form name max-sz
-			prin " "
-			if tail? list: next list [exit]
-		]
-		prin lf
-	]
-	()
 ]
 
 make-dir: function [

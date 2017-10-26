@@ -1,6 +1,6 @@
 Red/System [
 	Title:	"cryptographic API"
-	Author: "Qingtian Xie"
+	Author: "Qingtian Xie" "Yongzhao Huang"
 	File: 	%crypto.reds
 	Tabs:	4
 	Rights: "Copyright (C) 2016 Qingtian Xie. All rights reserved."
@@ -16,6 +16,7 @@ crypto: context [
 	_md5:		0
 	_sha1:		0
 	_crc32: 	0
+	_adler32:	0
 	_sha256:	0
 	_sha384:	0
 	_sha512:	0
@@ -27,6 +28,7 @@ crypto: context [
 		_md5:		symbol/make "md5"
 		_sha1:		symbol/make "sha1"
 		_crc32: 	symbol/make "crc32"
+		_adler32:	symbol/make "adler32"
 		_sha256:	symbol/make "sha256"
 		_sha384:	symbol/make "sha384"
 		_sha512:	symbol/make "sha512"
@@ -160,7 +162,7 @@ crypto: context [
 		alg-sym		[integer!]	"Algorithm symbol value. e.g., _crc32"
 		return:		[byte-ptr!]
 	][
-		either any [alg-sym = _crc32  alg-sym = _tcp  alg-sym = _hash][
+		either any [alg-sym = _crc32  alg-sym = _tcp  alg-sym = _hash alg-sym = _adler32][
 			print-line "The selected algorithm doesn't support HMAC calculation"
 			return as byte-ptr! ""
 		][
@@ -264,6 +266,7 @@ crypto: context [
 		any [
 			sym = _tcp
 			sym = _crc32
+			sym = _adler32
 			sym = _md5
 			sym = _sha1
 			sym = _sha256
@@ -271,6 +274,89 @@ crypto: context [
 			sym = _sha512
 			sym = _hash
 		]
+	]
+
+	#define A32-BASE 65521
+	#define A32-NMAX 5552
+
+	adler32: func [
+		data    [byte-ptr!]
+		length  [integer!]
+		return: [integer!]
+		/local
+			buf  [byte-ptr!]
+			s1   [integer!]
+			s2 	 [integer!]
+			i    [integer!]
+			k    [integer!]
+	][
+		buf: data
+		s1: 1
+		s2: 0
+		while [length > 0] [
+			if length < A32-NMAX [
+				k: length
+			]
+			if length >= A32-NMAX [
+				k: A32-NMAX
+			]
+			i: k / 16
+			if i <> 0 [
+				until [
+					s1: s1 + (as-integer buf/1)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/2)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/3)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/4)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/5)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/6)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/7)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/8)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/9)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/10)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/11)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/12)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/13)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/14)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/15)
+					s2: s2 + s1
+					s1: s1 + (as-integer buf/16)
+					s2: s2 + s1
+					i: i - 1
+					buf: buf + 16
+					i = 0
+				]
+			]
+			i: k % 16
+			until [
+				k: as integer! buf/value
+				s1: s1 + k
+				buf: buf + 1
+				s2: s2 + s1
+				i: i - 1
+				i = 0
+			]
+
+			s1: s1 % A32-BASE
+			s2: s2 % A32-BASE
+
+			length: length - k
+		]
+		k: s2 << 16
+		k or s1
 	]
 
 	#if OS <> 'Windows [

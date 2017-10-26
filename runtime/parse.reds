@@ -88,7 +88,7 @@ parser: context [
 			if OPTION?(fun) [
 				rule/head: (as-integer cmd - block/rs-head rule) >> 4
 				if negative? rule/head [rule/head: 0]
-				unless fire-event fun words/event match? rule input [
+				unless fire-event fun words/event match? rule input fun-locs saved? [
 					return as red-value! logic/push match?
 				]
 			]
@@ -180,6 +180,23 @@ parser: context [
 				ST_EXIT			 ["ST_EXIT"]
 			]
 		]
+	]
+	
+	compare-values: func [
+		value2	[red-value!]
+		value	[red-value!]
+		comp-op [integer!]
+		return: [logic!]
+		/local
+			type [integer!]
+	][
+		if comp-op = COMP_STRICT_EQUAL [
+			type: TYPE_OF(value)
+			if any [type = TYPE_LIT_WORD type = TYPE_LIT_PATH][
+				comp-op: COMP_STRICT_EQUAL_WORD
+			]
+		]
+		actions/compare value2 value comp-op
 	]
 	
 	advance: func [
@@ -412,7 +429,7 @@ parser: context [
 			value: head
 			
 			while [value < tail][
-				if actions/compare value token comp-op [
+				if compare-values value token comp-op [
 					return adjust-input-index input pos* 1 ((as-integer value - head) >> 4)
 				]
 				value: value + 1
@@ -550,7 +567,7 @@ parser: context [
 			]
 		][
 			until [										;-- ANY-BLOCK input matching
-				match?:	actions/compare block/rs-head input token comp-op	;@@ sub-optimal!!
+				match?:	compare-values block/rs-head input token comp-op	;@@ sub-optimal!!
 				end?: any [
 					all [match? block/rs-next input]	;-- consume matched input
 					all [positive? part input/head >= part]
@@ -635,22 +652,35 @@ parser: context [
 		match? 	[logic!]
 		rule	[red-block!]
 		input   [red-series!]
+		locals	[integer!]
+		saved?	[logic!]
 		return: [logic!]
 		/local
 			loop? [logic!]
+			len	  [integer!]
+			saved [red-value!]
+			res	  [red-value!]
 	][
-		stack/mark-func words/_body						;@@ find something more adequate
-		
+		PARSE_SAVE_SERIES
+		saved: stack/top
+		stack/top: stack/top + 1						;-- keep last value from paren expression
+
+		stack/mark-func words/_body	fun/ctx				;@@ find something more adequate
 		stack/push as red-value! event
 		logic/push match?
 		stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		_function/call fun global-ctx					;FIXME: hardcoded origin context
+		if positive? locals [_function/init-locals 1 + locals]	;-- +1 for /local refinement
 		
-		stack/unwind
+		catch RED_THROWN_ERROR [_function/call fun global-ctx]	;FIXME: hardcoded origin context
+
+		PARSE_RESTORE_SERIES							;-- restore localy saved series/head first
+		if system/thrown <> 0 [reset saved? re-throw]
+
 		loop?: logic/top-true?
-		stack/pop 1
+		stack/unwind
+		stack/top: saved
 		loop?
 	]
 	
@@ -757,6 +787,7 @@ parser: context [
 			cnt-col	 [integer!]
 			saved	 [integer!]
 			before   [integer!]
+			fun-locs [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -784,7 +815,10 @@ parser: context [
 		max:	  -1
 		cnt:	   0
 		cnt-col:   0
+		fun-locs:  0
 		state:    ST_PUSH_BLOCK
+
+		if OPTION?(fun) [fun-locs: _function/count-locals fun/spec 0]
 		
 		saved?: save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
@@ -818,6 +852,7 @@ parser: context [
 				]
 				ST_POP_BLOCK [
 					either 3 = block/rs-length? rules [
+						PARSE_TRACE(_pop)
 						state: ST_END
 					][
 						loop?: no
@@ -1217,6 +1252,7 @@ parser: context [
 								new/node = input/node
 							][
 								input/head: new/head
+								PARSE_CHECK_INPUT_EMPTY?
 								state: ST_NEXT_ACTION
 							][
 								PARSE_ERROR [TO_ERROR(script parse-invalid-ref) value]
@@ -1266,6 +1302,7 @@ parser: context [
 							if cmd >= tail [cmd: tail - 1]	;-- avoid a "past end" state
 							PARSE_SET_INPUT_LENGTH(len)
 							if negative? len [input/head: input/head + len]
+							end?: any [zero? len all [positive? part input/head >= part]]
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
@@ -1337,7 +1374,7 @@ parser: context [
 								value2: s/offset + input/head
 								end?: value2 >= s/tail
 								either end? [match?: false][
-									match?: actions/compare value2 value comp-op
+									match?: compare-values value2 value comp-op
 									if match? [input/head: input/head + 1] ;-- consume matched input
 								]
 								all [match? end?]

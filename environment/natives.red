@@ -747,8 +747,8 @@ wait: make native! [[
 checksum: make native! [[
 		"Computes a checksum, CRC, hash, or HMAC"
 		data 	[binary! string! file!]
-		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP hash"
-		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32 methods"
+		method	[word!]	"MD5 SHA1 SHA256 SHA384 SHA512 CRC32 TCP ADLER32 hash"
+		/with	"Extra value for HMAC key or hash table size; not compatible with TCP/CRC32/ADLER32 methods"
 			spec [any-string! binary! integer!] "String or binary for MD5/SHA* HMAC key, integer for hash table size"
 		return: [integer! binary!]
 	]
@@ -765,7 +765,7 @@ unset: make native! [[
 new-line: make native! [[
 		"Sets or clears the new-line marker within a list series"
 		position [any-list!] "Position to change marker (modified)"
-		value				 "Set TRUE for newline"
+		value	 [logic!]	 "Set TRUE for newline"
 		/all				 "Set/clear marker to end of series"
 		/skip				 "Set/clear marker periodically to the end of the series"
 			size [integer!]
@@ -869,8 +869,17 @@ size?: make native! [[
 ]
 
 browse: make native! [[
-		"Open web browser to a URL or file mananger to a local file."
-		url 	[url! file!]
+		"Open web browser to a URL or file mananger to a local file"
+		url		[url! file!]
 	]
 	#get-definition NAT_BROWSE
+]
+
+decompress: make native! [[
+		"Decompresses data. Data in GZIP format (RFC 1952) by default"
+		data		  [binary!]
+		/zlib	 size [integer!] "Data in ZLIB format (RFC 1950), uncompressed file size is required"
+		/deflate size [integer!] "Data in DEFLATE format (RFC 1951), uncompressed file size is required"
+	]
+	#get-definition NAT_DECOMPRESS
 ]

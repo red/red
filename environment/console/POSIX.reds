@@ -501,6 +501,13 @@ init: func [
 			init?: yes
 		]
 	]
+	#if OS = 'macOS [
+		#if modules contains 'View [
+			with gui [
+				if NSApp <> 0 [do-events yes]
+			]
+		]
+	]
 ]
 
 restore: does [

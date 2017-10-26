@@ -128,7 +128,7 @@ target-class: context [
 			all [width = 4 right-width = 1]			;-- detect byte! -> integer! implicit casting
 			find [float! float32! float64!] first compiler/get-type arg
 		][
-			arg: make object! [action: 'type-cast type: [integer!] data: arg]
+			arg: make compiler/action-class [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
 	]

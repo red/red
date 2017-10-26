@@ -32,6 +32,8 @@ add-base-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "acceptsFirstResponder" as-integer :accepts-first-responder "B@:"
 	class_addMethod class sel_getUid "scrollWheel:" as-integer :scroll-wheel "@:@"
 	class_addMethod class sel_getUid "hitTest:" as-integer :hit-test "@@:{_NSPoint=ff}"
+	class_replaceMethod class sel_getUid "rightMouseDown:" as-integer :mouse-events-base "v@:@"
+	class_replaceMethod class sel_getUid "rightMouseUp:" as-integer :mouse-events-base "v@:@"
 
 	class_addMethod class sel_getUid "keyDown:" as-integer :key-down-base "v@:@"
 	class_addMethod class sel_getUid "insertText:" as-integer :insert-text "v@:@"
@@ -96,7 +98,6 @@ add-window-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "windowDidEndLiveResize:" as-integer :win-live-resize "v12@0:4@8"
 	;class_addMethod class sel_getUid "windowWillResize:toSize:" as-integer :win-will-resize "{_NSSize=ff}20@0:4@8{_NSSize=ff}12"
 	class_addMethod class sel_getUid "red-menu-action:" as-integer :red-menu-action "v@:@"
-	class_addMethod class sel_getUid "sendEvent:" as-integer :win-send-event "@:@"
 	class_addMethod class sel_getUid "addSubview:" as-integer :win-add-subview "v12@0:4@8"
 	class_addMethod class sel_getUid "convertPoint:fromView:" as-integer :win-convert-point "{_NSPoint=ff}20@0:4{_NSPoint=ff}8@16"
 ]
@@ -154,8 +155,14 @@ add-text-layout-handler: func [class [integer!]][
 	class_addMethod class sel_getUid "layoutManager:lineSpacingAfterGlyphAtIndex:withProposedLineFragmentRect:" as-integer :set-line-spacing "f@:@I{_NSRect=ffff}"
 ]
 
+add-app-handler: func [class [integer!]][
+	class_addMethod class sel_getUid "sendEvent:" as-integer :app-send-event "v@:@"
+	;class_addMethod class sel_getUid "stop:" as-integer :stop-app "v@:@"
+]
+
 add-app-delegate: func [class [integer!]][
 	;class_addMethod class sel_getUid "applicationWillFinishLaunching:" as-integer :will-finish "v12@0:4@8"
+	;class_addMethod class sel_getUid "dealloc" as-integer :dealloc-app "v@:"
 	class_addMethod class sel_getUid "applicationShouldTerminate:" as-integer :should-terminate "i12@0:4@8"
 	class_addMethod class sel_getUid "applicationShouldTerminateAfterLastWindowClosed:" as-integer :destroy-app "B12@0:4@8"
 ]
@@ -178,6 +185,7 @@ make-super-class: func [
 	/local
 		new-class	[integer!]
 		add-method	[add-method!]
+		protocol	[c-string!]
 ][
 	new-class: objc_allocateClassPair objc_getClass base new 0
 	if flags and EXTRA_DATA_FLAG <> 0 [
@@ -201,18 +209,25 @@ make-super-class: func [
 		class_addMethod new-class sel_getUid "resetCursorRects" as-integer :reset-cursor-rects "v@:"
 
 		class_addMethod new-class sel_getUid "keyUp:" as-integer :on-key-up "v@:@"
+		class_addMethod new-class sel_getUid "flagsChanged:" as-integer :on-flags-changed "v@:@"
 	]
 	unless zero? method [
 		add-method: as add-method! method
 		add-method new-class
 	]
-	if all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"][
-		class_addProtocol new-class objc_getProtocol "NSTextInputClient"
+
+	protocol: case [
+		all [new/4 = #"B" new/5 = #"a" new/6 = #"s" new/7 = #"e"]["NSTextInputClient"]
+		all [new/4 = #"A" new/5 = #"p" new/6 = #"p" new/7 = #"D"]["NSApplicationDelegate"]
+		true [null]
 	]
+	if protocol <> null [class_addProtocol new-class objc_getProtocol protocol]
+
 	objc_registerClassPair new-class
 ]
 
 register-classes: does [
+	make-super-class "RedApplication"	"NSApplication"			as-integer :add-app-handler		0
 	make-super-class "RedAppDelegate"	"NSObject"				as-integer :add-app-delegate	0
 	make-super-class "RedPanelDelegate"	"NSObject"				as-integer :add-panel-delegate	0
 	make-super-class "NSViewFlip"		"NSView"				as-integer :flip-coord			0

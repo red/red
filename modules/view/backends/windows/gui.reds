@@ -68,13 +68,29 @@ hIMCtx:			as handle! 0
 ime-open?:		no
 ime-font:		as tagLOGFONT allocate 92
 
+dpi-factor:		100
 log-pixels-x:	0
 log-pixels-y:	0
 screen-size-x:	0
 screen-size-y:	0
 default-font-name: as c-string! 0
 
+rc-cache:		declare RECT_STRUCT
 kb-state: 		allocate 256							;-- holds keyboard state for keys conversion
+
+dpi-scale: func [
+	num		[integer!]
+	return: [integer!]
+][
+	num * dpi-factor / 100
+]
+
+dpi-unscale: func [
+	num		[integer!]
+	return: [integer!]
+][
+	num * 100 / dpi-factor
+]
 
 clean-up: does [
 	current-msg: null
@@ -275,8 +291,8 @@ get-text-size: func [
 
 	SelectObject hScreen saved
 	if pair <> null [
-		pair/x: size/width
-		pair/y: size/height
+		pair/x: size/width * 100 / dpi-factor
+		pair/y: size/height * 100 / dpi-factor
 	]
 	size
 ]
@@ -634,6 +650,33 @@ enable-visual-styles: func [
 	InitCommonControlsEx ctrls
 ]
 
+get-dpi: func [
+	/local
+		dll		[handle!]
+		fun1	[GetDpiForMonitor!]
+		monitor [handle!]
+		pt		[tagPOINT value]
+		dpi?	[logic!]
+][
+	dpi?: no
+	if win8+? [
+		dll: LoadLibraryA "shcore.dll"
+		if dll <> null [
+			pt/x: 1 pt/y: 1
+			monitor: MonitorFromPoint pt 2
+			fun1: as GetDpiForMonitor! GetProcAddress dll "GetDpiForMonitor"
+			fun1 monitor 0 :log-pixels-x :log-pixels-y
+			dpi-factor: log-pixels-x * 100 / 96
+			FreeLibrary dll
+			dpi?: yes
+		]
+	]
+	unless dpi? [
+		log-pixels-x: GetDeviceCaps hScreen 88			;-- LOGPIXELSX
+		log-pixels-y: GetDeviceCaps hScreen 90			;-- LOGPIXELSY
+	]
+]
+
 get-metrics: func [
 	/local
 		svm	[red-hash!]
@@ -700,9 +743,7 @@ init: func [
 		or (version-info/dwMinorVersion << 8)
 		and 0000FFFFh
 
-	log-pixels-x: GetDeviceCaps hScreen 88				;-- LOGPIXELSX
-	log-pixels-y: GetDeviceCaps hScreen 90				;-- LOGPIXELSY
-
+	get-dpi
 	unless winxp? [DX-init]
 	set-defaults
 
@@ -1003,7 +1044,7 @@ get-screen-size: func [
 ][
 	screen-size-x: GetDeviceCaps hScreen HORZRES
 	screen-size-y: GetDeviceCaps hScreen VERTRES
-	pair/push screen-size-x screen-size-y
+	pair/push screen-size-x * 100 / dpi-factor screen-size-y * 100 / dpi-factor
 ]
 
 dwm-composition-enabled?: func [
@@ -1173,9 +1214,11 @@ OS-make-view: func [
 		panel?	  [logic!]
 		alpha?	  [logic!]
 		para?	  [logic!]
+		off-x	  [integer!]
+		off-y	  [integer!]
 		rc		  [RECT_STRUCT value]
 ][
-	stack/mark-func words/_body
+	stack/mark-native words/_body
 
 	values: object/get-values face
 
@@ -1295,14 +1338,16 @@ OS-make-view: func [
 		]
 		sym = window [
 			class: #u16 "RedWindow"
-			flags: WS_THICKFRAME or WS_CAPTION or WS_CLIPCHILDREN
+			flags: WS_CAPTION or WS_CLIPCHILDREN
 			;ws-flags: WS_EX_COMPOSITED
 			if bits and FACET_FLAGS_NO_MIN  = 0 [flags: flags or WS_MINIMIZEBOX]
 			if bits and FACET_FLAGS_NO_MAX  = 0 [flags: flags or WS_MAXIMIZEBOX]
 			if bits and FACET_FLAGS_NO_BTNS = 0 [flags: flags or WS_SYSMENU]
 			if bits and FACET_FLAGS_POPUP  <> 0 [ws-flags: ws-flags or WS_EX_TOOLWINDOW]
-			if bits and FACET_FLAGS_RESIZE = 0 [
+			either bits and FACET_FLAGS_RESIZE = 0 [
 				flags: flags and (not WS_MAXIMIZEBOX)
+			][
+				flags: flags or WS_THICKFRAME
 			]
 
 			if menu-bar? menu window [
@@ -1314,11 +1359,11 @@ OS-make-view: func [
 			if bits and FACET_FLAGS_NO_BORDER <> 0 [flags: WS_POPUP]
 			rc/left: 0
 			rc/top: 0
-			rc/right: size/x
-			rc/bottom: size/y
+			rc/right:  dpi-scale size/x
+			rc/bottom: dpi-scale size/y
 			AdjustWindowRectEx rc flags menu-bar? menu window ws-flags
-			size/x: rc/right - rc/left
-			size/y: rc/bottom - rc/top
+			rc/right: rc/right - rc/left
+			rc/bottom: rc/bottom - rc/top
 		]
 		true [											;-- search in user-defined classes
 			p: find-class type
@@ -1340,7 +1385,7 @@ OS-make-view: func [
 	]
 
 	unless any [DWM-enabled? alpha? bits and FACET_FLAGS_EDITABLE <> 0][
-			ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+		ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 	]
 
 	if all [
@@ -1350,15 +1395,22 @@ OS-make-view: func [
 		parent: as-integer evolve-base-face as handle! parent
 	]
 
+	off-x:	dpi-scale offset/x
+	off-y:	dpi-scale offset/y
+	if sym <> window [
+		rc/right:	dpi-scale size/x
+		rc/bottom:	dpi-scale size/y
+	]
+
 	handle: CreateWindowEx
 		ws-flags
 		class
 		caption
 		flags
-		offset/x
-		offset/y
-		size/x
-		size/y
+		off-x
+		off-y
+		rc/right
+		rc/bottom
 		as int-ptr! parent
 		as handle! id
 		hInstance
@@ -1393,8 +1445,8 @@ OS-make-view: func [
 				flags
 				0
 				0
-				size/x
-				size/y
+				rc/right
+				rc/bottom
 				handle
 				null
 				hInstance
@@ -1434,8 +1486,8 @@ OS-make-view: func [
 		]
 		sym = window [
 			init-window handle bits
-			offset/x: offset/x - rc/left
-			offset/y: offset/y - rc/top
+			offset/x: off-x - rc/left * 100 / dpi-factor
+			offset/y: off-y - rc/top * 100 / dpi-factor
 		]
 		true [0]
 	]
@@ -1458,6 +1510,8 @@ change-size: func [
 		layer?	[logic!]
 		values	[red-value!]
 		pos		[red-pair!]
+		sz-x	[integer!]
+		sz-y	[integer!]
 ][
 	cx: 0
 	cy: 0
@@ -1475,11 +1529,13 @@ change-size: func [
 		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
 	]
 
+	sz-x: dpi-scale size/x
+	sz-y: dpi-scale size/y
 	SetWindowPos 
 		hWnd
 		as handle! 0
 		0 0
-		size/x + cx size/y + cy
+		sz-x + cx sz-y + cy
 		SWP_NOMOVE or SWP_NOZORDER or SWP_NOACTIVATE
 
 	if layer? [
@@ -1488,7 +1544,7 @@ change-size: func [
 	]
 	case [
 		any [type = slider type = progress][
-			max: either size/x > size/y [size/x][size/y]
+			max: either sz-x > sz-y [sz-x][sz-y]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
 		]
@@ -1500,9 +1556,9 @@ change-size: func [
 
 set-ime-pos: func [
 	hWnd	[handle!]
-	pos		[red-pair!]
+	pos-x	[integer!]
+	pos-y	[integer!]
 	/local
-
 		left	[integer!]
 		top		[integer!]
 		right	[integer!]
@@ -1512,8 +1568,8 @@ set-ime-pos: func [
 		dwStyle	[integer!]
 ][
 	dwStyle: 2			;-- CFS_POINT
-	x: pos/x
-	y: pos/y
+	x: pos-x
+	y: pos-y
 	ImmSetCompositionWindow hIMCtx as tagCOMPOSITIONFORM :dwStyle
 ]
 
@@ -1537,19 +1593,23 @@ change-offset: func [
 		layer?	[logic!]
 		x		[integer!]
 		y		[integer!]
+		pos-x	[integer!]
+		pos-y	[integer!]
 ][
 	flags: SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
 	header: 0
 	pt: as red-pair! :header
 	layer?: (GetWindowLong hWnd GWL_EXSTYLE) and WS_EX_LAYERED > 0
 
+	pos-x: dpi-scale pos/x
+	pos-y: dpi-scale pos/y
 	if all [					;-- caret widget
 		layer?
 		type = base
 		(BASE_FACE_CARET and GetWindowLong hWnd wc-offset - 12) <> 0
 	][
-		SetCaretPos pos/x pos/y
-		set-ime-pos hWnd pos
+		SetCaretPos pos-x pos-y
+		set-ime-pos hWnd pos-x pos-y
 	]
 
 	x: 0
@@ -1564,38 +1624,39 @@ change-offset: func [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
 
-			pt/x: pos/x
-			pt/y: pos/y
+			pt/x: pos-x
+			pt/y: pos-y
 			ClientToScreen owner (as tagPOINT pt) + 1
 			offset: as tagPOINT pt
 			offset/x: pt/x - GetWindowLong hWnd wc-offset - 4
 			offset/y: pt/y - GetWindowLong hWnd wc-offset - 8
-			pos: pt
-			SetWindowLong hWnd wc-offset - 4 pos/x
-			SetWindowLong hWnd wc-offset - 8 pos/y
+			pos-x: pt/x
+			pos-y: pt/y
+			SetWindowLong hWnd wc-offset - 4 pos-x
+			SetWindowLong hWnd wc-offset - 8 pos-y
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [
 				SetWindowPos
 					child
 					as handle! 0
-					pos/x pos/y
+					pos-x pos-y
 					0 0
 					flags
 			]
 		][
 			param: GetWindowLong hWnd wc-offset - 12
 			offset: as tagPOINT pt
-			offset/x: pos/x - WIN32_LOWORD(param)
-			offset/y: pos/y - WIN32_HIWORD(param)
+			offset/x: pos-x - WIN32_LOWORD(param)
+			offset/y: pos-y - WIN32_HIWORD(param)
 			update-layered-window hWnd null offset null -1
-			SetWindowLong hWnd wc-offset - 12 pos/y << 16 or (pos/x and FFFFh)
+			SetWindowLong hWnd wc-offset - 12 pos-y << 16 or (pos-x and FFFFh)
 		]
 	]
 	SetWindowPos 
 		hWnd
 		as handle! 0
-		pos/x + x pos/y + y
+		x + pos-x y + pos-y
 		0 0
 		flags
 	if type = tab-panel [update-tab-contents hWnd FACE_OBJ_OFFSET]

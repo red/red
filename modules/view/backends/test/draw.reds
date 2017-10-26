@@ -10,6 +10,7 @@ Red/System [
 	}
 ]
 
+draw-state!: alias struct! [unused [integer!]]
 
 draw-begin: func [
 	ctx			[draw-ctx!]
@@ -388,11 +389,11 @@ OS-matrix-transform: func [
 	
 ]
 
-OS-matrix-push: func [ctx [draw-ctx!] state [int-ptr!]][
+OS-matrix-push: func [ctx [draw-ctx!] state [draw-state!]][
 
 ]
 
-OS-matrix-pop: func [ctx [draw-ctx!] state [integer!]][]
+OS-matrix-pop: func [ctx [draw-ctx!] state [draw-state!]][]
 
 OS-matrix-reset: func [
 	ctx			[draw-ctx!]

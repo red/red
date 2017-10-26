@@ -88,13 +88,13 @@ keycode-table: [
 	RED_VK_ESCAPE			;-- 0x35
 	RED_VK_APPS				;-- 0x36	Right Command
 	RED_VK_LWIN				;-- 0x37	Left Command
-	RED_VK_SHIFT			;-- 0x38	Left Shift
+	RED_VK_LSHIFT			;-- 0x38	Left Shift
 	RED_VK_CAPITAL			;-- 0x39	Caps Lock
-	RED_VK_MENU				;-- 0x3A	Left Option
-	RED_VK_CONTROL			;-- 0x3B	Left Ctrl
-	RED_VK_SHIFT			;-- 0x3C	Right Shift
-	RED_VK_MENU				;-- 0x3D	Right Option
-	RED_VK_CONTROL			;-- 0x3E	Right Ctrl
+	RED_VK_LMENU			;-- 0x3A	Left Option
+	RED_VK_LCONTROL			;-- 0x3B	Left Ctrl
+	RED_VK_RSHIFT			;-- 0x3C	Right Shift
+	RED_VK_RMENU			;-- 0x3D	Right Option
+	RED_VK_RCONTROL			;-- 0x3E	Right Ctrl
 	RED_VK_UNKNOWN			;-- 0x3F	fn
 	RED_VK_F17				;-- 0x40
 	RED_VK_DECIMAL			;-- 0x41	Num Pad .
@@ -297,7 +297,6 @@ get-event-key: func [
 		code		[integer!]
 		char		[red-char!]
 		res			[red-value!]
-		special?	[logic!]
 ][
 	as red-value! switch evt/type [
 		EVT_KEY
@@ -305,9 +304,8 @@ get-event-key: func [
 		EVT_KEY_DOWN [
 			res: null
 			code: evt/flags
-			special?: code and 80000000h <> 0
 			code: code and FFFFh
-			if special? [
+			if special-key = -1 [
 				res: as red-value! switch code [
 					RED_VK_PRIOR	[_page-up]
 					RED_VK_NEXT		[_page-down]
@@ -343,7 +341,7 @@ get-event-key: func [
 				]
 			]
 			either null? res [
-				either all [special? evt/type = EVT_KEY][
+				either all [special-key = -1 evt/type = EVT_KEY][
 					none-value
 				][
 					char: as red-char! stack/push*
@@ -386,8 +384,8 @@ get-event-picked: func [
 	/local
 		res [red-value!]
 		int	[red-integer!]
-		pct [red-float!]
-		zd	[float!]
+		obj [integer!]
+		n	[integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -406,6 +404,13 @@ get-event-picked: func [
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_IME [to-red-string evt/flags null]
+		EVT_DBL_CLICK [
+			obj: as-integer evt/msg
+			if (object_getClass obj) = objc_getClass "RedTableView" [
+				n: objc_msgSend [obj sel_getUid "selectedRow"]
+				either n = -1 [none/push][integer/push n + 1]
+			]
+		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]
@@ -525,88 +530,6 @@ process-mouse-tracking: func [
 	w
 ]
 
-process: func [
-	event	[integer!]
-	return: [integer!]
-	/local
-		p-int		[int-ptr!]
-		type		[integer!]
-		window		[integer!]
-		n-win		[integer!]
-		flags		[integer!]
-		faces		[red-block!]
-		face		[red-object!]
-		start		[red-object!]
-		check?		[logic!]
-		active?		[logic!]
-		down?		[logic!]
-		y			[integer!]
-		x			[integer!]
-		point		[CGPoint!]
-		view		[integer!]
-][
-	window: objc_msgSend [event sel_getUid "window"]
-	p-int: as int-ptr! event
-	type: p-int/2
-	switch type [
-		NSMouseMoved
-		NSLeftMouseDragged
-		NSRightMouseDragged
-		NSOtherMouseDragged [
-			check?: yes
-			window: process-mouse-tracking window event
-		]
-		default [0]
-	]
-
-	if window <> 0 [
-		down?: no active?: no check?: no
-
-		if any [
-			type = NSLeftMouseDown type = NSRightMouseDown type = NSOtherMouseDown
-		][
-			active?: yes down?: yes check?: yes
-		]
-		if any [
-			type = NSLeftMouseUp type = NSRightMouseUp type = NSOtherMouseUp
-		][
-			active?: yes check?: yes
-		]
-		switch type [
-			NSMouseEntered
-			NSMouseExited
-			NSKeyDown
-			NSKeyUp
-			NSScrollWheel [check?: yes]
-			default [0]
-		]
-
-		if all [check? red-face? window][
-			faces: as red-block! #get system/view/screens
-			face: as red-object! block/rs-head faces		;-- screen 1 TBD multi-screen support
-			faces: as red-block! get-node-facet face/ctx FACE_OBJ_PANE
-			if 1 >= block/rs-length? faces [return EVT_DISPATCH]
-
-			start: as red-object! block/rs-head faces
-			face:  as red-object! block/rs-tail faces
-			while [
-				face: face - 1
-				face >= start
-			][
-				flags: get-flags as red-block! get-node-facet face/ctx FACE_OBJ_FLAGS
-				if all [
-					window <> get-face-handle face
-					flags and FACET_FLAGS_MODAL <> 0
-				][
-					if down? [NSBeep]
-					return EVT_NO_DISPATCH
-				]
-			]
-		]
-	]
-	EVT_DISPATCH
-]
-
 close-pending-windows: func [/local n [integer!] p [int-ptr!]][
 	n: vector/rs-length? win-array
 	if zero? n [exit]
@@ -621,54 +544,65 @@ close-pending-windows: func [/local n [integer!] p [int-ptr!]][
 	close-window?: no
 ]
 
+post-quit-msg: func [
+	/local
+		e	[integer!]
+		tm	[float!]
+][
+	tm: objc_msgSend_fpret [
+		objc_msgSend [objc_getClass "NSProcessInfo" sel_getUid "processInfo"]
+		sel_getUid "systemUptime"
+	]
+	e: objc_msgSend [
+		objc_getClass "NSEvent"
+		sel_getUid "otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:"
+		NSApplicationDefined
+		0 0		;-- NSZeroPoint
+		0
+		tm
+		0
+		objc_msgSend [objc_getClass "NSGraphicsContext" sel_getUid "currentContext"]
+		0
+		QuitMsgData
+		0
+	]
+	objc_msgSend [NSApp sel_getUid "postEvent:atStart:" e no]
+]
+
 do-events: func [
 	no-wait? [logic!]
 	return:  [logic!]
 	/local
 		msg?	[logic!]
-		state	[integer!]
 		pool	[integer!]
 		timeout [integer!]
 		event	[integer!]
 ][
 	msg?: no
-	either any [loop-started? no-wait?][no-wait?: yes][loop-started?: yes]		;-- just keep one event loop
-
-	timeout: either no-wait? [0][
-		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
-		objc_msgSend [objc_getClass "NSDate" sel_getUid "distantFuture"]	
-	]
-
-	until [
+	either no-wait? [
 		pool: objc_msgSend [objc_getClass "NSAutoreleasePool" sel_getUid "alloc"]
 		objc_msgSend [pool sel_getUid "init"]
 
 		event: objc_msgSend [
 			NSApp sel_getUid "nextEventMatchingMask:untilDate:inMode:dequeue:"
 			NSAnyEventMask
-			timeout
+			0
 			NSDefaultRunLoopMode
 			true
 		]
-
 		if event <> 0 [
 			msg?: yes
-			state: process event
-			if state >= EVT_DISPATCH [
-				objc_msgSend [NSApp sel_getUid "sendEvent:" event]
-			]
+			objc_msgSend [NSApp sel_getUid "sendEvent:" event]
 		]
-
-		if close-window? [close-pending-windows]
-
 		objc_msgSend [pool sel_getUid "drain"]
-		any [zero? win-cnt no-wait?]
-	]
-
-	if zero? win-cnt [
-		loop-started?: no
-		objc_msgSend [NSApp sel_getUid "terminate:" 0]
-		objc_msgSend [NSApp sel_getUid "deactivate"]
+	][
+		loop-started?: yes
+		objc_msgSend [NSApp sel_getUid "activateIgnoringOtherApps:" 1]
+		objc_msgSend [NSApp sel_getUid "run"]
+		#if sub-system <> 'gui [
+			if zero? win-cnt [objc_msgSend [NSApp sel_getUid "deactivate"]]
+		]
+		msg?: yes
 	]
 	msg?
 ]

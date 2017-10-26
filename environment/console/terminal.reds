@@ -1522,7 +1522,7 @@ terminal: context [
 		][
 			vt/ask?: yes
 			update-caret vt
-			stack/mark-func words/_body
+			stack/mark-native words/_body
 			gui/do-events no
 			stack/unwind
 		]

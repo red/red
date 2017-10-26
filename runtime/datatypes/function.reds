@@ -37,7 +37,7 @@ _function: context [
 		fun:  as red-function! base - 4
  		path: as red-path! base - 3
  		
-		stack/mark-func words/_anon
+		stack/mark-func-body words/_anon
 		
 		s: as series! fun/spec/value
 		
@@ -219,6 +219,8 @@ _function: context [
 		/local
 			s	   [series!]
 			native [red-native!]
+			saved  [node!]
+			fctx   [red-context!]
 			call ocall
 	][
 		s: as series! fun/more/value
@@ -227,6 +229,8 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
+			fctx: GET_CTX(fun)
+			saved: fctx/values
 			catch RED_THROWN_ERROR [
 				either ctx = global-ctx [
 					call: as function! [] native/code
@@ -238,6 +242,8 @@ _function: context [
 					0
 				]
 			]
+			fctx/values: saved
+			
 			switch system/thrown [
 				RED_THROWN_ERROR
 				RED_THROWN_BREAK
@@ -484,29 +490,6 @@ _function: context [
 		list/node
 	]
 	
-	find-local-ref: func [
-		spec	[red-block!]
-		return: [logic!]								;-- return TRUE if /local is found
-		/local
-			value [red-value!]
-			tail  [red-value!]
-			ref	  [red-refinement!]
-			sym	  [integer!]
-	][
-		value: block/rs-head spec
-		tail:  block/rs-tail spec
-		sym: refinements/local/symbol
-		
-		while [value < tail][
-			if TYPE_OF(value) = TYPE_REFINEMENT [
-				ref: as red-refinement! value
-				if sym = symbol/resolve ref/symbol [return yes]
-			]
-			value: value + 1
-		]
-		no
-	]
-	
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]
@@ -676,7 +659,7 @@ _function: context [
 		collect-deep list ignore body
 		
 		if 0 < block/rs-length? list [
-			unless find-local-ref spec [
+			unless local-ref? spec [
 				block/rs-append spec as red-value! refinements/local
 			]
 			block/rs-append-block spec list
@@ -809,6 +792,50 @@ _function: context [
 			]
 		]
 		check-duplicates spec
+	]
+	
+	local-ref?: func [
+		spec	[red-block!]
+		return: [logic!]
+	][
+		0 <> count-locals spec/node spec/head
+	]
+
+
+	count-locals: func [
+		node	[node!]
+		offset	[integer!]
+		return: [integer!]
+		/local
+			value  [red-value!]
+			tail   [red-value!]
+			ref	   [red-refinement!]
+			s	   [series!]
+			sym	   [integer!]
+			cnt	   [integer!]
+			count? [logic!]
+	][
+		s: as series! node/value
+		value:  s/offset + offset
+		tail:   s/tail
+		sym: 	refinements/local/symbol
+		count?: no
+		cnt:	0
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_REFINEMENT [
+					unless count? [
+						ref: as red-refinement! value
+						if sym = symbol/resolve ref/symbol [count?: yes]
+					]
+				]
+				TYPE_WORD [if count? [cnt: cnt + 1]]
+				default	  [0]
+			]
+			value: value + 1
+		]
+		cnt
 	]
 	
 	init-locals: func [
@@ -984,7 +1011,7 @@ _function: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
-		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
+		part: block/mold blk buffer no all? flat? arg part - 5 indent	;-- spec
 		
 		s: as series! fun/more/value
 		value: s/offset
@@ -992,7 +1019,7 @@ _function: context [
 			string/concatenate-literal buffer " none"
 			part - 5
 		][
-			block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
+			block/mold as red-block! s/offset buffer no all? flat? arg part indent	;-- body
 		]
 	]
 

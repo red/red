@@ -35,6 +35,7 @@ system-dialect: make-profilable context [
 		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
+		encap?:				no							;-- yes = use encapping instead of compilation
 		build-prefix:		%builds/					;-- prefix to use for output file name (none: no prefix)
 		build-basename:		none						;-- base name to use for output file name (none: derive from input name)
 		build-suffix:		none						;-- suffix to use for output file name (none: derive from output type)
@@ -167,7 +168,7 @@ system-dialect: make-profilable context [
 		
 		user-functions: tail functions					;-- marker for user functions
 		
-		action-class: context [action: type: data: none]
+		action-class: context [action: type: keep?: data: none]
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
@@ -895,7 +896,7 @@ system-dialect: make-profilable context [
 				] 'as
 			]
 			if any [
-				all [type/1 = 'function! not find [function! integer!] ctype/1]
+				all [type/1 = 'function! not find [function! pointer! integer!] ctype/1]
 				all [find [float! float64!] ctype/1 not any [any-float? type type/1 = 'integer!]]
 				all [find [float! float64!] type/1  not any [any-float? ctype ctype/1 = 'integer!]]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
@@ -985,13 +986,14 @@ system-dialect: make-profilable context [
 			]
 		]
 
-		remove-func-pointers: has [vars name][
+		remove-func-pointers: has [vars name type][
 			vars: any [find/tail locals /local []]
 			forall vars [
 				if all [
 					word? vars/1
 					block? vars/2
-					vars/2/1 = 'function!
+					type: resolve-aliased vars/2
+					type/1 = 'function!
 				][
 					name: decorate-function vars/1
 					remove/part find functions name 2
@@ -1012,6 +1014,11 @@ system-dialect: make-profilable context [
 				]
 				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
 			]
+		]
+		
+		preprocess-array: func [list [block!]][
+			parse list [some [p: word! (check-enum-symbol p) | skip]]
+			to paren! list
 		]
 		
 		order-ctx-candidates: func [a b][				;-- order by increasing path size,
@@ -1980,7 +1987,7 @@ system-dialect: make-profilable context [
 			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
-		comp-as: has [ctype ptr? expr type][
+		comp-as: has [ctype ptr? expr type k?][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			if path? ctype [ctype: to word! form ctype]
@@ -1995,6 +2002,7 @@ system-dialect: make-profilable context [
 				throw-error ["invalid target type casting:" mold ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
+			if pc/1 = 'keep [k?: yes pc: next pc]
 			expr: fetch-expression 'as
 
 			if all [
@@ -2014,6 +2022,7 @@ system-dialect: make-profilable context [
 			make action-class [
 				action: 'type-cast
 				type: blockify ctype
+				keep?: k?
 				data: expr
 			]
 		]
@@ -2599,6 +2608,10 @@ system-dialect: make-profilable context [
 				fetch: [
 					pos: pc
 					expr: fetch-expression name
+					if none? first get-type expr [
+						pc: pos
+						throw-error "expression is missing a return value"
+					]
 					either attribute = 'typed [
 						if all [expr = <last> none? last-type/1][
 							pc: pos
@@ -3397,7 +3410,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
-				block!		[also to paren! pc/1 pc: next pc]
+				block!		[also preprocess-array pc/1 pc: next pc]
 				issue!		[comp-directive]
 			][
 				throw-error "datatype not allowed"
