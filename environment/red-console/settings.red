@@ -151,6 +151,8 @@ apply-cfg: function [][
 	tips/font: ft
 	terminal/update-cfg font cfg
 	set-font-color cfg/font-color
+	system/console/history: cfg/history
+	terminal/history: cfg/history
 ]
 
 save-cfg: function [][
@@ -161,6 +163,7 @@ save-cfg: function [][
 	cfg/win-size: win/size
 	cfg/font-name: console/font/name
 	cfg/font-size: console/font/size
+	clear skip cfg/history 100
 	save/header cfg-path cfg [Purpose: "Red REPL Console Configuration File"]
 ]
 
@@ -185,6 +188,7 @@ load-cfg: func [/local cfg-dir][
 			background:	  252.252.252
 
 			buffer-lines: 10000
+			history:	  []
 		]
 	]
 	apply-cfg

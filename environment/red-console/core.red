@@ -83,7 +83,7 @@ object [
 		clear selects
 		caret/visible?: no
 		either escape [append line #"^["][
-			if line <> first history [insert history line]
+			if all [not empty? line line <> first history][insert history line]
 			hist-idx: 0	
 		]
 		prin?: no
