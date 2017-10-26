@@ -205,7 +205,10 @@ Red/System [
 #define SIF_PAGE			0002h
 #define SIF_POS				0004h
 #define SIF_DISABLENOSCROLL	0008h
+
+#define SBS_VERT			1
 #define SB_VERT				1
+#define SB_CTL				2
 
 #define SB_LINEUP			0
 #define SB_LINEDOWN			1

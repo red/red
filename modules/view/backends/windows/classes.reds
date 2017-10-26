@@ -224,6 +224,7 @@ register-classes: func [
 	make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 	make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 	make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
+	make-super-class #u16 "RedScroller"	#u16 "SCROLLBAR"		 0 yes
 	make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
 
 	OldFaceWndProc: make-super-class

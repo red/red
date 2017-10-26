@@ -1092,6 +1092,7 @@ insert-event-func [
 	if find [change enter unfocus] event/type [
 		face: event/face
 		facet: switch/default face/type [
+			scroller	['data]
 			slider		['data]
 			check		['data]
 			radio		['data]

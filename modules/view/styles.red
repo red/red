@@ -51,6 +51,10 @@ Red [
 		default-actor: on-change
 		template: [type: 'slider size: 150x24 data: 0%]
 	]
+	scroller: [
+		default-actor: on-change
+		template: [type: 'scroller size: 150x20 data: 0.0]
+	]
 	camera: [
 		default-actor: on-down
 		template: [type: 'camera size: 250x250]

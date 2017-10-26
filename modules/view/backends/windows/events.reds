@@ -893,12 +893,13 @@ WndProc: func [
 		offset [red-pair!]
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
+		si	   [tagSCROLLINFO value]
 		w-type [red-word!]
 		miniz? [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
 		values: get-face-values hWnd
-		w-type: (as red-word! values) + FACE_OBJ_TYPE
+		w-type: as red-word! values + FACE_OBJ_TYPE
 		symbol/resolve w-type/symbol
 	]
 	switch msg [
@@ -1044,9 +1045,23 @@ WndProc: func [
 				current-msg/wParam: wParam
 				make-event current-msg 0 EVT_SCROLL
 			][											;-- message from trackbar
+				handle: as handle! lParam
+				si/cbSize: size? tagSCROLLINFO
+				si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
+				GetScrollInfo handle SB_CTL :si
+				switch wParam and FFFFh [
+					SB_LINEUP	  [si/nPos: si/nPos - 1]
+					SB_LINEDOWN   [si/nPos: si/nPos + 1]
+					SB_PAGEUP	  [si/nPos: si/nPos - 10]
+					SB_PAGEDOWN	  [si/nPos: si/nPos + 10]
+					SB_THUMBTRACK [si/nPos: WIN32_HIWORD(wParam)]
+					default		  [0]
+				]
+				SetScrollInfo handle SB_CTL :si true
+
 				if null? current-msg [init-current-msg]
-				current-msg/hWnd: as handle! lParam		;-- trackbar handle
-				get-slider-pos current-msg
+				current-msg/hWnd: handle				;-- thumbtrack handle
+				set-scroller-metrics current-msg :si
 				make-event current-msg 0 EVT_CHANGE
 			]
 			return 0

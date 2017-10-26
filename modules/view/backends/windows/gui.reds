@@ -1016,29 +1016,29 @@ get-position-value: func [
 	as-integer f
 ]
 
-get-slider-pos: func [
+set-scroller-metrics: func [
 	msg	[tagMSG]
+	si	[tagSCROLLINFO]
 	/local
-		values	[red-value!]
-		size	[red-pair!]
-		pos		[red-float!]
-		amount	[integer!]
-		divisor [integer!]
+		values	 [red-value!]
+		pos		 [red-float!]
+		sel		 [red-float!]
+		range	 [integer!]
+		dividend [integer!]
+		divisor	 [integer!]
 ][
 	values: get-facets msg
-	size:	as red-pair!	values + FACE_OBJ_SIZE
-	pos:	as red-float!	values + FACE_OBJ_DATA
+	pos: as red-float! values + FACE_OBJ_DATA
+	sel: as red-float! values + FACE_OBJ_SELECTED
 
-	if all [
-		TYPE_OF(pos) <> TYPE_FLOAT
-		TYPE_OF(pos) <> TYPE_PERCENT
-	][
-		percent/rs-make-at as red-value! pos 0.0
-	]
-	amount: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
-	divisor: size/x
-	if size/y > size/x [divisor: size/y amount: divisor - amount]
-	pos/value: (as-float amount) / as-float divisor
+	if TYPE_OF(pos) <> TYPE_FLOAT [pos/header: TYPE_FLOAT]
+	range: si/nMax - si/nMin
+	dividend: si/nPos - si/nMin
+	divisor: range - si/nPage + 1
+	pos/value: (as-float dividend) / as-float divisor
+	
+	if TYPE_OF(sel) <> TYPE_PERCENT [sel/header: TYPE_PERCENT]
+	sel/value: (as-float si/nPage) / as-float range
 ]
 
 get-screen-size: func [
@@ -1202,6 +1202,7 @@ OS-make-view: func [
 		para	  [red-object!]
 		rate	  [red-value!]
 		options	  [red-block!]
+		fl		  [red-float!]
 		flags	  [integer!]
 		ws-flags  [integer!]
 		bits	  [integer!]
@@ -1220,6 +1221,7 @@ OS-make-view: func [
 		off-x	  [integer!]
 		off-y	  [integer!]
 		rc		  [RECT_STRUCT value]
+		si		  [tagSCROLLINFO]
 ][
 	stack/mark-native words/_body
 
@@ -1320,6 +1322,10 @@ OS-make-view: func [
 			if size/y > size/x [
 				flags: flags or TBS_VERT or TBS_DOWNISLEFT
 			]
+		]
+		sym = scroller [
+			class: #u16 "RedScroller"
+			if size/y > size/x [flags: flags or SBS_VERT]
 		]
 		sym = base [
 			class: #u16 "RedBase"
@@ -1470,6 +1476,22 @@ OS-make-view: func [
 			if vertical? [value: size/y - value]
 			SendMessage handle TBM_SETPOS 1 value
 		]
+		sym = scroller [
+			si: declare tagSCROLLINFO
+			si/cbSize: size? tagSCROLLINFO
+			si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
+			si/nMin: 0
+			si/nMax: 100
+			si/nPage: 10
+			si/nPos: 0
+			SetScrollInfo handle SB_CTL si true
+			fl: as red-float! data
+			fl/header: TYPE_FLOAT
+			fl/value:  0.0
+			fl: as red-float! selected
+			fl/header: TYPE_PERCENT
+			fl/value: 0.10
+		]
 		sym = progress [
 			value: get-position-value as red-float! data 100
 			SendMessage handle PBM_SETPOS value 0
@@ -1555,6 +1577,10 @@ change-size: func [
 			max: either sz-x > sz-y [sz-x][sz-y]
 			msg: either type = slider [TBM_SETRANGEMAX][max: max << 16 PBM_SETRANGE]
 			SendMessage hWnd msg 0 max					;-- do not force a redraw
+		]
+		type = scroller  [
+			;; TBD
+			0
 		]
 		type = area		 [update-scrollbars hWnd null]
 		type = tab-panel [update-tab-contents hWnd FACE_OBJ_SIZE]
@@ -1767,15 +1793,29 @@ change-image: func [
 
 change-selection: func [
 	hWnd   [handle!]
-	int	   [red-integer!]								;-- can be also none! | object!
+	int	   [red-integer!]								;-- can be also none! | object! | percent!
 	values [red-value!]
 	/local
-		type   [red-word!]
-		sym	   [integer!]
+		type [red-word!]
+		f	 [red-float!]
+		flt	 [float!]
+		si	 [tagSCROLLINFO value]
+		sym	 [integer!]
 ][
 	type: as red-word! values + FACE_OBJ_TYPE
 	sym: symbol/resolve type/symbol
 	case [
+		sym = scroller [
+			f: as red-float! int
+			flt: f/value
+			if flt < 0.0 [flt: 0.0]
+			if flt > 1.0 [flt: 1.0]
+			si/cbSize: size? tagSCROLLINFO
+			si/fMask: SIF_PAGE or SIF_RANGE
+			GetScrollInfo hWnd SB_CTL :si
+			si/nPage: as-integer flt * as-float si/nMax - si/nMin
+			SetScrollInfo hWnd SB_CTL :si true
+		]
 		sym = camera [
 			either TYPE_OF(int) = TYPE_NONE [
 				stop-camera hWnd
@@ -1817,6 +1857,7 @@ change-data: func [
 		flt		[float!]
 		caption [c-string!]
 		type	[integer!]
+		si	    [tagSCROLLINFO value]
 ][
 	data: as red-value! values + FACE_OBJ_DATA
 	word: as red-word! values + FACE_OBJ_TYPE
@@ -1833,6 +1874,18 @@ change-data: func [
 			range: either size/y > size/x [flt: 1.0 - flt size/y][size/x]
 			flt: flt * as-float range
 			SendMessage hWnd TBM_SETPOS 1 as-integer flt
+		]
+		all [type = scroller TYPE_OF(data) = TYPE_FLOAT][
+			f: as red-float! data
+			flt: f/value
+			if flt < 0.0 [flt: 0.0]
+			if flt > 1.0 [flt: 1.0]
+			si/cbSize: size? tagSCROLLINFO
+			si/fMask: SIF_POS or SIF_RANGE
+			GetScrollInfo hWnd SB_CTL :si
+			range: si/nMax - si/nMin
+			si/nPos: si/nMin + as-integer (flt * as-float range)
+			SetScrollInfo hWnd SB_CTL :si true
 		]
 		all [
 			type = progress
