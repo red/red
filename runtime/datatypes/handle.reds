@@ -40,6 +40,19 @@ handle: context [
 		h
 	]
 
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-handle!]
+		/local
+			h	[red-handle!]
+	][
+		h: as red-handle! slot
+		h/header: TYPE_HANDLE
+		h/value: value
+		h
+	]
+
 	push: func [
 		value	[handle!]
 		return: [red-handle!]

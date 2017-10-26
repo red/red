@@ -514,6 +514,8 @@ Red/System [
 #define WIN32_LOWORD(param) (param and FFFFh << 16 >> 16)	;-- trick to force sign extension
 #define WIN32_HIWORD(param) (param >> 16)
 
+#define WIN32_MAKE_LPARAM(low high) [high << 16 or (low and FFFFh)]
+
 #define IS_EXTENDED_KEY		01000000h
 
 #define ANSI_FIXED_FONT		11
@@ -545,6 +547,11 @@ Red/System [
 #define WRAP_MODE_TILE_FLIP_Y   2
 #define WRAP_MODE_TILE_FLIP_XY  3
 #define WRAP_MODE_CLAMP         4
+
+#define BASE_FACE_CLIPPED	1
+#define BASE_FACE_CARET		2
+#define BASE_FACE_D2D		4
+#define BASE_FACE_IME		8
 
 BUTTON_IMAGELIST: alias struct! [
 	handle		[integer!]

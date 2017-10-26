@@ -52,12 +52,14 @@ object [
 	windows:	none							;-- all the windows opened
 
 	tab-size:	4
+	foreground: 0.0.0
 	background: none
 	select-bg:	none							;-- selected text background color
 	pad-left:	3
 
 	color?:		no
 	theme: #(
+		foreground	[0.0.0]
 		background	[252.252.252]
 		selected	[200.200.255]				;-- selected text background color
 		string!		[120.120.61]
@@ -81,7 +83,7 @@ object [
 		clear selects
 		caret/visible?: no
 		either escape [append line #"^["][
-			if line <> first history [insert history line]
+			if all [not empty? line line <> first history][insert history line]
 			hist-idx: 0	
 		]
 		prin?: no
@@ -166,10 +168,9 @@ object [
 	calc-last-line: func [new? [logic!] /local n cnt h total][
 		n: length? lines
 		box/text: head last lines
-		box/layout
 		total: line-cnt
-		h: box/height
-		cnt: box/line-count
+		h: box/height?
+		cnt: box/line-count?
 		either any [new? n > length? nlines][			;-- add a new line
 			append heights h
 			append nlines cnt
@@ -205,16 +206,18 @@ object [
 	reset-top: func [/force /local n][
 		n: line-cnt - page-cnt
 		if any [
-			scroller/position < n
+			scroller/position <= n
 			all [full? force]
 		][
+			n: last nlines
 			top: length? lines
-			scroller/position: scroller/max-size - page-cnt + 1
-			scroll-lines page-cnt - 1
+			scroller/position: scroller/max-size - page-cnt - n + 2
+			scroll-lines page-cnt - n
 		]
 	]
 
 	update-theme: func [][
+		foreground: first select theme 'foreground
 		background: first select theme 'background
 		select-bg:  reduce ['backdrop first select theme 'selected]
 		console/color: background
@@ -225,10 +228,11 @@ object [
 		box/font: font
 		max-lines: cfg/buffer-lines
 		box/text: "X"
-		box/layout
-		box/tabs: tab-size * box/width
-		line-h: box/line-height 1
+		box/tabs: tab-size * box/width?
+		line-h: box/line-height? 1
 		caret/size/y: line-h
+		if cfg/background [change theme/background cfg/background]
+		if font/color [change theme/foreground font/color]
 		update-theme
 	]
 
@@ -299,7 +303,6 @@ object [
 		]
 		if n > length? lines [n: length? lines]
 		box/text: head pick lines n
-		box/layout
 		start: pick heights n
 		offset/x: offset/x - pad-left 
 		offset/y: y + start - h
@@ -314,7 +317,6 @@ object [
 		offset/x: offset/x - pad-left
 		offset/y: offset/y - line-y
 		box/text: head line
-		box/layout
 		pos: (box/index? offset) - (index? line)
 		if pos < 0 [pos: 0]
 		update-caret
@@ -380,7 +382,10 @@ object [
 
 	move-caret: func [n [integer!] /event e [event!] /local left? idx][
 		idx: pos + n
-		if any [negative? idx idx > length? line][exit]
+		if any [negative? idx idx > length? line][
+			if all [event not e/shift?][clear selects]
+			exit
+		]
 
 		if event [
 			left?: n = -1
@@ -515,7 +520,7 @@ object [
 	]
 
 	paste: func [/resume /local nl? start end idx][
-		delete-text/selected no
+		delete-selected
 		unless resume [clipboard: read-clipboard]
 		if all [clipboard not empty? clipboard][
 			start: clipboard
@@ -543,7 +548,7 @@ object [
 
 	cut: func [][
 		either copy-selection [
-			delete-text/selected no
+			delete-selected
 		][
 			clear line pos: 0
 		]
@@ -623,13 +628,10 @@ object [
 		system/view/platform/redraw console
 	]
 
-	delete-text: func [
-		ctrl?	[logic!]
-		/selected
+	delete-selected: func [
 		return: [logic!]
-		/local selected? start-n start-idx end-n end-idx n idx s del?
+		/local start-n start-idx end-n end-idx n idx s del?
 	][
-		selected?: no
 		del?: no
 		if all [
 			not empty? selects
@@ -637,7 +639,6 @@ object [
 		][
 			set [start-n start-idx end-n end-idx] selects
 			if all [start-n = length? lines start-n = end-n][
-				selected?: yes
 				n: absolute end-idx - start-idx
 				idx: min start-idx end-idx
 				idx: idx - index? line
@@ -650,11 +651,23 @@ object [
 					s: copy/part skip line idx n
 					reduce/into [idx s] undo-stack
 					remove/part skip line idx n
+					clear selects clear redo-stack
 					del?: yes
 				]
 			]
 		]
-		if all [not selected not selected? pos <> 0][
+		del?
+	]
+
+	delete-text: func [
+		ctrl?	[logic!]
+		/backward
+		/local n idx s del?
+	][
+		if delete-selected [exit]
+
+		del?: no
+		if all [not backward pos <> 0][
 			if #" " = pick line pos [ctrl?: no]
 			either ctrl? [
 				idx: index? line
@@ -675,8 +688,12 @@ object [
 			]
 			del?: yes
 		]
+		if all [backward pos < length? line][
+			s: take skip line pos
+			reduce/into [pos s] undo-stack
+			del?: yes
+		]
 		if del? [clear selects clear redo-stack]
-		del?
 	]
 
 	clean: func [][
@@ -718,6 +735,7 @@ object [
 			up		[either ctrl? [scroll-lines  1][fetch-history 'prev]]
 			down	[either ctrl? [scroll-lines -1][fetch-history 'next]]
 			insert	[if event/shift? [paste exit]]
+			delete	[delete-text/backward ctrl?]
 			#"^A" home	[if shift? [select-text 0 - pos] pos: 0]
 			#"^E" end	[
 				if shift? [select-text (length? line) - pos]
@@ -733,7 +751,7 @@ object [
 			#"^L"	[clean]
 			#"^K"	[clear line pos: 0]				;-- delete the whole line
 		][
-			unless empty? selects [delete-text/selected no]
+			unless empty? selects [delete-selected]
 			if all [char? char char > 31][
 				insert skip line pos char
 				reduce/into [pos 1] undo-stack
@@ -743,7 +761,7 @@ object [
 			clear selects
 		]
 		console/rate: 6
-		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
+		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top/edit
 		system/view/platform/redraw console
 	]
@@ -753,7 +771,7 @@ object [
 		clear redo-stack
 	]
 
-	paint-selects: func [
+	mark-selects: func [
 		styles n
 		/local start-n end-n start-idx end-idx len swap?
 	][
@@ -790,9 +808,10 @@ object [
 
 	paint: func [/local str cmds y n h cnt delta num end styles][
 		if empty? lines [exit]
-		cmds: [text 0x0 text-box]
-		cmds/2/x: pad-left
-		cmds/3: box
+		cmds: [pen color text 0x0 text-box]
+		cmds/2: foreground
+		cmds/4/x: pad-left
+		cmds/5: box
 		end: console/size/y
 		y: scroll-y
 		n: top
@@ -801,17 +820,16 @@ object [
 		foreach str at lines top [
 			box/text: head str
 			if color? [highlight/add-styles head str clear styles theme]
-			paint-selects styles n
-			box/layout
-			clear styles
-			cmds/2/y: y
+			mark-selects styles n
+			cmds/4/y: y
 			system/view/platform/draw-face console cmds
 
-			h: box/height
-			cnt: box/line-count
+			h: box/height?
+			cnt: box/line-count?
 			poke heights n h
 			line-cnt: line-cnt + cnt - pick nlines n
 			poke nlines n cnt
+			clear styles
 
 			n: n + 1
 			y: y + h

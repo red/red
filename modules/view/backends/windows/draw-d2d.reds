@@ -29,6 +29,8 @@ draw-begin-d2d: func [
 		brush	[integer!]
 		target	[int-ptr!]
 		brushes [int-ptr!]
+		pbrush	[ID2D1SolidColorBrush]
+		d3d-clr [D3DCOLORVALUE]
 ][
 	target: get-hwnd-render-target hWnd
 
@@ -52,9 +54,14 @@ draw-begin-d2d: func [
 	]
 
 	brush: select-brush target + 1 ctx/pen-color
-	if zero? brush [
-		rt/CreateSolidColorBrush this to-dx-color ctx/pen-color null null :brush
+	d3d-clr: to-dx-color ctx/pen-color null
+	either zero? brush [
+		rt/CreateSolidColorBrush this d3d-clr null :brush
 		put-brush target + 1 ctx/pen-color brush
+	][
+		this: as this! brush
+		pbrush: as ID2D1SolidColorBrush this/vtbl
+		pbrush/SetColor this d3d-clr
 	]
 	ctx/pen: brush
 ]
@@ -147,16 +154,10 @@ OS-draw-text-d2d: func [
 	/local
 		this	[this!]
 		rt		[ID2D1HwndRenderTarget]
-		IUnk	[IUnknown]
 		values	[red-value!]
-		str		[red-string!]
-		size	[red-pair!]
 		int		[red-integer!]
 		state	[red-block!]
-		styles	[red-block!]
-		w		[integer!]
-		h		[integer!]
-		fmt		[this!]
+		bool	[red-logic!]
 		layout	[this!]
 ][
 	this: as this! ctx/dc
@@ -167,8 +168,13 @@ OS-draw-text-d2d: func [
 		state: as red-block! values + TBOX_OBJ_STATE
 
 		layout: either TYPE_OF(state) = TYPE_BLOCK [
-			int: as red-integer! block/rs-head state
-			as this! int/value
+			bool: as red-logic! (block/rs-tail state) - 1
+			either bool/value [
+				OS-text-box-layout as red-object! text ctx/brushes yes
+			][
+				int: as red-integer! block/rs-head state
+				as this! int/value
+			]
 		][
 			OS-text-box-layout as red-object! text ctx/brushes yes
 		]

@@ -18,16 +18,14 @@ Red/System [
 ;;			   base-layered: caret's owner handle
 ;;		-20  : evolved-base-layered: child handle
 ;;		-16  : base-layered: owner handle
-;;			 :
-;;		-12  : base-layered: clipped? flag, caret? flag
-;;			   window: pos Y in pixel
-;;		 -8  : base-layered: screen pos Y
-;;			   window: pos X in pixel
-;;		 -4  : camera (camera!)
-;;			   console (terminal!)
-;;			   base: bitmap cache | base-layered: screen pos X
-;;			   draw (old-dc)
-;;			   group-box (frame hWnd)
+;;		-12  : base-layered: clipped? flag, caret? flag, d2d? flag, ime? flag
+;;		 -8  : base: pos X/Y in pixel
+;;			   window: pos X/Y in pixel
+;;		 -4  : camera: camera!
+;;			   console: terminal!
+;;			   base: bitmap cache
+;;			   draw: old-dc
+;;			   group-box: frame hWnd
 ;;		  0  : |
 ;;		  4  : |__ face!
 ;;		  8  : |
@@ -574,7 +572,7 @@ free-faces: func [
 			]
 			dc: GetWindowLong handle wc-offset - 24
 			if dc <> 0 [
-				either flags and FACET_FLAGS_EDITABLE <> 0 [
+				either (GetWindowLong handle wc-offset - 12) and BASE_FACE_IME <> 0 [
 					d2d-release-target as int-ptr! dc
 				][											;-- caret
 					DestroyCaret
@@ -910,12 +908,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = editable   [flags: flags or FACET_FLAGS_EDITABLE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			all [
-				sym = Direct2D
-				d2d-factory <> null
-			]				 [flags: flags or FACET_FLAGS_D2D]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1086,6 +1079,7 @@ evolve-base-face: func [
 		handle	[handle!]
 		size	[red-pair!]
 		visible [red-logic!]
+		pos		[integer!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -1097,13 +1091,14 @@ evolve-base-face: func [
 		if null? handle [
 			size: as red-pair! values + FACE_OBJ_SIZE
 			visible: as red-logic! values + FACE_OBJ_VISIBLE?
+			pos: GetWindowLong hWnd wc-offset - 8
 			handle: CreateWindowEx
 				WS_EX_LAYERED
 				#u16 "RedBaseInternal"
 				null
 				WS_POPUP
-				GetWindowLong hWnd wc-offset - 4
-				GetWindowLong hWnd wc-offset - 8
+				WIN32_LOWORD(pos)
+				WIN32_HIWORD(pos)
 				size/x
 				size/y
 				hWnd
@@ -1393,7 +1388,7 @@ OS-make-view: func [
 		null
 	]
 
-	unless any [DWM-enabled? alpha? bits and FACET_FLAGS_EDITABLE <> 0][
+	unless any [alpha? not winxp?][
 		ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 	]
 
@@ -1516,8 +1511,10 @@ OS-make-view: func [
 			]
 			offset/x: off-x - rc/left * 100 / dpi-factor
 			offset/y: off-y - rc/top * 100 / dpi-factor
-			SetWindowLong handle wc-offset - 8 off-x - rc/left
-			SetWindowLong handle wc-offset - 12 off-y - rc/top
+			SetWindowLong
+				handle
+				wc-offset - 8
+				WIN32_MAKE_LPARAM((off-x - rc/left) (off-y - rc/top))
 		]
 		true [0]
 	]
@@ -1654,6 +1651,7 @@ change-offset: func [
 		values: get-face-values hWnd
 		size: as red-pair! values + FACE_OBJ_SIZE
 		process-layered-region hWnd size pos as red-block! values + FACE_OBJ_PANE pos null layer?
+		param: GetWindowLong hWnd wc-offset - 8
 		either layer? [
 			owner: as handle! GetWindowLong hWnd wc-offset - 16
 			child: as handle! GetWindowLong hWnd wc-offset - 20
@@ -1662,12 +1660,10 @@ change-offset: func [
 			pt/y: pos-y
 			ClientToScreen owner (as tagPOINT pt) + 1
 			offset: as tagPOINT pt
-			offset/x: pt/x - GetWindowLong hWnd wc-offset - 4
-			offset/y: pt/y - GetWindowLong hWnd wc-offset - 8
+			offset/x: pt/x - WIN32_LOWORD(param)
+			offset/y: pt/y - WIN32_HIWORD(param)
 			pos-x: pt/x
 			pos-y: pt/y
-			SetWindowLong hWnd wc-offset - 4 pos-x
-			SetWindowLong hWnd wc-offset - 8 pos-y
 			update-layered-window hWnd null offset null -1
 
 			if child <> null [
@@ -1679,13 +1675,12 @@ change-offset: func [
 					flags
 			]
 		][
-			param: GetWindowLong hWnd wc-offset - 12
 			offset: as tagPOINT pt
 			offset/x: pos-x - WIN32_LOWORD(param)
 			offset/y: pos-y - WIN32_HIWORD(param)
 			update-layered-window hWnd null offset null -1
-			SetWindowLong hWnd wc-offset - 12 pos-y << 16 or (pos-x and FFFFh)
 		]
+		SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(pos-x pos-y)
 	]
 	SetWindowPos 
 		hWnd
@@ -1989,6 +1984,7 @@ change-parent: func [
 		x			[integer!]
 		y			[integer!]
 		sym			[integer!]
+		pos			[integer!]
 		tab-panel?	[logic!]
 ][
 	hWnd: get-face-handle face
@@ -2017,8 +2013,9 @@ change-parent: func [
 			layered-win? hWnd
 		][
 			SetWindowLong hWnd wc-offset - 16 as-integer handle
-			x: GetWindowLong hWnd wc-offset - 4
-			y: GetWindowLong hWnd wc-offset - 8
+			pos: GetWindowLong hWnd wc-offset - 8
+			x: WIN32_LOWORD(pos)
+			y: WIN32_HIWORD(pos)
 			offset: as red-pair! values + FACE_OBJ_OFFSET
 			pt/x: dpi-scale offset/x
 			pt/y: dpi-scale offset/y

@@ -234,7 +234,7 @@ board: layout [
     below
     across
     btn-prev: button "previous" [ 
-        unless btn-next/enabled? [ btn-next/enable?: true ]
+        unless btn-next/enabled? [ btn-next/enabled?: true ]
         either index > 2 [
             index: index - 2 
             label/text: drawings/(index - 1)
@@ -243,7 +243,7 @@ board: layout [
         ][ btn-prev/enabled?: false ]
     ]
     btn-next: button "next" [
-        unless btn-prev/enabled? [ btn-prev/enable?: true ]
+        unless btn-prev/enabled? [ btn-prev/enabled?: true ]
         either index < length? drawings [
             index: index + 2 
             label/text: drawings/(index - 1)

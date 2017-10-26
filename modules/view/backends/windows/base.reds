@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define BASE_FACE_CLIPPED 1
-#define BASE_FACE_CARET   2
-
 init-base-face: func [
 	handle		[handle!]
 	parent		[integer!]
@@ -38,9 +35,9 @@ init-base-face: func [
 	SetWindowLong handle wc-offset - 16 parent
 	SetWindowLong handle wc-offset - 20 0
 	SetWindowLong handle wc-offset - 24 0
+	pt/x: dpi-scale offset/x
+	pt/y: dpi-scale offset/y
 	either alpha? [
-		pt/x: dpi-scale offset/x
-		pt/y: dpi-scale offset/y
 		unless win8+? [
 			position-base handle as handle! parent :pt
 		]
@@ -52,7 +49,7 @@ init-base-face: func [
 			process-layered-region handle size offset null offset null yes
 		]
 	][
-		SetWindowLong handle wc-offset - 12 offset/y << 16 or (offset/x and FFFFh)
+		SetWindowLong handle wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 	]
 
 	if TYPE_OF(opts) = TYPE_BLOCK [
@@ -68,6 +65,12 @@ init-base-face: func [
 					SetWindowLong handle wc-offset - 24 as-integer get-face-handle as red-object! word + 1
 					update-caret handle values
 				]
+				sym = rich-text? [
+					show?: as red-logic! word + 1
+					if show?/value [
+						SetWindowLong handle wc-offset - 12 flags or BASE_FACE_D2D or BASE_FACE_IME
+					]
+				]
 				true [0]
 			]
 			word: word + 2
@@ -82,8 +85,7 @@ position-base: func [
 	pt		[tagPOINT]
 ][
 	ClientToScreen parent pt		;-- convert client offset to screen offset
-	SetWindowLong base wc-offset - 4 pt/x
-	SetWindowLong base wc-offset - 8 pt/y
+	SetWindowLong base wc-offset - 8 WIN32_MAKE_LPARAM(pt/x pt/y)
 ]
 
 layered-win?: func [
@@ -374,8 +376,9 @@ update-layered-window: func [
 		(WS_EX_LAYERED and GetWindowLong hWnd GWL_EXSTYLE) > 0
 	][
 		either offset <> null [
-			x: offset/x + GetWindowLong hWnd wc-offset - 4
-			y: offset/y + GetWindowLong hWnd wc-offset - 8
+			border: GetWindowLong hWnd wc-offset - 8
+			x: offset/x + WIN32_LOWORD(border)
+			y: offset/y + WIN32_HIWORD(border)
 			unless all [zero? offset/x zero? offset/y][
 				hdwp: DeferWindowPos
 					hdwp
@@ -384,8 +387,7 @@ update-layered-window: func [
 					x y
 					0 0
 					SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE
-				SetWindowLong hWnd wc-offset - 4 x
-				SetWindowLong hWnd wc-offset - 8 y
+				SetWindowLong hWnd wc-offset - 8 WIN32_MAKE_LPARAM(x y)
 				hWnd: as handle! GetWindowLong hWnd wc-offset - 20
 				if hWnd <> null [
 					hdwp: DeferWindowPos
@@ -492,7 +494,7 @@ BaseWndProc: func [
 		WM_LBUTTONUP	 [ReleaseCapture return 0]
 		WM_ERASEBKGND	 [return 1]					;-- drawing in WM_PAINT to avoid flicker
 		WM_SIZE  [
-			either (get-face-flags hWnd) and FACET_FLAGS_D2D = 0 [
+			either (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D = 0 [
 				unless zero? GetWindowLong hWnd wc-offset + 4 [
 					update-base hWnd null null get-face-values hWnd
 				]
@@ -571,7 +573,7 @@ BaseWndProc: func [
 		]
 		default [0]
 	]
-	if (get-face-flags hWnd) and FACET_FLAGS_EDITABLE <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_IME <> 0 [
 		switch msg [
 			WM_IME_SETCONTEXT [
 				either zero? wParam [
@@ -753,7 +755,7 @@ update-base: func [
 		alpha?	[logic!]
 		flags	[integer!]
 ][
-	if (get-face-flags hWnd) and FACET_FLAGS_D2D <> 0 [
+	if (GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0 [
 		InvalidateRect hWnd null 0
 		exit
 	]

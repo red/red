@@ -13,18 +13,22 @@ Red [
 	}
 ]
 
-debug-print: routine [arg [any-type!] /local blk [red-block!]][
-	"Output debug info to CLI console only"
-	#if sub-system = 'console [
-		if TYPE_OF(arg) = TYPE_BLOCK [
-			block/rs-clear natives/buffer-blk
-			stack/push as red-value! natives/buffer-blk
-			natives/reduce* no 1
-			blk: as red-block! arg
-			blk/head: 0						;-- head changed by reduce/into
+#if config/debug? [
+	debug-print: routine [
+		"Output debug info to CLI console only"
+		arg [any-type!] /local blk [red-block!]
+	][
+		#if sub-system = 'console [
+			if TYPE_OF(arg) = TYPE_BLOCK [
+				block/rs-clear natives/buffer-blk
+				stack/push as red-value! natives/buffer-blk
+				natives/reduce* no 1
+				blk: as red-block! arg
+				blk/head: 0						;-- head changed by reduce/into
+			]
+			actions/form* -1
+			dyn-print/red-print-cli as red-string! stack/arguments yes
 		]
-		actions/form* -1
-		dyn-print/red-print-cli as red-string! stack/arguments yes
 	]
 ]
 
@@ -38,12 +42,13 @@ gui-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
 	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
+	caret-clr:	0.0.0.1
 	scroller:	make scroller! []
 
 	console:	make face! [
 		type: 'base color: 0.0.128 offset: 0x0 size: 400x400
-		flags:   [Direct2D editable scrollable all-over]
-		options: [cursor: I-beam]
+		flags:   [scrollable all-over]
+		options: [cursor: I-beam rich-text?: yes]
 		menu: [
 			"Copy^-Ctrl+C"		copy
 			"Paste^-Shift+Ins"	paste
@@ -91,7 +96,6 @@ gui-console-ctx: context [
 		init: func [/local box][
 			terminal/windows: system/view/screens/1/pane
 			box: terminal/box
-			box/fixed?: yes
 			box/styles: make block! 200
 			scroller: get-scroller self 'horizontal
 			scroller/visible?: no						;-- hide horizontal bar
@@ -102,11 +106,11 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2 visible?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
 		options: compose [caret (console) cursor: I-beam]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				face/color: either face/color = 0.0.0.1 [255.255.255.254][0.0.0.1]
+				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
 			]
 		]
 	]
@@ -128,7 +132,7 @@ gui-console-ctx: context [
 			]
 			"Options" [
 				"Choose Font..."	choose-font
-				;"Settings..."		settings
+				"Settings..."		settings
 			]
 			;"Plugins" [
 			;	"Add..."			add-plugin

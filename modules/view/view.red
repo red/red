@@ -497,31 +497,18 @@ text-box!: object [
 	spacing:	none					;-- line spacing (integer!)
 	tabs:		none					;-- incremental tab size: the fixed distance between two adjacent tab stops (integer!)
 	styles:		none					;-- style list (block!), [start-pos length style1 style2 ...]
-	state:		none					;-- OS handles
 	target:		none					;-- face!, image!, etc.
-	fixed?:		no						;-- fixed line height
-
-	;-- internal use only
-	width:		none
-	height:		none
-	line-count: none
+	state:		none					;-- OS handles (internal used only)
 
 	;;
-	;; public query functions
+	;; Query information from text box
 	;;
-	text-size?: function [return: [pair!]][			;-- TBD: remove width and height, use this function instead
-		"Return the size of the text, maybe different than the text box size"
-		as-pair width height
-	]
-
-	line-count?: func [return: [integer!]][line-count]
-
 	offset?: function [
 		"Given a text position, returns the corresponding coordinate relative to the top-left of the layout box"
 		pos		[integer!]
 		return:	[pair!]
 	][
-		system/view/platform/text-box-metrics self/state pos 0
+		system/view/platform/text-box-metrics self pos 0
 	]
 
 	index?: function [
@@ -529,20 +516,52 @@ text-box!: object [
 		pt		[pair!]
 		return: [integer!]
 	][
-		system/view/platform/text-box-metrics self/state pt 1
+		system/view/platform/text-box-metrics self pt 1
 	]
 
-	line-height: function [
+	line-height?: function [
 		"Given a text position, returns the corresponding line's height"
 		pos 	[integer!]
 		return: [integer!]
 	][
-		system/view/platform/text-box-metrics self/state pos 2
+		system/view/platform/text-box-metrics self pos 2
 	]
 
-	layout: func [][
-		system/view/platform/text-box-layout self
-		system/view/platform/text-box-metrics self/state self 3
+	width?: function [
+		"text width in pixel"
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self 0 3
+	]
+
+	height?: function [
+		"text height in pixel"
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self 1 3
+	]
+
+	line-count?: function [
+		"number of lines (> 1 if line wrapped)"
+		return: [integer!]
+	][
+		system/view/platform/text-box-metrics self 0 4
+	]
+
+	on-change*: func [word old new][
+		unless all [block? :old block? :new same? head :old head :new][
+			if any [series? :old object? :old][modify old 'owned none]
+			if any [series? :new object? :new][modify new 'owned reduce [self word]]
+		]
+		if all [state not last state][
+			change back tail state true
+		]
+	]
+
+	on-deep-change*: func [owner word target action new index part][
+		if all [state not last state][
+			change back tail state true
+		]
 	]
 ]
 
