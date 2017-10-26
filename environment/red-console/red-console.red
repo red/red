@@ -42,6 +42,7 @@ gui-console-ctx: context [
 	cfg-path:	none
 	cfg:		none
 	font:		make font! [name: "Consolas" size: 11 color: 0.0.0]
+	caret-clr:	0.0.0.1
 	scroller:	make scroller! []
 
 	console:	make face! [
@@ -105,11 +106,11 @@ gui-console-ctx: context [
 	]
 
 	caret: make face! [
-		type: 'base color: 0.0.0.1 offset: 0x0 size: 1x17 rate: 2 visible?: no
+		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
 		options: compose [caret (console) cursor: I-beam]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
-				face/color: either face/color = 0.0.0.1 [255.255.255.254][0.0.0.1]
+				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]
 			]
 		]
 	]

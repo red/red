@@ -48,10 +48,12 @@ set-background: function [color [tuple!]][
 	system/view/platform/redraw console
 ]
 
-set-font-color: function [color [tuple!]][
-	font: console/font
-	font/color: color
+set-font-color: func [color [tuple!] /local clr][
+	console/font/color: color
 	terminal/foreground: color
+	if 3 = length? color [clr: color or 0.0.0.1]
+	caret/color: clr
+	caret-clr: clr
 	system/view/platform/redraw console
 ]
 

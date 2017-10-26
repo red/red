@@ -758,7 +758,7 @@ object [
 			clear selects
 		]
 		console/rate: 6
-		if caret/rate [caret/rate: none caret/color: 0.0.0.1]
+		if caret/rate [caret/rate: none caret/color: caret-clr]
 		calc-top/edit
 		system/view/platform/redraw console
 	]
