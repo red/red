@@ -382,7 +382,10 @@ object [
 
 	move-caret: func [n [integer!] /event e [event!] /local left? idx][
 		idx: pos + n
-		if any [negative? idx idx > length? line][exit]
+		if any [negative? idx idx > length? line][
+			if all [event not e/shift?][clear selects]
+			exit
+		]
 
 		if event [
 			left?: n = -1

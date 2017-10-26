@@ -150,6 +150,7 @@ apply-cfg: function [][
 	ft/color: white
 	tips/font: ft
 	terminal/update-cfg font cfg
+	set-font-color cfg/font-color
 ]
 
 save-cfg: function [][
