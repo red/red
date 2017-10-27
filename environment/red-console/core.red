@@ -44,6 +44,7 @@ object [
 
 	clipboard:	none							;-- data in clipboard for pasting
 	clip-buf:	make string! 20					;-- buffer for copy into clipboard
+	paste-cnt:	0
 	box:		make text-box! [target: console]
 
 	undo-stack: make block! 60
@@ -536,11 +537,15 @@ object [
 				unless resume [system/view/platform/exit-event-loop]
 			]
 			calc-top/edit
-			system/view/platform/redraw console
 			if empty? clipboard [
 				clear selects
 				clear redo-stack
 				reduce/into [idx pos - idx] undo-stack
+			]
+			paste-cnt: paste-cnt + 1
+			if paste-cnt = 100 [
+				system/view/platform/redraw console
+				paste-cnt: 0
 			]
 		]
 		not empty? clipboard

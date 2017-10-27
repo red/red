@@ -209,10 +209,11 @@ ask: function [
 	vt/ask?: yes
 	vt/reset-top/force
 	vt/clear-stack
-	system/view/platform/redraw gui-console-ctx/console
 	either vt/paste/resume [
 		vt/do-ask-loop/no-wait
 	][
+		system/view/platform/redraw gui-console-ctx/console
+		system/view/auto-sync?: yes
 		do-events
 	]
 	vt/ask?: no
