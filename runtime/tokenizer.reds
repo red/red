@@ -47,9 +47,14 @@ tokenizer: context [
 				if system/cpu/overflow? [error/value: -2 return 0]
 				n: m
 			][
-				either c + #"0" = as-integer #"." [break][
-					error/value: -1
-					len: 1 								;-- force exit
+				c: c + #"0"
+				case [
+					c = as-integer #"." [break]
+					c = as-integer #"'" [0]				;-- pass-thru
+					true				[
+						error/value: -1
+						len: 1 							;-- force exit
+					]
 				]
 			]
 			p: p + unit
