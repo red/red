@@ -198,15 +198,15 @@ free-font: func [
 		this  [this!]
 		obj   [IUnknown]
 ][
+	unless winxp? [
+		this: as this! get-font-handle font 1
+		COM_SAFE_RELEASE(obj this)
+	]
 	hFont: get-font-handle font 0
 	if hFont <> null [
 		DeleteObject hFont
 		state: as red-block! (object/get-values font) + FONT_OBJ_STATE
 		state/header: TYPE_NONE
-	]
-	unless winxp? [
-		this: as this! get-font-handle font 1
-		COM_SAFE_RELEASE(obj this)
 	]
 ]
 

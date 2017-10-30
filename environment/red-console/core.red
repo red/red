@@ -541,6 +541,7 @@ object [
 				clear selects
 				clear redo-stack
 				reduce/into [idx pos - idx] undo-stack
+				system/view/platform/redraw console
 			]
 			paste-cnt: paste-cnt + 1
 			if paste-cnt = 100 [
