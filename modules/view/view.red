@@ -860,6 +860,8 @@ view: function [
 center-face: function [
 	"Center a face inside its parent"
 	face [object!]		 "Face to center"
+	/x					 "Center horizontally only"
+	/y					 "Center vertically only"
 	/with				 "Provide a reference face for centering instead of parent face"
 		parent [object!] "Reference face"
 	return: [object!]	 "Returns the centered face"
@@ -872,7 +874,12 @@ center-face: function [
 		]
 	]
 	either parent [
-		face/offset: parent/size - face/size / 2
+		pos: parent/size - face/size / 2
+		case [
+			x	  [face/offset/x: pos/x]
+			y	  [face/offset/x: pos/y]
+			'else [face/offset: pos]
+		]
 		if face/type = 'window [face/offset: face/offset + parent/offset]
 	][
 		print "CENTER-FACE: face has no parent!"		;-- temporary check
