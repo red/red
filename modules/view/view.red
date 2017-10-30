@@ -842,7 +842,7 @@ center-face: function [
 		pos: parent/size - face/size / 2
 		case [
 			x	  [face/offset/x: pos/x]
-			y	  [face/offset/x: pos/y]
+			y	  [face/offset/y: pos/y]
 			'else [face/offset: pos]
 		]
 		if face/type = 'window [face/offset: face/offset + parent/offset]
