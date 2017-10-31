@@ -785,14 +785,7 @@ create-hwnd-render-target: func [
 	hwnd	[handle!]
 	return: [this!]
 	/local
-		type		[integer!]
-		format		[integer!]
-		alphaMode	[integer!]
-		dpiX		[integer!]
-		dpiY		[integer!]
-		usage		[integer!]
-		minLevel	[integer!]
-		props		[D2D1_RENDER_TARGET_PROPERTIES]
+		props		[D2D1_RENDER_TARGET_PROPERTIES value]
 		options		[integer!]
 		height		[integer!]
 		width		[integer!]
@@ -815,13 +808,13 @@ create-hwnd-render-target: func [
 	options: 1						;-- D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS: 1
 	hprops: as D2D1_HWND_RENDER_TARGET_PROPERTIES :wnd
 
-	minLevel: 0
-	props: as D2D1_RENDER_TARGET_PROPERTIES :minLevel
-	zero-memory as byte-ptr! props size? D2D1_RENDER_TARGET_PROPERTIES
+	zero-memory as byte-ptr! :props size? D2D1_RENDER_TARGET_PROPERTIES
+	props/dpiX: as float32! log-pixels-x
+	props/dpiY: as float32! log-pixels-y
 
 	target: 0
 	factory: as ID2D1Factory d2d-factory/vtbl
-	hr: factory/CreateHwndRenderTarget d2d-factory props hprops :target
+	hr: factory/CreateHwndRenderTarget d2d-factory :props hprops :target
 	if hr <> 0 [return null]
 	as this! target
 ]
@@ -849,22 +842,13 @@ create-dc-render-target: func [
 	rc		[RECT_STRUCT]
 	return: [this!]
 	/local
-		type		[integer!]
-		format		[integer!]
-		alphaMode	[integer!]
-		dpiX		[integer!]
-		dpiY		[integer!]
-		usage		[integer!]
-		minLevel	[integer!]
-		props		[D2D1_RENDER_TARGET_PROPERTIES]
+		props		[D2D1_RENDER_TARGET_PROPERTIES value]
 		factory		[ID2D1Factory]
 		rt			[ID2D1DCRenderTarget]
 		IRT			[this!]
 		target		[integer!]
 		hr			[integer!]
 ][
-	minLevel: 0
-	props: as D2D1_RENDER_TARGET_PROPERTIES :minLevel
 	props/type: 0									;-- D2D1_RENDER_TARGET_TYPE_DEFAULT
 	props/format: 87								;-- DXGI_FORMAT_B8G8R8A8_UNORM
 	props/alphaMode: 1								;-- D2D1_ALPHA_MODE_PREMULTIPLIED
@@ -875,7 +859,7 @@ create-dc-render-target: func [
 
 	target: 0
 	factory: as ID2D1Factory d2d-factory/vtbl
-	hr: factory/CreateDCRenderTarget d2d-factory props :target
+	hr: factory/CreateDCRenderTarget d2d-factory :props :target
 	if hr <> 0 [return null]
 
 	IRT: as this! target

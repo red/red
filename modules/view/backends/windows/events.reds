@@ -866,6 +866,8 @@ update-window: func [
 		sz		[red-pair!]
 		pos		[red-pair!]
 		font	[red-object!]
+		word	[red-word!]
+		type	[integer!]
 		hWnd	[handle!]
 		end?	[logic!]
 		len		[integer!]
@@ -879,6 +881,21 @@ update-window: func [
 		hWnd: face-handle? face
 		if hWnd <> null [
 			values: get-face-values hWnd
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			case [
+				all [
+					type = base
+					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
+				][
+					d2d-release-target as int-ptr! GetWindowLong hWnd wc-offset - 24
+					SetWindowLong hWnd wc-offset - 24 0
+				]
+				type = group-box [
+					0
+				]
+				true [0]
+			]
 			sz: as red-pair! values + FACE_OBJ_SIZE
 			pos: as red-pair! values + FACE_OBJ_OFFSET
 			hdwp: DeferWindowPos
@@ -1220,7 +1237,7 @@ WndProc: func [
 		]
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
-			log-pixels-y: log-pixels-y
+			log-pixels-y: log-pixels-x
 			dpi-factor: log-pixels-x * 100 / 96
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 

@@ -406,7 +406,7 @@ txt-box-draw-background: func [
 			left: as-integer hit/left + as float32! 0.5
 			top: as-integer hit/top + as float32! 0.5
 			width: as-integer hit/width + as float32! 0.5
-			height: as-integer hit/height + as float32! 0.5
+			height: as-integer hit/height + as float32! 0.99
 			rc/right: as float32! left + width
 			rc/bottom: as float32! top + height
 			rc/top: as float32! top
