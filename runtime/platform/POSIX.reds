@@ -416,10 +416,13 @@ get-current-dir: func [
 	return: [c-string!]
 	/local
 		path [byte-ptr!]
+		n	 [integer!]
 ][
 	path: allocate 4096
 	if null? getcwd path 4095 [path/1: #"^@"]
-	len/value: length? as c-string! path
+	n: length? as c-string! path
+	if path/n <> #"/" [n: n + 1 path/n: #"/"]
+	len/value: n
 	as c-string! path
 ]
 
