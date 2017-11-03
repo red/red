@@ -297,7 +297,7 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			what-dir
+		path: 			to-red-file get-current-dir
 		script: 		none
 		cache:			none
 		thru-cache:		none
