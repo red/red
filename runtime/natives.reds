@@ -416,11 +416,14 @@ natives: context [
 		stack/set-last stack/get-top
 	]
 	
-	function*: func [check? [logic!]][
+	function*: func [
+		check? [logic!]
+		/local spec [red-block!]
+	][
 		#typecheck function
-		_function/collect-words
-			as red-block! stack/arguments
-			as red-block! stack/arguments + 1
+		spec: block/clone as red-block! stack/arguments no no	;-- copy it before modifying it
+		copy-cell as red-value! spec stack/arguments
+		_function/collect-words	spec as red-block! stack/arguments + 1
 		func* check?
 	]
 	
