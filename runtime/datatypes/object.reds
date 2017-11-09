@@ -1108,7 +1108,7 @@ object: context [
 		
 		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
-			_context/set-in word value ctx
+			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value
 		][

@@ -645,7 +645,7 @@ natives: context [
 				stack/set-last value
 			]
 			default [
-				set-word w value
+				_context/set w value
 				stack/set-last value
 			]
 		]
@@ -2840,32 +2840,6 @@ natives: context [
 		]
 	]
 	
-	set-word: func [
-		w	  [red-word!]
-		value [red-value!]
-		/local
-			ctx	 [red-context!]
-			obj	 [red-object!]
-			slot [red-value!]
-			old	 [red-value!]
-			node [node!]
-			s	 [series!]
-	][
-		node: w/ctx
-		ctx: TO_CTX(node)
-		s: as series! ctx/self/value
-		obj: as red-object! s/offset + 1
-
-		either all [TYPE_OF(obj) = TYPE_OBJECT obj/on-set <> null][
-			slot: _context/get w
-			old: stack/push slot
-			copy-cell value slot
-			object/fire-on-set obj w old value
-		][
-			_context/set w value
-		]
-	]
-	
 	set-many: func [
 		words [red-block!]
 		value [red-value!]
@@ -2898,7 +2872,7 @@ natives: context [
 				][
 					fire [TO_ERROR(script invalid-arg) w]
 				]
-				set-word w v
+				_context/set w v
 			]
 			i: i + 1
 		]
