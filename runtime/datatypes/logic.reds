@@ -234,7 +234,8 @@ logic: context [
 		type: TYPE_OF(arg2)
 		if type <> TYPE_LOGIC [RETURN_COMPARE_OTHER]
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
+			COMP_FIND
 			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
