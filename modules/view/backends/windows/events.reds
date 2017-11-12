@@ -856,6 +856,72 @@ set-window-info: func [
 	ret?
 ]
 
+update-window: func [
+	child	[red-block!]
+	hdwp	[handle!]
+	/local
+		face	[red-object!]
+		tail	[red-object!]
+		values	[red-value!]
+		sz		[red-pair!]
+		pos		[red-pair!]
+		font	[red-object!]
+		word	[red-word!]
+		type	[integer!]
+		hWnd	[handle!]
+		end?	[logic!]
+		len		[integer!]
+][
+	end?: null? hdwp
+	if null? hdwp [hdwp: BeginDeferWindowPos 1]
+
+	face: as red-object! block/rs-head child
+	tail: as red-object! block/rs-tail child
+	while [face < tail][
+		hWnd: face-handle? face
+		if hWnd <> null [
+			values: get-face-values hWnd
+			word: as red-word! values + FACE_OBJ_TYPE
+			type: symbol/resolve word/symbol
+			case [
+				all [
+					type = base
+					(GetWindowLong hWnd wc-offset - 12) and BASE_FACE_D2D <> 0
+				][
+					d2d-release-target as int-ptr! GetWindowLong hWnd wc-offset - 24
+					SetWindowLong hWnd wc-offset - 24 0
+				]
+				type = group-box [
+					0
+				]
+				true [0]
+			]
+			sz: as red-pair! values + FACE_OBJ_SIZE
+			pos: as red-pair! values + FACE_OBJ_OFFSET
+			hdwp: DeferWindowPos
+				hdwp
+				hWnd
+				null
+				dpi-scale pos/x dpi-scale pos/y
+				dpi-scale sz/x  dpi-scale sz/y
+				SWP_NOZORDER or SWP_NOACTIVATE
+
+			font: as red-object! values + FACE_OBJ_FONT
+			if TYPE_OF(font) = TYPE_OBJECT [
+				free-font font
+				make-font null font
+			]
+			child: as red-block! values + FACE_OBJ_PANE
+			if TYPE_OF(child) = TYPE_BLOCK [
+				update-window child hdwp
+			]
+		]
+		face: face + 1
+	]
+
+	if end? [EndDeferWindowPos hdwp]
+]
+
 TimerProc: func [
 	hWnd   [handle!]
 	msg	   [integer!]
@@ -1188,7 +1254,7 @@ WndProc: func [
 		]
 		WM_DPICHANGED [
 			log-pixels-x: WIN32_LOWORD(wParam)			;-- new DPI
-			log-pixels-y: log-pixels-y
+			log-pixels-y: log-pixels-x
 			dpi-factor: log-pixels-x * 100 / 96
 			rc: as RECT_STRUCT lParam
 			SetWindowPos 
@@ -1197,6 +1263,11 @@ WndProc: func [
 				rc/left rc/top
 				rc/right - rc/left rc/bottom - rc/top
 				SWP_NOZORDER or SWP_NOACTIVATE
+			values: values + FACE_OBJ_PANE
+			if all [
+				type = window
+				TYPE_OF(values) = TYPE_BLOCK
+			][update-window as red-block! values null]
 			RedrawWindow hWnd null null 4 or 1			;-- RDW_ERASE | RDW_INVALIDATE
 		]
 		default [0]
