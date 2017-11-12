@@ -894,7 +894,11 @@ WndProc: func [
 		p-int  [int-ptr!]
 		winpos [tagWINDOWPOS]
 		si	   [tagSCROLLINFO value]
+		st	   [red-float!]
+		sel	   [red-float!]
 		w-type [red-word!]
+		range  [float!]
+		flags  [integer!]
 		miniz? [logic!]
 ][
 	type: either no-face? hWnd [panel][			;@@ remove this test, create a WndProc for panel?
@@ -1049,11 +1053,24 @@ WndProc: func [
 				si/cbSize: size? tagSCROLLINFO
 				si/fMask: SIF_PAGE or SIF_POS or SIF_RANGE
 				GetScrollInfo handle SB_CTL :si
-				switch wParam and FFFFh [
-					SB_LINEUP	  [si/nPos: si/nPos - 1]
-					SB_LINEDOWN   [si/nPos: si/nPos + 1]
-					SB_PAGEUP	  [si/nPos: si/nPos - 10]
-					SB_PAGEDOWN	  [si/nPos: si/nPos + 10]
+				values: get-face-values handle
+				sel: as red-float! values + FACE_OBJ_SELECTED
+				st: as red-float! values + FACE_OBJ_EXT1
+				range: as-float si/nMax - si/nMin
+				flags: wParam and FFFFh
+				switch flags [
+					SB_LINEUP
+					SB_LINEDOWN   [
+						pos: as-integer range * st/value
+						if flags = SB_LINEUP [pos: 0 - pos]
+						si/nPos: si/nPos + pos
+					]
+					SB_PAGEUP
+					SB_PAGEDOWN	  [
+						pos: as-integer range * sel/value
+						if flags = SB_PAGEUP [pos: 0 - pos]
+						si/nPos: si/nPos + pos
+					]
 					SB_THUMBTRACK [si/nPos: WIN32_HIWORD(wParam)]
 					default		  [0]
 				]

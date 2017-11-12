@@ -53,7 +53,7 @@ Red [
 	]
 	scroller: [
 		default-actor: on-change
-		template: [type: 'scroller size: 150x20 data: 0.0]
+		template: [type: 'scroller size: 150x20 data: 0.0 steps: 0.1]
 	]
 	camera: [
 		default-actor: on-down

@@ -23,5 +23,5 @@ view [
 	return
 	
 	s1: scroller
-	s2: scroller 20x200
+	s2: scroller 20x200 with [steps: .3]
 ]
