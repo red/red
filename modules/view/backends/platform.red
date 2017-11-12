@@ -38,6 +38,13 @@ system/view/platform: context [
 				FACE_OBJ_ACTORS
 				FACE_OBJ_EXTRA
 				FACE_OBJ_DRAW
+				FACE_OBJ_ONCHANGE
+				FACE_OBJ_ONDEEPCHANGE
+				FACE_OBJ_EXT1
+				FACE_OBJ_EXT2
+				FACE_OBJ_EXT3
+				FACE_OBJ_EXT4
+				FACE_OBJ_EXT5
 			]
 			
 			#enum facet-flag! [
