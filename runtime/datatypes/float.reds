@@ -95,6 +95,7 @@ float: context [
 			d		[int64!]
 			w0		[integer!]
 			temp	[float!]
+			tried?	[logic!]
 			pretty? [logic!]
 			percent? [logic!]
 	][
@@ -137,6 +138,7 @@ float: context [
 			]
 		]
 
+		tried?: no
 		s0: s
 		until [
 			p:    null
@@ -178,11 +180,12 @@ float: context [
 					]
 				]
 
-				if pretty? [
+				if all [pretty? not tried?][
 					if any [									;-- correct '01' or '99' pattern
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
+						tried?: yes
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
 							type = FORM_TIME	 ["%.6g"]
