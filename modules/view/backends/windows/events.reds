@@ -964,6 +964,7 @@ WndProc: func [
 		sel	   [red-float!]
 		w-type [red-word!]
 		range  [float!]
+		flt	   [float!]
 		flags  [integer!]
 		miniz? [logic!]
 ][
@@ -1129,7 +1130,10 @@ WndProc: func [
 					SB_LINEDOWN   [
 						pos: as-integer range * st/value
 						if flags = SB_LINEUP [pos: 0 - pos]
-						si/nPos: si/nPos + pos
+						pos: si/nPos + pos
+						if pos > si/nMax [pos: si/nMax]
+						if pos < si/nMin [pos: si/nMin]
+						si/nPos: pos
 					]
 					SB_PAGEUP
 					SB_PAGEDOWN	  [
@@ -1138,6 +1142,7 @@ WndProc: func [
 						si/nPos: si/nPos + pos
 					]
 					SB_THUMBTRACK [si/nPos: WIN32_HIWORD(wParam)]
+					SB_ENDSCROLL  [return 0]
 					default		  [0]
 				]
 				SetScrollInfo handle SB_CTL :si true

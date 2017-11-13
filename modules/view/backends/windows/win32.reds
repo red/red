@@ -217,6 +217,7 @@ Red/System [
 #define SB_THUMBTRACK		5
 #define SB_TOP				6
 #define SB_BOTTOM			7
+#define SB_ENDSCROLL		8
 
 #define BS_PUSHBUTTON		00000000h
 #define BS_DEFPUSHBUTTON	00000001h

@@ -1016,22 +1016,20 @@ set-scroller-metrics: func [
 		values	 [red-value!]
 		pos		 [red-float!]
 		sel		 [red-float!]
-		range	 [integer!]
+		range	 [float!]
 		dividend [integer!]
-		divisor	 [integer!]
 ][
 	values: get-facets msg
 	pos: as red-float! values + FACE_OBJ_DATA
 	sel: as red-float! values + FACE_OBJ_SELECTED
 
 	if TYPE_OF(pos) <> TYPE_FLOAT [pos/header: TYPE_FLOAT]
-	range: si/nMax - si/nMin
+	range: as-float si/nMax - si/nMin
 	dividend: si/nPos - si/nMin
-	divisor: range - si/nPage + 1
-	pos/value: (as-float dividend) / as-float divisor
+	pos/value: (as-float dividend) / range
 	
 	if TYPE_OF(sel) <> TYPE_PERCENT [sel/header: TYPE_PERCENT]
-	sel/value: (as-float si/nPage) / as-float range
+	sel/value: (as-float si/nPage) / range
 ]
 
 get-screen-size: func [
@@ -1879,7 +1877,12 @@ change-data: func [
 			si/fMask: SIF_POS or SIF_RANGE
 			GetScrollInfo hWnd SB_CTL :si
 			range: si/nMax - si/nMin
+probe "change-data"
+?? range
+?? flt
+probe si/nPos
 			si/nPos: si/nMin + as-integer (flt * as-float range)
+probe si/nPos			
 			SetScrollInfo hWnd SB_CTL :si true
 		]
 		all [
