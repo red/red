@@ -14,7 +14,8 @@ Red/System [
 #define TBOX_METRICS_OFFSET?		0
 #define TBOX_METRICS_INDEX?			1
 #define TBOX_METRICS_LINE_HEIGHT	2
-#define TBOX_METRICS_METRICS		3
+#define TBOX_METRICS_SIZE			3
+#define TBOX_METRICS_LINE_COUNT		4
 
 max-line-cnt:  0
 
@@ -221,7 +222,7 @@ OS-text-box-metrics: func [
 			if y > as float32! 0.5 [idx: idx + 1]
 			integer/push idx + 1
 		]
-		default [
+		TBOX_METRICS_SIZE [
 			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
 			len: system/cpu/edx
 			xx: 0 _x: 0
@@ -233,10 +234,16 @@ OS-text-box-metrics: func [
 			push method push layout push frame
 			objc_msgSend_stret 6
 			system/stack/top: saved
-			values: object/get-values as red-object! arg0
-			integer/make-at values + TBOX_OBJ_WIDTH as-integer frame/w
-			integer/make-at values + TBOX_OBJ_HEIGHT as-integer frame/h
-
+			int: as red-integer! arg0
+			x: either zero? int/value [frame/w][frame/h]
+			len: as-integer (x + as float32! 0.5)
+			integer/push len
+		]
+		TBOX_METRICS_LINE_COUNT [
+			idx: objc_msgSend [layout sel_getUid "glyphRangeForTextContainer:" tc]
+			len: system/cpu/edx
+			xx: 0 _x: 0
+			frame: as NSRect! :_x
 			method: sel_getUid "lineFragmentRectForGlyphAtIndex:effectiveRange:"
 			cnt: 0
 			idx: 0
@@ -252,8 +259,9 @@ OS-text-box-metrics: func [
 				idx: xx + yy
 			]
 			if zero? cnt [cnt: 1]
-			integer/make-at values + TBOX_OBJ_LINE_COUNT cnt
+			integer/push cnt
 		]
+		default [0]
 	]
 ]
 
@@ -268,6 +276,7 @@ OS-text-box-layout: func [
 		int		[red-integer!]
 		styles	[red-block!]
 		size	[red-pair!]
+		bool	[red-logic!]
 		layout	[integer!]
 		ts		[integer!]
 		tc		[integer!]
@@ -298,6 +307,8 @@ OS-text-box-layout: func [
 		int: int + 1 tc: int/value
 		int: int + 1 ts: int/value
 		int: int + 1 para: int/value
+		bool: as red-logic! int + 1
+		bool/value: false
 	][
 		tc: objc_msgSend [
 			objc_msgSend [objc_getClass "NSTextContainer" sel_alloc]
@@ -325,11 +336,12 @@ OS-text-box-layout: func [
 		objc_msgSend [para sel_getUid "setTabStops:" objc_msgSend [objc_getClass "NSArray" sel_getUid "array"]]
 
 		h: 7CF0BDC2h
-		block/make-at state 4
+		block/make-at state 5
 		integer/make-in state layout
 		integer/make-in state tc
 		integer/make-in state ts
 		integer/make-in state para
+		logic/make-in state false
 	]
 
 	;@@ set para: as red-object! values + TBOX_OBJ_PARA

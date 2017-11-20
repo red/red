@@ -107,7 +107,7 @@ gui-console-ctx: context [
 
 	caret: make face! [
 		type: 'base color: caret-clr offset: 0x0 size: 1x17 rate: 2 visible?: no
-		options: compose [caret (console) cursor: I-beam]
+		options: compose [caret (console) cursor: I-beam accelerated: yes]
 		actors: object [
 			on-time: func [face [object!] event [event!]][
 				face/color: either face/color = caret-clr [255.255.255.254][caret-clr]

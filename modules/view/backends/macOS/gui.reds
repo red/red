@@ -400,9 +400,7 @@ get-flags: func [
 			sym = no-buttons [flags: flags or FACET_FLAGS_NO_BTNS]
 			sym = modal		 [flags: flags or FACET_FLAGS_MODAL]
 			sym = popup		 [flags: flags or FACET_FLAGS_POPUP]
-			sym = editable	 [flags: flags or FACET_FLAGS_EDITABLE]
 			sym = scrollable [flags: flags or FACET_FLAGS_SCROLLABLE]
-			sym = Direct2D	 [0]
 			true			 [fire [TO_ERROR(script invalid-arg) word]]
 		]
 		word: word + 1
@@ -1128,6 +1126,7 @@ init-base-face: func [
 		sym		[integer!]
 		len		[integer!]
 		rc		[NSRect!]
+		show?	[red-logic!]
 ][
 	color: as red-tuple! values + FACE_OBJ_COLOR
 	opts: as red-block! values + FACE_OBJ_OPTIONS
@@ -1161,6 +1160,12 @@ init-base-face: func [
 				sym = caret [
 					object_setInstanceVariable obj IVAR_RED_DATA caret	;-- overwrite extra RED_DATA
 					change-offset obj as red-pair! values + FACE_OBJ_OFFSET base
+				]
+				sym = rich-text? [
+					show?: as red-logic! word + 1
+					if show?/value [
+						objc_setAssociatedObject obj RedRichTextKey obj OBJC_ASSOCIATION_ASSIGN
+					]
 				]
 				true [0]
 			]

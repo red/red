@@ -686,6 +686,8 @@ draw-text-box: func [
 	/local
 		int		[red-integer!]
 		state	[red-block!]
+		bool	[red-logic!]
+		layout? [logic!]
 		layout	[integer!]
 		tc		[integer!]
 		idx		[integer!]
@@ -696,9 +698,12 @@ draw-text-box: func [
 ][
 	state: (as red-block! object/get-values tbox) + TBOX_OBJ_STATE
 
-	if TYPE_OF(state) <> TYPE_BLOCK [
-		OS-text-box-layout tbox null catch?
+	layout?: yes
+	if TYPE_OF(state) = TYPE_BLOCK [
+		bool: as red-logic! (block/rs-tail state) - 1
+		layout?: bool/value
 	]
+	if layout? [OS-text-box-layout tbox null catch?]
 
 	int: as red-integer! block/rs-head state
 	layout: int/value

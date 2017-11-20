@@ -169,6 +169,8 @@ Red/System [
 #define RedCursorKey			4000FFFEh
 #define RedEnableKey			4000FFFFh
 
+#define RedRichTextKey			4000FFF1h
+
 #define QuitMsgData				12321
 
 #define OBJC_ALLOC(class) [objc_msgSend [objc_getClass class sel_alloc]]

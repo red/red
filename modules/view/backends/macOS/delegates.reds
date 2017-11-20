@@ -340,11 +340,8 @@ key-down-base: func [
 	self	[integer!]
 	cmd		[integer!]
 	event	[integer!]
-	/local
-		flags		[integer!]
 ][
-	flags: get-flags (as red-block! get-face-values self) + FACE_OBJ_FLAGS
-	either flags and FACET_FLAGS_EDITABLE = 0 [
+	either zero? objc_getAssociatedObject self RedRichTextKey [
 		on-key-down self event
 	][
 		objc_msgSend [
