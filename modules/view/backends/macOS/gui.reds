@@ -1956,7 +1956,7 @@ OS-update-facet: func [
 	sym: symbol/resolve facet/symbol
 
 	case [
-		sym = facets/pane [0]
+		;sym = facets/pane [0]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol
