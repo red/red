@@ -121,15 +121,14 @@ float: context [
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
 			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
-				s/8: #"0"
-				s/9: #"0"
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
-				s/10: #"0"
-				s/11: #"0"
 				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
 				sprintf [s s0 f]
+			]
+			type = FORM_PERCENT [
+				sprintf [s "%.13g" f]
 			]
 			true [
 				s/17: #"0"
