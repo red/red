@@ -686,6 +686,9 @@ change-font: func [
 		title	[integer!]
 		view	[integer!]
 		storage [integer!]
+		nsfont	[integer!]
+		lm		[integer!]
+		pt		[CGPoint! value]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
@@ -710,6 +713,14 @@ change-font: func [
 				hWnd sel_getUid "setTextColor:"
 				objc_msgSend [attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
 			]
+		]
+		if type = text-list [
+			nsfont: objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+			lm: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
+			pt/x: (as float32! 1.0) + objc_msgSend_f32 [lm sel_getUid "defaultLineHeightForFont:" nsfont]
+			objc_msgSend [lm sel_release]
+			view: objc_msgSend [hWnd sel_getUid "documentView"]
+			objc_msgSend [view sel_getUid "setRowHeight:" pt/x]
 		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
 		if TYPE_OF(values) <> TYPE_STRING [return no]			;-- accept any-string! ?
@@ -1266,6 +1277,7 @@ make-text-list: func [
 	]
 	store-face-to-obj obj id face
 
+	objc_msgSend [obj sel_getUid "setRowSizeStyle:" 0]
 	objc_msgSend [obj sel_getUid "setHeaderView:" 0]
 	objc_msgSend [obj sel_getUid "addTableColumn:" column]
 	objc_msgSend [obj sel_getUid "setDelegate:" obj]
