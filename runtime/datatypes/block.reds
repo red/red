@@ -166,6 +166,8 @@ block: context [
 		]
 		
 		if all [deep? not empty?][
+			value: target/offset
+			tail: value + size
 			while [value < tail][
 				type: TYPE_OF(value)
 				if any [
