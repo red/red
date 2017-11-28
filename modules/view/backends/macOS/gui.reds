@@ -794,8 +794,27 @@ change-enabled: func [
 	/local
 		obj  [integer!]
 ][
-	unless any [type = base type = window type = panel][
-		objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
+	case [
+		type = area [
+			obj: objc_msgSend [hWnd sel_getUid "documentView"]
+			objc_msgSend [obj sel_getUid "setSelectable:" enabled?]
+			objc_msgSend [obj sel_getUid "setEditable:" enabled?]
+			either enabled? [
+				objc_msgSend [
+					obj sel_getUid "setTextColor:"
+					objc_msgSend [objc_getClass "NSColor" sel_getUid "controlTextColor"]
+				]
+			][
+				objc_msgSend [
+					obj sel_getUid "setTextColor:"
+					objc_msgSend [objc_getClass "NSColor" sel_getUid "disabledControlTextColor"]
+				]
+			]
+		]
+		all [type <> base type <> window type <> panel][
+			objc_msgSend [obj sel_getUid "setEnabled:" enabled?]
+		]
+		true [0]
 	]
 	either enabled? [obj: 0][obj: hWnd]
 	objc_setAssociatedObject hWnd RedEnableKey obj OBJC_ASSOCIATION_ASSIGN
