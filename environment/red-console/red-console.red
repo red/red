@@ -177,6 +177,10 @@ gui-console-ctx: context [
 		size  640x480
 	]
 
+	add-gui-print: routine [][
+		dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
+	]
+
 	launch: func [/local svs][
 		setup-faces
 		win/visible?: no					;-- hide it first to avoid flicker
@@ -189,6 +193,7 @@ gui-console-ctx: context [
 		svs: system/view/screens/1
 		svs/pane: next svs/pane				;-- proctect itself from unview/all
 
+		add-gui-print
 		system/console/launch
 	]
 ]
@@ -250,7 +255,6 @@ ask: function [
 		]
 		red-print-gui str lf?
 	]
-
-	dyn-print/add as int-ptr! :red-print-gui as int-ptr! :rs-print-gui
 ]
+
 gui-console-ctx/launch
