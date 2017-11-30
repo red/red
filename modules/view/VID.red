@@ -338,6 +338,7 @@ system/view/VID: context [
 									panel	  [layout/parent/styles value face divides css]
 									group-box [layout/parent/styles value face divides css]
 									tab-panel [
+										unless parse value [some [string! block!]][throw-error spec]
 										face/pane: make block! (length? value) / 2
 										opts/data: extract value 2
 										max-sz: 0x0
