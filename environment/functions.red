@@ -849,7 +849,8 @@ read-thru: function [
 	either all [not update exists? path] [
 		data: either binary [read/binary path][read path]
 	][
-		write/binary path data: either binary [read/binary url][read url]
+		data: either binary [read/binary url][read url]
+		attempt [write/binary path data]
 	]
 	data
 ]
@@ -864,7 +865,7 @@ load-thru: function [
 	path: path-thru url
 	if all [not update exists? path][url: path]
 	file: either as [load/as url type][load url]
-	if url? url [either as [save/as path file type][save path file]]
+	if url? url [attempt [either as [save/as path file type][save path file]]]
 	file
 ]
 
