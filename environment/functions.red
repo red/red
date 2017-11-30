@@ -824,12 +824,12 @@ path-thru: function [
 ][
 	so: system/options
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
-	
-	if pos: find/tail file: to-file url "//" [file: pos]
-	clear find pos charset "?#"
-	path: first split-path file: append copy so/thru-cache file
-	unless exists? path [make-dir/deep path]
-	file
+
+	hash: checksum form file 'MD5
+	file: head (remove back tail remove remove (form hash))
+	path: dirize append copy so/thru-cache copy/part file 2
+    unless exists? path [make-dir path] 
+	append path file
 ]
 
 exists-thru?: function [
