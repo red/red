@@ -329,7 +329,7 @@ head?: make action! [[
 
 index?: make action! [[
 		"Returns the current index of series relative to the head, or of word in a context"
-		series	 [series! word!]
+		series	 [series! any-word!]
 		return:  [integer!]
 	]
 	#get-definition ACT_INDEX?
@@ -398,7 +398,7 @@ poke: make action! [[
 put: make action! [[
 		"Replaces the value following a key, and returns the new value"
 		series	 [series! map! object!]
-		key 	 [scalar! any-string! any-word!]
+		key 	 [scalar! any-string! any-word! binary!]
 		value 	 [any-type!]
 		/case "Perform a case-sensitive search"
 		return:  [series! map! object!]

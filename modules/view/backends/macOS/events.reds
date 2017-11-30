@@ -384,8 +384,8 @@ get-event-picked: func [
 	/local
 		res [red-value!]
 		int	[red-integer!]
-		pct [red-float!]
-		zd	[float!]
+		obj [integer!]
+		n	[integer!]
 ][
 	as red-value! switch evt/type [
 		EVT_ZOOM
@@ -404,6 +404,13 @@ get-event-picked: func [
 		EVT_MENU [word/push* evt/flags and FFFFh]
 		EVT_SCROLL [integer/push evt/flags >>> 4]
 		EVT_IME [to-red-string evt/flags null]
+		EVT_DBL_CLICK [
+			obj: as-integer evt/msg
+			if (object_getClass obj) = objc_getClass "RedTableView" [
+				n: objc_msgSend [obj sel_getUid "selectedRow"]
+				either n = -1 [none/push][integer/push n + 1]
+			]
+		]
 		default	 [integer/push evt/flags << 16 >> 16]
 	]
 ]

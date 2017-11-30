@@ -1431,7 +1431,7 @@ OS-make-view: func [
 	;-- extra initialization
 	case [
 		sym = button	[init-button handle values]
-		sym = camera	[init-camera handle data false]
+		sym = camera	[init-camera handle data selected false]
 		sym = text-list [init-text-list handle data selected]
 		sym = base		[init-base-face handle parent values alpha?]
 		sym = tab-panel [

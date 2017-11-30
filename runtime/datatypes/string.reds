@@ -67,6 +67,7 @@ string: context [
 
 	to-float: func [
 		s		[byte-ptr!]
+		e		[int-ptr!]
 		return: [float!]
 		/local
 			s0	[byte-ptr!]
@@ -83,7 +84,7 @@ string: context [
 				return float/QNaN
 			]
 		]
-		strtod s0 null
+		strtod s0 as byte-ptr! e
 	]
 
 	byte-to-hex: func [
@@ -686,7 +687,7 @@ string: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(str1)
@@ -700,14 +701,14 @@ string: context [
 
 		either match? [
 			if zero? size2 [
-				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
+				return as-integer all [op <> COMP_EQUAL op = COMP_FIND op <> COMP_STRICT_EQUAL]
 			]
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
-					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+					op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 				][return 1]
 
 				if size2 > size1 [
@@ -721,7 +722,7 @@ string: context [
 		p2:  (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 
-		until [	
+		until [
 			switch unit1 [
 				Latin1 [c1: as-integer p1/1]
 				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]

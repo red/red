@@ -573,7 +573,7 @@ what-dir: func [
 	"Returns the active directory path"
 	/local path
 ][
-	path: to-red-file get-current-dir
+	path: copy system/options/path
 	unless dir? path [append path #"/"]
 	path
 ]

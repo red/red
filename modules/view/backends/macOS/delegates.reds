@@ -709,8 +709,13 @@ object-for-table: func [
 		data [red-block!]
 		head [red-value!]
 		tail [red-value!]
+		font [red-object!]
+		face [red-object!]
+		attr [integer!]
+		ivar [integer!]
 		idx  [integer!]
 		type [integer!]
+		str  [integer!]
 ][
 	data: (as red-block! get-face-values obj) + FACE_OBJ_DATA
 	head: block/rs-head data
@@ -722,7 +727,18 @@ object-for-table: func [
 		head: head + 1
 		idx: idx + 1
 	]
-	to-NSString as red-string! block/rs-abs-at data idx
+	font: (as red-object! get-face-values obj) + FACE_OBJ_FONT
+	str: to-NSString as red-string! block/rs-abs-at data idx
+	if TYPE_OF(font) = TYPE_OBJECT [
+		ivar: class_getInstanceVariable object_getClass self IVAR_RED_FACE
+		face: as red-object! self + ivar_getOffset ivar
+		attr: make-font-attrs font face text-list
+		str: objc_msgSend [
+			objc_msgSend [objc_getClass "NSAttributedString" sel_getUid "alloc"]
+			sel_getUid "initWithString:attributes:" str attr
+		]
+	]
+	str
 ]
 
 table-cell-edit: func [

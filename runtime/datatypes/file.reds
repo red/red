@@ -70,8 +70,14 @@ file: context [
 		path: platform/get-current-dir :len
 		#either OS = 'Windows [
 			dir: string/load path len UTF-16LE
+			if (string/rs-abs-at dir len - 1) <> as-integer #"\" [
+				string/concatenate-literal dir "\"
+			]
 		][
 			dir: string/load path len UTF-8
+			if (string/rs-abs-at dir len - 1) <> as-integer #"/" [
+				string/concatenate-literal dir "/"
+			]
 		]
 		free as byte-ptr! path
 		dir

@@ -400,7 +400,7 @@ system/view/VID: context [
 		
 		set/some face opts								;-- merge default+styles and user options
 		
-		if block? face/actors [face/actors: make object! face/actors]
+		if block? face/actors [face/actors: context face/actors]
 
 		;-- size adjustments --
 		all [											;-- account for hard paddings
@@ -553,7 +553,13 @@ system/view/VID: context [
 						image! [panel/image: value]
 					]
 				]
-			][global?: no]
+			][
+				either all [word? spec/1 find/skip next system/view/evt-names spec/1 2][
+					make-actor panel spec/1 spec/2 spec spec: next spec
+				][
+					global?: no
+				]
+			]
 			
 			if global? [spec: next spec]
 		]
@@ -697,6 +703,7 @@ system/view/VID: context [
 		
 		if options [set/some panel make object! user-opts]
 		if flags [panel/flags: either panel/flags [unique union to-block panel/flags to-block flgs][flgs]]
+		if block? panel/actors [panel/actors: context panel/actors]
 		
 		either only [
 			panel/pane: none

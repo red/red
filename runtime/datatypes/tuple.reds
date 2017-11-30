@@ -544,7 +544,7 @@ tuple: context [
 			index <= 0
 			index > size
 		][
-			fire [TO_ERROR(script out-of-range) boxed]
+			fire [TO_ERROR(script out-of-range) integer/push index] ;-- boxed can be null
 			null
 		][
 			as red-value! integer/push as-integer value/index

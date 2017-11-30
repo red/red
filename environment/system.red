@@ -98,7 +98,7 @@ system: context [
 				no-value:			[:arg1 "has no value"]
 				need-value:			[:arg1 "needs a value"]
 				not-defined:		[:arg1 "word is not bound to a context"]
-				not-in-context:		[:arg1 "is not in the specified context"]
+				not-in-context:		["context for" :arg1 "is not available"]
 				no-arg:				[:arg1 "is missing its" :arg2 "argument"]
 				expect-arg:			[:arg1 "does not allow" :arg2 "for its" :arg3 "argument"]
 				expect-val:			["expected" :arg1 "not" :arg2]
@@ -153,6 +153,7 @@ system: context [
 				move-bad:			["Cannot MOVE elements from" :arg1 "to" :arg2]
 				too-long:			"Content too long"
 				invalid-char:		["Invalid char! value:" :arg1]
+				bad-loop-series:	["Loop series changed to invalid value:" :arg1]
 				;bad-decode:		"missing or unsupported encoding marker"
 				;already-used:		["alias word is already in use:" :arg1]
 				;wrong-denom:		[:arg1 "not same denomination as" :arg2]
@@ -296,7 +297,7 @@ system: context [
 	options: context [
 		boot: 			none
 		home: 			none
-		path: 			what-dir
+		path: 			to-red-file get-current-dir
 		script: 		none
 		cache:			none
 		thru-cache:		none

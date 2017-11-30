@@ -23,8 +23,7 @@ foreach test all-tests [
 		find test "evaluation" 
 	][
 		append file-list to file! test
-		replace test "auto-tests/" ""
-		append file-list join %auto-tests/interp- to string! test
+		append file-list join %auto-tests/interp- second split-path to file! test
 	]
 ]
 

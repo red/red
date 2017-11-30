@@ -33,6 +33,7 @@ map: context [
 			TYPE_GET_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD [key/header: TYPE_SET_WORD]		;-- convert any-word! to set-word!
+			TYPE_BINARY
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
@@ -384,7 +385,7 @@ map: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		size1: rs-length? blk1
@@ -392,7 +393,7 @@ map: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			return either any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 			][1][SIGN_COMPARE_RESULT(size1 size2)]
 		]
 
@@ -469,6 +470,7 @@ map: context [
 		if type <> TYPE_MAP [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_FIND
 			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL [

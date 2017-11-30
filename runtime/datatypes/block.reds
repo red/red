@@ -166,6 +166,8 @@ block: context [
 		]
 		
 		if all [deep? not empty?][
+			value: target/offset
+			tail: value + size
 			while [value < tail][
 				type: TYPE_OF(value)
 				if any [
@@ -476,7 +478,7 @@ block: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL]
+			any [op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(blk1)
@@ -486,7 +488,7 @@ block: context [
 
 		if size1 <> size2 [										;-- shortcut exit for different sizes
 			if any [
-				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_STRICT_EQUAL_WORD op = COMP_NOT_EQUAL
+				op = COMP_STRICT_EQUAL_WORD op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 			][return 1]
 		]
 
@@ -866,7 +868,7 @@ block: context [
 					end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 				]
 			]
-			op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
+			op: either case? [COMP_STRICT_EQUAL][COMP_FIND] ;-- warning: /case <> STRICT...
 			if same? [op: COMP_SAME]
 			reverse?: any [reverse? last?]					;-- reduce both flags to one
 			
@@ -1608,6 +1610,7 @@ block: context [
 		blk2: blk1 + 1
 		len: rs-length? blk1
 		if op = OP_UNION [len: len + rs-length? blk2]
+		if zero? len [len: 1]
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new HASH_TABLE_HASH 1
 		n: 2

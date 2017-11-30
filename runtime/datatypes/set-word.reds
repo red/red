@@ -143,7 +143,7 @@ set-word: context [
 			null			;find
 			null			;head
 			null			;head?
-			null			;index?
+			INHERIT_ACTION	;index?
 			null			;insert
 			null			;length?
 			null			;move

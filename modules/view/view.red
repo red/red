@@ -248,7 +248,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!] /init][
+link-tabs-to-parent: function [face [object!]][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -256,7 +256,6 @@ link-tabs-to-parent: function [face [object!] /init][
 				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			]
 			faces/1/parent: face
-			if init [show/with faces/1 face]
 		]
 	]
 ]
@@ -348,7 +347,6 @@ face!: object [				;-- keep in sync with facet! enum
 						]
 					]
 				]
-				if type = 'tab-panel [link-tabs-to-parent/init self] ;-- panels need to be SHOWn before parent
 			]
 			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
 			

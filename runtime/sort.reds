@@ -112,18 +112,19 @@ _sort: context [
 		b		[byte-ptr!]
 		c		[byte-ptr!]
 		op		[integer!]
+		flags	[integer!]
 		cmpfunc [integer!]
 		return: [byte-ptr!]
 		/local cmp
 	][
 		cmp: as cmpfunc! cmpfunc
-		either negative? cmp a b op 0 [
-			either negative? cmp b c op 0 [b][
-				either negative? cmp a c op 0 [c][a]
+		either negative? cmp a b op flags [
+			either negative? cmp b c op flags [b][
+				either negative? cmp a c op flags [c][a]
 			]
 		][
-			either positive? cmp b c op 0 [b][
-				either negative? cmp a c op 0 [a][c]
+			either positive? cmp b c op flags [b][
+				either negative? cmp a c op flags [a][c]
 			]
 		]
 	]
@@ -166,11 +167,11 @@ _sort: context [
 			b: base + (num - 1 * width)
 			if num > 40 [
 				part: num / 8 * width
-				a: med3 a a + part a + (2 * part) op cmpfunc
-				m: med3 m - part m m + part op cmpfunc
-				b: med3 b - (2 * part) b - part b op cmpfunc
+				a: med3 a a + part a + (2 * part) op flags cmpfunc
+				m: med3 m - part m m + part op flags cmpfunc
+				b: med3 b - (2 * part) b - part b op flags cmpfunc
 			]
-			m: med3 a m b op cmpfunc
+			m: med3 a m b op flags cmpfunc
 
 			SORT_SWAP(base m)
 			a: base + width

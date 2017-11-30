@@ -1038,6 +1038,7 @@ _function: context [
 		if type <> TYPE_FUNCTION [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL
+			COMP_FIND
 			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL
