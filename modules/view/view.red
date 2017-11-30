@@ -323,8 +323,8 @@ face!: object [				;-- keep in sync with facet! enum
 				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? old block? new same? head old head new]
-				if all [not same-pane? block? old not empty? old][
+				same-pane?: all [block? :old block? :new same? head :old head :new]
+				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
@@ -334,7 +334,7 @@ face!: object [				;-- keep in sync with facet! enum
 					]
 				]
 			]
-			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
+			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]
