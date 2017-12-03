@@ -1009,6 +1009,9 @@ Red [
 		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
 		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
 
+	--test-- "replace-bitset-issue-#3132"
+		--assert "s" = replace/all "test" charset [#"t" #"e"] ""
+	
 ===end-group===
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests

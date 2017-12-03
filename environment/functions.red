@@ -220,7 +220,7 @@ replace: function [
 			]
 		][
 			while [pos: find pos :pattern][
-				pos: change pos value
+				pos: insert remove pos value
 			]
 		]
 	][
