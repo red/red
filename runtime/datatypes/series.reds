@@ -933,6 +933,7 @@ _series: context [
 			bytes	[integer!]
 			size	[integer!]
 			hash	[red-hash!]
+			part2	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/take"]]
 
@@ -944,6 +945,7 @@ _series: context [
 		s:    GET_BUFFER(ser)
 		unit: GET_UNIT(s)
 		part: 1
+		part2: 1
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -961,7 +963,13 @@ _series: context [
 					either last? [size - (ser2/head - ser/head)][ser2/head - ser/head]
 				]
 			]
+			part2: part
+			if negative? part [
+				size: ser/head
+				part: either last? [1][0 - part]
+			]
 			if part > size [part: size]
+			if zero? part [part: 1]
 		]
 
 		bytes:	part << (log-b unit)
@@ -974,37 +982,41 @@ _series: context [
 		ser2/extra:  either TYPE_OF(ser) = TYPE_VECTOR [ser/extra][0]
 		ser2/node:  node
 		ser2/head:  0
-		
-		ownership/check as red-value! ser words/_take null ser/head part
 
-		either positive? part [
-			tail: as byte-ptr! s/tail
-			offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		ownership/check as red-value! ser words/_take null ser/head part2
+
+		offset: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
+		tail: as byte-ptr! s/tail
+		either positive? part2 [
 			if last? [
 				offset: tail - bytes
 				s/tail: as cell! offset
 			]
-			copy-memory
-				as byte-ptr! buffer/offset
-				offset
-				bytes
-			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+		][
+			if any [last? part > ser/head][return as red-value! ser2]
+			offset: offset - bytes
+		]
+		copy-memory
+			as byte-ptr! buffer/offset
+			offset
+			bytes
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
 
-			unless last? [
-				move-memory
-					offset
-					offset + bytes
-					as-integer tail - offset - bytes
-				s/tail: as cell! tail - bytes
-			]
-			if TYPE_OF(ser) = TYPE_HASH [
-				unit: either last? [size][ser/head + part]
-				hash: as red-hash! ser
-				_hashtable/refresh hash/table 0 - part unit size - unit yes
-				hash: as red-hash! ser2
-				hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
-			]
-		][return as red-value! ser2]
+		unless last? [
+			move-memory
+				offset
+				offset + bytes
+				as-integer tail - offset - bytes
+			s/tail: as cell! tail - bytes
+		]
+
+		if TYPE_OF(ser) = TYPE_HASH [
+			unit: either last? [size][ser/head + part]
+			hash: as red-hash! ser
+			_hashtable/refresh hash/table 0 - part unit size - unit yes
+			hash: as red-hash! ser2
+			hash/table: _hashtable/init part ser2 HASH_TABLE_HASH 1
+		]
 		
 		ownership/check as red-value! ser words/_taken null ser/head 0
 		as red-value! ser2
