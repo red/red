@@ -972,8 +972,9 @@ date: context [
 		eq?: all [d1 = d2 t1 = t2]
 		
 		switch op [
-			COMP_SAME
 			COMP_EQUAL
+			COMP_FIND
+			COMP_SAME
 			COMP_NOT_EQUAL
 			COMP_STRICT_EQUAL [res: as-integer not eq?]
 			default [

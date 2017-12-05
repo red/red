@@ -234,7 +234,7 @@ on-face-deep-change*: function [owner word target action new index part state fo
 	]
 ]
 
-link-tabs-to-parent: function [face [object!] /init][
+link-tabs-to-parent: function [face [object!]][
 	if faces: face/pane [
 		visible?: face/visible?
 		forall faces [
@@ -242,7 +242,6 @@ link-tabs-to-parent: function [face [object!] /init][
 				faces/1/visible?: make logic! all [visible? face/selected = index? faces]
 			]
 			faces/1/parent: face
-			if init [show/with faces/1 face]
 		]
 	]
 ]
@@ -324,8 +323,8 @@ face!: object [				;-- keep in sync with facet! enum
 				if all [type = 'window object? new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
-				same-pane?: all [block? old block? new same? head old head new]
-				if all [not same-pane? block? old not empty? old][
+				same-pane?: all [block? :old block? :new same? head :old head :new]
+				if all [not same-pane? block? :old not empty? old][
 					modify old 'owned none				;-- stop object events
 					foreach f head old [
 						f/parent: none
@@ -334,9 +333,8 @@ face!: object [				;-- keep in sync with facet! enum
 						]
 					]
 				]
-				if type = 'tab-panel [link-tabs-to-parent/init self] ;-- panels need to be SHOWn before parent
 			]
-			if all [not same-pane? any [series? old object? old]][modify old 'owned none]
+			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
 				if any [series? new object? new][modify new 'owned reduce [self word]]

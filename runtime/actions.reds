@@ -428,11 +428,13 @@ actions: context [
 			op <> COMP_SAME
 			op <> COMP_STRICT_EQUAL
 			op <> COMP_NOT_EQUAL
+			op <> COMP_FIND
 		][
 			fire [TO_ERROR(script invalid-compare) value1 value2]
 		]
 		switch op [
 			COMP_EQUAL
+			COMP_FIND
 			COMP_SAME
 			COMP_STRICT_EQUAL
 			COMP_STRICT_EQUAL_WORD	[res: value =  0]

@@ -1108,7 +1108,7 @@ object: context [
 		
 		either value <> null [
 			if on-set? [old: stack/push _context/get-in word ctx]
-			_context/set-in word value ctx
+			_context/set-in word value ctx no
 			if on-set? [fire-on-set parent as red-word! element old value]
 			res: value
 		][
@@ -1159,7 +1159,7 @@ object: context [
 		if op = COMP_SAME [return either obj1/ctx = obj2/ctx [0][-1]]
 		if all [
 			obj1/ctx = obj2/ctx
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		ctx1: GET_CTX(obj1)

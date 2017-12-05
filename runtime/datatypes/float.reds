@@ -95,6 +95,7 @@ float: context [
 			d		[int64!]
 			w0		[integer!]
 			temp	[float!]
+			tried?	[logic!]
 			pretty? [logic!]
 			percent? [logic!]
 	][
@@ -120,15 +121,14 @@ float: context [
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
 		case [
 			any [type = FORM_FLOAT_32 type = FORM_PERCENT_32][
-				s/8: #"0"
-				s/9: #"0"
 				sprintf [s "%.7g" f]
 			]
 			type = FORM_TIME [									;-- microsecond precision
-				s/10: #"0"
-				s/11: #"0"
 				either f < 10.0 [s0: "%.7g"][s0: "%.8g"]
 				sprintf [s s0 f]
+			]
+			type = FORM_PERCENT [
+				sprintf [s "%.13g" f]
 			]
 			true [
 				s/17: #"0"
@@ -137,6 +137,7 @@ float: context [
 			]
 		]
 
+		tried?: no
 		s0: s
 		until [
 			p:    null
@@ -178,11 +179,12 @@ float: context [
 					]
 				]
 
-				if pretty? [
+				if all [pretty? not tried?][
 					if any [									;-- correct '01' or '99' pattern
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
+						tried?: yes
 						s: case [
 							type = FORM_FLOAT_32 ["%.5g"]
 							type = FORM_TIME	 ["%.6g"]
@@ -703,7 +705,7 @@ float: context [
 		#if debug? = yes [if verbose > 0 [print-line "float/compare"]]
 
 		if all [
-			any [op = COMP_SAME op = COMP_STRICT_EQUAL]
+			any [op = COMP_FIND op = COMP_SAME op = COMP_STRICT_EQUAL]
 			TYPE_OF(value1) <> TYPE_OF(value2)
 		][return 1]
 
