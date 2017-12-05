@@ -74,16 +74,19 @@ system/view/VID: context [
 		]
 	]
 	
-	process-reactors: function [][		
-		foreach [f blk later?] reactors [
-			either f [
-				bind blk ctx: context [face: f]
-				either later? [react/later/with blk ctx][react/with blk ctx]
-			][
-				either later? [react/later blk][react blk]
+	process-reactors: function [/local res][
+		set 'res try/all [
+			foreach [f blk later?] reactors [
+				either f [
+					bind blk ctx: context [face: f]
+					either later? [react/later/with blk ctx][react/with blk ctx]
+				][
+					either later? [react/later blk][react blk]
+				]
 			]
 		]
-		clear reactors
+		clear reactors									;-- ensures clearing even if reaction fails
+		if error? :res [do res]
 	]
 	
 	calc-size: function [face [object!]][
