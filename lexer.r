@@ -17,7 +17,6 @@ lexer: context [
 	
 	old-line: none
 	line: 	none									;-- source code lines counter
-	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
