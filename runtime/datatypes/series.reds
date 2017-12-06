@@ -1074,12 +1074,14 @@ _series: context [
 			unit	[integer!]
 			part	[integer!]
 			type	[integer!]
+			flag	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "series/copy"]]
 
 		type: TYPE_OF(ser)
 		s: GET_BUFFER(ser)
 		unit: GET_UNIT(s)
+		flag: ser/header and flag-new-line
 
 		offset: ser/head
 		part: (as-integer s/tail - s/offset) >> (log-b unit) - offset
@@ -1122,7 +1124,7 @@ _series: context [
 			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
 		]
 
-		new/header: type
+		new/header: type or flag
 		new/node:   node
 		new/head:   0
 		new/extra:  either type = TYPE_VECTOR [ser/extra][0]
