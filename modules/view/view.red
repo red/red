@@ -307,8 +307,8 @@ face!: object [				;-- keep in sync with facet! enum
 				"-- on-change event --" lf
 				tab "face :" type		lf
 				tab "word :" word		lf
-				tab "old  :" type? old	lf
-				tab "new  :" type? new
+				tab "old  :" type? :old	lf
+				tab "new  :" type? :new
 			]
 		]
 		if all [word <> 'state word <> 'extra][
@@ -320,7 +320,7 @@ face!: object [				;-- keep in sync with facet! enum
 				exit
 			]
 			if word = 'pane [
-				if all [type = 'window object? new new/type = 'window][
+				if all [type = 'window object? :new new/type = 'window][
 					cause-error 'script 'bad-window []
 				]
 				same-pane?: all [block? :old block? :new same? head :old head :new]
@@ -337,7 +337,7 @@ face!: object [				;-- keep in sync with facet! enum
 			if all [not same-pane? any [series? :old object? :old]][modify old 'owned none]
 			
 			unless any [same-pane? find [font para edge actors extra] word][
-				if any [series? new object? new][modify new 'owned reduce [self word]]
+				if any [series? :new object? :new][modify new 'owned reduce [self word]]
 			]
 			if word = 'font  [link-sub-to-parent self 'font old new]
 			if word = 'para  [link-sub-to-parent self 'para old new]
