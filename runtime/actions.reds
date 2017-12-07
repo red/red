@@ -1580,8 +1580,50 @@ actions: context [
 
 		action-delete file
 	]
-	
-	open*: func [][]
+
+	open*: func [
+		new?	[integer!]
+		read?	[integer!]
+		write?	[integer!]
+		seek?	[integer!]
+		allow	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last as red-value! open
+			stack/arguments
+			new? <> -1
+			read? <> -1
+			write? <> -1
+			seek? <> -1
+			as red-block! stack/arguments + allow
+	]
+
+	open: func [
+		spec	[red-value!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-block!]
+		return:	[red-port!]
+		/local
+			action-open
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/open"]]
+
+		action-open: as function! [
+			spec	[red-value!]
+			new?	[logic!]
+			read?	[logic!]
+			write?	[logic!]
+			seek?	[logic!]
+			allow	[red-block!]
+			return:	[red-port!]
+		] get-action-ptr spec ACT_OPEN
+
+		action-open spec new? read? write? seek? allow
+	]
+
 	open?*: func [][]
 	query*: func [][]
 
@@ -1758,7 +1800,7 @@ actions: context [
 			null			;close
 			:delete*
 			:modify*
-			null			;open
+			:open*
 			null			;open?
 			null			;query
 			:read*

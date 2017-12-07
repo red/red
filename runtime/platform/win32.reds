@@ -84,6 +84,253 @@ security-attributes!: alias struct! [
 	bInheritHandle		 [logic!]
 ]
 
+GdiplusStartupInput!: alias struct! [
+	GdiplusVersion				[integer!]
+	DebugEventCallback			[integer!]
+	SuppressBackgroundThread	[integer!]
+	SuppressExternalCodecs		[integer!]
+]
+
+tagSYSTEMTIME: alias struct! [
+	year-month	[integer!]
+	week-day	[integer!]
+	hour-minute	[integer!]
+	second		[integer!]
+]
+
+tagTIME_ZONE_INFORMATION: alias struct! [
+	Bias				[integer!]
+	StandardName1		[float!]			;-- StandardName: 64 bytes
+	StandardName2		[float!]
+	StandardName3		[float!]
+	StandardName4		[float!]
+	StandardName5		[float!]
+	StandardName6		[float!]
+	StandardName7		[float!]
+	StandardName8		[float!]
+	StandardDate		[tagSYSTEMTIME value]
+	StandardBias		[integer!]
+	DaylightName1		[float!]			;-- DaylightName: 64 bytes
+	DaylightName2		[float!]
+	DaylightName3		[float!]
+	DaylightName4		[float!]
+	DaylightName5		[float!]
+	DaylightName6		[float!]
+	DaylightName7		[float!]
+	DaylightName8		[float!]
+	DaylightDate		[tagSYSTEMTIME value]
+	DaylightBias		[integer!]
+]
+
+#import [
+	LIBC-file cdecl [
+		;putwchar: "putwchar" [
+		;	wchar		[integer!]					;-- wchar is 16-bit on Windows
+		;]
+		wprintf: "wprintf" [
+			[variadic]
+			return: 	[integer!]
+		]
+		_setmode: "_setmode" [
+			handle		[integer!]
+			mode		[integer!]
+			return:		[integer!]
+		]
+		_fileno: "_fileno" [
+			file		[int-ptr!]
+			return:		[integer!]
+		]
+		__iob_func: "__iob_func" [return: [int-ptr!]]
+	]
+	"kernel32.dll" stdcall [
+		VirtualAlloc: "VirtualAlloc" [
+			address		[byte-ptr!]
+			size		[integer!]
+			type		[integer!]
+			protection	[integer!]
+			return:		[int-ptr!]
+		]
+		VirtualFree: "VirtualFree" [
+			address 	[int-ptr!]
+			size		[integer!]
+			return:		[integer!]
+		]
+		AllocConsole: "AllocConsole" [return: [logic!]]
+		FreeConsole: "FreeConsole" [return: [logic!]]
+		WriteConsole: 	 "WriteConsoleW" [
+			consoleOutput	[integer!]
+			buffer			[byte-ptr!]
+			charsToWrite	[integer!]
+			numberOfChars	[int-ptr!]
+			_reserved		[int-ptr!]
+			return:			[integer!]
+		]
+		WriteFile: "WriteFile" [
+			handle			[integer!]
+			buffer			[c-string!]
+			len				[integer!]
+			written			[int-ptr!]
+			overlapped		[integer!]
+			return:			[integer!]
+		]
+		GetConsoleMode:	"GetConsoleMode" [
+			handle			[integer!]
+			mode			[int-ptr!]
+			return:			[integer!]
+		]
+		GetCurrentDirectory: "GetCurrentDirectoryW" [
+			buf-len			[integer!]
+			buffer			[byte-ptr!]
+			return:			[integer!]
+		]
+		SetCurrentDirectory: "SetCurrentDirectoryW" [
+			lpPathName		[c-string!]
+			return:			[logic!]
+		]
+		GetCommandLine: "GetCommandLineW" [
+			return:			[byte-ptr!]
+		]
+		GetEnvironmentStrings: "GetEnvironmentStringsW" [
+			return:		[c-string!]
+		]
+		GetEnvironmentVariable: "GetEnvironmentVariableW" [
+			name		[c-string!]
+			value		[c-string!]
+			valsize		[integer!]
+			return:		[integer!]
+		]
+		SetEnvironmentVariable: "SetEnvironmentVariableW" [
+			name		[c-string!]
+			value		[c-string!]
+			return:		[logic!]
+		]
+		FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
+			env			[c-string!]
+			return:		[logic!]
+		]
+		GetSystemTime: "GetSystemTime" [
+			time			[tagSYSTEMTIME]
+		]
+		GetLocalTime: "GetLocalTime" [
+			time			[tagSYSTEMTIME]
+		]
+		GetTimeZoneInformation: "GetTimeZoneInformation" [
+			tz				[tagTIME_ZONE_INFORMATION]
+			return:			[integer!]
+		]
+		Sleep: "Sleep" [
+			dwMilliseconds	[integer!]
+		]
+		lstrlen: "lstrlenW" [
+			str			[byte-ptr!]
+			return:		[integer!]
+		]
+		CreateProcessW: "CreateProcessW" [
+			lpApplicationName       [c-string!]
+			lpCommandLine           [c-string!]
+			lpProcessAttributes     [integer!]
+			lpThreadAttributes      [integer!]
+			bInheritHandles         [logic!]
+			dwCreationFlags         [integer!]
+			lpEnvironment           [integer!]
+			lpCurrentDirectory      [c-string!]
+			lpStartupInfo           [startup-info!]
+			lpProcessInformation    [process-info!]
+			return:                 [logic!]
+		]
+		WaitForSingleObject: "WaitForSingleObject" [
+			hHandle                 [integer!]
+			dwMilliseconds          [integer!]
+			return:                 [integer!]
+		]
+		GetExitCodeProcess: "GetExitCodeProcess" [
+			hProcess				[integer!]
+			lpExitCode				[int-ptr!]
+			return:                 [logic!]
+		]
+		CreatePipe: "CreatePipe" [
+			hReadPipe               [int-ptr!]
+			hWritePipe              [int-ptr!]
+			lpPipeAttributes        [security-attributes!]
+			nSize                   [integer!]
+			return:                 [logic!]
+		]
+		CreateFileW: "CreateFileW" [
+			lpFileName				[c-string!]
+			dwDesiredAccess			[integer!]
+			dwShareMode				[integer!]
+			lpSecurityAttributes	[security-attributes!]
+			dwCreationDisposition	[integer!]
+			dwFlagsAndAttributes	[integer!]
+			hTemplateFile			[integer!]
+			return:					[integer!]
+		]
+		CloseHandle: "CloseHandle" [
+			hObject                 [integer!]
+			return:                 [logic!]
+		]
+		GetStdHandle: "GetStdHandle" [
+			nStdHandle				[integer!]
+			return:					[integer!]
+		]
+		ReadFile: "ReadFile" [
+			hFile                   [integer!]
+			lpBuffer                [byte-ptr!]
+			nNumberOfBytesToRead    [integer!]
+			lpNumberOfBytesRead     [int-ptr!]
+			lpOverlapped            [integer!]
+			return:                 [logic!]
+		]
+		SetHandleInformation: "SetHandleInformation" [
+			hObject					[integer!]
+			dwMask					[integer!]
+			dwFlags					[integer!]
+			return:					[logic!]
+		]
+		GetLastError: "GetLastError" [
+			return:                 [integer!]
+		]
+		MultiByteToWideChar: "MultiByteToWideChar" [
+			CodePage				[integer!]
+			dwFlags					[integer!]
+			lpMultiByteStr			[byte-ptr!]
+			cbMultiByte				[integer!]
+			lpWideCharStr			[byte-ptr!]
+			cchWideChar				[integer!]
+			return:					[integer!]
+		]
+		SetFilePointer: "SetFilePointer" [
+			file		[integer!]
+			distance	[integer!]
+			pDistance	[int-ptr!]
+			dwMove		[integer!]
+			return:		[integer!]
+		]
+	]
+	"gdiplus.dll" stdcall [
+		GdiplusStartup: "GdiplusStartup" [
+			token		[int-ptr!]
+			input		[integer!]
+			output		[integer!]
+			return:		[integer!]
+		]
+		GdiplusShutdown: "GdiplusShutdown" [
+			token		[integer!]
+		]
+	]
+	"shell32.dll" stdcall [
+		ShellExecute: "ShellExecuteW" [
+			hwnd		 [integer!]
+			lpOperation	 [c-string!]
+			lpFile		 [c-string!]
+			lpParameters [integer!]
+			lpDirectory	 [integer!]
+			nShowCmd	 [integer!]
+			return:		 [integer!]
+		]
+	]
+]
+
 platform: context [
 
 	gui-print: 0										;-- `print` function used for gui-console
@@ -93,285 +340,8 @@ platform: context [
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
-	GdiplusStartupInput!: alias struct! [
-		GdiplusVersion				[integer!]
-		DebugEventCallback			[integer!]
-		SuppressBackgroundThread	[integer!]
-		SuppressExternalCodecs		[integer!]
-	]
-
-	tagSYSTEMTIME: alias struct! [
-		year-month	[integer!]
-		week-day	[integer!]
-		hour-minute	[integer!]
-		second		[integer!]
-	]
-
-	tagTIME_ZONE_INFORMATION: alias struct! [
-		Bias				[integer!]
-		StandardName1		[float!]			;-- StandardName: 64 bytes
-		StandardName2		[float!]
-		StandardName3		[float!]
-		StandardName4		[float!]
-		StandardName5		[float!]
-		StandardName6		[float!]
-		StandardName7		[float!]
-		StandardName8		[float!]
-		StandardDate		[tagSYSTEMTIME value]
-		StandardBias		[integer!]
-		DaylightName1		[float!]			;-- DaylightName: 64 bytes
-		DaylightName2		[float!]
-		DaylightName3		[float!]
-		DaylightName4		[float!]
-		DaylightName5		[float!]
-		DaylightName6		[float!]
-		DaylightName7		[float!]
-		DaylightName8		[float!]
-		DaylightDate		[tagSYSTEMTIME value]
-		DaylightBias		[integer!]
-	]
-
-	OVERLAPPED: alias struct! [
-		Internal		[int-ptr!]
-		InternalHigh	[int-ptr!]
-		Offset			[integer!]				;-- or Pointer [int-ptr!]
-		OffsetHigh		[integer!]
-		hEvent			[int-ptr!]
-	]
-
 	gdiplus-token: 0
 	page-size: 4096
-
-	#import [
-		LIBC-file cdecl [
-			;putwchar: "putwchar" [
-			;	wchar		[integer!]					;-- wchar is 16-bit on Windows
-			;]
-			wprintf: "wprintf" [
-				[variadic]
-				return: 	[integer!]
-			]
-			_setmode: "_setmode" [
-				handle		[integer!]
-				mode		[integer!]
-				return:		[integer!]
-			]
-			_fileno: "_fileno" [
-				file		[int-ptr!]
-				return:		[integer!]
-			]
-			__iob_func: "__iob_func" [return: [int-ptr!]]
-		]
-		"kernel32.dll" stdcall [
-			VirtualAlloc: "VirtualAlloc" [
-				address		[byte-ptr!]
-				size		[integer!]
-				type		[integer!]
-				protection	[integer!]
-				return:		[int-ptr!]
-			]
-			VirtualFree: "VirtualFree" [
-				address 	[int-ptr!]
-				size		[integer!]
-				return:		[integer!]
-			]
-			AllocConsole: "AllocConsole" [return: [logic!]]
-			FreeConsole: "FreeConsole" [return: [logic!]]
-			WriteConsole: 	 "WriteConsoleW" [
-				consoleOutput	[integer!]
-				buffer			[byte-ptr!]
-				charsToWrite	[integer!]
-				numberOfChars	[int-ptr!]
-				_reserved		[int-ptr!]
-				return:			[integer!]
-			]
-			WriteFile: "WriteFile" [
-				handle			[integer!]
-				buffer			[c-string!]
-				len				[integer!]
-				written			[int-ptr!]
-				overlapped		[integer!]
-				return:			[integer!]
-			]
-			GetConsoleMode:	"GetConsoleMode" [
-				handle			[integer!]
-				mode			[int-ptr!]
-				return:			[integer!]
-			]
-			GetCurrentDirectory: "GetCurrentDirectoryW" [
-				buf-len			[integer!]
-				buffer			[byte-ptr!]
-				return:			[integer!]
-			]
-			SetCurrentDirectory: "SetCurrentDirectoryW" [
-				lpPathName		[c-string!]
-				return:			[logic!]
-			]
-			GetCommandLine: "GetCommandLineW" [
-				return:			[byte-ptr!]
-			]
-			GetEnvironmentStrings: "GetEnvironmentStringsW" [
-				return:		[c-string!]
-			]
-			GetEnvironmentVariable: "GetEnvironmentVariableW" [
-				name		[c-string!]
-				value		[c-string!]
-				valsize		[integer!]
-				return:		[integer!]
-			]
-			SetEnvironmentVariable: "SetEnvironmentVariableW" [
-				name		[c-string!]
-				value		[c-string!]
-				return:		[logic!]
-			]
-			FreeEnvironmentStrings: "FreeEnvironmentStringsW" [
-				env			[c-string!]
-				return:		[logic!]
-			]
-			GetSystemTime: "GetSystemTime" [
-				time			[tagSYSTEMTIME]
-			]
-			GetLocalTime: "GetLocalTime" [
-				time			[tagSYSTEMTIME]
-			]
-			GetTimeZoneInformation: "GetTimeZoneInformation" [
-				tz				[tagTIME_ZONE_INFORMATION]
-				return:			[integer!]
-			]
-			Sleep: "Sleep" [
-				dwMilliseconds	[integer!]
-			]
-			lstrlen: "lstrlenW" [
-				str			[byte-ptr!]
-				return:		[integer!]
-			]
-			CreateProcessW: "CreateProcessW" [
-				lpApplicationName       [c-string!]
-				lpCommandLine           [c-string!]
-				lpProcessAttributes     [integer!]
-				lpThreadAttributes      [integer!]
-				bInheritHandles         [logic!]
-				dwCreationFlags         [integer!]
-				lpEnvironment           [integer!]
-				lpCurrentDirectory      [c-string!]
-				lpStartupInfo           [startup-info!]
-				lpProcessInformation    [process-info!]
-				return:                 [logic!]
-			]
-			WaitForSingleObject: "WaitForSingleObject" [
-				hHandle                 [integer!]
-				dwMilliseconds          [integer!]
-				return:                 [integer!]
-			]
-			GetExitCodeProcess: "GetExitCodeProcess" [
-				hProcess				[integer!]
-				lpExitCode				[int-ptr!]
-				return:                 [logic!]
-			]
-			CreatePipe: "CreatePipe" [
-				hReadPipe               [int-ptr!]
-				hWritePipe              [int-ptr!]
-				lpPipeAttributes        [security-attributes!]
-				nSize                   [integer!]
-				return:                 [logic!]
-			]
-			CreateFileW: "CreateFileW" [
-				lpFileName				[c-string!]
-				dwDesiredAccess			[integer!]
-				dwShareMode				[integer!]
-				lpSecurityAttributes	[security-attributes!]
-				dwCreationDisposition	[integer!]
-				dwFlagsAndAttributes	[integer!]
-				hTemplateFile			[integer!]
-				return:					[integer!]
-			]
-			CloseHandle: "CloseHandle" [
-				hObject                 [integer!]
-				return:                 [logic!]
-			]
-			GetStdHandle: "GetStdHandle" [
-				nStdHandle				[integer!]
-				return:					[integer!]
-			]
-			ReadFile: "ReadFile" [
-				hFile                   [integer!]
-				lpBuffer                [byte-ptr!]
-				nNumberOfBytesToRead    [integer!]
-				lpNumberOfBytesRead     [int-ptr!]
-				lpOverlapped            [integer!]
-				return:                 [logic!]
-			]
-			SetHandleInformation: "SetHandleInformation" [
-				hObject					[integer!]
-				dwMask					[integer!]
-				dwFlags					[integer!]
-				return:					[logic!]
-			]
-			GetLastError: "GetLastError" [
-				return:                 [integer!]
-			]
-			MultiByteToWideChar: "MultiByteToWideChar" [
-				CodePage				[integer!]
-				dwFlags					[integer!]
-				lpMultiByteStr			[byte-ptr!]
-				cbMultiByte				[integer!]
-				lpWideCharStr			[byte-ptr!]
-				cchWideChar				[integer!]
-				return:					[integer!]
-			]
-			SetFilePointer: "SetFilePointer" [
-				file		[integer!]
-				distance	[integer!]
-				pDistance	[int-ptr!]
-				dwMove		[integer!]
-				return:		[integer!]
-			]
-			CreateIoCompletionPort: "CreateIoCompletionPort" [
-				FileHandle		[int-ptr!]
-				ExistingPort	[int-ptr!]
-				CompletionKey	[int-ptr!]
-				nThreads		[integer!]
-				return:			[int-ptr!]
-			]
-			GetQueuedCompletionStatus: "GetQueuedCompletionStatus" [
-				CompletionPort		[int-ptr!]
-				lpNumberOfBytes		[int-ptr!]
-				lpCompletionKey		[int-ptr!]
-				lpOverlapped		[OVERLAPPED]
-				dwMilliseconds		[integer!]
-				return:				[logic!]
-			]
-			PostQueuedCompletionStatus: "PostQueuedCompletionStatus" [
-				CompletionPort		[int-ptr!]
-				nTransferred		[integer!]
-				dwCompletionKey		[int-ptr!]
-				lpOverlapped		[OVERLAPPED]
-				return:				[logic!]
-			]
-		]
-		"gdiplus.dll" stdcall [
-			GdiplusStartup: "GdiplusStartup" [
-				token		[int-ptr!]
-				input		[integer!]
-				output		[integer!]
-				return:		[integer!]
-			]
-			GdiplusShutdown: "GdiplusShutdown" [
-				token		[integer!]
-			]
-		]
-		"shell32.dll" stdcall [
-			ShellExecute: "ShellExecuteW" [
-				hwnd		 [integer!]
-				lpOperation	 [c-string!]
-				lpFile		 [c-string!]
-				lpParameters [integer!]
-				lpDirectory	 [integer!]
-				nShowCmd	 [integer!]
-				return:		 [integer!]
-			]
-		]
-	]
 
 	#either sub-system = 'gui [
 		#either gui-console? = yes [

@@ -213,6 +213,24 @@ url: context [
 	]
 
 	;-- I/O actions
+
+	open: func [
+		spec	[red-value!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-block!]
+		return:	[red-port!]
+		/local
+			prt [red-port!]
+	][
+		prt: as red-port! stack/push*
+		prt/header: TYPE_PORT
+
+		prt
+	]
+
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
@@ -230,7 +248,7 @@ url: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		part: simple-io/request-http words/get as red-url! src null null binary? lines? info?
+		part: io/request-http words/get as red-url! src null null binary? lines? info?
 		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) src]]
 		part
 	]
@@ -293,7 +311,7 @@ url: context [
 		][
 			fire [TO_ERROR(script invalid-arg) data]
 		]
-		part: simple-io/request-http action as red-url! dest header data binary? lines? info?
+		part: io/request-http action as red-url! dest header data binary? lines? info?
 		if TYPE_OF(part) = TYPE_NONE [fire [TO_ERROR(access no-connect) dest]]
 		part
 	]
@@ -363,7 +381,7 @@ url: context [
 			null			;close
 			null			;delete
 			INHERIT_ACTION	;modify
-			null			;open
+			:open
 			null			;open?
 			null			;query
 			:read

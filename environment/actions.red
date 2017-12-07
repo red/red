@@ -535,7 +535,19 @@ delete: make action! [[
 	]
 	#get-definition ACT_DELETE
 ]
-;open
+
+open: make action! [[
+		"Opens a port"
+		spec	[file! url! port! block!]
+		/new	"Create new file - if it exists, reset it (truncate)"
+		/read	"Open for read access"
+		/write	"Open for write access"
+		/seek	"Optimize for random access"
+		/allow	"Specifies protection attributes"
+			access [block!]
+	]
+	#get-definition ACT_OPEN
+]
 ;open?
 ;query
 read: make action! [[

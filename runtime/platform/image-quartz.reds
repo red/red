@@ -494,7 +494,7 @@ OS-image: context [
 			path	 [integer!]
 			h		 [int-ptr!]
 	][
-		path: simple-io/to-NSURL src yes
+		path: io/to-NSURL src yes
 		img-data: CGImageSourceCreateWithURL path 0
 		CFRelease path
 		if zero? img-data [return null]
@@ -661,7 +661,7 @@ OS-image: context [
 		switch TYPE_OF(slot) [
 			TYPE_URL
 			TYPE_FILE [
-				path: simple-io/to-NSURL as red-string! slot yes
+				path: io/to-NSURL as red-string! slot yes
 				dst: CGImageDestinationCreateWithURL path type 1 0
 				;if zero? dst []				;-- error
 				CGImageDestinationAddImage dst img 0

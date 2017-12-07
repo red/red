@@ -364,13 +364,13 @@ Red [
 		if last-error <> null [return last-error]
 
 		#if OS = 'Windows [red/platform/dos-console?: no]
-		stdout: red/simple-io/open-file file/to-OS-path script red/simple-io/RIO_APPEND yes
+		stdout: red/io/open-file file/to-OS-path script red/io/RIO_APPEND yes
 		null
 	]
 	
 	redCloseLogFile: does [
 		CHECK_LIB_OPENED
-		red/simple-io/close-file stdout
+		red/io/close-file stdout
 		#if OS = 'Windows [red/platform/dos-console?: yes]
 	]
 

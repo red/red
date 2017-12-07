@@ -330,3 +330,10 @@ red-handle!: alias struct! [
 	value	[integer!]								;-- 32-bit signed integer value
 	_pad	[integer!]	
 ]
+
+red-port!: alias struct! [
+	header 	[integer!]								;-- cell header
+	values	[node!]									;-- block of values (do not move this field!)
+	handle	[integer!]
+	_pad	[integer!]
+]

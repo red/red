@@ -17,8 +17,8 @@ Red/System [
 		/local
 			args [byte-ptr!]
 	][
-		args: platform/GetCommandLine
-		as red-value! string/load as-c-string args platform/lstrlen args UTF-16LE
+		args: GetCommandLine
+		as red-value! string/load as-c-string args lstrlen args UTF-16LE
 	]
 
 	list-env: func [
@@ -30,7 +30,7 @@ Red/System [
 			blk		[red-block!]
 			len		[integer!]
 	][
-		env: platform/GetEnvironmentStrings
+		env: GetEnvironmentStrings
 		blk: null
 		len: 0
 
@@ -42,7 +42,7 @@ Red/System [
 				if all [len <> 0 str/1 = #"=" str/2 = #"^@"][
 					string/load-in p len blk UTF-16LE
 					p: str + 2
-					len: platform/lstrlen as byte-ptr! p
+					len: lstrlen as byte-ptr! p
 					string/load-in p len blk UTF-16LE
 					str: p + (len * 2)
 					if all [str/3 = #"^@" str/4 = #"^@"][break]
@@ -53,7 +53,7 @@ Red/System [
 				len: len + 1
 			]
 			len: block/rs-length? blk
-			platform/FreeEnvironmentStrings env
+			FreeEnvironmentStrings env
 		]
 		as red-value! map/make-at as red-value! blk blk len
 	]

@@ -48,7 +48,7 @@ datatype: context [
 			name	[names!]
 	][
 		type: list/value
-		assert type < 50								;-- hard limit of action table
+		assert type < 60								;-- hard limit of action table
 		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
 		

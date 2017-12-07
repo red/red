@@ -223,12 +223,50 @@ file: context [
 	]
 
 	;-- I/O actions
-	
+
+	open: func [
+		spec	[red-value!]
+		new?	[logic!]
+		read?	[logic!]
+		write?	[logic!]
+		seek?	[logic!]
+		allow	[red-block!]
+		return:	[red-port!]
+		/local
+			fpath	[red-file!]
+			p		[red-port!]
+			h		[integer!]
+			mode	[integer!]
+	][
+		fpath: as red-file! spec
+		p: as red-port! stack/push*
+		p/header: TYPE_PORT
+		
+		if io/dir? fpath [p/handle: -1 return p]
+
+		mode: 0
+		either new? [mode: io/RIO_NEW][
+			either seek? [
+				mode: mode or io/RIO_SEEK
+			][
+				mode: mode or io/RIO_APPEND
+			]
+		]
+		if read?  [mode: mode or io/RIO_READ]
+		if write? [mode: mode or io/RIO_WRITE]
+
+		h: io/open-file file/to-OS-path fpath mode yes
+		if h = -1 [fire [TO_ERROR(access cannot-open) fpath]]
+
+		p/handle: h
+		p
+	]
+
 	delete: func [
 		file	[red-value!]
 		return: [red-value!]
 	][
-		as red-value! logic/box simple-io/delete as red-file! file
+		as red-value! logic/box io/delete as red-file! file
 	]
 	
 	read: func [
@@ -242,7 +280,7 @@ file: context [
 		return:	[red-value!]
 	][
 		if OPTION?(as-arg) [--NOT_IMPLEMENTED--]
-		simple-io/read as red-file! src part seek binary? lines?
+		io/read as red-file! src part seek binary? lines?
 	]
 
 	write: func [
@@ -264,7 +302,7 @@ file: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/write as red-file! dest data part seek binary? append? lines?
+		io/write as red-file! dest data part seek binary? append? lines?
 		as red-value! unset-value
 	]
 
@@ -333,7 +371,7 @@ file: context [
 			null			;close
 			:delete
 			INHERIT_ACTION	;modify
-			null			;open
+			:open
 			null			;open?
 			null			;query
 			:read

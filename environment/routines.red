@@ -57,11 +57,11 @@ set-current-dir: routine [path [string!] /local dir [red-file!]][
 ]
 
 create-dir: routine [path [file!]][			;@@ temporary, user should use `make-dir`
-	simple-io/make-dir file/to-OS-path path
+	io/make-dir file/to-OS-path path
 ]
 
 exists?: routine [path [file!] return: [logic!]][
-	simple-io/file-exists? file/to-OS-path path
+	io/file-exists? file/to-OS-path path
 ]
 
 as-color: routine [
@@ -119,5 +119,5 @@ write-clipboard: routine [data [string!]][
 ]
 
 write-stdout: routine [str [string!]][			;-- internal use only
-	simple-io/write null as red-value! str null null no no no
+	io/write null as red-value! str null null no no no
 ]

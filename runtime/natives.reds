@@ -1769,12 +1769,12 @@ natives: context [
 			fd	 [integer!]
 	][
 		name: as red-file! stack/arguments
-		fd: simple-io/open-file file/to-OS-path name simple-io/RIO_READ yes
+		fd: io/open-file file/to-OS-path name io/RIO_READ yes
 		either fd < 0 [
 			none/push-last
 		][
-			integer/box simple-io/file-size? fd
-			simple-io/close-file fd
+			integer/box io/file-size? fd
+			io/close-file fd
 		]
 	]
 
@@ -2146,7 +2146,7 @@ natives: context [
 		arg: stack/arguments
 		len: -1
 		if TYPE_OF(arg) = TYPE_FILE [
-			arg: simple-io/read as red-file! arg null null yes no
+			arg: io/read as red-file! arg null null yes no
 			;@@ optimization: free the data after checksum
 		]
 		switch TYPE_OF(arg) [
@@ -2561,7 +2561,7 @@ natives: context [
 
 		#switch OS [
 			Windows [
-				platform/ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
+				ShellExecute 0 #u16 "open" unicode/to-utf16 url 0 0 1
 				unset/push-last
 			]
 			macOS [

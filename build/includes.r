@@ -71,7 +71,7 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%tokenizer.reds
 		%unicode.reds
-		%simple-io.reds
+		%io.reds
 		%clipboard.reds
 		%crush.reds
 		%utils.reds
@@ -142,6 +142,10 @@ write %build/bin/sources.r set-cache [
 			%win32-cli.reds
 			%win32-gui.reds
 			%win32-ansi.reds
+			%io/ [
+				%win32.reds
+				%POSIX.reds
+			]
 		]
 	]
 	%modules/ [

@@ -80,7 +80,7 @@ ext-process: context [
 			len: len + 1
 			str/len: #"^/"
 			#switch OS [								;-- Write to stderr, no error check
-				Windows  [ platform/WriteFile platform/GetStdHandle STD_ERROR_HANDLE str len :len null ]
+				Windows  [ WriteFile GetStdHandle STD_ERROR_HANDLE str len :len null ]
 				#default [ platform/io-write stderr as byte-ptr! str len ]
 			]
 			free as byte-ptr! str
@@ -125,10 +125,10 @@ ext-process: context [
 				count: data/count
 				either any [console? win-shell? win-error?][
 					len: 0
-					len: platform/MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
+					len: MultiByteToWideChar 0 0 buffer count null 0	;-- CP_OEMCP
 					if len <= 0 [0]										;TBD free resource and throw error
 					temp: allocate len * 2
-					platform/MultiByteToWideChar 0 0 buffer count temp len
+					MultiByteToWideChar 0 0 buffer count temp len
 					unicode/load-utf16 as-c-string temp len sout yes
 					free temp
 				][
@@ -157,7 +157,7 @@ ext-process: context [
 			total: 0
 			until [
 				len: 0
-				platform/ReadFile fd (data/buffer + total) (size - total) :len null
+				ReadFile fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 					total: total + len
 					if total = size [
@@ -165,7 +165,7 @@ ext-process: context [
 						data/buffer: realloc data/buffer size
 					]
 				]
-				platform/GetLastError = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
+				GetLastError = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
 			data/count: total
 		] ; read-from-pipe
@@ -177,7 +177,7 @@ ext-process: context [
 			/local
 				file	[integer!]
 		][
-			file: platform/CreateFileW
+			file: CreateFileW
 				as c-string! pbuf/buffer
 				GENERIC_WRITE
 				FILE_SHARE_READ or FILE_SHARE_WRITE
@@ -186,7 +186,7 @@ ext-process: context [
 				FILE_ATTRIBUTE_NORMAL
 				null
 			
-			either file = -1 [file: 0][platform/SetFilePointer file 0 null SET_FILE_END]
+			either file = -1 [file: 0][SetFilePointer file 0 null SET_FILE_END]
 			file
 		]
 		
@@ -232,15 +232,15 @@ ext-process: context [
 			inherit: false
 			s-inf/cb: size? s-inf
 			s-inf/dwFlags: 0
-			s-inf/hStdInput:  platform/GetStdHandle STD_INPUT_HANDLE
-			s-inf/hStdOutput: platform/GetStdHandle STD_OUTPUT_HANDLE
-			s-inf/hStdError:  platform/GetStdHandle STD_ERROR_HANDLE
+			s-inf/hStdInput:  GetStdHandle STD_INPUT_HANDLE
+			s-inf/hStdOutput: GetStdHandle STD_OUTPUT_HANDLE
+			s-inf/hStdError:  GetStdHandle STD_ERROR_HANDLE
 			
-			dev-null: platform/CreateFileW #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
+			dev-null: CreateFileW #u16 "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
 			
 			if in-buf <> null [
 				either in-buf/count = -1 [
-					in-read: platform/CreateFileW
+					in-read: CreateFileW
 						as c-string! in-buf/buffer
 						GENERIC_READ
 						0
@@ -250,11 +250,11 @@ ext-process: context [
 						null
 					if in-read = -1 [return -1]
 				][
-					unless platform/CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
+					unless CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 						__red-call-print-error [ error-pipe "stdin" ]
 						return -1
 					]
-					unless platform/SetHandleInformation in-write HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation in-write HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdin" ]
 						return -1
 					]
@@ -268,11 +268,11 @@ ext-process: context [
 					out-buf/count: 0
 					out-buf/buffer: allocate READ-BUFFER-SIZE
 					
-					unless platform/CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
+					unless CreatePipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 						__red-call-print-error [ error-pipe "stdout" ]
 						return -1
 					]
-					unless platform/SetHandleInformation out-read HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation out-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stdout" ]
 						return -1
 					]
@@ -289,11 +289,11 @@ ext-process: context [
 				][
 					err-buf/count: 0
 					err-buf/buffer: allocate READ-BUFFER-SIZE
-					unless platform/CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
+					unless CreatePipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 						__red-call-print-error [ error-pipe "stderr" ]
 						return -1
 					]
-					unless platform/SetHandleInformation err-read HANDLE_FLAG_INHERIT 0 [
+					unless SetHandleInformation err-read HANDLE_FLAG_INHERIT 0 [
 						__red-call-print-error [ error-sethandle "stderr" ]
 						return -1
 					]
@@ -319,29 +319,29 @@ ext-process: context [
 			sa/bInheritHandle: inherit
 			
 			either shell? [
-				len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
+				len: (1 + lstrlen as byte-ptr! cmd) * 2
 				cmdstr: make-c-string (14 + len)
 				copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
 				copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
 			][
 				cmdstr: cmd
 			]
-			unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
-				either 2 = platform/GetLastError [		;-- ERROR_FILE_NOT_FOUND
-					len: (1 + platform/lstrlen as byte-ptr! cmd) * 2
+			unless CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+				either 2 = GetLastError [		;-- ERROR_FILE_NOT_FOUND
+					len: (1 + lstrlen as byte-ptr! cmd) * 2
 					cmdstr: make-c-string (14 + len)
 					copy-memory as byte-ptr! cmdstr as byte-ptr! #u16 "cmd /c " 14
 					copy-memory as byte-ptr! cmdstr + 14 as byte-ptr! cmd len
 					shell?: yes							;-- force /shell mode and try again
 					win-shell?: yes
 					
-					unless platform/CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
-						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+					unless CreateProcessW null cmdstr null null inherit 0 null null s-inf p-inf [
+						__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " GetLastError]
 						if shell? [free as byte-ptr! cmdstr]
 						return -1
 					]
 				][
-					__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " platform/GetLastError]
+					__red-call-print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " GetLastError]
 					if shell? [free as byte-ptr! cmdstr]
 					return -1
 				]
@@ -350,34 +350,34 @@ ext-process: context [
 
 			pid: 0
 			if in-buf <> null [
-				platform/CloseHandle in-read
+				CloseHandle in-read
 				len: in-buf/count
-				success: platform/WriteFile in-write as-c-string in-buf/buffer len :len null
+				success: WriteFile in-write as-c-string in-buf/buffer len :len null
 				if zero? success [
-					__red-call-print-error [ "Error Red/System call : write into pipe failed : " platform/GetLastError]
+					__red-call-print-error [ "Error Red/System call : write into pipe failed : " GetLastError]
 				]
-				platform/CloseHandle in-write
+				CloseHandle in-write
 			]
 			if out-buf <> null [
-				platform/CloseHandle out-write
+				CloseHandle out-write
 				if out-buf/count <> -1 [read-from-pipe out-read out-buf]
-				platform/CloseHandle out-read
+				CloseHandle out-read
 			]
 			if err-buf <> null [
-				platform/CloseHandle err-write
+				CloseHandle err-write
 				if err-buf/count <> -1 [read-from-pipe err-read err-buf]
-				platform/CloseHandle err-read
+				CloseHandle err-read
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]
 			either any [console? waitend?][
-				platform/WaitForSingleObject p-inf/hProcess INFINITE
-				platform/GetExitCodeProcess p-inf/hProcess :pid
+				WaitForSingleObject p-inf/hProcess INFINITE
+				GetExitCodeProcess p-inf/hProcess :pid
 			][
 				pid: p-inf/dwProcessId
 			]
-			platform/CloseHandle p-inf/hProcess
-			platform/CloseHandle p-inf/hThread
-			platform/CloseHandle dev-null
+			CloseHandle p-inf/hProcess
+			CloseHandle p-inf/hThread
+			CloseHandle dev-null
 			return pid
 		] ; call
 	] ; Windows
