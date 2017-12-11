@@ -416,7 +416,7 @@ _series: context [
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
-			if all [dst > src part >= (as-integer tail - dst)][
+			if all [dst > src dst <> tail part > (as-integer tail - dst)][
 				return as red-value! origin
 			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
