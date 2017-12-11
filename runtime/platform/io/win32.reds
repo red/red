@@ -10,12 +10,56 @@ Red/System [
 	}
 ]
 
+timeval!: alias struct! [
+	tv_sec	[integer!]
+	tv_usec [integer!]
+]
+
+SECURITY_ATTRIBUTES: alias struct! [
+	nLength 			 [integer!]
+	lpSecurityDescriptor [int-ptr!]
+	bInheritHandle 		 [integer!]
+]
+
 OVERLAPPED: alias struct! [
 	Internal		[int-ptr!]
 	InternalHigh	[int-ptr!]
 	Offset			[integer!]				;-- or Pointer [int-ptr!]
 	OffsetHigh		[integer!]
 	hEvent			[int-ptr!]
+]
+
+WSADATA: alias struct! [					;-- varies from 32bit to 64bit, for 32bit: 400 bytes
+	wVersion		[integer!]
+	;wHighVersion
+	szDescription	[c-string!]
+	szSystemStatus	[c-string!]
+	iMaxSockets		[integer!]
+	;iMaxUdpDg
+	lpVendorInfo	[c-string!]
+]
+
+WSAPROTOCOL_INFOW: alias struct! [
+	dwServiceFlags1		[integer!]
+	dwServiceFlags2		[integer!]
+	dwServiceFlags3		[integer!]
+	dwServiceFlags4		[integer!]
+	dwProviderFlags		[integer!]
+	ProviderId			[integer!]
+	dwCatalogEntryId	[integer!]
+	ProtocolChain		[integer!]
+	iVersion			[integer!]
+	iAddressFamily		[integer!]
+	iMaxSockAddr		[integer!]
+	iMinSockAddr		[integer!]
+	iSocketType			[integer!]
+	iProtocol			[integer!]
+	iProtocolMaxOffset	[integer!]
+	iNetworkByteOrder	[integer!]
+	iSecurityScheme		[integer!]
+	dwMessageSize		[integer!]
+	dwProviderReserved	[integer!]
+	szProtocol			[integer!]
 ]
 
 stat!: alias struct! [val [integer!]]
@@ -31,6 +75,18 @@ WIN32_FIND_DATA: alias struct! [
 	dwReserved1			[integer!]
 	;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
 	;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
+]
+
+AcceptEx!: alias function! [
+	sListenSocket			[int-ptr!]
+	sAcceptSocket			[int-ptr!]
+	lpOutputBuffer			[byte-ptr!]
+	dwReceiveDataLength		[integer!]
+	dwLocalAddressLength	[integer!]
+	dwRemoteAddressLength	[integer!]
+	lpdwBytesReceived		[int-ptr!]
+	lpOverlapped			[OVERLAPPED]
+	return:					[logic!]
 ]
 
 #import [
@@ -138,21 +194,64 @@ WIN32_FIND_DATA: alias struct! [
 			return:				[integer!]
 		]
 		GetLogicalDriveStrings: "GetLogicalDriveStringsW" [
-			buf-len		[integer!]
-			buffer		[byte-ptr!]
-			return:		[integer!]
+			buf-len				[integer!]
+			buffer				[byte-ptr!]
+			return:				[integer!]
+		]
+		CreateThread: "CreateThread" [
+			lpThreadAttributes	[SECURITY_ATTRIBUTES]
+			dwStackSize			[integer!]
+			lpStartAddress		[int-ptr!]
+			lpParameter			[int-ptr!]
+			dwCreationFlags		[integer!]
+			lpThreadID			[int-ptr!]
+			return:				[int-ptr!]
 		]
 	]
-	"user32.dll" stdcall [
-		SendMessage: "SendMessageW" [
-			hWnd		[integer!]
-			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[integer!]
-		]
-		GetForegroundWindow: "GetForegroundWindow" [
+	"ws2_32.dll" stdcall [
+		WSAStartup: "WSAStartup" [
+			version		[integer!]
+			lpWSAData	[WSADATA]
 			return:		[integer!]
+		]
+		WSASocketW: "WSASocketW" [
+			af				[integer!]
+			type			[integer!]
+			protocol		[integer!]
+			lpProtocolInfo	[WSAPROTOCOL_INFOW]
+			g				[integer!]
+			dwFlags			[integer!]
+			return:			[int-ptr!]
+		]
+		WSASend: "WSASend" [
+			s					[int-ptr!]
+			lpBuffers			[byte-ptr!]
+			dwBufferCount		[integer!]
+			lpNumberOfBytesSent	[int-ptr!]
+			dwFlags				[integer!]
+			lpOverlapped		[OVERLAPPED]
+			lpCompletionRoutin	[int-ptr!]
+			return:				[integer!]
+		]
+		GetAddrInfoExW: "GetAddrInfoExW" [
+			pName				[c-string!]
+			pServiceName		[c-string!]
+			dwNameSpace			[integer!]
+			lpNspId				[int-ptr!]
+			pHints				[int-ptr!]
+			ppResult			[int-ptr!]
+			timeout				[timeval!]
+			lpOverlapped		[OVERLAPPED]
+			lpCompletionRoutine	[int-ptr!]
+			lpNameHandle		[int-ptr!]
+			return:				[integer!]
+		]
+		WSAWaitForMultipleEvents: "WSAWaitForMultipleEvents" [
+			cEvents				[integer!]
+			lphEvents			[int-ptr!]
+			fWaitAll			[logic!]
+			dwTimeout			[integer!]
+			fAlertable			[logic!]
 		]
 	]
 	LIBC-file cdecl [
