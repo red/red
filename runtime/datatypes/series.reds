@@ -406,9 +406,9 @@ _series: context [
 			int: as red-integer! part-arg
 			part: int/value
 			if part <= 0 [return as red-value! target]	;-- early exit if negative /part index
-			items: part
 			limit: (as-integer tail - src) >> log-b unit
 			if part > limit [part: limit]
+			items: part
 			part: part << (log-b unit)
 		]
 		
@@ -416,6 +416,9 @@ _series: context [
 		either origin/node = target/node [				;-- same series case
 			dst: (as byte-ptr! s/offset) + (target/head << (log-b unit))
 			if src = dst [return as red-value! target]	;-- early exit if no move is required
+			if all [dst > src part >= (as-integer tail - dst)][
+				return as red-value! origin
+			]
 			if dst > tail [dst: tail]					;-- avoid overflows if part is too big
 			ownership/check as red-value! target words/_move null origin/head items
 
