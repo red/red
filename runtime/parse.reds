@@ -324,8 +324,7 @@ parser: context [
 					s:	   GET_BUFFER(bits)
 					pbits: as byte-ptr! s/offset
 					not?:  FLAG_NOT?(s)
-					size:  s/size << 3
-
+					size:  (as-integer s/tail - s/offset) << 3
 					until [
 						cp: switch unit [
 							Latin1 [as-integer p/value]
@@ -478,7 +477,7 @@ parser: context [
 		s:	   GET_BUFFER(bits)
 		pbits: as byte-ptr! s/offset
 		not?:  FLAG_NOT?(s)
-		size:  s/size << 3
+		size:  (as-integer s/tail - s/offset) << 3
 		
 		cnt: 	0
 		match?: yes
