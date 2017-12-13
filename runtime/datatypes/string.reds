@@ -1650,6 +1650,7 @@ string: context [
 			c1		[integer!]
 			c2		[integer!]
 			step	[integer!]
+			sz		[integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
@@ -1755,6 +1756,7 @@ string: context [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
 				pbits: as byte-ptr! sbits/offset
+				sz: (as-integer sbits/tail - sbits/offset) << 3
 				bs?:   yes
 				case?: no
 			]
@@ -1806,7 +1808,11 @@ string: context [
 					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
-					BS_TEST_BIT(pbits c1 found?)
+					either c1 < sz [
+						BS_TEST_BIT(pbits c1 found?)
+					][
+						found?: no
+					]
 				][
 					found?: c1 = c2
 				]			
