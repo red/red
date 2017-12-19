@@ -38,8 +38,8 @@ Red [
 		--assert [x + y] = react? b 'x
 		--assert [x + y] = react? b 'y
 		--assert [x + y] = react?/target b 'z
-    
-    --test-- "is-5"
+	
+	--test-- "is-5"
 		c: make reactor! [x: 1 y: is [x + 1] z: is [y + 1]]
 		--assert c/x == 1
 		--assert c/y == 2
@@ -56,13 +56,56 @@ Red [
 		--assert none? react? c 'z
 		--assert [y + 1] = react?/target c 'z
 
- --test-- "is-7"
+	--test-- "is-7"
 		;d: make reactor! [x: is [y + 1] y: is [x + 3]]
 		;--assert none? d/x
 		;--assert none? d/y
 		;d/x: 1
 		;--assert d/x = 5
 		;--assert d/y = 4
+
+	--test-- "is-get-word-8"
+		a: make reactor! [x: 1 y: is [:x + 1]]
+		--assert a/x == 1
+		--assert a/y == 2
+		a/x: 5
+		--assert a/y == 6
+
+	--test-- "is-get-word-9"
+		a: make reactor! [x: 1 y: is [1 + :x]]
+		--assert a/x == 1
+		--assert a/y == 2
+		a/x: 5
+		--assert a/y == 6
+
+	--test-- "is-get-word-10"
+		a: make reactor! [x: 1 y: 2 z: is [:x + :y]]
+		--assert a/x == 1
+		--assert a/y == 2
+		--assert a/z == 3
+		a/x: 5
+		--assert a/z == 7
+		a/y: 6
+		--assert a/z == 11
+
+	--test-- "is-get-word-path-11"
+		
+		blk: [["A" 100] ["B" 200]]
+		a: make reactor! [
+			x: 1
+			y: 1
+			z: is [blk/:x/:y]
+		]
+		--assert a/x == 1
+		--assert a/y == 1
+		--assert a/z == "A"
+		a/x: 2
+		--assert a/z == "B"
+		a/y: 2
+		--assert a/z == 200
+		a/x: 1
+		--assert a/z == 100
+		
 
 ===end-group===
 
