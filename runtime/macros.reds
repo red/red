@@ -376,6 +376,7 @@ Red/System [
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_HASH
+		type = TYPE_VECTOR
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH
