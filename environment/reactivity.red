@@ -174,8 +174,8 @@ system/reactivity: context [
 		words: words-of obj: context? field
 		parse reaction rule: [
 			any [
-				item: word! | get-word! (
-					if find words item/1 [repend relations [obj item/1 reaction field]]
+				item: [word! | get-word!] ( 
+					if find words item/1 [repend relations [obj to word! item/1 reaction field]]
 				)
 				| set-path! | any-string!
 				| into rule
