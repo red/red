@@ -40,12 +40,7 @@ pair: context [
 				x: int/value
 				y: x
 			]
-			TYPE_FLOAT [
-				fl: as red-float! right
-				x: as-integer fl/value
-				y: x
-			]
-			TYPE_PERCENT [
+			TYPE_FLOAT TYPE_PERCENT [
 				fl: as red-float! right
 				f: fl/value
 				switch op [
