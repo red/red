@@ -1518,7 +1518,7 @@ terminal: context [
 		set-prompt vt question
 		refresh vt
 		either paste-from-clipboard vt yes [
-			loop 3 [gui/do-events yes]					;-- make console respontive
+			loop 3 [gui/do-events yes]					;-- make console responsive
 		][
 			vt/ask?: yes
 			update-caret vt
