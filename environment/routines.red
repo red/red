@@ -22,11 +22,15 @@ set-quiet: routine [
 	word  [any-type!]
 	value [any-type!]
 	/local
+		w	 [red-word!]
 		type [integer!]
+		node [node!]
 ][
 	type: TYPE_OF(word)
 	unless ANY_WORD?(type) [ERR_EXPECT_ARGUMENT(TYPE_WORD 0)]
-	_context/set as red-word! word stack/arguments + 1
+	w: as red-word! word
+	node: w/ctx
+	_context/set-in w stack/arguments + 1 TO_CTX(node) no
 ]
 
 ;-- Following definitions are used to create op! corresponding operators

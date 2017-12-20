@@ -686,6 +686,9 @@ change-font: func [
 		title	[integer!]
 		view	[integer!]
 		storage [integer!]
+		nsfont	[integer!]
+		lm		[integer!]
+		pt		[CGPoint! value]
 ][
 	if TYPE_OF(font) <> TYPE_OBJECT [return no]
 
@@ -710,6 +713,14 @@ change-font: func [
 				hWnd sel_getUid "setTextColor:"
 				objc_msgSend [attrs sel_getUid "objectForKey:" NSForegroundColorAttributeName]
 			]
+		]
+		if type = text-list [
+			nsfont: objc_msgSend [attrs sel_getUid "objectForKey:" NSFontAttributeName]
+			lm: objc_msgSend [objc_msgSend [objc_getClass "NSLayoutManager" sel_alloc] sel_init]
+			pt/x: (as float32! 1.0) + objc_msgSend_f32 [lm sel_getUid "defaultLineHeightForFont:" nsfont]
+			objc_msgSend [lm sel_release]
+			view: objc_msgSend [hWnd sel_getUid "documentView"]
+			objc_msgSend [view sel_getUid "setRowHeight:" pt/x]
 		]
 		values: (object/get-values face) + FACE_OBJ_TEXT
 		if TYPE_OF(values) <> TYPE_STRING [return no]			;-- accept any-string! ?
@@ -783,8 +794,27 @@ change-enabled: func [
 	/local
 		obj  [integer!]
 ][
-	unless any [type = base type = window type = panel][
-		objc_msgSend [hWnd sel_getUid "setEnabled:" enabled?]
+	case [
+		type = area [
+			obj: objc_msgSend [hWnd sel_getUid "documentView"]
+			objc_msgSend [obj sel_getUid "setSelectable:" enabled?]
+			objc_msgSend [obj sel_getUid "setEditable:" enabled?]
+			either enabled? [
+				objc_msgSend [
+					obj sel_getUid "setTextColor:"
+					objc_msgSend [objc_getClass "NSColor" sel_getUid "controlTextColor"]
+				]
+			][
+				objc_msgSend [
+					obj sel_getUid "setTextColor:"
+					objc_msgSend [objc_getClass "NSColor" sel_getUid "disabledControlTextColor"]
+				]
+			]
+		]
+		all [type <> base type <> window type <> panel][
+			objc_msgSend [obj sel_getUid "setEnabled:" enabled?]
+		]
+		true [0]
 	]
 	either enabled? [obj: 0][obj: hWnd]
 	objc_setAssociatedObject hWnd RedEnableKey obj OBJC_ASSOCIATION_ASSIGN
@@ -930,6 +960,13 @@ change-selection: func [
 		]
 		any [type = drop-list type = drop-down][
 			sz: -1 + objc_msgSend [hWnd sel_getUid "numberOfItems"]
+			if idx = -1 [		;-- deselect current item
+				idx: objc_msgSend [hWnd sel_getUid "indexOfSelectedItem"]
+				if idx <> -1 [
+					objc_msgSend [hWnd sel_getUid "deselectItemAtIndex:" idx]
+				]
+				exit
+			]
 			if any [sz < 0 sz < idx][exit]
 			either type = drop-list [
 				objc_msgSend [hWnd sel_getUid "selectItemAtIndex:" idx + 1]
@@ -1259,6 +1296,7 @@ make-text-list: func [
 	]
 	store-face-to-obj obj id face
 
+	objc_msgSend [obj sel_getUid "setRowSizeStyle:" 0]
 	objc_msgSend [obj sel_getUid "setHeaderView:" 0]
 	objc_msgSend [obj sel_getUid "addTableColumn:" column]
 	objc_msgSend [obj sel_getUid "setDelegate:" obj]
@@ -1949,7 +1987,7 @@ OS-update-facet: func [
 	sym: symbol/resolve facet/symbol
 
 	case [
-		sym = facets/pane [0]
+		;sym = facets/pane [0]
 		sym = facets/data [
 			word: as red-word! get-node-facet face/ctx FACE_OBJ_TYPE
 			type: symbol/resolve word/symbol

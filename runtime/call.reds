@@ -248,6 +248,7 @@ ext-process: context [
 						OPEN_EXISTING
 						FILE_ATTRIBUTE_NORMAL or FILE_FLAG_SEQUENTIAL_SCAN
 						null
+					if in-read = -1 [return -1]
 				][
 					unless platform/CreatePipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 						__red-call-print-error [ error-pipe "stdin" ]

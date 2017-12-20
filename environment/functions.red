@@ -220,7 +220,7 @@ replace: function [
 			]
 		][
 			while [pos: find pos :pattern][
-				pos: change pos value
+				pos: insert remove pos value
 			]
 		]
 	][
@@ -573,7 +573,7 @@ what-dir: func [
 	"Returns the active directory path"
 	/local path
 ][
-	path: to-red-file get-current-dir
+	path: copy system/options/path
 	unless dir? path [append path #"/"]
 	path
 ]
@@ -826,6 +826,7 @@ path-thru: function [
 	unless so/thru-cache [make-dir/deep so/thru-cache: append copy so/cache %cache/]
 	
 	if pos: find/tail file: to-file url "//" [file: pos]
+	clear find pos charset "?#"
 	path: first split-path file: append copy so/thru-cache file
 	unless exists? path [make-dir/deep path]
 	file

@@ -329,7 +329,7 @@ head?: make action! [[
 
 index?: make action! [[
 		"Returns the current index of series relative to the head, or of word in a context"
-		series	 [series! word!]
+		series	 [series! any-word!]
 		return:  [integer!]
 	]
 	#get-definition ACT_INDEX?

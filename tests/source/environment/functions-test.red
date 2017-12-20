@@ -299,11 +299,6 @@ Red [
 		--assert not none? find (normalize-dir %a) "/a/"
 ===end-group===
 
-===start-group=== "normalize-dir tests"
-	--test-- "normalize-dir test"
-		--assert not none? find (normalize-dir %a) "/a/"
-===end-group===
-
 ===start-group=== "what-dir tests"
 	--test-- "what-dir test"
 		--assert not none? what-dir

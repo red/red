@@ -134,6 +134,7 @@ camera!: alias struct! [
 init-camera: func [
 	hWnd	[handle!]
 	data	[red-block!]
+	sel		[red-integer!]
 	open?	[logic!]
 	/local
 		cam [camera!]
@@ -147,6 +148,10 @@ init-camera: func [
 		toggle-preview hWnd open?
 	]
 	SetWindowLong hWnd wc-offset - 4 val
+	if TYPE_OF(sel) = TYPE_INTEGER [
+		select-camera hWnd sel/value - 1
+		toggle-preview hWnd true
+	]
 ]
 
 free-graph: func [cam [camera!] /local interface [IUnknown]][

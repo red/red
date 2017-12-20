@@ -625,7 +625,7 @@ system/lexer: context [
 				]
 			]
 			opt [#":" (type: set-path! set-path back tail stack)][
-				ahead [path-end | ws | end] | (throw-error [type path])
+				ahead [path-end | ws-no-count | end] | (throw-error [type path])
 			]
 			(pop stack)
 		]

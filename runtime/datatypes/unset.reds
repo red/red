@@ -113,6 +113,7 @@ unset: context [
 		switch op [
 			COMP_EQUAL 
 			COMP_SAME
+			COMP_FIND
 			COMP_STRICT_EQUAL
 			COMP_NOT_EQUAL [res: as-integer type <> TYPE_UNSET]
 			COMP_SORT

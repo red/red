@@ -275,6 +275,7 @@ Red/System [
 	COMP_CASE_SORT
 	COMP_SAME
 	COMP_STRICT_EQUAL_WORD							;-- same as STRICT_EQUAL, but relaxed type matching for words
+	COMP_FIND
 ]
 
 #enum exceptions! [
@@ -375,6 +376,7 @@ Red/System [
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_HASH
+		type = TYPE_VECTOR
 		type = TYPE_PAREN
 		type = TYPE_PATH
 		type = TYPE_LIT_PATH

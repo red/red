@@ -447,7 +447,8 @@ word: context [
 		]
 		switch op [
 			COMP_EQUAL
-			COMP_NOT_EQUAL [
+			COMP_NOT_EQUAL
+			COMP_FIND [
 				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
 			COMP_SAME

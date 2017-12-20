@@ -687,7 +687,7 @@ string: context [
 		if op = COMP_SAME [return either same? [0][-1]]
 		if all [
 			same?
-			any [op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
+			any [op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL]
 		][return 0]
 
 		s1: GET_BUFFER(str1)
@@ -701,14 +701,14 @@ string: context [
 
 		either match? [
 			if zero? size2 [
-				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
+				return as-integer all [op <> COMP_EQUAL op = COMP_FIND op <> COMP_STRICT_EQUAL]
 			]
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (log-b unit1) - head1
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
-					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+					op = COMP_EQUAL op = COMP_FIND op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 				][return 1]
 
 				if size2 > size1 [
@@ -722,7 +722,7 @@ string: context [
 		p2:  (as byte-ptr! s2/offset) + (head2 << (log-b unit2))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 
-		until [	
+		until [
 			switch unit1 [
 				Latin1 [c1: as-integer p1/1]
 				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
@@ -1650,6 +1650,7 @@ string: context [
 			c1		[integer!]
 			c2		[integer!]
 			step	[integer!]
+			sz		[integer!]
 			sbits	[series!]
 			pbits	[byte-ptr!]
 			pos		[byte-ptr!]								;-- required by BS_TEST_BIT
@@ -1755,6 +1756,7 @@ string: context [
 				bits:  as red-bitset! value
 				sbits: GET_BUFFER(bits)
 				pbits: as byte-ptr! sbits/offset
+				sz: (as-integer sbits/tail - sbits/offset) << 3
 				bs?:   yes
 				case?: no
 			]
@@ -1806,7 +1808,11 @@ string: context [
 					c1: case-folding/folding-case c1 yes ;-- uppercase c1
 				]
 				either bs? [
-					BS_TEST_BIT(pbits c1 found?)
+					either c1 < sz [
+						BS_TEST_BIT(pbits c1 found?)
+					][
+						found?: no
+					]
 				][
 					found?: c1 = c2
 				]			
