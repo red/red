@@ -309,6 +309,68 @@ Red/System [
 	]
 ]
 
+timespec!: alias struct! [
+	tv_sec	[integer!]
+	tv_nsec [integer!]
+]
+
+#case [
+	any [OS = 'macOS OS = 'FreeBSD] [
+		kevent!: alias struct! [
+			ident		[int-ptr!]		;-- identifier for this event
+			;filter		[int16!]		;-- filter for event
+			;flags		[int16!]		;-- general flags
+			fflags		[integer!]		;-- filter-specific flags
+			data		[int-ptr!]		;-- filter-specific data
+			udata		[int-ptr!]		;-- opaque user data identifier
+		]
+		#import [
+			LIBC-file cdecl [
+				kqueue: "kqueue" [
+					return: [integer!]
+				]
+				kevent: "kevent" [
+					kq		[integer!]
+					clist	[kevent!]
+					nchange [integer!]
+					evlist	[kevent!]
+					nevents [integer!]
+					timeout [timespec!]
+				]
+			]
+		]
+	]
+	true [
+		epoll_event!: alias struct! [
+			events		[integer!]
+			ptr			[int-ptr!]
+			data		[integer!]
+		]
+		#import [
+			LIBC-file cdecl [
+				epoll_create: "epoll_create" [
+					size	[integer!]
+					return: [integer!]
+				]
+				epoll_ctl: "epoll_ctl" [
+					epfd	[integer!]
+					op		[integer!]
+					fd		[integer!]
+					event	[epoll_event!]
+					return: [integer!]
+				]
+				epoll_wait: "epoll_wait" [
+					epfd	[integer!]
+					events	[epoll_event!]
+					maxev	[integer!]
+					timeout [integer!]
+					return: [integer!]
+				]
+			]
+		]
+	]
+]
+
 #import [
 	LIBC-file cdecl [
 		_access: "access" [
