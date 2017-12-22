@@ -34,6 +34,7 @@ red: context [
 	
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
+	#include %linked-list.reds
 	#include %unicode.reds
 	#include %case-folding.reds
 	#include %sort.reds
