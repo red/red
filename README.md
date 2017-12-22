@@ -185,6 +185,10 @@ You can also compile the Red console from source:
 
         >> do/args %red.r "-r %environment/console/console.red"
 
+To compile the Windows GUI console from source:
+
+        >> do/args %red.r "-r -t Windows %environment/console/gui-console.red"
+
 Note: the `-c` argument is not necessary when launching the Red toolchain from sources, as the default action is to compile the input script (the toolchain in binary form default action is to run the input script through the interpreter).
 The `-r` argument is needed when compiling the Red console to make additional runtime functions available.
 
