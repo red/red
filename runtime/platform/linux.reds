@@ -23,6 +23,9 @@ Red/System [
 	#define SC_PAGE_SIZE	1Eh
 ]
 
+#define _SC_NPROCESSORS_CONF 83
+#define _SC_NPROCESSORS_ONLN 84
+
 #define SYSCALL_MMAP2		192
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2

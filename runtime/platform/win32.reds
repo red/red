@@ -122,6 +122,18 @@ tagTIME_ZONE_INFORMATION: alias struct! [
 	DaylightBias		[integer!]
 ]
 
+tagSYSTEM_INFO: alias struct! [
+	dwOemId						[integer!]
+	dwPageSize					[integer!]
+	lpMinimumApplicationAddress	[int-ptr!]
+	lpMaximumApplicationAddress	[int-ptr!]
+	dwActiveProcessorMask		[int-ptr!]
+	dwNumberOfProcessors		[integer!]
+	dwProcessorType				[integer!]
+	dwAllocationGranularity		[integer!]
+	wProcessorLevel				[integer!]
+]
+
 #import [
 	LIBC-file cdecl [
 		;putwchar: "putwchar" [
@@ -305,6 +317,9 @@ tagTIME_ZONE_INFORMATION: alias struct! [
 			pDistance	[int-ptr!]
 			dwMove		[integer!]
 			return:		[integer!]
+		]
+		GetNativeSystemInfo: "GetNativeSystemInfo" [
+			lpSystemInfo	[tagSYSTEM_INFO]
 		]
 	]
 	"gdiplus.dll" stdcall [
