@@ -1688,6 +1688,7 @@ string: context [
 		if OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
 			step: skip/value
+			if step < 1 [fire [TO_ERROR(script out-of-range) skip]]
 		]
 		if OPTION?(part) [
 			limit: either TYPE_OF(part) = TYPE_INTEGER [
