@@ -29,8 +29,10 @@ red: context [
 	#include %allocator.reds
 	;#include %collector.reds
 	#include %crush.reds
+	#include %cpu.reds
 	#include %atomic.reds
 	#include %semaphore.reds
+	#include %spinlock.reds
 	
 	;-- Datatypes --
 	
