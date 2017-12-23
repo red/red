@@ -24,11 +24,13 @@ red: context [
 		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
-	
+
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
 	#include %crush.reds
+	#include %atomic.reds
+	#include %semaphore.reds
 	
 	;-- Datatypes --
 	

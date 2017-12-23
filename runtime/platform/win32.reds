@@ -23,22 +23,25 @@ Red/System [
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
 
-#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
-#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
-#define FORMAT_MESSAGE_FROM_STRING        00000400h
-#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
-#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER	00000100h
+#define FORMAT_MESSAGE_IGNORE_INSERTS	00000200h
+#define FORMAT_MESSAGE_FROM_STRING		00000400h
+#define FORMAT_MESSAGE_FROM_HMODULE		00000800h
+#define FORMAT_MESSAGE_FROM_SYSTEM		00001000h
 
-#define WEOF				FFFFh
+#define WEOF							FFFFh
 
-#define INFINITE				FFFFFFFFh
-#define HANDLE_FLAG_INHERIT		00000001h
-#define STARTF_USESTDHANDLES	00000100h
-#define STARTF_USESHOWWINDOW	00000001h
+#define INFINITE						FFFFFFFFh
+#define HANDLE_FLAG_INHERIT				00000001h
+#define STARTF_USESTDHANDLES			00000100h
+#define STARTF_USESHOWWINDOW			00000001h
 
-#define ERROR_BROKEN_PIPE 109
+#define ERROR_BROKEN_PIPE				109
 
 #define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
+#define WAIT_TIMEOUT					258
+#define WAIT_OBJECT_0					0
 
 #enum spawn-mode [
 	P_WAIT:		0
@@ -278,7 +281,7 @@ tagSYSTEM_INFO: alias struct! [
 			return:					[integer!]
 		]
 		CloseHandle: "CloseHandle" [
-			hObject                 [integer!]
+			hObject                 [int-ptr!]
 			return:                 [logic!]
 		]
 		GetStdHandle: "GetStdHandle" [

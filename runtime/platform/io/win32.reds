@@ -163,10 +163,6 @@ AcceptEx!: alias function! [
 			high-size	[integer!]
 			return:		[integer!]
 		]
-		CloseHandle:	"CloseHandle" [
-			obj			[integer!]
-			return:		[logic!]
-		]
 		SetFilePointer: "SetFilePointer" [
 			file		[integer!]
 			distance	[integer!]

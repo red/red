@@ -708,7 +708,7 @@ io: context [
 		return:	[logic!]
 	][
 		#either OS = 'Windows [
-			CloseHandle file
+			CloseHandle as handle! file
 		][
 			zero? _close file
 		]

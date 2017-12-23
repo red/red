@@ -350,23 +350,23 @@ ext-process: context [
 
 			pid: 0
 			if in-buf <> null [
-				CloseHandle in-read
+				CloseHandle as handle! in-read
 				len: in-buf/count
 				success: WriteFile in-write as-c-string in-buf/buffer len :len null
 				if zero? success [
 					__red-call-print-error [ "Error Red/System call : write into pipe failed : " GetLastError]
 				]
-				CloseHandle in-write
+				CloseHandle as handle! in-write
 			]
 			if out-buf <> null [
-				CloseHandle out-write
+				CloseHandle as handle! out-write
 				if out-buf/count <> -1 [read-from-pipe out-read out-buf]
-				CloseHandle out-read
+				CloseHandle as handle! out-read
 			]
 			if err-buf <> null [
-				CloseHandle err-write
+				CloseHandle as handle! err-write
 				if err-buf/count <> -1 [read-from-pipe err-read err-buf]
-				CloseHandle err-read
+				CloseHandle as handle! err-read
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]
 			either any [console? waitend?][
@@ -375,9 +375,9 @@ ext-process: context [
 			][
 				pid: p-inf/dwProcessId
 			]
-			CloseHandle p-inf/hProcess
-			CloseHandle p-inf/hThread
-			CloseHandle dev-null
+			CloseHandle as handle! p-inf/hProcess
+			CloseHandle as handle! p-inf/hThread
+			CloseHandle as handle! dev-null
 			return pid
 		] ; call
 	] ; Windows
