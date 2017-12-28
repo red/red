@@ -1220,6 +1220,7 @@ process: func [
 				any [
 					evt?
 					(get-face-flags new) and FACET_FLAGS_ALL_OVER <> 0
+					null? hover-saved
 				]
 			][
 				msg/hWnd: new
