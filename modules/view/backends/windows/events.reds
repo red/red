@@ -1192,6 +1192,7 @@ process: func [
 		res	   [integer!]
 		x	   [integer!]
 		y	   [integer!]
+		track  [tagTRACKMOUSEEVENT value]
 		evt?   [logic!]
 ][
 	switch msg/msg [
@@ -1223,10 +1224,20 @@ process: func [
 					null? hover-saved
 				]
 			][
+				track/cbSize: size? tagTRACKMOUSEEVENT
+				track/dwFlags: 2						;-- TME_LEAVE
+				track/hwndTrack: new
+				TrackMouseEvent :track
 				msg/hWnd: new
 				make-event msg 0 EVT_OVER
 			]
 			hover-saved: new
+			EVT_DISPATCH
+		]
+		WM_MOUSELEAVE [
+			msg/hWnd: hover-saved
+			make-event msg EVT_FLAG_AWAY EVT_OVER
+			hover-saved: null
 			EVT_DISPATCH
 		]
 		WM_MOUSEWHELL [

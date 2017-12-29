@@ -304,6 +304,7 @@ Red/System [
 #define WM_EXITSIZEMOVE		0232h
 #define WM_IME_SETCONTEXT	0281h
 #define WM_IME_NOTIFY		0282h
+#define WM_MOUSELEAVE		02A3h
 #define WM_DPICHANGED		02E0h
 #define WM_COPY				0301h
 #define WM_PASTE			0302h
@@ -602,6 +603,13 @@ tagTEXTMETRIC: alias struct! [
 	tmStruckOut			[byte!]
 	tmPitchAndFamily	[byte!]
 	tmCharSet			[byte!]
+]
+
+tagTRACKMOUSEEVENT: alias struct! [
+	cbSize		[integer!]
+	dwFlags		[integer!]
+	hwndTrack	[handle!]
+	dwHoverTime	[integer!]
 ]
 
 tagNMHDR: alias struct! [
@@ -1001,6 +1009,10 @@ XFORM!: alias struct! [
 		]
 	]
 	"User32.dll" stdcall [
+		TrackMouseEvent: "TrackMouseEvent" [
+			EventTrack	[tagTRACKMOUSEEVENT]
+			return:		[logic!]
+		]
 		RedrawWindow: "RedrawWindow" [
 			hWnd		[handle!]
 			lprcUpdate	[RECT_STRUCT]
