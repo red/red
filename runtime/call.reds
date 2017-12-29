@@ -370,7 +370,7 @@ ext-process: context [
 				if all [shell? err-buf/count > 0][win-error?: yes]
 			]
 			either any [console? waitend?][
-				WaitForSingleObject p-inf/hProcess INFINITE
+				WaitForSingleObject as int-ptr! p-inf/hProcess INFINITE
 				GetExitCodeProcess p-inf/hProcess :pid
 			][
 				pid: p-inf/dwProcessId

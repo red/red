@@ -254,7 +254,7 @@ tagSYSTEM_INFO: alias struct! [
 			return:                 [logic!]
 		]
 		WaitForSingleObject: "WaitForSingleObject" [
-			hHandle                 [integer!]
+			hHandle                 [handle!]
 			dwMilliseconds          [integer!]
 			return:                 [integer!]
 		]

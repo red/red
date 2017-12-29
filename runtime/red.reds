@@ -25,7 +25,7 @@ red: context [
 		#default [#include %platform/linux.reds]
 	]
 
-	;#include %threads.reds
+	#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
 	#include %crush.reds

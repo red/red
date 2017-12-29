@@ -105,7 +105,7 @@ semaphore: context [
 				r	[integer!]
 		][
 			if timeout < 0 [timeout: -1]		;-- INFINITE
-			r: WaitForSingleObject sem/value timeout
+			r: WaitForSingleObject as handle! sem/value timeout
 			case [
 				r = WAIT_TIMEOUT	[0]
 				r < WAIT_OBJECT_0	[-1]
