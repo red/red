@@ -135,8 +135,138 @@ thread: context [
 	][
 		GetCurrentThreadId
 	]
-][
-	;TDB
+][	;-- POSIX
+
+	#define	ESRCH		3
+
+	pthread_attr_t: alias struct! [		;-- 36 bytes
+		_pad1	[integer!]
+		_pad2	[integer!]
+		_pad3	[integer!]
+		_pad4	[integer!]
+		_pad5	[integer!]
+		_pad6	[integer!]
+		_pad7	[integer!]
+		_pad8	[integer!]
+		_pad9	[integer!]
+	]
+
+	#import [
+		"libpthread.so.0" cdecl [
+			pthread_attr_init: "pthread_attr_init" [
+				attr		[pthread_attr_t]
+				return:		[integer!]
+			]
+			pthread_attr_destroy: "pthread_attr_destroy" [
+				attr		[pthread_attr_t]
+				return:		[integer!]
+			]
+			pthread_attr_setstacksize: "pthread_attr_setstacksize" [
+				attr		[pthread_attr_t]
+				stack_size	[integer!]
+				return:		[integer!]
+			]
+			pthread_create: "pthread_create" [
+				thread		[int-ptr!]
+				attr		[pthread_attr_t]
+				start		[int-ptr!]
+				arglist		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_kill: "pthread_kill" [
+				thread		[int-ptr!]
+				sig			[integer!]
+				return:		[integer!]
+			]
+			pthread_join: "pthread_join" [
+				thread		[int-ptr!]
+				retval		[int-ptr!]
+				return:		[integer!]
+			]
+			pthread_exit: "pthread_exit" [
+				retval		[int-ptr!]
+			]
+			pthread_self: "pthread_self" [
+				return:		[integer!]
+			]
+		]
+	]
+
+	create: func [
+		name	[c-string!]
+		address [int-ptr!]
+		args	[int-ptr!]
+		stack	[integer!]
+		return: [handle!]
+		/local
+			attr [pthread_attr_t value]
+			t	 [integer!]
+			ret	 [integer!]
+	][
+		t: 0
+		either stack > 0 [
+			either zero? pthread_attr_init :attr [
+				pthread_attr_setstacksize :attr stack
+			][
+				pthread_attr_destroy :attr
+				return null
+			]
+		][attr: null]
+
+		ret: pthread_create :t attr address args
+		pthread_attr_destroy :attr
+		either zero? ret [as handle! t][null]
+	]
+
+	kill: func [
+		thread	[handle!]
+	][
+		pthread_kill thread 0
+	]
+
+	exit: func [
+		retcode [integer!]
+	][
+		pthread_exit :retcode
+	]
+
+	wait: func [
+		thread	[handle!]
+		timeout [integer!]
+		retval	[int-ptr!]
+		return: [integer!]
+		/local
+			ret	[integer!]
+			r	[integer!]
+	][
+		ret: 0
+		r: pthread_join thread :ret
+		either all [r = -1 r <> ESRCH][-1][
+			if retval <> null [retval/value: ret]
+			1
+		]
+	]
+
+	suspend: func [
+		thread	[handle!]
+		return: [logic!]
+	][
+		false
+	]
+
+	resume: func [
+		thread	[handle!]
+		return:	[logic!]
+	][
+		false
+	]
+
+	self: func [
+		"return current thread id"
+		return: [integer!]
+	][
+		pthread_self
+	]
 ]
 	
 ]

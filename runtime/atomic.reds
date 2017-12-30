@@ -107,7 +107,67 @@ atomic: context [
 		InterlockedDecrement addend
 	]
 ][
-	;TDB
+	exchange: func [
+		target	[int-ptr!]
+		value	[integer!]
+		return:	[integer!]
+	][
+		0
+	]
+
+	compare-exchange: func [
+		dest		[int-ptr!]
+		exchange	[integer!]
+		comparand	[integer!]
+		return:		[integer!]
+	][
+		0
+	]
+
+	get: func [
+		src		[int-ptr!]
+		return: [integer!]
+	][
+		0
+	]
+
+	set: func [
+		target	[int-ptr!]
+		value	[integer!]
+		return: [integer!]
+	][
+		0
+	]
+
+	add: func [
+		addend	[int-ptr!]
+		value	[integer!]
+		return:	[integer!]
+	][
+		0
+	]
+
+	subtract: func [
+		addend	[int-ptr!]
+		value	[integer!]
+		return: [integer!]
+	][
+		0
+	]
+
+	increment: func [
+		addend	[int-ptr!]
+		return:	[integer!]
+	][
+		0
+	]
+	
+	decrement: func [
+		addend	[int-ptr!]
+		return:	[integer!]
+	][
+		0
+	]
 ]
 
 ]

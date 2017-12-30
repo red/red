@@ -118,10 +118,80 @@ semaphore: context [
 		]
 	]
 	OS = 'macOS [
-		
+		init: func [
+			value	[integer!]
+			return: [handle!]
+		][
+			null
+		]
+
+		exit: func [
+			sem		[handle!]
+		][
+		]
+
+		post: func [
+			sem		[handle!]
+			post	[integer!]
+			return: [logic!]
+		][
+			true
+		]
+
+		get: func [
+			sem		[handle!]
+			return: [integer!]
+		][
+			0
+		]
+
+		wait: func [
+			sem		[handle!]
+			timeout [integer!]
+			return: [integer!]
+			/local
+				r	[integer!]
+		][
+			0
+		]
 	]
 	true [				;-- Posix
-		
+		init: func [
+			value	[integer!]
+			return: [handle!]
+		][
+			null
+		]
+
+		exit: func [
+			sem		[handle!]
+		][
+		]
+
+		post: func [
+			sem		[handle!]
+			post	[integer!]
+			return: [logic!]
+		][
+			true
+		]
+
+		get: func [
+			sem		[handle!]
+			return: [integer!]
+		][
+			0
+		]
+
+		wait: func [
+			sem		[handle!]
+			timeout [integer!]
+			return: [integer!]
+			/local
+				r	[integer!]
+		][
+			0
+		]
 	]
 ]
 
