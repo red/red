@@ -411,7 +411,7 @@ save: function [
 			either codec: select system/codecs format [
 				data: do [codec/encode value dst]
 				if same? data dst [exit]	;-- if encode returns dst back, means it already save value to dst
-			][exit]
+			][cause-error 'script 'invalid-refine-arg [/as format]] ;-- throw error if format is not supported
 		]
 	][
 		if length [header: true header-data: any [header-data copy []]]
