@@ -129,6 +129,7 @@ camera!: alias struct! [
 	dev6		[this!]
 	dev7		[this!]
 	dev8		[this!]
+	num			[integer!]
 ]
 
 init-camera: func [
@@ -142,7 +143,11 @@ init-camera: func [
 ][
 	cam: as camera! allocate size? camera!				;@@ need to be freed
 	val: collect-camera cam data
-	either zero? val [free as byte-ptr! cam][
+	either zero? val [
+		free as byte-ptr! cam
+		SetWindowLong hWnd wc-offset - 4 0
+		exit
+	][
 		init-graph cam 0
 		build-preview-graph cam hWnd
 		toggle-preview hWnd open?
@@ -303,6 +308,9 @@ select-camera: func [
 		cam [camera!]
 ][
 	cam: as camera! GetWindowLong handle wc-offset - 4
+	if idx >= cam/num [
+		fire [TO_ERROR(access cannot-open) integer/push idx + 1]
+	]
 	teardown-graph cam
 	free-graph cam
 	init-graph cam idx
@@ -329,6 +337,7 @@ collect-camera: func [
 		size	[integer!]
 		dev-ptr [int-ptr!]
 		fetched [integer!]
+		cnt		[integer!]
 ][
 	IDev:  declare interface!
 	IEnum: declare interface!
@@ -352,6 +361,7 @@ collect-camera: func [
 	var/data1: 8 << 16									;-- var.vt = VT_BSTR
 	dev-ptr: (as int-ptr! cam) + 4
 	fetched: 0
+	cnt: 0
 
 	hr: em/Next IEnum/ptr 1 IM :fetched
 	either zero? hr [block/make-at data 2][return 0]
@@ -368,6 +378,7 @@ collect-camera: func [
 				unicode/load-utf16 as c-string! var/data3 size str no
 				dev-ptr/value: as-integer IM/ptr
 				dev-ptr: dev-ptr + 1
+				cnt: cnt + 1
 				moniker/AddRef IM/ptr
 			]
 			bag/Release IBag/ptr
@@ -376,6 +387,7 @@ collect-camera: func [
 		hr: em/Next IEnum/ptr 1 IM :fetched
 		hr <> 0
 	]
+	cam/num: cnt
 	em/Release IEnum/ptr
 	as-integer cam
 ]
