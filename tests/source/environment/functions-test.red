@@ -243,6 +243,14 @@ Red [
 		save-test-1: copy ""
 		save save-test-1 1
 			--assert "#{31}" = save-test-1
+	--test-- "save test 2"
+		save-test-2: copy ""
+		save save-test-2 "abc"
+			--assert "#{2261626322}" = save-test-2
+	--test-- "save test 3"
+		save-test-3: copy ""
+		save/as save-test-3 "abc" none
+			--assert "#{2261626322}" = save-test-3
 		;TODO
 ===end-group===
 
