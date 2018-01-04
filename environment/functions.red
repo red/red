@@ -332,7 +332,7 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 	/as   "Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	if as [
 		if word? type [
@@ -340,7 +340,7 @@ load: function [
 				if url? source [source: read/binary source]
 				return do [codec/decode source]
 			][
-				return none
+				cause-error 'script 'invalid-refine-arg [/as type]
 			]
 		]
 	]
@@ -403,7 +403,7 @@ save: function [
 	/all    "TBD: Save in serialized format"
 	/length "Save the length of the script content in the header"
 	/as     "Specify the format of data; use NONE to save as plain text"
-		format [word! none!] "E.g. json, html, jpeg, png, redbin etc"
+		format [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	dst: either any [file? where url? where][where][none]
 	either as [
@@ -859,7 +859,7 @@ load-thru: function [
 	url [url!]	"Remote file address"
 	/update		"Force a cache update"
 	/as			"Specify the type of data; use NONE to load as code"
-		type [word! none!] "E.g. json, html, jpeg, png, etc"
+		type [word! none!] "E.g. bmp, gif, jpeg, png"
 ][
 	path: path-thru url
 	if all [not update exists? path][url: path]
