@@ -119,6 +119,13 @@ redc: context [
 			libc: load/library libc
 			sys-call: make routine! [cmd [string!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
+
+			cpuinfo: ""
+			either 0 = call/wait/output "cat /proc/cpuinfo" cpuinfo [
+				SSE3?: parse cpuinfo [any [thru ["flags" any space ":"] to "sse3" to newline to end ]]
+			][
+				fail "Can't read /proc/cpuinfo"
+			]
 		]
 	]
 
