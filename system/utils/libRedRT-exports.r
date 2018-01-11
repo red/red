@@ -134,6 +134,7 @@
 	red/integer/get-any*
 	red/integer/get*
 	red/integer/get
+	red/integer/form-signed
 	red/logic/get
 	red/float/get
 
@@ -171,6 +172,7 @@
 	red/symbol/make
 
 	red/unicode/load-utf8
+	red/unicode/decode-utf8-char
 
 	red/object/unchanged?
 	red/object/unchanged2?
