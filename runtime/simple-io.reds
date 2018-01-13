@@ -781,6 +781,17 @@ simple-io: context [
 
 		size: file-size? file
 
+		if zero? size [				;-- /proc filesystem give 0 size
+			buffer: allocate 4096
+			while [
+				len: read-data file buffer 4096
+				len > 0
+			][
+				size: size + len
+			]
+			free buffer
+		]
+
 		if size <= 0 [
 			close-file file
 			val: stack/push*
