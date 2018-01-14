@@ -122,7 +122,7 @@ redc: context [
 
 			cpuinfo: attempt [read %/proc/cpuinfo]
 			either cpuinfo [
-				SSE3?: parse x [thru "flags" to "sse3" to end]
+				SSE3?: parse cpuinfo [thru "flags" to "sse3" to end]
 			][
 				fail "Can't read /proc/cpuinfo"
 			]
