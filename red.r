@@ -106,6 +106,12 @@ redc: context [
 				]
 			]
 		][												;-- Linux (default)
+			cpuinfo: attempt [read %/proc/cpuinfo]
+			either cpuinfo [
+				SSE3?: parse cpuinfo [thru "flags" to "sse3" to end]
+			][
+				fail "Can't read /proc/cpuinfo"
+			]
 			any [
 				exists? libc: %libc.so.6
 				exists? libc: %/lib32/libc.so.6
@@ -119,13 +125,6 @@ redc: context [
 			libc: load/library libc
 			sys-call: make routine! [cmd [string!]] libc "system"
 			join any [attempt [to-rebol-file get-env "HOME"] %/tmp] %/.red/
-
-			cpuinfo: attempt [read %/proc/cpuinfo]
-			either cpuinfo [
-				SSE3?: parse cpuinfo [thru "flags" to "sse3" to end]
-			][
-				fail "Can't read /proc/cpuinfo"
-			]
 		]
 	]
 
