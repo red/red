@@ -326,6 +326,9 @@
 	red/natives/wait*
 	red/natives/checksum*
 	red/natives/unset*
+	red/natives/new-line*
+	red/natives/new-line?*
+	red/natives/enbase*
 	red/natives/handle-thrown-error
 	red/natives/now*
 	red/natives/get-env*
