@@ -212,7 +212,7 @@ simple-io: context [
 			]
 		]
 	][
-		tm!: alias struct! [
+		systemtime!: alias struct! [
 			sec    [integer!] ;seconds
 			min    [integer!] ;minutes
 			hour   [integer!] ;hours
@@ -581,6 +581,10 @@ simple-io: context [
 					str			[c-string!]
 					c			[byte!]
 					return:		[c-string!]
+				]
+				gmtime: "gmtime" [
+					time        [pointer! [integer!]]
+					return:     [systemtime!]
 				]
 			]
 		]
@@ -982,36 +986,43 @@ simple-io: context [
 		/local
 			name [c-string!]
 			dt   [red-date!]
-			o
 			time [float!]
 			s	 [stat! value]
+			fd   [integer!]
+			tm   [systemtime!]
+			se   [integer!]
 	][
 		name: file/to-OS-path filename
 		;o: object/copy #get system/standard/file-info
 		
 		#either OS = 'Windows [
-			dt: as red-date! stack/push*
-			if all [
-				1 = GetFileAttributesExW name 0 filedata
-				1 = FileTimeToSystemTime filedata/ftLastWriteTime systime
+			if any [
+				1 <> GetFileAttributesExW name 0 filedata
+				1 <> FileTimeToSystemTime filedata/ftLastWriteTime systime
 			][
-				date/set-all dt
-					(systime/data1 and FFFFh) ;year
-					(systime/data1 >> 16    ) ;month
-					(systime/data2 >> 16    ) ;day
-				    (systime/data3 and FFFFh) ;hours
-				    (systime/data3 >> 16    ) ;minutes
-				    (systime/data4 and FFFFh) ;seconds
-				    (systime/data4 >> 16    ) ;ms
+				return none/push
 			]
-			as red-value! dt
+			dt: as red-date! stack/push*
+			date/set-all dt
+				(systime/data1 and FFFFh) ;year
+				(systime/data1 >> 16    ) ;month
+				(systime/data2 >> 16    ) ;day
+				(systime/data3 and FFFFh) ;hours
+				(systime/data3 >> 16    ) ;minutes
+				(systime/data4 and FFFFh) ;seconds
+				1000000 * (systime/data4 >> 16) ;ns - posix is using nanoseconds so lets use it too
 		][
+			fd: open-file file/to-OS-path filename RIO_READ yes
+			if fd < 0 [	return none/push ]
 			#either any [OS = 'macOS OS = 'FreeBSD OS = 'Android] [
-				_stat file s
-			][	_stat 3 file s]
-			;@@ TODO ... continue on *nix system...
-			none/push
+				_stat   fd s
+			][	_stat 3 fd s]
+			se: s/st_mtime/sec
+			tm: gmtime :se
+			dt: as red-date! stack/push*
+			date/set-all dt (1900 + tm/year) (1 + tm/mon) tm/mday tm/hour tm/min tm/sec s/st_mtime/nsec
 		]
+		as red-value! dt
 	]
 
 	read-dir: func [

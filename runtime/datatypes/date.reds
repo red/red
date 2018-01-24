@@ -488,7 +488,7 @@ date: context [
 		hour   [integer!]
 		minute [integer!]
 		second [integer!]
-		ms     [integer!]
+		nsec   [integer!] 
 		/local d t
 	][
 		d: 0 t: 0.0
@@ -499,7 +499,7 @@ date: context [
 		t:  (3600.0 * as float! hour)
 		  + (60.0   * as float! minute)
 		  + (         as float! second)
-		  + (0.001  * as float! ms)
+		  + (1e-9   * as float! nsec)
 		dt/header: TYPE_DATE
 		dt/date: d
 		dt/time: t
