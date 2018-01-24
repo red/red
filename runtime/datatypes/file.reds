@@ -230,6 +230,13 @@ file: context [
 	][
 		as red-value! logic/box simple-io/delete as red-file! file
 	]
+
+	query: func [
+		file	[red-value!]
+		return: [red-value!]
+	][
+		as red-value! simple-io/query as red-file! file
+	]
 	
 	read: func [
 		src		[red-value!]
@@ -335,7 +342,7 @@ file: context [
 			INHERIT_ACTION	;modify
 			null			;open
 			null			;open?
-			null			;query
+			:query
 			:read
 			null			;rename
 			null			;update

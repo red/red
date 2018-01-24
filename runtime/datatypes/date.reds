@@ -479,6 +479,31 @@ date: context [
 			dt/time: to-utc-time t v
 		]
 	]
+
+	set-all: func[
+		dt     [red-date!]
+		year   [integer!]
+		month  [integer!]
+		day    [integer!]
+		hour   [integer!]
+		minute [integer!]
+		second [integer!]
+		ms     [integer!]
+		/local d t
+	][
+		d: 0 t: 0.0
+		d: DATE_SET_YEAR(d year)
+		d: DATE_SET_MONTH(d month)
+		d: DATE_SET_DAY(d day)
+		d: DATE_SET_TIME_FLAG(d)
+		t:  (3600.0 * as float! hour)
+		  + (60.0   * as float! minute)
+		  + (         as float! second)
+		  + (0.001  * as float! ms)
+		dt/header: TYPE_DATE
+		dt/date: d
+		dt/time: t
+	]
 	
 	create: func [
 		proto 	[red-value!]							;-- overwrite this slot with result
