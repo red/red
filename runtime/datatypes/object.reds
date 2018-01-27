@@ -1008,7 +1008,7 @@ object: context [
 			field = words/body [
 				blk/node: ctx/symbols
 				blk/node: alloc-cells block/rs-length? blk
-                blk: block/clone blk no no
+				blk: block/clone blk no no
 				
 				s: as series! ctx/symbols/value
 				syms: s/offset
