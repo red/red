@@ -831,7 +831,7 @@ init-window: func [										;-- post-creation settings
 
 	modes: SWP_NOZORDER
 
-	if bits and FACET_FLAGS_MODAL	  <> 0 [
+	if bits and FACET_FLAGS_MODAL <> 0 [
 		modes: 0
 		owner: find-last-window
 		if owner <> null [SetWindowLong handle GWL_HWNDPARENT as-integer owner]
@@ -2152,10 +2152,10 @@ OS-destroy-view: func [
 	empty? [logic!]
 ][
 	free-faces face
-	if empty? [
+	either empty? [
 		exit-loop: exit-loop + 1
 		PostQuitMessage 0
-	]
+	][loop 3 [do-events yes]]
 ]
 
 OS-update-facet: func [
